@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GoAskSam</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f9f9f7; height: 100dvh; display: flex; flex-direction: column; }
+  #header { padding: 14px 20px; background: #fff; border-bottom: 1px solid #e8e8e4; display: flex; align-items: center; gap: 10px; }
+  .av { width: 30px; height: 30px; border-radius: 50%; background: #185FA5; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #fff; flex-shrink: 0; }
+  #header h1 { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+  #header p { font-size: 12px; color: #888; }
+  #msgs { flex: 1; overflow-y: auto; padding: 24px 20px; display: flex; flex-direction: column; gap: 18px; max-width: 800px; width: 100%; margin: 0 auto; }
+  .row { display: flex; gap: 10px; align-items: flex-start; }
+  .row.user { flex-direction: row-reverse; }
+  .bubble { max-width: 75%; padding: 11px 15px; border-radius: 18px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+  .bubble.sam { background: #fff; color: #1a1a1a; border-bottom-left-radius: 4px; border: 1px solid #e8e8e4; }
+  .bubble.user { background: #185FA5; color: #fff; border-bottom-right-radius: 4px; }
+  .lbl { font-size: 11px; color: #aaa; margin-bottom: 3px; padding: 0 2px; }
+  .lbl.right { text-align: right; }
+  .typing-bubble { background: #fff; border: 1px solid #e8e8e4; border-radius: 18px; border-bottom-left-radius: 4px; padding: 14px 18px; display: flex; gap: 5px; align-items: center; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #bbb; animation: pulse 1.4s ease-in-out infinite; }
+  .dot:nth-child(2) { animation-delay: .2s; }
+  .dot:nth-child(3) { animation-delay: .4s; }
+  @keyframes pulse { 0%,80%,100%{opacity:.3} 40%{opacity:1} }
+  .cards-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; max-width: 600px; }
+  .car-card { border: 1px solid #e8e8e4; border-radius: 10px; overflow: hidden; background: #fff; width: 200px; flex-shrink: 0; }
+  .car-card img { width: 100%; height: 120px; object-fit: cover; display: block; background: #f0f0ee; }
+  .car-card-body { padding: 10px 12px; }
+  .car-card-title { font-size: 12px; font-weight: 600; color: #1a1a1a; line-height: 1.3; }
+  .car-card-sub { font-size: 11px; color: #888; margin-top: 2px; }
+  .car-card-row { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+  .car-card-price { font-size: 13px; font-weight: 600; color: #1a1a1a; }
+  .pill { font-size: 10px; padding: 2px 7px; border-radius: 99px; font-weight: 500; }
+  .pill-live { background: #e6f4d7; color: #3a7d1e; }
+  .pill-unsold { background: #fef3e2; color: #9a6000; }
+  .pill-sold { background: #dbeafe; color: #1e4fa5; }
+  #bottom { padding: 14px 20px; background: #fff; border-top: 1px solid #e8e8e4; }
+  #bottom-inner { max-width: 800px; margin: 0 auto; display: flex; gap: 10px; align-items: flex-end; }
+  #inp { flex: 1; border: 1px solid #ddd; border-radius: 22px; padding: 10px 18px; font-size: 14px; font-family: inherit; resize: none; outline: none; background: #f9f9f7; color: #1a1a1a; line-height: 1.5; max-height: 120px; }
+  #inp:focus { border-color: #185FA5; background: #fff; }
+  #btn { width: 36px; height: 36px; border-radius: 50%; border: none; background: #185FA5; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; }
+  #btn:hover { background: #0d4a87; }
+  #btn:disabled { background: #ccc; cursor: default; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div class="av">S</div>
+  <div>
+    <h1>GoAskSam</h1>
+    <p>collector car intelligence</p>
+  </div>
+</div>
+
+<div id="msgs"></div>
+
+<div id="bottom">
+  <div id="bottom-inner">
+    <textarea id="inp" rows="1" placeholder="Ask about any car — what are you looking for?"></textarea>
+    <button id="btn" aria-label="Send">↑</button>
+  </div>
+</div>
+
+<script>
+const LISTINGS = [
+  {id:"L01",status:"live",year:1978,make:"Porsche",model:"911 SC Targa",trans:"manual",drive:"RWD",price:20000,bids:5,reserve:true,miles:220300,color:"Black/Tan",loc:"Elma, WA",engine:"3.0L Flat-6",seller:"Private",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/application/s-CixrIm_/edit/l3HoQ.jpg?t=177853174099",flaws:["Seat tears","Loose door paneling","2010 tires","Engine bay corrosion"],service:"2024 major overhaul: brakes, fuel system, ignition, wiring — $17k. Engine+trans rebuilt at 180k, no docs.",concerns:"Engine rebuild has zero documentation. Smog unit in car but not connected — CA concern."},
+  {id:"L02",status:"live",year:2007,make:"Hummer",model:"H3",trans:"automatic",drive:"4WD",price:3050,bids:14,reserve:false,miles:139000,color:"Boulder Gray/Ebony",loc:"Great Neck, NY",engine:"3.7L I5",seller:"Dealer",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c88a6ba8af4c9a8e9d9fe78c40ad6708f5bae9a9/photos/exterior/r4oWzwBp-cOziaMx/edit/0t8D1.jpg?t=177940852144",flaws:["Old tires","Seat bolster tear","Underbody corrosion"],service:"Oil changes only. Dealer acquired April 2026.",concerns:"Sparse service history. Underbody corrosion."},
+  {id:"L03",status:"live",year:2013,make:"Audi",model:"S4 B8 Manual",trans:"manual",drive:"AWD",price:10000,bids:7,reserve:false,miles:83000,color:"Phantom Black/Black",loc:"Pompano Beach, FL",engine:"3.0L SC V6 333hp",seller:"Private",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8666159a15ffd32049319e2dde0e1452e4fe28d1/photos/AudiS42013002.jpg?t=177913181045",flaws:["Chips","Curb rash driver wheels","2020 tires"],service:"1 owner since new. DSG x2, spark plugs, water pump, battery all done.",concerns:"6yr Carfax mileage gap explained by company car. Water pump scope questioned."},
+  {id:"L04",status:"live",year:2022,make:"Rivian",model:"R1T Launch Edition",trans:"automatic",drive:"AWD",price:45000,bids:4,reserve:true,miles:57200,color:"El Cap Granite/Black Mountain",loc:"Santa Cruz, CA",engine:"Quad Electric 835hp",seller:"Private",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/9004500a220bf3a3d455d15ee052cf8c332606f8/photos/K1BMpvqz-OVu2J5C/edit/zG4cp.jpg?t=177942111434",flaws:["Exterior chips","Bed wear"],service:"Gen 2 subframe, tonneau, hubs replaced under warranty.",concerns:"Warranty transfer unconfirmed."},
+  {id:"L05",status:"live",year:1993,make:"Volkswagen",model:"Cabriolet Classic Edition",trans:"manual",drive:"FWD",price:4000,bids:15,reserve:false,miles:141000,color:"Classic Green Pearl/Beige",loc:"Crozet, VA",engine:"1.8L I4",seller:"Private",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/ee7f173e46ec801a48d1673c50f9cebaa1bf2854/photos/exterior/9em7RgZ6-DhDRWoU/edit/XbQv6.jpg?t=177868798407",flaws:["Oil warning light intermittent","Coolant gauge inoperative","Two accidents","Windshield frame corrosion"],service:"Top 2019, seats 2025, timing belt 2011, clutch 2014.",concerns:"Oil light and dead coolant gauge are real. KE-Jetronic fuel system flagged by community."},
+  {id:"L06",status:"live",year:2020,make:"Land Rover",model:"Range Rover SVAutobiography Dynamic",trans:"automatic",drive:"AWD",price:40000,bids:9,reserve:true,miles:33000,color:"SVO Premium Palette Blue/Ebony-Tan",loc:"San Luis Obispo, CA",engine:"5.0L SC V8 557hp",seller:"Private",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/da6e8a1d4896127a9d2adf83461993b45339474c/photos/application/s-_b78Pca/edit/FdNvu.jpg?t=177876856846",flaws:[],service:"Low miles California car. Recent LR service.",concerns:"None significant."},
+  {id:"L07",status:"live",year:2015,make:"Porsche",model:"Cayman 981",trans:"manual",drive:"RWD",price:35000,bids:13,reserve:true,miles:16700,color:"Guards Red/Platinum Gray",loc:"Salem, OR",engine:"2.7L Flat-6 275hp",seller:"Private",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/da6e8a1d4896127a9d2adf83461993b45339474c/photos/application/s-_b78Pca/edit/FdNvu.jpg",flaws:["Exterior chips","PPF imperfections"],service:"PASM, Bose, heated seats. PPF, CarPlay retrofit. Fresh battery and oil.",concerns:"Two DME codes — likely resolved by new battery."},
+  {id:"L08",status:"live",year:2008,make:"Toyota",model:"Sequoia Platinum 4x4",trans:"automatic",drive:"4WD",price:9100,bids:17,reserve:false,miles:96000,color:"Silver Sky Metallic/Gray",loc:"Yonkers, NY",engine:"5.7L V8 381hp",seller:"Private",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/7a0a3c6148108c9c64425dd85e0181fa3cccb652/photos/application/s-Az_3Gml/edit/EmqkI.jpg?t=177891456185",flaws:["Roof dents","Exhaust leak","Underside rust","Two Carfax incidents"],service:"Rear brakes 2021. LED upgrades.",concerns:"Exhaust leak not repaired. Northeastern rust."},
+  {id:"L09",status:"live",year:2003,make:"Lexus",model:"LS 430",trans:"automatic",drive:"RWD",price:4300,bids:2,reserve:false,miles:193800,color:"Mystic Gold/Ivory",loc:"Woodburn, OR",engine:"4.3L V8 290hp",seller:"Private",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/application/s-CixrIm_/edit/l3HoQ.jpg",flaws:["Chrome failing on wheels","Minor electrical quirks","Modified exhaust"],service:"Timing belt+water pump 2021. Radiator 2022. Akebono brakes. Western car.",concerns:"High miles but all the big stuff done. Great value if you want a bulletproof cruiser."},
+  {id:"L10",status:"live",year:2020,make:"Subaru",model:"WRX STI",trans:"manual",drive:"AWD",price:25000,bids:5,reserve:false,miles:9700,color:"WR Blue/Black",loc:"Arizona",engine:"2.5L Turbo 468whp tuned",seller:"Private",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/exterior/3vAVEA0k-sCSR5qQ/edit/9L2LD.jpg?t=177930535574",flaws:["Heavily modified","Stealth switch","Smog uncertain outside AZ"],service:"Tuned by Clark Turner 468whp on E95. Fresh oil. 9,700 total miles.",concerns:"Smog: cats retained, passed AZ. Other states verify first."},
+  {id:"L11",status:"live",year:2020,make:"Nissan",model:"370Z Sport Touring",trans:"automatic",drive:"RWD",price:5580,bids:12,reserve:true,miles:16600,color:"Deep Blue Pearl/Charcoal",loc:"Los Angeles, CA",engine:"3.7L V6 332hp",seller:"Dealer",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/exterior/3vAVEA0k-sCSR5qQ/edit/9L2LD.jpg",flaws:["Glovebox scratch"],service:"Battery Dec 2025. Clean Carfax. LSD, Bose, heated sport seats.",concerns:"Reserve unknown. Dealer doc+smog fees."},
+  {id:"L12",status:"live",year:2009,make:"BMW",model:"Z4 sDrive30i",trans:"manual",drive:"RWD",price:11000,bids:21,reserve:true,miles:51200,color:"Black Sapphire/Coral Red",loc:"Tampa, FL",engine:"3.0L I6 255hp",seller:"Private",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/1477bbe21e8d6b5e719c7c3ccab577fd47dd8cc3/photos/exterior/36dd0nqW-ombFNpE/edit/ueIE5.jpg?t=177906875181",flaws:["2015 tires"],service:"Power retractable hardtop. 51k miles. 2yr no-issue ownership.",concerns:"None significant. Best NA I6 option on E89."},
+  {id:"L13",status:"live",year:2013,make:"Audi",model:"S4 B8 Auto",trans:"automatic",drive:"AWD",price:10000,bids:7,reserve:true,miles:83900,color:"Estoril Blue/Black",loc:"Pompano Beach, FL",engine:"3.0L SC V6 333hp",seller:"Private",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8666159a15ffd32049319e2dde0e1452e4fe28d1/photos/AudiS42013002.jpg?t=177913181045",flaws:["Chips","Curb rash","2020 tires"],service:"1 owner since new 2012. B&O sound, Nappa leather, water pump done.",concerns:"Hood previously repainted."},
+  {id:"L14",status:"live",year:1994,make:"Dodge",model:"Viper RT/10",trans:"manual",drive:"RWD",price:28000,bids:7,reserve:true,miles:18000,color:"Red/Gray",loc:"Pennsylvania",engine:"8.0L V10",seller:"Dealer",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/exterior/3vAVEA0k-sCSR5qQ/edit/9L2LD.jpg",flaws:["2009 tires","Paintwork evidence on 3 panels"],service:"Original soft top and side screens included. Low miles.",concerns:"Tires need immediate replacement. Three-panel paint evidence."},
+  {id:"L15",status:"live",year:2018,make:"BMW",model:"328i Touring",trans:"manual",drive:"RWD",price:3300,bids:10,reserve:false,miles:95000,color:"Blue/Black",loc:"Annapolis, MD",engine:"2.0L Turbo I4",seller:"Private",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c88a6ba8af4c9a8e9d9fe78c40ad6708f5bae9a9/photos/exterior/r4oWzwBp-cOziaMx/edit/0t8D1.jpg",flaws:["Roof panel hanging (passenger)","3 open Carfax recalls"],service:"Military owner, DIY maintenance. Oil every 5k miles.",concerns:"Water pump/thermostat history unknown. Roof panel issue flagged."},
+  {id:"S01",status:"unsold",year:2023,make:"Audi",model:"S4 Premium Plus B9",trans:"automatic",drive:"AWD",price:36750,bids:36,reserve:true,miles:35700,color:"Glacier White/Black",loc:"Medford, MA",engine:"3.0L Turbo V6 349hp",seller:"Private",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/171ab1e538119e13fa98382f268326fc825fdc20/photos/exterior/rbebxqqJ-3yPo-si/edit/ldfls.jpg?t=177881552046",flaws:["Front chips"],service:"Factory warranty through Jan 2027. Near new.",concerns:"Reserve not met. Loan on vehicle. 36 bids — market came but seller held firm."},
+  {id:"S02",status:"unsold",year:2015,make:"Porsche",model:"Cayenne Diesel",trans:"automatic",drive:"AWD",price:14600,bids:10,reserve:true,miles:100400,color:"Moonlight Blue/Luxor Beige",loc:"Delray Beach, FL",engine:"3.0L Turbodiesel V6 240hp",seller:"Private",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c7387fa5557775cb743f87fc02d6cb831afb20b2/photos/rkyPZB4O-HJ3msOQ/edit/Exuar.jpg?t=177793311953",flaws:["Old rear tires","Underbody corrosion"],service:"Engine+trans mounts, prop shaft replaced April 2026. Canadian spec.",concerns:"Reserve not met at $14,600."},
+  {id:"S03",status:"unsold",year:2013,make:"Porsche",model:"Boxster S 981",trans:"manual",drive:"RWD",price:41801,bids:14,reserve:true,miles:11500,color:"Black/Espresso",loc:"Miami, FL",engine:"3.4L Flat-6 315hp",seller:"Dealer",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/9004500a220bf3a3d455d15ee052cf8c332606f8/photos/9nYlQ05B-Ii4xhSMeUe/edit/WqgbG.jpg?t=177916609827",flaws:["Multi-quadrant Carfax damage Oct 2024","2015 tires"],service:"PCA-owned, concours-prepped. Serpentine, plugs, brake fluid done.",concerns:"Reserve not met. Multi-panel damage history is the sticking point."},
+  {id:"S04",status:"unsold",year:2017,make:"Mercedes-Benz",model:"SLC300",trans:"automatic",drive:"RWD",price:14526,bids:66,reserve:true,miles:59000,color:"Black/Black",loc:"Pocono Pines, PA",engine:"2.0L Turbo I4 241hp",seller:"Private",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/exterior/98B4oOvY-d5oJnES/edit/BNyVj.jpg?t=177883746712",flaws:["Two accidents (2023, 2024)","Windshield chip"],service:"Intake manifold, full brakes, thermostat, spark plugs all done.",concerns:"Reserve not met. 66 bids is extraordinary engagement."},
+  {id:"S05",status:"unsold",year:1980,make:"Chevrolet",model:"C10 Silverado LS Swap",trans:"automatic",drive:"RWD",price:20000,bids:23,reserve:true,miles:2600,color:"Burgundy/Black",loc:"Scottsdale, AZ",engine:"5.3L LS V8 Stage 3 built",seller:"Private",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/3794d1c5f7e7c7962d4007cfb6ad111c8b3f92ad/photos/ChevySilverado1980008.jpg?t=177860534035",flaws:["Minor dings","Cracked rear cargo wood","Hazy lights"],service:"Full LS swap build, 4L60E rebuilt, 12-bolt axle, stepside conversion. Trans replaced Aug 2025.",concerns:"Reserve not met. Reserve above where 23 bidders wanted to go."},
+  {id:"S06",status:"unsold",year:2021,make:"Ferrari",model:"812 GTS",trans:"automatic",drive:"RWD",price:322000,bids:39,reserve:true,miles:4700,color:"Nero Daytona/Tortora",loc:"Sacramento, CA",engine:"6.5L V12 789hp",seller:"Dealer",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/application/s-I9AqqUF/edit/RZNJy.jpg?t=177876056637",flaws:["SALVAGE TITLE","Total loss Aug 2024","Second incident Sep 2025"],service:"Repainted: bumper, fenders, hood, passenger door.",concerns:"Salvage title. Insurance total loss. Hard pass for most."},
+  {id:"C01",status:"sold",year:2007,make:"Chevrolet",model:"Corvette C6 3LT",trans:"manual",drive:"RWD",price:18250,bids:18,reserve:false,miles:106000,color:"LeMans Blue/Ebony",loc:"San Diego, CA",engine:"6.0L LS2 400hp",seller:"Private",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/9004500a220bf3a3d455d15ee052cf8c332606f8/photos/3RE22WBN-oqYJROIsqr/edit/UARAn.jpg?t=177922020116",flaws:["Faded rear hatch","P0420 code","Windshield chip"],service:"Harmonic balancer replaced. New tires. Z51 package. California car.",concerns:"Sold $18,250. P0420 code — smog passed. Good C6 comp."},
+  {id:"C02",status:"sold",year:2018,make:"Alfa Romeo",model:"Giulia Ti Sport",trans:"automatic",drive:"RWD",price:13250,bids:18,reserve:false,miles:96300,color:"Trofeo White/Black-Red",loc:"Northridge, CA",engine:"2.0L Turbo I4 280hp",seller:"Private",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4a2fc6c17db6945a4884754a119ce1416d70df61/photos/exterior/KDy0AWz0-WCifDlh/edit/9lkNa.jpg?t=177911700430",flaws:["Dent front door","3-wheel curb rash"],service:"Radiator, serpentine, regular service. California car.",concerns:"Sold $13,250. Previous bidder failed to pay — relisted."}
+];
+
+const SYS = `You are Sam, the smartest car friend the user has ever talked to. You work for GoAskSam — a collector and enthusiast car intelligence platform. You have access to a real dataset of auction listings from Cars & Bids.
+
+LISTINGS:
+${JSON.stringify(LISTINGS)}
+
+HOW YOU TALK:
+- Like a knowledgeable car friend. Direct, opinionated, conversational. Never robotic.
+- Max 3-4 sentences unless the user asks for more detail.
+- Never use bullet points or numbered lists. Pure prose.
+- No em dashes. No filler words. No AI-sounding language.
+- Handle typos, slang, vague queries — figure out what they mean.
+- Full back and forth conversation. Remember everything said earlier in the chat.
+- If you mention specific cars from the dataset, end your message with [CARDS:id1,id2] so the UI shows them. Only include IDs of cars you actually discuss.
+- If someone asks about a car you don't have, say so plainly and offer the closest thing you do have.
+- status: "live" = active auction, "unsold" = reserve not met (use as market data), "sold" = completed sale (use as comp)
+- Be opinionated. Good deal? Say so. Real problem? Say it plainly.
+- Off topic: "That's outside my lane — ChatGPT handles that better. Got a car question?"`;
+
+const history = [];
+
+function cardHTML(l) {
+  const st = l.status === "sold" ? `sold $${l.price.toLocaleString()}` : l.status === "unsold" ? "reserve not met" : `${l.bids} bids`;
+  const pc = l.status === "sold" ? "pill-sold" : l.status === "unsold" ? "pill-unsold" : "pill-live";
+  return `<div class="car-card">
+    <img src="${l.img}" alt="${l.year} ${l.make}" onerror="this.style.background='#e8e8e4'">
+    <div class="car-card-body">
+      <div class="car-card-title">${l.year} ${l.make} ${l.model}</div>
+      <div class="car-card-sub">${l.miles.toLocaleString()} mi · ${l.trans} · ${l.loc}</div>
+      <div class="car-card-row">
+        <span class="car-card-price">$${l.price.toLocaleString()}</span>
+        <span class="pill ${pc}">${st}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function addMsg(role, text, ids) {
+  const msgs = document.getElementById("msgs");
+  const row = document.createElement("div");
+  row.className = "row " + role;
+
+  let cards = "";
+  if (ids && ids.length) {
+    const matched = ids.map(id => LISTINGS.find(l => l.id === id)).filter(Boolean);
+    if (matched.length) cards = `<div class="cards-row">${matched.map(cardHTML).join("")}</div>`;
+  }
+
+  if (role === "sam") {
+    row.innerHTML = `<div class="av">S</div><div><div class="lbl">Sam</div><div class="bubble sam">${text}</div>${cards}</div>`;
+  } else {
+    row.innerHTML = `<div><div class="lbl right">You</div><div class="bubble user">${text}</div></div><div class="av" style="background:#888">U</div>`;
+  }
+  msgs.appendChild(row);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showTyping() {
+  const msgs = document.getElementById("msgs");
+  const row = document.createElement("div");
+  row.id = "typing-row";
+  row.className = "row sam";
+  row.innerHTML = `<div class="av">S</div><div class="typing-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  msgs.appendChild(row);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function hideTyping() { const t = document.getElementById("typing-row"); if (t) t.remove(); }
+
+async function send() {
+  const inp = document.getElementById("inp");
+  const q = inp.value.trim();
+  if (!q) return;
+  inp.value = "";
+  inp.style.height = "auto";
+  document.getElementById("btn").disabled = true;
+
+  addMsg("user", q);
+  history.push({ role: "user", content: q });
+  showTyping();
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: history, system: SYS })
+    });
+    const data = await res.json();
+    const raw = data.text || "Something went wrong.";
+    const cardMatch = raw.match(/\[CARDS:(.*?)\]/);
+    const ids = cardMatch ? cardMatch[1].split(",").map(s => s.trim()) : [];
+    const clean = raw.replace(/\[CARDS:.*?\]/g, "").trim();
+    hideTyping();
+    addMsg("sam", clean, ids);
+    history.push({ role: "assistant", content: raw });
+  } catch (e) {
+    hideTyping();
+    addMsg("sam", "Connection issue — try again.", []);
+  }
+  document.getElementById("btn").disabled = false;
+}
+
+document.getElementById("btn").addEventListener("click", send);
+document.getElementById("inp").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+});
+document.getElementById("inp").addEventListener("input", function () {
+  this.style.height = "auto";
+  this.style.height = Math.min(this.scrollHeight, 120) + "px";
+});
+
+setTimeout(() => {
+  addMsg("sam", "Hey — I'm watching 22 listings right now, live auctions and recent sales. What are you looking for?", []);
+}, 200);
+</script>
+</body>
+</html>
