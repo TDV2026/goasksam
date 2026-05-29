@@ -12,57 +12,71 @@
   .av-user { background: #555; }
   #header h1 { font-size: 16px; font-weight: 600; color: #1a1a1a; }
   #header p { font-size: 11px; color: #888; }
-  #msgs { flex: 1; overflow-y: auto; padding: 24px 20px; display: flex; flex-direction: column; gap: 20px; max-width: 780px; width: 100%; margin: 0 auto; }
+  #msgs { flex: 1; overflow-y: auto; padding: 24px 20px; display: flex; flex-direction: column; gap: 20px; max-width: 720px; width: 100%; margin: 0 auto; }
   .row { display: flex; gap: 10px; align-items: flex-start; }
   .row.user { flex-direction: row-reverse; }
-  .msg-wrap { display: flex; flex-direction: column; gap: 8px; max-width: 82%; }
-  .row.user .msg-wrap { align-items: flex-end; }
+  .msg-wrap { display: flex; flex-direction: column; gap: 10px; max-width: 90%; }
+  .row.user .msg-wrap { align-items: flex-end; max-width: 75%; }
   .lbl { font-size: 11px; color: #aaa; padding: 0 2px; }
-  .bubble { padding: 12px 16px; border-radius: 18px; font-size: 14px; line-height: 1.6; }
+  .bubble { padding: 13px 17px; border-radius: 18px; font-size: 14px; line-height: 1.65; }
   .bubble.sam { background: #fff; color: #1a1a1a; border-bottom-left-radius: 4px; border: 1px solid #e8e8e4; }
   .bubble.user { background: #185FA5; color: #fff; border-bottom-right-radius: 4px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chip { padding: 7px 14px; border-radius: 20px; border: 1px solid #d0d0cc; background: #fff; font-size: 13px; color: #333; cursor: pointer; transition: all 0.12s; white-space: nowrap; }
+  .chip { padding: 8px 16px; border-radius: 20px; border: 1px solid #d0d0cc; background: #fff; font-size: 13px; color: #333; cursor: pointer; transition: all 0.12s; }
   .chip:hover { border-color: #185FA5; color: #185FA5; background: #f0f6ff; }
   .typing-bubble { background: #fff; border: 1px solid #e8e8e4; border-radius: 18px; border-bottom-left-radius: 4px; padding: 14px 18px; display: inline-flex; gap: 5px; align-items: center; }
   .dot { width: 6px; height: 6px; border-radius: 50%; background: #bbb; animation: pulse 1.4s ease-in-out infinite; }
   .dot:nth-child(2) { animation-delay: .2s; }
   .dot:nth-child(3) { animation-delay: .4s; }
   @keyframes pulse { 0%,80%,100%{opacity:.3} 40%{opacity:1} }
-  .cards-grid { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 680px; }
-  .car-card { background: #fff; border: 1px solid #e8e8e4; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
-  .car-card-img { width: 100%; height: 200px; object-fit: cover; display: block; background: #eee; }
-  .car-card-body { padding: 14px 16px; }
-  .car-card-title { font-size: 16px; font-weight: 700; color: #1a1a1a; line-height: 1.2; }
-  .car-card-sub { font-size: 12px; color: #999; margin-top: 3px; }
-  .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
-  .badge { font-size: 11px; padding: 3px 9px; border-radius: 99px; font-weight: 500; white-space: nowrap; }
+  .results-wrap { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+  .card-hero { background: #fff; border: 1.5px solid #185FA5; border-radius: 16px; overflow: hidden; }
+  .card-hero-label { background: #185FA5; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; padding: 8px 16px; }
+  .card-hero-img { width: 100%; height: 220px; object-fit: cover; display: block; background: #eee; }
+  .card-hero-body { padding: 16px; }
+  .card-hero-title { font-size: 18px; font-weight: 700; color: #1a1a1a; }
+  .card-hero-sub { font-size: 12px; color: #999; margin-top: 3px; }
+  .card-hero-price-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 14px; }
+  .card-hero-price-wrap { display: flex; flex-direction: column; }
+  .price-label { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 0.4px; }
+  .price-val { font-size: 24px; font-weight: 700; color: #1a1a1a; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge { font-size: 11px; padding: 3px 9px; border-radius: 99px; font-weight: 500; }
   .badge-live { background: #e6f4d7; color: #2d6a0f; }
-  .badge-unsold { background: #fef3e2; color: #9a6000; }
-  .badge-sold { background: #dbeafe; color: #1e4fa5; }
   .badge-reserve { background: #f3f4f6; color: #555; }
   .badge-noreserve { background: #f0fdf4; color: #166534; }
-  .car-card-price-row { display: flex; align-items: baseline; gap: 6px; margin-top: 12px; }
-  .car-card-price-label { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.4px; }
-  .car-card-price { font-size: 22px; font-weight: 700; color: #1a1a1a; }
-  .car-card-highlights { margin-top: 12px; display: flex; flex-direction: column; gap: 5px; }
-  .highlight { font-size: 13px; color: #444; display: flex; gap: 7px; align-items: flex-start; line-height: 1.4; }
-  .highlight-dot { width: 5px; height: 5px; border-radius: 50%; background: #185FA5; flex-shrink: 0; margin-top: 6px; }
-  .highlight-dot.warn { background: #c2410c; }
-  .car-card-actions { display: flex; gap: 10px; padding: 12px 16px 14px; border-top: 1px solid #f0f0ee; }
-  .btn-secondary { flex: 1; padding: 10px; background: #fff; color: #185FA5; border: 1px solid #185FA5; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
-  .btn-secondary:hover { background: #f0f6ff; }
+  .card-hero-actions { display: flex; gap: 10px; padding: 12px 16px 14px; border-top: 1px solid #f0f0ee; }
+  .btn-ghost { flex: 1; padding: 11px; background: #fff; color: #185FA5; border: 1.5px solid #185FA5; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .btn-ghost:hover { background: #f0f6ff; }
+  .alt-cards { display: flex; flex-direction: column; gap: 10px; }
+  .card-alt { background: #fff; border: 1px solid #e8e8e4; border-radius: 14px; overflow: hidden; display: flex; }
+  .card-alt-img { width: 110px; height: 90px; object-fit: cover; flex-shrink: 0; background: #eee; }
+  .card-alt-body { padding: 11px 13px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+  .card-alt-label { font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .card-alt-label.caution { color: #c2410c; }
+  .card-alt-title { font-size: 13px; font-weight: 700; color: #1a1a1a; line-height: 1.3; }
+  .card-alt-reason { font-size: 12px; color: #666; margin-top: 3px; line-height: 1.4; }
+  .card-alt-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+  .card-alt-price { font-size: 14px; font-weight: 700; color: #1a1a1a; }
+  .card-alt-action { font-size: 12px; color: #185FA5; font-weight: 600; cursor: pointer; background: none; border: none; padding: 0; }
+  .rnm-section { border-top: 1px dashed #ddd; padding-top: 12px; }
+  .rnm-label { font-size: 11px; color: #aaa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .card-rnm { background: #fafafa; border: 1px solid #e8e8e4; border-radius: 10px; padding: 11px 13px; display: flex; justify-content: space-between; align-items: center; opacity: 0.8; }
+  .card-rnm-left { display: flex; flex-direction: column; gap: 2px; }
+  .card-rnm-title { font-size: 13px; font-weight: 600; color: #555; }
+  .card-rnm-sub { font-size: 11px; color: #aaa; }
+  .card-rnm-right { font-size: 11px; color: #aaa; text-align: right; }
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; display: flex; align-items: flex-end; justify-content: center; }
   .modal { background: #fff; border-radius: 20px 20px 0 0; width: 100%; max-width: 680px; max-height: 80vh; overflow-y: auto; padding: 20px 20px 32px; position: relative; }
   .modal-handle { width: 36px; height: 4px; background: #ddd; border-radius: 2px; margin: 0 auto 16px; }
   .modal-title { font-size: 17px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
   .modal-sub { font-size: 12px; color: #999; margin-bottom: 16px; }
-  .modal-section { margin-bottom: 14px; }
-  .modal-section-label { font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
-  .modal-section-text { font-size: 14px; color: #333; line-height: 1.6; }
+  .modal-section { margin-bottom: 16px; }
+  .modal-section-label { font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .modal-section-text { font-size: 14px; color: #333; line-height: 1.65; }
   .modal-close { position: absolute; top: 16px; right: 16px; width: 28px; height: 28px; border-radius: 50%; background: #f0f0ee; border: none; font-size: 16px; cursor: pointer; color: #666; }
   #bottom { padding: 12px 20px 18px; background: #fff; border-top: 1px solid #e8e8e4; flex-shrink: 0; }
-  #bottom-inner { max-width: 780px; margin: 0 auto; display: flex; gap: 10px; align-items: flex-end; }
+  #bottom-inner { max-width: 720px; margin: 0 auto; display: flex; gap: 10px; align-items: flex-end; }
   #inp { flex: 1; border: 1px solid #ddd; border-radius: 22px; padding: 10px 18px; font-size: 14px; font-family: inherit; resize: none; outline: none; background: #f9f9f7; color: #1a1a1a; line-height: 1.5; max-height: 120px; }
   #inp:focus { border-color: #185FA5; background: #fff; }
   #btn { width: 36px; height: 36px; border-radius: 50%; border: none; background: #185FA5; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; }
@@ -82,115 +96,81 @@
     <button id="btn" aria-label="Send">↑</button>
   </div>
 </div>
-
 <script>
 const LISTINGS = [
-  {id:"L01",status:"live",year:1978,make:"Porsche",model:"911 SC Targa",type:"sports",trans:"manual",drive:"RWD",price:20000,reserve:true,miles:220300,color:"Black/Tan",loc:"Elma, WA",platform:"C&B",engine:"3.0L Flat-6",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/application/s-CixrIm_/edit/l3HoQ.jpg?t=177853174099",h1:"Long-term owner since 1998 — $17k mechanical overhaul in 2024",h2:"Targa spec with Fuchs wheels, classic air-cooled experience",warn:"Engine rebuild at 180k has zero documentation",concerns:"Engine rebuild undocumented. Smog unit not connected — CA buyers verify.",service:"2024: full brake, fuel, ignition, wiring overhaul.",market:"Classic SC Targas with documented history are trading $35-55k. This one is priced below market but the undocumented rebuild is the discount reason."},
-  {id:"L02",status:"live",year:2007,make:"Hummer",model:"H3",type:"suv",trans:"automatic",drive:"4WD",price:3050,reserve:false,miles:139000,color:"Boulder Gray/Ebony",loc:"Great Neck, NY",platform:"C&B",engine:"3.7L I5",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c88a6ba8af4c9a8e9d9fe78c40ad6708f5bae9a9/photos/exterior/r4oWzwBp-cOziaMx/edit/0t8D1.jpg?t=177940852144",h1:"No reserve — clean Carfax, full-time 4WD with skid plates",h2:"True off-road capability at an accessible price",warn:"Sparse service history, underbody corrosion",concerns:"Oil changes only in Carfax. Underbody corrosion for a northeastern car.",service:"Oil changes only. Dealer acquired April 2026.",market:"H3s with clean Carfax and full-time 4WD are trading $4-8k in better condition. This is entry-level pricing."},
-  {id:"L03",status:"live",year:2013,make:"Audi",model:"S4",type:"sports",trans:"manual",drive:"AWD",price:10000,reserve:false,miles:83000,color:"Phantom Black/Black",loc:"Pompano Beach, FL",platform:"C&B",engine:"3.0L SC V6 333hp",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8666159a15ffd32049319e2dde0e1452e4fe28d1/photos/AudiS42013002.jpg?t=177913181045",h1:"Manual B8 S4 — the unicorn spec, 1 owner from new",h2:"DSG serviced twice, water pump done, fully sorted",warn:"6yr Carfax mileage gap needs explanation",concerns:"Carfax shows only 48 miles driven 2017-2023. Seller explains as company car period.",service:"1 owner since new. DSG x2, spark plugs, water pump, battery all done.",market:"Manual B8 S4s are genuinely rare. Auto versions with similar miles go $12-16k. Manual commands a premium — $10k no reserve is strong value if the mileage story checks out."},
-  {id:"L04",status:"live",year:2022,make:"Rivian",model:"R1T Launch Edition",type:"truck",trans:"automatic",drive:"AWD",price:45000,reserve:true,miles:57200,color:"El Cap Granite/Black Mountain",loc:"Santa Cruz, CA",platform:"C&B",engine:"Quad Electric 835hp",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/9004500a220bf3a3d455d15ee052cf8c332606f8/photos/K1BMpvqz-OVu2J5C/edit/zG4cp.jpg?t=177942111434",h1:"Launch Edition with large pack — sold-out spec",h2:"Gen 2 subframe and tonneau replaced under warranty",warn:"Warranty transfer to new owner unconfirmed",concerns:"Rivian warranty transferability not confirmed. Known reseller bidder active in comments.",service:"Gen 2 subframe, tonneau, half shaft boots, wheel hubs replaced under Rivian warranty.",market:"R1T Launch Editions with large pack have been trading $42-52k. Reserve likely in that range."},
-  {id:"L05",status:"live",year:1993,make:"Volkswagen",model:"Cabriolet Classic Edition",type:"convertible",trans:"manual",drive:"FWD",price:4000,reserve:false,miles:141000,color:"Classic Green Pearl/Beige",loc:"Crozet, VA",platform:"C&B",engine:"1.8L I4",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/ee7f173e46ec801a48d1673c50f9cebaa1bf2854/photos/exterior/9em7RgZ6-DhDRWoU/edit/XbXv6.jpg?t=177868798407",h1:"Rare Classic Green Pearl color, last-year Cabriolet",h2:"Soft top replaced 2019, seats reupholstered 2025",warn:"Oil warning light intermittent, coolant gauge inoperative",concerns:"Non-functional coolant gauge is a real concern. KE-Jetronic fuel system flagged as known weakness.",service:"Top 2019, seats 2025, timing belt 2011, clutch 2014.",market:"Clean Cabriolets in desirable colors trade $6-12k. This one is priced below market for the condition issues."},
-  {id:"L06",status:"live",year:2020,make:"Land Rover",model:"Range Rover SVAutobiography Dynamic",type:"suv",trans:"automatic",drive:"AWD",price:40000,reserve:true,miles:33000,color:"SVO Premium Palette Blue/Ebony-Tan",loc:"San Luis Obispo, CA",platform:"C&B",engine:"5.0L SC V8 557hp",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/da6e8a1d4896127a9d2adf83461993b45339474c/photos/application/s-_b78Pca/edit/FdNvu.jpg?t=177876856846",h1:"Pinnacle spec — SVAutobiography Dynamic with 557hp V8",h2:"33k miles, California car, recent dealer service",warn:"Reserve likely well above current $40k bid",concerns:"No mechanical concerns. Reserve unknown but likely significant gap from current bid.",service:"Low miles, California car. Recent Land Rover dealer service.",market:"SVAutobiography Dynamic examples with similar miles are trading $65-85k retail. Auction is early."},
-  {id:"L07",status:"live",year:2015,make:"Porsche",model:"Cayman 981",type:"sports",trans:"manual",drive:"RWD",price:35000,reserve:true,miles:16700,color:"Guards Red/Platinum Gray",loc:"Salem, OR",platform:"C&B",engine:"2.7L Flat-6 275hp",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/3oQw58xo-2PyUGXk/edit/hP0rA.jpg?t=177930231707",h1:"16,700 miles — exceptional for a 981 manual",h2:"PASM, Bose, PPF, heated seats, CarPlay retrofit",warn:"Two DME codes present — seller believes battery-related",concerns:"DME codes present. Seller replaced original 10yr battery and believes this resolves them.",service:"PASM, Bose, heated seats, PPF, CarPlay. Fresh battery and oil May 2026.",market:"Guards Red manual 981 Caymans at this mileage are genuinely rare. Comparable examples have traded $42-55k."},
-  {id:"L08",status:"live",year:2008,make:"Toyota",model:"Sequoia Platinum 4x4",type:"suv",trans:"automatic",drive:"4WD",price:9100,reserve:false,miles:96000,color:"Silver Sky Metallic/Gray",loc:"Yonkers, NY",platform:"C&B",engine:"5.7L V8 381hp",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/7a0a3c6148108c9c64425dd85e0181fa3cccb652/photos/application/s-Az_3Gml/edit/EmqkI.jpg?t=177891456185",h1:"5.7L V8 Platinum with locking center diff, no reserve",h2:"96k miles — well under average for this generation",warn:"Exhaust leak disclosed, underbody rust present",concerns:"Exhaust leak not repaired. Northeastern underside rust is real.",service:"Rear brakes 2021. LED upgrades.",market:"Second-gen Sequoia Platinums in cleaner condition trade $14-20k. Discounted for rust and exhaust."},
-  {id:"L09",status:"live",year:2020,make:"Subaru",model:"WRX STI",type:"sports",trans:"manual",drive:"AWD",price:25000,reserve:false,miles:9700,color:"WR Blue/Black",loc:"Arizona",platform:"C&B",engine:"2.5L Turbo 468whp",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/abd2a7f0535314882a8c78d2ed08e7b8869f7367/photos/SubaruWRX2020002.jpg?t=177911430862",h1:"9,700 miles — tuned to 468whp by Clark Turner",h2:"No reserve, full build documentation, clean title",warn:"Modified — smog compliance varies by state",concerns:"Cats retained, passed AZ. Non-AZ buyers must verify emissions. Stealth switch for rear lights.",service:"Clark Turner tune, bolt-ons, fresh Motul 300v.",market:"Low-mile tuned STIs with documented builds are rare. Stock 2020 STIs trade $28-35k."},
-  {id:"L10",status:"live",year:2020,make:"Nissan",model:"370Z Sport Touring",type:"sports",trans:"automatic",drive:"RWD",price:5580,reserve:true,miles:16600,color:"Deep Blue Pearl/Charcoal",loc:"Los Angeles, CA",platform:"C&B",engine:"3.7L V6 332hp",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/exterior/3vAVEA0k-sCSR5pQ/edit/9L2LD.jpg?t=177930535574",h1:"16,600 miles, Sport Touring with LSD and Bose",h2:"Clean Carfax, recent battery and service",warn:"Reserve unknown, dealer adds $125 in fees",concerns:"Reserve amount unknown. Doc fee $70, smog fee $55.",service:"Battery Dec 2025. Oil and fuel system 2025.",market:"370Z Sport Touring autos with low miles trade $18-24k. Reserve is the key question."},
-  {id:"L11",status:"live",year:2009,make:"BMW",model:"Z4 sDrive30i",type:"sports",trans:"manual",drive:"RWD",price:11000,reserve:true,miles:51200,color:"Black Sapphire/Coral Red",loc:"Tampa, FL",platform:"C&B",engine:"3.0L I6 255hp",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/1477bbe21e8d6b5e719c7c3ccab577fd47dd8cc3/photos/exterior/36dd0nqW-ombFNpE/edit/ueIE5.jpg?t=177906875181",h1:"NA straight-six manual — the right E89 spec",h2:"Power retractable hardtop, 51k miles, 2yr no issues",warn:"2015 tires need replacing",concerns:"Tires are 11 years old — budget for new ones immediately.",service:"Retractable hardtop. Build sheet included. Seller Austin to Tampa.",market:"E89 Z4 sDrive30i manuals trade $12-18k. Fair money for this spec."},
-  {id:"L13",status:"live",year:2013,make:"Audi",model:"S4 Auto",type:"sports",trans:"automatic",drive:"AWD",price:10000,reserve:true,miles:83900,color:"Estoril Blue/Black",loc:"Pompano Beach, FL",platform:"C&B",engine:"3.0L SC V6 333hp",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8666159a15ffd32049319e2dde0e1452e4fe28d1/photos/AudiS42013002.jpg?t=177913181045",h1:"1 owner from new 2012, Estoril Blue with B&O and Nappa",h2:"Water pump, battery, secondary air all done Dec 2023",warn:"Hood previously repainted, reserve active",concerns:"Hood repainted under prior ownership — reason unknown.",service:"Water pump, battery, secondary air Dec 2023. B&O, Nappa leather, MMI Nav.",market:"B8 S4 autos trade $13-18k. Positioned below market for the spec."},
-  {id:"L14",status:"live",year:1994,make:"Dodge",model:"Viper RT/10",type:"sports",trans:"manual",drive:"RWD",price:28000,reserve:true,miles:18000,color:"Red/Gray",loc:"Pennsylvania",platform:"C&B",engine:"8.0L V10",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8e6341e27a680ffab7d98e42bef83b0dd1b0fb94/photos/application/s-Pg2aXOu/edit/DDRKS.jpg?t=177914552824",h1:"18k miles, original soft top and side screens included",h2:"Gen 1 RT/10 — raw, unfiltered American muscle",warn:"2009 tires need immediate replacement",concerns:"Tires are 17 years old — dangerous. Three-panel paint evidence.",service:"Original soft top and side screens. Dealer-presented.",market:"Gen 1 Vipers at this mileage trade $35-55k in solid condition."},
-  {id:"L15",status:"live",year:2018,make:"BMW",model:"328i Touring",type:"wagon",trans:"manual",drive:"RWD",price:3300,reserve:false,miles:95000,color:"Blue/Black",loc:"Annapolis, MD",platform:"C&B",engine:"2.0L Turbo I4",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/fc2fca4f3b35e00cdcf6a9b9a58ae637f2655f32/photos/BMW2010328i002.jpg?t=177825856467",h1:"Manual wagon — rare US spec, military owner",h2:"No reserve, oil every 5k, BMW mechanic during deployment",warn:"Passenger roof panel hanging, 3 open recalls",concerns:"Roof panel hanging. Water pump history unknown. 3 Carfax recalls unaddressed.",service:"Military owner, diligent oil changes every 5k.",market:"Manual F30 wagons are extremely rare in the US. No real comparable exists."},
-  {id:"L16",status:"live",year:2003,make:"Lexus",model:"LS 430",type:"sedan",trans:"automatic",drive:"RWD",price:4300,reserve:false,miles:193800,color:"Mystic Gold/Ivory",loc:"Woodburn, OR",platform:"C&B",engine:"4.3L V8 290hp",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/abd2a7f0535314882a8c78d2ed08e7b8869f7367/photos/SubaruWRX2020002.jpg?t=177911430862",h1:"Timing belt, water pump, radiator all done",h2:"Western car, no reserve, bulletproof V8 luxury",warn:"193k miles, chrome failing on wheels",concerns:"High miles. Chrome on wheels failing. Minor electrical quirks.",service:"Timing belt, water pump, serpentine 2021. Radiator 2022. Akebono brakes.",market:"LS 430s with maintenance done trade $5-10k. This is floor pricing for a western car with receipts."},
-  {id:"S01",status:"unsold",year:2023,make:"Audi",model:"S4 Premium Plus",type:"sports",trans:"automatic",drive:"AWD",price:36750,reserve:true,miles:35700,color:"Glacier White/Black",loc:"Medford, MA",platform:"C&B",engine:"3.0L Turbo V6 349hp",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/171ab1e538119e13fa98382f268326fc825fdc20/photos/exterior/rbebxqqJ-3yPo-si/edit/ldfls.jpg?t=177881552046",h1:"36 bids to $36,750 — market came, reserve not met",h2:"Factory warranty through Jan 2027, near-new",warn:"Reserve not met, loan on vehicle",concerns:"Loan on vehicle. 36 bids shows demand — seller held above market.",service:"Factory warranty 2027. Oil change Jan 2026.",market:"Market consensus on this spec is ~$36-38k. Seller's reserve is above that."},
-  {id:"S02",status:"unsold",year:2015,make:"Porsche",model:"Cayenne Diesel",type:"suv",trans:"automatic",drive:"AWD",price:14600,reserve:true,miles:100400,color:"Moonlight Blue/Luxor Beige",loc:"Delray Beach, FL",platform:"C&B",engine:"3.0L Turbodiesel V6 240hp",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c7387fa5557775cb743f87fc02d6cb831afb20b2/photos/rkyPZB4O-HJ3msOQ/edit/Exuar.jpg?t=177793311953",h1:"Engine+trans mounts and prop shaft replaced pre-sale",h2:"Canadian-spec, FL-titled, clean Carfax",warn:"Reserve not met at $14,600",concerns:"Reserve not met. Carfax oil leak check — seller disputes current leak.",service:"Engine+trans mounts, prop shaft April 2026. Brakes 2024.",market:"Cayenne Diesels at 100k trade $14-20k. Reserve likely low-to-mid teens."},
-  {id:"S03",status:"unsold",year:2013,make:"Porsche",model:"Boxster S 981",type:"sports",trans:"manual",drive:"RWD",price:41801,reserve:true,miles:11500,color:"Black/Espresso",loc:"Miami, FL",platform:"C&B",engine:"3.4L Flat-6 315hp",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/9004500a220bf3a3d455d15ee052cf8c332606f8/photos/9nYlQ05B-Ii4xhSMeUe/edit/WqgbG.jpg?t=177916609827",h1:"11,500 miles — concours-prepped PCA car",h2:"Reserve not met despite 14 bids — useful ceiling data",warn:"Multi-quadrant Carfax damage Oct 2024",concerns:"Carfax damage across multiple quadrants Oct 2024. This is why buyers held back.",service:"PCA-owned. Serpentine, plugs, brake fluid Nov 2023.",market:"981 Boxster S manuals at similar miles trade $40-55k clean. Damage history = discount expectation."},
-  {id:"S04",status:"unsold",year:2017,make:"Mercedes-Benz",model:"SLC300",type:"convertible",trans:"automatic",drive:"RWD",price:14526,reserve:true,miles:59000,color:"Black/Black",loc:"Pocono Pines, PA",platform:"C&B",engine:"2.0L Turbo I4 241hp",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/exterior/98B4oOvY-d5oJnES/edit/BNyVj.jpg?t=177883746712",h1:"66 bids to $14,526 — extraordinary market engagement",h2:"Fully serviced: brakes, thermostat, intake manifold",warn:"Reserve not met, two Carfax accidents",concerns:"Two accidents 2023 and 2024. Reserve above where 66 bidders wanted to go.",service:"Intake manifold April 2026. Full brakes 2024. Thermostat, CCV, plugs done.",market:"SLC300s at this mileage trade $14-18k. 66 bids says market is $14-15k."},
-  {id:"S05",status:"unsold",year:1980,make:"Chevrolet",model:"C10 Silverado LS Swap",type:"truck",trans:"automatic",drive:"RWD",price:20000,reserve:true,miles:2600,color:"Burgundy/Black",loc:"Scottsdale, AZ",platform:"C&B",engine:"5.3L LS V8 Stage 3",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/3794d1c5f7e7c7962d4007cfb6ad111c8b3f92ad/photos/ChevySilverado1980008.jpg?t=177860534035",h1:"Full LS swap — Stage 3 cam, 12-bolt, stepside conversion",h2:"Transmission rebuilt Aug 2025, full documentation",warn:"Reserve not met at $20,000",concerns:"Reserve above where 23 bidders wanted to go.",service:"LS swap. 4L60E rebuilt Aug 2025. Brakes, bearings June 2025.",market:"Square-body LS builds trade $22-35k. Reserve likely low-to-mid $20s."},
-  {id:"S06",status:"unsold",year:2021,make:"Ferrari",model:"812 GTS",type:"sports",trans:"automatic",drive:"RWD",price:322000,reserve:true,miles:4700,color:"Nero Daytona/Tortora",loc:"Sacramento, CA",platform:"C&B",engine:"6.5L V12 789hp",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/application/s-I9AqqUF/edit/RZNJy.jpg?t=177876056637",h1:"$462k MSRP, 4,700 miles, 789hp naturally aspirated V12",h2:"Reserve not met at $322,000",warn:"SALVAGE TITLE — total loss Aug 2024, second incident Sep 2025",concerns:"Salvage title. Total loss declared by insurer. Second damage event after. Most buyers should pass.",service:"Bumper, fenders, hood, door repainted.",market:"Clean 812 GTS trade $380-450k. Salvage is a big discount but a bigger risk."},
-  {id:"C01",status:"sold",year:2007,make:"Chevrolet",model:"Corvette C6 3LT",type:"sports",trans:"manual",drive:"RWD",price:18250,reserve:false,miles:106000,color:"LeMans Blue/Ebony",loc:"San Diego, CA",platform:"C&B",engine:"6.0L LS2 V8 400hp",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/9004500a220bf3a3d455d15ee052cf8c332606f8/photos/3RE22WBN-oqYJROIsqr/edit/UARAn.jpg?t=177922020116",h1:"Sold $18,250 — Z51, 6-speed, California car",h2:"Harmonic balancer replaced and pinned June 2025",warn:"Intermittent P0420 code at time of sale",concerns:"P0420 — smog passed regardless.",service:"Harmonic balancer June 2025. New tires April 2026.",market:"Comp: $18,250 for Z51 manual C6 with 106k California miles."},
-  {id:"C02",status:"sold",year:2018,make:"Alfa Romeo",model:"Giulia Ti Sport",type:"sports",trans:"automatic",drive:"RWD",price:13250,reserve:false,miles:96300,color:"Trofeo White/Black-Red",loc:"Northridge, CA",platform:"C&B",engine:"2.0L Turbo I4 280hp",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4a2fc6c17db6945a4884754a119ce1416d70df61/photos/exterior/KDy0AWz0-WCifDlh/edit/9lkNa.jpg?t=177911700430",h1:"Sold $13,250 — Ti Sport with LSD and active suspension",h2:"California car, radiator done, Harman Kardon",warn:"Prior winning bidder failed to pay — relisted",concerns:"Previous bidder banned. Second auction result is clean.",service:"Radiator Dec 2024. Serpentine Oct 2023.",market:"Comp: $13,250 for 96k Ti Sport California car."}
+  {id:"L01",status:"live",year:1978,make:"Porsche",model:"911 SC Targa",type:"sports",trans:"manual",drive:"RWD",price:20000,reserve:true,miles:220300,loc:"Elma, WA",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/application/s-CixrIm_/edit/l3HoQ.jpg?t=177853174099",concerns:"Engine rebuild undocumented. Smog unit not connected — CA buyers verify.",service:"2024: full brake, fuel, ignition, wiring overhaul — $17k.",market:"SC Targas with clean history trade $35-55k. Undocumented rebuild is the discount reason."},
+  {id:"L02",status:"live",year:2007,make:"Hummer",model:"H3",type:"suv",trans:"automatic",drive:"4WD",price:3050,reserve:false,miles:139000,loc:"Great Neck, NY",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c88a6ba8af4c9a8e9d9fe78c40ad6708f5bae9a9/photos/exterior/r4oWzwBp-cOziaMx/edit/0t8D1.jpg?t=177940852144",concerns:"Oil changes only in Carfax. Underbody corrosion.",service:"Oil changes only. Dealer acquired April 2026.",market:"H3s in better condition trade $4-8k. This is entry pricing."},
+  {id:"L03",status:"live",year:2013,make:"Audi",model:"S4 Manual",type:"sports",trans:"manual",drive:"AWD",price:10000,reserve:false,miles:83000,loc:"Pompano Beach, FL",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8666159a15ffd32049319e2dde0e1452e4fe28d1/photos/AudiS42013002.jpg?t=177913181045",concerns:"6yr Carfax mileage gap — seller explains as company car period.",service:"1 owner since new. DSG x2, spark plugs, water pump, battery all done.",market:"Manual B8 S4s are rare. Autos go $12-16k. $10k no reserve is strong if mileage story checks out."},
+  {id:"L04",status:"live",year:2022,make:"Rivian",model:"R1T Launch Edition",type:"truck",trans:"automatic",drive:"AWD",price:45000,reserve:true,miles:57200,loc:"Santa Cruz, CA",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/9004500a220bf3a3d455d15ee052cf8c332606f8/photos/K1BMpvqz-OVu2J5C/edit/zG4cp.jpg?t=177942111434",concerns:"Warranty transfer unconfirmed. Known reseller bidder in comments.",service:"Gen 2 subframe, tonneau, hubs under Rivian warranty.",market:"Launch Editions trade $42-52k. Reserve likely in that range."},
+  {id:"L05",status:"live",year:1993,make:"Volkswagen",model:"Cabriolet Classic Edition",type:"convertible",trans:"manual",drive:"FWD",price:4000,reserve:false,miles:141000,loc:"Crozet, VA",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/ee7f173e46ec801a48d1673c50f9cebaa1bf2854/photos/exterior/9em7RgZ6-DhDRWoU/edit/XbXv6.jpg?t=177868798407",concerns:"Oil warning light intermittent. Coolant gauge inoperative. KE-Jetronic fuel system is a known weakness.",service:"Top 2019, seats 2025, timing belt 2011, clutch 2014.",market:"Clean Cabriolets in good colors trade $6-12k. Priced below market for condition issues."},
+  {id:"L06",status:"live",year:2020,make:"Land Rover",model:"Range Rover SVAutobiography Dynamic",type:"suv",trans:"automatic",drive:"AWD",price:40000,reserve:true,miles:33000,loc:"San Luis Obispo, CA",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/da6e8a1d4896127a9d2adf83461993b45339474c/photos/application/s-_b78Pca/edit/FdNvu.jpg?t=177876856846",concerns:"No mechanical concerns. Reserve likely a significant gap above current bid.",service:"Low miles. California car. Recent LR dealer service.",market:"SVAutobiography Dynamic examples trade $65-85k retail. Auction is very early."},
+  {id:"L07",status:"live",year:2015,make:"Porsche",model:"Cayman 981",type:"sports",trans:"manual",drive:"RWD",price:35000,reserve:true,miles:16700,loc:"Salem, OR",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/3oQw58xo-2PyUGXk/edit/hP0rA.jpg?t=177930231707",concerns:"Two DME codes — seller replaced 10yr-old battery, believes resolved.",service:"PASM, Bose, heated seats, PPF, CarPlay. Fresh battery and oil May 2026.",market:"Guards Red manual 981s at this mileage trade $42-55k. Reserve is the open question."},
+  {id:"L08",status:"live",year:2008,make:"Toyota",model:"Sequoia Platinum 4x4",type:"suv",trans:"automatic",drive:"4WD",price:9100,reserve:false,miles:96000,loc:"Yonkers, NY",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/7a0a3c6148108c9c64425dd85e0181fa3cccb652/photos/application/s-Az_3Gml/edit/EmqkI.jpg?t=177891456185",concerns:"Exhaust leak not repaired. Northeastern underside rust visible.",service:"Rear brakes 2021. LED upgrades.",market:"Sequoia Platinums in cleaner condition trade $14-20k. Discounted for rust and exhaust."},
+  {id:"L09",status:"live",year:2020,make:"Subaru",model:"WRX STI",type:"sports",trans:"manual",drive:"AWD",price:25000,reserve:false,miles:9700,loc:"Arizona",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/abd2a7f0535314882a8c78d2ed08e7b8869f7367/photos/SubaruWRX2020002.jpg?t=177911430862",concerns:"Heavily modified. Smog: cats retained, passed AZ. Non-AZ buyers must verify.",service:"Clark Turner tune to 468whp. Fresh Motul 300v.",market:"Low-mile tuned STIs are rare. Stock 2020 STIs trade $28-35k."},
+  {id:"L10",status:"live",year:2020,make:"Nissan",model:"370Z Sport Touring",type:"sports",trans:"automatic",drive:"RWD",price:5580,reserve:true,miles:16600,loc:"Los Angeles, CA",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/exterior/3vAVEA0k-sCSR5pQ/edit/9L2LD.jpg?t=177930535574",concerns:"Reserve unknown. Dealer adds $70 doc + $55 smog fees.",service:"Battery Dec 2025. Clean Carfax. LSD, Bose.",market:"370Z Sport Touring autos with low miles trade $18-24k. Current bid well below market."},
+  {id:"L11",status:"live",year:2009,make:"BMW",model:"Z4 sDrive30i",type:"sports",trans:"manual",drive:"RWD",price:11000,reserve:true,miles:51200,loc:"Tampa, FL",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/1477bbe21e8d6b5e719c7c3ccab577fd47dd8cc3/photos/exterior/36dd0nqW-ombFNpE/edit/ueIE5.jpg?t=177906875181",concerns:"2015 tires — need replacing immediately.",service:"Power retractable hardtop. Build sheet included. 2yr no-issue ownership.",market:"E89 Z4 sDrive30i manuals trade $12-18k. Fair money for this spec."},
+  {id:"L13",status:"live",year:2013,make:"Audi",model:"S4 Auto",type:"sports",trans:"automatic",drive:"AWD",price:10000,reserve:true,miles:83900,loc:"Pompano Beach, FL",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8666159a15ffd32049319e2dde0e1452e4fe28d1/photos/AudiS42013002.jpg?t=177913181045",concerns:"Hood previously repainted — reason unknown.",service:"1 owner since new 2012. Water pump, battery Dec 2023. B&O, Nappa leather.",market:"B8 S4 autos trade $13-18k. Positioned below market for the spec."},
+  {id:"L14",status:"live",year:1994,make:"Dodge",model:"Viper RT/10",type:"sports",trans:"manual",drive:"RWD",price:28000,reserve:true,miles:18000,loc:"Pennsylvania",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8e6341e27a680ffab7d98e42bef83b0dd1b0fb94/photos/application/s-Pg2aXOu/edit/DDRKS.jpg?t=177914552824",concerns:"2009 tires — dangerous, immediate replacement. Three-panel paint evidence.",service:"Original soft top and side screens included.",market:"Gen 1 Vipers at this mileage trade $35-55k in solid condition."},
+  {id:"L15",status:"live",year:2018,make:"BMW",model:"328i Touring",type:"wagon",trans:"manual",drive:"RWD",price:3300,reserve:false,miles:95000,loc:"Annapolis, MD",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/fc2fca4f3b35e00cdcf6a9b9a58ae637f2655f32/photos/BMW2010328i002.jpg?t=177825856467",concerns:"Passenger roof panel hanging. Water pump history unknown. 3 open Carfax recalls.",service:"Military owner, oil every 5k. BMW mechanic during Korea deployment.",market:"Manual F30 wagons are extremely rare in the US. No real comp exists."},
+  {id:"L16",status:"live",year:2003,make:"Lexus",model:"LS 430",type:"sedan",trans:"automatic",drive:"RWD",price:4300,reserve:false,miles:193800,loc:"Woodburn, OR",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/abd2a7f0535314882a8c78d2ed08e7b8869f7367/photos/SubaruWRX2020002.jpg?t=177911430862",concerns:"High miles. Chrome on wheels failing. Minor electrical quirks.",service:"Timing belt, water pump, serpentine 2021. Radiator 2022. Akebono brakes.",market:"LS 430s with maintenance done trade $5-10k. Floor pricing for a western car with receipts."},
+  {id:"S01",status:"unsold",year:2023,make:"Audi",model:"S4 Premium Plus",type:"sports",trans:"automatic",drive:"AWD",price:36750,miles:35700,loc:"Medford, MA",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/171ab1e538119e13fa98382f268326fc825fdc20/photos/exterior/rbebxqqJ-3yPo-si/edit/ldfls.jpg?t=177881552046",concerns:"Loan on vehicle. Reserve not met at $36,750 despite 36 bids.",service:"Factory warranty through Jan 2027.",market:"Market consensus ~$36-38k. Seller held above that."},
+  {id:"S02",status:"unsold",year:2015,make:"Porsche",model:"Cayenne Diesel",type:"suv",trans:"automatic",drive:"AWD",price:14600,miles:100400,loc:"Delray Beach, FL",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c7387fa5557775cb743f87fc02d6cb831afb20b2/photos/rkyPZB4O-HJ3msOQ/edit/Exuar.jpg?t=177793311953",concerns:"Reserve not met at $14,600.",service:"Engine+trans mounts, prop shaft April 2026. Brakes 2024.",market:"Cayenne Diesels at 100k trade $14-20k."},
+  {id:"S03",status:"unsold",year:2013,make:"Porsche",model:"Boxster S 981",type:"sports",trans:"manual",drive:"RWD",price:41801,miles:11500,loc:"Miami, FL",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/9004500a220bf3a3d455d15ee052cf8c332606f8/photos/9nYlQ05B-Ii4xhSMeUe/edit/WqgbG.jpg?t=177916609827",concerns:"Multi-quadrant Carfax damage Oct 2024 — why buyers held back despite 11k miles.",service:"PCA-owned. Serpentine, plugs, brake fluid Nov 2023.",market:"981 Boxster S manuals trade $40-55k clean. Damage history creates discount expectation."},
+  {id:"S04",status:"unsold",year:2017,make:"Mercedes-Benz",model:"SLC300",type:"convertible",trans:"automatic",drive:"RWD",price:14526,miles:59000,loc:"Pocono Pines, PA",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/exterior/98B4oOvY-d5oJnES/edit/BNyVj.jpg?t=177883746712",concerns:"Two accidents 2023 and 2024. Reserve above where 66 bidders wanted to go.",service:"Intake manifold, full brakes, thermostat, plugs done.",market:"66 bids tells you the market is $14-15k."},
+  {id:"S05",status:"unsold",year:1980,make:"Chevrolet",model:"C10 Silverado LS Swap",type:"truck",trans:"automatic",drive:"RWD",price:20000,miles:2600,loc:"Scottsdale, AZ",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/3794d1c5f7e7c7962d4007cfb6ad111c8b3f92ad/photos/ChevySilverado1980008.jpg?t=177860534035",concerns:"Reserve above where 23 bidders wanted to go.",service:"LS swap. 4L60E rebuilt Aug 2025.",market:"Comparable builds trade $22-35k."},
+  {id:"S06",status:"unsold",year:2021,make:"Ferrari",model:"812 GTS",type:"sports",trans:"automatic",drive:"RWD",price:322000,miles:4700,loc:"Sacramento, CA",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/application/s-I9AqqUF/edit/RZNJy.jpg?t=177876056637",concerns:"SALVAGE TITLE. Total loss Aug 2024. Second incident Sep 2025. Most buyers should pass.",service:"Front bumper, fenders, hood, door repainted.",market:"Clean 812 GTS trade $380-450k. Salvage = big discount, bigger risk."},
+  {id:"C01",status:"sold",year:2007,make:"Chevrolet",model:"Corvette C6 3LT",type:"sports",trans:"manual",drive:"RWD",price:18250,miles:106000,loc:"San Diego, CA",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/9004500a220bf3a3d455d15ee052cf8c332606f8/photos/3RE22WBN-oqYJROIsqr/edit/UARAn.jpg?t=177922020116",concerns:"P0420 code — smog passed regardless.",service:"Harmonic balancer June 2025. New tires April 2026.",market:"Comp: $18,250 for Z51 manual C6 with 106k California miles."},
+  {id:"C02",status:"sold",year:2018,make:"Alfa Romeo",model:"Giulia Ti Sport",type:"sports",trans:"automatic",drive:"RWD",price:13250,miles:96300,loc:"Northridge, CA",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4a2fc6c17db6945a4884754a119ce1416d70df61/photos/exterior/KDy0AWz0-WCifDlh/edit/9lkNa.jpg?t=177911700430",concerns:"Prior winning bidder banned for non-payment.",service:"Radiator Dec 2024. Serpentine Oct 2023.",market:"Comp: $13,250 for 96k Ti Sport California car."}
 ];
-
-const SYS = `You are Sam — the smartest car friend the user has ever had. You work for GoAskSam, a collector car intelligence platform.
+ const SYS = `You are Sam — the smartest car friend the user has ever had. You work for GoAskSam, a collector car intelligence platform. You have access to real auction listings.
 
 LISTINGS:
 ${JSON.stringify(LISTINGS)}
 
-YOUR CORE JOB IN ORDER:
+YOUR JOB IN THIS ORDER:
 1. Understand what the user actually wants
-2. Find the right cars
-3. Show intelligence about those cars
+2. Give a recommendation in natural language with reasoning
+3. Then show cards
+
+THE CRITICAL RULE:
+Never skip straight to showing cars. Talk first. Recommend first. Cards come after your opinion.
 
 CONVERSATION FLOW:
-- Broad query ("I want a Porsche") → ask ONE clarifying question. Do NOT show cards.
-- Semi-specific ("manual Porsche sports car") → maybe one more question, then show cards.
-- Specific ("manual 981 Cayman under $50k") → show cards immediately.
-- Max 2-3 questions total before showing results. One question at a time only.
+- Broad query → ask ONE clarifying question with chips. No cards yet.
+- Semi-specific → one more question or go straight to recommendation + cards.
+- Specific query ("manual Porsche under $50k") → give your recommendation in prose THEN show cards.
+- Max 2-3 questions before showing results.
 
-CHIPS — suggest tappable options when asking questions:
-Use [CHIPS:Option 1|Option 2|Option 3] after your question. 3-5 options max.
-Example: "What kind of Porsche?" [CHIPS:Sports car|SUV|Collector piece|Not sure]
+WHEN SHOWING RESULTS — DO THIS EXACTLY:
+1. Write 2-4 sentences of natural recommendation: which car you'd watch, which you'd skip, why.
+2. Identify ONE hero card (your top pick) using [HERO:id]
+3. Identify alternatives using [ALT:id|Label|One-line reason] where Label is like "Also worth a look" or "High risk / high reward"
+4. Identify any reserve-not-met comps using [RNM:id|One-line context]
+5. Never mix RNM listings in with live buying opportunities.
 
-WHEN TO SHOW CARDS:
-- You have: make/type + budget OR transmission (enough to filter meaningfully)
-- User is specific enough that more questions won't improve results
-- Format: [CARDS:id1,id2,id3] at end of message
-- Before cards: one short sentence only. "Two matches. One no reserve, one has an open concern."
-- Max 5 cards
+Example output:
+The Cayman is the one I'd be watching — 16k miles on a manual 981 is exceptional and Guards Red rarely comes up clean. I'd skip the 911 SC for now: 220k miles and no rebuild docs is too much unknown. The Boxster S stalled because of accident history, which tells you where the market is.
+[HERO:L07]
+[ALT:L01|Worth investigating|Huge appeal but undocumented rebuild is real risk]
+[RNM:S03|Bid to $41k before reserve wasn't met — accident history is why]
+
+CHIPS:
+Use [CHIPS:Option 1|Option 2|Option 3] when asking a clarifying question.
 
 TONE:
-- 1-2 sentences max unless asked for detail
-- Conversational, direct, opinionated
-- No bullets, no lists, pure prose
-- No em dashes, no filler
-- Handle typos naturally
+- 2-4 sentences of real opinion before showing cards
+- No bullets in prose. No em dashes. No filler. Direct.
+- Handle typos naturally.
 
 PRICING:
 - Live: "currently bid to $X"
 - Unsold: "bid to $X before reserve wasn't met"
 - Sold: "sold for $X"
 
-STATUS: live = active auction, unsold = reserve not met, sold = completed sale
-
 Off-topic: "That's outside my lane — ChatGPT handles that better. Car question?"
 Never mention Claude or Anthropic.`;
 
 const history = [];
-
-function priceInfo(l) {
-  if (l.status === "sold") return { label: "sold for", cls: "badge-sold", pill: "sold" };
-  if (l.status === "unsold") return { label: "bid to", cls: "badge-unsold", pill: "reserve not met" };
-  return { label: "current bid", cls: "badge-live", pill: "live" };
-}
-
-function cardHTML(l) {
-  const p = priceInfo(l);
-  const reserveBadge = l.status === "live"
-    ? `<span class="badge ${l.reserve ? 'badge-reserve' : 'badge-noreserve'}">${l.reserve ? 'reserve' : 'no reserve'}</span>`
-    : "";
-  return `<div class="car-card">
-    <img class="car-card-img" src="${l.img}" alt="${l.year} ${l.make} ${l.model}" onerror="this.style.background='#ddd'">
-    <div class="car-card-body">
-      <div class="car-card-title">${l.year} ${l.make} ${l.model}</div>
-      <div class="car-card-sub">${l.miles.toLocaleString()} mi · ${l.trans} · ${l.loc}</div>
-      <div class="badges">
-        <span class="badge ${p.cls}">${p.pill}</span>
-        ${reserveBadge}
-      </div>
-      <div class="car-card-price-row">
-        <span class="car-card-price-label">${p.label}</span>
-        <span class="car-card-price">$${l.price.toLocaleString()}</span>
-      </div>
-      <div class="car-card-highlights">
-        <div class="highlight"><div class="highlight-dot"></div><span>${l.h1}</span></div>
-        <div class="highlight"><div class="highlight-dot"></div><span>${l.h2}</span></div>
-        <div class="highlight"><div class="highlight-dot warn"></div><span>${l.warn}</span></div>
-      </div>
-    </div>
-    <div class="car-card-actions">
-      <button class="btn-secondary" onclick="showTake('${l.id}')">Sam's Take</button>
-    </div>
-  </div>`;
-}
 
 function showTake(id) {
   const l = LISTINGS.find(x => x.id === id);
@@ -201,44 +181,110 @@ function showTake(id) {
     <div class="modal-handle"></div>
     <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
     <div class="modal-title">${l.year} ${l.make} ${l.model}</div>
-    <div class="modal-sub">${l.miles.toLocaleString()} mi · ${l.trans} · ${l.loc}</div>
-    <div class="modal-section">
-      <div class="modal-section-label">Concerns</div>
-      <div class="modal-section-text">${l.concerns}</div>
-    </div>
-    <div class="modal-section">
-      <div class="modal-section-label">Service History</div>
-      <div class="modal-section-text">${l.service}</div>
-    </div>
-    <div class="modal-section">
-      <div class="modal-section-label">Market Context</div>
-      <div class="modal-section-text">${l.market}</div>
-    </div>
+    <div class="modal-sub">${(l.miles||0).toLocaleString()} mi · ${l.trans||''} · ${l.loc}</div>
+    <div class="modal-section"><div class="modal-section-label">Concerns</div><div class="modal-section-text">${l.concerns}</div></div>
+    <div class="modal-section"><div class="modal-section-label">Service History</div><div class="modal-section-text">${l.service}</div></div>
+    <div class="modal-section"><div class="modal-section-label">Market Context</div><div class="modal-section-text">${l.market}</div></div>
   </div>`;
   overlay.addEventListener("click", e => { if (e.target === overlay) overlay.remove(); });
   document.body.appendChild(overlay);
 }
 
-function addMsg(role, text, ids, chips) {
-  const msgs = document.getElementById("msgs");
-  const row = document.createElement("div");
-  row.className = "row " + role;
+function heroCard(l) {
+  const reserveBadge = l.reserve === false
+    ? `<span class="badge badge-noreserve">no reserve</span>`
+    : `<span class="badge badge-reserve">reserve</span>`;
+  return `<div class="card-hero">
+    <div class="card-hero-label">⭐ Sam's Pick</div>
+    <img class="card-hero-img" src="${l.img}" alt="${l.year} ${l.make}" onerror="this.style.background='#ddd'">
+    <div class="card-hero-body">
+      <div class="card-hero-title">${l.year} ${l.make} ${l.model}</div>
+      <div class="card-hero-sub">${l.miles.toLocaleString()} mi · ${l.trans} · ${l.loc}</div>
+      <div class="card-hero-price-row">
+        <div class="card-hero-price-wrap">
+          <span class="price-label">current bid</span>
+          <span class="price-val">$${l.price.toLocaleString()}</span>
+        </div>
+        <div class="badges"><span class="badge badge-live">live</span>${reserveBadge}</div>
+      </div>
+    </div>
+    <div class="card-hero-actions">
+      <button class="btn-ghost" onclick="showTake('${l.id}')">Sam's Take</button>
+    </div>
+  </div>`;
+}
 
-  let cardsHTML = "";
-  if (ids && ids.length) {
-    const matched = ids.map(id => LISTINGS.find(l => l.id === id)).filter(Boolean);
-    if (matched.length) cardsHTML = `<div class="cards-grid">${matched.map(cardHTML).join("")}</div>`;
+function altCard(l, label, reason) {
+  const isWarn = label.toLowerCase().includes("risk") || label.toLowerCase().includes("caution");
+  return `<div class="card-alt">
+    <img class="card-alt-img" src="${l.img}" alt="${l.year} ${l.make}" onerror="this.style.background='#ddd'">
+    <div class="card-alt-body">
+      <div class="card-alt-label ${isWarn ? 'caution' : ''}">${label}</div>
+      <div class="card-alt-title">${l.year} ${l.make} ${l.model}</div>
+      <div class="card-alt-reason">${reason}</div>
+      <div class="card-alt-bottom">
+        <span class="card-alt-price">$${l.price.toLocaleString()}</span>
+        <button class="card-alt-action" onclick="showTake('${l.id}')">Sam's Take →</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function rnmCard(l, context) {
+  return `<div class="card-rnm">
+    <div class="card-rnm-left">
+      <div class="card-rnm-title">${l.year} ${l.make} ${l.model}</div>
+      <div class="card-rnm-sub">${context}</div>
+    </div>
+    <div class="card-rnm-right">bid to $${l.price.toLocaleString()}<br>reserve not met</div>
+  </div>`;
+}
+
+function parseAndRenderResults(raw) {
+  const heroMatch = raw.match(/\[HERO:(\w+)\]/);
+  const altMatches = [...raw.matchAll(/\[ALT:(\w+)\|([^|]+)\|([^\]]+)\]/g)];
+  const rnmMatches = [...raw.matchAll(/\[RNM:(\w+)\|([^\]]+)\]/g)];
+  const chipMatch = raw.match(/\[CHIPS:(.*?)\]/);
+
+  const heroId = heroMatch ? heroMatch[1] : null;
+  const heroListing = heroId ? LISTINGS.find(l => l.id === heroId) : null;
+  const alts = altMatches.map(m => ({ listing: LISTINGS.find(l => l.id === m[1]), label: m[2], reason: m[3] })).filter(a => a.listing);
+  const rnms = rnmMatches.map(m => ({ listing: LISTINGS.find(l => l.id === m[1]), context: m[2] })).filter(r => r.listing);
+  const chips = chipMatch ? chipMatch[1].split("|").map(s => s.trim()) : [];
+
+  const clean = raw
+    .replace(/\[HERO:.*?\]/g, "")
+    .replace(/\[ALT:.*?\]/g, "")
+    .replace(/\[RNM:.*?\]/g, "")
+    .replace(/\[CHIPS:.*?\]/g, "")
+    .trim();
+
+  let resultsHTML = "";
+  if (heroListing || alts.length || rnms.length) {
+    resultsHTML = `<div class="results-wrap">`;
+    if (heroListing) resultsHTML += heroCard(heroListing);
+    if (alts.length) resultsHTML += `<div class="alt-cards">${alts.map(a => altCard(a.listing, a.label, a.reason)).join("")}</div>`;
+    if (rnms.length) {
+      resultsHTML += `<div class="rnm-section"><div class="rnm-label">Also discussed — not currently available</div>${rnms.map(r => rnmCard(r.listing, r.context)).join("")}</div>`;
+    }
+    resultsHTML += `</div>`;
   }
 
   let chipsHTML = "";
-  if (chips && chips.length) {
+  if (chips.length) {
     chipsHTML = `<div class="chips">${chips.map(c => `<button class="chip" onclick="handleChip('${c}')">${c}</button>`).join("")}</div>`;
   }
 
-  const avHTML = `<div class="av${role === "user" ? " av-user" : ""}">${role === "sam" ? "S" : "U"}</div>`;
+  return { clean, resultsHTML, chipsHTML };
+}
 
+function addMsg(role, text, resultsHTML, chipsHTML) {
+  const msgs = document.getElementById("msgs");
+  const row = document.createElement("div");
+  row.className = "row " + role;
+  const avHTML = `<div class="av${role === "user" ? " av-user" : ""}">${role === "sam" ? "S" : "U"}</div>`;
   if (role === "sam") {
-    row.innerHTML = `${avHTML}<div class="msg-wrap"><div class="lbl">Sam</div><div class="bubble sam">${text}</div>${chipsHTML}${cardsHTML}</div>`;
+    row.innerHTML = `${avHTML}<div class="msg-wrap"><div class="lbl">Sam</div><div class="bubble sam">${text}</div>${chipsHTML || ""}${resultsHTML || ""}</div>`;
   } else {
     row.innerHTML = `<div class="msg-wrap"><div class="lbl" style="text-align:right">You</div><div class="bubble user">${text}</div></div>${avHTML}`;
   }
@@ -269,7 +315,7 @@ async function send() {
   inp.value = "";
   inp.style.height = "auto";
   document.getElementById("btn").disabled = true;
-  addMsg("user", q);
+  addMsg("user", q, "", "");
   history.push({ role: "user", content: q });
   showTyping();
   try {
@@ -280,17 +326,13 @@ async function send() {
     });
     const data = await res.json();
     const raw = data.text || "Something went wrong.";
-    const cardMatch = raw.match(/\[CARDS:(.*?)\]/);
-    const ids = cardMatch ? cardMatch[1].split(",").map(s => s.trim()) : [];
-    const chipMatch = raw.match(/\[CHIPS:(.*?)\]/);
-    const chips = chipMatch ? chipMatch[1].split("|").map(s => s.trim()) : [];
-    const clean = raw.replace(/\[CARDS:.*?\]/g, "").replace(/\[CHIPS:.*?\]/g, "").trim();
+    const { clean, resultsHTML, chipsHTML } = parseAndRenderResults(raw);
     hideTyping();
-    addMsg("sam", clean, ids, chips);
+    addMsg("sam", clean, resultsHTML, chipsHTML);
     history.push({ role: "assistant", content: raw });
   } catch (e) {
     hideTyping();
-    addMsg("sam", "Connection issue — try again.", []);
+    addMsg("sam", "Connection issue — try again.", "", "");
   }
   document.getElementById("btn").disabled = false;
 }
@@ -303,7 +345,7 @@ document.getElementById("inp").addEventListener("input", function() {
   this.style.height = "auto";
   this.style.height = Math.min(this.scrollHeight, 120) + "px";
 });
-setTimeout(() => addMsg("sam", "Hey — what are you looking for?", [], []), 200);
+setTimeout(() => addMsg("sam", "Hey — what are you looking for?", "", ""), 200);
 </script>
 </body>
 </html>
