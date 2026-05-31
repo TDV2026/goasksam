@@ -793,7 +793,8 @@ Never present watcher counts as a reason to buy a car.
 Never imply a car is a good buy solely because bidding is currently low.
 
 Focus on facts, documentation, seller behavior, condition, history, and listing changes.
-;
+`;
+
 const history=[];
 let started=false;
 
@@ -869,16 +870,37 @@ function parseResults(raw){
   const searchMatch=raw.match(/\[SEARCHING:([^\]]+)\]/);
   const cardMatches=[...raw.matchAll(/\[CARD:([^|\]]+)\|([^\]]+)\]/g)];
   const chipMatch=raw.match(/\[CHIPS:([^\]]+)\]/);
-  const search=searchMatch?searchMatch[1].trim():null;
-  const cards=cardMatches.map(m=>({l:LISTINGS.find(x=>x.id===m[1].trim()),r:m[2].trim()})).filter(x=>x.l);
-  const chips=chipMatch?chipMatch[1].split("|").map(x=>x.trim()).filter(Boolean):[];
-  const clean=raw.replace(/\[SEARCHING:.*?\]/g,"").replace(/\[CARD:.*?\]/g,"").replace(/\[RNM:.*?\]/g,"").replace(/\[CHIPS:.*?\]/g,"").trim();
-  let html="";
-if(search){
-  html+=`<div class="searching"><div class="spinner"></div><span>${escapeHtml(search)}</span></div>`;
 
-}  if(cards.length)html+=`<div class="cards-grid">${cards.map(x=>cardHTML(x.l,x.r)).join("")}</div>`;
-  const chipsHTML=chips.length?`<div class="chips">${chips.map(c=>`<button class="chip" onclick="handleChip('${c.replace(/'/g,"\\'")}')">${escapeHtml(c)}</button>`).join("")}</div>`:"";
+  const search=searchMatch?searchMatch[1].trim():null;
+  const cards=cardMatches
+    .map(m=>({l:LISTINGS.find(x=>x.id===m[1].trim()),r:m[2].trim()}))
+    .filter(x=>x.l);
+
+  const chips=chipMatch
+    ? chipMatch[1].split("|").map(x=>x.trim()).filter(Boolean)
+    : [];
+
+  const clean=raw
+    .replace(/\[SEARCHING:.*?\]/g,"")
+    .replace(/\[CARD:.*?\]/g,"")
+    .replace(/\[RNM:.*?\]/g,"")
+    .replace(/\[CHIPS:.*?\]/g,"")
+    .trim();
+
+  let html="";
+
+  if(search){
+    html+=`<div class="searching"><div class="spinner"></div><span>${escapeHtml(search)}</span></div>`;
+  }
+
+  if(cards.length){
+    html+=`<div class="cards-grid">${cards.map(x=>cardHTML(x.l,x.r)).join("")}</div>`;
+  }
+
+  const chipsHTML=chips.length
+    ? `<div class="chips">${chips.map(c=>`<button class="chip" onclick="handleChip('${c.replace(/'/g,"\\'")}')">${escapeHtml(c)}</button>`).join("")}</div>`
+    : "";
+
   return{clean,html,chipsHTML};
 }
 function addMsg(role,text,html="",chipsHTML=""){
