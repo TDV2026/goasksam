@@ -146,7 +146,7 @@
 
 <script>
 const LISTINGS = [
-  {id:"L01",status:"live",year:1978,make:"Porsche",model:"911 SC Targa",type:"sports",trans:"manual",drive:"RWD",price:20000,reserve:true,miles:220300,loc:"Elma, WA",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/application/s-CixrIm_/edit/l3HoQ.jpg?t=177853174099",sam_view:"Long-term ownership since 1998 counts for something, and the $17k mechanical overhaul in 2024 was thorough. The undocumented engine rebuild is the sticking point — without paperwork on that, you're taking the seller's word for something that really matters. I'd want to dig into the comment thread before getting too excited.",what_i_like:"Long-term single ownership. Comprehensive 2024 mechanical overhaul. Targa spec with Fuchs wheels.",watch:"Engine and trans rebuilt at 180k under prior ownership — no documentation kept. Smog unit present but not connected.",service:"2024: full brake, fuel, ignition, wiring overhaul — $17k spent.",market:"SC Targas with documented history trade $35-55k. The undocumented rebuild is why this is priced where it is.",reserve_status:"active",updates:[{time:"6 hours ago",text:"Seller addressed carburetor question in comments. Confirmed vacuum-to-mechanical conversion. Community appears satisfied."}]},
+  {id:"L01",status:"live",year:1978,make:"Porsche",model:"911 SC Targa",type:"sports",trans:"manual",drive:"RWD",price:20000,reserve:true,miles:220300,loc:"Elma, WA",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabadfc10e586c36f68/photos/application/s-CixrIm_/edit/l3HoQ.jpg?t=177853174099",sam_view:"Long-term ownership since 1998 counts for something, and the $17k mechanical overhaul in 2024 was thorough. The undocumented engine rebuild is the sticking point — without paperwork on that, you're taking the seller's word for something that really matters. I'd want to dig into the comment thread before getting too excited.",what_i_like:"Long-term single ownership. Comprehensive 2024 mechanical overhaul. Targa spec with Fuchs wheels.",watch:"Engine and trans rebuilt at 180k under prior ownership — no documentation kept. Smog unit present but not connected.",service:"2024: full brake, fuel, ignition, wiring overhaul — $17k spent.",market:"SC Targas with documented history trade $35-55k. The undocumented rebuild is why this is priced where it is.",reserve_status:"active",updates:[{time:"6 hours ago",text:"Seller addressed carburetor question in comments. Confirmed vacuum-to-mechanical conversion. Community appears satisfied."}]},
   {id:"L02",status:"live",year:2007,make:"Hummer",model:"H3",type:"suv",trans:"automatic",drive:"4WD",price:3050,reserve:false,miles:139000,loc:"Great Neck, NY",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c88a6ba8af4c9a8e9d9fe78c40ad6708f5bae9a9/photos/exterior/r4oWzwBp-cOziaMx/edit/0t8D1.jpg?t=177940852144",sam_view:"No reserve and a clean Carfax is about as straightforward as these get. Service history is thin but at this price that's priced in. Underbody corrosion on a NY car is worth a look before bidding further.",what_i_like:"No reserve. Clean Carfax. Full-time 4WD with skid plates.",watch:"Oil changes only in Carfax. Underbody corrosion visible.",service:"Oil changes only per Carfax. Dealer acquired April 2026.",market:"H3s in better condition trade $4-8k. This is entry pricing.",reserve_status:"none",updates:[]},
   {id:"L03",status:"live",year:2013,make:"Audi",model:"S4 Manual",type:"sports",trans:"manual",drive:"AWD",price:10000,reserve:false,miles:83000,loc:"Pompano Beach, FL",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8666159a15ffd32049319e2dde0e1452e4fe28d1/photos/AudiS42013002.jpg?t=177913181045",sam_view:"Manual B8 S4 at $10k no reserve is the kind of listing worth paying attention to. The 6-year Carfax mileage gap is the question — seller explains it as a company car period, and documentation they uploaded seems to have satisfied the community. Based on what's been disclosed so far, this looks like a well-maintained example of a genuinely rare spec.",what_i_like:"Manual B8 S4 — rare. One owner from new. Water pump, battery, DSG all done.",watch:"6-year Carfax mileage gap 2017-2023. Explanation credible but worth verifying.",service:"1 owner since new. DSG x2, spark plugs, water pump, battery all done.",market:"Manual B8 S4s command a premium. Autos trade $12-16k. $10k no reserve is strong value.",reserve_status:"none",updates:[{time:"3 hours ago",text:"Seller uploaded Carfax documentation addressing the mileage gap. Community response positive."}]},
   {id:"L04",status:"live",year:2022,make:"Rivian",model:"R1T Launch Edition",type:"truck",trans:"automatic",drive:"AWD",price:45000,reserve:true,miles:57200,loc:"Santa Cruz, CA",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/9004500a220bf3a3d455d15ee052cf8c332606f8/photos/K1BMpvqz-OVu2J5C/edit/zG4cp.jpg?t=177942111434",sam_view:"Launch Edition with large pack is the desirable spec — no longer orderable. Warranty work done before sale is a positive. I'd want clarity on whether the Rivian warranty transfers before bidding seriously.",what_i_like:"Launch Edition large pack — sold-out spec. Known warranty items addressed before sale.",watch:"Warranty transfer to new owner unconfirmed. Known reseller active in comments.",service:"Gen 2 subframe, tonneau, half-shaft boots, hubs replaced under Rivian warranty.",market:"R1T Launch Editions trading $42-52k. Reserve likely in that range.",reserve_status:"active",updates:[]},
@@ -166,60 +166,77 @@ const LISTINGS = [
   {id:"S03",status:"unsold",year:2013,make:"Porsche",model:"Boxster S 981",type:"sports",trans:"manual",drive:"RWD",price:41801,miles:11500,loc:"Miami, FL",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/9004500a220bf3a3d455d15ee052cf8c332606f8/photos/9nYlQ05B-Ii4xhSMeUe/edit/WqgbG.jpg?t=177916609827",sam_view:"11,500 miles on a PCA-owned 981 Boxster S is genuinely rare. Reserve wasn't met despite 14 bids — multi-quadrant Carfax damage from October 2024 is almost certainly why.",what_i_like:"11,500 miles. PCA-owned, concours-prepped. Manual 981 Boxster S.",watch:"Multi-quadrant Carfax damage Oct 2024. Reserve not met.",service:"PCA-owned. Serpentine, plugs, brake fluid Nov 2023.",market:"Clean 981 Boxster S manuals trade $40-55k. Damage history is why reserve wasn't met.",reserve_status:"rnm",updates:[]},
   {id:"S04",status:"unsold",year:2017,make:"Mercedes-Benz",model:"SLC300",type:"convertible",trans:"automatic",drive:"RWD",price:14526,miles:59000,loc:"Pocono Pines, PA",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/exterior/98B4oOvY-d5oJnES/edit/BNyVj.jpg?t=177883746712",sam_view:"66 bids to $14,526 is extraordinary engagement — market came hard, seller didn't move. Two accidents (2023 and 2024) kept the ceiling where it was.",what_i_like:"66 bids — enormous interest. Fully serviced: brakes, thermostat, intake manifold.",watch:"Two accidents 2023 and 2024. Reserve not met despite 66 bids.",service:"Intake manifold April 2026. Full brakes 2024. Thermostat, CCV, plugs done.",market:"66 bids says market is $14-15k.",reserve_status:"rnm",updates:[]},
   {id:"S05",status:"unsold",year:1980,make:"Chevrolet",model:"C10 Silverado LS Swap",type:"truck",trans:"automatic",drive:"RWD",price:20000,miles:2600,loc:"Scottsdale, AZ",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/3794d1c5f7e7c7962d4007cfb6ad111c8b3f92ad/photos/ChevySilverado1980008.jpg?t=177860534035",sam_view:"Full LS swap with Stage 3 cam, rebuilt 4L60E, stepside conversion on 2,600 post-build miles. Serious build. 23 bids to $20k with reserve not met.",what_i_like:"Full LS swap, Stage 3 cam. 4L60E rebuilt Aug 2025. Only 2,600 post-build miles.",watch:"Reserve not met at $20k despite 23 bids.",service:"LS swap. 4L60E rebuilt Aug 2025. Brakes, bearings June 2025.",market:"Comparable builds trade $22-35k.",reserve_status:"rnm",updates:[]},
-  {id:"S06",status:"unsold",year:2021,make:"Ferrari",model:"812 GTS",type:"sports",trans:"automatic",drive:"RWD",price:322000,miles:4700,loc:"Sacramento, CA",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/application/s-I9AqqUF/edit/RZNJy.jpg?t=177876056637",sam_view:"One of the more unusual auctions I've seen. The salvage title eliminates most Ferrari buyers — and that's exactly why some may view it as an opportunity. Whether it's interesting depends entirely on appetite for risk and how thoroughly the repair history checks out. Reserve was not met at $322k.",what_i_like:"6.5L V12, 789hp, 4,700 miles. $462k MSRP.",watch:"Salvage title — total loss Aug 2024. Second incident Sep 2025. Reserve not met.",service:"Front bumper, fenders, hood, passenger door repainted.",market:"Clean 812 GTS trade $380-450k. Salvage = meaningful discount and meaningful risk.",reserve_status:"rnm",updates:[]},
+  {id:"S06",status:"unsold",year:2021,make:"Ferrari",model:"812 GTS",type:"sports",trans:"automatic",drive:"RWD",price:322000,miles:4700,loc:"Sacramento, CA",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabadfc10e586c36f68/photos/application/s-I9AqqUF/edit/RZNJy.jpg?t=177876056637",sam_view:"One of the more unusual auctions I've seen. The salvage title eliminates most Ferrari buyers — and that's exactly why some may view it as an opportunity. Whether it's interesting depends entirely on appetite for risk and how thoroughly the repair history checks out. Reserve was not met at $322k.",what_i_like:"6.5L V12, 789hp, 4,700 miles. $462k MSRP.",watch:"Salvage title — total loss Aug 2024. Second incident Sep 2025. Reserve not met.",service:"Front bumper, fenders, hood, passenger door repainted.",market:"Clean 812 GTS trade $380-450k. Salvage = meaningful discount and meaningful risk.",reserve_status:"rnm",updates:[]},
   {id:"C01",status:"sold",year:2007,make:"Chevrolet",model:"Corvette C6 3LT",type:"sports",trans:"manual",drive:"RWD",price:18250,miles:106000,loc:"San Diego, CA",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/9004500a220bf3a3d455d15ee052cf8c332606f8/photos/3RE22WBN-oqYJROIsqr/edit/UARAn.jpg?t=177922020116",sam_view:"Sold at $18,250 — Z51, 6-speed, California car since new. Good comp for C6 manual pricing.",what_i_like:"Z51 package. 6-speed manual. California car. Fresh tires.",watch:"P0420 code — smog passed regardless.",service:"Harmonic balancer June 2025. New tires April 2026.",market:"Comp: $18,250 for Z51 6-speed C6 with 106k California miles.",reserve_status:"sold",updates:[]},
   {id:"C02",status:"sold",year:2018,make:"Alfa Romeo",model:"Giulia Ti Sport",type:"sports",trans:"automatic",drive:"RWD",price:13250,miles:96300,loc:"Northridge, CA",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4a2fc6c17db6945a4884754a119ce1416d70df61/photos/exterior/KDy0AWz0-WCifDlh/edit/9lkNa.jpg?t=177911700430",sam_view:"Sold at $13,250 on its second run. Ti Sport with LSD and active suspension. Good California Giulia comp.",what_i_like:"Ti Sport with LSD and active suspension. California car.",watch:"Prior winning bidder failed to pay — relisted. Second result clean.",service:"Radiator Dec 2024. Serpentine Oct 2023.",market:"Comp: $13,250 for 96k Ti Sport California car.",reserve_status:"sold",updates:[]}
 ];
 
-const SYS = `You are Sam — the smartest car friend the user has ever had. You work for GoAskSam, a live market intelligence platform for collector and enthusiast cars.
+const SYS = `You are Sam — a knowledgeable car friend helping someone figure out what they actually want. You work for GoAskSam, a live market intelligence platform for collector and enthusiast cars.
 
 LISTINGS:
 ${JSON.stringify(LISTINGS)}
 
-YOUR JOB IN ORDER:
-1. Understand what the user wants through conversation
-2. Give a genuine opinion in plain language
-3. Then show cars
+YOUR PERSONALITY:
+You are a car friend, not a chatbot. Your job is to help someone discover what they want through natural conversation, then show them what's available. You are direct, warm, and genuinely interested in getting it right for them.
 
-THE CRITICAL RULE:
-Talk first. Recommend first. Cards always follow your opinion, never precede it.
+THE MOST IMPORTANT RULE:
+One question at a time. Never two. Never a paragraph of questions. One short question, then wait.
 
-CONVERSATION FLOW — follow strictly:
-- Before showing ANY cars, Sam must know at least THREE of these: type/vibe, budget, transmission preference, use case.
-- Budget alone is never enough. "Under $50k" alone → ask what kind of car.
-- Vibe alone is never enough. "Weekend driver" → ask budget. Then one more. Then show.
-- "Something to impress" → ask budget first. Then type. Then show.
-- Only show cards when you have enough to make a genuinely relevant recommendation.
-- Specific query ("manual 981 Cayman under $50k") → show cards immediately.
-- If user says "just show me" or seems frustrated → show immediately.
-- Sam can offer: "I can ask a couple more questions, or just show you what I have — your call."
-- Never ask more than one question per message.
-- Max 4 exchanges before showing results regardless.
+CONVERSATION FLOW:
+Phase 1 — Understand intent (one question at a time):
+- First question is always about use/vibe. "Porsche" → "What's it for?" or "Nice. What are you thinking — weekend fun, daily driver, collector piece?"
+- Second question is budget. Keep it casual. "Rough budget?"
+- Third question (if needed) is transmission. "Manual matter to you?"
+- That's enough. Show cars after 2-3 exchanges.
+
+Do NOT ask about location, shipping, use case details, etc. until after cards are shown and conversation continues naturally.
+
+WHEN TO SHOW CARS:
+- After you know: use/vibe + budget. That's it. That's enough.
+- Do not wait for more. Show cards and continue the conversation from there.
+- Specific query ("manual 981 under $50k") → skip questions, show immediately.
+- "Just show me" or any frustration → show immediately.
+
+AFTER SHOWING CARDS — KEEP GOING:
+Cards are the middle of the conversation, not the end.
+After showing cards always ask something like:
+- "Which one catches your eye?"
+- "Too practical, too wild, or heading in the right direction?"
+- "Want me to narrow this down?"
+The conversation continues around the actual inventory.
+
+HOW TO WRITE:
+- Short. 1-3 sentences max before cards.
+- No essays. No walls of text.
+- Sound like a person, not a product.
+- "Porsche. Nice. What's it for?" — good.
+- "Great choice! Porsche offers a wide range of vehicles..." — terrible, never do this.
+- After cards, keep follow-up questions short and casual.
 
 STRICT TOPIC RULES:
-- Sam only talks about cars. Buying, selling, auctions, market context, specific listings, general car knowledge.
-- If asked anything off-topic: "I'm only here to talk cars — ChatGPT is better for anything else." Then stop.
-- If asked what a car is worth or for a valuation of their own car: "I don't give valuations — too many variables I can't see from here. Check recent comps on BaT and Cars and Bids, or get a dealer appraisal for a real number." Then stop.
-- Do not estimate, guess, or provide any valuation even if pushed.
+- Cars only. If asked anything else: "Only here to talk cars — ChatGPT handles everything else." Stop.
+- No valuations of cars they own: "Can't give you a number on that — too many variables I can't see. Check recent comps on BaT or Cars and Bids." Stop.
 
 WHEN SHOWING RESULTS:
-Start: "I found [N] [description]. Here's how I'd think about them."
-Then 2-3 sentences of real opinion — tradeoffs, what you'd watch, what you'd skip.
-Use: "Based on what's been disclosed so far..." / "The safer choice..." / "The more interesting gamble..."
-Never: strong absolutes, scores, ratings.
-Always surface reserve status.
+- 1-2 sentences of opinion max before cards. Casual, not a briefing.
+- Give a lean: "I'd probably start with the Cayman over the 911 SC."
+- Say why in one line.
+- Then show cards.
+- Then ask which one interests them.
 
-TAGS:
-[HERO:id] — best current match, ONE only
-[ALT:id|Label|One-line tradeoff]
-[RNM:id|Context] — reserve-not-met only, visually separated
-[CHIPS:Option 1|Option 2|Option 3] — when asking clarifying questions
+TAGS (always at end of message when showing cars):
+[HERO:id] — top pick, ONE only
+[ALT:id|Label|One-line reason]
+[RNM:id|Context] — reserve-not-met only, separated
+[CHIPS:Option 1|Option 2|Option 3] — tappable answers when asking questions. Always include chips with questions.
 
-TONE: Direct, warm, opinionated. 2-4 sentences before cards. No bullet points in prose. No filler.
+PRICING:
+- Live = "currently bid to $X"
+- Unsold = "bid to $X before reserve wasn't met"
+- Sold = "sold for $X"
+- Always surface reserve status. It matters.
 
-PRICING: Live = "currently bid to $X". Unsold = "bid to $X before reserve wasn't met". Sold = "sold for $X".
-
-Never mention Claude or Anthropic.`;
+Never mention Claude or Anthropic. Never say "I'm watching X listings."`;
 
 const history = [];
 
@@ -385,7 +402,7 @@ document.getElementById("inp").addEventListener("input", function() {
   this.style.height = Math.min(this.scrollHeight, 160) + "px";
 });
 
-setTimeout(() => addMsg("sam", "Hey — what are you looking for?", "", ""), 200);
+setTimeout(() => addMsg("sam", "Hey, what are you looking for?", "", ""), 200);
 </script>
 </body>
 </html>
