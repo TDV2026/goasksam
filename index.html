@@ -81,7 +81,7 @@
   .card-alt-reason { font-size: 12px; color: #888; margin-top: 3px; line-height: 1.35; }
   .card-alt-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
   .card-alt-price { font-size: 13px; font-weight: 600; }
-  .card-alt-actions { display: flex; gap: 8px; }
+  .card-alt-actions { display: flex; gap: 10px; }
   .card-alt-action { font-size: 12px; color: #999; font-weight: 500; cursor: pointer; background: none; border: none; padding: 0; font-family: inherit; }
   .card-alt-action:hover { color: #1a1a1a; }
   .rnm-section { border-top: 1px dashed #ebebeb; padding-top: 10px; }
@@ -90,7 +90,6 @@
   .card-rnm-title { font-size: 12px; font-weight: 600; color: #999; }
   .card-rnm-sub { font-size: 11px; color: #bbb; margin-top: 1px; }
   .card-rnm-right { font-size: 11px; color: #bbb; text-align: right; flex-shrink: 0; margin-left: 12px; }
-  .results-footer { font-size: 13px; color: #888; margin-top: 4px; line-height: 1.6; }
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100; display: flex; align-items: flex-end; justify-content: center; }
   .modal { background: #fff; border-radius: 20px 20px 0 0; width: 100%; max-width: 700px; max-height: 82vh; overflow-y: auto; padding: 20px 24px 40px; position: relative; }
   .modal-handle { width: 32px; height: 4px; background: #e8e8e8; border-radius: 2px; margin: 0 auto 18px; }
@@ -163,9 +162,9 @@ const LISTINGS = [
   {id:"L10",status:"live",year:2020,make:"Nissan",model:"370Z Sport Touring",type:"sports",trans:"automatic",drive:"RWD",price:5580,reserve:true,miles:16600,loc:"Los Angeles, CA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/exterior/3vAVEA0k-sCSR5pQ/edit/9L2LD.jpg?t=177930535574",sam_view:"Sport Touring spec with LSD and Bose at 16,600 miles. Current bid is well below where these trade — reserve is unknown and will determine everything.",what_i_like:"Sport Touring with LSD. 16,600 miles. Clean Carfax. LA car.",watch:"Reserve unknown. Dealer adds $125 in fees on top.",service:"Battery Dec 2025. Oil and fuel system 2025. Clean Carfax.",market:"370Z Sport Touring autos with low miles trade $18-24k.",reserve_status:"active",updates:[]},
   {id:"L11",status:"live",year:2009,make:"BMW",model:"Z4 sDrive30i",type:"sports",trans:"manual",drive:"RWD",price:11000,reserve:true,miles:51200,loc:"Tampa, FL",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/1477bbe21e8d6b5e719c7c3ccab577fd47dd8cc3/photos/exterior/36dd0nqW-ombFNpE/edit/ueIE5.jpg?t=177906875181",sam_view:"NA straight-six manual is the right E89 spec. Coral red interior over black is a good combination. Tires need replacing immediately but no other significant concerns surfaced.",what_i_like:"NA straight-six manual. Power retractable hardtop. 51k miles. 2yr no-issue ownership.",watch:"2015 tires — immediate replacement needed. Reserve active.",service:"Power retractable hardtop. Build sheet in gallery.",market:"E89 Z4 sDrive30i manuals trade $12-18k.",reserve_status:"active",updates:[]},
   {id:"L13",status:"live",year:2013,make:"Audi",model:"S4 Auto",type:"sports",trans:"automatic",drive:"AWD",price:10000,reserve:true,miles:83900,loc:"Pompano Beach, FL",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8666159a15ffd32049319e2dde0e1452e4fe28d1/photos/AudiS42013002.jpg?t=177913181045",sam_view:"Estoril Blue with B&O and Nappa leather on a one-owner B8 S4 is a strong spec. Hood repaint is worth asking about — reason unknown. Reserve active.",what_i_like:"One owner from new 2012. Estoril Blue. B&O, Nappa leather. Water pump and battery done.",watch:"Hood previously repainted — reason undisclosed. Reserve active.",service:"Water pump, battery, secondary air solenoid Dec 2023.",market:"B8 S4 autos trade $13-18k. Positioned below market for the spec.",reserve_status:"active",updates:[]},
-  {id:"L14",status:"live",year:1994,make:"Dodge",model:"Viper RT/10",type:"sports",trans:"manual",drive:"RWD",price:28000,reserve:true,miles:18000,loc:"Pennsylvania",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8e6341e27a680ffab7d98e42bef83b0dd1b0fb94/photos/application/s-Pg2aXOu/edit/DDRKS.jpg?t=177914552824",sam_view:"18,000-mile Gen 1 RT/10 with original soft top and side screens. Tires are 17 years old — immediate replacement needed before this moves. Three-panel paint evidence worth understanding.",what_i_like:"18k miles — genuine low mileage. Original soft top and side screens.",watch:"2009 tires — dangerous. Three-panel paint evidence. Reserve active.",service:"Original soft top and side screens. Dealer-presented.",market:"Gen 1 Vipers at this mileage trade $35-55k in solid condition.",reserve_status:"active",updates:[]},
+  {id:"L14",status:"live",year:1994,make:"Dodge",model:"Viper RT/10",type:"sports",trans:"manual",drive:"RWD",price:28000,reserve:true,miles:18000,loc:"Pennsylvania",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8e6341e27a680ffab7d98e42bef83b0dd1b0fb94/photos/application/s-Pg2aXOu/edit/DDRKS.jpg?t=177914552824",sam_view:"18,000-mile Gen 1 RT/10 with original soft top and side screens. Tires are 17 years old — immediate replacement needed. Three-panel paint evidence worth understanding.",what_i_like:"18k miles — genuine low mileage. Original soft top and side screens.",watch:"2009 tires — dangerous. Three-panel paint evidence. Reserve active.",service:"Original soft top and side screens. Dealer-presented.",market:"Gen 1 Vipers at this mileage trade $35-55k in solid condition.",reserve_status:"active",updates:[]},
   {id:"L15",status:"live",year:2018,make:"BMW",model:"328i Touring",type:"wagon",trans:"manual",drive:"RWD",price:3300,reserve:false,miles:95000,loc:"Annapolis, MD",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/fc2fca4f3b35e00cdcf6a9b9a58ae637f2655f32/photos/BMW2010328i002.jpg?t=177825856467",sam_view:"Manual F30 wagon is a spec that almost doesn't exist in the US. Military ownership with documented diligence is credible. The hanging roof panel and unknown water pump history are real questions — three open recalls add to the list.",what_i_like:"Manual F30 Touring — extremely rare US spec. Military owner, oil every 5k.",watch:"Passenger roof panel hanging. Water pump history unknown. 3 open Carfax recalls.",service:"Military owner. Oil every 5k. BMW mechanic during Korea deployment.",market:"Manual F30 wagons genuinely rare — no clean comp exists.",reserve_status:"none",updates:[]},
-  {id:"L16",status:"live",year:2003,make:"Lexus",model:"LS 430",type:"sedan",trans:"automatic",drive:"RWD",price:4300,reserve:false,miles:193800,loc:"Woodburn, OR",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/abd2a7f0535314882a8c78d2ed08e7b8869f7367/photos/SubaruWRX2020002.jpg?t=177911430862",sam_view:"All the maintenance that matters has been done — timing belt, water pump, radiator — and it's a western car. 193k miles is high but these engines are bulletproof when maintained. Floor pricing at $4,300 no reserve.",what_i_like:"Timing belt, water pump, radiator all done. Western car. No reserve.",watch:"193k miles. Chrome failing on wheels. Minor electrical quirks.",service:"Timing belt, water pump, serpentine 2021. Radiator 2022. Akebono brakes.",market:"LS 430s with maintenance done trade $5-10k. Floor pricing.",reserve_status:"none",updates:[]},
+  {id:"L16",status:"live",year:2003,make:"Lexus",model:"LS 430",type:"sedan",trans:"automatic",drive:"RWD",price:4300,reserve:false,miles:193800,loc:"Woodburn, OR",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/abd2a7f0535314882a8c78d2ed08e7b8869f7367/photos/SubaruWRX2020002.jpg?t=177911430862",sam_view:"All the maintenance that matters has been done — timing belt, water pump, radiator — and it's a western car. 193k miles is high but these engines are bulletproof when maintained.",what_i_like:"Timing belt, water pump, radiator all done. Western car. No reserve.",watch:"193k miles. Chrome failing on wheels. Minor electrical quirks.",service:"Timing belt, water pump, serpentine 2021. Radiator 2022. Akebono brakes.",market:"LS 430s with maintenance done trade $5-10k. Floor pricing.",reserve_status:"none",updates:[]},
   {id:"S01",status:"unsold",year:2023,make:"Audi",model:"S4 Premium Plus",type:"sports",trans:"automatic",drive:"AWD",price:36750,miles:35700,loc:"Medford, MA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/171ab1e538119e13fa98382f268326fc825fdc20/photos/exterior/rbebxqqJ-3yPo-si/edit/ldfls.jpg?t=177881552046",sam_view:"36 bids to $36,750 with reserve not met tells you where the market is — buyers came, seller held firm. Factory warranty through Jan 2027 is the headline asset.",what_i_like:"Factory warranty through Jan 2027. Near-new condition. 36 bidders showed up.",watch:"Reserve not met. Loan on vehicle.",service:"Factory warranty Jan 2027. Allstate paint warranty 2030.",market:"36 bids to $36,750 is the market on this spec.",reserve_status:"rnm",updates:[]},
   {id:"S02",status:"unsold",year:2015,make:"Porsche",model:"Cayenne Diesel",type:"suv",trans:"automatic",drive:"AWD",price:14600,miles:100400,loc:"Delray Beach, FL",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c7387fa5557775cb743f87fc02d6cb831afb20b2/photos/rkyPZB4O-HJ3msOQ/edit/Exuar.jpg?t=177793311953",sam_view:"Pre-sale work on engine and trans mounts, prop shaft, and brakes gives some confidence. Reserve wasn't met at $14,600.",what_i_like:"Engine+trans mounts and prop shaft replaced pre-sale. Brakes done 2024.",watch:"Reserve not met. Carfax shows oil leak check — seller disputes.",service:"Engine+trans mounts, prop shaft April 2026. Brakes 2024.",market:"Cayenne Diesels at 100k trade $14-20k.",reserve_status:"rnm",updates:[]},
   {id:"S03",status:"unsold",year:2013,make:"Porsche",model:"Boxster S 981",type:"sports",trans:"manual",drive:"RWD",price:41801,miles:11500,loc:"Miami, FL",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/9004500a220bf3a3d455d15ee052cf8c332606f8/photos/9nYlQ05B-Ii4xhSMeUe/edit/WqgbG.jpg?t=177916609827",sam_view:"11,500 miles on a PCA-owned 981 Boxster S is genuinely rare. Reserve wasn't met despite 14 bids — multi-quadrant Carfax damage from October 2024 is almost certainly why.",what_i_like:"11,500 miles. PCA-owned, concours-prepped. Manual 981 Boxster S.",watch:"Multi-quadrant Carfax damage Oct 2024. Reserve not met.",service:"PCA-owned. Serpentine, plugs, brake fluid Nov 2023.",market:"Clean 981 Boxster S manuals trade $40-55k. Damage history is why reserve wasn't met.",reserve_status:"rnm",updates:[]},
@@ -176,81 +175,73 @@ const LISTINGS = [
   {id:"C02",status:"sold",year:2018,make:"Alfa Romeo",model:"Giulia Ti Sport",type:"sports",trans:"automatic",drive:"RWD",price:13250,miles:96300,loc:"Northridge, CA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4a2fc6c17db6945a4884754a119ce1416d70df61/photos/exterior/KDy0AWz0-WCifDlh/edit/9lkNa.jpg?t=177911700430",sam_view:"Sold at $13,250 on its second run. Ti Sport with LSD and active suspension. Good California Giulia comp.",what_i_like:"Ti Sport with LSD and active suspension. California car.",watch:"Prior winning bidder failed to pay — relisted. Second result clean.",service:"Radiator Dec 2024. Serpentine Oct 2023.",market:"Comp: $13,250 for 96k Ti Sport California car.",reserve_status:"sold",updates:[]}
 ];
 
-const SYS = `You are Sam — a knowledgeable car friend helping someone find the right car. You work for GoAskSam, a live market intelligence platform for collector and enthusiast cars.
+const SYS = `You are Sam — the car person behind GoAskSam. You help people find, understand, and buy collector and enthusiast cars. You track live auctions, listings, seller activity, and market movements so buyers don't have to.
 
 LISTINGS:
 ${JSON.stringify(LISTINGS)}
 
-YOUR PERSONALITY:
-Curious, warm, direct. A car friend who asks one good question at a time, listens, then either asks another or shows inventory. You are not a search engine. You are not a form. You are genuinely trying to get it right.
+IDENTITY — CRITICAL:
+You are Sam. That is all. Never say you are AI, an AI assistant, built on AI, a language model, Claude, ChatGPT, or anything of that nature.
+If asked "Are you AI?", "Are you ChatGPT?", "Are you Claude?", or similar:
+Respond as Sam would: "I'm Sam — built specifically for GoAskSam to help people navigate the collector car market. I spend my time tracking auctions, listings, seller activity and market movements. What are you looking for?"
+Or: "Think of me as the car person behind GoAskSam. My whole job is helping buyers find the right car and understand what's happening in the market. What are you after?"
+Never confirm or deny being an AI. Never name any AI company or model. Stay in character as Sam.
 
-CONFIDENCE MODEL (internal — never mention this):
-Before showing cars, rate confidence in what the user wants:
-- Low: vague intent, no budget ("fast car", "luxury car", "something fun") → ask one more question
-- Medium: use case + rough budget, but still broad → can show now, continue conversation from cards
-- High: specific make/model/budget/transmission combo → show immediately
+SHOW ME OVERRIDE — HIGHEST PRIORITY RULE:
+If the user says anything like: "show me what's available", "just show me cars", "show me everything", "browse inventory", "I don't care just show me", "surprise me", "show me what you have" — STOP asking questions IMMEDIATELY. Show 4-6 cars now. No exceptions. This is a command, not a conversation input.
 
-"Just show me", "don't care", "show me what you have" = SHOW IMMEDIATELY regardless of confidence.
+CONFIDENCE MODEL (internal):
+High confidence — show cars immediately:
+- Specific make/model + budget: "manual 981 Cayman under $50k"
+- Specific make + type + budget: "AWD sports car under $40k"
+Medium confidence — one more question then show:
+- Make + use case but no budget: "Porsche daily driver"
+- Budget + type but vague: "sports car around $30k"
+Low confidence — keep asking (one question at a time):
+- Brand only: "Porsche" or "BMW"
+- Vibe only: "fast car", "luxury car", "something fun"
+- Multiple options with no direction: "Porsche or BMW"
 
 ONE QUESTION AT A TIME — ALWAYS.
-Never ask two things in one message. Never.
-
-QUESTION ORDER:
-1. Use/vibe — what's it for?
-2. Budget — rough range?
-3. One preference — manual/auto, new/old, sporty/comfortable
-After 3 exchanges even with a vague user, show inventory and continue from there.
+Question order: 1) use/vibe, 2) budget, 3) one preference (manual/auto, sporty/comfortable, new/old)
+After 3 exchanges even with a vague user → show inventory and continue from there.
 
 STATE MEMORY:
-Remember everything said earlier. If user said "Porsche" then says "manual only", narrow the Porsches — don't restart.
-Acknowledge the update: "Got it — narrowing those to manuals..."
-Never ask again for information already given.
+Remember everything from earlier in the conversation. Never ask for info already given.
+If user refines ("manual only", "actually under $30k") → acknowledge and narrow: "Got it — narrowing those to manuals..." then show updated results.
 
-SEARCH STATUS MESSAGE:
-When about to show results, include a [SEARCHING:text] tag with a short, specific search description.
-Examples:
-[SEARCHING:Searching manual Porsche 911s under $50k...]
-[SEARCHING:Looking across live auctions for weekend sports cars under $30k...]
-[SEARCHING:Pulling up manual Audis in the dataset...]
-[SEARCHING:Narrowing those Porsches to manuals only...]
-Make it specific to what was actually asked. This appears as italic status text before the cards.
+SEARCH STATUS:
+When showing results, include [SEARCHING:text] — a specific italic line showing what you're searching.
+Examples: [SEARCHING:Searching manual Porsches under $50k...] [SEARCHING:Narrowing those 911s to manuals only...]
 
 SHOW 4-6 CARS:
-Use ONE [HERO:id] for the strongest match.
-Use [ALT:id|Label|One-line reason] for 3-5 additional options. Users need options to discover what they actually want.
-Use [RNM:id|Context] for reserve-not-met comps — separate section, greyed out.
+[HERO:id] — strongest match, ONE only (labeled "Best Match")
+[ALT:id|Label|One-line reason] — 3-5 alternatives
+[RNM:id|Context] — reserve-not-met comps only, greyed out separate section
+After cards, always follow with one short question to keep conversation going.
 
-AFTER CARDS — always follow with a short prompt:
-"Which one catches your eye?" or "Too practical, too wild, or heading the right direction?" or "Want me to narrow this down?"
-Cards are the middle of the conversation, not the end.
+CHIPS: [CHIPS:Option 1|Option 2|Option 3] with every clarifying question.
 
-CHIPS: [CHIPS:Option 1|Option 2|Option 3] — always include with clarifying questions.
-
-OFF-TOPIC — warm and varied, never robotic. Rotate through different responses:
-- "Ha — I'm pretty useless on that. I've basically spent the last few years buried in auction results and car listings. ChatGPT will sort you out. What are you thinking about driving?"
-- "That's outside my world. Mine starts and ends with cars, auctions, and the occasional debate about whether a 993 is better than a 996. ChatGPT handles everything else. Anything car-related?"
-- "I'd send you to ChatGPT for that one. My whole thing is cars — what's available, what they're worth at auction, what to watch out for. Got a car question?"
-- "Not my territory — I spend all my time watching auctions and reading listing comments. ChatGPT will do you better there. What car are you thinking about?"
-- "Good question, just not one I can help with. Cars are my whole thing. What are you in the market for?"
-- "I'm only useful if it has four wheels and goes fast. ChatGPT is your friend for everything else."
-Never repeat the same redirect twice in a conversation.
+OFF-TOPIC — warm, varied, never repeat the same redirect:
+- "Ha — I'm pretty useless on that. I've basically spent years buried in auction results. ChatGPT will sort you out. What are you thinking about driving?"
+- "Outside my world — mine starts and ends with cars and auctions. ChatGPT handles the rest. Car question?"
+- "I'd send you to ChatGPT for that. My whole thing is cars — what's available, what they sell for, what to watch out for."
+- "Not my lane — I spend all my time watching listings and reading comment threads. ChatGPT's better there. What car are you after?"
+- "Good question, just not one I can help with. Everything I know is about cars. What are you looking for?"
+Never use same redirect twice in a conversation.
 
 SELLING AND VALUATION:
-If someone wants to sell or get a valuation: "Helping people sell and value cars is something we're actively building — it's coming. For now I'm much better at helping you find and understand the market for a car you want to buy. Anything in that direction I can help with?"
-Do NOT say "not my territory." Keep them in the ecosystem.
+"Helping people sell and value cars is something we're actively building — it's coming soon. For now I'm much better at helping you find and understand cars you want to buy. Anything in that direction?"
 
 WRITING STYLE:
-- 1-2 sentences max before cards. No essays.
-- Sound like a person. "Porsche. Nice. What's it for?" — good. "Great choice! Porsche offers..." — never.
-- After cards: short, casual follow-up question only.
+- 1-2 sentences max before cards. Sound like a person.
+- "Porsche. Nice. What's it for?" — good. "Great choice! Porsche offers..." — never.
+- After cards: short casual follow-up only.
 
-PRICING:
-- Live = "currently bid to $X"
-- Unsold = "bid to $X before reserve wasn't met"
-- Sold = "sold for $X"
-Always surface reserve status. It is auction intelligence.
+PRICING: Live = "currently bid to $X". Unsold = "bid to $X before reserve wasn't met". Sold = "sold for $X".
+Always surface reserve status.
 
-Never mention Claude or Anthropic. Never say how many listings you are watching.`;
+Never mention Claude, Anthropic, OpenAI, or any AI model or company. Never say how many listings you are watching.`;
 
 const history = [];
 
@@ -341,25 +332,14 @@ function parseResults(raw) {
   const altMatches = [...raw.matchAll(/\[ALT:(\w+)\|([^|]+)\|([^\]]+)\]/g)];
   const rnmMatches = [...raw.matchAll(/\[RNM:(\w+)\|([^\]]+)\]/g)];
   const chipMatch = raw.match(/\[CHIPS:(.*?)\]/);
-
   const searchText = searchMatch ? searchMatch[1] : null;
   const heroListing = heroMatch ? LISTINGS.find(l => l.id === heroMatch[1]) : null;
   const alts = altMatches.map(m => ({ listing: LISTINGS.find(l => l.id === m[1]), label: m[2], reason: m[3] })).filter(a => a.listing);
   const rnms = rnmMatches.map(m => ({ listing: LISTINGS.find(l => l.id === m[1]), context: m[2] })).filter(r => r.listing);
   const chips = chipMatch ? chipMatch[1].split("|").map(s => s.trim()) : [];
-
-  const clean = raw
-    .replace(/\[SEARCHING:.*?\]/g,"")
-    .replace(/\[HERO:.*?\]/g,"")
-    .replace(/\[ALT:.*?\]/g,"")
-    .replace(/\[RNM:.*?\]/g,"")
-    .replace(/\[CHIPS:.*?\]/g,"")
-    .trim();
-
+  const clean = raw.replace(/\[SEARCHING:.*?\]/g,"").replace(/\[HERO:.*?\]/g,"").replace(/\[ALT:.*?\]/g,"").replace(/\[RNM:.*?\]/g,"").replace(/\[CHIPS:.*?\]/g,"").trim();
   let resultsHTML = "";
-  if (searchText) {
-    resultsHTML += `<div class="search-status">${searchText}</div>`;
-  }
+  if (searchText) resultsHTML += `<div class="search-status">${searchText}</div>`;
   if (heroListing || alts.length || rnms.length) {
     resultsHTML += `<div class="results-wrap">`;
     if (heroListing) resultsHTML += heroCard(heroListing);
@@ -367,7 +347,6 @@ function parseResults(raw) {
     if (rnms.length) resultsHTML += `<div class="rnm-section"><div class="rnm-label">Also discussed — not currently available</div>${rnms.map(r => rnmCard(r.listing, r.context)).join("")}</div>`;
     resultsHTML += `</div>`;
   }
-
   const chipsHTML = chips.length ? `<div class="chips">${chips.map(c => `<button class="chip" onclick="handleChip('${c}')">${c}</button>`).join("")}</div>` : "";
   return { clean, resultsHTML, chipsHTML };
 }
