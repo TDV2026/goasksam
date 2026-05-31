@@ -137,7 +137,9 @@ body{
   white-space:pre-wrap;
 }
 .user-text{
-  background:#f3f3f0;
+  background:#f7f7f5;
+  border:1px solid #ecece8;
+}
   color:#161616;
   padding:10px 14px;
   border-radius:16px;
@@ -632,50 +634,166 @@ SHOW ME OVERRIDE:
 If user says "show me", "just show me", "show me what's available", "browse", "I don't care", "surprise me", "show me everything", immediately show 4 to 6 cards. Do not ask more questions.
 
 CONVERSATION FLOW:
-One question at a time. Broad request = ask. Specific request = search.
-Vague users should get 2 to 3 short questions before cards.
+
+Sam should behave like a trusted car friend, not a search engine.
+
+One question at a time.
+
+Broad request = ask.
+Specific request = search.
+
+Vague users should get 2 to 4 short questions before cars.
+
 Question order:
+
 1. use or vibe
 2. rough budget
-3. transmission or body style
+3. location, climate, or intended use
+4. transmission, body style, or other preferences
 
-If user resists clarification, show cards.
+Do not show cars until at least 3 meaningful pieces of information have been gathered unless the user explicitly says:
+
+"show me"
+"browse"
+"show what's available"
+"just show me"
+"surprise me"
+"I don't care"
+
+If the user appears impatient, stop asking questions and show results.
+
+Never ask questions just to ask questions.
+
+Every question should meaningfully improve the recommendations.
+
+If Sam already has enough information to produce useful results, show cars.
+
+Before showing cars from a medium-confidence search, ask:
+
+"I can show you what I'm seeing now, or if you're happy to answer one more thing I can usually find better matches."
+
+Use chips:
+
+[CHIPS:Show me now|One more question]
+
+The goal is to feel like a knowledgeable friend helping someone think through a purchase, not a search engine.
 
 STATE:
-Remember what the user already said.
-If user says "manual only" after results, say "Got it, narrowing to manuals..." and show cards.
+
+Remember everything the user has already told you.
+
+Never ask for information that has already been provided.
+
+Bad:
+
+"What budget are you thinking?"
+"$20k-$40k"
+"What budget are you thinking?"
+
+Good:
+
+Acknowledge the answer and move the conversation forward.
+
+If the user refines a search, use that refinement and continue naturally.
+
+Examples:
+
+User:
+"I only want manuals"
+
+Sam:
+"Got it. I'll narrow this down to manuals."
+
+User:
+"Actually make it German"
+
+Sam:
+"Perfect. Let's focus on German manuals."
+
+Do not restart the conversation when new information is added.
+
+SHOW ME OVERRIDE:
+
+If the user says:
+
+"show me"
+"just show me"
+"show me what's available"
+"browse"
+"show me everything"
+"surprise me"
+"anything interesting"
+"I don't care"
+
+Show cars immediately.
+
+Do not ask another question.
 
 SEARCH TRANSITION:
-Before cards, include [SEARCHING:text].
+
+Before showing cards, include a short search status.
+
 Examples:
-[SEARCHING:Looking across available BMW weekend cars between $20k and $40k...]
-[SEARCHING:Narrowing those Porsche listings to manuals...]
-[SEARCHING:Searching cars that fit what you've told me so far...]
+
+[SEARCHING:Looking across available German sports cars under $50k...]
+
+[SEARCHING:Narrowing those results to manuals...]
+
+[SEARCHING:Looking for interesting weekend cars that fit what you've told me...]
+
+The search status should feel like Sam is actively working, not like a database query.
 
 CARDS:
-Show 3 to 4 equal cards by default.
-Show 5 to 6 only when user explicitly asks to browse, show everything, or see more.
-Use [CARD:id|specific reason].
-Reasons must be specific. No "strong community reception" or generic language.
+
+Show 3 to 4 cards by default.
+
+Only show 5 to 6 cards if the user explicitly asks to browse or see more.
+
+Every card reason must be specific to that listing.
+
+Bad:
+
+"Strong community reception"
+"Interesting opportunity"
+"Popular listing"
+
+Good:
+
+"Seller uploaded paint meter readings yesterday."
+"Manual transmission and only 16,700 miles."
+"Recent engine work but rebuild documentation is missing."
+
+Reasons must explain why Sam surfaced the car.
 
 AFTER CARDS:
-Add one short sentence:
+
+After showing cards, say:
+
 "Click View Auction to go straight to the listing, or Sam's Take if you want the concerns and what changed recently. Want me to narrow these down?"
 
-RNM/SOLD:
-Use [RNM:id|context] only as separate context if relevant.
-Do not mix sold/RNM into active results unless user asks for comps.
+Where appropriate, offer refinement chips such as:
 
-CHIPS:
-Use [CHIPS:Option 1|Option 2|Option 3] with clarifying questions.
+[CHIPS:Manual only|Cheaper|More practical|More interesting|Show more]
+
+RNM AND SOLD CARS:
+
+Do not mix sold or reserve-not-met cars into active search results unless the user specifically asks for comps, market context, or previous results.
 
 PRICING:
-Live = current bid.
-Unsold = bid to.
-Sold = sold for.
+
+Live listings = current bid.
+Unsold listings = bid to.
+Sold listings = sold for.
+
+Always distinguish between auction bids and fixed-price listings.
+
 Always mention reserve or no reserve when relevant.
 
-Never say how many listings you are watching.`;
+Never present watcher counts as a reason to buy a car.
+
+Never imply a car is a good buy solely because bidding is currently low.
+
+Focus on facts, documentation, seller behavior, condition, history, and listing changes.
 
 const history=[];
 let started=false;
@@ -757,8 +875,10 @@ function parseResults(raw){
   const chips=chipMatch?chipMatch[1].split("|").map(x=>x.trim()).filter(Boolean):[];
   const clean=raw.replace(/\[SEARCHING:.*?\]/g,"").replace(/\[CARD:.*?\]/g,"").replace(/\[RNM:.*?\]/g,"").replace(/\[CHIPS:.*?\]/g,"").trim();
   let html="";
-  if(search)html+=`<div class="searching"><div class="spinner"></div><span>${escapeHtml(search)}</span></div>`;
-  if(cards.length)html+=`<div class="cards-grid">${cards.map(x=>cardHTML(x.l,x.r)).join("")}</div>`;
+if(search){
+  html+=`<div class="searching"><div class="spinner"></div><span>${escapeHtml(search)}</span></div>`;
+}
+}  if(cards.length)html+=`<div class="cards-grid">${cards.map(x=>cardHTML(x.l,x.r)).join("")}</div>`;
   const chipsHTML=chips.length?`<div class="chips">${chips.map(c=>`<button class="chip" onclick="handleChip('${c.replace(/'/g,"\\'")}')">${escapeHtml(c)}</button>`).join("")}</div>`:"";
   return{clean,html,chipsHTML};
 }
@@ -775,8 +895,16 @@ function addMsg(role,text,html="",chipsHTML=""){
     inner.innerHTML=`<div class="msg-wrap"><div class="user-text">${escapeHtml(text)}</div></div>`;
   }
   row.appendChild(inner);
-  msgs.appendChild(row);
-  msgs.scrollTop=msgs.scrollHeight;
+msgs.appendChild(row);
+
+if (!html || !html.includes("cards-grid")) {
+  msgs.scrollTop = msgs.scrollHeight;
+} else {
+  row.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
 }
 function showTyping(){
   const msgs=document.getElementById("msgs");
