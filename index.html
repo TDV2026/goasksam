@@ -793,7 +793,7 @@ Never present watcher counts as a reason to buy a car.
 Never imply a car is a good buy solely because bidding is currently low.
 
 Focus on facts, documentation, seller behavior, condition, history, and listing changes.
-
+;
 const history=[];
 let started=false;
 
@@ -876,7 +876,7 @@ function parseResults(raw){
   let html="";
 if(search){
   html+=`<div class="searching"><div class="spinner"></div><span>${escapeHtml(search)}</span></div>`;
-}
+
 }  if(cards.length)html+=`<div class="cards-grid">${cards.map(x=>cardHTML(x.l,x.r)).join("")}</div>`;
   const chipsHTML=chips.length?`<div class="chips">${chips.map(c=>`<button class="chip" onclick="handleChip('${c.replace(/'/g,"\\'")}')">${escapeHtml(c)}</button>`).join("")}</div>`:"";
   return{clean,html,chipsHTML};
