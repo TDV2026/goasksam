@@ -38,58 +38,53 @@
   .chips { display: flex; flex-wrap: wrap; gap: 7px; }
   .chip { padding: 7px 15px; border-radius: 99px; border: 1px solid #e0e0e0; background: #fff; font-size: 13px; color: #555; cursor: pointer; transition: all 0.1s; font-family: inherit; }
   .chip:hover { border-color: #1a1a1a; color: #1a1a1a; }
-  .search-status { font-size: 13px; color: #999; font-style: italic; padding: 4px 0; }
+  .search-status { font-size: 13px; color: #999; font-style: italic; padding: 2px 0 6px; }
   .typing-wrap { display: flex; gap: 4px; align-items: center; height: 24px; }
   .dot { width: 5px; height: 5px; border-radius: 50%; background: #bbb; animation: pulse 1.4s ease-in-out infinite; }
   .dot:nth-child(2) { animation-delay: .2s; }
   .dot:nth-child(3) { animation-delay: .4s; }
   @keyframes pulse { 0%,80%,100%{opacity:.3} 40%{opacity:1} }
-  .results-wrap { display: flex; flex-direction: column; gap: 10px; width: 100%; }
-  .card-hero { background: #fff; border: 1.5px solid #1a1a1a; border-radius: 14px; overflow: hidden; }
-  .card-hero-label { background: #1a1a1a; color: #fff; font-size: 10px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; padding: 7px 14px; }
-  .card-hero-img { width: 100%; height: 200px; object-fit: cover; display: block; background: #f0f0ee; }
-  .card-hero-body { padding: 14px 16px 0; }
-  .card-hero-title { font-size: 16px; font-weight: 600; }
-  .card-hero-meta { font-size: 12px; color: #999; margin-top: 3px; }
-  .card-hero-price-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 12px; }
-  .price-wrap { display: flex; flex-direction: column; }
-  .price-lbl { font-size: 10px; color: #bbb; text-transform: uppercase; letter-spacing: 0.4px; }
-  .price-val { font-size: 20px; font-weight: 600; }
-  .badges { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
-  .badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 500; }
+
+  /* EQUAL DISCOVERY CARDS GRID */
+  .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+  .card { background: #fff; border: 1px solid #e8e8e8; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; cursor: pointer; transition: border-color 0.15s; }
+  .card:hover { border-color: #bbb; }
+  .card-img { width: 100%; height: 130px; object-fit: cover; display: block; background: #f0f0ee; }
+  .card-body { padding: 11px 12px 12px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .card-title { font-size: 13px; font-weight: 600; color: #1a1a1a; line-height: 1.3; }
+  .card-meta { font-size: 11px; color: #aaa; }
+  .card-price-row { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 6px; }
+  .card-price-wrap { display: flex; flex-direction: column; }
+  .card-price-lbl { font-size: 9px; color: #bbb; text-transform: uppercase; letter-spacing: 0.4px; }
+  .card-price { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+  .card-badges { display: flex; gap: 4px; }
+  .badge { font-size: 10px; padding: 2px 7px; border-radius: 99px; font-weight: 500; }
   .badge-live { background: #e8f5e1; color: #2d6a0f; }
   .badge-reserve { background: #f3f4f6; color: #666; }
   .badge-noreserve { background: #ecfdf5; color: #166534; }
   .badge-rnm { background: #fef9ec; color: #9a6000; }
-  .update-ticker { margin: 10px 16px 0; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 8px 12px; display: flex; gap: 8px; align-items: flex-start; }
-  .update-dot { width: 6px; height: 6px; border-radius: 50%; background: #f59e0b; flex-shrink: 0; margin-top: 4px; animation: blink-dot 2s ease-in-out infinite; }
+  .card-actions { display: flex; gap: 6px; padding: 8px 12px 10px; border-top: 1px solid #f5f5f5; }
+  .card-btn-primary { flex: 1; padding: 7px; background: #1a1a1a; color: #fff; border: none; border-radius: 7px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; }
+  .card-btn-primary:hover { background: #333; }
+  .card-btn-ghost { flex: 1; padding: 7px; background: #fff; color: #1a1a1a; border: 1px solid #e0e0e0; border-radius: 7px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; }
+  .card-btn-ghost:hover { background: #f9f9f8; }
+
+  /* UPDATE TICKER */
+  .card-update { margin: 0 12px 8px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 6px 10px; display: flex; gap: 6px; align-items: flex-start; }
+  .update-dot { width: 5px; height: 5px; border-radius: 50%; background: #f59e0b; flex-shrink: 0; margin-top: 3px; animation: blink-dot 2s ease-in-out infinite; }
   @keyframes blink-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }
-  .update-text { font-size: 12px; color: #92400e; line-height: 1.5; }
-  .update-time { font-size: 11px; color: #b45309; font-weight: 600; }
-  .card-hero-actions { display: flex; gap: 8px; padding: 12px 16px 14px; margin-top: 12px; border-top: 1px solid #f0f0ee; }
-  .btn-primary { flex: 1; padding: 9px; background: #1a1a1a; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; }
-  .btn-primary:hover { background: #333; }
-  .btn-take { flex: 1; padding: 9px; background: #fff; color: #1a1a1a; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; }
-  .btn-take:hover { background: #f9f9f8; }
-  .alt-cards { display: flex; flex-direction: column; gap: 8px; }
-  .card-alt { background: #fff; border: 1px solid #ebebeb; border-radius: 12px; overflow: hidden; display: flex; }
-  .card-alt-img { width: 96px; height: 76px; object-fit: cover; flex-shrink: 0; background: #f0f0ee; }
-  .card-alt-body { padding: 10px 12px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
-  .card-alt-label { font-size: 10px; font-weight: 600; color: #bbb; text-transform: uppercase; letter-spacing: 0.5px; }
-  .card-alt-label.caution { color: #c2410c; }
-  .card-alt-title { font-size: 13px; font-weight: 600; line-height: 1.3; margin-top: 1px; }
-  .card-alt-reason { font-size: 12px; color: #888; margin-top: 3px; line-height: 1.35; }
-  .card-alt-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
-  .card-alt-price { font-size: 13px; font-weight: 600; }
-  .card-alt-actions { display: flex; gap: 10px; }
-  .card-alt-action { font-size: 12px; color: #999; font-weight: 500; cursor: pointer; background: none; border: none; padding: 0; font-family: inherit; }
-  .card-alt-action:hover { color: #1a1a1a; }
+  .update-text { font-size: 11px; color: #92400e; line-height: 1.4; }
+  .update-time { font-weight: 600; }
+
+  /* RNM SECTION */
   .rnm-section { border-top: 1px dashed #ebebeb; padding-top: 10px; }
   .rnm-label { font-size: 10px; color: #ccc; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
   .card-rnm { background: #fafaf9; border: 1px solid #f0f0ee; border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; }
   .card-rnm-title { font-size: 12px; font-weight: 600; color: #999; }
   .card-rnm-sub { font-size: 11px; color: #bbb; margin-top: 1px; }
   .card-rnm-right { font-size: 11px; color: #bbb; text-align: right; flex-shrink: 0; margin-left: 12px; }
+
+  /* MODAL */
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100; display: flex; align-items: flex-end; justify-content: center; }
   .modal { background: #fff; border-radius: 20px 20px 0 0; width: 100%; max-width: 700px; max-height: 82vh; overflow-y: auto; padding: 20px 24px 40px; position: relative; }
   .modal-handle { width: 32px; height: 4px; background: #e8e8e8; border-radius: 2px; margin: 0 auto 18px; }
@@ -106,6 +101,7 @@
   .modal-section-label { font-size: 10px; font-weight: 600; color: #bbb; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
   .modal-section-text { font-size: 14px; color: #555; line-height: 1.65; }
   .modal-update { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 12px; margin-bottom: 16px; font-size: 13px; color: #92400e; line-height: 1.5; }
+
   #input-area { padding: 10px 28px 24px; flex-shrink: 0; max-width: 700px; width: 100%; margin: 0 auto; align-self: center; box-sizing: border-box; }
   #input-outer { background: #fff; border: 1px solid #d9d9d9; border-radius: 14px; padding: 12px 14px 12px 18px; display: flex; gap: 10px; align-items: flex-end; box-shadow: 0 1px 8px rgba(0,0,0,0.07); transition: border-color 0.15s, box-shadow 0.15s; }
   #input-outer:focus-within { border-color: #aaa; box-shadow: 0 2px 14px rgba(0,0,0,0.1); }
@@ -181,67 +177,79 @@ LISTINGS:
 ${JSON.stringify(LISTINGS)}
 
 IDENTITY — CRITICAL:
-You are Sam. That is all. Never say you are AI, an AI assistant, built on AI, a language model, Claude, ChatGPT, or anything of that nature.
-If asked "Are you AI?", "Are you ChatGPT?", "Are you Claude?", or similar:
-Respond as Sam would: "I'm Sam — built specifically for GoAskSam to help people navigate the collector car market. I spend my time tracking auctions, listings, seller activity and market movements. What are you looking for?"
-Or: "Think of me as the car person behind GoAskSam. My whole job is helping buyers find the right car and understand what's happening in the market. What are you after?"
-Never confirm or deny being an AI. Never name any AI company or model. Stay in character as Sam.
+You are Sam. Never say you are AI, a language model, Claude, ChatGPT, or built on any AI platform.
+If asked "Are you AI?", "Are you Claude?", "Are you ChatGPT?":
+"I'm Sam — built specifically for GoAskSam to help people navigate the collector car market. I track auctions, listings, and market movements. What are you looking for?"
+Never confirm or deny being an AI. Never name any AI company or model. Stay in character.
 
-SHOW ME OVERRIDE — HIGHEST PRIORITY RULE:
-If the user says anything like: "show me what's available", "just show me cars", "show me everything", "browse inventory", "I don't care just show me", "surprise me", "show me what you have" — STOP asking questions IMMEDIATELY. Show 4-6 cars now. No exceptions. This is a command, not a conversation input.
+HUMOR AND JOKES — CRITICAL:
+Recognize when someone is joking, being sarcastic, or using obvious exaggeration. DO NOT redirect to ChatGPT for jokes.
+Instead, play along warmly and redirect to the actual need.
+Examples:
+- "I need a van to dump a body" → "Let's keep this legal. What are you actually hauling — camping gear, motorcycles, tools?"
+- "I need something fast enough to outrun the cops" → "I can't help with the outrunning part. What's this for — track days, weekend drives, showing off at lights?"
+- "I want a car that will impress my ex" → "The most effective car for that is one you actually love driving. What are you after?"
+The test: would a friend laugh at this comment? If yes, respond like a friend. Keep it light and redirect naturally.
+
+SHOW ME OVERRIDE — HIGHEST PRIORITY:
+"show me what's available", "just show me", "show me everything", "browse", "I don't care just show me", "surprise me", "show me what you have" → STOP asking questions. Show 4-6 cards NOW. No exceptions.
 
 CONFIDENCE MODEL (internal):
-High confidence — show cars immediately:
-- Specific make/model + budget: "manual 981 Cayman under $50k"
-- Specific make + type + budget: "AWD sports car under $40k"
-Medium confidence — one more question then show:
-- Make + use case but no budget: "Porsche daily driver"
-- Budget + type but vague: "sports car around $30k"
-Low confidence — keep asking (one question at a time):
-- Brand only: "Porsche" or "BMW"
-- Vibe only: "fast car", "luxury car", "something fun"
-- Multiple options with no direction: "Porsche or BMW"
+HIGH — show cards immediately:
+- Specific make/model + budget + one more thing: "manual 981 Cayman under $50k", "manual BMW convertible weekend car $30k"
+MEDIUM — one more question then show:
+- Make + use + budget but missing transmission/style: "BMW weekend car $20-40k", "Porsche daily driver under $40k"
+LOW — keep asking (one at a time):
+- Brand only, vibe only, or ambiguous: "Porsche", "fast car", "luxury car", "BMW or Porsche"
+
+THE CONFIDENCE TEST before showing cards:
+Ask yourself: "Would I confidently spend this person's money on these specific cars based on what they've told me?"
+If NO → ask one more question.
+If YES → show cards.
 
 ONE QUESTION AT A TIME — ALWAYS.
-Question order: 1) use/vibe, 2) budget, 3) one preference (manual/auto, sporty/comfortable, new/old)
-After 3 exchanges even with a vague user → show inventory and continue from there.
+Question order: 1) use/vibe 2) budget 3) transmission or body style preference
+After 3 exchanges with a vague user → show anyway and continue from cards.
 
 STATE MEMORY:
-Remember everything from earlier in the conversation. Never ask for info already given.
-If user refines ("manual only", "actually under $30k") → acknowledge and narrow: "Got it — narrowing those to manuals..." then show updated results.
+Never ask for info already given. If user refines ("manual only", "actually $30k") → acknowledge and narrow:
+"Got it — narrowing to manuals..." then show updated results.
 
-SEARCH STATUS:
-When showing results, include [SEARCHING:text] — a specific italic line showing what you're searching.
-Examples: [SEARCHING:Searching manual Porsches under $50k...] [SEARCHING:Narrowing those 911s to manuals only...]
+SEARCH TRANSITION:
+Before showing cards, always include [SEARCHING:text] — a short specific italic line.
+This must feel like something is happening, not just text appearing.
+Examples:
+[SEARCHING:Looking through manual Porsches under $50k...]
+[SEARCHING:Searching BMW weekend cars between $20k and $40k...]
+[SEARCHING:Narrowing those 911s to manuals only...]
+[SEARCHING:Pulling up sports cars in the $30-40k range...]
 
-SHOW 4-6 CARS:
-[HERO:id] — strongest match, ONE only (labeled "Best Match")
-[ALT:id|Label|One-line reason] — 3-5 alternatives
-[RNM:id|Context] — reserve-not-met comps only, greyed out separate section
-After cards, always follow with one short question to keep conversation going.
+SHOW 4-6 EQUAL CARDS — NO HERO CARD:
+Show 4-6 cards of equal size. No "Best Match" label. No hierarchy.
+Use [CARD:id|One-line description] for each card.
+After cards, always ask a short follow-up: "Which one catches your eye?" or "Too practical, too wild, or heading the right direction?"
+
+RNM section (reserve-not-met) still separate:
+[RNM:id|Context]
 
 CHIPS: [CHIPS:Option 1|Option 2|Option 3] with every clarifying question.
 
-OFF-TOPIC — warm, varied, never repeat the same redirect:
-- "Ha — I'm pretty useless on that. I've basically spent years buried in auction results. ChatGPT will sort you out. What are you thinking about driving?"
-- "Outside my world — mine starts and ends with cars and auctions. ChatGPT handles the rest. Car question?"
-- "I'd send you to ChatGPT for that. My whole thing is cars — what's available, what they sell for, what to watch out for."
-- "Not my lane — I spend all my time watching listings and reading comment threads. ChatGPT's better there. What car are you after?"
-- "Good question, just not one I can help with. Everything I know is about cars. What are you looking for?"
-Never use same redirect twice in a conversation.
+OFF-TOPIC — warm, varied, never robotic, never repeat same redirect:
+- "Ha — I'm pretty useless on that. Years buried in auction results. ChatGPT will sort you out. Car question?"
+- "Outside my world. ChatGPT handles the rest. Anything car-related?"
+- "Not my lane — I spend all my time watching listings. ChatGPT's better there. What car are you after?"
 
 SELLING AND VALUATION:
-"Helping people sell and value cars is something we're actively building — it's coming soon. For now I'm much better at helping you find and understand cars you want to buy. Anything in that direction?"
+"Helping people sell and value cars is something we're actively building — coming soon. For now I'm much better at helping you buy and understand the market. Anything in that direction?"
 
 WRITING STYLE:
 - 1-2 sentences max before cards. Sound like a person.
-- "Porsche. Nice. What's it for?" — good. "Great choice! Porsche offers..." — never.
-- After cards: short casual follow-up only.
+- After cards: one short casual follow-up question only.
 
 PRICING: Live = "currently bid to $X". Unsold = "bid to $X before reserve wasn't met". Sold = "sold for $X".
 Always surface reserve status.
 
-Never mention Claude, Anthropic, OpenAI, or any AI model or company. Never say how many listings you are watching.`;
+Never mention Claude, Anthropic, OpenAI, or any AI model. Never say how many listings you are watching.`;
 
 const history = [];
 
@@ -276,45 +284,30 @@ function showTake(id) {
   document.body.appendChild(overlay);
 }
 
-function heroCard(l) {
+function equalCard(l, description) {
   const ri = reserveInfo(l);
+  const pl = l.status === "sold" ? "sold for" : l.status === "unsold" ? "bid to" : "current bid";
   const u = l.updates && l.updates.length ? l.updates[0] : null;
-  const updateHTML = u ? `<div class="update-ticker"><div class="update-dot"></div><div class="update-text"><span class="update-time">${u.time} —</span> ${u.text}</div></div>` : "";
-  return `<div class="card-hero">
-    <div class="card-hero-label">Best Match</div>
-    <img class="card-hero-img" src="${l.img}" alt="${l.year} ${l.make}" onerror="this.style.background='#f0f0ee'">
-    <div class="card-hero-body">
-      <div class="card-hero-title">${l.year} ${l.make} ${l.model}</div>
-      <div class="card-hero-meta">${l.miles.toLocaleString()} mi · ${l.trans} · ${l.loc}</div>
-      <div class="card-hero-price-row">
-        <div class="price-wrap"><span class="price-lbl">current bid</span><span class="price-val">$${l.price.toLocaleString()}</span></div>
-        <div class="badges"><span class="badge badge-live">live</span><span class="badge badge-${ri.cls === 'noreserve' ? 'noreserve' : 'reserve'}">${ri.label}</span></div>
+  const updateHTML = u ? `<div class="card-update"><div class="update-dot"></div><div class="update-text"><span class="update-time">${u.time} — </span>${u.text}</div></div>` : "";
+  return `<div class="card">
+    <img class="card-img" src="${l.img}" alt="${l.year} ${l.make}" onerror="this.style.background='#f0f0ee'">
+    <div class="card-body">
+      <div class="card-title">${l.year} ${l.make} ${l.model}</div>
+      <div class="card-meta">${l.miles.toLocaleString()} mi · ${l.trans} · ${l.loc}</div>
+      <div class="card-price-row">
+        <div class="card-price-wrap">
+          <span class="card-price-lbl">${pl}</span>
+          <span class="card-price">$${l.price.toLocaleString()}</span>
+        </div>
+        <div class="card-badges">
+          <span class="badge badge-${ri.cls === 'noreserve' ? 'noreserve' : ri.cls === 'rnm' ? 'rnm' : 'reserve'}">${ri.label}</span>
+        </div>
       </div>
     </div>
     ${updateHTML}
-    <div class="card-hero-actions">
-      <button class="btn-primary" onclick="window.open('${l.url||'#'}','_blank')">View Auction ↗</button>
-      <button class="btn-take" onclick="showTake('${l.id}')">Sam's Take</button>
-    </div>
-  </div>`;
-}
-
-function altCard(l, label, reason) {
-  const isWarn = label.toLowerCase().includes("risk") || label.toLowerCase().includes("caution") || label.toLowerCase().includes("gamble");
-  const pl = l.status === "sold" ? "sold for" : l.status === "unsold" ? "bid to" : "current bid";
-  return `<div class="card-alt">
-    <img class="card-alt-img" src="${l.img}" alt="${l.year} ${l.make}" onerror="this.style.background='#f0f0ee'">
-    <div class="card-alt-body">
-      <div class="card-alt-label ${isWarn ? 'caution' : ''}">${label}</div>
-      <div class="card-alt-title">${l.year} ${l.make} ${l.model}</div>
-      <div class="card-alt-reason">${reason}</div>
-      <div class="card-alt-bottom">
-        <span class="card-alt-price">${pl} $${l.price.toLocaleString()}</span>
-        <div class="card-alt-actions">
-          <button class="card-alt-action" onclick="window.open('${l.url||'#'}','_blank')">View ↗</button>
-          <button class="card-alt-action" onclick="showTake('${l.id}')">Sam's Take</button>
-        </div>
-      </div>
+    <div class="card-actions">
+      <button class="card-btn-primary" onclick="window.open('${l.url||'#'}','_blank')">View ↗</button>
+      <button class="card-btn-ghost" onclick="showTake('${l.id}')">Sam's Take</button>
     </div>
   </div>`;
 }
@@ -328,25 +321,31 @@ function rnmCard(l, context) {
 
 function parseResults(raw) {
   const searchMatch = raw.match(/\[SEARCHING:(.*?)\]/);
-  const heroMatch = raw.match(/\[HERO:(\w+)\]/);
-  const altMatches = [...raw.matchAll(/\[ALT:(\w+)\|([^|]+)\|([^\]]+)\]/g)];
+  const cardMatches = [...raw.matchAll(/\[CARD:(\w+)\|([^\]]+)\]/g)];
   const rnmMatches = [...raw.matchAll(/\[RNM:(\w+)\|([^\]]+)\]/g)];
   const chipMatch = raw.match(/\[CHIPS:(.*?)\]/);
+
   const searchText = searchMatch ? searchMatch[1] : null;
-  const heroListing = heroMatch ? LISTINGS.find(l => l.id === heroMatch[1]) : null;
-  const alts = altMatches.map(m => ({ listing: LISTINGS.find(l => l.id === m[1]), label: m[2], reason: m[3] })).filter(a => a.listing);
+  const cards = cardMatches.map(m => ({ listing: LISTINGS.find(l => l.id === m[1]), desc: m[2] })).filter(c => c.listing);
   const rnms = rnmMatches.map(m => ({ listing: LISTINGS.find(l => l.id === m[1]), context: m[2] })).filter(r => r.listing);
   const chips = chipMatch ? chipMatch[1].split("|").map(s => s.trim()) : [];
-  const clean = raw.replace(/\[SEARCHING:.*?\]/g,"").replace(/\[HERO:.*?\]/g,"").replace(/\[ALT:.*?\]/g,"").replace(/\[RNM:.*?\]/g,"").replace(/\[CHIPS:.*?\]/g,"").trim();
+
+  const clean = raw
+    .replace(/\[SEARCHING:.*?\]/g,"")
+    .replace(/\[CARD:.*?\]/g,"")
+    .replace(/\[RNM:.*?\]/g,"")
+    .replace(/\[CHIPS:.*?\]/g,"")
+    .trim();
+
   let resultsHTML = "";
   if (searchText) resultsHTML += `<div class="search-status">${searchText}</div>`;
-  if (heroListing || alts.length || rnms.length) {
-    resultsHTML += `<div class="results-wrap">`;
-    if (heroListing) resultsHTML += heroCard(heroListing);
-    if (alts.length) resultsHTML += `<div class="alt-cards">${alts.map(a => altCard(a.listing, a.label, a.reason)).join("")}</div>`;
-    if (rnms.length) resultsHTML += `<div class="rnm-section"><div class="rnm-label">Also discussed — not currently available</div>${rnms.map(r => rnmCard(r.listing, r.context)).join("")}</div>`;
-    resultsHTML += `</div>`;
+  if (cards.length) {
+    resultsHTML += `<div class="cards-grid">${cards.map(c => equalCard(c.listing, c.desc)).join("")}</div>`;
   }
+  if (rnms.length) {
+    resultsHTML += `<div class="rnm-section"><div class="rnm-label">Also discussed — not currently available</div>${rnms.map(r => rnmCard(r.listing, r.context)).join("")}</div>`;
+  }
+
   const chipsHTML = chips.length ? `<div class="chips">${chips.map(c => `<button class="chip" onclick="handleChip('${c}')">${c}</button>`).join("")}</div>` : "";
   return { clean, resultsHTML, chipsHTML };
 }
@@ -354,7 +353,7 @@ function parseResults(raw) {
 function addMsg(role, text, resultsHTML, chipsHTML) {
   const msgs = document.getElementById("msgs");
   const row = document.createElement("div");
-  row.className = "row " + role;
+  row.className = "role " + role;
   const inner = document.createElement("div");
   inner.className = "row-inner";
   if (role === "sam") {
@@ -416,7 +415,7 @@ document.getElementById("inp").addEventListener("input", function() {
   this.style.height = Math.min(this.scrollHeight, 160) + "px";
 });
 
-setTimeout(() => addMsg("sam", "Hey, I'm Sam. What are you looking for today?", "", ""), 200);
+setTimeout(() => addMsg("sam", "Hey, what are you looking for?", "", ""), 200);
 </script>
 </body>
 </html>
