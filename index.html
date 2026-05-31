@@ -3,74 +3,590 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>GoAskSam Demo</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<title>GoAskSam</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;background:#fff;height:100dvh;display:flex;overflow:hidden;color:#171717;font-size:15px}
-#rail{width:260px;background:#f8f8f7;border-right:1px solid #ececec;display:flex;flex-direction:column;padding:14px 10px;flex-shrink:0}
-#rail-logo{display:flex;align-items:center;gap:9px;padding:8px 10px;margin-bottom:12px}
-#rail-logo-mark{width:28px;height:28px;border-radius:8px;background:#171717;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
-#rail-logo-text{font-weight:700}.rail-sub{font-size:11px;color:#aaa}
-.rail-btn,.rail-chat-item{width:100%;border:0;background:transparent;text-align:left;border-radius:9px;padding:9px 10px;color:#555;font-family:inherit;font-size:13px;cursor:pointer}
-.rail-btn:hover,.rail-chat-item:hover,.rail-btn.active{background:#eee;color:#171717}
-.rail-divider{height:1px;background:#e8e8e8;margin:9px 4px}
-.rail-section-label{font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px 4px}
-#rail-footer{margin-top:auto;padding:10px;font-size:11px;line-height:1.5;color:#aaa}
-#main{flex:1;display:flex;flex-direction:column;min-width:0}
-#msgs{flex:1;overflow-y:auto;padding:48px 0 16px;display:flex;flex-direction:column;gap:2px}
-.row{width:100%;padding:5px 0}.row-inner{max-width:940px;margin:0 auto;padding:0 28px;display:flex}.row.user .row-inner{justify-content:flex-end}
-.msg-wrap{display:flex;flex-direction:column;gap:10px;max-width:760px;width:100%}.row.user .msg-wrap{width:auto;max-width:58%}
-.sam-name{font-size:12px;font-weight:700;color:#777}.sam-text{font-size:15px;line-height:1.65;white-space:pre-wrap}
-.user-bubble{background:#171717;color:#fff;padding:10px 15px;border-radius:18px;border-bottom-right-radius:5px;line-height:1.5}
-.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{border:1px solid #ddd;background:#fff;border-radius:999px;padding:7px 14px;font-family:inherit;font-size:13px;color:#444;cursor:pointer}.chip:hover{border-color:#171717;color:#171717}
-.search-status{font-size:13px;color:#777;font-style:italic;padding:8px 0}
-.typing-wrap{display:flex;gap:4px;height:24px;align-items:center}.dot{width:5px;height:5px;border-radius:50%;background:#bbb;animation:pulse 1.4s infinite}.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}@keyframes pulse{0%,80%,100%{opacity:.3}40%{opacity:1}}
-.cards-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;width:100%}
-.card{border:1px solid #e6e6e6;border-radius:14px;background:#fff;overflow:hidden;display:flex;flex-direction:column;transition:border-color .15s,transform .15s}
-.card:hover{border-color:#aaa;transform:translateY(-1px)}
-.card-img-wrap{height:205px;background:#f1f1ef;position:relative;overflow:hidden;cursor:pointer}.card-img{width:100%;height:100%;object-fit:cover;display:block}.card-platform{position:absolute;top:10px;left:10px;background:rgba(23,23,23,.82);color:#fff;border-radius:8px;padding:5px 9px;font-weight:700;font-size:12px}
-.card-body{padding:12px 13px;display:flex;flex-direction:column;gap:7px;flex:1}.card-title{font-size:15px;line-height:1.28;font-weight:700}.card-meta{font-size:12px;color:#777}.card-desc{font-size:12px;color:#444;line-height:1.45}.card-price-row{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-top:auto;padding-top:5px}.card-price-lbl{font-size:9px;color:#999;text-transform:uppercase;letter-spacing:.45px}.card-price{font-size:20px;font-weight:800}.badge{font-size:10px;border-radius:999px;padding:4px 8px;font-weight:700;white-space:nowrap}.badge-active{background:#f3f4f6;color:#555}.badge-none,.badge-sold{background:#ecfdf5;color:#166534}.badge-rnm{background:#fef9ec;color:#9a6000}
-.card-update{margin:0 13px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;display:flex;gap:7px}.update-dot{width:6px;height:6px;border-radius:50%;background:#f59e0b;margin-top:5px;flex-shrink:0}.update-text{font-size:11px;color:#8a4b00;line-height:1.4}.update-time{font-weight:700}
-.card-actions{display:flex;gap:8px;padding:10px 13px 12px;border-top:1px solid #f3f3f3}.card-btn-primary,.card-btn-ghost{flex:1;border-radius:9px;padding:9px;border:0;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer}.card-btn-primary{background:#171717;color:#fff}.card-btn-ghost{background:#fff;border:1px solid #ddd;color:#171717}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:100;display:flex;align-items:flex-end;justify-content:center}.modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:720px;max-height:82vh;overflow-y:auto;padding:20px 24px 40px;position:relative}.modal-close{position:absolute;right:18px;top:18px;border:0;border-radius:50%;width:28px;height:28px;background:#f1f1f1;cursor:pointer}.modal-title{font-size:17px;font-weight:800}.modal-sub{font-size:12px;color:#888;margin:4px 0}.modal-pill{display:inline-flex;margin:6px 0 16px}.modal-view{font-size:14px;line-height:1.7;background:#f8f8f7;border-left:3px solid #171717;border-radius:10px;padding:14px 16px;margin-bottom:18px}.modal-label{font-size:10px;color:#999;font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px}.modal-section{margin-bottom:16px}.modal-section-text{font-size:14px;line-height:1.6;color:#444}.modal-update{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;margin-bottom:16px;color:#8a4b00;font-size:13px}
-#input-area{padding:10px 28px 24px;max-width:940px;width:100%;margin:0 auto}#input-outer{background:#fff;border:1px solid #d9d9d9;border-radius:15px;padding:12px 14px 12px 18px;display:flex;gap:10px;align-items:flex-end;box-shadow:0 1px 8px rgba(0,0,0,.07)}#input-outer:focus-within{border-color:#aaa;box-shadow:0 2px 14px rgba(0,0,0,.1)}#inp{flex:1;border:0;outline:0;background:transparent;font-family:inherit;font-size:15px;resize:none;line-height:1.5;max-height:160px}#btn{width:34px;height:34px;border-radius:9px;border:0;background:#171717;color:#fff;cursor:pointer;font-size:16px}#btn:disabled{background:#e8e8e8}#input-hint{text-align:center;font-size:12px;color:#aaa;margin-top:9px}
-@media(max-width:780px){#rail{display:none}.row-inner{padding:0 16px}.row.user .msg-wrap{max-width:82%}.cards-grid{grid-template-columns:1fr}.card-img-wrap{height:220px}#input-area{padding:10px 16px 18px}}
+:root{
+  --bg:#ffffff;
+  --panel:#f7f7f5;
+  --line:#e9e9e6;
+  --text:#161616;
+  --muted:#777;
+  --soft:#f2f2ef;
+  --dark:#171717;
+  --green:#0f7a3d;
+  --green-bg:#eaf8ef;
+  --amber:#9a6000;
+  --amber-bg:#fff6df;
+}
+body{
+  font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  height:100dvh;
+  display:flex;
+  overflow:hidden;
+  font-size:15px;
+}
+#rail{
+  width:268px;
+  flex-shrink:0;
+  background:#fbfbfa;
+  border-right:1px solid var(--line);
+  padding:18px 12px;
+  display:flex;
+  flex-direction:column;
+}
+.logo{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:8px 10px 18px;
+}
+.logo-mark{
+  width:30px;height:30px;
+  border-radius:9px;
+  background:var(--dark);
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:800;
+  font-size:13px;
+}
+.logo-title{font-weight:750;font-size:15px}
+.logo-sub{font-size:11px;color:#aaa;margin-top:1px}
+.rail-btn,.rail-item{
+  width:100%;
+  border:0;
+  background:transparent;
+  text-align:left;
+  font-family:inherit;
+  font-size:13px;
+  color:#565656;
+  padding:9px 10px;
+  border-radius:10px;
+  cursor:pointer;
+}
+.rail-btn:hover,.rail-item:hover,.rail-btn.active{background:#efefed;color:#111}
+.rail-divider{height:1px;background:var(--line);margin:10px 4px}
+.rail-label{
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.7px;
+  color:#aaa;
+  font-weight:700;
+  padding:8px 10px 5px;
+}
+.rail-footer{
+  margin-top:auto;
+  padding:12px 10px 4px;
+  color:#aaa;
+  font-size:11px;
+  line-height:1.45;
+}
+#main{
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  position:relative;
+}
+#msgs{
+  flex:1;
+  overflow-y:auto;
+  padding:42px 0 22px;
+}
+#msgs::-webkit-scrollbar{width:5px}
+#msgs::-webkit-scrollbar-thumb{background:#eee;border-radius:10px}
+.row{
+  width:100%;
+  padding:7px 0;
+}
+.row-inner{
+  max-width:980px;
+  margin:0 auto;
+  padding:0 32px;
+  display:flex;
+}
+.row.sam .row-inner{justify-content:flex-start}
+.row.user .row-inner{justify-content:flex-end}
+.msg-wrap{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  max-width:760px;
+  width:100%;
+}
+.row.user .msg-wrap{
+  max-width:620px;
+  width:auto;
+  align-items:flex-end;
+}
+.sam-label{
+  font-size:12px;
+  color:#999;
+  font-weight:700;
+}
+.sam-text{
+  font-size:15px;
+  line-height:1.65;
+  color:#1b1b1b;
+  white-space:pre-wrap;
+}
+.user-text{
+  background:#f3f3f0;
+  color:#161616;
+  padding:10px 14px;
+  border-radius:16px;
+  border-bottom-right-radius:5px;
+  line-height:1.5;
+  font-size:15px;
+}
+.hero{
+  min-height:calc(100dvh - 150px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 28px;
+}
+.hero-inner{
+  width:100%;
+  max-width:760px;
+  text-align:center;
+}
+.hero-logo{
+  width:54px;height:54px;
+  border-radius:16px;
+  background:#171717;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0 auto 20px;
+  font-weight:800;
+  font-size:20px;
+}
+.hero h1{
+  font-size:30px;
+  letter-spacing:-.8px;
+  margin-bottom:10px;
+}
+.hero p{
+  color:#777;
+  font-size:15px;
+  margin-bottom:22px;
+}
+.hero-chips{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:9px;
+}
+.chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.chip{
+  border:1px solid #dededb;
+  background:white;
+  border-radius:999px;
+  padding:8px 14px;
+  font-family:inherit;
+  font-size:13px;
+  color:#444;
+  cursor:pointer;
+}
+.chip:hover{
+  border-color:#171717;
+  color:#171717;
+  background:#fafafa;
+}
+.searching{
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  background:#f6f6f4;
+  border:1px solid #ecece8;
+  border-radius:999px;
+  padding:9px 14px;
+  color:#666;
+  font-size:13px;
+  margin:2px 0 4px;
+}
+.spinner{
+  width:13px;height:13px;
+  border-radius:50%;
+  border:2px solid #d5d5d1;
+  border-top-color:#171717;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.typing{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  height:26px;
+}
+.dot{
+  width:5px;height:5px;
+  border-radius:50%;
+  background:#bbb;
+  animation:pulse 1.25s infinite;
+}
+.dot:nth-child(2){animation-delay:.15s}
+.dot:nth-child(3){animation-delay:.3s}
+@keyframes pulse{0%,80%,100%{opacity:.3}40%{opacity:1}}
+.cards-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+  margin-top:2px;
+}
+.card{
+  border:1px solid #e5e5e2;
+  background:white;
+  border-radius:18px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  transition:transform .15s,border-color .15s,box-shadow .15s;
+}
+.card:hover{
+  transform:translateY(-2px);
+  border-color:#c9c9c5;
+  box-shadow:0 12px 30px rgba(0,0,0,.06);
+}
+.card-img-wrap{
+  height:225px;
+  background:#efefeb;
+  position:relative;
+  overflow:hidden;
+  cursor:pointer;
+}
+.card-img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.card-source{
+  position:absolute;
+  top:11px;
+  left:11px;
+  background:rgba(18,18,18,.82);
+  color:white;
+  font-size:11px;
+  font-weight:800;
+  padding:5px 9px;
+  border-radius:9px;
+}
+.card-body{
+  padding:13px 14px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  flex:1;
+}
+.card-title{
+  font-size:16px;
+  font-weight:800;
+  letter-spacing:-.2px;
+  line-height:1.22;
+}
+.card-meta{
+  color:#777;
+  font-size:12px;
+}
+.card-reason{
+  color:#333;
+  font-size:13px;
+  line-height:1.45;
+}
+.price-row{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:10px;
+  margin-top:auto;
+}
+.price-label{
+  font-size:9px;
+  color:#999;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  font-weight:800;
+}
+.price{
+  font-size:22px;
+  font-weight:850;
+  letter-spacing:-.5px;
+}
+.badge{
+  font-size:10px;
+  font-weight:800;
+  border-radius:999px;
+  padding:5px 8px;
+  white-space:nowrap;
+}
+.badge-active{background:#f0f0ee;color:#555}
+.badge-none,.badge-sold{background:var(--green-bg);color:var(--green)}
+.badge-rnm{background:var(--amber-bg);color:var(--amber)}
+.card-update{
+  margin:0 14px 11px;
+  background:#fffaf0;
+  border:1px solid #fae4a8;
+  border-radius:10px;
+  padding:8px 10px;
+  display:flex;
+  gap:8px;
+}
+.update-dot{
+  width:6px;height:6px;
+  background:#f59e0b;
+  border-radius:50%;
+  margin-top:5px;
+  flex-shrink:0;
+}
+.update-text{
+  font-size:11px;
+  line-height:1.4;
+  color:#875000;
+}
+.update-time{font-weight:800}
+.card-actions{
+  display:flex;
+  gap:8px;
+  padding:11px 14px 14px;
+  border-top:1px solid #f2f2ef;
+}
+.card-actions button{
+  flex:1;
+  padding:10px 9px;
+  border-radius:10px;
+  font-family:inherit;
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+}
+.primary{
+  background:#171717;
+  color:white;
+  border:1px solid #171717;
+}
+.ghost{
+  background:white;
+  color:#171717;
+  border:1px solid #ddd;
+}
+.after-results{
+  color:#555;
+  font-size:14px;
+  line-height:1.55;
+  margin-top:2px;
+}
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  z-index:100;
+  background:rgba(0,0,0,.32);
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+}
+.modal{
+  width:100%;
+  max-width:760px;
+  max-height:84vh;
+  overflow-y:auto;
+  background:white;
+  border-radius:24px 24px 0 0;
+  padding:22px 26px 42px;
+  position:relative;
+}
+.modal-close{
+  position:absolute;
+  top:18px;
+  right:18px;
+  border:0;
+  background:#f1f1ef;
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  cursor:pointer;
+  font-size:18px;
+}
+.modal-title{
+  font-weight:850;
+  font-size:19px;
+  letter-spacing:-.4px;
+  padding-right:45px;
+}
+.modal-sub{
+  margin-top:5px;
+  color:#777;
+  font-size:13px;
+}
+.modal-pill{
+  display:inline-flex;
+  margin:10px 0 16px;
+}
+.modal-block{
+  background:#f8f8f5;
+  border-left:3px solid #171717;
+  border-radius:12px;
+  padding:15px 16px;
+  line-height:1.7;
+  font-size:14px;
+  margin-bottom:18px;
+}
+.modal-label{
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.7px;
+  color:#999;
+  font-weight:850;
+  margin-bottom:7px;
+}
+.modal-section{
+  margin-bottom:16px;
+}
+.modal-section-text{
+  line-height:1.65;
+  color:#444;
+  font-size:14px;
+}
+.modal-update{
+  background:#fffaf0;
+  border:1px solid #fae4a8;
+  border-radius:10px;
+  padding:10px 12px;
+  color:#875000;
+  font-size:13px;
+  line-height:1.45;
+  margin-bottom:16px;
+}
+#input-area{
+  max-width:980px;
+  width:100%;
+  margin:0 auto;
+  padding:10px 32px 24px;
+}
+#input-box{
+  border:1px solid #d9d9d5;
+  border-radius:18px;
+  background:white;
+  box-shadow:0 8px 28px rgba(0,0,0,.07);
+  display:flex;
+  gap:10px;
+  align-items:flex-end;
+  padding:13px 14px 13px 18px;
+}
+#input-box:focus-within{
+  border-color:#aaa;
+  box-shadow:0 10px 36px rgba(0,0,0,.09);
+}
+#inp{
+  flex:1;
+  border:0;
+  outline:0;
+  resize:none;
+  font-family:inherit;
+  font-size:15px;
+  line-height:1.5;
+  max-height:160px;
+  background:transparent;
+}
+#inp::placeholder{color:#aaa}
+#btn{
+  width:36px;height:36px;
+  border:0;
+  border-radius:11px;
+  background:#171717;
+  color:white;
+  font-size:16px;
+  cursor:pointer;
+}
+#btn:disabled{background:#ddd}
+#hint{
+  text-align:center;
+  color:#aaa;
+  font-size:12px;
+  margin-top:9px;
+}
+@media(max-width:900px){
+  #rail{display:none}
+  .row-inner{padding:0 18px}
+  .cards-grid{grid-template-columns:1fr}
+  .card-img-wrap{height:235px}
+  #input-area{padding:10px 18px 18px}
+  .hero h1{font-size:26px}
+}
 </style>
 </head>
 <body>
+
 <div id="rail">
-  <div id="rail-logo">
-    <div id="rail-logo-mark">S</div>
-    <div><div id="rail-logo-text">GoAskSam</div><div class="rail-sub">collector car intelligence</div></div>
+  <div class="logo">
+    <div class="logo-mark">S</div>
+    <div>
+      <div class="logo-title">GoAskSam</div>
+      <div class="logo-sub">car intelligence</div>
+    </div>
   </div>
-  <button class="rail-btn active">✦ New conversation</button>
+
+  <button class="rail-btn active" onclick="newConversation()">✦ New conversation</button>
   <div class="rail-divider"></div>
-  <div class="rail-section-label">Try</div>
-  <div class="rail-chat-item" onclick="quick('Manual Porsche under $50k')">Manual Porsche under $50k</div>
-  <div class="rail-chat-item" onclick="quick('BMW weekend car $20k to $40k')">BMW weekend car $20k to $40k</div>
-  <div class="rail-chat-item" onclick="quick('Need a van for camping')">Need a van for camping</div>
-  <div class="rail-chat-item" onclick="quick('Show me what is available')">Show me what is available</div>
-  <div id="rail-footer">Early demo inventory<br>Cars &amp; Bids style data</div>
+
+  <div class="rail-label">Try</div>
+  <div class="rail-item" onclick="quick('Manual Porsche under $50k')">Manual Porsche under $50k</div>
+  <div class="rail-item" onclick="quick('BMW weekend car $20k to $40k')">BMW weekend car $20k to $40k</div>
+  <div class="rail-item" onclick="quick('Show me what is available')">Show me what is available</div>
+  <div class="rail-item" onclick="quick('Need a van for camping')">Need a van for camping</div>
+
+  <div class="rail-divider"></div>
+  <div class="rail-label">Coming soon</div>
+  <div class="rail-item" onclick="quick('I want to sell my car')">Sell my car</div>
+  <div class="rail-item" onclick="quick('Value my car')">Value my car</div>
+
+  <div class="rail-footer">Built to help buyers find cars faster, understand listings better, and get to the auction.</div>
 </div>
 
 <div id="main">
-  <div id="msgs"></div>
-  <div id="input-area">
-    <div id="input-outer">
-      <textarea id="inp" rows="1" placeholder="Ask Sam about any car..."></textarea>
-      <button id="btn" aria-label="Send">↑</button>
+  <div id="msgs">
+    <div class="hero" id="hero">
+      <div class="hero-inner">
+        <div class="hero-logo">S</div>
+        <h1>Hey, I’m Sam.</h1>
+        <p>What are you looking for today?</p>
+        <div class="hero-chips">
+          <button class="chip" onclick="quick('Find me a car')">Find a car</button>
+          <button class="chip" onclick="quick('Browse auctions')">Browse auctions</button>
+          <button class="chip" onclick="quick('Help me choose')">Help me choose</button>
+          <button class="chip" onclick="quick('Sell my car')">Sell my car</button>
+          <button class="chip" onclick="quick('Surprise me')">Surprise me</button>
+        </div>
+      </div>
     </div>
-    <div id="input-hint">Sam helps you find cars, understand listings, and spot what changed</div>
+  </div>
+
+  <div id="input-area">
+    <div id="input-box">
+      <textarea id="inp" rows="1" placeholder="Ask Sam about any car..."></textarea>
+      <button id="btn">↑</button>
+    </div>
+    <div id="hint">Search naturally. Sam will ask if he needs more.</div>
   </div>
 </div>
 
 <script>
-const LISTINGS = [
-{id:"L01",status:"live",year:1978,make:"Porsche",model:"911 SC Targa",type:"sports",trans:"manual",drive:"RWD",price:20000,miles:220300,loc:"Elma, WA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabadfc10e586c36f68/photos/application/s-CixrIm_/edit/l3HoQ.jpg?t=177853174099",sam_view:"Long-term ownership since 1998 helps, and the $17k mechanical overhaul in 2024 matters. The problem is the undocumented engine and transmission rebuild. I would want paperwork or a very convincing explanation before treating this like a clean SC Targa.",what_i_like:"Manual SC Targa, long ownership, major recent mechanical spend.",watch:"Engine and transmission rebuild said to have happened at 180k, but no documentation is available. Smog equipment also needs attention for California buyers.",market:"Documented SC Targas usually trade well above this current bid. The missing rebuild paperwork explains the hesitation.",reserve_status:"active",updates:[{time:"6 hours ago",text:"Seller addressed carburetor question and confirmed vacuum to mechanical conversion."}]},
-{id:"L03",status:"live",year:2013,make:"Audi",model:"S4 Manual",type:"sports",trans:"manual",drive:"AWD",price:10000,miles:83000,loc:"Pompano Beach, FL",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8666159a15ffd32049319e2dde0e1452e4fe28d1/photos/AudiS42013002.jpg?t=177913181045",sam_view:"A manual B8 S4 at $10k no reserve is worth attention. The 6-year Carfax mileage gap is the question. Seller explanation seems plausible, but I would still want to verify the paperwork before getting aggressive.",what_i_like:"Manual B8 S4, one owner from new, no reserve.",watch:"6-year Carfax mileage gap from 2017 to 2023. Seller says it was a company car period.",market:"Manual B8 S4s usually carry a premium over autos. This is early money if documentation checks out.",reserve_status:"none",updates:[{time:"3 hours ago",text:"Seller uploaded Carfax documentation addressing the mileage gap."}]},
-{id:"L07",status:"live",year:2015,make:"Porsche",model:"Cayman 981",type:"sports",trans:"manual",drive:"RWD",price:35000,miles:16700,loc:"Salem, OR",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/3oQw58xo-2PyUGXk/edit/hP0rA.jpg?t=177930231707",sam_view:"This is the cleanest manual Porsche in the demo set. Guards Red, low miles, manual, and paint readings posted. The DME codes needed attention, but the seller has been responsive and the cold start video helped.",what_i_like:"16,700 miles, Guards Red manual, PASM, PPF, Bose, paint readings added.",watch:"Two DME codes were disclosed. Seller believes they were battery related and says they have not returned.",market:"Low-mile manual 981 Caymans in strong colors are usually well watched. Reserve is the key unknown.",reserve_status:"active",updates:[{time:"2 hours ago",text:"Seller posted cold start video. DME codes have not reappeared since battery replacement."},{time:"Yesterday",text:"Paint meter readings added. All panels consistent."}]},
+const LISTINGS=[
+{id:"L01",status:"live",year:1978,make:"Porsche",model:"911 SC Targa",type:"sports",trans:"manual",drive:"RWD",price:20000,miles:220300,loc:"Elma, WA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabadfc10e586c36f68/photos/application/s-CixrIm_/edit/l3HoQ.jpg?t=177853174099",sam_view:"Long-term ownership since 1998 helps, and the $17k mechanical overhaul in 2024 matters. The problem is the undocumented engine and transmission rebuild. I would want paperwork or a very convincing explanation before treating this like a clean SC Targa.",what_i_like:"Manual SC Targa, long ownership, major recent mechanical spend.",watch:"Engine and transmission rebuild said to have happened at 180k, but no documentation is available. Smog equipment also needs attention for California buyers.",market:"Documented SC Targas usually trade well above this current bid. Missing rebuild paperwork explains the hesitation.",reserve_status:"active",updates:[{time:"6 hours ago",text:"Seller addressed a carburetor question and confirmed the vacuum to mechanical conversion."}]},
+{id:"L03",status:"live",year:2013,make:"Audi",model:"S4 Manual",type:"sports",trans:"manual",drive:"AWD",price:10000,miles:83000,loc:"Pompano Beach, FL",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8666159a15ffd32049319e2dde0e1452e4fe28d1/photos/AudiS42013002.jpg?t=177913181045",sam_view:"A manual B8 S4 at $10k no reserve is worth attention. The six year Carfax mileage gap is the question. Seller explanation seems plausible, but I would still want to verify the paperwork before getting aggressive.",what_i_like:"Manual B8 S4, one owner from new, no reserve.",watch:"Six year Carfax mileage gap from 2017 to 2023. Seller says it was a company car period.",market:"Manual B8 S4s usually carry a premium over autos. This is early money if documentation checks out.",reserve_status:"none",updates:[{time:"3 hours ago",text:"Seller uploaded documentation addressing the mileage gap."}]},
+{id:"L07",status:"live",year:2015,make:"Porsche",model:"Cayman 981",type:"sports",trans:"manual",drive:"RWD",price:35000,miles:16700,loc:"Salem, OR",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/3oQw58xo-2PyUGXk/edit/hP0rA.jpg?t=177930231707",sam_view:"This is the cleanest manual Porsche in the demo set. Guards Red, low miles, manual, and paint readings posted. The DME codes needed attention, but the seller has been responsive and the cold start video helped.",what_i_like:"16,700 miles, Guards Red manual, PASM, PPF, Bose, paint readings added.",watch:"Two DME codes were disclosed. Seller believes they were battery related and says they have not returned.",market:"Low-mile manual 981 Caymans in strong colors are usually well watched. Reserve is the key unknown.",reserve_status:"active",updates:[{time:"2 hours ago",text:"Seller posted a cold start video. DME codes have not reappeared since battery replacement."}]},
 {id:"L11",status:"live",year:2009,make:"BMW",model:"Z4 sDrive30i",type:"sports",trans:"manual",drive:"RWD",price:11000,miles:51200,loc:"Tampa, FL",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/1477bbe21e8d6b5e719c7c3ccab577fd47dd8cc3/photos/exterior/36dd0nqW-ombFNpE/edit/ueIE5.jpg?t=177906875181",sam_view:"This is the right E89 recipe if you want a weekend BMW without M-car money. Naturally aspirated straight-six, manual gearbox, retractable hardtop. Tires are old and need replacing immediately.",what_i_like:"NA straight-six, manual, power hardtop, 51k miles.",watch:"2015 tires. Budget for replacements before driving it properly.",market:"Manual E89 Z4s are not everywhere. This is a sensible weekend-car lane.",reserve_status:"active",updates:[]},
 {id:"L15",status:"live",year:2018,make:"BMW",model:"328i Touring",type:"wagon",trans:"manual",drive:"RWD",price:3300,miles:95000,loc:"Annapolis, MD",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/fc2fca4f3b35e00cdcf6a9b9a58ae637f2655f32/photos/BMW2010328i002.jpg?t=177825856467",sam_view:"Manual F30 wagon is the weird one here, and that is why it matters. Almost nobody ordered these. It is not perfect, but for a manual BMW wagon person, this is the kind of thing you do not see every week.",what_i_like:"Manual F30 Touring, rare US spec, military owner, oil every 5k.",watch:"Passenger roof panel hanging, water pump history unknown, three open recalls.",market:"Clean manual BMW wagons are thin on the ground. This is more enthusiast oddball than polished collector car.",reserve_status:"none",updates:[]},
 {id:"L14",status:"live",year:1994,make:"Dodge",model:"Viper RT/10",type:"sports",trans:"manual",drive:"RWD",price:28000,miles:18000,loc:"Pennsylvania",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8e6341e27a680ffab7d98e42bef83b0dd1b0fb94/photos/application/s-Pg2aXOu/edit/DDRKS.jpg?t=177914552824",sam_view:"Gen 1 Viper is not subtle, comfortable, or forgiving. That is the whole point. Low miles help. The 2009 tires do not. I would not drive this hard until those are replaced.",what_i_like:"18k miles, original soft top and side screens, raw early Viper appeal.",watch:"2009 tires and three-panel paint evidence.",market:"Early Vipers with low mileage can be strong, but condition and paint history matter.",reserve_status:"active",updates:[]},
@@ -82,7 +598,7 @@ const LISTINGS = [
 {id:"C01",status:"sold",year:2007,make:"Chevrolet",model:"Corvette C6 3LT",type:"sports",trans:"manual",drive:"RWD",price:18250,miles:106000,loc:"San Diego, CA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/9004500a220bf3a3d455d15ee052cf8c332606f8/photos/3RE22WBN-oqYJROIsqr/edit/UARAn.jpg?t=177922020116",sam_view:"Good comp for manual C6 money. Sold at $18,250 with Z51 and California ownership.",what_i_like:"Z51, 6-speed manual, California car, fresh tires.",watch:"P0420 code, although it passed smog.",market:"Sold for $18,250.",reserve_status:"sold",updates:[]}
 ];
 
-const SYS = `You are Sam, the car person behind GoAskSam. You help people find, understand, and buy collector and enthusiast cars. You track live auctions, listings, seller activity, listing updates, and market movement.
+const SYS=`You are Sam, the car person behind GoAskSam. You help people find, understand, and buy collector and enthusiast cars. You track live auctions, listings, seller activity, listing updates, and market movement.
 
 LISTINGS:
 ${JSON.stringify(LISTINGS)}
@@ -93,63 +609,58 @@ If asked whether you are AI, say:
 "I'm Sam, built specifically for GoAskSam to help people navigate the car market. I track listings, auctions, seller activity, and market movement. What are you looking for?"
 
 PERSONALITY:
-Warm, direct, human, like a knowledgeable car friend.
-No essays. No generic fluff. No fake certainty.
+Warm, direct, human, like a knowledgeable car friend. No essays. No generic fluff. No fake certainty.
 
 OFF TOPIC:
-Be warm and redirect.
+Be warm and redirect. Vary wording.
 Examples:
 "Good question, but I'm useless there. I've spent the last few years buried in car listings. ChatGPT will be better for that. What are you looking for car-wise?"
 "Wrong expert, unfortunately. My world is cars, auctions, buyers, and sellers. What are you thinking about driving?"
-Vary wording. Do not repeat the same phrase.
 
 JOKES OR WEIRD REQUESTS:
-If user jokes about illegal or absurd things, do not send them to ChatGPT. Lightly deflect and bring it back to cars.
+If user jokes about illegal or absurd things, lightly deflect and bring it back to cars.
 Examples:
 "Let's keep this legal. What are you actually hauling?"
 "Assuming no crimes are involved, is this for work, camping, motorcycles, or family duty?"
-"If we're staying out of prison, what do you need the van for?"
 
 SELLING OR VALUATION:
 Selling and valuation are coming soon.
 Say:
-"Helping people sell and value cars is something we're actively building. Today I'm much stronger at helping you buy and understand listings. If you're looking to buy or compare cars, I'm good there."
+"Helping people sell and value cars is something we're actively building. Today I'm stronger at helping you buy and understand listings. If you're looking to buy or compare cars, I'm good there."
 
 SHOW ME OVERRIDE:
-If user says "show me", "just show me", "show me what's available", "browse", "I don't care", "surprise me", "show me everything", immediately show 4 to 6 cards.
-Do not ask more questions.
+If user says "show me", "just show me", "show me what's available", "browse", "I don't care", "surprise me", "show me everything", immediately show 4 to 6 cards. Do not ask more questions.
 
 CONVERSATION FLOW:
-One question at a time.
-Broad request = ask.
-Specific request = search.
-If confidence is low, ask one useful question.
-If confidence is high, show cards.
-If the user resists clarification, show cards.
-
+One question at a time. Broad request = ask. Specific request = search.
+Vague users should get 2 to 3 short questions before cards.
 Question order:
-1. use/vibe
+1. use or vibe
 2. rough budget
 3. transmission or body style
+
+If user resists clarification, show cards.
 
 STATE:
 Remember what the user already said.
 If user says "manual only" after results, say "Got it, narrowing to manuals..." and show cards.
 
 SEARCH TRANSITION:
-Before cards, always include [SEARCHING:text].
+Before cards, include [SEARCHING:text].
 Examples:
 [SEARCHING:Looking across available BMW weekend cars between $20k and $40k...]
 [SEARCHING:Narrowing those Porsche listings to manuals...]
 [SEARCHING:Searching cars that fit what you've told me so far...]
 
 CARDS:
-Show 4 to 6 equal cards where possible.
+Show 3 to 4 equal cards by default.
+Show 5 to 6 only when user explicitly asks to browse, show everything, or see more.
 Use [CARD:id|specific reason].
 Reasons must be specific. No "strong community reception" or generic language.
 
-After cards, add:
-"Click View Auction to go straight to the listing, or Sam's Take if you want the concerns, seller behavior, and what changed recently. Which one catches your eye?"
+AFTER CARDS:
+Add one short sentence:
+"Click View Auction to go straight to the listing, or Sam's Take if you want the concerns and what changed recently. Want me to narrow these down?"
 
 RNM/SOLD:
 Use [RNM:id|context] only as separate context if relevant.
@@ -162,14 +673,20 @@ PRICING:
 Live = current bid.
 Unsold = bid to.
 Sold = sold for.
-Always mention reserve/no reserve when relevant.
+Always mention reserve or no reserve when relevant.
 
-OPENING:
-"Hey, I'm Sam. What are you looking for today?"
-`;
+Never say how many listings you are watching.`;
 
-const history = [];
+const history=[];
+let started=false;
 
+function hideHero(){
+  const hero=document.getElementById("hero");
+  if(hero)hero.remove();
+}
+function escapeHtml(str){
+  return String(str||"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]));
+}
 function reserveInfo(l){
   if(l.reserve_status==="none")return{label:"No Reserve",cls:"none"};
   if(l.reserve_status==="rnm")return{label:"Reserve Not Met",cls:"rnm"};
@@ -181,14 +698,12 @@ function priceLabel(l){
   if(l.status==="unsold")return"bid to";
   return"current bid";
 }
-function escapeHtml(str){
-  return String(str||"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]));
-}
 function showTake(id){
   const l=LISTINGS.find(x=>x.id===id);
   if(!l)return;
   const ri=reserveInfo(l);
-  const updateHTML=l.updates&&l.updates.length?`<div class="modal-update"><strong>${l.updates[0].time}:</strong> ${l.updates[0].text}</div>`:"";
+  const u=l.updates&&l.updates.length?l.updates[0]:null;
+  const update=u?`<div class="modal-update"><strong>${escapeHtml(u.time)}:</strong> ${escapeHtml(u.text)}</div>`:"";
   const overlay=document.createElement("div");
   overlay.className="modal-overlay";
   overlay.innerHTML=`<div class="modal">
@@ -196,81 +711,68 @@ function showTake(id){
     <div class="modal-title">${l.year} ${l.make} ${l.model}</div>
     <div class="modal-sub">${(l.miles||0).toLocaleString()} mi · ${l.trans||""} · ${l.loc}</div>
     <div class="modal-pill badge badge-${ri.cls}">${ri.label}</div>
-    ${updateHTML}
-    <div class="modal-view"><div class="modal-label">Sam's Current View</div>${l.sam_view}</div>
-    <div class="modal-section"><div class="modal-label">What I Like</div><div class="modal-section-text">${l.what_i_like}</div></div>
-    <div class="modal-section"><div class="modal-label">What I'd Watch</div><div class="modal-section-text">${l.watch}</div></div>
-    <div class="modal-section"><div class="modal-label">Market Context</div><div class="modal-section-text">${l.market}</div></div>
+    ${update}
+    <div class="modal-block"><div class="modal-label">Sam's Current View</div>${escapeHtml(l.sam_view)}</div>
+    <div class="modal-section"><div class="modal-label">What I Like</div><div class="modal-section-text">${escapeHtml(l.what_i_like)}</div></div>
+    <div class="modal-section"><div class="modal-label">What I'd Watch</div><div class="modal-section-text">${escapeHtml(l.watch)}</div></div>
+    <div class="modal-section"><div class="modal-label">Market Context</div><div class="modal-section-text">${escapeHtml(l.market)}</div></div>
   </div>`;
   overlay.addEventListener("click",e=>{if(e.target===overlay)overlay.remove()});
   document.body.appendChild(overlay);
 }
-function equalCard(l,description){
+function cardHTML(l,reason){
   const ri=reserveInfo(l);
   const u=l.updates&&l.updates.length?l.updates[0]:null;
-  const updateHTML=u?`<div class="card-update"><div class="update-dot"></div><div class="update-text"><span class="update-time">${u.time} - </span>${u.text}</div></div>`:"";
+  const update=u?`<div class="card-update"><div class="update-dot"></div><div class="update-text"><span class="update-time">${escapeHtml(u.time)}:</span> ${escapeHtml(u.text)}</div></div>`:"";
   return `<div class="card">
     <div class="card-img-wrap" onclick="showTake('${l.id}')">
-      <img class="card-img" src="${l.img}" alt="${l.year} ${l.make} ${l.model}" onerror="this.style.display='none'">
-      <div class="card-platform">Cars &amp; Bids</div>
+      <img class="card-img" src="${l.img}" alt="${l.year} ${l.make} ${l.model}" onerror="this.closest('.card').style.display='none'">
+      <div class="card-source">Cars &amp; Bids</div>
     </div>
     <div class="card-body">
       <div class="card-title">${l.year} ${l.make} ${l.model}</div>
       <div class="card-meta">${(l.miles||0).toLocaleString()} mi · ${l.trans} · ${l.loc}</div>
-      ${description?`<div class="card-desc">${escapeHtml(description)}</div>`:""}
-      <div class="card-price-row">
-        <div><div class="card-price-lbl">${priceLabel(l)}</div><div class="card-price">$${l.price.toLocaleString()}</div></div>
+      <div class="card-reason">${escapeHtml(reason)}</div>
+      <div class="price-row">
+        <div>
+          <div class="price-label">${priceLabel(l)}</div>
+          <div class="price">$${l.price.toLocaleString()}</div>
+        </div>
         <span class="badge badge-${ri.cls}">${ri.label}</span>
       </div>
     </div>
-    ${updateHTML}
+    ${update}
     <div class="card-actions">
-      <button class="card-btn-primary" onclick="window.open('${l.url||"#"}','_blank')">View Auction ↗</button>
-      <button class="card-btn-ghost" onclick="showTake('${l.id}')">Sam's Take</button>
+      <button class="primary" onclick="window.open('${l.url||"#"}','_blank')">View Auction</button>
+      <button class="ghost" onclick="showTake('${l.id}')">Sam's Take</button>
     </div>
-  </div>`;
-}
-function rnmCard(l,context){
-  return `<div class="card-rnm">
-    <div><div class="card-rnm-title">${l.year} ${l.make} ${l.model}</div><div class="card-rnm-sub">${escapeHtml(context)}</div></div>
-    <div class="card-rnm-right">bid to $${l.price.toLocaleString()}<br>reserve not met</div>
   </div>`;
 }
 function parseResults(raw){
   const searchMatch=raw.match(/\[SEARCHING:([^\]]+)\]/);
   const cardMatches=[...raw.matchAll(/\[CARD:([^|\]]+)\|([^\]]+)\]/g)];
-  const rnmMatches=[...raw.matchAll(/\[RNM:([^|\]]+)\|([^\]]+)\]/g)];
   const chipMatch=raw.match(/\[CHIPS:([^\]]+)\]/);
-
-  const searchText=searchMatch?searchMatch[1].trim():null;
-  const cards=cardMatches.map(m=>({listing:LISTINGS.find(l=>l.id===m[1].trim()),desc:m[2].trim()})).filter(c=>c.listing);
-  const rnms=rnmMatches.map(m=>({listing:LISTINGS.find(l=>l.id===m[1].trim()),context:m[2].trim()})).filter(r=>r.listing);
-  const chips=chipMatch?chipMatch[1].split("|").map(s=>s.trim()).filter(Boolean):[];
-
-  const clean=raw
-    .replace(/\[SEARCHING:.*?\]/g,"")
-    .replace(/\[CARD:.*?\]/g,"")
-    .replace(/\[RNM:.*?\]/g,"")
-    .replace(/\[CHIPS:.*?\]/g,"")
-    .trim();
-
-  let resultsHTML="";
-  if(searchText)resultsHTML+=`<div class="search-status">${escapeHtml(searchText)}</div>`;
-  if(cards.length)resultsHTML+=`<div class="cards-grid">${cards.map(c=>equalCard(c.listing,c.desc)).join("")}</div>`;
-  if(rnms.length)resultsHTML+=`<div class="rnm-section"><div class="rnm-label">Also discussed, not currently available</div>${rnms.map(r=>rnmCard(r.listing,r.context)).join("")}</div>`;
+  const search=searchMatch?searchMatch[1].trim():null;
+  const cards=cardMatches.map(m=>({l:LISTINGS.find(x=>x.id===m[1].trim()),r:m[2].trim()})).filter(x=>x.l);
+  const chips=chipMatch?chipMatch[1].split("|").map(x=>x.trim()).filter(Boolean):[];
+  const clean=raw.replace(/\[SEARCHING:.*?\]/g,"").replace(/\[CARD:.*?\]/g,"").replace(/\[RNM:.*?\]/g,"").replace(/\[CHIPS:.*?\]/g,"").trim();
+  let html="";
+  if(search)html+=`<div class="searching"><div class="spinner"></div><span>${escapeHtml(search)}</span></div>`;
+  if(cards.length)html+=`<div class="cards-grid">${cards.map(x=>cardHTML(x.l,x.r)).join("")}</div>`;
   const chipsHTML=chips.length?`<div class="chips">${chips.map(c=>`<button class="chip" onclick="handleChip('${c.replace(/'/g,"\\'")}')">${escapeHtml(c)}</button>`).join("")}</div>`:"";
-  return{clean,resultsHTML,chipsHTML};
+  return{clean,html,chipsHTML};
 }
-function addMsg(role,text,resultsHTML="",chipsHTML=""){
+function addMsg(role,text,html="",chipsHTML=""){
+  hideHero();
   const msgs=document.getElementById("msgs");
   const row=document.createElement("div");
   row.className="row "+role;
   const inner=document.createElement("div");
   inner.className="row-inner";
   if(role==="sam"){
-    inner.innerHTML=`<div class="msg-wrap"><div class="sam-name">Sam</div><div class="sam-text">${escapeHtml(text)}</div>${chipsHTML||""}${resultsHTML||""}</div>`;
+    inner.innerHTML=`<div class="msg-wrap"><div class="sam-label">Sam</div><div class="sam-text">${escapeHtml(text)}</div>${chipsHTML||""}${html||""}</div>`;
   }else{
-    inner.innerHTML=`<div class="msg-wrap"><div class="user-bubble">${escapeHtml(text)}</div></div>`;
+    inner.innerHTML=`<div class="msg-wrap"><div class="user-text">${escapeHtml(text)}</div></div>`;
   }
   row.appendChild(inner);
   msgs.appendChild(row);
@@ -279,16 +781,59 @@ function addMsg(role,text,resultsHTML="",chipsHTML=""){
 function showTyping(){
   const msgs=document.getElementById("msgs");
   const row=document.createElement("div");
-  row.id="typing-row";
+  row.id="typing";
   row.className="row sam";
-  row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="typing-wrap"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>`;
+  row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>`;
   msgs.appendChild(row);
   msgs.scrollTop=msgs.scrollHeight;
 }
-function hideTyping(){const t=document.getElementById("typing-row");if(t)t.remove()}
-function quick(text){document.getElementById("inp").value=text;send()}
+function hideTyping(){
+  const t=document.getElementById("typing");
+  if(t)t.remove();
+}
+function quick(text){
+  document.getElementById("inp").value=text;
+  send();
+}
 function handleChip(text){quick(text)}
+function newConversation(){
+  history.length=0;
+  const msgs=document.getElementById("msgs");
+  msgs.innerHTML=`<div class="hero" id="hero">
+    <div class="hero-inner">
+      <div class="hero-logo">S</div>
+      <h1>Hey, I’m Sam.</h1>
+      <p>What are you looking for today?</p>
+      <div class="hero-chips">
+        <button class="chip" onclick="quick('Find me a car')">Find a car</button>
+        <button class="chip" onclick="quick('Browse auctions')">Browse auctions</button>
+        <button class="chip" onclick="quick('Help me choose')">Help me choose</button>
+        <button class="chip" onclick="quick('Sell my car')">Sell my car</button>
+        <button class="chip" onclick="quick('Surprise me')">Surprise me</button>
+      </div>
+    </div>
+  </div>`;
+}
+function localPreRoute(q){
+  const lower=q.toLowerCase().trim();
 
+  if(/^(u there|you there|hello|hey|hi|yo|are you there)\??$/.test(lower)){
+    return{reply:"Yep, I’m here. What are we looking for?",chips:["Find a car","Browse auctions","Help me choose"]};
+  }
+
+  if(/^(car|vehicle|something|u tell me|you tell me|not sure)$/i.test(lower)){
+    return{reply:"Let’s narrow it down a bit. What kind of thing are you after?",chips:["Fun car","Daily driver","Family car","Truck or SUV","Something weird"]};
+  }
+
+  if(/dump a body|dead body|outrun the cops|illegal/i.test(lower)){
+    return{reply:"Let’s keep this legal. What are you actually trying to do with the car?",chips:["Hauling stuff","Camping","Daily driver","Fun car"]};
+  }
+
+  return null;
+}
+function chipsHTML(chips){
+  return `<div class="chips">${chips.map(c=>`<button class="chip" onclick="handleChip('${c.replace(/'/g,"\\'")}')">${escapeHtml(c)}</button>`).join("")}</div>`;
+}
 async function send(){
   const inp=document.getElementById("inp");
   const q=inp.value.trim();
@@ -296,7 +841,16 @@ async function send(){
   inp.value="";
   inp.style.height="auto";
   document.getElementById("btn").disabled=true;
+
   addMsg("user",q);
+
+  const pre=localPreRoute(q);
+  if(pre){
+    addMsg("sam",pre.reply,"",chipsHTML(pre.chips));
+    document.getElementById("btn").disabled=false;
+    return;
+  }
+
   history.push({role:"user",content:q});
   showTyping();
 
@@ -310,23 +864,26 @@ async function send(){
     const raw=data.text||"Connection issue. Try again.";
     const parsed=parseResults(raw);
     hideTyping();
-    addMsg("sam",parsed.clean,parsed.resultsHTML,parsed.chipsHTML);
+    addMsg("sam",parsed.clean,parsed.html,parsed.chipsHTML);
     history.push({role:"assistant",content:raw});
   }catch(e){
     hideTyping();
     addMsg("sam","Connection issue. Try again.");
   }
+
   document.getElementById("btn").disabled=false;
 }
 document.getElementById("btn").addEventListener("click",send);
 document.getElementById("inp").addEventListener("keydown",e=>{
-  if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}
+  if(e.key==="Enter"&&!e.shiftKey){
+    e.preventDefault();
+    send();
+  }
 });
 document.getElementById("inp").addEventListener("input",function(){
   this.style.height="auto";
   this.style.height=Math.min(this.scrollHeight,160)+"px";
 });
-setTimeout(()=>addMsg("sam","Hey, I'm Sam. What are you looking for today?"),200);
 </script>
 </body>
 </html>
