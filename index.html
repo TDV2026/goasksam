@@ -137,8 +137,7 @@ body{
   white-space:pre-wrap;
 }
 .user-text{
-  background:#f7f7f5;
-  border:1px solid #ecece8;
+  background:#f3f3f0;
   color:#161616;
   padding:10px 14px;
   border-radius:16px;
@@ -256,12 +255,6 @@ body{
   flex-direction:column;
   transition:transform .15s,border-color .15s,box-shadow .15s;
 }
-.card.featured{
-  grid-column:1 / -1;
-}
-.card.featured .card-img-wrap{
-  height:320px;
-}
 .card:hover{
   transform:translateY(-2px);
   border-color:#c9c9c5;
@@ -291,18 +284,6 @@ body{
   padding:5px 9px;
   border-radius:9px;
 }
-.card-badge-top{
-  position:absolute;
-  top:11px;
-  right:11px;
-  background:white;
-  color:#111;
-  font-size:10px;
-  font-weight:850;
-  padding:5px 9px;
-  border-radius:999px;
-  box-shadow:0 2px 10px rgba(0,0,0,.08);
-}
 .card-body{
   padding:13px 14px 12px;
   display:flex;
@@ -316,12 +297,14 @@ body{
   letter-spacing:-.2px;
   line-height:1.22;
 }
-.card.featured .card-title{
-  font-size:19px;
-}
 .card-meta{
   color:#777;
   font-size:12px;
+}
+.card-reason{
+  color:#333;
+  font-size:13px;
+  line-height:1.45;
 }
 .card-intel{
   display:flex;
@@ -434,27 +417,25 @@ body{
   color:#171717;
   border:1px solid #ddd;
 }
-.concerns-list{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  margin-top:4px;
+.save-note{
+  margin:0 14px 14px;
+  padding:10px 12px;
+  border-top:1px solid #f2f2ef;
+  color:#777;
+  font-size:11px;
+  line-height:1.45;
 }
-.concern-item{
-  background:#fafaf8;
-  border:1px solid #eeeeeb;
-  border-radius:13px;
-  padding:12px 13px;
+.save-note strong{
+  display:block;
+  color:#171717;
+  font-size:12px;
+  margin-bottom:3px;
 }
-.concern-title{
-  font-weight:850;
-  font-size:13px;
-  margin-bottom:5px;
-}
-.concern-text{
-  color:#444;
-  font-size:13px;
-  line-height:1.5;
+.after-results{
+  color:#555;
+  font-size:14px;
+  line-height:1.55;
+  margin-top:2px;
 }
 .modal-overlay{
   position:fixed;
@@ -462,37 +443,36 @@ body{
   z-index:100;
   background:rgba(0,0,0,.32);
   display:flex;
-  align-items:stretch;
-  justify-content:flex-end;
+  align-items:flex-end;
+  justify-content:center;
 }
 .modal{
   width:100%;
-  max-width:560px;
-  height:100%;
+  max-width:760px;
+  max-height:84vh;
   overflow-y:auto;
   background:white;
-  border-radius:24px 0 0 24px;
-  padding:28px 30px 42px;
+  border-radius:24px 24px 0 0;
+  padding:22px 26px 42px;
   position:relative;
-  box-shadow:-20px 0 60px rgba(0,0,0,.12);
 }
 .modal-close{
   position:absolute;
-  top:20px;
-  right:20px;
+  top:18px;
+  right:18px;
   border:0;
   background:#f1f1ef;
-  width:34px;
-  height:34px;
+  width:30px;
+  height:30px;
   border-radius:50%;
   cursor:pointer;
-  font-size:20px;
+  font-size:18px;
 }
 .modal-title{
   font-weight:850;
-  font-size:21px;
+  font-size:19px;
   letter-spacing:-.4px;
-  padding-right:48px;
+  padding-right:45px;
 }
 .modal-sub{
   margin-top:5px;
@@ -501,14 +481,14 @@ body{
 }
 .modal-pill{
   display:inline-flex;
-  margin:12px 0 16px;
+  margin:10px 0 16px;
 }
 .modal-block{
   background:#f8f8f5;
   border-left:3px solid #171717;
   border-radius:12px;
   padding:15px 16px;
-  line-height:1.65;
+  line-height:1.7;
   font-size:14px;
   margin-bottom:18px;
 }
@@ -603,18 +583,9 @@ body{
   #rail{display:none}
   .row-inner{padding:0 18px}
   .cards-grid{grid-template-columns:1fr}
-  .card.featured{grid-column:auto}
-  .card.featured .card-img-wrap{height:235px}
   .card-img-wrap{height:235px}
   #input-area{padding:10px 18px 18px}
   .hero h1{font-size:26px}
-  .modal-overlay{align-items:flex-end}
-  .modal{
-    max-width:100%;
-    height:auto;
-    max-height:86vh;
-    border-radius:24px 24px 0 0;
-  }
 }
 </style>
 </head>
@@ -675,8 +646,8 @@ body{
 
 <script>
 const LISTINGS=[
-{id:"L01",status:"live",year:1978,make:"Porsche",model:"911 SC Targa",type:"sports",trans:"manual",drive:"RWD",price:20000,miles:220300,loc:"Elma, WA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabadfc10e586c36f68/photos/application/s-CixrIm_/edit/l3HoQ.jpg?t=177853174099",sam_view:"Long-term ownership since 1998 helps, and the $17k mechanical overhaul in 2024 matters. The question is the undocumented engine and transmission rebuild. I would want paperwork or a very convincing explanation before treating this like a clean SC Targa.",what_i_like:"Manual SC Targa, long ownership, major recent mechanical spend.",watch:"Engine and transmission rebuild said to have happened at 180k, but no documentation is available. Smog equipment also needs attention for California buyers.",market:"Documented SC Targas usually trade well above this current bid. Missing rebuild paperwork explains the hesitation.",reserve_status:"active",updates:[{time:"6 hours ago",text:"Seller addressed a carburetor question and confirmed the vacuum to mechanical conversion."}]},
-{id:"L03",status:"live",year:2013,make:"Audi",model:"S4 Manual",type:"sports",trans:"manual",drive:"AWD",price:10000,miles:83000,loc:"Pompano Beach, FL",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8666159a15ffd32049319e2dde0e1452e4fe28d1/photos/AudiS42013002.jpg?t=177913181045",sam_view:"A manual B8 S4 at $10k no reserve is worth attention. The six year Carfax mileage gap is the live question. Seller explanation seems plausible, but I would still verify the paperwork before getting aggressive.",what_i_like:"Manual B8 S4, one owner from new, no reserve.",watch:"Six year Carfax mileage gap from 2017 to 2023. Seller says it was a company car period.",market:"Manual B8 S4s usually carry a premium over autos. This is early money if documentation checks out.",reserve_status:"none",updates:[{time:"3 hours ago",text:"Seller uploaded documentation addressing the mileage gap."}]},
+{id:"L01",status:"live",year:1978,make:"Porsche",model:"911 SC Targa",type:"sports",trans:"manual",drive:"RWD",price:20000,miles:220300,loc:"Elma, WA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabadfc10e586c36f68/photos/application/s-CixrIm_/edit/l3HoQ.jpg?t=177853174099",sam_view:"Long-term ownership since 1998 helps, and the $17k mechanical overhaul in 2024 matters. The problem is the undocumented engine and transmission rebuild. I would want paperwork or a very convincing explanation before treating this like a clean SC Targa.",what_i_like:"Manual SC Targa, long ownership, major recent mechanical spend.",watch:"Engine and transmission rebuild said to have happened at 180k, but no documentation is available. Smog equipment also needs attention for California buyers.",market:"Documented SC Targas usually trade well above this current bid. Missing rebuild paperwork explains the hesitation.",reserve_status:"active",updates:[{time:"6 hours ago",text:"Seller addressed a carburetor question and confirmed the vacuum to mechanical conversion."}]},
+{id:"L03",status:"live",year:2013,make:"Audi",model:"S4 Manual",type:"sports",trans:"manual",drive:"AWD",price:10000,miles:83000,loc:"Pompano Beach, FL",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8666159a15ffd32049319e2dde0e1452e4fe28d1/photos/AudiS42013002.jpg?t=177913181045",sam_view:"A manual B8 S4 at $10k no reserve is worth attention. The six year Carfax mileage gap is the question. Seller explanation seems plausible, but I would still want to verify the paperwork before getting aggressive.",what_i_like:"Manual B8 S4, one owner from new, no reserve.",watch:"Six year Carfax mileage gap from 2017 to 2023. Seller says it was a company car period.",market:"Manual B8 S4s usually carry a premium over autos. This is early money if documentation checks out.",reserve_status:"none",updates:[{time:"3 hours ago",text:"Seller uploaded documentation addressing the mileage gap."}]},
 {id:"L07",status:"live",year:2015,make:"Porsche",model:"Cayman 981",type:"sports",trans:"manual",drive:"RWD",price:35000,miles:16700,loc:"Salem, OR",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/3oQw58xo-2PyUGXk/edit/hP0rA.jpg?t=177930231707",sam_view:"This is the cleanest manual Porsche in the demo set. Guards Red, low miles, manual, and paint readings posted. The DME codes needed attention, but the seller has been responsive and the cold start video helped.",what_i_like:"16,700 miles, Guards Red manual, PASM, PPF, Bose, paint readings added.",watch:"Two DME codes were disclosed. Seller believes they were battery related and says they have not returned.",market:"Low-mile manual 981 Caymans in strong colors are usually well watched. Reserve is the key unknown.",reserve_status:"active",updates:[{time:"2 hours ago",text:"Seller posted a cold start video. DME codes have not reappeared since battery replacement."}]},
 {id:"L11",status:"live",year:2009,make:"BMW",model:"Z4 sDrive30i",type:"sports",trans:"manual",drive:"RWD",price:11000,miles:51200,loc:"Tampa, FL",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/1477bbe21e8d6b5e719c7c3ccab577fd47dd8cc3/photos/exterior/36dd0nqW-ombFNpE/edit/ueIE5.jpg?t=177906875181",sam_view:"This is the right E89 recipe if you want a weekend BMW without M-car money. Naturally aspirated straight-six, manual gearbox, retractable hardtop. Tires are old and need replacing immediately.",what_i_like:"NA straight-six, manual, power hardtop, 51k miles.",watch:"2015 tires. Budget for replacements before driving it properly.",market:"Manual E89 Z4s are not everywhere. This is a sensible weekend-car lane.",reserve_status:"active",updates:[]},
 {id:"L15",status:"live",year:2018,make:"BMW",model:"328i Touring",type:"wagon",trans:"manual",drive:"RWD",price:3300,miles:95000,loc:"Annapolis, MD",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/fc2fca4f3b35e00cdcf6a9b9a58ae637f2655f32/photos/BMW2010328i002.jpg?t=177825856467",sam_view:"Manual F30 wagon is the weird one here, and that is why it matters. Almost nobody ordered these. It is not perfect, but for a manual BMW wagon person, this is the kind of thing you do not see every week.",what_i_like:"Manual F30 Touring, rare US spec, military owner, oil every 5k.",watch:"Passenger roof panel hanging, water pump history unknown, three open recalls.",market:"Clean manual BMW wagons are thin on the ground. This is more enthusiast oddball than polished collector car.",reserve_status:"none",updates:[]},
@@ -701,112 +672,75 @@ If asked whether you are AI, say:
 
 PERSONALITY:
 Warm, direct, human, like a knowledgeable car friend. No essays. No generic fluff. No fake certainty.
-Do not simply agree with the user to be friendly. If a preference is right in one context but wrong in another, say that.
 
 OFF TOPIC:
-Be warm, but do not pretend the off-topic request is a car question.
-If the user asks or tells Sam to do something outside cars, acknowledge it naturally and redirect.
-Do not always say "Good question" because many off-topic messages are not questions.
+Be warm and redirect. Vary wording.
+Examples:
+"Good question, but I'm useless there. I've spent the last few years buried in car listings. ChatGPT will be better for that. What are you looking for car-wise?"
+"Wrong expert, unfortunately. My world is cars, auctions, buyers, and sellers. What are you thinking about driving?"
 
 JOKES OR WEIRD REQUESTS:
 If user jokes about illegal or absurd things, lightly deflect and bring it back to cars.
+Examples:
+"Let's keep this legal. What are you actually hauling?"
+"Assuming no crimes are involved, is this for work, camping, motorcycles, or family duty?"
 
 SELLING OR VALUATION:
 Selling and valuation are coming soon.
 Say:
 "Helping people sell and value cars is something we're actively building. Today I'm stronger at helping you buy and understand listings. If you're looking to buy or compare cars, I'm good there."
 
+SHOW ME OVERRIDE:
+If user says "show me", "just show me", "show me what's available", "browse", "I don't care", "surprise me", "show me everything", immediately show 4 to 6 cards. Do not ask more questions.
+
 CONVERSATION FLOW:
-Sam should behave like a trusted car friend, not a search engine.
-One question at a time.
-Broad request = ask.
-Specific request = search.
-Vague users should get 2 to 4 short questions before cars.
+One question at a time. Broad request = ask. Specific request = search.
+Vague users should get 2 to 3 short questions before cards.
 Question order:
 1. use or vibe
 2. rough budget
-3. location, climate, or intended use
-4. transmission, body style, or other preferences
+3. transmission or body style
 
-Do not show cars until at least 3 meaningful pieces of information have been gathered unless the user explicitly says:
-"show me"
-"browse"
-"show what's available"
-"just show me"
-"surprise me"
-"I don't care"
-
-If the user appears impatient, stop asking questions and show results.
-Never ask questions just to ask questions.
-Every question should meaningfully improve the recommendations.
-If Sam already has enough information to produce useful results, show cars.
+If user resists clarification, show cards.
 
 STATE:
-Remember everything the user has already told you.
-Never ask for information that has already been provided.
-Do not restart the conversation when new information is added.
-
-SHOW ME OVERRIDE:
-If the user says:
-"show me"
-"just show me"
-"show me what's available"
-"browse"
-"show me everything"
-"surprise me"
-"anything interesting"
-"I don't care"
-Show cars immediately.
-Do not ask another question.
+Remember what the user already said.
+If user says "manual only" after results, say "Got it, narrowing to manuals..." and show cards.
 
 SEARCH TRANSITION:
-Before showing cards, include a short search status.
+Before cards, include [SEARCHING:text].
 Examples:
-[SEARCHING:Checking live auctions...]
-[SEARCHING:Looking at recent seller updates...]
-[SEARCHING:Seeing what is worth your attention...]
+[SEARCHING:Looking across available BMW weekend cars between $20k and $40k...]
+[SEARCHING:Narrowing those Porsche listings to manuals...]
+[SEARCHING:Searching cars that fit what you've told me so far...]
 
 CARDS:
-Show 3 to 4 cards by default.
-Only show 5 to 6 cards if the user explicitly asks to browse or see more.
-When showing cars, you MUST use [CARD:id|specific reason] tags.
-Do not write cars as plain markdown text.
-Never show internal IDs like L03, L07, L15, S03, or C01 to the user.
-Every card reason must be specific to that listing.
-Reasons must explain why Sam surfaced the car.
-When showing cards, do not write a long explanation before the cards.
-The correct order is search transition, cards, then one short sentence after the cards if needed.
-
-LIVE AUCTION INTELLIGENCE:
-Focus on dynamic auction signals:
-seller activity, new uploads, answered questions, unanswered questions, listing changes, bid movement, relist history, and recent comparable sales.
-Avoid generic model risks, ownership costs, and static maintenance warnings unless they are directly raised in this specific listing.
-
-CONCERNS:
-If the user asks for concerns, risks, what to watch, or what Sam is worried about, never show internal IDs.
-Use vehicle names only.
-Frame this as open questions or live listing signals, not generic model risk.
+Show 3 to 4 equal cards by default.
+Show 5 to 6 only when user explicitly asks to browse, show everything, or see more.
+Use [CARD:id|specific reason].
+Reasons must be specific. No "strong community reception" or generic language.
 
 AFTER CARDS:
-After showing cards, say:
+Add one short sentence:
 "Click View Auction to go straight to the listing, or Sam's Take if you want the concerns and what changed recently. Want me to narrow these down?"
-Where appropriate, offer refinement chips such as:
-[CHIPS:Manual only|Cheaper|More practical|More interesting|Show more]
 
-RNM AND SOLD CARS:
-Do not mix sold or reserve-not-met cars into active search results unless the user specifically asks for comps, market context, or previous results.
+RNM/SOLD:
+Use [RNM:id|context] only as separate context if relevant.
+Do not mix sold/RNM into active results unless user asks for comps.
+
+CHIPS:
+Use [CHIPS:Option 1|Option 2|Option 3] with clarifying questions.
 
 PRICING:
-Live listings = current bid.
-Unsold listings = bid to.
-Sold listings = sold for.
-Always distinguish between auction bids and fixed-price listings.
+Live = current bid.
+Unsold = bid to.
+Sold = sold for.
 Always mention reserve or no reserve when relevant.
-Never present watcher counts as a reason to buy a car.
-Never imply a car is a good buy solely because bidding is currently low.
-`;
+
+Never say how many listings you are watching.`;
 
 const history=[];
+let started=false;
 
 function hideHero(){
   const hero=document.getElementById("hero");
@@ -841,9 +775,6 @@ function getSellerActivity(l){
 }
 function getNewSinceLaunch(l){
   if(l.updates&&l.updates.length) return l.updates[0].text;
-  if(l.id==="L15") return "No major new media captured yet.";
-  if(l.id==="L14") return "No major new documentation captured yet.";
-  if(l.id==="L11") return "No major new seller update captured yet.";
   return "No major new update captured yet.";
 }
 function getOpenQuestions(l){
@@ -861,14 +792,11 @@ function getOpenQuestions(l){
 }
 function getFlags(l){
   const flags=[];
-  if(l.trans==="manual") flags.push({type:"good",text:"Manual"});
+  if(l.updates&&l.updates.length) flags.push({type:"good",text:"Updated today"});
+  if(["L07","L03","L01","L09"].includes(l.id)) flags.push({type:"good",text:"Seller active"});
+  if(getOpenQuestions(l)&&!getOpenQuestions(l).toLowerCase().includes("no major")) flags.push({type:"watch",text:"Open question"});
   if(l.reserve_status==="none") flags.push({type:"good",text:"No reserve"});
-  if(l.id==="L07") flags.push({type:"good",text:"Seller active"});
-  if(l.id==="L03") flags.push({type:"watch",text:"Mileage gap"});
-  if(l.id==="L01") flags.push({type:"watch",text:"Missing rebuild docs"});
-  if(l.id==="L14") flags.push({type:"watch",text:"Old tires"});
-  if(l.id==="L09") flags.push({type:"watch",text:"Modified"});
-  if(l.id==="L15") flags.push({type:"watch",text:"Open questions"});
+  if(l.trans==="manual") flags.push({type:"good",text:"Manual"});
   return flags.slice(0,4);
 }
 function getActionLine(l){
@@ -880,6 +808,11 @@ function getActionLine(l){
   if(l.id==="L15") return "I would price in the unknowns and treat it as an enthusiast oddball.";
   if(l.id==="L11") return "I would budget tires before driving it hard.";
   return "I would read the listing carefully and check whether the seller has addressed the obvious questions.";
+}
+function saveAuction(id){
+  const l=LISTINGS.find(x=>x.id===id);
+  if(!l)return;
+  addMsg("sam",`Saved ${l.year} ${l.make} ${l.model}. Seller answers, new photos, videos, and bidding activity can completely change the story. Don't lose track of it.`);
 }
 function showTake(id){
   const l=LISTINGS.find(x=>x.id===id);
@@ -894,40 +827,37 @@ function showTake(id){
     <div class="modal-sub">${(l.miles||0).toLocaleString()} mi · ${l.trans||""} · ${l.loc}</div>
     <div class="modal-pill badge badge-${ri.cls}">${ri.label}</div>
     ${update}
-    <div class="modal-block"><div class="modal-label">Sam's Take</div>${escapeHtml(l.sam_view)}</div>
-    <div class="modal-section"><div class="modal-label">Why Sam Surfaced It</div><div class="modal-section-text">${escapeHtml(l.what_i_like)}</div></div>
-    <div class="modal-section"><div class="modal-label">Seller Activity</div><div class="modal-section-text">${escapeHtml(getSellerActivity(l))}</div></div>
+    <div class="modal-block"><div class="modal-label">What Sam Sees</div>${escapeHtml(l.sam_view)}</div>
+    <div class="modal-section"><div class="modal-label">Why I'm Watching It</div><div class="modal-section-text">${escapeHtml(l.what_i_like)}</div></div>
     <div class="modal-section"><div class="modal-label">New Since Launch</div><div class="modal-section-text">${escapeHtml(getNewSinceLaunch(l))}</div></div>
     <div class="modal-section"><div class="modal-label">Open Questions</div><div class="modal-section-text">${escapeHtml(getOpenQuestions(l))}</div></div>
+    <div class="modal-section"><div class="modal-label">Seller Activity</div><div class="modal-section-text">${escapeHtml(getSellerActivity(l))}</div></div>
     <div class="modal-section"><div class="modal-label">What I Would Do</div><div class="modal-section-text">${escapeHtml(getActionLine(l))}</div></div>
     <div class="modal-actions">
       <button class="primary" onclick="window.open('${l.url||"#"}','_blank')">View Auction</button>
-      <button class="ghost" onclick="this.closest('.modal-overlay').remove()">Back to results</button>
+      <button class="ghost" onclick="saveAuction('${l.id}'); this.closest('.modal-overlay').remove()">Save Auction</button>
+      <button class="ghost" onclick="this.closest('.modal-overlay').remove()">Back</button>
     </div>
   </div>`;
   overlay.addEventListener("click",e=>{if(e.target===overlay)overlay.remove()});
   document.body.appendChild(overlay);
 }
-function cardHTML(l,reason,isFeatured=false){
+function cardHTML(l,reason){
   const ri=reserveInfo(l);
+  const u=l.updates&&l.updates.length?l.updates[0]:null;
   const flags=getFlags(l);
-  const update=l.updates&&l.updates.length?`<div class="card-update"><div class="update-dot"></div><div class="update-text"><span class="update-time">${escapeHtml(l.updates[0].time)}:</span> ${escapeHtml(l.updates[0].text)}</div></div>`:"";
-
-  return `<div class="card ${isFeatured?"featured":""}">
+  const update=u?`<div class="card-update"><div class="update-dot"></div><div class="update-text"><span class="update-time">${escapeHtml(u.time)}:</span> ${escapeHtml(u.text)}</div></div>`:"";
+  return `<div class="card">
     <div class="card-img-wrap" onclick="showTake('${l.id}')">
       <img class="card-img" src="${l.img}" alt="${l.year} ${l.make} ${l.model}" onerror="this.closest('.card').style.display='none'">
       <div class="card-source">Cars &amp; Bids</div>
-      ${isFeatured?`<div class="card-badge-top">Featured Match</div>`:""}
     </div>
-
     <div class="card-body">
       <div class="card-title">${l.year} ${l.make} ${l.model}</div>
-      <div class="card-meta">${l.trans} · ${(l.miles||0).toLocaleString()} mi · ${l.loc}</div>
-
+      <div class="card-meta">${(l.miles||0).toLocaleString()} mi · ${l.trans} · ${l.loc}</div>
       <div class="card-flags">
         ${flags.map(f=>`<span class="flag flag-${f.type}">${escapeHtml(f.text)}</span>`).join("")}
       </div>
-
       <div class="price-row">
         <div>
           <div class="price-label">${priceLabel(l)}</div>
@@ -935,34 +865,23 @@ function cardHTML(l,reason,isFeatured=false){
         </div>
         <span class="badge badge-${ri.cls}">${ri.label}</span>
       </div>
-
       <div class="card-intel">
-        <div><strong>Why Sam surfaced it:</strong> ${escapeHtml(reason)}</div>
-        <div><strong>Seller activity:</strong> ${escapeHtml(getSellerActivity(l))}</div>
         <div><strong>New since launch:</strong> ${escapeHtml(getNewSinceLaunch(l))}</div>
         <div><strong>Open questions:</strong> ${escapeHtml(getOpenQuestions(l))}</div>
+        <div><strong>Seller activity:</strong> ${escapeHtml(getSellerActivity(l))}</div>
+        <div><strong>Why I’m watching it:</strong> ${escapeHtml(reason)}</div>
       </div>
     </div>
-
     ${update}
-
     <div class="card-actions">
       <button class="primary" onclick="window.open('${l.url||"#"}','_blank')">View Auction</button>
-      <button class="ghost" onclick="showTake('${l.id}')">Sam's Take</button>
+      <button class="ghost" onclick="showTake('${l.id}')">What Sam Sees</button>
+      <button class="ghost" onclick="saveAuction('${l.id}')">Save</button>
     </div>
-  </div>`;
-}
-function concernsHTML(){
-  const concernIds=["L07","L03","L01","L14","L09","L15"];
-  return `<div class="concerns-list">
-    ${concernIds.map(id=>{
-      const l=LISTINGS.find(x=>x.id===id);
-      if(!l)return"";
-      return `<div class="concern-item">
-        <div class="concern-title">${l.year} ${l.make} ${l.model}</div>
-        <div class="concern-text">${escapeHtml(getOpenQuestions(l))}</div>
-      </div>`;
-    }).join("")}
+    <div class="save-note">
+      <strong>Save this auction</strong>
+      Seller answers, new photos, videos, and bidding activity can completely change the story. Don’t lose track of it.
+    </div>
   </div>`;
 }
 function parseResults(raw){
@@ -971,17 +890,10 @@ function parseResults(raw){
   const chipMatch=raw.match(/\[CHIPS:([^\]]+)\]/);
 
   const search=searchMatch ? searchMatch[1].trim() : null;
-
   const cards=cardMatches
-    .map(m=>({
-      l:LISTINGS.find(x=>x.id===m[1].trim()),
-      r:m[2].trim()
-    }))
+    .map(m=>({l:LISTINGS.find(x=>x.id===m[1].trim()),r:m[2].trim()}))
     .filter(x=>x.l);
-
-  const chips=chipMatch
-    ? chipMatch[1].split("|").map(x=>x.trim()).filter(Boolean)
-    : [];
+  const chips=chipMatch ? chipMatch[1].split("|").map(x=>x.trim()).filter(Boolean) : [];
 
   const clean=raw
     .replace(/\[SEARCHING:.*?\]/g,"")
@@ -991,9 +903,8 @@ function parseResults(raw){
     .trim();
 
   let resultsHTML="";
-
   if(cards.length){
-    resultsHTML+=`<div class="cards-grid">${cards.map((x,i)=>cardHTML(x.l,x.r,i===0)).join("")}</div>`;
+    resultsHTML+=`<div class="cards-grid">${cards.map(x=>cardHTML(x.l,x.r)).join("")}</div>`;
   }
 
   const chipsHTML=chips.length
@@ -1009,13 +920,11 @@ function addMsg(role,text,html="",chipsHTML=""){
   row.className="row "+role;
   const inner=document.createElement("div");
   inner.className="row-inner";
-
   if(role==="sam"){
     inner.innerHTML=`<div class="msg-wrap"><div class="sam-label">Sam</div><div class="sam-text">${escapeHtml(text)}</div>${chipsHTML||""}${html||""}</div>`;
   }else{
     inner.innerHTML=`<div class="msg-wrap"><div class="user-text">${escapeHtml(text)}</div></div>`;
   }
-
   row.appendChild(inner);
   msgs.appendChild(row);
   msgs.scrollTop=msgs.scrollHeight;
@@ -1043,15 +952,16 @@ function updateSearchMsg(row,text){
   const span=row.querySelector(".searching span");
   if(span)span.textContent=text;
 }
-function finishSearchMsg(row,resultsHTML,chipsHTML,afterText=""){
+function finishSearchMsg(row,resultsHTML,chipsHTML,afterText="",count=0){
   const wrap=row.querySelector(".msg-wrap");
+  const resultLine=count===1 ? "I found one auction worth looking at." : "I found a few worth looking at.";
   const finalText=afterText
     ? `<div class="sam-text after-results">${escapeHtml(afterText)}</div>`
-    : `<div class="sam-text after-results">Click View Auction to go straight to the listing, or Sam’s Take if you want the live signals and open questions.</div>`;
+    : `<div class="sam-text after-results">Click View Auction to go straight to the listing, or What Sam Sees if you want the live signals and open questions.</div>`;
 
   wrap.innerHTML=`
     <div class="sam-label">Sam</div>
-    <div class="sam-text">I found a few worth looking at.</div>
+    <div class="sam-text">${resultLine}</div>
     ${resultsHTML||""}
     ${finalText}
     ${chipsHTML||""}
@@ -1109,14 +1019,6 @@ function localPreRoute(q){
     return{reply:"Let’s keep this legal. What are you actually trying to do with the car?",chips:["Hauling stuff","Camping","Daily driver","Fun car"]};
   }
 
-  if(/show concerns|concerns|risks|what should i watch|what are you worried|open questions/i.test(lower)){
-    return{
-      reply:"Here are the live open questions I’d pay attention to:",
-      html:concernsHTML(),
-      chips:["Show cleanest only","Manual sports cars","Under $25k","More details on one"]
-    };
-  }
-
   return null;
 }
 function chipsHTML(chips){
@@ -1158,11 +1060,10 @@ async function send(){
 
     if(parsed.resultsHTML){
       const searchRow=addSearchMsg(parsed.search || "Checking live auctions...");
-
       setTimeout(()=>updateSearchMsg(searchRow,"Looking at recent seller updates..."),1800);
       setTimeout(()=>updateSearchMsg(searchRow,"Seeing what is worth your attention..."),3600);
       setTimeout(()=>{
-        finishSearchMsg(searchRow,parsed.resultsHTML,parsed.chipsHTML,parsed.clean);
+        finishSearchMsg(searchRow,parsed.resultsHTML,parsed.chipsHTML,parsed.clean,parsed.cards.length);
         document.getElementById("btn").disabled=false;
       },5600);
     }else{
@@ -1183,6 +1084,7 @@ async function send(){
     document.getElementById("btn").disabled=false;
   }
 }
+
 document.getElementById("btn").addEventListener("click",send);
 document.getElementById("inp").addEventListener("keydown",e=>{
   if(e.key==="Enter"&&!e.shiftKey){
