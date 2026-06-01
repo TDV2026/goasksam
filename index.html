@@ -309,7 +309,7 @@ body{
 .card-intel{
   display:flex;
   flex-direction:column;
-  gap:8px;
+  gap:7px;
   margin-top:4px;
   padding-top:10px;
   border-top:1px solid #eeeeeb;
@@ -431,6 +431,19 @@ body{
   font-size:12px;
   margin-bottom:3px;
 }
+.modal-actions{
+  display:flex;
+  gap:10px;
+  margin-top:22px;
+}
+.modal-actions button{
+  flex:1;
+  padding:12px 10px;
+  border-radius:12px;
+  font-family:inherit;
+  font-weight:850;
+  cursor:pointer;
+}
 .after-results{
   color:#555;
   font-size:14px;
@@ -441,20 +454,21 @@ body{
   position:fixed;
   inset:0;
   z-index:100;
-  background:rgba(0,0,0,.32);
+  background:rgba(0,0,0,.28);
   display:flex;
-  align-items:flex-end;
-  justify-content:center;
+  align-items:stretch;
+  justify-content:flex-end;
 }
 .modal{
   width:100%;
-  max-width:760px;
-  max-height:84vh;
+  max-width:520px;
+  height:100%;
   overflow-y:auto;
   background:white;
-  border-radius:24px 24px 0 0;
-  padding:22px 26px 42px;
+  border-radius:24px 0 0 24px;
+  padding:28px 30px 42px;
   position:relative;
+  box-shadow:-20px 0 60px rgba(0,0,0,.12);
 }
 .modal-close{
   position:absolute;
@@ -517,19 +531,6 @@ body{
   font-size:13px;
   line-height:1.45;
   margin-bottom:16px;
-}
-.modal-actions{
-  display:flex;
-  gap:10px;
-  margin-top:22px;
-}
-.modal-actions button{
-  flex:1;
-  padding:12px 10px;
-  border-radius:12px;
-  font-family:inherit;
-  font-weight:850;
-  cursor:pointer;
 }
 #input-area{
   max-width:980px;
@@ -722,7 +723,7 @@ Reasons must be specific. No "strong community reception" or generic language.
 
 AFTER CARDS:
 Add one short sentence:
-"Click View Auction to go straight to the listing, or Sam's Take if you want the concerns and what changed recently. Want me to narrow these down?"
+"Click View Auction to go straight to the listing, or Sam’s Read if you want the live signals and open questions. Want me to narrow these down?"
 
 RNM/SOLD:
 Use [RNM:id|context] only as separate context if relevant.
@@ -775,7 +776,7 @@ function getSellerActivity(l){
 }
 function getNewSinceLaunch(l){
   if(l.updates&&l.updates.length) return l.updates[0].text;
-  return "No major new update captured yet.";
+  return "Nothing major yet.";
 }
 function getOpenQuestions(l){
   if(l.id==="L07") return "DME codes were disclosed. Seller says they have not returned after battery replacement.";
@@ -784,7 +785,7 @@ function getOpenQuestions(l){
   if(l.id==="L09") return "Heavily modified car. This is only attractive if you want the build, not a stock example.";
   if(l.id==="L15") return "Water pump history, roof panel issue, and open recalls still need attention.";
   if(l.id==="L14") return "2009 tires and three-panel paint evidence need attention.";
-  if(l.id==="L11") return "Old tires are the main live item to budget for.";
+  if(l.id==="L11") return "No seller update on tire age yet.";
   if(l.id==="L08") return "Rust, exhaust leak, and prior incidents need careful review.";
   if(l.id==="L06") return "Current bid likely does not tell you much until the reserve story becomes clearer.";
   if(l.id==="L10") return "Reserve unknown and dealer fee added.";
@@ -818,7 +819,8 @@ function showTake(id){
   const l=LISTINGS.find(x=>x.id===id);
   if(!l)return;
   const ri=reserveInfo(l);
-  const update=l.updates&&l.updates.length?`<div class="modal-update"><strong>${escapeHtml(l.updates[0].time)}:</strong> ${escapeHtml(l.updates[0].text)}</div>`:"";
+  const u=l.updates&&l.updates.length?l.updates[0]:null;
+  const update=u?`<div class="modal-update"><strong>${escapeHtml(u.time)}:</strong> ${escapeHtml(u.text)}</div>`:"";
   const overlay=document.createElement("div");
   overlay.className="modal-overlay";
   overlay.innerHTML=`<div class="modal">
@@ -827,11 +829,9 @@ function showTake(id){
     <div class="modal-sub">${(l.miles||0).toLocaleString()} mi · ${l.trans||""} · ${l.loc}</div>
     <div class="modal-pill badge badge-${ri.cls}">${ri.label}</div>
     ${update}
-    <div class="modal-block"><div class="modal-label">What Sam Sees</div>${escapeHtml(l.sam_view)}</div>
-    <div class="modal-section"><div class="modal-label">Why I'm Watching It</div><div class="modal-section-text">${escapeHtml(l.what_i_like)}</div></div>
-    <div class="modal-section"><div class="modal-label">New Since Launch</div><div class="modal-section-text">${escapeHtml(getNewSinceLaunch(l))}</div></div>
-    <div class="modal-section"><div class="modal-label">Open Questions</div><div class="modal-section-text">${escapeHtml(getOpenQuestions(l))}</div></div>
-    <div class="modal-section"><div class="modal-label">Seller Activity</div><div class="modal-section-text">${escapeHtml(getSellerActivity(l))}</div></div>
+    <div class="modal-section"><div class="modal-label">What Changed</div><div class="modal-section-text">${escapeHtml(getNewSinceLaunch(l))}</div></div>
+    <div class="modal-section"><div class="modal-label">Open Question</div><div class="modal-section-text">${escapeHtml(getOpenQuestions(l))}</div></div>
+    <div class="modal-block"><div class="modal-label">Sam’s Read</div>${escapeHtml(l.sam_view)}</div>
     <div class="modal-section"><div class="modal-label">What I Would Do</div><div class="modal-section-text">${escapeHtml(getActionLine(l))}</div></div>
     <div class="modal-actions">
       <button class="primary" onclick="window.open('${l.url||"#"}','_blank')">View Auction</button>
@@ -866,16 +866,15 @@ function cardHTML(l,reason){
         <span class="badge badge-${ri.cls}">${ri.label}</span>
       </div>
       <div class="card-intel">
-        <div><strong>New since launch:</strong> ${escapeHtml(getNewSinceLaunch(l))}</div>
-        <div><strong>Open questions:</strong> ${escapeHtml(getOpenQuestions(l))}</div>
-        <div><strong>Seller activity:</strong> ${escapeHtml(getSellerActivity(l))}</div>
-        <div><strong>Why I’m watching it:</strong> ${escapeHtml(reason)}</div>
+        <div><strong>Changed:</strong> ${escapeHtml(getNewSinceLaunch(l))}</div>
+        <div><strong>Open:</strong> ${escapeHtml(getOpenQuestions(l))}</div>
+        <div><strong>Seller:</strong> ${escapeHtml(getSellerActivity(l))}</div>
       </div>
     </div>
     ${update}
     <div class="card-actions">
       <button class="primary" onclick="window.open('${l.url||"#"}','_blank')">View Auction</button>
-      <button class="ghost" onclick="showTake('${l.id}')">What Sam Sees</button>
+      <button class="ghost" onclick="showTake('${l.id}')">Sam’s Read</button>
       <button class="ghost" onclick="saveAuction('${l.id}')">Save</button>
     </div>
     <div class="save-note">
@@ -888,30 +887,15 @@ function parseResults(raw){
   const searchMatch=raw.match(/\[SEARCHING:([^\]]+)\]/);
   const cardMatches=[...raw.matchAll(/\[CARD:([^|\]]+)\|([^\]]+)\]/g)];
   const chipMatch=raw.match(/\[CHIPS:([^\]]+)\]/);
-
-  const search=searchMatch ? searchMatch[1].trim() : null;
-  const cards=cardMatches
-    .map(m=>({l:LISTINGS.find(x=>x.id===m[1].trim()),r:m[2].trim()}))
-    .filter(x=>x.l);
-  const chips=chipMatch ? chipMatch[1].split("|").map(x=>x.trim()).filter(Boolean) : [];
-
-  const clean=raw
-    .replace(/\[SEARCHING:.*?\]/g,"")
-    .replace(/\[CARD:.*?\]/g,"")
-    .replace(/\[RNM:.*?\]/g,"")
-    .replace(/\[CHIPS:.*?\]/g,"")
-    .trim();
-
-  let resultsHTML="";
-  if(cards.length){
-    resultsHTML+=`<div class="cards-grid">${cards.map(x=>cardHTML(x.l,x.r)).join("")}</div>`;
-  }
-
-  const chipsHTML=chips.length
-    ? `<div class="chips">${chips.map(c=>`<button class="chip" onclick="handleChip('${c.replace(/'/g,"\\'")}')">${escapeHtml(c)}</button>`).join("")}</div>`
-    : "";
-
-  return{clean,search,resultsHTML,chipsHTML,cards};
+  const search=searchMatch?searchMatch[1].trim():null;
+  const cards=cardMatches.map(m=>({l:LISTINGS.find(x=>x.id===m[1].trim()),r:m[2].trim()})).filter(x=>x.l);
+  const chips=chipMatch?chipMatch[1].split("|").map(x=>x.trim()).filter(Boolean):[];
+  const clean=raw.replace(/\[SEARCHING:.*?\]/g,"").replace(/\[CARD:.*?\]/g,"").replace(/\[RNM:.*?\]/g,"").replace(/\[CHIPS:.*?\]/g,"").trim();
+  let html="";
+  if(search)html+=`<div class="searching"><div class="spinner"></div><span>${escapeHtml(search)}</span></div>`;
+  if(cards.length)html+=`<div class="cards-grid">${cards.map(x=>cardHTML(x.l,x.r)).join("")}</div>`;
+  const chipsHTML=chips.length?`<div class="chips">${chips.map(c=>`<button class="chip" onclick="handleChip('${c.replace(/'/g,"\\'")}')">${escapeHtml(c)}</button>`).join("")}</div>`:"";
+  return{clean,html,chipsHTML};
 }
 function addMsg(role,text,html="",chipsHTML=""){
   hideHero();
@@ -928,45 +912,6 @@ function addMsg(role,text,html="",chipsHTML=""){
   row.appendChild(inner);
   msgs.appendChild(row);
   msgs.scrollTop=msgs.scrollHeight;
-  return row;
-}
-function addSearchMsg(text){
-  hideHero();
-  const msgs=document.getElementById("msgs");
-  const row=document.createElement("div");
-  row.className="row sam";
-  row.innerHTML=`<div class="row-inner">
-    <div class="msg-wrap">
-      <div class="sam-label">Sam</div>
-      <div class="searching">
-        <div class="spinner"></div>
-        <span>${escapeHtml(text || "Checking live auctions...")}</span>
-      </div>
-    </div>
-  </div>`;
-  msgs.appendChild(row);
-  row.scrollIntoView({behavior:"smooth",block:"start"});
-  return row;
-}
-function updateSearchMsg(row,text){
-  const span=row.querySelector(".searching span");
-  if(span)span.textContent=text;
-}
-function finishSearchMsg(row,resultsHTML,chipsHTML,afterText="",count=0){
-  const wrap=row.querySelector(".msg-wrap");
-  const resultLine=count===1 ? "I found one auction worth looking at." : "I found a few worth looking at.";
-  const finalText=afterText
-    ? `<div class="sam-text after-results">${escapeHtml(afterText)}</div>`
-    : `<div class="sam-text after-results">Click View Auction to go straight to the listing, or What Sam Sees if you want the live signals and open questions.</div>`;
-
-  wrap.innerHTML=`
-    <div class="sam-label">Sam</div>
-    <div class="sam-text">${resultLine}</div>
-    ${resultsHTML||""}
-    ${finalText}
-    ${chipsHTML||""}
-  `;
-  row.scrollIntoView({behavior:"smooth",block:"start"});
 }
 function showTyping(){
   const msgs=document.getElementById("msgs");
@@ -1058,26 +1003,14 @@ async function send(){
 
     hideTyping();
 
-    if(parsed.resultsHTML){
-      const searchRow=addSearchMsg(parsed.search || "Checking live auctions...");
-      setTimeout(()=>updateSearchMsg(searchRow,"Looking at recent seller updates..."),1800);
-      setTimeout(()=>updateSearchMsg(searchRow,"Seeing what is worth your attention..."),3600);
-      setTimeout(()=>{
-        finishSearchMsg(searchRow,parsed.resultsHTML,parsed.chipsHTML,parsed.clean,parsed.cards.length);
-        document.getElementById("btn").disabled=false;
-      },5600);
+    if(parsed.clean){
+      addMsg("sam",parsed.clean,parsed.html,parsed.chipsHTML);
     }else{
-      if(parsed.clean){
-        addMsg("sam",parsed.clean);
-      }
-      if(parsed.chipsHTML){
-        addMsg("sam","", "", parsed.chipsHTML);
-      }
-      document.getElementById("btn").disabled=false;
+      addMsg("sam","",parsed.html,parsed.chipsHTML);
     }
 
     history.push({role:"assistant",content:raw});
-
+    document.getElementById("btn").disabled=false;
   }catch(e){
     hideTyping();
     addMsg("sam","Connection issue. Try again.");
