@@ -762,17 +762,12 @@ function priceLabel(l){
   return"current bid";
 }
 function getSellerActivity(l){
-  if(l.id==="L07") return "Responsive. Added cold-start video and paint readings after questions.";
-  if(l.id==="L03") return "Responsive. Uploaded documentation around the mileage gap.";
-  if(l.id==="L01") return "Partly responsive. Some questions addressed, but rebuild documentation remains open.";
-  if(l.id==="L09") return "Provided build support, including dyno sheet.";
-  if(l.id==="L15") return "Some useful ownership context, but several mechanical unknowns remain.";
-  if(l.id==="L14") return "Enough listing detail to understand the car, but paint and tire questions still matter.";
-  if(l.id==="L11") return "Straightforward listing. No major new seller activity captured yet.";
-  if(l.id==="L08") return "No reserve helps, but rust and exhaust details need careful review.";
-  if(l.id==="L06") return "Strong spec, but seller activity has not changed the main question.";
-  if(l.id==="L10") return "Clean basic listing, but reserve and dealer fee matter.";
-  return "Seller activity not fully captured yet.";
+
+  if(l.updates && l.updates.length){
+    return `Last update ${l.updates[0].time}.`;
+  }
+
+  return "No meaningful updates yet.";
 }
 function getNewSinceLaunch(l){
   if(l.updates&&l.updates.length) return l.updates[0].text;
@@ -866,8 +861,8 @@ function cardHTML(l,reason){
         <span class="badge badge-${ri.cls}">${ri.label}</span>
       </div>
       <div class="card-intel">
-        <div><strong>Changed:</strong> ${escapeHtml(getNewSinceLaunch(l))}</div>
-        <div><strong>Open:</strong> ${escapeHtml(getOpenQuestions(l))}</div>
+        <div><strong>Latest:</strong> ${escapeHtml(getNewSinceLaunch(l))}</div>
+        <div><strong>Watching</strong> ${escapeHtml(getOpenQuestions(l))}</div>
         <div><strong>Seller:</strong> ${escapeHtml(getSellerActivity(l))}</div>
       </div>
     </div>
