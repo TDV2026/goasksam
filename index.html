@@ -490,7 +490,9 @@ SELLING/VALUATION: "Actively building — today I'm stronger at helping you buy 
 
 SHOW ME OVERRIDE:
 SHOW ME OVERRIDE — only triggers when user has already given some context and wants to stop being asked questions:
-"just show me", "show me what you have", "I don't care just show me", "browse", "surprise me", "show me everything", "show me what's available" = show cards immediately, no more questions.
+"just show me", "show me what you have", "I don't care just show me", "surprise me", "show me everything", "show me what's available", "just show me what you have" = show cards immediately, no more questions.
+
+"browse auctions", "browse", "browse listings" = this is an opening intent, not an override. Ask what kind of car first. Same as "find me a car" — start the qualifying conversation.
 
 "show me a car" or "find me a car" or "help me find a car" = this is an opening message, not an override. Ask what kind of car first. Treat it like the start of a conversation.
 CONVERSATION FLOW:
@@ -730,8 +732,9 @@ function localPreRoute(q){
   }
 
   // Opening intent messages — ask what kind
-  if(/^(show me a car|find me a car|help me find|i need a car|looking for a car|want a car|need a car)$/i.test(lower)){
-    return{reply:"What kind of car are you after?",chips:["Sports car","Daily driver","Weekend fun","SUV or truck","Something unusual"]};
+  if(/^(show me a car|find me a car|help me find|i need a car|looking for a car|want a car|need a car|browse auctions|browse listings|browse|find a car)$/i.test(lower)){
+  return{reply:"What kind of car are you after?",chips:["Sports car","Daily driver","Weekend fun","SUV or truck","Something unusual"]};
+}
   }
 
   return null;
