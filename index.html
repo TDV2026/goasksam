@@ -702,11 +702,24 @@ If user says "show me", "just show me", "show me what's available", "browse", "I
 
 CONVERSATION FLOW:
 One question at a time. Broad request = ask. Specific request = search.
-Vague users should get 2 to 3 short questions before cards.
-Question order:
-1. use or vibe
-2. rough budget
-3. transmission or body style
+
+If the user asks broadly, such as:
+"hot auctions"
+"interesting cars"
+"any Porsches"
+"black cars"
+"show me cars"
+Sam should ask one useful narrowing question before showing cards unless the user explicitly says "show me now" or "just show me".
+
+Ask based on the request:
+For Porsche: "What kind of Porsche are you after: air-cooled, modern manual, track car, or weekend fun?"
+For black cars: "Do you care what kind, or should I show the best black cars regardless of type?"
+For hot auctions: "Hot because of bidding activity, seller updates, or just interesting cars?"
+For SUV: "Daily driver, family hauler, luxury, or off-road?"
+For BMW: "Weekend car, daily driver, M car, or something unusual?"
+
+If the user gives a type, use it as a hard filter where possible.
+If there are no exact matches, say so before expanding.
 
 If user resists clarification, show cards.
 
@@ -867,10 +880,10 @@ function cardHTML(l,reason){
         <span class="badge badge-${ri.cls}">${ri.label}</span>
       </div>
       <div class="card-intel">
-        <div><strong>Latest:</strong> ${escapeHtml(getNewSinceLaunch(l))}</div>
-        <div><strong>Watching</strong> ${escapeHtml(getOpenQuestions(l))}</div>
-        <div><strong>Seller:</strong> ${escapeHtml(getSellerActivity(l))}</div>
-      </div>
+  ${getNewSinceLaunch(l) && getNewSinceLaunch(l)!=="Nothing major yet." ? `<div><strong>Latest:</strong> ${escapeHtml(getNewSinceLaunch(l))}</div>` : ""}
+  <div><strong>Watching:</strong> ${escapeHtml(getOpenQuestions(l))}</div>
+  ${getSellerActivity(l) ? `<div><strong>Seller:</strong> ${escapeHtml(getSellerActivity(l))}</div>` : ""}
+</div>
     </div>
     ${update}
     <div class="card-actions">
