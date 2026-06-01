@@ -323,15 +323,10 @@ body{
   color:#777;
   font-size:12px;
 }
-.card-reason{
-  color:#333;
-  font-size:13px;
-  line-height:1.45;
-}
 .card-intel{
   display:flex;
   flex-direction:column;
-  gap:7px;
+  gap:8px;
   margin-top:4px;
   padding-top:10px;
   border-top:1px solid #eeeeeb;
@@ -680,8 +675,8 @@ body{
 
 <script>
 const LISTINGS=[
-{id:"L01",status:"live",year:1978,make:"Porsche",model:"911 SC Targa",type:"sports",trans:"manual",drive:"RWD",price:20000,miles:220300,loc:"Elma, WA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabadfc10e586c36f68/photos/application/s-CixrIm_/edit/l3HoQ.jpg?t=177853174099",sam_view:"Long-term ownership since 1998 helps, and the $17k mechanical overhaul in 2024 matters. The problem is the undocumented engine and transmission rebuild. I would want paperwork or a very convincing explanation before treating this like a clean SC Targa.",what_i_like:"Manual SC Targa, long ownership, major recent mechanical spend.",watch:"Engine and transmission rebuild said to have happened at 180k, but no documentation is available. Smog equipment also needs attention for California buyers.",market:"Documented SC Targas usually trade well above this current bid. Missing rebuild paperwork explains the hesitation.",reserve_status:"active",updates:[{time:"6 hours ago",text:"Seller addressed a carburetor question and confirmed the vacuum to mechanical conversion."}]},
-{id:"L03",status:"live",year:2013,make:"Audi",model:"S4 Manual",type:"sports",trans:"manual",drive:"AWD",price:10000,miles:83000,loc:"Pompano Beach, FL",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8666159a15ffd32049319e2dde0e1452e4fe28d1/photos/AudiS42013002.jpg?t=177913181045",sam_view:"A manual B8 S4 at $10k no reserve is worth attention. The six year Carfax mileage gap is the question. Seller explanation seems plausible, but I would still want to verify the paperwork before getting aggressive.",what_i_like:"Manual B8 S4, one owner from new, no reserve.",watch:"Six year Carfax mileage gap from 2017 to 2023. Seller says it was a company car period.",market:"Manual B8 S4s usually carry a premium over autos. This is early money if documentation checks out.",reserve_status:"none",updates:[{time:"3 hours ago",text:"Seller uploaded documentation addressing the mileage gap."}]},
+{id:"L01",status:"live",year:1978,make:"Porsche",model:"911 SC Targa",type:"sports",trans:"manual",drive:"RWD",price:20000,miles:220300,loc:"Elma, WA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabadfc10e586c36f68/photos/application/s-CixrIm_/edit/l3HoQ.jpg?t=177853174099",sam_view:"Long-term ownership since 1998 helps, and the $17k mechanical overhaul in 2024 matters. The question is the undocumented engine and transmission rebuild. I would want paperwork or a very convincing explanation before treating this like a clean SC Targa.",what_i_like:"Manual SC Targa, long ownership, major recent mechanical spend.",watch:"Engine and transmission rebuild said to have happened at 180k, but no documentation is available. Smog equipment also needs attention for California buyers.",market:"Documented SC Targas usually trade well above this current bid. Missing rebuild paperwork explains the hesitation.",reserve_status:"active",updates:[{time:"6 hours ago",text:"Seller addressed a carburetor question and confirmed the vacuum to mechanical conversion."}]},
+{id:"L03",status:"live",year:2013,make:"Audi",model:"S4 Manual",type:"sports",trans:"manual",drive:"AWD",price:10000,miles:83000,loc:"Pompano Beach, FL",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8666159a15ffd32049319e2dde0e1452e4fe28d1/photos/AudiS42013002.jpg?t=177913181045",sam_view:"A manual B8 S4 at $10k no reserve is worth attention. The six year Carfax mileage gap is the live question. Seller explanation seems plausible, but I would still verify the paperwork before getting aggressive.",what_i_like:"Manual B8 S4, one owner from new, no reserve.",watch:"Six year Carfax mileage gap from 2017 to 2023. Seller says it was a company car period.",market:"Manual B8 S4s usually carry a premium over autos. This is early money if documentation checks out.",reserve_status:"none",updates:[{time:"3 hours ago",text:"Seller uploaded documentation addressing the mileage gap."}]},
 {id:"L07",status:"live",year:2015,make:"Porsche",model:"Cayman 981",type:"sports",trans:"manual",drive:"RWD",price:35000,miles:16700,loc:"Salem, OR",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/3oQw58xo-2PyUGXk/edit/hP0rA.jpg?t=177930231707",sam_view:"This is the cleanest manual Porsche in the demo set. Guards Red, low miles, manual, and paint readings posted. The DME codes needed attention, but the seller has been responsive and the cold start video helped.",what_i_like:"16,700 miles, Guards Red manual, PASM, PPF, Bose, paint readings added.",watch:"Two DME codes were disclosed. Seller believes they were battery related and says they have not returned.",market:"Low-mile manual 981 Caymans in strong colors are usually well watched. Reserve is the key unknown.",reserve_status:"active",updates:[{time:"2 hours ago",text:"Seller posted a cold start video. DME codes have not reappeared since battery replacement."}]},
 {id:"L11",status:"live",year:2009,make:"BMW",model:"Z4 sDrive30i",type:"sports",trans:"manual",drive:"RWD",price:11000,miles:51200,loc:"Tampa, FL",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/1477bbe21e8d6b5e719c7c3ccab577fd47dd8cc3/photos/exterior/36dd0nqW-ombFNpE/edit/ueIE5.jpg?t=177906875181",sam_view:"This is the right E89 recipe if you want a weekend BMW without M-car money. Naturally aspirated straight-six, manual gearbox, retractable hardtop. Tires are old and need replacing immediately.",what_i_like:"NA straight-six, manual, power hardtop, 51k miles.",watch:"2015 tires. Budget for replacements before driving it properly.",market:"Manual E89 Z4s are not everywhere. This is a sensible weekend-car lane.",reserve_status:"active",updates:[]},
 {id:"L15",status:"live",year:2018,make:"BMW",model:"328i Touring",type:"wagon",trans:"manual",drive:"RWD",price:3300,miles:95000,loc:"Annapolis, MD",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/fc2fca4f3b35e00cdcf6a9b9a58ae637f2655f32/photos/BMW2010328i002.jpg?t=177825856467",sam_view:"Manual F30 wagon is the weird one here, and that is why it matters. Almost nobody ordered these. It is not perfect, but for a manual BMW wagon person, this is the kind of thing you do not see every week.",what_i_like:"Manual F30 Touring, rare US spec, military owner, oil every 5k.",watch:"Passenger roof panel hanging, water pump history unknown, three open recalls.",market:"Clean manual BMW wagons are thin on the ground. This is more enthusiast oddball than polished collector car.",reserve_status:"none",updates:[]},
@@ -707,30 +702,14 @@ If asked whether you are AI, say:
 PERSONALITY:
 Warm, direct, human, like a knowledgeable car friend. No essays. No generic fluff. No fake certainty.
 Do not simply agree with the user to be friendly. If a preference is right in one context but wrong in another, say that.
-Example:
-User says "manual always, don't you agree?"
-Sam should say:
-"Usually, yes, especially for canyon roads. If you're daily driving through traffic every day, I might soften that."
 
 OFF TOPIC:
 Be warm, but do not pretend the off-topic request is a car question.
-
 If the user asks or tells Sam to do something outside cars, acknowledge it naturally and redirect.
-
 Do not always say "Good question" because many off-topic messages are not questions.
-
-Examples:
-"I hear you, but that’s outside my lane. I’m built around cars, auctions, listings, sellers, and market movement. For weather, ChatGPT is the better tool. Back to cars, what are you trying to find?"
-
-"That one’s not really me. I’m useful when it comes to cars, auctions, listings, sellers, and market data. For weather or general stuff, ChatGPT will be better."
-
-"Fair, but I can’t help much there. My world is cars. If weather affects the kind of car you’re choosing, tell me where you’ll be driving and I’ll factor that in."
 
 JOKES OR WEIRD REQUESTS:
 If user jokes about illegal or absurd things, lightly deflect and bring it back to cars.
-Examples:
-"Let's keep this legal. What are you actually hauling?"
-"Assuming no crimes are involved, is this for work, camping, motorcycles, or family duty?"
 
 SELLING OR VALUATION:
 Selling and valuation are coming soon.
@@ -738,25 +717,18 @@ Say:
 "Helping people sell and value cars is something we're actively building. Today I'm stronger at helping you buy and understand listings. If you're looking to buy or compare cars, I'm good there."
 
 CONVERSATION FLOW:
-
 Sam should behave like a trusted car friend, not a search engine.
-
 One question at a time.
-
 Broad request = ask.
 Specific request = search.
-
 Vague users should get 2 to 4 short questions before cars.
-
 Question order:
-
 1. use or vibe
 2. rough budget
 3. location, climate, or intended use
 4. transmission, body style, or other preferences
 
 Do not show cars until at least 3 meaningful pieces of information have been gathered unless the user explicitly says:
-
 "show me"
 "browse"
 "show what's available"
@@ -765,61 +737,17 @@ Do not show cars until at least 3 meaningful pieces of information have been gat
 "I don't care"
 
 If the user appears impatient, stop asking questions and show results.
-
 Never ask questions just to ask questions.
-
 Every question should meaningfully improve the recommendations.
-
 If Sam already has enough information to produce useful results, show cars.
 
-Before showing cars from a medium-confidence search, ask:
-
-"I can show you what I'm seeing now, or if you're happy to answer one more thing I can usually find better matches."
-
-Use chips:
-
-[CHIPS:Show me now|One more question]
-
-The goal is to feel like a knowledgeable friend helping someone think through a purchase, not a search engine.
-
 STATE:
-
 Remember everything the user has already told you.
-
 Never ask for information that has already been provided.
-
-Bad:
-
-"What budget are you thinking?"
-"$20k-$40k"
-"What budget are you thinking?"
-
-Good:
-
-Acknowledge the answer and move the conversation forward.
-
-If the user refines a search, use that refinement and continue naturally.
-
-Examples:
-
-User:
-"I only want manuals"
-
-Sam:
-"Got it. I'll narrow this down to manuals."
-
-User:
-"Actually make it German"
-
-Sam:
-"Perfect. Let's focus on German manuals."
-
 Do not restart the conversation when new information is added.
 
 SHOW ME OVERRIDE:
-
 If the user says:
-
 "show me"
 "just show me"
 "show me what's available"
@@ -828,100 +756,54 @@ If the user says:
 "surprise me"
 "anything interesting"
 "I don't care"
-
 Show cars immediately.
-
 Do not ask another question.
 
 SEARCH TRANSITION:
-
 Before showing cards, include a short search status.
-
 Examples:
-
 [SEARCHING:Checking live auctions...]
-
 [SEARCHING:Looking at recent seller updates...]
-
 [SEARCHING:Seeing what is worth your attention...]
 
-The search status should feel like Sam is actively working, not like a database query.
-
 CARDS:
-
 Show 3 to 4 cards by default.
-
 Only show 5 to 6 cards if the user explicitly asks to browse or see more.
-
 When showing cars, you MUST use [CARD:id|specific reason] tags.
-
 Do not write cars as plain markdown text.
-
 Never show internal IDs like L03, L07, L15, S03, or C01 to the user.
-
-Bad:
-**L07 - Porsche Cayman**...
-
-Good:
-[CARD:L07|Manual 981 Cayman with 16,700 miles and seller-added paint readings.]
-
 Every card reason must be specific to that listing.
-
-Bad:
-
-"Strong community reception"
-"Interesting opportunity"
-"Popular listing"
-
-Good:
-
-"Seller uploaded paint meter readings yesterday."
-"Manual transmission and only 16,700 miles."
-"Recent engine work but rebuild documentation is missing."
-
 Reasons must explain why Sam surfaced the car.
+When showing cards, do not write a long explanation before the cards.
+The correct order is search transition, cards, then one short sentence after the cards if needed.
+
+LIVE AUCTION INTELLIGENCE:
+Focus on dynamic auction signals:
+seller activity, new uploads, answered questions, unanswered questions, listing changes, bid movement, relist history, and recent comparable sales.
+Avoid generic model risks, ownership costs, and static maintenance warnings unless they are directly raised in this specific listing.
 
 CONCERNS:
-
 If the user asks for concerns, risks, what to watch, or what Sam is worried about, never show internal IDs.
-
 Use vehicle names only.
-
-Bad:
-"L07: DME codes"
-
-Good:
-"2015 Porsche Cayman 981: DME codes were disclosed. Seller says they have not returned after battery replacement, but I would still want confidence before bidding aggressively."
+Frame this as open questions or live listing signals, not generic model risk.
 
 AFTER CARDS:
-
 After showing cards, say:
-
 "Click View Auction to go straight to the listing, or Sam's Take if you want the concerns and what changed recently. Want me to narrow these down?"
-
 Where appropriate, offer refinement chips such as:
-
 [CHIPS:Manual only|Cheaper|More practical|More interesting|Show more]
 
 RNM AND SOLD CARS:
-
 Do not mix sold or reserve-not-met cars into active search results unless the user specifically asks for comps, market context, or previous results.
 
 PRICING:
-
 Live listings = current bid.
 Unsold listings = bid to.
 Sold listings = sold for.
-
 Always distinguish between auction bids and fixed-price listings.
-
 Always mention reserve or no reserve when relevant.
-
 Never present watcher counts as a reason to buy a car.
-
 Never imply a car is a good buy solely because bidding is currently low.
-
-Focus on facts, documentation, seller behavior, condition, history, and listing changes.
 `;
 
 const history=[];
@@ -944,18 +826,38 @@ function priceLabel(l){
   if(l.status==="unsold")return"bid to";
   return"current bid";
 }
-function getSellerLine(l){
-  if(l.id==="L07") return "Responsive. Added cold start video and paint readings after questions.";
-  if(l.id==="L03") return "Responsive. Added documentation around the mileage gap.";
-  if(l.id==="L01") return "Some questions addressed, but rebuild documentation remains unresolved.";
-  if(l.id==="L09") return "Seller provided build proof, including dyno sheet.";
-  if(l.id==="L15") return "Useful ownership context, but several mechanical unknowns remain.";
-  if(l.id==="L14") return "Enough detail to understand the car, but tires and paint history need attention.";
-  if(l.id==="L11") return "Listing is straightforward, but old tires need budgeting.";
-  if(l.id==="L08") return "No reserve helps, but rust and exhaust leak matter.";
-  if(l.id==="L06") return "Strong spec, but reserve is likely the real story.";
+function getSellerActivity(l){
+  if(l.id==="L07") return "Responsive. Added cold-start video and paint readings after questions.";
+  if(l.id==="L03") return "Responsive. Uploaded documentation around the mileage gap.";
+  if(l.id==="L01") return "Partly responsive. Some questions addressed, but rebuild documentation remains open.";
+  if(l.id==="L09") return "Provided build support, including dyno sheet.";
+  if(l.id==="L15") return "Some useful ownership context, but several mechanical unknowns remain.";
+  if(l.id==="L14") return "Enough listing detail to understand the car, but paint and tire questions still matter.";
+  if(l.id==="L11") return "Straightforward listing. No major new seller activity captured yet.";
+  if(l.id==="L08") return "No reserve helps, but rust and exhaust details need careful review.";
+  if(l.id==="L06") return "Strong spec, but seller activity has not changed the main question.";
   if(l.id==="L10") return "Clean basic listing, but reserve and dealer fee matter.";
-  return "Seller behavior not fully captured yet.";
+  return "Seller activity not fully captured yet.";
+}
+function getNewSinceLaunch(l){
+  if(l.updates&&l.updates.length) return l.updates[0].text;
+  if(l.id==="L15") return "No major new media captured yet.";
+  if(l.id==="L14") return "No major new documentation captured yet.";
+  if(l.id==="L11") return "No major new seller update captured yet.";
+  return "No major new update captured yet.";
+}
+function getOpenQuestions(l){
+  if(l.id==="L07") return "DME codes were disclosed. Seller says they have not returned after battery replacement.";
+  if(l.id==="L03") return "Mileage gap has been explained, but I would still verify the paper trail.";
+  if(l.id==="L01") return "Engine and transmission rebuild are mentioned, but documentation has not been posted.";
+  if(l.id==="L09") return "Heavily modified car. This is only attractive if you want the build, not a stock example.";
+  if(l.id==="L15") return "Water pump history, roof panel issue, and open recalls still need attention.";
+  if(l.id==="L14") return "2009 tires and three-panel paint evidence need attention.";
+  if(l.id==="L11") return "Old tires are the main live item to budget for.";
+  if(l.id==="L08") return "Rust, exhaust leak, and prior incidents need careful review.";
+  if(l.id==="L06") return "Current bid likely does not tell you much until the reserve story becomes clearer.";
+  if(l.id==="L10") return "Reserve unknown and dealer fee added.";
+  return l.watch || "No major open question captured yet.";
 }
 function getFlags(l){
   const flags=[];
@@ -966,7 +868,7 @@ function getFlags(l){
   if(l.id==="L01") flags.push({type:"watch",text:"Missing rebuild docs"});
   if(l.id==="L14") flags.push({type:"watch",text:"Old tires"});
   if(l.id==="L09") flags.push({type:"watch",text:"Modified"});
-  if(l.id==="L15") flags.push({type:"watch",text:"Mechanical unknowns"});
+  if(l.id==="L15") flags.push({type:"watch",text:"Open questions"});
   return flags.slice(0,4);
 }
 function getActionLine(l){
@@ -983,8 +885,7 @@ function showTake(id){
   const l=LISTINGS.find(x=>x.id===id);
   if(!l)return;
   const ri=reserveInfo(l);
-  const u=l.updates&&l.updates.length?l.updates[0]:null;
-  const update=u?`<div class="modal-update"><strong>${escapeHtml(u.time)}:</strong> ${escapeHtml(u.text)}</div>`:"";
+  const update=l.updates&&l.updates.length?`<div class="modal-update"><strong>${escapeHtml(l.updates[0].time)}:</strong> ${escapeHtml(l.updates[0].text)}</div>`:"";
   const overlay=document.createElement("div");
   overlay.className="modal-overlay";
   overlay.innerHTML=`<div class="modal">
@@ -994,8 +895,10 @@ function showTake(id){
     <div class="modal-pill badge badge-${ri.cls}">${ri.label}</div>
     ${update}
     <div class="modal-block"><div class="modal-label">Sam's Take</div>${escapeHtml(l.sam_view)}</div>
-    <div class="modal-section"><div class="modal-label">Why I Surfaced It</div><div class="modal-section-text">${escapeHtml(l.what_i_like)}</div></div>
-    <div class="modal-section"><div class="modal-label">What Concerns Me</div><div class="modal-section-text">${escapeHtml(l.watch)}</div></div>
+    <div class="modal-section"><div class="modal-label">Why Sam Surfaced It</div><div class="modal-section-text">${escapeHtml(l.what_i_like)}</div></div>
+    <div class="modal-section"><div class="modal-label">Seller Activity</div><div class="modal-section-text">${escapeHtml(getSellerActivity(l))}</div></div>
+    <div class="modal-section"><div class="modal-label">New Since Launch</div><div class="modal-section-text">${escapeHtml(getNewSinceLaunch(l))}</div></div>
+    <div class="modal-section"><div class="modal-label">Open Questions</div><div class="modal-section-text">${escapeHtml(getOpenQuestions(l))}</div></div>
     <div class="modal-section"><div class="modal-label">What I Would Do</div><div class="modal-section-text">${escapeHtml(getActionLine(l))}</div></div>
     <div class="modal-actions">
       <button class="primary" onclick="window.open('${l.url||"#"}','_blank')">View Auction</button>
@@ -1007,12 +910,8 @@ function showTake(id){
 }
 function cardHTML(l,reason,isFeatured=false){
   const ri=reserveInfo(l);
-  const u=l.updates&&l.updates.length?l.updates[0]:null;
-  const sellerLine=getSellerLine(l);
-  const watchLine=l.watch||"No major watch item captured yet.";
   const flags=getFlags(l);
-
-  const update=u?`<div class="card-update"><div class="update-dot"></div><div class="update-text"><span class="update-time">${escapeHtml(u.time)}:</span> ${escapeHtml(u.text)}</div></div>`:"";
+  const update=l.updates&&l.updates.length?`<div class="card-update"><div class="update-dot"></div><div class="update-text"><span class="update-time">${escapeHtml(l.updates[0].time)}:</span> ${escapeHtml(l.updates[0].text)}</div></div>`:"";
 
   return `<div class="card ${isFeatured?"featured":""}">
     <div class="card-img-wrap" onclick="showTake('${l.id}')">
@@ -1038,9 +937,10 @@ function cardHTML(l,reason,isFeatured=false){
       </div>
 
       <div class="card-intel">
-        <div><strong>Sam’s read:</strong> ${escapeHtml(reason)}</div>
-        <div><strong>Seller:</strong> ${escapeHtml(sellerLine)}</div>
-        <div><strong>Watch:</strong> ${escapeHtml(watchLine)}</div>
+        <div><strong>Why Sam surfaced it:</strong> ${escapeHtml(reason)}</div>
+        <div><strong>Seller activity:</strong> ${escapeHtml(getSellerActivity(l))}</div>
+        <div><strong>New since launch:</strong> ${escapeHtml(getNewSinceLaunch(l))}</div>
+        <div><strong>Open questions:</strong> ${escapeHtml(getOpenQuestions(l))}</div>
       </div>
     </div>
 
@@ -1060,7 +960,7 @@ function concernsHTML(){
       if(!l)return"";
       return `<div class="concern-item">
         <div class="concern-title">${l.year} ${l.make} ${l.model}</div>
-        <div class="concern-text">${escapeHtml(l.watch)}</div>
+        <div class="concern-text">${escapeHtml(getOpenQuestions(l))}</div>
       </div>`;
     }).join("")}
   </div>`;
@@ -1143,12 +1043,17 @@ function updateSearchMsg(row,text){
   const span=row.querySelector(".searching span");
   if(span)span.textContent=text;
 }
-function finishSearchMsg(row,resultsHTML,chipsHTML){
+function finishSearchMsg(row,resultsHTML,chipsHTML,afterText=""){
   const wrap=row.querySelector(".msg-wrap");
+  const finalText=afterText
+    ? `<div class="sam-text after-results">${escapeHtml(afterText)}</div>`
+    : `<div class="sam-text after-results">Click View Auction to go straight to the listing, or Sam’s Take if you want the live signals and open questions.</div>`;
+
   wrap.innerHTML=`
     <div class="sam-label">Sam</div>
     <div class="sam-text">I found a few worth looking at.</div>
     ${resultsHTML||""}
+    ${finalText}
     ${chipsHTML||""}
   `;
   row.scrollIntoView({behavior:"smooth",block:"start"});
@@ -1204,9 +1109,9 @@ function localPreRoute(q){
     return{reply:"Let’s keep this legal. What are you actually trying to do with the car?",chips:["Hauling stuff","Camping","Daily driver","Fun car"]};
   }
 
-  if(/show concerns|concerns|risks|what should i watch|what are you worried/i.test(lower)){
+  if(/show concerns|concerns|risks|what should i watch|what are you worried|open questions/i.test(lower)){
     return{
-      reply:"Here’s what I’d be careful with:",
+      reply:"Here are the live open questions I’d pay attention to:",
       html:concernsHTML(),
       chips:["Show cleanest only","Manual sports cars","Under $25k","More details on one"]
     };
@@ -1251,20 +1156,19 @@ async function send(){
 
     hideTyping();
 
-    if(parsed.clean){
-      addMsg("sam",parsed.clean);
-    }
-
     if(parsed.resultsHTML){
       const searchRow=addSearchMsg(parsed.search || "Checking live auctions...");
 
       setTimeout(()=>updateSearchMsg(searchRow,"Looking at recent seller updates..."),1800);
       setTimeout(()=>updateSearchMsg(searchRow,"Seeing what is worth your attention..."),3600);
       setTimeout(()=>{
-        finishSearchMsg(searchRow,parsed.resultsHTML,parsed.chipsHTML);
+        finishSearchMsg(searchRow,parsed.resultsHTML,parsed.chipsHTML,parsed.clean);
         document.getElementById("btn").disabled=false;
       },5600);
     }else{
+      if(parsed.clean){
+        addMsg("sam",parsed.clean);
+      }
       if(parsed.chipsHTML){
         addMsg("sam","", "", parsed.chipsHTML);
       }
