@@ -887,16 +887,38 @@ function parseResults(raw){
   const searchMatch=raw.match(/\[SEARCHING:([^\]]+)\]/);
   const cardMatches=[...raw.matchAll(/\[CARD:([^|\]]+)\|([^\]]+)\]/g)];
   const chipMatch=raw.match(/\[CHIPS:([^\]]+)\]/);
-  const search=searchMatch?searchMatch[1].trim():null;
-  const cards=cardMatches.map(m=>({l:LISTINGS.find(x=>x.id===m[1].trim()),r:m[2].trim()})).filter(x=>x.l);
-  const chips=chipMatch?chipMatch[1].split("|").map(x=>x.trim()).filter(Boolean):[];
-  const clean=raw.replace(/\[SEARCHING:.*?\]/g,"").replace(/\[CARD:.*?\]/g,"").replace(/\[RNM:.*?\]/g,"").replace(/\[CHIPS:.*?\]/g,"").trim();
-  let html="";
-  if(search)html+=`<div class="searching"><div class="spinner"></div><span>${escapeHtml(search)}</span></div>`;
-  if(cards.length)html+=`<div class="cards-grid">${cards.map(x=>cardHTML(x.l,x.r)).join("")}</div>`;
-  const chipsHTML=chips.length?`<div class="chips">${chips.map(c=>`<button class="chip" onclick="handleChip('${c.replace(/'/g,"\\'")}')">${escapeHtml(c)}</button>`).join("")}</div>`:"";
-  return{clean,html,chipsHTML};
+
+  const search=searchMatch ? searchMatch[1].trim() : null;
+
+  const cards=cardMatches
+    .map(m=>({
+      l:LISTINGS.find(x=>x.id===m[1].trim()),
+      r:m[2].trim()
+    }))
+    .filter(x=>x.l);
+
+  const chips=chipMatch
+    ? chipMatch[1].split("|").map(x=>x.trim()).filter(Boolean)
+    : [];
+
+  const clean=raw
+    .replace(/\[SEARCHING:.*?\]/g,"")
+    .replace(/\[CARD:.*?\]/g,"")
+    .replace(/\[RNM:.*?\]/g,"")
+    .replace(/\[CHIPS:.*?\]/g,"")
+    .trim();
+
+  const resultsHTML=cards.length
+    ? `<div class="cards-grid">${cards.map(x=>cardHTML(x.l,x.r)).join("")}</div>`
+    : "";
+
+  const chipsHTML=chips.length
+    ? `<div class="chips">${chips.map(c=>`<button class="chip" onclick="handleChip('${c.replace(/'/g,"\\'")}')">${escapeHtml(c)}</button>`).join("")}</div>`
+    : "";
+
+  return{clean,search,resultsHTML,chipsHTML,cards};
 }
+
 function addMsg(role,text,html="",chipsHTML=""){
   hideHero();
   const msgs=document.getElementById("msgs");
@@ -912,7 +934,55 @@ function addMsg(role,text,html="",chipsHTML=""){
   row.appendChild(inner);
   msgs.appendChild(row);
   msgs.scrollTop=msgs.scrollHeight;
+  return row;
 }
+
+function addSearchMsg(text){
+  hideHero();
+  const msgs=document.getElementById("msgs");
+  const row=document.createElement("div");
+  row.className="row sam";
+  row.innerHTML=`<div class="row-inner">
+    <div class="msg-wrap">
+      <div class="sam-label">Sam</div>
+      <div class="searching">
+        <div class="spinner"></div>
+        <span>${escapeHtml(text || "Searching live auctions...")}</span>
+      </div>
+    </div>
+  </div>`;
+  msgs.appendChild(row);
+  row.scrollIntoView({behavior:"smooth",block:"start"});
+  return row;
+}
+
+function updateSearchMsg(row,text){
+  const span=row.querySelector(".searching span");
+  if(span)span.textContent=text;
+}
+
+function finishSearchMsg(row,resultsHTML,chipsHTML,afterText="",count=0){
+  const wrap=row.querySelector(".msg-wrap");
+
+  const resultLine=count===1
+    ? "I found one auction worth looking at."
+    : "I found a few worth looking at.";
+
+  const finalText=afterText
+    ? `<div class="sam-text after-results">${escapeHtml(afterText)}</div>`
+    : `<div class="sam-text after-results">Click View Auction to go straight to the listing, or Sam’s Read if you want the live signals and open questions.</div>`;
+
+  wrap.innerHTML=`
+    <div class="sam-label">Sam</div>
+    <div class="sam-text">${resultLine}</div>
+    ${resultsHTML||""}
+    ${finalText}
+    ${chipsHTML||""}
+  `;
+
+  row.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
 function showTyping(){
   const msgs=document.getElementById("msgs");
   const row=document.createElement("div");
@@ -922,15 +992,19 @@ function showTyping(){
   msgs.appendChild(row);
   msgs.scrollTop=msgs.scrollHeight;
 }
+
 function hideTyping(){
   const t=document.getElementById("typing");
   if(t)t.remove();
 }
+
 function quick(text){
   document.getElementById("inp").value=text;
   send();
 }
+
 function handleChip(text){quick(text)}
+
 function newConversation(){
   history.length=0;
   const msgs=document.getElementById("msgs");
@@ -949,6 +1023,7 @@ function newConversation(){
     </div>
   </div>`;
 }
+
 function localPreRoute(q){
   const lower=q.toLowerCase().trim();
 
@@ -966,9 +1041,11 @@ function localPreRoute(q){
 
   return null;
 }
+
 function chipsHTML(chips){
   return `<div class="chips">${chips.map(c=>`<button class="chip" onclick="handleChip('${c.replace(/'/g,"\\'")}')">${escapeHtml(c)}</button>`).join("")}</div>`;
 }
+
 async function send(){
   const inp=document.getElementById("inp");
   const q=inp.value.trim();
@@ -1003,21 +1080,39 @@ async function send(){
 
     hideTyping();
 
-    if(parsed.clean){
-      addMsg("sam",parsed.clean,parsed.html,parsed.chipsHTML);
+    if(parsed.resultsHTML){
+      const searchRow=addSearchMsg(parsed.search || "Searching live auctions...");
+
+      setTimeout(()=>updateSearchMsg(searchRow,"Checking recent seller updates..."),1600);
+      setTimeout(()=>updateSearchMsg(searchRow,"Looking for open questions and new media..."),3200);
+      setTimeout(()=>{
+        finishSearchMsg(
+          searchRow,
+          parsed.resultsHTML,
+          parsed.chipsHTML,
+          parsed.clean,
+          parsed.cards.length
+        );
+        document.getElementById("btn").disabled=false;
+      },4800);
     }else{
-      addMsg("sam","",parsed.html,parsed.chipsHTML);
+      if(parsed.clean){
+        addMsg("sam",parsed.clean);
+      }
+      if(parsed.chipsHTML){
+        addMsg("sam","", "", parsed.chipsHTML);
+      }
+      document.getElementById("btn").disabled=false;
     }
 
     history.push({role:"assistant",content:raw});
-    document.getElementById("btn").disabled=false;
+
   }catch(e){
     hideTyping();
     addMsg("sam","Connection issue. Try again.");
     document.getElementById("btn").disabled=false;
   }
 }
-
 document.getElementById("btn").addEventListener("click",send);
 document.getElementById("inp").addEventListener("keydown",e=>{
   if(e.key==="Enter"&&!e.shiftKey){
