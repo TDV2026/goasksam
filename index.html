@@ -613,10 +613,18 @@ PERSONALITY:
 Warm, direct, human, like a knowledgeable car friend. No essays. No generic fluff. No fake certainty.
 
 OFF TOPIC:
-Be warm and redirect. Vary wording.
+Be warm, but do not pretend the off-topic request is a car question.
+
+If the user asks or tells Sam to do something outside cars, acknowledge it naturally and redirect.
+
+Do not always say "Good question" because many off-topic messages are not questions.
+
 Examples:
-"Good question, but I'm useless there. I've spent the last few years buried in car listings. ChatGPT will be better for that. What are you looking for car-wise?"
-"Wrong expert, unfortunately. My world is cars, auctions, buyers, and sellers. What are you thinking about driving?"
+"I hear you, but that’s outside my lane. I’m built around cars, auctions, listings, sellers, and market movement. For weather, ChatGPT is the better tool. Back to cars, what are you trying to find?"
+
+"That one’s not really me. I’m useful when it comes to cars, auctions, listings, sellers, and market data. For weather or general stuff, ChatGPT will be better."
+
+"Fair, but I can’t help much there. My world is cars. If weather affects the kind of car you’re choosing, tell me where you’ll be driving and I’ll factor that in."
 
 JOKES OR WEIRD REQUESTS:
 If user jokes about illegal or absurd things, lightly deflect and bring it back to cars.
@@ -748,6 +756,16 @@ Show 3 to 4 cards by default.
 
 Only show 5 to 6 cards if the user explicitly asks to browse or see more.
 
+When showing cars, you MUST use [CARD:id|specific reason] tags.
+
+Do not write cars as plain markdown text.
+
+Bad:
+**2015 Porsche Cayman 981 Manual**...
+
+Good:
+[CARD:L07|Manual 981 Cayman with 16,700 miles and seller-added paint readings.]
+
 Every card reason must be specific to that listing.
 
 Bad:
@@ -871,9 +889,13 @@ function parseResults(raw){
   const cardMatches=[...raw.matchAll(/\[CARD:([^|\]]+)\|([^\]]+)\]/g)];
   const chipMatch=raw.match(/\[CHIPS:([^\]]+)\]/);
 
-  const search=searchMatch?searchMatch[1].trim():null;
+  const search=searchMatch ? searchMatch[1].trim() : null;
+
   const cards=cardMatches
-    .map(m=>({l:LISTINGS.find(x=>x.id===m[1].trim()),r:m[2].trim()}))
+    .map(m=>({
+      l:LISTINGS.find(x=>x.id===m[1].trim()),
+      r:m[2].trim()
+    }))
     .filter(x=>x.l);
 
   const chips=chipMatch
@@ -887,21 +909,17 @@ function parseResults(raw){
     .replace(/\[CHIPS:.*?\]/g,"")
     .trim();
 
-  let html="";
-
-  if(search){
-    html+=`<div class="searching"><div class="spinner"></div><span>${escapeHtml(search)}</span></div>`;
-  }
+  let resultsHTML="";
 
   if(cards.length){
-    html+=`<div class="cards-grid">${cards.map(x=>cardHTML(x.l,x.r)).join("")}</div>`;
+    resultsHTML+=`<div class="cards-grid">${cards.map(x=>cardHTML(x.l,x.r)).join("")}</div>`;
   }
 
   const chipsHTML=chips.length
     ? `<div class="chips">${chips.map(c=>`<button class="chip" onclick="handleChip('${c.replace(/'/g,"\\'")}')">${escapeHtml(c)}</button>`).join("")}</div>`
     : "";
 
-  return{clean,html,chipsHTML};
+  return{clean,search,resultsHTML,chipsHTML,cards};
 }
 function addMsg(role,text,html="",chipsHTML=""){
   hideHero();
@@ -910,22 +928,42 @@ function addMsg(role,text,html="",chipsHTML=""){
   row.className="row "+role;
   const inner=document.createElement("div");
   inner.className="row-inner";
+
   if(role==="sam"){
     inner.innerHTML=`<div class="msg-wrap"><div class="sam-label">Sam</div><div class="sam-text">${escapeHtml(text)}</div>${chipsHTML||""}${html||""}</div>`;
   }else{
     inner.innerHTML=`<div class="msg-wrap"><div class="user-text">${escapeHtml(text)}</div></div>`;
   }
-  row.appendChild(inner);
-msgs.appendChild(row);
 
-if (!html || !html.includes("cards-grid")) {
-  msgs.scrollTop = msgs.scrollHeight;
-} else {
-  row.scrollIntoView({
-    behavior: "smooth",
-    block: "start"
-  });
+  row.appendChild(inner);
+  msgs.appendChild(row);
+  msgs.scrollTop=msgs.scrollHeight;
+  return row;
 }
+
+function addSearchMsg(text){
+  hideHero();
+  const msgs=document.getElementById("msgs");
+  const row=document.createElement("div");
+  row.className="row sam";
+  row.innerHTML=`<div class="row-inner">
+    <div class="msg-wrap">
+      <div class="sam-label">Sam</div>
+      <div class="searching">
+        <div class="spinner"></div>
+        <span>${escapeHtml(text || "Looking across auction and listing sources...")}</span>
+      </div>
+    </div>
+  </div>`;
+  msgs.appendChild(row);
+  row.scrollIntoView({behavior:"smooth",block:"start"});
+  return row;
+}
+
+function finishSearchMsg(row,resultsHTML,chipsHTML){
+  const wrap=row.querySelector(".msg-wrap");
+  wrap.innerHTML+=`${resultsHTML||""}${chipsHTML||""}`;
+  row.scrollIntoView({behavior:"smooth",block:"start"});
 }
 function showTyping(){
   const msgs=document.getElementById("msgs");
@@ -987,6 +1025,7 @@ async function send(){
   const inp=document.getElementById("inp");
   const q=inp.value.trim();
   if(!q)return;
+
   inp.value="";
   inp.style.height="auto";
   document.getElementById("btn").disabled=true;
@@ -1009,18 +1048,37 @@ async function send(){
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({messages:history,system:SYS})
     });
+
     const data=await res.json();
     const raw=data.text||"Connection issue. Try again.";
     const parsed=parseResults(raw);
+
     hideTyping();
-    addMsg("sam",parsed.clean,parsed.html,parsed.chipsHTML);
+
+    if(parsed.clean){
+      addMsg("sam",parsed.clean);
+    }
+
+    if(parsed.resultsHTML){
+      const searchRow=addSearchMsg(parsed.search || "Looking across auction and listing sources...");
+      setTimeout(()=>{
+        finishSearchMsg(searchRow,parsed.resultsHTML,parsed.chipsHTML);
+        document.getElementById("btn").disabled=false;
+      },5000);
+    }else{
+      if(parsed.chipsHTML){
+        addMsg("sam","", "", parsed.chipsHTML);
+      }
+      document.getElementById("btn").disabled=false;
+    }
+
     history.push({role:"assistant",content:raw});
+
   }catch(e){
     hideTyping();
     addMsg("sam","Connection issue. Try again.");
+    document.getElementById("btn").disabled=false;
   }
-
-  document.getElementById("btn").disabled=false;
 }
 document.getElementById("btn").addEventListener("click",send);
 document.getElementById("inp").addEventListener("keydown",e=>{
