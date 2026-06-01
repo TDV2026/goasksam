@@ -256,6 +256,12 @@ body{
   flex-direction:column;
   transition:transform .15s,border-color .15s,box-shadow .15s;
 }
+.card.featured{
+  grid-column:1 / -1;
+}
+.card.featured .card-img-wrap{
+  height:320px;
+}
 .card:hover{
   transform:translateY(-2px);
   border-color:#c9c9c5;
@@ -285,6 +291,18 @@ body{
   padding:5px 9px;
   border-radius:9px;
 }
+.card-badge-top{
+  position:absolute;
+  top:11px;
+  right:11px;
+  background:white;
+  color:#111;
+  font-size:10px;
+  font-weight:850;
+  padding:5px 9px;
+  border-radius:999px;
+  box-shadow:0 2px 10px rgba(0,0,0,.08);
+}
 .card-body{
   padding:13px 14px 12px;
   display:flex;
@@ -298,6 +316,9 @@ body{
   letter-spacing:-.2px;
   line-height:1.22;
 }
+.card.featured .card-title{
+  font-size:19px;
+}
 .card-meta{
   color:#777;
   font-size:12px;
@@ -306,6 +327,41 @@ body{
   color:#333;
   font-size:13px;
   line-height:1.45;
+}
+.card-intel{
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  margin-top:4px;
+  padding-top:10px;
+  border-top:1px solid #eeeeeb;
+  font-size:12px;
+  line-height:1.45;
+  color:#444;
+}
+.card-intel strong{
+  color:#171717;
+  font-weight:800;
+}
+.card-flags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:2px;
+}
+.flag{
+  font-size:11px;
+  font-weight:750;
+  border-radius:999px;
+  padding:5px 8px;
+}
+.flag-good{
+  background:#f0f8f2;
+  color:#166534;
+}
+.flag-watch{
+  background:#fff6df;
+  color:#8a4b00;
 }
 .price-row{
   display:flex;
@@ -383,11 +439,27 @@ body{
   color:#171717;
   border:1px solid #ddd;
 }
-.after-results{
-  color:#555;
-  font-size:14px;
-  line-height:1.55;
-  margin-top:2px;
+.concerns-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-top:4px;
+}
+.concern-item{
+  background:#fafaf8;
+  border:1px solid #eeeeeb;
+  border-radius:13px;
+  padding:12px 13px;
+}
+.concern-title{
+  font-weight:850;
+  font-size:13px;
+  margin-bottom:5px;
+}
+.concern-text{
+  color:#444;
+  font-size:13px;
+  line-height:1.5;
 }
 .modal-overlay{
   position:fixed;
@@ -395,36 +467,37 @@ body{
   z-index:100;
   background:rgba(0,0,0,.32);
   display:flex;
-  align-items:flex-end;
-  justify-content:center;
+  align-items:stretch;
+  justify-content:flex-end;
 }
 .modal{
   width:100%;
-  max-width:760px;
-  max-height:84vh;
+  max-width:560px;
+  height:100%;
   overflow-y:auto;
   background:white;
-  border-radius:24px 24px 0 0;
-  padding:22px 26px 42px;
+  border-radius:24px 0 0 24px;
+  padding:28px 30px 42px;
   position:relative;
+  box-shadow:-20px 0 60px rgba(0,0,0,.12);
 }
 .modal-close{
   position:absolute;
-  top:18px;
-  right:18px;
+  top:20px;
+  right:20px;
   border:0;
   background:#f1f1ef;
-  width:30px;
-  height:30px;
+  width:34px;
+  height:34px;
   border-radius:50%;
   cursor:pointer;
-  font-size:18px;
+  font-size:20px;
 }
 .modal-title{
   font-weight:850;
-  font-size:19px;
+  font-size:21px;
   letter-spacing:-.4px;
-  padding-right:45px;
+  padding-right:48px;
 }
 .modal-sub{
   margin-top:5px;
@@ -433,14 +506,14 @@ body{
 }
 .modal-pill{
   display:inline-flex;
-  margin:10px 0 16px;
+  margin:12px 0 16px;
 }
 .modal-block{
   background:#f8f8f5;
   border-left:3px solid #171717;
   border-radius:12px;
   padding:15px 16px;
-  line-height:1.7;
+  line-height:1.65;
   font-size:14px;
   margin-bottom:18px;
 }
@@ -469,6 +542,19 @@ body{
   font-size:13px;
   line-height:1.45;
   margin-bottom:16px;
+}
+.modal-actions{
+  display:flex;
+  gap:10px;
+  margin-top:22px;
+}
+.modal-actions button{
+  flex:1;
+  padding:12px 10px;
+  border-radius:12px;
+  font-family:inherit;
+  font-weight:850;
+  cursor:pointer;
 }
 #input-area{
   max-width:980px;
@@ -522,9 +608,18 @@ body{
   #rail{display:none}
   .row-inner{padding:0 18px}
   .cards-grid{grid-template-columns:1fr}
+  .card.featured{grid-column:auto}
+  .card.featured .card-img-wrap{height:235px}
   .card-img-wrap{height:235px}
   #input-area{padding:10px 18px 18px}
   .hero h1{font-size:26px}
+  .modal-overlay{align-items:flex-end}
+  .modal{
+    max-width:100%;
+    height:auto;
+    max-height:86vh;
+    border-radius:24px 24px 0 0;
+  }
 }
 </style>
 </head>
@@ -611,6 +706,11 @@ If asked whether you are AI, say:
 
 PERSONALITY:
 Warm, direct, human, like a knowledgeable car friend. No essays. No generic fluff. No fake certainty.
+Do not simply agree with the user to be friendly. If a preference is right in one context but wrong in another, say that.
+Example:
+User says "manual always, don't you agree?"
+Sam should say:
+"Usually, yes, especially for canyon roads. If you're daily driving through traffic every day, I might soften that."
 
 OFF TOPIC:
 Be warm, but do not pretend the off-topic request is a car question.
@@ -636,9 +736,6 @@ SELLING OR VALUATION:
 Selling and valuation are coming soon.
 Say:
 "Helping people sell and value cars is something we're actively building. Today I'm stronger at helping you buy and understand listings. If you're looking to buy or compare cars, I'm good there."
-
-SHOW ME OVERRIDE:
-If user says "show me", "just show me", "show me what's available", "browse", "I don't care", "surprise me", "show me everything", immediately show 4 to 6 cards. Do not ask more questions.
 
 CONVERSATION FLOW:
 
@@ -742,11 +839,11 @@ Before showing cards, include a short search status.
 
 Examples:
 
-[SEARCHING:Looking across available German sports cars under $50k...]
+[SEARCHING:Checking live auctions...]
 
-[SEARCHING:Narrowing those results to manuals...]
+[SEARCHING:Looking at recent seller updates...]
 
-[SEARCHING:Looking for interesting weekend cars that fit what you've told me...]
+[SEARCHING:Seeing what is worth your attention...]
 
 The search status should feel like Sam is actively working, not like a database query.
 
@@ -760,8 +857,10 @@ When showing cars, you MUST use [CARD:id|specific reason] tags.
 
 Do not write cars as plain markdown text.
 
+Never show internal IDs like L03, L07, L15, S03, or C01 to the user.
+
 Bad:
-**2015 Porsche Cayman 981 Manual**...
+**L07 - Porsche Cayman**...
 
 Good:
 [CARD:L07|Manual 981 Cayman with 16,700 miles and seller-added paint readings.]
@@ -781,6 +880,18 @@ Good:
 "Recent engine work but rebuild documentation is missing."
 
 Reasons must explain why Sam surfaced the car.
+
+CONCERNS:
+
+If the user asks for concerns, risks, what to watch, or what Sam is worried about, never show internal IDs.
+
+Use vehicle names only.
+
+Bad:
+"L07: DME codes"
+
+Good:
+"2015 Porsche Cayman 981: DME codes were disclosed. Seller says they have not returned after battery replacement, but I would still want confidence before bidding aggressively."
 
 AFTER CARDS:
 
@@ -814,7 +925,6 @@ Focus on facts, documentation, seller behavior, condition, history, and listing 
 `;
 
 const history=[];
-let started=false;
 
 function hideHero(){
   const hero=document.getElementById("hero");
@@ -834,6 +944,41 @@ function priceLabel(l){
   if(l.status==="unsold")return"bid to";
   return"current bid";
 }
+function getSellerLine(l){
+  if(l.id==="L07") return "Responsive. Added cold start video and paint readings after questions.";
+  if(l.id==="L03") return "Responsive. Added documentation around the mileage gap.";
+  if(l.id==="L01") return "Some questions addressed, but rebuild documentation remains unresolved.";
+  if(l.id==="L09") return "Seller provided build proof, including dyno sheet.";
+  if(l.id==="L15") return "Useful ownership context, but several mechanical unknowns remain.";
+  if(l.id==="L14") return "Enough detail to understand the car, but tires and paint history need attention.";
+  if(l.id==="L11") return "Listing is straightforward, but old tires need budgeting.";
+  if(l.id==="L08") return "No reserve helps, but rust and exhaust leak matter.";
+  if(l.id==="L06") return "Strong spec, but reserve is likely the real story.";
+  if(l.id==="L10") return "Clean basic listing, but reserve and dealer fee matter.";
+  return "Seller behavior not fully captured yet.";
+}
+function getFlags(l){
+  const flags=[];
+  if(l.trans==="manual") flags.push({type:"good",text:"Manual"});
+  if(l.reserve_status==="none") flags.push({type:"good",text:"No reserve"});
+  if(l.id==="L07") flags.push({type:"good",text:"Seller active"});
+  if(l.id==="L03") flags.push({type:"watch",text:"Mileage gap"});
+  if(l.id==="L01") flags.push({type:"watch",text:"Missing rebuild docs"});
+  if(l.id==="L14") flags.push({type:"watch",text:"Old tires"});
+  if(l.id==="L09") flags.push({type:"watch",text:"Modified"});
+  if(l.id==="L15") flags.push({type:"watch",text:"Mechanical unknowns"});
+  return flags.slice(0,4);
+}
+function getActionLine(l){
+  if(l.id==="L07") return "I would read the DME code discussion, then decide how much the clean spec offsets that concern.";
+  if(l.id==="L03") return "I would verify the mileage-gap paperwork before getting aggressive.";
+  if(l.id==="L01") return "I would not treat it like a clean SC until the rebuild story is better supported.";
+  if(l.id==="L14") return "I would budget tires immediately and look closely at paint history.";
+  if(l.id==="L09") return "I would only chase it if you want a modified car, not a stock collector example.";
+  if(l.id==="L15") return "I would price in the unknowns and treat it as an enthusiast oddball.";
+  if(l.id==="L11") return "I would budget tires before driving it hard.";
+  return "I would read the listing carefully and check whether the seller has addressed the obvious questions.";
+}
 function showTake(id){
   const l=LISTINGS.find(x=>x.id===id);
   if(!l)return;
@@ -848,27 +993,42 @@ function showTake(id){
     <div class="modal-sub">${(l.miles||0).toLocaleString()} mi · ${l.trans||""} · ${l.loc}</div>
     <div class="modal-pill badge badge-${ri.cls}">${ri.label}</div>
     ${update}
-    <div class="modal-block"><div class="modal-label">Sam's Current View</div>${escapeHtml(l.sam_view)}</div>
-    <div class="modal-section"><div class="modal-label">What I Like</div><div class="modal-section-text">${escapeHtml(l.what_i_like)}</div></div>
-    <div class="modal-section"><div class="modal-label">What I'd Watch</div><div class="modal-section-text">${escapeHtml(l.watch)}</div></div>
-    <div class="modal-section"><div class="modal-label">Market Context</div><div class="modal-section-text">${escapeHtml(l.market)}</div></div>
+    <div class="modal-block"><div class="modal-label">Sam's Take</div>${escapeHtml(l.sam_view)}</div>
+    <div class="modal-section"><div class="modal-label">Why I Surfaced It</div><div class="modal-section-text">${escapeHtml(l.what_i_like)}</div></div>
+    <div class="modal-section"><div class="modal-label">What Concerns Me</div><div class="modal-section-text">${escapeHtml(l.watch)}</div></div>
+    <div class="modal-section"><div class="modal-label">What I Would Do</div><div class="modal-section-text">${escapeHtml(getActionLine(l))}</div></div>
+    <div class="modal-actions">
+      <button class="primary" onclick="window.open('${l.url||"#"}','_blank')">View Auction</button>
+      <button class="ghost" onclick="this.closest('.modal-overlay').remove()">Back to results</button>
+    </div>
   </div>`;
   overlay.addEventListener("click",e=>{if(e.target===overlay)overlay.remove()});
   document.body.appendChild(overlay);
 }
-function cardHTML(l,reason){
+function cardHTML(l,reason,isFeatured=false){
   const ri=reserveInfo(l);
   const u=l.updates&&l.updates.length?l.updates[0]:null;
+  const sellerLine=getSellerLine(l);
+  const watchLine=l.watch||"No major watch item captured yet.";
+  const flags=getFlags(l);
+
   const update=u?`<div class="card-update"><div class="update-dot"></div><div class="update-text"><span class="update-time">${escapeHtml(u.time)}:</span> ${escapeHtml(u.text)}</div></div>`:"";
-  return `<div class="card">
+
+  return `<div class="card ${isFeatured?"featured":""}">
     <div class="card-img-wrap" onclick="showTake('${l.id}')">
       <img class="card-img" src="${l.img}" alt="${l.year} ${l.make} ${l.model}" onerror="this.closest('.card').style.display='none'">
       <div class="card-source">Cars &amp; Bids</div>
+      ${isFeatured?`<div class="card-badge-top">Featured Match</div>`:""}
     </div>
+
     <div class="card-body">
       <div class="card-title">${l.year} ${l.make} ${l.model}</div>
-      <div class="card-meta">${(l.miles||0).toLocaleString()} mi · ${l.trans} · ${l.loc}</div>
-      <div class="card-reason">${escapeHtml(reason)}</div>
+      <div class="card-meta">${l.trans} · ${(l.miles||0).toLocaleString()} mi · ${l.loc}</div>
+
+      <div class="card-flags">
+        ${flags.map(f=>`<span class="flag flag-${f.type}">${escapeHtml(f.text)}</span>`).join("")}
+      </div>
+
       <div class="price-row">
         <div>
           <div class="price-label">${priceLabel(l)}</div>
@@ -876,12 +1036,33 @@ function cardHTML(l,reason){
         </div>
         <span class="badge badge-${ri.cls}">${ri.label}</span>
       </div>
+
+      <div class="card-intel">
+        <div><strong>Sam’s read:</strong> ${escapeHtml(reason)}</div>
+        <div><strong>Seller:</strong> ${escapeHtml(sellerLine)}</div>
+        <div><strong>Watch:</strong> ${escapeHtml(watchLine)}</div>
+      </div>
     </div>
+
     ${update}
+
     <div class="card-actions">
       <button class="primary" onclick="window.open('${l.url||"#"}','_blank')">View Auction</button>
       <button class="ghost" onclick="showTake('${l.id}')">Sam's Take</button>
     </div>
+  </div>`;
+}
+function concernsHTML(){
+  const concernIds=["L07","L03","L01","L14","L09","L15"];
+  return `<div class="concerns-list">
+    ${concernIds.map(id=>{
+      const l=LISTINGS.find(x=>x.id===id);
+      if(!l)return"";
+      return `<div class="concern-item">
+        <div class="concern-title">${l.year} ${l.make} ${l.model}</div>
+        <div class="concern-text">${escapeHtml(l.watch)}</div>
+      </div>`;
+    }).join("")}
   </div>`;
 }
 function parseResults(raw){
@@ -912,7 +1093,7 @@ function parseResults(raw){
   let resultsHTML="";
 
   if(cards.length){
-    resultsHTML+=`<div class="cards-grid">${cards.map(x=>cardHTML(x.l,x.r)).join("")}</div>`;
+    resultsHTML+=`<div class="cards-grid">${cards.map((x,i)=>cardHTML(x.l,x.r,i===0)).join("")}</div>`;
   }
 
   const chipsHTML=chips.length
@@ -940,7 +1121,6 @@ function addMsg(role,text,html="",chipsHTML=""){
   msgs.scrollTop=msgs.scrollHeight;
   return row;
 }
-
 function addSearchMsg(text){
   hideHero();
   const msgs=document.getElementById("msgs");
@@ -951,7 +1131,7 @@ function addSearchMsg(text){
       <div class="sam-label">Sam</div>
       <div class="searching">
         <div class="spinner"></div>
-        <span>${escapeHtml(text || "Looking across auction and listing sources...")}</span>
+        <span>${escapeHtml(text || "Checking live auctions...")}</span>
       </div>
     </div>
   </div>`;
@@ -959,10 +1139,18 @@ function addSearchMsg(text){
   row.scrollIntoView({behavior:"smooth",block:"start"});
   return row;
 }
-
+function updateSearchMsg(row,text){
+  const span=row.querySelector(".searching span");
+  if(span)span.textContent=text;
+}
 function finishSearchMsg(row,resultsHTML,chipsHTML){
   const wrap=row.querySelector(".msg-wrap");
-  wrap.innerHTML+=`${resultsHTML||""}${chipsHTML||""}`;
+  wrap.innerHTML=`
+    <div class="sam-label">Sam</div>
+    <div class="sam-text">I found a few worth looking at.</div>
+    ${resultsHTML||""}
+    ${chipsHTML||""}
+  `;
   row.scrollIntoView({behavior:"smooth",block:"start"});
 }
 function showTyping(){
@@ -1016,6 +1204,14 @@ function localPreRoute(q){
     return{reply:"Let’s keep this legal. What are you actually trying to do with the car?",chips:["Hauling stuff","Camping","Daily driver","Fun car"]};
   }
 
+  if(/show concerns|concerns|risks|what should i watch|what are you worried/i.test(lower)){
+    return{
+      reply:"Here’s what I’d be careful with:",
+      html:concernsHTML(),
+      chips:["Show cleanest only","Manual sports cars","Under $25k","More details on one"]
+    };
+  }
+
   return null;
 }
 function chipsHTML(chips){
@@ -1034,7 +1230,7 @@ async function send(){
 
   const pre=localPreRoute(q);
   if(pre){
-    addMsg("sam",pre.reply,"",chipsHTML(pre.chips));
+    addMsg("sam",pre.reply,pre.html||"",chipsHTML(pre.chips||[]));
     document.getElementById("btn").disabled=false;
     return;
   }
@@ -1060,11 +1256,14 @@ async function send(){
     }
 
     if(parsed.resultsHTML){
-      const searchRow=addSearchMsg(parsed.search || "Looking across auction and listing sources...");
+      const searchRow=addSearchMsg(parsed.search || "Checking live auctions...");
+
+      setTimeout(()=>updateSearchMsg(searchRow,"Looking at recent seller updates..."),1800);
+      setTimeout(()=>updateSearchMsg(searchRow,"Seeing what is worth your attention..."),3600);
       setTimeout(()=>{
         finishSearchMsg(searchRow,parsed.resultsHTML,parsed.chipsHTML);
         document.getElementById("btn").disabled=false;
-      },5000);
+      },5600);
     }else{
       if(parsed.chipsHTML){
         addMsg("sam","", "", parsed.chipsHTML);
