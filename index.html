@@ -690,17 +690,51 @@ function newConversation(){
   demoSignalIndex=0;
   document.getElementById("msgs").innerHTML=`<div class="hero" id="hero"><div class="hero-inner"><div class="hero-logo">S</div><h1>Hey, I'm Sam.</h1><div class="hero-sub">What are you looking for today?</div><div class="hero-tagline">Sam isn't showing you cars. He's tracking the auctions for you.</div><div class="hero-chips"><button class="chip" onclick="quick('Find me a car')">Find a car</button><button class="chip" onclick="quick('Browse auctions')">Browse auctions</button><button class="chip" onclick="quick('Help me choose')">Help me choose</button><button class="chip" onclick="quick('Sell my car')">Sell my car</button><button class="chip" onclick="quick('Surprise me')">Surprise me</button></div></div></div>`;
 }
+// Track what we know so far client-side
+const sessionContext = {type:null, budget:null, transmission:null};
+
 function localPreRoute(q){
-  const lower=q.toLowerCase().trim();
+  const lower = q.toLowerCase().trim();
+
+  // Greetings
   if(/^(u there|you there|hello|hey|hi|yo|are you there)\??$/.test(lower)){
     return{reply:"Yep, here. What are we looking for?",chips:["Find a car","Browse auctions","Help me choose"]};
   }
-  if(/^(car|vehicle|something|u tell me|you tell me|not sure)$/i.test(lower)){
-    return{reply:"Let's narrow it down. What kind of thing are you after?",chips:["Fun car","Daily driver","Family car","Truck or SUV","Something weird"]};
-  }
+
+  // Jokes
   if(/dump a body|dead body|outrun the cops/i.test(lower)){
     return{reply:"Let's keep this legal. What are you actually trying to do with the car?",chips:["Hauling stuff","Camping","Daily driver","Fun car"]};
   }
+
+  // Single-word or very short type answers — always need budget next
+  if(/^(sports|sports car|porsche|bmw|audi|viper|suv|wagon|truck|convertible|coupe|sedan|fun|fast|manual)$/i.test(lower)){
+    sessionContext.type = lower;
+    return{reply:"Got it. Rough budget?",chips:["Under $15k","$15k–$30k","$30k–$50k","Over $50k","Not sure yet"]};
+  }
+
+  // "Not sure" on budget — help them think about it
+  if(/not sure|no budget|unsure|flexible|open|don.t know|dont know|any budget|no idea/i.test(lower) && !sessionContext.budget){
+    return{reply:"No problem — sports cars in what I'm watching right now range from around $10k up to $35k. Does one end of that feel more comfortable?",chips:["Closer to $10k","Around $20k","Around $35k","Flexible"]};
+  }
+
+  // Budget answers — store and ask transmission
+  if(/under \$?\d|around \$?\d|\$\d|^\d{2}k|^\d{1,3},?\d{3}|closer to|15k|20k|25k|30k|35k|40k|50k/i.test(lower) && !sessionContext.transmission){
+    sessionContext.budget = lower;
+    return{reply:"Manual or automatic?",chips:["Manual only","Prefer manual","Either works","Automatic"]};
+  }
+
+  // Transmission answers — now we have enough, let the API handle it
+  if(/^(manual|automatic|auto|either|both|don.t care|doesn.t matter|either works)$/i.test(lower)){
+    sessionContext.transmission = lower;
+    // Fall through to API with full context
+    return null;
+  }
+
+  // Opening intent messages — ask what kind
+  if(/^(show me a car|find me a car|help me find|i need a car|looking for a car|want a car|need a car)$/i.test(lower)){
+    return{reply:"What kind of car are you after?",chips:["Sports car","Daily driver","Weekend fun","SUV or truck","Something unusual"]};
+  }
+
   return null;
 }
 function chipsHTML(chips){
