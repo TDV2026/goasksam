@@ -779,17 +779,17 @@ function getNewSinceLaunch(l){
   return "Nothing major yet.";
 }
 function getOpenQuestions(l){
-  if(l.id==="L07") return "DME codes were disclosed. Seller says they have not returned after battery replacement.";
-  if(l.id==="L03") return "Mileage gap has been explained, but I would still verify the paper trail.";
-  if(l.id==="L01") return "Engine and transmission rebuild are mentioned, but documentation has not been posted.";
-  if(l.id==="L09") return "Heavily modified car. This is only attractive if you want the build, not a stock example.";
-  if(l.id==="L15") return "Water pump history, roof panel issue, and open recalls still need attention.";
-  if(l.id==="L14") return "2009 tires and three-panel paint evidence need attention.";
-  if(l.id==="L11") return "No seller update on tire age yet.";
-  if(l.id==="L08") return "Rust, exhaust leak, and prior incidents need careful review.";
-  if(l.id==="L06") return "Current bid likely does not tell you much until the reserve story becomes clearer.";
-  if(l.id==="L10") return "Reserve unknown and dealer fee added.";
-  return l.watch || "No major open question captured yet.";
+  if(l.id==="L07") return "DME codes disclosed. Seller says they have not returned.";
+  if(l.id==="L03") return "Mileage history from 2017 to 2023.";
+  if(l.id==="L01") return "Rebuild documentation still missing.";
+  if(l.id==="L09") return "Modified build, not a stock example.";
+  if(l.id==="L15") return "Water pump history, roof panel, and open recalls.";
+  if(l.id==="L14") return "2009 tires and paintwork evidence.";
+  if(l.id==="L11") return "Tire age.";
+  if(l.id==="L08") return "Rust, exhaust leak, and prior incidents.";
+  if(l.id==="L06") return "Service records and ownership history.";
+  if(l.id==="L10") return "Dealer fee and reserve status.";
+  return "Nothing obvious yet.";
 }
 function getFlags(l){
   const flags=[];
