@@ -710,34 +710,6 @@ Rules:
     </div>
     <div class="sam-text after-results">Which feels right? Feel free to ask anything about either option.</div>
   </div></div>`;
-  msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
-}
-  hideHero();
-  const msgs=document.getElementById("msgs");
-  const row=document.createElement("div");row.className="row sam";
-  row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
-    <div class="sam-label">Sam</div>
-    <div class="sam-text">Based on what you've told me, here's where I'd take the ${escapeHtml(sellState.carName||"car")}.</div>
-    <div class="sell-rec-grid">
-      <div class="sell-rec-card primary-rec" onclick="chooseSellOption('primary')">
-        <div class="sell-rec-badge top">★ ${escapeHtml(p.badge)}</div>
-        <div><div class="sell-rec-name">${escapeHtml(p.name)}</div><div class="sell-rec-type">${escapeHtml(p.type)}</div></div>
-        <div class="sell-rec-reason">${escapeHtml(p.reason)}</div>
-        <div class="sell-rec-stat">↑ ${escapeHtml(p.stat)}</div>
-        <div style="font-size:11px;color:#999;font-weight:600">Best for: ${escapeHtml(p.bestFor)}</div>
-        <div class="sell-rec-actions"><button class="primary" onclick="event.stopPropagation();chooseSellOption('primary')">Go with this</button></div>
-      </div>
-      <div class="sell-rec-card" onclick="chooseSellOption('secondary')">
-        <div class="sell-rec-badge alt">${escapeHtml(s.badge)}</div>
-        <div><div class="sell-rec-name">${escapeHtml(s.name)}</div><div class="sell-rec-type">${escapeHtml(s.type)}</div></div>
-        <div class="sell-rec-reason">${escapeHtml(s.reason)}</div>
-        <div class="sell-rec-stat">↑ ${escapeHtml(s.stat)}</div>
-        <div style="font-size:11px;color:#999;font-weight:600">Best for: ${escapeHtml(s.bestFor)}</div>
-        <div class="sell-rec-actions"><button class="ghost" onclick="event.stopPropagation();chooseSellOption('secondary')">Go with this</button></div>
-      </div>
-    </div>
-    <div class="sam-text after-results">Which feels right? Feel free to ask anything about either option.</div>
-  </div></div>`;
   sellState.generatedPrimaryName=p.name;
   sellState.generatedSecondaryName=s.name;
   msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
