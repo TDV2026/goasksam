@@ -194,6 +194,11 @@ body{
 .ref-number{font-size:22px;font-weight:850;letter-spacing:-.5px;color:#171717;margin:8px 0 4px;}
 .ref-label{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:#999;font-weight:800;}
 .ref-detail{font-size:13px;color:#555;line-height:1.5;margin-top:8px;}
+.summary-card{background:#f8f8f5;border:1px solid #e5e5e2;border-radius:16px;padding:18px;margin-top:4px;display:flex;flex-direction:column;gap:8px;}
+.summary-row{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;border-bottom:1px solid #eeeeeb;padding-bottom:7px;}
+.summary-row:last-child{border-bottom:0;padding-bottom:0;}
+.summary-label{color:#999;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;}
+.summary-value{color:#171717;font-weight:600;text-align:right;}
 .contact-form{display:flex;flex-direction:column;gap:10px;margin-top:4px;}
 .contact-input{border:1px solid #dededb;border-radius:12px;padding:12px 14px;font-family:inherit;font-size:14px;outline:0;transition:border-color .15s;}
 .contact-input:focus{border-color:#aaa;}
@@ -286,18 +291,20 @@ const LISTINGS=[
 
 const SELL_CARS={
   porsche:{
-    name:"2018 Porsche 911 Carrera",
     primary:{name:"Carbine123",type:"Power Seller on Cars & Bids",badge:"Recommended",reason:"Carbine123 has successfully sold multiple 911s on Cars & Bids and handles the entire process — photos, listing, buyer questions, and negotiation. He's known for being highly communicative throughout. You'll always know where things stand.",stat:"911s on Cars & Bids have achieved 12% higher sale prices than comparable platforms over the last 3 months.",bestFor:"Hands-off. Maximum result. No chasing required."},
     secondary:{name:"Cars & Bids Direct",type:"Self-managed listing",badge:"Alternative",reason:"List directly on Cars & Bids and manage it yourself. The enthusiast audience is exactly right for a 911. Submit all your information and you can be live within 72 hours.",stat:"911s on Cars & Bids have achieved 12% higher sale prices than comparable platforms over the last 3 months.",bestFor:"Comfortable managing it yourself and want full control."}
   },
   bmw:{
-    name:"2020 BMW M2 Competition",
     primary:{name:"Cars & Bids Direct",type:"Self-managed listing",badge:"Recommended",reason:"Cars & Bids excels at selling M2s. The platform has a strong track record with this exact car and the audience understands what an M2 Competition is worth. Submit all your information and you can be live within 72 hours.",stat:"M2 Competitions have achieved 12% higher sale prices on Cars & Bids than comparable platforms over the last 3 months.",bestFor:"Speed, control, and the right enthusiast audience."},
     secondary:{name:"Carbine123",type:"Power Seller on Cars & Bids",badge:"Alternative",reason:"Same platform, same audience — but Carbine123 handles everything if you'd rather be completely hands-off. He's communicative, reliable, and knows how to present a car like this well.",stat:"M2 Competitions have achieved 12% higher sale prices on Cars & Bids than comparable platforms over the last 3 months.",bestFor:"Fully hands-off. Let someone else manage the entire process."}
+  },
+  generic:{
+    primary:{name:"Cars & Bids Direct",type:"Self-managed listing",badge:"Recommended",reason:"Cars & Bids has a strong enthusiast audience and a straightforward listing process. Submit all your information and you can be live within 72 hours.",stat:"Enthusiast cars consistently achieve strong results on Cars & Bids with its targeted buyer audience.",bestFor:"Control, speed, and the right audience."},
+    secondary:{name:"Carbine123",type:"Power Seller on Cars & Bids",badge:"Alternative",reason:"Carbine123 handles the entire process if you'd rather be hands-off. He's communicative, reliable, and knows how to present a car well.",stat:"Enthusiast cars consistently achieve strong results on Cars & Bids with its targeted buyer audience.",bestFor:"Fully hands-off. Let someone else manage everything."}
   }
 };
 
-const sellState={active:false,step:0,car:null,vin:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null};
+const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,vin:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null};
 
 function resetSellState(){
   Object.keys(sellState).forEach(k=>sellState[k]=null);
@@ -354,8 +361,7 @@ function startDemoSignals(){
   if(demoInterval)return;
   demoInterval=setInterval(()=>{
     const s=DEMO_SIGNALS[demoSignalIndex%DEMO_SIGNALS.length];
-    demoSignalIndex++;
-    injectLiveSignal(s.id,s.type,s.text,s.time);
+    demoSignalIndex++;injectLiveSignal(s.id,s.type,s.text,s.time);
   },90000);
 }
 function injectLiveSignal(listingId,type,text,time){
@@ -371,6 +377,12 @@ function injectLiveSignal(listingId,type,text,time){
     card.style.borderColor=type==="concern"?"#fbbf24":"#86efac";
     setTimeout(()=>{card.style.borderColor="";},3000);
   });
+}
+
+function getSellCarData(){
+  if(sellState.carType==="porsche")return SELL_CARS.porsche;
+  if(sellState.carType==="bmw")return SELL_CARS.bmw;
+  return SELL_CARS.generic;
 }
 
 function startSellFlow(){
@@ -390,13 +402,13 @@ function askNextSellQuestion(){
 function handleSellStep(q){
   const lower=q.toLowerCase().trim();
 
-  // Holding phrases — any step, just wait
+  // Holding phrases — any step
   if(/one second|give me a sec|just a sec|hold on|one moment|give me a moment|bear with me|hang on|^sec$|2 secs|two secs/i.test(lower)){
     addMsg("sam","No rush.");
     return true;
   }
 
-  // Change requests — let API handle with context
+  // Change requests — let API handle
   if(/change|update|actually|go back|edit|different|wrong|mistake/i.test(lower)){
     return false;
   }
@@ -404,89 +416,71 @@ function handleSellStep(q){
   const step=sellState.step;
 
   if(step===1){
-    // Explicit deferral on car name
+    // Explicit deferral
     if(/later|not sure|don.t know|skip|tell you later|can i give|give it later/i.test(lower)){
       addMsg("sam","Of course — whenever you're ready, just tell me the year, make, and model.");
       return true;
     }
-    // Readiness signals — they're ready but haven't said the car yet
+    // Readiness signals — haven't said the car yet
     if(/^(ok|okay|ready|ok im ready|i.m ready|im ready|go ahead|let.s go|lets go|sure|yep|yes|yeah|ok ready|i have it|got it)$/i.test(lower)){
       addMsg("sam","Great — what are you selling? Year, make, and model.");
       return true;
     }
-    // Too short to be a real car name — re-ask
+    // Too short to be a real car
     if(lower.split(" ").length<2&&!/porsche|bmw|audi|ferrari|911|m2|m3|m4|corvette|viper|mustang|camaro|subaru|toyota|honda|ford|dodge|mercedes|bentley|lamborghini/i.test(lower)){
       addMsg("sam","Give me the year, make, and model — something like '2018 Porsche 911' or '2020 BMW M2'.");
       return true;
     }
-    // Detect demo cars or store whatever they typed
-    if(/porsche|911/i.test(lower))sellState.car=SELL_CARS.porsche;
-    else if(/bmw|m2/i.test(lower))sellState.car=SELL_CARS.bmw;
-    else sellState.car={name:q,primary:SELL_CARS.porsche.primary,secondary:SELL_CARS.porsche.secondary};
+    // Store what they actually said — use it as the car name
+    sellState.carRaw=q;
+    sellState.carName=q; // use exactly what user typed
+    if(/porsche|911/i.test(lower))sellState.carType="porsche";
+    else if(/bmw|m2/i.test(lower))sellState.carType="bmw";
+    else sellState.carType="generic";
     sellState.step=15;
-    addMsg("sam",`Got it — ${sellState.car.name||q}. Do you have the VIN handy? It helps the platform verify the car faster. Completely optional.`,"",chipsHTML(["Skip"]));
+    addMsg("sam",`Got it — ${sellState.carName}. Do you have the VIN handy? It helps the platform verify the car faster. Completely optional.`,"",chipsHTML(["Skip"]));
     return true;
   }
 
   if(step===15){
-    // VIN step
-    if(lower!=="skip"&&lower!=="no"&&lower!=="nope"&&lower!=="later"&&lower!=="don't have it"){
+    if(lower!=="skip"&&lower!=="no"&&lower!=="nope"&&lower!=="later"&&lower!=="don't have it"&&lower!=="dont have it"){
       sellState.vin=q.toUpperCase();
     }
     sellState.step=2;
     addMsg("sam","Rough mileage?","",chipsHTML(["Under 30k","30k–60k","60k–100k","Over 100k"]));
     return true;
   }
-
-  if(step===2){
-    sellState.mileage=q;sellState.step=3;
-    addMsg("sam","Stock or modified?","",chipsHTML(["Completely stock","Minor mods","Heavily modified"]));
-    return true;
-  }
-  if(step===3){
-    sellState.condition=q;sellState.step=4;
-    addMsg("sam","Service records?","",chipsHTML(["Full history","Some records","No records"]));
-    return true;
-  }
-  if(step===4){
-    sellState.records=q;sellState.step=5;
-    addMsg("sam","Clean title or is there a lien on it?","",chipsHTML(["Clean title","Lien on it"]));
-    return true;
-  }
-  if(step===5){
-    sellState.title=q;sellState.step=6;
-    addMsg("sam","What price are you hoping for? Give me a number or a range — or tell me you're not sure yet.");
-    return true;
-  }
-  if(step===6){
-    sellState.price=q;sellState.step=7;
-    addMsg("sam","How quickly are you looking to sell?","",chipsHTML(["Want it gone fast","Within a month","No rush — right buyer only"]));
-    return true;
-  }
-  if(step===7){
-    sellState.timeline=q;sellState.step=8;
-    addMsg("sam","Do you want to manage the sale yourself or have someone handle it for you?","",chipsHTML(["I'll manage it","Want someone to handle everything","Either works"]));
-    return true;
-  }
+  if(step===2){sellState.mileage=q;sellState.step=3;addMsg("sam","Stock or modified?","",chipsHTML(["Completely stock","Minor mods","Heavily modified"]));return true;}
+  if(step===3){sellState.condition=q;sellState.step=4;addMsg("sam","Service records?","",chipsHTML(["Full history","Some records","No records"]));return true;}
+  if(step===4){sellState.records=q;sellState.step=5;addMsg("sam","Clean title or is there a lien on it?","",chipsHTML(["Clean title","Lien on it"]));return true;}
+  if(step===5){sellState.title=q;sellState.step=6;addMsg("sam","What price are you hoping for? Give me a number or a range — or tell me you're not sure yet.");return true;}
+  if(step===6){sellState.price=q;sellState.step=7;addMsg("sam","How quickly are you looking to sell?","",chipsHTML(["Want it gone fast","Within a month","No rush — right buyer only"]));return true;}
+  if(step===7){sellState.timeline=q;sellState.step=8;addMsg("sam","Do you want to manage the sale yourself or have someone handle it for you?","",chipsHTML(["I'll manage it","Want someone to handle everything","Either works"]));return true;}
   if(step===8){
     sellState.involvement=q;sellState.step=9;
     addMsg("sam","Almost there. Anything else you want buyers or the platform to know about the car?","",chipsHTML(["Skip"]));
     return true;
   }
   if(step===9){
-    if(lower==="skip"||lower==="no"||lower==="nope"||lower==="nothing"){
-      sellState.notes=null;
-    }else{
-      sellState.notes=q;
-    }
+    sellState.notes=(lower==="skip"||lower==="no"||lower==="nope"||lower==="nothing")?null:q;
     sellState.step=10;
     showPhotoUpload();
     return true;
   }
+  if(step===16){
+    // Confirmation step responses
+    if(/change|edit|update|wrong|mistake|go back/i.test(lower)||lower==="no"){
+      addMsg("sam","No problem — what would you like to change?","",chipsHTML(["Car details","Mileage","Condition","Service records","Title","Price","Timeline","Involvement","Notes"]));
+      return true;
+    }
+    // Confirmed — proceed to recommendations
+    sellState.step=17;
+    showSellRecommendation();
+    return true;
+  }
   if(step===14){
-    if(/yes|another|sure|yeah/i.test(lower)){
-      startSellFlow();
-    }else{
+    if(/yes|another|sure|yeah/i.test(lower)){startSellFlow();}
+    else{
       sellState.active=false;sellState.step=0;
       addMsg("sam","You're all set. They'll be in touch within 24 hours. Feel free to browse what's live right now in the meantime.");
       setTimeout(()=>{addMsg("sam","","",chipsHTML(["Browse live auctions","Find a Porsche","Show me weekend cars"]));},600);
@@ -529,21 +523,54 @@ function handlePhotoUpload(e){
 }
 function skipPhoto(){sellState.photo=null;afterPhoto();}
 function afterPhoto(){
-  sellState.step=11;
+  sellState.step=16;
   addMsg("user",sellState.photo?`Photo added: ${sellState.photo}`:"Skipping photo for now");
-  setTimeout(()=>showSellRecommendation(),600);
+  setTimeout(()=>showConfirmation(),600);
+}
+
+function showConfirmation(){
+  sellState.step=16;
+  hideHero();
+  const msgs=document.getElementById("msgs");
+  const row=document.createElement("div");row.className="row sam";
+  const rows=[
+    {label:"Car",value:sellState.carName||"—"},
+    sellState.vin?{label:"VIN",value:sellState.vin}:null,
+    {label:"Mileage",value:sellState.mileage||"—"},
+    {label:"Condition",value:sellState.condition||"—"},
+    {label:"Service records",value:sellState.records||"—"},
+    {label:"Title",value:sellState.title||"—"},
+    {label:"Asking price",value:sellState.price||"—"},
+    {label:"Timeline",value:sellState.timeline||"—"},
+    {label:"Involvement",value:sellState.involvement||"—"},
+    sellState.notes?{label:"Notes",value:sellState.notes}:null,
+    sellState.photo?{label:"Photo",value:sellState.photo}:null,
+  ].filter(Boolean);
+
+  row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
+    <div class="sam-label">Sam</div>
+    <div class="sam-text">Before I show you where to take this — does everything look right?</div>
+    <div class="summary-card">
+      ${rows.map(r=>`<div class="summary-row"><span class="summary-label">${escapeHtml(r.label)}</span><span class="summary-value">${escapeHtml(r.value)}</span></div>`).join("")}
+    </div>
+    <div class="chips" style="margin-top:10px">
+      <button class="chip" style="border-color:#171717;color:#171717;font-weight:800" onclick="handleChip('Looks good')">Looks good →</button>
+      <button class="chip" onclick="handleChip('I want to change something')">Change something</button>
+    </div>
+  </div></div>`;
+  msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
 }
 
 function showSellRecommendation(){
-  const car=sellState.car;if(!car)return;
+  const carData=getSellCarData();
+  const p=carData.primary,s=carData.secondary;
   sellState.step=12;
-  const p=car.primary,s=car.secondary;
   hideHero();
   const msgs=document.getElementById("msgs");
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
-    <div class="sam-text">Based on what you've told me, here's where I'd take the ${escapeHtml(car.name||"car")}.</div>
+    <div class="sam-text">Based on what you've told me, here's where I'd take the ${escapeHtml(sellState.carName||"car")}.</div>
     <div class="sell-rec-grid">
       <div class="sell-rec-card primary-rec">
         <div class="sell-rec-badge top">★ ${escapeHtml(p.badge)}</div>
@@ -569,7 +596,8 @@ function showSellRecommendation(){
 
 function chooseSellOption(which){
   sellState.chosen=which;sellState.step=13;
-  const option=which==="primary"?sellState.car.primary:sellState.car.secondary;
+  const carData=getSellCarData();
+  const option=which==="primary"?carData.primary:carData.secondary;
   addMsg("user",`Go with ${option.name}`);
   setTimeout(()=>showContactForm(),600);
 }
@@ -613,8 +641,8 @@ function submitContactForm(){
 }
 
 function showSubmission(){
-  const car=sellState.car;
-  const option=sellState.chosen==="primary"?car.primary:car.secondary;
+  const carData=getSellCarData();
+  const option=sellState.chosen==="primary"?carData.primary:carData.secondary;
   const ref="GAS-"+Math.floor(10000+Math.random()*90000);
   sellState.step=14;
   hideHero();
@@ -622,11 +650,11 @@ function showSubmission(){
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
-    <div class="sam-text">We're submitting your ${escapeHtml(car.name||"car")} to ${escapeHtml(option.name)}. Here's your reference number.</div>
+    <div class="sam-text">We're submitting your ${escapeHtml(sellState.carName||"car")} to ${escapeHtml(option.name)}. Here's your reference number.</div>
     <div class="ref-card">
       <div class="ref-label">Reference number</div>
       <div class="ref-number">${ref}</div>
-      <div class="ref-detail">Your submission has been sent to ${escapeHtml(option.name)}. They'll be in touch at ${escapeHtml(sellState.email)} within 24 hours. Keep this reference number handy.${sellState.vin?`<br><br>VIN submitted: <strong>${escapeHtml(sellState.vin)}</strong>`:""}</div>
+      <div class="ref-detail">Your submission has been sent to ${escapeHtml(option.name)}. They'll be in touch at ${escapeHtml(sellState.email)} within 24 hours. Keep this reference number handy.${sellState.vin?`<br><br>VIN on file: <strong>${escapeHtml(sellState.vin)}</strong>`:""}</div>
     </div>
     <div class="sam-text" style="margin-top:8px">Would you like to sell another car?</div>
     <div class="chips">
@@ -643,35 +671,20 @@ LISTINGS:
 ${JSON.stringify(LISTINGS)}
 
 IDENTITY: You are Sam. Never say you are Claude, ChatGPT, OpenAI, Anthropic, an LLM, or a language model.
-
 PERSONALITY: Warm, direct, human. No essays. No fluff. No false certainty.
-
 INTELLIGENCE RULE: Every observation tied to a specific event, timestamp, or response.
-
 MARKET COMMENTARY: No comparative pricing claims you cannot verify. Never say "reserve still active."
-
 AUCTION TIMING: Use daysLive and endsIn. "Ends tomorrow and still unanswered — that's a problem."
-
 SMALL DATASET: If asked why few cars: "This is a demo set of about 10 live listings. Full product connects to hundreds across Cars and Bids and BaT."
-
 OFF TOPIC: Warm redirect, vary wording.
 JOKES: Play along, redirect to cars.
-SELLING: If user wants to sell, warmly acknowledge.
-
-SHOW ME OVERRIDE: "just show me", "surprise me", "show me everything" = show cards now.
-"browse auctions", "find me a car", "show me a car" = ask what kind first.
-
+SHOW ME OVERRIDE: "just show me", "surprise me", "show me everything" = show cards now. "browse auctions", "find me a car", "show me a car" = ask what kind first.
 CONVERSATION FLOW: One question at a time. Need type/make + budget or use + manual/auto before cards. Max 3 exchanges.
-
 LOCATION: Can't filter yet. Show location on cards.
-
 SEARCH TRANSITION: [SEARCHING:description]
-
 CARDS: 3–4 default. [CARD:id|specific reason]
-
 AFTER CARDS: "Click Sam's Read on any of these to see what changed, what is still unresolved, and how I would approach it. Want me to narrow these down?"
 [CHIPS:Manual only|Under $20k|Show more|Something different]
-
 PRICING: Live = current bid. Never say how many listings you are watching.`;
 
 const history=[];
@@ -879,21 +892,16 @@ async function send(){
     const handled=handleSellStep(q);
     if(!handled){
       showTyping();
-      const stateStr=JSON.stringify({car:sellState.car?.name,vin:sellState.vin,mileage:sellState.mileage,condition:sellState.condition,records:sellState.records,title:sellState.title,price:sellState.price,timeline:sellState.timeline,involvement:sellState.involvement,step:sellState.step});
+      const stateStr=JSON.stringify({car:sellState.carName,vin:sellState.vin,mileage:sellState.mileage,condition:sellState.condition,records:sellState.records,title:sellState.title,price:sellState.price,timeline:sellState.timeline,involvement:sellState.involvement,step:sellState.step});
       const nextQ=SELL_STEP_QUESTIONS[sellState.step];
       const sellSys=SELL_SYS.replace("SELL_STATE_PLACEHOLDER",stateStr).replace("NEXT_QUESTION_PLACEHOLDER",nextQ?nextQ.ask:"Proceed with submission.");
       try{
         const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[...history,{role:"user",content:q}],system:sellSys})});
         const data=await res.json();
         const raw=data.text||"Let me know how you'd like to proceed.";
-        hideTyping();
-        addMsg("sam",raw);
-        if(sellState.step>0&&sellState.step<10){
-          setTimeout(()=>askNextSellQuestion(),800);
-        }
-      }catch(e){
-        hideTyping();addMsg("sam","Connection issue. Try again.");
-      }
+        hideTyping();addMsg("sam",raw);
+        if(sellState.step>0&&sellState.step<10){setTimeout(()=>askNextSellQuestion(),800);}
+      }catch(e){hideTyping();addMsg("sam","Connection issue. Try again.");}
     }
     document.getElementById("btn").disabled=false;
     return;
