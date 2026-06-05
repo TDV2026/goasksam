@@ -742,7 +742,7 @@ Rules:
 }
 
 function chooseSellOption(which){
-  if(sellState.step!==12)return; // prevent double-fire
+  if(sellState.chosen)return; // prevent double-fire — already chose
   sellState.chosen=which;sellState.step=13;
   const carData=getSellCarData();
   const option=which==="primary"?carData.primary:carData.secondary;
