@@ -409,6 +409,16 @@ function handleSellStep(q){
       addMsg("sam","Of course — whenever you're ready, just tell me the year, make, and model.");
       return true;
     }
+    // Readiness signals — they're ready but haven't said the car yet
+    if(/^(ok|okay|ready|ok im ready|i.m ready|im ready|go ahead|let.s go|lets go|sure|yep|yes|yeah|ok ready|i have it|got it)$/i.test(lower)){
+      addMsg("sam","Great — what are you selling? Year, make, and model.");
+      return true;
+    }
+    // Too short to be a real car name — re-ask
+    if(lower.split(" ").length<2&&!/porsche|bmw|audi|ferrari|911|m2|m3|m4|corvette|viper|mustang|camaro|subaru|toyota|honda|ford|dodge|mercedes|bentley|lamborghini/i.test(lower)){
+      addMsg("sam","Give me the year, make, and model — something like '2018 Porsche 911' or '2020 BMW M2'.");
+      return true;
+    }
     // Detect demo cars or store whatever they typed
     if(/porsche|911/i.test(lower))sellState.car=SELL_CARS.porsche;
     else if(/bmw|m2/i.test(lower))sellState.car=SELL_CARS.bmw;
