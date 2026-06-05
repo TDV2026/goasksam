@@ -738,6 +738,8 @@ Rules:
     </div>
     <div class="sam-text after-results">Which feels right? Feel free to ask anything about either option.</div>
   </div></div>`;
+  sellState.generatedPrimaryName=p.name;
+  sellState.generatedSecondaryName=s.name;
   msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
 }
 
@@ -755,8 +757,6 @@ function showContactForm(){
   sellState.step=13;
   hideHero();
   const msgs=document.getElementById("msgs");
-  sellState.generatedPrimaryName=p.name;
-  sellState.generatedSecondaryName=s.name;
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
