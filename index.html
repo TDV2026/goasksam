@@ -410,9 +410,10 @@ function handleSellStep(q){
   const lower=q.toLowerCase().trim();
 
   // Holding phrases — any step
-  if(/one second|give me a sec|just a sec|hold on|one moment|give me a moment|bear with me|hang on|^sec$|2 secs|two secs/i.test(lower)){
+  if(/one second|one sec|give me a sec|just a sec|hold on|one moment|give me a moment|bear with me|hang on|^sec$|2 secs|two secs|two seconds|gimme a sec|back in a sec|just a moment|brb|be right back|bathroom|give me a minute|one minute|two minutes/i.test(lower)){
     addMsg("sam","No rush.");
     return true;
+  }
   }
 
   // Change requests — let API handle
