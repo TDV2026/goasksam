@@ -304,8 +304,7 @@ const SELL_CARS={
   }
 };
 
-const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,vin:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false};
-
+const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,vin:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,generatedPrimaryName:null,generatedSecondaryName:null};
 function resetSellState(){
   Object.keys(sellState).forEach(k=>sellState[k]=null);
   sellState.active=false;sellState.step=0;sellState.returnToConfirm=false;
@@ -609,10 +608,110 @@ function showConfirmation(){
   msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
 }
 
-function showSellRecommendation(){
-  const carData=getSellCarData();
-  const p=carData.primary,s=carData.secondary;
+async function showSellRecommendation(){
   sellState.step=12;
+  hideHero();
+  // Show a thinking state while we generate specific copy
+  const msgs=document.getElementById("msgs");
+  const thinkRow=document.createElement("div");thinkRow.className="row sam";thinkRow.id="sellThinking";
+  thinkRow.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div><div class="searching"><div class="spinner"></div><span>Finding the best route for your ${escapeHtml(sellState.carName||"car")}...</span></div></div></div>`;
+  msgs.appendChild(thinkRow);msgs.scrollTop=msgs.scrollHeight;
+
+  // Generate specific recommendation copy via API
+  const recPrompt=`You are Sam, a car market expert. A seller has a ${sellState.carName} with the following details:
+- Mileage: ${sellState.mileage||"unknown"}
+- Condition: ${sellState.condition||"unknown"}
+- Service records: ${sellState.records||"unknown"}
+- Title: ${sellState.title||"clean"}
+- Asking price: ${sellState.price||"not specified"}
+- Timeline: ${sellState.timeline||"flexible"}
+- Involvement preference: ${sellState.involvement||"flexible"}
+${sellState.notes?`- Additional notes: ${sellState.notes}`:""}
+
+Write specific, intelligent recommendation copy for two selling routes. Respond ONLY with valid JSON, no markdown, no backticks:
+{
+  "primary_name": "Carbine123 or Cars & Bids Direct depending on which is better for this car",
+  "primary_type": "Power Seller on Cars & Bids or Self-managed listing",
+  "primary_is_carbine": true or false,
+  "primary_reason": "2-3 sentences explaining specifically why this route suits THIS car. Reference the car's characteristics, era, audience, or market position. Do not use generic marketplace language.",
+  "primary_stat": "One specific, compelling market insight about this car type on Cars & Bids. Make it feel like real data — comparable sales, audience interest, or market context. Keep it under 25 words.",
+  "primary_bestfor": "One line on who this route suits best",
+  "secondary_name": "The other option",
+  "secondary_type": "Power Seller on Cars & Bids or Self-managed listing",
+  "secondary_reason": "2-3 sentences on why someone might choose this route instead for this specific car.",
+  "secondary_stat": "Same stat or a variant that still applies",
+  "secondary_bestfor": "One line"
+}
+
+Rules:
+- For Porsches and 911s, Carbine123 should be primary (he has sold multiple 911s on Cars & Bids)
+- For M2s and BMW M cars, Cars & Bids Direct should be primary
+- For other cars, use your judgment based on the car type
+- The stat must feel specific to this car, not generic
+- Never say "enthusiast cars consistently achieve" — that's too generic
+- Reference era, model, rarity, or comparable sales where relevant`;
+
+  let recData=null;
+  try{
+    const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[{role:"user",content:recPrompt}],system:"You are a car market expert. Respond only with valid JSON."})});
+    const data=await res.json();
+    const raw=data.text||"";
+    const clean=raw.replace(/```json|```/g,"").trim();
+    recData=JSON.parse(clean);
+  }catch(e){
+    // Fall back to generic data if API fails
+    recData=null;
+  }
+
+  // Remove thinking row
+  const tr=document.getElementById("sellThinking");if(tr)tr.remove();
+
+  // Use generated or fallback data
+  const carData=getSellCarData();
+  const p={
+    name:recData?.primary_name||carData.primary.name,
+    type:recData?.primary_type||carData.primary.type,
+    badge:"Recommended",
+    reason:recData?.primary_reason||carData.primary.reason,
+    stat:recData?.primary_stat||carData.primary.stat,
+    bestFor:recData?.primary_bestfor||carData.primary.bestFor,
+    isCarbine:recData?.primary_is_carbine??carData===SELL_CARS.porsche
+  };
+  const s={
+    name:recData?.secondary_name||carData.secondary.name,
+    type:recData?.secondary_type||carData.secondary.type,
+    badge:"Alternative",
+    reason:recData?.secondary_reason||carData.secondary.reason,
+    stat:recData?.secondary_stat||carData.secondary.stat,
+    bestFor:recData?.secondary_bestfor||carData.secondary.bestFor
+  };
+
+  const row=document.createElement("div");row.className="row sam";
+  row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
+    <div class="sam-label">Sam</div>
+    <div class="sam-text">Based on what you've told me, here's where I'd take the ${escapeHtml(sellState.carName||"car")}.</div>
+    <div class="sell-rec-grid">
+      <div class="sell-rec-card primary-rec" onclick="chooseSellOption('primary')">
+        <div class="sell-rec-badge top">★ ${escapeHtml(p.badge)}</div>
+        <div><div class="sell-rec-name">${escapeHtml(p.name)}</div><div class="sell-rec-type">${escapeHtml(p.type)}</div></div>
+        <div class="sell-rec-reason">${escapeHtml(p.reason)}</div>
+        <div class="sell-rec-stat">↑ ${escapeHtml(p.stat)}</div>
+        <div style="font-size:11px;color:#999;font-weight:600">Best for: ${escapeHtml(p.bestFor)}</div>
+        <div class="sell-rec-actions"><button class="primary" onclick="event.stopPropagation();chooseSellOption('primary')">Go with this</button></div>
+      </div>
+      <div class="sell-rec-card" onclick="chooseSellOption('secondary')">
+        <div class="sell-rec-badge alt">${escapeHtml(s.badge)}</div>
+        <div><div class="sell-rec-name">${escapeHtml(s.name)}</div><div class="sell-rec-type">${escapeHtml(s.type)}</div></div>
+        <div class="sell-rec-reason">${escapeHtml(s.reason)}</div>
+        <div class="sell-rec-stat">↑ ${escapeHtml(s.stat)}</div>
+        <div style="font-size:11px;color:#999;font-weight:600">Best for: ${escapeHtml(s.bestFor)}</div>
+        <div class="sell-rec-actions"><button class="ghost" onclick="event.stopPropagation();chooseSellOption('secondary')">Go with this</button></div>
+      </div>
+    </div>
+    <div class="sam-text after-results">Which feels right? Feel free to ask anything about either option.</div>
+  </div></div>`;
+  msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
+}
   hideHero();
   const msgs=document.getElementById("msgs");
   const row=document.createElement("div");row.className="row sam";
@@ -643,10 +742,12 @@ function showSellRecommendation(){
 }
 
 function chooseSellOption(which){
+  if(sellState.step!==12)return; // prevent double-fire
   sellState.chosen=which;sellState.step=13;
   const carData=getSellCarData();
   const option=which==="primary"?carData.primary:carData.secondary;
-  addMsg("user",`Go with ${option.name}`);
+  const displayName=which==="primary"?(sellState.generatedPrimaryName||option.name):(sellState.generatedSecondaryName||option.name);
+  addMsg("user",`Go with ${displayName}`);
   setTimeout(()=>showContactForm(),600);
 }
 
@@ -654,6 +755,8 @@ function showContactForm(){
   sellState.step=13;
   hideHero();
   const msgs=document.getElementById("msgs");
+  sellState.generatedPrimaryName=p.name;
+  sellState.generatedSecondaryName=s.name;
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
