@@ -1,9 +1,5 @@
-// api/lookupDataTier.js
-//
-// Live endpoint implementing lookupDataTier(car) against real infrastructure:
-// - Supabase data_tier_cache table for Snapshot Stability (Rule 1)
-// - The classifyTrim taxonomy, tested against ~85 real Porsche 911 records
-// - A real OldCarsData query on cache miss
+// api/lookupDataTier.js — REFACTORED into resolveCar -> fetchCandidateRecords
+// -> normalizeRecords -> determineDataTier, all operating on searchContext.
 
 const OLDCARSDATA_BASE = "https://api.oldcarsdata.com";
 const CACHE_REFRESH_HOURS = 24;
@@ -73,8 +69,8 @@ function classifyTrim(record) {
   return { ...base, normalized_trim: null, classification_source: null, matched_terms: [], classification_confidence: "unknown", needs_review: true };
 }
 
-function parseCarInput(raw) {
-  const text = (raw || "").trim();
+function resolveCar(searchContext) {
+  const text = (searchContext.userInput || "").trim();
   const yearMatch = text.match(/\b(19|20)\d{2}\b/);
   const year = yearMatch ? parseInt(yearMatch[0], 10) : null;
 
@@ -87,26 +83,57 @@ function parseCarInput(raw) {
   if (make) remainder = remainder.replace(new RegExp(make, "i"), "");
   remainder = remainder.trim();
 
-  return { raw: text, year, make: make ? make[0].toUpperCase() + make.slice(1) : null, modelGuess: remainder || null };
-}
+  const parsed = { raw: text, year, make: make ? make[0].toUpperCase() + make.slice(1) : null, modelGuess: remainder || null };
 
-function checkSpecificity(parsed, contextFields) {
   const hasYear = !!parsed.year;
   const hasModelDetail = !!(parsed.modelGuess && parsed.modelGuess.length > 2);
+  const contextFields = searchContext.contextFields || {};
 
-  if (contextFields && (contextFields.vin || contextFields.year)) {
-    return { specific: true };
-  }
+  let specific = true;
+  let clarification = null;
 
-  if (!hasYear && !hasModelDetail) {
-    return {
-      specific: false,
-      missingFields: ["year", "generation", "trim"],
-      question: `Which ${parsed.make || "car"} are we talking about — what year, and any specific trim?`
+  if (contextFields.vin || contextFields.year) {
+    specific = true;
+  } else if (!hasYear && !hasModelDetail) {
+    specific = false;
+    clarification = {
+      question: `Which ${parsed.make || "car"} are we talking about — what year, and any specific trim?`,
+      missingFields: ["year", "generation", "trim"]
     };
   }
 
-  return { specific: true };
+  if (!specific) {
+    searchContext.status = "needs_clarification";
+    searchContext.clarification = clarification;
+    searchContext.normalizedCar = null;
+    return searchContext;
+  }
+
+  if (!parsed.make) {
+    searchContext.status = "unidentifiable";
+    searchContext.clarification = null;
+    searchContext.normalizedCar = null;
+    return searchContext;
+  }
+
+  searchContext.status = "resolved";
+  searchContext.clarification = null;
+  searchContext.normalizedCar = parsed;
+  return searchContext;
+}
+
+function buildCacheKey(parsed) {
+  return [parsed.make, parsed.modelGuess, parsed.year].filter(Boolean).join("|").toLowerCase();
+}
+
+async function getCachedResult(cacheKey, supabaseUrl, supabaseKey) {
+  const url = `${supabaseUrl}/rest/v1/data_tier_cache?cache_key=eq.${encodeURIComponent(cacheKey)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=result`;
+  const res = await fetch(url, {
+    headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
+  });
+  if (!res.ok) return null;
+  const rows = await res.json();
+  return rows && rows.length > 0 ? rows[0].result : null;
 }
 
 async function callOldCarsData(path, params, apiKey) {
@@ -125,94 +152,54 @@ async function callOldCarsData(path, params, apiKey) {
   return res.json();
 }
 
-function buildCacheKey(parsed) {
-  return [parsed.make, parsed.modelGuess, parsed.year].filter(Boolean).join("|").toLowerCase();
-}
-
-async function getCachedResult(cacheKey, supabaseUrl, supabaseKey) {
-  const url = `${supabaseUrl}/rest/v1/data_tier_cache?cache_key=eq.${encodeURIComponent(cacheKey)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=result`;
-  const res = await fetch(url, {
-    headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
-  });
-  if (!res.ok) return null;
-  const rows = await res.json();
-  return rows && rows.length > 0 ? rows[0].result : null;
-}
-
-async function writeCacheResult(cacheKey, parsed, result, sampleSize, supabaseUrl, supabaseKey) {
-  const expiresAt = new Date(Date.now() + CACHE_REFRESH_HOURS * 60 * 60 * 1000).toISOString();
-  try {
-    await fetch(`${supabaseUrl}/rest/v1/data_tier_cache`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-        Prefer: "resolution=merge-duplicates"
-      },
-      body: JSON.stringify({
-        cache_key: cacheKey,
-        make: parsed.make,
-        model: parsed.modelGuess,
-        trim: result.matchedScope || null,
-        result,
-        sample_size: sampleSize,
-        expires_at: expiresAt
-      })
-    });
-  } catch (err) {
-    console.error("Cache write failed:", err.message);
-  }
-}
-
-async function lookupDataTier(car, contextFields, apiKey, supabaseUrl, supabaseKey) {
-  const parsed = parseCarInput(car.raw || car);
-
-  const specificity = checkSpecificity(parsed, contextFields);
-  if (!specificity.specific) {
-    return {
-      status: "needs_clarification",
-      level: null,
-      levelDescription: null,
-      matchedScope: null,
-      clarification: { question: specificity.question, missingFields: specificity.missingFields }
-    };
-  }
-
-  if (!parsed.make) {
-    return { status: "unidentifiable", level: null, levelDescription: null, matchedScope: null, clarification: null };
-  }
-
+async function fetchCandidateRecords(searchContext, apiKey, supabaseUrl, supabaseKey) {
+  const parsed = searchContext.normalizedCar;
   const cacheKey = buildCacheKey(parsed);
+  searchContext.cacheKey = cacheKey;
 
   const cached = await getCachedResult(cacheKey, supabaseUrl, supabaseKey);
-  if (cached) return cached;
+  if (cached) {
+    searchContext.cacheHit = true;
+    searchContext.cachedResult = cached;
+    searchContext.rawRecords = [];
+    return searchContext;
+  }
 
- try {
-    const modelWords = (parsed.modelGuess || "").split(" ").filter(Boolean);
-    const cleanModel = modelWords[0] || undefined;
+  searchContext.cacheHit = false;
 
-    const query = {
-      make: parsed.make,
-      model: cleanModel,
-      keyword: parsed.modelGuess || undefined,
-      year_min: parsed.year || undefined,
-      year_max: parsed.year || undefined,
-      limit: 50
-    };
-    const apiResult = await callOldCarsData("/auctions", query, apiKey);
-    const records = apiResult.data || [];
+  const modelWords = (parsed.modelGuess || "").split(" ").filter(Boolean);
+  const cleanModel = modelWords[0] || undefined;
 
-    if (records.length === 0) {
-      const result = { status: "matched", level: "3", levelDescription: "no usable data at all", matchedScope: null, clarification: null };
-      await writeCacheResult(cacheKey, parsed, result, 0, supabaseUrl, supabaseKey);
-      return result;
-    }
+  const query = {
+    make: parsed.make,
+    model: cleanModel,
+    keyword: parsed.modelGuess || undefined,
+    year_min: parsed.year || undefined,
+    year_max: parsed.year || undefined,
+    limit: 50
+  };
+  const apiResult = await callOldCarsData("/auctions", query, apiKey);
+  searchContext.rawRecords = apiResult.data || [];
+  return searchContext;
+}
 
-    const classified = records.map(classifyTrim);
+function normalizeRecords(searchContext) {
+  searchContext.normalizedRecords = (searchContext.rawRecords || []).map(classifyTrim);
+  return searchContext;
+}
+
+async function determineDataTier(searchContext, supabaseUrl, supabaseKey) {
+  const parsed = searchContext.normalizedCar;
+  const records = searchContext.rawRecords || [];
+  const classified = searchContext.normalizedRecords || [];
+
+  let result;
+
+  if (records.length === 0) {
+    result = { status: "matched", level: "3", levelDescription: "no usable data at all", matchedScope: null, clarification: null };
+  } else {
     const highConfidenceMatches = classified.filter(c => c.classification_confidence === "high" || c.classification_confidence === "medium");
 
-    let result;
     if (highConfidenceMatches.length > 0) {
       result = {
         status: "matched",
@@ -230,12 +217,62 @@ async function lookupDataTier(car, contextFields, apiKey, supabaseUrl, supabaseK
         clarification: null
       };
     }
-
-    await writeCacheResult(cacheKey, parsed, result, records.length, supabaseUrl, supabaseKey);
-    return result;
-  } catch (err) {
-    throw new Error(`lookupDataTier failed: ${err.message}`);
   }
+
+  searchContext.dataTier = result;
+
+  const expiresAt = new Date(Date.now() + CACHE_REFRESH_HOURS * 60 * 60 * 1000).toISOString();
+  try {
+    await fetch(`${supabaseUrl}/rest/v1/data_tier_cache`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        Prefer: "resolution=merge-duplicates"
+      },
+      body: JSON.stringify({
+        cache_key: searchContext.cacheKey,
+        make: parsed.make,
+        model: parsed.modelGuess,
+        trim: result.matchedScope || null,
+        result,
+        sample_size: records.length,
+        expires_at: expiresAt
+      })
+    });
+  } catch (err) {
+    console.error("Cache write failed:", err.message);
+  }
+
+  return searchContext;
+}
+
+async function runPipeline(userInput, contextFields, apiKey, supabaseUrl, supabaseKey) {
+  let searchContext = {
+    userInput,
+    contextFields: contextFields || {}
+  };
+
+  searchContext = resolveCar(searchContext);
+
+  if (searchContext.status === "needs_clarification") {
+    return { status: "needs_clarification", level: null, levelDescription: null, matchedScope: null, clarification: searchContext.clarification };
+  }
+  if (searchContext.status === "unidentifiable") {
+    return { status: "unidentifiable", level: null, levelDescription: null, matchedScope: null, clarification: null };
+  }
+
+  searchContext = await fetchCandidateRecords(searchContext, apiKey, supabaseUrl, supabaseKey);
+
+  if (searchContext.cacheHit) {
+    return searchContext.cachedResult;
+  }
+
+  searchContext = normalizeRecords(searchContext);
+  searchContext = await determineDataTier(searchContext, supabaseUrl, supabaseKey);
+
+  return searchContext.dataTier;
 }
 
 export default async function handler(req, res) {
@@ -256,7 +293,8 @@ export default async function handler(req, res) {
   if (!car) return res.status(400).json({ error: "Missing car field" });
 
   try {
-    const result = await lookupDataTier(car, contextFields || {}, apiKey, supabaseUrl, supabaseKey);
+    const userInput = car.raw || car;
+    const result = await runPipeline(userInput, contextFields, apiKey, supabaseUrl, supabaseKey);
     return res.status(200).json(result);
   } catch (err) {
     return res.status(500).json({ error: err.message });
