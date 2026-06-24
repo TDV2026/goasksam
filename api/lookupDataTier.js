@@ -188,10 +188,14 @@ async function lookupDataTier(car, contextFields, apiKey, supabaseUrl, supabaseK
   const cached = await getCachedResult(cacheKey, supabaseUrl, supabaseKey);
   if (cached) return cached;
 
-  try {
+ try {
+    const modelWords = (parsed.modelGuess || "").split(" ").filter(Boolean);
+    const cleanModel = modelWords[0] || undefined;
+
     const query = {
       make: parsed.make,
-      model: parsed.modelGuess,
+      model: cleanModel,
+      keyword: parsed.modelGuess || undefined,
       year_min: parsed.year || undefined,
       year_max: parsed.year || undefined,
       limit: 50
