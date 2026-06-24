@@ -1,5 +1,9 @@
-// api/lookupDataTier.js — REFACTORED into resolveCar -> fetchCandidateRecords
-// -> normalizeRecords -> determineDataTier, all operating on searchContext.
+// api/lookupDataTier.js — fixes applied:
+// 1. hasModelDetail now checks word count, not character length, so a
+//    bare model name alone ("911") correctly triggers needs_clarification.
+// 2. determineDataTier only confirms a Tier 1 match against the trim the
+//    user actually requested, not any confident match anywhere in the batch.
+// 3. "Carrera T" added to taxonomy, ordered before plain "Carrera".
 
 const OLDCARSDATA_BASE = "https://api.oldcarsdata.com";
 const CACHE_REFRESH_HOURS = 24;
@@ -16,7 +20,9 @@ const TRIM_TAXONOMY = {
     "Carrera 4 GTS",
     "Targa 4 GTS",
     "Carrera GTS",
-    "Carrera 4S", "Carrera S", "Carrera 4", "Carrera",
+    "Carrera 4S", "Carrera S", "Carrera 4",
+    "Carrera T",
+    "Carrera",
     "Targa 4S", "Targa 4", "Targa",
     "Speedster Heritage Design",
     "Speedster",
@@ -86,7 +92,12 @@ function resolveCar(searchContext) {
   const parsed = { raw: text, year, make: make ? make[0].toUpperCase() + make.slice(1) : null, modelGuess: remainder || null };
 
   const hasYear = !!parsed.year;
-  const hasModelDetail = !!(parsed.modelGuess && parsed.modelGuess.length > 2);
+  // FIX: word count, not character length. A bare model name alone
+  // ("911", "M3") is exactly one word and is NOT specific — "911" passing
+  // the old `.length > 2` check was the root cause of the "Porsche 911"
+  // bug, where a whole model family silently matched a specific trim.
+  const modelWords = (parsed.modelGuess || "").trim().split(/\s+/).filter(Boolean);
+  const hasModelDetail = modelWords.length >= 2;
   const contextFields = searchContext.contextFields || {};
 
   let specific = true;
@@ -198,24 +209,62 @@ async function determineDataTier(searchContext, supabaseUrl, supabaseKey) {
   if (records.length === 0) {
     result = { status: "matched", level: "3", levelDescription: "no usable data at all", matchedScope: null, clarification: null };
   } else {
-    const highConfidenceMatches = classified.filter(c => c.classification_confidence === "high" || c.classification_confidence === "medium");
+    // FIX: figure out which specific trim the user actually asked about,
+    // by checking modelGuess against the same taxonomy used for
+    // classification. If a specific trim was requested, ONLY count a
+    // record as confirming Tier 1 if its classified trim matches that
+    // request — never just "any confident match anywhere in the batch."
+    const taxonomyKey = `${parsed.make}|${(parsed.modelGuess || "").split(" ")[0]}`;
+    const trimList = TRIM_TAXONOMY[taxonomyKey] || TRIM_TAXONOMY[`${parsed.make}|911`]; // fallback for Porsche 911 specifically while taxonomy is 911-only
+    const requestedTrim = trimList ? findTrimIn(parsed.modelGuess, trimList) : null;
 
-    if (highConfidenceMatches.length > 0) {
-      result = {
-        status: "matched",
-        level: "1",
-        levelDescription: "exact model+trim match",
-        matchedScope: `${parsed.year || ""} ${parsed.make} ${highConfidenceMatches[0].normalized_trim || parsed.modelGuess}`.trim(),
-        clarification: null
-      };
+    if (requestedTrim) {
+      const matchingRequestedTrim = classified.filter(c =>
+        c.normalized_trim === requestedTrim &&
+        (c.classification_confidence === "high" || c.classification_confidence === "medium")
+      );
+
+      if (matchingRequestedTrim.length > 0) {
+        result = {
+          status: "matched",
+          level: "1",
+          levelDescription: "exact model+trim match",
+          matchedScope: `${parsed.year || ""} ${parsed.make} ${requestedTrim}`.trim(),
+          clarification: null
+        };
+      } else {
+        result = {
+          status: "matched",
+          level: "2",
+          levelDescription: `no confirmed sales of "${requestedTrim}" specifically yet — make/model-level data only`,
+          matchedScope: `${parsed.make} ${parsed.modelGuess || ""}`.trim(),
+          clarification: null
+        };
+      }
     } else {
-      result = {
-        status: "matched",
-        level: "2",
-        levelDescription: "make/model-level only — no usable trim-specific data",
-        matchedScope: `${parsed.make} ${parsed.modelGuess || ""}`.trim(),
-        clarification: null
-      };
+      // No specific trim recognized in the request — fall back to any
+      // confident match (original behavior, used when resolveCar's
+      // specificity check let through a request that names a generation
+      // or other detail not in the trim taxonomy).
+      const highConfidenceMatches = classified.filter(c => c.classification_confidence === "high" || c.classification_confidence === "medium");
+
+      if (highConfidenceMatches.length > 0) {
+        result = {
+          status: "matched",
+          level: "1",
+          levelDescription: "exact model+trim match",
+          matchedScope: `${parsed.year || ""} ${parsed.make} ${highConfidenceMatches[0].normalized_trim || parsed.modelGuess}`.trim(),
+          clarification: null
+        };
+      } else {
+        result = {
+          status: "matched",
+          level: "2",
+          levelDescription: "make/model-level only — no usable trim-specific data",
+          matchedScope: `${parsed.make} ${parsed.modelGuess || ""}`.trim(),
+          clarification: null
+        };
+      }
     }
   }
 
