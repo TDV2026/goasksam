@@ -177,7 +177,7 @@ async function saveRawRecords(records, supabaseUrl, supabaseKey) {
   }));
 
   try {
-    const insertRes = await fetch(`${supabaseUrl}/rest/v1/vehicle_market_records`, {
+    const insertRes = await fetch(`${supabaseUrl}/rest/v1/vehicle_market_records?on_conflict=source,source_record_id`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
