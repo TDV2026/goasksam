@@ -657,11 +657,11 @@ async function showSellRecommendation(){
     type:"Selling destination",
     badge:index===0?"Current evidence leader":"Alternative",
     reason:[
-      `${platform.platform} has ${platform.relevantSales} relevant recent sale${platform.relevantSales===1?"":"s"} in the ${evidence.windowDays}-day evidence window.`,
+      `${platform.platform} has ${platform.evidenceSales} sale${platform.evidenceSales===1?"":"s"} in the ${evidence.windowDays}-day ${evidence.evidenceLabel||"evidence"} set.`,
       platform.closeSales?`${platform.closeSales} were close matches to your car.`:"The exact close-match sample is thin, so this uses broader relevant comps.",
       platform.medianSalePrice?`Median sale price in this evidence set was $${platform.medianSalePrice.toLocaleString()}.`:null
     ].filter(Boolean).join(" "),
-    stat:`${platform.relevantSales} relevant sale${platform.relevantSales===1?"":"s"} · ${platform.closeSales} close match${platform.closeSales===1?"":"es"}`,
+    stat:`${platform.closeSales} close · ${platform.relevantSales} relevant · ${platform.broadSales} broad`,
     bestFor:index===0?"Best supported by the current fetched evidence":"Worth comparing if fees, timing or listing fit are better"
   }));
 
@@ -676,8 +676,10 @@ async function showSellRecommendation(){
     <div class="sam-text">Based on the current market evidence I found, here's where I'd take the ${escapeHtml(sellState.carName||"car")}.</div>
     <div class="summary-card">
       <div class="summary-row"><span class="summary-label">Window</span><span class="summary-value">${escapeHtml(evidence.windowDays||"—")} days</span></div>
-      <div class="summary-row"><span class="summary-label">Relevant sales</span><span class="summary-value">${escapeHtml(evidence.relevantMatches??"—")}</span></div>
+      <div class="summary-row"><span class="summary-label">Evidence set</span><span class="summary-value">${escapeHtml(evidence.evidenceLabel||"—")}</span></div>
       <div class="summary-row"><span class="summary-label">Close matches</span><span class="summary-value">${escapeHtml(evidence.closeMatches??"—")}</span></div>
+      <div class="summary-row"><span class="summary-label">Relevant matches</span><span class="summary-value">${escapeHtml(evidence.relevantMatches??"—")}</span></div>
+      <div class="summary-row"><span class="summary-label">Broad matches</span><span class="summary-value">${escapeHtml(evidence.broadMatches??"—")}</span></div>
       <div class="summary-row"><span class="summary-label">Confidence</span><span class="summary-value">${escapeHtml(decision.confidence||"low")}</span></div>
     </div>
     ${limitationHTML}

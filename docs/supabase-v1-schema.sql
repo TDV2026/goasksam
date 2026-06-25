@@ -1,5 +1,5 @@
 create table if not exists vehicle_market_records (
-  id uuid primary key default gen_random_uuid(),
+  id bigserial primary key,
   source text not null,
   source_record_id text not null,
   source_url text,
@@ -45,6 +45,7 @@ create table if not exists vehicle_classifications (
   searched_color text,
   target_match boolean,
   comparison_tier text,
+  exclusion_reasons jsonb,
   classification_source text,
   classification_confidence text,
   matched_terms jsonb,
@@ -53,6 +54,8 @@ create table if not exists vehicle_classifications (
   classified_at timestamptz not null default now(),
   classification_batch_id uuid
 );
+
+alter table vehicle_classifications add column if not exists exclusion_reasons jsonb;
 
 create table if not exists seller_leads (
   id bigserial primary key,

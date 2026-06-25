@@ -32,6 +32,8 @@ Expected:
 - `status` is `decision_ready` or `needs_clarification`.
 - No invented market claims.
 - If `decision_ready`, response includes `evidence`, `analysis.platformPerformance`, and `decision`.
+- `evidence.fetchPasses` shows which OldCarsData passes ran.
+- `evidence.closeMatches`, `evidence.relevantMatches`, `evidence.broadMatches`, and `evidence.excludedRecords` are separate so broad comps are not presented as exact comps.
 
 ## Seller Lead
 

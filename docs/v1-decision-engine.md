@@ -16,7 +16,7 @@ Everything else is computed on demand or cached for speed.
 
 ```text
 Search
--> Fetch recent relevant market data
+-> Fetch recent market data from OldCarsData in widening passes
 -> Persist raw records
 -> Classify records against the search
 -> Persist classifications
@@ -39,7 +39,18 @@ The engine should find the closest useful evidence, not the theoretically perfec
 - Close matches: same make/model, close year band, similar mileage band when available.
 - Relevant matches: same make/model or strongly related vehicle, wider year/mileage range.
 - Broad matches: useful platform/category behavior when close data is thin.
+- Excluded records: records fetched by a broad search but not suitable for the decision, such as different make/model, turbo/race/replica/salvage examples when the seller did not describe that market.
 - Attribute signals: color, mileage, condition, transmission and options adjust confidence but should not usually define the whole evidence set.
+
+## Fetch Strategy
+
+Supabase is not treated as a full copy of OldCarsData. A search triggers recent-data ingestion:
+
+- exact pass for year/make/model where possible.
+- same make/model pass when exact evidence is thin.
+- nearby-year passes when the market needs more signal.
+
+Fetched records are merged and deduped by source and source record id before raw persistence and classification. The recommendation can use broader evidence only when it labels that evidence clearly.
 
 ## Product Rule
 

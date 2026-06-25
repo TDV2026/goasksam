@@ -2,6 +2,9 @@ const OLDCARSDATA_BASE = "https://api.oldcarsdata.com";
 const ANALYSIS_WINDOWS_DAYS = [45, 90, 180];
 const MAX_PAGES = 5;
 const DEFAULT_LIMIT = 50;
+const MIN_CLOSE_EVIDENCE = 3;
+const MIN_RELEVANT_EVIDENCE = 6;
+const MIN_BROAD_EVIDENCE = 6;
 
 const COMMON_COLORS = [
   "black", "white", "silver", "gray", "grey", "red", "blue", "green",
@@ -189,15 +192,53 @@ async function callOldCarsData(path, params, apiKey) {
   return fetchJson(url.toString(), { Authorization: `Bearer ${apiKey}` });
 }
 
-async function fetchRecentRecords(vehicle, apiKey) {
-  const allRecords = [];
+function buildFetchPasses(vehicle) {
   const modelToken = asText(vehicle.model).split(/\s+/)[0] || undefined;
+  const passes = [
+    {
+      name: "exact",
+      label: "exact year/model",
+      pages: 3,
+      params: {
+        make: vehicle.make,
+        model: modelToken,
+        keyword: [vehicle.year, vehicle.model].filter(Boolean).join(" ") || undefined
+      }
+    },
+    {
+      name: "same_model",
+      label: "same make/model",
+      pages: MAX_PAGES,
+      params: {
+        make: vehicle.make,
+        model: modelToken
+      }
+    }
+  ];
 
-  for (let page = 1; page <= MAX_PAGES; page++) {
+  if (vehicle.year) {
+    for (const year of [vehicle.year - 2, vehicle.year - 1, vehicle.year + 1, vehicle.year + 2]) {
+      passes.push({
+        name: `nearby_year_${year}`,
+        label: `nearby year ${year}`,
+        pages: 2,
+        params: {
+          make: vehicle.make,
+          model: modelToken,
+          keyword: [year, vehicle.model].filter(Boolean).join(" ")
+        }
+      });
+    }
+  }
+
+  return passes;
+}
+
+async function fetchPass(pass, apiKey) {
+  const records = [];
+  for (let page = 1; page <= pass.pages; page++) {
     const result = await callOldCarsData("/auctions", {
-      make: vehicle.make,
-      model: modelToken,
-      keyword: [vehicle.year, vehicle.model].filter(Boolean).join(" ") || undefined,
+      ...pass.params,
       status: "sold",
       sort: "date",
       direction: "desc",
@@ -206,13 +247,46 @@ async function fetchRecentRecords(vehicle, apiKey) {
     }, apiKey);
 
     const pageRecords = result.data || [];
-    allRecords.push(...pageRecords);
+    records.push(...pageRecords.map(record => ({
+      ...record,
+      _goasksam_fetch_pass: pass.name,
+      _goasksam_fetch_label: pass.label
+    })));
     if (!pageRecords.length) break;
     if (page >= (result.meta?.total_pages || 1)) break;
   }
+  return records;
+}
 
+async function fetchRecentRecords(vehicle, apiKey) {
+  const passes = buildFetchPasses(vehicle);
+  const seen = new Set();
+  const records = [];
+  const passSummary = [];
   const maxWindow = Math.max(...ANALYSIS_WINDOWS_DAYS);
-  return allRecords.filter(record => daysAgo(record.auction_end_date) <= maxWindow);
+
+  for (const pass of passes) {
+    const passRecords = await fetchPass(pass, apiKey);
+    let added = 0;
+
+    for (const record of passRecords) {
+      if (daysAgo(record.auction_end_date) > maxWindow) continue;
+      const key = sourceRecordKey(recordPlatform(record), sourceRecordId(record));
+      if (seen.has(key)) continue;
+      seen.add(key);
+      records.push(record);
+      added++;
+    }
+
+    passSummary.push({
+      name: pass.name,
+      label: pass.label,
+      fetched: passRecords.length,
+      added
+    });
+  }
+
+  return { records, passSummary };
 }
 
 function getSellerCriteria(car = {}) {
@@ -240,17 +314,31 @@ function classifyRecord(record, vehicle) {
   const sameModel = !!targetModel && (recordModel.includes(targetModel) || title.includes(targetModel));
   const colorMatch = vehicle.color ? title.includes(vehicle.color) : null;
   const price = normalizeMoney(record);
+  const targetMentionsTurbo = textHasTerm(vehicle.raw, "turbo");
+  const targetMentionsCup = textHasTerm(vehicle.raw, "cup");
+  const exclusionReasons = [];
 
-  let comparisonTier = "not_relevant";
+  if (!(sameMake && sameModel)) exclusionReasons.push("different make/model");
+  if (!targetMentionsTurbo && textHasTerm(title, "turbo")) exclusionReasons.push("turbo market behaves differently");
+  if (!targetMentionsCup && (textHasTerm(title, "cup") || textHasTerm(title, "race car") || textHasTerm(title, "racecar") || textHasTerm(title, "track car"))) {
+    exclusionReasons.push("race/track market behaves differently");
+  }
+  if (textHasTerm(title, "replica") || textHasTerm(title, "kit car") || textHasTerm(title, "salvage")) {
+    exclusionReasons.push("special-case title/history");
+  }
+
+  let comparisonTier = "excluded";
   let confidence = "low";
-  if (sameMake && sameModel && (yearGap === null || yearGap <= 2)) {
-    comparisonTier = "close";
+  if (exclusionReasons.length) {
+    comparisonTier = "excluded";
+  } else if (sameMake && sameModel && (yearGap === null || yearGap <= 2)) {
+    comparisonTier = "close_match";
     confidence = "high";
   } else if (sameMake && sameModel && (yearGap === null || yearGap <= 8)) {
-    comparisonTier = "relevant";
+    comparisonTier = "relevant_match";
     confidence = "medium";
   } else if (sameMake && sameModel) {
-    comparisonTier = "broad";
+    comparisonTier = "broad_match";
     confidence = "low";
   }
 
@@ -261,8 +349,9 @@ function classifyRecord(record, vehicle) {
     normalized_year: recordYear || null,
     searched_year: vehicle.year,
     searched_color: vehicle.color,
-    target_match: comparisonTier === "close",
+    target_match: comparisonTier === "close_match",
     comparison_tier: comparisonTier,
+    exclusion_reasons: exclusionReasons,
     classification_confidence: confidence,
     classification_source: "search_context",
     matched_terms: [
@@ -280,14 +369,38 @@ function analyze(records, classifications) {
     const inWindow = records
       .map((record, index) => ({ record, classification: classifications[index] }))
       .filter(item => daysAgo(item.record.auction_end_date) <= windowDays)
-      .filter(item => item.classification.comparison_tier !== "not_relevant");
+      .filter(item => item.classification.comparison_tier !== "excluded");
 
-    const closeMatches = inWindow.filter(item => item.classification.comparison_tier === "close");
-    const relevantMatches = inWindow.filter(item => ["close", "relevant"].includes(item.classification.comparison_tier));
+    const excludedRecords = records
+      .map((record, index) => ({ record, classification: classifications[index] }))
+      .filter(item => item.classification.comparison_tier === "excluded");
+    const closeMatches = inWindow.filter(item => item.classification.comparison_tier === "close_match");
+    const relevantMatches = inWindow.filter(item => ["close_match", "relevant_match"].includes(item.classification.comparison_tier));
+    const broadMatches = inWindow.filter(item => item.classification.comparison_tier === "broad_match");
+    const broadEvidence = [...relevantMatches, ...broadMatches];
 
-    if (closeMatches.length >= 3 || relevantMatches.length >= 6 || windowDays === ANALYSIS_WINDOWS_DAYS[ANALYSIS_WINDOWS_DAYS.length - 1]) {
+    if (
+      closeMatches.length >= MIN_CLOSE_EVIDENCE ||
+      relevantMatches.length >= MIN_RELEVANT_EVIDENCE ||
+      broadEvidence.length >= MIN_BROAD_EVIDENCE ||
+      windowDays === ANALYSIS_WINDOWS_DAYS[ANALYSIS_WINDOWS_DAYS.length - 1]
+    ) {
+      let evidenceSet = broadEvidence;
+      let evidenceLevel = "broad";
+      let evidenceLabel = "broader same-model evidence";
+
+      if (closeMatches.length >= MIN_CLOSE_EVIDENCE) {
+        evidenceSet = closeMatches;
+        evidenceLevel = "close";
+        evidenceLabel = "close evidence";
+      } else if (relevantMatches.length >= MIN_RELEVANT_EVIDENCE) {
+        evidenceSet = relevantMatches;
+        evidenceLevel = "relevant";
+        evidenceLabel = "same and closely related cars";
+      }
+
       const platformMap = new Map();
-      for (const item of relevantMatches) {
+      for (const item of evidenceSet) {
         const platform = recordPlatform(item.record);
         if (!platformMap.has(platform)) platformMap.set(platform, []);
         platformMap.get(platform).push(item);
@@ -296,8 +409,10 @@ function analyze(records, classifications) {
       const platformPerformance = [...platformMap.entries()]
         .map(([platform, items]) => ({
           platform,
-          relevantSales: items.length,
-          closeSales: items.filter(item => item.classification.comparison_tier === "close").length,
+          evidenceSales: items.length,
+          relevantSales: items.filter(item => ["close_match", "relevant_match"].includes(item.classification.comparison_tier)).length,
+          closeSales: items.filter(item => item.classification.comparison_tier === "close_match").length,
+          broadSales: items.filter(item => item.classification.comparison_tier === "broad_match").length,
           medianSalePrice: median(items.map(item => item.classification.price)),
           latestSaleDate: items
             .map(item => item.record.auction_end_date)
@@ -318,11 +433,29 @@ function analyze(records, classifications) {
         recordsAnalyzed: inWindow.length,
         closeMatches: closeMatches.length,
         relevantMatches: relevantMatches.length,
-        thinMarket: relevantMatches.length < 6,
+        broadMatches: broadMatches.length,
+        excludedRecords: excludedRecords.length,
+        excludedReasons: summarizeExclusions(excludedRecords),
+        evidenceLevel,
+        evidenceLabel,
+        evidenceSales: evidenceSet.length,
+        thinMarket: evidenceSet.length < MIN_RELEVANT_EVIDENCE,
         platformPerformance
       };
     }
   }
+}
+
+function summarizeExclusions(excludedRecords) {
+  const counts = new Map();
+  for (const item of excludedRecords) {
+    for (const reason of item.classification.exclusion_reasons || ["excluded"]) {
+      counts.set(reason, (counts.get(reason) || 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .map(([reason, count]) => ({ reason, count }))
+    .sort((a, b) => b.count - a.count);
 }
 
 function decisionTradeoffs(criteria) {
@@ -363,10 +496,10 @@ function decide(analysis, criteria) {
     recommendedPath: best.platform,
     confidence,
     why: [
-      `${best.platform} had ${best.relevantSales} relevant recent sale${best.relevantSales === 1 ? "" : "s"} in the selected ${analysis.windowDays}-day window.`,
+      `${best.platform} had ${best.evidenceSales} recent sale${best.evidenceSales === 1 ? "" : "s"} in the selected ${analysis.windowDays}-day ${analysis.evidenceLabel} set.`,
       best.closeSales
         ? `${best.closeSales} of those were close matches to the searched car.`
-        : "The exact close-match sample is thin, so this uses broader relevant comps.",
+        : "The exact close-match sample is thin, so this uses clearly labeled broader evidence.",
       best.medianSalePrice
         ? `Median sale price in that evidence set was $${best.medianSalePrice.toLocaleString()}.`
         : null
@@ -460,6 +593,7 @@ async function persistClassifications(records, classifications, idLookup, supaba
     searched_color: classifications[index].searched_color,
     target_match: classifications[index].target_match,
     comparison_tier: classifications[index].comparison_tier,
+    exclusion_reasons: classifications[index].exclusion_reasons,
     classification_confidence: classifications[index].classification_confidence,
     classification_source: classifications[index].classification_source,
     matched_terms: classifications[index].matched_terms,
@@ -499,7 +633,8 @@ export default async function handler(req, res) {
       });
     }
 
-    const records = await fetchRecentRecords(vehicle, apiKey);
+    const fetchResult = await fetchRecentRecords(vehicle, apiKey);
+    const records = fetchResult.records;
     const classifications = records.map(record => classifyRecord(record, vehicle));
     const rawPersistence = await persistRawRecords(records, supabaseUrl, supabaseKey);
     const classificationPersistence = await persistClassifications(records, classifications, rawPersistence.idLookup, supabaseUrl, supabaseKey);
@@ -515,8 +650,15 @@ export default async function handler(req, res) {
         recordsAnalyzed: analysis.recordsAnalyzed,
         closeMatches: analysis.closeMatches,
         relevantMatches: analysis.relevantMatches,
+        broadMatches: analysis.broadMatches,
+        excludedRecords: analysis.excludedRecords,
+        excludedReasons: analysis.excludedReasons,
+        evidenceLevel: analysis.evidenceLevel,
+        evidenceLabel: analysis.evidenceLabel,
+        evidenceSales: analysis.evidenceSales,
         windowDays: analysis.windowDays,
-        thinMarket: analysis.thinMarket
+        thinMarket: analysis.thinMarket,
+        fetchPasses: fetchResult.passSummary
       },
       analysis: {
         analysisDate: analysis.analysisDate,
