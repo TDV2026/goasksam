@@ -159,7 +159,7 @@ async function saveRawRecords(records, supabaseUrl, supabaseKey) {
   if (!records || records.length === 0) return;
 
   const rows = records.map(r => ({
-    source: "oldcarsdata",
+    source: r.source || "unknown",
     source_record_id: String(r.id ?? r.source_record_id ?? r.listing_id),
     make: r.ocd_make_name || r.listing_make || null,
     model: r.ocd_model_name || r.listing_model || null,
