@@ -1,6 +1,6 @@
 const OLDCARSDATA_BASE = "https://api.oldcarsdata.com";
 const ANALYSIS_WINDOWS_DAYS = [45, 90, 180];
-const MAX_PAGES = 5;
+const MAX_PAGES = 3;
 const DEFAULT_LIMIT = 50;
 const MIN_CLOSE_EVIDENCE = 3;
 const MIN_RELEVANT_EVIDENCE = 6;
@@ -198,7 +198,7 @@ function buildFetchPasses(vehicle) {
     {
       name: "exact",
       label: "exact year/model",
-      pages: 3,
+      pages: 2,
       params: {
         make: vehicle.make,
         model: modelToken,
@@ -221,7 +221,7 @@ function buildFetchPasses(vehicle) {
       passes.push({
         name: `nearby_year_${year}`,
         label: `nearby year ${year}`,
-        pages: 2,
+        pages: 1,
         params: {
           make: vehicle.make,
           model: modelToken,
@@ -266,7 +266,13 @@ async function fetchRecentRecords(vehicle, apiKey) {
   const maxWindow = Math.max(...ANALYSIS_WINDOWS_DAYS);
 
   for (const pass of passes) {
-    const passRecords = await fetchPass(pass, apiKey);
+    let passRecords = [];
+    let passError = null;
+    try {
+      passRecords = await fetchPass(pass, apiKey);
+    } catch (err) {
+      passError = err.message;
+    }
     let added = 0;
 
     for (const record of passRecords) {
@@ -282,7 +288,8 @@ async function fetchRecentRecords(vehicle, apiKey) {
       name: pass.name,
       label: pass.label,
       fetched: passRecords.length,
-      added
+      added,
+      error: passError
     });
   }
 
