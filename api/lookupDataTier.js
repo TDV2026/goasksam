@@ -177,7 +177,7 @@ async function saveRawRecords(records, supabaseUrl, supabaseKey) {
   }));
 
   try {
-    await fetch(`${supabaseUrl}/rest/v1/vehicle_market_records`, {
+    const insertRes = await fetch(`${supabaseUrl}/rest/v1/vehicle_market_records`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -187,6 +187,15 @@ async function saveRawRecords(records, supabaseUrl, supabaseKey) {
       },
       body: JSON.stringify(rows)
     });
+
+    const insertText = await insertRes.text();
+
+    console.log("vehicle_market_records insert status:", insertRes.status);
+    console.log("vehicle_market_records insert response:", insertText);
+
+    if (!insertRes.ok) {
+      throw new Error(`vehicle_market_records insert failed: ${insertRes.status} ${insertText}`);
+    }
   } catch (err) {
     console.error("vehicle_market_records write failed:", err.message);
   }
