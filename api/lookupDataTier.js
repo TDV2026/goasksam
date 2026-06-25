@@ -364,6 +364,7 @@ async function fetchRecentRecords(parsed, liquidityTierOrNull, apiKey, supabaseU
     };
 
     const apiResult = await callOldCarsData("/auctions", query, apiKey);
+        console.log("OLDCARSDATA META:", JSON.stringify(apiResult.meta), "QUERY USED:", JSON.stringify(query));
     const pageRecords = apiResult.data || [];
     pagesFetched++;
 
