@@ -609,7 +609,16 @@ async function persistClassifications(records, classifications, idLookup, supaba
     classified_at: new Date().toISOString(),
     classification_batch_id: batchId
   }));
-  return supabaseInsert("vehicle_classifications", rows, supabaseUrl, supabaseKey);
+  const result = await supabaseInsert("vehicle_classifications", rows, supabaseUrl, supabaseKey);
+  if (result.error?.includes("exclusion_reasons")) {
+    const fallbackRows = rows.map(({ exclusion_reasons, ...row }) => row);
+    const fallbackResult = await supabaseInsert("vehicle_classifications", fallbackRows, supabaseUrl, supabaseKey);
+    return {
+      ...fallbackResult,
+      warning: "exclusion_reasons column missing; classifications saved without exclusion reasons"
+    };
+  }
+  return result;
 }
 
 export default async function handler(req, res) {
