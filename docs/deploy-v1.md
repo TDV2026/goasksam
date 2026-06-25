@@ -15,6 +15,7 @@ Open Supabase SQL Editor and run:
 ```
 
 The schema file is migration-safe for the current project: it creates missing tables and adds missing columns to existing tables.
+The current production `vehicle_market_records.id` is `bigint`, so related V1 tables use `bigint` foreign keys.
 
 The V1 permanent tables are:
 

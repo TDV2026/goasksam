@@ -33,8 +33,8 @@ alter table vehicle_market_records add column if not exists ingested_at timestam
 alter table vehicle_market_records add column if not exists ingestion_batch_id uuid;
 
 create table if not exists vehicle_classifications (
-  id uuid primary key default gen_random_uuid(),
-  market_record_id uuid references vehicle_market_records(id),
+  id bigserial primary key,
+  market_record_id bigint references vehicle_market_records(id),
   source_record_id text,
   normalized_make text,
   normalized_model text,
@@ -55,7 +55,7 @@ create table if not exists vehicle_classifications (
 );
 
 create table if not exists seller_leads (
-  id uuid primary key default gen_random_uuid(),
+  id bigserial primary key,
   reference text not null unique,
   submitted_at timestamptz not null default now(),
   lead_status text not null default 'submitted',
