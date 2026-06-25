@@ -3,50 +3,27 @@
 // Session changes applied, in order:
 // 1. hasModelDetail checks word count, not character length, so a bare
 //    model name alone ("911") correctly triggers needs_clarification.
-// 2. determineDataTier only confirms an exact-trim match against the trim
-//    the user actually requested, never any confident match anywhere in
-//    the batch.
-// 3. "Carrera T" added to taxonomy, ordered before plain "Carrera".
-// 4. saveRawRecords() persists every fetched record to vehicle_market_records
+// 2. saveRawRecords() persists every fetched record to vehicle_market_records
 //    permanently, before any tier/recommendation logic runs.
-// 5. saveVehicleIntelligence() persists every classification to
-//    vehicle_intelligence, keyed back to its market_record_id.
-// 6. fetchRecentRecords() replaces the old single-page, no-recency fetch.
+// 3. saveVehicleClassifications() persists every classification to
+//    vehicle_classifications, keyed back to its market_record_id.
+// 4. fetchRecentRecords() replaces the old single-page, no-recency fetch.
 //    It fetches up to a safety cap of pages, then filters the FULL combined
 //    set by real auction_end_date afterward -- it does NOT trust
 //    OldCarsData's sort=date to mean "stop early once we see one old
 //    record," because that sort does not reliably keep auction_end_date in
 //    strict order page-to-page.
-// 7. determineDataTier returns structured facts (exactTrimSales, windowDays,
+// 5. determineDataTier returns structured facts (exactTrimSales, windowDays,
 //    minimumEvidenceRequired, thin, analysisDate) instead of constructed
 //    prose sentences -- presentation belongs in the UI/Sam layer, not here.
+// 6. Classification is search-context driven. There is no hardcoded Porsche
+//    taxonomy in this endpoint.
 
 const OLDCARSDATA_BASE = "https://api.oldcarsdata.com";
 const CACHE_REFRESH_HOURS = 24;
 const RECENT_WINDOWS_DAYS = [45, 90]; // config, not magic numbers buried in logic
+const SEARCH_STOP_WORDS = new Set(["the", "a", "an", "to", "sell", "selling", "with", "and", "or", "my", "i", "have", "has"]);
 
-const TRIM_TAXONOMY = {
-  "Porsche|911": [
-    "GT3 RS", "GT2 RS",
-    "GT3 Cup",
-    "GT3 Touring",
-    "GT3", "GT2",
-    "Turbo S Exclusive Series",
-    "Turbo S", "Turbo",
-    "Carrera S Club Coupe",
-    "Carrera 4 GTS",
-    "Targa 4 GTS",
-    "Carrera GTS",
-    "Carrera 4S", "Carrera S", "Carrera 4",
-    "Carrera T",
-    "Carrera",
-    "Targa 4S", "Targa 4", "Targa",
-    "Speedster Heritage Design",
-    "Speedster",
-    "Sport Classic",
-    "Dakar"
-  ]
-};
 let MAKES_CACHE = null;
 let MODELS_CACHE = {};
 
@@ -85,19 +62,6 @@ async function matchModel(make, rawText) {
   }
   return best;
 }
-function getTaxonomyKey(make, model) {
-  return `${make}|${model}`;
-}
-
-function findTrimIn(text, trimList) {
-  if (!text) return null;
-  const lower = text.toLowerCase();
-  for (const trim of trimList) {
-    if (lower.includes(trim.toLowerCase())) return trim;
-  }
-  return null;
-}
-
 function daysAgo(dateString) {
   if (!dateString) return Infinity; // no date = treat as unknown/stale, never counts as "recent"
   const then = new Date(dateString).getTime();
@@ -105,11 +69,31 @@ function daysAgo(dateString) {
   return Math.floor((now - then) / (1000 * 60 * 60 * 24));
 }
 
-function classifyTrim(record) {
+function tokenize(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/\b(19|20)\d{2}\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(/\s+/)
+    .map(t => t.trim())
+    .filter(t => t && !SEARCH_STOP_WORDS.has(t));
+}
+
+function classifyAgainstSearch(record, parsed) {
   const make = record.ocd_make_name || record.listing_make;
   const model = record.ocd_model_name || record.listing_model;
-  const key = getTaxonomyKey(make, model);
-  const trimList = TRIM_TAXONOMY[key];
+  const titleTokens = new Set(tokenize([
+    record.title,
+    record.listing_model,
+    record.description
+  ].filter(Boolean).join(" ")));
+  const requestedTokens = tokenize(parsed.modelGuess || parsed.model || "")
+    .filter(token => token !== String(parsed.model || "").toLowerCase());
+  const matchedTerms = requestedTokens.filter(token => titleTokens.has(token));
+  const sameMake = !parsed.make || String(make || "").toLowerCase() === String(parsed.make).toLowerCase();
+  const sameModel = !parsed.model || String(model || "").toLowerCase().includes(String(parsed.model).toLowerCase()) || titleTokens.has(String(parsed.model).toLowerCase());
+  const requestedDetailCount = requestedTokens.length;
+  const matchedAllDetails = requestedDetailCount > 0 && matchedTerms.length === requestedDetailCount;
 
   const base = {
     raw_title: record.title || null,
@@ -117,23 +101,20 @@ function classifyTrim(record) {
     raw_description: record.description || null,
     normalized_make: make || null,
     normalized_model: model || null,
-    normalized_generation: null
+    normalized_generation: null,
+    normalized_trim: requestedDetailCount ? matchedTerms.join(" ") || null : null,
+    matched_terms: matchedTerms
   };
 
-  if (!trimList) {
-    return { ...base, normalized_trim: null, classification_source: null, matched_terms: [], classification_confidence: "unknown", needs_review: true };
+  if (sameMake && sameModel && matchedAllDetails) {
+    return { ...base, target_match: true, classification_source: "search_context", classification_confidence: "high", needs_review: false };
   }
 
-  let trim = findTrimIn(record.title, trimList);
-  if (trim) return { ...base, normalized_trim: trim, classification_source: "title", matched_terms: [trim], classification_confidence: "high", needs_review: false };
+  if (sameMake && sameModel) {
+    return { ...base, target_match: requestedDetailCount === 0, classification_source: "search_context", classification_confidence: "medium", needs_review: false };
+  }
 
-  trim = findTrimIn(record.listing_model, trimList);
-  if (trim) return { ...base, normalized_trim: trim, classification_source: "listing_model", matched_terms: [trim], classification_confidence: "medium", needs_review: false };
-
-  trim = findTrimIn(record.description, trimList);
-  if (trim) return { ...base, normalized_trim: trim, classification_source: "description", matched_terms: [trim], classification_confidence: "low", needs_review: true };
-
-  return { ...base, normalized_trim: null, classification_source: null, matched_terms: [], classification_confidence: "unknown", needs_review: true };
+  return { ...base, target_match: false, classification_source: "search_context", classification_confidence: "low", needs_review: true };
 }
 
 async function resolveCar(searchContext) {
@@ -229,7 +210,7 @@ async function saveRawRecords(records, supabaseUrl, supabaseKey) {
   }
 }
 
-async function saveVehicleIntelligence(rawRecords, classifiedRecords, supabaseUrl, supabaseKey) {
+async function saveVehicleClassifications(rawRecords, classifiedRecords, supabaseUrl, supabaseKey) {
   if (!rawRecords || rawRecords.length === 0) return;
 
   const sourceRecordIds = rawRecords.map(r =>
@@ -248,7 +229,7 @@ async function saveVehicleIntelligence(rawRecords, classifiedRecords, supabaseUr
       idLookup = Object.fromEntries(rows.map(row => [row.source_record_id, row.id]));
     }
   } catch (err) {
-    console.error("vehicle_intelligence: id lookup failed:", err.message);
+    console.error("vehicle_classifications: id lookup failed:", err.message);
     return;
   }
 
@@ -266,8 +247,10 @@ async function saveVehicleIntelligence(rawRecords, classifiedRecords, supabaseUr
         normalized_model: classified.normalized_model,
         normalized_generation: classified.normalized_generation,
         normalized_trim: classified.normalized_trim,
+        target_match: classified.target_match,
         classification_source: classified.classification_source,
         classification_confidence: classified.classification_confidence,
+        matched_terms: classified.matched_terms,
         needs_review: classified.needs_review,
         classified_at: new Date().toISOString(),
         classification_batch_id: batchId
@@ -278,7 +261,7 @@ async function saveVehicleIntelligence(rawRecords, classifiedRecords, supabaseUr
   if (rows.length === 0) return;
 
   try {
-    await fetch(`${supabaseUrl}/rest/v1/vehicle_intelligence`, {
+    await fetch(`${supabaseUrl}/rest/v1/vehicle_classifications`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -289,7 +272,7 @@ async function saveVehicleIntelligence(rawRecords, classifiedRecords, supabaseUr
       body: JSON.stringify(rows)
     });
   } catch (err) {
-    console.error("vehicle_intelligence write failed:", err.message);
+    console.error("vehicle_classifications write failed:", err.message);
   }
 }
 
@@ -334,24 +317,7 @@ async function getRecencyThreshold(liquidityTier, windowDays, supabaseUrl, supab
 }
 
 async function getLiquidityTier(make, modelGuess, supabaseUrl, supabaseKey) {
-  const trimGuess = (modelGuess || "").trim();
-  if (!trimGuess) return null;
-  try {
-    const url = `${supabaseUrl}/rest/v1/taxonomy?make=eq.${encodeURIComponent(make)}&active=eq.true&select=trim,expected_liquidity,priority&order=priority.asc`;
-    const res = await fetch(url, {
-      headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
-    });
-    if (!res.ok) return null;
-    const rows = await res.json();
-    const lower = trimGuess.toLowerCase();
-    for (const row of rows) {
-      if (lower.includes(row.trim.toLowerCase())) return row.expected_liquidity;
-    }
-    return null;
-  } catch (err) {
-    console.error("getLiquidityTier failed:", err.message);
-    return null;
-  }
+  return null;
 }
 
 /**
@@ -363,7 +329,7 @@ async function getLiquidityTier(make, modelGuess, supabaseUrl, supabaseKey) {
  * by real auction_end_date afterward.
  *
  * Every fetched-and-in-window record is saved permanently to
- * vehicle_market_records and vehicle_intelligence, regardless of whether
+ * vehicle_market_records and vehicle_classifications, regardless of whether
  * the recency threshold for a recommendation ends up being met. Recency
  * was only the reason we fetched it -- once fetched, it's permanent Layer 1
  * data, same as any other ingestion.
@@ -411,8 +377,8 @@ async function fetchRecentRecords(parsed, liquidityTierOrNull, apiKey, supabaseU
   const withinMaxWindow = allRecords.filter(r => daysAgo(r.auction_end_date) <= MAX_WINDOW);
 
   await saveRawRecords(withinMaxWindow, supabaseUrl, supabaseKey);
-  const classified = withinMaxWindow.map(classifyTrim);
-  await saveVehicleIntelligence(withinMaxWindow, classified, supabaseUrl, supabaseKey);
+  const classified = withinMaxWindow.map(record => classifyAgainstSearch(record, parsed));
+  await saveVehicleClassifications(withinMaxWindow, classified, supabaseUrl, supabaseKey);
 
   let lastThresholdChecked = null;
   for (const windowDays of RECENT_WINDOWS_DAYS) {
@@ -477,8 +443,10 @@ async function normalizeRecords(searchContext, supabaseUrl, supabaseKey) {
   // Only reached if rawRecords exist but were never classified by
   // fetchRecentRecords (defensive fallback -- in the current pipeline,
   // fetchRecentRecords always classifies, so this should rarely run).
-  searchContext.normalizedRecords = (searchContext.rawRecords || []).map(classifyTrim);
-  await saveVehicleIntelligence(
+  searchContext.normalizedRecords = (searchContext.rawRecords || []).map(record =>
+    classifyAgainstSearch(record, searchContext.normalizedCar)
+  );
+  await saveVehicleClassifications(
     searchContext.rawRecords,
     searchContext.normalizedRecords,
     supabaseUrl,
@@ -512,48 +480,26 @@ async function determineDataTier(searchContext, supabaseUrl, supabaseKey) {
       clarification: null
     };
   } else {
-    // Identify which specific trim the user actually asked about, by
-    // checking modelGuess against the same taxonomy used for
-    // classification. Only an exact match against THAT requested trim
-    // counts -- never any confident match anywhere in the batch.
-    const taxonomyKey = `${parsed.make}|${(parsed.modelGuess || "").split(" ")[0]}`;
-    const trimList = TRIM_TAXONOMY[taxonomyKey] || TRIM_TAXONOMY[`${parsed.make}|911`]; // fallback while taxonomy is 911-only
-    const requestedTrim = trimList ? findTrimIn(parsed.modelGuess, trimList) : null;
+    const targetMatches = classified.filter(c =>
+      c.target_match &&
+      (c.classification_confidence === "high" || c.classification_confidence === "medium")
+    );
+    const relevantMatches = classified.filter(c =>
+      c.classification_confidence === "high" || c.classification_confidence === "medium"
+    );
 
-    if (requestedTrim) {
-      const matchingRequestedTrim = classified.filter(c =>
-        c.normalized_trim === requestedTrim &&
-        (c.classification_confidence === "high" || c.classification_confidence === "medium")
-      );
-
-      result = {
-        status: "matched",
-        matchedScope: `${parsed.make} ${parsed.modelGuess || ""}`.trim(),
-        exactTrim: requestedTrim,
-        exactTrimSales: matchingRequestedTrim.length,
-        windowDays: searchContext.windowUsed,
-        minimumEvidenceRequired: searchContext.minimumEvidenceRequired,
-        thin: !!searchContext.thin,
-        analysisDate: new Date().toISOString().split('T')[0],
-        clarification: null
-      };
-    } else {
-      // No specific trim recognized in the request -- report against
-      // whatever confident matches exist in the batch generally.
-      const highConfidenceMatches = classified.filter(c => c.classification_confidence === "high" || c.classification_confidence === "medium");
-
-      result = {
-        status: "matched",
-        matchedScope: `${parsed.make} ${parsed.modelGuess || ""}`.trim(),
-        exactTrim: highConfidenceMatches[0]?.normalized_trim || null,
-        exactTrimSales: highConfidenceMatches.length,
-        windowDays: searchContext.windowUsed,
-        minimumEvidenceRequired: searchContext.minimumEvidenceRequired,
-        thin: !!searchContext.thin,
-        analysisDate: new Date().toISOString().split('T')[0],
-        clarification: null
-      };
-    }
+    result = {
+      status: "matched",
+      matchedScope: `${parsed.make} ${parsed.modelGuess || ""}`.trim(),
+      exactTrim: parsed.modelGuess || null,
+      exactTrimSales: targetMatches.length,
+      relevantSales: relevantMatches.length,
+      windowDays: searchContext.windowUsed,
+      minimumEvidenceRequired: searchContext.minimumEvidenceRequired,
+      thin: !!searchContext.thin,
+      analysisDate: new Date().toISOString().split('T')[0],
+      clarification: null
+    };
   }
 
   searchContext.dataTier = result;

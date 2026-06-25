@@ -289,31 +289,10 @@ const LISTINGS=[
 {id:"L10",status:"live",year:2020,make:"Nissan",model:"370Z Sport Touring",type:"sports",trans:"automatic",drive:"RWD",price:5580,miles:16600,loc:"Los Angeles, CA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/exterior/3vAVEA0k-sCSR5pQ/edit/9L2LD.jpg?t=177930535574",reserve_status:"active",daysLive:2,endsIn:5,liveSignals:[{type:"resolved",text:"Seller confirmed Sport Touring spec with factory LSD 1 hour ago. Monroney uploaded to gallery.",time:"1 hour ago"}],openQuestion:"Reserve active and amount unknown.",whatChanged:"Seller confirmed LSD and uploaded Monroney 1 hour ago after community asked. Reserve still unknown.",sellerStatus:"Answered LSD question and uploaded documentation within 1 hour of being asked.",sam_view:"Clean low-mile 370Z. Seller confirmed the factory LSD and uploaded the Monroney an hour ago after the community asked — that is responsive. Reserve is still active and the amount is unknown.",what_i_like:"Sport Touring with factory LSD, 16,600 miles, seller actively engaging.",actionLine:"I would watch whether the reserve gets met. The seller is responsive which is a good sign."}
 ];
 
-const SELL_CARS={
-  porsche:{
-    primary:{name:"Carbine123",type:"Power Seller on Cars & Bids",badge:"Recommended",reason:"Carbine123 has successfully sold multiple 911s on Cars & Bids and handles the entire process — photos, listing, buyer questions, and negotiation. He's known for being highly communicative throughout. You'll always know where things stand.",stat:"911s on Cars & Bids have achieved 12% higher sale prices than comparable platforms over the last 3 months.",bestFor:"Hands-off. Maximum result. No chasing required."},
-    secondary:{name:"Cars & Bids Direct",type:"Self-managed listing",badge:"Alternative",reason:"List directly on Cars & Bids and manage it yourself. The enthusiast audience is exactly right for a 911. Submit all your information and you can be live within 72 hours.",stat:"911s on Cars & Bids have achieved 12% higher sale prices than comparable platforms over the last 3 months.",bestFor:"Comfortable managing it yourself and want full control."}
-  },
-  bmw:{
-    primary:{name:"Cars & Bids Direct",type:"Self-managed listing",badge:"Recommended",reason:"Cars & Bids excels at selling M2s. The platform has a strong track record with this exact car and the audience understands what an M2 Competition is worth. Submit all your information and you can be live within 72 hours.",stat:"M2 Competitions have achieved 12% higher sale prices on Cars & Bids than comparable platforms over the last 3 months.",bestFor:"Speed, control, and the right enthusiast audience."},
-    secondary:{name:"Carbine123",type:"Power Seller on Cars & Bids",badge:"Alternative",reason:"Same platform, same audience — but Carbine123 handles everything if you'd rather be completely hands-off. He's communicative, reliable, and knows how to present a car like this well.",stat:"M2 Competitions have achieved 12% higher sale prices on Cars & Bids than comparable platforms over the last 3 months.",bestFor:"Fully hands-off. Let someone else manage the entire process."}
-  },
-  generic:{
-    primary:{name:"Cars & Bids Direct",type:"Self-managed listing",badge:"Recommended",reason:"Cars & Bids has a strong enthusiast audience and a straightforward listing process. Submit all your information and you can be live within 72 hours.",stat:"Enthusiast cars consistently achieve strong results on Cars & Bids with its targeted buyer audience.",bestFor:"Control, speed, and the right audience."},
-    secondary:{name:"Carbine123",type:"Power Seller on Cars & Bids",badge:"Alternative",reason:"Carbine123 handles the entire process if you'd rather be hands-off. He's communicative, reliable, and knows how to present a car well.",stat:"Enthusiast cars consistently achieve strong results on Cars & Bids with its targeted buyer audience.",bestFor:"Fully hands-off. Let someone else manage everything."}
-  }
-};
-
-const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,vin:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,generatedPrimaryName:null,generatedSecondaryName:null};
+const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,vin:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[]};
 function resetSellState(){
   Object.keys(sellState).forEach(k=>sellState[k]=null);
-  sellState.active=false;sellState.step=0;sellState.returnToConfirm=false;
-}
-
-function getSellCarData(){
-  if(sellState.carType==="porsche")return SELL_CARS.porsche;
-  if(sellState.carType==="bmw")return SELL_CARS.bmw;
-  return SELL_CARS.generic;
+  sellState.active=false;sellState.step=0;sellState.returnToConfirm=false;sellState.sellOptions=[];
 }
 
 const SELL_STEP_QUESTIONS={
@@ -342,9 +321,9 @@ Next question: NEXT_QUESTION_PLACEHOLDER
 Key facts:
 - Cars & Bids auctions run 7 days. Submit all info and live within 72 hours.
 - Carbine123 is a Power Seller on Cars & Bids. Handles everything — photos, listing, buyer questions, negotiation. Highly communicative. Has sold multiple 911s on Cars & Bids.
-- 911s and M2 Competitions have achieved 12% higher sale prices on Cars & Bids than comparable platforms over the last 3 months.
 - Carbine123 takes a commission. Direct listing on Cars & Bids has platform fees.
 - GoAskSam submits seller details to the chosen platform or power seller. They respond within 24 hours.
+- Do not invent market performance claims. If current evidence is not available, say so.
 
 Never say you are AI. You are Sam. After answering, always end by asking the next question.`;
 
@@ -612,85 +591,97 @@ function showConfirmation(){
 async function showSellRecommendation(){
   sellState.step=12;
   hideHero();
-  // Show a thinking state while we generate specific copy
   const msgs=document.getElementById("msgs");
   const thinkRow=document.createElement("div");thinkRow.className="row sam";thinkRow.id="sellThinking";
-  thinkRow.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div><div class="searching"><div class="spinner"></div><span>Finding the best route for your ${escapeHtml(sellState.carName||"car")}...</span></div></div></div>`;
+  thinkRow.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div><div class="searching"><div class="spinner"></div><span>Checking recent market evidence for your ${escapeHtml(sellState.carName||"car")}...</span></div></div></div>`;
   msgs.appendChild(thinkRow);msgs.scrollTop=msgs.scrollHeight;
 
-  // Generate specific recommendation copy via API
-  const recPrompt=`You are Sam, a car market expert. A seller has a ${sellState.carName} with the following details:
-- Mileage: ${sellState.mileage||"unknown"}
-- Condition: ${sellState.condition||"unknown"}
-- Service records: ${sellState.records||"unknown"}
-- Title: ${sellState.title||"clean"}
-- Asking price: ${sellState.price||"not specified"}
-- Timeline: ${sellState.timeline||"flexible"}
-- Involvement preference: ${sellState.involvement||"flexible"}
-${sellState.notes?`- Additional notes: ${sellState.notes}`:""}
-
-Write specific, intelligent recommendation copy for two selling routes. Respond ONLY with valid JSON, no markdown, no backticks:
-{
-  "primary_name": "Carbine123 or Cars & Bids Direct depending on which is better for this car",
-  "primary_type": "Power Seller on Cars & Bids or Self-managed listing",
-  "primary_is_carbine": true or false,
-  "primary_reason": "2-3 sentences explaining specifically why this route suits THIS car. Reference the car's characteristics, era, audience, or market position. Do not use generic marketplace language.",
-  "primary_stat": "One specific, compelling market insight about this car type on Cars & Bids. Make it feel like real data — comparable sales, audience interest, or market context. Keep it under 25 words.",
-  "primary_bestfor": "One line on who this route suits best",
-  "secondary_name": "The other option",
-  "secondary_type": "Power Seller on Cars & Bids or Self-managed listing",
-  "secondary_reason": "2-3 sentences on why someone might choose this route instead for this specific car.",
-  "secondary_stat": "Same stat or a variant that still applies",
-  "secondary_bestfor": "One line"
-}
-
-Rules:
-- For Porsches and 911s, Carbine123 should be primary (he has sold multiple 911s on Cars & Bids)
-- For M2s and BMW M cars, Cars & Bids Direct should be primary
-- For other cars, use your judgment based on the car type
-- The stat must feel specific to this car, not generic
-- Never say "enthusiast cars consistently achieve" — that's too generic
-- Reference era, model, rarity, or comparable sales where relevant`;
-
-  let recData=null;
+  let decisionData=null;
   try{
-    const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[{role:"user",content:recPrompt}],system:"You are a car market expert. Respond only with valid JSON."})});
-    const data=await res.json();
-    const raw=data.text||"";
-    const clean=raw.replace(/```json|```/g,"").trim();
-    recData=JSON.parse(clean);
+    const res=await fetch("/api/sellerDecision",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        car:{
+          raw:sellState.carName,
+          vin:sellState.vin,
+          mileage:sellState.mileage,
+          condition:sellState.condition,
+          serviceRecords:sellState.records,
+          title:sellState.title,
+          targetPrice:sellState.price,
+          timeline:sellState.timeline,
+          involvement:sellState.involvement,
+          notes:sellState.notes
+        }
+      })
+    });
+    decisionData=await res.json();
   }catch(e){
-    // Fall back to generic data if API fails
-    recData=null;
+    decisionData={status:"error",error:e.message};
   }
 
-  // Remove thinking row
   const tr=document.getElementById("sellThinking");if(tr)tr.remove();
 
-  // Use generated or fallback data
-  const carData=getSellCarData();
-  const p={
-    name:recData?.primary_name||carData.primary.name,
-    type:recData?.primary_type||carData.primary.type,
-    badge:"Recommended",
-    reason:recData?.primary_reason||carData.primary.reason,
-    stat:recData?.primary_stat||carData.primary.stat,
-    bestFor:recData?.primary_bestfor||carData.primary.bestFor,
-    isCarbine:recData?.primary_is_carbine??carData===SELL_CARS.porsche
-  };
-  const s={
-    name:recData?.secondary_name||carData.secondary.name,
-    type:recData?.secondary_type||carData.secondary.type,
-    badge:"Alternative",
-    reason:recData?.secondary_reason||carData.secondary.reason,
-    stat:recData?.secondary_stat||carData.secondary.stat,
-    bestFor:recData?.secondary_bestfor||carData.secondary.bestFor
-  };
+  if(decisionData?.status==="needs_clarification"){
+    addMsg("sam",decisionData.clarification?.question||"I need the year, make and model before I can check the market.");
+    sellState.step=1;
+    document.getElementById("btn").disabled=false;
+    return;
+  }
+
+  if(decisionData?.status==="error"||decisionData?.error){
+    addMsg("sam",`I couldn't check the live market yet: ${decisionData.error||"connection issue"}. I don't want to invent a recommendation without evidence.`);
+    document.getElementById("btn").disabled=false;
+    return;
+  }
+
+  sellState.sellDecision=decisionData;
+  const platforms=decisionData.analysis?.platformPerformance||[];
+  const topPlatforms=platforms.slice(0,2);
+  const decision=decisionData.decision||{};
+  const evidence=decisionData.evidence||{};
+  const limitations=[...(decision.limitations||[])];
+  const tradeoffs=[...(decision.tradeoffs||[])];
+  if(evidence.thinMarket&&!limitations.length)limitations.push("Recent evidence is thin, so treat this as directional.");
+
+  if(!topPlatforms.length){
+    addMsg("sam",`I checked the recent market for your ${sellState.carName}, but I don't have enough relevant sales to make a responsible platform call yet. I don't want to guess.`);
+    document.getElementById("btn").disabled=false;
+    return;
+  }
+
+  sellState.sellOptions=topPlatforms.map((platform,index)=>({
+    key:index===0?"primary":"secondary",
+    name:platform.platform,
+    type:"Selling destination",
+    badge:index===0?"Current evidence leader":"Alternative",
+    reason:[
+      `${platform.platform} has ${platform.relevantSales} relevant recent sale${platform.relevantSales===1?"":"s"} in the ${evidence.windowDays}-day evidence window.`,
+      platform.closeSales?`${platform.closeSales} were close matches to your car.`:"The exact close-match sample is thin, so this uses broader relevant comps.",
+      platform.medianSalePrice?`Median sale price in this evidence set was $${platform.medianSalePrice.toLocaleString()}.`:null
+    ].filter(Boolean).join(" "),
+    stat:`${platform.relevantSales} relevant sale${platform.relevantSales===1?"":"s"} · ${platform.closeSales} close match${platform.closeSales===1?"":"es"}`,
+    bestFor:index===0?"Best supported by the current fetched evidence":"Worth comparing if fees, timing or listing fit are better"
+  }));
+
+  const p=sellState.sellOptions[0];
+  const s=sellState.sellOptions[1]||null;
+  const limitationHTML=limitations.length?`<div class="modal-signal concern"><strong>Limit:</strong> ${escapeHtml(limitations.join(" "))}</div>`:"";
+  const tradeoffHTML=tradeoffs.length?`<div class="modal-signal resolved"><strong>Seller fit:</strong> ${escapeHtml(tradeoffs.join(" "))}</div>`:"";
 
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
-    <div class="sam-text">Based on what you've told me, here's where I'd take the ${escapeHtml(sellState.carName||"car")}.</div>
+    <div class="sam-text">Based on the current market evidence I found, here's where I'd take the ${escapeHtml(sellState.carName||"car")}.</div>
+    <div class="summary-card">
+      <div class="summary-row"><span class="summary-label">Window</span><span class="summary-value">${escapeHtml(evidence.windowDays||"—")} days</span></div>
+      <div class="summary-row"><span class="summary-label">Relevant sales</span><span class="summary-value">${escapeHtml(evidence.relevantMatches??"—")}</span></div>
+      <div class="summary-row"><span class="summary-label">Close matches</span><span class="summary-value">${escapeHtml(evidence.closeMatches??"—")}</span></div>
+      <div class="summary-row"><span class="summary-label">Confidence</span><span class="summary-value">${escapeHtml(decision.confidence||"low")}</span></div>
+    </div>
+    ${limitationHTML}
+    ${tradeoffHTML}
     <div class="sell-rec-grid">
       <div class="sell-rec-card primary-rec" onclick="chooseSellOption('primary')">
         <div class="sell-rec-badge top">★ ${escapeHtml(p.badge)}</div>
@@ -700,28 +691,27 @@ Rules:
         <div style="font-size:11px;color:#999;font-weight:600">Best for: ${escapeHtml(p.bestFor)}</div>
         <div class="sell-rec-actions"><button class="primary" onclick="event.stopPropagation();chooseSellOption('primary')">Go with this</button></div>
       </div>
-      <div class="sell-rec-card" onclick="chooseSellOption('secondary')">
+      ${s?`<div class="sell-rec-card" onclick="chooseSellOption('secondary')">
         <div class="sell-rec-badge alt">${escapeHtml(s.badge)}</div>
         <div><div class="sell-rec-name">${escapeHtml(s.name)}</div><div class="sell-rec-type">${escapeHtml(s.type)}</div></div>
         <div class="sell-rec-reason">${escapeHtml(s.reason)}</div>
         <div class="sell-rec-stat">↑ ${escapeHtml(s.stat)}</div>
         <div style="font-size:11px;color:#999;font-weight:600">Best for: ${escapeHtml(s.bestFor)}</div>
         <div class="sell-rec-actions"><button class="ghost" onclick="event.stopPropagation();chooseSellOption('secondary')">Go with this</button></div>
-      </div>
+      </div>`:""}
     </div>
     <div class="sam-text after-results">Which feels right? Feel free to ask anything about either option.</div>
   </div></div>`;
   sellState.generatedPrimaryName=p.name;
-  sellState.generatedSecondaryName=s.name;
+  sellState.generatedSecondaryName=s?.name||null;
   msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
 }
 
 function chooseSellOption(which){
   if(sellState.chosen)return; // prevent double-fire — already chose
   sellState.chosen=which;sellState.step=13;
-  const carData=getSellCarData();
-  const option=which==="primary"?carData.primary:carData.secondary;
-  const displayName=which==="primary"?(sellState.generatedPrimaryName||option.name):(sellState.generatedSecondaryName||option.name);
+  const option=sellState.sellOptions.find(o=>o.key===which)||sellState.sellOptions[0];
+  const displayName=option?.name||"this route";
   addMsg("user",`Go with ${displayName}`);
   setTimeout(()=>showContactForm(),600);
 }
@@ -751,7 +741,7 @@ function showContactForm(){
   msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
 }
 
-function submitContactForm(){
+async function submitContactForm(){
   const email=document.getElementById("sellEmail")?.value?.trim();
   const phone=document.getElementById("sellPhone")?.value?.trim();
   if(!email||!email.includes("@")){
@@ -761,13 +751,50 @@ function submitContactForm(){
   }
   sellState.email=email;sellState.phone=phone||null;
   addMsg("user",phone?`${email} · ${phone}`:email);
-  setTimeout(()=>showSubmission(),600);
+
+  const option=sellState.sellOptions.find(o=>o.key===sellState.chosen)||sellState.sellOptions[0]||{name:"the selected destination",type:null,key:sellState.chosen};
+  try{
+    const res=await fetch("/api/submitSellerLead",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        seller:{email,phone},
+        car:{
+          raw:sellState.carName,
+          vin:sellState.vin,
+          mileage:sellState.mileage,
+          condition:sellState.condition,
+          serviceRecords:sellState.records,
+          title:sellState.title,
+          targetPrice:sellState.price,
+          timeline:sellState.timeline,
+          involvement:sellState.involvement,
+          notes:sellState.notes
+        },
+        choice:{
+          destination:option.name,
+          destinationType:option.type,
+          optionKey:option.key
+        },
+        decision:{
+          vehicle:sellState.sellDecision?.vehicle||null,
+          evidence:sellState.sellDecision?.evidence||null,
+          decision:sellState.sellDecision?.decision||null,
+          selectedOption:option
+        }
+      })
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||"submission failed");
+    setTimeout(()=>showSubmission(data),600);
+  }catch(e){
+    setTimeout(()=>addMsg("sam",`I couldn't submit this yet: ${e.message}. Your recommendation is still here, but I don't want to pretend the lead went through.`),500);
+  }
 }
 
-function showSubmission(){
-  const carData=getSellCarData();
-  const option=sellState.chosen==="primary"?carData.primary:carData.secondary;
-  const ref="GAS-"+Math.floor(10000+Math.random()*90000);
+function showSubmission(submission){
+  const option=sellState.sellOptions.find(o=>o.key===sellState.chosen)||sellState.sellOptions[0]||{name:"the selected destination"};
+  const ref=submission?.reference||"Pending";
   sellState.step=14;
   hideHero();
   const msgs=document.getElementById("msgs");
