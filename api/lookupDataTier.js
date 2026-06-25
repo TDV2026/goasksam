@@ -523,8 +523,9 @@ async function runPipeline(userInput, contextFields, apiKey, supabaseUrl, supaba
     return searchContext.cachedResult;
   }
 
-searchContext = await normalizeRecords(searchContext, supabaseUrl, supabaseKey);
-  searchContext = await determineDataTier(searchContext, supabaseUrl, supabaseKey);
+if (!searchContext.normalizedRecords) {
+    searchContext = await normalizeRecords(searchContext, supabaseUrl, supabaseKey);
+  }  searchContext = await determineDataTier(searchContext, supabaseUrl, supabaseKey);
 
   return searchContext.dataTier;
 }
