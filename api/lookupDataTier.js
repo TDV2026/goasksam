@@ -229,8 +229,78 @@ searchContext.rawRecords = apiResult.data || [];
   await saveRawRecords(searchContext.rawRecords, supabaseUrl, supabaseKey);  return searchContext;
 }
 
-function normalizeRecords(searchContext) {
+async function saveVehicleIntelligence(rawRecords, classifiedRecords, supabaseUrl, supabaseKey) {
+  if (!rawRecords || rawRecords.length === 0) return;
+
+  const sourceRecordIds = rawRecords.map(r =>
+    String(r.id ?? r.source_record_id ?? r.listing_id)
+  );
+
+  let idLookup = {};
+  try {
+    const idsParam = sourceRecordIds.map(id => `"${id}"`).join(",");
+    const lookupRes = await fetch(
+      `${supabaseUrl}/rest/v1/vehicle_market_records?source=eq.oldcarsdata&source_record_id=in.(${idsParam})&select=id,source_record_id`,
+      { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
+    );
+    if (lookupRes.ok) {
+      const rows = await lookupRes.json();
+      idLookup = Object.fromEntries(rows.map(row => [row.source_record_id, row.id]));
+    }
+  } catch (err) {
+    console.error("vehicle_intelligence: id lookup failed:", err.message);
+    return;
+  }
+
+  const batchId = crypto.randomUUID();
+  const rows = rawRecords
+    .map((raw, i) => {
+      const sourceRecordId = String(raw.id ?? raw.source_record_id ?? raw.listing_id);
+      const marketRecordId = idLookup[sourceRecordId];
+      if (!marketRecordId) return null;
+
+      const classified = classifiedRecords[i];
+      return {
+        market_record_id: marketRecordId,
+        normalized_make: classified.normalized_make,
+        normalized_model: classified.normalized_model,
+        normalized_generation: classified.normalized_generation,
+        normalized_trim: classified.normalized_trim,
+        classification_source: classified.classification_source,
+        classification_confidence: classified.classification_confidence,
+        needs_review: classified.needs_review,
+        classified_at: new Date().toISOString(),
+        classification_batch_id: batchId
+      };
+    })
+    .filter(Boolean);
+
+  if (rows.length === 0) return;
+
+  try {
+    await fetch(`${supabaseUrl}/rest/v1/vehicle_intelligence`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        Prefer: "resolution=merge-duplicates"
+      },
+      body: JSON.stringify(rows)
+    });
+  } catch (err) {
+    console.error("vehicle_intelligence write failed:", err.message);
+  }
+}
+
+async function normalizeRecords(searchContext, supabaseUrl, supabaseKey) {
   searchContext.normalizedRecords = (searchContext.rawRecords || []).map(classifyTrim);
+  await saveVehicleIntelligence(
+    searchContext.rawRecords,
+    searchContext.normalizedRecords,
+    supabaseUrl,
+    supabaseKey
+  );
   return searchContext;
 }
 
@@ -353,7 +423,7 @@ async function runPipeline(userInput, contextFields, apiKey, supabaseUrl, supaba
     return searchContext.cachedResult;
   }
 
-  searchContext = normalizeRecords(searchContext);
+searchContext = await normalizeRecords(searchContext, supabaseUrl, supabaseKey);
   searchContext = await determineDataTier(searchContext, supabaseUrl, supabaseKey);
 
   return searchContext.dataTier;
