@@ -203,7 +203,7 @@ async function saveVehicleIntelligence(rawRecords, classifiedRecords, supabaseUr
   try {
     const idsParam = sourceRecordIds.map(id => `"${id}"`).join(",");
     const lookupRes = await fetch(
-      `${supabaseUrl}/rest/v1/vehicle_market_records?source=eq.oldcarsdata&source_record_id=in.(${idsParam})&select=id,source_record_id`,
+      `${supabaseUrl}/rest/v1/vehicle_market_records?source_record_id=in.(${idsParam})&select=id,source_record_id`,
       { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
     );
     if (lookupRes.ok) {
