@@ -27,6 +27,20 @@ const SEARCH_STOP_WORDS = new Set(["the", "a", "an", "to", "sell", "selling", "w
 let MAKES_CACHE = null;
 let MODELS_CACHE = {};
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function textHasTerm(text, term) {
+  const normalizedTerm = String(term || "").trim().toLowerCase();
+  if (!normalizedTerm) return false;
+  const pattern = normalizedTerm
+    .split(/\s+/)
+    .map(escapeRegExp)
+    .join("[\\s-]+");
+  return new RegExp(`(^|[^a-z0-9])${pattern}([^a-z0-9]|$)`, "i").test(text);
+}
+
 async function getMakes() {
   if (MAKES_CACHE) return MAKES_CACHE;
   const res = await fetch(`${OLDCARSDATA_BASE}/makes`);
@@ -48,7 +62,9 @@ async function getModels(make) {
 async function matchMake(rawText) {
   const makes = await getMakes();
   const lower = rawText.toLowerCase();
-  return makes.find(m => lower.includes(m.toLowerCase())) || null;
+  return makes
+    .filter(m => textHasTerm(lower, m))
+    .sort((a, b) => String(b).length - String(a).length)[0] || null;
 }
 
 async function matchModel(make, rawText) {

@@ -27,6 +27,20 @@ function asText(value) {
   return String(value || "").trim();
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function textHasTerm(text, term) {
+  const normalizedTerm = asText(term).toLowerCase();
+  if (!normalizedTerm) return false;
+  const pattern = normalizedTerm
+    .split(/\s+/)
+    .map(escapeRegExp)
+    .join("[\\s-]+");
+  return new RegExp(`(^|[^a-z0-9])${pattern}([^a-z0-9]|$)`, "i").test(text);
+}
+
 function median(values) {
   const nums = values.filter(n => Number.isFinite(n)).sort((a, b) => a - b);
   if (!nums.length) return null;
@@ -124,7 +138,9 @@ async function resolveVehicle(rawSearch) {
   const raw = asText(rawSearch);
   const lower = raw.toLowerCase();
   const makes = await getMakes();
-  const make = makes.find(m => lower.includes(String(m).toLowerCase())) || null;
+  const make = makes
+    .filter(m => textHasTerm(lower, m))
+    .sort((a, b) => String(b).length - String(a).length)[0] || null;
   const year = extractYear(raw);
   const color = extractColor(raw);
   const mileage = extractMileage(raw);
