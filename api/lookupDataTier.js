@@ -78,15 +78,12 @@ async function fetchRecentRecords(parsed, liquidityTierOrNull, apiKey, supabaseU
   const liquidityTier = liquidityTierOrNull || 'normal';
   const modelWords = (parsed.modelGuess || "").split(" ").filter(Boolean);
   const cleanModel = modelWords[0] || undefined;
-
   let allRecords = [];
   let page = 1;
   let pagesFetched = 0;
-  let hitStaleRecord = false;
-  const MAX_PAGES_SAFETY_CAP = 10;
+  const MAX_PAGES_SAFETY_CAP = 5;
   const MAX_WINDOW = Math.max(...RECENT_WINDOWS_DAYS);
-
-  while (!hitStaleRecord && pagesFetched < MAX_PAGES_SAFETY_CAP) {
+  while (pagesFetched < MAX_PAGES_SAFETY_CAP) {
     const query = {
       make: parsed.make,
       model: cleanModel,
@@ -97,47 +94,33 @@ async function fetchRecentRecords(parsed, liquidityTierOrNull, apiKey, supabaseU
       page,
       limit: 50
     };
-
     const apiResult = await callOldCarsData("/auctions", query, apiKey);
     const pageRecords = apiResult.data || [];
     pagesFetched++;
-
     if (pageRecords.length === 0) break;
-
-    for (const record of pageRecords) {
-      if (daysAgo(record.auction_end_date) > MAX_WINDOW) {
-        hitStaleRecord = true;
-        break;
-      }
-      allRecords.push(record);
-    }
-
+    allRecords.push(...pageRecords);
     const totalPages = apiResult.meta?.total_pages ?? 1;
     if (page >= totalPages) break;
     page++;
   }
-
-  await saveRawRecords(allRecords, supabaseUrl, supabaseKey);
-  const classified = allRecords.map(classifyTrim);
-  await saveVehicleIntelligence(allRecords, classified, supabaseUrl, supabaseKey);
-
+  const withinMaxWindow = allRecords.filter(r => daysAgo(r.auction_end_date) <= MAX_WINDOW);
+  await saveRawRecords(withinMaxWindow, supabaseUrl, supabaseKey);
+  const classified = withinMaxWindow.map(classifyTrim);
+  await saveVehicleIntelligence(withinMaxWindow, classified, supabaseUrl, supabaseKey);
   for (const windowDays of RECENT_WINDOWS_DAYS) {
     const threshold = await getRecencyThreshold(liquidityTier, windowDays, supabaseUrl, supabaseKey);
     if (threshold === null) continue;
-
-    const inWindow = allRecords.filter((r, i) => {
+    const inWindow = withinMaxWindow.filter((r, i) => {
       const withinDays = daysAgo(r.auction_end_date) <= windowDays;
       const confidentMatch = classified[i].classification_confidence === "high" ||
                               classified[i].classification_confidence === "medium";
       return withinDays && confidentMatch;
     });
-
     if (inWindow.length >= threshold) {
-      return { records: allRecords, classified, windowUsed: windowDays, thin: false, pagesFetched };
+      return { records: withinMaxWindow, classified, windowUsed: windowDays, thin: false, pagesFetched };
     }
   }
-
-  return { records: allRecords, classified, windowUsed: null, thin: true, pagesFetched };
+  return { records: withinMaxWindow, classified, windowUsed: null, thin: true, pagesFetched };
 }
 function findTrimIn(text, trimList) {
   if (!text) return null;
