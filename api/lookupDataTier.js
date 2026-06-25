@@ -359,6 +359,7 @@ async function fetchRecentRecords(parsed, liquidityTierOrNull, apiKey, supabaseU
     pagesFetched++;
 
     if (pageRecords.length === 0) break;
+    console.log("SAMPLE RECORD KEYS:", JSON.stringify(pageRecords[0]));
     allRecords.push(...pageRecords);
 
     const totalPages = apiResult.meta?.total_pages ?? 1;
