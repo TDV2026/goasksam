@@ -132,7 +132,42 @@ function resolveCar(searchContext) {
   searchContext.normalizedCar = parsed;
   return searchContext;
 }
+async function saveRawRecords(records, supabaseUrl, supabaseKey) {
+  if (!records || records.length === 0) return;
 
+  const rows = records.map(r => ({
+    source: "oldcarsdata",
+    source_record_id: String(r.id ?? r.source_record_id ?? r.listing_id),
+    make: r.ocd_make_name || r.listing_make || null,
+    model: r.ocd_model_name || r.listing_model || null,
+    raw_title: r.title || null,
+    raw_listing_model: r.listing_model || null,
+    raw_description: r.description || null,
+    price: r.price ?? null,
+    auction_status: r.auction_status ?? null,
+    auction_end_date: r.auction_end_date ?? null,
+    seller_username: r.seller_username ?? null,
+    year: r.year ?? null,
+    raw_record: r,
+    ingested_at: new Date().toISOString(),
+    ingestion_batch_id: crypto.randomUUID()
+  }));
+
+  try {
+    await fetch(`${supabaseUrl}/rest/v1/vehicle_market_records`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        Prefer: "resolution=ignore-duplicates"
+      },
+      body: JSON.stringify(rows)
+    });
+  } catch (err) {
+    console.error("vehicle_market_records write failed:", err.message);
+  }
+}
 function buildCacheKey(parsed) {
   return [parsed.make, parsed.modelGuess, parsed.year].filter(Boolean).join("|").toLowerCase();
 }
@@ -190,8 +225,8 @@ async function fetchCandidateRecords(searchContext, apiKey, supabaseUrl, supabas
     limit: 50
   };
   const apiResult = await callOldCarsData("/auctions", query, apiKey);
-  searchContext.rawRecords = apiResult.data || [];
-  return searchContext;
+searchContext.rawRecords = apiResult.data || [];
+  await saveRawRecords(searchContext.rawRecords, supabaseUrl, supabaseKey);  return searchContext;
 }
 
 function normalizeRecords(searchContext) {
