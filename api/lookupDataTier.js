@@ -47,7 +47,44 @@ const TRIM_TAXONOMY = {
     "Dakar"
   ]
 };
+let MAKES_CACHE = null;
+let MODELS_CACHE = {};
 
+async function getMakes() {
+  if (MAKES_CACHE) return MAKES_CACHE;
+  const res = await fetch(`${OLDCARSDATA_BASE}/makes`);
+  if (!res.ok) return [];
+  const json = await res.json();
+  MAKES_CACHE = json.data || [];
+  return MAKES_CACHE;
+}
+
+async function getModels(make) {
+  if (MODELS_CACHE[make]) return MODELS_CACHE[make];
+  const res = await fetch(`${OLDCARSDATA_BASE}/models?make=${encodeURIComponent(make)}`);
+  if (!res.ok) return [];
+  const json = await res.json();
+  MODELS_CACHE[make] = json.data || [];
+  return MODELS_CACHE[make];
+}
+
+async function matchMake(rawText) {
+  const makes = await getMakes();
+  const lower = rawText.toLowerCase();
+  return makes.find(m => lower.includes(m.toLowerCase())) || null;
+}
+
+async function matchModel(make, rawText) {
+  const models = await getModels(make);
+  const lower = rawText.toLowerCase();
+  let best = null;
+  for (const model of models) {
+    if (lower.includes(model.toLowerCase())) {
+      if (!best || model.length > best.length) best = model;
+    }
+  }
+  return best;
+}
 function getTaxonomyKey(make, model) {
   return `${make}|${model}`;
 }
@@ -99,52 +136,43 @@ function classifyTrim(record) {
   return { ...base, normalized_trim: null, classification_source: null, matched_terms: [], classification_confidence: "unknown", needs_review: true };
 }
 
-function resolveCar(searchContext) {
+async function resolveCar(searchContext) {
   const text = (searchContext.userInput || "").trim();
   const yearMatch = text.match(/\b(19|20)\d{2}\b/);
   const year = yearMatch ? parseInt(yearMatch[0], 10) : null;
 
-  const KNOWN_MAKES = ["porsche", "bmw", "ruf", "audi", "ferrari", "mercedes", "toyota", "nissan", "dodge"];
-  const lower = text.toLowerCase();
-  const make = KNOWN_MAKES.find(m => lower.includes(m)) || null;
+  const make = await matchMake(text);
 
   let remainder = text;
   if (yearMatch) remainder = remainder.replace(yearMatch[0], "");
   if (make) remainder = remainder.replace(new RegExp(make, "i"), "");
   remainder = remainder.trim();
 
-  const parsed = { raw: text, year, make: make ? make[0].toUpperCase() + make.slice(1) : null, modelGuess: remainder || null };
+  const model = make ? await matchModel(make, remainder) : null;
 
-  const hasYear = !!parsed.year;
-  // Word count, not character length. A bare model name alone ("911",
-  // "M3") is exactly one word and is NOT specific.
-  const modelWords = (parsed.modelGuess || "").trim().split(/\s+/).filter(Boolean);
-  const hasModelDetail = modelWords.length >= 2;
+  const parsed = { raw: text, year, make, modelGuess: remainder || null, model };
+
   const contextFields = searchContext.contextFields || {};
 
-  let specific = true;
-  let clarification = null;
-
-  if (contextFields.vin || contextFields.year) {
-    specific = true;
-  } else if (!hasYear && !hasModelDetail) {
-    specific = false;
-    clarification = {
-      question: `Which ${parsed.make || "car"} are we talking about — what year, and any specific trim?`,
-      missingFields: ["year", "generation", "trim"]
-    };
-  }
-
-  if (!specific) {
+  if (!make) {
     searchContext.status = "needs_clarification";
-    searchContext.clarification = clarification;
+    searchContext.clarification = {
+      question: "Which make and model are we talking about?",
+      missingFields: ["make", "model"]
+    };
     searchContext.normalizedCar = null;
     return searchContext;
   }
 
-  if (!parsed.make) {
-    searchContext.status = "unidentifiable";
-    searchContext.clarification = null;
+  const hasYear = !!parsed.year;
+  const hasModel = !!model;
+
+  if (!hasYear && !hasModel && !(contextFields.vin || contextFields.year)) {
+    searchContext.status = "needs_clarification";
+    searchContext.clarification = {
+      question: `Which ${make} are we talking about — what year, model, and any specific trim?`,
+      missingFields: ["year", "model", "trim"]
+    };
     searchContext.normalizedCar = null;
     return searchContext;
   }
@@ -563,8 +591,7 @@ async function runPipeline(userInput, contextFields, apiKey, supabaseUrl, supaba
     contextFields: contextFields || {}
   };
 
-  searchContext = resolveCar(searchContext);
-
+searchContext = await resolveCar(searchContext);
   if (searchContext.status === "needs_clarification") {
     return { status: "needs_clarification", matchedScope: null, clarification: searchContext.clarification };
   }
