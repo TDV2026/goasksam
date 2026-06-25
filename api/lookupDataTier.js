@@ -34,7 +34,111 @@ const TRIM_TAXONOMY = {
 function getTaxonomyKey(make, model) {
   return `${make}|${model}`;
 }
+const RECENT_WINDOWS_DAYS = [45, 90];
 
+function daysAgo(dateString) {
+  if (!dateString) return Infinity;
+  const then = new Date(dateString).getTime();
+  const now = Date.now();
+  return Math.floor((now - then) / (1000 * 60 * 60 * 24));
+}
+
+async function getRecencyThreshold(liquidityTier, windowDays, supabaseUrl, supabaseKey) {
+  const url = `${supabaseUrl}/rest/v1/recency_thresholds?liquidity_tier=eq.${liquidityTier}&window_days=eq.${windowDays}&select=min_records`;
+  const res = await fetch(url, {
+    headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
+  });
+  if (!res.ok) return null;
+  const rows = await res.json();
+  return rows && rows.length > 0 ? rows[0].min_records : null;
+}
+
+async function getLiquidityTier(make, modelGuess, supabaseUrl, supabaseKey) {
+  const trimGuess = (modelGuess || "").trim();
+  if (!trimGuess) return null;
+  try {
+    const url = `${supabaseUrl}/rest/v1/taxonomy?make=eq.${encodeURIComponent(make)}&active=eq.true&select=trim,expected_liquidity,priority&order=priority.asc`;
+    const res = await fetch(url, {
+      headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
+    });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    const lower = trimGuess.toLowerCase();
+    for (const row of rows) {
+      if (lower.includes(row.trim.toLowerCase())) return row.expected_liquidity;
+    }
+    return null;
+  } catch (err) {
+    console.error("getLiquidityTier failed:", err.message);
+    return null;
+  }
+}
+
+async function fetchRecentRecords(parsed, liquidityTierOrNull, apiKey, supabaseUrl, supabaseKey) {
+  const liquidityTier = liquidityTierOrNull || 'normal';
+  const modelWords = (parsed.modelGuess || "").split(" ").filter(Boolean);
+  const cleanModel = modelWords[0] || undefined;
+
+  let allRecords = [];
+  let page = 1;
+  let pagesFetched = 0;
+  let hitStaleRecord = false;
+  const MAX_PAGES_SAFETY_CAP = 10;
+  const MAX_WINDOW = Math.max(...RECENT_WINDOWS_DAYS);
+
+  while (!hitStaleRecord && pagesFetched < MAX_PAGES_SAFETY_CAP) {
+    const query = {
+      make: parsed.make,
+      model: cleanModel,
+      keyword: parsed.modelGuess || undefined,
+      status: "sold",
+      sort: "date",
+      direction: "desc",
+      page,
+      limit: 50
+    };
+
+    const apiResult = await callOldCarsData("/auctions", query, apiKey);
+    const pageRecords = apiResult.data || [];
+    pagesFetched++;
+
+    if (pageRecords.length === 0) break;
+
+    for (const record of pageRecords) {
+      if (daysAgo(record.auction_end_date) > MAX_WINDOW) {
+        hitStaleRecord = true;
+        break;
+      }
+      allRecords.push(record);
+    }
+
+    const totalPages = apiResult.meta?.total_pages ?? 1;
+    if (page >= totalPages) break;
+    page++;
+  }
+
+  await saveRawRecords(allRecords, supabaseUrl, supabaseKey);
+  const classified = allRecords.map(classifyTrim);
+  await saveVehicleIntelligence(allRecords, classified, supabaseUrl, supabaseKey);
+
+  for (const windowDays of RECENT_WINDOWS_DAYS) {
+    const threshold = await getRecencyThreshold(liquidityTier, windowDays, supabaseUrl, supabaseKey);
+    if (threshold === null) continue;
+
+    const inWindow = allRecords.filter((r, i) => {
+      const withinDays = daysAgo(r.auction_end_date) <= windowDays;
+      const confidentMatch = classified[i].classification_confidence === "high" ||
+                              classified[i].classification_confidence === "medium";
+      return withinDays && confidentMatch;
+    });
+
+    if (inWindow.length >= threshold) {
+      return { records: allRecords, classified, windowUsed: windowDays, thin: false, pagesFetched };
+    }
+  }
+
+  return { records: allRecords, classified, windowUsed: null, thin: true, pagesFetched };
+}
 function findTrimIn(text, trimList) {
   if (!text) return null;
   const lower = text.toLowerCase();
