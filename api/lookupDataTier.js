@@ -1,12 +1,29 @@
-// api/lookupDataTier.js — fixes applied:
-// 1. hasModelDetail now checks word count, not character length, so a
-//    bare model name alone ("911") correctly triggers needs_clarification.
-// 2. determineDataTier only confirms a Tier 1 match against the trim the
-//    user actually requested, not any confident match anywhere in the batch.
+// api/lookupDataTier.js
+//
+// Session changes applied, in order:
+// 1. hasModelDetail checks word count, not character length, so a bare
+//    model name alone ("911") correctly triggers needs_clarification.
+// 2. determineDataTier only confirms an exact-trim match against the trim
+//    the user actually requested, never any confident match anywhere in
+//    the batch.
 // 3. "Carrera T" added to taxonomy, ordered before plain "Carrera".
+// 4. saveRawRecords() persists every fetched record to vehicle_market_records
+//    permanently, before any tier/recommendation logic runs.
+// 5. saveVehicleIntelligence() persists every classification to
+//    vehicle_intelligence, keyed back to its market_record_id.
+// 6. fetchRecentRecords() replaces the old single-page, no-recency fetch.
+//    It fetches up to a safety cap of pages, then filters the FULL combined
+//    set by real auction_end_date afterward -- it does NOT trust
+//    OldCarsData's sort=date to mean "stop early once we see one old
+//    record," because that sort does not reliably keep auction_end_date in
+//    strict order page-to-page.
+// 7. determineDataTier returns structured facts (exactTrimSales, windowDays,
+//    minimumEvidenceRequired, thin, analysisDate) instead of constructed
+//    prose sentences -- presentation belongs in the UI/Sam layer, not here.
 
 const OLDCARSDATA_BASE = "https://api.oldcarsdata.com";
 const CACHE_REFRESH_HOURS = 24;
+const RECENT_WINDOWS_DAYS = [45, 90]; // config, not magic numbers buried in logic
 
 const TRIM_TAXONOMY = {
   "Porsche|911": [
@@ -34,94 +51,7 @@ const TRIM_TAXONOMY = {
 function getTaxonomyKey(make, model) {
   return `${make}|${model}`;
 }
-const RECENT_WINDOWS_DAYS = [45, 90];
 
-function daysAgo(dateString) {
-  if (!dateString) return Infinity;
-  const then = new Date(dateString).getTime();
-  const now = Date.now();
-  return Math.floor((now - then) / (1000 * 60 * 60 * 24));
-}
-
-async function getRecencyThreshold(liquidityTier, windowDays, supabaseUrl, supabaseKey) {
-  const url = `${supabaseUrl}/rest/v1/recency_thresholds?liquidity_tier=eq.${liquidityTier}&window_days=eq.${windowDays}&select=min_records`;
-  const res = await fetch(url, {
-    headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
-  });
-  if (!res.ok) return null;
-  const rows = await res.json();
-  return rows && rows.length > 0 ? rows[0].min_records : null;
-}
-
-async function getLiquidityTier(make, modelGuess, supabaseUrl, supabaseKey) {
-  const trimGuess = (modelGuess || "").trim();
-  if (!trimGuess) return null;
-  try {
-    const url = `${supabaseUrl}/rest/v1/taxonomy?make=eq.${encodeURIComponent(make)}&active=eq.true&select=trim,expected_liquidity,priority&order=priority.asc`;
-    const res = await fetch(url, {
-      headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
-    });
-    if (!res.ok) return null;
-    const rows = await res.json();
-    const lower = trimGuess.toLowerCase();
-    for (const row of rows) {
-      if (lower.includes(row.trim.toLowerCase())) return row.expected_liquidity;
-    }
-    return null;
-  } catch (err) {
-    console.error("getLiquidityTier failed:", err.message);
-    return null;
-  }
-}
-
-async function fetchRecentRecords(parsed, liquidityTierOrNull, apiKey, supabaseUrl, supabaseKey) {
-  const liquidityTier = liquidityTierOrNull || 'normal';
-  const modelWords = (parsed.modelGuess || "").split(" ").filter(Boolean);
-  const cleanModel = modelWords[0] || undefined;
-  let allRecords = [];
-  let page = 1;
-  let pagesFetched = 0;
-  const MAX_PAGES_SAFETY_CAP = 5;
-  const MAX_WINDOW = Math.max(...RECENT_WINDOWS_DAYS);
-  while (pagesFetched < MAX_PAGES_SAFETY_CAP) {
-    const query = {
-      make: parsed.make,
-      model: cleanModel,
-      keyword: parsed.modelGuess || undefined,
-      status: "sold",
-      sort: "date",
-      direction: "desc",
-      page,
-      limit: 50
-    };
-    const apiResult = await callOldCarsData("/auctions", query, apiKey);
-    const pageRecords = apiResult.data || [];
-    pagesFetched++;
-    if (pageRecords.length === 0) break;
-    allRecords.push(...pageRecords);
-    const totalPages = apiResult.meta?.total_pages ?? 1;
-    if (page >= totalPages) break;
-    page++;
-  }
-  const withinMaxWindow = allRecords.filter(r => daysAgo(r.auction_end_date) <= MAX_WINDOW);
-  await saveRawRecords(withinMaxWindow, supabaseUrl, supabaseKey);
-  const classified = withinMaxWindow.map(classifyTrim);
-  await saveVehicleIntelligence(withinMaxWindow, classified, supabaseUrl, supabaseKey);
-  for (const windowDays of RECENT_WINDOWS_DAYS) {
-    const threshold = await getRecencyThreshold(liquidityTier, windowDays, supabaseUrl, supabaseKey);
-    if (threshold === null) continue;
-    const inWindow = withinMaxWindow.filter((r, i) => {
-      const withinDays = daysAgo(r.auction_end_date) <= windowDays;
-      const confidentMatch = classified[i].classification_confidence === "high" ||
-                              classified[i].classification_confidence === "medium";
-      return withinDays && confidentMatch;
-    });
-    if (inWindow.length >= threshold) {
-      return { records: withinMaxWindow, classified, windowUsed: windowDays, thin: false, pagesFetched };
-    }
-  }
-  return { records: withinMaxWindow, classified, windowUsed: null, thin: true, pagesFetched };
-}
 function findTrimIn(text, trimList) {
   if (!text) return null;
   const lower = text.toLowerCase();
@@ -129,6 +59,13 @@ function findTrimIn(text, trimList) {
     if (lower.includes(trim.toLowerCase())) return trim;
   }
   return null;
+}
+
+function daysAgo(dateString) {
+  if (!dateString) return Infinity; // no date = treat as unknown/stale, never counts as "recent"
+  const then = new Date(dateString).getTime();
+  const now = Date.now();
+  return Math.floor((now - then) / (1000 * 60 * 60 * 24));
 }
 
 function classifyTrim(record) {
@@ -179,10 +116,8 @@ function resolveCar(searchContext) {
   const parsed = { raw: text, year, make: make ? make[0].toUpperCase() + make.slice(1) : null, modelGuess: remainder || null };
 
   const hasYear = !!parsed.year;
-  // FIX: word count, not character length. A bare model name alone
-  // ("911", "M3") is exactly one word and is NOT specific — "911" passing
-  // the old `.length > 2` check was the root cause of the "Porsche 911"
-  // bug, where a whole model family silently matched a specific trim.
+  // Word count, not character length. A bare model name alone ("911",
+  // "M3") is exactly one word and is NOT specific.
   const modelWords = (parsed.modelGuess || "").trim().split(/\s+/).filter(Boolean);
   const hasModelDetail = modelWords.length >= 2;
   const contextFields = searchContext.contextFields || {};
@@ -219,6 +154,7 @@ function resolveCar(searchContext) {
   searchContext.normalizedCar = parsed;
   return searchContext;
 }
+
 async function saveRawRecords(records, supabaseUrl, supabaseKey) {
   if (!records || records.length === 0) return;
 
@@ -254,62 +190,6 @@ async function saveRawRecords(records, supabaseUrl, supabaseKey) {
   } catch (err) {
     console.error("vehicle_market_records write failed:", err.message);
   }
-}
-function buildCacheKey(parsed) {
-  return [parsed.make, parsed.modelGuess, parsed.year].filter(Boolean).join("|").toLowerCase();
-}
-
-async function getCachedResult(cacheKey, supabaseUrl, supabaseKey) {
-  const url = `${supabaseUrl}/rest/v1/data_tier_cache?cache_key=eq.${encodeURIComponent(cacheKey)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=result`;
-  const res = await fetch(url, {
-    headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
-  });
-  if (!res.ok) return null;
-  const rows = await res.json();
-  return rows && rows.length > 0 ? rows[0].result : null;
-}
-
-async function callOldCarsData(path, params, apiKey) {
-  const url = new URL(`${OLDCARSDATA_BASE}${path}`);
-  Object.entries(params).forEach(([k, v]) => {
-    if (v !== null && v !== undefined && v !== "") url.searchParams.set(k, v);
-  });
-
-  const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${apiKey}` } });
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(`OldCarsData ${res.status}: ${body.message || "request failed"}`);
-  }
-
-  return res.json();
-}
-
-async function fetchCandidateRecords(searchContext, apiKey, supabaseUrl, supabaseKey) {
-  const parsed = searchContext.normalizedCar;
-  const cacheKey = buildCacheKey(parsed);
-  searchContext.cacheKey = cacheKey;
-
-  const cached = await getCachedResult(cacheKey, supabaseUrl, supabaseKey);
-  if (cached) {
-    searchContext.cacheHit = true;
-    searchContext.cachedResult = cached;
-    searchContext.rawRecords = [];
-    return searchContext;
-  }
-
-  searchContext.cacheHit = false;
-
-  const liquidityTier = await getLiquidityTier(parsed.make, parsed.modelGuess, supabaseUrl, supabaseKey);
-  const recencyResult = await fetchRecentRecords(parsed, liquidityTier, apiKey, supabaseUrl, supabaseKey);
-
-  searchContext.rawRecords = recencyResult.records;
-  searchContext.normalizedRecords = recencyResult.classified;
-  searchContext.windowUsed = recencyResult.windowUsed;
-  searchContext.thin = recencyResult.thin;
-  searchContext.liquidityTier = liquidityTier;
-
-  return searchContext;
 }
 
 async function saveVehicleIntelligence(rawRecords, classifiedRecords, supabaseUrl, supabaseKey) {
@@ -376,7 +256,188 @@ async function saveVehicleIntelligence(rawRecords, classifiedRecords, supabaseUr
   }
 }
 
+function buildCacheKey(parsed) {
+  return [parsed.make, parsed.modelGuess, parsed.year].filter(Boolean).join("|").toLowerCase();
+}
+
+async function getCachedResult(cacheKey, supabaseUrl, supabaseKey) {
+  const url = `${supabaseUrl}/rest/v1/data_tier_cache?cache_key=eq.${encodeURIComponent(cacheKey)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=result`;
+  const res = await fetch(url, {
+    headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
+  });
+  if (!res.ok) return null;
+  const rows = await res.json();
+  return rows && rows.length > 0 ? rows[0].result : null;
+}
+
+async function callOldCarsData(path, params, apiKey) {
+  const url = new URL(`${OLDCARSDATA_BASE}${path}`);
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== null && v !== undefined && v !== "") url.searchParams.set(k, v);
+  });
+
+  const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${apiKey}` } });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(`OldCarsData ${res.status}: ${body.message || "request failed"}`);
+  }
+
+  return res.json();
+}
+
+async function getRecencyThreshold(liquidityTier, windowDays, supabaseUrl, supabaseKey) {
+  const url = `${supabaseUrl}/rest/v1/recency_thresholds?liquidity_tier=eq.${liquidityTier}&window_days=eq.${windowDays}&select=min_records`;
+  const res = await fetch(url, {
+    headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
+  });
+  if (!res.ok) return null;
+  const rows = await res.json();
+  return rows && rows.length > 0 ? rows[0].min_records : null;
+}
+
+async function getLiquidityTier(make, modelGuess, supabaseUrl, supabaseKey) {
+  const trimGuess = (modelGuess || "").trim();
+  if (!trimGuess) return null;
+  try {
+    const url = `${supabaseUrl}/rest/v1/taxonomy?make=eq.${encodeURIComponent(make)}&active=eq.true&select=trim,expected_liquidity,priority&order=priority.asc`;
+    const res = await fetch(url, {
+      headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
+    });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    const lower = trimGuess.toLowerCase();
+    for (const row of rows) {
+      if (lower.includes(row.trim.toLowerCase())) return row.expected_liquidity;
+    }
+    return null;
+  } catch (err) {
+    console.error("getLiquidityTier failed:", err.message);
+    return null;
+  }
+}
+
+/**
+ * Fetches OldCarsData /auctions, sorted newest-first, up to a safety cap of
+ * pages. Does NOT trust sort=date to mean it's safe to stop early the
+ * moment one old record appears -- that assumption was tested and proven
+ * wrong (auction_end_date is not reliably monotonic page-to-page). Instead,
+ * it fetches every page up to the cap, then filters the FULL combined set
+ * by real auction_end_date afterward.
+ *
+ * Every fetched-and-in-window record is saved permanently to
+ * vehicle_market_records and vehicle_intelligence, regardless of whether
+ * the recency threshold for a recommendation ends up being met. Recency
+ * was only the reason we fetched it -- once fetched, it's permanent Layer 1
+ * data, same as any other ingestion.
+ */
+async function fetchRecentRecords(parsed, liquidityTierOrNull, apiKey, supabaseUrl, supabaseKey) {
+  const liquidityTier = liquidityTierOrNull || 'normal';
+  const modelWords = (parsed.modelGuess || "").split(" ").filter(Boolean);
+  const cleanModel = modelWords[0] || undefined;
+
+  let allRecords = [];
+  let page = 1;
+  let pagesFetched = 0;
+  const MAX_PAGES_SAFETY_CAP = 5; // budget guard -- early-stop is not reliable, so cap pages instead
+  const MAX_WINDOW = Math.max(...RECENT_WINDOWS_DAYS);
+
+  while (pagesFetched < MAX_PAGES_SAFETY_CAP) {
+    const query = {
+      make: parsed.make,
+      model: cleanModel,
+      keyword: parsed.modelGuess || undefined,
+      status: "sold", // recency comps should be actual sales, not reserve-not-met/active listings
+      sort: "date",
+      direction: "desc",
+      page,
+      limit: 50
+    };
+
+    const apiResult = await callOldCarsData("/auctions", query, apiKey);
+    const pageRecords = apiResult.data || [];
+    pagesFetched++;
+
+    if (pageRecords.length === 0) break;
+    allRecords.push(...pageRecords);
+
+    const totalPages = apiResult.meta?.total_pages ?? 1;
+    if (page >= totalPages) break;
+    page++;
+  }
+
+  // Filter to the widest window we care about BEFORE saving or evaluating
+  // thresholds, so nothing far outside any recency window gets persisted
+  // just because it happened to share a page with relevant records.
+  const withinMaxWindow = allRecords.filter(r => daysAgo(r.auction_end_date) <= MAX_WINDOW);
+
+  await saveRawRecords(withinMaxWindow, supabaseUrl, supabaseKey);
+  const classified = withinMaxWindow.map(classifyTrim);
+  await saveVehicleIntelligence(withinMaxWindow, classified, supabaseUrl, supabaseKey);
+
+  let lastThresholdChecked = null;
+  for (const windowDays of RECENT_WINDOWS_DAYS) {
+    const threshold = await getRecencyThreshold(liquidityTier, windowDays, supabaseUrl, supabaseKey);
+    if (threshold === null) continue;
+    lastThresholdChecked = threshold;
+
+    const inWindow = withinMaxWindow.filter((r, i) => {
+      const withinDays = daysAgo(r.auction_end_date) <= windowDays;
+      const confidentMatch = classified[i].classification_confidence === "high" ||
+                              classified[i].classification_confidence === "medium";
+      return withinDays && confidentMatch;
+    });
+
+    if (inWindow.length >= threshold) {
+      return { records: withinMaxWindow, classified, windowUsed: windowDays, thin: false, pagesFetched, threshold };
+    }
+  }
+
+  // Even the widest window didn't meet threshold -- recent data is thin.
+  // Report the widest window checked and its threshold so the caller can
+  // state real numbers rather than nulls.
+  return {
+    records: withinMaxWindow,
+    classified,
+    windowUsed: RECENT_WINDOWS_DAYS[RECENT_WINDOWS_DAYS.length - 1],
+    thin: true,
+    pagesFetched,
+    threshold: lastThresholdChecked
+  };
+}
+
+async function fetchCandidateRecords(searchContext, apiKey, supabaseUrl, supabaseKey) {
+  const parsed = searchContext.normalizedCar;
+  const cacheKey = buildCacheKey(parsed);
+  searchContext.cacheKey = cacheKey;
+
+  const cached = await getCachedResult(cacheKey, supabaseUrl, supabaseKey);
+  if (cached) {
+    searchContext.cacheHit = true;
+    searchContext.cachedResult = cached;
+    searchContext.rawRecords = [];
+    return searchContext;
+  }
+
+  searchContext.cacheHit = false;
+
+  const liquidityTier = await getLiquidityTier(parsed.make, parsed.modelGuess, supabaseUrl, supabaseKey);
+  const recencyResult = await fetchRecentRecords(parsed, liquidityTier, apiKey, supabaseUrl, supabaseKey);
+
+  searchContext.rawRecords = recencyResult.records;
+  searchContext.normalizedRecords = recencyResult.classified;
+  searchContext.windowUsed = recencyResult.windowUsed;
+  searchContext.thin = recencyResult.thin;
+  searchContext.minimumEvidenceRequired = recencyResult.threshold;
+  searchContext.liquidityTier = liquidityTier;
+
+  return searchContext;
+}
+
 async function normalizeRecords(searchContext, supabaseUrl, supabaseKey) {
+  // Only reached if rawRecords exist but were never classified by
+  // fetchRecentRecords (defensive fallback -- in the current pipeline,
+  // fetchRecentRecords always classifies, so this should rarely run).
   searchContext.normalizedRecords = (searchContext.rawRecords || []).map(classifyTrim);
   await saveVehicleIntelligence(
     searchContext.rawRecords,
@@ -387,6 +448,11 @@ async function normalizeRecords(searchContext, supabaseUrl, supabaseKey) {
   return searchContext;
 }
 
+/**
+ * Returns structured facts about the exact-trim match, never constructed
+ * prose. Presentation (what Sam says, what the UI shows) is a downstream
+ * concern -- this function's job is to report what's true.
+ */
 async function determineDataTier(searchContext, supabaseUrl, supabaseKey) {
   const parsed = searchContext.normalizedCar;
   const records = searchContext.rawRecords || [];
@@ -395,15 +461,24 @@ async function determineDataTier(searchContext, supabaseUrl, supabaseKey) {
   let result;
 
   if (records.length === 0) {
-    result = { status: "matched", level: "3", levelDescription: "no usable data at all", matchedScope: null, clarification: null };
+    result = {
+      status: "matched",
+      matchedScope: null,
+      exactTrim: null,
+      exactTrimSales: 0,
+      windowDays: searchContext.windowUsed ?? null,
+      minimumEvidenceRequired: searchContext.minimumEvidenceRequired ?? null,
+      thin: true,
+      analysisDate: new Date().toISOString().split('T')[0],
+      clarification: null
+    };
   } else {
-    // FIX: figure out which specific trim the user actually asked about,
-    // by checking modelGuess against the same taxonomy used for
-    // classification. If a specific trim was requested, ONLY count a
-    // record as confirming Tier 1 if its classified trim matches that
-    // request — never just "any confident match anywhere in the batch."
+    // Identify which specific trim the user actually asked about, by
+    // checking modelGuess against the same taxonomy used for
+    // classification. Only an exact match against THAT requested trim
+    // counts -- never any confident match anywhere in the batch.
     const taxonomyKey = `${parsed.make}|${(parsed.modelGuess || "").split(" ")[0]}`;
-    const trimList = TRIM_TAXONOMY[taxonomyKey] || TRIM_TAXONOMY[`${parsed.make}|911`]; // fallback for Porsche 911 specifically while taxonomy is 911-only
+    const trimList = TRIM_TAXONOMY[taxonomyKey] || TRIM_TAXONOMY[`${parsed.make}|911`]; // fallback while taxonomy is 911-only
     const requestedTrim = trimList ? findTrimIn(parsed.modelGuess, trimList) : null;
 
     if (requestedTrim) {
@@ -412,47 +487,33 @@ async function determineDataTier(searchContext, supabaseUrl, supabaseKey) {
         (c.classification_confidence === "high" || c.classification_confidence === "medium")
       );
 
-      if (matchingRequestedTrim.length > 0) {
-        result = {
-          status: "matched",
-          level: "1",
-          levelDescription: "exact model+trim match",
-          matchedScope: `${parsed.year || ""} ${parsed.make} ${requestedTrim}`.trim(),
-          clarification: null
-        };
-      } else {
-        result = {
-          status: "matched",
-          level: "2",
-          levelDescription: `no confirmed sales of "${requestedTrim}" specifically yet — make/model-level data only`,
-          matchedScope: `${parsed.make} ${parsed.modelGuess || ""}`.trim(),
-          clarification: null
-        };
-      }
+      result = {
+        status: "matched",
+        matchedScope: `${parsed.make} ${parsed.modelGuess || ""}`.trim(),
+        exactTrim: requestedTrim,
+        exactTrimSales: matchingRequestedTrim.length,
+        windowDays: searchContext.windowUsed,
+        minimumEvidenceRequired: searchContext.minimumEvidenceRequired,
+        thin: !!searchContext.thin,
+        analysisDate: new Date().toISOString().split('T')[0],
+        clarification: null
+      };
     } else {
-      // No specific trim recognized in the request — fall back to any
-      // confident match (original behavior, used when resolveCar's
-      // specificity check let through a request that names a generation
-      // or other detail not in the trim taxonomy).
+      // No specific trim recognized in the request -- report against
+      // whatever confident matches exist in the batch generally.
       const highConfidenceMatches = classified.filter(c => c.classification_confidence === "high" || c.classification_confidence === "medium");
 
-      if (highConfidenceMatches.length > 0) {
-        result = {
-          status: "matched",
-          level: "1",
-          levelDescription: "exact model+trim match",
-          matchedScope: `${parsed.year || ""} ${parsed.make} ${highConfidenceMatches[0].normalized_trim || parsed.modelGuess}`.trim(),
-          clarification: null
-        };
-      } else {
-        result = {
-          status: "matched",
-          level: "2",
-          levelDescription: "make/model-level only — no usable trim-specific data",
-          matchedScope: `${parsed.make} ${parsed.modelGuess || ""}`.trim(),
-          clarification: null
-        };
-      }
+      result = {
+        status: "matched",
+        matchedScope: `${parsed.make} ${parsed.modelGuess || ""}`.trim(),
+        exactTrim: highConfidenceMatches[0]?.normalized_trim || null,
+        exactTrimSales: highConfidenceMatches.length,
+        windowDays: searchContext.windowUsed,
+        minimumEvidenceRequired: searchContext.minimumEvidenceRequired,
+        thin: !!searchContext.thin,
+        analysisDate: new Date().toISOString().split('T')[0],
+        clarification: null
+      };
     }
   }
 
@@ -494,10 +555,10 @@ async function runPipeline(userInput, contextFields, apiKey, supabaseUrl, supaba
   searchContext = resolveCar(searchContext);
 
   if (searchContext.status === "needs_clarification") {
-    return { status: "needs_clarification", level: null, levelDescription: null, matchedScope: null, clarification: searchContext.clarification };
+    return { status: "needs_clarification", matchedScope: null, clarification: searchContext.clarification };
   }
   if (searchContext.status === "unidentifiable") {
-    return { status: "unidentifiable", level: null, levelDescription: null, matchedScope: null, clarification: null };
+    return { status: "unidentifiable", matchedScope: null, clarification: null };
   }
 
   searchContext = await fetchCandidateRecords(searchContext, apiKey, supabaseUrl, supabaseKey);
@@ -506,9 +567,11 @@ async function runPipeline(userInput, contextFields, apiKey, supabaseUrl, supaba
     return searchContext.cachedResult;
   }
 
-if (!searchContext.normalizedRecords) {
+  if (!searchContext.normalizedRecords) {
     searchContext = await normalizeRecords(searchContext, supabaseUrl, supabaseKey);
-  }  searchContext = await determineDataTier(searchContext, supabaseUrl, supabaseKey);
+  }
+
+  searchContext = await determineDataTier(searchContext, supabaseUrl, supabaseKey);
 
   return searchContext.dataTier;
 }
