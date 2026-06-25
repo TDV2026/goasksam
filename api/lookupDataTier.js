@@ -317,20 +317,16 @@ async function fetchCandidateRecords(searchContext, apiKey, supabaseUrl, supabas
 
   searchContext.cacheHit = false;
 
-  const modelWords = (parsed.modelGuess || "").split(" ").filter(Boolean);
-  const cleanModel = modelWords[0] || undefined;
+  const liquidityTier = await getLiquidityTier(parsed.make, parsed.modelGuess, supabaseUrl, supabaseKey);
+  const recencyResult = await fetchRecentRecords(parsed, liquidityTier, apiKey, supabaseUrl, supabaseKey);
 
-  const query = {
-    make: parsed.make,
-    model: cleanModel,
-    keyword: parsed.modelGuess || undefined,
-    year_min: parsed.year || undefined,
-    year_max: parsed.year || undefined,
-    limit: 50
-  };
-  const apiResult = await callOldCarsData("/auctions", query, apiKey);
-searchContext.rawRecords = apiResult.data || [];
-  await saveRawRecords(searchContext.rawRecords, supabaseUrl, supabaseKey);  return searchContext;
+  searchContext.rawRecords = recencyResult.records;
+  searchContext.normalizedRecords = recencyResult.classified;
+  searchContext.windowUsed = recencyResult.windowUsed;
+  searchContext.thin = recencyResult.thin;
+  searchContext.liquidityTier = liquidityTier;
+
+  return searchContext;
 }
 
 async function saveVehicleIntelligence(rawRecords, classifiedRecords, supabaseUrl, supabaseKey) {
