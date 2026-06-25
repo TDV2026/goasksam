@@ -20,6 +20,18 @@ create table if not exists vehicle_market_records (
   unique (source, source_record_id)
 );
 
+alter table vehicle_market_records add column if not exists source_url text;
+alter table vehicle_market_records add column if not exists platform text;
+alter table vehicle_market_records add column if not exists raw_title text;
+alter table vehicle_market_records add column if not exists raw_listing_model text;
+alter table vehicle_market_records add column if not exists raw_description text;
+alter table vehicle_market_records add column if not exists auction_status text;
+alter table vehicle_market_records add column if not exists auction_end_date timestamptz;
+alter table vehicle_market_records add column if not exists seller_username text;
+alter table vehicle_market_records add column if not exists raw_record jsonb;
+alter table vehicle_market_records add column if not exists ingested_at timestamptz default now();
+alter table vehicle_market_records add column if not exists ingestion_batch_id uuid;
+
 create table if not exists vehicle_classifications (
   id uuid primary key default gen_random_uuid(),
   market_record_id uuid references vehicle_market_records(id),
@@ -76,3 +88,5 @@ create index if not exists vehicle_classifications_source_record_idx
 
 create index if not exists seller_leads_submitted_at_idx
   on seller_leads (submitted_at desc);
+
+notify pgrst, 'reload schema';

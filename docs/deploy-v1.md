@@ -14,6 +14,8 @@ Open Supabase SQL Editor and run:
 -- contents of docs/supabase-v1-schema.sql
 ```
 
+The schema file is migration-safe for the current project: it creates missing tables and adds missing columns to existing tables.
+
 The V1 permanent tables are:
 
 - `vehicle_market_records`
