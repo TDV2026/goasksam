@@ -173,9 +173,11 @@ body{
 .sell-rec-card{border:1px solid #e5e5e2;background:white;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:10px;transition:transform .15s,border-color .15s,box-shadow .15s;cursor:pointer;}
 .sell-rec-card:hover{transform:translateY(-2px);border-color:#c9c9c5;box-shadow:0 8px 24px rgba(0,0,0,.06);}
 .sell-rec-card.primary-rec{border-color:#171717;border-width:2px;}
+.sell-rec-card.specialist-rec{border-style:dashed;background:#fffdf7;}
 .sell-rec-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:800;border-radius:999px;padding:4px 9px;width:fit-content;}
 .sell-rec-badge.top{background:#171717;color:white;}
 .sell-rec-badge.alt{background:#f0f0ee;color:#555;}
+.sell-rec-badge.specialist{background:#fef3c7;color:#92400e;}
 .sell-rec-name{font-size:16px;font-weight:800;letter-spacing:-.2px;}
 .sell-rec-type{font-size:11px;color:#999;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
 .sell-rec-reason{font-size:13px;line-height:1.55;color:#444;}
@@ -320,9 +322,9 @@ Next question: NEXT_QUESTION_PLACEHOLDER
 
 Key facts:
 - Cars & Bids auctions run 7 days. Submit all info and live within 72 hours.
-- Carbine123 is a Power Seller on Cars & Bids. Handles everything — photos, listing, buyer questions, negotiation. Highly communicative. Has sold multiple 911s on Cars & Bids.
-- Carbine123 takes a commission. Direct listing on Cars & Bids has platform fees.
-- GoAskSam submits seller details to the chosen platform or power seller. They respond within 24 hours.
+- GoAskSam uses live market evidence for seller recommendations. Do not name a power seller unless one has been explicitly verified in the current context.
+- Specialist seller or power-seller routes may be worth evaluating for six-figure or specialist cars, but consignment status, region, minimum value and availability must be verified first.
+- GoAskSam records seller details and the selected route. Do not promise a specific response time unless it is confirmed.
 - Do not invent market performance claims. If current evidence is not available, say so.
 
 Never say you are AI. You are Sam. After answering, always end by asking the next question.`;
@@ -385,12 +387,73 @@ function goBackToConfirm(){
   setTimeout(()=>showConfirmation(),400);
 }
 
+function normalizeUpdateValue(value){
+  return String(value||"").replace(/^(to|is|as|it'?s|its)\s+/i,"").trim();
+}
+
+function applySellStateUpdate(text){
+  const raw=String(text||"").trim();
+  const lower=raw.toLowerCase();
+  const patterns=[
+    {key:"carName",label:"Car",re:/\b(?:car|vehicle)\b\s*(?:to|is|as)?\s*(.+)$/i},
+    {key:"mileage",label:"Mileage",re:/\b(?:mileage|miles|odometer)\b\s*(?:to|is|as)?\s*(.+)$/i},
+    {key:"condition",label:"Condition",re:/\b(?:condition|mods|modified|stock)\b\s*(?:to|is|as)?\s*(.+)$/i},
+    {key:"records",label:"Service records",re:/\b(?:service records|records|history)\b\s*(?:to|is|as)?\s*(.+)$/i},
+    {key:"title",label:"Title",re:/\b(?:title|lien)\b\s*(?:to|is|as)?\s*(.+)$/i},
+    {key:"price",label:"Asking price",re:/\b(?:price|target|asking|ask)\b\s*(?:to|is|as)?\s*(.+)$/i},
+    {key:"timeline",label:"Timeline",re:/\b(?:timeline|timing|sell by|speed)\b\s*(?:to|is|as)?\s*(.+)$/i},
+    {key:"involvement",label:"Involvement",re:/\b(?:involvement|hands[- ]?on|hands[- ]?off|manage)\b\s*(?:to|is|as)?\s*(.+)$/i},
+    {key:"notes",label:"Notes",re:/\b(?:notes|note|anything else)\b\s*(?:to|is|as)?\s*(.+)$/i}
+  ];
+
+  for(const pattern of patterns){
+    const match=raw.match(pattern.re);
+    if(!match)continue;
+    const value=normalizeUpdateValue(match[1]);
+    if(!value)return null;
+    sellState[pattern.key]=value;
+    if(pattern.key==="carName")sellState.carRaw=value;
+    return {label:pattern.label,value};
+  }
+
+  if(/\b(actually|change|update|make it|set it)\b/i.test(lower)){
+    const carMatch=raw.match(/\b((?:19|20)\d{2}\s+[^,.]+)$/i);
+    if(carMatch){
+      const value=normalizeUpdateValue(carMatch[1]);
+      sellState.carName=value;sellState.carRaw=value;
+      return {label:"Car",value};
+    }
+    const priceMatch=raw.match(/\b(?:\$?\d+(?:,\d{3})?|\d+k|six figures?)\b/i);
+    if(priceMatch&&/\b(price|target|asking|ask|six figures?)\b/i.test(lower)){
+      const value=priceMatch[0];
+      sellState.price=value;
+      return {label:"Asking price",value};
+    }
+    const mileageMatch=raw.match(/\b(?:\d+(?:,\d{3})?|\d+k)\s*(?:miles|mi|k)?\b/i);
+    if(mileageMatch&&/\b(mileage|miles|mi|odometer)\b/i.test(lower)){
+      const value=mileageMatch[0];
+      sellState.mileage=value;
+      return {label:"Mileage",value};
+    }
+  }
+
+  return null;
+}
+
 function handleSellStep(q){
   const lower=q.toLowerCase().trim();
 
   // Holding phrases — any step
   if(/one second|one sec|give me a sec|just a sec|hold on|one moment|give me a moment|bear with me|hang on|^sec$|2 secs|two secs|two seconds|gimme a sec|back in a sec|just a moment|brb|be right back|bathroom|give me a minute|one minute|two minutes/i.test(lower)){
     addMsg("sam","No rush.");
+    return true;
+  }
+
+  const canApplyUpdate=/change|update|actually|wrong|mistake|make it|set it/i.test(lower)||sellState.step===16;
+  const stateUpdate=canApplyUpdate?applySellStateUpdate(q):null;
+  if(stateUpdate){
+    addMsg("sam",`Updated ${stateUpdate.label.toLowerCase()} to ${stateUpdate.value}.`);
+    if(sellState.step===16||sellState.returnToConfirm){goBackToConfirm();}
     return true;
   }
   
@@ -501,6 +564,13 @@ function handleSellStep(q){
     if(/^timeline$/i.test(lower)){sellState.returnToConfirm=true;sellState.timeline=null;sellState.step=7;addMsg("sam","How quickly are you looking to sell?","",chipsHTML(["Want it gone fast","Within a month","No rush — right buyer only"]));return true;}
     if(/^involvement$/i.test(lower)){sellState.returnToConfirm=true;sellState.involvement=null;sellState.step=8;addMsg("sam","Hands-on or hands-off?","",chipsHTML(["I'll manage it","Want someone to handle everything","Either works"]));return true;}
     if(/^notes$/i.test(lower)){sellState.returnToConfirm=true;sellState.notes=null;sellState.step=9;addMsg("sam","Anything else you want buyers or the platform to know?","",chipsHTML(["Skip"]));return true;}
+    return true;
+  }
+
+  // ── STEP 12: recommendation follow-up ───────────────────────
+  if(step===12){
+    if(handleSellRecommendationFollowup(q))return true;
+    addMsg("sam","Ask me about any route above, or choose the one you'd like to explore.");
     return true;
   }
 
@@ -657,6 +727,9 @@ async function showSellRecommendation(){
     name:platform.platform,
     type:"Selling destination",
     badge:index===0?"Current evidence leader":"Alternative",
+    badgeClass:index===0?"top":"alt",
+    cardClass:index===0?"primary-rec":"",
+    actionLabel:"Go with this",
     reason:[
       `${platform.platform} has ${platform.evidenceSales} sale${platform.evidenceSales===1?"":"s"} in the ${evidence.windowDays}-day ${evidence.evidenceLabel||"evidence"} set.`,
       platform.closeSales?`${platform.closeSales} were close matches to your car.`:"The exact close-match sample is thin, so this uses broader relevant comps.",
@@ -667,10 +740,37 @@ async function showSellRecommendation(){
     bestFor:index===0?"Best supported by the current fetched evidence":"Worth comparing if fees, timing or listing fit are better"
   }));
 
-  const p=sellState.sellOptions[0];
-  const s=sellState.sellOptions[1]||null;
+  const powerSellerReferral=decision.powerSellerReferral||{};
+  if(powerSellerReferral.shouldEvaluate){
+    sellState.sellOptions.push({
+      key:"specialist",
+      name:"Specialist seller route",
+      type:"Power-seller / consignor evaluation",
+      badge:"Worth evaluating",
+      badgeClass:"specialist",
+      cardClass:"specialist-rec",
+      actionLabel:"Explore this",
+      reason:[
+        powerSellerReferral.trigger==="seller_target_price_six_figures"?"Your target puts this in six-figure territory.":"Current market evidence puts this in specialist territory.",
+        "A high-quality seller/operator can matter at this level, but region, minimum value, availability and consignment fit need verification.",
+        powerSellerReferral.activeSellerSignals?`${powerSellerReferral.activeSellerSignals} active seller signal${powerSellerReferral.activeSellerSignals===1?"":"s"} appeared in the observed data.`:null
+      ].filter(Boolean).join(" "),
+      stat:"Needs verified fit · not a named seller yet",
+      bestFor:"Six-figure or specialist cars where presentation and seller credibility can matter"
+    });
+  }
+
   const limitationHTML=limitations.length?`<div class="modal-signal concern"><strong>Limit:</strong> ${escapeHtml(limitations.join(" "))}</div>`:"";
   const tradeoffHTML=tradeoffs.length?`<div class="modal-signal resolved"><strong>Seller fit:</strong> ${escapeHtml(tradeoffs.join(" "))}</div>`:"";
+  const optionCardsHTML=sellState.sellOptions.map(option=>`
+      <div class="sell-rec-card ${escapeHtml(option.cardClass||"")}" onclick="chooseSellOption('${escapeHtml(option.key)}')">
+        <div class="sell-rec-badge ${escapeHtml(option.badgeClass||"alt")}">${escapeHtml(option.badge)}</div>
+        <div><div class="sell-rec-name">${escapeHtml(option.name)}</div><div class="sell-rec-type">${escapeHtml(option.type)}</div></div>
+        <div class="sell-rec-reason">${escapeHtml(option.reason)}</div>
+        <div class="sell-rec-stat">↑ ${escapeHtml(option.stat)}</div>
+        <div style="font-size:11px;color:#999;font-weight:600">Best for: ${escapeHtml(option.bestFor)}</div>
+        <div class="sell-rec-actions"><button class="${option.key==="primary"?"primary":"ghost"}" onclick="event.stopPropagation();chooseSellOption('${escapeHtml(option.key)}')">${escapeHtml(option.actionLabel||"Go with this")}</button></div>
+      </div>`).join("");
 
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
@@ -687,28 +787,44 @@ async function showSellRecommendation(){
     ${limitationHTML}
     ${tradeoffHTML}
     <div class="sell-rec-grid">
-      <div class="sell-rec-card primary-rec" onclick="chooseSellOption('primary')">
-        <div class="sell-rec-badge top">★ ${escapeHtml(p.badge)}</div>
-        <div><div class="sell-rec-name">${escapeHtml(p.name)}</div><div class="sell-rec-type">${escapeHtml(p.type)}</div></div>
-        <div class="sell-rec-reason">${escapeHtml(p.reason)}</div>
-        <div class="sell-rec-stat">↑ ${escapeHtml(p.stat)}</div>
-        <div style="font-size:11px;color:#999;font-weight:600">Best for: ${escapeHtml(p.bestFor)}</div>
-        <div class="sell-rec-actions"><button class="primary" onclick="event.stopPropagation();chooseSellOption('primary')">Go with this</button></div>
-      </div>
-      ${s?`<div class="sell-rec-card" onclick="chooseSellOption('secondary')">
-        <div class="sell-rec-badge alt">${escapeHtml(s.badge)}</div>
-        <div><div class="sell-rec-name">${escapeHtml(s.name)}</div><div class="sell-rec-type">${escapeHtml(s.type)}</div></div>
-        <div class="sell-rec-reason">${escapeHtml(s.reason)}</div>
-        <div class="sell-rec-stat">↑ ${escapeHtml(s.stat)}</div>
-        <div style="font-size:11px;color:#999;font-weight:600">Best for: ${escapeHtml(s.bestFor)}</div>
-        <div class="sell-rec-actions"><button class="ghost" onclick="event.stopPropagation();chooseSellOption('secondary')">Go with this</button></div>
-      </div>`:""}
+      ${optionCardsHTML}
     </div>
-    <div class="sam-text after-results">Which feels right? Feel free to ask anything about either option.</div>
+    <div class="sam-text after-results">Which feels right? Feel free to ask anything about these options.</div>
   </div></div>`;
-  sellState.generatedPrimaryName=p.name;
-  sellState.generatedSecondaryName=s?.name||null;
+  sellState.generatedPrimaryName=sellState.sellOptions[0]?.name||null;
+  sellState.generatedSecondaryName=sellState.sellOptions[1]?.name||null;
   msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
+}
+
+function handleSellRecommendationFollowup(q){
+  const lower=q.toLowerCase();
+  const options=sellState.sellOptions||[];
+  if(!options.length)return false;
+
+  const chosenByName=options.find(option=>lower.includes(String(option.name||"").toLowerCase()));
+  const option=chosenByName||options.find(o=>o.key==="primary")||options[0];
+
+  if(/\b(go with|choose|pick|use|select)\b/i.test(lower)){
+    chooseSellOption(option.key);
+    return true;
+  }
+
+  if(/\b(why|better|explain|reason|compare|difference)\b/i.test(lower)){
+    addMsg("sam",`${option.name}: ${option.reason} Best for: ${option.bestFor}.`);
+    return true;
+  }
+
+  if(/\b(power seller|specialist|consignor|consignment)\b/i.test(lower)){
+    const specialist=options.find(o=>o.key==="specialist");
+    if(specialist){
+      addMsg("sam",`${specialist.name}: ${specialist.reason} I would treat this as something to evaluate, not a named handoff yet.`);
+    }else{
+      addMsg("sam","I don't have enough evidence to make a specialist-seller route part of this recommendation yet.");
+    }
+    return true;
+  }
+
+  return false;
 }
 
 function chooseSellOption(which){
