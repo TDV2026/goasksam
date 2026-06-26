@@ -80,4 +80,4 @@ select * from seller_leads order by submitted_at desc limit 5;
 
 - Platform ranking is based on recent fetched sold records only.
 - Individual power seller ranking is not implemented yet.
-- Buyer listing intelligence remains demo-only and should be built after seller V1 works end to end.
+- The current public product is seller-only. Other intelligence surfaces should wait until seller V1 works end to end.
