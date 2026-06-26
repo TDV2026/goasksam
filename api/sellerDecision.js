@@ -425,30 +425,37 @@ async function callOldCarsData(path, params, apiKey, options = {}) {
   return fetchJson(url.toString(), { Authorization: `Bearer ${apiKey}` }, options);
 }
 
-function buildFetchPasses(vehicle) {
+function buildFetchPasses(vehicle, strategy = "default") {
   const modelToken = asText(vehicle.model).split(/\s+/)[0] || undefined;
   const keywordModelTerms = modelSearchTerms(vehicle);
-  const passes = [
-    {
-      name: "exact",
-      label: "exact year/model",
-      pages: 2,
-      params: {
-        make: vehicle.make,
-        model: modelToken,
-        keyword: [vehicle.year, vehicle.model].filter(Boolean).join(" ") || undefined
-      }
-    },
-    {
-      name: "same_model",
-      label: "same make/model",
-      pages: MAX_PAGES,
-      params: {
-        make: vehicle.make,
-        model: modelToken
-      }
+  const exactPass = {
+    name: "exact",
+    label: "exact year/model",
+    pages: 2,
+    params: {
+      make: vehicle.make,
+      model: modelToken,
+      keyword: [vehicle.year, vehicle.model].filter(Boolean).join(" ") || undefined
     }
-  ];
+  };
+  const sameModelPass = {
+    name: "same_model",
+    label: "same make/model",
+    pages: MAX_PAGES,
+    params: {
+      make: vehicle.make,
+      model: modelToken
+    }
+  };
+  const passes = strategy === "broad_first" ? [
+    {
+      ...sameModelPass,
+      name: "same_model_broad_first",
+      label: "same make/model broad-first",
+      pages: 1
+    },
+    exactPass
+  ] : [exactPass, sameModelPass];
 
   for (const term of keywordModelTerms) {
     passes.push({
@@ -582,8 +589,8 @@ async function fetchPass(pass, apiKey, deadline) {
   return { records, error, meteredRequests, pagesFetched };
 }
 
-async function fetchRecentRecords(vehicle, apiKey) {
-  const passes = buildFetchPasses(vehicle);
+async function fetchRecentRecords(vehicle, apiKey, strategy = "default") {
+  const passes = buildFetchPasses(vehicle, strategy);
   const startedAt = Date.now();
   const deadline = startedAt + FETCH_TIME_BUDGET_MS;
   const seen = new Set();
@@ -1133,6 +1140,7 @@ export default async function handler(req, res) {
   const car = typeof req.body?.car === "object" ? req.body.car : {};
   const sellerCriteria = getSellerCriteria(car);
   const rawSearch = req.body?.car?.raw || req.body?.car || req.body?.search || req.body?.query;
+  const fetchStrategyName = req.body?.strategy === "broad_first" ? "broad_first" : "default";
   if (!rawSearch) return res.status(400).json({ error: "Missing car/search field" });
 
   try {
@@ -1148,7 +1156,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const fetchResult = await fetchRecentRecords(vehicle, apiKey);
+    const fetchResult = await fetchRecentRecords(vehicle, apiKey, fetchStrategyName);
     const records = fetchResult.records;
     const classifications = records.map(record => classifyRecord(record, vehicle));
     const rawPersistence = await persistRawRecords(records, supabaseUrl, supabaseKey);
@@ -1173,6 +1181,7 @@ export default async function handler(req, res) {
       metadata: {
         ...requestMetadata(req),
         stopReason: fetchResult.stopReason,
+        strategy: fetchStrategyName,
         recordsFetched: analysis.recordsFetched,
         evidenceSales: analysis.evidenceSales,
         evidenceLevel: analysis.evidenceLevel
@@ -1200,6 +1209,7 @@ export default async function handler(req, res) {
         fetchStrategy: {
           stoppedEarly: fetchResult.stoppedEarly,
           stopReason: fetchResult.stopReason,
+          strategy: fetchStrategyName,
           elapsedMs: fetchResult.elapsedMs,
           timeBudgetMs: fetchResult.timeBudgetMs,
           meteredRequests: fetchResult.meteredRequests,
