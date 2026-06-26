@@ -49,6 +49,7 @@ Supabase is not treated as a full copy of OldCarsData. A search triggers recent-
 
 - exact pass for year/make/model where possible.
 - same make/model pass when exact evidence is thin.
+- same model keyword passes when structured model filters are too brittle, such as BMW `318` also searching `318i`, `318is` and `318ic`.
 - nearby-year passes when the market needs more signal.
 - same make/year fallback passes when exact model naming is too sparse, with results labeled as broad evidence.
 

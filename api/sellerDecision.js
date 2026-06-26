@@ -125,6 +125,22 @@ function extractColor(text) {
   return COMMON_COLORS.find(color => lower.includes(color)) || null;
 }
 
+function modelSearchTerms(vehicle) {
+  const model = asText(vehicle.model);
+  const terms = new Set();
+  if (model) terms.add(model);
+
+  const normalizedMake = asText(vehicle.make).toLowerCase();
+  const numericModel = model.match(/^\d{3}$/)?.[0];
+  if (normalizedMake === "bmw" && numericModel) {
+    terms.add(`${numericModel}i`);
+    terms.add(`${numericModel}is`);
+    terms.add(`${numericModel}ic`);
+  }
+
+  return [...terms].filter(Boolean);
+}
+
 async function fetchJson(url, headers = {}) {
   const res = await fetch(url, { headers });
   const json = await res.json().catch(() => ({}));
@@ -214,6 +230,7 @@ async function callOldCarsData(path, params, apiKey) {
 
 function buildFetchPasses(vehicle) {
   const modelToken = asText(vehicle.model).split(/\s+/)[0] || undefined;
+  const keywordModelTerms = modelSearchTerms(vehicle);
   const passes = [
     {
       name: "exact",
@@ -235,6 +252,30 @@ function buildFetchPasses(vehicle) {
       }
     }
   ];
+
+  for (const term of keywordModelTerms) {
+    passes.push({
+      name: `model_keyword_${term}`,
+      label: `same model keyword ${term}`,
+      pages: 2,
+      params: {
+        make: vehicle.make,
+        keyword: term
+      }
+    });
+
+    if (vehicle.year) {
+      passes.push({
+        name: `exact_keyword_${vehicle.year}_${term}`,
+        label: `exact year/model keyword ${term}`,
+        pages: 1,
+        params: {
+          make: vehicle.make,
+          keyword: [vehicle.year, term].filter(Boolean).join(" ")
+        }
+      });
+    }
+  }
 
   if (vehicle.year) {
     passes.push({
@@ -354,10 +395,11 @@ function classifyRecord(record, vehicle) {
   const recordModel = asText(record.ocd_model_name || record.listing_model).toLowerCase();
   const targetMake = asText(vehicle.make).toLowerCase();
   const targetModel = asText(vehicle.model).toLowerCase();
+  const targetModelTerms = modelSearchTerms(vehicle).map(term => term.toLowerCase());
   const recordYear = Number(record.year || extractYear(title));
   const yearGap = vehicle.year && recordYear ? Math.abs(vehicle.year - recordYear) : null;
   const sameMake = !!targetMake && (recordMake === targetMake || title.includes(targetMake));
-  const sameModel = !!targetModel && (recordModel.includes(targetModel) || title.includes(targetModel));
+  const sameModel = !!targetModel && targetModelTerms.some(term => recordModel.includes(term) || textHasTerm(title, term));
   const colorMatch = vehicle.color ? title.includes(vehicle.color) : null;
   const price = normalizeMoney(record);
   const targetMentionsTurbo = textHasTerm(vehicle.raw, "turbo");
