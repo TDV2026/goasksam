@@ -83,6 +83,25 @@ create table if not exists seller_leads (
 
 alter table seller_leads add column if not exists car_region text;
 
+create table if not exists app_usage_events (
+  id bigserial primary key,
+  created_at timestamptz not null default now(),
+  event_type text not null,
+  route text,
+  status text,
+  search_text text,
+  vehicle jsonb,
+  oldcarsdata_metered_requests integer not null default 0,
+  oldcarsdata_cost_1k_usd numeric not null default 0,
+  oldcarsdata_cost_10k_usd numeric not null default 0,
+  anthropic_model text,
+  anthropic_input_tokens integer not null default 0,
+  anthropic_output_tokens integer not null default 0,
+  anthropic_cost_usd numeric not null default 0,
+  duration_ms integer,
+  metadata jsonb
+);
+
 create index if not exists vehicle_market_records_make_model_idx
   on vehicle_market_records (make, model);
 
@@ -94,5 +113,11 @@ create index if not exists vehicle_classifications_source_record_idx
 
 create index if not exists seller_leads_submitted_at_idx
   on seller_leads (submitted_at desc);
+
+create index if not exists app_usage_events_created_at_idx
+  on app_usage_events (created_at desc);
+
+create index if not exists app_usage_events_event_type_idx
+  on app_usage_events (event_type);
 
 notify pgrst, 'reload schema';

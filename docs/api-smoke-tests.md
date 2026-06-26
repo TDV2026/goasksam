@@ -75,3 +75,17 @@ Expected:
 - `status` is `submitted`.
 - Response includes a `reference`.
 - Supabase has a new `seller_leads` row.
+
+## Usage Dashboard
+
+After running the latest Supabase schema, set `USAGE_DASHBOARD_KEY` in Vercel.
+
+```sh
+curl -s "$BASE_URL/api/usageDashboard?key=$USAGE_DASHBOARD_KEY&format=json"
+```
+
+Expected:
+
+- Response includes `summary.totals.sellerSearches`.
+- After one seller decision search, `oldCarsDataRequests` increases by the metered `/auctions` request count.
+- After one `/api/chat` call, `anthropicInputTokens`, `anthropicOutputTokens`, and `anthropicCostUsd` increase.

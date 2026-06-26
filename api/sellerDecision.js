@@ -1,3 +1,5 @@
+import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
+
 const OLDCARSDATA_BASE = "https://api.oldcarsdata.com";
 const ANALYSIS_WINDOWS_DAYS = [45, 90, 180];
 const SELLER_ACTIVITY_WINDOWS_DAYS = [90, 180, 270];
@@ -1154,6 +1156,29 @@ export default async function handler(req, res) {
     const analysis = analyze(records, classifications);
     const decision = decide(analysis, sellerCriteria, vehicle);
 
+    const costEstimate = oldCarsDataCost(fetchResult.meteredRequests);
+    const usageLog = await recordUsageEvent({
+      event_type: "seller_decision",
+      route: "/api/sellerDecision",
+      status: "decision_ready",
+      search_text: rawSearch,
+      vehicle,
+      oldcarsdata_metered_requests: fetchResult.meteredRequests,
+      oldcarsdata_cost_1k_usd: costEstimate.plan1k,
+      oldcarsdata_cost_10k_usd: costEstimate.plan10k,
+      anthropic_input_tokens: 0,
+      anthropic_output_tokens: 0,
+      anthropic_cost_usd: 0,
+      duration_ms: fetchResult.elapsedMs,
+      metadata: {
+        ...requestMetadata(req),
+        stopReason: fetchResult.stopReason,
+        recordsFetched: analysis.recordsFetched,
+        evidenceSales: analysis.evidenceSales,
+        evidenceLevel: analysis.evidenceLevel
+      }
+    }, supabaseUrl, supabaseKey);
+
     return res.status(200).json({
       status: "decision_ready",
       vehicle,
@@ -1178,10 +1203,7 @@ export default async function handler(req, res) {
           elapsedMs: fetchResult.elapsedMs,
           timeBudgetMs: fetchResult.timeBudgetMs,
           meteredRequests: fetchResult.meteredRequests,
-          oldCarsDataCostEstimateUsd: {
-            plan1k: Number((fetchResult.meteredRequests * 0.049).toFixed(3)),
-            plan10k: Number((fetchResult.meteredRequests * 0.0199).toFixed(3))
-          }
+          oldCarsDataCostEstimateUsd: costEstimate
         }
       },
       analysis: {
@@ -1192,7 +1214,8 @@ export default async function handler(req, res) {
       decision,
       persistence: {
         rawRecords: rawPersistence,
-        classifications: classificationPersistence
+        classifications: classificationPersistence,
+        usage: usageLog
       }
     });
   } catch (err) {
