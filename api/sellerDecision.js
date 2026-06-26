@@ -52,6 +52,21 @@ function median(values) {
   return nums.length % 2 ? nums[mid] : Math.round((nums[mid - 1] + nums[mid]) / 2);
 }
 
+function parseSellerTargetPrice(value) {
+  const text = asText(value).toLowerCase();
+  if (!text) return null;
+  if (text.includes("six figure") || text.includes("six-figure")) return 100000;
+
+  const compact = text.replace(/,/g, "");
+  const kMatch = compact.match(/\$?\s*(\d+(?:\.\d+)?)\s*k\b/);
+  if (kMatch) return Math.round(Number(kMatch[1]) * 1000);
+
+  const numberMatch = compact.match(/\$?\s*(\d{5,7})\b/);
+  if (numberMatch) return Number(numberMatch[1]);
+
+  return null;
+}
+
 function daysAgo(dateString) {
   if (!dateString) return Infinity;
   const then = new Date(dateString).getTime();
@@ -574,12 +589,14 @@ function decisionTradeoffs(criteria) {
 
 function decide(analysis, criteria) {
   const best = analysis.platformPerformance[0] || null;
+  const powerSellerReferral = analyzePowerSellerReferral(analysis, criteria);
   if (!best) {
     return {
       recommendedPath: null,
       confidence: "low",
       why: [],
       tradeoffs: decisionTradeoffs(criteria),
+      powerSellerReferral,
       limitations: ["No relevant recent sales were found in the fetched market data."]
     };
   }
@@ -602,9 +619,42 @@ function decide(analysis, criteria) {
         : null
     ].filter(Boolean),
     tradeoffs: decisionTradeoffs(criteria),
+    powerSellerReferral,
     limitations: analysis.thinMarket
       ? ["Recent evidence is thin; treat the decision as directional, not definitive."]
       : []
+  };
+}
+
+function analyzePowerSellerReferral(analysis, criteria) {
+  const targetPrice = parseSellerTargetPrice(criteria.targetPrice);
+  const marketMedian = median((analysis.platformPerformance || []).map(platform => platform.medianSalePrice));
+  const targetIsSixFigures = Number.isFinite(targetPrice) && targetPrice >= 100000;
+  const marketLooksSixFigures = Number.isFinite(marketMedian) && marketMedian >= 100000;
+  const activeSellerSignals = Object.values(analysis.sellerActivity?.platformSummary || {})
+    .reduce((total, summary) => total + summary.highActivitySellers + summary.activeSpecialists, 0);
+  const shouldEvaluate = targetIsSixFigures || marketLooksSixFigures;
+
+  return {
+    shouldEvaluate,
+    recommendableNow: false,
+    trigger: targetIsSixFigures
+      ? "seller_target_price_six_figures"
+      : marketLooksSixFigures
+        ? "market_evidence_six_figures"
+        : null,
+    sellerTargetPrice: targetPrice,
+    marketMedian,
+    activeSellerSignals,
+    constraints: shouldEvaluate
+      ? ["verified_consignment_status_required", "region_required", "minimum_value_required", "seller_availability_required"]
+      : [],
+    reasonFacts: [
+      targetIsSixFigures ? "seller_target_price_is_six_figures" : null,
+      marketLooksSixFigures ? "market_evidence_supports_six_figure_context" : null,
+      shouldEvaluate ? "power_seller_route_generally_relevant_for_six_figure_listings" : null,
+      activeSellerSignals ? "active_seller_signals_observed" : null
+    ].filter(Boolean)
   };
 }
 

@@ -64,6 +64,15 @@ Seller activity is computed from the fetched market records and is not a permane
 
 For V1, seller activity supports platform confidence. It should not route a user to an individual seller.
 
+## Power-Seller Referral Policy
+
+The engine should separately evaluate a power-seller or specialist-consignor route when:
+
+- the seller says they want six figures, or
+- current market evidence indicates a six-figure context.
+
+This is a structured decision signal, not fixed copy. Sam should use the signal to generate varied language. Until a verified partner layer exists, the referral object must keep `recommendableNow` as `false` and include constraints such as region, consignment status, minimum value and availability.
+
 ## Product Rule
 
 No fake data. No fabricated percentages. If evidence is thin, the decision should say so clearly and explain what it used.
