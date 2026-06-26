@@ -422,9 +422,10 @@ function looksLikeVehicleText(text){
 
 function missingVehicleDetail(text){
   const lower=String(text||"").toLowerCase();
+  const year=String(text||"").match(/\b(19|20)\d{2}\b/)?.[0];
   if(!looksLikeVehicleText(text))return null;
   if(/\bporsche\b/.test(lower)&&!/\b(911|912|914|924|928|944|968|356|964|993|996|997|991|992|boxster|cayman|panamera|cayenne|macan|gt2|gt3|turbo|speedster|targa|carrera)\b/.test(lower)){
-    return {type:"model",ask:"Which Porsche model or trim is it? A 1985 Porsche could mean a 911, 944, 928, 924 or another variant. Pick one below, or type the exact model if it is not shown.",chips:["911","944","928","924","Not sure"]};
+    return {type:"model",ask:`Which Porsche model or trim is it?${year?` A ${year} Porsche could mean a 911, 944, 928, 924 or another variant.`:""} Pick one below, or type the exact model if it is not shown.`,chips:["911","944","928","924","Not sure"]};
   }
   if(/\bbmw\b/.test(lower)&&!/\b(m\d|[1-8]\d{2}[a-z]{0,3}|z3|z4|z8|x[1-7]|i8|2002|e30|e36|e46|e90|e92|e39|e60)\b/.test(lower)){
     return {type:"model",ask:"Which BMW model or trim is it? These are just common examples. Pick one below, or type the exact model if it is not shown.",chips:["318i","M3","2002","Z4","X5","Not sure"]};
@@ -915,21 +916,12 @@ async function showSellRecommendation(){
     const latest=dateShort(platform.latestSaleDate);
     const evidenceLine=route.hasMarketEvidence
       ? [
-          `${routeName} showed ${saleCount} recent sale${saleCount===1?"":"s"} in the evidence set.`,
-          closeCount?`${closeCount} were close matches.`:relevantCount?`${relevantCount} were relevant matches.`:"The matches are broader, so I would treat this as directional.",
-          median?`Median sale price was ${median}.`:null,
-          latest?`Latest sale was ${latest}.`:null
-        ].filter(Boolean).join(" ")
-      : `${routeName} is included because it fits the car, region or timing, but I do not have strong recent comps for it in this fetched data.`;
-    const reason=[
-      isPrimary&&priceRoute?"I’d start here if the goal is the strongest sale result.":null,
-      isPrimary&&speedFit?"I’d start here because your timing matters and this route is usually quicker to get live.":null,
-      isPrimary&&speedTradeoff?"The tradeoff is timing: this route can be excellent, but it is not always the fastest way to get live.":null,
-      !isPrimary&&speedFit?"This is here as a faster-listing alternative.":null,
-      !isPrimary&&segmentFit?`${routeName} has a relevant audience for this kind of car.`:null,
-      regionFit&&sellState.region&&sellState.region!=="US"?`${routeName} also fits the seller’s region.`:null,
-      evidenceLine
-    ].filter(Boolean).join(" ");
+          `${saleCount} recent sale${saleCount===1?"":"s"}`,
+          closeCount?`${closeCount} close`:relevantCount?`${relevantCount} relevant`:"broader matches",
+          median?`median ${median}`:null,
+          latest?`latest ${latest}`:null
+        ].filter(Boolean).join(" · ")
+      : "Policy fit · needs stronger recent comps";
     const stat=[
       route.priceOutcome==="strong"?"Price-first route":null,
       ["fast","medium_fast"].includes(route.speedToList)?"Quicker listing fit":null,
@@ -944,7 +936,7 @@ async function showSellRecommendation(){
       badgeClass:index===0?"top":"alt",
       cardClass:index===0?"primary-rec":"",
       actionLabel:"Go with this",
-      reason,
+      reason:evidenceLine,
       stat,
       bestFor:index===0
         ? speedFit?"Fast route with enough market fit to justify starting here":"Maximum result, assuming the seller can tolerate the process"
@@ -986,16 +978,10 @@ async function showSellRecommendation(){
     });
   }
 
-  const readableLimit=evidence.thinMarket
-    ?"The exact recent comp set is thinner than ideal, so I’m treating this as a directional call rather than pretending the model is perfect."
-    :null;
-  const readableFit=sellState.timeline&&/fast|quick|soon|tomorrow|week|gone/i.test(sellState.timeline)
-    ?"Because speed matters, I’m showing faster-listing alternatives next to the price-first route."
-    :"I’m balancing likely result, seller workload, audience fit and route speed.";
-  const notesHTML=`<div class="sell-rec-notes">
-    <div class="sell-rec-note"><strong>Why this mix</strong>${escapeHtml(readableFit)}</div>
-    ${readableLimit?`<div class="sell-rec-note"><strong>Keep in mind</strong>${escapeHtml(readableLimit)}</div>`:""}
-  </div>`;
+  sellState.sellOptions.forEach((option,index)=>{
+    option.rankReason=rankingReason(option,index,sellState.sellOptions);
+  });
+
   const optionCardsHTML=sellState.sellOptions.map(option=>`
       <div class="sell-rec-card ${escapeHtml(option.cardClass||"")}" onclick="chooseSellOption('${escapeHtml(option.key)}')">
         <div class="sell-rec-card-head">
@@ -1005,9 +991,9 @@ async function showSellRecommendation(){
           </div>
           <div class="platform-logo ${escapeHtml(platformLogo(option).cls)}">${escapeHtml(platformLogo(option).text)}</div>
         </div>
-        <div class="sell-rec-reason">${escapeHtml(option.reason)}</div>
+        <div class="sell-rec-reason">${escapeHtml(option.rankReason||option.reason)}</div>
         <div class="sell-rec-stat">↑ ${escapeHtml(option.stat)}</div>
-        <div class="sell-rec-best">Best for: ${escapeHtml(option.bestFor)}</div>
+        <div class="sell-rec-best">${escapeHtml(option.reason)}</div>
         ${option.observedSellers?.length?`<div class="observed-sellers">
           ${option.observedSellers.map(seller=>`<div class="observed-seller"><span class="observed-seller-name">${escapeHtml(seller.name)}</span><span class="observed-seller-meta">${escapeHtml(seller.label)} · ${escapeHtml(seller.platform)}</span></div>`).join("")}
         </div>`:""}
@@ -1020,10 +1006,8 @@ async function showSellRecommendation(){
     <div class="sell-rec-header">
       <div class="sell-rec-kicker">Seller Intelligence</div>
       <div class="sell-rec-title">Here’s where I’d take the ${escapeHtml(sellState.carName||"car")}.</div>
-      <div class="sell-rec-subtitle">I weighed value, timing, seller workload, audience fit and current market signals. You still choose the route — this is the shortlist I’d compare first.</div>
+      <div class="sell-rec-subtitle">${escapeHtml(decision.why?.[1]||"Ranked by recent sales evidence and your selling priorities.")}</div>
     </div>
-    <div class="sell-rec-note"><strong>What happens next</strong>Choose a route and leave your contact details. Sam packages the car details and routes the submission to the selected platform or specialist path so you are not starting from a blank form.</div>
-    ${notesHTML}
     <div class="sell-rec-grid">
       ${optionCardsHTML}
     </div>
@@ -1054,7 +1038,7 @@ function handleSellRecommendationFollowup(q){
   }
 
   if(chosenByName||/\b(why|better|explain|reason|what about|how about|tell me about|do they|does it|sell tons|high prices|higher|best price)\b/i.test(lower)){
-    addMsg("sam",`${option.name}: ${routeAnswer(option)} Best for: ${option.bestFor}.`);
+    addMsg("sam",`${option.name}: ${routeAnswer(option)}`);
     return true;
   }
 
@@ -1408,12 +1392,54 @@ function marketEvidenceSentence(option){
   ].filter(Boolean).join(" ");
 }
 
+function matchCount(option){
+  const evidence=option?.marketEvidence||{};
+  return evidence.closeSales||evidence.relevantSales||evidence.evidenceSales||0;
+}
+
+function matchLabel(option){
+  const evidence=option?.marketEvidence||{};
+  if(evidence.closeSales)return `${evidence.closeSales} close match${evidence.closeSales===1?"":"es"}`;
+  if(evidence.relevantSales)return `${evidence.relevantSales} relevant sale${evidence.relevantSales===1?"":"s"}`;
+  if(evidence.evidenceSales)return `${evidence.evidenceSales} broader sale${evidence.evidenceSales===1?"":"s"}`;
+  return "no strong recent comps";
+}
+
+function medianDeltaSentence(option, other){
+  const a=Number(option?.marketEvidence?.medianSalePrice||0);
+  const b=Number(other?.marketEvidence?.medianSalePrice||0);
+  if(!a||!b)return null;
+  const diff=(a-b)/b*100;
+  const abs=Math.abs(diff);
+  const optionName=String(option.name||"This route");
+  const possessive=optionName.endsWith("s")?`${optionName}'`:`${optionName}'s`;
+  if(abs<3)return `${optionName} and ${other.name} are close on median price in this fetched set: ${moneyShort(a)} vs ${moneyShort(b)}.`;
+  return `${possessive} median is ${Math.round(abs)}% ${diff>0?"higher":"lower"} than ${other.name} in this fetched set: ${moneyShort(a)} vs ${moneyShort(b)}.`;
+}
+
+function rankingReason(option,index,options){
+  const primary=options[0];
+  const evidence=option.marketEvidence;
+  const bestAlt=options.slice(1).find(o=>o.marketEvidence);
+  if(index===0){
+    if(!evidence)return `${option.name} is first because it best fits the seller's stated priorities, but I would want stronger recent comps before calling it definitive.`;
+    const compare=bestAlt?medianDeltaSentence(option,bestAlt):null;
+    const countCompare=bestAlt?`It has ${matchLabel(option)} versus ${matchLabel(bestAlt)} for ${bestAlt.name}.`:"";
+    return [`Why first: ${option.name} is the strongest fit after weighing sale evidence, match quality, timing and region.`, compare, countCompare].filter(Boolean).join(" ");
+  }
+  if(!primary)return marketEvidenceSentence(option);
+  const compare=medianDeltaSentence(option,primary);
+  if(!evidence)return `Why not first: ${option.name} fits the brief, but I do not have strong recent comps for it in this fetched data.`;
+  return [`Why not first: ${primary.name} ranked ahead on the current evidence/priorities.`, compare, `${option.name} has ${matchLabel(option)}; ${primary.name} has ${matchLabel(primary)}.`].filter(Boolean).join(" ");
+}
+
 function routeAnswer(option){
-  const facts=[marketEvidenceSentence(option)];
+  const options=sellState.sellOptions||[];
+  const index=options.findIndex(o=>o.key===option.key);
+  const facts=[rankingReason(option,index<0?0:index,options), marketEvidenceSentence(option)];
   if(option.speedToList==="fast"||option.speedToList==="medium_fast")facts.push("It is here partly because it can usually be quicker to get live.");
   if(option.speedToList==="slower")facts.push("The tradeoff is timing: I would not treat it as the quickest path.");
   if(option.priceOutcome==="strong")facts.push("It is a price-first route, so I care more about result quality than speed.");
-  if(option.reason)facts.push(option.reason);
   return facts.filter(Boolean).join(" ");
 }
 
