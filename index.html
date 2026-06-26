@@ -708,37 +708,51 @@ async function showSellRecommendation(){
 
   sellState.sellDecision=decisionData;
   const platforms=decisionData.analysis?.platformPerformance||[];
-  const topPlatforms=platforms.slice(0,2);
   const decision=decisionData.decision||{};
+  const routeFit=decision.routeFit||{};
+  const routeOptions=(routeFit.routes||[]).slice(0,3);
   const evidence=decisionData.evidence||{};
   const sellerActivity=decisionData.analysis?.sellerActivity||{};
   const limitations=[...(decision.limitations||[])];
   const tradeoffs=[...(decision.tradeoffs||[])];
   if(evidence.thinMarket&&!limitations.length)limitations.push("Recent evidence is thin, so treat this as directional.");
 
-  if(!topPlatforms.length){
+  if(!routeOptions.length&&!platforms.length){
     addMsg("sam",`I checked the recent market for your ${sellState.carName}, but I don't have enough relevant sales to make a responsible platform call yet. I don't want to guess.`);
     document.getElementById("btn").disabled=false;
     return;
   }
 
-  sellState.sellOptions=topPlatforms.map((platform,index)=>({
-    key:index===0?"primary":"secondary",
-    name:platform.platform,
+  const routesForCards=routeOptions.length?routeOptions:platforms.slice(0,2).map(platform=>({platform:platform.platform,label:platform.platform,marketEvidence:platform,routeFitFacts:[],priceOutcome:"unknown",speedToList:"unknown",sellerEffort:"unknown",hasMarketEvidence:true}));
+  sellState.sellOptions=routesForCards.map((route,index)=>{
+    const platform=route.marketEvidence||{};
+    const facts=route.routeFitFacts||[];
+    const reason=[
+      facts.includes("strong_price_signal_route")?"Best fit when the priority is the strongest sale result.":null,
+      facts.includes("faster_listing_fit")?"A better fit when speed-to-list matters.":null,
+      facts.includes("speed_tradeoff")?"Strong audience, but not usually the nimblest path if timing is urgent.":null,
+      facts.includes("segment_fit")?"Fits this car's segment well.":null,
+      facts.includes("region_fit")?"Fits the seller's region better than US-only routes.":null,
+      route.hasMarketEvidence?"Supported by the live market signals Sam checked.":"Included because the seller's timing, region or car type makes it worth comparing."
+    ].filter(Boolean).join(" ");
+    const stat=[
+      route.priceOutcome==="strong"?"Best-price route":null,
+      ["fast","medium_fast"].includes(route.speedToList)?"Faster listing fit":null,
+      route.sellerEffort&&route.sellerEffort!=="unknown"?"Seller effort considered":null
+    ].filter(Boolean).join(" · ")||"Route fit";
+    return {
+    key:index===0?"primary":`route_${index}`,
+    name:route.label||route.platform,
     type:"Selling destination",
     badge:index===0?"Current evidence leader":"Alternative",
     badgeClass:index===0?"top":"alt",
     cardClass:index===0?"primary-rec":"",
     actionLabel:"Go with this",
-    reason:[
-      `${platform.platform} has ${platform.evidenceSales} sale${platform.evidenceSales===1?"":"s"} in the ${evidence.windowDays}-day ${evidence.evidenceLabel||"evidence"} set.`,
-      platform.closeSales?`${platform.closeSales} were close matches to your car.`:"The exact close-match sample is thin, so this uses broader relevant comps.",
-      sellerActivity.platformSummary?.[platform.platform]?`${sellerActivity.platformSummary[platform.platform].highActivitySellers+sellerActivity.platformSummary[platform.platform].activeSpecialists} active seller signal${sellerActivity.platformSummary[platform.platform].highActivitySellers+sellerActivity.platformSummary[platform.platform].activeSpecialists===1?"":"s"} appeared on this platform, but consignment fit still needs verification.`:null,
-      platform.medianSalePrice?`Median sale price in this evidence set was $${platform.medianSalePrice.toLocaleString()}.`:null
-    ].filter(Boolean).join(" "),
-    stat:`${platform.closeSales} close · ${platform.relevantSales} relevant · ${platform.broadSales} broad`,
-    bestFor:index===0?"Best supported by the current fetched evidence":"Worth comparing if fees, timing or listing fit are better"
-  }));
+    reason,
+    stat,
+    bestFor:index===0?"Best overall fit from market signal and seller priorities":"Worth comparing if fees, timing or handoff fit better"
+    };
+  });
 
   const powerSellerReferral=decision.powerSellerReferral||{};
   if(powerSellerReferral.shouldEvaluate){
@@ -775,15 +789,7 @@ async function showSellRecommendation(){
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
-    <div class="sam-text">Based on the current market evidence I found, here's where I'd take the ${escapeHtml(sellState.carName||"car")}.</div>
-    <div class="summary-card">
-      <div class="summary-row"><span class="summary-label">Window</span><span class="summary-value">${escapeHtml(evidence.windowDays||"—")} days</span></div>
-      <div class="summary-row"><span class="summary-label">Evidence set</span><span class="summary-value">${escapeHtml(evidence.evidenceLabel||"—")}</span></div>
-      <div class="summary-row"><span class="summary-label">Close matches</span><span class="summary-value">${escapeHtml(evidence.closeMatches??"—")}</span></div>
-      <div class="summary-row"><span class="summary-label">Relevant matches</span><span class="summary-value">${escapeHtml(evidence.relevantMatches??"—")}</span></div>
-      <div class="summary-row"><span class="summary-label">Broad matches</span><span class="summary-value">${escapeHtml(evidence.broadMatches??"—")}</span></div>
-      <div class="summary-row"><span class="summary-label">Confidence</span><span class="summary-value">${escapeHtml(decision.confidence||"low")}</span></div>
-    </div>
+    <div class="sam-text">Based on the car and what matters to you, these are the routes I'd compare first.</div>
     ${limitationHTML}
     ${tradeoffHTML}
     <div class="sell-rec-grid">

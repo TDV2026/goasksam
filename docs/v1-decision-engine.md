@@ -75,6 +75,18 @@ The engine should separately evaluate a power-seller or specialist-consignor rou
 
 This is a structured decision signal, not fixed copy. Sam should use the signal to generate varied language. Until a verified partner layer exists, the referral object must keep `recommendableNow` as `false` and include constraints such as region, consignment status, minimum value and availability.
 
+## Route Fit Policy
+
+Platform choice should blend market evidence with seller priorities:
+
+- price outcome
+- speed to list
+- seller effort / handoff preference
+- car era and segment
+- region
+
+The UI should not expose raw evidence counts as the main experience. Counts stay in the engine. Sam should translate them into route-level guidance such as strongest result, faster listing fit, specialist route worth evaluating, or region fit.
+
 ## Product Rule
 
 No fake data. No fabricated percentages. If evidence is thin, the decision should say so clearly and explain what it used.

@@ -18,6 +18,57 @@ const FALLBACK_MAKES = [
   "Toyota", "Honda", "Nissan", "Subaru", "Land Rover", "Jaguar", "McLaren"
 ];
 
+const ROUTE_POLICIES = {
+  bringatrailer: {
+    label: "Bring a Trailer",
+    priceOutcome: "strong",
+    speedToList: "slower",
+    sellerEffort: "medium",
+    regions: ["US"],
+    strongSegments: ["premium_collectors", "air_cooled_porsche", "high_end_enthusiast", "classic_european", "modern_classic"]
+  },
+  carsandbids: {
+    label: "Cars & Bids",
+    priceOutcome: "medium",
+    speedToList: "fast",
+    sellerEffort: "medium",
+    regions: ["US"],
+    strongSegments: ["modern_enthusiast", "bmw_m", "modern_porsche", "jdm", "sports_cars", "quick_listing"]
+  },
+  pcarmarket: {
+    label: "PCarMarket",
+    priceOutcome: "medium",
+    speedToList: "medium_fast",
+    sellerEffort: "medium_low",
+    regions: ["US"],
+    strongSegments: ["porsche", "european_sports", "nimble_listing"]
+  },
+  hemmings: {
+    label: "Hemmings",
+    priceOutcome: "medium",
+    speedToList: "medium_fast",
+    sellerEffort: "medium",
+    regions: ["US"],
+    strongSegments: ["older_classic", "classic_american", "pre_1990", "collector"]
+  },
+  hagerty: {
+    label: "Hagerty Marketplace",
+    priceOutcome: "medium",
+    speedToList: "medium_fast",
+    sellerEffort: "medium",
+    regions: ["US"],
+    strongSegments: ["classic", "collector", "older_enthusiast", "pre_1990"]
+  },
+  carandclassic: {
+    label: "Car & Classic",
+    priceOutcome: "medium",
+    speedToList: "medium_fast",
+    sellerEffort: "medium",
+    regions: ["UK", "Europe"],
+    strongSegments: ["uk_europe", "classic", "modern_classic", "collector"]
+  }
+};
+
 let makesCache = null;
 const modelsCache = {};
 
@@ -86,6 +137,121 @@ function recordPlatform(record) {
 
 function recordSellerUsername(record) {
   return asText(record.seller_username || record.seller_name || record.seller || record.username);
+}
+
+function platformPolicyKey(platform) {
+  const normalized = asText(platform).toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (normalized.includes("bringatrailer") || normalized === "bat") return "bringatrailer";
+  if (normalized.includes("carsandbids")) return "carsandbids";
+  if (normalized.includes("pcarmarket")) return "pcarmarket";
+  if (normalized.includes("hemmings")) return "hemmings";
+  if (normalized.includes("hagerty")) return "hagerty";
+  if (normalized.includes("carandclassic")) return "carandclassic";
+  return normalized || "unknown";
+}
+
+function inferSellerPriorities(vehicle, criteria) {
+  const text = [
+    vehicle.raw,
+    criteria.timeline,
+    criteria.involvement,
+    criteria.notes,
+    criteria.targetPrice
+  ].map(asText).join(" ").toLowerCase();
+
+  const region = /\b(uk|united kingdom|england|scotland|wales|europe|european)\b/i.test(text)
+    ? "UK_Europe"
+    : "US";
+  const fastSale = /\b(fast|quick|quickly|tomorrow|this week|asap|soon|gone)\b/i.test(text);
+  const handsOff = /\b(handle|hands[- ]?off|someone|consign|broker)\b/i.test(text);
+  const maximumPrice = /\b(top dollar|max|maximize|most money|best price|highest)\b/i.test(text);
+  const year = vehicle.year || null;
+  const segments = new Set();
+
+  if (year && year < 1990) segments.add("pre_1990");
+  if (year && year < 2000) segments.add("older_enthusiast");
+  if (year && year >= 2000) segments.add("modern_enthusiast");
+  if (asText(vehicle.make).toLowerCase() === "porsche") segments.add("porsche");
+  if (asText(vehicle.make).toLowerCase() === "bmw" && /m\d|\bm\b/i.test(asText(vehicle.model))) segments.add("bmw_m");
+  if (["bmw", "porsche", "mercedes-benz", "mercedes", "audi"].includes(asText(vehicle.make).toLowerCase())) {
+    segments.add("classic_european");
+    segments.add("european_sports");
+  }
+
+  return {
+    region,
+    fastSale,
+    handsOff,
+    maximumPrice,
+    segments: [...segments]
+  };
+}
+
+function routeFitFacts(policy, priorities) {
+  const facts = [];
+  if (priorities.fastSale && ["fast", "medium_fast"].includes(policy.speedToList)) facts.push("faster_listing_fit");
+  if (priorities.fastSale && policy.speedToList === "slower") facts.push("speed_tradeoff");
+  if (policy.priceOutcome === "strong") facts.push("strong_price_signal_route");
+  if (priorities.handsOff && ["medium_low", "medium"].includes(policy.sellerEffort)) facts.push("may_support_handoff");
+  if (priorities.segments.some(segment => policy.strongSegments.includes(segment))) facts.push("segment_fit");
+  if (priorities.region === "UK_Europe" && policy.regions.includes("UK")) facts.push("region_fit");
+  if (priorities.region === "UK_Europe" && !policy.regions.includes("UK") && policy.regions.includes("US")) facts.push("region_mismatch");
+  return facts;
+}
+
+function analyzeRouteFit(analysis, criteria, vehicle) {
+  const priorities = inferSellerPriorities(vehicle, criteria);
+  const evidenceByPlatform = Object.fromEntries(
+    (analysis.platformPerformance || []).map(platform => [platformPolicyKey(platform.platform), platform])
+  );
+  const candidateKeys = new Set(Object.keys(evidenceByPlatform));
+
+  for (const [key, policy] of Object.entries(ROUTE_POLICIES)) {
+    if (priorities.fastSale && ["fast", "medium_fast"].includes(policy.speedToList)) candidateKeys.add(key);
+    if (priorities.region === "UK_Europe" && policy.regions.includes("UK")) candidateKeys.add(key);
+    if (priorities.segments.some(segment => policy.strongSegments.includes(segment))) candidateKeys.add(key);
+  }
+
+  const routes = [...candidateKeys].map(key => {
+    const policy = ROUTE_POLICIES[key] || {
+      label: evidenceByPlatform[key]?.platform || key,
+      priceOutcome: "unknown",
+      speedToList: "unknown",
+      sellerEffort: "unknown",
+      regions: [],
+      strongSegments: []
+    };
+    const evidence = evidenceByPlatform[key] || null;
+    const facts = routeFitFacts(policy, priorities);
+    let score = 0;
+
+    if (evidence) score += 20 + evidence.closeSales * 5 + evidence.relevantSales * 3 + evidence.broadSales;
+    if (facts.includes("segment_fit")) score += 10;
+    if (priorities.fastSale && facts.includes("faster_listing_fit")) score += 12;
+    if (priorities.fastSale && facts.includes("speed_tradeoff")) score -= 8;
+    if (priorities.maximumPrice && policy.priceOutcome === "strong") score += 10;
+    if (facts.includes("region_fit")) score += 15;
+    if (facts.includes("region_mismatch")) score -= 25;
+    if (priorities.handsOff && facts.includes("may_support_handoff")) score += 4;
+
+    return {
+      platform: evidence?.platform || policy.label,
+      policyKey: key,
+      label: policy.label,
+      score,
+      priceOutcome: policy.priceOutcome,
+      speedToList: policy.speedToList,
+      sellerEffort: policy.sellerEffort,
+      routeFitFacts: facts,
+      hasMarketEvidence: !!evidence,
+      marketEvidence: evidence
+    };
+  }).sort((a, b) => b.score - a.score);
+
+  return {
+    priorities,
+    routes
+  };
 }
 
 function sourceRecordId(record) {
@@ -656,8 +822,10 @@ function decisionTradeoffs(criteria) {
   return tradeoffs;
 }
 
-function decide(analysis, criteria) {
-  const best = analysis.platformPerformance[0] || null;
+function decide(analysis, criteria, vehicle) {
+  const routeFit = analyzeRouteFit(analysis, criteria, vehicle);
+  const bestRoute = routeFit.routes[0] || null;
+  const best = bestRoute?.marketEvidence || analysis.platformPerformance[0] || null;
   const powerSellerReferral = analyzePowerSellerReferral(analysis, criteria);
   if (!best) {
     return {
@@ -666,6 +834,7 @@ function decide(analysis, criteria) {
       why: [],
       tradeoffs: decisionTradeoffs(criteria),
       powerSellerReferral,
+      routeFit,
       limitations: ["No relevant recent sales were found in the fetched market data."]
     };
   }
@@ -675,9 +844,12 @@ function decide(analysis, criteria) {
     : "low";
 
   return {
-    recommendedPath: best.platform,
+    recommendedPath: bestRoute?.platform || best.platform,
     confidence,
     why: [
+      bestRoute?.marketEvidence
+        ? `${bestRoute.platform} is the strongest combined fit from market signal and seller priorities.`
+        : `${bestRoute.platform} is the strongest route-fit option for the stated priorities, while live market evidence is stronger on ${best.platform}.`,
       `${best.platform} had ${best.evidenceSales} recent sale${best.evidenceSales === 1 ? "" : "s"} in the selected ${analysis.windowDays}-day ${analysis.evidenceLabel} set.`,
       best.closeSales
         ? `${best.closeSales} of those were close matches to the searched car.`
@@ -689,6 +861,7 @@ function decide(analysis, criteria) {
     ].filter(Boolean),
     tradeoffs: decisionTradeoffs(criteria),
     powerSellerReferral,
+    routeFit,
     limitations: analysis.thinMarket
       ? ["Recent evidence is thin; treat the decision as directional, not definitive."]
       : []
@@ -872,7 +1045,7 @@ export default async function handler(req, res) {
     const rawPersistence = await persistRawRecords(records, supabaseUrl, supabaseKey);
     const classificationPersistence = await persistClassifications(records, classifications, rawPersistence.idLookup, supabaseUrl, supabaseKey);
     const analysis = analyze(records, classifications);
-    const decision = decide(analysis, sellerCriteria);
+    const decision = decide(analysis, sellerCriteria, vehicle);
 
     return res.status(200).json({
       status: "decision_ready",
