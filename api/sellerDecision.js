@@ -256,8 +256,9 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
     if (priorities.fastSale && facts.includes("faster_listing_fit")) score += 12;
     if (priorities.fastSale && facts.includes("speed_tradeoff")) score -= 8;
     if (priorities.maximumPrice && policy.priceOutcome === "strong") score += 10;
+    if (priorities.segments.includes("high_value") && policy.strongSegments.includes("high_value")) score += 20;
     if (facts.includes("region_fit")) score += 15;
-    if (facts.includes("region_mismatch")) score -= 25;
+    if (facts.includes("region_mismatch")) score -= 175;
     if (priorities.handsOff && facts.includes("may_support_handoff")) score += 4;
 
     return {
