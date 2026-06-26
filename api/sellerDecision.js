@@ -535,6 +535,8 @@ function fetchEvidenceSnapshot(records, vehicle) {
 async function fetchPass(pass, apiKey, deadline) {
   const records = [];
   let error = null;
+  let meteredRequests = 0;
+  let pagesFetched = 0;
   for (let page = 1; page <= pass.pages; page++) {
     const remainingMs = deadline - Date.now();
     if (remainingMs <= 0) {
@@ -549,6 +551,7 @@ async function fetchPass(pass, apiKey, deadline) {
     );
     let result;
     try {
+      meteredRequests++;
       result = await callOldCarsData("/auctions", {
         ...pass.params,
         status: "sold",
@@ -564,6 +567,7 @@ async function fetchPass(pass, apiKey, deadline) {
       clearTimeout(timeout);
     }
 
+    pagesFetched++;
     const pageRecords = result.data || [];
     records.push(...pageRecords.map(record => ({
       ...record,
@@ -573,7 +577,7 @@ async function fetchPass(pass, apiKey, deadline) {
     if (!pageRecords.length) break;
     if (page >= (result.meta?.total_pages || 1)) break;
   }
-  return { records, error };
+  return { records, error, meteredRequests, pagesFetched };
 }
 
 async function fetchRecentRecords(vehicle, apiKey) {
@@ -587,6 +591,7 @@ async function fetchRecentRecords(vehicle, apiKey) {
   let stoppedEarly = false;
   let stopReason = null;
   let evidenceSnapshot = fetchEvidenceSnapshot(records, vehicle);
+  let meteredRequests = 0;
 
   for (const pass of passes) {
     if (Date.now() >= deadline) {
@@ -600,6 +605,7 @@ async function fetchRecentRecords(vehicle, apiKey) {
     const passResult = await fetchPass(pass, apiKey, deadline);
     passRecords = passResult.records;
     passError = passResult.error;
+    meteredRequests += passResult.meteredRequests;
     let added = 0;
 
     for (const record of passRecords) {
@@ -617,6 +623,8 @@ async function fetchRecentRecords(vehicle, apiKey) {
       label: pass.label,
       fetched: passRecords.length,
       added,
+      meteredRequests: passResult.meteredRequests,
+      pagesFetched: passResult.pagesFetched,
       error: passError,
       evidenceAfterPass: evidenceSnapshot
     });
@@ -635,6 +643,7 @@ async function fetchRecentRecords(vehicle, apiKey) {
     stopReason,
     elapsedMs: Date.now() - startedAt,
     timeBudgetMs: FETCH_TIME_BUDGET_MS,
+    meteredRequests,
     evidenceSnapshot
   };
 }
@@ -1167,7 +1176,12 @@ export default async function handler(req, res) {
           stoppedEarly: fetchResult.stoppedEarly,
           stopReason: fetchResult.stopReason,
           elapsedMs: fetchResult.elapsedMs,
-          timeBudgetMs: fetchResult.timeBudgetMs
+          timeBudgetMs: fetchResult.timeBudgetMs,
+          meteredRequests: fetchResult.meteredRequests,
+          oldCarsDataCostEstimateUsd: {
+            plan1k: Number((fetchResult.meteredRequests * 0.049).toFixed(3)),
+            plan10k: Number((fetchResult.meteredRequests * 0.0199).toFixed(3))
+          }
         }
       },
       analysis: {
