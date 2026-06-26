@@ -668,7 +668,7 @@ async function showSellRecommendation(){
 
   let decisionData=null;
   try{
-    const res=await fetch("/api/sellerDecision",{
+    const res=await fetch(apiPath("/api/sellerDecision"),{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
@@ -701,7 +701,7 @@ async function showSellRecommendation(){
   }
 
   if(decisionData?.status==="error"||decisionData?.error){
-    addMsg("sam",`I couldn't check the live market yet: ${decisionData.error||"connection issue"}. I don't want to invent a recommendation without evidence.`);
+    addMsg("sam",`I couldn't reach the live market check from this page: ${decisionData.error||"connection issue"}. Try the live GoAskSam site, or try again in a moment. I don't want to invent a recommendation without evidence.`);
     document.getElementById("btn").disabled=false;
     return;
   }
@@ -874,7 +874,7 @@ async function submitContactForm(){
 
   const option=sellState.sellOptions.find(o=>o.key===sellState.chosen)||sellState.sellOptions[0]||{name:"the selected destination",type:null,key:sellState.chosen};
   try{
-    const res=await fetch("/api/submitSellerLead",{
+    const res=await fetch(apiPath("/api/submitSellerLead"),{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
@@ -960,9 +960,11 @@ PRICING: Live = current bid. Never say how many listings you are watching.`;
 
 const history=[];
 const sessionContext={type:null,budget:null,transmission:null};
+const API_ORIGIN=location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:"?"https://goasksam.vercel.app":"";
 
 function hideHero(){const h=document.getElementById("hero");if(h)h.remove();}
 function escapeHtml(str){return String(str||"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]));}
+function apiPath(path){return `${API_ORIGIN}${path}`;}
 function reserveInfo(l){
   if(l.reserve_status==="none")return{label:"No Reserve",cls:"none"};
   if(l.reserve_status==="rnm")return{label:"Reserve Not Met",cls:"rnm"};
@@ -1167,7 +1169,7 @@ async function send(){
       const nextQ=SELL_STEP_QUESTIONS[sellState.step];
       const sellSys=SELL_SYS.replace("SELL_STATE_PLACEHOLDER",stateStr).replace("NEXT_QUESTION_PLACEHOLDER",nextQ?nextQ.ask:"Proceed with submission.");
       try{
-        const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[...history,{role:"user",content:q}],system:sellSys})});
+        const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[...history,{role:"user",content:q}],system:sellSys})});
         const data=await res.json();
         const raw=data.text||"Let me know how you'd like to proceed.";
         hideTyping();addMsg("sam",raw);
@@ -1195,7 +1197,7 @@ async function send(){
   history.push({role:"user",content:enrichedQ});
   showTyping();
   try{
-    const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:history,system:SYS})});
+    const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:history,system:SYS})});
     const data=await res.json();
     const raw=data.text||"Connection issue. Try again.";
     const parsed=parseResults(raw);
