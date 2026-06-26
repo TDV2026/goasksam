@@ -207,6 +207,13 @@ body{
 .sell-rec-stat{background:#f8f8f5;border-radius:10px;padding:10px 12px;font-size:12px;color:#166534;font-weight:700;}
 .primary-rec .sell-rec-stat{background:white;}
 .sell-rec-best{font-size:11px;color:#777;font-weight:650;line-height:1.5;}
+.sell-rec-notes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.sell-rec-note{border:1px solid #e8e8e4;background:#fbfbfa;border-radius:12px;padding:12px 13px;font-size:12px;line-height:1.5;color:#555;}
+.sell-rec-note strong{display:block;color:#171717;font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.observed-sellers{border-top:1px solid #eee7d8;padding-top:9px;display:flex;flex-direction:column;gap:6px;}
+.observed-seller{display:flex;justify-content:space-between;gap:10px;font-size:12px;line-height:1.35;}
+.observed-seller-name{font-weight:800;color:#171717;}
+.observed-seller-meta{color:#8a6a22;text-align:right;font-size:11px;}
 .sell-rec-actions{display:flex;gap:8px;margin-top:4px;}
 .sell-rec-actions button{flex:1;padding:10px 9px;border-radius:10px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;}
 .upload-area{border:2px dashed #dededb;border-radius:14px;padding:24px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;margin-top:4px;}
@@ -244,6 +251,7 @@ body{
   .row-inner{padding:0 18px}
   .cards-grid{grid-template-columns:1fr}
   .sell-rec-grid{grid-template-columns:1fr}
+  .sell-rec-notes{grid-template-columns:1fr}
   .card-img-wrap{height:235px}
   #input-area{padding:10px 18px 18px}
   .hero h1{font-size:26px}
@@ -797,36 +805,56 @@ async function showSellRecommendation(){
   sellState.sellOptions=routesForCards.map((route,index)=>{
     const platform=route.marketEvidence||{};
     const facts=route.routeFitFacts||[];
+    const routeName=route.label||route.platform;
+    const isPrimary=index===0;
+    const speedFit=facts.includes("faster_listing_fit");
+    const speedTradeoff=facts.includes("speed_tradeoff");
+    const segmentFit=facts.includes("segment_fit");
+    const regionFit=facts.includes("region_fit");
+    const priceRoute=facts.includes("strong_price_signal_route");
+    const evidenceLine=route.hasMarketEvidence
+      ?"The live sales data supports keeping it in the shortlist."
+      :"This is a policy-fit option: the car, region or timing makes it worth comparing even without strong recent comps.";
     const reason=[
-      facts.includes("strong_price_signal_route")?"Best fit when the priority is the strongest sale result.":null,
-      facts.includes("faster_listing_fit")?"A better fit when speed-to-list matters.":null,
-      facts.includes("speed_tradeoff")?"Strong audience, but not usually the nimblest path if timing is urgent.":null,
-      facts.includes("segment_fit")?"Fits this car's segment well.":null,
-      facts.includes("region_fit")?"Fits the seller's region better than US-only routes.":null,
-      route.hasMarketEvidence?"Supported by the live market signals Sam checked.":"Included because the seller's timing, region or car type makes it worth comparing."
+      isPrimary&&priceRoute?"I’d start here if the goal is the strongest sale result.":null,
+      isPrimary&&speedTradeoff?"The tradeoff is timing: this route can be excellent, but it is not always the fastest way to get live.":null,
+      !isPrimary&&speedFit?"This is here because speed-to-list matters for this seller.":null,
+      !isPrimary&&segmentFit?`${routeName} has a relevant audience for this kind of car.`:null,
+      regionFit&&sellState.region&&sellState.region!=="US"?`${routeName} also fits the seller’s region.`:null,
+      evidenceLine
     ].filter(Boolean).join(" ");
     const stat=[
-      route.priceOutcome==="strong"?"Best-price route":null,
-      ["fast","medium_fast"].includes(route.speedToList)?"Faster listing fit":null,
-      route.sellerEffort&&route.sellerEffort!=="unknown"?"Seller effort considered":null
+      route.priceOutcome==="strong"?"Price-first route":null,
+      ["fast","medium_fast"].includes(route.speedToList)?"Quicker listing fit":null,
+      segmentFit?"Specialist audience":null,
+      regionFit?"Regional fit":null
     ].filter(Boolean).join(" · ")||"Route fit";
     return {
-    key:index===0?"primary":`route_${index}`,
-    name:route.label||route.platform,
+      key:index===0?"primary":`route_${index}`,
+      name:routeName,
       type:"Selling route",
       badge:index===0?"Sam's pick":"Alternative route",
-    badgeClass:index===0?"top":"alt",
-    cardClass:index===0?"primary-rec":"",
-    actionLabel:"Go with this",
-    reason,
-    stat,
-    bestFor:index===0?"Best overall fit from market signal and seller priorities":"Worth comparing if fees, timing or handoff fit better"
+      badgeClass:index===0?"top":"alt",
+      cardClass:index===0?"primary-rec":"",
+      actionLabel:"Go with this",
+      reason,
+      stat,
+      bestFor:index===0?"Maximum result, assuming the seller can tolerate the process":"Worth comparing if timing, fees or handoff fit better"
     };
   });
 
   const powerSellerReferral=decision.powerSellerReferral||{};
   if(powerSellerReferral.shouldEvaluate){
     const regionLabel=sellState.region&&sellState.region!=="US"?`${sellState.region} `:"";
+    const observedSellers=(sellerActivity.topObservedSellers||[])
+      .filter(seller=>seller.sellerUsername&&["high_activity_seller","active_specialist"].includes(seller.activityLabel))
+      .slice(0,3)
+      .map(seller=>({
+        name:seller.sellerUsername,
+        platform:seller.platform,
+        sales:seller.relevantSales270||seller.sales270||0,
+        label:seller.activityLabel==="high_activity_seller"?"High activity":"Active specialist"
+      }));
     sellState.sellOptions.push({
       key:"specialist",
       name:`${regionLabel}Specialist seller route`,
@@ -836,17 +864,25 @@ async function showSellRecommendation(){
       cardClass:"specialist-rec",
       actionLabel:"Explore this",
       reason:[
-        powerSellerReferral.trigger==="seller_target_price_six_figures"?"Your target puts this in six-figure territory.":"Current market evidence puts this in specialist territory.",
-        "A high-quality seller/operator can matter at this level, including regional specialists, but minimum value, availability and consignment fit need verification.",
-        powerSellerReferral.activeSellerSignals?`${powerSellerReferral.activeSellerSignals} active seller signal${powerSellerReferral.activeSellerSignals===1?"":"s"} appeared in the observed data.`:null
+        powerSellerReferral.trigger==="seller_target_price_six_figures"?"At this value, I would normally check whether a specialist seller can improve presentation and execution.":"This looks like the kind of car where a specialist route may matter.",
+        "These names are market-observed sellers, not verified GoAskSam partners yet."
       ].filter(Boolean).join(" "),
-      stat:"Needs verified fit · not a named seller yet",
-      bestFor:"Six-figure or specialist cars where presentation and seller credibility can matter"
+      stat:"Verify consignment fit · minimum value · availability",
+      bestFor:"Six-figure or specialist cars where presentation and seller credibility can matter",
+      observedSellers
     });
   }
 
-  const limitationHTML=limitations.length?`<div class="modal-signal concern"><strong>Limit:</strong> ${escapeHtml(limitations.join(" "))}</div>`:"";
-  const tradeoffHTML=tradeoffs.length?`<div class="modal-signal resolved"><strong>Seller fit:</strong> ${escapeHtml(tradeoffs.join(" "))}</div>`:"";
+  const readableLimit=evidence.thinMarket
+    ?"The exact recent comp set is thinner than ideal, so I’m treating this as a directional call rather than pretending the model is perfect."
+    :null;
+  const readableFit=sellState.timeline&&/fast|quick|soon|tomorrow|week|gone/i.test(sellState.timeline)
+    ?"Because speed matters, I’m showing faster-listing alternatives next to the price-first route."
+    :"I’m balancing likely result, seller workload, audience fit and route speed.";
+  const notesHTML=`<div class="sell-rec-notes">
+    <div class="sell-rec-note"><strong>Why this mix</strong>${escapeHtml(readableFit)}</div>
+    ${readableLimit?`<div class="sell-rec-note"><strong>Keep in mind</strong>${escapeHtml(readableLimit)}</div>`:""}
+  </div>`;
   const optionCardsHTML=sellState.sellOptions.map(option=>`
       <div class="sell-rec-card ${escapeHtml(option.cardClass||"")}" onclick="chooseSellOption('${escapeHtml(option.key)}')">
         <div class="sell-rec-badge ${escapeHtml(option.badgeClass||"alt")}">${escapeHtml(option.badge)}</div>
@@ -854,6 +890,9 @@ async function showSellRecommendation(){
         <div class="sell-rec-reason">${escapeHtml(option.reason)}</div>
         <div class="sell-rec-stat">↑ ${escapeHtml(option.stat)}</div>
         <div class="sell-rec-best">Best for: ${escapeHtml(option.bestFor)}</div>
+        ${option.observedSellers?.length?`<div class="observed-sellers">
+          ${option.observedSellers.map(seller=>`<div class="observed-seller"><span class="observed-seller-name">${escapeHtml(seller.name)}</span><span class="observed-seller-meta">${escapeHtml(seller.label)} · ${escapeHtml(seller.platform)}</span></div>`).join("")}
+        </div>`:""}
         <div class="sell-rec-actions"><button class="${option.key==="primary"?"primary":"ghost"}" onclick="event.stopPropagation();chooseSellOption('${escapeHtml(option.key)}')">${escapeHtml(option.actionLabel||"Go with this")}</button></div>
       </div>`).join("");
 
@@ -863,18 +902,18 @@ async function showSellRecommendation(){
     <div class="sell-rec-header">
       <div class="sell-rec-kicker">Seller Intelligence</div>
       <div class="sell-rec-title">Here’s where I’d take the ${escapeHtml(sellState.carName||"car")}.</div>
-      <div class="sell-rec-subtitle">I weighed the car, location, timeline, target price and current market signals. You still choose the route — this is the shortlist I’d compare first.</div>
+      <div class="sell-rec-subtitle">I weighed value, timing, seller workload, audience fit and current market signals. You still choose the route — this is the shortlist I’d compare first.</div>
     </div>
-    ${limitationHTML}
-    ${tradeoffHTML}
+    ${notesHTML}
     <div class="sell-rec-grid">
       ${optionCardsHTML}
     </div>
-    <div class="sam-text after-results">Which feels right? Feel free to ask anything about these options.</div>
+    <div class="sam-text after-results">Which direction feels right? You can pick one, or ask me to compare the tradeoffs.</div>
   </div></div>`;
   sellState.generatedPrimaryName=sellState.sellOptions[0]?.name||null;
   sellState.generatedSecondaryName=sellState.sellOptions[1]?.name||null;
-  msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
+  msgs.appendChild(row);
+  row.scrollIntoView({behavior:"smooth",block:"start"});
 }
 
 function handleSellRecommendationFollowup(q){
@@ -898,7 +937,10 @@ function handleSellRecommendationFollowup(q){
   if(/\b(power seller|specialist|consignor|consignment)\b/i.test(lower)){
     const specialist=options.find(o=>o.key==="specialist");
     if(specialist){
-      addMsg("sam",`${specialist.name}: ${specialist.reason} I would treat this as something to evaluate, not a named handoff yet.`);
+      const observed=specialist.observedSellers?.length
+        ? ` The observed seller names I’d look at first are ${specialist.observedSellers.map(seller=>seller.name).join(", ")}.`
+        : "";
+      addMsg("sam",`${specialist.name}: ${specialist.reason}${observed} I would treat this as a shortlist to verify, not an automatic handoff.`);
     }else{
       addMsg("sam","I don't have enough evidence to make a specialist-seller route part of this recommendation yet.");
     }
