@@ -401,12 +401,28 @@ function cleanInitialCarText(text){
     .trim();
 }
 
+function looksLikeVehicleText(text){
+  const lower=String(text||"").toLowerCase();
+  const hasYear=/\b(19|20)\d{2}\b/.test(lower);
+  const hasVehicleTerm=/\b(porsche|ferrari|bmw|mercedes|benz|audi|lamborghini|aston|bentley|mclaren|chevrolet|chevy|corvette|ford|mustang|dodge|viper|toyota|honda|nissan|subaru|land rover|range rover|jaguar|maserati|alfa|lotus|911|gt3|gt2|turbo|m2|m3|m4|m5|amg|rs|sti|supra|nsx|gtr|camaro)\b/.test(lower);
+  const explicitSell=/\b(i have|i've got|my car is|selling|to sell)\b/.test(lower)&&hasVehicleTerm;
+  return (hasYear&&hasVehicleTerm)||explicitSell;
+}
+
+function sellerFunnelReply(){
+  return "I can do that properly once I know the car. Answer a few quick questions — it takes under a minute — and I'll compare the market, route fit, timing and specialist-seller options for you.";
+}
+
 function startSellFlow(initialCar, showUserBubble=true){
   resetSellState();
   sellState.active=true;sellState.step=1;
   hideHero();
   if(initialCar){
     const carName=cleanInitialCarText(initialCar);
+    if(!looksLikeVehicleText(initialCar)){
+      addMsg("sam",sellerFunnelReply(),"",chipsHTML(["Start the questions","I have a Porsche 911 to sell","I have a BMW 318 to sell"]));
+      return;
+    }
     sellState.carRaw=initialCar;sellState.carName=carName||initialCar;sellState.step=15;
     setTimeout(()=>askNextSellQuestion(),400);
     return;
@@ -518,7 +534,7 @@ function handleSellStep(q){
       addMsg("sam","Great — what's the car? Year, make, and model.");
       return true;
     }
-    if(lower.split(" ").length<2&&!/porsche|bmw|audi|ferrari|911|m2|m3|m4|corvette|viper|mustang|camaro|subaru|toyota|honda|ford|dodge|mercedes|bentley|lamborghini/i.test(lower)){
+    if(!looksLikeVehicleText(q)){
       addMsg("sam","Give me the year, make, and model — something like '2018 Porsche 911' or '2020 BMW M2'.");
       return true;
     }
@@ -1250,11 +1266,12 @@ function newConversation(){
 
 function localPreRoute(q){
   const lower=q.toLowerCase().trim();
-  const funnelReply="I can do that properly once I know the car. Answer a few quick questions — it takes under a minute — and I'll compare the market, route fit, timing and specialist-seller options for you.";
+  const funnelReply=sellerFunnelReply();
   if(sellState.active&&sellState.step>0)return{sell:true};
   if(/\b(where should i sell|best place to sell|who(?:'s| is)? best to sell|which platform|what platform|where do i sell|who should sell|best site|best auction|sell it on)\b/i.test(lower))
     return{reply:funnelReply,chips:["Start the questions","I have a Porsche 911 to sell","I have a BMW 318 to sell"]};
-  if(/\b(sell|selling|want to sell|sell my car|i want to sell|i have|i've got)\b/i.test(lower))return{sellTrigger:true,initialCar:q};
+  if(/\b(sell my car|i want to sell|want to sell|selling|to sell)\b/i.test(lower))return{sellTrigger:true,initialCar:q};
+  if(/\b(i have|i've got|my car is)\b/i.test(lower)&&looksLikeVehicleText(q))return{sellTrigger:true,initialCar:q};
   if(/\b(the daily vroom|daily vroom|sam gold|who owns|owner|ownership|who is sam|who's sam|who runs|behind goasksam|behind this)\b/i.test(lower))
     return{reply:"Sam Gold owns The Daily Vroom, and GoAskSam is run by a collection of car enthusiasts who want to bring more transparency to the car market. We've built tools like the Import & Domestic Car Calculators, this seller-intelligence tool, and there's more to come. If you're selling a car, tell me what it is and I'll help work out the strongest route.",chips:["Sell my car","I have a Porsche 911 to sell","I have a BMW 318 to sell"]};
   if(/^(u there|you there|hello|hey|hi|yo|are you there)\??$/.test(lower))
