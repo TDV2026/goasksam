@@ -3,6 +3,8 @@ const ANALYSIS_WINDOWS_DAYS = [45, 90, 180];
 const SELLER_ACTIVITY_WINDOWS_DAYS = [90, 180, 270];
 const MAX_PAGES = 3;
 const DEFAULT_LIMIT = 50;
+const FETCH_TIME_BUDGET_MS = 22000;
+const PER_REQUEST_TIMEOUT_MS = 8000;
 const MIN_CLOSE_EVIDENCE = 3;
 const MIN_RELEVANT_EVIDENCE = 6;
 const MIN_BROAD_EVIDENCE = 6;
@@ -334,8 +336,8 @@ function modelSearchTerms(vehicle) {
   return [...terms].filter(Boolean);
 }
 
-async function fetchJson(url, headers = {}) {
-  const res = await fetch(url, { headers });
+async function fetchJson(url, headers = {}, options = {}) {
+  const res = await fetch(url, { headers, signal: options.signal });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(`${res.status}: ${json.message || json.error || "request failed"}`);
@@ -411,14 +413,14 @@ async function resolveVehicle(rawSearch) {
   };
 }
 
-async function callOldCarsData(path, params, apiKey) {
+async function callOldCarsData(path, params, apiKey, options = {}) {
   const url = new URL(`${OLDCARSDATA_BASE}${path}`);
   for (const [key, value] of Object.entries(params)) {
     if (value !== null && value !== undefined && value !== "") {
       url.searchParams.set(key, value);
     }
   }
-  return fetchJson(url.toString(), { Authorization: `Bearer ${apiKey}` });
+  return fetchJson(url.toString(), { Authorization: `Bearer ${apiKey}` }, options);
 }
 
 function buildFetchPasses(vehicle) {
@@ -507,17 +509,60 @@ function buildFetchPasses(vehicle) {
   return passes;
 }
 
-async function fetchPass(pass, apiKey) {
+function fetchEvidenceSnapshot(records, vehicle) {
+  const maxAnalysisWindow = Math.max(...ANALYSIS_WINDOWS_DAYS);
+  const counts = records
+    .filter(record => daysAgo(record.auction_end_date) <= maxAnalysisWindow)
+    .map(record => classifyRecord(record, vehicle))
+    .reduce((summary, classification) => {
+      if (classification.comparison_tier === "close_match") summary.closeMatches++;
+      if (["close_match", "relevant_match"].includes(classification.comparison_tier)) summary.relevantMatches++;
+      if (classification.comparison_tier === "broad_match") summary.broadMatches++;
+      return summary;
+    }, { closeMatches: 0, relevantMatches: 0, broadMatches: 0 });
+
+  const broadEvidence = counts.relevantMatches + counts.broadMatches;
+  return {
+    ...counts,
+    broadEvidence,
+    enoughEvidence:
+      counts.closeMatches >= MIN_CLOSE_EVIDENCE ||
+      counts.relevantMatches >= MIN_RELEVANT_EVIDENCE ||
+      broadEvidence >= MIN_BROAD_EVIDENCE
+  };
+}
+
+async function fetchPass(pass, apiKey, deadline) {
   const records = [];
+  let error = null;
   for (let page = 1; page <= pass.pages; page++) {
-    const result = await callOldCarsData("/auctions", {
-      ...pass.params,
-      status: "sold",
-      sort: "date",
-      direction: "desc",
-      page,
-      limit: DEFAULT_LIMIT
-    }, apiKey);
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) {
+      error = "time_budget_reached";
+      break;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(),
+      Math.max(1, Math.min(PER_REQUEST_TIMEOUT_MS, remainingMs))
+    );
+    let result;
+    try {
+      result = await callOldCarsData("/auctions", {
+        ...pass.params,
+        status: "sold",
+        sort: "date",
+        direction: "desc",
+        page,
+        limit: DEFAULT_LIMIT
+      }, apiKey, { signal: controller.signal });
+    } catch (err) {
+      error = err.name === "AbortError" ? "request_timeout" : err.message;
+      break;
+    } finally {
+      clearTimeout(timeout);
+    }
 
     const pageRecords = result.data || [];
     records.push(...pageRecords.map(record => ({
@@ -528,24 +573,33 @@ async function fetchPass(pass, apiKey) {
     if (!pageRecords.length) break;
     if (page >= (result.meta?.total_pages || 1)) break;
   }
-  return records;
+  return { records, error };
 }
 
 async function fetchRecentRecords(vehicle, apiKey) {
   const passes = buildFetchPasses(vehicle);
+  const startedAt = Date.now();
+  const deadline = startedAt + FETCH_TIME_BUDGET_MS;
   const seen = new Set();
   const records = [];
   const passSummary = [];
   const maxWindow = Math.max(...ANALYSIS_WINDOWS_DAYS, ...SELLER_ACTIVITY_WINDOWS_DAYS);
+  let stoppedEarly = false;
+  let stopReason = null;
+  let evidenceSnapshot = fetchEvidenceSnapshot(records, vehicle);
 
   for (const pass of passes) {
+    if (Date.now() >= deadline) {
+      stoppedEarly = true;
+      stopReason = "time_budget_reached";
+      break;
+    }
+
     let passRecords = [];
     let passError = null;
-    try {
-      passRecords = await fetchPass(pass, apiKey);
-    } catch (err) {
-      passError = err.message;
-    }
+    const passResult = await fetchPass(pass, apiKey, deadline);
+    passRecords = passResult.records;
+    passError = passResult.error;
     let added = 0;
 
     for (const record of passRecords) {
@@ -557,16 +611,32 @@ async function fetchRecentRecords(vehicle, apiKey) {
       added++;
     }
 
+    evidenceSnapshot = fetchEvidenceSnapshot(records, vehicle);
     passSummary.push({
       name: pass.name,
       label: pass.label,
       fetched: passRecords.length,
       added,
-      error: passError
+      error: passError,
+      evidenceAfterPass: evidenceSnapshot
     });
+
+    if (evidenceSnapshot.enoughEvidence) {
+      stoppedEarly = true;
+      stopReason = "enough_relevant_evidence";
+      break;
+    }
   }
 
-  return { records, passSummary };
+  return {
+    records,
+    passSummary,
+    stoppedEarly,
+    stopReason,
+    elapsedMs: Date.now() - startedAt,
+    timeBudgetMs: FETCH_TIME_BUDGET_MS,
+    evidenceSnapshot
+  };
 }
 
 function getSellerCriteria(car = {}) {
@@ -1092,7 +1162,13 @@ export default async function handler(req, res) {
         evidenceSales: analysis.evidenceSales,
         windowDays: analysis.windowDays,
         thinMarket: analysis.thinMarket,
-        fetchPasses: fetchResult.passSummary
+        fetchPasses: fetchResult.passSummary,
+        fetchStrategy: {
+          stoppedEarly: fetchResult.stoppedEarly,
+          stopReason: fetchResult.stopReason,
+          elapsedMs: fetchResult.elapsedMs,
+          timeBudgetMs: fetchResult.timeBudgetMs
+        }
       },
       analysis: {
         analysisDate: analysis.analysisDate,
