@@ -341,6 +341,7 @@ Current sell state: SELL_STATE_PLACEHOLDER
 Next question: NEXT_QUESTION_PLACEHOLDER
 
 Key facts:
+- If asked about The Daily Vroom, Sam Gold, ownership, or who is behind GoAskSam: Sam Gold is the owner. It is run by a collection of car enthusiasts who want to bring better transparency to the car market. The group has developed tools including the Import & Domestic Car Calculators, this seller-intelligence tool, and more tools are coming.
 - Cars & Bids auctions run 7 days. Submit all info and live within 72 hours.
 - GoAskSam uses live market evidence for seller recommendations. Do not name a power seller unless one has been explicitly verified in the current context.
 - Specialist seller or power-seller routes may be worth evaluating for six-figure or specialist cars, but consignment status, region, minimum value and availability must be verified first.
@@ -1209,6 +1210,8 @@ function localPreRoute(q){
   const lower=q.toLowerCase().trim();
   if(sellState.active&&sellState.step>0)return{sell:true};
   if(/\b(sell|selling|want to sell|sell my car|i want to sell|i have|i've got)\b/i.test(lower))return{sellTrigger:true,initialCar:q};
+  if(/\b(the daily vroom|daily vroom|sam gold|who owns|owner|ownership|who is sam|who's sam|who runs|behind goasksam|behind this)\b/i.test(lower))
+    return{reply:"Sam Gold owns The Daily Vroom, and GoAskSam is run by a collection of car enthusiasts who want to bring more transparency to the car market. We've built tools like the Import & Domestic Car Calculators, this seller-intelligence tool, and there's more to come. If you're selling a car, tell me what it is and I'll help work out the strongest route.",chips:["Sell my car","I have a Porsche 911 to sell","I have a BMW 318 to sell"]};
   if(/^(u there|you there|hello|hey|hi|yo|are you there)\??$/.test(lower))
     return{reply:"Yep, here. Tell me what you're selling and I'll work out the strongest route.",chips:["Sell my car","I have a Porsche 911 to sell","I have a BMW 318 to sell"]};
   if(/dump a body|dead body|outrun the cops/i.test(lower))
