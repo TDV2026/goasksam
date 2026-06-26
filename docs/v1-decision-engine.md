@@ -21,6 +21,7 @@ Search
 -> Classify records against the search
 -> Persist classifications
 -> Analyze current market behavior
+-> Analyze observed seller activity
 -> Produce decision-ready facts
 -> Sam explains why
 -> Optional lead submission
@@ -51,6 +52,17 @@ Supabase is not treated as a full copy of OldCarsData. A search triggers recent-
 - nearby-year passes when the market needs more signal.
 
 Fetched records are merged and deduped by source and source record id before raw persistence and classification. The recommendation can use broader evidence only when it labels that evidence clearly.
+
+## Seller Activity
+
+Seller activity is computed from the fetched market records and is not a permanent V1 table.
+
+- Group recent sales by platform and seller username.
+- Measure activity over 90, 180 and 270 days.
+- Label observed sellers as `high_activity_seller`, `active_specialist` or `limited_signal`.
+- Keep `consignmentStatus` as `unknown` and `recommendableToUser` as `false` unless a separate verified partner layer confirms that the seller accepts consignments.
+
+For V1, seller activity supports platform confidence. It should not route a user to an individual seller.
 
 ## Product Rule
 

@@ -641,6 +641,7 @@ async function showSellRecommendation(){
   const topPlatforms=platforms.slice(0,2);
   const decision=decisionData.decision||{};
   const evidence=decisionData.evidence||{};
+  const sellerActivity=decisionData.analysis?.sellerActivity||{};
   const limitations=[...(decision.limitations||[])];
   const tradeoffs=[...(decision.tradeoffs||[])];
   if(evidence.thinMarket&&!limitations.length)limitations.push("Recent evidence is thin, so treat this as directional.");
@@ -659,6 +660,7 @@ async function showSellRecommendation(){
     reason:[
       `${platform.platform} has ${platform.evidenceSales} sale${platform.evidenceSales===1?"":"s"} in the ${evidence.windowDays}-day ${evidence.evidenceLabel||"evidence"} set.`,
       platform.closeSales?`${platform.closeSales} were close matches to your car.`:"The exact close-match sample is thin, so this uses broader relevant comps.",
+      sellerActivity.platformSummary?.[platform.platform]?`${sellerActivity.platformSummary[platform.platform].highActivitySellers+sellerActivity.platformSummary[platform.platform].activeSpecialists} active seller signal${sellerActivity.platformSummary[platform.platform].highActivitySellers+sellerActivity.platformSummary[platform.platform].activeSpecialists===1?"":"s"} appeared on this platform, but consignment fit still needs verification.`:null,
       platform.medianSalePrice?`Median sale price in this evidence set was $${platform.medianSalePrice.toLocaleString()}.`:null
     ].filter(Boolean).join(" "),
     stat:`${platform.closeSales} close · ${platform.relevantSales} relevant · ${platform.broadSales} broad`,

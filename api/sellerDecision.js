@@ -1,5 +1,6 @@
 const OLDCARSDATA_BASE = "https://api.oldcarsdata.com";
 const ANALYSIS_WINDOWS_DAYS = [45, 90, 180];
+const SELLER_ACTIVITY_WINDOWS_DAYS = [90, 180, 270];
 const MAX_PAGES = 3;
 const DEFAULT_LIMIT = 50;
 const MIN_CLOSE_EVIDENCE = 3;
@@ -66,6 +67,10 @@ function normalizeMoney(record) {
 
 function recordPlatform(record) {
   return record.platform || record.source || record.auction_platform || record.listing_source || "unknown";
+}
+
+function recordSellerUsername(record) {
+  return asText(record.seller_username || record.seller_name || record.seller || record.username);
 }
 
 function sourceRecordId(record) {
@@ -263,7 +268,7 @@ async function fetchRecentRecords(vehicle, apiKey) {
   const seen = new Set();
   const records = [];
   const passSummary = [];
-  const maxWindow = Math.max(...ANALYSIS_WINDOWS_DAYS);
+  const maxWindow = Math.max(...ANALYSIS_WINDOWS_DAYS, ...SELLER_ACTIVITY_WINDOWS_DAYS);
 
   for (const pass of passes) {
     let passRecords = [];
@@ -372,14 +377,14 @@ function classifyRecord(record, vehicle) {
 }
 
 function analyze(records, classifications) {
+  const pairedRecords = records.map((record, index) => ({ record, classification: classifications[index] }));
+
   for (const windowDays of ANALYSIS_WINDOWS_DAYS) {
-    const inWindow = records
-      .map((record, index) => ({ record, classification: classifications[index] }))
+    const inWindow = pairedRecords
       .filter(item => daysAgo(item.record.auction_end_date) <= windowDays)
       .filter(item => item.classification.comparison_tier !== "excluded");
 
-    const excludedRecords = records
-      .map((record, index) => ({ record, classification: classifications[index] }))
+    const excludedRecords = pairedRecords
       .filter(item => item.classification.comparison_tier === "excluded");
     const closeMatches = inWindow.filter(item => item.classification.comparison_tier === "close_match");
     const relevantMatches = inWindow.filter(item => ["close_match", "relevant_match"].includes(item.classification.comparison_tier));
@@ -447,10 +452,94 @@ function analyze(records, classifications) {
         evidenceLabel,
         evidenceSales: evidenceSet.length,
         thinMarket: evidenceSet.length < MIN_RELEVANT_EVIDENCE,
-        platformPerformance
+        platformPerformance,
+        sellerActivity: analyzeSellerActivity(pairedRecords)
       };
     }
   }
+}
+
+function sellerActivityLabel(stats) {
+  if (stats.relevantSales270 >= 9 || stats.relevantSales180 >= 6) return "high_activity_seller";
+  if (stats.relevantSales180 >= 3 || stats.relevantSales90 >= 3) return "active_specialist";
+  return "limited_signal";
+}
+
+function analyzeSellerActivity(pairedRecords) {
+  const maxWindow = Math.max(...SELLER_ACTIVITY_WINDOWS_DAYS);
+  const groups = new Map();
+
+  for (const item of pairedRecords) {
+    if (item.classification.comparison_tier === "excluded") continue;
+    if (daysAgo(item.record.auction_end_date) > maxWindow) continue;
+
+    const sellerUsername = recordSellerUsername(item.record);
+    if (!sellerUsername) continue;
+
+    const platform = recordPlatform(item.record);
+    const key = `${platform}|${sellerUsername}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        platform,
+        sellerUsername,
+        items: []
+      });
+    }
+    groups.get(key).items.push(item);
+  }
+
+  const sellers = [...groups.values()].map(group => {
+    const stats = {
+      platform: group.platform,
+      sellerUsername: group.sellerUsername,
+      sales90: group.items.filter(item => daysAgo(item.record.auction_end_date) <= 90).length,
+      sales180: group.items.filter(item => daysAgo(item.record.auction_end_date) <= 180).length,
+      sales270: group.items.filter(item => daysAgo(item.record.auction_end_date) <= 270).length,
+      relevantSales90: group.items.filter(item => daysAgo(item.record.auction_end_date) <= 90 && ["close_match", "relevant_match"].includes(item.classification.comparison_tier)).length,
+      relevantSales180: group.items.filter(item => daysAgo(item.record.auction_end_date) <= 180 && ["close_match", "relevant_match"].includes(item.classification.comparison_tier)).length,
+      relevantSales270: group.items.filter(item => daysAgo(item.record.auction_end_date) <= 270 && ["close_match", "relevant_match"].includes(item.classification.comparison_tier)).length,
+      closeSales: group.items.filter(item => item.classification.comparison_tier === "close_match").length,
+      broadSales: group.items.filter(item => item.classification.comparison_tier === "broad_match").length,
+      medianSalePrice: median(group.items.map(item => item.classification.price)),
+      latestSaleDate: group.items
+        .map(item => item.record.auction_end_date)
+        .filter(Boolean)
+        .sort()
+        .at(-1) || null,
+      consignmentStatus: "unknown",
+      recommendableToUser: false
+    };
+
+    return {
+      ...stats,
+      activityLabel: sellerActivityLabel(stats)
+    };
+  }).sort((a, b) => {
+    if (b.closeSales !== a.closeSales) return b.closeSales - a.closeSales;
+    if (b.relevantSales270 !== a.relevantSales270) return b.relevantSales270 - a.relevantSales270;
+    return b.sales270 - a.sales270;
+  });
+
+  const platformSummary = sellers.reduce((summary, seller) => {
+    if (!summary[seller.platform]) {
+      summary[seller.platform] = {
+        highActivitySellers: 0,
+        activeSpecialists: 0,
+        sellersObserved: 0
+      };
+    }
+    summary[seller.platform].sellersObserved++;
+    if (seller.activityLabel === "high_activity_seller") summary[seller.platform].highActivitySellers++;
+    if (seller.activityLabel === "active_specialist") summary[seller.platform].activeSpecialists++;
+    return summary;
+  }, {});
+
+  return {
+    windowsDays: SELLER_ACTIVITY_WINDOWS_DAYS,
+    note: "Seller activity is market-observed only. Consignment fit is unknown unless separately verified.",
+    platformSummary,
+    topObservedSellers: sellers.slice(0, 10)
+  };
 }
 
 function summarizeExclusions(excludedRecords) {
@@ -507,6 +596,7 @@ function decide(analysis, criteria) {
       best.closeSales
         ? `${best.closeSales} of those were close matches to the searched car.`
         : "The exact close-match sample is thin, so this uses clearly labeled broader evidence.",
+      sellerActivityExplanation(analysis.sellerActivity, best.platform),
       best.medianSalePrice
         ? `Median sale price in that evidence set was $${best.medianSalePrice.toLocaleString()}.`
         : null
@@ -516,6 +606,14 @@ function decide(analysis, criteria) {
       ? ["Recent evidence is thin; treat the decision as directional, not definitive."]
       : []
   };
+}
+
+function sellerActivityExplanation(sellerActivity, platform) {
+  const summary = sellerActivity?.platformSummary?.[platform];
+  if (!summary) return null;
+  const activeCount = summary.highActivitySellers + summary.activeSpecialists;
+  if (!activeCount) return null;
+  return `${platform} also showed ${activeCount} active seller signal${activeCount === 1 ? "" : "s"} in this segment, but consignment fit is not assumed.`;
 }
 
 async function supabaseInsert(table, rows, supabaseUrl, supabaseKey, prefer = "return=minimal", query = "") {
@@ -678,7 +776,8 @@ export default async function handler(req, res) {
       },
       analysis: {
         analysisDate: analysis.analysisDate,
-        platformPerformance: analysis.platformPerformance
+        platformPerformance: analysis.platformPerformance,
+        sellerActivity: analysis.sellerActivity
       },
       decision,
       persistence: {
