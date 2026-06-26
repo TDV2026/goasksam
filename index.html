@@ -98,6 +98,25 @@ body{
   animation:spin .8s linear infinite;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
+.analysis-loader{
+  display:flex;gap:16px;align-items:center;
+  width:min(100%,620px);
+  background:#f8f8f5;border:1px solid #e8e8e4;border-radius:18px;
+  padding:18px 20px;margin:2px 0 4px;
+}
+.market-swirl{
+  width:48px;height:48px;border-radius:50%;position:relative;flex-shrink:0;
+  background:conic-gradient(from 0deg,#171717,#a3a39d,#f8f8f5,#171717);
+  animation:spin 1.15s linear infinite;
+}
+.market-swirl:after{
+  content:"";position:absolute;inset:7px;border-radius:50%;
+  background:#f8f8f5;border:1px solid #ededeb;
+}
+.analysis-copy{display:flex;flex-direction:column;gap:5px;min-width:0;}
+.analysis-title{font-size:15px;font-weight:800;color:#171717;line-height:1.35;}
+.analysis-line{font-size:13px;color:#5f5f5a;line-height:1.5;}
+.analysis-note{font-size:11px;color:#999;line-height:1.45;}
 .typing{display:flex;align-items:center;gap:5px;height:26px;}
 .dot{width:5px;height:5px;border-radius:50%;background:#bbb;animation:pulse 1.25s infinite;}
 .dot:nth-child(2){animation-delay:.15s}
@@ -676,8 +695,30 @@ async function showSellRecommendation(){
   hideHero();
   const msgs=document.getElementById("msgs");
   const thinkRow=document.createElement("div");thinkRow.className="row sam";thinkRow.id="sellThinking";
-  thinkRow.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div><div class="searching"><div class="spinner"></div><span>Checking recent market evidence for your ${escapeHtml(sellState.carName||"car")}...</span></div></div></div>`;
+  const loadingLines=[
+    "Searching the available market data and recent sales now.",
+    "Checking close comps first, then widening carefully where the sample is thin.",
+    "Comparing platform fit, seller region, timing and likely buyer audience.",
+    "Looking at whether a specialist seller route should be on the table.",
+    "Nearly there. I would rather be thorough than give you a lazy answer."
+  ];
+  thinkRow.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>
+    <div class="analysis-loader">
+      <div class="market-swirl" aria-hidden="true"></div>
+      <div class="analysis-copy">
+        <div class="analysis-title">Analyzing the market for your ${escapeHtml(sellState.carName||"car")}</div>
+        <div class="analysis-line" id="analysisLine">${escapeHtml(loadingLines[0])}</div>
+        <div class="analysis-note">This can take a moment because Sam is checking sales evidence before making a recommendation.</div>
+      </div>
+    </div>
+  </div></div>`;
   msgs.appendChild(thinkRow);msgs.scrollTop=msgs.scrollHeight;
+  let loadingIndex=0;
+  const loadingTimer=setInterval(()=>{
+    loadingIndex=(loadingIndex+1)%loadingLines.length;
+    const line=document.getElementById("analysisLine");
+    if(line)line.textContent=loadingLines[loadingIndex];
+  },3600);
 
   let decisionData=null;
   try{
@@ -704,6 +745,7 @@ async function showSellRecommendation(){
   }catch(e){
     decisionData={status:"error",error:e.message};
   }
+  clearInterval(loadingTimer);
 
   const tr=document.getElementById("sellThinking");if(tr)tr.remove();
 
@@ -770,9 +812,10 @@ async function showSellRecommendation(){
 
   const powerSellerReferral=decision.powerSellerReferral||{};
   if(powerSellerReferral.shouldEvaluate){
+    const regionLabel=sellState.region&&sellState.region!=="US"?`${sellState.region} `:"";
     sellState.sellOptions.push({
       key:"specialist",
-      name:"Specialist seller route",
+      name:`${regionLabel}Specialist seller route`,
       type:"Power-seller / consignor evaluation",
       badge:"Worth evaluating",
       badgeClass:"specialist",
@@ -780,7 +823,7 @@ async function showSellRecommendation(){
       actionLabel:"Explore this",
       reason:[
         powerSellerReferral.trigger==="seller_target_price_six_figures"?"Your target puts this in six-figure territory.":"Current market evidence puts this in specialist territory.",
-        "A high-quality seller/operator can matter at this level, but region, minimum value, availability and consignment fit need verification.",
+        "A high-quality seller/operator can matter at this level, including regional specialists, but minimum value, availability and consignment fit need verification.",
         powerSellerReferral.activeSellerSignals?`${powerSellerReferral.activeSellerSignals} active seller signal${powerSellerReferral.activeSellerSignals===1?"":"s"} appeared in the observed data.`:null
       ].filter(Boolean).join(" "),
       stat:"Needs verified fit · not a named seller yet",
