@@ -328,10 +328,10 @@ const LISTINGS=[
 {id:"L10",status:"live",year:2020,make:"Nissan",model:"370Z Sport Touring",type:"sports",trans:"automatic",drive:"RWD",price:5580,miles:16600,loc:"Los Angeles, CA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/exterior/3vAVEA0k-sCSR5pQ/edit/9L2LD.jpg?t=177930535574",reserve_status:"active",daysLive:2,endsIn:5,liveSignals:[{type:"resolved",text:"Seller confirmed Sport Touring spec with factory LSD 1 hour ago. Monroney uploaded to gallery.",time:"1 hour ago"}],openQuestion:"Reserve active and amount unknown.",whatChanged:"Seller confirmed LSD and uploaded Monroney 1 hour ago after community asked. Reserve still unknown.",sellerStatus:"Answered LSD question and uploaded documentation within 1 hour of being asked.",sam_view:"Clean low-mile 370Z. Seller confirmed the factory LSD and uploaded the Monroney an hour ago after the community asked — that is responsive. Reserve is still active and the amount is unknown.",what_i_like:"Sport Touring with factory LSD, 16,600 miles, seller actively engaging.",actionLine:"I would watch whether the reserve gets met. The seller is responsive which is a good sign."}
 ];
 
-const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,vin:null,region:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[]};
+const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,vin:null,region:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,vehicleDetailSkipped:false,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[]};
 function resetSellState(){
   Object.keys(sellState).forEach(k=>sellState[k]=null);
-  sellState.active=false;sellState.step=0;sellState.returnToConfirm=false;sellState.sellOptions=[];
+  sellState.active=false;sellState.step=0;sellState.returnToConfirm=false;sellState.vehicleDetailSkipped=false;sellState.sellOptions=[];
 }
 
 const SELL_STEP_QUESTIONS={
@@ -435,6 +435,16 @@ function missingVehicleDetail(text){
   return null;
 }
 
+function currentMissingVehicleDetail(){
+  if(sellState.vehicleDetailSkipped)return null;
+  return missingVehicleDetail(sellState.carName);
+}
+
+function askMissingVehicleDetail(missing){
+  sellState.step=17;
+  addMsg("sam",missing.ask,"",chipsHTML(missing.chips));
+}
+
 function sellerFunnelReply(){
   return "I can do that properly once I know the car. Answer a few quick questions — it takes under a minute — and I'll compare the market, route fit, timing and specialist-seller options for you.";
 }
@@ -450,10 +460,9 @@ function startSellFlow(initialCar, showUserBubble=true){
       return;
     }
     sellState.carRaw=initialCar;sellState.carName=carName||initialCar;
-    const missing=missingVehicleDetail(sellState.carName);
+    const missing=currentMissingVehicleDetail();
     if(missing){
-      sellState.step=17;
-      setTimeout(()=>addMsg("sam",missing.ask,"",chipsHTML(missing.chips)),400);
+      setTimeout(()=>askMissingVehicleDetail(missing),400);
       return;
     }
     sellState.step=15;
@@ -576,10 +585,9 @@ function handleSellStep(q){
     if(/porsche|911/i.test(lower))sellState.carType="porsche";
     else if(/bmw|m2/i.test(lower))sellState.carType="bmw";
     else sellState.carType="generic";
-    const missing=missingVehicleDetail(sellState.carName);
+    const missing=currentMissingVehicleDetail();
     if(missing){
-      sellState.step=17;
-      addMsg("sam",missing.ask,"",chipsHTML(missing.chips));
+      askMissingVehicleDetail(missing);
       return true;
     }
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
@@ -590,12 +598,15 @@ function handleSellStep(q){
 
   if(step===17){
     if(/not sure|don.t know|skip|unknown/i.test(lower)){
+      sellState.vehicleDetailSkipped=true;
       addMsg("sam","No problem — I'll keep it broad for now, but the recommendation may be more directional without the exact model.");
     }else{
       sellState.carName=`${sellState.carName} ${q}`.replace(/\s+/g," ").trim();
       sellState.carRaw=sellState.carName;
+      sellState.vehicleDetailSkipped=false;
       addMsg("sam",`Got it — ${sellState.carName}.`);
     }
+    if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=15;
     addMsg("sam","Do you have the VIN handy? It helps the platform verify the car faster. Completely optional.","",chipsHTML(["Skip"]));
     return true;
@@ -666,7 +677,12 @@ function handleSellStep(q){
   // ── STEP 16: confirmation ────────────────────────────────────
   if(step===16){
     if(/looks good|confirm|yes|correct|all good|that.s right|submit|perfect|great/i.test(lower)){
-      sellState.step=17;
+      const missing=currentMissingVehicleDetail();
+      if(missing){
+        sellState.returnToConfirm=true;
+        askMissingVehicleDetail(missing);
+        return true;
+      }
       showSellRecommendation();
       return true;
     }
@@ -748,6 +764,12 @@ function afterPhoto(){
 }
 
 function showConfirmation(){
+  const missing=currentMissingVehicleDetail();
+  if(missing){
+    sellState.returnToConfirm=true;
+    askMissingVehicleDetail(missing);
+    return;
+  }
   sellState.step=16;
   hideHero();
   const msgs=document.getElementById("msgs");
@@ -840,8 +862,14 @@ async function showSellRecommendation(){
   const tr=document.getElementById("sellThinking");if(tr)tr.remove();
 
   if(decisionData?.status==="needs_clarification"){
-    addMsg("sam",decisionData.clarification?.question||"I need the year, make and model before I can check the market.");
-    sellState.step=1;
+    const missing=currentMissingVehicleDetail();
+    sellState.returnToConfirm=true;
+    if(missing){
+      askMissingVehicleDetail(missing);
+    }else{
+      sellState.step=1;
+      addMsg("sam",decisionData.clarification?.question||"I need the year, make and model before I can check the market.");
+    }
     document.getElementById("btn").disabled=false;
     return;
   }
