@@ -424,13 +424,13 @@ function missingVehicleDetail(text){
   const lower=String(text||"").toLowerCase();
   if(!looksLikeVehicleText(text))return null;
   if(/\bporsche\b/.test(lower)&&!/\b(911|912|914|924|928|944|968|356|964|993|996|997|991|992|boxster|cayman|panamera|cayenne|macan|gt2|gt3|turbo|speedster|targa|carrera)\b/.test(lower)){
-    return {type:"model",ask:"Which Porsche model or trim is it? A 1985 Porsche could mean a 911, 944, 928, 924 or another variant.",chips:["911","944","928","924","Not sure"]};
+    return {type:"model",ask:"Which Porsche model or trim is it? A 1985 Porsche could mean a 911, 944, 928, 924 or another variant. Pick one below, or type the exact model if it is not shown.",chips:["911","944","928","924","Not sure"]};
   }
   if(/\bbmw\b/.test(lower)&&!/\b(m\d|[1-8]\d{2}[a-z]{0,3}|z3|z4|z8|x[1-7]|i8|2002|e30|e36|e46|e90|e92|e39|e60)\b/.test(lower)){
-    return {type:"model",ask:"Which BMW model or trim is it? For example 318i, M3, 2002, Z4 or X5.",chips:["318i","M3","2002","Z4","Not sure"]};
+    return {type:"model",ask:"Which BMW model or trim is it? These are just common examples. Pick one below, or type the exact model if it is not shown.",chips:["318i","M3","2002","Z4","X5","Not sure"]};
   }
   if(/\bferrari\b/.test(lower)&&!/\b(308|328|348|355|360|430|458|488|f8|roma|california|testarossa|modena|spider|berlinetta|scuderia)\b/.test(lower)){
-    return {type:"model",ask:"Which Ferrari model or trim is it? For example 360 Modena, F430, 458 or 488.",chips:["360 Modena","F430","458","488","Not sure"]};
+    return {type:"model",ask:"Which Ferrari model or trim is it? Pick one below, or type the exact model if it is not shown.",chips:["360 Modena","F430","458","488","Not sure"]};
   }
   return null;
 }
@@ -908,13 +908,24 @@ async function showSellRecommendation(){
     const segmentFit=facts.includes("segment_fit");
     const regionFit=facts.includes("region_fit");
     const priceRoute=facts.includes("strong_price_signal_route");
+    const saleCount=platform.evidenceSales||0;
+    const closeCount=platform.closeSales||0;
+    const relevantCount=platform.relevantSales||0;
+    const median=moneyShort(platform.medianSalePrice);
+    const latest=dateShort(platform.latestSaleDate);
     const evidenceLine=route.hasMarketEvidence
-      ?"The live sales data supports keeping it in the shortlist."
-      :"This is a policy-fit option: the car, region or timing makes it worth comparing even without strong recent comps.";
+      ? [
+          `${routeName} showed ${saleCount} recent sale${saleCount===1?"":"s"} in the evidence set.`,
+          closeCount?`${closeCount} were close matches.`:relevantCount?`${relevantCount} were relevant matches.`:"The matches are broader, so I would treat this as directional.",
+          median?`Median sale price was ${median}.`:null,
+          latest?`Latest sale was ${latest}.`:null
+        ].filter(Boolean).join(" ")
+      : `${routeName} is included because it fits the car, region or timing, but I do not have strong recent comps for it in this fetched data.`;
     const reason=[
       isPrimary&&priceRoute?"I’d start here if the goal is the strongest sale result.":null,
+      isPrimary&&speedFit?"I’d start here because your timing matters and this route is usually quicker to get live.":null,
       isPrimary&&speedTradeoff?"The tradeoff is timing: this route can be excellent, but it is not always the fastest way to get live.":null,
-      !isPrimary&&speedFit?"This is here because speed-to-list matters for this seller.":null,
+      !isPrimary&&speedFit?"This is here as a faster-listing alternative.":null,
       !isPrimary&&segmentFit?`${routeName} has a relevant audience for this kind of car.`:null,
       regionFit&&sellState.region&&sellState.region!=="US"?`${routeName} also fits the seller’s region.`:null,
       evidenceLine
@@ -935,7 +946,13 @@ async function showSellRecommendation(){
       actionLabel:"Go with this",
       reason,
       stat,
-      bestFor:index===0?"Maximum result, assuming the seller can tolerate the process":"Worth comparing if timing, fees or handoff fit better"
+      bestFor:index===0
+        ? speedFit?"Fast route with enough market fit to justify starting here":"Maximum result, assuming the seller can tolerate the process"
+        : speedFit?"Worth comparing if speed-to-list matters":"Worth comparing if timing, fees or handoff fit better",
+      marketEvidence:route.marketEvidence||null,
+      speedToList:route.speedToList,
+      priceOutcome:route.priceOutcome,
+      routeFitFacts:facts
     };
   });
 
@@ -1023,7 +1040,7 @@ function handleSellRecommendationFollowup(q){
   const options=sellState.sellOptions||[];
   if(!options.length)return false;
 
-  const chosenByName=options.find(option=>lower.includes(String(option.name||"").toLowerCase()));
+  const chosenByName=findSellOptionByText(q);
   const option=chosenByName||options.find(o=>o.key==="primary")||options[0];
 
   if(/\b(go with|choose|pick|use|select)\b/i.test(lower)){
@@ -1031,8 +1048,13 @@ function handleSellRecommendationFollowup(q){
     return true;
   }
 
-  if(/\b(why|better|explain|reason|compare|difference)\b/i.test(lower)){
-    addMsg("sam",`${option.name}: ${option.reason} Best for: ${option.bestFor}.`);
+  if(/\b(compare|difference|tradeoffs|tradeoff)\b/i.test(lower)){
+    addMsg("sam",compareSellOptions());
+    return true;
+  }
+
+  if(chosenByName||/\b(why|better|explain|reason|what about|how about|tell me about|do they|does it|sell tons|high prices|higher|best price)\b/i.test(lower)){
+    addMsg("sam",`${option.name}: ${routeAnswer(option)} Best for: ${option.bestFor}.`);
     return true;
   }
 
@@ -1333,6 +1355,72 @@ function platformLogo(option){
   if(name.includes("classic"))return{cls:"carandclassic",text:"C&C"};
   if(name.includes("collecting"))return{cls:"collectingcars",text:"CC"};
   return{cls:"",text:"S"};
+}
+
+function moneyShort(value){
+  const n=Number(value);
+  if(!Number.isFinite(n)||n<=0)return null;
+  return `$${Math.round(n).toLocaleString()}`;
+}
+
+function dateShort(value){
+  if(!value)return null;
+  const iso=String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const d=iso?new Date(Number(iso[1]),Number(iso[2])-1,Number(iso[3])):new Date(value);
+  if(Number.isNaN(d.getTime()))return null;
+  return d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
+}
+
+function optionAliases(option){
+  const name=String(option?.name||"").toLowerCase();
+  const aliases=[name];
+  if(name.includes("bring"))aliases.push("bat","bringatrailer","bring a trailer");
+  if(name.includes("cars")&&name.includes("bids"))aliases.push("c&b","cars and bids","cars & bids");
+  if(name.includes("pcar"))aliases.push("pcm","pcar","pcarmarket","pcar market");
+  if(name.includes("hemmings"))aliases.push("hemmings");
+  if(name.includes("hagerty"))aliases.push("hagerty");
+  if(name.includes("specialist"))aliases.push("specialist","power seller","consignor","consignment");
+  return aliases.filter(Boolean);
+}
+
+function findSellOptionByText(text){
+  const lower=String(text||"").toLowerCase();
+  return (sellState.sellOptions||[]).find(option=>optionAliases(option).some(alias=>alias&&lower.includes(alias)));
+}
+
+function marketEvidenceSentence(option){
+  const evidence=option.marketEvidence;
+  if(!evidence)return `${option.name} is in the mix because it fits the car, region or timing, but I do not have strong recent comps for it in this fetched data.`;
+  const saleCount=evidence.evidenceSales||0;
+  const closeCount=evidence.closeSales||0;
+  const relevantCount=evidence.relevantSales||0;
+  const median=moneyShort(evidence.medianSalePrice);
+  const latest=dateShort(evidence.latestSaleDate);
+  const matchLine=closeCount
+    ? `${closeCount} close match${closeCount===1?"":"es"}`
+    : relevantCount
+      ? `${relevantCount} relevant sale${relevantCount===1?"":"s"}`
+      : `${saleCount} broader sale${saleCount===1?"":"s"}`;
+  return [
+    `${option.name} showed ${saleCount} recent sale${saleCount===1?"":"s"} in the evidence set, including ${matchLine}.`,
+    median?`Median sale price was ${median}.`:null,
+    latest?`Latest sale was ${latest}.`:null
+  ].filter(Boolean).join(" ");
+}
+
+function routeAnswer(option){
+  const facts=[marketEvidenceSentence(option)];
+  if(option.speedToList==="fast"||option.speedToList==="medium_fast")facts.push("It is here partly because it can usually be quicker to get live.");
+  if(option.speedToList==="slower")facts.push("The tradeoff is timing: I would not treat it as the quickest path.");
+  if(option.priceOutcome==="strong")facts.push("It is a price-first route, so I care more about result quality than speed.");
+  if(option.reason)facts.push(option.reason);
+  return facts.filter(Boolean).join(" ");
+}
+
+function compareSellOptions(){
+  const options=(sellState.sellOptions||[]).filter(o=>o.key!=="specialist").slice(0,3);
+  if(!options.length)return "I do not have enough route data to compare yet.";
+  return options.map(option=>`${option.name}: ${marketEvidenceSentence(option)} ${option.bestFor?`Best for ${option.bestFor.toLowerCase()}.`:""}`).join(" ");
 }
 function finishSearchMsg(row,resultsHTML,chipsStr,afterText,count){
   const wrap=row.querySelector(".msg-wrap");
