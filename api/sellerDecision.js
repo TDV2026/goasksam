@@ -441,7 +441,7 @@ function analyze(records, classifications) {
     ) {
       let evidenceSet = broadEvidence;
       let evidenceLevel = "broad";
-      let evidenceLabel = "broader same-model evidence";
+      let evidenceLabel = "broader same-make/year evidence";
 
       if (closeMatches.length >= MIN_CLOSE_EVIDENCE) {
         evidenceSet = closeMatches;
