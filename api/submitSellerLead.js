@@ -37,6 +37,16 @@ async function insertLead(row, supabaseUrl, supabaseKey) {
   return Array.isArray(data) ? data[0] : data;
 }
 
+async function insertLeadWithFallback(row, supabaseUrl, supabaseKey) {
+  try {
+    return await insertLead(row, supabaseUrl, supabaseKey);
+  } catch (err) {
+    if (!String(err.message || "").includes("car_region")) throw err;
+    const { car_region, ...fallbackRow } = row;
+    return insertLead(fallbackRow, supabaseUrl, supabaseKey);
+  }
+}
+
 export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -57,6 +67,7 @@ export default async function handler(req, res) {
     lead_status: "submitted",
     car_raw: asText(car.raw),
     vin: asText(car.vin) || null,
+    car_region: asText(car.region) || null,
     mileage: asText(car.mileage) || null,
     condition: asText(car.condition) || null,
     service_records: asText(car.serviceRecords) || null,
@@ -74,7 +85,7 @@ export default async function handler(req, res) {
   };
 
   try {
-    const inserted = await insertLead(row, supabaseUrl, supabaseKey);
+    const inserted = await insertLeadWithFallback(row, supabaseUrl, supabaseKey);
     return res.status(200).json({
       status: "submitted",
       reference: inserted?.reference || reference,

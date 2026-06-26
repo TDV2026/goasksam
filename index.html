@@ -291,7 +291,7 @@ const LISTINGS=[
 {id:"L10",status:"live",year:2020,make:"Nissan",model:"370Z Sport Touring",type:"sports",trans:"automatic",drive:"RWD",price:5580,miles:16600,loc:"Los Angeles, CA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/exterior/3vAVEA0k-sCSR5pQ/edit/9L2LD.jpg?t=177930535574",reserve_status:"active",daysLive:2,endsIn:5,liveSignals:[{type:"resolved",text:"Seller confirmed Sport Touring spec with factory LSD 1 hour ago. Monroney uploaded to gallery.",time:"1 hour ago"}],openQuestion:"Reserve active and amount unknown.",whatChanged:"Seller confirmed LSD and uploaded Monroney 1 hour ago after community asked. Reserve still unknown.",sellerStatus:"Answered LSD question and uploaded documentation within 1 hour of being asked.",sam_view:"Clean low-mile 370Z. Seller confirmed the factory LSD and uploaded the Monroney an hour ago after the community asked — that is responsive. Reserve is still active and the amount is unknown.",what_i_like:"Sport Touring with factory LSD, 16,600 miles, seller actively engaging.",actionLine:"I would watch whether the reserve gets met. The seller is responsive which is a good sign."}
 ];
 
-const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,vin:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[]};
+const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,vin:null,region:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[]};
 function resetSellState(){
   Object.keys(sellState).forEach(k=>sellState[k]=null);
   sellState.active=false;sellState.step=0;sellState.returnToConfirm=false;sellState.sellOptions=[];
@@ -300,6 +300,7 @@ function resetSellState(){
 const SELL_STEP_QUESTIONS={
   1:{ask:"What's the car?",chips:[]},
   15:{ask:"Do you have the VIN handy? Completely optional — helps the platform verify the car faster.",chips:["Skip"]},
+  11:{ask:"Where is the car located?",chips:["US","UK","Europe","Australia","Middle East","Other"]},
   2:{ask:"Rough mileage?",chips:["Under 30k","30k–60k","60k–100k","Over 100k"]},
   3:{ask:"Stock or modified?",chips:["Completely stock","Minor mods","Heavily modified"]},
   4:{ask:"Service records?",chips:["Full history","Some records","No records"]},
@@ -396,6 +397,7 @@ function applySellStateUpdate(text){
   const lower=raw.toLowerCase();
   const patterns=[
     {key:"carName",label:"Car",re:/\b(?:car|vehicle)\b\s*(?:to|is|as)?\s*(.+)$/i},
+    {key:"region",label:"Location",re:/\b(?:location|region|located|country)\b\s*(?:to|is|as|in)?\s*(.+)$/i},
     {key:"mileage",label:"Mileage",re:/\b(?:mileage|miles|odometer)\b\s*(?:to|is|as)?\s*(.+)$/i},
     {key:"condition",label:"Condition",re:/\b(?:condition|mods|modified|stock)\b\s*(?:to|is|as)?\s*(.+)$/i},
     {key:"records",label:"Service records",re:/\b(?:service records|records|history)\b\s*(?:to|is|as)?\s*(.+)$/i},
@@ -496,6 +498,15 @@ function handleSellStep(q){
       sellState.vin=q.toUpperCase();
     }
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
+    sellState.step=11;
+    addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+    return true;
+  }
+
+  // ── STEP 11: region ──────────────────────────────────────────
+  if(step===11){
+    sellState.region=q;
+    if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=2;
     addMsg("sam","Rough mileage?","",chipsHTML(["Under 30k","30k–60k","60k–100k","Over 100k"]));
     return true;
@@ -556,6 +567,7 @@ function handleSellStep(q){
     }
     // Field-specific change chips
     if(/^car$/i.test(lower)){sellState.returnToConfirm=true;sellState.carName=null;sellState.carType=null;sellState.step=1;addMsg("sam","What's the car? Year, make, and model.");return true;}
+    if(/^location$|^region$/i.test(lower)){sellState.returnToConfirm=true;sellState.region=null;sellState.step=11;addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));return true;}
     if(/^mileage$/i.test(lower)){sellState.returnToConfirm=true;sellState.mileage=null;sellState.step=2;addMsg("sam","Rough mileage?","",chipsHTML(["Under 30k","30k–60k","60k–100k","Over 100k"]));return true;}
     if(/^condition$/i.test(lower)){sellState.returnToConfirm=true;sellState.condition=null;sellState.step=3;addMsg("sam","Stock or modified?","",chipsHTML(["Completely stock","Minor mods","Heavily modified"]));return true;}
     if(/^service records$/i.test(lower)){sellState.returnToConfirm=true;sellState.records=null;sellState.step=4;addMsg("sam","Service records?","",chipsHTML(["Full history","Some records","No records"]));return true;}
@@ -634,6 +646,7 @@ function showConfirmation(){
   const rows=[
     {label:"Car",value:sellState.carName||"—"},
     sellState.vin?{label:"VIN",value:sellState.vin}:null,
+    {label:"Location",value:sellState.region||"—"},
     {label:"Mileage",value:sellState.mileage||"—"},
     {label:"Condition",value:sellState.condition||"—"},
     {label:"Service records",value:sellState.records||"—"},
@@ -675,6 +688,7 @@ async function showSellRecommendation(){
         car:{
           raw:sellState.carName,
           vin:sellState.vin,
+          region:sellState.region,
           mileage:sellState.mileage,
           condition:sellState.condition,
           serviceRecords:sellState.records,
@@ -888,6 +902,7 @@ async function submitContactForm(){
         car:{
           raw:sellState.carName,
           vin:sellState.vin,
+          region:sellState.region,
           mileage:sellState.mileage,
           condition:sellState.condition,
           serviceRecords:sellState.records,
@@ -1171,7 +1186,7 @@ async function send(){
     const handled=handleSellStep(q);
     if(!handled){
       showTyping();
-      const stateStr=JSON.stringify({car:sellState.carName,vin:sellState.vin,mileage:sellState.mileage,condition:sellState.condition,records:sellState.records,title:sellState.title,price:sellState.price,timeline:sellState.timeline,involvement:sellState.involvement,step:sellState.step});
+      const stateStr=JSON.stringify({car:sellState.carName,vin:sellState.vin,region:sellState.region,mileage:sellState.mileage,condition:sellState.condition,records:sellState.records,title:sellState.title,price:sellState.price,timeline:sellState.timeline,involvement:sellState.involvement,step:sellState.step});
       const nextQ=SELL_STEP_QUESTIONS[sellState.step];
       const sellSys=SELL_SYS.replace("SELL_STATE_PLACEHOLDER",stateStr).replace("NEXT_QUESTION_PLACEHOLDER",nextQ?nextQ.ask:"Proceed with submission.");
       try{
@@ -1179,7 +1194,7 @@ async function send(){
         const data=await res.json();
         const raw=data.text||"Let me know how you'd like to proceed.";
         hideTyping();addMsg("sam",raw);
-        if(sellState.step>0&&sellState.step<10){setTimeout(()=>askNextSellQuestion(),800);}
+        if(sellState.step>0&&sellState.step<16){setTimeout(()=>askNextSellQuestion(),800);}
       }catch(e){hideTyping();addMsg("sam","Connection issue. Try again.");}
     }
     document.getElementById("btn").disabled=false;

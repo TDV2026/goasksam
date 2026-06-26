@@ -65,7 +65,15 @@ const ROUTE_POLICIES = {
     speedToList: "medium_fast",
     sellerEffort: "medium",
     regions: ["UK", "Europe"],
-    strongSegments: ["uk_europe", "classic", "modern_classic", "collector"]
+    strongSegments: ["uk_europe", "classic", "modern_classic", "collector", "older_enthusiast"]
+  },
+  collectingcars: {
+    label: "Collecting Cars",
+    priceOutcome: "strong",
+    speedToList: "medium_fast",
+    sellerEffort: "medium_low",
+    regions: ["UK", "Europe", "Australia", "Middle East"],
+    strongSegments: ["high_value", "premium_collectors", "international", "specialist", "modern_classic", "collector"]
   }
 };
 
@@ -147,26 +155,30 @@ function platformPolicyKey(platform) {
   if (normalized.includes("hemmings")) return "hemmings";
   if (normalized.includes("hagerty")) return "hagerty";
   if (normalized.includes("carandclassic")) return "carandclassic";
+  if (normalized.includes("collectingcars")) return "collectingcars";
   return normalized || "unknown";
 }
 
 function inferSellerPriorities(vehicle, criteria) {
   const text = [
     vehicle.raw,
+    criteria.region,
     criteria.timeline,
     criteria.involvement,
     criteria.notes,
     criteria.targetPrice
   ].map(asText).join(" ").toLowerCase();
 
-  const region = /\b(uk|united kingdom|england|scotland|wales|europe|european)\b/i.test(text)
-    ? "UK_Europe"
-    : "US";
+  let region = "US";
+  if (/\b(australia|australian|aus)\b/i.test(text)) region = "Australia";
+  else if (/\b(middle east|uae|dubai|saudi|qatar|kuwait|bahrain|oman)\b/i.test(text)) region = "Middle East";
+  else if (/\b(uk|united kingdom|england|scotland|wales|europe|european)\b/i.test(text)) region = "UK_Europe";
   const fastSale = /\b(fast|quick|quickly|tomorrow|this week|asap|soon|gone)\b/i.test(text);
   const handsOff = /\b(handle|hands[- ]?off|someone|consign|broker)\b/i.test(text);
   const maximumPrice = /\b(top dollar|max|maximize|most money|best price|highest)\b/i.test(text);
   const year = vehicle.year || null;
   const segments = new Set();
+  const targetPrice = parseSellerTargetPrice(criteria.targetPrice);
 
   if (year && year < 1990) segments.add("pre_1990");
   if (year && year < 2000) segments.add("older_enthusiast");
@@ -177,6 +189,11 @@ function inferSellerPriorities(vehicle, criteria) {
     segments.add("classic_european");
     segments.add("european_sports");
   }
+  if (Number.isFinite(targetPrice) && targetPrice >= 100000) {
+    segments.add("high_value");
+    segments.add("premium_collectors");
+  }
+  if (["UK_Europe", "Australia", "Middle East"].includes(region)) segments.add("international");
 
   return {
     region,
@@ -189,13 +206,19 @@ function inferSellerPriorities(vehicle, criteria) {
 
 function routeFitFacts(policy, priorities) {
   const facts = [];
+  const regionFits = priorities.region === "US"
+    ? policy.regions.includes("US")
+    : priorities.region === "UK_Europe"
+      ? (policy.regions.includes("UK") || policy.regions.includes("Europe"))
+      : policy.regions.includes(priorities.region);
+
   if (priorities.fastSale && ["fast", "medium_fast"].includes(policy.speedToList)) facts.push("faster_listing_fit");
   if (priorities.fastSale && policy.speedToList === "slower") facts.push("speed_tradeoff");
   if (policy.priceOutcome === "strong") facts.push("strong_price_signal_route");
   if (priorities.handsOff && ["medium_low", "medium"].includes(policy.sellerEffort)) facts.push("may_support_handoff");
   if (priorities.segments.some(segment => policy.strongSegments.includes(segment))) facts.push("segment_fit");
-  if (priorities.region === "UK_Europe" && policy.regions.includes("UK")) facts.push("region_fit");
-  if (priorities.region === "UK_Europe" && !policy.regions.includes("UK") && policy.regions.includes("US")) facts.push("region_mismatch");
+  if (regionFits) facts.push("region_fit");
+  if (!regionFits) facts.push("region_mismatch");
   return facts;
 }
 
@@ -207,8 +230,11 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
   const candidateKeys = new Set(Object.keys(evidenceByPlatform));
 
   for (const [key, policy] of Object.entries(ROUTE_POLICIES)) {
+    const facts = routeFitFacts(policy, priorities);
+    const hasRegionMismatch = facts.includes("region_mismatch");
+    if (hasRegionMismatch) continue;
     if (priorities.fastSale && ["fast", "medium_fast"].includes(policy.speedToList)) candidateKeys.add(key);
-    if (priorities.region === "UK_Europe" && policy.regions.includes("UK")) candidateKeys.add(key);
+    if (facts.includes("region_fit")) candidateKeys.add(key);
     if (priorities.segments.some(segment => policy.strongSegments.includes(segment))) candidateKeys.add(key);
   }
 
@@ -544,6 +570,7 @@ async function fetchRecentRecords(vehicle, apiKey) {
 
 function getSellerCriteria(car = {}) {
   return {
+    region: asText(car.region) || null,
     mileage: asText(car.mileage) || null,
     condition: asText(car.condition) || null,
     serviceRecords: asText(car.serviceRecords) || null,

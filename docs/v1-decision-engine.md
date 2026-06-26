@@ -87,6 +87,8 @@ Platform choice should blend market evidence with seller priorities:
 
 The UI should not expose raw evidence counts as the main experience. Counts stay in the engine. Sam should translate them into route-level guidance such as strongest result, faster listing fit, specialist route worth evaluating, or region fit.
 
+For UK/Europe, Car & Classic is the default regional route for most classic and enthusiast cars. Collecting Cars should be considered for high-value or specialist cars in UK/Europe, Australia and the Middle East. This policy layer is expandable as more regional platforms are added.
+
 ## Product Rule
 
 No fake data. No fabricated percentages. If evidence is thin, the decision should say so clearly and explain what it used.

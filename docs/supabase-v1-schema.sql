@@ -64,6 +64,7 @@ create table if not exists seller_leads (
   lead_status text not null default 'submitted',
   car_raw text,
   vin text,
+  car_region text,
   mileage text,
   condition text,
   service_records text,
@@ -79,6 +80,8 @@ create table if not exists seller_leads (
   seller_phone text,
   decision_summary jsonb
 );
+
+alter table seller_leads add column if not exists car_region text;
 
 create index if not exists vehicle_market_records_make_model_idx
   on vehicle_market_records (make, model);

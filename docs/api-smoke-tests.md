@@ -16,6 +16,7 @@ curl -s "$BASE_URL/api/sellerDecision" \
   -d '{
     "car": {
       "raw": "black 1985 Porsche 911",
+      "region": "US",
       "mileage": "60k miles",
       "condition": "Completely stock",
       "serviceRecords": "Full history",
@@ -49,6 +50,7 @@ curl -s "$BASE_URL/api/submitSellerLead" \
     },
     "car": {
       "raw": "black 1985 Porsche 911",
+      "region": "US",
       "mileage": "60k miles",
       "condition": "Completely stock",
       "serviceRecords": "Full history",
