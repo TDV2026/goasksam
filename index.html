@@ -197,6 +197,16 @@ body{
 .sell-rec-card:hover{transform:translateY(-2px);border-color:#c9c9c5;box-shadow:0 8px 24px rgba(0,0,0,.06);}
 .sell-rec-card.primary-rec{border-color:#171717;border-width:2px;grid-column:1/-1;background:#fbfbfa;}
 .sell-rec-card.specialist-rec{border-style:dashed;background:#fffdf7;}
+.sell-rec-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;}
+.platform-logo{width:54px;height:54px;border-radius:14px;border:1px solid #e5e5e2;background:#f8f8f5;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;letter-spacing:-.3px;color:#171717;flex-shrink:0;}
+.platform-logo.bringatrailer{background:#171717;color:white;border-color:#171717;}
+.platform-logo.carsandbids{background:#eaf8ef;color:#0f7a3d;border-color:#c9ead4;}
+.platform-logo.pcarmarket{background:#f2f2ef;color:#171717;}
+.platform-logo.hemmings{background:#fff6df;color:#8a4b00;border-color:#f0d99b;}
+.platform-logo.hagerty{background:#eef4ff;color:#174ea6;border-color:#c9d9ff;}
+.platform-logo.carandclassic{background:#f4f1ea;color:#5a4630;border-color:#ddd2bc;}
+.platform-logo.collectingcars{background:#111827;color:white;border-color:#111827;}
+.platform-logo.specialist{background:#fef3c7;color:#92400e;border-color:#f6d98a;}
 .sell-rec-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:800;border-radius:999px;padding:4px 9px;width:fit-content;}
 .sell-rec-badge.top{background:#171717;color:white;}
 .sell-rec-badge.alt{background:#f0f0ee;color:#555;}
@@ -326,6 +336,7 @@ function resetSellState(){
 
 const SELL_STEP_QUESTIONS={
   1:{ask:"What's the car?",chips:[]},
+  17:{ask:"Which model or trim is it?",chips:["911","944","928","356","Boxster","Cayman","Not sure"]},
   15:{ask:"Do you have the VIN handy? Completely optional — helps the platform verify the car faster.",chips:["Skip"]},
   11:{ask:"Where is the car located?",chips:["US","UK","Europe","Australia","Middle East","Other"]},
   2:{ask:"Rough mileage?",chips:["Under 30k","30k–60k","60k–100k","Over 100k"]},
@@ -409,6 +420,21 @@ function looksLikeVehicleText(text){
   return (hasYear&&hasVehicleTerm)||explicitSell;
 }
 
+function missingVehicleDetail(text){
+  const lower=String(text||"").toLowerCase();
+  if(!looksLikeVehicleText(text))return null;
+  if(/\bporsche\b/.test(lower)&&!/\b(911|912|914|924|928|944|968|356|964|993|996|997|991|992|boxster|cayman|panamera|cayenne|macan|gt2|gt3|turbo|speedster|targa|carrera)\b/.test(lower)){
+    return {type:"model",ask:"Which Porsche model or trim is it? A 1985 Porsche could mean a 911, 944, 928, 924 or another variant.",chips:["911","944","928","924","Not sure"]};
+  }
+  if(/\bbmw\b/.test(lower)&&!/\b(m\d|[1-8]\d{2}[a-z]{0,3}|z3|z4|z8|x[1-7]|i8|2002|e30|e36|e46|e90|e92|e39|e60)\b/.test(lower)){
+    return {type:"model",ask:"Which BMW model or trim is it? For example 318i, M3, 2002, Z4 or X5.",chips:["318i","M3","2002","Z4","Not sure"]};
+  }
+  if(/\bferrari\b/.test(lower)&&!/\b(308|328|348|355|360|430|458|488|f8|roma|california|testarossa|modena|spider|berlinetta|scuderia)\b/.test(lower)){
+    return {type:"model",ask:"Which Ferrari model or trim is it? For example 360 Modena, F430, 458 or 488.",chips:["360 Modena","F430","458","488","Not sure"]};
+  }
+  return null;
+}
+
 function sellerFunnelReply(){
   return "I can do that properly once I know the car. Answer a few quick questions — it takes under a minute — and I'll compare the market, route fit, timing and specialist-seller options for you.";
 }
@@ -423,7 +449,14 @@ function startSellFlow(initialCar, showUserBubble=true){
       addMsg("sam",sellerFunnelReply(),"",chipsHTML(["Start the questions","I have a Porsche 911 to sell","I have a BMW 318 to sell"]));
       return;
     }
-    sellState.carRaw=initialCar;sellState.carName=carName||initialCar;sellState.step=15;
+    sellState.carRaw=initialCar;sellState.carName=carName||initialCar;
+    const missing=missingVehicleDetail(sellState.carName);
+    if(missing){
+      sellState.step=17;
+      setTimeout(()=>addMsg("sam",missing.ask,"",chipsHTML(missing.chips)),400);
+      return;
+    }
+    sellState.step=15;
     setTimeout(()=>askNextSellQuestion(),400);
     return;
   }
@@ -543,9 +576,28 @@ function handleSellStep(q){
     if(/porsche|911/i.test(lower))sellState.carType="porsche";
     else if(/bmw|m2/i.test(lower))sellState.carType="bmw";
     else sellState.carType="generic";
+    const missing=missingVehicleDetail(sellState.carName);
+    if(missing){
+      sellState.step=17;
+      addMsg("sam",missing.ask,"",chipsHTML(missing.chips));
+      return true;
+    }
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=15;
     addMsg("sam",`Got it — ${sellState.carName}. Do you have the VIN handy? It helps the platform verify the car faster. Completely optional.`,"",chipsHTML(["Skip"]));
+    return true;
+  }
+
+  if(step===17){
+    if(/not sure|don.t know|skip|unknown/i.test(lower)){
+      addMsg("sam","No problem — I'll keep it broad for now, but the recommendation may be more directional without the exact model.");
+    }else{
+      sellState.carName=`${sellState.carName} ${q}`.replace(/\s+/g," ").trim();
+      sellState.carRaw=sellState.carName;
+      addMsg("sam",`Got it — ${sellState.carName}.`);
+    }
+    sellState.step=15;
+    addMsg("sam","Do you have the VIN handy? It helps the platform verify the car faster. Completely optional.","",chipsHTML(["Skip"]));
     return true;
   }
 
@@ -901,8 +953,13 @@ async function showSellRecommendation(){
   </div>`;
   const optionCardsHTML=sellState.sellOptions.map(option=>`
       <div class="sell-rec-card ${escapeHtml(option.cardClass||"")}" onclick="chooseSellOption('${escapeHtml(option.key)}')">
-        <div class="sell-rec-badge ${escapeHtml(option.badgeClass||"alt")}">${escapeHtml(option.badge)}</div>
-        <div><div class="sell-rec-name">${escapeHtml(option.name)}</div><div class="sell-rec-type">${escapeHtml(option.type)}</div></div>
+        <div class="sell-rec-card-head">
+          <div>
+            <div class="sell-rec-badge ${escapeHtml(option.badgeClass||"alt")}">${escapeHtml(option.badge)}</div>
+            <div style="margin-top:10px"><div class="sell-rec-name">${escapeHtml(option.name)}</div><div class="sell-rec-type">${escapeHtml(option.type)}</div></div>
+          </div>
+          <div class="platform-logo ${escapeHtml(platformLogo(option).cls)}">${escapeHtml(platformLogo(option).text)}</div>
+        </div>
         <div class="sell-rec-reason">${escapeHtml(option.reason)}</div>
         <div class="sell-rec-stat">↑ ${escapeHtml(option.stat)}</div>
         <div class="sell-rec-best">Best for: ${escapeHtml(option.bestFor)}</div>
@@ -920,6 +977,7 @@ async function showSellRecommendation(){
       <div class="sell-rec-title">Here’s where I’d take the ${escapeHtml(sellState.carName||"car")}.</div>
       <div class="sell-rec-subtitle">I weighed value, timing, seller workload, audience fit and current market signals. You still choose the route — this is the shortlist I’d compare first.</div>
     </div>
+    <div class="sell-rec-note"><strong>What happens next</strong>Choose a route and leave your contact details. Sam packages the car details and routes the submission to the selected platform or specialist path so you are not starting from a blank form.</div>
     ${notesHTML}
     <div class="sell-rec-grid">
       ${optionCardsHTML}
@@ -1236,6 +1294,18 @@ function addSearchMsg(text){
   return row;
 }
 function updateSearchMsg(row,text){const s=row.querySelector(".searching span");if(s)s.textContent=text;}
+function platformLogo(option){
+  const name=String(option?.name||"").toLowerCase();
+  if(option?.key==="specialist")return{cls:"specialist",text:"SP"};
+  if(name.includes("bring"))return{cls:"bringatrailer",text:"BaT"};
+  if(name.includes("cars")&&name.includes("bids"))return{cls:"carsandbids",text:"C&B"};
+  if(name.includes("pcar"))return{cls:"pcarmarket",text:"PCM"};
+  if(name.includes("hemmings"))return{cls:"hemmings",text:"H"};
+  if(name.includes("hagerty"))return{cls:"hagerty",text:"Hag"};
+  if(name.includes("classic"))return{cls:"carandclassic",text:"C&C"};
+  if(name.includes("collecting"))return{cls:"collectingcars",text:"CC"};
+  return{cls:"",text:"S"};
+}
 function finishSearchMsg(row,resultsHTML,chipsStr,afterText,count){
   const wrap=row.querySelector(".msg-wrap");
   const resultLine=count===1?"I found one auction worth looking at.":"I found a few worth looking at.";
