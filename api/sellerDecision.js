@@ -237,6 +237,16 @@ function buildFetchPasses(vehicle) {
   ];
 
   if (vehicle.year) {
+    passes.push({
+      name: "make_year",
+      label: "same make/year",
+      pages: 2,
+      params: {
+        make: vehicle.make,
+        keyword: [vehicle.year, vehicle.make].filter(Boolean).join(" ")
+      }
+    });
+
     for (const year of [vehicle.year - 2, vehicle.year - 1, vehicle.year + 1, vehicle.year + 2]) {
       passes.push({
         name: `nearby_year_${year}`,
@@ -246,6 +256,15 @@ function buildFetchPasses(vehicle) {
           make: vehicle.make,
           model: modelToken,
           keyword: [year, vehicle.model].filter(Boolean).join(" ")
+        }
+      });
+      passes.push({
+        name: `nearby_make_year_${year}`,
+        label: `same make nearby year ${year}`,
+        pages: 1,
+        params: {
+          make: vehicle.make,
+          keyword: [year, vehicle.make].filter(Boolean).join(" ")
         }
       });
     }
@@ -345,7 +364,7 @@ function classifyRecord(record, vehicle) {
   const targetMentionsCup = textHasTerm(vehicle.raw, "cup");
   const exclusionReasons = [];
 
-  if (!(sameMake && sameModel)) exclusionReasons.push("different make/model");
+  if (!sameMake) exclusionReasons.push("different make");
   if (!targetMentionsTurbo && textHasTerm(title, "turbo")) exclusionReasons.push("turbo market behaves differently");
   if (!targetMentionsCup && (textHasTerm(title, "cup") || textHasTerm(title, "race car") || textHasTerm(title, "racecar") || textHasTerm(title, "track car"))) {
     exclusionReasons.push("race/track market behaves differently");
@@ -367,6 +386,14 @@ function classifyRecord(record, vehicle) {
   } else if (sameMake && sameModel) {
     comparisonTier = "broad_match";
     confidence = "low";
+  } else if (sameMake && yearGap !== null && yearGap <= 8) {
+    comparisonTier = "broad_match";
+    confidence = "low";
+  } else if (sameMake && yearGap === null) {
+    comparisonTier = "broad_match";
+    confidence = "low";
+  } else if (sameMake) {
+    exclusionReasons.push("same make but too far from searched year/model");
   }
 
   return {

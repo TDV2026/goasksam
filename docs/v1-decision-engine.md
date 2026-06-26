@@ -50,6 +50,7 @@ Supabase is not treated as a full copy of OldCarsData. A search triggers recent-
 - exact pass for year/make/model where possible.
 - same make/model pass when exact evidence is thin.
 - nearby-year passes when the market needs more signal.
+- same make/year fallback passes when exact model naming is too sparse, with results labeled as broad evidence.
 
 Fetched records are merged and deduped by source and source record id before raw persistence and classification. The recommendation can use broader evidence only when it labels that evidence clearly.
 
