@@ -433,6 +433,9 @@ function missingVehicleDetail(text){
   if(/\bferrari\b/.test(lower)&&!/\b(308|328|348|355|360|430|458|488|f8|roma|california|testarossa|modena|spider|berlinetta|scuderia)\b/.test(lower)){
     return {type:"model",ask:"Which Ferrari model or trim is it? Pick one below, or type the exact model if it is not shown.",chips:["360 Modena","F430","458","488","Not sure"]};
   }
+  if(/\balfa(?:\s+romeo)?\b/.test(lower)&&!/\b(spider|gtv|giulia|giulietta|alfetta|164|sz|rz|4c|8c|stelvio|quadrifoglio|duetto|montreal)\b/.test(lower)){
+    return {type:"model",ask:"Which Alfa Romeo model or trim is it? Pick one below, or type the exact model if it is not shown.",chips:["Spider","GTV","Giulia","164","Montreal","Not sure"]};
+  }
   return null;
 }
 
@@ -677,7 +680,7 @@ function handleSellStep(q){
 
   // ── STEP 16: confirmation ────────────────────────────────────
   if(step===16){
-    if(/looks good|confirm|yes|correct|all good|that.s right|submit|perfect|great/i.test(lower)){
+    if(/looks good|looking good|confirm|yes|correct|all good|that.s right|submit|perfect|great/i.test(lower)){
       const missing=currentMissingVehicleDetail();
       if(missing){
         sellState.returnToConfirm=true;

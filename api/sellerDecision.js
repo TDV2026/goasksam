@@ -19,7 +19,8 @@ const COMMON_COLORS = [
 const FALLBACK_MAKES = [
   "Porsche", "Ferrari", "BMW", "Mercedes-Benz", "Mercedes", "Audi",
   "Lamborghini", "Aston Martin", "Bentley", "Chevrolet", "Ford", "Dodge",
-  "Toyota", "Honda", "Nissan", "Subaru", "Land Rover", "Jaguar", "McLaren"
+  "Toyota", "Honda", "Nissan", "Subaru", "Land Rover", "Jaguar", "McLaren",
+  "Alfa Romeo"
 ];
 
 const ROUTE_POLICIES = {
@@ -374,9 +375,12 @@ async function resolveVehicle(rawSearch) {
   const raw = asText(rawSearch);
   const lower = raw.toLowerCase();
   const makes = await getMakes();
-  const make = makes
+  const matchedMake = makes
     .filter(m => textHasTerm(lower, m))
     .sort((a, b) => String(b).length - String(a).length)[0] || null;
+  const make = matchedMake || (/\balfa(?:\s+romeo)?\b/.test(lower)
+    ? makes.find(m => String(m).toLowerCase() === "alfa romeo") || "Alfa Romeo"
+    : null);
   const year = extractYear(raw);
   const color = extractColor(raw);
   const mileage = extractMileage(raw);
@@ -385,6 +389,7 @@ async function resolveVehicle(rawSearch) {
   let remainder = raw;
   if (year) remainder = remainder.replace(String(year), " ");
   if (make) remainder = remainder.replace(new RegExp(make, "i"), " ");
+  if (make === "Alfa Romeo") remainder = remainder.replace(/\balfa(?:\s+romeo)?\b/gi, " ");
   if (color) remainder = remainder.replace(new RegExp(color, "i"), " ");
   remainder = remainder.replace(/\b(to sell|sell|selling|i have|have a|with|miles|mile|mi)\b/gi, " ").trim();
 
@@ -398,6 +403,9 @@ async function resolveVehicle(rawSearch) {
 
   if (!model) {
     model = remainder.split(/\s+/).filter(Boolean)[0] || null;
+  }
+  if (make === "Alfa Romeo" && /^alfa(?:\s+romeo)?$/i.test(asText(model))) {
+    model = null;
   }
 
   return {
