@@ -1039,7 +1039,7 @@ function handleSellRecommendationFollowup(q){
   if(chosenByName||/\b(why|better|explain|reason|what about|how about|tell me about|do they|does it|sell tons|high prices|higher|best price)\b/i.test(lower)){
     const hiddenRoute=chosenByName?null:findHiddenRouteByText(q);
     if(hiddenRoute&&!hiddenRoute.hasMarketEvidence){
-      addMsg("sam",`${hiddenRoute.label||hiddenRoute.platform}: I’m not showing it as a recommendation because this search did not return usable platform comps for it. It may still be a real-world option, but I do not want to present it beside evidence-backed routes as if the data supports it.`);
+      addMsg("sam",`${hiddenRoute.label||hiddenRoute.platform}: I’m leaving it out of the recommendation because I do not have enough recent comparable sales for that platform on this search. It may still be worth a manual look, but I would not present it next to evidence-backed routes as if the market supported it.`);
       return true;
     }
     addMsg("sam",`${option.name}: ${routeAnswer(option)}`);
@@ -1390,29 +1390,57 @@ function findHiddenRouteByText(text){
   });
 }
 
+function textSeed(...parts){
+  const value=parts.map(part=>String(part||"")).join("|");
+  let hash=0;
+  for(let i=0;i<value.length;i++)hash=(hash*31+value.charCodeAt(i))>>>0;
+  return hash;
+}
+
+function pickCopy(variants,...seedParts){
+  if(!variants.length)return "";
+  return variants[textSeed(...seedParts)%variants.length];
+}
+
 function resultSummaryLine(options){
   const evidenceOptions=(options||[]).filter(option=>option.marketEvidence);
   const primary=evidenceOptions[0];
   const alt=evidenceOptions.slice(1).find(option=>option.marketEvidence?.medianSalePrice);
   if(primary&&alt){
-    return medianDeltaSentence(primary,alt)||`${primary.name} has the strongest fetched platform signal for this car.`;
+    return medianDeltaSentence(primary,alt)||pickCopy([
+      `${primary.name} is ahead on the recent comparable sales I could use for this car.`,
+      `The recent comparable sales point me toward ${primary.name} first.`,
+      `${primary.name} is the clearest price route from the recent comparable sales.`
+    ],sellState.carName,primary.name,alt.name);
   }
   if(primary){
     const median=moneyShort(primary.marketEvidence?.medianSalePrice);
     return median
-      ? `${primary.name} is the only route I’m showing with usable fetched comps; median result in this set is ${median}.`
-      : `${primary.name} is the only route I’m showing with usable fetched comps for this search.`;
+      ? pickCopy([
+          `${primary.name} is the only route I’d show from the recent comparable sales; median result is ${median}.`,
+          `I’m only showing ${primary.name} because it is the one with enough recent comparable sales here; median result is ${median}.`,
+          `For this search, ${primary.name} is the route with enough recent market support to show; median result is ${median}.`
+        ],sellState.carName,primary.name,median)
+      : pickCopy([
+          `${primary.name} is the only route I’d show from the recent comparable sales.`,
+          `I’m only showing ${primary.name} because it has enough recent comparable sales here.`,
+          `For this search, ${primary.name} is the route with enough recent market support to show.`
+        ],sellState.carName,primary.name);
   }
-  return "I’m only showing routes that have enough evidence to stand behind.";
+  return "I’m only showing routes I can support with recent comparable sales.";
 }
 
 function marketEvidenceSentence(option){
   const evidence=option.marketEvidence;
-  if(!evidence)return `I’m not treating ${option.name} as a recommendation because this search did not return usable platform comps for it.`;
+  if(!evidence)return `I’m not treating ${option.name} as a recommendation because I do not have enough recent comparable sales for it on this search.`;
   const median=moneyShort(evidence.medianSalePrice);
   const latest=dateShort(evidence.latestSaleDate);
   return [
-    median?`${option.name}'s median result in the fetched set is ${median}.`:null,
+    median?pickCopy([
+      `${option.name}'s median result across the recent comparable sales is ${median}.`,
+      `Recent comparable sales put ${option.name}'s median result at ${median}.`,
+      `The comparable sales I can use put ${option.name} around a ${median} median.`
+    ],sellState.carName,option.name,median):null,
     latest?`The latest recorded sale I found was ${latest}.`:null
   ].filter(Boolean).join(" ");
 }
@@ -1425,7 +1453,7 @@ function matchCount(option){
 function matchLabel(option){
   const evidence=option?.marketEvidence||{};
   if(evidence.medianSalePrice)return `median ${moneyShort(evidence.medianSalePrice)}`;
-  return "no usable platform comps";
+  return "not enough recent comparable sales";
 }
 
 function medianDeltaSentence(option, other){
@@ -1435,8 +1463,16 @@ function medianDeltaSentence(option, other){
   const diff=(a-b)/b*100;
   const abs=Math.abs(diff);
   const optionName=String(option.name||"This route");
-  if(abs<3)return `This model is basically level between ${optionName} and ${other.name} in the fetched results: ${moneyShort(a)} vs ${moneyShort(b)}.`;
-  return `This model sold ${Math.round(abs)}% ${diff>0?"higher":"lower"} on ${optionName} than ${other.name} in the fetched results: ${moneyShort(a)} vs ${moneyShort(b)}.`;
+  if(abs<3)return pickCopy([
+    `Recent comparable sales are basically level between ${optionName} and ${other.name}: ${moneyShort(a)} vs ${moneyShort(b)}.`,
+    `I do not see a meaningful price gap between ${optionName} and ${other.name}: ${moneyShort(a)} vs ${moneyShort(b)}.`,
+    `On price, ${optionName} and ${other.name} are close enough that the process and timing matter more: ${moneyShort(a)} vs ${moneyShort(b)}.`
+  ],sellState.carName,optionName,other.name,a,b);
+  return pickCopy([
+    `Recent comparable sales ran ${Math.round(abs)}% ${diff>0?"higher":"lower"} on ${optionName} than ${other.name}: ${moneyShort(a)} vs ${moneyShort(b)}.`,
+    `For this car, ${optionName} is ${Math.round(abs)}% ${diff>0?"ahead of":"behind"} ${other.name} on recent comparable sale price: ${moneyShort(a)} vs ${moneyShort(b)}.`,
+    `The price gap favors ${diff>0?optionName:other.name}: ${optionName} is ${Math.round(abs)}% ${diff>0?"higher":"lower"} than ${other.name} on recent comparable sales.`
+  ],sellState.carName,optionName,other.name,a,b);
 }
 
 function rankingReason(option,index,options){
@@ -1447,14 +1483,14 @@ function rankingReason(option,index,options){
     if(!evidence)return `${option.name} is first on fit, but I would want stronger platform evidence before treating it as the answer.`;
     const compare=bestAlt?medianDeltaSentence(option,bestAlt):null;
     if(compare)return `Why first: ${compare}`;
-    return `Why first: ${option.name} is the only route I’m showing with usable fetched comps for this search.`;
+    return `Why first: ${option.name} is the only route I can support with recent comparable sales for this search.`;
   }
   if(!primary)return marketEvidenceSentence(option);
   const compare=medianDeltaSentence(option,primary);
-  if(!evidence)return `Why not first: I’m not showing ${option.name} as a recommendation because this search did not return usable platform comps for it.`;
+  if(!evidence)return `Why not first: I’m not showing ${option.name} as a recommendation because I do not have enough recent comparable sales for it on this search.`;
   return compare
     ? `Why not first: ${compare}`
-    : `Why not first: ${primary.name} is stronger on the fetched evidence for this search.`;
+    : `Why not first: ${primary.name} is better supported by recent comparable sales for this search.`;
 }
 
 function routeAnswer(option){
@@ -1462,7 +1498,7 @@ function routeAnswer(option){
   const index=options.findIndex(o=>o.key===option.key);
   const facts=[rankingReason(option,index<0?0:index,options), marketEvidenceSentence(option)];
   if(option.speedToList==="fast"||option.speedToList==="medium_fast")facts.push("It is here partly because it can usually be quicker to get live.");
-  if(option.speedToList==="slower")facts.push("The tradeoff is timing: I would not treat it as the quickest path.");
+  if(option.speedToList==="slower")facts.push("The tradeoff is timing: it may take longer to get live than some of the smaller platforms.");
   if(option.priceOutcome==="strong")facts.push("It is a price-first route, so I care more about result quality than speed.");
   return facts.filter(Boolean).join(" ");
 }

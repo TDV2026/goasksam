@@ -934,7 +934,7 @@ function decisionTradeoffs(criteria) {
   const involvement = asText(criteria.involvement).toLowerCase();
 
   if (timeline.includes("fast") || timeline.includes("month")) {
-    tradeoffs.push("Seller timeline favors routes that can get live quickly, but this V1 decision only measures recent market evidence, not partner speed.");
+    tradeoffs.push("Seller timeline favors routes that can get live quickly, so slower auction processes should be weighed against likely sale result.");
   }
   if (involvement.includes("handle") || involvement.includes("hands-off")) {
     tradeoffs.push("Seller prefers a hands-off route; power-seller fit should be checked before final handoff because this dataset currently ranks platforms, not individual sellers.");
@@ -959,7 +959,7 @@ function decide(analysis, criteria, vehicle) {
       tradeoffs: decisionTradeoffs(criteria),
       powerSellerReferral,
       routeFit,
-      limitations: ["No relevant recent sales were found in the fetched market data."]
+      limitations: ["No relevant recent comparable sales were found."]
     };
   }
 
