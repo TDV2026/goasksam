@@ -888,7 +888,10 @@ async function showSellRecommendation(){
   const platforms=decisionData.analysis?.platformPerformance||[];
   const decision=decisionData.decision||{};
   const routeFit=decision.routeFit||{};
-  const routeOptions=(routeFit.routes||[]).slice(0,3);
+  const allRouteOptions=routeFit.routes||[];
+  sellState.allRouteOptions=allRouteOptions;
+  const evidenceBackedRoutes=allRouteOptions.filter(route=>route.hasMarketEvidence&&route.marketEvidence);
+  const routeOptions=evidenceBackedRoutes.slice(0,3);
   const evidence=decisionData.evidence||{};
   const sellerActivity=decisionData.analysis?.sellerActivity||{};
   const limitations=[...(decision.limitations||[])];
@@ -912,19 +915,12 @@ async function showSellRecommendation(){
     const segmentFit=facts.includes("segment_fit");
     const regionFit=facts.includes("region_fit");
     const priceRoute=facts.includes("strong_price_signal_route");
-    const saleCount=platform.evidenceSales||0;
-    const closeCount=platform.closeSales||0;
-    const relevantCount=platform.relevantSales||0;
     const median=moneyShort(platform.medianSalePrice);
     const latest=dateShort(platform.latestSaleDate);
-    const evidenceLine=route.hasMarketEvidence
-      ? [
-          `${saleCount} recent sale${saleCount===1?"":"s"}`,
-          closeCount?`${closeCount} close`:relevantCount?`${relevantCount} relevant`:"broader matches",
-          median?`median ${median}`:null,
-          latest?`latest ${latest}`:null
-        ].filter(Boolean).join(" · ")
-      : "Policy fit · needs stronger recent comps";
+    const evidenceLine=[
+      median?`Median result ${median}`:null,
+      latest?`latest recorded sale ${latest}`:null
+    ].filter(Boolean).join(" · ")||"Usable platform evidence found";
     const stat=[
       route.priceOutcome==="strong"?"Price-first route":null,
       ["fast","medium_fast"].includes(route.speedToList)?"Quicker listing fit":null,
@@ -1009,7 +1005,7 @@ async function showSellRecommendation(){
     <div class="sell-rec-header">
       <div class="sell-rec-kicker">Seller Intelligence</div>
       <div class="sell-rec-title">Here’s where I’d take the ${escapeHtml(sellState.carName||"car")}.</div>
-      <div class="sell-rec-subtitle">${escapeHtml(decision.why?.[1]||"Ranked by recent sales evidence and your selling priorities.")}</div>
+      <div class="sell-rec-subtitle">${escapeHtml(resultSummaryLine(sellState.sellOptions))}</div>
     </div>
     <div class="sell-rec-grid">
       ${optionCardsHTML}
@@ -1041,6 +1037,11 @@ function handleSellRecommendationFollowup(q){
   }
 
   if(chosenByName||/\b(why|better|explain|reason|what about|how about|tell me about|do they|does it|sell tons|high prices|higher|best price)\b/i.test(lower)){
+    const hiddenRoute=chosenByName?null:findHiddenRouteByText(q);
+    if(hiddenRoute&&!hiddenRoute.hasMarketEvidence){
+      addMsg("sam",`${hiddenRoute.label||hiddenRoute.platform}: I’m not showing it as a recommendation because this search did not return usable platform comps for it. It may still be a real-world option, but I do not want to present it beside evidence-backed routes as if the data supports it.`);
+      return true;
+    }
     addMsg("sam",`${option.name}: ${routeAnswer(option)}`);
     return true;
   }
@@ -1375,23 +1376,44 @@ function findSellOptionByText(text){
   return (sellState.sellOptions||[]).find(option=>optionAliases(option).some(alias=>alias&&lower.includes(alias)));
 }
 
+function findHiddenRouteByText(text){
+  const lower=String(text||"").toLowerCase();
+  return (sellState.allRouteOptions||[]).find(route=>{
+    const name=String(route.label||route.platform||"").toLowerCase();
+    const aliases=[name];
+    if(name.includes("bring"))aliases.push("bat","bringatrailer","bring a trailer");
+    if(name.includes("cars")&&name.includes("bids"))aliases.push("c&b","cars and bids","cars & bids");
+    if(name.includes("pcar"))aliases.push("pcm","pcar","pcarmarket","pcar market");
+    if(name.includes("hemmings"))aliases.push("hemmings");
+    if(name.includes("hagerty"))aliases.push("hagerty");
+    return aliases.some(alias=>alias&&lower.includes(alias));
+  });
+}
+
+function resultSummaryLine(options){
+  const evidenceOptions=(options||[]).filter(option=>option.marketEvidence);
+  const primary=evidenceOptions[0];
+  const alt=evidenceOptions.slice(1).find(option=>option.marketEvidence?.medianSalePrice);
+  if(primary&&alt){
+    return medianDeltaSentence(primary,alt)||`${primary.name} has the strongest fetched platform signal for this car.`;
+  }
+  if(primary){
+    const median=moneyShort(primary.marketEvidence?.medianSalePrice);
+    return median
+      ? `${primary.name} is the only route I’m showing with usable fetched comps; median result in this set is ${median}.`
+      : `${primary.name} is the only route I’m showing with usable fetched comps for this search.`;
+  }
+  return "I’m only showing routes that have enough evidence to stand behind.";
+}
+
 function marketEvidenceSentence(option){
   const evidence=option.marketEvidence;
-  if(!evidence)return `${option.name} is in the mix because it fits the car, region or timing, but I do not have strong recent comps for it in this fetched data.`;
-  const saleCount=evidence.evidenceSales||0;
-  const closeCount=evidence.closeSales||0;
-  const relevantCount=evidence.relevantSales||0;
+  if(!evidence)return `I’m not treating ${option.name} as a recommendation because this search did not return usable platform comps for it.`;
   const median=moneyShort(evidence.medianSalePrice);
   const latest=dateShort(evidence.latestSaleDate);
-  const matchLine=closeCount
-    ? `${closeCount} close match${closeCount===1?"":"es"}`
-    : relevantCount
-      ? `${relevantCount} relevant sale${relevantCount===1?"":"s"}`
-      : `${saleCount} broader sale${saleCount===1?"":"s"}`;
   return [
-    `${option.name} showed ${saleCount} recent sale${saleCount===1?"":"s"} in the evidence set, including ${matchLine}.`,
-    median?`Median sale price was ${median}.`:null,
-    latest?`Latest sale was ${latest}.`:null
+    median?`${option.name}'s median result in the fetched set is ${median}.`:null,
+    latest?`The latest recorded sale I found was ${latest}.`:null
   ].filter(Boolean).join(" ");
 }
 
@@ -1402,10 +1424,8 @@ function matchCount(option){
 
 function matchLabel(option){
   const evidence=option?.marketEvidence||{};
-  if(evidence.closeSales)return `${evidence.closeSales} close match${evidence.closeSales===1?"":"es"}`;
-  if(evidence.relevantSales)return `${evidence.relevantSales} relevant sale${evidence.relevantSales===1?"":"s"}`;
-  if(evidence.evidenceSales)return `${evidence.evidenceSales} broader sale${evidence.evidenceSales===1?"":"s"}`;
-  return "no strong recent comps";
+  if(evidence.medianSalePrice)return `median ${moneyShort(evidence.medianSalePrice)}`;
+  return "no usable platform comps";
 }
 
 function medianDeltaSentence(option, other){
@@ -1415,9 +1435,8 @@ function medianDeltaSentence(option, other){
   const diff=(a-b)/b*100;
   const abs=Math.abs(diff);
   const optionName=String(option.name||"This route");
-  const possessive=optionName.endsWith("s")?`${optionName}'`:`${optionName}'s`;
-  if(abs<3)return `${optionName} and ${other.name} are close on median price in this fetched set: ${moneyShort(a)} vs ${moneyShort(b)}.`;
-  return `${possessive} median is ${Math.round(abs)}% ${diff>0?"higher":"lower"} than ${other.name} in this fetched set: ${moneyShort(a)} vs ${moneyShort(b)}.`;
+  if(abs<3)return `This model is basically level between ${optionName} and ${other.name} in the fetched results: ${moneyShort(a)} vs ${moneyShort(b)}.`;
+  return `This model sold ${Math.round(abs)}% ${diff>0?"higher":"lower"} on ${optionName} than ${other.name} in the fetched results: ${moneyShort(a)} vs ${moneyShort(b)}.`;
 }
 
 function rankingReason(option,index,options){
@@ -1425,15 +1444,17 @@ function rankingReason(option,index,options){
   const evidence=option.marketEvidence;
   const bestAlt=options.slice(1).find(o=>o.marketEvidence);
   if(index===0){
-    if(!evidence)return `${option.name} is first because it best fits the seller's stated priorities, but I would want stronger recent comps before calling it definitive.`;
+    if(!evidence)return `${option.name} is first on fit, but I would want stronger platform evidence before treating it as the answer.`;
     const compare=bestAlt?medianDeltaSentence(option,bestAlt):null;
-    const countCompare=bestAlt?`It has ${matchLabel(option)} versus ${matchLabel(bestAlt)} for ${bestAlt.name}.`:"";
-    return [`Why first: ${option.name} is the strongest fit after weighing sale evidence, match quality, timing and region.`, compare, countCompare].filter(Boolean).join(" ");
+    if(compare)return `Why first: ${compare}`;
+    return `Why first: ${option.name} is the only route I’m showing with usable fetched comps for this search.`;
   }
   if(!primary)return marketEvidenceSentence(option);
   const compare=medianDeltaSentence(option,primary);
-  if(!evidence)return `Why not first: ${option.name} fits the brief, but I do not have strong recent comps for it in this fetched data.`;
-  return [`Why not first: ${primary.name} ranked ahead on the current evidence/priorities.`, compare, `${option.name} has ${matchLabel(option)}; ${primary.name} has ${matchLabel(primary)}.`].filter(Boolean).join(" ");
+  if(!evidence)return `Why not first: I’m not showing ${option.name} as a recommendation because this search did not return usable platform comps for it.`;
+  return compare
+    ? `Why not first: ${compare}`
+    : `Why not first: ${primary.name} is stronger on the fetched evidence for this search.`;
 }
 
 function routeAnswer(option){
