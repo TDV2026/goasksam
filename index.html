@@ -228,6 +228,15 @@ body{
 .sell-rec-notes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
 .sell-rec-note{border:1px solid #e8e8e4;background:#fbfbfa;border-radius:12px;padding:12px 13px;font-size:12px;line-height:1.5;color:#555;}
 .sell-rec-note strong{display:block;color:#171717;font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.strategy-session{border:1px solid #e6e6e2;background:#fbfbfa;border-radius:16px;padding:16px 18px;margin-top:4px;display:flex;flex-direction:column;gap:12px;}
+.strategy-label{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:#999;font-weight:850;}
+.strategy-title{font-size:17px;font-weight:850;letter-spacing:-.2px;line-height:1.3;color:#171717;}
+.strategy-text{font-size:13px;line-height:1.6;color:#444;}
+.strategy-list{margin:0;padding-left:17px;display:flex;flex-direction:column;gap:7px;font-size:12px;line-height:1.5;color:#454542;}
+.strategy-list li::marker{color:#166534;}
+.strategy-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:2px;}
+.strategy-card{border:1px solid #e8e8e4;background:white;border-radius:12px;padding:12px 13px;font-size:12px;line-height:1.5;color:#555;}
+.strategy-card strong{display:block;color:#171717;font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
 .observed-sellers{border-top:1px solid #eee7d8;padding-top:9px;display:flex;flex-direction:column;gap:6px;}
 .observed-seller{display:flex;justify-content:space-between;gap:10px;font-size:12px;line-height:1.35;}
 .observed-seller-name{font-weight:800;color:#171717;}
@@ -1007,7 +1016,7 @@ async function showSellRecommendation(){
       evidenceLine:`Based on recent market activity through ${dateShort(decisionData.analysis?.analysisDate)||"today"}.`,
       stat:routeTagLine(route,index,routeOptions),
       bestFor:index===0
-        ? speedFit?"Best fit when timing matters and the route is still supported by the market":"Best fit when the priority is the strongest supported sale route"
+        ? speedFit?"Works when timing matters and the market read still backs it":"Works when the priority is the strongest sale route"
         : speedFit?"Worth comparing if speed-to-list matters":"Worth comparing if timing, fees or handoff fit better",
       marketEvidence:route.marketEvidence||null,
       speedToList:route.speedToList,
@@ -1036,15 +1045,15 @@ async function showSellRecommendation(){
       badgeClass:"specialist",
       cardClass:"specialist-rec",
       actionLabel:"Consider this route",
-      reason:"A specialist seller may be worth considering if you want someone else to handle photos, listing prep, buyer questions and auction management. I am not ranking it ahead of the direct platform route today because the current market evidence supports the platform route more clearly.",
+      reason:"A specialist seller is not another platform. A good one prepares the car, deals with questions, lives in the comments, handles logistics and may choose the platform they think gives the car the best shot.",
       evidenceBullets:[
-        "Hands-off option",
-        "Verify availability",
-        "May involve commission"
+        "Useful if you do not want to manage the auction yourself.",
+        "Usually makes more sense as the car gets more valuable.",
+        "The right specialist matters; they do not all have the same strengths."
       ],
-      evidenceLine:"Sam can show this as an option, but it should be verified before submission.",
-      stat:"Hands-off option · Verify availability · May involve commission",
-      bestFor:"Six-figure or specialist cars where presentation and seller credibility can matter",
+      evidenceLine:"Sam can show this as an option, but availability, minimum value and commission should be checked before submission.",
+      stat:"Auction management · Platform advice · Commission trade-off",
+      bestFor:"Cars where auction management may matter as much as platform choice",
       observedSellers
     });
   }
@@ -1080,9 +1089,11 @@ async function showSellRecommendation(){
       <div class="sell-rec-title">${escapeHtml(resultHeaderTitle(routeOptions))}</div>
       <div class="sell-rec-subtitle">${escapeHtml(resultSummaryLine(sellState.sellOptions,routeOptions))}</div>
     </div>
+    ${sellerStrategyHTML(routeOptions,powerSellerReferral)}
     <div class="sell-rec-grid">
       ${optionCardsHTML}
     </div>
+    ${sellerEducationHTML(routeOptions,powerSellerReferral)}
     ${recommendationEvidenceHTML(decisionData)}
     <div class="sam-text after-results">${hasTwoRouteTradeoff(routeOptions)?"Which route fits how you want to sell? You can choose either, or ask me to compare the tradeoffs.":"Which direction feels right? You can pick one, or ask me to compare the tradeoffs."}</div>
   </div></div>`;
@@ -1113,7 +1124,7 @@ function handleSellRecommendationFollowup(q){
   if(chosenByName||/\b(why|better|explain|reason|what about|how about|tell me about|do they|does it|sell tons|high prices|higher|best price)\b/i.test(lower)){
     const hiddenRoute=chosenByName?null:findHiddenRouteByText(q);
     if(hiddenRoute&&!routeHasTrueComparableEvidence(hiddenRoute)){
-      addMsg("sam",`${hiddenRoute.label||hiddenRoute.platform}: I’m leaving it out of the recommendation because this search does not show enough platform-specific support for it. It may still be worth a manual look, but I would not present it beside the supported routes as if the market clearly backed it.`);
+      addMsg("sam",`${hiddenRoute.label||hiddenRoute.platform}: I’m leaving it out because this search does not give me enough platform-specific evidence for it. It may still be worth a manual look, but I would not put it beside the main routes as if the market clearly backed it.`);
       return true;
     }
     addMsg("sam",`${option.name}: ${routeAnswer(option)}`);
@@ -1502,6 +1513,112 @@ function resultHeaderTitle(routes){
   return `Here’s the selling route I’d choose for the ${sellState.carName||"car"}.`;
 }
 
+function sellerWantsSpeed(){
+  return /\b(fast|quick|soon|tomorrow|this week|gone)\b/i.test(String(sellState.timeline||""));
+}
+
+function sellerWantsHandsOff(){
+  return /\b(handle|hands.off|someone|everything|either)\b/i.test(String(sellState.involvement||""));
+}
+
+function platformGap(routes){
+  if(!routes||routes.length<2)return null;
+  const [first,second]=routes;
+  const firstValue=Number(first?.marketEvidence?.medianSalePrice||0);
+  const secondValue=Number(second?.marketEvidence?.medianSalePrice||0);
+  if(!firstValue||!secondValue)return null;
+  const stronger=firstValue>=secondValue?first:second;
+  const other=firstValue>=secondValue?second:first;
+  const gap=Math.round((Math.max(firstValue,secondValue)-Math.min(firstValue,secondValue))/Math.min(firstValue,secondValue)*100);
+  return {gap,strongerName:stronger.label||stronger.platform,otherName:other.label||other.platform};
+}
+
+function sellerStrategy(routes,powerSellerReferral={}){
+  const car=sellState.carName||"this car";
+  const primary=routes?.[0]||{};
+  const primaryName=primary.label||primary.platform||"the strongest route";
+  const gap=platformGap(routes);
+  const speed=sellerWantsSpeed();
+  const handsOff=sellerWantsHandsOff();
+  const specialist=!!powerSellerReferral.shouldEvaluate;
+  const closePlatforms=gap&&gap.gap<=7;
+  const bullets=[];
+
+  let title=`If this were my ${car}, I’d start with ${primaryName}.`;
+  let text="The platform matters, but it is not the whole sale.";
+
+  if(specialist&&handsOff){
+    title=`If this were my ${car}, I’d look at ${primaryName}, but I’d also speak to the right specialist seller before deciding.`;
+    text="For this kind of car, who runs the auction can matter almost as much as where it runs.";
+  }else if(closePlatforms){
+    title=`I wouldn’t overthink the platform for this ${car}.`;
+    text=`${gap.strongerName} has a small edge, but the gap is close enough that auction management, timing and fees matter.`;
+  }else if(speed&&routes?.some(route=>["fast","medium_fast"].includes(route.speedToList))){
+    title=`If speed matters, I’d compare ${primaryName} against the quickest credible route.`;
+    text="The highest-price route is not always the fastest way to get live.";
+  }
+
+  const insight=primaryInsightSentence(primary);
+  if(insight)bullets.push(insight);
+  if(closePlatforms)bullets.push("When the platform gap is small, the way the auction is run can become the bigger lever.");
+  if(specialist)bullets.push("A specialist seller can handle prep, buyer questions, comments and logistics, but you pay for that help.");
+  if(speed)bullets.push("If you need the car live quickly, speed-to-list should stay in the decision.");
+  if(!bullets.length)bullets.push("The route above is where the recent market read points first.");
+
+  return {title,text,bullets:bullets.slice(0,3)};
+}
+
+function sellerStrategyHTML(routes,powerSellerReferral){
+  const strategy=sellerStrategy(routes,powerSellerReferral);
+  return `<div class="strategy-session">
+    <div>
+      <div class="strategy-label">Sam's strategy</div>
+      <div class="strategy-title">${escapeHtml(strategy.title)}</div>
+      <div class="strategy-text">${escapeHtml(strategy.text)}</div>
+    </div>
+    <ul class="strategy-list">${strategy.bullets.map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
+  </div>`;
+}
+
+function sellerEducationHTML(routes,powerSellerReferral={}){
+  const gap=platformGap(routes);
+  const specialist=!!powerSellerReferral.shouldEvaluate;
+  const cards=[
+    {
+      title:"Auction management",
+      text:"On most auction sites, you need to answer questions quickly, take extra photos when asked, stay calm in the comments and keep bidders engaged."
+    },
+    specialist
+      ? {
+          title:"Specialist seller",
+          text:"A good specialist can prep the car, run the auction, deal with logistics and choose the platform they think gives it the best shot."
+        }
+      : {
+          title:"Seller workload",
+          text:"If you list it yourself, expect to be active during the auction. A quiet seller can hurt a good car."
+        },
+    {
+      title:"What I’d weigh",
+      text:gap&&gap.gap<=7
+        ? "The platform gap looks close enough that process, fees and who manages the sale deserve real attention."
+        : "I’d weigh platform first, then auction management, timing and whether paying for help makes sense."
+    },
+    {
+      title:"Commission trade-off",
+      text:"Paying for help often makes more sense once the car is valuable enough, especially around the $50k+ range."
+    }
+  ];
+  return `<div class="strategy-session">
+    <div>
+      <div class="strategy-label">What actually moves the needle</div>
+      <div class="strategy-text">Selling well is not just uploading photos and waiting. This is the part most first-time sellers underestimate.</div>
+    </div>
+    <div class="strategy-grid">
+      ${cards.map(card=>`<div class="strategy-card"><strong>${escapeHtml(card.title)}</strong>${escapeHtml(card.text)}</div>`).join("")}
+    </div>
+  </div>`;
+}
+
 function textSeed(...parts){
   const value=parts.map(part=>String(part||"")).join("|");
   let hash=0;
@@ -1557,7 +1674,7 @@ function routeReason(route,index,routes){
     ],sellState.carName,name);
   }
   return pickCopy([
-    `${name} is a supported alternative, but the primary route is stronger on the current market read.`,
+    `${name} is still worth looking at, but the route above is stronger on the current market read.`,
     `${name} is worth considering, though I would start with the route above today.`,
     `${name} remains a viable route, but it is not the clearest first choice from the current evidence.`
   ],sellState.carName,name,index);
@@ -1632,7 +1749,7 @@ function routeTagLine(route,index,routes){
   if(dayTag)tags.push(dayTag);
   if(evidence.evidenceSales&&evidence.totalEvidenceSales)tags.push(`${evidence.evidenceSales} of ${evidence.totalEvidenceSales} recent comps`);
   if(!tags.length&&["fast","medium_fast"].includes(route.speedToList))tags.push("Quicker launch pattern");
-  return tags.slice(0,3).join(" · ")||"Recent market support";
+  return tags.slice(0,3).join(" · ")||"Recent market read";
 }
 
 function routeEvidenceBullets(route,index,routes){
@@ -1659,7 +1776,7 @@ function routeEvidenceBullets(route,index,routes){
   if(dayLine)bullets.push(dayLine);
   if(bullets.length<3)bullets.push(sellerPriorityLabel(route));
   if(!bullets.length)bullets.push(index===0
-    ? "Recent comparable activity points here before other supported routes."
+    ? "Recent comparable activity points here before the other routes."
     : "Recent comparable activity is strong enough to keep this route in the comparison.");
   return bullets.slice(0,4);
 }
@@ -1717,16 +1834,16 @@ function resultSummaryLine(options,routes=[]){
   }
   if(primary&&alt){
     return medianDeltaSentence(primary,alt)||pickCopy([
-      `Based on recent market activity, your car details and your selling priorities, this is the route with the strongest support right now.`,
-      `Recent market activity and your selling priorities point to ${primary.name} as the strongest supported route right now.`,
-      `${primary.name} is the clearest supported route for this car right now.`
+      `Based on recent market activity, your car details and your selling priorities, this is where I’d start.`,
+      `Recent market activity and your selling priorities point me toward ${primary.name}.`,
+      `${primary.name} is the clearest route for this car right now.`
     ],sellState.carName,primary.name,alt.name);
   }
   if(primary){
     return pickCopy([
-      `Based on recent market activity, your car details and your selling priorities, this is the route with the strongest support right now.`,
-      `Recent market activity and your selling priorities point to ${primary.name} as the strongest supported route right now.`,
-      `${primary.name} is the clearest supported selling route for this car right now.`
+      `Based on recent market activity, your car details and your selling priorities, this is where I’d start.`,
+      `Recent market activity and your selling priorities point me toward ${primary.name}.`,
+      `${primary.name} is the clearest selling route for this car right now.`
     ],sellState.carName,primary.name);
   }
   return "I’m only showing routes with enough recent market activity to support a recommendation.";
@@ -1797,14 +1914,14 @@ function rankingReason(option,index,options){
     if(!evidence)return `${option.name} is the strongest fit for your selling priorities.`;
     const compare=bestAlt?medianDeltaSentence(option,bestAlt):null;
     if(compare)return compare;
-    return `Based on recent market activity, ${option.name} is the strongest supported route for this car right now.`;
+    return `Based on recent market activity, ${option.name} is where I’d start for this car.`;
   }
   if(!primary)return marketEvidenceSentence(option);
   const compare=medianDeltaSentence(option,primary);
   if(!evidence)return `${option.name} is not ranked ahead of the direct platform route today because the current market evidence supports the platform route more clearly.`;
   return compare
     ? compare
-    : `${primary.name} is better supported by recent market activity for this search.`;
+    : `${primary.name} has the clearer recent market read for this search.`;
 }
 
 function routeAnswer(option){
