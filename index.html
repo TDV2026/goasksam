@@ -476,7 +476,8 @@ function looksLikeVehicleText(text){
 function missingVehicleDetail(text){
   const lower=String(text||"").toLowerCase();
   const year=String(text||"").match(/\b(19|20)\d{2}\b/)?.[0];
-  if(!looksLikeVehicleText(text))return null;
+  const hasKnownMakeOrModel=/\b(porsche|ferrari|bmw|mercedes|benz|audi|lamborghini|aston|bentley|mclaren|chevrolet|chevy|corvette|ford|mustang|dodge|viper|toyota|honda|nissan|subaru|land rover|range rover|jaguar|maserati|alfa|lotus|911|gt3|gt2|turbo|m2|m3|m4|m5|amg|rs|sti|supra|nsx|gtr|camaro)\b/.test(lower);
+  if(!looksLikeVehicleText(text)&&!hasKnownMakeOrModel)return null;
   if(/\bporsche\b/.test(lower)&&!/\b(911|912|914|924|928|944|968|356|964|993|996|997|991|992|boxster|cayman|panamera|cayenne|macan|gt2|gt3|turbo|speedster|targa|carrera)\b/.test(lower)){
     return {type:"model",ask:`Which Porsche model or trim is it?${year?` A ${year} Porsche could mean a 911, 944, 928, 924 or another variant.`:""} Pick one below, or type the exact model if it is not shown.`,chips:["911","944","928","924","Not sure"]};
   }
@@ -994,7 +995,7 @@ async function showSellRecommendation(){
   const tradeoffs=[...(decision.tradeoffs||[])];
 
   if(!routeOptions.length){
-    addMsg("sam",`I checked recent market activity for your ${sellState.carName}, but there isn't enough model-specific activity to make a responsible route recommendation yet. I don't want to guess.`);
+    addMsg("sam",`I checked recent sales for your ${sellState.carName}, but there isn't enough model-specific activity to make a responsible recommendation yet. I don't want to guess.`);
     document.getElementById("btn").disabled=false;
     return;
   }
@@ -1012,7 +1013,8 @@ async function showSellRecommendation(){
       sales:seller.relevantSales270||seller.sales270||0,
       label:seller.activityLabel==="high_activity_seller"?"Strong recent seller activity":"PowerSeller signal"
     }));
-  const hasPowerSellerStrategy=!!powerSellerReferral.shouldEvaluate&&observedSellers.length;
+  const hasPowerSellerAdvice=!!powerSellerReferral.shouldEvaluate;
+  const hasNamedPowerSellerAdvice=hasPowerSellerAdvice&&observedSellers.length;
 
   const routeSellOptions=routesForCards.map((route,index)=>{
     const platform=route.marketEvidence||{};
@@ -1027,14 +1029,14 @@ async function showSellRecommendation(){
     return {
       key:index===0?"primary":`route_${index}`,
       name:routeName,
-      type:"Platform choice",
-      badge:hasPowerSellerStrategy?(index===0?"If selling yourself":"Also worth comparing"):(twoRouteMode?(index===0?"Sam's lean":"Also worth comparing"):(index===0?"Sam's pick":"Alternative choice")),
+      type:index===0?"Platform I’d use":"Worth comparing",
+      badge:hasPowerSellerAdvice?(index===0?"If selling yourself":"Worth comparing"):(twoRouteMode?(index===0?"Sam's lean":"Worth comparing"):(index===0?"Sam's pick":"Worth comparing")),
       badgeClass:index===0?"top":"alt",
-      cardClass:index===0&&!hasPowerSellerStrategy?"primary-rec":"",
-      actionLabel:index===0?`Start my sale with ${routeName}`:`Consider ${routeName}`,
+      cardClass:index===0&&!hasPowerSellerAdvice?"primary-rec":"",
+      actionLabel:index===0?`Sell on ${routeName}`:`Compare ${routeName}`,
       reason:routeReason(route,index,routeOptions),
       evidenceBullets:routeEvidenceBullets(route,index,routeOptions),
-      evidenceLine:`Based on recent market activity through ${dateShort(decisionData.analysis?.analysisDate)||"today"}.`,
+      evidenceLine:"",
       stat:routeTagLine(route,index,routeOptions),
       bestFor:index===0
         ? speedFit?"Works when timing matters and the market read still backs it":"Works when the priority is the strongest sale outcome"
@@ -1046,23 +1048,20 @@ async function showSellRecommendation(){
     };
   });
 
-  const powerSellerOption=hasPowerSellerStrategy?{
+  const powerSellerOption=hasPowerSellerAdvice?{
       key:"specialist",
-      name:"People I’d call first",
-      type:"Recommended PowerSellers",
-      badge:"My recommendation",
+      name:hasNamedPowerSellerAdvice?"People I’d call first":"PowerSeller conversation",
+      type:hasNamedPowerSellerAdvice?"Recommended PowerSellers":"Worth considering",
+      badge:hasNamedPowerSellerAdvice?"My recommendation":"Worth a call",
       badgeClass:"specialist",
       cardClass:"specialist-rec primary-rec",
-      actionLabel:"Talk to a PowerSeller",
-      reason:`I picked these because they show up in recent seller activity for cars like this${sellState.state?`, and ${sellState.state} is close enough to matter`:""}. I’d compare commission, availability and whether they’ve recently handled cars like yours before deciding.`,
-      evidenceBullets:[
-        "They normally handle prep, buyer questions, comments, logistics and platform choice.",
-        "Every PowerSeller is different, so fit matters as much as the name."
-      ],
+      actionLabel:hasNamedPowerSellerAdvice?"Talk to them":"Get me in touch",
+      reason:powerSellerAdviceReason(hasNamedPowerSellerAdvice),
+      evidenceBullets:powerSellerAdviceBullets(hasNamedPowerSellerAdvice),
       evidenceLine:"",
       stat:"",
       bestFor:"",
-      observedSellers
+      observedSellers:hasNamedPowerSellerAdvice?observedSellers:[]
   }:null;
 
   sellState.sellOptions=powerSellerOption?[powerSellerOption,...routeSellOptions]:routeSellOptions;
@@ -1107,7 +1106,7 @@ async function showSellRecommendation(){
       <div class="sell-rec-title">${escapeHtml(resultHeaderTitle(routeOptions))}</div>
       <div class="sell-rec-subtitle">${escapeHtml(resultSummaryLine(sellState.sellOptions,routeOptions))}</div>
     </div>
-    ${powerSellerCardsHTML?`<div class="sell-section-label">People I’d call first</div><div class="sell-rec-grid">${powerSellerCardsHTML}</div>`:""}
+    ${powerSellerCardsHTML?`<div class="sell-section-label">${hasNamedPowerSellerAdvice?"People I’d call first":"Also worth considering"}</div><div class="sell-rec-grid">${powerSellerCardsHTML}</div>`:""}
     ${platformCardsHTML?`<div class="sell-section-label">${powerSellerCardsHTML?"If you’d rather sell it yourself":"My recommendation"}</div>${powerSellerCardsHTML?`<div class="sell-section-note">If you want to run it yourself, this is where I’d start.</div>`:""}<div class="sell-rec-grid">${platformCardsHTML}</div>`:""}
     <div class="sam-text after-results">${hasTwoRouteTradeoff(routeOptions)?"Which choice fits how you want to sell? You can choose either, or ask me to compare the tradeoffs.":"Which direction feels right? You can pick one, or ask me to compare the tradeoffs."}</div>
   </div></div>`;
@@ -1538,6 +1537,78 @@ function sellerWantsHandsOff(){
   return /\b(handle|hands.off|someone|everything|either)\b/i.test(String(sellState.involvement||""));
 }
 
+function sellerWantsToManageSelf(){
+  return /\b(i'?ll manage|i will manage|manage it|myself|self|i'?ll handle|i will handle)\b/i.test(String(sellState.involvement||""));
+}
+
+function cleanCarForCopy(){
+  return String(sellState.carName||"this car").trim();
+}
+
+function porsche911TrimFromText(text){
+  const lower=String(text||"").toLowerCase();
+  if(!/\bporsche\b/.test(lower)||!/\b911\b/.test(lower))return null;
+  const patterns=[
+    ["GT3 RS",/\bgt3\s+rs\b/],
+    ["GT2 RS",/\bgt2\s+rs\b/],
+    ["Turbo S",/\bturbo\s+s\b/],
+    ["Sport Classic",/\bsport\s+classic\b/],
+    ["Carrera 4S",/\bcarrera\s+4s\b/],
+    ["Carrera S",/\bcarrera\s+s\b/],
+    ["Carrera T",/\bcarrera\s+t\b/],
+    ["Carrera",/\bcarrera\b/],
+    ["GTS",/\bgts\b/],
+    ["Turbo",/\bturbo\b/],
+    ["GT3",/\bgt3\b/],
+    ["GT2",/\bgt2\b/],
+    ["Targa",/\btarga\b/],
+    ["Dakar",/\bdakar\b/],
+    ["Speedster",/\bspeedster\b/],
+    ["S/T",/\bs\/t\b/]
+  ];
+  return patterns.find(([,regex])=>regex.test(lower))?.[0]||null;
+}
+
+function comparableModelLabel(){
+  const car=cleanCarForCopy();
+  const trim=porsche911TrimFromText(car);
+  if(trim)return `${trim} models`;
+  if(/\bporsche\b/i.test(car)&&/\b911\b/i.test(car))return "similar 911s";
+  const withoutYear=car.replace(/\b(19|20)\d{2}\b/g,"").trim();
+  return withoutYear?`${withoutYear} models`:"similar cars";
+}
+
+function comparisonScopeSentence(){
+  const trim=porsche911TrimFromText(cleanCarForCopy());
+  if(trim)return `I looked at recent ${trim} sales rather than every 911 because GT3s, Turbos and Sport Classics behave very differently.`;
+  return "";
+}
+
+function powerSellerAdviceReason(hasNamedSellers){
+  if(hasNamedSellers){
+    return `I picked these because they show up in recent seller activity for cars like this${sellState.state?`, and ${sellState.state} is close enough to matter`:""}. Before deciding, I’d compare commission, availability and whether they’ve recently handled cars like yours.`;
+  }
+  if(sellerWantsToManageSelf()){
+    return "You told me you’d rather manage it yourself. I think that’s reasonable. This is one of the few cars where I’d still spend ten minutes speaking to a PowerSeller before making the final call.";
+  }
+  return "For this car, I’d speak to one or two PowerSellers before deciding where it goes live. A good one can change the result, but only if the fit and commission make sense.";
+}
+
+function powerSellerAdviceBullets(hasNamedSellers){
+  if(hasNamedSellers){
+    return [
+      "They normally handle prep, buyer questions, comments, logistics and platform choice.",
+      "Every PowerSeller is different. Before deciding, compare commission, availability and whether they’ve recently handled cars like yours."
+    ];
+  }
+  const bullets=[
+    "I’m not telling you to use a PowerSeller. I’m saying this is the kind of car where I’d have the conversation before deciding.",
+    "If they can’t show a clear case for improving the outcome, keep the commission and sell it yourself."
+  ];
+  if(sellerWantsToManageSelf())bullets.unshift("You can still sell it yourself; this is just the sanity check I’d do first.");
+  return bullets.slice(0,3);
+}
+
 function platformGap(routes){
   if(!routes||routes.length<2)return null;
   const [first,second]=routes;
@@ -1598,11 +1669,7 @@ function routeReason(route,index,routes){
     return `${name} is one of the choices worth comparing because the market result and process tradeoffs are close.`;
   }
   if(index===0){
-    return primaryInsightSentence(route)||pickCopy([
-      `If you decide to sell it yourself, ${name} is where I’d start.`,
-      `Recent market activity points to ${name} first if you want to run the sale yourself.`,
-      `For this car, ${name} is the clearest platform choice right now.`
-    ],sellState.carName,name);
+    return `If it were mine, I’d list it on ${name}.`;
   }
   return pickCopy([
     `${name} is still worth looking at, but the choice above is stronger on the current market read.`,
@@ -1614,11 +1681,9 @@ function routeReason(route,index,routes){
 function primaryInsightSentence(route){
   const evidence=route.marketEvidence||{};
   const name=route.label||route.platform;
-  if(Number.isFinite(evidence.performanceDeltaPercent)&&evidence.performanceDeltaPercent>=5){
-    return `Similar cars have performed ${performancePercentLabel(evidence.performanceDeltaPercent)} stronger through ${name} than the rest of the tracked market ${marketWindowPhrase()}.`;
-  }
+  if(Number.isFinite(evidence.performanceDeltaPercent)&&evidence.performanceDeltaPercent>=5)return `Recent comparable ${comparableModelLabel()} have consistently favoured ${name} over the rest of the tracked market.`;
   if(evidence.topThreeSales>=2){
-    return `The strongest recent comparable sales have come through ${name}.`;
+    return `The strongest recent comparable ${comparableModelLabel()} have come through ${name}.`;
   }
   const dayLine=weekdayInsightLine(evidence);
   if(dayLine)return dayLine;
@@ -1678,33 +1743,35 @@ function routeTagLine(route,index,routes){
   const evidence=route.marketEvidence||{};
   const tags=[];
   if(Number.isFinite(evidence.performanceDeltaPercent)&&Math.abs(evidence.performanceDeltaPercent)>=5){
-    if(evidence.performanceDeltaPercent>0)tags.push(`${performancePercentLabel(evidence.performanceDeltaPercent)} ahead of rest of market`);
+    if(evidence.performanceDeltaPercent>0)tags.push(`Strongest platform signal`);
     else if(Math.abs(evidence.performanceDeltaPercent)<=15)tags.push(`Close to the top platform`);
   }
   if(!tags.length&&["fast","medium_fast"].includes(route.speedToList))tags.push("Quicker launch pattern");
-  return tags.slice(0,2).join(" · ")||"Recent market read";
+  return tags.slice(0,2).join(" · ")||"Worth a look";
 }
 
 function routeEvidenceBullets(route,index,routes){
   const evidence=route.marketEvidence||{};
   const bullets=[];
+  const name=route.label||route.platform;
   if(Number.isFinite(evidence.performanceDeltaPercent)&&Math.abs(evidence.performanceDeltaPercent)>=5){
-    if(evidence.performanceDeltaPercent>0){
-      bullets.push(`Similar cars have performed ${performancePercentLabel(evidence.performanceDeltaPercent)} stronger through ${route.label||route.platform} than the rest of the tracked market ${marketWindowPhrase()}.`);
-    }else if(Math.abs(evidence.performanceDeltaPercent)<=15){
-      bullets.push(`${route.label||route.platform} is close enough to the top platform that timing, fees and process are worth comparing.`);
-    }
+    if(evidence.performanceDeltaPercent>0)bullets.push(`Similar ${comparableModelLabel()} have recently sold for more through ${name} than across the rest of the tracked market.`);
+    else if(Math.abs(evidence.performanceDeltaPercent)<=15)bullets.push(`${name} is close enough to the top platform that timing, fees and process are worth comparing.`);
   }
-  if(index===0)bullets.push(`If you decide to sell it yourself, ${route.label||route.platform} is where I’d start.`);
+  if(evidence.topThreeSales>=2)bullets.push(`The strongest recent comparable sales have come through this platform.`);
+  const scope=comparisonScopeSentence();
+  if(scope)bullets.push(scope);
+  if(index===0)bullets.push(`If you’re happy managing the auction yourself, I’d keep the commission and sell it directly.`);
   if(bullets.length<3)bullets.push(sellerPriorityLabel(route));
   if(!bullets.length)bullets.push(index===0
     ? "Recent comparable activity points here before the other choices."
     : "Recent comparable activity is strong enough to keep this choice in the comparison.");
-  return bullets.slice(0,2);
+  return bullets.slice(0,3);
 }
 
 function resultSummaryLine(options,routes=[]){
   if((options||[]).some(option=>option.key==="specialist")){
+    if(sellerWantsToManageSelf())return "You told me you’d rather manage it yourself. I’d normally agree, but this is one of the few cars where I’d still have the PowerSeller conversation first.";
     return "For this kind of car, who runs the sale can matter almost as much as where it runs.";
   }
   if(hasTwoRouteTradeoff(routes)){
@@ -1721,11 +1788,11 @@ function resultSummaryLine(options,routes=[]){
       const weakerName=firstMedian>=secondMedian?secondName:firstName;
       const fasterName=fasterRoute?.label||fasterRoute?.platform;
       if(fasterRoute&&fasterName!==strongerName&&Math.min(firstMedian,secondMedian)/Math.max(firstMedian,secondMedian)>=0.9){
-        return `${strongerName} has the stronger recent market read. ${fasterName} is close enough that speed and process may matter.`;
+        return `${strongerName} looks stronger on recent comparable sales. ${fasterName} is close enough that speed and process may matter.`;
       }
-      return `${strongerName} has the stronger recent market read, but ${weakerName} has enough signal to compare before choosing.`;
+      return `${strongerName} looks stronger on recent comparable sales, but ${weakerName} has enough signal to compare before choosing.`;
     }
-    return `${firstName} and ${secondName} are both supported by recent market activity, but they win for different reasons.`;
+    return `${firstName} and ${secondName} both belong in the conversation, but they win for different reasons.`;
   }
   const evidenceOptions=(options||[]).filter(option=>option.marketEvidence);
   const primary=evidenceOptions[0];
@@ -1737,32 +1804,32 @@ function resultSummaryLine(options,routes=[]){
   }
   if(primary&&alt){
     return medianDeltaSentence(primary,alt)||pickCopy([
-      `Based on recent market activity, your car details and your selling priorities, this is where I’d start.`,
-      `Recent market activity and your selling priorities point me toward ${primary.name}.`,
+      `If it were mine, I’d list it on ${primary.name}.`,
+      `For this car, ${primary.name} is where I’d start.`,
       `${primary.name} is the clearest choice for this car right now.`
     ],sellState.carName,primary.name,alt.name);
   }
   if(primary){
     return pickCopy([
-      `Based on recent market activity, your car details and your selling priorities, this is where I’d start.`,
-      `Recent market activity and your selling priorities point me toward ${primary.name}.`,
+      `If it were mine, I’d list it on ${primary.name}.`,
+      `For this car, ${primary.name} is where I’d start.`,
       `${primary.name} is the clearest choice for this car right now.`
     ],sellState.carName,primary.name);
   }
-  return "I’m only showing choices with enough recent market activity to support a recommendation.";
+  return "I’m only showing choices I can stand behind.";
 }
 
 function marketEvidenceSentence(option){
   const evidence=option.marketEvidence;
   if(!evidence)return `${option.name} is practical to verify, not the strongest data-led platform choice today.`;
   if(Number.isFinite(evidence.performanceDeltaPercent)&&evidence.performanceDeltaPercent>=5){
-    return `${option.name} is ${performancePercentLabel(evidence.performanceDeltaPercent)} ahead of the rest of the tracked market on recent comparable activity.`;
+    return `Recent comparable ${comparableModelLabel()} have consistently favoured ${option.name}.`;
   }
   if(Number.isFinite(evidence.performanceDeltaPercent)&&evidence.performanceDeltaPercent<0&&Math.abs(evidence.performanceDeltaPercent)<=15){
     return `${option.name} is close enough to the top platform that timing, fees and process are worth comparing.`;
   }
   if(evidence.topThreeSales>=2)return `The strongest recent comparable sales have come through ${option.name}.`;
-  return `${option.name} has recent market activity strong enough to keep in the comparison.`;
+  return `${option.name} belongs in the comparison.`;
 }
 
 function matchCount(option){
@@ -1785,7 +1852,7 @@ function medianDeltaSentence(option, other){
   const optionName=String(option.name||"This choice");
   if(abs<3)return pickCopy([
     `Similar cars have performed at a similar level across the leading choices ${marketWindowPhrase()}.`,
-    `The recent market activity does not show a meaningful platform gap here.`,
+    `Recent comparable sales do not show a meaningful platform gap here.`,
     `${optionName} and ${other.name} are close enough that process, timing and seller workload matter more.`
   ],sellState.carName,optionName,other.name,a,b);
   if(diff<0){
@@ -1795,15 +1862,15 @@ function medianDeltaSentence(option, other){
       `${other.name} has the edge, but ${optionName} remains close enough to keep in the conversation.`
     ],sellState.carName,optionName,other.name,a,b);
     return pickCopy([
-      `${other.name} has the clearer recent market signal; I’d only choose ${optionName} if the process fits you better.`,
-      `${optionName} stays in the conversation for practical reasons, but ${other.name} has the stronger recent read.`,
+      `${other.name} has the clearer recent sales signal; I’d only choose ${optionName} if the process fits you better.`,
+      `${optionName} stays in the conversation for practical reasons, but ${other.name} looks stronger on recent sales.`,
       `${other.name} is the stronger market choice right now; ${optionName} is mainly a process or timing comparison.`
     ],sellState.carName,optionName,other.name,a,b);
   }
   return pickCopy([
-    `Similar cars have performed ${performancePercentLabel(abs)} stronger through ${optionName} than the rest of the tracked market ${marketWindowPhrase()}.`,
-    `${optionName} is ${performancePercentLabel(abs)} ahead of the rest of the tracked market ${marketWindowPhrase()}.`,
-    `The recent performance gap favors ${optionName}: it is ${performancePercentLabel(abs)} ahead of the rest of the market.`
+    `Recent comparable ${comparableModelLabel()} have consistently favoured ${optionName}.`,
+    `${optionName} is where I’d start if you are selling it yourself.`,
+    `The strongest platform read points to ${optionName}.`
   ],sellState.carName,optionName,other.name,a,b);
 }
 
@@ -1816,14 +1883,14 @@ function rankingReason(option,index,options){
     if(!evidence)return `${option.name} is the strongest fit for your selling priorities.`;
     const compare=bestAlt?medianDeltaSentence(option,bestAlt):null;
     if(compare)return compare;
-    return `Based on recent market activity, ${option.name} is where I’d start for this car.`;
+    return `If it were mine, I’d list it on ${option.name}.`;
   }
   if(!primaryMarket)return marketEvidenceSentence(option);
   const compare=medianDeltaSentence(option,primaryMarket);
   if(!evidence)return `${option.name} is not ranked ahead of the direct platform today because the current market evidence supports the platform choice more clearly.`;
   return compare
     ? compare
-    : `${primaryMarket.name} has the clearer recent market read for this search.`;
+    : `${primaryMarket.name} looks stronger on recent comparable sales.`;
 }
 
 function routeAnswer(option){
@@ -1857,9 +1924,9 @@ function compareSellOptions(){
   const secondDelta=Number(secondEvidence.performanceDeltaPercent);
 
   if(Number.isFinite(firstDelta)&&firstDelta>=5){
-    lines.push(`${first.name} is ahead on the recent market read: ${performancePercentLabel(firstDelta)} stronger than the rest of the tracked market ${marketWindowPhrase()}.`);
+    lines.push(`${first.name} has the stronger recent comparable sales signal: ${performancePercentLabel(firstDelta)} stronger than the rest of the tracked market ${marketWindowPhrase()}.`);
   }else if(Number.isFinite(secondDelta)&&secondDelta>=5){
-    lines.push(`${second.name} is ahead on the recent market read: ${performancePercentLabel(secondDelta)} stronger than the rest of the tracked market ${marketWindowPhrase()}.`);
+    lines.push(`${second.name} has the stronger recent comparable sales signal: ${performancePercentLabel(secondDelta)} stronger than the rest of the tracked market ${marketWindowPhrase()}.`);
   }else{
     lines.push(`${first.name} and ${second.name} are close enough that timing, fees and how much work you want to do should drive the choice.`);
   }
