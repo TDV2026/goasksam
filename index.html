@@ -914,6 +914,7 @@ async function showSellRecommendation(){
   }
 
   const routesForCards=routeOptions;
+  const twoRouteMode=hasTwoRouteTradeoff(routeOptions);
   sellState.sellOptions=routesForCards.map((route,index)=>{
     const platform=route.marketEvidence||{};
     const facts=route.routeFitFacts||[];
@@ -928,10 +929,10 @@ async function showSellRecommendation(){
       key:index===0?"primary":`route_${index}`,
       name:routeName,
       type:"Selling route",
-      badge:index===0?"Sam's pick":"Alternative route",
+      badge:twoRouteMode?(index===0?"Sam's lean":"Also worth comparing"):(index===0?"Sam's pick":"Alternative route"),
       badgeClass:index===0?"top":"alt",
       cardClass:index===0?"primary-rec":"",
-      actionLabel:index===0?`Start my sale with ${routeName}`:"Consider this route",
+      actionLabel:index===0?`Start my sale with ${routeName}`:"Compare this route",
       reason:routeReason(route,index,routeOptions),
       evidenceBullets:routeEvidenceBullets(route,index,routeOptions),
       evidenceLine:`Based on recent market activity through ${dateShort(decisionData.analysis?.analysisDate)||"today"}.`,
@@ -1007,14 +1008,14 @@ async function showSellRecommendation(){
     <div class="sam-label">Sam</div>
     <div class="sell-rec-header">
       <div class="sell-rec-kicker">Seller Intelligence</div>
-      <div class="sell-rec-title">Here’s the selling route I’d choose for the ${escapeHtml(sellState.carName||"car")}.</div>
-      <div class="sell-rec-subtitle">${escapeHtml(resultSummaryLine(sellState.sellOptions))}</div>
+      <div class="sell-rec-title">${escapeHtml(resultHeaderTitle(routeOptions))}</div>
+      <div class="sell-rec-subtitle">${escapeHtml(resultSummaryLine(sellState.sellOptions,routeOptions))}</div>
     </div>
     <div class="sell-rec-grid">
       ${optionCardsHTML}
     </div>
     ${recommendationEvidenceHTML(decisionData)}
-    <div class="sam-text after-results">Which direction feels right? You can pick one, or ask me to compare the tradeoffs.</div>
+    <div class="sam-text after-results">${hasTwoRouteTradeoff(routeOptions)?"Which route fits how you want to sell? You can choose either, or ask me to compare the tradeoffs.":"Which direction feels right? You can pick one, or ask me to compare the tradeoffs."}</div>
   </div></div>`;
   sellState.generatedPrimaryName=sellState.sellOptions[0]?.name||null;
   sellState.generatedSecondaryName=sellState.sellOptions[1]?.name||null;
@@ -1398,6 +1399,25 @@ function routeHasTrueComparableEvidence(route){
   return !!(route?.hasMarketEvidence&&route?.marketEvidence&&(route.marketEvidence.closeSales||route.marketEvidence.relevantSales));
 }
 
+function hasTwoRouteTradeoff(routes){
+  if(!routes||routes.length<2)return false;
+  const [a,b]=routes;
+  const ae=a.marketEvidence||{};
+  const be=b.marketEvidence||{};
+  const aSales=ae.evidenceSales||0;
+  const bSales=be.evidenceSales||0;
+  const aMedian=Number(ae.medianSalePrice||0);
+  const bMedian=Number(be.medianSalePrice||0);
+  const volumeSplit=Math.max(aSales,bSales)>=Math.max(3,Math.min(aSales,bSales)*2);
+  const performanceSplit=aMedian&&bMedian&&Math.abs(aMedian-bMedian)/Math.min(aMedian,bMedian)>=0.05;
+  return !!(volumeSplit||performanceSplit);
+}
+
+function resultHeaderTitle(routes){
+  if(hasTwoRouteTradeoff(routes))return `Two selling routes are worth considering for the ${sellState.carName||"car"}.`;
+  return `Here’s the selling route I’d choose for the ${sellState.carName||"car"}.`;
+}
+
 function textSeed(...parts){
   const value=parts.map(part=>String(part||"")).join("|");
   let hash=0;
@@ -1429,6 +1449,19 @@ function marketWindowPhrase(){
 
 function routeReason(route,index,routes){
   const name=route.label||route.platform;
+  if(hasTwoRouteTradeoff(routes)){
+    const evidence=route.marketEvidence||{};
+    const other=routes.find(item=>item!==route);
+    const otherEvidence=other?.marketEvidence||{};
+    const otherName=other?.label||other?.platform;
+    if(other&&evidence.evidenceSales>otherEvidence.evidenceSales){
+      return `${name} has the deeper recent activity, which makes it the more proven route. ${otherName} may still deserve a look if its recent performance is stronger.`;
+    }
+    if(other&&Number(evidence.medianSalePrice||0)>Number(otherEvidence.medianSalePrice||0)){
+      return `${name} has shown stronger recent performance on a smaller sample. I’d compare it directly against ${otherName} before choosing.`;
+    }
+    return `${name} is one of the two routes worth comparing for this car.`;
+  }
   if(index===0){
     return primaryInsightSentence(route)||pickCopy([
       `Recent market activity points to ${name} as the route I’d start with for this car.`,
@@ -1546,7 +1579,26 @@ function recommendationEvidenceHTML(decisionData){
   </details>`;
 }
 
-function resultSummaryLine(options){
+function resultSummaryLine(options,routes=[]){
+  if(hasTwoRouteTradeoff(routes)){
+    const first=routes[0], second=routes[1];
+    const fe=first.marketEvidence||{};
+    const se=second.marketEvidence||{};
+    const firstName=first.label||first.platform;
+    const secondName=second.label||second.platform;
+    const firstSales=fe.evidenceSales||0;
+    const secondSales=se.evidenceSales||0;
+    const firstMedian=Number(fe.medianSalePrice||0);
+    const secondMedian=Number(se.medianSalePrice||0);
+    if(firstSales!==secondSales&&firstMedian&&secondMedian){
+      const volumeName=firstSales>secondSales?firstName:secondName;
+      const performanceName=firstMedian>secondMedian?firstName:secondName;
+      if(volumeName!==performanceName){
+        return `${volumeName} has the deeper recent activity; ${performanceName} has shown stronger recent performance. I’d compare both routes before choosing.`;
+      }
+    }
+    return `${firstName} and ${secondName} are both supported by recent market activity, but they win for different reasons.`;
+  }
   const evidenceOptions=(options||[]).filter(option=>option.marketEvidence);
   const primary=evidenceOptions[0];
   const alt=evidenceOptions.slice(1).find(option=>option.marketEvidence?.medianSalePrice);
