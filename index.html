@@ -459,7 +459,7 @@ function askMissingVehicleDetail(missing){
 }
 
 function sellerFunnelReply(){
-  return "I can do that properly once I know the car. Answer a few quick questions — it takes under a minute — and I'll compare the market, route fit, timing and specialist-seller options for you.";
+  return "Tell me the car and I’ll compare recent platform performance, timing patterns and specialist-seller fit before recommending a selling route. A few quick questions — under a minute.";
 }
 
 function startSellFlow(initialCar, showUserBubble=true){
@@ -924,12 +924,6 @@ async function showSellRecommendation(){
     const segmentFit=facts.includes("segment_fit");
     const regionFit=facts.includes("region_fit");
     const priceRoute=facts.includes("strong_price_signal_route");
-    const stat=[
-      route.priceOutcome==="strong"?"Outcome-focused route":null,
-      ["fast","medium_fast"].includes(route.speedToList)?"Quicker listing fit":null,
-      segmentFit?"Strong audience fit":null,
-      regionFit?"Regional fit":null
-    ].filter(Boolean).join(" · ")||"Route fit";
     return {
       key:index===0?"primary":`route_${index}`,
       name:routeName,
@@ -941,7 +935,7 @@ async function showSellRecommendation(){
       reason:routeReason(route,index,routeOptions),
       evidenceBullets:routeEvidenceBullets(route,index,routeOptions),
       evidenceLine:`Based on recent market activity through ${dateShort(decisionData.analysis?.analysisDate)||"today"}.`,
-      stat,
+      stat:routeTagLine(route,index,routeOptions),
       bestFor:index===0
         ? speedFit?"Best fit when timing matters and the route is still supported by the market":"Best fit when the priority is the strongest supported sale route"
         : speedFit?"Worth comparing if speed-to-list matters":"Worth comparing if timing, fees or handoff fit better",
@@ -1425,13 +1419,21 @@ function supportedRouteDelta(route, routes){
   return next?medianDeltaSentence(current,next):null;
 }
 
+function marketWindowPhrase(){
+  const days=sellState.sellDecision?.evidence?.windowDays;
+  if(!days)return "recently";
+  if(days>=85&&days<=100)return "over the past 90 days";
+  if(days>=115&&days<=130)return "over the past 120 days";
+  return `over the past ${days} days`;
+}
+
 function routeReason(route,index,routes){
   const name=route.label||route.platform;
   if(index===0){
-    return pickCopy([
-      `Based on recent market activity, ${name} is the strongest supported route for this car right now.`,
-      `${name} is the clearest supported route once I weigh the car details and your selling priorities.`,
-      `For this car and your priorities, ${name} has the strongest route support right now.`
+    return primaryInsightSentence(route)||pickCopy([
+      `Recent market activity points to ${name} as the route I’d start with for this car.`,
+      `${name} is the clearest route once I weigh the recent platform activity and your selling priorities.`,
+      `For this car, ${name} has the strongest recent route evidence right now.`
     ],sellState.carName,name);
   }
   return pickCopy([
@@ -1441,23 +1443,78 @@ function routeReason(route,index,routes){
   ],sellState.carName,name,index);
 }
 
+function primaryInsightSentence(route){
+  const evidence=route.marketEvidence||{};
+  const name=route.label||route.platform;
+  const other=platformDisplayName(evidence.nextSupportedPlatform);
+  if(Number.isFinite(evidence.performanceDeltaPercent)&&evidence.performanceDeltaPercent>=5&&other){
+    return `Similar cars have performed ${evidence.performanceDeltaPercent}% stronger on ${name} than ${other} ${marketWindowPhrase()}.`;
+  }
+  if(evidence.topThreeSales>=2){
+    return `${evidence.topThreeSales} of the three strongest recent comparable sales were listed on ${name}.`;
+  }
+  if(evidence.evidenceSales&&evidence.totalEvidenceSales&&evidence.evidenceSharePercent>=50){
+    return `${evidence.evidenceSales} of the ${evidence.totalEvidenceSales} recent comparable sales were listed on ${name}.`;
+  }
+  if(evidence.highestResultWeekday){
+    return `The strongest recent comparable sale ended on a ${evidence.highestResultWeekday}.`;
+  }
+  return null;
+}
+
 function sellerPriorityLabel(route){
   const facts=route.routeFitFacts||[];
   if(facts.includes("faster_listing_fit"))return "This route matches your priority of getting live quickly.";
   if(facts.includes("may_support_handoff"))return "This route can suit a seller who wants more help with the process.";
-  return "This route best matches your priority of maximizing sale outcome.";
+  return "The strongest recent activity points here before speed or handoff considerations.";
+}
+
+function platformDisplayName(name){
+  return String(name||"").replace(/^bringatrailer$/i,"Bring a Trailer").replace(/^carsandbids$/i,"Cars & Bids");
+}
+
+function plural(value,singular,pluralWord){
+  return `${value} ${value===1?singular:pluralWord||`${singular}s`}`;
+}
+
+function routeTagLine(route,index,routes){
+  const evidence=route.marketEvidence||{};
+  const other=platformDisplayName(evidence.nextSupportedPlatform);
+  const tags=[];
+  if(Number.isFinite(evidence.performanceDeltaPercent)&&Math.abs(evidence.performanceDeltaPercent)>=5&&other){
+    tags.push(`${Math.abs(evidence.performanceDeltaPercent)}% ${evidence.performanceDeltaPercent>0?"stronger":"weaker"} than ${other}`);
+  }
+  if(evidence.topThreeSales>=2)tags.push(`${evidence.topThreeSales} of top 3 recent results`);
+  if(evidence.evidenceSales&&evidence.totalEvidenceSales)tags.push(`${evidence.evidenceSales} of ${evidence.totalEvidenceSales} recent comps`);
+  if(evidence.highestResultWeekday)tags.push(`${evidence.highestResultWeekday} strongest result`);
+  if(!tags.length&&["fast","medium_fast"].includes(route.speedToList))tags.push("Quicker launch pattern");
+  return tags.slice(0,3).join(" · ")||"Recent market support";
 }
 
 function routeEvidenceBullets(route,index,routes){
-  const delta=supportedRouteDelta(route,routes);
+  const evidence=route.marketEvidence||{};
+  const other=platformDisplayName(evidence.nextSupportedPlatform);
   const bullets=[];
-  if(delta)bullets.push(delta);
-  else bullets.push(index===0
-    ? "Same and closely related cars have recently performed strongest here."
-    : "Same and closely related cars give this route enough support to compare.");
-  bullets.push("This model has enough recent activity to support a route recommendation.");
-  bullets.push(sellerPriorityLabel(route));
-  return bullets;
+  if(Number.isFinite(evidence.performanceDeltaPercent)&&Math.abs(evidence.performanceDeltaPercent)>=5&&other){
+    bullets.push(`Similar cars have performed ${Math.abs(evidence.performanceDeltaPercent)}% ${evidence.performanceDeltaPercent>0?"stronger":"weaker"} on ${route.label||route.platform} than ${other} ${marketWindowPhrase()}.`);
+  }
+  if(evidence.evidenceSales&&evidence.totalEvidenceSales){
+    bullets.push(`${evidence.evidenceSales} of the ${evidence.totalEvidenceSales} recent comparable sales were listed on ${route.label||route.platform}.`);
+  }
+  if(evidence.topThreeSales>=2){
+    bullets.push(`${evidence.topThreeSales} of the three strongest recent comparable sales were listed here.`);
+  }
+  if(Number.isFinite(evidence.averageBids)&&evidence.averageBids>=5){
+    bullets.push(`Comparable cars averaged ${Math.round(evidence.averageBids)} bids here.`);
+  }
+  if(evidence.highestResultWeekday){
+    bullets.push(`The strongest recent comparable sale ended on a ${evidence.highestResultWeekday}.`);
+  }
+  if(bullets.length<3)bullets.push(sellerPriorityLabel(route));
+  if(!bullets.length)bullets.push(index===0
+    ? "Recent comparable activity points here before other supported routes."
+    : "Recent comparable activity is strong enough to keep this route in the comparison.");
+  return bullets.slice(0,4);
 }
 
 function recommendationEvidenceHTML(decisionData){
@@ -1486,6 +1543,11 @@ function resultSummaryLine(options){
   const evidenceOptions=(options||[]).filter(option=>option.marketEvidence);
   const primary=evidenceOptions[0];
   const alt=evidenceOptions.slice(1).find(option=>option.marketEvidence?.medianSalePrice);
+  const primaryRoute=(sellState.allRouteOptions||[]).find(route=>(route.label||route.platform)===primary?.name);
+  if(primaryRoute){
+    const insight=primaryInsightSentence(primaryRoute);
+    if(insight)return insight;
+  }
   if(primary&&alt){
     return medianDeltaSentence(primary,alt)||pickCopy([
       `Based on recent market activity, your car details and your selling priorities, this is the route with the strongest support right now.`,
@@ -1532,13 +1594,13 @@ function medianDeltaSentence(option, other){
   const abs=Math.abs(diff);
   const optionName=String(option.name||"This route");
   if(abs<3)return pickCopy([
-    `Similar cars have recently performed at a similar level on ${optionName} and ${other.name}.`,
+    `Similar cars have performed at a similar level on ${optionName} and ${other.name} ${marketWindowPhrase()}.`,
     `The recent market activity does not show a meaningful gap between ${optionName} and ${other.name}.`,
     `${optionName} and ${other.name} are close enough that process, timing and seller workload matter more.`
   ],sellState.carName,optionName,other.name,a,b);
   return pickCopy([
-    `Similar cars have recently performed ${Math.round(abs)}% ${diff>0?"stronger":"weaker"} on ${optionName} than ${other.name}.`,
-    `${optionName} is ${Math.round(abs)}% ${diff>0?"ahead of":"behind"} ${other.name} on recent comparable market activity.`,
+    `Similar cars have performed ${Math.round(abs)}% ${diff>0?"stronger":"weaker"} on ${optionName} than ${other.name} ${marketWindowPhrase()}.`,
+    `${optionName} is ${Math.round(abs)}% ${diff>0?"ahead of":"behind"} ${other.name} on comparable market activity ${marketWindowPhrase()}.`,
     `The recent performance gap favors ${diff>0?optionName:other.name}: ${optionName} is ${Math.round(abs)}% ${diff>0?"stronger":"weaker"} than ${other.name}.`
   ],sellState.carName,optionName,other.name,a,b);
 }

@@ -144,6 +144,21 @@ function normalizeMoney(record) {
   return Number.isFinite(number) ? number : null;
 }
 
+function recordNumber(record, fields) {
+  for (const field of fields) {
+    const value = Number(record?.[field]);
+    if (Number.isFinite(value)) return value;
+  }
+  return null;
+}
+
+function weekdayName(dateString) {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  if (!Number.isFinite(date.getTime())) return null;
+  return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][date.getUTCDay()];
+}
+
 function recordPlatform(record) {
   return record.platform || record.source || record.auction_platform || record.listing_source || "unknown";
 }
@@ -263,7 +278,9 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
     if (evidence) {
       score += 20 + evidence.closeSales * 5 + evidence.relevantSales * 3 + evidence.broadSales;
       if (maxComparableMedian && (evidence.closeSales || evidence.relevantSales) && evidence.medianSalePrice) {
-        score += Math.round((evidence.medianSalePrice / maxComparableMedian) * 20);
+        const medianRatio = evidence.medianSalePrice / maxComparableMedian;
+        score += Math.round(medianRatio * 35);
+        if (medianRatio < 0.95) score -= Math.round((1 - medianRatio) * 45);
       }
     }
     if (facts.includes("segment_fit")) score += 10;
@@ -801,14 +818,29 @@ function analyze(records, classifications) {
         platformMap.get(platform).push(item);
       }
 
-      const platformPerformance = [...platformMap.entries()]
+      const totalEvidenceSales = evidenceSet.length;
+      const strongestSales = [...evidenceSet]
+        .filter(item => Number.isFinite(Number(item.classification.price)))
+        .sort((a, b) => Number(b.classification.price) - Number(a.classification.price))
+        .slice(0, 3);
+
+      let platformPerformance = [...platformMap.entries()]
         .map(([platform, items]) => ({
           platform,
           evidenceSales: items.length,
+          totalEvidenceSales,
+          evidenceSharePercent: totalEvidenceSales ? Math.round(items.length / totalEvidenceSales * 100) : null,
           relevantSales: items.filter(item => ["close_match", "relevant_match"].includes(item.classification.comparison_tier)).length,
           closeSales: items.filter(item => item.classification.comparison_tier === "close_match").length,
           broadSales: items.filter(item => item.classification.comparison_tier === "broad_match").length,
+          topThreeSales: strongestSales.filter(item => recordPlatform(item.record) === platform).length,
           medianSalePrice: median(items.map(item => item.classification.price)),
+          averageBids: median(items
+            .map(item => recordNumber(item.record, ["bid_count", "bids_count", "bids", "num_bids", "number_of_bids"]))
+            .filter(Number.isFinite)),
+          highestResultWeekday: weekdayName([...items]
+            .filter(item => Number.isFinite(Number(item.classification.price)))
+            .sort((a, b) => Number(b.classification.price) - Number(a.classification.price))[0]?.record?.auction_end_date),
           latestSaleDate: items
             .map(item => item.record.auction_end_date)
             .filter(Boolean)
@@ -820,6 +852,20 @@ function analyze(records, classifications) {
           if (b.relevantSales !== a.relevantSales) return b.relevantSales - a.relevantSales;
           return (b.medianSalePrice || 0) - (a.medianSalePrice || 0);
         });
+
+      platformPerformance = platformPerformance.map(platform => {
+        const nextBest = platformPerformance
+          .filter(other => other.platform !== platform.platform && other.medianSalePrice)
+          .sort((a, b) => (b.medianSalePrice || 0) - (a.medianSalePrice || 0))[0];
+        const delta = platform.medianSalePrice && nextBest?.medianSalePrice
+          ? Math.round((platform.medianSalePrice - nextBest.medianSalePrice) / nextBest.medianSalePrice * 100)
+          : null;
+        return {
+          ...platform,
+          nextSupportedPlatform: nextBest?.platform || null,
+          performanceDeltaPercent: delta
+        };
+      });
 
       return {
         analysisDate: new Date().toISOString().slice(0, 10),
