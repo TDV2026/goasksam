@@ -1451,7 +1451,7 @@ function primaryInsightSentence(route){
     return `Similar cars have performed ${evidence.performanceDeltaPercent}% stronger on ${name} than ${other} ${marketWindowPhrase()}.`;
   }
   if(evidence.topThreeSales>=2){
-    return `${evidence.topThreeSales} of the three strongest recent comparable sales were listed on ${name}.`;
+    return `${topThreePhrase(evidence.topThreeSales)} were listed on ${name}.`;
   }
   if(evidence.evidenceSales&&evidence.totalEvidenceSales&&evidence.evidenceSharePercent>=50){
     return `${evidence.evidenceSales} of the ${evidence.totalEvidenceSales} recent comparable sales were listed on ${name}.`;
@@ -1477,6 +1477,13 @@ function plural(value,singular,pluralWord){
   return `${value} ${value===1?singular:pluralWord||`${singular}s`}`;
 }
 
+function topThreePhrase(count){
+  if(count>=3)return "All three of the strongest recent comparable sales";
+  if(count===2)return "Two of the three strongest recent comparable sales";
+  if(count===1)return "One of the three strongest recent comparable sales";
+  return null;
+}
+
 function routeTagLine(route,index,routes){
   const evidence=route.marketEvidence||{};
   const other=platformDisplayName(evidence.nextSupportedPlatform);
@@ -1484,7 +1491,7 @@ function routeTagLine(route,index,routes){
   if(Number.isFinite(evidence.performanceDeltaPercent)&&Math.abs(evidence.performanceDeltaPercent)>=5&&other){
     tags.push(`${Math.abs(evidence.performanceDeltaPercent)}% ${evidence.performanceDeltaPercent>0?"stronger":"weaker"} than ${other}`);
   }
-  if(evidence.topThreeSales>=2)tags.push(`${evidence.topThreeSales} of top 3 recent results`);
+  if(evidence.topThreeSales>=2)tags.push(evidence.topThreeSales>=3?"All top 3 recent results":`${evidence.topThreeSales} of top 3 recent results`);
   if(evidence.evidenceSales&&evidence.totalEvidenceSales)tags.push(`${evidence.evidenceSales} of ${evidence.totalEvidenceSales} recent comps`);
   if(evidence.highestResultWeekday)tags.push(`${evidence.highestResultWeekday} strongest result`);
   if(!tags.length&&["fast","medium_fast"].includes(route.speedToList))tags.push("Quicker launch pattern");
@@ -1502,7 +1509,7 @@ function routeEvidenceBullets(route,index,routes){
     bullets.push(`${evidence.evidenceSales} of the ${evidence.totalEvidenceSales} recent comparable sales were listed on ${route.label||route.platform}.`);
   }
   if(evidence.topThreeSales>=2){
-    bullets.push(`${evidence.topThreeSales} of the three strongest recent comparable sales were listed here.`);
+    bullets.push(`${topThreePhrase(evidence.topThreeSales)} were listed here.`);
   }
   if(Number.isFinite(evidence.averageBids)&&evidence.averageBids>=5){
     bullets.push(`Comparable cars averaged ${Math.round(evidence.averageBids)} bids here.`);
