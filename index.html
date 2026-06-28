@@ -53,6 +53,7 @@ body{
 .rail-label{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:#aaa;font-weight:700;padding:8px 10px 5px;}
 .rail-footer{margin-top:auto;padding:12px 10px 4px;color:#aaa;font-size:11px;line-height:1.6;}
 .rail-footer strong{display:block;color:#555;font-size:12px;margin-bottom:4px;}
+.rail-powered{display:block;margin-top:8px;color:#777;font-weight:800;}
 #main{flex:1;min-width:0;display:flex;flex-direction:column;}
 #msgs{flex:1;overflow-y:auto;padding:42px 0 22px;}
 #msgs::-webkit-scrollbar{width:5px}
@@ -86,6 +87,7 @@ body{
 .hero-proof-card strong{display:block;color:#171717;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
 .hero-note{border:1px solid #e5e5e2;background:white;border-radius:16px;padding:15px 16px;margin:0 auto 20px;max-width:720px;text-align:left;font-size:13px;line-height:1.6;color:#444;}
 .hero-note strong{color:#171717;}
+.hero-powered{font-size:12px;color:#777;margin-top:18px;font-weight:750;}
 .chips{display:flex;flex-wrap:wrap;gap:8px;}
 .chip{
   border:1px solid #dededb;background:white;border-radius:999px;
@@ -193,14 +195,14 @@ body{
 .modal-signal.resolved{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;}
 .modal-actions{display:flex;gap:10px;margin-top:22px;}
 .modal-actions button{flex:1;padding:12px 10px;border-radius:12px;font-family:inherit;font-weight:850;cursor:pointer;}
-.sell-rec-header{background:#171717;color:white;border-radius:18px;padding:20px 22px;margin-top:2px;}
-.sell-rec-kicker{font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-weight:850;color:#bdbdb8;margin-bottom:6px;}
-.sell-rec-title{font-size:22px;font-weight:850;letter-spacing:-.4px;line-height:1.2;}
-.sell-rec-subtitle{font-size:13px;color:#d9d9d4;line-height:1.55;margin-top:8px;max-width:620px;}
+.sell-rec-header{background:white;color:#171717;border:1px solid #e6e6e2;border-radius:18px;padding:20px 22px;margin-top:2px;}
+.sell-rec-kicker{display:inline-flex;width:fit-content;font-size:10px;text-transform:uppercase;letter-spacing:.7px;font-weight:850;color:white;background:#171717;border-radius:999px;padding:5px 9px;margin-bottom:9px;}
+.sell-rec-title{font-size:24px;font-weight:850;letter-spacing:-.5px;line-height:1.18;}
+.sell-rec-subtitle{font-size:14px;color:#444;line-height:1.55;margin-top:9px;max-width:690px;}
 .sell-rec-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:4px;}
 .sell-rec-card{border:1px solid #e5e5e2;background:white;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:10px;transition:transform .15s,border-color .15s,box-shadow .15s;cursor:pointer;}
 .sell-rec-card:hover{transform:translateY(-2px);border-color:#c9c9c5;box-shadow:0 8px 24px rgba(0,0,0,.06);}
-.sell-rec-card.primary-rec{border-color:#171717;border-width:2px;grid-column:1/-1;background:#fbfbfa;}
+.sell-rec-card.primary-rec{border-color:#171717;border-width:2px;grid-column:1/-1;background:white;}
 .sell-rec-card.specialist-rec{border-style:dashed;background:#fffdf7;}
 .sell-rec-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;}
 .platform-logo{width:54px;height:54px;border-radius:14px;border:1px solid #e5e5e2;background:#f8f8f5;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;letter-spacing:-.3px;color:#171717;flex-shrink:0;}
@@ -218,6 +220,7 @@ body{
 .sell-rec-badge.specialist{background:#fef3c7;color:#92400e;}
 .sell-rec-name{font-size:18px;font-weight:850;letter-spacing:-.2px;}
 .sell-rec-type{font-size:11px;color:#999;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.sell-rec-reason-label{font-size:10px;color:#999;font-weight:850;text-transform:uppercase;letter-spacing:.6px;margin-bottom:-4px;}
 .sell-rec-reason{font-size:13px;line-height:1.55;color:#444;}
 .sell-rec-stat{background:#f8f8f5;border-radius:10px;padding:10px 12px;font-size:12px;color:#166534;font-weight:700;}
 .primary-rec .sell-rec-stat{background:white;}
@@ -249,6 +252,8 @@ body{
 .observed-seller-name{font-weight:850;color:#171717;font-size:15px;letter-spacing:-.2px;}
 .observed-seller-meta{color:#8a6a22;font-size:10px;text-transform:uppercase;letter-spacing:.4px;font-weight:850;}
 .observed-seller-why{font-size:11px;color:#444;font-weight:850;}
+.observed-seller-tags{display:flex;flex-wrap:wrap;gap:5px;}
+.observed-seller-tag{border:1px solid #eee7d8;background:#fffdf7;border-radius:999px;padding:4px 7px;font-size:10px;font-weight:800;color:#6f4b05;}
 .observed-seller ul{margin:0;padding-left:16px;display:flex;flex-direction:column;gap:4px;color:#454542;}
 .observed-seller li::marker{color:#166534;}
 .sell-rec-actions{display:flex;gap:8px;margin-top:4px;}
@@ -312,11 +317,13 @@ body{
   <div class="rail-label">Sell</div>
   <div class="rail-item" onclick="startSellFlow()">✦ Sell my car</div>
   <div class="rail-item" onclick="showPowerSellerExplainer()">What is a PowerSeller?</div>
-  <div class="rail-item" onclick="quick('I have a 1985 Porsche 911 to sell')">Example: 1985 Porsche 911</div>
+  <div class="rail-item" onclick="quick('I have a Porsche 911 to sell')">Example: Porsche 911</div>
   <div class="rail-item" onclick="quick('I have a BMW 318 to sell')">Example: BMW 318</div>
+  <div class="rail-item" onclick="quick('I have a Ferrari 360 to sell')">Example: Ferrari 360</div>
   <div class="rail-footer">
     <strong>No paid recommendations.</strong>
     Sam compares the market and only shows choices the data supports.
+    <span class="rail-powered">Powered by The Daily Vroom</span>
   </div>
 </div>
 
@@ -327,19 +334,21 @@ body{
         <div class="hero-logo">S</div>
         <h1>Sell your car with better market judgment.</h1>
         <div class="hero-sub">Answer a few quick questions and Sam will work out where I’d sell it: the best platform, a PowerSeller, or both.</div>
-        <div class="hero-tagline">No paid platform placement. No paid PowerSeller placement. Recommendations are based on available sales data, seller fit, timing and your priorities.</div>
+        <div class="hero-tagline">No paid platform placement. No paid PowerSeller placement. You decide before anything is sent.</div>
         <div class="hero-proof">
-          <div class="hero-proof-card"><strong>Recent first</strong>Sam starts with recent comparable sales. If there is not enough signal, he widens the window rather than pretending the data is stronger than it is.</div>
-          <div class="hero-proof-card"><strong>Platform or person</strong>Sometimes the answer is BaT, Cars & Bids or another platform. Sometimes it is speaking to a PowerSeller before deciding.</div>
-          <div class="hero-proof-card"><strong>You stay in control</strong>If you like the recommendation, send your car details and basic contact info to the platform or PowerSeller. They follow up from there.</div>
+          <div class="hero-proof-card"><strong>Data, not opinions</strong>Recommendations are based on recent market evidence where there is enough of it.</div>
+          <div class="hero-proof-card"><strong>Platform or PowerSeller</strong>Sometimes I’d recommend a platform. Sometimes I’d speak to a PowerSeller first.</div>
+          <div class="hero-proof-card"><strong>You stay in control</strong>Nothing gets sent anywhere until you approve it.</div>
         </div>
         <div class="hero-note"><strong>Not sure what a PowerSeller is?</strong> Use the left menu, or tap below, and Sam will explain it. If Sam recommends one later, you’ll see more detail on that individual before deciding.</div>
         <div class="hero-chips">
           <button class="chip" onclick="startSellFlow()">Sell my car</button>
           <button class="chip" onclick="quick('I have a Porsche 911 to sell')">Porsche 911</button>
           <button class="chip" onclick="quick('I have a BMW 318 to sell')">BMW 318</button>
+          <button class="chip" onclick="quick('I have a Ferrari 360 to sell')">Ferrari 360</button>
           <button class="chip" onclick="showPowerSellerExplainer()">What is a PowerSeller?</button>
         </div>
+        <div class="hero-powered">Powered by The Daily Vroom</div>
       </div>
     </div>
   </div>
@@ -1000,9 +1009,14 @@ async function showSellRecommendation(){
   const allRouteOptions=routeFit.routes||[];
   sellState.allRouteOptions=allRouteOptions;
   const evidenceBackedRoutes=allRouteOptions.filter(routeHasTrueComparableEvidence);
-  const routeOptions=evidenceBackedRoutes
-    .filter((route,index,routes)=>routeWorthShowing(route,index,routes[0]))
-    .slice(0,2);
+  const preferredRouteOptions=evidenceBackedRoutes
+    .filter((route,index,routes)=>routeWorthShowing(route,index,routes[0]));
+  const routeOptions=[...preferredRouteOptions];
+  if(routeOptions.length<2){
+    const backup=evidenceBackedRoutes.find(route=>!routeOptions.includes(route));
+    if(backup)routeOptions.push(backup);
+  }
+  routeOptions.splice(2);
   const evidence=decisionData.evidence||{};
   const sellerActivity=decisionData.analysis?.sellerActivity||{};
   const limitations=[...(decision.limitations||[])];
@@ -1020,11 +1034,13 @@ async function showSellRecommendation(){
   const regionLabel=sellState.state?`${sellState.state} `:(sellState.region&&sellState.region!=="US"?`${sellState.region} `:"");
   const observedSellers=(sellerActivity.topObservedSellers||[])
     .filter(seller=>seller.sellerUsername&&["high_activity_seller","active_specialist"].includes(seller.activityLabel))
-    .slice(0,3)
+      .slice(0,3)
     .map(seller=>({
       name:seller.sellerUsername,
       platform:seller.platform,
       sales:seller.relevantSales270||seller.sales270||0,
+      region:sellState.state||sellState.region||"",
+      specialties:powerSellerSpecialties(),
       label:seller.activityLabel==="high_activity_seller"?"Strong recent seller activity":"PowerSeller signal"
     }));
   const hasPowerSellerAdvice=!!powerSellerReferral.shouldEvaluate;
@@ -1047,7 +1063,7 @@ async function showSellRecommendation(){
       badge:hasPowerSellerAdvice?(index===0?"If selling yourself":"Worth comparing"):(twoRouteMode?(index===0?"Sam's lean":"Worth comparing"):(index===0?"Sam's pick":"Worth comparing")),
       badgeClass:index===0?"top":"alt",
       cardClass:index===0&&!hasPowerSellerAdvice?"primary-rec":"",
-      actionLabel:index===0?`Sell on ${routeName}`:`Compare ${routeName}`,
+      actionLabel:index===0?`Sell on ${routeName}`:`Consider ${routeName}`,
       reason:routeReason(route,index,routeOptions),
       evidenceBullets:routeEvidenceBullets(route,index,routeOptions),
       evidenceLine:"",
@@ -1093,14 +1109,16 @@ async function showSellRecommendation(){
           </div>
           <div class="platform-logo ${escapeHtml(platformLogo(option).cls)}">${escapeHtml(platformLogo(option).text)}</div>
         </div>
+        <div class="sell-rec-reason-label">${option.key==="specialist"?"Why I’d call them":"Why I picked this"}</div>
         <div class="sell-rec-reason">${escapeHtml(option.rankReason||option.reason)}</div>
-        ${option.stat?`<div class="sell-rec-stat">↑ ${escapeHtml(option.stat)}</div>`:""}
+        ${option.stat?`<div class="sell-rec-stat">${escapeHtml(option.stat)}</div>`:""}
         ${option.evidenceBullets?.length?`<ul class="sell-rec-bullets">${option.evidenceBullets.map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>`:""}
         ${option.evidenceLine?`<div class="sell-rec-evidence-line">${escapeHtml(option.evidenceLine||"")}</div>`:""}
         ${option.observedSellers?.length?`<div class="observed-sellers">
           ${option.observedSellers.map((seller,sellerIndex)=>`<div class="observed-seller">
             <span class="observed-seller-name">${escapeHtml(seller.name)}</span>
-            <span class="observed-seller-meta">${escapeHtml(platformDisplayName(seller.platform))}</span>
+            <span class="observed-seller-meta">${escapeHtml([seller.region,platformDisplayName(seller.platform)].filter(Boolean).join(" · "))}</span>
+            <div class="observed-seller-tags">${(seller.specialties||[]).map(tag=>`<span class="observed-seller-tag">${escapeHtml(tag)}</span>`).join("")}</div>
             <span class="observed-seller-why">Why I’d call them</span>
             <ul>${powerSellerWhyBullets(seller,sellerIndex).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
             <button class="ghost" onclick="event.stopPropagation();chooseSellOption('${escapeHtml(option.key)}')">Talk to them</button>
@@ -1704,18 +1722,20 @@ function routeReason(route,index,routes){
     const otherEvidence=other?.marketEvidence||{};
     const otherName=other?.label||other?.platform;
     if(other&&Number(evidence.medianSalePrice||0)>Number(otherEvidence.medianSalePrice||0)){
-      return `${name} has shown stronger recent performance. I’d compare it directly against ${otherName} before choosing.`;
+      return index===0
+        ? `The recent result gap points this way. I’d still compare it against ${otherName} before choosing.`
+        : `${name} belongs in the conversation because the gap is close enough that process and timing still matter.`;
     }
     if(["fast","medium_fast"].includes(route.speedToList)){
-      return `${name} is close enough on recent performance that its quicker listing path may make it the better practical choice.`;
+      return `This is close enough on recent performance that a quicker listing path may matter.`;
     }
     if((evidence.topThreeSales||0)>=2){
-      return `${name} is worth comparing because it captured a meaningful share of the strongest recent results.`;
+      return `It captured a meaningful share of the strongest recent results, so I would not ignore it.`;
     }
-    return `${name} is one of the choices worth comparing because the market result and process tradeoffs are close.`;
+    return `The market result and process tradeoffs are close enough to compare.`;
   }
   if(index===0){
-    return `If it were mine, I’d list it on ${name}.`;
+    return `If it were mine, this is where I’d start.`;
   }
   return pickCopy([
     `${name} is still worth looking at, but the choice above is stronger on the current market read.`,
@@ -1726,10 +1746,9 @@ function routeReason(route,index,routes){
 
 function primaryInsightSentence(route){
   const evidence=route.marketEvidence||{};
-  const name=route.label||route.platform;
-  if(Number.isFinite(evidence.performanceDeltaPercent)&&evidence.performanceDeltaPercent>=5)return `Recent comparable ${comparableModelLabel()} have consistently favoured ${name} over the rest of the tracked market.`;
+  if(Number.isFinite(evidence.performanceDeltaPercent)&&evidence.performanceDeltaPercent>=5)return `Recent comparable ${comparableModelLabel()} have consistently favoured the platform I’d use over the rest of the tracked market.`;
   if(evidence.topThreeSales>=2){
-    return `The strongest recent comparable ${comparableModelLabel()} have come through ${name}.`;
+    return `The strongest recent comparable ${comparableModelLabel()} have come through the platform I’d use.`;
   }
   const dayLine=weekdayInsightLine(evidence);
   if(dayLine)return dayLine;
@@ -1747,13 +1766,35 @@ function platformDisplayName(name){
   return String(name||"").replace(/^bringatrailer$/i,"Bring a Trailer").replace(/^carsandbids$/i,"Cars & Bids");
 }
 
+function powerSellerSpecialties(){
+  const car=cleanCarForCopy();
+  const tags=[];
+  if(/\bporsche\b/i.test(car)){
+    tags.push("Porsche");
+    const trim=porsche911TrimFromText(car);
+    if(trim)tags.push(trim);
+    if(/\b(gt2|gt3|turbo|rs|sport classic)\b/i.test(car))tags.push("Modern GT cars");
+  }else if(/\bferrari\b/i.test(car)){
+    tags.push("Ferrari","High-value cars");
+  }else if(/\b(acura|honda)\b/i.test(car)&&/\bnsx\b/i.test(car)){
+    tags.push("NSX","Japanese performance");
+  }else if(/\bbmw\b/i.test(car)){
+    tags.push("BMW","Performance cars");
+  }else{
+    tags.push("Auction management");
+  }
+  if(sellState.state)tags.push(sellState.state);
+  return [...new Set(tags)].slice(0,4);
+}
+
 function powerSellerWhyBullets(seller,index){
+  const carLabel=comparableModelLabel().replace(/\s+models$/,"");
   const bullets=[
-    "Shows up in recent seller activity for this kind of car.",
-    sellState.state?`Close enough to ${sellState.state} to be worth a call.`:"Worth checking for full auction management.",
-    "Can help decide which platform gives the car the best shot."
+    `I’d ask how recently they’ve handled ${carLabel} sales and where they’d run yours.`,
+    sellState.state?`They are worth checking because handoff and logistics matter in ${sellState.state}.`:"Worth checking if you want someone else managing the auction noise.",
+    "A good PowerSeller should explain platform choice, prep, comments, logistics and commission clearly."
   ];
-  if(index===0)bullets[0]="This is the first name I’d check from the recent seller activity.";
+  if(index===0)bullets[0]=`This is the first name I’d check for cars like this.`;
   return bullets;
 }
 
@@ -1780,29 +1821,42 @@ function weekdayInsightLine(evidence){
 }
 
 function weekdayTag(evidence){
-  if(evidence?.strongestWeekday)return `${evidence.strongestWeekday} endings strongest`;
-  if(evidence?.highestResultWeekday)return `Best day signal: ${evidence.highestResultWeekday}`;
+  if(evidence?.strongestWeekday)return `${evidence.strongestWeekday} endings have been strongest`;
+  if(evidence?.highestResultWeekday)return `Strongest sale ended ${evidence.highestResultWeekday}`;
   return null;
+}
+
+function performanceDiscoveryTag(route,index){
+  const evidence=route.marketEvidence||{};
+  const delta=Number(evidence.performanceDeltaPercent);
+  if(Number.isFinite(delta)&&Math.abs(delta)>=5){
+    if(delta>0){
+      if(delta>20)return "✓ More than 20% ahead of wider market";
+      const rounded=Math.max(5,Math.round(delta/5)*5);
+      return `✓ Around ${rounded}% ahead of wider market`;
+    }
+    if(Math.abs(delta)<=15)return "✓ Close enough to compare";
+  }
+  if(index===0&&evidence.topThreeSales>=2)return "✓ Strongest recent results came here";
+  if(["fast","medium_fast"].includes(route.speedToList))return "✓ Quicker listing path";
+  return index===0?"✓ Worth a look":"✓ Also worth comparing";
 }
 
 function routeTagLine(route,index,routes){
   const evidence=route.marketEvidence||{};
-  const tags=[];
-  if(Number.isFinite(evidence.performanceDeltaPercent)&&Math.abs(evidence.performanceDeltaPercent)>=5){
-    if(evidence.performanceDeltaPercent>0)tags.push(`Strongest platform signal`);
-    else if(Math.abs(evidence.performanceDeltaPercent)<=15)tags.push(`Close to the top platform`);
-  }
-  if(!tags.length&&["fast","medium_fast"].includes(route.speedToList))tags.push("Quicker launch pattern");
-  return tags.slice(0,2).join(" · ")||(index===0?"If selling yourself, start here":"Still worth comparing");
+  const tags=[performanceDiscoveryTag(route,index)];
+  if(evidence.topThreeSales>=2&&index===0)tags.push("Strongest recent results came here");
+  const day=weekdayTag(evidence);
+  if(day)tags.push(day);
+  return tags.filter(Boolean).slice(0,3).join(" · ");
 }
 
 function routeEvidenceBullets(route,index,routes){
   const evidence=route.marketEvidence||{};
   const bullets=[];
-  const name=route.label||route.platform;
   if(Number.isFinite(evidence.performanceDeltaPercent)&&Math.abs(evidence.performanceDeltaPercent)>=5){
-    if(evidence.performanceDeltaPercent>0)bullets.push(`Similar ${comparableModelLabel()} have recently sold for more through ${name} than across the rest of the tracked market.`);
-    else if(Math.abs(evidence.performanceDeltaPercent)<=15)bullets.push(`${name} is close enough to the top platform that timing, fees and process are worth comparing.`);
+    if(evidence.performanceDeltaPercent>0)bullets.push(`Similar ${comparableModelLabel()} have recently sold stronger here than across the rest of the tracked market.`);
+    else if(Math.abs(evidence.performanceDeltaPercent)<=15)bullets.push(`The platform result is close enough that timing, fees and process are worth comparing.`);
   }
   if(evidence.topThreeSales>=2)bullets.push(`The strongest recent comparable sales have come through this platform.`);
   const scope=comparisonScopeSentence();
@@ -1914,9 +1968,9 @@ function medianDeltaSentence(option, other){
     ],sellState.carName,optionName,other.name,a,b);
   }
   return pickCopy([
-    `Recent comparable ${comparableModelLabel()} have consistently favoured ${optionName}.`,
-    `${optionName} is where I’d start if you are selling it yourself.`,
-    `The strongest platform read points to ${optionName}.`
+    `Recent comparable ${comparableModelLabel()} have consistently favoured this platform.`,
+    `This is where I’d start if you are selling it yourself.`,
+    `The strongest recent results point this way.`
   ],sellState.carName,optionName,other.name,a,b);
 }
 
@@ -1929,11 +1983,11 @@ function rankingReason(option,index,options){
     if(!evidence)return `${option.name} is the strongest fit for your selling priorities.`;
     const compare=bestAlt?medianDeltaSentence(option,bestAlt):null;
     if(compare)return compare;
-    return `If it were mine, I’d list it on ${option.name}.`;
+    return `If it were mine, this is where I’d start.`;
   }
   if(!primaryMarket)return marketEvidenceSentence(option);
   const compare=medianDeltaSentence(option,primaryMarket);
-  if(!evidence)return `${option.name} is not ranked ahead of the direct platform today because the current market evidence supports the platform choice more clearly.`;
+  if(!evidence)return `${option.name} is only worth checking if the practical fit is better; I would not put it ahead of the platform choice on the sales data.`;
   return compare
     ? compare
     : `${primaryMarket.name} looks stronger on recent comparable sales.`;
@@ -1970,16 +2024,16 @@ function compareSellOptions(){
   const secondDelta=Number(secondEvidence.performanceDeltaPercent);
 
   if(Number.isFinite(firstDelta)&&firstDelta>=5){
-    lines.push(`${first.name} has the stronger recent comparable sales signal: ${performancePercentLabel(firstDelta)} stronger than the rest of the tracked market ${marketWindowPhrase()}.`);
+    lines.push(`I’d lean ${first.name} because similar cars have recently finished ${performancePercentLabel(firstDelta)} stronger there than the rest of the tracked market ${marketWindowPhrase()}.`);
   }else if(Number.isFinite(secondDelta)&&secondDelta>=5){
-    lines.push(`${second.name} has the stronger recent comparable sales signal: ${performancePercentLabel(secondDelta)} stronger than the rest of the tracked market ${marketWindowPhrase()}.`);
+    lines.push(`I’d lean ${second.name} because similar cars have recently finished ${performancePercentLabel(secondDelta)} stronger there than the rest of the tracked market ${marketWindowPhrase()}.`);
   }else{
     lines.push(`${first.name} and ${second.name} are close enough that timing, fees and how much work you want to do should drive the choice.`);
   }
 
   const topRoute=[first,second].find(option=>(option.marketEvidence?.topThreeSales||0)>=2);
   if(topRoute){
-    lines.push(`${topRoute.name} has the top-end signal: the strongest recent comparable sales came through that platform.`);
+    lines.push(`The strongest recent comparable sales came through ${topRoute.name}. That matters more to me than raw platform volume.`);
   }
 
   const dayLine=weekdayInsightLine(firstEvidence)||weekdayInsightLine(secondEvidence);
@@ -1992,7 +2046,7 @@ function compareSellOptions(){
   }
 
   if(firstRoute&&secondRoute&&hasTwoRouteTradeoff([firstRoute,secondRoute])){
-    lines.push(`My read: start with ${first.name}, but keep ${second.name} on the table if its process feels better.`);
+    lines.push(`My read: start with ${first.name}, but keep ${second.name} on the table if its timing, fees or process feel better.`);
   }
 
   return lines.filter(Boolean).join(" ");
@@ -2022,19 +2076,21 @@ function homeHeroHTML(){
     <div class="hero-logo">S</div>
     <h1>Sell your car with better market judgment.</h1>
     <div class="hero-sub">Answer a few quick questions and Sam will work out where I’d sell it: the best platform, a PowerSeller, or both.</div>
-    <div class="hero-tagline">No paid platform placement. No paid PowerSeller placement. Recommendations are based on available sales data, seller fit, timing and your priorities.</div>
+    <div class="hero-tagline">No paid platform placement. No paid PowerSeller placement. You decide before anything is sent.</div>
     <div class="hero-proof">
-      <div class="hero-proof-card"><strong>Recent first</strong>Sam starts with recent comparable sales. If there is not enough signal, he widens the window rather than pretending the data is stronger than it is.</div>
-      <div class="hero-proof-card"><strong>Platform or person</strong>Sometimes the answer is BaT, Cars & Bids or another platform. Sometimes it is speaking to a PowerSeller before deciding.</div>
-      <div class="hero-proof-card"><strong>You stay in control</strong>If you like the recommendation, send your car details and basic contact info to the platform or PowerSeller. They follow up from there.</div>
+      <div class="hero-proof-card"><strong>Data, not opinions</strong>Recommendations are based on recent market evidence where there is enough of it.</div>
+      <div class="hero-proof-card"><strong>Platform or PowerSeller</strong>Sometimes I’d recommend a platform. Sometimes I’d speak to a PowerSeller first.</div>
+      <div class="hero-proof-card"><strong>You stay in control</strong>Nothing gets sent anywhere until you approve it.</div>
     </div>
     <div class="hero-note"><strong>Not sure what a PowerSeller is?</strong> Use the left menu, or tap below, and Sam will explain it. If Sam recommends one later, you’ll see more detail on that individual before deciding.</div>
     <div class="hero-chips">
       <button class="chip" onclick="startSellFlow()">Sell my car</button>
       <button class="chip" onclick="quick('I have a Porsche 911 to sell')">Porsche 911</button>
       <button class="chip" onclick="quick('I have a BMW 318 to sell')">BMW 318</button>
+      <button class="chip" onclick="quick('I have a Ferrari 360 to sell')">Ferrari 360</button>
       <button class="chip" onclick="showPowerSellerExplainer()">What is a PowerSeller?</button>
     </div>
+    <div class="hero-powered">Powered by The Daily Vroom</div>
   </div></div>`;
 }
 function showPowerSellerExplainer(){
