@@ -232,6 +232,10 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
   const evidenceByPlatform = Object.fromEntries(
     (analysis.platformPerformance || []).map(platform => [platformPolicyKey(platform.platform), platform])
   );
+  const comparableMedians = Object.values(evidenceByPlatform)
+    .filter(evidence => (evidence.closeSales || evidence.relevantSales) && evidence.medianSalePrice)
+    .map(evidence => evidence.medianSalePrice);
+  const maxComparableMedian = comparableMedians.length ? Math.max(...comparableMedians) : 0;
   const candidateKeys = new Set(Object.keys(evidenceByPlatform));
 
   for (const [key, policy] of Object.entries(ROUTE_POLICIES)) {
@@ -256,7 +260,12 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
     const facts = routeFitFacts(policy, priorities);
     let score = 0;
 
-    if (evidence) score += 20 + evidence.closeSales * 5 + evidence.relevantSales * 3 + evidence.broadSales;
+    if (evidence) {
+      score += 20 + evidence.closeSales * 5 + evidence.relevantSales * 3 + evidence.broadSales;
+      if (maxComparableMedian && (evidence.closeSales || evidence.relevantSales) && evidence.medianSalePrice) {
+        score += Math.round((evidence.medianSalePrice / maxComparableMedian) * 20);
+      }
+    }
     if (facts.includes("segment_fit")) score += 10;
     if (priorities.fastSale && facts.includes("faster_listing_fit")) score += 12;
     if (priorities.fastSale && facts.includes("speed_tradeoff")) score -= 8;
@@ -951,7 +960,9 @@ function decide(analysis, criteria, vehicle) {
   const bestRoute = routeFit.routes[0] || null;
   const best = bestRoute?.marketEvidence || analysis.platformPerformance[0] || null;
   const powerSellerReferral = analyzePowerSellerReferral(analysis, criteria);
-  if (!best) {
+  const hasComparablePlatformEvidence = (analysis.platformPerformance || [])
+    .some(platform => platform.closeSales || platform.relevantSales);
+  if (!best || !hasComparablePlatformEvidence) {
     return {
       recommendedPath: null,
       confidence: "low",

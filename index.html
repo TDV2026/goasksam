@@ -890,7 +890,7 @@ async function showSellRecommendation(){
   const routeFit=decision.routeFit||{};
   const allRouteOptions=routeFit.routes||[];
   sellState.allRouteOptions=allRouteOptions;
-  const evidenceBackedRoutes=allRouteOptions.filter(route=>route.hasMarketEvidence&&route.marketEvidence);
+  const evidenceBackedRoutes=allRouteOptions.filter(routeHasTrueComparableEvidence);
   const routeOptions=evidenceBackedRoutes.slice(0,3);
   const evidence=decisionData.evidence||{};
   const sellerActivity=decisionData.analysis?.sellerActivity||{};
@@ -898,13 +898,13 @@ async function showSellRecommendation(){
   const tradeoffs=[...(decision.tradeoffs||[])];
   if(evidence.thinMarket&&!limitations.length)limitations.push("Recent evidence is thin, so treat this as directional.");
 
-  if(!routeOptions.length&&!platforms.length){
+  if(!routeOptions.length){
     addMsg("sam",`I checked the recent market for your ${sellState.carName}, but I don't have enough relevant sales to make a responsible platform call yet. I don't want to guess.`);
     document.getElementById("btn").disabled=false;
     return;
   }
 
-  const routesForCards=routeOptions.length?routeOptions:platforms.slice(0,2).map(platform=>({platform:platform.platform,label:platform.platform,marketEvidence:platform,routeFitFacts:[],priceOutcome:"unknown",speedToList:"unknown",sellerEffort:"unknown",hasMarketEvidence:true}));
+  const routesForCards=routeOptions;
   sellState.sellOptions=routesForCards.map((route,index)=>{
     const platform=route.marketEvidence||{};
     const facts=route.routeFitFacts||[];
@@ -1038,7 +1038,7 @@ function handleSellRecommendationFollowup(q){
 
   if(chosenByName||/\b(why|better|explain|reason|what about|how about|tell me about|do they|does it|sell tons|high prices|higher|best price)\b/i.test(lower)){
     const hiddenRoute=chosenByName?null:findHiddenRouteByText(q);
-    if(hiddenRoute&&!hiddenRoute.hasMarketEvidence){
+    if(hiddenRoute&&!routeHasTrueComparableEvidence(hiddenRoute)){
       addMsg("sam",`${hiddenRoute.label||hiddenRoute.platform}: I’m leaving it out of the recommendation because I do not have enough recent comparable sales for that platform on this search. It may still be worth a manual look, but I would not present it next to evidence-backed routes as if the market supported it.`);
       return true;
     }
@@ -1388,6 +1388,10 @@ function findHiddenRouteByText(text){
     if(name.includes("hagerty"))aliases.push("hagerty");
     return aliases.some(alias=>alias&&lower.includes(alias));
   });
+}
+
+function routeHasTrueComparableEvidence(route){
+  return !!(route?.hasMarketEvidence&&route?.marketEvidence&&(route.marketEvidence.closeSales||route.marketEvidence.relevantSales));
 }
 
 function textSeed(...parts){
