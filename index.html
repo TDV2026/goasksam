@@ -822,7 +822,7 @@ async function showSellRecommendation(){
   const thinkRow=document.createElement("div");thinkRow.className="row sam";thinkRow.id="sellThinking";
   const loadingLines=[
     "Searching the available market data and recent sales now.",
-    "Checking close comps first, then widening carefully where the sample is thin.",
+    "Checking close matches first, then widening only when it adds useful context.",
     "Comparing platform fit, seller region, timing and likely audience.",
     "Looking at whether a specialist seller route should be on the table.",
     "Nearly there. I would rather be thorough than give you a lazy answer."
@@ -1404,13 +1404,13 @@ function hasTwoRouteTradeoff(routes){
   const [a,b]=routes;
   const ae=a.marketEvidence||{};
   const be=b.marketEvidence||{};
-  const aSales=ae.evidenceSales||0;
-  const bSales=be.evidenceSales||0;
   const aMedian=Number(ae.medianSalePrice||0);
   const bMedian=Number(be.medianSalePrice||0);
-  const volumeSplit=Math.max(aSales,bSales)>=Math.max(3,Math.min(aSales,bSales)*2);
   const performanceSplit=aMedian&&bMedian&&Math.abs(aMedian-bMedian)/Math.min(aMedian,bMedian)>=0.05;
-  return !!(volumeSplit||performanceSplit);
+  const speedTradeoff=[a,b].some(route=>["fast","medium_fast"].includes(route.speedToList))
+    && aMedian&&bMedian
+    && Math.min(aMedian,bMedian)/Math.max(aMedian,bMedian)>=0.9;
+  return !!(performanceSplit||speedTradeoff);
 }
 
 function resultHeaderTitle(routes){
@@ -1454,13 +1454,13 @@ function routeReason(route,index,routes){
     const other=routes.find(item=>item!==route);
     const otherEvidence=other?.marketEvidence||{};
     const otherName=other?.label||other?.platform;
-    if(other&&evidence.evidenceSales>otherEvidence.evidenceSales){
-      return `${name} has the deeper recent activity, which makes it the more proven route. ${otherName} may still deserve a look if its recent performance is stronger.`;
-    }
     if(other&&Number(evidence.medianSalePrice||0)>Number(otherEvidence.medianSalePrice||0)){
-      return `${name} has shown stronger recent performance on a smaller sample. I’d compare it directly against ${otherName} before choosing.`;
+      return `${name} has shown stronger recent performance. I’d compare it directly against ${otherName} before choosing.`;
     }
-    return `${name} is one of the two routes worth comparing for this car.`;
+    if(["fast","medium_fast"].includes(route.speedToList)){
+      return `${name} is close enough on recent performance that its quicker listing path may make it the better practical choice.`;
+    }
+    return `${name} is one of the routes worth comparing because the market result and process tradeoffs are close.`;
   }
   if(index===0){
     return primaryInsightSentence(route)||pickCopy([
@@ -1586,18 +1586,17 @@ function resultSummaryLine(options,routes=[]){
     const se=second.marketEvidence||{};
     const firstName=first.label||first.platform;
     const secondName=second.label||second.platform;
-    const firstSales=fe.evidenceSales||0;
-    const secondSales=se.evidenceSales||0;
     const firstMedian=Number(fe.medianSalePrice||0);
     const secondMedian=Number(se.medianSalePrice||0);
-    if(firstSales!==secondSales&&firstMedian&&secondMedian){
-      const volumeName=firstSales>secondSales?firstName:secondName;
-      const performanceName=firstMedian>secondMedian?firstName:secondName;
-      if(volumeName!==performanceName){
-        return `${volumeName} has the deeper recent activity; ${performanceName} has shown stronger recent performance. I’d compare both routes before choosing.`;
+    const fasterRoute=[first,second].find(route=>["fast","medium_fast"].includes(route.speedToList));
+    if(firstMedian&&secondMedian){
+      const strongerName=firstMedian>=secondMedian?firstName:secondName;
+      if(fasterRoute&&Math.min(firstMedian,secondMedian)/Math.max(firstMedian,secondMedian)>=0.9){
+        return `${strongerName} has the stronger recent performance, but ${fasterRoute.label||fasterRoute.platform} is close enough that speed and process may matter. I’d compare both routes before choosing.`;
       }
+      return `${strongerName} has shown stronger recent performance, but both routes are worth comparing before you choose.`;
     }
-    return `${firstName} and ${secondName} are both supported by recent market activity, but they win for different reasons.`;
+    return `${firstName} and ${secondName} are both supported by recent market activity, but they win for different practical reasons.`;
   }
   const evidenceOptions=(options||[]).filter(option=>option.marketEvidence);
   const primary=evidenceOptions[0];

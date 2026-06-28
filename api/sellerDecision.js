@@ -276,12 +276,19 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
     let score = 0;
 
     if (evidence) {
-      score += 20 + evidence.closeSales * 5 + evidence.relevantSales * 3 + evidence.broadSales;
+      const comparableCount = (evidence.closeSales || 0) + (evidence.relevantSales || 0);
+      const confidenceScore = 20
+        + Math.min(evidence.closeSales || 0, 3) * 5
+        + Math.min(evidence.relevantSales || 0, 6) * 2
+        + Math.min(evidence.broadSales || 0, 3);
+      score += confidenceScore;
       if (maxComparableMedian && (evidence.closeSales || evidence.relevantSales) && evidence.medianSalePrice) {
         const medianRatio = evidence.medianSalePrice / maxComparableMedian;
         score += Math.round(medianRatio * 35);
         if (medianRatio < 0.95) score -= Math.round((1 - medianRatio) * 45);
+        if (medianRatio >= 0.9 && ["fast", "medium_fast"].includes(policy.speedToList)) score += 8;
       }
+      if (comparableCount >= 3) score += 3;
     }
     if (facts.includes("segment_fit")) score += 10;
     if (priorities.fastSale && facts.includes("faster_listing_fit")) score += 12;
@@ -1034,7 +1041,7 @@ function decide(analysis, criteria, vehicle) {
       `${best.platform} had ${best.evidenceSales} recent sale${best.evidenceSales === 1 ? "" : "s"} in the selected ${analysis.windowDays}-day ${analysis.evidenceLabel} set.`,
       best.closeSales
         ? `${best.closeSales} of those were close matches to the searched car.`
-        : "The exact close-match sample is thin, so this uses clearly labeled broader evidence.",
+        : "The analysis widened only where it added useful market context.",
       sellerActivityExplanation(analysis.sellerActivity, best.platform),
       best.medianSalePrice
         ? `Median sale price in that evidence set was $${best.medianSalePrice.toLocaleString()}.`
