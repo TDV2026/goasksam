@@ -900,7 +900,9 @@ async function showSellRecommendation(){
   const allRouteOptions=routeFit.routes||[];
   sellState.allRouteOptions=allRouteOptions;
   const evidenceBackedRoutes=allRouteOptions.filter(routeHasTrueComparableEvidence);
-  const routeOptions=evidenceBackedRoutes.slice(0,3);
+  const routeOptions=evidenceBackedRoutes
+    .filter((route,index,routes)=>routeWorthShowing(route,index,routes[0]))
+    .slice(0,2);
   const evidence=decisionData.evidence||{};
   const sellerActivity=decisionData.analysis?.sellerActivity||{};
   const limitations=[...(decision.limitations||[])];
@@ -1399,6 +1401,20 @@ function routeHasTrueComparableEvidence(route){
   return !!(route?.hasMarketEvidence&&route?.marketEvidence&&(route.marketEvidence.closeSales||route.marketEvidence.relevantSales));
 }
 
+function routeWorthShowing(route,index,primary){
+  if(index===0)return true;
+  const evidence=route?.marketEvidence||{};
+  const primaryEvidence=primary?.marketEvidence||{};
+  const routeMedian=Number(evidence.medianSalePrice||0);
+  const primaryMedian=Number(primaryEvidence.medianSalePrice||0);
+  if(!routeMedian||!primaryMedian)return false;
+  const performanceRatio=routeMedian/primaryMedian;
+  const closeEnough=performanceRatio>=0.9;
+  const fasterAndCompetitive=performanceRatio>=0.85&&["fast","medium_fast"].includes(route.speedToList);
+  const topResultSignal=(evidence.topThreeSales||0)>=2;
+  return closeEnough||fasterAndCompetitive||topResultSignal;
+}
+
 function hasTwoRouteTradeoff(routes){
   if(!routes||routes.length<2)return false;
   const [a,b]=routes;
@@ -1459,6 +1475,9 @@ function routeReason(route,index,routes){
     }
     if(["fast","medium_fast"].includes(route.speedToList)){
       return `${name} is close enough on recent performance that its quicker listing path may make it the better practical choice.`;
+    }
+    if((evidence.topThreeSales||0)>=2){
+      return `${name} is worth comparing because it captured a meaningful share of the strongest recent results.`;
     }
     return `${name} is one of the routes worth comparing because the market result and process tradeoffs are close.`;
   }
@@ -1522,7 +1541,8 @@ function routeTagLine(route,index,routes){
   const other=platformDisplayName(evidence.nextSupportedPlatform);
   const tags=[];
   if(Number.isFinite(evidence.performanceDeltaPercent)&&Math.abs(evidence.performanceDeltaPercent)>=5&&other){
-    tags.push(`${Math.abs(evidence.performanceDeltaPercent)}% ${evidence.performanceDeltaPercent>0?"stronger":"weaker"} than ${other}`);
+    if(evidence.performanceDeltaPercent>0)tags.push(`${Math.abs(evidence.performanceDeltaPercent)}% stronger than ${other}`);
+    else if(Math.abs(evidence.performanceDeltaPercent)<=15)tags.push(`Within ${Math.abs(evidence.performanceDeltaPercent)}% of ${other}`);
   }
   if(evidence.topThreeSales>=2)tags.push(evidence.topThreeSales>=3?"All top 3 recent results":`${evidence.topThreeSales} of top 3 recent results`);
   if(evidence.evidenceSales&&evidence.totalEvidenceSales)tags.push(`${evidence.evidenceSales} of ${evidence.totalEvidenceSales} recent comps`);
@@ -1536,7 +1556,11 @@ function routeEvidenceBullets(route,index,routes){
   const other=platformDisplayName(evidence.nextSupportedPlatform);
   const bullets=[];
   if(Number.isFinite(evidence.performanceDeltaPercent)&&Math.abs(evidence.performanceDeltaPercent)>=5&&other){
-    bullets.push(`Similar cars have performed ${Math.abs(evidence.performanceDeltaPercent)}% ${evidence.performanceDeltaPercent>0?"stronger":"weaker"} on ${route.label||route.platform} than ${other} ${marketWindowPhrase()}.`);
+    if(evidence.performanceDeltaPercent>0){
+      bullets.push(`Similar cars have performed ${Math.abs(evidence.performanceDeltaPercent)}% stronger on ${route.label||route.platform} than ${other} ${marketWindowPhrase()}.`);
+    }else if(Math.abs(evidence.performanceDeltaPercent)<=15){
+      bullets.push(`${route.label||route.platform} is within ${Math.abs(evidence.performanceDeltaPercent)}% of ${other} on recent comparable performance.`);
+    }
   }
   if(evidence.evidenceSales&&evidence.totalEvidenceSales){
     bullets.push(`${evidence.evidenceSales} of the ${evidence.totalEvidenceSales} recent comparable sales were listed on ${route.label||route.platform}.`);
@@ -1591,10 +1615,12 @@ function resultSummaryLine(options,routes=[]){
     const fasterRoute=[first,second].find(route=>["fast","medium_fast"].includes(route.speedToList));
     if(firstMedian&&secondMedian){
       const strongerName=firstMedian>=secondMedian?firstName:secondName;
-      if(fasterRoute&&Math.min(firstMedian,secondMedian)/Math.max(firstMedian,secondMedian)>=0.9){
-        return `${strongerName} has the stronger recent performance, but ${fasterRoute.label||fasterRoute.platform} is close enough that speed and process may matter. I’d compare both routes before choosing.`;
+      const weakerName=firstMedian>=secondMedian?secondName:firstName;
+      const fasterName=fasterRoute?.label||fasterRoute?.platform;
+      if(fasterRoute&&fasterName!==strongerName&&Math.min(firstMedian,secondMedian)/Math.max(firstMedian,secondMedian)>=0.9){
+        return `${strongerName} has the stronger recent performance, but ${fasterName} is close enough that speed and process may matter. I’d compare both routes before choosing.`;
       }
-      return `${strongerName} has shown stronger recent performance, but both routes are worth comparing before you choose.`;
+      return `${strongerName} has shown stronger recent performance; ${weakerName} remains worth comparing because the practical route factors are close.`;
     }
     return `${firstName} and ${secondName} are both supported by recent market activity, but they win for different practical reasons.`;
   }
