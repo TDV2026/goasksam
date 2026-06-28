@@ -1050,12 +1050,12 @@ async function showSellRecommendation(){
 
   const powerSellerOption=hasPowerSellerAdvice?{
       key:"specialist",
-      name:hasNamedPowerSellerAdvice?"People I’d call first":"PowerSeller conversation",
-      type:hasNamedPowerSellerAdvice?"Recommended PowerSellers":"Worth considering",
-      badge:hasNamedPowerSellerAdvice?"My recommendation":"Worth a call",
+      name:hasNamedPowerSellerAdvice?"People I’d call first":"One thing I’d do first",
+      type:hasNamedPowerSellerAdvice?"Recommended PowerSellers":"PowerSeller check",
+      badge:hasNamedPowerSellerAdvice?"My recommendation":"Before you decide",
       badgeClass:"specialist",
       cardClass:"specialist-rec primary-rec",
-      actionLabel:hasNamedPowerSellerAdvice?"Talk to them":"Get me in touch",
+      actionLabel:hasNamedPowerSellerAdvice?"Speak to recommended PowerSellers":"Find PowerSellers to speak to",
       reason:powerSellerAdviceReason(hasNamedPowerSellerAdvice),
       evidenceBullets:powerSellerAdviceBullets(hasNamedPowerSellerAdvice),
       evidenceLine:"",
@@ -1106,7 +1106,7 @@ async function showSellRecommendation(){
       <div class="sell-rec-title">${escapeHtml(resultHeaderTitle(routeOptions))}</div>
       <div class="sell-rec-subtitle">${escapeHtml(resultSummaryLine(sellState.sellOptions,routeOptions))}</div>
     </div>
-    ${powerSellerCardsHTML?`<div class="sell-section-label">${hasNamedPowerSellerAdvice?"People I’d call first":"Also worth considering"}</div><div class="sell-rec-grid">${powerSellerCardsHTML}</div>`:""}
+    ${powerSellerCardsHTML?`<div class="sell-section-label">${hasNamedPowerSellerAdvice?"People I’d call first":"Before you decide"}</div><div class="sell-rec-grid">${powerSellerCardsHTML}</div>`:""}
     ${platformCardsHTML?`<div class="sell-section-label">${powerSellerCardsHTML?"If you’d rather sell it yourself":"My recommendation"}</div>${powerSellerCardsHTML?`<div class="sell-section-note">If you want to run it yourself, this is where I’d start.</div>`:""}<div class="sell-rec-grid">${platformCardsHTML}</div>`:""}
     <div class="sam-text after-results">${hasTwoRouteTradeoff(routeOptions)?"Which choice fits how you want to sell? You can choose either, or ask me to compare the tradeoffs.":"Which direction feels right? You can pick one, or ask me to compare the tradeoffs."}</div>
   </div></div>`;
@@ -1586,25 +1586,57 @@ function comparisonScopeSentence(){
 
 function powerSellerAdviceReason(hasNamedSellers){
   if(hasNamedSellers){
-    return `I picked these because they show up in recent seller activity for cars like this${sellState.state?`, and ${sellState.state} is close enough to matter`:""}. Before deciding, I’d compare commission, availability and whether they’ve recently handled cars like yours.`;
+    return pickCopy([
+      `I’d start with these names because they show up in recent seller activity for cars like this${sellState.state?`, and ${sellState.state} is close enough to matter`:""}. I’d ask each one how they would improve the result before deciding.`,
+      `These are the names I’d check first. They appear around cars like this, and I’d want to know who has recently handled something genuinely similar.`,
+      `I picked these because they are the closest PowerSeller signals I can see for this car. The next step is simple: ask what they would do differently from a private listing.`
+    ],sellState.carName,sellState.state,hasNamedSellers);
   }
   if(sellerWantsToManageSelf()){
-    return "You told me you’d rather manage it yourself. I think that’s reasonable. This is one of the few cars where I’d still spend ten minutes speaking to a PowerSeller before making the final call.";
+    return pickCopy([
+      "You told me you’d rather manage it yourself. I think that’s reasonable. This is one of the few cars where I’d still spend ten minutes speaking to a PowerSeller before making the final call.",
+      "I know you said you’d rather run it yourself. Normally I’d agree. For this car, I’d still speak to one good PowerSeller before deciding.",
+      "Selling it yourself may still be the right move. I’d just sanity-check it with someone who regularly runs auctions before committing."
+    ],sellState.carName,sellState.involvement);
   }
-  return "For this car, I’d speak to one or two PowerSellers before deciding where it goes live. A good one can change the result, but only if the fit and commission make sense.";
+  return pickCopy([
+    "For this car, I’d speak to one or two PowerSellers before deciding where it goes live. If they can show you they’ll genuinely improve the outcome, they’re worth considering. If not, I’d sell it myself.",
+    "This is the kind of car where who runs the auction can matter almost as much as where it runs. I’d hear the PowerSeller case before making the call.",
+    "I’d speak to a PowerSeller first. A good one can prep the car, handle the auction noise and help choose the platform with the best shot."
+  ],sellState.carName,sellState.state);
 }
 
 function powerSellerAdviceBullets(hasNamedSellers){
   if(hasNamedSellers){
-    return [
-      "They normally handle prep, buyer questions, comments, logistics and platform choice.",
-      "Every PowerSeller is different. Before deciding, compare commission, availability and whether they’ve recently handled cars like yours."
-    ];
+    return pickCopy([
+      [
+        "A good PowerSeller manages the whole auction: prep, listing, buyer questions, comments, logistics and platform choice.",
+        "Before choosing one, ask what they would do differently from a private listing and whether they’ve recently handled cars like yours."
+      ],
+      [
+        "The right person can save you from living in the comments and dealing with every buyer question yourself.",
+        "I’d ask each one where they’d list it, why, and what they think they can improve."
+      ],
+      [
+        "This only works if the person is genuinely strong for this kind of car.",
+        "If they can’t make a convincing case, I’d sell it yourself and keep control."
+      ]
+    ],sellState.carName,sellState.state).slice(0,2);
   }
-  const bullets=[
-    "I’m not telling you to use a PowerSeller. I’m saying this is the kind of car where I’d have the conversation before deciding.",
-    "If they can’t show a clear case for improving the outcome, keep the commission and sell it yourself."
-  ];
+  const bullets=pickCopy([
+    [
+      "Think of a PowerSeller as someone who manages the whole auction: prep, listing, buyer questions, comments, logistics and platform choice.",
+      "If they can’t show a clear case for improving the outcome, sell it yourself."
+    ],
+    [
+      "They can take the heavy lifting off you, especially the buyer questions and comment-section pressure that most first-time sellers underestimate.",
+      "I’m not telling you to use one. I’m saying this is the kind of car where I’d hear the case before deciding."
+    ],
+    [
+      "The right one may know which platform gives this exact car the best shot.",
+      "If the case is not convincing, keep it simple and sell it yourself."
+    ]
+  ],sellState.carName,sellState.involvement);
   if(sellerWantsToManageSelf())bullets.unshift("You can still sell it yourself; this is just the sanity check I’d do first.");
   return bullets.slice(0,3);
 }
@@ -1747,7 +1779,7 @@ function routeTagLine(route,index,routes){
     else if(Math.abs(evidence.performanceDeltaPercent)<=15)tags.push(`Close to the top platform`);
   }
   if(!tags.length&&["fast","medium_fast"].includes(route.speedToList))tags.push("Quicker launch pattern");
-  return tags.slice(0,2).join(" · ")||"Worth a look";
+  return tags.slice(0,2).join(" · ")||(index===0?"If selling yourself, start here":"Still worth comparing");
 }
 
 function routeEvidenceBullets(route,index,routes){
@@ -1761,7 +1793,7 @@ function routeEvidenceBullets(route,index,routes){
   if(evidence.topThreeSales>=2)bullets.push(`The strongest recent comparable sales have come through this platform.`);
   const scope=comparisonScopeSentence();
   if(scope)bullets.push(scope);
-  if(index===0)bullets.push(`If you’re happy managing the auction yourself, I’d keep the commission and sell it directly.`);
+  if(index===0)bullets.push(`If you’re happy managing the auction yourself, this is where I’d start.`);
   if(bullets.length<3)bullets.push(sellerPriorityLabel(route));
   if(!bullets.length)bullets.push(index===0
     ? "Recent comparable activity points here before the other choices."
@@ -1771,7 +1803,7 @@ function routeEvidenceBullets(route,index,routes){
 
 function resultSummaryLine(options,routes=[]){
   if((options||[]).some(option=>option.key==="specialist")){
-    if(sellerWantsToManageSelf())return "You told me you’d rather manage it yourself. I’d normally agree, but this is one of the few cars where I’d still have the PowerSeller conversation first.";
+    if(sellerWantsToManageSelf())return "You told me you’d rather manage it yourself. I’d normally agree, but this is one of the few cars where I’d still speak to a PowerSeller before deciding.";
     return "For this kind of car, who runs the sale can matter almost as much as where it runs.";
   }
   if(hasTwoRouteTradeoff(routes)){
