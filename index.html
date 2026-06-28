@@ -337,7 +337,7 @@ const LISTINGS=[
 {id:"L10",status:"live",year:2020,make:"Nissan",model:"370Z Sport Touring",type:"sports",trans:"automatic",drive:"RWD",price:5580,miles:16600,loc:"Los Angeles, CA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/exterior/3vAVEA0k-sCSR5pQ/edit/9L2LD.jpg?t=177930535574",reserve_status:"active",daysLive:2,endsIn:5,liveSignals:[{type:"resolved",text:"Seller confirmed Sport Touring spec with factory LSD 1 hour ago. Monroney uploaded to gallery.",time:"1 hour ago"}],openQuestion:"Reserve active and amount unknown.",whatChanged:"Seller confirmed LSD and uploaded Monroney 1 hour ago after community asked. Reserve still unknown.",sellerStatus:"Answered LSD question and uploaded documentation within 1 hour of being asked.",sam_view:"Clean low-mile 370Z. Seller confirmed the factory LSD and uploaded the Monroney an hour ago after the community asked — that is responsive. Reserve is still active and the amount is unknown.",what_i_like:"Sport Touring with factory LSD, 16,600 miles, seller actively engaging.",actionLine:"I would watch whether the reserve gets met. The seller is responsive which is a good sign."}
 ];
 
-const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,vin:null,region:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,vehicleDetailSkipped:false,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[]};
+const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,vin:null,region:null,state:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,vehicleDetailSkipped:false,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[]};
 function resetSellState(){
   Object.keys(sellState).forEach(k=>sellState[k]=null);
   sellState.active=false;sellState.step=0;sellState.returnToConfirm=false;sellState.vehicleDetailSkipped=false;sellState.sellOptions=[];
@@ -348,6 +348,7 @@ const SELL_STEP_QUESTIONS={
   17:{ask:"Which model or trim is it?",chips:["911","944","928","356","Boxster","Cayman","Not sure"]},
   15:{ask:"Do you have the VIN handy? Completely optional — helps the platform verify the car faster.",chips:["Skip"]},
   11:{ask:"Where is the car located?",chips:["US","UK","Europe","Australia","Middle East","Other"]},
+  18:{ask:"Which state is it in? This helps me think about specialist sellers and handoff options. Type it if it is not shown.",chips:["California","Florida","Texas","New York","New Jersey","Other"]},
   2:{ask:"Rough mileage?",chips:["Under 30k","30k–60k","60k–100k","Over 100k"]},
   3:{ask:"Stock or modified?",chips:["Completely stock","Minor mods","Heavily modified"]},
   4:{ask:"Service records?",chips:["Full history","Some records","No records"]},
@@ -419,6 +420,34 @@ function cleanInitialCarText(text){
     .replace(/\b(i have|i've got|selling|sell|to sell|my car is|car is|a|an)\b/gi," ")
     .replace(/\s+/g," ")
     .trim();
+}
+
+const US_STATES={
+  al:"Alabama",alabama:"Alabama",ak:"Alaska",alaska:"Alaska",az:"Arizona",arizona:"Arizona",ar:"Arkansas",arkansas:"Arkansas",
+  ca:"California",california:"California",co:"Colorado",colorado:"Colorado",ct:"Connecticut",connecticut:"Connecticut",
+  de:"Delaware",delaware:"Delaware",fl:"Florida",florida:"Florida",ga:"Georgia",georgia:"Georgia",hi:"Hawaii",hawaii:"Hawaii",
+  id:"Idaho",idaho:"Idaho",il:"Illinois",illinois:"Illinois",in:"Indiana",indiana:"Indiana",ia:"Iowa",iowa:"Iowa",
+  ks:"Kansas",kansas:"Kansas",ky:"Kentucky",kentucky:"Kentucky",la:"Louisiana",louisiana:"Louisiana",me:"Maine",maine:"Maine",
+  md:"Maryland",maryland:"Maryland",ma:"Massachusetts",massachusetts:"Massachusetts",mi:"Michigan",michigan:"Michigan",
+  mn:"Minnesota",minnesota:"Minnesota",ms:"Mississippi",mississippi:"Mississippi",mo:"Missouri",missouri:"Missouri",
+  mt:"Montana",montana:"Montana",ne:"Nebraska",nebraska:"Nebraska",nv:"Nevada",nevada:"Nevada",nh:"New Hampshire",
+  "new hampshire":"New Hampshire",nj:"New Jersey","new jersey":"New Jersey",nm:"New Mexico","new mexico":"New Mexico",
+  ny:"New York","new york":"New York",nc:"North Carolina","north carolina":"North Carolina",nd:"North Dakota",
+  "north dakota":"North Dakota",oh:"Ohio",ohio:"Ohio",ok:"Oklahoma",oklahoma:"Oklahoma",or:"Oregon",oregon:"Oregon",
+  pa:"Pennsylvania",pennsylvania:"Pennsylvania",ri:"Rhode Island","rhode island":"Rhode Island",sc:"South Carolina",
+  "south carolina":"South Carolina",sd:"South Dakota","south dakota":"South Dakota",tn:"Tennessee",tennessee:"Tennessee",
+  tx:"Texas",texas:"Texas",ut:"Utah",utah:"Utah",vt:"Vermont",vermont:"Vermont",va:"Virginia",virginia:"Virginia",
+  wa:"Washington",washington:"Washington",wv:"West Virginia","west virginia":"West Virginia",wi:"Wisconsin",wisconsin:"Wisconsin",
+  wy:"Wyoming",wyoming:"Wyoming",dc:"Washington, DC","washington dc":"Washington, DC","district of columbia":"Washington, DC"
+};
+
+function normalizeUSState(value){
+  const key=String(value||"").trim().toLowerCase().replace(/\./g,"").replace(/\s+/g," ");
+  return US_STATES[key]||null;
+}
+
+function isUSRegion(value){
+  return /\b(us|usa|u\.s\.|united states|america|united states of america)\b/i.test(String(value||"").trim());
 }
 
 function looksLikeVehicleText(text){
@@ -510,6 +539,7 @@ function applySellStateUpdate(text){
   const patterns=[
     {key:"carName",label:"Car",re:/\b(?:car|vehicle)\b\s*(?:to|is|as)?\s*(.+)$/i},
     {key:"region",label:"Location",re:/\b(?:location|region|located|country)\b\s*(?:to|is|as|in)?\s*(.+)$/i},
+    {key:"state",label:"State",re:/\b(?:state)\b\s*(?:to|is|as|in)?\s*(.+)$/i},
     {key:"mileage",label:"Mileage",re:/\b(?:mileage|miles|odometer)\b\s*(?:to|is|as)?\s*(.+)$/i},
     {key:"condition",label:"Condition",re:/\b(?:condition|mods|modified|stock)\b\s*(?:to|is|as)?\s*(.+)$/i},
     {key:"records",label:"Service records",re:/\b(?:service records|records|history)\b\s*(?:to|is|as)?\s*(.+)$/i},
@@ -525,9 +555,16 @@ function applySellStateUpdate(text){
     if(!match)continue;
     const value=normalizeUpdateValue(match[1]);
     if(!value)return null;
-    sellState[pattern.key]=value;
+    if(pattern.key==="region"){
+      const stateFromValue=normalizeUSState(value);
+      sellState.region=stateFromValue?"US":value;
+      sellState.state=stateFromValue||null;
+    }else{
+      sellState[pattern.key]=pattern.key==="state"?(normalizeUSState(value)||value):value;
+    }
     if(pattern.key==="carName")sellState.carRaw=value;
-    return {label:pattern.label,value};
+    if(pattern.key==="state")sellState.region="US";
+    return {label:pattern.label,value:sellState[pattern.key]};
   }
 
   if(/\b(actually|change|update|make it|set it)\b/i.test(lower)){
@@ -638,7 +675,34 @@ function handleSellStep(q){
 
   // ── STEP 11: region ──────────────────────────────────────────
   if(step===11){
-    sellState.region=q;
+    const stateFromAnswer=normalizeUSState(q);
+    sellState.region=stateFromAnswer?"US":q;
+    sellState.state=stateFromAnswer||null;
+    if(isUSRegion(sellState.region)&&!sellState.state){
+      if(sellState.returnToConfirm){
+        sellState.step=18;
+        addMsg("sam","Which state is it in? This helps me think about specialist sellers and handoff options. Type it if it is not shown.","",chipsHTML(["California","Florida","Texas","New York","New Jersey","Other"]));
+        return true;
+      }
+      sellState.step=18;
+      addMsg("sam","Which state is it in? This helps me think about specialist sellers and handoff options. Type it if it is not shown.","",chipsHTML(["California","Florida","Texas","New York","New Jersey","Other"]));
+      return true;
+    }
+    if(sellState.returnToConfirm){goBackToConfirm();return true;}
+    sellState.step=2;
+    addMsg("sam","Rough mileage?","",chipsHTML(["Under 30k","30k–60k","60k–100k","Over 100k"]));
+    return true;
+  }
+
+  // ── STEP 18: US state ────────────────────────────────────────
+  if(step===18){
+    if(/^other$/i.test(lower)){
+      addMsg("sam","No problem — which state?");
+      return true;
+    }
+    const normalizedState=normalizeUSState(q);
+    sellState.region="US";
+    sellState.state=normalizedState||q;
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=2;
     addMsg("sam","Rough mileage?","",chipsHTML(["Under 30k","30k–60k","60k–100k","Over 100k"]));
@@ -700,12 +764,13 @@ function handleSellStep(q){
       return true;
     }
     if(/change something|i want to change|change|edit|no|wrong|mistake/i.test(lower)){
-      addMsg("sam","No problem — what would you like to change?","",chipsHTML(["Car","Mileage","Condition","Service records","Title","Price","Timeline","Involvement","Notes"]));
+      addMsg("sam","No problem — what would you like to change?","",chipsHTML(["Car","Location","State","Mileage","Condition","Service records","Title","Price","Timeline","Involvement","Notes"]));
       return true;
     }
     // Field-specific change chips
     if(/^car$/i.test(lower)){sellState.returnToConfirm=true;sellState.carName=null;sellState.carType=null;sellState.step=1;addMsg("sam","What's the car? Year, make, and model.");return true;}
-    if(/^location$|^region$/i.test(lower)){sellState.returnToConfirm=true;sellState.region=null;sellState.step=11;addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));return true;}
+    if(/^location$|^region$/i.test(lower)){sellState.returnToConfirm=true;sellState.region=null;sellState.state=null;sellState.step=11;addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));return true;}
+    if(/^state$/i.test(lower)){sellState.returnToConfirm=true;sellState.region="US";sellState.state=null;sellState.step=18;addMsg("sam","Which state is it in? This helps me think about specialist sellers and handoff options. Type it if it is not shown.","",chipsHTML(["California","Florida","Texas","New York","New Jersey","Other"]));return true;}
     if(/^mileage$/i.test(lower)){sellState.returnToConfirm=true;sellState.mileage=null;sellState.step=2;addMsg("sam","Rough mileage?","",chipsHTML(["Under 30k","30k–60k","60k–100k","Over 100k"]));return true;}
     if(/^condition$/i.test(lower)){sellState.returnToConfirm=true;sellState.condition=null;sellState.step=3;addMsg("sam","Stock or modified?","",chipsHTML(["Completely stock","Minor mods","Heavily modified"]));return true;}
     if(/^service records$/i.test(lower)){sellState.returnToConfirm=true;sellState.records=null;sellState.step=4;addMsg("sam","Service records?","",chipsHTML(["Full history","Some records","No records"]));return true;}
@@ -791,6 +856,7 @@ function showConfirmation(){
     {label:"Car",value:sellState.carName||"—"},
     sellState.vin?{label:"VIN",value:sellState.vin}:null,
     {label:"Location",value:sellState.region||"—"},
+    sellState.state?{label:"State",value:sellState.state}:null,
     {label:"Mileage",value:sellState.mileage||"—"},
     {label:"Condition",value:sellState.condition||"—"},
     {label:"Service records",value:sellState.records||"—"},
@@ -855,6 +921,7 @@ async function showSellRecommendation(){
           raw:sellState.carName,
           vin:sellState.vin,
           region:sellState.region,
+          state:sellState.state,
           mileage:sellState.mileage,
           condition:sellState.condition,
           serviceRecords:sellState.records,
@@ -951,7 +1018,7 @@ async function showSellRecommendation(){
 
   const powerSellerReferral=decision.powerSellerReferral||{};
   if(powerSellerReferral.shouldEvaluate){
-    const regionLabel=sellState.region&&sellState.region!=="US"?`${sellState.region} `:"";
+    const regionLabel=sellState.state?`${sellState.state} `:(sellState.region&&sellState.region!=="US"?`${sellState.region} `:"");
     const observedSellers=(sellerActivity.topObservedSellers||[])
       .filter(seller=>seller.sellerUsername&&["high_activity_seller","active_specialist"].includes(seller.activityLabel))
       .slice(0,3)
@@ -1125,6 +1192,7 @@ async function submitContactForm(){
           raw:sellState.carName,
           vin:sellState.vin,
           region:sellState.region,
+          state:sellState.state,
           mileage:sellState.mileage,
           condition:sellState.condition,
           serviceRecords:sellState.records,
@@ -1865,7 +1933,7 @@ async function send(){
     const handled=handleSellStep(q);
     if(!handled){
       showTyping();
-      const stateStr=JSON.stringify({car:sellState.carName,vin:sellState.vin,region:sellState.region,mileage:sellState.mileage,condition:sellState.condition,records:sellState.records,title:sellState.title,price:sellState.price,timeline:sellState.timeline,involvement:sellState.involvement,step:sellState.step});
+      const stateStr=JSON.stringify({car:sellState.carName,vin:sellState.vin,region:sellState.region,state:sellState.state,mileage:sellState.mileage,condition:sellState.condition,records:sellState.records,title:sellState.title,price:sellState.price,timeline:sellState.timeline,involvement:sellState.involvement,step:sellState.step});
       const nextQ=SELL_STEP_QUESTIONS[sellState.step];
       const sellSys=SELL_SYS.replace("SELL_STATE_PLACEHOLDER",stateStr).replace("NEXT_QUESTION_PLACEHOLDER",nextQ?nextQ.ask:"Proceed with submission.");
       try{

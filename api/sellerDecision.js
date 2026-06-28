@@ -743,6 +743,7 @@ async function fetchRecentRecords(vehicle, apiKey, strategy = "default") {
 function getSellerCriteria(car = {}) {
   return {
     region: asText(car.region) || null,
+    state: asText(car.state) || null,
     mileage: asText(car.mileage) || null,
     condition: asText(car.condition) || null,
     serviceRecords: asText(car.serviceRecords) || null,

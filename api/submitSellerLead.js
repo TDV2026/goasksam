@@ -41,8 +41,11 @@ async function insertLeadWithFallback(row, supabaseUrl, supabaseKey) {
   try {
     return await insertLead(row, supabaseUrl, supabaseKey);
   } catch (err) {
-    if (!String(err.message || "").includes("car_region")) throw err;
-    const { car_region, ...fallbackRow } = row;
+    const message = String(err.message || "");
+    if (!message.includes("car_region") && !message.includes("car_state")) throw err;
+    const fallbackRow = { ...row };
+    if (message.includes("car_region")) delete fallbackRow.car_region;
+    if (message.includes("car_state")) delete fallbackRow.car_state;
     return insertLead(fallbackRow, supabaseUrl, supabaseKey);
   }
 }
@@ -61,6 +64,23 @@ export default async function handler(req, res) {
   if (!email || !email.includes("@")) return res.status(400).json({ error: "Valid email is required" });
 
   const reference = makeReference();
+  const decisionSummary = {
+    ...decision,
+    carContext: {
+      raw: asText(car.raw),
+      vin: asText(car.vin) || null,
+      region: asText(car.region) || null,
+      state: asText(car.state) || null,
+      mileage: asText(car.mileage) || null,
+      condition: asText(car.condition) || null,
+      serviceRecords: asText(car.serviceRecords) || null,
+      title: asText(car.title) || null,
+      targetPrice: asText(car.targetPrice) || null,
+      timeline: asText(car.timeline) || null,
+      involvement: asText(car.involvement) || null,
+      notes: asText(car.notes) || null
+    }
+  };
   const row = {
     reference,
     submitted_at: new Date().toISOString(),
@@ -68,6 +88,7 @@ export default async function handler(req, res) {
     car_raw: asText(car.raw),
     vin: asText(car.vin) || null,
     car_region: asText(car.region) || null,
+    car_state: asText(car.state) || null,
     mileage: asText(car.mileage) || null,
     condition: asText(car.condition) || null,
     service_records: asText(car.serviceRecords) || null,
@@ -81,7 +102,7 @@ export default async function handler(req, res) {
     chosen_option_key: asText(choice.optionKey) || null,
     seller_email: email,
     seller_phone: asText(seller.phone) || null,
-    decision_summary: decision || null
+    decision_summary: decisionSummary
   };
 
   try {
