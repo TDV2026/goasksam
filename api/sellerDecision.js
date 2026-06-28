@@ -159,6 +159,48 @@ function weekdayName(dateString) {
   return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][date.getUTCDay()];
 }
 
+function analysisDateForSeller() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Los_Angeles",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date());
+  const dateParts = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
+}
+
+function strongestWeekdayInsight(items) {
+  const dayMap = new Map();
+  for (const item of items) {
+    const price = Number(item?.classification?.price);
+    const weekday = weekdayName(item?.record?.auction_end_date);
+    if (!Number.isFinite(price) || !weekday) continue;
+    if (!dayMap.has(weekday)) dayMap.set(weekday, []);
+    dayMap.get(weekday).push(price);
+  }
+
+  const rankedDays = [...dayMap.entries()]
+    .map(([weekday, prices]) => ({
+      weekday,
+      sales: prices.length,
+      medianSalePrice: median(prices)
+    }))
+    .filter(day => day.sales >= 2 && Number.isFinite(day.medianSalePrice))
+    .sort((a, b) => b.medianSalePrice - a.medianSalePrice);
+
+  if (rankedDays.length < 2) return null;
+  const [best, next] = rankedDays;
+  if (!next?.medianSalePrice) return null;
+  const lift = Math.round((best.medianSalePrice - next.medianSalePrice) / next.medianSalePrice * 100);
+  if (lift < 5) return null;
+  return {
+    strongestWeekday: best.weekday,
+    strongestWeekdaySales: best.sales,
+    strongestWeekdayLiftPercent: lift
+  };
+}
+
 function recordPlatform(record) {
   return record.platform || record.source || record.auction_platform || record.listing_source || "unknown";
 }
@@ -815,7 +857,7 @@ function analyze(records, classifications) {
       } else if (relevantMatches.length >= MIN_RELEVANT_EVIDENCE) {
         evidenceSet = relevantMatches;
         evidenceLevel = "relevant";
-        evidenceLabel = "same and closely related cars";
+        evidenceLabel = "comparable market activity";
       }
 
       const platformMap = new Map();
@@ -832,28 +874,32 @@ function analyze(records, classifications) {
         .slice(0, 3);
 
       let platformPerformance = [...platformMap.entries()]
-        .map(([platform, items]) => ({
-          platform,
-          evidenceSales: items.length,
-          totalEvidenceSales,
-          evidenceSharePercent: totalEvidenceSales ? Math.round(items.length / totalEvidenceSales * 100) : null,
-          relevantSales: items.filter(item => ["close_match", "relevant_match"].includes(item.classification.comparison_tier)).length,
-          closeSales: items.filter(item => item.classification.comparison_tier === "close_match").length,
-          broadSales: items.filter(item => item.classification.comparison_tier === "broad_match").length,
-          topThreeSales: strongestSales.filter(item => recordPlatform(item.record) === platform).length,
-          medianSalePrice: median(items.map(item => item.classification.price)),
-          averageBids: median(items
-            .map(item => recordNumber(item.record, ["bid_count", "bids_count", "bids", "num_bids", "number_of_bids"]))
-            .filter(Number.isFinite)),
-          highestResultWeekday: weekdayName([...items]
-            .filter(item => Number.isFinite(Number(item.classification.price)))
-            .sort((a, b) => Number(b.classification.price) - Number(a.classification.price))[0]?.record?.auction_end_date),
-          latestSaleDate: items
-            .map(item => item.record.auction_end_date)
-            .filter(Boolean)
-            .sort()
-            .at(-1) || null
-        }))
+        .map(([platform, items]) => {
+          const weekdayInsight = strongestWeekdayInsight(items);
+          return {
+            platform,
+            evidenceSales: items.length,
+            totalEvidenceSales,
+            evidenceSharePercent: totalEvidenceSales ? Math.round(items.length / totalEvidenceSales * 100) : null,
+            relevantSales: items.filter(item => ["close_match", "relevant_match"].includes(item.classification.comparison_tier)).length,
+            closeSales: items.filter(item => item.classification.comparison_tier === "close_match").length,
+            broadSales: items.filter(item => item.classification.comparison_tier === "broad_match").length,
+            topThreeSales: strongestSales.filter(item => recordPlatform(item.record) === platform).length,
+            medianSalePrice: median(items.map(item => item.classification.price)),
+            averageBids: median(items
+              .map(item => recordNumber(item.record, ["bid_count", "bids_count", "bids", "num_bids", "number_of_bids"]))
+              .filter(Number.isFinite)),
+            ...weekdayInsight,
+            highestResultWeekday: weekdayName([...items]
+              .filter(item => Number.isFinite(Number(item.classification.price)))
+              .sort((a, b) => Number(b.classification.price) - Number(a.classification.price))[0]?.record?.auction_end_date),
+            latestSaleDate: items
+              .map(item => item.record.auction_end_date)
+              .filter(Boolean)
+              .sort()
+              .at(-1) || null
+          };
+        })
         .sort((a, b) => {
           if (b.closeSales !== a.closeSales) return b.closeSales - a.closeSales;
           if (b.relevantSales !== a.relevantSales) return b.relevantSales - a.relevantSales;
@@ -875,7 +921,7 @@ function analyze(records, classifications) {
       });
 
       return {
-        analysisDate: new Date().toISOString().slice(0, 10),
+        analysisDate: analysisDateForSeller(),
         windowDays,
         recordsFetched: records.length,
         recordsAnalyzed: inWindow.length,
@@ -1038,14 +1084,11 @@ function decide(analysis, criteria, vehicle) {
       bestRoute?.marketEvidence
         ? `${bestRoute.platform} is the strongest combined fit from market signal and seller priorities.`
         : `${bestRoute.platform} is the strongest route-fit option for the stated priorities, while live market evidence is stronger on ${best.platform}.`,
-      `${best.platform} had ${best.evidenceSales} recent sale${best.evidenceSales === 1 ? "" : "s"} in the selected ${analysis.windowDays}-day ${analysis.evidenceLabel} set.`,
+      `${best.platform} has the clearest recent support in the selected ${analysis.windowDays}-day ${analysis.evidenceLabel}.`,
       best.closeSales
         ? `${best.closeSales} of those were close matches to the searched car.`
         : "The analysis widened only where it added useful market context.",
       sellerActivityExplanation(analysis.sellerActivity, best.platform),
-      best.medianSalePrice
-        ? `Median sale price in that evidence set was $${best.medianSalePrice.toLocaleString()}.`
-        : null
     ].filter(Boolean),
     tradeoffs: decisionTradeoffs(criteria),
     powerSellerReferral,

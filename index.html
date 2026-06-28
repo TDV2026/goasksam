@@ -934,7 +934,7 @@ async function showSellRecommendation(){
       badge:twoRouteMode?(index===0?"Sam's lean":"Also worth comparing"):(index===0?"Sam's pick":"Alternative route"),
       badgeClass:index===0?"top":"alt",
       cardClass:index===0?"primary-rec":"",
-      actionLabel:index===0?`Start my sale with ${routeName}`:"Compare this route",
+      actionLabel:index===0?`Start my sale with ${routeName}`:`Consider ${routeName}`,
       reason:routeReason(route,index,routeOptions),
       evidenceBullets:routeEvidenceBullets(route,index,routeOptions),
       evidenceLine:`Based on recent market activity through ${dateShort(decisionData.analysis?.analysisDate)||"today"}.`,
@@ -1508,9 +1508,8 @@ function primaryInsightSentence(route){
   if(evidence.evidenceSales&&evidence.totalEvidenceSales&&evidence.evidenceSharePercent>=50){
     return `${evidence.evidenceSales} of the ${evidence.totalEvidenceSales} recent comparable sales were listed on ${name}.`;
   }
-  if(evidence.highestResultWeekday){
-    return `The strongest recent comparable sale ended on a ${evidence.highestResultWeekday}.`;
-  }
+  const dayLine=weekdayInsightLine(evidence);
+  if(dayLine)return dayLine;
   return null;
 }
 
@@ -1536,6 +1535,22 @@ function topThreePhrase(count){
   return null;
 }
 
+function weekdayInsightLine(evidence){
+  if(evidence?.strongestWeekday){
+    return `Recent ${evidence.strongestWeekday} endings have performed strongest here.`;
+  }
+  if(evidence?.highestResultWeekday){
+    return `The strongest recent comparable sale ended on a ${evidence.highestResultWeekday}.`;
+  }
+  return null;
+}
+
+function weekdayTag(evidence){
+  if(evidence?.strongestWeekday)return `${evidence.strongestWeekday} endings strongest`;
+  if(evidence?.highestResultWeekday)return `Strongest sale ended ${evidence.highestResultWeekday}`;
+  return null;
+}
+
 function routeTagLine(route,index,routes){
   const evidence=route.marketEvidence||{};
   const other=platformDisplayName(evidence.nextSupportedPlatform);
@@ -1545,8 +1560,9 @@ function routeTagLine(route,index,routes){
     else if(Math.abs(evidence.performanceDeltaPercent)<=15)tags.push(`Within ${Math.abs(evidence.performanceDeltaPercent)}% of ${other}`);
   }
   if(evidence.topThreeSales>=2)tags.push(evidence.topThreeSales>=3?"All top 3 recent results":`${evidence.topThreeSales} of top 3 recent results`);
+  const dayTag=weekdayTag(evidence);
+  if(dayTag)tags.push(dayTag);
   if(evidence.evidenceSales&&evidence.totalEvidenceSales)tags.push(`${evidence.evidenceSales} of ${evidence.totalEvidenceSales} recent comps`);
-  if(evidence.highestResultWeekday)tags.push(`${evidence.highestResultWeekday} strongest result`);
   if(!tags.length&&["fast","medium_fast"].includes(route.speedToList))tags.push("Quicker launch pattern");
   return tags.slice(0,3).join(" · ")||"Recent market support";
 }
@@ -1571,9 +1587,8 @@ function routeEvidenceBullets(route,index,routes){
   if(Number.isFinite(evidence.averageBids)&&evidence.averageBids>=5){
     bullets.push(`Comparable cars averaged ${Math.round(evidence.averageBids)} bids here.`);
   }
-  if(evidence.highestResultWeekday){
-    bullets.push(`The strongest recent comparable sale ended on a ${evidence.highestResultWeekday}.`);
-  }
+  const dayLine=weekdayInsightLine(evidence);
+  if(dayLine)bullets.push(dayLine);
   if(bullets.length<3)bullets.push(sellerPriorityLabel(route));
   if(!bullets.length)bullets.push(index===0
     ? "Recent comparable activity points here before other supported routes."
@@ -1618,11 +1633,11 @@ function resultSummaryLine(options,routes=[]){
       const weakerName=firstMedian>=secondMedian?secondName:firstName;
       const fasterName=fasterRoute?.label||fasterRoute?.platform;
       if(fasterRoute&&fasterName!==strongerName&&Math.min(firstMedian,secondMedian)/Math.max(firstMedian,secondMedian)>=0.9){
-        return `${strongerName} has the stronger recent performance, but ${fasterName} is close enough that speed and process may matter. I’d compare both routes before choosing.`;
+        return `${strongerName} has the stronger recent market read. ${fasterName} is close enough that speed and process may matter.`;
       }
-      return `${strongerName} has shown stronger recent performance; ${weakerName} remains worth comparing because the practical route factors are close.`;
+      return `${strongerName} has the stronger recent market read, but ${weakerName} has enough signal to compare before choosing.`;
     }
-    return `${firstName} and ${secondName} are both supported by recent market activity, but they win for different practical reasons.`;
+    return `${firstName} and ${secondName} are both supported by recent market activity, but they win for different reasons.`;
   }
   const evidenceOptions=(options||[]).filter(option=>option.marketEvidence);
   const primary=evidenceOptions[0];
@@ -1651,12 +1666,16 @@ function resultSummaryLine(options,routes=[]){
 
 function marketEvidenceSentence(option){
   const evidence=option.marketEvidence;
-  if(!evidence)return `${option.name} is not ranked ahead of the direct platform route today because the current market evidence supports the platform route more clearly.`;
-  const latest=dateShort(evidence.latestSaleDate);
-  return [
-    `${option.name} is supported by recent market activity for same and closely related cars.`,
-    latest?`The analysis includes activity through ${latest}.`:null
-  ].filter(Boolean).join(" ");
+  if(!evidence)return `${option.name} is a practical route to verify, not the strongest data-led platform route today.`;
+  const other=platformDisplayName(evidence.nextSupportedPlatform);
+  if(Number.isFinite(evidence.performanceDeltaPercent)&&evidence.performanceDeltaPercent>=5&&other){
+    return `${option.name} is ${evidence.performanceDeltaPercent}% ahead of ${other} on recent comparable market activity.`;
+  }
+  if(Number.isFinite(evidence.performanceDeltaPercent)&&evidence.performanceDeltaPercent<0&&other&&Math.abs(evidence.performanceDeltaPercent)<=15){
+    return `${option.name} is within ${Math.abs(evidence.performanceDeltaPercent)}% of ${other} on recent comparable market activity.`;
+  }
+  if(evidence.topThreeSales>=2)return `${topThreePhrase(evidence.topThreeSales)} were listed on ${option.name}.`;
+  return `${option.name} has recent market activity strong enough to keep in the route comparison.`;
 }
 
 function matchCount(option){
@@ -1682,10 +1701,22 @@ function medianDeltaSentence(option, other){
     `The recent market activity does not show a meaningful gap between ${optionName} and ${other.name}.`,
     `${optionName} and ${other.name} are close enough that process, timing and seller workload matter more.`
   ],sellState.carName,optionName,other.name,a,b);
+  if(diff<0){
+    if(abs<=15)return pickCopy([
+      `${optionName} is within ${Math.round(abs)}% of ${other.name} on comparable market activity ${marketWindowPhrase()}.`,
+      `${optionName} is close enough to ${other.name} that timing, fees and process are worth comparing.`,
+      `${other.name} has the edge, but ${optionName} remains close enough to keep in the conversation.`
+    ],sellState.carName,optionName,other.name,a,b);
+    return pickCopy([
+      `${other.name} has the clearer recent market signal; I’d only choose ${optionName} if the process fits you better.`,
+      `${optionName} stays in the conversation for practical reasons, but ${other.name} has the stronger recent read.`,
+      `${other.name} is the stronger market route right now; ${optionName} is mainly a process or timing comparison.`
+    ],sellState.carName,optionName,other.name,a,b);
+  }
   return pickCopy([
-    `Similar cars have performed ${Math.round(abs)}% ${diff>0?"stronger":"weaker"} on ${optionName} than ${other.name} ${marketWindowPhrase()}.`,
-    `${optionName} is ${Math.round(abs)}% ${diff>0?"ahead of":"behind"} ${other.name} on comparable market activity ${marketWindowPhrase()}.`,
-    `The recent performance gap favors ${diff>0?optionName:other.name}: ${optionName} is ${Math.round(abs)}% ${diff>0?"stronger":"weaker"} than ${other.name}.`
+    `Similar cars have performed ${Math.round(abs)}% stronger on ${optionName} than ${other.name} ${marketWindowPhrase()}.`,
+    `${optionName} is ${Math.round(abs)}% ahead of ${other.name} on comparable market activity ${marketWindowPhrase()}.`,
+    `The recent performance gap favors ${optionName}: ${optionName} is ${Math.round(abs)}% stronger than ${other.name}.`
   ],sellState.carName,optionName,other.name,a,b);
 }
 
@@ -1711,18 +1742,62 @@ function rankingReason(option,index,options){
 function routeAnswer(option){
   const options=sellState.sellOptions||[];
   const index=options.findIndex(o=>o.key===option.key);
-  const facts=[rankingReason(option,index<0?0:index,options), marketEvidenceSentence(option)];
-  if(option.speedToList==="fast"||option.speedToList==="medium_fast")facts.push("It is here partly because it can usually be quicker to get live.");
-  if(option.speedToList==="slower")facts.push("The tradeoff is timing: it may take longer to get live than some of the smaller platforms.");
-  if(option.priceOutcome==="strong")facts.push("It is an outcome-focused route, so I care more about result quality than speed.");
+  const facts=[rankingReason(option,index<0?0:index,options)];
+  const route=(sellState.allRouteOptions||[]).find(item=>(item.label||item.platform)===option.name);
+  const bullets=route?routeEvidenceBullets(route,index<0?0:index,sellState.allRouteOptions||[]):[];
+  facts.push(...bullets.slice(0,2));
+  if(option.speedToList==="fast"||option.speedToList==="medium_fast")facts.push(`${option.name} can also be the cleaner play if getting live quickly matters.`);
+  if(option.speedToList==="slower")facts.push(`${option.name} may take longer to get live than some smaller platforms, so timing is the tradeoff.`);
   return facts.filter(Boolean).join(" ");
 }
 
-function compareSellOptions(){
-  const options=(sellState.sellOptions||[]).filter(o=>o.key!=="specialist").slice(0,3);
-  if(!options.length)return "I do not have enough route data to compare yet.";
-  return options.map(option=>`${option.name}: ${marketEvidenceSentence(option)} ${option.bestFor?`Best for ${option.bestFor.toLowerCase()}.`:""}`).join(" ");
+function routeForOption(option){
+  return (sellState.allRouteOptions||[]).find(route=>(route.label||route.platform)===option?.name)||null;
 }
+
+function compareSellOptions(){
+  const options=(sellState.sellOptions||[]).filter(o=>o.key!=="specialist").slice(0,2);
+  if(!options.length)return "I do not have enough route data to compare yet.";
+  if(options.length===1)return routeAnswer(options[0]);
+
+  const [first,second]=options;
+  const firstEvidence=first.marketEvidence||{};
+  const secondEvidence=second.marketEvidence||{};
+  const firstRoute=routeForOption(first);
+  const secondRoute=routeForOption(second);
+  const lines=[];
+  const firstDelta=Number(firstEvidence.performanceDeltaPercent);
+  const secondDelta=Number(secondEvidence.performanceDeltaPercent);
+
+  if(Number.isFinite(firstDelta)&&firstDelta>=5&&firstEvidence.nextSupportedPlatform){
+    lines.push(`${first.name} has the stronger recent market signal: ${firstDelta}% ahead of ${platformDisplayName(firstEvidence.nextSupportedPlatform)} ${marketWindowPhrase()}.`);
+  }else if(Number.isFinite(secondDelta)&&secondDelta>=5&&secondEvidence.nextSupportedPlatform){
+    lines.push(`${second.name} has the stronger recent market signal: ${secondDelta}% ahead of ${platformDisplayName(secondEvidence.nextSupportedPlatform)} ${marketWindowPhrase()}.`);
+  }else{
+    lines.push(`${first.name} and ${second.name} are close enough that timing, fees and how much work you want to do should drive the choice.`);
+  }
+
+  const topRoute=[first,second].find(option=>(option.marketEvidence?.topThreeSales||0)>=2);
+  if(topRoute){
+    lines.push(`${topRoute.name} has the top-end signal: ${topThreePhrase(topRoute.marketEvidence.topThreeSales).toLowerCase()} were listed there.`);
+  }
+
+  const dayLine=weekdayInsightLine(firstEvidence)||weekdayInsightLine(secondEvidence);
+  if(dayLine)lines.push(dayLine);
+
+  const faster=[first,second].find(option=>["fast","medium_fast"].includes(option.speedToList));
+  const slower=[first,second].find(option=>option.speedToList==="slower");
+  if(faster&&slower){
+    lines.push(`${faster.name} is the cleaner speed play; ${slower.name} may take longer to get live.`);
+  }
+
+  if(firstRoute&&secondRoute&&hasTwoRouteTradeoff([firstRoute,secondRoute])){
+    lines.push(`My read: start with ${first.name}, but keep ${second.name} on the table if its process feels better.`);
+  }
+
+  return lines.filter(Boolean).join(" ");
+}
+
 function finishSearchMsg(row,resultsHTML,chipsStr,afterText,count){
   const wrap=row.querySelector(".msg-wrap");
   const resultLine=count===1?"I found one auction worth looking at.":"I found a few worth looking at.";
