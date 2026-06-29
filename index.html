@@ -426,10 +426,10 @@ const POWERSELLERS=[
   }
 ];
 
-const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,region:null,state:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,vehicleDetailSkipped:false,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[],powerSellerProfiles:[],selectedPowerSellerId:null};
+const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,region:null,state:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,vehicleDetailSkipped:false,pendingVehicleIdentity:null,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[],powerSellerProfiles:[],selectedPowerSellerId:null};
 function resetSellState(){
   Object.keys(sellState).forEach(k=>sellState[k]=null);
-  sellState.active=false;sellState.step=0;sellState.returnToConfirm=false;sellState.vehicleDetailSkipped=false;sellState.sellOptions=[];sellState.powerSellerProfiles=[];
+  sellState.active=false;sellState.step=0;sellState.returnToConfirm=false;sellState.vehicleDetailSkipped=false;sellState.pendingVehicleIdentity=null;sellState.sellOptions=[];sellState.powerSellerProfiles=[];
 }
 
 const SELL_STEP_QUESTIONS={
@@ -729,11 +729,12 @@ function askMissingVehicleDetail(missing){
 
 function handleVehicleValidationAnswer(q){
   const lower=String(q||"").toLowerCase().trim();
-  const currentIssue=currentMissingVehicleDetail();
+  const currentIssue=activeVehicleIssue();
   if(currentIssue?.baseVehicle&&/\bdifferent\b.*\bmodel\b/i.test(lower)){
     sellState.carName=currentIssue.baseVehicle;
     sellState.carRaw=currentIssue.baseVehicle;
     sellState.vehicleDetailSkipped=false;
+    sellState.pendingVehicleIdentity=null;
     const missing=currentMissingVehicleDetail();
     if(missing){
       askMissingVehicleDetail(missing);
@@ -741,7 +742,7 @@ function handleVehicleValidationAnswer(q){
     }
   }
   if(/\b(change car|start over|wrong car|different car)\b/i.test(lower)){
-    sellState.carName=null;sellState.carRaw=null;sellState.vehicleDetailSkipped=false;sellState.step=1;
+    sellState.carName=null;sellState.carRaw=null;sellState.vehicleDetailSkipped=false;sellState.pendingVehicleIdentity=null;sellState.step=1;
     addMsg("sam","No problem — what are we selling today? Year, make and model.");
     return true;
   }
@@ -753,6 +754,7 @@ function handleVehicleValidationAnswer(q){
     sellState.carName=currentIssue.suggestion;
     sellState.carRaw=currentIssue.suggestion;
     sellState.vehicleDetailSkipped=false;
+    sellState.pendingVehicleIdentity=null;
     addMsg("sam",`Got it — ${sellState.carName}.`);
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=11;
@@ -764,6 +766,7 @@ function handleVehicleValidationAnswer(q){
     sellState.carName=candidate;
     sellState.carRaw=candidate;
     sellState.vehicleDetailSkipped=false;
+    sellState.pendingVehicleIdentity=null;
     const missing=currentMissingVehicleDetail();
     if(missing){
       askMissingVehicleDetail(missing);
@@ -779,6 +782,7 @@ function handleVehicleValidationAnswer(q){
     sellState.carName=cleanInitialCarText(q)||q;
     sellState.carRaw=sellState.carName;
     sellState.vehicleDetailSkipped=false;
+    sellState.pendingVehicleIdentity=null;
     const missing=currentMissingVehicleDetail();
     if(missing){
       askMissingVehicleDetail(missing);
@@ -809,13 +813,16 @@ function startSellFlow(initialCar, showUserBubble=true){
       return;
     }
     sellState.carRaw=initialCar;sellState.carName=carName||initialCar;
-    const missing=currentMissingVehicleDetail();
-    if(missing){
-      setTimeout(()=>askMissingVehicleDetail(missing),400);
-      return;
-    }
-    sellState.step=11;
-    setTimeout(()=>askNextSellQuestion(),400);
+    setTimeout(async()=>{
+      if(!(await validateVehicleIdentityPreflight(sellState.carName)))return;
+      const missing=currentMissingVehicleDetail();
+      if(missing){
+        askMissingVehicleDetail(missing);
+        return;
+      }
+      sellState.step=11;
+      askNextSellQuestion();
+    },400);
     return;
   }
   if(showUserBubble)addMsg("user","Sell my car");
@@ -898,7 +905,7 @@ function applySellStateUpdate(text){
   return null;
 }
 
-function handleSellStep(q){
+async function handleSellStep(q){
   const lower=q.toLowerCase().trim();
 
   // Holding phrases — any step
@@ -915,7 +922,8 @@ function handleSellStep(q){
     return true;
   }
 
-  if(sellState.step===17&&currentMissingVehicleDetail()?.type==="invalid_vehicle"){
+  const vehicleIssueAtStep=activeVehicleIssue();
+  if(sellState.step===17&&(sellState.pendingVehicleIdentity||vehicleIssueAtStep?.type==="invalid_vehicle")){
     return handleVehicleValidationAnswer(q);
   }
   
@@ -946,6 +954,7 @@ function handleSellStep(q){
     if(/porsche|911/i.test(lower))sellState.carType="porsche";
     else if(/bmw|m2/i.test(lower))sellState.carType="bmw";
     else sellState.carType="generic";
+    if(!(await validateVehicleIdentityPreflight(sellState.carName)))return true;
     const missing=currentMissingVehicleDetail();
     if(missing){
       askMissingVehicleDetail(missing);
@@ -958,7 +967,7 @@ function handleSellStep(q){
   }
 
   if(step===17){
-    const currentIssue=currentMissingVehicleDetail();
+    const currentIssue=activeVehicleIssue();
     if(currentIssue?.type==="invalid_vehicle"){
       return handleVehicleValidationAnswer(q);
     }
@@ -970,6 +979,7 @@ function handleSellStep(q){
       sellState.carName=candidate;
       sellState.carRaw=candidate;
       sellState.vehicleDetailSkipped=false;
+      if(!(await validateVehicleIdentityPreflight(candidate)))return true;
       const missing=currentMissingVehicleDetail();
       if(missing){
         askMissingVehicleDetail(missing);
@@ -1617,6 +1627,40 @@ function hideHero(){const h=document.getElementById("hero");if(h)h.remove();}
 function escapeHtml(str){return String(str||"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]));}
 function escapeRegExp(str){return String(str||"").replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
 function apiPath(path){return `${API_ORIGIN}${path}`;}
+function activeVehicleIssue(){return sellState.pendingVehicleIdentity||currentMissingVehicleDetail();}
+function askVehicleIdentityClarification(clarification,status){
+  sellState.pendingVehicleIdentity={
+    type:status==="invalid_vehicle"?"invalid_vehicle":"model",
+    ask:clarification.question,
+    chips:clarification.chips||["Change car","Not sure"],
+    suggestion:clarification.suggestion||null,
+    baseVehicle:clarification.baseVehicle||null
+  };
+  sellState.step=17;
+  addMsg("sam",sellState.pendingVehicleIdentity.ask,"",chipsHTML(sellState.pendingVehicleIdentity.chips));
+}
+async function validateVehicleIdentityPreflight(candidate){
+  try{
+    const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:candidate})});
+    const data=await res.json();
+    if(!res.ok||!data)return true;
+    if(data.status==="valid"){
+      sellState.pendingVehicleIdentity=null;
+      if(data.vehicle?.canonicalLabel){
+        sellState.carName=data.vehicle.canonicalLabel;
+        sellState.carRaw=data.vehicle.canonicalLabel;
+      }
+      return true;
+    }
+    if((data.status==="invalid_vehicle"||data.status==="needs_clarification")&&data.clarification?.question){
+      askVehicleIdentityClarification(data.clarification,data.status);
+      return false;
+    }
+  }catch(e){
+    return true;
+  }
+  return true;
+}
 function reserveInfo(l){
   if(l.reserve_status==="none")return{label:"No Reserve",cls:"none"};
   if(l.reserve_status==="rnm")return{label:"Reserve Not Met",cls:"rnm"};
@@ -2551,7 +2595,7 @@ async function send(){
   }
 
   if(pre&&pre.sell){
-    const handled=handleSellStep(q);
+    const handled=await handleSellStep(q);
     if(!handled){
       showTyping();
       const stateStr=JSON.stringify({car:sellState.carName,region:sellState.region,state:sellState.state,mileage:sellState.mileage,condition:sellState.condition,records:sellState.records,title:sellState.title,price:sellState.price,timeline:sellState.timeline,involvement:sellState.involvement,step:sellState.step});
