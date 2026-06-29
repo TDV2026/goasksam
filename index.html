@@ -599,6 +599,23 @@ const VEHICLE_PRODUCTION_RULES=[
   {make:"Alfa Romeo",model:"4C",match:/\balfa(?:\s+romeo)?\b.*\b4c\b|\b4c\b.*\balfa(?:\s+romeo)?\b/i,start:2014,end:2020}
 ];
 
+const CROSS_MAKE_MODEL_RULES=[
+  {model:"E-Type",makes:["Jaguar"],alias:/\be[-\s]?type\b/i,suggestion:"Jaguar F-Type",suggestionStart:2013},
+  {model:"F-Type",makes:["Jaguar"],alias:/\bf[-\s]?type\b/i},
+  {model:"911",makes:["Porsche"],alias:/\b911\b/i},
+  {model:"Supra",makes:["Toyota"],alias:/\bsupra\b/i},
+  {model:"NSX",makes:["Acura","Honda"],alias:/\bnsx\b/i},
+  {model:"R8",makes:["Audi"],alias:/\br8\b/i},
+  {model:"GT-R",makes:["Nissan"],alias:/\bgt[-\s]?r\b|\bgtr\b/i},
+  {model:"370Z",makes:["Nissan"],alias:/\b370z\b/i},
+  {model:"M3",makes:["BMW"],alias:/\bm3\b/i},
+  {model:"360",makes:["Ferrari"],alias:/\b360\b/i},
+  {model:"F430",makes:["Ferrari"],alias:/\bf430\b/i},
+  {model:"458",makes:["Ferrari"],alias:/\b458\b/i},
+  {model:"488",makes:["Ferrari"],alias:/\b488\b/i},
+  {model:"Viper",makes:["Dodge"],alias:/\bviper\b/i}
+];
+
 function vehicleYearFromText(text){
   const value=String(text||"").match(/\b(19|20)\d{2}\b/)?.[0];
   return value?Number(value):null;
@@ -613,17 +630,54 @@ function validYearForRule(year,rule){
   return year>=rule.start&&year<=rule.end&&!yearInExcludedRange(year,rule);
 }
 
+function detectedMakeName(text){
+  const lower=String(text||"").toLowerCase();
+  return MAKE_MODEL_CLARIFICATIONS.find(item=>item.make.test(lower))?.name||null;
+}
+
+function vehicleBaseYearMake(text,makeName){
+  const year=vehicleYearFromText(text);
+  return [year,makeName].filter(Boolean).join(" ");
+}
+
+function crossMakeVehicleIssue(text){
+  const raw=String(text||"").trim();
+  const year=vehicleYearFromText(raw);
+  const makeName=detectedMakeName(raw);
+  if(!year||!makeName)return null;
+  const rule=CROSS_MAKE_MODEL_RULES.find(item=>item.alias.test(raw)&&!item.makes.includes(makeName));
+  if(!rule)return null;
+  const preferredMake=rule.makes[0];
+  const suggestedModel=rule.suggestion&&(!rule.suggestionStart||year>=rule.suggestionStart)
+    ? rule.suggestion
+    : `${preferredMake} ${rule.model}`;
+  const suggestion=`${year} ${suggestedModel}`;
+  const baseVehicle=vehicleBaseYearMake(raw,makeName);
+  return {
+    type:"invalid_vehicle",
+    ask:`${rule.model} is a ${preferredMake} model, not a ${makeName}. Did you mean the ${suggestion}, or a different ${makeName} model?`,
+    chips:[suggestion,`Different ${makeName} model`,"Change car","Not sure"],
+    suggestion,
+    baseVehicle,
+    detectedMake:makeName,
+    rule
+  };
+}
+
 function vehicleValidationIssue(text){
   const raw=String(text||"").trim();
   const year=vehicleYearFromText(raw);
   if(!year)return null;
+  const crossMakeIssue=crossMakeVehicleIssue(raw);
+  if(crossMakeIssue)return crossMakeIssue;
   const rule=VEHICLE_PRODUCTION_RULES.find(item=>item.match.test(raw));
   if(!rule)return null;
   if(validYearForRule(year,rule))return null;
   const replacement=rule.suggestion&&(!rule.suggestionStart||year>=rule.suggestionStart);
+  const displayMake=rule.model==="NSX"&&detectedMakeName(raw)==="Honda"?"Honda":rule.make;
   const question=replacement
     ? `The ${rule.model} wasn't produced in ${year}. Did you mean the ${year} ${rule.suggestion}?`
-    : `The ${rule.model} wasn't produced in ${year}. Which ${rule.make} model are we talking about?`;
+    : `The ${rule.model} wasn't produced in ${year}. Which ${displayMake} model are we talking about?`;
   return {
     type:"invalid_vehicle",
     ask:question,
@@ -675,6 +729,17 @@ function askMissingVehicleDetail(missing){
 
 function handleVehicleValidationAnswer(q){
   const lower=String(q||"").toLowerCase().trim();
+  const currentIssue=currentMissingVehicleDetail();
+  if(currentIssue?.baseVehicle&&/\bdifferent\b.*\bmodel\b/i.test(lower)){
+    sellState.carName=currentIssue.baseVehicle;
+    sellState.carRaw=currentIssue.baseVehicle;
+    sellState.vehicleDetailSkipped=false;
+    const missing=currentMissingVehicleDetail();
+    if(missing){
+      askMissingVehicleDetail(missing);
+      return true;
+    }
+  }
   if(/\b(change car|start over|wrong car|different car)\b/i.test(lower)){
     sellState.carName=null;sellState.carRaw=null;sellState.vehicleDetailSkipped=false;sellState.step=1;
     addMsg("sam","No problem — what are we selling today? Year, make and model.");
@@ -684,11 +749,26 @@ function handleVehicleValidationAnswer(q){
     addMsg("sam","No problem. I need the actual car before I can recommend where to sell it. What does the badge, registration or paperwork say?");
     return true;
   }
-  const currentIssue=currentMissingVehicleDetail();
   if(currentIssue?.suggestion&&/^(yes|yep|yeah|correct|that.s right|looks right|that one)$/i.test(lower)){
     sellState.carName=currentIssue.suggestion;
     sellState.carRaw=currentIssue.suggestion;
     sellState.vehicleDetailSkipped=false;
+    addMsg("sam",`Got it — ${sellState.carName}.`);
+    if(sellState.returnToConfirm){goBackToConfirm();return true;}
+    sellState.step=11;
+    addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+    return true;
+  }
+  if(currentIssue?.baseVehicle){
+    const candidate=`${currentIssue.baseVehicle} ${q}`.replace(/\s+/g," ").trim();
+    sellState.carName=candidate;
+    sellState.carRaw=candidate;
+    sellState.vehicleDetailSkipped=false;
+    const missing=currentMissingVehicleDetail();
+    if(missing){
+      askMissingVehicleDetail(missing);
+      return true;
+    }
     addMsg("sam",`Got it — ${sellState.carName}.`);
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=11;
@@ -834,6 +914,10 @@ function handleSellStep(q){
     if(sellState.step===16||sellState.returnToConfirm){goBackToConfirm();}
     return true;
   }
+
+  if(sellState.step===17&&currentMissingVehicleDetail()?.type==="invalid_vehicle"){
+    return handleVehicleValidationAnswer(q);
+  }
   
 
   // Change requests — let API handle
@@ -882,9 +966,15 @@ function handleSellStep(q){
       sellState.vehicleDetailSkipped=true;
       addMsg("sam","No problem — I'll keep it broad for now, but the recommendation may be more directional without the exact model.");
     }else{
-      sellState.carName=`${sellState.carName} ${q}`.replace(/\s+/g," ").trim();
-      sellState.carRaw=sellState.carName;
+      const candidate=`${sellState.carName} ${q}`.replace(/\s+/g," ").trim();
+      sellState.carName=candidate;
+      sellState.carRaw=candidate;
       sellState.vehicleDetailSkipped=false;
+      const missing=currentMissingVehicleDetail();
+      if(missing){
+        askMissingVehicleDetail(missing);
+        return true;
+      }
       addMsg("sam",`Got it — ${sellState.carName}.`);
     }
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
