@@ -78,6 +78,7 @@ body{
   display:flex;align-items:center;justify-content:center;
   margin:0 auto 20px;font-weight:800;font-size:20px;
 }
+.hero-kicker{font-size:13px;color:#777;font-weight:800;margin-bottom:8px;}
 .hero h1{font-size:34px;letter-spacing:-.9px;margin-bottom:10px;}
 .hero-sub{color:#444;font-size:17px;line-height:1.55;margin:0 auto 8px;max-width:690px;}
 .hero-tagline{color:#777;font-size:13px;margin:0 auto 22px;line-height:1.55;max-width:680px;}
@@ -254,6 +255,9 @@ body{
 .observed-seller-tag{border:1px solid #eee7d8;background:#fffdf7;border-radius:999px;padding:4px 7px;font-size:10px;font-weight:800;color:#6f4b05;}
 .observed-seller ul{margin:0;padding-left:16px;display:flex;flex-direction:column;gap:4px;color:#454542;}
 .observed-seller li::marker{color:#166534;}
+.power-seller-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+.power-seller-card{background:#fffdf7;border-color:#eadfca;}
+.power-seller-platforms{font-size:11px;color:#6d6048;line-height:1.45;font-weight:650;}
 .sell-rec-actions{display:flex;gap:8px;margin-top:4px;}
 .sell-rec-actions button{flex:1;padding:10px 9px;border-radius:10px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;}
 .upload-area{border:2px dashed #dededb;border-radius:14px;padding:24px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;margin-top:4px;}
@@ -313,8 +317,10 @@ body{
   <button class="rail-btn active" onclick="newConversation()">✦ New conversation</button>
   <div class="rail-divider"></div>
   <div class="rail-label">Sell</div>
-  <div class="rail-item" onclick="startSellFlow()">✦ Sell my car</div>
+  <div class="rail-item" onclick="startSellFlow()">✦ Start selling</div>
+  <div class="rail-label">Learn</div>
   <div class="rail-item" onclick="showPowerSellerExplainer()">What is a PowerSeller?</div>
+  <div class="rail-item" onclick="showRecommendationExplainer()">How Sam makes recommendations</div>
   <div class="rail-footer">
     <strong>No paid recommendations.</strong>
     Sam compares the market and only shows choices the data supports.
@@ -327,23 +333,16 @@ body{
     <div class="hero" id="hero">
       <div class="hero-inner">
         <div class="hero-logo">S</div>
-        <h1>Sell your enthusiast car with better market judgment.</h1>
-        <div class="hero-sub">Tell Sam what we're selling today. In under a minute, he'll tell you where he'd sell it and why.</div>
-        <div class="hero-promise">
-          <span><strong>Data, not opinions.</strong> Recent market evidence.</span>
-          <span><strong>Platform or PowerSeller.</strong> Sometimes the best answer isn't a platform.</span>
-          <span><strong>You decide.</strong> Nothing gets sent without your approval.</span>
-        </div>
-        <div class="hero-chips">
-          <button class="chip" onclick="startSellFlow()">Sell my car</button>
-        </div>
-        <div class="hero-powered">Powered by The Daily Vroom</div>
+        <div class="hero-kicker">Hi, I'm Sam.</div>
+        <h1>What are we selling today?</h1>
+        <div class="hero-sub">Tell me the car. I'll tell you exactly what I'd do if it were mine.</div>
+        <div class="hero-tagline">Recommendations are based on recent market activity, not sponsorships. Nothing gets sent anywhere until you approve it.</div>
       </div>
     </div>
   </div>
   <div id="input-area">
     <div id="input-box">
-      <textarea id="inp" rows="1" placeholder="Tell Sam what you're selling..."></textarea>
+      <textarea id="inp" rows="1" placeholder="Tell Sam what we're selling today..."></textarea>
       <button id="btn">↑</button>
     </div>
     <div id="hint">Example: 2018 Porsche 911 Carrera GTS or 1985 BMW M3.</div>
@@ -364,10 +363,73 @@ const LISTINGS=[
 {id:"L10",status:"live",year:2020,make:"Nissan",model:"370Z Sport Touring",type:"sports",trans:"automatic",drive:"RWD",price:5580,miles:16600,loc:"Los Angeles, CA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/exterior/3vAVEA0k-sCSR5pQ/edit/9L2LD.jpg?t=177930535574",reserve_status:"active",daysLive:2,endsIn:5,liveSignals:[{type:"resolved",text:"Seller confirmed Sport Touring spec with factory LSD 1 hour ago. Monroney uploaded to gallery.",time:"1 hour ago"}],openQuestion:"Reserve active and amount unknown.",whatChanged:"Seller confirmed LSD and uploaded Monroney 1 hour ago after community asked. Reserve still unknown.",sellerStatus:"Answered LSD question and uploaded documentation within 1 hour of being asked.",sam_view:"Clean low-mile 370Z. Seller confirmed the factory LSD and uploaded the Monroney an hour ago after the community asked — that is responsive. Reserve is still active and the amount is unknown.",what_i_like:"Sport Touring with factory LSD, 16,600 miles, seller actively engaging.",actionLine:"I would watch whether the reserve gets met. The seller is responsive which is a good sign."}
 ];
 
-const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,region:null,state:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,vehicleDetailSkipped:false,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[]};
+const POWERSELLERS=[
+  {
+    id:"placeholder-chris",
+    name:"Chris",
+    displayName:"Chris",
+    region:"California",
+    strengths:["Auction management","Buyer questions","Platform advice"],
+    makes:["Porsche","Toyota","Ferrari"],
+    priceMin:50000,
+    priceMax:null,
+    platforms:["Bring a Trailer","Cars & Bids"],
+    note:"A good fit when the seller wants help managing the sale rather than doing everything themselves."
+  },
+  {
+    id:"placeholder-alex",
+    name:"Alex",
+    displayName:"Alex",
+    region:"East Coast",
+    strengths:["Auction management","High-value cars","Logistics"],
+    makes:["Porsche","BMW","Audi","Mercedes-Benz"],
+    priceMin:60000,
+    priceMax:null,
+    platforms:["Bring a Trailer","Cars & Bids","PCarMarket"],
+    note:"Worth speaking to when the car is valuable enough that auction management and platform choice could move the result."
+  },
+  {
+    id:"placeholder-morgan",
+    name:"Morgan",
+    displayName:"Morgan",
+    region:"Southeast",
+    strengths:["4x4 specialists","Buyer questions","Transport help"],
+    makes:["Toyota","Land Rover","Ford"],
+    priceMin:40000,
+    priceMax:null,
+    platforms:["Bring a Trailer","Cars & Bids"],
+    note:"A useful call for trucks and 4x4s where condition, questions and logistics can matter as much as the listing venue."
+  },
+  {
+    id:"placeholder-jordan",
+    name:"Jordan",
+    displayName:"Jordan",
+    region:"Midwest",
+    strengths:["Performance cars","Auction comments","Platform advice"],
+    makes:["BMW","Dodge","Honda","Acura","Nissan"],
+    priceMin:45000,
+    priceMax:null,
+    platforms:["Bring a Trailer","Cars & Bids"],
+    note:"A sensible sanity check for performance cars where the seller wants help handling comments and buyer questions."
+  },
+  {
+    id:"placeholder-taylor",
+    name:"Taylor",
+    displayName:"Taylor",
+    region:"UK / Europe",
+    strengths:["European sellers","Platform advice","Auction management"],
+    makes:["Porsche","Ferrari","Aston Martin","Land Rover"],
+    priceMin:50000,
+    priceMax:null,
+    platforms:["Car & Classic","Collecting Cars"],
+    note:"Worth speaking to when the car is outside the US and platform choice may be very different."
+  }
+];
+
+const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,region:null,state:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,vehicleDetailSkipped:false,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[],powerSellerProfiles:[],selectedPowerSellerId:null};
 function resetSellState(){
   Object.keys(sellState).forEach(k=>sellState[k]=null);
-  sellState.active=false;sellState.step=0;sellState.returnToConfirm=false;sellState.vehicleDetailSkipped=false;sellState.sellOptions=[];
+  sellState.active=false;sellState.step=0;sellState.returnToConfirm=false;sellState.vehicleDetailSkipped=false;sellState.sellOptions=[];sellState.powerSellerProfiles=[];
 }
 
 const SELL_STEP_QUESTIONS={
@@ -1052,8 +1114,10 @@ async function showSellRecommendation(){
       specialties:powerSellerSpecialties(),
       label:seller.activityLabel==="high_activity_seller"?"Strong recent seller activity":"PowerSeller signal"
     }));
-  const hasPowerSellerAdvice=!!powerSellerReferral.shouldEvaluate;
-  const hasNamedPowerSellerAdvice=hasPowerSellerAdvice&&observedSellers.length;
+  const hasPowerSellerAdvice=shouldEvaluatePowerSeller(powerSellerReferral);
+  const powerSellerProfiles=hasPowerSellerAdvice?matchPowerSellers(observedSellers):[];
+  sellState.powerSellerProfiles=powerSellerProfiles;
+  const hasNamedPowerSellerAdvice=hasPowerSellerAdvice&&powerSellerProfiles.length;
 
   const routeSellOptions=routesForCards.map((route,index)=>{
     const platform=route.marketEvidence||{};
@@ -1089,18 +1153,18 @@ async function showSellRecommendation(){
 
   const powerSellerOption=hasPowerSellerAdvice?{
       key:"specialist",
-      name:hasNamedPowerSellerAdvice?"People I’d call first":"One thing I’d do first",
-      type:hasNamedPowerSellerAdvice?"Recommended PowerSellers":"PowerSeller check",
-      badge:hasNamedPowerSellerAdvice?"My recommendation":"Before you decide",
+      name:"People I’d call first",
+      type:"PowerSeller conversation",
+      badge:"Worth speaking to",
       badgeClass:"specialist",
       cardClass:"specialist-rec primary-rec",
-      actionLabel:hasNamedPowerSellerAdvice?"Speak to recommended PowerSellers":"Find PowerSellers to speak to",
+      actionLabel:"Speak to PowerSeller",
       reason:powerSellerAdviceReason(hasNamedPowerSellerAdvice),
       evidenceBullets:powerSellerAdviceBullets(hasNamedPowerSellerAdvice),
       evidenceLine:"",
       stat:"",
       bestFor:"",
-      observedSellers:hasNamedPowerSellerAdvice?observedSellers:[]
+      observedSellers:powerSellerProfiles
   }:null;
 
   sellState.sellOptions=powerSellerOption?[powerSellerOption,...routeSellOptions]:routeSellOptions;
@@ -1136,7 +1200,7 @@ async function showSellRecommendation(){
         <div class="sell-rec-actions"><button class="${option.key==="primary"||String(option.cardClass||"").includes("primary-rec")?"primary":"ghost"}" onclick="event.stopPropagation();chooseSellOption('${escapeHtml(option.key)}')">${escapeHtml(option.actionLabel||"Consider this")}</button></div>
       </div>`;
 
-  const powerSellerCardsHTML=sellState.sellOptions.filter(option=>option.key==="specialist").map(renderOptionCard).join("");
+  const powerSellerCardsHTML=powerSellerProfiles.map(renderPowerSellerProfile).join("");
   const platformCardsHTML=sellState.sellOptions.filter(option=>option.key!=="specialist").map(renderOptionCard).join("");
 
   const row=document.createElement("div");row.className="row sam";
@@ -1147,8 +1211,8 @@ async function showSellRecommendation(){
       <div class="sell-rec-title">${escapeHtml(resultHeaderTitle(routeOptions))}</div>
       <div class="sell-rec-subtitle">${escapeHtml(resultSummaryLine(sellState.sellOptions,routeOptions))}</div>
     </div>
-    ${powerSellerCardsHTML?`<div class="sell-section-label">${hasNamedPowerSellerAdvice?"People I’d call first":"Before you decide"}</div><div class="sell-rec-grid">${powerSellerCardsHTML}</div>`:""}
-    ${platformCardsHTML?`<div class="sell-section-label">${powerSellerCardsHTML?"If you’d rather sell it yourself":"My recommendation"}</div>${powerSellerCardsHTML?`<div class="sell-section-note">If you want to run it yourself, this is where I’d start.</div>`:""}<div class="sell-rec-grid">${platformCardsHTML}</div>`:""}
+    ${powerSellerCardsHTML?`<div class="sell-section-label">People I’d call first</div><div class="sell-section-note">I would not treat this as a directory. These are the PowerSellers I’d actually speak to for this car.</div><div class="observed-sellers power-seller-grid">${powerSellerCardsHTML}</div>`:""}
+    ${platformCardsHTML?`<div class="sell-section-label">${powerSellerCardsHTML?"If you’d rather sell it yourself":"My recommendation"}</div>${powerSellerCardsHTML?`<div class="sell-section-note">If you want to manage the sale yourself, this is where I’d start.</div>`:""}<div class="sell-rec-grid">${platformCardsHTML}</div>`:""}
     <div class="sam-text after-results">${hasTwoRouteTradeoff(routeOptions)?"Which choice fits how you want to sell? You can choose either, or ask me to compare the tradeoffs.":"Which direction feels right? You can pick one, or ask me to compare the tradeoffs."}</div>
   </div></div>`;
   sellState.generatedPrimaryName=sellState.sellOptions[0]?.name||null;
@@ -1175,6 +1239,19 @@ function handleSellRecommendationFollowup(q){
     return true;
   }
 
+  if(/\b(power seller|specialist|consignor|consignment)\b/i.test(lower)){
+    const specialist=options.find(o=>o.key==="specialist");
+    if(specialist){
+      const observed=(sellState.powerSellerProfiles||[]).length
+        ? ` The people I’d call first are ${(sellState.powerSellerProfiles||[]).map(seller=>seller.displayName||seller.name).join(", ")}.`
+        : "";
+      addMsg("sam",`${specialist.name}: ${specialist.reason}${observed} I would treat this as a shortlist to verify, not an automatic handoff.`);
+    }else{
+      addMsg("sam","I don’t think this one needs a PowerSeller from what you’ve told me. I’d keep the commission and focus on the best self-managed platform unless you want someone else to handle the sale.");
+    }
+    return true;
+  }
+
   if(chosenByName||/\b(why|better|explain|reason|what about|how about|tell me about|do they|does it|sell tons|high prices|higher|best price)\b/i.test(lower)){
     const hiddenRoute=chosenByName?null:findHiddenRouteByText(q);
     if(hiddenRoute&&!routeHasTrueComparableEvidence(hiddenRoute)){
@@ -1185,19 +1262,6 @@ function handleSellRecommendationFollowup(q){
     return true;
   }
 
-  if(/\b(power seller|specialist|consignor|consignment)\b/i.test(lower)){
-    const specialist=options.find(o=>o.key==="specialist");
-    if(specialist){
-      const observed=specialist.observedSellers?.length
-        ? ` The observed seller names I’d look at first are ${specialist.observedSellers.map(seller=>seller.name).join(", ")}.`
-        : "";
-      addMsg("sam",`${specialist.name}: ${specialist.reason}${observed} I would treat this as a shortlist to verify, not an automatic handoff.`);
-    }else{
-      addMsg("sam","I don't have enough evidence to make a PowerSeller part of this recommendation yet.");
-    }
-    return true;
-  }
-
   return false;
 }
 
@@ -1205,9 +1269,15 @@ function chooseSellOption(which){
   if(sellState.chosen)return; // prevent double-fire — already chose
   sellState.chosen=which;sellState.step=13;
   const option=sellState.sellOptions.find(o=>o.key===which)||sellState.sellOptions[0];
-  const displayName=option?.name||"this choice";
+  const selectedPowerSeller=(sellState.powerSellerProfiles||[]).find(profile=>profile.id===sellState.selectedPowerSellerId);
+  const displayName=selectedPowerSeller?.displayName||option?.name||"this choice";
   addMsg("user",`Go with ${displayName}`);
   setTimeout(()=>showContactForm(),600);
+}
+
+function choosePowerSeller(id){
+  sellState.selectedPowerSellerId=id;
+  chooseSellOption("specialist");
 }
 
 function showContactForm(){
@@ -1217,7 +1287,7 @@ function showContactForm(){
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
-    <div class="sam-text">Last thing — so the platform can reach you directly. Email is required, phone is optional.</div>
+    <div class="sam-text">Last thing — so they can reach you directly. Email is required, phone is optional.</div>
     <div class="contact-form">
       <div class="contact-group">
         <div class="contact-label">Email address *</div>
@@ -1247,6 +1317,8 @@ async function submitContactForm(){
   addMsg("user",phone?`${email} · ${phone}`:email);
 
   const option=sellState.sellOptions.find(o=>o.key===sellState.chosen)||sellState.sellOptions[0]||{name:"the selected destination",type:null,key:sellState.chosen};
+  const selectedPowerSeller=(sellState.powerSellerProfiles||[]).find(profile=>profile.id===sellState.selectedPowerSellerId);
+  const destinationName=selectedPowerSeller?.displayName||option.name;
   try{
     const res=await fetch(apiPath("/api/submitSellerLead"),{
       method:"POST",
@@ -1267,9 +1339,10 @@ async function submitContactForm(){
           notes:sellState.notes
         },
         choice:{
-          destination:option.name,
+          destination:destinationName,
           destinationType:option.type,
-          optionKey:option.key
+          optionKey:option.key,
+          powerSeller:selectedPowerSeller||null
         },
         decision:{
           vehicle:sellState.sellDecision?.vehicle||null,
@@ -1289,6 +1362,8 @@ async function submitContactForm(){
 
 function showSubmission(submission){
   const option=sellState.sellOptions.find(o=>o.key===sellState.chosen)||sellState.sellOptions[0]||{name:"the selected destination"};
+  const selectedPowerSeller=(sellState.powerSellerProfiles||[]).find(profile=>profile.id===sellState.selectedPowerSellerId);
+  const destinationName=selectedPowerSeller?.displayName||option.name;
   const ref=submission?.reference||"Pending";
   sellState.step=14;
   hideHero();
@@ -1296,11 +1371,11 @@ function showSubmission(submission){
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
-    <div class="sam-text">We're submitting your ${escapeHtml(sellState.carName||"car")} to ${escapeHtml(option.name)}. Here's your reference number.</div>
+    <div class="sam-text">We're submitting your ${escapeHtml(sellState.carName||"car")} to ${escapeHtml(destinationName)}. Here's your reference number.</div>
     <div class="ref-card">
       <div class="ref-label">Reference number</div>
       <div class="ref-number">${ref}</div>
-      <div class="ref-detail">Your submission has been sent to ${escapeHtml(option.name)}. They'll be in touch at ${escapeHtml(sellState.email)} within 24 hours. Keep this reference number handy.</div>
+      <div class="ref-detail">Your submission has been sent to ${escapeHtml(destinationName)}. They'll be in touch at ${escapeHtml(sellState.email)} within 24 hours. Keep this reference number handy.</div>
     </div>
     <div class="sam-text" style="margin-top:8px">Would you like to sell another car?</div>
     <div class="chips">
@@ -1339,6 +1414,7 @@ const API_ORIGIN=location.hostname==="localhost"||location.hostname==="127.0.0.1
 
 function hideHero(){const h=document.getElementById("hero");if(h)h.remove();}
 function escapeHtml(str){return String(str||"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]));}
+function escapeRegExp(str){return String(str||"").replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
 function apiPath(path){return `${API_ORIGIN}${path}`;}
 function reserveInfo(l){
   if(l.reserve_status==="none")return{label:"No Reserve",cls:"none"};
@@ -1774,6 +1850,134 @@ function platformDisplayName(name){
   return String(name||"").replace(/^bringatrailer$/i,"Bring a Trailer").replace(/^carsandbids$/i,"Cars & Bids");
 }
 
+function extractVehicleMake(text=sellState.carName){
+  const lower=String(text||"").toLowerCase();
+  const makes=[
+    "Porsche","Ferrari","Toyota","BMW","Audi","Mercedes-Benz","Mercedes","Acura","Honda","Nissan","Dodge","Land Rover",
+    "Aston Martin","Lamborghini","McLaren","Ford","Chevrolet","Jaguar","Alfa Romeo","Alfa","Maserati","Bentley"
+  ];
+  const found=makes.find(make=>new RegExp(`\\b${escapeRegExp(make.toLowerCase())}\\b`).test(lower));
+  if(found==="Mercedes")return "Mercedes-Benz";
+  if(found==="Alfa")return "Alfa Romeo";
+  return found||"";
+}
+
+function estimatedTargetPrice(){
+  const raw=String(sellState.price||sellState.notes||"").toLowerCase();
+  if(/\bsix[-\s]?figure|100k|over\s+100/.test(raw))return 100000;
+  const k=raw.match(/(\d+(?:\.\d+)?)\s*k\b/);
+  if(k)return Number(k[1])*1000;
+  const range=raw.match(/(\d[\d,]*)\s*[-–]\s*(\d[\d,]*)\s*k\b/);
+  if(range)return Number(range[2].replace(/,/g,""))*1000;
+  const money=raw.match(/\$?\s*(\d[\d,]{3,})/);
+  return money?Number(money[1].replace(/,/g,"")):0;
+}
+
+function isSpecialistCar(){
+  const car=cleanCarForCopy();
+  return /\b(gt2|gt3|gt4|turbo|turbo s|rs|sport classic|speedster|land cruiser|fj40|supra|nsx|viper|gtr|gt-r|r8|amg gt|air cooled|ferrari|lamborghini|mclaren|aston martin|bentley)\b/i.test(car);
+}
+
+function isHighValueOrSpecialist(){
+  return estimatedTargetPrice()>=50000||isSpecialistCar();
+}
+
+function shouldEvaluatePowerSeller(powerSellerReferral={}){
+  const highOrSpecial=isHighValueOrSpecialist();
+  const suggested=!!powerSellerReferral.shouldEvaluate;
+  const wantsHelp=sellerWantsHandsOff();
+  if(sellerWantsToManageSelf()&&!highOrSpecial&&!suggested)return false;
+  return highOrSpecial||suggested||wantsHelp;
+}
+
+function normalizedRegionLabel(){
+  return String(sellState.state||sellState.region||"").trim();
+}
+
+function powerSellerRegionScore(profile){
+  const region=normalizedRegionLabel().toLowerCase();
+  const profileRegion=String(profile.region||"").toLowerCase();
+  if(!region||!profileRegion)return 0;
+  if(profileRegion.includes(region)||region.includes(profileRegion))return 3;
+  if(["california","ca"].includes(region)&&profileRegion.includes("california"))return 3;
+  if(["uk","europe"].includes(region)&&/uk|europe/.test(profileRegion))return 3;
+  return 0;
+}
+
+function powerSellerMakeScore(profile,make){
+  if(!make)return 0;
+  return (profile.makes||[]).some(item=>item.toLowerCase()===make.toLowerCase())?4:0;
+}
+
+function powerSellerPriceScore(profile,price){
+  if(!price)return 0;
+  const min=Number(profile.priceMin||0);
+  const max=Number(profile.priceMax||0);
+  if(min&&price<min)return -1;
+  if(max&&price>max)return -1;
+  return 2;
+}
+
+function observedSellerProfile(seller,index){
+  const platform=platformDisplayName(seller.platform);
+  return {
+    id:`observed-${index}-${String(seller.name||"seller").replace(/[^a-z0-9_-]/gi,"")}`,
+    name:seller.name,
+    displayName:seller.name,
+    region:seller.region||normalizedRegionLabel()||"Worth checking",
+    strengths:["Recent seller activity","Auction management","Platform advice"].slice(0,3),
+    makes:[extractVehicleMake()].filter(Boolean),
+    platforms:[platform].filter(Boolean),
+    note:`I’d ask how recently they’ve handled ${comparableModelLabel().replace(/\s+models$/,"")} sales and what they would do differently from a private listing.`,
+    confidenceLabel:"Worth speaking to",
+    score:99
+  };
+}
+
+function matchPowerSellers(observedSellers=[]){
+  const make=extractVehicleMake();
+  const price=estimatedTargetPrice();
+  const observed=(observedSellers||[]).slice(0,2).map(observedSellerProfile);
+  const scored=POWERSELLERS.map(profile=>{
+    const score=powerSellerMakeScore(profile,make)
+      + powerSellerRegionScore(profile)
+      + powerSellerPriceScore(profile,price)
+      + (sellerWantsHandsOff()?1:0)
+      + (isHighValueOrSpecialist()?1:0);
+    return {...profile,score,confidenceLabel:"Worth speaking to"};
+  })
+    .filter(profile=>profile.score>0)
+    .sort((a,b)=>b.score-a.score);
+  const merged=[...observed,...scored];
+  const unique=[];
+  for(const profile of merged){
+    if(unique.some(existing=>existing.displayName===profile.displayName))continue;
+    unique.push(profile);
+  }
+  if(unique.length)return unique.slice(0,3);
+  return POWERSELLERS.slice(0,2).map(profile=>({...profile,confidenceLabel:"Worth speaking to"}));
+}
+
+function powerSellerFirstName(profile){
+  return String(profile.displayName||profile.name||"them").split(/\s+/)[0];
+}
+
+function renderPowerSellerProfile(profile){
+  const strengths=(profile.strengths||[]).slice(0,4);
+  const platforms=(profile.platforms||[]).slice(0,3).join(", ");
+  const region=profile.region||"Worth checking";
+  return `<div class="observed-seller power-seller-card" onclick="choosePowerSeller('${escapeHtml(profile.id)}')">
+    <div class="sell-rec-badge specialist">${escapeHtml(profile.confidenceLabel||"Worth speaking to")}</div>
+    <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>
+    <span class="observed-seller-meta">${escapeHtml(region)}</span>
+    <span class="observed-seller-why">Why I’d call them</span>
+    <div class="sell-rec-reason">${escapeHtml(profile.note||`I’d ask what they would do differently for ${cleanCarForCopy()} before deciding.`)}</div>
+    <div class="observed-seller-tags">${strengths.map(tag=>`<span class="observed-seller-tag">${escapeHtml(tag)}</span>`).join("")}</div>
+    ${platforms?`<div class="power-seller-platforms"><strong>Usually works with:</strong> ${escapeHtml(platforms)}</div>`:""}
+    <div class="sell-rec-actions"><button class="primary" onclick="event.stopPropagation();choosePowerSeller('${escapeHtml(profile.id)}')">Speak to ${escapeHtml(powerSellerFirstName(profile))}</button></div>
+  </div>`;
+}
+
 function powerSellerSpecialties(){
   const car=cleanCarForCopy();
   const tags=[];
@@ -2082,17 +2286,10 @@ function chipsHTML(chips){
 function homeHeroHTML(){
   return `<div class="hero" id="hero"><div class="hero-inner">
     <div class="hero-logo">S</div>
-    <h1>Sell your enthusiast car with better market judgment.</h1>
-    <div class="hero-sub">Tell Sam what we're selling today. In under a minute, he'll tell you where he'd sell it and why.</div>
-    <div class="hero-promise">
-      <span><strong>Data, not opinions.</strong> Recent market evidence.</span>
-      <span><strong>Platform or PowerSeller.</strong> Sometimes the best answer isn't a platform.</span>
-      <span><strong>You decide.</strong> Nothing gets sent without your approval.</span>
-    </div>
-    <div class="hero-chips">
-      <button class="chip" onclick="startSellFlow()">Sell my car</button>
-    </div>
-    <div class="hero-powered">Powered by The Daily Vroom</div>
+    <div class="hero-kicker">Hi, I'm Sam.</div>
+    <h1>What are we selling today?</h1>
+    <div class="hero-sub">Tell me the car. I'll tell you exactly what I'd do if it were mine.</div>
+    <div class="hero-tagline">Recommendations are based on recent market activity, not sponsorships. Nothing gets sent anywhere until you approve it.</div>
   </div></div>`;
 }
 function showPowerSellerExplainer(){
@@ -2101,6 +2298,10 @@ function showPowerSellerExplainer(){
 }
 function powerSellerExplainerText(){
   return "A PowerSeller is someone who regularly manages auction sales for other people. A good one can prep the car, write or shape the listing, answer buyer questions, live in the comments, handle logistics and choose the platform they think gives the car the best shot.\n\nThey are not automatically better than selling it yourself. For some cars I’d keep it simple and go straight to a platform. For higher-value or specialist cars, I may suggest speaking to one before deciding.\n\nNobody is paying to be recommended here. If I show a PowerSeller later, it is because the available data and your car details make them worth considering, and you’ll see more information before you choose.";
+}
+function showRecommendationExplainer(){
+  hideHero();
+  addMsg("sam","I start with recent market activity. If there is enough recent data, I use that. If the signal is too thin, I widen the window rather than pretending the answer is stronger than it is.\n\nThen I weigh your car, timing, location and how much of the sale you want to manage yourself. Sometimes that points straight to a platform. Sometimes I’d speak to a PowerSeller first. Either way, nobody is paying to be recommended and nothing gets sent until you approve it.","",chipsHTML(["Sell my car"]));
 }
 function newConversation(){
   history.length=0;
