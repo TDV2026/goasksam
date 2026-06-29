@@ -261,6 +261,14 @@ body{
 .power-seller-feature-main{display:flex;flex-direction:column;gap:9px;}
 .power-seller-feature .observed-seller-name{font-size:20px;}
 .power-seller-feature .sell-rec-reason{font-size:14px;max-width:700px;}
+.power-seller-feature>.sell-rec-actions{align-self:end;min-width:150px;}
+.power-seller-feature>.sell-rec-actions button{flex:0 0 auto;width:100%;background:white;color:#171717;border:1px solid #d8d2c6;}
+.power-seller-profile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:720px;}
+.power-seller-profile-block{border:1px solid #efe8d8;background:white;border-radius:12px;padding:10px 11px;}
+.power-seller-profile-label{font-size:9px;text-transform:uppercase;letter-spacing:.55px;color:#9a8b72;font-weight:850;margin-bottom:6px;}
+.power-seller-chip-row{display:flex;flex-wrap:wrap;gap:6px;}
+.power-seller-chip{border:1px solid #e7dcc6;background:#fffdf7;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:850;color:#6f4b05;}
+.power-seller-chip.platform{background:#f8f8f5;color:#171717;border-color:#e1e1dc;}
 .power-seller-alt-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px;}
 .power-seller-mini{border:1px solid #eee7d8;background:#fffdf7;border-radius:13px;padding:12px;display:flex;flex-direction:column;gap:6px;}
 .power-seller-mini .observed-seller-name{font-size:15px;}
@@ -311,6 +319,7 @@ body{
   .sell-rec-grid{grid-template-columns:1fr}
   .observed-sellers{grid-template-columns:1fr}
   .power-seller-feature{grid-template-columns:1fr}
+  .power-seller-profile-grid{grid-template-columns:1fr}
   .power-seller-alt-row{grid-template-columns:1fr}
   .sell-rec-notes{grid-template-columns:1fr}
   .sell-rec-evidence-list{grid-template-columns:1fr}
@@ -409,12 +418,12 @@ const POWERSELLERS=[
     name:"Morgan",
     displayName:"Morgan",
     region:"Southeast",
-    strengths:["4x4 specialists","Buyer questions","Transport help"],
+    strengths:["American performance","Muscle cars","Buyer questions","Platform advice"],
     makes:["Toyota","Land Rover","Ford"],
     priceMin:40000,
     priceMax:null,
     platforms:["Bring a Trailer","Cars & Bids"],
-    note:"A useful call for trucks and 4x4s where condition, questions and logistics can matter as much as the listing venue."
+    note:"A good first call when the car needs more than just choosing a platform: prep, questions, comments and the right auction venue all matter."
   },
   {
     id:"placeholder-jordan",
@@ -1431,16 +1440,17 @@ async function showSellRecommendation(){
     <div class="platform-compact" onclick="chooseSellOption('${escapeHtml(option.key)}')">
       <div>
         <div class="platform-compact-title">${escapeHtml(option.name)}</div>
-        <div class="platform-compact-copy">${escapeHtml(option.rankReason||option.reason||"Worth comparing if the practical fit is better.")}</div>
+        <div class="platform-compact-copy">${escapeHtml(compactPlatformCopy(option,primaryPlatform))}</div>
       </div>
-      <div class="platform-compact-action">Consider</div>
+      <div class="platform-compact-action">Compare</div>
     </div>`;
 
   const featuredPowerSeller=powerSellerProfiles[0]||null;
   const secondaryPowerSellers=powerSellerProfiles.slice(1,3);
+  const featuredPowerSellerName=featuredPowerSeller?powerSellerFirstName(featuredPowerSeller):"";
   const powerSellerHTML=featuredPowerSeller?`
-    <div class="sell-section-label">People I’d call first</div>
-    <div class="sell-section-note">I would not treat this as a directory. If I had to make one first call, it would be this.</div>
+    <div class="sell-section-label">Sam’s recommendation</div>
+    <div class="sell-section-note">Talk to ${escapeHtml(featuredPowerSellerName)} first. If I owned this car, that’s the call I’d make before deciding anything else.</div>
     ${renderFeaturedPowerSellerProfile(featuredPowerSeller)}
     ${secondaryPowerSellers.length?`<div class="sell-section-label" style="margin-top:12px">Want another opinion?</div><div class="power-seller-alt-row">${secondaryPowerSellers.map((profile,index)=>renderMiniPowerSellerProfile(profile,index===0?"Also worth a call":"Alternative option")).join("")}</div>`:""}
   `:"";
@@ -1448,8 +1458,8 @@ async function showSellRecommendation(){
   const primaryPlatform=platformOptions[0]||null;
   const secondaryPlatforms=platformOptions.slice(1,3);
   const platformCardsHTML=primaryPlatform?`
-    <div class="sell-section-label">${powerSellerHTML?"If you’d rather sell it yourself":"My recommendation"}</div>
-    ${powerSellerHTML?`<div class="sell-section-note">If you want to manage the sale yourself, this is where I’d start.</div>`:""}
+    <div class="sell-section-label">${powerSellerHTML?"If you still want to run it yourself":"My recommendation"}</div>
+    ${powerSellerHTML?`<div class="sell-section-note">If you decide to manage the sale yourself, this is where I’d begin.</div>`:""}
     <div class="sell-rec-grid">${renderOptionCard(primaryPlatform)}</div>
     ${secondaryPlatforms.length?`<div class="platform-compact-list"><div class="sell-section-note" style="margin:0">Also worth comparing</div>${secondaryPlatforms.map(renderCompactPlatform).join("")}</div>`:""}
   `:"";
@@ -1464,7 +1474,7 @@ async function showSellRecommendation(){
     </div>
     ${powerSellerHTML}
     ${platformCardsHTML}
-    <div class="sam-text after-results">${hasTwoRouteTradeoff(routeOptions)?"Which choice fits how you want to sell? You can choose either, or ask me to compare the tradeoffs.":"Which direction feels right? You can pick one, or ask me to compare the tradeoffs."}</div>
+    <div class="sam-text after-results">${powerSellerHTML?"You can start with the call, run it yourself, or ask me to compare the tradeoffs.":(hasTwoRouteTradeoff(routeOptions)?"Which choice fits how you want to sell? You can choose either, or ask me to compare the tradeoffs.":"Which direction feels right? You can pick one, or ask me to compare the tradeoffs.")}</div>
   </div></div>`;
   sellState.generatedPrimaryName=sellState.sellOptions[0]?.name||null;
   sellState.generatedSecondaryName=sellState.sellOptions[1]?.name||null;
@@ -1924,7 +1934,7 @@ function hasTwoRouteTradeoff(routes){
 
 function resultHeaderTitle(routes){
   if((sellState.sellOptions||[]).some(option=>option.key==="specialist")){
-    return `If this were my ${sellState.carName||"car"}, I’d speak to a PowerSeller before choosing the platform.`;
+    return `If this were my ${sellState.carName||"car"}, I wouldn’t choose a platform just yet.`;
   }
   if(hasTwoRouteTradeoff(routes))return `Two choices are worth considering for the ${sellState.carName||"car"}.`;
   return `Here’s what I’d do with the ${sellState.carName||"car"}.`;
@@ -2263,23 +2273,35 @@ function renderPowerSellerProfile(profile){
   </div>`;
 }
 
+function powerSellerPlatformChips(profile){
+  return (profile.platforms||[]).slice(0,3)
+    .map(name=>`<span class="power-seller-chip platform">${escapeHtml(name)}</span>`)
+    .join("");
+}
+
+function powerSellerStrengthChips(profile){
+  return (profile.strengths||[]).slice(0,4)
+    .map(tag=>`<span class="power-seller-chip">${escapeHtml(tag)}</span>`)
+    .join("");
+}
+
 function renderFeaturedPowerSellerProfile(profile){
   if(!profile)return "";
-  const strengths=(profile.strengths||[]).slice(0,4);
-  const platforms=(profile.platforms||[]).slice(0,3).join(", ");
   const firstName=powerSellerFirstName(profile);
   return `<div class="power-seller-feature" onclick="choosePowerSeller('${escapeHtml(profile.id)}')">
     <div class="power-seller-feature-main">
       <div class="sell-rec-badge specialist">Sam's first call</div>
       <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>
       <span class="observed-seller-meta">${escapeHtml(profile.region||"Worth checking")}</span>
-      <span class="observed-seller-why">Why ${escapeHtml(firstName)}?</span>
+      <span class="observed-seller-why">Why ${escapeHtml(firstName)} first?</span>
       <div class="sell-rec-reason">${escapeHtml(profile.note||`I’d start here because this looks like the kind of car where auction management may matter as much as platform choice.`)}</div>
-      <div class="observed-seller-tags">${strengths.map(tag=>`<span class="observed-seller-tag">${escapeHtml(tag)}</span>`).join("")}</div>
-      ${platforms?`<div class="power-seller-platforms"><strong>Usually works with:</strong> ${escapeHtml(platforms)}</div>`:""}
+      <div class="power-seller-profile-grid">
+        ${powerSellerStrengthChips(profile)?`<div class="power-seller-profile-block"><div class="power-seller-profile-label">Best known for</div><div class="power-seller-chip-row">${powerSellerStrengthChips(profile)}</div></div>`:""}
+        ${powerSellerPlatformChips(profile)?`<div class="power-seller-profile-block"><div class="power-seller-profile-label">Works with</div><div class="power-seller-chip-row">${powerSellerPlatformChips(profile)}</div></div>`:""}
+      </div>
       <ul class="sell-rec-bullets">${powerSellerWhyBullets(profile,0).slice(0,3).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
     </div>
-    <div class="sell-rec-actions"><button class="primary" onclick="event.stopPropagation();choosePowerSeller('${escapeHtml(profile.id)}')">Speak to ${escapeHtml(firstName)}</button></div>
+    <div class="sell-rec-actions"><button class="ghost" onclick="event.stopPropagation();choosePowerSeller('${escapeHtml(profile.id)}')">Talk to ${escapeHtml(firstName)} →</button></div>
   </div>`;
 }
 
@@ -2308,6 +2330,8 @@ function powerSellerSpecialties(){
     tags.push("NSX","Japanese performance");
   }else if(/\bbmw\b/i.test(car)){
     tags.push("BMW","Performance cars");
+  }else if(/\bford\b/i.test(car)&&/\bmustang\b/i.test(car)){
+    tags.push("Mustang","American performance","Muscle cars");
   }else{
     tags.push("Auction management");
   }
@@ -2317,12 +2341,13 @@ function powerSellerSpecialties(){
 
 function powerSellerWhyBullets(seller,index){
   const carLabel=comparableModelLabel().replace(/\s+models$/,"");
+  const firstName=powerSellerFirstName(seller);
   const bullets=[
-    `I’d ask how recently they’ve handled ${carLabel} sales and where they’d run yours.`,
-    sellState.state?`They are worth checking because handoff and logistics matter in ${sellState.state}.`:"Worth checking if you want someone else managing the auction noise.",
-    "A good PowerSeller should explain platform choice, prep, comments, logistics and commission clearly."
+    `I’d ask ${firstName} where they would run this car and why.`,
+    sellState.state?`Handoff and logistics matter in ${sellState.state}, especially if you do not want to manage every buyer question yourself.`:"Worth checking if you want someone else managing the auction noise.",
+    "Before deciding, I’d want a clear case on platform choice, prep, comments, logistics and commission."
   ];
-  if(index===0)bullets[0]=`This is the first name I’d check for cars like this.`;
+  if(index===0)bullets[0]=`This is the first call I’d make for this car.`;
   return bullets;
 }
 
@@ -2399,8 +2424,8 @@ function routeEvidenceBullets(route,index,routes){
 
 function resultSummaryLine(options,routes=[]){
   if((options||[]).some(option=>option.key==="specialist")){
-    if(sellerWantsToManageSelf())return "You told me you’d rather manage it yourself. I’d normally agree, but this is one of the few cars where I’d still speak to a PowerSeller before deciding.";
-    return "For this kind of car, who runs the sale can matter almost as much as where it runs.";
+    if(sellerWantsToManageSelf())return "You told me you’d rather manage it yourself. I’d normally agree, but I’d still hear one PowerSeller out before deciding.";
+    return "I’d speak to one PowerSeller first, then decide where it should go live.";
   }
   if(hasTwoRouteTradeoff(routes)){
     const first=routes[0], second=routes[1];
@@ -2445,6 +2470,12 @@ function resultSummaryLine(options,routes=[]){
     ],sellState.carName,primary.name);
   }
   return "I’m only showing choices I can stand behind.";
+}
+
+function compactPlatformCopy(option,primaryPlatform){
+  const primaryName=primaryPlatform?.name||"the first choice";
+  if(!option)return "Worth comparing, but it is not where I’d start.";
+  return `Also looked at: ${option.name}. Worth considering, but I’d still start with ${primaryName}.`;
 }
 
 function marketEvidenceSentence(option){
@@ -2498,7 +2529,7 @@ function medianDeltaSentence(option, other){
   return pickCopy([
     `Recent comparable ${comparableModelLabel()} have consistently favoured this platform.`,
     `This is where I’d start if you are selling it yourself.`,
-    `The strongest recent results point this way.`
+    `This platform has had the strongest run recently.`
   ],sellState.carName,optionName,other.name,a,b);
 }
 
