@@ -575,9 +575,69 @@ function genericMakeMissingDetail(lower,year){
   };
 }
 
+const VEHICLE_PRODUCTION_RULES=[
+  {make:"Jaguar",model:"E-Type",match:/\bjaguar\b.*\be[-\s]?type\b|\be[-\s]?type\b.*\bjaguar\b/i,start:1961,end:1974,suggestion:"Jaguar F-Type",suggestionStart:2013},
+  {make:"Jaguar",model:"F-Type",match:/\bjaguar\b.*\bf[-\s]?type\b|\bf[-\s]?type\b.*\bjaguar\b/i,start:2013,end:2024},
+  {make:"Toyota",model:"Supra",match:/\btoyota\b.*\bsupra\b|\bsupra\b.*\btoyota\b/i,ranges:[[1978,2002],[2020,2026]]},
+  {make:"Acura",model:"NSX",match:/\b(acura|honda)\b.*\bnsx\b|\bnsx\b.*\b(acura|honda)\b/i,ranges:[[1991,2005],[2017,2022]]},
+  {make:"Nissan",model:"370Z",match:/\bnissan\b.*\b370z\b|\b370z\b.*\bnissan\b/i,start:2009,end:2020},
+  {make:"Nissan",model:"GT-R",match:/\bnissan\b.*\bgt[-\s]?r\b|\bgt[-\s]?r\b.*\bnissan\b/i,start:2009,end:2024},
+  {make:"Audi",model:"R8",match:/\baudi\b.*\br8\b|\br8\b.*\baudi\b/i,start:2008,end:2023},
+  {make:"Porsche",model:"911",match:/\bporsche\b.*\b911\b|\b911\b.*\bporsche\b/i,start:1964,end:2026},
+  {make:"Porsche",model:"Cayman",match:/\bporsche\b.*\bcayman\b|\bcayman\b.*\bporsche\b/i,start:2006,end:2026},
+  {make:"Porsche",model:"Boxster",match:/\bporsche\b.*\bboxster\b|\bboxster\b.*\bporsche\b/i,start:1997,end:2026},
+  {make:"Porsche",model:"944",match:/\bporsche\b.*\b944\b|\b944\b.*\bporsche\b/i,start:1982,end:1991},
+  {make:"Porsche",model:"928",match:/\bporsche\b.*\b928\b|\b928\b.*\bporsche\b/i,start:1978,end:1995},
+  {make:"BMW",model:"M3",match:/\bbmw\b.*\bm3\b|\bm3\b.*\bbmw\b/i,start:1986,end:2026},
+  {make:"BMW",model:"Z4",match:/\bbmw\b.*\bz4\b|\bz4\b.*\bbmw\b/i,start:2003,end:2026},
+  {make:"BMW",model:"2002",match:/\bbmw\b.*\b2002\b|\b2002\b.*\bbmw\b/i,start:1968,end:1976},
+  {make:"Ferrari",model:"360",match:/\bferrari\b.*\b360\b|\b360\b.*\bferrari\b/i,start:1999,end:2005},
+  {make:"Ferrari",model:"F430",match:/\bferrari\b.*\bf430\b|\bf430\b.*\bferrari\b/i,start:2005,end:2009},
+  {make:"Ferrari",model:"458",match:/\bferrari\b.*\b458\b|\b458\b.*\bferrari\b/i,start:2010,end:2015},
+  {make:"Ferrari",model:"488",match:/\bferrari\b.*\b488\b|\b488\b.*\bferrari\b/i,start:2016,end:2019},
+  {make:"Alfa Romeo",model:"Spider",match:/\balfa(?:\s+romeo)?\b.*\bspider\b|\bspider\b.*\balfa(?:\s+romeo)?\b/i,start:1966,end:1994},
+  {make:"Alfa Romeo",model:"4C",match:/\balfa(?:\s+romeo)?\b.*\b4c\b|\b4c\b.*\balfa(?:\s+romeo)?\b/i,start:2014,end:2020}
+];
+
+function vehicleYearFromText(text){
+  const value=String(text||"").match(/\b(19|20)\d{2}\b/)?.[0];
+  return value?Number(value):null;
+}
+
+function yearInExcludedRange(year,rule){
+  return (rule.exclude||[]).some(([start,end])=>year>=start&&year<=end);
+}
+
+function validYearForRule(year,rule){
+  if(rule.ranges)return rule.ranges.some(([start,end])=>year>=start&&year<=end);
+  return year>=rule.start&&year<=rule.end&&!yearInExcludedRange(year,rule);
+}
+
+function vehicleValidationIssue(text){
+  const raw=String(text||"").trim();
+  const year=vehicleYearFromText(raw);
+  if(!year)return null;
+  const rule=VEHICLE_PRODUCTION_RULES.find(item=>item.match.test(raw));
+  if(!rule)return null;
+  if(validYearForRule(year,rule))return null;
+  const replacement=rule.suggestion&&(!rule.suggestionStart||year>=rule.suggestionStart);
+  const question=replacement
+    ? `The ${rule.model} wasn't produced in ${year}. Did you mean the ${year} ${rule.suggestion}?`
+    : `The ${rule.model} wasn't produced in ${year}. Which ${rule.make} model are we talking about?`;
+  return {
+    type:"invalid_vehicle",
+    ask:question,
+    chips:replacement?[`${year} ${rule.suggestion}`,"Change car","Not sure"]:["Change car","Not sure"],
+    suggestion:replacement?`${year} ${rule.suggestion}`:null,
+    rule
+  };
+}
+
 function missingVehicleDetail(text){
   const lower=String(text||"").toLowerCase();
   const year=String(text||"").match(/\b(19|20)\d{2}\b/)?.[0];
+  const impossible=vehicleValidationIssue(text);
+  if(impossible)return impossible;
   const hasKnownMakeOrModel=/\b(porsche|ferrari|bmw|mercedes|benz|audi|lamborghini|aston|bentley|mclaren|chevrolet|chevy|corvette|ford|mustang|dodge|viper|toyota|honda|nissan|subaru|land rover|range rover|jaguar|maserati|alfa|lotus|911|gt3|gt2|turbo|m2|m3|m4|m5|amg|rs|sti|supra|nsx|gtr|camaro|r8|rs3|rs4|rs5|rs6|rs7|s3|s4|s5|s6|s7|tt)\b/.test(lower);
   if(!looksLikeVehicleText(text)&&!hasKnownMakeOrModel)return null;
   if(/\bporsche\b/.test(lower)&&!/\b(911|912|914|924|928|944|968|356|964|993|996|997|991|992|boxster|cayman|panamera|cayenne|macan|gt2|gt3|turbo|speedster|targa|carrera)\b/.test(lower)){
@@ -611,6 +671,47 @@ function currentMissingVehicleDetail(){
 function askMissingVehicleDetail(missing){
   sellState.step=17;
   addMsg("sam",missing.ask,"",chipsHTML(missing.chips));
+}
+
+function handleVehicleValidationAnswer(q){
+  const lower=String(q||"").toLowerCase().trim();
+  if(/\b(change car|start over|wrong car|different car)\b/i.test(lower)){
+    sellState.carName=null;sellState.carRaw=null;sellState.vehicleDetailSkipped=false;sellState.step=1;
+    addMsg("sam","No problem — what are we selling today? Year, make and model.");
+    return true;
+  }
+  if(/\bnot sure|don.t know|unknown|skip\b/i.test(lower)){
+    addMsg("sam","No problem. I need the actual car before I can recommend where to sell it. What does the badge, registration or paperwork say?");
+    return true;
+  }
+  const currentIssue=currentMissingVehicleDetail();
+  if(currentIssue?.suggestion&&/^(yes|yep|yeah|correct|that.s right|looks right|that one)$/i.test(lower)){
+    sellState.carName=currentIssue.suggestion;
+    sellState.carRaw=currentIssue.suggestion;
+    sellState.vehicleDetailSkipped=false;
+    addMsg("sam",`Got it — ${sellState.carName}.`);
+    if(sellState.returnToConfirm){goBackToConfirm();return true;}
+    sellState.step=11;
+    addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+    return true;
+  }
+  if(looksLikeVehicleText(q)){
+    sellState.carName=cleanInitialCarText(q)||q;
+    sellState.carRaw=sellState.carName;
+    sellState.vehicleDetailSkipped=false;
+    const missing=currentMissingVehicleDetail();
+    if(missing){
+      askMissingVehicleDetail(missing);
+      return true;
+    }
+    addMsg("sam",`Got it — ${sellState.carName}.`);
+    if(sellState.returnToConfirm){goBackToConfirm();return true;}
+    sellState.step=11;
+    addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+    return true;
+  }
+  addMsg("sam","I need the actual year, make and model before I can keep going. Something like '2014 Jaguar F-Type' or '1967 Jaguar E-Type'.");
+  return true;
 }
 
 function sellerFunnelReply(){
@@ -773,6 +874,10 @@ function handleSellStep(q){
   }
 
   if(step===17){
+    const currentIssue=currentMissingVehicleDetail();
+    if(currentIssue?.type==="invalid_vehicle"){
+      return handleVehicleValidationAnswer(q);
+    }
     if(/not sure|don.t know|skip|unknown/i.test(lower)){
       sellState.vehicleDetailSkipped=true;
       addMsg("sam","No problem — I'll keep it broad for now, but the recommendation may be more directional without the exact model.");
@@ -996,6 +1101,12 @@ function showConfirmation(){
 }
 
 async function showSellRecommendation(){
+  const vehicleIssue=currentMissingVehicleDetail();
+  if(vehicleIssue){
+    sellState.returnToConfirm=true;
+    askMissingVehicleDetail(vehicleIssue);
+    return;
+  }
   sellState.step=12;
   hideHero();
   const msgs=document.getElementById("msgs");
