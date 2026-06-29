@@ -484,6 +484,35 @@ function looksLikeVehicleText(text){
   return (hasYear&&hasVehicleTerm)||explicitSell;
 }
 
+const MAKE_MODEL_CLARIFICATIONS=[
+  {make:/\bmercedes(?:-benz)?\b|\bbenz\b/,name:"Mercedes-Benz",chips:["SL","AMG GT","G-Class","E-Class","S-Class","190E","Not sure"],model:/\b(sl|amg\s*gt|g[ -]?class|g\d{2,3}|e[ -]?class|e\d{2,3}|s[ -]?class|s\d{2,3}|c[ -]?class|c\d{2,3}|190e|pagoda|w\d{3}|clk|cl|cls|slk|sls|gla|glc|gle|gls)\b/},
+  {make:/\bnissan\b/,name:"Nissan",chips:["GT-R","370Z","Z","Skyline","300ZX","Patrol","Not sure"],model:/\b(gt-?r|gtr|370z|350z|300zx|280z|260z|240z|fairlady|skyline|silvia|patrol|figaro|z\b|sentra|maxima|altima|z32|r32|r33|r34|r35)\b/},
+  {make:/\btoyota\b/,name:"Toyota",chips:["Supra","Land Cruiser","Celica","MR2","FJ40","4Runner","Not sure"],model:/\b(supra|land\s+cruiser|fj\d{2}|celica|mr2|2000gt|4runner|hilux|corolla|crown|ae86|prado|sequoia|tacoma|pickup)\b/},
+  {make:/\bhonda\b/,name:"Honda",chips:["S2000","Civic Type R","NSX","Integra","Prelude","Not sure"],model:/\b(s2000|civic|type\s*r|nsx|integra|prelude|accord|crx|del\s+sol|beat)\b/},
+  {make:/\bford\b/,name:"Ford",chips:["Mustang","GT","Bronco","F-150","Escort RS","Not sure"],model:/\b(mustang|gt\b|gt40|bronco|f-?150|f-?250|escort|rs200|cosworth|thunderbird|ranger|focus|fiesta|raptor)\b/},
+  {make:/\bchevrolet\b|\bchevy\b/,name:"Chevrolet",chips:["Corvette","Camaro","Impala","Chevelle","C10","Not sure"],model:/\b(corvette|camaro|impala|chevelle|c10|c\/10|nova|bel\s*air|suburban|tahoe|silverado|el\s+camino|ssr|z06|zr1)\b/},
+  {make:/\bdodge\b/,name:"Dodge",chips:["Viper","Challenger","Charger","Demon","Not sure"],model:/\b(viper|challenger|charger|demon|hellcat|daytona|ram|durango|stealth|super\s*bee)\b/},
+  {make:/\bsubaru\b/,name:"Subaru",chips:["WRX STI","BRZ","Impreza","Legacy","SVX","Not sure"],model:/\b(wrx|sti|brz|impreza|legacy|svx|forester|outback|22b|baja)\b/},
+  {make:/\bland\s+rover\b|\brange\s+rover\b/,name:"Land Rover",chips:["Defender","Range Rover","Discovery","Series","Not sure"],model:/\b(defender|range\s+rover|discovery|series\s+[i1-3]+|lr3|lr4|sport|evoque|velar)\b/},
+  {make:/\bjaguar\b/,name:"Jaguar",chips:["E-Type","XK","XJ","F-Type","XJS","Not sure"],model:/\b(e-?type|xk|xj|f-?type|xjs|xjr|xfr|mk2|d-?type)\b/},
+  {make:/\blamborghini\b/,name:"Lamborghini",chips:["Gallardo","Huracan","Aventador","Diablo","Countach","Not sure"],model:/\b(gallardo|huracan|aventador|diablo|countach|murcielago|miura|urus|espada|jalpa)\b/},
+  {make:/\baston(?:\s+martin)?\b/,name:"Aston Martin",chips:["Vantage","DB9","DBS","Vanquish","DB11","Not sure"],model:/\b(vantage|db[257911s]*|dbs|vanquish|rapide|lagonda|valkyrie|virage)\b/},
+  {make:/\bbentley\b/,name:"Bentley",chips:["Continental GT","Azure","Arnage","Mulsanne","Not sure"],model:/\b(continental|gt\b|azure|arnage|mulsanne|brooklands|bentayga|turbo\s*r|flying\s+spur)\b/},
+  {make:/\bmclaren\b/,name:"McLaren",chips:["570S","600LT","650S","720S","Artura","Not sure"],model:/\b(540c|570s|600lt|650s|675lt|720s|765lt|artura|mp4|p1|senna|gt\b)\b/},
+  {make:/\bmaserati\b/,name:"Maserati",chips:["GranTurismo","Quattroporte","Ghibli","MC20","Not sure"],model:/\b(granturismo|quattroporte|ghibli|mc20|3200|4200|merak|bora|khamsin|levante)\b/},
+  {make:/\blotus\b/,name:"Lotus",chips:["Elise","Exige","Esprit","Evora","Emira","Not sure"],model:/\b(elise|exige|esprit|evora|emira|elan|europa|elite|eclat)\b/}
+];
+
+function genericMakeMissingDetail(lower,year){
+  const match=MAKE_MODEL_CLARIFICATIONS.find(item=>item.make.test(lower)&&!item.model.test(lower));
+  if(!match)return null;
+  return {
+    type:"model",
+    ask:`${match.name} made a lot of different cars${year?` in ${year}`:""}. Which model are we talking about? Pick one below, or type the exact model if it is not shown.`,
+    chips:match.chips
+  };
+}
+
 function missingVehicleDetail(text){
   const lower=String(text||"").toLowerCase();
   const year=String(text||"").match(/\b(19|20)\d{2}\b/)?.[0];
@@ -507,6 +536,8 @@ function missingVehicleDetail(text){
   if(/\balfa(?:\s+romeo)?\b/.test(lower)&&!/\b(spider|gtv|giulia|giulietta|alfetta|164|sz|rz|4c|8c|stelvio|quadrifoglio|duetto|montreal)\b/.test(lower)){
     return {type:"model",ask:"Which Alfa Romeo model or trim is it? Pick one below, or type the exact model if it is not shown.",chips:["Spider","GTV","Giulia","164","Montreal","Not sure"]};
   }
+  const genericMissing=genericMakeMissingDetail(lower,year);
+  if(genericMissing)return genericMissing;
   return null;
 }
 
