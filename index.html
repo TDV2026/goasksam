@@ -257,6 +257,20 @@ body{
 .observed-seller li::marker{color:#166534;}
 .power-seller-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
 .power-seller-card{background:#fffdf7;border-color:#eadfca;}
+.power-seller-feature{border:2px solid #171717;background:#fffdf7;border-radius:16px;padding:18px;display:grid;grid-template-columns:1fr auto;gap:12px;margin-top:4px;}
+.power-seller-feature-main{display:flex;flex-direction:column;gap:9px;}
+.power-seller-feature .observed-seller-name{font-size:20px;}
+.power-seller-feature .sell-rec-reason{font-size:14px;max-width:700px;}
+.power-seller-alt-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px;}
+.power-seller-mini{border:1px solid #eee7d8;background:#fffdf7;border-radius:13px;padding:12px;display:flex;flex-direction:column;gap:6px;}
+.power-seller-mini .observed-seller-name{font-size:15px;}
+.power-seller-mini .sell-rec-actions button{padding:8px 9px;}
+.platform-compact-list{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+.platform-compact{border:1px solid #e5e5e2;background:#fbfbfa;border-radius:12px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;transition:border-color .15s,background .15s;}
+.platform-compact:hover{border-color:#c9c9c5;background:white;}
+.platform-compact-title{font-weight:850;color:#171717;font-size:13px;}
+.platform-compact-copy{font-size:12px;color:#555;line-height:1.4;margin-top:2px;}
+.platform-compact-action{font-size:11px;font-weight:850;color:#171717;white-space:nowrap;}
 .power-seller-platforms{font-size:11px;color:#6d6048;line-height:1.45;font-weight:650;}
 .sell-rec-actions{display:flex;gap:8px;margin-top:4px;}
 .sell-rec-actions button{flex:1;padding:10px 9px;border-radius:10px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;}
@@ -296,6 +310,8 @@ body{
   .cards-grid{grid-template-columns:1fr}
   .sell-rec-grid{grid-template-columns:1fr}
   .observed-sellers{grid-template-columns:1fr}
+  .power-seller-feature{grid-template-columns:1fr}
+  .power-seller-alt-row{grid-template-columns:1fr}
   .sell-rec-notes{grid-template-columns:1fr}
   .sell-rec-evidence-list{grid-template-columns:1fr}
   .hero-promise{flex-direction:column;align-items:center;gap:8px}
@@ -1411,8 +1427,32 @@ async function showSellRecommendation(){
         <div class="sell-rec-actions"><button class="${option.key==="primary"||String(option.cardClass||"").includes("primary-rec")?"primary":"ghost"}" onclick="event.stopPropagation();chooseSellOption('${escapeHtml(option.key)}')">${escapeHtml(option.actionLabel||"Consider this")}</button></div>
       </div>`;
 
-  const powerSellerCardsHTML=powerSellerProfiles.map(renderPowerSellerProfile).join("");
-  const platformCardsHTML=sellState.sellOptions.filter(option=>option.key!=="specialist").map(renderOptionCard).join("");
+  const renderCompactPlatform=option=>`
+    <div class="platform-compact" onclick="chooseSellOption('${escapeHtml(option.key)}')">
+      <div>
+        <div class="platform-compact-title">${escapeHtml(option.name)}</div>
+        <div class="platform-compact-copy">${escapeHtml(option.rankReason||option.reason||"Worth comparing if the practical fit is better.")}</div>
+      </div>
+      <div class="platform-compact-action">Consider</div>
+    </div>`;
+
+  const featuredPowerSeller=powerSellerProfiles[0]||null;
+  const secondaryPowerSellers=powerSellerProfiles.slice(1,3);
+  const powerSellerHTML=featuredPowerSeller?`
+    <div class="sell-section-label">People I’d call first</div>
+    <div class="sell-section-note">I would not treat this as a directory. If I had to make one first call, it would be this.</div>
+    ${renderFeaturedPowerSellerProfile(featuredPowerSeller)}
+    ${secondaryPowerSellers.length?`<div class="sell-section-label" style="margin-top:12px">Want another opinion?</div><div class="power-seller-alt-row">${secondaryPowerSellers.map((profile,index)=>renderMiniPowerSellerProfile(profile,index===0?"Also worth a call":"Alternative option")).join("")}</div>`:""}
+  `:"";
+  const platformOptions=sellState.sellOptions.filter(option=>option.key!=="specialist");
+  const primaryPlatform=platformOptions[0]||null;
+  const secondaryPlatforms=platformOptions.slice(1,3);
+  const platformCardsHTML=primaryPlatform?`
+    <div class="sell-section-label">${powerSellerHTML?"If you’d rather sell it yourself":"My recommendation"}</div>
+    ${powerSellerHTML?`<div class="sell-section-note">If you want to manage the sale yourself, this is where I’d start.</div>`:""}
+    <div class="sell-rec-grid">${renderOptionCard(primaryPlatform)}</div>
+    ${secondaryPlatforms.length?`<div class="platform-compact-list"><div class="sell-section-note" style="margin:0">Also worth comparing</div>${secondaryPlatforms.map(renderCompactPlatform).join("")}</div>`:""}
+  `:"";
 
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
@@ -1422,8 +1462,8 @@ async function showSellRecommendation(){
       <div class="sell-rec-title">${escapeHtml(resultHeaderTitle(routeOptions))}</div>
       <div class="sell-rec-subtitle">${escapeHtml(resultSummaryLine(sellState.sellOptions,routeOptions))}</div>
     </div>
-    ${powerSellerCardsHTML?`<div class="sell-section-label">People I’d call first</div><div class="sell-section-note">I would not treat this as a directory. These are the PowerSellers I’d actually speak to for this car.</div><div class="observed-sellers power-seller-grid">${powerSellerCardsHTML}</div>`:""}
-    ${platformCardsHTML?`<div class="sell-section-label">${powerSellerCardsHTML?"If you’d rather sell it yourself":"My recommendation"}</div>${powerSellerCardsHTML?`<div class="sell-section-note">If you want to manage the sale yourself, this is where I’d start.</div>`:""}<div class="sell-rec-grid">${platformCardsHTML}</div>`:""}
+    ${powerSellerHTML}
+    ${platformCardsHTML}
     <div class="sam-text after-results">${hasTwoRouteTradeoff(routeOptions)?"Which choice fits how you want to sell? You can choose either, or ask me to compare the tradeoffs.":"Which direction feels right? You can pick one, or ask me to compare the tradeoffs."}</div>
   </div></div>`;
   sellState.generatedPrimaryName=sellState.sellOptions[0]?.name||null;
@@ -2220,6 +2260,37 @@ function renderPowerSellerProfile(profile){
     <div class="observed-seller-tags">${strengths.map(tag=>`<span class="observed-seller-tag">${escapeHtml(tag)}</span>`).join("")}</div>
     ${platforms?`<div class="power-seller-platforms"><strong>Usually works with:</strong> ${escapeHtml(platforms)}</div>`:""}
     <div class="sell-rec-actions"><button class="primary" onclick="event.stopPropagation();choosePowerSeller('${escapeHtml(profile.id)}')">Speak to ${escapeHtml(powerSellerFirstName(profile))}</button></div>
+  </div>`;
+}
+
+function renderFeaturedPowerSellerProfile(profile){
+  if(!profile)return "";
+  const strengths=(profile.strengths||[]).slice(0,4);
+  const platforms=(profile.platforms||[]).slice(0,3).join(", ");
+  const firstName=powerSellerFirstName(profile);
+  return `<div class="power-seller-feature" onclick="choosePowerSeller('${escapeHtml(profile.id)}')">
+    <div class="power-seller-feature-main">
+      <div class="sell-rec-badge specialist">Sam's first call</div>
+      <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>
+      <span class="observed-seller-meta">${escapeHtml(profile.region||"Worth checking")}</span>
+      <span class="observed-seller-why">Why ${escapeHtml(firstName)}?</span>
+      <div class="sell-rec-reason">${escapeHtml(profile.note||`I’d start here because this looks like the kind of car where auction management may matter as much as platform choice.`)}</div>
+      <div class="observed-seller-tags">${strengths.map(tag=>`<span class="observed-seller-tag">${escapeHtml(tag)}</span>`).join("")}</div>
+      ${platforms?`<div class="power-seller-platforms"><strong>Usually works with:</strong> ${escapeHtml(platforms)}</div>`:""}
+      <ul class="sell-rec-bullets">${powerSellerWhyBullets(profile,0).slice(0,3).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
+    </div>
+    <div class="sell-rec-actions"><button class="primary" onclick="event.stopPropagation();choosePowerSeller('${escapeHtml(profile.id)}')">Speak to ${escapeHtml(firstName)}</button></div>
+  </div>`;
+}
+
+function renderMiniPowerSellerProfile(profile,label){
+  if(!profile)return "";
+  return `<div class="power-seller-mini" onclick="choosePowerSeller('${escapeHtml(profile.id)}')">
+    <div class="sell-rec-badge specialist">${escapeHtml(label||"Also worth a call")}</div>
+    <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>
+    <span class="observed-seller-meta">${escapeHtml(profile.region||"Worth checking")}</span>
+    <div class="sell-rec-reason">${escapeHtml(profile.note||`Worth hearing what they would do before deciding.`)}</div>
+    <div class="sell-rec-actions"><button class="ghost" onclick="event.stopPropagation();choosePowerSeller('${escapeHtml(profile.id)}')">Speak to ${escapeHtml(powerSellerFirstName(profile))}</button></div>
   </div>`;
 }
 
