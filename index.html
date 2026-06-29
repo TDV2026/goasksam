@@ -1325,7 +1325,9 @@ async function showSellRecommendation(){
   const routeFit=decision.routeFit||{};
   const allRouteOptions=routeFit.routes||[];
   sellState.allRouteOptions=allRouteOptions;
-  const evidenceBackedRoutes=allRouteOptions.filter(routeHasTrueComparableEvidence);
+  const evidenceBackedRoutes=allRouteOptions
+    .filter(routeHasTrueComparableEvidence)
+    .filter(route=>!shouldSuppressRouteForSellerRegion(route));
   const preferredRouteOptions=evidenceBackedRoutes
     .filter((route,index,routes)=>routeWorthShowing(route,index,routes[0]));
   const routeOptions=[...preferredRouteOptions];
@@ -1999,6 +2001,17 @@ function findHiddenRouteByText(text){
 
 function routeHasTrueComparableEvidence(route){
   return !!(route?.hasMarketEvidence&&route?.marketEvidence&&(route.marketEvidence.closeSales||route.marketEvidence.relevantSales));
+}
+
+function shouldSuppressRouteForSellerRegion(route){
+  if(!isInternationalSellerRegion())return false;
+  const facts=route?.routeFitFacts||[];
+  return facts.includes("region_mismatch");
+}
+
+function isInternationalSellerRegion(){
+  const region=String(sellState.region||"").toLowerCase();
+  return /\b(uk|europe|australia|middle east)\b/.test(region);
 }
 
 function routeWorthShowing(route,index,primary){
@@ -2780,6 +2793,7 @@ function localPreRoute(q){
     return{reply:funnelReply,chips:["Start the questions"]};
   if(/\b(sell my car|i want to sell|want to sell|selling|to sell)\b/i.test(lower))return{sellTrigger:true,initialCar:q};
   if(/\b(i have|i've got|my car is)\b/i.test(lower)&&looksLikeVehicleText(q))return{sellTrigger:true,initialCar:q};
+  if(looksLikeVehicleText(q))return{sellTrigger:true,initialCar:q};
   if(/\b(the daily vroom|daily vroom|sam gold|who owns|owner|ownership|who is sam|who's sam|who runs|behind goasksam|behind this)\b/i.test(lower))
     return{reply:"Sam Gold owns The Daily Vroom, and GoAskSam is run by a collection of car-market people who want to bring more transparency to the car market. We've built tools like the Import & Domestic Car Calculators, this seller-intelligence tool, and there's more to come. If you're selling a car, tell me what it is and I'll help work out what I’d do.",chips:["Sell my car"]};
   if(/^(u there|you there|hello|hey|hi|yo|are you there)\??$/.test(lower))
