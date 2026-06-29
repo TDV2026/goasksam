@@ -1344,7 +1344,15 @@ async function showSellRecommendation(){
   if(!routeOptions.length){
     const fallback=regionalNoEvidenceFallback();
     sellState.noEvidenceFallback=fallback;
-    addMsg("sam",noEvidenceMessage(fallback));
+    if(fallback){
+      sellState.sellOptions=[fallbackSellOption(fallback)];
+      const row=document.createElement("div");row.className="row sam";
+      row.innerHTML=renderNoEvidenceFallback(fallback);
+      msgs.appendChild(row);
+      row.scrollIntoView({behavior:"smooth",block:"start"});
+    }else{
+      addMsg("sam",noEvidenceMessage(fallback));
+    }
     document.getElementById("btn").disabled=false;
     return;
   }
@@ -1499,6 +1507,7 @@ async function showSellRecommendation(){
 function handleSellRecommendationFollowup(q){
   const lower=q.toLowerCase();
   const options=sellState.sellOptions||[];
+  if(sellState.noEvidenceFallback&&handleNoEvidenceFollowup(q))return true;
   if(!options.length&&handleNoEvidenceFollowup(q))return true;
   if(!options.length)return false;
 
@@ -1546,13 +1555,23 @@ function regionalNoEvidenceFallback(){
   const car=cleanCarForCopy();
   if(/\b(uk|europe)\b/.test(region)){
     const highValue=estimatedTargetPrice()>=100000||isSpecialistCar();
+    const timingBullet=sellerTimelineIsFast()
+      ? "Because you want it gone quickly, I would not overcomplicate this with a US-first platform."
+      : "I would not overcomplicate this with a US-first platform unless there is clear evidence it suits the car.";
     return {
       region:"uk_europe",
       primary:"Car & Classic",
       secondary:highValue?"Collecting Cars":null,
-      primaryReason:`For a UK or European seller, Car & Classic is still the practical place I’d look first for ${car}. That is a regional selling read, not a model-specific data call from this search.`,
-      secondaryReason:`For a higher-value UK, European, Middle East or Australian car, I’d also compare Collecting Cars because it can be a better fit when the car needs a more international buyer pool.`,
-      caveat:`I do not have enough recent model-specific evidence here to say one platform has clearly outperformed the others.`
+      title:`Here’s what I’d do with the ${car}.`,
+      subtitle:`I’d start with Car & Classic for a UK seller.`,
+      primaryReason:`If this were mine in the UK, Car & Classic is where I’d start.`,
+      secondaryReason:`For a higher-value UK, European, Middle East or Australian car, I’d also compare Collecting Cars because it can bring in a wider international buyer pool.`,
+      caveat:`The model-specific data is not strong enough to overrule the obvious UK/Europe fit.`,
+      bullets:[
+        "It is the natural UK and European marketplace for this kind of seller.",
+        "It keeps the car in front of buyers who are already shopping in that region.",
+        timingBullet
+      ]
     };
   }
   if(/\b(australia|middle east)\b/.test(region)&&isHighValueOrSpecialist()){
@@ -1560,9 +1579,16 @@ function regionalNoEvidenceFallback(){
       region:"international",
       primary:"Collecting Cars",
       secondary:null,
-      primaryReason:`For a higher-value car outside the US, Collecting Cars is the practical place I’d look first. That is a regional selling read, not a model-specific data call from this search.`,
+      title:`Here’s what I’d do with the ${car}.`,
+      subtitle:`I’d start with Collecting Cars for this region.`,
+      primaryReason:`If this were mine outside the US, Collecting Cars is where I’d start.`,
       secondaryReason:"",
-      caveat:`I do not have enough recent model-specific evidence here to say one platform has clearly outperformed the others.`
+      caveat:`The model-specific data is not strong enough to overrule the regional fit.`,
+      bullets:[
+        "It is a stronger regional fit than a US-first auction platform.",
+        "It can reach buyers beyond one local market.",
+        "I would only compare US platforms if there were clear evidence that they suited this exact car."
+      ]
     };
   }
   return null;
@@ -1575,6 +1601,77 @@ function noEvidenceMessage(fallback){
   }
   const extra=fallback.secondary?` If this is a particularly valuable example, I’d also compare ${fallback.secondary}.`:"";
   return `I checked recent sales for your ${car}, but there isn't enough model-specific activity to make a proper data-led platform call. ${fallback.primaryReason}${extra}`;
+}
+
+function renderNoEvidenceFallback(fallback){
+  if(!fallback)return "";
+  const option={name:fallback.primary,key:"primary"};
+  const logo=platformLogo(option);
+  const secondary=fallback.secondary?`
+    <div class="platform-compact-list">
+      <div class="sell-section-note" style="margin:0">Also worth a look</div>
+      <div class="platform-compact" onclick="handleChip('What about ${escapeHtml(fallback.secondary)}?')">
+        <div>
+          <div class="platform-compact-title">${escapeHtml(fallback.secondary)}</div>
+          <div class="platform-compact-copy">${escapeHtml(fallback.secondaryReason)}</div>
+        </div>
+        <div class="platform-compact-action">Why</div>
+      </div>
+    </div>`:"";
+  return `<div class="row-inner"><div class="msg-wrap">
+    <div class="sam-label">Sam</div>
+    <div class="sell-rec-header">
+      <div class="sell-rec-kicker">Seller Intelligence</div>
+      <div class="sell-rec-title">${escapeHtml(fallback.title||`Here’s what I’d do with ${sellState.carName||"this car"}.`)}</div>
+      <div class="sell-rec-subtitle">${escapeHtml(fallback.subtitle||fallback.primaryReason)}</div>
+    </div>
+    <div class="sell-section-label">My recommendation</div>
+    <div class="sell-rec-grid">
+      <div class="sell-rec-card primary-rec" onclick="chooseFallbackDestination('${escapeHtml(fallback.primary)}')">
+        <div class="sell-rec-card-head">
+          <div>
+            <div class="sell-rec-badge top">Sam's pick</div>
+            <div style="margin-top:10px"><div class="sell-rec-name">${escapeHtml(fallback.primary)}</div><div class="sell-rec-type">Platform I’d use</div></div>
+          </div>
+          <div class="platform-logo ${escapeHtml(logo.cls)}">${escapeHtml(logo.text)}</div>
+        </div>
+        <div class="sell-rec-reason-label">Why I picked this</div>
+        <div class="sell-rec-reason">${escapeHtml(fallback.primaryReason)}</div>
+        <div class="sell-rec-stat">✓ Best regional fit · UK/Europe seller · Fast-listing friendly</div>
+        <ul class="sell-rec-bullets">${(fallback.bullets||[]).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
+        <div class="sell-rec-evidence-line">${escapeHtml(fallback.caveat)}</div>
+        <div class="sell-rec-actions"><button class="primary" onclick="event.stopPropagation();chooseFallbackDestination('${escapeHtml(fallback.primary)}')">Sell on ${escapeHtml(fallback.primary)}</button></div>
+      </div>
+    </div>
+    ${secondary}
+    <div class="sam-text after-results">You can go with this, or ask me why I would not start with a US platform.</div>
+  </div></div>`;
+}
+
+function fallbackSellOption(fallback){
+  return {
+    key:"primary",
+    name:fallback.primary,
+    type:"Platform I’d use",
+    badge:"Sam's pick",
+    badgeClass:"top",
+    cardClass:"primary-rec",
+    actionLabel:`Sell on ${fallback.primary}`,
+    reason:fallback.primaryReason,
+    evidenceBullets:fallback.bullets||[],
+    evidenceLine:fallback.caveat,
+    stat:"Best regional fit",
+    bestFor:"UK/Europe seller",
+    marketEvidence:null,
+    routeFitFacts:["region_fit","faster_listing_fit"]
+  };
+}
+
+function chooseFallbackDestination(destination){
+  if(!sellState.sellOptions?.length&&sellState.noEvidenceFallback){
+    sellState.sellOptions=[fallbackSellOption(sellState.noEvidenceFallback)];
+  }
+  chooseSellOption("primary");
 }
 
 function handleNoEvidenceFollowup(q){
@@ -1592,7 +1689,7 @@ function handleNoEvidenceFollowup(q){
     addMsg("sam",`Collecting Cars: ${answer} ${fallback.caveat}`);
     return true;
   }
-  if(/\b(where|what|which|sell|recommend|choice|option|platform|best|fast|quick)\b/i.test(lower)){
+  if(/\b(where|what|which|why|sell|recommend|choice|option|platform|best|fast|quick)\b/i.test(lower)){
     addMsg("sam",`${fallback.primary}: ${fallback.primaryReason} ${fallback.secondary?`I’d also compare ${fallback.secondary} if the car is high-value enough to justify a wider international audience. `:""}${fallback.caveat}`);
     return true;
   }
