@@ -86,6 +86,11 @@ body{
 .hero-promise{display:flex;justify-content:center;gap:18px;margin:22px auto 22px;color:#444;font-size:13px;line-height:1.45;flex-wrap:wrap;}
 .hero-promise span{display:inline-flex;gap:6px;align-items:baseline;}
 .hero-promise strong{color:#171717;}
+.hero-start{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:24px;}
+.hero-start button{border:1px solid #171717;background:#171717;color:white;border-radius:14px;padding:15px 22px;font-family:inherit;font-size:15px;font-weight:850;cursor:pointer;box-shadow:0 12px 30px rgba(0,0,0,.08);}
+.hero-start button:hover{transform:translateY(-1px);box-shadow:0 16px 34px rgba(0,0,0,.1);}
+.hero-start-note{font-size:12px;color:#777;line-height:1.5;}
+.hero-secondary{font-size:12px;color:#999;margin-top:10px;}
 .hero-powered{font-size:12px;color:#777;margin-top:16px;font-weight:750;}
 .chips{display:flex;flex-wrap:wrap;gap:8px;}
 .chip{
@@ -342,7 +347,7 @@ body{
   <button class="rail-btn active" onclick="newConversation()">✦ New conversation</button>
   <div class="rail-divider"></div>
   <div class="rail-label">Sell</div>
-  <div class="rail-item" onclick="startSellFlow()">✦ Start selling</div>
+  <div class="rail-item" onclick="startSellFlow()">✦ Find the best place to sell</div>
   <div class="rail-label">Learn</div>
   <div class="rail-item" onclick="showPowerSellerExplainer()">What is a PowerSeller?</div>
   <div class="rail-item" onclick="showRecommendationExplainer()">How Sam makes recommendations</div>
@@ -359,18 +364,22 @@ body{
       <div class="hero-inner">
         <div class="hero-logo">S</div>
         <div class="hero-kicker">Hi, I'm Sam.</div>
-        <h1>What are we selling today?</h1>
-        <div class="hero-sub">Tell me the car. I'll tell you exactly what I'd do if it were mine.</div>
-        <div class="hero-tagline">Recommendations are based on recent market activity, not sponsorships. Nothing gets sent anywhere until you approve it.</div>
+        <h1>Where should you sell your car?</h1>
+        <div class="hero-sub">Answer a few quick questions and I’ll tell you exactly what I’d do if it were mine.</div>
+        <div class="hero-tagline">Sam compares recent market activity, your selling goals and whether a platform or PowerSeller makes more sense.</div>
+        <div class="hero-start">
+          <button onclick="startSellFlow()">Find the best place to sell my car</button>
+          <div class="hero-start-note">Takes about one minute · No signup required · Nothing is sent without your approval</div>
+        </div>
       </div>
     </div>
   </div>
   <div id="input-area">
     <div id="input-box">
-      <textarea id="inp" rows="1" placeholder="Tell Sam what we're selling today..."></textarea>
+      <textarea id="inp" rows="1" placeholder="Or tell Sam what you're selling..."></textarea>
       <button id="btn">↑</button>
     </div>
-    <div id="hint">Example: 2018 Porsche 911 Carrera GTS or 1985 BMW M3.</div>
+    <div id="hint">The guided route is easiest, but you can also type the car here.</div>
   </div>
 </div>
 
@@ -1437,12 +1446,12 @@ async function showSellRecommendation(){
       </div>`;
 
   const renderCompactPlatform=option=>`
-    <div class="platform-compact" onclick="chooseSellOption('${escapeHtml(option.key)}')">
+    <div class="platform-compact" onclick="explainSellOption('${escapeHtml(option.key)}')">
       <div>
         <div class="platform-compact-title">${escapeHtml(option.name)}</div>
         <div class="platform-compact-copy">${escapeHtml(compactPlatformCopy(option,primaryPlatform))}</div>
       </div>
-      <div class="platform-compact-action">Compare</div>
+      <div class="platform-compact-action">Why</div>
     </div>`;
 
   const featuredPowerSeller=powerSellerProfiles[0]||null;
@@ -1452,7 +1461,7 @@ async function showSellRecommendation(){
     <div class="sell-section-label">Sam’s recommendation</div>
     <div class="sell-section-note">Talk to ${escapeHtml(featuredPowerSellerName)} first. If I owned this car, that’s the call I’d make before deciding anything else.</div>
     ${renderFeaturedPowerSellerProfile(featuredPowerSeller)}
-    ${secondaryPowerSellers.length?`<div class="sell-section-label" style="margin-top:12px">Want another opinion?</div><div class="power-seller-alt-row">${secondaryPowerSellers.map((profile,index)=>renderMiniPowerSellerProfile(profile,index===0?"Also worth a call":"Alternative option")).join("")}</div>`:""}
+    ${secondaryPowerSellers.length?`<div class="sell-section-label" style="margin-top:12px">Want another opinion?</div><div class="power-seller-alt-row">${secondaryPowerSellers.map((profile,index)=>renderMiniPowerSellerProfile(profile,index===0?`If ${featuredPowerSellerName} isn’t available`:"Second choice")).join("")}</div>`:""}
   `:"";
   const platformOptions=sellState.sellOptions.filter(option=>option.key!=="specialist");
   const primaryPlatform=platformOptions[0]||null;
@@ -1461,7 +1470,7 @@ async function showSellRecommendation(){
     <div class="sell-section-label">${powerSellerHTML?"If you still want to run it yourself":"My recommendation"}</div>
     ${powerSellerHTML?`<div class="sell-section-note">If you decide to manage the sale yourself, this is where I’d begin.</div>`:""}
     <div class="sell-rec-grid">${renderOptionCard(primaryPlatform)}</div>
-    ${secondaryPlatforms.length?`<div class="platform-compact-list"><div class="sell-section-note" style="margin:0">Also worth comparing</div>${secondaryPlatforms.map(renderCompactPlatform).join("")}</div>`:""}
+    ${secondaryPlatforms.length?`<div class="platform-compact-list"><div class="sell-section-note" style="margin:0">Also looked at</div>${secondaryPlatforms.map(renderCompactPlatform).join("")}</div>`:""}
   `:"";
 
   const row=document.createElement("div");row.className="row sam";
@@ -1534,6 +1543,13 @@ function chooseSellOption(which){
   const displayName=selectedPowerSeller?.displayName||option?.name||"this choice";
   addMsg("user",`Go with ${displayName}`);
   setTimeout(()=>showContactForm(),600);
+}
+
+function explainSellOption(which){
+  const option=(sellState.sellOptions||[]).find(o=>o.key===which);
+  if(!option)return;
+  addMsg("user",`Why ${option.name}?`);
+  setTimeout(()=>addMsg("sam",`${option.name}: ${routeAnswer(option)}`),350);
 }
 
 function choosePowerSeller(id){
@@ -1998,9 +2014,9 @@ function comparisonScopeSentence(){
 function powerSellerAdviceReason(hasNamedSellers){
   if(hasNamedSellers){
     return pickCopy([
-      `I’d start with these names because they show up in recent seller activity for cars like this${sellState.state?`, and ${sellState.state} is close enough to matter`:""}. I’d ask each one how they would improve the result before deciding.`,
-      `These are the names I’d check first. They appear around cars like this, and I’d want to know who has recently handled something genuinely similar.`,
-      `I picked these because they are the closest PowerSeller signals I can see for this car. The next step is simple: ask what they would do differently from a private listing.`
+      `I’d start with these names because they show up in recent seller activity for cars like this${sellState.state?`, and ${sellState.state} is close enough to matter`:""}. A good one should take the auction noise, buyer questions and logistics off your plate.`,
+      `These are the names I’d check first. They appear around cars like this and are the best PowerSeller signals I can see from the current search.`,
+      `I picked these because they are the closest PowerSeller signals I can see for this car. They should be able to explain platform choice, prep, comments, logistics and commission clearly.`
     ],sellState.carName,sellState.state,hasNamedSellers);
   }
   if(sellerWantsToManageSelf()){
@@ -2022,11 +2038,11 @@ function powerSellerAdviceBullets(hasNamedSellers){
     return pickCopy([
       [
         "A good PowerSeller manages the whole auction: prep, listing, buyer questions, comments, logistics and platform choice.",
-        "Before choosing one, ask what they would do differently from a private listing and whether they’ve recently handled cars like yours."
+        "The right one should make a clear case for why they improve the outcome versus a private listing."
       ],
       [
         "The right person can save you from living in the comments and dealing with every buyer question yourself.",
-        "I’d ask each one where they’d list it, why, and what they think they can improve."
+        "They should be able to explain where they would list it, why, and what they think they can improve."
       ],
       [
         "This only works if the person is genuinely strong for this kind of car.",
@@ -2114,7 +2130,7 @@ function routeReason(route,index,routes){
     return `The market result and process tradeoffs are close enough to compare.`;
   }
   if(index===0){
-    return `If it were mine, this is where I’d start.`;
+    return `This is where I’d begin if you sell it yourself.`;
   }
   return pickCopy([
     `${name} is still worth looking at, but the choice above is stronger on the current market read.`,
@@ -2215,6 +2231,7 @@ function powerSellerPriceScore(profile,price){
 
 function observedSellerProfile(seller,index){
   const platform=platformDisplayName(seller.platform);
+  const carLabel=comparableModelLabel().replace(/\s+models$/,"");
   return {
     id:`observed-${index}-${String(seller.name||"seller").replace(/[^a-z0-9_-]/gi,"")}`,
     name:seller.name,
@@ -2223,7 +2240,7 @@ function observedSellerProfile(seller,index){
     strengths:["Recent seller activity","Auction management","Platform advice"].slice(0,3),
     makes:[extractVehicleMake()].filter(Boolean),
     platforms:[platform].filter(Boolean),
-    note:`I’d ask how recently they’ve handled ${comparableModelLabel().replace(/\s+models$/,"")} sales and what they would do differently from a private listing.`,
+    note:`They have recent activity around ${carLabel} sales, manage the auction process and are worth a first conversation if you want the headaches taken off your plate.`,
     confidenceLabel:"Worth speaking to",
     score:99
   };
@@ -2266,7 +2283,7 @@ function renderPowerSellerProfile(profile){
     <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>
     <span class="observed-seller-meta">${escapeHtml(region)}</span>
     <span class="observed-seller-why">Why I’d call them</span>
-    <div class="sell-rec-reason">${escapeHtml(profile.note||`I’d ask what they would do differently for ${cleanCarForCopy()} before deciding.`)}</div>
+    <div class="sell-rec-reason">${escapeHtml(profile.note||`They should be able to explain how they would improve the sale for ${cleanCarForCopy()} versus a private listing.`)}</div>
     <div class="observed-seller-tags">${strengths.map(tag=>`<span class="observed-seller-tag">${escapeHtml(tag)}</span>`).join("")}</div>
     ${platforms?`<div class="power-seller-platforms"><strong>Usually works with:</strong> ${escapeHtml(platforms)}</div>`:""}
     <div class="sell-rec-actions"><button class="primary" onclick="event.stopPropagation();choosePowerSeller('${escapeHtml(profile.id)}')">Speak to ${escapeHtml(powerSellerFirstName(profile))}</button></div>
@@ -2297,7 +2314,7 @@ function renderFeaturedPowerSellerProfile(profile){
       <div class="sell-rec-reason">${escapeHtml(profile.note||`I’d start here because this looks like the kind of car where auction management may matter as much as platform choice.`)}</div>
       <div class="power-seller-profile-grid">
         ${powerSellerStrengthChips(profile)?`<div class="power-seller-profile-block"><div class="power-seller-profile-label">Best known for</div><div class="power-seller-chip-row">${powerSellerStrengthChips(profile)}</div></div>`:""}
-        ${powerSellerPlatformChips(profile)?`<div class="power-seller-profile-block"><div class="power-seller-profile-label">Works with</div><div class="power-seller-chip-row">${powerSellerPlatformChips(profile)}</div></div>`:""}
+        <div class="power-seller-profile-block"><div class="power-seller-profile-label">Why this is low pressure</div><div class="power-seller-chip-row"><span class="power-seller-chip platform">Independent pick</span><span class="power-seller-chip platform">You approve contact</span><span class="power-seller-chip platform">No paid placement</span></div></div>
       </div>
       <ul class="sell-rec-bullets">${powerSellerWhyBullets(profile,0).slice(0,3).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
     </div>
@@ -2307,13 +2324,22 @@ function renderFeaturedPowerSellerProfile(profile){
 
 function renderMiniPowerSellerProfile(profile,label){
   if(!profile)return "";
+  const firstName=powerSellerFirstName(profile);
   return `<div class="power-seller-mini" onclick="choosePowerSeller('${escapeHtml(profile.id)}')">
     <div class="sell-rec-badge specialist">${escapeHtml(label||"Also worth a call")}</div>
     <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>
     <span class="observed-seller-meta">${escapeHtml(profile.region||"Worth checking")}</span>
-    <div class="sell-rec-reason">${escapeHtml(profile.note||`Worth hearing what they would do before deciding.`)}</div>
-    <div class="sell-rec-actions"><button class="ghost" onclick="event.stopPropagation();choosePowerSeller('${escapeHtml(profile.id)}')">Speak to ${escapeHtml(powerSellerFirstName(profile))}</button></div>
+    <span class="observed-seller-why">Why ${escapeHtml(firstName)}</span>
+    <div class="sell-rec-reason">${escapeHtml(powerSellerMiniReason(profile))}</div>
+    <div class="sell-rec-actions"><button class="ghost" onclick="event.stopPropagation();choosePowerSeller('${escapeHtml(profile.id)}')">Speak to ${escapeHtml(firstName)}</button></div>
   </div>`;
+}
+
+function powerSellerMiniReason(profile){
+  const firstName=powerSellerFirstName(profile);
+  const region=profile.region?` ${profile.region}`:"";
+  if(profile.note&&!/^I’d ask\b/i.test(profile.note))return profile.note;
+  return `${firstName} is another good fit${region ? ` in${region}` : ""} if you want help with auction management, buyer questions and deciding where the car should run.`;
 }
 
 function powerSellerSpecialties(){
@@ -2343,11 +2369,11 @@ function powerSellerWhyBullets(seller,index){
   const carLabel=comparableModelLabel().replace(/\s+models$/,"");
   const firstName=powerSellerFirstName(seller);
   const bullets=[
-    `I’d ask ${firstName} where they would run this car and why.`,
-    sellState.state?`Handoff and logistics matter in ${sellState.state}, especially if you do not want to manage every buyer question yourself.`:"Worth checking if you want someone else managing the auction noise.",
-    "Before deciding, I’d want a clear case on platform choice, prep, comments, logistics and commission."
+    `${firstName} can help decide where this car should run instead of assuming one platform is always right.`,
+    sellState.state?`They can take the buyer questions, comments and logistics off your plate in ${sellState.state}.`:"They can take buyer questions, comments and logistics off your plate.",
+    "You still choose whether to make contact; nothing is sent without your approval."
   ];
-  if(index===0)bullets[0]=`This is the first call I’d make for this car.`;
+  if(index===0)bullets[0]=`This is the first call I’d make before choosing the platform.`;
   return bullets;
 }
 
@@ -2408,13 +2434,13 @@ function routeEvidenceBullets(route,index,routes){
   const evidence=route.marketEvidence||{};
   const bullets=[];
   if(Number.isFinite(evidence.performanceDeltaPercent)&&Math.abs(evidence.performanceDeltaPercent)>=5){
-    if(evidence.performanceDeltaPercent>0)bullets.push(`Similar ${comparableModelLabel()} have recently sold stronger here than across the rest of the tracked market.`);
+    if(evidence.performanceDeltaPercent>0)bullets.push(`Recent comparable ${comparableModelLabel()} sales have been stronger here than the wider market.`);
     else if(Math.abs(evidence.performanceDeltaPercent)<=15)bullets.push(`The platform result is close enough that timing, fees and process are worth comparing.`);
   }
   if(evidence.topThreeSales>=2)bullets.push(`The strongest recent comparable sales have come through this platform.`);
   const scope=comparisonScopeSentence();
   if(scope)bullets.push(scope);
-  if(index===0)bullets.push(`If you’re happy managing the auction yourself, this is where I’d start.`);
+  if(index===0)bullets.push(`I’d still compare fees and timing, but this would be my starting point if you run it yourself.`);
   if(bullets.length<3)bullets.push(sellerPriorityLabel(route));
   if(!bullets.length)bullets.push(index===0
     ? "Recent comparable activity points here before the other choices."
@@ -2475,7 +2501,7 @@ function resultSummaryLine(options,routes=[]){
 function compactPlatformCopy(option,primaryPlatform){
   const primaryName=primaryPlatform?.name||"the first choice";
   if(!option)return "Worth comparing, but it is not where I’d start.";
-  return `Also looked at: ${option.name}. Worth considering, but I’d still start with ${primaryName}.`;
+  return `Worth considering, but I’d still start with ${primaryName}. Tap to see why.`;
 }
 
 function marketEvidenceSentence(option){
@@ -2634,9 +2660,13 @@ function homeHeroHTML(){
   return `<div class="hero" id="hero"><div class="hero-inner">
     <div class="hero-logo">S</div>
     <div class="hero-kicker">Hi, I'm Sam.</div>
-    <h1>What are we selling today?</h1>
-    <div class="hero-sub">Tell me the car. I'll tell you exactly what I'd do if it were mine.</div>
-    <div class="hero-tagline">Recommendations are based on recent market activity, not sponsorships. Nothing gets sent anywhere until you approve it.</div>
+    <h1>Where should you sell your car?</h1>
+    <div class="hero-sub">Answer a few quick questions and I’ll tell you exactly what I’d do if it were mine.</div>
+    <div class="hero-tagline">Sam compares recent market activity, your selling goals and whether a platform or PowerSeller makes more sense.</div>
+    <div class="hero-start">
+      <button onclick="startSellFlow()">Find the best place to sell my car</button>
+      <div class="hero-start-note">Takes about one minute · No signup required · Nothing is sent without your approval</div>
+    </div>
   </div></div>`;
 }
 function showPowerSellerExplainer(){
