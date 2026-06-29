@@ -12,6 +12,7 @@ const MODEL_OWNER_ALIASES = [
   { model: "F-Type", makes: ["Jaguar"], aliases: ["ftype", "f type", "f-type"] },
   { model: "911", makes: ["Porsche"], aliases: ["911"] },
   { model: "Supra", makes: ["Toyota"], aliases: ["supra"] },
+  { model: "Highlander", makes: ["Toyota"], aliases: ["highlander"] },
   { model: "NSX", makes: ["Acura", "Honda"], aliases: ["nsx"] },
   { model: "R8", makes: ["Audi"], aliases: ["r8"] },
   { model: "GT-R", makes: ["Nissan"], aliases: ["gtr", "gt r", "gt-r"] },
@@ -22,6 +23,19 @@ const MODEL_OWNER_ALIASES = [
   { model: "458", makes: ["Ferrari"], aliases: ["458"] },
   { model: "488", makes: ["Ferrari"], aliases: ["488"] },
   { model: "Viper", makes: ["Dodge"], aliases: ["viper"] }
+];
+
+const VEHICLE_PRODUCTION_RULES = [
+  { make: "Toyota", model: "Highlander", aliases: ["highlander"], start: 2001, end: 2026 },
+  { make: "Toyota", model: "Supra", aliases: ["supra"], ranges: [[1978, 2002], [2020, 2026]] },
+  { make: "Jaguar", model: "E-Type", aliases: ["etype", "e type", "e-type"], start: 1961, end: 1974, suggestion: "Jaguar F-Type", suggestionStart: 2013 },
+  { make: "Jaguar", model: "F-Type", aliases: ["ftype", "f type", "f-type"], start: 2013, end: 2024 },
+  { make: "Acura", model: "NSX", aliases: ["nsx"], ranges: [[1991, 2005], [2017, 2022]] },
+  { make: "Honda", model: "NSX", aliases: ["nsx"], ranges: [[1991, 2005], [2017, 2022]] },
+  { make: "Nissan", model: "370Z", aliases: ["370z"], start: 2009, end: 2020 },
+  { make: "Nissan", model: "GT-R", aliases: ["gtr", "gt r", "gt-r"], start: 2009, end: 2024 },
+  { make: "Audi", model: "R8", aliases: ["r8"], start: 2008, end: 2023 },
+  { make: "BMW", model: "M3", aliases: ["m3"], start: 1986, end: 2026 }
 ];
 
 let makesCache = null;
@@ -181,6 +195,42 @@ function modelOwnerMismatch(raw, make, year) {
   };
 }
 
+function validYearForRule(year, rule) {
+  if (!year) return true;
+  if (rule.ranges) return rule.ranges.some(([start, end]) => year >= start && year <= end);
+  return year >= rule.start && year <= rule.end;
+}
+
+function productionIssue(raw, make, model, year) {
+  if (!year || !make || !model) return null;
+  const normalized = normalize(raw);
+  const rule = VEHICLE_PRODUCTION_RULES.find(item =>
+    item.make === make &&
+    normalize(item.model) === normalize(model) &&
+    item.aliases.some(alias => textHasTerm(normalized, alias))
+  );
+  if (!rule || validYearForRule(year, rule)) return null;
+  const replacement = rule.suggestion && (!rule.suggestionStart || year >= rule.suggestionStart);
+  const question = replacement
+    ? `The ${rule.model} wasn't produced in ${year}. Did you mean the ${year} ${rule.suggestion}?`
+    : `The ${rule.model} wasn't produced in ${year}. Which ${make} model are we talking about?`;
+  return {
+    status: "invalid_vehicle",
+    question,
+    chips: replacement ? [`${year} ${rule.suggestion}`, "Change car", "Not sure"] : [`Different ${make} model`, "Change car", "Not sure"],
+    suggestion: replacement ? `${year} ${rule.suggestion}` : null,
+    baseVehicle: [year, make].filter(Boolean).join(" ")
+  };
+}
+
+function matchKnownModelAlias(raw, make) {
+  const normalized = normalize(raw);
+  const rule = MODEL_OWNER_ALIASES.find(item =>
+    item.makes.includes(make) && item.aliases.some(alias => textHasTerm(normalized, alias))
+  );
+  return rule ? { value: rule.model, confidence: "high" } : null;
+}
+
 async function identifyVehicle(raw) {
   const text = asText(raw);
   const year = extractYear(text);
@@ -210,7 +260,17 @@ async function identifyVehicle(raw) {
   const models = await getModels(make);
   const remainder = removeKnownNoise(text, make, year);
   const modelMatch = matchModel(remainder, models);
-  if (!modelMatch.value) {
+  const knownModelMatch = modelMatch.value ? modelMatch : matchKnownModelAlias(remainder, make);
+  const resolvedModel = knownModelMatch?.value || null;
+  const invalidProduction = productionIssue(text, make, resolvedModel, year);
+  if (invalidProduction) {
+    return {
+      status: "invalid_vehicle",
+      vehicle: { raw: text, year, make, model: resolvedModel, confidence: "low" },
+      clarification: invalidProduction
+    };
+  }
+  if (!resolvedModel) {
     return {
       status: "needs_clarification",
       vehicle: { raw: text, year, make, model: null, confidence: makeMatch.confidence },
@@ -228,9 +288,9 @@ async function identifyVehicle(raw) {
       raw: text,
       year,
       make,
-      model: modelMatch.value,
-      confidence: makeMatch.confidence === "high" && modelMatch.confidence === "high" ? "high" : "medium",
-      canonicalLabel: [year, make, modelMatch.value].filter(Boolean).join(" ")
+      model: resolvedModel,
+      confidence: makeMatch.confidence === "high" && knownModelMatch.confidence === "high" ? "high" : "medium",
+      canonicalLabel: [year, make, resolvedModel].filter(Boolean).join(" ")
     },
     clarification: null
   };

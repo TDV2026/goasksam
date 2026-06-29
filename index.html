@@ -583,7 +583,7 @@ function looksLikeVehicleText(text){
 const MAKE_MODEL_CLARIFICATIONS=[
   {make:/\bmercedes(?:-benz)?\b|\bbenz\b/,name:"Mercedes-Benz",chips:["SL","AMG GT","G-Class","E-Class","S-Class","190E","Not sure"],model:/\b(sl|amg\s*gt|g[ -]?class|g\d{2,3}|e[ -]?class|e\d{2,3}|s[ -]?class|s\d{2,3}|c[ -]?class|c\d{2,3}|190e|pagoda|w\d{3}|clk|cl|cls|slk|sls|gla|glc|gle|gls)\b/},
   {make:/\bnissan\b/,name:"Nissan",chips:["GT-R","370Z","Z","Skyline","300ZX","Patrol","Not sure"],model:/\b(gt-?r|gtr|370z|350z|300zx|280z|260z|240z|fairlady|skyline|silvia|patrol|figaro|z\b|sentra|maxima|altima|z32|r32|r33|r34|r35)\b/},
-  {make:/\btoyota\b/,name:"Toyota",chips:["Supra","Land Cruiser","Celica","MR2","FJ40","4Runner","Not sure"],model:/\b(supra|land\s+cruiser|fj\d{2}|celica|mr2|2000gt|4runner|hilux|corolla|crown|ae86|prado|sequoia|tacoma|pickup)\b/},
+  {make:/\btoyota\b/,name:"Toyota",chips:["Supra","Land Cruiser","Celica","MR2","FJ40","4Runner","Not sure"],model:/\b(supra|land\s+cruiser|fj\d{2}|celica|mr2|2000gt|4runner|highlander|hilux|corolla|crown|ae86|prado|sequoia|tacoma|pickup)\b/},
   {make:/\bhonda\b/,name:"Honda",chips:["S2000","Civic Type R","NSX","Integra","Prelude","Not sure"],model:/\b(s2000|civic|type\s*r|nsx|integra|prelude|accord|crx|del\s+sol|beat)\b/},
   {make:/\bford\b/,name:"Ford",chips:["Mustang","GT","Bronco","F-150","Escort RS","Not sure"],model:/\b(mustang|gt\b|gt40|bronco|f-?150|f-?250|escort|rs200|cosworth|thunderbird|ranger|focus|fiesta|raptor)\b/},
   {make:/\bchevrolet\b|\bchevy\b/,name:"Chevrolet",chips:["Corvette","Camaro","Impala","Chevelle","C10","Not sure"],model:/\b(corvette|camaro|impala|chevelle|c10|c\/10|nova|bel\s*air|suburban|tahoe|silverado|el\s+camino|ssr|z06|zr1)\b/},
@@ -613,6 +613,7 @@ const VEHICLE_PRODUCTION_RULES=[
   {make:"Jaguar",model:"E-Type",match:/\bjaguar\b.*\be[-\s]?type\b|\be[-\s]?type\b.*\bjaguar\b/i,start:1961,end:1974,suggestion:"Jaguar F-Type",suggestionStart:2013},
   {make:"Jaguar",model:"F-Type",match:/\bjaguar\b.*\bf[-\s]?type\b|\bf[-\s]?type\b.*\bjaguar\b/i,start:2013,end:2024},
   {make:"Toyota",model:"Supra",match:/\btoyota\b.*\bsupra\b|\bsupra\b.*\btoyota\b/i,ranges:[[1978,2002],[2020,2026]]},
+  {make:"Toyota",model:"Highlander",match:/\btoyota\b.*\bhighlander\b|\bhighlander\b.*\btoyota\b/i,start:2001,end:2026},
   {make:"Acura",model:"NSX",match:/\b(acura|honda)\b.*\bnsx\b|\bnsx\b.*\b(acura|honda)\b/i,ranges:[[1991,2005],[2017,2022]]},
   {make:"Nissan",model:"370Z",match:/\bnissan\b.*\b370z\b|\b370z\b.*\bnissan\b/i,start:2009,end:2020},
   {make:"Nissan",model:"GT-R",match:/\bnissan\b.*\bgt[-\s]?r\b|\bgt[-\s]?r\b.*\bnissan\b/i,start:2009,end:2024},
