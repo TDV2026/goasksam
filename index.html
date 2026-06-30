@@ -1679,6 +1679,7 @@ function handleSellRecommendationFollowup(q){
 function regionalNoEvidenceFallback(){
   const region=String(sellState.region||"").toLowerCase();
   const car=cleanCarForCopy();
+  const regionPhrase=sellingRegionPhrase();
   if(/\b(uk|united kingdom|great britain|gb|england|scotland|wales|europe)\b/.test(region)){
     const highValue=estimatedTargetPrice()>=100000||isSpecialistCar();
     const timingBullet=sellerTimelineIsFast()
@@ -1706,16 +1707,16 @@ function regionalNoEvidenceFallback(){
       region:"international",
       primary:"Collecting Cars",
       secondary:null,
-      stat:"Best regional fit · International seller · Broader buyer reach",
+      stat:"Best regional fit · High-value European cars · International buyers",
       title:`Here’s what I’d do with the ${car}.`,
       subtitle:`I’d start with Collecting Cars for this region.`,
-      primaryReason:`If this were mine in ${sellState.region||"this region"}, Collecting Cars is where I’d start.`,
+      primaryReason:`For a ${car} in ${regionPhrase}, Collecting Cars is where I’d start.`,
       secondaryReason:"",
-      caveat:`Regional recommendation: international seller, broader buyer reach.`,
+      caveat:`This is Sam’s regional market judgement, not a price estimate.`,
       bullets:[
-        "It is built for cross-border collector-car buyers.",
-        "It is a better fit when the seller is in Australia, the Middle East or another international market.",
-        "It keeps the recommendation focused on where this car can realistically be sold from your region."
+        "Collecting Cars has become one of the better-known marketplaces for high-value European collector cars.",
+        "It regularly puts cars in front of international buyers, which matters for a seller in this region.",
+        "I’d rather start with the platform that fits where the car is being sold from, then compare another platform only if there is a clear reason."
       ]
     };
   }
@@ -1762,7 +1763,7 @@ function renderNoEvidenceFallback(fallback){
   return `<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
     <div class="sell-rec-header">
-      <div class="sell-rec-kicker">Seller Intelligence</div>
+      <div class="sell-rec-kicker">Sam's recommendation</div>
       <div class="sell-rec-title">${escapeHtml(fallback.title||`Here’s what I’d do with ${sellState.carName||"this car"}.`)}</div>
       <div class="sell-rec-subtitle">${escapeHtml(fallback.subtitle||fallback.primaryReason)}</div>
     </div>
@@ -1785,7 +1786,7 @@ function renderNoEvidenceFallback(fallback){
       </div>
     </div>
     ${secondary}
-    <div class="sam-text after-results">You can go with this, or ask me how I’d think about another platform.</div>
+    <div class="sam-text after-results">Want a second opinion? Ask me why I didn’t start with Bring a Trailer, Cars & Bids or another platform.</div>
   </div></div>`;
 }
 
@@ -1819,26 +1820,101 @@ function handleNoEvidenceFollowup(q){
   const fallback=sellState.noEvidenceFallback;
   if(!fallback)return false;
   const lower=String(q||"").toLowerCase();
+  if(mentionsBringATrailer(lower)){
+    addMsg("sam",regionalPlatformFollowup("Bring a Trailer",fallback));
+    return true;
+  }
+  if(mentionsCarsAndBids(lower)){
+    addMsg("sam",regionalPlatformFollowup("Cars & Bids",fallback));
+    return true;
+  }
+  if(mentionsPCarMarket(lower)){
+    addMsg("sam",regionalPlatformFollowup("PCarMarket",fallback));
+    return true;
+  }
+  if(mentionsHemmings(lower)){
+    addMsg("sam",regionalPlatformFollowup("Hemmings",fallback));
+    return true;
+  }
   if(mentionsCarAndClassic(lower)){
-    addMsg("sam",`${fallback.primary}: ${fallback.primaryReason} ${fallback.caveat} If you want speed in the UK or Europe, I would keep it on the list rather than treating the lack of model-specific data as a hard no.`);
+    addMsg("sam",regionalPlatformFollowup("Car & Classic",fallback));
     return true;
   }
   if(mentionsCollectingCars(lower)){
-    const answer=(fallback.secondary||fallback.primary==="Collecting Cars")
-      ? (fallback.secondaryReason||fallback.primaryReason)
-      : `I’d mainly bring Collecting Cars into the conversation for higher-value or more international cars. For this one, I would look at ${fallback.primary} first unless the car is special enough to need that broader reach.`;
-    addMsg("sam",`Collecting Cars: ${answer} ${fallback.caveat}`);
+    addMsg("sam",regionalPlatformFollowup("Collecting Cars",fallback));
     return true;
   }
   if(/\b(where|what|which|why|sell|recommend|choice|option|platform|best|fast|quick)\b/i.test(lower)){
-    addMsg("sam",`${fallback.primary}: ${fallback.primaryReason} ${fallback.secondary?`I’d also compare ${fallback.secondary} if the car is high-value enough to justify a wider international audience. `:""}${fallback.caveat}`);
+    addMsg("sam",regionalPlatformFollowup(fallback.primary,fallback));
     return true;
   }
   return false;
 }
 
+function regionalPlatformFollowup(platform,fallback){
+  const region=sellingRegionPhrase();
+  const car=cleanCarForCopy();
+  const primary=fallback.primary;
+  const isPrimary=normalizedPlatformText(platform)===normalizedPlatformText(primary);
+  if(isPrimary){
+    if(primary==="Collecting Cars"){
+      return `Collecting Cars is where I’d start for a ${car} in ${region}. I’m not pretending we have perfect Collecting Cars sales data here; this is a regional judgement. For a high-value European car outside the usual domestic auction market, I want the car in front of international buyers first.`;
+    }
+    if(primary==="Car & Classic"){
+      return `Car & Classic is where I’d start for a ${car} in the UK or Europe. It is the practical regional fit: buyers are already shopping there, and it keeps the sale in the market where the car actually sits.`;
+    }
+    return `${primary} is where I’d start for this car. The reason is simple: it fits the car, the seller’s region and the way this sale needs to happen.`;
+  }
+  const name=String(platform||"that platform");
+  if(mentionsBringATrailer(name)){
+    return `Bring a Trailer is a serious platform, and for some cars I’d absolutely compare it. I didn’t start there because this car is in ${region}, and ${primary} is the cleaner first move for this region. If your goal was specifically to chase an American auction audience, I’d look harder at BaT, but that is not where I’d begin.`;
+  }
+  if(mentionsCarsAndBids(name)){
+    return `Cars & Bids can work very well for newer enthusiast cars, especially when speed matters. For this search, I’d still start with ${primary} because the regional fit is stronger. I’d only bring Cars & Bids forward if the car, timing or buyer target made that audience clearly better.`;
+  }
+  if(mentionsPCarMarket(name)){
+    return `PCarMarket is worth knowing about, especially for Porsche-heavy searches. For this car and region, I would not put it ahead of ${primary} unless there was a specific reason to target that audience.`;
+  }
+  if(mentionsHemmings(name)){
+    return `Hemmings can be useful for older American or traditional collector cars. For this search, I’d start with ${primary}; it is a better match for the region and buyer pool I’d want first.`;
+  }
+  if(mentionsCarAndClassic(name)){
+    return `Car & Classic is exactly the kind of platform I’d consider for a UK or European seller. If the car is in the Middle East or Australia and it is high-value, I’d usually start with Collecting Cars first because the buyer pool is broader.`;
+  }
+  if(mentionsCollectingCars(name)){
+    return `Collecting Cars is strongest in my mind when the car is high-value, European or international. If I recommend something else first, it is usually because the car is more naturally suited to a local UK/Europe marketplace or the seller needs a simpler route.`;
+  }
+  return `I’d compare ${name} only if it gives this car a clearer buyer fit than ${primary}. My starting point is ${primary} because it fits the region and the kind of buyer I’d want looking at this car.`;
+}
+
+function sellingRegionPhrase(){
+  const region=String(sellState.region||"this region").trim();
+  if(/^middle east$/i.test(region))return "the Middle East";
+  if(/^uk$/i.test(region))return "the UK";
+  return region||"this region";
+}
+
 function normalizedPlatformText(value){
   return String(value||"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]+/g,"");
+}
+
+function mentionsBringATrailer(text){
+  const normalized=normalizedPlatformText(text);
+  return normalized.includes("bringatrailer")||/\bbat\b/i.test(String(text||""));
+}
+
+function mentionsCarsAndBids(text){
+  const normalized=normalizedPlatformText(text);
+  return normalized.includes("carsandbids")||/\bc\s*&\s*b\b/i.test(String(text||""));
+}
+
+function mentionsPCarMarket(text){
+  const normalized=normalizedPlatformText(text);
+  return normalized.includes("pcarmarket")||normalized.includes("pcar")||/\bpcm\b/i.test(String(text||""));
+}
+
+function mentionsHemmings(text){
+  return normalizedPlatformText(text).includes("hemmings");
 }
 
 function mentionsCarAndClassic(text){
@@ -2316,7 +2392,11 @@ function sellerWantsToManageSelf(){
 }
 
 function cleanCarForCopy(){
-  return String(sellState.carName||"this car").trim();
+  const explicit=String(sellState.carName||"").trim();
+  if(explicit)return explicit;
+  const vehicle=sellState.vehicle||{};
+  const parts=[vehicle.year,vehicle.make,vehicle.model,vehicle.trim].filter(Boolean);
+  return parts.length?parts.join(" "):"this car";
 }
 
 function porsche911TrimFromText(text){
