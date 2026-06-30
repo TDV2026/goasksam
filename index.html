@@ -1608,7 +1608,6 @@ async function showSellRecommendation(){
     <div class="sell-section-label">Prefer to sell it yourself?</div>
     ${renderSelfManagedPlatformSummary(primaryPlatform)}
   `:`
-    <div class="sell-section-label">My recommendation</div>
     <div class="sell-rec-grid">${renderOptionCard(primaryPlatform)}</div>
     ${secondaryPlatforms.length?`<div class="platform-compact-list"><div class="sell-section-note" style="margin:0">Also looked at</div>${secondaryPlatforms.map(renderCompactPlatform).join("")}</div>`:""}
   `):"";
@@ -1707,16 +1706,15 @@ function regionalNoEvidenceFallback(){
       region:"international",
       primary:"Collecting Cars",
       secondary:null,
-      stat:"Strong international buyer base · European collector cars · Better regional fit",
+      stat:"Because this platform has built one of the strongest international audiences for European collector cars.",
       title:`Here’s what I’d do with the ${car}.`,
-      subtitle:`I’d start with Collecting Cars for this region.`,
-      primaryReason:`If this were mine, I’d start with Collecting Cars. Not because it’s the biggest platform, but because it’s the best fit for where you’re selling from.`,
+      subtitle:`The mistake is choosing the biggest platform. I’d choose the audience most likely to buy the car.`,
+      primaryReason:`If this were mine, I’d list it on Collecting Cars.`,
       secondaryReason:"",
-      caveat:`Based on where you’re selling from, not a predicted sale price.`,
+      caveat:"",
       bullets:[
-        "If I’m selling from the Middle East or Australia, I’d rather put the car in front of Collecting Cars’ international audience first.",
-        "They’ve built a strong name around European collector cars, and this is exactly the kind of buyer pool I’d want looking at the car.",
-        "Could another platform work? Maybe. But this is the one I’d recommend first for this car and region."
+        "Built around international buyers.",
+        "A better fit for a seller outside North America than the US-focused platforms."
       ]
     };
   }
@@ -1767,22 +1765,21 @@ function renderNoEvidenceFallback(fallback){
       <div class="sell-rec-title">${escapeHtml(fallback.title||`Here’s what I’d do with ${sellState.carName||"this car"}.`)}</div>
       <div class="sell-rec-subtitle">${escapeHtml(fallback.subtitle||fallback.primaryReason)}</div>
     </div>
-    <div class="sell-section-label">My recommendation</div>
     <div class="sell-rec-grid">
       <div class="sell-rec-card primary-rec" onclick="chooseFallbackDestination('${escapeHtml(fallback.primary)}')">
         <div class="sell-rec-card-head">
           <div>
             <div class="sell-rec-badge top">Sam's pick</div>
-            <div style="margin-top:10px"><div class="sell-rec-name">${escapeHtml(fallback.primary)}</div><div class="sell-rec-type">Platform I’d use</div></div>
+            <div style="margin-top:10px"><div class="sell-rec-name">${escapeHtml(fallback.primary)}</div><div class="sell-rec-type">Where I’d start</div></div>
           </div>
           <div class="platform-logo ${escapeHtml(logo.cls)}">${escapeHtml(logo.text)}</div>
         </div>
-        <div class="sell-rec-reason-label">Why I picked this</div>
+        <div class="sell-rec-reason-label">Why I’d start here</div>
         <div class="sell-rec-reason">${escapeHtml(fallback.primaryReason)}</div>
-        <div class="sell-rec-stat">✓ ${escapeHtml(fallback.stat||"Best regional fit")}</div>
+        ${fallback.stat?`<div class="sell-rec-reason">${escapeHtml(fallback.stat)}</div>`:""}
         <ul class="sell-rec-bullets">${(fallback.bullets||[]).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
-        <div class="sell-rec-evidence-line">${escapeHtml(fallback.caveat)}</div>
-        <div class="sell-rec-actions"><button class="primary" onclick="event.stopPropagation();chooseFallbackDestination('${escapeHtml(fallback.primary)}')">Sell on ${escapeHtml(fallback.primary)}</button></div>
+        ${fallback.caveat?`<div class="sell-rec-evidence-line">${escapeHtml(fallback.caveat)}</div>`:""}
+        <div class="sell-rec-actions"><button class="primary" onclick="event.stopPropagation();chooseFallbackDestination('${escapeHtml(fallback.primary)}')">Start with ${escapeHtml(fallback.primary)}</button></div>
       </div>
     </div>
     ${secondary}
@@ -1867,7 +1864,8 @@ function regionalPlatformFollowup(platform,fallback){
   }
   const name=String(platform||"that platform");
   if(mentionsBringATrailer(name)){
-    return `Because I don’t think BaT is the right starting point here. Bring a Trailer is brilliant for a lot of cars, but its core audience is still very US based. For a ${car} being sold from ${region}, I’d much rather use the platform that has built a stronger international buyer base. If it were mine, I’d list it on ${primary}.`;
+    const primaryAudience=primary==="Collecting Cars" ? "Collecting Cars’ international buyer base" : `${primary}’s buyer base`;
+    return `Because I don’t think Bring a Trailer is the right starting point for this sale. It is an excellent platform, but its audience is still predominantly US based. For a ${car} being sold from ${region}, I’d rather put it in front of ${primaryAudience}. If this were my car, that’s where I’d list it.`;
   }
   if(mentionsCarsAndBids(name)){
     const primaryAudience=primary==="Collecting Cars" ? "Collecting Cars’ international audience" : `${primary}’s buyer pool`;
