@@ -1322,6 +1322,14 @@ async function showSellRecommendation(){
   sellState.sellDecision=decisionData;
   const platforms=decisionData.analysis?.platformPerformance||[];
   const decision=decisionData.decision||{};
+  const practicalFallback=regionalNoEvidenceFallback();
+  const hasComparablePlatformEvidence=platforms.some(platform=>platform.closeSales||platform.relevantSales);
+  if(practicalFallback&&!hasComparablePlatformEvidence){
+    sellState.noEvidenceFallback=practicalFallback;
+    showRegionalFallbackRecommendation(msgs,practicalFallback);
+    document.getElementById("btn").disabled=false;
+    return;
+  }
   const routeFit=decision.routeFit||{};
   const allRouteOptions=routeFit.routes||[];
   sellState.allRouteOptions=allRouteOptions;
@@ -1342,14 +1350,10 @@ async function showSellRecommendation(){
   const tradeoffs=[...(decision.tradeoffs||[])];
 
   if(!routeOptions.length){
-    const fallback=regionalNoEvidenceFallback();
+    const fallback=practicalFallback;
     sellState.noEvidenceFallback=fallback;
     if(fallback){
-      sellState.sellOptions=[fallbackSellOption(fallback)];
-      const row=document.createElement("div");row.className="row sam";
-      row.innerHTML=renderNoEvidenceFallback(fallback);
-      msgs.appendChild(row);
-      row.scrollIntoView({behavior:"smooth",block:"start"});
+      showRegionalFallbackRecommendation(msgs,fallback);
     }else{
       addMsg("sam",noEvidenceMessage(fallback));
     }
@@ -1553,7 +1557,7 @@ function handleSellRecommendationFollowup(q){
 function regionalNoEvidenceFallback(){
   const region=String(sellState.region||"").toLowerCase();
   const car=cleanCarForCopy();
-  if(/\b(uk|europe)\b/.test(region)){
+  if(/\b(uk|united kingdom|great britain|gb|england|scotland|wales|europe)\b/.test(region)){
     const highValue=estimatedTargetPrice()>=100000||isSpecialistCar();
     const timingBullet=sellerTimelineIsFast()
       ? "Because you want it gone quickly, I would not overcomplicate this with a US-first platform."
@@ -1566,7 +1570,7 @@ function regionalNoEvidenceFallback(){
       subtitle:`I’d start with Car & Classic for a UK seller.`,
       primaryReason:`If this were mine in the UK, Car & Classic is where I’d start.`,
       secondaryReason:`For a higher-value UK, European, Middle East or Australian car, I’d also compare Collecting Cars because it can bring in a wider international buyer pool.`,
-      caveat:`The model-specific data is not strong enough to overrule the obvious UK/Europe fit.`,
+      caveat:`Regional recommendation: UK/Europe seller, practical marketplace fit.`,
       bullets:[
         "It is the natural UK and European marketplace for this kind of seller.",
         "It keeps the car in front of buyers who are already shopping in that region.",
@@ -1583,7 +1587,7 @@ function regionalNoEvidenceFallback(){
       subtitle:`I’d start with Collecting Cars for this region.`,
       primaryReason:`If this were mine outside the US, Collecting Cars is where I’d start.`,
       secondaryReason:"",
-      caveat:`The model-specific data is not strong enough to overrule the regional fit.`,
+      caveat:`Regional recommendation: international seller, broader buyer reach.`,
       bullets:[
         "It is a stronger regional fit than a US-first auction platform.",
         "It can reach buyers beyond one local market.",
@@ -1592,6 +1596,19 @@ function regionalNoEvidenceFallback(){
     };
   }
   return null;
+}
+
+function showRegionalFallbackRecommendation(msgs,fallback){
+  try{
+    sellState.sellOptions=[fallbackSellOption(fallback)];
+    const row=document.createElement("div");row.className="row sam";
+    row.innerHTML=renderNoEvidenceFallback(fallback);
+    msgs.appendChild(row);
+    row.scrollIntoView({behavior:"smooth",block:"start"});
+  }catch(err){
+    console.error("regional fallback render failed",err);
+    addMsg("sam",`${fallback.primary}: ${fallback.primaryReason} ${fallback.bullets?.[0]||""}`);
+  }
 }
 
 function noEvidenceMessage(fallback){
