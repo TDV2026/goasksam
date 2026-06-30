@@ -28,6 +28,9 @@ const MODEL_OWNER_ALIASES = [
   { model: "Macan", makes: ["Porsche"], aliases: ["macan"] },
   { model: "Supra", makes: ["Toyota"], aliases: ["supra"] },
   { model: "Highlander", makes: ["Toyota"], aliases: ["highlander"] },
+  { model: "Accord", makes: ["Honda"], aliases: ["accord"] },
+  { model: "Civic", makes: ["Honda"], aliases: ["civic"] },
+  { model: "Prius", makes: ["Toyota"], aliases: ["prius"] },
   { model: "NSX", makes: ["Acura", "Honda"], aliases: ["nsx"] },
   { model: "R8", makes: ["Audi"], aliases: ["r8"] },
   { model: "GT-R", makes: ["Nissan"], aliases: ["gtr", "gt r", "gt-r"] },
@@ -314,7 +317,7 @@ function modelOwnerMismatch(raw, make, year) {
   const suggestion = year ? `${year} ${suggestionModel}` : suggestionModel;
   return {
     status: "invalid_vehicle",
-    question: `${rule.model} is a ${preferredMake} model, not a ${make}. Did you mean the ${suggestion}, or a different ${make} model?`,
+    question: `I don't think there was a ${make} ${rule.model}. ${rule.model} is usually a ${preferredMake}. Can you let me know the actual ${make} model so I can tell you the best place to sell it?`,
     chips: [suggestion, `Different ${make} model`, "Change car", "Not sure"],
     suggestion,
     baseVehicle: [year, make].filter(Boolean).join(" ")
@@ -370,7 +373,7 @@ function impossibleYearModelIssue(make, year, typedModel, yearModels, fallbackMo
   if (!yearModels?.length || !modelLooksLikeInput(typedModel)) return null;
   return {
     status: "invalid_vehicle",
-    question: `I can't validate a ${year} ${make} ${typedModel}. Which ${make} model are we talking about?`,
+    question: `I don't think there was a ${year} ${make} ${typedModel}. Can you let me know the actual ${make} model so I can tell you the best place to sell it?`,
     chips: yearModelSuggestionChips(make, year, yearModels, fallbackModels),
     suggestion: null,
     baseVehicle: [year, make].filter(Boolean).join(" ")

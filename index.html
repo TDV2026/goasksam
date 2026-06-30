@@ -475,10 +475,10 @@ const POWERSELLERS=[
   }
 ];
 
-const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,region:null,state:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,vehicleDetailSkipped:false,pendingVehicleIdentity:null,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[],allRouteOptions:[],powerSellerProfiles:[],selectedPowerSellerId:null,noEvidenceFallback:null};
+const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,region:null,state:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,vehicleDetailSkipped:false,vehicleIdentityValidated:false,pendingVehicleIdentity:null,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[],allRouteOptions:[],powerSellerProfiles:[],selectedPowerSellerId:null,noEvidenceFallback:null};
 function resetSellState(){
   Object.keys(sellState).forEach(k=>sellState[k]=null);
-  sellState.active=false;sellState.step=0;sellState.returnToConfirm=false;sellState.vehicleDetailSkipped=false;sellState.pendingVehicleIdentity=null;sellState.sellOptions=[];sellState.allRouteOptions=[];sellState.powerSellerProfiles=[];sellState.noEvidenceFallback=null;
+  sellState.active=false;sellState.step=0;sellState.returnToConfirm=false;sellState.vehicleDetailSkipped=false;sellState.vehicleIdentityValidated=false;sellState.pendingVehicleIdentity=null;sellState.sellOptions=[];sellState.allRouteOptions=[];sellState.powerSellerProfiles=[];sellState.noEvidenceFallback=null;
 }
 
 const SELL_STEP_QUESTIONS={
@@ -598,7 +598,7 @@ function looksLikeVehicleText(text){
 const MAKE_MODEL_CLARIFICATIONS=[
   {make:/\bmercedes(?:-benz)?\b|\bbenz\b/,name:"Mercedes-Benz",chips:["SL","AMG GT","G-Class","E-Class","S-Class","190E","Not sure"],model:/\b(sl|amg\s*gt|g[ -]?class|g\d{2,3}|e[ -]?class|e\d{2,3}|s[ -]?class|s\d{2,3}|c[ -]?class|c\d{2,3}|190e|pagoda|w\d{3}|clk|cl|cls|slk|sls|gla|glc|gle|gls)\b/},
   {make:/\bnissan\b/,name:"Nissan",chips:["GT-R","370Z","Z","Skyline","300ZX","Patrol","Not sure"],model:/\b(gt-?r|gtr|370z|350z|300zx|280z|260z|240z|fairlady|skyline|silvia|patrol|figaro|z\b|sentra|maxima|altima|z32|r32|r33|r34|r35)\b/},
-  {make:/\btoyota\b/,name:"Toyota",chips:["Supra","Land Cruiser","Celica","MR2","FJ40","4Runner","Not sure"],model:/\b(supra|land\s+cruiser|fj\d{2}|celica|mr2|2000gt|4runner|highlander|hilux|corolla|crown|ae86|prado|sequoia|tacoma|pickup)\b/},
+  {make:/\btoyota\b/,name:"Toyota",chips:["Supra","Land Cruiser","Prius","Camry","Corolla","4Runner","Not sure"],model:/\b(supra|land\s+cruiser|fj\d{2}|celica|mr2|2000gt|4runner|highlander|hilux|corolla|camry|prius|avalon|rav4|crown|ae86|prado|sequoia|tacoma|pickup)\b/},
   {make:/\bhonda\b/,name:"Honda",chips:["S2000","Civic Type R","NSX","Integra","Prelude","Not sure"],model:/\b(s2000|civic|type\s*r|nsx|integra|prelude|accord|crx|del\s+sol|beat)\b/},
   {make:/\bford\b/,name:"Ford",chips:["Mustang","GT","Bronco","F-150","Escort RS","Not sure"],model:/\b(mustang|gt\b|gt40|bronco|f-?150|f-?250|escort|rs200|cosworth|thunderbird|ranger|focus|fiesta|raptor)\b/},
   {make:/\bchevrolet\b|\bchevy\b/,name:"Chevrolet",chips:["Corvette","Camaro","Impala","Chevelle","C10","Not sure"],model:/\b(corvette|camaro|impala|chevelle|c10|c\/10|nova|bel\s*air|suburban|tahoe|silverado|el\s+camino|ssr|z06|zr1)\b/},
@@ -794,7 +794,7 @@ function missingVehicleDetail(text){
 }
 
 function currentMissingVehicleDetail(){
-  if(sellState.vehicleDetailSkipped)return null;
+  if(sellState.vehicleDetailSkipped||sellState.vehicleIdentityValidated)return null;
   return missingVehicleDetail(sellState.carName);
 }
 
@@ -810,6 +810,7 @@ async function handleVehicleValidationAnswer(q){
     sellState.carName=currentIssue.baseVehicle;
     sellState.carRaw=currentIssue.baseVehicle;
     sellState.vehicleDetailSkipped=false;
+    sellState.vehicleIdentityValidated=false;
     sellState.pendingVehicleIdentity=null;
     const missing=currentMissingVehicleDetail();
     if(missing){
@@ -818,7 +819,7 @@ async function handleVehicleValidationAnswer(q){
     }
   }
   if(/\b(change car|start over|wrong car|different car)\b/i.test(lower)){
-    sellState.carName=null;sellState.carRaw=null;sellState.vehicleDetailSkipped=false;sellState.pendingVehicleIdentity=null;sellState.step=1;
+    sellState.carName=null;sellState.carRaw=null;sellState.vehicleDetailSkipped=false;sellState.vehicleIdentityValidated=false;sellState.pendingVehicleIdentity=null;sellState.step=1;
     addMsg("sam","No problem — what are we selling today? Year, make and model.");
     return true;
   }
@@ -830,7 +831,22 @@ async function handleVehicleValidationAnswer(q){
     sellState.carName=currentIssue.suggestion;
     sellState.carRaw=currentIssue.suggestion;
     sellState.vehicleDetailSkipped=false;
+    sellState.vehicleIdentityValidated=false;
     sellState.pendingVehicleIdentity=null;
+    if(!(await validateVehicleIdentityPreflight(sellState.carName)))return true;
+    addMsg("sam",`Got it — ${sellState.carName}.`);
+    if(sellState.returnToConfirm){goBackToConfirm();return true;}
+    sellState.step=11;
+    addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+    return true;
+  }
+  if(currentIssue?.suggestion&&normalizeVehicleAnswer(q)===normalizeVehicleAnswer(currentIssue.suggestion)){
+    sellState.carName=currentIssue.suggestion;
+    sellState.carRaw=currentIssue.suggestion;
+    sellState.vehicleDetailSkipped=false;
+    sellState.vehicleIdentityValidated=false;
+    sellState.pendingVehicleIdentity=null;
+    if(!(await validateVehicleIdentityPreflight(sellState.carName)))return true;
     addMsg("sam",`Got it — ${sellState.carName}.`);
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=11;
@@ -842,6 +858,7 @@ async function handleVehicleValidationAnswer(q){
     sellState.carName=candidate;
     sellState.carRaw=candidate;
     sellState.vehicleDetailSkipped=false;
+    sellState.vehicleIdentityValidated=false;
     sellState.pendingVehicleIdentity=null;
     if(!(await validateVehicleIdentityPreflight(candidate)))return true;
     const missing=currentMissingVehicleDetail();
@@ -859,6 +876,7 @@ async function handleVehicleValidationAnswer(q){
     sellState.carName=cleanInitialCarText(q)||q;
     sellState.carRaw=sellState.carName;
     sellState.vehicleDetailSkipped=false;
+    sellState.vehicleIdentityValidated=false;
     sellState.pendingVehicleIdentity=null;
     if(!(await validateVehicleIdentityPreflight(sellState.carName)))return true;
     const missing=currentMissingVehicleDetail();
@@ -890,7 +908,7 @@ function startSellFlow(initialCar, showUserBubble=true){
       addMsg("sam",sellerFunnelReply(),"",chipsHTML(["Start the questions"]));
       return;
     }
-    sellState.carRaw=initialCar;sellState.carName=carName||initialCar;
+    sellState.carRaw=initialCar;sellState.carName=carName||initialCar;sellState.vehicleIdentityValidated=false;
     setTimeout(async()=>{
       if(!(await validateVehicleIdentityPreflight(sellState.carName)))return;
       const missing=currentMissingVehicleDetail();
@@ -954,7 +972,11 @@ function applySellStateUpdate(text){
     }else{
       sellState[pattern.key]=pattern.key==="state"?(normalizeUSState(value)||value):value;
     }
-    if(pattern.key==="carName")sellState.carRaw=value;
+    if(pattern.key==="carName"){
+      sellState.carRaw=value;
+      sellState.vehicleIdentityValidated=false;
+      sellState.pendingVehicleIdentity=null;
+    }
     if(pattern.key==="state")sellState.region="US";
     return {label:pattern.label,value:sellState[pattern.key]};
   }
@@ -964,6 +986,8 @@ function applySellStateUpdate(text){
     if(carMatch){
       const value=normalizeUpdateValue(carMatch[1]);
       sellState.carName=value;sellState.carRaw=value;
+      sellState.vehicleIdentityValidated=false;
+      sellState.pendingVehicleIdentity=null;
       return {label:"Car",value};
     }
     const priceMatch=raw.match(/\b(?:\$?\d+(?:,\d{3})?|\d+k|six figures?)\b/i);
@@ -1029,6 +1053,7 @@ async function handleSellStep(q){
     }
     sellState.carRaw=q;
     sellState.carName=q;
+    sellState.vehicleIdentityValidated=false;
     if(/porsche|911/i.test(lower))sellState.carType="porsche";
     else if(/bmw|m2/i.test(lower))sellState.carType="bmw";
     else sellState.carType="generic";
@@ -1057,6 +1082,8 @@ async function handleSellStep(q){
       sellState.carName=candidate;
       sellState.carRaw=candidate;
       sellState.vehicleDetailSkipped=false;
+      sellState.vehicleIdentityValidated=false;
+      sellState.pendingVehicleIdentity=null;
       if(!(await validateVehicleIdentityPreflight(candidate)))return true;
       const missing=currentMissingVehicleDetail();
       if(missing){
@@ -1166,7 +1193,7 @@ async function handleSellStep(q){
       return true;
     }
     // Field-specific change chips
-    if(/^car$/i.test(lower)){sellState.returnToConfirm=true;sellState.carName=null;sellState.carType=null;sellState.step=1;addMsg("sam","What are we selling today? Year, make, and model.");return true;}
+    if(/^car$/i.test(lower)){sellState.returnToConfirm=true;sellState.carName=null;sellState.carType=null;sellState.vehicleIdentityValidated=false;sellState.pendingVehicleIdentity=null;sellState.step=1;addMsg("sam","What are we selling today? Year, make, and model.");return true;}
     if(/^location$|^region$/i.test(lower)){sellState.returnToConfirm=true;sellState.region=null;sellState.state=null;sellState.step=11;addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));return true;}
     if(/^state$/i.test(lower)){sellState.returnToConfirm=true;sellState.region="US";sellState.state=null;sellState.step=18;addMsg("sam","Which state is it in? This helps me think about PowerSeller and handoff options. Type it if it is not shown.","",chipsHTML(["California","Florida","Texas","New York","New Jersey","Other"]));return true;}
     if(/^mileage$/i.test(lower)){sellState.returnToConfirm=true;sellState.mileage=null;sellState.step=2;addMsg("sam","Rough mileage?","",chipsHTML(["Under 30k","30k–60k","60k–100k","Over 100k"]));return true;}
@@ -1927,9 +1954,11 @@ const API_ORIGIN=location.hostname==="localhost"||location.hostname==="127.0.0.1
 function hideHero(){const h=document.getElementById("hero");if(h)h.remove();}
 function escapeHtml(str){return String(str||"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]));}
 function escapeRegExp(str){return String(str||"").replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
+function normalizeVehicleAnswer(str){return String(str||"").toLowerCase().replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").replace(/\s+/g," ").trim();}
 function apiPath(path){return `${API_ORIGIN}${path}`;}
 function activeVehicleIssue(){return sellState.pendingVehicleIdentity||currentMissingVehicleDetail();}
 function askVehicleIdentityClarification(clarification,status){
+  sellState.vehicleIdentityValidated=false;
   sellState.pendingVehicleIdentity={
     type:status==="invalid_vehicle"?"invalid_vehicle":"model",
     ask:clarification.question,
@@ -1941,11 +1970,13 @@ function askVehicleIdentityClarification(clarification,status){
   addMsg("sam",sellState.pendingVehicleIdentity.ask,"",chipsHTML(sellState.pendingVehicleIdentity.chips));
 }
 async function validateVehicleIdentityPreflight(candidate){
+  sellState.vehicleIdentityValidated=false;
   try{
     const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:candidate})});
     const data=await res.json();
     if(!res.ok||!data)return true;
     if(data.status==="valid"){
+      sellState.vehicleIdentityValidated=true;
       sellState.pendingVehicleIdentity=null;
       if(data.vehicle?.canonicalLabel){
         sellState.carName=data.vehicle.canonicalLabel;
