@@ -1682,12 +1682,13 @@ function regionalNoEvidenceFallback(){
   if(/\b(uk|united kingdom|great britain|gb|england|scotland|wales|europe)\b/.test(region)){
     const highValue=estimatedTargetPrice()>=100000||isSpecialistCar();
     const timingBullet=sellerTimelineIsFast()
-      ? "Because you want it gone quickly, I would not overcomplicate this with a US-first platform."
-      : "I would not overcomplicate this with a US-first platform unless there is clear evidence it suits the car.";
+      ? "It is a practical route when you want the car in front of regional buyers quickly."
+      : "It is where I would start before looking further afield.";
     return {
       region:"uk_europe",
       primary:"Car & Classic",
       secondary:highValue?"Collecting Cars":null,
+      stat:"Best regional fit · UK/Europe seller · Fast-listing friendly",
       title:`Here’s what I’d do with the ${car}.`,
       subtitle:`I’d start with Car & Classic for a UK seller.`,
       primaryReason:`If this were mine in the UK, Car & Classic is where I’d start.`,
@@ -1705,15 +1706,16 @@ function regionalNoEvidenceFallback(){
       region:"international",
       primary:"Collecting Cars",
       secondary:null,
+      stat:"Best regional fit · International seller · Broader buyer reach",
       title:`Here’s what I’d do with the ${car}.`,
       subtitle:`I’d start with Collecting Cars for this region.`,
-      primaryReason:`If this were mine outside the US, Collecting Cars is where I’d start.`,
+      primaryReason:`If this were mine in ${sellState.region||"this region"}, Collecting Cars is where I’d start.`,
       secondaryReason:"",
       caveat:`Regional recommendation: international seller, broader buyer reach.`,
       bullets:[
-        "It is a stronger regional fit than a US-first auction platform.",
-        "It can reach buyers beyond one local market.",
-        "I would only compare US platforms if there were clear evidence that they suited this exact car."
+        "It is built for cross-border collector-car buyers.",
+        "It is a better fit when the seller is in Australia, the Middle East or another international market.",
+        "It keeps the recommendation focused on where this car can realistically be sold from your region."
       ]
     };
   }
@@ -1776,14 +1778,14 @@ function renderNoEvidenceFallback(fallback){
         </div>
         <div class="sell-rec-reason-label">Why I picked this</div>
         <div class="sell-rec-reason">${escapeHtml(fallback.primaryReason)}</div>
-        <div class="sell-rec-stat">✓ Best regional fit · UK/Europe seller · Fast-listing friendly</div>
+        <div class="sell-rec-stat">✓ ${escapeHtml(fallback.stat||"Best regional fit")}</div>
         <ul class="sell-rec-bullets">${(fallback.bullets||[]).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
         <div class="sell-rec-evidence-line">${escapeHtml(fallback.caveat)}</div>
         <div class="sell-rec-actions"><button class="primary" onclick="event.stopPropagation();chooseFallbackDestination('${escapeHtml(fallback.primary)}')">Sell on ${escapeHtml(fallback.primary)}</button></div>
       </div>
     </div>
     ${secondary}
-    <div class="sam-text after-results">You can go with this, or ask me why I would not start with a US platform.</div>
+    <div class="sam-text after-results">You can go with this, or ask me how I’d think about another platform.</div>
   </div></div>`;
 }
 
@@ -1799,8 +1801,8 @@ function fallbackSellOption(fallback){
     reason:fallback.primaryReason,
     evidenceBullets:fallback.bullets||[],
     evidenceLine:fallback.caveat,
-    stat:"Best regional fit",
-    bestFor:"UK/Europe seller",
+    stat:fallback.stat||"Best regional fit",
+    bestFor:fallback.region==="uk_europe"?"UK/Europe seller":"International seller",
     marketEvidence:null,
     routeFitFacts:["region_fit","faster_listing_fit"]
   };
