@@ -1509,7 +1509,7 @@ async function showSellRecommendation(){
       stat:routeTagLine(route,index,routeOptions),
       bestFor:index===0
         ? speedFit?"Works when timing matters and the market read still backs it":"Works when the priority is the strongest sale outcome"
-        : speedFit?"Worth comparing if speed-to-list matters":"Worth comparing if timing, fees or handoff fit better",
+        : speedFit?"Worth comparing if speed-to-list matters":"Worth comparing if buyer fit or handoff is better",
       marketEvidence:route.marketEvidence||null,
       speedToList:route.speedToList,
       priceOutcome:route.priceOutcome,
@@ -2545,7 +2545,7 @@ function routeReason(route,index,routes){
     if(other&&Number(evidence.medianSalePrice||0)>Number(otherEvidence.medianSalePrice||0)){
       return index===0
         ? `The recent result gap points this way. I’d still compare it against ${otherName} before choosing.`
-        : `${name} belongs in the conversation because the gap is close enough that process and timing still matter.`;
+        : `${name} belongs in the conversation because the gap is close enough that buyer fit and speed-to-list still matter.`;
     }
     if(["fast","medium_fast"].includes(route.speedToList)){
       return `This is close enough on recent performance that a quicker listing path may matter.`;
@@ -2938,12 +2938,12 @@ function routeEvidenceBullets(route,index,routes){
   const bullets=[];
   if(Number.isFinite(evidence.performanceDeltaPercent)&&Math.abs(evidence.performanceDeltaPercent)>=5){
     if(evidence.performanceDeltaPercent>0)bullets.push(`Recent comparable ${comparableModelLabel()} sales have been stronger here than the wider market.`);
-    else if(Math.abs(evidence.performanceDeltaPercent)<=15)bullets.push(`The platform result is close enough that timing, fees and process are worth comparing.`);
+    else if(Math.abs(evidence.performanceDeltaPercent)<=15)bullets.push(`The result is close enough that buyer fit and speed-to-list are worth comparing.`);
   }
-  if(evidence.topThreeSales>=2)bullets.push(`The strongest recent comparable sales have come through this platform.`);
+  if(evidence.topThreeSales>=2)bullets.push(`Recent comparable ${comparableModelLabel()} sales have consistently finished strongest here.`);
   const scope=comparisonScopeSentence();
   if(scope)bullets.push(scope);
-  if(index===0)bullets.push(`I’d still compare fees and timing, but this would be my starting point if you run it yourself.`);
+  if(index===0)bullets.push(`Best choice if you’re comfortable answering questions and staying engaged through the auction.`);
   if(bullets.length<3)bullets.push(sellerPriorityLabel(route));
   if(!bullets.length)bullets.push(index===0
     ? "Recent comparable activity points here before the other choices."
@@ -3014,9 +3014,9 @@ function marketEvidenceSentence(option){
     return `Recent comparable ${comparableModelLabel()} have consistently favoured ${option.name}.`;
   }
   if(Number.isFinite(evidence.performanceDeltaPercent)&&evidence.performanceDeltaPercent<0&&Math.abs(evidence.performanceDeltaPercent)<=15){
-    return `${option.name} is close enough to the top platform that timing, fees and process are worth comparing.`;
+    return `${option.name} is close enough to the top platform that buyer fit and speed-to-list are worth comparing.`;
   }
-  if(evidence.topThreeSales>=2)return `The strongest recent comparable sales have come through ${option.name}.`;
+  if(evidence.topThreeSales>=2)return `Recent comparable ${comparableModelLabel()} sales have consistently finished strongest on ${option.name}.`;
   return `${option.name} belongs in the comparison.`;
 }
 
@@ -3045,8 +3045,8 @@ function medianDeltaSentence(option, other){
   ],sellState.carName,optionName,other.name,a,b);
   if(diff<0){
     if(abs<=15)return pickCopy([
-      `${optionName} is close enough to the top platform that timing, fees and process are worth comparing.`,
-      `${optionName} is close enough to ${other.name} that timing, fees and process are worth comparing.`,
+      `${optionName} is close enough to the top platform that buyer fit and speed-to-list are worth comparing.`,
+      `${optionName} is close enough to ${other.name} that audience fit and auction workload are worth comparing.`,
       `${other.name} has the edge, but ${optionName} remains close enough to keep in the conversation.`
     ],sellState.carName,optionName,other.name,a,b);
     return pickCopy([
@@ -3123,7 +3123,7 @@ function compareSellOptions(){
   }else if(Number.isFinite(secondDelta)&&secondDelta>=5){
     lines.push(`I’d lean ${second.name} because similar cars have recently finished ${performancePercentLabel(secondDelta)} stronger there than the rest of the tracked market ${marketWindowPhrase()}.`);
   }else{
-    lines.push(`${first.name} and ${second.name} are close enough that timing, fees and how much work you want to do should drive the choice.`);
+    lines.push(`${first.name} and ${second.name} are close enough that buyer fit, speed and how much work you want to do should drive the choice.`);
   }
 
   const topRoute=[first,second].find(option=>(option.marketEvidence?.topThreeSales||0)>=2);
@@ -3141,7 +3141,7 @@ function compareSellOptions(){
   }
 
   if(firstRoute&&secondRoute&&hasTwoRouteTradeoff([firstRoute,secondRoute])){
-    lines.push(`My read: start with ${first.name}, but keep ${second.name} on the table if its timing, fees or process feel better.`);
+    lines.push(`My read: start with ${first.name}, but keep ${second.name} on the table if its buyer fit, speed or workload feels better.`);
   }
 
   return lines.filter(Boolean).join(" ");
