@@ -274,6 +274,12 @@ body{
 .power-seller-chip-row{display:flex;flex-wrap:wrap;gap:6px;}
 .power-seller-chip{border:1px solid #e7dcc6;background:#fffdf7;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:850;color:#6f4b05;}
 .power-seller-chip.platform{background:#f8f8f5;color:#171717;border-color:#e1e1dc;}
+.power-seller-chip.process{background:white;color:#333;border-color:#e6e0d4;}
+.power-seller-platform-row{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:2px 0 4px;}
+.power-seller-platform-row .power-seller-profile-label{margin:0 4px 0 0;}
+.power-seller-platform-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #e6e0d4;background:white;border-radius:999px;padding:4px 8px 4px 4px;font-size:10px;font-weight:850;color:#333;}
+.power-seller-platform-chip .platform-logo{width:26px;height:26px;border-radius:8px;font-size:8px;letter-spacing:-.2px;}
+.power-seller-reassurance{border:1px solid #efe8d8;background:white;border-radius:12px;padding:10px 11px;font-size:12px;line-height:1.5;color:#555;max-width:720px;}
 .power-seller-alt-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px;}
 .power-seller-mini{border:1px solid #eee7d8;background:#fffdf7;border-radius:13px;padding:12px;display:flex;flex-direction:column;gap:6px;}
 .power-seller-mini .observed-seller-name{font-size:15px;}
@@ -793,8 +799,19 @@ function missingVehicleDetail(text){
   return null;
 }
 
+function missingVehicleTrimDetail(text){
+  const lower=String(text||"").toLowerCase();
+  if(/\bporsche\b/.test(lower)&&/\b911\b/.test(lower)&&!/\b(carrera(?:\s+[124]?s|\s+t)?|gts|turbo(?:\s+s)?|gt3(?:\s+rs)?|gt2(?:\s+rs)?|sport\s+classic|dak(?:ar)?|speedster|targa|s\/t|992|991|997|996|993|964)\b/.test(lower)){
+    return {type:"trim",ask:"Which 911 is it? Carrera, Carrera T, GTS, Turbo, GT3 and Sport Classic behave very differently. Pick one below, or type the exact trim if it is not shown.",chips:["Carrera","Carrera S","Carrera T","GTS","Turbo","Turbo S","GT3","GT3 RS","Sport Classic","Not sure"]};
+  }
+  return null;
+}
+
 function currentMissingVehicleDetail(){
-  if(sellState.vehicleDetailSkipped||sellState.vehicleIdentityValidated)return null;
+  if(sellState.vehicleDetailSkipped)return null;
+  const trimMissing=missingVehicleTrimDetail(sellState.carName);
+  if(trimMissing)return trimMissing;
+  if(sellState.vehicleIdentityValidated)return null;
   return missingVehicleDetail(sellState.carName);
 }
 
@@ -1542,7 +1559,7 @@ async function showSellRecommendation(){
     </div>`;
 
   const featuredPowerSeller=powerSellerProfiles[0]||null;
-  const secondaryPowerSellers=powerSellerProfiles.slice(1,3);
+  const secondaryPowerSellers=[];
   const featuredPowerSellerName=featuredPowerSeller?powerSellerFirstName(featuredPowerSeller):"";
   const powerSellerHTML=featuredPowerSeller?`
     <div class="sell-section-label">Sam’s recommendation</div>
@@ -1552,7 +1569,7 @@ async function showSellRecommendation(){
   `:"";
   const platformOptions=sellState.sellOptions.filter(option=>option.key!=="specialist");
   const primaryPlatform=platformOptions[0]||null;
-  const secondaryPlatforms=platformOptions.slice(1,3);
+  const secondaryPlatforms=powerSellerHTML?[]:platformOptions.slice(1,2);
   const platformCardsHTML=primaryPlatform?`
     <div class="sell-section-label">${powerSellerHTML?"If you still want to run it yourself":"My recommendation"}</div>
     ${powerSellerHTML?`<div class="sell-section-note">If you decide to manage the sale yourself, this is where I’d begin.</div>`:""}
@@ -1969,6 +1986,16 @@ function askVehicleIdentityClarification(clarification,status){
   sellState.step=17;
   addMsg("sam",sellState.pendingVehicleIdentity.ask,"",chipsHTML(sellState.pendingVehicleIdentity.chips));
 }
+function preserveDetailedVehicleLabel(candidate,canonical){
+  const candidateText=String(candidate||"").replace(/\s+/g," ").trim();
+  const canonicalText=String(canonical||"").replace(/\s+/g," ").trim();
+  if(!candidateText)return canonicalText;
+  if(!canonicalText)return candidateText;
+  const normalizedCandidate=normalizeVehicleAnswer(candidateText);
+  const normalizedCanonical=normalizeVehicleAnswer(canonicalText);
+  const hasExtraDetail=normalizedCandidate.startsWith(normalizedCanonical)&&normalizedCandidate!==normalizedCanonical;
+  return hasExtraDetail?candidateText:canonicalText;
+}
 async function validateVehicleIdentityPreflight(candidate){
   sellState.vehicleIdentityValidated=false;
   try{
@@ -1979,8 +2006,9 @@ async function validateVehicleIdentityPreflight(candidate){
       sellState.vehicleIdentityValidated=true;
       sellState.pendingVehicleIdentity=null;
       if(data.vehicle?.canonicalLabel){
-        sellState.carName=data.vehicle.canonicalLabel;
-        sellState.carRaw=data.vehicle.canonicalLabel;
+        const label=preserveDetailedVehicleLabel(candidate,data.vehicle.canonicalLabel);
+        sellState.carName=label;
+        sellState.carRaw=label;
       }
       return true;
     }
@@ -2539,13 +2567,16 @@ function observedSellerProfile(seller,index){
 function matchPowerSellers(observedSellers=[]){
   const make=extractVehicleMake();
   const price=estimatedTargetPrice();
-  const observed=(observedSellers||[]).slice(0,2).map(observedSellerProfile);
+  const car=cleanCarForCopy();
+  const observed=[];
   const scored=POWERSELLERS.map(profile=>{
     const score=powerSellerMakeScore(profile,make)
       + powerSellerRegionScore(profile)
       + powerSellerPriceScore(profile,price)
       + (sellerWantsHandsOff()?1:0)
-      + (isHighValueOrSpecialist()?1:0);
+      + (isHighValueOrSpecialist()?1:0)
+      + (profile.profileFacts?4:0)
+      + (/\bporsche\b/i.test(car)&&/\b911\b/i.test(car)&&/911 specialist|air-cooled porsche/i.test((profile.strengths||[]).join(" "))?4:0);
     return {...profile,score,confidenceLabel:"Worth speaking to"};
   })
     .filter(profile=>profile.score>0)
@@ -2556,8 +2587,8 @@ function matchPowerSellers(observedSellers=[]){
     if(unique.some(existing=>existing.displayName===profile.displayName))continue;
     unique.push(profile);
   }
-  if(unique.length)return unique.slice(0,3);
-  return POWERSELLERS.slice(0,2).map(profile=>({...profile,confidenceLabel:"Worth speaking to"}));
+  if(unique.length)return unique.slice(0,1);
+  return POWERSELLERS.filter(profile=>profile.profileFacts).slice(0,1).map(profile=>({...profile,confidenceLabel:"Worth speaking to"}));
 }
 
 function powerSellerFirstName(profile){
@@ -2586,29 +2617,53 @@ function powerSellerPlatformChips(profile){
     .join("");
 }
 
+function powerSellerPlatformLogoChips(profile){
+  return (profile.platforms||[]).slice(0,4).map(name=>{
+    const logo=platformLogo({name});
+    return `<span class="power-seller-platform-chip"><span class="platform-logo ${escapeHtml(logo.cls)}">${escapeHtml(logo.text)}</span><span>${escapeHtml(platformDisplayName(name))}</span></span>`;
+  }).join("");
+}
+
 function powerSellerStrengthChips(profile){
   return (profile.strengths||[]).slice(0,4)
     .map(tag=>`<span class="power-seller-chip">${escapeHtml(tag)}</span>`)
     .join("");
 }
 
+function powerSellerProcessChips(){
+  return ["Car prep","Photography","Listing","Buyer questions","Comments","Logistics","Platform choice"]
+    .map(item=>`<span class="power-seller-chip process">${escapeHtml(item)}</span>`)
+    .join("");
+}
+
+function powerSellerProfileSummary(profile){
+  const facts=profile?.profileFacts||{};
+  if(facts.auctionsManaged||facts.platformAccess){
+    return `${facts.auctionsManaged||"Experienced auction specialist"}. ${facts.platformAccess||"Works across major auction platforms"}.`;
+  }
+  return "Auction specialist who can handle the sale process and help decide where the car should run.";
+}
+
 function renderFeaturedPowerSellerProfile(profile){
   if(!profile)return "";
   const firstName=powerSellerFirstName(profile);
+  const platformChips=powerSellerPlatformLogoChips(profile);
   return `<div class="power-seller-feature" onclick="choosePowerSeller('${escapeHtml(profile.id)}')">
     <div class="power-seller-feature-main">
-      <div class="sell-rec-badge specialist">Sam's first call</div>
+      <div class="sell-rec-badge specialist">Recommended auction specialist</div>
       <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>
-      <span class="observed-seller-meta">${escapeHtml(profile.region||"Worth checking")}</span>
-      <span class="observed-seller-why">Why ${escapeHtml(firstName)} first?</span>
-      <div class="sell-rec-reason">${escapeHtml(profile.note||`I’d start here because this looks like the kind of car where auction management may matter as much as platform choice.`)}</div>
+      <span class="observed-seller-meta">${escapeHtml(profile.region||"Worth checking")} · PowerSeller / auction specialist</span>
+      ${platformChips?`<div class="power-seller-platform-row"><span class="power-seller-profile-label">Lists on</span>${platformChips}</div>`:""}
+      <span class="observed-seller-why">Why Sam picked ${escapeHtml(firstName)}</span>
+      <div class="sell-rec-reason">${escapeHtml(powerSellerProfileSummary(profile))}</div>
       <div class="power-seller-profile-grid">
         ${powerSellerStrengthChips(profile)?`<div class="power-seller-profile-block"><div class="power-seller-profile-label">Best known for</div><div class="power-seller-chip-row">${powerSellerStrengthChips(profile)}</div></div>`:""}
-        <div class="power-seller-profile-block"><div class="power-seller-profile-label">Why this is low pressure</div><div class="power-seller-chip-row"><span class="power-seller-chip platform">Independent pick</span><span class="power-seller-chip platform">You approve contact</span><span class="power-seller-chip platform">No paid placement</span></div></div>
+        <div class="power-seller-profile-block"><div class="power-seller-profile-label">What they can take off your plate</div><div class="power-seller-chip-row">${powerSellerProcessChips()}</div></div>
       </div>
-      <ul class="sell-rec-bullets">${powerSellerWhyBullets(profile,0).slice(0,3).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
+      <ul class="sell-rec-bullets">${powerSellerWhyBullets(profile,0).slice(0,4).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
+      <div class="power-seller-reassurance">This starts a conversation, not a commitment. You can ask about fees, timing, prep, storage and which platform they would choose before deciding whether to move forward.</div>
     </div>
-    <div class="sell-rec-actions"><button class="ghost" onclick="event.stopPropagation();choosePowerSeller('${escapeHtml(profile.id)}')">Talk to ${escapeHtml(firstName)} →</button></div>
+    <div class="sell-rec-actions"><button class="ghost" onclick="event.stopPropagation();choosePowerSeller('${escapeHtml(profile.id)}')">Request an introduction to ${escapeHtml(firstName)} -></button></div>
   </div>`;
 }
 
@@ -2660,9 +2715,10 @@ function powerSellerWhyBullets(seller,index){
   if(seller?.profileFacts){
     const facts=seller.profileFacts;
     return [
-      `${firstName} has deep auction experience and a strong specialty fit for cars like this.`,
-      facts.platformAccess?`Platform access matters here: ${facts.platformAccess}.`:`They can help choose the platform instead of assuming one venue is always right.`,
-      facts.logistics?`${facts.logistics}, so the handoff is not limited to one local radius.`:"They can take buyer questions, comments and logistics off your plate."
+      facts.specialties?`Strong fit for: ${facts.specialties}.`:`${firstName} has deep auction experience and a strong specialty fit for cars like this.`,
+      facts.platformAccess?`They are not tied to one auction answer: ${facts.platformAccess}.`:`They can help choose the platform instead of assuming one venue is always right.`,
+      "They can handle prep, photos, listing work, buyer questions, comments and auction management.",
+      facts.logistics?`${facts.logistics}.`:"They can help with logistics so you are not managing every handoff yourself."
     ];
   }
   const bullets=[
