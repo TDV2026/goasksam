@@ -7,6 +7,7 @@ const FALLBACK_MAKES = [
   "Toyota", "Honda", "Nissan", "Subaru", "Land Rover", "Jaguar", "McLaren",
   "Alfa Romeo", "Acura", "Maserati", "Lotus"
 ];
+const CORE_MAKES = FALLBACK_MAKES.filter(make => make !== "Mercedes");
 
 const MODEL_OWNER_ALIASES = [
   { model: "E-Type", makes: ["Jaguar"], aliases: ["etype", "e type", "e-type"], suggestion: "Jaguar F-Type", suggestionStart: 2013 },
@@ -28,6 +29,7 @@ const MODEL_OWNER_ALIASES = [
   { model: "Macan", makes: ["Porsche"], aliases: ["macan"] },
   { model: "Supra", makes: ["Toyota"], aliases: ["supra"] },
   { model: "Highlander", makes: ["Toyota"], aliases: ["highlander"] },
+  { model: "Land Cruiser", makes: ["Toyota"], aliases: ["land cruiser", "fj40", "fj45", "fj60", "fj62", "fj80", "lc40", "lc60", "lc70", "lc79", "lc80"] },
   { model: "Accord", makes: ["Honda"], aliases: ["accord"] },
   { model: "Civic", makes: ["Honda"], aliases: ["civic"] },
   { model: "Prius", makes: ["Toyota"], aliases: ["prius"] },
@@ -238,6 +240,10 @@ async function getVpicModelsForMake(make) {
 
 function matchMake(raw, makes) {
   const normalized = normalize(raw);
+  const coreExact = CORE_MAKES
+    .filter(make => textHasTerm(normalized, make))
+    .sort((a, b) => String(b).length - String(a).length)[0];
+  if (coreExact) return { value: coreExact, confidence: "high" };
   const exact = makes
     .filter(make => textHasTerm(normalized, make))
     .sort((a, b) => String(b).length - String(a).length)[0];
