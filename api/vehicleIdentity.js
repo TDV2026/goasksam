@@ -1,4 +1,5 @@
 const OLDCARSDATA_BASE = "https://api.oldcarsdata.com";
+const VPIC_BASE = "https://vpic.nhtsa.dot.gov/api/vehicles";
 
 const FALLBACK_MAKES = [
   "Porsche", "Ferrari", "BMW", "Mercedes-Benz", "Mercedes", "Audi",
@@ -69,6 +70,9 @@ const VEHICLE_PRODUCTION_RULES = [
 
 let makesCache = null;
 const modelsCache = {};
+const yearModelsCache = {};
+const vpicModelsCache = {};
+let vpicMakesCache = null;
 
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -135,13 +139,48 @@ async function fetchJson(url) {
 
 async function getMakes() {
   if (makesCache) return makesCache;
+  const sources = [];
   try {
     const json = await fetchJson(`${OLDCARSDATA_BASE}/makes`);
-    makesCache = json.data || FALLBACK_MAKES;
+    sources.push(...(json.data || []));
   } catch {
-    makesCache = FALLBACK_MAKES;
+    // OldCarsData is the market-data source, but identity can still use vPIC below.
   }
+  try {
+    sources.push(...(await getVpicMakes()));
+  } catch {
+    // Keep the local fallback available if the public taxonomy is unavailable.
+  }
+  makesCache = uniqueValues([...sources, ...FALLBACK_MAKES]);
   return makesCache;
+}
+
+function uniqueValues(values) {
+  const seen = new Set();
+  return values.filter(value => {
+    const key = normalize(value);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function prettyMakeName(value) {
+  const upper = asText(value).toUpperCase();
+  const acronyms = new Set(["BMW", "GMC", "MINI", "RAM", "BYD", "MG"]);
+  if (acronyms.has(upper)) return upper;
+  return asText(value).toLowerCase().split(/([-\s]+)/).map(part => {
+    if (/^[-\s]+$/.test(part)) return part;
+    return part.charAt(0).toUpperCase() + part.slice(1);
+  }).join("");
+}
+
+async function getVpicMakes() {
+  if (vpicMakesCache) return vpicMakesCache;
+  const json = await fetchJson(`${VPIC_BASE}/GetAllMakes?format=json`);
+  const results = Array.isArray(json.Results) ? json.Results : [];
+  vpicMakesCache = uniqueValues(results.map(item => prettyMakeName(item.Make_Name)).filter(Boolean));
+  return vpicMakesCache;
 }
 
 async function getModels(make) {
@@ -154,6 +193,44 @@ async function getModels(make) {
     modelsCache[make] = [];
   }
   return modelsCache[make];
+}
+
+function canonicalMakeForYearLookup(make) {
+  if (make === "Mercedes") return "Mercedes-Benz";
+  if (make === "Alfa Romeo") return "Alfa Romeo";
+  return make;
+}
+
+async function getModelsForMakeYear(make, year) {
+  if (!make || !year) return [];
+  const canonicalMake = canonicalMakeForYearLookup(make);
+  const cacheKey = `${canonicalMake}:${year}`;
+  if (yearModelsCache[cacheKey]) return yearModelsCache[cacheKey];
+  try {
+    const url = `${VPIC_BASE}/GetModelsForMakeYear/make/${encodeURIComponent(canonicalMake)}/modelyear/${year}?format=json`;
+    const json = await fetchJson(url);
+    const results = Array.isArray(json.Results) ? json.Results : [];
+    const models = [...new Set(results.map(item => item.Model_Name).filter(Boolean))];
+    yearModelsCache[cacheKey] = models;
+  } catch {
+    yearModelsCache[cacheKey] = [];
+  }
+  return yearModelsCache[cacheKey];
+}
+
+async function getVpicModelsForMake(make) {
+  if (!make) return [];
+  const canonicalMake = canonicalMakeForYearLookup(make);
+  if (vpicModelsCache[canonicalMake]) return vpicModelsCache[canonicalMake];
+  try {
+    const url = `${VPIC_BASE}/GetModelsForMake/${encodeURIComponent(canonicalMake)}?format=json`;
+    const json = await fetchJson(url);
+    const results = Array.isArray(json.Results) ? json.Results : [];
+    vpicModelsCache[canonicalMake] = [...new Set(results.map(item => item.Model_Name).filter(Boolean))];
+  } catch {
+    vpicModelsCache[canonicalMake] = [];
+  }
+  return vpicModelsCache[canonicalMake];
 }
 
 function matchMake(raw, makes) {
@@ -202,6 +279,26 @@ function matchModel(raw, models) {
     }
   }
   return best ? { value: best.value, confidence: "medium" } : { value: null, confidence: "low" };
+}
+
+function matchYearModel(raw, models) {
+  const normalized = normalize(raw);
+  const exact = models
+    .filter(model => textHasTerm(normalized, model))
+    .sort((a, b) => String(b).length - String(a).length)[0];
+  if (exact) return { value: exact, confidence: "high" };
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  let best = null;
+  for (const model of models) {
+    const modelNorm = normalize(model);
+    const modelTokens = modelNorm.split(/\s+/).filter(Boolean);
+    const score = Math.max(
+      similarity(normalized, modelNorm),
+      ...tokens.map(token => Math.max(similarity(token, modelNorm), ...modelTokens.map(modelToken => similarity(token, modelToken))))
+    );
+    if (score >= 0.82 && (!best || score > best.score)) best = { value: model, score };
+  }
+  return best ? { value: best.value, confidence: best.score >= 0.9 ? "high" : "medium" } : { value: null, confidence: "low" };
 }
 
 function modelOwnerMismatch(raw, make, year) {
@@ -258,6 +355,26 @@ function modelSuggestionChips(make, year, models) {
   if (make === "Porsche" && year) return porscheSuggestionChips(year).concat("Not sure");
   const filtered = (models || []).filter(model => modelValidForYear(make, model, year));
   return filtered.slice(0, 5).concat("Not sure");
+}
+
+function yearModelSuggestionChips(make, year, yearModels, fallbackModels) {
+  if (yearModels?.length) return yearModels.slice(0, 5).concat("Not sure");
+  return modelSuggestionChips(make, year, fallbackModels);
+}
+
+function modelLooksLikeInput(raw) {
+  return normalize(raw).length >= 2;
+}
+
+function impossibleYearModelIssue(make, year, typedModel, yearModels, fallbackModels) {
+  if (!yearModels?.length || !modelLooksLikeInput(typedModel)) return null;
+  return {
+    status: "invalid_vehicle",
+    question: `I can't validate a ${year} ${make} ${typedModel}. Which ${make} model are we talking about?`,
+    chips: yearModelSuggestionChips(make, year, yearModels, fallbackModels),
+    suggestion: null,
+    baseVehicle: [year, make].filter(Boolean).join(" ")
+  };
 }
 
 function productionIssue(raw, make, model, year) {
@@ -320,9 +437,18 @@ async function identifyVehicle(raw) {
   }
 
   const models = await getModels(make);
+  const yearModels = await getModelsForMakeYear(make, year);
   const remainder = removeKnownNoise(text, make, year);
-  const modelMatch = matchModel(remainder, models);
-  const knownModelMatch = modelMatch.value ? modelMatch : matchKnownModelAlias(remainder, make);
+  const yearModelMatch = matchYearModel(remainder, yearModels);
+  const archiveModelMatch = yearModelMatch.value ? { value: null } : matchModel(remainder, models);
+  const aliasModelMatch = yearModelMatch.value || archiveModelMatch.value ? null : matchKnownModelAlias(remainder, make);
+  const knownModelMatch = yearModelMatch.value
+    ? { ...yearModelMatch, source: "year_taxonomy" }
+    : archiveModelMatch.value
+      ? { ...archiveModelMatch, source: "market_archive" }
+      : aliasModelMatch
+        ? { ...aliasModelMatch, source: "alias" }
+        : null;
   const resolvedModel = knownModelMatch?.value || null;
   const invalidProduction = productionIssue(text, make, resolvedModel, year);
   if (invalidProduction) {
@@ -332,13 +458,32 @@ async function identifyVehicle(raw) {
       clarification: invalidProduction
     };
   }
+  if (resolvedModel && yearModels.length && !matchYearModel(resolvedModel, yearModels).value) {
+    const allYearModels = knownModelMatch.source === "market_archive" ? await getVpicModelsForMake(make) : [];
+    const isKnownToYearTaxonomy = knownModelMatch.source !== "market_archive" || Boolean(matchYearModel(resolvedModel, allYearModels).value);
+    if (isKnownToYearTaxonomy) {
+      return {
+        status: "invalid_vehicle",
+        vehicle: { raw: text, year, make, model: resolvedModel, confidence: "low" },
+        clarification: impossibleYearModelIssue(make, year, resolvedModel, yearModels, models)
+      };
+    }
+  }
   if (!resolvedModel) {
+    const impossibleModel = impossibleYearModelIssue(make, year, remainder, yearModels, models);
+    if (impossibleModel) {
+      return {
+        status: "invalid_vehicle",
+        vehicle: { raw: text, year, make, model: null, confidence: "low" },
+        clarification: impossibleModel
+      };
+    }
     return {
       status: "needs_clarification",
       vehicle: { raw: text, year, make, model: null, confidence: makeMatch.confidence },
       clarification: {
         question: `${make} made a lot of different cars${year ? ` in ${year}` : ""}. Which model are we talking about? Pick one below, or type the exact model if it is not shown.`,
-        chips: modelSuggestionChips(make, year, models),
+        chips: yearModelSuggestionChips(make, year, yearModels, models),
         baseVehicle: [year, make].filter(Boolean).join(" ")
       }
     };
