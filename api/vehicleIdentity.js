@@ -11,6 +11,20 @@ const MODEL_OWNER_ALIASES = [
   { model: "E-Type", makes: ["Jaguar"], aliases: ["etype", "e type", "e-type"], suggestion: "Jaguar F-Type", suggestionStart: 2013 },
   { model: "F-Type", makes: ["Jaguar"], aliases: ["ftype", "f type", "f-type"] },
   { model: "911", makes: ["Porsche"], aliases: ["911"] },
+  { model: "356", makes: ["Porsche"], aliases: ["356"] },
+  { model: "550 Spyder", makes: ["Porsche"], aliases: ["550", "550 spyder"] },
+  { model: "912", makes: ["Porsche"], aliases: ["912"] },
+  { model: "914", makes: ["Porsche"], aliases: ["914"] },
+  { model: "924", makes: ["Porsche"], aliases: ["924"] },
+  { model: "928", makes: ["Porsche"], aliases: ["928"] },
+  { model: "944", makes: ["Porsche"], aliases: ["944"] },
+  { model: "968", makes: ["Porsche"], aliases: ["968"] },
+  { model: "718", makes: ["Porsche"], aliases: ["718"] },
+  { model: "Boxster", makes: ["Porsche"], aliases: ["boxster"] },
+  { model: "Cayman", makes: ["Porsche"], aliases: ["cayman"] },
+  { model: "Panamera", makes: ["Porsche"], aliases: ["panamera"] },
+  { model: "Cayenne", makes: ["Porsche"], aliases: ["cayenne"] },
+  { model: "Macan", makes: ["Porsche"], aliases: ["macan"] },
   { model: "Supra", makes: ["Toyota"], aliases: ["supra"] },
   { model: "Highlander", makes: ["Toyota"], aliases: ["highlander"] },
   { model: "NSX", makes: ["Acura", "Honda"], aliases: ["nsx"] },
@@ -35,7 +49,22 @@ const VEHICLE_PRODUCTION_RULES = [
   { make: "Nissan", model: "370Z", aliases: ["370z"], start: 2009, end: 2020 },
   { make: "Nissan", model: "GT-R", aliases: ["gtr", "gt r", "gt-r"], start: 2009, end: 2024 },
   { make: "Audi", model: "R8", aliases: ["r8"], start: 2008, end: 2023 },
-  { make: "BMW", model: "M3", aliases: ["m3"], start: 1986, end: 2026 }
+  { make: "BMW", model: "M3", aliases: ["m3"], start: 1986, end: 2026 },
+  { make: "Porsche", model: "356", aliases: ["356"], start: 1948, end: 1965 },
+  { make: "Porsche", model: "550 Spyder", aliases: ["550", "550 spyder"], start: 1953, end: 1956 },
+  { make: "Porsche", model: "911", aliases: ["911"], start: 1964, end: 2026 },
+  { make: "Porsche", model: "912", aliases: ["912"], ranges: [[1965, 1969], [1976, 1976]] },
+  { make: "Porsche", model: "914", aliases: ["914"], start: 1969, end: 1976 },
+  { make: "Porsche", model: "924", aliases: ["924"], start: 1976, end: 1988 },
+  { make: "Porsche", model: "928", aliases: ["928"], start: 1978, end: 1995 },
+  { make: "Porsche", model: "944", aliases: ["944"], start: 1982, end: 1991 },
+  { make: "Porsche", model: "968", aliases: ["968"], start: 1992, end: 1995 },
+  { make: "Porsche", model: "Boxster", aliases: ["boxster"], start: 1997, end: 2026 },
+  { make: "Porsche", model: "Cayman", aliases: ["cayman"], start: 2006, end: 2026 },
+  { make: "Porsche", model: "718", aliases: ["718"], start: 2017, end: 2026 },
+  { make: "Porsche", model: "Panamera", aliases: ["panamera"], start: 2010, end: 2026 },
+  { make: "Porsche", model: "Cayenne", aliases: ["cayenne"], start: 2003, end: 2026 },
+  { make: "Porsche", model: "Macan", aliases: ["macan"], start: 2015, end: 2026 }
 ];
 
 let makesCache = null;
@@ -201,6 +230,36 @@ function validYearForRule(year, rule) {
   return year >= rule.start && year <= rule.end;
 }
 
+function modelProductionRule(make, model) {
+  return VEHICLE_PRODUCTION_RULES.find(item =>
+    item.make === make &&
+    (normalize(item.model) === normalize(model) || item.aliases.some(alias => normalize(alias) === normalize(model)))
+  );
+}
+
+function modelValidForYear(make, model, year) {
+  const rule = modelProductionRule(make, model);
+  return !rule || validYearForRule(year, rule);
+}
+
+function porscheSuggestionChips(year) {
+  if (year >= 2017) return ["911", "718", "Panamera", "Cayenne", "Macan"];
+  if (year >= 2006) return ["911", "Boxster", "Cayman", "Panamera", "Cayenne"];
+  if (year >= 1997) return ["911", "Boxster", "Cayman", "968", "928"];
+  if (year >= 1982) return ["911", "944", "928", "924"];
+  if (year >= 1976) return ["911", "924", "928", "914"];
+  if (year >= 1969) return ["911", "912", "914"];
+  if (year >= 1964) return ["911", "912", "356"];
+  if (year >= 1953) return ["356", "550 Spyder"];
+  return ["911", "718", "Boxster", "Cayman", "Panamera"];
+}
+
+function modelSuggestionChips(make, year, models) {
+  if (make === "Porsche" && year) return porscheSuggestionChips(year).concat("Not sure");
+  const filtered = (models || []).filter(model => modelValidForYear(make, model, year));
+  return filtered.slice(0, 5).concat("Not sure");
+}
+
 function productionIssue(raw, make, model, year) {
   if (!year || !make || !model) return null;
   const normalized = normalize(raw);
@@ -211,13 +270,16 @@ function productionIssue(raw, make, model, year) {
   );
   if (!rule || validYearForRule(year, rule)) return null;
   const replacement = rule.suggestion && (!rule.suggestionStart || year >= rule.suggestionStart);
+  const fallbackChips = make === "Porsche"
+    ? porscheSuggestionChips(year).concat("Change car", "Not sure")
+    : [`Different ${make} model`, "Change car", "Not sure"];
   const question = replacement
     ? `The ${rule.model} wasn't produced in ${year}. Did you mean the ${year} ${rule.suggestion}?`
     : `The ${rule.model} wasn't produced in ${year}. Which ${make} model are we talking about?`;
   return {
     status: "invalid_vehicle",
     question,
-    chips: replacement ? [`${year} ${rule.suggestion}`, "Change car", "Not sure"] : [`Different ${make} model`, "Change car", "Not sure"],
+    chips: replacement ? [`${year} ${rule.suggestion}`, "Change car", "Not sure"] : fallbackChips,
     suggestion: replacement ? `${year} ${rule.suggestion}` : null,
     baseVehicle: [year, make].filter(Boolean).join(" ")
   };
@@ -276,7 +338,7 @@ async function identifyVehicle(raw) {
       vehicle: { raw: text, year, make, model: null, confidence: makeMatch.confidence },
       clarification: {
         question: `${make} made a lot of different cars${year ? ` in ${year}` : ""}. Which model are we talking about? Pick one below, or type the exact model if it is not shown.`,
-        chips: models.slice(0, 5).concat("Not sure"),
+        chips: modelSuggestionChips(make, year, models),
         baseVehicle: [year, make].filter(Boolean).join(" ")
       }
     };

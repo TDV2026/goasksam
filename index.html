@@ -624,6 +624,19 @@ function genericMakeMissingDetail(lower,year){
   };
 }
 
+function porscheModelChipsForYear(yearValue){
+  const year=Number(yearValue);
+  if(year>=2017)return ["911","718","Panamera","Cayenne","Macan","Not sure"];
+  if(year>=2006)return ["911","Boxster","Cayman","Panamera","Cayenne","Not sure"];
+  if(year>=1997)return ["911","Boxster","Cayman","968","928","Not sure"];
+  if(year>=1982)return ["911","944","928","924","Not sure"];
+  if(year>=1976)return ["911","924","928","914","Not sure"];
+  if(year>=1969)return ["911","912","914","Not sure"];
+  if(year>=1964)return ["911","912","356","Not sure"];
+  if(year>=1953)return ["356","550 Spyder","Not sure"];
+  return ["911","718","Boxster","Cayman","Panamera","Not sure"];
+}
+
 const VEHICLE_PRODUCTION_RULES=[
   {make:"Jaguar",model:"E-Type",match:/\bjaguar\b.*\be[-\s]?type\b|\be[-\s]?type\b.*\bjaguar\b/i,start:1961,end:1974,suggestion:"Jaguar F-Type",suggestionStart:2013},
   {make:"Jaguar",model:"F-Type",match:/\bjaguar\b.*\bf[-\s]?type\b|\bf[-\s]?type\b.*\bjaguar\b/i,start:2013,end:2024},
@@ -633,11 +646,21 @@ const VEHICLE_PRODUCTION_RULES=[
   {make:"Nissan",model:"370Z",match:/\bnissan\b.*\b370z\b|\b370z\b.*\bnissan\b/i,start:2009,end:2020},
   {make:"Nissan",model:"GT-R",match:/\bnissan\b.*\bgt[-\s]?r\b|\bgt[-\s]?r\b.*\bnissan\b/i,start:2009,end:2024},
   {make:"Audi",model:"R8",match:/\baudi\b.*\br8\b|\br8\b.*\baudi\b/i,start:2008,end:2023},
+  {make:"Porsche",model:"356",match:/\bporsche\b.*\b356\b|\b356\b.*\bporsche\b/i,start:1948,end:1965},
+  {make:"Porsche",model:"550 Spyder",match:/\bporsche\b.*\b550(?:\s+spyder)?\b|\b550(?:\s+spyder)?\b.*\bporsche\b/i,start:1953,end:1956},
   {make:"Porsche",model:"911",match:/\bporsche\b.*\b911\b|\b911\b.*\bporsche\b/i,start:1964,end:2026},
+  {make:"Porsche",model:"912",match:/\bporsche\b.*\b912\b|\b912\b.*\bporsche\b/i,ranges:[[1965,1969],[1976,1976]]},
+  {make:"Porsche",model:"914",match:/\bporsche\b.*\b914\b|\b914\b.*\bporsche\b/i,start:1969,end:1976},
+  {make:"Porsche",model:"924",match:/\bporsche\b.*\b924\b|\b924\b.*\bporsche\b/i,start:1976,end:1988},
   {make:"Porsche",model:"Cayman",match:/\bporsche\b.*\bcayman\b|\bcayman\b.*\bporsche\b/i,start:2006,end:2026},
   {make:"Porsche",model:"Boxster",match:/\bporsche\b.*\bboxster\b|\bboxster\b.*\bporsche\b/i,start:1997,end:2026},
   {make:"Porsche",model:"944",match:/\bporsche\b.*\b944\b|\b944\b.*\bporsche\b/i,start:1982,end:1991},
   {make:"Porsche",model:"928",match:/\bporsche\b.*\b928\b|\b928\b.*\bporsche\b/i,start:1978,end:1995},
+  {make:"Porsche",model:"968",match:/\bporsche\b.*\b968\b|\b968\b.*\bporsche\b/i,start:1992,end:1995},
+  {make:"Porsche",model:"718",match:/\bporsche\b.*\b718\b|\b718\b.*\bporsche\b/i,start:2017,end:2026},
+  {make:"Porsche",model:"Panamera",match:/\bporsche\b.*\bpanamera\b|\bpanamera\b.*\bporsche\b/i,start:2010,end:2026},
+  {make:"Porsche",model:"Cayenne",match:/\bporsche\b.*\bcayenne\b|\bcayenne\b.*\bporsche\b/i,start:2003,end:2026},
+  {make:"Porsche",model:"Macan",match:/\bporsche\b.*\bmacan\b|\bmacan\b.*\bporsche\b/i,start:2015,end:2026},
   {make:"BMW",model:"M3",match:/\bbmw\b.*\bm3\b|\bm3\b.*\bbmw\b/i,start:1986,end:2026},
   {make:"BMW",model:"Z4",match:/\bbmw\b.*\bz4\b|\bz4\b.*\bbmw\b/i,start:2003,end:2026},
   {make:"BMW",model:"2002",match:/\bbmw\b.*\b2002\b|\b2002\b.*\bbmw\b/i,start:1968,end:1976},
@@ -725,13 +748,16 @@ function vehicleValidationIssue(text){
   if(validYearForRule(year,rule))return null;
   const replacement=rule.suggestion&&(!rule.suggestionStart||year>=rule.suggestionStart);
   const displayMake=rule.model==="NSX"&&detectedMakeName(raw)==="Honda"?"Honda":rule.make;
+  const fallbackChips=rule.make==="Porsche"
+    ? porscheModelChipsForYear(year).filter(chip=>chip!=="Not sure").concat("Change car","Not sure")
+    : ["Change car","Not sure"];
   const question=replacement
     ? `The ${rule.model} wasn't produced in ${year}. Did you mean the ${year} ${rule.suggestion}?`
     : `The ${rule.model} wasn't produced in ${year}. Which ${displayMake} model are we talking about?`;
   return {
     type:"invalid_vehicle",
     ask:question,
-    chips:replacement?[`${year} ${rule.suggestion}`,"Change car","Not sure"]:["Change car","Not sure"],
+    chips:replacement?[`${year} ${rule.suggestion}`,"Change car","Not sure"]:fallbackChips,
     suggestion:replacement?`${year} ${rule.suggestion}`:null,
     rule
   };
@@ -744,8 +770,8 @@ function missingVehicleDetail(text){
   if(impossible)return impossible;
   const hasKnownMakeOrModel=/\b(porsche|ferrari|bmw|mercedes|benz|audi|lamborghini|aston|bentley|mclaren|chevrolet|chevy|corvette|ford|mustang|dodge|viper|toyota|honda|nissan|subaru|land rover|range rover|jaguar|maserati|alfa|lotus|911|gt3|gt2|turbo|m2|m3|m4|m5|amg|rs|sti|supra|nsx|gtr|camaro|r8|rs3|rs4|rs5|rs6|rs7|s3|s4|s5|s6|s7|tt)\b/.test(lower);
   if(!looksLikeVehicleText(text)&&!hasKnownMakeOrModel)return null;
-  if(/\bporsche\b/.test(lower)&&!/\b(911|912|914|924|928|944|968|356|964|993|996|997|991|992|boxster|cayman|panamera|cayenne|macan|gt2|gt3|turbo|speedster|targa|carrera)\b/.test(lower)){
-    return {type:"model",ask:`Which Porsche model or trim is it?${year?` A ${year} Porsche could mean a 911, 944, 928, 924 or another variant.`:""} Pick one below, or type the exact model if it is not shown.`,chips:["911","944","928","924","Not sure"]};
+  if(/\bporsche\b/.test(lower)&&!/\b(911|912|914|924|928|944|968|356|550|718|964|993|996|997|991|992|boxster|cayman|panamera|cayenne|macan|gt2|gt3|turbo|speedster|targa|carrera)\b/.test(lower)){
+    return {type:"model",ask:`Porsche made a lot of different cars${year?` in ${year}`:""}. Which model are we talking about? Pick one below, or type the exact model if it is not shown.`,chips:porscheModelChipsForYear(year)};
   }
   if(/\bporsche\b/.test(lower)&&/\b911\b/.test(lower)&&!/\b(carrera(?:\s+[124]?s|\s+t)?|gts|turbo(?:\s+s)?|gt3(?:\s+rs)?|gt2(?:\s+rs)?|sport\s+classic|dak(?:ar)?|speedster|targa|s\/t|992|991|997|996|993|964)\b/.test(lower)){
     return {type:"trim",ask:"Which 911 is it? Carrera, Carrera T, GTS, Turbo, GT3 and Sport Classic behave very differently. Pick one below, or type the exact trim if it is not shown.",chips:["Carrera","Carrera S","Carrera T","GTS","Turbo","Turbo S","GT3","GT3 RS","Sport Classic","Not sure"]};
