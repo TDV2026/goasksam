@@ -278,8 +278,13 @@ body{
 .power-seller-platform-row{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:2px 0 4px;}
 .power-seller-platform-row .power-seller-profile-label{margin:0 4px 0 0;}
 .power-seller-platform-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #e6e0d4;background:white;border-radius:999px;padding:4px 8px 4px 4px;font-size:10px;font-weight:850;color:#333;}
-.power-seller-platform-chip .platform-logo{width:26px;height:26px;border-radius:8px;font-size:8px;letter-spacing:-.2px;}
+.power-seller-platform-chip .platform-logo{width:32px;height:32px;border-radius:9px;font-size:9px;letter-spacing:-.2px;}
 .power-seller-reassurance{border:1px solid #efe8d8;background:white;border-radius:12px;padding:10px 11px;font-size:12px;line-height:1.5;color:#555;max-width:720px;}
+.power-seller-proof-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:720px;}
+.power-seller-proof{border:1px solid #efe8d8;background:white;border-radius:12px;padding:10px 11px;font-size:12px;line-height:1.4;color:#444;font-weight:700;}
+.power-seller-proof span{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.55px;color:#9a8b72;font-weight:850;margin-bottom:4px;}
+.power-seller-trust-row{display:flex;flex-wrap:wrap;gap:6px;max-width:720px;}
+.power-seller-trust-pill{border:1px solid #e6e0d4;background:white;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:850;color:#6f4b05;}
 .power-seller-alt-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px;}
 .power-seller-mini{border:1px solid #eee7d8;background:#fffdf7;border-radius:13px;padding:12px;display:flex;flex-direction:column;gap:6px;}
 .power-seller-mini .observed-seller-name{font-size:15px;}
@@ -1592,7 +1597,7 @@ async function showSellRecommendation(){
   const featuredPowerSellerName=featuredPowerSeller?powerSellerFirstName(featuredPowerSeller):"";
   const powerSellerHTML=featuredPowerSeller?`
     <div class="sell-section-label">Sam’s recommendation</div>
-    <div class="sell-section-note">Talk to ${escapeHtml(featuredPowerSellerName)} first. If I owned this car, that’s the call I’d make before deciding anything else.</div>
+    <div class="sell-section-note">For your ${escapeHtml(sellState.carName||"car")}, I’d start with ${escapeHtml(featuredPowerSellerName)}. If I owned this car, that’s the call I’d make before deciding anything else.</div>
     ${renderFeaturedPowerSellerProfile(featuredPowerSeller)}
     ${secondaryPowerSellers.length?`<div class="sell-section-label" style="margin-top:12px">Want another opinion?</div><div class="power-seller-alt-row">${secondaryPowerSellers.map((profile,index)=>renderMiniPowerSellerProfile(profile,index===0?`If ${featuredPowerSellerName} isn’t available`:"Second choice")).join("")}</div>`:""}
   `:"";
@@ -1600,7 +1605,7 @@ async function showSellRecommendation(){
   const primaryPlatform=platformOptions[0]||null;
   const secondaryPlatforms=powerSellerHTML?[]:platformOptions.slice(1,2);
   const platformCardsHTML=primaryPlatform?(powerSellerHTML?`
-    <div class="sell-section-label">If you'd rather manage it yourself</div>
+    <div class="sell-section-label">Prefer to sell it yourself?</div>
     ${renderSelfManagedPlatformSummary(primaryPlatform)}
   `:`
     <div class="sell-section-label">My recommendation</div>
@@ -1649,10 +1654,9 @@ function handleSellRecommendationFollowup(q){
   if(/\b(power seller|specialist|consignor|consignment)\b/i.test(lower)){
     const specialist=options.find(o=>o.key==="specialist");
     if(specialist){
-      const observed=(sellState.powerSellerProfiles||[]).length
-        ? ` The people I’d call first are ${(sellState.powerSellerProfiles||[]).map(seller=>seller.displayName||seller.name).join(", ")}.`
-        : "";
-      addMsg("sam",`${specialist.name}: ${specialist.reason}${observed} I would treat this as a shortlist to verify, not an automatic handoff.`);
+      const primaryPowerSeller=(sellState.powerSellerProfiles||[])[0];
+      const sellerName=primaryPowerSeller?powerSellerFirstName(primaryPowerSeller):"a good PowerSeller";
+      addMsg("sam",`${sellerName} would manage the sale for you: prep, photos, listing, buyer questions, comments, paperwork and platform choice. The point is not just convenience. A good PowerSeller should know whether this car has the best shot on Bring a Trailer, Cars & Bids, PCarMarket or somewhere else before it goes live.`);
     }else{
       addMsg("sam","I don’t think this one needs a PowerSeller from what you’ve told me. I’d keep the commission and focus on the best self-managed platform unless you want someone else to handle the sale.");
     }
@@ -2669,9 +2673,9 @@ function powerSellerProcessChips(){
 
 function powerSellerProfileSummary(profile){
   if(profile?.profileFacts){
-    return "He's sold hundreds of enthusiast cars and knows which platform suits each one.";
+    return "Manages enthusiast car auctions for owners and helps decide which platform gives the car the best chance.";
   }
-  return "Professional PowerSeller who can manage the sale and help choose the right platform.";
+  return "Professional auction consignor who can manage the sale and help choose the right platform.";
 }
 
 function powerSellerClientChips(profile){
@@ -2679,6 +2683,33 @@ function powerSellerClientChips(profile){
     ? ["Porsche","Vintage sports cars","Collector cars","Performance cars"]
     : (profile.strengths||[]).slice(0,4);
   return tags.map(tag=>`<span class="power-seller-chip">${escapeHtml(tag)}</span>`).join("");
+}
+
+function powerSellerProofItems(profile){
+  if(profile?.profileFacts){
+    return [
+      ["Recent activity","400+ completed auctions"],
+      ["Specialises in","Porsche and collector cars"],
+      ["Platform choice","Chooses before listing"]
+    ];
+  }
+  return [
+    ["Sale management","Handles the auction"],
+    ["Platform choice","Helps choose where to list"],
+    ["Seller workload","Takes pressure off"]
+  ];
+}
+
+function powerSellerProofHTML(profile){
+  return powerSellerProofItems(profile).map(([label,value])=>
+    `<div class="power-seller-proof"><span>${escapeHtml(label)}</span>${escapeHtml(value)}</div>`
+  ).join("");
+}
+
+function powerSellerTrustPills(){
+  return ["Independent recommendation","No paid placement","You choose whether to contact him"]
+    .map(item=>`<span class="power-seller-trust-pill">${escapeHtml(item)}</span>`)
+    .join("");
 }
 
 function renderFeaturedPowerSellerProfile(profile){
@@ -2690,14 +2721,16 @@ function renderFeaturedPowerSellerProfile(profile){
     <div class="power-seller-feature-main">
       <div class="sell-rec-badge specialist">Recommended PowerSeller</div>
       <span class="observed-seller-name">${escapeHtml(displayName)}</span>
-      <span class="observed-seller-meta">Professional PowerSeller</span>
+      <span class="observed-seller-meta">Professional auction consignor · manages enthusiast car auctions for owners</span>
       ${platformChips?`<div class="power-seller-platform-row"><span class="power-seller-profile-label">Lists regularly on</span>${platformChips}</div>`:""}
-      <span class="observed-seller-why">Why I picked him</span>
+      <span class="observed-seller-why">Why he's my recommendation</span>
       <div class="sell-rec-reason">${escapeHtml(powerSellerProfileSummary(profile))}</div>
+      <div class="power-seller-proof-list">${powerSellerProofHTML(profile)}</div>
       <div class="power-seller-profile-grid">
         <div class="power-seller-profile-block"><div class="power-seller-profile-label">Typical clients</div><div class="power-seller-chip-row">${powerSellerClientChips(profile)}</div></div>
       </div>
       <ul class="sell-rec-bullets">${powerSellerWhyBullets(profile,0).slice(0,4).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
+      <div class="power-seller-trust-row">${powerSellerTrustPills()}</div>
       <div class="power-seller-reassurance">Clicking below doesn't commit you to anything. It simply introduces you so you can discuss fees, timing and whether he's the right fit.</div>
     </div>
     <div class="sell-rec-actions"><button class="ghost" onclick="event.stopPropagation();choosePowerSeller('${escapeHtml(profile.id)}')">Request an introduction to ${escapeHtml(firstName)} -></button></div>
@@ -2984,6 +3017,13 @@ function routeForOption(option){
 }
 
 function compareSellOptions(){
+  const specialist=(sellState.sellOptions||[]).find(o=>o.key==="specialist");
+  const primaryPlatform=(sellState.sellOptions||[]).find(o=>o.key!=="specialist");
+  const primaryPowerSeller=(sellState.powerSellerProfiles||[])[0];
+  if(specialist&&primaryPowerSeller&&primaryPlatform){
+    const sellerName=powerSellerFirstName(primaryPowerSeller);
+    return `Here’s how I’d think about it.\n\n${sellerName}: you’ll probably pay a fee, but he can handle photography, listing prep, buyer questions, comments, scheduling, paperwork and platform choice. If you’re busy, or you haven’t sold on auction before, this is the lower-stress route.\n\n${primaryPlatform.name}: you keep more control, but you’re responsible for building the listing, answering every buyer question and choosing the right timing. With a car like this, I’d only go this route if you’re comfortable running the auction yourself.`;
+  }
   const options=(sellState.sellOptions||[]).filter(o=>o.key!=="specialist").slice(0,2);
   if(!options.length)return "I do not have enough platform data to compare yet.";
   if(options.length===1)return routeAnswer(options[0]);
