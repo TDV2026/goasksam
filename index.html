@@ -803,7 +803,7 @@ function askMissingVehicleDetail(missing){
   addMsg("sam",missing.ask,"",chipsHTML(missing.chips));
 }
 
-function handleVehicleValidationAnswer(q){
+async function handleVehicleValidationAnswer(q){
   const lower=String(q||"").toLowerCase().trim();
   const currentIssue=activeVehicleIssue();
   if(currentIssue?.baseVehicle&&/\bdifferent\b.*\bmodel\b/i.test(lower)){
@@ -843,6 +843,7 @@ function handleVehicleValidationAnswer(q){
     sellState.carRaw=candidate;
     sellState.vehicleDetailSkipped=false;
     sellState.pendingVehicleIdentity=null;
+    if(!(await validateVehicleIdentityPreflight(candidate)))return true;
     const missing=currentMissingVehicleDetail();
     if(missing){
       askMissingVehicleDetail(missing);
@@ -859,6 +860,7 @@ function handleVehicleValidationAnswer(q){
     sellState.carRaw=sellState.carName;
     sellState.vehicleDetailSkipped=false;
     sellState.pendingVehicleIdentity=null;
+    if(!(await validateVehicleIdentityPreflight(sellState.carName)))return true;
     const missing=currentMissingVehicleDetail();
     if(missing){
       askMissingVehicleDetail(missing);
