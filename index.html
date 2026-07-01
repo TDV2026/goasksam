@@ -423,6 +423,7 @@ const POWERSELLERS=[
     serviceRegions:["Pennsylvania","New Jersey","New York","Connecticut","Massachusetts","Maryland","Virginia","Washington DC","East Coast","New England","Florida","Texas","Colorado","Nationwide"],
     strengths:["Air-cooled Porsche","911 specialist","Vintage Mustang","Platform selection","Auction scheduling","Comment management","Nationwide transport","Flexible fee structure"],
     makes:["Porsche","Ford","Ferrari","BMW","Mercedes-Benz","Mercedes","Audi","Toyota","Land Rover","Jaguar"],
+    specialtyPattern:/\b(porsche|911|air[-\s]?cooled|ferrari|mustang|gt3|gt2|turbo|sport\s+classic|speedster|targa|r8|m3|m4|m5|amg|land\s+cruiser|fj\d{2}|defender|range\s+rover|jaguar|collector|performance|vintage)\b/i,
     priceMin:10000,
     priceMax:null,
     platforms:["Bring a Trailer","Cars & Bids","PCarMarket","Hemmings"],
@@ -637,13 +638,107 @@ const MAKE_MODEL_CLARIFICATIONS=[
   {make:/\blotus\b/,name:"Lotus",chips:["Elise","Exige","Esprit","Evora","Emira","Not sure"],model:/\b(elise|exige|esprit|evora|emira|elan|europa|elite|eclat)\b/}
 ];
 
-function genericMakeMissingDetail(lower,year){
+const MODEL_SPELLING_CANDIDATES={
+  "Mercedes-Benz":["SL","AMG GT","G-Class","E-Class","S-Class","C-Class","190E","Pagoda","CLK","CLS","SLK","SLS"],
+  Nissan:["GT-R","GTR","370Z","350Z","300ZX","280Z","260Z","240Z","Z","Skyline","Silvia","Patrol","Figaro","Sentra","Maxima","Altima"],
+  Toyota:["Supra","Land Cruiser","Prius","Camry","Corolla","4Runner","Highlander","Hilux","Avalon","RAV4","Crown","Prado","Sequoia","Tacoma","Celica","MR2","2000GT","Pickup"],
+  Honda:["S2000","Civic","Civic Type R","NSX","Integra","Prelude","Accord","CRX","Del Sol","Beat"],
+  Ford:["Mustang","GT","GT40","Bronco","F-150","F-250","Escort","RS200","Cosworth","Thunderbird","Ranger","Focus","Fiesta","Raptor"],
+  Chevrolet:["Corvette","Camaro","Impala","Chevelle","C10","Nova","Bel Air","Suburban","Tahoe","Silverado","El Camino","SSR"],
+  Dodge:["Viper","Challenger","Charger","Demon","Hellcat","Daytona","Ram","Durango","Stealth"],
+  Subaru:["WRX","STI","WRX STI","BRZ","Impreza","Legacy","SVX","Forester","Outback","22B","Baja"],
+  "Land Rover":["Defender","Range Rover","Discovery","Series","LR3","LR4","Evoque","Velar"],
+  Jaguar:["E-Type","XK","XJ","F-Type","XJS","XJR","XFR","MK2","D-Type"],
+  Lamborghini:["Gallardo","Huracan","Aventador","Diablo","Countach","Murcielago","Miura","Urus","Espada","Jalpa"],
+  "Aston Martin":["Vantage","DB9","DBS","Vanquish","DB11","Rapide","Lagonda","Valkyrie","Virage"],
+  Bentley:["Continental GT","Azure","Arnage","Mulsanne","Brooklands","Bentayga","Turbo R","Flying Spur"],
+  McLaren:["540C","570S","600LT","650S","675LT","720S","765LT","Artura","MP4","P1","Senna","GT"],
+  Maserati:["GranTurismo","Quattroporte","Ghibli","MC20","3200","4200","Merak","Bora","Khamsin","Levante"],
+  Lotus:["Elise","Exige","Esprit","Evora","Emira","Elan","Europa","Elite","Eclat"],
+  Porsche:["911","912","914","924","928","944","968","356","550 Spyder","718","Boxster","Cayman","Panamera","Cayenne","Macan"],
+  BMW:["318i","M3","M4","M5","2002","Z3","Z4","Z8","X5","X3","M2","M6","M8","i8"],
+  Audi:["A3","A4","A5","A6","A7","A8","S3","S4","S5","S6","S7","S8","RS3","RS4","RS5","RS6","RS7","R8","TT","Q5","Q7"]
+};
+
+function normalizeModelToken(value){
+  return String(value||"").toLowerCase().replace(/[^a-z0-9]+/g,"");
+}
+
+function levenshteinDistance(a,b){
+  a=normalizeModelToken(a);b=normalizeModelToken(b);
+  if(a===b)return 0;
+  if(!a.length)return b.length;
+  if(!b.length)return a.length;
+  const dp=Array.from({length:a.length+1},(_,i)=>[i]);
+  for(let j=1;j<=b.length;j++)dp[0][j]=j;
+  for(let i=1;i<=a.length;i++){
+    for(let j=1;j<=b.length;j++){
+      const cost=a[i-1]===b[j-1]?0:1;
+      dp[i][j]=Math.min(dp[i-1][j]+1,dp[i][j-1]+1,dp[i-1][j-1]+cost);
+    }
+  }
+  return dp[a.length][b.length];
+}
+
+function modelTextForFuzzy(text,makeRule){
+  let value=String(text||"").toLowerCase();
+  value=value.replace(/\b(19|20)\d{2}\b/g," ");
+  value=value.replace(makeRule.make," ");
+  value=value.replace(/\b(i have|i've got|selling|sell|to sell|my|car|is|a|an|the|model|trim)\b/g," ");
+  return value.replace(/[^a-z0-9\s-]+/g," ").replace(/\s+/g," ").trim();
+}
+
+function bestFuzzyModelMatch(makeName,rawModel){
+  const candidates=MODEL_SPELLING_CANDIDATES[makeName]||[];
+  const raw=normalizeModelToken(rawModel);
+  if(!raw||raw.length<3)return null;
+  let best=null;
+  for(const candidate of candidates){
+    const normalized=normalizeModelToken(candidate);
+    if(!normalized)continue;
+    const distance=levenshteinDistance(raw,normalized);
+    const maxLength=Math.max(raw.length,normalized.length);
+    const allowed=maxLength<=4?1:maxLength<=8?2:3;
+    const startsClose=normalized.startsWith(raw)||raw.startsWith(normalized);
+    if(distance<=allowed||startsClose){
+      const score=distance-(startsClose?0.5:0);
+      if(!best||score<best.score)best={candidate,score,distance};
+    }
+  }
+  return best?.candidate||null;
+}
+
+function correctedVehicleText(text){
+  const raw=String(text||"").replace(/\s+/g," ").trim();
+  if(!raw)return null;
+  const lower=raw.toLowerCase();
+  const rule=MAKE_MODEL_CLARIFICATIONS.find(item=>item.make.test(lower));
+  if(!rule||rule.model.test(lower))return null;
+  const modelText=modelTextForFuzzy(raw,rule);
+  const correctedModel=bestFuzzyModelMatch(rule.name,modelText);
+  if(!correctedModel)return null;
+  const year=vehicleYearFromText(raw);
+  return [year,rule.name,correctedModel].filter(Boolean).join(" ");
+}
+
+function applyVehicleSpellingCorrection(candidate){
+  const corrected=correctedVehicleText(candidate);
+  if(!corrected||normalizeVehicleAnswer(corrected)===normalizeVehicleAnswer(candidate))return candidate;
+  sellState.carName=corrected;
+  sellState.carRaw=corrected;
+  sellState.pendingVehicleIdentity=null;
+  return corrected;
+}
+
+function genericMakeMissingDetail(text,year){
+  const lower=String(text||"").toLowerCase();
   const match=MAKE_MODEL_CLARIFICATIONS.find(item=>item.make.test(lower)&&!item.model.test(lower));
   if(!match)return null;
   return {
     type:"model",
     ask:`${match.name} made a lot of different cars${year?` in ${year}`:""}. Which model are we talking about? Pick one below, or type the exact model if it is not shown.`,
-    chips:match.chips
+    chips:match.chips,
+    baseVehicle:vehicleBaseYearMake(text,match.name)
   };
 }
 
@@ -811,7 +906,7 @@ function missingVehicleDetail(text){
   if(/\balfa(?:\s+romeo)?\b/.test(lower)&&!/\b(spider|gtv|giulia|giulietta|alfetta|164|sz|rz|4c|8c|stelvio|quadrifoglio|duetto|montreal)\b/.test(lower)){
     return {type:"model",ask:"Which Alfa Romeo model or trim is it? Pick one below, or type the exact model if it is not shown.",chips:["Spider","GTV","Giulia","164","Montreal","Not sure"]};
   }
-  const genericMissing=genericMakeMissingDetail(lower,year);
+  const genericMissing=genericMakeMissingDetail(text,year);
   if(genericMissing)return genericMissing;
   return null;
 }
@@ -1483,7 +1578,7 @@ async function showSellRecommendation(){
   const hasPowerSellerAdvice=shouldEvaluatePowerSeller(powerSellerReferral);
   const powerSellerProfiles=hasPowerSellerAdvice?matchPowerSellers(observedSellers):[];
   sellState.powerSellerProfiles=powerSellerProfiles;
-  const hasNamedPowerSellerAdvice=hasPowerSellerAdvice&&powerSellerProfiles.length;
+  const hasNamedPowerSellerAdvice=!!(hasPowerSellerAdvice&&powerSellerProfiles.length);
 
   const routeSellOptions=routesForCards.map((route,index)=>{
     const platform=route.marketEvidence||{};
@@ -1499,9 +1594,9 @@ async function showSellRecommendation(){
       key:index===0?"primary":`route_${index}`,
       name:routeName,
       type:index===0?"Platform I’d use":"Worth comparing",
-      badge:hasPowerSellerAdvice?(index===0?"If selling yourself":"Worth comparing"):(twoRouteMode?(index===0?"Sam's lean":"Worth comparing"):(index===0?"Sam's pick":"Worth comparing")),
+      badge:hasNamedPowerSellerAdvice?(index===0?"If selling yourself":"Worth comparing"):(twoRouteMode?(index===0?"Sam's lean":"Worth comparing"):(index===0?"Sam's pick":"Worth comparing")),
       badgeClass:index===0?"top":"alt",
-      cardClass:index===0&&!hasPowerSellerAdvice?"primary-rec":"",
+      cardClass:index===0&&!hasNamedPowerSellerAdvice?"primary-rec":"",
       actionLabel:index===0?`Sell on ${routeName}`:`Consider ${routeName}`,
       reason:routeReason(route,index,routeOptions),
       evidenceBullets:routeEvidenceBullets(route,index,routeOptions),
@@ -1517,7 +1612,7 @@ async function showSellRecommendation(){
     };
   });
 
-  const powerSellerOption=hasPowerSellerAdvice?{
+  const powerSellerOption=hasNamedPowerSellerAdvice?{
       key:"specialist",
       name:"People I’d call first",
       type:"PowerSeller conversation",
@@ -2109,6 +2204,7 @@ function preserveDetailedVehicleLabel(candidate,canonical){
   return hasExtraDetail?candidateText:canonicalText;
 }
 async function validateVehicleIdentityPreflight(candidate){
+  candidate=applyVehicleSpellingCorrection(candidate);
   sellState.vehicleIdentityValidated=false;
   try{
     const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:candidate})});
@@ -2680,22 +2776,33 @@ function observedSellerProfile(seller,index){
   };
 }
 
+function powerSellerSpecialtyScore(profile,car){
+  const carText=String(car||"");
+  if(profile.specialtyPattern&&profile.specialtyPattern.test(carText))return 6;
+  if(/\bporsche\b/i.test(carText)&&/\b911\b/i.test(carText)&&/911 specialist|air-cooled porsche/i.test((profile.strengths||[]).join(" ")))return 5;
+  if(isSpecialistCar()&&powerSellerMakeScore(profile,extractVehicleMake())>0)return 2;
+  return 0;
+}
+
 function matchPowerSellers(observedSellers=[]){
   const make=extractVehicleMake();
   const price=estimatedTargetPrice();
   const car=cleanCarForCopy();
   const observed=[];
-  const scored=POWERSELLERS.map(profile=>{
-    const score=powerSellerMakeScore(profile,make)
-      + powerSellerRegionScore(profile)
-      + powerSellerPriceScore(profile,price)
-      + (sellerWantsHandsOff()?1:0)
-      + (isHighValueOrSpecialist()?1:0)
-      + (profile.profileFacts?4:0)
-      + (/\bporsche\b/i.test(car)&&/\b911\b/i.test(car)&&/911 specialist|air-cooled porsche/i.test((profile.strengths||[]).join(" "))?4:0);
-    return {...profile,score,confidenceLabel:"Worth speaking to"};
-  })
-    .filter(profile=>profile.score>0)
+  const scored=POWERSELLERS
+    .filter(profile=>profile.profileFacts)
+    .map(profile=>{
+      const specialtyScore=powerSellerSpecialtyScore(profile,car);
+      const priceScore=powerSellerPriceScore(profile,price);
+      const score=specialtyScore
+        + powerSellerMakeScore(profile,make)
+        + powerSellerRegionScore(profile)
+        + priceScore
+        + (sellerWantsHandsOff()?1:0)
+        + (isHighValueOrSpecialist()?1:0);
+      return {...profile,score,specialtyScore,priceScore,confidenceLabel:"Worth speaking to"};
+    })
+    .filter(profile=>profile.score>0&&profile.specialtyScore>0&&profile.priceScore>=0)
     .sort((a,b)=>b.score-a.score);
   const merged=[...observed,...scored];
   const unique=[];
@@ -2704,7 +2811,7 @@ function matchPowerSellers(observedSellers=[]){
     unique.push(profile);
   }
   if(unique.length)return unique.slice(0,1);
-  return POWERSELLERS.filter(profile=>profile.profileFacts).slice(0,1).map(profile=>({...profile,confidenceLabel:"Worth speaking to"}));
+  return [];
 }
 
 function powerSellerFirstName(profile){
