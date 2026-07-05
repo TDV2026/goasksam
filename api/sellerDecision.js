@@ -649,7 +649,11 @@ async function fetchRecentRecords(vehicle, apiKey) {
       params: rungFetchParams(rung, vehicle)
     });
 
-    if (!primary.records.length && !primary.error) {
+    // Keyword fallback whenever the rung is still unmet, not just on an empty
+    // primary: sources like OldCarsData file some cars under chassis-code
+    // models (997 vs 911) that only a title keyword search can reach.
+    const rungMetAfterPrimary = evaluate().walk.find(entry => entry.rung === rung.rung)?.met;
+    if (!rungMetAfterPrimary && !primary.error) {
       for (const fallbackPass of rungKeywordFallbackPasses(rung, vehicle)) {
         if (Date.now() >= deadline) break;
         await runPass(fallbackPass);
