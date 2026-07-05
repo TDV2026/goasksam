@@ -531,6 +531,8 @@ Current sell state: SELL_STATE_PLACEHOLDER
 Next question: NEXT_QUESTION_PLACEHOLDER
 
 Key facts:
+- Timing: the question flow takes under a minute, and the market analysis itself runs in seconds once the questions are done. Nothing here is a long process.
+- Privacy and leads: seller details are used only to build the recommendation. If the seller chooses to proceed, their details go to one single chosen destination, never blasted to multiple partners, never sold.
 - If asked about The Daily Vroom, Sam Gold, ownership, or who is behind GoAskSam: Sam Gold is the owner. It is run by a collection of car-market people who want to bring better transparency to the car market. The group has developed tools including the Import & Domestic Car Calculators, this seller-intelligence tool, and more tools are coming.
 - Cars & Bids auctions run 7 days. Submit all info and live within 72 hours.
 - GoAskSam uses live market evidence for seller recommendations. Do not name a power seller unless one has been explicitly verified in the current context.
@@ -3356,10 +3358,16 @@ async function send(){
       try{
         const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[...history,{role:"user",content:q}],system:sellSys})});
         const data=await res.json();
-        const raw=data.text||"Let me know how you'd like to proceed.";
-        hideTyping();addMsg("sam",raw);
+        hideTyping();
+        if(!res.ok||data.error||!data.text){
+          // No silent fallbacks: the server logged the error to app_usage_events.
+          console.error("chat layer failed",res.status,data.error||"empty text");
+          addMsg("sam","Good question. I'm having trouble answering it right now, so ask me again in a moment if it matters to you. It doesn't affect the market check itself.");
+        }else{
+          addMsg("sam",data.text);
+        }
         if(sellState.step>0&&sellState.step<16){setTimeout(()=>askNextSellQuestion(),800);}
-      }catch(e){hideTyping();addMsg("sam","Connection issue. Try again.");}
+      }catch(e){hideTyping();addMsg("sam","Good question. I'm having trouble answering it right now because of a connection issue. Ask me again in a moment.");}
     }
     document.getElementById("btn").disabled=false;
     return;
@@ -3384,7 +3392,14 @@ async function send(){
   try{
     const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:history,system:SYS})});
     const data=await res.json();
-    const raw=data.text||"Connection issue. Try again.";
+    if(!res.ok||data.error||!data.text){
+      console.error("chat layer failed",res.status,data.error||"empty text");
+      hideTyping();
+      addMsg("sam","I'm having trouble answering right now. Give it a moment and ask again.");
+      document.getElementById("btn").disabled=false;
+      return;
+    }
+    const raw=data.text;
     const parsed=parseResults(raw);
     hideTyping();
     if(parsed.resultsHTML){

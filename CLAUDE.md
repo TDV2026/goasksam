@@ -55,7 +55,7 @@ Server-side writes use the service role key. Never expose it in browser code.
 6. /api/chat and /api/sellerDecision have wildcard CORS and no rate limiting. Cost abuse risk.
 7. lookupMarketRecordIds matches on source_record_id only, not (source, source_record_id). Cross-platform ID collisions can mis-link classifications.
 8. Records missing an upstream ID get crypto.randomUUID() as source_record_id, re-inserting the same listing every fetch.
-9. chat.js pins model claude-sonnet-4-20250514. Should be claude-sonnet-4-6.
+9. FIXED July 2026: chat.js now pins claude-sonnet-4-6. The old pinned snapshot claude-sonnet-4-20250514 was retired by Anthropic (404 model not found), which silently killed the chat layer in production: the frontend never checked res.ok and fell back to a generic filler line. Chat errors now log to app_usage_events, the frontend shows an honest "having trouble answering right now" message instead of filler, and `npm run smoke:prod` asserts on chat response content so a dead chat layer fails loudly.
 10. index.html (~6,400 lines) contains hardcoded fake demo listings with invented Sam commentary. All demo data must be deleted (violates product rule 1).
 11. FIXED July 2026 (Phase 2): ROUTE_POLICIES now carries evidenceCapable flags. Hemmings, Car & Classic and Collecting Cars are marked evidenceCapable: false (no OldCarsData coverage); they can only ever be policy recommendations and route objects expose the flag.
 12. Files are too large: sellerDecision.js ~1,200 lines doing six jobs. Split shared logic into lib/ modules.
