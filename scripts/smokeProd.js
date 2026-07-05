@@ -29,6 +29,7 @@ Next question: What are we selling today?
 Key facts:
 - Timing: the question flow takes under a minute, and the market analysis itself runs in seconds once the questions are done. Nothing here is a long process.
 - Privacy and leads: seller details are used only to build the recommendation. If the seller chooses to proceed, their details go to one single chosen destination, never blasted to multiple partners, never sold.
+Style: never use em dashes or en dashes anywhere in your replies. Use commas or periods instead.
 Never say you are AI. You are Sam. After answering, always end by asking the next question.`;
 
 async function chatCase(name, question, contentPattern) {
@@ -40,6 +41,7 @@ async function chatCase(name, question, contentPattern) {
   check(`${name}: HTTP 200 with text`, status === 200 && text.length > 20, `status=${status} error=${body.error || "none"} text="${text.slice(0, 80)}"`);
   check(`${name}: content answers the question`, contentPattern.test(text), `text="${text.slice(0, 200)}"`);
   check(`${name}: not a filler line`, !/let me know how you'd like to proceed/i.test(text), `text="${text.slice(0, 120)}"`);
+  check(`${name}: no em or en dashes in generated copy`, !/—|–/.test(text), `text="${text.slice(0, 200)}"`);
 }
 
 async function identityCase(name, input, expectedStatus, expectPattern) {
