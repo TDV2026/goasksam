@@ -73,9 +73,9 @@ Built `lib/vehicle.js`, used by BOTH vehicleIdentity and sellerDecision.
 ### Phase 2: Evidence ladder (SHIPPED July 2026)
 The explicit ordered ladder lives in sellerDecision (buildLadder/evaluateLadder):
 1. exact year + trim (threshold 3)
-2. +/- 2 years, same trim (3)
+2. +/- 2 years, same trim (3) [calendar-based, to be replaced by generation-aware rungs in Phase 4]
 3. same trim, any year (4)
-4. drop trim, same model, +/- 2 years (3)
+4. drop trim, same model, +/- 2 years (3) [same Phase 4 note]
 5. model family, any year (6)
 6. make-level context, +/- 8 years (6)
 7. regional policy floor (decide() fallback, evidenceBasis "regional_policy", confidence "low")
@@ -86,7 +86,21 @@ Rungs collapse sensibly when the vehicle has no trim. Fetching is rung-by-rung w
 - Extract lib/ modules: _ocd.js (OldCarsData client), _supabase.js, _classify.js, vehicle.js.
 - Break index.html into modules. Remove all demo/fake listing data.
 
-### Phase 4: Ops hardening
+### Phase 4: Generation-aware evidence ladder (product decision, July 2026; next major work item after Phase 3)
+The year-widening rungs should follow model generations, not calendar +/- 2 years. A 2011 911 (997) and a 2013 911 (991) are different markets even though they are 2 years apart; a 1969 and 1973 911 are the same market even though they are 4 apart. Revised ladder:
+1. exact year + trim
+2. same generation + trim
+3. same trim, any year (labeled cross-generation)
+4. drop trim, within generation
+5. model family, any year
+6. make-level context
+7. regional policy floor
+- Requires a generation mapping in the taxonomy: (model, year_start, year_end, generation code), e.g. 911 -> 996 1999-2004, 997 2005-2012, 991 2012-2019, 992 2019+. Add to the taxonomy schema and seed script.
+- Seed starting with high-volume collector models; expand coverage over time.
+- Where no generation mapping exists for a model, rungs fall back to calendar +/- 2 years (the current shipped behavior). Never block on missing mappings.
+- Side benefit: OldCarsData files some generations as their own models (997 vs 911), so generation-aware fetching can query those model codes directly instead of relying on the keyword fallback pass.
+
+### Phase 5: Ops hardening
 - vercel.json maxDuration for sellerDecision.
 - Rate limiting / origin checks on chat and sellerDecision.
 - Fix ID lookup to (source, source_record_id); stable source_record_id derivation (hash of source_url as fallback, never a random UUID).
