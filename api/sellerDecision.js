@@ -8,13 +8,11 @@ const MAX_PAGES = 3;
 const DEFAULT_LIMIT = 50;
 const FETCH_TIME_BUDGET_MS = 22000;
 const PER_REQUEST_TIMEOUT_MS = 8000;
-const MIN_CLOSE_EVIDENCE = 3;
-const MIN_RELEVANT_EVIDENCE = 6;
-const MIN_BROAD_EVIDENCE = 6;
 
 const ROUTE_POLICIES = {
   bringatrailer: {
     label: "Bring a Trailer",
+    evidenceCapable: true,
     priceOutcome: "strong",
     speedToList: "slower",
     sellerEffort: "medium",
@@ -23,6 +21,7 @@ const ROUTE_POLICIES = {
   },
   carsandbids: {
     label: "Cars & Bids",
+    evidenceCapable: true,
     priceOutcome: "medium",
     speedToList: "fast",
     sellerEffort: "medium",
@@ -31,6 +30,7 @@ const ROUTE_POLICIES = {
   },
   pcarmarket: {
     label: "PCarMarket",
+    evidenceCapable: true,
     priceOutcome: "medium",
     speedToList: "medium_fast",
     sellerEffort: "medium_low",
@@ -39,6 +39,7 @@ const ROUTE_POLICIES = {
   },
   hemmings: {
     label: "Hemmings",
+    evidenceCapable: false,
     priceOutcome: "medium",
     speedToList: "medium_fast",
     sellerEffort: "medium",
@@ -47,6 +48,7 @@ const ROUTE_POLICIES = {
   },
   hagerty: {
     label: "Hagerty Marketplace",
+    evidenceCapable: true,
     priceOutcome: "medium",
     speedToList: "medium_fast",
     sellerEffort: "medium",
@@ -55,6 +57,7 @@ const ROUTE_POLICIES = {
   },
   carandclassic: {
     label: "Car & Classic",
+    evidenceCapable: false,
     priceOutcome: "medium",
     speedToList: "medium_fast",
     sellerEffort: "medium",
@@ -63,6 +66,7 @@ const ROUTE_POLICIES = {
   },
   collectingcars: {
     label: "Collecting Cars",
+    evidenceCapable: false,
     priceOutcome: "strong",
     speedToList: "medium_fast",
     sellerEffort: "medium_low",
@@ -336,6 +340,9 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
       speedToList: policy.speedToList,
       sellerEffort: policy.sellerEffort,
       routeFitFacts: facts,
+      // False for routes with no covered data source (Hemmings, Car & Classic,
+      // Collecting Cars): they can only ever be policy recommendations.
+      evidenceCapable: policy.evidenceCapable !== false,
       hasMarketEvidence: !!evidence,
       marketEvidence: evidence
     };
@@ -405,120 +412,135 @@ async function callOldCarsData(path, params, apiKey, options = {}) {
   return fetchJson(url.toString(), { Authorization: `Bearer ${apiKey}` }, options);
 }
 
-function buildFetchPasses(vehicle, strategy = "default") {
-  const modelToken = asText(vehicle.model).split(/\s+/)[0] || undefined;
-  const keywordModelTerms = modelSearchTerms(vehicle);
-  const exactPass = {
-    name: "exact",
-    label: "exact year/model",
-    pages: 2,
-    params: {
-      make: vehicle.make,
-      model: modelToken,
-      keyword: [vehicle.year, vehicle.model, vehicle.trim].filter(Boolean).join(" ") || undefined
-    }
-  };
-  const sameModelPass = {
-    name: "same_model",
-    label: "same make/model",
-    pages: MAX_PAGES,
-    params: {
-      make: vehicle.make,
-      model: modelToken
-    }
-  };
-  const passes = strategy === "broad_first" ? [
-    {
-      ...sameModelPass,
-      name: "same_model_broad_first",
-      label: "same make/model broad-first",
-      pages: 1
-    },
-    exactPass
-  ] : [exactPass, sameModelPass];
+// ---- Evidence ladder ----
+// The explicit, ordered drawdown from narrowest to broadest evidence. The
+// engine fetches and evaluates rung by rung, lands on the narrowest rung whose
+// threshold is met, and decide() treats the regional policy floor as the
+// bottom rung so a recommendation always comes back.
 
-  for (const term of keywordModelTerms) {
-    passes.push({
-      name: `model_keyword_${term}`,
-      label: `same model keyword ${term}`,
-      pages: 2,
-      params: {
-        make: vehicle.make,
-        keyword: term
-      }
-    });
+function buildLadder(vehicle) {
+  const year = Number.isFinite(Number(vehicle.year)) ? Number(vehicle.year) : null;
+  const trim = asText(vehicle.trim) || null;
+  const model = asText(vehicle.model);
+  const modelTrim = [model, trim].filter(Boolean).join(" ");
+  const rungs = [];
 
-    if (vehicle.year) {
-      passes.push({
-        name: `exact_keyword_${vehicle.year}_${term}`,
-        label: `exact year/model keyword ${term}`,
-        pages: 1,
-        params: {
-          make: vehicle.make,
-          keyword: [vehicle.year, term].filter(Boolean).join(" ")
-        }
-      });
-    }
+  if (trim && year) {
+    rungs.push({ key: "exact_year_trim", label: `${year} ${modelTrim} sales`, needTrim: true, maxYearGap: 0, threshold: 3, pages: 1 });
+    rungs.push({ key: "near_years_trim", label: `${modelTrim} sales ${year - 2} to ${year + 2}`, needTrim: true, maxYearGap: 2, threshold: 3, pages: 2 });
   }
-
-  if (vehicle.year) {
-    passes.push({
-      name: "make_year",
-      label: "same make/year",
-      pages: 2,
-      params: {
-        make: vehicle.make,
-        keyword: [vehicle.year, vehicle.make].filter(Boolean).join(" ")
-      }
-    });
-
-    for (const year of [vehicle.year - 2, vehicle.year - 1, vehicle.year + 1, vehicle.year + 2]) {
-      passes.push({
-        name: `nearby_year_${year}`,
-        label: `nearby year ${year}`,
-        pages: 1,
-        params: {
-          make: vehicle.make,
-          model: modelToken,
-          keyword: [year, vehicle.model].filter(Boolean).join(" ")
-        }
-      });
-      passes.push({
-        name: `nearby_make_year_${year}`,
-        label: `same make nearby year ${year}`,
-        pages: 1,
-        params: {
-          make: vehicle.make,
-          keyword: [year, vehicle.make].filter(Boolean).join(" ")
-        }
-      });
-    }
+  if (trim) {
+    rungs.push({ key: "any_year_trim", label: `${modelTrim} sales, any year`, needTrim: true, maxYearGap: null, threshold: 4, pages: 2 });
   }
+  if (year && !trim) {
+    rungs.push({ key: "exact_year_model", label: `${year} ${model} sales`, needTrim: false, maxYearGap: 0, threshold: 3, pages: 1 });
+  }
+  if (year) {
+    rungs.push({ key: "near_years_model", label: `${model} sales ${year - 2} to ${year + 2}`, needTrim: false, maxYearGap: 2, threshold: 3, pages: 2 });
+  }
+  rungs.push({ key: "any_year_model", label: `${model} sales, any year`, needTrim: false, maxYearGap: null, threshold: 6, pages: MAX_PAGES });
+  rungs.push({
+    key: "make_context",
+    label: `${vehicle.make} sales${year ? ` ${year - 8} to ${year + 8}` : ""}`,
+    makeOnly: true,
+    maxYearGap: year ? 8 : null,
+    threshold: 6,
+    pages: 2
+  });
 
-  return passes;
+  return rungs.map((rung, index) => ({ ...rung, rung: index + 1 }));
 }
 
-function fetchEvidenceSnapshot(records, vehicle) {
-  const maxAnalysisWindow = Math.max(...ANALYSIS_WINDOWS_DAYS);
-  const counts = records
-    .filter(record => daysAgo(record.auction_end_date) <= maxAnalysisWindow)
-    .map(record => classifyRecord(record, vehicle))
-    .reduce((summary, classification) => {
-      if (classification.comparison_tier === "close_match") summary.closeMatches++;
-      if (["close_match", "relevant_match"].includes(classification.comparison_tier)) summary.relevantMatches++;
-      if (classification.comparison_tier === "broad_match") summary.broadMatches++;
-      return summary;
-    }, { closeMatches: 0, relevantMatches: 0, broadMatches: 0 });
+function rungFetchParams(rung, vehicle) {
+  const modelToken = asText(vehicle.model).split(/\s+/)[0] || undefined;
+  const year = Number.isFinite(Number(vehicle.year)) ? Number(vehicle.year) : null;
+  const params = { make: vehicle.make };
+  if (!rung.makeOnly) params.model = modelToken;
+  if (rung.maxYearGap !== null && year) {
+    params.year_min = year - rung.maxYearGap;
+    params.year_max = year + rung.maxYearGap;
+  }
+  if (rung.needTrim && vehicle.trim) params.keyword = vehicle.trim;
+  return params;
+}
 
-  const broadEvidence = counts.relevantMatches + counts.broadMatches;
-  return {
-    ...counts,
-    broadEvidence,
-    enoughEvidence:
-      counts.closeMatches >= MIN_CLOSE_EVIDENCE ||
-      counts.relevantMatches >= MIN_RELEVANT_EVIDENCE ||
-      broadEvidence >= MIN_BROAD_EVIDENCE
-  };
+// Insurance against OldCarsData model-name mismatches (e.g. vPIC says "325i"
+// where OldCarsData files it under "3-Series"): if a rung's model-param pass
+// returns nothing, retry with the model as a keyword instead.
+function rungKeywordFallbackPasses(rung, vehicle) {
+  if (rung.makeOnly) return [];
+  const year = Number.isFinite(Number(vehicle.year)) ? Number(vehicle.year) : null;
+  return modelSearchTerms(vehicle).map(term => {
+    const params = { make: vehicle.make, keyword: [term, rung.needTrim ? vehicle.trim : null].filter(Boolean).join(" ") };
+    if (rung.maxYearGap !== null && year) {
+      params.year_min = year - rung.maxYearGap;
+      params.year_max = year + rung.maxYearGap;
+    }
+    return {
+      name: `rung${rung.rung}_${rung.key}_keyword_${term}`,
+      label: `${rung.label} (keyword ${term})`,
+      rung: rung.rung,
+      pages: 1,
+      params
+    };
+  });
+}
+
+function ladderEligible(item, rung) {
+  const classification = item.classification;
+  if (classification.comparison_tier === "excluded") return false;
+  if (rung.makeOnly) {
+    if (!classification.same_make) return false;
+    if (rung.maxYearGap === null) return true;
+    return classification.year_gap === null || classification.year_gap <= rung.maxYearGap;
+  }
+  if (!classification.same_model) return false;
+  if (rung.needTrim && !classification.trim_match) return false;
+  if (rung.maxYearGap !== null) {
+    if (classification.year_gap === null) return false;
+    if (classification.year_gap > rung.maxYearGap) return false;
+  }
+  return true;
+}
+
+function evaluateLadder(pairedRecords, ladder) {
+  const maxWindow = ANALYSIS_WINDOWS_DAYS[ANALYSIS_WINDOWS_DAYS.length - 1];
+  const walk = ladder.map(rung => {
+    const eligible = pairedRecords.filter(item =>
+      daysAgo(item.record.auction_end_date) <= maxWindow && ladderEligible(item, rung)
+    );
+    let landedWindow = null;
+    for (const windowDays of ANALYSIS_WINDOWS_DAYS) {
+      const count = eligible.filter(item => daysAgo(item.record.auction_end_date) <= windowDays).length;
+      if (count >= rung.threshold) {
+        landedWindow = windowDays;
+        break;
+      }
+    }
+    return {
+      rung: rung.rung,
+      key: rung.key,
+      label: rung.label,
+      threshold: rung.threshold,
+      sales: eligible.length,
+      windowDays: landedWindow,
+      met: landedWindow !== null,
+      definition: rung
+    };
+  });
+
+  let landed = walk.find(entry => entry.met) || null;
+  let thin = false;
+  if (!landed) {
+    // No rung met its threshold: land on the narrowest rung with any evidence
+    // at the widest window, honestly flagged as thin.
+    const fallback = walk.find(entry => entry.sales > 0);
+    if (fallback) {
+      landed = { ...fallback, windowDays: maxWindow };
+      thin = true;
+    }
+  }
+  return { walk, landed, thin };
 }
 
 async function fetchPass(pass, apiKey, deadline) {
@@ -569,8 +591,8 @@ async function fetchPass(pass, apiKey, deadline) {
   return { records, error, meteredRequests, pagesFetched };
 }
 
-async function fetchRecentRecords(vehicle, apiKey, strategy = "default") {
-  const passes = buildFetchPasses(vehicle, strategy);
+async function fetchRecentRecords(vehicle, apiKey) {
+  const ladder = buildLadder(vehicle);
   const startedAt = Date.now();
   const deadline = startedAt + FETCH_TIME_BUDGET_MS;
   const seen = new Set();
@@ -579,25 +601,18 @@ async function fetchRecentRecords(vehicle, apiKey, strategy = "default") {
   const maxWindow = Math.max(...ANALYSIS_WINDOWS_DAYS, ...SELLER_ACTIVITY_WINDOWS_DAYS);
   let stoppedEarly = false;
   let stopReason = null;
-  let evidenceSnapshot = fetchEvidenceSnapshot(records, vehicle);
   let meteredRequests = 0;
 
-  for (const pass of passes) {
-    if (Date.now() >= deadline) {
-      stoppedEarly = true;
-      stopReason = "time_budget_reached";
-      break;
-    }
+  const evaluate = () => evaluateLadder(
+    records.map(record => ({ record, classification: classifyRecord(record, vehicle) })),
+    ladder
+  );
 
-    let passRecords = [];
-    let passError = null;
+  const runPass = async pass => {
     const passResult = await fetchPass(pass, apiKey, deadline);
-    passRecords = passResult.records;
-    passError = passResult.error;
     meteredRequests += passResult.meteredRequests;
     let added = 0;
-
-    for (const record of passRecords) {
+    for (const record of passResult.records) {
       if (daysAgo(record.auction_end_date) > maxWindow) continue;
       const key = sourceRecordKey(recordPlatform(record), sourceRecordId(record));
       if (seen.has(key)) continue;
@@ -605,22 +620,46 @@ async function fetchRecentRecords(vehicle, apiKey, strategy = "default") {
       records.push(record);
       added++;
     }
-
-    evidenceSnapshot = fetchEvidenceSnapshot(records, vehicle);
     passSummary.push({
       name: pass.name,
       label: pass.label,
-      fetched: passRecords.length,
+      rung: pass.rung,
+      fetched: passResult.records.length,
       added,
       meteredRequests: passResult.meteredRequests,
       pagesFetched: passResult.pagesFetched,
-      error: passError,
-      evidenceAfterPass: evidenceSnapshot
+      error: passResult.error
+    });
+    return passResult;
+  };
+
+  let ladderEval = evaluate();
+  for (const rung of ladder) {
+    if (Date.now() >= deadline) {
+      stoppedEarly = true;
+      stopReason = "time_budget_reached";
+      break;
+    }
+
+    const primary = await runPass({
+      name: `rung${rung.rung}_${rung.key}`,
+      label: rung.label,
+      rung: rung.rung,
+      pages: rung.pages,
+      params: rungFetchParams(rung, vehicle)
     });
 
-    if (evidenceSnapshot.enoughEvidence) {
+    if (!primary.records.length && !primary.error) {
+      for (const fallbackPass of rungKeywordFallbackPasses(rung, vehicle)) {
+        if (Date.now() >= deadline) break;
+        await runPass(fallbackPass);
+      }
+    }
+
+    ladderEval = evaluate();
+    if (ladderEval.landed?.met && ladderEval.landed.rung <= rung.rung) {
       stoppedEarly = true;
-      stopReason = "enough_relevant_evidence";
+      stopReason = `ladder_rung_${ladderEval.landed.rung}_satisfied`;
       break;
     }
   }
@@ -633,7 +672,7 @@ async function fetchRecentRecords(vehicle, apiKey, strategy = "default") {
     elapsedMs: Date.now() - startedAt,
     timeBudgetMs: FETCH_TIME_BUDGET_MS,
     meteredRequests,
-    evidenceSnapshot
+    ladder
   };
 }
 
@@ -663,6 +702,8 @@ function classifyRecord(record, vehicle) {
   const yearGap = vehicle.year && recordYear ? Math.abs(vehicle.year - recordYear) : null;
   const sameMake = !!targetMake && (recordMake === targetMake || title.includes(targetMake));
   const sameModel = !!targetModel && targetModelTerms.some(term => recordModel.includes(term) || textHasTerm(title, term));
+  const targetTrim = asText(vehicle.trim).toLowerCase();
+  const trimMatch = !!targetTrim && textHasTerm(title, targetTrim);
   const colorMatch = vehicle.color ? title.includes(vehicle.color) : null;
   const price = normalizeMoney(record);
   const targetMentionsTurbo = textHasTerm(vehicle.raw, "turbo");
@@ -716,127 +757,134 @@ function classifyRecord(record, vehicle) {
     matched_terms: [
       sameMake ? vehicle.make : null,
       sameModel ? vehicle.model : null,
+      trimMatch ? vehicle.trim : null,
       colorMatch ? vehicle.color : null
     ].filter(Boolean),
     needs_review: confidence === "low",
-    price
+    price,
+    // In-memory only (not persisted columns): raw signals the evidence ladder
+    // evaluates directly, independent of the comparison_tier rollup.
+    same_make: sameMake,
+    same_model: sameModel,
+    trim_match: trimMatch,
+    year_gap: yearGap
   };
 }
 
-function analyze(records, classifications) {
+function analyze(records, classifications, ladder, vehicle) {
   const pairedRecords = records.map((record, index) => ({ record, classification: classifications[index] }));
+  const maxWindow = ANALYSIS_WINDOWS_DAYS[ANALYSIS_WINDOWS_DAYS.length - 1];
+  const { walk, landed, thin } = evaluateLadder(pairedRecords, ladder);
+  const windowDays = landed?.windowDays ?? maxWindow;
 
-  for (const windowDays of ANALYSIS_WINDOWS_DAYS) {
-    const inWindow = pairedRecords
-      .filter(item => daysAgo(item.record.auction_end_date) <= windowDays)
-      .filter(item => item.classification.comparison_tier !== "excluded");
+  const inWindow = pairedRecords
+    .filter(item => daysAgo(item.record.auction_end_date) <= windowDays)
+    .filter(item => item.classification.comparison_tier !== "excluded");
+  const excludedRecords = pairedRecords
+    .filter(item => item.classification.comparison_tier === "excluded");
+  const closeMatches = inWindow.filter(item => item.classification.comparison_tier === "close_match");
+  const relevantMatches = inWindow.filter(item => ["close_match", "relevant_match"].includes(item.classification.comparison_tier));
+  const broadMatches = inWindow.filter(item => item.classification.comparison_tier === "broad_match");
 
-    const excludedRecords = pairedRecords
-      .filter(item => item.classification.comparison_tier === "excluded");
-    const closeMatches = inWindow.filter(item => item.classification.comparison_tier === "close_match");
-    const relevantMatches = inWindow.filter(item => ["close_match", "relevant_match"].includes(item.classification.comparison_tier));
-    const broadMatches = inWindow.filter(item => item.classification.comparison_tier === "broad_match");
-    const broadEvidence = [...relevantMatches, ...broadMatches];
+  // The evidence set is exactly what the landed rung defines. No rung with
+  // evidence at all means the decision falls to the regional policy floor.
+  const evidenceSet = landed
+    ? pairedRecords.filter(item =>
+        daysAgo(item.record.auction_end_date) <= windowDays && ladderEligible(item, landed.definition)
+      )
+    : [];
 
-    if (
-      closeMatches.length >= MIN_CLOSE_EVIDENCE ||
-      relevantMatches.length >= MIN_RELEVANT_EVIDENCE ||
-      broadEvidence.length >= MIN_BROAD_EVIDENCE ||
-      windowDays === ANALYSIS_WINDOWS_DAYS[ANALYSIS_WINDOWS_DAYS.length - 1]
-    ) {
-      let evidenceSet = broadEvidence;
-      let evidenceLevel = "broad";
-      let evidenceLabel = "broader same-make/year evidence";
-
-      if (closeMatches.length >= MIN_CLOSE_EVIDENCE) {
-        evidenceSet = closeMatches;
-        evidenceLevel = "close";
-        evidenceLabel = "close evidence";
-      } else if (relevantMatches.length >= MIN_RELEVANT_EVIDENCE) {
-        evidenceSet = relevantMatches;
-        evidenceLevel = "relevant";
-        evidenceLabel = "comparable market activity";
-      }
-
-      const platformMap = new Map();
-      for (const item of evidenceSet) {
-        const platform = recordPlatform(item.record);
-        if (!platformMap.has(platform)) platformMap.set(platform, []);
-        platformMap.get(platform).push(item);
-      }
-
-      const totalEvidenceSales = evidenceSet.length;
-      const strongestSales = [...evidenceSet]
-        .filter(item => Number.isFinite(Number(item.classification.price)))
-        .sort((a, b) => Number(b.classification.price) - Number(a.classification.price))
-        .slice(0, 3);
-
-      let platformPerformance = [...platformMap.entries()]
-        .map(([platform, items]) => {
-          const weekdayInsight = strongestWeekdayInsight(items);
-          return {
-            platform,
-            evidenceSales: items.length,
-            totalEvidenceSales,
-            evidenceSharePercent: totalEvidenceSales ? Math.round(items.length / totalEvidenceSales * 100) : null,
-            relevantSales: items.filter(item => ["close_match", "relevant_match"].includes(item.classification.comparison_tier)).length,
-            closeSales: items.filter(item => item.classification.comparison_tier === "close_match").length,
-            broadSales: items.filter(item => item.classification.comparison_tier === "broad_match").length,
-            topThreeSales: strongestSales.filter(item => recordPlatform(item.record) === platform).length,
-            medianSalePrice: median(items.map(item => item.classification.price)),
-            averageBids: median(items
-              .map(item => recordNumber(item.record, ["bid_count", "bids_count", "bids", "num_bids", "number_of_bids"]))
-              .filter(Number.isFinite)),
-            ...weekdayInsight,
-            highestResultWeekday: weekdayName([...items]
-              .filter(item => Number.isFinite(Number(item.classification.price)))
-              .sort((a, b) => Number(b.classification.price) - Number(a.classification.price))[0]?.record?.auction_end_date),
-            latestSaleDate: items
-              .map(item => item.record.auction_end_date)
-              .filter(Boolean)
-              .sort()
-              .at(-1) || null
-          };
-        })
-        .sort((a, b) => {
-          if (b.closeSales !== a.closeSales) return b.closeSales - a.closeSales;
-          if (b.relevantSales !== a.relevantSales) return b.relevantSales - a.relevantSales;
-          return (b.medianSalePrice || 0) - (a.medianSalePrice || 0);
-        });
-
-      platformPerformance = platformPerformance.map(platform => {
-        const nextBest = platformPerformance
-          .filter(other => other.platform !== platform.platform && other.medianSalePrice)
-          .sort((a, b) => (b.medianSalePrice || 0) - (a.medianSalePrice || 0))[0];
-        const delta = platform.medianSalePrice && nextBest?.medianSalePrice
-          ? Math.round((platform.medianSalePrice - nextBest.medianSalePrice) / nextBest.medianSalePrice * 100)
-          : null;
-        return {
-          ...platform,
-          nextSupportedPlatform: nextBest?.platform || null,
-          performanceDeltaPercent: delta
-        };
-      });
-
-      return {
-        analysisDate: analysisDateForSeller(),
-        windowDays,
-        recordsFetched: records.length,
-        recordsAnalyzed: inWindow.length,
-        closeMatches: closeMatches.length,
-        relevantMatches: relevantMatches.length,
-        broadMatches: broadMatches.length,
-        excludedRecords: excludedRecords.length,
-        excludedReasons: summarizeExclusions(excludedRecords),
-        evidenceLevel,
-        evidenceLabel,
-        evidenceSales: evidenceSet.length,
-        thinMarket: evidenceSet.length < MIN_RELEVANT_EVIDENCE,
-        platformPerformance,
-        sellerActivity: analyzeSellerActivity(pairedRecords)
-      };
-    }
+  const platformMap = new Map();
+  for (const item of evidenceSet) {
+    const platform = recordPlatform(item.record);
+    if (!platformMap.has(platform)) platformMap.set(platform, []);
+    platformMap.get(platform).push(item);
   }
+
+  const totalEvidenceSales = evidenceSet.length;
+  const strongestSales = [...evidenceSet]
+    .filter(item => Number.isFinite(Number(item.classification.price)))
+    .sort((a, b) => Number(b.classification.price) - Number(a.classification.price))
+    .slice(0, 3);
+
+  let platformPerformance = [...platformMap.entries()]
+    .map(([platform, items]) => {
+      const weekdayInsight = strongestWeekdayInsight(items);
+      return {
+        platform,
+        evidenceSales: items.length,
+        totalEvidenceSales,
+        evidenceSharePercent: totalEvidenceSales ? Math.round(items.length / totalEvidenceSales * 100) : null,
+        relevantSales: items.filter(item => ["close_match", "relevant_match"].includes(item.classification.comparison_tier)).length,
+        closeSales: items.filter(item => item.classification.comparison_tier === "close_match").length,
+        broadSales: items.filter(item => item.classification.comparison_tier === "broad_match").length,
+        trimSales: items.filter(item => item.classification.trim_match).length,
+        topThreeSales: strongestSales.filter(item => recordPlatform(item.record) === platform).length,
+        medianSalePrice: median(items.map(item => item.classification.price)),
+        averageBids: median(items
+          .map(item => recordNumber(item.record, ["bid_count", "bids_count", "bids", "num_bids", "number_of_bids"]))
+          .filter(Number.isFinite)),
+        ...weekdayInsight,
+        highestResultWeekday: weekdayName([...items]
+          .filter(item => Number.isFinite(Number(item.classification.price)))
+          .sort((a, b) => Number(b.classification.price) - Number(a.classification.price))[0]?.record?.auction_end_date),
+        latestSaleDate: items
+          .map(item => item.record.auction_end_date)
+          .filter(Boolean)
+          .sort()
+          .at(-1) || null
+      };
+    })
+    .sort((a, b) => {
+      if (b.evidenceSales !== a.evidenceSales) return b.evidenceSales - a.evidenceSales;
+      if (b.closeSales !== a.closeSales) return b.closeSales - a.closeSales;
+      return (b.medianSalePrice || 0) - (a.medianSalePrice || 0);
+    });
+
+  platformPerformance = platformPerformance.map(platform => {
+    const nextBest = platformPerformance
+      .filter(other => other.platform !== platform.platform && other.medianSalePrice)
+      .sort((a, b) => (b.medianSalePrice || 0) - (a.medianSalePrice || 0))[0];
+    const delta = platform.medianSalePrice && nextBest?.medianSalePrice
+      ? Math.round((platform.medianSalePrice - nextBest.medianSalePrice) / nextBest.medianSalePrice * 100)
+      : null;
+    return {
+      ...platform,
+      nextSupportedPlatform: nextBest?.platform || null,
+      performanceDeltaPercent: delta
+    };
+  });
+
+  return {
+    analysisDate: analysisDateForSeller(),
+    windowDays,
+    recordsFetched: records.length,
+    recordsAnalyzed: inWindow.length,
+    closeMatches: closeMatches.length,
+    relevantMatches: relevantMatches.length,
+    broadMatches: broadMatches.length,
+    excludedRecords: excludedRecords.length,
+    excludedReasons: summarizeExclusions(excludedRecords),
+    evidenceLevel: landed ? landed.key : "none",
+    evidenceLabel: landed ? landed.label : "no comparable sales in tracked auction data",
+    evidenceSales: evidenceSet.length,
+    thinMarket: thin || !landed || evidenceSet.length < landed.threshold,
+    ladder: {
+      landed: landed ? {
+        rung: landed.rung,
+        key: landed.key,
+        label: landed.label,
+        windowDays,
+        sales: evidenceSet.length,
+        threshold: landed.threshold,
+        thresholdMet: landed.met
+      } : null,
+      rungs: walk.map(({ rung, key, label, sales, threshold, met }) => ({ rung, key, label, sales, threshold, met })),
+      policyFloorRung: walk.length + 1
+    },
+    platformPerformance,
+    sellerActivity: analyzeSellerActivity(pairedRecords)
+  };
 }
 
 function sellerActivityLabel(stats) {
@@ -952,47 +1000,81 @@ function decisionTradeoffs(criteria) {
   return tradeoffs;
 }
 
+// Honest confidence, mapped from the ladder rung the analysis landed on.
+function ladderConfidence(analysis) {
+  const landed = analysis.ladder?.landed;
+  if (!landed || !landed.thresholdMet) return "low";
+  const sales = analysis.evidenceSales;
+  if (["exact_year_trim", "near_years_trim", "exact_year_model"].includes(landed.key)) {
+    return sales >= 5 ? "high" : "medium";
+  }
+  if (["any_year_trim", "near_years_model"].includes(landed.key)) return "medium";
+  if (landed.key === "any_year_model") return sales >= 8 ? "medium" : "low";
+  return "low";
+}
+
+// Structured fact about the widening, for Sam to narrate. Only present when
+// the analysis landed below the top rung.
+function wideningFact(analysis) {
+  const ladder = analysis.ladder;
+  const landed = ladder?.landed;
+  if (!landed || landed.rung <= 1) return null;
+  const first = ladder.rungs[0];
+  return `${first.label} came up thin (${first.sales} found), so the analysis widened to ${landed.label}: ${landed.sales} sales in the last ${landed.windowDays} days.`;
+}
+
 function decide(analysis, criteria, vehicle) {
   const routeFit = analyzeRouteFit(analysis, criteria, vehicle);
   const bestRoute = routeFit.routes[0] || null;
-  const best = bestRoute?.marketEvidence || analysis.platformPerformance[0] || null;
   const powerSellerReferral = analyzePowerSellerReferral(analysis, criteria);
-  const hasComparablePlatformEvidence = (analysis.platformPerformance || [])
-    .some(platform => platform.closeSales || platform.relevantSales);
-  if (!best || !hasComparablePlatformEvidence) {
+  const tradeoffs = decisionTradeoffs(criteria);
+
+  if (!analysis.evidenceSales || !bestRoute) {
+    // Bottom rung of the ladder: the regional policy floor. Always returns a
+    // recommendation, clearly labeled as policy fit rather than market data.
+    const policyRoute = bestRoute || {
+      platform: ROUTE_POLICIES.bringatrailer.label,
+      policyKey: "bringatrailer"
+    };
     return {
-      recommendedPath: null,
+      recommendedPath: policyRoute.platform,
       confidence: "low",
-      why: [],
-      tradeoffs: decisionTradeoffs(criteria),
+      evidenceBasis: "regional_policy",
+      ladder: analysis.ladder,
+      why: [
+        `${policyRoute.platform} is the strongest route-policy fit for this car and the stated seller priorities.`,
+        "No comparable recent sales were found in the tracked auction sources, so this is regional policy fit, not market evidence."
+      ],
+      tradeoffs,
       powerSellerReferral,
       routeFit,
-      limitations: ["No relevant recent comparable sales were found."]
+      limitations: [
+        "No comparable recent sales in the tracked auction data. This recommendation is route policy for the region and car segment, labeled as policy rather than data."
+      ]
     };
   }
 
-  const confidence = analysis.closeMatches >= 3 && best.relevantSales >= 3
-    ? "medium"
-    : "low";
+  const best = bestRoute.marketEvidence || analysis.platformPerformance[0];
 
   return {
-    recommendedPath: bestRoute?.platform || best.platform,
-    confidence,
+    recommendedPath: bestRoute.platform,
+    confidence: ladderConfidence(analysis),
+    evidenceBasis: "market_evidence",
+    ladder: analysis.ladder,
     why: [
-      bestRoute?.marketEvidence
+      bestRoute.marketEvidence
         ? `${bestRoute.platform} is the strongest combined fit from market signal and seller priorities.`
         : `${bestRoute.platform} is the strongest route-fit option for the stated priorities, while live market evidence is stronger on ${best.platform}.`,
-      `${best.platform} has the clearest recent support in the selected ${analysis.windowDays}-day ${analysis.evidenceLabel}.`,
-      best.closeSales
-        ? `${best.closeSales} of those were close matches to the searched car.`
-        : "The analysis widened only where it added useful market context.",
-      sellerActivityExplanation(analysis.sellerActivity, best.platform),
+      `${best.platform} has the clearest recent support in the selected ${analysis.windowDays}-day window of ${analysis.evidenceLabel}.`,
+      wideningFact(analysis),
+      best.closeSales ? `${best.closeSales} of those were close matches to the searched car.` : null,
+      sellerActivityExplanation(analysis.sellerActivity, best.platform)
     ].filter(Boolean),
-    tradeoffs: decisionTradeoffs(criteria),
+    tradeoffs,
     powerSellerReferral,
     routeFit,
     limitations: analysis.thinMarket
-      ? ["Recent evidence is thin; treat the decision as directional, not definitive."]
+      ? [`Evidence at this rung is thin (${analysis.evidenceSales} sales); treat the decision as directional, not definitive.`]
       : []
   };
 }
@@ -1153,7 +1235,6 @@ export default async function handler(req, res) {
   const car = typeof req.body?.car === "object" ? req.body.car : {};
   const sellerCriteria = getSellerCriteria(car);
   const rawSearch = req.body?.car?.raw || req.body?.car?.vehicle?.raw || req.body?.car || req.body?.search || req.body?.query;
-  const fetchStrategyName = req.body?.strategy === "broad_first" ? "broad_first" : "default";
   if (!rawSearch && !car.vehicle) return res.status(400).json({ error: "Missing car/search field" });
 
   try {
@@ -1175,12 +1256,12 @@ export default async function handler(req, res) {
       vehicle = resolution.vehicle;
     }
 
-    const fetchResult = await fetchRecentRecords(vehicle, apiKey, fetchStrategyName);
+    const fetchResult = await fetchRecentRecords(vehicle, apiKey);
     const records = fetchResult.records;
     const classifications = records.map(record => classifyRecord(record, vehicle));
     const rawPersistence = await persistRawRecords(records, supabaseUrl, supabaseKey);
     const classificationPersistence = await persistClassifications(records, classifications, rawPersistence.idLookup, supabaseUrl, supabaseKey);
-    const analysis = analyze(records, classifications);
+    const analysis = analyze(records, classifications, fetchResult.ladder, vehicle);
     const decision = decide(analysis, sellerCriteria, vehicle);
 
     const costEstimate = oldCarsDataCost(fetchResult.meteredRequests);
@@ -1200,10 +1281,12 @@ export default async function handler(req, res) {
       metadata: {
         ...requestMetadata(req),
         stopReason: fetchResult.stopReason,
-        strategy: fetchStrategyName,
+        strategy: "evidence_ladder",
         recordsFetched: analysis.recordsFetched,
         evidenceSales: analysis.evidenceSales,
-        evidenceLevel: analysis.evidenceLevel
+        evidenceLevel: analysis.evidenceLevel,
+        ladderRung: analysis.ladder?.landed?.rung || null,
+        evidenceBasis: decision.evidenceBasis
       }
     }, supabaseUrl, supabaseKey);
 
@@ -1224,11 +1307,12 @@ export default async function handler(req, res) {
         evidenceSales: analysis.evidenceSales,
         windowDays: analysis.windowDays,
         thinMarket: analysis.thinMarket,
+        ladder: analysis.ladder,
         fetchPasses: fetchResult.passSummary,
         fetchStrategy: {
           stoppedEarly: fetchResult.stoppedEarly,
           stopReason: fetchResult.stopReason,
-          strategy: fetchStrategyName,
+          strategy: "evidence_ladder",
           elapsedMs: fetchResult.elapsedMs,
           timeBudgetMs: fetchResult.timeBudgetMs,
           meteredRequests: fetchResult.meteredRequests,

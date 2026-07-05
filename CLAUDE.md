@@ -49,7 +49,7 @@ Server-side writes use the service role key. Never expose it in browser code.
 
 1. FIXED July 2026 (Phase 1): lib/vehicle.js is the one shared resolver. vehicleIdentity is a thin wrapper over it, sellerDecision accepts the resolved vehicle object from the frontend (car.vehicle) and only re-resolves raw text through the same resolver as a fallback. The frontend's silent spelling-correction regex layer was deleted. Remaining parser debt: lookupDataTier's resolveCar dies with that file in Phase 3, and index.html still has local clarification chip helpers (MAKE_MODEL_CLARIFICATIONS) that go away with the Phase 3 frontend split.
 2. FIXED July 2026 (Phase 1): make abbreviations and model nicknames (vw, chevy, merc, benz, vette, lambo, bimmer, fj40, etc.) expand silently; numeric-model edit-distance-1 typos (9111) and fuzzy model/make typos return a mandatory "Did you mean" confirmation. Curated data lives in lib/vehicleData.js and seeds the taxonomy_aliases table.
-3. The decision layer dead-ends when no close/relevant platform evidence exists, even though widening fetch passes ran. Needs the explicit evidence ladder (see Phase 2).
+3. FIXED July 2026 (Phase 2): the explicit evidence ladder lives in sellerDecision. decide() never returns a null recommendation; the bottom rung is the regional policy floor with evidenceBasis "regional_policy" and confidence "low".
 4. vercel.json is empty but sellerDecision has a 22s fetch budget. Configure `maxDuration` or long searches get killed.
 5. No fetch caching in the live path. Thin-market searches can burn 15-20 metered requests (~$1/search). Wire a market-fetch cache (24h, keyed by make|model family).
 6. /api/chat and /api/sellerDecision have wildcard CORS and no rate limiting. Cost abuse risk.
@@ -57,7 +57,7 @@ Server-side writes use the service role key. Never expose it in browser code.
 8. Records missing an upstream ID get crypto.randomUUID() as source_record_id, re-inserting the same listing every fetch.
 9. chat.js pins model claude-sonnet-4-20250514. Should be claude-sonnet-4-6.
 10. index.html (~6,400 lines) contains hardcoded fake demo listings with invented Sam commentary. All demo data must be deleted (violates product rule 1).
-11. Hemmings exists in ROUTE_POLICIES but can never be evidence-backed (no data source). Mark policy-only or remove until a Hemmings data source exists.
+11. FIXED July 2026 (Phase 2): ROUTE_POLICIES now carries evidenceCapable flags. Hemmings, Car & Classic and Collecting Cars are marked evidenceCapable: false (no OldCarsData coverage); they can only ever be policy recommendations and route objects expose the flag.
 12. Files are too large: sellerDecision.js ~1,200 lines doing six jobs. Split shared logic into lib/ modules.
 
 ## The plan (agreed, execute in order)
@@ -70,16 +70,16 @@ Built `lib/vehicle.js`, used by BOTH vehicleIdentity and sellerDecision.
 - Trim extraction works: "2018 Porsche 911 Carrera GTS" resolves to {model: "911", trim: "Carrera GTS"} and trim feeds the exact fetch pass keyword.
 - Frontend stores the validated vehicle in sellState.resolvedVehicle and passes it to sellerDecision as car.vehicle. Parsing happens once.
 
-### Phase 2: Evidence ladder
-Formalize drawdown as an explicit ordered ladder inside sellerDecision:
-1. exact year + trim
-2. +/- 2 years, same trim
-3. same trim, any year
-4. drop trim, same model, +/- 2 years
-5. model family, any year
-6. make-level context
-7. regional policy floor (clearly labeled as policy, low confidence)
-The engine walks down until evidence thresholds are met, records which rung it landed on, and decide() always returns a recommendation with honest confidence plus a plain statement of what evidence was used. Use year_min/year_max params for the year rungs. Delete every terminal "not enough data" message; Sam instead narrates the widening ("GTS-specific sales were thin, so I looked at 911 Carrera sales 2015-2019, and here's what that market shows").
+### Phase 2: Evidence ladder (SHIPPED July 2026)
+The explicit ordered ladder lives in sellerDecision (buildLadder/evaluateLadder):
+1. exact year + trim (threshold 3)
+2. +/- 2 years, same trim (3)
+3. same trim, any year (4)
+4. drop trim, same model, +/- 2 years (3)
+5. model family, any year (6)
+6. make-level context, +/- 8 years (6)
+7. regional policy floor (decide() fallback, evidenceBasis "regional_policy", confidence "low")
+Rungs collapse sensibly when the vehicle has no trim. Fetching is rung-by-rung with native year_min/year_max params (no years stuffed into keyword), a keyword fallback pass per rung when the model param finds nothing, and an early stop the moment a fetched rung meets its threshold (a rung-1 hit costs 1 metered request). Rung evaluation is rung-primary, window-secondary (45/90/180 days): specificity beats recency. If no rung meets threshold, the analysis lands thin on the narrowest rung with any evidence; if zero evidence, decide() recommends from route policy. Confidence maps from the landed rung (high needs a met trim/exact rung with 5+ sales). The response carries evidence.ladder {landed, rungs walked with counts}; the frontend narrates the widening from those structured facts and its "not enough data" dead-ends were removed (the polished regional card still renders for UK/Europe/international policy-basis decisions).
 
 ### Phase 3: Consolidate and split
 - Delete lookupDataTier.js, folding its cache idea into sellerDecision as a market-fetch cache (24h, keyed by make|model family) to cut OldCarsData spend.

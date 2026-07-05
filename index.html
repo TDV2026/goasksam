@@ -1428,11 +1428,10 @@ async function showSellRecommendation(){
   }
 
   sellState.sellDecision=decisionData;
-  const platforms=decisionData.analysis?.platformPerformance||[];
   const decision=decisionData.decision||{};
   const practicalFallback=regionalNoEvidenceFallback();
-  const hasComparablePlatformEvidence=platforms.some(platform=>platform.closeSales||platform.relevantSales);
-  if(practicalFallback&&!hasComparablePlatformEvidence){
+  const policyBased=decision.evidenceBasis==="regional_policy";
+  if(policyBased&&practicalFallback){
     sellState.noEvidenceFallback=practicalFallback;
     showRegionalFallbackRecommendation(msgs,practicalFallback);
     document.getElementById("btn").disabled=false;
@@ -1452,6 +1451,13 @@ async function showSellRecommendation(){
     if(backup)routeOptions.push(backup);
   }
   routeOptions.splice(2);
+  if(!routeOptions.length){
+    // Policy-floor decision for a region without a bespoke regional card:
+    // show the backend's best route-policy fits, labeled as fit rather than data.
+    routeOptions.push(...allRouteOptions
+      .filter(route=>!shouldSuppressRouteForSellerRegion(route))
+      .slice(0,2));
+  }
   const evidence=decisionData.evidence||{};
   const sellerActivity=decisionData.analysis?.sellerActivity||{};
   const limitations=[...(decision.limitations||[])];
@@ -1468,6 +1474,9 @@ async function showSellRecommendation(){
     document.getElementById("btn").disabled=false;
     return;
   }
+
+  const wideningLine=ladderWideningNarration(decisionData);
+  if(wideningLine)addMsg("sam",wideningLine);
 
   const routesForCards=routeOptions;
   const twoRouteMode=hasTwoRouteTradeoff(routeOptions);
@@ -1740,8 +1749,10 @@ function showRegionalFallbackRecommendation(msgs,fallback){
 
 function noEvidenceMessage(fallback){
   const car=sellState.carName||"this car";
+  const recommended=sellState.sellDecision?.decision?.recommendedPath;
   if(!fallback){
-    return `I checked recent sales for your ${car}, but there isn't enough model-specific activity to make a responsible recommendation yet. I don't want to guess.`;
+    const start=recommended?`I'd start with ${platformDisplayName(recommended)}. That's a fit call for the car and your region, not a sales-data call.`:`For a US collector car with no recent comparable sales in the data I track, I'd start with Bring a Trailer on fit.`;
+    return `I checked recent sales for your ${car} and the market is genuinely quiet right now, so I won't quote numbers. ${start} When comparable sales show up, I can back this with real evidence.`;
   }
   const extra=fallback.secondary?` If this is a particularly valuable example, I’d also compare ${fallback.secondary}.`:"";
   return `I checked recent sales for your ${car}, but there isn't enough model-specific activity to make a proper data-led platform call. ${fallback.primaryReason}${extra}`;
@@ -2334,7 +2345,21 @@ function findHiddenRouteByText(text){
 }
 
 function routeHasTrueComparableEvidence(route){
-  return !!(route?.hasMarketEvidence&&route?.marketEvidence&&(route.marketEvidence.closeSales||route.marketEvidence.relevantSales));
+  // The backend evidence set is already scoped to the ladder rung it landed on,
+  // so any sales count at that rung is honest comparable evidence.
+  return !!(route?.hasMarketEvidence&&route?.marketEvidence&&route.marketEvidence.evidenceSales>0);
+}
+
+function ladderWideningNarration(decisionData){
+  const ladder=decisionData?.evidence?.ladder||decisionData?.decision?.ladder;
+  const landed=ladder?.landed;
+  if(!landed||landed.rung<=1)return null;
+  const first=(ladder.rungs||[])[0];
+  const car=cleanCarForCopy?cleanCarForCopy():(sellState.carName||"this car");
+  const firstScope=first?first.label.replace(/\bsales\b/,"").replace(/\s+,/,",").replace(/\s+/g," ").trim():"";
+  const firstPart=first?`I looked for ${firstScope} sales first and found ${first.sales===0?"none":first.sales} recently. `:"";
+  const thinNote=landed.thresholdMet?"":" The market for this car is genuinely thin right now, so treat this as directional.";
+  return `${firstPart}Not enough to be straight with you about the ${car}, so I widened the lens to ${landed.label}: ${landed.sales} sales in the last ${landed.windowDays} days. Here's what that market shows.${thinNote}`;
 }
 
 function shouldSuppressRouteForSellerRegion(route){
@@ -2438,8 +2463,9 @@ function comparableModelLabel(){
 }
 
 function comparisonScopeSentence(){
-  const trim=porsche911TrimFromText(cleanCarForCopy());
-  if(trim)return `I looked at recent ${trim} sales rather than every 911 because GT3s, Turbos and Sport Classics behave very differently.`;
+  const landed=sellState.sellDecision?.evidence?.ladder?.landed;
+  if(!landed)return "";
+  if(/trim/.test(landed.key))return `I looked at recent ${landed.label} rather than the whole model line because trims behave very differently.`;
   return "";
 }
 
@@ -2587,6 +2613,14 @@ function sellerPriorityLabel(route){
   if(facts.includes("faster_listing_fit"))return "This choice fits if getting live quickly matters.";
   if(facts.includes("may_support_handoff"))return "This choice can suit a seller who wants more help with the process.";
   return "The strongest recent activity points here before speed or handoff considerations.";
+}
+
+function sellerPriorityFitLabel(route){
+  const facts=route.routeFitFacts||[];
+  if(facts.includes("faster_listing_fit"))return "This choice fits if getting live quickly matters.";
+  if(facts.includes("may_support_handoff"))return "This choice can suit a seller who wants more help with the process.";
+  if(facts.includes("segment_fit"))return "The platform's typical buyer pool matches this kind of car.";
+  return "It fits your region and the way you want to sell.";
 }
 
 function platformDisplayName(name){
@@ -2951,6 +2985,14 @@ function routeTagLine(route,index,routes){
 }
 
 function routeEvidenceBullets(route,index,routes){
+  if(!routeHasTrueComparableEvidence(route)){
+    // Policy-fit route: no market stats exist, so claim none.
+    return [
+      index===0?"This is a fit call for the car and your situation, not a sales-data call. No recent comparable sales exist in the data I track.":"Worth comparing on platform fit, not sales data.",
+      sellerPriorityFitLabel(route),
+      "When comparable sales start showing up, I can revisit this with real numbers."
+    ].slice(0,3);
+  }
   const evidence=route.marketEvidence||{};
   const bullets=[];
   if(Number.isFinite(evidence.performanceDeltaPercent)&&Math.abs(evidence.performanceDeltaPercent)>=5){
