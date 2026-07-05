@@ -1,0 +1,8 @@
+{
+  "name": "goasksam",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed:taxonomy": "node scripts/seedTaxonomy.js"
+  }
+}

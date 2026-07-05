@@ -47,8 +47,8 @@ Server-side writes use the service role key. Never expose it in browser code.
 
 ## Known issues to fix (found in July 2026 code review)
 
-1. Four separate vehicle parsers exist (vehicleIdentity.js, sellerDecision's resolveVehicle, lookupDataTier's resolveCar, regex in index.html). The frontend validates with vehicleIdentity then sellerDecision re-parses raw text with a weaker parser. Consolidate to one shared resolver and pass the resolved vehicle object through.
-2. No typo tolerance for short/numeric models ("9111" fails to match 911) and no make abbreviations (vw, chevy, merc, benz, vette, lambo all unrecognized).
+1. FIXED July 2026 (Phase 1): lib/vehicle.js is the one shared resolver. vehicleIdentity is a thin wrapper over it, sellerDecision accepts the resolved vehicle object from the frontend (car.vehicle) and only re-resolves raw text through the same resolver as a fallback. The frontend's silent spelling-correction regex layer was deleted. Remaining parser debt: lookupDataTier's resolveCar dies with that file in Phase 3, and index.html still has local clarification chip helpers (MAKE_MODEL_CLARIFICATIONS) that go away with the Phase 3 frontend split.
+2. FIXED July 2026 (Phase 1): make abbreviations and model nicknames (vw, chevy, merc, benz, vette, lambo, bimmer, fj40, etc.) expand silently; numeric-model edit-distance-1 typos (9111) and fuzzy model/make typos return a mandatory "Did you mean" confirmation. Curated data lives in lib/vehicleData.js and seeds the taxonomy_aliases table.
 3. The decision layer dead-ends when no close/relevant platform evidence exists, even though widening fetch passes ran. Needs the explicit evidence ladder (see Phase 2).
 4. vercel.json is empty but sellerDecision has a 22s fetch budget. Configure `maxDuration` or long searches get killed.
 5. No fetch caching in the live path. Thin-market searches can burn 15-20 metered requests (~$1/search). Wire a market-fetch cache (24h, keyed by make|model family).
@@ -62,13 +62,13 @@ Server-side writes use the service role key. Never expose it in browser code.
 
 ## The plan (agreed, execute in order)
 
-### Phase 1: One vehicle brain
-Build `lib/vehicle.js` used by BOTH vehicleIdentity and sellerDecision.
-- Taxonomy tables in Supabase seeded from OldCarsData /makes + /models (free calls) cross-referenced with vPIC for year validity. One-time seed script plus weekly refresh. No hardcoded make/model lists anywhere.
-- Alias table: make abbreviations (vw, chevy, merc, benz, vette, lambo, bimmer, etc.), model nicknames, known misspellings.
-- Digit-model typo handling: numeric models (911, 356, 458, etc.) get edit-distance-1 matching with a mandatory confirm chip ("Did you mean 911?"). Always confirm corrections; expand abbreviations silently.
-- Trim extraction: "Carrera GTS" becomes structured {model: "911", trim: "Carrera GTS"} instead of polluting model matching.
-- Frontend passes the resolved vehicle object to sellerDecision. Parsing happens once.
+### Phase 1: One vehicle brain (SHIPPED July 2026, one manual step pending)
+Built `lib/vehicle.js`, used by BOTH vehicleIdentity and sellerDecision.
+- Taxonomy: Supabase tables taxonomy_makes / taxonomy_models / taxonomy_aliases (docs/supabase-taxonomy-schema.sql) seeded from OldCarsData /makes + /models via scripts/seedTaxonomy.js (npm run seed:taxonomy). Year validity comes from curated production ranges plus runtime vPIC lookups (cached per instance). The resolver falls back to live OldCarsData/vPIC (free calls) whenever the tables are empty or Supabase is unreachable, so nothing breaks pre-seed.
+- PENDING MANUAL STEP: run docs/supabase-taxonomy-schema.sql in the Supabase SQL editor, then `SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run seed:taxonomy` locally. Secrets are marked sensitive in Vercel so they cannot be pulled with `vercel env pull`.
+- Alias layer: abbreviations and nicknames expand silently; misspellings and edit-distance matches always return a confirm chip ("Did you mean the Porsche 911?"). Curated source of truth is lib/vehicleData.js; DB rows override once seeded.
+- Trim extraction works: "2018 Porsche 911 Carrera GTS" resolves to {model: "911", trim: "Carrera GTS"} and trim feeds the exact fetch pass keyword.
+- Frontend stores the validated vehicle in sellState.resolvedVehicle and passes it to sellerDecision as car.vehicle. Parsing happens once.
 
 ### Phase 2: Evidence ladder
 Formalize drawdown as an explicit ordered ladder inside sellerDecision:

@@ -1,4 +1,5 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
+import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 
 const OLDCARSDATA_BASE = "https://api.oldcarsdata.com";
 const ANALYSIS_WINDOWS_DAYS = [45, 90, 180];
@@ -10,18 +11,6 @@ const PER_REQUEST_TIMEOUT_MS = 8000;
 const MIN_CLOSE_EVIDENCE = 3;
 const MIN_RELEVANT_EVIDENCE = 6;
 const MIN_BROAD_EVIDENCE = 6;
-
-const COMMON_COLORS = [
-  "black", "white", "silver", "gray", "grey", "red", "blue", "green",
-  "yellow", "orange", "brown", "gold", "beige", "purple"
-];
-
-const FALLBACK_MAKES = [
-  "Porsche", "Ferrari", "BMW", "Mercedes-Benz", "Mercedes", "Audi",
-  "Lamborghini", "Aston Martin", "Bentley", "Chevrolet", "Ford", "Dodge",
-  "Toyota", "Honda", "Nissan", "Subaru", "Land Rover", "Jaguar", "McLaren",
-  "Alfa Romeo"
-];
 
 const ROUTE_POLICIES = {
   bringatrailer: {
@@ -81,9 +70,6 @@ const ROUTE_POLICIES = {
     strongSegments: ["high_value", "premium_collectors", "international", "specialist", "modern_classic", "collector"]
   }
 };
-
-let makesCache = null;
-const modelsCache = {};
 
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -384,20 +370,6 @@ function extractYear(text) {
   return match ? Number(match[0]) : null;
 }
 
-function extractMileage(text) {
-  const clean = asText(text).toLowerCase().replace(/,/g, "");
-  const match = clean.match(/\b(\d{1,3})(?:k|000)?\s*(?:miles|mile|mi)\b/);
-  if (!match) return null;
-  const raw = Number(match[1]);
-  if (!Number.isFinite(raw)) return null;
-  return clean.includes(`${match[1]}k`) || raw < 1000 ? raw * 1000 : raw;
-}
-
-function extractColor(text) {
-  const lower = asText(text).toLowerCase();
-  return COMMON_COLORS.find(color => lower.includes(color)) || null;
-}
-
 function modelSearchTerms(vehicle) {
   const model = asText(vehicle.model);
   const terms = new Set();
@@ -423,81 +395,6 @@ async function fetchJson(url, headers = {}, options = {}) {
   return json;
 }
 
-async function getMakes() {
-  if (makesCache) return makesCache;
-  try {
-    const json = await fetchJson(`${OLDCARSDATA_BASE}/makes`);
-    makesCache = json.data || FALLBACK_MAKES;
-  } catch {
-    makesCache = FALLBACK_MAKES;
-  }
-  return makesCache;
-}
-
-async function getModels(make) {
-  if (!make) return [];
-  if (modelsCache[make]) return modelsCache[make];
-  try {
-    const json = await fetchJson(`${OLDCARSDATA_BASE}/models?make=${encodeURIComponent(make)}`);
-    modelsCache[make] = json.data || [];
-  } catch {
-    modelsCache[make] = [];
-  }
-  return modelsCache[make];
-}
-
-async function resolveVehicle(rawSearch) {
-  const raw = asText(rawSearch);
-  const lower = raw.toLowerCase();
-  const makes = await getMakes();
-  const matchedMake = makes
-    .filter(m => textHasTerm(lower, m))
-    .sort((a, b) => String(b).length - String(a).length)[0] || null;
-  const make = matchedMake || (/\balfa(?:\s+romeo)?\b/.test(lower)
-    ? makes.find(m => String(m).toLowerCase() === "alfa romeo") || "Alfa Romeo"
-    : null);
-  const year = extractYear(raw);
-  const color = extractColor(raw);
-  const mileage = extractMileage(raw);
-
-  let model = null;
-  let remainder = raw;
-  if (year) remainder = remainder.replace(String(year), " ");
-  if (make) remainder = remainder.replace(new RegExp(make, "i"), " ");
-  if (make === "Alfa Romeo") remainder = remainder.replace(/\balfa(?:\s+romeo)?\b/gi, " ");
-  if (color) remainder = remainder.replace(new RegExp(color, "i"), " ");
-  remainder = remainder.replace(/\b(to sell|sell|selling|i have|have a|with|miles|mile|mi)\b/gi, " ").trim();
-
-  if (make) {
-    const models = await getModels(make);
-    const remLower = remainder.toLowerCase();
-    model = models
-      .filter(m => remLower.includes(String(m).toLowerCase()))
-      .sort((a, b) => String(b).length - String(a).length)[0] || null;
-  }
-
-  if (!model) {
-    model = remainder.split(/\s+/).filter(Boolean)[0] || null;
-  }
-  if (make === "Alfa Romeo" && /^alfa(?:\s+romeo)?$/i.test(asText(model))) {
-    model = null;
-  }
-
-  return {
-    raw,
-    year,
-    make,
-    model,
-    color,
-    mileage,
-    confidence: make && model ? "medium" : "low",
-    missingFields: [
-      !make ? "make" : null,
-      !model ? "model" : null
-    ].filter(Boolean)
-  };
-}
-
 async function callOldCarsData(path, params, apiKey, options = {}) {
   const url = new URL(`${OLDCARSDATA_BASE}${path}`);
   for (const [key, value] of Object.entries(params)) {
@@ -518,7 +415,7 @@ function buildFetchPasses(vehicle, strategy = "default") {
     params: {
       make: vehicle.make,
       model: modelToken,
-      keyword: [vehicle.year, vehicle.model].filter(Boolean).join(" ") || undefined
+      keyword: [vehicle.year, vehicle.model, vehicle.trim].filter(Boolean).join(" ") || undefined
     }
   };
   const sameModelPass = {
@@ -1255,21 +1152,27 @@ export default async function handler(req, res) {
 
   const car = typeof req.body?.car === "object" ? req.body.car : {};
   const sellerCriteria = getSellerCriteria(car);
-  const rawSearch = req.body?.car?.raw || req.body?.car || req.body?.search || req.body?.query;
+  const rawSearch = req.body?.car?.raw || req.body?.car?.vehicle?.raw || req.body?.car || req.body?.search || req.body?.query;
   const fetchStrategyName = req.body?.strategy === "broad_first" ? "broad_first" : "default";
-  if (!rawSearch) return res.status(400).json({ error: "Missing car/search field" });
+  if (!rawSearch && !car.vehicle) return res.status(400).json({ error: "Missing car/search field" });
 
   try {
-    const vehicle = await resolveVehicle(rawSearch);
-    if (vehicle.missingFields.length) {
-      return res.status(200).json({
-        status: "needs_clarification",
-        vehicle,
-        clarification: {
-          question: "What year, make and model are you selling?",
-          missingFields: vehicle.missingFields
-        }
-      });
+    // The frontend validates with vehicleIdentity and passes the resolved
+    // vehicle object through; parsing happens once. Raw text is only re-resolved
+    // (same shared resolver) when a caller skips that step.
+    let vehicle = sanitizeResolvedVehicle(car.vehicle);
+    if (!vehicle) {
+      const resolution = await resolveVehicle(rawSearch);
+      if (resolution.status !== "valid") {
+        return res.status(200).json({
+          status: "needs_clarification",
+          vehicle: resolution.vehicle,
+          clarification: resolution.clarification || {
+            question: "What year, make and model are you selling?"
+          }
+        });
+      }
+      vehicle = resolution.vehicle;
     }
 
     const fetchResult = await fetchRecentRecords(vehicle, apiKey, fetchStrategyName);
