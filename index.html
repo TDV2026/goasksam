@@ -525,10 +525,7 @@ const SELL_SYS=`You are Sam, helping someone sell their car on GoAskSam. Warm, d
 The user is in the middle of a sell flow and has asked a question or gone off-script. Your job:
 1. Answer their question warmly and specifically.
 2. If they want to change a previous answer, acknowledge and confirm the update.
-3. After answering, bring them back to the next question naturally.
-
-Current sell state: SELL_STATE_PLACEHOLDER
-Next question: NEXT_QUESTION_PLACEHOLDER
+3. After answering, bring them back to the next question naturally. The current sell state and next question are provided separately.
 
 Key facts:
 - Timing: the question flow takes under a minute, and the market analysis itself runs in seconds once the questions are done. Nothing here is a long process.
@@ -3356,9 +3353,9 @@ async function send(){
       showTyping();
       const stateStr=JSON.stringify({car:sellState.carName,region:sellState.region,state:sellState.state,mileage:sellState.mileage,condition:sellState.condition,records:sellState.records,title:sellState.title,price:sellState.price,timeline:sellState.timeline,involvement:sellState.involvement,step:sellState.step});
       const nextQ=SELL_STEP_QUESTIONS[sellState.step];
-      const sellSys=SELL_SYS.replace("SELL_STATE_PLACEHOLDER",stateStr).replace("NEXT_QUESTION_PLACEHOLDER",nextQ?nextQ.ask:"Proceed with submission.");
+      const sellContext=`Current sell state: ${stateStr}\nNext question: ${nextQ?nextQ.ask:"Proceed with submission."}`;
       try{
-        const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[...history,{role:"user",content:q}],system:sellSys})});
+        const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[...history,{role:"user",content:q}],system:SELL_SYS,context:sellContext})});
         const data=await res.json();
         hideTyping();
         if(!res.ok||data.error||!data.text){

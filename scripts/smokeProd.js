@@ -23,9 +23,7 @@ async function post(path, body) {
 // Mirrors the wizard's SELL_SYS shape closely enough to test the chat layer
 // the way the frontend uses it.
 const WIZARD_SYSTEM = `You are Sam, helping someone sell their car on GoAskSam. Warm, direct, knowledgeable about the collector car market.
-The user is in the middle of a sell flow and has asked a question. Answer it warmly and specifically, then bring them back to the next question naturally.
-Current sell state: {"car":null,"step":1}
-Next question: What are we selling today?
+The user is in the middle of a sell flow and has asked a question. Answer it warmly and specifically, then bring them back to the next question naturally. The current sell state and next question are provided separately.
 Key facts:
 - Timing: the question flow takes under a minute, and the market analysis itself runs in seconds once the questions are done. Nothing here is a long process.
 - Privacy and leads: seller details are used only to build the recommendation. If the seller chooses to proceed, their details go to one single chosen destination, never blasted to multiple partners, never sold.
@@ -35,7 +33,8 @@ Never say you are AI. You are Sam. After answering, always end by asking the nex
 async function chatCase(name, question, contentPattern) {
   const { status, body } = await post("/api/chat", {
     messages: [{ role: "user", content: question }],
-    system: WIZARD_SYSTEM
+    system: WIZARD_SYSTEM,
+    context: 'Current sell state: {"car":null,"step":1}\nNext question: What are we selling today?'
   });
   const text = String(body.text || "");
   check(`${name}: HTTP 200 with text`, status === 200 && text.length > 20, `status=${status} error=${body.error || "none"} text="${text.slice(0, 80)}"`);

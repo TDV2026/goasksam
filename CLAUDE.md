@@ -36,7 +36,7 @@ Collector car market intelligence platform. Answers "where should I sell my coll
 - `api/lookupDataTier.js`: ORPHANED. Frontend never calls it. Slated for deletion once its cache concept is folded into sellerDecision.
 
 ### Env vars (Vercel production)
-OLDCARSDATA_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, USAGE_DASHBOARD_KEY.
+OLDCARSDATA_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, USAGE_DASHBOARD_KEY. Optional: SAM_MODEL overrides the chat wording-layer model (defaults to claude-sonnet-4-6 in api/chat.js); never set it to a dated snapshot.
 Server-side writes use the service role key. Never expose it in browser code.
 
 ### OldCarsData API facts (verified July 2026)
