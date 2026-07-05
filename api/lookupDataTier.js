@@ -167,7 +167,7 @@ async function resolveCar(searchContext) {
   if (!hasYear && !hasModel && !(contextFields.vin || contextFields.year)) {
     searchContext.status = "needs_clarification";
     searchContext.clarification = {
-      question: `Which ${make} are we talking about — what year, model, and any specific trim?`,
+      question: `Which ${make} are we talking about? What year, model, and any specific trim.`,
       missingFields: ["year", "model", "trim"]
     };
     searchContext.normalizedCar = null;
