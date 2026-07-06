@@ -227,6 +227,11 @@ body{
 .sell-rec-reason-label{font-size:10px;color:#999;font-weight:850;text-transform:uppercase;letter-spacing:.6px;margin-bottom:-4px;}
 .sell-rec-reason{font-size:13px;line-height:1.55;color:#444;}
 .sell-rec-stat{background:#f8f8f5;border-radius:10px;padding:10px 12px;font-size:12px;color:#166534;font-weight:700;}
+.sell-rec-hero{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:12px 14px;}
+.sell-rec-hero-line{font-size:15px;font-weight:850;color:#14532d;letter-spacing:-.1px;}
+.sell-rec-hero-money{font-size:13px;font-weight:750;color:#166534;margin-top:4px;}
+.primary-rec .sell-rec-name{font-size:26px;letter-spacing:-.4px;}
+.primary-rec .sell-rec-hero-line{font-size:17px;}
 .primary-rec .sell-rec-stat{background:white;}
 .sell-rec-best{font-size:11px;color:#777;font-weight:650;line-height:1.5;}
 .sell-rec-bullets{margin:0;padding-left:17px;display:flex;flex-direction:column;gap:6px;font-size:12px;line-height:1.45;color:#454542;}
@@ -1455,6 +1460,7 @@ async function showSellRecommendation(){
       cardClass:index===0&&!hasNamedPowerSellerAdvice?"primary-rec":"",
       actionLabel:index===0?`Sell on ${routeName}`:`Consider ${routeName}`,
       reason:routeReason(route,index,routeOptions),
+      heroStat:index===0?primaryHeroStat(route):null,
       evidenceBullets:routeEvidenceBullets(route,index,routeOptions),
       evidenceLine:"",
       stat:routeTagLine(route,index,routeOptions),
@@ -1501,6 +1507,7 @@ async function showSellRecommendation(){
         </div>
         <div class="sell-rec-reason-label">${option.key==="specialist"?"Why I’d call them":"Why I picked this"}</div>
         <div class="sell-rec-reason">${escapeHtml(option.rankReason||option.reason)}</div>
+        ${option.heroStat?`<div class="sell-rec-hero"><div class="sell-rec-hero-line">${escapeHtml(option.heroStat.count)}</div>${option.heroStat.money?`<div class="sell-rec-hero-money">${escapeHtml(option.heroStat.money)}</div>`:""}</div>`:""}
         ${option.stat?`<div class="sell-rec-stat">${escapeHtml(option.stat)}</div>`:""}
         ${option.evidenceBullets?.length?`<ul class="sell-rec-bullets">${option.evidenceBullets.map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>`:""}
         ${option.evidenceLine?`<div class="sell-rec-evidence-line">${escapeHtml(option.evidenceLine||"")}</div>`:""}
@@ -1576,7 +1583,7 @@ async function showSellRecommendation(){
     </div>
     ${powerSellerHTML}
     ${platformCardsHTML}
-    <div class="sam-text after-results">${powerSellerHTML?"Both are real options and the choice is yours. Pick one, or ask me to compare the tradeoffs.":(hasTwoRouteTradeoff(routeOptions)?"Which choice fits how you want to sell? You can choose either, or ask me to compare the tradeoffs.":"Which direction feels right? You can pick one, or ask me to compare the tradeoffs.")}</div>
+    <div class="sam-text after-results">${powerSellerHTML?"Both are real options and the choice is yours. Pick one, or ask me to compare the tradeoffs.":(secondaryPlatforms.length?(hasTwoRouteTradeoff(routeOptions)?"Which choice fits how you want to sell? You can choose either, or ask me to compare the tradeoffs.":"Which direction feels right? You can pick one, or ask me to compare the tradeoffs."):"Want me to walk through how I'd run the listing, or compare it against the other platforms?")}</div>
   </div></div>`;
   sellState.generatedPrimaryName=sellState.sellOptions[0]?.name||null;
   sellState.generatedSecondaryName=sellState.sellOptions[1]?.name||null;
@@ -2881,13 +2888,43 @@ function performanceDiscoveryTag(route,index){
   return index===0?"✓ Worth a look":"✓ Also worth comparing";
 }
 
+function formatUsd(value){
+  const n=Math.round(Number(value)||0);
+  return n?`$${n.toLocaleString("en-US")}`:null;
+}
+
+function primaryHeroStat(route){
+  const evidence=route?.marketEvidence;
+  if(!evidence||!evidence.evidenceSales)return null;
+  const days=sellState.sellDecision?.evidence?.windowDays;
+  const windowText=days?` in the last ${days} days`:"";
+  const count=`${evidence.evidenceSales} of ${evidence.totalEvidenceSales} comparable sale${evidence.totalEvidenceSales===1?"":"s"}${windowText} closed here`;
+  let money=null;
+  const here=formatUsd(evidence.medianSalePrice);
+  const others=formatUsd(evidence.othersMedianSalePrice);
+  if(here&&others&&evidence.othersSalesCount>0){
+    money=`Median ${here} here vs ${others} across other platforms`;
+  }else if(here){
+    money=`Median sale ${here}`;
+  }
+  return {count,money};
+}
+
 function routeTagLine(route,index,routes){
   const evidence=route.marketEvidence||{};
   const tags=[performanceDiscoveryTag(route,index)];
   if(evidence.topThreeSales>=2&&index===0)tags.push("Strongest recent results came here");
   const day=weekdayTag(evidence);
   if(day)tags.push(day);
-  return tags.filter(Boolean).slice(0,3).join(" · ");
+  const seen=new Set();
+  return tags.filter(Boolean).filter(tag=>{
+    const key=String(tag).replace(/^\u2713\s*/,"").toLowerCase();
+    if(seen.has(key))return false;seen.add(key);return true;
+  }).slice(0,3).join(" · ");
+}
+
+function comparableSalesLabel(){
+  return comparableModelLabel().replace(/ models$/,"");
 }
 
 function routeEvidenceBullets(route,index,routes){
@@ -2902,10 +2939,10 @@ function routeEvidenceBullets(route,index,routes){
   const evidence=route.marketEvidence||{};
   const bullets=[];
   if(Number.isFinite(evidence.performanceDeltaPercent)&&Math.abs(evidence.performanceDeltaPercent)>=5){
-    if(evidence.performanceDeltaPercent>0)bullets.push(`Recent comparable ${comparableModelLabel()} sales have been stronger here than the wider market.`);
+    if(evidence.performanceDeltaPercent>0)bullets.push(`Recent comparable ${comparableSalesLabel()} sales have been stronger here than the wider market.`);
     else if(Math.abs(evidence.performanceDeltaPercent)<=15)bullets.push(`The result is close enough that buyer fit and speed-to-list are worth comparing.`);
   }
-  if(evidence.topThreeSales>=2)bullets.push(`Recent comparable ${comparableModelLabel()} sales have consistently finished strongest here.`);
+  if(evidence.topThreeSales>=2)bullets.push(`${evidence.topThreeSales} of the 3 strongest recent comparable ${comparableSalesLabel()} sales happened here.`);
   const scope=comparisonScopeSentence();
   if(scope)bullets.push(scope);
   if(index===0)bullets.push(`Best choice if you’re comfortable answering questions and staying engaged through the auction.`);
@@ -3036,7 +3073,9 @@ function rankingReason(option,index,options){
     if(!evidence)return `${option.name} is the strongest fit for your selling priorities.`;
     const compare=bestAlt?medianDeltaSentence(option,bestAlt):null;
     if(compare)return compare;
-    return `If you decide to manage the auction yourself, this is the platform I'd look at first.`;
+    return (sellState.sellOptions||[]).some(o=>o.key==="specialist")
+      ?`If you decide to manage the auction yourself, this is the platform I'd look at first.`
+      :`This is where I'd sell this car.`;
   }
   if(!primaryMarket)return marketEvidenceSentence(option);
   const compare=medianDeltaSentence(option,primaryMarket);

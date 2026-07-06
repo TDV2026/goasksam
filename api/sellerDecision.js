@@ -817,10 +817,16 @@ function analyze(records, classifications, ladder, vehicle) {
   let platformPerformance = [...platformMap.entries()]
     .map(([platform, items]) => {
       const weekdayInsight = strongestWeekdayInsight(items);
+      const otherPrices = evidenceSet
+        .filter(item => recordPlatform(item.record) !== platform)
+        .map(item => item.classification.price)
+        .filter(Number.isFinite);
       return {
         platform,
         evidenceSales: items.length,
         totalEvidenceSales,
+        othersSalesCount: otherPrices.length,
+        othersMedianSalePrice: median(otherPrices),
         evidenceSharePercent: totalEvidenceSales ? Math.round(items.length / totalEvidenceSales * 100) : null,
         relevantSales: items.filter(item => ["close_match", "relevant_match"].includes(item.classification.comparison_tier)).length,
         closeSales: items.filter(item => item.classification.comparison_tier === "close_match").length,
