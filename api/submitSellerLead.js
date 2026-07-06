@@ -37,17 +37,22 @@ async function insertLead(row, supabaseUrl, supabaseKey) {
   return Array.isArray(data) ? data[0] : data;
 }
 
+// The live table may lack some optional columns. PostgREST reports one unknown
+// column per attempt, so strip whichever it names and retry; the full context
+// is preserved in decision_summary regardless. Never drop the lead over a
+// missing optional column.
 async function insertLeadWithFallback(row, supabaseUrl, supabaseKey) {
-  try {
-    return await insertLead(row, supabaseUrl, supabaseKey);
-  } catch (err) {
-    const message = String(err.message || "");
-    if (!message.includes("car_region") && !message.includes("car_state")) throw err;
-    const fallbackRow = { ...row };
-    if (message.includes("car_region")) delete fallbackRow.car_region;
-    if (message.includes("car_state")) delete fallbackRow.car_state;
-    return insertLead(fallbackRow, supabaseUrl, supabaseKey);
+  const attempt = { ...row };
+  for (let tries = 0; tries < 6; tries++) {
+    try {
+      return await insertLead(attempt, supabaseUrl, supabaseKey);
+    } catch (err) {
+      const missing = String(err.message || "").match(/find the '([a-zA-Z0-9_]+)' column/)?.[1];
+      if (!missing || !(missing in attempt) || missing === "seller_email" || missing === "reference") throw err;
+      delete attempt[missing];
+    }
   }
+  return insertLead(attempt, supabaseUrl, supabaseKey);
 }
 
 export default async function handler(req, res) {
