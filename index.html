@@ -414,90 +414,8 @@ const LISTINGS=[
 {id:"L10",status:"live",year:2020,make:"Nissan",model:"370Z Sport Touring",type:"sports",trans:"automatic",drive:"RWD",price:5580,miles:16600,loc:"Los Angeles, CA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/exterior/3vAVEA0k-sCSR5pQ/edit/9L2LD.jpg?t=177930535574",reserve_status:"active",daysLive:2,endsIn:5,liveSignals:[{type:"resolved",text:"Seller confirmed Sport Touring spec with factory LSD 1 hour ago. Monroney uploaded to gallery.",time:"1 hour ago"}],openQuestion:"Reserve active and amount unknown.",whatChanged:"Seller confirmed LSD and uploaded Monroney 1 hour ago after community asked. Reserve still unknown.",sellerStatus:"Answered LSD question and uploaded documentation within 1 hour of being asked.",sam_view:"Clean low-mile 370Z. Seller confirmed the factory LSD and uploaded the Monroney an hour ago after the community asked, that is responsive. Reserve is still active and the amount is unknown.",what_i_like:"Sport Touring with factory LSD, 16,600 miles, seller actively engaging.",actionLine:"I would watch whether the reserve gets met. The seller is responsive which is a good sign."}
 ];
 
-const POWERSELLERS=[
-  {
-    id:"hows-motorcars-main-line",
-    name:"howS",
-    displayName:"howS / Motorcars of the Main Line",
-    region:"Bucks County PA / King of Prussia",
-    serviceRegions:["Pennsylvania","New Jersey","New York","Connecticut","Massachusetts","Maryland","Virginia","Washington DC","East Coast","New England","Florida","Texas","Colorado","Nationwide"],
-    strengths:["Air-cooled Porsche","911 specialist","Vintage Mustang","Platform selection","Auction scheduling","Comment management","Nationwide transport","Flexible fee structure"],
-    makes:["Porsche","Ford","Ferrari","BMW","Mercedes-Benz","Mercedes","Audi","Toyota","Land Rover","Jaguar"],
-    specialtyPattern:/\b(porsche|911|air[-\s]?cooled|ferrari|mustang|gt3|gt2|turbo|sport\s+classic|speedster|targa|r8|m3|m4|m5|amg|land\s+cruiser|fj\d{2}|defender|range\s+rover|jaguar|collector|performance|vintage)\b/i,
-    priceMin:10000,
-    priceMax:null,
-    platforms:["Bring a Trailer","Cars & Bids","PCarMarket","Hemmings"],
-    note:"I’d start here when the car needs someone who can take the whole auction off your plate: prep, photos, comments, scheduling, logistics and choosing the platform with the best shot.",
-    profileFacts:{
-      base:"Upper Makefield PA and Motorcars of the Main Line in King of Prussia",
-      auctionsManaged:"400+ auctions as howS, plus long BaT history under bruce_m",
-      platformAccess:"BaT VIP, direct scheduling relationships, Motorcars is a major Cars & Bids seller",
-      logistics:"Can arrange national transport and shorter-distance flatbed",
-      specialties:"Air-cooled Porsche, 911s, vintage Mustangs, unusual automotive items",
-      feeNotes:"Usually flexible: flat fee, percentage, or incentive structure depending on the car"
-    }
-  },
-  {
-    id:"placeholder-chris",
-    name:"Chris",
-    displayName:"Chris",
-    region:"California",
-    strengths:["Auction management","Buyer questions","Platform advice"],
-    makes:["Porsche","Toyota","Ferrari"],
-    priceMin:50000,
-    priceMax:null,
-    platforms:["Bring a Trailer","Cars & Bids"],
-    note:"A good fit when the seller wants help managing the sale rather than doing everything themselves."
-  },
-  {
-    id:"placeholder-alex",
-    name:"Alex",
-    displayName:"Alex",
-    region:"East Coast",
-    strengths:["Auction management","High-value cars","Logistics"],
-    makes:["Porsche","BMW","Audi","Mercedes-Benz"],
-    priceMin:60000,
-    priceMax:null,
-    platforms:["Bring a Trailer","Cars & Bids","PCarMarket"],
-    note:"Worth speaking to when the car is valuable enough that auction management and platform choice could move the result."
-  },
-  {
-    id:"placeholder-morgan",
-    name:"Morgan",
-    displayName:"Morgan",
-    region:"Southeast",
-    strengths:["American performance","Muscle cars","Buyer questions","Platform advice"],
-    makes:["Toyota","Land Rover","Ford"],
-    priceMin:40000,
-    priceMax:null,
-    platforms:["Bring a Trailer","Cars & Bids"],
-    note:"A good first call when the car needs more than just choosing a platform: prep, questions, comments and the right auction venue all matter."
-  },
-  {
-    id:"placeholder-jordan",
-    name:"Jordan",
-    displayName:"Jordan",
-    region:"Midwest",
-    strengths:["Performance cars","Auction comments","Platform advice"],
-    makes:["BMW","Dodge","Honda","Acura","Nissan"],
-    priceMin:45000,
-    priceMax:null,
-    platforms:["Bring a Trailer","Cars & Bids"],
-    note:"A sensible sanity check for performance cars where the seller wants help handling comments and buyer questions."
-  },
-  {
-    id:"placeholder-taylor",
-    name:"Taylor",
-    displayName:"Taylor",
-    region:"UK / Europe",
-    strengths:["European sellers","Platform advice","Auction management"],
-    makes:["Porsche","Ferrari","Aston Martin","Land Rover"],
-    priceMin:50000,
-    priceMax:null,
-    platforms:["Car & Classic","Collecting Cars"],
-    note:"Worth speaking to when the car is outside the US and platform choice may be very different."
-  }
-];
+// Partner (PowerSeller) profiles come from the backend partners table via
+// decision.partnerReferral. Nothing partner-related is hardcoded here.
 
 const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,region:null,state:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,vehicleDetailSkipped:false,vehicleIdentityValidated:false,pendingVehicleIdentity:null,resolvedVehicle:null,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[],allRouteOptions:[],powerSellerProfiles:[],selectedPowerSellerId:null,noEvidenceFallback:null};
 function resetSellState(){
@@ -645,7 +563,7 @@ function genericMakeMissingDetail(text,year){
   if(!match)return null;
   return {
     type:"model",
-    ask:`${match.name} made a lot of different cars${year?` in ${year}`:""}. Which model are we talking about? Pick one below, or type the exact model if it is not shown.`,
+    ask:`Which model is the${year?` ${year}`:""} ${match.name}? Pick one below, or type the exact model if it is not shown.`,
     chips:match.chips,
     baseVehicle:vehicleBaseYearMake(text,match.name)
   };
@@ -798,7 +716,7 @@ function missingVehicleDetail(text){
   const hasKnownMakeOrModel=/\b(porsche|ferrari|bmw|mercedes|benz|audi|lamborghini|aston|bentley|mclaren|chevrolet|chevy|corvette|ford|mustang|dodge|viper|toyota|honda|nissan|subaru|land rover|range rover|jaguar|maserati|alfa|lotus|911|gt3|gt2|turbo|m2|m3|m4|m5|amg|rs|sti|supra|nsx|gtr|camaro|r8|rs3|rs4|rs5|rs6|rs7|s3|s4|s5|s6|s7|tt)\b/.test(lower);
   if(!looksLikeVehicleText(text)&&!hasKnownMakeOrModel)return null;
   if(/\bporsche\b/.test(lower)&&!/\b(911|912|914|924|928|944|968|356|550|718|964|993|996|997|991|992|boxster|cayman|panamera|cayenne|macan|gt2|gt3|turbo|speedster|targa|carrera)\b/.test(lower)){
-    return {type:"model",ask:`Porsche made a lot of different cars${year?` in ${year}`:""}. Which model are we talking about? Pick one below, or type the exact model if it is not shown.`,chips:porscheModelChipsForYear(year)};
+    return {type:"model",ask:`Which model is the${year?` ${year}`:""} Porsche? Pick one below, or type the exact model if it is not shown.`,chips:porscheModelChipsForYear(year)};
   }
   if(/\bporsche\b/.test(lower)&&/\b911\b/.test(lower)&&!/\b(carrera(?:\s+[124]?s|\s+t)?|gts|turbo(?:\s+s)?|gt3(?:\s+rs)?|gt2(?:\s+rs)?|sport\s+classic|dak(?:ar)?|speedster|targa|s\/t|992|991|997|996|993|964)\b/.test(lower)){
     return {type:"trim",ask:"Which 911 is it? Carrera, Carrera T, GTS, Turbo, GT3 and Sport Classic behave very differently. Pick one below, or type the exact trim if it is not shown.",chips:["Carrera","Carrera S","Carrera T","GTS","Turbo","Turbo S","GT3","GT3 RS","Sport Classic","Not sure"]};
@@ -807,7 +725,7 @@ function missingVehicleDetail(text){
     return {type:"model",ask:"Which BMW model or trim is it? These are just common examples. Pick one below, or type the exact model if it is not shown.",chips:["318i","M3","2002","Z4","X5","Not sure"]};
   }
   if(/\baudi\b/.test(lower)&&!/\b(a[1-8]|s[1-8]|rs[3-7]|r8|tt|tts|ttrs|q[2-8]|e-tron|allroad)\b/.test(lower)){
-    return {type:"model",ask:`Audi made a lot of different cars${year?` in ${year}`:""}. Which model are we talking about? Pick one below, or type the exact model if it is not shown.`,chips:["A4","S4","RS3","RS6","R8","TT","Q5","Not sure"]};
+    return {type:"model",ask:`Which model is the${year?` ${year}`:""} Audi? Pick one below, or type the exact model if it is not shown.`,chips:["A4","S4","RS3","RS6","R8","TT","Q5","Not sure"]};
   }
   if(/\bferrari\b/.test(lower)&&!/\b(308|328|348|355|360|430|458|488|f8|roma|california|testarossa|modena|spider|berlinetta|scuderia)\b/.test(lower)){
     return {type:"model",ask:"Which Ferrari model or trim is it? Pick one below, or type the exact model if it is not shown.",chips:["360 Modena","F430","458","488","Not sure"]};
@@ -844,6 +762,12 @@ function askMissingVehicleDetail(missing){
 async function handleVehicleValidationAnswer(q){
   const lower=String(q||"").toLowerCase().trim();
   const currentIssue=activeVehicleIssue();
+  // Global invariant: off-script input routes to the chat layer from EVERY
+  // state, including this clarification sub-state. Conversational input with
+  // no vehicle signal is a question for Sam, not a model answer.
+  const questionLike=/\?\s*$/.test(lower)||/^(what|how|why|when|where|who|can|could|will|would|does|do|is|are|should|but|explain|tell me)\b/i.test(lower)||/\b(how long|you never|what happens|why do you)\b/i.test(lower);
+  const wordyNonAnswer=lower.split(/\s+/).length>=4&&!/\d/.test(lower)&&!looksLikeVehicleText(q)&&!/\b(not sure|don.t know|unknown|skip|change car|start over|wrong car|different car|yes|yep|yeah|correct)\b/i.test(lower);
+  if((questionLike&&!looksLikeVehicleText(q))||wordyNonAnswer)return false;
   if(currentIssue?.baseVehicle&&/\bdifferent\b.*\bmodel\b/i.test(lower)){
     sellState.carName=currentIssue.baseVehicle;
     sellState.carRaw=currentIssue.baseVehicle;
@@ -862,7 +786,21 @@ async function handleVehicleValidationAnswer(q){
     return true;
   }
   if(/\bnot sure|don.t know|unknown|skip\b/i.test(lower)){
-    addMsg("sam","No problem. I need the actual car before I can recommend where to sell it. What does the badge, registration or paperwork say?");
+    sellState.notSureRepeats=(sellState.notSureRepeats||0)+1;
+    const baseVehicle=currentIssue?.baseVehicle||sellState.carName||"the car";
+    if(sellState.notSureRepeats>=3){
+      // Third strike: stop asking. Proceed at make level; the evidence ladder
+      // handles broad evidence honestly.
+      sellState.carName=baseVehicle;sellState.carRaw=baseVehicle;
+      sellState.vehicleDetailSkipped=true;sellState.pendingVehicleIdentity=null;
+      sellState.vehicleIdentityValidated=false;sellState.notSureRepeats=0;
+      sellState.step=11;
+      addMsg("sam",`No problem, I'll work with the ${baseVehicle} at that level. The read will be more directional than model-specific, and I'll say so in the result. Where is the car located?`,"",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+      return true;
+    }
+    addMsg("sam",sellState.notSureRepeats===1
+      ?"No problem. I need the actual car before I can recommend where to sell it. What does the badge, registration or paperwork say?"
+      :`All good. If the paperwork isn't handy, the badge on the back of the car usually settles it. If you'd rather not dig, say 'not sure' once more and I'll run the analysis on the ${baseVehicle} as-is, just with a broader read.`);
     return true;
   }
   if(currentIssue?.suggestion&&/^(yes|yep|yeah|correct|that.s right|looks right|that one)$/i.test(lower)){
@@ -1492,23 +1430,11 @@ async function showSellRecommendation(){
 
   const routesForCards=routeOptions;
   const twoRouteMode=hasTwoRouteTradeoff(routeOptions);
-  const powerSellerReferral=decision.powerSellerReferral||{};
-  const regionLabel=sellState.state?`${sellState.state} `:(sellState.region&&sellState.region!=="US"?`${sellState.region} `:"");
-  const observedSellers=(sellerActivity.topObservedSellers||[])
-    .filter(seller=>seller.sellerUsername&&["high_activity_seller","active_specialist"].includes(seller.activityLabel))
-      .slice(0,3)
-    .map(seller=>({
-      name:seller.sellerUsername,
-      platform:seller.platform,
-      sales:seller.relevantSales270||seller.sales270||0,
-      region:sellState.state||sellState.region||"",
-      specialties:powerSellerSpecialties(),
-      label:seller.activityLabel==="high_activity_seller"?"Strong recent seller activity":"PowerSeller signal"
-    }));
-  const hasPowerSellerAdvice=shouldEvaluatePowerSeller(powerSellerReferral);
-  const powerSellerProfiles=hasPowerSellerAdvice?matchPowerSellers(observedSellers):[];
+  const partnerReferral=decision.partnerReferral||{};
+  sellState.partnerReferral=partnerReferral;
+  const hasNamedPowerSellerAdvice=shouldLeadWithPartner(partnerReferral);
+  const powerSellerProfiles=hasNamedPowerSellerAdvice?[partnerProfileFromReferral(partnerReferral)]:[];
   sellState.powerSellerProfiles=powerSellerProfiles;
-  const hasNamedPowerSellerAdvice=!!(hasPowerSellerAdvice&&powerSellerProfiles.length);
 
   const routeSellOptions=routesForCards.map((route,index)=>{
     const platform=route.marketEvidence||{};
@@ -1621,20 +1547,23 @@ async function showSellRecommendation(){
   const secondaryPowerSellers=[];
   const featuredPowerSellerName=featuredPowerSeller?powerSellerFirstName(featuredPowerSeller):"";
   const powerSellerHTML=featuredPowerSeller?`
-    <div class="sell-section-label">Sam’s recommendation</div>
-    <div class="sell-section-note">For your ${escapeHtml(sellState.carName||"car")}, I’d start with ${escapeHtml(featuredPowerSellerName)}. If I owned this car, that’s the call I’d make before deciding anything else.</div>
+    <div class="sell-section-label">Have it handled</div>
+    <div class="sell-section-note">${escapeHtml(featuredPowerSellerName)} is a GoAskSam partner who consigns cars like this. The market evidence below stands either way; this is a service choice, not a market claim.</div>
     ${renderFeaturedPowerSellerProfile(featuredPowerSeller)}
-    ${secondaryPowerSellers.length?`<div class="sell-section-label" style="margin-top:12px">Want another opinion?</div><div class="power-seller-alt-row">${secondaryPowerSellers.map((profile,index)=>renderMiniPowerSellerProfile(profile,index===0?`If ${featuredPowerSellerName} isn’t available`:"Second choice")).join("")}</div>`:""}
   `:"";
   const platformOptions=sellState.sellOptions.filter(option=>option.key!=="specialist");
   const primaryPlatform=platformOptions[0]||null;
   const secondaryPlatforms=powerSellerHTML?[]:platformOptions.slice(1,2);
+  const diySecondaryLine=(!powerSellerHTML&&sellState.partnerReferral?.eligible&&sellerWantsToManageSelf())
+    ?`<div class="sell-section-note" style="margin-top:10px">You said you’d rather run it yourself, so that’s the plan. If you’d rather have someone handle the whole sale, I know who I’d call. Just ask.</div>`
+    :"";
   const platformCardsHTML=primaryPlatform?(powerSellerHTML?`
-    <div class="sell-section-label">Prefer to sell it yourself?</div>
-    ${renderSelfManagedPlatformSummary(primaryPlatform)}
+    <div class="sell-section-label" style="margin-top:12px">Run it yourself</div>
+    <div class="sell-rec-grid">${renderOptionCard(primaryPlatform)}</div>
   `:`
     <div class="sell-rec-grid">${renderOptionCard(primaryPlatform)}</div>
     ${secondaryPlatforms.length?`<div class="platform-compact-list"><div class="sell-section-note" style="margin:0">Also looked at</div>${secondaryPlatforms.map(renderCompactPlatform).join("")}</div>`:""}
+    ${diySecondaryLine}
   `):"";
 
   const row=document.createElement("div");row.className="row sam";
@@ -1647,7 +1576,7 @@ async function showSellRecommendation(){
     </div>
     ${powerSellerHTML}
     ${platformCardsHTML}
-    <div class="sam-text after-results">${powerSellerHTML?"You can start with the call, run it yourself, or ask me to compare the tradeoffs.":(hasTwoRouteTradeoff(routeOptions)?"Which choice fits how you want to sell? You can choose either, or ask me to compare the tradeoffs.":"Which direction feels right? You can pick one, or ask me to compare the tradeoffs.")}</div>
+    <div class="sam-text after-results">${powerSellerHTML?"Both are real options and the choice is yours. Pick one, or ask me to compare the tradeoffs.":(hasTwoRouteTradeoff(routeOptions)?"Which choice fits how you want to sell? You can choose either, or ask me to compare the tradeoffs.":"Which direction feels right? You can pick one, or ask me to compare the tradeoffs.")}</div>
   </div></div>`;
   sellState.generatedPrimaryName=sellState.sellOptions[0]?.name||null;
   sellState.generatedSecondaryName=sellState.sellOptions[1]?.name||null;
@@ -1675,14 +1604,20 @@ function handleSellRecommendationFollowup(q){
     return true;
   }
 
-  if(/\b(power seller|specialist|consignor|consignment)\b/i.test(lower)){
-    const specialist=options.find(o=>o.key==="specialist");
-    if(specialist){
-      const primaryPowerSeller=(sellState.powerSellerProfiles||[])[0];
-      const sellerName=primaryPowerSeller?powerSellerFirstName(primaryPowerSeller):"a good PowerSeller";
-      addMsg("sam",`${sellerName} would manage the sale for you: prep, photos, listing, buyer questions, comments, paperwork and platform choice. The point is not just convenience. A good PowerSeller should know whether this car has the best shot on Bring a Trailer, Cars & Bids, PCarMarket or somewhere else before it goes live.`);
+  if(/\b(power seller|powerseller|specialist|consignor|consignment|handle the whole|someone handle)\b/i.test(lower)){
+    const referral=sellState.partnerReferral||{};
+    if(referral.eligible&&referral.partner){
+      // User-initiated: fine to show the partner even after a DIY preference.
+      if(!(sellState.powerSellerProfiles||[]).length){
+        sellState.powerSellerProfiles=[partnerProfileFromReferral(referral)];
+      }
+      const profile=sellState.powerSellerProfiles[0];
+      if(!options.some(o=>o.key==="specialist")){
+        sellState.sellOptions.push({key:"specialist",name:profile.displayName,type:"PowerSeller conversation",observedSellers:[profile]});
+      }
+      addMsg("sam",`Since you asked, here's who I'd call.`,renderFeaturedPowerSellerProfile(profile));
     }else{
-      addMsg("sam","I don’t think this one needs a PowerSeller from what you’ve told me. I’d keep the commission and focus on the best self-managed platform unless you want someone else to handle the sale.");
+      addMsg("sam","For this car I'd keep it simple and sell on the recommended platform. A PowerSeller referral only makes sense when the value and the fit genuinely support it, and this one doesn't clear that bar.");
     }
     return true;
   }
@@ -2035,7 +1970,7 @@ async function submitContactForm(){
         },
         choice:{
           destination:destinationName,
-          destinationType:option.type,
+          destinationType:selectedPowerSeller?"powerseller":option.type,
           optionKey:option.key,
           powerSeller:selectedPowerSeller||null
         },
@@ -2128,14 +2063,19 @@ function askVehicleIdentityClarification(clarification,status,partialVehicle){
     const missing=missingParts.length>1
       ?missingParts.slice(0,-1).join(", ")+" and "+missingParts[missingParts.length-1]
       :(missingParts[0]||"model");
+    const alt=sellState.vehicleClarifyRepeats%2===0;
     if(clarification.suggestion){
-      ask=`My best guess is ${clarification.suggestion}. Tap it below if that's right, or type the full year, make and model.`;
+      ask=alt
+        ?`If it's not the ${clarification.suggestion}, type the exact model name and I'll take it from there.`
+        :`My best guess is ${clarification.suggestion}. Tap it below if that's right, or type the full year, make and model.`;
     }else if(understood){
-      ask=`So far I have ${understood}. I just need the ${missing}. You can also type the whole thing, like '2018 Porsche 911 Carrera GTS'.`;
+      ask=alt
+        ?`Still missing the ${missing} for the ${understood}. The badge or the registration usually settles it. What does it say?`
+        :`So far I have ${understood}. I just need the ${missing}. You can also type the whole thing, like '2018 Porsche 911 Carrera GTS'.`;
     }else{
-      ask=sellState.vehicleClarifyRepeats%2
-        ?`I still couldn't match that to a car I know. Try the year, make and model together, like '1972 VW Beetle' or '2005 Mazda MX-5'.`
-        :`Let's build it up instead. Give me just the make to start, like 'Porsche' or 'Chevrolet'.`;
+      ask=alt
+        ?`Let's build it up instead. Give me just the make to start, like 'Porsche' or 'Chevrolet'.`
+        :`I still couldn't match that to a car I know. Try the year, make and model together, like '1972 VW Beetle' or '2005 Mazda MX-5'.`;
     }
     if(sellState.vehicleClarifyRepeats>=2&&!chips.includes("Not sure"))chips=[...chips,"Not sure"];
   }else{
@@ -2455,7 +2395,7 @@ function hasTwoRouteTradeoff(routes){
 
 function resultHeaderTitle(routes){
   if((sellState.sellOptions||[]).some(option=>option.key==="specialist")){
-    return `If this were my ${sellState.carName||"car"}, I wouldn’t choose a platform just yet.`;
+    return `Two ways to sell the ${sellState.carName||"car"}: have it handled, or run it yourself.`;
   }
   if(hasTwoRouteTradeoff(routes))return `Two choices are worth considering for the ${sellState.carName||"car"}.`;
   return `Here’s what I’d do with the ${sellState.carName||"car"}.`;
@@ -2530,11 +2470,7 @@ function powerSellerAdviceReason(hasNamedSellers){
     ],sellState.carName,sellState.state,hasNamedSellers);
   }
   if(sellerWantsToManageSelf()){
-    return pickCopy([
-      "You told me you’d rather manage it yourself. I think that’s reasonable. This is one of the few cars where I’d still spend ten minutes speaking to a PowerSeller before making the final call.",
-      "I know you said you’d rather run it yourself. Normally I’d agree. For this car, I’d still speak to one good PowerSeller before deciding.",
-      "Selling it yourself may still be the right move. I’d just sanity-check it with someone who regularly runs auctions before committing."
-    ],sellState.carName,sellState.involvement);
+    return "You said you’d rather run it yourself, so that’s the plan. If you ever want the whole sale handled instead, ask me and I’ll tell you who I’d call.";
   }
   return pickCopy([
     "For this car, I’d speak to one or two PowerSellers before deciding where it goes live. If they can show you they’ll genuinely improve the outcome, they’re worth considering. If not, I’d sell it myself.",
@@ -2711,103 +2647,36 @@ function isHighValueOrSpecialist(){
   return estimatedTargetPrice()>=50000||isSpecialistCar();
 }
 
-function shouldEvaluatePowerSeller(powerSellerReferral={}){
-  const highOrSpecial=isHighValueOrSpecialist();
-  const suggested=!!powerSellerReferral.shouldEvaluate;
-  const wantsHelp=sellerWantsHandsOff();
-  if(sellerWantsToManageSelf()&&!highOrSpecial&&!suggested)return false;
-  return highOrSpecial||suggested||wantsHelp;
+function shouldLeadWithPartner(partnerReferral={}){
+  // Locked rules: the gate must genuinely pass (value, segment, region, active
+  // partner, all decided server-side) AND the user must not have said they
+  // want to run it themselves. User preference always wins.
+  return !!(partnerReferral.eligible&&partnerReferral.partner)&&!sellerWantsToManageSelf();
 }
 
-function normalizedRegionLabel(){
-  return String(sellState.state||sellState.region||"").trim();
-}
-
-function powerSellerRegionScore(profile){
-  const region=normalizedRegionLabel().toLowerCase();
-  const profileRegion=String(profile.region||"").toLowerCase();
-  const serviceRegions=(profile.serviceRegions||[]).map(item=>String(item||"").toLowerCase());
-  if(!region||(!profileRegion&&!serviceRegions.length))return 0;
-  if(profileRegion.includes(region)||region.includes(profileRegion))return 3;
-  if(["california","ca"].includes(region)&&profileRegion.includes("california"))return 3;
-  if(["uk","europe"].includes(region)&&/uk|europe/.test(profileRegion))return 3;
-  if(serviceRegions.some(item=>item.includes(region)||region.includes(item)))return 3;
-  if(["pa","pennsylvania"].includes(region)&&serviceRegions.includes("pennsylvania"))return 3;
-  if(["ny","new york"].includes(region)&&serviceRegions.includes("new york"))return 3;
-  if(["nj","new jersey"].includes(region)&&serviceRegions.includes("new jersey"))return 3;
-  if(["dc","washington dc","district of columbia"].includes(region)&&serviceRegions.includes("washington dc"))return 3;
-  if(["ma","massachusetts","ct","connecticut","new england"].includes(region)&&serviceRegions.includes("new england"))return 2;
-  if(serviceRegions.includes("nationwide"))return 1;
-  return 0;
-}
-
-function powerSellerMakeScore(profile,make){
-  if(!make)return 0;
-  return (profile.makes||[]).some(item=>item.toLowerCase()===make.toLowerCase())?4:0;
-}
-
-function powerSellerPriceScore(profile,price){
-  if(!price)return 0;
-  const min=Number(profile.priceMin||0);
-  const max=Number(profile.priceMax||0);
-  if(min&&price<min)return -1;
-  if(max&&price>max)return -1;
-  return 2;
-}
-
-function observedSellerProfile(seller,index){
-  const platform=platformDisplayName(seller.platform);
-  const carLabel=comparableModelLabel().replace(/\s+models$/,"");
+function partnerProfileFromReferral(referral){
+  const partner=referral?.partner||{};
+  const verified=partner.verified||{};
+  const name=partner.name||"Partner";
   return {
-    id:`observed-${index}-${String(seller.name||"seller").replace(/[^a-z0-9_-]/gi,"")}`,
-    name:seller.name,
-    displayName:seller.name,
-    region:seller.region||normalizedRegionLabel()||"Worth checking",
-    strengths:["Recent seller activity","Auction management","Platform advice"].slice(0,3),
-    makes:[extractVehicleMake()].filter(Boolean),
-    platforms:[platform].filter(Boolean),
-    note:`They have recent activity around ${carLabel} sales, manage the auction process and are worth a first conversation if you want the headaches taken off your plate.`,
-    confidenceLabel:"Worth speaking to",
-    score:99
+    id:partner.slug||"partner",
+    name,
+    displayName:partner.displayName||name,
+    region:(partner.regions||[])[0]||"",
+    serviceClaims:(partner.serviceClaims||[]).filter(claim=>claim&&claim.text),
+    providedPlatforms:(partner.platforms||[]).filter(p=>p&&p.source!=="data_verified").map(p=>p.name),
+    verified:{
+      trackedSales:Number(verified.trackedSales||0),
+      topMakes:verified.topMakes||[],
+      platformsSeen:verified.platformsSeen||[]
+    },
+    specialtiesNote:partner.specialties?.notes||"",
+    referralTerms:partner.referralTerms||"",
+    strengths:[],
+    platforms:(partner.platforms||[]).map(p=>p.name),
+    note:partner.specialties?.notes?`Per ${name}: ${String(partner.specialties.notes).replace(/\s*\(per [^)]*\)\s*$/i,"")}`:`${name} is a GoAskSam partner consignor.`,
+    confidenceLabel:"PowerSeller option"
   };
-}
-
-function powerSellerSpecialtyScore(profile,car){
-  const carText=String(car||"");
-  if(profile.specialtyPattern&&profile.specialtyPattern.test(carText))return 6;
-  if(/\bporsche\b/i.test(carText)&&/\b911\b/i.test(carText)&&/911 specialist|air-cooled porsche/i.test((profile.strengths||[]).join(" ")))return 5;
-  if(isSpecialistCar()&&powerSellerMakeScore(profile,extractVehicleMake())>0)return 2;
-  return 0;
-}
-
-function matchPowerSellers(observedSellers=[]){
-  const make=extractVehicleMake();
-  const price=estimatedTargetPrice();
-  const car=cleanCarForCopy();
-  const observed=[];
-  const scored=POWERSELLERS
-    .filter(profile=>profile.profileFacts)
-    .map(profile=>{
-      const specialtyScore=powerSellerSpecialtyScore(profile,car);
-      const priceScore=powerSellerPriceScore(profile,price);
-      const score=specialtyScore
-        + powerSellerMakeScore(profile,make)
-        + powerSellerRegionScore(profile)
-        + priceScore
-        + (sellerWantsHandsOff()?1:0)
-        + (isHighValueOrSpecialist()?1:0);
-      return {...profile,score,specialtyScore,priceScore,confidenceLabel:"Worth speaking to"};
-    })
-    .filter(profile=>profile.score>0&&profile.specialtyScore>0&&profile.priceScore>=0)
-    .sort((a,b)=>b.score-a.score);
-  const merged=[...observed,...scored];
-  const unique=[];
-  for(const profile of merged){
-    if(unique.some(existing=>existing.displayName===profile.displayName))continue;
-    unique.push(profile);
-  }
-  if(unique.length)return unique.slice(0,1);
-  return [];
 }
 
 function powerSellerFirstName(profile){
@@ -2825,7 +2694,7 @@ function renderPowerSellerProfile(profile){
     <span class="observed-seller-why">Why I’d call them</span>
     <div class="sell-rec-reason">${escapeHtml(profile.note||`They should be able to explain how they would improve the sale for ${cleanCarForCopy()} versus a private listing.`)}</div>
     <div class="observed-seller-tags">${strengths.map(tag=>`<span class="observed-seller-tag">${escapeHtml(tag)}</span>`).join("")}</div>
-    ${platforms?`<div class="power-seller-platforms"><strong>Usually works with:</strong> ${escapeHtml(platforms)}</div>`:""}
+    ${platforms?`<div class="power-seller-platforms"><strong>Lists on (per ${escapeHtml(profile.name||"the partner")}):</strong> ${escapeHtml(platforms)}</div>`:""}
     <div class="sell-rec-actions"><button class="primary" onclick="event.stopPropagation();choosePowerSeller('${escapeHtml(profile.id)}')">Speak to ${escapeHtml(powerSellerFirstName(profile))}</button></div>
   </div>`;
 }
@@ -2856,32 +2725,25 @@ function powerSellerProcessChips(){
 }
 
 function powerSellerProfileSummary(profile){
-  if(profile?.profileFacts){
-    return "Manages enthusiast car auctions for owners and helps decide which platform gives the car the best chance.";
-  }
-  return "Professional auction consignor who can manage the sale and help choose the right platform.";
+  const name=profile?.name||"the partner";
+  return `Auction consignor and GoAskSam partner. The service claims below were provided by ${name}; anything marked "in our tracked records" is computed from our own sales data.`;
 }
 
 function powerSellerClientChips(profile){
-  const tags=profile?.profileFacts
-    ? ["Porsche","Vintage sports cars","Collector cars","Performance cars"]
-    : (profile.strengths||[]).slice(0,4);
+  const note=String(profile?.specialtiesNote||"").replace(/\s*\(per [^)]*\)\s*$/i,"");
+  const tags=note?note.split(/,\s*/).slice(0,4):(profile.strengths||[]).slice(0,4);
   return tags.map(tag=>`<span class="power-seller-chip">${escapeHtml(tag)}</span>`).join("");
 }
 
 function powerSellerProofItems(profile){
-  if(profile?.profileFacts){
-    return [
-      ["Recent activity","400+ completed auctions"],
-      ["Specialises in","Porsche and collector cars"],
-      ["Platform choice","Chooses before listing"]
-    ];
+  const verified=profile?.verified||{};
+  const rows=[];
+  if(verified.trackedSales>0){
+    rows.push(["In our tracked records",`${verified.trackedSales} completed sale${verified.trackedSales===1?"":"s"}`]);
+    if((verified.topMakes||[]).length)rows.push(["Top makes in those records",verified.topMakes.map(m=>`${m.make} (${m.count})`).join(", ")]);
+    if((verified.platformsSeen||[]).length)rows.push(["Platforms in those records",verified.platformsSeen.join(", ")]);
   }
-  return [
-    ["Sale management","Handles the auction"],
-    ["Platform choice","Helps choose where to list"],
-    ["Seller workload","Takes pressure off"]
-  ];
+  return rows;
 }
 
 function powerSellerProofHTML(profile){
@@ -2891,7 +2753,7 @@ function powerSellerProofHTML(profile){
 }
 
 function powerSellerTrustPills(){
-  return ["Independent recommendation","No paid placement","You choose whether to contact him"]
+  return ["Placement can't be bought","Referral fee only if you proceed","You choose whether to connect"]
     .map(item=>`<span class="power-seller-trust-pill">${escapeHtml(item)}</span>`)
     .join("");
 }
@@ -2899,23 +2761,20 @@ function powerSellerTrustPills(){
 function renderFeaturedPowerSellerProfile(profile){
   if(!profile)return "";
   const firstName=powerSellerFirstName(profile);
-  const displayName=profile.profileFacts?(profile.name||firstName):(profile.displayName||profile.name||firstName);
-  const platformChips=powerSellerPlatformLogoChips(profile);
+  const platformChips=powerSellerPlatformLogoChips({platforms:profile.providedPlatforms||profile.platforms||[]});
+  const proofHTML=powerSellerProofHTML(profile);
   return `<div class="power-seller-feature" onclick="choosePowerSeller('${escapeHtml(profile.id)}')">
     <div class="power-seller-feature-main">
-      <div class="sell-rec-badge specialist">Recommended PowerSeller</div>
-      <span class="observed-seller-name">${escapeHtml(displayName)}</span>
-      <span class="observed-seller-meta">Professional auction consignor · manages enthusiast car auctions for owners</span>
-      ${platformChips?`<div class="power-seller-platform-row"><span class="power-seller-profile-label">Lists regularly on</span>${platformChips}</div>`:""}
-      <span class="observed-seller-why">Why he's my recommendation</span>
-      <div class="sell-rec-reason">${escapeHtml(powerSellerProfileSummary(profile))}</div>
-      <div class="power-seller-proof-list">${powerSellerProofHTML(profile)}</div>
-      <div class="power-seller-profile-grid">
-        <div class="power-seller-profile-block"><div class="power-seller-profile-label">Typical clients</div><div class="power-seller-chip-row">${powerSellerClientChips(profile)}</div></div>
-      </div>
+      <div class="sell-rec-badge specialist">Option 1: have it handled</div>
+      <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>
+      <span class="observed-seller-meta">Auction consignor and GoAskSam partner</span>
+      ${proofHTML?`<div class="power-seller-proof-list">${proofHTML}</div>`:""}
+      ${platformChips?`<div class="power-seller-platform-row"><span class="power-seller-profile-label">Lists on (per ${escapeHtml(profile.name)})</span>${platformChips}</div>`:""}
+      <span class="observed-seller-why">What ${escapeHtml(profile.name)} says he handles</span>
       <ul class="sell-rec-bullets">${powerSellerWhyBullets(profile,0).slice(0,4).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
+      ${profile.specialtiesNote?`<div class="power-seller-profile-grid"><div class="power-seller-profile-block"><div class="power-seller-profile-label">Typical clients (per ${escapeHtml(profile.name)})</div><div class="power-seller-chip-row">${powerSellerClientChips(profile)}</div></div></div>`:""}
       <div class="power-seller-trust-row">${powerSellerTrustPills()}</div>
-      <div class="power-seller-reassurance">Clicking below doesn't commit you to anything. It simply introduces you so you can discuss fees, timing and whether he's the right fit.</div>
+      <div class="power-seller-reassurance">${escapeHtml(profile.referralTerms||`${profile.name} pays GoAskSam a referral fee if you proceed. Placement cannot be bought.`)} Requesting an introduction doesn't commit you to anything; you'd discuss fees, timing and fit directly.</div>
     </div>
     <div class="sell-rec-actions"><button class="ghost" onclick="event.stopPropagation();choosePowerSeller('${escapeHtml(profile.id)}')">Request an introduction to ${escapeHtml(firstName)} -></button></div>
   </div>`;
@@ -2966,13 +2825,8 @@ function powerSellerSpecialties(){
 
 function powerSellerWhyBullets(seller,index){
   const firstName=powerSellerFirstName(seller);
-  if(seller?.profileFacts){
-    return [
-      "Manages the entire auction for you.",
-      "Recommends the best platform before listing.",
-      "Handles buyers, comments and paperwork.",
-      "Works with sellers nationwide."
-    ];
+  if((seller?.serviceClaims||[]).length){
+    return seller.serviceClaims.slice(0,4).map(claim=>claim.text);
   }
   const bullets=[
     `${firstName} can help decide where this car should run instead of assuming one platform is always right.`,

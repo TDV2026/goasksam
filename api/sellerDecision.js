@@ -2,6 +2,9 @@ import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js"
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 
 const OLDCARSDATA_BASE = "https://api.oldcarsdata.com";
+// Powerseller referrals are gated (locked product rule): estimated value from
+// actual comps must clear this threshold before a partner can lead.
+const POWERSELLER_MIN_VALUE_USD = Number(process.env.POWERSELLER_MIN_VALUE_USD || 75000);
 const ANALYSIS_WINDOWS_DAYS = [45, 90, 180];
 const SELLER_ACTIVITY_WINDOWS_DAYS = [90, 180, 270];
 const MAX_PAGES = 3;
@@ -872,6 +875,7 @@ function analyze(records, classifications, ladder, vehicle) {
     evidenceLevel: landed ? landed.key : "none",
     evidenceLabel: landed ? landed.label : "no comparable sales in tracked auction data",
     evidenceSales: evidenceSet.length,
+    estimatedValue: median(evidenceSet.map(item => item.classification.price)),
     thinMarket: thin || !landed || evidenceSet.length < landed.threshold,
     ladder: {
       landed: landed ? {
@@ -1115,6 +1119,125 @@ function analyzePowerSellerReferral(analysis, criteria) {
   };
 }
 
+// ---- Partner (PowerSeller) referral layer ----
+// Partners live in the Supabase partners table. Their claims carry sources:
+// partner_provided renders with attribution; data_verified is computed here
+// from vehicle_market_records at request time. Leading with a partner is
+// gated on value, segment, region, and an active matching partner.
+
+let partnersCache = { loadedAt: 0, rows: null };
+
+async function loadActivePartners(supabaseUrl, supabaseKey) {
+  if (!supabaseUrl || !supabaseKey) return [];
+  if (partnersCache.rows && Date.now() - partnersCache.loadedAt < 10 * 60 * 1000) return partnersCache.rows;
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/partners?active=is.true&select=*&limit=50`, {
+      headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
+    });
+    if (!res.ok) return [];
+    const rows = await res.json();
+    partnersCache = { loadedAt: Date.now(), rows: Array.isArray(rows) ? rows : [] };
+    return partnersCache.rows;
+  } catch {
+    return [];
+  }
+}
+
+async function partnerVerifiedStats(partner, supabaseUrl, supabaseKey) {
+  const usernames = (partner.seller_usernames || []).filter(Boolean);
+  const empty = { trackedSales: 0, topMakes: [], platformsSeen: [] };
+  if (!usernames.length || !supabaseUrl || !supabaseKey) return empty;
+  try {
+    const list = usernames.map(u => `"${String(u).replace(/"/g, "")}"`).join(",");
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/vehicle_market_records?seller_username=in.(${encodeURIComponent(list)})&select=make,platform&limit=2000`,
+      { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
+    );
+    if (!res.ok) return empty;
+    const rows = await res.json();
+    const makeCounts = new Map();
+    const platforms = new Set();
+    for (const row of rows) {
+      if (row.make) makeCounts.set(row.make, (makeCounts.get(row.make) || 0) + 1);
+      if (row.platform) platforms.add(ROUTE_POLICIES[platformPolicyKey(row.platform)]?.label || row.platform);
+    }
+    return {
+      trackedSales: rows.length,
+      topMakes: [...makeCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([make, count]) => ({ make, count })),
+      platformsSeen: [...platforms]
+    };
+  } catch {
+    return empty;
+  }
+}
+
+function partnerRegionCovered(partner, criteria) {
+  const regions = (partner.regions || []).map(region => String(region).toLowerCase());
+  if (!regions.length) return false;
+  const sellerRegion = asText(criteria.region).toLowerCase();
+  const sellerState = asText(criteria.state).toLowerCase();
+  if (sellerState && regions.some(region => region === sellerState || region.includes(sellerState) || sellerState.includes(region))) return true;
+  const isUs = !sellerRegion || sellerRegion === "us" || sellerRegion === "usa" || sellerRegion === "united states";
+  if (isUs && regions.includes("nationwide")) return true;
+  if (sellerRegion && regions.some(region => region.includes(sellerRegion) || sellerRegion.includes(region))) return true;
+  return false;
+}
+
+function partnerSegmentMatch(partner, vehicle, priorities) {
+  const makes = (partner.specialties?.makes || []).map(make => String(make).toLowerCase());
+  if (makes.includes(asText(vehicle.make).toLowerCase())) return true;
+  const segments = partner.specialties?.segments || [];
+  return priorities.segments.some(segment => segments.includes(segment));
+}
+
+async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl, supabaseKey) {
+  const partners = await loadActivePartners(supabaseUrl, supabaseKey);
+  const priorities = inferSellerPriorities(vehicle, criteria);
+  // Value must come from actual comps at a met rung, never thin or policy data.
+  const landedMet = !!analysis.ladder?.landed?.thresholdMet;
+  const estimatedValue = landedMet && Number.isFinite(analysis.estimatedValue) ? analysis.estimatedValue : null;
+  const valueMet = Number.isFinite(estimatedValue) && estimatedValue >= POWERSELLER_MIN_VALUE_USD;
+
+  let matched = null;
+  let anySegment = false;
+  let anyRegion = false;
+  for (const partner of partners) {
+    const segmentMet = partnerSegmentMatch(partner, vehicle, priorities);
+    const regionMet = partnerRegionCovered(partner, criteria);
+    anySegment = anySegment || segmentMet;
+    anyRegion = anyRegion || regionMet;
+    if (!matched && segmentMet && regionMet) matched = partner;
+  }
+  const eligible = !!(valueMet && matched);
+
+  const result = {
+    eligible,
+    minValueUsd: POWERSELLER_MIN_VALUE_USD,
+    estimatedValue,
+    conditions: {
+      valueMet,
+      segmentMet: anySegment,
+      regionMet: anyRegion,
+      partnerAvailable: partners.length > 0
+    },
+    partner: null
+  };
+  if (eligible) {
+    result.partner = {
+      slug: matched.slug,
+      name: matched.name,
+      displayName: matched.display_name || matched.name,
+      regions: matched.regions || [],
+      specialties: matched.specialties || {},
+      platforms: matched.platforms || [],
+      serviceClaims: matched.service_claims || [],
+      referralTerms: matched.referral_terms || null,
+      verified: await partnerVerifiedStats(matched, supabaseUrl, supabaseKey)
+    };
+  }
+  return result;
+}
+
 function sellerActivityExplanation(sellerActivity, platform) {
   const summary = sellerActivity?.platformSummary?.[platform];
   if (!summary) return null;
@@ -1267,6 +1390,7 @@ export default async function handler(req, res) {
     const classificationPersistence = await persistClassifications(records, classifications, rawPersistence.idLookup, supabaseUrl, supabaseKey);
     const analysis = analyze(records, classifications, fetchResult.ladder, vehicle);
     const decision = decide(analysis, sellerCriteria, vehicle);
+    decision.partnerReferral = await evaluatePartnerReferral(analysis, sellerCriteria, vehicle, supabaseUrl, supabaseKey);
 
     const costEstimate = oldCarsDataCost(fetchResult.meteredRequests);
     const usageLog = await recordUsageEvent({
@@ -1309,6 +1433,7 @@ export default async function handler(req, res) {
         evidenceLevel: analysis.evidenceLevel,
         evidenceLabel: analysis.evidenceLabel,
         evidenceSales: analysis.evidenceSales,
+        estimatedValue: analysis.estimatedValue,
         windowDays: analysis.windowDays,
         thinMarket: analysis.thinMarket,
         ladder: analysis.ladder,

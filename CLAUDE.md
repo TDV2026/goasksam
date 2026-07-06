@@ -16,6 +16,11 @@ Collector car market intelligence platform. Answers "where should I sell my coll
 6. Typo corrections always confirm with the user before proceeding ("Did you mean 911?"). Abbreviation expansions (vw to Volkswagen) proceed silently.
 7. Natural language input is accepted at every wizard step. Chips are shortcuts, never the only path.
 8. Never dead-end with "not enough data." Walk the evidence ladder down and always return a recommendation with honest confidence. The bottom rung is regional policy, clearly labeled as policy rather than data.
+9. Powerseller lead is GATED, never default. Leading with a partner requires ALL of: estimated value from actual comps above POWERSELLER_MIN_VALUE_USD (75000, env-overridable), car segment matching the partner's specialties, seller region within partner coverage, and an active matching partner in the partners table. Any condition fails: platform recommendation is primary and no powerseller card renders.
+10. User preference always wins. When the powerseller gate passes, present the choice (have it handled vs run it yourself). If the user indicates DIY at any point, platform becomes and remains primary and the powerseller drops to a one-line secondary. Never re-pitch after a stated DIY preference. User-initiated requests for the partner are always fine.
+11. No unsupported money claims. Never state as fact that a powerseller gets the seller more money. Service framing only (handles listing, photography, buyer questions, platform choice). Partner claims render with their source: partner_provided shows with attribution ("per howS"); data_verified is computed from vehicle_market_records at request time and only then reads as market data.
+12. No-repeat and off-script chat routing are global invariants across EVERY wizard state and sub-state: repeated failed input must escalate with different wording, and off-script input routes to the chat layer for a real answer before the wizard re-asks.
+13. Clarification questions never assert facts we have not checked (no "X made a lot of different cars"). A make with exactly one known model auto-resolves silently.
 
 ## Current architecture (ground truth as of July 2026)
 
@@ -106,8 +111,12 @@ The year-widening rungs should follow model generations, not calendar +/- 2 year
 - Fix ID lookup to (source, source_record_id); stable source_record_id derivation (hash of source_url as fallback, never a random UUID).
 - Fix chat.js model string.
 
+### Partner (PowerSeller) layer (SHIPPED July 2026)
+Partners live in the Supabase partners table (docs/supabase-partners-schema.sql, seeded by npm run seed:partners). Every claim carries a source: partner_provided renders with attribution, data_verified is computed at request time from vehicle_market_records via the partner's seller_usernames (tracked sales count, top makes, platforms seen). sellerDecision evaluates the locked gate (product rules 9-11) and returns decision.partnerReferral; the frontend renders entirely from it. The old hardcoded frontend partner array (real howS content plus four invented placeholders) is deleted. Leads to a partner route through submitSellerLead with destinationType "powerseller", single destination as ever. Setup: run the partners SQL once, then seed.
+- MANUAL STEP PENDING: run docs/supabase-partners-schema.sql in the Supabase SQL editor, then `SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run seed:partners`. Until then the gate fails condition (d) and platform recommendations lead everywhere, which is the correct closed-state behavior.
+
 ### Later (parked, do not build yet)
-- Power seller recommendation engine (keep recommendableNow=false until a verified partner layer exists).
+- Data-derived consignor premium: compute professional-consignor vs private-seller results on comparable cars from our own records. Once it exists and is verified, "a consignor improves the result" becomes a data_verified claim; until then it may never be stated (product rule 11).
 - Selling strategy engine.
 - Classified-listing data source (needed before any "classified vs auction" recommendation, e.g. on Hemmings).
 - Richer decision UX: Sam narrating a reasoning path instead of presenting raw counts.

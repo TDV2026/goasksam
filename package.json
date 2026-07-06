@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "seed:taxonomy": "node scripts/seedTaxonomy.js",
-    "smoke:prod": "node scripts/smokeProd.js"
+    "seed:partners": "node scripts/seedPartners.js",
+    "smoke:prod": "node scripts/smokeProd.js && node scripts/smokeWizard.js"
   }
 }
