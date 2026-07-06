@@ -1,0 +1,56 @@
+name: Production smoke tests
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run production smoke tests
+        id: smoke
+        run: npm run smoke:prod 2>&1 | tee smoke-output.txt
+      - name: Open or update failure issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BODY_FILE=issue-body.md
+          {
+            echo "Production smoke tests failed on $(date -u '+%Y-%m-%d %H:%M UTC')."
+            echo
+            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo
+            echo '```'
+            tail -40 smoke-output.txt 2>/dev/null || echo "(no output captured)"
+            echo '```'
+          } > "$BODY_FILE"
+          gh label create smoke-failure --repo "${{ github.repository }}" --description "Production smoke tests failing" --color D93F0B 2>/dev/null || true
+          EXISTING=$(gh issue list --repo "${{ github.repository }}" --label smoke-failure --state open --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "${{ github.repository }}" --body-file "$BODY_FILE"
+          else
+            gh issue create --repo "${{ github.repository }}" \
+              --title "Production smoke tests failing" \
+              --label smoke-failure \
+              --body-file "$BODY_FILE"
+          fi
+      - name: Close failure issue on recovery
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          EXISTING=$(gh issue list --repo "${{ github.repository }}" --label smoke-failure --state open --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue close "$EXISTING" --repo "${{ github.repository }}" --comment "Smoke tests passing again as of $(date -u '+%Y-%m-%d %H:%M UTC')."
+          fi
