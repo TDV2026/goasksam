@@ -44,7 +44,7 @@ const PARTNERS = [
     service_claims: [
       provided("Manages the entire auction: prep, photos, listing, buyer questions, comments, scheduling and paperwork"),
       provided("Recommends the platform before listing rather than assuming one is always right"),
-      provided("400+ auctions managed as howS, plus a long Bring a Trailer history under bruce_m"),
+      provided("400+ auctions managed"),
       provided("BaT VIP with direct scheduling relationships; Motorcars is a major Cars & Bids seller"),
       provided("Can arrange national transport and shorter-distance flatbed"),
       provided("Based in Upper Makefield PA, with Motorcars of the Main Line in King of Prussia"),

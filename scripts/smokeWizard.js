@@ -41,11 +41,11 @@ const patched = script.replace(
   /function addMsg\(/,
   "function addMsg(...__a){__samLog.push(__a);return __addMsgReal(...__a)}\nfunction __addMsgReal("
 );
-const exportTail = `;globalThis.__t={handleSellStep,sellState,addMsgLog:__samLog,SELL_SYS,SELL_STEP_QUESTIONS};`;
+const exportTail = `;globalThis.__t={handleSellStep,sellState,addMsgLog:__samLog,SELL_SYS,SELL_STEP_QUESTIONS,remainingWizardQuestions};`;
 const fn = new Function("document", "window", "fetch", "localStorage", "navigator", "location", "MutationObserver", "IntersectionObserver", "requestAnimationFrame", prelude + patched + exportTail);
 fn(documentStub, windowStub, prodFetch, { getItem: () => null, setItem() {}, removeItem() {} }, { userAgent: "smoke", clipboard: {} }, { search: "", hostname: "smoke", href: "", pathname: "/" }, class { observe() {} disconnect() {} }, class { observe() {} disconnect() {} }, cb => cb && cb(0));
 
-const { handleSellStep, sellState, addMsgLog } = globalThis.__t;
+const { handleSellStep, sellState, addMsgLog, SELL_SYS, remainingWizardQuestions } = globalThis.__t;
 const samMessages = () => addMsgLog.filter(a => a[0] === "sam").map(a => String(a[1]));
 const lastSam = () => samMessages().at(-1) || null;
 let failures = 0;
@@ -102,6 +102,34 @@ if (inSubState) {
   check("sub-state: repeated 'not sure' escalates without repeating", nsAsks.length >= 3 && !nsRepeat, JSON.stringify(nsAsks));
   check("sub-state: third 'not sure' proceeds at make level", sellState.step === 11, `step=${sellState.step} last="${lastSam()}"`);
 }
+
+// 3. Chip-step invariants: questions route to chat and are NEVER stored.
+resetToStep1();
+sellState.step = 4; // Service records step
+sellState.carName = "2018 Porsche 911 Carrera"; sellState.region = "US"; sellState.state = "California";
+sellState.mileage = "24k"; sellState.condition = "Completely stock"; sellState.records = null;
+const chipQ = await handleSellStep("how many more questions");
+check("chip step: off-script question routes to chat", chipQ === false, "handled=" + chipQ);
+check("chip step: question NOT stored as field value", sellState.records === null, `records=${JSON.stringify(sellState.records)}`);
+check("chip step: step did not advance", sellState.step === 4, `step=${sellState.step}`);
+
+// Content assertion: the chat layer answers with the actual remaining count.
+const remaining = remainingWizardQuestions();
+const chatRes = await prodFetch("/api/chat", {
+  method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    messages: [{ role: "user", content: "how many more questions" }],
+    system: SELL_SYS,
+    context: `Current sell state: {"car":"2018 Porsche 911 Carrera","step":4}\nNext question: Service records?\nQuestions remaining after the current one: ${remaining}. If asked how many questions are left, use this exact number.`
+  })
+});
+const chatBody = await chatRes.json();
+const chatText = String(chatBody.text || "");
+check("chip step: chat answer contains a count", new RegExp(`\\b(${remaining}|two|three|four|five|six)\\b`, "i").test(chatText), `remaining=${remaining} text="${chatText.slice(0, 160)}"`);
+
+// A recognized answer still stores and advances.
+await handleSellStep("Some records");
+check("chip step: real answer stores and advances", sellState.records === "Some records" && sellState.step === 5, `records=${JSON.stringify(sellState.records)} step=${sellState.step}`);
 
 console.log(`\n${failures === 0 ? "WIZARD ALL PASS" : failures + " FAILURE(S)"}`);
 process.exit(failures === 0 ? 0 : 1);

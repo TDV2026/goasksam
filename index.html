@@ -228,6 +228,7 @@ body{
 .sell-rec-reason{font-size:13px;line-height:1.55;color:#444;}
 .sell-rec-stat{background:#f8f8f5;border-radius:10px;padding:10px 12px;font-size:12px;color:#166534;font-weight:700;}
 .sell-rec-hero{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:12px 14px;}
+.power-seller-footnote{font-size:11px;color:#a3a3a3;margin-top:10px;}
 .sell-rec-hero-line{font-size:15px;font-weight:850;color:#14532d;letter-spacing:-.1px;}
 .sell-rec-hero-money{font-size:13px;font-weight:750;color:#166534;margin-top:4px;}
 .primary-rec .sell-rec-name{font-size:26px;letter-spacing:-.4px;}
@@ -988,6 +989,29 @@ function applySellStateUpdate(text){
   return null;
 }
 
+// Locked rule 12 applies to EVERY step: input that is a question, or that
+// does not match the step's expected answer shape, routes to the chat layer
+// and is never stored as a field value.
+function isOffScriptWizardInput(q,step){
+  const lower=String(q||"").toLowerCase().trim();
+  const questionLike=/\?\s*$/.test(lower)||/^(what|how|why|when|where|who|can|could|will|would|does|do|is|are|should|but|explain|tell me)\b/.test(lower)||/\b(how long|how many|how much|you never|what happens|why do you)\b/.test(lower);
+  if(questionLike)return true;
+  if(step===6){
+    return !(/\d/.test(lower)||/\b(not sure|no idea|dunno|unsure|flexible|open|offers?|market|whatever)\b/.test(lower));
+  }
+  return false;
+}
+
+function remainingWizardQuestions(){
+  const order=[1,11,18,2,3,4,5,6,7,8,9];
+  const idx=order.indexOf(sellState.step);
+  if(idx<0)return 0;
+  let rest=order.slice(idx+1);
+  if(sellState.region&&sellState.region!=="US")rest=rest.filter(step=>step!==18);
+  if(sellState.state)rest=rest.filter(step=>step!==18);
+  return rest.length;
+}
+
 async function handleSellStep(q){
   const lower=q.toLowerCase().trim();
 
@@ -1017,6 +1041,10 @@ async function handleSellStep(q){
   }
 
   const step=sellState.step;
+
+  if(step>=2&&step<=18&&step!==13&&step!==16&&step!==17&&isOffScriptWizardInput(q,step)){
+    return false; // chat layer answers, then the current question is re-asked
+  }
 
   // ── STEP 1: car name ─────────────────────────────────────────
   if(step===1){
@@ -1555,7 +1583,7 @@ async function showSellRecommendation(){
   const featuredPowerSellerName=featuredPowerSeller?powerSellerFirstName(featuredPowerSeller):"";
   const powerSellerHTML=featuredPowerSeller?`
     <div class="sell-section-label">Have it handled</div>
-    <div class="sell-section-note">${escapeHtml(featuredPowerSellerName)} is a GoAskSam partner who consigns cars like this. The market evidence below stands either way; this is a service choice, not a market claim.</div>
+    <div class="sell-section-note">${escapeHtml(featuredPowerSellerName)} consigns cars like this. The market evidence below stands either way; this is a service choice, not a market claim.</div>
     ${renderFeaturedPowerSellerProfile(featuredPowerSeller)}
   `:"";
   const platformOptions=sellState.sellOptions.filter(option=>option.key!=="specialist");
@@ -2681,7 +2709,7 @@ function partnerProfileFromReferral(referral){
     referralTerms:partner.referralTerms||"",
     strengths:[],
     platforms:(partner.platforms||[]).map(p=>p.name),
-    note:partner.specialties?.notes?`Per ${name}: ${String(partner.specialties.notes).replace(/\s*\(per [^)]*\)\s*$/i,"")}`:`${name} is a GoAskSam partner consignor.`,
+    note:partner.specialties?.notes?`Per ${name}: ${String(partner.specialties.notes).replace(/\s*\(per [^)]*\)\s*$/i,"")}`:`${name} is an auction consignor.`,
     confidenceLabel:"PowerSeller option"
   };
 }
@@ -2732,8 +2760,8 @@ function powerSellerProcessChips(){
 }
 
 function powerSellerProfileSummary(profile){
-  const name=profile?.name||"the partner";
-  return `Auction consignor and GoAskSam partner. The service claims below were provided by ${name}; anything marked "in our tracked records" is computed from our own sales data.`;
+  const name=profile?.name||"the consignor";
+  return `Auction consignor. The service claims below were provided by ${name}; anything marked "in our tracked records" is computed from our own sales data.`;
 }
 
 function powerSellerClientChips(profile){
@@ -2759,12 +2787,6 @@ function powerSellerProofHTML(profile){
   ).join("");
 }
 
-function powerSellerTrustPills(){
-  return ["Placement can't be bought","Referral fee only if you proceed","You choose whether to connect"]
-    .map(item=>`<span class="power-seller-trust-pill">${escapeHtml(item)}</span>`)
-    .join("");
-}
-
 function renderFeaturedPowerSellerProfile(profile){
   if(!profile)return "";
   const firstName=powerSellerFirstName(profile);
@@ -2774,14 +2796,13 @@ function renderFeaturedPowerSellerProfile(profile){
     <div class="power-seller-feature-main">
       <div class="sell-rec-badge specialist">Option 1: have it handled</div>
       <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>
-      <span class="observed-seller-meta">Auction consignor and GoAskSam partner</span>
+      <span class="observed-seller-meta">Auction consignor</span>
       ${proofHTML?`<div class="power-seller-proof-list">${proofHTML}</div>`:""}
       ${platformChips?`<div class="power-seller-platform-row"><span class="power-seller-profile-label">Lists on (per ${escapeHtml(profile.name)})</span>${platformChips}</div>`:""}
       <span class="observed-seller-why">What ${escapeHtml(profile.name)} says he handles</span>
       <ul class="sell-rec-bullets">${powerSellerWhyBullets(profile,0).slice(0,4).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
       ${profile.specialtiesNote?`<div class="power-seller-profile-grid"><div class="power-seller-profile-block"><div class="power-seller-profile-label">Typical clients (per ${escapeHtml(profile.name)})</div><div class="power-seller-chip-row">${powerSellerClientChips(profile)}</div></div></div>`:""}
-      <div class="power-seller-trust-row">${powerSellerTrustPills()}</div>
-      <div class="power-seller-reassurance">${escapeHtml(profile.referralTerms||`${profile.name} pays GoAskSam a referral fee if you proceed. Placement cannot be bought.`)} Requesting an introduction doesn't commit you to anything; you'd discuss fees, timing and fit directly.</div>
+      <div class="power-seller-footnote">GoAskSam may receive a referral fee if you proceed.</div>
     </div>
     <div class="sell-rec-actions"><button class="ghost" onclick="event.stopPropagation();choosePowerSeller('${escapeHtml(profile.id)}')">Request an introduction to ${escapeHtml(firstName)} -></button></div>
   </div>`;
@@ -3246,7 +3267,8 @@ async function send(){
       showTyping();
       const stateStr=JSON.stringify({car:sellState.carName,region:sellState.region,state:sellState.state,mileage:sellState.mileage,condition:sellState.condition,records:sellState.records,title:sellState.title,price:sellState.price,timeline:sellState.timeline,involvement:sellState.involvement,step:sellState.step});
       const nextQ=SELL_STEP_QUESTIONS[sellState.step];
-      const sellContext=`Current sell state: ${stateStr}\nNext question: ${nextQ?nextQ.ask:"Proceed with submission."}`;
+      const remaining=remainingWizardQuestions();
+      const sellContext=`Current sell state: ${stateStr}\nNext question: ${nextQ?nextQ.ask:"Proceed with submission."}\nQuestions remaining after the current one: ${remaining}. If asked how many questions are left, use this exact number.`;
       try{
         const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[...history,{role:"user",content:q}],system:SELL_SYS,context:sellContext})});
         const data=await res.json();
