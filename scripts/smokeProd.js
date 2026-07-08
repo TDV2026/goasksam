@@ -7,8 +7,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 const BASE = process.env.SMOKE_BASE_URL || "https://goasksam.vercel.app";
-const __html = fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "index.html"), "utf8");
-const ENTRY_SYS = __html.match(/const SYS=`([\s\S]*?)`;\n/)[1];
+// The entry system prompt lives in js/chat-core.js since the index.html split.
+const __chatCore = fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "js", "chat-core.js"), "utf8");
+const ENTRY_SYS = __chatCore.match(/const SYS=`([\s\S]*?)`;\n/)[1];
 let failures = 0;
 
 function check(name, ok, detail) {

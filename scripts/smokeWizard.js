@@ -10,8 +10,12 @@ import { fileURLToPath } from "node:url";
 
 const BASE = process.env.SMOKE_BASE_URL || "https://goasksam.vercel.app";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+// The frontend script lives in js/ modules loaded by index.html in order;
+// concatenating them in that order reproduces the exact browser script.
 const html = fs.readFileSync(path.join(repoRoot, "index.html"), "utf8");
-const script = html.match(/<script>([\s\S]*)<\/script>/)[1];
+const moduleFiles = [...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m => m[1]);
+if (!moduleFiles.length) throw new Error("no js module script tags found in index.html");
+const script = moduleFiles.map(file => fs.readFileSync(path.join(repoRoot, file), "utf8")).join("\n");
 
 const elemStub = () => new Proxy(function () {}, {
   get: (t, p) => {
