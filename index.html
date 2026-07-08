@@ -449,7 +449,7 @@ const SELL_SYS=`You are Sam, helping someone sell their car on GoAskSam. Warm, d
 The user is in the middle of a sell flow and has asked a question or gone off-script. Your job:
 1. Answer their question warmly and specifically.
 2. If they want to change a previous answer, acknowledge and confirm the update.
-3. After answering, bring them back to the next question naturally. The current sell state and next question are provided separately.
+3. Answer only. NEVER repeat, rephrase, or re-ask the wizard's question yourself; the wizard asks it separately right after your answer, so ending with the question would duplicate it. End on your answer.
 
 Key facts:
 - Fees: GoAskSam holds NO platform fee data. Never state platform fees, commissions, percentages, or caps as fact; those numbers would be invented. If asked about platform costs, say fee structures change and the platform's current terms are the place to check. If asked what howS or any consignor/PowerSeller charges: we do not hold his fee terms; per howS his structure is usually flexible (flat fee, percentage, or incentive), and the specifics are discussed directly with him if the seller requests an introduction.
@@ -464,7 +464,7 @@ Key facts:
 
 Style: never use em dashes or en dashes anywhere in your replies. Use commas or periods instead. Write plain prose only: no markdown, no asterisks, no underscores, no bullet syntax, no headers. Never open with filler like "Great question" or "Good question"; start with the substance.
 
-Never say you are AI. You are Sam. After answering, always end by asking the next question.`;
+Never say you are AI. You are Sam. End on your answer; the wizard re-asks its own question after you.`;
 
 const DEMO_SIGNALS=[
   {id:"L01",type:"concern",text:"Seller still has not addressed the non-matching numbers question. 3 days left in auction.",time:"Just now"},
@@ -540,7 +540,7 @@ function isUSRegion(value){
 function looksLikeVehicleText(text){
   const lower=String(text||"").toLowerCase();
   const hasYear=/\b(19|20)\d{2}\b/.test(lower);
-  const hasVehicleTerm=/\b(porsche|ferrari|bmw|mercedes|benz|audi|lamborghini|aston|bentley|mclaren|chevrolet|chevy|corvette|ford|mustang|dodge|viper|toyota|honda|nissan|subaru|land rover|range rover|jaguar|maserati|alfa|lotus|911|gt3|gt2|turbo|m2|m3|m4|m5|amg|rs|sti|supra|nsx|gtr|camaro|r8|rs3|rs4|rs5|rs6|rs7|s3|s4|s5|s6|s7|tt)\b/.test(lower);
+  const hasVehicleTerm=/\b(porsche|ferrari|bmw|mercedes|benz|audi|lamborghini|aston|bentley|mclaren|chevrolet|chevy|corvette|vette|ford|mustang|stang|dodge|viper|toyota|honda|acura|nissan|datsun|subaru|mazda|miata|land rover|range rover|jaguar|jag|maserati|alfa|lotus|volkswagen|vw|beetle|bug|bus|camper|campervan|kombi|vanagon|westfalia|westy|karmann|pontiac|cadillac|buick|oldsmobile|plymouth|amc|jeep|willys|shelby|lincoln|mercury|mini|mg|triumph|austin|volvo|saab|fiat|lancia|delorean|amphicar|studebaker|packard|911|356|914|928|944|gt3|gt2|turbo|m2|m3|m4|m5|amg|rs|sti|supra|nsx|gtr|skyline|camaro|chevelle|gto|r8|rs3|rs4|rs5|rs6|rs7|s3|s4|s5|s6|s7|tt)\b/.test(lower);
   const explicitSell=/\b(i have|i've got|my car is|selling|to sell)\b/.test(lower)&&hasVehicleTerm;
   return (hasYear&&hasVehicleTerm)||explicitSell;
 }
@@ -792,7 +792,17 @@ async function handleVehicleValidationAnswer(q){
     addMsg("sam","No problem. What are we selling today? Year, make and model.");
     return true;
   }
-  if(/\bnot sure|don.t know|unknown|skip\b/i.test(lower)){
+  // Explicit "move on" always advances at the level we know (locked behavior).
+  if(/\b(move on|moving on|lets? move|just continue|keep going|carry on|next question|proceed)\b/i.test(lower)){
+    const baseVehicle=currentIssue?.baseVehicle||sellState.carName||"the car";
+    sellState.carName=baseVehicle;sellState.carRaw=baseVehicle;
+    sellState.vehicleDetailSkipped=true;sellState.pendingVehicleIdentity=null;
+    sellState.vehicleIdentityValidated=false;sellState.notSureRepeats=0;
+    sellState.step=11;
+    addMsg("sam",`Moving on with the ${baseVehicle}. The read will be broader than model-specific, and I'll say so in the result. Where is the car located?`,"",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+    return true;
+  }
+  if(/\b(not sure|don'?t know|dont know|no idea|dunno|unknown|skip)\b/i.test(lower)){
     sellState.notSureRepeats=(sellState.notSureRepeats||0)+1;
     const baseVehicle=currentIssue?.baseVehicle||sellState.carName||"the car";
     if(sellState.notSureRepeats>=3){
@@ -855,8 +865,19 @@ async function handleVehicleValidationAnswer(q){
     addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
     return true;
   }
-  if(looksLikeVehicleText(q)){
-    sellState.carName=cleanInitialCarText(q)||q;
+  // Accepted partial state accumulates: a bare year or model-only answer is
+  // combined with what we already know, never re-demanded from scratch.
+  const base=currentIssue?.baseVehicle||"";
+  const hasYearToken=/\b(19|20)\d{2}\b/.test(lower)||/^'?\d{2}$/.test(lower);
+  const hasLetters=/[a-z]/i.test(lower);
+  let candidate=null;
+  if(looksLikeVehicleText(q)&&hasYearToken)candidate=q;
+  else if(base&&hasYearToken&&!hasLetters)candidate=`${base} ${q}`;
+  else if(base&&hasLetters&&!looksLikeVehicleText(q))candidate=`${base} ${q}`;
+  else if(base&&looksLikeVehicleText(q))candidate=`${base} ${q}`;
+  else if(looksLikeVehicleText(q))candidate=q;
+  if(candidate){
+    sellState.carName=cleanInitialCarText(candidate)||candidate;
     sellState.carRaw=sellState.carName;
     sellState.vehicleDetailSkipped=false;
     sellState.vehicleIdentityValidated=false;
@@ -873,7 +894,18 @@ async function handleVehicleValidationAnswer(q){
     addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
     return true;
   }
-  addMsg("sam","I need the actual year, make and model before I can keep going. Something like '2014 Jaguar F-Type' or '1967 Jaguar E-Type'.");
+  // Locked rule 12: this fallback also never repeats verbatim and only asks
+  // for what is genuinely missing.
+  sellState.demandRepeats=(sellState.demandRepeats||0)+1;
+  const knownBits=base?` I have the ${base} so far.`:"";
+  const demandVariants=base?[
+    `I just need the missing piece for the ${base}. Type it, or say 'move on' and I'll analyse at that level.`,
+    `Whatever detail you have on the ${base} works, even a badge or a guess. Or say 'move on' and I'll work with what we have.`
+  ]:[
+    `I need the year, make and model before I can keep going. Something like '2014 Jaguar F-Type' or '1965 VW Bus'.${knownBits}`,
+    `Give me whatever you know: even just the make is a start, like 'Porsche' or 'Volkswagen'.`
+  ];
+  addMsg("sam",demandVariants[(sellState.demandRepeats-1)%2]);
   return true;
 }
 

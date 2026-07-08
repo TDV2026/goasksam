@@ -60,6 +60,7 @@ function resetToStep1() {
   sellState.pendingVehicleIdentity = null; sellState.vehicleIdentityValidated = false;
   sellState.lastVehicleAsk = null; sellState.vehicleClarifyRepeats = 0;
   sellState.notSureRepeats = 0; sellState.involvement = null;
+  sellState.vehicleDetailSkipped = false; sellState.demandRepeats = 0;
   addMsgLog.length = 0;
 }
 
@@ -130,6 +131,36 @@ check("chip step: chat answer contains a count", new RegExp(`\\b(${remaining}|tw
 // A recognized answer still stores and advances.
 await handleSellStep("Some records");
 check("chip step: real answer stores and advances", sellState.records === "Some records" && sellState.step === 5, `records=${JSON.stringify(sellState.records)} step=${sellState.step}`);
+
+// 4. Partial state accumulates: make+model accepted, only the year asked, and
+// the year answer completes the car (the vw camper van transcript).
+resetToStep1();
+await handleSellStep("vw camper van");
+check("partial: camper van resolves make+model, asks year only", sellState.step === 17 && /year/i.test(lastSam() || "") && /Volkswagen Bus/.test(sellState.pendingVehicleIdentity?.baseVehicle || ""), `step=${sellState.step} base=${sellState.pendingVehicleIdentity?.baseVehicle} ask="${lastSam()}"`);
+await handleSellStep("1965");
+check("partial: bare year completes the car, nothing re-asked", sellState.step === 11 && /1965 Volkswagen Bus/.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
+
+// 5. Explicit move-on always advances at the level known.
+resetToStep1();
+await handleSellStep("2018 porsche 911");
+const atTrim = sellState.step === 17;
+check("move-on: trim question opened", atTrim, `step=${sellState.step} last="${lastSam()}"`);
+if (atTrim) {
+  await handleSellStep("dont know");
+  check("move-on: dont know handled without canned demand", !/I need the year, make and model/i.test(lastSam() || ""), `last="${lastSam()}"`);
+  await handleSellStep("lets move on");
+  check("move-on: explicit move on advances", sellState.step === 11, `step=${sellState.step} last="${lastSam()}"`);
+}
+
+// 6. The fallback demand line can never render twice in a row.
+resetToStep1();
+sellState.step = 17;
+sellState.pendingVehicleIdentity = { type: "model", ask: "x", chips: [], suggestion: null, baseVehicle: null };
+const beforeDemand = samMessages().length;
+await handleSellStep("zzz qqq");
+await handleSellStep("zzz qqq");
+const demands = samMessages().slice(beforeDemand);
+check("fallback demand: never identical twice in a row", demands.length >= 2 && demands[0] !== demands[1], JSON.stringify(demands));
 
 console.log(`\n${failures === 0 ? "WIZARD ALL PASS" : failures + " FAILURE(S)"}`);
 process.exit(failures === 0 ? 0 : 1);

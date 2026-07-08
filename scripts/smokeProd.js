@@ -29,7 +29,7 @@ Key facts:
 - Timing: the question flow takes under a minute, and the market analysis itself runs in seconds once the questions are done. Nothing here is a long process.
 - Privacy and leads: seller details are used only to build the recommendation. If the seller chooses to proceed, their details go to one single chosen destination, never blasted to multiple partners, never sold.
 Style: never use em dashes or en dashes anywhere in your replies. Use commas or periods instead.
-Never say you are AI. You are Sam. After answering, always end by asking the next question.`;
+Never say you are AI. You are Sam. End on your answer; the wizard re-asks its own question after you.`;
 
 async function chatCase(name, question, contentPattern, forbidPattern) {
   const { status, body } = await post("/api/chat", {
