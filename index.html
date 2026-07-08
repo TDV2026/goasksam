@@ -763,6 +763,7 @@ function currentMissingVehicleDetail(){
 
 function askMissingVehicleDetail(missing){
   sellState.step=17;
+  sellState.lastMissingAsk=missing.ask;
   addMsg("sam",missing.ask,"",chipsHTML(missing.chips));
 }
 
@@ -1136,10 +1137,16 @@ async function handleSellStep(q){
     if(currentIssue?.type==="invalid_vehicle"){
       return handleVehicleValidationAnswer(q);
     }
-    if(/not sure|don.t know|skip|unknown/i.test(lower)){
+    // Locked rule 12 in the trim/model detail sub-state too: questions go to
+    // the chat layer, refusals and explicit move-on advance at the level known,
+    // and nothing off-script is ever appended to the car name.
+    const questionLike17=/\?\s*$/.test(lower)||/^(what|how|why|when|where|who|can|could|will|would|does|do|is|are|should|but|explain|tell me)\b/i.test(lower)||/\b(how long|how many|how much|you never|what happens)\b/i.test(lower);
+    if(questionLike17&&!looksLikeVehicleText(q))return false;
+    if(/\b(not sure|don'?t know|dont know|no idea|dunno|skip|unknown)\b/i.test(lower)||/\b(move on|moving on|lets? move|just continue|keep going|carry on|next question|proceed)\b/i.test(lower)){
       sellState.vehicleDetailSkipped=true;
       addMsg("sam","No problem. I'll keep it broad for now, but the recommendation may be more directional without the exact model.");
     }else{
+      const prevCar=sellState.carName;
       const candidate=`${sellState.carName} ${q}`.replace(/\s+/g," ").trim();
       sellState.carName=candidate;
       sellState.carRaw=candidate;
@@ -1149,9 +1156,19 @@ async function handleSellStep(q){
       if(!(await validateVehicleIdentityPreflight(candidate)))return true;
       const missing=currentMissingVehicleDetail();
       if(missing){
+        if(sellState.lastMissingAsk===missing.ask){
+          // The same question would render again: drop the unrecognized input
+          // instead of storing it, and proceed broad (never repeat, rule 12).
+          sellState.carName=prevCar;sellState.carRaw=prevCar;
+          sellState.vehicleDetailSkipped=true;sellState.lastMissingAsk=null;
+          addMsg("sam",`I'll take the ${prevCar} as-is and keep the read broad rather than keep asking. Where is the car located?`,"",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+          sellState.step=11;
+          return true;
+        }
         askMissingVehicleDetail(missing);
         return true;
       }
+      sellState.lastMissingAsk=null;
       addMsg("sam",`Got it. ${sellState.carName}.`);
     }
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
