@@ -111,6 +111,51 @@ await identityCase("identity: 67 corvette", "67 corvette", "valid", /1967 Chevro
   check("entry: daily vroom affirmative", /\byes\b/i.test(t2) && !/don'?t know|no information|not sure (if|whether)/i.test(t2), `text="${t2.slice(0, 200)}"`);
 }
 
+// Generation-aware ladder (Phase 4). Structure cases use ladderPreview: zero
+// metered fetches, zero writes.
+{
+  const gts = year => post("/api/sellerDecision", {
+    ladderPreview: true,
+    car: { vehicle: { raw: `${year} Porsche 911 GTS`, year, make: "Porsche", model: "911", trim: "Carrera GTS", confidence: "high" } }
+  });
+  const [y16, y17] = await Promise.all([gts(2016), gts(2017)]);
+  check("generations: 2016 911 GTS maps to 991.1", y16.body.generation?.code === "991.1", JSON.stringify(y16.body.generation));
+  check("generations: 2017 911 GTS maps to 991.2", y17.body.generation?.code === "991.2", JSON.stringify(y17.body.generation));
+  check("generations: 991.1 and 991.2 comp windows are disjoint",
+    y16.body.generation && y17.body.generation && y16.body.generation.yearEnd < y17.body.generation.yearStart,
+    `991.1 ends ${y16.body.generation?.yearEnd}, 991.2 starts ${y17.body.generation?.yearStart}`);
+  const rung2of = body => (body.ladder || []).find(r => r.rung === 2);
+  check("generations: generation rung names its generation",
+    /991\.1-generation/.test(rung2of(y16.body)?.label || "") && /991\.2-generation/.test(rung2of(y17.body)?.label || ""),
+    `${rung2of(y16.body)?.label} | ${rung2of(y17.body)?.label}`);
+
+  const alfa = await post("/api/sellerDecision", {
+    ladderPreview: true,
+    car: { vehicle: { raw: "1974 Alfa Romeo Spider", year: 1974, make: "Alfa Romeo", model: "Spider", trim: null, confidence: "high" } }
+  });
+  check("generations: unmapped model has no mapping", alfa.body.generation === null, JSON.stringify(alfa.body.generation));
+  check("generations: unmapped model ladders exactly as production (calendar +/- 2)",
+    (alfa.body.ladder || []).some(r => r.key === "near_years_model" && r.label === "Spider sales 1972 to 1976" && r.maxYearGap === 2),
+    JSON.stringify((alfa.body.ladder || []).map(r => r.label)));
+
+  // One real run: a mapped model with a thin exact year must land on the
+  // generation rung, never skip past it. Costs a few metered requests until
+  // the market-fetch cache table is applied; a cache hit costs zero.
+  const real = await post("/api/sellerDecision", {
+    car: { vehicle: { raw: "2017 Porsche 911 GTS", year: 2017, make: "Porsche", model: "911", trim: "Carrera GTS", confidence: "high" }, region: "US", state: "California" }
+  });
+  const ladder = real.body.evidence?.ladder;
+  const rung1 = (ladder?.rungs || []).find(r => r.rung === 1);
+  const thinExactYear = rung1 && !rung1.met;
+  check("generations: real run returns a decision", real.status === 200 && real.body.status === "decision_ready", `status=${real.status} ${real.body.status}`);
+  check("generations: thin exact year lands on the generation rung",
+    !thinExactYear || ladder?.landed?.key === "generation_trim",
+    `rung1 sales=${rung1?.sales} landed=${ladder?.landed?.key} (${ladder?.landed?.label})`);
+  check("generations: landed evidence names the generation when used",
+    !thinExactYear || /991\.2-generation/.test(ladder?.landed?.label || ""),
+    ladder?.landed?.label);
+}
+
 await identityCase("identity: e46 m3 cold entry", "e46 m3", "needs_clarification", /BMW M3/i);
 await identityCase("identity: mustang vert never trims Vert", "1990 mustang vert", "valid", /^((?!Vert).)*$/s);
 await identityCase("identity: non-car input", "after i give you this what will happen", "needs_clarification", /year, make and model/i);

@@ -99,7 +99,7 @@ Rungs collapse sensibly when the vehicle has no trim. Fetching is rung-by-rung w
 - index.html is a thin shell (~60 lines) loading styles.css and js/ modules in order: wizard.js, pipeline.js, steps.js, result.js, chat-core.js, result-copy.js, entry.js. Classic scripts sharing global scope; load order matters and the concatenation must stay equivalent to one script. Both smoke harnesses load the concatenation the same way.
 - All demo data deleted (fake LISTINGS, DEMO_SIGNALS, scout card/modal layer, the stale Cars & Bids auction-mechanics line in SELL_SYS, dead sessionContext enrichment).
 
-### Phase 4: Generation-aware evidence ladder (product decision, July 2026; next major work item after Phase 3)
+### Phase 4: Generation-aware evidence ladder (SHIPPED July 2026, one manual step pending)
 The year-widening rungs should follow model generations, not calendar +/- 2 years. A 2011 911 (997) and a 2013 911 (991) are different markets even though they are 2 years apart; a 1969 and 1973 911 are the same market even though they are 4 apart. Revised ladder:
 1. exact year + trim
 2. same generation + trim
@@ -112,6 +112,13 @@ The year-widening rungs should follow model generations, not calendar +/- 2 year
 - Seed starting with high-volume collector models; expand coverage over time.
 - Where no generation mapping exists for a model, rungs fall back to calendar +/- 2 years (the current shipped behavior). Never block on missing mappings.
 - Side benefit: OldCarsData files some generations as their own models (997 vs 911), so generation-aware fetching can query those model codes directly instead of relying on the keyword fallback pass.
+
+Shipped implementation (July 2026):
+- lib/generations.js: curated CURATED_GENERATIONS (911, M3/M5/M2, 3-Series, Corvette, Camaro, Chevelle, Mustang, Bronco, Miata, Land Cruiser, Supra, Beetle/Bus eras, SL, Skyline, E-Type, Charger, Challenger, Boxster/Cayman, 356) with DB override from taxonomy_generations. Ambiguous handover years (1989 911, 1981-83 Land Cruiser) are deliberately unmapped: prefer gaps over guesses, a wrong boundary poisons comps.
+- MANUAL STEP PENDING: run docs/supabase-generations-schema.sql, then `npm run seed:generations` (also derives chassis-code alias rows and prints a records-coverage report naming the next seed candidates).
+- Ladder: generation rungs replace the calendar +/- 2 rungs only when the year maps (keys generation_trim / generation_model, labels like "991.2-generation 911 Carrera GTS sales, 2017 to 2019"; any_year_trim is labeled cross-generation). Unmapped models keep production behavior exactly. Chassis-code generations also try their code as an OCD model param when the rung is unmet.
+- Coverage grows from demand: every decision logs metadata.generationMapped and metadata.generation to app_usage_events; unmapped-ladder demand (generationMapped=false grouped by make/model) is the source for the next seed additions.
+- sellerDecision accepts ladderPreview:true for a fetch-free, write-free ladder structure preview (used by smoke assertions).
 
 ### Phase 5: Ops hardening
 - vercel.json maxDuration for sellerDecision.
