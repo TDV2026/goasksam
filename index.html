@@ -440,7 +440,6 @@ const SELL_STEP_QUESTIONS={
   5:{ask:"Clean title or is there a lien on it?",chips:["Clean title","Lien on it"]},
   6:{ask:"What price are you hoping for?",chips:[]},
   7:{ask:"How quickly are you looking to sell?",chips:["Want it gone fast","Within a month","No rush, right result only"]},
-  8:{ask:"Hands-on or hands-off?",chips:["I'll manage it","Want someone to handle everything","Either works"]},
   9:{ask:"Anything else Sam should know about the car? Feel free to skip.",chips:["Skip"]}
 };
 
@@ -451,6 +450,10 @@ The user is in the middle of a sell flow and has asked a question or gone off-sc
 2. If they want to change a previous answer, acknowledge and confirm the update.
 3. Answer only. NEVER repeat, rephrase, or re-ask the wizard's question yourself; the wizard asks it separately right after your answer, so ending with the question would duplicate it. End on your answer.
 
+Grounding rules (locked):
+- Never contradict the engine's platform recommendation. When decision facts are provided in the context, they are the answer to "where should I sell": your job is to explain and support that recommendation in your own voice, never to name a different platform as where you'd start.
+- No platform-mechanics claims stated as fact (auction formats, durations, audiences, fee structures): GoAskSam stores none of that. If asked, say it varies and point to the platform's current terms.
+- No invented market commentary: no state-level demand claims, no buyer-pool claims at price points, no seasonality claims. You may reference only the facts provided in the context, framed as data, plus clearly-labeled opinion in Sam's voice ("if it were mine...").
 Key facts:
 - Fees: GoAskSam holds NO platform fee data. Never state platform fees, commissions, percentages, or caps as fact; those numbers would be invented. If asked about platform costs, say fee structures change and the platform's current terms are the place to check. If asked what howS or any consignor/PowerSeller charges: we do not hold his fee terms; per howS his structure is usually flexible (flat fee, percentage, or incentive), and the specifics are discussed directly with him if the seller requests an introduction.
 - Timing: the question flow takes under a minute, and the market analysis itself runs in seconds once the questions are done. Nothing here is a long process.
@@ -821,7 +824,7 @@ async function handleVehicleValidationAnswer(q){
       :`All good. If the paperwork isn't handy, the badge on the back of the car usually settles it. If you'd rather not dig, say 'not sure' once more and I'll run the analysis on the ${baseVehicle} as-is, just with a broader read.`);
     return true;
   }
-  if(currentIssue?.suggestion&&/^(yes|yep|yeah|correct|that.s right|looks right|that one)$/i.test(lower)){
+  if(currentIssue?.suggestion&&(detectIntent(lower)==="affirmation"||/^(that one)$/i.test(lower))){
     sellState.carName=currentIssue.suggestion;
     sellState.carRaw=currentIssue.suggestion;
     sellState.vehicleDetailSkipped=false;
@@ -1023,9 +1026,16 @@ function applySellStateUpdate(text){
   return null;
 }
 
-// Locked rule 12 applies to EVERY step: input that is a question, or that
-// does not match the step's expected answer shape, routes to the chat layer
-// and is never stored as a field value.
+function remainingWizardQuestions(){
+  const order=[1,11,18,2,3,4,5,6,7,9];
+  const idx=order.indexOf(sellState.step);
+  if(idx<0)return 0;
+  let rest=order.slice(idx+1);
+  if(sellState.region&&sellState.region!=="US")rest=rest.filter(step=>step!==18);
+  if(sellState.state)rest=rest.filter(step=>step!==18);
+  return rest.length;
+}
+
 function stripChatMarkdown(text){
   return String(text||"")
     .replace(/\*\*([^*]+)\*\*/g,"$1")
@@ -1035,24 +1045,70 @@ function stripChatMarkdown(text){
     .replace(/\*\*/g,"");
 }
 
-function isOffScriptWizardInput(q,step){
-  const lower=String(q||"").toLowerCase().trim();
-  const questionLike=/\?\s*$/.test(lower)||/^(what|how|why|when|where|who|can|could|will|would|does|do|is|are|should|but|explain|tell me)\b/.test(lower)||/\b(how long|how many|how much|you never|what happens|why do you)\b/.test(lower);
-  if(questionLike)return true;
-  if(step===6){
-    return !(/\d/.test(lower)||/\b(not sure|no idea|dunno|unsure|flexible|open|offers?|market|whatever)\b/.test(lower));
-  }
-  return false;
+// ===================== SELL INPUT PIPELINE =====================
+// Locked architecture: EVERY user input in the sell flow passes through this
+// pipeline before any state handler may store or act on it. Stages:
+// 1 intent detection (affirm/negate/refuse/move-on), 2 off-script question
+// routing to the chat layer, 3 per-state answer-shape validation, 4 value
+// normalization before storage, 5 a global no-repeat backstop in addMsg.
+const INTENT_PATTERNS={
+  affirmation:/^(yes|yeah|yeh|yep|yup|ya|sure|ok|okay|correct|right|exactly|indeed|sounds good|that'?s (right|it|correct)|looks (good|right))[.! ]*$/i,
+  negation:/^(no|nope|nah|wrong|incorrect|not (right|correct|that))[.! ]*$/i,
+  refusal:/\b(not sure|don'?t know|dont know|no idea|dunno|unsure|unknown)\b/i,
+  moveOn:/\b(move on|moving on|lets? move|skip( it| this)?|next question|just continue|keep going|carry on|proceed|whatever)\b/i
+};
+function detectIntent(input){
+  const lower=String(input||"").toLowerCase().trim();
+  if(INTENT_PATTERNS.affirmation.test(lower))return "affirmation";
+  if(INTENT_PATTERNS.negation.test(lower))return "negation";
+  if(INTENT_PATTERNS.moveOn.test(lower))return "moveOn";
+  if(INTENT_PATTERNS.refusal.test(lower))return "refusal";
+  return null;
 }
-
-function remainingWizardQuestions(){
-  const order=[1,11,18,2,3,4,5,6,7,8,9];
-  const idx=order.indexOf(sellState.step);
-  if(idx<0)return 0;
-  let rest=order.slice(idx+1);
-  if(sellState.region&&sellState.region!=="US")rest=rest.filter(step=>step!==18);
-  if(sellState.state)rest=rest.filter(step=>step!==18);
-  return rest.length;
+function isQuestionInput(input){
+  const lower=String(input||"").toLowerCase().trim();
+  return /\?\s*$/.test(lower)
+    ||/^(what'?s?|how'?s?|why'?s?|when|where|who'?s?|can|could|will|would|does|do|is|are|should|but|explain|tell me)\b/.test(lower)
+    ||/\b(how long|how many|how much|you never|what happens|whats the point|what is the point)\b/.test(lower);
+}
+const STEP_SPECS={
+  2:{field:"mileage",valid:v=>/\d/.test(v)||/\b(under|over|low|high|barely|hardly)\b/i.test(v)},
+  3:{field:"condition",valid:v=>/\b(stock|mod|modded|modified|original|restored|resto|mint|excellent|great|good|fair|poor|project|clean|rough|concours|survivor)\b/i.test(v)},
+  4:{field:"records",valid:v=>/\b(full|complete|some|partial|most|every|no records|none|missing|record|history|documented|binder|receipts|stamps)\b/i.test(v)},
+  5:{field:"title",valid:v=>/\b(clean|clear|lien|salvage|rebuilt|branded|title|paid off|financed)\b/i.test(v)},
+  6:{field:"price",valid:v=>/\d/.test(v)||/\b(flexible|open|offers?|market)\b/i.test(v)},
+  7:{field:"timeline",valid:v=>/\b(fast|quick|quickly|asap|soon|week|month|months|year|rush|flexible|whenever|no hurry|hurry|result|gone)\b/i.test(v)},
+  9:{field:"notes",freeText:true,refusalValue:null,negationValue:null},
+  11:{field:"region",required:true,valid:v=>/\b(us|usa|america|american|states|uk|britain|england|europe|european|australia|middle east|uae|dubai|canada|other)\b/i.test(v)||!!normalizeUSState(v)},
+  18:{field:"state",valid:v=>!!normalizeUSState(v)||/^[a-z][a-z .'-]{2,25}$/i.test(String(v).trim()),normalize:v=>normalizeUSState(v)||v}
+};
+function pipelineProcess(q,step){
+  const spec=STEP_SPECS[step];
+  if(!spec)return{action:"passthrough"};
+  const intent=detectIntent(q);
+  if(intent==="moveOn"){
+    if(spec.required)return{action:"escalate"};
+    return{action:"store",value:spec.refusalValue!==undefined?spec.refusalValue:"Not set"};
+  }
+  if(intent==="refusal"){
+    if(spec.required)return{action:"escalate"};
+    return{action:"store",value:spec.refusalValue!==undefined?spec.refusalValue:"Not sure"};
+  }
+  if(intent==="negation"&&spec.negationValue!==undefined)return{action:"store",value:spec.negationValue};
+  if(isQuestionInput(q))return{action:"chat"};
+  if(spec.freeText)return{action:"store",value:spec.normalize?spec.normalize(q):q};
+  if(!spec.valid(q))return{action:"escalate"};
+  return{action:"store",value:spec.normalize?spec.normalize(q):q};
+}
+function escalateStep(step){
+  sellState.stepEscalations=sellState.stepEscalations||{};
+  const n=(sellState.stepEscalations[step]=(sellState.stepEscalations[step]||0)+1);
+  const stepQ=SELL_STEP_QUESTIONS[step]||{ask:"the current question",chips:[]};
+  const variants=[
+    `I didn't catch that as an answer to this one. ${stepQ.ask}`,
+    `Still on this question: ${stepQ.ask} 'Not sure' works too, or say 'move on'.`
+  ];
+  addMsg("sam",variants[(n-1)%2],"",stepQ.chips&&stepQ.chips.length?chipsHTML(stepQ.chips):"");
 }
 
 async function handleSellStep(q){
@@ -1085,9 +1141,8 @@ async function handleSellStep(q){
 
   const step=sellState.step;
 
-  if(step>=2&&step<=18&&step!==13&&step!==16&&step!==17&&isOffScriptWizardInput(q,step)){
-    return false; // chat layer answers, then the current question is re-asked
-  }
+  // Pipeline stage 2 for menu/confirm states without their own spec.
+  if([12,14].includes(step)&&isQuestionInput(q))return false;
 
   // ── STEP 1: car name ─────────────────────────────────────────
   if(step===1){
@@ -1179,6 +1234,9 @@ async function handleSellStep(q){
 
   // ── STEP 11: region ──────────────────────────────────────────
   if(step===11){
+    const pipedRegion=pipelineProcess(q,step);
+    if(pipedRegion.action==="chat")return false;
+    if(pipedRegion.action==="escalate"){escalateStep(step);return true;}
     const stateFromAnswer=normalizeUSState(q);
     sellState.region=stateFromAnswer?"US":q;
     sellState.state=stateFromAnswer||null;
@@ -1204,60 +1262,36 @@ async function handleSellStep(q){
       addMsg("sam","No problem. Which state?");
       return true;
     }
-    const normalizedState=normalizeUSState(q);
+    const pipedState=pipelineProcess(q,step);
+    if(pipedState.action==="chat")return false;
+    if(pipedState.action==="escalate"){escalateStep(step);return true;}
     sellState.region="US";
-    sellState.state=normalizedState||q;
+    sellState.state=pipedState.action==="store"&&typeof pipedState.value==="string"?pipedState.value:"Not sure";
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=2;
     addMsg("sam","Rough mileage?","",chipsHTML(["Under 30k","30k to 60k","60k to 100k","Over 100k"]));
     return true;
   }
 
-  // ── STEPS 2-9 ────────────────────────────────────────────────
-  if(step===2){
-    sellState.mileage=q;
+  // ── STEPS 2-9: all through the pipeline ─────────────────────
+  if(STEP_SPECS[step]&&step!==11&&step!==18){
+    const piped=pipelineProcess(q,step);
+    if(piped.action==="chat")return false;
+    if(piped.action==="escalate"){escalateStep(step);return true;}
+    sellState[STEP_SPECS[step].field]=piped.value;
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    sellState.step=3;addMsg("sam","Stock or modified?","",chipsHTML(["Completely stock","Minor mods","Heavily modified"]));return true;
-  }
-  if(step===3){
-    sellState.condition=q;
-    if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    sellState.step=4;addMsg("sam","Service records?","",chipsHTML(["Full history","Some records","No records"]));return true;
-  }
-  if(step===4){
-    sellState.records=q;
-    if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    sellState.step=5;addMsg("sam","Clean title or is there a lien on it?","",chipsHTML(["Clean title","Lien on it"]));return true;
-  }
-  if(step===5){
-    sellState.title=q;
-    if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    sellState.step=6;addMsg("sam","What price are you hoping for? Give me a number or a range, or tell me you're not sure yet.");return true;
-  }
-  if(step===6){
-    sellState.price=(!/\d/.test(lower)&&/\b(not sure|no idea|dunno|unsure|open|flexible|whatever|you tell me)\b/.test(lower))?"Not sure":q;
-    if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    sellState.step=7;addMsg("sam","How quickly are you looking to sell?","",chipsHTML(["Want it gone fast","Within a month","No rush, right result only"]));return true;
-  }
-  if(step===7){
-    sellState.timeline=q;
-    if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    sellState.step=8;addMsg("sam","Do you want to manage the sale yourself or have someone handle it for you?","",chipsHTML(["I'll manage it","Want someone to handle everything","Either works"]));return true;
-  }
-  if(step===8){
-    sellState.involvement=q;
-    if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    sellState.step=9;addMsg("sam","Almost there. Anything else Sam should know about the car?","",chipsHTML(["Skip"]));return true;
-  }
-  if(step===9){
-    sellState.notes=(lower==="skip"||lower==="no"||lower==="nope"||lower==="nothing")?null:q;
-    if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    sellState.step=10;showPhotoUpload();return true;
+    const FLOW_AFTER={2:3,3:4,4:5,5:6,6:7,7:9};
+    if(step===9){sellState.step=10;showPhotoUpload();return true;}
+    const next=FLOW_AFTER[step];
+    sellState.step=next;
+    const nextQ=SELL_STEP_QUESTIONS[next];
+    addMsg("sam",nextQ.ask,"",nextQ.chips&&nextQ.chips.length?chipsHTML(nextQ.chips):"");
+    return true;
   }
 
   // ── STEP 16: confirmation ────────────────────────────────────
   if(step===16){
-    if(/looks good|looking good|confirm|yes|correct|all good|that.s right|submit|perfect|great/i.test(lower)){
+    if(detectIntent(lower)==="affirmation"||/looks good|looking good|confirm|all good|submit|perfect|great/i.test(lower)){
       const missing=currentMissingVehicleDetail();
       if(missing){
         sellState.returnToConfirm=true;
@@ -1268,7 +1302,7 @@ async function handleSellStep(q){
       return true;
     }
     if(/change something|i want to change|change|edit|no|wrong|mistake/i.test(lower)){
-      addMsg("sam","No problem. What would you like to change?","",chipsHTML(["Car","Location","State","Mileage","Condition","Service records","Title","Price","Timeline","Involvement","Notes"]));
+      addMsg("sam","No problem. What would you like to change?","",chipsHTML(["Car","Location","State","Mileage","Condition","Service records","Title","Price","Timeline","Notes"]));
       return true;
     }
     // Field-specific change chips
@@ -1366,7 +1400,6 @@ function showConfirmation(){
     {label:"Title",value:sellState.title||"Not set"},
     {label:"Asking price",value:sellState.price||"Not set"},
     {label:"Timeline",value:sellState.timeline||"Not set"},
-    {label:"Involvement",value:sellState.involvement||"Not set"},
     sellState.notes?{label:"Notes",value:sellState.notes}:null,
     sellState.photo?{label:"Photo",value:sellState.photo}:null,
   ].filter(Boolean);
@@ -1484,6 +1517,7 @@ async function showSellRecommendation(){
   sellState.allRouteOptions=allRouteOptions;
   const evidenceBackedRoutes=allRouteOptions
     .filter(routeHasTrueComparableEvidence)
+    .filter(route=>route.routable!==false)
     .filter(route=>!shouldSuppressRouteForSellerRegion(route));
   const preferredRouteOptions=evidenceBackedRoutes
     .filter((route,index,routes)=>routeWorthShowing(route,index,routes[0]));
@@ -1519,6 +1553,10 @@ async function showSellRecommendation(){
 
   const wideningLine=ladderWideningNarration(decisionData);
   if(wideningLine)addMsg("sam",wideningLine);
+  if(decision.strongerNonRoutable){
+    const houseName=platformDisplayName(decision.strongerNonRoutable.platform);
+    addMsg("sam",`One thing to know up front: ${houseName} actually shows the strongest comparable results in our records. It's a consignment auction house rather than a platform you can list on yourself, so it isn't the pick, but it tells you serious money follows this car.`);
+  }
 
   const routesForCards=routeOptions;
   const twoRouteMode=hasTwoRouteTradeoff(routeOptions);
@@ -1531,7 +1569,7 @@ async function showSellRecommendation(){
   const routeSellOptions=routesForCards.map((route,index)=>{
     const platform=route.marketEvidence||{};
     const facts=route.routeFitFacts||[];
-    const routeName=route.label||route.platform;
+    const routeName=platformDisplayName(route.label||route.platform);
     const isPrimary=index===0;
     const speedFit=facts.includes("faster_listing_fit");
     const speedTradeoff=facts.includes("speed_tradeoff");
@@ -1642,7 +1680,7 @@ async function showSellRecommendation(){
   const featuredPowerSellerName=featuredPowerSeller?powerSellerFirstName(featuredPowerSeller):"";
   const powerSellerHTML=featuredPowerSeller?`
     <div class="sell-section-label">Have it handled</div>
-    <div class="sell-section-note">${escapeHtml(featuredPowerSellerName)} consigns cars like this. The market evidence below stands either way; this is a service choice, not a market claim.</div>
+    <div class="sell-section-note">Honestly? At this level my personal preference is generally a good PowerSeller: photography, the listing, buyer questions and platform choice handled end to end. You pay them a fee, and the good ones earn it. ${escapeHtml(featuredPowerSellerName)} is who I'd call. If you'd rather run it yourself, the platform pick is right below.</div>
     ${renderFeaturedPowerSellerProfile(featuredPowerSeller)}
   `:"";
   const platformOptions=sellState.sellOptions.filter(option=>option.key!=="specialist");
@@ -1699,6 +1737,11 @@ function handleSellRecommendationFollowup(q){
     return true;
   }
 
+  if(/\b(i'?ll (run|manage|handle) it|run it myself|manage it myself|handle it myself|do it myself|by myself|going diy|i'?d rather (run|do|manage))\b/i.test(lower)){
+    sellState.involvement="I'll manage it myself";
+    addMsg("sam","Noted, you're running it yourself. The platform pick above is the plan, and I won't pitch the PowerSeller route again unless you ask.");
+    return true;
+  }
   if(/\b(power seller|powerseller|specialist|consignor|consignment|handle the whole|someone handle)\b/i.test(lower)){
     const referral=sellState.partnerReferral||{};
     if(referral.eligible&&referral.partner){
@@ -1719,6 +1762,10 @@ function handleSellRecommendationFollowup(q){
 
   if(chosenByName||/\b(why|better|explain|reason|what about|how about|tell me about|do they|does it|sell tons|high prices|higher|best price)\b/i.test(lower)){
     const hiddenRoute=chosenByName?null:findHiddenRouteByText(q);
+    if(hiddenRoute&&hiddenRoute.routable===false){
+      addMsg("sam",`${platformDisplayName(hiddenRoute.label||hiddenRoute.platform)}: strong results show up there in our records, but it's a consignment auction house, not a platform you list on yourself, so I can't make it the pick. It mainly tells you serious buyers follow this car.`);
+      return true;
+    }
     if(hiddenRoute&&!routeHasTrueComparableEvidence(hiddenRoute)){
       addMsg("sam",`${hiddenRoute.label||hiddenRoute.platform}: I’m leaving it out because this search does not give me enough platform-specific evidence for it. It may still be worth a manual look, but I would not put it beside the main choices as if the market clearly backed it.`);
       return true;
@@ -2346,8 +2393,16 @@ function parseResults(raw){
   const chipsHTML2=chips.length?`<div class="chips">${chips.map(c=>`<button class="chip" onclick="handleChip('${c.replace(/'/g,"\\'")}')"> ${escapeHtml(c)}</button>`).join("")}</div>`:"";
   return{clean,search,resultsHTML,chipsHTML:chipsHTML2,cards};
 }
+let __lastSamText=null;
 function addMsg(role,text,html="",chipsStr=""){
   hideHero();
+  // Global no-repeat backstop (locked rule 12): no Sam text renders twice
+  // consecutively anywhere. Callers should escalate properly; this catches
+  // whatever slips through with an actionable variation.
+  if(role==="sam"&&text&&text===__lastSamText){
+    text=`${text} (If you're stuck, say 'move on' and I'll continue with what we have.)`;
+  }
+  if(role==="sam"&&text)__lastSamText=text;
   const msgs=document.getElementById("msgs");
   const row=document.createElement("div");row.className="row "+role;
   const inner=document.createElement("div");inner.className="row-inner";
@@ -2719,7 +2774,9 @@ function sellerPriorityFitLabel(route){
 }
 
 function platformDisplayName(name){
-  return String(name||"").replace(/^bringatrailer$/i,"Bring a Trailer").replace(/^carsandbids$/i,"Cars & Bids");
+  const key=String(name||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const map={bringatrailer:"Bring a Trailer",bat:"Bring a Trailer",carsandbids:"Cars & Bids",pcarmarket:"PCarMarket",hagerty:"Hagerty Marketplace",rmsothebys:"RM Sotheby's",gooding:"Gooding & Co",goodingco:"Gooding & Co",acc:"All Collector Cars",allcollectorcars:"All Collector Cars",hemmings:"Hemmings",carandclassic:"Car & Classic",collectingcars:"Collecting Cars"};
+  return map[key]||String(name||"");
 }
 
 function extractVehicleMake(text=sellState.carName){
@@ -2988,27 +3045,59 @@ function formatUsd(value){
 }
 
 function primaryHeroStat(route){
-  const evidence=route?.marketEvidence;
-  if(!evidence||!evidence.evidenceSales)return null;
+  const facts=routeFacts(route);
+  if(!facts.evidenceSales)return null;
   const days=sellState.sellDecision?.evidence?.windowDays;
   const windowText=days?` in the last ${days} days`:"";
-  const count=`${evidence.evidenceSales} of ${evidence.totalEvidenceSales} comparable sale${evidence.totalEvidenceSales===1?"":"s"}${windowText} closed here`;
-  let money=null;
-  const here=formatUsd(evidence.medianSalePrice);
-  const others=formatUsd(evidence.othersMedianSalePrice);
-  if(here&&others&&evidence.othersSalesCount>0){
-    money=`Median ${here} here vs ${others} across other platforms`;
-  }else if(here){
-    money=`Median sale ${here}`;
+  const here=formatUsd(facts.medianSalePrice);
+  const others=formatUsd(facts.othersMedianSalePrice);
+  if(facts.soloPlatform){
+    return {
+      count:`Every comparable sale we tracked recently closed here`,
+      money:[here?`Median ${here}`:null,`${facts.evidenceSales} sale${facts.evidenceSales===1?"":"s"}${windowText}`].filter(Boolean).join(" · ")
+    };
   }
-  return {count,money};
+  if(here&&others){
+    const pct=Math.round(Math.abs(facts.medianDelta)*100);
+    const direction=facts.medianLeads?"above":"below";
+    const headline=facts.smallSample
+      ?(facts.medianLeads?`Median sale here has run considerably higher than other platforms`:`Median here trails other sources in this small sample`)
+      :`Median sale here has run ${pct}% ${direction} other platforms`;
+    return {count:headline,money:`${here} here vs ${others} elsewhere · ${facts.evidenceSales} of ${facts.totalEvidenceSales} comparable sales${windowText}`};
+  }
+  return {count:`${facts.evidenceSales} of ${facts.totalEvidenceSales} comparable sale${facts.totalEvidenceSales===1?"":"s"}${windowText} closed here`,money:here?`Median sale ${here}`:null};
+}
+
+// Single facts object per route: chips, bullets, and headlines all derive
+// from it, so contradictory fragments cannot render together.
+function routeFacts(route){
+  const e=route.marketEvidence||{};
+  const medianDelta=(e.medianSalePrice&&e.othersMedianSalePrice)
+    ?(e.medianSalePrice-e.othersMedianSalePrice)/e.othersMedianSalePrice:null;
+  return {
+    evidenceSales:e.evidenceSales||0,
+    totalEvidenceSales:e.totalEvidenceSales||0,
+    soloPlatform:(e.othersSalesCount||0)===0&&(e.evidenceSales||0)>0,
+    medianSalePrice:e.medianSalePrice||null,
+    othersMedianSalePrice:e.othersMedianSalePrice||null,
+    medianDelta,
+    medianLeads:medianDelta!==null&&medianDelta>=0,
+    smallSample:((e.evidenceSales||0)+(e.othersSalesCount||0))<8||(e.evidenceSales||0)<3,
+    topThreeSales:e.topThreeSales||0,
+    weekday:e.strongestWeekday||null,
+    weekdayLift:e.strongestWeekdayLiftPercent||null
+  };
 }
 
 function routeTagLine(route,index,routes){
-  const evidence=route.marketEvidence||{};
-  const tags=[performanceDiscoveryTag(route,index)];
-  if(evidence.topThreeSales>=2&&index===0)tags.push("Strongest recent results came here");
-  const day=weekdayTag(evidence);
+  const facts=routeFacts(route);
+  const tags=[];
+  // Consistency rule: "strongest results" claims only when the median leads
+  // (or no cross-platform comparison exists). A trailing median can never sit
+  // next to a strongest-results chip.
+  if(facts.topThreeSales>=2&&index===0&&(facts.medianDelta===null||facts.medianLeads))tags.push("\u2713 Strongest recent results came here");
+  else if(index===0&&facts.evidenceSales>0)tags.push("\u2713 Most comparable sales closed here");
+  const day=weekdayTag(route.marketEvidence||{});
   if(day)tags.push(day);
   const seen=new Set();
   return tags.filter(Boolean).filter(tag=>{
@@ -3031,12 +3120,19 @@ function routeEvidenceBullets(route,index,routes){
     ].slice(0,3);
   }
   const evidence=route.marketEvidence||{};
+  const facts=routeFacts(route);
   const bullets=[];
+  // Timing intelligence leads: it is differentiating and grounded in records.
+  if(facts.weekday)bullets.push(`Based on recent comparable listings, ${facts.weekday} endings have finished strongest${facts.weekdayLift?` (around ${facts.weekdayLift}% above other days)`:""}.`);
   if(Number.isFinite(evidence.performanceDeltaPercent)&&Math.abs(evidence.performanceDeltaPercent)>=5){
     if(evidence.performanceDeltaPercent>0)bullets.push(`Recent comparable ${comparableSalesLabel()} sales have been stronger here than the wider market.`);
     else if(Math.abs(evidence.performanceDeltaPercent)<=15)bullets.push(`The result is close enough that buyer fit and speed-to-list are worth comparing.`);
   }
-  if(evidence.topThreeSales>=2)bullets.push(`${evidence.topThreeSales} of the 3 strongest recent comparable ${comparableSalesLabel()} sales happened here.`);
+  if(facts.topThreeSales>=2){
+    bullets.push(facts.medianDelta!==null&&!facts.medianLeads
+      ?`${facts.topThreeSales} of the 3 highest individual sales happened here, though the median trails other sources in this sample.`
+      :`${facts.topThreeSales} of the 3 strongest recent comparable ${comparableSalesLabel()} sales happened here.`);
+  }
   const scope=comparisonScopeSentence();
   if(scope)bullets.push(scope);
   if(index===0)bullets.push(`Best choice if you’re comfortable answering questions and staying engaged through the auction.`);
@@ -3316,7 +3412,8 @@ function localPreRoute(q){
   if(/^start the questions$/i.test(lower))return{sellTrigger:true,initialCar:null};
   if(/^(show me a car|find me a car|help me find|i need a car|looking for a car|want a car|need a car|browse auctions|browse listings|browse|find a car)$/i.test(lower))
     return{reply:"This version is focused on sellers. Tell me what we're selling today and I'll check where I'd take it.",chips:["Sell my car"]};
-  return{reply:funnelReply,chips:["Start the questions"]};
+  // Unmatched cold input: probe the resolver, then fall through to real chat.
+  return{entryProbe:true};
 }
 
 async function send(){
@@ -3341,7 +3438,12 @@ async function send(){
       const stateStr=JSON.stringify({car:sellState.carName,region:sellState.region,state:sellState.state,mileage:sellState.mileage,condition:sellState.condition,records:sellState.records,title:sellState.title,price:sellState.price,timeline:sellState.timeline,involvement:sellState.involvement,step:sellState.step});
       const nextQ=SELL_STEP_QUESTIONS[sellState.step];
       const remaining=remainingWizardQuestions();
-      const sellContext=`Current sell state: ${stateStr}\nNext question: ${nextQ?nextQ.ask:"Proceed with submission."}\nQuestions remaining after the current one: ${remaining}. If asked how many questions are left, use this exact number.`;
+      let sellContext=`Current sell state: ${stateStr}\nNext question: ${nextQ?nextQ.ask:"Proceed with submission."}\nQuestions remaining after the current one: ${remaining}. If asked how many questions are left, use this exact number.`;
+      const dec=sellState.sellDecision?.decision;
+      if(dec?.recommendedPath){
+        const heroEvidence=(sellState.sellDecision?.analysis?.platformPerformance||[])[0]||{};
+        sellContext+=`\nDecision facts (the engine's recommendation, do not contradict it): recommended platform ${platformDisplayName(dec.recommendedPath)}; basis ${dec.evidenceBasis}; confidence ${dec.confidence}; comparable sales analyzed ${sellState.sellDecision?.evidence?.evidenceSales??"n/a"} in the last ${sellState.sellDecision?.evidence?.windowDays??"n/a"} days; median on the recommended platform ${heroEvidence.medianSalePrice?"$"+heroEvidence.medianSalePrice.toLocaleString("en-US"):"n/a"}. Reasons: ${(dec.why||[]).join(" ")}`;
+      }
       try{
         const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[...history,{role:"user",content:q}],system:SELL_SYS,context:sellContext})});
         const data=await res.json();
@@ -3360,10 +3462,31 @@ async function send(){
     return;
   }
 
+  if(pre&&pre.entryProbe){
+    // Entry state runs the same resolver as everywhere else: vehicle-ish
+    // text starts the wizard resolved; anything else gets a real chat answer.
+    try{
+      const probeRes=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:q})});
+      const probe=await probeRes.json();
+      const understood=probe?.vehicle&&(probe.vehicle.make||probe.vehicle.model);
+      if(probeRes.ok&&(probe.status==="valid"||understood)){
+        startSellFlow(q,false);
+        document.getElementById("btn").disabled=false;
+        return;
+      }
+    }catch(e){/* fall through to chat */}
+    // falls through to the main chat below
+  }
   if(pre&&pre.reply){
-    addMsg("sam",pre.reply,pre.html||"",chipsHTML(pre.chips||[]));
-    document.getElementById("btn").disabled=false;
-    return;
+    if(pre.reply===sellState.lastPreReply){
+      // Never the same canned entry line twice: hand off to real chat instead.
+      sellState.lastPreReply=null;
+    }else{
+      sellState.lastPreReply=pre.reply;
+      addMsg("sam",pre.reply,pre.html||"",chipsHTML(pre.chips||[]));
+      document.getElementById("btn").disabled=false;
+      return;
+    }
   }
 
   let enrichedQ=q;

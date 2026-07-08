@@ -68,7 +68,6 @@ const CANDIDATES = [
   // Chevrolet
   C("Chevrolet", "z28", "Camaro", { trim: "Z28" }), C("Chevrolet", "iroc", "Camaro", { trim: "IROC-Z" }),
   C("Chevrolet", "tri five", "Bel Air", { confirm: true }), C("Chevrolet", "elco", "El Camino"),
-  C("Chevrolet", "vert", "Corvette", { confirm: true }),
   // Ford
   C("Ford", "fox body", "Mustang"), C("Ford", "foxbody", "Mustang"),
   C("Ford", "gt350", "Mustang", { trim: "Shelby GT350" }), C("Ford", "gt500", "Mustang", { trim: "Shelby GT500" }),

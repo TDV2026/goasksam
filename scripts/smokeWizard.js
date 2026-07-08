@@ -41,11 +41,11 @@ const patched = script.replace(
   /function addMsg\(/,
   "function addMsg(...__a){__samLog.push(__a);return __addMsgReal(...__a)}\nfunction __addMsgReal("
 );
-const exportTail = `;globalThis.__t={handleSellStep,sellState,addMsgLog:__samLog,SELL_SYS,SELL_STEP_QUESTIONS,remainingWizardQuestions};`;
+const exportTail = `;globalThis.__t={handleSellStep,sellState,addMsgLog:__samLog,SELL_SYS,SELL_STEP_QUESTIONS,remainingWizardQuestions,localPreRoute};`;
 const fn = new Function("document", "window", "fetch", "localStorage", "navigator", "location", "MutationObserver", "IntersectionObserver", "requestAnimationFrame", prelude + patched + exportTail);
 fn(documentStub, windowStub, prodFetch, { getItem: () => null, setItem() {}, removeItem() {} }, { userAgent: "smoke", clipboard: {} }, { search: "", hostname: "smoke", href: "", pathname: "/" }, class { observe() {} disconnect() {} }, class { observe() {} disconnect() {} }, cb => cb && cb(0));
 
-const { handleSellStep, sellState, addMsgLog, SELL_SYS, remainingWizardQuestions } = globalThis.__t;
+const { handleSellStep, sellState, addMsgLog, SELL_SYS, remainingWizardQuestions, localPreRoute } = globalThis.__t;
 const samMessages = () => addMsgLog.filter(a => a[0] === "sam").map(a => String(a[1]));
 const lastSam = () => samMessages().at(-1) || null;
 let failures = 0;
@@ -166,6 +166,50 @@ await handleSellStep("zzz qqq");
 await handleSellStep("zzz qqq");
 const demands = samMessages().slice(beforeDemand);
 check("fallback demand: never identical twice in a row", demands.length >= 2 && demands[0] !== demands[1], JSON.stringify(demands));
+
+// 7. EVERY declared wizard state through the shared pipeline: questions route
+// to chat and store nothing; refusals normalize; real answers store.
+const PIPELINE_STEPS = {
+  2: { answer: "Under 30k", field: "mileage" },
+  3: { answer: "Completely stock", field: "condition" },
+  4: { answer: "Some records", field: "records" },
+  5: { answer: "Clean title", field: "title" },
+  6: { answer: "90000", field: "price" },
+  7: { answer: "Within a month", field: "timeline" },
+  9: { answer: "fresh paint last year", field: "notes" },
+  11: { answer: "US", field: "region" },
+  18: { answer: "California", field: "state" }
+};
+for (const [stepStr, cfg] of Object.entries(PIPELINE_STEPS)) {
+  const step = Number(stepStr);
+  resetToStep1();
+  sellState.step = step; sellState.carName = "2018 Porsche 911"; if (step === 18) sellState.region = "US";
+  sellState[cfg.field] = null;
+  const routed = await handleSellStep("whats the point of this question");
+  check(`pipeline step ${step}: question routes to chat`, routed === false, `handled=${routed}`);
+  check(`pipeline step ${step}: question never stored`, sellState[cfg.field] === null, `${cfg.field}=${JSON.stringify(sellState[cfg.field])}`);
+  if (step !== 11) {
+    sellState.step = step;
+    await handleSellStep("no idea");
+    check(`pipeline step ${step}: refusal normalized`, [null, "Not sure", "Not set"].includes(sellState[cfg.field]), `${cfg.field}=${JSON.stringify(sellState[cfg.field])}`);
+  }
+  sellState.step = step; sellState[cfg.field] = null;
+  await handleSellStep(cfg.answer);
+  check(`pipeline step ${step}: real answer stores`, sellState[cfg.field] !== null && !/whats the point/i.test(String(sellState[cfg.field])), `${cfg.field}=${JSON.stringify(sellState[cfg.field])}`);
+}
+
+// 8. Confirmation affirmation: "yeh" accepts the cleaned corrected suggestion.
+resetToStep1();
+await handleSellStep("sell my porche 9111 turbo from 2007");
+check("confirm: suggestion is fully cleaned and corrected", sellState.pendingVehicleIdentity?.suggestion === "2007 Porsche 911 Turbo", `suggestion=${JSON.stringify(sellState.pendingVehicleIdentity?.suggestion)}`);
+await handleSellStep("yeh");
+check("confirm: 'yeh' accepts and Porsche persists", /2007 Porsche 911 Turbo/.test(sellState.carName || "") && !/yeh/i.test(sellState.carName || "") && sellState.step === 11, `car=${JSON.stringify(sellState.carName)} step=${sellState.step}`);
+
+// 9. Entry state has the pipeline too: vehicle text starts the wizard, and
+// unmatched input probes the resolver instead of a canned fallthrough.
+sellState.active=false;sellState.step=0;
+check("entry: vehicle text triggers the wizard", !!localPreRoute("e46 m3").sellTrigger, JSON.stringify(localPreRoute("e46 m3")));
+check("entry: unmatched input probes instead of canned reply", !!localPreRoute("is this site legit").entryProbe, JSON.stringify(localPreRoute("is this site legit")));
 
 console.log(`\n${failures === 0 ? "WIZARD ALL PASS" : failures + " FAILURE(S)"}`);
 process.exit(failures === 0 ? 0 : 1);

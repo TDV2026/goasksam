@@ -346,6 +346,9 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
       // False for routes with no covered data source (Hemmings, Car & Classic,
       // Collecting Cars): they can only ever be policy recommendations.
       evidenceCapable: policy.evidenceCapable !== false,
+      // Evidence-only sources (consignment auction houses) have no route
+      // policy: we cannot send a seller there, so they can never be the pick.
+      routable: !!ROUTE_POLICIES[key],
       hasMarketEvidence: !!evidence,
       marketEvidence: evidence
     };
@@ -1039,7 +1042,15 @@ function wideningFact(analysis) {
 
 function decide(analysis, criteria, vehicle) {
   const routeFit = analyzeRouteFit(analysis, criteria, vehicle);
-  const bestRoute = routeFit.routes[0] || null;
+  const bestRoute = routeFit.routes.find(route => route.routable) || routeFit.routes[0] || null;
+  // Coherence fact: a non-routable source with a stronger median than the pick
+  // must be explained, never silently presented as "stronger but not chosen".
+  const pickMedian = bestRoute?.marketEvidence?.medianSalePrice || null;
+  const strongerNonRoutable = routeFit.routes.find(route =>
+    !route.routable && route.marketEvidence?.evidenceSales > 0 &&
+    route.marketEvidence?.medianSalePrice && pickMedian &&
+    route.marketEvidence.medianSalePrice > pickMedian
+  ) || null;
   const powerSellerReferral = analyzePowerSellerReferral(analysis, criteria);
   const tradeoffs = decisionTradeoffs(criteria);
 
@@ -1074,6 +1085,11 @@ function decide(analysis, criteria, vehicle) {
     recommendedPath: bestRoute.platform,
     confidence: ladderConfidence(analysis),
     evidenceBasis: "market_evidence",
+    strongerNonRoutable: strongerNonRoutable ? {
+      platform: strongerNonRoutable.platform,
+      medianSalePrice: strongerNonRoutable.marketEvidence.medianSalePrice,
+      evidenceSales: strongerNonRoutable.marketEvidence.evidenceSales
+    } : null,
     ladder: analysis.ladder,
     why: [
       bestRoute.marketEvidence

@@ -77,9 +77,25 @@ await chatCase(
   /\d+(\.\d+)?\s*(%|percent)|\$\s*\d/i
 );
 
+// Post-result grounding: chat must not contradict the engine's recommendation.
+{
+  const { status, body } = await post("/api/chat", {
+    messages: [{ role: "user", content: "how would you run it mr expert" }],
+    system: WIZARD_SYSTEM + `\nGrounding rules (locked):\n- Never contradict the engine's platform recommendation. When decision facts are provided in the context, they are the answer to "where should I sell": explain and support that recommendation, never name a different platform as where you'd start.\n- No platform-mechanics claims stated as fact (auction formats, durations, audiences). No invented market commentary (state-level demand, buyer pools at price points).`,
+    context: 'Current sell state: {"car":"2018 Porsche 911 Carrera GTS","step":16}\nDecision facts (the engine\'s recommendation, do not contradict it): recommended platform Bring a Trailer; basis market_evidence; confidence high; comparable sales analyzed 5 in the last 180 days; median on the recommended platform $135,000.'
+  });
+  const text = String(body.text || "");
+  check("chat grounding: HTTP 200 with text", status === 200 && text.length > 20, `status=${status}`);
+  check("chat grounding: supports the recommended platform", /bring a trailer/i.test(text), `text="${text.slice(0, 200)}"`);
+  check("chat grounding: never redirects to a different platform", !/(cars\s*(&|and)\s*bids|pcarmarket|hagerty|hemmings)[^.!?]{0,80}(where i('|)d (start|list|sell)|is where|start there|go with|instead)/i.test(text), `text="${text.slice(0, 300)}"`);
+  check("chat grounding: no invented auction-format facts", !/\b7.day auction|\bd(ay|ays) auction format\b/i.test(text), `text="${text.slice(0, 300)}"`);
+}
+
 await identityCase("identity: 2018 911 Carrera GTS", "2018 911 Carrera GTS", "valid", /2018 Porsche 911 Carrera GTS/);
 await identityCase("identity: miata", "miata", "needs_clarification", /Mazda MX-5.*year/i);
 await identityCase("identity: 67 corvette", "67 corvette", "valid", /1967 Chevrolet Corvette/);
+await identityCase("identity: e46 m3 cold entry", "e46 m3", "needs_clarification", /BMW/i);
+await identityCase("identity: mustang vert never trims Vert", "1990 mustang vert", "valid", /^((?!Vert).)*$/s);
 await identityCase("identity: non-car input", "after i give you this what will happen", "needs_clarification", /year, make and model/i);
 
 console.log(`\n${failures === 0 ? "ALL PASS" : failures + " FAILURE(S)"} in ${Math.round((Date.now() - startedAt) / 1000)}s`);
