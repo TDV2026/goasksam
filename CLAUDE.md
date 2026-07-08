@@ -113,9 +113,11 @@ The year-widening rungs should follow model generations, not calendar +/- 2 year
 
 ### Partner (PowerSeller) layer (SHIPPED July 2026)
 Partners live in the Supabase partners table (docs/supabase-partners-schema.sql, seeded by npm run seed:partners). Every claim carries a source: partner_provided renders with attribution, data_verified is computed at request time from vehicle_market_records via the partner's seller_usernames (tracked sales count, top makes, platforms seen). sellerDecision evaluates the locked gate (product rules 9-11) and returns decision.partnerReferral; the frontend renders entirely from it. The old hardcoded frontend partner array (real howS content plus four invented placeholders) is deleted. Leads to a partner route through submitSellerLead with destinationType "powerseller", single destination as ever. Setup: run the partners SQL once, then seed.
-- MANUAL STEP PENDING: run docs/supabase-partners-schema.sql in the Supabase SQL editor, then `SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run seed:partners`. Until then the gate fails condition (d) and platform recommendations lead everywhere, which is the correct closed-state behavior.
+- Schema applied and seeded July 2026; the gate is live in production. Re-run npm run seed:partners after editing partner content. SUPABASE_SERVICE_ROLE_KEY is set in Vercel so the deployed functions read the partners table directly.
 
 ### Later (parked, do not build yet)
+- Comp-backed price answer at the price step: when the seller says "you tell me", answer with the median from actual comparable sales before re-asking. Requires comps at question time (today the analysis runs after the wizard), so it needs either a cheap pre-fetch or reordering. Until then the step normalizes to "Not sure".
+- Condition-aware analysis (mileage, modifications, records adjusting the market read). Today the result only adds an honest framing caveat when stored answers are materially adverse; no numbers are adjusted or invented.
 - Data-derived consignor premium: compute professional-consignor vs private-seller results on comparable cars from our own records. Once it exists and is verified, "a consignor improves the result" becomes a data_verified claim; until then it may never be stated (product rule 11).
 - Selling strategy engine.
 - Classified-listing data source (needed before any "classified vs auction" recommendation, e.g. on Hemmings).

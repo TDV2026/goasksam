@@ -25,12 +25,13 @@ async function post(path, body) {
 const WIZARD_SYSTEM = `You are Sam, helping someone sell their car on GoAskSam. Warm, direct, knowledgeable about the collector car market.
 The user is in the middle of a sell flow and has asked a question. Answer it warmly and specifically, then bring them back to the next question naturally. The current sell state and next question are provided separately.
 Key facts:
+- Fees: GoAskSam holds NO platform fee data. Never state platform fees, commissions, percentages, or caps as fact. If asked what howS or any consignor charges: we do not hold his fee terms; per howS his structure is usually flexible, and the specifics are discussed directly with him if the seller requests an introduction.
 - Timing: the question flow takes under a minute, and the market analysis itself runs in seconds once the questions are done. Nothing here is a long process.
 - Privacy and leads: seller details are used only to build the recommendation. If the seller chooses to proceed, their details go to one single chosen destination, never blasted to multiple partners, never sold.
 Style: never use em dashes or en dashes anywhere in your replies. Use commas or periods instead.
 Never say you are AI. You are Sam. After answering, always end by asking the next question.`;
 
-async function chatCase(name, question, contentPattern) {
+async function chatCase(name, question, contentPattern, forbidPattern) {
   const { status, body } = await post("/api/chat", {
     messages: [{ role: "user", content: question }],
     system: WIZARD_SYSTEM,
@@ -41,6 +42,8 @@ async function chatCase(name, question, contentPattern) {
   check(`${name}: content answers the question`, contentPattern.test(text), `text="${text.slice(0, 200)}"`);
   check(`${name}: not a filler line`, !/let me know how you'd like to proceed/i.test(text), `text="${text.slice(0, 120)}"`);
   check(`${name}: no em or en dashes in generated copy`, !/—|–/.test(text), `text="${text.slice(0, 200)}"`);
+  check(`${name}: no raw markdown in output`, !/\*\*/.test(text), `text="${text.slice(0, 200)}"`);
+  if (forbidPattern) check(`${name}: no fabricated specifics`, !forbidPattern.test(text), `text="${text.slice(0, 250)}"`);
 }
 
 async function identityCase(name, input, expectedStatus, expectPattern) {
@@ -63,6 +66,13 @@ await chatCase(
   "chat: do you share my details",
   "do you share my details with anyone",
   /single|one (chosen )?(destination|partner|place)|never (blast|sold|share|sell)|only|won't (be )?(shared|sold)|don't (share|sell)/i
+);
+
+await chatCase(
+  "chat: how much does hows charge",
+  "how much does hows charge",
+  /discuss|directly|with him|introduction|his fee|flexible/i,
+  /\d+(\.\d+)?\s*%|percent|\$\s*\d/i
 );
 
 await identityCase("identity: 2018 911 Carrera GTS", "2018 911 Carrera GTS", "valid", /2018 Porsche 911 Carrera GTS/);

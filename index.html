@@ -452,6 +452,7 @@ The user is in the middle of a sell flow and has asked a question or gone off-sc
 3. After answering, bring them back to the next question naturally. The current sell state and next question are provided separately.
 
 Key facts:
+- Fees: GoAskSam holds NO platform fee data. Never state platform fees, commissions, percentages, or caps as fact; those numbers would be invented. If asked about platform costs, say fee structures change and the platform's current terms are the place to check. If asked what howS or any consignor/PowerSeller charges: we do not hold his fee terms; per howS his structure is usually flexible (flat fee, percentage, or incentive), and the specifics are discussed directly with him if the seller requests an introduction.
 - Timing: the question flow takes under a minute, and the market analysis itself runs in seconds once the questions are done. Nothing here is a long process.
 - Privacy and leads: seller details are used only to build the recommendation. If the seller chooses to proceed, their details go to one single chosen destination, never blasted to multiple partners, never sold.
 - If asked about The Daily Vroom, Sam Gold, ownership, or who is behind GoAskSam: Sam Gold is the owner. It is run by a collection of car-market people who want to bring better transparency to the car market. The group has developed tools including the Import & Domestic Car Calculators, this seller-intelligence tool, and more tools are coming.
@@ -461,7 +462,7 @@ Key facts:
 - GoAskSam records seller details and the selected choice. Do not promise a specific response time unless it is confirmed.
 - Do not invent market performance claims. If current evidence is not available, say so.
 
-Style: never use em dashes or en dashes anywhere in your replies. Use commas or periods instead.
+Style: never use em dashes or en dashes anywhere in your replies. Use commas or periods instead. Write plain prose only: no markdown, no asterisks, no underscores, no bullet syntax, no headers. Never open with filler like "Great question" or "Good question"; start with the substance.
 
 Never say you are AI. You are Sam. After answering, always end by asking the next question.`;
 
@@ -992,6 +993,15 @@ function applySellStateUpdate(text){
 // Locked rule 12 applies to EVERY step: input that is a question, or that
 // does not match the step's expected answer shape, routes to the chat layer
 // and is never stored as a field value.
+function stripChatMarkdown(text){
+  return String(text||"")
+    .replace(/\*\*([^*]+)\*\*/g,"$1")
+    .replace(/\*([^*\n]+)\*/g,"$1")
+    .replace(/__([^_]+)__/g,"$1")
+    .replace(/^#{1,4}\s+/gm,"")
+    .replace(/\*\*/g,"");
+}
+
 function isOffScriptWizardInput(q,step){
   const lower=String(q||"").toLowerCase().trim();
   const questionLike=/\?\s*$/.test(lower)||/^(what|how|why|when|where|who|can|could|will|would|does|do|is|are|should|but|explain|tell me)\b/.test(lower)||/\b(how long|how many|how much|you never|what happens|why do you)\b/.test(lower);
@@ -1176,7 +1186,7 @@ async function handleSellStep(q){
     sellState.step=6;addMsg("sam","What price are you hoping for? Give me a number or a range, or tell me you're not sure yet.");return true;
   }
   if(step===6){
-    sellState.price=q;
+    sellState.price=(!/\d/.test(lower)&&/\b(not sure|no idea|dunno|unsure|open|flexible|whatever|you tell me)\b/.test(lower))?"Not sure":q;
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=7;addMsg("sam","How quickly are you looking to sell?","",chipsHTML(["Want it gone fast","Within a month","No rush, right result only"]));return true;
   }
@@ -1611,6 +1621,7 @@ async function showSellRecommendation(){
     </div>
     ${powerSellerHTML}
     ${platformCardsHTML}
+    ${adverseConditionCaveat()?`<div class="sell-section-note" style="margin-top:10px">${escapeHtml(adverseConditionCaveat())}</div>`:""}
     <div class="sam-text after-results">${powerSellerHTML?"Both are real options and the choice is yours. Pick one, or ask me to compare the tradeoffs.":(secondaryPlatforms.length?(hasTwoRouteTradeoff(routeOptions)?"Which choice fits how you want to sell? You can choose either, or ask me to compare the tradeoffs.":"Which direction feels right? You can pick one, or ask me to compare the tradeoffs."):"Want me to walk through how I'd run the listing, or compare it against the other platforms?")}</div>
   </div></div>`;
   sellState.generatedPrimaryName=sellState.sellOptions[0]?.name||null;
@@ -2057,7 +2068,7 @@ LISTINGS:
 ${JSON.stringify(LISTINGS)}
 
 IDENTITY: You are Sam. Never say you are Claude, ChatGPT, OpenAI, Anthropic, an LLM, or a language model.
-PERSONALITY: Warm, direct, human. No essays. No fluff. No false certainty. Never use em dashes or en dashes anywhere in your replies; use commas or periods instead.
+PERSONALITY: Warm, direct, human. No essays. No fluff. No false certainty. Never use em dashes or en dashes anywhere in your replies; use commas or periods instead. Plain prose only: no markdown, asterisks, underscores or headers. Never open with filler like "Great question". Never state platform fees, commissions, percentages or caps as fact; GoAskSam holds no fee data, so say fee structures change and point to the platform's current terms.
 INTELLIGENCE RULE: Every observation tied to a specific event, timestamp, or response.
 MARKET COMMENTARY: No comparative pricing claims you cannot verify. Never say "reserve still active."
 AUCTION TIMING: Use daysLive and endsIn. "Ends tomorrow and still unanswered. That's a problem."
@@ -2428,6 +2439,18 @@ function hasTwoRouteTradeoff(routes){
   return !!(performanceSplit||speedTradeoff);
 }
 
+function adverseConditionCaveat(){
+  const adverse=[];
+  const mileage=String(sellState.mileage||"");
+  const mileageNumber=(mileage.replace(/,/g,"").match(/(\d+)\s*k/i)?.[1]*1000)||Number(mileage.replace(/[^\d]/g,""))||0;
+  if(/over\s*100k/i.test(mileage)||mileageNumber>100000)adverse.push("mileage over 100k");
+  if(/heavily modified/i.test(String(sellState.condition||"")))adverse.push("heavy modifications");
+  if(/no records|none/i.test(String(sellState.records||"")))adverse.push("missing service records");
+  if(!adverse.length)return null;
+  const list=adverse.length>1?adverse.slice(0,-1).join(", ")+" and "+adverse[adverse.length-1]:adverse[0];
+  return `Those medians reflect the model generally; ${list} typically place a car differently within that range, which is worth weighing.`;
+}
+
 function resultHeaderTitle(routes){
   if((sellState.sellOptions||[]).some(option=>option.key==="specialist")){
     return `Two ways to sell the ${sellState.carName||"car"}: have it handled, or run it yourself.`;
@@ -2774,9 +2797,10 @@ function powerSellerProofItems(profile){
   const verified=profile?.verified||{};
   const rows=[];
   if(verified.trackedSales>0){
-    rows.push(["In our tracked records",`${verified.trackedSales} completed sale${verified.trackedSales===1?"":"s"}`]);
-    if((verified.topMakes||[]).length)rows.push(["Top makes in those records",verified.topMakes.map(m=>`${m.make} (${m.count})`).join(", ")]);
-    if((verified.platformsSeen||[]).length)rows.push(["Platforms in those records",verified.platformsSeen.join(", ")]);
+    const thinWindow=verified.trackedSales<10;
+    rows.push([thinWindow?"In sales we've tracked recently":"In our tracked records",`${verified.trackedSales} completed sale${verified.trackedSales===1?"":"s"}`]);
+    if((verified.topMakes||[]).length)rows.push([thinWindow?"Top makes in those recent sales":"Top makes in those records",verified.topMakes.map(m=>`${m.make} (${m.count})`).join(", ")]);
+    if((verified.platformsSeen||[]).length)rows.push([thinWindow?"Platforms in those recent sales":"Platforms in those records",verified.platformsSeen.join(", ")]);
   }
   return rows;
 }
@@ -3278,7 +3302,7 @@ async function send(){
           console.error("chat layer failed",res.status,data.error||"empty text");
           addMsg("sam","Good question. I'm having trouble answering it right now, so ask me again in a moment if it matters to you. It doesn't affect the market check itself.");
         }else{
-          addMsg("sam",data.text);
+          addMsg("sam",stripChatMarkdown(data.text));
         }
         if(sellState.step>0&&sellState.step<16){setTimeout(()=>askNextSellQuestion(),800);}
       }catch(e){hideTyping();addMsg("sam","Good question. I'm having trouble answering it right now because of a connection issue. Ask me again in a moment.");}
@@ -3313,7 +3337,7 @@ async function send(){
       document.getElementById("btn").disabled=false;
       return;
     }
-    const raw=data.text;
+    const raw=stripChatMarkdown(data.text);
     const parsed=parseResults(raw);
     hideTyping();
     if(parsed.resultsHTML){
