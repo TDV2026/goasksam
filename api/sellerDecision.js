@@ -1,5 +1,6 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
+import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 
 const OLDCARSDATA_BASE = "https://api.oldcarsdata.com";
 // Powerseller referrals are gated (locked product rule): estimated value from
@@ -1160,45 +1161,33 @@ let partnersCache = { loadedAt: 0, rows: null };
 async function loadActivePartners(supabaseUrl, supabaseKey) {
   if (!supabaseUrl || !supabaseKey) return [];
   if (partnersCache.rows && Date.now() - partnersCache.loadedAt < 10 * 60 * 1000) return partnersCache.rows;
-  try {
-    const res = await fetch(`${supabaseUrl}/rest/v1/partners?active=is.true&select=*&limit=50`, {
-      headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
-    });
-    if (!res.ok) return [];
-    const rows = await res.json();
-    partnersCache = { loadedAt: Date.now(), rows: Array.isArray(rows) ? rows : [] };
-    return partnersCache.rows;
-  } catch {
-    return [];
-  }
+  const rows = await supabaseSelect({ supabaseUrl, supabaseKey }, "partners?active=is.true&select=*&limit=50");
+  if (!rows) return [];
+  partnersCache = { loadedAt: Date.now(), rows };
+  return partnersCache.rows;
 }
 
 async function partnerVerifiedStats(partner, supabaseUrl, supabaseKey) {
   const usernames = (partner.seller_usernames || []).filter(Boolean);
   const empty = { trackedSales: 0, topMakes: [], platformsSeen: [] };
   if (!usernames.length || !supabaseUrl || !supabaseKey) return empty;
-  try {
-    const list = usernames.map(u => `"${String(u).replace(/"/g, "")}"`).join(",");
-    const res = await fetch(
-      `${supabaseUrl}/rest/v1/vehicle_market_records?seller_username=in.(${encodeURIComponent(list)})&select=make,platform&limit=2000`,
-      { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
-    );
-    if (!res.ok) return empty;
-    const rows = await res.json();
-    const makeCounts = new Map();
-    const platforms = new Set();
-    for (const row of rows) {
-      if (row.make) makeCounts.set(row.make, (makeCounts.get(row.make) || 0) + 1);
-      if (row.platform) platforms.add(ROUTE_POLICIES[platformPolicyKey(row.platform)]?.label || row.platform);
-    }
-    return {
-      trackedSales: rows.length,
-      topMakes: [...makeCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([make, count]) => ({ make, count })),
-      platformsSeen: [...platforms]
-    };
-  } catch {
-    return empty;
+  const list = usernames.map(u => `"${String(u).replace(/"/g, "")}"`).join(",");
+  const rows = await supabaseSelect(
+    { supabaseUrl, supabaseKey },
+    `vehicle_market_records?seller_username=in.(${encodeURIComponent(list)})&select=make,platform&limit=2000`
+  );
+  if (!rows) return empty;
+  const makeCounts = new Map();
+  const platforms = new Set();
+  for (const row of rows) {
+    if (row.make) makeCounts.set(row.make, (makeCounts.get(row.make) || 0) + 1);
+    if (row.platform) platforms.add(ROUTE_POLICIES[platformPolicyKey(row.platform)]?.label || row.platform);
   }
+  return {
+    trackedSales: rows.length,
+    topMakes: [...makeCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([make, count]) => ({ make, count })),
+    platformsSeen: [...platforms]
+  };
 }
 
 function partnerRegionCovered(partner, criteria) {
@@ -1276,42 +1265,17 @@ function sellerActivityExplanation(sellerActivity, platform) {
   return `${platform} also showed ${activeCount} active seller signal${activeCount === 1 ? "" : "s"} in this segment, but consignment fit is not assumed.`;
 }
 
-async function supabaseInsert(table, rows, supabaseUrl, supabaseKey, prefer = "return=minimal", query = "") {
-  if (!supabaseUrl || !supabaseKey || !rows.length) return { skipped: true, rows: [] };
-  const res = await fetch(`${supabaseUrl}/rest/v1/${table}${query}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
-      Prefer: prefer
-    },
-    body: JSON.stringify(rows)
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    return { error: `${table} insert failed: ${res.status} ${text}` };
-  }
-  const text = await res.text();
-  const returnedRows = text ? JSON.parse(text) : [];
-  return { ok: true, rows: returnedRows };
-}
-
 async function lookupMarketRecordIds(records, supabaseUrl, supabaseKey) {
   if (!supabaseUrl || !supabaseKey || !records.length) return {};
   const ids = [...new Set(records.map(sourceRecordId).filter(Boolean))];
   if (!ids.length) return {};
 
   const idsParam = ids.map(id => `"${id.replace(/"/g, '\\"')}"`).join(",");
-  const res = await fetch(`${supabaseUrl}/rest/v1/vehicle_market_records?source_record_id=in.(${idsParam})&select=id,source,source_record_id`, {
-    headers: {
-      apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`
-    }
-  });
-  if (!res.ok) return {};
-
-  const rows = await res.json();
+  const rows = await supabaseSelect(
+    { supabaseUrl, supabaseKey },
+    `vehicle_market_records?source_record_id=in.(${idsParam})&select=id,source,source_record_id`
+  );
+  if (!rows) return {};
   return Object.fromEntries(rows.map(row => [sourceRecordKey(row.source, String(row.source_record_id)), row.id]));
 }
 
