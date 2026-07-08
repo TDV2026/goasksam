@@ -72,7 +72,9 @@ await chatCase(
   "chat: how much does hows charge",
   "how much does hows charge",
   /discuss|directly|with him|introduction|his fee|flexible/i,
-  /\d+(\.\d+)?\s*%|percent|\$\s*\d/i
+  // Numeric fee claims only: "4.5%", "$4,500 cap". The bare word "percentage"
+  // is legitimate when describing fee types per the partner.
+  /\d+(\.\d+)?\s*(%|percent)|\$\s*\d/i
 );
 
 await identityCase("identity: 2018 911 Carrera GTS", "2018 911 Carrera GTS", "valid", /2018 Porsche 911 Carrera GTS/);
