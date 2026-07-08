@@ -129,9 +129,13 @@ for (const c of CANDIDATES) {
 
 // Same alias twice for one make (e.g. two spellings of a target): keep first.
 const perMakeSeen = new Set();
+// RETAG=1 re-upserts rows this script owns (e.g. to apply the source tag
+// after the column is added); default skips anything already in the table.
+const retag = process.env.RETAG === "1";
 const unique = verified.filter(c => {
   const key = `${slug(c.alias)}|${slug(c.make)}`;
-  if (perMakeSeen.has(key) || existingKeys.has(`${slug(c.alias)}|${norm(c.make)}`)) return false;
+  if (perMakeSeen.has(key)) return false;
+  if (!retag && existingKeys.has(`${slug(c.alias)}|${norm(c.make)}`)) return false;
   perMakeSeen.add(key);
   return true;
 });
