@@ -21,6 +21,7 @@ Collector car market intelligence platform. Answers "where should I sell my coll
 11. No unsupported money claims. Never state as fact that a powerseller gets the seller more money. Service framing only (handles listing, photography, buyer questions, platform choice). Partner claims render with their source: partner_provided shows with attribution ("per howS"); data_verified is computed from vehicle_market_records at request time and only then reads as market data.
 12. No-repeat and off-script chat routing are global invariants across EVERY wizard state and sub-state: repeated failed input must escalate with different wording, and off-script input routes to the chat layer for a real answer before the wizard re-asks.
 13. Clarification questions never assert facts we have not checked (no "X made a lot of different cars"). A make with exactly one known model auto-resolves silently.
+14. Platforms are judged model-specific (where do comps for THIS car sell best); powersellers are judged on their entire body of work. A consignor who has sold hundreds of high-end cars and many Porsches is credible for a 911 GTS even if he has never sold that exact trim-year. Partner stats are therefore computed over the partner's ENTIRE tracked sales history via their seller usernames, never scoped to the current search's comparable records.
 
 ## Current architecture (ground truth as of July 2026)
 

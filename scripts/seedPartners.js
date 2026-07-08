@@ -42,10 +42,9 @@ const PARTNERS = [
       { name: "Hemmings", source: "partner_provided" }
     ],
     service_claims: [
-      provided("Manages the entire auction: prep, photos, listing, buyer questions, comments, scheduling and paperwork"),
-      provided("Recommends the platform before listing rather than assuming one is always right"),
-      provided("400+ auctions managed"),
-      provided("BaT VIP with direct scheduling relationships; Motorcars is a major Cars & Bids seller"),
+      // The card renders the first two; keep them condensed and complete.
+      provided("Manages the entire auction end to end: prep, photos, listing, buyer questions, scheduling and paperwork, and recommends the platform before listing rather than assuming one"),
+      provided("400+ auctions managed; BaT VIP with direct scheduling relationships and a major Cars & Bids seller through Motorcars of the Main Line"),
       provided("Can arrange national transport and shorter-distance flatbed"),
       provided("Based in Upper Makefield PA, with Motorcars of the Main Line in King of Prussia"),
       provided("Fee structure is usually flexible: flat fee, percentage, or incentive depending on the car")

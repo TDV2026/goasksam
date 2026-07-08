@@ -7,6 +7,7 @@
     "seed:partners": "node scripts/seedPartners.js",
     "seed:aliases": "node scripts/generateAliases.js",
     "seed:generations": "node scripts/seedGenerations.js",
+    "backfill:partners": "node scripts/backfillPartnerHistory.js",
     "smoke:prod": "node scripts/smokeProd.js && node scripts/smokeWizard.js"
   }
 }

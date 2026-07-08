@@ -3,6 +3,7 @@ import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { callOldCarsData } from "../lib/_ocd.js";
 import { findGeneration, generationModelToken } from "../lib/generations.js";
+import { computePartnerCareerStats, computePlatformBaselines, partnerRelevance, priceBand } from "../lib/marketStats.js";
 import {
   asText,
   classifyRecord,
@@ -776,6 +777,15 @@ function analyze(records, classifications, ladder, vehicle) {
     platformMap.get(platform).push(item);
   }
 
+  // Momentum: the landed rung's comps in the prior equal-length window, per
+  // platform. Only rendered when both windows carry a real sample.
+  const priorWindowSet = landed
+    ? pairedRecords.filter(item => {
+        const age = daysAgo(item.record.auction_end_date);
+        return age > windowDays && age <= windowDays * 2 && ladderEligible(item, landed.definition);
+      })
+    : [];
+
   const totalEvidenceSales = evidenceSet.length;
   const strongestSales = [...evidenceSet]
     .filter(item => Number.isFinite(Number(item.classification.price)))
@@ -789,7 +799,21 @@ function analyze(records, classifications, ladder, vehicle) {
         .filter(item => recordPlatform(item.record) !== platform)
         .map(item => item.classification.price)
         .filter(Number.isFinite);
+      const recentPrices = items.map(item => item.classification.price).filter(Number.isFinite);
+      const priorPrices = priorWindowSet
+        .filter(item => recordPlatform(item.record) === platform)
+        .map(item => item.classification.price)
+        .filter(Number.isFinite);
+      const momentum = recentPrices.length >= 3 && priorPrices.length >= 3
+        ? {
+            percent: Math.round((median(recentPrices) - median(priorPrices)) / median(priorPrices) * 100),
+            recentSales: recentPrices.length,
+            priorSales: priorPrices.length,
+            windowDays
+          }
+        : null;
       return {
+        momentum,
         platform,
         evidenceSales: items.length,
         totalEvidenceSales,
@@ -1125,26 +1149,30 @@ async function loadActivePartners(supabaseUrl, supabaseKey) {
   return partnersCache.rows;
 }
 
-async function partnerVerifiedStats(partner, supabaseUrl, supabaseKey) {
+// Career-wide partner stats (locked principle): computed over the partner's
+// ENTIRE tracked history via seller usernames, never scoped to the current
+// search's comparable records. Raw slices are stripped before the response;
+// the relevance line is the one request-time connection to the current car.
+async function partnerVerifiedStats(partner, vehicle, estimatedValue, supabaseUrl, supabaseKey) {
   const usernames = (partner.seller_usernames || []).filter(Boolean);
-  const empty = { trackedSales: 0, topMakes: [], platformsSeen: [] };
+  const empty = { trackedSales: 0, belowCareerMinimum: true, medianSaleValue: null, sellThrough: null, makeMix: null, relevance: null, latestSaleDate: null };
   if (!usernames.length || !supabaseUrl || !supabaseKey) return empty;
-  const list = usernames.map(u => `"${String(u).replace(/"/g, "")}"`).join(",");
-  const rows = await supabaseSelect(
-    { supabaseUrl, supabaseKey },
-    `vehicle_market_records?seller_username=in.(${encodeURIComponent(list)})&select=make,platform&limit=2000`
-  );
-  if (!rows) return empty;
-  const makeCounts = new Map();
-  const platforms = new Set();
-  for (const row of rows) {
-    if (row.make) makeCounts.set(row.make, (makeCounts.get(row.make) || 0) + 1);
-    if (row.platform) platforms.add(ROUTE_POLICIES[platformPolicyKey(row.platform)]?.label || row.platform);
+  const career = await computePartnerCareerStats(usernames, { supabaseUrl, supabaseKey });
+  if (!career) return empty;
+  let sellThrough = career.sellThrough;
+  if (sellThrough?.platform) {
+    const baselines = await computePlatformBaselines({ supabaseUrl, supabaseKey });
+    const baselinePercent = baselines?.[sellThrough.platform]?.sellThroughPercent;
+    if (baselinePercent != null) sellThrough = { ...sellThrough, baselinePercent };
   }
   return {
-    trackedSales: rows.length,
-    topMakes: [...makeCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([make, count]) => ({ make, count })),
-    platformsSeen: [...platforms]
+    trackedSales: career.trackedSales,
+    latestSaleDate: career.latestSaleDate,
+    medianSaleValue: career.medianSaleValue,
+    sellThrough,
+    makeMix: career.makeMix,
+    belowCareerMinimum: career.belowCareerMinimum,
+    relevance: partnerRelevance(career, vehicle, estimatedValue)
   };
 }
 
@@ -1209,7 +1237,7 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
       platforms: matched.platforms || [],
       serviceClaims: matched.service_claims || [],
       referralTerms: matched.referral_terms || null,
-      verified: await partnerVerifiedStats(matched, supabaseUrl, supabaseKey)
+      verified: await partnerVerifiedStats(matched, vehicle, analysis.estimatedValue, supabaseUrl, supabaseKey)
     };
   }
   return result;
@@ -1407,6 +1435,24 @@ export default async function handler(req, res) {
       : await persistRawRecords(records, supabaseUrl, supabaseKey);
     const classificationPersistence = await persistClassifications(records, classifications, rawPersistence.idLookup, supabaseUrl, supabaseKey);
     const analysis = analyze(records, classifications, fetchResult.ladder, vehicle);
+
+    // Segment sell-through per platform, from the full-dataset baselines.
+    // Null until the dataset carries non-sold listings; the frontend omits
+    // the dimension rather than padding it.
+    const baselines = await computePlatformBaselines({ supabaseUrl, supabaseKey });
+    const segmentBand = priceBand(analysis.estimatedValue);
+    if (baselines && segmentBand) {
+      analysis.platformPerformance = analysis.platformPerformance.map(platform => {
+        const bucket = baselines[platform.platform]?.byBand?.[segmentBand];
+        return {
+          ...platform,
+          segmentSellThrough: bucket && bucket.sellThroughPercent != null
+            ? { percent: bucket.sellThroughPercent, band: segmentBand, sample: bucket.listings }
+            : null
+        };
+      });
+    }
+
     const decision = decide(analysis, sellerCriteria, vehicle);
     decision.partnerReferral = await evaluatePartnerReferral(analysis, sellerCriteria, vehicle, supabaseUrl, supabaseKey);
 

@@ -406,8 +406,12 @@ function partnerProfileFromReferral(referral){
     providedPlatforms:(partner.platforms||[]).filter(p=>p&&p.source!=="data_verified").map(p=>p.name),
     verified:{
       trackedSales:Number(verified.trackedSales||0),
-      topMakes:verified.topMakes||[],
-      platformsSeen:verified.platformsSeen||[]
+      latestSaleDate:verified.latestSaleDate||null,
+      medianSaleValue:verified.medianSaleValue||null,
+      sellThrough:verified.sellThrough||null,
+      makeMix:verified.makeMix||null,
+      belowCareerMinimum:verified.belowCareerMinimum!==false,
+      relevance:verified.relevance||null
     },
     specialtiesNote:partner.specialties?.notes||"",
     referralTerms:partner.referralTerms||"",
@@ -475,14 +479,17 @@ function powerSellerClientChips(profile){
 }
 
 function powerSellerProofItems(profile){
-  const verified=profile?.verified||{};
+  // Career-wide stats (locked principle): a consignor is judged on his entire
+  // body of work, never on comps for the current search. Every row renders
+  // only when the backend cleared its sample minimum; below the career
+  // minimum no rows render and the honesty note takes their place.
+  const v=profile?.verified||{};
   const rows=[];
-  if(verified.trackedSales>0){
-    const thinWindow=verified.trackedSales<10;
-    rows.push([thinWindow?"In sales we've tracked recently":"In our tracked records",`${verified.trackedSales} completed sale${verified.trackedSales===1?"":"s"}`]);
-    if((verified.topMakes||[]).length)rows.push([thinWindow?"Top makes in those recent sales":"Top makes in those records",verified.topMakes.map(m=>`${m.make} (${m.count})`).join(", ")]);
-    if((verified.platformsSeen||[]).length)rows.push([thinWindow?"Platforms in those recent sales":"Platforms in those records",verified.platformsSeen.join(", ")]);
-  }
+  if(v.belowCareerMinimum)return rows;
+  rows.push(["Tracked sales in our records",`${v.trackedSales} completed sale${v.trackedSales===1?"":"s"}${v.latestSaleDate&&dateShort(v.latestSaleDate)?`, most recent ${dateShort(v.latestSaleDate)}`:""}`]);
+  if(v.medianSaleValue)rows.push(["Median sale across those records",`${moneyShort(v.medianSaleValue.value)} over ${v.medianSaleValue.sample} sales`]);
+  if(v.sellThrough)rows.push(["Sell-through in tracked listings",`${v.sellThrough.ratePercent}% of ${v.sellThrough.sample} listings${Number.isFinite(v.sellThrough.baselinePercent)?` (platform baseline ${v.sellThrough.baselinePercent}%)`:""}`]);
+  if((v.makeMix||[]).length)rows.push(["Make mix in those records",v.makeMix.map(m=>`${m.make} ${m.percent}%`).join(", ")]);
   return rows;
 }
 
@@ -497,15 +504,23 @@ function renderFeaturedPowerSellerProfile(profile,platformFirst){
   const firstName=powerSellerFirstName(profile);
   const platformChips=powerSellerPlatformLogoChips({platforms:profile.providedPlatforms||profile.platforms||[]});
   const proofHTML=powerSellerProofHTML(profile);
+  const v=profile.verified||{};
+  const honestyNote=v.belowCareerMinimum
+    ?`<div class="sell-rec-reason">We've tracked too few of ${escapeHtml(firstName)}'s sales in our own records to compute his numbers fairly yet. His history below is his own account.</div>`
+    :"";
+  const relevanceLine=v.relevance
+    ?`<div class="sell-rec-reason">In our records: ${v.relevance.makeCount} ${escapeHtml(v.relevance.make)} sale${v.relevance.makeCount===1?"":"s"} tracked${v.relevance.inPriceBand?`, ${v.relevance.inPriceBand} in this car's price range`:""}.</div>`
+    :"";
   return `<div class="power-seller-feature" onclick="choosePowerSeller('${escapeHtml(profile.id)}')">
     <div class="power-seller-feature-main">
       <div class="sell-rec-badge specialist">${platformFirst===true?"Option 2: have it handled":platformFirst===false?"Option 1: have it handled":"Have it handled"}</div>
       <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>
       <span class="observed-seller-meta">Auction consignor</span>
-      ${proofHTML?`<div class="power-seller-proof-list">${proofHTML}</div>`:""}
+      ${proofHTML?`<div class="power-seller-proof-list">${proofHTML}</div>`:honestyNote}
+      ${relevanceLine}
       ${platformChips?`<div class="power-seller-platform-row"><span class="power-seller-profile-label">Lists on (per ${escapeHtml(profile.name)})</span>${platformChips}</div>`:""}
       <span class="observed-seller-why">What ${escapeHtml(profile.name)} says he handles</span>
-      <ul class="sell-rec-bullets">${powerSellerWhyBullets(profile,0).slice(0,4).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
+      <ul class="sell-rec-bullets">${powerSellerWhyBullets(profile,0).slice(0,2).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
       ${profile.specialtiesNote?`<div class="power-seller-profile-grid"><div class="power-seller-profile-block"><div class="power-seller-profile-label">Typical clients (per ${escapeHtml(profile.name)})</div><div class="power-seller-chip-row">${powerSellerClientChips(profile)}</div></div></div>`:""}
       <div class="power-seller-footnote">GoAskSam may receive a referral fee if you proceed.</div>
     </div>
@@ -660,25 +675,18 @@ function routeFacts(route){
     smallSample:((e.evidenceSales||0)+(e.othersSalesCount||0))<8||(e.evidenceSales||0)<3,
     topThreeSales:e.topThreeSales||0,
     weekday:e.strongestWeekday||null,
-    weekdayLift:e.strongestWeekdayLiftPercent||null
+    weekdayLift:e.strongestWeekdayLiftPercent||null,
+    momentum:e.momentum||null,
+    segmentSellThrough:e.segmentSellThrough||null
   };
 }
 
 function routeTagLine(route,index,routes){
-  const facts=routeFacts(route);
-  const tags=[];
-  // Consistency rule: "strongest results" claims only when the median leads
-  // (or no cross-platform comparison exists). A trailing median can never sit
-  // next to a strongest-results chip.
-  if(facts.topThreeSales>=2&&index===0&&(facts.medianDelta===null||facts.medianLeads))tags.push("\u2713 Strongest recent results came here");
-  else if(index===0&&facts.evidenceSales>0)tags.push("\u2713 Most comparable sales closed here");
-  const day=weekdayTag(route.marketEvidence||{});
-  if(day)tags.push(day);
-  const seen=new Set();
-  return tags.filter(Boolean).filter(tag=>{
-    const key=String(tag).replace(/^\u2713\s*/,"").toLowerCase();
-    if(seen.has(key))return false;seen.add(key);return true;
-  }).slice(0,3).join(" · ");
+  // Chip row retired (locked rule: no fact renders twice in different words).
+  // Its old contents duplicated the headline (strongest results = where comps
+  // closed) and the timing bullet, so every dimension now renders exactly
+  // once: headline, then distinct bullets.
+  return "";
 }
 
 function comparableSalesLabel(){
@@ -699,28 +707,24 @@ function routeEvidenceBullets(route,index,routes){
     bullets.push("Best bet is to contact them directly; they can speak to demand for your specific car. When comparable sales show up in my data, I can revisit this with real numbers.");
     return bullets.slice(0,3);
   }
-  const evidence=route.marketEvidence||{};
   const facts=routeFacts(route);
+  // Five-dimension card (locked): the headline carries dimension 1 (where the
+  // comps sold and for what). Bullets are the remaining dimensions in priority
+  // order, each fact rendered exactly once, omitted when there is no data,
+  // never padded with restatements.
   const bullets=[];
-  // Timing intelligence leads: it is differentiating and grounded in records.
+  // (2) platform sell-through for this segment, from full-dataset baselines
+  // (absent until the records hold non-sold listings)
+  if(facts.segmentSellThrough)bullets.push(`${facts.segmentSellThrough.percent}% of ${facts.segmentSellThrough.band} listings here sold in our tracked records (${facts.segmentSellThrough.sample} listings).`);
+  // (3) timing edge
   if(facts.weekday)bullets.push(`Based on recent comparable listings, ${facts.weekday} endings have finished strongest${facts.weekdayLift?` (around ${facts.weekdayLift}% above other days)`:""}.`);
-  if(Number.isFinite(evidence.performanceDeltaPercent)&&Math.abs(evidence.performanceDeltaPercent)>=5){
-    if(evidence.performanceDeltaPercent>0)bullets.push(`Recent comparable ${comparableSalesLabel()} sales have been stronger here than the wider market.`);
-    else if(Math.abs(evidence.performanceDeltaPercent)<=15)bullets.push(`The result is close enough that buyer fit and speed-to-list are worth comparing.`);
-  }
-  if(facts.topThreeSales>=2){
-    bullets.push(facts.medianDelta!==null&&!facts.medianLeads
-      ?`${facts.topThreeSales} of the 3 highest individual sales happened here, though the median trails other sources in this sample.`
-      :`${facts.topThreeSales} of the 3 strongest recent comparable ${comparableSalesLabel()} sales happened here.`);
-  }
+  // (4) momentum, only when both windows carry a real sample
+  if(facts.momentum&&Math.abs(facts.momentum.percent)>=5)bullets.push(`The comparable median here is ${facts.momentum.percent>0?"up":"down"} about ${Math.abs(facts.momentum.percent)}% versus the prior ${facts.momentum.windowDays}-day window (${facts.momentum.recentSales} recent vs ${facts.momentum.priorSales} earlier sales).`);
+  else if(facts.momentum)bullets.push(`The comparable median here has held steady versus the prior ${facts.momentum.windowDays}-day window.`);
+  // (5) trim-scope explanation
   const scope=comparisonScopeSentence();
   if(scope)bullets.push(scope);
-  if(index===0)bullets.push(`Best choice if you’re comfortable answering questions and staying engaged through the auction.`);
-  if(bullets.length<3)bullets.push(sellerPriorityLabel(route));
-  if(!bullets.length)bullets.push(index===0
-    ? "Recent comparable activity points here before the other choices."
-    : "Recent comparable activity is strong enough to keep this choice in the comparison.");
-  return bullets.slice(0,3);
+  return bullets.slice(0,4);
 }
 
 function resultSummaryLine(options,routes=[]){
