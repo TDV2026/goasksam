@@ -407,19 +407,6 @@ body{
 </div>
 
 <script>
-const LISTINGS=[
-{id:"L01",status:"live",year:1978,make:"Porsche",model:"911 SC Targa",type:"sports",trans:"manual",drive:"RWD",price:20000,miles:220300,loc:"Elma, WA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabadfc10e586c36f68/photos/application/s-CixrIm_/edit/l3HoQ.jpg?t=177853174099",reserve_status:"active",daysLive:4,endsIn:3,liveSignals:[{type:"concern",text:"Multiple commenters flagged non-matching numbers on the engine case 6 hours ago. Seller has not responded.",time:"6 hours ago"},{type:"resolved",text:"Seller confirmed vacuum to mechanical carb conversion after community asked. Explanation accepted.",time:"Yesterday"}],openQuestion:"Non-matching engine case numbers flagged 6 hours ago. Seller has not responded.",whatChanged:"Seller answered the carb question yesterday. Non-matching numbers concern raised today, still open.",sellerStatus:"Answered 1 of 2 community questions. Silent on the numbers concern for 6 hours.",sam_view:"Long-term ownership and recent mechanical spend are both positives. But multiple commenters flagged non-matching numbers on the engine case 6 hours ago and the seller hasn't responded. With 3 days left, that question needs an answer.",what_i_like:"Manual SC Targa, long ownership history, $17k mechanical spend in 2024.",actionLine:"I would not bid seriously until the non-matching numbers question gets a direct answer from the seller."},
-{id:"L03",status:"live",year:2013,make:"Audi",model:"S4 Manual",type:"sports",trans:"manual",drive:"AWD",price:10000,miles:83000,loc:"Pompano Beach, FL",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8666159a15ffd32049319e2dde0e1452e4fe28d1/photos/AudiS42013002.jpg?t=177913181045",reserve_status:"none",daysLive:2,endsIn:5,liveSignals:[{type:"resolved",text:"Seller uploaded full Carfax documentation for the mileage gap 3 hours ago. Community satisfied.",time:"3 hours ago"},{type:"concern",text:"Two commenters asking about DSG service history 1 hour ago. Seller has not responded yet.",time:"1 hour ago"}],openQuestion:"DSG service history raised 1 hour ago. Seller has not responded yet.",whatChanged:"Mileage gap question raised and resolved, seller uploaded documentation 3 hours ago. New DSG question opened 1 hour ago.",sellerStatus:"Answered 1 of 2 questions. DSG question open for 1 hour.",sam_view:"Manual B8 S4 at no reserve. The mileage gap was raised and the seller responded with documentation, that's the right behavior. DSG service history question opened an hour ago. 5 days left for that to get answered.",what_i_like:"Manual B8 S4, one owner from new, no reserve.",actionLine:"I would verify the uploaded documentation, then watch how quickly the seller responds to the DSG question."},
-{id:"L07",status:"live",year:2015,make:"Porsche",model:"Cayman 981",type:"sports",trans:"manual",drive:"RWD",price:35000,miles:16700,loc:"Salem, OR",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/3oQw58xo-2PyUGXk/edit/hP0rA.jpg?t=177930231707",reserve_status:"active",daysLive:3,endsIn:1,liveSignals:[{type:"resolved",text:"Seller posted cold start video 2 hours ago. DME codes have not reappeared since battery replacement.",time:"2 hours ago"},{type:"resolved",text:"Paint meter readings added to all panels yesterday. No prior bodywork detected.",time:"Yesterday"}],openQuestion:"Auction closes tomorrow. Reserve amount unknown, won't know until it closes.",whatChanged:"Seller added cold start video 2 hours ago. Paint readings added yesterday. All community concerns have been addressed.",sellerStatus:"Answered all community questions. 2 documents added in the last 24 hours.",sam_view:"This is the one I trust most in the current set. Seller has been responsive at every step, cold start video, paint readings, DME explanation. All community concerns addressed. Reserve is still active and the auction closes tomorrow.",what_i_like:"16,700 miles, Guards Red manual, PASM, PPF, Bose. Seller addressed every concern raised.",actionLine:"I would read the full DME thread and then decide, the seller has done the right things. Reserve closing tomorrow is the only remaining question."},
-{id:"L11",status:"live",year:2009,make:"BMW",model:"Z4 sDrive30i",type:"sports",trans:"manual",drive:"RWD",price:11000,miles:51200,loc:"Tampa, FL",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/1477bbe21e8d6b5e719c7c3ccab577fd47dd8cc3/photos/exterior/36dd0nqW-ombFNpE/edit/ueIE5.jpg?t=177906875181",reserve_status:"active",daysLive:5,endsIn:2,liveSignals:[{type:"concern",text:"Community flagged 2015 tire date codes 4 hours ago. Seller acknowledged but has not committed to replacing before sale.",time:"4 hours ago"}],openQuestion:"Tire replacement commitment. Seller acknowledged the concern 4 hours ago but gave no commitment.",whatChanged:"Tire date concern raised and acknowledged 4 hours ago. No resolution. Auction ends in 2 days.",sellerStatus:"Acknowledged tire concern but did not commit to replacing. No other questions open.",sam_view:"Good weekend BMW recipe. Community flagged 2015 tire date codes 4 hours ago, seller acknowledged it but hasn't committed to replacing them before sale. Auction ends in 2 days. That answer needs to come soon.",what_i_like:"NA straight-six, manual, power retractable hardtop, 51k miles.",actionLine:"I would want a tire replacement commitment before bidding up. That answer needs to come in the next 2 days."},
-{id:"L15",status:"live",year:2018,make:"BMW",model:"328i Touring",type:"wagon",trans:"manual",drive:"RWD",price:3300,miles:95000,loc:"Annapolis, MD",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/fc2fca4f3b35e00cdcf6a9b9a58ae637f2655f32/photos/BMW2010328i002.jpg?t=177825856467",reserve_status:"none",daysLive:1,endsIn:6,liveSignals:[{type:"concern",text:"BMW specialist in comments flagged the roof panel as potentially structural 2 hours ago. Seller has not responded.",time:"2 hours ago"}],openQuestion:"Roof panel flagged as potentially structural by a BMW specialist 2 hours ago. Seller has not responded.",whatChanged:"Auction launched yesterday. BMW specialist raised roof panel concern 2 hours ago, still unanswered.",sellerStatus:"No community questions answered yet. Auction is 1 day old.",sam_view:"Manual BMW wagon, rare enough to pay attention to. This auction only launched yesterday. A BMW specialist flagged the roof panel as potentially structural 2 hours ago and the seller hasn't responded. 6 days left, plenty of time for that to get answered.",what_i_like:"Manual F30 Touring, rare US spec, military owner with documented oil changes.",actionLine:"Auction is only 1 day old. I would watch how the seller responds to the roof panel question before forming a view."},
-{id:"L14",status:"live",year:1994,make:"Dodge",model:"Viper RT/10",type:"sports",trans:"manual",drive:"RWD",price:28000,miles:18000,loc:"Pennsylvania",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/8e6341e27a680ffab7d98e42bef83b0dd1b0fb94/photos/application/s-Pg2aXOu/edit/DDRKS.jpg?t=177914552824",reserve_status:"active",daysLive:6,endsIn:1,liveSignals:[{type:"concern",text:"Three commenters flagged multi-panel paintwork over 5 hours. Seller has not responded. Auction ends tomorrow.",time:"5 hours ago"}],openQuestion:"Multi-panel paint flagged by 3 commenters over 5 hours. Seller has not responded. Auction ends tomorrow.",whatChanged:"Paint concern escalated, 3 separate commenters over 5 hours. No seller response. Closes tomorrow.",sellerStatus:"Has not responded to the paint question. Auction ends tomorrow.",sam_view:"Raw early Viper with low miles. Three separate commenters flagged the multi-panel paint over the last 5 hours and the seller has said nothing. The auction closes tomorrow. Either the seller addresses it in the next few hours or you are bidding without knowing why three panels were painted.",what_i_like:"18k miles, original soft top and side screens.",actionLine:"Auction ends tomorrow and the paint question is still unanswered after 5 hours. That is too much uncertainty for me at this point."},
-{id:"L09",status:"live",year:2020,make:"Subaru",model:"WRX STI",type:"sports",trans:"manual",drive:"AWD",price:25000,miles:9700,loc:"Arizona",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/abd2a7f0535314882a8c78d2ed08e7b8869f7367/photos/SubaruWRX2020002.jpg?t=177911430862",reserve_status:"none",daysLive:2,endsIn:5,liveSignals:[{type:"resolved",text:"Seller uploaded full dyno sheet 5 hours ago confirming 468whp on E95. Tuner notes and complete mod list added.",time:"5 hours ago"}],openQuestion:"Smog compliance varies by state. No open community questions.",whatChanged:"Seller uploaded dyno sheet and full mod documentation 5 hours ago. No community concerns raised.",sellerStatus:"Proactively uploaded documentation before being asked. No open questions.",sam_view:"Not a stock collector car, a built car with documentation. Seller uploaded the dyno sheet proactively 5 hours ago, which is a good sign. No community concerns raised. If you want the build, this is well-documented.",what_i_like:"9,700 miles, 468whp with dyno sheet, seller proactively added documentation.",actionLine:"I would only chase this if you want a built car. If you want a stock example, this is not it."},
-{id:"L08",status:"live",year:2008,make:"Toyota",model:"Sequoia Platinum 4x4",type:"suv",trans:"automatic",drive:"4WD",price:9100,miles:96000,loc:"Yonkers, NY",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/7a0a3c6148108c9c64425dd85e0181fa3cccb652/photos/application/s-Az_3Gml/edit/EmqkI.jpg?t=177891456185",reserve_status:"none",daysLive:3,endsIn:4,liveSignals:[{type:"concern",text:"Community member who inspected in person says frame rail rust is worse than photos suggest. Seller disputes, says surface only.",time:"3 hours ago"}],openQuestion:"Frame rail rust disputed. Community inspector says worse than photos. Seller says surface only. Unresolved.",whatChanged:"In-person inspection raised frame rail concern 3 hours ago. Seller responded but dispute is unresolved.",sellerStatus:"Responded to rust concern but did not resolve it. Dispute with community inspector ongoing.",sam_view:"5.7L V8 no reserve at reasonable money. The rust story is getting complicated, a community member who actually inspected the car says the frame rust is worse than photos show, and the seller disputes it. That disagreement needs an independent eye before bidding.",what_i_like:"5.7L V8, locking center diff, no reserve.",actionLine:"I would want an independent inspection of those frame rails given the unresolved dispute between the community inspector and the seller."},
-{id:"L06",status:"live",year:2020,make:"Land Rover",model:"Range Rover SVAutobiography Dynamic",type:"suv",trans:"automatic",drive:"AWD",price:40000,miles:33000,loc:"San Luis Obispo, CA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/da6e8a1d4896127a9d2adf83461993b45339474c/photos/application/s-_b78Pca/edit/FdNvu.jpg?t=177876856846",reserve_status:"active",daysLive:4,endsIn:3,liveSignals:[{type:"concern",text:"Seller has not responded to any community question in 8 hours. Service history and warranty transfer both unanswered.",time:"8 hours ago"}],openQuestion:"Service history and warranty transfer both unanswered. Seller silent for 8 hours.",whatChanged:"No seller activity in 8 hours. Two open questions, service records and warranty transfer, both unresolved.",sellerStatus:"Has not responded to any community question. Silent for 8 hours.",sam_view:"Strong spec on paper. But the seller has not responded to a single community question in 8 hours, service history and warranty transfer are both sitting unanswered. Reserve is active. With 3 days left, silence this early at this price point is something to notice.",what_i_like:"SVAutobiography Dynamic, 33k miles, California ownership.",actionLine:"I would not bid until the seller engages. Silence for 8 hours on questions this basic is a signal."},
-{id:"L10",status:"live",year:2020,make:"Nissan",model:"370Z Sport Touring",type:"sports",trans:"automatic",drive:"RWD",price:5580,miles:16600,loc:"Los Angeles, CA",url:"https://carsandbids.com",img:"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/c51905b0000b639a185eeb080dd879bf007f5604/photos/exterior/3vAVEA0k-sCSR5pQ/edit/9L2LD.jpg?t=177930535574",reserve_status:"active",daysLive:2,endsIn:5,liveSignals:[{type:"resolved",text:"Seller confirmed Sport Touring spec with factory LSD 1 hour ago. Monroney uploaded to gallery.",time:"1 hour ago"}],openQuestion:"Reserve active and amount unknown.",whatChanged:"Seller confirmed LSD and uploaded Monroney 1 hour ago after community asked. Reserve still unknown.",sellerStatus:"Answered LSD question and uploaded documentation within 1 hour of being asked.",sam_view:"Clean low-mile 370Z. Seller confirmed the factory LSD and uploaded the Monroney an hour ago after the community asked, that is responsive. Reserve is still active and the amount is unknown.",what_i_like:"Sport Touring with factory LSD, 16,600 miles, seller actively engaging.",actionLine:"I would watch whether the reserve gets met. The seller is responsive which is a good sign."}
-];
-
 // Partner (PowerSeller) profiles come from the backend partners table via
 // decision.partnerReferral. Nothing partner-related is hardcoded here.
 
@@ -459,7 +446,6 @@ Key facts:
 - Timing: the question flow takes under a minute, and the market analysis itself runs in seconds once the questions are done. Nothing here is a long process.
 - Privacy and leads: seller details are used only to build the recommendation. If the seller chooses to proceed, their details go to one single chosen destination, never blasted to multiple partners, never sold.
 - If asked about The Daily Vroom, Sam Gold, ownership, or who is behind GoAskSam: GoAskSam is part of The Daily Vroom, the trusted collector car newsletter read by tens of thousands of readers and running for years. Sam Gold owns The Daily Vroom. Its tools also include the Import Calculator. If asked whether GoAskSam is part of The Daily Vroom, the answer is definitively yes. Never claim ignorance of these facts.
-- Cars & Bids auctions run 7 days. Submit all info and live within 72 hours.
 - GoAskSam uses live market evidence for seller recommendations. Do not name a power seller unless one has been explicitly verified in the current context.
 - PowerSellers may be worth evaluating for six-figure or specialist cars, but consignment status, region, minimum value and availability must be verified first.
 - GoAskSam records seller details and the selected choice. Do not promise a specific response time unless it is confirmed.
@@ -468,42 +454,6 @@ Key facts:
 Style: never use em dashes or en dashes anywhere in your replies. Use commas or periods instead. Write plain prose only: no markdown, no asterisks, no underscores, no bullet syntax, no headers. Never open with filler like "Great question" or "Good question"; start with the substance.
 
 Never say you are AI. You are Sam. End on your answer; the wizard re-asks its own question after you.`;
-
-const DEMO_SIGNALS=[
-  {id:"L01",type:"concern",text:"Seller still has not addressed the non-matching numbers question. 3 days left in auction.",time:"Just now"},
-  {id:"L07",type:"resolved",text:"Seller posted in the DME thread, confirmed codes have not returned after 48 hours of driving. Community satisfied.",time:"Just now"},
-  {id:"L14",type:"concern",text:"Fourth commenter noted paint texture inconsistency on rear quarter. Auction ends tomorrow. Seller still silent.",time:"Just now"},
-  {id:"L03",type:"resolved",text:"Seller addressed DSG service question, receipts uploaded showing service at 40k and 75k miles.",time:"Just now"},
-  {id:"L11",type:"concern",text:"Auction ends in 2 days. Seller still has not committed to replacing the 2015 tires.",time:"Just now"},
-  {id:"L08",type:"concern",text:"Second community member confirmed the frame rail rust concern after an independent inspection.",time:"Just now"},
-  {id:"L09",type:"resolved",text:"The tuner who built the car appeared in comments and confirmed the build specs match the documentation.",time:"Just now"},
-  {id:"L06",type:"concern",text:"Now 12 hours without seller engagement. Third question posted, still no response.",time:"Just now"},
-  {id:"L15",type:"resolved",text:"Seller responded to roof panel concern, says it is a trim clip issue and posted a photo of the attachment point.",time:"Just now"},
-  {id:"L10",type:"resolved",text:"Seller confirmed no accidents and uploaded full service history from the Nissan dealer.",time:"Just now"}
-];
-let demoSignalIndex=0,demoInterval=null;
-
-function startDemoSignals(){
-  if(demoInterval)return;
-  demoInterval=setInterval(()=>{
-    const s=DEMO_SIGNALS[demoSignalIndex%DEMO_SIGNALS.length];
-    demoSignalIndex++;injectLiveSignal(s.id,s.type,s.text,s.time);
-  },90000);
-}
-function injectLiveSignal(listingId,type,text,time){
-  const l=LISTINGS.find(x=>x.id===listingId);if(!l)return;
-  l.liveSignals.unshift({type,text,time});
-  if(type==="concern")l.openQuestion=text;
-  document.querySelectorAll(`[data-listing-id="${listingId}"]`).forEach(card=>{
-    const ex=card.querySelector(".card-update");if(ex)ex.remove();
-    const t=document.createElement("div");t.className=`card-update ${type}`;
-    t.innerHTML=`<div class="update-dot"></div><div class="update-text"><span class="update-time">${time}:</span> ${escapeHtml(text)}</div>`;
-    const a=card.querySelector(".card-actions");if(a)card.insertBefore(t,a);
-    card.style.transition="border-color .3s";
-    card.style.borderColor=type==="concern"?"#fbbf24":"#86efac";
-    setTimeout(()=>{card.style.borderColor="";},3000);
-  });
-}
 
 function cleanInitialCarText(text){
   return String(text||"")
@@ -2258,7 +2208,6 @@ OFF TOPIC: Warm redirect, vary wording, land on: what car are we selling?
 JOKES: Play along briefly, redirect to cars.`;
 
 const history=[];
-const sessionContext={type:null,budget:null,transmission:null};
 const API_ORIGIN=location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:"?"https://goasksam.vercel.app":"";
 
 function hideHero(){const h=document.getElementById("hero");if(h)h.remove();}
@@ -2361,114 +2310,12 @@ async function validateVehicleIdentityPreflight(candidate,opts={}){
   }
   return true;
 }
-function reserveInfo(l){
-  if(l.reserve_status==="none")return{label:"No Reserve",cls:"none"};
-  if(l.reserve_status==="rnm")return{label:"Reserve Not Met",cls:"rnm"};
-  if(l.reserve_status==="sold")return{label:"Sold",cls:"sold"};
-  return{label:"Reserve Active",cls:"active"};
-}
-function priceLabel(l){return l.status==="sold"?"sold for":l.status==="unsold"?"bid to":"current bid";}
-function getLatestSignal(l){return l.liveSignals&&l.liveSignals.length?l.liveSignals[0]:null;}
-function getFlags(l){
-  const flags=[];const sig=getLatestSignal(l);
-  if(sig&&sig.type==="resolved")flags.push({type:"good",text:"Seller responded"});
-  if(sig&&sig.type==="concern")flags.push({type:"watch",text:"Community flagged"});
-  if(l.endsIn&&l.endsIn<=1)flags.push({type:"urgent",text:"Ends tomorrow"});
-  if(l.reserve_status==="none")flags.push({type:"good",text:"No reserve"});
-  if(l.trans==="manual")flags.push({type:"good",text:"Manual"});
-  return flags.slice(0,4);
-}
-function getTimingLabel(l){
-  if(!l.endsIn)return null;
-  if(l.endsIn<=1)return{text:"Ends tomorrow",cls:"urgent"};
-  if(l.endsIn<=3)return{text:`Ends in ${l.endsIn} days`,cls:"soon"};
-  return{text:`Ends in ${l.endsIn} days`,cls:"normal"};
-}
-function getTimingContext(l){
-  const sig=getLatestSignal(l);if(!l.endsIn)return null;
-  if(l.endsIn<=1&&sig&&sig.type==="concern")return{text:`Auction ends tomorrow. This question is still unresolved.`,cls:"urgent"};
-  if(l.endsIn<=1)return{text:`Auction ends tomorrow.`,cls:"urgent"};
-  if(l.daysLive<=1)return{text:`Auction launched yesterday. Still early.`,cls:""};
-  if(l.endsIn<=3&&sig&&sig.type==="concern")return{text:`${l.endsIn} days left and this is still unresolved.`,cls:"soon"};
-  return null;
-}
-function getActionLine(l){
-  const map={L07:"I would read the full DME thread and then decide, the seller has done the right things. Reserve closing tomorrow is the only remaining question.",L03:"I would verify the uploaded documentation, then watch how quickly the seller responds to the DSG question.",L01:"I would not bid seriously until the non-matching numbers question gets a direct answer from the seller.",L14:"Auction ends tomorrow and the paint question is still unanswered after 5 hours. That is too much uncertainty for me at this point.",L09:"I would only chase this if you want a built car. If you want a stock example, this is not it.",L15:"Auction is only 1 day old. I would watch how the seller responds to the roof panel question before forming a view.",L11:"I would want a tire replacement commitment before bidding up. That answer needs to come in the next 2 days.",L08:"I would want an independent inspection of those frame rails given the unresolved dispute.",L06:"Seller silence in an auction at this price point is notable. I would want to see engagement before bidding."};
-  return map[l.id]||"I would read the listing carefully and check whether the seller has addressed what the community is asking.";
-}
-function saveAuction(id){
-  const l=LISTINGS.find(x=>x.id===id);if(!l)return;
-  addMsg("sam",`Noted. ${l.year} ${l.make} ${l.model}. The community signals and seller responses can shift quickly. Worth keeping an eye on.`);
-}
-function showTake(id){
-  const l=LISTINGS.find(x=>x.id===id);if(!l)return;
-  const ri=reserveInfo(l);
-  const timing=getTimingContext(l);
-  const timingHTML=timing?`<div class="modal-timing ${timing.cls}">${escapeHtml(timing.text)}</div>`:"";
-  const signals=l.liveSignals&&l.liveSignals.length?l.liveSignals.map(s=>`<div class="modal-signal ${s.type}"><strong>${s.time}:</strong> ${escapeHtml(s.text)}</div>`).join(""):"<div style='color:#aaa;font-size:13px'>Nothing flagged yet.</div>";
-  const overlay=document.createElement("div");overlay.className="modal-overlay";
-  overlay.innerHTML=`<div class="modal">
-    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
-    <div class="modal-title">${l.year} ${l.make} ${l.model}</div>
-    <div class="modal-sub">${(l.miles||0).toLocaleString()} mi · ${l.trans||""} · ${l.loc}</div>
-    <div class="modal-pill badge badge-${ri.cls}">${ri.label}</div>
-    ${timingHTML}
-    <div class="modal-section"><div class="modal-label">What the community has surfaced</div>${signals}</div>
-    <div class="modal-section"><div class="modal-label">Still unresolved</div><div class="modal-section-text">${escapeHtml(l.openQuestion||"Nothing open right now.")}</div></div>
-    <div class="modal-section"><div class="modal-label">Seller status</div><div class="modal-section-text">${escapeHtml(l.sellerStatus||"No activity yet.")}</div></div>
-    <div class="modal-block"><div class="modal-label">Sam's Read</div>${escapeHtml(l.sam_view)}</div>
-    <div class="modal-section"><div class="modal-label">What I would do</div><div class="modal-section-text">${escapeHtml(getActionLine(l))}</div></div>
-    <div class="modal-actions">
-      <button class="primary" onclick="window.open('${l.url||"#"}','_blank')">View Auction</button>
-      <button class="ghost" onclick="saveAuction('${l.id}');this.closest('.modal-overlay').remove()">Save</button>
-      <button class="ghost" onclick="this.closest('.modal-overlay').remove()">Back</button>
-    </div>
-  </div>`;
-  overlay.addEventListener("click",e=>{if(e.target===overlay)overlay.remove();});
-  document.body.appendChild(overlay);
-}
-function cardHTML(l,reason){
-  const ri=reserveInfo(l);const flags=getFlags(l);
-  const latestSig=getLatestSignal(l);
-  const timing=getTimingLabel(l);
-  const timingHTML=timing?`<div class="card-ends ${timing.cls}">${timing.text}</div>`:"";
-  const tickerHTML=latestSig?`<div class="card-update ${latestSig.type}"><div class="update-dot"></div><div class="update-text"><span class="update-time">${latestSig.time}:</span> ${escapeHtml(latestSig.text)}</div></div>`:"";
-  const intelLines=[];
-  if(l.whatChanged)intelLines.push(`<div><strong>What changed:</strong> ${escapeHtml(l.whatChanged)}</div>`);
-  if(l.openQuestion)intelLines.push(`<div><strong>Still unresolved:</strong> <span class="card-oq">${escapeHtml(l.openQuestion)}</span></div>`);
-  const intelHTML=intelLines.length?`<div class="card-intel">${intelLines.join("")}</div>`:"";
-  return`<div class="card" data-listing-id="${l.id}">
-    <div class="card-img-wrap" onclick="showTake('${l.id}')">
-      <img class="card-img" src="${l.img}" alt="${l.year} ${l.make} ${l.model}" onerror="this.closest('.card').style.display='none'">
-      <div class="card-source">Cars &amp; Bids</div>${timingHTML}
-    </div>
-    <div class="card-body">
-      <div class="card-title">${l.year} ${l.make} ${l.model}</div>
-      <div class="card-meta">${(l.miles||0).toLocaleString()} mi · ${l.trans} · ${l.loc}</div>
-      <div class="card-flags">${flags.map(f=>`<span class="flag flag-${f.type}">${escapeHtml(f.text)}</span>`).join("")}</div>
-      <div class="price-row">
-        <div><div class="price-label">${priceLabel(l)}</div><div class="price">$${l.price.toLocaleString()}</div></div>
-        <span class="badge badge-${ri.cls}">${ri.label}</span>
-      </div>${intelHTML}
-    </div>${tickerHTML}
-    <div class="card-actions">
-      <button class="primary" onclick="window.open('${l.url||"#"}','_blank')">View Auction</button>
-      <button class="ghost" onclick="showTake('${l.id}')">Sam's Read</button>
-      <button class="ghost" onclick="saveAuction('${l.id}')">Save</button>
-    </div>
-  </div>`;
-}
 function parseResults(raw){
-  const searchMatch=raw.match(/\[SEARCHING:([^\]]+)\]/);
-  const cardMatches=[...raw.matchAll(/\[CARD:([^|\]]+)\|([^\]]+)\]/g)];
   const chipMatch=raw.match(/\[CHIPS:([^\]]+)\]/);
-  const search=searchMatch?searchMatch[1].trim():null;
-  const cards=cardMatches.map(m=>({l:LISTINGS.find(x=>x.id===m[1].trim()),r:m[2].trim()})).filter(x=>x.l);
   const chips=chipMatch?chipMatch[1].split("|").map(x=>x.trim()).filter(Boolean):[];
   const clean=raw.replace(/\[SEARCHING:.*?\]/g,"").replace(/\[CARD:.*?\]/g,"").replace(/\[RNM:.*?\]/g,"").replace(/\[CHIPS:.*?\]/g,"").trim();
-  const resultsHTML=cards.length?`<div class="cards-grid">${cards.map(x=>cardHTML(x.l,x.r)).join("")}</div>`:"";
   const chipsHTML2=chips.length?`<div class="chips">${chips.map(c=>`<button class="chip" onclick="handleChip('${c.replace(/'/g,"\\'")}')"> ${escapeHtml(c)}</button>`).join("")}</div>`:"";
-  return{clean,search,resultsHTML,chipsHTML:chipsHTML2,cards};
+  return{clean,chipsHTML:chipsHTML2};
 }
 let __lastSamText=null;
 function addMsg(role,text,html="",chipsStr=""){
@@ -2491,15 +2338,6 @@ function addMsg(role,text,html="",chipsStr=""){
   row.appendChild(inner);msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
   return row;
 }
-function addSearchMsg(text){
-  hideHero();
-  const msgs=document.getElementById("msgs");
-  const row=document.createElement("div");row.className="row sam";
-  row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div><div class="searching"><div class="spinner"></div><span>${escapeHtml(text||"Searching live auctions...")}</span></div></div></div>`;
-  msgs.appendChild(row);row.scrollIntoView({behavior:"smooth",block:"start"});
-  return row;
-}
-function updateSearchMsg(row,text){const s=row.querySelector(".searching span");if(s)s.textContent=text;}
 function platformLogo(option){
   const name=String(option?.name||"").toLowerCase();
   if(option?.key==="specialist")return{cls:"specialist",text:"SP"};
@@ -3423,13 +3261,6 @@ function compareSellOptions(){
   return lines.filter(Boolean).join(" ");
 }
 
-function finishSearchMsg(row,resultsHTML,chipsStr,afterText,count){
-  const wrap=row.querySelector(".msg-wrap");
-  const resultLine=count===1?"I found one auction worth looking at.":"I found a few worth looking at.";
-  wrap.innerHTML=`<div class="sam-label">Sam</div><div class="sam-text">${resultLine}</div>${resultsHTML||""}<div class="sam-text after-results">Click Sam's Read on any of these to see what changed, what is still unresolved, and how I would approach it. Want me to narrow these down?</div>${chipsStr||""}`;
-  row.scrollIntoView({behavior:"smooth",block:"start"});
-  startDemoSignals();
-}
 function showTyping(){
   const msgs=document.getElementById("msgs");
   const row=document.createElement("div");row.id="typing";row.className="row sam";
@@ -3467,7 +3298,6 @@ function showRecommendationExplainer(){
 }
 function newConversation(){
   history.length=0;
-  sessionContext.type=null;sessionContext.budget=null;sessionContext.transmission=null;
   resetSellState();
   if(demoInterval){clearInterval(demoInterval);demoInterval=null;}
   demoSignalIndex=0;
@@ -3571,15 +3401,7 @@ async function send(){
     }
   }
 
-  let enrichedQ=q;
-  if(sessionContext.type&&(sessionContext.budget||sessionContext.transmission)){
-    const parts=[];
-    if(sessionContext.type)parts.push(`Car type: ${sessionContext.type}`);
-    if(sessionContext.budget)parts.push(`Budget: ${sessionContext.budget}`);
-    if(sessionContext.transmission)parts.push(`Transmission: ${sessionContext.transmission}`);
-    enrichedQ=parts.join(", ")+". User just said: "+q+". Show matching cars now.";
-  }
-  history.push({role:"user",content:enrichedQ});
+  history.push({role:"user",content:q});
   showTyping();
   try{
     const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:history,system:SYS})});
@@ -3594,16 +3416,9 @@ async function send(){
     const raw=stripChatMarkdown(data.text);
     const parsed=parseResults(raw);
     hideTyping();
-    if(parsed.resultsHTML){
-      const searchRow=addSearchMsg(parsed.search||"Searching live auctions...");
-      setTimeout(()=>updateSearchMsg(searchRow,"Checking community signals and seller responses..."),1600);
-      setTimeout(()=>updateSearchMsg(searchRow,"Looking for open questions and auction timing..."),3200);
-      setTimeout(()=>{finishSearchMsg(searchRow,parsed.resultsHTML,parsed.chipsHTML,parsed.clean,parsed.cards.length);document.getElementById("btn").disabled=false;},4800);
-    }else{
-      if(parsed.clean)addMsg("sam",parsed.clean);
-      if(parsed.chipsHTML)addMsg("sam","","",parsed.chipsHTML);
-      document.getElementById("btn").disabled=false;
-    }
+    if(parsed.clean)addMsg("sam",parsed.clean);
+    if(parsed.chipsHTML)addMsg("sam","","",parsed.chipsHTML);
+    document.getElementById("btn").disabled=false;
     history.push({role:"assistant",content:raw});
   }catch(e){
     hideTyping();addMsg("sam","Connection issue. Try again.");
