@@ -1688,11 +1688,18 @@ async function showSellRecommendation(){
   const featuredPowerSeller=powerSellerProfiles[0]||null;
   const secondaryPowerSellers=[];
   const featuredPowerSellerName=featuredPowerSeller?powerSellerFirstName(featuredPowerSeller):"";
-  const powerSellerHTML=featuredPowerSeller?`
+  // Two copy variants: the intro and badge reference where the platform pick
+  // sits, so the section leading the layout reads differently from the section
+  // rendered second (after a DIY answer or a price-divergence flag).
+  const buildPowerSellerHTML=platformFirst=>featuredPowerSeller?`
     <div class="sell-section-label">Have it handled</div>
-    <div class="sell-section-note">Honestly? At this level my personal preference is generally a good PowerSeller: photography, the listing, buyer questions and platform choice handled end to end. You pay them a fee, and the good ones earn it. ${escapeHtml(featuredPowerSellerName)} is who I'd call. If you'd rather run it yourself, the platform pick is right below.</div>
-    ${renderFeaturedPowerSellerProfile(featuredPowerSeller)}
+    <div class="sell-section-note">${platformFirst
+      ?`If you'd rather have the whole sale handled end to end, photography, the listing, buyer questions and platform choice, ${escapeHtml(featuredPowerSellerName)} is who I'd call. The platform pick above is the place to start if you're running it yourself.`
+      :`Honestly? At this level my personal preference is generally a good PowerSeller: photography, the listing, buyer questions and platform choice handled end to end. You pay them a fee, and the good ones earn it. ${escapeHtml(featuredPowerSellerName)} is who I'd call. If you'd rather run it yourself, the platform pick is right below.`}</div>
+    ${renderFeaturedPowerSellerProfile(featuredPowerSeller,platformFirst)}
   `:"";
+  const powerSellerHTML=buildPowerSellerHTML(false);
+  const powerSellerSecondHTML=buildPowerSellerHTML(true);
   const platformOptions=sellState.sellOptions.filter(option=>option.key!=="specialist");
   const primaryPlatform=platformOptions[0]||null;
   const secondaryPlatforms=powerSellerHTML?[]:platformOptions.slice(1,2);
@@ -1731,7 +1738,7 @@ async function showSellRecommendation(){
 
   if(powerSellerHTML&&!priceDiverged){
     // Gate-open: one light choice orders the sections before anything renders.
-    sellState.pendingResultSections={headerHTML,powerSellerHTML,platformCardsHTML,caveatHTML,afterText};
+    sellState.pendingResultSections={headerHTML,powerSellerHTML,powerSellerSecondHTML,platformCardsHTML,caveatHTML,afterText};
     sellState.awaitingPathChoice=true;
     sellState.step=12;
     const row=document.createElement("div");row.className="row sam";
@@ -1741,7 +1748,7 @@ async function showSellRecommendation(){
     return;
   }
 
-  const orderedSections=priceDiverged&&powerSellerHTML?`${platformCardsHTML}${powerSellerHTML}`:`${powerSellerHTML}${platformCardsHTML}`;
+  const orderedSections=priceDiverged&&powerSellerHTML?`${platformCardsHTML}${powerSellerSecondHTML}`:`${powerSellerHTML}${platformCardsHTML}`;
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
@@ -1760,7 +1767,7 @@ function renderPendingResultSections(choice){
   sellState.awaitingPathChoice=false;
   sellState.pendingResultSections=null;
   const platformFirst=choice==="diy";
-  const sections=platformFirst?`${parts.platformCardsHTML}${parts.powerSellerHTML}`:`${parts.powerSellerHTML}${parts.platformCardsHTML}`;
+  const sections=platformFirst?`${parts.platformCardsHTML}${parts.powerSellerSecondHTML}`:`${parts.powerSellerHTML}${parts.platformCardsHTML}`;
   const msgs=document.getElementById("msgs");
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${sections}${parts.caveatHTML}<div class="sam-text after-results">${parts.afterText}</div></div></div>`;
@@ -2982,14 +2989,14 @@ function powerSellerProofHTML(profile){
   ).join("");
 }
 
-function renderFeaturedPowerSellerProfile(profile){
+function renderFeaturedPowerSellerProfile(profile,platformFirst){
   if(!profile)return "";
   const firstName=powerSellerFirstName(profile);
   const platformChips=powerSellerPlatformLogoChips({platforms:profile.providedPlatforms||profile.platforms||[]});
   const proofHTML=powerSellerProofHTML(profile);
   return `<div class="power-seller-feature" onclick="choosePowerSeller('${escapeHtml(profile.id)}')">
     <div class="power-seller-feature-main">
-      <div class="sell-rec-badge specialist">Option 1: have it handled</div>
+      <div class="sell-rec-badge specialist">${platformFirst===true?"Option 2: have it handled":platformFirst===false?"Option 1: have it handled":"Have it handled"}</div>
       <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>
       <span class="observed-seller-meta">Auction consignor</span>
       ${proofHTML?`<div class="power-seller-proof-list">${proofHTML}</div>`:""}
