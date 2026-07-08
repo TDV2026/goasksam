@@ -776,9 +776,12 @@ async function handleVehicleValidationAnswer(q){
   // Global invariant: off-script input routes to the chat layer from EVERY
   // state, including this clarification sub-state. Conversational input with
   // no vehicle signal is a question for Sam, not a model answer.
+  // Intents outrank the off-script guard: a wordy move-on or refusal is an
+  // instruction to advance, not a question for the chat layer.
+  const subStateIntent=detectIntent(lower);
   const questionLike=/\?\s*$/.test(lower)||/^(what|how|why|when|where|who|can|could|will|would|does|do|is|are|should|but|explain|tell me)\b/i.test(lower)||/\b(how long|you never|what happens|why do you)\b/i.test(lower);
-  const wordyNonAnswer=lower.split(/\s+/).length>=4&&!/\d/.test(lower)&&!looksLikeVehicleText(q)&&!/\b(not sure|don.t know|unknown|skip|change car|start over|wrong car|different car|yes|yep|yeah|correct)\b/i.test(lower);
-  if((questionLike&&!looksLikeVehicleText(q))||wordyNonAnswer)return false;
+  const wordyNonAnswer=!subStateIntent&&lower.split(/\s+/).length>=4&&!/\d/.test(lower)&&!looksLikeVehicleText(q)&&!/\b(not sure|don.t know|unknown|skip|change car|start over|wrong car|different car|yes|yep|yeah|correct)\b/i.test(lower);
+  if((questionLike&&!subStateIntent&&!looksLikeVehicleText(q))||wordyNonAnswer)return false;
   if(currentIssue?.baseVehicle&&/\bdifferent\b.*\bmodel\b/i.test(lower)){
     sellState.carName=currentIssue.baseVehicle;
     sellState.carRaw=currentIssue.baseVehicle;
