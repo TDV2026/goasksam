@@ -14,6 +14,7 @@ const PER_REQUEST_TIMEOUT_MS = 8000;
 
 const ROUTE_POLICIES = {
   bringatrailer: {
+    about: { regionsLabel: "the US", since: 2014, knownFor: "enthusiast and collector cars across every era", source: "policy_provided" },
     label: "Bring a Trailer",
     evidenceCapable: true,
     priceOutcome: "strong",
@@ -23,6 +24,7 @@ const ROUTE_POLICIES = {
     strongSegments: ["premium_collectors", "air_cooled_porsche", "high_end_enthusiast", "classic_european", "modern_classic"]
   },
   carsandbids: {
+    about: { regionsLabel: "the US", since: 2020, knownFor: "modern enthusiast cars from the 1980s onward", source: "policy_provided" },
     label: "Cars & Bids",
     evidenceCapable: true,
     priceOutcome: "medium",
@@ -32,6 +34,7 @@ const ROUTE_POLICIES = {
     strongSegments: ["modern_enthusiast", "bmw_m", "modern_porsche", "jdm", "sports_cars", "quick_listing"]
   },
   pcarmarket: {
+    about: { regionsLabel: "the US", since: 2018, knownFor: "Porsche and European sports cars", source: "policy_provided" },
     label: "PCarMarket",
     evidenceCapable: true,
     priceOutcome: "medium",
@@ -41,6 +44,7 @@ const ROUTE_POLICIES = {
     strongSegments: ["porsche", "european_sports", "nimble_listing"]
   },
   hemmings: {
+    about: { regionsLabel: "the US", since: 1954, knownFor: "classic American and pre-1990 collector cars", source: "policy_provided" },
     label: "Hemmings",
     evidenceCapable: false,
     priceOutcome: "medium",
@@ -50,6 +54,7 @@ const ROUTE_POLICIES = {
     strongSegments: ["older_classic", "classic_american", "pre_1990", "collector"]
   },
   hagerty: {
+    about: { regionsLabel: "the US", since: 2021, knownFor: "classic and collector cars, backed by the Hagerty community", source: "policy_provided" },
     label: "Hagerty Marketplace",
     evidenceCapable: true,
     priceOutcome: "medium",
@@ -59,6 +64,7 @@ const ROUTE_POLICIES = {
     strongSegments: ["classic", "collector", "older_enthusiast", "pre_1990"]
   },
   carandclassic: {
+    about: { regionsLabel: "the UK and Europe", since: 2005, knownFor: "classics and modern classics", source: "policy_provided" },
     label: "Car & Classic",
     evidenceCapable: false,
     priceOutcome: "medium",
@@ -68,6 +74,7 @@ const ROUTE_POLICIES = {
     strongSegments: ["uk_europe", "classic", "modern_classic", "collector", "older_enthusiast"]
   },
   collectingcars: {
+    about: { regionsLabel: "the UK, Europe, Australia and the Middle East", since: 2019, knownFor: "modern classics and enthusiast cars", source: "policy_provided" },
     label: "Collecting Cars",
     evidenceCapable: false,
     priceOutcome: "strong",
@@ -349,6 +356,7 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
       // Evidence-only sources (consignment auction houses) have no route
       // policy: we cannot send a seller there, so they can never be the pick.
       routable: !!ROUTE_POLICIES[key],
+      about: policy.about || null,
       hasMarketEvidence: !!evidence,
       marketEvidence: evidence
     };

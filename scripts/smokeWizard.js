@@ -198,6 +198,31 @@ for (const [stepStr, cfg] of Object.entries(PIPELINE_STEPS)) {
   check(`pipeline step ${step}: real answer stores`, sellState[cfg.field] !== null && !/whats the point/i.test(String(sellState[cfg.field])), `${cfg.field}=${JSON.stringify(sellState[cfg.field])}`);
 }
 
+// 7b. EVERY step accepts EVERY one of its own chip labels as typed text.
+for (const [stepStr, cfg] of Object.entries(PIPELINE_STEPS)) {
+  const step = Number(stepStr);
+  const chips = (globalThis.__t.SELL_STEP_QUESTIONS[step]?.chips || []).filter(c => !/^(not sure|skip|other)$/i.test(c));
+  for (const chip of chips) {
+    resetToStep1();
+    sellState.step = step; sellState.carName = "2018 Porsche 911"; if (step === 18) sellState.region = "US";
+    sellState[cfg.field] = null;
+    const before = samMessages().length;
+    await handleSellStep(chip);
+    const rejected = samMessages().slice(before).some(m => /didn't catch that|Still on this question/i.test(m));
+    check(`chip self-validation step ${step}: "${chip}"`, !rejected && sellState[cfg.field] !== null, `${cfg.field}=${JSON.stringify(sellState[cfg.field])} rejected=${rejected}`);
+  }
+}
+
+// 7c. Move-on at the model question advances to location in the same turn.
+resetToStep1();
+await handleSellStep("vw camper van"); // -> asks year (step 17)
+if (sellState.step === 17) {
+  const before = samMessages().length;
+  await handleSellStep("lets forget the model now");
+  const msgs17 = samMessages().slice(before);
+  check("move-on waiver: advances to location in the same turn", sellState.step === 11 && msgs17.some(m => /where is the car located/i.test(m)), `step=${sellState.step} msgs=${JSON.stringify(msgs17)}`);
+}
+
 // 8. Confirmation affirmation: "yeh" accepts the cleaned corrected suggestion.
 resetToStep1();
 await handleSellStep("sell my porche 9111 turbo from 2007");

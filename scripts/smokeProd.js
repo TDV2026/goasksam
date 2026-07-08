@@ -3,7 +3,12 @@
 //
 // Usage: npm run smoke:prod   (optionally SMOKE_BASE_URL=https://... to override)
 
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 const BASE = process.env.SMOKE_BASE_URL || "https://goasksam.vercel.app";
+const __html = fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "index.html"), "utf8");
+const ENTRY_SYS = __html.match(/const SYS=`([\s\S]*?)`;\n/)[1];
 let failures = 0;
 
 function check(name, ok, detail) {
@@ -94,7 +99,18 @@ await chatCase(
 await identityCase("identity: 2018 911 Carrera GTS", "2018 911 Carrera GTS", "valid", /2018 Porsche 911 Carrera GTS/);
 await identityCase("identity: miata", "miata", "needs_clarification", /Mazda MX-5.*year/i);
 await identityCase("identity: 67 corvette", "67 corvette", "valid", /1967 Chevrolet Corvette/);
-await identityCase("identity: e46 m3 cold entry", "e46 m3", "needs_clarification", /BMW/i);
+// Entry chat grounding: real production SYS prompt, content assertions.
+{
+  const legit = await post("/api/chat", { messages: [{ role: "user", content: "is this site legit" }], system: ENTRY_SYS });
+  const t1 = String(legit.body.text || "");
+  check("entry: legit answer is grounded", legit.status === 200 && /auction sale records|where (to|should you) sell|seller/i.test(t1), `text="${t1.slice(0, 200)}"`);
+  check("entry: no live-listing or demo claims", !/live listing|demo (set|version)|10 (live )?listings|pull up|what('| i)s live|tracks live|browse/i.test(t1), `text="${t1.slice(0, 250)}"`);
+  const tdv = await post("/api/chat", { messages: [{ role: "user", content: "is it part of the daily vroom yes or no" }], system: ENTRY_SYS });
+  const t2 = String(tdv.body.text || "");
+  check("entry: daily vroom affirmative", /\byes\b/i.test(t2) && !/don'?t know|no information|not sure (if|whether)/i.test(t2), `text="${t2.slice(0, 200)}"`);
+}
+
+await identityCase("identity: e46 m3 cold entry", "e46 m3", "needs_clarification", /BMW M3/i);
 await identityCase("identity: mustang vert never trims Vert", "1990 mustang vert", "valid", /^((?!Vert).)*$/s);
 await identityCase("identity: non-car input", "after i give you this what will happen", "needs_clarification", /year, make and model/i);
 

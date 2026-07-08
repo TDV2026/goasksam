@@ -458,7 +458,7 @@ Key facts:
 - Fees: GoAskSam holds NO platform fee data. Never state platform fees, commissions, percentages, or caps as fact; those numbers would be invented. If asked about platform costs, say fee structures change and the platform's current terms are the place to check. If asked what howS or any consignor/PowerSeller charges: we do not hold his fee terms; per howS his structure is usually flexible (flat fee, percentage, or incentive), and the specifics are discussed directly with him if the seller requests an introduction.
 - Timing: the question flow takes under a minute, and the market analysis itself runs in seconds once the questions are done. Nothing here is a long process.
 - Privacy and leads: seller details are used only to build the recommendation. If the seller chooses to proceed, their details go to one single chosen destination, never blasted to multiple partners, never sold.
-- If asked about The Daily Vroom, Sam Gold, ownership, or who is behind GoAskSam: Sam Gold is the owner. It is run by a collection of car-market people who want to bring better transparency to the car market. The group has developed tools including the Import & Domestic Car Calculators, this seller-intelligence tool, and more tools are coming.
+- If asked about The Daily Vroom, Sam Gold, ownership, or who is behind GoAskSam: GoAskSam is part of The Daily Vroom, the trusted collector car newsletter read by tens of thousands of readers and running for years. Sam Gold owns The Daily Vroom. Its tools also include the Import Calculator. If asked whether GoAskSam is part of The Daily Vroom, the answer is definitively yes. Never claim ignorance of these facts.
 - Cars & Bids auctions run 7 days. Submit all info and live within 72 hours.
 - GoAskSam uses live market evidence for seller recommendations. Do not name a power seller unless one has been explicitly verified in the current context.
 - PowerSellers may be worth evaluating for six-figure or specialist cars, but consignment status, region, minimum value and availability must be verified first.
@@ -797,7 +797,7 @@ async function handleVehicleValidationAnswer(q){
     return true;
   }
   // Explicit "move on" always advances at the level we know (locked behavior).
-  if(/\b(move on|moving on|lets? move|just continue|keep going|carry on|next question|proceed)\b/i.test(lower)){
+  if(detectIntent(lower)==="moveOn"){
     const baseVehicle=currentIssue?.baseVehicle||sellState.carName||"the car";
     sellState.carName=baseVehicle;sellState.carRaw=baseVehicle;
     sellState.vehicleDetailSkipped=true;sellState.pendingVehicleIdentity=null;
@@ -806,7 +806,7 @@ async function handleVehicleValidationAnswer(q){
     addMsg("sam",`Moving on with the ${baseVehicle}. The read will be broader than model-specific, and I'll say so in the result. Where is the car located?`,"",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
     return true;
   }
-  if(/\b(not sure|don'?t know|dont know|no idea|dunno|unknown|skip)\b/i.test(lower)){
+  if(detectIntent(lower)==="refusal"||/\bskip\b/i.test(lower)){
     sellState.notSureRepeats=(sellState.notSureRepeats||0)+1;
     const baseVehicle=currentIssue?.baseVehicle||sellState.carName||"the car";
     if(sellState.notSureRepeats>=3){
@@ -1055,7 +1055,7 @@ const INTENT_PATTERNS={
   affirmation:/^(yes|yeah|yeh|yep|yup|ya|sure|ok|okay|correct|right|exactly|indeed|sounds good|that'?s (right|it|correct)|looks (good|right))[.! ]*$/i,
   negation:/^(no|nope|nah|wrong|incorrect|not (right|correct|that))[.! ]*$/i,
   refusal:/\b(not sure|don'?t know|dont know|no idea|dunno|unsure|unknown)\b/i,
-  moveOn:/\b(move on|moving on|lets? move|skip( it| this)?|next question|just continue|keep going|carry on|proceed|whatever)\b/i
+  moveOn:/\b(move on|moving on|lets? move|skip( it| this)?|next question|just continue|keep going|carry on|proceed|whatever|forget (it|that|the|about)|without (it|the model)|leave it|drop it)\b/i
 };
 function detectIntent(input){
   const lower=String(input||"").toLowerCase().trim();
@@ -1073,7 +1073,7 @@ function isQuestionInput(input){
 }
 const STEP_SPECS={
   2:{field:"mileage",valid:v=>/\d/.test(v)||/\b(under|over|low|high|barely|hardly)\b/i.test(v)},
-  3:{field:"condition",valid:v=>/\b(stock|mod|modded|modified|original|restored|resto|mint|excellent|great|good|fair|poor|project|clean|rough|concours|survivor)\b/i.test(v)},
+  3:{field:"condition",valid:v=>/\b(stock|mod|mods|modded|modified|original|restored|resto|mint|excellent|great|good|fair|poor|project|clean|rough|concours|survivor)\b/i.test(v)},
   4:{field:"records",valid:v=>/\b(full|complete|some|partial|most|every|no records|none|missing|record|history|documented|binder|receipts|stamps)\b/i.test(v)},
   5:{field:"title",valid:v=>/\b(clean|clear|lien|salvage|rebuilt|branded|title|paid off|financed)\b/i.test(v)},
   6:{field:"price",valid:v=>/\d/.test(v)||/\b(flexible|open|offers?|market)\b/i.test(v)},
@@ -1085,6 +1085,13 @@ const STEP_SPECS={
 function pipelineProcess(q,step){
   const spec=STEP_SPECS[step];
   if(!spec)return{action:"passthrough"};
+  // A step can never reject its own chip labels: they validate verbatim,
+  // case-insensitively, before any other shape check.
+  const ownChips=(SELL_STEP_QUESTIONS[step]?.chips||[]).map(c=>String(c).toLowerCase());
+  const lowered=String(q||"").toLowerCase().trim();
+  if(ownChips.includes(lowered)&&!/^(not sure|skip|other)$/i.test(lowered)){
+    return{action:"store",value:spec.normalize?spec.normalize(q):q};
+  }
   const intent=detectIntent(q);
   if(intent==="moveOn"){
     if(spec.required)return{action:"escalate"};
@@ -1197,7 +1204,7 @@ async function handleSellStep(q){
     // and nothing off-script is ever appended to the car name.
     const questionLike17=/\?\s*$/.test(lower)||/^(what|how|why|when|where|who|can|could|will|would|does|do|is|are|should|but|explain|tell me)\b/i.test(lower)||/\b(how long|how many|how much|you never|what happens)\b/i.test(lower);
     if(questionLike17&&!looksLikeVehicleText(q))return false;
-    if(/\b(not sure|don'?t know|dont know|no idea|dunno|skip|unknown)\b/i.test(lower)||/\b(move on|moving on|lets? move|just continue|keep going|carry on|next question|proceed)\b/i.test(lower)){
+    if(detectIntent(lower)==="refusal"||detectIntent(lower)==="moveOn"||/\bskip\b/i.test(lower)){
       sellState.vehicleDetailSkipped=true;
       addMsg("sam","No problem. I'll keep it broad for now, but the recommendation may be more directional without the exact model.");
     }else{
@@ -1698,27 +1705,89 @@ async function showSellRecommendation(){
     ${diySecondaryLine}
   `):"";
 
-  const row=document.createElement("div");row.className="row sam";
-  row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
-    <div class="sam-label">Sam</div>
-    <div class="sell-rec-header">
+  // Divergence guard: a stated asking price far from the comps median is
+  // addressed plainly and suppresses the powerseller lead (platform first)
+  // until the user clarifies. Never silent gating on a contradicting number.
+  const PRICE_DIVERGENCE_THRESHOLD=0.4;
+  const askPrice=estimatedTargetPrice();
+  const compsMedian=decisionData.evidence?.estimatedValue||null;
+  const priceDiverged=askPrice>0&&compsMedian&&Math.abs(askPrice-compsMedian)/compsMedian>PRICE_DIVERGENCE_THRESHOLD;
+  if(priceDiverged){
+    addMsg("sam",`Worth flagging before anything else: you mentioned ${formatUsd(askPrice)}, but recent comparable sales have a median around ${formatUsd(compsMedian)}. Worth double-checking what you meant, because it changes the advice.`);
+  }
+
+  const headerHTML=`<div class="sell-rec-header">
       <div class="sell-rec-kicker">Seller Intelligence</div>
       <div class="sell-rec-title">${escapeHtml(resultHeaderTitle(routeOptions))}</div>
       <div class="sell-rec-subtitle">${escapeHtml(resultSummaryLine(sellState.sellOptions,routeOptions))}</div>
-    </div>
-    ${powerSellerHTML}
-    ${platformCardsHTML}
-    ${adverseConditionCaveat()?`<div class="sell-section-note" style="margin-top:10px">${escapeHtml(adverseConditionCaveat())}</div>`:""}
-    <div class="sam-text after-results">${powerSellerHTML?"Both are real options and the choice is yours. Pick one, or ask me to compare the tradeoffs.":(secondaryPlatforms.length?(hasTwoRouteTradeoff(routeOptions)?"Which choice fits how you want to sell? You can choose either, or ask me to compare the tradeoffs.":"Which direction feels right? You can pick one, or ask me to compare the tradeoffs."):"Want me to walk through how I'd run the listing, or compare it against the other platforms?")}</div>
-  </div></div>`;
+    </div>`;
+  const caveatHTML=adverseConditionCaveat()?`<div class="sell-section-note" style="margin-top:10px">${escapeHtml(adverseConditionCaveat())}</div>`:"";
+  const afterText=powerSellerHTML?"Both are real options and the choice is yours. Pick one, or ask me to compare the tradeoffs.":(secondaryPlatforms.length?(hasTwoRouteTradeoff(routeOptions)?"Which choice fits how you want to sell? You can choose either, or ask me to compare the tradeoffs.":"Which direction feels right? You can pick one, or ask me to compare the tradeoffs."):"Want me to walk through how I'd run the listing, or compare it against the other platforms?");
   sellState.generatedPrimaryName=sellState.sellOptions[0]?.name||null;
   sellState.generatedSecondaryName=sellState.sellOptions[1]?.name||null;
+
+  if(powerSellerHTML&&!priceDiverged){
+    // Gate-open: one light choice orders the sections before anything renders.
+    sellState.pendingResultSections={headerHTML,powerSellerHTML,platformCardsHTML,caveatHTML,afterText};
+    sellState.awaitingPathChoice=true;
+    sellState.step=12;
+    const row=document.createElement("div");row.className="row sam";
+    row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${headerHTML}<div class="sam-text">Want it handled, or run it yourself?</div>${chipsHTML(["Have it handled","I'll run it myself"])}</div></div>`;
+    msgs.appendChild(row);
+    row.scrollIntoView({behavior:"smooth",block:"start"});
+    return;
+  }
+
+  const orderedSections=priceDiverged&&powerSellerHTML?`${platformCardsHTML}${powerSellerHTML}`:`${powerSellerHTML}${platformCardsHTML}`;
+  const row=document.createElement("div");row.className="row sam";
+  row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
+    <div class="sam-label">Sam</div>
+    ${headerHTML}
+    ${orderedSections}
+    ${caveatHTML}
+    <div class="sam-text after-results">${afterText}</div>
+  </div></div>`;
+  msgs.appendChild(row);
+  row.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+function renderPendingResultSections(choice){
+  const parts=sellState.pendingResultSections;
+  if(!parts)return;
+  sellState.awaitingPathChoice=false;
+  sellState.pendingResultSections=null;
+  const platformFirst=choice==="diy";
+  const sections=platformFirst?`${parts.platformCardsHTML}${parts.powerSellerHTML}`:`${parts.powerSellerHTML}${parts.platformCardsHTML}`;
+  const msgs=document.getElementById("msgs");
+  const row=document.createElement("div");row.className="row sam";
+  row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${sections}${parts.caveatHTML}<div class="sam-text after-results">${parts.afterText}</div></div></div>`;
   msgs.appendChild(row);
   row.scrollIntoView({behavior:"smooth",block:"start"});
 }
 
 function handleSellRecommendationFollowup(q){
   const lower=q.toLowerCase();
+  if(sellState.awaitingPathChoice){
+    if(isQuestionInput(q))return false; // chat answers, choice stays pending
+    if(/handled|someone|help me|have it/i.test(lower)){
+      sellState.involvement="Want someone to handle everything";
+      renderPendingResultSections("handled");
+      return true;
+    }
+    if(/myself|diy|run it|i'?ll run|on my own|self/i.test(lower)||detectIntent(lower)==="negation"){
+      sellState.involvement="I'll manage it myself";
+      renderPendingResultSections("diy");
+      return true;
+    }
+    if(detectIntent(lower)==="refusal"||detectIntent(lower)==="moveOn"){
+      renderPendingResultSections("handled");
+      return true;
+    }
+    sellState.pathChoiceEscalations=(sellState.pathChoiceEscalations||0)+1;
+    if(sellState.pathChoiceEscalations>=2){renderPendingResultSections("handled");return true;}
+    addMsg("sam","Quick one first: want it handled end to end, or run it yourself?","",chipsHTML(["Have it handled","I'll run it myself"]));
+    return true;
+  }
   const options=sellState.sellOptions||[];
   if(sellState.noEvidenceFallback&&handleNoEvidenceFollowup(q))return true;
   if(!options.length&&handleNoEvidenceFollowup(q))return true;
@@ -2158,27 +2227,20 @@ function showSubmission(submission){
   msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
 }
 
-const SYS=`You are Sam, the seller-intelligence guide behind GoAskSam. This version is focused only on helping people decide where to sell their collector car.
+const SYS=`You are Sam, the seller-intelligence guide behind GoAskSam. You help people decide where to sell their collector car.
 
-LISTINGS:
-${JSON.stringify(LISTINGS)}
+ABOUT (ground truth; never contradict it, never claim ignorance of it):
+- GoAskSam is a seller-intelligence tool that answers one question: where should you sell your collector car. It is built on real auction sale records from platforms including Bring a Trailer, Cars & Bids, PCarMarket, Hagerty, Gooding and RM Sotheby's.
+- GoAskSam is part of The Daily Vroom, the trusted collector car newsletter read by tens of thousands of readers and running for years. If asked whether GoAskSam is part of The Daily Vroom, the answer is definitively yes.
+- Sam Gold owns The Daily Vroom. The Daily Vroom's tools also include the Import Calculator.
+
+CAPABILITY HONESTY (locked): The product does exactly one thing: analyze real sale records and recommend where to sell a specific car. You can NEVER offer to browse listings, show live auctions, pull up cars, track comments, or anything else the product does not do. The one thing you can always offer: tell me the car you're selling and I'll run the analysis.
 
 IDENTITY: You are Sam. Never say you are Claude, ChatGPT, OpenAI, Anthropic, an LLM, or a language model.
-PERSONALITY: Warm, direct, human. No essays. No fluff. No false certainty. Never use em dashes or en dashes anywhere in your replies; use commas or periods instead. Plain prose only: no markdown, asterisks, underscores or headers. Never open with filler like "Great question". Never state platform fees, commissions, percentages or caps as fact; GoAskSam holds no fee data, so say fee structures change and point to the platform's current terms.
-INTELLIGENCE RULE: Every observation tied to a specific event, timestamp, or response.
-MARKET COMMENTARY: No comparative pricing claims you cannot verify. Never say "reserve still active."
-AUCTION TIMING: Use daysLive and endsIn. "Ends tomorrow and still unanswered. That's a problem."
-SMALL DATASET: If asked why few cars: "This is a demo set of about 10 live listings. Full product connects to hundreds across Cars and Bids and BaT."
-OFF TOPIC: Warm redirect, vary wording.
-JOKES: Play along, redirect to cars.
-SHOW ME OVERRIDE: If someone asks to browse or buy, say this version is focused on sellers and ask what car they are selling.
-CONVERSATION FLOW: One question at a time. Need type/make + budget or use + manual/auto before cards. Max 3 exchanges.
-LOCATION: Can't filter yet. Show location on cards.
-SEARCH TRANSITION: [SEARCHING:description]
-CARDS: 3-4 default. [CARD:id|specific reason]
-AFTER CARDS: "Click Sam's Read on any of these to see what changed, what is still unresolved, and how I would approach it. Want me to narrow these down?"
-[CHIPS:Manual only|Under $20k|Show more|Something different]
-PRICING: Live = current bid. Never say how many listings you are watching.`;
+PERSONALITY: Warm, direct, human. No essays. No fluff. No false certainty. Never use em dashes or en dashes anywhere in your replies; use commas or periods instead. Plain prose only: no markdown, asterisks, underscores or headers. Never open with filler like "Great question".
+GROUNDING: Never state platform fees, commissions, percentages or caps as fact; GoAskSam holds no fee data. No platform-mechanics claims (auction formats, durations, audiences). No invented market commentary. No statistics you were not given.
+OFF TOPIC: Warm redirect, vary wording, land on: what car are we selling?
+JOKES: Play along briefly, redirect to cars.`;
 
 const history=[];
 const sessionContext={type:null,budget:null,transmission:null};
@@ -3112,12 +3174,17 @@ function comparableSalesLabel(){
 
 function routeEvidenceBullets(route,index,routes){
   if(!routeHasTrueComparableEvidence(route)){
-    // Policy-fit route: no market stats exist, so claim none.
-    return [
-      index===0?"This is a fit call for the car and your situation, not a sales-data call. No recent comparable sales exist in the data I track.":"Worth comparing on platform fit, not sales data.",
-      sellerPriorityFitLabel(route),
-      "When comparable sales start showing up, I can revisit this with real numbers."
-    ].slice(0,3);
+    // Policy-fit route: honest absence, curated reputation (policy_provided,
+    // phrased as reputation not statistics), honest close.
+    const about=route.about||null;
+    const name=platformDisplayName(route.label||route.platform);
+    const bullets=[
+      index===0?"I don't have enough recent comparable sales to give you a data-led answer for this car. This is a fit call, not a sales-data call.":"Worth comparing on platform fit, not sales data."
+    ];
+    if(about)bullets.push(`${name} has a strong reputation in ${about.regionsLabel}, has been selling collector cars since ${about.since}, and is known for ${about.knownFor}.`);
+    else bullets.push(sellerPriorityFitLabel(route));
+    bullets.push("Best bet is to contact them directly; they can speak to demand for your specific car. When comparable sales show up in my data, I can revisit this with real numbers.");
+    return bullets.slice(0,3);
   }
   const evidence=route.marketEvidence||{};
   const facts=routeFacts(route);
@@ -3201,7 +3268,7 @@ function compactPlatformCopy(option,primaryPlatform){
 
 function marketEvidenceSentence(option){
   const evidence=option.marketEvidence;
-  if(!evidence)return `${option.name} is practical to verify, not the strongest data-led platform choice today.`;
+  if(!evidence)return `I don't have enough recent comparable sales to give you a data-led answer for this car, so this is a fit call.`;
   if(Number.isFinite(evidence.performanceDeltaPercent)&&evidence.performanceDeltaPercent>=5){
     return `Recent comparable ${comparableModelLabel()} have consistently favoured ${option.name}.`;
   }
@@ -3404,7 +3471,7 @@ function localPreRoute(q){
   if(/\b(i have|i've got|my car is)\b/i.test(lower)&&looksLikeVehicleText(q))return{sellTrigger:true,initialCar:q};
   if(looksLikeVehicleText(q))return{sellTrigger:true,initialCar:q};
   if(/\b(the daily vroom|daily vroom|sam gold|who owns|owner|ownership|who is sam|who's sam|who runs|behind goasksam|behind this)\b/i.test(lower))
-    return{reply:"Sam Gold owns The Daily Vroom, and GoAskSam is run by a collection of car-market people who want to bring more transparency to the car market. We've built tools like the Import & Domestic Car Calculators, this seller-intelligence tool, and there's more to come. If you're selling a car, tell me what it is and I'll help work out what I’d do.",chips:["Sell my car"]};
+    return{reply:"GoAskSam is part of The Daily Vroom, the collector car newsletter that's been running for years with tens of thousands of readers. Sam Gold owns it, and the tools include the Import Calculator and this seller-intelligence tool, built on real auction sale records. If you're selling a car, tell me what it is and I'll work out where I'd take it.",chips:["Sell my car"]};
   if(/^(u there|you there|hello|hey|hi|yo|are you there)\??$/.test(lower))
     return{reply:"Yep, here. Tell me what we're selling today and I'll work out what I’d do.",chips:["Sell my car"]};
   if(/dump a body|dead body|outrun the cops/i.test(lower))
@@ -3455,7 +3522,7 @@ async function send(){
         }else{
           addMsg("sam",stripChatMarkdown(data.text));
         }
-        if(sellState.step>0&&sellState.step<16){setTimeout(()=>askNextSellQuestion(),800);}
+        if(sellState.step>0&&sellState.step!==10&&sellState.step!==13&&sellState.step!==16&&!sellState.awaitingPathChoice){setTimeout(()=>askNextSellQuestion(),800);}
       }catch(e){hideTyping();addMsg("sam","Good question. I'm having trouble answering it right now because of a connection issue. Ask me again in a moment.");}
     }
     document.getElementById("btn").disabled=false;
