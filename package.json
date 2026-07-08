@@ -6,6 +6,7 @@
     "seed:taxonomy": "node scripts/seedTaxonomy.js",
     "seed:partners": "node scripts/seedPartners.js",
     "seed:aliases": "node scripts/generateAliases.js",
+    "seed:generations": "node scripts/seedGenerations.js",
     "smoke:prod": "node scripts/smokeProd.js && node scripts/smokeWizard.js"
   }
 }

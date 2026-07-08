@@ -2,6 +2,7 @@ import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js"
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { callOldCarsData } from "../lib/_ocd.js";
+import { findGeneration, generationModelToken } from "../lib/generations.js";
 import {
   asText,
   classifyRecord,
@@ -341,26 +342,36 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
 // engine fetches and evaluates rung by rung, lands on the narrowest rung whose
 // threshold is met, and decide() treats the regional policy floor as the
 // bottom rung so a recommendation always comes back.
+//
+// Generation-aware (Phase 4): when the vehicle's year falls inside a mapped
+// generation, the year-widening rungs use that generation's exact year range
+// and name it in their labels. Models with no mapping get the calendar +/- 2
+// rungs unchanged, so unmapped models behave exactly as before.
 
-function buildLadder(vehicle) {
+function buildLadder(vehicle, generation = null) {
   const year = Number.isFinite(Number(vehicle.year)) ? Number(vehicle.year) : null;
   const trim = asText(vehicle.trim) || null;
   const model = asText(vehicle.model);
   const modelTrim = [model, trim].filter(Boolean).join(" ");
+  const gen = generation && year ? generation : null;
   const rungs = [];
 
   if (trim && year) {
     rungs.push({ key: "exact_year_trim", label: `${year} ${modelTrim} sales`, needTrim: true, maxYearGap: 0, threshold: 3, pages: 1 });
-    rungs.push({ key: "near_years_trim", label: `${modelTrim} sales ${year - 2} to ${year + 2}`, needTrim: true, maxYearGap: 2, threshold: 3, pages: 2 });
+    rungs.push(gen
+      ? { key: "generation_trim", label: `${gen.code}-generation ${modelTrim} sales, ${gen.yearStart} to ${gen.yearEnd}`, needTrim: true, yearMin: gen.yearStart, yearMax: gen.yearEnd, maxYearGap: null, generationCode: gen.code, threshold: 3, pages: 2 }
+      : { key: "near_years_trim", label: `${modelTrim} sales ${year - 2} to ${year + 2}`, needTrim: true, maxYearGap: 2, threshold: 3, pages: 2 });
   }
   if (trim) {
-    rungs.push({ key: "any_year_trim", label: `${modelTrim} sales, any year`, needTrim: true, maxYearGap: null, threshold: 4, pages: 2 });
+    rungs.push({ key: "any_year_trim", label: `${modelTrim} sales, any year${gen ? " (cross-generation)" : ""}`, needTrim: true, maxYearGap: null, threshold: 4, pages: 2 });
   }
   if (year && !trim) {
     rungs.push({ key: "exact_year_model", label: `${year} ${model} sales`, needTrim: false, maxYearGap: 0, threshold: 3, pages: 1 });
   }
   if (year) {
-    rungs.push({ key: "near_years_model", label: `${model} sales ${year - 2} to ${year + 2}`, needTrim: false, maxYearGap: 2, threshold: 3, pages: 2 });
+    rungs.push(gen
+      ? { key: "generation_model", label: `${gen.code}-generation ${model} sales, ${gen.yearStart} to ${gen.yearEnd}`, needTrim: false, yearMin: gen.yearStart, yearMax: gen.yearEnd, maxYearGap: null, generationCode: gen.code, threshold: 3, pages: 2 }
+      : { key: "near_years_model", label: `${model} sales ${year - 2} to ${year + 2}`, needTrim: false, maxYearGap: 2, threshold: 3, pages: 2 });
   }
   rungs.push({ key: "any_year_model", label: `${model} sales, any year`, needTrim: false, maxYearGap: null, threshold: 6, pages: MAX_PAGES });
   rungs.push({
@@ -375,39 +386,55 @@ function buildLadder(vehicle) {
   return rungs.map((rung, index) => ({ ...rung, rung: index + 1 }));
 }
 
+function rungYearBounds(rung, vehicle) {
+  const year = Number.isFinite(Number(vehicle.year)) ? Number(vehicle.year) : null;
+  if (rung.yearMin != null && rung.yearMax != null) return { year_min: rung.yearMin, year_max: rung.yearMax };
+  if (rung.maxYearGap !== null && year) return { year_min: year - rung.maxYearGap, year_max: year + rung.maxYearGap };
+  return null;
+}
+
 function rungFetchParams(rung, vehicle) {
   const modelToken = asText(vehicle.model).split(/\s+/)[0] || undefined;
-  const year = Number.isFinite(Number(vehicle.year)) ? Number(vehicle.year) : null;
   const params = { make: vehicle.make };
   if (!rung.makeOnly) params.model = modelToken;
-  if (rung.maxYearGap !== null && year) {
-    params.year_min = year - rung.maxYearGap;
-    params.year_max = year + rung.maxYearGap;
-  }
+  Object.assign(params, rungYearBounds(rung, vehicle) || {});
   if (rung.needTrim && vehicle.trim) params.keyword = vehicle.trim;
   return params;
 }
 
 // Insurance against OldCarsData model-name mismatches (e.g. vPIC says "325i"
 // where OldCarsData files it under "3-Series"): if a rung's model-param pass
-// returns nothing, retry with the model as a keyword instead.
-function rungKeywordFallbackPasses(rung, vehicle) {
+// returns nothing, retry with the model as a keyword instead. Generation rungs
+// whose code doubles as an OldCarsData model (997, e46) also try that model
+// directly, since some sources file those generations as their own models.
+function rungKeywordFallbackPasses(rung, vehicle, generationToken = null) {
   if (rung.makeOnly) return [];
-  const year = Number.isFinite(Number(vehicle.year)) ? Number(vehicle.year) : null;
-  return modelSearchTerms(vehicle).map(term => {
-    const params = { make: vehicle.make, keyword: [term, rung.needTrim ? vehicle.trim : null].filter(Boolean).join(" ") };
-    if (rung.maxYearGap !== null && year) {
-      params.year_min = year - rung.maxYearGap;
-      params.year_max = year + rung.maxYearGap;
-    }
-    return {
+  const bounds = rungYearBounds(rung, vehicle) || {};
+  const passes = [];
+  if (rung.generationCode && generationToken) {
+    passes.push({
+      name: `rung${rung.rung}_${rung.key}_genmodel_${generationToken}`,
+      label: `${rung.label} (as model ${generationToken})`,
+      rung: rung.rung,
+      pages: 1,
+      params: {
+        make: vehicle.make,
+        model: generationToken,
+        ...bounds,
+        ...(rung.needTrim && vehicle.trim ? { keyword: vehicle.trim } : {})
+      }
+    });
+  }
+  for (const term of modelSearchTerms(vehicle)) {
+    passes.push({
       name: `rung${rung.rung}_${rung.key}_keyword_${term}`,
       label: `${rung.label} (keyword ${term})`,
       rung: rung.rung,
       pages: 1,
-      params
-    };
-  });
+      params: { make: vehicle.make, keyword: [term, rung.needTrim ? vehicle.trim : null].filter(Boolean).join(" "), ...bounds }
+    });
+  }
+  return passes;
 }
 
 function ladderEligible(item, rung) {
@@ -420,6 +447,12 @@ function ladderEligible(item, rung) {
   }
   if (!classification.same_model) return false;
   if (rung.needTrim && !classification.trim_match) return false;
+  if (rung.yearMin != null && rung.yearMax != null) {
+    // Generation rung: the record's year must fall inside the generation.
+    const recordYear = classification.normalized_year;
+    if (!Number.isFinite(recordYear)) return false;
+    return recordYear >= rung.yearMin && recordYear <= rung.yearMax;
+  }
   if (rung.maxYearGap !== null) {
     if (classification.year_gap === null) return false;
     if (classification.year_gap > rung.maxYearGap) return false;
@@ -515,8 +548,9 @@ async function fetchPass(pass, apiKey, deadline) {
   return { records, error, meteredRequests, pagesFetched };
 }
 
-async function fetchRecentRecords(vehicle, apiKey) {
-  const ladder = buildLadder(vehicle);
+async function fetchRecentRecords(vehicle, apiKey, generation = null) {
+  const ladder = buildLadder(vehicle, generation);
+  const generationToken = generationModelToken(generation);
   const startedAt = Date.now();
   const deadline = startedAt + FETCH_TIME_BUDGET_MS;
   const seen = new Set();
@@ -578,7 +612,7 @@ async function fetchRecentRecords(vehicle, apiKey) {
     // models (997 vs 911) that only a title keyword search can reach.
     const rungMetAfterPrimary = evaluate().walk.find(entry => entry.rung === rung.rung)?.met;
     if (!rungMetAfterPrimary && !primary.error) {
-      for (const fallbackPass of rungKeywordFallbackPasses(rung, vehicle)) {
+      for (const fallbackPass of rungKeywordFallbackPasses(rung, vehicle, generationToken)) {
         if (Date.now() >= deadline) break;
         await runPass(fallbackPass);
       }
@@ -645,9 +679,9 @@ async function writeMarketFetchCache(vehicle, meteredRequests, supabaseUrl, supa
 // Cache-hit path: replay the stored records for this make within the widest
 // analysis window. A superset of what a fresh fetch would return; the
 // classifier and ladder narrow it exactly as they would live records.
-async function fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey) {
+async function fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation = null) {
   const startedAt = Date.now();
-  const ladder = buildLadder(vehicle);
+  const ladder = buildLadder(vehicle, generation);
   const maxWindow = Math.max(...ANALYSIS_WINDOWS_DAYS, ...SELLER_ACTIVITY_WINDOWS_DAYS);
   const cutoff = new Date(Date.now() - maxWindow * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const rows = await supabaseSelect(
@@ -931,14 +965,16 @@ function decisionTradeoffs(criteria) {
 }
 
 // Honest confidence, mapped from the ladder rung the analysis landed on.
+// Generation rungs map like their calendar counterparts: same-generation
+// comps carry the same weight as the +/- 2-year window they replace.
 function ladderConfidence(analysis) {
   const landed = analysis.ladder?.landed;
   if (!landed || !landed.thresholdMet) return "low";
   const sales = analysis.evidenceSales;
-  if (["exact_year_trim", "near_years_trim", "exact_year_model"].includes(landed.key)) {
+  if (["exact_year_trim", "near_years_trim", "generation_trim", "exact_year_model"].includes(landed.key)) {
     return sales >= 5 ? "high" : "medium";
   }
-  if (["any_year_trim", "near_years_model"].includes(landed.key)) return "medium";
+  if (["any_year_trim", "near_years_model", "generation_model"].includes(landed.key)) return "medium";
   if (landed.key === "any_year_model") return sales >= 8 ? "medium" : "low";
   return "low";
 }
@@ -1281,14 +1317,30 @@ export default async function handler(req, res) {
       vehicle = resolution.vehicle;
     }
 
+    // Generation mapping (Phase 4): null is safe and means the ladder keeps
+    // its calendar +/- 2 rungs, exactly as unmapped models behave today.
+    const generation = await findGeneration(vehicle, { supabaseUrl, supabaseKey });
+
+    // Free structural preview for smoke tests: the ladder that WOULD be
+    // walked, with zero metered fetches and zero writes.
+    if (req.body?.ladderPreview) {
+      return res.status(200).json({
+        status: "ladder_preview",
+        vehicle,
+        generation: generation ? { code: generation.code, yearStart: generation.yearStart, yearEnd: generation.yearEnd } : null,
+        ladder: buildLadder(vehicle, generation).map(({ rung, key, label, threshold, yearMin, yearMax, maxYearGap }) =>
+          ({ rung, key, label, threshold, yearMin: yearMin ?? null, yearMax: yearMax ?? null, maxYearGap: maxYearGap ?? null }))
+      });
+    }
+
     let fetchResult = null;
     let cacheStatus = "miss";
     if (await readMarketFetchCache(vehicle, supabaseUrl, supabaseKey)) {
-      fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey);
+      fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
       cacheStatus = fetchResult ? "hit" : "hit_store_empty_refetched";
     }
     if (!fetchResult) {
-      fetchResult = await fetchRecentRecords(vehicle, apiKey);
+      fetchResult = await fetchRecentRecords(vehicle, apiKey, generation);
       // Only cache a healthy fetch: an all-errored pass with nothing fetched
       // must retry next search, not lock in 24h of emptiness.
       const fetchHealthy = fetchResult.records.length > 0 || fetchResult.passSummary.every(pass => !pass.error);
@@ -1324,6 +1376,10 @@ export default async function handler(req, res) {
         ...requestMetadata(req),
         stopReason: fetchResult.stopReason,
         marketFetchCache: cacheStatus,
+        // Coverage grows from real demand: unmapped ladders are queryable as
+        // metadata->>generationMapped = 'false', grouped by make/model.
+        generationMapped: !!generation,
+        generation: generation?.code || null,
         strategy: "evidence_ladder",
         recordsFetched: analysis.recordsFetched,
         evidenceSales: analysis.evidenceSales,
@@ -1351,6 +1407,7 @@ export default async function handler(req, res) {
         estimatedValue: analysis.estimatedValue,
         windowDays: analysis.windowDays,
         thinMarket: analysis.thinMarket,
+        generation: generation ? { code: generation.code, yearStart: generation.yearStart, yearEnd: generation.yearEnd } : null,
         ladder: analysis.ladder,
         fetchPasses: fetchResult.passSummary,
         fetchStrategy: {
