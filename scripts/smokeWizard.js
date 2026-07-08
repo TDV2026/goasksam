@@ -147,9 +147,14 @@ const atTrim = sellState.step === 17;
 check("move-on: trim question opened", atTrim, `step=${sellState.step} last="${lastSam()}"`);
 if (atTrim) {
   await handleSellStep("dont know");
-  check("move-on: dont know handled without canned demand", !/I need the year, make and model/i.test(lastSam() || ""), `last="${lastSam()}"`);
+  check("move-on: dont know proceeds broad with clean car name", sellState.step === 11 && sellState.carName === "2018 Porsche 911" && sellState.vehicleDetailSkipped === true, `step=${sellState.step} car=${JSON.stringify(sellState.carName)} last="${lastSam()}"`);
+}
+// Explicit move-on advances from the clarification sub-state too.
+resetToStep1();
+await handleSellStep("vw camper van");
+if (sellState.step === 17) {
   await handleSellStep("lets move on");
-  check("move-on: explicit move on advances", sellState.step === 11, `step=${sellState.step} last="${lastSam()}"`);
+  check("move-on: explicit move on advances from clarification", sellState.step === 11 && /Volkswagen Bus/.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
 }
 
 // 6. The fallback demand line can never render twice in a row.
