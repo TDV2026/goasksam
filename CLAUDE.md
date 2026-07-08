@@ -30,6 +30,8 @@ Collector car market intelligence platform. Answers "where should I sell my coll
 - `seller_leads`: lead capture when a seller acts.
 - `app_usage_events`: cost and usage logging (OldCarsData metered requests, Anthropic tokens).
 - `market_fetch_cache`: 24h market-fetch cache rows (Phase 3), one per make|model family.
+- `taxonomy_generations`: model generation ranges (Phase 4), seeded by npm run seed:generations from lib/generations.js.
+- `narration_cache`: chat wording cache rows keyed by payload hash (cost hardening).
 - `data_tier_cache`, `recency_thresholds`, `taxonomy`: exist but unused by the live path (legacy; safe to drop).
 
 ### API endpoints
@@ -41,7 +43,7 @@ Collector car market intelligence platform. Answers "where should I sell my coll
 - `api/_usage.js`: shared cost/usage helpers.
 
 ### Env vars (Vercel production)
-OLDCARSDATA_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, USAGE_DASHBOARD_KEY. Optional: SAM_MODEL overrides the chat wording-layer model (defaults to claude-sonnet-4-6 in api/chat.js); never set it to a dated snapshot.
+OLDCARSDATA_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, USAGE_DASHBOARD_KEY. Optional: OCD_DAILY_REQUEST_BUDGET caps fresh OldCarsData spend per day (default 33, plan pace); SAM_MODEL overrides the chat wording-layer model (defaults to claude-sonnet-4-6 in api/chat.js); never set it to a dated snapshot.
 Server-side writes use the service role key. Never expose it in browser code.
 
 ### OldCarsData API facts (verified July 2026)
@@ -119,6 +121,10 @@ Shipped implementation (July 2026):
 - Ladder: generation rungs replace the calendar +/- 2 rungs only when the year maps (keys generation_trim / generation_model, labels like "991.2-generation 911 Carrera GTS sales, 2017 to 2019"; any_year_trim is labeled cross-generation). Unmapped models keep production behavior exactly. Chassis-code generations also try their code as an OCD model param when the rung is unmet.
 - Coverage grows from demand: every decision logs metadata.generationMapped and metadata.generation to app_usage_events; unmapped-ladder demand (generationMapped=false grouped by make/model) is the source for the next seed additions.
 - sellerDecision accepts ladderPreview:true for a fetch-free, write-free ladder structure preview (used by smoke assertions).
+
+### Cost hardening (SHIPPED July 2026, manual SQL pending)
+- Narration cache: api/chat.js caches every successful reply in narration_cache keyed on sha256(model + system + context + messages). Identical facts reuse the stored narration at zero Anthropic cost; changed facts change the key, so invalidation is inherent. Requests may pass bypassCache:true (the smoke suite does, so a dead chat layer still fails loudly). Run docs/supabase-narration-cache.sql once to activate.
+- OCD daily budget guard: sellerDecision sums the day's metered requests from app_usage_events before any fresh fetch. Past OCD_DAILY_REQUEST_BUDGET it logs an ocd_budget_guard event (loud, queryable) and soft-degrades to stored records or the policy floor; it never spends past plan pace and never dead-ends.
 
 ### Phase 5: Ops hardening
 - vercel.json maxDuration for sellerDecision.
