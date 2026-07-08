@@ -604,6 +604,81 @@ async function fetchRecentRecords(vehicle, apiKey) {
   };
 }
 
+// ---- Market-fetch cache ----
+// 24h cache keyed by make|model family. A hit serves records from
+// vehicle_market_records (every fetched record is stored permanently, so a
+// fresh fetch within 24h would return the same rows) and costs zero metered
+// requests. All reads and writes degrade silently until the table exists.
+
+const MARKET_FETCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+function marketFetchCacheKey(vehicle) {
+  const family = asText(vehicle.model).split(/\s+/)[0] || "";
+  return `${asText(vehicle.make).toLowerCase()}|${family.toLowerCase()}`;
+}
+
+async function readMarketFetchCache(vehicle, supabaseUrl, supabaseKey) {
+  if (!supabaseUrl || !supabaseKey || !asText(vehicle.make)) return null;
+  const key = marketFetchCacheKey(vehicle);
+  const rows = await supabaseSelect(
+    { supabaseUrl, supabaseKey },
+    `market_fetch_cache?cache_key=eq.${encodeURIComponent(key)}&select=cache_key,fetched_at&limit=1`
+  );
+  const row = rows?.[0];
+  if (!row) return null;
+  const age = Date.now() - new Date(row.fetched_at).getTime();
+  if (!Number.isFinite(age) || age > MARKET_FETCH_CACHE_TTL_MS) return null;
+  return row;
+}
+
+async function writeMarketFetchCache(vehicle, meteredRequests, supabaseUrl, supabaseKey) {
+  if (!supabaseUrl || !supabaseKey || !asText(vehicle.make)) return;
+  await supabaseInsert("market_fetch_cache", [{
+    cache_key: marketFetchCacheKey(vehicle),
+    make: vehicle.make || null,
+    model_family: asText(vehicle.model).split(/\s+/)[0] || null,
+    fetched_at: new Date().toISOString(),
+    metered_requests: meteredRequests
+  }], supabaseUrl, supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=cache_key");
+}
+
+// Cache-hit path: replay the stored records for this make within the widest
+// analysis window. A superset of what a fresh fetch would return; the
+// classifier and ladder narrow it exactly as they would live records.
+async function fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey) {
+  const startedAt = Date.now();
+  const ladder = buildLadder(vehicle);
+  const maxWindow = Math.max(...ANALYSIS_WINDOWS_DAYS, ...SELLER_ACTIVITY_WINDOWS_DAYS);
+  const cutoff = new Date(Date.now() - maxWindow * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const rows = await supabaseSelect(
+    { supabaseUrl, supabaseKey },
+    `vehicle_market_records?make=ilike.${encodeURIComponent(vehicle.make)}&auction_end_date=gte.${cutoff}&select=raw_record&order=auction_end_date.desc&limit=2000`
+  );
+  if (!rows || !rows.length) return null;
+  const records = rows.map(row => row.raw_record).filter(record => record && typeof record === "object");
+  if (!records.length) return null;
+  return {
+    records,
+    passSummary: [{
+      name: "market_fetch_cache",
+      label: `stored ${vehicle.make} records from the last ${maxWindow} days`,
+      rung: null,
+      fetched: records.length,
+      added: records.length,
+      meteredRequests: 0,
+      pagesFetched: 0,
+      error: null
+    }],
+    stoppedEarly: false,
+    stopReason: "market_fetch_cache_hit",
+    elapsedMs: Date.now() - startedAt,
+    timeBudgetMs: FETCH_TIME_BUDGET_MS,
+    meteredRequests: 0,
+    ladder,
+    fromCache: true
+  };
+}
+
 function getSellerCriteria(car = {}) {
   return {
     region: asText(car.region) || null,
@@ -1206,10 +1281,26 @@ export default async function handler(req, res) {
       vehicle = resolution.vehicle;
     }
 
-    const fetchResult = await fetchRecentRecords(vehicle, apiKey);
+    let fetchResult = null;
+    let cacheStatus = "miss";
+    if (await readMarketFetchCache(vehicle, supabaseUrl, supabaseKey)) {
+      fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey);
+      cacheStatus = fetchResult ? "hit" : "hit_store_empty_refetched";
+    }
+    if (!fetchResult) {
+      fetchResult = await fetchRecentRecords(vehicle, apiKey);
+      // Only cache a healthy fetch: an all-errored pass with nothing fetched
+      // must retry next search, not lock in 24h of emptiness.
+      const fetchHealthy = fetchResult.records.length > 0 || fetchResult.passSummary.every(pass => !pass.error);
+      if (fetchHealthy) await writeMarketFetchCache(vehicle, fetchResult.meteredRequests, supabaseUrl, supabaseKey);
+    }
     const records = fetchResult.records;
     const classifications = records.map(record => classifyRecord(record, vehicle));
-    const rawPersistence = await persistRawRecords(records, supabaseUrl, supabaseKey);
+    // Cache hits replay rows already stored permanently; re-inserting them
+    // would be a no-op POST of up to 2000 rows, so only the id lookup runs.
+    const rawPersistence = fetchResult.fromCache
+      ? { skipped: true, cached: true, idLookup: await lookupMarketRecordIds(records, supabaseUrl, supabaseKey) }
+      : await persistRawRecords(records, supabaseUrl, supabaseKey);
     const classificationPersistence = await persistClassifications(records, classifications, rawPersistence.idLookup, supabaseUrl, supabaseKey);
     const analysis = analyze(records, classifications, fetchResult.ladder, vehicle);
     const decision = decide(analysis, sellerCriteria, vehicle);
@@ -1232,6 +1323,7 @@ export default async function handler(req, res) {
       metadata: {
         ...requestMetadata(req),
         stopReason: fetchResult.stopReason,
+        marketFetchCache: cacheStatus,
         strategy: "evidence_ladder",
         recordsFetched: analysis.recordsFetched,
         evidenceSales: analysis.evidenceSales,
@@ -1264,6 +1356,7 @@ export default async function handler(req, res) {
         fetchStrategy: {
           stoppedEarly: fetchResult.stoppedEarly,
           stopReason: fetchResult.stopReason,
+          marketFetchCache: cacheStatus,
           strategy: "evidence_ladder",
           elapsedMs: fetchResult.elapsedMs,
           timeBudgetMs: fetchResult.timeBudgetMs,
