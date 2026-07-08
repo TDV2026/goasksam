@@ -29,7 +29,8 @@ Collector car market intelligence platform. Answers "where should I sell my coll
 - `vehicle_classifications`: computed classification of records against a search. FK `market_record_id` to vehicle_market_records.id.
 - `seller_leads`: lead capture when a seller acts.
 - `app_usage_events`: cost and usage logging (OldCarsData metered requests, Anthropic tokens).
-- `data_tier_cache`, `recency_thresholds`, `taxonomy`: exist but currently unused by the live path (see Known issues).
+- `market_fetch_cache`: 24h market-fetch cache rows (Phase 3), one per make|model family.
+- `data_tier_cache`, `recency_thresholds`, `taxonomy`: exist but unused by the live path (legacy; safe to drop).
 
 ### API endpoints
 - `POST /api/sellerDecision`: the core engine. Multi-pass widening fetch from OldCarsData, classification into close/relevant/broad/excluded tiers, platform performance analysis, seller activity, route-fit scoring, decision. Persists raw records and classifications.
@@ -38,7 +39,6 @@ Collector car market intelligence platform. Answers "where should I sell my coll
 - `POST /api/chat`: Claude wording layer only. Must never invent market performance.
 - `GET /api/usageDashboard`: keyed admin dashboard (USAGE_DASHBOARD_KEY).
 - `api/_usage.js`: shared cost/usage helpers.
-- `api/lookupDataTier.js`: ORPHANED. Frontend never calls it. Slated for deletion once its cache concept is folded into sellerDecision.
 
 ### Env vars (Vercel production)
 OLDCARSDATA_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, USAGE_DASHBOARD_KEY. Optional: SAM_MODEL overrides the chat wording-layer model (defaults to claude-sonnet-4-6 in api/chat.js); never set it to a dated snapshot.
@@ -56,17 +56,17 @@ Server-side writes use the service role key. Never expose it in browser code.
 2. FIXED July 2026 (Phase 1): make abbreviations and model nicknames (vw, chevy, merc, benz, vette, lambo, bimmer, fj40, etc.) expand silently; numeric-model edit-distance-1 typos (9111) and fuzzy model/make typos return a mandatory "Did you mean" confirmation. Curated data lives in lib/vehicleData.js and seeds the taxonomy_aliases table.
 3. FIXED July 2026 (Phase 2): the explicit evidence ladder lives in sellerDecision. decide() never returns a null recommendation; the bottom rung is the regional policy floor with evidenceBasis "regional_policy" and confidence "low".
 4. vercel.json is empty but sellerDecision has a 22s fetch budget. Configure `maxDuration` or long searches get killed.
-5. No fetch caching in the live path. Thin-market searches can burn 15-20 metered requests (~$1/search). Wire a market-fetch cache (24h, keyed by make|model family).
+5. FIXED July 2026 (Phase 3): market-fetch cache in sellerDecision, 24h, keyed by make|model family. Needs docs/supabase-market-fetch-cache.sql applied once.
 6. /api/chat and /api/sellerDecision have wildcard CORS and no rate limiting. Cost abuse risk.
 7. lookupMarketRecordIds matches on source_record_id only, not (source, source_record_id). Cross-platform ID collisions can mis-link classifications.
 8. Records missing an upstream ID get crypto.randomUUID() as source_record_id, re-inserting the same listing every fetch.
 9. FIXED July 2026: chat.js now pins claude-sonnet-4-6. The old pinned snapshot claude-sonnet-4-20250514 was retired by Anthropic (404 model not found), which silently killed the chat layer in production: the frontend never checked res.ok and fell back to a generic filler line. Chat errors now log to app_usage_events, the frontend shows an honest "having trouble answering right now" message instead of filler, and `npm run smoke:prod` asserts on chat response content so a dead chat layer fails loudly.
-10. index.html (~6,400 lines) contains hardcoded fake demo listings with invented Sam commentary. All demo data must be deleted (violates product rule 1).
+10. FIXED July 2026 (Phase 3): all demo data deleted (fake LISTINGS, DEMO_SIGNALS, scout card layer).
 11. FIXED July 2026 (Phase 2): ROUTE_POLICIES now carries evidenceCapable flags. Hemmings, Car & Classic and Collecting Cars are marked evidenceCapable: false (no OldCarsData coverage); they can only ever be policy recommendations and route objects expose the flag.
-12. Files are too large: sellerDecision.js ~1,200 lines doing six jobs. Split shared logic into lib/ modules.
+12. FIXED July 2026 (Phase 3): shared logic extracted to lib/_ocd.js, lib/_supabase.js, lib/_classify.js; index.html split into styles.css + seven js/ modules.
 
 ## Input pipeline architecture (locked, July 2026)
-Every user input in the sell flow passes through the SELL INPUT PIPELINE module in index.html before any state handler may store or act on it. Stages: intent detection (affirmation/negation/refusal/move-on via INTENT_PATTERNS + detectIntent), off-script question routing to the chat layer (isQuestionInput), per-state answer-shape validation and normalization (STEP_SPECS + pipelineProcess), rotating escalation for unrecognized input (escalateStep), and a global no-repeat backstop inside addMsg (no Sam text ever renders twice consecutively). States routed through it: the pre-wizard entry state (cold vehicle text resolves and starts the wizard, unmatched input probes the resolver then falls to real chat), the vehicle step, both step-17 sub-states (clarification and trim detail), every chip question (mileage, condition, records, title, price, timeline), free-text steps (state, notes), region/state, the confirmation step, and post-result chat. Raw utterances can never reach sellState, the confirm card, or the lead payload. Adding a wizard state means declaring it in STEP_SPECS; the per-state smoke harness (scripts/smokeWizard.js) runs every declared state through the pipeline so a new state cannot regress silently.
+Every user input in the sell flow passes through the SELL INPUT PIPELINE module (js/pipeline.js since the Phase 3 split) before any state handler may store or act on it. Stages: intent detection (affirmation/negation/refusal/move-on via INTENT_PATTERNS + detectIntent), off-script question routing to the chat layer (isQuestionInput), per-state answer-shape validation and normalization (STEP_SPECS + pipelineProcess), rotating escalation for unrecognized input (escalateStep), and a global no-repeat backstop inside addMsg (no Sam text ever renders twice consecutively). States routed through it: the pre-wizard entry state (cold vehicle text resolves and starts the wizard, unmatched input probes the resolver then falls to real chat), the vehicle step, both step-17 sub-states (clarification and trim detail), every chip question (mileage, condition, records, title, price, timeline), free-text steps (state, notes), region/state, the confirmation step, and post-result chat. Raw utterances can never reach sellState, the confirm card, or the lead payload. Adding a wizard state means declaring it in STEP_SPECS; the per-state smoke harness (scripts/smokeWizard.js) runs every declared state through the pipeline so a new state cannot regress silently.
 
 Decision coherence (locked): evidence-only consignment houses (RM Sotheby's, Gooding, ACC) are routable:false, can never be the pick or a comparison card, and a stronger non-routable source is always explained with its concrete reason. Result chips, bullets and headlines derive from one routeFacts object with consistency rules. All source slugs map to display names (platformDisplayName). Result framing: comparison-led or every-sale-closed-here, never small-sample fractions as headlines; weekday timing insights sit in the headline bullets with grounding. The involvement question does not exist; Sam gives his gated powerseller opinion at the result, and a stated DIY preference permanently suppresses re-pitching. Chat grounding: the chat layer never contradicts the engine's recommendation (decision facts are injected into post-result context), never states platform mechanics or fees as fact, never invents market commentary.
 
@@ -91,10 +91,13 @@ The explicit ordered ladder lives in sellerDecision (buildLadder/evaluateLadder)
 7. regional policy floor (decide() fallback, evidenceBasis "regional_policy", confidence "low")
 Rungs collapse sensibly when the vehicle has no trim. Fetching is rung-by-rung with native year_min/year_max params (no years stuffed into keyword), a keyword fallback pass per rung when the model param finds nothing, and an early stop the moment a fetched rung meets its threshold (a rung-1 hit costs 1 metered request). Rung evaluation is rung-primary, window-secondary (45/90/180 days): specificity beats recency. If no rung meets threshold, the analysis lands thin on the narrowest rung with any evidence; if zero evidence, decide() recommends from route policy. Confidence maps from the landed rung (high needs a met trim/exact rung with 5+ sales). The response carries evidence.ladder {landed, rungs walked with counts}; the frontend narrates the widening from those structured facts and its "not enough data" dead-ends were removed (the polished regional card still renders for UK/Europe/international policy-basis decisions).
 
-### Phase 3: Consolidate and split
-- Delete lookupDataTier.js, folding its cache idea into sellerDecision as a market-fetch cache (24h, keyed by make|model family) to cut OldCarsData spend.
-- Extract lib/ modules: _ocd.js (OldCarsData client), _supabase.js, _classify.js, vehicle.js.
-- Break index.html into modules. Remove all demo/fake listing data.
+### Phase 3: Consolidate and split (SHIPPED July 2026, one manual step pending)
+- lookupDataTier.js deleted.
+- lib/ modules: _ocd.js (OldCarsData client), _supabase.js (supabaseEnv/supabaseSelect/supabaseInsert), _classify.js (classifyRecord plus shared record/text utils), vehicle.js, vehicleData.js. sellerDecision imports from all of them.
+- Market-fetch cache live in sellerDecision: 24h, keyed by make|model family (market_fetch_cache table). A hit serves stored records from vehicle_market_records at zero metered requests; only healthy fetches stamp the cache; everything degrades silently if the table is missing.
+- PENDING MANUAL STEP: run docs/supabase-market-fetch-cache.sql in the Supabase SQL editor to activate the cache.
+- index.html is a thin shell (~60 lines) loading styles.css and js/ modules in order: wizard.js, pipeline.js, steps.js, result.js, chat-core.js, result-copy.js, entry.js. Classic scripts sharing global scope; load order matters and the concatenation must stay equivalent to one script. Both smoke harnesses load the concatenation the same way.
+- All demo data deleted (fake LISTINGS, DEMO_SIGNALS, scout card/modal layer, the stale Cars & Bids auction-mechanics line in SELL_SYS, dead sessionContext enrichment).
 
 ### Phase 4: Generation-aware evidence ladder (product decision, July 2026; next major work item after Phase 3)
 The year-widening rungs should follow model generations, not calendar +/- 2 years. A 2011 911 (997) and a 2013 911 (991) are different markets even though they are 2 years apart; a 1969 and 1973 911 are the same market even though they are 4 apart. Revised ladder:
