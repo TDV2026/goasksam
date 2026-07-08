@@ -646,6 +646,24 @@ async function fetchRecentRecords(vehicle, apiKey, generation = null) {
 
 const MARKET_FETCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
+// Daily OldCarsData budget guard (Stage 3): plan pace is ~33 metered
+// requests/day (1K/month). Past the daily budget we soft-degrade: serve
+// whatever the store holds and log loudly, never spend past pace and never
+// dead-end (the ladder and policy floor handle a thin or empty set honestly).
+const OCD_DAILY_REQUEST_BUDGET = Number(process.env.OCD_DAILY_REQUEST_BUDGET || 33);
+
+async function ocdRequestsToday(supabaseUrl, supabaseKey) {
+  if (!supabaseUrl || !supabaseKey) return null;
+  const since = new Date();
+  since.setUTCHours(0, 0, 0, 0);
+  const rows = await supabaseSelect(
+    { supabaseUrl, supabaseKey },
+    `app_usage_events?created_at=gte.${since.toISOString()}&oldcarsdata_metered_requests=gt.0&select=oldcarsdata_metered_requests&limit=2000`
+  );
+  if (!rows) return null;
+  return rows.reduce((sum, row) => sum + (Number(row.oldcarsdata_metered_requests) || 0), 0);
+}
+
 function marketFetchCacheKey(vehicle) {
   const family = asText(vehicle.model).split(/\s+/)[0] || "";
   return `${asText(vehicle.make).toLowerCase()}|${family.toLowerCase()}`;
@@ -1338,6 +1356,40 @@ export default async function handler(req, res) {
     if (await readMarketFetchCache(vehicle, supabaseUrl, supabaseKey)) {
       fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
       cacheStatus = fetchResult ? "hit" : "hit_store_empty_refetched";
+    }
+    if (!fetchResult) {
+      const usedToday = await ocdRequestsToday(supabaseUrl, supabaseKey);
+      if (usedToday !== null && usedToday >= OCD_DAILY_REQUEST_BUDGET) {
+        // Loud log, soft degrade: no metered spend past plan pace.
+        console.error(`OCD daily budget reached: ${usedToday}/${OCD_DAILY_REQUEST_BUDGET} metered requests today`);
+        await recordUsageEvent({
+          event_type: "ocd_budget_guard",
+          route: "/api/sellerDecision",
+          status: "soft_degraded",
+          search_text: rawSearch,
+          oldcarsdata_metered_requests: 0,
+          duration_ms: 0,
+          metadata: { ...requestMetadata(req), usedToday, dailyBudget: OCD_DAILY_REQUEST_BUDGET }
+        }, supabaseUrl, supabaseKey);
+        fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
+        if (fetchResult) {
+          fetchResult.stopReason = "ocd_daily_budget_reached";
+          cacheStatus = "budget_degraded_store";
+        } else {
+          fetchResult = {
+            records: [],
+            passSummary: [],
+            stoppedEarly: true,
+            stopReason: "ocd_daily_budget_reached",
+            elapsedMs: 0,
+            timeBudgetMs: FETCH_TIME_BUDGET_MS,
+            meteredRequests: 0,
+            ladder: buildLadder(vehicle, generation),
+            fromCache: true
+          };
+          cacheStatus = "budget_degraded_empty";
+        }
+      }
     }
     if (!fetchResult) {
       fetchResult = await fetchRecentRecords(vehicle, apiKey, generation);

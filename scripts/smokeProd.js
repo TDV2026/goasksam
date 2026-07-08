@@ -41,7 +41,8 @@ async function chatCase(name, question, contentPattern, forbidPattern) {
   const { status, body } = await post("/api/chat", {
     messages: [{ role: "user", content: question }],
     system: WIZARD_SYSTEM,
-    context: 'Current sell state: {"car":null,"step":1}\nNext question: What are we selling today?'
+    context: 'Current sell state: {"car":null,"step":1}\nNext question: What are we selling today?',
+    bypassCache: true
   });
   const text = String(body.text || "");
   check(`${name}: HTTP 200 with text`, status === 200 && text.length > 20, `status=${status} error=${body.error || "none"} text="${text.slice(0, 80)}"`);
@@ -86,6 +87,7 @@ await chatCase(
 // Post-result grounding: chat must not contradict the engine's recommendation.
 {
   const { status, body } = await post("/api/chat", {
+    bypassCache: true,
     messages: [{ role: "user", content: "how would you run it mr expert" }],
     system: WIZARD_SYSTEM + `\nGrounding rules (locked):\n- Never contradict the engine's platform recommendation. When decision facts are provided in the context, they are the answer to "where should I sell": explain and support that recommendation, never name a different platform as where you'd start.\n- No platform-mechanics claims stated as fact (auction formats, durations, audiences), including details you believe you know like how many days an auction runs. No invented market commentary (state-level demand, buyer pools at price points).`,
     context: 'Current sell state: {"car":"2018 Porsche 911 Carrera GTS","step":16}\nDecision facts (the engine\'s recommendation, do not contradict it): recommended platform Bring a Trailer; basis market_evidence; confidence high; comparable sales analyzed 5 in the last 180 days; median on the recommended platform $135,000.'
@@ -102,11 +104,11 @@ await identityCase("identity: miata", "miata", "needs_clarification", /Mazda MX-
 await identityCase("identity: 67 corvette", "67 corvette", "valid", /1967 Chevrolet Corvette/);
 // Entry chat grounding: real production SYS prompt, content assertions.
 {
-  const legit = await post("/api/chat", { messages: [{ role: "user", content: "is this site legit" }], system: ENTRY_SYS });
+  const legit = await post("/api/chat", { bypassCache: true, messages: [{ role: "user", content: "is this site legit" }], system: ENTRY_SYS });
   const t1 = String(legit.body.text || "");
   check("entry: legit answer is grounded", legit.status === 200 && /auction sale records|where (to|should you) sell|seller/i.test(t1), `text="${t1.slice(0, 200)}"`);
   check("entry: no live-listing or demo claims", !/live listing|demo (set|version)|10 (live )?listings|pull up|what('| i)s live|tracks live|browse/i.test(t1), `text="${t1.slice(0, 250)}"`);
-  const tdv = await post("/api/chat", { messages: [{ role: "user", content: "is it part of the daily vroom yes or no" }], system: ENTRY_SYS });
+  const tdv = await post("/api/chat", { bypassCache: true, messages: [{ role: "user", content: "is it part of the daily vroom yes or no" }], system: ENTRY_SYS });
   const t2 = String(tdv.body.text || "");
   check("entry: daily vroom affirmative", /\byes\b/i.test(t2) && !/don'?t know|no information|not sure (if|whether)/i.test(t2), `text="${t2.slice(0, 200)}"`);
 }
