@@ -1,8 +1,8 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
+import { callOldCarsData } from "../lib/_ocd.js";
 
-const OLDCARSDATA_BASE = "https://api.oldcarsdata.com";
 // Powerseller referrals are gated (locked product rule): estimated value from
 // actual comps must clear this threshold before a partner can lead.
 const POWERSELLER_MIN_VALUE_USD = Number(process.env.POWERSELLER_MIN_VALUE_USD || 75000);
@@ -406,25 +406,6 @@ function modelSearchTerms(vehicle) {
   }
 
   return [...terms].filter(Boolean);
-}
-
-async function fetchJson(url, headers = {}, options = {}) {
-  const res = await fetch(url, { headers, signal: options.signal });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(`${res.status}: ${json.message || json.error || "request failed"}`);
-  }
-  return json;
-}
-
-async function callOldCarsData(path, params, apiKey, options = {}) {
-  const url = new URL(`${OLDCARSDATA_BASE}${path}`);
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== null && value !== undefined && value !== "") {
-      url.searchParams.set(key, value);
-    }
-  }
-  return fetchJson(url.toString(), { Authorization: `Bearer ${apiKey}` }, options);
 }
 
 // ---- Evidence ladder ----
