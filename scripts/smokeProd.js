@@ -81,14 +81,14 @@ await chatCase(
 {
   const { status, body } = await post("/api/chat", {
     messages: [{ role: "user", content: "how would you run it mr expert" }],
-    system: WIZARD_SYSTEM + `\nGrounding rules (locked):\n- Never contradict the engine's platform recommendation. When decision facts are provided in the context, they are the answer to "where should I sell": explain and support that recommendation, never name a different platform as where you'd start.\n- No platform-mechanics claims stated as fact (auction formats, durations, audiences). No invented market commentary (state-level demand, buyer pools at price points).`,
+    system: WIZARD_SYSTEM + `\nGrounding rules (locked):\n- Never contradict the engine's platform recommendation. When decision facts are provided in the context, they are the answer to "where should I sell": explain and support that recommendation, never name a different platform as where you'd start.\n- No platform-mechanics claims stated as fact (auction formats, durations, audiences), including details you believe you know like how many days an auction runs. No invented market commentary (state-level demand, buyer pools at price points).`,
     context: 'Current sell state: {"car":"2018 Porsche 911 Carrera GTS","step":16}\nDecision facts (the engine\'s recommendation, do not contradict it): recommended platform Bring a Trailer; basis market_evidence; confidence high; comparable sales analyzed 5 in the last 180 days; median on the recommended platform $135,000.'
   });
   const text = String(body.text || "");
   check("chat grounding: HTTP 200 with text", status === 200 && text.length > 20, `status=${status}`);
   check("chat grounding: supports the recommended platform", /bring a trailer/i.test(text), `text="${text.slice(0, 200)}"`);
   check("chat grounding: never redirects to a different platform", !/(cars\s*(&|and)\s*bids|pcarmarket|hagerty|hemmings)[^.!?]{0,80}(where i('|)d (start|list|sell)|is where|start there|go with|instead)/i.test(text), `text="${text.slice(0, 300)}"`);
-  check("chat grounding: no invented auction-format facts", !/\b7.day auction|\bd(ay|ays) auction format\b/i.test(text), `text="${text.slice(0, 300)}"`);
+  check("chat grounding: no invented auction-format facts", !/\b(7|seven|five|ten|\d+)[\s-]*day(s)?\b[^.!?]{0,30}(auction|format|run)|auctions? run (for )?(a )?(7|seven|five|ten|\d+)/i.test(text), `text="${text.slice(0, 300)}"`);
 }
 
 await identityCase("identity: 2018 911 Carrera GTS", "2018 911 Carrera GTS", "valid", /2018 Porsche 911 Carrera GTS/);
