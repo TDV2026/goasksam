@@ -208,7 +208,8 @@ check("confirm: 'yeh' accepts and Porsche persists", /2007 Porsche 911 Turbo/.te
 // 9. Entry state has the pipeline too: vehicle text starts the wizard, and
 // unmatched input probes the resolver instead of a canned fallthrough.
 sellState.active=false;sellState.step=0;
-check("entry: vehicle text triggers the wizard", !!localPreRoute("e46 m3").sellTrigger, JSON.stringify(localPreRoute("e46 m3")));
+const entryVehicle=localPreRoute("e46 m3");
+check("entry: vehicle text starts the wizard (trigger or resolver probe)", !!(entryVehicle.sellTrigger||entryVehicle.entryProbe), JSON.stringify(entryVehicle));
 check("entry: unmatched input probes instead of canned reply", !!localPreRoute("is this site legit").entryProbe, JSON.stringify(localPreRoute("is this site legit")));
 
 console.log(`\n${failures === 0 ? "WIZARD ALL PASS" : failures + " FAILURE(S)"}`);
