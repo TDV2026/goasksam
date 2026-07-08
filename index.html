@@ -1726,10 +1726,15 @@ async function showSellRecommendation(){
     addMsg("sam",`Worth flagging before anything else: you mentioned ${formatUsd(askPrice)}, but recent comparable sales have a median around ${formatUsd(compsMedian)}. Worth double-checking what you meant, because it changes the advice.`);
   }
 
+  // When the divergence flag fires, the powerseller lead is suppressed, so the
+  // subtitle must not open with "speak to a PowerSeller first".
+  const summaryLine=priceDiverged&&powerSellerHTML
+    ?"Until the price question is settled, start with the platform read below. Having it handled is still on the table."
+    :resultSummaryLine(sellState.sellOptions,routeOptions);
   const headerHTML=`<div class="sell-rec-header">
       <div class="sell-rec-kicker">Seller Intelligence</div>
       <div class="sell-rec-title">${escapeHtml(resultHeaderTitle(routeOptions))}</div>
-      <div class="sell-rec-subtitle">${escapeHtml(resultSummaryLine(sellState.sellOptions,routeOptions))}</div>
+      <div class="sell-rec-subtitle">${escapeHtml(summaryLine)}</div>
     </div>`;
   const caveatHTML=adverseConditionCaveat()?`<div class="sell-section-note" style="margin-top:10px">${escapeHtml(adverseConditionCaveat())}</div>`:"";
   const afterText=powerSellerHTML?"Both are real options and the choice is yours. Pick one, or ask me to compare the tradeoffs.":(secondaryPlatforms.length?(hasTwoRouteTradeoff(routeOptions)?"Which choice fits how you want to sell? You can choose either, or ask me to compare the tradeoffs.":"Which direction feels right? You can pick one, or ask me to compare the tradeoffs."):"Want me to walk through how I'd run the listing, or compare it against the other platforms?");
