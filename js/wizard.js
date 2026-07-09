@@ -366,10 +366,25 @@ async function handleVehicleValidationAnswer(q){
     return true;
   }
   // Explicit "move on" always advances at the level we know (locked behavior).
-  // "lets just go with it/that" counts, unless the text carries vehicle data,
-  // which must resolve first (a decade or trim in it completes the car).
-  const pureGoWith=/\b(jus?t\s+)?go with\b/i.test(lower)&&!looksLikeVehicleText(q);
-  if(detectIntent(lower)==="moveOn"||pureGoWith){
+  // "lets just go with X" counts too: if X names a resolvable car (a decade
+  // counts as the year), take it whole; otherwise advance with what we have.
+  const goWith=/\b(jus?t\s+)?go with\b/i.test(lower);
+  if(goWith&&looksLikeVehicleText(q)){
+    try{
+      const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:q})});
+      const data=await res.json();
+      if(res.ok&&data.status==="valid"&&data.vehicle?.canonicalLabel){
+        sellState.resolvedVehicle=data.vehicle;
+        if(data.vehicle.mileage&&!sellState.mileage)sellState.mileage=`${Number(data.vehicle.mileage).toLocaleString()} miles`;
+        sellState.carName=data.vehicle.canonicalLabel;sellState.carRaw=data.vehicle.canonicalLabel;
+        sellState.vehicleIdentityValidated=true;sellState.pendingVehicleIdentity=null;sellState.lastVehicleAsk=null;
+        sellState.step=11;
+        addMsg("sam",`Got it. ${sellState.carName}. Where is the car located?`,"",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+        return true;
+      }
+    }catch{ /* fall through to advancing at the level known */ }
+  }
+  if(detectIntent(lower)==="moveOn"||goWith){
     const baseVehicle=currentIssue?.baseVehicle||sellState.carName||"the car";
     sellState.carName=baseVehicle;sellState.carRaw=baseVehicle;
     sellState.vehicleDetailSkipped=true;sellState.pendingVehicleIdentity=null;
