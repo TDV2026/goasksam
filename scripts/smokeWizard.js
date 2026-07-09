@@ -65,6 +65,7 @@ function resetToStep1() {
   sellState.lastVehicleAsk = null; sellState.vehicleClarifyRepeats = 0;
   sellState.notSureRepeats = 0; sellState.involvement = null;
   sellState.vehicleDetailSkipped = false; sellState.demandRepeats = 0;
+  sellState.mileage = null; sellState.resolvedVehicle = null; sellState.trimAskAttempts = 0;
   addMsgLog.length = 0;
 }
 
