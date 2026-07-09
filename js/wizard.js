@@ -345,9 +345,10 @@ async function handleVehicleValidationAnswer(q){
   // Intents outrank the off-script guard: a wordy move-on or refusal is an
   // instruction to advance, not a question for the chat layer.
   const subStateIntent=detectIntent(lower);
+  const goWith=/\b(jus?t\s+)?go with\b/i.test(lower);
   const questionLike=/\?\s*$/.test(lower)||/^(what|how|why|when|where|who|can|could|will|would|does|do|is|are|should|but|explain|tell me)\b/i.test(lower)||/\b(how long|you never|what happens|why do you)\b/i.test(lower);
-  const wordyNonAnswer=!subStateIntent&&lower.split(/\s+/).length>=4&&!/\d/.test(lower)&&!looksLikeVehicleText(q)&&!/\b(not sure|don.t know|unknown|skip|change car|start over|wrong car|different car|yes|yep|yeah|correct)\b/i.test(lower);
-  if((questionLike&&!subStateIntent&&!looksLikeVehicleText(q))||wordyNonAnswer)return false;
+  const wordyNonAnswer=!subStateIntent&&!goWith&&lower.split(/\s+/).length>=4&&!/\d/.test(lower)&&!looksLikeVehicleText(q)&&!/\b(not sure|don.t know|unknown|skip|change car|start over|wrong car|different car|yes|yep|yeah|correct)\b/i.test(lower);
+  if((questionLike&&!subStateIntent&&!goWith&&!looksLikeVehicleText(q))||wordyNonAnswer)return false;
   if(currentIssue?.baseVehicle&&/\bdifferent\b.*\bmodel\b/i.test(lower)){
     sellState.carName=currentIssue.baseVehicle;
     sellState.carRaw=currentIssue.baseVehicle;
@@ -368,10 +369,10 @@ async function handleVehicleValidationAnswer(q){
   // Explicit "move on" always advances at the level we know (locked behavior).
   // "lets just go with X" counts too: if X names a resolvable car (a decade
   // counts as the year), take it whole; otherwise advance with what we have.
-  const goWith=/\b(jus?t\s+)?go with\b/i.test(lower);
-  if(goWith&&looksLikeVehicleText(q)){
+  const goWithTail=goWith?String(q).replace(/^[\s\S]*?\bgo with\b/i,"").trim():"";
+  if(goWith&&goWithTail&&looksLikeVehicleText(goWithTail)){
     try{
-      const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:q})});
+      const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:goWithTail})});
       const data=await res.json();
       if(res.ok&&data.status==="valid"&&data.vehicle?.canonicalLabel){
         sellState.resolvedVehicle=data.vehicle;
