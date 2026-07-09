@@ -83,7 +83,7 @@ function isUSRegion(value){
 
 function looksLikeVehicleText(text){
   const lower=String(text||"").toLowerCase();
-  const hasYear=/\b(19|20)\d{2}\b/.test(lower);
+  const hasYear=/\b(19|20)\d{2}\b/.test(lower)||/\b(?:19|20)?[1-9]0'?s\b/.test(lower)||/\b(twenties|thirties|forties|fifties|sixties|seventies|eighties|nineties)\b/.test(lower);
   const hasVehicleTerm=/\b(porsche|ferrari|bmw|mercedes|benz|audi|lamborghini|aston|bentley|mclaren|chevrolet|chevy|corvette|vette|ford|mustang|stang|dodge|viper|toyota|honda|acura|nissan|datsun|subaru|mazda|miata|land rover|range rover|jaguar|jag|maserati|alfa|lotus|volkswagen|vw|beetle|bug|bus|camper|campervan|kombi|vanagon|westfalia|westy|karmann|pontiac|cadillac|buick|oldsmobile|plymouth|amc|jeep|willys|shelby|lincoln|mercury|mini|mg|triumph|austin|volvo|saab|fiat|lancia|delorean|amphicar|studebaker|packard|911|356|914|928|944|gt3|gt2|turbo|m2|m3|m4|m5|amg|rs|sti|supra|nsx|gtr|skyline|camaro|chevelle|gto|r8|rs3|rs4|rs5|rs6|rs7|s3|s4|s5|s6|s7|tt)\b/.test(lower);
   const explicitSell=/\b(i have|i've got|my car is|selling|to sell)\b/.test(lower)&&hasVehicleTerm;
   return (hasYear&&hasVehicleTerm)||explicitSell;
