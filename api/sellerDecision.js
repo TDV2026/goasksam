@@ -356,8 +356,13 @@ function buildLadder(vehicle, generation = null) {
   const model = asText(vehicle.model);
   const modelTrim = [model, trim].filter(Boolean).join(" ");
   const gen = generation && year ? generation : null;
+  // Decade input ("80s Bus"): no single year, but a range the rungs can use.
+  const range = !year && vehicle.yearRange && Number.isFinite(vehicle.yearRange.start) ? vehicle.yearRange : null;
   const rungs = [];
 
+  if (trim && range) {
+    rungs.push({ key: "year_range_trim", label: `${modelTrim} sales ${range.start} to ${range.end}`, needTrim: true, yearMin: range.start, yearMax: range.end, maxYearGap: null, threshold: 3, pages: 2 });
+  }
   if (trim && year) {
     rungs.push({ key: "exact_year_trim", label: `${year} ${modelTrim} sales`, needTrim: true, maxYearGap: 0, threshold: 3, pages: 1 });
     rungs.push(gen
@@ -374,6 +379,9 @@ function buildLadder(vehicle, generation = null) {
     rungs.push(gen
       ? { key: "generation_model", label: `${gen.code}-generation ${model} sales, ${gen.yearStart} to ${gen.yearEnd}`, needTrim: false, yearMin: gen.yearStart, yearMax: gen.yearEnd, maxYearGap: null, generationCode: gen.code, threshold: 3, pages: 2 }
       : { key: "near_years_model", label: `${model} sales ${year - 2} to ${year + 2}`, needTrim: false, maxYearGap: 2, threshold: 3, pages: 2 });
+  }
+  if (range) {
+    rungs.push({ key: "year_range_model", label: `${model} sales ${range.start} to ${range.end}`, needTrim: false, yearMin: range.start, yearMax: range.end, maxYearGap: null, threshold: 3, pages: 2 });
   }
   rungs.push({ key: "any_year_model", label: `${model} sales, any year`, needTrim: false, maxYearGap: null, threshold: 6, pages: MAX_PAGES });
   rungs.push({
@@ -1014,10 +1022,10 @@ function ladderConfidence(analysis) {
   const landed = analysis.ladder?.landed;
   if (!landed || !landed.thresholdMet) return "low";
   const sales = analysis.evidenceSales;
-  if (["exact_year_trim", "near_years_trim", "generation_trim", "exact_year_model"].includes(landed.key)) {
+  if (["exact_year_trim", "near_years_trim", "generation_trim", "year_range_trim", "exact_year_model"].includes(landed.key)) {
     return sales >= 5 ? "high" : "medium";
   }
-  if (["any_year_trim", "near_years_model", "generation_model"].includes(landed.key)) return "medium";
+  if (["any_year_trim", "near_years_model", "generation_model", "year_range_model"].includes(landed.key)) return "medium";
   if (landed.key === "any_year_model") return sales >= 8 ? "medium" : "low";
   return "low";
 }

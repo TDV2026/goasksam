@@ -10,6 +10,7 @@ CAPABILITY HONESTY (locked): The product does exactly one thing: analyze real sa
 IDENTITY: You are Sam. Never say you are Claude, ChatGPT, OpenAI, Anthropic, an LLM, or a language model.
 PERSONALITY: Warm, direct, human. No essays. No fluff. No false certainty. Never use em dashes or en dashes anywhere in your replies; use commas or periods instead. Plain prose only: no markdown, asterisks, underscores or headers. Never open with filler like "Great question".
 GROUNDING: Never state platform fees, commissions, percentages or caps as fact; GoAskSam holds no fee data. No platform-mechanics claims (auction formats, durations, audiences). No invented market commentary. No statistics you were not given.
+NEVER GATHER VEHICLE DATA: you never ask for model, trim, mileage, options or specs in chat; the wizard collects those. If someone names or partially names a car, ask them only to give the year, make and model in one line so the analysis can start. One line, nothing else.
 OFF TOPIC: Warm redirect, vary wording, land on: what car are we selling?
 JOKES: Play along briefly, redirect to cars.`;
 
@@ -22,6 +23,13 @@ function escapeRegExp(str){return String(str||"").replace(/[.*+?^${}()|[\]\\]/g,
 function normalizeVehicleAnswer(str){return String(str||"").toLowerCase().replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").replace(/\s+/g," ").trim();}
 function apiPath(path){return `${API_ORIGIN}${path}`;}
 function activeVehicleIssue(){return sellState.pendingVehicleIdentity||currentMissingVehicleDetail();}
+function exampleCarText(partialVehicle){
+  // Typed examples build from the user's own car; a generic example may only
+  // render when nothing is known yet.
+  const knownMakeModel=[partialVehicle?.make,partialVehicle?.model].filter(Boolean).join(" ");
+  if(knownMakeModel)return `${partialVehicle?.year||"1985"} ${knownMakeModel}`;
+  return "2018 Porsche 911 Carrera GTS";
+}
 function askVehicleIdentityClarification(clarification,status,partialVehicle){
   sellState.vehicleIdentityValidated=false;
   let ask=clarification.question;
@@ -45,7 +53,7 @@ function askVehicleIdentityClarification(clarification,status,partialVehicle){
     }else if(understood){
       ask=alt
         ?`Still missing the ${missing} for the ${understood}. The badge or the registration usually settles it. What does it say?`
-        :`So far I have ${understood}. I just need the ${missing}. You can also type the whole thing, like '2018 Porsche 911 Carrera GTS'.`;
+        :`So far I have ${understood}. I just need the ${missing}. You can also type the whole thing, like '${exampleCarText(partialVehicle)}'.`;
     }else{
       ask=alt
         ?`Let's build it up instead. Give me just the make to start, like 'Porsche' or 'Chevrolet'.`
@@ -88,6 +96,7 @@ async function validateVehicleIdentityPreflight(candidate,opts={}){
       sellState.vehicleIdentityValidated=true;
       sellState.pendingVehicleIdentity=null;
       sellState.resolvedVehicle=data.vehicle||null;
+      if(data.vehicle?.mileage&&!sellState.mileage)sellState.mileage=`${Number(data.vehicle.mileage).toLocaleString()} miles`;
       sellState.lastVehicleAsk=null;
       sellState.vehicleClarifyRepeats=0;
       sellState.lastIdentityVerdict="valid";
@@ -98,7 +107,7 @@ async function validateVehicleIdentityPreflight(candidate,opts={}){
       }
       return true;
     }
-    if((data.status==="invalid_vehicle"||data.status==="needs_clarification")&&data.clarification?.question){
+    if((data.status==="invalid_vehicle"||data.status==="needs_clarification"||data.status==="needs_confirmation")&&data.clarification?.question){
       const partial=data.vehicle||{};
       const nothingUnderstood=data.status==="needs_clarification"&&!partial.year&&!partial.make&&!partial.model;
       if(nothingUnderstood&&opts.chatFallback){

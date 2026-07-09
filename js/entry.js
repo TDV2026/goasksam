@@ -12,8 +12,6 @@ function showRecommendationExplainer(){
 function newConversation(){
   history.length=0;
   resetSellState();
-  if(demoInterval){clearInterval(demoInterval);demoInterval=null;}
-  demoSignalIndex=0;
   document.getElementById("msgs").innerHTML=homeHeroHTML();
 }
 
@@ -94,7 +92,7 @@ async function send(){
       const probeRes=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:q})});
       const probe=await probeRes.json();
       const understood=probe?.vehicle&&(probe.vehicle.make||probe.vehicle.model);
-      if(probeRes.ok&&(probe.status==="valid"||understood)){
+      if(probeRes.ok&&(probe.status==="valid"||probe.status==="needs_confirmation"||understood)){
         startSellFlow(q,false);
         document.getElementById("btn").disabled=false;
         return;

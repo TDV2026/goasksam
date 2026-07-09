@@ -148,6 +148,11 @@ async function handleSellStep(q){
       return true;
     }
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
+    if(sellState.mileage){
+      sellState.step=3;
+      addMsg("sam","Stock or modified?","",chipsHTML(["Completely stock","Minor mods","Heavily modified"]));
+      return true;
+    }
     sellState.step=2;
     addMsg("sam","Rough mileage?","",chipsHTML(["Under 30k","30k to 60k","60k to 100k","Over 100k"]));
     return true;
@@ -165,6 +170,11 @@ async function handleSellStep(q){
     sellState.region="US";
     sellState.state=pipedState.action==="store"&&typeof pipedState.value==="string"?pipedState.value:"Not sure";
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
+    if(sellState.mileage){
+      sellState.step=3;
+      addMsg("sam","Stock or modified?","",chipsHTML(["Completely stock","Minor mods","Heavily modified"]));
+      return true;
+    }
     sellState.step=2;
     addMsg("sam","Rough mileage?","",chipsHTML(["Under 30k","30k to 60k","60k to 100k","Over 100k"]));
     return true;

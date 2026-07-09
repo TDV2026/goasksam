@@ -366,7 +366,10 @@ async function handleVehicleValidationAnswer(q){
     return true;
   }
   // Explicit "move on" always advances at the level we know (locked behavior).
-  if(detectIntent(lower)==="moveOn"){
+  // "lets just go with it/that" counts, unless the text carries vehicle data,
+  // which must resolve first (a decade or trim in it completes the car).
+  const pureGoWith=/\b(jus?t\s+)?go with\b/i.test(lower)&&!looksLikeVehicleText(q);
+  if(detectIntent(lower)==="moveOn"||pureGoWith){
     const baseVehicle=currentIssue?.baseVehicle||sellState.carName||"the car";
     sellState.carName=baseVehicle;sellState.carRaw=baseVehicle;
     sellState.vehicleDetailSkipped=true;sellState.pendingVehicleIdentity=null;
@@ -491,14 +494,18 @@ function startSellFlow(initialCar, showUserBubble=true){
   sellState.active=true;sellState.step=1;
   hideHero();
   if(initialCar){
+    // No entry text is ever discarded: the resolver decides what it is. Only
+    // input the resolver cannot read as a vehicle gets the funnel line.
     const carName=cleanInitialCarText(initialCar);
-    if(!looksLikeVehicleText(initialCar)){
-      addMsg("sam",sellerFunnelReply(),"",chipsHTML(["Start the questions"]));
-      return;
-    }
     sellState.carRaw=initialCar;sellState.carName=carName||initialCar;sellState.vehicleIdentityValidated=false;
     setTimeout(async()=>{
-      if(!(await validateVehicleIdentityPreflight(sellState.carName)))return;
+      if(!(await validateVehicleIdentityPreflight(sellState.carName,{chatFallback:true}))){
+        if(sellState.lastIdentityVerdict==="not_vehicle"){
+          sellState.carName=null;sellState.carRaw=null;
+          addMsg("sam",sellerFunnelReply(),"",chipsHTML(["Start the questions"]));
+        }
+        return;
+      }
       const missing=currentMissingVehicleDetail();
       if(missing){
         askMissingVehicleDetail(missing);
