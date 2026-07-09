@@ -63,6 +63,7 @@ async function handleSellStep(q){
       }
       return true;
     }
+    sellState.trimAskAttempts=0;
     const missing=currentMissingVehicleDetail();
     if(missing){
       askMissingVehicleDetail(missing);
@@ -84,9 +85,18 @@ async function handleSellStep(q){
     // and nothing off-script is ever appended to the car name.
     const questionLike17=/\?\s*$/.test(lower)||/^(what|how|why|when|where|who|can|could|will|would|does|do|is|are|should|but|explain|tell me)\b/i.test(lower)||/\b(how long|how many|how much|you never|what happens)\b/i.test(lower);
     if(questionLike17&&!looksLikeVehicleText(q))return false;
-    if(detectIntent(lower)==="refusal"||detectIntent(lower)==="moveOn"||/\bskip\b/i.test(lower)){
+    // Chip answers and explicit skip/move-on always advance (chip labels can
+    // never be rejected by their own step). Wordy refusals like "don't know"
+    // go to the chat layer for a real explanation of where to find the trim;
+    // the re-ask escalates with a Skip chip and a 3-attempt cap.
+    const ownEscapeChip=/^(not sure|skip this step|skip)$/i.test(lower.trim());
+    if(detectIntent(lower)==="moveOn"||ownEscapeChip||/\bskip\b/i.test(lower)){
       sellState.vehicleDetailSkipped=true;
+      sellState.trimAskAttempts=0;
+      sellState.lastMissingAsk=null;
       addMsg("sam","No problem. I'll keep it broad for now, but the recommendation may be more directional without the exact model.");
+    }else if(detectIntent(lower)==="refusal"){
+      return false;
     }else{
       const prevCar=sellState.carName;
       const candidate=`${sellState.carName} ${q}`.replace(/\s+/g," ").trim();

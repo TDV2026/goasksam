@@ -45,11 +45,11 @@ const patched = script.replace(
   /function addMsg\(/,
   "function addMsg(...__a){__samLog.push(__a);return __addMsgReal(...__a)}\nfunction __addMsgReal("
 );
-const exportTail = `;globalThis.__t={handleSellStep,sellState,addMsgLog:__samLog,SELL_SYS,SELL_STEP_QUESTIONS,remainingWizardQuestions,localPreRoute};`;
+const exportTail = `;globalThis.__t={handleSellStep,sellState,addMsgLog:__samLog,SELL_SYS,SELL_STEP_QUESTIONS,remainingWizardQuestions,localPreRoute,askNextSellQuestion};`;
 const fn = new Function("document", "window", "fetch", "localStorage", "navigator", "location", "MutationObserver", "IntersectionObserver", "requestAnimationFrame", prelude + patched + exportTail);
 fn(documentStub, windowStub, prodFetch, { getItem: () => null, setItem() {}, removeItem() {} }, { userAgent: "smoke", clipboard: {} }, { search: "", hostname: "smoke", href: "", pathname: "/" }, class { observe() {} disconnect() {} }, class { observe() {} disconnect() {} }, cb => cb && cb(0));
 
-const { handleSellStep, sellState, addMsgLog, SELL_SYS, remainingWizardQuestions, localPreRoute } = globalThis.__t;
+const { handleSellStep, sellState, addMsgLog, SELL_SYS, remainingWizardQuestions, localPreRoute , askNextSellQuestion } = globalThis.__t;
 const samMessages = () => addMsgLog.filter(a => a[0] === "sam").map(a => String(a[1]));
 const lastSam = () => samMessages().at(-1) || null;
 let failures = 0;
@@ -144,14 +144,30 @@ check("partial: camper van resolves make+model, asks year only", sellState.step 
 await handleSellStep("1965");
 check("partial: bare year completes the car, nothing re-asked", sellState.step === 11 && /1965 Volkswagen Bus/.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
 
-// 5. Explicit move-on always advances at the level known.
+// 5. Trim step and its escalation contract: the trim question always runs
+// before location for a trim-less 911; "dont know" gets a chat explanation
+// (not a silent skip); the re-ask offers a Skip chip; three attempts max.
 resetToStep1();
 await handleSellStep("2018 porsche 911");
 const atTrim = sellState.step === 17;
-check("move-on: trim question opened", atTrim, `step=${sellState.step} last="${lastSam()}"`);
+check("trim: asked before location for a model with no trim", atTrim && /which 911/i.test(lastSam() || ""), `step=${sellState.step} last="${lastSam()}"`);
 if (atTrim) {
-  await handleSellStep("dont know");
-  check("move-on: dont know proceeds broad with clean car name", sellState.step === 11 && sellState.carName === "2018 Porsche 911" && sellState.vehicleDetailSkipped === true, `step=${sellState.step} car=${JSON.stringify(sellState.carName)} last="${lastSam()}"`);
+  const routed = await handleSellStep("dont know");
+  check("trim: 'dont know' routes to chat for a real answer", routed === false, `returned=${routed}`);
+  askNextSellQuestion(); // simulate the chat handback re-ask
+  const reAskChips = String(addMsgLog.at(-1)?.[3] || "");
+  check("trim: Skip chip appears on the second ask", /skip this step/i.test(reAskChips), `chips="${reAskChips.slice(0, 160)}"`);
+  await handleSellStep("Skip this step");
+  check("trim: Skip advances straight to location", sellState.step === 11 && sellState.vehicleDetailSkipped === true, `step=${sellState.step} last="${lastSam()}"`);
+}
+// Retry cap: after 3 rendered attempts the wizard advances by itself.
+resetToStep1();
+await handleSellStep("2018 porsche 911");
+if (sellState.step === 17) {
+  askNextSellQuestion(); // attempt 2
+  askNextSellQuestion(); // attempt 3
+  askNextSellQuestion(); // would be attempt 4: must auto-advance instead
+  check("trim: auto-advance after 3 attempts, no fourth ask", sellState.step === 11 && /where is the car located/i.test(lastSam() || ""), `step=${sellState.step} last="${lastSam()}"`);
 }
 // Explicit move-on advances from the clarification sub-state too.
 resetToStep1();

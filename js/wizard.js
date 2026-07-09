@@ -289,10 +289,20 @@ function missingVehicleDetail(text){
   return null;
 }
 
+const TRIM_911_ASK={type:"trim",ask:"Which 911 is it? Carrera, Carrera T, GTS, Turbo, GT3 and Sport Classic behave very differently. Pick one below, or type the exact trim if it is not shown.",chips:["Carrera","Carrera S","Carrera T","GTS","Turbo","Turbo S","GT3","GT3 RS","Sport Classic","Not sure"]};
+
 function missingVehicleTrimDetail(text){
+  // Trim-missing is judged on the RESOLVED vehicle when we have one: model
+  // confirmed with no trim means the trim step always runs before location
+  // (trims drive the top ladder rungs). The text regex remains only as the
+  // fallback when no resolution exists yet.
+  const rv=sellState.resolvedVehicle;
+  if(rv&&rv.model&&!rv.trim){
+    if(/porsche/i.test(rv.make||"")&&/^(911|964|993|996|997|991|992)$/.test(String(rv.model)))return TRIM_911_ASK;
+  }
   const lower=String(text||"").toLowerCase();
   if(/\bporsche\b/.test(lower)&&/\b911\b/.test(lower)&&!/\b(carrera(?:\s+[124]?s|\s+t)?|gts|turbo(?:\s+s)?|gt3(?:\s+rs)?|gt2(?:\s+rs)?|sport\s+classic|dak(?:ar)?|speedster|targa|s\/t|992|991|997|996|993|964)\b/.test(lower)){
-    return {type:"trim",ask:"Which 911 is it? Carrera, Carrera T, GTS, Turbo, GT3 and Sport Classic behave very differently. Pick one below, or type the exact trim if it is not shown.",chips:["Carrera","Carrera S","Carrera T","GTS","Turbo","Turbo S","GT3","GT3 RS","Sport Classic","Not sure"]};
+    return TRIM_911_ASK;
   }
   return null;
 }
@@ -306,9 +316,24 @@ function currentMissingVehicleDetail(){
 }
 
 function askMissingVehicleDetail(missing){
+  // Escalation (locked rule 12 pattern, same as the condition step): each
+  // render of the same ask counts as an attempt. Attempt 2+ offers a Skip
+  // chip; after 3 attempts the wizard advances on its own, never a 4th ask.
+  if(missing.ask!==sellState.lastMissingAsk)sellState.trimAskAttempts=0;
+  sellState.trimAskAttempts=(sellState.trimAskAttempts||0)+1;
+  if(sellState.trimAskAttempts>3){
+    sellState.vehicleDetailSkipped=true;
+    sellState.lastMissingAsk=null;
+    sellState.trimAskAttempts=0;
+    sellState.step=11;
+    addMsg("sam",`I'll take the ${sellState.carName||"car"} as-is and keep the read broad. Where is the car located?`,"",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+    return;
+  }
   sellState.step=17;
   sellState.lastMissingAsk=missing.ask;
-  addMsg("sam",missing.ask,"",chipsHTML(missing.chips));
+  const chips=(missing.chips||[]).slice();
+  if(sellState.trimAskAttempts>=2&&!chips.some(c=>/^skip this step$/i.test(c)))chips.push("Skip this step");
+  addMsg("sam",missing.ask,"",chipsHTML(chips));
 }
 
 async function handleVehicleValidationAnswer(q){
@@ -491,6 +516,10 @@ function startSellFlow(initialCar, showUserBubble=true){
 }
 
 function askNextSellQuestion(){
+  if(sellState.step===17){
+    const missing=currentMissingVehicleDetail();
+    if(missing){askMissingVehicleDetail(missing);return;}
+  }
   const q=SELL_STEP_QUESTIONS[sellState.step];
   if(!q)return;
   addMsg("sam",q.ask,"",q.chips.length?chipsHTML(q.chips):"");
