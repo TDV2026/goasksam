@@ -403,6 +403,7 @@ function partnerProfileFromReferral(referral){
     displayName:partner.displayName||name,
     region:(partner.regions||[])[0]||"",
     serviceClaims:(partner.serviceClaims||[]).filter(claim=>claim&&claim.text),
+    profileStats:(partner.specialties?.profile_stats||[]).filter(line=>line&&line.text),
     providedPlatforms:(partner.platforms||[]).filter(p=>p&&p.source!=="data_verified").map(p=>p.name),
     verified:{
       trackedSales:Number(verified.trackedSales||0),
@@ -484,6 +485,18 @@ function powerSellerProofItems(profile){
   // only when the backend cleared its sample minimum; below the career
   // minimum no rows render and the honesty note takes their place.
   const v=profile?.verified||{};
+  // Approved per-partner stat lines from the partners table take precedence.
+  // {sellThroughPercent} substitutes the computed rate; its line is omitted
+  // when the sample is below the honesty threshold (never a stale number).
+  if((profile?.profileStats||[]).length){
+    return profile.profileStats.map(line=>{
+      if(/\{sellThroughPercent\}/.test(line.text)){
+        if(!v.sellThrough)return null;
+        return [null,line.text.replace(/\{sellThroughPercent\}/g,v.sellThrough.ratePercent)];
+      }
+      return [null,line.text];
+    }).filter(Boolean);
+  }
   const rows=[];
   if(v.belowCareerMinimum)return rows;
   rows.push(["Tracked sales in our records",`${v.trackedSales} completed sale${v.trackedSales===1?"":"s"}${v.latestSaleDate&&dateShort(v.latestSaleDate)?`, most recent ${dateShort(v.latestSaleDate)}`:""}`]);
@@ -495,7 +508,7 @@ function powerSellerProofItems(profile){
 
 function powerSellerProofHTML(profile){
   return powerSellerProofItems(profile).map(([label,value])=>
-    `<div class="power-seller-proof"><span>${escapeHtml(label)}</span>${escapeHtml(value)}</div>`
+    `<div class="power-seller-proof">${label?`<span>${escapeHtml(label)}</span>`:""}${escapeHtml(value)}</div>`
   ).join("");
 }
 

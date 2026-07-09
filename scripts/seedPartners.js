@@ -33,7 +33,16 @@ const PARTNERS = [
       makes: ["Porsche", "Ford", "Ferrari", "BMW", "Mercedes-Benz", "Audi", "Toyota", "Land Rover", "Jaguar"],
       segments: ["air_cooled_porsche", "911", "vintage_mustang", "collector", "performance", "high_value"],
       notes: "Air-cooled Porsche, 911s, vintage Mustangs, unusual automotive items (per howS)",
-      source: "partner_provided"
+      source: "partner_provided",
+      // Card stat lines (approved wording, July 2026). {sellThroughPercent}
+      // is substituted from computed career stats at render time and the line
+      // is omitted when the sample is below the honesty threshold.
+      profile_stats: [
+        { text: "400+ listings tracked across Bring a Trailer and other platforms", source: "partner_provided" },
+        { text: "{sellThroughPercent}% sell-through rate", source: "data_verified" },
+        { text: "Specializes in: Porsche, Mercedes-Benz, BMW, Ferrari, and other European marques", source: "partner_provided" },
+        { text: "Lists primarily on Bring a Trailer", source: "partner_provided" }
+      ]
     },
     platforms: [
       { name: "Bring a Trailer", source: "partner_provided" },
