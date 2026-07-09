@@ -17,6 +17,8 @@
 //     node scripts/backfillPartnerHistory.js --probe
 //   ...same env... node scripts/backfillPartnerHistory.js --run
 
+import { persistableMakeModel } from "../lib/_classify.js";
+
 const OCD_KEY = process.env.OLDCARSDATA_API_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -131,8 +133,7 @@ async function run() {
             source_record_id: String(record.id ?? record.source_record_id ?? record.listing_id ?? crypto.randomUUID()),
             source_url: record.url || record.listing_url || null,
             platform: record.platform || record.source || "unknown",
-            make: record.ocd_make_name || record.listing_make || null,
-            model: record.ocd_model_name || record.listing_model || null,
+            ...persistableMakeModel(record),
             year: record.year || null,
             raw_title: record.title || record.listing_title || null,
             price: Number(record.sold_price ?? record.final_price ?? record.price ?? record.current_bid) || null,
@@ -143,13 +144,21 @@ async function run() {
             ingested_at: new Date().toISOString(),
             ingestion_batch_id: batchId
           }));
-          const res = await fetch(`${SUPABASE_URL}/rest/v1/vehicle_market_records?on_conflict=source,source_record_id`, {
+          const insertBatch = body => fetch(`${SUPABASE_URL}/rest/v1/vehicle_market_records?on_conflict=source,source_record_id`, {
             method: "POST",
             headers: { ...SB, "Content-Type": "application/json", Prefer: "resolution=ignore-duplicates,return=minimal" },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(body)
           });
-          if (!res.ok) console.error(`insert failed: ${res.status} ${(await res.text()).slice(0, 200)}`);
-          else inserted += payload.length;
+          let res = await insertBatch(payload);
+          if (!res.ok) {
+            // One bad row must not drop 49 good ones: retry row by row.
+            console.error(`batch insert failed (${res.status}), retrying rows individually`);
+            for (const row of payload) {
+              const single = await insertBatch([row]);
+              if (single.ok) inserted++;
+              else console.error(`  dropped row ${row.source_record_id}: ${(await single.text()).slice(0, 150)}`);
+            }
+          } else inserted += payload.length;
           if (page >= (json.meta?.total_pages || 1)) break;
         }
       }

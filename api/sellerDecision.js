@@ -7,6 +7,7 @@ import { computePartnerCareerStats, computePlatformBaselines, partnerRelevance, 
 import {
   asText,
   classifyRecord,
+  persistableMakeModel,
   daysAgo,
   median,
   modelSearchTerms,
@@ -1272,8 +1273,8 @@ async function persistRawRecords(records, supabaseUrl, supabaseKey) {
     source_record_id: sourceRecordId(record) || crypto.randomUUID(),
     source_url: record.url || record.listing_url || null,
     platform: recordPlatform(record),
-    make: record.ocd_make_name || record.listing_make || null,
-    model: record.ocd_model_name || record.listing_model || null,
+    // NOT NULL columns; a null used to kill the whole batch (rule 5 violation)
+    ...persistableMakeModel(record),
     year: record.year || null,
     raw_title: record.title || record.listing_title || null,
     price: normalizeMoney(record),
