@@ -177,6 +177,44 @@ if (sellState.step === 17) {
   check("move-on: explicit move on advances from clarification", sellState.step === 11 && /Volkswagen Bus/.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
 }
 
+// 5b. Entry partials, decades and personalized examples (locked behaviors).
+// Cold partial "2018 pors": typo-confirm, then "carrera 30k miles" seeds
+// trim AND mileage; neither is ever re-asked.
+resetToStep1();
+await handleSellStep("2018 pors");
+check("partial entry: 2018 pors gets a typo confirm", /did you mean porsche/i.test(lastSam() || ""), `last="${lastSam()}"`);
+await handleSellStep("2018 Porsche");
+check("partial entry: confirm lands on the model question", sellState.step === 17 && /which model/i.test(lastSam() || ""), `step=${sellState.step} last="${lastSam()}"`);
+await handleSellStep("carrera 30k miles");
+check("partial entry: carrera 30k seeds trim and mileage, no re-ask",
+  /911 Carrera/.test(sellState.carName || "") && /30,000/.test(sellState.mileage || "") && sellState.step === 11,
+  `car=${sellState.carName} mileage=${sellState.mileage} step=${sellState.step}`);
+await handleSellStep("US");
+await handleSellStep("California");
+check("partial entry: mileage step skipped, condition asked next", /stock or modified/i.test(lastSam() || ""), `last="${lastSam()}"`);
+
+// Decade at the vehicle step: year range stored, no year re-ask.
+resetToStep1();
+await handleSellStep("vw camper van from the 80s");
+check("decade: 80s Bus resolves with a year range, no year ask",
+  sellState.step === 11 && /Volkswagen Bus/.test(sellState.carName || "") &&
+  sellState.resolvedVehicle?.yearRange?.start === 1980 && sellState.resolvedVehicle?.yearRange?.end === 1989,
+  `step=${sellState.step} car=${sellState.carName} range=${JSON.stringify(sellState.resolvedVehicle?.yearRange || null)}`);
+
+// Year re-ask example is the user's own car; go-with carrying the car
+// completes it (decade counts as the year).
+resetToStep1();
+await handleSellStep("vw camper van");
+await handleSellStep("Not sure");
+await handleSellStep("zzz unknown");
+const yearReAsk = lastSam() || "";
+check("year re-ask: example is their car, never someone else's",
+  /Volkswagen Bus/.test(yearReAsk) && !/Porsche/.test(yearReAsk), `last="${yearReAsk}"`);
+await handleSellStep("cant see it now lets jsut go with vw camper van from the 80's");
+check("year step: go-with carrying the car completes it and advances",
+  sellState.step === 11 && /1980s Volkswagen Bus/.test(sellState.carName || ""),
+  `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
+
 // 6. The fallback demand line can never render twice in a row.
 resetToStep1();
 sellState.step = 17;

@@ -158,6 +158,17 @@ await identityCase("identity: 67 corvette", "67 corvette", "valid", /1967 Chevro
     ladder?.landed?.label);
 }
 
+// Decade year-range flows into the ladder as real rung bounds (fetch-free).
+{
+  const { body } = await post("/api/sellerDecision", {
+    ladderPreview: true,
+    car: { vehicle: { raw: "80s vw bus", year: null, yearRange: { start: 1980, end: 1989 }, make: "Volkswagen", model: "Bus", trim: null, confidence: "medium" } }
+  });
+  check("decade ladder: year-range rung with the range bounds",
+    (body.ladder || []).some(r => r.key === "year_range_model" && r.yearMin === 1980 && r.yearMax === 1989),
+    JSON.stringify((body.ladder || []).map(r => r.label)));
+}
+
 await identityCase("identity: e46 m3 cold entry", "e46 m3", "needs_clarification", /BMW M3/i);
 await identityCase("identity: mustang vert never trims Vert", "1990 mustang vert", "valid", /^((?!Vert).)*$/s);
 await identityCase("identity: non-car input", "after i give you this what will happen", "needs_clarification", /year, make and model/i);
