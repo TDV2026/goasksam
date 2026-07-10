@@ -330,7 +330,9 @@ async function showSellRecommendation(){
       <div class="sell-rec-subtitle">${escapeHtml(summaryLine)}</div>
     </div>`;
   const caveatHTML=adverseConditionCaveat()?`<div class="sell-section-note" style="margin-top:10px">${escapeHtml(adverseConditionCaveat())}</div>`:"";
-  const afterText=powerSellerHTML?"Both are real options and the choice is yours. Pick one, or ask me to compare the tradeoffs.":(secondaryPlatforms.length?(hasTwoRouteTradeoff(routeOptions)?"Which choice fits how you want to sell? You can choose either, or ask me to compare the tradeoffs.":"Which direction feels right? You can pick one, or ask me to compare the tradeoffs."):"Want me to walk through how I'd run the listing, or compare it against the other platforms?");
+  // Recommendation closes are declarative (locked): a period, never a
+  // question, never an escape hatch.
+  const afterText=powerSellerHTML?"Both are real options and the choice is yours. Pick one, or ask me to compare the tradeoffs.":(secondaryPlatforms.length?"Pick either, or ask me to compare the tradeoffs.":"Ask me anything about the pick, or how I'd run the listing.");
   sellState.generatedPrimaryName=sellState.sellOptions[0]?.name||null;
   sellState.generatedSecondaryName=sellState.sellOptions[1]?.name||null;
 
@@ -568,7 +570,7 @@ function renderNoEvidenceFallback(fallback){
       </div>
     ${secondary}
     </div>
-    <div class="sam-text after-results">Want a second opinion? Ask me anything about the recommendation, or tell me more about the car.</div>
+    <div class="sam-text after-results">Ask me anything about the recommendation, or tell me more about the car.</div>
   </div></div>`;
 }
 

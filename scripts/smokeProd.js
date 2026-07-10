@@ -10,6 +10,7 @@ const BASE = process.env.SMOKE_BASE_URL || "https://goasksam.vercel.app";
 // The entry system prompt lives in js/chat-core.js since the index.html split.
 const __chatCore = fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "js", "chat-core.js"), "utf8");
 const ENTRY_SYS = __chatCore.match(/const SYS=`([\s\S]*?)`;\n/)[1];
+const __wizardJs = fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "js", "wizard.js"), "utf8");
 let failures = 0;
 
 function check(name, ok, detail) {
@@ -34,6 +35,7 @@ Key facts:
 - Fees: GoAskSam holds NO platform fee data. Never state platform fees, commissions, percentages, or caps as fact. If asked what howS or any consignor charges: we do not hold his fee terms; per howS his structure is usually flexible, and the specifics are discussed directly with him if the seller requests an introduction.
 - Timing: the question flow takes under a minute, and the market analysis itself runs in seconds once the questions are done. Nothing here is a long process.
 - Privacy and leads: seller details are used only to build the recommendation. If the seller chooses to proceed, their details go to one single chosen destination, never blasted to multiple partners, never sold.
+Recommendations are final. No hedging, no escape hatches: never "if it does not pan out", never "we can revisit", never "feel free to come back", never "if you change your mind". If the user questions the recommendation, explain the tradeoff in one or two direct sentences. Never offer alternatives unless asked. Never announce honesty ("I want to be straight with you"), just be direct.
 Style: never use em dashes or en dashes anywhere in your replies. Use commas or periods instead.
 Never say you are AI. You are Sam. End on your answer; the wizard re-asks its own question after you.`;
 
@@ -167,6 +169,32 @@ await identityCase("identity: 67 corvette", "67 corvette", "valid", /1967 Chevro
   check("decade ladder: year-range rung with the range bounds",
     (body.ladder || []).some(r => r.key === "year_range_model" && r.yearMin === 1980 && r.yearMax === 1989),
     JSON.stringify((body.ladder || []).map(r => r.label)));
+}
+
+// Voice rules (locked rule 15): no hedging, no defensive framing, no
+// question-mark closes after a recommendation lands.
+{
+  const HEDGE=/pan out|revisit|feel free|come back (to|if|later)|change your mind|circumstances change|second opinion|if (this|that|it) (doesn'?t|does not) work/i;
+  const DEFENSIVE=/want to be straight|need to be honest|rather not do that|working against the data|i apologi[sz]e/i;
+  const chatVoice=async(name,question,context)=>{
+    const { body } = await post("/api/chat", {
+      bypassCache: true,
+      messages: [{ role: "user", content: question }],
+      system: __wizardJs.match(/const SELL_SYS=`([\s\S]*?)`;\n/)?.[1] || WIZARD_SYSTEM,
+      context
+    });
+    const text = String(body.text || "");
+    check(`voice ${name}: no hedging or escape hatches`, text.length > 10 && !HEDGE.test(text), `text="${text.slice(0, 250)}"`);
+    check(`voice ${name}: no defensive framing`, !DEFENSIVE.test(text), `text="${text.slice(0, 250)}"`);
+    return text;
+  };
+  // 1. $50k+ car with the PowerSeller in play.
+  await chatVoice("powerseller", "why are you pushing this powerseller on me",
+    'Current sell state: {"car":"2018 Porsche 911 Carrera GTS","step":16}\nDecision facts (the engine\'s recommendation, do not contradict it): recommended platform Bring a Trailer; basis market_evidence; confidence high; a PowerSeller referral (howS) passed the gate at an estimated value of $124,500.');
+  // 2. Platform recommendation explanation stays direct.
+  const explain = await chatVoice("platform", "explain why cars and bids",
+    'Current sell state: {"car":"2011 BMW 335i","step":16}\nDecision facts (the engine\'s recommendation, do not contradict it): recommended platform Cars & Bids; basis market_evidence; confidence medium; comparable sales analyzed 25 across everything tracked.');
+  check("voice platform: explanation is tight (no five-sentence apology)", (explain.match(/[.!?]+/g) || []).length <= 4, `sentences=${(explain.match(/[.!?]+/g) || []).length} text="${explain.slice(0, 300)}"`);
 }
 
 await identityCase("identity: e46 m3 cold entry", "e46 m3", "needs_clarification", /BMW M3/i);

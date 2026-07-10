@@ -366,6 +366,24 @@ const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsc
   check("corvette speed: Hagerty renders as the speed option", /Hagerty/.test(vetteFast) && /stronger fit when speed matters/.test(vetteFast), vetteFast.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 300));
 }
 
+{
+  // Voice rule 15: recommendation closes are declarative, never hedged.
+  const HEDGE=/pan out|revisit|feel free|come back if|change your mind|second opinion|let me know if/i;
+  const closes=[];
+  const sedan={label:"2011 BMW 335i",vehicle:{raw:"2011 BMW 335i",year:2011,make:"BMW",model:"3-Series",trim:"335i",confidence:"high",canonicalLabel:"2011 BMW 335i"}};
+  const sports={label:"2018 Porsche 911 Carrera GTS",vehicle:gts.vehicle};
+  const classic={label:"1968 Chevrolet Corvette",vehicle:{raw:"1968 Chevrolet Corvette",year:1968,make:"Chevrolet",model:"Corvette",trim:null,confidence:"high",canonicalLabel:"1968 Chevrolet Corvette"}};
+  for(const car of [sedan,sports,classic]){
+    const out=await runResult("US","Texas",null,car);
+    if(sellState.awaitingPathChoice){handleSellRecommendationFollowup("I'll run it myself");await new Promise(r=>setTimeout(r,100));}
+    const rendered=renderedResult().replace(/<[^>]+>/g,"\n");
+    const afterResults=[...rendered.matchAll(/([^\n]+)\n*$/g)];
+    const closeLine=(rendered.split("\n").map(l=>l.trim()).filter(Boolean).at(-1))||"";
+    closes.push(`${car.label}: "${closeLine}"`);
+    check(`voice close (${car.label.split(" ").at(-1)}): declarative, unhedged`, !!closeLine && !/\?\s*$/.test(closeLine) && !HEDGE.test(rendered), `close="${closeLine}" hedge=${(rendered.match(HEDGE)||[""])[0]}`);
+  }
+}
+
 // Edit at every step: clicking returns to vehicle entry keeping answers.
 resetToStep1();
 await handleSellStep("2018 porsche 911 carrera gts");

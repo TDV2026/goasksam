@@ -77,7 +77,7 @@ function ladderWideningNarration(decisionData){
   const firstPart=first?`I looked for ${firstScope} sales first and found ${first.sales===0?"none":first.sales} recently. `:"";
   const thinNote=landed.thresholdMet?"":" The market for this car is genuinely thin right now, so treat this as directional.";
   const windowText=landed.windowDays>=3650?"across everything we've tracked":`in the last ${landed.windowDays} days`;
-  return `${firstPart}Not enough to be straight with you about the ${car}, so I widened the lens to ${landed.label}: ${landed.sales} sales ${windowText}. Here's what that market shows.${thinNote}`;
+  return `${firstPart}Not enough for a real answer on the ${car}, so I widened the lens to ${landed.label}: ${landed.sales} sales ${windowText}. Here's what that market shows.${thinNote}`;
 }
 
 function shouldSuppressRouteForSellerRegion(route){
@@ -719,7 +719,7 @@ function routeEvidenceBullets(route,index,routes){
     ];
     if(about)bullets.push(`${name} has a strong reputation in ${about.regionsLabel}, has been selling collector cars since ${about.since}, and is known for ${about.knownFor}.`);
     else bullets.push(sellerPriorityFitLabel(route));
-    bullets.push("Best bet is to contact them directly; they can speak to demand for your specific car. When comparable sales show up in my data, I can revisit this with real numbers.");
+    bullets.push("Best bet is to contact them directly; they can speak to demand for your specific car.");
     return bullets.slice(0,3);
   }
   const facts=routeFacts(route);
