@@ -86,16 +86,6 @@ async function showSellRecommendation(){
   sellState.sellDecision=decisionData;
   const decision=decisionData.decision||{};
   const practicalFallback=regionalNoEvidenceFallback();
-  // Non-US sellers with thin or no data get the regional cards directly:
-  // no OldCarsData fallback rendering, no involvement choice.
-  const policyBased=decision.evidenceBasis==="regional_policy"
-    ||(isInternationalSellerRegion()&&(decisionData.evidence?.thinMarket||!decisionData.evidence?.evidenceSales));
-  if(policyBased&&practicalFallback){
-    sellState.noEvidenceFallback=practicalFallback;
-    showRegionalFallbackRecommendation(msgs,practicalFallback);
-    document.getElementById("btn").disabled=false;
-    return;
-  }
   const routeFit=decision.routeFit||{};
   const allRouteOptions=routeFit.routes||[];
   sellState.allRouteOptions=allRouteOptions;
@@ -103,6 +93,17 @@ async function showSellRecommendation(){
     .filter(routeHasTrueComparableEvidence)
     .filter(route=>route.routable!==false)
     .filter(route=>!shouldSuppressRouteForSellerRegion(route));
+  // Non-US sellers whose result has no region-usable evidence (thin, none,
+  // or all of it on region-mismatched US platforms) get the regional cards
+  // directly: no OldCarsData fallback rendering, no involvement choice.
+  const policyShaped=decision.evidenceBasis==="regional_policy"
+    ||(isInternationalSellerRegion()&&(!evidenceBackedRoutes.length||decisionData.evidence?.thinMarket));
+  if(policyShaped&&practicalFallback){
+    sellState.noEvidenceFallback=practicalFallback;
+    showRegionalFallbackRecommendation(msgs,practicalFallback);
+    document.getElementById("btn").disabled=false;
+    return;
+  }
   const preferredRouteOptions=evidenceBackedRoutes
     .filter((route,index,routes)=>routeWorthShowing(route,index,routes[0]));
   const routeOptions=[...preferredRouteOptions];

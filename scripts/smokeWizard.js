@@ -17,16 +17,20 @@ const moduleFiles = [...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].
 if (!moduleFiles.length) throw new Error("no js module script tags found in index.html");
 const script = moduleFiles.map(file => fs.readFileSync(path.join(repoRoot, file), "utf8")).join("\n");
 
+const appendedHTML = [];
 const elemStub = () => new Proxy(function () {}, {
   get: (t, p) => {
     if (p === "style") return {};
     if (p === "classList") return { add() {}, remove() {}, toggle() {} };
-    if (["value", "innerHTML", "textContent", "id", "className"].includes(p)) return "";
+    if (["value", "textContent", "id", "className"].includes(p)) return "";
+    if (p === "innerHTML") return t.__html || "";
     if (["scrollTop", "scrollHeight", "offsetHeight", "clientHeight"].includes(p)) return 0;
+    if (p === "appendChild") return x => { if (x && x.__html !== undefined) appendedHTML.push(x.__html); return elemStub(); };
+    if (p === "scrollIntoView" || p === "remove") return () => elemStub();
     if (p === Symbol.toPrimitive) return () => "";
     return typeof t[p] !== "undefined" ? t[p] : elemStub();
   },
-  set: () => true,
+  set: (t, p, v) => { if (p === "innerHTML") t.__html = v; return true; },
   apply: () => elemStub()
 });
 const documentStub = {
@@ -45,11 +49,11 @@ const patched = script.replace(
   /function addMsg\(/,
   "function addMsg(...__a){__samLog.push(__a);return __addMsgReal(...__a)}\nfunction __addMsgReal("
 );
-const exportTail = `;globalThis.__t={handleSellStep,sellState,addMsgLog:__samLog,SELL_SYS,SELL_STEP_QUESTIONS,remainingWizardQuestions,localPreRoute,askNextSellQuestion};`;
+const exportTail = `;globalThis.__t={handleSellStep,sellState,addMsgLog:__samLog,SELL_SYS,SELL_STEP_QUESTIONS,remainingWizardQuestions,localPreRoute,askNextSellQuestion,showSellRecommendation,handleSellRecommendationFollowup,editCarName};`;
 const fn = new Function("document", "window", "fetch", "localStorage", "navigator", "location", "MutationObserver", "IntersectionObserver", "requestAnimationFrame", prelude + patched + exportTail);
 fn(documentStub, windowStub, prodFetch, { getItem: () => null, setItem() {}, removeItem() {} }, { userAgent: "smoke", clipboard: {} }, { search: "", hostname: "smoke", href: "", pathname: "/" }, class { observe() {} disconnect() {} }, class { observe() {} disconnect() {} }, cb => cb && cb(0));
 
-const { handleSellStep, sellState, addMsgLog, SELL_SYS, remainingWizardQuestions, localPreRoute , askNextSellQuestion } = globalThis.__t;
+const { handleSellStep, sellState, addMsgLog, SELL_SYS, remainingWizardQuestions, localPreRoute , askNextSellQuestion, showSellRecommendation, handleSellRecommendationFollowup, editCarName } = globalThis.__t;
 const samMessages = () => addMsgLog.filter(a => a[0] === "sam").map(a => String(a[1]));
 const lastSam = () => samMessages().at(-1) || null;
 let failures = 0;
@@ -66,6 +70,9 @@ function resetToStep1() {
   sellState.notSureRepeats = 0; sellState.involvement = null;
   sellState.vehicleDetailSkipped = false; sellState.demandRepeats = 0;
   sellState.mileage = null; sellState.resolvedVehicle = null; sellState.trimAskAttempts = 0;
+  sellState.region = null; sellState.state = null; sellState.condition = null; sellState.records = null;
+  sellState.title = null; sellState.price = null; sellState.timeline = null; sellState.notes = null;
+  sellState.returnToConfirm = false;
   addMsgLog.length = 0;
 }
 
@@ -295,6 +302,58 @@ sellState.active=false;sellState.step=0;
 const entryVehicle=localPreRoute("e46 m3");
 check("entry: vehicle text starts the wizard (trigger or resolver probe)", !!(entryVehicle.sellTrigger||entryVehicle.entryProbe), JSON.stringify(entryVehicle));
 check("entry: unmatched input probes instead of canned reply", !!localPreRoute("is this site legit").entryProbe, JSON.stringify(localPreRoute("is this site legit")));
+
+// 7d. Five-fix assertions: regional cards, US-only choice, no sample counts,
+// edit link, depth-first breadth.
+const allSamText = () => addMsgLog.filter(a => a[0] === "sam").map(a => `${a[1]} ${a[3] || ""} ${a[2] || ""}`).join("\n");
+const renderedResult = () => [...appendedHTML].join("\n");
+const runResult = async (region, state, price, car) => {
+  resetToStep1();
+  appendedHTML.length = 0;
+  sellState.active = true; sellState.step = 12;
+  sellState.carName = car.label; sellState.carRaw = car.label;
+  sellState.region = region; sellState.state = state; sellState.price = price;
+  sellState.vehicleIdentityValidated = true;
+  sellState.resolvedVehicle = car.vehicle;
+  sellState.involvement = null; sellState.awaitingPathChoice = false; sellState.pendingResultSections = null;
+  await showSellRecommendation();
+  await new Promise(r => setTimeout(r, 100));
+  return renderedResult() + "\n" + allSamText();
+};
+const mustang = { label: "1990 Ford Mustang", vehicle: { raw: "1990 Ford Mustang", year: 1990, make: "Ford", model: "Mustang", trim: null, confidence: "high", canonicalLabel: "1990 Ford Mustang" } };
+const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsche 911 Carrera GTS", year: 2018, make: "Porsche", model: "911", trim: "Carrera GTS", confidence: "high", canonicalLabel: "2018 Porsche 911 Carrera GTS" } };
+
+{
+  const uk = await runResult("UK", null, "150k", mustang);
+  check("non-US UK: Car & Classic card with approved copy", /Car &(amp;)? Classic/.test(uk) && /130K\+ sales annually, 4M\+ monthly visits/.test(uk), uk.slice(0, 300));
+  check("non-US UK: Collecting Cars card at $100k+ with approved copy", /Collecting Cars/.test(uk) && /24,000\+ lots sold/.test(uk) && /\$1\.5B\+ generated for sellers/.test(uk), uk.slice(0, 300));
+  check("non-US UK: no involvement choice", !/Want it handled, or run it yourself/.test(uk), "choice rendered");
+
+  const au = await runResult("Australia", null, "150k", mustang);
+  check("non-US AU: Collecting Cars only with approved copy", /Collecting Cars/.test(au) && /350,000\+ members in 100\+ countries/.test(au) && !/Car &(amp;)? Classic/.test(au), au.slice(0, 300));
+  check("non-US AU: no involvement choice", !/Want it handled, or run it yourself/.test(au), "choice rendered");
+
+  const us = await runResult("US", "California", "140k", gts);
+  check("US $50k+: involvement choice renders with three chips", /Want it handled, or run it yourself/.test(us) && /Have it handled/.test(us) && /run it myself/.test(us) && /Not sure/.test(us), us.slice(0, 400));
+  handleSellRecommendationFollowup("Not sure");
+  await new Promise(r => setTimeout(r, 100));
+  const usCards = renderedResult();
+  check("US: no sample-size counts on platform cards", !/\d+ of \d+ comparable|\d+ sales? in the last \d+|recent vs \d+ earlier|\(\d+ listings\)|versus the prior \d+/.test(usCards), (usCards.match(/[^\n]*\d+ (of|sales?|recent)[^\n]*/) || [""])[0].slice(0, 200));
+  const landed = sellState.sellDecision?.evidence?.ladder?.landed;
+  check("depth-first: 45-day start, broadens only when thin", !!landed && landed.windowDays >= 45, `landed=${JSON.stringify(landed)}`);
+}
+
+// Edit at every step: clicking returns to vehicle entry keeping answers.
+resetToStep1();
+await handleSellStep("2018 porsche 911 carrera gts");
+check("edit: resolve lands on a post-vehicle question", sellState.step === 11, `step=${sellState.step}`);
+await handleSellStep("US");
+await handleSellStep("California");
+const preEditStep = sellState.step;
+editCarName();
+check("edit: editCarName returns to vehicle entry", sellState.step === 1, `step=${sellState.step}`);
+await handleSellStep("1969 ford mustang");
+check("edit: new car keeps answers, resumes at first unanswered", /Mustang/.test(sellState.carName || "") && sellState.region === "US" && sellState.state === "California" && sellState.step === preEditStep, `car=${sellState.carName} region=${sellState.region} state=${sellState.state} step=${sellState.step} (was ${preEditStep})`);
 
 console.log(`\n${failures === 0 ? "WIZARD ALL PASS" : failures + " FAILURE(S)"}`);
 process.exit(failures === 0 ? 0 : 1);
