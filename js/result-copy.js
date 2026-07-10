@@ -795,6 +795,9 @@ function resultSummaryLine(options,routes=[]){
 function compactPlatformCopy(option,primaryPlatform){
   const primaryName=primaryPlatform?.name||"the first choice";
   if(!option)return "Worth comparing, but it is not where I’d start.";
+  // Speed-routed secondary (e.g. fast-timeline 1960s Corvette -> Hagerty):
+  // the compact row carries the speed argument itself.
+  if(option.speedArgument)return option.reason;
   return `Worth considering, but I’d still start with ${primaryName}. Tap to see why.`;
 }
 

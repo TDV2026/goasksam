@@ -184,6 +184,7 @@ async function showSellRecommendation(){
       badgeClass:index===0?"top":"alt",
       cardClass:index===0&&!hasNamedPowerSellerAdvice?"primary-rec":"",
       actionLabel:index===0?`Sell on ${routeName}`:`Consider ${routeName}`,
+      speedArgument:!!route.speedArgument,
       reason:route.speedArgument
         ?"Hagerty has sold 1960s Corvettes in our records and is the stronger fit when speed matters: listings get live quickly and the audience skews classic."
         :routeReason(route,index,routeOptions),
