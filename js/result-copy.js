@@ -76,7 +76,8 @@ function ladderWideningNarration(decisionData){
   const firstScope=first?first.label.replace(/\bsales\b/,"").replace(/\s+,/,",").replace(/\s+/g," ").trim():"";
   const firstPart=first?`I looked for ${firstScope} sales first and found ${first.sales===0?"none":first.sales} recently. `:"";
   const thinNote=landed.thresholdMet?"":" The market for this car is genuinely thin right now, so treat this as directional.";
-  return `${firstPart}Not enough to be straight with you about the ${car}, so I widened the lens to ${landed.label}: ${landed.sales} sales in the last ${landed.windowDays} days. Here's what that market shows.${thinNote}`;
+  const windowText=landed.windowDays>=3650?"across everything we've tracked":`in the last ${landed.windowDays} days`;
+  return `${firstPart}Not enough to be straight with you about the ${car}, so I widened the lens to ${landed.label}: ${landed.sales} sales ${windowText}. Here's what that market shows.${thinNote}`;
 }
 
 function shouldSuppressRouteForSellerRegion(route){
@@ -287,6 +288,7 @@ function supportedRouteDelta(route, routes){
 function marketWindowPhrase(){
   const days=sellState.sellDecision?.evidence?.windowDays;
   if(!days)return "recently";
+  if(days>=3650)return "across everything we've tracked";
   if(days>=85&&days<=100)return "over the past 90 days";
   if(days>=115&&days<=130)return "over the past 120 days";
   return `over the past ${days} days`;
@@ -650,14 +652,14 @@ function formatUsd(value){
 function primaryHeroStat(route){
   const facts=routeFacts(route);
   if(!facts.evidenceSales)return null;
-  const days=sellState.sellDecision?.evidence?.windowDays;
-  const windowText=days?` in the last ${days} days`:"";
   const here=formatUsd(facts.medianSalePrice);
   const others=formatUsd(facts.othersMedianSalePrice);
+  // Sample-size numbers are out (locked): the headline carries the insight,
+  // never counts like "46 of 58" or "in the last 45 days".
   if(facts.soloPlatform){
     return {
       count:`Every comparable sale we tracked recently closed here`,
-      money:[here?`Median ${here}`:null,`${facts.evidenceSales} sale${facts.evidenceSales===1?"":"s"}${windowText}`].filter(Boolean).join(" · ")
+      money:here?`Median ${here}`:null
     };
   }
   if(here&&others){
@@ -666,9 +668,9 @@ function primaryHeroStat(route){
     const headline=facts.smallSample
       ?(facts.medianLeads?`Median sale here has run considerably higher than other platforms`:`Median here trails other sources in this small sample`)
       :`Median sale here has run ${pct}% ${direction} other platforms`;
-    return {count:headline,money:`${here} here vs ${others} elsewhere · ${facts.evidenceSales} of ${facts.totalEvidenceSales} comparable sales${windowText}`};
+    return {count:headline,money:`${here} here vs ${others} elsewhere`};
   }
-  return {count:`${facts.evidenceSales} of ${facts.totalEvidenceSales} comparable sale${facts.totalEvidenceSales===1?"":"s"}${windowText} closed here`,money:here?`Median sale ${here}`:null};
+  return {count:`Most of the comparable sales we tracked recently closed here`,money:here?`Median sale ${here}`:null};
 }
 
 // Single facts object per route: chips, bullets, and headlines all derive
@@ -728,12 +730,12 @@ function routeEvidenceBullets(route,index,routes){
   const bullets=[];
   // (2) platform sell-through for this segment, from full-dataset baselines
   // (absent until the records hold non-sold listings)
-  if(facts.segmentSellThrough)bullets.push(`${facts.segmentSellThrough.percent}% of ${facts.segmentSellThrough.band} listings here sold in our tracked records (${facts.segmentSellThrough.sample} listings).`);
+  if(facts.segmentSellThrough)bullets.push(`${facts.segmentSellThrough.percent}% of ${facts.segmentSellThrough.band} listings here sold in our tracked records.`);
   // (3) timing edge
   if(facts.weekday)bullets.push(`Based on recent comparable listings, ${facts.weekday} endings have finished strongest${facts.weekdayLift?` (around ${facts.weekdayLift}% above other days)`:""}.`);
-  // (4) momentum, only when both windows carry a real sample
-  if(facts.momentum&&Math.abs(facts.momentum.percent)>=5)bullets.push(`The comparable median here is ${facts.momentum.percent>0?"up":"down"} about ${Math.abs(facts.momentum.percent)}% versus the prior ${facts.momentum.windowDays}-day window (${facts.momentum.recentSales} recent vs ${facts.momentum.priorSales} earlier sales).`);
-  else if(facts.momentum)bullets.push(`The comparable median here has held steady versus the prior ${facts.momentum.windowDays}-day window.`);
+  // (4) momentum, qualitative only (locked: no sample or window numbers)
+  if(facts.momentum&&facts.momentum.percent>=5)bullets.push(`Comparable results here have been strengthening recently.`);
+  else if(facts.momentum&&facts.momentum.percent<=-5)bullets.push(`Comparable results here have softened a little recently, worth pricing realistically.`);
   // (5) trim-scope explanation
   const scope=comparisonScopeSentence();
   if(scope)bullets.push(scope);

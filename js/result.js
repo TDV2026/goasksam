@@ -86,7 +86,10 @@ async function showSellRecommendation(){
   sellState.sellDecision=decisionData;
   const decision=decisionData.decision||{};
   const practicalFallback=regionalNoEvidenceFallback();
-  const policyBased=decision.evidenceBasis==="regional_policy";
+  // Non-US sellers with thin or no data get the regional cards directly:
+  // no OldCarsData fallback rendering, no involvement choice.
+  const policyBased=decision.evidenceBasis==="regional_policy"
+    ||(isInternationalSellerRegion()&&(decisionData.evidence?.thinMarket||!decisionData.evidence?.evidenceSales));
   if(policyBased&&practicalFallback){
     sellState.noEvidenceFallback=practicalFallback;
     showRegionalFallbackRecommendation(msgs,practicalFallback);
@@ -312,13 +315,14 @@ async function showSellRecommendation(){
   sellState.generatedPrimaryName=sellState.sellOptions[0]?.name||null;
   sellState.generatedSecondaryName=sellState.sellOptions[1]?.name||null;
 
-  if(powerSellerHTML&&!priceDiverged){
-    // Gate-open: one light choice orders the sections before anything renders.
+  if(powerSellerHTML&&!priceDiverged&&isUSRegion(sellState.region)){
+    // Gate-open, US sellers only: one light choice orders the sections
+    // before anything renders. Non-US goes straight to the platform result.
     sellState.pendingResultSections={headerHTML,powerSellerHTML,powerSellerSecondHTML,platformCardsHTML,caveatHTML,afterText};
     sellState.awaitingPathChoice=true;
     sellState.step=12;
     const row=document.createElement("div");row.className="row sam";
-    row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${headerHTML}<div class="sam-text">Want it handled, or run it yourself?</div>${chipsHTML(["Have it handled","I'll run it myself"])}</div></div>`;
+    row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${headerHTML}<div class="sam-text">Want it handled, or run it yourself?</div>${chipsHTML(["Have it handled","I'll run it myself","Not sure"])}</div></div>`;
     msgs.appendChild(row);
     row.scrollIntoView({behavior:"smooth",block:"start"});
     return;
@@ -365,13 +369,13 @@ function handleSellRecommendationFollowup(q){
       renderPendingResultSections("diy");
       return true;
     }
-    if(detectIntent(lower)==="refusal"||detectIntent(lower)==="moveOn"){
+    if(/^not sure$/i.test(lower.trim())||detectIntent(lower)==="refusal"||detectIntent(lower)==="moveOn"){
       renderPendingResultSections("handled");
       return true;
     }
     sellState.pathChoiceEscalations=(sellState.pathChoiceEscalations||0)+1;
     if(sellState.pathChoiceEscalations>=2){renderPendingResultSections("handled");return true;}
-    addMsg("sam","Quick one first: want it handled end to end, or run it yourself?","",chipsHTML(["Have it handled","I'll run it myself"]));
+    addMsg("sam","Quick one first: want it handled end to end, or run it yourself?","",chipsHTML(["Have it handled","I'll run it myself","Not sure"]));
     return true;
   }
   const options=sellState.sellOptions||[];
@@ -437,41 +441,38 @@ function regionalNoEvidenceFallback(){
   const car=cleanCarForCopy();
   const regionPhrase=sellingRegionPhrase();
   if(/\b(uk|united kingdom|great britain|gb|england|scotland|wales|europe)\b/.test(region)){
-    const highValue=estimatedTargetPrice()>=100000||isSpecialistCar();
-    const timingBullet=sellerTimelineIsFast()
-      ? "It is a practical route when you want the car in front of regional buyers quickly."
-      : "It is where I would start before looking further afield.";
+    const highValue=estimatedTargetPrice()>=100000;
     return {
       region:"uk_europe",
       primary:"Car & Classic",
       secondary:highValue?"Collecting Cars":null,
-      stat:"Best regional fit · UK/Europe seller · Fast-listing friendly",
       title:`Here’s what I’d do with the ${car}.`,
       subtitle:`I’d start with Car & Classic for a UK seller.`,
-      primaryReason:`If this were mine in the UK, Car & Classic is where I’d start.`,
-      secondaryReason:`For a higher-value UK, European, Middle East or Australian car, I’d also compare Collecting Cars because it can bring in a wider international buyer pool.`,
-      caveat:`Regional recommendation: UK/Europe seller, practical marketplace fit.`,
+      primaryReason:"Classic cars, modern classics, performance models, and collector vehicles perform strongly here. 130K+ sales annually, 4M+ monthly visits.",
+      secondaryReason:"Specialist platform for higher-value cars. 24,000+ lots sold, $1.5B+ generated for sellers.",
       bullets:[
-        "It is the natural UK and European marketplace for this kind of seller.",
-        "It keeps the car in front of buyers who are already shopping in that region.",
-        timingBullet
+        "Classic cars, modern classics, performance models, and collector vehicles perform strongly here.",
+        "130K+ sales annually, 4M+ monthly visits."
+      ],
+      secondaryBullets:[
+        "Specialist platform for higher-value cars.",
+        "24,000+ lots sold, $1.5B+ generated for sellers."
       ]
     };
   }
-  if(/\b(australia|middle east)\b/.test(region)&&isHighValueOrSpecialist()){
+  if(/\b(australia|middle east)\b/.test(region)){
     return {
       region:"international",
       primary:"Collecting Cars",
       secondary:null,
-      stat:"Because this platform has built one of the strongest international audiences for European collector cars.",
       title:`Here’s what I’d do with the ${car}.`,
-      subtitle:`The mistake is choosing the biggest platform. I’d choose the audience most likely to buy the car.`,
-      primaryReason:`If this were mine, I’d list it on Collecting Cars.`,
+      subtitle:`I’d list it on Collecting Cars for a seller in your region.`,
+      primaryReason:"Global platform with 350,000+ members in 100+ countries. Specialists in sourcing top-quality collectibles. 24,000+ lots sold, $1.5B+ generated for sellers.",
       secondaryReason:"",
-      caveat:"",
       bullets:[
-        "Built around international buyers.",
-        "A better fit for a seller outside North America than the US-focused platforms."
+        "Global platform with 350,000+ members in 100+ countries.",
+        "Specialists in sourcing top-quality collectibles.",
+        "24,000+ lots sold, $1.5B+ generated for sellers."
       ]
     };
   }
@@ -506,17 +507,21 @@ function renderNoEvidenceFallback(fallback){
   if(!fallback)return "";
   const option={name:fallback.primary,key:"primary"};
   const logo=platformLogo(option);
+  const secondaryLogo=fallback.secondary?platformLogo({name:fallback.secondary,key:"route_1"}):null;
   const secondary=fallback.secondary?`
-    <div class="platform-compact-list">
-      <div class="sell-section-note" style="margin:0">Also worth a look</div>
-      <div class="platform-compact" onclick="handleChip('What about ${escapeHtml(fallback.secondary)}?')">
-        <div>
-          <div class="platform-compact-title">${escapeHtml(fallback.secondary)}</div>
-          <div class="platform-compact-copy">${escapeHtml(fallback.secondaryReason)}</div>
+      <div class="sell-rec-card" onclick="chooseFallbackDestination('${escapeHtml(fallback.secondary)}')">
+        <div class="sell-rec-card-head">
+          <div>
+            <div class="sell-rec-badge alt">Also strong here</div>
+            <div style="margin-top:10px"><div class="sell-rec-name">${escapeHtml(fallback.secondary)}</div><div class="sell-rec-type">Worth comparing</div></div>
+          </div>
+          <div class="platform-logo ${escapeHtml(secondaryLogo.cls)}">${escapeHtml(secondaryLogo.text)}</div>
         </div>
-        <div class="platform-compact-action">Why</div>
-      </div>
-    </div>`:"";
+        <div class="sell-rec-reason-label">Why it fits</div>
+        <div class="sell-rec-reason">${escapeHtml(fallback.secondaryReason)}</div>
+        ${(fallback.secondaryBullets||[]).length?`<ul class="sell-rec-bullets">${fallback.secondaryBullets.map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>`:""}
+        <div class="sell-rec-actions"><button class="ghost" onclick="event.stopPropagation();chooseFallbackDestination('${escapeHtml(fallback.secondary)}')">Consider ${escapeHtml(fallback.secondary)}</button></div>
+      </div>`:"";
   return `<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
     <div class="sell-rec-header">
@@ -540,8 +545,8 @@ function renderNoEvidenceFallback(fallback){
         ${fallback.caveat?`<div class="sell-rec-evidence-line">${escapeHtml(fallback.caveat)}</div>`:""}
         <div class="sell-rec-actions"><button class="primary" onclick="event.stopPropagation();chooseFallbackDestination('${escapeHtml(fallback.primary)}')">Start with ${escapeHtml(fallback.primary)}</button></div>
       </div>
-    </div>
     ${secondary}
+    </div>
     <div class="sam-text after-results">Want a second opinion? Ask me why I didn’t start with Bring a Trailer, Cars & Bids or another platform.</div>
   </div></div>`;
 }

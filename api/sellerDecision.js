@@ -22,7 +22,14 @@ import {
 // Powerseller referrals are gated (locked product rule): estimated value from
 // actual comps must clear this threshold before a partner can lead.
 const POWERSELLER_MIN_VALUE_USD = Number(process.env.POWERSELLER_MIN_VALUE_USD || 75000);
-const ANALYSIS_WINDOWS_DAYS = [45, 90, 180];
+// Depth-first breadth: evaluate 45 days first, broaden only while comps stay
+// under threshold: 90, then 180, then all-time (represented as 36500 days).
+const ALL_TIME_WINDOW_DAYS = 36500;
+const ANALYSIS_WINDOWS_DAYS = [45, 90, 180, ALL_TIME_WINDOW_DAYS];
+
+function windowLabel(days) {
+  return days >= ALL_TIME_WINDOW_DAYS ? "across everything tracked" : `in the last ${days} days`;
+}
 const SELLER_ACTIVITY_WINDOWS_DAYS = [90, 180, 270];
 const MAX_PAGES = 3;
 const DEFAULT_LIMIT = 50;
@@ -515,7 +522,8 @@ async function fetchPass(pass, apiKey, deadline) {
   let error = null;
   let meteredRequests = 0;
   let pagesFetched = 0;
-  for (let page = 1; page <= pass.pages; page++) {
+  const firstPage = pass.startPage || 1;
+  for (let page = firstPage; page < firstPage + pass.pages; page++) {
     const remainingMs = deadline - Date.now();
     if (remainingMs <= 0) {
       error = "time_budget_reached";
@@ -609,13 +617,24 @@ async function fetchRecentRecords(vehicle, apiKey, generation = null) {
       break;
     }
 
-    const primary = await runPass({
-      name: `rung${rung.rung}_${rung.key}`,
-      label: rung.label,
-      rung: rung.rung,
-      pages: rung.pages,
-      params: rungFetchParams(rung, vehicle)
-    });
+    // No pre-fetch: pull one page at a time and stop the moment this rung
+    // meets its threshold at any window. Thin markets stop stalling on
+    // speculative pages.
+    let primary = null;
+    for (let page = 1; page <= rung.pages; page++) {
+      primary = await runPass({
+        name: `rung${rung.rung}_${rung.key}_p${page}`,
+        label: rung.label,
+        rung: rung.rung,
+        pages: 1,
+        startPage: page,
+        params: rungFetchParams(rung, vehicle)
+      });
+      if (primary.error) break;
+      if (!primary.records.length) break;
+      if (evaluate().walk.find(entry => entry.rung === rung.rung)?.met) break;
+      if (Date.now() >= deadline) break;
+    }
 
     // Keyword fallback whenever the rung is still unmet, not just on an empty
     // primary: sources like OldCarsData file some cars under chassis-code
@@ -1037,7 +1056,7 @@ function wideningFact(analysis) {
   const landed = ladder?.landed;
   if (!landed || landed.rung <= 1) return null;
   const first = ladder.rungs[0];
-  return `${first.label} came up thin (${first.sales} found), so the analysis widened to ${landed.label}: ${landed.sales} sales in the last ${landed.windowDays} days.`;
+  return `${first.label} came up thin (${first.sales} found), so the analysis widened to ${landed.label}: ${landed.sales} sales ${windowLabel(landed.windowDays)}.`;
 }
 
 function decide(analysis, criteria, vehicle) {
@@ -1487,6 +1506,9 @@ export default async function handler(req, res) {
         // metadata->>generationMapped = 'false', grouped by make/model.
         generationMapped: !!generation,
         generation: generation?.code || null,
+        // Breadth actually needed: which markets are thin at 45/90/180 days.
+        breadthWindowDays: analysis.windowDays,
+        breadth: analysis.windowDays >= ALL_TIME_WINDOW_DAYS ? "all_time" : `${analysis.windowDays}d`,
         strategy: "evidence_ladder",
         recordsFetched: analysis.recordsFetched,
         evidenceSales: analysis.evidenceSales,

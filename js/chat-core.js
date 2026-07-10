@@ -146,7 +146,11 @@ function addMsg(role,text,html="",chipsStr=""){
   const row=document.createElement("div");row.className="row "+role;
   const inner=document.createElement("div");inner.className="row-inner";
   if(role==="sam"){
-    inner.innerHTML=`<div class="msg-wrap"><div class="sam-label">Sam</div><div class="sam-text">${escapeHtml(text)}</div>${chipsStr||""}${html||""}</div>`;
+    // Edit at every step (locked): once the car is resolved, every wizard
+    // question carries the car name with an Edit link back to vehicle entry.
+    const showCarContext=sellState.active&&sellState.carName&&sellState.vehicleIdentityValidated&&[11,18,2,3,4,5,6,7,9].includes(sellState.step);
+    const carContext=showCarContext?`<div class="wizard-car-context">${escapeHtml(sellState.carName)} <button class="edit-car-link" onclick="editCarName()">Edit</button></div>`:"";
+    inner.innerHTML=`<div class="msg-wrap"><div class="sam-label">Sam</div>${carContext}<div class="sam-text">${escapeHtml(text)}</div>${chipsStr||""}${html||""}</div>`;
   }else{
     inner.innerHTML=`<div class="msg-wrap"><div class="user-text">${escapeHtml(text)}</div></div>`;
   }

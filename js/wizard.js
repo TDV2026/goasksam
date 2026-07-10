@@ -325,8 +325,7 @@ function askMissingVehicleDetail(missing){
     sellState.vehicleDetailSkipped=true;
     sellState.lastMissingAsk=null;
     sellState.trimAskAttempts=0;
-    sellState.step=11;
-    addMsg("sam",`I'll take the ${sellState.carName||"car"} as-is and keep the read broad. Where is the car located?`,"",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+    resumeWizardAfterVehicle(`I'll take the ${sellState.carName||"car"} as-is and keep the read broad.`);
     return;
   }
   sellState.step=17;
@@ -379,8 +378,7 @@ async function handleVehicleValidationAnswer(q){
         if(data.vehicle.mileage&&!sellState.mileage)sellState.mileage=`${Number(data.vehicle.mileage).toLocaleString()} miles`;
         sellState.carName=data.vehicle.canonicalLabel;sellState.carRaw=data.vehicle.canonicalLabel;
         sellState.vehicleIdentityValidated=true;sellState.pendingVehicleIdentity=null;sellState.lastVehicleAsk=null;
-        sellState.step=11;
-        addMsg("sam",`Got it. ${sellState.carName}. Where is the car located?`,"",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+        resumeWizardAfterVehicle(`Got it. ${sellState.carName}.`);
         return true;
       }
     }catch{ /* fall through to advancing at the level known */ }
@@ -390,8 +388,7 @@ async function handleVehicleValidationAnswer(q){
     sellState.carName=baseVehicle;sellState.carRaw=baseVehicle;
     sellState.vehicleDetailSkipped=true;sellState.pendingVehicleIdentity=null;
     sellState.vehicleIdentityValidated=false;sellState.notSureRepeats=0;
-    sellState.step=11;
-    addMsg("sam",`Moving on with the ${baseVehicle}. The read will be broader than model-specific, and I'll say so in the result. Where is the car located?`,"",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+    resumeWizardAfterVehicle(`Moving on with the ${baseVehicle}. The read will be broader than model-specific, and I'll say so in the result.`);
     return true;
   }
   if(detectIntent(lower)==="refusal"||/\bskip\b/i.test(lower)){
@@ -527,8 +524,7 @@ function startSellFlow(initialCar, showUserBubble=true){
         askMissingVehicleDetail(missing);
         return;
       }
-      sellState.step=11;
-      askNextSellQuestion();
+      resumeWizardAfterVehicle(`Got it. ${sellState.carName}.`);
     },400);
     return;
   }
@@ -536,6 +532,39 @@ function startSellFlow(initialCar, showUserBubble=true){
   setTimeout(()=>{
     addMsg("sam","Answer a few quick questions, under a minute, and I'll compare the market properly. What are we selling today?");
   },400);
+}
+
+// Resume at the first unanswered question: a vehicle edit mid-flow keeps
+// every answer already given and re-flows only through what is missing.
+function resumeWizardAfterVehicle(prefix){
+  if(sellState.returnToConfirm){goBackToConfirm();return;}
+  const next=!sellState.region?11
+    :(isUSRegion(sellState.region)&&!sellState.state?18
+    :(!sellState.mileage?2
+    :(!sellState.condition?3
+    :(!sellState.records?4
+    :(!sellState.title?5
+    :(!sellState.price?6
+    :(!sellState.timeline?7
+    :(!sellState.notes?9:16))))))));
+  if(next===16){
+    if(prefix)addMsg("sam",prefix);
+    sellState.step=16;
+    setTimeout(()=>showConfirmation(),300);
+    return;
+  }
+  sellState.step=next;
+  const q=SELL_STEP_QUESTIONS[next];
+  addMsg("sam",[prefix,q.ask].filter(Boolean).join(" "),"",q.chips&&q.chips.length?chipsHTML(q.chips):"");
+}
+
+function editCarName(){
+  sellState.step=1;
+  sellState.vehicleIdentityValidated=false;
+  sellState.pendingVehicleIdentity=null;
+  sellState.resolvedVehicle=null;
+  sellState.trimAskAttempts=0;
+  addMsg("sam",`No problem. What's the car instead of the ${sellState.carName||"one we had"}? Year, make and model.`);
 }
 
 function askNextSellQuestion(){

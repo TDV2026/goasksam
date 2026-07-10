@@ -354,3 +354,6 @@ body{
   #input-area{padding:10px 18px 18px}
   .hero h1{font-size:26px}
 }
+.wizard-car-context{font-size:12px;color:#8a8a93;margin-bottom:4px;display:flex;align-items:center;gap:6px;}
+.edit-car-link{background:none;border:1px solid #d8d8de;border-radius:10px;font-size:11px;padding:1px 8px;cursor:pointer;color:#6b6b74;}
+.edit-car-link:hover{color:#111;border-color:#aaa;}

@@ -69,9 +69,7 @@ async function handleSellStep(q){
       askMissingVehicleDetail(missing);
       return true;
     }
-    if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    sellState.step=11;
-    addMsg("sam",`Got it. ${sellState.carName}. Where is the car located?`,"",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+    resumeWizardAfterVehicle(`Got it. ${sellState.carName}.`);
     return true;
   }
 
@@ -113,8 +111,7 @@ async function handleSellStep(q){
           // instead of storing it, and proceed broad (never repeat, rule 12).
           sellState.carName=prevCar;sellState.carRaw=prevCar;
           sellState.vehicleDetailSkipped=true;sellState.lastMissingAsk=null;
-          addMsg("sam",`I'll take the ${prevCar} as-is and keep the read broad rather than keep asking. Where is the car located?`,"",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
-          sellState.step=11;
+          resumeWizardAfterVehicle(`I'll take the ${prevCar} as-is and keep the read broad rather than keep asking.`);
           return true;
         }
         askMissingVehicleDetail(missing);
@@ -123,9 +120,7 @@ async function handleSellStep(q){
       sellState.lastMissingAsk=null;
       addMsg("sam",`Got it. ${sellState.carName}.`);
     }
-    if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    sellState.step=11;
-    addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+    resumeWizardAfterVehicle();
     return true;
   }
 
