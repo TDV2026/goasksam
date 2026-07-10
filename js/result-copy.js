@@ -294,8 +294,35 @@ function marketWindowPhrase(){
   return `over the past ${days} days`;
 }
 
+// Speed tiebreak (locked framing): when the seller's timeline decided a
+// close call, the copy owns the decision. The median gap is small, speed is
+// the deciding factor, and the pick is confident, never a consolation.
+function speedTiebreak(routes){
+  if(!sellerWantsSpeed()||!routes||routes.length<2)return null;
+  if((sellState.powerSellerProfiles||[]).length)return null;
+  const [first,second]=routes;
+  const fm=Number(first.marketEvidence?.medianSalePrice||0);
+  const sm=Number(second.marketEvidence?.medianSalePrice||0);
+  if(!fm||!sm)return null;
+  const gapPercent=Math.round(Math.abs(fm-sm)/Math.max(fm,sm)*100);
+  const firstFaster=["fast","medium_fast"].includes(first.speedToList)&&!["fast","medium_fast"].includes(second.speedToList);
+  if(gapPercent<10&&firstFaster){
+    return {
+      gapPercent,
+      firstName:platformDisplayName(first.label||first.platform),
+      secondName:platformDisplayName(second.label||second.platform)
+    };
+  }
+  return null;
+}
+
 function routeReason(route,index,routes){
   const name=route.label||route.platform;
+  const speedPick=speedTiebreak(routes);
+  if(speedPick){
+    if(index===0)return `${speedPick.firstName} closes faster on this price point and volume. Your timeline outweighs the ${speedPick.gapPercent?`${speedPick.gapPercent}% `:""}median edge. Go here.`;
+    return `If you had more time, ${speedPick.secondName} would be worth the slight median edge. Speed is your constraint, so ${speedPick.firstName}.`;
+  }
   if(hasTwoRouteTradeoff(routes)){
     const evidence=route.marketEvidence||{};
     const other=routes.find(item=>item!==route);
@@ -307,7 +334,7 @@ function routeReason(route,index,routes){
         : `${name} belongs in the conversation because the gap is close enough that buyer fit and speed-to-list still matter.`;
     }
     if(["fast","medium_fast"].includes(route.speedToList)){
-      return `This is close enough on recent performance that a quicker listing path may matter.`;
+      return `This is close enough on recent performance that a quicker listing path matters.`;
     }
     if((evidence.topThreeSales||0)>=2){
       return `It captured a meaningful share of the strongest recent results, so I would not ignore it.`;
@@ -763,8 +790,12 @@ function resultSummaryLine(options,routes=[]){
       const strongerName=firstMedian>=secondMedian?firstName:secondName;
       const weakerName=firstMedian>=secondMedian?secondName:firstName;
       const fasterName=fasterRoute?.label||fasterRoute?.platform;
+      const speedPick=speedTiebreak(routes);
+      if(speedPick){
+        return `The median difference is small. Your speed matters more. ${speedPick.firstName} closes faster on this volume.`;
+      }
       if(fasterRoute&&fasterName!==strongerName&&Math.min(firstMedian,secondMedian)/Math.max(firstMedian,secondMedian)>=0.9){
-        return `${strongerName} looks stronger on recent comparable sales. ${fasterName} is close enough that speed and process may matter.`;
+        return `${strongerName} looks stronger on recent comparable sales. ${fasterName} is faster to list and close, which matters if timing counts.`;
       }
       return `${strongerName} looks stronger on recent comparable sales, but ${weakerName} has enough signal to compare before choosing.`;
     }
@@ -801,6 +832,8 @@ function compactPlatformCopy(option,primaryPlatform){
   // Speed-routed secondary (e.g. fast-timeline 1960s Corvette -> Hagerty):
   // the compact row carries the speed argument itself.
   if(option.speedArgument)return option.reason;
+  const speedPick=speedTiebreak(sellState.allRouteOptions?.slice(0,2));
+  if(speedPick&&option.name===speedPick.secondName)return `If you had more time, ${speedPick.secondName} would be worth the slight median edge. Speed is your constraint, so ${speedPick.firstName}.`;
   return `Worth considering, but I’d still start with ${primaryName}. Tap to see why.`;
 }
 
@@ -854,7 +887,7 @@ function medianDeltaSentence(option, other){
   }
   return pickCopy([
     `Recent comparable ${comparableModelLabel()} have consistently favoured this platform.`,
-    `This is where I’d start if you are selling it yourself.`,
+    `The recent sales signal points here.`,
     `This platform has had the strongest run recently.`
   ],sellState.carName,optionName,other.name,a,b);
 }
@@ -887,8 +920,12 @@ function routeAnswer(option){
   const route=(sellState.allRouteOptions||[]).find(item=>(item.label||item.platform)===option.name);
   const bullets=route?routeEvidenceBullets(route,index<0?0:index,sellState.allRouteOptions||[]):[];
   facts.push(...bullets.slice(0,2));
-  if(option.speedToList==="fast"||option.speedToList==="medium_fast")facts.push(`${option.name} can also be the cleaner play if getting live quickly matters.`);
-  if(option.speedToList==="slower")facts.push(`${option.name} may take longer to get live than some smaller platforms, so timing is the tradeoff.`);
+  if(option.speedToList==="fast"||option.speedToList==="medium_fast"){
+    facts.push(sellerWantsSpeed()
+      ?`${option.name}'s auction velocity is a real advantage here. Your want-it-gone-fast preference tips the scale.`
+      :`${option.name} can also be the cleaner play if getting live quickly matters.`);
+  }
+  if(option.speedToList==="slower")facts.push(`${option.name} is slower to get live than the quicker platforms.`);
   return facts.filter(Boolean).join(" ");
 }
 
@@ -936,7 +973,9 @@ function compareSellOptions(){
   const faster=[first,second].find(option=>["fast","medium_fast"].includes(option.speedToList));
   const slower=[first,second].find(option=>option.speedToList==="slower");
   if(faster&&slower){
-    lines.push(`${faster.name} is the cleaner speed play; ${slower.name} may take longer to get live.`);
+    lines.push(sellerWantsSpeed()
+      ?`${faster.name} closes faster, and your timeline is the deciding factor here.`
+      :`${faster.name} is the cleaner speed play; ${slower.name} is slower to get live.`);
   }
 
   if(firstRoute&&secondRoute&&hasTwoRouteTradeoff([firstRoute,secondRoute])){

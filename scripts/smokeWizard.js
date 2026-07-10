@@ -393,6 +393,26 @@ check("confirm: suffix test reached a suggestion confirm", !!sellState.pendingVe
 await handleSellStep("it is that car my mistake");
 check("confirm: self-correction suffix still confirms and advances", (sellState.step === 11 || sellState.step === 17) && /Porsche/i.test(sellState.carName || "") && !/my mistake/i.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
 
+// Speed-tiebreak copy (locked): sub-$50k + fast timeline + close medians ->
+// the pick is owned. No consolation framing, no "may matter", no "tradeoff".
+{
+  const DEFENSIVE_SPEED=/close enough that speed and process may matter|may take longer|timing is the tradeoff|where I.d (start|begin) if you (are )?sell(ing)? it yourself/i;
+  const speedCars=[
+    {label:"1972 Volkswagen Beetle",vehicle:{raw:"1972 Volkswagen Beetle",year:1972,make:"Volkswagen",model:"Beetle",trim:null,confidence:"high",canonicalLabel:"1972 Volkswagen Beetle"}},
+    {label:"2005 Mazda MX-5",vehicle:{raw:"2005 Mazda MX-5",year:2005,make:"Mazda",model:"MX-5",trim:null,confidence:"high",canonicalLabel:"2005 Mazda MX-5"}},
+    {label:"1990 Ford Mustang",vehicle:mustang.vehicle}
+  ];
+  for(const car of speedCars){
+    const out=await runResult("US","Texas","20k",car,{timeline:"Want it gone fast"});
+    const rendered=(renderedResult()+"\n"+allSamText()).replace(/<[^>]+>/g," ");
+    check(`speed copy (${car.label.split(" ").at(-1)}): no consolation or hedge framing`, !DEFENSIVE_SPEED.test(rendered), (rendered.match(DEFENSIVE_SPEED)||[""])[0].slice(0,160));
+    const speedPicked=/median difference is small/i.test(rendered);
+    if(speedPicked){
+      check(`speed copy (${car.label.split(" ").at(-1)}): owns the decision`, /Your speed matters more|timeline outweighs|closes faster/i.test(rendered), rendered.slice(0,300));
+    }
+  }
+}
+
 // Edit mid-flow keeps context: re-confirming the same car resumes at the
 // step the user was on, never back at vehicle entry.
 resetToStep1();
