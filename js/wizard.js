@@ -547,6 +547,15 @@ function startSellFlow(initialCar, showUserBubble=true){
 // every answer already given and re-flows only through what is missing.
 function resumeWizardAfterVehicle(prefix){
   if(sellState.returnToConfirm){goBackToConfirm();return;}
+  if(sellState.editReturnStep&&SELL_STEP_QUESTIONS[sellState.editReturnStep]){
+    const back=sellState.editReturnStep;
+    sellState.editReturnStep=null;
+    sellState.editPrevVehicle=null;
+    sellState.step=back;
+    const backQ=SELL_STEP_QUESTIONS[back];
+    addMsg("sam",[prefix,backQ.ask].filter(Boolean).join(" "),"",backQ.chips&&backQ.chips.length?chipsHTML(backQ.chips):"");
+    return;
+  }
   const next=!sellState.region?11
     :(isUSRegion(sellState.region)&&!sellState.state?18
     :(!sellState.mileage?2
@@ -568,12 +577,17 @@ function resumeWizardAfterVehicle(prefix){
 }
 
 function editCarName(){
+  // Snapshot where the user was and what the car resolved to: re-confirming
+  // the same car (or landing a new one) resumes at the saved step, never
+  // back at "What are we selling today?".
+  sellState.editReturnStep=SELL_STEP_QUESTIONS[sellState.step]?sellState.step:null;
+  sellState.editPrevVehicle={carName:sellState.carName,carRaw:sellState.carRaw,resolvedVehicle:sellState.resolvedVehicle};
   sellState.step=1;
   sellState.vehicleIdentityValidated=false;
   sellState.pendingVehicleIdentity=null;
   sellState.resolvedVehicle=null;
   sellState.trimAskAttempts=0;
-  addMsg("sam",`No problem. What's the car instead of the ${sellState.carName||"one we had"}? Year, make and model.`);
+  addMsg("sam",`No problem. What's the car instead of the ${sellState.carName||"one we had"}? Year, make and model. If it's actually right, just say so.`);
 }
 
 function askNextSellQuestion(){

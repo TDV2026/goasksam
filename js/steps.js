@@ -44,6 +44,17 @@ async function handleSellStep(q){
       addMsg("sam","Of course. Whenever you're ready, just tell me the year, make, and model.");
       return true;
     }
+    const sameCarPhrase=/\b(same car|that (one|car)|no change|keep it|it'?s (right|correct|the same)|it is (right|correct|the same))\b/i.test(lower)&&lower.split(/\s+/).length<=7&&!looksLikeVehicleText(q);
+    if(sellState.editPrevVehicle&&(detectIntent(lower)==="affirmation"||sameCarPhrase)){
+      // Mid-flow edit re-confirmed unchanged: restore the resolution and
+      // resume at the step the user was on when they clicked Edit.
+      sellState.carName=sellState.editPrevVehicle.carName;
+      sellState.carRaw=sellState.editPrevVehicle.carRaw;
+      sellState.resolvedVehicle=sellState.editPrevVehicle.resolvedVehicle;
+      sellState.vehicleIdentityValidated=true;
+      resumeWizardAfterVehicle(`Keeping the ${sellState.carName}.`);
+      return true;
+    }
     if(/^(ok|okay|ready|ok im ready|i.m ready|im ready|go ahead|let.s go|lets go|sure|yep|yes|yeah|ok ready|i have it|got it)$/i.test(lower)){
       addMsg("sam","Great. What are we selling today? Year, make, and model.");
       return true;

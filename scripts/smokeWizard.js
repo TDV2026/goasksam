@@ -393,6 +393,15 @@ check("confirm: suffix test reached a suggestion confirm", !!sellState.pendingVe
 await handleSellStep("it is that car my mistake");
 check("confirm: self-correction suffix still confirms and advances", (sellState.step === 11 || sellState.step === 17) && /Porsche/i.test(sellState.carName || "") && !/my mistake/i.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
 
+// Edit mid-flow keeps context: re-confirming the same car resumes at the
+// step the user was on, never back at vehicle entry.
+resetToStep1();
+await handleSellStep("2020 bmw m3");
+check("edit-resume: M3 lands on the location question", sellState.step === 11, `step=${sellState.step} last="${lastSam()}"`);
+editCarName();
+await handleSellStep("yes it is that car my bad");
+check("edit-resume: same-car confirm with suffix resumes at location", sellState.step === 11 && /where is the car located/i.test(lastSam() || "") && /M3/i.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
+
 // Edit at every step: clicking returns to vehicle entry keeping answers.
 resetToStep1();
 await handleSellStep("2018 porsche 911 carrera gts");
