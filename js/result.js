@@ -112,6 +112,21 @@ async function showSellRecommendation(){
     if(backup)routeOptions.push(backup);
   }
   routeOptions.splice(2);
+  // Speed routing (data-validated July 2026: Hagerty holds 5 tracked 1960s
+  // Corvette sales). A fast-timeline 1960s Corvette keeps Hagerty as the
+  // secondary card. The argument is records + fit; our dataset cannot state
+  // a sell-through rate honestly (sold-biased), so none is claimed.
+  const speedCorvette=sellerWantsSpeed()
+    &&/corvette/i.test(String(sellState.resolvedVehicle?.model||sellState.carName||""))
+    &&(()=>{const y=Number(sellState.resolvedVehicle?.year);const r=sellState.resolvedVehicle?.yearRange;
+      return (y>=1960&&y<=1969)||(r&&r.start>=1960&&r.end<=1969);})();
+  if(speedCorvette){
+    const hagertyRoute=allRouteOptions.find(route=>/hagerty/i.test(String(route.platform||route.label||"")));
+    if(hagertyRoute&&routeOptions[0]!==hagertyRoute){
+      routeOptions.splice(1,routeOptions.length-1,hagertyRoute);
+      hagertyRoute.speedArgument=true;
+    }
+  }
   if(!routeOptions.length){
     // Policy-floor decision for a region without a bespoke regional card:
     // show the backend's best route-policy fits, labeled as fit rather than data.
@@ -169,7 +184,9 @@ async function showSellRecommendation(){
       badgeClass:index===0?"top":"alt",
       cardClass:index===0&&!hasNamedPowerSellerAdvice?"primary-rec":"",
       actionLabel:index===0?`Sell on ${routeName}`:`Consider ${routeName}`,
-      reason:routeReason(route,index,routeOptions),
+      reason:route.speedArgument
+        ?"Hagerty has sold 1960s Corvettes in our records and is the stronger fit when speed matters: listings get live quickly and the audience skews classic."
+        :routeReason(route,index,routeOptions),
       heroStat:index===0?primaryHeroStat(route):null,
       evidenceBullets:routeEvidenceBullets(route,index,routeOptions),
       evidenceLine:"",
@@ -443,22 +460,28 @@ function regionalNoEvidenceFallback(){
   const regionPhrase=sellingRegionPhrase();
   if(/\b(uk|united kingdom|great britain|gb|england|scotland|wales|europe)\b/.test(region)){
     const highValue=estimatedTargetPrice()>=100000;
+    if(highValue){
+      return {
+        region:"uk_europe",
+        primary:"Collecting Cars",
+        secondary:"Car & Classic",
+        title:`Here’s what I’d do with the ${car}.`,
+        subtitle:`For a six-figure car in the UK or Europe, I’d start with Collecting Cars.`,
+        primaryReason:"Specialist platform for high-value cars. Recent sales: Ferrari F40 (£1.7M), Ferrari F50 (£2.94M), Porsche 918 Spyder (€1.35M), Mercedes 300 SL (£1.1M).",
+        bullets:["24,000+ lots sold, $1.5B+ generated for sellers."],
+        secondaryReason:"Classic cars, modern classics, performance models, and collector vehicles perform strongly here. 130K+ sales annually, 4M+ monthly visits.",
+        secondaryBullets:[]
+      };
+    }
     return {
       region:"uk_europe",
       primary:"Car & Classic",
-      secondary:highValue?"Collecting Cars":null,
+      secondary:null,
       title:`Here’s what I’d do with the ${car}.`,
       subtitle:`I’d start with Car & Classic for a UK seller.`,
       primaryReason:"Classic cars, modern classics, performance models, and collector vehicles perform strongly here. 130K+ sales annually, 4M+ monthly visits.",
-      secondaryReason:"Specialist platform for higher-value cars. 24,000+ lots sold, $1.5B+ generated for sellers.",
-      bullets:[
-        "Classic cars, modern classics, performance models, and collector vehicles perform strongly here.",
-        "130K+ sales annually, 4M+ monthly visits."
-      ],
-      secondaryBullets:[
-        "Specialist platform for higher-value cars.",
-        "24,000+ lots sold, $1.5B+ generated for sellers."
-      ]
+      secondaryReason:"",
+      bullets:[]
     };
   }
   if(/\b(australia|middle east)\b/.test(region)){
@@ -470,11 +493,7 @@ function regionalNoEvidenceFallback(){
       subtitle:`I’d list it on Collecting Cars for a seller in your region.`,
       primaryReason:"Global platform with 350,000+ members in 100+ countries. Specialists in sourcing top-quality collectibles. 24,000+ lots sold, $1.5B+ generated for sellers.",
       secondaryReason:"",
-      bullets:[
-        "Global platform with 350,000+ members in 100+ countries.",
-        "Specialists in sourcing top-quality collectibles.",
-        "24,000+ lots sold, $1.5B+ generated for sellers."
-      ]
+      bullets:[]
     };
   }
   return null;
@@ -548,7 +567,7 @@ function renderNoEvidenceFallback(fallback){
       </div>
     ${secondary}
     </div>
-    <div class="sam-text after-results">Want a second opinion? Ask me why I didn’t start with Bring a Trailer, Cars & Bids or another platform.</div>
+    <div class="sam-text after-results">Want a second opinion? Ask me anything about the recommendation, or tell me more about the car.</div>
   </div></div>`;
 }
 

@@ -307,7 +307,7 @@ check("entry: unmatched input probes instead of canned reply", !!localPreRoute("
 // edit link, depth-first breadth.
 const allSamText = () => addMsgLog.filter(a => a[0] === "sam").map(a => `${a[1]} ${a[3] || ""} ${a[2] || ""}`).join("\n");
 const renderedResult = () => [...appendedHTML].join("\n");
-const runResult = async (region, state, price, car) => {
+const runResult = async (region, state, price, car, extras) => {
   resetToStep1();
   appendedHTML.length = 0;
   sellState.active = true; sellState.step = 12;
@@ -316,6 +316,7 @@ const runResult = async (region, state, price, car) => {
   sellState.vehicleIdentityValidated = true;
   sellState.resolvedVehicle = car.vehicle;
   sellState.involvement = null; sellState.awaitingPathChoice = false; sellState.pendingResultSections = null;
+  Object.assign(sellState, extras || {});
   await showSellRecommendation();
   await new Promise(r => setTimeout(r, 100));
   return renderedResult() + "\n" + allSamText();
@@ -341,6 +342,28 @@ const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsc
   check("US: no sample-size counts on platform cards", !/\d+ of \d+ comparable|\d+ sales? in the last \d+|recent vs \d+ earlier|\(\d+ listings\)|versus the prior \d+/.test(usCards), (usCards.match(/[^\n]*\d+ (of|sales?|recent)[^\n]*/) || [""])[0].slice(0, 200));
   const landed = sellState.sellDecision?.evidence?.ladder?.landed;
   check("depth-first: 45-day start, broadens only when thin", !!landed && landed.windowDays >= 45, `landed=${JSON.stringify(landed)}`);
+}
+
+{
+  // Regional context: non-US results never explain themselves against US platforms.
+  const ukLow = await runResult("UK", null, "50k", mustang);
+  check("regional: UK low-value renders Car & Classic, no US-platform mentions", /Car &(amp;)? Classic/.test(ukLow) && !/Bring a Trailer|Cars &(amp;)? Bids|PCarMarket/i.test(ukLow), (ukLow.match(/[^\n]*(Bring a Trailer|Cars & Bids)[^\n]*/i) || ["render missing"])[0].slice(0, 200));
+
+  // High-value Europe: Collecting Cars leads with the proof-sale copy, deduped.
+  const euHigh = await runResult("Europe", null, "250k", mustang);
+  const ccIdx = euHigh.indexOf("Collecting Cars");
+  const cacIdx = euHigh.search(/Car &(amp;)? Classic/);
+  check("regional: EU $100k+ leads with Collecting Cars", ccIdx > -1 && cacIdx > -1 && ccIdx < cacIdx, `ccIdx=${ccIdx} cacIdx=${cacIdx}`);
+  check("regional: Collecting Cars card carries concrete proof sales", /Ferrari F40 \(£1\.7M\)/.test(euHigh) && /Porsche 918 Spyder/.test(euHigh), euHigh.slice(0, 300));
+  check("regional: no duplicated Specialist-platform line", (euHigh.match(/Specialist platform/g) || []).length === 1, `occurrences=${(euHigh.match(/Specialist platform/g) || []).length}`);
+  check("regional: EU high-value shows no US-platform mentions", !/Bring a Trailer|Cars &(amp;)? Bids/i.test(euHigh), "US platform mentioned");
+
+  // 1968 Corvette (US): the comps scope is the C3 generation, never
+  // all-Corvette, so any median comparison is year/generation-specific.
+  const vette = { label: "1968 Chevrolet Corvette", vehicle: { raw: "1968 Chevrolet Corvette", year: 1968, make: "Chevrolet", model: "Corvette", trim: null, confidence: "high", canonicalLabel: "1968 Chevrolet Corvette" } };
+  const vetteFast = await runResult("US", "Texas", "60k", vette, { timeline: "Want it gone fast" });
+  check("corvette: evidence scoped to the C3 generation, not all Corvettes", sellState.sellDecision?.evidence?.generation?.code === "C3", JSON.stringify(sellState.sellDecision?.evidence?.generation || null));
+  check("corvette speed: Hagerty renders as the speed option", /Hagerty/.test(vetteFast) && /stronger fit when speed matters/.test(vetteFast), vetteFast.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 300));
 }
 
 // Edit at every step: clicking returns to vehicle entry keeping answers.
