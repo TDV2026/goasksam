@@ -1,4 +1,11 @@
 async function handleSellStep(q){
+  // Self-correction suffixes are commentary, never content ("it is that car
+  // my mistake" confirms the car; "my mistake" is not a car name and must
+  // not read as an update request). Strip before any parsing.
+  const SELF_CORRECTION=/((,|\.|!)?\s*(my mistake|my bad|oops|i think( so)?|i'?m pretty sure|probably))+\s*$/i;
+  if(SELF_CORRECTION.test(String(q))&&String(q).replace(SELF_CORRECTION,"").trim()){
+    q=String(q).replace(SELF_CORRECTION,"").trim();
+  }
   const lower=q.toLowerCase().trim();
 
   // Holding phrases, any step
