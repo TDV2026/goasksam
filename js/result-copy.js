@@ -320,7 +320,30 @@ function routeReason(route,index,routes){
   const name=route.label||route.platform;
   const speedPick=speedTiebreak(routes);
   if(speedPick){
-    if(index===0)return `${speedPick.firstName} closes faster on this price point and volume. Your timeline outweighs the ${speedPick.gapPercent?`${speedPick.gapPercent}% `:""}median edge. Go here.`;
+    if(index===0){
+      // Locked two-part structure: a speed phrase, then a negligible-gap
+      // phrase. Pools keyed on the car so wording varies across searches but
+      // stays stable for the same car.
+      const SPEED_PHRASES=[
+        n=>`${n} tends to get listings live fast.`,
+        n=>`${n} historically closes quicker.`,
+        n=>`${n} moves faster to market.`,
+        n=>`${n} gets a listing live sooner.`,
+        n=>`${n} runs the quicker auction cycle.`,
+        n=>`${n} is the faster route from listing to close.`
+      ];
+      const GAP_PHRASES=[
+        c=>`Results for ${c} are similar between the top choices recently.`,
+        c=>`The top platforms have sold ${c} at similar money lately.`,
+        c=>`Recent ${c} results are close across the leading platforms.`,
+        c=>`There isn't a meaningful platform gap on recent ${c} sales.`,
+        c=>`The leading choices show near-identical recent results for ${c}.`,
+        c=>`Recent sales for ${c} land at similar levels across the top platforms.`
+      ];
+      const speedLine=pickCopy(SPEED_PHRASES,sellState.carName,"speed")(speedPick.firstName);
+      const gapLine=pickCopy(GAP_PHRASES,sellState.carName,"gap")(cleanCarForCopy());
+      return `${speedLine} ${gapLine}`;
+    }
     return `If you had more time, ${speedPick.secondName} would be worth the slight median edge. Speed is your constraint, so ${speedPick.firstName}.`;
   }
   if(hasTwoRouteTradeoff(routes)){
@@ -693,6 +716,12 @@ function primaryHeroStat(route){
     };
   }
   if(here&&others){
+    // Sub-5% gaps are noise, not signal (locked): no dollar amounts, no
+    // direction, or a small number becomes a false reason to choose.
+    if(Math.abs(facts.medianDelta)<0.05){
+      const otherName=platformDisplayName(route.marketEvidence?.nextSupportedPlatform||"the other leading platform");
+      return {count:`Recent results are negligible between ${platformDisplayName(route.label||route.platform)} and ${otherName} for the ${cleanCarForCopy()}`,money:null};
+    }
     const pct=Math.round(Math.abs(facts.medianDelta)*100);
     const direction=facts.medianLeads?"above":"below";
     const headline=facts.smallSample
@@ -868,7 +897,7 @@ function medianDeltaSentence(option, other){
   const diff=(a-b)/b*100;
   const abs=Math.abs(diff);
   const optionName=String(option.name||"This choice");
-  if(abs<3)return pickCopy([
+  if(abs<5)return pickCopy([
     `Similar cars have performed at a similar level across the leading choices ${marketWindowPhrase()}.`,
     `Recent comparable sales do not show a meaningful platform gap here.`,
     `${optionName} and ${other.name} are close enough that process, timing and seller workload matter more.`

@@ -308,22 +308,22 @@ async function showSellRecommendation(){
     ${diySecondaryLine}
   `):"";
 
-  // Divergence guard: a stated asking price far from the comps median is
-  // addressed plainly and suppresses the powerseller lead (platform first)
-  // until the user clarifies. Never silent gating on a contradicting number.
-  const PRICE_DIVERGENCE_THRESHOLD=0.4;
+  // Price-gap context (locked): a >20% gap between the asking price and the
+  // comps median asks for context FIRST. Comps are data points, not truth,
+  // and the median is never cited as proof the seller is wrong.
+  const PRICE_DIVERGENCE_THRESHOLD=0.2;
   const askPrice=estimatedTargetPrice();
   const compsMedian=decisionData.evidence?.estimatedValue||null;
   const priceDiverged=askPrice>0&&compsMedian&&Math.abs(askPrice-compsMedian)/compsMedian>PRICE_DIVERGENCE_THRESHOLD;
-  if(priceDiverged){
-    addMsg("sam",`Worth flagging before anything else: you mentioned ${formatUsd(askPrice)}, but recent comparable sales have a median around ${formatUsd(compsMedian)}. Worth double-checking what you meant, because it changes the advice.`);
+  if(priceDiverged&&!sellState.priceGapContextGathered){
+    sellState.awaitingPriceGapContext=true;
+    sellState.step=12;
+    addMsg("sam","Quick one before the results. A price like yours usually means something specific: different trim, much lower mileage, full service history, special condition. What's different about yours?","",chipsHTML(["Low mileage","Rare trim or options","Full history","Nothing special"]));
+    document.getElementById("btn").disabled=false;
+    return;
   }
 
-  // When the divergence flag fires, the powerseller lead is suppressed, so the
-  // subtitle must not open with "speak to a PowerSeller first".
-  const summaryLine=priceDiverged&&powerSellerHTML
-    ?"Until the price question is settled, start with the platform read below. Having it handled is still on the table."
-    :resultSummaryLine(sellState.sellOptions,routeOptions);
+  const summaryLine=resultSummaryLine(sellState.sellOptions,routeOptions);
   const headerHTML=`<div class="sell-rec-header">
       <div class="sell-rec-kicker">Seller Intelligence</div>
       <div class="sell-rec-title">${escapeHtml(resultHeaderTitle(routeOptions))}</div>
@@ -336,7 +336,7 @@ async function showSellRecommendation(){
   sellState.generatedPrimaryName=sellState.sellOptions[0]?.name||null;
   sellState.generatedSecondaryName=sellState.sellOptions[1]?.name||null;
 
-  if(powerSellerHTML&&!priceDiverged&&isUSRegion(sellState.region)){
+  if(powerSellerHTML&&isUSRegion(sellState.region)){
     // Gate-open, US sellers only: one light choice orders the sections
     // before anything renders. Non-US goes straight to the platform result.
     sellState.pendingResultSections={headerHTML,powerSellerHTML,powerSellerSecondHTML,platformCardsHTML,caveatHTML,afterText};
@@ -349,7 +349,7 @@ async function showSellRecommendation(){
     return;
   }
 
-  const orderedSections=priceDiverged&&powerSellerHTML?`${platformCardsHTML}${powerSellerSecondHTML}`:`${powerSellerHTML}${platformCardsHTML}`;
+  const orderedSections=`${powerSellerHTML}${platformCardsHTML}`;
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
@@ -378,6 +378,18 @@ function renderPendingResultSections(choice){
 
 function handleSellRecommendationFollowup(q){
   const lower=q.toLowerCase();
+  if(sellState.awaitingPriceGapContext){
+    sellState.awaitingPriceGapContext=false;
+    sellState.priceGapContextGathered=true;
+    const noContext=detectIntent(lower)==="refusal"||detectIntent(lower)==="moveOn"||/^(nothing special|nothing|no|skip)$/i.test(lower.trim());
+    if(!noContext){
+      sellState.priceContextNote=q;
+      sellState.notes=[sellState.notes,`Price context: ${q}`].filter(Boolean).join(". ");
+      addMsg("sam","Good to know. Here's the read with that in mind.");
+    }
+    showSellRecommendation();
+    return true;
+  }
   if(sellState.awaitingPathChoice){
     if(isQuestionInput(q))return false; // chat answers, choice stays pending
     if(/handled|someone|help me|have it/i.test(lower)){

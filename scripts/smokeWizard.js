@@ -73,6 +73,7 @@ function resetToStep1() {
   sellState.region = null; sellState.state = null; sellState.condition = null; sellState.records = null;
   sellState.title = null; sellState.price = null; sellState.timeline = null; sellState.notes = null;
   sellState.returnToConfirm = false;
+  sellState.priceGapContextGathered = false; sellState.awaitingPriceGapContext = false; sellState.priceContextNote = null;
   addMsgLog.length = 0;
 }
 
@@ -319,6 +320,11 @@ const runResult = async (region, state, price, car, extras) => {
   Object.assign(sellState, extras || {});
   await showSellRecommendation();
   await new Promise(r => setTimeout(r, 100));
+  if (sellState.awaitingPriceGapContext && !(extras && extras.keepGapAsk)) {
+    // Not the flow under test: answer the context ask so results render.
+    handleSellRecommendationFollowup("Nothing special");
+    await new Promise(r => setTimeout(r, 8000));
+  }
   return renderedResult() + "\n" + allSamText();
 };
 const mustang = { label: "1990 Ford Mustang", vehicle: { raw: "1990 Ford Mustang", year: 1990, make: "Ford", model: "Mustang", trim: null, confidence: "high", canonicalLabel: "1990 Ford Mustang" } };
@@ -402,15 +408,40 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
     {label:"2005 Mazda MX-5",vehicle:{raw:"2005 Mazda MX-5",year:2005,make:"Mazda",model:"MX-5",trim:null,confidence:"high",canonicalLabel:"2005 Mazda MX-5"}},
     {label:"1990 Ford Mustang",vehicle:mustang.vehicle}
   ];
+  const SPEED_POOL=/tends to get listings live fast|historically closes quicker|moves faster to market|gets a listing live sooner|runs the quicker auction cycle|faster route from listing to close/i;
+  const GAP_POOL=/are similar between the top choices|at similar money lately|close across the leading platforms|meaningful platform gap|near-identical recent results|similar levels across the top platforms/i;
+  const speedReasons=[];
   for(const car of speedCars){
     const out=await runResult("US","Texas","20k",car,{timeline:"Want it gone fast"});
     const rendered=(renderedResult()+"\n"+allSamText()).replace(/<[^>]+>/g," ");
     check(`speed copy (${car.label.split(" ").at(-1)}): no consolation or hedge framing`, !DEFENSIVE_SPEED.test(rendered), (rendered.match(DEFENSIVE_SPEED)||[""])[0].slice(0,160));
-    const speedPicked=/median difference is small/i.test(rendered);
-    if(speedPicked){
-      check(`speed copy (${car.label.split(" ").at(-1)}): owns the decision`, /Your speed matters more|timeline outweighs|closes faster/i.test(rendered), rendered.slice(0,300));
+    // FIX 1: sub-5% gaps never show direction; negligible framing carries no dollars
+    check(`median gate (${car.label.split(" ").at(-1)}): no sub-5% directional claims`, !/\b[1-4]% (above|below)\b/i.test(rendered), (rendered.match(/[^\n]*% (above|below)[^\n]*/i)||[""])[0].slice(0,160));
+    if(/negligible between/i.test(rendered)){
+      check(`median gate (${car.label.split(" ").at(-1)}): negligible line carries no dollar amounts`, !/negligible[^<]*\$\d/i.test(rendered), rendered.slice(rendered.search(/negligible/i),rendered.search(/negligible/i)+200));
+    }
+    // FIX 2: locked two-part Why when the speed tiebreak fired
+    if(SPEED_POOL.test(rendered)){
+      speedReasons.push((rendered.match(SPEED_POOL)||[""])[0]);
+      check(`why structure (${car.label.split(" ").at(-1)}): speed phrase + gap phrase`, GAP_POOL.test(rendered), rendered.slice(0,300));
     }
   }
+  if(speedReasons.length>=2){
+    check("why structure: wording varies across different cars", new Set(speedReasons).size>=2, JSON.stringify(speedReasons));
+  }
+}
+
+// FIX 3: >20% price gap asks for context BEFORE the results, never citing
+// the median as proof; the answer grounds the read and results follow.
+{
+  const out=await runResult("US","California","20k",gts,{keepGapAsk:true});
+  const askText=allSamText();
+  check("price gap: asks what's different before showing results", sellState.awaitingPriceGapContext===true && /what'?s different about yours/i.test(askText), `awaiting=${sellState.awaitingPriceGapContext} last="${(askText.split("\n").filter(Boolean).at(-1)||"").slice(0,200)}"`);
+  check("price gap: the ask never cites the median as proof", !/median|\$\d[\d,]*/i.test((askText.match(/[^\n]*different about yours[^\n]*/i)||[""])[0]), (askText.match(/[^\n]*different about yours[^\n]*/i)||[""])[0]);
+  check("price gap: results held back until the answer", !/Seller Intelligence/.test(renderedResult()), "results rendered early");
+  handleSellRecommendationFollowup("Low mileage");
+  await new Promise(r=>setTimeout(r,8000));
+  check("price gap: context answer releases the results", /Seller Intelligence|Want it handled/i.test(renderedResult()+allSamText()), (renderedResult()+allSamText()).replace(/<[^>]+>/g," ").slice(0,200));
 }
 
 // Edit mid-flow keeps context: re-confirming the same car resumes at the
