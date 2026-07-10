@@ -350,9 +350,12 @@ async function handleVehicleValidationAnswer(q){
   // mistake" confirms; "my mistake" is not a car name). Strip them, then
   // recognize confirmation phrasings that the anchored affirmation regex
   // misses.
-  const confirmCore=lower.replace(/((,|\.|!)?\s*(my mistake|my bad|oops|i think( so)?|i'?m pretty sure|probably))+\s*$/i,"").replace(/\s+/g," ").trim();
+  const confirmCore=lower
+    .replace(/((,|\.|!)?\s*(my mistake|my bad|oops|i think( so)?|i'?m pretty sure|probably))+\s*$/i,"")
+    .replace(/^((my mistake|my bad|oops|sorry)[,.! ]*)+/i,"")
+    .replace(/\s+/g," ").trim();
   const affirmationPhrase=detectIntent(confirmCore)==="affirmation"
-    ||/^(it is|it'?s that (one|car)|it is that (one|car)|that'?s (it|the (one|car))|that one|right,? that('?s the)? (one|car))[.! ]*$/i.test(confirmCore);
+    ||/^(it is|it'?s? (is )?(this|that) (one|car)|it is (this|that) (one|car)|is (this|that) (car|one)|that'?s (it|the (one|car))|(that|this) one|right,? that('?s the)? (one|car)|yes,? same car)[.! ]*$/i.test(confirmCore);
   const goWith=/\b(jus?t\s+)?go with\b/i.test(lower);
   const questionLike=/\?\s*$/.test(lower)||/^(what|how|why|when|where|who|can|could|will|would|does|do|is|are|should|but|explain|tell me)\b/i.test(lower)||/\b(how long|you never|what happens|why do you)\b/i.test(lower);
   const wordyNonAnswer=!subStateIntent&&!goWith&&!affirmationPhrase&&lower.split(/\s+/).length>=4&&!/\d/.test(lower)&&!looksLikeVehicleText(q)&&!/\b(not sure|don.t know|unknown|skip|change car|start over|wrong car|different car|yes|yep|yeah|correct)\b/i.test(lower);

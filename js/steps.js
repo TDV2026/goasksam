@@ -3,8 +3,10 @@ async function handleSellStep(q){
   // my mistake" confirms the car; "my mistake" is not a car name and must
   // not read as an update request). Strip before any parsing.
   const SELF_CORRECTION=/((,|\.|!)?\s*(my mistake|my bad|oops|i think( so)?|i'?m pretty sure|probably))+\s*$/i;
-  if(SELF_CORRECTION.test(String(q))&&String(q).replace(SELF_CORRECTION,"").trim()){
-    q=String(q).replace(SELF_CORRECTION,"").trim();
+  const SELF_CORRECTION_PREFIX=/^((my mistake|my bad|oops|sorry)[,.! ]*)+/i;
+  {
+    const stripped=String(q).replace(SELF_CORRECTION,"").replace(SELF_CORRECTION_PREFIX,"").trim();
+    if(stripped&&stripped!==String(q).trim())q=stripped;
   }
   const lower=q.toLowerCase().trim();
 
@@ -44,7 +46,7 @@ async function handleSellStep(q){
       addMsg("sam","Of course. Whenever you're ready, just tell me the year, make, and model.");
       return true;
     }
-    const sameCarPhrase=/\b(same car|that (one|car)|no change|keep it|it'?s (right|correct|the same)|it is (right|correct|the same))\b/i.test(lower)&&lower.split(/\s+/).length<=7&&!looksLikeVehicleText(q);
+    const sameCarPhrase=/\b(same car|(that|this) (one|car)|no change|keep it|it'?s? (is )?(right|correct|the same|(this|that) (car|one))|is (this|that) (car|one))\b/i.test(lower)&&lower.split(/\s+/).length<=7&&!looksLikeVehicleText(q);
     if(sellState.editPrevVehicle&&(detectIntent(lower)==="affirmation"||sameCarPhrase)){
       // Mid-flow edit re-confirmed unchanged: restore the resolution and
       // resume at the step the user was on when they clicked Edit.

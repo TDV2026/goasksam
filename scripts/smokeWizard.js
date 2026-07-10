@@ -401,6 +401,9 @@ check("edit-resume: M3 lands on the location question", sellState.step === 11, `
 editCarName();
 await handleSellStep("yes it is that car my bad");
 check("edit-resume: same-car confirm with suffix resumes at location", sellState.step === 11 && /where is the car located/i.test(lastSam() || "") && /M3/i.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
+editCarName();
+await handleSellStep("my mistake its is this car");
+check("edit-resume: prefix suffix + 'is this car' confirms and resumes", sellState.step === 11 && /where is the car located/i.test(lastSam() || "") && /M3/i.test(sellState.carName || "") && !/mistake/i.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
 
 // Edit at every step: clicking returns to vehicle entry keeping answers.
 resetToStep1();
