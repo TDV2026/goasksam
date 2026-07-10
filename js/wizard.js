@@ -32,7 +32,8 @@ Grounding rules (locked):
 - Never contradict the engine's platform recommendation. When decision facts are provided in the context, they are the answer to "where should I sell": your job is to explain and support that recommendation in your own voice, never to name a different platform as where you'd start.
 - No platform-mechanics claims stated as fact (auction formats, durations, audiences, fee structures): GoAskSam stores none of that. This includes details you believe you know, like how many days an auction runs or how submission works. If it matters, say the platform's current process is the place to check.
 - No invented market commentary: no state-level demand claims, no buyer-pool claims at price points, no seasonality claims. You may reference only the facts provided in the context, framed as data, plus clearly-labeled opinion in Sam's voice ("if it were mine...").
-- Recommendations are final. No hedging, no escape hatches: never "if it does not pan out", never "we can revisit", never "feel free to come back", never "if you change your mind". If the user questions or asks you to explain the recommendation, answer in at most three direct sentences grounded in the decision facts, then stop. Never offer alternatives unless asked. Never announce honesty ("I want to be straight with you"), just be direct. Never apologize for the recommendation existing.
+- Recommendations are final. No hedging, no escape hatches: never "if it does not pan out", never "we can revisit", never "feel free to come back", never "if you change your mind". All explanations max 3 sentences: lead with the fact (data, signal, fit), ground the decision, close. No fourth sentence. Never offer alternatives unless asked.
+- Untracked-platform honesty: if the user suggests a platform that fits the car type but we hold no sales data for it (Hemmings, Car & Classic, Collecting Cars), acknowledge the suggestion as a valid fit for that kind of car, say plainly that we don't track sales data there yet so the call is based on what the data shows on the tracked platforms, and restate the recommendation. Never claim the chosen platform is objectively better when the real reason is a data gap. Never announce honesty ("I want to be straight with you"), just be direct. Never apologize for the recommendation existing.
 Key facts:
 - Fees: GoAskSam holds NO platform fee data. Never state platform fees, commissions, percentages, or caps as fact; those numbers would be invented. If asked about platform costs, say fee structures change and the platform's current terms are the place to check. If asked what howS or any consignor/PowerSeller charges: we do not hold his fee terms; per howS his structure is usually flexible (flat fee, percentage, or incentive), and the specifics are discussed directly with him if the seller requests an introduction.
 - Timing: the question flow takes under a minute, and the market analysis itself runs in seconds once the questions are done. Nothing here is a long process.
@@ -345,10 +346,17 @@ async function handleVehicleValidationAnswer(q){
   // Intents outrank the off-script guard: a wordy move-on or refusal is an
   // instruction to advance, not a question for the chat layer.
   const subStateIntent=detectIntent(lower);
+  // Self-correction suffixes never break a confirmation ("it is that car my
+  // mistake" confirms; "my mistake" is not a car name). Strip them, then
+  // recognize confirmation phrasings that the anchored affirmation regex
+  // misses.
+  const confirmCore=lower.replace(/((,|\.|!)?\s*(my mistake|my bad|oops|i think( so)?|i'?m pretty sure|probably))+\s*$/i,"").replace(/\s+/g," ").trim();
+  const affirmationPhrase=detectIntent(confirmCore)==="affirmation"
+    ||/^(it is|it'?s that (one|car)|it is that (one|car)|that'?s (it|the (one|car))|that one|right,? that('?s the)? (one|car))[.! ]*$/i.test(confirmCore);
   const goWith=/\b(jus?t\s+)?go with\b/i.test(lower);
   const questionLike=/\?\s*$/.test(lower)||/^(what|how|why|when|where|who|can|could|will|would|does|do|is|are|should|but|explain|tell me)\b/i.test(lower)||/\b(how long|you never|what happens|why do you)\b/i.test(lower);
-  const wordyNonAnswer=!subStateIntent&&!goWith&&lower.split(/\s+/).length>=4&&!/\d/.test(lower)&&!looksLikeVehicleText(q)&&!/\b(not sure|don.t know|unknown|skip|change car|start over|wrong car|different car|yes|yep|yeah|correct)\b/i.test(lower);
-  if((questionLike&&!subStateIntent&&!goWith&&!looksLikeVehicleText(q))||wordyNonAnswer)return false;
+  const wordyNonAnswer=!subStateIntent&&!goWith&&!affirmationPhrase&&lower.split(/\s+/).length>=4&&!/\d/.test(lower)&&!looksLikeVehicleText(q)&&!/\b(not sure|don.t know|unknown|skip|change car|start over|wrong car|different car|yes|yep|yeah|correct)\b/i.test(lower);
+  if((questionLike&&!subStateIntent&&!goWith&&!affirmationPhrase&&!looksLikeVehicleText(q))||wordyNonAnswer)return false;
   if(currentIssue?.baseVehicle&&/\bdifferent\b.*\bmodel\b/i.test(lower)){
     sellState.carName=currentIssue.baseVehicle;
     sellState.carRaw=currentIssue.baseVehicle;
@@ -410,7 +418,7 @@ async function handleVehicleValidationAnswer(q){
       :`All good. If the paperwork isn't handy, the badge on the back of the car usually settles it. If you'd rather not dig, say 'not sure' once more and I'll run the analysis on the ${baseVehicle} as-is, just with a broader read.`);
     return true;
   }
-  if(currentIssue?.suggestion&&(detectIntent(lower)==="affirmation"||/^(that one)$/i.test(lower))){
+  if(currentIssue?.suggestion&&(affirmationPhrase||detectIntent(lower)==="affirmation")){
     sellState.carName=currentIssue.suggestion;
     sellState.carRaw=currentIssue.suggestion;
     sellState.vehicleDetailSkipped=false;

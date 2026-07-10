@@ -469,7 +469,7 @@ function regionalNoEvidenceFallback(){
         primary:"Collecting Cars",
         secondary:"Car & Classic",
         title:`Here’s what I’d do with the ${car}.`,
-        subtitle:`For a six-figure car in the UK or Europe, I’d start with Collecting Cars.`,
+        subtitle:`Collecting Cars is where I’d sell this.`,
         primaryReason:"Specialist platform for high-value cars. Recent sales: Ferrari F40 (£1.7M), Ferrari F50 (£2.94M), Porsche 918 Spyder (€1.35M), Mercedes 300 SL (£1.1M).",
         bullets:["24,000+ lots sold, $1.5B+ generated for sellers."],
         secondaryReason:"Classic cars, modern classics, performance models, and collector vehicles perform strongly here. 130K+ sales annually, 4M+ monthly visits.",
@@ -481,7 +481,7 @@ function regionalNoEvidenceFallback(){
       primary:"Car & Classic",
       secondary:null,
       title:`Here’s what I’d do with the ${car}.`,
-      subtitle:`I’d start with Car & Classic for a UK seller.`,
+      subtitle:`Car & Classic is where I’d sell this.`,
       primaryReason:"Classic cars, modern classics, performance models, and collector vehicles perform strongly here. 130K+ sales annually, 4M+ monthly visits.",
       secondaryReason:"",
       bullets:[]
@@ -519,7 +519,7 @@ function noEvidenceMessage(fallback){
   const car=sellState.carName||"this car";
   const recommended=sellState.sellDecision?.decision?.recommendedPath;
   if(!fallback){
-    const start=recommended?`I'd start with ${platformDisplayName(recommended)}. That's a fit call for the car and your region, not a sales-data call.`:`For a US collector car with no recent comparable sales in the data I track, I'd start with Bring a Trailer on fit.`;
+    const start=recommended?`${platformDisplayName(recommended)} is the call here. That's fit for the car and your region, not sales data.`:`Bring a Trailer is the call for a US collector car with no recent comparable sales in my data. That's fit, not sales data.`;
     return `I checked recent sales for your ${car} and the market is genuinely quiet right now, so I won't quote numbers. ${start} When comparable sales show up, I can back this with real evidence.`;
   }
   const extra=fallback.secondary?` If this is a particularly valuable example, I’d also compare ${fallback.secondary}.`:"";
@@ -642,7 +642,7 @@ function regionalPlatformFollowup(platform,fallback){
   const isPrimary=normalizedPlatformText(platform)===normalizedPlatformText(primary);
   if(isPrimary){
     if(primary==="Collecting Cars"){
-      return `If this were mine, I’d start with Collecting Cars. Not because it’s the biggest platform, but because it’s the best fit for where you’re selling from. For a ${car} in ${region}, I want it in front of an international buyer base first.`;
+      return `Collecting Cars is where I’d sell this. For a ${car} in ${region}, it puts the car in front of an international buyer base first.`;
     }
     if(primary==="Car & Classic"){
       return `Car & Classic is where I’d start for a ${car} in the UK or Europe. It is the practical regional fit: buyers are already shopping there, and it keeps the sale in the market where the car actually sits.`;

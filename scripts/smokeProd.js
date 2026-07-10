@@ -35,7 +35,8 @@ Key facts:
 - Fees: GoAskSam holds NO platform fee data. Never state platform fees, commissions, percentages, or caps as fact. If asked what howS or any consignor charges: we do not hold his fee terms; per howS his structure is usually flexible, and the specifics are discussed directly with him if the seller requests an introduction.
 - Timing: the question flow takes under a minute, and the market analysis itself runs in seconds once the questions are done. Nothing here is a long process.
 - Privacy and leads: seller details are used only to build the recommendation. If the seller chooses to proceed, their details go to one single chosen destination, never blasted to multiple partners, never sold.
-Recommendations are final. No hedging, no escape hatches: never "if it does not pan out", never "we can revisit", never "feel free to come back", never "if you change your mind". If the user questions or asks you to explain the recommendation, answer in at most three direct sentences grounded in the decision facts, then stop. Never offer alternatives unless asked. Never announce honesty ("I want to be straight with you"), just be direct.
+Recommendations are final. No hedging, no escape hatches: never "if it does not pan out", never "we can revisit", never "feel free to come back", never "if you change your mind". All explanations max 3 sentences: lead with the fact (data, signal, fit), ground the decision, close. No fourth sentence. Never offer alternatives unless asked.
+- Untracked-platform honesty: if the user suggests a platform that fits the car type but we hold no sales data for it (Hemmings, Car & Classic, Collecting Cars), acknowledge the suggestion as a valid fit for that kind of car, say plainly that we don't track sales data there yet so the call is based on what the data shows on the tracked platforms, and restate the recommendation. Never claim the chosen platform is objectively better when the real reason is a data gap. Never announce honesty ("I want to be straight with you"), just be direct.
 Style: never use em dashes or en dashes anywhere in your replies. Use commas or periods instead.
 Never say you are AI. You are Sam. End on your answer; the wizard re-asks its own question after you.`;
 
@@ -195,6 +196,21 @@ await identityCase("identity: 67 corvette", "67 corvette", "valid", /1967 Chevro
   const explain = await chatVoice("platform", "explain why cars and bids",
     'Current sell state: {"car":"2011 BMW 335i","step":16}\nDecision facts (the engine\'s recommendation, do not contradict it): recommended platform Cars & Bids; basis market_evidence; confidence medium; comparable sales analyzed 25 across everything tracked.');
   check("voice platform: explanation is tight (no five-sentence apology)", (explain.match(/[.!?]+/g) || []).length <= 4, `sentences=${(explain.match(/[.!?]+/g) || []).length} text="${explain.slice(0, 300)}"`);
+}
+
+// Untracked-platform honesty + three-sentence cap on a questioning user.
+{
+  const { body } = await post("/api/chat", {
+    bypassCache: true,
+    messages: [{ role: "user", content: "what about hemmings, are you sure it isn't better for this truck?" }],
+    system: __wizardJs.match(/const SELL_SYS=`([\s\S]*?)`;\n/)?.[1] || WIZARD_SYSTEM,
+    context: 'Current sell state: {"car":"1952 Dodge B-Series","step":16}\nDecision facts (the engine\'s recommendation, do not contradict it): recommended platform Bring a Trailer; basis market_evidence; confidence medium; comparable sales analyzed 13 across everything tracked; median on the recommended platform $19,250. Note: Hemmings is not covered by our data sources; we hold no Hemmings sales data.'
+  });
+  const text = String(body.text || "");
+  check("data-gap: acknowledges the suggested platform as a valid fit", /hemmings/i.test(text) && !/different kind of (buyer|listing)|does not support it as the stronger/i.test(text), `text="${text.slice(0, 280)}"`);
+  check("data-gap: names the data gap plainly", /(don'?t|do not|no)[^.]{0,40}(track|data)|data (we|i) (track|hold|have)|without (the )?data/i.test(text), `text="${text.slice(0, 280)}"`);
+  check("data-gap: restates the recommendation", /bring a trailer|bat/i.test(text), `text="${text.slice(0, 280)}"`);
+  check("data-gap: three sentences max", (text.match(/[.!?]+(\s|$)/g) || []).length <= 3, `sentences=${(text.match(/[.!?]+(\s|$)/g) || []).length} text="${text.slice(0, 300)}"`);
 }
 
 await identityCase("identity: e46 m3 cold entry", "e46 m3", "needs_clarification", /BMW M3/i);

@@ -325,10 +325,13 @@ function routeReason(route,index,routes){
 }
 
 function primaryInsightSentence(route){
+  // Headlines are one direct sentence naming the pick (locked): never a
+  // wordy description of where comps came from.
   const evidence=route.marketEvidence||{};
-  if(Number.isFinite(evidence.performanceDeltaPercent)&&evidence.performanceDeltaPercent>=5)return `Recent comparable ${comparableModelLabel()} have consistently favoured the platform I’d use over the rest of the tracked market.`;
+  const name=platformDisplayName(route.label||route.platform);
+  if(Number.isFinite(evidence.performanceDeltaPercent)&&evidence.performanceDeltaPercent>=5)return `${name} has the strongest signal for ${comparableSalesLabel()}.`;
   if(evidence.topThreeSales>=2){
-    return `The strongest recent comparable ${comparableModelLabel()} have come through the platform I’d use.`;
+    return `${name} is the call here.`;
   }
   const dayLine=weekdayInsightLine(evidence);
   if(dayLine)return dayLine;
@@ -777,16 +780,16 @@ function resultSummaryLine(options,routes=[]){
   }
   if(primary&&alt){
     return medianDeltaSentence(primary,alt)||pickCopy([
-      `If it were mine, I’d list it on ${primary.name}.`,
-      `For this car, ${primary.name} is where I’d start.`,
-      `${primary.name} is the clearest choice for this car right now.`
+      `${primary.name} is where I’d sell this.`,
+      `${primary.name} is the call here.`,
+      `${primary.name} has the clearest signal for this car.`
     ],sellState.carName,primary.name,alt.name);
   }
   if(primary){
     return pickCopy([
-      `If it were mine, I’d list it on ${primary.name}.`,
-      `For this car, ${primary.name} is where I’d start.`,
-      `${primary.name} is the clearest choice for this car right now.`
+      `${primary.name} is where I’d sell this.`,
+      `${primary.name} is the call here.`,
+      `${primary.name} has the clearest signal for this car.`
     ],sellState.carName,primary.name);
   }
   return "I’m only showing choices I can stand behind.";

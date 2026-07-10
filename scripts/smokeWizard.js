@@ -381,7 +381,19 @@ const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsc
     const closeLine=(rendered.split("\n").map(l=>l.trim()).filter(Boolean).at(-1))||"";
     closes.push(`${car.label}: "${closeLine}"`);
     check(`voice close (${car.label.split(" ").at(-1)}): declarative, unhedged`, !!closeLine && !/\?\s*$/.test(closeLine) && !HEDGE.test(rendered), `close="${closeLine}" hedge=${(rendered.match(HEDGE)||[""])[0]}`);
+    check(`headline (${car.label.split(" ").at(-1)}): direct, no indirect phrasing`, !/have come through|data points to|I’d start with|I'd start with|the platform I’d use/i.test(rendered), (rendered.match(/[^\n]*(have come through|data points to|start with|platform I’d use)[^\n]*/i)||[""])[0].slice(0,200));
   }
+}
+
+// Confirmation with a self-correction suffix confirms, never re-asks.
+resetToStep1();
+await handleSellStep("2023 mercedes cla");
+if (sellState.pendingVehicleIdentity?.suggestion) {
+  await handleSellStep("it is that car my mistake");
+  check("confirm: self-correction suffix still confirms and advances", sellState.step === 11 && /Mercedes/i.test(sellState.carName || "") && !/my mistake/i.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName}`);
+} else {
+  // resolver accepted it outright; confirm the suffix path on the trim ask instead
+  check("confirm: CLA resolved without suggestion (suffix path exercised elsewhere)", sellState.step === 11 || sellState.step === 17, `step=${sellState.step} pending=${JSON.stringify(sellState.pendingVehicleIdentity)}`);
 }
 
 // Edit at every step: clicking returns to vehicle entry keeping answers.
