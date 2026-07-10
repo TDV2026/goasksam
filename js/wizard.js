@@ -648,7 +648,7 @@ function applySellStateUpdate(text){
       sellState.pendingVehicleIdentity=null;
     }
     if(pattern.key==="state")sellState.region="US";
-    return {label:pattern.label,value:sellState[pattern.key]};
+    return {key:pattern.key,label:pattern.label,value:sellState[pattern.key]};
   }
 
   if(/\b(actually|change|update|make it|set it)\b/i.test(lower)){
@@ -658,7 +658,7 @@ function applySellStateUpdate(text){
       sellState.carName=value;sellState.carRaw=value;
       sellState.vehicleIdentityValidated=false;
       sellState.pendingVehicleIdentity=null;
-      return {label:"Car",value};
+      return {key:"carName",label:"Car",value};
     }
     const priceMatch=raw.match(/\b(?:\$?\d+(?:,\d{3})?|\d+k|six figures?)\b/i);
     if(priceMatch&&/\b(price|target|asking|ask|six figures?)\b/i.test(lower)){

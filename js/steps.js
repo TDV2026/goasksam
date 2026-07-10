@@ -19,6 +19,25 @@ async function handleSellStep(q){
   const canApplyUpdate=/change|update|actually|wrong|mistake|make it|set it/i.test(lower)||sellState.step===16;
   const stateUpdate=canApplyUpdate?applySellStateUpdate(q):null;
   if(stateUpdate){
+    if(stateUpdate.key==="carName"){
+      // A car update is a vehicle entry, never a raw text store: resolve it
+      // like any other, then resume where the user was (edit snapshot or
+      // confirm), instead of stopping dead on "Updated car to ...".
+      if(sellState.step===16)sellState.returnToConfirm=true;
+      sellState.resolvedVehicle=null;
+      sellState.trimAskAttempts=0;
+      if(!(await validateVehicleIdentityPreflight(sellState.carName,{chatFallback:true}))){
+        if(sellState.lastIdentityVerdict==="not_vehicle"){
+          sellState.step=1;
+          addMsg("sam","I couldn't read that as a car. Year, make and model?");
+        }
+        return true;
+      }
+      const missingAfterUpdate=currentMissingVehicleDetail();
+      if(missingAfterUpdate){askMissingVehicleDetail(missingAfterUpdate);return true;}
+      resumeWizardAfterVehicle(`Updated the car to ${sellState.carName}.`);
+      return true;
+    }
     addMsg("sam",`Updated ${stateUpdate.label.toLowerCase()} to ${stateUpdate.value}.`);
     if(sellState.step===16||sellState.returnToConfirm){goBackToConfirm();}
     return true;
