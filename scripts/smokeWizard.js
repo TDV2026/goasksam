@@ -386,15 +386,12 @@ const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsc
 }
 
 // Confirmation with a self-correction suffix confirms, never re-asks.
+// "2018 pors" reliably produces a typo-confirm suggestion.
 resetToStep1();
-await handleSellStep("2023 mercedes cla");
-if (sellState.pendingVehicleIdentity?.suggestion) {
-  await handleSellStep("it is that car my mistake");
-  check("confirm: self-correction suffix still confirms and advances", sellState.step === 11 && /Mercedes/i.test(sellState.carName || "") && !/my mistake/i.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName}`);
-} else {
-  // resolver accepted it outright; confirm the suffix path on the trim ask instead
-  check("confirm: CLA resolved without suggestion (suffix path exercised elsewhere)", sellState.step === 11 || sellState.step === 17, `step=${sellState.step} pending=${JSON.stringify(sellState.pendingVehicleIdentity)}`);
-}
+await handleSellStep("2018 pors");
+check("confirm: suffix test reached a suggestion confirm", !!sellState.pendingVehicleIdentity?.suggestion, JSON.stringify(sellState.pendingVehicleIdentity));
+await handleSellStep("it is that car my mistake");
+check("confirm: self-correction suffix still confirms and advances", (sellState.step === 11 || sellState.step === 17) && /Porsche/i.test(sellState.carName || "") && !/my mistake/i.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
 
 // Edit at every step: clicking returns to vehicle entry keeping answers.
 resetToStep1();
