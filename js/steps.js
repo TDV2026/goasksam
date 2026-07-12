@@ -191,7 +191,7 @@ async function handleSellStep(q){
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     if(sellState.mileage){
       sellState.step=3;
-      addMsg("sam","Stock or modified?","",chipsHTML(["Completely stock","Minor mods","Heavily modified"]));
+      addMsg("sam",conditionAskText(),"",chipsHTML(["Completely stock","Minor mods","Heavily modified"]));
       return true;
     }
     sellState.step=2;
@@ -213,7 +213,7 @@ async function handleSellStep(q){
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     if(sellState.mileage){
       sellState.step=3;
-      addMsg("sam","Stock or modified?","",chipsHTML(["Completely stock","Minor mods","Heavily modified"]));
+      addMsg("sam",conditionAskText(),"",chipsHTML(["Completely stock","Minor mods","Heavily modified"]));
       return true;
     }
     sellState.step=2;
@@ -233,7 +233,7 @@ async function handleSellStep(q){
     const next=FLOW_AFTER[step];
     sellState.step=next;
     const nextQ=SELL_STEP_QUESTIONS[next];
-    addMsg("sam",nextQ.ask,"",nextQ.chips&&nextQ.chips.length?chipsHTML(nextQ.chips):"");
+    addMsg("sam",next===3?conditionAskText():nextQ.ask,"",nextQ.chips&&nextQ.chips.length?chipsHTML(nextQ.chips):"");
     return true;
   }
 

@@ -75,10 +75,10 @@ function ladderWideningNarration(decisionData){
   const firstScope=first?String(first.label).replace(/\bsales\b[\s\S]*$/,"sales").replace(/\s+/g," ").trim():"exact-match sales";
   const thinNote=landed.thresholdMet?"":" The market for this car is genuinely thin right now, so treat this as directional.";
   const windowText=landed.windowDays>=3650?"across everything we've tracked":`in the last ${landed.windowDays} days`;
-  // Counts under 10 never render (locked): the widening stays honest about
-  // scope, qualitative about volume.
+  // Lead with what we DID look at (locked): the scope decision is stated
+  // positively; counts under 10 never render.
   const countText=landed.sales>=10?`: ${landed.sales} sales ${windowText}`:"";
-  return `Not enough recent ${firstScope} for a real answer, so I widened to ${landed.label}${countText}. Here's what that market shows.${thinNote}`;
+  return `I looked at ${landed.label}${countText}. Here's what that market shows.${thinNote}`;
 }
 
 function shouldSuppressRouteForSellerRegion(route){
@@ -545,11 +545,15 @@ function powerSellerProofItems(profile){
   // {sellThroughPercent} substitutes the computed rate; its line is omitted
   // when the sample is below the honesty threshold (never a stale number).
   if((profile?.profileStats||[]).length){
+    // When the searched make is not named in the specialization line, that
+    // line never leads: it reads as a contradiction of the car on screen.
+    const make=String(sellState.resolvedVehicle?.make||"").toLowerCase();
     return profile.profileStats.map(line=>{
       if(/\{sellThroughPercent\}/.test(line.text)){
         if(!v.sellThrough)return null;
         return [null,line.text.replace(/\{sellThroughPercent\}/g,v.sellThrough.ratePercent)];
       }
+      if(make&&/^specializes in/i.test(line.text)&&!line.text.toLowerCase().includes(make))return null;
       return [null,line.text];
     }).filter(Boolean);
   }
@@ -580,13 +584,17 @@ function renderFeaturedPowerSellerProfile(profile,platformFirst){
   const relevanceLine=v.relevance
     ?`<div class="sell-rec-reason">In our records: ${v.relevance.makeCount} ${escapeHtml(v.relevance.make)} sale${v.relevance.makeCount===1?"":"s"} tracked${v.relevance.inPriceBand?`, ${v.relevance.inPriceBand} in this car's price range`:""}.</div>`
     :"";
+  const searchedMake=String(sellState.resolvedVehicle?.make||"").toLowerCase();
+  const specializesLine=(profile.profileStats||[]).find(l=>/^specializes in/i.test(l.text||""));
+  const makeMismatch=!!(searchedMake&&specializesLine&&!String(specializesLine.text).toLowerCase().includes(searchedMake));
   return `<div class="power-seller-feature" onclick="choosePowerSeller('${escapeHtml(profile.id)}')">
     <div class="power-seller-feature-main">
       <div class="sell-rec-badge specialist">${platformFirst===true?"Option 2: have it handled":platformFirst===false?"Option 1: have it handled":"Have it handled"}</div>
       <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>
       <span class="observed-seller-meta">Auction consignor</span>
+      ${makeMismatch?relevanceLine:""}
       ${proofHTML?`<div class="power-seller-proof-list">${proofHTML}</div>`:honestyNote}
-      ${relevanceLine}
+      ${makeMismatch?"":relevanceLine}
       ${platformChips?`<div class="power-seller-platform-row"><span class="power-seller-profile-label">Lists on (per ${escapeHtml(profile.name)})</span>${platformChips}</div>`:""}
       <span class="observed-seller-why">What ${escapeHtml(profile.name)} says he handles</span>
       <ul class="sell-rec-bullets">${powerSellerWhyBullets(profile,0).slice(0,2).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
@@ -775,7 +783,7 @@ function routeEvidenceBullets(route,index,routes){
     const about=route.about||null;
     const name=platformDisplayName(route.label||route.platform);
     const bullets=[
-      index===0?"I don't have enough recent comparable sales to give you a data-led answer for this car. This is a fit call, not a sales-data call.":"Worth comparing on platform fit, not sales data."
+      index===0?"This is a fit call, not a sales-data call: the tracked sales data doesn't cover this exact car well enough yet to lead with numbers.":"Worth comparing on platform fit, not sales data."
     ];
     if(about)bullets.push(`${name} has a strong reputation in ${about.regionsLabel}, has been selling collector cars since ${about.since}, and is known for ${about.knownFor}.`);
     else bullets.push(sellerPriorityFitLabel(route));

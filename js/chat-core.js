@@ -99,6 +99,10 @@ async function validateVehicleIdentityPreflight(candidate,opts={}){
       sellState.state=data.vehicle.locationHint.state||null;
     }
     if(data.vehicle?.priceHint&&!sellState.price)sellState.price=data.vehicle.priceHint;
+    if(data.vehicle?.conditionHint&&!sellState.conditionHint){
+      sellState.conditionHint=data.vehicle.conditionHint;
+      sellState.notes=[sellState.notes,`Condition noted: ${data.vehicle.conditionHint}`].filter(Boolean).join(". ");
+    }
     if(data.status==="valid"){
       sellState.vehicleIdentityValidated=true;
       sellState.pendingVehicleIdentity=null;

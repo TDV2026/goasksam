@@ -1062,10 +1062,7 @@ function wideningFact(analysis) {
   const landed = ladder?.landed;
   if (!landed || landed.rung <= 1) return null;
   const countText = landed.sales >= 10 ? `: ${landed.sales} sales ${windowLabel(landed.windowDays)}` : "";
-  return `Not enough recent ${first0(ladder)} for a real answer, so the analysis widened to ${landed.label}${countText}.`;
-}
-function first0(ladder) {
-  return String(ladder.rungs?.[0]?.label || "exact-match sales").replace(/ sales.*$/, " sales");
+  return `The analysis looked at ${landed.label}${countText}.`;
 }
 
 function decide(analysis, criteria, vehicle) {
@@ -1249,6 +1246,17 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
     anySegment = anySegment || segmentMet;
     anyRegion = anyRegion || regionMet;
     if (!matched && segmentMet && regionMet) matched = partner;
+  }
+  // A partner whose specialization does not list the searched make needs
+  // real tracked relevance for it (5+ sales) or the gate closes: a
+  // mismatched card is worse than no card.
+  if (matched && vehicle?.make) {
+    const makeListed = (matched.specialties?.makes || []).map(m => String(m).toLowerCase()).includes(String(vehicle.make).toLowerCase());
+    if (!makeListed) {
+      const usernames = (matched.seller_usernames || []).filter(Boolean);
+      const career = usernames.length ? await computePartnerCareerStats(usernames, { supabaseUrl, supabaseKey }) : null;
+      if ((career?.rowsByMake?.[vehicle.make] || 0) < 5) matched = null;
+    }
   }
   const eligible = !!(valueMet && matched);
 

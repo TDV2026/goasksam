@@ -607,7 +607,8 @@ function resumeWizardAfterVehicle(prefix){
   }
   sellState.step=next;
   const q=SELL_STEP_QUESTIONS[next];
-  addMsg("sam",[prefix,q.ask].filter(Boolean).join(" "),"",q.chips&&q.chips.length?chipsHTML(q.chips):"");
+  const askText=next===3?conditionAskText():q.ask;
+  addMsg("sam",[prefix,askText].filter(Boolean).join(" "),"",q.chips&&q.chips.length?chipsHTML(q.chips):"");
 }
 
 function editCarName(){
@@ -622,6 +623,14 @@ function editCarName(){
   sellState.resolvedVehicle=null;
   sellState.trimAskAttempts=0;
   addMsg("sam",`No problem. What's the car instead of the ${sellState.carName||"one we had"}? Year, make and model. If it's actually right, just say so.`);
+}
+
+// The condition question acknowledges a condition already volunteered at
+// entry ("73 bronco half restored") instead of asking cold.
+function conditionAskText(){
+  return sellState.conditionHint
+    ?`You mentioned it's ${sellState.conditionHint}. Closest fit: stock, minor mods, or heavily modified?`
+    :SELL_STEP_QUESTIONS[3].ask;
 }
 
 function askNextSellQuestion(){
