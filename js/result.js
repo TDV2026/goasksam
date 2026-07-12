@@ -287,8 +287,8 @@ async function showSellRecommendation(){
   const buildPowerSellerHTML=platformFirst=>featuredPowerSeller?`
     <div class="sell-section-label">Have it handled</div>
     <div class="sell-section-note">${platformFirst
-      ?`If you'd rather have the whole sale handled end to end, photography, the listing, buyer questions and platform choice, ${escapeHtml(featuredPowerSellerName)} is who I'd call. The platform pick above is the place to start if you're running it yourself.`
-      :`Honestly? At this level my personal preference is generally a good PowerSeller: photography, the listing, buyer questions and platform choice handled end to end. You pay them a fee, and the good ones earn it. ${escapeHtml(featuredPowerSellerName)} is who I'd call. If you'd rather run it yourself, the platform pick is right below.`}</div>
+      ?`If you'd rather have it handled: you do pay a fee, but a good PowerSeller takes on everything, prep, photos, listing, buyer questions, paperwork and platform choice, and in most cases the fee earns its keep. ${escapeHtml(featuredPowerSellerName)} is who I'd call. The platform pick above is the place to start if you're running it yourself.`
+      :`Honestly? At this level my personal preference is generally a good PowerSeller. You do pay a fee, but a good one handles everything: prep, photos, listing, buyer questions, paperwork and platform choice. In most cases the fee earns its keep. ${escapeHtml(featuredPowerSellerName)} is who I'd call. If you'd rather run it yourself, the platform pick is right below.`}</div>
     ${renderFeaturedPowerSellerProfile(featuredPowerSeller,platformFirst)}
   `:"";
   const powerSellerHTML=buildPowerSellerHTML(false);
@@ -315,18 +315,12 @@ async function showSellRecommendation(){
   const askPrice=estimatedTargetPrice();
   const compsMedian=decisionData.evidence?.estimatedValue||null;
   const priceDiverged=askPrice>0&&compsMedian&&Math.abs(askPrice-compsMedian)/compsMedian>PRICE_DIVERGENCE_THRESHOLD;
-  if(priceDiverged&&!sellState.priceGapContextGathered){
-    sellState.awaitingPriceGapContext=true;
-    sellState.step=12;
-    const gapPct=Math.round(Math.abs(askPrice-compsMedian)/compsMedian*100);
-    const under=askPrice<compsMedian;
-    const gapChips=under
-      ?["Much lower mileage than typical","Rare or desirable trim or options","Full service history","Nothing special, conservative asking price"]
-      :["Exceptional condition","Rare or collectible variant","Full documented history","Just asking what it's worth"];
-    addMsg("sam",`Quick one before the results. You're valuing this ${gapPct}% ${under?"under":"over"} the median for recent ${cleanCarForCopy()}s (${formatUsd(compsMedian)}). That usually means something specific. What's different about yours?`,"",chipsHTML(gapChips));
-    document.getElementById("btn").disabled=false;
-    return;
-  }
+  // Price-gap note (locked): results are never held back. One neutral note
+  // renders after the cards, once, naming direction and percent without
+  // questioning the seller.
+  const gapNote=priceDiverged
+    ?`One thing worth knowing: your asking price is ${Math.round(Math.abs(askPrice-compsMedian)/compsMedian*100)}% ${askPrice>compsMedian?"above":"below"} the average for recent ${cleanCarForCopy()} sales ${marketWindowPhrase()}. That can be right for plenty of reasons: condition, trim, mileage, spec. Every car is different. Worth discussing with the platform or PowerSeller when you list.`
+    :null;
 
   const summaryLine=resultSummaryLine(sellState.sellOptions,routeOptions);
   const headerHTML=`<div class="sell-rec-header">
@@ -344,7 +338,7 @@ async function showSellRecommendation(){
   if(powerSellerHTML&&isUSRegion(sellState.region)){
     // Gate-open, US sellers only: one light choice orders the sections
     // before anything renders. Non-US goes straight to the platform result.
-    sellState.pendingResultSections={headerHTML,powerSellerHTML,powerSellerSecondHTML,platformCardsHTML,caveatHTML,afterText};
+    sellState.pendingResultSections={headerHTML,powerSellerHTML,powerSellerSecondHTML,platformCardsHTML,caveatHTML,afterText,gapNote};
     sellState.awaitingPathChoice=true;
     sellState.step=12;
     const row=document.createElement("div");row.className="row sam";
@@ -361,6 +355,7 @@ async function showSellRecommendation(){
     ${headerHTML}
     ${orderedSections}
     ${caveatHTML}
+    ${gapNote?`<div class="sell-section-note" style="margin-top:10px">${escapeHtml(gapNote)}</div>`:""}
     <div class="sam-text after-results">${afterText}</div>
   </div></div>`;
   msgs.appendChild(row);
@@ -374,27 +369,17 @@ function renderPendingResultSections(choice){
   sellState.pendingResultSections=null;
   const platformFirst=choice==="diy";
   const sections=platformFirst?`${parts.platformCardsHTML}${parts.powerSellerSecondHTML}`:`${parts.powerSellerHTML}${parts.platformCardsHTML}`;
+  const gapNoteHTML=parts.gapNote?`<div class="sell-section-note" style="margin-top:10px">${escapeHtml(parts.gapNote)}</div>`:"";
   const msgs=document.getElementById("msgs");
   const row=document.createElement("div");row.className="row sam";
-  row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${sections}${parts.caveatHTML}<div class="sam-text after-results">${parts.afterText}</div></div></div>`;
+  row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${sections}${parts.caveatHTML}${gapNoteHTML}<div class="sam-text after-results">${parts.afterText}</div></div></div>`;
   msgs.appendChild(row);
   row.scrollIntoView({behavior:"smooth",block:"start"});
 }
 
 function handleSellRecommendationFollowup(q){
   const lower=q.toLowerCase();
-  if(sellState.awaitingPriceGapContext){
-    sellState.awaitingPriceGapContext=false;
-    sellState.priceGapContextGathered=true;
-    const noContext=detectIntent(lower)==="refusal"||detectIntent(lower)==="moveOn"||/^(nothing special|nothing|no|skip|just asking what it'?s worth)/i.test(lower.trim());
-    if(!noContext){
-      sellState.priceContextNote=q;
-      sellState.notes=[sellState.notes,`Price context: ${q}`].filter(Boolean).join(". ");
-      addMsg("sam","Good to know. Here's the read with that in mind. This context feeds the recommendation, so the platform fit reflects what makes your car different.");
-    }
-    showSellRecommendation();
-    return true;
-  }
+
   if(sellState.awaitingPathChoice){
     if(isQuestionInput(q))return false; // chat answers, choice stays pending
     if(/handled|someone|help me|have it/i.test(lower)){

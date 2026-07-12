@@ -7,6 +7,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { findForbidden } from "./forbiddenPatterns.js";
 
 const BASE = process.env.SMOKE_BASE_URL || "https://goasksam.vercel.app";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -55,6 +56,28 @@ fn(documentStub, windowStub, prodFetch, { getItem: () => null, setItem() {}, rem
 
 const { handleSellStep, sellState, addMsgLog, SELL_SYS, remainingWizardQuestions, localPreRoute , askNextSellQuestion, showSellRecommendation, handleSellRecommendationFollowup, editCarName } = globalThis.__t;
 const samMessages = () => addMsgLog.filter(a => a[0] === "sam").map(a => String(a[1]));
+const artifactsDir = path.join(repoRoot, "smoke-artifacts");
+fs.mkdirSync(artifactsDir, { recursive: true });
+function saveArtifact(name, text) {
+  fs.writeFileSync(path.join(artifactsDir, `${name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.txt`), text);
+}
+// Guardrails applied to every journey: forbidden-pattern registry (A),
+// field-contamination check on the car label (D), repetition guard (E).
+function guardRender(name, text) {
+  const clean = String(text).replace(/<[^>]+>/g, "\n");
+  saveArtifact(name, clean);
+  const hits = findForbidden(clean);
+  check(`[registry] ${name}: no forbidden patterns`, hits.length === 0, hits.join(" | "));
+  const sentences = clean.split(/(?<=[.!?])\s+|\n/).map(x => x.trim()).filter(x => x.length > 30 && !/^</.test(x));
+  const dupes = sentences.filter((x, i) => sentences.indexOf(x) !== i);
+  check(`[repetition] ${name}: no sentence renders twice`, dupes.length === 0, JSON.stringify([...new Set(dupes)].slice(0, 2)));
+}
+function guardCarLabel(name) {
+  const label = String(sellState.carName || "");
+  const contaminated = /\b(us|usa|uk|europe|australia|middle east|california|texas|florida|new york)\b/i.test(label)
+    || /\$|\b\d{2,3}k\b|\bmiles?\b|\basap\b|\bfast\b/i.test(label);
+  check(`[contamination] ${name}: car label carries no foreign-field tokens`, !contaminated, `car="${label}"`);
+}
 const lastSam = () => samMessages().at(-1) || null;
 let failures = 0;
 const check = (name, ok, detail = "") => {
@@ -74,6 +97,7 @@ function resetToStep1() {
   sellState.title = null; sellState.price = null; sellState.timeline = null; sellState.notes = null;
   sellState.returnToConfirm = false;
   sellState.priceGapContextGathered = false; sellState.awaitingPriceGapContext = false; sellState.priceContextNote = null;
+  sellState.lastMissingAsk = null; sellState.editReturnStep = null; sellState.editPrevVehicle = null;
   addMsgLog.length = 0;
 }
 
@@ -320,12 +344,10 @@ const runResult = async (region, state, price, car, extras) => {
   Object.assign(sellState, extras || {});
   await showSellRecommendation();
   await new Promise(r => setTimeout(r, 100));
-  if (sellState.awaitingPriceGapContext && !(extras && extras.keepGapAsk)) {
-    // Not the flow under test: answer the context ask so results render.
-    handleSellRecommendationFollowup("Nothing special");
-    await new Promise(r => setTimeout(r, 8000));
-  }
-  return renderedResult() + "\n" + allSamText();
+  const output = renderedResult() + "\n" + allSamText();
+  guardRender(`result-${car.label}`, output);
+  guardCarLabel(`result-${car.label}`);
+  return output;
 };
 const mustang = { label: "1990 Ford Mustang", vehicle: { raw: "1990 Ford Mustang", year: 1990, make: "Ford", model: "Mustang", trim: null, confidence: "high", canonicalLabel: "1990 Ford Mustang" } };
 const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsche 911 Carrera GTS", year: 2018, make: "Porsche", model: "911", trim: "Carrera GTS", confidence: "high", canonicalLabel: "2018 Porsche 911 Carrera GTS" } };
@@ -439,26 +461,46 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   }
 }
 
-// FIX 3: >20% price gap asks for context BEFORE the results, never citing
-// the median as proof; the answer grounds the read and results follow.
+// FIX 3 contract: results render immediately; ONE neutral note after the
+// cards names direction and percent, no chips, no gating, no accusation.
 {
-  const out=await runResult("US","California","20k",gts,{keepGapAsk:true});
-  const askText=allSamText();
-  const askLine=(askText.match(/[^\n]*different about yours[^\n]*/i)||[""])[0];
-  check("price gap: asks what's different before showing results", sellState.awaitingPriceGapContext===true && /what'?s different about yours/i.test(askText), `awaiting=${sellState.awaitingPriceGapContext} last="${(askText.split("\n").filter(Boolean).at(-1)||"").slice(0,200)}"`);
-  check("price gap: names the gap direction, percent and median neutrally", /\d+% (under|over) the median/i.test(askLine) && /\$\d/.test(askLine) && !/double-check|wrong|confused/i.test(askLine), askLine.slice(0,220));
-  check("price gap: chips fit the direction", /under the median/i.test(askLine) ? /conservative asking price/i.test(askText) : /Just asking what it's worth/i.test(askText), askText.slice(-300));
-  check("price gap: results held back until the answer", !/Seller Intelligence/.test(renderedResult()), "results rendered early");
-  handleSellRecommendationFollowup("Much lower mileage than typical");
-  await new Promise(r=>setTimeout(r,8000));
-  const released=renderedResult()+allSamText();
-  check("price gap: context answer releases the results with the usage line", (/Seller Intelligence|Want it handled/i.test(released)) && /context feeds the recommendation/i.test(released), released.replace(/<[^>]+>/g," ").slice(0,260));
+  const out=await runResult("US","California","20k",gts);
+  if(sellState.awaitingPathChoice){handleSellRecommendationFollowup("I'll run it myself");await new Promise(r=>setTimeout(r,150));}
+  const released=(renderedResult()+"\n"+allSamText()).replace(/<[^>]+>/g,"\n");
+  check("price gap: results render immediately, no pre-results ask", /Seller Intelligence|Want it handled/i.test(released) && !/what'?s different about yours/i.test(released), released.slice(0,200));
+  const noteMatches=released.match(/One thing worth knowing: your asking price is \d+% (above|below) the average/gi)||[];
+  check("price gap: one note, correct direction, after the cards", noteMatches.length===1 && /below the average/i.test(noteMatches[0]||""), JSON.stringify(noteMatches));
+  check("price gap: note is neutral, no chips or gating", /can be right for plenty of reasons/i.test(released), released.slice(-400));
 }
+
+// Battery: field-contamination entries (locked guard D).
+resetToStep1();
+await handleSellStep("2020 BMW M3, US");
+guardCarLabel("entry-location-contaminated");
+check("contamination: location token routed to the region field", sellState.region==="US" && /^2020 BMW M3$/.test(sellState.carName||""), `car=${sellState.carName} region=${sellState.region} step=${sellState.step}`);
+check("contamination: location question skipped to the state ask", sellState.step===18||sellState.step===17, `step=${sellState.step} last="${lastSam()}"`);
+
+resetToStep1();
+await handleSellStep("m3 around 60k");
+if(sellState.step===17)await handleSellStep("2020");
+guardCarLabel("entry-price-contaminated");
+check("contamination: price token routed to the price field", String(sellState.price||"")==="60k" && !/60k/.test(sellState.carName||""), `car=${sellState.carName} price=${sellState.price}`);
+
+// Battery: multi-trim asks (FIX 2).
+resetToStep1();
+await handleSellStep("2018 mercedes c63");
+check("trim spread: C63 asks C63 vs C63 S", sellState.step===17 && /C63 and C63 S/i.test(lastSam()||""), `step=${sellState.step} last="${lastSam()}"`);
+resetToStep1();
+await handleSellStep("2020 bmw m3");
+check("trim spread: modern M3 asks Base vs Competition", sellState.step===17 && /Base and Competition/i.test(lastSam()||""), `step=${sellState.step} last="${lastSam()}"`);
+await handleSellStep("Competition");
+check("trim spread: Competition answer advances with the trim", /M3 Competition/i.test(sellState.carName||"") && sellState.step!==17, `car=${sellState.carName} step=${sellState.step}`);
 
 // Edit mid-flow keeps context: re-confirming the same car resumes at the
 // step the user was on, never back at vehicle entry.
 resetToStep1();
 await handleSellStep("2020 bmw m3");
+if (sellState.step === 17) await handleSellStep("Competition");
 check("edit-resume: M3 lands on the location question", sellState.step === 11, `step=${sellState.step} last="${lastSam()}"`);
 editCarName();
 await handleSellStep("yes it is that car my bad");

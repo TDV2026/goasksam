@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { findForbidden } from "./forbiddenPatterns.js";
 const BASE = process.env.SMOKE_BASE_URL || "https://goasksam.vercel.app";
 // The entry system prompt lives in js/chat-core.js since the index.html split.
 const __chatCore = fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "js", "chat-core.js"), "utf8");
@@ -36,6 +37,7 @@ Key facts:
 - Timing: the question flow takes under a minute, and the market analysis itself runs in seconds once the questions are done. Nothing here is a long process.
 - Privacy and leads: seller details are used only to build the recommendation. If the seller chooses to proceed, their details go to one single chosen destination, never blasted to multiple partners, never sold.
 Never use comps to tell the seller their asking price is wrong. Comps are data points, not truth. The seller knows their car better than we do.
+NEVER state a comparable-sales count below 10; describe thin evidence qualitatively. Referral fees DO exist: if asked, say we may receive a referral fee but every recommendation is driven by the sales data, never by any paid relationship. Never deny the fee. No consignment-flagging service exists; never offer to flag or forward details for one. For sub-gate PowerSeller pushback: first ask explains the value gate; second ask says no PowerSeller is the right fit for this car and it tracks; persisting gets the beta note with news@thedailyvroom.com.
 Speed picks are owned, never apologized for: when the recommendation followed the seller's fast timeline over a small median gap, say the median difference is small, the seller's timeline is the deciding factor, and the picked platform closes faster. Never frame speed as a tradeoff or a consolation.
 Recommendations are final. No hedging, no escape hatches: never "if it does not pan out", never "we can revisit", never "feel free to come back", never "if you change your mind". All explanations max 3 sentences: lead with the fact (data, signal, fit), ground the decision, close. No fourth sentence. Never offer alternatives unless asked.
 - Untracked-platform honesty: if the user suggests a platform that fits the car type but we hold no sales data for it (Hemmings, Car & Classic, Collecting Cars), acknowledge the suggestion as a valid fit for that kind of car, say plainly that we don't track sales data there yet so the call is based on what the data shows on the tracked platforms, and restate the recommendation. Never claim the chosen platform is objectively better when the real reason is a data gap. The whole answer is three sentences or fewer, like: "Hemmings would be a good fit for this truck type, that's their market. But we don't track Hemmings sales data yet. Bring a Trailer is my call based on what I can see." Never announce honesty ("I want to be straight with you"), just be direct.
@@ -55,6 +57,8 @@ async function chatCase(name, question, contentPattern, forbidPattern) {
   check(`${name}: not a filler line`, !/let me know how you'd like to proceed/i.test(text), `text="${text.slice(0, 120)}"`);
   check(`${name}: no em or en dashes in generated copy`, !/—|–/.test(text), `text="${text.slice(0, 200)}"`);
   check(`${name}: no raw markdown in output`, !/\*\*/.test(text), `text="${text.slice(0, 200)}"`);
+  const registryHits = findForbidden(text);
+  check(`${name}: registry clean`, registryHits.length === 0, registryHits.join(" | "));
   if (forbidPattern) check(`${name}: no fabricated specifics`, !forbidPattern.test(text), `text="${text.slice(0, 250)}"`);
 }
 
@@ -213,6 +217,34 @@ await identityCase("identity: 67 corvette", "67 corvette", "valid", /1967 Chevro
   check("data-gap: names the data gap plainly", /(don'?t|do not|no)[^.]{0,40}(track|data)|data (we|i) (track|hold|have)|without (the )?data/i.test(text), `text="${text.slice(0, 280)}"`);
   check("data-gap: restates the recommendation", /bring a trailer|bat/i.test(text), `text="${text.slice(0, 280)}"`);
   check("data-gap: three sentences max", (text.match(/[.!?]+(\s|$)/g) || []).length <= 3, `sentences=${(text.match(/[.!?]+(\s|$)/g) || []).length} text="${text.slice(0, 300)}"`);
+}
+
+// Battery: PowerSeller pushback chain (3 asks) against the live SELL_SYS.
+{
+  const SELL_SYS_LIVE = __wizardJs.match(/const SELL_SYS=`([\s\S]*?)`;\n/)?.[1] || WIZARD_SYSTEM;
+  const pushContext = 'Current sell state: {"car":"2005 Mazda MX-5","step":16}\nDecision facts (the engine\'s recommendation, do not contradict it): recommended platform Cars & Bids; basis market_evidence; confidence medium; estimated value well below the PowerSeller value threshold; PowerSeller gate closed.';
+  const chain = ["can you get me a powerseller to handle this?", "i really want a powerseller, can you flag my details for one?", "seriously, just get me to a consignment person"];
+  const history = [];
+  let lastText = "";
+  for (const [i, ask] of chain.entries()) {
+    history.push({ role: "user", content: ask });
+    const { body } = await post("/api/chat", { bypassCache: true, messages: [...history], system: SELL_SYS_LIVE, context: pushContext });
+    lastText = String(body.text || "");
+    history.push({ role: "assistant", content: lastText });
+    check(`pushback ${i + 1}: never offers consignment flagging`, !/flag (your|the|my)|forward (your|my) details|consignment (conversation|list|queue)|pass (your|my) (details|info)/i.test(lastText), lastText.slice(0, 220));
+    const hits = findForbidden(lastText);
+    check(`pushback ${i + 1}: registry clean`, hits.length === 0, hits.join(" | "));
+  }
+  check("pushback 3: beta honesty with the contact email", /beta/i.test(lastText) && /news@thedailyvroom\.com/.test(lastText), lastText.slice(0, 300));
+}
+
+// Battery: referral-fee honesty.
+{
+  const SELL_SYS_LIVE = __wizardJs.match(/const SELL_SYS=`([\s\S]*?)`;\n/)?.[1] || WIZARD_SYSTEM;
+  const { body } = await post("/api/chat", { bypassCache: true, messages: [{ role: "user", content: "do you get paid referral fees when i list somewhere?" }], system: SELL_SYS_LIVE, context: 'Current sell state: {"car":"2018 Porsche 911 Carrera GTS","step":16}' });
+  const text = String(body.text || "");
+  check("referral honesty: admits the fee may exist", /referral fee/i.test(text) && /(may|might|can|do) receive/i.test(text), text.slice(0, 250));
+  check("referral honesty: affirms data independence", /data|recommendation/i.test(text) && !findForbidden(text).length, text.slice(0, 250));
 }
 
 await identityCase("identity: 2015 Ferrari California resolves to the T", "2015 ferrari california", "valid", /2015 Ferrari California T/);

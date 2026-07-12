@@ -72,12 +72,13 @@ function ladderWideningNarration(decisionData){
   const landed=ladder?.landed;
   if(!landed||landed.rung<=1)return null;
   const first=(ladder.rungs||[])[0];
-  const car=cleanCarForCopy?cleanCarForCopy():(sellState.carName||"this car");
-  const firstScope=first?first.label.replace(/\bsales\b/,"").replace(/\s+,/,",").replace(/\s+/g," ").trim():"";
-  const firstPart=first?`I looked for ${firstScope} sales first and found ${first.sales===0?"none":first.sales} recently. `:"";
+  const firstScope=first?String(first.label).replace(/\bsales\b[\s\S]*$/,"sales").replace(/\s+/g," ").trim():"exact-match sales";
   const thinNote=landed.thresholdMet?"":" The market for this car is genuinely thin right now, so treat this as directional.";
   const windowText=landed.windowDays>=3650?"across everything we've tracked":`in the last ${landed.windowDays} days`;
-  return `${firstPart}Not enough for a real answer on the ${car}, so I widened the lens to ${landed.label}: ${landed.sales} sales ${windowText}. Here's what that market shows.${thinNote}`;
+  // Counts under 10 never render (locked): the widening stays honest about
+  // scope, qualitative about volume.
+  const countText=landed.sales>=10?`: ${landed.sales} sales ${windowText}`:"";
+  return `Not enough recent ${firstScope} for a real answer, so I widened to ${landed.label}${countText}. Here's what that market shows.${thinNote}`;
 }
 
 function shouldSuppressRouteForSellerRegion(route){
@@ -803,9 +804,6 @@ function routeEvidenceBullets(route,index,routes){
   // (4) momentum, qualitative only (locked: no sample or window numbers)
   if(facts.momentum&&facts.momentum.percent>=5)bullets.push(`Comparable results here have been strengthening recently.`);
   else if(facts.momentum&&facts.momentum.percent<=-5)bullets.push(`Comparable results here have softened a little recently, worth pricing realistically.`);
-  // (5) trim-scope explanation
-  const scope=comparisonScopeSentence();
-  if(scope)bullets.push(scope);
   return bullets.slice(0,4);
 }
 
@@ -849,15 +847,17 @@ function resultSummaryLine(options,routes=[]){
   if(primary&&alt){
     return medianDeltaSentence(primary,alt)||pickCopy([
       `${primary.name} is where I’d sell this.`,
-      `${primary.name} is the call here.`,
-      `${primary.name} has the clearest signal for this car.`
+      `${primary.name} is where the market for your car is right now.`,
+      `The strongest recent results for ${comparableSalesLabel()} are on ${primary.name}.`,
+      `If this were my car, it goes on ${primary.name}.`
     ],sellState.carName,primary.name,alt.name);
   }
   if(primary){
     return pickCopy([
       `${primary.name} is where I’d sell this.`,
-      `${primary.name} is the call here.`,
-      `${primary.name} has the clearest signal for this car.`
+      `${primary.name} is where the market for your car is right now.`,
+      `The strongest recent results for ${comparableSalesLabel()} are on ${primary.name}.`,
+      `If this were my car, it goes on ${primary.name}.`
     ],sellState.carName,primary.name);
   }
   return "I’m only showing choices I can stand behind.";

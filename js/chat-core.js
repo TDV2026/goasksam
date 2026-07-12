@@ -97,6 +97,13 @@ async function validateVehicleIdentityPreflight(candidate,opts={}){
       sellState.pendingVehicleIdentity=null;
       sellState.resolvedVehicle=data.vehicle||null;
       if(data.vehicle?.mileage&&!sellState.mileage)sellState.mileage=`${Number(data.vehicle.mileage).toLocaleString()} miles`;
+      // Field hints from the resolver land in their own fields, never the car
+      // label; the wizard then skips what is already answered.
+      if(data.vehicle?.locationHint&&!sellState.region){
+        sellState.region=data.vehicle.locationHint.region;
+        sellState.state=data.vehicle.locationHint.state||null;
+      }
+      if(data.vehicle?.priceHint&&!sellState.price)sellState.price=data.vehicle.priceHint;
       sellState.lastVehicleAsk=null;
       sellState.vehicleClarifyRepeats=0;
       sellState.lastIdentityVerdict="valid";

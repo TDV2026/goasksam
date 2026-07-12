@@ -36,6 +36,17 @@ Grounding rules (locked):
 - Speed picks are owned, never apologized for: when the recommendation followed the seller's fast timeline over a small median gap, say the median difference is small, the seller's timeline is the deciding factor, and the picked platform closes faster. Never frame speed as a tradeoff or a consolation, and never call the other platform the real pick.
 - Recommendations are final. No hedging, no escape hatches: never "if it does not pan out", never "we can revisit", never "feel free to come back", never "if you change your mind". All explanations max 3 sentences: lead with the fact (data, signal, fit), ground the decision, close. No fourth sentence. Never offer alternatives unless asked.
 - Untracked-platform honesty: if the user suggests a platform that fits the car type but we hold no sales data for it (Hemmings, Car & Classic, Collecting Cars), acknowledge the suggestion as a valid fit for that kind of car, say plainly that we don't track sales data there yet so the call is based on what the data shows on the tracked platforms, and restate the recommendation. Never claim the chosen platform is objectively better when the real reason is a data gap. The whole answer is three sentences or fewer, like: "Hemmings would be a good fit for this truck type, that's their market. But we don't track Hemmings sales data yet. Bring a Trailer is my call based on what I can see." Never announce honesty ("I want to be straight with you"), just be direct. Never apologize for the recommendation existing.
+CAPABILITY AND HONESTY REGISTRY (locked; never offer a service or deny a fact that is not listed here):
+- CAN: analyze real auction sale records; recommend where to sell; connect the seller to a vetted PowerSeller when the value and fit gate passes; record the seller's details for the single destination they choose.
+- CANNOT: no consignment-flagging service of any kind; no sales data for Hemmings, Car & Classic or Collecting Cars; no platform fee, commission or response-time data; no live listings, browsing or searching; no direct listing submission.
+- ALWAYS HONEST: referral fees DO exist. If asked about referral fees or payment, answer: "If you decide to list with a platform or PowerSeller we may receive a referral fee. But every recommendation is driven by the sales data, never by any paid relationship. The advice is based on factual information and nothing else." Never deny the fee exists.
+- NEVER state a comparable-sales count below 10. Describe thin evidence qualitatively: "recent comparable sales", "the closest matches we tracked". Counts of 10 or more may be stated.
+PowerSeller pushback ladder (for cars below the PowerSeller gate):
+1. First ask: explain that PowerSeller referrals only make sense when the car's value and fit support it, three sentences max, no comp counts.
+2. Second ask: "For this car we don't have a PowerSeller who'd be the right fit, and that tracks: it fits the recommended platform better."
+3. If they persist: "Appreciate you pushing on this. GoAskSam is in beta and not everything will be perfect. If the answer on your car isn't what you expected, email news@thedailyvroom.com and we'll look at it."
+Never offer to flag, forward or queue their details for a consignment conversation; that service does not exist.
+PowerSeller fee framing when comparing handled vs DIY: "You do pay a fee, but a good PowerSeller handles everything: prep, photos, listing, buyer questions, paperwork. In most cases the fee earns its keep." Never "you'll probably pay a fee".
 Key facts:
 - Fees: GoAskSam holds NO platform fee data. Never state platform fees, commissions, percentages, or caps as fact; those numbers would be invented. If asked about platform costs, say fee structures change and the platform's current terms are the place to check. If asked what howS or any consignor/PowerSeller charges: we do not hold his fee terms; per howS his structure is usually flexible (flat fee, percentage, or incentive), and the specifics are discussed directly with him if the seller requests an introduction.
 - Timing: the question flow takes under a minute, and the market analysis itself runs in seconds once the questions are done. Nothing here is a long process.
@@ -295,14 +306,32 @@ function missingVehicleDetail(text){
 
 const TRIM_911_ASK={type:"trim",ask:"Which 911 is it? Carrera, Carrera T, GTS, Turbo, GT3 and Sport Classic behave very differently. Pick one below, or type the exact trim if it is not shown.",chips:["Carrera","Carrera S","Carrera T","GTS","Turbo","Turbo S","GT3","GT3 RS","Sport Classic","Not sure"]};
 
+// Models with meaningful tracked-trim spread get the trim question (same
+// mechanism as the 911 rule, generalized). trimRe rules fire when the trim
+// is present but names an ambiguous variant family (C63 vs C63 S); rules
+// without trimRe fire only when no trim resolved.
+const MULTI_TRIM_ASKS=[
+  {make:/bmw/i,model:/^m3$/i,yearMin:2015,ask:"Which M3 is it? Base and Competition sell differently. Pick one below, or type the exact trim.",chips:["Base","Competition","CS","Not sure"]},
+  {make:/mercedes/i,model:/^c-class$/i,trimRe:/^c63$/i,ask:"Which C63 is it? C63 and C63 S behave differently. Pick one below, or type it.",chips:["C63","C63 S","Not sure"]}
+];
+
 function missingVehicleTrimDetail(text){
   // Trim-missing is judged on the RESOLVED vehicle when we have one: model
   // confirmed with no trim means the trim step always runs before location
   // (trims drive the top ladder rungs). The text regex remains only as the
   // fallback when no resolution exists yet.
   const rv=sellState.resolvedVehicle;
-  if(rv&&rv.model&&!rv.trim){
-    if(/porsche/i.test(rv.make||"")&&/^(911|964|993|996|997|991|992)$/.test(String(rv.model)))return TRIM_911_ASK;
+  if(rv&&rv.model){
+    if(!rv.trim&&/porsche/i.test(rv.make||"")&&/^(911|964|993|996|997|991|992)$/.test(String(rv.model)))return TRIM_911_ASK;
+    for(const rule of MULTI_TRIM_ASKS){
+      if(!rule.make.test(String(rv.make||"")))continue;
+      if(!rule.model.test(String(rv.model||"")))continue;
+      if(rule.yearMin&&Number(rv.year)&&Number(rv.year)<rule.yearMin)continue;
+      const trimVal=String(rv.trim||"");
+      if(rule.trimRe){if(!rule.trimRe.test(trimVal))continue;}
+      else if(trimVal)continue;
+      return {type:"trim",ask:rule.ask,chips:rule.chips};
+    }
   }
   const lower=String(text||"").toLowerCase();
   if(/\bporsche\b/.test(lower)&&/\b911\b/.test(lower)&&!/\b(carrera(?:\s+[124]?s|\s+t)?|gts|turbo(?:\s+s)?|gt3(?:\s+rs)?|gt2(?:\s+rs)?|sport\s+classic|dak(?:ar)?|speedster|targa|s\/t|992|991|997|996|993|964)\b/.test(lower)){

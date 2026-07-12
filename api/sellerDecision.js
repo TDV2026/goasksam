@@ -1051,12 +1051,21 @@ function ladderConfidence(analysis) {
 
 // Structured fact about the widening, for Sam to narrate. Only present when
 // the analysis landed below the top rung.
+// Counts under 10 never render anywhere (locked): small numbers read as
+// weakness, so the widening stays honest about scope but qualitative.
+function countPhrase(count, noun) {
+  return count >= 10 ? `${count} ${noun}` : `recent ${noun}`;
+}
+
 function wideningFact(analysis) {
   const ladder = analysis.ladder;
   const landed = ladder?.landed;
   if (!landed || landed.rung <= 1) return null;
-  const first = ladder.rungs[0];
-  return `${first.label} came up thin (${first.sales} found), so the analysis widened to ${landed.label}: ${landed.sales} sales ${windowLabel(landed.windowDays)}.`;
+  const countText = landed.sales >= 10 ? `: ${landed.sales} sales ${windowLabel(landed.windowDays)}` : "";
+  return `Not enough recent ${first0(ladder)} for a real answer, so the analysis widened to ${landed.label}${countText}.`;
+}
+function first0(ladder) {
+  return String(ladder.rungs?.[0]?.label || "exact-match sales").replace(/ sales.*$/, " sales");
 }
 
 function decide(analysis, criteria, vehicle) {
@@ -1116,7 +1125,7 @@ function decide(analysis, criteria, vehicle) {
         : `${bestRoute.platform} is the strongest route-fit option for the stated priorities, while live market evidence is stronger on ${best.platform}.`,
       `${best.platform} has the clearest recent support in the selected ${analysis.windowDays}-day window of ${analysis.evidenceLabel}.`,
       wideningFact(analysis),
-      best.closeSales ? `${best.closeSales} of those were close matches to the searched car.` : null,
+      best.closeSales >= 10 ? `${best.closeSales} of those were close matches to the searched car.` : null,
       sellerActivityExplanation(analysis.sellerActivity, best.platform)
     ].filter(Boolean),
     tradeoffs,

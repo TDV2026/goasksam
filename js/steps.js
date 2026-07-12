@@ -126,6 +126,13 @@ async function handleSellStep(q){
     // never be rejected by their own step). Wordy refusals like "don't know"
     // go to the chat layer for a real explanation of where to find the trim;
     // the re-ask escalates with a Skip chip and a 3-attempt cap.
+    if(/^(base|standard)([.! ]|$)/i.test(lower.trim())){
+      sellState.vehicleDetailSkipped=true;
+      sellState.trimAskAttempts=0;
+      sellState.lastMissingAsk=null;
+      resumeWizardAfterVehicle(`Got it, the standard ${sellState.resolvedVehicle?.model||"car"}.`);
+      return true;
+    }
     const ownEscapeChip=/^(not sure|skip this step|skip)$/i.test(lower.trim());
     if(detectIntent(lower)==="moveOn"||ownEscapeChip||/\bskip\b/i.test(lower)){
       sellState.vehicleDetailSkipped=true;
