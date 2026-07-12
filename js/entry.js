@@ -12,6 +12,7 @@ function showRecommendationExplainer(){
 function newConversation(){
   history.length=0;
   resetSellState();
+  if(window.__shownSessionStats)window.__shownSessionStats.clear();
   document.getElementById("msgs").innerHTML=homeHeroHTML();
 }
 

@@ -215,6 +215,7 @@ await identityCase("identity: 67 corvette", "67 corvette", "valid", /1967 Chevro
   check("data-gap: three sentences max", (text.match(/[.!?]+(\s|$)/g) || []).length <= 3, `sentences=${(text.match(/[.!?]+(\s|$)/g) || []).length} text="${text.slice(0, 300)}"`);
 }
 
+await identityCase("identity: 2015 Ferrari California resolves to the T", "2015 ferrari california", "valid", /2015 Ferrari California T/);
 await identityCase("identity: e46 m3 cold entry", "e46 m3", "needs_clarification", /BMW M3/i);
 await identityCase("identity: mustang vert never trims Vert", "1990 mustang vert", "valid", /^((?!Vert).)*$/s);
 await identityCase("identity: non-car input", "after i give you this what will happen", "needs_clarification", /year, make and model/i);

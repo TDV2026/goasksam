@@ -411,6 +411,7 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   const SPEED_POOL=/tends to get listings live fast|historically closes quicker|moves faster to market|gets a listing live sooner|runs the quicker auction cycle|faster route from listing to close/i;
   const GAP_POOL=/are similar between the top choices|at similar money lately|close across the leading platforms|meaningful platform gap|near-identical recent results|similar levels across the top platforms/i;
   const speedReasons=[];
+  const seenStats=[];
   for(const car of speedCars){
     const out=await runResult("US","Texas","20k",car,{timeline:"Want it gone fast"});
     const rendered=(renderedResult()+"\n"+allSamText()).replace(/<[^>]+>/g," ");
@@ -424,8 +425,15 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
     if(SPEED_POOL.test(rendered)){
       speedReasons.push((rendered.match(SPEED_POOL)||[""])[0]);
       check(`why structure (${car.label.split(" ").at(-1)}): speed phrase + gap phrase`, GAP_POOL.test(rendered), rendered.slice(0,300));
+      check(`speed headline (${car.label.split(" ").at(-1)}): confirms the heard preference`, /You want it gone fast/i.test(rendered), rendered.slice(0,300));
+    }
+    check(`cta (${car.label.split(" ").at(-1)}): active submit language`, /Submit your car to /.test(rendered) && !/>Sell on /.test(rendered), (rendered.match(/[^\n]*Sell on[^\n]*/)||[""])[0].slice(0,140));
+    if(/% of .* listings here sold/.test(rendered)){
+      const statMatches=rendered.match(/% of [^\n]* listings here sold/g)||[];
+      seenStats.push(...statMatches);
     }
   }
+  check("stat dedupe: sell-through stat renders at most once per session key", seenStats.length===new Set(seenStats).size, JSON.stringify(seenStats));
   if(speedReasons.length>=2){
     check("why structure: wording varies across different cars", new Set(speedReasons).size>=2, JSON.stringify(speedReasons));
   }
@@ -436,12 +444,15 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
 {
   const out=await runResult("US","California","20k",gts,{keepGapAsk:true});
   const askText=allSamText();
+  const askLine=(askText.match(/[^\n]*different about yours[^\n]*/i)||[""])[0];
   check("price gap: asks what's different before showing results", sellState.awaitingPriceGapContext===true && /what'?s different about yours/i.test(askText), `awaiting=${sellState.awaitingPriceGapContext} last="${(askText.split("\n").filter(Boolean).at(-1)||"").slice(0,200)}"`);
-  check("price gap: the ask never cites the median as proof", !/median|\$\d[\d,]*/i.test((askText.match(/[^\n]*different about yours[^\n]*/i)||[""])[0]), (askText.match(/[^\n]*different about yours[^\n]*/i)||[""])[0]);
+  check("price gap: names the gap direction, percent and median neutrally", /\d+% (under|over) the median/i.test(askLine) && /\$\d/.test(askLine) && !/double-check|wrong|confused/i.test(askLine), askLine.slice(0,220));
+  check("price gap: chips fit the direction", /under the median/i.test(askLine) ? /conservative asking price/i.test(askText) : /Just asking what it's worth/i.test(askText), askText.slice(-300));
   check("price gap: results held back until the answer", !/Seller Intelligence/.test(renderedResult()), "results rendered early");
-  handleSellRecommendationFollowup("Low mileage");
+  handleSellRecommendationFollowup("Much lower mileage than typical");
   await new Promise(r=>setTimeout(r,8000));
-  check("price gap: context answer releases the results", /Seller Intelligence|Want it handled/i.test(renderedResult()+allSamText()), (renderedResult()+allSamText()).replace(/<[^>]+>/g," ").slice(0,200));
+  const released=renderedResult()+allSamText();
+  check("price gap: context answer releases the results with the usage line", (/Seller Intelligence|Want it handled/i.test(released)) && /context feeds the recommendation/i.test(released), released.replace(/<[^>]+>/g," ").slice(0,260));
 }
 
 // Edit mid-flow keeps context: re-confirming the same car resumes at the

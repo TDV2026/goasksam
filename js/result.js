@@ -183,7 +183,7 @@ async function showSellRecommendation(){
       badge:hasNamedPowerSellerAdvice?(index===0?"If selling yourself":"Worth comparing"):(twoRouteMode?(index===0?"Sam's lean":"Worth comparing"):(index===0?"Sam's pick":"Worth comparing")),
       badgeClass:index===0?"top":"alt",
       cardClass:index===0&&!hasNamedPowerSellerAdvice?"primary-rec":"",
-      actionLabel:index===0?`Sell on ${routeName}`:`Consider ${routeName}`,
+      actionLabel:index===0?`Submit your car to ${platformLogo({name:routeName}).text}`:`Consider ${routeName}`,
       speedArgument:!!route.speedArgument,
       reason:route.speedArgument
         ?"Hagerty has sold 1960s Corvettes in our records and is the stronger fit when speed matters: listings get live quickly and the audience skews classic."
@@ -318,7 +318,12 @@ async function showSellRecommendation(){
   if(priceDiverged&&!sellState.priceGapContextGathered){
     sellState.awaitingPriceGapContext=true;
     sellState.step=12;
-    addMsg("sam","Quick one before the results. A price like yours usually means something specific: different trim, much lower mileage, full service history, special condition. What's different about yours?","",chipsHTML(["Low mileage","Rare trim or options","Full history","Nothing special"]));
+    const gapPct=Math.round(Math.abs(askPrice-compsMedian)/compsMedian*100);
+    const under=askPrice<compsMedian;
+    const gapChips=under
+      ?["Much lower mileage than typical","Rare or desirable trim or options","Full service history","Nothing special, conservative asking price"]
+      :["Exceptional condition","Rare or collectible variant","Full documented history","Just asking what it's worth"];
+    addMsg("sam",`Quick one before the results. You're valuing this ${gapPct}% ${under?"under":"over"} the median for recent ${cleanCarForCopy()}s (${formatUsd(compsMedian)}). That usually means something specific. What's different about yours?`,"",chipsHTML(gapChips));
     document.getElementById("btn").disabled=false;
     return;
   }
@@ -381,11 +386,11 @@ function handleSellRecommendationFollowup(q){
   if(sellState.awaitingPriceGapContext){
     sellState.awaitingPriceGapContext=false;
     sellState.priceGapContextGathered=true;
-    const noContext=detectIntent(lower)==="refusal"||detectIntent(lower)==="moveOn"||/^(nothing special|nothing|no|skip)$/i.test(lower.trim());
+    const noContext=detectIntent(lower)==="refusal"||detectIntent(lower)==="moveOn"||/^(nothing special|nothing|no|skip|just asking what it'?s worth)/i.test(lower.trim());
     if(!noContext){
       sellState.priceContextNote=q;
       sellState.notes=[sellState.notes,`Price context: ${q}`].filter(Boolean).join(". ");
-      addMsg("sam","Good to know. Here's the read with that in mind.");
+      addMsg("sam","Good to know. Here's the read with that in mind. This context feeds the recommendation, so the platform fit reflects what makes your car different.");
     }
     showSellRecommendation();
     return true;
@@ -469,6 +474,22 @@ function handleSellRecommendationFollowup(q){
   return false;
 }
 
+// Car & Classic copy names the actual car instead of reading like a
+// templated category list. Pooled openers keyed on the car.
+function carAndClassicReason(){
+  const rv=sellState.resolvedVehicle;
+  const car=cleanCarForCopy();
+  if(rv?.make){
+    const openers=[
+      `This isn't your typical Car & Classic listing, but they've sold ${rv.make}s like the ${car} before.`,
+      `They specialize in cars with a following, and ${rv.make}s like the ${car} come through regularly.`,
+      `They've handled ${rv.make}s like the ${car} before.`
+    ];
+    return `${pickCopy(openers,car)} 130K+ sales annually, specialists in performance and collectible cars.`;
+  }
+  return "Collector and performance cars perform strongly here. 130K+ sales annually, 4M+ monthly visits.";
+}
+
 function regionalNoEvidenceFallback(){
   const region=String(sellState.region||"").toLowerCase();
   const car=cleanCarForCopy();
@@ -484,7 +505,7 @@ function regionalNoEvidenceFallback(){
         subtitle:`Collecting Cars is where I’d sell this.`,
         primaryReason:"Specialist platform for high-value cars. Recent sales: Ferrari F40 (£1.7M), Ferrari F50 (£2.94M), Porsche 918 Spyder (€1.35M), Mercedes 300 SL (£1.1M).",
         bullets:["24,000+ lots sold, $1.5B+ generated for sellers."],
-        secondaryReason:"Classic cars, modern classics, performance models, and collector vehicles perform strongly here. 130K+ sales annually, 4M+ monthly visits.",
+        secondaryReason:carAndClassicReason(),
         secondaryBullets:[]
       };
     }
@@ -494,7 +515,7 @@ function regionalNoEvidenceFallback(){
       secondary:null,
       title:`Here’s what I’d do with the ${car}.`,
       subtitle:`Car & Classic is where I’d sell this.`,
-      primaryReason:"Classic cars, modern classics, performance models, and collector vehicles perform strongly here. 130K+ sales annually, 4M+ monthly visits.",
+      primaryReason:carAndClassicReason(),
       secondaryReason:"",
       bullets:[]
     };
@@ -594,7 +615,7 @@ function fallbackSellOption(fallback){
     badge:"Sam's pick",
     badgeClass:"top",
     cardClass:"primary-rec",
-    actionLabel:`Sell on ${fallback.primary}`,
+    actionLabel:`Submit your car to ${fallback.primary}`,
     reason:fallback.primaryReason,
     evidenceBullets:fallback.bullets||[],
     evidenceLine:fallback.caveat,

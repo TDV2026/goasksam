@@ -788,8 +788,16 @@ function routeEvidenceBullets(route,index,routes){
   // never padded with restatements.
   const bullets=[];
   // (2) platform sell-through for this segment, from full-dataset baselines
-  // (absent until the records hold non-sold listings)
-  if(facts.segmentSellThrough)bullets.push(`${facts.segmentSellThrough.percent}% of ${facts.segmentSellThrough.band} listings here sold in our tracked records.`);
+  // (absent until the records hold non-sold listings). Each stat renders
+  // once per session: repeats across searches read as filler.
+  if(facts.segmentSellThrough){
+    const statKey=`sellthrough|${route.platform||route.label}|${facts.segmentSellThrough.band}`;
+    if(!window.__shownSessionStats)window.__shownSessionStats=new Set();
+    if(!window.__shownSessionStats.has(statKey)){
+      window.__shownSessionStats.add(statKey);
+      bullets.push(`${facts.segmentSellThrough.percent}% of ${facts.segmentSellThrough.band} listings here sold in our tracked records.`);
+    }
+  }
   // (3) timing edge
   if(facts.weekday)bullets.push(`Based on recent comparable listings, ${facts.weekday} endings have finished strongest${facts.weekdayLift?` (around ${facts.weekdayLift}% above other days)`:""}.`);
   // (4) momentum, qualitative only (locked: no sample or window numbers)
@@ -821,7 +829,7 @@ function resultSummaryLine(options,routes=[]){
       const fasterName=fasterRoute?.label||fasterRoute?.platform;
       const speedPick=speedTiebreak(routes);
       if(speedPick){
-        return `The median difference is small. Your speed matters more. ${speedPick.firstName} closes faster on this volume.`;
+        return `You want it gone fast. Results ${marketWindowPhrase()} are negligible, so ${speedPick.firstName} is the best option.`;
       }
       if(fasterRoute&&fasterName!==strongerName&&Math.min(firstMedian,secondMedian)/Math.max(firstMedian,secondMedian)>=0.9){
         return `${strongerName} looks stronger on recent comparable sales. ${fasterName} is faster to list and close, which matters if timing counts.`;
@@ -954,7 +962,7 @@ function routeAnswer(option){
       ?`${option.name}'s auction velocity is a real advantage here. Your want-it-gone-fast preference tips the scale.`
       :`${option.name} can also be the cleaner play if getting live quickly matters.`);
   }
-  if(option.speedToList==="slower")facts.push(`${option.name} is slower to get live than the quicker platforms.`);
+  if(option.speedToList==="slower")facts.push(`${option.name} takes longer to get live.`);
   return facts.filter(Boolean).join(" ");
 }
 
@@ -1004,7 +1012,7 @@ function compareSellOptions(){
   if(faster&&slower){
     lines.push(sellerWantsSpeed()
       ?`${faster.name} closes faster, and your timeline is the deciding factor here.`
-      :`${faster.name} is the cleaner speed play; ${slower.name} is slower to get live.`);
+      :`${faster.name} is the cleaner speed play; ${slower.name} takes longer to get live.`);
   }
 
   if(firstRoute&&secondRoute&&hasTwoRouteTradeoff([firstRoute,secondRoute])){
