@@ -332,7 +332,7 @@ const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsc
 
 {
   const uk = await runResult("UK", null, "150k", mustang);
-  check("non-US UK: Car & Classic card with approved copy", /Car &(amp;)? Classic/.test(uk) && /130K\+ sales annually, 4M\+ monthly visits/.test(uk), uk.slice(0, 300));
+  check("non-US UK: Car & Classic card is contextual with the volume stat", /Car &(amp;)? Classic/.test(uk) && /130K\+ sales annually/.test(uk) && !/Classic cars, modern classics, performance models/.test(uk), uk.replace(/<[^>]+>/g," ").slice(0, 300));
   check("non-US UK: Collecting Cars card at $100k+ with approved copy", /Collecting Cars/.test(uk) && /24,000\+ lots sold/.test(uk) && /\$1\.5B\+ generated for sellers/.test(uk), uk.slice(0, 300));
   check("non-US UK: no involvement choice", !/Want it handled, or run it yourself/.test(uk), "choice rendered");
 
