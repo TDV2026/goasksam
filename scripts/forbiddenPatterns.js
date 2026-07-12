@@ -9,7 +9,7 @@ export const FORBIDDEN_PATTERNS = [
   { name: "comp count under 10", re: /(?<![\w-])\d\s+(close\s+)?(comparable\s+)?(sales?|matches|close match(es)?|comps?)\b/i },
   { name: "only-N framing", re: /\bonly \d\b/i },
   // Lack-first framing: never open with what we don't have.
-  { name: "lack-first framing", re: /\bnot enough\b|\bfor a real answer\b|\bfound none\b|\bwe don'?t have\b/i },
+  { name: "lack-first framing", re: /\bnot enough\b|\bfor a real answer\b|\bfound none\b|we don'?t have (the |enough |much |any )?(data|sales|comps|records|numbers)/i },
   // Hedging and escape hatches after a recommendation.
   { name: "hedge or escape hatch", re: /pan out|we can (always )?revisit|feel free to|come back (to this|if|later)|if you change your mind|circumstances change|second opinion|if (this|that|it) (doesn'?t|does not) work( out)?/i },
   // Accusatory price doubt.
