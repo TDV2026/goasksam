@@ -75,7 +75,8 @@ function guardRender(name, text) {
 function guardCarLabel(name) {
   const label = String(sellState.carName || "");
   const contaminated = /\b(us|usa|uk|europe|australia|middle east|california|texas|florida|new york)\b/i.test(label)
-    || /\$|\b\d{2,3}k\b|\bmiles?\b|\basap\b|\bfast\b/i.test(label);
+    || /\$|\b\d{2,3}k\b|\bmiles?\b|\basap\b|\bfast\b/i.test(label)
+    || /half restored|fully restored|barn find|needs work|project\b|\bmint\b|\brough\b/i.test(label);
   check(`[contamination] ${name}: car label carries no foreign-field tokens`, !contaminated, `car="${label}"`);
 }
 const lastSam = () => samMessages().at(-1) || null;
@@ -486,6 +487,29 @@ if(sellState.step===17)await handleSellStep("2020");
 guardCarLabel("entry-price-contaminated");
 check("contamination: price token routed to the price field", String(sellState.price||"")==="60k" && !/60k/.test(sellState.carName||""), `car=${sellState.carName} price=${sellState.price}`);
 
+// Battery: real-phrasing fixes.
+resetToStep1();
+await handleSellStep("wife's lexus lx470 maybe 2004 not sure exact year");
+check("hedged entry: resolves to a tentative-year confirm", /2004 Lexus LX 470/i.test(lastSam()||"") && /sound right/i.test(lastSam()||""), `last="${lastSam()}"`);
+await handleSellStep("yes");
+guardCarLabel("hedged-lexus");
+check("hedged entry: confirm advances with the clean car", /Lexus LX 470/i.test(sellState.carName||"") && sellState.step!==1, `car=${sellState.carName} step=${sellState.step}`);
+
+resetToStep1();
+await handleSellStep("2016 hellcat");
+check("nickname: hellcat asks Challenger vs Charger with chips", /which hellcat/i.test(lastSam()||"") && /Challenger Hellcat/.test(String(addMsgLog.at(-1)?.[3]||"")), `last="${lastSam()}" chips="${String(addMsgLog.at(-1)?.[3]||"").slice(0,120)}"`);
+await handleSellStep("Challenger Hellcat");
+check("nickname: chip completes the car", /Challenger/i.test(sellState.carName||""), `car=${sellState.carName} step=${sellState.step} last="${lastSam()}"`);
+
+resetToStep1();
+await handleSellStep("73 bronco half restored");
+guardCarLabel("condition-bronco");
+check("condition token: label clean, note captured", /^1973 Ford Bronco$/.test(sellState.carName||"") && /half restored/i.test(sellState.notes||""), `car=${sellState.carName} notes=${sellState.notes}`);
+await handleSellStep("US");
+await handleSellStep("Texas");
+await handleSellStep("60k to 100k");
+check("condition token: the condition ask pre-acknowledges", /you mentioned it'?s half restored/i.test(lastSam()||""), `last="${lastSam()}"`);
+
 // Battery: multi-trim asks (FIX 2).
 resetToStep1();
 await handleSellStep("2018 mercedes c63");
@@ -525,6 +549,50 @@ editCarName();
 check("edit: editCarName returns to vehicle entry", sellState.step === 1, `step=${sellState.step}`);
 await handleSellStep("1969 ford mustang");
 check("edit: new car keeps answers, resumes at first unanswered", /Mustang/.test(sellState.carName || "") && sellState.region === "US" && sellState.state === "California" && sellState.step === preEditStep, `car=${sellState.carName} region=${sellState.region} state=${sellState.state} step=${sellState.step} (was ${preEditStep})`);
+
+// Phrasing fuzzer (Addendum C): combinatorial real-world entries. Every
+// generated entry must either resolve or produce ONE grounded question;
+// a make-bearing input may never come back with the car dropped.
+{
+  const CARS=[
+    {token:"porsche 911",make:"Porsche"},{token:"vette",make:"Chevrolet"},{token:"stang",make:"Ford"},
+    {token:"lexus lx470",make:"Lexus"},{token:"bmw m3",make:"BMW"},{token:"miata",make:"Mazda"},
+    {token:"vw camper van",make:"Volkswagen"},{token:"corvette stingray",make:"Chevrolet"},
+    {token:"mercedes sl",make:"Mercedes-Benz"},{token:"landcruiser",make:"Toyota"}
+  ];
+  const POSSESSIVES=["","my ","wife's ","dad's "];
+  const YEARS=["","1972 ","maybe 2004 ","from the 80s "];
+  const SUFFIXES=["",", US"," half restored"," around 60k"];
+  const cases=[];
+  for(const car of CARS)for(const p of POSSESSIVES.slice(0,2))for(const y of YEARS)for(const suffix of SUFFIXES.slice(0,2)){
+    cases.push({text:`${p}${y}${car.token}${suffix}`.trim(),make:car.make});
+  }
+  // sprinkle the harder possessive/hedge/suffix combos on a subset
+  for(const car of CARS.slice(0,5)){
+    cases.push({text:`wife's ${car.token} maybe 2004 not sure exact year`,make:car.make});
+    cases.push({text:`dad's old ${car.token} half restored, US`,make:car.make});
+  }
+  let fuzzFailures=[];
+  const CHUNK=10;
+  for(let i=0;i<cases.length;i+=CHUNK){
+    await Promise.all(cases.slice(i,i+CHUNK).map(async c=>{
+      try{
+        const res=await fetch(`${BASE}/api/vehicleIdentity`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:c.text})});
+        const data=await res.json();
+        const ok=res.ok
+          &&["valid","needs_clarification","invalid_vehicle"].includes(data.status)
+          &&(data.status==="valid"
+            ?String(data.vehicle?.make||"").toLowerCase()===c.make.toLowerCase()||!!data.vehicle?.make
+            :!!(data.clarification?.question))
+          &&!(data.status==="needs_clarification"&&!data.vehicle?.make&&!data.vehicle?.model&&!data.fallback);
+        if(!ok)fuzzFailures.push(`"${c.text}" -> ${data.status} make=${data.vehicle?.make} q="${(data.clarification?.question||"").slice(0,60)}"`);
+        const label=String(data.vehicle?.canonicalLabel||"");
+        if(/\b(us|usa)\b|\$|\b\d{2,3}k\b|half restored|barn find/i.test(label))fuzzFailures.push(`contaminated label: "${c.text}" -> "${label}"`);
+      }catch(err){fuzzFailures.push(`"${c.text}" threw ${err.message.slice(0,50)}`);}
+    }));
+  }
+  check(`fuzzer: ${cases.length} generated entries all resolve or ask one grounded question`, fuzzFailures.length===0, fuzzFailures.slice(0,5).join(" || "));
+}
 
 console.log(`\n${failures === 0 ? "WIZARD ALL PASS" : failures + " FAILURE(S)"}`);
 process.exit(failures === 0 ? 0 : 1);

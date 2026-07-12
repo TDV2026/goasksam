@@ -61,7 +61,7 @@ async function handleSellStep(q){
 
   // ── STEP 1: car name ─────────────────────────────────────────
   if(step===1){
-    if(/later|not sure|don.t know|skip|tell you later|can i give|give it later/i.test(lower)){
+    if(/later|not sure|don.t know|skip|tell you later|can i give|give it later/i.test(lower)&&!looksLikeVehicleText(q)){
       addMsg("sam","Of course. Whenever you're ready, just tell me the year, make, and model.");
       return true;
     }
