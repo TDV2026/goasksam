@@ -6,7 +6,7 @@
 export const FORBIDDEN_PATTERNS = [
   // Counts under 10 never render next to evidence nouns ("3 sales",
   // "4 close comparable sales"). Multi-digit counts pass (\b blocks "13").
-  { name: "comp count under 10", re: /\b\d\s+(close\s+)?(comparable\s+)?(sales?|matches|close match(es)?|comps?)\b/i },
+  { name: "comp count under 10", re: /(?<![\w-])\d\s+(close\s+)?(comparable\s+)?(sales?|matches|close match(es)?|comps?)\b/i },
   { name: "only-N framing", re: /\bonly \d\b/i },
   // Hedging and escape hatches after a recommendation.
   { name: "hedge or escape hatch", re: /pan out|we can (always )?revisit|feel free to|come back (to this|if|later)|if you change your mind|circumstances change|second opinion|if (this|that|it) (doesn'?t|does not) work( out)?/i },

@@ -92,6 +92,13 @@ async function validateVehicleIdentityPreflight(candidate,opts={}){
     const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:candidate})});
     const data=await res.json();
     if(!res.ok||!data)return true;
+    // Field hints apply regardless of resolution status: a location or price
+    // token belongs to its field even when the car still needs clarifying.
+    if(data.vehicle?.locationHint&&!sellState.region){
+      sellState.region=data.vehicle.locationHint.region;
+      sellState.state=data.vehicle.locationHint.state||null;
+    }
+    if(data.vehicle?.priceHint&&!sellState.price)sellState.price=data.vehicle.priceHint;
     if(data.status==="valid"){
       sellState.vehicleIdentityValidated=true;
       sellState.pendingVehicleIdentity=null;
@@ -99,16 +106,16 @@ async function validateVehicleIdentityPreflight(candidate,opts={}){
       if(data.vehicle?.mileage&&!sellState.mileage)sellState.mileage=`${Number(data.vehicle.mileage).toLocaleString()} miles`;
       // Field hints from the resolver land in their own fields, never the car
       // label; the wizard then skips what is already answered.
-      if(data.vehicle?.locationHint&&!sellState.region){
-        sellState.region=data.vehicle.locationHint.region;
-        sellState.state=data.vehicle.locationHint.state||null;
-      }
-      if(data.vehicle?.priceHint&&!sellState.price)sellState.price=data.vehicle.priceHint;
       sellState.lastVehicleAsk=null;
       sellState.vehicleClarifyRepeats=0;
       sellState.lastIdentityVerdict="valid";
       if(data.vehicle?.canonicalLabel){
-        const label=preserveDetailedVehicleLabel(candidate,data.vehicle.canonicalLabel);
+        // When the resolver consumed field hints, the canonical label is the
+        // truth: preserving the raw candidate would resurrect the stripped
+        // tokens ("2020 BMW M3, US").
+        const label=(data.vehicle.locationHint||data.vehicle.priceHint)
+          ?data.vehicle.canonicalLabel
+          :preserveDetailedVehicleLabel(candidate,data.vehicle.canonicalLabel);
         sellState.carName=label;
         sellState.carRaw=label;
       }
