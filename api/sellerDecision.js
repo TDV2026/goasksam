@@ -600,6 +600,7 @@ async function fetchRecentRecords(vehicle, apiKey, generation = null) {
       name: pass.name,
       label: pass.label,
       rung: pass.rung,
+      params: pass.params,
       fetched: passResult.records.length,
       added,
       meteredRequests: passResult.meteredRequests,
@@ -980,12 +981,13 @@ function analyze(records, classifications, ladder, vehicle, debug) {
       const perPlatform = {};
       for (const item of eligible) {
         const platform = recordPlatform(item.record);
-        if (!perPlatform[platform]) perPlatform[platform] = { sales: 0, prices: [], earliest: null };
+        if (!perPlatform[platform]) perPlatform[platform] = { sales: 0, prices: [], earliest: null, years: [] };
         perPlatform[platform].sales++;
         const price = Number(item.classification.price);
         if (Number.isFinite(price)) perPlatform[platform].prices.push(price);
         const date = item.record.auction_end_date;
         if (date && (!perPlatform[platform].earliest || date < perPlatform[platform].earliest)) perPlatform[platform].earliest = date;
+        perPlatform[platform].years.push(Number(item.record.year) || item.record.year || null);
       }
       const premiums = {};
       for (const platform of Object.keys(perPlatform)) {
@@ -998,7 +1000,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
       return {
         windowDays: window,
         total: eligible.length,
-        perPlatform: Object.fromEntries(Object.entries(perPlatform).map(([key, value]) => [key, { sales: value.sales, earliest: value.earliest }])),
+        perPlatform: Object.fromEntries(Object.entries(perPlatform).map(([key, value]) => [key, { sales: value.sales, earliest: value.earliest, years: value.years }])),
         premiums
       };
     }) : undefined
