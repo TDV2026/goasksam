@@ -388,8 +388,14 @@ function routeReason(route,index,routes){
     const otherEvidence=other?.marketEvidence||{};
     const otherName=other?.label||other?.platform;
     if(other&&Number(evidence.medianSalePrice||0)>Number(otherEvidence.medianSalePrice||0)){
+      // Voice line is final and opinionated (locked rule 15): no escape
+      // hatches, no compare-before-choosing. Pool keyed on the car.
       return index===0
-        ? `The recent result gap points this way. I’d still compare it against ${otherName} before choosing.`
+        ? pickCopy([
+            `If this were my car, it goes on ${platformDisplayName(name)}.`,
+            `${platformDisplayName(name)} is the call here.`,
+            `The recent results put this car on ${platformDisplayName(name)}.`
+          ],sellState.carName,"final-pick")
         : `${name} belongs in the conversation because the gap is close enough that buyer fit and speed-to-list still matter.`;
     }
     if(["fast","medium_fast"].includes(route.speedToList)){
@@ -570,8 +576,9 @@ function powerSellerClientChips(profile){
   return tags.map(tag=>`<span class="power-seller-chip">${escapeHtml(tag)}</span>`).join("");
 }
 
-// Dossier stat grid (Design Phase 1): the four approved stat lines become a
-// strict 2x2 spec-table grid; unmatched lines fall through as plain rows.
+// Dossier stat grid: short stats fill the 2x2; the specialties line spans
+// full width below them (it wraps badly in a half cell). Unmatched lines
+// fall through as plain rows.
 function dossierGridCells(profile,v){
   const lines=(profile?.profileStats||[]).map(line=>{
     if(/\{sellThroughPercent\}/.test(line.text)){
@@ -580,16 +587,16 @@ function dossierGridCells(profile,v){
     }
     return line.text;
   }).filter(Boolean);
-  const cells=[];const leftovers=[];
+  const cells=[];const leftovers=[];let specialize=null;
   for(const line of lines){
     let m;
     if((m=line.match(/^(\d+\+?) listings tracked(.*)$/i)))cells.push({key:"Listings tracked",value:m[1]});
     else if((m=line.match(/^(\d+)% sell-through/i)))cells.push({key:"Sell-through",value:`${m[1]}%`});
-    else if((m=line.match(/^Specializes in:?\s*(.+)$/i)))cells.push({key:"Specializes in",value:m[1]});
+    else if((m=line.match(/^Specializes in:?\s*(.+)$/i)))specialize=m[1];
     else if((m=line.match(/^Lists primarily on (.+)$/i)))cells.push({key:"Lists on",value:m[1]});
     else leftovers.push(line);
   }
-  return {cells,leftovers};
+  return {cells,specialize,leftovers};
 }
 
 function powerSellerProofItems(profile){
@@ -629,7 +636,7 @@ function powerSellerProofHTML(profile){
   ).join("");
 }
 
-function renderFeaturedPowerSellerProfile(profile,platformFirst){
+function renderFeaturedPowerSellerProfile(profile,platformFirst,plateHTML){
   if(!profile)return "";
   const firstName=powerSellerFirstName(profile);
   const platformChips=powerSellerPlatformLogoChips({platforms:profile.providedPlatforms||profile.platforms||[]});
@@ -638,22 +645,27 @@ function renderFeaturedPowerSellerProfile(profile,platformFirst){
   const honestyNote=v.belowCareerMinimum
     ?`<div class="sell-rec-reason">We've tracked too few of ${escapeHtml(firstName)}'s sales in our own records to compute his numbers fairly yet. His history below is his own account.</div>`
     :"";
-  const relevanceLine=v.relevance
-    ?`<div class="sell-rec-reason">In our records: ${v.relevance.makeCount} ${escapeHtml(v.relevance.make)} sale${v.relevance.makeCount===1?"":"s"} tracked${v.relevance.inPriceBand?`, ${v.relevance.inPriceBand} in this car's price range`:""}.</div>`
-    :"";
-  const searchedMake=String(sellState.resolvedVehicle?.make||"").toLowerCase();
-  const specializesLine=(profile.profileStats||[]).find(l=>/^specializes in/i.test(l.text||""));
-  const makeMismatch=!!(searchedMake&&specializesLine&&!String(specializesLine.text).toLowerCase().includes(searchedMake));
+  // Car-specific relevance line under the header (locked): the make-scoped
+  // numbers when he genuinely has the make (3+ tracked), otherwise his
+  // curated specialty line. Never an invented claim.
+  const rel=v.relevance;
+  const whyLine=(rel&&rel.makeCount>=3)
+    ?`<div class="sell-rec-reason dossier-why">${numify(`Why for your car: ${rel.make} is squarely in his lane: ${rel.makeCount} ${rel.make} sales tracked${rel.inPriceBand>=3?`, ${rel.inPriceBand} in your price range`:""}.`)}</div>`
+    :(()=>{
+      const specialty=(profile.profileStats||[]).find(l=>/^specializes in/i.test(l.text||""));
+      const tail=specialty?String(specialty.text).replace(/^specializes in:?\s*/i,""):"";
+      return tail?`<div class="sell-rec-reason dossier-why">Why for your car: he specializes in ${escapeHtml(tail)}.</div>`:"";
+    })();
   const dossier=dossierGridCells(profile,v);
-  const gridHTML=dossier.cells.length>=3?`<div class="dossier-grid">${dossier.cells.slice(0,4).map(cell=>`<div class="dossier-cell"><span class="dc-value">${numify(cell.value)}</span><span class="label-mono">${escapeHtml(cell.key)}</span></div>`).join("")}</div>${dossier.leftovers.map(line=>`<div class="power-seller-proof">${numify(line)}</div>`).join("")}`:null;
+  const gridCellCount=dossier.cells.length+(dossier.specialize?1:0);
+  const gridHTML=gridCellCount>=3?`<div class="dossier-grid">${dossier.cells.slice(0,4).map(cell=>`<div class="dossier-cell"><span class="dc-value">${numify(cell.value)}</span><span class="label-mono">${escapeHtml(cell.key)}</span></div>`).join("")}${dossier.specialize?`<div class="dossier-cell full"><span class="dc-value">${numify(dossier.specialize)}</span><span class="label-mono">Specializes in</span></div>`:""}</div>${dossier.leftovers.map(line=>`<div class="power-seller-proof">${numify(line)}</div>`).join("")}`:null;
   return `<div class="power-seller-feature" onclick="choosePowerSeller('${escapeHtml(profile.id)}')">
     <div class="power-seller-feature-main">
-      <div class="sell-rec-badge specialist label-mono">${platformFirst===true?"Option 2: have it handled":platformFirst===false?"Option 1: have it handled":"Have it handled"}</div>
-      <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>
+      ${plateHTML||`<div class="sell-rec-badge specialist label-mono">${platformFirst===true?"Option 2: have it handled":platformFirst===false?"Option 1: have it handled":"Have it handled"}</div>
+      <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>`}
       <div class="dossier-education">A PowerSeller manages the entire sale for a fee: prep, photos, listing, buyer questions.</div>
-      ${makeMismatch?relevanceLine:""}
+      ${whyLine}
       ${gridHTML||(proofHTML?`<div class="power-seller-proof-list">${proofHTML}</div>`:honestyNote)}
-      ${makeMismatch?"":relevanceLine}
       ${platformChips?`<div class="power-seller-platform-row"><span class="power-seller-profile-label">Lists on (per ${escapeHtml(profile.name)})</span>${platformChips}</div>`:""}
       <span class="observed-seller-why">What ${escapeHtml(profile.name)} says he handles</span>
       <ul class="sell-rec-bullets">${powerSellerWhyBullets(profile,0).slice(0,2).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
@@ -717,7 +729,7 @@ function powerSellerWhyBullets(seller,index){
     sellState.state?`They can take the buyer questions, comments and logistics off your plate in ${sellState.state}.`:"They can take buyer questions, comments and logistics off your plate.",
     "You still choose whether to make contact; nothing is sent without your approval."
   ];
-  if(index===0)bullets[0]=`This is the first call I’d make before choosing the platform.`;
+  if(index===0)bullets[0]=`This is the first call I’d make ahead of any platform decision.`;
   return bullets;
 }
 
@@ -742,21 +754,32 @@ function weekdayBullet(evidence){
   return `${evidence.strongestWeekday} endings finished strongest at ~${evidence.strongestWeekdayLiftPercent}% above other days.`;
 }
 
-// CHANGE 1: "Why I picked this" is three concrete reasons, never prose.
+// "Why I picked this" is ONE list of three concrete reasons, never prose.
+// Bullet 1 IS the share claim (validated 10+ cross-platform denominator,
+// rendered green); below the gate it falls back to the honest existence
+// line, neutral. Items are {text, validated} so the renderer can style
+// the earned-green line without a separate band component.
 function primaryReasonBullets(route){
   if(!route?.marketEvidence)return null;
   const e=route.marketEvidence;
+  const facts=routeFacts(route);
   const bullets=[];
-  // Bullet 1: existence validation, zero stats, zero dollars, and a real
-  // window: an all-time landing says so instead of hiding behind vagueness.
+  // Bullet 1: the share claim when the cross-platform denominator is proven
+  // and 10+; otherwise honest existence with a real window (an all-time
+  // landing says so instead of hiding behind vagueness).
   if(e.evidenceSales>0){
-    const days=sellState.sellDecision?.evidence?.windowDays;
-    const windowText=days&&days<=180?`over the past ${days} days`:`in our tracked records, though none in the past 180 days`;
-    bullets.push(`${cleanCarForCopy()} sales have closed on ${platformDisplayName(route.label||route.platform)} ${windowText}`);
+    if(Number(facts.totalEvidenceSales)>=10){
+      const share=Math.round((facts.evidenceSales/facts.totalEvidenceSales)*100);
+      bullets.push({text:`${share}% of ${comparableSalesLabel()} sales ${marketWindowPhrase()} closed on ${platformDisplayName(route.label||route.platform)}`,validated:true});
+    }else{
+      const days=sellState.sellDecision?.evidence?.windowDays;
+      const windowText=days&&days<=180?`over the past ${days} days`:`in our tracked records, though none in the past 180 days`;
+      bullets.push({text:`${cleanCarForCopy()} sales have closed on ${platformDisplayName(route.label||route.platform)} ${windowText}`,validated:false});
+    }
   }
   // Bullet 2: day advantage, gated strict (3+ same-day sales, 10%+ lift).
   const day=weekdayBullet(e);
-  if(day)bullets.push(day);
+  if(day)bullets.push({text:day,validated:false});
   // Bullet 3: qualitative segment sell-through (never a percentage or count)
   // plus a speed acknowledgment only when the seller wants it gone fast.
   let bullet3="";
@@ -773,7 +796,7 @@ function primaryReasonBullets(route){
       :"On a fast timeline, this is still the market I'd trust to move it";
     bullet3=bullet3?`${bullet3}. ${speedLine}`:speedLine;
   }
-  if(bullet3)bullets.push(`${bullet3}.`);
+  if(bullet3)bullets.push({text:`${bullet3}.`,validated:false});
   return bullets.length?bullets.slice(0,3):null;
 }
 
@@ -824,27 +847,8 @@ function formatUsd(value){
   return n?`$${n.toLocaleString("en-US")}`:null;
 }
 
-function primaryHeroStat(route){
-  const facts=routeFacts(route);
-  if(!facts.evidenceSales)return null;
-  // Sample-size numbers are out (locked): the headline carries the insight,
-  // never counts like "46 of 58" or "in the last 45 days".
-  // Claim validation gate (locked): a percentage renders only when the
-  // cross-platform denominator is proven and 10+; below that, safe prose.
-  // Median prices NEVER display on platform cards (locked): variant spread
-  // within a model year (coupe vs slant nose vs cabriolet) makes a single
-  // median false precision.
-  if(Number(facts.totalEvidenceSales)<10){
-    return {count:`Recent comparable ${comparableSalesLabel()} sales have closed here`,money:null};
-  }
-  const share=Math.round((facts.evidenceSales/facts.totalEvidenceSales)*100);
-  const countSuffix=facts.evidenceSales>=10?` · ${facts.evidenceSales} ${comparableSalesLabel()} sales in this window`:"";
-  return {
-    count:`${share}% of ${comparableSalesLabel()} sales ${marketWindowPhrase()} closed on ${platformDisplayName(route.label||route.platform)}${countSuffix}`,
-    money:null
-  };
-}
-
+// primaryHeroStat is retired: the share claim moved into bullet 1 of
+// primaryReasonBullets and the standalone evidence band no longer renders.
 
 // Single facts object per route: chips, bullets, and headlines all derive
 // from it, so contradictory fragments cannot render together.
@@ -954,7 +958,7 @@ function resultSummaryLine(options,routes=[]){
       if(fasterRoute&&fasterName!==strongerName&&Math.min(firstMedian,secondMedian)/Math.max(firstMedian,secondMedian)>=0.9){
         return `${strongerName} looks stronger on recent comparable sales. ${fasterName} is faster to list and close, which matters if timing counts.`;
       }
-      return `${strongerName} looks stronger on recent comparable sales, but ${weakerName} has enough signal to compare before choosing.`;
+      return `${strongerName} looks stronger on recent comparable sales, and it’s my pick. ${weakerName} has real signal too.`;
     }
     return `${firstName} and ${secondName} both belong in the conversation, but they win for different reasons.`;
   }

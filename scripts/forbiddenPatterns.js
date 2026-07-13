@@ -33,7 +33,11 @@ export const FORBIDDEN_PATTERNS = [
   // Invented services.
   { name: "consignment-flagging offer", re: /flag (your|the) (details|car|info)|forward your details|add you to (a|the) consignment/i },
   // False fee denials (fees DO exist).
-  { name: "referral fee denial", re: /not (run|driven|funded) on referral fees|(don'?t|do not|doesn'?t|never) (receive|take|get|collect) (a )?referral fee|no referral fees/i }
+  { name: "referral fee denial", re: /not (run|driven|funded) on referral fees|(don'?t|do not|doesn'?t|never) (receive|take|get|collect) (a )?referral fee|no referral fees/i },
+  // Post-recommendation hedges (rule 15: recommendations are final).
+  { name: "recommendation hedge", re: /i.d still compare|before choosing|points this way/i },
+  // Count clauses on cards ("14 Carrera S sales in this window").
+  { name: "count clause on card", re: /\d[\d,]*[^.\n]{0,60}sales in this window/i }
 ];
 
 export function findForbidden(text) {

@@ -75,20 +75,39 @@ function guardRender(name, text) {
   check(`[repetition] ${name}: no sentence renders twice`, dupes.length === 0, JSON.stringify([...new Set(dupes)].slice(0, 2)));
   // Design Phase 1 guards (raw HTML):
   if (/sell-rec-card/.test(raw)) {
-    check(`[design] ${name}: at most one verdict plate`, (raw.match(/verdict-plate/g) || []).length <= 2, `plates=${(raw.match(/verdict-plate/g) || []).length}`);
+    check(`[design] ${name}: at most one verdict plate`, (raw.match(/verdict-plate/g) || []).length <= 1, `plates=${(raw.match(/verdict-plate/g) || []).length}`);
+    // Plate target matches the prose pick (locked): handled-lead prose
+    // ("...the platform pick is right below") crowns the PowerSeller; the
+    // DIY ordering ("The platform pick above...") crowns the platform.
+    const plateName = (raw.match(/vp-name">([^<]*)</) || [])[1] || "";
+    const callName = (raw.replace(/<[^>]+>/g, " ").match(/(\S+) is who I'd call/) || [])[1] || "";
+    if (plateName && callName) {
+      if (/the platform pick is right below/.test(raw)) {
+        check(`[design] ${name}: handled lead crowns the PowerSeller plate`, plateName.includes(callName), `plate="${plateName}" call="${callName}"`);
+      }
+      if (/platform pick above is the place to start/.test(raw)) {
+        check(`[design] ${name}: DIY lead crowns the platform plate`, !plateName.includes(callName), `plate="${plateName}" call="${callName}"`);
+      }
+    }
     check(`[design] ${name}: no width overrides on cards`, !/sell-rec-card[^>]*style="[^"]*width/.test(raw), "inline width found");
     check(`[design] ${name}: no img logos in cards`, !/<img/i.test(raw), (raw.match(/<img[^>]*/i) || [""])[0].slice(0, 100));
-    const flatBand = html => String(html).replace(/<span class="num">([^<]*)<\/span>/g, "$1").replace(/<[^>]+>/g, " ");
-    const validatedBands = [...raw.matchAll(/evidence-band validated"[\s\S]{0,500}?(?=<\/div>\s*<\/div>|Submit your car)/g)].map(m => flatBand(m[0]));
-    check(`[design] ${name}: green tint only with a validated claim`, validatedBands.every(b => /% of /.test(b)), (validatedBands.find(b => !/% of /.test(b)) || "").slice(0, 140));
-    const honestBands = [...raw.matchAll(/evidence-band honest"[\s\S]{0,500}?(?=<\/div>\s*<\/div>|Submit your car)/g)].map(m => flatBand(m[0]));
-    check(`[design] ${name}: honest band never claims a percent`, honestBands.every(b => !/% of /.test(b)), (honestBands.find(b => /% of /.test(b)) || "").slice(0, 140));
+    // The share claim is bullet 1 with the earned-green class (the standalone
+    // evidence band is deleted from platform cards). Biconditional: a
+    // validated-claim li always carries the share claim, and a share claim
+    // never renders without the class.
+    check(`[design] ${name}: no evidence band on platform cards`, !/evidence-band/.test(raw), "band still renders");
+    const flatLi = h => String(h).replace(/<span class="num">([^<]*)<\/span>/g, "$1").replace(/&#\d+;/g, "'").replace(/<[^>]+>/g, " ");
+    const liMatches = [...raw.matchAll(/<li(?: class="([^"]*)")?>([\s\S]*?)<\/li>/g)];
+    const validatedLis = liMatches.filter(m => /validated-claim/.test(m[1] || "")).map(m => flatLi(m[2]));
+    check(`[design] ${name}: green bullet only with a validated share claim`, validatedLis.every(b => /% of [^%]*closed on/.test(b)), (validatedLis.find(b => !/% of [^%]*closed on/.test(b)) || "").slice(0, 140));
+    const plainLis = liMatches.filter(m => !/validated-claim/.test(m[1] || "")).map(m => flatLi(m[2]));
+    check(`[design] ${name}: share claims always carry the green class`, plainLis.every(b => !/% of [^%]*closed on/.test(b)), (plainLis.find(b => /% of [^%]*closed on/.test(b)) || "").slice(0, 140));
     check(`[design] ${name}: voice class never inside buttons or bullets`, !/<(button|li)[^>]*class="[^"]*voice/.test(raw), "voice in button/li");
-    // Standalone stats must carry .num; model designations (335i, MX-5) are exempt.
-    const bandResidue = [...raw.matchAll(/evidence-band[^>]*>([\s\S]{0,500}?)(?=<\/div>\s*<\/div>|Submit your car)/g)]
-      .map(m => m[1].replace(/<span class="num">[^<]*<\/span>/g, "").replace(/&#\d+;/g, "'").replace(/<[^>]+>/g, " "));
-    const badResidue = bandResidue.find(x => /(\d+%|\$\s?\d|(?<![\w-])\d{2,}(?![\w-]))/.test(x));
-    check(`[design] ${name}: stats in evidence bands carry .num`, !badResidue, (badResidue || "").slice(0, 140));
+    // Standalone stats in the green bullet must carry .num.
+    const liResidue = liMatches.filter(m => /validated-claim/.test(m[1] || ""))
+      .map(m => m[2].replace(/<span class="num">[^<]*<\/span>/g, "").replace(/&#\d+;/g, "'").replace(/<[^>]+>/g, " "));
+    const badResidue = liResidue.find(x => /(\d+%|\$\s?\d|(?<![\w-])\d{2,}(?![\w-]))/.test(x));
+    check(`[design] ${name}: stats in the share-claim bullet carry .num`, !badResidue, (badResidue || "").slice(0, 140));
   }
 }
 const cssForVisual = fs.readFileSync(path.join(repoRoot, "styles.css"), "utf8");
@@ -399,6 +418,14 @@ const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsc
   await new Promise(r => setTimeout(r, 100));
   const usCards = renderedResult();
   check("US: no sample-size counts on platform cards", !/\d+ of \d+ comparable|\d+ sales? in the last \d+|recent vs \d+ earlier|\(\d+ listings\)|versus the prior \d+/.test(usCards), (usCards.match(/[^\n]*\d+ (of|sales?|recent)[^\n]*/) || [""])[0].slice(0, 200));
+  // Partner relevance numbers must be the make-scoped query result, verbatim,
+  // and the price-band count must be a subset of the make count.
+  const rel = sellState.partnerReferral?.partner?.verified?.relevance || sellState.partnerReferral?.verified?.relevance || null;
+  const renderedRel = usCards.replace(/<span class="num">([^<]*)<\/span>/g, "$1").match(/(\d+) ([A-Z][\w-]*) sales tracked/) || [];
+  if (rel) {
+    check("partner relevance: rendered make count equals the make-scoped query", Number(renderedRel[1]) === rel.makeCount && renderedRel[2] === rel.make, `rendered="${renderedRel[0] || "none"}" api=${JSON.stringify(rel)}`);
+    check("partner relevance: price-band count is a subset of the make count", rel.inPriceBand == null || rel.inPriceBand <= rel.makeCount, JSON.stringify(rel));
+  }
   const landed = sellState.sellDecision?.evidence?.ladder?.landed;
   check("depth-first: 45-day start, broadens only when thin", !!landed && landed.windowDays >= 45, `landed=${JSON.stringify(landed)}`);
 }

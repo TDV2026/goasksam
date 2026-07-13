@@ -183,13 +183,16 @@ async function showSellRecommendation(){
       badge:hasNamedPowerSellerAdvice?(index===0?"If selling yourself":"Also strong here"):(twoRouteMode?(index===0?"Sam's lean":"Also strong here"):(index===0?"Sam's pick":"Also strong here")),
       badgeClass:index===0?"top":"alt",
       cardClass:index===0&&!hasNamedPowerSellerAdvice?"primary-rec":"",
+      // The verdict plate follows the pick (locked): when the PowerSeller
+      // leads, the plate moves to the dossier and this card renders as the
+      // alternative. The DIY ordering re-renders this card with the plate.
+      showPlate:index===0&&!hasNamedPowerSellerAdvice,
       actionLabel:index===0?`Submit your car to ${platformLogo({name:routeName}).text}`:`Consider ${routeName}`,
       speedArgument:!!route.speedArgument,
       reason:route.speedArgument
         ?"Hagerty has sold 1960s Corvettes in our records and is the stronger fit when speed matters: listings get live quickly and the audience skews classic."
         :routeReason(route,index,routeOptions),
       reasonBullets:index===0&&!route.speedArgument?primaryReasonBullets(route):null,
-      heroStat:index===0?primaryHeroStat(route):null,
       evidenceBullets:routeEvidenceBullets(route,index,routeOptions),
       evidenceLine:"",
       stat:routeTagLine(route,index,routeOptions),
@@ -234,13 +237,8 @@ async function showSellRecommendation(){
         <div class="vp-hairline"></div>
         <div class="label-mono">${numify(`${sellState.carName||"Car"} · ${[sellState.state,sellState.region].filter(Boolean)[0]||"US"}`)}</div>
       </div>`;
-  const evidenceBand=option=>{
-    if(!option.heroStat)return "";
-    const validated=/% of /.test(String(option.heroStat.count||""));
-    return `<div class="evidence-band ${validated?"validated":"honest"}"><div class="sell-rec-hero-line">${numify(option.heroStat.count)}</div>${option.heroStat.money?`<div class="sell-rec-hero-money">${numify(option.heroStat.money)}</div>`:""}</div>`;
-  };
   const renderOptionCard=option=>{
-    const isPrimary=option.key==="primary"||String(option.cardClass||"").includes("primary-rec");
+    const isPrimary=!!option.showPlate;
     return `
       <div class="sell-rec-card ${escapeHtml(option.cardClass||"")}" onclick="chooseSellOption('${escapeHtml(option.key)}')">
         ${isPrimary&&option.key!=="specialist"?verdictPlate(option):`
@@ -253,9 +251,8 @@ async function showSellRecommendation(){
         ${isPrimary&&option.reason&&!option.reasonBullets?.length?"":isPrimary?`<div class="sell-rec-samline voice">${escapeHtml(option.reason||"")}</div>`:""}
         <div class="sell-rec-reason-label label-mono">${option.key==="specialist"?"Why I’d call them":"Why I picked this"}</div>
         ${option.reasonBullets?.length
-          ?`<ul class="sell-rec-bullets">${option.reasonBullets.map(item=>`<li>${numify(item)}</li>`).join("")}</ul>`
+          ?`<ul class="sell-rec-bullets">${option.reasonBullets.map(item=>`<li${item.validated?' class="validated-claim"':""}>${numify(item.text)}</li>`).join("")}</ul>`
           :`<div class="sell-rec-reason">${numify(option.rankReason||option.reason||"")}</div>`}
-        ${evidenceBand(option)}
         ${option.stat?`<div class="sell-rec-stat">${numify(option.stat)}</div>`:""}
         ${option.evidenceBullets?.length?`<ul class="sell-rec-bullets">${option.evidenceBullets.map(item=>`<li>${numify(item)}</li>`).join("")}</ul>`:""}
         ${option.evidenceLine?`<div class="sell-rec-evidence-line">${numify(option.evidenceLine||"")}</div>`:""}
@@ -306,12 +303,14 @@ async function showSellRecommendation(){
   // Two copy variants: the intro and badge reference where the platform pick
   // sits, so the section leading the layout reads differently from the section
   // rendered second (after a DIY answer or a price-divergence flag).
+  // The verdict plate goes to whichever section leads (locked): handled
+  // order crowns the PowerSeller dossier, DIY order crowns the platform card.
   const buildPowerSellerHTML=platformFirst=>featuredPowerSeller?`
     <div class="sell-section-label">Have it handled</div>
     <div class="sell-section-note">${platformFirst
       ?`If you'd rather have it handled: you do pay a fee, but a good PowerSeller takes on everything, prep, photos, listing, buyer questions, paperwork and platform choice, and in most cases the fee earns its keep. ${escapeHtml(featuredPowerSellerName)} is who I'd call. The platform pick above is the place to start if you're running it yourself.`
       :`Honestly? At this level my personal preference is generally a good PowerSeller. You do pay a fee, but a good one handles everything: prep, photos, listing, buyer questions, paperwork and platform choice. In most cases the fee earns its keep. ${escapeHtml(featuredPowerSellerName)} is who I'd call. If you'd rather run it yourself, the platform pick is right below.`}</div>
-    ${renderFeaturedPowerSellerProfile(featuredPowerSeller,platformFirst)}
+    ${renderFeaturedPowerSellerProfile(featuredPowerSeller,platformFirst,platformFirst?null:verdictPlate({name:featuredPowerSeller.displayName||featuredPowerSeller.name}))}
   `:"";
   const powerSellerHTML=buildPowerSellerHTML(false);
   const powerSellerSecondHTML=buildPowerSellerHTML(true);
@@ -329,6 +328,11 @@ async function showSellRecommendation(){
     ${secondaryPlatforms.length?`<div class="platform-compact-list"><div class="sell-section-note" style="margin:0">Also looked at</div>${secondaryPlatforms.map(renderCompactPlatform).join("")}</div>`:""}
     ${diySecondaryLine}
   `):"";
+  // DIY ordering: the platform IS the pick, so its card carries the plate.
+  const platformCardsPlatedHTML=(primaryPlatform&&powerSellerHTML)?`
+    <div class="sell-section-label" style="margin-top:12px">Run it yourself</div>
+    <div class="sell-rec-grid">${renderOptionCard({...primaryPlatform,showPlate:true,cardClass:"primary-rec"})}</div>
+  `:platformCardsHTML;
 
   // Price-gap paragraphs are deleted (locked): variant spread within a model
   // year makes a single average false precision, and comparing the seller's
@@ -350,7 +354,7 @@ async function showSellRecommendation(){
   if(powerSellerHTML&&isUSRegion(sellState.region)){
     // Gate-open, US sellers only: one light choice orders the sections
     // before anything renders. Non-US goes straight to the platform result.
-    sellState.pendingResultSections={headerHTML,powerSellerHTML,powerSellerSecondHTML,platformCardsHTML,caveatHTML,afterText};
+    sellState.pendingResultSections={headerHTML,powerSellerHTML,powerSellerSecondHTML,platformCardsHTML,platformCardsPlatedHTML,caveatHTML,afterText};
     sellState.awaitingPathChoice=true;
     sellState.step=12;
     const row=document.createElement("div");row.className="row sam";
@@ -379,7 +383,7 @@ function renderPendingResultSections(choice){
   sellState.awaitingPathChoice=false;
   sellState.pendingResultSections=null;
   const platformFirst=choice==="diy";
-  const sections=platformFirst?`${parts.platformCardsHTML}${parts.powerSellerSecondHTML}`:`${parts.powerSellerHTML}${parts.platformCardsHTML}`;
+  const sections=platformFirst?`${parts.platformCardsPlatedHTML}${parts.powerSellerSecondHTML}`:`${parts.powerSellerHTML}${parts.platformCardsHTML}`;
   const msgs=document.getElementById("msgs");
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${sections}${parts.caveatHTML}<div class="sam-text after-results">${parts.afterText}</div></div></div>`;
