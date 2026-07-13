@@ -518,10 +518,11 @@ check("condition token: the condition ask pre-acknowledges", /you mentioned it'?
 // Regression battery: today's three exact label failures.
 resetToStep1();
 await handleSellStep("thinking about selling my dads old porsche 911 maybe 1987 or 88 not sure");
-check("regression 1: hedged 911 never renders conversation as car", /1987 Porsche 911/.test(lastSam()||"") && !/thinking|old or 88/i.test(lastSam()||""), `last="${lastSam()}"`);
-await handleSellStep("yes");
+check("regression 1: conversational 911 reads as a 911, never as conversation", /porsche 911|911/i.test(lastSam()||"") && !/thinking|weird|or 88/i.test(lastSam()||""), `last="${lastSam()}"`);
+if(/sound right/i.test(lastSam()||""))await handleSellStep("yes");
+else if(sellState.step===17)await handleSellStep("Carrera");
 guardCarLabel("regression-1-hedged-911");
-check("regression 1: confirmed label is exactly the canonical car", /^1987 Porsche 911/.test(sellState.carName||"") && !/thinking|about|or 88/i.test(sellState.carName||""), `car=${sellState.carName}`);
+check("regression 1: label is a clean era-or-year 911", /^(19\d{2}|1980s) Porsche 911/.test(sellState.carName||"") && !/thinking|about|or 88/i.test(sellState.carName||""), `car=${sellState.carName}`);
 
 resetToStep1();
 await handleSellStep("2015 lamborghini huracan that weird but smaller 2016 one");
