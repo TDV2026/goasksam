@@ -188,6 +188,7 @@ async function showSellRecommendation(){
       reason:route.speedArgument
         ?"Hagerty has sold 1960s Corvettes in our records and is the stronger fit when speed matters: listings get live quickly and the audience skews classic."
         :routeReason(route,index,routeOptions),
+      reasonBullets:index===0&&!route.speedArgument?primaryReasonBullets(route):null,
       heroStat:index===0?primaryHeroStat(route):null,
       evidenceBullets:routeEvidenceBullets(route,index,routeOptions),
       evidenceLine:"",
@@ -234,7 +235,9 @@ async function showSellRecommendation(){
           <div class="platform-logo ${escapeHtml(platformLogo(option).cls)}">${escapeHtml(platformLogo(option).text)}</div>
         </div>
         <div class="sell-rec-reason-label">${option.key==="specialist"?"Why I’d call them":"Why I picked this"}</div>
-        <div class="sell-rec-reason">${escapeHtml(option.rankReason||option.reason)}</div>
+        ${option.reasonBullets?.length
+          ?`<ul class="sell-rec-bullets">${option.reasonBullets.map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>`
+          :`<div class="sell-rec-reason">${escapeHtml(option.rankReason||option.reason)}</div>`}
         ${option.heroStat?`<div class="sell-rec-hero"><div class="sell-rec-hero-line">${escapeHtml(option.heroStat.count)}</div>${option.heroStat.money?`<div class="sell-rec-hero-money">${escapeHtml(option.heroStat.money)}</div>`:""}</div>`:""}
         ${option.stat?`<div class="sell-rec-stat">${escapeHtml(option.stat)}</div>`:""}
         ${option.evidenceBullets?.length?`<ul class="sell-rec-bullets">${option.evidenceBullets.map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>`:""}
@@ -459,6 +462,24 @@ function handleSellRecommendationFollowup(q){
   return false;
 }
 
+// Collecting Cars proof leads with the searched make when we hold curated
+// proof for it; unrelated Ferraris never headline a Lamborghini search.
+const CC_MAKE_PROOF={
+  lamborghini:"high-value Lamborghinis including Huracán and Aventador variants",
+  ferrari:"the Ferrari F40 (£1.7M) and F50 (£2.94M)",
+  porsche:"a Porsche 918 Spyder (€1.35M)",
+  "mercedes-benz":"a Mercedes 300 SL (£1.1M)"
+};
+function collectingCarsReason(){
+  const make=String(sellState.resolvedVehicle?.make||"");
+  const specific=CC_MAKE_PROOF[make.toLowerCase()];
+  if(make&&specific){
+    const backup=make.toLowerCase()==="ferrari"?"a Porsche 918 Spyder (€1.35M)":"the Ferrari F40 (£1.7M)";
+    return `Specialist platform for high-value cars. They've sold many ${make} models at premium prices across the UK, Europe, Australia and the Middle East. Recent sales include ${specific}, plus ${backup}.`;
+  }
+  return "Specialist platform for high-value cars. Recent sales: Ferrari F40 (£1.7M), Ferrari F50 (£2.94M), Porsche 918 Spyder (€1.35M), Mercedes 300 SL (£1.1M).";
+}
+
 // Car & Classic copy names the actual car instead of reading like a
 // templated category list. Pooled openers keyed on the car.
 function carAndClassicReason(){
@@ -488,7 +509,7 @@ function regionalNoEvidenceFallback(){
         secondary:"Car & Classic",
         title:`Here’s what I’d do with the ${car}.`,
         subtitle:`Collecting Cars is where I’d sell this.`,
-        primaryReason:"Specialist platform for high-value cars. Recent sales: Ferrari F40 (£1.7M), Ferrari F50 (£2.94M), Porsche 918 Spyder (€1.35M), Mercedes 300 SL (£1.1M).",
+        primaryReason:collectingCarsReason(),
         bullets:["24,000+ lots sold, $1.5B+ generated for sellers."],
         secondaryReason:carAndClassicReason(),
         secondaryBullets:[]
@@ -514,7 +535,9 @@ function regionalNoEvidenceFallback(){
       subtitle:`I’d list it on Collecting Cars for a seller in your region.`,
       primaryReason:"Global platform with 350,000+ members in 100+ countries. Specialists in sourcing top-quality collectibles. 24,000+ lots sold, $1.5B+ generated for sellers.",
       secondaryReason:"",
-      bullets:[]
+      bullets:CC_MAKE_PROOF[String(sellState.resolvedVehicle?.make||"").toLowerCase()]
+        ?[`They've sold many ${sellState.resolvedVehicle.make} models at premium prices, including ${CC_MAKE_PROOF[String(sellState.resolvedVehicle.make).toLowerCase()]}.`]
+        :[]
     };
   }
   return null;

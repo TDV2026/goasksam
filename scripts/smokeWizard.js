@@ -467,6 +467,23 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   }
 }
 
+// Card specificity (locked): structured reason bullets, percent+period+
+// platform comparable claims, make-aware regional proof, gated weekday.
+{
+  const us=await runResult("US","California","140k",gts);
+  if(sellState.awaitingPathChoice){handleSellRecommendationFollowup("I'll run it myself");await new Promise(r=>setTimeout(r,150));}
+  const rendered=(renderedResult()+"\n"+allSamText()).replace(/<li>/g,"\n• ").replace(/<[^>]+>/g,"\n");
+  check("card specificity: comparable claim names percent, period and platform", /\d+% of [^\n]* sales (over the past [^\n]*|across everything[^\n]*) closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty)/i.test(rendered.replace(/&amp;/g,"&")), (rendered.match(/[^\n]*closed on[^\n]*/i)||["no claim line"])[0].slice(0,180));
+  check("card specificity: no 'Every comparable sale' vagueness", !/Every comparable sale we tracked/i.test(rendered), "vague claim rendered");
+  check("card specificity: Why renders as concrete bullets with a buyer-base line", /Buyer base: /.test(rendered), rendered.slice(0,300));
+  check("card specificity: weekday lines only render with a material lift", !/around [1-9]% above other days/.test(rendered), (rendered.match(/[^\n]*above other days[^\n]*/)||[""])[0]);
+
+  const huracan={label:"2015 Lamborghini Huracan",vehicle:{raw:"2015 Lamborghini Huracan",year:2015,make:"Lamborghini",model:"Huracan",trim:null,confidence:"high",canonicalLabel:"2015 Lamborghini Huracan"}};
+  const eu=await runResult("Europe",null,"250k",huracan);
+  check("card specificity: Collecting Cars proof is make-specific for a Lamborghini", /sold many Lamborghini models at premium prices/i.test(eu) && /Huracán and Aventador/i.test(eu), eu.replace(/<[^>]+>/g," ").slice(0,300));
+  check("card specificity: single Specialist-platform mention holds", (eu.match(/Specialist platform/g)||[]).length===1, `count=${(eu.match(/Specialist platform/g)||[]).length}`);
+}
+
 // FIX 3 contract: results render immediately; ONE neutral note after the
 // cards names direction and percent, no chips, no gating, no accusation.
 {

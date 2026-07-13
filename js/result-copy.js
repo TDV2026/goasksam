@@ -674,6 +674,29 @@ function plural(value,singular,pluralWord){
   return `${value} ${value===1?singular:pluralWord||`${singular}s`}`;
 }
 
+// Day advantage renders only when material: 3+ sales on the named day and a
+// lift of 10%+; anything thinner is small-sample noise.
+function weekdayBullet(evidence){
+  if(!evidence?.strongestWeekday)return null;
+  if((evidence.strongestWeekdaySales||0)<3)return null;
+  if((evidence.strongestWeekdayLiftPercent||0)<10)return null;
+  return `${evidence.strongestWeekday} endings finished strongest, around ${evidence.strongestWeekdayLiftPercent}% above other days.`;
+}
+
+// CHANGE 1: "Why I picked this" is three concrete reasons, never prose.
+function primaryReasonBullets(route){
+  if(!route?.marketEvidence)return null;
+  if(speedTiebreak(sellState.allRouteOptions?.slice(0,2)))return null; // locked two-part speed prose stays
+  const e=route.marketEvidence;
+  const bullets=[];
+  if(e.segmentSellThrough)bullets.push(`${e.segmentSellThrough.percent}% of ${e.segmentSellThrough.band} listings here sold in our tracked records.`);
+  const day=weekdayBullet(e);
+  if(day)bullets.push(day);
+  if(route.about?.knownFor)bullets.push(`Buyer base: ${route.about.knownFor}.`);
+  if(bullets.length<3&&e.momentum&&Math.abs(e.momentum.percent)>=5)bullets.push(e.momentum.percent>0?"Comparable results here have been strengthening recently.":"Comparable results here have softened a little recently, worth pricing realistically.");
+  return bullets.length>=2?bullets.slice(0,3):null;
+}
+
 function weekdayInsightLine(evidence){
   if(evidence?.strongestWeekday){
     return `Overall, recent ${evidence.strongestWeekday} endings have looked strongest here.`;
@@ -719,9 +742,11 @@ function primaryHeroStat(route){
   // Sample-size numbers are out (locked): the headline carries the insight,
   // never counts like "46 of 58" or "in the last 45 days".
   if(facts.soloPlatform){
+    const share=route.marketEvidence?.evidenceSharePercent??100;
+    const countSuffix=facts.evidenceSales>=10?` · ${facts.evidenceSales} ${comparableSalesLabel()} sales in this window`:"";
     return {
-      count:`Every comparable sale we tracked recently closed here`,
-      money:here?`Median ${here}`:null
+      count:`${share}% of ${comparableSalesLabel()} sales ${marketWindowPhrase()} closed on ${platformDisplayName(route.label||route.platform)}`,
+      money:here?`Median ${here}${countSuffix}`:null
     };
   }
   if(here&&others){
@@ -738,7 +763,7 @@ function primaryHeroStat(route){
       :`Median sale here has run ${pct}% ${direction} other platforms`;
     return {count:headline,money:`${here} here vs ${others} elsewhere`};
   }
-  return {count:`Most of the comparable sales we tracked recently closed here`,money:here?`Median sale ${here}`:null};
+  return {count:`${route.marketEvidence?.evidenceSharePercent??0}% of ${comparableSalesLabel()} sales ${marketWindowPhrase()} closed on ${platformDisplayName(route.label||route.platform)}`,money:here?`Median sale ${here}`:null};
 }
 
 // Single facts object per route: chips, bullets, and headlines all derive
@@ -796,10 +821,13 @@ function routeEvidenceBullets(route,index,routes){
   // order, each fact rendered exactly once, omitted when there is no data,
   // never padded with restatements.
   const bullets=[];
+  // The primary card carries these dimensions in its structured reason
+  // bullets; repeating them here would trip the repetition guard.
+  const primaryHasReasonBullets=index===0&&!!primaryReasonBullets(route);
   // (2) platform sell-through for this segment, from full-dataset baselines
   // (absent until the records hold non-sold listings). Each stat renders
   // once per session: repeats across searches read as filler.
-  if(facts.segmentSellThrough){
+  if(facts.segmentSellThrough&&!primaryHasReasonBullets){
     const statKey=`sellthrough|${route.platform||route.label}|${facts.segmentSellThrough.band}`;
     if(!window.__shownSessionStats)window.__shownSessionStats=new Set();
     if(!window.__shownSessionStats.has(statKey)){
@@ -807,11 +835,16 @@ function routeEvidenceBullets(route,index,routes){
       bullets.push(`${facts.segmentSellThrough.percent}% of ${facts.segmentSellThrough.band} listings here sold in our tracked records.`);
     }
   }
-  // (3) timing edge
-  if(facts.weekday)bullets.push(`Based on recent comparable listings, ${facts.weekday} endings have finished strongest${facts.weekdayLift?` (around ${facts.weekdayLift}% above other days)`:""}.`);
+  // (3) timing edge, gated: 3+ sales on the day and a 10%+ lift
+  if(!primaryHasReasonBullets){
+    const day=weekdayBullet(route.marketEvidence||{});
+    if(day)bullets.push(day);
+  }
   // (4) momentum, qualitative only (locked: no sample or window numbers)
-  if(facts.momentum&&facts.momentum.percent>=5)bullets.push(`Comparable results here have been strengthening recently.`);
-  else if(facts.momentum&&facts.momentum.percent<=-5)bullets.push(`Comparable results here have softened a little recently, worth pricing realistically.`);
+  if(!primaryHasReasonBullets){
+    if(facts.momentum&&facts.momentum.percent>=5)bullets.push(`Comparable results here have been strengthening recently.`);
+    else if(facts.momentum&&facts.momentum.percent<=-5)bullets.push(`Comparable results here have softened a little recently, worth pricing realistically.`);
+  }
   return bullets.slice(0,4);
 }
 
