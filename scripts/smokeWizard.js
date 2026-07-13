@@ -118,7 +118,7 @@ function guardRender(name, text) {
     // decision's own evidence set, and never in green.
     const tierB = clean.match(/More [^\n]* sales have closed on ([^\n]+?) than any other platform we track/);
     if (tierB) {
-      const norm = v => String(v || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const norm = v => String(v || "").toLowerCase().replace(/&amp;|&/g, "and").replace(/[^a-z0-9]/g, "");
       const routes = (sellState.sellDecision?.decision?.routeFit?.routes || []).filter(r => r.marketEvidence);
       const claimed = routes.find(r => norm(tierB[1]).includes(norm(r.platform)) || norm(tierB[1]).includes(norm(r.label)) || norm(platformNameMapSmoke(r.platform)) === norm(tierB[1]));
       const otherMax = Math.max(0, ...routes.filter(r => r !== claimed).map(r => Number(r.marketEvidence.evidenceSales || 0)));
@@ -550,12 +550,13 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   if(sellState.awaitingPathChoice){handleSellRecommendationFollowup("I'll run it myself");await new Promise(r=>setTimeout(r,150));}
   const rendered=(renderedResult()+"\n"+allSamText()).replace(/<li>/g,"\n• ").replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g,"\n");
   const heroHasPct=/\d+% of [^\n]* sales (over the past [^\n]*|across everything[^\n]*) closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty)/i.test(rendered.replace(/&amp;/g,"&"));
-  // Below the 10+ gate, bullet 1 is the honest existence line (the old
-  // standalone band and its "closed here" prose are deleted).
+  // Below the 10+ gate, bullet 1 is Tier B (verified leadership) or the
+  // honest existence line (the old standalone band prose is deleted).
+  const heroHasTierB=/More [^\n]+ sales have closed on [^\n]+ than any other platform we track/i.test(rendered.replace(/&amp;/g,"&"));
   const heroHasSafeProse=/sales have closed on [^\n]+ (over the past \d+ days|in our tracked records)/i.test(rendered.replace(/&amp;/g,"&"));
-  check("card specificity: hero is a specific claim or gated safe prose", heroHasPct||heroHasSafeProse, (rendered.match(/[^\n]*(closed on|closed here)[^\n]*/i)||["no hero line"])[0].slice(0,180));
+  check("card specificity: hero is a specific claim or gated safe prose", heroHasPct||heroHasTierB||heroHasSafeProse, (rendered.match(/[^\n]*(closed on|closed here)[^\n]*/i)||["no hero line"])[0].slice(0,180));
   check("card specificity: no 'Every comparable sale' vagueness", !/Every comparable sale we tracked/i.test(rendered), "vague claim rendered");
-  check("card regression: Why bullet 1 validates existence, zero dollars", /sales have closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty) (over the past|across everything)/i.test(rendered.replace(/&amp;/g,"&")), (rendered.match(/[^\n]*sales have closed on[^\n]*/i)||["missing"])[0].slice(0,160));
+  check("card regression: Why bullet 1 is a tiered claim, zero dollars", /sales have closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty) (over the past|across everything|in our tracked records|than any other platform)/i.test(rendered.replace(/&amp;/g,"&"))||heroHasPct, (rendered.match(/[^\n]*sales have closed on[^\n]*/i)||["missing"])[0].slice(0,160));
   check("card regression: no median prices on platform cards", !/Median (sale )?\$[\d,]+/.test(rendered)&&!/\$[\d,]+ here vs/.test(rendered), (rendered.match(/[^\n]*(Median|here vs)[^\n]*/)||[""])[0].slice(0,160));
   check("card regression: no buyer-base or strongest-run filler", !/Buyer base:|strongest run recently|enthusiast and collector cars across every era/i.test(rendered), (rendered.match(/[^\n]*(Buyer base|strongest run|every era)[^\n]*/i)||[""])[0].slice(0,160));
   // Bullet 3 contract: sell-through is qualitative and the speed line only
@@ -563,7 +564,7 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   check("bullet 3: sell-through never renders as a percentage", !/sell-through for [^\n]*%/.test(rendered), (rendered.match(/[^\n]*sell-through for[^\n]*/i)||[""])[0].slice(0,160));
   check("bullet 3: no speed line without a fast timeline", !/prioritizing a fast close|market I.{0,6}d trust to move it/i.test(rendered), (rendered.match(/[^\n]*(fast close|move it)[^\n]*/i)||[""])[0].slice(0,160));
   // Bullet 1 always names a concrete window, never bare vagueness.
-  const bullet1Lines=rendered.split("\n").filter(l=>/sales have closed on/i.test(l));
+  const bullet1Lines=rendered.split("\n").filter(l=>/sales have closed on/i.test(l)&&!/than any other platform/i.test(l)&&!/% of /.test(l));
   check("bullet 1: every existence line names a real window", bullet1Lines.every(l=>/over the past \d+ days|though none in the past 180 days/i.test(l)), bullet1Lines.map(l=>l.trim().slice(0,120)).join(" | ")||"none");
   // Relevance count can never exceed the make count.
   const rel=(rendered.replace(/&#39;/g,"'").match(/(\d+) \w[\w-]* sales tracked, (\d+) in this car's price range/)||null);

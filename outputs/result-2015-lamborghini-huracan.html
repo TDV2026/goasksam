@@ -418,12 +418,20 @@ body{font-family:var(--font-ui);color:var(--ink);}
 .power-seller-feature{background:var(--consignor-tint);border:1px solid var(--consignor-amber);border-radius:var(--radius-card);}
 .power-seller-feature .sell-rec-badge.specialist{font-family:var(--font-data);text-transform:uppercase;font-size:11px;letter-spacing:0.08em;color:var(--consignor-amber);background:transparent;border:none;padding:0;}
 .dossier-education{color:var(--slate);font-size:var(--text-sm);margin:2px 0 10px;}
-.dossier-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--line);margin:8px 0;}
-.dossier-cell{padding:10px 12px;border:0.5px solid var(--line);display:flex;flex-direction:column;gap:2px;background:var(--paper);}
+/* Hierarchy (locked): the why-line is the card's hero, then 32px rhythm
+   between the grid, the handles bullets and the clients chips. */
+.ps-consignor-row{display:flex;align-items:center;gap:10px;margin-top:6px;}
+.ps-learn-link{background:none;border:none;padding:0;font-family:var(--font-ui);font-size:13px;color:var(--slate);text-decoration:underline;cursor:pointer;}
+.dossier-why{font-family:var(--font-voice);font-size:20px;line-height:1.35;color:var(--ink);padding:24px 0;margin:0 0 8px;}
+.dossier-why .num{font-family:var(--font-data);font-size:18px;}
+.dossier-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--line);margin:0 0 32px;}
+.dossier-cell{padding:16px;border:0.5px solid var(--line);display:flex;flex-direction:column;gap:2px;background:var(--paper);}
 .dossier-cell .dc-value{font-family:var(--font-data);font-size:var(--text-lg);color:var(--ink);}
 .dossier-cell.full{grid-column:1/-1;}
 .dossier-cell.full .dc-value{font-size:var(--text-sm);}
 @media(max-width:560px){.dossier-grid{grid-template-columns:1fr;}}
+.power-seller-feature .sell-rec-bullets{margin:0 0 32px;}
+.power-seller-feature .power-seller-profile-grid{margin:0 0 32px;}
 .power-seller-client-chip,.power-seller-chip-row .chip{border-radius:var(--radius-chip);border:1px solid var(--line);font-family:var(--font-ui);font-size:13px;}
 .power-seller-feature .sell-rec-actions button{background:transparent;border:1px solid var(--consignor-amber);color:var(--consignor-amber);}
 
