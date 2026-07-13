@@ -528,7 +528,9 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   if(sellState.awaitingPathChoice){handleSellRecommendationFollowup("I'll run it myself");await new Promise(r=>setTimeout(r,150));}
   const rendered=(renderedResult()+"\n"+allSamText()).replace(/<li>/g,"\n• ").replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g,"\n");
   const heroHasPct=/\d+% of [^\n]* sales (over the past [^\n]*|across everything[^\n]*) closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty)/i.test(rendered.replace(/&amp;/g,"&"));
-  const heroHasSafeProse=/Recent comparable [^\n]* sales have closed here/i.test(rendered);
+  // Below the 10+ gate, bullet 1 is the honest existence line (the old
+  // standalone band and its "closed here" prose are deleted).
+  const heroHasSafeProse=/sales have closed on [^\n]+ (over the past \d+ days|in our tracked records)/i.test(rendered.replace(/&amp;/g,"&"));
   check("card specificity: hero is a specific claim or gated safe prose", heroHasPct||heroHasSafeProse, (rendered.match(/[^\n]*(closed on|closed here)[^\n]*/i)||["no hero line"])[0].slice(0,180));
   check("card specificity: no 'Every comparable sale' vagueness", !/Every comparable sale we tracked/i.test(rendered), "vague claim rendered");
   check("card regression: Why bullet 1 validates existence, zero dollars", /sales have closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty) (over the past|across everything)/i.test(rendered.replace(/&amp;/g,"&")), (rendered.match(/[^\n]*sales have closed on[^\n]*/i)||["missing"])[0].slice(0,160));
@@ -551,7 +553,7 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   if(pctClaim){
     check("claim gate: percent claims carry a proven 10+ denominator", landedSales>=10 && Number(pctClaim[1])<=100, `claim=${pctClaim[0].slice(0,80)} landedSales=${landedSales}`);
   }else{
-    check("claim gate: thin data falls back to safe prose, no invented percent", landedSales>=10 || /Recent comparable [^\n]* sales have closed here/i.test(rendered) || !/closed on/.test(rendered), `landedSales=${landedSales}`);
+    check("claim gate: thin data falls back to safe prose, no invented percent", landedSales>=10 || /sales have closed on/i.test(rendered.replace(/&amp;/g,"&")) || !/closed on/.test(rendered), `landedSales=${landedSales}`);
   }
 
   const huracan={label:"2015 Lamborghini Huracan",vehicle:{raw:"2015 Lamborghini Huracan",year:2015,make:"Lamborghini",model:"Huracan",trim:null,confidence:"high",canonicalLabel:"2015 Lamborghini Huracan"}};

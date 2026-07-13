@@ -404,6 +404,10 @@ body{font-family:var(--font-ui);color:var(--ink);}
 .evidence-band.validated{background:var(--signal-green-tint);color:var(--signal-green);}
 .evidence-band.honest{background:var(--paper-shade);color:var(--ink);}
 .evidence-band .num{font-weight:500;}
+/* Earned green lives on the validated share-claim bullet (the standalone
+   band is gone from platform cards): green text on that line only. */
+.sell-rec-bullets li.validated-claim{color:var(--signal-green);}
+.sell-rec-bullets li.validated-claim .num{font-weight:500;}
 
 /* CTAs */
 .sell-rec-actions button.primary{background:var(--ink);color:#fff;border:none;border-radius:var(--radius-card);width:100%;padding:12px;font-family:var(--font-ui);font-weight:600;}
@@ -417,6 +421,8 @@ body{font-family:var(--font-ui);color:var(--ink);}
 .dossier-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--line);margin:8px 0;}
 .dossier-cell{padding:10px 12px;border:0.5px solid var(--line);display:flex;flex-direction:column;gap:2px;background:var(--paper);}
 .dossier-cell .dc-value{font-family:var(--font-data);font-size:var(--text-lg);color:var(--ink);}
+.dossier-cell.full{grid-column:1/-1;}
+.dossier-cell.full .dc-value{font-size:var(--text-sm);}
 @media(max-width:560px){.dossier-grid{grid-template-columns:1fr;}}
 .power-seller-client-chip,.power-seller-chip-row .chip{border-radius:var(--radius-chip);border:1px solid var(--line);font-family:var(--font-ui);font-size:13px;}
 .power-seller-feature .sell-rec-actions button{background:transparent;border:1px solid var(--consignor-amber);color:var(--consignor-amber);}
