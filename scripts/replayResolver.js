@@ -5,7 +5,7 @@
 //
 // Usage: SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/replayResolver.js
 
-import { resolveVehicle } from "../lib/vehicle.js";
+import { resolveVehicle, labelIsProvablyCar } from "../lib/vehicle.js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
@@ -30,7 +30,13 @@ for (let i = 0; i < titles.length; i += CONCURRENCY) {
   await Promise.all(titles.slice(i, i + CONCURRENCY).map(async title => {
     try {
       const r = await resolveVehicle(title);
-      if (r.status === "valid") resolved++;
+      if (r.status === "valid") {
+        resolved++;
+        if (!labelIsProvablyCar(r.vehicle?.canonicalLabel, r.vehicle)) {
+          if (!failures.has("resolved label fails sanity gate")) failures.set("resolved label fails sanity gate", []);
+          if (failures.get("resolved label fails sanity gate").length < 8) failures.get("resolved label fails sanity gate").push(`${title.slice(0, 60)} -> ${r.vehicle?.canonicalLabel}`);
+        }
+      }
       else if (r.status === "needs_confirmation") confirm++;
       else {
         failed++;

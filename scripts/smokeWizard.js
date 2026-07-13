@@ -8,6 +8,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findForbidden } from "./forbiddenPatterns.js";
+import { labelIsProvablyCar } from "../lib/vehicle.js";
 
 const BASE = process.env.SMOKE_BASE_URL || "https://goasksam.vercel.app";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -74,6 +75,10 @@ function guardRender(name, text) {
 }
 function guardCarLabel(name) {
   const label = String(sellState.carName || "");
+  if (sellState.vehicleIdentityValidated && sellState.resolvedVehicle?.canonicalLabel) {
+    check(`[render gate] ${name}: label IS the canonical resolution`, label === sellState.resolvedVehicle.canonicalLabel, `label="${label}" canonical="${sellState.resolvedVehicle.canonicalLabel}"`);
+    check(`[render gate] ${name}: label provably a car`, labelIsProvablyCar(label, sellState.resolvedVehicle), `label="${label}"`);
+  }
   const contaminated = /\b(us|usa|uk|europe|australia|middle east|california|texas|florida|new york)\b/i.test(label)
     || /\$|\b\d{2,3}k\b|\bmiles?\b|\basap\b|\bfast\b/i.test(label)
     || /half restored|fully restored|barn find|needs work|project\b|\bmint\b|\brough\b/i.test(label);
@@ -510,6 +515,33 @@ await handleSellStep("Texas");
 await handleSellStep("60k to 100k");
 check("condition token: the condition ask pre-acknowledges", /you mentioned it'?s half restored/i.test(lastSam()||""), `last="${lastSam()}"`);
 
+// Regression battery: today's three exact label failures.
+resetToStep1();
+await handleSellStep("thinking about selling my dads old porsche 911 maybe 1987 or 88 not sure");
+check("regression 1: hedged 911 never renders conversation as car", /1987 Porsche 911/.test(lastSam()||"") && !/thinking|old or 88/i.test(lastSam()||""), `last="${lastSam()}"`);
+await handleSellStep("yes");
+guardCarLabel("regression-1-hedged-911");
+check("regression 1: confirmed label is exactly the canonical car", /^1987 Porsche 911/.test(sellState.carName||"") && !/thinking|about|or 88/i.test(sellState.carName||""), `car=${sellState.carName}`);
+
+resetToStep1();
+await handleSellStep("2015 lamborghini huracan that weird but smaller 2016 one");
+guardCarLabel("regression-2-huracan");
+check("regression 2: huracan label sheds the conversation", /^2015 Lamborghini Huracan/.test(sellState.carName||"") && !/weird|smaller|2016/i.test(sellState.carName||""), `car=${sellState.carName}`);
+
+resetToStep1();
+await handleSellStep("got a raptor truck been sitting needs some tlc");
+check("regression 3: mid-sentence raptor resolves, year asked", /Ford F-150/i.test(lastSam()||"") && /year/i.test(lastSam()||""), `last="${lastSam()}" step=${sellState.step}`);
+await handleSellStep("2018");
+guardCarLabel("regression-3-raptor");
+check("regression 3: raptor survives to the label", /F-150/i.test(sellState.carName||""), `car=${sellState.carName}`);
+// year conflict honesty: raptor typed at the model step with an old year held
+resetToStep1();
+await handleSellStep("1976 ford");
+if (sellState.step === 17) {
+  await handleSellStep("raptor");
+  check("regression 3b: old-year raptor gets the honest conflict, never dropped", /Raptor wasn'?t produced in 1976|F-100 or F-150/i.test(lastSam()||""), `last="${lastSam()}"`);
+}
+
 // Battery: multi-trim asks (FIX 2).
 resetToStep1();
 await handleSellStep("2018 mercedes c63");
@@ -571,6 +603,9 @@ check("edit: new car keeps answers, resumes at first unanswered", /Mustang/.test
   for(const car of CARS.slice(0,5)){
     cases.push({text:`wife's ${car.token} maybe 2004 not sure exact year`,make:car.make});
     cases.push({text:`dad's old ${car.token} half restored, US`,make:car.make});
+    cases.push({text:`thinking about selling the ${car.token} you know the one`,make:car.make});
+    cases.push({text:`${car.token} 1987 or 88 not sure somewhere around there`,make:car.make});
+    cases.push({text:`got a ${car.token} been sitting needs some tlc`,make:car.make});
   }
   let fuzzFailures=[];
   const CHUNK=10;
@@ -588,6 +623,7 @@ check("edit: new car keeps answers, resumes at first unanswered", /Mustang/.test
         if(!ok)fuzzFailures.push(`"${c.text}" -> ${data.status} make=${data.vehicle?.make} q="${(data.clarification?.question||"").slice(0,60)}"`);
         const label=String(data.vehicle?.canonicalLabel||"");
         if(/\b(us|usa)\b|\$|\b\d{2,3}k\b|half restored|barn find/i.test(label))fuzzFailures.push(`contaminated label: "${c.text}" -> "${label}"`);
+        if(label&&data.vehicle?.make&&data.vehicle?.model&&!labelIsProvablyCar(label,data.vehicle))fuzzFailures.push(`label fails sanity gate: "${c.text}" -> "${label}"`);
       }catch(err){fuzzFailures.push(`"${c.text}" threw ${err.message.slice(0,50)}`);}
     }));
   }

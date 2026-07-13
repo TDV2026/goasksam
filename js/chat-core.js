@@ -24,10 +24,12 @@ function normalizeVehicleAnswer(str){return String(str||"").toLowerCase().replac
 function apiPath(path){return `${API_ORIGIN}${path}`;}
 function activeVehicleIssue(){return sellState.pendingVehicleIdentity||currentMissingVehicleDetail();}
 function exampleCarText(partialVehicle){
-  // Typed examples build from the user's own car; a generic example may only
-  // render when nothing is known yet.
-  const knownMakeModel=[partialVehicle?.make,partialVehicle?.model].filter(Boolean).join(" ");
-  if(knownMakeModel)return `${partialVehicle?.year||"1985"} ${knownMakeModel}`;
+  // Typed examples build from the user's own car and ALWAYS include a model:
+  // "like '1976 Ford'" teaches the wrong shape.
+  const EXAMPLE_MODELS={ford:"Bronco",porsche:"911",bmw:"M3",chevrolet:"Corvette",dodge:"Challenger",toyota:"Land Cruiser",mercedes:"280SL","mercedes-benz":"280SL",jaguar:"XKE",volkswagen:"Beetle",ferrari:"308",lamborghini:"Huracan",audi:"TT",lexus:"LX 470",mazda:"MX-5",nissan:"GT-R",honda:"S2000"};
+  const make=String(partialVehicle?.make||"");
+  const model=partialVehicle?.model||EXAMPLE_MODELS[make.toLowerCase()]||null;
+  if(make&&model)return `${partialVehicle?.year||"1985"} ${make} ${model}`;
   return "2018 Porsche 911 Carrera GTS";
 }
 function askVehicleIdentityClarification(clarification,status,partialVehicle){
@@ -114,14 +116,10 @@ async function validateVehicleIdentityPreflight(candidate,opts={}){
       sellState.vehicleClarifyRepeats=0;
       sellState.lastIdentityVerdict="valid";
       if(data.vehicle?.canonicalLabel){
-        // When the resolver consumed field hints, the canonical label is the
-        // truth: preserving the raw candidate would resurrect the stripped
-        // tokens ("2020 BMW M3, US").
-        const label=(data.vehicle.locationHint||data.vehicle.priceHint)
-          ?data.vehicle.canonicalLabel
-          :preserveDetailedVehicleLabel(candidate,data.vehicle.canonicalLabel);
-        sellState.carName=label;
-        sellState.carRaw=label;
+        // Render gate (locked): the ONLY string that may render as a car is
+        // the resolver's canonical label. Raw input never becomes a label.
+        sellState.carName=data.vehicle.canonicalLabel;
+        sellState.carRaw=data.vehicle.canonicalLabel;
       }
       return true;
     }

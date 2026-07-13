@@ -26,6 +26,13 @@ function nothingUnderstood(result) {
     && !result.vehicle?.make && !result.vehicle?.model;
 }
 
+// Dirty input: the deterministic parse dropped conversational tokens. The
+// cached extraction arbitrates so meaning (a second year, an "or 88") is
+// recovered rather than discarded.
+function dirtyInput(result) {
+  return Array.isArray(result.vehicle?.dirtyTokens) && result.vehicle.dirtyTokens.length > 0;
+}
+
 async function llmExtractVehicle(text, env) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
@@ -76,10 +83,27 @@ export default async function handler(req, res) {
     let result = await resolveVehicle(raw);
     let fallbackUsed = null;
 
-    if (nothingUnderstood(result)) {
+    if (nothingUnderstood(result) || dirtyInput(result)) {
+      const wasDirtyArbitration = !nothingUnderstood(result);
       var extraction = await llmExtractVehicle(String(raw), env);
       var parsed = extraction?.parsed;
-      if (parsed && (parsed.make || parsed.model)) {
+      if (wasDirtyArbitration) {
+        // Arbitration: prefer the extraction's rebuild only when it resolves
+        // at least as cleanly as the deterministic result; otherwise keep the
+        // deterministic (already whitelisted) resolution.
+        if (parsed && (parsed.make || parsed.model)) {
+          const rebuilt = [parsed.year || parsed.decade, parsed.make, parsed.model, parsed.trim].filter(Boolean).join(" ").trim();
+          const second = rebuilt ? await resolveVehicle(rebuilt) : null;
+          if (second && ["valid", "needs_confirmation"].includes(second.status) && second.vehicle?.make && !second.vehicle?.dirtyTokens) {
+            result = second;
+            fallbackUsed = "dirty_arbitration_extraction";
+          } else {
+            fallbackUsed = "dirty_arbitration_kept_deterministic";
+          }
+        } else {
+          fallbackUsed = "dirty_arbitration_kept_deterministic";
+        }
+      } else if (parsed && (parsed.make || parsed.model)) {
         // The LLM extracts; it never writes state. The rebuilt phrase goes
         // through the full deterministic pipeline (aliases, validation,
         // confirmation, contamination stripping) like any user input.
@@ -105,7 +129,7 @@ export default async function handler(req, res) {
           };
           fallbackUsed = "extraction_grounded_question";
         }
-      } else {
+      } else if (!wasDirtyArbitration) {
         fallbackUsed = "extraction_failed";
       }
       // Failed-resolution logging: real user phrasing becomes the alias and
