@@ -753,6 +753,29 @@ function plural(value,singular,pluralWord){
   return `${value} ${value===1?singular:pluralWord||`${singular}s`}`;
 }
 
+// Alternative-card reason (locked): ONE grounded line from the same
+// evidence set, first that passes: (a) its own tier claim vs the remaining
+// platforms, (b) segment fit from curated route policy, (c) curated
+// strength line. Visibly subordinate: never green, never a plate.
+function altReasonLine(route,pick){
+  const mine=Number(route?.marketEvidence?.evidenceSales||0);
+  const remaining=(sellState.allRouteOptions||[])
+    .filter(other=>other!==route&&other!==pick&&other.marketEvidence)
+    .map(other=>Number(other.marketEvidence.evidenceSales||0));
+  if(mine>0&&(!remaining.length||mine>Math.max(...remaining))){
+    return `Second-most ${comparableSalesLabel()} sales in our tracked records.`;
+  }
+  if((route.routeFitFacts||[]).includes("segment_fit")){
+    return "Its typical buyer pool matches this kind of car.";
+  }
+  const name=platformDisplayName(route.label||route.platform);
+  return pickCopy([
+    `${name} is still worth looking at, but the pick above is stronger on the current market read.`,
+    `${name} is worth considering, though the pick above is the stronger call today.`,
+    `${name} remains viable, but it is not the clearest first choice from the current evidence.`
+  ],sellState.carName,name);
+}
+
 // Tier B leadership check: true only when this platform's evidence count
 // strictly beats every other platform's count AND the per-platform counts
 // account for the full cross-platform denominator (an unaccounted platform
@@ -792,28 +815,35 @@ function primaryReasonBullets(route){
   const e=route.marketEvidence;
   const facts=routeFacts(route);
   const bullets=[];
-  // Bullet 1 is always comparative (locked), on a three-tier ladder:
-  // Tier A: the share claim when the cross-platform denominator is proven
-  //   and 10+ (green, earned).
-  // Tier B: below the gate but the platform verifiably leads every other
-  //   platform's count for this model in the same evidence set (neutral).
-  // Tier C: leadership can't be verified; honest existence line naming a
-  //   real window, last resort only.
+  // Bullet 1 is always comparative (locked), first tier whose gates pass:
+  // Tier 1: price premium, green. Model-scoped, 5+ sold both sides in the
+  //   same window, rounded gap 10%+; % only, never dollars, never "median".
+  // Tier 2: volume share, green. Proven cross-platform denominator, 10+.
+  // Tier 3: verified leadership, neutral.
+  // Tier 4: honest existence with a real window, neutral, last resort.
   if(e.evidenceSales>0){
-    if(Number(facts.totalEvidenceSales)>=10){
+    const premium=e.pricePremium;
+    const landedDays=sellState.sellDecision?.evidence?.windowDays;
+    if(premium&&premium.platformSales>=5&&premium.othersSales>=5&&premium.percent>=10){
+      const name=platformDisplayName(route.label||route.platform);
+      bullets.push({
+        text:premium.windowDays>=3650
+          ?`${comparableSalesLabel()} sales have historically closed around ${premium.percent}% higher on ${name} than on other platforms`
+          :`${comparableSalesLabel()} sales have closed around ${premium.percent}% higher on ${name} than on other platforms over the past ${premium.windowDays} days`,
+        validated:true,windowDays:premium.windowDays});
+    }else if(Number(facts.totalEvidenceSales)>=10){
       const share=Math.round((facts.evidenceSales/facts.totalEvidenceSales)*100);
-      bullets.push({text:`${share}% of ${comparableSalesLabel()} sales ${marketWindowPhrase()} closed on ${platformDisplayName(route.label||route.platform)}`,validated:true});
+      bullets.push({text:`${share}% of ${comparableSalesLabel()} sales ${marketWindowPhrase()} closed on ${platformDisplayName(route.label||route.platform)}`,validated:true,windowDays:landedDays});
     }else if(platformLeadsEvidenceSet(route)){
-      bullets.push({text:`More ${comparableSalesLabel()} sales have closed on ${platformDisplayName(route.label||route.platform)} than any other platform we track`,validated:false});
+      bullets.push({text:`More ${comparableSalesLabel()} sales have closed on ${platformDisplayName(route.label||route.platform)} than any other platform we track`,validated:false,windowDays:landedDays});
     }else{
-      const days=sellState.sellDecision?.evidence?.windowDays;
-      const windowText=days&&days<=180?`over the past ${days} days`:`in our tracked records, though none in the past 180 days`;
-      bullets.push({text:`${cleanCarForCopy()} sales have closed on ${platformDisplayName(route.label||route.platform)} ${windowText}`,validated:false});
+      const windowText=landedDays&&landedDays<=180?`over the past ${landedDays} days`:`in our tracked records, though none in the past 180 days`;
+      bullets.push({text:`${cleanCarForCopy()} sales have closed on ${platformDisplayName(route.label||route.platform)} ${windowText}`,validated:false,windowDays:landedDays});
     }
   }
   // Bullet 2: historical day advantage (all-time, 3+ same-day sales, 10%+ lift).
   const day=weekdayBullet();
-  if(day)bullets.push({text:day,validated:false});
+  if(day)bullets.push({text:day,validated:false,windowDays:36500});
   // Bullet 3: qualitative segment sell-through (never a percentage or count)
   // plus a speed acknowledgment only when the seller wants it gone fast.
   let bullet3="";
@@ -830,7 +860,7 @@ function primaryReasonBullets(route){
       :"On a fast timeline, this is still the market I'd trust to move it";
     bullet3=bullet3?`${bullet3}. ${speedLine}`:speedLine;
   }
-  if(bullet3)bullets.push({text:`${bullet3}.`,validated:false});
+  if(bullet3)bullets.push({text:`${bullet3}.`,validated:false,windowDays:36500});
   return bullets.length?bullets.slice(0,3):null;
 }
 

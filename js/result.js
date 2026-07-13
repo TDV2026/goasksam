@@ -187,6 +187,7 @@ async function showSellRecommendation(){
       // leads, the plate moves to the dossier and this card renders as the
       // alternative. The DIY ordering re-renders this card with the plate.
       showPlate:index===0&&!hasNamedPowerSellerAdvice,
+      altReason:index>0?altReasonLine(route,routesForCards[0]):null,
       actionLabel:index===0?`Submit your car to ${platformLogo({name:routeName}).text}`:`Consider ${routeName}`,
       speedArgument:!!route.speedArgument,
       reason:route.speedArgument
@@ -231,17 +232,29 @@ async function showSellRecommendation(){
   // Verdict plate (Design Phase 1): once per result, on the primary card
   // only. Ref code is deterministic per car.
   const verdictRefCode=`SAM-${String(1000+textSeed(sellState.carName||"car")%9000)}-${String(sellState.state||sellState.region||"US").replace(/[^A-Za-z]/g,"").slice(0,2).toUpperCase()||"US"}`;
-  const verdictPlate=option=>`<div class="verdict-plate">
+  // Analysis window row (locked): the widest window any rendered claim on
+  // the card actually used, plus "historical" when any claim is all-time.
+  // Never a window no claim used.
+  const plateWindowLabel=option=>{
+    const windows=(option.reasonBullets||[]).map(item=>Number(item.windowDays)).filter(Number.isFinite);
+    const finite=windows.filter(days=>days<3650);
+    const historical=windows.some(days=>days>=3650);
+    const parts=[];
+    if(finite.length)parts.push(`Past ${Math.max(...finite)} days`);
+    if(historical)parts.push(finite.length?"historical":"Historical");
+    return parts.join(" + ");
+  };
+  const verdictPlate=(option,windowLabel)=>`<div class="verdict-plate">
         <div class="vp-row1"><span class="label-mono">Sam's pick</span><span class="num label-mono">${escapeHtml(verdictRefCode)}</span></div>
         <div class="vp-name">${escapeHtml(option.name)}</div>
         <div class="vp-hairline"></div>
-        <div class="label-mono">${numify(`${sellState.carName||"Car"} · ${[sellState.state,sellState.region].filter(Boolean)[0]||"US"}`)}</div>
+        <div class="vp-vehicle-row"><span class="label-mono">${numify(`${sellState.carName||"Car"} · ${[sellState.state,sellState.region].filter(Boolean)[0]||"US"}`)}</span>${windowLabel?`<span class="label-mono">${numify(`Data: ${windowLabel}`)}</span>`:""}</div>
       </div>`;
   const renderOptionCard=option=>{
     const isPrimary=!!option.showPlate;
     return `
       <div class="sell-rec-card ${escapeHtml(option.cardClass||"")}" onclick="chooseSellOption('${escapeHtml(option.key)}')">
-        ${isPrimary&&option.key!=="specialist"?verdictPlate(option):`
+        ${isPrimary&&option.key!=="specialist"?verdictPlate(option,plateWindowLabel(option)):`
         <div class="sell-rec-card-head">
           <div>
             <div class="sell-rec-badge label-mono ${escapeHtml(option.badgeClass||"alt")}">${escapeHtml(option.badge)}</div>
@@ -249,12 +262,12 @@ async function showSellRecommendation(){
           </div>
         </div>`}
         ${isPrimary&&option.reason&&!option.reasonBullets?.length?"":isPrimary?`<div class="sell-rec-samline voice">${escapeHtml(option.reason||"")}</div>`:""}
-        <div class="sell-rec-reason-label label-mono">${option.key==="specialist"?"Why I’d call them":"Why I picked this"}</div>
+        <div class="sell-rec-reason-label label-mono">${option.key==="specialist"?"Why I’d call them":option.altReason?"Why it’s worth comparing":"Why I picked this"}</div>
         ${option.reasonBullets?.length
           ?`<ul class="sell-rec-bullets">${option.reasonBullets.map(item=>`<li${item.validated?' class="validated-claim"':""}>${numify(item.text)}</li>`).join("")}</ul>`
-          :`<div class="sell-rec-reason">${numify(option.rankReason||option.reason||"")}</div>`}
+          :`<div class="sell-rec-reason">${numify(option.altReason||option.rankReason||option.reason||"")}</div>`}
         ${option.stat?`<div class="sell-rec-stat">${numify(option.stat)}</div>`:""}
-        ${option.evidenceBullets?.length?`<ul class="sell-rec-bullets">${option.evidenceBullets.map(item=>`<li>${numify(item)}</li>`).join("")}</ul>`:""}
+        ${option.evidenceBullets?.length&&!option.altReason?`<ul class="sell-rec-bullets">${option.evidenceBullets.map(item=>`<li>${numify(item)}</li>`).join("")}</ul>`:""}
         ${option.evidenceLine?`<div class="sell-rec-evidence-line">${numify(option.evidenceLine||"")}</div>`:""}
         ${option.observedSellers?.length?`<div class="observed-sellers">
           ${option.observedSellers.map((seller,sellerIndex)=>`<div class="observed-seller">
@@ -310,7 +323,7 @@ async function showSellRecommendation(){
     <div class="sell-section-note">${platformFirst
       ?`If you'd rather have it handled: you do pay a fee, but a good PowerSeller takes on everything, prep, photos, listing, buyer questions, paperwork and platform choice, and in most cases the fee earns its keep. ${escapeHtml(featuredPowerSellerName)} is who I'd call. The platform pick above is the place to start if you're running it yourself.`
       :`Honestly? At this level my personal preference is generally a good PowerSeller. You do pay a fee, but a good one handles everything: prep, photos, listing, buyer questions, paperwork and platform choice. In most cases the fee earns its keep. ${escapeHtml(featuredPowerSellerName)} is who I'd call. If you'd rather run it yourself, the platform pick is right below.`}</div>
-    ${renderFeaturedPowerSellerProfile(featuredPowerSeller,platformFirst,platformFirst?null:verdictPlate({name:featuredPowerSeller.displayName||featuredPowerSeller.name}))}
+    ${renderFeaturedPowerSellerProfile(featuredPowerSeller,platformFirst,platformFirst?null:verdictPlate({name:featuredPowerSeller.displayName||featuredPowerSeller.name},"Historical"))}
   `:"";
   const powerSellerHTML=buildPowerSellerHTML(false);
   const powerSellerSecondHTML=buildPowerSellerHTML(true);
@@ -324,8 +337,7 @@ async function showSellRecommendation(){
     <div class="sell-section-label" style="margin-top:12px">Run it yourself</div>
     <div class="sell-rec-grid">${renderOptionCard(primaryPlatform)}</div>
   `:`
-    <div class="sell-rec-grid">${renderOptionCard(primaryPlatform)}</div>
-    ${secondaryPlatforms.length?`<div class="platform-compact-list"><div class="sell-section-note" style="margin:0">Also looked at</div>${secondaryPlatforms.map(renderCompactPlatform).join("")}</div>`:""}
+    <div class="sell-rec-grid">${renderOptionCard(primaryPlatform)}${secondaryPlatforms.map(renderOptionCard).join("")}</div>
     ${diySecondaryLine}
   `):"";
   // DIY ordering: the platform IS the pick, so its card carries the plate.

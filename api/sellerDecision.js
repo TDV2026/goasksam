@@ -820,6 +820,28 @@ function analyze(records, classifications, ladder, vehicle) {
     .sort((a, b) => Number(b.classification.price) - Number(a.classification.price))
     .slice(0, 3);
 
+  // Price premium (Tier 1 claim): model-scoped only (never the make-context
+  // rung), stepwise window widening 45 -> 90 -> 180 -> all-time, 5+ sold on
+  // the platform AND 5+ sold elsewhere in the same window, rounded gap 10%+.
+  // The numbers ship in the response as the claim's proof object.
+  const pricePremiumFor = platform => {
+    if (!landed || landed.key === "make_context") return null;
+    for (const window of [45, 90, 180, 36500]) {
+      const eligible = pairedRecords.filter(item =>
+        daysAgo(item.record.auction_end_date) <= window && ladderEligible(item, landed.definition));
+      const mine = eligible.filter(item => recordPlatform(item.record) === platform)
+        .map(item => Number(item.classification.price)).filter(Number.isFinite);
+      const others = eligible.filter(item => recordPlatform(item.record) !== platform)
+        .map(item => Number(item.classification.price)).filter(Number.isFinite);
+      if (mine.length >= 5 && others.length >= 5) {
+        const gap = Math.round((median(mine) - median(others)) / median(others) * 100);
+        if (gap >= 10) return { percent: gap, windowDays: window, platformSales: mine.length, othersSales: others.length };
+        // gates unmet at this window: keep widening until they pass or run out
+      }
+    }
+    return null;
+  };
+
   let platformPerformance = [...platformMap.entries()]
     .map(([platform, items]) => {
       const weekdayInsight = strongestWeekdayInsight(items);
@@ -843,6 +865,7 @@ function analyze(records, classifications, ladder, vehicle) {
       return {
         momentum,
         platform,
+        pricePremium: pricePremiumFor(platform),
         evidenceSales: items.length,
         totalEvidenceSales,
         othersSalesCount: otherPrices.length,

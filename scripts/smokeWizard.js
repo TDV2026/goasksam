@@ -105,10 +105,23 @@ function guardRender(name, text) {
     check(`[design] ${name}: no evidence band on platform cards`, !/evidence-band/.test(raw), "band still renders");
     const flatLi = h => String(h).replace(/<span class="num">([^<]*)<\/span>/g, "$1").replace(/&#\d+;/g, "'").replace(/<[^>]+>/g, " ");
     const liMatches = [...raw.matchAll(/<li(?: class="([^"]*)")?>([\s\S]*?)<\/li>/g)];
+    const greenClaim = b => /% of [^%]*closed on/.test(b) || /% higher on [^%]* than on other platforms/.test(b);
     const validatedLis = liMatches.filter(m => /validated-claim/.test(m[1] || "")).map(m => flatLi(m[2]));
-    check(`[design] ${name}: green bullet only with a validated share claim`, validatedLis.every(b => /% of [^%]*closed on/.test(b)), (validatedLis.find(b => !/% of [^%]*closed on/.test(b)) || "").slice(0, 140));
+    check(`[design] ${name}: green bullet only with a Tier 1 or Tier 2 claim`, validatedLis.every(greenClaim), (validatedLis.find(b => !greenClaim(b)) || "").slice(0, 140));
     const plainLis = liMatches.filter(m => !/validated-claim/.test(m[1] || "")).map(m => flatLi(m[2]));
-    check(`[design] ${name}: share claims always carry the green class`, plainLis.every(b => !/% of [^%]*closed on/.test(b)), (plainLis.find(b => /% of [^%]*closed on/.test(b)) || "").slice(0, 140));
+    check(`[design] ${name}: Tier 1/2 claims always carry the green class`, plainLis.every(b => !greenClaim(b)), (plainLis.find(greenClaim) || "").slice(0, 140));
+    // Tier 1 gates: 5+ sold both sides, rounded gap 10%+, % only (no dollars,
+    // no "median"), verified against the decision's own proof object.
+    const tier1 = clean.match(/sales have (?:historically )?closed around (\d+)% higher on ([^\n]+?) than on other platforms/);
+    if (tier1) {
+      const norm1 = v => String(v || "").toLowerCase().replace(/&amp;|&/g, "and").replace(/[^a-z0-9]/g, "");
+      const routes1 = (sellState.sellDecision?.decision?.routeFit?.routes || []).filter(r => r.marketEvidence);
+      const claimed1 = routes1.find(r => norm1(tier1[2]).includes(norm1(r.platform)) || norm1(platformNameMapSmoke(r.platform)) === norm1(tier1[2].trim()));
+      const proof = claimed1?.marketEvidence?.pricePremium || null;
+      check(`[design] ${name}: Tier 1 gates hold (5+ both sides, 10%+ gap)`, !!proof && proof.platformSales >= 5 && proof.othersSales >= 5 && proof.percent >= 10 && Number(tier1[1]) === proof.percent, `claim="${tier1[0].slice(0, 100)}" proof=${JSON.stringify(proof)}`);
+      const tier1Li = validatedLis.find(b => /% higher on/.test(b)) || "";
+      check(`[design] ${name}: Tier 1 is percent-only, no dollars or median`, !/\$|median/i.test(tier1Li), tier1Li.slice(0, 120));
+    }
     check(`[design] ${name}: voice class never inside buttons or bullets`, !/<(button|li)[^>]*class="[^"]*voice/.test(raw), "voice in button/li");
     // All-time day-advantage lines must say "historically" (locked wording).
     const dayLines = clean.split("\n").filter(l => /above other days/i.test(l));

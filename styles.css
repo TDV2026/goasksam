@@ -395,6 +395,7 @@ body{font-family:var(--font-ui);color:var(--ink);}
 .verdict-plate .vp-row1{display:flex;justify-content:space-between;align-items:baseline;}
 .verdict-plate .vp-name{font-family:var(--font-ui);font-weight:600;font-size:var(--text-xl);color:var(--ink);margin:6px 0 10px;}
 .verdict-plate .vp-hairline{border-top:1px solid var(--line);margin:0 0 10px;}
+.verdict-plate .vp-vehicle-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;}
 
 /* Sam's line on cards: the only voice moment inside a card (R3). */
 .sell-rec-samline{font-family:var(--font-voice);font-size:var(--text-lg);color:var(--ink);line-height:1.35;}
