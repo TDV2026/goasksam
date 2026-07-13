@@ -62,6 +62,13 @@ fs.mkdirSync(artifactsDir, { recursive: true });
 function saveArtifact(name, text) {
   fs.writeFileSync(path.join(artifactsDir, `${name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.txt`), text);
 }
+// Slug-to-display map for verifying rendered platform claims against the
+// decision's own route objects.
+function platformNameMapSmoke(slug) {
+  const key = String(slug || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const map = { bringatrailer: "Bring a Trailer", bat: "Bring a Trailer", carsandbids: "Cars & Bids", pcarmarket: "PCarMarket", hagerty: "Hagerty Marketplace", hemmings: "Hemmings", carandclassic: "Car & Classic", collectingcars: "Collecting Cars" };
+  return map[key] || String(slug || "");
+}
 // Guardrails applied to every journey: forbidden-pattern registry (A),
 // field-contamination check on the car label (D), repetition guard (E).
 function guardRender(name, text) {
@@ -103,6 +110,21 @@ function guardRender(name, text) {
     const plainLis = liMatches.filter(m => !/validated-claim/.test(m[1] || "")).map(m => flatLi(m[2]));
     check(`[design] ${name}: share claims always carry the green class`, plainLis.every(b => !/% of [^%]*closed on/.test(b)), (plainLis.find(b => /% of [^%]*closed on/.test(b)) || "").slice(0, 140));
     check(`[design] ${name}: voice class never inside buttons or bullets`, !/<(button|li)[^>]*class="[^"]*voice/.test(raw), "voice in button/li");
+    // All-time day-advantage lines must say "historically" (locked wording).
+    const dayLines = clean.split("\n").filter(l => /above other days/i.test(l));
+    check(`[design] ${name}: all-time day lines say historically`, dayLines.every(l => /historically/i.test(l)), dayLines.find(l => !/historically/i.test(l)) || "");
+    // Tier B ("More X sales have closed on P than any other platform we
+    // track") renders only when leadership is verifiably true in the
+    // decision's own evidence set, and never in green.
+    const tierB = clean.match(/More [^\n]* sales have closed on ([^\n]+?) than any other platform we track/);
+    if (tierB) {
+      const norm = v => String(v || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const routes = (sellState.sellDecision?.decision?.routeFit?.routes || []).filter(r => r.marketEvidence);
+      const claimed = routes.find(r => norm(tierB[1]).includes(norm(r.platform)) || norm(tierB[1]).includes(norm(r.label)) || norm(platformNameMapSmoke(r.platform)) === norm(tierB[1]));
+      const otherMax = Math.max(0, ...routes.filter(r => r !== claimed).map(r => Number(r.marketEvidence.evidenceSales || 0)));
+      check(`[design] ${name}: Tier B leadership is verifiably true`, !!claimed && Number(claimed.marketEvidence.evidenceSales || 0) > otherMax, `claim="${tierB[0].slice(0, 90)}" counts=${JSON.stringify(routes.map(r => [r.platform, r.marketEvidence.evidenceSales]))}`);
+      check(`[design] ${name}: Tier B never renders green`, !new RegExp(`validated-claim[^>]*>[^<]*than any other platform we track`).test(raw.replace(/<span class="num">([^<]*)<\/span>/g, "$1")), "tier B carries the green class");
+    }
     // Standalone stats in the green bullet must carry .num.
     const liResidue = liMatches.filter(m => /validated-claim/.test(m[1] || ""))
       .map(m => m[2].replace(/<span class="num">[^<]*<\/span>/g, "").replace(/&#\d+;/g, "'").replace(/<[^>]+>/g, " "));

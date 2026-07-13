@@ -418,12 +418,20 @@ body{font-family:var(--font-ui);color:var(--ink);}
 .power-seller-feature{background:var(--consignor-tint);border:1px solid var(--consignor-amber);border-radius:var(--radius-card);}
 .power-seller-feature .sell-rec-badge.specialist{font-family:var(--font-data);text-transform:uppercase;font-size:11px;letter-spacing:0.08em;color:var(--consignor-amber);background:transparent;border:none;padding:0;}
 .dossier-education{color:var(--slate);font-size:var(--text-sm);margin:2px 0 10px;}
-.dossier-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--line);margin:8px 0;}
-.dossier-cell{padding:10px 12px;border:0.5px solid var(--line);display:flex;flex-direction:column;gap:2px;background:var(--paper);}
+/* Hierarchy (locked): the why-line is the card's hero, then 32px rhythm
+   between the grid, the handles bullets and the clients chips. */
+.ps-consignor-row{display:flex;align-items:center;gap:10px;margin-top:6px;}
+.ps-learn-link{background:none;border:none;padding:0;font-family:var(--font-ui);font-size:13px;color:var(--slate);text-decoration:underline;cursor:pointer;}
+.dossier-why{font-family:var(--font-voice);font-size:20px;line-height:1.35;color:var(--ink);padding:24px 0;margin:0 0 8px;}
+.dossier-why .num{font-family:var(--font-data);font-size:18px;}
+.dossier-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--line);margin:0 0 32px;}
+.dossier-cell{padding:16px;border:0.5px solid var(--line);display:flex;flex-direction:column;gap:2px;background:var(--paper);}
 .dossier-cell .dc-value{font-family:var(--font-data);font-size:var(--text-lg);color:var(--ink);}
 .dossier-cell.full{grid-column:1/-1;}
 .dossier-cell.full .dc-value{font-size:var(--text-sm);}
 @media(max-width:560px){.dossier-grid{grid-template-columns:1fr;}}
+.power-seller-feature .sell-rec-bullets{margin:0 0 32px;}
+.power-seller-feature .power-seller-profile-grid{margin:0 0 32px;}
 .power-seller-client-chip,.power-seller-chip-row .chip{border-radius:var(--radius-chip);border:1px solid var(--line);font-family:var(--font-ui);font-size:13px;}
 .power-seller-feature .sell-rec-actions button{background:transparent;border:1px solid var(--consignor-amber);color:var(--consignor-amber);}
 
@@ -456,8 +464,8 @@ body{font-family:var(--font-ui);color:var(--ink);}
         <div class="vp-hairline"></div>
         <div class="label-mono"><span class="num">2018</span> Porsche <span class="num">911</span> Carrera S · California</div>
       </div>
-      <div class="dossier-education">A PowerSeller manages the entire sale for a fee: prep, photos, listing, buyer questions.</div>
-      <div class="sell-rec-reason dossier-why">Why for your car: Porsche is squarely in his lane: <span class="num">123</span> Porsche sales tracked, <span class="num">59</span> in your price range.</div>
+      <div class="ps-consignor-row"><span class="label-mono">Auction consignor</span><button class="ps-learn-link" onclick="event.stopPropagation();samExplainPowerSeller()">What's a PowerSeller?</button></div>
+      <div class="dossier-why">Porsche is squarely in his lane: <span class="num">123</span> Porsche sales tracked, <span class="num">59</span> in your price range.</div>
       <div class="dossier-grid"><div class="dossier-cell"><span class="dc-value"><span class="num">400+</span></span><span class="label-mono">Listings tracked</span></div><div class="dossier-cell"><span class="dc-value"><span class="num">85%</span></span><span class="label-mono">Sell-through</span></div><div class="dossier-cell"><span class="dc-value">Bring a Trailer</span><span class="label-mono">Lists on</span></div><div class="dossier-cell full"><span class="dc-value">Porsche, Mercedes-Benz, BMW, Ferrari, and other European marques</span><span class="label-mono">Specializes in</span></div></div>
       <div class="power-seller-platform-row"><span class="power-seller-profile-label">Lists on (per howS)</span><span class="power-seller-platform-chip"><span class="platform-logo bringatrailer">BaT</span><span>Bring a Trailer</span></span><span class="power-seller-platform-chip"><span class="platform-logo carsandbids">C&amp;B</span><span>Cars &amp; Bids</span></span><span class="power-seller-platform-chip"><span class="platform-logo pcarmarket">PCM</span><span>PCarMarket</span></span><span class="power-seller-platform-chip"><span class="platform-logo hemmings">H</span><span>Hemmings</span></span></div>
       <span class="observed-seller-why">What howS says he handles</span>
@@ -480,7 +488,7 @@ body{font-family:var(--font-ui);color:var(--ink);}
         </div>
         
         <div class="sell-rec-reason-label label-mono">Why I picked this</div>
-        <ul class="sell-rec-bullets"><li class="validated-claim"><span class="num">82%</span> of Carrera S sales over the past <span class="num">45</span> days closed on Bring a Trailer</li><li>Consistent sell-through for modern Porsches in the <span class="num">$50k</span> to <span class="num">$150k</span> range.</li></ul>
+        <ul class="sell-rec-bullets"><li class="validated-claim"><span class="num">82%</span> of Carrera S sales over the past <span class="num">45</span> days closed on Bring a Trailer</li><li>Saturdays have historically finished strongest for Carrera S models, around <span class="num">19%</span> above other days.</li><li>Consistent sell-through for modern Porsches in the <span class="num">$50k</span> to <span class="num">$150k</span> range.</li></ul>
         
         
         

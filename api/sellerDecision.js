@@ -888,9 +888,30 @@ function analyze(records, classifications, ladder, vehicle) {
     };
   });
 
+  // Historical day advantage: best weekday over ALL fetched sales (no
+  // window), model scope first, make scope as the honest fallback. The
+  // frontend gates at 3+ sales and 10%+ lift and must say "historically".
+  const historicalWeekday = (() => {
+    const passesGate = insight => insight && insight.strongestWeekdaySales >= 3 && insight.strongestWeekdayLiftPercent >= 10;
+    const modelInsight = strongestWeekdayInsight(pairedRecords.filter(item =>
+      ["close_match", "relevant_match"].includes(item.classification?.comparison_tier)));
+    if (passesGate(modelInsight)) return {
+      weekday: modelInsight.strongestWeekday, sales: modelInsight.strongestWeekdaySales,
+      liftPercent: modelInsight.strongestWeekdayLiftPercent, scope: "model", window: "all_time"
+    };
+    const makeInsight = strongestWeekdayInsight(pairedRecords.filter(item =>
+      item.classification?.comparison_tier && item.classification.comparison_tier !== "excluded"));
+    if (passesGate(makeInsight)) return {
+      weekday: makeInsight.strongestWeekday, sales: makeInsight.strongestWeekdaySales,
+      liftPercent: makeInsight.strongestWeekdayLiftPercent, scope: "make", window: "all_time"
+    };
+    return null;
+  })();
+
   return {
     analysisDate: analysisDateForSeller(),
     windowDays,
+    historicalWeekday,
     recordsFetched: records.length,
     recordsAnalyzed: inWindow.length,
     closeMatches: closeMatches.length,
@@ -1553,6 +1574,7 @@ export default async function handler(req, res) {
         estimatedValue: analysis.estimatedValue,
         windowDays: analysis.windowDays,
         thinMarket: analysis.thinMarket,
+        historicalWeekday: analysis.historicalWeekday,
         generation: generation ? { code: generation.code, yearStart: generation.yearStart, yearEnd: generation.yearEnd } : null,
         ladder: analysis.ladder,
         fetchPasses: fetchResult.passSummary,

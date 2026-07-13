@@ -636,6 +636,12 @@ function powerSellerProofHTML(profile){
   ).join("");
 }
 
+// Education lives off-card (locked): the card sells THIS seller for THIS
+// car; the category explainer is a link that gets a real Sam answer.
+function samExplainPowerSeller(){
+  addMsg("sam","A PowerSeller manages the entire sale for a fee: prep, photos, listing, buyer questions, paperwork and platform choice. You approve the big decisions; they do the work.");
+}
+
 function renderFeaturedPowerSellerProfile(profile,platformFirst,plateHTML){
   if(!profile)return "";
   const firstName=powerSellerFirstName(profile);
@@ -645,16 +651,16 @@ function renderFeaturedPowerSellerProfile(profile,platformFirst,plateHTML){
   const honestyNote=v.belowCareerMinimum
     ?`<div class="sell-rec-reason">We've tracked too few of ${escapeHtml(firstName)}'s sales in our own records to compute his numbers fairly yet. His history below is his own account.</div>`
     :"";
-  // Car-specific relevance line under the header (locked): the make-scoped
-  // numbers when he genuinely has the make (3+ tracked), otherwise his
-  // curated specialty line. Never an invented claim.
+  // The why-line is the card's hero (locked hierarchy): serif voice, the
+  // make-scoped numbers when he genuinely has the make (3+ tracked),
+  // otherwise his curated specialty line. Never an invented claim.
   const rel=v.relevance;
   const whyLine=(rel&&rel.makeCount>=3)
-    ?`<div class="sell-rec-reason dossier-why">${numify(`Why for your car: ${rel.make} is squarely in his lane: ${rel.makeCount} ${rel.make} sales tracked${rel.inPriceBand>=3?`, ${rel.inPriceBand} in your price range`:""}.`)}</div>`
+    ?`<div class="dossier-why">${numify(`${rel.make} is squarely in his lane: ${rel.makeCount} ${rel.make} sales tracked${rel.inPriceBand>=3?`, ${rel.inPriceBand} in your price range`:""}.`)}</div>`
     :(()=>{
       const specialty=(profile.profileStats||[]).find(l=>/^specializes in/i.test(l.text||""));
       const tail=specialty?String(specialty.text).replace(/^specializes in:?\s*/i,""):"";
-      return tail?`<div class="sell-rec-reason dossier-why">Why for your car: he specializes in ${escapeHtml(tail)}.</div>`:"";
+      return tail?`<div class="dossier-why">He specializes in ${escapeHtml(tail)}.</div>`:"";
     })();
   const dossier=dossierGridCells(profile,v);
   const gridCellCount=dossier.cells.length+(dossier.specialize?1:0);
@@ -663,7 +669,7 @@ function renderFeaturedPowerSellerProfile(profile,platformFirst,plateHTML){
     <div class="power-seller-feature-main">
       ${plateHTML||`<div class="sell-rec-badge specialist label-mono">${platformFirst===true?"Option 2: have it handled":platformFirst===false?"Option 1: have it handled":"Have it handled"}</div>
       <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>`}
-      <div class="dossier-education">A PowerSeller manages the entire sale for a fee: prep, photos, listing, buyer questions.</div>
+      <div class="ps-consignor-row"><span class="label-mono">Auction consignor</span><button class="ps-learn-link" onclick="event.stopPropagation();samExplainPowerSeller()">What's a PowerSeller?</button></div>
       ${whyLine}
       ${gridHTML||(proofHTML?`<div class="power-seller-proof-list">${proofHTML}</div>`:honestyNote)}
       ${platformChips?`<div class="power-seller-platform-row"><span class="power-seller-profile-label">Lists on (per ${escapeHtml(profile.name)})</span>${platformChips}</div>`:""}
@@ -745,13 +751,33 @@ function plural(value,singular,pluralWord){
   return `${value} ${value===1?singular:pluralWord||`${singular}s`}`;
 }
 
-// Day advantage renders only when material: 3+ sales on the named day and a
-// lift of 10%+; anything thinner is small-sample noise.
-function weekdayBullet(evidence){
-  if(!evidence?.strongestWeekday)return null;
-  if((evidence.strongestWeekdaySales||0)<3)return null;
-  if((evidence.strongestWeekdayLiftPercent||0)<10)return null;
-  return `${evidence.strongestWeekday} endings finished strongest at ~${evidence.strongestWeekdayLiftPercent}% above other days.`;
+// Tier B leadership check: true only when this platform's evidence count
+// strictly beats every other platform's count AND the per-platform counts
+// account for the full cross-platform denominator (an unaccounted platform
+// means leadership is unverifiable, so Tier C).
+function platformLeadsEvidenceSet(route){
+  const e=route?.marketEvidence||{};
+  const mine=Number(e.evidenceSales||0);
+  if(!mine)return false;
+  const others=(sellState.allRouteOptions||[])
+    .filter(other=>other!==route&&other.marketEvidence)
+    .map(other=>Number(other.marketEvidence.evidenceSales||0));
+  const accounted=mine+others.reduce((a,b)=>a+b,0);
+  if(accounted<Number(e.totalEvidenceSales||0))return false;
+  return mine>Math.max(0,...others);
+}
+
+// Day advantage over ALL tracked sales (model scope, make fallback), gates
+// unchanged: 3+ sales on the named day and a 10%+ lift. "historically" is
+// required wording because the window is all-time.
+function weekdayBullet(){
+  const h=sellState.sellDecision?.evidence?.historicalWeekday;
+  if(!h?.weekday)return null;
+  if((h.sales||0)<3||(h.liftPercent||0)<10)return null;
+  const scopeLabel=h.scope==="make"
+    ?`${sellState.resolvedVehicle?.make||"this make"}s`
+    :comparableModelLabel();
+  return `${h.weekday}s have historically finished strongest for ${scopeLabel}, around ${h.liftPercent}% above other days.`;
 }
 
 // "Why I picked this" is ONE list of three concrete reasons, never prose.
@@ -764,21 +790,27 @@ function primaryReasonBullets(route){
   const e=route.marketEvidence;
   const facts=routeFacts(route);
   const bullets=[];
-  // Bullet 1: the share claim when the cross-platform denominator is proven
-  // and 10+; otherwise honest existence with a real window (an all-time
-  // landing says so instead of hiding behind vagueness).
+  // Bullet 1 is always comparative (locked), on a three-tier ladder:
+  // Tier A: the share claim when the cross-platform denominator is proven
+  //   and 10+ (green, earned).
+  // Tier B: below the gate but the platform verifiably leads every other
+  //   platform's count for this model in the same evidence set (neutral).
+  // Tier C: leadership can't be verified; honest existence line naming a
+  //   real window, last resort only.
   if(e.evidenceSales>0){
     if(Number(facts.totalEvidenceSales)>=10){
       const share=Math.round((facts.evidenceSales/facts.totalEvidenceSales)*100);
       bullets.push({text:`${share}% of ${comparableSalesLabel()} sales ${marketWindowPhrase()} closed on ${platformDisplayName(route.label||route.platform)}`,validated:true});
+    }else if(platformLeadsEvidenceSet(route)){
+      bullets.push({text:`More ${comparableSalesLabel()} sales have closed on ${platformDisplayName(route.label||route.platform)} than any other platform we track`,validated:false});
     }else{
       const days=sellState.sellDecision?.evidence?.windowDays;
       const windowText=days&&days<=180?`over the past ${days} days`:`in our tracked records, though none in the past 180 days`;
       bullets.push({text:`${cleanCarForCopy()} sales have closed on ${platformDisplayName(route.label||route.platform)} ${windowText}`,validated:false});
     }
   }
-  // Bullet 2: day advantage, gated strict (3+ same-day sales, 10%+ lift).
-  const day=weekdayBullet(e);
+  // Bullet 2: historical day advantage (all-time, 3+ same-day sales, 10%+ lift).
+  const day=weekdayBullet();
   if(day)bullets.push({text:day,validated:false});
   // Bullet 3: qualitative segment sell-through (never a percentage or count)
   // plus a speed acknowledgment only when the seller wants it gone fast.
@@ -919,12 +951,8 @@ function routeEvidenceBullets(route,index,routes){
       bullets.push(`${facts.segmentSellThrough.percent}% of ${facts.segmentSellThrough.band} listings here sold in our tracked records.`);
     }
   }
-  // (3) timing edge, gated: 3+ sales on the day and a 10%+ lift. The
-  // primary card carries it in the hero line instead.
-  if(index!==0){
-    const day=weekdayBullet(route.marketEvidence||{});
-    if(day)bullets.push(day);
-  }
+  // (3) the day advantage is market-wide (historical, all-time) and renders
+  // on the primary card only; repeating it here would duplicate the sentence.
   // (4) momentum, qualitative only (locked: no sample or window numbers)
   if(!primaryHasReasonBullets){
     if(facts.momentum&&facts.momentum.percent>=5)bullets.push(`Comparable results here have been strengthening recently.`);
