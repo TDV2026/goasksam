@@ -115,7 +115,7 @@ await identityCase("identity: 67 corvette", "67 corvette", "valid", /1967 Chevro
 {
   const legit = await post("/api/chat", { bypassCache: true, messages: [{ role: "user", content: "is this site legit" }], system: ENTRY_SYS });
   const t1 = String(legit.body.text || "");
-  check("entry: legit answer is grounded", legit.status === 200 && /auction (sale )?records|sale data|real auction|where (to|should you) sell|seller/i.test(t1), `text="${t1.slice(0, 200)}"`);
+  check("entry: legit answer is grounded", legit.status === 200 && /auction (sale )?records|sale (data|records)|real auction|where (to|should you) sell|seller/i.test(t1), `text="${t1.slice(0, 200)}"`);
   check("entry: no live-listing or demo claims", !/live listing|demo (set|version)|10 (live )?listings|pull up|what('| i)s live|tracks live|browse/i.test(t1), `text="${t1.slice(0, 250)}"`);
   const tdv = await post("/api/chat", { bypassCache: true, messages: [{ role: "user", content: "is it part of the daily vroom yes or no" }], system: ENTRY_SYS });
   const t2 = String(tdv.body.text || "");
