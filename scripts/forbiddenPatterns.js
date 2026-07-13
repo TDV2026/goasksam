@@ -19,7 +19,10 @@ export const FORBIDDEN_PATTERNS = [
   // Announced honesty and defensive framing.
   { name: "defensive framing", re: /want to be straight|need to be honest|rather not do that to you|working against the data|i apologi[sz]e/i },
   // Vague card prose (claims must be specific and structured).
-  { name: "vague card prose", re: /(^|[^\w])this is where i.d sell|consistently favoured this platform|every comparable sale we tracked/i },
+  { name: "vague card prose", re: /(^|[^\w])this is where i.d sell|consistently favoured this platform|every comparable sale we tracked|strongest run recently|buyer base:/i },
+  // Median price display on platform cards (variant spread makes it false
+  // precision). Partner career medians use their own distinct label.
+  { name: "platform median display", re: /median (sale )?\$[\d,]+|\$[\d,]+ here vs|median (sale )?here has run/i },
   // Consolation framing around speed picks.
   { name: "consolation framing", re: /close enough that speed and process may matter|may take longer to get live|timing is the tradeoff|where i.d (start|begin) if you (are )?sell(ing)? it yourself/i },
   // Sample-count parentheticals.

@@ -477,7 +477,9 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   const heroHasSafeProse=/Recent comparable [^\n]* sales have closed here/i.test(rendered);
   check("card specificity: hero is a specific claim or gated safe prose", heroHasPct||heroHasSafeProse, (rendered.match(/[^\n]*(closed on|closed here)[^\n]*/i)||["no hero line"])[0].slice(0,180));
   check("card specificity: no 'Every comparable sale' vagueness", !/Every comparable sale we tracked/i.test(rendered), "vague claim rendered");
-  check("card specificity: Why renders as concrete bullets with a buyer-base line", /Buyer base: /.test(rendered), rendered.slice(0,300));
+  check("card regression: Why bullet 1 validates existence, zero dollars", /sales have closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty) (over the past|across everything)/i.test(rendered.replace(/&amp;/g,"&")), (rendered.match(/[^\n]*sales have closed on[^\n]*/i)||["missing"])[0].slice(0,160));
+  check("card regression: no median prices on platform cards", !/Median (sale )?\$[\d,]+/.test(rendered)&&!/\$[\d,]+ here vs/.test(rendered), (rendered.match(/[^\n]*(Median|here vs)[^\n]*/)||[""])[0].slice(0,160));
+  check("card regression: no buyer-base or strongest-run filler", !/Buyer base:|strongest run recently|enthusiast and collector cars across every era/i.test(rendered), (rendered.match(/[^\n]*(Buyer base|strongest run|every era)[^\n]*/i)||[""])[0].slice(0,160));
   check("card specificity: weekday lines only render with a material lift", !/(around|at ~)[1-9]% above other days/.test(rendered), (rendered.match(/[^\n]*above other days[^\n]*/)||[""])[0]);
   // FIX 1 validation gate: any percent claim requires a proven 10+ denominator
   const pctClaim=rendered.replace(/&amp;/g,"&").match(/(\d+)% of [^\n]*closed on/);

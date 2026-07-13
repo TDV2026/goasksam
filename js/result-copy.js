@@ -689,10 +689,13 @@ function primaryReasonBullets(route){
   if(speedTiebreak(sellState.allRouteOptions?.slice(0,2)))return null; // locked two-part speed prose stays
   const e=route.marketEvidence;
   const bullets=[];
-  if(e.segmentSellThrough)bullets.push(`${e.segmentSellThrough.percent}% of ${e.segmentSellThrough.band} listings here sold in our tracked records.`);
-  if(route.about?.knownFor)bullets.push(`Buyer base: ${route.about.knownFor}.`);
-  if(bullets.length<3&&e.momentum&&Math.abs(e.momentum.percent)>=5)bullets.push(e.momentum.percent>0?"Comparable results here have been strengthening recently.":"Comparable results here have softened a little recently, worth pricing realistically.");
-  return bullets.length>=2?bullets.slice(0,3):null;
+  // Bullet 1: existence validation, zero stats, zero dollars.
+  if(e.evidenceSales>0)bullets.push(`${cleanCarForCopy()} sales have closed on ${platformDisplayName(route.label||route.platform)} ${marketWindowPhrase()}`);
+  // Bullet 2: day advantage, gated strict (3+ same-day sales, 10%+ lift).
+  const day=weekdayBullet(e);
+  if(day)bullets.push(day);
+  // Bullet 3: TBD (Sam to specify).
+  return bullets.length?bullets.slice(0,3):null;
 }
 
 function weekdayInsightLine(evidence){
@@ -735,49 +738,24 @@ function formatUsd(value){
 function primaryHeroStat(route){
   const facts=routeFacts(route);
   if(!facts.evidenceSales)return null;
-  const here=formatUsd(facts.medianSalePrice);
-  const others=formatUsd(facts.othersMedianSalePrice);
   // Sample-size numbers are out (locked): the headline carries the insight,
   // never counts like "46 of 58" or "in the last 45 days".
   // Claim validation gate (locked): a percentage renders only when the
-  // cross-platform denominator is proven and 10+; below that, safe prose,
-  // never an invented 100%.
-  const heroDay=weekdayBullet(route.marketEvidence||{});
-  const daySentence=heroDay?` ${heroDay}`:"";
-  if(facts.soloPlatform||!facts.othersMedianSalePrice){
-    const denominatorProven=Number(facts.totalEvidenceSales)>=10;
-    if(!denominatorProven){
-      return {
-        count:`Recent comparable ${comparableSalesLabel()} sales have closed here`,
-        money:here?`Median ${here}`:null
-      };
-    }
-    const share=Math.round((facts.evidenceSales/facts.totalEvidenceSales)*100);
-    const countSuffix=facts.evidenceSales>=10?` · ${facts.evidenceSales} ${comparableSalesLabel()} sales in this window`:"";
-    return {
-      count:`${share}% of ${comparableSalesLabel()} sales ${marketWindowPhrase()} closed on ${platformDisplayName(route.label||route.platform)}.${daySentence}`,
-      money:here?`Median ${here}${countSuffix}`:null
-    };
-  }
-  if(here&&others){
-    // Sub-5% gaps are noise, not signal (locked): no dollar amounts, no
-    // direction, or a small number becomes a false reason to choose.
-    if(Math.abs(facts.medianDelta)<0.05){
-      const otherName=platformDisplayName(route.marketEvidence?.nextSupportedPlatform||"the other leading platform");
-      return {count:`Recent results are negligible between ${platformDisplayName(route.label||route.platform)} and ${otherName} for the ${cleanCarForCopy()}`,money:null};
-    }
-    const pct=Math.round(Math.abs(facts.medianDelta)*100);
-    const direction=facts.medianLeads?"above":"below";
-    const headline=facts.smallSample
-      ?(facts.medianLeads?`Median sale here has run considerably higher than other platforms`:`Median here trails other sources in this small sample`)
-      :`Median sale here has run ${pct}% ${direction} other platforms`;
-    return {count:headline,money:`${here} here vs ${others} elsewhere`};
-  }
+  // cross-platform denominator is proven and 10+; below that, safe prose.
+  // Median prices NEVER display on platform cards (locked): variant spread
+  // within a model year (coupe vs slant nose vs cabriolet) makes a single
+  // median false precision.
   if(Number(facts.totalEvidenceSales)<10){
-    return {count:`Recent comparable ${comparableSalesLabel()} sales have closed here`,money:here?`Median sale ${here}`:null};
+    return {count:`Recent comparable ${comparableSalesLabel()} sales have closed here`,money:null};
   }
-  return {count:`${Math.round((facts.evidenceSales/facts.totalEvidenceSales)*100)}% of ${comparableSalesLabel()} sales ${marketWindowPhrase()} closed on ${platformDisplayName(route.label||route.platform)}.${daySentence}`,money:here?`Median sale ${here}`:null};
+  const share=Math.round((facts.evidenceSales/facts.totalEvidenceSales)*100);
+  const countSuffix=facts.evidenceSales>=10?` · ${facts.evidenceSales} ${comparableSalesLabel()} sales in this window`:"";
+  return {
+    count:`${share}% of ${comparableSalesLabel()} sales ${marketWindowPhrase()} closed on ${platformDisplayName(route.label||route.platform)}${countSuffix}`,
+    money:null
+  };
 }
+
 
 // Single facts object per route: chips, bullets, and headlines all derive
 // from it, so contradictory fragments cannot render together.
@@ -977,8 +955,7 @@ function medianDeltaSentence(option, other){
   }
   return pickCopy([
     `The recent ${comparableSalesLabel()} results land here more than anywhere else.`,
-    `The recent sales signal points here.`,
-    `This platform has had the strongest run recently.`
+    `The recent sales signal points here.`
   ],sellState.carName,optionName,other.name,a,b);
 }
 
@@ -993,7 +970,7 @@ function rankingReason(option,index,options){
     if(compare)return compare;
     return (sellState.sellOptions||[]).some(o=>o.key==="specialist")
       ?`If you decide to manage the auction yourself, this is the platform I'd look at first.`
-      :`This is where I'd sell this car.`;
+      :`The recent ${comparableSalesLabel()} results land here.`;
   }
   if(!primaryMarket)return marketEvidenceSentence(option);
   const compare=medianDeltaSentence(option,primaryMarket);
