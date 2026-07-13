@@ -694,8 +694,34 @@ function primaryReasonBullets(route){
   // Bullet 2: day advantage, gated strict (3+ same-day sales, 10%+ lift).
   const day=weekdayBullet(e);
   if(day)bullets.push(day);
-  // Bullet 3: TBD (Sam to specify).
+  // Bullet 3: qualitative segment sell-through (never a percentage or count)
+  // plus a speed acknowledgment only when the seller wants it gone fast.
+  let bullet3="";
+  if(e.segmentSellThrough){
+    const adjective=e.segmentSellThrough.percent>=85?"Strong":"Consistent";
+    bullet3=`${adjective} sell-through for ${segmentCategoryDesc(e.segmentSellThrough.band)}`;
+  }
+  if(sellerWantsSpeed()){
+    // Grounded phrasing only: listing-cycle speed comes from curated route
+    // policy, never an invented day count (no platform-mechanics claims).
+    const fastPlatform=["fast","medium_fast"].includes(route.speedToList);
+    const speedLine=fastPlatform
+      ?"Quick auction cycle if you're prioritizing a fast close"
+      :"On a fast timeline, this is still the market I'd trust to move it";
+    bullet3=bullet3?`${bullet3}. ${speedLine}`:speedLine;
+  }
+  if(bullet3)bullets.push(`${bullet3}.`);
   return bullets.length?bullets.slice(0,3):null;
+}
+
+// "classic Porsches in the $50k to $150k range": era word from the resolved
+// year, plural make, the platform's real segment band.
+function segmentCategoryDesc(band){
+  const rv=sellState.resolvedVehicle||{};
+  const year=Number(rv.year)||Number(rv.yearRange?.start)||null;
+  const era=year?(year<1990?"classic":year<2006?"modern classic":"modern"):"collector";
+  const make=rv.make?`${rv.make}s`:"cars";
+  return `${era} ${make} in the ${band} range`;
 }
 
 function weekdayInsightLine(evidence){
