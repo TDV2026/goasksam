@@ -180,7 +180,7 @@ async function showSellRecommendation(){
       key:index===0?"primary":`route_${index}`,
       name:routeName,
       type:index===0?"Platform I’d use":"Worth comparing",
-      badge:hasNamedPowerSellerAdvice?(index===0?"If selling yourself":"Worth comparing"):(twoRouteMode?(index===0?"Sam's lean":"Worth comparing"):(index===0?"Sam's pick":"Worth comparing")),
+      badge:hasNamedPowerSellerAdvice?(index===0?"If selling yourself":"Also strong here"):(twoRouteMode?(index===0?"Sam's lean":"Also strong here"):(index===0?"Sam's pick":"Also strong here")),
       badgeClass:index===0?"top":"alt",
       cardClass:index===0&&!hasNamedPowerSellerAdvice?"primary-rec":"",
       actionLabel:index===0?`Submit your car to ${platformLogo({name:routeName}).text}`:`Consider ${routeName}`,
@@ -225,23 +225,40 @@ async function showSellRecommendation(){
     option.rankReason=rankingReason(option,index,sellState.sellOptions);
   });
 
-  const renderOptionCard=option=>`
+  // Verdict plate (Design Phase 1): once per result, on the primary card
+  // only. Ref code is deterministic per car.
+  const verdictRefCode=`SAM-${String(1000+textSeed(sellState.carName||"car")%9000)}-${String(sellState.state||sellState.region||"US").replace(/[^A-Za-z]/g,"").slice(0,2).toUpperCase()||"US"}`;
+  const verdictPlate=option=>`<div class="verdict-plate">
+        <div class="vp-row1"><span class="label-mono">Sam's pick</span><span class="num label-mono">${escapeHtml(verdictRefCode)}</span></div>
+        <div class="vp-name">${escapeHtml(option.name)}</div>
+        <div class="vp-hairline"></div>
+        <div class="label-mono">${numify(`${sellState.carName||"Car"} · ${[sellState.state,sellState.region].filter(Boolean)[0]||"US"}`)}</div>
+      </div>`;
+  const evidenceBand=option=>{
+    if(!option.heroStat)return "";
+    const validated=/% of /.test(String(option.heroStat.count||""));
+    return `<div class="evidence-band ${validated?"validated":"honest"}"><div class="sell-rec-hero-line">${numify(option.heroStat.count)}</div>${option.heroStat.money?`<div class="sell-rec-hero-money">${numify(option.heroStat.money)}</div>`:""}</div>`;
+  };
+  const renderOptionCard=option=>{
+    const isPrimary=option.key==="primary"||String(option.cardClass||"").includes("primary-rec");
+    return `
       <div class="sell-rec-card ${escapeHtml(option.cardClass||"")}" onclick="chooseSellOption('${escapeHtml(option.key)}')">
+        ${isPrimary&&option.key!=="specialist"?verdictPlate(option):`
         <div class="sell-rec-card-head">
           <div>
-            <div class="sell-rec-badge ${escapeHtml(option.badgeClass||"alt")}">${escapeHtml(option.badge)}</div>
-            <div style="margin-top:10px"><div class="sell-rec-name">${escapeHtml(option.name)}</div><div class="sell-rec-type">${escapeHtml(option.type)}</div></div>
+            <div class="sell-rec-badge label-mono ${escapeHtml(option.badgeClass||"alt")}">${escapeHtml(option.badge)}</div>
+            <div style="margin-top:10px;display:flex;align-items:center;gap:10px">${tileHTML(option.name,24)}<div><div class="sell-rec-name">${escapeHtml(option.name)}</div><div class="sell-rec-type">${escapeHtml(option.type)}</div></div></div>
           </div>
-          <div class="platform-logo ${escapeHtml(platformLogo(option).cls)}">${escapeHtml(platformLogo(option).text)}</div>
-        </div>
-        <div class="sell-rec-reason-label">${option.key==="specialist"?"Why I’d call them":"Why I picked this"}</div>
+        </div>`}
+        ${isPrimary&&option.reason&&!option.reasonBullets?.length?"":isPrimary?`<div class="sell-rec-samline voice">${escapeHtml(option.reason||"")}</div>`:""}
+        <div class="sell-rec-reason-label label-mono">${option.key==="specialist"?"Why I’d call them":"Why I picked this"}</div>
         ${option.reasonBullets?.length
-          ?`<ul class="sell-rec-bullets">${option.reasonBullets.map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>`
-          :`<div class="sell-rec-reason">${escapeHtml(option.rankReason||option.reason)}</div>`}
-        ${option.heroStat?`<div class="sell-rec-hero"><div class="sell-rec-hero-line">${escapeHtml(option.heroStat.count)}</div>${option.heroStat.money?`<div class="sell-rec-hero-money">${escapeHtml(option.heroStat.money)}</div>`:""}</div>`:""}
-        ${option.stat?`<div class="sell-rec-stat">${escapeHtml(option.stat)}</div>`:""}
-        ${option.evidenceBullets?.length?`<ul class="sell-rec-bullets">${option.evidenceBullets.map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>`:""}
-        ${option.evidenceLine?`<div class="sell-rec-evidence-line">${escapeHtml(option.evidenceLine||"")}</div>`:""}
+          ?`<ul class="sell-rec-bullets">${option.reasonBullets.map(item=>`<li>${numify(item)}</li>`).join("")}</ul>`
+          :`<div class="sell-rec-reason">${numify(option.rankReason||option.reason||"")}</div>`}
+        ${evidenceBand(option)}
+        ${option.stat?`<div class="sell-rec-stat">${numify(option.stat)}</div>`:""}
+        ${option.evidenceBullets?.length?`<ul class="sell-rec-bullets">${option.evidenceBullets.map(item=>`<li>${numify(item)}</li>`).join("")}</ul>`:""}
+        ${option.evidenceLine?`<div class="sell-rec-evidence-line">${numify(option.evidenceLine||"")}</div>`:""}
         ${option.observedSellers?.length?`<div class="observed-sellers">
           ${option.observedSellers.map((seller,sellerIndex)=>`<div class="observed-seller">
             <span class="observed-seller-name">${escapeHtml(seller.name)}</span>
@@ -252,8 +269,10 @@ async function showSellRecommendation(){
             <button class="ghost" onclick="event.stopPropagation();chooseSellOption('${escapeHtml(option.key)}')">Talk to them</button>
           </div>`).join("")}
         </div>`:""}
-        <div class="sell-rec-actions"><button class="${option.key==="primary"||String(option.cardClass||"").includes("primary-rec")?"primary":"ghost"}" onclick="event.stopPropagation();chooseSellOption('${escapeHtml(option.key)}')">${escapeHtml(option.actionLabel||"Consider this")}</button></div>
+        <div class="sell-rec-actions"><button class="${isPrimary?"primary":"ghost"}" onclick="event.stopPropagation();chooseSellOption('${escapeHtml(option.key)}')">${escapeHtml(option.actionLabel||"Consider this")}</button></div>
+        <div class="sell-rec-footer label-mono">GoAskSam may receive a referral fee if you proceed.</div>
       </div>`;
+  };
 
   const renderCompactPlatform=option=>`
     <div class="platform-compact" onclick="explainSellOption('${escapeHtml(option.key)}')">

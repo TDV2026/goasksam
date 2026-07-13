@@ -354,9 +354,9 @@ function showConfirmation(){
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
     <div class="sam-text">Before I show you where to take this, does everything look right?</div>
-    <div class="summary-card">
-      ${rows.map(r=>`<div class="summary-row"><span class="summary-label">${escapeHtml(r.label)}</span><span class="summary-value">${escapeHtml(r.value)}</span></div>`).join("")}
-    </div>
+    <table class="spec-table">
+      ${rows.map(r=>`<tr><td class="spec-key">${escapeHtml(r.label)}</td><td>${numify(r.value)}</td></tr>`).join("")}
+    </table>
     <div class="chips" style="margin-top:10px">
       <button class="chip" style="border-color:#171717;color:#171717;font-weight:800" onclick="handleChip('Looks good')">Looks good →</button>
       <button class="chip" onclick="handleChip('Change something')">Change something</button>

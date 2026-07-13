@@ -65,13 +65,37 @@ function saveArtifact(name, text) {
 // Guardrails applied to every journey: forbidden-pattern registry (A),
 // field-contamination check on the car label (D), repetition guard (E).
 function guardRender(name, text) {
-  const clean = String(text).replace(/<[^>]+>/g, "\n");
+  const raw = String(text);
+  const clean = raw.replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g, "\n");
   saveArtifact(name, clean);
   const hits = findForbidden(clean);
   check(`[registry] ${name}: no forbidden patterns`, hits.length === 0, hits.join(" | "));
   const sentences = clean.split(/(?<=[.!?])\s+|\n/).map(x => x.trim()).filter(x => x.length > 30 && !/^</.test(x));
   const dupes = sentences.filter((x, i) => sentences.indexOf(x) !== i);
   check(`[repetition] ${name}: no sentence renders twice`, dupes.length === 0, JSON.stringify([...new Set(dupes)].slice(0, 2)));
+  // Design Phase 1 guards (raw HTML):
+  if (/sell-rec-card/.test(raw)) {
+    check(`[design] ${name}: at most one verdict plate`, (raw.match(/verdict-plate/g) || []).length <= 2, `plates=${(raw.match(/verdict-plate/g) || []).length}`);
+    check(`[design] ${name}: no width overrides on cards`, !/sell-rec-card[^>]*style="[^"]*width/.test(raw), "inline width found");
+    check(`[design] ${name}: no img logos in cards`, !/<img/i.test(raw), (raw.match(/<img[^>]*/i) || [""])[0].slice(0, 100));
+    const flatBand = html => String(html).replace(/<span class="num">([^<]*)<\/span>/g, "$1").replace(/<[^>]+>/g, " ");
+    const validatedBands = [...raw.matchAll(/evidence-band validated"[\s\S]{0,500}?(?=<\/div>\s*<\/div>|Submit your car)/g)].map(m => flatBand(m[0]));
+    check(`[design] ${name}: green tint only with a validated claim`, validatedBands.every(b => /% of /.test(b)), (validatedBands.find(b => !/% of /.test(b)) || "").slice(0, 140));
+    const honestBands = [...raw.matchAll(/evidence-band honest"[\s\S]{0,500}?(?=<\/div>\s*<\/div>|Submit your car)/g)].map(m => flatBand(m[0]));
+    check(`[design] ${name}: honest band never claims a percent`, honestBands.every(b => !/% of /.test(b)), (honestBands.find(b => /% of /.test(b)) || "").slice(0, 140));
+    check(`[design] ${name}: voice class never inside buttons or bullets`, !/<(button|li)[^>]*class="[^"]*voice/.test(raw), "voice in button/li");
+    // Standalone stats must carry .num; model designations (335i, MX-5) are exempt.
+    const bandResidue = [...raw.matchAll(/evidence-band[^>]*>([\s\S]{0,500}?)(?=<\/div>\s*<\/div>|Submit your car)/g)]
+      .map(m => m[1].replace(/<span class="num">[^<]*<\/span>/g, "").replace(/&#\d+;/g, "'").replace(/<[^>]+>/g, " "));
+    const badResidue = bandResidue.find(x => /(\d+%|\$\s?\d|(?<![\w-])\d{2,}(?![\w-]))/.test(x));
+    check(`[design] ${name}: stats in evidence bands carry .num`, !badResidue, (badResidue || "").slice(0, 140));
+  }
+}
+const cssForVisual = fs.readFileSync(path.join(repoRoot, "styles.css"), "utf8");
+function saveVisual(name, rawHTML) {
+  const page = `<!doctype html><html><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"><link href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600&display=swap" rel="stylesheet"><style>${cssForVisual}</style></head><body style="padding:24px;max-width:760px"><div id="msgs">${rawHTML}</div></body></html>`;
+  fs.mkdirSync(path.join(repoRoot, "outputs"), { recursive: true });
+  fs.writeFileSync(path.join(repoRoot, "outputs", `${name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.html`), page);
 }
 function guardCarLabel(name) {
   const label = String(sellState.carName || "");
@@ -353,6 +377,7 @@ const runResult = async (region, state, price, car, extras) => {
   const output = renderedResult() + "\n" + allSamText();
   guardRender(`result-${car.label}`, output);
   guardCarLabel(`result-${car.label}`);
+  saveVisual(`result-${car.label}`, renderedResult().split("\n").map(x => `<div class="row sam"><div class="row-inner"><div class="msg-wrap">${x}</div></div></div>`).join(""));
   return output;
 };
 const mustang = { label: "1990 Ford Mustang", vehicle: { raw: "1990 Ford Mustang", year: 1990, make: "Ford", model: "Mustang", trim: null, confidence: "high", canonicalLabel: "1990 Ford Mustang" } };
@@ -360,7 +385,7 @@ const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsc
 
 {
   const uk = await runResult("UK", null, "150k", mustang);
-  check("non-US UK: Car & Classic card is contextual with the volume stat", /Car &(amp;)? Classic/.test(uk) && /130K\+ sales annually/.test(uk) && !/Classic cars, modern classics, performance models/.test(uk), uk.replace(/<[^>]+>/g," ").slice(0, 300));
+  check("non-US UK: Car & Classic card is contextual with the volume stat", /Car &(amp;)? Classic/.test(uk) && /130K\+ sales annually/.test(uk) && !/Classic cars, modern classics, performance models/.test(uk), uk.replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g," ").slice(0, 300));
   check("non-US UK: Collecting Cars card at $100k+ with approved copy", /Collecting Cars/.test(uk) && /24,000\+ lots sold/.test(uk) && /\$1\.5B\+ generated for sellers/.test(uk), uk.slice(0, 300));
   check("non-US UK: no involvement choice", !/Want it handled, or run it yourself/.test(uk), "choice rendered");
 
@@ -388,7 +413,7 @@ const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsc
   const ccIdx = euHigh.indexOf("Collecting Cars");
   const cacIdx = euHigh.search(/Car &(amp;)? Classic/);
   check("regional: EU $100k+ leads with Collecting Cars", ccIdx > -1 && cacIdx > -1 && ccIdx < cacIdx, `ccIdx=${ccIdx} cacIdx=${cacIdx}`);
-  check("regional: unmapped make gets generic proof, no unrelated headliners", /high-value Ferraris, Porsches and Lamborghinis, plus more/.test(euHigh) && !/F40 \(£1\.7M\)/.test(euHigh), euHigh.replace(/<[^>]+>/g," ").slice(0, 300));
+  check("regional: unmapped make gets generic proof, no unrelated headliners", /high-value Ferraris, Porsches and Lamborghinis, plus more/.test(euHigh) && !/F40 \(£1\.7M\)/.test(euHigh), euHigh.replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g," ").slice(0, 300));
   check("regional: no duplicated Specialist-platform line", (euHigh.match(/Specialist platform/g) || []).length === 1, `occurrences=${(euHigh.match(/Specialist platform/g) || []).length}`);
   check("regional: EU high-value shows no US-platform mentions", !/Bring a Trailer|Cars &(amp;)? Bids/i.test(euHigh), "US platform mentioned");
 
@@ -397,7 +422,7 @@ const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsc
   const vette = { label: "1968 Chevrolet Corvette", vehicle: { raw: "1968 Chevrolet Corvette", year: 1968, make: "Chevrolet", model: "Corvette", trim: null, confidence: "high", canonicalLabel: "1968 Chevrolet Corvette" } };
   const vetteFast = await runResult("US", "Texas", "60k", vette, { timeline: "Want it gone fast" });
   check("corvette: evidence scoped to the C3 generation, not all Corvettes", sellState.sellDecision?.evidence?.generation?.code === "C3", JSON.stringify(sellState.sellDecision?.evidence?.generation || null));
-  check("corvette speed: Hagerty renders as the speed option", /Hagerty/.test(vetteFast) && /stronger fit when speed matters/.test(vetteFast), vetteFast.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 300));
+  check("corvette speed: Hagerty renders as the speed option", /Hagerty/.test(vetteFast) && /stronger fit when speed matters/.test(vetteFast), vetteFast.replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 300));
 }
 
 {
@@ -410,7 +435,7 @@ const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsc
   for(const car of [sedan,sports,classic]){
     const out=await runResult("US","Texas",null,car);
     if(sellState.awaitingPathChoice){handleSellRecommendationFollowup("I'll run it myself");await new Promise(r=>setTimeout(r,100));}
-    const rendered=renderedResult().replace(/<[^>]+>/g,"\n");
+    const rendered=renderedResult().replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g,"\n");
     const afterResults=[...rendered.matchAll(/([^\n]+)\n*$/g)];
     const closeLine=(rendered.split("\n").map(l=>l.trim()).filter(Boolean).at(-1))||"";
     closes.push(`${car.label}: "${closeLine}"`);
@@ -442,7 +467,7 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   const seenStats=[];
   for(const car of speedCars){
     const out=await runResult("US","Texas","20k",car,{timeline:"Want it gone fast"});
-    const rendered=(renderedResult()+"\n"+allSamText()).replace(/<[^>]+>/g," ");
+    const rendered=(renderedResult()+"\n"+allSamText()).replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g," ");
     check(`speed copy (${car.label.split(" ").at(-1)}): no consolation or hedge framing`, !DEFENSIVE_SPEED.test(rendered), (rendered.match(DEFENSIVE_SPEED)||[""])[0].slice(0,160));
     // FIX 1: sub-5% gaps never show direction; negligible framing carries no dollars
     check(`median gate (${car.label.split(" ").at(-1)}): no sub-5% directional claims`, !/\b[1-4]% (above|below)\b/i.test(rendered), (rendered.match(/[^\n]*% (above|below)[^\n]*/i)||[""])[0].slice(0,160));
@@ -474,7 +499,7 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
 {
   const us=await runResult("US","California","140k",gts);
   if(sellState.awaitingPathChoice){handleSellRecommendationFollowup("I'll run it myself");await new Promise(r=>setTimeout(r,150));}
-  const rendered=(renderedResult()+"\n"+allSamText()).replace(/<li>/g,"\n• ").replace(/<[^>]+>/g,"\n");
+  const rendered=(renderedResult()+"\n"+allSamText()).replace(/<li>/g,"\n• ").replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g,"\n");
   const heroHasPct=/\d+% of [^\n]* sales (over the past [^\n]*|across everything[^\n]*) closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty)/i.test(rendered.replace(/&amp;/g,"&"));
   const heroHasSafeProse=/Recent comparable [^\n]* sales have closed here/i.test(rendered);
   check("card specificity: hero is a specific claim or gated safe prose", heroHasPct||heroHasSafeProse, (rendered.match(/[^\n]*(closed on|closed here)[^\n]*/i)||["no hero line"])[0].slice(0,180));
@@ -504,7 +529,7 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
 
   const huracan={label:"2015 Lamborghini Huracan",vehicle:{raw:"2015 Lamborghini Huracan",year:2015,make:"Lamborghini",model:"Huracan",trim:null,confidence:"high",canonicalLabel:"2015 Lamborghini Huracan"}};
   const eu=await runResult("Europe",null,"250k",huracan);
-  check("card specificity: Collecting Cars proof is make-specific for a Lamborghini", /sold many Lamborghini models at premium prices/i.test(eu) && /Huracán and Aventador/i.test(eu) && !/F40/.test(eu), eu.replace(/<[^>]+>/g," ").slice(0,300));
+  check("card specificity: Collecting Cars proof is make-specific for a Lamborghini", /sold many Lamborghini models at premium prices/i.test(eu) && /Huracán and Aventador/i.test(eu) && !/F40/.test(eu), eu.replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g," ").slice(0,300));
   check("card specificity: single Specialist-platform mention holds", (eu.match(/Specialist platform/g)||[]).length===1, `count=${(eu.match(/Specialist platform/g)||[]).length}`);
 }
 
@@ -513,7 +538,7 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   const carrera={label:"1987 Porsche 911 Carrera",vehicle:{raw:"1987 Porsche 911 Carrera",year:1987,make:"Porsche",model:"911",trim:"Carrera",confidence:"high",canonicalLabel:"1987 Porsche 911 Carrera"}};
   const out=await runResult("US","California","95k",carrera,{timeline:"No rush, right result only"});
   if(sellState.awaitingPathChoice){handleSellRecommendationFollowup("I'll run it myself");await new Promise(r=>setTimeout(r,150));}
-  const rendered=(renderedResult()+"\n"+allSamText()).replace(/<[^>]+>/g,"\n").replace(/&#39;/g,"'");
+  const rendered=(renderedResult()+"\n"+allSamText()).replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g,"\n").replace(/&#39;/g,"'");
   check("bullet 3: renders on no-rush when segment data exists", /(Strong|Consistent) sell-through for classic Porsches in the \$50k to \$150k range/.test(rendered), (rendered.match(/[^\n]*sell-through[^\n]*/i)||["missing"])[0].slice(0,160));
   check("bullet 3: no speed line on a no-rush timeline", !/prioritizing a fast close|market I'd trust to move it/.test(rendered), (rendered.match(/[^\n]*(fast close|move it)[^\n]*/i)||[""])[0]);
   check("carrera: zero price-gap prose despite the 57% gap", !/your asking price|the average for recent/i.test(rendered), (rendered.match(/[^\n]*asking price[^\n]*/i)||[""])[0]);
@@ -524,7 +549,7 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
 {
   const out=await runResult("US","California","20k",gts);
   if(sellState.awaitingPathChoice){handleSellRecommendationFollowup("I'll run it myself");await new Promise(r=>setTimeout(r,150));}
-  const released=(renderedResult()+"\n"+allSamText()).replace(/<[^>]+>/g,"\n");
+  const released=(renderedResult()+"\n"+allSamText()).replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g,"\n");
   check("price gap: results render immediately, no pre-results ask", /Seller Intelligence|Want it handled/i.test(released) && !/what'?s different about yours/i.test(released), released.slice(0,200));
   check("price gap: zero gap prose anywhere", !/your asking price|above the average|below the average|worth knowing/i.test(released), (released.match(/[^\n]*(asking price|the average)[^\n]*/i)||[""])[0].slice(0,180));
 }

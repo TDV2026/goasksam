@@ -1,3 +1,38 @@
+// Platform tiles (Design Phase 1): single color-map source of truth; the
+// ONLY place platform brand colors may appear (R4). No logo images anywhere.
+const PLATFORM_TILE={
+  bat:{bg:"#1A1A1A",label:"BaT"},
+  cnb:{bg:"#1D7A46",label:"C&B"},
+  cc:{bg:"#1E2A44",label:"CC"},
+  candc:{bg:"#A6906B",label:"C&C"},
+  pcm:{bg:"#3D4451",label:"PCM"},
+  hemmings:{bg:"#7A1F1F",label:"H"},
+  hagerty:{bg:"#174EA6",label:"Hag"},
+  hows:{bg:"#8A5A00",label:"hS"}
+};
+function tileKeyFor(name){
+  const n=String(name||"").toLowerCase();
+  if(n.includes("bring")||n==="bat")return "bat";
+  if(n.includes("bids"))return "cnb";
+  if(n.includes("collecting"))return "cc";
+  if(n.includes("classic"))return "candc";
+  if(n.includes("pcar"))return "pcm";
+  if(n.includes("hemmings"))return "hemmings";
+  if(n.includes("hagerty"))return "hagerty";
+  if(n.includes("hows")||n.includes("specialist")||n.includes("power"))return "hows";
+  return null;
+}
+function tileHTML(name,size){
+  const tile=PLATFORM_TILE[tileKeyFor(name)]||{bg:"var(--slate)",label:String(name||"?").slice(0,3)};
+  return `<span class="platform-tile t${size===24?24:40}" style="background:${tile.bg}">${escapeHtml(tile.label)}</span>`;
+}
+// Every rendered numeral uses the data font (R1): wrap digit runs after
+// escaping so percentages, prices, counts and codes all pick up .num.
+function numify(text){
+  // Boundary-guarded: never split digits out of words (MX-5, F-150, C63).
+  return escapeHtml(text).replace(/(?<![\w#&-])((?:\$\s?)?\d[\d,\.]*(?:k(?![\w])|%|\+)?)(?![\w;])/g,'<span class="num">$1</span>');
+}
+
 function platformLogo(option){
   const name=String(option?.name||"").toLowerCase();
   if(option?.key==="specialist")return{cls:"specialist",text:"SP"};
@@ -535,6 +570,28 @@ function powerSellerClientChips(profile){
   return tags.map(tag=>`<span class="power-seller-chip">${escapeHtml(tag)}</span>`).join("");
 }
 
+// Dossier stat grid (Design Phase 1): the four approved stat lines become a
+// strict 2x2 spec-table grid; unmatched lines fall through as plain rows.
+function dossierGridCells(profile,v){
+  const lines=(profile?.profileStats||[]).map(line=>{
+    if(/\{sellThroughPercent\}/.test(line.text)){
+      if(!v.sellThrough)return null;
+      return line.text.replace(/\{sellThroughPercent\}/g,v.sellThrough.ratePercent);
+    }
+    return line.text;
+  }).filter(Boolean);
+  const cells=[];const leftovers=[];
+  for(const line of lines){
+    let m;
+    if((m=line.match(/^(\d+\+?) listings tracked(.*)$/i)))cells.push({key:"Listings tracked",value:m[1]});
+    else if((m=line.match(/^(\d+)% sell-through/i)))cells.push({key:"Sell-through",value:`${m[1]}%`});
+    else if((m=line.match(/^Specializes in:?\s*(.+)$/i)))cells.push({key:"Specializes in",value:m[1]});
+    else if((m=line.match(/^Lists primarily on (.+)$/i)))cells.push({key:"Lists on",value:m[1]});
+    else leftovers.push(line);
+  }
+  return {cells,leftovers};
+}
+
 function powerSellerProofItems(profile){
   // Career-wide stats (locked principle): a consignor is judged on his entire
   // body of work, never on comps for the current search. Every row renders
@@ -587,13 +644,15 @@ function renderFeaturedPowerSellerProfile(profile,platformFirst){
   const searchedMake=String(sellState.resolvedVehicle?.make||"").toLowerCase();
   const specializesLine=(profile.profileStats||[]).find(l=>/^specializes in/i.test(l.text||""));
   const makeMismatch=!!(searchedMake&&specializesLine&&!String(specializesLine.text).toLowerCase().includes(searchedMake));
+  const dossier=dossierGridCells(profile,v);
+  const gridHTML=dossier.cells.length>=3?`<div class="dossier-grid">${dossier.cells.slice(0,4).map(cell=>`<div class="dossier-cell"><span class="dc-value">${numify(cell.value)}</span><span class="label-mono">${escapeHtml(cell.key)}</span></div>`).join("")}</div>${dossier.leftovers.map(line=>`<div class="power-seller-proof">${numify(line)}</div>`).join("")}`:null;
   return `<div class="power-seller-feature" onclick="choosePowerSeller('${escapeHtml(profile.id)}')">
     <div class="power-seller-feature-main">
-      <div class="sell-rec-badge specialist">${platformFirst===true?"Option 2: have it handled":platformFirst===false?"Option 1: have it handled":"Have it handled"}</div>
+      <div class="sell-rec-badge specialist label-mono">${platformFirst===true?"Option 2: have it handled":platformFirst===false?"Option 1: have it handled":"Have it handled"}</div>
       <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>
-      <span class="observed-seller-meta">Auction consignor</span>
+      <div class="dossier-education">A PowerSeller manages the entire sale for a fee: prep, photos, listing, buyer questions.</div>
       ${makeMismatch?relevanceLine:""}
-      ${proofHTML?`<div class="power-seller-proof-list">${proofHTML}</div>`:honestyNote}
+      ${gridHTML||(proofHTML?`<div class="power-seller-proof-list">${proofHTML}</div>`:honestyNote)}
       ${makeMismatch?"":relevanceLine}
       ${platformChips?`<div class="power-seller-platform-row"><span class="power-seller-profile-label">Lists on (per ${escapeHtml(profile.name)})</span>${platformChips}</div>`:""}
       <span class="observed-seller-why">What ${escapeHtml(profile.name)} says he handles</span>
