@@ -137,13 +137,13 @@ function guardRender(name, text) {
       const pastM = plateData.match(/^Past (\d+) days$/);
       if (sinceM) check(`[design] ${name}: Since-year matches the evidence boundary`, String(ev.earliestSaleDate || "").startsWith(sinceM[1]), `label="${plateData}" earliest=${ev.earliestSaleDate}`);
       else if (pastM) check(`[design] ${name}: Past-days window was actually used`, claimWindows.includes(Number(pastM[1])), `label="${plateData}" windows=${JSON.stringify(claimWindows)}`);
+      else check(`[design] ${name}: plate window is a recognized form`, plateData === "All-time", `label="${plateData}"`);
       // Plate window == bullet 1 window: when bullet 1 names a finite span
       // in its own text, the plate must name the same one.
       const bullet1Window = (liMatches.length ? flatLi(liMatches[0][2]) : "").match(/over the past (\d+) days/);
       if (bullet1Window && pastM) {
         check(`[design] ${name}: plate window equals bullet 1 window`, Number(bullet1Window[1]) === Number(pastM[1]), `bullet1=${bullet1Window[1]}d plate=${pastM[1]}d`);
       }
-      else check(`[design] ${name}: plate window is a recognized form`, plateData === "All-time", `label="${plateData}"`);
       // Chat opener names the same window the platform plate displays
       // (skipped in handled mode, where the plate is the partner's career).
       const opener = clean.match(/I looked at [^\n]*?(over the past (\d+) days|since (\d{4})|across everything)/);
