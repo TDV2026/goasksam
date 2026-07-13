@@ -680,7 +680,7 @@ function weekdayBullet(evidence){
   if(!evidence?.strongestWeekday)return null;
   if((evidence.strongestWeekdaySales||0)<3)return null;
   if((evidence.strongestWeekdayLiftPercent||0)<10)return null;
-  return `${evidence.strongestWeekday} endings finished strongest, around ${evidence.strongestWeekdayLiftPercent}% above other days.`;
+  return `${evidence.strongestWeekday} endings finished strongest at ~${evidence.strongestWeekdayLiftPercent}% above other days.`;
 }
 
 // CHANGE 1: "Why I picked this" is three concrete reasons, never prose.
@@ -690,8 +690,6 @@ function primaryReasonBullets(route){
   const e=route.marketEvidence;
   const bullets=[];
   if(e.segmentSellThrough)bullets.push(`${e.segmentSellThrough.percent}% of ${e.segmentSellThrough.band} listings here sold in our tracked records.`);
-  const day=weekdayBullet(e);
-  if(day)bullets.push(day);
   if(route.about?.knownFor)bullets.push(`Buyer base: ${route.about.knownFor}.`);
   if(bullets.length<3&&e.momentum&&Math.abs(e.momentum.percent)>=5)bullets.push(e.momentum.percent>0?"Comparable results here have been strengthening recently.":"Comparable results here have softened a little recently, worth pricing realistically.");
   return bullets.length>=2?bullets.slice(0,3):null;
@@ -741,11 +739,23 @@ function primaryHeroStat(route){
   const others=formatUsd(facts.othersMedianSalePrice);
   // Sample-size numbers are out (locked): the headline carries the insight,
   // never counts like "46 of 58" or "in the last 45 days".
-  if(facts.soloPlatform){
-    const share=route.marketEvidence?.evidenceSharePercent??100;
+  // Claim validation gate (locked): a percentage renders only when the
+  // cross-platform denominator is proven and 10+; below that, safe prose,
+  // never an invented 100%.
+  const heroDay=weekdayBullet(route.marketEvidence||{});
+  const daySentence=heroDay?` ${heroDay}`:"";
+  if(facts.soloPlatform||!facts.othersMedianSalePrice){
+    const denominatorProven=Number(facts.totalEvidenceSales)>=10;
+    if(!denominatorProven){
+      return {
+        count:`Recent comparable ${comparableSalesLabel()} sales have closed here`,
+        money:here?`Median ${here}`:null
+      };
+    }
+    const share=Math.round((facts.evidenceSales/facts.totalEvidenceSales)*100);
     const countSuffix=facts.evidenceSales>=10?` · ${facts.evidenceSales} ${comparableSalesLabel()} sales in this window`:"";
     return {
-      count:`${share}% of ${comparableSalesLabel()} sales ${marketWindowPhrase()} closed on ${platformDisplayName(route.label||route.platform)}`,
+      count:`${share}% of ${comparableSalesLabel()} sales ${marketWindowPhrase()} closed on ${platformDisplayName(route.label||route.platform)}.${daySentence}`,
       money:here?`Median ${here}${countSuffix}`:null
     };
   }
@@ -763,7 +773,10 @@ function primaryHeroStat(route){
       :`Median sale here has run ${pct}% ${direction} other platforms`;
     return {count:headline,money:`${here} here vs ${others} elsewhere`};
   }
-  return {count:`${route.marketEvidence?.evidenceSharePercent??0}% of ${comparableSalesLabel()} sales ${marketWindowPhrase()} closed on ${platformDisplayName(route.label||route.platform)}`,money:here?`Median sale ${here}`:null};
+  if(Number(facts.totalEvidenceSales)<10){
+    return {count:`Recent comparable ${comparableSalesLabel()} sales have closed here`,money:here?`Median sale ${here}`:null};
+  }
+  return {count:`${Math.round((facts.evidenceSales/facts.totalEvidenceSales)*100)}% of ${comparableSalesLabel()} sales ${marketWindowPhrase()} closed on ${platformDisplayName(route.label||route.platform)}.${daySentence}`,money:here?`Median sale ${here}`:null};
 }
 
 // Single facts object per route: chips, bullets, and headlines all derive
@@ -835,8 +848,9 @@ function routeEvidenceBullets(route,index,routes){
       bullets.push(`${facts.segmentSellThrough.percent}% of ${facts.segmentSellThrough.band} listings here sold in our tracked records.`);
     }
   }
-  // (3) timing edge, gated: 3+ sales on the day and a 10%+ lift
-  if(!primaryHasReasonBullets){
+  // (3) timing edge, gated: 3+ sales on the day and a 10%+ lift. The
+  // primary card carries it in the hero line instead.
+  if(index!==0){
     const day=weekdayBullet(route.marketEvidence||{});
     if(day)bullets.push(day);
   }
@@ -887,7 +901,6 @@ function resultSummaryLine(options,routes=[]){
   }
   if(primary&&alt){
     return medianDeltaSentence(primary,alt)||pickCopy([
-      `${primary.name} is where I’d sell this.`,
       `${primary.name} is where the market for your car is right now.`,
       `The strongest recent results for ${comparableSalesLabel()} are on ${primary.name}.`,
       `If this were my car, it goes on ${primary.name}.`
@@ -895,7 +908,6 @@ function resultSummaryLine(options,routes=[]){
   }
   if(primary){
     return pickCopy([
-      `${primary.name} is where I’d sell this.`,
       `${primary.name} is where the market for your car is right now.`,
       `The strongest recent results for ${comparableSalesLabel()} are on ${primary.name}.`,
       `If this were my car, it goes on ${primary.name}.`
@@ -964,7 +976,7 @@ function medianDeltaSentence(option, other){
     ],sellState.carName,optionName,other.name,a,b);
   }
   return pickCopy([
-    `Recent comparable ${comparableModelLabel()} have consistently favoured this platform.`,
+    `The recent ${comparableSalesLabel()} results land here more than anywhere else.`,
     `The recent sales signal points here.`,
     `This platform has had the strongest run recently.`
   ],sellState.carName,optionName,other.name,a,b);

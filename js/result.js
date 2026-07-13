@@ -465,19 +465,19 @@ function handleSellRecommendationFollowup(q){
 // Collecting Cars proof leads with the searched make when we hold curated
 // proof for it; unrelated Ferraris never headline a Lamborghini search.
 const CC_MAKE_PROOF={
-  lamborghini:"high-value Lamborghinis including Huracán and Aventador variants",
-  ferrari:"the Ferrari F40 (£1.7M) and F50 (£2.94M)",
-  porsche:"a Porsche 918 Spyder (€1.35M)",
-  "mercedes-benz":"a Mercedes 300 SL (£1.1M)"
+  lamborghini:"high-value Lamborghinis including Huracán and Aventador",
+  ferrari:"high-value Ferraris including the F40 (£1.7M) and F50 (£2.94M)",
+  porsche:"high-value Porsches including a 918 Spyder (€1.35M)",
+  "mercedes-benz":"high-value Mercedes including a 300 SL (£1.1M)"
 };
 function collectingCarsReason(){
   const make=String(sellState.resolvedVehicle?.make||"");
   const specific=CC_MAKE_PROOF[make.toLowerCase()];
   if(make&&specific){
-    const backup=make.toLowerCase()==="ferrari"?"a Porsche 918 Spyder (€1.35M)":"the Ferrari F40 (£1.7M)";
-    return `Specialist platform for high-value cars. They've sold many ${make} models at premium prices across the UK, Europe, Australia and the Middle East. Recent sales include ${specific}, plus ${backup}.`;
+    return `Specialist platform for high-value cars. They've sold many ${make} models at premium prices across the UK, Europe, Australia and the Middle East. Recent sales include: ${specific}, plus more.`;
   }
-  return "Specialist platform for high-value cars. Recent sales: Ferrari F40 (£1.7M), Ferrari F50 (£2.94M), Porsche 918 Spyder (€1.35M), Mercedes 300 SL (£1.1M).";
+  // Unmapped make: generic proof, no unrelated named models headlining.
+  return "Specialist platform for high-value cars. They've sold many high-value cars at premium prices across the UK, Europe, Australia and the Middle East. Recent sales include: high-value Ferraris, Porsches and Lamborghinis, plus more.";
 }
 
 // Car & Classic copy names the actual car instead of reading like a
@@ -536,7 +536,7 @@ function regionalNoEvidenceFallback(){
       primaryReason:"Global platform with 350,000+ members in 100+ countries. Specialists in sourcing top-quality collectibles. 24,000+ lots sold, $1.5B+ generated for sellers.",
       secondaryReason:"",
       bullets:CC_MAKE_PROOF[String(sellState.resolvedVehicle?.make||"").toLowerCase()]
-        ?[`They've sold many ${sellState.resolvedVehicle.make} models at premium prices, including ${CC_MAKE_PROOF[String(sellState.resolvedVehicle.make).toLowerCase()]}.`]
+        ?[`They've sold many ${sellState.resolvedVehicle.make} models at premium prices, including: ${CC_MAKE_PROOF[String(sellState.resolvedVehicle.make).toLowerCase()]}.`]
         :[]
     };
   }

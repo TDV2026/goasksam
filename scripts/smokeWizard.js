@@ -388,7 +388,7 @@ const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsc
   const ccIdx = euHigh.indexOf("Collecting Cars");
   const cacIdx = euHigh.search(/Car &(amp;)? Classic/);
   check("regional: EU $100k+ leads with Collecting Cars", ccIdx > -1 && cacIdx > -1 && ccIdx < cacIdx, `ccIdx=${ccIdx} cacIdx=${cacIdx}`);
-  check("regional: Collecting Cars card carries concrete proof sales", /Ferrari F40 \(£1\.7M\)/.test(euHigh) && /Porsche 918 Spyder/.test(euHigh), euHigh.slice(0, 300));
+  check("regional: unmapped make gets generic proof, no unrelated headliners", /high-value Ferraris, Porsches and Lamborghinis, plus more/.test(euHigh) && !/F40 \(£1\.7M\)/.test(euHigh), euHigh.replace(/<[^>]+>/g," ").slice(0, 300));
   check("regional: no duplicated Specialist-platform line", (euHigh.match(/Specialist platform/g) || []).length === 1, `occurrences=${(euHigh.match(/Specialist platform/g) || []).length}`);
   check("regional: EU high-value shows no US-platform mentions", !/Bring a Trailer|Cars &(amp;)? Bids/i.test(euHigh), "US platform mentioned");
 
@@ -476,11 +476,19 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   check("card specificity: comparable claim names percent, period and platform", /\d+% of [^\n]* sales (over the past [^\n]*|across everything[^\n]*) closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty)/i.test(rendered.replace(/&amp;/g,"&")), (rendered.match(/[^\n]*closed on[^\n]*/i)||["no claim line"])[0].slice(0,180));
   check("card specificity: no 'Every comparable sale' vagueness", !/Every comparable sale we tracked/i.test(rendered), "vague claim rendered");
   check("card specificity: Why renders as concrete bullets with a buyer-base line", /Buyer base: /.test(rendered), rendered.slice(0,300));
-  check("card specificity: weekday lines only render with a material lift", !/around [1-9]% above other days/.test(rendered), (rendered.match(/[^\n]*above other days[^\n]*/)||[""])[0]);
+  check("card specificity: weekday lines only render with a material lift", !/(around|at ~)[1-9]% above other days/.test(rendered), (rendered.match(/[^\n]*above other days[^\n]*/)||[""])[0]);
+  // FIX 1 validation gate: any percent claim requires a proven 10+ denominator
+  const pctClaim=rendered.replace(/&amp;/g,"&").match(/(\d+)% of [^\n]*closed on/);
+  const landedSales=sellState.sellDecision?.evidence?.ladder?.landed?.sales??0;
+  if(pctClaim){
+    check("claim gate: percent claims carry a proven 10+ denominator", landedSales>=10 && Number(pctClaim[1])<=100, `claim=${pctClaim[0].slice(0,80)} landedSales=${landedSales}`);
+  }else{
+    check("claim gate: thin data falls back to safe prose, no invented percent", landedSales>=10 || /Recent comparable [^\n]* sales have closed here/i.test(rendered) || !/closed on/.test(rendered), `landedSales=${landedSales}`);
+  }
 
   const huracan={label:"2015 Lamborghini Huracan",vehicle:{raw:"2015 Lamborghini Huracan",year:2015,make:"Lamborghini",model:"Huracan",trim:null,confidence:"high",canonicalLabel:"2015 Lamborghini Huracan"}};
   const eu=await runResult("Europe",null,"250k",huracan);
-  check("card specificity: Collecting Cars proof is make-specific for a Lamborghini", /sold many Lamborghini models at premium prices/i.test(eu) && /Huracán and Aventador/i.test(eu), eu.replace(/<[^>]+>/g," ").slice(0,300));
+  check("card specificity: Collecting Cars proof is make-specific for a Lamborghini", /sold many Lamborghini models at premium prices/i.test(eu) && /Huracán and Aventador/i.test(eu) && !/F40/.test(eu), eu.replace(/<[^>]+>/g," ").slice(0,300));
   check("card specificity: single Specialist-platform mention holds", (eu.match(/Specialist platform/g)||[]).length===1, `count=${(eu.match(/Specialist platform/g)||[]).length}`);
 }
 
