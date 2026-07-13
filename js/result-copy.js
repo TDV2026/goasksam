@@ -102,18 +102,38 @@ function routeHasTrueComparableEvidence(route){
   return !!(route?.hasMarketEvidence&&route?.marketEvidence&&route.marketEvidence.evidenceSales>0);
 }
 
-function ladderWideningNarration(decisionData){
+// One window vocabulary (locked): the plate label and the chat opener name
+// the same span, derived from the windows the rendered claims actually used.
+// "Since YYYY" must name the verifiable earliest boundary from the evidence;
+// "Historical" never renders.
+function analysisWindowInfo(bullets){
+  const windows=(bullets||[]).map(item=>Number(item.windowDays)).filter(Number.isFinite);
+  if(!windows.length)return {label:"",phrase:""};
+  if(windows.some(days=>days>=3650)){
+    const since=String(sellState.sellDecision?.evidence?.earliestSaleDate||"").slice(0,4);
+    return since?{label:`Since ${since}`,phrase:`since ${since}`}:{label:"All-time",phrase:"across everything we've tracked"};
+  }
+  const max=Math.max(...windows);
+  return {label:`Past ${max} days`,phrase:`over the past ${max} days`};
+}
+
+function ladderWideningNarration(decisionData,primaryRoute){
   const ladder=decisionData?.evidence?.ladder||decisionData?.decision?.ladder;
   const landed=ladder?.landed;
   if(!landed||landed.rung<=1)return null;
-  const first=(ladder.rungs||[])[0];
-  const firstScope=first?String(first.label).replace(/\bsales\b[\s\S]*$/,"sales").replace(/\s+/g," ").trim():"exact-match sales";
   const thinNote=landed.thresholdMet?"":" The market for this car is genuinely thin right now, so treat this as directional.";
-  const windowText=landed.windowDays>=3650?"across everything we've tracked":`in the last ${landed.windowDays} days`;
-  // Lead with what we DID look at (locked): the scope decision is stated
-  // positively; counts under 10 never render.
-  const countText=landed.sales>=10?`: ${landed.sales} sales ${windowText}`:"";
-  return `I looked at ${landed.label}${countText}. Here's what that market shows.${thinNote}`;
+  // The opener names the same window the plate displays: derived from the
+  // primary card's actual claims, never vague. The label's own year-range
+  // suffix drops (the window phrase carries the span).
+  const bullets=primaryRoute&&!primaryRoute.speedArgument?primaryReasonBullets(primaryRoute):null;
+  const windowInfo=analysisWindowInfo(bullets||[]);
+  const scope=String(landed.label).replace(/,?\s*\d{4} to \d{4}$/,"").replace(/,\s*any year/,"");
+  const windowPhrase=windowInfo.phrase||(landed.windowDays>=3650?"across everything we've tracked":`over the past ${landed.windowDays} days`);
+  // The landed count only renders when it describes the same span the opener
+  // names (counts under 10 never render).
+  const finiteMatch=/^Past (\d+) days$/.exec(windowInfo.label||"");
+  const countText=landed.sales>=10&&(!windowInfo.label||(finiteMatch&&Number(finiteMatch[1])===Number(landed.windowDays)))?`: ${landed.sales} sales`:"";
+  return `I looked at ${scope} ${windowPhrase}${countText}. Here's what that market shows.${thinNote}`;
 }
 
 function shouldSuppressRouteForSellerRegion(route){
@@ -764,6 +784,13 @@ function altReasonLine(route,pick){
     .map(other=>Number(other.marketEvidence.evidenceSales||0));
   if(mine>0&&(!remaining.length||mine>Math.max(...remaining))){
     return `Second-most ${comparableSalesLabel()} sales in our tracked records.`;
+  }
+  // Speed positioning, curated-policy grounded ONLY (we hold no measured
+  // close-time data, so no model-specific track-record claim): renders when
+  // the alternative is curated-fast and the pick is not.
+  const pickFast=["fast","medium_fast"].includes(pick?.speedToList);
+  if(["fast","medium_fast"].includes(route.speedToList)&&!pickFast){
+    return `If speed matters, ${platformDisplayName(route.label||route.platform)} typically runs the quicker auction cycle.`;
   }
   if((route.routeFitFacts||[]).includes("segment_fit")){
     return "Its typical buyer pool matches this kind of car.";

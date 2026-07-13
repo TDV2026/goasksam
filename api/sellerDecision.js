@@ -946,6 +946,12 @@ function analyze(records, classifications, ladder, vehicle) {
     evidenceLabel: landed ? landed.label : "no comparable sales in tracked auction data",
     evidenceSales: evidenceSet.length,
     estimatedValue: median(evidenceSet.map(item => item.classification.price)),
+    // Earliest boundary of the ladder-eligible set (all-time): the "since
+    // YYYY" label on all-time claims must name a verifiable date.
+    earliestSaleDate: landed
+      ? pairedRecords.filter(item => ladderEligible(item, landed.definition))
+          .map(item => item.record.auction_end_date).filter(Boolean).sort()[0] || null
+      : null,
     thinMarket: thin || !landed || evidenceSet.length < landed.threshold,
     ladder: {
       landed: landed ? {
@@ -1595,6 +1601,7 @@ export default async function handler(req, res) {
         evidenceLabel: analysis.evidenceLabel,
         evidenceSales: analysis.evidenceSales,
         estimatedValue: analysis.estimatedValue,
+        earliestSaleDate: analysis.earliestSaleDate,
         windowDays: analysis.windowDays,
         thinMarket: analysis.thinMarket,
         historicalWeekday: analysis.historicalWeekday,

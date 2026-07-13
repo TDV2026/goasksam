@@ -151,7 +151,7 @@ async function showSellRecommendation(){
     return;
   }
 
-  const wideningLine=ladderWideningNarration(decisionData);
+  const wideningLine=ladderWideningNarration(decisionData,routeOptions[0]||null);
   if(wideningLine)addMsg("sam",wideningLine);
   if(decision.strongerNonRoutable){
     const houseName=platformDisplayName(decision.strongerNonRoutable.platform);
@@ -232,18 +232,11 @@ async function showSellRecommendation(){
   // Verdict plate (Design Phase 1): once per result, on the primary card
   // only. Ref code is deterministic per car.
   const verdictRefCode=`SAM-${String(1000+textSeed(sellState.carName||"car")%9000)}-${String(sellState.state||sellState.region||"US").replace(/[^A-Za-z]/g,"").slice(0,2).toUpperCase()||"US"}`;
-  // Analysis window row (locked): the widest window any rendered claim on
-  // the card actually used, plus "historical" when any claim is all-time.
-  // Never a window no claim used.
-  const plateWindowLabel=option=>{
-    const windows=(option.reasonBullets||[]).map(item=>Number(item.windowDays)).filter(Number.isFinite);
-    const finite=windows.filter(days=>days<3650);
-    const historical=windows.some(days=>days>=3650);
-    const parts=[];
-    if(finite.length)parts.push(`Past ${Math.max(...finite)} days`);
-    if(historical)parts.push(finite.length?"historical":"Historical");
-    return parts.join(" + ");
-  };
+  // Analysis window row (locked): the specific span the card's rendered
+  // claims actually used. "Since YYYY" when any claim is all-time and the
+  // earliest boundary is known; never "Historical", never a window no
+  // claim used.
+  const plateWindowLabel=option=>analysisWindowInfo(option.reasonBullets).label;
   const verdictPlate=(option,windowLabel)=>`<div class="verdict-plate">
         <div class="vp-row1"><span class="label-mono">Sam's pick</span><span class="num label-mono">${escapeHtml(verdictRefCode)}</span></div>
         <div class="vp-name">${escapeHtml(option.name)}</div>
@@ -323,7 +316,7 @@ async function showSellRecommendation(){
     <div class="sell-section-note">${platformFirst
       ?`If you'd rather have it handled: you do pay a fee, but a good PowerSeller takes on everything, prep, photos, listing, buyer questions, paperwork and platform choice, and in most cases the fee earns its keep. ${escapeHtml(featuredPowerSellerName)} is who I'd call. The platform pick above is the place to start if you're running it yourself.`
       :`Honestly? At this level my personal preference is generally a good PowerSeller. You do pay a fee, but a good one handles everything: prep, photos, listing, buyer questions, paperwork and platform choice. In most cases the fee earns its keep. ${escapeHtml(featuredPowerSellerName)} is who I'd call. If you'd rather run it yourself, the platform pick is right below.`}</div>
-    ${renderFeaturedPowerSellerProfile(featuredPowerSeller,platformFirst,platformFirst?null:verdictPlate({name:featuredPowerSeller.displayName||featuredPowerSeller.name},"Historical"))}
+    ${renderFeaturedPowerSellerProfile(featuredPowerSeller,platformFirst,platformFirst?null:verdictPlate({name:featuredPowerSeller.displayName||featuredPowerSeller.name},"All-time"))}
   `:"";
   const powerSellerHTML=buildPowerSellerHTML(false);
   const powerSellerSecondHTML=buildPowerSellerHTML(true);

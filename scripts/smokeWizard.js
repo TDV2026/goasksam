@@ -125,6 +125,34 @@ function guardRender(name, text) {
       check(`[design] ${name}: Tier 1 is percent-only, no dollars or median`, !/\$|median/i.test(tier1Li), tier1Li.slice(0, 120));
     }
     check(`[design] ${name}: voice class never inside buttons or bullets`, !/<(button|li)[^>]*class="[^"]*voice/.test(raw), "voice in button/li");
+    // Plate window label is specific and verifiable: never "Historical";
+    // "Since YYYY" must name the evidence's earliest boundary; "Past N days"
+    // must be a window some claim actually used.
+    const plateData = (clean.match(/Data: (Past \d+ days|Since \d{4}|All-time|[^\n]*)/) || [])[1];
+    if (plateData) {
+      check(`[design] ${name}: plate window never says Historical`, !/historical/i.test(plateData), `label="${plateData}"`);
+      const ev = sellState.sellDecision?.evidence || {};
+      const claimWindows = [ev.windowDays, ...((sellState.sellDecision?.decision?.routeFit?.routes || []).map(r => r.marketEvidence?.pricePremium?.windowDays))].filter(Number.isFinite);
+      const sinceM = plateData.match(/^Since (\d{4})$/);
+      const pastM = plateData.match(/^Past (\d+) days$/);
+      if (sinceM) check(`[design] ${name}: Since-year matches the evidence boundary`, String(ev.earliestSaleDate || "").startsWith(sinceM[1]), `label="${plateData}" earliest=${ev.earliestSaleDate}`);
+      else if (pastM) check(`[design] ${name}: Past-days window was actually used`, claimWindows.includes(Number(pastM[1])), `label="${plateData}" windows=${JSON.stringify(claimWindows)}`);
+      else check(`[design] ${name}: plate window is a recognized form`, plateData === "All-time", `label="${plateData}"`);
+      // Chat opener names the same window the platform plate displays
+      // (skipped in handled mode, where the plate is the partner's career).
+      const opener = clean.match(/I looked at [^\n]*?(over the past (\d+) days|since (\d{4})|across everything)/);
+      if (opener && !/the platform pick is right below/.test(clean)) {
+        const openerMatchesPlate = (pastM && Number(opener[2]) === Number(pastM[1])) || (sinceM && opener[3] === sinceM[1]) || (plateData === "All-time" && /across everything/.test(opener[1]));
+        check(`[design] ${name}: chat opener window equals the plate window`, openerMatchesPlate, `opener="${opener[1]}" plate="${plateData}"`);
+      }
+    }
+    // Alt speed line only with curated-fast policy data favoring the alternative.
+    if (/If speed matters, /.test(clean)) {
+      const routesS = sellState.sellDecision?.decision?.routeFit?.routes || [];
+      const pickS = routesS[0];
+      const altFast = routesS.slice(1).some(r => ["fast", "medium_fast"].includes(r.speedToList));
+      check(`[design] ${name}: alt speed line gated on curated speed data`, altFast && !["fast", "medium_fast"].includes(pickS?.speedToList), `pick=${pickS?.speedToList} alts=${JSON.stringify(routesS.slice(1).map(r => [r.platform, r.speedToList]))}`);
+    }
     // All-time day-advantage lines must say "historically" (locked wording).
     const dayLines = clean.split("\n").filter(l => /above other days/i.test(l));
     check(`[design] ${name}: all-time day lines say historically`, dayLines.every(l => /historically/i.test(l)), dayLines.find(l => !/historically/i.test(l)) || "");
