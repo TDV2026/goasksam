@@ -593,8 +593,13 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
     }
     const decoded=rendered.replace(/&#39;|&apos;/g,"'").replace(/&amp;/g,"&");
     check(`bullet 3 (${car.label.split(" ").at(-1)}): fast timeline gets the speed line`, /prioritizing a fast close|market I'd trust to move it|tends to get listings live fast|historically closes quicker|moves faster to market|gets a listing live sooner|quicker auction cycle|faster route from listing to close/i.test(decoded), (decoded.match(/[^\n]*(fast|quick)[^\n]*/i)||["none"])[0].slice(0,160));
-    // FIX 2: locked two-part Why when the speed tiebreak fired
-    if(SPEED_POOL.test(rendered)){
+    if(sellState.routingReason==="speed"){
+      // Context-aware routing swapped the pick: the speed contract replaces
+      // the old two-part tiebreak copy.
+      check(`speed routing (${car.label.split(" ").at(-1)}): voice owns the speed pick`, /If speed is your priority, [^\n]+ is the right move\./.test(decoded), decoded.slice(0,300));
+      check(`speed routing (${car.label.split(" ").at(-1)}): summary confirms the heard preference`, /You need it fast\./.test(decoded), decoded.slice(0,300));
+    }else if(SPEED_POOL.test(rendered)){
+      // Locked two-part Why when the (non-swap) speed tiebreak fired
       speedReasons.push((rendered.match(SPEED_POOL)||[""])[0]);
       check(`why structure (${car.label.split(" ").at(-1)}): speed phrase + gap phrase`, GAP_POOL.test(rendered), rendered.slice(0,300));
       check(`speed headline (${car.label.split(" ").at(-1)}): confirms the heard preference`, /You want it gone fast/i.test(rendered), rendered.slice(0,300));
