@@ -151,6 +151,25 @@ async function showSellRecommendation(){
     return;
   }
 
+  // Context-aware routing (locked): a fast timeline flips the pick to the
+  // curated-fast alternative when the current pick is not fast and the
+  // alternative holds real comparable evidence. Runs ONCE, before the
+  // opener and any card; plate, voice, bullets and ordering all flow from
+  // the result.
+  sellState.routingReason=null;
+  {
+    const FAST=["fast","medium_fast"];
+    const pickRoute=routeOptions[0],altRoute=routeOptions[1];
+    if(sellerWantsSpeed()&&pickRoute&&altRoute
+      &&FAST.includes(altRoute.speedToList)&&!FAST.includes(pickRoute.speedToList)
+      &&routeHasTrueComparableEvidence(altRoute)){
+      routeOptions[0]=altRoute;routeOptions[1]=pickRoute;
+      // The routing reason carries the speed story now; the curated
+      // speed-argument secondary copy would contradict a pick card.
+      delete routeOptions[0].speedArgument;
+      sellState.routingReason="speed";
+    }
+  }
   const wideningLine=ladderWideningNarration(decisionData,routeOptions[0]||null);
   if(wideningLine)addMsg("sam",wideningLine);
   if(decision.strongerNonRoutable){
@@ -190,10 +209,12 @@ async function showSellRecommendation(){
       altReason:index>0&&!route.speedArgument?altReasonLine(route,routesForCards[0]):null,
       actionLabel:index===0?`Submit your car to ${platformLogo({name:routeName}).text}`:`Consider ${routeName}`,
       speedArgument:!!route.speedArgument,
-      reason:route.speedArgument
+      reason:sellState.routingReason==="speed"&&index===0
+        ?`If speed is your priority, ${routeName} is the right move.`
+        :route.speedArgument
         ?"Hagerty has sold 1960s Corvettes in our records and is the stronger fit when speed matters: listings get live quickly and the audience skews classic."
         :routeReason(route,index,routeOptions),
-      reasonBullets:index===0&&!route.speedArgument?primaryReasonBullets(route):null,
+      reasonBullets:index===0&&!route.speedArgument?primaryReasonBullets(route,routeOptions[1]||null):null,
       evidenceBullets:routeEvidenceBullets(route,index,routeOptions),
       evidenceLine:"",
       stat:routeTagLine(route,index,routeOptions),

@@ -153,6 +153,26 @@ function guardRender(name, text) {
       const altFast = routesS.slice(1).some(r => ["fast", "medium_fast"].includes(r.speedToList));
       check(`[design] ${name}: alt speed line gated on curated speed data`, altFast && !["fast", "medium_fast"].includes(pickS?.speedToList), `pick=${pickS?.speedToList} alts=${JSON.stringify(routesS.slice(1).map(r => [r.platform, r.speedToList]))}`);
     }
+    // Speed-routing coherence: the speed voice line renders only when the
+    // routing genuinely swapped for speed.
+    if (/If speed is your priority, /.test(clean)) {
+      check(`[design] ${name}: speed voice only with speed routing`, sellState.routingReason === "speed", `routingReason=${sellState.routingReason}`);
+    }
+    // Tier 1.5 gates: 5+ sold both sides, 2% <= |gap| < 10%, from the
+    // decision's own proof objects.
+    if (/Price is negligible between /.test(clean)) {
+      const routesN = (sellState.sellDecision?.decision?.routeFit?.routes || []).filter(r => r.marketEvidence?.pricePremium);
+      const proofN = routesN.map(r => r.marketEvidence.pricePremium).find(p => p.platformSales >= 5 && p.othersSales >= 5 && Math.abs(p.percent) >= 2 && Math.abs(p.percent) < 10);
+      check(`[design] ${name}: Tier 1.5 gates hold (5+ both sides, 2-10% gap)`, !!proofN, `proofs=${JSON.stringify(routesN.map(r => [r.platform, r.marketEvidence.pricePremium]))}`);
+    }
+    // Plate pick and bullets agree: a platform plate's name must appear in
+    // the claim bullets (every bullet-1 tier names the pick).
+    const plateNameC = ((raw.match(/vp-name">([^<]*)</) || [])[1] || "").replace(/&amp;/g, "&");
+    const PLATFORM_NAMES = ["Bring a Trailer", "Cars & Bids", "PCarMarket", "Hemmings", "Hagerty Marketplace", "Car & Classic", "Collecting Cars"];
+    if (plateNameC && PLATFORM_NAMES.includes(plateNameC)) {
+      const liText = liMatches.map(m => flatLi(m[2]).replace(/&amp;/g, "&")).join("\n");
+      check(`[design] ${name}: plate pick matches the bullets pick`, liText.includes(plateNameC) || !liText.trim(), `plate="${plateNameC}"`);
+    }
     // All-time day-advantage lines must say "historically" (locked wording).
     const dayLines = clean.split("\n").filter(l => /above other days/i.test(l));
     check(`[design] ${name}: all-time day lines say historically`, dayLines.every(l => /historically/i.test(l)), dayLines.find(l => !/historically/i.test(l)) || "");
@@ -517,7 +537,9 @@ const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsc
   // The speed secondary can only render when the decision actually carries
   // a Hagerty route; the evidence set is data-dependent per run.
   const hagertyTracked = (sellState.sellDecision?.decision?.routeFit?.routes || []).some(r => /hagerty/i.test(String(r.platform || r.label || "")));
-  check("corvette speed: Hagerty renders as the speed option when tracked", !hagertyTracked || (/Hagerty/.test(vetteFast) && /stronger fit when speed matters/.test(vetteFast)), `hagertyTracked=${hagertyTracked} ` + vetteFast.replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 250));
+  // With context-aware routing, an evidence-backed Hagerty swaps to the pick
+  // (speed voice); without evidence it stays the speed secondary (old copy).
+  check("corvette speed: Hagerty renders as the speed option when tracked", !hagertyTracked || (/Hagerty/.test(vetteFast) && (/stronger fit when speed matters/.test(vetteFast) || /If speed is your priority/.test(vetteFast))), `hagertyTracked=${hagertyTracked} ` + vetteFast.replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 250));
 }
 
 {
@@ -595,14 +617,14 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   const us=await runResult("US","California","140k",gts);
   if(sellState.awaitingPathChoice){handleSellRecommendationFollowup("I'll run it myself");await new Promise(r=>setTimeout(r,150));}
   const rendered=(renderedResult()+"\n"+allSamText()).replace(/<li>/g,"\n• ").replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g,"\n");
-  const heroHasPct=/\d+% of [^\n]* sales (over the past [^\n]*|across everything[^\n]*) closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty)/i.test(rendered.replace(/&amp;/g,"&"));
+  const heroHasPct=/(\d+% of [^\n]* sales (over the past [^\n]*|across everything[^\n]*) closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty)|closed around \d+% higher on|Price is negligible between)/i.test(rendered.replace(/&amp;/g,"&"));
   // Below the 10+ gate, bullet 1 is Tier B (verified leadership) or the
   // honest existence line (the old standalone band prose is deleted).
   const heroHasTierB=/More [^\n]+ sales have closed on [^\n]+ than any other platform we track/i.test(rendered.replace(/&amp;/g,"&"));
   const heroHasSafeProse=/sales have closed on [^\n]+ (over the past \d+ days|in our tracked records)/i.test(rendered.replace(/&amp;/g,"&"));
   check("card specificity: hero is a specific claim or gated safe prose", heroHasPct||heroHasTierB||heroHasSafeProse, (rendered.match(/[^\n]*(closed on|closed here)[^\n]*/i)||["no hero line"])[0].slice(0,180));
   check("card specificity: no 'Every comparable sale' vagueness", !/Every comparable sale we tracked/i.test(rendered), "vague claim rendered");
-  check("card regression: Why bullet 1 is a tiered claim, zero dollars", /sales have closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty) (over the past|across everything|in our tracked records|than any other platform)/i.test(rendered.replace(/&amp;/g,"&"))||heroHasPct, (rendered.match(/[^\n]*sales have closed on[^\n]*/i)||["missing"])[0].slice(0,160));
+  check("card regression: Why bullet 1 is a tiered claim, zero dollars", /sales have closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty) (over the past|across everything|in our tracked records|than any other platform)/i.test(rendered.replace(/&amp;/g,"&"))||heroHasPct||heroHasTierB, (rendered.match(/[^\n]*sales have closed on[^\n]*/i)||["missing"])[0].slice(0,160));
   check("card regression: no median prices on platform cards", !/Median (sale )?\$[\d,]+/.test(rendered)&&!/\$[\d,]+ here vs/.test(rendered), (rendered.match(/[^\n]*(Median|here vs)[^\n]*/)||[""])[0].slice(0,160));
   check("card regression: no buyer-base or strongest-run filler", !/Buyer base:|strongest run recently|enthusiast and collector cars across every era/i.test(rendered), (rendered.match(/[^\n]*(Buyer base|strongest run|every era)[^\n]*/i)||[""])[0].slice(0,160));
   // Bullet 3 contract: sell-through is qualitative and the speed line only
@@ -640,6 +662,34 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   check("bullet 3: renders on no-rush when segment data exists", /(Strong|Consistent) sell-through for classic Porsches in the \$50k to \$150k range/.test(rendered), (rendered.match(/[^\n]*sell-through[^\n]*/i)||["missing"])[0].slice(0,160));
   check("bullet 3: no speed line on a no-rush timeline", !/prioritizing a fast close|market I'd trust to move it/.test(rendered), (rendered.match(/[^\n]*(fast close|move it)[^\n]*/i)||[""])[0]);
   check("carrera: zero price-gap prose despite the 57% gap", !/your asking price|the average for recent/i.test(rendered), (rendered.match(/[^\n]*asking price[^\n]*/i)||[""])[0]);
+}
+
+// Context-aware speed routing: a fast timeline flips the pick to the
+// curated-fast alternative (evidence-backed only); the routing reason
+// drives voice, bullet 3 and the summary. No timeline context: no swap.
+{
+  const FAST=["fast","medium_fast"];
+  const lc={label:"1985 Toyota Land Cruiser",vehicle:{raw:"1985 Toyota Land Cruiser",year:1985,make:"Toyota",model:"Land Cruiser",trim:null,confidence:"high",canonicalLabel:"1985 Toyota Land Cruiser"}};
+  const lcFast=await runResult("US","Texas","40k",lc,{timeline:"Want it gone fast"});
+  const flatLC=lcFast.replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/&amp;/g,"&").replace(/<[^>]+>/g,"\n");
+  const routesLC=(sellState.sellDecision?.decision?.routeFit?.routes||[]).filter(r=>r.marketEvidence?.evidenceSales>0);
+  const plateLC=((lcFast.match(/vp-name">([^<]*)</)||[])[1]||"").replace(/&amp;/g,"&");
+  const pickRouteLC=routesLC.find(r=>plateLC&&plateLC===platformNameMapSmoke(r.platform));
+  const fastAltExists=routesLC.some(r=>plateLC!==platformNameMapSmoke(r.platform)&&FAST.includes(r.speedToList));
+  check("speed routing: fast-timeline pick is fast, or no fast alternative existed",
+    !plateLC||!pickRouteLC||FAST.includes(pickRouteLC.speedToList)||!fastAltExists,
+    `plate=${plateLC} pickSpeed=${pickRouteLC?.speedToList} fastAltExists=${fastAltExists} reason=${sellState.routingReason}`);
+  check("speed routing: routingReason tag matches the rendered voice",
+    (sellState.routingReason==="speed")===/If speed is your priority, [^\n]+ is the right move\./.test(flatLC),
+    `reason=${sellState.routingReason}`);
+  if(sellState.routingReason==="speed"){
+    check("speed swap: bullet 3 is the quicker-cycle line, not segment", /typically runs the quicker auction cycle/.test(flatLC), (flatLC.match(/[^\n]*quicker[^\n]*/)||["missing"])[0]);
+    const pickSection=flatLC.split("Why I picked this")[1]?.split("Submit your car")[0]||"";
+    check("speed swap: segment bullet suppressed on the pick", !/sell-through for/.test(pickSection), (pickSection.match(/[^\n]*sell-through[^\n]*/)||[""])[0]);
+    check("speed swap: summary owns the reason", /You need it fast\. [^\n]+ is your move\./.test(flatLC), (flatLC.match(/[^\n]*your move[^\n]*/)||["missing"])[0]);
+  }
+  const lcNoRush=await runResult("US","Texas","40k",lc,{timeline:"No rush, right result only"});
+  check("no-rush: no speed swap and no speed voice", sellState.routingReason===null&&!/If speed is your priority/.test(lcNoRush), `reason=${sellState.routingReason}`);
 }
 
 // Price-gap prose is deleted (locked): a big ask-vs-comps gap changes

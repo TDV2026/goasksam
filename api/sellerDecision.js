@@ -826,6 +826,9 @@ function analyze(records, classifications, ladder, vehicle) {
   // The numbers ship in the response as the claim's proof object.
   const pricePremiumFor = platform => {
     if (!landed || landed.key === "make_context") return null;
+    // A measured sub-10% gap at the first sample-sufficient window ships too:
+    // the frontend renders it as the honest negligibility claim (Tier 1.5).
+    let firstMeasured = null;
     for (const window of [45, 90, 180, 36500]) {
       const eligible = pairedRecords.filter(item =>
         daysAgo(item.record.auction_end_date) <= window && ladderEligible(item, landed.definition));
@@ -836,10 +839,11 @@ function analyze(records, classifications, ladder, vehicle) {
       if (mine.length >= 5 && others.length >= 5) {
         const gap = Math.round((median(mine) - median(others)) / median(others) * 100);
         if (gap >= 10) return { percent: gap, windowDays: window, platformSales: mine.length, othersSales: others.length };
-        // gates unmet at this window: keep widening until they pass or run out
+        if (!firstMeasured) firstMeasured = { percent: gap, windowDays: window, platformSales: mine.length, othersSales: others.length };
+        // keep widening: a later window may clear the 10% premium gate
       }
     }
-    return null;
+    return firstMeasured;
   };
 
   let platformPerformance = [...platformMap.entries()]

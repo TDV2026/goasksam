@@ -427,7 +427,12 @@ function routeReason(route,index,routes){
     return `The market result and process tradeoffs are close enough to compare.`;
   }
   if(index===0){
-    return `This is where I’d begin if you sell it yourself.`;
+    // Final and opinionated (rule 15): no sell-it-yourself conditionals.
+    return pickCopy([
+      `If this were my car, it goes on ${platformDisplayName(name)}.`,
+      `${platformDisplayName(name)} is where I’d put it.`,
+      `The market for this car runs through ${platformDisplayName(name)}.`
+    ],sellState.carName,"solo-pick");
   }
   return pickCopy([
     `${name} is still worth looking at, but the choice above is stronger on the current market read.`,
@@ -783,7 +788,10 @@ function altReasonLine(route,pick){
     .filter(other=>other!==route&&other!==pick&&other.marketEvidence)
     .map(other=>Number(other.marketEvidence.evidenceSales||0));
   if(mine>0&&(!remaining.length||mine>Math.max(...remaining))){
-    return `Second-most ${comparableSalesLabel()} sales in our tracked records.`;
+    // After a speed swap the original pick often holds the MOST sales;
+    // "second-most" would be a false statistic (locked rule 1).
+    const pickCount=Number(pick?.marketEvidence?.evidenceSales||0);
+    return `${mine>pickCount?"Most":"Second-most"} ${comparableSalesLabel()} sales in our tracked records.`;
   }
   // Speed positioning, curated-policy grounded ONLY (we hold no measured
   // close-time data, so no model-specific track-record claim): renders when
@@ -837,7 +845,7 @@ function weekdayBullet(){
 // rendered green); below the gate it falls back to the honest existence
 // line, neutral. Items are {text, validated} so the renderer can style
 // the earned-green line without a separate band component.
-function primaryReasonBullets(route){
+function primaryReasonBullets(route,altRoute){
   if(!route?.marketEvidence)return null;
   const e=route.marketEvidence;
   const facts=routeFacts(route);
@@ -845,19 +853,29 @@ function primaryReasonBullets(route){
   // Bullet 1 is always comparative (locked), first tier whose gates pass:
   // Tier 1: price premium, green. Model-scoped, 5+ sold both sides in the
   //   same window, rounded gap 10%+; % only, never dollars, never "median".
+  // Tier 1.5: price negligibility, neutral. Same sample gates, measured gap
+  //   under 10% but at least 2% (below 2% is instrument noise).
   // Tier 2: volume share, green. Proven cross-platform denominator, 10+.
   // Tier 3: verified leadership, neutral.
   // Tier 4: honest existence with a real window, neutral, last resort.
   if(e.evidenceSales>0){
     const premium=e.pricePremium;
+    const premiumSampled=!!(premium&&premium.platformSales>=5&&premium.othersSales>=5);
     const landedDays=sellState.sellDecision?.evidence?.windowDays;
-    if(premium&&premium.platformSales>=5&&premium.othersSales>=5&&premium.percent>=10){
+    if(premiumSampled&&premium.percent>=10){
       const name=platformDisplayName(route.label||route.platform);
       bullets.push({
         text:premium.windowDays>=3650
           ?`${comparableSalesLabel()} sales have historically closed around ${premium.percent}% higher on ${name} than on other platforms`
           :`${comparableSalesLabel()} sales have closed around ${premium.percent}% higher on ${name} than on other platforms over the past ${premium.windowDays} days`,
         validated:true,windowDays:premium.windowDays});
+    }else if(premiumSampled&&Math.abs(premium.percent)>=2&&Math.abs(premium.percent)<10){
+      // Honest only pick-vs-alt when those two platforms hold all the
+      // evidence; with more platforms it stays "the other platforms".
+      const platformsWithSales=(sellState.allRouteOptions||[]).filter(other=>Number(other.marketEvidence?.evidenceSales||0)>0).length;
+      const otherName=(altRoute&&platformsWithSales===2)?platformDisplayName(altRoute.label||altRoute.platform):"the other platforms";
+      const windowText=premium.windowDays>=3650?"across everything we've tracked":`over the past ${premium.windowDays} days`;
+      bullets.push({text:`Price is negligible between ${platformDisplayName(route.label||route.platform)} and ${otherName} ${windowText}`,validated:false,windowDays:premium.windowDays});
     }else if(Number(facts.totalEvidenceSales)>=10){
       const share=Math.round((facts.evidenceSales/facts.totalEvidenceSales)*100);
       bullets.push({text:`${share}% of ${comparableSalesLabel()} sales ${marketWindowPhrase()} closed on ${platformDisplayName(route.label||route.platform)}`,validated:true,windowDays:landedDays});
@@ -871,8 +889,14 @@ function primaryReasonBullets(route){
   // Bullet 2: historical day advantage (all-time, 3+ same-day sales, 10%+ lift).
   const day=weekdayBullet();
   if(day)bullets.push({text:day,validated:false,windowDays:36500});
-  // Bullet 3: qualitative segment sell-through (never a percentage or count)
-  // plus a speed acknowledgment only when the seller wants it gone fast.
+  // Bullet 3: when a speed swap routed this pick, the bullet explains the
+  // routing from curated policy (no invented metrics). Otherwise the
+  // qualitative segment sell-through, plus a speed acknowledgment only when
+  // the seller wants it gone fast.
+  if(sellState.routingReason==="speed"){
+    bullets.push({text:`${platformDisplayName(route.label||route.platform)} typically runs the quicker auction cycle.`,validated:false});
+    return bullets.slice(0,3);
+  }
   let bullet3="";
   if(e.segmentSellThrough){
     const adjective=e.segmentSellThrough.percent>=85?"Strong":"Consistent";
@@ -1021,6 +1045,11 @@ function routeEvidenceBullets(route,index,routes){
 }
 
 function resultSummaryLine(options,routes=[]){
+  // Speed-swapped routing owns its reason up front.
+  if(sellState.routingReason==="speed"){
+    const pickName=(options||[]).find(option=>option.key!=="specialist")?.name;
+    if(pickName)return `You need it fast. ${pickName} is your move.`;
+  }
   if((options||[]).some(option=>option.key==="specialist")){
     if(sellerWantsToManageSelf())return "You told me you’d rather manage it yourself. I’d normally agree, but I’d still hear one PowerSeller out before deciding.";
     return "I’d speak to one experienced PowerSeller first. They can tell you whether Bring a Trailer, Cars & Bids or another platform gives this specific car the best chance.";
