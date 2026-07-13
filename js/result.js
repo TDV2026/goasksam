@@ -187,7 +187,7 @@ async function showSellRecommendation(){
       // leads, the plate moves to the dossier and this card renders as the
       // alternative. The DIY ordering re-renders this card with the plate.
       showPlate:index===0&&!hasNamedPowerSellerAdvice,
-      altReason:index>0?altReasonLine(route,routesForCards[0]):null,
+      altReason:index>0&&!route.speedArgument?altReasonLine(route,routesForCards[0]):null,
       actionLabel:index===0?`Submit your car to ${platformLogo({name:routeName}).text}`:`Consider ${routeName}`,
       speedArgument:!!route.speedArgument,
       reason:route.speedArgument
@@ -265,7 +265,7 @@ async function showSellRecommendation(){
         <div class="sell-rec-reason-label label-mono">${option.key==="specialist"?"Why I’d call them":option.altReason?"Why it’s worth comparing":"Why I picked this"}</div>
         ${option.reasonBullets?.length
           ?`<ul class="sell-rec-bullets">${option.reasonBullets.map(item=>`<li${item.validated?' class="validated-claim"':""}>${numify(item.text)}</li>`).join("")}</ul>`
-          :`<div class="sell-rec-reason">${numify(option.altReason||option.rankReason||option.reason||"")}</div>`}
+          :`<div class="sell-rec-reason">${numify(option.speedArgument?option.reason:(option.altReason||option.rankReason||option.reason||""))}</div>`}
         ${option.stat?`<div class="sell-rec-stat">${numify(option.stat)}</div>`:""}
         ${option.evidenceBullets?.length&&!option.altReason?`<ul class="sell-rec-bullets">${option.evidenceBullets.map(item=>`<li>${numify(item)}</li>`).join("")}</ul>`:""}
         ${option.evidenceLine?`<div class="sell-rec-evidence-line">${numify(option.evidenceLine||"")}</div>`:""}
