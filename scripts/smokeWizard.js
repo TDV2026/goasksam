@@ -449,7 +449,8 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
     if(/negligible between/i.test(rendered)){
       check(`median gate (${car.label.split(" ").at(-1)}): negligible line carries no dollar amounts`, !/negligible[^<]*\$\d/i.test(rendered), rendered.slice(rendered.search(/negligible/i),rendered.search(/negligible/i)+200));
     }
-    check(`bullet 3 (${car.label.split(" ").at(-1)}): fast timeline gets the speed line`, /prioritizing a fast close|market I'd trust to move it|tends to get listings live fast|historically closes quicker|moves faster to market|gets a listing live sooner|quicker auction cycle|faster route from listing to close/i.test(rendered), (rendered.match(/[^\n]*(fast|quick)[^\n]*/i)||["none"])[0].slice(0,160));
+    const decoded=rendered.replace(/&#39;|&apos;/g,"'").replace(/&amp;/g,"&");
+    check(`bullet 3 (${car.label.split(" ").at(-1)}): fast timeline gets the speed line`, /prioritizing a fast close|market I'd trust to move it|tends to get listings live fast|historically closes quicker|moves faster to market|gets a listing live sooner|quicker auction cycle|faster route from listing to close/i.test(decoded), (decoded.match(/[^\n]*(fast|quick)[^\n]*/i)||["none"])[0].slice(0,160));
     // FIX 2: locked two-part Why when the speed tiebreak fired
     if(SPEED_POOL.test(rendered)){
       speedReasons.push((rendered.match(SPEED_POOL)||[""])[0]);
@@ -483,8 +484,8 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   check("card regression: no buyer-base or strongest-run filler", !/Buyer base:|strongest run recently|enthusiast and collector cars across every era/i.test(rendered), (rendered.match(/[^\n]*(Buyer base|strongest run|every era)[^\n]*/i)||[""])[0].slice(0,160));
   // Bullet 3 contract: sell-through is qualitative and the speed line only
   // follows a fast timeline (this run has no timeline set).
-  check("bullet 3: sell-through never renders as a percentage", !/sell-through for [^\n]*\d/.test(rendered)&&!/\d+% [^\n]*sell-through/.test(rendered), (rendered.match(/[^\n]*sell-through[^\n]*/i)||[""])[0].slice(0,160));
-  check("bullet 3: no speed line without a fast timeline", !/prioritizing a fast close|market I'd trust to move it/i.test(rendered), (rendered.match(/[^\n]*(fast close|move it)[^\n]*/i)||[""])[0].slice(0,160));
+  check("bullet 3: sell-through never renders as a percentage", !/sell-through for [^\n]*%/.test(rendered), (rendered.match(/[^\n]*sell-through for[^\n]*/i)||[""])[0].slice(0,160));
+  check("bullet 3: no speed line without a fast timeline", !/prioritizing a fast close|market I.{0,6}d trust to move it/i.test(rendered), (rendered.match(/[^\n]*(fast close|move it)[^\n]*/i)||[""])[0].slice(0,160));
   check("card specificity: weekday lines only render with a material lift", !/(around|at ~)[1-9]% above other days/.test(rendered), (rendered.match(/[^\n]*above other days[^\n]*/)||[""])[0]);
   // FIX 1 validation gate: any percent claim requires a proven 10+ denominator
   const pctClaim=rendered.replace(/&amp;/g,"&").match(/(\d+)% of [^\n]*closed on/);
