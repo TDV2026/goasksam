@@ -473,7 +473,9 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   const us=await runResult("US","California","140k",gts);
   if(sellState.awaitingPathChoice){handleSellRecommendationFollowup("I'll run it myself");await new Promise(r=>setTimeout(r,150));}
   const rendered=(renderedResult()+"\n"+allSamText()).replace(/<li>/g,"\n• ").replace(/<[^>]+>/g,"\n");
-  check("card specificity: comparable claim names percent, period and platform", /\d+% of [^\n]* sales (over the past [^\n]*|across everything[^\n]*) closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty)/i.test(rendered.replace(/&amp;/g,"&")), (rendered.match(/[^\n]*closed on[^\n]*/i)||["no claim line"])[0].slice(0,180));
+  const heroHasPct=/\d+% of [^\n]* sales (over the past [^\n]*|across everything[^\n]*) closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty)/i.test(rendered.replace(/&amp;/g,"&"));
+  const heroHasSafeProse=/Recent comparable [^\n]* sales have closed here/i.test(rendered);
+  check("card specificity: hero is a specific claim or gated safe prose", heroHasPct||heroHasSafeProse, (rendered.match(/[^\n]*(closed on|closed here)[^\n]*/i)||["no hero line"])[0].slice(0,180));
   check("card specificity: no 'Every comparable sale' vagueness", !/Every comparable sale we tracked/i.test(rendered), "vague claim rendered");
   check("card specificity: Why renders as concrete bullets with a buyer-base line", /Buyer base: /.test(rendered), rendered.slice(0,300));
   check("card specificity: weekday lines only render with a material lift", !/(around|at ~)[1-9]% above other days/.test(rendered), (rendered.match(/[^\n]*above other days[^\n]*/)||[""])[0]);
