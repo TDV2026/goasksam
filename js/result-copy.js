@@ -686,11 +686,15 @@ function weekdayBullet(evidence){
 // CHANGE 1: "Why I picked this" is three concrete reasons, never prose.
 function primaryReasonBullets(route){
   if(!route?.marketEvidence)return null;
-  if(speedTiebreak(sellState.allRouteOptions?.slice(0,2)))return null; // locked two-part speed prose stays
   const e=route.marketEvidence;
   const bullets=[];
-  // Bullet 1: existence validation, zero stats, zero dollars.
-  if(e.evidenceSales>0)bullets.push(`${cleanCarForCopy()} sales have closed on ${platformDisplayName(route.label||route.platform)} ${marketWindowPhrase()}`);
+  // Bullet 1: existence validation, zero stats, zero dollars, and a real
+  // window: an all-time landing says so instead of hiding behind vagueness.
+  if(e.evidenceSales>0){
+    const days=sellState.sellDecision?.evidence?.windowDays;
+    const windowText=days&&days<=180?`over the past ${days} days`:`in our tracked records, though none in the past 180 days`;
+    bullets.push(`${cleanCarForCopy()} sales have closed on ${platformDisplayName(route.label||route.platform)} ${windowText}`);
+  }
   // Bullet 2: day advantage, gated strict (3+ same-day sales, 10%+ lift).
   const day=weekdayBullet(e);
   if(day)bullets.push(day);

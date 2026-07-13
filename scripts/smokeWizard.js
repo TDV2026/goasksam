@@ -486,6 +486,12 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   // follows a fast timeline (this run has no timeline set).
   check("bullet 3: sell-through never renders as a percentage", !/sell-through for [^\n]*%/.test(rendered), (rendered.match(/[^\n]*sell-through for[^\n]*/i)||[""])[0].slice(0,160));
   check("bullet 3: no speed line without a fast timeline", !/prioritizing a fast close|market I.{0,6}d trust to move it/i.test(rendered), (rendered.match(/[^\n]*(fast close|move it)[^\n]*/i)||[""])[0].slice(0,160));
+  // Bullet 1 always names a concrete window, never bare vagueness.
+  const bullet1Lines=rendered.split("\n").filter(l=>/sales have closed on/i.test(l));
+  check("bullet 1: every existence line names a real window", bullet1Lines.every(l=>/over the past \d+ days|though none in the past 180 days/i.test(l)), bullet1Lines.map(l=>l.trim().slice(0,120)).join(" | ")||"none");
+  // Relevance count can never exceed the make count.
+  const rel=(rendered.replace(/&#39;/g,"'").match(/(\d+) \w[\w-]* sales tracked, (\d+) in this car's price range/)||null);
+  if(rel)check("relevance: price-band count is make-scoped and sane", Number(rel[2])<=Number(rel[1]), rel[0]);
   check("card specificity: weekday lines only render with a material lift", !/(around|at ~)[1-9]% above other days/.test(rendered), (rendered.match(/[^\n]*above other days[^\n]*/)||[""])[0]);
   // FIX 1 validation gate: any percent claim requires a proven 10+ denominator
   const pctClaim=rendered.replace(/&amp;/g,"&").match(/(\d+)% of [^\n]*closed on/);

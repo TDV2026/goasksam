@@ -122,7 +122,6 @@ Why
   
     
     
-    
 Pick either, or ask me to compare the tradeoffs.
 
   
