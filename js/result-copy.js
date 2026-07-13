@@ -109,12 +109,16 @@ function routeHasTrueComparableEvidence(route){
 function analysisWindowInfo(bullets){
   const windows=(bullets||[]).map(item=>Number(item.windowDays)).filter(Number.isFinite);
   if(!windows.length)return {label:"",phrase:""};
-  if(windows.some(days=>days>=3650)){
-    const since=String(sellState.sellDecision?.evidence?.earliestSaleDate||"").slice(0,4);
-    return since?{label:`Since ${since}`,phrase:`since ${since}`}:{label:"All-time",phrase:"across everything we've tracked"};
+  // The widest FINITE window any rendered claim used wins: it is the
+  // narrower, more specific span and matches bullet 1. Supporting all-time
+  // bullets (day, segment) never force the label wider than the tier claim.
+  const finite=windows.filter(days=>days<3650);
+  if(finite.length){
+    const max=Math.max(...finite);
+    return {label:`Past ${max} days`,phrase:`over the past ${max} days`};
   }
-  const max=Math.max(...windows);
-  return {label:`Past ${max} days`,phrase:`over the past ${max} days`};
+  const since=String(sellState.sellDecision?.evidence?.earliestSaleDate||"").slice(0,4);
+  return since?{label:`Since ${since}`,phrase:`since ${since}`}:{label:"All-time",phrase:"across everything we've tracked"};
 }
 
 function ladderWideningNarration(decisionData,primaryRoute){
@@ -789,9 +793,16 @@ function altReasonLine(route,pick){
     .map(other=>Number(other.marketEvidence.evidenceSales||0));
   if(mine>0&&(!remaining.length||mine>Math.max(...remaining))){
     // After a speed swap the original pick often holds the MOST sales;
-    // "second-most" would be a false statistic (locked rule 1).
+    // "second-most" would be a false statistic (locked rule 1). The claim
+    // names the window its count actually comes from: the landed evidence
+    // window, in the same vocabulary as the plate.
     const pickCount=Number(pick?.marketEvidence?.evidenceSales||0);
-    return `${mine>pickCount?"Most":"Second-most"} ${comparableSalesLabel()} sales in our tracked records.`;
+    const landedDays=Number(sellState.sellDecision?.evidence?.windowDays);
+    const since=String(sellState.sellDecision?.evidence?.earliestSaleDate||"").slice(0,4);
+    const windowPhrase=Number.isFinite(landedDays)&&landedDays<3650
+      ?`over the past ${landedDays} days`
+      :(since?`since ${since}`:"across everything we've tracked");
+    return `${mine>pickCount?"Most":"Second-most"} ${comparableSalesLabel()} sales ${windowPhrase}.`;
   }
   // Speed positioning, curated-policy grounded ONLY (we hold no measured
   // close-time data, so no model-specific track-record claim): renders when
@@ -862,6 +873,22 @@ function primaryReasonBullets(route,altRoute){
     const premium=e.pricePremium;
     const premiumSampled=!!(premium&&premium.platformSales>=5&&premium.othersSales>=5);
     const landedDays=sellState.sellDecision?.evidence?.windowDays;
+    if(sellState.debugTierGates){
+      console.log(`[DEBUG] Tier 1-2 evaluation: ${cleanCarForCopy()} on ${platformDisplayName(route.label||route.platform)}`);
+      console.log("  Tier 1 gate (price premium):");
+      console.log("    - platformSalesCount:",premium?.platformSales??null);
+      console.log("    - othersSalesCount:",premium?.othersSales??null);
+      console.log("    - gapPercent:",premium?.percent??null);
+      console.log("    - windowDays:",premium?.windowDays??null);
+      console.log("    - pass?",!!(premiumSampled&&premium.percent>=10));
+      console.log("  Tier 1.5 gate (negligibility):");
+      console.log("    - pass?",!!(premiumSampled&&Math.abs(premium.percent)>=2&&Math.abs(premium.percent)<10));
+      console.log("  Tier 2 gate (volume share):");
+      console.log("    - platformSalesCount:",e.evidenceSales);
+      console.log("    - totalSalesAllPlatforms:",facts.totalEvidenceSales);
+      console.log("    - pass?",Number(facts.totalEvidenceSales)>=10);
+      console.log("  Tier 3 gate (leadership): pass?",platformLeadsEvidenceSet(route));
+    }
     if(premiumSampled&&premium.percent>=10){
       const name=platformDisplayName(route.label||route.platform);
       bullets.push({

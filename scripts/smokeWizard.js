@@ -137,6 +137,12 @@ function guardRender(name, text) {
       const pastM = plateData.match(/^Past (\d+) days$/);
       if (sinceM) check(`[design] ${name}: Since-year matches the evidence boundary`, String(ev.earliestSaleDate || "").startsWith(sinceM[1]), `label="${plateData}" earliest=${ev.earliestSaleDate}`);
       else if (pastM) check(`[design] ${name}: Past-days window was actually used`, claimWindows.includes(Number(pastM[1])), `label="${plateData}" windows=${JSON.stringify(claimWindows)}`);
+      // Plate window == bullet 1 window: when bullet 1 names a finite span
+      // in its own text, the plate must name the same one.
+      const bullet1Window = (liMatches.length ? flatLi(liMatches[0][2]) : "").match(/over the past (\d+) days/);
+      if (bullet1Window && pastM) {
+        check(`[design] ${name}: plate window equals bullet 1 window`, Number(bullet1Window[1]) === Number(pastM[1]), `bullet1=${bullet1Window[1]}d plate=${pastM[1]}d`);
+      }
       else check(`[design] ${name}: plate window is a recognized form`, plateData === "All-time", `label="${plateData}"`);
       // Chat opener names the same window the platform plate displays
       // (skipped in handled mode, where the plate is the partner's career).
@@ -145,6 +151,16 @@ function guardRender(name, text) {
         const openerMatchesPlate = (pastM && Number(opener[2]) === Number(pastM[1])) || (sinceM && opener[3] === sinceM[1]) || (plateData === "All-time" && /across everything/.test(opener[1]));
         check(`[design] ${name}: chat opener window equals the plate window`, openerMatchesPlate, `opener="${opener[1]}" plate="${plateData}"`);
       }
+    }
+    // Alt tier-(a) window claim always names the landed evidence window
+    // (the span its count is measured in, same vocabulary as the plate).
+    const altTierA = clean.match(/(Most|Second-most) [^\n]+ sales (over the past (\d+) days|since (\d{4})|across everything)/);
+    if (altTierA) {
+      const evA = sellState.sellDecision?.evidence || {};
+      const okA = altTierA[3] ? Number(altTierA[3]) === Number(evA.windowDays)
+        : altTierA[4] ? String(evA.earliestSaleDate || "").startsWith(altTierA[4])
+        : Number(evA.windowDays) >= 3650;
+      check(`[design] ${name}: alt window claim matches the evidence window`, okA, `claim="${altTierA[0].slice(0, 90)}" windowDays=${evA.windowDays} earliest=${evA.earliestSaleDate}`);
     }
     // Alt speed line only with curated-fast policy data favoring the alternative.
     if (/If speed matters, /.test(clean)) {
