@@ -135,7 +135,9 @@ function guardRender(name, text) {
       const claimWindows = [ev.windowDays, ...((sellState.sellDecision?.decision?.routeFit?.routes || []).map(r => r.marketEvidence?.pricePremium?.windowDays))].filter(Number.isFinite);
       const sinceM = plateData.match(/^Since (\d{4})$/);
       const pastM = plateData.match(/^Past (\d+) days$/);
-      if (sinceM) check(`[design] ${name}: Since-year matches the evidence boundary`, String(ev.earliestSaleDate || "").startsWith(sinceM[1]), `label="${plateData}" earliest=${ev.earliestSaleDate}`);
+      const boundaryYears = [String(ev.earliestSaleDate || "").slice(0, 4),
+        ...((sellState.sellDecision?.decision?.routeFit?.routes || []).map(r => String(r.marketEvidence?.pricePremium?.earliestSaleDate || "").slice(0, 4)))].filter(y => /^\d{4}$/.test(y));
+      if (sinceM) check(`[design] ${name}: Since-year matches a verifiable evidence boundary`, boundaryYears.includes(sinceM[1]), `label="${plateData}" boundaries=${JSON.stringify(boundaryYears)}`);
       else if (pastM) check(`[design] ${name}: Past-days window was actually used`, claimWindows.includes(Number(pastM[1])), `label="${plateData}" windows=${JSON.stringify(claimWindows)}`);
       else check(`[design] ${name}: plate window is a recognized form`, plateData === "All-time", `label="${plateData}"`);
       // Plate window == bullet 1 window: when bullet 1 names a finite span

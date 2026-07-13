@@ -825,23 +825,38 @@ function analyze(records, classifications, ladder, vehicle, debug) {
   // rung), stepwise window widening 45 -> 90 -> 180 -> all-time, 5+ sold on
   // the platform AND 5+ sold elsewhere in the same window, rounded gap 10%+.
   // The numbers ship in the response as the claim's proof object.
+  // Premium walk interleaves scope with window (locked): exact at 45, then
+  // per window 90/180/all-time try the landed scope THEN the generation
+  // scope, so a data-rich generation at 90 days beats exact-year at
+  // all-time. Never a make scope: mixed models violate the Tier 1 gate.
+  const premiumGenerationDef = landed
+    ? ladder.find(rung => ["generation_model", "generation_trim"].includes(rung.key) && rung.rung > landed.rung)
+    : null;
   const pricePremiumFor = platform => {
     if (!landed || landed.key === "make_context") return null;
-    // A measured sub-10% gap at the first sample-sufficient window ships too:
+    // A measured sub-10% gap at the first sample-sufficient step ships too:
     // the frontend renders it as the honest negligibility claim (Tier 1.5).
     let firstMeasured = null;
     for (const window of [45, 90, 180, 36500]) {
-      const eligible = pairedRecords.filter(item =>
-        daysAgo(item.record.auction_end_date) <= window && ladderEligible(item, landed.definition));
-      const mine = eligible.filter(item => recordPlatform(item.record) === platform)
-        .map(item => Number(item.classification.price)).filter(Number.isFinite);
-      const others = eligible.filter(item => recordPlatform(item.record) !== platform)
-        .map(item => Number(item.classification.price)).filter(Number.isFinite);
-      if (mine.length >= 5 && others.length >= 5) {
-        const gap = Math.round((median(mine) - median(others)) / median(others) * 100);
-        if (gap >= 10) return { percent: gap, windowDays: window, platformSales: mine.length, othersSales: others.length };
-        if (!firstMeasured) firstMeasured = { percent: gap, windowDays: window, platformSales: mine.length, othersSales: others.length };
-        // keep widening: a later window may clear the 10% premium gate
+      const scopeDefs = window === 45 ? [landed.definition] : [landed.definition, premiumGenerationDef].filter(Boolean);
+      for (const def of scopeDefs) {
+        const eligible = pairedRecords.filter(item =>
+          daysAgo(item.record.auction_end_date) <= window && ladderEligible(item, def));
+        const mine = eligible.filter(item => recordPlatform(item.record) === platform)
+          .map(item => Number(item.classification.price)).filter(Number.isFinite);
+        const others = eligible.filter(item => recordPlatform(item.record) !== platform)
+          .map(item => Number(item.classification.price)).filter(Number.isFinite);
+        if (mine.length >= 5 && others.length >= 5) {
+          const gap = Math.round((median(mine) - median(others)) / median(others) * 100);
+          const proof = {
+            percent: gap, windowDays: window, platformSales: mine.length, othersSales: others.length,
+            ...(def === landed.definition ? {} : { scope: "generation", generationCode: def.generationCode || null }),
+            ...(window >= 3650 ? { earliestSaleDate: eligible.map(item => item.record.auction_end_date).filter(Boolean).sort()[0] || null } : {})
+          };
+          if (gap >= 10) return proof;
+          if (!firstMeasured) firstMeasured = proof;
+          // keep walking: a later step may clear the 10% premium gate
+        }
       }
     }
     return firstMeasured;

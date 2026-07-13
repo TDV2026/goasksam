@@ -117,7 +117,14 @@ function analysisWindowInfo(bullets){
     const max=Math.max(...finite);
     return {label:`Past ${max} days`,phrase:`over the past ${max} days`};
   }
-  const since=String(sellState.sellDecision?.evidence?.earliestSaleDate||"").slice(0,4);
+  // All-time claims may span wider than the landed evidence set (e.g. a
+  // generation-scoped premium); the label uses the earliest boundary any
+  // rendered claim actually covers.
+  const years=[
+    ...(bullets||[]).map(item=>Number(item.sinceYear)).filter(Number.isFinite),
+    Number(String(sellState.sellDecision?.evidence?.earliestSaleDate||"").slice(0,4))
+  ].filter(Number.isFinite);
+  const since=years.length?Math.min(...years):null;
   return since?{label:`Since ${since}`,phrase:`since ${since}`}:{label:"All-time",phrase:"across everything we've tracked"};
 }
 
@@ -889,20 +896,26 @@ function primaryReasonBullets(route,altRoute){
       console.log("    - pass?",Number(facts.totalEvidenceSales)>=10);
       console.log("  Tier 3 gate (leadership): pass?",platformLeadsEvidenceSet(route));
     }
+    // A generation-scoped premium says so: a wider comp set silently
+    // labeled as the exact model would misstate the claim.
+    const premiumLabel=premium?.scope==="generation"
+      ?`${String(premium.generationCode||"").toUpperCase()}-generation ${sellState.resolvedVehicle?.model||comparableSalesLabel()}`.trim()
+      :comparableSalesLabel();
+    const premiumSince=premium?.earliestSaleDate?String(premium.earliestSaleDate).slice(0,4):null;
     if(premiumSampled&&premium.percent>=10){
       const name=platformDisplayName(route.label||route.platform);
       bullets.push({
         text:premium.windowDays>=3650
-          ?`${comparableSalesLabel()} sales have historically closed around ${premium.percent}% higher on ${name} than on other platforms`
-          :`${comparableSalesLabel()} sales have closed around ${premium.percent}% higher on ${name} than on other platforms over the past ${premium.windowDays} days`,
-        validated:true,windowDays:premium.windowDays});
+          ?`${premiumLabel} sales have historically closed around ${premium.percent}% higher on ${name} than on other platforms`
+          :`${premiumLabel} sales have closed around ${premium.percent}% higher on ${name} than on other platforms over the past ${premium.windowDays} days`,
+        validated:true,windowDays:premium.windowDays,sinceYear:premiumSince});
     }else if(premiumSampled&&Math.abs(premium.percent)>=2&&Math.abs(premium.percent)<10){
       // Honest only pick-vs-alt when those two platforms hold all the
       // evidence; with more platforms it stays "the other platforms".
       const platformsWithSales=(sellState.allRouteOptions||[]).filter(other=>Number(other.marketEvidence?.evidenceSales||0)>0).length;
       const otherName=(altRoute&&platformsWithSales===2)?platformDisplayName(altRoute.label||altRoute.platform):"the other platforms";
       const windowText=premium.windowDays>=3650?"across everything we've tracked":`over the past ${premium.windowDays} days`;
-      bullets.push({text:`Price is negligible between ${platformDisplayName(route.label||route.platform)} and ${otherName} ${windowText}`,validated:false,windowDays:premium.windowDays});
+      bullets.push({text:`Price is negligible between ${platformDisplayName(route.label||route.platform)} and ${otherName} ${windowText}`,validated:false,windowDays:premium.windowDays,sinceYear:premiumSince});
     }else if(Number(facts.totalEvidenceSales)>=10){
       const share=Math.round((facts.evidenceSales/facts.totalEvidenceSales)*100);
       bullets.push({text:`${share}% of ${comparableSalesLabel()} sales ${marketWindowPhrase()} closed on ${platformDisplayName(route.label||route.platform)}`,validated:true,windowDays:landedDays});
