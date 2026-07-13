@@ -775,7 +775,7 @@ function getSellerCriteria(car = {}) {
   };
 }
 
-function analyze(records, classifications, ladder, vehicle) {
+function analyze(records, classifications, ladder, vehicle, debug) {
   const pairedRecords = records.map((record, index) => ({ record, classification: classifications[index] }));
   const maxWindow = ANALYSIS_WINDOWS_DAYS[ANALYSIS_WINDOWS_DAYS.length - 1];
   const { walk, landed, thin } = evaluateLadder(pairedRecords, ladder);
@@ -971,7 +971,37 @@ function analyze(records, classifications, ladder, vehicle) {
       policyFloorRung: walk.length + 1
     },
     platformPerformance,
-    sellerActivity: analyzeSellerActivity(pairedRecords)
+    sellerActivity: analyzeSellerActivity(pairedRecords),
+    // Request-gated diagnostics (body.debug === true): per-window eligible
+    // counts, pairwise premium math and earliest dates. Never rendered.
+    debugWindows: debug && landed ? [45, 90, 180, 36500].map(window => {
+      const eligible = pairedRecords.filter(item =>
+        daysAgo(item.record.auction_end_date) <= window && ladderEligible(item, landed.definition));
+      const perPlatform = {};
+      for (const item of eligible) {
+        const platform = recordPlatform(item.record);
+        if (!perPlatform[platform]) perPlatform[platform] = { sales: 0, prices: [], earliest: null };
+        perPlatform[platform].sales++;
+        const price = Number(item.classification.price);
+        if (Number.isFinite(price)) perPlatform[platform].prices.push(price);
+        const date = item.record.auction_end_date;
+        if (date && (!perPlatform[platform].earliest || date < perPlatform[platform].earliest)) perPlatform[platform].earliest = date;
+      }
+      const premiums = {};
+      for (const platform of Object.keys(perPlatform)) {
+        const mine = perPlatform[platform].prices;
+        const others = Object.entries(perPlatform).filter(([key]) => key !== platform).flatMap(([, value]) => value.prices);
+        premiums[platform] = mine.length && others.length
+          ? { gapPercent: Math.round((median(mine) - median(others)) / median(others) * 100), mineSold: mine.length, othersSold: others.length }
+          : null;
+      }
+      return {
+        windowDays: window,
+        total: eligible.length,
+        perPlatform: Object.fromEntries(Object.entries(perPlatform).map(([key, value]) => [key, { sales: value.sales, earliest: value.earliest }])),
+        premiums
+      };
+    }) : undefined
   };
 }
 
@@ -1533,7 +1563,7 @@ export default async function handler(req, res) {
       ? { skipped: true, cached: true, idLookup: await lookupMarketRecordIds(records, supabaseUrl, supabaseKey) }
       : await persistRawRecords(records, supabaseUrl, supabaseKey);
     const classificationPersistence = await persistClassifications(records, classifications, rawPersistence.idLookup, supabaseUrl, supabaseKey);
-    const analysis = analyze(records, classifications, fetchResult.ladder, vehicle);
+    const analysis = analyze(records, classifications, fetchResult.ladder, vehicle, req.body?.debug === true);
 
     // Segment sell-through per platform, from the full-dataset baselines.
     // Null until the dataset carries non-sold listings; the frontend omits
@@ -1606,6 +1636,7 @@ export default async function handler(req, res) {
         evidenceSales: analysis.evidenceSales,
         estimatedValue: analysis.estimatedValue,
         earliestSaleDate: analysis.earliestSaleDate,
+        debugWindows: analysis.debugWindows,
         windowDays: analysis.windowDays,
         thinMarket: analysis.thinMarket,
         historicalWeekday: analysis.historicalWeekday,
