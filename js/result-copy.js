@@ -593,7 +593,9 @@ function dossierGridCells(profile,v){
     if((m=line.match(/^(\d+\+?) listings tracked(.*)$/i)))cells.push({key:"Listings tracked",value:m[1]});
     else if((m=line.match(/^(\d+)% sell-through/i)))cells.push({key:"Sell-through",value:`${m[1]}%`});
     else if((m=line.match(/^Specializes in:?\s*(.+)$/i)))specialize=m[1];
-    else if((m=line.match(/^Lists primarily on (.+)$/i)))cells.push({key:"Lists on",value:m[1]});
+    // "Lists primarily on X" is dropped from the grid: the tile row further
+    // down ("Lists on (per howS)") is the richer version of the same fact.
+    else if(line.match(/^Lists primarily on (.+)$/i))continue;
     else leftovers.push(line);
   }
   return {cells,specialize,leftovers};
