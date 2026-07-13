@@ -1360,9 +1360,22 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
     }
   }
   const eligible = !!(valueMet && matched);
+  // Secondary mention (locked, July 2026): when leading is not warranted but
+  // a segment+region-matched partner exists and the car is a $50k+ context
+  // (met-comps estimate or the seller's asking price), the partner renders
+  // as a modest "also worth considering" card. Never the lead, single
+  // destination unchanged, service framing only.
+  const askingPrice = parseSellerTargetPrice(criteria.targetPrice);
+  const secondaryValue = Math.max(
+    Number.isFinite(estimatedValue) ? estimatedValue : 0,
+    Number.isFinite(askingPrice) ? askingPrice : 0
+  );
+  const secondary = !eligible && !!matched && secondaryValue >= 50000;
 
   const result = {
     eligible,
+    secondary,
+    secondaryMinUsd: 50000,
     minValueUsd: POWERSELLER_MIN_VALUE_USD,
     estimatedValue,
     conditions: {
@@ -1373,7 +1386,7 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
     },
     partner: null
   };
-  if (eligible) {
+  if (eligible || secondary) {
     result.partner = {
       slug: matched.slug,
       name: matched.name,

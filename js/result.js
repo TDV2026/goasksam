@@ -111,6 +111,15 @@ async function showSellRecommendation(){
     const backup=evidenceBackedRoutes.find(route=>!routeOptions.includes(route));
     if(backup)routeOptions.push(backup);
   }
+  // Dual option (locked): a second card always renders when any alternative
+  // exists. With no second evidence-backed route, the best routable
+  // policy-fit route stands in (its reason comes from curated policy).
+  if(routeOptions.length<2){
+    const policyBackup=allRouteOptions.find(route=>route.routable!==false
+      &&!shouldSuppressRouteForSellerRegion(route)
+      &&!routeOptions.includes(route));
+    if(policyBackup)routeOptions.push(policyBackup);
+  }
   routeOptions.splice(2);
   // Speed routing (data-validated July 2026: Hagerty holds 5 tracked 1960s
   // Corvette sales). A fast-timeline 1960s Corvette keeps Hagerty as the
@@ -246,6 +255,17 @@ async function showSellRecommendation(){
 
   sellState.sellOptions=powerSellerOption?[powerSellerOption,...routeSellOptions]:routeSellOptions;
 
+  // Secondary PowerSeller mention (locked): gate-closed $50k+ contexts show
+  // a modest "also worth considering" card for the matched partner. A
+  // stated DIY preference suppresses it (rule 10); user asks always work.
+  const partnerSecondary=(!hasNamedPowerSellerAdvice&&partnerReferral.secondary&&partnerReferral.partner&&!sellerWantsToManageSelf())
+    ?partnerProfileFromReferral(partnerReferral)
+    :null;
+  if(partnerSecondary){
+    sellState.powerSellerProfiles=[partnerSecondary];
+    sellState.sellOptions.push({key:"specialist",name:partnerSecondary.displayName,type:"PowerSeller conversation",observedSellers:[partnerSecondary]});
+  }
+
   sellState.sellOptions.forEach((option,index)=>{
     option.rankReason=rankingReason(option,index,sellState.sellOptions);
   });
@@ -352,6 +372,7 @@ async function showSellRecommendation(){
     <div class="sell-rec-grid">${renderOptionCard(primaryPlatform)}</div>
   `:`
     <div class="sell-rec-grid">${renderOptionCard(primaryPlatform)}${secondaryPlatforms.map(renderOptionCard).join("")}</div>
+    ${partnerSecondary?`<div class="sell-section-note" style="margin-top:12px">If you'd rather have the whole sale handled</div>${renderMiniPowerSellerProfile(partnerSecondary,"Also worth considering")}`:""}
     ${diySecondaryLine}
   `):"";
   // DIY ordering: the platform IS the pick, so its card carries the plate.

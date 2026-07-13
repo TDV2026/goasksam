@@ -391,6 +391,24 @@ async function handleVehicleValidationAnswer(q){
   const questionLike=/\?\s*$/.test(lower)||/^(what|how|why|when|where|who|can|could|will|would|does|do|is|are|should|but|explain|tell me)\b/i.test(lower)||/\b(how long|you never|what happens|why do you)\b/i.test(lower);
   const wordyNonAnswer=!subStateIntent&&!goWith&&!affirmationPhrase&&lower.split(/\s+/).length>=4&&!/\d/.test(lower)&&!looksLikeVehicleText(q)&&!/\b(not sure|don.t know|unknown|skip|change car|start over|wrong car|different car|yes|yep|yeah|correct)\b/i.test(lower);
   if((questionLike&&!subStateIntent&&!goWith&&!affirmationPhrase&&!looksLikeVehicleText(q))||wordyNonAnswer)return false;
+  // Context reset (locked): input naming a DIFFERENT make is a new car,
+  // never a clarification of the pending one. Resolve it fresh so nothing
+  // from the stale context contaminates it ("Toyota ... 2018 bmw m3").
+  const pendingMakeCtx=extractVehicleMake(currentIssue?.baseVehicle||sellState.carName||"");
+  const inputMakeCtx=extractVehicleMake(q);
+  if(inputMakeCtx&&pendingMakeCtx&&inputMakeCtx!==pendingMakeCtx&&looksLikeVehicleText(q)){
+    sellState.pendingVehicleIdentity=null;
+    sellState.vehicleDetailSkipped=false;
+    sellState.vehicleIdentityValidated=false;
+    sellState.notSureRepeats=0;
+    sellState.carName=q;sellState.carRaw=q;
+    if(!(await validateVehicleIdentityPreflight(q)))return true;
+    sellState.trimAskAttempts=0;
+    const missingFresh=currentMissingVehicleDetail();
+    if(missingFresh){askMissingVehicleDetail(missingFresh);return true;}
+    resumeWizardAfterVehicle(`Got it. ${sellState.carName}.`);
+    return true;
+  }
   if(currentIssue?.baseVehicle&&/\bdifferent\b.*\bmodel\b/i.test(lower)){
     sellState.carName=currentIssue.baseVehicle;
     sellState.carRaw=currentIssue.baseVehicle;

@@ -142,6 +142,22 @@ async function handleSellStep(q){
     }else if(detectIntent(lower)==="refusal"){
       return false;
     }else{
+      // Context reset: a different make at the trim question is a new car,
+      // not a trim answer appended to the old one.
+      const inputMake17=extractVehicleMake(q);
+      const pendingMake17=extractVehicleMake(sellState.carName||"");
+      if(inputMake17&&pendingMake17&&inputMake17!==pendingMake17&&looksLikeVehicleText(q)){
+        sellState.pendingVehicleIdentity=null;
+        sellState.vehicleDetailSkipped=false;
+        sellState.vehicleIdentityValidated=false;
+        sellState.carName=q;sellState.carRaw=q;
+        if(!(await validateVehicleIdentityPreflight(q)))return true;
+        sellState.trimAskAttempts=0;
+        const missingFresh=currentMissingVehicleDetail();
+        if(missingFresh){askMissingVehicleDetail(missingFresh);return true;}
+        resumeWizardAfterVehicle(`Got it. ${sellState.carName}.`);
+        return true;
+      }
       const prevCar=sellState.carName;
       const candidate=`${sellState.carName} ${q}`.replace(/\s+/g," ").trim();
       sellState.carName=candidate;

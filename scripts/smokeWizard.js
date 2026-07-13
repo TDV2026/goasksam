@@ -715,6 +715,46 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   check("no-rush: no speed swap and no speed voice", sellState.routingReason===null&&!/If speed is your priority/.test(lcNoRush), `reason=${sellState.routingReason}`);
 }
 
+// Corolla production range + wizard context reset + dual option.
+{
+  // 1. Modern Corolla resolves clean (range was falsely 1985-1987).
+  resetToStep1();
+  await handleSellStep("2017 Toyota Corolla");
+  check("corolla: 2017 resolves without a year challenge", !/doesn't line up/i.test(lastSam()||"") && /2017 Toyota Corolla/.test(sellState.carName||""), `car=${sellState.carName} last="${(lastSam()||"").slice(0,120)}"`);
+
+  // 2. Context reset: a different make after a year challenge is a NEW car,
+  // never a clarification ("Toyota M3" cross-contamination).
+  resetToStep1();
+  await handleSellStep("1950 Toyota Corolla");
+  check("context reset setup: 1950 Corolla gets the year challenge", /wasn't produced in 1950|doesn't line up/i.test(lastSam()||""), (lastSam()||"").slice(0,120));
+  await handleSellStep("2018 bmw m3");
+  const resetLast=samMessages().slice(-3).join(" ");
+  check("context reset: different make starts fresh, no Toyota contamination", /BMW/i.test(sellState.carName||"")&&!/Toyota/i.test(sellState.carName||"")&&!/Toyota M3/i.test(resetLast), `car=${sellState.carName} last="${resetLast.slice(0,160)}"`);
+
+  // 3. Same-make detail stays a clarification (no reset).
+  resetToStep1();
+  await handleSellStep("1950 Toyota Corolla");
+  await handleSellStep("1986");
+  check("clarification: same-make year fix merges, no reset", /1986 Toyota Corolla/.test(sellState.carName||""), `car=${sellState.carName}`);
+
+  // 4. Dual option: a second option surface always renders when any
+  // alternative exists (platform card, dossier, or partner mention).
+  const lcDual=await runResult("US","Texas","40k",{label:"1985 Toyota Land Cruiser",vehicle:{raw:"1985 Toyota Land Cruiser",year:1985,make:"Toyota",model:"Land Cruiser",trim:null,confidence:"high",canonicalLabel:"1985 Toyota Land Cruiser"}});
+  const lcCards=(lcDual.match(/sell-rec-card/g)||[]).length+(lcDual.match(/power-seller-(feature|mini)/g)||[]).length;
+  check("dual option: Land Cruiser renders a pick plus an alternative", lcCards>=2, `optionSurfaces=${lcCards}`);
+
+  // 5. Gate-closed $50k+ context: the matched partner renders as the
+  // secondary mention (suppressed only by a stated DIY preference).
+  const m3c={label:"2016 BMW M3 Competition",vehicle:{raw:"2016 BMW M3 Competition",year:2016,make:"BMW",model:"M3",trim:"Competition",confidence:"high",canonicalLabel:"2016 BMW M3 Competition"}};
+  const m3Dual=await runResult("US","New York","70k",m3c);
+  const referral=sellState.partnerReferral||{};
+  if(referral.secondary){
+    check("partner secondary: $50k+ gate-closed shows the also-considering card", /Also worth considering/.test(m3Dual)&&/rather have the whole sale handled/.test(m3Dual), m3Dual.replace(/<[^>]+>/g," ").slice(0,200));
+  }else if(referral.eligible){
+    check("partner: gate-open dual renders the dossier", /power-seller-feature/.test(m3Dual)||/Want it handled/.test(m3Dual), "dossier missing");
+  }
+}
+
 // Price-gap prose is deleted (locked): a big ask-vs-comps gap changes
 // NOTHING about the render. No note, no ask, no percentage.
 {
