@@ -502,16 +502,25 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   check("card specificity: single Specialist-platform mention holds", (eu.match(/Specialist platform/g)||[]).length===1, `count=${(eu.match(/Specialist platform/g)||[]).length}`);
 }
 
-// FIX 3 contract: results render immediately; ONE neutral note after the
-// cards names direction and percent, no chips, no gating, no accusation.
+// Bullet 3 renders whenever segment data exists, no timeline needed.
+{
+  const carrera={label:"1987 Porsche 911 Carrera",vehicle:{raw:"1987 Porsche 911 Carrera",year:1987,make:"Porsche",model:"911",trim:"Carrera",confidence:"high",canonicalLabel:"1987 Porsche 911 Carrera"}};
+  const out=await runResult("US","California","95k",carrera,{timeline:"No rush, right result only"});
+  if(sellState.awaitingPathChoice){handleSellRecommendationFollowup("I'll run it myself");await new Promise(r=>setTimeout(r,150));}
+  const rendered=(renderedResult()+"\n"+allSamText()).replace(/<[^>]+>/g,"\n").replace(/&#39;/g,"'");
+  check("bullet 3: renders on no-rush when segment data exists", /(Strong|Consistent) sell-through for classic Porsches in the \$50k to \$150k range/.test(rendered), (rendered.match(/[^\n]*sell-through[^\n]*/i)||["missing"])[0].slice(0,160));
+  check("bullet 3: no speed line on a no-rush timeline", !/prioritizing a fast close|market I'd trust to move it/.test(rendered), (rendered.match(/[^\n]*(fast close|move it)[^\n]*/i)||[""])[0]);
+  check("carrera: zero price-gap prose despite the 57% gap", !/your asking price|the average for recent/i.test(rendered), (rendered.match(/[^\n]*asking price[^\n]*/i)||[""])[0]);
+}
+
+// Price-gap prose is deleted (locked): a big ask-vs-comps gap changes
+// NOTHING about the render. No note, no ask, no percentage.
 {
   const out=await runResult("US","California","20k",gts);
   if(sellState.awaitingPathChoice){handleSellRecommendationFollowup("I'll run it myself");await new Promise(r=>setTimeout(r,150));}
   const released=(renderedResult()+"\n"+allSamText()).replace(/<[^>]+>/g,"\n");
   check("price gap: results render immediately, no pre-results ask", /Seller Intelligence|Want it handled/i.test(released) && !/what'?s different about yours/i.test(released), released.slice(0,200));
-  const noteMatches=released.match(/One thing worth knowing: your asking price is \d+% (above|below) the average/gi)||[];
-  check("price gap: one note, correct direction, after the cards", noteMatches.length===1 && /below the average/i.test(noteMatches[0]||""), JSON.stringify(noteMatches));
-  check("price gap: note is neutral, no chips or gating", /can be right for plenty of reasons/i.test(released), released.slice(-400));
+  check("price gap: zero gap prose anywhere", !/your asking price|above the average|below the average|worth knowing/i.test(released), (released.match(/[^\n]*(asking price|the average)[^\n]*/i)||[""])[0].slice(0,180));
 }
 
 // Battery: field-contamination entries (locked guard D).

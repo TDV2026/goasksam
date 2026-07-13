@@ -20,6 +20,9 @@ export const FORBIDDEN_PATTERNS = [
   { name: "defensive framing", re: /want to be straight|need to be honest|rather not do that to you|working against the data|i apologi[sz]e/i },
   // Vague card prose (claims must be specific and structured).
   { name: "vague card prose", re: /(^|[^\w])this is where i.d sell|consistently favoured this platform|every comparable sale we tracked|strongest run recently|buyer base:/i },
+  // Price-gap paragraphs (deleted entirely): the seller's ask is never
+  // compared to an average.
+  { name: "price-gap paragraph", re: /one thing worth knowing: your asking price|your asking price is \d+% (above|below)|% (above|below) the average for recent/i },
   // Median price display on platform cards (variant spread makes it false
   // precision). Partner career medians use their own distinct label.
   { name: "platform median display", re: /median (sale )?\$[\d,]+|\$[\d,]+ here vs|median (sale )?here has run/i },
