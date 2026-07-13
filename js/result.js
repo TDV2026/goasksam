@@ -311,19 +311,9 @@ async function showSellRecommendation(){
     ${diySecondaryLine}
   `):"";
 
-  // Price-gap context (locked): a >20% gap between the asking price and the
-  // comps median asks for context FIRST. Comps are data points, not truth,
-  // and the median is never cited as proof the seller is wrong.
-  const PRICE_DIVERGENCE_THRESHOLD=0.2;
-  const askPrice=estimatedTargetPrice();
-  const compsMedian=decisionData.evidence?.estimatedValue||null;
-  const priceDiverged=askPrice>0&&compsMedian&&Math.abs(askPrice-compsMedian)/compsMedian>PRICE_DIVERGENCE_THRESHOLD;
-  // Price-gap note (locked): results are never held back. One neutral note
-  // renders after the cards, once, naming direction and percent without
-  // questioning the seller.
-  const gapNote=priceDiverged
-    ?`One thing worth knowing: your asking price is ${Math.round(Math.abs(askPrice-compsMedian)/compsMedian*100)}% ${askPrice>compsMedian?"above":"below"} the average for recent ${cleanCarForCopy()} sales ${marketWindowPhrase()}. That can be right for plenty of reasons: condition, trim, mileage, spec. Every car is different. Worth discussing with the platform or PowerSeller when you list.`
-    :null;
+  // Price-gap paragraphs are deleted (locked): variant spread within a model
+  // year makes a single average false precision, and comparing the seller's
+  // ask to it reads as doubt. Nothing renders about the ask vs comps.
 
   const summaryLine=resultSummaryLine(sellState.sellOptions,routeOptions);
   const headerHTML=`<div class="sell-rec-header">
@@ -341,7 +331,7 @@ async function showSellRecommendation(){
   if(powerSellerHTML&&isUSRegion(sellState.region)){
     // Gate-open, US sellers only: one light choice orders the sections
     // before anything renders. Non-US goes straight to the platform result.
-    sellState.pendingResultSections={headerHTML,powerSellerHTML,powerSellerSecondHTML,platformCardsHTML,caveatHTML,afterText,gapNote};
+    sellState.pendingResultSections={headerHTML,powerSellerHTML,powerSellerSecondHTML,platformCardsHTML,caveatHTML,afterText};
     sellState.awaitingPathChoice=true;
     sellState.step=12;
     const row=document.createElement("div");row.className="row sam";
@@ -358,7 +348,6 @@ async function showSellRecommendation(){
     ${headerHTML}
     ${orderedSections}
     ${caveatHTML}
-    ${gapNote?`<div class="sell-section-note" style="margin-top:10px">${escapeHtml(gapNote)}</div>`:""}
     <div class="sam-text after-results">${afterText}</div>
   </div></div>`;
   msgs.appendChild(row);
@@ -372,10 +361,9 @@ function renderPendingResultSections(choice){
   sellState.pendingResultSections=null;
   const platformFirst=choice==="diy";
   const sections=platformFirst?`${parts.platformCardsHTML}${parts.powerSellerSecondHTML}`:`${parts.powerSellerHTML}${parts.platformCardsHTML}`;
-  const gapNoteHTML=parts.gapNote?`<div class="sell-section-note" style="margin-top:10px">${escapeHtml(parts.gapNote)}</div>`:"";
   const msgs=document.getElementById("msgs");
   const row=document.createElement("div");row.className="row sam";
-  row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${sections}${parts.caveatHTML}${gapNoteHTML}<div class="sam-text after-results">${parts.afterText}</div></div></div>`;
+  row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${sections}${parts.caveatHTML}<div class="sam-text after-results">${parts.afterText}</div></div></div>`;
   msgs.appendChild(row);
   row.scrollIntoView({behavior:"smooth",block:"start"});
 }
