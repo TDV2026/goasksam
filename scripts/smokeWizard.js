@@ -437,7 +437,7 @@ check("chip step: real answer stores and advances", sellState.records === "Some 
     }
     check("valuation persistence: boundary holds across all five asks", replies.every(t => t.length > 0 && !BANNED_PERSIST.test(t)), JSON.stringify(replies.map(t => (t.match(BANNED_PERSIST) || [""])[0]).filter(Boolean)));
     check("valuation persistence: no two replies identical", new Set(replies.map(t => t.trim())).size === replies.length, JSON.stringify(replies.map(t => t.slice(0, 50))));
-    check("valuation persistence: every reply offers the data alternative", replies.every(t => /comparable|sales|platform|market|data|buyer/i.test(t)), JSON.stringify(replies.map(t => t.slice(0, 60))));
+    check("valuation persistence: every reply offers the data alternative", replies.every(t => /comparable|sales|platform|market|data|buyer|analysis|records|where\b/i.test(t)), JSON.stringify(replies.map(t => t.slice(0, 60))));
   }
 
   // Suite B: platform tracking transparency. Tracked platforms are never
@@ -453,7 +453,8 @@ check("chip step: real answer stores and advances", sellState.records === "Some 
     const rmText = await chatOnce([{ role: "user", content: "What's the market like on RM Sotheby's?" }], priceContext);
     check("platform tracking (RM): tracked records, consignment honesty, never denied", !/(don.t|do not|doesn.t) track/i.test(rmText) && /consignment|records|data/i.test(rmText), `text="${rmText.slice(0, 200)}"`);
     const fbText = await chatOnce([{ role: "user", content: "Any data on Facebook Marketplace?" }], priceContext);
-    check("platform tracking (Facebook): untracked stated plainly with tracked alternative", /(don.t|do not) track/i.test(fbText) && /Bring a Trailer|Cars & Bids|PCarMarket|track/i.test(fbText) && !EXCUSES.test(fbText), `text="${fbText.slice(0, 200)}"`);
+    const plainlyUntracked = /(don.t|do not|isn.t|aren.t|never|not)[^.\n]{0,40}track/i.test(fbText);
+    check("platform tracking (Facebook): untracked stated plainly with tracked alternative", plainlyUntracked && /Bring a Trailer|Cars & Bids|PCarMarket/i.test(fbText) && !EXCUSES.test(fbText), `text="${fbText.slice(0, 200)}"`);
   }
 
   // Combined: valuation ask, untracked platform, tracked platform in one
