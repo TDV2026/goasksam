@@ -159,6 +159,17 @@ function guardRender(name, text) {
       if (sinceM) check(`[design] ${name}: Since-year matches a verifiable evidence boundary`, boundaryYears.includes(sinceM[1]), `label="${plateData}" boundaries=${JSON.stringify(boundaryYears)}`);
       else if (pastM) check(`[design] ${name}: Past-days window was actually used`, claimWindows.includes(Number(pastM[1])), `label="${plateData}" windows=${JSON.stringify(claimWindows)}`);
       else check(`[design] ${name}: plate window is a recognized form`, plateData === "All-time", `label="${plateData}"`);
+      // Old-data transparency (locked): a Since/All-time plate on a platform
+      // card explains the lookback and carries NO count claims (percentages
+      // only); recent plates carry no lookback line.
+      if (plateNameC && PLATFORM_NAMES.includes(plateNameC) && /^(Since \d{4}|All-time)$/.test(plateData || "")) {
+        check(`[design] ${name}: old-data card explains the lookback`, /We went back to \d{4} to get enough comparable|We analyzed [^\n]* across everything we've tracked/.test(clean.replace(/&#\d+;/g, "'")), (clean.match(/[^\n]*went back[^\n]*/) || ["missing"])[0].slice(0, 140));
+        const countClaim = liMatches.map(m => flatLi(m[2])).find(t => /^\s*\d[\d,]* [^%\n]{0,60}have sold on/i.test(t));
+        check(`[design] ${name}: old-data card carries no count claims`, !countClaim, (countClaim || "").slice(0, 120));
+      }
+      if (plateNameC && PLATFORM_NAMES.includes(plateNameC) && /^Past \d+ days$/.test(plateData || "")) {
+        check(`[design] ${name}: recent card has no lookback line`, !/We went back to \d{4}|across everything we've tracked to build/.test(clean), (clean.match(/[^\n]*went back[^\n]*/) || [""])[0].slice(0, 120));
+      }
       // Plate window == bullet 1 window: when bullet 1 names a finite span
       // in its own text, the plate must name the same one.
       const bullet1Window = (liMatches.length ? flatLi(liMatches[0][2]) : "").match(/over the past (\d+) days/);

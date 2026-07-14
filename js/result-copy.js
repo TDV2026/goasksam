@@ -128,6 +128,22 @@ function analysisWindowInfo(bullets){
   return since?{label:`Since ${since}`,phrase:`since ${since}`}:{label:"All-time",phrase:"across everything we've tracked"};
 }
 
+// Old-data transparency (locked): when the card's claims reach back more
+// than a year, the card says WHY, right after the voice line. "Since YYYY"
+// plates explain the lookback; boundary-less all-time plates explain the
+// full-history read. The chat opener owns "Here's what that market shows",
+// so the card line never repeats it.
+function lookbackLine(option){
+  const info=analysisWindowInfo(option.reasonBullets);
+  const landed=sellState.sellDecision?.evidence?.ladder?.landed;
+  const segLabel=(option.reasonBullets||[])[0]?.segmentLabel;
+  const scope=segLabel?`${segLabel} sales`:(landed?String(landed.label):"comparable sales");
+  const sinceYear=(String(info.label||"").match(/^Since (\d{4})$/)||[])[1];
+  if(sinceYear)return `We went back to ${sinceYear} to get enough comparable ${scope}.`;
+  if(info.label==="All-time")return `We analyzed ${scope} across everything we've tracked to build a reliable picture.`;
+  return "";
+}
+
 function ladderWideningNarration(decisionData,primaryRoute){
   const ladder=decisionData?.evidence?.ladder||decisionData?.decision?.ladder;
   const landed=ladder?.landed;
@@ -835,9 +851,11 @@ function altReasonBullets(route,pick){
   }
   // Car-specific count from this platform's own comps. Price ranges are
   // BANNED (locked): model variants differ too much for a range to be
-  // honest. Counts under 10 never render, and without the count this
-  // bullet adds nothing over bullet 1, so it only renders at 10+.
-  if(mine>=10){
+  // honest. Counts under 10 never render, and a count on data older than a
+  // year implies a recency it does not have (locked): old data speaks in
+  // percentages only, so the count bullet is recent-window only.
+  const landedWindow=Number(sellState.sellDecision?.evidence?.windowDays);
+  if(mine>=10&&Number.isFinite(landedWindow)&&landedWindow<=365){
     bullets.push(`${mine} ${comparableSalesLabel()}s have sold on ${name}.`);
   }
   // Speed positioning, curated-policy grounded ONLY (we hold no measured

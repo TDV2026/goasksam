@@ -306,6 +306,7 @@ async function showSellRecommendation(){
           </div>
         </div>`}
         ${isPrimary&&option.reason&&!option.reasonBullets?.length?"":isPrimary?`<div class="sell-rec-samline voice">${escapeHtml(option.reason||"")}</div>`:""}
+        ${isPrimary&&option.key!=="specialist"&&lookbackLine(option)?`<div class="sell-rec-lookback">${numify(lookbackLine(option))}</div>`:""}
         <div class="sell-rec-reason-label label-mono">${option.key==="specialist"?"Why I’d call them":option.altReason?"Why it’s worth comparing":"Why I picked this"}</div>
         ${option.reasonBullets?.length
           ?`<ul class="sell-rec-bullets">${option.reasonBullets.map(item=>`<li${item.validated?' class="validated-claim"':""}>${numify(item.text)}</li>`).join("")}</ul>`
