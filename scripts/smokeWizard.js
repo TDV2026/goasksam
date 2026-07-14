@@ -87,6 +87,10 @@ function guardRender(name, text) {
   // Design Phase 1 guards (raw HTML):
   if (/sell-rec-card/.test(raw)) {
     check(`[design] ${name}: at most one verdict plate`, (raw.match(/verdict-plate/g) || []).length <= 1, `plates=${(raw.match(/verdict-plate/g) || []).length}`);
+    // Exactly two options, never three: pick + ONE alternative (platform
+    // card, dossier, or partner mention).
+    const optionSurfaces = (raw.match(/class="sell-rec-card[ "]/g) || []).length + (raw.match(/class="power-seller-(feature|mini)[ "]/g) || []).length;
+    check(`[design] ${name}: never more than two option surfaces`, optionSurfaces <= 2, `optionSurfaces=${optionSurfaces}`);
     // Plate target matches the prose pick (locked): handled-lead prose
     // ("...the platform pick is right below") crowns the PowerSeller; the
     // DIY ordering ("The platform pick above...") crowns the platform.
@@ -155,6 +159,14 @@ function guardRender(name, text) {
         const openerMatchesPlate = (pastM && Number(opener[2]) === Number(pastM[1])) || (sinceM && opener[3] === sinceM[1]) || (plateData === "All-time" && /across everything/.test(opener[1]));
         check(`[design] ${name}: chat opener window equals the plate window`, openerMatchesPlate, `opener="${opener[1]}" plate="${plateData}"`);
       }
+    }
+    // Alternative cards must name the searched model, never generic
+    // platform language ("this platform", "this category").
+    const altSegment = (raw.split(/Also strong here/)[1] || "").split(/sell-rec-footer/)[0];
+    if (altSegment && sellState.resolvedVehicle?.model) {
+      const flatAlt = altSegment.replace(/<span class="num">([^<]*)<\/span>/g, "$1").replace(/&amp;/g, "&").replace(/<[^>]+>/g, " ");
+      check(`[design] ${name}: alternative card names the model`, flatAlt.toLowerCase().includes(String(sellState.resolvedVehicle.model).toLowerCase()), flatAlt.replace(/\s+/g, " ").slice(0, 160));
+      check(`[design] ${name}: alternative card avoids generic platform language`, !/this platform|this category/i.test(flatAlt), (flatAlt.match(/[^.]*this (platform|category)[^.]*/i) || [""])[0].slice(0, 120));
     }
     // Alt tier-(a) window claim always names the landed evidence window
     // (the span its count is measured in, same vocabulary as the plate).

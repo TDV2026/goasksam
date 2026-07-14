@@ -215,7 +215,7 @@ async function showSellRecommendation(){
       // leads, the plate moves to the dossier and this card renders as the
       // alternative. The DIY ordering re-renders this card with the plate.
       showPlate:index===0&&!hasNamedPowerSellerAdvice,
-      altReason:index>0&&!route.speedArgument?altReasonLine(route,routesForCards[0]):null,
+      altReason:index>0&&!route.speedArgument?altReasonBullets(route,routesForCards[0]):null,
       actionLabel:index===0?`Submit your car to ${platformLogo({name:routeName}).text}`:`Consider ${routeName}`,
       speedArgument:!!route.speedArgument,
       reason:sellState.routingReason==="speed"&&index===0
@@ -255,10 +255,12 @@ async function showSellRecommendation(){
 
   sellState.sellOptions=powerSellerOption?[powerSellerOption,...routeSellOptions]:routeSellOptions;
 
-  // Secondary PowerSeller mention (locked): gate-closed $50k+ contexts show
-  // a modest "also worth considering" card for the matched partner. A
-  // stated DIY preference suppresses it (rule 10); user asks always work.
-  const partnerSecondary=(!hasNamedPowerSellerAdvice&&partnerReferral.secondary&&partnerReferral.partner&&!sellerWantsToManageSelf())
+  // Exactly TWO options render (locked): one pick, one alternative. The
+  // platform runner-up owns the alternative slot; the matched partner fills
+  // it ONLY when no platform alternative exists (gate-closed $50k+ context,
+  // suppressed by a stated DIY preference per rule 10).
+  const platformAltExists=routeSellOptions.length>1;
+  const partnerSecondary=(!hasNamedPowerSellerAdvice&&!platformAltExists&&partnerReferral.secondary&&partnerReferral.partner&&!sellerWantsToManageSelf())
     ?partnerProfileFromReferral(partnerReferral)
     :null;
   if(partnerSecondary){
@@ -299,7 +301,9 @@ async function showSellRecommendation(){
         <div class="sell-rec-reason-label label-mono">${option.key==="specialist"?"Why I’d call them":option.altReason?"Why it’s worth comparing":"Why I picked this"}</div>
         ${option.reasonBullets?.length
           ?`<ul class="sell-rec-bullets">${option.reasonBullets.map(item=>`<li${item.validated?' class="validated-claim"':""}>${numify(item.text)}</li>`).join("")}</ul>`
-          :`<div class="sell-rec-reason">${numify(option.speedArgument?option.reason:(option.altReason||option.rankReason||option.reason||""))}</div>`}
+          :Array.isArray(option.altReason)&&option.altReason.length
+          ?`<ul class="sell-rec-bullets">${option.altReason.map(item=>`<li>${numify(item)}</li>`).join("")}</ul>`
+          :`<div class="sell-rec-reason">${numify(option.speedArgument?option.reason:(option.rankReason||option.reason||""))}</div>`}
         ${option.stat?`<div class="sell-rec-stat">${numify(option.stat)}</div>`:""}
         ${option.evidenceBullets?.length&&!option.altReason?`<ul class="sell-rec-bullets">${option.evidenceBullets.map(item=>`<li>${numify(item)}</li>`).join("")}</ul>`:""}
         ${option.evidenceLine?`<div class="sell-rec-evidence-line">${numify(option.evidenceLine||"")}</div>`:""}

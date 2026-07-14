@@ -736,8 +736,14 @@ function renderMiniPowerSellerProfile(profile,label){
 function powerSellerMiniReason(profile){
   const firstName=powerSellerFirstName(profile);
   const region=profile.region?` ${profile.region}`:"";
-  if(profile.note&&!/^I’d ask\b/i.test(profile.note))return profile.note;
-  return `${firstName} is another good fit${region ? ` in${region}` : ""} if you want help with auction management, buyer questions and deciding where the car should run.`;
+  // Car-specific first (locked): the tracked make relevance names THIS car;
+  // the curated specialty note (attributed) is the fallback.
+  const rel=profile?.verified?.relevance;
+  const carLine=(rel&&rel.makeCount>=3)
+    ?`${rel.makeCount} ${rel.make} sales tracked, so a ${cleanCarForCopy()} is squarely in his lane. `
+    :"";
+  if(profile.note&&!/^I’d ask\b/i.test(profile.note))return `${carLine}${profile.note}`;
+  return `${carLine}${firstName} is another good fit${region ? ` in${region}` : ""} if you want help with auction management, buyer questions and deciding where the car should run.`;
 }
 
 function powerSellerSpecialties(){
@@ -789,11 +795,17 @@ function plural(value,singular,pluralWord){
   return `${value} ${value===1?singular:pluralWord||`${singular}s`}`;
 }
 
-// Alternative-card reason (locked): ONE grounded line from the same
-// evidence set, first that passes: (a) its own tier claim vs the remaining
-// platforms, (b) segment fit from curated route policy, (c) curated
-// strength line. Visibly subordinate: never green, never a plate.
-function altReasonLine(route,pick){
+// Alternative-card bullets (locked): grounded, car-specific, never green.
+// Bullet 1: the tier claim vs remaining platforms (most/second-most), else
+//   segment fit, else the curated strength line.
+// Bullet 2: CAR-SPECIFIC: this platform's own comps for the model with
+//   their typical price band (a range, never a median; counts render only
+//   at 10+).
+// Bullet 3: speed positioning from curated policy, only when the
+//   alternative is curated-fast and the pick is not.
+function altReasonBullets(route,pick){
+  const bullets=[];
+  const name=platformDisplayName(route.label||route.platform);
   const mine=Number(route?.marketEvidence?.evidenceSales||0);
   const remaining=(sellState.allRouteOptions||[])
     .filter(other=>other!==route&&other!==pick&&other.marketEvidence)
@@ -809,24 +821,32 @@ function altReasonLine(route,pick){
     const windowPhrase=Number.isFinite(landedDays)&&landedDays<3650
       ?`over the past ${landedDays} days`
       :(since?`since ${since}`:"across everything we've tracked");
-    return `${mine>pickCount?"Most":"Second-most"} ${comparableSalesLabel()} sales ${windowPhrase}.`;
+    bullets.push(`${mine>pickCount?"Most":"Second-most"} ${comparableSalesLabel()} sales ${windowPhrase}.`);
+  }else if((route.routeFitFacts||[]).includes("segment_fit")){
+    bullets.push("Its typical buyer pool matches this kind of car.");
+  }else{
+    bullets.push(pickCopy([
+      `${name} is still worth looking at, but the pick above is stronger on the current market read.`,
+      `${name} is worth considering, though the pick above is the stronger call today.`,
+      `${name} remains viable, but it is not the clearest first choice from the current evidence.`
+    ],sellState.carName,name));
+  }
+  // Car-specific band from this platform's own comps.
+  const band=route?.marketEvidence?.priceBand;
+  if(band&&band.low>0&&band.high>0){
+    const moneyK=v=>`$${Math.round(v/1000)}k`;
+    const label=comparableSalesLabel();
+    bullets.push(mine>=10
+      ?`${mine} ${label}s have sold on ${name}, typically ${moneyK(band.low)} to ${moneyK(band.high)}.`
+      :`${label}s have sold on ${name}, typically in the ${moneyK(band.low)} to ${moneyK(band.high)} range.`);
   }
   // Speed positioning, curated-policy grounded ONLY (we hold no measured
-  // close-time data, so no model-specific track-record claim): renders when
-  // the alternative is curated-fast and the pick is not.
+  // close-time data, so no model-specific track-record claim).
   const pickFast=["fast","medium_fast"].includes(pick?.speedToList);
   if(["fast","medium_fast"].includes(route.speedToList)&&!pickFast){
-    return `If speed matters, ${platformDisplayName(route.label||route.platform)} typically runs the quicker auction cycle.`;
+    bullets.push(`If speed matters, ${name} typically runs the quicker auction cycle.`);
   }
-  if((route.routeFitFacts||[]).includes("segment_fit")){
-    return "Its typical buyer pool matches this kind of car.";
-  }
-  const name=platformDisplayName(route.label||route.platform);
-  return pickCopy([
-    `${name} is still worth looking at, but the pick above is stronger on the current market read.`,
-    `${name} is worth considering, though the pick above is the stronger call today.`,
-    `${name} remains viable, but it is not the clearest first choice from the current evidence.`
-  ],sellState.carName,name);
+  return bullets.slice(0,3);
 }
 
 // Tier B leadership check: true only when this platform's evidence count

@@ -832,8 +832,10 @@ function analyze(records, classifications, ladder, vehicle, debug) {
   const premiumGenerationDef = landed
     ? ladder.find(rung => ["generation_model", "generation_trim"].includes(rung.key) && rung.rung > landed.rung)
     : null;
+  const premiumWalkTraces = debug ? {} : null;
   const pricePremiumFor = platform => {
     if (!landed || landed.key === "make_context") return null;
+    const trace = premiumWalkTraces ? (premiumWalkTraces[platform] = []) : null;
     // A measured sub-10% gap at the first sample-sufficient step ships too:
     // the frontend renders it as the honest negligibility claim (Tier 1.5).
     let firstMeasured = null;
@@ -846,17 +848,19 @@ function analyze(records, classifications, ladder, vehicle, debug) {
           .map(item => Number(item.classification.price)).filter(Number.isFinite);
         const others = eligible.filter(item => recordPlatform(item.record) !== platform)
           .map(item => Number(item.classification.price)).filter(Number.isFinite);
+        const step = trace ? { scope: def === landed.definition ? `landed(${landed.key})` : `generation(${def.generationCode || def.key})`, windowDays: window, mineSold: mine.length, othersSold: others.length } : null;
         if (mine.length >= 5 && others.length >= 5) {
           const gap = Math.round((median(mine) - median(others)) / median(others) * 100);
+          if (step) { step.gapPercent = gap; step.samplesGatePass = true; step.premiumGatePass = gap >= 10; trace.push(step); }
           const proof = {
             percent: gap, windowDays: window, platformSales: mine.length, othersSales: others.length,
             ...(def === landed.definition ? {} : { scope: "generation", generationCode: def.generationCode || null }),
             ...(window >= 3650 ? { earliestSaleDate: eligible.map(item => item.record.auction_end_date).filter(Boolean).sort()[0] || null } : {})
           };
-          if (gap >= 10) return proof;
+          if (gap >= 10) { if (step) step.landed = true; return proof; }
           if (!firstMeasured) firstMeasured = proof;
           // keep walking: a later step may clear the 10% premium gate
-        }
+        } else if (step) { step.samplesGatePass = false; trace.push(step); }
       }
     }
     return firstMeasured;
@@ -886,6 +890,14 @@ function analyze(records, classifications, ladder, vehicle, debug) {
         momentum,
         platform,
         pricePremium: pricePremiumFor(platform),
+        // Typical price band of THIS platform's comps (25th-75th pct): fuels
+        // the car-specific alternative bullet. A range, never a median.
+        priceBand: (() => {
+          const prices = items.map(item => Number(item.classification.price)).filter(Number.isFinite).sort((a, b) => a - b);
+          if (prices.length < 2) return null;
+          const q = f => prices[Math.max(0, Math.min(prices.length - 1, Math.round(f * (prices.length - 1))))];
+          return { low: q(0.25), high: q(0.75), sample: prices.length };
+        })(),
         evidenceSales: items.length,
         totalEvidenceSales,
         othersSalesCount: otherPrices.length,
@@ -988,6 +1000,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     },
     platformPerformance,
     sellerActivity: analyzeSellerActivity(pairedRecords),
+    debugPremiumWalk: premiumWalkTraces || undefined,
     // Request-gated diagnostics (body.debug === true): per-window eligible
     // counts, pairwise premium math and earliest dates. Never rendered.
     debugWindows: debug && landed ? [45, 90, 180, 36500].map(window => {
@@ -1667,6 +1680,7 @@ export default async function handler(req, res) {
         estimatedValue: analysis.estimatedValue,
         earliestSaleDate: analysis.earliestSaleDate,
         debugWindows: analysis.debugWindows,
+        debugPremiumWalk: analysis.debugPremiumWalk,
         windowDays: analysis.windowDays,
         thinMarket: analysis.thinMarket,
         historicalWeekday: analysis.historicalWeekday,
