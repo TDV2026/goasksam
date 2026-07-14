@@ -8,7 +8,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findForbidden } from "./forbiddenPatterns.js";
-import { labelIsProvablyCar } from "../lib/vehicle.js";
+import { labelIsProvablyCar, resolveVehicle } from "../lib/vehicle.js";
+import { CURATED_GENERATIONS } from "../lib/generations.js";
+import { PRODUCTION_RULES } from "../lib/vehicleData.js";
 
 const BASE = process.env.SMOKE_BASE_URL || "https://goasksam.vercel.app";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -251,6 +253,52 @@ function resetToStep1() {
   sellState.priceGapContextGathered = false; sellState.awaitingPriceGapContext = false; sellState.priceContextNote = null;
   sellState.lastMissingAsk = null; sellState.editReturnStep = null; sellState.editPrevVehicle = null;
   addMsgLog.length = 0;
+}
+
+// 0. Generation-map audit invariant (locked): a narrow generation map may
+// never masquerade as a production span. Every mapped model whose map is
+// under 20 years wide and covers under half of real production, or whose
+// real production extends past the map's +/-2 tolerance, MUST have a
+// curated production rule. Reality table maintained with the audit.
+{
+  const PRODUCTION_REALITY = {
+    "BMW|M5": [1985, 2026], "BMW|M2": [2016, 2026], "BMW|3-Series": [1975, 2026],
+    "Chevrolet|Corvette": [1953, 2026], "Chevrolet|Camaro": [1967, 2024], "Chevrolet|Chevelle": [1964, 1977],
+    "Ford|Mustang": [1964, 2026], "Ford|Bronco": [1966, 2026], "Mazda|MX-5": [1989, 2026],
+    "Toyota|Land Cruiser": [1951, 2026], "Toyota|Corolla": [1966, 2026],
+    "Volkswagen|Beetle": [1946, 2019], "Volkswagen|Bus": [1950, 2003],
+    "Mercedes-Benz|SL-Class": [1954, 2026], "Mercedes-Benz|S-Class": [1972, 2026],
+    "Honda|S2000": [1999, 2009], "Audi|TT": [1999, 2023], "Audi|A4": [1996, 2025], "Audi|A6": [1995, 2026],
+    "MG|MGB": [1962, 1980], "Nissan|Skyline": [1957, 2026], "Jaguar|XKE": [1961, 1974],
+    "Dodge|Charger": [1966, 2026], "Dodge|Challenger": [1970, 2023]
+  };
+  const spans = new Map();
+  for (const g of CURATED_GENERATIONS) {
+    const key = `${g.make}|${g.model}`;
+    const s = spans.get(key) || { min: g.yearStart, max: g.yearEnd };
+    s.min = Math.min(s.min, g.yearStart); s.max = Math.max(s.max, g.yearEnd);
+    spans.set(key, s);
+  }
+  const normA = v => String(v).toLowerCase().replace(/[^a-z0-9]/g, "");
+  const ruled = (mk, md) => PRODUCTION_RULES.some(r => normA(r.make) === normA(mk) && (normA(r.model) === normA(md) || (r.aliases || []).some(a => normA(a) === normA(md))));
+  for (const [key, s] of spans) {
+    const real = PRODUCTION_REALITY[key];
+    if (!real) continue;
+    const [mk, md] = key.split("|");
+    const mapW = s.max - s.min, realW = real[1] - real[0];
+    const coverage = (Math.min(s.max, real[1]) - Math.max(s.min, real[0])) / realW;
+    const partial = mapW < 20 && coverage < 0.5;
+    const exposed = real[0] < s.min - 2 || real[1] > s.max + 2;
+    if (partial || exposed) {
+      check(`[audit] ${key}: map gap covered by a production rule`, ruled(mk, md), `map=${s.min}-${s.max} real=${real[0]}-${real[1]} coverage=${Math.round(coverage * 100)}%`);
+    }
+  }
+  // Resolver edge cases from the audit: partial-era fixes work, full
+  // coverage unchanged, real production gaps still challenged honestly.
+  for (const [text, want] of [["1972 Nissan Skyline", "valid"], ["2024 Toyota Land Cruiser", "valid"], ["1986 Toyota Corolla", "valid"], ["1968 Ford Mustang", "valid"], ["1980 Dodge Charger", "invalid_vehicle"]]) {
+    const r = await resolveVehicle(text);
+    check(`[audit] resolver: ${text} -> ${want}`, r.status === want, `got=${r.status} q=${(r.clarification?.question || "").slice(0, 80)}`);
+  }
 }
 
 // 1. Step-1 invariants (regression guard)
