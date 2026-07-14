@@ -164,8 +164,13 @@ function guardRender(name, text) {
     // platform language ("this platform", "this category").
     const altSegment = (raw.split(/Also strong here/)[1] || "").split(/sell-rec-footer/)[0];
     if (altSegment && sellState.resolvedVehicle?.model) {
-      const flatAlt = altSegment.replace(/<span class="num">([^<]*)<\/span>/g, "$1").replace(/&amp;/g, "&").replace(/<[^>]+>/g, " ");
-      check(`[design] ${name}: alternative card names the model`, flatAlt.toLowerCase().includes(String(sellState.resolvedVehicle.model).toLowerCase()), flatAlt.replace(/\s+/g, " ").slice(0, 160));
+      const flatAlt = altSegment.replace(/<span class="num">([^<]*)<\/span>/g, "$1").replace(/&amp;/g, "&").replace(/<[^>]+>/g, " ").toLowerCase();
+      // The car may be named by model, trim, or the label vocabulary the
+      // cards use ("BMW 335i", "Carrera") -- any specific token counts.
+      const rv = sellState.resolvedVehicle;
+      const carTokens = [rv.model, rv.trim, String(sellState.carName || "").replace(/\b(19|20)\d{2}\b/, "").trim()]
+        .filter(Boolean).flatMap(v => String(v).toLowerCase().split(/\s+/)).filter(t => t.length > 2 && !/^(the|and)$/.test(t));
+      check(`[design] ${name}: alternative card names the car`, carTokens.some(t => flatAlt.includes(t)), `tokens=${JSON.stringify([...new Set(carTokens)])} alt="${flatAlt.replace(/\s+/g, " ").slice(0, 140)}"`);
       check(`[design] ${name}: alternative card avoids generic platform language`, !/this platform|this category/i.test(flatAlt), (flatAlt.match(/[^.]*this (platform|category)[^.]*/i) || [""])[0].slice(0, 120));
     }
     // Alt tier-(a) window claim always names the landed evidence window
