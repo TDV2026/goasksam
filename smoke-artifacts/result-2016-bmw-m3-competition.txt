@@ -28,6 +28,14 @@ This can take a moment because Sam is checking sales evidence before making a re
 
 
 
+Sam
+
+I looked at f80-generation M3 Competition sales over the past 90 days. Here&#39;s what that market shows.
+
+
+
+
+
 
     
 Sam
@@ -41,7 +49,7 @@ Seller Intelligence
 Two choices are worth considering for the 2016 BMW M3 Competition.
 
       
-Bring a Trailer looks stronger on recent comparable sales, and it’s my pick. PCarMarket has real signal too.
+Bring a Trailer looks stronger on recent comparable sales, and it’s my pick. Cars &amp; Bids has real signal too.
 
     
 
@@ -69,7 +77,7 @@ Bring a Trailer
 
 2016 BMW M3 Competition · New York
 
-Data: Since 2021
+Data: F80 generation · Past 90 days
 
 
       
@@ -78,14 +86,14 @@ Data: Since 2021
 If this were my car, it goes on Bring a Trailer.
 
         
-We went back to 2021 to get enough comparable 2016 M3 Competition sales.
+We looked at the exact car first. When data was thin, we expanded to the F80-generation M3 to find the buyer concentration.
 
         
 Why I picked this
 
         
 
-More BMW M3 Competition sales have closed on Bring a Trailer than any other platform we track
+F80-generation M3 sales have closed around 38% higher on Bring a Trailer than on other platforms over the past 90 days
 
 On Bring a Trailer, Friday endings have historically finished strongest for BMW M3 Competition models, around 24% above other weekdays.
 
@@ -118,10 +126,10 @@ Also strong here
 
             
 
-PCM
+C&amp;B
 
 
-PCarMarket
+Cars &amp; Bids
 
 Worth comparing
 
@@ -138,12 +146,12 @@ Why it’s worth comparing
 
         
 
+Second-most BMW M3 Competition sales over the past 180 days.
+
+If speed matters, Cars &amp; Bids typically runs the quicker auction cycle.
+
 Its typical buyer pool matches a car like the 2016 BMW M3 Competition.
 
-If speed matters, PCarMarket typically runs the quicker auction cycle.
-
-The platform&#39;s typical buyer pool matches this kind of car.
-
 
         
         
@@ -151,7 +159,7 @@ The platform&#39;s typical buyer pool matches this kind of car.
         
         
 
-Consider PCarMarket
+Consider Cars &amp; Bids
 
 
         
@@ -195,3 +203,4 @@ Pick either, or ask me to compare the tradeoffs.
   
 
 
+I looked at f80-generation M3 Competition sales over the past 90 days. Here's what that market shows.  
