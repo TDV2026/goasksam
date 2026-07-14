@@ -424,8 +424,13 @@ body{font-family:var(--font-ui);color:var(--ink);}
 /* Hierarchy (locked): the why-line is the card's hero, then 32px rhythm
    between the grid, the handles bullets and the clients chips. */
 /* Full-width banner matching the verdict plate: same full-bleed span, same
-   paper band, same border treatment. Label left, learn link right. */
-.ps-consignor-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:0 -18px 12px;padding:14px 24px;background:var(--paper);border-bottom:var(--border-primary);}
+   paper band, same border treatment. Spans ALL grid columns of the card. */
+.power-seller-feature>.verdict-plate{grid-column:1/-1;margin:-18px -18px 0;}
+.power-seller-feature>.ps-consignor-row{grid-column:1/-1;}
+.ps-consignor-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:0 -18px 0;padding:14px 24px;background:var(--paper);border-bottom:var(--border-primary);}
+.power-seller-feature>.ps-consignor-row:first-child{margin-top:-18px;}
+/* PowerSeller education below the card, not in it. */
+.ps-education-below{color:var(--slate);font-size:var(--text-sm);margin:8px 2px 0;max-width:680px;}
 .ps-learn-link{background:none;border:none;padding:0;font-family:var(--font-ui);font-size:13px;color:var(--slate);text-decoration:underline;cursor:pointer;}
 .dossier-why{font-family:var(--font-voice);font-size:20px;line-height:1.35;color:var(--ink);padding:24px 0;margin:0 0 8px;}
 .dossier-why .num{font-family:var(--font-data);font-size:18px;}

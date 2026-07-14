@@ -719,11 +719,16 @@ function renderFeaturedPowerSellerProfile(profile,platformFirst,plateHTML){
   const dossier=dossierGridCells(profile,v);
   const gridCellCount=dossier.cells.length+(dossier.specialize?1:0);
   const gridHTML=gridCellCount>=3?`<div class="dossier-grid">${dossier.cells.slice(0,4).map(cell=>`<div class="dossier-cell"><span class="dc-value">${numify(cell.value)}</span><span class="label-mono">${escapeHtml(cell.key)}</span></div>`).join("")}${dossier.specialize?`<div class="dossier-cell full"><span class="dc-value">${numify(dossier.specialize)}</span><span class="label-mono">Specializes in</span></div>`:""}</div>${dossier.leftovers.map(line=>`<div class="power-seller-proof">${numify(line)}</div>`).join("")}`:null;
+  // The plate and the AUCTION CONSIGNOR banner are direct grid children
+  // spanning ALL columns (full card width); inside the main column they
+  // could only ever span the column, which read as cramped. The
+  // "What's a PowerSeller?" education lives BELOW the card, not in it.
   return `<div class="power-seller-feature" onclick="choosePowerSeller('${escapeHtml(profile.id)}')">
+    ${plateHTML||""}
+    <div class="ps-consignor-row"><span class="label-mono">Auction consignor</span></div>
     <div class="power-seller-feature-main">
-      ${plateHTML||`<div class="sell-rec-badge specialist label-mono">${platformFirst===true?"Option 2: have it handled":platformFirst===false?"Option 1: have it handled":"Have it handled"}</div>
+      ${plateHTML?"":`<div class="sell-rec-badge specialist label-mono">${platformFirst===true?"Option 2: have it handled":platformFirst===false?"Option 1: have it handled":"Have it handled"}</div>
       <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>`}
-      <div class="ps-consignor-row"><span class="label-mono">Auction consignor</span><button class="ps-learn-link" onclick="event.stopPropagation();samExplainPowerSeller()">What's a PowerSeller?</button></div>
       ${whyLine}
       ${gridHTML||(proofHTML?`<div class="power-seller-proof-list">${proofHTML}</div>`:honestyNote)}
       ${platformChips?`<div class="power-seller-platform-row"><span class="power-seller-profile-label">Lists on (per ${escapeHtml(profile.name)})</span>${platformChips}</div>`:""}
@@ -733,7 +738,8 @@ function renderFeaturedPowerSellerProfile(profile,platformFirst,plateHTML){
       <div class="power-seller-footnote">GoAskSam may receive a referral fee if you proceed.</div>
     </div>
     <div class="sell-rec-actions"><button class="ghost" onclick="event.stopPropagation();choosePowerSeller('${escapeHtml(profile.id)}')">Request an introduction to ${escapeHtml(firstName)} -></button></div>
-  </div>`;
+  </div>
+  <div class="ps-education-below">A PowerSeller like ${escapeHtml(firstName)} handles the complete process so you don't have to: prep, photography, listing, buyer questions, logistics. <button class="ps-learn-link" onclick="event.stopPropagation();samExplainPowerSeller()">Learn more</button></div>`;
 }
 
 function renderMiniPowerSellerProfile(profile,label){
