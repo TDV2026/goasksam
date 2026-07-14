@@ -823,12 +823,14 @@ function altReasonBullets(route,pick){
       :(since?`since ${since}`:"across everything we've tracked");
     bullets.push(`${mine>pickCount?"Most":"Second-most"} ${comparableSalesLabel()} sales ${windowPhrase}.`);
   }else if((route.routeFitFacts||[]).includes("segment_fit")){
-    bullets.push("Its typical buyer pool matches this kind of car.");
+    // Policy claims still name the car (locked): fit framing, never a
+    // generic category line.
+    bullets.push(`Its typical buyer pool matches a car like the ${cleanCarForCopy()}.`);
   }else{
     bullets.push(pickCopy([
-      `${name} is still worth looking at, but the pick above is stronger on the current market read.`,
-      `${name} is worth considering, though the pick above is the stronger call today.`,
-      `${name} remains viable, but it is not the clearest first choice from the current evidence.`
+      `${name} is still worth a look for the ${cleanCarForCopy()}, but the pick above is stronger on the current market read.`,
+      `${name} is worth considering for the ${cleanCarForCopy()}, though the pick above is the stronger call today.`,
+      `${name} remains viable for the ${cleanCarForCopy()}, but it is not the clearest first choice from the current evidence.`
     ],sellState.carName,name));
   }
   // Car-specific band from this platform's own comps.

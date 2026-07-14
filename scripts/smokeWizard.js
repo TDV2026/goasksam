@@ -809,7 +809,12 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   const m3Dual=await runResult("US","New York","70k",m3c);
   const referral=sellState.partnerReferral||{};
   if(referral.secondary){
-    check("partner secondary: $50k+ gate-closed shows the also-considering card", /Also worth considering/.test(m3Dual)&&/rather have the whole sale handled/.test(m3Dual), m3Dual.replace(/<[^>]+>/g," ").slice(0,200));
+    // Exactly-two rule: the partner mention renders ONLY when it owns the
+    // alternative slot (no platform alternative in the render).
+    const hasPlatformAlt=/Also strong here/.test(m3Dual);
+    check("partner secondary: renders only when it owns the alternative slot",
+      hasPlatformAlt?!/Also worth considering/.test(m3Dual):/Also worth considering/.test(m3Dual),
+      `platformAlt=${hasPlatformAlt} miniRendered=${/Also worth considering/.test(m3Dual)}`);
   }else if(referral.eligible){
     check("partner: gate-open dual renders the dossier", /power-seller-feature/.test(m3Dual)||/Want it handled/.test(m3Dual), "dossier missing");
   }
