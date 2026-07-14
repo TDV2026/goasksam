@@ -4,6 +4,7 @@ import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { callOldCarsData } from "../lib/_ocd.js";
 import { findGeneration, generationModelToken } from "../lib/generations.js";
 import { MODEL_SEGMENTS } from "../lib/vehicleData.js";
+import { calculateEffectiveSampleSize, MINIMUM_EFFECTIVE_SAMPLE, getRecencyMultiplier, getPlatformDominanceScore, calculateConfidenceScore, getConfidenceLevel } from "../lib/weighting.js";
 import { computePartnerCareerStats, computePlatformBaselines, partnerRelevance, priceBand } from "../lib/marketStats.js";
 import {
   asText,
@@ -484,11 +485,19 @@ function evaluateLadder(pairedRecords, ladder) {
     const eligible = pairedRecords.filter(item =>
       daysAgo(item.record.auction_end_date) <= maxWindow && ladderEligible(item, rung)
     );
+    // Effective-sample gating (locked, July 2026): each sale is weighted by
+    // recency decay times the rung's scope purity, so five fresh exact
+    // comps beat fifteen stale make-level ones. The gate is flat 3.0;
+    // wider scopes automatically need more sales via the purity multiplier.
+    // Raw counts still report everywhere (copy rules use real counts).
     let landedWindow = null;
+    let landedEffective = 0;
     for (const windowDays of ANALYSIS_WINDOWS_DAYS) {
-      const count = eligible.filter(item => daysAgo(item.record.auction_end_date) <= windowDays).length;
-      if (count >= rung.threshold) {
+      const inWindow = eligible.filter(item => daysAgo(item.record.auction_end_date) <= windowDays);
+      const effective = calculateEffectiveSampleSize(inWindow.map(item => daysAgo(item.record.auction_end_date)), rung.key);
+      if (effective >= MINIMUM_EFFECTIVE_SAMPLE) {
         landedWindow = windowDays;
+        landedEffective = effective;
         break;
       }
     }
@@ -498,6 +507,7 @@ function evaluateLadder(pairedRecords, ladder) {
       label: rung.label,
       threshold: rung.threshold,
       sales: eligible.length,
+      effectiveSample: landedEffective || calculateEffectiveSampleSize(eligible.map(item => daysAgo(item.record.auction_end_date)), rung.key),
       windowDays: landedWindow,
       met: landedWindow !== null,
       definition: rung
@@ -1090,12 +1100,29 @@ function analyze(records, classifications, ladder, vehicle, debug) {
         label: landed.label,
         windowDays,
         sales: evidenceSet.length,
+        effectiveSample: landed.effectiveSample ?? null,
         threshold: landed.threshold,
         thresholdMet: landed.met
       } : null,
-      rungs: walk.map(({ rung, key, label, sales, threshold, met }) => ({ rung, key, label, sales, threshold, met })),
+      rungs: walk.map(({ rung, key, label, sales, effectiveSample, threshold, met }) => ({ rung, key, label, sales, effectiveSample, threshold, met })),
       policyFloorRung: walk.length + 1
     },
+    // Internal confidence (locked: engine telemetry, NEVER rendered and
+    // never a reason to hedge a recommendation).
+    internalConfidence: (() => {
+      if (!landed || !evidenceSet.length) return null;
+      const ages = evidenceSet.map(item => daysAgo(item.record.auction_end_date));
+      const recencySample = Math.round(ages.filter(a => a <= 90).reduce((sum, a) => sum + getRecencyMultiplier(a), 0) * 10) / 10;
+      const counts = {};
+      for (const item of evidenceSet) counts[recordPlatform(item.record)] = (counts[recordPlatform(item.record)] || 0) + 1;
+      const score = calculateConfidenceScore({
+        recencySample,
+        totalSample: landed.effectiveSample ?? evidenceSet.length,
+        platformDominance: getPlatformDominanceScore(counts),
+        outcomeSample: evidenceSet.length
+      });
+      return { score, level: getConfidenceLevel(score) };
+    })(),
     platformPerformance,
     sellerActivity: analyzeSellerActivity(pairedRecords),
     debugPremiumWalk: premiumWalkTraces || undefined,
@@ -1758,6 +1785,9 @@ export default async function handler(req, res) {
         strategy: "evidence_ladder",
         recordsFetched: analysis.recordsFetched,
         evidenceSales: analysis.evidenceSales,
+        // Internal confidence: telemetry only, never rendered.
+        internalConfidence: analysis.internalConfidence?.score ?? null,
+        internalConfidenceLevel: analysis.internalConfidence?.level ?? null,
         evidenceLevel: analysis.evidenceLevel,
         ladderRung: analysis.ladder?.landed?.rung || null,
         evidenceBasis: decision.evidenceBasis
