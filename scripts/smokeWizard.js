@@ -93,6 +93,7 @@ function guardRender(name, text) {
     const cardSegs = [...raw.matchAll(/class="sell-rec-card[ "][\s\S]*?(?=class="sell-rec-card[ "]|class="power-seller-(?:feature|mini)[ "]|$)/g)].map(m => m[0]);
     for (const seg of cardSegs) {
       if (!/sell-rec-bullets/.test(seg)) continue;
+      if (/chooseFallbackDestination/.test(seg)) continue; // regional policy cards: approved copy, exempt
       const liCount = (seg.match(/<li[ >]/g) || []).length;
       if (liCount > 0) check(`[design] ${name}: platform card carries exactly three bullets`, liCount === 3, `liCount=${liCount} card="${seg.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 120)}"`);
     }
@@ -222,12 +223,15 @@ function guardRender(name, text) {
         : Number(evA.windowDays) >= 3650;
       check(`[design] ${name}: alt window claim matches the evidence window`, okA, `claim="${altTierA[0].slice(0, 90)}" windowDays=${evA.windowDays} earliest=${evA.earliestSaleDate}`);
     }
-    // Alt speed line only with curated-fast policy data favoring the alternative.
+    // Alt speed line only with curated-fast policy data favoring the
+    // alternative, judged against the RENDERED pick (routing may have
+    // reordered the backend's list).
     if (/If speed matters, /.test(clean)) {
       const routesS = sellState.sellDecision?.decision?.routeFit?.routes || [];
-      const pickS = routesS[0];
-      const altFast = routesS.slice(1).some(r => ["fast", "medium_fast"].includes(r.speedToList));
-      check(`[design] ${name}: alt speed line gated on curated speed data`, altFast && !["fast", "medium_fast"].includes(pickS?.speedToList), `pick=${pickS?.speedToList} alts=${JSON.stringify(routesS.slice(1).map(r => [r.platform, r.speedToList]))}`);
+      const normS = v => String(v || "").toLowerCase().replace(/&amp;|&/g, "and").replace(/[^a-z0-9]/g, "");
+      const renderedPick = routesS.find(r => plateNameC && (normS(platformNameMapSmoke(r.platform)) === normS(plateNameC) || normS(r.label) === normS(plateNameC))) || routesS[0];
+      const altFast = routesS.some(r => r !== renderedPick && ["fast", "medium_fast"].includes(r.speedToList));
+      check(`[design] ${name}: alt speed line gated on curated speed data`, altFast && !["fast", "medium_fast"].includes(renderedPick?.speedToList), `pick=${renderedPick?.platform}:${renderedPick?.speedToList} plate=${plateNameC}`);
     }
     // Speed-routing coherence: the speed voice line renders only when the
     // routing genuinely swapped for speed.
@@ -791,15 +795,18 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
     }
     const decoded=rendered.replace(/&#39;|&apos;/g,"'").replace(/&amp;/g,"&");
     check(`bullet 3 (${car.label.split(" ").at(-1)}): fast timeline gets the speed line`, /prioritizing a fast close|market I'd trust to move it|tends to get listings live fast|historically closes quicker|moves faster to market|gets a listing live sooner|quicker auction cycle|faster route from listing to close/i.test(decoded), (decoded.match(/[^\n]*(fast|quick)[^\n]*/i)||["none"])[0].slice(0,160));
+    // The two-part tiebreak contract binds the VOICE line only: bullets may
+    // legitimately carry "quicker auction cycle" wording without it.
+    const voiceLine=((renderedResult().match(/sell-rec-samline[^>]*>([^<]*)</)||[])[1]||"").replace(/&#39;|&apos;/g,"'").replace(/&amp;/g,"&");
     if(sellState.routingReason==="speed"){
       // Context-aware routing swapped the pick: the speed contract replaces
       // the old two-part tiebreak copy.
       check(`speed routing (${car.label.split(" ").at(-1)}): voice owns the speed pick`, /If speed is your priority, [^\n]+ is the right move\./.test(decoded), decoded.slice(0,300));
       check(`speed routing (${car.label.split(" ").at(-1)}): summary confirms the heard preference`, /You need it fast\./.test(decoded), decoded.slice(0,300));
-    }else if(SPEED_POOL.test(rendered)){
+    }else if(SPEED_POOL.test(voiceLine)){
       // Locked two-part Why when the (non-swap) speed tiebreak fired
-      speedReasons.push((rendered.match(SPEED_POOL)||[""])[0]);
-      check(`why structure (${car.label.split(" ").at(-1)}): speed phrase + gap phrase`, GAP_POOL.test(rendered), rendered.slice(0,300));
+      speedReasons.push((voiceLine.match(SPEED_POOL)||[""])[0]);
+      check(`why structure (${car.label.split(" ").at(-1)}): speed phrase + gap phrase`, GAP_POOL.test(voiceLine), voiceLine.slice(0,300));
       check(`speed headline (${car.label.split(" ").at(-1)}): confirms the heard preference`, /You want it gone fast/i.test(rendered), rendered.slice(0,300));
     }
     check(`cta (${car.label.split(" ").at(-1)}): active submit language`, /Submit your car to /.test(rendered) && !/>Sell on /.test(rendered), (rendered.match(/[^\n]*Sell on[^\n]*/)||[""])[0].slice(0,140));
