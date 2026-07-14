@@ -49,9 +49,11 @@ export const FORBIDDEN_PATTERNS = [
   // Median disclaimer footer (retired): footers may never reference claims
   // the card does not carry.
   { name: "median disclaimer footer", re: /medians reflect the model/i },
-  // Price ranges (banned everywhere): model variants differ too much. A
-  // price reference must be an exact historical data point, never a range.
-  { name: "price range display", re: /typically (priced )?(in the )?\$[\d,]+k?( to | ?[-–] ?)\$?[\d,]+k?|\$[\d,]+k? to \$[\d,]+k? range/i }
+  // Comp price ranges (banned): model variants differ too much for a range
+  // to describe what a car sells for. A price reference must be an exact
+  // historical data point. Segment BUCKET labels ("in the $50k to $150k
+  // range" naming a market band) are a different, approved thing.
+  { name: "price range display", re: /typically (priced )?(in the )?\$[\d,]+k?( to | ?[-–] ?)\$?[\d,]+k?|(sold|closed|sell|go(es)? for)[^.\n]{0,40}\$[\d,]+k? to \$[\d,]+k?/i }
 ];
 
 export function findForbidden(text) {

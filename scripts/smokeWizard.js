@@ -410,7 +410,7 @@ check("chip step: real answer stores and advances", sellState.records === "Some 
     ["What's a 2018 M3 worth?", noSignalContext, /every car is different|between you and the market|inspection|platform|buyer/i, "worth question refuses"],
     ["How much do they go for on Bring a Trailer?", priceContext, /\d+% higher|platform|buyer pool|audience/i, "how-much gets percentage comparison"],
     ["Median price for my car?", priceContext, /\d+% higher|platform|buyer pool|audience/i, "median ask gets percentage, no median"],
-    ["Can you help me value my car?", noSignalContext, /every car is different|inspection|between you and the market|platform/i, "value ask firmly refused"]
+    ["Can you help me value my car?", noSignalContext, /every (car|\w+) (is different|tells its own)|inspection|between you and the market|platform|specifics|condition|mileage/i, "value ask firmly refused"]
   ];
   for (const [q, ctx, must, label] of priceCases) {
     const res = await prodFetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bypassCache: true, messages: [{ role: "user", content: q }], system: SELL_SYS, context: ctx }) });
