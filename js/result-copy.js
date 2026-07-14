@@ -134,9 +134,18 @@ function analysisWindowInfo(bullets){
 // full-history read. The chat opener owns "Here's what that market shows",
 // so the card line never repeats it.
 function lookbackLine(option){
-  const info=analysisWindowInfo(option.reasonBullets);
+  const bullets=option.reasonBullets||[];
+  // Scope-descent transparency (locked): when the claim widened beyond the
+  // landed scope, the card says so. Takes precedence over the window line;
+  // the plate carries the span. The chat opener owns "Here's what that
+  // market shows", never repeated here.
+  const descent=bullets[0]?.scopeDescent;
+  if(descent){
+    return `We looked at the exact car first. When data was thin, we expanded to ${descent.to} to find the buyer concentration.`;
+  }
+  const info=analysisWindowInfo(bullets);
   const landed=sellState.sellDecision?.evidence?.ladder?.landed;
-  const segLabel=(option.reasonBullets||[])[0]?.segmentLabel;
+  const segLabel=bullets[0]?.segmentLabel;
   const scope=segLabel?`${segLabel} sales`:(landed?String(landed.label):"comparable sales");
   const sinceYear=(String(info.label||"").match(/^Since (\d{4})$/)||[])[1];
   if(sinceYear)return `We went back to ${sinceYear} to get enough comparable ${scope}.`;
@@ -964,13 +973,30 @@ function primaryReasonBullets(route,altRoute){
       ?`${String(premium.generationCode||"").toUpperCase()}-generation ${sellState.resolvedVehicle?.model||comparableSalesLabel()} sales`.trim()
       :`${comparableSalesLabel()} sales`;
     const premiumSince=premium?.earliestSaleDate?String(premium.earliestSaleDate).slice(0,4):null;
-    if(premiumSampled&&premium.percent>=10){
+    // Scope-descent meta for the transparency line: set when the claim's
+    // scope widened beyond the landed rung.
+    const scopeDescent=premium?.scope==="segment"
+      ?{to:`the ${premium.segmentLabel} segment (${(premium.models||[]).join(", ")})`}
+      :premium?.scope==="generation"
+      ?{to:`the ${String(premium.generationCode||"").toUpperCase()}-generation ${sellState.resolvedVehicle?.model||"model"}`}
+      :null;
+    if(premium&&premium.gateType==="asymmetric"&&premium.marketShare>=75&&premium.platformSales>=5){
+      // Market dominance (asymmetric gate): one platform IS the market.
+      // This is a buyer-pool concentration claim, never a price claim: with
+      // a thin "others" sample no price comparison was verified.
+      const name=platformDisplayName(route.label||route.platform);
+      const scopeName=premiumScopePhrase.replace(/ sales$/,"");
+      bullets.push({
+        text:`${name} captures the strongest buyer pool for ${scopeName}: ${premium.marketShare}% of comparable sales converged there.`,
+        validated:true,windowDays:premium.windowDays,sinceYear:premiumSince,
+        segmentLabel:premium.scope==="segment"?premium.segmentLabel:undefined,plateScope:premium.scope==="generation"?`${String(premium.generationCode||"").toUpperCase()} generation`:undefined,scopeDescent});
+    }else if(premiumSampled&&premium.percent>=10){
       const name=platformDisplayName(route.label||route.platform);
       bullets.push({
         text:premium.windowDays>=3650
           ?`${premiumScopePhrase} have historically closed around ${premium.percent}% higher on ${name} than on other platforms`
           :`${premiumScopePhrase} have closed around ${premium.percent}% higher on ${name} than on other platforms over the past ${premium.windowDays} days`,
-        validated:true,windowDays:premium.windowDays,sinceYear:premiumSince,segmentLabel:premium.scope==="segment"?premium.segmentLabel:undefined});
+        validated:true,windowDays:premium.windowDays,sinceYear:premiumSince,segmentLabel:premium.scope==="segment"?premium.segmentLabel:undefined,plateScope:premium.scope==="generation"?`${String(premium.generationCode||"").toUpperCase()} generation`:undefined,scopeDescent});
     }else if(premiumSampled&&Math.abs(premium.percent)>=2&&Math.abs(premium.percent)<10){
       // Honest only pick-vs-alt when those two platforms hold all the
       // evidence; with more platforms it stays "the other platforms".

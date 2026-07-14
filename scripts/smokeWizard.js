@@ -124,11 +124,28 @@ function guardRender(name, text) {
     check(`[design] ${name}: no evidence band on platform cards`, !/evidence-band/.test(raw), "band still renders");
     const flatLi = h => String(h).replace(/<span class="num">([^<]*)<\/span>/g, "$1").replace(/&#\d+;/g, "'").replace(/<[^>]+>/g, " ");
     const liMatches = [...raw.matchAll(/<li(?: class="([^"]*)")?>([\s\S]*?)<\/li>/g)];
-    const greenClaim = b => /% of [^%]*closed on/.test(b) || /% higher on [^%]* than on other platforms/.test(b);
+    const greenClaim = b => /% of [^%]*closed on/.test(b) || /% higher on [^%]* than on other platforms/.test(b) || /% of comparable sales converged there/.test(b);
     const validatedLis = liMatches.filter(m => /validated-claim/.test(m[1] || "")).map(m => flatLi(m[2]));
     check(`[design] ${name}: green bullet only with a Tier 1 or Tier 2 claim`, validatedLis.every(greenClaim), (validatedLis.find(b => !greenClaim(b)) || "").slice(0, 140));
     const plainLis = liMatches.filter(m => !/validated-claim/.test(m[1] || "")).map(m => flatLi(m[2]));
     check(`[design] ${name}: Tier 1/2 claims always carry the green class`, plainLis.every(b => !greenClaim(b)), (plainLis.find(greenClaim) || "").slice(0, 140));
+    // Market-dominance gate (asymmetric): 75%+ share, 5+ platform sales,
+    // 10+ total denominator, rendered share equals the proof.
+    const domClaim = clean.match(/(\d+)% of comparable sales converged there/);
+    if (domClaim) {
+      const domProof = (sellState.sellDecision?.decision?.routeFit?.routes || [])
+        .map(r => r.marketEvidence?.pricePremium).find(p => p && p.gateType === "asymmetric");
+      check(`[design] ${name}: dominance gates hold (75%+ share, 5+ sales, 10+ total)`,
+        !!domProof && domProof.marketShare >= 75 && domProof.platformSales >= 5
+          && (domProof.platformSales + domProof.othersSales) >= 10 && Number(domClaim[1]) === domProof.marketShare,
+        `claim=${domClaim[0]} proof=${JSON.stringify(domProof)}`);
+    }
+    // Scope-descent transparency renders only with a widened-scope proof.
+    if (/expanded to [^\n]+ to find the buyer concentration/.test(clean)) {
+      const widened = (sellState.sellDecision?.decision?.routeFit?.routes || [])
+        .some(r => ["generation", "segment"].includes(r.marketEvidence?.pricePremium?.scope));
+      check(`[design] ${name}: descent line backed by a widened-scope proof`, widened, "no widened proof shipped");
+    }
     // Tier 1 gates: 5+ sold both sides, rounded gap 10%+, % only (no dollars,
     // no "median"), verified against the decision's own proof object.
     const tier1 = clean.match(/sales have (?:historically )?closed around (\d+)% higher on ([^\n]+?) than on other platforms/);
@@ -158,7 +175,10 @@ function guardRender(name, text) {
       check(`[design] ${name}: segment claims carry a shipped segment proof`, segLabels.length > 0, `labels=${JSON.stringify(segLabels)}`);
     }
     if (plateSegment) {
-      check(`[design] ${name}: plate segment prefix matches a shipped proof label`, segLabels.some(l => plateSegment.trim().toLowerCase() === l.toLowerCase()), `prefix="${plateSegment}" labels=${JSON.stringify(segLabels)}`);
+      const genPrefix = plateSegment.trim().match(/^([\w.]+) generation$/i);
+      const genOk = !!genPrefix && (sellState.sellDecision?.decision?.routeFit?.routes || [])
+        .some(r => String(r.marketEvidence?.pricePremium?.generationCode || "").toLowerCase() === genPrefix[1].toLowerCase());
+      check(`[design] ${name}: plate scope prefix matches a shipped proof label`, genOk || segLabels.some(l => plateSegment.trim().toLowerCase() === l.toLowerCase()), `prefix="${plateSegment}" labels=${JSON.stringify(segLabels)}`);
     }
     if (plateData) {
       check(`[design] ${name}: plate window never says Historical`, !/historical/i.test(plateData), `label="${plateData}"`);
@@ -175,7 +195,7 @@ function guardRender(name, text) {
       // card explains the lookback and carries NO count claims (percentages
       // only); recent plates carry no lookback line.
       if (plateNameC && PLATFORM_NAMES.includes(plateNameC) && /^(Since \d{4}|All-time)$/.test(plateData || "")) {
-        check(`[design] ${name}: old-data card explains the lookback`, /We went back to \d{4} to get enough comparable|We analyzed [^\n]* across everything we've tracked/.test(clean.replace(/&#\d+;/g, "'")), (clean.match(/[^\n]*went back[^\n]*/) || ["missing"])[0].slice(0, 140));
+        check(`[design] ${name}: old-data card explains the lookback`, /We went back to \d{4} to get enough comparable|We analyzed [^\n]* across everything we've tracked|We looked at the exact car first/.test(clean.replace(/&#\d+;/g, "'")), (clean.match(/[^\n]*(went back|exact car first)[^\n]*/) || ["missing"])[0].slice(0, 140));
         const countClaim = liMatches.map(m => flatLi(m[2])).find(t => /^\s*\d[\d,]* [^%\n]{0,60}have sold on/i.test(t));
         check(`[design] ${name}: old-data card carries no count claims`, !countClaim, (countClaim || "").slice(0, 120));
         // No finite window text on the pick card when the plate is all-time.
@@ -827,7 +847,7 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   const us=await runResult("US","California","140k",gts);
   if(sellState.awaitingPathChoice){handleSellRecommendationFollowup("I'll run it myself");await new Promise(r=>setTimeout(r,150));}
   const rendered=(renderedResult()+"\n"+allSamText()).replace(/<li>/g,"\n• ").replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g,"\n");
-  const heroHasPct=/(\d+% of [^\n]* sales (over the past [^\n]*|across everything[^\n]*) closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty)|closed around \d+% higher on|Price is negligible between)/i.test(rendered.replace(/&amp;/g,"&"));
+  const heroHasPct=/(\d+% of [^\n]* sales (over the past [^\n]*|across everything[^\n]*) closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty)|closed around \d+% higher on|Price is negligible between|% of comparable sales converged)/i.test(rendered.replace(/&amp;/g,"&"));
   // Below the 10+ gate, bullet 1 is Tier B (verified leadership) or the
   // honest existence line (the old standalone band prose is deleted).
   const heroHasTierB=/More [^\n]+ sales have closed on [^\n]+ than any other platform we track/i.test(rendered.replace(/&amp;/g,"&"));

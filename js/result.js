@@ -301,8 +301,9 @@ async function showSellRecommendation(){
   // knows this is competitor-set data, not exact-model data.
   const plateWindowLabel=option=>{
     const info=analysisWindowInfo(option.reasonBullets);
-    const segLabel=(option.reasonBullets||[])[0]?.segmentLabel;
-    return segLabel&&info.label?`${segLabel} · ${info.label}`:info.label;
+    const first=(option.reasonBullets||[])[0]||{};
+    const scopePrefix=first.plateScope||first.segmentLabel;
+    return scopePrefix&&info.label?`${scopePrefix} · ${info.label}`:info.label;
   };
   const verdictPlate=(option,windowLabel)=>`<div class="verdict-plate">
         <div class="vp-row1"><span class="label-mono">Sam's pick</span><span class="num label-mono">${escapeHtml(verdictRefCode)}</span></div>

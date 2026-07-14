@@ -881,13 +881,25 @@ function analyze(records, classifications, ladder, vehicle, debug) {
         const others = eligible.filter(item => recordPlatform(item.record) !== platform)
           .map(item => Number(item.classification.price)).filter(Number.isFinite);
         const step = trace ? { scope: def === landed.definition ? `landed(${landed.key})` : `generation(${def.generationCode || def.key})`, windowDays: window, mineSold: mine.length, othersSold: others.length } : null;
+        const scopeTags = def === landed.definition ? {} : { scope: "generation", generationCode: def.generationCode || null };
+        const boundary = window >= 3650 ? { earliestSaleDate: eligible.map(item => item.record.auction_end_date).filter(Boolean).sort()[0] || null } : {};
+        // Asymmetric gate: when one platform IS the market (75%+ share with
+        // 5+ sales and the locked 10+ total denominator), a symmetric
+        // premium can't be computed against the thin "others" sample, but
+        // the convergence itself is a real routing claim.
+        const total = mine.length + others.length;
+        const marketShare = total > 0 ? Math.round(mine.length / total * 100) : 0;
+        if (mine.length >= 5 && marketShare >= 75 && total >= 10) {
+          if (step) { step.gateType = "asymmetric"; step.marketShare = marketShare; step.samplesGatePass = true; step.landed = true; trace.push(step); }
+          return { type: "market_dominance", gateType: "asymmetric", marketShare, percent: null, windowDays: window, platformSales: mine.length, othersSales: others.length, ...scopeTags, ...boundary };
+        }
         if (mine.length >= 5 && others.length >= 5) {
           const gap = Math.round((median(mine) - median(others)) / median(others) * 100);
-          if (step) { step.gapPercent = gap; step.samplesGatePass = true; step.premiumGatePass = gap >= 10; trace.push(step); }
+          if (step) { step.gateType = "symmetric"; step.gapPercent = gap; step.samplesGatePass = true; step.premiumGatePass = gap >= 10; trace.push(step); }
           const proof = {
+            type: "premium", gateType: "symmetric",
             percent: gap, windowDays: window, platformSales: mine.length, othersSales: others.length,
-            ...(def === landed.definition ? {} : { scope: "generation", generationCode: def.generationCode || null }),
-            ...(window >= 3650 ? { earliestSaleDate: eligible.map(item => item.record.auction_end_date).filter(Boolean).sort()[0] || null } : {})
+            ...scopeTags, ...boundary
           };
           if (gap >= 10) { if (step) step.landed = true; return proof; }
           if (!firstMeasured) firstMeasured = proof;
@@ -909,16 +921,20 @@ function analyze(records, classifications, ladder, vehicle, debug) {
         const others = eligible.filter(item => recordPlatform(item.record) !== platform)
           .map(item => Number(item.classification.price)).filter(Number.isFinite);
         const step = trace ? { scope: `segment(${segmentDef.key})`, windowDays: window, mineSold: mine.length, othersSold: others.length } : null;
+        const segTags = { scope: "segment", segmentLabel: segmentDef.label, models: segmentDef.models };
+        const segBoundary = window >= 3650 ? { earliestSaleDate: eligible.map(item => item.record.auction_end_date).filter(Boolean).sort()[0] || null } : {};
+        const segTotal = mine.length + others.length;
+        const segShare = segTotal > 0 ? Math.round(mine.length / segTotal * 100) : 0;
+        if (mine.length >= 5 && segShare >= 75 && segTotal >= 10) {
+          if (step) { step.gateType = "asymmetric"; step.marketShare = segShare; step.samplesGatePass = true; step.landed = true; trace.push(step); }
+          return { type: "market_dominance", gateType: "asymmetric", marketShare: segShare, percent: null, windowDays: window, platformSales: mine.length, othersSales: others.length, ...segTags, ...segBoundary };
+        }
         if (mine.length >= 5 && others.length >= 5) {
           const gap = Math.round((median(mine) - median(others)) / median(others) * 100);
-          if (step) { step.gapPercent = gap; step.samplesGatePass = true; step.premiumGatePass = gap >= 10; trace.push(step); }
+          if (step) { step.gateType = "symmetric"; step.gapPercent = gap; step.samplesGatePass = true; step.premiumGatePass = gap >= 10; trace.push(step); }
           if (gap >= 10) {
             if (step) step.landed = true;
-            return {
-              percent: gap, windowDays: window, platformSales: mine.length, othersSales: others.length,
-              scope: "segment", segmentLabel: segmentDef.label, models: segmentDef.models,
-              ...(window >= 3650 ? { earliestSaleDate: eligible.map(item => item.record.auction_end_date).filter(Boolean).sort()[0] || null } : {})
-            };
+            return { type: "premium", gateType: "symmetric", percent: gap, windowDays: window, platformSales: mine.length, othersSales: others.length, ...segTags, ...segBoundary };
           }
         } else if (step) { step.samplesGatePass = false; trace.push(step); }
       }
