@@ -42,7 +42,10 @@ export const FORBIDDEN_PATTERNS = [
   { name: "valuation phrasing", re: /market value|typical price|comparable market|\bwhat (it|the car|your car).s worth\b|\b(car|it) is worth\b|your car is worth/i },
   // Valuation escape hatches in chat (locked): no capability-framing, no
   // outside endorsements, no dealer punts, no wishing.
-  { name: "valuation escape hatch", re: /i don.t have that data|consult a dealer|valuation tools?|i wish i could/i }
+  { name: "valuation escape hatch", re: /i don.t have (that|the) data|consult a dealer|valuation tools?|i wish i could/i },
+  // Platform-tracking excuses (locked): tracked or not tracked, stated
+  // plainly; never a technical-limitation frame.
+  { name: "platform tracking excuse", re: /we (don.t|do not) have access to|(doesn.t|does not) report (its |the )?data|we can.t analy[sz]e|too (exclusive|fragmented) for (our|us)/i }
 ];
 
 export function findForbidden(text) {

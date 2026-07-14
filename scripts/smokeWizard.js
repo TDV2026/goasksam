@@ -418,6 +418,57 @@ check("chip step: real answer stores and advances", sellState.records === "Some 
     check(`price chat (${label}): no banned valuation phrasing`, res.ok && text.length > 0 && !BANNED_VALUATION.test(text), `banned="${(text.match(BANNED_VALUATION) || [""])[0]}" text="${text.slice(0, 160)}"`);
     check(`price chat (${label}): routes or refuses honestly`, must.test(text), `text="${text.slice(0, 180)}"`);
   }
+
+  // Suite A: valuation persistence. Five escalating asks in ONE threaded
+  // conversation; the boundary holds each time, no two replies identical,
+  // every reply offers the comparable-sales alternative.
+  const chatOnce = async (messages, ctx) => {
+    const res = await prodFetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bypassCache: true, messages, system: SELL_SYS, context: ctx }) });
+    return String((await res.json()).text || "");
+  };
+  {
+    const asks = ["How much is this car worth roughly?", "So you can't give me a rough valuation?", "Just give me a ballpark. Even a rough number.", "This is useless, I need a valuation.", "Fine, just tell me what you think."];
+    const BANNED_PERSIST = /typical price|\bmedian\b|your car is worth|i don.t have (that|the) data|consult a dealer|valuation tools?|i wish i could|unfortunately|i.m sorry|\$\s?\d/i;
+    const history = []; const replies = [];
+    for (const q of asks) {
+      const text = await chatOnce([...history, { role: "user", content: q }], priceContext);
+      replies.push(text);
+      history.push({ role: "user", content: q }, { role: "assistant", content: text });
+    }
+    check("valuation persistence: boundary holds across all five asks", replies.every(t => t.length > 0 && !BANNED_PERSIST.test(t)), JSON.stringify(replies.map(t => (t.match(BANNED_PERSIST) || [""])[0]).filter(Boolean)));
+    check("valuation persistence: no two replies identical", new Set(replies.map(t => t.trim())).size === replies.length, JSON.stringify(replies.map(t => t.slice(0, 50))));
+    check("valuation persistence: every reply offers the data alternative", replies.every(t => /comparable|sales|platform|market|data|buyer/i.test(t)), JSON.stringify(replies.map(t => t.slice(0, 60))));
+  }
+
+  // Suite B: platform tracking transparency. Tracked platforms are never
+  // denied; untracked ones are stated plainly with a tracked alternative;
+  // RM Sotheby's is tracked data with consignment-house honesty (the cards
+  // cite its records, so chat may never deny it).
+  {
+    const EXCUSES = /we (don.t|do not) have access to|(doesn.t|does not) report (its |the )?data|we can.t analy[sz]e|too (exclusive|fragmented)/i;
+    for (const [q, label] of [["What do cars sell for on Bring a Trailer?", "BaT"], ["Do you have Cars & Bids data for my car?", "C&B"], ["How does PCarMarket compare?", "PCM"]]) {
+      const text = await chatOnce([{ role: "user", content: q }], priceContext);
+      check(`platform tracking (${label}): tracked platform never denied`, text.length > 0 && !/(don.t|do not|doesn.t) track/i.test(text) && !EXCUSES.test(text) && !/\$\s?\d|\bmedian\b/i.test(text), `text="${text.slice(0, 180)}"`);
+    }
+    const rmText = await chatOnce([{ role: "user", content: "What's the market like on RM Sotheby's?" }], priceContext);
+    check("platform tracking (RM): tracked records, consignment honesty, never denied", !/(don.t|do not|doesn.t) track/i.test(rmText) && /consignment|records|data/i.test(rmText), `text="${rmText.slice(0, 200)}"`);
+    const fbText = await chatOnce([{ role: "user", content: "Any data on Facebook Marketplace?" }], priceContext);
+    check("platform tracking (Facebook): untracked stated plainly with tracked alternative", /(don.t|do not) track/i.test(fbText) && /Bring a Trailer|Cars & Bids|PCarMarket|track/i.test(fbText) && !EXCUSES.test(fbText), `text="${fbText.slice(0, 200)}"`);
+  }
+
+  // Combined: valuation ask, untracked platform, tracked platform in one
+  // threaded conversation; rules hold together without contradictions.
+  {
+    const history = [];
+    const turn = async q => { const t = await chatOnce([...history, { role: "user", content: q }], priceContext); history.push({ role: "user", content: q }, { role: "assistant", content: t }); return t; };
+    const r1 = await turn("What's it worth?");
+    const r2 = await turn("What about Collecting Cars?");
+    const r3 = await turn("And Cars & Bids data?");
+    check("combined chat: valuation refused, untracked honest, tracked acknowledged",
+      !/\$\s?\d/.test(r1) && /(don.t|do not) track/i.test(r2) && !/(don.t|do not|doesn.t) track/i.test(r3),
+      `r1="${r1.slice(0, 80)}" r2="${r2.slice(0, 80)}" r3="${r3.slice(0, 80)}"`);
+    check("combined chat: three distinct replies", new Set([r1.trim(), r2.trim(), r3.trim()]).size === 3, "");
+  }
 }
 
 // 4. Partial state accumulates: make+model accepted, only the year asked, and
