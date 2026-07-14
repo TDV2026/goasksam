@@ -138,6 +138,8 @@ function guardRender(name, text) {
     const plateM = clean.match(/Data: (?:([^\n]{2,40}?) · )?(Past \d+ days|Since \d{4}|All-time|[^\n]*)/);
     const plateSegment = plateM ? plateM[1] : null;
     const plateData = plateM ? plateM[2] : null;
+    const plateNameC = ((raw.match(/vp-name">([^<]*)</) || [])[1] || "").replace(/&amp;/g, "&");
+    const PLATFORM_NAMES = ["Bring a Trailer", "Cars & Bids", "PCarMarket", "Hemmings", "Hagerty Marketplace", "Car & Classic", "Collecting Cars"];
     // GATE 4 (segment scope transparency): rendered segment claims and the
     // plate's segment prefix must trace to shipped segment proof objects.
     const segRoutes = (sellState.sellDecision?.decision?.routeFit?.routes || []).filter(r => r.marketEvidence && (r.marketEvidence.pricePremium?.scope === "segment" || r.marketEvidence.segmentVolume));
@@ -228,8 +230,6 @@ function guardRender(name, text) {
     }
     // Plate pick and bullets agree: a platform plate's name must appear in
     // the claim bullets (every bullet-1 tier names the pick).
-    const plateNameC = ((raw.match(/vp-name">([^<]*)</) || [])[1] || "").replace(/&amp;/g, "&");
-    const PLATFORM_NAMES = ["Bring a Trailer", "Cars & Bids", "PCarMarket", "Hemmings", "Hagerty Marketplace", "Car & Classic", "Collecting Cars"];
     if (plateNameC && PLATFORM_NAMES.includes(plateNameC)) {
       const liText = liMatches.map(m => flatLi(m[2]).replace(/&amp;/g, "&")).join("\n");
       check(`[design] ${name}: plate pick matches the bullets pick`, liText.includes(plateNameC) || !liText.trim(), `plate="${plateNameC}"`);
