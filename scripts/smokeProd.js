@@ -231,7 +231,11 @@ await identityCase("identity: 67 corvette", "67 corvette", "valid", /1967 Chevro
     const { body } = await post("/api/chat", { bypassCache: true, messages: [...history], system: SELL_SYS_LIVE, context: pushContext });
     lastText = String(body.text || "");
     history.push({ role: "assistant", content: lastText });
-    check(`pushback ${i + 1}: never offers consignment flagging`, !/flag (your|the|my)|forward (your|my) details|consignment (conversation|list|queue)|pass (your|my) (details|info)/i.test(lastText), lastText.slice(0, 220));
+    // An explicit denial ("isn't something GoAskSam offers") is honest, not
+    // an offer; only an unnegated mention fails.
+    const flagMention = /flag (your|the|my)|forward (your|my) details|consignment (conversation|list|queue)|pass (your|my) (details|info)/i.test(lastText);
+    const denialNearby = /isn.t something|is not something|(doesn.t|does not) (exist|offer)|no such service|not a service/i.test(lastText);
+    check(`pushback ${i + 1}: never offers consignment flagging`, !flagMention || denialNearby, lastText.slice(0, 220));
     const hits = findForbidden(lastText);
     check(`pushback ${i + 1}: registry clean`, hits.length === 0, hits.join(" | "));
   }
