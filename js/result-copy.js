@@ -870,6 +870,17 @@ function altReasonBullets(route,pick){
   if(["fast","medium_fast"].includes(route.speedToList)&&!pickFast){
     bullets.push(`If speed matters, ${name} typically runs the quicker auction cycle.`);
   }
+  // Exactly three bullets on the alternative too (locked): grounded
+  // fallbacks fill failed gates, no duplicates.
+  const altFallbacks=[
+    (route.routeFitFacts||[]).includes("segment_fit")&&!bullets.some(b=>/typical buyer pool/.test(b))?`Its typical buyer pool matches a car like the ${cleanCarForCopy()}.`:null,
+    sellerPriorityFitLabel(route),
+    `${name} is worth considering for the ${cleanCarForCopy()}, though the pick above is the stronger call today.`
+  ].filter(Boolean);
+  for(const text of altFallbacks){
+    if(bullets.length>=3)break;
+    if(!bullets.includes(text))bullets.push(text);
+  }
   return bullets.slice(0,3);
 }
 
@@ -1002,23 +1013,41 @@ function primaryReasonBullets(route,altRoute){
   // the seller wants it gone fast.
   if(sellState.routingReason==="speed"){
     bullets.push({text:`${platformDisplayName(route.label||route.platform)} typically runs the quicker auction cycle.`,validated:false});
-    return bullets.slice(0,3);
+  }else{
+    let bullet3="";
+    if(e.segmentSellThrough){
+      const adjective=e.segmentSellThrough.percent>=85?"Strong":"Consistent";
+      bullet3=`${adjective} sell-through for ${segmentCategoryDesc(e.segmentSellThrough.band)}`;
+    }
+    if(sellerWantsSpeed()){
+      // Grounded phrasing only: listing-cycle speed comes from curated route
+      // policy, never an invented day count (no platform-mechanics claims).
+      const fastPlatform=["fast","medium_fast"].includes(route.speedToList);
+      const speedLine=fastPlatform
+        ?"Quick auction cycle if you're prioritizing a fast close"
+        :"On a fast timeline, this is still the market I'd trust to move it";
+      bullet3=bullet3?`${bullet3}. ${speedLine}`:speedLine;
+    }
+    if(bullet3)bullets.push({text:`${bullet3}.`,validated:false,windowDays:36500});
   }
-  let bullet3="";
-  if(e.segmentSellThrough){
-    const adjective=e.segmentSellThrough.percent>=85?"Strong":"Consistent";
-    bullet3=`${adjective} sell-through for ${segmentCategoryDesc(e.segmentSellThrough.band)}`;
+  // Exactly three bullets (locked): a failed gate skips its bullet and a
+  // grounded fallback fills the slot, never fewer than three on an
+  // evidence-backed card. Fallbacks in order: unused segment sell-through,
+  // curated speed policy, curated fit line. No duplicates.
+  if(bullets.length&&bullets.length<3){
+    const name=platformDisplayName(route.label||route.platform);
+    const queue=[];
+    if(e.segmentSellThrough&&!bullets.some(b=>/sell-through/i.test(b.text))){
+      const adjective=e.segmentSellThrough.percent>=85?"Strong":"Consistent";
+      queue.push({text:`${adjective} sell-through for ${segmentCategoryDesc(e.segmentSellThrough.band)}.`,windowDays:36500});
+    }
+    if(["fast","medium_fast"].includes(route.speedToList))queue.push({text:`${name} typically runs the quicker auction cycle.`});
+    queue.push({text:sellerPriorityFitLabel(route)});
+    for(const item of queue){
+      if(bullets.length>=3)break;
+      if(!bullets.some(b=>b.text===item.text||(/quicker auction cycle/.test(b.text)&&/quicker auction cycle/.test(item.text))))bullets.push({...item,validated:false});
+    }
   }
-  if(sellerWantsSpeed()){
-    // Grounded phrasing only: listing-cycle speed comes from curated route
-    // policy, never an invented day count (no platform-mechanics claims).
-    const fastPlatform=["fast","medium_fast"].includes(route.speedToList);
-    const speedLine=fastPlatform
-      ?"Quick auction cycle if you're prioritizing a fast close"
-      :"On a fast timeline, this is still the market I'd trust to move it";
-    bullet3=bullet3?`${bullet3}. ${speedLine}`:speedLine;
-  }
-  if(bullet3)bullets.push({text:`${bullet3}.`,validated:false,windowDays:36500});
   return bullets.length?bullets.slice(0,3):null;
 }
 

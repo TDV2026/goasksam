@@ -87,6 +87,15 @@ function guardRender(name, text) {
   // Design Phase 1 guards (raw HTML):
   if (/sell-rec-card/.test(raw)) {
     check(`[design] ${name}: at most one verdict plate`, (raw.match(/verdict-plate/g) || []).length <= 1, `plates=${(raw.match(/verdict-plate/g) || []).length}`);
+    // Exactly three bullets on every platform card whose bullets list
+    // renders (locked): a 1- or 2-bullet card is a regression. Empty lists
+    // (regional policy cards by design) are exempt.
+    const cardSegs = [...raw.matchAll(/class="sell-rec-card[ "][\s\S]*?(?=class="sell-rec-card[ "]|class="power-seller-(?:feature|mini)[ "]|$)/g)].map(m => m[0]);
+    for (const seg of cardSegs) {
+      if (!/sell-rec-bullets/.test(seg)) continue;
+      const liCount = (seg.match(/<li[ >]/g) || []).length;
+      if (liCount > 0) check(`[design] ${name}: platform card carries exactly three bullets`, liCount === 3, `liCount=${liCount} card="${seg.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 120)}"`);
+    }
     // Option shape (locked, updated): at most two platform cards (pick +
     // one alternative) and at most one partner surface.
     const platformCards = (raw.match(/class="sell-rec-card[ "]/g) || []).length;

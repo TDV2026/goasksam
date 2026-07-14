@@ -160,16 +160,32 @@ async function showSellRecommendation(){
     return;
   }
 
-  // Context-aware routing (locked): a fast timeline flips the pick to the
-  // curated-fast alternative when the current pick is not fast and the
-  // alternative holds real comparable evidence. Runs ONCE, before the
-  // opener and any card; plate, voice, bullets and ordering all flow from
-  // the result.
+  // Routing hierarchy (locked, strict order): PRICE FIRST, then speed.
+  // 1. A verified 10%+ price premium picks the platform, period; speed may
+  //    never override it. "Verified" means the 5+/5+ sampled proof object.
+  // 2. Speed routes only when no verified 10%+ premium protects the pick:
+  //    fast timeline + curated-fast alternative with real evidence.
+  // Runs ONCE, before the opener and any card.
   sellState.routingReason=null;
   {
     const FAST=["fast","medium_fast"];
+    const verifiedPremium=route=>{
+      const p=route?.marketEvidence?.pricePremium;
+      return (p&&p.platformSales>=5&&p.othersSales>=5)?Number(p.percent):null;
+    };
+    const first=routeOptions[0],second=routeOptions[1];
+    if(first&&second){
+      const pFirst=verifiedPremium(first),pSecond=verifiedPremium(second);
+      if(pSecond!=null&&pSecond>=10&&(pFirst==null||pSecond>pFirst)&&routeHasTrueComparableEvidence(second)){
+        routeOptions[0]=second;routeOptions[1]=first;
+        delete routeOptions[0].speedArgument;
+        sellState.routingReason="price";
+      }
+    }
     const pickRoute=routeOptions[0],altRoute=routeOptions[1];
-    if(sellerWantsSpeed()&&pickRoute&&altRoute
+    const pickPremium=verifiedPremium(pickRoute);
+    if(sellState.routingReason!=="price"&&!(pickPremium!=null&&pickPremium>=10)
+      &&sellerWantsSpeed()&&pickRoute&&altRoute
       &&FAST.includes(altRoute.speedToList)&&!FAST.includes(pickRoute.speedToList)
       &&routeHasTrueComparableEvidence(altRoute)){
       routeOptions[0]=altRoute;routeOptions[1]=pickRoute;
