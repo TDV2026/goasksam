@@ -45,7 +45,10 @@ export const FORBIDDEN_PATTERNS = [
   { name: "valuation escape hatch", re: /i don.t have (that|the) data|consult a dealer|valuation tools?|i wish i could/i },
   // Platform-tracking excuses (locked): tracked or not tracked, stated
   // plainly; never a technical-limitation frame.
-  { name: "platform tracking excuse", re: /we (don.t|do not) have access to|(doesn.t|does not) report (its |the )?data|we can.t analy[sz]e|too (exclusive|fragmented) for (our|us)/i }
+  { name: "platform tracking excuse", re: /we (don.t|do not) have access to|(doesn.t|does not) report (its |the )?data|we can.t analy[sz]e|too (exclusive|fragmented) for (our|us)/i },
+  // Median disclaimer footer (retired): footers may never reference claims
+  // the card does not carry.
+  { name: "median disclaimer footer", re: /medians reflect the model/i }
 ];
 
 export function findForbidden(text) {

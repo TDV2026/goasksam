@@ -190,15 +190,11 @@ function hasTwoRouteTradeoff(routes){
 }
 
 function adverseConditionCaveat(){
-  const adverse=[];
-  const mileage=String(sellState.mileage||"");
-  const mileageNumber=(mileage.replace(/,/g,"").match(/(\d+)\s*k/i)?.[1]*1000)||Number(mileage.replace(/[^\d]/g,""))||0;
-  if(/over\s*100k/i.test(mileage)||mileageNumber>100000)adverse.push("mileage over 100k");
-  if(/heavily modified/i.test(String(sellState.condition||"")))adverse.push("heavy modifications");
-  if(/no records|none/i.test(String(sellState.records||"")))adverse.push("missing service records");
-  if(!adverse.length)return null;
-  const list=adverse.length>1?adverse.slice(0,-1).join(", ")+" and "+adverse[adverse.length-1]:adverse[0];
-  return `Those medians reflect the model generally; ${list} typically place a car differently within that range, which is worth weighing.`;
+  // Retired (locked): medians are banned from cards, so a footer explaining
+  // "those medians" referenced data that no longer exists on the card. Gate
+  // for any future footer: only render if the card actually carries the
+  // claim the footer qualifies. No such claim renders today, so: nothing.
+  return null;
 }
 
 function resultHeaderTitle(routes){
