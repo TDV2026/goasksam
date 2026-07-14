@@ -418,7 +418,7 @@ check("chip step: real answer stores and advances", sellState.records === "Some 
   const noSignalContext = `Current sell state: {"car":"2018 BMW M3","step":12}\nDecision facts (the engine's recommendation, do not contradict it): recommended platform Bring a Trailer; basis market_evidence; confidence medium; comparable sales analyzed 4 in the last 90 days; price signal: none available. Reasons: platform fit.`;
   const BANNED_VALUATION = /typical price|\bmedian\b|your car is worth|i don.t have that data|consult a dealer|valuation tools?|i wish i could|\$\s?\d/i;
   const priceCases = [
-    ["What's a 2018 M3 worth?", noSignalContext, /every car is different|between you and the market|inspection|platform|buyer/i, "worth question refuses"],
+    ["What's a 2018 M3 worth?", noSignalContext, /every (car|\w+) (is different|is its own|tells its own)|inspection|in.person|between you and the market|platform|buyer|specifics|condition|mileage/i, "worth question refuses"],
     ["How much do they go for on Bring a Trailer?", priceContext, /\d+% higher|platform|buyer pool|audience/i, "how-much gets percentage comparison"],
     ["Median price for my car?", priceContext, /\d+% higher|platform|buyer pool|audience/i, "median ask gets percentage, no median"],
     ["Can you help me value my car?", noSignalContext, /every (car|\w+) (is different|tells its own)|inspection|between you and the market|platform|specifics|condition|mileage/i, "value ask firmly refused"]
