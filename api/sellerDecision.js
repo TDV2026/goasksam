@@ -926,6 +926,26 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     return firstMeasured;
   };
 
+  // Platform-scoped day advantage (locked): computed over THIS platform's
+  // sales only, weekdays only (Saturday/Sunday excluded from both the best
+  // day and the comparison base), model scope with make fallback. Cars &
+  // Bids never gets one (no weekend auctions; the frontend also skips it).
+  const platformDayAdvantage = platform => {
+    const weekdaysOnly = list => list.filter(item => {
+      const day = weekdayName(item.record.auction_end_date);
+      return day && day !== "Saturday" && day !== "Sunday";
+    });
+    const gate = insight => insight && insight.strongestWeekdaySales >= 3 && insight.strongestWeekdayLiftPercent >= 10
+      && !["Saturday", "Sunday"].includes(insight.strongestWeekday);
+    const modelInsight = strongestWeekdayInsight(weekdaysOnly(pairedRecords.filter(item =>
+      recordPlatform(item.record) === platform && ["close_match", "relevant_match"].includes(item.classification?.comparison_tier))));
+    if (gate(modelInsight)) return { weekday: modelInsight.strongestWeekday, sales: modelInsight.strongestWeekdaySales, liftPercent: modelInsight.strongestWeekdayLiftPercent, scope: "model", window: "all_time" };
+    const makeInsight = strongestWeekdayInsight(weekdaysOnly(pairedRecords.filter(item =>
+      recordPlatform(item.record) === platform && item.classification?.comparison_tier && item.classification.comparison_tier !== "excluded")));
+    if (gate(makeInsight)) return { weekday: makeInsight.strongestWeekday, sales: makeInsight.strongestWeekdaySales, liftPercent: makeInsight.strongestWeekdayLiftPercent, scope: "make", window: "all_time" };
+    return null;
+  };
+
   let platformPerformance = [...platformMap.entries()]
     .map(([platform, items]) => {
       const weekdayInsight = strongestWeekdayInsight(items);
@@ -951,6 +971,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
         platform,
         pricePremium: pricePremiumFor(platform),
         segmentVolume: segmentVolumeFor(platform),
+        dayAdvantage: platformDayAdvantage(platform),
         // Typical price band of THIS platform's comps (25th-75th pct): fuels
         // the car-specific alternative bullet. A range, never a median.
         priceBand: (() => {

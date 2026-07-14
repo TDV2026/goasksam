@@ -889,17 +889,21 @@ function platformLeadsEvidenceSet(route){
   return mine>Math.max(0,...others);
 }
 
-// Day advantage over ALL tracked sales (model scope, make fallback), gates
-// unchanged: 3+ sales on the named day and a 10%+ lift. "historically" is
-// required wording because the window is all-time.
-function weekdayBullet(){
-  const h=sellState.sellDecision?.evidence?.historicalWeekday;
+// Day advantage (locked): platform-scoped, weekdays only, never Saturday or
+// Sunday, never for Cars & Bids (no weekend auctions and no day edge to
+// claim). Gates unchanged: 3+ sales on the named day and a 10%+ lift.
+// "historically" is required wording because the window is all-time.
+function weekdayBullet(route){
+  if(/carsandbids/.test(String(route?.platform||""))||/cars\s*&\s*bids/i.test(String(route?.label||"")))return null;
+  const h=route?.marketEvidence?.dayAdvantage;
   if(!h?.weekday)return null;
+  if(["Saturday","Sunday"].includes(h.weekday))return null;
   if((h.sales||0)<3||(h.liftPercent||0)<10)return null;
+  const name=platformDisplayName(route.label||route.platform);
   const scopeLabel=h.scope==="make"
     ?`${sellState.resolvedVehicle?.make||"this make"}s`
     :comparableModelLabel();
-  return `${h.weekday}s have historically finished strongest for ${scopeLabel}, around ${h.liftPercent}% above other days.`;
+  return `On ${name}, ${h.weekday} endings have historically finished strongest for ${scopeLabel}, around ${h.liftPercent}% above other weekdays.`;
 }
 
 // "Why I picked this" is ONE list of three concrete reasons, never prose.
@@ -975,12 +979,22 @@ function primaryReasonBullets(route,altRoute){
       const windowText=sv.windowDays>=3650?"in our tracked records":`over the past ${sv.windowDays} days`;
       bullets.push({text:`Most ${sv.segmentLabel} sales (${(sv.models||[]).join(", ")}) ${windowText} closed on ${platformDisplayName(route.label||route.platform)}`,validated:false,windowDays:sv.windowDays,segmentLabel:sv.segmentLabel});
     }else{
-      const windowText=landedDays&&landedDays<=180?`over the past ${landedDays} days`:`in our tracked records, though none in the past 180 days`;
-      bullets.push({text:`${cleanCarForCopy()} sales have closed on ${platformDisplayName(route.label||route.platform)} ${windowText}`,validated:false,windowDays:landedDays});
+      // Tier 4 existence: the window renders in the bullet only when the
+      // data is recent (the plate/lookback line owns the span otherwise);
+      // "Many" is earned at 10+, never implied below it.
+      const name=platformDisplayName(route.label||route.platform);
+      if(Number.isFinite(landedDays)&&landedDays<=365){
+        const countPrefix=e.evidenceSales>=10?`${e.evidenceSales} `:"";
+        bullets.push({text:`${countPrefix}${cleanCarForCopy()} sales have closed on ${name} over the past ${landedDays} days`,validated:false,windowDays:landedDays});
+      }else{
+        bullets.push({text:e.evidenceSales>=10
+          ?`Many ${cleanCarForCopy()} sales have closed on ${name}`
+          :`${cleanCarForCopy()} sales have closed on ${name} in our tracked records`,validated:false,windowDays:landedDays});
+      }
     }
   }
-  // Bullet 2: historical day advantage (all-time, 3+ same-day sales, 10%+ lift).
-  const day=weekdayBullet();
+  // Bullet 2: platform-scoped historical day advantage (weekdays only).
+  const day=weekdayBullet(route);
   if(day)bullets.push({text:day,validated:false,windowDays:36500});
   // Bullet 3: when a speed swap routed this pick, the bullet explains the
   // routing from curated policy (no invented metrics). Otherwise the

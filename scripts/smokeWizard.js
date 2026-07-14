@@ -168,6 +168,10 @@ function guardRender(name, text) {
         check(`[design] ${name}: old-data card explains the lookback`, /We went back to \d{4} to get enough comparable|We analyzed [^\n]* across everything we've tracked/.test(clean.replace(/&#\d+;/g, "'")), (clean.match(/[^\n]*went back[^\n]*/) || ["missing"])[0].slice(0, 140));
         const countClaim = liMatches.map(m => flatLi(m[2])).find(t => /^\s*\d[\d,]* [^%\n]{0,60}have sold on/i.test(t));
         check(`[design] ${name}: old-data card carries no count claims`, !countClaim, (countClaim || "").slice(0, 120));
+        // No finite window text on the pick card when the plate is all-time.
+        const primarySegment = raw.split(/Also strong here/)[0];
+        const finiteOnOld = [...primarySegment.matchAll(/<li(?: class="[^"]*")?>([\s\S]*?)<\/li>/g)].map(m => flatLi(m[1])).find(t => /over the past \d+ days/i.test(t));
+        check(`[design] ${name}: old-data pick card names no finite window in bullets`, !finiteOnOld, (finiteOnOld || "").slice(0, 120));
       }
       if (plateNameC && PLATFORM_NAMES.includes(plateNameC) && /^Past \d+ days$/.test(plateData || "")) {
         check(`[design] ${name}: recent card has no lookback line`, !/We went back to \d{4}|across everything we've tracked to build/.test(clean), (clean.match(/[^\n]*went back[^\n]*/) || [""])[0].slice(0, 120));
@@ -234,9 +238,13 @@ function guardRender(name, text) {
       const liText = liMatches.map(m => flatLi(m[2]).replace(/&amp;/g, "&")).join("\n");
       check(`[design] ${name}: plate pick matches the bullets pick`, liText.includes(plateNameC) || !liText.trim(), `plate="${plateNameC}"`);
     }
-    // All-time day-advantage lines must say "historically" (locked wording).
-    const dayLines = clean.split("\n").filter(l => /above other days/i.test(l));
+    // Day-advantage lines (locked): all-time wording says "historically",
+    // never a weekend day, always platform-named, never for Cars & Bids.
+    const dayLines = clean.split("\n").filter(l => /above other (week)?days/i.test(l));
     check(`[design] ${name}: all-time day lines say historically`, dayLines.every(l => /historically/i.test(l)), dayLines.find(l => !/historically/i.test(l)) || "");
+    check(`[design] ${name}: day lines never name a weekend`, dayLines.every(l => !/Saturday|Sunday/i.test(l)), dayLines.find(l => /Saturday|Sunday/i.test(l)) || "");
+    check(`[design] ${name}: day lines are platform-specific`, dayLines.every(l => /\bOn [A-Z]/.test(l.trim())), dayLines.find(l => !/\bOn [A-Z]/.test(l.trim())) || "");
+    check(`[design] ${name}: Cars & Bids never gets a day line`, dayLines.every(l => !/cars\s*&(amp;)?\s*bids/i.test(l)), dayLines.find(l => /cars\s*&(amp;)?\s*bids/i.test(l)) || "");
     // Tier B ("More X sales have closed on P than any other platform we
     // track") renders only when leadership is verifiably true in the
     // decision's own evidence set, and never in green.
@@ -807,7 +815,7 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   // Below the 10+ gate, bullet 1 is Tier B (verified leadership) or the
   // honest existence line (the old standalone band prose is deleted).
   const heroHasTierB=/More [^\n]+ sales have closed on [^\n]+ than any other platform we track/i.test(rendered.replace(/&amp;/g,"&"));
-  const heroHasSafeProse=/sales have closed on [^\n]+ (over the past \d+ days|in our tracked records)/i.test(rendered.replace(/&amp;/g,"&"));
+  const heroHasSafeProse=/sales have closed on [^\n]+ (over the past \d+ days|in our tracked records)/i.test(rendered.replace(/&amp;/g,"&"))||/Many [^\n]+ sales have closed on/i.test(rendered.replace(/&amp;/g,"&"));
   check("card specificity: hero is a specific claim or gated safe prose", heroHasPct||heroHasTierB||heroHasSafeProse, (rendered.match(/[^\n]*(closed on|closed here)[^\n]*/i)||["no hero line"])[0].slice(0,180));
   check("card specificity: no 'Every comparable sale' vagueness", !/Every comparable sale we tracked/i.test(rendered), "vague claim rendered");
   check("card regression: Why bullet 1 is a tiered claim, zero dollars", /sales have closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty) (over the past|across everything|in our tracked records|than any other platform)/i.test(rendered.replace(/&amp;/g,"&"))||heroHasPct||heroHasTierB, (rendered.match(/[^\n]*sales have closed on[^\n]*/i)||["missing"])[0].slice(0,160));
@@ -819,11 +827,11 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   check("bullet 3: no speed line without a fast timeline", !/prioritizing a fast close|market I.{0,6}d trust to move it/i.test(rendered), (rendered.match(/[^\n]*(fast close|move it)[^\n]*/i)||[""])[0].slice(0,160));
   // Bullet 1 always names a concrete window, never bare vagueness.
   const bullet1Lines=rendered.split("\n").filter(l=>/sales have closed on/i.test(l)&&!/than any other platform/i.test(l)&&!/% of /.test(l));
-  check("bullet 1: every existence line names a real window", bullet1Lines.every(l=>/over the past \d+ days|though none in the past 180 days/i.test(l)), bullet1Lines.map(l=>l.trim().slice(0,120)).join(" | ")||"none");
+  check("bullet 1: every existence line names its span or defers to the plate", bullet1Lines.every(l=>/over the past \d+ days|in our tracked records|^\s*Many /i.test(l)), bullet1Lines.map(l=>l.trim().slice(0,120)).join(" | ")||"none");
   // Relevance count can never exceed the make count.
   const rel=(rendered.replace(/&#39;/g,"'").match(/(\d+) \w[\w-]* sales tracked, (\d+) in this car's price range/)||null);
   if(rel)check("relevance: price-band count is make-scoped and sane", Number(rel[2])<=Number(rel[1]), rel[0]);
-  check("card specificity: weekday lines only render with a material lift", !/(around|at ~)[1-9]% above other days/.test(rendered), (rendered.match(/[^\n]*above other days[^\n]*/)||[""])[0]);
+  check("card specificity: weekday lines only render with a material lift", !/(around|at ~)[1-9]% above other (week)?days/.test(rendered), (rendered.match(/[^\n]*above other (week)?days[^\n]*/)||[""])[0]);
   // FIX 1 validation gate: any percent claim requires a proven 10+ denominator
   const pctClaim=rendered.replace(/&amp;/g,"&").match(/(\d+)% of [^\n]*closed on/);
   const landedSales=sellState.sellDecision?.evidence?.ladder?.landed?.sales??0;
