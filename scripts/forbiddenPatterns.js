@@ -48,7 +48,10 @@ export const FORBIDDEN_PATTERNS = [
   { name: "platform tracking excuse", re: /we (don.t|do not) have access to|(doesn.t|does not) report (its |the )?data|we can.t analy[sz]e|too (exclusive|fragmented) for (our|us)/i },
   // Median disclaimer footer (retired): footers may never reference claims
   // the card does not carry.
-  { name: "median disclaimer footer", re: /medians reflect the model/i }
+  { name: "median disclaimer footer", re: /medians reflect the model/i },
+  // Price ranges (banned everywhere): model variants differ too much. A
+  // price reference must be an exact historical data point, never a range.
+  { name: "price range display", re: /typically (priced )?(in the )?\$[\d,]+k?( to | ?[-–] ?)\$?[\d,]+k?|\$[\d,]+k? to \$[\d,]+k? range/i }
 ];
 
 export function findForbidden(text) {

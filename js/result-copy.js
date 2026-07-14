@@ -198,7 +198,8 @@ function adverseConditionCaveat(){
 }
 
 function resultHeaderTitle(routes){
-  if((sellState.sellOptions||[]).some(option=>option.key==="specialist")){
+  // The handled-vs-DIY title belongs to the gate-open lead only.
+  if((sellState.sellOptions||[])[0]?.key==="specialist"){
     return `Two ways to sell the ${sellState.carName||"car"}: have it handled, or run it yourself.`;
   }
   if(hasTwoRouteTradeoff(routes))return `Two choices are worth considering for the ${sellState.carName||"car"}.`;
@@ -832,14 +833,12 @@ function altReasonBullets(route,pick){
       `${name} remains viable for the ${cleanCarForCopy()}, but it is not the clearest first choice from the current evidence.`
     ],sellState.carName,name));
   }
-  // Car-specific band from this platform's own comps.
-  const band=route?.marketEvidence?.priceBand;
-  if(band&&band.low>0&&band.high>0){
-    const moneyK=v=>`$${Math.round(v/1000)}k`;
-    const label=comparableSalesLabel();
-    bullets.push(mine>=10
-      ?`${mine} ${label}s have sold on ${name}, typically ${moneyK(band.low)} to ${moneyK(band.high)}.`
-      :`${label}s have sold on ${name}, typically in the ${moneyK(band.low)} to ${moneyK(band.high)} range.`);
+  // Car-specific count from this platform's own comps. Price ranges are
+  // BANNED (locked): model variants differ too much for a range to be
+  // honest. Counts under 10 never render, and without the count this
+  // bullet adds nothing over bullet 1, so it only renders at 10+.
+  if(mine>=10){
+    bullets.push(`${mine} ${comparableSalesLabel()}s have sold on ${name}.`);
   }
   // Speed positioning, curated-policy grounded ONLY (we hold no measured
   // close-time data, so no model-specific track-record claim).
@@ -1120,7 +1119,9 @@ function resultSummaryLine(options,routes=[]){
     const pickName=(options||[]).find(option=>option.key!=="specialist")?.name;
     if(pickName)return `You need it fast. ${pickName} is your move.`;
   }
-  if((options||[]).some(option=>option.key==="specialist")){
+  // Lead-with-partner prose only when the partner genuinely leads (gate
+  // open, first option): a secondary mention never changes the summary.
+  if((options||[])[0]?.key==="specialist"){
     if(sellerWantsToManageSelf())return "You told me you’d rather manage it yourself. I’d normally agree, but I’d still hear one PowerSeller out before deciding.";
     return "I’d speak to one experienced PowerSeller first. They can tell you whether Bring a Trailer, Cars & Bids or another platform gives this specific car the best chance.";
   }

@@ -1089,7 +1089,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
       return {
         windowDays: window,
         total: eligible.length,
-        perPlatform: Object.fromEntries(Object.entries(perPlatform).map(([key, value]) => [key, { sales: value.sales, earliest: value.earliest, years: value.years }])),
+        perPlatform: Object.fromEntries(Object.entries(perPlatform).map(([key, value]) => [key, { sales: value.sales, earliest: value.earliest, years: value.years, prices: [...value.prices].sort((a, b) => a - b) }])),
         premiums
       };
     }) : undefined
@@ -1434,17 +1434,20 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
     }
   }
   const eligible = !!(valueMet && matched);
-  // Secondary mention (locked, July 2026): when leading is not warranted but
-  // a segment+region-matched partner exists and the car is a $50k+ context
-  // (met-comps estimate or the seller's asking price), the partner renders
-  // as a modest "also worth considering" card. Never the lead, single
-  // destination unchanged, service framing only.
+  // Secondary mention (locked, updated July 2026): a $50k+ context (met-
+  // comps estimate or the seller's asking price) ALWAYS shows the partner
+  // as a secondary card when a region-covered active partner exists, even
+  // without a segment match; the make-specific why-line falls back to his
+  // attributed specialty note, so nothing mismatched is claimed. Leading
+  // keeps the full gate. Never the lead, single destination unchanged,
+  // service framing only.
   const askingPrice = parseSellerTargetPrice(criteria.targetPrice);
   const secondaryValue = Math.max(
     Number.isFinite(estimatedValue) ? estimatedValue : 0,
     Number.isFinite(askingPrice) ? askingPrice : 0
   );
-  const secondary = !eligible && !!matched && secondaryValue >= 50000;
+  const secondaryPartner = matched || partners.find(partner => partnerRegionCovered(partner, criteria)) || null;
+  const secondary = !eligible && !!secondaryPartner && secondaryValue >= 50000;
 
   const result = {
     eligible,
@@ -1461,16 +1464,17 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
     partner: null
   };
   if (eligible || secondary) {
+    const source = eligible ? matched : secondaryPartner;
     result.partner = {
-      slug: matched.slug,
-      name: matched.name,
-      displayName: matched.display_name || matched.name,
-      regions: matched.regions || [],
-      specialties: matched.specialties || {},
-      platforms: matched.platforms || [],
-      serviceClaims: matched.service_claims || [],
-      referralTerms: matched.referral_terms || null,
-      verified: await partnerVerifiedStats(matched, vehicle, analysis.estimatedValue, supabaseUrl, supabaseKey)
+      slug: source.slug,
+      name: source.name,
+      displayName: source.display_name || source.name,
+      regions: source.regions || [],
+      specialties: source.specialties || {},
+      platforms: source.platforms || [],
+      serviceClaims: source.service_claims || [],
+      referralTerms: source.referral_terms || null,
+      verified: await partnerVerifiedStats(source, vehicle, analysis.estimatedValue, supabaseUrl, supabaseKey)
     };
   }
   return result;

@@ -259,12 +259,11 @@ async function showSellRecommendation(){
 
   sellState.sellOptions=powerSellerOption?[powerSellerOption,...routeSellOptions]:routeSellOptions;
 
-  // Exactly TWO options render (locked): one pick, one alternative. The
-  // platform runner-up owns the alternative slot; the matched partner fills
-  // it ONLY when no platform alternative exists (gate-closed $50k+ context,
-  // suppressed by a stated DIY preference per rule 10).
-  const platformAltExists=routeSellOptions.length>1;
-  const partnerSecondary=(!hasNamedPowerSellerAdvice&&!platformAltExists&&partnerReferral.secondary&&partnerReferral.partner&&!sellerWantsToManageSelf())
+  // Options (locked, updated): up to two platform cards (pick + one
+  // alternative) plus the partner secondary card whenever the $50k+ context
+  // holds, gate-closed (suppressed only by a stated DIY preference per
+  // rule 10; gate-open renders the dossier choice instead).
+  const partnerSecondary=(!hasNamedPowerSellerAdvice&&partnerReferral.secondary&&partnerReferral.partner&&!sellerWantsToManageSelf())
     ?partnerProfileFromReferral(partnerReferral)
     :null;
   if(partnerSecondary){

@@ -87,10 +87,11 @@ function guardRender(name, text) {
   // Design Phase 1 guards (raw HTML):
   if (/sell-rec-card/.test(raw)) {
     check(`[design] ${name}: at most one verdict plate`, (raw.match(/verdict-plate/g) || []).length <= 1, `plates=${(raw.match(/verdict-plate/g) || []).length}`);
-    // Exactly two options, never three: pick + ONE alternative (platform
-    // card, dossier, or partner mention).
-    const optionSurfaces = (raw.match(/class="sell-rec-card[ "]/g) || []).length + (raw.match(/class="power-seller-(feature|mini)[ "]/g) || []).length;
-    check(`[design] ${name}: never more than two option surfaces`, optionSurfaces <= 2, `optionSurfaces=${optionSurfaces}`);
+    // Option shape (locked, updated): at most two platform cards (pick +
+    // one alternative) and at most one partner surface.
+    const platformCards = (raw.match(/class="sell-rec-card[ "]/g) || []).length;
+    const partnerSurfaces = (raw.match(/class="power-seller-(feature|mini)[ "]/g) || []).length;
+    check(`[design] ${name}: at most two platform cards and one partner surface`, platformCards <= 2 && partnerSurfaces <= 1, `platform=${platformCards} partner=${partnerSurfaces}`);
     // Plate target matches the prose pick (locked): handled-lead prose
     // ("...the platform pick is right below") crowns the PowerSeller; the
     // DIY ordering ("The platform pick above...") crowns the platform.
@@ -900,12 +901,10 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   const m3Dual=await runResult("US","New York","70k",m3c);
   const referral=sellState.partnerReferral||{};
   if(referral.secondary){
-    // Exactly-two rule: the partner mention renders ONLY when it owns the
-    // alternative slot (no platform alternative in the render).
-    const hasPlatformAlt=/Also strong here/.test(m3Dual);
-    check("partner secondary: renders only when it owns the alternative slot",
-      hasPlatformAlt?!/Also worth considering/.test(m3Dual):/Also worth considering/.test(m3Dual),
-      `platformAlt=${hasPlatformAlt} miniRendered=${/Also worth considering/.test(m3Dual)}`);
+    // $50k+ gate-closed always shows the partner secondary (locked, updated).
+    check("partner secondary: $50k+ gate-closed always shows the also-considering card",
+      /Also worth considering/.test(m3Dual),
+      `miniRendered=${/Also worth considering/.test(m3Dual)}`);
   }else if(referral.eligible){
     check("partner: gate-open dual renders the dossier", /power-seller-feature/.test(m3Dual)||/Want it handled/.test(m3Dual), "dossier missing");
   }
