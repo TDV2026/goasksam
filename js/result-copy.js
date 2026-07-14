@@ -884,7 +884,10 @@ function altReasonBullets(route,pick){
   const altFallbacks=[
     (route.routeFitFacts||[]).includes("segment_fit")&&!bullets.some(b=>/typical buyer pool/.test(b))?`Its typical buyer pool matches a car like the ${cleanCarForCopy()}.`:null,
     sellerPriorityFitLabel(route),
-    `${name} is worth considering for the ${cleanCarForCopy()}, though the pick above is the stronger call today.`
+    `${name} is worth considering for the ${cleanCarForCopy()}, though the pick above is the stronger call today.`,
+    // Final filler shares no wording with the tier-line copy pool, so the
+    // dedupe can never leave the card short.
+    "Worth a look if its process or timing fits you better."
   ].filter(Boolean);
   for(const text of altFallbacks){
     if(bullets.length>=3)break;

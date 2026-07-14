@@ -700,7 +700,10 @@ const runResult = async (region, state, price, car, extras) => {
   Object.assign(sellState, extras || {});
   await showSellRecommendation();
   await new Promise(r => setTimeout(r, 100));
-  const output = renderedResult() + "\n" + allSamText();
+  // Rendered rows already capture every sam message (addMsg appends a row);
+  // concatenating allSamText double-counted them and false-tripped the
+  // repetition guard the moment an opener rendered.
+  const output = renderedResult();
   guardRender(`result-${car.label}`, output);
   guardCarLabel(`result-${car.label}`);
   saveVisual(`result-${car.label}`, renderedResult().split("\n").map(x => `<div class="row sam"><div class="row-inner"><div class="msg-wrap">${x}</div></div></div>`).join(""));
