@@ -37,7 +37,9 @@ export const FORBIDDEN_PATTERNS = [
   // Post-recommendation hedges (rule 15: recommendations are final).
   { name: "recommendation hedge", re: /i.d still compare|before choosing|points this way/i },
   // Count clauses on cards ("14 Carrera S sales in this window").
-  { name: "count clause on card", re: /\d[\d,]*[^.\n]{0,60}sales in this window/i }
+  { name: "count clause on card", re: /\d[\d,]*[^.\n]{0,60}sales in this window/i },
+  // Valuation phrasing (locked: GoAskSam routes sellers, never values cars).
+  { name: "valuation phrasing", re: /market value|typical price|comparable market|\bwhat (it|the car|your car).s worth\b|\b(car|it) is worth\b/i }
 ];
 
 export function findForbidden(text) {

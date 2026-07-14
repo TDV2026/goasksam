@@ -3,6 +3,7 @@ import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { callOldCarsData } from "../lib/_ocd.js";
 import { findGeneration, generationModelToken } from "../lib/generations.js";
+import { MODEL_SEGMENTS } from "../lib/vehicleData.js";
 import { computePartnerCareerStats, computePlatformBaselines, partnerRelevance, priceBand } from "../lib/marketStats.js";
 import {
   asText,
@@ -832,6 +833,37 @@ function analyze(records, classifications, ladder, vehicle, debug) {
   const premiumGenerationDef = landed
     ? ladder.find(rung => ["generation_model", "generation_trim"].includes(rung.key) && rung.rung > landed.rung)
     : null;
+  // Same-make competitor segment (locked): a routing scope, never valuation.
+  // Tried AFTER model and generation scopes, BEFORE the make last resort.
+  // Never cross-brand; skipped silently when no segment is defined.
+  const segmentDef = MODEL_SEGMENTS.find(seg =>
+    seg.make.toLowerCase() === String(vehicle?.make || "").toLowerCase() &&
+    seg.models.some(m => m.toLowerCase() === String(vehicle?.model || "").split(/\s+/)[0].toLowerCase()));
+  const segmentEligible = item => {
+    if (!segmentDef) return false;
+    // Records arrive in two shapes: fresh OldCarsData rows (ocd_make_name/
+    // ocd_model_name) and cache-served vehicle_market_records rows (make/
+    // model). Same fallback chain as classifyRecord.
+    const recordMake = asText(item.record.ocd_make_name || item.record.listing_make || item.record.make).toLowerCase();
+    if (recordMake !== String(vehicle?.make || "").toLowerCase()) return false;
+    const family = asText(item.record.ocd_model_name || item.record.listing_model || item.record.model).split(/\s+/)[0].toLowerCase();
+    return segmentDef.models.some(m => m.toLowerCase() === family);
+  };
+  // Segment volume proof: first window where both sides clear the sample
+  // gate; fuels the majority claim ("Most Audi sport-compact sales...").
+  const segmentVolumeFor = platform => {
+    if (!segmentDef) return null;
+    for (const window of [45, 90, 180, 36500]) {
+      const eligible = pairedRecords.filter(item =>
+        daysAgo(item.record.auction_end_date) <= window && segmentEligible(item));
+      const mineSold = eligible.filter(item => recordPlatform(item.record) === platform).length;
+      const othersSold = eligible.length - mineSold;
+      if (mineSold >= 5 && othersSold >= 5) {
+        return { mineSold, othersSold, windowDays: window, scope: "segment", segmentLabel: segmentDef.label, models: segmentDef.models };
+      }
+    }
+    return null;
+  };
   const premiumWalkTraces = debug ? {} : null;
   const pricePremiumFor = platform => {
     if (!landed || landed.key === "make_context") return null;
@@ -863,6 +895,34 @@ function analyze(records, classifications, ladder, vehicle, debug) {
         } else if (step) { step.samplesGatePass = false; trace.push(step); }
       }
     }
+    // Segment steps (after model and generation scopes exhausted): the
+    // premium may land here, always tagged with the segment label and its
+    // model list. Segment never fills the Tier 1.5 negligibility slot: an
+    // unlabeled segment-scope negligibility claim would violate scope
+    // transparency.
+    if (segmentDef) {
+      for (const window of [45, 90, 180, 36500]) {
+        const eligible = pairedRecords.filter(item =>
+          daysAgo(item.record.auction_end_date) <= window && segmentEligible(item));
+        const mine = eligible.filter(item => recordPlatform(item.record) === platform)
+          .map(item => Number(item.classification.price)).filter(Number.isFinite);
+        const others = eligible.filter(item => recordPlatform(item.record) !== platform)
+          .map(item => Number(item.classification.price)).filter(Number.isFinite);
+        const step = trace ? { scope: `segment(${segmentDef.key})`, windowDays: window, mineSold: mine.length, othersSold: others.length } : null;
+        if (mine.length >= 5 && others.length >= 5) {
+          const gap = Math.round((median(mine) - median(others)) / median(others) * 100);
+          if (step) { step.gapPercent = gap; step.samplesGatePass = true; step.premiumGatePass = gap >= 10; trace.push(step); }
+          if (gap >= 10) {
+            if (step) step.landed = true;
+            return {
+              percent: gap, windowDays: window, platformSales: mine.length, othersSales: others.length,
+              scope: "segment", segmentLabel: segmentDef.label, models: segmentDef.models,
+              ...(window >= 3650 ? { earliestSaleDate: eligible.map(item => item.record.auction_end_date).filter(Boolean).sort()[0] || null } : {})
+            };
+          }
+        } else if (step) { step.samplesGatePass = false; trace.push(step); }
+      }
+    }
     return firstMeasured;
   };
 
@@ -890,6 +950,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
         momentum,
         platform,
         pricePremium: pricePremiumFor(platform),
+        segmentVolume: segmentVolumeFor(platform),
         // Typical price band of THIS platform's comps (25th-75th pct): fuels
         // the car-specific alternative bullet. A range, never a median.
         priceBand: (() => {

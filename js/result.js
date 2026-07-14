@@ -218,11 +218,15 @@ async function showSellRecommendation(){
       altReason:index>0&&!route.speedArgument?altReasonBullets(route,routesForCards[0]):null,
       actionLabel:index===0?`Submit your car to ${platformLogo({name:routeName}).text}`:`Consider ${routeName}`,
       speedArgument:!!route.speedArgument,
-      reason:sellState.routingReason==="speed"&&index===0
-        ?`If speed is your priority, ${routeName} is the right move.`
-        :route.speedArgument
-        ?"Hagerty has sold 1960s Corvettes in our records and is the stronger fit when speed matters: listings get live quickly and the audience skews classic."
-        :routeReason(route,index,routeOptions),
+      reason:(()=>{
+        if(sellState.routingReason==="speed"&&index===0)return `If speed is your priority, ${routeName} is the right move.`;
+        if(route.speedArgument)return "Hagerty has sold 1960s Corvettes in our records and is the stronger fit when speed matters: listings get live quickly and the audience skews classic.";
+        // Segment-scoped landing: the voice names the segment market, never
+        // "this car" (locked: routing, not valuation).
+        const segLabel=index===0?(primaryReasonBullets(route,routeOptions[1]||null)||[])[0]?.segmentLabel:null;
+        if(segLabel)return `The ${segLabel} market on ${routeName} is strong.`;
+        return routeReason(route,index,routeOptions);
+      })(),
       reasonBullets:index===0&&!route.speedArgument?primaryReasonBullets(route,routeOptions[1]||null):null,
       evidenceBullets:routeEvidenceBullets(route,index,routeOptions),
       evidenceLine:"",
@@ -278,8 +282,13 @@ async function showSellRecommendation(){
   // Analysis window row (locked): the specific span the card's rendered
   // claims actually used. "Since YYYY" when any claim is all-time and the
   // earliest boundary is known; never "Historical", never a window no
-  // claim used.
-  const plateWindowLabel=option=>analysisWindowInfo(option.reasonBullets).label;
+  // claim used. A segment-scoped bullet 1 prefixes its label so the viewer
+  // knows this is competitor-set data, not exact-model data.
+  const plateWindowLabel=option=>{
+    const info=analysisWindowInfo(option.reasonBullets);
+    const segLabel=(option.reasonBullets||[])[0]?.segmentLabel;
+    return segLabel&&info.label?`${segLabel} · ${info.label}`:info.label;
+  };
   const verdictPlate=(option,windowLabel)=>`<div class="verdict-plate">
         <div class="vp-row1"><span class="label-mono">Sam's pick</span><span class="num label-mono">${escapeHtml(verdictRefCode)}</span></div>
         <div class="vp-name">${escapeHtml(option.name)}</div>

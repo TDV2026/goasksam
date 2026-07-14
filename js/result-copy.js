@@ -138,12 +138,15 @@ function ladderWideningNarration(decisionData,primaryRoute){
   // suffix drops (the window phrase carries the span).
   const bullets=primaryRoute&&!primaryRoute.speedArgument?primaryReasonBullets(primaryRoute):null;
   const windowInfo=analysisWindowInfo(bullets||[]);
-  const scope=String(landed.label).replace(/,?\s*\d{4} to \d{4}$/,"").replace(/,\s*any year/,"");
+  // A segment-scoped landing names the segment (locked scope transparency);
+  // the landed count is model-scoped so it never renders beside it.
+  const segLabel=(bullets||[])[0]?.segmentLabel;
+  const scope=segLabel?`${segLabel} sales`:String(landed.label).replace(/,?\s*\d{4} to \d{4}$/,"").replace(/,\s*any year/,"");
   const windowPhrase=windowInfo.phrase||(landed.windowDays>=3650?"across everything we've tracked":`over the past ${landed.windowDays} days`);
   // The landed count only renders when it describes the same span the opener
   // names (counts under 10 never render).
   const finiteMatch=/^Past (\d+) days$/.exec(windowInfo.label||"");
-  const countText=landed.sales>=10&&(!windowInfo.label||(finiteMatch&&Number(finiteMatch[1])===Number(landed.windowDays)))?`: ${landed.sales} sales`:"";
+  const countText=!segLabel&&landed.sales>=10&&(!windowInfo.label||(finiteMatch&&Number(finiteMatch[1])===Number(landed.windowDays)))?`: ${landed.sales} sales`:"";
   return `I looked at ${scope} ${windowPhrase}${countText}. Here's what that market shows.${thinNote}`;
 }
 
@@ -918,19 +921,22 @@ function primaryReasonBullets(route,altRoute){
       console.log("    - pass?",Number(facts.totalEvidenceSales)>=10);
       console.log("  Tier 3 gate (leadership): pass?",platformLeadsEvidenceSet(route));
     }
-    // A generation-scoped premium says so: a wider comp set silently
-    // labeled as the exact model would misstate the claim.
-    const premiumLabel=premium?.scope==="generation"
-      ?`${String(premium.generationCode||"").toUpperCase()}-generation ${sellState.resolvedVehicle?.model||comparableSalesLabel()}`.trim()
-      :comparableSalesLabel();
+    // A wider-scoped premium says so (locked scope transparency): generation
+    // claims name the generation; segment claims name the segment AND its
+    // model list, never silently labeled as the exact model.
+    const premiumScopePhrase=premium?.scope==="segment"
+      ?`${premium.segmentLabel} sales (${(premium.models||[]).join(", ")})`
+      :premium?.scope==="generation"
+      ?`${String(premium.generationCode||"").toUpperCase()}-generation ${sellState.resolvedVehicle?.model||comparableSalesLabel()} sales`.trim()
+      :`${comparableSalesLabel()} sales`;
     const premiumSince=premium?.earliestSaleDate?String(premium.earliestSaleDate).slice(0,4):null;
     if(premiumSampled&&premium.percent>=10){
       const name=platformDisplayName(route.label||route.platform);
       bullets.push({
         text:premium.windowDays>=3650
-          ?`${premiumLabel} sales have historically closed around ${premium.percent}% higher on ${name} than on other platforms`
-          :`${premiumLabel} sales have closed around ${premium.percent}% higher on ${name} than on other platforms over the past ${premium.windowDays} days`,
-        validated:true,windowDays:premium.windowDays,sinceYear:premiumSince});
+          ?`${premiumScopePhrase} have historically closed around ${premium.percent}% higher on ${name} than on other platforms`
+          :`${premiumScopePhrase} have closed around ${premium.percent}% higher on ${name} than on other platforms over the past ${premium.windowDays} days`,
+        validated:true,windowDays:premium.windowDays,sinceYear:premiumSince,segmentLabel:premium.scope==="segment"?premium.segmentLabel:undefined});
     }else if(premiumSampled&&Math.abs(premium.percent)>=2&&Math.abs(premium.percent)<10){
       // Honest only pick-vs-alt when those two platforms hold all the
       // evidence; with more platforms it stays "the other platforms".
@@ -943,6 +949,12 @@ function primaryReasonBullets(route,altRoute){
       bullets.push({text:`${share}% of ${comparableSalesLabel()} sales ${marketWindowPhrase()} closed on ${platformDisplayName(route.label||route.platform)}`,validated:true,windowDays:landedDays});
     }else if(platformLeadsEvidenceSet(route)){
       bullets.push({text:`More ${comparableSalesLabel()} sales have closed on ${platformDisplayName(route.label||route.platform)} than any other platform we track`,validated:false,windowDays:landedDays});
+    }else if(e.segmentVolume&&e.segmentVolume.mineSold>e.segmentVolume.othersSold){
+      // Segment majority (routing, not valuation): where the buyer pool for
+      // the competitor set converges. Always names the segment and models.
+      const sv=e.segmentVolume;
+      const windowText=sv.windowDays>=3650?"in our tracked records":`over the past ${sv.windowDays} days`;
+      bullets.push({text:`Most ${sv.segmentLabel} sales (${(sv.models||[]).join(", ")}) ${windowText} closed on ${platformDisplayName(route.label||route.platform)}`,validated:false,windowDays:sv.windowDays,segmentLabel:sv.segmentLabel});
     }else{
       const windowText=landedDays&&landedDays<=180?`over the past ${landedDays} days`:`in our tracked records, though none in the past 180 days`;
       bullets.push({text:`${cleanCarForCopy()} sales have closed on ${platformDisplayName(route.label||route.platform)} ${windowText}`,validated:false,windowDays:landedDays});

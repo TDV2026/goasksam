@@ -134,7 +134,19 @@ function guardRender(name, text) {
     // Plate window label is specific and verifiable: never "Historical";
     // "Since YYYY" must name the evidence's earliest boundary; "Past N days"
     // must be a window some claim actually used.
-    const plateData = (clean.match(/Data: (Past \d+ days|Since \d{4}|All-time|[^\n]*)/) || [])[1];
+    const plateM = clean.match(/Data: (?:([^\n]{2,40}?) · )?(Past \d+ days|Since \d{4}|All-time|[^\n]*)/);
+    const plateSegment = plateM ? plateM[1] : null;
+    const plateData = plateM ? plateM[2] : null;
+    // GATE 4 (segment scope transparency): rendered segment claims and the
+    // plate's segment prefix must trace to shipped segment proof objects.
+    const segRoutes = (sellState.sellDecision?.decision?.routeFit?.routes || []).filter(r => r.marketEvidence && (r.marketEvidence.pricePremium?.scope === "segment" || r.marketEvidence.segmentVolume));
+    const segLabels = [...new Set(segRoutes.flatMap(r => [r.marketEvidence.pricePremium?.segmentLabel, r.marketEvidence.segmentVolume?.segmentLabel].filter(Boolean)))];
+    if (/sport-compact/i.test(clean)) {
+      check(`[design] ${name}: segment claims carry a shipped segment proof`, segLabels.length > 0, `labels=${JSON.stringify(segLabels)}`);
+    }
+    if (plateSegment) {
+      check(`[design] ${name}: plate segment prefix matches a shipped proof label`, segLabels.some(l => plateSegment.trim().toLowerCase() === l.toLowerCase()), `prefix="${plateSegment}" labels=${JSON.stringify(segLabels)}`);
+    }
     if (plateData) {
       check(`[design] ${name}: plate window never says Historical`, !/historical/i.test(plateData), `label="${plateData}"`);
       const ev = sellState.sellDecision?.evidence || {};
