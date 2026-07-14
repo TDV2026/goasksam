@@ -39,7 +39,10 @@ export const FORBIDDEN_PATTERNS = [
   // Count clauses on cards ("14 Carrera S sales in this window").
   { name: "count clause on card", re: /\d[\d,]*[^.\n]{0,60}sales in this window/i },
   // Valuation phrasing (locked: GoAskSam routes sellers, never values cars).
-  { name: "valuation phrasing", re: /market value|typical price|comparable market|\bwhat (it|the car|your car).s worth\b|\b(car|it) is worth\b/i }
+  { name: "valuation phrasing", re: /market value|typical price|comparable market|\bwhat (it|the car|your car).s worth\b|\b(car|it) is worth\b|your car is worth/i },
+  // Valuation escape hatches in chat (locked): no capability-framing, no
+  // outside endorsements, no dealer punts, no wishing.
+  { name: "valuation escape hatch", re: /i don.t have that data|consult a dealer|valuation tools?|i wish i could/i }
 ];
 
 export function findForbidden(text) {

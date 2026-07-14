@@ -398,6 +398,28 @@ check("chip step: chat answer contains a count", new RegExp(`\\b(${remaining}|tw
 await handleSellStep("Some records");
 check("chip step: real answer stores and advances", sellState.records === "Some records" && sellState.step === 5, `records=${JSON.stringify(sellState.records)} step=${sellState.step}`);
 
+// Pricing and valuation chat rules (locked): percentage comparison when a
+// price signal is in context, firm refusal on valuation asks. Never a
+// guessed value, never a median, never an escape hatch.
+{
+  const priceContext = `Current sell state: {"car":"2018 BMW M3","step":12}\nDecision facts (the engine's recommendation, do not contradict it): recommended platform Bring a Trailer; basis market_evidence; confidence high; comparable sales analyzed 11 across everything tracked; price signal: sales closed around 29% higher on the recommended platform than on other platforms historically. Reasons: strongest comparable evidence.`;
+  const noSignalContext = `Current sell state: {"car":"2018 BMW M3","step":12}\nDecision facts (the engine's recommendation, do not contradict it): recommended platform Bring a Trailer; basis market_evidence; confidence medium; comparable sales analyzed 4 in the last 90 days; price signal: none available. Reasons: platform fit.`;
+  const BANNED_VALUATION = /typical price|\bmedian\b|your car is worth|i don.t have that data|consult a dealer|valuation tools?|i wish i could|\$\s?\d/i;
+  const priceCases = [
+    ["What's a 2018 M3 worth?", noSignalContext, /every car is different|between you and the market|inspection|platform|buyer/i, "worth question refuses"],
+    ["How much do they go for on Bring a Trailer?", priceContext, /\d+% higher|platform|buyer pool|audience/i, "how-much gets percentage comparison"],
+    ["Median price for my car?", priceContext, /\d+% higher|platform|buyer pool|audience/i, "median ask gets percentage, no median"],
+    ["Can you help me value my car?", noSignalContext, /every car is different|inspection|between you and the market|platform/i, "value ask firmly refused"]
+  ];
+  for (const [q, ctx, must, label] of priceCases) {
+    const res = await prodFetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bypassCache: true, messages: [{ role: "user", content: q }], system: SELL_SYS, context: ctx }) });
+    const body = await res.json();
+    const text = String(body.text || "");
+    check(`price chat (${label}): no banned valuation phrasing`, res.ok && text.length > 0 && !BANNED_VALUATION.test(text), `banned="${(text.match(BANNED_VALUATION) || [""])[0]}" text="${text.slice(0, 160)}"`);
+    check(`price chat (${label}): routes or refuses honestly`, must.test(text), `text="${text.slice(0, 180)}"`);
+  }
+}
+
 // 4. Partial state accumulates: make+model accepted, only the year asked, and
 // the year answer completes the car (the vw camper van transcript).
 resetToStep1();

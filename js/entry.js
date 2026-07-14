@@ -66,7 +66,13 @@ async function send(){
       const dec=sellState.sellDecision?.decision;
       if(dec?.recommendedPath){
         const heroEvidence=(sellState.sellDecision?.analysis?.platformPerformance||[])[0]||{};
-        sellContext+=`\nDecision facts (the engine's recommendation, do not contradict it): recommended platform ${platformDisplayName(dec.recommendedPath)}; basis ${dec.evidenceBasis}; confidence ${dec.confidence}; comparable sales analyzed ${sellState.sellDecision?.evidence?.evidenceSales??"n/a"} ${(sellState.sellDecision?.evidence?.windowDays??0)>=3650?"across everything tracked":`in the last ${sellState.sellDecision?.evidence?.windowDays??"n/a"} days`}; median on the recommended platform ${heroEvidence.medianSalePrice?"$"+heroEvidence.medianSalePrice.toLocaleString("en-US"):"n/a"}. Reasons: ${(dec.why||[]).join(" ")}`;
+        // Price signal is the premium percentage only (locked): a median in
+        // context invites a median in an answer, which is banned.
+        const premiumFact=heroEvidence.pricePremium;
+        const premiumLine=premiumFact
+          ?`${premiumFact.scope==="segment"?premiumFact.segmentLabel+" ":""}sales closed around ${premiumFact.percent}% higher on the recommended platform than on other platforms ${premiumFact.windowDays>=3650?"historically":`over the past ${premiumFact.windowDays} days`}`
+          :"none available";
+        sellContext+=`\nDecision facts (the engine's recommendation, do not contradict it): recommended platform ${platformDisplayName(dec.recommendedPath)}; basis ${dec.evidenceBasis}; confidence ${dec.confidence}; comparable sales analyzed ${sellState.sellDecision?.evidence?.evidenceSales??"n/a"} ${(sellState.sellDecision?.evidence?.windowDays??0)>=3650?"across everything tracked":`in the last ${sellState.sellDecision?.evidence?.windowDays??"n/a"} days`}; price signal: ${premiumLine}. Reasons: ${(dec.why||[]).join(" ")}`;
       }
       try{
         const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[...history,{role:"user",content:q}],system:SELL_SYS,context:sellContext})});
