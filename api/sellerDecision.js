@@ -874,6 +874,28 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     }
     return null;
   };
+  // Momentum signal (July 2026): recent 30-day median vs the prior 30-to-90
+  // day median for this platform's landed-scope comps. Percentage only,
+  // median-derived (same class as the premium claim), gated hard: 4+ total
+  // in the 90-day window, 2+ in each period, and a rounded move of 5%+.
+  const momentumSignalFor = platform => {
+    if (!landed) return null;
+    const platformIn = days => pairedRecords.filter(item =>
+      recordPlatform(item.record) === platform &&
+      daysAgo(item.record.auction_end_date) <= days &&
+      ladderEligible(item, landed.definition));
+    const all90 = platformIn(90);
+    if (all90.length < 4) return null;
+    const priceOf = item => Number(item.classification.price);
+    const recent = all90.filter(item => daysAgo(item.record.auction_end_date) <= 30).map(priceOf).filter(Number.isFinite);
+    const prior = all90.filter(item => { const a = daysAgo(item.record.auction_end_date); return a > 30 && a <= 90; }).map(priceOf).filter(Number.isFinite);
+    if (recent.length < 2 || prior.length < 2) return null;
+    const rMed = median(recent), pMed = median(prior);
+    if (!rMed || !pMed) return null;
+    const percent = Math.round((rMed - pMed) / pMed * 100);
+    if (Math.abs(percent) < 5) return null;
+    return { percent, recentCount: recent.length, priorCount: prior.length, direction: percent > 0 ? "up" : "down" };
+  };
   const premiumWalkTraces = debug ? {} : null;
   const pricePremiumFor = platform => {
     if (!landed || landed.key === "make_context") return null;
@@ -998,6 +1020,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
         pricePremium: pricePremiumFor(platform),
         segmentVolume: segmentVolumeFor(platform),
         dayAdvantage: platformDayAdvantage(platform),
+        momentumSignal: momentumSignalFor(platform),
         // Typical price band of THIS platform's comps (25th-75th pct): fuels
         // the car-specific alternative bullet. A range, never a median.
         priceBand: (() => {

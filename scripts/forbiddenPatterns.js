@@ -53,7 +53,10 @@ export const FORBIDDEN_PATTERNS = [
   // to describe what a car sells for. A price reference must be an exact
   // historical data point. Segment BUCKET labels ("in the $50k to $150k
   // range" naming a market band) are a different, approved thing.
-  { name: "price range display", re: /typically (priced )?(in the )?\$[\d,]+k?( to | ?[-–] ?)\$?[\d,]+k?|\b(sold|closed|sells|goes) [^.\n]{0,40}\$[\d,]+k? to \$[\d,]+k?/i }
+  { name: "price range display", re: /typically (priced )?(in the )?\$[\d,]+k?( to | ?[-–] ?)\$?[\d,]+k?|\b(sold|closed|sells|goes) [^.\n]{0,40}\$[\d,]+k? to \$[\d,]+k?/i },
+  // Momentum filler (locked): the momentum callout is a factual percentage,
+  // never editorial commentary or a soft caveat.
+  { name: "momentum filler", re: /the market is moving|worth noting/i }
 ];
 
 export function findForbidden(text) {

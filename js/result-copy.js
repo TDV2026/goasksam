@@ -526,6 +526,14 @@ function platformFitLine(route){
   return copy.default||null;
 }
 
+// Momentum: NOT rendered to users (July 2026). The backend momentumSignal
+// is computed and logged as telemetry, but a per-car momentum from mixed-
+// variant medians measures period-to-period MIX shift, not true market
+// movement (a healthy 911 Carrera S showed a false -51% off 11 vs 8 sales).
+// Same variant-spread flaw that banned price ranges, and worse: the premium
+// claim cancels mix across platforms at one time, momentum cannot cancel it
+// across two periods. Held for a variant-controlled redesign.
+
 function sellerPriorityFitLabel(route){
   const facts=route.routeFitFacts||[];
   if(facts.includes("faster_listing_fit"))return "This choice fits if getting live quickly matters.";

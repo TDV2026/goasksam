@@ -278,6 +278,10 @@ function guardRender(name, text) {
     check(`[design] ${name}: day lines never name a weekend`, dayLines.every(l => !/Saturday|Sunday/i.test(l)), dayLines.find(l => /Saturday|Sunday/i.test(l)) || "");
     check(`[design] ${name}: day lines are platform-specific`, dayLines.every(l => /\bOn [A-Z]/.test(l.trim())), dayLines.find(l => !/\bOn [A-Z]/.test(l.trim())) || "");
     check(`[design] ${name}: Cars & Bids never gets a day line`, dayLines.every(l => !/cars\s*&(amp;)?\s*bids/i.test(l)), dayLines.find(l => /cars\s*&(amp;)?\s*bids/i.test(l)) || "");
+    // Momentum is NOT user-facing (July 2026): a per-car momentum from
+    // mixed-variant medians reads period-to-period mix, not market movement.
+    // The callout must never render on any card.
+    check(`[design] ${name}: no user-facing momentum percentage`, !/have closed \d+% (higher|lower) than the prior month/i.test(clean), (clean.match(/[^\n]*than the prior month[^\n]*/) || [""])[0].slice(0, 120));
     // Tier B ("More X sales have closed on P than any other platform we
     // track") renders only when leadership is verifiably true in the
     // decision's own evidence set, and never in green.
