@@ -195,7 +195,7 @@ function guardRender(name, text) {
       // card explains the lookback and carries NO count claims (percentages
       // only); recent plates carry no lookback line.
       if (plateNameC && PLATFORM_NAMES.includes(plateNameC) && /^(Since \d{4}|All-time)$/.test(plateData || "")) {
-        check(`[design] ${name}: old-data card explains the lookback`, /We went back to \d{4} to get enough comparable|We analyzed [^\n]* across everything we've tracked|We looked at the exact car first/.test(clean.replace(/&#\d+;/g, "'")), (clean.match(/[^\n]*(went back|exact car first)[^\n]*/) || ["missing"])[0].slice(0, 140));
+        check(`[design] ${name}: old-data card explains the lookback`, /We went back to \d{4} to get enough comparable|We analyzed [^\n]* across everything we've tracked|We analyzed [^\n]* exact-year sales, then broadened/.test(clean.replace(/&#\d+;/g, "'")), (clean.match(/[^\n]*(went back|broadened)[^\n]*/) || ["missing"])[0].slice(0, 140));
         const countClaim = liMatches.map(m => flatLi(m[2])).find(t => /^\s*\d[\d,]* [^%\n]{0,60}have sold on/i.test(t));
         check(`[design] ${name}: old-data card carries no count claims`, !countClaim, (countClaim || "").slice(0, 120));
         // No finite window text on the pick card when the plate is all-time.

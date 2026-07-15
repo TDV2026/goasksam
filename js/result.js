@@ -195,8 +195,9 @@ async function showSellRecommendation(){
       sellState.routingReason="speed";
     }
   }
-  const wideningLine=ladderWideningNarration(decisionData,routeOptions[0]||null);
-  if(wideningLine)addMsg("sam",wideningLine);
+  // No redundant chat opener (locked): the card is self-contained, and its
+  // own transparency line carries the scope/window story. The old opener
+  // duplicated the plate window and the lookback line.
   if(decision.strongerNonRoutable){
     const houseName=platformDisplayName(decision.strongerNonRoutable.platform);
     addMsg("sam",`One thing to know up front: ${houseName} actually shows the strongest comparable results in our records. It's a consignment auction house rather than a platform you can list on yourself, so it isn't the pick, but it tells you serious money follows this car.`);

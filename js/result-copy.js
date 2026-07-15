@@ -136,12 +136,16 @@ function analysisWindowInfo(bullets){
 function lookbackLine(option){
   const bullets=option.reasonBullets||[];
   // Scope-descent transparency (locked): when the claim widened beyond the
-  // landed scope, the card says so. Takes precedence over the window line;
-  // the plate carries the span. The chat opener owns "Here's what that
-  // market shows", never repeated here.
+  // landed scope, the card says so, framed as a deliberate scope choice
+  // (never "when data was thin"). Takes precedence over the window line;
+  // the plate carries the span. There is no chat opener, so the card owns
+  // "Here's what the market shows".
   const descent=bullets[0]?.scopeDescent;
   if(descent){
-    return `We looked at the exact car first. When data was thin, we expanded to ${descent.to} to find the buyer concentration.`;
+    const carYear=sellState.resolvedVehicle?.year;
+    const openScope=carYear?`${carYear} exact-year sales`:"the exact car";
+    const range=descent.range?` (${descent.range})`:"";
+    return `We analyzed ${openScope}, then broadened to ${descent.to}${range} to identify the platform advantage. Here's what the market shows.`;
   }
   const info=analysisWindowInfo(bullets);
   const landed=sellState.sellDecision?.evidence?.ladder?.landed;
@@ -151,28 +155,6 @@ function lookbackLine(option){
   if(sinceYear)return `We went back to ${sinceYear} to get enough comparable ${scope}.`;
   if(info.label==="All-time")return `We analyzed ${scope} across everything we've tracked to build a reliable picture.`;
   return "";
-}
-
-function ladderWideningNarration(decisionData,primaryRoute){
-  const ladder=decisionData?.evidence?.ladder||decisionData?.decision?.ladder;
-  const landed=ladder?.landed;
-  if(!landed||landed.rung<=1)return null;
-  const thinNote=landed.thresholdMet?"":" The market for this car is genuinely thin right now, so treat this as directional.";
-  // The opener names the same window the plate displays: derived from the
-  // primary card's actual claims, never vague. The label's own year-range
-  // suffix drops (the window phrase carries the span).
-  const bullets=primaryRoute&&!primaryRoute.speedArgument?primaryReasonBullets(primaryRoute):null;
-  const windowInfo=analysisWindowInfo(bullets||[]);
-  // A segment-scoped landing names the segment (locked scope transparency);
-  // the landed count is model-scoped so it never renders beside it.
-  const segLabel=(bullets||[])[0]?.segmentLabel;
-  const scope=segLabel?`${segLabel} sales`:String(landed.label).replace(/,?\s*\d{4} to \d{4}$/,"").replace(/,\s*any year/,"");
-  const windowPhrase=windowInfo.phrase||(landed.windowDays>=3650?"across everything we've tracked":`over the past ${landed.windowDays} days`);
-  // The landed count only renders when it describes the same span the opener
-  // names (counts under 10 never render).
-  const finiteMatch=/^Past (\d+) days$/.exec(windowInfo.label||"");
-  const countText=!segLabel&&landed.sales>=10&&(!windowInfo.label||(finiteMatch&&Number(finiteMatch[1])===Number(landed.windowDays)))?`: ${landed.sales} sales`:"";
-  return `I looked at ${scope} ${windowPhrase}${countText}. Here's what that market shows.${thinNote}`;
 }
 
 function shouldSuppressRouteForSellerRegion(route){
@@ -977,11 +959,14 @@ function primaryReasonBullets(route,altRoute){
       :`${comparableSalesLabel()} sales`;
     const premiumSince=premium?.earliestSaleDate?String(premium.earliestSaleDate).slice(0,4):null;
     // Scope-descent meta for the transparency line: set when the claim's
-    // scope widened beyond the landed rung.
+    // scope widened beyond the landed rung. Generation carries its year
+    // range so the descent reads as a deliberate scope choice.
+    const genRange=sellState.sellDecision?.evidence?.generation;
     const scopeDescent=premium?.scope==="segment"
       ?{to:`the ${premium.segmentLabel} segment (${(premium.models||[]).join(", ")})`}
       :premium?.scope==="generation"
-      ?{to:`the ${String(premium.generationCode||"").toUpperCase()}-generation ${sellState.resolvedVehicle?.model||"model"}`}
+      ?{to:`the ${String(premium.generationCode||"").toUpperCase()}-generation ${sellState.resolvedVehicle?.model||"model"}`,
+        range:(genRange?.yearStart&&genRange?.yearEnd)?`${genRange.yearStart} to ${genRange.yearEnd}`:""}
       :null;
     if(premium&&premium.gateType==="asymmetric"&&premium.marketShare>=75&&premium.platformSales>=5){
       // Market dominance (asymmetric gate): one platform IS the market.
