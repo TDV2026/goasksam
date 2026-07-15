@@ -398,6 +398,12 @@ function resetToStep1() {
     const r = await resolveVehicle(text);
     check(`[audit] resolver: ${text} -> ${want}`, r.status === want, `got=${r.status} q=${(r.clarification?.question || "").slice(0, 80)}`);
   }
+  // Range Rover must resolve to Land Rover (never the "Rover Mini" misparse),
+  // validate its production range, and reject pre-1970.
+  const rr = await resolveVehicle("2018 Range Rover");
+  check("[audit] resolver: 2018 Range Rover is a Land Rover, not Rover Mini", rr.status === "valid" && rr.vehicle?.make === "Land Rover" && /Range Rover/i.test(rr.vehicle?.model || "") && !/mini/i.test(rr.vehicle?.model || ""), `make=${rr.vehicle?.make} model=${rr.vehicle?.model}`);
+  const rrOld = await resolveVehicle("1965 Range Rover");
+  check("[audit] resolver: pre-1970 Range Rover challenged, make correct", rrOld.status === "invalid_vehicle" && rrOld.vehicle?.make === "Land Rover", `status=${rrOld.status} make=${rrOld.vehicle?.make}`);
 }
 
 // 1. Step-1 invariants (regression guard)
