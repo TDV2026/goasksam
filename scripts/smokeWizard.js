@@ -947,6 +947,16 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   await handleSellStep("1986");
   check("clarification: same-make year fix merges, no reset", /1986 Toyota Corolla/.test(sellState.carName||""), `car=${sellState.carName}`);
 
+  // Year-only gap (locked): make+model known, year missing. One "not sure"
+  // proceeds at model level; the year is never asked a second time.
+  resetToStep1();
+  await handleSellStep("Land Rover Defender");
+  const askedYear = /what year is it/i.test(lastSam() || "");
+  await handleSellStep("Not sure");
+  const yearProceed = samMessages();
+  const yearAsks = yearProceed.filter(m => /what year is it/i.test(m)).length;
+  check("year-only: one 'not sure' proceeds at model level, no re-ask", askedYear && sellState.step === 11 && sellState.vehicleDetailSkipped === true && yearAsks === 1 && /Land Rover Defender/.test(sellState.carName || ""), `step=${sellState.step} skipped=${sellState.vehicleDetailSkipped} yearAsks=${yearAsks} car=${sellState.carName}`);
+
   // 4. Dual option: a second option surface always renders when any
   // alternative exists (platform card, dossier, or partner mention).
   const lcDual=await runResult("US","Texas","40k",{label:"1985 Toyota Land Cruiser",vehicle:{raw:"1985 Toyota Land Cruiser",year:1985,make:"Toyota",model:"Land Cruiser",trim:null,confidence:"high",canonicalLabel:"1985 Toyota Land Cruiser"}});

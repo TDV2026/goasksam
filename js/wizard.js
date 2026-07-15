@@ -462,6 +462,18 @@ async function handleVehicleValidationAnswer(q){
     return true;
   }
   if(detectIntent(lower)==="refusal"||/\bskip\b/i.test(lower)){
+    // Year-only gap (locked): make and model are known, so a single decline
+    // proceeds at make/model level immediately. The year is never asked a
+    // second time; the backend ladder starts at model scope and the result
+    // is honestly labeled as broader than year-specific.
+    if(currentIssue?.yearOnly){
+      const baseVehicle=currentIssue.baseVehicle||sellState.carName||"the car";
+      sellState.carName=baseVehicle;sellState.carRaw=baseVehicle;
+      sellState.vehicleDetailSkipped=true;sellState.pendingVehicleIdentity=null;
+      sellState.vehicleIdentityValidated=false;sellState.notSureRepeats=0;
+      resumeWizardAfterVehicle(`No problem, I'll work with the ${baseVehicle} at the model level. The read will be broader than year-specific, and I'll say so in the result.`);
+      return true;
+    }
     sellState.notSureRepeats=(sellState.notSureRepeats||0)+1;
     const baseVehicle=currentIssue?.baseVehicle||sellState.carName||"the car";
     if(sellState.notSureRepeats>=3){

@@ -66,12 +66,20 @@ function askVehicleIdentityClarification(clarification,status,partialVehicle){
     sellState.vehicleClarifyRepeats=0;
   }
   sellState.lastVehicleAsk=clarification.question;
+  // Year-only gap (locked): make and model resolved, only the year missing.
+  // A make/model-level recommendation is viable, so a single decline
+  // proceeds immediately; the year is never demanded a second time.
+  const missingFields=clarification.missing||[];
+  const yearOnly=!!(partialVehicle?.make&&partialVehicle?.model
+    &&!partialVehicle?.year
+    &&missingFields.length===1&&missingFields[0]==="year");
   sellState.pendingVehicleIdentity={
     type:status==="invalid_vehicle"?"invalid_vehicle":"model",
     ask,
     chips,
     suggestion:clarification.suggestion||null,
-    baseVehicle:clarification.baseVehicle||null
+    baseVehicle:clarification.baseVehicle||[partialVehicle?.make,partialVehicle?.model].filter(Boolean).join(" ")||null,
+    yearOnly
   };
   sellState.step=17;
   addMsg("sam",sellState.pendingVehicleIdentity.ask,"",chipsHTML(sellState.pendingVehicleIdentity.chips));

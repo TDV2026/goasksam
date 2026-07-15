@@ -28,14 +28,6 @@ This can take a moment because Sam is checking sales evidence before making a re
 
 
 
-Sam
-
-I looked at f80-generation M3 Competition sales over the past 90 days. Here&#39;s what that market shows.
-
-
-
-
-
 
     
 Sam
@@ -86,7 +78,7 @@ Data: F80 generation · Past 90 days
 If this were my car, it goes on Bring a Trailer.
 
         
-We looked at the exact car first. When data was thin, we expanded to the F80-generation M3 to find the buyer concentration.
+We analyzed 2016 exact-year sales, then broadened to the F80-generation M3 (2014 to 2018) to identify the platform advantage. Here&#39;s what the market shows.
 
         
 Why I picked this
