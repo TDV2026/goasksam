@@ -590,15 +590,21 @@ check("decade: 80s Bus resolves with a year range, no year ask",
   sellState.resolvedVehicle?.yearRange?.start === 1980 && sellState.resolvedVehicle?.yearRange?.end === 1989,
   `step=${sellState.step} car=${sellState.carName} range=${JSON.stringify(sellState.resolvedVehicle?.yearRange || null)}`);
 
-// Year re-ask example is the user's own car; go-with carrying the car
-// completes it (decade counts as the year).
+// Year-only gap (Bus variant): make+model resolved, only the year missing.
+// A single "not sure" proceeds at model level, never re-asking the year.
 resetToStep1();
 await handleSellStep("vw camper van");
+const busAtYear = sellState.step === 17;
 await handleSellStep("Not sure");
-await handleSellStep("zzz unknown");
-const yearReAsk = lastSam() || "";
-check("year re-ask: example is their car, never someone else's",
-  /Volkswagen Bus/.test(yearReAsk) && !/Porsche/.test(yearReAsk), `last="${yearReAsk}"`);
+check("year-only (Bus): 'not sure' proceeds at model level, no year re-ask",
+  busAtYear && sellState.step === 11 && sellState.vehicleDetailSkipped === true &&
+  /Volkswagen Bus/.test(sellState.carName || "") && !/Porsche/.test(sellState.carName || ""),
+  `step=${sellState.step} skipped=${sellState.vehicleDetailSkipped} car=${sellState.carName}`);
+
+// Go-with carrying the car completes it at the year step (decade counts as
+// the year), never someone else's car.
+resetToStep1();
+await handleSellStep("vw camper van");
 await handleSellStep("cant see it now lets jsut go with vw camper van from the 80's");
 check("year step: go-with carrying the car completes it and advances",
   sellState.step === 11 && /1980s Volkswagen Bus/.test(sellState.carName || ""),
