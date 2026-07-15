@@ -245,6 +245,7 @@ async function showSellRecommendation(){
         return routeReason(route,index,routeOptions);
       })(),
       reasonBullets:index===0&&!route.speedArgument?primaryReasonBullets(route,routeOptions[1]||null):null,
+      momentumLine:index===0&&routeOptions[1]?comparativeMomentumLine(route,routeOptions[1]):null,
       evidenceBullets:routeEvidenceBullets(route,index,routeOptions),
       evidenceLine:"",
       stat:routeTagLine(route,index,routeOptions),
@@ -331,6 +332,7 @@ async function showSellRecommendation(){
           :Array.isArray(option.altReason)&&option.altReason.length
           ?`<ul class="sell-rec-bullets">${option.altReason.map(item=>`<li>${numify(item)}</li>`).join("")}</ul>`
           :`<div class="sell-rec-reason">${numify(option.speedArgument?option.reason:(option.rankReason||option.reason||""))}</div>`}
+        ${option.momentumLine?`<div class="sell-rec-momentum">${numify(option.momentumLine)}</div>`:""}
         ${option.stat?`<div class="sell-rec-stat">${numify(option.stat)}</div>`:""}
         ${option.evidenceBullets?.length&&!option.altReason?`<ul class="sell-rec-bullets">${option.evidenceBullets.map(item=>`<li>${numify(item)}</li>`).join("")}</ul>`:""}
         ${option.evidenceLine?`<div class="sell-rec-evidence-line">${numify(option.evidenceLine||"")}</div>`:""}

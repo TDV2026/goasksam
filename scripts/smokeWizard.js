@@ -278,10 +278,23 @@ function guardRender(name, text) {
     check(`[design] ${name}: day lines never name a weekend`, dayLines.every(l => !/Saturday|Sunday/i.test(l)), dayLines.find(l => /Saturday|Sunday/i.test(l)) || "");
     check(`[design] ${name}: day lines are platform-specific`, dayLines.every(l => /\bOn [A-Z]/.test(l.trim())), dayLines.find(l => !/\bOn [A-Z]/.test(l.trim())) || "");
     check(`[design] ${name}: Cars & Bids never gets a day line`, dayLines.every(l => !/cars\s*&(amp;)?\s*bids/i.test(l)), dayLines.find(l => /cars\s*&(amp;)?\s*bids/i.test(l)) || "");
-    // Momentum is NOT user-facing (July 2026): a per-car momentum from
-    // mixed-variant medians reads period-to-period mix, not market movement.
-    // The callout must never render on any card.
-    check(`[design] ${name}: no user-facing momentum percentage`, !/have closed \d+% (higher|lower) than the prior month/i.test(clean), (clean.match(/[^\n]*than the prior month[^\n]*/) || [""])[0].slice(0, 120));
+    // Temporal momentum stays banned (variant-mix flaw); only the
+    // comparative pick-vs-alt form may render.
+    check(`[design] ${name}: no temporal same-platform momentum`, !/than the prior month/i.test(clean), (clean.match(/[^\n]*than the prior month[^\n]*/) || [""])[0].slice(0, 120));
+    // Comparative momentum: percentage only, gap 5%+, verified against the
+    // two rendered platforms' recent-30 medians, no dollars.
+    const cmp = clean.match(/In the past 30 days, ([^,\n]+?) closed (\d+)% higher than ([^.\n]+?)\./);
+    if (cmp) {
+      const routesC = (sellState.sellDecision?.decision?.routeFit?.routes || []).filter(r => r.marketEvidence?.recent30);
+      const normC = v => String(v || "").toLowerCase().replace(/&amp;|&/g, "and").replace(/[^a-z0-9]/g, "");
+      const hi = routesC.find(r => normC(platformNameMapSmoke(r.platform)) === normC(cmp[1]) || normC(r.label) === normC(cmp[1]));
+      const lo = routesC.find(r => normC(platformNameMapSmoke(r.platform)) === normC(cmp[3]) || normC(r.label) === normC(cmp[3]));
+      const ok = hi && lo && hi.marketEvidence.recent30.count >= 2 && lo.marketEvidence.recent30.count >= 2 &&
+        (hi.marketEvidence.recent30.count + lo.marketEvidence.recent30.count) >= 4 &&
+        Math.round((hi.marketEvidence.recent30.median - lo.marketEvidence.recent30.median) / lo.marketEvidence.recent30.median * 100) === Number(cmp[2]) && Number(cmp[2]) >= 5;
+      check(`[design] ${name}: comparative momentum matches the recent-30 gap`, ok, `claim="${cmp[0]}" hi=${JSON.stringify(hi?.marketEvidence?.recent30)} lo=${JSON.stringify(lo?.marketEvidence?.recent30)}`);
+      check(`[design] ${name}: momentum carries no dollars`, !/\$\s?\d/.test(cmp[0]), cmp[0]);
+    }
     // Tier B ("More X sales have closed on P than any other platform we
     // track") renders only when leadership is verifiably true in the
     // decision's own evidence set, and never in green.

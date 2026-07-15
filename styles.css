@@ -401,6 +401,9 @@ body{font-family:var(--font-ui);color:var(--ink);}
 .sell-rec-samline{font-family:var(--font-voice);font-size:var(--text-lg);color:var(--ink);line-height:1.35;}
 /* Old-data transparency line: why the analysis reached back. */
 .sell-rec-lookback{color:var(--slate);font-size:var(--text-sm);margin-top:6px;}
+/* Comparative momentum: a distinct callout, never a bullet. */
+.sell-rec-momentum{color:var(--ink);font-size:var(--text-sm);font-weight:500;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);}
+.sell-rec-momentum .num{font-family:var(--font-data);}
 
 /* Evidence band: green is earned. */
 .evidence-band{border-radius:var(--radius-card);padding:12px 14px;font-size:var(--text-sm);}

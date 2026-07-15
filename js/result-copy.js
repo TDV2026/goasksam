@@ -526,13 +526,25 @@ function platformFitLine(route){
   return copy.default||null;
 }
 
-// Momentum: NOT rendered to users (July 2026). The backend momentumSignal
-// is computed and logged as telemetry, but a per-car momentum from mixed-
-// variant medians measures period-to-period MIX shift, not true market
-// movement (a healthy 911 Carrera S showed a false -51% off 11 vs 8 sales).
-// Same variant-spread flaw that banned price ranges, and worse: the premium
-// claim cancels mix across platforms at one time, momentum cannot cancel it
-// across two periods. Held for a variant-controlled redesign.
+// Comparative momentum (July 2026): the pick-vs-alt median gap in the SAME
+// recent 30-day window. Comparing two platforms at one time cancels variant
+// mix (same as the premium claim), so this is honest where a temporal
+// same-platform momentum was not. Percentage only, medians used for the
+// math and never displayed. Gated: 2+ recent sales on each platform, 4+
+// combined, gap 5%+. Rendered as a callout on the pick card (one comparison,
+// shown once), never a bullet.
+function comparativeMomentumLine(pickRoute,altRoute){
+  const p=pickRoute?.marketEvidence?.recent30,a=altRoute?.marketEvidence?.recent30;
+  if(!p||!a||p.count<2||a.count<2||(p.count+a.count)<4)return null;
+  if(!p.median||!a.median)return null;
+  const gap=Math.round((p.median-a.median)/a.median*100);
+  if(Math.abs(gap)<5)return null;
+  const pick=platformDisplayName(pickRoute.label||pickRoute.platform);
+  const alt=platformDisplayName(altRoute.label||altRoute.platform);
+  return gap>0
+    ?`In the past 30 days, ${pick} closed ${gap}% higher than ${alt}.`
+    :`In the past 30 days, ${alt} closed ${Math.abs(gap)}% higher than ${pick}. Still, ${pick} remains the call.`;
+}
 
 function sellerPriorityFitLabel(route){
   const facts=route.routeFitFacts||[];
