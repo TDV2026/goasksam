@@ -480,6 +480,52 @@ function sellerPriorityLabel(route){
   return "The strongest recent activity points here before speed or handoff considerations.";
 }
 
+// Curated platform-fit copy (locked, approved July 2026): qualitative
+// positioning about which platform suits which kind of car, same register
+// as the curated regional proof lines. No invented statistics, names the
+// platform (never "this platform"), fills the fit-bullet slot when a
+// platform+category match exists; otherwise the generic fit line stands.
+const PLATFORM_FIT_COPY={
+  "Bring a Trailer":{
+    "Air-cooled 911":"Bring a Trailer's audience has shown a particular appetite for air-cooled 911s.",
+    "Porsche 911":"Bring a Trailer has built one of the strongest audiences for enthusiast Porsches.",
+    "Defender":"Bring a Trailer has become one of the strongest destinations for classic Defenders.",
+    "Land Cruiser":"Bring a Trailer's audience has shown a particular appetite for vintage Japanese 4x4s.",
+    default:"Bring a Trailer has built a strong audience for this kind of vehicle."
+  },
+  "Cars & Bids":{
+    "modern Porsche":"Cars & Bids has built a particularly strong audience for late-model performance cars.",
+    "modern enthusiast":"Cars & Bids attracts an audience that knows modern performance cars well.",
+    default:"Cars & Bids has built a strong audience for this kind of car."
+  },
+  "PCarMarket":{
+    "Porsche":"Porsche remains one of PCarMarket's strongest categories.",
+    default:"PCarMarket specializes in enthusiast cars like yours."
+  }
+};
+function fitCategoryTags(){
+  const rv=sellState.resolvedVehicle||{};
+  const make=String(rv.make||"").toLowerCase();
+  const model=String(rv.model||"").toLowerCase();
+  const year=Number(rv.year)||Number(rv.yearRange?.start)||null;
+  const is911=make==="porsche"&&/911/.test(model);
+  const tags=[];
+  if(is911&&year&&year<1999)tags.push("Air-cooled 911");
+  if(is911)tags.push("Porsche 911");
+  if(make==="porsche"&&year&&year>=2005)tags.push("modern Porsche");
+  if(make==="porsche")tags.push("Porsche");
+  if(make==="land rover"&&/defender/.test(model))tags.push("Defender");
+  if(make==="toyota"&&/land cruiser/.test(model))tags.push("Land Cruiser");
+  if(year&&year>=2005)tags.push("modern enthusiast");
+  return tags;
+}
+function platformFitLine(route){
+  const copy=PLATFORM_FIT_COPY[platformDisplayName(route?.label||route?.platform)];
+  if(!copy)return null;
+  for(const tag of fitCategoryTags())if(copy[tag])return copy[tag];
+  return copy.default||null;
+}
+
 function sellerPriorityFitLabel(route){
   const facts=route.routeFitFacts||[];
   if(facts.includes("faster_listing_fit"))return "This choice fits if getting live quickly matters.";
@@ -865,6 +911,7 @@ function altReasonBullets(route,pick){
   // fallbacks fill failed gates, no duplicates.
   const altFallbacks=[
     (route.routeFitFacts||[]).includes("segment_fit")&&!bullets.some(b=>/typical buyer pool/.test(b))?`Its typical buyer pool matches a car like the ${cleanCarForCopy()}.`:null,
+    platformFitLine(route),
     sellerPriorityFitLabel(route),
     `${name} is worth considering for the ${cleanCarForCopy()}, though the pick above is the stronger call today.`,
     // Final filler shares no wording with the tier-line copy pool, so the
@@ -1056,7 +1103,7 @@ function primaryReasonBullets(route,altRoute){
       queue.push({text:`${adjective} sell-through for ${segmentCategoryDesc(e.segmentSellThrough.band)}.`,windowDays:36500});
     }
     if(["fast","medium_fast"].includes(route.speedToList))queue.push({text:`${name} typically runs the quicker auction cycle.`});
-    queue.push({text:sellerPriorityFitLabel(route)});
+    queue.push({text:platformFitLine(route)||sellerPriorityFitLabel(route)});
     for(const item of queue){
       if(bullets.length>=3)break;
       if(!bullets.some(b=>b.text===item.text||(/quicker auction cycle/.test(b.text)&&/quicker auction cycle/.test(item.text))))bullets.push({...item,validated:false});
@@ -1160,7 +1207,7 @@ function routeEvidenceBullets(route,index,routes){
       index===0?"This is a fit call, not a sales-data call: the tracked sales data doesn't cover this exact car well enough yet to lead with numbers.":"Worth comparing on platform fit, not sales data."
     ];
     if(about)bullets.push(`${name} has a strong reputation in ${about.regionsLabel}, has been selling collector cars since ${about.since}, and is known for ${about.knownFor}.`);
-    else bullets.push(sellerPriorityFitLabel(route));
+    else bullets.push(platformFitLine(route)||sellerPriorityFitLabel(route));
     bullets.push("Best bet is to contact them directly; they can speak to demand for your specific car.");
     return bullets.slice(0,3);
   }
