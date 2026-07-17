@@ -233,6 +233,16 @@ function cleanCarForCopy(){
   return parts.length?parts.join(" "):"this car";
 }
 
+// Platform-first bullet copy (locked, July 2026): reason bullets read
+// "[Platform] [verb] [these cars]" with the platform as the subject, no time
+// windows, and no raw counts. This pluralizes the resolved car for that
+// pattern ("2018 Porsche 911 Carrera" -> "2018 Porsche 911 Carreras").
+function carPluralForCopy(){
+  const car=cleanCarForCopy();
+  if(car==="this car")return "cars like this";
+  return /s$/i.test(car)?car:`${car}s`;
+}
+
 function porsche911TrimFromText(text){
   const lower=String(text||"").toLowerCase();
   if(!/\bporsche\b/.test(lower)||!/\b911\b/.test(lower))return null;
@@ -541,9 +551,10 @@ function comparativeMomentumLine(pickRoute,altRoute){
   if(Math.abs(gap)<5)return null;
   const pick=platformDisplayName(pickRoute.label||pickRoute.platform);
   const alt=platformDisplayName(altRoute.label||altRoute.platform);
+  // Platform-first, no time window (locked, July 2026). Keeps the real gap %.
   return gap>0
-    ?`In the past 30 days, ${pick} closed ${gap}% higher than ${alt}.`
-    :`In the past 30 days, ${alt} closed ${Math.abs(gap)}% higher than ${pick}. Still, ${pick} remains the call.`;
+    ?`${pick} closes around ${gap}% higher than ${alt}.`
+    :`${alt} closes around ${Math.abs(gap)}% higher than ${pick}. Still, ${pick} remains the call.`;
 }
 
 function sellerPriorityFitLabel(route){
@@ -894,13 +905,9 @@ function altReasonBullets(route,pick){
     // "second-most" would be a false statistic (locked rule 1). The claim
     // names the window its count actually comes from: the landed evidence
     // window, in the same vocabulary as the plate.
+    // Platform-first, no window, no raw count (locked, July 2026).
     const pickCount=Number(pick?.marketEvidence?.evidenceSales||0);
-    const landedDays=Number(sellState.sellDecision?.evidence?.windowDays);
-    const since=String(sellState.sellDecision?.evidence?.earliestSaleDate||"").slice(0,4);
-    const windowPhrase=Number.isFinite(landedDays)&&landedDays<3650
-      ?`over the past ${landedDays} days`
-      :(since?`since ${since}`:"across everything we've tracked");
-    bullets.push(`${mine>pickCount?"Most":"Second-most"} ${comparableSalesLabel()} sales ${windowPhrase}.`);
+    bullets.push(`${name} has closed ${mine>pickCount?"the most":"the second-most"} ${comparableSalesLabel()} sales.`);
   }else if((route.routeFitFacts||[]).includes("segment_fit")){
     // Policy claims still name the car (locked): fit framing, never a
     // generic category line.
@@ -912,14 +919,12 @@ function altReasonBullets(route,pick){
       `${name} remains viable for the ${cleanCarForCopy()}, but it is not the clearest first choice from the current evidence.`
     ],sellState.carName,name));
   }
-  // Car-specific count from this platform's own comps. Price ranges are
-  // BANNED (locked): model variants differ too much for a range to be
-  // honest. Counts under 10 never render, and a count on data older than a
-  // year implies a recency it does not have (locked): old data speaks in
-  // percentages only, so the count bullet is recent-window only.
+  // Car-specific volume from this platform's own comps, platform-first with
+  // no raw count and no window (locked, July 2026). Gated on a real 10+ sample
+  // so "plenty" is earned, never implied below it.
   const landedWindow=Number(sellState.sellDecision?.evidence?.windowDays);
   if(mine>=10&&Number.isFinite(landedWindow)&&landedWindow<=365){
-    bullets.push(`${mine} ${comparableSalesLabel()}s have sold on ${name}.`);
+    bullets.push(`${name} has sold plenty of ${comparableSalesLabel()}s.`);
   }
   // Speed positioning, curated-policy grounded ONLY (we hold no measured
   // close-time data, so no model-specific track-record claim).
@@ -1035,54 +1040,44 @@ function primaryReasonBullets(route,altRoute){
       ?{to:`the ${String(premium.generationCode||"").toUpperCase()}-generation ${sellState.resolvedVehicle?.model||"model"}`,
         range:(genRange?.yearStart&&genRange?.yearEnd)?`${genRange.yearStart} to ${genRange.yearEnd}`:""}
       :null;
+    // Platform-first bullet copy (locked, July 2026): every tier claim names
+    // the platform as the subject, carries no time window and no raw count.
+    // The premium tier keeps its real percentage (the only number allowed);
+    // volume/leadership/existence tiers use "plenty / dominates / regularly
+    // sells" instead of shares and counts. The window/scope META stays on the
+    // bullet object so the separate data-provenance plate is unchanged.
     if(premium&&premium.gateType==="asymmetric"&&premium.marketShare>=75&&premium.platformSales>=5){
       // Market dominance (asymmetric gate): one platform IS the market.
-      // This is a buyer-pool concentration claim, never a price claim: with
-      // a thin "others" sample no price comparison was verified.
       const name=platformDisplayName(route.label||route.platform);
-      const scopeName=premiumScopePhrase.replace(/ sales$/,"");
+      const scopeName=(premium.scope==="segment"||premium.scope==="generation")?premiumScopePhrase.replace(/ sales$/,""):cleanCarForCopy();
       bullets.push({
-        text:`${name} captures the strongest buyer pool for ${scopeName}: ${premium.marketShare}% of comparable sales converged there.`,
+        text:`${name} dominates ${scopeName} sales.`,
         validated:true,windowDays:premium.windowDays,sinceYear:premiumSince,
         segmentLabel:premium.scope==="segment"?premium.segmentLabel:undefined,plateScope:premium.scope==="generation"?`${String(premium.generationCode||"").toUpperCase()} generation`:undefined,scopeDescent});
     }else if(premiumSampled&&premium.percent>=10){
       const name=platformDisplayName(route.label||route.platform);
+      const subject=(premium.scope==="segment"||premium.scope==="generation")?premiumScopePhrase.replace(/ sales$/,""):carPluralForCopy();
       bullets.push({
-        text:premium.windowDays>=3650
-          ?`${premiumScopePhrase} have historically closed around ${premium.percent}% higher on ${name} than on other platforms`
-          :`${premiumScopePhrase} have closed around ${premium.percent}% higher on ${name} than on other platforms over the past ${premium.windowDays} days`,
+        text:`${name} closes ${subject} around ${premium.percent}% higher than other platforms.`,
         validated:true,windowDays:premium.windowDays,sinceYear:premiumSince,segmentLabel:premium.scope==="segment"?premium.segmentLabel:undefined,plateScope:premium.scope==="generation"?`${String(premium.generationCode||"").toUpperCase()} generation`:undefined,scopeDescent});
     }else if(premiumSampled&&Math.abs(premium.percent)>=2&&Math.abs(premium.percent)<10){
       // Honest only pick-vs-alt when those two platforms hold all the
       // evidence; with more platforms it stays "the other platforms".
       const platformsWithSales=(sellState.allRouteOptions||[]).filter(other=>Number(other.marketEvidence?.evidenceSales||0)>0).length;
       const otherName=(altRoute&&platformsWithSales===2)?platformDisplayName(altRoute.label||altRoute.platform):"the other platforms";
-      const windowText=premium.windowDays>=3650?"across everything we've tracked":`over the past ${premium.windowDays} days`;
-      bullets.push({text:`Price is negligible between ${platformDisplayName(route.label||route.platform)} and ${otherName} ${windowText}`,validated:false,windowDays:premium.windowDays,sinceYear:premiumSince});
+      bullets.push({text:`Price is negligible between ${platformDisplayName(route.label||route.platform)} and ${otherName}.`,validated:false,windowDays:premium.windowDays,sinceYear:premiumSince});
     }else if(Number(facts.totalEvidenceSales)>=10){
-      const share=Math.round((facts.evidenceSales/facts.totalEvidenceSales)*100);
-      bullets.push({text:`${share}% of ${comparableSalesLabel()} sales ${marketWindowPhrase()} closed on ${platformDisplayName(route.label||route.platform)}`,validated:true,windowDays:landedDays});
+      bullets.push({text:`${platformDisplayName(route.label||route.platform)} has sold plenty of ${carPluralForCopy()}.`,validated:true,windowDays:landedDays});
     }else if(platformLeadsEvidenceSet(route)){
-      bullets.push({text:`More ${comparableSalesLabel()} sales have closed on ${platformDisplayName(route.label||route.platform)} than any other platform we track`,validated:false,windowDays:landedDays});
+      bullets.push({text:`${platformDisplayName(route.label||route.platform)} dominates ${cleanCarForCopy()} sales.`,validated:false,windowDays:landedDays});
     }else if(e.segmentVolume&&e.segmentVolume.mineSold>e.segmentVolume.othersSold){
       // Segment majority (routing, not valuation): where the buyer pool for
       // the competitor set converges. Always names the segment and models.
       const sv=e.segmentVolume;
-      const windowText=sv.windowDays>=3650?"in our tracked records":`over the past ${sv.windowDays} days`;
-      bullets.push({text:`Most ${sv.segmentLabel} sales (${(sv.models||[]).join(", ")}) ${windowText} closed on ${platformDisplayName(route.label||route.platform)}`,validated:false,windowDays:sv.windowDays,segmentLabel:sv.segmentLabel});
+      bullets.push({text:`${platformDisplayName(route.label||route.platform)} moves most ${sv.segmentLabel} sales (${(sv.models||[]).join(", ")}).`,validated:false,windowDays:sv.windowDays,segmentLabel:sv.segmentLabel});
     }else{
-      // Tier 4 existence: the window renders in the bullet only when the
-      // data is recent (the plate/lookback line owns the span otherwise);
-      // "Many" is earned at 10+, never implied below it.
-      const name=platformDisplayName(route.label||route.platform);
-      if(Number.isFinite(landedDays)&&landedDays<=365){
-        const countPrefix=e.evidenceSales>=10?`${e.evidenceSales} `:"";
-        bullets.push({text:`${countPrefix}${cleanCarForCopy()} sales have closed on ${name} over the past ${landedDays} days`,validated:false,windowDays:landedDays});
-      }else{
-        bullets.push({text:e.evidenceSales>=10
-          ?`Many ${cleanCarForCopy()} sales have closed on ${name}`
-          :`${cleanCarForCopy()} sales have closed on ${name} in our tracked records`,validated:false,windowDays:landedDays});
-      }
+      // Tier 4 existence: platform regularly sells the car. No count, no window.
+      bullets.push({text:`${platformDisplayName(route.label||route.platform)} regularly sells ${carPluralForCopy()}.`,validated:false,windowDays:landedDays});
     }
   }
   // Bullet 2: platform-scoped historical day advantage (weekdays only).
