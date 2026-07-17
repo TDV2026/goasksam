@@ -124,7 +124,10 @@ function guardRender(name, text) {
     check(`[design] ${name}: no evidence band on platform cards`, !/evidence-band/.test(raw), "band still renders");
     const flatLi = h => String(h).replace(/<span class="num">([^<]*)<\/span>/g, "$1").replace(/&#\d+;/g, "'").replace(/<[^>]+>/g, " ");
     const liMatches = [...raw.matchAll(/<li(?: class="([^"]*)")?>([\s\S]*?)<\/li>/g)];
-    const greenClaim = b => /% of [^%]*closed on/.test(b) || /% higher on [^%]* than on other platforms/.test(b) || /% of comparable sales converged there/.test(b);
+    // Platform-first copy (July 2026): green bullets are the premium price
+    // claim (keeps its %) and the volume claim ("has sold plenty"). Plain tiers
+    // (dominates / moves most / regularly sells / negligible) never match.
+    const greenClaim = b => /closes .* higher than other platforms/.test(b) || /has sold plenty of/.test(b);
     const validatedLis = liMatches.filter(m => /validated-claim/.test(m[1] || "")).map(m => flatLi(m[2]));
     check(`[design] ${name}: green bullet only with a Tier 1 or Tier 2 claim`, validatedLis.every(greenClaim), (validatedLis.find(b => !greenClaim(b)) || "").slice(0, 140));
     const plainLis = liMatches.filter(m => !/validated-claim/.test(m[1] || "")).map(m => flatLi(m[2]));
@@ -298,14 +301,14 @@ function guardRender(name, text) {
     // Tier B ("More X sales have closed on P than any other platform we
     // track") renders only when leadership is verifiably true in the
     // decision's own evidence set, and never in green.
-    const tierB = clean.match(/More [^\n]* sales have closed on ([^\n]+?) than any other platform we track/);
+    const tierB = clean.match(/(Bring a Trailer|Cars & Bids|PCarMarket|Hagerty(?: Marketplace)?|Gooding[^\n]*?|RM Sotheby's) dominates [^\n]* sales/);
     if (tierB) {
       const norm = v => String(v || "").toLowerCase().replace(/&amp;|&/g, "and").replace(/[^a-z0-9]/g, "");
       const routes = (sellState.sellDecision?.decision?.routeFit?.routes || []).filter(r => r.marketEvidence);
       const claimed = routes.find(r => norm(tierB[1]).includes(norm(r.platform)) || norm(tierB[1]).includes(norm(r.label)) || norm(platformNameMapSmoke(r.platform)) === norm(tierB[1]));
       const otherMax = Math.max(0, ...routes.filter(r => r !== claimed).map(r => Number(r.marketEvidence.evidenceSales || 0)));
       check(`[design] ${name}: Tier B leadership is verifiably true`, !!claimed && Number(claimed.marketEvidence.evidenceSales || 0) > otherMax, `claim="${tierB[0].slice(0, 90)}" counts=${JSON.stringify(routes.map(r => [r.platform, r.marketEvidence.evidenceSales]))}`);
-      check(`[design] ${name}: Tier B never renders green`, !new RegExp(`validated-claim[^>]*>[^<]*than any other platform we track`).test(raw.replace(/<span class="num">([^<]*)<\/span>/g, "$1")), "tier B carries the green class");
+      check(`[design] ${name}: Tier B never renders green`, !new RegExp(`validated-claim[^>]*>[^<]*dominates [^<]*sales`).test(raw.replace(/<span class="num">([^<]*)<\/span>/g, "$1")), "tier B carries the green class");
     }
     // Standalone stats in the green bullet must carry .num.
     const liResidue = liMatches.filter(m => /validated-claim/.test(m[1] || ""))
@@ -879,14 +882,16 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   const us=await runResult("US","California","140k",gts);
   if(sellState.awaitingPathChoice){handleSellRecommendationFollowup("I'll run it myself");await new Promise(r=>setTimeout(r,150));}
   const rendered=(renderedResult()+"\n"+allSamText()).replace(/<li>/g,"\n• ").replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g,"\n");
-  const heroHasPct=/(\d+% of [^\n]* sales (over the past [^\n]*|across everything[^\n]*) closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty)|closed around \d+% higher on|Price is negligible between|% of comparable sales converged)/i.test(rendered.replace(/&amp;/g,"&"));
-  // Below the 10+ gate, bullet 1 is Tier B (verified leadership) or the
-  // honest existence line (the old standalone band prose is deleted).
-  const heroHasTierB=/More [^\n]+ sales have closed on [^\n]+ than any other platform we track/i.test(rendered.replace(/&amp;/g,"&"));
-  const heroHasSafeProse=/sales have closed on [^\n]+ (over the past \d+ days|in our tracked records)/i.test(rendered.replace(/&amp;/g,"&"))||/Many [^\n]+ sales have closed on/i.test(rendered.replace(/&amp;/g,"&"));
+  // Platform-first copy (July 2026): the premium price claim (keeps its %), the
+  // negligibility line, and the volume "has sold plenty" line.
+  const heroHasPct=/(closes [^\n]* higher than other platforms|Price is negligible between|has sold plenty of)/i.test(rendered.replace(/&amp;/g,"&"));
+  // Below the 10+ gate, bullet 1 is leadership ("dominates") or the segment
+  // majority line ("moves most").
+  const heroHasTierB=/[^\n]+ dominates [^\n]* sales|[^\n]+ moves most [^\n]* sales/i.test(rendered.replace(/&amp;/g,"&"));
+  const heroHasSafeProse=/[^\n]+ regularly sells [^\n]+/i.test(rendered.replace(/&amp;/g,"&"));
   check("card specificity: hero is a specific claim or gated safe prose", heroHasPct||heroHasTierB||heroHasSafeProse, (rendered.match(/[^\n]*(closed on|closed here)[^\n]*/i)||["no hero line"])[0].slice(0,180));
   check("card specificity: no 'Every comparable sale' vagueness", !/Every comparable sale we tracked/i.test(rendered), "vague claim rendered");
-  check("card regression: Why bullet 1 is a tiered claim, zero dollars", /sales have closed on (Bring a Trailer|Cars & Bids|PCarMarket|Hagerty) (over the past|across everything|in our tracked records|than any other platform)/i.test(rendered.replace(/&amp;/g,"&"))||heroHasPct||heroHasTierB, (rendered.match(/[^\n]*sales have closed on[^\n]*/i)||["missing"])[0].slice(0,160));
+  check("card regression: Why bullet 1 is a tiered claim, zero dollars", heroHasPct||heroHasTierB||heroHasSafeProse, (rendered.match(/[^\n]*(closes|has sold plenty|dominates|moves most|regularly sells)[^\n]*/i)||["missing"])[0].slice(0,160));
   check("card regression: no median prices on platform cards", !/Median (sale )?\$[\d,]+/.test(rendered)&&!/\$[\d,]+ here vs/.test(rendered), (rendered.match(/[^\n]*(Median|here vs)[^\n]*/)||[""])[0].slice(0,160));
   check("card regression: no buyer-base or strongest-run filler", !/Buyer base:|strongest run recently|enthusiast and collector cars across every era/i.test(rendered), (rendered.match(/[^\n]*(Buyer base|strongest run|every era)[^\n]*/i)||[""])[0].slice(0,160));
   // Bullet 3 contract: sell-through is qualitative and the speed line only

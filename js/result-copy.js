@@ -1047,11 +1047,13 @@ function primaryReasonBullets(route,altRoute){
     // sells" instead of shares and counts. The window/scope META stays on the
     // bullet object so the separate data-provenance plate is unchanged.
     if(premium&&premium.gateType==="asymmetric"&&premium.marketShare>=75&&premium.platformSales>=5){
-      // Market dominance (asymmetric gate): one platform IS the market.
+      // Market concentration (asymmetric gate): one platform holds the buyer
+      // pool. Earned-green volume claim. "dominates" is reserved for the plain
+      // leadership tier, so this uses the green volume phrasing instead.
       const name=platformDisplayName(route.label||route.platform);
-      const scopeName=(premium.scope==="segment"||premium.scope==="generation")?premiumScopePhrase.replace(/ sales$/,""):cleanCarForCopy();
+      const subject=(premium.scope==="segment"||premium.scope==="generation")?premiumScopePhrase.replace(/ sales$/,""):carPluralForCopy();
       bullets.push({
-        text:`${name} dominates ${scopeName} sales.`,
+        text:`${name} has sold plenty of ${subject}.`,
         validated:true,windowDays:premium.windowDays,sinceYear:premiumSince,
         segmentLabel:premium.scope==="segment"?premium.segmentLabel:undefined,plateScope:premium.scope==="generation"?`${String(premium.generationCode||"").toUpperCase()} generation`:undefined,scopeDescent});
     }else if(premiumSampled&&premium.percent>=10){
