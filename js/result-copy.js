@@ -447,7 +447,16 @@ function routeReason(route,index,routes){
         : `${name} belongs in the conversation because the gap is close enough that buyer fit and speed-to-list still matter.`;
     }
     if(["fast","medium_fast"].includes(route.speedToList)){
-      return `This is close enough on recent performance that a quicker listing path matters.`;
+      // Speed tiebreak on a negligible gap (locked): state the fact, then make
+      // the call. Platform-first, no window, no "close enough". The price fact
+      // uses the grounded "similar money" register, never the gated "Price is
+      // negligible between" claim (which requires the Tier 1.5 5+/5+ proof the
+      // speed path does not carry). Recommending language is the pick's alone.
+      const platform=platformDisplayName(name);
+      const car=cleanCarForCopy();
+      return index===0
+        ? `The top platforms have sold ${car} at similar money, so I'm recommending ${platform} because it lists faster and moves cars quicker.`
+        : `The top platforms have sold ${car} at similar money, and ${platform} lists faster, so it stays worth a look.`;
     }
     if((evidence.topThreeSales||0)>=2){
       return `It captured a meaningful share of the strongest recent results, so I would not ignore it.`;
