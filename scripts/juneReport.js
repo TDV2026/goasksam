@@ -1,0 +1,205 @@
+// June 2026 sales report from OldCarsData (Cars & Bids + Bring a Trailer),
+// cached in Supabase so it is pulled from the metered API only once.
+//
+// Every number comes from real records (product rule 1). Flow:
+//   1. Check Supabase sales_archive for month 2026-06.
+//      - cache hit  -> report from Supabase, 0 API requests.
+//      - cache miss -> pull from OldCarsData (metered), upsert into Supabase,
+//                      then report. Subsequent runs are free.
+//
+// Usage (keys are sensitive; run where you have them):
+//   SUPABASE_URL=.. SUPABASE_SERVICE_ROLE_KEY=.. OLDCARSDATA_API_KEY=.. node scripts/juneReport.js
+//   ... node scripts/juneReport.js --refresh   # force re-pull + replace the month
+//   OLDCARSDATA_API_KEY=.. node scripts/juneReport.js --probe   # cheap API capability probe (1-2 requests)
+//
+// Requires the sales_archive table (docs/supabase-sales-archive.sql), run once.
+
+import { callOldCarsData } from "../lib/_ocd.js";
+import { supabaseEnv, supabaseSelect, supabaseInsert } from "../lib/_supabase.js";
+
+const argv = process.argv.slice(2);
+const has = f => argv.includes(f);
+const PROBE = has("--probe");
+const REFRESH = has("--refresh");
+const maxPagesArg = argv.find(a => a.startsWith("--max-pages="));
+const MAX_PAGES = Number(maxPagesArg?.replace("--max-pages=", "")) || 250;
+const LIMIT = 50;
+
+const MONTH_KEY = "2026-06";
+const MONTH = { year: 2026, month: 6 };
+const PLATFORMS = { carsandbids: "Cars & Bids", bringatrailer: "Bring a Trailer" };
+
+const normKey = v => String(v || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+const usd = n => n == null ? "n/a" : `$${Math.round(n).toLocaleString("en-US")}`;
+const toNum = v => { const n = Number(String(v ?? "").replace(/[^0-9.]/g, "")); return Number.isFinite(n) && n > 0 ? n : null; };
+const toDate = v => { const d = new Date(v || ""); return Number.isFinite(d.getTime()) ? d : null; };
+const inMonth = d => d && d.getUTCFullYear() === MONTH.year && d.getUTCMonth() + 1 === MONTH.month;
+const ymd = d => d.toISOString().slice(0, 10);
+
+// One normalized record shape so the report works from cache OR fresh API data.
+function fromApi(r) {
+  const key = normKey(r.platform || r.source || r.auction_platform || r.listing_source);
+  const d = toDate(r.auction_end_date || r.sold_date || r.end_date || r.date);
+  return {
+    sourceId: String(r.id ?? r.source_record_id ?? ""),
+    date: d, saleDate: d ? ymd(d) : null,
+    platformKey: key, platformLabel: PLATFORMS[key] || key,
+    make: (r.ocd_make_name || r.listing_make || r.make || "Unknown").toString().trim(),
+    model: (r.ocd_model_name || r.listing_model || r.model || "Unknown").toString().trim(),
+    price: toNum(r.price ?? r.sold_price ?? r.final_price ?? r.current_bid)
+  };
+}
+function fromCache(row) {
+  const key = normKey(row.platform);
+  const d = toDate(row.sale_date);
+  return {
+    sourceId: row.source_id || null, date: d, saleDate: row.sale_date,
+    platformKey: key, platformLabel: PLATFORMS[key] || row.platform,
+    make: (row.make || "Unknown").trim(), model: (row.model || "Unknown").trim(),
+    price: toNum(row.sale_price)
+  };
+}
+
+let metered = 0;
+async function page(params, p) {
+  metered++;
+  return callOldCarsData("/auctions", { status: "sold", sort: "date", direction: "desc", page: p, limit: LIMIT, ...params }, process.env.OLDCARSDATA_API_KEY);
+}
+
+async function probe() {
+  if (!process.env.OLDCARSDATA_API_KEY) { console.error("Missing OLDCARSDATA_API_KEY for --probe."); process.exit(1); }
+  const a = await page({}, 1); const rows = a.data || [];
+  console.log(`PROBE (no make/model): records=${rows.length} total_pages=${a.meta?.total_pages ?? "?"} total=${a.meta?.total ?? "?"}`);
+  if (rows.length) {
+    const dates = rows.map(r => toDate(r.auction_end_date)).filter(Boolean).sort((x, y) => y - x);
+    console.log(`  dates ${ymd(dates.at(-1))}..${ymd(dates[0])} | sources ${[...new Set(rows.map(r => normKey(r.source)))].join(", ")}`);
+  }
+  try { const b = await page({ source: "carsandbids" }, 1); console.log(`PROBE (source=carsandbids): records=${(b.data || []).length} total_pages=${b.meta?.total_pages ?? "?"}`); }
+  catch (e) { console.log(`  source filter errored: ${e.message}`); }
+  console.log(`Metered requests: ${metered}`);
+}
+
+// Per-source pull (the source filter is far cheaper than scanning all sources).
+async function pullMonth() {
+  const june1 = new Date(Date.UTC(MONTH.year, MONTH.month - 1, 1));
+  const kept = [];
+  for (const source of Object.keys(PLATFORMS)) {
+    for (let p = 1; p <= MAX_PAGES; p++) {
+      const res = await page({ source }, p);
+      const rows = res.data || [];
+      if (!rows.length) break;
+      let newest = null;
+      for (const r of rows) {
+        const rec = fromApi(r);
+        if (rec.date && (!newest || rec.date > newest)) newest = rec.date;
+        if (inMonth(rec.date) && rec.platformKey === source) kept.push(rec);
+      }
+      process.stderr.write(`\r${source} page ${p}/${res.meta?.total_pages ?? "?"} | kept ${kept.length} | reqs ${metered}   `);
+      if (newest && newest < june1) break;
+      if (p >= (res.meta?.total_pages || 1)) break;
+    }
+    process.stderr.write("\n");
+  }
+  return kept;
+}
+
+async function readCache(env) {
+  const all = [];
+  for (let offset = 0; ; offset += 1000) {
+    const rows = await supabaseSelect(env, `sales_archive?month=eq.${MONTH_KEY}&select=source_id,sale_date,platform,make,model,sale_price&order=sale_date.asc&limit=1000&offset=${offset}`);
+    if (rows === null) return null; // Supabase unreachable
+    all.push(...rows);
+    if (rows.length < 1000) break;
+  }
+  return all;
+}
+
+async function deleteMonth(env) {
+  await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?month=eq.${MONTH_KEY}`, {
+    method: "DELETE", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "return=minimal" }
+  });
+}
+
+async function writeCache(env, records) {
+  const rows = records.filter(r => r.sourceId).map(r => ({
+    source_id: r.sourceId, sale_date: r.saleDate, platform: r.platformLabel,
+    make: r.make, model: r.model, sale_price: r.price, month: MONTH_KEY
+  }));
+  let inserted = 0;
+  for (let i = 0; i < rows.length; i += 500) {
+    const batch = rows.slice(i, i + 500);
+    // Upsert on source_id so re-runs never duplicate.
+    const res = await supabaseInsert("sales_archive", batch, env.supabaseUrl, env.supabaseKey,
+      "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id");
+    if (res.error) { console.error("\nSupabase insert error:", res.error); break; }
+    inserted += batch.length;
+  }
+  return inserted;
+}
+
+function summarize(records) {
+  const dates = records.map(r => r.date).filter(Boolean).sort((a, b) => a - b);
+  console.log("\n" + "=".repeat(80));
+  console.log(`DATE COVERAGE: ${dates[0] ? ymd(dates[0]) : "?"} .. ${dates.at(-1) ? ymd(dates.at(-1)) : "?"} (${records.length} June 2026 sales across the two platforms)`);
+  console.log("=".repeat(80));
+
+  const byPlatform = {}; for (const k of Object.keys(PLATFORMS)) byPlatform[k] = records.filter(r => r.platformKey === k);
+  console.log("\nOVERALL METRICS (BY PLATFORM)\n");
+  for (const [k, label] of Object.entries(PLATFORMS)) {
+    const rows = byPlatform[k]; const prices = rows.map(r => r.price).filter(Boolean);
+    const avg = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : null;
+    console.log(`${label}:`);
+    console.log(`  - Total cars sold (June 2026): ${rows.length}`);
+    console.log(`  - Average sale price: ${usd(avg)}  (from ${prices.length} priced records)`);
+    console.log(`  - Price range: ${usd(prices.length ? Math.min(...prices) : null)} / ${usd(prices.length ? Math.max(...prices) : null)}\n`);
+  }
+
+  console.log("=".repeat(80) + "\nTOP 5 MAKES/MODELS (BY VOLUME)\n" + "=".repeat(80));
+  for (const [k, label] of Object.entries(PLATFORMS)) {
+    console.log(`\n${label}:  Rank | Make | Model | Units | Avg`);
+    const groups = {};
+    for (const r of byPlatform[k]) { const key = `${r.make}||${r.model}`; (groups[key] = groups[key] || []).push(r); }
+    Object.entries(groups).sort((a, b) => b[1].length - a[1].length).slice(0, 5).forEach(([key, rows], i) => {
+      const [mk, md] = key.split("||"); const prices = rows.map(r => r.price).filter(Boolean);
+      const avg = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : null;
+      console.log(`  ${i + 1}. | ${mk} | ${md} | ${rows.length} | ${usd(avg)}`);
+    });
+  }
+
+  console.log("\n" + "=".repeat(80) + "\nPRICE BRACKET BREAKDOWN (both platforms combined)\n" + "=".repeat(80));
+  const brackets = [["$0-5k", 0, 5000], ["$5-10k", 5000, 10000], ["$10-25k", 10000, 25000], ["$25-50k", 25000, 50000], ["$50-100k", 50000, 100000], ["$100k+", 100000, Infinity]];
+  const priced = records.map(r => r.price).filter(Boolean);
+  for (const [label, lo, hi] of brackets) {
+    const n = priced.filter(p => p >= lo && p < hi).length;
+    console.log(`  ${label.padEnd(9)} | ${String(n).padStart(4)} cars | ${(priced.length ? n / priced.length * 100 : 0).toFixed(1)}%`);
+  }
+  console.log(`  (based on ${priced.length} priced records of ${records.length} total)`);
+}
+
+// --- main ---
+if (PROBE) { await probe(); process.exit(0); }
+
+const env = supabaseEnv();
+if (!env) { console.error("Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY (needed for the cache). Use --probe for an API-only capability check."); process.exit(1); }
+
+let records = null;
+if (!REFRESH) {
+  const cached = await readCache(env);
+  if (cached === null) { console.error("Could not reach Supabase (cache check failed). Aborting rather than spend API quota."); process.exit(1); }
+  if (cached.length) {
+    records = cached.map(fromCache);
+    summarize(records);
+    console.log(`\n0 API requests (cached data). ${records.length} records from sales_archive.`);
+    process.exit(0);
+  }
+}
+
+// Cache miss (or --refresh): pull from the metered API.
+if (!process.env.OLDCARSDATA_API_KEY) { console.error("Cache miss and no OLDCARSDATA_API_KEY to pull with."); process.exit(1); }
+console.error(REFRESH ? "Refreshing 2026-06 from OldCarsData..." : "Cache miss for 2026-06: pulling from OldCarsData...");
+const fresh = await pullMonth();
+if (!fresh.length) { console.error("No June 2026 records pulled. Run --probe to check the query shape."); process.exit(1); }
+if (REFRESH) await deleteMonth(env);
+const inserted = await writeCache(env, fresh);
+summarize(fresh);
+console.log(`\nCached in Supabase (${inserted} records). Future queries cost 0 API requests. This run used ${metered} metered requests.`);
