@@ -46,9 +46,9 @@ if (!env) { console.error("Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY."); 
 async function loadMonth() {
   const out = [];
   for (let offset = 0; ; offset += 1000) {
-    const page = await supabaseSelect(env, `sales_archive?month=eq.${MONTH}&select=sale_date,platform,make,model,sale_price&order=sale_price.desc&limit=1000&offset=${offset}`);
+    const page = await supabaseSelect(env, `sales_archive?month=eq.${MONTH}&select=sale_date,platform,make,model,sale_price,year,mileage,title_status&order=sale_price.desc&limit=1000&offset=${offset}`);
     if (page === null) { console.error("Supabase read failed."); process.exit(1); }
-    out.push(...page.map(r => ({ date: r.sale_date, platform: r.platform, make: r.make || "Unknown", model: r.model || "Unknown", price: num(r.sale_price) })));
+    out.push(...page.map(r => ({ date: r.sale_date, platform: r.platform, make: r.make || "Unknown", model: r.model || "Unknown", price: num(r.sale_price), year: r.year, mileage: r.mileage, titleStatus: r.title_status })));
     if (page.length < 1000) break;
   }
   return out;
@@ -76,7 +76,8 @@ function splitMakeModel(str, rows) {
   const parts = str.split(/\s+/);
   return { make: parts[0], model: parts.slice(1).join(" ") };
 }
-const line = r => `  ${r.date} | ${r.platform} | ${r.make} | ${r.model} | ${usd(r.price)}`;
+const mi = m => m == null ? "?" : `${Number(m).toLocaleString("en-US")} mi`;
+const line = r => `  ${r.date} | ${r.platform} | ${r.year ?? "?"} | ${r.make} | ${r.model} | ${mi(r.mileage)} | ${r.titleStatus || "?"} | ${usd(r.price)}`;
 
 async function main() {
   const rows = await loadMonth();
@@ -91,14 +92,14 @@ async function main() {
       ? priced.reduce((a, b) => (b.price > a.price ? b : a))
       : priced.reduce((a, b) => (b.price < a.price ? b : a));
     console.log(`${flag("--highest-price") ? "Highest" : "Lowest"}-price sale (${label}, ${MONTH}):`);
-    console.log("  Date | Platform | Make | Model | Price");
+    console.log("  Date | Platform | Year | Make | Model | Mileage | Title | Price");
     console.log(line(pick));
     return;
   }
 
   // 3: top 10 sales by price
   if (flag("--top-10-sales")) {
-    console.log(`Top 10 sales by price (${label}, ${MONTH}):\n  Date | Platform | Make | Model | Price`);
+    console.log(`Top 10 sales by price (${label}, ${MONTH}):\n  Date | Platform | Year | Make | Model | Mileage | Title | Price`);
     scoped.filter(r => r.price).sort((a, b) => b.price - a.price).slice(0, 10).forEach(r => console.log(line(r)));
     return;
   }
@@ -159,7 +160,7 @@ async function main() {
       const rs = mm.filter(r => r.platform === p);
       if (rs.length) console.log(`    ${p}: ${rs.length} sold, avg ${usd(avg(rs))}`);
     }
-    console.log("  Top 5 sales:  Date | Platform | Make | Model | Price");
+    console.log("  Top 5 sales:  Date | Platform | Year | Make | Model | Mileage | Title | Price");
     mm.filter(r => r.price).sort((a, b) => b.price - a.price).slice(0, 5).forEach(r => console.log(line(r)));
     return;
   }
