@@ -19,8 +19,11 @@ import { supabaseEnv, supabaseSelect, supabaseInsert } from "../lib/_supabase.js
 
 const argv = process.argv.slice(2);
 const has = f => argv.includes(f);
+const opt = f => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
 const PROBE = has("--probe");
 const REFRESH = has("--refresh");
+const EXPORT = has("--export");
+const EXPORT_PATH = opt("--export") && !opt("--export").startsWith("--") ? opt("--export") : "june-2026-sales";
 const maxPagesArg = argv.find(a => a.startsWith("--max-pages="));
 const MAX_PAGES = Number(maxPagesArg?.replace("--max-pages=", "")) || 250;
 const LIMIT = 50;
@@ -176,8 +179,36 @@ function summarize(records) {
   console.log(`  (based on ${priced.length} priced records of ${records.length} total)`);
 }
 
+// Write the pulled records to JSON + CSV in the sales_archive shape, ready to
+// load into Supabase manually (or keep as a raw archive). No Supabase needed.
+async function exportFiles(records, base) {
+  const { writeFileSync } = await import("node:fs");
+  const rows = records.map(r => ({
+    source_id: r.sourceId, sale_date: r.saleDate, platform: r.platformLabel,
+    make: r.make, model: r.model, sale_price: r.price, month: MONTH_KEY
+  }));
+  writeFileSync(`${base}.json`, JSON.stringify(rows, null, 0));
+  const cols = ["source_id", "sale_date", "platform", "make", "model", "sale_price", "month"];
+  const esc = v => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const csv = [cols.join(","), ...rows.map(r => cols.map(c => esc(r[c])).join(","))].join("\n");
+  writeFileSync(`${base}.csv`, csv);
+  console.log(`Exported ${rows.length} records to ${base}.json and ${base}.csv`);
+}
+
 // --- main ---
 if (PROBE) { await probe(); process.exit(0); }
+
+// Export mode: one pull -> JSON + CSV, no Supabase required. The cost-minimal
+// way to get the raw records into Supabase without a second pull later.
+if (EXPORT) {
+  if (!process.env.OLDCARSDATA_API_KEY) { console.error("Missing OLDCARSDATA_API_KEY for --export."); process.exit(1); }
+  const fresh = await pullMonth();
+  if (!fresh.length) { console.error("No June 2026 records pulled."); process.exit(1); }
+  await exportFiles(fresh, EXPORT_PATH);
+  summarize(fresh);
+  console.log(`\nThis run used ${metered} metered requests. Load the file into sales_archive; no further pulls needed.`);
+  process.exit(0);
+}
 
 const env = supabaseEnv();
 if (!env) { console.error("Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY (needed for the cache). Use --probe for an API-only capability check."); process.exit(1); }
