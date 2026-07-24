@@ -50,6 +50,7 @@ async function cachedCount(platform, make, model) {
 }
 
 console.log("make/model | BaT | C&B | Hagerty | PCARM | Total | Hagerty% | PCARM% | >10% niche?");
+const results = [];
 for (const [make, model] of candidates) {
   const bat = await countModel("bringatrailer", make, model);
   const cab = await countModel("carsandbids", make, model);
@@ -59,5 +60,22 @@ for (const [make, model] of candidates) {
   const hp = total ? (hag / total * 100) : 0, pp = total ? (pcm / total * 100) : 0;
   const flag = hp >= 10 ? `HAGERTY ${hp.toFixed(1)}%` : pp >= 10 ? `PCARM ${pp.toFixed(1)}%` : "no";
   console.log(`${make} ${model} | ${bat} | ${cab} | ${hag} | ${pcm} | ${total} | ${hp.toFixed(1)}% | ${pp.toFixed(1)}% | ${flag}`);
+  results.push({ make, model, bat, cab, hag, pcm, total, hp, pp });
 }
 console.log(`\nMetered requests: ${metered}`);
+
+// Ready-to-REVIEW WIN_CONDITIONS draft (do NOT paste blindly — routing change).
+// A model qualifies only when the niche platform is the #2 platform (beats C&B)
+// AND its share is >=10%. Confidence: n>=100 high, 50-100 moderate, <50 low.
+// segmentLabel and any yearMax (e.g. air-cooled 911 <=1998) are human judgment.
+console.log(`\n// ===== SUGGESTED lib/winConditions.js rows (review before committing) =====`);
+console.log(`// Regenerated ${new Date().toISOString().slice(0, 10)} (180-day window).`);
+for (const r of results) {
+  const nicheIsHag = r.hag >= r.pcm;
+  const platform = nicheIsHag ? "hagerty" : "pcarmarket";
+  const nicheCount = nicheIsHag ? r.hag : r.pcm, nicheShare = nicheIsHag ? r.hp : r.pp;
+  if (nicheShare < 10 || nicheCount <= r.cab) continue; // must beat C&B and clear 10%
+  const confidence = r.total >= 100 ? "high" : r.total >= 50 ? "moderate" : "low";
+  console.log(`  { make: ${JSON.stringify(r.make)}, model: ${JSON.stringify(r.model)}, platform: ${JSON.stringify(platform)}, share: ${nicheShare.toFixed(1)}, n: ${r.total}, confidence: ${JSON.stringify(confidence)}, segmentLabel: "REVIEW" },`);
+}
+console.log(`// low-confidence rows (n<50) are emitted above but must stay confidence:"low" (never auto-routed).`);
