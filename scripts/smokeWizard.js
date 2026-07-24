@@ -178,7 +178,7 @@ function guardRender(name, text) {
       check(`[design] ${name}: segment claims carry a shipped segment proof`, segLabels.length > 0, `labels=${JSON.stringify(segLabels)}`);
     }
     if (plateSegment) {
-      const genPrefix = plateSegment.trim().match(/^([\w.]+) generation$/i);
+      const genPrefix = plateSegment.trim().match(/^([\w.-]+) generation$/i);
       const genOk = !!genPrefix && (sellState.sellDecision?.decision?.routeFit?.routes || [])
         .some(r => String(r.marketEvidence?.pricePremium?.generationCode || "").toLowerCase() === genPrefix[1].toLowerCase());
       check(`[design] ${name}: plate scope prefix matches a shipped proof label`, genOk || segLabels.some(l => plateSegment.trim().toLowerCase() === l.toLowerCase()), `prefix="${plateSegment}" labels=${JSON.stringify(segLabels)}`);

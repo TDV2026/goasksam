@@ -931,9 +931,12 @@ function altReasonBullets(route,pick){
   // Car-specific volume from this platform's own comps, platform-first with
   // no raw count and no window (locked, July 2026). Gated on a real 10+ sample
   // so "plenty" is earned, never implied below it.
+  // Distinct plain wording ("moves ... regularly"): the green "has sold plenty
+  // of" phrasing is reserved for the pick's earned volume claim, so the plain
+  // alt bullet must not reuse it (it would read as an earned-green claim).
   const landedWindow=Number(sellState.sellDecision?.evidence?.windowDays);
   if(mine>=10&&Number.isFinite(landedWindow)&&landedWindow<=365){
-    bullets.push(`${name} has sold plenty of ${comparableSalesLabel()}s.`);
+    bullets.push(`${name} moves ${comparableSalesLabel()}s regularly.`);
   }
   // Speed positioning, curated-policy grounded ONLY (we hold no measured
   // close-time data, so no model-specific track-record claim).
