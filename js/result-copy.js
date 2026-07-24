@@ -995,6 +995,21 @@ function weekdayBullet(route){
   return `On ${name}, ${h.weekday} endings have historically finished strongest for ${scopeLabel}, around ${h.liftPercent}% above other weekdays.`;
 }
 
+// Gated cross-platform price delta (Phase 2). Only when BOTH platforms carry a
+// real 5+ comparable sample, so the comparison is proven not invented (rule 1).
+// Negligible gaps (< $1,000) are dropped. Rounded to the nearest $100.
+function gatedPriceDelta(route,altRoute){
+  const e=route?.marketEvidence,a=altRoute?.marketEvidence;
+  if(!e||!a)return null;
+  if((e.evidenceSales||0)<5||(a.evidenceSales||0)<5)return null;
+  const pm=Number(e.medianSalePrice||0),am=Number(a.medianSalePrice||0);
+  if(!pm||!am)return null;
+  const delta=Math.round((pm-am)/100)*100;
+  if(Math.abs(delta)<1000)return null;
+  const altName=platformDisplayName(altRoute.label||altRoute.platform);
+  return `Typically ${formatUsd(Math.abs(delta))} ${delta>0?"higher":"lower"} than ${altName}.`;
+}
+
 // "Why I picked this" is ONE list of three concrete reasons, never prose.
 // Bullet 1 IS the share claim (validated 10+ cross-platform denominator,
 // rendered green); below the gate it falls back to the honest existence
@@ -1094,6 +1109,17 @@ function primaryReasonBullets(route,altRoute){
       bullets.push({text:`${platformDisplayName(route.label||route.platform)} regularly sells ${carPluralForCopy()}.`,validated:false,windowDays:landedDays});
     }
   }
+  // Win-condition strength (Phase 2): when a curated win condition routed this
+  // pick (Hagerty/PCARMarket for a segment, backed by the car's own comps), the
+  // specialist-audience reason leads. Qualitative, never the raw share.
+  if(route.winCondition?.segmentLabel){
+    bullets.push({text:`The specialist audience for ${route.winCondition.segmentLabel} bids actively here.`,validated:false,windowDays:36500});
+  }
+  // Gated price delta (Phase 2): "typically $X higher/lower than [alt]", only
+  // when BOTH platforms carry a real sample (5+ comparable sales each) so the
+  // comparison is proven, never invented (rule 1).
+  const delta=gatedPriceDelta(route,altRoute);
+  if(delta)bullets.push({text:delta,validated:false,windowDays:sellState.sellDecision?.evidence?.windowDays});
   // Bullet 2: platform-scoped historical day advantage (weekdays only).
   const day=weekdayBullet(route);
   if(day)bullets.push({text:day,validated:false,windowDays:36500});

@@ -11,6 +11,7 @@ import { findForbidden } from "./forbiddenPatterns.js";
 import { labelIsProvablyCar, resolveVehicle } from "../lib/vehicle.js";
 import { CURATED_GENERATIONS } from "../lib/generations.js";
 import { PRODUCTION_RULES } from "../lib/vehicleData.js";
+import { findWinCondition } from "../lib/winConditions.js";
 
 const BASE = process.env.SMOKE_BASE_URL || "https://goasksam.vercel.app";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -407,6 +408,13 @@ function resetToStep1() {
   check("[audit] resolver: 2018 Range Rover is a Land Rover, not Rover Mini", rr.status === "valid" && rr.vehicle?.make === "Land Rover" && /Range Rover/i.test(rr.vehicle?.model || "") && !/mini/i.test(rr.vehicle?.model || ""), `make=${rr.vehicle?.make} model=${rr.vehicle?.model}`);
   const rrOld = await resolveVehicle("1965 Range Rover");
   check("[audit] resolver: pre-1970 Range Rover challenged, make correct", rrOld.status === "invalid_vehicle" && rrOld.vehicle?.make === "Land Rover", `status=${rrOld.status} make=${rrOld.vehicle?.make}`);
+
+  // Win-condition table (Phase 2): deterministic eligibility checks.
+  check("[wc] air-cooled 911 (1971) -> PCARMarket, high", findWinCondition({ make: "Porsche", model: "911", year: 1971 })?.platform === "pcarmarket" && findWinCondition({ make: "Porsche", model: "911", year: 1971 })?.confidence === "high", JSON.stringify(findWinCondition({ make: "Porsche", model: "911", year: 1971 })));
+  check("[wc] water-cooled 911 (2005) -> no win condition", !findWinCondition({ make: "Porsche", model: "911", year: 2005 }), JSON.stringify(findWinCondition({ make: "Porsche", model: "911", year: 2005 })));
+  check("[wc] 1973 Camaro -> Hagerty, high", findWinCondition({ make: "Chevrolet", model: "Camaro", year: 1973 })?.platform === "hagerty", JSON.stringify(findWinCondition({ make: "Chevrolet", model: "Camaro", year: 1973 })));
+  check("[wc] 1988 944 -> PCARMarket, moderate (Card 2 only)", findWinCondition({ make: "Porsche", model: "944", year: 1988 })?.confidence === "moderate", JSON.stringify(findWinCondition({ make: "Porsche", model: "944", year: 1988 })));
+  check("[wc] Corvette -> no win condition (C&B is its Card 2)", !findWinCondition({ make: "Chevrolet", model: "Corvette", year: 1967 }), "should be null");
 }
 
 // 1. Step-1 invariants (regression guard)

@@ -3,6 +3,7 @@ import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { callOldCarsData } from "../lib/_ocd.js";
 import { findGeneration, generationModelToken } from "../lib/generations.js";
+import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
 import { MODEL_SEGMENTS } from "../lib/vehicleData.js";
 import { calculateEffectiveSampleSize, MINIMUM_EFFECTIVE_SAMPLE, getRecencyMultiplier, getPlatformDominanceScore, calculateConfidenceScore, getConfidenceLevel } from "../lib/weighting.js";
 import { computePartnerCareerStats, computePlatformBaselines, partnerRelevance, priceBand } from "../lib/marketStats.js";
@@ -342,10 +343,36 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
     };
   }).sort((a, b) => b.score - a.score);
 
+  applyWinConditions(routes, vehicle);
+
   return {
     priorities,
     routes
   };
+}
+
+// Hybrid win-condition routing (Phase 2). A curated table marks a niche platform
+// (Hagerty / PCARMarket) as ELIGIBLE for a segment; the car's OWN comps must
+// back it (>= BACKING_MIN comparable sales on that platform) or nothing changes.
+// High confidence -> Card 1; moderate -> Card 2 only; low -> never auto-routed.
+// The measured share is a routing signal, never rendered (rule 1).
+function applyWinConditions(routes, vehicle) {
+  const wc = findWinCondition(vehicle);
+  if (!wc || wc.confidence === "low") return;
+  const candidate = routes.find(route => route.policyKey === wc.platform && route.routable);
+  if (!candidate) return;
+  const ev = candidate.marketEvidence || {};
+  const carComps = (ev.closeSales || 0) + (ev.relevantSales || 0);
+  if (carComps < BACKING_MIN) return; // not backed by this car's own comps
+  candidate.winCondition = { platform: wc.platform, confidence: wc.confidence, segmentLabel: wc.segmentLabel };
+  const idx = routes.indexOf(candidate);
+  if (wc.confidence === "high") {
+    if (idx > 0) { routes.splice(idx, 1); routes.unshift(candidate); }
+  } else if (routes.length >= 2 && idx !== 1) {
+    // moderate: Card 2 only, never promoted to Card 1.
+    routes.splice(idx, 1);
+    routes.splice(1, 0, candidate);
+  }
 }
 
 // ---- Evidence ladder ----
