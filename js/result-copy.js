@@ -944,6 +944,10 @@ function altReasonBullets(route,pick){
   if(["fast","medium_fast"].includes(route.speedToList)&&!pickFast){
     bullets.push(`If speed matters, ${name} typically runs the quicker auction cycle.`);
   }
+  // Gated reciprocal price delta vs the pick (Phase 2), placed AFTER the speed
+  // line so a fast-timeline seller keeps their speed bullet in the top three.
+  const altDelta=gatedPriceDelta(route,pick);
+  if(altDelta)bullets.push(altDelta);
   // Exactly three bullets on the alternative too (locked): grounded
   // fallbacks fill failed gates, no duplicates.
   const altFallbacks=[
