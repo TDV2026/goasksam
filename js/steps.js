@@ -225,14 +225,28 @@ async function handleSellStep(q){
   // ── STEP 18: US state ────────────────────────────────────────
   if(step===18){
     if(/^other$/i.test(lower)){
-      addMsg("sam","No problem. Which state?");
+      addMsg("sam","No problem. Which state? Type the name, the two-letter code, or the ZIP.");
       return true;
     }
-    const pipedState=pipelineProcess(q,step);
-    if(pipedState.action==="chat")return false;
-    if(pipedState.action==="escalate"){escalateStep(step);return true;}
-    sellState.region="US";
-    sellState.state=pipedState.action==="store"&&typeof pipedState.value==="string"?pipedState.value:"Not sure";
+    // Best-effort mapping first (state names, codes, nicknames, ZIP, "in X",
+    // country, skip). Never dead-ends: a country name gets a conversational
+    // re-ask, skip/refusal advances as "Not sure", genuine off-script questions
+    // still fall to the pipeline's chat routing below.
+    const resolved=resolveStateInput(q);
+    if(resolved.kind==="country"){
+      addMsg("sam",`${resolved.name} is the country, not the state. Which state is it in? Type the name, the two-letter code, or the ZIP.`);
+      return true;
+    }
+    if(resolved.kind==="state"||resolved.kind==="skip"){
+      sellState.region="US";
+      sellState.state=resolved.kind==="skip"?"Not sure":resolved.value;
+    }else{
+      const pipedState=pipelineProcess(q,step);
+      if(pipedState.action==="chat")return false;
+      if(pipedState.action==="escalate"){escalateStep(step);return true;}
+      sellState.region="US";
+      sellState.state=pipedState.action==="store"&&typeof pipedState.value==="string"?pipedState.value:"Not sure";
+    }
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     if(sellState.mileage){
       sellState.step=3;

@@ -102,6 +102,66 @@ function normalizeUSState(value){
   return US_STATES[key]||null;
 }
 
+// Unambiguous colloquial names only. "la"/"pa"/"in"/"or" are left to
+// US_STATES (Louisiana, Pennsylvania, Indiana, Oregon) to avoid collisions.
+const US_STATE_NICKNAMES={
+  cali:"California",socal:"California",norcal:"California","so cal":"California","no cal":"California","bay area":"California",
+  nyc:"New York","new york city":"New York",upstate:"New York",philly:"Pennsylvania",vegas:"Nevada",
+  dfw:"Texas",atl:"Georgia",chi:"Illinois",chicago:"Illinois",mass:"Massachusetts",conn:"Connecticut",
+  jersey:"New Jersey",tenn:"Tennessee",fla:"Florida","the district":"Washington, DC"
+};
+
+// Compact ZIP 3-digit-prefix ranges -> state. Covers every state; unknown
+// prefixes fall through (the caller accepts the ZIP and advances anyway).
+const ZIP_PREFIX_RANGES=[
+  [10,27,"Massachusetts"],[28,29,"Rhode Island"],[30,38,"New Hampshire"],[39,49,"Maine"],[50,59,"Vermont"],
+  [60,69,"Connecticut"],[70,89,"New Jersey"],[100,149,"New York"],[150,196,"Pennsylvania"],[197,199,"Delaware"],
+  [200,205,"Washington, DC"],[206,219,"Maryland"],[220,246,"Virginia"],[247,268,"West Virginia"],[270,289,"North Carolina"],
+  [290,299,"South Carolina"],[300,319,"Georgia"],[320,349,"Florida"],[350,369,"Alabama"],[370,385,"Tennessee"],
+  [386,397,"Mississippi"],[398,399,"Georgia"],[400,427,"Kentucky"],[430,459,"Ohio"],[460,479,"Indiana"],
+  [480,499,"Michigan"],[500,528,"Iowa"],[530,549,"Wisconsin"],[550,567,"Minnesota"],[570,577,"South Dakota"],
+  [580,588,"North Dakota"],[590,599,"Montana"],[600,629,"Illinois"],[630,658,"Missouri"],[660,679,"Kansas"],
+  [680,693,"Nebraska"],[700,714,"Louisiana"],[716,729,"Arkansas"],[730,749,"Oklahoma"],[750,799,"Texas"],
+  [800,816,"Colorado"],[820,831,"Wyoming"],[832,838,"Idaho"],[840,847,"Utah"],[850,865,"Arizona"],
+  [870,884,"New Mexico"],[885,885,"Texas"],[889,898,"Nevada"],[900,961,"California"],[967,968,"Hawaii"],
+  [970,979,"Oregon"],[980,994,"Washington"],[995,999,"Alaska"]
+];
+function stateFromZip(zip){
+  const p=Number(String(zip).slice(0,3));
+  if(!Number.isFinite(p))return null;
+  for(const [lo,hi,st] of ZIP_PREFIX_RANGES)if(p>=lo&&p<=hi)return st;
+  return null;
+}
+
+// Best-effort state-step resolver: never dead-ends. Maps state names, two-letter
+// codes, colloquial nicknames, ZIP codes, "in <state>" phrasing, country names
+// (which get a conversational re-ask), and skip/refusal (advance as "Not sure").
+function resolveStateInput(q){
+  const raw=String(q||"").trim();
+  const lower=raw.toLowerCase().replace(/\./g,"").replace(/\s+/g," ").trim();
+  if(!lower)return {kind:"unknown"};
+  if(detectIntent(lower)==="refusal"||detectIntent(lower)==="moveOn"
+    ||/^(skip|any|anywhere|does'?nt matter|doesnt matter|whatever|n\/?a|none)$/i.test(lower))return {kind:"skip"};
+  if(/^(us|u s|usa|u s a|united states|united states of america|america|the states|stateside)$/i.test(lower))
+    return {kind:"country",name:"US"};
+  if(/^(uk|u k|england|britain|great britain|scotland|wales|europe|australia|canada|uae|dubai|middle east|mexico)$/i.test(lower))
+    return {kind:"country",name:raw};
+  if(US_STATE_NICKNAMES[lower])return {kind:"state",value:US_STATE_NICKNAMES[lower]};
+  const direct=normalizeUSState(lower);
+  if(direct)return {kind:"state",value:direct};
+  if(/^\d{5}(-\d{4})?$/.test(lower)){
+    const st=stateFromZip(lower.slice(0,5));
+    return st?{kind:"state",value:st}:{kind:"skip"};
+  }
+  const inState=lower.match(/\b(?:in|from|near|around|located in|based in)\s+([a-z .'-]{2,25})$/);
+  if(inState){
+    const key=inState[1].trim();
+    const s=US_STATE_NICKNAMES[key]||normalizeUSState(key);
+    if(s)return {kind:"state",value:s};
+  }
+  return {kind:"unknown"};
+}
+
 function isUSRegion(value){
   return /\b(us|usa|u\.s\.|united states|america|united states of america)\b/i.test(String(value||"").trim());
 }
