@@ -1703,15 +1703,25 @@ export default async function handler(req, res) {
     if (!vehicle) {
       const resolution = await resolveVehicle(rawSearch);
       if (resolution.status !== "valid") {
-        return res.status(200).json({
-          status: "needs_clarification",
-          vehicle: resolution.vehicle,
-          clarification: resolution.clarification || {
-            question: "What year, make and model are you selling?"
-          }
-        });
+        // The caller already accepted a model-level read (the seller declined
+        // the year in the wizard). Proceed with the partial make/model through
+        // the evidence ladder at model level instead of clarifying: we never
+        // re-ask the year after the summary was confirmed.
+        const partial = car.acceptModelLevel ? sanitizeResolvedVehicle(resolution.vehicle) : null;
+        if (partial) {
+          vehicle = partial;
+        } else {
+          return res.status(200).json({
+            status: "needs_clarification",
+            vehicle: resolution.vehicle,
+            clarification: resolution.clarification || {
+              question: "What year, make and model are you selling?"
+            }
+          });
+        }
+      } else {
+        vehicle = resolution.vehicle;
       }
-      vehicle = resolution.vehicle;
     }
 
     // Generation mapping (Phase 4): null is safe and means the ladder keeps

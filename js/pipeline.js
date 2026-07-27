@@ -60,7 +60,7 @@ function escalateStep(step){
   const stepQ=SELL_STEP_QUESTIONS[step]||{ask:"the current question",chips:[]};
   const variants=[
     `I didn't catch that as an answer to this one. ${stepQ.ask}`,
-    `Still on this question: ${stepQ.ask} 'Not sure' works too, or say 'move on'.`
+    `Still on this question: ${stepQ.ask} 'Not sure' works too.`
   ];
   addMsg("sam",variants[(n-1)%2],"",stepQ.chips&&stepQ.chips.length?chipsHTML(stepQ.chips):"");
 }

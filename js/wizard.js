@@ -655,8 +655,8 @@ async function handleVehicleValidationAnswer(q){
   sellState.demandRepeats=(sellState.demandRepeats||0)+1;
   const knownBits=base?` I have the ${base} so far.`:"";
   const demandVariants=base?[
-    `I just need the missing piece for the ${base}. Type it, or say 'move on' and I'll analyse at that level.`,
-    `Whatever detail you have on the ${base} works, even a badge or a guess. Or say 'move on' and I'll work with what we have.`
+    `I just need the missing piece for the ${base}. Type it, or 'Not sure' and I'll analyse at that level.`,
+    `Whatever detail you have on the ${base} works, even a badge or a guess. 'Not sure' is fine too and I'll work with what we have.`
   ]:[
     `I need the year, make and model before I can keep going. Something like '2014 Jaguar F-Type' or '1965 VW Bus'.${knownBits}`,
     `Give me whatever you know: even just the make is a start, like 'Porsche' or 'Volkswagen'.`

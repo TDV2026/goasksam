@@ -169,7 +169,11 @@ function addMsg(role,text,html="",chipsStr=""){
   // (e.g. Sam P -> fallback -> Sam P) is caught and varied. Callers should still
   // escalate/route properly; this is the backstop.
   if(role==="sam"&&text&&__recentSamTexts.includes(text)){
-    text=`${text} (If you're stuck, say 'move on' and I'll continue with what we have.)`;
+    // Vary a repeat with a neutral nudge. No escape-hatch copy (A2): we never
+    // advertise a magic word like "move on"; the pipeline handles advancing.
+    const nudges=[" Take your time with this one."," Whenever you're ready."," No pressure either way."];
+    const seen=__recentSamTexts.filter(t=>t.startsWith(text)).length;
+    text=`${text}${nudges[seen%nudges.length]}`;
   }
   if(role==="sam"&&text){
     __lastSamText=text;

@@ -1,10 +1,10 @@
 async function showSellRecommendation(){
-  const vehicleIssue=currentMissingVehicleDetail();
-  if(vehicleIssue){
-    sellState.returnToConfirm=true;
-    askMissingVehicleDetail(vehicleIssue);
-    return;
-  }
+  // No results-stage vehicle re-ask (locked A1): once the summary is confirmed
+  // we go straight to the analysis at whatever level we know. A year-less
+  // vehicle runs at model level (acceptModelLevel below) and is labeled as
+  // such in the result. We never re-ask the year here and never reset to a
+  // fresh vehicle entry, so stray text after this point can never re-parse as
+  // a new car.
   sellState.step=12;
   hideHero();
   const msgs=document.getElementById("msgs");
@@ -43,6 +43,7 @@ async function showSellRecommendation(){
         car:{
           raw:sellState.carName,
           vehicle:(sellState.vehicleIdentityValidated&&sellState.resolvedVehicle)?sellState.resolvedVehicle:undefined,
+          acceptModelLevel:!!sellState.vehicleDetailSkipped,
           region:sellState.region,
           state:sellState.state,
           mileage:sellState.mileage,
@@ -65,13 +66,18 @@ async function showSellRecommendation(){
   const tr=document.getElementById("sellThinking");if(tr)tr.remove();
 
   if(decisionData?.status==="needs_clarification"){
-    const missing=currentMissingVehicleDetail();
-    sellState.returnToConfirm=true;
-    if(missing){
-      askMissingVehicleDetail(missing);
+    // Post-summary we NEVER re-ask the year and NEVER reset to a fresh vehicle
+    // entry (A1/A3): a reset let stray text ("move on") re-parse as a new car.
+    // If the seller already accepted a model-level read, proceeding is the
+    // backend's job (acceptModelLevel); a clarification landing here is a rare
+    // backend gap, so we stay on the confirmed summary and say so honestly
+    // instead of looping. Otherwise (trim gap, pre-analysis) ask only the trim.
+    if(sellState.vehicleDetailSkipped){
+      addMsg("sam","I don't have enough tracked sales on that exact car to be confident, so I'll keep the read at the model level. That's reflected in the recommendation.");
     }else{
-      sellState.step=1;
-      addMsg("sam",decisionData.clarification?.question||"I need the year, make and model before I can check the market.");
+      const missing=currentMissingVehicleDetail();
+      if(missing){sellState.returnToConfirm=true;askMissingVehicleDetail(missing);}
+      else{addMsg("sam",decisionData.clarification?.question||"I need a little more on the car before I can check the market.");}
     }
     document.getElementById("btn").disabled=false;
     return;
@@ -436,7 +442,8 @@ async function showSellRecommendation(){
       <div class="sell-rec-title">${escapeHtml(resultHeaderTitle(routeOptions))}</div>
       <div class="sell-rec-subtitle">${escapeHtml(summaryLine)}</div>
     </div>`;
-  const caveatHTML=adverseConditionCaveat()?`<div class="sell-section-note" style="margin-top:10px">${escapeHtml(adverseConditionCaveat())}</div>`:"";
+  const caveatText=unverifiedModelNote()||adverseConditionCaveat();
+  const caveatHTML=caveatText?`<div class="sell-section-note" style="margin-top:10px">${escapeHtml(caveatText)}</div>`:"";
   // Recommendation closes are declarative (locked): a period, never a
   // question, never an escape hatch.
   const afterText=powerSellerHTML?"Both are real options and the choice is yours. Pick one, or ask me to compare the tradeoffs.":(secondaryPlatforms.length?"Pick either, or ask me to compare the tradeoffs.":"Ask me anything about the pick, or how I'd run the listing.");
