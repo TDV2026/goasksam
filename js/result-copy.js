@@ -917,13 +917,14 @@ function gatedPriceDelta(route,altRoute){
 
 // Plural, human phrase for the car at a given scope. Model scope names the car;
 // generation names the chassis; make is "<Make>s as a whole".
+function composerPlural(word){const w=String(word||"").trim();return /s$/i.test(w)?w:`${w}s`;}
 function composerScopePhrase(vehicle,scope,generationCode){
   const make=vehicle&&vehicle.make?String(vehicle.make):"";
   const model=vehicle&&vehicle.model?String(vehicle.model):"";
-  if(scope==="make"||!model)return `${make||"these cars"}s as a whole`.replace(/ss as a whole$/,"s as a whole");
-  if(scope==="generation"&&generationCode)return `${String(generationCode).toUpperCase()}-generation ${make} ${model}s`.trim();
+  if(scope==="make"||!model)return `${composerPlural(make||"these car")} as a whole`;
+  if(scope==="generation"&&generationCode)return `${String(generationCode).toUpperCase()}-generation ${make} ${composerPlural(model)}`.trim();
   const yr=vehicle&&vehicle.year?`${vehicle.year} `:"";
-  return `${yr}${model}s`;
+  return `${yr}${composerPlural(model)}`;
 }
 // Weekday advantage bullet (dayAdvantage): 180-day window, scope word required.
 function composerWeekdayBullet(vehicle,ev){
@@ -932,7 +933,7 @@ function composerWeekdayBullet(vehicle,ev){
   const win=`over the past ${d.window||180} days`;
   let text;
   if(d.scope==="make"){
-    const make=vehicle&&vehicle.make?`${vehicle.make}s`:"These cars";
+    const make=vehicle&&vehicle.make?composerPlural(vehicle.make):"These cars";
     text=`${make} as a whole have closed strongest on ${d.weekday}s ${win}`;
   }else{
     text=`${composerScopePhrase(vehicle,d.scope,d.generationCode)} have closed strongest on ${d.weekday}s, around ${d.liftPercent}% above other days, ${win}`;
@@ -1004,7 +1005,9 @@ function composeCard(vehicle,route,opts={}){
     const p=ev.pricePremium;
     if(p&&(p.type==="market_dominance"||(p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10))){
       headline=composerDeltaHeadline(vehicle,ev);
-    }else if(p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)){
+    }else if(p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)&&Math.abs(p.percent)<10){
+      // Similarity is a SMALL spread only. A large negative delta means this
+      // platform closes lower, so it is never framed as "similar money".
       headline=composerSimilarityHeadline(vehicle,ev,opts);
     }else{
       headline=composerHonestHeadline(vehicle,landedScope);

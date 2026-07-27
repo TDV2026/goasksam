@@ -199,7 +199,7 @@ function guardRender(name, text) {
         ...((sellState.sellDecision?.decision?.routeFit?.routes || []).map(r => String(r.marketEvidence?.pricePremium?.earliestSaleDate || "").slice(0, 4)))].filter(y => /^\d{4}$/.test(y));
       if (sinceM) check(`[design] ${name}: Since-year matches a verifiable evidence boundary`, boundaryYears.includes(sinceM[1]), `label="${plateData}" boundaries=${JSON.stringify(boundaryYears)}`);
       else if (pastM) check(`[design] ${name}: Past-days window was actually used`, claimWindows.includes(Number(pastM[1])), `label="${plateData}" windows=${JSON.stringify(claimWindows)}`);
-      else check(`[design] ${name}: plate window is a recognized form`, plateData === "All-time", `label="${plateData}"`);
+      else check(`[design] ${name}: plate window is a recognized form`, plateData === "All-time" || /^(.+ · )?Last (45|90|180) days$/.test(plateData || ""), `label="${plateData}"`);
       // Old-data transparency (locked): a Since/All-time plate on a platform
       // card explains the lookback and carries NO count claims (percentages
       // only); recent plates carry no lookback line.
@@ -257,12 +257,14 @@ function guardRender(name, text) {
     // Alt speed line only with curated-fast policy data favoring the
     // alternative, judged against the RENDERED pick (routing may have
     // reordered the backend's list).
-    if (/If speed matters, /.test(clean)) {
+    // 1b: the conditional speed line renders only when the platform it names is
+    // actually a fast/medium_fast route (curated policy), on any card.
+    const speedM = clean.match(/If speed matters, (.+?) typically runs the quicker auction cycle/);
+    if (speedM) {
       const routesS = sellState.sellDecision?.decision?.routeFit?.routes || [];
       const normS = v => String(v || "").toLowerCase().replace(/&amp;|&/g, "and").replace(/[^a-z0-9]/g, "");
-      const renderedPick = routesS.find(r => plateNameC && (normS(platformNameMapSmoke(r.platform)) === normS(plateNameC) || normS(r.label) === normS(plateNameC))) || routesS[0];
-      const altFast = routesS.some(r => r !== renderedPick && ["fast", "medium_fast"].includes(r.speedToList));
-      check(`[design] ${name}: alt speed line gated on curated speed data`, altFast && !["fast", "medium_fast"].includes(renderedPick?.speedToList), `pick=${renderedPick?.platform}:${renderedPick?.speedToList} plate=${plateNameC}`);
+      const named = routesS.find(r => normS(platformNameMapSmoke(r.platform)) === normS(speedM[1]) || normS(r.label) === normS(speedM[1]));
+      check(`[design] ${name}: speed line names a genuinely fast route`, !!named && ["fast", "medium_fast"].includes(named.speedToList), `named="${speedM[1]}" speedToList=${named?.speedToList}`);
     }
     // Speed-routing coherence: the speed voice line renders only when the
     // routing genuinely swapped for speed.
@@ -282,12 +284,13 @@ function guardRender(name, text) {
       const liText = liMatches.map(m => flatLi(m[2]).replace(/&amp;/g, "&")).join("\n");
       check(`[design] ${name}: plate pick matches the bullets pick`, liText.includes(plateNameC) || !liText.trim(), `plate="${plateNameC}"`);
     }
-    // Day-advantage lines (locked): all-time wording says "historically",
-    // never a weekend day, always platform-named, never for Cars & Bids.
-    const dayLines = clean.split("\n").filter(l => /above other (week)?days/i.test(l));
-    check(`[design] ${name}: all-time day lines say historically`, dayLines.every(l => /historically/i.test(l)), dayLines.find(l => !/historically/i.test(l)) || "");
+    // Day-advantage lines (1b): a MARKET-CONDITION claim, so it states the
+    // 180-day window and its car/make scope (never platform-named, never a
+    // weekend day, never for Cars & Bids).
+    const dayLines = clean.split("\n").filter(l => /closed strongest on [A-Z]/i.test(l));
+    check(`[design] ${name}: day lines state the 180-day window`, dayLines.every(l => /over the past 180 days/i.test(l)), dayLines.find(l => !/over the past 180 days/i.test(l)) || "");
     check(`[design] ${name}: day lines never name a weekend`, dayLines.every(l => !/Saturday|Sunday/i.test(l)), dayLines.find(l => /Saturday|Sunday/i.test(l)) || "");
-    check(`[design] ${name}: day lines are platform-specific`, dayLines.every(l => /\bOn [A-Z]/.test(l.trim())), dayLines.find(l => !/\bOn [A-Z]/.test(l.trim())) || "");
+    check(`[design] ${name}: day lines are scoped (car or make), not platform`, dayLines.every(l => /(as a whole|[A-Za-z0-9-]+s have closed strongest)/.test(l)), dayLines.find(l => !/(as a whole|[A-Za-z0-9-]+s have closed strongest)/.test(l)) || "");
     check(`[design] ${name}: Cars & Bids never gets a day line`, dayLines.every(l => !/cars\s*&(amp;)?\s*bids/i.test(l)), dayLines.find(l => /cars\s*&(amp;)?\s*bids/i.test(l)) || "");
     // Temporal momentum stays banned (variant-mix flaw); only the
     // comparative pick-vs-alt form may render.
@@ -823,7 +826,10 @@ const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsc
   const hagertyTracked = (sellState.sellDecision?.decision?.routeFit?.routes || []).some(r => /hagerty/i.test(String(r.platform || r.label || "")));
   // With context-aware routing, an evidence-backed Hagerty swaps to the pick
   // (speed voice); without evidence it stays the speed secondary (old copy).
-  check("corvette speed: Hagerty renders as the speed option when tracked", !hagertyTracked || (/Hagerty/.test(vetteFast) && (/stronger fit when speed matters/.test(vetteFast) || /If speed is your priority/.test(vetteFast))), `hagertyTracked=${hagertyTracked} ` + vetteFast.replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 250));
+  // 1b: on a fast timeline the composer's speed language ("so speed decides"
+  // or "If speed matters, X typically runs the quicker auction cycle") appears
+  // for a fast route; Hagerty (medium_fast) qualifies when it is tracked.
+  check("corvette speed: composer surfaces the speed language on a fast timeline", !hagertyTracked || (/so speed decides:/.test(vetteFast) || /If speed matters,/.test(vetteFast)), `hagertyTracked=${hagertyTracked} ` + vetteFast.replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 250));
 }
 
 {
@@ -911,14 +917,12 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   const rendered=(renderedResult()+"\n"+allSamText()).replace(/<li>/g,"\n• ").replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g,"\n");
   // Platform-first copy (July 2026): the premium price claim (keeps its %), the
   // negligibility line, and the volume "has sold plenty" line.
-  const heroHasPct=/(closes [^\n]* higher than other platforms|Price is negligible between|has sold plenty of)/i.test(rendered.replace(/&amp;/g,"&"));
-  // Below the 10+ gate, bullet 1 is leadership ("dominates") or the segment
-  // majority line ("moves most").
-  const heroHasTierB=/[^\n]+ dominates [^\n]* sales|[^\n]+ moves most [^\n]* sales/i.test(rendered.replace(/&amp;/g,"&"));
-  const heroHasSafeProse=/[^\n]+ regularly sells [^\n]+/i.test(rendered.replace(/&amp;/g,"&"));
-  check("card specificity: hero is a specific claim or gated safe prose", heroHasPct||heroHasTierB||heroHasSafeProse, (rendered.match(/[^\n]*(closed on|closed here)[^\n]*/i)||["no hero line"])[0].slice(0,180));
+  // 1b: the composer headline is a delta (Mode A), a similarity (Mode B), a
+  // market-concentration line, or the honest limited-sales line.
+  const heroHasComposed=/(higher than the other platforms we track|is where most [^\n]* sales have closed|within a small percentage across the top platforms|Recent sales for [^\n]* are limited|has also closed recent)/i.test(rendered.replace(/&amp;/g,"&"));
+  check("card specificity: hero is a specific composed finding", heroHasComposed, (rendered.match(/[^\n]*(higher than the other|most [^\n]* sales have closed|small percentage|are limited)[^\n]*/i)||["no hero line"])[0].slice(0,180));
   check("card specificity: no 'Every comparable sale' vagueness", !/Every comparable sale we tracked/i.test(rendered), "vague claim rendered");
-  check("card regression: Why bullet 1 is a tiered claim, zero dollars", heroHasPct||heroHasTierB||heroHasSafeProse, (rendered.match(/[^\n]*(closes|has sold plenty|dominates|moves most|regularly sells)[^\n]*/i)||["missing"])[0].slice(0,160));
+  check("card regression: hero finding carries provenance, zero dollars", heroHasComposed, (rendered.match(/[^\n]*(higher than|most [^\n]* sales|small percentage|are limited)[^\n]*/i)||["missing"])[0].slice(0,160));
   check("card regression: no median prices on platform cards", !/Median (sale )?\$[\d,]+/.test(rendered)&&!/\$[\d,]+ here vs/.test(rendered), (rendered.match(/[^\n]*(Median|here vs)[^\n]*/)||[""])[0].slice(0,160));
   check("card regression: no buyer-base or strongest-run filler", !/Buyer base:|strongest run recently|enthusiast and collector cars across every era/i.test(rendered), (rendered.match(/[^\n]*(Buyer base|strongest run|every era)[^\n]*/i)||[""])[0].slice(0,160));
   // Bullet 3 contract: sell-through is qualitative and the speed line only
@@ -952,9 +956,10 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   const out=await runResult("US","California","95k",carrera,{timeline:"No rush, right result only"});
   if(sellState.awaitingPathChoice){handleSellRecommendationFollowup("I'll run it myself");await new Promise(r=>setTimeout(r,150));}
   const rendered=(renderedResult()+"\n"+allSamText()).replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g,"\n").replace(/&#39;/g,"'");
-  check("bullet 3: renders on no-rush when segment data exists", /(Strong|Consistent) sell-through for classic Porsches in the \$50k to \$150k range/.test(rendered), (rendered.match(/[^\n]*sell-through[^\n]*/i)||["missing"])[0].slice(0,160));
-  check("bullet 3: no speed line on a no-rush timeline", !/prioritizing a fast close|market I'd trust to move it/.test(rendered), (rendered.match(/[^\n]*(fast close|move it)[^\n]*/i)||[""])[0]);
-  check("carrera: zero price-gap prose despite the 57% gap", !/your asking price|the average for recent/i.test(rendered), (rendered.match(/[^\n]*asking price[^\n]*/i)||[""])[0]);
+  // 1b: sell-through is deleted entirely (sold-only data). Nothing renders it.
+  check("1b: no sell-through or % sold anywhere in the rendered result", !/sell-?through|% sold/i.test(rendered), (rendered.match(/[^\n]*sell-?through[^\n]*/i)||[""])[0].slice(0,160));
+  check("bullet 3: no speed line on a no-rush timeline", !/If speed matters,/.test(rendered), (rendered.match(/[^\n]*If speed matters[^\n]*/i)||[""])[0]);
+  check("carrera: zero price-gap prose despite the gap", !/your asking price|the average for recent/i.test(rendered), (rendered.match(/[^\n]*asking price[^\n]*/i)||[""])[0]);
 }
 
 // Context-aware speed routing: a fast timeline flips the pick to the

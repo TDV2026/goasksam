@@ -217,7 +217,21 @@ async function showSellRecommendation(){
     addMsg("sam",`One thing to know up front: ${houseName} actually shows the strongest comparable results in our records. It's a consignment auction house rather than a platform you can list on yourself, so it isn't the pick, but it tells you serious money follows this car.`);
   }
 
-  const routesForCards=routeOptions;
+  // Data pick (1b): the platform with the highest CLEARED positive comparative
+  // delta (symmetric, >=10%, 5+/5+) leads Card 1 -- the data wins the card, never
+  // an assumption. Skipped when the seller prioritized speed (Mode B speed rule
+  // keeps the faster platform on Card 1) or when a PowerSeller leads the layout.
+  const routesForCards=(()=>{
+    if(sellState.routingReason==="speed")return routeOptions;
+    const cleared=r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10?p.percent:-1;};
+    const routable=routeOptions.filter(r=>r.routable!==false);
+    let best=null,bestPct=-1;
+    for(const r of routable){const pct=cleared(r);if(pct>bestPct){best=r;bestPct=pct;}}
+    if(best&&bestPct>=10&&routeOptions[0]!==best){
+      return [best,...routeOptions.filter(r=>r!==best)];
+    }
+    return routeOptions;
+  })();
   // Pin the FINAL displayed pick (after every frontend swap: hagerty, price,
   // speed) so any post-result follow-up ("why this one") references the platform
   // the card actually shows, not the backend's pre-swap recommendedPath. Applies

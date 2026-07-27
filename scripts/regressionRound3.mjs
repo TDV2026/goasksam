@@ -41,9 +41,7 @@ const bootstrap = `
 globalThis.__SAM = SAM;
 globalThis.sellState = sellState;
 globalThis.handleVehicleValidationAnswer = handleVehicleValidationAnswer;
-globalThis.altReasonBullets = altReasonBullets;
-globalThis.isFillerBullet = isFillerBullet;
-globalThis.sellerPriorityFitLabel = sellerPriorityFitLabel;
+globalThis.composeCard = composeCard;
 globalThis.powerSellerIntroLine = powerSellerIntroLine;
 const __origAddMsg = addMsg;
 addMsg = function(role, text, htmlArg, chipsStr){ if(role==="sam") SAM.push({text:String(text||""), chips:String(chipsStr||"")}); try{ return __origAddMsg(role,text,htmlArg,chipsStr);}catch(e){} };
@@ -56,18 +54,16 @@ const intro = powerSellerIntroLine();
 check("D1: intro explains a PowerSeller (names the term + the service)", /powerseller/i.test(intro) && /(photos|listing|buyer|paperwork)/i.test(intro), intro);
 check("D1: old bare intro string appears nowhere in the JS source", !script.includes("If you'd rather have the whole sale handled"));
 
-// ---------------- D2 ----------------
+// ---------------- D2 (now the 1b composer: a thin alt renders evidence-only) ---
 sellState.resolvedVehicle = { make:"Porsche", model:"911", year:2019 };
-sellState.sellDecision = { evidence:{ windowDays:180 } };
-const pick = { platform:"bringatrailer", label:"bringatrailer", marketEvidence:{ evidenceSales:12, pricePremium:{ platformSales:6, othersSales:6, percent:12, windowDays:180 } } };
+sellState.sellDecision = { evidence:{ windowDays:180, ladder:{ landed:{ key:"exact_year_model" } } } };
 const thinAlt = { platform:"hagerty", label:"hagerty", marketEvidence:{ evidenceSales:2 } };
-sellState.allRouteOptions = [pick, thinAlt];
-const alt = altReasonBullets(thinAlt, pick);
-check("D2: thin alt renders no filler (fewer strong bullets, not padded)", alt === null || alt.every(b => !isFillerBullet(b)), JSON.stringify(alt));
-check("D2: the three live filler lines are caught by the gate",
-  isFillerBullet("Hagerty Marketplace remains viable for the Porsche 911, but it is not the clearest first choice from the current evidence.")
-  && isFillerBullet("It's one of the stronger platforms for a car like this."), "");
-check("D2: sellerPriorityFitLabel returns null with no grounded fit fact", sellerPriorityFitLabel(thinAlt) === null, String(sellerPriorityFitLabel(thinAlt)));
+const altCard = composeCard(sellState.resolvedVehicle, thinAlt, { isPick:false, landedScope:"model" });
+const altText = [altCard.headline&&altCard.headline.text, ...altCard.bullets.map(b=>b.text)].filter(Boolean).join(" || ");
+check("D2: thin alt carries no filler (composer, evidence-only)",
+  !/a car like this|remains viable|not the clearest|one of the stronger platforms|real signal|strong option/i.test(altText), altText);
+check("D2: every composed line carries provenance",
+  [altCard.headline, ...altCard.bullets].filter(Boolean).every(l=>l.provenance), altText);
 
 // ---------------- D4 ----------------
 async function correctionCase(pendingSuggestion, answer) {

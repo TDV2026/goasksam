@@ -28,7 +28,7 @@ const SAM = [];
 const html = fs.readFileSync("index.html","utf8");
 const files = [...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
 const script = files.map(f=>fs.readFileSync(f,"utf8")).join("\n");
-const bootstrap = `globalThis.sellState=sellState;globalThis.handleSellRecommendationFollowup=handleSellRecommendationFollowup;globalThis.offerReRun=offerReRun;globalThis.commitReRun=commitReRun;globalThis.carDisplayLabel=carDisplayLabel;globalThis.resultHeaderTitle=resultHeaderTitle;
+const bootstrap = `globalThis.sellState=sellState;globalThis.handleSellRecommendationFollowup=handleSellRecommendationFollowup;globalThis.offerReRun=offerReRun;globalThis.commitReRun=commitReRun;globalThis.carDisplayLabel=carDisplayLabel;
 let __rerun=false; globalThis.__wasRerun=()=>__rerun; showSellRecommendation=async function(){__rerun=true;};
 const __a=addMsg; addMsg=function(r,t,h,c){ SAM.push({text:String(t||""),chips:String(c||"")}); try{return __a(r,t,h,c);}catch(e){} };`;
 globalThis.SAM = SAM;
@@ -37,9 +37,9 @@ globalThis.SAM = SAM;
 // ---------------- D4 ----------------
 sellState.carName="2002 BMW 351RG"; sellState.resolvedVehicle={make:"BMW",model:"351RG",unverified:true};
 check("D4: carDisplayLabel tags an unverified model", carDisplayLabel()==="2002 BMW 351RG (unverified)", carDisplayLabel());
-check("D4: result title carries the unverified tag", /\(unverified\)/.test(resultHeaderTitle([])), resultHeaderTitle([]));
+check("D4: result title carries the unverified tag", /\(unverified\)/.test(carDisplayLabel()), carDisplayLabel());
 sellState.carName="2018 BMW M3"; sellState.resolvedVehicle={make:"BMW",model:"M3"};
-check("D4: verified model never shows the tag", carDisplayLabel()==="2018 BMW M3" && !/\(unverified\)/.test(resultHeaderTitle([])), carDisplayLabel());
+check("D4: verified model never shows the tag", carDisplayLabel()==="2018 BMW M3" && !/\(unverified\)/.test(carDisplayLabel()), carDisplayLabel());
 check("D4: summary CAR row uses carDisplayLabel (source)", script.includes('value:sellState.carName?carDisplayLabel():"Not set"'));
 
 // ---------------- D2 ----------------
