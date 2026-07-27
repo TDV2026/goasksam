@@ -568,16 +568,26 @@ await handleSellStep("1965");
 check("partial: bare year completes the car, nothing re-asked", sellState.step === 11 && /1965 Volkswagen Bus/.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
 
 // 5. Trim step and its escalation contract: the trim question always runs
-// before location for a trim-less 911; "dont know" gets a chat explanation
-// (not a silent skip); the re-ask offers a Skip chip; three attempts max.
+// before location for a trim-less 911. Owner contract (F3): "dont know" /
+// "no idea" are valid answers that ADVANCE at the level we know, never leave
+// the user stuck routing to chat forever; the re-ask offers a Skip chip; three
+// attempts max.
 resetToStep1();
 await handleSellStep("2018 porsche 911");
 const atTrim = sellState.step === 17;
 check("trim: asked before location for a model with no trim", atTrim && /which 911/i.test(lastSam() || ""), `step=${sellState.step} last="${lastSam()}"`);
 if (atTrim) {
   const routed = await handleSellStep("dont know");
-  check("trim: 'dont know' routes to chat for a real answer", routed === false, `returned=${routed}`);
-  askNextSellQuestion(); // simulate the chat handback re-ask
+  check("trim: 'dont know' advances at the level we know (never stuck)",
+    routed === true && sellState.step === 11 && sellState.vehicleDetailSkipped === true,
+    `returned=${routed} step=${sellState.step} skipped=${sellState.vehicleDetailSkipped}`);
+}
+// Re-ask escalation still offers a Skip chip on the second render, and the Skip
+// chip advances straight to location.
+resetToStep1();
+await handleSellStep("2018 porsche 911");
+if (sellState.step === 17) {
+  askNextSellQuestion(); // second render of the same ask
   const reAskChips = String(addMsgLog.at(-1)?.[3] || "");
   check("trim: Skip chip appears on the second ask", /skip this step/i.test(reAskChips), `chips="${reAskChips.slice(0, 160)}"`);
   await handleSellStep("Skip this step");
