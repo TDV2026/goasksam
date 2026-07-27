@@ -204,6 +204,16 @@ function adverseConditionCaveat(){
   return null;
 }
 
+// Unverified model note (C): when the resolver could not match the model to any
+// known catalog, we run at make level and say so honestly. Never claim comp
+// counts for a model we could not verify.
+function unverifiedModelNote(){
+  const v=sellState.resolvedVehicle;
+  if(!v||!v.unverified)return null;
+  const label=v.model?`the ${v.make} ${v.model}`:"that exact model";
+  return `I couldn't verify ${label} against the models I track, so this read is at the ${v.make||"make"} level and broader than model-specific. If the exact model matters, tell me the badge on the car and I'll tighten it.`;
+}
+
 function resultHeaderTitle(routes){
   // The handled-vs-DIY title belongs to the gate-open lead only.
   if((sellState.sellOptions||[])[0]?.key==="specialist"){
@@ -1050,7 +1060,7 @@ function primaryReasonBullets(route,altRoute){
   if(!route?.marketEvidence)return null;
   const e=route.marketEvidence;
   const facts=routeFacts(route);
-  const bullets=[];
+  let bullets=[];
   // Bullet 1 is always comparative (locked), first tier whose gates pass:
   // Tier 1: price premium, green. Model-scoped, 5+ sold both sides in the
   //   same window, rounded gap 10%+; % only, never dollars, never "median".
@@ -1163,7 +1173,7 @@ function primaryReasonBullets(route,altRoute){
   }else{
     let bullet3="";
     if(e.segmentSellThrough){
-      bullet3=sellThroughLine(e.segmentSellThrough);
+      bullet3=sellThroughLine(e.segmentSellThrough)||"";
     }
     if(sellerWantsSpeed()){
       // Grounded phrasing only: listing-cycle speed comes from curated route
@@ -1180,20 +1190,61 @@ function primaryReasonBullets(route,altRoute){
   // grounded fallback fills the slot, never fewer than three on an
   // evidence-backed card. Fallbacks in order: unused segment sell-through,
   // curated speed policy, curated fit line. No duplicates.
+  bullets=dedupeBullets(bullets);
   if(bullets.length&&bullets.length<3){
     const name=platformDisplayName(route.label||route.platform);
     const queue=[];
-    if(e.segmentSellThrough&&!bullets.some(b=>/sell-through/i.test(b.text))){
-      queue.push({text:`${sellThroughLine(e.segmentSellThrough)}.`,windowDays:36500});
+    const stLine=e.segmentSellThrough?sellThroughLine(e.segmentSellThrough):null;
+    if(stLine&&!bullets.some(b=>/sell-through/i.test(b.text))){
+      queue.push({text:`${stLine}.`,windowDays:36500});
     }
     if(["fast","medium_fast"].includes(route.speedToList))queue.push({text:`${name} typically runs the quicker auction cycle.`});
     queue.push({text:platformFitLine(route)||sellerPriorityFitLabel(route)});
     for(const item of queue){
       if(bullets.length>=3)break;
-      if(!bullets.some(b=>b.text===item.text||(/quicker auction cycle/.test(b.text)&&/quicker auction cycle/.test(item.text))))bullets.push({...item,validated:false});
+      if(!bullets.some(b=>bulletsSimilar(b.text,item.text)))bullets.push({...item,validated:false});
     }
   }
-  return bullets.length?bullets.slice(0,3):null;
+  return bullets.length?dedupeBullets(bullets).slice(0,3):null;
+}
+
+// Card-level dedup guard (locked B1): no two bullets on one card may share the
+// same lead clause or more than 60% of their words. The later duplicate is
+// dropped. Applied to every card's bullet list before it renders.
+function bulletLeadClause(t){
+  return String(t||"").toLowerCase().replace(/<[^>]*>/g," ").split(/[.,;:]/)[0].replace(/\s+/g," ").trim();
+}
+function bulletsSimilar(a,b){
+  const norm=s=>String(s||"").toLowerCase().replace(/<[^>]*>/g," ").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+  const na=norm(a),nb=norm(b);
+  if(!na||!nb)return false;
+  if(na===nb)return true;
+  const la=bulletLeadClause(a);
+  if(la&&la.length>=8&&la===bulletLeadClause(b))return true;
+  const wa=na.split(" ").filter(Boolean),wb=nb.split(" ").filter(Boolean);
+  if(!wa.length||!wb.length)return false;
+  const setB=new Set(wb);
+  let inter=0;for(const w of new Set(wa))if(setB.has(w))inter++;
+  return inter/Math.max(new Set(wa).size,new Set(wb).size)>0.6;
+}
+function dedupeBullets(bullets){
+  const out=[];
+  for(const b of bullets||[]){
+    if(!b||!b.text)continue;
+    if(out.some(o=>bulletsSimilar(o.text,b.text)))continue;
+    out.push(b);
+  }
+  return out;
+}
+// Same guard for cards whose bullets are plain strings (comparison cards).
+function dedupeStringBullets(arr){
+  const out=[];
+  for(const s of arr||[]){
+    if(!s)continue;
+    if(out.some(o=>bulletsSimilar(o,s)))continue;
+    out.push(s);
+  }
+  return out;
 }
 
 // Highest dollar value named in a segment band string ("$50k to $150k" ->
@@ -1209,17 +1260,16 @@ function bandCeiling(band){
   return max;
 }
 
-// Sell-through line, gated on the seller's asking price (locked): never render a
-// band whose ceiling is below the normalized asking price, because the band
-// would misdescribe the car. Above the band, use price-point wording instead.
-// Applies to any car whose asking price sits above its segment band.
+// Sell-through line, gated on the seller's asking price (locked): if the asking
+// price sits ABOVE the band ceiling, the band would misdescribe the car. We
+// NEVER comment on whether a price is high or low (no value opinions, ever), so
+// we DROP the sell-through bullet entirely (return null) and the caller fills
+// the slot with other grounded evidence. Otherwise the qualitative band line.
 function sellThroughLine(sellThrough){
-  const adjective=sellThrough.percent>=85?"Strong":"Consistent";
   const ceiling=bandCeiling(sellThrough.band);
   const asking=estimatedTargetPrice();
-  if(asking&&ceiling&&asking>ceiling){
-    return `This price point is at the higher end for the ${sellState.resolvedVehicle?.model||"model"}, so comparable sales inform how I ranked the platforms`;
-  }
+  if(asking&&ceiling&&asking>ceiling)return null;
+  const adjective=sellThrough.percent>=85?"Strong":"Consistent";
   return `${adjective} sell-through for ${segmentCategoryDesc(sellThrough.band)}`;
 }
 
@@ -1320,7 +1370,7 @@ function routeEvidenceBullets(route,index,routes){
     if(about)bullets.push(`${name} has a strong reputation in ${about.regionsLabel}, has been selling collector cars since ${about.since}, and is known for ${about.knownFor}.`);
     else bullets.push(platformFitLine(route)||sellerPriorityFitLabel(route));
     bullets.push("Best bet is to contact them directly; they can speak to demand for your specific car.");
-    return bullets.slice(0,3);
+    return dedupeStringBullets(bullets).slice(0,3);
   }
   const facts=routeFacts(route);
   // Five-dimension card (locked): the headline carries dimension 1 (where the
@@ -1352,7 +1402,7 @@ function routeEvidenceBullets(route,index,routes){
     if(facts.momentum&&facts.momentum.percent>=5)bullets.push(`Comparable results here have been strengthening recently.`);
     else if(facts.momentum&&facts.momentum.percent<=-5)bullets.push(`Comparable results here have softened a little recently, worth pricing realistically.`);
   }
-  return bullets.slice(0,4);
+  return dedupeStringBullets(bullets).slice(0,4);
 }
 
 function resultSummaryLine(options,routes=[]){
