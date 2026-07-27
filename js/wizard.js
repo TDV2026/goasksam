@@ -518,6 +518,30 @@ async function handleVehicleValidationAnswer(q){
     return true;
   }
   if(currentIssue?.baseVehicle){
+    // Year-answer recovery (Fix): when the answer is a year and we kept the
+    // original raw, re-resolve the ORIGINAL text with the corrected year so any
+    // model detail dropped by a mis-parse (e.g. "718") comes back, instead of
+    // combining the lossy base label with the year.
+    const yr=(q.match(/\b(19|20)\d{2}\b/)||[])[0]
+      ||(/^'?\d{2}$/.test(q.trim())?String(2000+Number(q.trim().replace(/'/,""))):null);
+    if(yr&&currentIssue.rawInput){
+      const stripped=String(currentIssue.rawInput).replace(/^\s*\d{1,4}\b[\s,]*/,"").trim();
+      const recovered=`${yr} ${stripped}`.replace(/\s+/g," ").trim();
+      const base=normalizeVehicleAnswer(currentIssue.baseVehicle||"");
+      // Only take the recovery path when the raw actually carries extra detail.
+      if(recovered&&normalizeVehicleAnswer(stripped)!==base){
+        sellState.carName=recovered;sellState.carRaw=recovered;
+        sellState.vehicleDetailSkipped=false;sellState.vehicleIdentityValidated=false;sellState.pendingVehicleIdentity=null;
+        if(!(await validateVehicleIdentityPreflight(recovered)))return true;
+        const missingR=currentMissingVehicleDetail();
+        if(missingR){askMissingVehicleDetail(missingR);return true;}
+        addMsg("sam",`Got it. ${sellState.carName}.`);
+        if(sellState.returnToConfirm){goBackToConfirm();return true;}
+        sellState.step=11;
+        addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+        return true;
+      }
+    }
     const candidate=`${currentIssue.baseVehicle} ${q}`.replace(/\s+/g," ").trim();
     sellState.carName=candidate;
     sellState.carRaw=candidate;

@@ -444,7 +444,13 @@ function rungFetchParams(rung, vehicle) {
   const params = { make: vehicle.make };
   if (!rung.makeOnly) params.model = modelToken;
   Object.assign(params, rungYearBounds(rung, vehicle) || {});
-  if (rung.needTrim && vehicle.trim) params.keyword = vehicle.trim;
+  // Trim first, then body style, so "911 Cabriolet" comps don't mix with coupes.
+  // Body style only narrows when the seller actually specified one (extractor is
+  // conservative), so recall loss is limited to those cars.
+  const keywords = [];
+  if (rung.needTrim && vehicle.trim) keywords.push(vehicle.trim);
+  if (vehicle.bodyStyle) keywords.push(vehicle.bodyStyle);
+  if (keywords.length) params.keyword = keywords.join(" ");
   return params;
 }
 

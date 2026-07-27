@@ -950,10 +950,17 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   const routesLC=(sellState.sellDecision?.decision?.routeFit?.routes||[]).filter(r=>r.marketEvidence?.evidenceSales>0);
   const plateLC=((lcFast.match(/vp-name">([^<]*)</)||[])[1]||"").replace(/&amp;/g,"&");
   const pickRouteLC=routesLC.find(r=>plateLC&&plateLC===platformNameMapSmoke(r.platform));
-  const fastAltExists=routesLC.some(r=>plateLC!==platformNameMapSmoke(r.platform)&&FAST.includes(r.speedToList));
-  check("speed routing: fast-timeline pick is fast, or no fast alternative existed",
-    !plateLC||!pickRouteLC||FAST.includes(pickRouteLC.speedToList)||!fastAltExists,
-    `plate=${plateLC} pickSpeed=${pickRouteLC?.speedToList} fastAltExists=${fastAltExists} reason=${sellState.routingReason}`);
+  const fastAltLC=routesLC.find(r=>plateLC!==platformNameMapSmoke(r.platform)&&FAST.includes(r.speedToList));
+  const fastAltExists=!!fastAltLC;
+  // Price protects the pick (Fix 4): a 10%+ raw median gap in the pick's favor
+  // blocks the speed swap even without a backend-verified premium.
+  const pickMedLC=Number(pickRouteLC?.marketEvidence?.medianSalePrice||0);
+  const fastAltMedLC=Number(fastAltLC?.marketEvidence?.medianSalePrice||0);
+  const priceProtectsLC=!!(pickMedLC&&fastAltMedLC&&pickMedLC>fastAltMedLC
+    &&Math.round((pickMedLC-fastAltMedLC)/pickMedLC*100)>=10);
+  check("speed routing: fast pick, price protects it, or no fast alternative",
+    !plateLC||!pickRouteLC||FAST.includes(pickRouteLC.speedToList)||!fastAltExists||priceProtectsLC,
+    `plate=${plateLC} pickSpeed=${pickRouteLC?.speedToList} fastAltExists=${fastAltExists} priceProtects=${priceProtectsLC} reason=${sellState.routingReason}`);
   check("speed routing: routingReason tag matches the rendered voice",
     (sellState.routingReason==="speed")===/If speed is your priority, [^\n]+ is the right move\./.test(flatLC),
     `reason=${sellState.routingReason}`);

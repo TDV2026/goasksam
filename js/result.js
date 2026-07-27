@@ -184,7 +184,15 @@ async function showSellRecommendation(){
     }
     const pickRoute=routeOptions[0],altRoute=routeOptions[1];
     const pickPremium=verifiedPremium(pickRoute);
-    if(sellState.routingReason!=="price"&&!(pickPremium!=null&&pickPremium>=10)
+    // Raw median gap at the same scope (apples-to-apples), so price still
+    // protects the pick when the backend did not send a verified pricePremium.
+    const pickMedian=Number(pickRoute?.marketEvidence?.medianSalePrice||0);
+    const altMedian=Number(altRoute?.marketEvidence?.medianSalePrice||0);
+    const rawGapPercent=(pickMedian&&altMedian)
+      ?Math.round(Math.abs(pickMedian-altMedian)/Math.max(pickMedian,altMedian)*100)
+      :null;
+    const priceProtects=(pickPremium!=null&&pickPremium>=10)||(rawGapPercent!==null&&rawGapPercent>=10);
+    if(sellState.routingReason!=="price"&&!priceProtects
       &&sellerWantsSpeed()&&pickRoute&&altRoute
       &&FAST.includes(altRoute.speedToList)&&!FAST.includes(pickRoute.speedToList)
       &&routeHasTrueComparableEvidence(altRoute)){

@@ -214,7 +214,11 @@ function resultHeaderTitle(routes){
 }
 
 function sellerWantsSpeed(){
-  return /\b(fast|quick|soon|tomorrow|this week|gone)\b/i.test(String(sellState.timeline||""));
+  const t=String(sellState.timeline||"").toLowerCase();
+  // "No rush / no hurry / right result only" is an explicit NON-speed signal.
+  // It must win over the "rush" keyword ("no rush" contains "rush").
+  if(/\bno (rush|hurry)\b|not in a (rush|hurry)|right result/i.test(t))return false;
+  return /\b(fast|quick|soon|tomorrow|this week|gone|asap|urgent|rush)\b/i.test(t)||/within a month/i.test(t);
 }
 
 function sellerWantsHandsOff(){
@@ -974,6 +978,10 @@ function platformLeadsEvidenceSet(route){
   const e=route?.marketEvidence||{};
   const mine=Number(e.evidenceSales||0);
   if(!mine)return false;
+  // Minimum denominator (locked): "dominates"/leadership never renders on a
+  // thin set. Below 10 total, the honest existence line ("regularly sells")
+  // carries the card instead.
+  if(Number(e.totalEvidenceSales||0)<10)return false;
   const others=(sellState.allRouteOptions||[])
     .filter(other=>other!==route&&other.marketEvidence)
     .map(other=>Number(other.marketEvidence.evidenceSales||0));
@@ -1332,7 +1340,10 @@ function resultSummaryLine(options,routes=[]){
       if(fasterRoute&&fasterName!==strongerName&&Math.min(firstMedian,secondMedian)/Math.max(firstMedian,secondMedian)>=0.9){
         return `${strongerName} looks stronger on recent comparable sales. ${fasterName} is faster to list and close, which matters if timing counts.`;
       }
-      return `${strongerName} looks stronger on recent comparable sales, and it’s my pick. ${weakerName} has real signal too.`;
+      // routes[0] IS the pick after all routing swaps (score, price, speed,
+      // win-condition): name it directly so Card 1 and the subtitle agree,
+      // never recompute the pick from medians.
+      return `${firstName} looks stronger on recent comparable sales, and it’s my pick. ${secondName} has real signal too.`;
     }
     return `${firstName} and ${secondName} both belong in the conversation, but they win for different reasons.`;
   }

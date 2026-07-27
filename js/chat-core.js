@@ -79,6 +79,10 @@ function askVehicleIdentityClarification(clarification,status,partialVehicle){
     chips,
     suggestion:clarification.suggestion||null,
     baseVehicle:clarification.baseVehicle||[partialVehicle?.make,partialVehicle?.model].filter(Boolean).join(" ")||null,
+    // Original raw input, preserved so a corrected year re-resolves the full
+    // text and recovers model detail dropped by a mis-parse (e.g. "018 Porsche
+    // 718 Cayman" keeps "718" when the year is fixed to 2018).
+    rawInput:partialVehicle?.raw||null,
     yearOnly
   };
   sellState.step=17;
