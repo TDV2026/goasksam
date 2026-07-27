@@ -108,7 +108,7 @@ async function handleSellStep(q){
       askMissingVehicleDetail(missing);
       return true;
     }
-    resumeWizardAfterVehicle(`Got it. ${sellState.carName}.`);
+    resumeWizardAfterVehicle(vehicleAcceptPrefix());
     return true;
   }
 
@@ -169,7 +169,7 @@ async function handleSellStep(q){
         sellState.trimAskAttempts=0;
         const missingFresh=currentMissingVehicleDetail();
         if(missingFresh){askMissingVehicleDetail(missingFresh);return true;}
-        resumeWizardAfterVehicle(`Got it. ${sellState.carName}.`);
+        resumeWizardAfterVehicle(vehicleAcceptPrefix());
         return true;
       }
       const prevCar=sellState.carName;
@@ -194,7 +194,7 @@ async function handleSellStep(q){
         return true;
       }
       sellState.lastMissingAsk=null;
-      addMsg("sam",`Got it. ${sellState.carName}.`);
+      addMsg("sam",vehicleAcceptPrefix());
     }
     resumeWizardAfterVehicle();
     return true;

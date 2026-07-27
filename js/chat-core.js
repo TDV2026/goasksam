@@ -98,7 +98,14 @@ function preserveDetailedVehicleLabel(candidate,canonical){
   const hasExtraDetail=normalizedCandidate.startsWith(normalizedCanonical)&&normalizedCandidate!==normalizedCanonical;
   return hasExtraDetail?candidateText:canonicalText;
 }
-async function validateVehicleIdentityPreflight(candidate,opts={}){
+// SINGLE VEHICLE RESOLVER (Phase 1a). resolveVehicleInput(text, context) is the
+// ONE choke point every input path routes through (initial entry, step 1, the
+// trim/model clarification, corrections, and confirm-step car edits). It calls
+// the shared backend resolver and records its verdict on sellState.lastIdentity-
+// Verdict as one of: "valid" (verified model), "unverified" (accepted but no
+// catalog match), "handled" (a did-you-mean/clarification was rendered), or
+// "not_vehicle". No code may set sellState.carName from raw text and skip this.
+async function resolveVehicleInput(candidate,opts={}){
   sellState.vehicleIdentityValidated=false;
   sellState.resolvedVehicle=null;
   sellState.lastIdentityVerdict=null;
@@ -126,7 +133,10 @@ async function validateVehicleIdentityPreflight(candidate,opts={}){
       // label; the wizard then skips what is already answered.
       sellState.lastVehicleAsk=null;
       sellState.vehicleClarifyRepeats=0;
-      sellState.lastIdentityVerdict="valid";
+      // Phase 1a: the resolver's verdict is surfaced identically by every input
+      // path. An unverified designation (no catalog match) is never a silent
+      // "valid": callers acknowledge it as unverified via vehicleAcceptPrefix().
+      sellState.lastIdentityVerdict=data.vehicle?.unverified?"unverified":"valid";
       if(data.vehicle?.canonicalLabel){
         // Render gate (locked): the ONLY string that may render as a car is
         // the resolver's canonical label. Raw input never becomes a label.
@@ -153,6 +163,9 @@ async function validateVehicleIdentityPreflight(candidate,opts={}){
   }
   return true;
 }
+// Back-compat alias: existing call sites keep working while the canonical name
+// is resolveVehicleInput. Both refer to the one resolver above.
+const validateVehicleIdentityPreflight=resolveVehicleInput;
 function parseResults(raw){
   const chipMatch=raw.match(/\[CHIPS:([^\]]+)\]/);
   const chips=chipMatch?chipMatch[1].split("|").map(x=>x.trim()).filter(Boolean):[];

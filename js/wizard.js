@@ -489,7 +489,7 @@ async function handleVehicleValidationAnswer(q){
         if(res.ok&&data.status==="valid"&&data.vehicle?.canonicalLabel&&!data.vehicle.unverified){
           sellState.resolvedVehicle=data.vehicle;sellState.carName=data.vehicle.canonicalLabel;sellState.carRaw=data.vehicle.canonicalLabel;
           sellState.vehicleIdentityValidated=true;sellState.vehicleDetailSkipped=false;sellState.notSureRepeats=0;
-          resumeWizardAfterVehicle(`Got it. ${sellState.carName}.`);
+          resumeWizardAfterVehicle(vehicleAcceptPrefix());
           return true;
         }
         const suggestion=String(data.clarification?.suggestion||"").trim();
@@ -533,7 +533,7 @@ async function handleVehicleValidationAnswer(q){
     sellState.trimAskAttempts=0;
     const missingFresh=currentMissingVehicleDetail();
     if(missingFresh){askMissingVehicleDetail(missingFresh);return true;}
-    resumeWizardAfterVehicle(`Got it. ${sellState.carName}.`);
+    resumeWizardAfterVehicle(vehicleAcceptPrefix());
     return true;
   }
   if(currentIssue?.baseVehicle&&/\bdifferent\b.*\bmodel\b/i.test(lower)){
@@ -566,7 +566,7 @@ async function handleVehicleValidationAnswer(q){
         if(data.vehicle.mileage&&!sellState.mileage)sellState.mileage=`${Number(data.vehicle.mileage).toLocaleString()} miles`;
         sellState.carName=data.vehicle.canonicalLabel;sellState.carRaw=data.vehicle.canonicalLabel;
         sellState.vehicleIdentityValidated=true;sellState.pendingVehicleIdentity=null;sellState.lastVehicleAsk=null;
-        resumeWizardAfterVehicle(`Got it. ${sellState.carName}.`);
+        resumeWizardAfterVehicle(vehicleAcceptPrefix());
         return true;
       }
     }catch{ /* fall through to advancing at the level known */ }
@@ -616,7 +616,7 @@ async function handleVehicleValidationAnswer(q){
     sellState.vehicleIdentityValidated=false;
     sellState.pendingVehicleIdentity=null;
     if(!(await validateVehicleIdentityPreflight(sellState.carName)))return true;
-    addMsg("sam",`Got it. ${sellState.carName}.`);
+    addMsg("sam",vehicleAcceptPrefix());
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=11;
     addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
@@ -629,7 +629,7 @@ async function handleVehicleValidationAnswer(q){
     sellState.vehicleIdentityValidated=false;
     sellState.pendingVehicleIdentity=null;
     if(!(await validateVehicleIdentityPreflight(sellState.carName)))return true;
-    addMsg("sam",`Got it. ${sellState.carName}.`);
+    addMsg("sam",vehicleAcceptPrefix());
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=11;
     addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
@@ -653,7 +653,7 @@ async function handleVehicleValidationAnswer(q){
         if(!(await validateVehicleIdentityPreflight(recovered)))return true;
         const missingR=currentMissingVehicleDetail();
         if(missingR){askMissingVehicleDetail(missingR);return true;}
-        addMsg("sam",`Got it. ${sellState.carName}.`);
+        addMsg("sam",vehicleAcceptPrefix());
         if(sellState.returnToConfirm){goBackToConfirm();return true;}
         sellState.step=11;
         addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
@@ -672,7 +672,7 @@ async function handleVehicleValidationAnswer(q){
       askMissingVehicleDetail(missing);
       return true;
     }
-    addMsg("sam",`Got it. ${sellState.carName}.`);
+    addMsg("sam",vehicleAcceptPrefix());
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=11;
     addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
@@ -701,7 +701,7 @@ async function handleVehicleValidationAnswer(q){
       askMissingVehicleDetail(missing);
       return true;
     }
-    addMsg("sam",`Got it. ${sellState.carName}.`);
+    addMsg("sam",vehicleAcceptPrefix());
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=11;
     addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
@@ -748,7 +748,7 @@ function startSellFlow(initialCar, showUserBubble=true){
         askMissingVehicleDetail(missing);
         return;
       }
-      resumeWizardAfterVehicle(`Got it. ${sellState.carName}.`);
+      resumeWizardAfterVehicle(vehicleAcceptPrefix());
     },400);
     return;
   }
@@ -756,6 +756,20 @@ function startSellFlow(initialCar, showUserBubble=true){
   setTimeout(()=>{
     addMsg("sam","Answer a few quick questions, under a minute, and I'll compare the market properly. What are we selling today?");
   },400);
+}
+
+// Single acceptance message (Phase 1a): every path that accepts a freshly
+// resolved vehicle uses this, so the resolver's verdict is surfaced identically
+// everywhere. A verified model reads "Got it. X."; an UNVERIFIED designation is
+// never a silent "Got it" - it is acknowledged as unrecognized with a broader
+// make-level read and an invitation to double-check the badge.
+function vehicleAcceptPrefix(){
+  const v=sellState.resolvedVehicle;
+  if(v&&v.unverified){
+    const label=v.model?`the ${v.make} ${v.model}`:"that";
+    return `I don't recognize ${label} as a model I track, so I'll run a broader ${v.make||"make"}-level read. Tell me the exact badge if you want to double-check the designation.`;
+  }
+  return `Got it. ${sellState.carName}.`;
 }
 
 // Resume at the first unanswered question: a vehicle edit mid-flow keeps
