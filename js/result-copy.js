@@ -1643,6 +1643,32 @@ function showTyping(){
 }
 function hideTyping(){const t=document.getElementById("typing");if(t)t.remove();}
 function quick(text){document.getElementById("inp").value=text;send();}
+
+// Phase 1c: full evidence + cards context for the post-result chat, so answers
+// cite the real data instead of the frontend re-rendering a card.
+function sellChatEvidenceSummary(){
+  const dec=sellState.sellDecision;
+  if(!dec)return "";
+  const routes=dec.decision?.routeFit?.routes||[];
+  const lines=routes.filter(r=>r.marketEvidence&&Number(r.marketEvidence.evidenceSales||0)>0).map(r=>{
+    const e=r.marketEvidence;const pp=e.pricePremium;
+    const parts=[`${Number(e.evidenceSales||0)} comps`];
+    if(pp&&pp.percent!=null&&pp.platformSales>=5&&pp.othersSales>=5)parts.push(`about ${pp.percent}% vs other platforms (${pp.scope||"model"} scope)`);
+    const wk=e.dayAdvantage;
+    if(wk&&wk.weekday&&Number.isFinite(Number(wk.liftPercent)))parts.push(`${wk.weekday} endings about ${wk.liftPercent}% stronger (${wk.scope||"make"} scope)`);
+    if(e.segmentSellThrough)parts.push(`sell-through ${e.segmentSellThrough.percent}% in ${e.segmentSellThrough.band}`);
+    return `${platformDisplayName(r.platform||r.label)}: ${parts.join(", ")}`;
+  });
+  return lines.length?`Evidence by platform (only cite these numbers): ${lines.join("; ")}.`:"";
+}
+function sellChatCardsSummary(){
+  const opts=sellState.sellOptions||[];
+  const lines=opts.map(o=>{
+    const bullets=[...(o.reasonBullets||[]).map(b=>b&&b.text),...(Array.isArray(o.altReason)?o.altReason:[]),...(o.evidenceBullets||[])].filter(Boolean);
+    return `${o.name}${o.badge?` [${o.badge}]`:""}: ${bullets.join(" | ")||"(no bullets)"}`;
+  });
+  return lines.length?`Cards shown to the seller with their exact bullet text:\n${lines.join("\n")}`:"";
+}
 function handleChip(text){quick(text);}
 function chipsHTML(chips){
   return`<div class="chips">${chips.map(c=>`<button class="chip" onclick="handleChip('${c.replace(/'/g,"\\'")}')"> ${escapeHtml(c)}</button>`).join("")}</div>`;

@@ -470,6 +470,9 @@ async function showSellRecommendation(){
   }
 
   const orderedSections=`${powerSellerHTML}${platformCardsHTML}`;
+  // Store the rendered result so an explicit "show the cards again" can re-append
+  // it without re-running the analysis (Phase 1c).
+  sellState.lastResultHTML=`${headerHTML}${orderedSections}${caveatHTML}`;
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
@@ -525,56 +528,51 @@ function handleSellRecommendationFollowup(q){
   if(!options.length&&handleNoEvidenceFollowup(q))return true;
   if(!options.length)return false;
 
-  const chosenByName=findSellOptionByText(q);
-  const option=chosenByName||options.find(o=>o.key==="primary")||options[0];
+  // Phase 1c: after results, ALL free text goes to /api/chat with full context.
+  // ONLY explicit control intents act on the UI, and NEVER a substring inside a
+  // genuine question ("so if the powerseller wants..." is a question -> chat).
+  // The old keyword ladder (compare/why/powerseller/go-with substring matches)
+  // is deleted; the chat layer answers those with the evidence in context.
+  if(isQuestionInput(q))return false;
 
-  if(/\b(go with|choose|pick|use|select)\b/i.test(lower)){
-    chooseSellOption(option.key);
+  // Start over / sell another.
+  if(/^(start over|start again|restart|new search|new car|sell another( car)?)\b/i.test(lower)){
+    startSellFlow();
     return true;
   }
-
-  if(/\b(compare|difference|tradeoffs|tradeoff)\b/i.test(lower)){
-    addMsg("sam",compareSellOptions());
+  // Change car.
+  if(/\bchange (the )?(car|vehicle)\b|^(different|wrong) car$|^different vehicle$/i.test(lower)){
+    sellState.active=true;sellState.step=1;
+    sellState.carName=null;sellState.carRaw=null;sellState.resolvedVehicle=null;
+    sellState.vehicleIdentityValidated=false;sellState.pendingVehicleIdentity=null;
+    addMsg("sam","Sure. What are we selling instead? Year, make and model.");
     return true;
   }
-
-  if(/\b(i'?ll (run|manage|handle) it|run it myself|manage it myself|handle it myself|do it myself|by myself|going diy|i'?d rather (run|do|manage))\b/i.test(lower)){
-    sellState.involvement="I'll manage it myself";
-    addMsg("sam","Noted, you're running it yourself. The platform pick above is the plan, and I won't pitch the PowerSeller route again unless you ask.");
-    return true;
-  }
-  if(/\b(power seller|powerseller|specialist|consignor|consignment|handle the whole|someone handle)\b/i.test(lower)){
-    const referral=sellState.partnerReferral||{};
-    if(referral.eligible&&referral.partner){
-      // User-initiated: fine to show the partner even after a DIY preference.
-      if(!(sellState.powerSellerProfiles||[]).length){
-        sellState.powerSellerProfiles=[partnerProfileFromReferral(referral)];
-      }
-      const profile=sellState.powerSellerProfiles[0];
-      if(!options.some(o=>o.key==="specialist")){
-        sellState.sellOptions.push({key:"specialist",name:profile.displayName,type:"PowerSeller conversation",observedSellers:[profile]});
-      }
-      addMsg("sam",`Since you asked, here's who I'd call.`,renderFeaturedPowerSellerProfile(profile));
+  // Show the recommendation / a card again (explicit request only).
+  if(/^(show|see|bring back|pull up|display)( me)?( the| my)?( cards?| options?| recommendation| powerseller| power seller| result| pick| it)?( again)?$/i.test(lower)||/\bshow .*\bagain\b/i.test(lower)){
+    if(sellState.lastResultHTML){
+      const msgs=document.getElementById("msgs");const row=document.createElement("div");row.className="row sam";
+      row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${sellState.lastResultHTML}</div></div>`;
+      msgs.appendChild(row);row.scrollIntoView({behavior:"smooth",block:"start"});
     }else{
-      addMsg("sam","For this car I'd keep it simple and sell on the recommended platform. A PowerSeller referral only makes sense when the value and the fit genuinely support it, and this one doesn't clear that bar.");
+      addMsg("sam","The recommendation is just above. Ask me anything about it.");
     }
     return true;
   }
-
-  if(chosenByName||/\b(why|better|explain|reason|what about|how about|tell me about|do they|does it|sell tons|high prices|higher|best price)\b/i.test(lower)){
-    const hiddenRoute=chosenByName?null:findHiddenRouteByText(q);
-    if(hiddenRoute&&hiddenRoute.routable===false){
-      addMsg("sam",`${platformDisplayName(hiddenRoute.label||hiddenRoute.platform)}: strong results show up there in our records, but it's a consignment auction house, not a platform you list on yourself, so I can't make it the pick. It mainly tells you serious buyers follow this car.`);
-      return true;
-    }
-    if(hiddenRoute&&!routeHasTrueComparableEvidence(hiddenRoute)){
-      addMsg("sam",`${hiddenRoute.label||hiddenRoute.platform}: I’m leaving it out because this search does not give me enough platform-specific evidence for it. It may still be worth a manual look, but I would not put it beside the main choices as if the market clearly backed it.`);
-      return true;
-    }
-    addMsg("sam",`${option.name}: ${routeAnswer(option)}`);
+  // Explicit choice command ("go with X", "I'll use X").
+  if(/^(go with|choose|pick|use|select|i'?ll (go with|take|use|choose)|let'?s (go with|use)|going with)\b/i.test(lower)){
+    const opt=findSellOptionByText(q)||options.find(o=>o.key==="primary")||options[0];
+    chooseSellOption(opt.key);
+    return true;
+  }
+  // Explicit DIY statement (not a question): honor it, no card render.
+  if(/^(i'?ll (run|manage|handle) it|run it myself|i'?ll do it myself|i'?d rather (run|do|manage) it)\b/i.test(lower)){
+    sellState.involvement="I'll manage it myself";
+    addMsg("sam","Noted, you're running it yourself. The platform pick above is the plan.");
     return true;
   }
 
+  // Everything else -> chat.
   return false;
 }
 

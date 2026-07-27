@@ -76,6 +76,14 @@ async function send(){
         // names a different platform than the card the seller is looking at.
         const shownPick=sellState.displayedRecommendedPath||dec.recommendedPath;
         sellContext+=`\nDecision facts (the engine's recommendation, do not contradict it): recommended platform ${platformDisplayName(shownPick)}; basis ${dec.evidenceBasis}; confidence ${dec.confidence}; comparable sales analyzed ${sellState.sellDecision?.evidence?.evidenceSales??"n/a"} ${(sellState.sellDecision?.evidence?.windowDays??0)>=3650?"across everything tracked":`in the last ${sellState.sellDecision?.evidence?.windowDays??"n/a"} days`}; price signal: ${premiumLine}. Reasons: ${(dec.why||[]).join(" ")}`;
+        // Phase 1c: give the chat the real evidence object and the exact card
+        // bullet text, so it answers post-result questions (including about the
+        // PowerSeller) from data instead of the frontend re-rendering a card.
+        const evidenceSummary=(typeof sellChatEvidenceSummary==="function")?sellChatEvidenceSummary():"";
+        const cardsSummary=(typeof sellChatCardsSummary==="function")?sellChatCardsSummary():"";
+        if(evidenceSummary)sellContext+=`\n${evidenceSummary}`;
+        if(cardsSummary)sellContext+=`\n${cardsSummary}`;
+        if(sellState.partnerReferral?.partner)sellContext+=`\nPowerSeller in play: ${sellState.partnerReferral.partner.name||"a vetted PowerSeller"} (${sellState.partnerReferral.eligible?"gate passed, presented as an option":"secondary option"}). A PowerSeller runs the whole sale for a fee; it never gets more money, it is a hands-off vs hands-on choice, and the platform pick stands either way.`;
       }
       try{
         const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[...history,{role:"user",content:q}],system:SELL_SYS,context:sellContext})});
