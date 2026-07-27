@@ -771,9 +771,11 @@ const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsc
   // Partner relevance numbers must be the make-scoped query result, verbatim,
   // and the price-band count must be a subset of the make count.
   const rel = sellState.partnerReferral?.partner?.verified?.relevance || sellState.partnerReferral?.verified?.relevance || null;
-  const renderedRel = usCards.replace(/<span class="num">([^<]*)<\/span>/g, "$1").match(/(\d+) ([A-Z][\w-]*) sales tracked/) || [];
+  const cleanUsCards = usCards.replace(/<span class="num">([^<]*)<\/span>/g, "$1");
   if (rel) {
-    check("partner relevance: rendered make count equals the make-scoped query", Number(renderedRel[1]) === rel.makeCount && renderedRel[2] === rel.make, `rendered="${renderedRel[0] || "none"}" api=${JSON.stringify(rel)}`);
+    // Raw partner counts are no longer rendered (locked: no raw numbers on
+    // cards). The 3+-tracked gate still drives the qualitative lane line.
+    check("partner relevance: no raw sales-tracked count rendered", !/\d+ [A-Z][\w-]* sales tracked/.test(cleanUsCards), (cleanUsCards.match(/\d+ [A-Z][\w-]* sales tracked/) || ["none"])[0]);
     check("partner relevance: price-band count is a subset of the make count", rel.inPriceBand == null || rel.inPriceBand <= rel.makeCount, JSON.stringify(rel));
   }
   const landed = sellState.sellDecision?.evidence?.ladder?.landed;
@@ -909,9 +911,8 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   // Bullet 1 always names a concrete window, never bare vagueness.
   const bullet1Lines=rendered.split("\n").filter(l=>/sales have closed on/i.test(l)&&!/than any other platform/i.test(l)&&!/% of /.test(l));
   check("bullet 1: every existence line names its span or defers to the plate", bullet1Lines.every(l=>/over the past \d+ days|in our tracked records|^\s*Many /i.test(l)), bullet1Lines.map(l=>l.trim().slice(0,120)).join(" | ")||"none");
-  // Relevance count can never exceed the make count.
-  const rel=(rendered.replace(/&#39;/g,"'").match(/(\d+) \w[\w-]* sales tracked, (\d+) in this car's price range/)||null);
-  if(rel)check("relevance: price-band count is make-scoped and sane", Number(rel[2])<=Number(rel[1]), rel[0]);
+  // Raw partner counts are no longer rendered (locked: no raw numbers on cards).
+  check("relevance: no raw sales-tracked/price-range count rendered", !/\d+ \w[\w-]* sales tracked/.test(rendered.replace(/&#39;/g,"'")), (rendered.match(/\d+ \w[\w-]* sales tracked/)||["none"])[0]);
   check("card specificity: weekday lines only render with a material lift", !/(around|at ~)[1-9]% above other (week)?days/.test(rendered), (rendered.match(/[^\n]*above other (week)?days[^\n]*/)||[""])[0]);
   // FIX 1 validation gate: any percent claim requires a proven 10+ denominator
   const pctClaim=rendered.replace(/&amp;/g,"&").match(/(\d+)% of [^\n]*closed on/);

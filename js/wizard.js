@@ -9,7 +9,7 @@ function resetSellState(){
 
 const SELL_STEP_QUESTIONS={
   1:{ask:"What are we selling today?",chips:[]},
-  17:{ask:"Which model or trim is it?",chips:["911","944","928","356","Boxster","Cayman","Not sure"]},
+  17:{ask:"Which model or trim is it? Pick one below, or just type the exact trim (like Alpina B3, M Sport or GTS) if it's not shown.",chips:["911","944","928","356","Boxster","Cayman","Not sure"]},
   11:{ask:"Where is the car located?",chips:["US","UK","Europe","Australia","Middle East","Other"]},
   18:{ask:"Which state is it in? This helps me think about PowerSeller and handoff options. Type it if it is not shown.",chips:["California","Florida","Texas","New York","New Jersey","Other"]},
   2:{ask:"Rough mileage?",chips:["Under 30k","30k to 60k","60k to 100k","Over 100k"]},

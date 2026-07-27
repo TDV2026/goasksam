@@ -212,6 +212,11 @@ async function showSellRecommendation(){
   }
 
   const routesForCards=routeOptions;
+  // Pin the FINAL displayed pick (after every frontend swap: hagerty, price,
+  // speed) so any post-result follow-up ("why this one") references the platform
+  // the card actually shows, not the backend's pre-swap recommendedPath. Applies
+  // to any recommendation whose displayed Card 1 differs from the backend pick.
+  sellState.displayedRecommendedPath=routeOptions[0]?.policyKey||routeOptions[0]?.platform||null;
   const twoRouteMode=hasTwoRouteTradeoff(routeOptions);
   const partnerReferral=decision.partnerReferral||{};
   sellState.partnerReferral=partnerReferral;

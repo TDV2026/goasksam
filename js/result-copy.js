@@ -292,7 +292,7 @@ function powerSellerAdviceReason(hasNamedSellers){
     return pickCopy([
       `I’d start with these names because they show up in recent seller activity for cars like this${sellState.state?`, and ${sellState.state} is close enough to matter`:""}. A good one should take the auction noise, buyer questions and logistics off your plate.`,
       `These are the names I’d check first. They appear around cars like this and are the best PowerSeller signals I can see from the current search.`,
-      `I picked these because they are the closest PowerSeller signals I can see for this car. They should be able to explain platform choice, prep, comments, logistics and commission clearly.`
+      `I picked these because they are the closest PowerSeller signals I can see for this car. They should be able to explain platform choice, prep, comments and logistics clearly.`
     ],sellState.carName,sellState.state,hasNamedSellers);
   }
   if(sellerWantsToManageSelf()){
@@ -303,6 +303,17 @@ function powerSellerAdviceReason(hasNamedSellers){
     "This is the kind of car where who runs the auction can matter almost as much as where it runs. I’d hear the PowerSeller case before making the call.",
     "I’d speak to a PowerSeller first. A good one can prep the car, handle the auction noise and help choose the platform with the best shot."
   ],sellState.carName,sellState.state);
+}
+
+// Rotating, service-explicit PowerSeller subline (value-first, never a fee).
+// Varies per car so repeated reads don't feel scripted. Generalized: used on
+// every PowerSeller card.
+function powerSellerServiceLine(){
+  return pickCopy([
+    "Photography, listing, buyer questions and paperwork: they manage it all.",
+    "They handle everything: photos, listing, negotiations and logistics.",
+    "One person manages photos, listing, buyer contact and platform choice."
+  ],sellState.carName||"","ps-service");
 }
 
 function powerSellerAdviceBullets(hasNamedSellers){
@@ -575,7 +586,7 @@ function sellerPriorityFitLabel(route){
   if(facts.includes("faster_listing_fit"))return "This choice fits if getting live quickly matters.";
   if(facts.includes("may_support_handoff"))return "This choice can suit a seller who wants more help with the process.";
   if(facts.includes("segment_fit"))return "The platform's typical buyer pool matches this kind of car.";
-  return "It fits your region and the way you want to sell.";
+  return "It's one of the stronger platforms for a car like this.";
 }
 
 function platformDisplayName(name){
@@ -791,7 +802,7 @@ function renderFeaturedPowerSellerProfile(profile,platformFirst,plateHTML){
   // otherwise his curated specialty line. Never an invented claim.
   const rel=v.relevance;
   const whyLine=(rel&&rel.makeCount>=3)
-    ?`<div class="dossier-why">${numify(`${rel.make} is squarely in his lane: ${rel.makeCount} ${rel.make} sales tracked${rel.inPriceBand>=3?`, ${rel.inPriceBand} in your price range`:""}.`)}</div>`
+    ?`<div class="dossier-why">${escapeHtml(`${rel.make} is squarely in his lane.`)}</div>`
     :(()=>{
       const specialty=(profile.profileStats||[]).find(l=>/^specializes in/i.test(l.text||""));
       const tail=specialty?String(specialty.text).replace(/^specializes in:?\s*/i,""):"";
@@ -811,6 +822,7 @@ function renderFeaturedPowerSellerProfile(profile,platformFirst,plateHTML){
       ${plateHTML?"":`<div class="sell-rec-badge specialist label-mono">${platformFirst===true?"Option 2: have it handled":platformFirst===false?"Option 1: have it handled":"Have it handled"}</div>
       <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>`}
       ${whyLine}
+      <div class="power-seller-service">${escapeHtml(powerSellerServiceLine())}</div>
       ${gridHTML||(proofHTML?`<div class="power-seller-proof-list">${proofHTML}</div>`:honestyNote)}
       ${platformChips?`<div class="power-seller-platform-row"><span class="power-seller-profile-label">Lists on (per ${escapeHtml(profile.name)})</span>${platformChips}</div>`:""}
       <span class="observed-seller-why">What ${escapeHtml(profile.name)} says he handles</span>
@@ -843,7 +855,7 @@ function powerSellerMiniReason(profile){
   // the curated specialty note (attributed) is the fallback.
   const rel=profile?.verified?.relevance;
   const carLine=(rel&&rel.makeCount>=3)
-    ?`${rel.makeCount} ${rel.make} sales tracked, so a ${cleanCarForCopy()} is squarely in his lane. `
+    ?`A ${cleanCarForCopy()} is squarely in his lane. `
     :"";
   if(profile.note&&!/^I’d ask\b/i.test(profile.note))return `${carLine}${profile.note}`;
   return `${carLine}${firstName} is another good fit${region ? ` in${region}` : ""} if you want help with auction management, buyer questions and deciding where the car should run.`;
@@ -1000,10 +1012,12 @@ function weekdayBullet(route){
   if(!h?.weekday)return null;
   if(["Saturday","Sunday"].includes(h.weekday))return null;
   if((h.sales||0)<3||(h.liftPercent||0)<10)return null;
+  // Only claim a specific weekday when the pattern is proven for THIS model, not
+  // merely the make (locked, generalized): a make-wide pattern is too coarse to
+  // attribute to the seller's exact car. Applies to any platform's day data.
+  if(h.scope!=="model")return null;
   const name=platformDisplayName(route.label||route.platform);
-  const scopeLabel=h.scope==="make"
-    ?`${sellState.resolvedVehicle?.make||"this make"}s`
-    :comparableModelLabel();
+  const scopeLabel=comparableModelLabel();
   return `On ${name}, ${h.weekday} endings have historically finished strongest for ${scopeLabel}, around ${h.liftPercent}% above other weekdays.`;
 }
 
