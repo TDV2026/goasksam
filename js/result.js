@@ -251,23 +251,14 @@ async function showSellRecommendation(){
       // leads, the plate moves to the dossier and this card renders as the
       // alternative. The DIY ordering re-renders this card with the plate.
       showPlate:index===0&&!hasNamedPowerSellerAdvice,
-      altReason:index>0&&!route.speedArgument?altReasonBullets(route,routesForCards[0]):null,
       actionLabel:index===0?`Submit your car to ${platformLogo({name:routeName}).text}`:`Consider ${routeName}`,
-      speedArgument:!!route.speedArgument,
-      reason:(()=>{
-        if(sellState.routingReason==="speed"&&index===0)return `If speed is your priority, ${routeName} is the right move.`;
-        if(route.speedArgument)return "Hagerty has sold 1960s Corvettes in our records and is the stronger fit when speed matters: listings get live quickly and the audience skews classic.";
-        // Segment-scoped landing: the voice names the segment market, never
-        // "this car" (locked: routing, not valuation).
-        const segLabel=index===0?(primaryReasonBullets(route,routeOptions[1]||null)||[])[0]?.segmentLabel:null;
-        if(segLabel)return `The ${segLabel} market on ${routeName} is strong.`;
-        return routeReason(route,index,routeOptions);
-      })(),
-      reasonBullets:index===0&&!route.speedArgument?primaryReasonBullets(route,routeOptions[1]||null):null,
-      momentumLine:index===0&&routeOptions[1]?comparativeMomentumLine(route,routeOptions[1]):null,
-      evidenceBullets:routeEvidenceBullets(route,index,routeOptions),
-      evidenceLine:"",
-      stat:routeTagLine(route,index,routeOptions),
+      // 1b: the composer is the ONLY source of card headline + bullets.
+      composed:composeCard(sellState.resolvedVehicle,route,{
+        isPick:index===0,
+        sellerWantsSpeed:sellerWantsSpeed(),
+        routingReason:sellState.routingReason,
+        landedScope:composerLandedScope()
+      }),
       bestFor:index===0
         ? speedFit?"Works when timing matters and the market read still backs it":"Works when the priority is the strongest sale outcome"
         : speedFit?"Worth comparing if speed-to-list matters":"Worth comparing if buyer fit or handoff is better",
@@ -320,11 +311,16 @@ async function showSellRecommendation(){
   // earliest boundary is known; never "Historical", never a window no
   // claim used. A segment-scoped bullet 1 prefixes its label so the viewer
   // knows this is competitor-set data, not exact-model data.
+  // 1b: the data-window plate is derived from the composed finding's own
+  // evidence window (delta first, then weekday), always <=180 days.
   const plateWindowLabel=option=>{
-    const info=analysisWindowInfo(option.reasonBullets);
-    const first=(option.reasonBullets||[])[0]||{};
-    const scopePrefix=first.plateScope||first.segmentLabel;
-    return scopePrefix&&info.label?`${scopePrefix} · ${info.label}`:info.label;
+    const ev=option.marketEvidence||{};
+    const p=ev.pricePremium;
+    const win=p&&Number.isFinite(p.windowDays)?p.windowDays:(ev.dayAdvantage&&ev.dayAdvantage.window)||null;
+    if(!win)return null;
+    const label=win<=45?"Last 45 days":win<=90?"Last 90 days":"Last 180 days";
+    const scope=p&&p.scope==="segment"?p.segmentLabel:(p&&p.scope==="generation"?`${String(p.generationCode||"").toUpperCase()} generation`:null);
+    return scope?`${scope} · ${label}`:label;
   };
   const verdictPlate=(option,windowLabel)=>`<div class="verdict-plate">
         <div class="vp-row1"><span class="label-mono">Sam's pick</span><span class="num label-mono">${escapeHtml(verdictRefCode)}</span></div>
@@ -343,24 +339,18 @@ async function showSellRecommendation(){
             <div style="margin-top:10px;display:flex;align-items:center;gap:10px">${tileHTML(option.name,24)}<div><div class="sell-rec-name">${escapeHtml(option.name)}</div><div class="sell-rec-type">${escapeHtml(option.type)}</div></div></div>
           </div>
         </div>`}
-        ${isPrimary&&option.reason&&!option.reasonBullets?.length?"":isPrimary?`<div class="sell-rec-samline voice">${escapeHtml(option.reason||"")}</div>`:""}
-        ${isPrimary&&option.key!=="specialist"&&lookbackLine(option)?`<div class="sell-rec-lookback">${numify(lookbackLine(option))}</div>`:""}
-        <div class="sell-rec-reason-label label-mono">${option.key==="specialist"?"Why I’d call them":option.altReason?"Why it’s worth comparing":"Why I picked this"}</div>
-        ${(()=>{
-          // Render-time evidence gate (DEFECT 2): strip any filler bullet from
-          // every card type before it renders, and never show a filler fallback
-          // reason. A card with one real bullet beats three empty ones.
-          const rb=evidenceOnlyBullets(option.reasonBullets);
-          const ar=evidenceOnlyBullets(option.altReason);
-          if(rb.length)return `<ul class="sell-rec-bullets">${rb.map(item=>`<li${item.validated?' class="validated-claim"':""}>${numify(item.text)}</li>`).join("")}</ul>`;
-          if(Array.isArray(option.altReason)&&ar.length)return `<ul class="sell-rec-bullets">${ar.map(item=>`<li>${numify(item)}</li>`).join("")}</ul>`;
-          const fb=option.speedArgument?option.reason:(option.rankReason||option.reason||"");
-          return isFillerBullet(fb)?"":`<div class="sell-rec-reason">${numify(fb)}</div>`;
+        ${(() => {
+          // 1b: EVERY line of card text comes from composeCard. Headline is the
+          // single most important data finding; bullets support it. Nothing else
+          // renders (no reason voice line, momentum, stat, or evidence line).
+          const c=option.composed;
+          if(!c)return "";
+          const label=option.key==="specialist"?"Why I’d call them":(!isPrimary?"Why it’s worth comparing":"Why I picked this");
+          const head=c.headline&&c.headline.text?`<div class="sell-rec-samline voice">${numify(c.headline.text)}</div>`:"";
+          const list=(c.bullets&&c.bullets.length)?`<ul class="sell-rec-bullets">${c.bullets.map(b=>`<li>${numify(b.text)}</li>`).join("")}</ul>`:"";
+          if(!head&&!list)return "";
+          return `<div class="sell-rec-reason-label label-mono">${label}</div>${head}${list}`;
         })()}
-        ${option.momentumLine?`<div class="sell-rec-momentum">${numify(option.momentumLine)}</div>`:""}
-        ${option.stat?`<div class="sell-rec-stat">${numify(option.stat)}</div>`:""}
-        ${(()=>{const eb=evidenceOnlyBullets(option.evidenceBullets);return eb.length&&!option.altReason?`<ul class="sell-rec-bullets">${eb.map(item=>`<li>${numify(item)}</li>`).join("")}</ul>`:"";})()}
-        ${option.evidenceLine?`<div class="sell-rec-evidence-line">${numify(option.evidenceLine||"")}</div>`:""}
         ${option.observedSellers?.length?`<div class="observed-sellers">
           ${option.observedSellers.map((seller,sellerIndex)=>`<div class="observed-seller">
             <span class="observed-seller-name">${escapeHtml(seller.name)}</span>
@@ -442,11 +432,11 @@ async function showSellRecommendation(){
   // year makes a single average false precision, and comparing the seller's
   // ask to it reads as doubt. Nothing renders about the ask vs comps.
 
-  const summaryLine=resultSummaryLine(sellState.sellOptions,routeOptions);
+  // 1b: the header carries only the factual car label. The finding lives in the
+  // pick card's composed headline; the old templated title/subtitle are deleted.
   const headerHTML=`<div class="sell-rec-header">
       <div class="sell-rec-kicker">Seller Intelligence</div>
-      <div class="sell-rec-title">${escapeHtml(resultHeaderTitle(routeOptions))}</div>
-      <div class="sell-rec-subtitle">${escapeHtml(summaryLine)}</div>
+      <div class="sell-rec-title">${escapeHtml(carDisplayLabel("your car"))}</div>
     </div>`;
   const caveatText=unverifiedModelNote()||adverseConditionCaveat();
   const caveatHTML=caveatText?`<div class="sell-section-note" style="margin-top:10px">${escapeHtml(caveatText)}</div>`:"";

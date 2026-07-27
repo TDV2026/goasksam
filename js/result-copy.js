@@ -214,15 +214,7 @@ function unverifiedModelNote(){
   return `I couldn't verify ${label} against the models I track, so this read is at the ${v.make||"make"} level and broader than model-specific. If the exact model matters, tell me the badge on the car and I'll tighten it.`;
 }
 
-function resultHeaderTitle(routes){
-  const car=carDisplayLabel("car");
-  // The handled-vs-DIY title belongs to the gate-open lead only.
-  if((sellState.sellOptions||[])[0]?.key==="specialist"){
-    return `Two ways to sell the ${car}: have it handled, or run it yourself.`;
-  }
-  if(hasTwoRouteTradeoff(routes))return `Two choices are worth considering for the ${car}.`;
-  return `Here’s what I’d do with the ${car}.`;
-}
+// (1b) deleted: resultHeaderTitle - replaced by composeCard
 
 function sellerWantsSpeed(){
   const t=String(sellState.timeline||"").toLowerCase();
@@ -437,82 +429,7 @@ function speedTiebreak(routes){
   return null;
 }
 
-function routeReason(route,index,routes){
-  const name=route.label||route.platform;
-  const speedPick=speedTiebreak(routes);
-  if(speedPick){
-    if(index===0){
-      // Locked two-part structure: a speed phrase, then a negligible-gap
-      // phrase. Pools keyed on the car so wording varies across searches but
-      // stays stable for the same car.
-      const SPEED_PHRASES=[
-        n=>`${n} tends to get listings live fast.`,
-        n=>`${n} historically closes quicker.`,
-        n=>`${n} moves faster to market.`,
-        n=>`${n} gets a listing live sooner.`,
-        n=>`${n} runs the quicker auction cycle.`,
-        n=>`${n} is the faster route from listing to close.`
-      ];
-      const GAP_PHRASES=[
-        c=>`Results for ${c} are similar between the top choices recently.`,
-        c=>`The top platforms have sold ${c} at similar money lately.`,
-        c=>`Recent ${c} results are close across the leading platforms.`,
-        c=>`There isn't a meaningful platform gap on recent ${c} sales.`,
-        c=>`The leading choices show near-identical recent results for ${c}.`,
-        c=>`Recent sales for ${c} land at similar levels across the top platforms.`
-      ];
-      const speedLine=pickCopy(SPEED_PHRASES,sellState.carName,"speed")(speedPick.firstName);
-      const gapLine=pickCopy(GAP_PHRASES,sellState.carName,"gap")(cleanCarForCopy());
-      return `${speedLine} ${gapLine}`;
-    }
-    return `If you had more time, ${speedPick.secondName} would be worth the slight median edge. Speed is your constraint, so ${speedPick.firstName}.`;
-  }
-  if(hasTwoRouteTradeoff(routes)){
-    const evidence=route.marketEvidence||{};
-    const other=routes.find(item=>item!==route);
-    const otherEvidence=other?.marketEvidence||{};
-    const otherName=other?.label||other?.platform;
-    if(other&&Number(evidence.medianSalePrice||0)>Number(otherEvidence.medianSalePrice||0)){
-      // Voice line is final and opinionated (locked rule 15): no escape
-      // hatches, no compare-before-choosing. Pool keyed on the car.
-      return index===0
-        ? pickCopy([
-            `If this were my car, it goes on ${platformDisplayName(name)}.`,
-            `${platformDisplayName(name)} is the call here.`,
-            `The recent results put this car on ${platformDisplayName(name)}.`
-          ],sellState.carName,"final-pick")
-        : `${name} belongs in the conversation because the gap is close enough that buyer fit and speed-to-list still matter.`;
-    }
-    if(["fast","medium_fast"].includes(route.speedToList)){
-      // Speed tiebreak on a negligible gap (locked): state the fact, then make
-      // the call. Platform-first, no window, no "close enough". The price fact
-      // uses the grounded "similar money" register, never the gated "Price is
-      // negligible between" claim (which requires the Tier 1.5 5+/5+ proof the
-      // speed path does not carry). Recommending language is the pick's alone.
-      const platform=platformDisplayName(name);
-      const car=cleanCarForCopy();
-      return index===0
-        ? `The top platforms have sold ${car} at similar money, so I'm recommending ${platform} because it lists faster and moves cars quicker.`
-        : `The top platforms have sold ${car} at similar money, and ${platform} lists faster, so it stays worth a look.`;
-    }
-    if((evidence.topThreeSales||0)>=2){
-      return `It captured a meaningful share of the strongest recent results, so I would not ignore it.`;
-    }
-    return `The market result and process tradeoffs are close enough to compare.`;
-  }
-  if(index===0){
-    // Final and opinionated (rule 15): no sell-it-yourself conditionals.
-    return pickCopy([
-      `If this were my car, it goes on ${platformDisplayName(name)}.`,
-      `${platformDisplayName(name)} is where I’d put it.`,
-      `The market for this car runs through ${platformDisplayName(name)}.`
-    ],sellState.carName,"solo-pick");
-  }
-  return pickCopy([
-    `${name} is still worth looking at, but the choice above is stronger on the current market read.`,
-    `${name} is worth considering, though I would start with the choice above today.`
-  ],sellState.carName,name,index);
-}
+// (1b) deleted: routeReason - replaced by composeCard
 
 function primaryInsightSentence(route){
   // Headlines are one direct sentence naming the pick (locked): never a
@@ -678,7 +595,6 @@ function partnerProfileFromReferral(referral){
       trackedSales:Number(verified.trackedSales||0),
       latestSaleDate:verified.latestSaleDate||null,
       medianSaleValue:verified.medianSaleValue||null,
-      sellThrough:verified.sellThrough||null,
       makeMix:verified.makeMix||null,
       belowCareerMinimum:verified.belowCareerMinimum!==false,
       relevance:verified.relevance||null
@@ -752,18 +668,13 @@ function powerSellerClientChips(profile){
 // full width below them (it wraps badly in a half cell). Unmatched lines
 // fall through as plain rows.
 function dossierGridCells(profile,v){
-  const lines=(profile?.profileStats||[]).map(line=>{
-    if(/\{sellThroughPercent\}/.test(line.text)){
-      if(!v.sellThrough)return null;
-      return line.text.replace(/\{sellThroughPercent\}/g,v.sellThrough.ratePercent);
-    }
-    return line.text;
-  }).filter(Boolean);
+  // Sell-through removed (1b): drop any curated stat line that mentions it.
+  const lines=(profile?.profileStats||[]).map(line=>line.text)
+    .filter(t=>t&&!/\{sellThroughPercent\}|sell-?through/i.test(t));
   const cells=[];const leftovers=[];let specialize=null;
   for(const line of lines){
     let m;
     if((m=line.match(/^(\d+\+?) listings tracked(.*)$/i)))cells.push({key:"Listings tracked",value:m[1]});
-    else if((m=line.match(/^(\d+)% sell-through/i)))cells.push({key:"Sell-through",value:`${m[1]}%`});
     else if((m=line.match(/^Specializes in:?\s*(.+)$/i)))specialize=m[1];
     // "Lists primarily on X" is dropped from the grid: the tile row further
     // down ("Lists on (per howS)") is the richer version of the same fact.
@@ -787,10 +698,7 @@ function powerSellerProofItems(profile){
     // line never leads: it reads as a contradiction of the car on screen.
     const make=String(sellState.resolvedVehicle?.make||"").toLowerCase();
     return profile.profileStats.map(line=>{
-      if(/\{sellThroughPercent\}/.test(line.text)){
-        if(!v.sellThrough)return null;
-        return [null,line.text.replace(/\{sellThroughPercent\}/g,v.sellThrough.ratePercent)];
-      }
+      if(/\{sellThroughPercent\}|sell-?through/i.test(line.text))return null;
       if(make&&/^specializes in/i.test(line.text)&&!line.text.toLowerCase().includes(make))return null;
       return [null,line.text];
     }).filter(Boolean);
@@ -799,7 +707,6 @@ function powerSellerProofItems(profile){
   if(v.belowCareerMinimum)return rows;
   rows.push(["Tracked sales in our records",`${v.trackedSales} completed sale${v.trackedSales===1?"":"s"}${v.latestSaleDate&&dateShort(v.latestSaleDate)?`, most recent ${dateShort(v.latestSaleDate)}`:""}`]);
   if(v.medianSaleValue)rows.push(["Median sale across those records",`${moneyShort(v.medianSaleValue.value)} over ${v.medianSaleValue.sample} sales`]);
-  if(v.sellThrough)rows.push(["Sell-through in tracked listings",`${v.sellThrough.ratePercent}% of ${v.sellThrough.sample} listings${Number.isFinite(v.sellThrough.baselinePercent)?` (platform baseline ${v.sellThrough.baselinePercent}%)`:""}`]);
   if((v.makeMix||[]).length)rows.push(["Make mix in those records",v.makeMix.map(m=>`${m.make} ${m.percent}%`).join(", ")]);
   return rows;
 }
@@ -945,53 +852,7 @@ function plural(value,singular,pluralWord){
 //   at 10+).
 // Bullet 3: speed positioning from curated policy, only when the
 //   alternative is curated-fast and the pick is not.
-function altReasonBullets(route,pick){
-  // Evidence-only gate (DEFECT 2): the alt card draws from the SAME evidence
-  // pool as the pick card. Every bullet is a fact only our tracked data can
-  // produce. Failed gates render NOTHING; we never pad with filler. Fewer strong
-  // bullets beat three empty ones, so this may return one bullet or none.
-  const bullets=[];
-  const name=platformDisplayName(route.label||route.platform);
-  const e=route?.marketEvidence||{};
-  const mine=Number(e.evidenceSales||0);
-
-  // 1. Comparative price delta vs the pick (5+ comps each side).
-  const altDelta=gatedPriceDelta(route,pick);
-  if(altDelta)bullets.push(altDelta);
-
-  // 2. Comparative volume from tracked comps. "regularly" needs a real 10+
-  // sample; the leadership claim needs this platform to beat the others.
-  const remaining=(sellState.allRouteOptions||[])
-    .filter(other=>other!==route&&other!==pick&&other.marketEvidence)
-    .map(other=>Number(other.marketEvidence.evidenceSales||0));
-  const pickCount=Number(pick?.marketEvidence?.evidenceSales||0);
-  const landedWindow=Number(sellState.sellDecision?.evidence?.windowDays);
-  if(mine>=10&&Number.isFinite(landedWindow)&&landedWindow<=365){
-    bullets.push(`${name} moves ${comparableSalesLabel()}s regularly.`);
-  }else if(mine>=5&&mine>pickCount&&(!remaining.length||mine>=Math.max(...remaining))){
-    bullets.push(`${name} has closed more ${comparableSalesLabel()} sales than the pick.`);
-  }
-
-  // 3. Day-of-week advantage scoped to the model (same source as Card 1).
-  const day=weekdayBullet(route);
-  if(day)bullets.push(day);
-
-  // 4. Segment sell-through from tracked records, gated on asking price (a null
-  // return means the band would misdescribe the car, so the bullet is dropped).
-  if(e.segmentSellThrough){
-    const st=sellThroughLine(e.segmentSellThrough);
-    if(st)bullets.push(`${st}.`);
-  }
-
-  // 5. Speed positioning from curated route policy (grounded, not invented).
-  const pickFast=["fast","medium_fast"].includes(pick?.speedToList);
-  if(["fast","medium_fast"].includes(route.speedToList)&&!pickFast){
-    bullets.push(`If speed matters, ${name} typically runs the quicker auction cycle.`);
-  }
-
-  const clean=evidenceOnlyBullets(dedupeStringBullets(bullets)).slice(0,3);
-  return clean.length?clean:null;
-}
+// (1b) deleted: altReasonBullets - replaced by composeCard
 
 // Tier B leadership check: true only when this platform's evidence count
 // strictly beats every other platform's count AND the per-platform counts
@@ -1047,163 +908,138 @@ function gatedPriceDelta(route,altRoute){
   return `Typically ${formatUsd(Math.abs(delta))} ${delta>0?"higher":"lower"} than ${altName}.`;
 }
 
+// ===================== 1b: EVIDENCE-FIRST CARD COMPOSER =====================
+// composeCard(vehicle, route, opts) is the ONE source of every card's headline
+// and bullets, in every layout. Each returned string carries provenance from a
+// named evidence field; a field with no backing does not render. No template
+// sentences, no sell-through, no value opinions. Market claims state their scope
+// AND their <=180-day window in the sentence.
+
+// Plural, human phrase for the car at a given scope. Model scope names the car;
+// generation names the chassis; make is "<Make>s as a whole".
+function composerScopePhrase(vehicle,scope,generationCode){
+  const make=vehicle&&vehicle.make?String(vehicle.make):"";
+  const model=vehicle&&vehicle.model?String(vehicle.model):"";
+  if(scope==="make"||!model)return `${make||"these cars"}s as a whole`.replace(/ss as a whole$/,"s as a whole");
+  if(scope==="generation"&&generationCode)return `${String(generationCode).toUpperCase()}-generation ${make} ${model}s`.trim();
+  const yr=vehicle&&vehicle.year?`${vehicle.year} `:"";
+  return `${yr}${model}s`;
+}
+// Weekday advantage bullet (dayAdvantage): 180-day window, scope word required.
+function composerWeekdayBullet(vehicle,ev){
+  const d=ev&&ev.dayAdvantage;
+  if(!d||!d.weekday||!d.scope||!Number.isFinite(Number(d.liftPercent)))return null;
+  const win=`over the past ${d.window||180} days`;
+  let text;
+  if(d.scope==="make"){
+    const make=vehicle&&vehicle.make?`${vehicle.make}s`:"These cars";
+    text=`${make} as a whole have closed strongest on ${d.weekday}s ${win}`;
+  }else{
+    text=`${composerScopePhrase(vehicle,d.scope,d.generationCode)} have closed strongest on ${d.weekday}s, around ${d.liftPercent}% above other days, ${win}`;
+  }
+  return { text:`${text}.`, provenance:`dayAdvantage(${d.scope},${d.window||180}d)` };
+}
+// Curated audience/specialty fact from the platform copy library.
+function composerAudienceBullet(ev){
+  const line=platformFitLine({label:ev.label,platform:ev.platform});
+  return line?{ text:line, provenance:"platformFitCopy" }:null;
+}
+// Conditional speed line, only when the seller indicated speed matters.
+function composerSpeedBullet(ev,opts){
+  if(!opts.sellerWantsSpeed||!["fast","medium_fast"].includes(ev.speedToList))return null;
+  return { text:`If speed matters, ${platformDisplayName(ev.label||ev.platform)} typically runs the quicker auction cycle.`, provenance:"speedToList" };
+}
+// Mode A delta headline: the winning platform's cleared comparative delta.
+function composerDeltaHeadline(vehicle,ev){
+  const p=ev.pricePremium;if(!p)return null;
+  const name=platformDisplayName(ev.label||ev.platform);
+  const win=`over the past ${p.windowDays} days`;
+  if(p.type==="market_dominance"){
+    return { text:`${name} is where most ${composerScopePhrase(vehicle,p.scope||"model",p.generationCode)} sales have closed ${win}.`, provenance:`pricePremium.market_dominance(${p.scope||"model"},${p.windowDays}d)` };
+  }
+  if(p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10){
+    return { text:`${name} has closed ${composerScopePhrase(vehicle,p.scope||"model",p.generationCode)} around ${p.percent}% higher than the other platforms we track ${win}.`, provenance:`pricePremium(${p.scope||"model"},${p.windowDays}d,${p.percent}%)` };
+  }
+  return null;
+}
+// Mode B similarity headline: prices within a small percentage; the reason Card 1
+// leads (speed if the seller wants speed, else the deepest recent market).
+function composerSimilarityHeadline(vehicle,ev,opts){
+  const p=ev.pricePremium;
+  const win=p?`over the past ${p.windowDays} days`:"recently";
+  const name=platformDisplayName(ev.label||ev.platform);
+  const scope=(p&&p.scope)||"model";
+  const reason=(opts.sellerWantsSpeed&&opts.routingReason==="speed")
+    ?`so speed decides: ${name} lists and closes faster`
+    :`so the deepest recent market for this car leads: ${name} has the most recent sales`;
+  return { text:`Prices for ${composerScopePhrase(vehicle,scope)} have been within a small percentage across the top platforms ${win}, ${reason}.`, provenance:`pricePremium.negligible(${p?p.windowDays+"d":"?"})` };
+}
+// Honest headline: no delta or similarity finding cleared the gates.
+function composerHonestHeadline(vehicle,landedScope){
+  const car=vehicle&&vehicle.model?`the ${[vehicle.make,vehicle.model].filter(Boolean).join(" ")}`:`this ${vehicle&&vehicle.make?vehicle.make:"car"}`;
+  return { text:`Recent sales for ${car} are limited, so I ran this at ${landedScope||"make"} level.`, provenance:`ladder.landed(${landedScope||"make"})` };
+}
+// Landed-rung scope word for the honest headline, from the evidence ladder.
+function composerLandedScope(){
+  const key=String(sellState.sellDecision?.evidence?.ladder?.landed?.key||"");
+  if(/make/.test(key))return "make";
+  if(/generation/.test(key))return "generation";
+  if(/segment/.test(key))return "segment";
+  return "model";
+}
+// THE composer. Returns { headline:{text,provenance}|null, bullets:[{text,provenance}] }.
+function composeCard(vehicle,route,opts={}){
+  if(opts.powerSeller){
+    return { headline:{ text:powerSellerIntroLine(), provenance:"powerSellerService" },
+      bullets:[{ text:powerSellerServiceLine(), provenance:"powerSellerService" }] };
+  }
+  const ev=Object.assign({},route.marketEvidence||{},{ label:route.label, platform:route.platform, speedToList:route.speedToList, about:route.about });
+  const unverified=!!(vehicle&&vehicle.unverified);
+  const landedScope=opts.landedScope||"make";
+  let headline=null;
+  if(unverified){
+    // Make-level read only; never a verified-style delta/weekday claim.
+    headline=composerHonestHeadline(vehicle, vehicle&&vehicle.make?"make":landedScope);
+  }else if(opts.isPick){
+    const p=ev.pricePremium;
+    if(p&&(p.type==="market_dominance"||(p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10))){
+      headline=composerDeltaHeadline(vehicle,ev);
+    }else if(p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)){
+      headline=composerSimilarityHeadline(vehicle,ev,opts);
+    }else{
+      headline=composerHonestHeadline(vehicle,landedScope);
+    }
+  }else{
+    const p=ev.pricePremium;
+    if(p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10){
+      headline=composerDeltaHeadline(vehicle,ev);
+    }else if(Number(ev.evidenceSales||0)>0){
+      headline={ text:`${platformDisplayName(ev.label||ev.platform)} has also closed recent ${composerScopePhrase(vehicle,landedScope==="make"?"make":"model")} sales.`, provenance:`evidenceSales(${ev.evidenceSales})` };
+    }else{
+      headline=null;
+    }
+  }
+  const bullets=[];
+  if(!unverified){ const wk=composerWeekdayBullet(vehicle,ev); if(wk)bullets.push(wk); }
+  const aud=composerAudienceBullet(ev); if(aud)bullets.push(aud);
+  const spd=composerSpeedBullet(ev,opts); if(spd)bullets.push(spd);
+  // Dedupe (reuse the round-3 guard) and cap at 3; drop any that echo the headline.
+  const out=[];
+  for(const b of bullets){
+    if(!b||!b.text)continue;
+    if(headline&&bulletsSimilar(headline.text,b.text))continue;
+    if(out.some(o=>bulletsSimilar(o.text,b.text)))continue;
+    out.push(b);
+  }
+  return { headline, bullets: out.slice(0,3) };
+}
+
 // "Why I picked this" is ONE list of three concrete reasons, never prose.
 // Bullet 1 IS the share claim (validated 10+ cross-platform denominator,
 // rendered green); below the gate it falls back to the honest existence
 // line, neutral. Items are {text, validated} so the renderer can style
 // the earned-green line without a separate band component.
-function primaryReasonBullets(route,altRoute){
-  if(!route?.marketEvidence)return null;
-  const e=route.marketEvidence;
-  const facts=routeFacts(route);
-  let bullets=[];
-  // Bullet 1 is always comparative (locked), first tier whose gates pass:
-  // Tier 1: price premium, green. Model-scoped, 5+ sold both sides in the
-  //   same window, rounded gap 10%+; % only, never dollars, never "median".
-  // Tier 1.5: price negligibility, neutral. Same sample gates, measured gap
-  //   under 10% but at least 2% (below 2% is instrument noise).
-  // Tier 2: volume share, green. Proven cross-platform denominator, 10+.
-  // Tier 3: verified leadership, neutral.
-  // Tier 4: honest existence with a real window, neutral, last resort.
-  if(e.evidenceSales>0){
-    const premium=e.pricePremium;
-    const premiumSampled=!!(premium&&premium.platformSales>=5&&premium.othersSales>=5);
-    const landedDays=sellState.sellDecision?.evidence?.windowDays;
-    if(sellState.debugTierGates){
-      console.log(`[DEBUG] Tier 1-2 evaluation: ${cleanCarForCopy()} on ${platformDisplayName(route.label||route.platform)}`);
-      console.log("  Tier 1 gate (price premium):");
-      console.log("    - platformSalesCount:",premium?.platformSales??null);
-      console.log("    - othersSalesCount:",premium?.othersSales??null);
-      console.log("    - gapPercent:",premium?.percent??null);
-      console.log("    - windowDays:",premium?.windowDays??null);
-      console.log("    - pass?",!!(premiumSampled&&premium.percent>=10));
-      console.log("  Tier 1.5 gate (negligibility):");
-      console.log("    - pass?",!!(premiumSampled&&Math.abs(premium.percent)>=2&&Math.abs(premium.percent)<10));
-      console.log("  Tier 2 gate (volume share):");
-      console.log("    - platformSalesCount:",e.evidenceSales);
-      console.log("    - totalSalesAllPlatforms:",facts.totalEvidenceSales);
-      console.log("    - pass?",Number(facts.totalEvidenceSales)>=10);
-      console.log("  Tier 3 gate (leadership): pass?",platformLeadsEvidenceSet(route));
-    }
-    // A wider-scoped premium says so (locked scope transparency): generation
-    // claims name the generation; segment claims name the segment AND its
-    // model list, never silently labeled as the exact model.
-    const premiumScopePhrase=premium?.scope==="segment"
-      ?`${premium.segmentLabel} sales (${(premium.models||[]).join(", ")})`
-      :premium?.scope==="generation"
-      ?`${String(premium.generationCode||"").toUpperCase()}-generation ${sellState.resolvedVehicle?.model||comparableSalesLabel()} sales`.trim()
-      :`${comparableSalesLabel()} sales`;
-    const premiumSince=premium?.earliestSaleDate?String(premium.earliestSaleDate).slice(0,4):null;
-    // Scope-descent meta for the transparency line: set when the claim's
-    // scope widened beyond the landed rung. Generation carries its year
-    // range so the descent reads as a deliberate scope choice.
-    const genRange=sellState.sellDecision?.evidence?.generation;
-    const scopeDescent=premium?.scope==="segment"
-      ?{to:`the ${premium.segmentLabel} segment (${(premium.models||[]).join(", ")})`}
-      :premium?.scope==="generation"
-      ?{to:`the ${String(premium.generationCode||"").toUpperCase()}-generation ${sellState.resolvedVehicle?.model||"model"}`,
-        range:(genRange?.yearStart&&genRange?.yearEnd)?`${genRange.yearStart} to ${genRange.yearEnd}`:""}
-      :null;
-    // Platform-first bullet copy (locked, July 2026): every tier claim names
-    // the platform as the subject, carries no time window and no raw count.
-    // The premium tier keeps its real percentage (the only number allowed);
-    // volume/leadership/existence tiers use "plenty / dominates / regularly
-    // sells" instead of shares and counts. The window/scope META stays on the
-    // bullet object so the separate data-provenance plate is unchanged.
-    if(premium&&premium.gateType==="asymmetric"&&premium.marketShare>=75&&premium.platformSales>=5){
-      // Market concentration (asymmetric gate): one platform holds the buyer
-      // pool. Earned-green volume claim. "dominates" is reserved for the plain
-      // leadership tier, so this uses the green volume phrasing instead.
-      const name=platformDisplayName(route.label||route.platform);
-      const subject=(premium.scope==="segment"||premium.scope==="generation")?premiumScopePhrase.replace(/ sales$/,""):carPluralForCopy();
-      bullets.push({
-        text:`${name} has sold plenty of ${subject}.`,
-        validated:true,windowDays:premium.windowDays,sinceYear:premiumSince,
-        segmentLabel:premium.scope==="segment"?premium.segmentLabel:undefined,plateScope:premium.scope==="generation"?`${String(premium.generationCode||"").toUpperCase()} generation`:undefined,scopeDescent});
-    }else if(premiumSampled&&premium.percent>=10){
-      const name=platformDisplayName(route.label||route.platform);
-      const subject=(premium.scope==="segment"||premium.scope==="generation")?premiumScopePhrase.replace(/ sales$/,""):carPluralForCopy();
-      bullets.push({
-        text:`${name} closes ${subject} around ${premium.percent}% higher than other platforms.`,
-        validated:true,windowDays:premium.windowDays,sinceYear:premiumSince,segmentLabel:premium.scope==="segment"?premium.segmentLabel:undefined,plateScope:premium.scope==="generation"?`${String(premium.generationCode||"").toUpperCase()} generation`:undefined,scopeDescent});
-    }else if(premiumSampled&&Math.abs(premium.percent)>=2&&Math.abs(premium.percent)<10){
-      // Honest only pick-vs-alt when those two platforms hold all the
-      // evidence; with more platforms it stays "the other platforms".
-      const platformsWithSales=(sellState.allRouteOptions||[]).filter(other=>Number(other.marketEvidence?.evidenceSales||0)>0).length;
-      const otherName=(altRoute&&platformsWithSales===2)?platformDisplayName(altRoute.label||altRoute.platform):"the other platforms";
-      bullets.push({text:`Price is negligible between ${platformDisplayName(route.label||route.platform)} and ${otherName}.`,validated:false,windowDays:premium.windowDays,sinceYear:premiumSince});
-    }else if(Number(facts.totalEvidenceSales)>=10){
-      bullets.push({text:`${platformDisplayName(route.label||route.platform)} has sold plenty of ${carPluralForCopy()}.`,validated:true,windowDays:landedDays});
-    }else if(platformLeadsEvidenceSet(route)){
-      bullets.push({text:`${platformDisplayName(route.label||route.platform)} dominates ${cleanCarForCopy()} sales.`,validated:false,windowDays:landedDays});
-    }else if(e.segmentVolume&&e.segmentVolume.mineSold>e.segmentVolume.othersSold){
-      // Segment majority (routing, not valuation): where the buyer pool for
-      // the competitor set converges. Always names the segment and models.
-      const sv=e.segmentVolume;
-      bullets.push({text:`${platformDisplayName(route.label||route.platform)} moves most ${sv.segmentLabel} sales (${(sv.models||[]).join(", ")}).`,validated:false,windowDays:sv.windowDays,segmentLabel:sv.segmentLabel});
-    }else{
-      // Tier 4 existence: platform regularly sells the car. No count, no window.
-      bullets.push({text:`${platformDisplayName(route.label||route.platform)} regularly sells ${carPluralForCopy()}.`,validated:false,windowDays:landedDays});
-    }
-  }
-  // Win-condition strength (Phase 2): when a curated win condition routed this
-  // pick (Hagerty/PCARMarket for a segment, backed by the car's own comps), the
-  // specialist-audience reason leads. Qualitative, never the raw share.
-  if(route.winCondition?.segmentLabel){
-    bullets.push({text:`The specialist audience for ${route.winCondition.segmentLabel} bids actively here.`,validated:false,windowDays:36500});
-  }
-  // Gated price delta (Phase 2): "typically $X higher/lower than [alt]", only
-  // when BOTH platforms carry a real sample (5+ comparable sales each) so the
-  // comparison is proven, never invented (rule 1).
-  const delta=gatedPriceDelta(route,altRoute);
-  if(delta)bullets.push({text:delta,validated:false,windowDays:sellState.sellDecision?.evidence?.windowDays});
-  // Bullet 2: platform-scoped historical day advantage (weekdays only).
-  const day=weekdayBullet(route);
-  if(day)bullets.push({text:day,validated:false,windowDays:36500});
-  // Bullet 3: when a speed swap routed this pick, the bullet explains the
-  // routing from curated policy (no invented metrics). Otherwise the
-  // qualitative segment sell-through, plus a speed acknowledgment only when
-  // the seller wants it gone fast.
-  if(sellState.routingReason==="speed"){
-    bullets.push({text:`${platformDisplayName(route.label||route.platform)} typically runs the quicker auction cycle.`,validated:false});
-  }else{
-    let bullet3="";
-    if(e.segmentSellThrough){
-      bullet3=sellThroughLine(e.segmentSellThrough)||"";
-    }
-    if(sellerWantsSpeed()){
-      // Grounded phrasing only: listing-cycle speed comes from curated route
-      // policy, never an invented day count (no platform-mechanics claims).
-      const fastPlatform=["fast","medium_fast"].includes(route.speedToList);
-      const speedLine=fastPlatform
-        ?"Quick auction cycle if you're prioritizing a fast close"
-        :"On a fast timeline, this is still the market I'd trust to move it";
-      bullet3=bullet3?`${bullet3}. ${speedLine}`:speedLine;
-    }
-    if(bullet3)bullets.push({text:`${bullet3}.`,validated:false,windowDays:36500});
-  }
-  // Exactly three bullets (locked): a failed gate skips its bullet and a
-  // grounded fallback fills the slot, never fewer than three on an
-  // evidence-backed card. Fallbacks in order: unused segment sell-through,
-  // curated speed policy, curated fit line. No duplicates.
-  bullets=dedupeBullets(bullets);
-  if(bullets.length&&bullets.length<3){
-    const name=platformDisplayName(route.label||route.platform);
-    const queue=[];
-    const stLine=e.segmentSellThrough?sellThroughLine(e.segmentSellThrough):null;
-    if(stLine&&!bullets.some(b=>/sell-through/i.test(b.text))){
-      queue.push({text:`${stLine}.`,windowDays:36500});
-    }
-    if(["fast","medium_fast"].includes(route.speedToList))queue.push({text:`${name} typically runs the quicker auction cycle.`});
-    const fitText=platformFitLine(route)||sellerPriorityFitLabel(route);
-    if(fitText)queue.push({text:fitText});
-    for(const item of queue){
-      if(bullets.length>=3)break;
-      if(item.text&&!isFillerBullet(item.text)&&!bullets.some(b=>bulletsSimilar(b.text,item.text)))bullets.push({...item,validated:false});
-    }
-  }
-  return bullets.length?evidenceOnlyBullets(dedupeBullets(bullets)).slice(0,3):null;
-}
+// (1b) deleted: primaryReasonBullets - replaced by composeCard
 
 // Card-level dedup guard (locked B1): no two bullets on one card may share the
 // same lead clause or more than 60% of their words. The later duplicate is
@@ -1258,39 +1094,18 @@ function evidenceOnlyBullets(bullets){
 
 // Highest dollar value named in a segment band string ("$50k to $150k" ->
 // 150000; "$50,000 to $150,000" -> 150000). Bare sub-1000 values are thousands.
-function bandCeiling(band){
-  let max=null;
-  for(const m of String(band||"").toLowerCase().matchAll(/(\d[\d,]*(?:\.\d+)?)\s*k?/g)){
-    let n=Number(m[1].replace(/,/g,""));
-    if(!Number.isFinite(n)||n<=0)continue;
-    if(/k/.test(m[0]))n*=1000; else if(n<1000)n*=1000;
-    if(max===null||n>max)max=n;
-  }
-  return max;
-}
+// (1b) deleted dead helper: bandCeiling
 
 // Sell-through line, gated on the seller's asking price (locked): if the asking
 // price sits ABOVE the band ceiling, the band would misdescribe the car. We
 // NEVER comment on whether a price is high or low (no value opinions, ever), so
 // we DROP the sell-through bullet entirely (return null) and the caller fills
 // the slot with other grounded evidence. Otherwise the qualitative band line.
-function sellThroughLine(sellThrough){
-  const ceiling=bandCeiling(sellThrough.band);
-  const asking=estimatedTargetPrice();
-  if(asking&&ceiling&&asking>ceiling)return null;
-  const adjective=sellThrough.percent>=85?"Strong":"Consistent";
-  return `${adjective} sell-through for ${segmentCategoryDesc(sellThrough.band)}`;
-}
+// (1b) deleted dead helper: sellThroughLine
 
 // "classic Porsches in the $50k to $150k range": era word from the resolved
 // year, plural make, the platform's real segment band.
-function segmentCategoryDesc(band){
-  const rv=sellState.resolvedVehicle||{};
-  const year=Number(rv.year)||Number(rv.yearRange?.start)||null;
-  const era=year?(year<1990?"classic":year<2006?"modern classic":"modern"):"collector";
-  const make=rv.make?`${rv.make}s`:"cars";
-  return `${era} ${make} in the ${band} range`;
-}
+// (1b) deleted dead helper: segmentCategoryDesc
 
 function weekdayInsightLine(evidence){
   if(evidence?.strongestWeekday){
@@ -1350,8 +1165,7 @@ function routeFacts(route){
     topThreeSales:e.topThreeSales||0,
     weekday:e.strongestWeekday||null,
     weekdayLift:e.strongestWeekdayLiftPercent||null,
-    momentum:e.momentum||null,
-    segmentSellThrough:e.segmentSellThrough||null
+    momentum:e.momentum||null
   };
 }
 
@@ -1367,126 +1181,16 @@ function comparableSalesLabel(){
   return comparableModelLabel().replace(/ models$/,"");
 }
 
-function routeEvidenceBullets(route,index,routes){
-  if(!routeHasTrueComparableEvidence(route)){
-    // Policy-fit route: honest absence, curated reputation (policy_provided,
-    // phrased as reputation not statistics), honest close.
-    const about=route.about||null;
-    const name=platformDisplayName(route.label||route.platform);
-    const bullets=[
-      index===0?"This is a fit call, not a sales-data call: the tracked sales data doesn't cover this exact car well enough yet to lead with numbers.":"Worth comparing on platform fit, not sales data."
-    ];
-    if(about)bullets.push(`${name} has a strong reputation in ${about.regionsLabel}, has been selling collector cars since ${about.since}, and is known for ${about.knownFor}.`);
-    else{const fit=platformFitLine(route)||sellerPriorityFitLabel(route);if(fit)bullets.push(fit);}
-    bullets.push("Best bet is to contact them directly; they can speak to demand for your specific car.");
-    return evidenceOnlyBullets(dedupeStringBullets(bullets)).slice(0,3);
-  }
-  const facts=routeFacts(route);
-  // Five-dimension card (locked): the headline carries dimension 1 (where the
-  // comps sold and for what). Bullets are the remaining dimensions in priority
-  // order, each fact rendered exactly once, omitted when there is no data,
-  // never padded with restatements.
-  const bullets=[];
-  // The primary card carries these dimensions in its structured reason
-  // bullets; repeating them here would trip the repetition guard.
-  const primaryHasReasonBullets=index===0&&!!primaryReasonBullets(route);
-  // (2) platform sell-through for this segment, from full-dataset baselines
-  // (absent until the records hold non-sold listings). Each stat renders
-  // once per session: repeats across searches read as filler.
-  // Gated on asking price: don't quote a band's sell-through when the seller's
-  // price sits above that band's ceiling (the band would misdescribe the car).
-  const stAsk=estimatedTargetPrice(),stCeil=facts.segmentSellThrough?bandCeiling(facts.segmentSellThrough.band):null;
-  if(facts.segmentSellThrough&&!primaryHasReasonBullets&&!(stAsk&&stCeil&&stAsk>stCeil)){
-    const statKey=`sellthrough|${route.platform||route.label}|${facts.segmentSellThrough.band}`;
-    if(!window.__shownSessionStats)window.__shownSessionStats=new Set();
-    if(!window.__shownSessionStats.has(statKey)){
-      window.__shownSessionStats.add(statKey);
-      bullets.push(`${facts.segmentSellThrough.percent}% of ${facts.segmentSellThrough.band} listings here sold in our tracked records.`);
-    }
-  }
-  // (3) the day advantage is market-wide (historical, all-time) and renders
-  // on the primary card only; repeating it here would duplicate the sentence.
-  // (4) momentum, qualitative only (locked: no sample or window numbers)
-  if(!primaryHasReasonBullets){
-    if(facts.momentum&&facts.momentum.percent>=5)bullets.push(`Comparable results here have been strengthening recently.`);
-    else if(facts.momentum&&facts.momentum.percent<=-5)bullets.push(`Comparable results here have softened a little recently, worth pricing realistically.`);
-  }
-  return dedupeStringBullets(bullets).slice(0,4);
-}
+// (1b) deleted: routeEvidenceBullets - replaced by composeCard
 
-function resultSummaryLine(options,routes=[]){
-  // Speed-swapped routing owns its reason up front.
-  if(sellState.routingReason==="speed"){
-    const pickName=(options||[]).find(option=>option.key!=="specialist")?.name;
-    if(pickName)return `You need it fast. ${pickName} is your move.`;
-  }
-  // Lead-with-partner prose only when the partner genuinely leads (gate
-  // open, first option): a secondary mention never changes the summary.
-  if((options||[])[0]?.key==="specialist"){
-    if(sellerWantsToManageSelf())return "You told me you’d rather manage it yourself. I’d normally agree, but I’d still hear one PowerSeller out before deciding.";
-    return "I’d speak to one experienced PowerSeller first. They can tell you whether Bring a Trailer, Cars & Bids or another platform gives this specific car the best chance.";
-  }
-  if(hasTwoRouteTradeoff(routes)){
-    const first=routes[0], second=routes[1];
-    const fe=first.marketEvidence||{};
-    const se=second.marketEvidence||{};
-    const firstName=first.label||first.platform;
-    const secondName=second.label||second.platform;
-    const firstMedian=Number(fe.medianSalePrice||0);
-    const secondMedian=Number(se.medianSalePrice||0);
-    const fasterRoute=[first,second].find(route=>["fast","medium_fast"].includes(route.speedToList));
-    if(firstMedian&&secondMedian){
-      const strongerName=firstMedian>=secondMedian?firstName:secondName;
-      const weakerName=firstMedian>=secondMedian?secondName:firstName;
-      const fasterName=fasterRoute?.label||fasterRoute?.platform;
-      const speedPick=speedTiebreak(routes);
-      if(speedPick){
-        return `You want it gone fast. Results ${marketWindowPhrase()} are negligible, so ${speedPick.firstName} is the best option.`;
-      }
-      if(fasterRoute&&fasterName!==strongerName&&Math.min(firstMedian,secondMedian)/Math.max(firstMedian,secondMedian)>=0.9){
-        return `${strongerName} looks stronger on recent comparable sales. ${fasterName} is faster to list and close, which matters if timing counts.`;
-      }
-      // routes[0] IS the pick after all routing swaps (score, price, speed,
-      // win-condition): name it directly so Card 1 and the subtitle agree,
-      // never recompute the pick from medians.
-      return `${firstName} looks stronger on recent comparable sales, and it’s my pick. ${secondName} is the next best on the same comps.`;
-    }
-    return `${firstName} and ${secondName} both belong in the conversation, but they win for different reasons.`;
-  }
-  const evidenceOptions=(options||[]).filter(option=>option.marketEvidence);
-  const primary=evidenceOptions[0];
-  const alt=evidenceOptions.slice(1).find(option=>option.marketEvidence?.medianSalePrice);
-  const primaryRoute=(sellState.allRouteOptions||[]).find(route=>(route.label||route.platform)===primary?.name);
-  if(primaryRoute){
-    const insight=primaryInsightSentence(primaryRoute);
-    if(insight)return insight;
-  }
-  if(primary&&alt){
-    return medianDeltaSentence(primary,alt)||pickCopy([
-      `${primary.name} is where the market for your car is right now.`,
-      `The strongest recent results for ${comparableSalesLabel()} are on ${primary.name}.`,
-      `If this were my car, it goes on ${primary.name}.`
-    ],sellState.carName,primary.name,alt.name);
-  }
-  if(primary){
-    return pickCopy([
-      `${primary.name} is where the market for your car is right now.`,
-      `The strongest recent results for ${comparableSalesLabel()} are on ${primary.name}.`,
-      `If this were my car, it goes on ${primary.name}.`
-    ],sellState.carName,primary.name);
-  }
-  return "I’m only showing choices I can stand behind.";
-}
+// (1b) deleted: resultSummaryLine - replaced by composeCard
 
-function compactPlatformCopy(option,primaryPlatform){
-  const primaryName=primaryPlatform?.name||"the first choice";
-  if(!option)return "Worth comparing, but it is not where I’d start.";
-  // Speed-routed secondary (e.g. fast-timeline 1960s Corvette -> Hagerty):
-  // the compact row carries the speed argument itself.
-  if(option.speedArgument)return option.reason;
-  const speedPick=speedTiebreak(sellState.allRouteOptions?.slice(0,2));
-  if(speedPick&&option.name===speedPick.secondName)return `If you had more time, ${speedPick.secondName} would be worth the slight median edge. Speed is your constraint, so ${speedPick.firstName}.`;
-  return `Worth considering, but I’d still start with ${primaryName}. Tap to see why.`;
+function compactPlatformCopy(option){
+  // 1b: compact copy is the composed finding for this platform, nothing else.
+  const c=option&&option.composed;
+  if(c&&c.headline&&c.headline.text)return c.headline.text;
+  if(c&&c.bullets&&c.bullets[0])return c.bullets[0].text;
+  return "";
 }
 
 function marketEvidenceSentence(option){
@@ -1565,19 +1269,12 @@ function rankingReason(option,index,options){
 }
 
 function routeAnswer(option){
-  const options=sellState.sellOptions||[];
-  const index=options.findIndex(o=>o.key===option.key);
-  const facts=[rankingReason(option,index<0?0:index,options)];
-  const route=(sellState.allRouteOptions||[]).find(item=>(item.label||item.platform)===option.name);
-  const bullets=route?routeEvidenceBullets(route,index<0?0:index,sellState.allRouteOptions||[]):[];
-  facts.push(...bullets.slice(0,2));
-  if(option.speedToList==="fast"||option.speedToList==="medium_fast"){
-    facts.push(sellerWantsSpeed()
-      ?`${option.name}'s auction velocity is a real advantage here. Your want-it-gone-fast preference tips the scale.`
-      :`${option.name} can also be the cleaner play if getting live quickly matters.`);
-  }
-  if(option.speedToList==="slower")facts.push(`${option.name} takes longer to get live.`);
-  return facts.filter(Boolean).join(" ");
+  // 1b: the answer is the composed finding for this platform (headline + bullets).
+  const c=option&&option.composed;
+  const parts=[];
+  if(c&&c.headline&&c.headline.text)parts.push(c.headline.text);
+  for(const b of (c&&c.bullets)||[])parts.push(b.text);
+  return parts.join(" ");
 }
 
 function routeForOption(option){
@@ -1657,7 +1354,6 @@ function sellChatEvidenceSummary(){
     if(pp&&pp.percent!=null&&pp.platformSales>=5&&pp.othersSales>=5)parts.push(`about ${pp.percent}% vs other platforms (${pp.scope||"model"} scope)`);
     const wk=e.dayAdvantage;
     if(wk&&wk.weekday&&Number.isFinite(Number(wk.liftPercent)))parts.push(`${wk.weekday} endings about ${wk.liftPercent}% stronger (${wk.scope||"make"} scope)`);
-    if(e.segmentSellThrough)parts.push(`sell-through ${e.segmentSellThrough.percent}% in ${e.segmentSellThrough.band}`);
     return `${platformDisplayName(r.platform||r.label)}: ${parts.join(", ")}`;
   });
   return lines.length?`Evidence by platform (only cite these numbers): ${lines.join("; ")}.`:"";
@@ -1665,7 +1361,8 @@ function sellChatEvidenceSummary(){
 function sellChatCardsSummary(){
   const opts=sellState.sellOptions||[];
   const lines=opts.map(o=>{
-    const bullets=[...(o.reasonBullets||[]).map(b=>b&&b.text),...(Array.isArray(o.altReason)?o.altReason:[]),...(o.evidenceBullets||[])].filter(Boolean);
+    const c=o.composed||{};
+    const bullets=[c.headline&&c.headline.text,...((c.bullets||[]).map(b=>b&&b.text))].filter(Boolean);
     return `${o.name}${o.badge?` [${o.badge}]`:""}: ${bullets.join(" | ")||"(no bullets)"}`;
   });
   return lines.length?`Cards shown to the seller with their exact bullet text:\n${lines.join("\n")}`:"";

@@ -6,7 +6,7 @@ import { findGeneration, generationModelToken } from "../lib/generations.js";
 import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
 import { MODEL_SEGMENTS } from "../lib/vehicleData.js";
 import { calculateEffectiveSampleSize, MINIMUM_EFFECTIVE_SAMPLE, getRecencyMultiplier, getPlatformDominanceScore, calculateConfidenceScore, getConfidenceLevel } from "../lib/weighting.js";
-import { computePartnerCareerStats, computePlatformBaselines, partnerRelevance, priceBand } from "../lib/marketStats.js";
+import { computePartnerCareerStats, partnerRelevance, priceBand } from "../lib/marketStats.js";
 import {
   asText,
   classifyRecord,
@@ -312,6 +312,15 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
         if (medianRatio >= 0.9 && ["fast", "medium_fast"].includes(policy.speedToList)) score += 8;
       }
       if (comparableCount >= 3) score += 3;
+      // Data pick (1b): the highest positive comparative delta leads. A cleared
+      // premium (>=10%, 5+/5+ same rung and window) is the strongest signal,
+      // above the median-ratio proxy; the platform that wins the pooled delta
+      // wins the card. Never assume BaT. Region mismatch (-175 below) still
+      // outranks this, so a region-excluded platform can never lead on a delta.
+      const premium = evidence.pricePremium;
+      if (premium && premium.gateType === "symmetric" && Number.isFinite(premium.percent) && premium.percent >= 10) {
+        score += 40 + Math.min(premium.percent, 60);
+      }
     }
     if (facts.includes("segment_fit")) score += 10;
     if (priorities.fastSale && facts.includes("faster_listing_fit")) score += 12;
@@ -896,7 +905,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
   // gate; fuels the majority claim ("Most Audi sport-compact sales...").
   const segmentVolumeFor = platform => {
     if (!segmentDef) return null;
-    for (const window of [45, 90, 180, 36500]) {
+    for (const window of [45, 90, 180]) {
       const eligible = pairedRecords.filter(item =>
         daysAgo(item.record.auction_end_date) <= window && segmentEligible(item));
       const mineSold = eligible.filter(item => recordPlatform(item.record) === platform).length;
@@ -930,7 +939,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     // A measured sub-10% gap at the first sample-sufficient step ships too:
     // the frontend renders it as the honest negligibility claim (Tier 1.5).
     let firstMeasured = null;
-    for (const window of [45, 90, 180, 36500]) {
+    for (const window of [45, 90, 180]) {
       const scopeDefs = window === 45 ? [landed.definition] : [landed.definition, premiumGenerationDef].filter(Boolean);
       for (const def of scopeDefs) {
         const eligible = pairedRecords.filter(item =>
@@ -972,7 +981,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     // unlabeled segment-scope negligibility claim would violate scope
     // transparency.
     if (segmentDef) {
-      for (const window of [45, 90, 180, 36500]) {
+      for (const window of [45, 90, 180]) {
         const eligible = pairedRecords.filter(item =>
           daysAgo(item.record.auction_end_date) <= window && segmentEligible(item));
         const mine = eligible.filter(item => recordPlatform(item.record) === platform)
@@ -1005,20 +1014,32 @@ function analyze(records, classifications, ladder, vehicle, debug) {
   // sales only, weekdays only (Saturday/Sunday excluded from both the best
   // day and the comparison base), model scope with make fallback. Cars &
   // Bids never gets one (no weekend auctions; the frontend also skips it).
+  // Weekday advantage is a MARKET-CONDITION claim, so it computes at the 180-day
+  // window ONLY (1b): shorter windows split a small sample across seven days and
+  // are noise. Scope preference model -> generation -> make; the scope and the
+  // 180-day window are carried through so the composer states both.
   const platformDayAdvantage = platform => {
+    const within180 = list => list.filter(item => daysAgo(item.record.auction_end_date) <= 180);
     const weekdaysOnly = list => list.filter(item => {
       const day = weekdayName(item.record.auction_end_date);
       return day && day !== "Saturday" && day !== "Sunday";
     });
     const gate = insight => insight && insight.strongestWeekdaySales >= 3 && insight.strongestWeekdayLiftPercent >= 10
       && !["Saturday", "Sunday"].includes(insight.strongestWeekday);
-    const modelInsight = strongestWeekdayInsight(weekdaysOnly(pairedRecords.filter(item =>
-      recordPlatform(item.record) === platform && ["close_match", "relevant_match"].includes(item.classification?.comparison_tier))));
-    if (gate(modelInsight)) return { weekday: modelInsight.strongestWeekday, sales: modelInsight.strongestWeekdaySales, liftPercent: modelInsight.strongestWeekdayLiftPercent, scope: "model", window: "all_time" };
-    const makeInsight = strongestWeekdayInsight(weekdaysOnly(pairedRecords.filter(item =>
-      recordPlatform(item.record) === platform && item.classification?.comparison_tier && item.classification.comparison_tier !== "excluded")));
-    if (gate(makeInsight)) return { weekday: makeInsight.strongestWeekday, sales: makeInsight.strongestWeekdaySales, liftPercent: makeInsight.strongestWeekdayLiftPercent, scope: "make", window: "all_time" };
-    return null;
+    const mine = item => recordPlatform(item.record) === platform;
+    const build = (records, scope) => {
+      const insight = strongestWeekdayInsight(weekdaysOnly(within180(records)));
+      return gate(insight)
+        ? { weekday: insight.strongestWeekday, sales: insight.strongestWeekdaySales, liftPercent: insight.strongestWeekdayLiftPercent, scope, window: 180 }
+        : null;
+    };
+    const model = build(pairedRecords.filter(item => mine(item) && ["close_match", "relevant_match"].includes(item.classification?.comparison_tier)), "model");
+    if (model) return model;
+    if (premiumGenerationDef) {
+      const generation = build(pairedRecords.filter(item => mine(item) && ladderEligible(item, premiumGenerationDef)), "generation");
+      if (generation) return generation;
+    }
+    return build(pairedRecords.filter(item => mine(item) && item.classification?.comparison_tier && item.classification.comparison_tier !== "excluded"), "make");
   };
 
   let platformPerformance = [...platformMap.entries()]
@@ -1178,7 +1199,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     debugPremiumWalk: premiumWalkTraces || undefined,
     // Request-gated diagnostics (body.debug === true): per-window eligible
     // counts, pairwise premium math and earliest dates. Never rendered.
-    debugWindows: debug && landed ? [45, 90, 180, 36500].map(window => {
+    debugWindows: debug && landed ? [45, 90, 180].map(window => {
       const eligible = pairedRecords.filter(item =>
         daysAgo(item.record.auction_end_date) <= window && ladderEligible(item, landed.definition));
       const perPlatform = {};
@@ -1478,21 +1499,16 @@ async function loadActivePartners(supabaseUrl, supabaseKey) {
 // the relevance line is the one request-time connection to the current car.
 async function partnerVerifiedStats(partner, vehicle, estimatedValue, supabaseUrl, supabaseKey) {
   const usernames = (partner.seller_usernames || []).filter(Boolean);
-  const empty = { trackedSales: 0, belowCareerMinimum: true, medianSaleValue: null, sellThrough: null, makeMix: null, relevance: null, latestSaleDate: null };
+  // Sell-through removed (1b): a "% sold" rate is a banned claim (sold-only
+  // data). The partner's tracked-sales COUNT stays as a track-record total.
+  const empty = { trackedSales: 0, belowCareerMinimum: true, medianSaleValue: null, makeMix: null, relevance: null, latestSaleDate: null };
   if (!usernames.length || !supabaseUrl || !supabaseKey) return empty;
   const career = await computePartnerCareerStats(usernames, { supabaseUrl, supabaseKey });
   if (!career) return empty;
-  let sellThrough = career.sellThrough;
-  if (sellThrough?.platform) {
-    const baselines = await computePlatformBaselines({ supabaseUrl, supabaseKey });
-    const baselinePercent = baselines?.[sellThrough.platform]?.sellThroughPercent;
-    if (baselinePercent != null) sellThrough = { ...sellThrough, baselinePercent };
-  }
   return {
     trackedSales: career.trackedSales,
     latestSaleDate: career.latestSaleDate,
     medianSaleValue: career.medianSaleValue,
-    sellThrough,
     makeMix: career.makeMix,
     belowCareerMinimum: career.belowCareerMinimum,
     relevance: partnerRelevance(career, vehicle, estimatedValue)
@@ -1797,22 +1813,10 @@ export default async function handler(req, res) {
     const classificationPersistence = await persistClassifications(records, classifications, rawPersistence.idLookup, supabaseUrl, supabaseKey);
     const analysis = analyze(records, classifications, fetchResult.ladder, vehicle, req.body?.debug === true);
 
-    // Segment sell-through per platform, from the full-dataset baselines.
-    // Null until the dataset carries non-sold listings; the frontend omits
-    // the dimension rather than padding it.
-    const baselines = await computePlatformBaselines({ supabaseUrl, supabaseKey });
-    const segmentBand = priceBand(analysis.estimatedValue);
-    if (baselines && segmentBand) {
-      analysis.platformPerformance = analysis.platformPerformance.map(platform => {
-        const bucket = baselines[platform.platform]?.byBand?.[segmentBand];
-        return {
-          ...platform,
-          segmentSellThrough: bucket && bucket.sellThroughPercent != null
-            ? { percent: bucket.sellThroughPercent, band: segmentBand, sample: bucket.listings }
-            : null
-        };
-      });
-    }
+    // Sell-through removed (1b): our search-path records are sold-only, so a
+    // sold/listed rate cannot be computed. The old segmentSellThrough was the
+    // tracked partner's coverage rate for a platform+price-band across all
+    // makes, mislabeled as the car's segment rate. No sell-through renders.
 
     const decision = decide(analysis, sellerCriteria, vehicle);
     decision.partnerReferral = await evaluatePartnerReferral(analysis, sellerCriteria, vehicle, supabaseUrl, supabaseKey);
