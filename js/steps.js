@@ -287,6 +287,11 @@ async function handleSellStep(q){
   // ── STEP 12: recommendation follow-up ───────────────────────
   if(step===12){
     if(handleSellRecommendationFollowup(q))return true;
+    // Anything the follow-up handler couldn't resolve, if it's a real message
+    // (a question OR two-plus words), routes to the chat layer for a genuine
+    // answer (returning false -> handleSellStep false -> chat), never a canned
+    // deflection. Only empty/one-word noise gets the guidance line. (rule 12)
+    if(isQuestionInput(q)||String(q||"").trim().split(/\s+/).filter(Boolean).length>=2)return false;
     addMsg("sam","Ask me about any choice above, or choose the one you'd like to explore.");
     return true;
   }

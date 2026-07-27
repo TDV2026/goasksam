@@ -161,15 +161,21 @@ function parseResults(raw){
   return{clean,chipsHTML:chipsHTML2};
 }
 let __lastSamText=null;
+const __recentSamTexts=[];
 function addMsg(role,text,html="",chipsStr=""){
   hideHero();
-  // Global no-repeat backstop (locked rule 12): no Sam text renders twice
-  // consecutively anywhere. Callers should escalate properly; this catches
-  // whatever slips through with an actionable variation.
-  if(role==="sam"&&text&&text===__lastSamText){
+  // Global no-repeat backstop (locked rule 12): no Sam text renders twice in a
+  // conversation, not just consecutively. A repeat within the recent window
+  // (e.g. Sam P -> fallback -> Sam P) is caught and varied. Callers should still
+  // escalate/route properly; this is the backstop.
+  if(role==="sam"&&text&&__recentSamTexts.includes(text)){
     text=`${text} (If you're stuck, say 'move on' and I'll continue with what we have.)`;
   }
-  if(role==="sam"&&text)__lastSamText=text;
+  if(role==="sam"&&text){
+    __lastSamText=text;
+    __recentSamTexts.push(text);
+    if(__recentSamTexts.length>12)__recentSamTexts.shift();
+  }
   const msgs=document.getElementById("msgs");
   const row=document.createElement("div");row.className="row "+role;
   const inner=document.createElement("div");inner.className="row-inner";
