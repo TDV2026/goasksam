@@ -360,7 +360,6 @@ async function showSellRecommendation(){
           </div>`).join("")}
         </div>`:""}
         <div class="sell-rec-actions"><button class="${isPrimary?"primary":"ghost"}" onclick="event.stopPropagation();chooseSellOption('${escapeHtml(option.key)}')">${escapeHtml(option.actionLabel||"Consider this")}</button></div>
-        <div class="sell-rec-footer label-mono">GoAskSam may receive a referral fee if you proceed.</div>
       </div>`;
   };
 

@@ -828,7 +828,6 @@ function renderFeaturedPowerSellerProfile(profile,platformFirst,plateHTML){
       <span class="observed-seller-why">What ${escapeHtml(profile.name)} says he handles</span>
       <ul class="sell-rec-bullets">${powerSellerWhyBullets(profile,0).slice(0,2).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
       ${profile.specialtiesNote?`<div class="power-seller-profile-grid"><div class="power-seller-profile-block"><div class="power-seller-profile-label">Typical clients (per ${escapeHtml(profile.name)})</div><div class="power-seller-chip-row">${powerSellerClientChips(profile)}</div></div></div>`:""}
-      <div class="power-seller-footnote">GoAskSam may receive a referral fee if you proceed.</div>
     </div>
     <div class="sell-rec-actions"><button class="ghost" onclick="event.stopPropagation();choosePowerSeller('${escapeHtml(profile.id)}')">Request an introduction to ${escapeHtml(firstName)} -></button></div>
   </div>

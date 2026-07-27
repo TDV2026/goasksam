@@ -226,7 +226,7 @@ function guardRender(name, text) {
     }
     // Alternative cards must name the searched model, never generic
     // platform language ("this platform", "this category").
-    const altSegment = (raw.split(/Also strong here/)[1] || "").split(/sell-rec-footer/)[0];
+    const altSegment = (raw.split(/Also strong here/)[1] || "").split(/sell-rec-actions/)[0];
     if (altSegment && sellState.resolvedVehicle?.model) {
       const flatAlt = altSegment.replace(/<span class="num">([^<]*)<\/span>/g, "$1").replace(/&amp;/g, "&").replace(/<[^>]+>/g, " ").toLowerCase();
       // The car may be named by model, trim, or the label vocabulary the
