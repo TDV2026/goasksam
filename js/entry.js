@@ -63,6 +63,11 @@ async function send(){
       const nextQ=SELL_STEP_QUESTIONS[sellState.step];
       const remaining=remainingWizardQuestions();
       let sellContext=`Current sell state: ${stateStr}\nNext question: ${nextQ?nextQ.ask:"Proceed with submission."}\nQuestions remaining after the current one: ${remaining}. If asked how many questions are left, use this exact number.`;
+      // Verification status as a HARD FACT (Defect 1): hold one position all
+      // conversation; never flip to validating an unverified designation.
+      if(sellState.resolvedVehicle?.unverified){
+        sellContext+=`\nVEHICLE VERIFICATION: the model "${sellState.resolvedVehicle.model||sellState.carName}" is UNVERIFIED - it is not a designation we track. The analysis ran at ${sellState.resolvedVehicle.make||"make"} level. Hold this position for the ENTIRE conversation no matter how the user reframes it (rare, real, low-production): it may exist, but it is not in the sales records we track, so we cannot build any claim on it. Never call it fake or nonsense; never flip to validating it. Offer to re-run only if they confirm the exact badge.`;
+      }
       const dec=sellState.sellDecision?.decision;
       if(dec?.recommendedPath){
         const heroEvidence=(sellState.sellDecision?.analysis?.platformPerformance||[])[0]||{};
@@ -83,7 +88,19 @@ async function send(){
         const cardsSummary=(typeof sellChatCardsSummary==="function")?sellChatCardsSummary():"";
         if(evidenceSummary)sellContext+=`\n${evidenceSummary}`;
         if(cardsSummary)sellContext+=`\n${cardsSummary}`;
-        if(sellState.partnerReferral?.partner)sellContext+=`\nPowerSeller in play: ${sellState.partnerReferral.partner.name||"a vetted PowerSeller"} (${sellState.partnerReferral.eligible?"gate passed, presented as an option":"secondary option"}). A PowerSeller runs the whole sale for a fee; it never gets more money, it is a hands-off vs hands-on choice, and the platform pick stands either way.`;
+        // PowerSeller gate outcome (Defect 3): answer "why not a powerseller"
+        // from the REAL gate result, never with value insinuations.
+        const pr=sellState.partnerReferral||{};
+        const cond=pr.conditions||{};
+        const gateBits=[];
+        if(sellState.resolvedVehicle?.unverified){
+          gateBits.push("the model could not be verified, so it could not be matched to a specialist's tracked track record with confidence (this is the reason, NOT the car's value)");
+        }else{
+          gateBits.push(cond.valueMet?"value gate: met":"value gate: below threshold");
+          gateBits.push(cond.segmentMet?"specialist expertise match: found":"specialist expertise match: none for this car");
+        }
+        gateBits.push(pr.eligible?"result: gate passed, PowerSeller offered as an option":(pr.secondary?"result: shown only as a modest secondary":"result: no PowerSeller shown"));
+        sellContext+=`\nPowerSeller gate outcome (answer "why not a powerseller" from THIS; NEVER imply the seller's car lacks value or does not qualify on worth): ${gateBits.join("; ")}. A PowerSeller runs the whole sale for a fee; it never gets more money; it is a hands-off vs hands-on choice; the platform pick stands either way.`;
       }
       try{
         const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[...history,{role:"user",content:q}],system:SELL_SYS,context:sellContext})});

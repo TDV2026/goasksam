@@ -215,12 +215,13 @@ function unverifiedModelNote(){
 }
 
 function resultHeaderTitle(routes){
+  const car=carDisplayLabel("car");
   // The handled-vs-DIY title belongs to the gate-open lead only.
   if((sellState.sellOptions||[])[0]?.key==="specialist"){
-    return `Two ways to sell the ${sellState.carName||"car"}: have it handled, or run it yourself.`;
+    return `Two ways to sell the ${car}: have it handled, or run it yourself.`;
   }
-  if(hasTwoRouteTradeoff(routes))return `Two choices are worth considering for the ${sellState.carName||"car"}.`;
-  return `Here’s what I’d do with the ${sellState.carName||"car"}.`;
+  if(hasTwoRouteTradeoff(routes))return `Two choices are worth considering for the ${car}.`;
+  return `Here’s what I’d do with the ${car}.`;
 }
 
 function sellerWantsSpeed(){

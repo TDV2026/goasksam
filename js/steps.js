@@ -388,7 +388,7 @@ function showConfirmation(){
   const msgs=document.getElementById("msgs");
   const row=document.createElement("div");row.className="row sam";
   const rows=[
-    {label:"Car",value:sellState.carName||"Not set"},
+    {label:"Car",value:sellState.carName?carDisplayLabel():"Not set"},
     {label:"Location",value:sellState.region||"Not set"},
     sellState.state?{label:"State",value:sellState.state}:null,
     {label:"Mileage",value:sellState.mileage||"Not set"},

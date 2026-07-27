@@ -330,7 +330,7 @@ async function showSellRecommendation(){
         <div class="vp-row1"><span class="label-mono">Sam's pick</span><span class="num label-mono">${escapeHtml(verdictRefCode)}</span></div>
         <div class="vp-name">${escapeHtml(option.name)}</div>
         <div class="vp-hairline"></div>
-        <div class="vp-vehicle-row"><span class="label-mono">${numify(`${sellState.carName||"Car"} · ${[sellState.state,sellState.region].filter(Boolean)[0]||"US"}`)}</span>${windowLabel?`<span class="label-mono">${numify(`Data: ${windowLabel}`)}</span>`:""}</div>
+        <div class="vp-vehicle-row"><span class="label-mono">${numify(`${carDisplayLabel("Car")} · ${[sellState.state,sellState.region].filter(Boolean)[0]||"US"}`)}</span>${windowLabel?`<span class="label-mono">${numify(`Data: ${windowLabel}`)}</span>`:""}</div>
       </div>`;
   const renderOptionCard=option=>{
     const isPrimary=!!option.showPlate;
@@ -528,6 +528,29 @@ function handleSellRecommendationFollowup(q){
   if(!options.length&&handleNoEvidenceFollowup(q))return true;
   if(!options.length)return false;
 
+  // Pending re-run confirmation (Defect 2): the seller gave a corrected/new
+  // model and we offered to re-run. Yes commits the re-run (carrying every other
+  // wizard answer); no keeps the current analysis.
+  if(sellState.pendingRerun){
+    if(detectIntent(lower)==="affirmation"||/^(yes|yep|yeah|re-?run|do it|go ahead|sure|please|ok)\b/i.test(lower.trim())||/re-?run as|yes,? re-?run/i.test(lower)){
+      commitReRun();
+      return true;
+    }
+    if(detectIntent(lower)==="negation"||/^(no|keep|nevermind|never mind|cancel|leave it)\b/i.test(lower.trim())){
+      sellState.pendingRerun=null;
+      addMsg("sam","Kept the current analysis. Ask me anything about it.");
+      return true;
+    }
+    // anything else falls through (question -> chat)
+  }
+  // After a bare "change car", the next message is the replacement designation
+  // (even a bare model number) -> route it to the re-run offer.
+  if(sellState.awaitingReplacementCar&&!isQuestionInput(q)){
+    sellState.awaitingReplacementCar=false;
+    offerReRun(q);
+    return true;
+  }
+
   // Phase 1c: after results, ALL free text goes to /api/chat with full context.
   // ONLY explicit control intents act on the UI, and NEVER a substring inside a
   // genuine question ("so if the powerseller wants..." is a question -> chat).
@@ -535,17 +558,28 @@ function handleSellRecommendationFollowup(q){
   // is deleted; the chat layer answers those with the evidence in context.
   if(isQuestionInput(q))return false;
 
+  // Re-run / change-car with a new model (Defect 2): an explicit request to run a
+  // different car, or a corrected/new designation, offers a one-tap re-run rather
+  // than being refused. Never tell the seller to finish a car they said is wrong.
+  const reRunReq=/\b(run (a |the )?(new|different|another) car|re-?run|new model|different model|analy[sz]e (a )?different|change (it |the car )?to|actually (it'?s|its|the model|the car))\b/i.test(lower);
+  // A bare model designation (3-4 digits plus a letter, e.g. 859h, 850i, 351rg)
+  // post-result is a corrected car. "30k"/"m3" are excluded by the digit count.
+  const hasDesignation=/\b\d{3,4}[a-z]{1,3}\b|\b[a-z]{1,3}\d{3,4}\b/i.test(q);
+  if(reRunReq||hasDesignation||(looksLikeVehicleText(q)&&!/^(go with|show|see|choose|pick|use|select)\b/i.test(lower))){
+    offerReRun(q);
+    return true;
+  }
+
   // Start over / sell another.
-  if(/^(start over|start again|restart|new search|new car|sell another( car)?)\b/i.test(lower)){
+  if(/^(start over|start again|restart|new search|sell another( car)?)\b/i.test(lower)){
     startSellFlow();
     return true;
   }
-  // Change car.
+  // Change car with no model named yet: ask for it, then the next message
+  // (even a bare designation) routes to the re-run offer (Defect 2).
   if(/\bchange (the )?(car|vehicle)\b|^(different|wrong) car$|^different vehicle$/i.test(lower)){
-    sellState.active=true;sellState.step=1;
-    sellState.carName=null;sellState.carRaw=null;sellState.resolvedVehicle=null;
-    sellState.vehicleIdentityValidated=false;sellState.pendingVehicleIdentity=null;
-    addMsg("sam","Sure. What are we selling instead? Year, make and model.");
+    sellState.awaitingReplacementCar=true;
+    addMsg("sam","Sure. What's the car instead? Give me the year, make and model and I'll re-run with everything else you've told me.");
     return true;
   }
   // Show the recommendation / a card again (explicit request only).
@@ -574,6 +608,61 @@ function handleSellRecommendationFollowup(q){
 
   // Everything else -> chat.
   return false;
+}
+
+// Re-run offer (Defect 2): resolve a corrected/new designation through the one
+// resolver WITHOUT mutating the current result, then offer a one-tap re-run. The
+// verdict is honored: a near-miss surfaces the did-you-mean as the target, an
+// unverified designation is flagged as a make-level re-run, a no-match asks again.
+async function offerReRun(rawText){
+  const cleaned=String(rawText||"")
+    .replace(/^.*?\b(actually|it'?s|its|the model is|the car is|really a|change (it |the car )?to a?|run (a |the )?(new|different|another) car( as| based on| with)?|new model( is)?|re-?run (as|with|it as)?|analy[sz]e (a )?different( car)?( as)?)\b[:,]?\s*/i,"")
+    .trim()||String(rawText||"").trim();
+  if(!cleaned||!looksLikeVehicleText(cleaned)&&!/\b[a-z]*\d/i.test(cleaned)){
+    addMsg("sam","Sure, I can re-run for a different car. Give me the year, make and model and I'll keep your other answers.");
+    return;
+  }
+  try{
+    const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:cleaned})});
+    const data=await res.json();
+    if(res.ok&&data.status==="needs_confirmation"&&data.clarification?.suggestion){
+      const sug=data.clarification.suggestion;
+      sellState.pendingRerun={rawText:sug};
+      addMsg("sam",`I don't have that exact model on record. Did you mean ${sug}? Want me to re-run the analysis as ${sug}?`,"",chipsHTML([`Yes, re-run as ${sug}`,"No, keep current"]));
+      return;
+    }
+    if(res.ok&&data.status==="valid"&&data.vehicle?.canonicalLabel){
+      const label=data.vehicle.canonicalLabel;
+      sellState.pendingRerun={vehicle:data.vehicle};
+      const tag=data.vehicle.unverified?` I can't verify that model, so it would be a make-level read, but I'll run it.`:"";
+      addMsg("sam",`Want me to re-run the analysis as ${label}?${tag}`,"",chipsHTML([`Yes, re-run as ${label}`,"No, keep current"]));
+      return;
+    }
+    addMsg("sam","I couldn't read that as a car. Tell me the year, make and model and I'll re-run.");
+  }catch(e){
+    addMsg("sam","I had trouble reading that model just now. Give me the year, make and model and I'll re-run.");
+  }
+}
+// Commit the offered re-run: only the vehicle changes; every other wizard answer
+// (location, mileage, condition, records, title, price, timeline) carries over.
+function commitReRun(){
+  const p=sellState.pendingRerun;
+  if(!p){return;}
+  sellState.pendingRerun=null;
+  if(p.vehicle){
+    sellState.resolvedVehicle=p.vehicle;
+    sellState.carName=p.vehicle.canonicalLabel;
+    sellState.carRaw=p.vehicle.canonicalLabel;
+    sellState.vehicleIdentityValidated=!p.vehicle.unverified;
+  }else if(p.rawText){
+    sellState.carName=p.rawText;sellState.carRaw=p.rawText;
+    sellState.resolvedVehicle=null;sellState.vehicleIdentityValidated=false;
+  }
+  // Fresh result state for the new car; the wizard answers are untouched.
+  sellState.sellOptions=[];sellState.allRouteOptions=[];sellState.sellDecision=null;
+  sellState.awaitingPathChoice=false;sellState.pendingResultSections=null;sellState.displayedRecommendedPath=null;
+  addMsg("sam",`Re-running as ${carDisplayLabel()}, carrying over your location, mileage, condition, price and timeline.`);
+  showSellRecommendation();
 }
 
 // Collecting Cars proof leads with the searched make when we hold curated

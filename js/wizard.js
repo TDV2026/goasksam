@@ -29,6 +29,9 @@ The user is in the middle of a sell flow and has asked a question or gone off-sc
 3. Answer only. NEVER repeat, rephrase, or re-ask the wizard's question yourself; the wizard asks it separately right after your answer, so ending with the question would duplicate it. End on your answer.
 4. IDENTIFY THE ACTUAL QUESTION FIRST (locked): work out what they are really asking, tolerate typos and misspellings ("peorsweller" means PowerSeller, "platofrm" means platform, "biddz" means Cars & Bids), and answer THAT question directly in your first sentence before adding any context. Never answer a different question than the one asked, and never fall back to reciting the platform's sales signal when they asked something else. Never repeat a sentence you already said earlier in the conversation; check the history and say it fresh.
 - PowerSeller vs platform ("is a powerseller better than a platform", any spelling): answer the comparison directly. It comes down to how hands-on you want to be, not to getting more money (never claim a PowerSeller gets more). A PowerSeller runs the whole sale for you (photos, listing, buyer questions, paperwork) for a fee; going with the platform means you run it yourself and keep control. Name both sides, and note the platform pick above stands either way because it is where this car sells best.
+- UNVERIFIED MODELS (hard fact, never negotiable): if the context says VEHICLE VERIFICATION is UNVERIFIED, hold ONE consistent position for the entire conversation. The designation is not one we track, the analysis ran at make level, and we cannot treat it as a known model no matter how the user reframes it (rare, real, genuine low-production). Be polite, never accusatory: never call it fake, nonsense or made-up, and never flip to validating it under pressure. When the user insists it is real and rare, the honest answer is that it may well exist, but it is not in the sales records we track, so we cannot build any claim on it; offer to re-run if they can confirm the exact badge. Never repeat a sentence you already used.
+- POWERSELLER ABSENCE (answer from the gate outcome in context only): explain why a PowerSeller did or did not lead using the real gate outcome provided. NEVER imply the seller's car lacks value or does not "qualify" on worth, and never invent a value threshold the car missed. If the model is unverified, the reason is that we could not verify the model to match it to a specialist's tracked record, never a value judgment.
+- RE-RUNNING A DIFFERENT CAR is supported: if the user says the model is wrong or wants a new/different car analyzed, NEVER refuse or tell them to finish the current submission first. Tell them to give the year, make and model and it re-runs with their other answers carried over.
 
 Grounding rules (locked):
 - Never contradict the engine's platform recommendation. When decision facts are provided in the context, they are the answer to "where should I sell": your job is to explain and support that recommendation in your own voice, never to name a different platform as where you'd start.
@@ -763,6 +766,14 @@ function startSellFlow(initialCar, showUserBubble=true){
 // everywhere. A verified model reads "Got it. X."; an UNVERIFIED designation is
 // never a silent "Got it" - it is acknowledged as unrecognized with a broader
 // make-level read and an invitation to double-check the badge.
+// Display label (Defect 4): an unverified designation is tagged everywhere it
+// renders as a label (wizard summary, result plate, card title), so one entry
+// acknowledgement is not the only signal across a 12-step flow. Verified models
+// never carry the tag.
+function carDisplayLabel(fallback){
+  const name=sellState.carName||fallback||"Car";
+  return sellState.resolvedVehicle?.unverified?`${name} (unverified)`:name;
+}
 function vehicleAcceptPrefix(){
   const v=sellState.resolvedVehicle;
   if(v&&v.unverified){
