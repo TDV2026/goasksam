@@ -122,6 +122,13 @@ async function handleSellStep(q){
     // and nothing off-script is ever appended to the car name.
     const questionLike17=/\?\s*$/.test(lower)||/^(what|how|why|when|where|who|can|could|will|would|does|do|is|are|should|but|explain|tell me)\b/i.test(lower)||/\b(how long|how many|how much|you never|what happens)\b/i.test(lower);
     if(questionLike17&&!looksLikeVehicleText(q))return false;
+    // "Other" / "not listed" means the user has a trim to give that wasn't on
+    // the chips. Prompt for it and STAY on this step; do NOT append "other" to
+    // the car name and skip to broad (the old behavior sidestepped the user).
+    if(/^(other|others|different|something\s+else|not\s+(listed|shown|there|here|on there)|it'?s\s+not\s+(listed|shown|there|here|above|an option))\.?$/i.test(lower.trim())){
+      addMsg("sam","Sure, type the exact model or trim and I'll use it, like GTS, Competition or Alpina B3.");
+      return true;
+    }
     // Chip answers and explicit skip/move-on always advance (chip labels can
     // never be rejected by their own step). Wordy refusals like "don't know"
     // go to the chat layer for a real explanation of where to find the trim;
