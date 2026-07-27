@@ -610,12 +610,18 @@ function extractVehicleMake(text=sellState.carName){
 function estimatedTargetPrice(){
   const raw=String(sellState.price||sellState.notes||"").toLowerCase();
   if(/\bsix[-\s]?figure|100k|over\s+100/.test(raw))return 100000;
-  const k=raw.match(/(\d+(?:\.\d+)?)\s*k\b/);
-  if(k)return Number(k[1])*1000;
   const range=raw.match(/(\d[\d,]*)\s*[-–]\s*(\d[\d,]*)\s*k\b/);
   if(range)return Number(range[2].replace(/,/g,""))*1000;
-  const money=raw.match(/\$?\s*(\d[\d,]{3,})/);
-  return money?Number(money[1].replace(/,/g,"")):0;
+  const k=raw.match(/(\d+(?:\.\d+)?)\s*k\b/);
+  if(k)return Number(k[1])*1000;
+  // Any bare number: in an asking-price context a value under 1000 almost
+  // always means thousands ("165" -> $165k, "45" -> $45k). Four-plus digit
+  // numbers ("165000", "$165,000") are already dollars.
+  const num=raw.match(/\$?\s*(\d[\d,]*(?:\.\d+)?)/);
+  if(!num)return 0;
+  const n=Number(num[1].replace(/,/g,""));
+  if(!Number.isFinite(n)||n<=0)return 0;
+  return n<1000?Math.round(n*1000):Math.round(n);
 }
 
 function isSpecialistCar(){
@@ -1157,8 +1163,7 @@ function primaryReasonBullets(route,altRoute){
   }else{
     let bullet3="";
     if(e.segmentSellThrough){
-      const adjective=e.segmentSellThrough.percent>=85?"Strong":"Consistent";
-      bullet3=`${adjective} sell-through for ${segmentCategoryDesc(e.segmentSellThrough.band)}`;
+      bullet3=sellThroughLine(e.segmentSellThrough);
     }
     if(sellerWantsSpeed()){
       // Grounded phrasing only: listing-cycle speed comes from curated route
@@ -1179,8 +1184,7 @@ function primaryReasonBullets(route,altRoute){
     const name=platformDisplayName(route.label||route.platform);
     const queue=[];
     if(e.segmentSellThrough&&!bullets.some(b=>/sell-through/i.test(b.text))){
-      const adjective=e.segmentSellThrough.percent>=85?"Strong":"Consistent";
-      queue.push({text:`${adjective} sell-through for ${segmentCategoryDesc(e.segmentSellThrough.band)}.`,windowDays:36500});
+      queue.push({text:`${sellThroughLine(e.segmentSellThrough)}.`,windowDays:36500});
     }
     if(["fast","medium_fast"].includes(route.speedToList))queue.push({text:`${name} typically runs the quicker auction cycle.`});
     queue.push({text:platformFitLine(route)||sellerPriorityFitLabel(route)});
@@ -1190,6 +1194,33 @@ function primaryReasonBullets(route,altRoute){
     }
   }
   return bullets.length?bullets.slice(0,3):null;
+}
+
+// Highest dollar value named in a segment band string ("$50k to $150k" ->
+// 150000; "$50,000 to $150,000" -> 150000). Bare sub-1000 values are thousands.
+function bandCeiling(band){
+  let max=null;
+  for(const m of String(band||"").toLowerCase().matchAll(/(\d[\d,]*(?:\.\d+)?)\s*k?/g)){
+    let n=Number(m[1].replace(/,/g,""));
+    if(!Number.isFinite(n)||n<=0)continue;
+    if(/k/.test(m[0]))n*=1000; else if(n<1000)n*=1000;
+    if(max===null||n>max)max=n;
+  }
+  return max;
+}
+
+// Sell-through line, gated on the seller's asking price (locked): never render a
+// band whose ceiling is below the normalized asking price, because the band
+// would misdescribe the car. Above the band, use price-point wording instead.
+// Applies to any car whose asking price sits above its segment band.
+function sellThroughLine(sellThrough){
+  const adjective=sellThrough.percent>=85?"Strong":"Consistent";
+  const ceiling=bandCeiling(sellThrough.band);
+  const asking=estimatedTargetPrice();
+  if(asking&&ceiling&&asking>ceiling){
+    return `This price point is at the higher end for the ${sellState.resolvedVehicle?.model||"model"}, so comparable sales inform how I ranked the platforms`;
+  }
+  return `${adjective} sell-through for ${segmentCategoryDesc(sellThrough.band)}`;
 }
 
 // "classic Porsches in the $50k to $150k range": era word from the resolved
@@ -1303,7 +1334,10 @@ function routeEvidenceBullets(route,index,routes){
   // (2) platform sell-through for this segment, from full-dataset baselines
   // (absent until the records hold non-sold listings). Each stat renders
   // once per session: repeats across searches read as filler.
-  if(facts.segmentSellThrough&&!primaryHasReasonBullets){
+  // Gated on asking price: don't quote a band's sell-through when the seller's
+  // price sits above that band's ceiling (the band would misdescribe the car).
+  const stAsk=estimatedTargetPrice(),stCeil=facts.segmentSellThrough?bandCeiling(facts.segmentSellThrough.band):null;
+  if(facts.segmentSellThrough&&!primaryHasReasonBullets&&!(stAsk&&stCeil&&stAsk>stCeil)){
     const statKey=`sellthrough|${route.platform||route.label}|${facts.segmentSellThrough.band}`;
     if(!window.__shownSessionStats)window.__shownSessionStats=new Set();
     if(!window.__shownSessionStats.has(statKey)){
