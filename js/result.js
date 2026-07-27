@@ -346,14 +346,20 @@ async function showSellRecommendation(){
         ${isPrimary&&option.reason&&!option.reasonBullets?.length?"":isPrimary?`<div class="sell-rec-samline voice">${escapeHtml(option.reason||"")}</div>`:""}
         ${isPrimary&&option.key!=="specialist"&&lookbackLine(option)?`<div class="sell-rec-lookback">${numify(lookbackLine(option))}</div>`:""}
         <div class="sell-rec-reason-label label-mono">${option.key==="specialist"?"Why I’d call them":option.altReason?"Why it’s worth comparing":"Why I picked this"}</div>
-        ${option.reasonBullets?.length
-          ?`<ul class="sell-rec-bullets">${option.reasonBullets.map(item=>`<li${item.validated?' class="validated-claim"':""}>${numify(item.text)}</li>`).join("")}</ul>`
-          :Array.isArray(option.altReason)&&option.altReason.length
-          ?`<ul class="sell-rec-bullets">${option.altReason.map(item=>`<li>${numify(item)}</li>`).join("")}</ul>`
-          :`<div class="sell-rec-reason">${numify(option.speedArgument?option.reason:(option.rankReason||option.reason||""))}</div>`}
+        ${(()=>{
+          // Render-time evidence gate (DEFECT 2): strip any filler bullet from
+          // every card type before it renders, and never show a filler fallback
+          // reason. A card with one real bullet beats three empty ones.
+          const rb=evidenceOnlyBullets(option.reasonBullets);
+          const ar=evidenceOnlyBullets(option.altReason);
+          if(rb.length)return `<ul class="sell-rec-bullets">${rb.map(item=>`<li${item.validated?' class="validated-claim"':""}>${numify(item.text)}</li>`).join("")}</ul>`;
+          if(Array.isArray(option.altReason)&&ar.length)return `<ul class="sell-rec-bullets">${ar.map(item=>`<li>${numify(item)}</li>`).join("")}</ul>`;
+          const fb=option.speedArgument?option.reason:(option.rankReason||option.reason||"");
+          return isFillerBullet(fb)?"":`<div class="sell-rec-reason">${numify(fb)}</div>`;
+        })()}
         ${option.momentumLine?`<div class="sell-rec-momentum">${numify(option.momentumLine)}</div>`:""}
         ${option.stat?`<div class="sell-rec-stat">${numify(option.stat)}</div>`:""}
-        ${option.evidenceBullets?.length&&!option.altReason?`<ul class="sell-rec-bullets">${option.evidenceBullets.map(item=>`<li>${numify(item)}</li>`).join("")}</ul>`:""}
+        ${(()=>{const eb=evidenceOnlyBullets(option.evidenceBullets);return eb.length&&!option.altReason?`<ul class="sell-rec-bullets">${eb.map(item=>`<li>${numify(item)}</li>`).join("")}</ul>`:"";})()}
         ${option.evidenceLine?`<div class="sell-rec-evidence-line">${numify(option.evidenceLine||"")}</div>`:""}
         ${option.observedSellers?.length?`<div class="observed-sellers">
           ${option.observedSellers.map((seller,sellerIndex)=>`<div class="observed-seller">
@@ -423,7 +429,7 @@ async function showSellRecommendation(){
     <div class="sell-rec-grid">${renderOptionCard(primaryPlatform)}</div>
   `:`
     <div class="sell-rec-grid">${renderOptionCard(primaryPlatform)}${secondaryPlatforms.map(renderOptionCard).join("")}</div>
-    ${partnerSecondary?`<div class="sell-section-note" style="margin-top:12px">If you'd rather have the whole sale handled</div>${renderMiniPowerSellerProfile(partnerSecondary,"Also worth considering")}`:""}
+    ${partnerSecondary?`<div class="sell-section-note" style="margin-top:12px">${escapeHtml(powerSellerIntroLine())}</div>${renderMiniPowerSellerProfile(partnerSecondary,"Also worth considering")}`:""}
     ${diySecondaryLine}
   `):"";
   // DIY ordering: the platform IS the pick, so its card carries the plate.

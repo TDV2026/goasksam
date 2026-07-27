@@ -326,6 +326,17 @@ function powerSellerServiceLine(){
   ],sellState.carName||"","ps-service");
 }
 
+// Rotating, value-first intro used above EVERY PowerSeller card (DEFECT 1).
+// Explains what a PowerSeller is in one line so a first-time reader understands
+// the term without prior context. Never leads with a fee.
+function powerSellerIntroLine(){
+  return pickCopy([
+    "Prefer to have someone run the whole sale? A PowerSeller manages photos, listing, buyer questions and paperwork for you.",
+    "Want it handled end to end? A PowerSeller takes on the photos, listing, buyer questions and paperwork so you don't have to.",
+    "Rather not run it yourself? A PowerSeller handles the whole sale for you: prep, photos, listing, buyer questions and paperwork."
+  ],sellState.carName||"","ps-intro");
+}
+
 function powerSellerAdviceBullets(hasNamedSellers){
   if(hasNamedSellers){
     return pickCopy([
@@ -498,8 +509,7 @@ function routeReason(route,index,routes){
   }
   return pickCopy([
     `${name} is still worth looking at, but the choice above is stronger on the current market read.`,
-    `${name} is worth considering, though I would start with the choice above today.`,
-    `${name} remains viable, but it is not the clearest first choice from the current evidence.`
+    `${name} is worth considering, though I would start with the choice above today.`
   ],sellState.carName,name,index);
 }
 
@@ -596,7 +606,8 @@ function sellerPriorityFitLabel(route){
   if(facts.includes("faster_listing_fit"))return "This choice fits if getting live quickly matters.";
   if(facts.includes("may_support_handoff"))return "This choice can suit a seller who wants more help with the process.";
   if(facts.includes("segment_fit"))return "The platform's typical buyer pool matches this kind of car.";
-  return "It's one of the stronger platforms for a car like this.";
+  // No grounded fit fact: return nothing rather than a filler line (DEFECT 2).
+  return null;
 }
 
 function platformDisplayName(name){
@@ -934,67 +945,51 @@ function plural(value,singular,pluralWord){
 // Bullet 3: speed positioning from curated policy, only when the
 //   alternative is curated-fast and the pick is not.
 function altReasonBullets(route,pick){
+  // Evidence-only gate (DEFECT 2): the alt card draws from the SAME evidence
+  // pool as the pick card. Every bullet is a fact only our tracked data can
+  // produce. Failed gates render NOTHING; we never pad with filler. Fewer strong
+  // bullets beat three empty ones, so this may return one bullet or none.
   const bullets=[];
   const name=platformDisplayName(route.label||route.platform);
-  const mine=Number(route?.marketEvidence?.evidenceSales||0);
+  const e=route?.marketEvidence||{};
+  const mine=Number(e.evidenceSales||0);
+
+  // 1. Comparative price delta vs the pick (5+ comps each side).
+  const altDelta=gatedPriceDelta(route,pick);
+  if(altDelta)bullets.push(altDelta);
+
+  // 2. Comparative volume from tracked comps. "regularly" needs a real 10+
+  // sample; the leadership claim needs this platform to beat the others.
   const remaining=(sellState.allRouteOptions||[])
     .filter(other=>other!==route&&other!==pick&&other.marketEvidence)
     .map(other=>Number(other.marketEvidence.evidenceSales||0));
-  if(mine>0&&(!remaining.length||mine>Math.max(...remaining))){
-    // After a speed swap the original pick often holds the MOST sales;
-    // "second-most" would be a false statistic (locked rule 1). The claim
-    // names the window its count actually comes from: the landed evidence
-    // window, in the same vocabulary as the plate.
-    // Platform-first, no window, no raw count (locked, July 2026).
-    const pickCount=Number(pick?.marketEvidence?.evidenceSales||0);
-    bullets.push(`${name} has closed ${mine>pickCount?"the most":"the second-most"} ${comparableSalesLabel()} sales.`);
-  }else if((route.routeFitFacts||[]).includes("segment_fit")){
-    // Policy claims still name the car (locked): fit framing, never a
-    // generic category line.
-    bullets.push(`Its typical buyer pool matches a car like the ${cleanCarForCopy()}.`);
-  }else{
-    bullets.push(pickCopy([
-      `${name} is still worth a look for the ${cleanCarForCopy()}, but the pick above is stronger on the current market read.`,
-      `${name} is worth considering for the ${cleanCarForCopy()}, though the pick above is the stronger call today.`,
-      `${name} remains viable for the ${cleanCarForCopy()}, but it is not the clearest first choice from the current evidence.`
-    ],sellState.carName,name));
-  }
-  // Car-specific volume from this platform's own comps, platform-first with
-  // no raw count and no window (locked, July 2026). Gated on a real 10+ sample
-  // so "plenty" is earned, never implied below it.
-  // Distinct plain wording ("moves ... regularly"): the green "has sold plenty
-  // of" phrasing is reserved for the pick's earned volume claim, so the plain
-  // alt bullet must not reuse it (it would read as an earned-green claim).
+  const pickCount=Number(pick?.marketEvidence?.evidenceSales||0);
   const landedWindow=Number(sellState.sellDecision?.evidence?.windowDays);
   if(mine>=10&&Number.isFinite(landedWindow)&&landedWindow<=365){
     bullets.push(`${name} moves ${comparableSalesLabel()}s regularly.`);
+  }else if(mine>=5&&mine>pickCount&&(!remaining.length||mine>=Math.max(...remaining))){
+    bullets.push(`${name} has closed more ${comparableSalesLabel()} sales than the pick.`);
   }
-  // Speed positioning, curated-policy grounded ONLY (we hold no measured
-  // close-time data, so no model-specific track-record claim).
+
+  // 3. Day-of-week advantage scoped to the model (same source as Card 1).
+  const day=weekdayBullet(route);
+  if(day)bullets.push(day);
+
+  // 4. Segment sell-through from tracked records, gated on asking price (a null
+  // return means the band would misdescribe the car, so the bullet is dropped).
+  if(e.segmentSellThrough){
+    const st=sellThroughLine(e.segmentSellThrough);
+    if(st)bullets.push(`${st}.`);
+  }
+
+  // 5. Speed positioning from curated route policy (grounded, not invented).
   const pickFast=["fast","medium_fast"].includes(pick?.speedToList);
   if(["fast","medium_fast"].includes(route.speedToList)&&!pickFast){
     bullets.push(`If speed matters, ${name} typically runs the quicker auction cycle.`);
   }
-  // Gated reciprocal price delta vs the pick (Phase 2), placed AFTER the speed
-  // line so a fast-timeline seller keeps their speed bullet in the top three.
-  const altDelta=gatedPriceDelta(route,pick);
-  if(altDelta)bullets.push(altDelta);
-  // Exactly three bullets on the alternative too (locked): grounded
-  // fallbacks fill failed gates, no duplicates.
-  const altFallbacks=[
-    (route.routeFitFacts||[]).includes("segment_fit")&&!bullets.some(b=>/typical buyer pool/.test(b))?`Its typical buyer pool matches a car like the ${cleanCarForCopy()}.`:null,
-    platformFitLine(route),
-    sellerPriorityFitLabel(route),
-    `${name} is worth considering for the ${cleanCarForCopy()}, though the pick above is the stronger call today.`,
-    // Final filler shares no wording with the tier-line copy pool, so the
-    // dedupe can never leave the card short.
-    "Worth a look if its process or timing fits you better."
-  ].filter(Boolean);
-  for(const text of altFallbacks){
-    if(bullets.length>=3)break;
-    if(!bullets.includes(text))bullets.push(text);
-  }
-  return bullets.slice(0,3);
+
+  const clean=evidenceOnlyBullets(dedupeStringBullets(bullets)).slice(0,3);
+  return clean.length?clean:null;
 }
 
 // Tier B leadership check: true only when this platform's evidence count
@@ -1199,13 +1194,14 @@ function primaryReasonBullets(route,altRoute){
       queue.push({text:`${stLine}.`,windowDays:36500});
     }
     if(["fast","medium_fast"].includes(route.speedToList))queue.push({text:`${name} typically runs the quicker auction cycle.`});
-    queue.push({text:platformFitLine(route)||sellerPriorityFitLabel(route)});
+    const fitText=platformFitLine(route)||sellerPriorityFitLabel(route);
+    if(fitText)queue.push({text:fitText});
     for(const item of queue){
       if(bullets.length>=3)break;
-      if(!bullets.some(b=>bulletsSimilar(b.text,item.text)))bullets.push({...item,validated:false});
+      if(item.text&&!isFillerBullet(item.text)&&!bullets.some(b=>bulletsSimilar(b.text,item.text)))bullets.push({...item,validated:false});
     }
   }
-  return bullets.length?dedupeBullets(bullets).slice(0,3):null;
+  return bullets.length?evidenceOnlyBullets(dedupeBullets(bullets)).slice(0,3):null;
 }
 
 // Card-level dedup guard (locked B1): no two bullets on one card may share the
@@ -1245,6 +1241,18 @@ function dedupeStringBullets(arr){
     out.push(s);
   }
   return out;
+}
+
+// Banned filler patterns (DEFECT 2): a bullet must carry evidence only our data
+// can produce. These phrases say nothing, so any bullet matching them is dropped
+// before render. A card with one real bullet beats three empty ones.
+const FILLER_BULLET_RE=/\ba car like this\b|remains viable|not the clearest|clearest first choice|\bstrong option\b|\breal signal\b|one of the stronger platforms/i;
+function isFillerBullet(text){
+  return FILLER_BULLET_RE.test(String(text||""));
+}
+// Final render-time guard for any bullet list (string or {text}): strip filler.
+function evidenceOnlyBullets(bullets){
+  return (bullets||[]).filter(b=>b&&!isFillerBullet(typeof b==="string"?b:b.text));
 }
 
 // Highest dollar value named in a segment band string ("$50k to $150k" ->
@@ -1368,9 +1376,9 @@ function routeEvidenceBullets(route,index,routes){
       index===0?"This is a fit call, not a sales-data call: the tracked sales data doesn't cover this exact car well enough yet to lead with numbers.":"Worth comparing on platform fit, not sales data."
     ];
     if(about)bullets.push(`${name} has a strong reputation in ${about.regionsLabel}, has been selling collector cars since ${about.since}, and is known for ${about.knownFor}.`);
-    else bullets.push(platformFitLine(route)||sellerPriorityFitLabel(route));
+    else{const fit=platformFitLine(route)||sellerPriorityFitLabel(route);if(fit)bullets.push(fit);}
     bullets.push("Best bet is to contact them directly; they can speak to demand for your specific car.");
-    return dedupeStringBullets(bullets).slice(0,3);
+    return evidenceOnlyBullets(dedupeStringBullets(bullets)).slice(0,3);
   }
   const facts=routeFacts(route);
   // Five-dimension card (locked): the headline carries dimension 1 (where the
@@ -1440,7 +1448,7 @@ function resultSummaryLine(options,routes=[]){
       // routes[0] IS the pick after all routing swaps (score, price, speed,
       // win-condition): name it directly so Card 1 and the subtitle agree,
       // never recompute the pick from medians.
-      return `${firstName} looks stronger on recent comparable sales, and it’s my pick. ${secondName} has real signal too.`;
+      return `${firstName} looks stronger on recent comparable sales, and it’s my pick. ${secondName} is the next best on the same comps.`;
     }
     return `${firstName} and ${secondName} both belong in the conversation, but they win for different reasons.`;
   }
@@ -1581,7 +1589,7 @@ function compareSellOptions(){
   const primaryPowerSeller=(sellState.powerSellerProfiles||[])[0];
   if(specialist&&primaryPowerSeller&&primaryPlatform){
     const sellerName=powerSellerFirstName(primaryPowerSeller);
-    return `Here’s how I’d think about it.\n\n${sellerName}: you’ll probably pay a fee, but he can handle photography, listing prep, buyer questions, comments, scheduling, paperwork and platform choice. If you’re busy, or you haven’t sold on auction before, this is the lower-stress route.\n\n${primaryPlatform.name}: you keep more control, but you’re responsible for building the listing, answering every buyer question and choosing the right timing. With a car like this, I’d only go this route if you’re comfortable running the auction yourself.`;
+    return `Here’s how I’d think about it.\n\n${sellerName}: you’ll probably pay a fee, but he can handle photography, listing prep, buyer questions, comments, scheduling, paperwork and platform choice. If you’re busy, or you haven’t sold on auction before, this is the lower-stress route.\n\n${primaryPlatform.name}: you keep more control, but you’re responsible for building the listing, answering every buyer question and choosing the right timing. With a car at this level, I’d only go this route if you’re comfortable running the auction yourself.`;
   }
   const options=(sellState.sellOptions||[]).filter(o=>o.key!=="specialist").slice(0,2);
   if(!options.length)return "I do not have enough platform data to compare yet.";

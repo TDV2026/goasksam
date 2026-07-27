@@ -96,7 +96,12 @@ function guardRender(name, text) {
       if (!/sell-rec-bullets/.test(seg)) continue;
       if (/chooseFallbackDestination/.test(seg)) continue; // regional policy cards: approved copy, exempt
       const liCount = (seg.match(/<li[ >]/g) || []).length;
-      if (liCount > 0) check(`[design] ${name}: platform card carries exactly three bullets`, liCount === 3, `liCount=${liCount} card="${seg.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 120)}"`);
+      // Contract updated for DEFECT 2: a card carries 1-3 EVIDENCE bullets and
+      // is never padded with filler. Fewer strong bullets beat three empty ones,
+      // so 1 or 2 is valid; only 0 (when a bullet list rendered) or >3 is wrong.
+      if (liCount > 0) check(`[design] ${name}: card carries 1-3 evidence bullets (never padded)`, liCount >= 1 && liCount <= 3, `liCount=${liCount} card="${seg.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 120)}"`);
+      const segBulletText = (seg.match(/<li[^>]*>([\s\S]*?)<\/li>/g) || []).join(" ").replace(/<[^>]+>/g, " ").toLowerCase();
+      check(`[design] ${name}: no filler phrases in card bullets`, !/a car like this|remains viable|not the clearest|\bstrong option\b|real signal|one of the stronger platforms/.test(segBulletText), segBulletText.replace(/\s+/g, " ").slice(0, 140));
     }
     // Option shape (locked, updated): at most two platform cards (pick +
     // one alternative) and at most one partner surface.
@@ -232,9 +237,11 @@ function guardRender(name, text) {
       // The car may be named by model, trim, or the label vocabulary the
       // cards use ("BMW 335i", "Carrera") -- any specific token counts.
       const rv = sellState.resolvedVehicle;
-      const carTokens = [rv.model, rv.trim, String(sellState.carName || "").replace(/\b(19|20)\d{2}\b/, "").trim()]
-        .filter(Boolean).flatMap(v => String(v).toLowerCase().split(/\s+/)).filter(t => t.length > 2 && !/^(the|and)$/.test(t));
-      check(`[design] ${name}: alternative card names the car`, carTokens.some(t => flatAlt.includes(t)), `tokens=${JSON.stringify([...new Set(carTokens)])} alt="${flatAlt.replace(/\s+/g, " ").slice(0, 140)}"`);
+      // DEFECT 2: the alternative card is now evidence-first (platform-scoped
+      // facts), so it need not name the car via a filler line. The real
+      // requirement is that it carries NO filler and no generic platform
+      // language; a car mention is welcome but not mandatory.
+      check(`[design] ${name}: alternative card carries no filler bullets`, !/a car like this|remains viable|not the clearest|\bstrong option\b|real signal|one of the stronger platforms/.test(flatAlt), flatAlt.replace(/\s+/g, " ").slice(0, 140));
       check(`[design] ${name}: alternative card avoids generic platform language`, !/this platform|this category/i.test(flatAlt), (flatAlt.match(/[^.]*this (platform|category)[^.]*/i) || [""])[0].slice(0, 120));
     }
     // Alt tier-(a) window claim always names the landed evidence window
