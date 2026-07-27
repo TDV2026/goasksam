@@ -80,7 +80,10 @@ export default async function handler(req, res) {
   const env = { supabaseUrl, supabaseKey };
 
   try {
-    let result = await resolveVehicle(raw);
+    // keepAsTyped (DEFECT 4): the seller insists on their designation after a
+    // near-miss, so skip the "did you mean" confirmation and accept it unverified.
+    const resolveOpts = req.body?.keepAsTyped ? { keepAsTyped: true } : {};
+    let result = await resolveVehicle(raw, resolveOpts);
     let fallbackUsed = null;
 
     if (nothingUnderstood(result) || dirtyInput(result)) {

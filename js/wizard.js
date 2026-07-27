@@ -447,6 +447,61 @@ async function handleVehicleValidationAnswer(q){
   // Intents outrank the off-script guard: a wordy move-on or refusal is an
   // instruction to advance, not a question for the chat layer.
   const subStateIntent=detectIntent(lower);
+
+  // Keep-as-typed (DEFECT 4): the seller insisted on their designation after we
+  // said it doesn't match. Accept it unverified (resolver skips the near-miss).
+  if(currentIssue?.keepDesignation&&(/^keep .* as typed$/i.test(lower)||normalizeVehicleAnswer(lower)===normalizeVehicleAnswer(currentIssue.keepDesignation))){
+    const make=extractVehicleMake(currentIssue.baseVehicle||"")||"";
+    const candidate=[make,currentIssue.keepDesignation].filter(Boolean).join(" ").trim();
+    sellState.pendingVehicleIdentity=null;
+    try{
+      const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:candidate,keepAsTyped:true})});
+      const data=await res.json();
+      if(res.ok&&data.vehicle?.canonicalLabel){
+        sellState.resolvedVehicle=data.vehicle;sellState.carName=data.vehicle.canonicalLabel;sellState.carRaw=data.vehicle.canonicalLabel;
+        sellState.vehicleIdentityValidated=!data.vehicle.unverified;sellState.vehicleDetailSkipped=false;sellState.notSureRepeats=0;
+        resumeWizardAfterVehicle(`Got it, I'll run the ${sellState.carName} as typed and keep the read broad.`);
+        return true;
+      }
+    }catch(e){/* fall through */}
+  }
+
+  // Negation-led correction (DEFECT 4): "no the 854f", "nope 850", "not that one
+  // its the 840". Strip the negation/filler so nothing gets concatenated into a
+  // car name, re-resolve the clean designation, and if it is only a near-miss to
+  // a known model, double-check with the closest match plus keep-as-typed
+  // instead of looping the same yes/no.
+  const NEG_LEAD=/^(?:\s*(?:no|nope|nah|not|wrong|incorrect|actually|i\s+said|i\s+meant|i\s+mean|it'?s|its|the|that|this|one)\b[,.!]?\s*)+/i;
+  if(currentIssue&&NEG_LEAD.test(lower)){
+    const core=lower.replace(NEG_LEAD,"").replace(/\s+/g," ").trim();
+    // A model number (letter+digit like 854f, or a bare model number like 840):
+    // strip the negation, re-resolve the clean designation.
+    if(/\d/.test(core)&&core.length<=16){
+      const make=extractVehicleMake(currentIssue.baseVehicle||sellState.carName||"")||extractVehicleMake(core)||"";
+      const desig=core.toUpperCase();
+      const candidate=[make,core].filter(Boolean).join(" ").trim();
+      sellState.pendingVehicleIdentity=null;sellState.vehicleIdentityValidated=false;
+      try{
+        const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:candidate})});
+        const data=await res.json();
+        if(res.ok&&data.status==="valid"&&data.vehicle?.canonicalLabel&&!data.vehicle.unverified){
+          sellState.resolvedVehicle=data.vehicle;sellState.carName=data.vehicle.canonicalLabel;sellState.carRaw=data.vehicle.canonicalLabel;
+          sellState.vehicleIdentityValidated=true;sellState.vehicleDetailSkipped=false;sellState.notSureRepeats=0;
+          resumeWizardAfterVehicle(`Got it. ${sellState.carName}.`);
+          return true;
+        }
+        const suggestion=String(data.clarification?.suggestion||"").trim();
+        const chips=[];
+        if(suggestion)chips.push(suggestion);
+        chips.push(`Keep ${desig} as typed`,"Change car");
+        sellState.pendingVehicleIdentity={type:"model",baseVehicle:[make].filter(Boolean).join(" "),rawInput:candidate,suggestion:suggestion||null,keepDesignation:desig};
+        sellState.step=17;
+        addMsg("sam",`${desig} isn't a ${make||"model"} I can match to a known listing.${suggestion?` The closest I have is ${suggestion}.`:""} Double-check the badge, or keep it as typed and I'll run a broader read.`,"",chipsHTML(chips));
+        return true;
+      }catch(e){/* fall through to normal handling */}
+    }
+  }
+
   // Self-correction suffixes never break a confirmation ("it is that car my
   // mistake" confirms; "my mistake" is not a car name). Strip them, then
   // recognize confirmation phrasings that the anchored affirmation regex
