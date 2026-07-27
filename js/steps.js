@@ -134,13 +134,20 @@ async function handleSellStep(q){
       return true;
     }
     const ownEscapeChip=/^(not sure|skip this step|skip)$/i.test(lower.trim());
-    if(detectIntent(lower)==="moveOn"||ownEscapeChip||/\bskip\b/i.test(lower)){
+    // Global rule (owner spec): "not sure" / "dont know" / "no idea" / "skip"
+    // are always valid answers that ADVANCE at the level we know, never leave
+    // the user stuck. detectIntent covers the common phrasings; the extra
+    // regex catches the don't-know family it misses ("no clue", "beats me").
+    // These used to `return false` to the chat layer, which left the wizard
+    // parked on the trim question forever (a typed "dont know" never advanced).
+    const declinesDetail=detectIntent(lower)==="moveOn"||detectIntent(lower)==="refusal"||ownEscapeChip
+      ||/\bskip\b/i.test(lower)
+      ||/\b(no clue|not a clue|beats me|who knows|couldn'?t (say|tell)|can'?t (say|remember|recall|tell)|your guess|search me|no idea)\b/i.test(lower);
+    if(declinesDetail){
       sellState.vehicleDetailSkipped=true;
       sellState.trimAskAttempts=0;
       sellState.lastMissingAsk=null;
       addMsg("sam","No problem. I'll keep it broad for now, but the recommendation may be more directional without the exact model.");
-    }else if(detectIntent(lower)==="refusal"){
-      return false;
     }else{
       // Context reset: a different make at the trim question is a new car,
       // not a trim answer appended to the old one.
