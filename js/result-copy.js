@@ -999,7 +999,7 @@ function composerReserveBullet(ev){
   if(!rc)return null;
   const month=reserveMonthName(rc.data_month);
   const platform=platformDisplayName(ev.label||ev.platform);
-  const tail=" You'll need to decide: is a reserve right for your car's condition and positioning.";
+  const tail=" You'll need to decide: is a reserve right for your car's condition and positioning?";
   if(Math.abs(Number(rc.delta_pct))>=3){
     const dir=Number(rc.delta_dollars)>=0?"higher":"lower";
     const dollars=Math.abs(Math.round(Number(rc.delta_dollars))).toLocaleString();

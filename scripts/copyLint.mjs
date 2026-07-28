@@ -93,7 +93,7 @@ const pickR = composeCard(V, reserveDelta, { isPick:true, landedScope:"model" })
 const altR = composeCard(V, reserveDelta, { isPick:false, landedScope:"model" });
 const reserveLine = (pickR.bullets.find(b=>/reserve/i.test(b.text))||{}).text || "";
 check("1d lint: reserve bullet renders on the pick card, clean", reserveLine && lintText(reserveLine).length === 0, lintText(reserveLine).join(" ; ") || reserveLine);
-check("1d lint: reserve bullet uses the exact locked delta wording", /In June, Bring a Trailer auctions with reserves in your price band averaged \$5,144 higher than those without\. You'll need to decide: is a reserve right for your car's condition and positioning\./.test(reserveLine), reserveLine);
+check("1d lint: reserve bullet uses the exact locked delta wording", /In June, Bring a Trailer auctions with reserves in your price band averaged \$5,144 higher than those without\. You'll need to decide: is a reserve right for your car's condition and positioning\?/.test(reserveLine), reserveLine);
 check("1d lint: reserve bullet contains 'decide' and the month name", /\bdecide\b/.test(reserveLine) && /\bJune\b/.test(reserveLine), reserveLine);
 check("1d lint: reserve bullet is the LAST bullet on the pick card", pickR.bullets.length>0 && /reserve/i.test(pickR.bullets[pickR.bullets.length-1].text), JSON.stringify(pickR.bullets.map(b=>b.text.slice(0,30))));
 check("1d lint: reserve NEVER renders on the alt card", !altR.bullets.some(b=>/reserve/i.test(b.text)), JSON.stringify(altR.bullets.map(b=>b.text)));
