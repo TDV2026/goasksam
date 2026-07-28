@@ -1027,10 +1027,17 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     const gate = insight => insight && insight.strongestWeekdaySales >= 3 && insight.strongestWeekdayLiftPercent >= 10
       && !["Saturday", "Sunday"].includes(insight.strongestWeekday);
     const mine = item => recordPlatform(item.record) === platform;
+    // Weekday sample gate (1b): a day-of-week pattern splits the sample across
+    // seven days, so it needs a real base. Require 15+ weekday sold comps in the
+    // 180-day window at the rendered scope AND 3+ sales on the winning day.
+    // Below the gate we fall through to the next scope; if none clears, no line.
+    const WEEKDAY_MIN_SAMPLE = 15;
     const build = (records, scope) => {
-      const insight = strongestWeekdayInsight(weekdaysOnly(within180(records)));
+      const pool = weekdaysOnly(within180(records));
+      if (pool.length < WEEKDAY_MIN_SAMPLE) return null;
+      const insight = strongestWeekdayInsight(pool);
       return gate(insight)
-        ? { weekday: insight.strongestWeekday, sales: insight.strongestWeekdaySales, liftPercent: insight.strongestWeekdayLiftPercent, scope, window: 180 }
+        ? { weekday: insight.strongestWeekday, sales: insight.strongestWeekdaySales, liftPercent: insight.strongestWeekdayLiftPercent, scope, window: 180, sample: pool.length }
         : null;
     };
     const model = build(pairedRecords.filter(item => mine(item) && ["close_match", "relevant_match"].includes(item.classification?.comparison_tier)), "model");
