@@ -927,9 +927,13 @@ function composerScopePhrase(vehicle,scope,generationCode){
   return `${yr}${composerPlural(model)}`;
 }
 // Weekday advantage bullet (dayAdvantage): 180-day window, scope word required.
+// Weekday sample gate mirrored on the render side (1b): even if a dayAdvantage
+// object arrives, a weekday claim needs 15+ backing comps and a scope word.
+const WEEKDAY_MIN_SAMPLE=15;
 function composerWeekdayBullet(vehicle,ev){
   const d=ev&&ev.dayAdvantage;
   if(!d||!d.weekday||!d.scope||!Number.isFinite(Number(d.liftPercent)))return null;
+  if(d.sample!=null&&Number(d.sample)<WEEKDAY_MIN_SAMPLE)return null;
   const win=`over the past ${d.window||180} days`;
   let text;
   if(d.scope==="make"){
