@@ -36,20 +36,23 @@ for(const raw of cars){
   if(sellState.routingReason!=="speed"){
     const cleared=r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10?p.percent:-1;};
     let best=null,bestPct=-1;for(const r of routable){const pct=cleared(r);if(pct>bestPct){best=r;bestPct=pct;}}
-    if(best&&bestPct>=10&&routable[0]!==best)routable=[best,...routable.filter(r=>r!==best)];
+    if(best&&bestPct>=10){if(routable[0]!==best)routable=[best,...routable.filter(r=>r!==best)];}
+    else{let deep=null,deepN=-1;for(const r of routable){const n=Number(r.marketEvidence&&r.marketEvidence.evidenceSales||0);if(n>deepN){deep=r;deepN=n;}}if(deep&&deepN>0&&routable[0]!==deep)routable=[deep,...routable.filter(r=>r!==deep)];}
   }
+  // Fix harness mode classification to match the composer (Mode B needs |%|<10).
   const pick=routable[0];const alt=routable[1];
   const scope=composerLandedScope();
   const pickCard=pick?composeCard(sellState.resolvedVehicle,pick,{isPick:true,sellerWantsSpeed:sellerWantsSpeed(),routingReason:sellState.routingReason,landedScope:scope}):null;
   const altCard=alt?composeCard(sellState.resolvedVehicle,alt,{isPick:false,sellerWantsSpeed:sellerWantsSpeed(),routingReason:sellState.routingReason,landedScope:scope}):null;
   const p=pick?.marketEvidence?.pricePremium;
-  const mode=!pick?"none":(p&&(p.type==="market_dominance"||(p.gateType==="symmetric"&&p.percent>=10))?"A":(p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)?"B":"honest"));
+  const mode=!pick?"none":(p&&(p.type==="market_dominance"||(p.gateType==="symmetric"&&p.percent>=10))?"A":(p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)&&Math.abs(p.percent)<10?"B":"honest"));
   const win=p?p.windowDays:null;
   const pickPlatform=pick?(pick.platform||pick.label):null;
   const bulletCount=(pickCard?pickCard.bullets.length:0)+(pickCard&&pickCard.headline?1:0);
   rows.push({raw,status:d.status,mode,win,pickPlatform,bulletCount,pickCard,altCard});
   if(MODE==="audit"){
     console.log(`\n===== ${raw} (status=${d.status}, mode=${mode}, window=${win}, pick=${pickPlatform}) =====`);
+    const wk=pick?.marketEvidence?.dayAdvantage;if(wk)console.log(`  weekday sample: ${wk.weekday} +${wk.liftPercent}% (${wk.scope} scope, n=${wk.sample||"?"} in 180d)`);
     if(pickCard){console.log(`  PICK headline: ${pickCard.headline?.text||"(none)"}`);pickCard.bullets.forEach(b=>console.log(`    - [${b.provenance}] ${b.text}`));}
     if(altCard){console.log(`  ALT (${alt.platform||alt.label}) headline: ${altCard.headline?.text||"(none)"}`);altCard.bullets.forEach(b=>console.log(`    - [${b.provenance}] ${b.text}`));}
   }

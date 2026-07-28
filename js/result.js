@@ -223,13 +223,17 @@ async function showSellRecommendation(){
   // keeps the faster platform on Card 1) or when a PowerSeller leads the layout.
   const routesForCards=(()=>{
     if(sellState.routingReason==="speed")return routeOptions;
-    const cleared=r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10?p.percent:-1;};
     const routable=routeOptions.filter(r=>r.routable!==false);
+    const cleared=r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10?p.percent:-1;};
+    // 1) Highest cleared positive delta leads.
     let best=null,bestPct=-1;
     for(const r of routable){const pct=cleared(r);if(pct>bestPct){best=r;bestPct=pct;}}
-    if(best&&bestPct>=10&&routeOptions[0]!==best){
-      return [best,...routeOptions.filter(r=>r!==best)];
-    }
+    if(best&&bestPct>=10)return routeOptions[0]===best?routeOptions:[best,...routeOptions.filter(r=>r!==best)];
+    // 2) No delta cleared: the deepest recent market (most sold comps) leads,
+    // never an arbitrary routing default.
+    let deep=null,deepN=-1;
+    for(const r of routable){const n=Number(r.marketEvidence&&r.marketEvidence.evidenceSales||0);if(n>deepN){deep=r;deepN=n;}}
+    if(deep&&deepN>0&&routeOptions[0]!==deep)return [deep,...routeOptions.filter(r=>r!==deep)];
     return routeOptions;
   })();
   // Pin the FINAL displayed pick (after every frontend swap: hagerty, price,
