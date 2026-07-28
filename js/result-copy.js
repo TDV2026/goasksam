@@ -530,7 +530,10 @@ function sellerPriorityFitLabel(route){
 
 function platformDisplayName(name){
   const key=String(name||"").toLowerCase().replace(/[^a-z0-9]/g,"");
-  const map={bringatrailer:"Bring a Trailer",bat:"Bring a Trailer",carsandbids:"Cars & Bids",pcarmarket:"PCarMarket",hagerty:"Hagerty Marketplace",rmsothebys:"RM Sotheby's",gooding:"Gooding & Co",goodingco:"Gooding & Co",acc:"All Collector Cars",allcollectorcars:"All Collector Cars",hemmings:"Hemmings",carandclassic:"Car & Classic",collectingcars:"Collecting Cars"};
+  // Consignment houses render under a generic label in user-facing copy (they
+  // are never a pick or a card; the only surface is the stronger-non-routable
+  // callout), so specific house names stay out of the copy.
+  const map={bringatrailer:"Bring a Trailer",bat:"Bring a Trailer",carsandbids:"Cars & Bids",pcarmarket:"PCarMarket",hagerty:"Hagerty Marketplace",rmsothebys:"a leading auction house",gooding:"a leading auction house",goodingco:"a leading auction house",acc:"All Collector Cars",allcollectorcars:"All Collector Cars",hemmings:"Hemmings",carandclassic:"Car & Classic",collectingcars:"Collecting Cars"};
   return map[key]||String(name||"");
 }
 

@@ -11,6 +11,7 @@ export const LINT_RULES = [
   { id: "filler", re: /\ba car like this\b|remains viable|not the clearest|clearest first choice|\bstrong option\b|\breal signal\b|one of the stronger platforms|worth a look if|still worth (a look|considering)/i, msg: "filler phrase with no evidence" },
   { id: "em-dash", re: /—/, msg: "em dash in user-facing copy" },
   { id: "en-dash", re: /–/, msg: "en dash in user-facing copy" },
+  { id: "removed-house", re: /\bSotheby|\bGooding/i, msg: "RM Sotheby's / Gooding removed from user-facing copy" },
 ];
 // A weekday claim must name its scope (car/generation/make) AND the window.
 export function lintWeekday(line) {
@@ -41,7 +42,7 @@ globalThis.fetch = async () => ({ ok:true, json:async()=>({}) });
 const html = fs.readFileSync("index.html","utf8");
 const files = [...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
 const script = files.map(f=>fs.readFileSync(f,"utf8")).join("\n");
-(0, eval)(script + "\nglobalThis.sellState=sellState;globalThis.composeCard=composeCard;globalThis.powerSellerIntroLine=powerSellerIntroLine;globalThis.powerSellerServiceLine=powerSellerServiceLine;globalThis.vehicleAcceptPrefix=vehicleAcceptPrefix;");
+(0, eval)(script + "\nglobalThis.sellState=sellState;globalThis.composeCard=composeCard;globalThis.powerSellerIntroLine=powerSellerIntroLine;globalThis.powerSellerServiceLine=powerSellerServiceLine;globalThis.vehicleAcceptPrefix=vehicleAcceptPrefix;globalThis.SYS=SYS;globalThis.SELL_SYS=SELL_SYS;globalThis.platformDisplayName=platformDisplayName;");
 
 let failures = 0;
 const check = (name, ok, detail="") => { console.log(`${ok?"PASS":"FAIL"}  ${name}${ok?"":"  ->  "+detail}`); if(!ok)failures++; };
@@ -73,10 +74,20 @@ for (const [name, fn] of [["powerSellerIntroLine", powerSellerIntroLine], ["powe
 const lowSample = composeCard(V, { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:8, pricePremium:{gateType:"symmetric",percent:16,windowDays:90,scope:"model"}, dayAdvantage:{weekday:"Friday",liftPercent:62,scope:"model",window:180,sample:8} } }, { isPick:true, landedScope:"model" });
 check("1d lint: weekday claim below the 15-comp gate does not render", !/closed strongest on/i.test(cardText(lowSample)), cardText(lowSample));
 
+// Platform wording (no removed consignment houses in user-facing copy).
+check("1d lint: 'what is GoAskSam' answer (SYS) names no removed houses + lists the new set",
+  lintText(SYS).length === 0 && /Bring a Trailer, Cars & Bids, Hagerty, PCarMarket and Car & Classic/.test(SYS) && /more online platforms being added/.test(SYS),
+  lintText(SYS).join(" ; ") || "list/added-clause missing");
+check("1d lint: sell-flow prompt (SELL_SYS) names no removed houses", lintText(SELL_SYS).length === 0, lintText(SELL_SYS).join(" ; "));
+check("1d lint: the stronger-non-routable callout never renders a removed house name",
+  lintText(`One thing to know up front: ${platformDisplayName("rmsothebys")} actually shows the strongest comparable results, and ${platformDisplayName("gooding")} too.`).length === 0,
+  `${platformDisplayName("rmsothebys")} / ${platformDisplayName("gooding")}`);
+
 // The lint itself catches known-bad copy.
 check("1d lint: detects a sell-through claim", lintText("84% sell-through for modern Porsches").length > 0);
 check("1d lint: detects an em dash", lintText("this — that").some(v=>/em dash/.test(v)));
 check("1d lint: detects a weekday without scope", lintText("Prices closed strongest on Fridays over the past 180 days").some(v=>/weekday-scope/.test(v)));
+check("1d lint: detects a removed house name", lintText("records from RM Sotheby's and Gooding").some(v=>/removed-house/.test(v)));
 
 console.log(failures ? `\n${failures} FAILURE(S)` : "\n1D-LINT ALL PASS");
 process.exit(failures ? 1 : 0);
