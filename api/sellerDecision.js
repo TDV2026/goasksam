@@ -952,13 +952,15 @@ function analyze(records, classifications, ladder, vehicle, debug) {
         const step = trace ? { scope: def === landed.definition ? `landed(${landed.key})` : `generation(${def.generationCode || def.key})`, windowDays: window, mineSold: mine.length, othersSold: others.length } : null;
         const scopeTags = def === landed.definition ? {} : { scope: "generation", generationCode: def.generationCode || null };
         const boundary = window >= 3650 ? { earliestSaleDate: eligible.map(item => item.record.auction_end_date).filter(Boolean).sort()[0] || null } : {};
-        // Asymmetric gate: when one platform IS the market (75%+ share with
-        // 5+ sales and the locked 10+ total denominator), a symmetric
-        // premium can't be computed against the thin "others" sample, but
-        // the convergence itself is a real routing claim.
+        // Asymmetric gate fires ONLY when the "others" sample is too thin (<5)
+        // to compute a symmetric price delta. When others has 5+, the delta is
+        // computable and IS the decision reason, so it must be stated (headline
+        // honesty): the symmetric branch below wins. Market dominance is the
+        // fallback for genuinely one-platform markets, never a preemption of a
+        // computable delta.
         const total = mine.length + others.length;
         const marketShare = total > 0 ? Math.round(mine.length / total * 100) : 0;
-        if (mine.length >= 5 && marketShare >= 75 && total >= 10) {
+        if (mine.length >= 5 && others.length < 5 && marketShare >= 75 && total >= 10) {
           if (step) { step.gateType = "asymmetric"; step.marketShare = marketShare; step.samplesGatePass = true; step.landed = true; trace.push(step); }
           return { type: "market_dominance", gateType: "asymmetric", marketShare, percent: null, windowDays: window, platformSales: mine.length, othersSales: others.length, ...scopeTags, ...boundary };
         }
@@ -994,7 +996,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
         const segBoundary = window >= 3650 ? { earliestSaleDate: eligible.map(item => item.record.auction_end_date).filter(Boolean).sort()[0] || null } : {};
         const segTotal = mine.length + others.length;
         const segShare = segTotal > 0 ? Math.round(mine.length / segTotal * 100) : 0;
-        if (mine.length >= 5 && segShare >= 75 && segTotal >= 10) {
+        if (mine.length >= 5 && others.length < 5 && segShare >= 75 && segTotal >= 10) {
           if (step) { step.gateType = "asymmetric"; step.marketShare = segShare; step.samplesGatePass = true; step.landed = true; trace.push(step); }
           return { type: "market_dominance", gateType: "asymmetric", marketShare: segShare, percent: null, windowDays: window, platformSales: mine.length, othersSales: others.length, ...segTags, ...segBoundary };
         }

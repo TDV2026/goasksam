@@ -13,6 +13,7 @@ export const LINT_RULES = [
   { id: "en-dash", re: /–/, msg: "en dash in user-facing copy" },
   { id: "removed-house", re: /\bSotheby|\bGooding/i, msg: "RM Sotheby's / Gooding removed from user-facing copy" },
   { id: "reserve-causation", re: /\bcaused\b|because of the reserve|the reserve helped|will get you|you'?ll earn|\bboosts\b|increases your price/i, msg: "reserve causation/outcome claim (correlation only; allowed verb is 'averaged')" },
+  { id: "volume-headline", re: /\bwhere most\b|most [^\n]{0,40} sales have closed|\bmoves most\b/i, msg: "volume language in a headline (state the delta or similarity finding instead)" },
 ];
 // A weekday claim must name its scope (car/generation/make) AND the window.
 export function lintWeekday(line) {
@@ -86,6 +87,14 @@ check("1d lint: sell-flow prompt (SELL_SYS) names no removed houses", lintPrompt
 check("1d lint: the stronger-non-routable callout never renders a removed house name",
   lintText(`One thing to know up front: ${platformDisplayName("rmsothebys")} actually shows the strongest comparable results, and ${platformDisplayName("gooding")} too.`).length === 0,
   `${platformDisplayName("rmsothebys")} / ${platformDisplayName("gooding")}`);
+
+// Headline honesty: a delta-winning pick states the delta, never volume. A
+// concentration (others<5) headline states the honest situation, not "where most".
+const domCard = composeCard({make:"Porsche",model:"911",year:1995}, { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:32, pricePremium:{type:"market_dominance",gateType:"asymmetric",percent:null,marketShare:84,windowDays:90,scope:"generation",generationCode:"993",platformSales:32,othersSales:3} } }, { isPick:true, landedScope:"generation" });
+check("1d lint: concentration headline (others<5) uses no volume language", lintText(domCard.headline.text).length === 0 && /concentrated on|too few on other platforms/i.test(domCard.headline.text), domCard.headline.text);
+const deltaCard = composeCard({make:"Porsche",model:"911",year:1995}, { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:32, pricePremium:{type:"premium",gateType:"symmetric",percent:35,windowDays:90,scope:"generation",generationCode:"993",platformSales:32,othersSales:6} } }, { isPick:true, landedScope:"generation" });
+check("1d lint: delta-winning headline states the delta, not volume", /has closed .* around 35% higher than the other platforms we track over the past 90 days/i.test(deltaCard.headline.text) && lintText(deltaCard.headline.text).length === 0, deltaCard.headline.text);
+check("1d lint: detects volume language in a headline", lintText("Bring a Trailer is where most 911 sales have closed over the past 90 days.").some(v=>/volume-headline/.test(v)));
 
 // Reserve context (Phase 1.5): renders on Card 1 only, last, correlation only.
 const reserveDelta = { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:12, pricePremium:{gateType:"symmetric",percent:16,windowDays:90,scope:"model"}, dayAdvantage:{weekday:"Friday",liftPercent:16,scope:"model",window:180,sample:20}, reserveContext:{platform:"Bring a Trailer",make:"Chevrolet",band_key:"$50k to $100k",avg_with_reserve:65144,avg_no_reserve:60000,delta_dollars:5144,delta_pct:8.6,n_with:14,n_without:22,data_month:"2026-06"} } };

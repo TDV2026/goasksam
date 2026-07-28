@@ -963,7 +963,10 @@ function composerDeltaHeadline(vehicle,ev){
   const name=platformDisplayName(ev.label||ev.platform);
   const win=`over the past ${p.windowDays} days`;
   if(p.type==="market_dominance"){
-    return { text:`${name} is where most ${composerScopePhrase(vehicle,p.scope||"model",p.generationCode)} sales have closed ${win}.`, provenance:`pricePremium.market_dominance(${p.scope||"model"},${p.windowDays}d)` };
+    // Others < 5: no symmetric delta is computable, so we state the honest
+    // situation (concentration + too thin to compare prices), never volume as if
+    // it were the price finding, and never "where most sales".
+    return { text:`Recent ${composerScopePhrase(vehicle,p.scope||"model",p.generationCode)} sales have concentrated on ${name}, with too few on other platforms to compare prices ${win}.`, provenance:`pricePremium.concentration(${p.scope||"model"},${p.windowDays}d)` };
   }
   if(p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10){
     return { text:`${name} has closed ${composerScopePhrase(vehicle,p.scope||"model",p.generationCode)} around ${p.percent}% higher than the other platforms we track ${win}.`, provenance:`pricePremium(${p.scope||"model"},${p.windowDays}d,${p.percent}%)` };
