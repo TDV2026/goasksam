@@ -222,7 +222,9 @@ async function showSellRecommendation(){
   // an assumption. Skipped when the seller prioritized speed (Mode B speed rule
   // keeps the faster platform on Card 1) or when a PowerSeller leads the layout.
   const routesForCards=(()=>{
-    if(sellState.routingReason==="speed")return routeOptions;
+    // A speed-priority seller keeps the routing's ordering (speed decides Card 1);
+    // the delta/most-comps reorder must not override it with a slower platform.
+    if(sellState.routingReason==="speed"||sellerWantsSpeed())return routeOptions;
     const routable=routeOptions.filter(r=>r.routable!==false);
     const cleared=r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10?p.percent:-1;};
     // 1) Highest cleared positive delta leads.

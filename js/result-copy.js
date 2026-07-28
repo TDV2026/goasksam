@@ -987,6 +987,27 @@ function composerHonestHeadline(vehicle,landedScope){
   const car=vehicle&&vehicle.model?`the ${[vehicle.make,vehicle.model].filter(Boolean).join(" ")}`:`this ${vehicle&&vehicle.make?vehicle.make:"car"}`;
   return { text:`Recent sales for ${car} are limited, so I ran this at ${landedScope||"make"} level.`, provenance:`ladder.landed(${landedScope||"make"})` };
 }
+// Reserve-context bullet (Phase 1.5): CORRELATION ONLY. Rendered on Card 1 only,
+// always last (context, not a reason). Locked wording; the allowed verb is
+// "averaged". Never a causation or outcome claim.
+function reserveMonthName(m){
+  const names=["","January","February","March","April","May","June","July","August","September","October","November","December"];
+  return names[Number(String(m||"").split("-")[1])]||"recent months";
+}
+function composerReserveBullet(ev){
+  const rc=ev&&ev.reserveContext;
+  if(!rc)return null;
+  const month=reserveMonthName(rc.data_month);
+  const platform=platformDisplayName(ev.label||ev.platform);
+  const tail=" You'll need to decide: is a reserve right for your car's condition and positioning.";
+  if(Math.abs(Number(rc.delta_pct))>=3){
+    const dir=Number(rc.delta_dollars)>=0?"higher":"lower";
+    const dollars=Math.abs(Math.round(Number(rc.delta_dollars))).toLocaleString();
+    return { text:`In ${month}, ${platform} auctions with reserves in your price band averaged $${dollars} ${dir} than those without.${tail}`, provenance:`reserveContext(${rc.data_month},${rc.delta_pct}%)` };
+  }
+  return { text:`In ${month}, ${platform} auctions in your price band averaged similar money with or without a reserve.${tail}`, provenance:`reserveContext(${rc.data_month},similar)` };
+}
+
 // Landed-rung scope word for the honest headline, from the evidence ladder.
 function composerLandedScope(){
   const key=String(sellState.sellDecision?.evidence?.ladder?.landed?.key||"");
@@ -1041,7 +1062,11 @@ function composeCard(vehicle,route,opts={}){
     if(out.some(o=>bulletsSimilar(o.text,b.text)))continue;
     out.push(b);
   }
-  return { headline, bullets: out.slice(0,3) };
+  const core=out.slice(0,3);
+  // Reserve context (Phase 1.5) is appended LAST on Card 1 only, after core
+  // evidence, and never displaces it. Never on the alt or PowerSeller card.
+  if(opts.isPick){ const rb=composerReserveBullet(ev); if(rb)core.push(rb); }
+  return { headline, bullets: core };
 }
 
 // "Why I picked this" is ONE list of three concrete reasons, never prose.
@@ -1366,7 +1391,15 @@ function sellChatEvidenceSummary(){
     if(wk&&wk.weekday&&Number.isFinite(Number(wk.liftPercent)))parts.push(`${wk.weekday} endings about ${wk.liftPercent}% stronger (${wk.scope||"make"} scope)`);
     return `${platformDisplayName(r.platform||r.label)}: ${parts.join(", ")}`;
   });
-  return lines.length?`Evidence by platform (only cite these numbers): ${lines.join("; ")}.`:"";
+  let out=lines.length?`Evidence by platform (only cite these numbers): ${lines.join("; ")}.`:"";
+  // Reserve context (Phase 1.5): observational, correlation only. If asked about
+  // reserves, answer from THIS and never claim the reserve caused anything.
+  const rc=routes.map(r=>r.marketEvidence&&r.marketEvidence.reserveContext).find(Boolean);
+  if(rc){
+    const month=reserveMonthName(rc.data_month);
+    out+=`\nReserve context (observational only, NEVER say a reserve caused/boosts/earns anything; only that sales "averaged" a figure, and the choice is the seller's): in ${month}, ${platformDisplayName(rc.platform)} auctions in the ${rc.band_key} band averaged ${Math.abs(Number(rc.delta_pct))>=3?`$${Math.abs(Math.round(rc.delta_dollars)).toLocaleString()} ${Number(rc.delta_dollars)>=0?"higher":"lower"} with a reserve than without`:"similar money with or without a reserve"} (n=${rc.n_with} with, ${rc.n_without} without). If asked about reserves and no cell exists for this exact make and band, say we don't have enough recent reserve data for this combination to say, and do not generalize from other makes or bands.`;
+  }
+  return out;
 }
 function sellChatCardsSummary(){
   const opts=sellState.sellOptions||[];

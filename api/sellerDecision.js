@@ -7,6 +7,7 @@ import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
 import { MODEL_SEGMENTS } from "../lib/vehicleData.js";
 import { calculateEffectiveSampleSize, MINIMUM_EFFECTIVE_SAMPLE, getRecencyMultiplier, getPlatformDominanceScore, calculateConfidenceScore, getConfidenceLevel } from "../lib/weighting.js";
 import { computePartnerCareerStats, partnerRelevance, priceBand } from "../lib/marketStats.js";
+import { findReserveContext } from "../lib/reserveContext.js";
 import {
   asText,
   classifyRecord,
@@ -1384,6 +1385,16 @@ function wideningFact(analysis) {
 
 function decide(analysis, criteria, vehicle) {
   const routeFit = analyzeRouteFit(analysis, criteria, vehicle);
+  // Reserve context (Phase 1.5): attach the platform+make+asking-price-band cell
+  // to every routable platform's evidence, so the composer can render it on the
+  // pick card (Card 1 only). No cell -> field absent, nothing renders.
+  const reserveAsking = parseSellerTargetPrice(criteria.targetPrice);
+  for (const route of routeFit.routes) {
+    if (route.routable && route.marketEvidence && vehicle?.make) {
+      const cell = findReserveContext(route.platform || route.label, vehicle.make, reserveAsking);
+      if (cell) route.marketEvidence.reserveContext = cell;
+    }
+  }
   const bestRoute = routeFit.routes.find(route => route.routable) || routeFit.routes[0] || null;
   // Coherence fact: a non-routable source with a stronger median than the pick
   // must be explained, never silently presented as "stronger but not chosen".

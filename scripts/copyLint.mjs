@@ -12,6 +12,7 @@ export const LINT_RULES = [
   { id: "em-dash", re: /—/, msg: "em dash in user-facing copy" },
   { id: "en-dash", re: /–/, msg: "en dash in user-facing copy" },
   { id: "removed-house", re: /\bSotheby|\bGooding/i, msg: "RM Sotheby's / Gooding removed from user-facing copy" },
+  { id: "reserve-causation", re: /\bcaused\b|because of the reserve|the reserve helped|will get you|you'?ll earn|\bboosts\b|increases your price/i, msg: "reserve causation/outcome claim (correlation only; allowed verb is 'averaged')" },
 ];
 // A weekday claim must name its scope (car/generation/make) AND the window.
 export function lintWeekday(line) {
@@ -74,14 +75,33 @@ for (const [name, fn] of [["powerSellerIntroLine", powerSellerIntroLine], ["powe
 const lowSample = composeCard(V, { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:8, pricePremium:{gateType:"symmetric",percent:16,windowDays:90,scope:"model"}, dayAdvantage:{weekday:"Friday",liftPercent:62,scope:"model",window:180,sample:8} } }, { isPick:true, landedScope:"model" });
 check("1d lint: weekday claim below the 15-comp gate does not render", !/closed strongest on/i.test(cardText(lowSample)), cardText(lowSample));
 
-// Platform wording (no removed consignment houses in user-facing copy).
+// Prompts are instructions (they legitimately name banned words to forbid them),
+// so they are checked only for removed-house names and dashes, not the
+// causation/filler rules that govern rendered card output.
+const lintPrompt = t => lintText(t).filter(v => /removed-house|dash/.test(v));
 check("1d lint: 'what is GoAskSam' answer (SYS) names no removed houses + lists the new set",
-  lintText(SYS).length === 0 && /Bring a Trailer, Cars & Bids, Hagerty, PCarMarket and Car & Classic/.test(SYS) && /more online platforms being added/.test(SYS),
-  lintText(SYS).join(" ; ") || "list/added-clause missing");
-check("1d lint: sell-flow prompt (SELL_SYS) names no removed houses", lintText(SELL_SYS).length === 0, lintText(SELL_SYS).join(" ; "));
+  lintPrompt(SYS).length === 0 && /Bring a Trailer, Cars & Bids, Hagerty, PCarMarket and Car & Classic/.test(SYS) && /more online platforms being added/.test(SYS),
+  lintPrompt(SYS).join(" ; ") || "list/added-clause missing");
+check("1d lint: sell-flow prompt (SELL_SYS) names no removed houses", lintPrompt(SELL_SYS).length === 0, lintPrompt(SELL_SYS).join(" ; "));
 check("1d lint: the stronger-non-routable callout never renders a removed house name",
   lintText(`One thing to know up front: ${platformDisplayName("rmsothebys")} actually shows the strongest comparable results, and ${platformDisplayName("gooding")} too.`).length === 0,
   `${platformDisplayName("rmsothebys")} / ${platformDisplayName("gooding")}`);
+
+// Reserve context (Phase 1.5): renders on Card 1 only, last, correlation only.
+const reserveDelta = { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:12, pricePremium:{gateType:"symmetric",percent:16,windowDays:90,scope:"model"}, dayAdvantage:{weekday:"Friday",liftPercent:16,scope:"model",window:180,sample:20}, reserveContext:{platform:"Bring a Trailer",make:"Chevrolet",band_key:"$50k to $100k",avg_with_reserve:65144,avg_no_reserve:60000,delta_dollars:5144,delta_pct:8.6,n_with:14,n_without:22,data_month:"2026-06"} } };
+const pickR = composeCard(V, reserveDelta, { isPick:true, landedScope:"model" });
+const altR = composeCard(V, reserveDelta, { isPick:false, landedScope:"model" });
+const reserveLine = (pickR.bullets.find(b=>/reserve/i.test(b.text))||{}).text || "";
+check("1d lint: reserve bullet renders on the pick card, clean", reserveLine && lintText(reserveLine).length === 0, lintText(reserveLine).join(" ; ") || reserveLine);
+check("1d lint: reserve bullet uses the exact locked delta wording", /In June, Bring a Trailer auctions with reserves in your price band averaged \$5,144 higher than those without\. You'll need to decide: is a reserve right for your car's condition and positioning\./.test(reserveLine), reserveLine);
+check("1d lint: reserve bullet contains 'decide' and the month name", /\bdecide\b/.test(reserveLine) && /\bJune\b/.test(reserveLine), reserveLine);
+check("1d lint: reserve bullet is the LAST bullet on the pick card", pickR.bullets.length>0 && /reserve/i.test(pickR.bullets[pickR.bullets.length-1].text), JSON.stringify(pickR.bullets.map(b=>b.text.slice(0,30))));
+check("1d lint: reserve NEVER renders on the alt card", !altR.bullets.some(b=>/reserve/i.test(b.text)), JSON.stringify(altR.bullets.map(b=>b.text)));
+const reserveSim = { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:12, pricePremium:{gateType:"symmetric",percent:16,windowDays:90,scope:"model"}, reserveContext:{platform:"Bring a Trailer",make:"Chevrolet",band_key:"$50k to $100k",avg_with_reserve:60500,avg_no_reserve:60000,delta_dollars:500,delta_pct:0.8,n_with:14,n_without:22,data_month:"2026-06"} } };
+const simLine = (composeCard(V, reserveSim, { isPick:true, landedScope:"model" }).bullets.find(b=>/reserve/i.test(b.text))||{}).text || "";
+check("1d lint: similarity case (|delta|<3%) renders the similar-money wording", /averaged similar money with or without a reserve/.test(simLine) && /\bdecide\b/.test(simLine), simLine);
+check("1d lint: PowerSeller card carries no reserve copy", !/reserve/i.test(cardText(composeCard(V, {}, { powerSeller:true }))));
+check("1d lint: detects a reserve causation claim", lintText("the reserve boosts your price and will get you more").some(v=>/reserve-causation/.test(v)));
 
 // The lint itself catches known-bad copy.
 check("1d lint: detects a sell-through claim", lintText("84% sell-through for modern Porsches").length > 0);
