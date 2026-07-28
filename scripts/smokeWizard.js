@@ -95,11 +95,14 @@ function guardRender(name, text) {
     for (const seg of cardSegs) {
       if (!/sell-rec-bullets/.test(seg)) continue;
       if (/chooseFallbackDestination/.test(seg)) continue; // regional policy cards: approved copy, exempt
-      const liCount = (seg.match(/<li[ >]/g) || []).length;
-      // Contract updated for DEFECT 2: a card carries 1-3 EVIDENCE bullets and
-      // is never padded with filler. Fewer strong bullets beat three empty ones,
-      // so 1 or 2 is valid; only 0 (when a bullet list rendered) or >3 is wrong.
-      if (liCount > 0) check(`[design] ${name}: card carries 1-3 evidence bullets (never padded)`, liCount >= 1 && liCount <= 3, `liCount=${liCount} card="${seg.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 120)}"`);
+      // Contract (DEFECT 2 + Phase 1.5): a card carries 1-3 EVIDENCE bullets,
+      // never padded. The reserve-context bullet (Phase 1.5) is appended as a
+      // LAST context line and does not count toward the 3-evidence cap, so it is
+      // excluded from the count here.
+      const liTexts = (seg.match(/<li[^>]*>([\s\S]*?)<\/li>/g) || []).map(x => x.replace(/<[^>]+>/g, " "));
+      const evidenceLi = liTexts.filter(t => !/is a reserve right for your car/i.test(t));
+      const liCount = evidenceLi.length;
+      if (liTexts.length > 0) check(`[design] ${name}: card carries 1-3 evidence bullets (never padded)`, liCount >= 1 && liCount <= 3, `evidenceLi=${liCount} total=${liTexts.length} card="${seg.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 120)}"`);
       const segBulletText = (seg.match(/<li[^>]*>([\s\S]*?)<\/li>/g) || []).join(" ").replace(/<[^>]+>/g, " ").toLowerCase();
       check(`[design] ${name}: no filler phrases in card bullets`, !/a car like this|remains viable|not the clearest|\bstrong option\b|real signal|one of the stronger platforms/.test(segBulletText), segBulletText.replace(/\s+/g, " ").slice(0, 140));
     }
