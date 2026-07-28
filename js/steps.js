@@ -183,8 +183,26 @@ async function handleSellStep(q){
       const missing=currentMissingVehicleDetail();
       if(missing){
         if(sellState.lastMissingAsk===missing.ask){
-          // The same question would render again: drop the unrecognized input
-          // instead of storing it, and proceed broad (never repeat, rule 12).
+          // The resolver did not absorb the answer as a trim. Classic trims
+          // (SS, RS, Z/28, Mach 1) are not all cataloged, so re-resolution can
+          // drop them. If the answer is a plausible trim token, RECORD it on the
+          // resolved vehicle rather than lose it (never discard a trim the seller
+          // gave); only truly unusable input proceeds broad (never repeat, r12).
+          const trimToken=String(q||"").trim();
+          const looksLikeTrim=missing.type==="trim"&&sellState.resolvedVehicle&&sellState.resolvedVehicle.model
+            &&/^[A-Za-z0-9][A-Za-z0-9 /.+-]{0,23}$/.test(trimToken)&&!extractVehicleMake(trimToken);
+          if(looksLikeTrim){
+            sellState.resolvedVehicle.trim=trimToken;
+            sellState.vehicleIdentityValidated=true;
+            sellState.vehicleDetailSkipped=false;
+            sellState.lastMissingAsk=null;
+            sellState.trimAskAttempts=0;
+            sellState.carName=`${prevCar} ${trimToken}`.replace(/\s+/g," ").trim();
+            sellState.carRaw=sellState.carName;
+            resumeWizardAfterVehicle(`Got it, the ${sellState.carName}.`);
+            return true;
+          }
+          // Not a usable trim: drop the input and proceed broad, never re-ask.
           sellState.carName=prevCar;sellState.carRaw=prevCar;
           sellState.vehicleDetailSkipped=true;sellState.lastMissingAsk=null;
           resumeWizardAfterVehicle(`I'll take the ${prevCar} as-is and keep the read broad rather than keep asking.`);

@@ -578,7 +578,9 @@ resetToStep1();
 await handleSellStep("vw camper van");
 check("partial: camper van resolves make+model, asks year only", sellState.step === 17 && /year/i.test(lastSam() || "") && /Volkswagen Bus/.test(sellState.pendingVehicleIdentity?.baseVehicle || ""), `step=${sellState.step} base=${sellState.pendingVehicleIdentity?.baseVehicle} ask="${lastSam()}"`);
 await handleSellStep("1965");
-check("partial: bare year completes the car, nothing re-asked", sellState.step === 11 && /1965 Volkswagen Bus/.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
+check("partial: bare year completes the car, then the optional trim step fires (never silently skipped)", sellState.step === 17 && /1965 Volkswagen Bus/.test(sellState.carName || "") && /trim, package or edition/i.test(lastSam() || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
+await handleSellStep("skip");
+check("partial: skipping the optional trim advances straight to location", sellState.step === 11 && sellState.vehicleDetailSkipped === true, `step=${sellState.step} skipped=${sellState.vehicleDetailSkipped}`);
 
 // 5. Trim step and its escalation contract: the trim question always runs
 // before location for a trim-less 911. Owner contract (F3): "dont know" /
@@ -623,6 +625,32 @@ if (sellState.step === 17) {
   check("move-on: explicit move on advances from clarification", sellState.step === 11 && /Volkswagen Bus/.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
 }
 
+// 5a. Trim is never silently skipped (Defect B). A classic with a curated trim
+// set ("1967camaro") asks trim with chips; a typed trim is recorded and flows
+// to the car label; a generic model still gets the optional free-text step.
+resetToStep1();
+await handleSellStep("1967camaro");
+const atCamaroTrim = sellState.step === 17;
+check("trim: 1967 Camaro asks trim before location (curated classic, was silently skipped)",
+  atCamaroTrim && /which camaro/i.test(lastSam() || "") && /Z\/28/.test(String(addMsgLog.at(-1)?.[3] || "")),
+  `step=${sellState.step} last="${lastSam()}" chips="${String(addMsgLog.at(-1)?.[3] || "").slice(0, 160)}"`);
+if (atCamaroTrim) {
+  await handleSellStep("SS");
+  check("trim: typed 'SS' is recorded on the car label and advances to location",
+    /Camaro SS/i.test(sellState.carName || "") && sellState.step === 11,
+    `car=${sellState.carName} step=${sellState.step}`);
+}
+// A generic model with no curated trim set still fires the optional trim step.
+resetToStep1();
+await handleSellStep("2019 Toyota Corolla");
+check("trim: a model without a curated trim set gets the optional free-text step (never silently skipped)",
+  sellState.step === 17 && /trim, package or edition/i.test(lastSam() || ""),
+  `step=${sellState.step} last="${lastSam()}"`);
+if (sellState.step === 17) {
+  await handleSellStep("skip");
+  check("trim: skipping the optional generic trim advances to location", sellState.step === 11 && sellState.vehicleDetailSkipped === true, `step=${sellState.step} skipped=${sellState.vehicleDetailSkipped}`);
+}
+
 // 5b. Entry partials, decades and personalized examples (locked behaviors).
 // Cold partial "2018 pors": typo-confirm, then "carrera 30k miles" seeds
 // trim AND mileage; neither is ever re-asked.
@@ -642,10 +670,10 @@ check("partial entry: mileage step skipped, condition asked next", /stock or mod
 // Decade at the vehicle step: year range stored, no year re-ask.
 resetToStep1();
 await handleSellStep("vw camper van from the 80s");
-check("decade: 80s Bus resolves with a year range, no year ask",
-  sellState.step === 11 && /Volkswagen Bus/.test(sellState.carName || "") &&
+check("decade: 80s Bus resolves with a year range, no year ask (advances to the optional trim step, not a year re-ask)",
+  sellState.step === 17 && /trim, package or edition/i.test(lastSam() || "") && /Volkswagen Bus/.test(sellState.carName || "") &&
   sellState.resolvedVehicle?.yearRange?.start === 1980 && sellState.resolvedVehicle?.yearRange?.end === 1989,
-  `step=${sellState.step} car=${sellState.carName} range=${JSON.stringify(sellState.resolvedVehicle?.yearRange || null)}`);
+  `step=${sellState.step} car=${sellState.carName} range=${JSON.stringify(sellState.resolvedVehicle?.yearRange || null)} last="${lastSam()}"`);
 
 // Year-only gap (Bus variant): make+model resolved, only the year missing.
 // A single "not sure" proceeds at model level, never re-asking the year.
@@ -984,9 +1012,22 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   const fastAltMedLC=Number(fastAltLC?.marketEvidence?.medianSalePrice||0);
   const priceProtectsLC=!!(pickMedLC&&fastAltMedLC&&pickMedLC>fastAltMedLC
     &&Math.round((pickMedLC-fastAltMedLC)/pickMedLC*100)>=10);
-  check("speed routing: fast pick, price protects it, or no fast alternative",
-    !plateLC||!pickRouteLC||FAST.includes(pickRouteLC.speedToList)||!fastAltExists||priceProtectsLC,
-    `plate=${plateLC} pickSpeed=${pickRouteLC?.speedToList} fastAltExists=${fastAltExists} priceProtects=${priceProtectsLC} reason=${sellState.routingReason}`);
+  // Defect A: unknown spread is never negligible spread. A 5+/5+ symmetric
+  // proof on the pick or the fast alt means the spread was MEASURED; only then
+  // may speed re-rank Card 1. When no such proof exists the spread is unknown,
+  // so a slow evidence leader legitimately holds Card 1 (reason stays null).
+  const verifiedLC=r=>{const p=r?.marketEvidence?.pricePremium;return p&&p.platformSales>=5&&p.othersSales>=5?Number(p.percent):null;};
+  const spreadMeasuredLC=verifiedLC(pickRouteLC)!=null||verifiedLC(fastAltLC)!=null;
+  check("speed routing: a slow pick over a fast alt happens only when price protects or the spread was measured (never treat unknown as negligible)",
+    !plateLC||!pickRouteLC||FAST.includes(pickRouteLC.speedToList)||!fastAltExists||priceProtectsLC||!spreadMeasuredLC,
+    `plate=${plateLC} pickSpeed=${pickRouteLC?.speedToList} fastAltExists=${fastAltExists} priceProtects=${priceProtectsLC} spreadMeasured=${spreadMeasuredLC} reason=${sellState.routingReason}`);
+  // When the spread was unknown and speed did NOT swap, the pick card must own
+  // the speed preference as an honest tradeoff bullet, not drop it.
+  if(sellState.routingReason===null&&pickRouteLC&&!FAST.includes(pickRouteLC.speedToList)&&fastAltExists){
+    check("speed routing: unknown-spread slow pick carries the speed-tradeoff acknowledgement",
+      /You said speed matters\. .+ typically runs a quicker cycle, but .+ is where the market for this car has been\./.test(flatLC),
+      (flatLC.match(/[^\n]*speed matters[^\n]*/)||["missing tradeoff bullet"])[0].slice(0,200));
+  }
   check("speed routing: routingReason tag matches the rendered voice",
     (sellState.routingReason==="speed")===/If speed is your priority, [^\n]+ is the right move\./.test(flatLC),
     `reason=${sellState.routingReason}`);
@@ -1153,6 +1194,9 @@ editCarName();
 await handleSellStep("actually different car 1965 jag");
 check("edit-resume: different car resolves, model clarification allowed", sellState.step === 17 || sellState.step === 11, `step=${sellState.step} last="${lastSam()}"`);
 if (sellState.step === 17) await handleSellStep("e-type");
+// New contract: a classic without a curated trim set gets the optional
+// free-text trim step; skipping it advances to location.
+if (sellState.step === 17) await handleSellStep("skip");
 check("edit-resume: different car resumes at location after clarification", sellState.step === 11 && /where is the car located/i.test(lastSam() || "") && /Jaguar/i.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
 
 // Edit at every step: clicking returns to vehicle entry keeping answers.
@@ -1165,6 +1209,10 @@ const preEditStep = sellState.step;
 editCarName();
 check("edit: editCarName returns to vehicle entry", sellState.step === 1, `step=${sellState.step}`);
 await handleSellStep("1969 ford mustang");
+// New contract: the Mustang has a curated trim set, so the trim step fires
+// before resuming; the earlier answers are retained across it.
+check("edit: new car with curated trims asks trim before resuming", sellState.step === 17 && /which mustang/i.test(lastSam() || ""), `step=${sellState.step} last="${lastSam()}"`);
+await handleSellStep("not sure");
 check("edit: new car keeps answers, resumes at first unanswered", /Mustang/.test(sellState.carName || "") && sellState.region === "US" && sellState.state === "California" && sellState.step === preEditStep, `car=${sellState.carName} region=${sellState.region} state=${sellState.state} step=${sellState.step} (was ${preEditStep})`);
 
 // Phrasing fuzzer (Addendum C): combinatorial real-world entries. Every

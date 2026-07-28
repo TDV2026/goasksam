@@ -382,32 +382,55 @@ function missingVehicleDetail(text){
 
 const TRIM_911_ASK={type:"trim",ask:"Which 911 is it? Carrera, Carrera T, GTS, Turbo, GT3 and Sport Classic behave very differently. Pick one below, or type the exact trim if it is not shown.",chips:["Carrera","Carrera S","Carrera T","GTS","Turbo","Turbo S","GT3","GT3 RS","Sport Classic","Not sure"]};
 
-// Models with meaningful tracked-trim spread get the trim question (same
-// mechanism as the 911 rule, generalized). trimRe rules fire when the trim
-// is present but names an ambiguous variant family (C63 vs C63 S); rules
-// without trimRe fire only when no trim resolved.
-const MULTI_TRIM_ASKS=[
+// Curated trim taxonomy: models whose trim is a major value + evidence
+// differentiator get a chip question (same mechanism as the 911 rule,
+// generalized). A plain rule (no trimRe) fires only when NO trim resolved; a
+// trimRe rule fires when a trim is present but names an ambiguous variant
+// family (C63 vs C63 S). yearMin/yearMax scope a rule to the era where the
+// trims apply. Classic American muscle is included because SS/RS/Z/28,
+// GT/Mach 1/Boss/Shelby, and SS 396/454 move the market by large multiples.
+const CURATED_TRIM_ASKS=[
+  {make:/porsche/i,model:/^(911|964|993|996|997|991|992)$/i,ask:TRIM_911_ASK.ask,chips:TRIM_911_ASK.chips.slice()},
   {make:/bmw/i,model:/^m3$/i,yearMin:2015,ask:"Which M3 is it? Base and Competition sell differently. Pick one below, or type the exact trim.",chips:["Base","Competition","CS","Not sure"]},
-  {make:/mercedes/i,model:/^c-class$/i,trimRe:/^c63$/i,ask:"Which C63 is it? C63 and C63 S behave differently. Pick one below, or type it.",chips:["C63","C63 S","Not sure"]}
+  {make:/mercedes/i,model:/^c-class$/i,trimRe:/^c63$/i,ask:"Which C63 is it? C63 and C63 S behave differently. Pick one below, or type it.",chips:["C63","C63 S","Not sure"]},
+  {make:/chevrolet|chevy/i,model:/^camaro$/i,ask:"Which Camaro is it? Base, SS, RS and Z/28 sell very differently. Pick one below, or type the exact trim.",chips:["Base","SS","RS","Z/28","Other","Not sure"]},
+  {make:/ford/i,model:/^mustang$/i,ask:"Which Mustang is it? Base, GT, Mach 1, Boss and Shelby sell very differently. Pick one below, or type the exact trim.",chips:["Base","GT","Mach 1","Boss 302","Shelby GT350","Shelby GT500","Other","Not sure"]},
+  {make:/chevrolet|chevy/i,model:/^chevelle$/i,ask:"Which Chevelle is it? Base, Malibu and the SS cars (SS 396, SS 454) sell very differently. Pick one below, or type the exact trim.",chips:["Base","Malibu","SS 396","SS 454","Other","Not sure"]},
+  {make:/pontiac/i,model:/^(gto|firebird|trans\s*am)$/i,ask:"Which trim is it? The Judge, Trans Am and Formula command very different money. Pick one below, or type the exact trim.",chips:["Base","The Judge","Trans Am","Formula","Other","Not sure"]},
+  {make:/dodge/i,model:/^(charger|challenger)$/i,yearMax:1974,ask:"Which trim is it? R/T, Super Bee and the Hemi cars sell very differently. Pick one below, or type the exact trim.",chips:["Base","R/T","Super Bee","Hemi","Other","Not sure"]},
+  {make:/chevrolet|chevy/i,model:/^corvette$/i,ask:"Which Corvette is it? The base, Stingray, Z06, ZR1 and Grand Sport sell very differently. Pick one below, or type the exact trim.",chips:["Base","Stingray","Z06","ZR1","Grand Sport","Other","Not sure"]}
 ];
+
+function genericTrimAsk(rv){
+  // Never silently skip trim: a model with no curated variant set still gets an
+  // optional free-text trim step. Skip advances normally.
+  const label=[rv&&rv.year?rv.year:null,rv&&rv.make?rv.make:null,rv&&rv.model?rv.model:null].filter(Boolean).join(" ");
+  return {type:"trim",optional:true,ask:`Any specific trim, package or edition on the ${label||"car"}? Type it, or say skip if it is the standard car.`,chips:["Skip","Not sure"]};
+}
 
 function missingVehicleTrimDetail(text){
   // Trim-missing is judged on the RESOLVED vehicle when we have one: model
-  // confirmed with no trim means the trim step always runs before location
-  // (trims drive the top ladder rungs). The text regex remains only as the
-  // fallback when no resolution exists yet.
+  // confirmed with no trim means the trim step ALWAYS runs before location
+  // (trims drive the top ladder rungs and never get silently skipped). The text
+  // regex remains only as the fallback when no resolution exists yet.
   const rv=sellState.resolvedVehicle;
-  if(rv&&rv.model){
-    if(!rv.trim&&/porsche/i.test(rv.make||"")&&/^(911|964|993|996|997|991|992)$/.test(String(rv.model)))return TRIM_911_ASK;
-    for(const rule of MULTI_TRIM_ASKS){
+  // An unverified vehicle (model not in the taxonomy) never gets a trim step:
+  // the model itself is in question, so a trim probe would be nonsensical.
+  if(rv&&rv.model&&!rv.unverified){
+    const trimVal=String(rv.trim||"");
+    for(const rule of CURATED_TRIM_ASKS){
       if(!rule.make.test(String(rv.make||"")))continue;
       if(!rule.model.test(String(rv.model||"")))continue;
       if(rule.yearMin&&Number(rv.year)&&Number(rv.year)<rule.yearMin)continue;
-      const trimVal=String(rv.trim||"");
+      if(rule.yearMax&&Number(rv.year)&&Number(rv.year)>rule.yearMax)continue;
       if(rule.trimRe){if(!rule.trimRe.test(trimVal))continue;}
       else if(trimVal)continue;
-      return {type:"trim",ask:rule.ask,chips:rule.chips};
+      return {type:"trim",ask:rule.ask,chips:rule.chips.slice()};
     }
+    // No curated set matched. If a trim already resolved, we are done; otherwise
+    // fire the generic optional trim step (never a silent skip).
+    if(!trimVal)return genericTrimAsk(rv);
+    return null;
   }
   const lower=String(text||"").toLowerCase();
   if(/\bporsche\b/.test(lower)&&/\b911\b/.test(lower)&&!/\b(carrera(?:\s+[124]?s|\s+t)?|gts|turbo(?:\s+s)?|gt3(?:\s+rs)?|gt2(?:\s+rs)?|sport\s+classic|dak(?:ar)?|speedster|targa|s\/t|992|991|997|996|993|964)\b/.test(lower)){

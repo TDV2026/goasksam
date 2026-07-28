@@ -957,6 +957,16 @@ function composerSpeedBullet(ev,opts){
   if(!opts.sellerWantsSpeed||!["fast","medium_fast"].includes(ev.speedToList))return null;
   return { text:`If speed matters, ${platformDisplayName(ev.label||ev.platform)} typically runs the quicker auction cycle.`, provenance:"speedToList" };
 }
+// Speed-tradeoff line (Defect A): the seller wanted speed but the evidence
+// leader (a slower platform) took Card 1. Acknowledge the preference honestly
+// without letting it override the market read. Only on the pick card, only when
+// the pick is NOT itself a fast platform and a faster alternative exists.
+function composerSpeedTradeoffBullet(ev,opts){
+  if(!opts.isPick||!opts.sellerWantsSpeed||!opts.fasterAlternativeName)return null;
+  if(["fast","medium_fast"].includes(ev.speedToList))return null;
+  const pickName=platformDisplayName(ev.label||ev.platform);
+  return { text:`You said speed matters. ${opts.fasterAlternativeName} typically runs a quicker cycle, but ${pickName} is where the market for this car has been.`, provenance:"speedTradeoff" };
+}
 // Mode A delta headline: the winning platform's cleared comparative delta.
 function composerDeltaHeadline(vehicle,ev){
   const p=ev.pricePremium;if(!p)return null;
@@ -1104,6 +1114,7 @@ function composeCard(vehicle,route,opts={}){
   if(!unverified){ const wk=composerWeekdayBullet(vehicle,ev); if(wk)bullets.push(wk); }
   const aud=composerAudienceBullet(ev); if(aud)bullets.push(aud);
   const spd=composerSpeedBullet(ev,opts); if(spd)bullets.push(spd);
+  const spdTrade=composerSpeedTradeoffBullet(ev,opts); if(spdTrade)bullets.push(spdTrade);
   // Dedupe (reuse the round-3 guard) and cap at 3; drop any that echo the headline.
   const out=[];
   for(const b of bullets){

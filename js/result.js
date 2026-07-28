@@ -198,7 +198,14 @@ async function showSellRecommendation(){
       ?Math.round(Math.abs(pickMedian-altMedian)/Math.max(pickMedian,altMedian)*100)
       :null;
     const priceProtects=(pickPremium!=null&&pickPremium>=10)||(rawGapPercent!==null&&rawGapPercent>=10);
-    if(sellState.routingReason!=="price"&&!priceProtects
+    // Unknown spread is NEVER negligible spread. Speed may re-rank Card 1 only
+    // in measured Mode B: a 5+/5+ symmetric price proof exists (so the spread
+    // was actually computed) and, since price does not protect the pick, it is
+    // under 10%. When no delta cleared at any rung the spread is UNKNOWN, and
+    // speed must not override the evidence leader; it becomes a bullet instead.
+    const altPremium=verifiedPremium(altRoute);
+    const spreadMeasured=pickPremium!=null||altPremium!=null;
+    if(sellState.routingReason!=="price"&&!priceProtects&&spreadMeasured
       &&sellerWantsSpeed()&&pickRoute&&altRoute
       &&FAST.includes(altRoute.speedToList)&&!FAST.includes(pickRoute.speedToList)
       &&routeHasTrueComparableEvidence(altRoute)){
@@ -222,9 +229,12 @@ async function showSellRecommendation(){
   // an assumption. Skipped when the seller prioritized speed (Mode B speed rule
   // keeps the faster platform on Card 1) or when a PowerSeller leads the layout.
   const routesForCards=(()=>{
-    // A speed-priority seller keeps the routing's ordering (speed decides Card 1);
-    // the delta/most-comps reorder must not override it with a slower platform.
-    if(sellState.routingReason==="speed"||sellerWantsSpeed())return routeOptions;
+    // Speed keeps Card 1 ONLY when the routing actually re-ranked on a measured
+    // Mode B spread (routingReason==="speed"). A seller who wanted speed but had
+    // an unknown spread is NOT a speed route: the evidence leader must still win
+    // Card 1, so the reorder below runs and the speed preference lands as a
+    // tradeoff bullet on the pick card.
+    if(sellState.routingReason==="speed")return routeOptions;
     const routable=routeOptions.filter(r=>r.routable!==false);
     const cleared=r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10?p.percent:-1;};
     // 1) Highest cleared positive delta leads.
@@ -254,6 +264,15 @@ async function showSellRecommendation(){
   // "closed strongest" claim (only the volume leader at the landed scope).
   const maxRoutableEvidence=routesForCards.filter(r=>r.routable!==false)
     .reduce((m,r)=>Math.max(m,Number(r.marketEvidence&&r.marketEvidence.evidenceSales||0)),0);
+  // Speed-tradeoff acknowledgement: the seller wanted speed but the evidence
+  // leader (not the fastest platform) took Card 1. Name the faster alternative
+  // so the pick card can own the tradeoff honestly.
+  const FAST_POOL=["fast","medium_fast"];
+  const pickIsFast=FAST_POOL.includes(routesForCards[0]&&routesForCards[0].speedToList);
+  const fasterAltRoute=(!pickIsFast&&sellerWantsSpeed())
+    ?routesForCards.slice(1).find(r=>r.routable!==false&&FAST_POOL.includes(r.speedToList))
+    :null;
+  const fasterAlternativeName=fasterAltRoute?platformDisplayName(fasterAltRoute.label||fasterAltRoute.platform):null;
   const routeSellOptions=routesForCards.map((route,index)=>{
     const platform=route.marketEvidence||{};
     const facts=route.routeFitFacts||[];
@@ -285,7 +304,8 @@ async function showSellRecommendation(){
         sellerWantsSpeed:sellerWantsSpeed(),
         routingReason:sellState.routingReason,
         landedScope:composerLandedScope(),
-        landedGenerationCode:composerLandedGenerationCode()
+        landedGenerationCode:composerLandedGenerationCode(),
+        fasterAlternativeName:index===0?fasterAlternativeName:null
       }),
       bestFor:index===0
         ? speedFit?"Works when timing matters and the market read still backs it":"Works when the priority is the strongest sale outcome"
