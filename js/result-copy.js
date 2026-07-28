@@ -985,10 +985,55 @@ function composerSimilarityHeadline(vehicle,ev,opts){
     :`so the deepest recent market for this car leads: ${name} has the most recent sales`;
   return { text:`Prices for ${composerScopePhrase(vehicle,scope)} have been within a small percentage across the top platforms ${win}, ${reason}.`, provenance:`pricePremium.negligible(${p?p.windowDays+"d":"?"})` };
 }
-// Honest headline: no delta or similarity finding cleared the gates.
-function composerHonestHeadline(vehicle,landedScope){
+// Thin-data caveat: no rung carries a real comp base. Names the rung the
+// analysis landed on. The banned "limited sales, running at model level" and
+// "so I ran this at X level" phrasings are gone; this is the one honest floor.
+function composerHonestHeadline(vehicle,rungWord){
   const car=vehicle&&vehicle.model?`the ${[vehicle.make,vehicle.model].filter(Boolean).join(" ")}`:`this ${vehicle&&vehicle.make?vehicle.make:"car"}`;
-  return { text:`Recent sales for ${car} are limited, so I ran this at ${landedScope||"make"} level.`, provenance:`ladder.landed(${landedScope||"make"})` };
+  return { text:`Recent sales for ${car} are limited. Analysis ran at ${rungWord||"model"} level.`, provenance:`ladder.landed(${rungWord||"model"})` };
+}
+// Generation code for the landed rung, when the ladder mapped one.
+function composerLandedGenerationCode(){
+  return (sellState.sellDecision&&sellState.sellDecision.evidence&&sellState.sellDecision.evidence.ladder&&sellState.sellDecision.evidence.ladder.landed&&sellState.sellDecision.evidence.ladder.landed.generationCode)||null;
+}
+// Rung-cascade fallback headline (RUNG LADDER CASCADE): no delta, similarity or
+// concentration finding cleared the gates, so state the finding at the rung the
+// analysis actually LANDED on (exact year -> generation -> segment -> make),
+// scope labeled, never the bare "limited sales" line when a rung carries real
+// comps. "Closed strongest among recent sales" is a RELATIVE claim, made only
+// when the pick is the deepest recent market at that scope (opts.isVolumeLeader)
+// with a real comp base (>=3). Below that it degrades to the honest thin-data
+// caveat, or to the speed reason when speed routed the pick to a non-leader.
+function composerCascadeHeadline(vehicle,ev,opts,landedScope){
+  const name=platformDisplayName(ev.label||ev.platform);
+  const genCode=opts.landedGenerationCode||composerLandedGenerationCode();
+  const wantsSpeed=opts.sellerWantsSpeed&&["fast","medium_fast"].includes(ev.speedToList);
+  const speedLine=wantsSpeed?` If speed matters, ${name} typically runs the quicker auction cycle.`:"";
+  const rungWord=landedScope==="make"?"make":landedScope==="segment"?"segment":landedScope==="generation"?"generation":"model";
+  const base=Number(ev.evidenceSales||0);
+  const leads=opts.isVolumeLeader!==false;
+  // No real comp base at the landed rung, or the pick is not the volume leader
+  // (e.g. speed routed it ahead of a deeper market): the "strongest" claim would
+  // be false, so state the honest thin-data caveat naming the rung. The speed
+  // reason, when it applies, is carried by the conditional speed BULLET.
+  if(base<3||!leads){
+    return composerHonestHeadline(vehicle,rungWord);
+  }
+  // RUNG 4 (make): a make-level lead, always caveated for the exact model.
+  if(landedScope==="make"){
+    return { text:`Among recent ${vehicle&&vehicle.make?vehicle.make:"comparable"} sales, ${name} leads. Limited recent data for this exact model.`, provenance:`ladder.landed(make)` };
+  }
+  // RUNG 3 (segment): the model family closes strongest here (no year: segment
+  // evidence spans siblings and years, so the year would misstate the scope).
+  if(landedScope==="segment"){
+    return { text:`${composerPlural(vehicle&&vehicle.model?vehicle.model:vehicle&&vehicle.make?vehicle.make:"These cars")} close strongest on ${name}.${speedLine}`, provenance:`ladder.landed(segment)` };
+  }
+  // RUNG 2 (generation): scope the chassis when we have its code.
+  if(landedScope==="generation"&&genCode){
+    return { text:`${name} has closed ${composerScopePhrase(vehicle,"generation",genCode)} strongest among recent sales.${speedLine}`, provenance:`ladder.landed(generation:${genCode})` };
+  }
+  // RUNG 1 (exact year / model): a real lead, no delta cleared.
+  return { text:`${name} has closed ${composerScopePhrase(vehicle,"model")} strongest among recent sales.${speedLine}`, provenance:`ladder.landed(model)` };
 }
 // Reserve-context bullet (Phase 1.5): CORRELATION ONLY. Rendered on Card 1 only,
 // always last (context, not a reason). Locked wording; the allowed verb is
@@ -1041,7 +1086,9 @@ function composeCard(vehicle,route,opts={}){
       // platform closes lower, so it is never framed as "similar money".
       headline=composerSimilarityHeadline(vehicle,ev,opts);
     }else{
-      headline=composerHonestHeadline(vehicle,landedScope);
+      // No delta/similarity/concentration cleared: cascade through the rung
+      // ladder and state the finding at the rung the analysis landed on.
+      headline=composerCascadeHeadline(vehicle,ev,opts,landedScope);
     }
   }else{
     const p=ev.pricePremium;

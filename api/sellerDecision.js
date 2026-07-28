@@ -1179,6 +1179,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
         rung: landed.rung,
         key: landed.key,
         label: landed.label,
+        generationCode: landed.definition?.generationCode ?? null,
         windowDays,
         sales: evidenceSet.length,
         effectiveSample: landed.effectiveSample ?? null,

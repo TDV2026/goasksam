@@ -922,7 +922,7 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   // negligibility line, and the volume "has sold plenty" line.
   // 1b: the composer headline is a delta (Mode A), a similarity (Mode B), a
   // market-concentration line, or the honest limited-sales line.
-  const heroHasComposed=/(higher than the other platforms we track|is where most [^\n]* sales have closed|within a small percentage across the top platforms|Recent sales for [^\n]* are limited|has also closed recent)/i.test(rendered.replace(/&amp;/g,"&"));
+  const heroHasComposed=/(higher than the other platforms we track|within a small percentage across the top platforms|Recent sales for [^\n]* are limited|has also closed recent|concentrated on [^\n]*with too few on other platforms|strongest among recent sales|close strongest on|leads\. Limited recent data for this exact model)/i.test(rendered.replace(/&amp;/g,"&"));
   check("card specificity: hero is a specific composed finding", heroHasComposed, (rendered.match(/[^\n]*(higher than the other|most [^\n]* sales have closed|small percentage|are limited)[^\n]*/i)||["no hero line"])[0].slice(0,180));
   check("card specificity: no 'Every comparable sale' vagueness", !/Every comparable sale we tracked/i.test(rendered), "vague claim rendered");
   check("card regression: hero finding carries provenance, zero dollars", heroHasComposed, (rendered.match(/[^\n]*(higher than|most [^\n]* sales|small percentage|are limited)[^\n]*/i)||["missing"])[0].slice(0,160));

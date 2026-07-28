@@ -250,6 +250,10 @@ async function showSellRecommendation(){
   const powerSellerProfiles=hasNamedPowerSellerAdvice?[partnerProfileFromReferral(partnerReferral)]:[];
   sellState.powerSellerProfiles=powerSellerProfiles;
 
+  // Deepest recent market among the cards, used to ground the cascade's
+  // "closed strongest" claim (only the volume leader at the landed scope).
+  const maxRoutableEvidence=routesForCards.filter(r=>r.routable!==false)
+    .reduce((m,r)=>Math.max(m,Number(r.marketEvidence&&r.marketEvidence.evidenceSales||0)),0);
   const routeSellOptions=routesForCards.map((route,index)=>{
     const platform=route.marketEvidence||{};
     const facts=route.routeFitFacts||[];
@@ -275,9 +279,13 @@ async function showSellRecommendation(){
       // 1b: the composer is the ONLY source of card headline + bullets.
       composed:composeCard(sellState.resolvedVehicle,route,{
         isPick:index===0,
+        // Volume leadership at the landed scope grounds the cascade's "closed
+        // strongest" claim: only the deepest recent market may state it.
+        isVolumeLeader:maxRoutableEvidence>0&&Number(route.marketEvidence&&route.marketEvidence.evidenceSales||0)>=maxRoutableEvidence,
         sellerWantsSpeed:sellerWantsSpeed(),
         routingReason:sellState.routingReason,
-        landedScope:composerLandedScope()
+        landedScope:composerLandedScope(),
+        landedGenerationCode:composerLandedGenerationCode()
       }),
       bestFor:index===0
         ? speedFit?"Works when timing matters and the market read still backs it":"Works when the priority is the strongest sale outcome"

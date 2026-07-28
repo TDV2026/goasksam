@@ -33,11 +33,11 @@ check("1b Mode B: every line has provenance", everyLineHasProvenance(B));
 
 // Honest: no delta
 const H=composeCard({make:"Porsche",model:"911",year:1995},{label:"pcarmarket",platform:"pcarmarket",marketEvidence:{evidenceSales:2,pricePremium:null}},{isPick:true,landedScope:"model"});
-check("1b Honest: states limited sales + landed scope, no template", /Recent sales for the Porsche 911 are limited, so I ran this at model level/.test(H.headline.text), H.headline.text);
+check("1b Honest: states limited sales + landed scope, no template", /Recent sales for the Porsche 911 are limited\. Analysis ran at model level\./.test(H.headline.text), H.headline.text);
 
 // Unverified: make-level, no delta/weekday even when present
 const U=composeCard({make:"BMW",model:"351RG",year:2002,unverified:true},{label:"bringatrailer",platform:"bringatrailer",marketEvidence:{evidenceSales:5,pricePremium:{gateType:"symmetric",percent:40,windowDays:45,scope:"model"},dayAdvantage:{weekday:"Tuesday",liftPercent:12,scope:"make",window:180}}},{isPick:true,landedScope:"make"});
-check("1b Unverified: make-level headline, no verified-style delta/weekday", /ran this at make level/.test(U.headline.text) && !/%/.test(allText(U)) && !/strongest on/.test(allText(U)), allText(U));
+check("1b Unverified: make-level headline, no verified-style delta/weekday", /Analysis ran at make level/.test(U.headline.text) && !/%/.test(allText(U)) && !/strongest on/.test(allText(U)), allText(U));
 
 // Make-scope weekday labeled, no %
 const Mk=composeCard({make:"Porsche",model:"911",year:2019},{label:"carsandbids",platform:"carsandbids",marketEvidence:{evidenceSales:1,dayAdvantage:{weekday:"Tuesday",liftPercent:17,scope:"make",window:180}}},{isPick:false,landedScope:"model"});
