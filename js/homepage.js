@@ -2,9 +2,8 @@
 // input is the same #inp/#btn the wizard uses, so submitting is byte-identical
 // to today's entry path. Stage B items are stubbed and tagged STAGE_B in code.
 
-// The hero supporting line is the ONE exempted constant that may carry an em
-// dash (approved verbatim). copyLint exempts this exact string only.
-const HERO_SUPPORTING = "I'll recommend where I'd sell your car—and show you exactly why.";
+// Hero supporting line (no dash; the global no-dash rule now has zero exceptions).
+const HERO_SUPPORTING = "I'll recommend where I'd sell your car and show you exactly why.";
 
 // Rotating placeholder: real, resolver-parseable examples.
 const PLACEHOLDER_EXAMPLES = ["2006 Ford GT", "1995 Ferrari F355", "2018 Porsche 911 Carrera GTS", "1970 Chevelle SS", "2021 Porsche 911 GT3 Touring"];
@@ -41,7 +40,10 @@ function enterHomeState() {
   document.body.classList.remove("chat"); document.body.classList.add("home");
   const msgs = document.getElementById("msgs");
   if (msgs) msgs.innerHTML = homeHeroHTML();
-  loadDailyPulse();
+  // PULSE_RAIL: the TODAY'S MARKET sidebar section is removed pre-Phase-3, so the
+  // pulse is not rendered. The pipeline (refreshDailyPulse/dailyPulse.json/
+  // api/dailyPulse) stays live; re-enable by restoring the rail section in
+  // index.html and this call: loadDailyPulse();
   const inp = document.getElementById("inp");
   if (inp) { try { inp.focus(); } catch (e) {} }
   startPlaceholderRotation();

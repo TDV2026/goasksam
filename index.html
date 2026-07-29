@@ -4,9 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>GoAskSam</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body class="home">
@@ -25,8 +23,11 @@
     <button class="hp-navitem" onclick="startSellFlow()">Get Recommendation</button>
     <button class="hp-navitem" onclick="showPowerSellerExplainer()">Find a PowerSeller</button>
 
-    <div class="hp-section">Today's Market</div>
-    <div id="market-cards-desktop"></div>
+    <!-- PULSE_RAIL: TODAY'S MARKET sidebar section removed pre-Phase-3. The daily
+         pulse pipeline (scripts/refreshDailyPulse.js, lib/dailyPulse.json,
+         api/dailyPulse.js, dailyPulseUnit) stays intact and scheduled. Re-enable
+         by restoring the section heading + <div id="market-cards-desktop"></div>
+         here and the loadDailyPulse() call in js/homepage.js. -->
 
     <div class="hp-section">Learn</div>
     <button class="hp-navitem" onclick="showHowItWorks()">How Recommendations Work</button>
@@ -54,7 +55,7 @@
       <button id="btn">↑</button>
     </div>
     <div class="hp-reassurance hp-home-only">Recommendations are based on recent sales, seller performance and market trends.</div>
-    <div id="market-cards-mobile" class="hp-home-only"></div>
+    <!-- PULSE_RAIL: mobile market cards removed with the sidebar section. -->
     <div id="hint"></div>
   </div>
 </div>

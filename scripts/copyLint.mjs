@@ -173,19 +173,21 @@ check("1d lint: detects an em dash", lintText("this — that").some(v=>/em dash/
 check("1d lint: detects a weekday without scope", lintText("Prices closed strongest on Fridays over the past 180 days").some(v=>/weekday-scope/.test(v)));
 check("1d lint: detects a removed house name", lintText("records from RM Sotheby's and Gooding").some(v=>/removed-house/.test(v)));
 
-// ---- Homepage copy (Stage A) ----
-// The hero supporting line is the ONE exempted constant (an em dash, approved
-// verbatim); it is checked for identity, never linted for dashes.
-check("homepage: hero supporting line is the approved exempted constant",
-  HERO_SUPPORTING === "I'll recommend where I'd sell your car—and show you exactly why.", JSON.stringify(HERO_SUPPORTING));
-// EVERY OTHER piece of new homepage copy: no dashes, standard lint clean.
+// ---- Homepage copy ----
+// The dash exemption is REMOVED: the global no-dash rule now has zero exceptions.
+// The hero supporting line is the approved dash-free copy and is linted like the
+// rest of the homepage copy.
+check("homepage: hero supporting line is the approved dash-free copy",
+  HERO_SUPPORTING === "I'll recommend where I'd sell your car and show you exactly why.", JSON.stringify(HERO_SUPPORTING));
+// ALL homepage copy, hero supporting line INCLUDED: no dashes, standard lint clean.
 const homepageCopy = [
+  HERO_SUPPORTING,
   HP_REASSURANCE,
   ...PLACEHOLDER_EXAMPLES,
   LEARN_HOW.title, ...LEARN_HOW.sections.flatMap(s => [s.h, s.body]),
   LEARN_PLATFORMS.title, LEARN_PLATFORMS.intro, LEARN_PLATFORMS.outro, ...LEARN_PLATFORMS.platforms.flatMap(p => [p.name, p.body])
 ].join("\n");
-check("homepage: no en/em dashes in any new copy except the exempted hero line", !/[–—]/.test(homepageCopy), (homepageCopy.match(/[^\n]*[–—][^\n]*/) || [""])[0]);
+check("homepage: no en/em dashes in ANY homepage copy (zero exceptions, hero line included)", !/[–—]/.test(homepageCopy), (homepageCopy.match(/[^\n]*[–—][^\n]*/) || [""])[0]);
 check("homepage: all non-hero homepage copy passes standard lint", lintText(homepageCopy).length === 0, lintText(homepageCopy).join(" ; "));
 check("homepage: Selling Platforms names no removed auction houses", !/\bSotheby|\bGooding/i.test(homepageCopy), "removed house named");
 check("homepage: placeholder examples are real cars (year + make)", PLACEHOLDER_EXAMPLES.every(e => /^\d{4}\s+[A-Z]/.test(e)), JSON.stringify(PLACEHOLDER_EXAMPLES));
