@@ -281,15 +281,18 @@ function guardRender(name, text) {
       const proofN = routesN.map(r => r.marketEvidence.pricePremium).find(p => p.platformSales >= 5 && p.othersSales >= 5 && Math.abs(p.percent) >= 2 && Math.abs(p.percent) < 10);
       check(`[design] ${name}: Tier 1.5 gates hold (5+ both sides, 2-10% gap)`, !!proofN, `proofs=${JSON.stringify(routesN.map(r => [r.platform, r.marketEvidence.pricePremium]))}`);
     }
-    // Plate pick and bullets agree: a platform plate's name must appear in
-    // the claim bullets (every bullet-1 tier names the pick).
+    // Plate pick and claim agree: a platform plate's name must appear in the
+    // card's CLAIM text (headline or bullets). Post-3.7 the pick is named in the
+    // HEADLINE (delta/concentration/cascade/specialist/branch-4 all name it),
+    // while bullets carry grounded facts (e.g. a make-level weekday) that need
+    // not name the platform, so the headline satisfies the agreement.
     if (plateNameC && PLATFORM_NAMES.includes(plateNameC)) {
       const liText = liMatches.map(m => flatLi(m[2]).replace(/&amp;/g, "&")).join("\n");
-      // Ranking branch 4 (speed_unknown) names the pick in the HEADLINE ("You
-      // said speed matters. X gets cars listed sooner..."), not a bullet, so the
-      // headline satisfies the plate<->claim agreement there.
+      const headText = [...raw.matchAll(/sell-rec-samline[^>]*>([\s\S]*?)<\/div>/g)]
+        .map(m => m[1].replace(/<[^>]+>/g, " ").replace(/&#\d+;/g, "'").replace(/&amp;/g, "&")).join("\n");
       const branch4Headline = sellState.routingReason === "speed_unknown";
-      check(`[design] ${name}: plate pick matches the bullets pick`, liText.includes(plateNameC) || branch4Headline || !liText.trim(), `plate="${plateNameC}" reason=${sellState.routingReason}`);
+      const claimNamesPick = liText.includes(plateNameC) || headText.includes(plateNameC);
+      check(`[design] ${name}: plate pick matches the claim pick`, claimNamesPick || branch4Headline || (!liText.trim() && !headText.trim()), `plate="${plateNameC}" head="${headText.slice(0,80)}" reason=${sellState.routingReason}`);
     }
     // Day-advantage lines (1b): a MARKET-CONDITION claim, so it states the
     // 180-day window and its car/make scope (never platform-named, never a
@@ -667,19 +670,21 @@ sellState.condition = "Completely stock"; sellState.records = "Full history"; se
 sellState.price = "30000"; sellState.timeline = "No rush, right result only"; sellState.notes = "Not set";
 sellState.sellerPreference = null; sellState.involvement = null;
 await handleSellStep("Looks good");
-check("FIX 3: confirming the summary asks the PowerSeller question as the last step", sellState.step === 8 && /how would you like to handle the sale/i.test(lastSam() || ""), `step=${sellState.step} last="${lastSam()}"`);
+check("FIX 3: confirming the summary asks the PowerSeller question as the last step", sellState.step === 8 && /which sounds more like you/i.test(lastSam() || ""), `step=${sellState.step} last="${lastSam()}"`);
 {
   const psChips = String(addMsgLog.at(-1)?.[3] || "");
-  const psHtml = String(addMsgLog.at(-1)?.[2] || "");
-  check("FIX 3: chips offer PowerSeller / handle-it-myself / not sure", /PowerSeller to handle everything/.test(psChips) && /handle it myself/.test(psChips) && /Not sure/.test(psChips), psChips.slice(0, 200));
-  check("FIX 3: subtext renders under the chips, dash-free", /A PowerSeller manages the entire listing/.test(psHtml) && !/[—–]/.test(psHtml), psHtml.slice(0, 140));
+  const psText = String(lastSam() || "");
+  // Part 5: the explainer now renders ABOVE the chips (inside the Sam text,
+  // the only above-chips slot), dash-free, and names what a PowerSeller does.
+  check("FIX 3: chips offer run-it-myself / someone-handled-it / not-sure", /run it myself/.test(psChips) && /rather someone handled it/.test(psChips) && /Not sure yet/.test(psChips), psChips.slice(0, 200));
+  check("FIX 3: explainer renders above the chips, dash-free", /Others hand it to a PowerSeller: a specialist who photographs the car/.test(psText) && !/[—–]/.test(psText), psText.slice(0, 200));
 }
-await handleSellStep("Yes, I want a PowerSeller to handle everything");
-check("FIX 3: 'yes' stores sellerPreference=powerseller and the handle-it involvement", sellState.sellerPreference === "powerseller" && /handle everything/i.test(sellState.involvement || ""), `pref=${sellState.sellerPreference} inv=${sellState.involvement}`);
-sellState.step = 8; await handleSellStep("No, I'll list and handle it myself");
-check("FIX 3: 'no' stores sellerPreference=diy and the manage-myself involvement", sellState.sellerPreference === "diy" && /manage it myself/i.test(sellState.involvement || ""), `pref=${sellState.sellerPreference} inv=${sellState.involvement}`);
-sellState.step = 8; await handleSellStep("Not sure");
-check("FIX 3: 'not sure' stores sellerPreference=unsure (result-stage choice still offered)", sellState.sellerPreference === "unsure", `pref=${sellState.sellerPreference}`);
+await handleSellStep("I'd rather someone handled it");
+check("FIX 3: 'someone handled it' stores sellerPreference=powerseller and the handle-it involvement", sellState.sellerPreference === "powerseller" && /handle everything/i.test(sellState.involvement || ""), `pref=${sellState.sellerPreference} inv=${sellState.involvement}`);
+sellState.step = 8; await handleSellStep("I'll run it myself");
+check("FIX 3: 'run it myself' stores sellerPreference=diy and the manage-myself involvement", sellState.sellerPreference === "diy" && /manage it myself/i.test(sellState.involvement || ""), `pref=${sellState.sellerPreference} inv=${sellState.involvement}`);
+sellState.step = 8; await handleSellStep("Not sure yet");
+check("FIX 3: 'not sure yet' stores sellerPreference=unsure (result-stage choice still offered)", sellState.sellerPreference === "unsure", `pref=${sellState.sellerPreference}`);
 // The step-8 answers each fire a background showSellRecommendation() (live
 // fetch + render). Drain those, then discard their output and reset the result
 // state so later design checks start from a clean slate.

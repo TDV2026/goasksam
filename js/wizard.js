@@ -19,7 +19,7 @@ const SELL_STEP_QUESTIONS={
   6:{ask:"What price are you hoping for?",chips:[]},
   7:{ask:"How quickly are you looking to sell?",chips:["Want it gone fast","Within a month","No rush, right result only"]},
   9:{ask:"Anything else Sam should know about the car? Feel free to skip.",chips:["Skip"]},
-  8:{ask:"How would you like to handle the sale?",chips:["Yes, I want a PowerSeller to handle everything","No, I'll list and handle it myself","Not sure"]}
+  8:{ask:"Which sounds more like you?",explainer:"Some sellers run the sale themselves. Others hand it to a PowerSeller: a specialist who photographs the car, writes the listing, answers buyer questions and negotiates the sale for a fee.",chips:["I'll run it myself","I'd rather someone handled it","Not sure yet"]}
 };
 
 const SELL_SYS=`You are Sam, helping someone sell their car on GoAskSam. Warm, direct, knowledgeable about the collector car market.
@@ -879,13 +879,14 @@ function askNextSellQuestion(){
 // PowerSeller preference (FIX 3): the LAST wizard step, asked after the summary
 // is confirmed and before results compile. The answer is stored as
 // sellState.sellerPreference ("powerseller" | "diy" | "unsure") and gates the
-// PowerSeller card at the result stage. Subtext renders under the chips
-// (dash-free per the locked no-dash rule).
+// PowerSeller card at the result stage. Part 5: the plain-language explainer
+// renders ABOVE the chips (it is the only above-chips slot), then the question,
+// so a first-time reader knows what a PowerSeller is before choosing. Dash-free
+// per the locked no-dash rule.
 function askPowerSellerStep(){
   sellState.step=8;
   const q=SELL_STEP_QUESTIONS[8];
-  const subtext=`<div class="wizard-subtext" style="margin-top:8px;font-size:13px;color:#6b6b6b;line-height:1.45">A PowerSeller manages the entire listing, auction and sale, handling professional photos, answering buyer questions, negotiating and the close. They specialize in selling enthusiast vehicles.</div>`;
-  addMsg("sam",q.ask,subtext,chipsHTML(q.chips));
+  addMsg("sam",`${q.explainer} ${q.ask}`,"",chipsHTML(q.chips));
 }
 
 function goBackToConfirm(){
