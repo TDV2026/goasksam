@@ -43,8 +43,24 @@ check("1b Unverified: make-level headline, no verified-style delta/weekday", /An
 const Mk=composeCard({make:"Porsche",model:"911",year:2019},{label:"carsandbids",platform:"carsandbids",marketEvidence:{evidenceSales:1,dayAdvantage:{weekday:"Tuesday",liftPercent:17,scope:"make",window:180}}},{isPick:false,landedScope:"model"});
 check("1b Make weekday: 'as a whole' labeled + 180d window", Mk.bullets.some(b=>/Porsches as a whole have closed strongest on Tuesdays over the past 180 days/.test(b.text)), JSON.stringify(Mk.bullets));
 
+// (3.5) Scope-label discipline: a rendered headline may name the requested
+// model year ONLY when the finding was measured at the exact-year rung. Any-year
+// and near-years findings drop the year; an absent scope fails closed (no
+// mislabeled headline renders at all).
+const V06={make:"Ford",model:"Focus",year:2006};
+const EX=composeCard(V06,{label:"carsandbids",platform:"carsandbids",marketEvidence:{evidenceSales:8,pricePremium:{gateType:"symmetric",percent:16,windowDays:90,scope:"exact_year"}}},{isPick:true,landedScope:"model"});
+check("3.5 exact-year delta NAMES the requested year, no all-years qualifier", /2006 Focus/.test(EX.headline.text)&&!/across all model years/.test(EX.headline.text), EX.headline.text);
+const AY=composeCard(V06,{label:"carsandbids",platform:"carsandbids",marketEvidence:{evidenceSales:8,pricePremium:{gateType:"symmetric",percent:16,windowDays:90,scope:"any_year"}}},{isPick:true,landedScope:"model"});
+check("3.5 any-year delta DROPS the year and says 'across all model years'", !/2006/.test(AY.headline.text)&&/Focus across all model years/.test(AY.headline.text), AY.headline.text);
+const AYC=composeCard(V06,{label:"carsandbids",platform:"carsandbids",marketEvidence:{evidenceSales:12,pricePremium:{type:"market_dominance",gateType:"asymmetric",percent:null,marketShare:82,windowDays:90,scope:"any_year",platformSales:12,othersSales:3}}},{isPick:false,landedScope:"model"});
+check("3.5 any-year concentration DROPS the year and says 'across all model years'", !/2006/.test(AYC.headline.text)&&/Focus sales across all model years have concentrated/.test(AYC.headline.text), AYC.headline.text);
+const NY=composeCard(V06,{label:"carsandbids",platform:"carsandbids",marketEvidence:{evidenceSales:8,pricePremium:{gateType:"symmetric",percent:16,windowDays:90,scope:"near_years"}}},{isPick:true,landedScope:"model"});
+check("3.5 near-years delta DROPS the requested year", !/2006/.test(NY.headline.text)&&/Focus/.test(NY.headline.text), NY.headline.text);
+const NS=composeCard(V06,{label:"carsandbids",platform:"carsandbids",marketEvidence:{evidenceSales:12,pricePremium:{type:"market_dominance",gateType:"asymmetric",percent:null,marketShare:82,windowDays:90,platformSales:12,othersSales:3}}},{isPick:false,landedScope:"model"});
+check("3.5 absent-scope finding FAILS CLOSED (no year-mislabeled headline)", !(NS.headline&&/2006 Focus/.test(NS.headline.text)), NS.headline&&NS.headline.text);
+
 // Banned strings appear in no composed output
-for(const [n,c] of [["A",A],["B",B],["H",H],["U",U],["Mk",Mk]]) check(`1b: no banned strings in card ${n}`, !BANNED.test(allText(c)), allText(c));
+for(const [n,c] of [["A",A],["B",B],["H",H],["U",U],["Mk",Mk],["EX",EX],["AY",AY],["AYC",AYC]]) check(`1b: no banned strings in card ${n}`, !BANNED.test(allText(c)), allText(c));
 
 console.log(failures?`\n${failures} FAILURE(S)`:"\n1B ALL PASS");
 process.exit(failures?1:0);

@@ -314,7 +314,11 @@ async function showSellRecommendation(){
     return {
       key:index===0?"primary":`route_${index}`,
       name:routeName,
-      type:index===0?"Platform I’d use":"Worth comparing",
+      // 3.6: the alt card carried three near-identical labels ("Also strong
+      // here" badge + "Worth comparing" type + "Why it's worth comparing"
+      // header). The badge is the single positioning label now; this subtitle is
+      // dropped for the alt so it does not render "Worth comparing" a second time.
+      type:index===0?"Platform I’d use":"",
       badge:hasNamedPowerSellerAdvice?(index===0?"If selling yourself":"Also strong here"):(twoRouteMode?(index===0?"Sam's lean":"Also strong here"):(index===0?"Sam's pick":"Also strong here")),
       badgeClass:index===0?"top":"alt",
       cardClass:index===0&&!hasNamedPowerSellerAdvice?"primary-rec":"",
@@ -412,7 +416,7 @@ async function showSellRecommendation(){
         <div class="sell-rec-card-head">
           <div>
             <div class="sell-rec-badge label-mono ${escapeHtml(option.badgeClass||"alt")}">${escapeHtml(option.badge)}</div>
-            <div style="margin-top:10px;display:flex;align-items:center;gap:10px">${tileHTML(option.name,24)}<div><div class="sell-rec-name">${escapeHtml(option.name)}</div><div class="sell-rec-type">${escapeHtml(option.type)}</div></div></div>
+            <div style="margin-top:10px;display:flex;align-items:center;gap:10px">${tileHTML(option.name,24)}<div><div class="sell-rec-name">${escapeHtml(option.name)}</div>${option.type?`<div class="sell-rec-type">${escapeHtml(option.type)}</div>`:""}</div></div>
           </div>
         </div>`}
         ${(() => {
@@ -421,7 +425,7 @@ async function showSellRecommendation(){
           // renders (no reason voice line, momentum, stat, or evidence line).
           const c=option.composed;
           if(!c)return "";
-          const label=option.key==="specialist"?"Why I’d call them":(!isPrimary?"Why it’s worth comparing":"Why I picked this");
+          const label=option.key==="specialist"?"Why I’d call them":(!isPrimary?"Why I’d also consider it":"Why I picked this");
           const head=c.headline&&c.headline.text?`<div class="sell-rec-samline voice">${numify(c.headline.text)}</div>`:"";
           const list=(c.bullets&&c.bullets.length)?`<ul class="sell-rec-bullets">${c.bullets.map(b=>`<li>${numify(b.text)}</li>`).join("")}</ul>`:"";
           if(!head&&!list)return "";

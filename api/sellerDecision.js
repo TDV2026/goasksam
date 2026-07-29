@@ -397,6 +397,21 @@ function applyWinConditions(routes, vehicle) {
 // and name it in their labels. Models with no mapping get the calendar +/- 2
 // rungs unchanged, so unmapped models behave exactly as before.
 
+// Explicit scope tag for the LANDED premium definition (Part 3). Derived from
+// the landed rung key so the frontend headline knows exactly which window the
+// delta was measured at (exact year keeps the year; any-year / near-years never
+// prepend it). An unrecognized key returns {} so the frontend fails closed.
+function premiumLandedScopeTags(landed) {
+  const key = String(landed && landed.key || "");
+  if (/generation/.test(key)) return { scope: "generation", generationCode: (landed.definition && landed.definition.generationCode) || null };
+  if (/exact_year/.test(key)) return { scope: "exact_year" };
+  if (/near_years/.test(key)) return { scope: "near_years" };
+  if (/year_range/.test(key)) return { scope: "year_range" };
+  if (/any_year/.test(key)) return { scope: "any_year" };
+  if (/make/.test(key)) return { scope: "make" };
+  return {};
+}
+
 function buildLadder(vehicle, generation = null) {
   const year = Number.isFinite(Number(vehicle.year)) ? Number(vehicle.year) : null;
   const trim = asText(vehicle.trim) || null;
@@ -951,7 +966,11 @@ function analyze(records, classifications, ladder, vehicle, debug) {
         const others = eligible.filter(item => recordPlatform(item.record) !== platform)
           .map(item => Number(item.classification.price)).filter(Number.isFinite);
         const step = trace ? { scope: def === landed.definition ? `landed(${landed.key})` : `generation(${def.generationCode || def.key})`, windowDays: window, mineSold: mine.length, othersSold: others.length } : null;
-        const scopeTags = def === landed.definition ? {} : { scope: "generation", generationCode: def.generationCode || null };
+        // The finding MUST carry the rung it was measured at (Part 3): the
+        // frontend headline needs it to label the sales honestly and never
+        // prepend the requested year to an any-year or near-years window. An
+        // absent scope makes the frontend fail closed instead of guessing.
+        const scopeTags = def === landed.definition ? premiumLandedScopeTags(landed) : { scope: "generation", generationCode: def.generationCode || null };
         const boundary = window >= 3650 ? { earliestSaleDate: eligible.map(item => item.record.auction_end_date).filter(Boolean).sort()[0] || null } : {};
         // Asymmetric gate fires ONLY when the "others" sample is too thin (<5)
         // to compute a symmetric price delta. When others has 5+, the delta is

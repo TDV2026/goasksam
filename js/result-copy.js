@@ -488,14 +488,21 @@ function fitCategoryTags(){
   if(make==="porsche")tags.push("Porsche");
   if(make==="land rover"&&/defender/.test(model))tags.push("Defender");
   if(make==="toyota"&&/land cruiser/.test(model))tags.push("Land Cruiser");
-  if(year&&year>=2005)tags.push("modern enthusiast");
+  // Removed the loose "modern enthusiast" tag (any 2005+ car): it fired the
+  // "knows modern performance cars well" audience line for cars that are not
+  // modern performance cars (e.g. a 2006 Ford Focus). Audience fit is only ever
+  // asserted from a genuine make/model-specific match now (3.7).
   return tags;
 }
 function platformFitLine(route){
   const copy=PLATFORM_FIT_COPY[platformDisplayName(route?.label||route?.platform)];
   if(!copy)return null;
-  for(const tag of fitCategoryTags())if(copy[tag])return copy[tag];
-  return copy.default||null;
+  // Only a genuine make/model-specific curated match renders. The generic
+  // `default` fallback is dropped: an audience bullet that asserts category fit
+  // ("strong audience for this kind of car") without a real category match is
+  // filler at best and false at worst, so no bullet beats a wrong one (3.7).
+  for(const tag of fitCategoryTags())if(tag!=="default"&&copy[tag])return copy[tag];
+  return null;
 }
 
 // Comparative momentum (July 2026): the pick-vs-alt median gap in the SAME
@@ -921,13 +928,57 @@ function gatedPriceDelta(route,altRoute){
 // Plural, human phrase for the car at a given scope. Model scope names the car;
 // generation names the chassis; make is "<Make>s as a whole".
 function composerPlural(word){const w=String(word||"").trim();return /s$/i.test(w)?w:`${w}s`;}
-function composerScopePhrase(vehicle,scope,generationCode){
+// A headline was suppressed because its finding arrived without a trustworthy
+// scope. Logged (not silent) so absent-scope findings are visible in the field.
+function composerScopeMiss(scope){
+  try{ (typeof console!=="undefined"&&console.warn)&&console.warn("[composeCard] headline suppressed: absent/unrecognized scope",JSON.stringify(scope)); }catch(e){}
+}
+// Human phrase naming the cars at a finding's scope. The scope MUST be explicit:
+// an absent or unrecognized scope returns null so the caller FAILS CLOSED rather
+// than silently mislabeling any-year sales with the requested year (Part 3, 3.1
+// and 3.2). Only exact-year (and a caller's intentional "model" scope) may name
+// the requested year; any-year and near-years never do (3.3).
+function composerScopePhrase(vehicle,scope,generationCode,segmentLabel){
   const make=vehicle&&vehicle.make?String(vehicle.make):"";
   const model=vehicle&&vehicle.model?String(vehicle.model):"";
-  if(scope==="make"||!model)return `${composerPlural(make||"these car")} as a whole`;
-  if(scope==="generation"&&generationCode)return `${String(generationCode).toUpperCase()}-generation ${make} ${composerPlural(model)}`.trim();
-  const yr=vehicle&&vehicle.year?`${vehicle.year} `:"";
-  return `${yr}${composerPlural(model)}`;
+  if(!scope){composerScopeMiss("(absent)");return null;}
+  if(scope==="make")return `${composerPlural(make||"these car")} as a whole`;
+  if(!model)return `${composerPlural(make||"these car")} as a whole`;
+  if(scope==="generation"){
+    if(!generationCode){composerScopeMiss("generation-without-code");return null;}
+    return `${String(generationCode).toUpperCase()}-generation ${make} ${composerPlural(model)}`.trim();
+  }
+  if(scope==="segment")return segmentLabel?String(segmentLabel):(composerScopeMiss("segment-without-label"),null);
+  // Exact year (or a caller's intentional "model" scope) may name the year.
+  if(scope==="exact_year"||scope==="model"){
+    const yr=vehicle&&vehicle.year?`${vehicle.year} `:"";
+    return `${yr}${composerPlural(model)}`;
+  }
+  // Any-year / cross-generation and near-years / calendar ranges are model-wide:
+  // name the model, never the single requested year. The "across all model
+  // years" qualifier for any-year is added by the caller via composerScopeSpanNote.
+  if(scope==="any_year"||scope==="any_year_model"||scope==="near_years"||scope==="year_range"||scope==="near_years_model"||scope==="year_range_model")return composerPlural(model);
+  composerScopeMiss(scope);
+  return null;
+}
+// Trailing qualifier making the year span explicit when a finding was measured
+// across every model year (3.3). Empty for every scope that names a specific
+// year or a bounded window.
+function composerScopeSpanNote(scope){
+  return (scope==="any_year"||scope==="any_year_model")?" across all model years":"";
+}
+// Fine-grained landed-rung scope for the year decision (exact vs any/near year),
+// used by headline composers that would otherwise hardcode "model" and wrongly
+// prepend the requested year at a widened rung. Coarser than the delta's own
+// scope but enough to decide whether the year may appear (3.5).
+function composerLandedYearScope(){
+  const key=String(sellState.sellDecision&&sellState.sellDecision.evidence&&sellState.sellDecision.evidence.ladder&&sellState.sellDecision.evidence.ladder.landed&&sellState.sellDecision.evidence.ladder.landed.key||"");
+  if(/exact_year/.test(key))return "exact_year";
+  if(/generation/.test(key))return "generation";
+  if(/near_years/.test(key))return "near_years";
+  if(/year_range/.test(key))return "year_range";
+  if(/any_year/.test(key))return "any_year";
+  return "model";
 }
 // Weekday advantage bullet (dayAdvantage): 180-day window, scope word required.
 // Weekday sample gate mirrored on the render side (1b): even if a dayAdvantage
@@ -986,7 +1037,8 @@ function composerSpeedBullet(ev,opts){
 // is unknown. The pick card MUST own that honestly by naming the depth leader.
 function composerDepthHonestyBullet(vehicle,ev,opts){
   if(!opts.isPick||opts.routingReason!=="speed_unknown"||!opts.depthLeaderName)return null;
-  const scope=composerScopePhrase(vehicle,"model");
+  // Landed-scope aware: the requested year appears only at an exact-year rung (3.5).
+  const scope=composerScopePhrase(vehicle,composerLandedYearScope(),composerLandedGenerationCode())||composerPlural(vehicle&&vehicle.model);
   return { text:`${opts.depthLeaderName} holds most of the recent ${scope} sales we track. If market depth matters more than timing, start there instead.`, provenance:"depthHonesty" };
 }
 // Branch-4 speed-preference headline: the rank came from the seller's PREFERENCE
@@ -994,7 +1046,8 @@ function composerDepthHonestyBullet(vehicle,ev,opts){
 // own real sales, never a price or depth claim it did not earn.
 function composerSpeedPreferenceHeadline(vehicle,ev){
   const name=platformDisplayName(ev.label||ev.platform);
-  const scope=composerScopePhrase(vehicle,"model");
+  // Landed-scope aware: the requested year appears only at an exact-year rung (3.5).
+  const scope=composerScopePhrase(vehicle,composerLandedYearScope(),composerLandedGenerationCode())||composerPlural(vehicle&&vehicle.model);
   return { text:`You said speed matters. ${name} generally gets your listing live faster and has closed recent ${scope} sales.`, provenance:"speedPreference" };
 }
 // Mode A delta headline: the winning platform's cleared comparative delta.
@@ -1002,14 +1055,19 @@ function composerDeltaHeadline(vehicle,ev){
   const p=ev.pricePremium;if(!p)return null;
   const name=platformDisplayName(ev.label||ev.platform);
   const win=`over the past ${p.windowDays} days`;
+  // Fail closed: without a trustworthy scope we never guess "model" (which would
+  // prepend the requested year to an any-year finding); we drop the headline (3.1/3.2).
+  const phrase=composerScopePhrase(vehicle,p.scope,p.generationCode,p.segmentLabel);
+  if(!phrase)return null;
+  const span=composerScopeSpanNote(p.scope);
   if(p.type==="market_dominance"){
     // Others < 5: no symmetric delta is computable, so we state the honest
     // situation (concentration + too thin to compare prices), never volume as if
     // it were the price finding, and never "where most sales".
-    return { text:`Recent ${composerScopePhrase(vehicle,p.scope||"model",p.generationCode)} sales have concentrated on ${name}, with too few on other platforms to compare prices ${win}.`, provenance:`pricePremium.concentration(${p.scope||"model"},${p.windowDays}d)` };
+    return { text:`Recent ${phrase} sales${span} have concentrated on ${name}, with too few on other platforms to compare prices ${win}.`, provenance:`pricePremium.concentration(${p.scope},${p.windowDays}d)` };
   }
   if(p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10){
-    return { text:`${name} has closed ${composerScopePhrase(vehicle,p.scope||"model",p.generationCode)} around ${p.percent}% higher than the other platforms we track ${win}.`, provenance:`pricePremium(${p.scope||"model"},${p.windowDays}d,${p.percent}%)` };
+    return { text:`${name} has closed ${phrase}${span} around ${p.percent}% higher than the other platforms we track ${win}.`, provenance:`pricePremium(${p.scope},${p.windowDays}d,${p.percent}%)` };
   }
   return null;
 }
@@ -1019,11 +1077,14 @@ function composerSimilarityHeadline(vehicle,ev,opts){
   const p=ev.pricePremium;
   const win=p?`over the past ${p.windowDays} days`:"recently";
   const name=platformDisplayName(ev.label||ev.platform);
-  const scope=(p&&p.scope)||"model";
+  // Fail closed on absent scope (3.1/3.2); any-year sales never carry the year (3.3).
+  const phrase=composerScopePhrase(vehicle,p&&p.scope,p&&p.generationCode,p&&p.segmentLabel);
+  if(!phrase)return null;
+  const span=composerScopeSpanNote(p&&p.scope);
   const reason=(opts.sellerWantsSpeed&&opts.routingReason==="speed")
     ?`so how quickly you can get listed decides: ${name} generally gets your listing live faster`
     :`so the deepest recent market for this car leads: ${name} has the most recent sales`;
-  return { text:`Prices for ${composerScopePhrase(vehicle,scope)} have been within a small percentage across the top platforms ${win}, ${reason}.`, provenance:`pricePremium.negligible(${p?p.windowDays+"d":"?"})` };
+  return { text:`Prices for ${phrase}${span} have been within a small percentage across the top platforms ${win}, ${reason}.`, provenance:`pricePremium.negligible(${p?p.windowDays+"d":"?"})` };
 }
 // Thin-data caveat: no rung carries a real comp base. Names the rung the
 // analysis landed on. The banned "limited sales, running at model level" and
@@ -1073,8 +1134,9 @@ function composerCascadeHeadline(vehicle,ev,opts,landedScope){
   if(landedScope==="generation"&&genCode){
     return { text:`${name} has closed ${composerScopePhrase(vehicle,"generation",genCode)} strongest among recent sales.${speedLine}`, provenance:`ladder.landed(generation:${genCode})` };
   }
-  // RUNG 1 (exact year / model): a real lead, no delta cleared.
-  return { text:`${name} has closed ${composerScopePhrase(vehicle,"model")} strongest among recent sales.${speedLine}`, provenance:`ladder.landed(model)` };
+  // RUNG 1 (exact year / model): a real lead, no delta cleared. The requested
+  // year appears only when the landed rung is exact-year (3.5).
+  return { text:`${name} has closed ${composerScopePhrase(vehicle,composerLandedYearScope(),genCode)||composerPlural(vehicle&&vehicle.model)} strongest among recent sales.${speedLine}`, provenance:`ladder.landed(model)` };
 }
 // Reserve-context bullet (Phase 1.5): CORRELATION ONLY. Rendered on ANY card
 // (pick or alt) with a cell, always last (context, not a reason). Locked
@@ -1146,7 +1208,10 @@ function composeCard(vehicle,route,opts={}){
     if(p&&(p.type==="market_dominance"||(p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10))){
       headline=composerDeltaHeadline(vehicle,ev);
     }else if(Number(ev.evidenceSales||0)>0){
-      headline={ text:`${platformDisplayName(ev.label||ev.platform)} has also closed recent ${composerScopePhrase(vehicle,landedScope==="make"?"make":"model")} sales.`, provenance:`evidenceSales(${ev.evidenceSales})` };
+      // Landed-scope aware: the requested year appears only at an exact-year rung (3.5).
+      const altScope=landedScope==="make"?"make":composerLandedYearScope();
+      const altPhrase=composerScopePhrase(vehicle,altScope,composerLandedGenerationCode())||composerPlural(vehicle&&vehicle.model);
+      headline={ text:`${platformDisplayName(ev.label||ev.platform)} has also closed recent ${altPhrase} sales.`, provenance:`evidenceSales(${ev.evidenceSales})` };
     }else{
       headline=null;
     }
