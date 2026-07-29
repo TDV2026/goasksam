@@ -1,7 +1,7 @@
 // Partner (PowerSeller) profiles come from the backend partners table via
 // decision.partnerReferral. Nothing partner-related is hardcoded here.
 
-const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,region:null,state:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,vehicleDetailSkipped:false,vehicleIdentityValidated:false,pendingVehicleIdentity:null,resolvedVehicle:null,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[],allRouteOptions:[],powerSellerProfiles:[],selectedPowerSellerId:null,noEvidenceFallback:null};
+const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,region:null,state:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,sellerPreference:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,vehicleDetailSkipped:false,vehicleIdentityValidated:false,pendingVehicleIdentity:null,resolvedVehicle:null,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[],allRouteOptions:[],powerSellerProfiles:[],selectedPowerSellerId:null,noEvidenceFallback:null};
 function resetSellState(){
   Object.keys(sellState).forEach(k=>sellState[k]=null);
   sellState.active=false;sellState.step=0;sellState.returnToConfirm=false;sellState.vehicleDetailSkipped=false;sellState.vehicleIdentityValidated=false;sellState.pendingVehicleIdentity=null;sellState.sellOptions=[];sellState.allRouteOptions=[];sellState.powerSellerProfiles=[];sellState.noEvidenceFallback=null;
@@ -18,7 +18,8 @@ const SELL_STEP_QUESTIONS={
   5:{ask:"Clean title or is there a lien on it?",chips:["Clean title","Lien on it"]},
   6:{ask:"What price are you hoping for?",chips:[]},
   7:{ask:"How quickly are you looking to sell?",chips:["Want it gone fast","Within a month","No rush, right result only"]},
-  9:{ask:"Anything else Sam should know about the car? Feel free to skip.",chips:["Skip"]}
+  9:{ask:"Anything else Sam should know about the car? Feel free to skip.",chips:["Skip"]},
+  8:{ask:"How would you like to handle the sale?",chips:["Yes, I want a PowerSeller to handle everything","No, I'll list and handle it myself","Not sure"]}
 };
 
 const SELL_SYS=`You are Sam, helping someone sell their car on GoAskSam. Warm, direct, knowledgeable about the collector car market.
@@ -868,9 +869,22 @@ function askNextSellQuestion(){
     const missing=currentMissingVehicleDetail();
     if(missing){askMissingVehicleDetail(missing);return;}
   }
+  if(sellState.step===8){askPowerSellerStep();return;}
   const q=SELL_STEP_QUESTIONS[sellState.step];
   if(!q)return;
   addMsg("sam",q.ask,"",q.chips.length?chipsHTML(q.chips):"");
+}
+
+// PowerSeller preference (FIX 3): the LAST wizard step, asked after the summary
+// is confirmed and before results compile. The answer is stored as
+// sellState.sellerPreference ("powerseller" | "diy" | "unsure") and gates the
+// PowerSeller card at the result stage. Subtext renders under the chips
+// (dash-free per the locked no-dash rule).
+function askPowerSellerStep(){
+  sellState.step=8;
+  const q=SELL_STEP_QUESTIONS[8];
+  const subtext=`<div class="wizard-subtext" style="margin-top:8px;font-size:13px;color:#6b6b6b;line-height:1.45">A PowerSeller manages the entire listing, auction and sale, handling professional photos, answering buyer questions, negotiating and the close. They specialize in selling enthusiast vehicles.</div>`;
+  addMsg("sam",q.ask,subtext,chipsHTML(q.chips));
 }
 
 function goBackToConfirm(){

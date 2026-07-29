@@ -284,7 +284,7 @@ async function handleSellStep(q){
   }
 
   // ── STEPS 2-9: all through the pipeline ─────────────────────
-  if(STEP_SPECS[step]&&step!==11&&step!==18){
+  if(STEP_SPECS[step]&&step!==11&&step!==18&&step!==8){
     const piped=pipelineProcess(q,step);
     if(piped.action==="chat")return false;
     if(piped.action==="escalate"){escalateStep(step);return true;}
@@ -299,6 +299,22 @@ async function handleSellStep(q){
     return true;
   }
 
+  // ── STEP 8: PowerSeller preference (FIX 3, LAST wizard step) ──
+  if(step===8){
+    // Off-script questions route to the chat layer (locked rule 12); a wordy
+    // move-on/refusal advances as "unsure" rather than stalling.
+    if(isQuestionInput(q)&&!/powerseller|power seller|handle|help|myself|list it|diy|not sure|^yes|^no/i.test(lower))return false;
+    let pref;
+    if(/powerseller|power seller|handle everything|have it handled|handled|someone|get help|^yes\b/i.test(lower))pref="powerseller";
+    else if(/myself|list and handle|handle it myself|list it|run it|on my own|diy|^no\b/i.test(lower)||detectIntent(lower)==="negation")pref="diy";
+    else pref="unsure";
+    sellState.sellerPreference=pref;
+    // Reuse the existing involvement gate so the result stage honors the choice.
+    sellState.involvement=pref==="powerseller"?"Want someone to handle everything":pref==="diy"?"I'll manage it myself":"";
+    showSellRecommendation();
+    return true;
+  }
+
   // ── STEP 16: confirmation ────────────────────────────────────
   if(step===16){
     if(detectIntent(lower)==="affirmation"||/looks good|looking good|confirm|all good|submit|perfect|great/i.test(lower)){
@@ -308,7 +324,9 @@ async function handleSellStep(q){
         askMissingVehicleDetail(missing);
         return true;
       }
-      showSellRecommendation();
+      // FIX 3: the PowerSeller preference is the LAST step, asked after the
+      // summary is confirmed and immediately before results compile.
+      askPowerSellerStep();
       return true;
     }
     if(/change something|i want to change|change|edit|no|wrong|mistake/i.test(lower)){

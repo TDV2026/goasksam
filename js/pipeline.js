@@ -25,6 +25,7 @@ const STEP_SPECS={
   5:{field:"title",valid:v=>/\b(clean|clear|lien|salvage|rebuilt|branded|title|paid off|financed)\b/i.test(v)},
   6:{field:"price",valid:v=>/\d/.test(v)||/\b(flexible|open|offers?|market)\b/i.test(v)},
   7:{field:"timeline",valid:v=>/\b(fast|quick|quickly|asap|soon|week|month|months|year|rush|flexible|whenever|no hurry|hurry|result|gone)\b/i.test(v)},
+  8:{field:"sellerPreference",valid:v=>/\b(powerseller|power seller|handle|help|myself|list it|diy|self|someone|not sure|yes|no)\b/i.test(v)},
   9:{field:"notes",freeText:true,refusalValue:null,negationValue:null},
   11:{field:"region",required:true,valid:v=>/\b(us|usa|america|american|states|uk|britain|england|europe|european|australia|middle east|uae|dubai|canada|other)\b/i.test(v)||!!normalizeUSState(v)},
   18:{field:"state",valid:v=>!!normalizeUSState(v)||/^[a-z][a-z .'-]{2,25}$/i.test(String(v).trim()),normalize:v=>normalizeUSState(v)||v}

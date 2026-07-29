@@ -262,7 +262,7 @@ function guardRender(name, text) {
     // reordered the backend's list).
     // 1b: the conditional speed line renders only when the platform it names is
     // actually a fast/medium_fast route (curated policy), on any card.
-    const speedM = clean.match(/If speed matters, (.+?) typically gets cars listed and in front of buyers sooner/);
+    const speedM = clean.match(/If speed matters, (.+?) generally gets your listing live faster/);
     if (speedM) {
       const routesS = sellState.sellDecision?.decision?.routeFit?.routes || [];
       const normS = v => String(v || "").toLowerCase().replace(/&amp;|&/g, "and").replace(/[^a-z0-9]/g, "");
@@ -364,7 +364,7 @@ function resetToStep1() {
   sellState.carName = null; sellState.carRaw = null;
   sellState.pendingVehicleIdentity = null; sellState.vehicleIdentityValidated = false;
   sellState.lastVehicleAsk = null; sellState.vehicleClarifyRepeats = 0;
-  sellState.notSureRepeats = 0; sellState.involvement = null;
+  sellState.notSureRepeats = 0; sellState.involvement = null; sellState.sellerPreference = null;
   sellState.vehicleDetailSkipped = false; sellState.demandRepeats = 0;
   sellState.mileage = null; sellState.resolvedVehicle = null; sellState.trimAskAttempts = 0;
   sellState.region = null; sellState.state = null; sellState.condition = null; sellState.records = null;
@@ -655,6 +655,39 @@ if (sellState.step === 17) {
   check("trim: skipping the optional generic trim advances to location", sellState.step === 11 && sellState.vehicleDetailSkipped === true, `step=${sellState.step} skipped=${sellState.vehicleDetailSkipped}`);
 }
 
+// 5a2. FIX 3: PowerSeller preference is the LAST wizard step, asked after the
+// summary is confirmed and immediately before results compile.
+resetToStep1();
+sellState.step = 16;
+sellState.carName = "2016 Mazda MX-5"; sellState.carRaw = "2016 Mazda MX-5";
+sellState.resolvedVehicle = { make: "Mazda", model: "MX-5", year: 2016, trim: "Club" };
+sellState.vehicleIdentityValidated = true; sellState.vehicleDetailSkipped = true;
+sellState.region = "US"; sellState.state = "California"; sellState.mileage = "40,000";
+sellState.condition = "Completely stock"; sellState.records = "Full history"; sellState.title = "Clean title";
+sellState.price = "30000"; sellState.timeline = "No rush, right result only"; sellState.notes = "Not set";
+sellState.sellerPreference = null; sellState.involvement = null;
+await handleSellStep("Looks good");
+check("FIX 3: confirming the summary asks the PowerSeller question as the last step", sellState.step === 8 && /how would you like to handle the sale/i.test(lastSam() || ""), `step=${sellState.step} last="${lastSam()}"`);
+{
+  const psChips = String(addMsgLog.at(-1)?.[3] || "");
+  const psHtml = String(addMsgLog.at(-1)?.[2] || "");
+  check("FIX 3: chips offer PowerSeller / handle-it-myself / not sure", /PowerSeller to handle everything/.test(psChips) && /handle it myself/.test(psChips) && /Not sure/.test(psChips), psChips.slice(0, 200));
+  check("FIX 3: subtext renders under the chips, dash-free", /A PowerSeller manages the entire listing/.test(psHtml) && !/[—–]/.test(psHtml), psHtml.slice(0, 140));
+}
+await handleSellStep("Yes, I want a PowerSeller to handle everything");
+check("FIX 3: 'yes' stores sellerPreference=powerseller and the handle-it involvement", sellState.sellerPreference === "powerseller" && /handle everything/i.test(sellState.involvement || ""), `pref=${sellState.sellerPreference} inv=${sellState.involvement}`);
+sellState.step = 8; await handleSellStep("No, I'll list and handle it myself");
+check("FIX 3: 'no' stores sellerPreference=diy and the manage-myself involvement", sellState.sellerPreference === "diy" && /manage it myself/i.test(sellState.involvement || ""), `pref=${sellState.sellerPreference} inv=${sellState.involvement}`);
+sellState.step = 8; await handleSellStep("Not sure");
+check("FIX 3: 'not sure' stores sellerPreference=unsure (result-stage choice still offered)", sellState.sellerPreference === "unsure", `pref=${sellState.sellerPreference}`);
+// The step-8 answers each fire a background showSellRecommendation() (live
+// fetch + render). Drain those, then discard their output and reset the result
+// state so later design checks start from a clean slate.
+await new Promise(r => setTimeout(r, 4000));
+appendedHTML.length = 0;
+sellState.awaitingPathChoice = false; sellState.pendingResultSections = null; sellState.sellOptions = [];
+sellState.sellerPreference = null; sellState.involvement = null; sellState.step = 1;
+
 // 5b. Entry partials, decades and personalized examples (locked behaviors).
 // Cold partial "2018 pors": typo-confirm, then "carrera 30k miles" seeds
 // trim AND mileage; neither is ever re-asked.
@@ -791,7 +824,7 @@ const runResult = async (region, state, price, car, extras) => {
   sellState.region = region; sellState.state = state; sellState.price = price;
   sellState.vehicleIdentityValidated = true;
   sellState.resolvedVehicle = car.vehicle;
-  sellState.involvement = null; sellState.awaitingPathChoice = false; sellState.pendingResultSections = null;
+  sellState.involvement = null; sellState.sellerPreference = null; sellState.awaitingPathChoice = false; sellState.pendingResultSections = null;
   Object.assign(sellState, extras || {});
   await showSellRecommendation();
   await new Promise(r => setTimeout(r, 100));
@@ -903,7 +936,10 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
     {label:"2005 Mazda MX-5",vehicle:{raw:"2005 Mazda MX-5",year:2005,make:"Mazda",model:"MX-5",trim:null,confidence:"high",canonicalLabel:"2005 Mazda MX-5"}},
     {label:"1990 Ford Mustang",vehicle:mustang.vehicle}
   ];
-  const SPEED_POOL=/tends to get listings live fast|historically closes quicker|moves faster to market|gets a listing live sooner|gets cars listed and in front of buyers sooner|faster route from listing to close/i;
+  // Legacy two-part-voice detector (dormant): deliberately does NOT include the
+  // branch-4 headline wording, so the branch-4 speed contract is checked by its
+  // own assertions, not the old two-part tiebreak.
+  const SPEED_POOL=/tends to get listings live fast|historically closes quicker|moves faster to market|gets a listing live sooner|faster route from listing to close/i;
   const GAP_POOL=/are similar between the top choices|at similar money lately|close across the leading platforms|meaningful platform gap|near-identical recent results|similar levels across the top platforms/i;
   const speedReasons=[];
   const seenStats=[];
@@ -917,7 +953,7 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
       check(`median gate (${car.label.split(" ").at(-1)}): negligible line carries no dollar amounts`, !/negligible[^<]*\$\d/i.test(rendered), rendered.slice(rendered.search(/negligible/i),rendered.search(/negligible/i)+200));
     }
     const decoded=rendered.replace(/&#39;|&apos;/g,"'").replace(/&amp;/g,"&");
-    check(`bullet 3 (${car.label.split(" ").at(-1)}): fast timeline gets the speed line`, /prioritizing a fast close|market I'd trust to move it|tends to get listings live fast|historically closes quicker|moves faster to market|gets a listing live sooner|gets cars listed (and in front of buyers )?sooner|You said speed matters|faster route from listing to close/i.test(decoded), (decoded.match(/[^\n]*(fast|quick|listed|speed)[^\n]*/i)||["none"])[0].slice(0,160));
+    check(`bullet 3 (${car.label.split(" ").at(-1)}): fast timeline gets the speed line`, /prioritizing a fast close|market I'd trust to move it|tends to get listings live fast|historically closes quicker|moves faster to market|gets a listing live sooner|generally gets your listing live faster|You said speed matters|faster route from listing to close/i.test(decoded), (decoded.match(/[^\n]*(fast|quick|listed|speed)[^\n]*/i)||["none"])[0].slice(0,160));
     // The two-part tiebreak contract binds the VOICE line only: bullets may
     // legitimately carry "quicker auction cycle" wording without it.
     const voiceLine=((renderedResult().match(/sell-rec-samline[^>]*>([^<]*)</)||[])[1]||"").replace(/&#39;|&apos;/g,"'").replace(/&amp;/g,"&");
@@ -1027,7 +1063,7 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   check("ranking: no banned 'auction cycle' wording anywhere in the result", !/auction cycle/i.test(flatLC), (flatLC.match(/[^\n]*auction cycle[^\n]*/i)||[""])[0].slice(0,160));
   if(sellState.routingReason==="speed_unknown"){
     check("branch 4: preference-led pick is a fast platform that cleared the 3+ floor (landed rung OR model level)", FAST.includes(pickRouteLC?.speedToList)&&(Number(pickRouteLC?.marketEvidence?.evidenceSales||0)>=3||Number(pickRouteLC?.marketEvidence?.modelComps180||0)>=3), `pickSpeed=${pickRouteLC?.speedToList} comps=${pickRouteLC?.marketEvidence?.evidenceSales} modelComps180=${pickRouteLC?.marketEvidence?.modelComps180}`);
-    check("branch 4: pick headline states the speed reason (time to list)", /You said speed matters\. .+ typically gets cars listed sooner and has closed recent .+ sales\./.test(flatLC), (flatLC.match(/[^\n]*speed matters[^\n]*/)||["missing"])[0].slice(0,200));
+    check("branch 4: pick headline states the speed reason (time to list)", /You said speed matters\. .+ generally gets your listing live faster and has closed recent .+ sales\./.test(flatLC), (flatLC.match(/[^\n]*speed matters[^\n]*/)||["missing"])[0].slice(0,200));
     check("branch 4: REQUIRED depth-honesty bullet renders", /holds most of the recent .+ sales we track\. If market depth matters more than timing, start there instead\./.test(flatLC), (flatLC.match(/[^\n]*holds most of the recent[^\n]*/)||["missing depth bullet"])[0].slice(0,200));
   }else if(sellState.routingReason==="speed"){
     check("branch 2 (measured Mode B): the faster-to-list platform leads Card 1", FAST.includes(pickRouteLC?.speedToList), `pickSpeed=${pickRouteLC?.speedToList}`);

@@ -975,7 +975,7 @@ function composerSpecialistHeadline(ev){
 // auctions run similar lengths). This is the ONE copy-library phrase for speed;
 // the platform name is injected, never inlined per platform. "quicker auction
 // cycle" is lint-banned.
-const LISTING_SPEED_PHRASE = name => `${name} typically gets cars listed and in front of buyers sooner`;
+const LISTING_SPEED_PHRASE = name => `${name} generally gets your listing live faster`;
 // Conditional speed line, only when the seller indicated speed matters.
 function composerSpeedBullet(ev,opts){
   if(!opts.sellerWantsSpeed||!["fast","medium_fast"].includes(ev.speedToList))return null;
@@ -995,7 +995,7 @@ function composerDepthHonestyBullet(vehicle,ev,opts){
 function composerSpeedPreferenceHeadline(vehicle,ev){
   const name=platformDisplayName(ev.label||ev.platform);
   const scope=composerScopePhrase(vehicle,"model");
-  return { text:`You said speed matters. ${name} typically gets cars listed sooner and has closed recent ${scope} sales.`, provenance:"speedPreference" };
+  return { text:`You said speed matters. ${name} generally gets your listing live faster and has closed recent ${scope} sales.`, provenance:"speedPreference" };
 }
 // Mode A delta headline: the winning platform's cleared comparative delta.
 function composerDeltaHeadline(vehicle,ev){
@@ -1021,7 +1021,7 @@ function composerSimilarityHeadline(vehicle,ev,opts){
   const name=platformDisplayName(ev.label||ev.platform);
   const scope=(p&&p.scope)||"model";
   const reason=(opts.sellerWantsSpeed&&opts.routingReason==="speed")
-    ?`so how quickly you can get listed decides: ${name} typically gets cars listed sooner`
+    ?`so how quickly you can get listed decides: ${name} generally gets your listing live faster`
     :`so the deepest recent market for this car leads: ${name} has the most recent sales`;
   return { text:`Prices for ${composerScopePhrase(vehicle,scope)} have been within a small percentage across the top platforms ${win}, ${reason}.`, provenance:`pricePremium.negligible(${p?p.windowDays+"d":"?"})` };
 }
@@ -1076,9 +1076,9 @@ function composerCascadeHeadline(vehicle,ev,opts,landedScope){
   // RUNG 1 (exact year / model): a real lead, no delta cleared.
   return { text:`${name} has closed ${composerScopePhrase(vehicle,"model")} strongest among recent sales.${speedLine}`, provenance:`ladder.landed(model)` };
 }
-// Reserve-context bullet (Phase 1.5): CORRELATION ONLY. Rendered on Card 1 only,
-// always last (context, not a reason). Locked wording; the allowed verb is
-// "averaged". Never a causation or outcome claim.
+// Reserve-context bullet (Phase 1.5): CORRELATION ONLY. Rendered on ANY card
+// (pick or alt) with a cell, always last (context, not a reason). Locked
+// wording; the allowed verb is "averaged". Never a causation or outcome claim.
 function reserveMonthName(m){
   const names=["","January","February","March","April","May","June","July","August","September","October","November","December"];
   return names[Number(String(m||"").split("-")[1])]||"recent months";
@@ -1173,9 +1173,10 @@ function composeCard(vehicle,route,opts={}){
     out.push(b);
   }
   const core=out.slice(0,3);
-  // Reserve context (Phase 1.5) is appended LAST on Card 1 only, after core
-  // evidence, and never displaces it. Never on the alt or PowerSeller card.
-  if(opts.isPick){ const rb=composerReserveBullet(ev); if(rb)core.push(rb); }
+  // Reserve context (Phase 1.5): appended LAST on ANY card (pick or alt) that
+  // has a reserve cell for that platform+make+band, after core evidence and
+  // never displacing it. composerReserveBullet returns null when no cell exists.
+  { const rb=composerReserveBullet(ev); if(rb)core.push(rb); }
   return { headline, bullets: core };
 }
 

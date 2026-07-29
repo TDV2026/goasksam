@@ -15,7 +15,7 @@ export const LINT_RULES = [
   { id: "reserve-causation", re: /\bcaused\b|because of the reserve|the reserve helped|will get you|you'?ll earn|\bboosts\b|increases your price/i, msg: "reserve causation/outcome claim (correlation only; allowed verb is 'averaged')" },
   { id: "volume-headline", re: /\bwhere most\b|most [^\n]{0,40} sales have closed|\bmoves most\b/i, msg: "volume language in a headline (state the delta or similarity finding instead)" },
   { id: "limited-caveat-old", re: /limited sales, running|so i ran this at|running at (the )?(model|make|generation|segment) level/i, msg: "banned uninformative caveat; cascade the rung ladder and state the finding (new floor: 'Analysis ran at X level')" },
-  { id: "auction-cycle", re: /\bauction cycle\b/i, msg: "speed is TIME TO LIST, not auction length; use the listing-speed copy ('gets cars listed and in front of buyers sooner')" },
+  { id: "auction-cycle", re: /\bquicker cycle\b|\bauction cycle\b/i, msg: "speed is TIME TO LIST, not auction length; 'quicker cycle' / 'quicker auction cycle' are banned. Use 'generally gets your listing live faster'" },
   { id: "specialization-hype", re: /best place|the home of|you'?ll do better|home for these|\bbetter (results|money) (there|here)\b/i, msg: "specialization is an observation of share, never a promise or 'best place' / 'home of' hype" },
 ];
 // A weekday claim must name its scope (car/generation/make) AND the window.
@@ -124,14 +124,15 @@ sellState.sellDecision = { evidence:{ ladder:{ landed:{ key:"exact_year_model" }
 const branch4 = composeCard({ make:"Chevrolet", model:"Camaro", year:1967 }, { label:"hagerty", platform:"hagerty", speedToList:"medium_fast", marketEvidence:{ evidenceSales:4, pricePremium:null, dayAdvantage:{weekday:"Thursday",liftPercent:20,scope:"model",window:180,sample:20} } }, { isPick:true, routingReason:"speed_unknown", sellerWantsSpeed:true, depthLeaderName:"Bring a Trailer", landedScope:"model" });
 const b4text = [branch4.headline.text, ...branch4.bullets.map(b=>b.text)].join("\n");
 check("1d lint: branch-4 pick headline states the speed reason (time to list), clean",
-  /You said speed matters\. Hagerty Marketplace typically gets cars listed sooner and has closed recent 1967 Camaros sales\./.test(branch4.headline.text) && lintText(branch4.headline.text).length === 0, branch4.headline.text);
+  /You said speed matters\. Hagerty Marketplace generally gets your listing live faster and has closed recent 1967 Camaros sales\./.test(branch4.headline.text) && lintText(branch4.headline.text).length === 0, branch4.headline.text);
 check("1d lint: branch-4 pick renders the REQUIRED depth-honesty bullet naming the depth leader",
   /Bring a Trailer holds most of the recent 1967 Camaros sales we track\. If market depth matters more than timing, start there instead\./.test(b4text), b4text);
 check("1d lint: branch-4 card carries no banned 'auction cycle' wording and is clean", !/auction cycle/i.test(b4text) && lintText(b4text).length === 0, b4text);
 check("1d lint: detects the banned 'quicker auction cycle' phrase", lintText("Hagerty runs the quicker auction cycle.").some(v=>/auction-cycle/.test(v)));
+check("1d lint: detects the banned 'quicker cycle' phrase", lintText("Hagerty runs a quicker cycle.").some(v=>/auction-cycle/.test(v)));
 const listingSpeedCard = composeCard({ make:"BMW", model:"M3", year:2018 }, { label:"carsandbids", platform:"carsandbids", speedToList:"fast", marketEvidence:{ evidenceSales:5, pricePremium:{gateType:"symmetric",percent:14,windowDays:90,scope:"model"} } }, { isPick:false, sellerWantsSpeed:true, landedScope:"model" });
 check("1d lint: speed bullet uses time-to-list wording, not auction cycle",
-  /gets cars listed and in front of buyers sooner/i.test([listingSpeedCard.headline&&listingSpeedCard.headline.text, ...listingSpeedCard.bullets.map(b=>b.text)].join(" ")),
+  /generally gets your listing live faster/i.test([listingSpeedCard.headline&&listingSpeedCard.headline.text, ...listingSpeedCard.bullets.map(b=>b.text)].join(" ")),
   JSON.stringify(listingSpeedCard.bullets.map(b=>b.text)));
 
 // STAGE 2 (specialization share): the computed bullet states a scope label, the
@@ -159,7 +160,7 @@ check("1d lint: reserve bullet renders on the pick card, clean", reserveLine && 
 check("1d lint: reserve bullet uses the exact locked delta wording", /In June, Bring a Trailer auctions with reserves in your price band averaged \$5,144 higher than those without\. You'll need to decide: is a reserve right for your car's condition and positioning\?/.test(reserveLine), reserveLine);
 check("1d lint: reserve bullet contains 'decide' and the month name", /\bdecide\b/.test(reserveLine) && /\bJune\b/.test(reserveLine), reserveLine);
 check("1d lint: reserve bullet is the LAST bullet on the pick card", pickR.bullets.length>0 && /reserve/i.test(pickR.bullets[pickR.bullets.length-1].text), JSON.stringify(pickR.bullets.map(b=>b.text.slice(0,30))));
-check("1d lint: reserve NEVER renders on the alt card", !altR.bullets.some(b=>/reserve/i.test(b.text)), JSON.stringify(altR.bullets.map(b=>b.text)));
+check("1d lint: reserve renders on the alt card too when a cell exists (as the LAST bullet)", altR.bullets.length>0 && /is a reserve right for your car/i.test(altR.bullets[altR.bullets.length-1].text), JSON.stringify(altR.bullets.map(b=>b.text)));
 const reserveSim = { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:12, pricePremium:{gateType:"symmetric",percent:16,windowDays:90,scope:"model"}, reserveContext:{platform:"Bring a Trailer",make:"Chevrolet",band_key:"$50k to $100k",avg_with_reserve:60500,avg_no_reserve:60000,delta_dollars:500,delta_pct:0.8,n_with:14,n_without:22,data_month:"2026-06"} } };
 const simLine = (composeCard(V, reserveSim, { isPick:true, landedScope:"model" }).bullets.find(b=>/reserve/i.test(b.text))||{}).text || "";
 check("1d lint: similarity case (|delta|<3%) renders the similar-money wording", /averaged similar money with or without a reserve/.test(simLine) && /\bdecide\b/.test(simLine), simLine);

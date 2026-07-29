@@ -53,6 +53,7 @@ async function showSellRecommendation(){
           targetPrice:sellState.price,
           timeline:sellState.timeline,
           involvement:sellState.involvement,
+          sellerPreference:sellState.sellerPreference,
           notes:sellState.notes
         }
       })
@@ -521,9 +522,11 @@ async function showSellRecommendation(){
   sellState.generatedPrimaryName=sellState.sellOptions[0]?.name||null;
   sellState.generatedSecondaryName=sellState.sellOptions[1]?.name||null;
 
-  if(powerSellerHTML&&isUSRegion(sellState.region)){
-    // Gate-open, US sellers only: one light choice orders the sections
-    // before anything renders. Non-US goes straight to the platform result.
+  if(powerSellerHTML&&isUSRegion(sellState.region)&&sellState.sellerPreference!=="powerseller"){
+    // Gate-open, US sellers only: one light choice orders the sections before
+    // anything renders. Skipped when the seller already chose PowerSeller at the
+    // last wizard step (FIX 3) -- we honor that and render PowerSeller-first
+    // below rather than re-asking. Non-US goes straight to the platform result.
     sellState.pendingResultSections={headerHTML,powerSellerHTML,powerSellerSecondHTML,platformCardsHTML,platformCardsPlatedHTML,caveatHTML,afterText};
     sellState.awaitingPathChoice=true;
     sellState.step=12;
@@ -1100,6 +1103,7 @@ async function submitContactForm(){
           targetPrice:sellState.price,
           timeline:sellState.timeline,
           involvement:sellState.involvement,
+          sellerPreference:sellState.sellerPreference,
           notes:sellState.notes
         },
         choice:{

@@ -105,7 +105,7 @@ function findingCount(c) {
   const pick = cards[0], alt = cards[1];
   check("Branch 4: unknown spread + speed + fast platform >= 3 comps ranks the fast platform first (routingReason=speed_unknown)", sellState.routingReason === "speed_unknown", `reason=${sellState.routingReason}`);
   check("Branch 4: the faster-to-list platform (Hagerty) leads Card 1", /Hagerty/.test(pick && pick.name || ""), `pick=${pick && pick.name}`);
-  check("Branch 4: pick headline states the speed reason (time to list)", /You said speed matters\. Hagerty Marketplace typically gets cars listed sooner and has closed recent 1967 Camaros sales\./.test(cardText(pick)), cardText(pick).slice(0, 240));
+  check("Branch 4: pick headline states the speed reason (time to list)", /You said speed matters\. Hagerty Marketplace generally gets your listing live faster and has closed recent 1967 Camaros sales\./.test(cardText(pick)), cardText(pick).slice(0, 240));
   check("Branch 4 INVARIANT: preference-led pick MUST carry the depth-honesty bullet naming the depth leader", /Bring a Trailer holds most of the recent 1967 Camaros sales we track\. If market depth matters more than timing, start there instead\./.test(cardText(pick)), cardText(pick).slice(0, 320));
   check("Branch 4: no banned auction-cycle wording anywhere on the pick", !/auction cycle/i.test(cardText(pick)), cardText(pick).slice(0, 240));
   check("Branch 4: alt is the depth leader (Bring a Trailer) with its concentration finding", /Bring a Trailer/.test(alt && alt.name || "") && /concentrated on Bring a Trailer/i.test(cardText(alt)), cardText(alt).slice(0, 200));
