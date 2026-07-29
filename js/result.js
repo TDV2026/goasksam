@@ -314,6 +314,7 @@ async function showSellRecommendation(){
     return {
       key:index===0?"primary":`route_${index}`,
       name:routeName,
+      platformSlug:route.platform,
       // 3.6: the alt card carried three near-identical labels ("Also strong
       // here" badge + "Worth comparing" type + "Why it's worth comparing"
       // header). The badge is the single positioning label now; this subtitle is
@@ -445,7 +446,19 @@ async function showSellRecommendation(){
             <button class="ghost" onclick="event.stopPropagation();chooseSellOption('${escapeHtml(option.key)}')">Talk to them</button>
           </div>`).join("")}
         </div>`:""}
-        <div class="sell-rec-actions"><button class="${isPrimary?"primary":"ghost"}" onclick="event.stopPropagation();chooseSellOption('${escapeHtml(option.key)}')">${escapeHtml(option.actionLabel||"Consider this")}</button></div>
+        ${(() => {
+          // Part 6: rankable platform cards (never the PowerSeller, 6.6) get the
+          // outbound submission CTA -> confirmation modal -> tracked /out redirect
+          // to the platform's own submit page. Everything else keeps the existing
+          // chooseSellOption path (PowerSeller contact form, regional fallback).
+          const slug=option.platformSlug;
+          const outbound=option.key!=="specialist"&&slug&&typeof hasOutboundSubmission==="function"&&hasOutboundSubmission(slug);
+          if(outbound){
+            const card=option.key==="primary"?"pick":"alt";
+            return `<div class="sell-rec-actions"><button class="${isPrimary?"primary":"ghost"}" onclick="event.stopPropagation();openOutboundModal('${escapeHtml(slug)}','${card}')">Send my details to ${escapeHtml(option.name)}</button></div>`;
+          }
+          return `<div class="sell-rec-actions"><button class="${isPrimary?"primary":"ghost"}" onclick="event.stopPropagation();chooseSellOption('${escapeHtml(option.key)}')">${escapeHtml(option.actionLabel||"Consider this")}</button></div>`;
+        })()}
       </div>`;
   };
 

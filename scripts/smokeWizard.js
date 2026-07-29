@@ -973,7 +973,10 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
       check(`why structure (${car.label.split(" ").at(-1)}): speed phrase + gap phrase`, GAP_POOL.test(voiceLine), voiceLine.slice(0,300));
       check(`speed headline (${car.label.split(" ").at(-1)}): confirms the heard preference`, /You want it gone fast/i.test(rendered), rendered.slice(0,300));
     }
-    check(`cta (${car.label.split(" ").at(-1)}): active submit language`, /Submit your car to /.test(rendered) && !/>Sell on /.test(rendered), (rendered.match(/[^\n]*Sell on[^\n]*/)||[""])[0].slice(0,140));
+    // Part 6: ranked platform cards now use the outbound CTA "Send my details to
+    // {platform}"; the regional-policy fallback keeps "Submit your car to". Either
+    // is active submit language; passive "Sell on" is still banned.
+    check(`cta (${car.label.split(" ").at(-1)}): active submit language`, (/Send my details to /.test(rendered) || /Submit your car to /.test(rendered)) && !/>Sell on /.test(rendered), (rendered.match(/[^\n]*Sell on[^\n]*/)||[""])[0].slice(0,140));
     if(/% of .* listings here sold/.test(rendered)){
       const statMatches=rendered.match(/% of [^\n]* listings here sold/g)||[];
       seenStats.push(...statMatches);

@@ -535,6 +535,79 @@ function sellerPriorityFitLabel(route){
   return null;
 }
 
+// ===================== Part 6: OUTBOUND SUBMISSION =====================
+// Mirror of lib/submissionUrls.js (the SERVER is the source of truth for the
+// redirect). Presence here gates the outbound button and lets the modal name the
+// platform; the actual redirect + click logging happens server-side at /out.
+// Keep this in sync with lib/submissionUrls.js.
+const SUBMISSION_URLS={
+  bringatrailer:"https://bringatrailer.com/submit-a-vehicle/",
+  carsandbids:"https://carsandbids.com/sell-car/",
+  hagerty:"https://www.hagerty.com/marketplace/sell",
+  pcarmarket:"https://www.pcarmarket.com/submit-your-listing",
+  carandclassic:"https://www.carandclassic.com/sell-your-vehicle",
+  collectingcars:"https://collectingcars.com/sell-with-us"
+};
+function hasOutboundSubmission(slug){return !!SUBMISSION_URLS[String(slug||"").toLowerCase()];}
+// Opaque per-browser id (never PII); only ever reaches OUR log, never the platform.
+function outboundSessionId(){
+  try{let id=localStorage.getItem("gas_session");if(!id){id="s_"+Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem("gas_session",id);}return id;}
+  catch(e){return "s_anon";}
+}
+// Opaque per-analysis id, ties a click back to the search that produced the card.
+function outboundSearchId(){
+  if(!sellState.searchId)sellState.searchId="q_"+Math.random().toString(36).slice(2)+Date.now().toString(36);
+  return sellState.searchId;
+}
+function outboundQuery(slug,card,extra){
+  const v=sellState.resolvedVehicle||{};
+  const landed=(sellState.sellDecision&&sellState.sellDecision.evidence&&sellState.sellDecision.evidence.ladder&&sellState.sellDecision.evidence.ladder.landed&&sellState.sellDecision.evidence.ladder.landed.key)||"";
+  const params={p:slug,s:outboundSearchId(),sid:outboundSessionId(),card:card||"",
+    year:v.year||"",make:v.make||"",model:v.model||"",trim:v.trim||"",
+    location:sellState.state||sellState.region||"",rung:landed,
+    reason:sellState.routingReason||"",pref:sellState.sellerPreference||""};
+  if(extra)Object.assign(params,extra);
+  return Object.keys(params).map(k=>`${encodeURIComponent(k)}=${encodeURIComponent(params[k]==null?"":params[k])}`).join("&");
+}
+// Confirmation modal before leaving for the platform's own site. No invented
+// platform process claims (fees/terms deferred to the platform). Dismissing it
+// (backdrop click) logs an abandon beacon; Continue navigates through /out.
+function openOutboundModal(slug,card){
+  slug=String(slug||"").toLowerCase();
+  if(!hasOutboundSubmission(slug))return;
+  const name=platformDisplayName(slug);
+  closeOutboundModal(false);
+  const scrim=document.createElement("div");
+  scrim.className="hp-dialog-scrim";scrim.id="outbound-modal";
+  scrim.dataset.slug=slug;scrim.dataset.card=card||"";
+  scrim.onclick=e=>{if(e.target===scrim)closeOutboundModal(true);};
+  scrim.innerHTML=`<div class="hp-dialog">
+    <h3>Before you go to ${escapeHtml(name)}</h3>
+    <p>You'll be submitting your car on ${escapeHtml(name)}'s own site.</p>
+    <p>Have these ready: clear photos, the VIN, service history and whether you want a reserve.</p>
+    <p>Fees and current terms are on their site.</p>
+    <div class="hp-dialog-actions">
+      <button class="primary" onclick="continueOutbound()">Continue to ${escapeHtml(name)}</button>
+      <button class="ghost" disabled title="Arriving shortly">Email me this checklist</button>
+    </div>
+  </div>`;
+  document.body.appendChild(scrim);
+}
+function continueOutbound(){
+  const m=document.getElementById("outbound-modal");if(!m)return;
+  const slug=m.dataset.slug,card=m.dataset.card;
+  m.dataset.continued="1";
+  window.location.href=apiPath(`/out?${outboundQuery(slug,card)}`);
+}
+function closeOutboundModal(abandoned){
+  const m=document.getElementById("outbound-modal");if(!m)return;
+  const slug=m.dataset.slug,card=m.dataset.card;
+  if(abandoned&&m.dataset.continued!=="1"&&slug){
+    try{navigator.sendBeacon&&navigator.sendBeacon(apiPath(`/out?${outboundQuery(slug,card,{outcome:"abandoned",beacon:1})}`));}catch(e){}
+  }
+  if(m.remove)m.remove();
+}
+
 function platformDisplayName(name){
   const key=String(name||"").toLowerCase().replace(/[^a-z0-9]/g,"");
   // Consignment houses render under a generic label in user-facing copy (they
