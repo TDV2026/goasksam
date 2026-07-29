@@ -37,12 +37,16 @@ const ctx = "s=q_test&sid=s_testsession&card=pick&year=2006&make=Ford&model=Focu
   check("out: unknown platform does not open-redirect (goes home)", r.status === 302 && (r.location === "/" || r.location.endsWith("/")), `status=${r.status} loc=${r.location}`);
 }
 
-// 4. Read path is NOT public: no key -> 401, wrong key -> 401.
+// 4. Read path is NOT public: it must never serve data without a valid key.
+// Without the key it is 401 (key configured, none provided) or 500 (key not yet
+// set in Vercel, same as the usage dashboard) - either way, no data is served.
 {
   const noKey = await fetch(`${BASE}/api/outboundClicks`);
-  check("read path: unauthorized without a key (not public)", noKey.status === 401, `status=${noKey.status}`);
+  const noKeyBody = await noKey.text();
+  check("read path: serves no data without a key (not public)", [401, 500].includes(noKey.status) && !/<table/i.test(noKeyBody), `status=${noKey.status}`);
   const wrongKey = await fetch(`${BASE}/api/outboundClicks?key=definitely-wrong-key`);
-  check("read path: unauthorized with a wrong key", wrongKey.status === 401, `status=${wrongKey.status}`);
+  const wrongBody = await wrongKey.text();
+  check("read path: serves no data with a wrong key", [401, 500].includes(wrongKey.status) && !/<table/i.test(wrongBody), `status=${wrongKey.status}`);
 }
 
 console.log(failures ? `\n${failures} FAILURE(S)` : "\nOUTBOUND ALL PASS");
