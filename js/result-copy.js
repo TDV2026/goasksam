@@ -994,7 +994,12 @@ function composerWeekdayBullet(vehicle,ev){
     const make=vehicle&&vehicle.make?composerPlural(vehicle.make):"These cars";
     text=`${make} as a whole have closed strongest on ${d.weekday}s ${win}`;
   }else{
-    text=`${composerScopePhrase(vehicle,d.scope,d.generationCode)} have closed strongest on ${d.weekday}s, around ${d.liftPercent}% above other days, ${win}`;
+    // Fail closed: a generation-scoped weekday with no generation code (an
+    // unmapped handover year) has no honest label, so drop the bullet rather
+    // than interpolate a null into the sentence.
+    const phrase=composerScopePhrase(vehicle,d.scope,d.generationCode);
+    if(!phrase)return null;
+    text=`${phrase} have closed strongest on ${d.weekday}s, around ${d.liftPercent}% above other days, ${win}`;
   }
   return { text:`${text}.`, provenance:`dayAdvantage(${d.scope},${d.window||180}d)` };
 }

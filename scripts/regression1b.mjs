@@ -59,6 +59,11 @@ check("3.5 near-years delta DROPS the requested year", !/2006/.test(NY.headline.
 const NS=composeCard(V06,{label:"carsandbids",platform:"carsandbids",marketEvidence:{evidenceSales:12,pricePremium:{type:"market_dominance",gateType:"asymmetric",percent:null,marketShare:82,windowDays:90,platformSales:12,othersSales:3}}},{isPick:false,landedScope:"model"});
 check("3.5 absent-scope finding FAILS CLOSED (no year-mislabeled headline)", !(NS.headline&&/2006 Focus/.test(NS.headline.text)), NS.headline&&NS.headline.text);
 
+// Part 3 fix: a generation-scoped weekday with NO generation code (an unmapped
+// handover year) must DROP the bullet, never interpolate "null" into the text.
+const WG=composeCard({make:"Porsche",model:"911",year:1987},{label:"bringatrailer",platform:"bringatrailer",marketEvidence:{evidenceSales:8,pricePremium:{gateType:"symmetric",percent:16,windowDays:90,scope:"exact_year"},dayAdvantage:{weekday:"Friday",liftPercent:15,scope:"generation",generationCode:null,window:180,sample:20}}},{isPick:true,landedScope:"model"});
+check("weekday: generation scope without a code drops the bullet, never renders 'null'", !/\bnull\b/i.test(allText(WG))&&!WG.bullets.some(b=>/have closed strongest/.test(b.text)), allText(WG));
+
 // Banned strings appear in no composed output
 for(const [n,c] of [["A",A],["B",B],["H",H],["U",U],["Mk",Mk],["EX",EX],["AY",AY],["AYC",AYC]]) check(`1b: no banned strings in card ${n}`, !BANNED.test(allText(c)), allText(c));
 
