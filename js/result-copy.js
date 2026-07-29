@@ -1526,14 +1526,12 @@ function chipsHTML(chips){
   return`<div class="chips">${chips.map(c=>`<button class="chip" onclick="handleChip('${c.replace(/'/g,"\\'")}')"> ${escapeHtml(c)}</button>`).join("")}</div>`;
 }
 function homeHeroHTML(){
-  return `<div class="hero" id="hero"><div class="hero-inner">
-    <div class="hero-logo">S</div>
+  // Homepage hero (Stage A): serif headline + the exempted supporting line. The
+  // input, label and reassurance live in #input-area (centered under this on the
+  // home state), so submitting runs the existing send() flow unchanged.
+  const supporting=(typeof HERO_SUPPORTING!=="undefined")?HERO_SUPPORTING:"";
+  return `<div class="hero" id="hero"><div class="hp-hero">
     <h1>Where should you sell your car?</h1>
-    <div class="hero-sub">Answer a few quick questions and I’ll tell you where I’d sell it, and why.</div>
-    <div class="hero-start">
-      <button onclick="startSellFlow()">Start selling</button>
-      <div class="hero-start-note">Takes about one minute.</div>
-      <div class="hero-secondary">or type the car below if you already know what you’re selling</div>
-    </div>
+    <div class="hp-supporting">${supporting}</div>
   </div></div>`;
 }

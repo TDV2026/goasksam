@@ -47,7 +47,7 @@ globalThis.fetch = async () => ({ ok:true, json:async()=>({}) });
 const html = fs.readFileSync("index.html","utf8");
 const files = [...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
 const script = files.map(f=>fs.readFileSync(f,"utf8")).join("\n");
-(0, eval)(script + "\nglobalThis.sellState=sellState;globalThis.composeCard=composeCard;globalThis.powerSellerIntroLine=powerSellerIntroLine;globalThis.powerSellerServiceLine=powerSellerServiceLine;globalThis.vehicleAcceptPrefix=vehicleAcceptPrefix;globalThis.SYS=SYS;globalThis.SELL_SYS=SELL_SYS;globalThis.platformDisplayName=platformDisplayName;");
+(0, eval)(script + "\nglobalThis.sellState=sellState;globalThis.composeCard=composeCard;globalThis.powerSellerIntroLine=powerSellerIntroLine;globalThis.powerSellerServiceLine=powerSellerServiceLine;globalThis.vehicleAcceptPrefix=vehicleAcceptPrefix;globalThis.SYS=SYS;globalThis.SELL_SYS=SELL_SYS;globalThis.platformDisplayName=platformDisplayName;globalThis.HERO_SUPPORTING=HERO_SUPPORTING;globalThis.PLACEHOLDER_EXAMPLES=PLACEHOLDER_EXAMPLES;globalThis.LEARN_HOW=LEARN_HOW;globalThis.LEARN_PLATFORMS=LEARN_PLATFORMS;globalThis.HP_REASSURANCE=HP_REASSURANCE;");
 
 let failures = 0;
 const check = (name, ok, detail="") => { console.log(`${ok?"PASS":"FAIL"}  ${name}${ok?"":"  ->  "+detail}`); if(!ok)failures++; };
@@ -172,6 +172,28 @@ check("1d lint: detects a sell-through claim", lintText("84% sell-through for mo
 check("1d lint: detects an em dash", lintText("this — that").some(v=>/em dash/.test(v)));
 check("1d lint: detects a weekday without scope", lintText("Prices closed strongest on Fridays over the past 180 days").some(v=>/weekday-scope/.test(v)));
 check("1d lint: detects a removed house name", lintText("records from RM Sotheby's and Gooding").some(v=>/removed-house/.test(v)));
+
+// ---- Homepage copy (Stage A) ----
+// The hero supporting line is the ONE exempted constant (an em dash, approved
+// verbatim); it is checked for identity, never linted for dashes.
+check("homepage: hero supporting line is the approved exempted constant",
+  HERO_SUPPORTING === "I'll recommend where I'd sell your car—and show you exactly why.", JSON.stringify(HERO_SUPPORTING));
+// EVERY OTHER piece of new homepage copy: no dashes, standard lint clean.
+const homepageCopy = [
+  HP_REASSURANCE,
+  ...PLACEHOLDER_EXAMPLES,
+  LEARN_HOW.title, ...LEARN_HOW.sections.flatMap(s => [s.h, s.body]),
+  LEARN_PLATFORMS.title, LEARN_PLATFORMS.intro, LEARN_PLATFORMS.outro, ...LEARN_PLATFORMS.platforms.flatMap(p => [p.name, p.body])
+].join("\n");
+check("homepage: no en/em dashes in any new copy except the exempted hero line", !/[–—]/.test(homepageCopy), (homepageCopy.match(/[^\n]*[–—][^\n]*/) || [""])[0]);
+check("homepage: all non-hero homepage copy passes standard lint", lintText(homepageCopy).length === 0, lintText(homepageCopy).join(" ; "));
+check("homepage: Selling Platforms names no removed auction houses", !/\bSotheby|\bGooding/i.test(homepageCopy), "removed house named");
+check("homepage: placeholder examples are real cars (year + make)", PLACEHOLDER_EXAMPLES.every(e => /^\d{4}\s+[A-Z]/.test(e)), JSON.stringify(PLACEHOLDER_EXAMPLES));
+// Dashboard card lines (from the committed lib/dailyPulse.json): observation only.
+const pulseJson = JSON.parse(fs.readFileSync("lib/dailyPulse.json", "utf8"));
+const pulseLines = pulseJson.cards.map(c => c.line).join("\n");
+check("homepage: dashboard card lines observation only, no dashes, no advice verbs",
+  !/[–—]/.test(pulseLines) && !/\b(buy|sell|list|should|recommend|consider)\b/i.test(pulseLines) && lintText(pulseLines).length === 0, pulseLines);
 
 console.log(failures ? `\n${failures} FAILURE(S)` : "\n1D-LINT ALL PASS");
 process.exit(failures ? 1 : 0);

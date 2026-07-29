@@ -13,7 +13,10 @@ function newConversation(){
   history.length=0;
   resetSellState();
   if(window.__shownSessionStats)window.__shownSessionStats.clear();
-  document.getElementById("msgs").innerHTML=homeHeroHTML();
+  // The homepage shell owns the home state (hero + cards + focus + placeholder
+  // rotation); fall back to the bare hero if it is not present.
+  if(typeof enterHomeState==="function"){enterHomeState();}
+  else{document.getElementById("msgs").innerHTML=homeHeroHTML();}
 }
 
 function localPreRoute(q){

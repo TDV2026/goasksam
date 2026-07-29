@@ -18,7 +18,7 @@ JOKES: Play along briefly, redirect to cars.`;
 const history=[];
 const API_ORIGIN=location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:"?"https://goasksam.vercel.app":"";
 
-function hideHero(){const h=document.getElementById("hero");if(h)h.remove();}
+function hideHero(){const h=document.getElementById("hero");if(h)h.remove();if(typeof enterChatState==="function")enterChatState();}
 function escapeHtml(str){return String(str||"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]));}
 function escapeRegExp(str){return String(str||"").replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
 function normalizeVehicleAnswer(str){return String(str||"").toLowerCase().replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").replace(/\s+/g," ").trim();}

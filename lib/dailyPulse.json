@@ -1,0 +1,47 @@
+{
+  "generated_date": "2026-06-30",
+  "cards": [
+    {
+      "id": "avg_price",
+      "title": "Average Transaction Price",
+      "state": "trend",
+      "dir": "up",
+      "pct": 26,
+      "line": "Up 26% on the previous day"
+    },
+    {
+      "id": "bid_momentum",
+      "title": "Bid Momentum",
+      "state": "trend",
+      "dir": "up",
+      "pct": 3,
+      "line": "Up 3% on the previous day"
+    },
+    {
+      "id": "category_strength",
+      "title": "Category Strength",
+      "state": "trend",
+      "makes": [
+        {
+          "make": "Mercedes-Benz",
+          "dir": "up",
+          "pct": 45,
+          "chip": "+45%"
+        },
+        {
+          "make": "Chevrolet",
+          "dir": "up",
+          "pct": 22,
+          "chip": "+22%"
+        },
+        {
+          "make": "Porsche",
+          "dir": "up",
+          "pct": 3,
+          "chip": "+3%"
+        }
+      ],
+      "line": "Mercedes-Benz +45%, Chevrolet +22%, Porsche +3%"
+    }
+  ]
+}
