@@ -94,25 +94,49 @@ function findingCount(c) {
   return headlineFinding + bulletFindings;
 }
 
-// ---- Case 1: unknown spread (no 5+/5+ proof) + fast alt + gone fast ----
+// ---- Branch 4: unknown spread + speed pref + fast platform clears the floor ----
 {
   const bat = route("bringatrailer", "Bring a Trailer", "slower", 18, 70000,
     { type: "market_dominance", gateType: "asymmetric", marketShare: 82, percent: null, windowDays: 180, platformSales: 18, othersSales: 4, scope: "model" },
     { weekday: "Thursday", liftPercent: 62, scope: "model", window: 180, sample: 18 });
-  const hagerty = route("hagerty", "Hagerty Marketplace", "medium_fast", 3, 66000, null, null);
+  const hagerty = route("hagerty", "Hagerty Marketplace", "medium_fast", 4, 66000, null, null);
   await render([bat, hagerty]);
   const cards = (sellState.sellOptions || []).filter(o => !o.powerSeller);
   const pick = cards[0], alt = cards[1];
-  check("Case 1: speed does NOT swap on an unknown spread (routingReason stays null)", sellState.routingReason === null, `reason=${sellState.routingReason}`);
-  check("Case 1: the evidence leader (Bring a Trailer) holds Card 1", /Bring a Trailer/.test(pick && pick.name || ""), `pick=${pick && pick.name}`);
-  check("Case 1: pick headline states the concentration finding, not the floor", /concentrated on Bring a Trailer/i.test(cardText(pick)) && !/Analysis ran at .* level/i.test(cardText(pick)), (pick && pick.composed && pick.composed.headline && pick.composed.headline.text) || "no headline");
-  check("Case 1: pick carries the Thursday weekday finding", /closed strongest on Thursdays/i.test(cardText(pick)), cardText(pick).slice(0, 200));
-  check("Case 1: pick owns the speed preference as a tradeoff bullet", /You said speed matters\. Hagerty Marketplace typically runs a quicker cycle, but Bring a Trailer is where the market for this car has been\./.test(cardText(pick)), cardText(pick).slice(0, 300));
-  check("Case 1: alt (Hagerty) carries the speed framing", /Hagerty Marketplace typically runs the quicker auction cycle/i.test(cardText(alt)), cardText(alt).slice(0, 200));
-  check("Case 1 INVARIANT: pick card renders at least as many evidence findings as the alt", findingCount(pick) >= findingCount(alt) && findingCount(pick) >= 2, `pick=${findingCount(pick)} alt=${findingCount(alt)}`);
+  check("Branch 4: unknown spread + speed + fast platform >= 3 comps ranks the fast platform first (routingReason=speed_unknown)", sellState.routingReason === "speed_unknown", `reason=${sellState.routingReason}`);
+  check("Branch 4: the faster-to-list platform (Hagerty) leads Card 1", /Hagerty/.test(pick && pick.name || ""), `pick=${pick && pick.name}`);
+  check("Branch 4: pick headline states the speed reason (time to list)", /You said speed matters\. Hagerty Marketplace typically gets cars listed sooner and has closed recent 1967 Camaros sales\./.test(cardText(pick)), cardText(pick).slice(0, 240));
+  check("Branch 4 INVARIANT: preference-led pick MUST carry the depth-honesty bullet naming the depth leader", /Bring a Trailer holds most of the recent 1967 Camaros sales we track\. If market depth matters more than timing, start there instead\./.test(cardText(pick)), cardText(pick).slice(0, 320));
+  check("Branch 4: no banned auction-cycle wording anywhere on the pick", !/auction cycle/i.test(cardText(pick)), cardText(pick).slice(0, 240));
+  check("Branch 4: alt is the depth leader (Bring a Trailer) with its concentration finding", /Bring a Trailer/.test(alt && alt.name || "") && /concentrated on Bring a Trailer/i.test(cardText(alt)), cardText(alt).slice(0, 200));
 }
 
-// ---- Case 2: measured Mode B (<10% symmetric spread) + fast alt + gone fast ----
+// ---- Branch 4 floor fails: fast platform below 3 comps -> branch 5 (depth) ----
+{
+  const bat = route("bringatrailer", "Bring a Trailer", "slower", 18, 70000,
+    { type: "market_dominance", gateType: "asymmetric", marketShare: 82, percent: null, windowDays: 180, platformSales: 18, othersSales: 4, scope: "model" },
+    { weekday: "Thursday", liftPercent: 62, scope: "model", window: 180, sample: 18 });
+  const hagerty = route("hagerty", "Hagerty Marketplace", "medium_fast", 1, 66000, null, null);
+  await render([bat, hagerty]);
+  const cards = (sellState.sellOptions || []).filter(o => !o.powerSeller);
+  const pick = cards[0];
+  check("Branch 4 floor: a fast platform with < 3 relevant comps never leads; falls through to depth (routingReason null)", sellState.routingReason === null, `reason=${sellState.routingReason}`);
+  check("Branch 4 floor: the depth leader (Bring a Trailer) holds Card 1, not the thin fast platform", /Bring a Trailer/.test(pick && pick.name || "") && /concentrated on Bring a Trailer/i.test(cardText(pick)), `pick=${pick && pick.name}`);
+}
+
+// ---- Mode A control: measured >=10% price winner + gone fast -> price wins ----
+{
+  const bat = route("bringatrailer", "Bring a Trailer", "slower", 8, 78000,
+    { type: "premium", gateType: "symmetric", percent: 20, windowDays: 90, platformSales: 8, othersSales: 7, scope: "model" }, null);
+  const hagerty = route("hagerty", "Hagerty Marketplace", "medium_fast", 7, 62000,
+    { type: "premium", gateType: "symmetric", percent: -18, windowDays: 90, platformSales: 7, othersSales: 8, scope: "model" }, null);
+  await render([bat, hagerty]);
+  const cards = (sellState.sellOptions || []).filter(o => !o.powerSeller);
+  const pick = cards[0];
+  check("Mode A control: a measured >= 10% price winner leads even with a stated speed preference", /Bring a Trailer/.test(pick && pick.name || "") && /around 20% higher/i.test(cardText(pick)), `pick=${pick && pick.name} reason=${sellState.routingReason}`);
+}
+
+// ---- Mode B control: measured < 10% + speed still swaps to the faster platform ----
 {
   const bat = route("bringatrailer", "Bring a Trailer", "slower", 8, 70000,
     { type: "premium", gateType: "symmetric", percent: 5, windowDays: 90, platformSales: 8, othersSales: 7, scope: "model" }, null);
@@ -121,8 +145,8 @@ function findingCount(c) {
   await render([bat, hagerty]);
   const cards = (sellState.sellOptions || []).filter(o => !o.powerSeller);
   const pick = cards[0];
-  check("Case 2: a measured <10% spread still lets speed take Card 1 (routingReason=speed)", sellState.routingReason === "speed", `reason=${sellState.routingReason}`);
-  check("Case 2: the faster platform (Hagerty) leads Card 1 under the locked Mode B rule", /Hagerty/.test(pick && pick.name || ""), `pick=${pick && pick.name}`);
+  check("Mode B control: a measured < 10% spread still lets speed take Card 1 (routingReason=speed)", sellState.routingReason === "speed", `reason=${sellState.routingReason}`);
+  check("Mode B control: the faster platform (Hagerty) leads Card 1 with listing-speed wording, no auction cycle", /Hagerty/.test(pick && pick.name || "") && !/auction cycle/i.test(cardText(pick)), cardText(pick).slice(0, 240));
 }
 
 console.log(failures ? `\n${failures} FAILURE(S)` : "\nSPEED-ROUTING ALL PASS");

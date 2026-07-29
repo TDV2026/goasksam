@@ -952,20 +952,32 @@ function composerAudienceBullet(ev){
   const line=platformFitLine({label:ev.label,platform:ev.platform});
   return line?{ text:line, provenance:"platformFitCopy" }:null;
 }
+// Speed copy (agnostic + accurate): the advantage is TIME TO LIST -- how fast a
+// submitted car gets listed and in front of buyers -- NOT auction length (live
+// auctions run similar lengths). This is the ONE copy-library phrase for speed;
+// the platform name is injected, never inlined per platform. "quicker auction
+// cycle" is lint-banned.
+const LISTING_SPEED_PHRASE = name => `${name} typically gets cars listed and in front of buyers sooner`;
 // Conditional speed line, only when the seller indicated speed matters.
 function composerSpeedBullet(ev,opts){
   if(!opts.sellerWantsSpeed||!["fast","medium_fast"].includes(ev.speedToList))return null;
-  return { text:`If speed matters, ${platformDisplayName(ev.label||ev.platform)} typically runs the quicker auction cycle.`, provenance:"speedToList" };
+  return { text:`If speed matters, ${LISTING_SPEED_PHRASE(platformDisplayName(ev.label||ev.platform))}.`, provenance:"speedToList" };
 }
-// Speed-tradeoff line (Defect A): the seller wanted speed but the evidence
-// leader (a slower platform) took Card 1. Acknowledge the preference honestly
-// without letting it override the market read. Only on the pick card, only when
-// the pick is NOT itself a fast platform and a faster alternative exists.
-function composerSpeedTradeoffBullet(ev,opts){
-  if(!opts.isPick||!opts.sellerWantsSpeed||!opts.fasterAlternativeName)return null;
-  if(["fast","medium_fast"].includes(ev.speedToList))return null;
-  const pickName=platformDisplayName(ev.label||ev.platform);
-  return { text:`You said speed matters. ${opts.fasterAlternativeName} typically runs a quicker cycle, but ${pickName} is where the market for this car has been.`, provenance:"speedTradeoff" };
+// Depth-honesty bullet (ranking branch 4): a stated speed preference put the
+// faster-to-list platform on Card 1 over the depth leader when the price spread
+// is unknown. The pick card MUST own that honestly by naming the depth leader.
+function composerDepthHonestyBullet(vehicle,ev,opts){
+  if(!opts.isPick||opts.routingReason!=="speed_unknown"||!opts.depthLeaderName)return null;
+  const scope=composerScopePhrase(vehicle,"model");
+  return { text:`${opts.depthLeaderName} holds most of the recent ${scope} sales we track. If market depth matters more than timing, start there instead.`, provenance:"depthHonesty" };
+}
+// Branch-4 speed-preference headline: the rank came from the seller's PREFERENCE
+// (unknown spread), so the headline states that true reason plus the platform's
+// own real sales, never a price or depth claim it did not earn.
+function composerSpeedPreferenceHeadline(vehicle,ev){
+  const name=platformDisplayName(ev.label||ev.platform);
+  const scope=composerScopePhrase(vehicle,"model");
+  return { text:`You said speed matters. ${name} typically gets cars listed sooner and has closed recent ${scope} sales.`, provenance:"speedPreference" };
 }
 // Mode A delta headline: the winning platform's cleared comparative delta.
 function composerDeltaHeadline(vehicle,ev){
@@ -991,7 +1003,7 @@ function composerSimilarityHeadline(vehicle,ev,opts){
   const name=platformDisplayName(ev.label||ev.platform);
   const scope=(p&&p.scope)||"model";
   const reason=(opts.sellerWantsSpeed&&opts.routingReason==="speed")
-    ?`so speed decides: ${name} lists and closes faster`
+    ?`so how quickly you can get listed decides: ${name} typically gets cars listed sooner`
     :`so the deepest recent market for this car leads: ${name} has the most recent sales`;
   return { text:`Prices for ${composerScopePhrase(vehicle,scope)} have been within a small percentage across the top platforms ${win}, ${reason}.`, provenance:`pricePremium.negligible(${p?p.windowDays+"d":"?"})` };
 }
@@ -1017,8 +1029,9 @@ function composerLandedGenerationCode(){
 function composerCascadeHeadline(vehicle,ev,opts,landedScope){
   const name=platformDisplayName(ev.label||ev.platform);
   const genCode=opts.landedGenerationCode||composerLandedGenerationCode();
-  const wantsSpeed=opts.sellerWantsSpeed&&["fast","medium_fast"].includes(ev.speedToList);
-  const speedLine=wantsSpeed?` If speed matters, ${name} typically runs the quicker auction cycle.`:"";
+  // A branch-4 speed-preference pick uses composerSpeedPreferenceHeadline, so no
+  // speed line is appended here; the cascade states the market finding only.
+  const speedLine="";
   const rungWord=landedScope==="make"?"make":landedScope==="segment"?"segment":landedScope==="generation"?"generation":"model";
   const base=Number(ev.evidenceSales||0);
   const leads=opts.isVolumeLeader!==false;
@@ -1087,6 +1100,10 @@ function composeCard(vehicle,route,opts={}){
   if(unverified){
     // Make-level read only; never a verified-style delta/weekday claim.
     headline=composerHonestHeadline(vehicle, vehicle&&vehicle.make?"make":landedScope);
+  }else if(opts.isPick&&opts.routingReason==="speed_unknown"){
+    // Ranking branch 4: the seller's speed preference (not a price finding)
+    // put this platform on Card 1. State that true reason.
+    headline=composerSpeedPreferenceHeadline(vehicle,ev);
   }else if(opts.isPick){
     const p=ev.pricePremium;
     if(p&&(p.type==="market_dominance"||(p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10))){
@@ -1101,8 +1118,11 @@ function composeCard(vehicle,route,opts={}){
       headline=composerCascadeHeadline(vehicle,ev,opts,landedScope);
     }
   }else{
+    // Alt card: a price winner states its delta; a depth/concentration leader
+    // (market_dominance) states its concentration finding; otherwise the honest
+    // existence line.
     const p=ev.pricePremium;
-    if(p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10){
+    if(p&&(p.type==="market_dominance"||(p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10))){
       headline=composerDeltaHeadline(vehicle,ev);
     }else if(Number(ev.evidenceSales||0)>0){
       headline={ text:`${platformDisplayName(ev.label||ev.platform)} has also closed recent ${composerScopePhrase(vehicle,landedScope==="make"?"make":"model")} sales.`, provenance:`evidenceSales(${ev.evidenceSales})` };
@@ -1110,11 +1130,14 @@ function composeCard(vehicle,route,opts={}){
       headline=null;
     }
   }
+  const branch4=opts.isPick&&opts.routingReason==="speed_unknown";
   const bullets=[];
   if(!unverified){ const wk=composerWeekdayBullet(vehicle,ev); if(wk)bullets.push(wk); }
+  // Branch 4 REQUIRES the depth-honesty bullet; place it high so the cap keeps it.
+  if(branch4){ const dh=composerDepthHonestyBullet(vehicle,ev,opts); if(dh)bullets.push(dh); }
   const aud=composerAudienceBullet(ev); if(aud)bullets.push(aud);
-  const spd=composerSpeedBullet(ev,opts); if(spd)bullets.push(spd);
-  const spdTrade=composerSpeedTradeoffBullet(ev,opts); if(spdTrade)bullets.push(spdTrade);
+  // Branch 4's headline already owns the speed reason, so no redundant speed bullet.
+  if(!branch4){ const spd=composerSpeedBullet(ev,opts); if(spd)bullets.push(spd); }
   // Dedupe (reuse the round-3 guard) and cap at 3; drop any that echo the headline.
   const out=[];
   for(const b of bullets){

@@ -15,6 +15,7 @@ export const LINT_RULES = [
   { id: "reserve-causation", re: /\bcaused\b|because of the reserve|the reserve helped|will get you|you'?ll earn|\bboosts\b|increases your price/i, msg: "reserve causation/outcome claim (correlation only; allowed verb is 'averaged')" },
   { id: "volume-headline", re: /\bwhere most\b|most [^\n]{0,40} sales have closed|\bmoves most\b/i, msg: "volume language in a headline (state the delta or similarity finding instead)" },
   { id: "limited-caveat-old", re: /limited sales, running|so i ran this at|running at (the )?(model|make|generation|segment) level/i, msg: "banned uninformative caveat; cascade the rung ladder and state the finding (new floor: 'Analysis ran at X level')" },
+  { id: "auction-cycle", re: /\bauction cycle\b/i, msg: "speed is TIME TO LIST, not auction length; use the listing-speed copy ('gets cars listed and in front of buyers sooner')" },
 ];
 // A weekday claim must name its scope (car/generation/make) AND the window.
 export function lintWeekday(line) {
@@ -103,7 +104,7 @@ check("1d lint: detects volume language in a headline", lintText("Bring a Traile
 sellState.sellDecision = { evidence:{ ladder:{ landed:{ key:"generation_model", generationCode:"f80" } } } };
 const rung2 = composeCard({make:"BMW",model:"M3",year:2018}, { label:"hagerty", platform:"hagerty", speedToList:"medium_fast", marketEvidence:{ evidenceSales:6, pricePremium:null } }, { isPick:true, isVolumeLeader:true, sellerWantsSpeed:true, landedScope:"generation", landedGenerationCode:"f80" });
 check("1d lint: rung-2 (generation) headline names the generation + 'strongest', clean",
-  /F80-generation BMW M3s strongest among recent sales/.test(rung2.headline.text) && /quicker auction cycle/.test(rung2.headline.text) && lintText(rung2.headline.text).length === 0, rung2.headline.text);
+  /F80-generation BMW M3s strongest among recent sales/.test(rung2.headline.text) && lintText(rung2.headline.text).length === 0, rung2.headline.text);
 const rung4 = composeCard({make:"Chevrolet",model:"Chevelle",year:1966}, { label:"hagerty", platform:"hagerty", marketEvidence:{ evidenceSales:7, pricePremium:null } }, { isPick:true, isVolumeLeader:true, landedScope:"make" });
 check("1d lint: rung-4 (make) headline leads with the make + caveats the exact model, clean",
   /Among recent Chevrolet sales, .+ leads\. Limited recent data for this exact model\./.test(rung4.headline.text) && lintText(rung4.headline.text).length === 0, rung4.headline.text);
@@ -115,6 +116,22 @@ check("1d lint: speed-routed non-leader falls to the honest floor, never a false
   /Recent sales for the BMW M3 are limited\. Analysis ran at generation level\./.test(speedNonLeader.headline.text) && !/strongest among recent sales/.test(speedNonLeader.headline.text) && lintText(speedNonLeader.headline.text).length === 0, speedNonLeader.headline.text);
 check("1d lint: detects the banned 'running at model level' caveat", lintText("Recent sales are limited, running at model level.").some(v=>/limited-caveat-old/.test(v)));
 sellState.sellDecision = { evidence:{ ladder:{ landed:{ key:"exact_year_model" } } } };
+
+// STAGE 1 (ranking branch 4): an unknown-spread speed-preference pick states the
+// speed reason (TIME TO LIST) and MUST carry the depth-honesty bullet naming the
+// depth leader. Listing-speed wording only; "auction cycle" is banned.
+const branch4 = composeCard({ make:"Chevrolet", model:"Camaro", year:1967 }, { label:"hagerty", platform:"hagerty", speedToList:"medium_fast", marketEvidence:{ evidenceSales:4, pricePremium:null, dayAdvantage:{weekday:"Thursday",liftPercent:20,scope:"model",window:180,sample:20} } }, { isPick:true, routingReason:"speed_unknown", sellerWantsSpeed:true, depthLeaderName:"Bring a Trailer", landedScope:"model" });
+const b4text = [branch4.headline.text, ...branch4.bullets.map(b=>b.text)].join("\n");
+check("1d lint: branch-4 pick headline states the speed reason (time to list), clean",
+  /You said speed matters\. Hagerty Marketplace typically gets cars listed sooner and has closed recent 1967 Camaros sales\./.test(branch4.headline.text) && lintText(branch4.headline.text).length === 0, branch4.headline.text);
+check("1d lint: branch-4 pick renders the REQUIRED depth-honesty bullet naming the depth leader",
+  /Bring a Trailer holds most of the recent 1967 Camaros sales we track\. If market depth matters more than timing, start there instead\./.test(b4text), b4text);
+check("1d lint: branch-4 card carries no banned 'auction cycle' wording and is clean", !/auction cycle/i.test(b4text) && lintText(b4text).length === 0, b4text);
+check("1d lint: detects the banned 'quicker auction cycle' phrase", lintText("Hagerty runs the quicker auction cycle.").some(v=>/auction-cycle/.test(v)));
+const listingSpeedCard = composeCard({ make:"BMW", model:"M3", year:2018 }, { label:"carsandbids", platform:"carsandbids", speedToList:"fast", marketEvidence:{ evidenceSales:5, pricePremium:{gateType:"symmetric",percent:14,windowDays:90,scope:"model"} } }, { isPick:false, sellerWantsSpeed:true, landedScope:"model" });
+check("1d lint: speed bullet uses time-to-list wording, not auction cycle",
+  /gets cars listed and in front of buyers sooner/i.test([listingSpeedCard.headline&&listingSpeedCard.headline.text, ...listingSpeedCard.bullets.map(b=>b.text)].join(" ")),
+  JSON.stringify(listingSpeedCard.bullets.map(b=>b.text)));
 
 // Reserve context (Phase 1.5): renders on Card 1 only, last, correlation only.
 const reserveDelta = { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:12, pricePremium:{gateType:"symmetric",percent:16,windowDays:90,scope:"model"}, dayAdvantage:{weekday:"Friday",liftPercent:16,scope:"model",window:180,sample:20}, reserveContext:{platform:"Bring a Trailer",make:"Chevrolet",band_key:"$50k to $100k",avg_with_reserve:65144,avg_no_reserve:60000,delta_dollars:5144,delta_pct:8.6,n_with:14,n_without:22,data_month:"2026-06"} } };

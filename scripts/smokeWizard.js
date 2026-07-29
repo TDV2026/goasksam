@@ -262,7 +262,7 @@ function guardRender(name, text) {
     // reordered the backend's list).
     // 1b: the conditional speed line renders only when the platform it names is
     // actually a fast/medium_fast route (curated policy), on any card.
-    const speedM = clean.match(/If speed matters, (.+?) typically runs the quicker auction cycle/);
+    const speedM = clean.match(/If speed matters, (.+?) typically gets cars listed and in front of buyers sooner/);
     if (speedM) {
       const routesS = sellState.sellDecision?.decision?.routeFit?.routes || [];
       const normS = v => String(v || "").toLowerCase().replace(/&amp;|&/g, "and").replace(/[^a-z0-9]/g, "");
@@ -285,7 +285,11 @@ function guardRender(name, text) {
     // the claim bullets (every bullet-1 tier names the pick).
     if (plateNameC && PLATFORM_NAMES.includes(plateNameC)) {
       const liText = liMatches.map(m => flatLi(m[2]).replace(/&amp;/g, "&")).join("\n");
-      check(`[design] ${name}: plate pick matches the bullets pick`, liText.includes(plateNameC) || !liText.trim(), `plate="${plateNameC}"`);
+      // Ranking branch 4 (speed_unknown) names the pick in the HEADLINE ("You
+      // said speed matters. X gets cars listed sooner..."), not a bullet, so the
+      // headline satisfies the plate<->claim agreement there.
+      const branch4Headline = sellState.routingReason === "speed_unknown";
+      check(`[design] ${name}: plate pick matches the bullets pick`, liText.includes(plateNameC) || branch4Headline || !liText.trim(), `plate="${plateNameC}" reason=${sellState.routingReason}`);
     }
     // Day-advantage lines (1b): a MARKET-CONDITION claim, so it states the
     // 180-day window and its car/make scope (never platform-named, never a
@@ -860,7 +864,7 @@ const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsc
   // 1b: on a fast timeline the composer's speed language ("so speed decides"
   // or "If speed matters, X typically runs the quicker auction cycle") appears
   // for a fast route; Hagerty (medium_fast) qualifies when it is tracked.
-  check("corvette speed: composer surfaces the speed language on a fast timeline", !hagertyTracked || (/so speed decides:/.test(vetteFast) || /If speed matters,/.test(vetteFast)), `hagertyTracked=${hagertyTracked} ` + vetteFast.replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 250));
+  check("corvette speed: composer surfaces the speed language on a fast timeline", !hagertyTracked || (/how quickly you can get listed decides:/.test(vetteFast) || /If speed matters,/.test(vetteFast) || /You said speed matters\./.test(vetteFast)), `hagertyTracked=${hagertyTracked} ` + vetteFast.replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 250));
 }
 
 {
@@ -899,7 +903,7 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
     {label:"2005 Mazda MX-5",vehicle:{raw:"2005 Mazda MX-5",year:2005,make:"Mazda",model:"MX-5",trim:null,confidence:"high",canonicalLabel:"2005 Mazda MX-5"}},
     {label:"1990 Ford Mustang",vehicle:mustang.vehicle}
   ];
-  const SPEED_POOL=/tends to get listings live fast|historically closes quicker|moves faster to market|gets a listing live sooner|runs the quicker auction cycle|faster route from listing to close/i;
+  const SPEED_POOL=/tends to get listings live fast|historically closes quicker|moves faster to market|gets a listing live sooner|gets cars listed and in front of buyers sooner|faster route from listing to close/i;
   const GAP_POOL=/are similar between the top choices|at similar money lately|close across the leading platforms|meaningful platform gap|near-identical recent results|similar levels across the top platforms/i;
   const speedReasons=[];
   const seenStats=[];
@@ -913,7 +917,7 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
       check(`median gate (${car.label.split(" ").at(-1)}): negligible line carries no dollar amounts`, !/negligible[^<]*\$\d/i.test(rendered), rendered.slice(rendered.search(/negligible/i),rendered.search(/negligible/i)+200));
     }
     const decoded=rendered.replace(/&#39;|&apos;/g,"'").replace(/&amp;/g,"&");
-    check(`bullet 3 (${car.label.split(" ").at(-1)}): fast timeline gets the speed line`, /prioritizing a fast close|market I'd trust to move it|tends to get listings live fast|historically closes quicker|moves faster to market|gets a listing live sooner|quicker auction cycle|faster route from listing to close/i.test(decoded), (decoded.match(/[^\n]*(fast|quick)[^\n]*/i)||["none"])[0].slice(0,160));
+    check(`bullet 3 (${car.label.split(" ").at(-1)}): fast timeline gets the speed line`, /prioritizing a fast close|market I'd trust to move it|tends to get listings live fast|historically closes quicker|moves faster to market|gets a listing live sooner|gets cars listed (and in front of buyers )?sooner|You said speed matters|faster route from listing to close/i.test(decoded), (decoded.match(/[^\n]*(fast|quick|listed|speed)[^\n]*/i)||["none"])[0].slice(0,160));
     // The two-part tiebreak contract binds the VOICE line only: bullets may
     // legitimately carry "quicker auction cycle" wording without it.
     const voiceLine=((renderedResult().match(/sell-rec-samline[^>]*>([^<]*)</)||[])[1]||"").replace(/&#39;|&apos;/g,"'").replace(/&amp;/g,"&");
@@ -1012,30 +1016,25 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   const fastAltMedLC=Number(fastAltLC?.marketEvidence?.medianSalePrice||0);
   const priceProtectsLC=!!(pickMedLC&&fastAltMedLC&&pickMedLC>fastAltMedLC
     &&Math.round((pickMedLC-fastAltMedLC)/pickMedLC*100)>=10);
-  // Defect A: unknown spread is never negligible spread. A 5+/5+ symmetric
-  // proof on the pick or the fast alt means the spread was MEASURED; only then
-  // may speed re-rank Card 1. When no such proof exists the spread is unknown,
-  // so a slow evidence leader legitimately holds Card 1 (reason stays null).
+  // Ranking ladder (Stage 1): unknown spread is never negligible spread. A
+  // 5+/5+ symmetric proof means the spread was MEASURED; without it it is
+  // UNKNOWN, and a stated speed preference promotes the faster-to-list platform
+  // (branch 4) ONLY if it clears the 3+ relevant-comps floor. Otherwise depth
+  // leads (branch 3/5). No "auction cycle" wording anywhere (time to list only).
   const verifiedLC=r=>{const p=r?.marketEvidence?.pricePremium;return p&&p.platformSales>=5&&p.othersSales>=5?Number(p.percent):null;};
   const spreadMeasuredLC=verifiedLC(pickRouteLC)!=null||verifiedLC(fastAltLC)!=null;
-  check("speed routing: a slow pick over a fast alt happens only when price protects or the spread was measured (never treat unknown as negligible)",
-    !plateLC||!pickRouteLC||FAST.includes(pickRouteLC.speedToList)||!fastAltExists||priceProtectsLC||!spreadMeasuredLC,
-    `plate=${plateLC} pickSpeed=${pickRouteLC?.speedToList} fastAltExists=${fastAltExists} priceProtects=${priceProtectsLC} spreadMeasured=${spreadMeasuredLC} reason=${sellState.routingReason}`);
-  // When the spread was unknown and speed did NOT swap, the pick card must own
-  // the speed preference as an honest tradeoff bullet, not drop it.
-  if(sellState.routingReason===null&&pickRouteLC&&!FAST.includes(pickRouteLC.speedToList)&&fastAltExists){
-    check("speed routing: unknown-spread slow pick carries the speed-tradeoff acknowledgement",
-      /You said speed matters\. .+ typically runs a quicker cycle, but .+ is where the market for this car has been\./.test(flatLC),
-      (flatLC.match(/[^\n]*speed matters[^\n]*/)||["missing tradeoff bullet"])[0].slice(0,200));
-  }
-  check("speed routing: routingReason tag matches the rendered voice",
-    (sellState.routingReason==="speed")===/If speed is your priority, [^\n]+ is the right move\./.test(flatLC),
-    `reason=${sellState.routingReason}`);
-  if(sellState.routingReason==="speed"){
-    check("speed swap: bullet 3 is the quicker-cycle line, not segment", /typically runs the quicker auction cycle/.test(flatLC), (flatLC.match(/[^\n]*quicker[^\n]*/)||["missing"])[0]);
-    const pickSection=flatLC.split("Why I picked this")[1]?.split("Submit your car")[0]||"";
-    check("speed swap: segment bullet suppressed on the pick", !/sell-through for/.test(pickSection), (pickSection.match(/[^\n]*sell-through[^\n]*/)||[""])[0]);
-    check("speed swap: summary owns the reason", /You need it fast\. [^\n]+ is your move\./.test(flatLC), (flatLC.match(/[^\n]*your move[^\n]*/)||["missing"])[0]);
+  const fastAltComps=Number(fastAltLC?.marketEvidence?.evidenceSales||0);
+  check("ranking: no banned 'auction cycle' wording anywhere in the result", !/auction cycle/i.test(flatLC), (flatLC.match(/[^\n]*auction cycle[^\n]*/i)||[""])[0].slice(0,160));
+  if(sellState.routingReason==="speed_unknown"){
+    check("branch 4: preference-led pick is a fast platform that cleared the 3+ floor", FAST.includes(pickRouteLC?.speedToList)&&Number(pickRouteLC?.marketEvidence?.evidenceSales||0)>=3, `pickSpeed=${pickRouteLC?.speedToList} comps=${pickRouteLC?.marketEvidence?.evidenceSales}`);
+    check("branch 4: pick headline states the speed reason (time to list)", /You said speed matters\. .+ typically gets cars listed sooner and has closed recent .+ sales\./.test(flatLC), (flatLC.match(/[^\n]*speed matters[^\n]*/)||["missing"])[0].slice(0,200));
+    check("branch 4: REQUIRED depth-honesty bullet renders", /holds most of the recent .+ sales we track\. If market depth matters more than timing, start there instead\./.test(flatLC), (flatLC.match(/[^\n]*holds most of the recent[^\n]*/)||["missing depth bullet"])[0].slice(0,200));
+  }else if(sellState.routingReason==="speed"){
+    check("branch 2 (measured Mode B): the faster-to-list platform leads Card 1", FAST.includes(pickRouteLC?.speedToList), `pickSpeed=${pickRouteLC?.speedToList}`);
+  }else{
+    check("branch 5: a slow pick over a fast alt only when price protects, spread measured, or the fast alt is below the 3-comp floor",
+      !plateLC||!pickRouteLC||FAST.includes(pickRouteLC.speedToList)||!fastAltExists||priceProtectsLC||spreadMeasuredLC||fastAltComps<3,
+      `pickSpeed=${pickRouteLC?.speedToList} fastAltExists=${fastAltExists} priceProtects=${priceProtectsLC} spreadMeasured=${spreadMeasuredLC} fastAltComps=${fastAltComps} reason=${sellState.routingReason}`);
   }
   const lcNoRush=await runResult("US","Texas","40k",lc,{timeline:"No rush, right result only"});
   check("no-rush: no speed swap and no speed voice", sellState.routingReason===null&&!/If speed is your priority/.test(lcNoRush), `reason=${sellState.routingReason}`);

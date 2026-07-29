@@ -28,7 +28,7 @@ check("1b Mode A: every line has provenance", everyLineHasProvenance(A));
 
 // Mode B (speed): similarity + speed reason
 const B=composeCard({make:"BMW",model:"M3",year:2018},{label:"bringatrailer",platform:"bringatrailer",speedToList:"fast",marketEvidence:{evidenceSales:9,pricePremium:{gateType:"symmetric",percent:5,windowDays:90,scope:"model"}}},{isPick:true,sellerWantsSpeed:true,routingReason:"speed",landedScope:"model"});
-check("1b Mode B: similarity headline + speed reason", /within a small percentage across the top platforms over the past 90 days, so speed decides/.test(B.headline.text), B.headline.text);
+check("1b Mode B: similarity headline + speed reason (time to list)", /within a small percentage across the top platforms over the past 90 days, so how quickly you can get listed decides/.test(B.headline.text) && !/auction cycle/i.test(B.headline.text), B.headline.text);
 check("1b Mode B: every line has provenance", everyLineHasProvenance(B));
 
 // Honest: no delta

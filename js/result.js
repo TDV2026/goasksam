@@ -127,21 +127,9 @@ async function showSellRecommendation(){
     if(policyBackup)routeOptions.push(policyBackup);
   }
   routeOptions.splice(2);
-  // Speed routing (data-validated July 2026: Hagerty holds 5 tracked 1960s
-  // Corvette sales). A fast-timeline 1960s Corvette keeps Hagerty as the
-  // secondary card. The argument is records + fit; our dataset cannot state
-  // a sell-through rate honestly (sold-biased), so none is claimed.
-  const speedCorvette=sellerWantsSpeed()
-    &&/corvette/i.test(String(sellState.resolvedVehicle?.model||sellState.carName||""))
-    &&(()=>{const y=Number(sellState.resolvedVehicle?.year);const r=sellState.resolvedVehicle?.yearRange;
-      return (y>=1960&&y<=1969)||(r&&r.start>=1960&&r.end<=1969);})();
-  if(speedCorvette){
-    const hagertyRoute=allRouteOptions.find(route=>/hagerty/i.test(String(route.platform||route.label||"")));
-    if(hagertyRoute&&routeOptions[0]!==hagertyRoute){
-      routeOptions.splice(1,routeOptions.length-1,hagertyRoute);
-      hagertyRoute.speedArgument=true;
-    }
-  }
+  // (Removed the platform-specific 1960s-Corvette speed hack: the ranking ladder
+  // below re-derives the faster-to-list platform from data agnostically, so no
+  // platform may be named in ranking logic.)
   if(!routeOptions.length){
     // Policy-floor decision for a region without a bespoke regional card:
     // show the backend's best route-policy fits, labeled as fit rather than data.
@@ -166,6 +154,9 @@ async function showSellRecommendation(){
     return;
   }
 
+  // RANKING-LADDER-START (platform-agnostic: no platform name may appear in the
+  // ranking region below; every crown is re-derived from data or read via
+  // platformDisplayName. Enforced by scripts/agnosticismGuard.mjs.)
   // Routing hierarchy (locked, strict order): PRICE FIRST, then speed.
   // 1. A verified 10%+ price premium picks the platform, period; speed may
   //    never override it. "Verified" means the 5+/5+ sampled proof object.
@@ -228,23 +219,42 @@ async function showSellRecommendation(){
   // delta (symmetric, >=10%, 5+/5+) leads Card 1 -- the data wins the card, never
   // an assumption. Skipped when the seller prioritized speed (Mode B speed rule
   // keeps the faster platform on Card 1) or when a PowerSeller leads the layout.
+  // THE RANKING LADDER (platform-agnostic; every crown re-derived from data).
+  // Priority for Card 1, top to bottom:
+  //  1 MODE A (spread>=10%): price winner leads, always.
+  //  2 MODE B (<10%) + speed pref: faster-to-list leads (routingReason "speed",
+  //    set above in the measured swap).
+  //  3 MODE B, no pref: deepest recent market leads.
+  //  4 UNKNOWN spread + speed pref: faster-to-list leads IF it clears the 3+
+  //    relevant-comps floor at the landed rung (180d); else fall through to 5.
+  //  5 UNKNOWN, no pref (or 4 floored): depth/concentration leader leads.
+  //    (Stage 2 inserts the specialist crown ahead of the depth leader here.)
+  const FAST_POOL=["fast","medium_fast"];
+  const SPEED_FLOOR_COMPS=3;
   const routesForCards=(()=>{
-    // Speed keeps Card 1 ONLY when the routing actually re-ranked on a measured
-    // Mode B spread (routingReason==="speed"). A seller who wanted speed but had
-    // an unknown spread is NOT a speed route: the evidence leader must still win
-    // Card 1, so the reorder below runs and the speed preference lands as a
-    // tradeoff bullet on the pick card.
+    // A measured Mode B speed route (branch 2) already re-ranked above; keep it.
     if(sellState.routingReason==="speed")return routeOptions;
     const routable=routeOptions.filter(r=>r.routable!==false);
     const cleared=r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10?p.percent:-1;};
-    // 1) Highest cleared positive delta leads.
+    // Branch 1 (Mode A): highest cleared positive delta leads.
     let best=null,bestPct=-1;
     for(const r of routable){const pct=cleared(r);if(pct>bestPct){best=r;bestPct=pct;}}
     if(best&&bestPct>=10)return routeOptions[0]===best?routeOptions:[best,...routeOptions.filter(r=>r!==best)];
-    // 2) No delta cleared: the deepest recent market (most sold comps) leads,
-    // never an arbitrary routing default.
+    // Depth leader: most sold comps at the landed scope.
     let deep=null,deepN=-1;
     for(const r of routable){const n=Number(r.marketEvidence&&r.marketEvidence.evidenceSales||0);if(n>deepN){deep=r;deepN=n;}}
+    // Is the spread MEASURED? (any 5+/5+ symmetric premium exists). If not, it
+    // is UNKNOWN, and a stated speed preference may promote a faster-to-list
+    // platform (branch 4) as long as it clears the relevant-comps floor.
+    const measured=routable.some(r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.platformSales>=5&&p.othersSales>=5;});
+    if(!measured&&sellerWantsSpeed()){
+      const fast=routable.find(r=>FAST_POOL.includes(r.speedToList)&&Number(r.marketEvidence&&r.marketEvidence.evidenceSales||0)>=SPEED_FLOOR_COMPS);
+      if(fast&&fast!==deep){
+        sellState.routingReason="speed_unknown";
+        return routeOptions[0]===fast?routeOptions:[fast,...routeOptions.filter(r=>r!==fast)];
+      }
+    }
+    // Branch 3 / 5: deepest recent market leads.
     if(deep&&deepN>0&&routeOptions[0]!==deep)return [deep,...routeOptions.filter(r=>r!==deep)];
     return routeOptions;
   })();
@@ -264,15 +274,14 @@ async function showSellRecommendation(){
   // "closed strongest" claim (only the volume leader at the landed scope).
   const maxRoutableEvidence=routesForCards.filter(r=>r.routable!==false)
     .reduce((m,r)=>Math.max(m,Number(r.marketEvidence&&r.marketEvidence.evidenceSales||0)),0);
-  // Speed-tradeoff acknowledgement: the seller wanted speed but the evidence
-  // leader (not the fastest platform) took Card 1. Name the faster alternative
-  // so the pick card can own the tradeoff honestly.
-  const FAST_POOL=["fast","medium_fast"];
-  const pickIsFast=FAST_POOL.includes(routesForCards[0]&&routesForCards[0].speedToList);
-  const fasterAltRoute=(!pickIsFast&&sellerWantsSpeed())
-    ?routesForCards.slice(1).find(r=>r.routable!==false&&FAST_POOL.includes(r.speedToList))
-    :null;
-  const fasterAlternativeName=fasterAltRoute?platformDisplayName(fasterAltRoute.label||fasterAltRoute.platform):null;
+  // Depth leader among the cards (most sold comps at the landed scope). Named on
+  // the branch-4 pick card's REQUIRED depth-honesty bullet, so a speed-led pick
+  // never hides that a deeper market exists.
+  const depthLeaderRoute=routesForCards.filter(r=>r.routable!==false)
+    .reduce((leader,r)=>(Number(r.marketEvidence&&r.marketEvidence.evidenceSales||0)>Number(leader&&leader.marketEvidence&&leader.marketEvidence.evidenceSales||0)?r:leader),null);
+  const depthLeaderName=(depthLeaderRoute&&depthLeaderRoute!==routesForCards[0])
+    ?platformDisplayName(depthLeaderRoute.label||depthLeaderRoute.platform):null;
+  // RANKING-LADDER-END
   const routeSellOptions=routesForCards.map((route,index)=>{
     const platform=route.marketEvidence||{};
     const facts=route.routeFitFacts||[];
@@ -305,7 +314,7 @@ async function showSellRecommendation(){
         routingReason:sellState.routingReason,
         landedScope:composerLandedScope(),
         landedGenerationCode:composerLandedGenerationCode(),
-        fasterAlternativeName:index===0?fasterAlternativeName:null
+        depthLeaderName:index===0?depthLeaderName:null
       }),
       bestFor:index===0
         ? speedFit?"Works when timing matters and the market read still backs it":"Works when the priority is the strongest sale outcome"
