@@ -248,7 +248,11 @@ async function showSellRecommendation(){
     // platform (branch 4) as long as it clears the relevant-comps floor.
     const measured=routable.some(r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.platformSales>=5&&p.othersSales>=5;});
     if(!measured&&sellerWantsSpeed()){
-      const fast=routable.find(r=>FAST_POOL.includes(r.speedToList)&&Number(r.marketEvidence&&r.marketEvidence.evidenceSales||0)>=SPEED_FLOOR_COMPS);
+      // Relevance floor: 3+ sold comps at the landed rung OR at model level
+      // (180d). The model-level fallback keeps a trim-narrowed landed rung from
+      // wrongly flooring out a platform that has the sales at model level.
+      const clearsFloor=r=>{const e=r&&r.marketEvidence||{};return Number(e.evidenceSales||0)>=SPEED_FLOOR_COMPS||Number(e.modelComps180||0)>=SPEED_FLOOR_COMPS;};
+      const fast=routable.find(r=>FAST_POOL.includes(r.speedToList)&&clearsFloor(r));
       if(fast&&fast!==deep){
         sellState.routingReason="speed_unknown";
         return routeOptions[0]===fast?routeOptions:[fast,...routeOptions.filter(r=>r!==fast)];

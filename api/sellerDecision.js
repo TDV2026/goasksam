@@ -1088,6 +1088,14 @@ function analyze(records, classifications, ladder, vehicle, debug) {
           return { low: q(0.25), high: q(0.75), sample: prices.length };
         })(),
         evidenceSales: items.length,
+        // Model-level sold comps for THIS platform in the 180-day window (any
+        // trim, model-relevant tiers). Feeds the ranking ladder's branch-4
+        // relevance floor ("3+ at the landed rung OR model level"), so a
+        // trim-narrowed landed rung never wrongly floors out a speed pick.
+        modelComps180: pairedRecords.filter(item =>
+          recordPlatform(item.record) === platform
+          && daysAgo(item.record.auction_end_date) <= 180
+          && ["close_match", "relevant_match"].includes(item.classification?.comparison_tier)).length,
         totalEvidenceSales,
         othersSalesCount: otherPrices.length,
         othersMedianSalePrice: median(otherPrices),
