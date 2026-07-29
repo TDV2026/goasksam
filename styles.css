@@ -567,3 +567,14 @@ body.home #market-cards-mobile{display:none;}
    and input read as ONE connected stack in the upper-middle (not pushed apart). */
 body.home #hero,body.home .hero{min-height:0;display:block;padding:0;}
 body.home #msgs .hero-inner{max-width:none;}
+/* Mobile overflow guard: fixed headline size (no vw ambiguity), shrinkable
+   flex children, everything constrained to the viewport width. */
+@media(max-width:767px){
+  body.home #main{width:100%;max-width:100vw;}
+  body.home #msgs,body.home #input-area{width:100%;max-width:100%;}
+  .hp-hero,body.home #input-box,#market-cards-mobile{max-width:100%;}
+  .hp-hero h1{font-size:34px;letter-spacing:-.3px;}
+  .hp-supporting,.hp-reassurance{max-width:320px;}
+  body.home #inp{min-width:0;font-size:17px;}
+  .pulse-card .pc-line{overflow-wrap:anywhere;}
+}
