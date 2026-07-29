@@ -563,3 +563,7 @@ body.home #btn:hover{opacity:.85;}
 body.home .hp-home-only{display:block;}
 body.home #market-cards-mobile{display:none;}
 @media(max-width:767px){ body.home #market-cards-mobile.hp-home-only{display:flex;} }
+/* Neutralise the legacy full-height .hero wrapper on the home state so the hero
+   and input read as ONE connected stack in the upper-middle (not pushed apart). */
+body.home #hero,body.home .hero{min-height:0;display:block;padding:0;}
+body.home #msgs .hero-inner{max-width:none;}
