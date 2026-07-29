@@ -257,8 +257,22 @@ async function showSellRecommendation(){
         sellState.routingReason="speed_unknown";
         return routeOptions[0]===fast?routeOptions:[fast,...routeOptions.filter(r=>r!==fast)];
       }
+      // Branch 4 floored (fast platform has no relevant sales): fall to depth.
+      // A stated preference outranks specialization, so no specialist crown here.
     }
-    // Branch 3 / 5: deepest recent market leads.
+    // Branch 5 specialist crown: UNKNOWN spread + NO stated priority. A platform
+    // OTHER than the depth leader holding a specialization cell for the landed
+    // scope (lift >= 3x AND 5+ scope comps) leads with the specialization
+    // headline. Specialization is only the no-priority tiebreaker.
+    if(!measured&&!sellerWantsSpeed()){
+      const specialistCell=r=>{const c=r&&r.marketEvidence&&r.marketEvidence.specializationCell;return c&&Number(c.lift_rounded)>=3&&Number(c.platform_count)>=5?c:null;};
+      const specialist=routable.find(r=>r!==deep&&specialistCell(r));
+      if(specialist){
+        sellState.routingReason="specialist";
+        return routeOptions[0]===specialist?routeOptions:[specialist,...routeOptions.filter(r=>r!==specialist)];
+      }
+    }
+    // Branch 3 / 5 fallback: deepest recent market leads.
     if(deep&&deepN>0&&routeOptions[0]!==deep)return [deep,...routeOptions.filter(r=>r!==deep)];
     return routeOptions;
   })();

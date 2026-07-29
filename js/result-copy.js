@@ -952,6 +952,24 @@ function composerAudienceBullet(ev){
   const line=platformFitLine({label:ev.label,platform:ev.platform});
   return line?{ text:line, provenance:"platformFitCopy" }:null;
 }
+// Specialization-share bullet (Stage 2): a COMPUTED claim that replaces the
+// vague curated audience line for the same platform. Observation only, locked
+// shape, states the scope label + "share" + the 180-day window. Renders on
+// whichever card the platform appears on; no cell -> null.
+function composerSpecializationBullet(ev){
+  const sc=ev&&ev.specializationCell;
+  if(!sc||!Number.isFinite(Number(sc.lift_rounded))||!sc.scope_label)return null;
+  const name=platformDisplayName(ev.label||ev.platform);
+  return { text:`${sc.scope_label} make up around ${sc.lift_rounded} times larger a share of ${name}'s sales than of the rest of the market we track over the past 180 days.`, provenance:`specialization(${sc.scope},${sc.lift_rounded}x)` };
+}
+// Branch-5 specialist headline: the specialist (not the depth leader) crowns
+// Card 1, so the headline states that reason from the computed cell.
+function composerSpecialistHeadline(ev){
+  const sc=ev&&ev.specializationCell;
+  if(!sc||!Number.isFinite(Number(sc.lift_rounded))||!sc.scope_label)return null;
+  const name=platformDisplayName(ev.label||ev.platform);
+  return { text:`${name} specializes in ${sc.scope_label}: they make up around ${sc.lift_rounded} times larger a share of its sales than of the rest of the market we track over the past 180 days.`, provenance:`specialistPick(${sc.scope},${sc.lift_rounded}x)` };
+}
 // Speed copy (agnostic + accurate): the advantage is TIME TO LIST -- how fast a
 // submitted car gets listed and in front of buyers -- NOT auction length (live
 // auctions run similar lengths). This is the ONE copy-library phrase for speed;
@@ -1100,6 +1118,9 @@ function composeCard(vehicle,route,opts={}){
   if(unverified){
     // Make-level read only; never a verified-style delta/weekday claim.
     headline=composerHonestHeadline(vehicle, vehicle&&vehicle.make?"make":landedScope);
+  }else if(opts.isPick&&opts.routingReason==="specialist"&&ev.specializationCell){
+    // Ranking branch 5: the specialist (not the depth leader) took Card 1.
+    headline=composerSpecialistHeadline(ev);
   }else if(opts.isPick&&opts.routingReason==="speed_unknown"){
     // Ranking branch 4: the seller's speed preference (not a price finding)
     // put this platform on Card 1. State that true reason.
@@ -1135,7 +1156,12 @@ function composeCard(vehicle,route,opts={}){
   if(!unverified){ const wk=composerWeekdayBullet(vehicle,ev); if(wk)bullets.push(wk); }
   // Branch 4 REQUIRES the depth-honesty bullet; place it high so the cap keeps it.
   if(branch4){ const dh=composerDepthHonestyBullet(vehicle,ev,opts); if(dh)bullets.push(dh); }
-  const aud=composerAudienceBullet(ev); if(aud)bullets.push(aud);
+  // Specialization share (Stage 2): slots after the weekday line and REPLACES
+  // the vague curated audience line for the same platform (a computed claim
+  // beats a qualitative one). Not repeated as the headline on a specialist pick.
+  const spec=(!unverified&&!(opts.isPick&&opts.routingReason==="specialist"))?composerSpecializationBullet(ev):null;
+  if(spec)bullets.push(spec);
+  const aud=spec?null:composerAudienceBullet(ev); if(aud)bullets.push(aud);
   // Branch 4's headline already owns the speed reason, so no redundant speed bullet.
   if(!branch4){ const spd=composerSpeedBullet(ev,opts); if(spd)bullets.push(spd); }
   // Dedupe (reuse the round-3 guard) and cap at 3; drop any that echo the headline.

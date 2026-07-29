@@ -8,6 +8,7 @@ import { MODEL_SEGMENTS } from "../lib/vehicleData.js";
 import { calculateEffectiveSampleSize, MINIMUM_EFFECTIVE_SAMPLE, getRecencyMultiplier, getPlatformDominanceScore, calculateConfidenceScore, getConfidenceLevel } from "../lib/weighting.js";
 import { computePartnerCareerStats, partnerRelevance, priceBand } from "../lib/marketStats.js";
 import { findReserveContext } from "../lib/reserveContext.js";
+import { findSpecializationContext } from "../lib/specializationShare.js";
 import {
   asText,
   classifyRecord,
@@ -1404,6 +1405,23 @@ function decide(analysis, criteria, vehicle) {
     if (route.routable && route.marketEvidence && vehicle?.make) {
       const cell = findReserveContext(route.platform || route.label, vehicle.make, reserveAsking);
       if (cell) route.marketEvidence.reserveContext = cell;
+    }
+  }
+  // Specialization share (Stage 2): attach the platform's specialization cell at
+  // the landed scope (segment -> generation -> model fallback) to every routable
+  // route. Renders on whichever card the platform appears on; no cell -> field
+  // absent, nothing renders. Zero OldCarsData calls (precomputed monthly).
+  if (vehicle?.make && vehicle?.model) {
+    const normS = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const familyS = m => normS(String(m || "").split(/\s+/)[0]);
+    const landedKey = String(analysis.ladder?.landed?.key || "");
+    const rungWord = /generation/.test(landedKey) ? "generation" : /make/.test(landedKey) ? "make" : "model";
+    const seg = MODEL_SEGMENTS.find(s => normS(s.make) === normS(vehicle.make) && s.models.some(m => familyS(m) === familyS(vehicle.model)));
+    const scopeQuery = { rung: rungWord, make: vehicle.make, model: vehicle.model, generationCode: analysis.ladder?.landed?.generationCode || null, segmentKey: seg?.key || null };
+    for (const route of routeFit.routes) {
+      if (!route.routable || !route.marketEvidence) continue;
+      const spec = findSpecializationContext(route.platform || route.label, scopeQuery);
+      if (spec) route.marketEvidence.specializationCell = spec;
     }
   }
   const bestRoute = routeFit.routes.find(route => route.routable) || routeFit.routes[0] || null;

@@ -16,6 +16,7 @@ export const LINT_RULES = [
   { id: "volume-headline", re: /\bwhere most\b|most [^\n]{0,40} sales have closed|\bmoves most\b/i, msg: "volume language in a headline (state the delta or similarity finding instead)" },
   { id: "limited-caveat-old", re: /limited sales, running|so i ran this at|running at (the )?(model|make|generation|segment) level/i, msg: "banned uninformative caveat; cascade the rung ladder and state the finding (new floor: 'Analysis ran at X level')" },
   { id: "auction-cycle", re: /\bauction cycle\b/i, msg: "speed is TIME TO LIST, not auction length; use the listing-speed copy ('gets cars listed and in front of buyers sooner')" },
+  { id: "specialization-hype", re: /best place|the home of|you'?ll do better|home for these|\bbetter (results|money) (there|here)\b/i, msg: "specialization is an observation of share, never a promise or 'best place' / 'home of' hype" },
 ];
 // A weekday claim must name its scope (car/generation/make) AND the window.
 export function lintWeekday(line) {
@@ -132,6 +133,22 @@ const listingSpeedCard = composeCard({ make:"BMW", model:"M3", year:2018 }, { la
 check("1d lint: speed bullet uses time-to-list wording, not auction cycle",
   /gets cars listed and in front of buyers sooner/i.test([listingSpeedCard.headline&&listingSpeedCard.headline.text, ...listingSpeedCard.bullets.map(b=>b.text)].join(" ")),
   JSON.stringify(listingSpeedCard.bullets.map(b=>b.text)));
+
+// STAGE 2 (specialization share): the computed bullet states a scope label, the
+// word "share", and the 180-day window; observation only, no hype/promise.
+const SPEC_CELL={platform:"bringatrailer",scope:"model",scope_key:"model|chevrolet|camaro",scope_label:"Camaros",rung:"model",platform_count:8,lift_rounded:7,window:180,data_month:"2026-07"};
+const specBulletCard=composeCard({ make:"Chevrolet", model:"Camaro", year:1967 }, { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:8, pricePremium:null, specializationCell:SPEC_CELL } }, { isPick:false, landedScope:"model" });
+const specBullet=(specBulletCard.bullets.find(b=>/specialization/.test(b.provenance||""))||{}).text||"";
+check("1d lint: specialization bullet states scope label + 'share' + 180-day window, clean",
+  /Camaros make up around 7 times larger a share of Bring a Trailer's sales than of the rest of the market we track over the past 180 days\./.test(specBullet) && /\bshare\b/.test(specBullet) && /over the past 180 days/.test(specBullet) && lintText(specBullet).length===0, specBullet);
+check("1d lint: specialization REPLACES the generic audience line for that platform",
+  !specBulletCard.bullets.some(b=>/built a strong audience/i.test(b.text)) && !!specBullet,
+  JSON.stringify(specBulletCard.bullets.map(b=>b.text)));
+const specPickCard=composeCard({ make:"Chevrolet", model:"Camaro", year:1967 }, { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:8, pricePremium:null, specializationCell:SPEC_CELL } }, { isPick:true, routingReason:"specialist", landedScope:"model" });
+check("1d lint: branch-5 specialist headline states the specialization reason, clean",
+  /Bring a Trailer specializes in Camaros: they make up around 7 times larger a share of its sales than of the rest of the market we track over the past 180 days\./.test(specPickCard.headline.text) && lintText(specPickCard.headline.text).length===0, specPickCard.headline.text);
+check("1d lint: detects specialization hype ('best place' / 'the home of')", lintText("Bring a Trailer is the best place for Camaros.").some(v=>/specialization-hype/.test(v)) && lintText("Cars & Bids is the home of these cars.").some(v=>/specialization-hype/.test(v)));
+check("1d lint: no specialization bullet when no cell exists", (()=>{const c=composeCard({ make:"Chevrolet", model:"Camaro", year:1967 }, { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:8, pricePremium:null } }, { isPick:false, landedScope:"model" });return !c.bullets.some(b=>/times larger a share/.test(b.text));})(), "no cell must render no specialization");
 
 // Reserve context (Phase 1.5): renders on Card 1 only, last, correlation only.
 const reserveDelta = { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:12, pricePremium:{gateType:"symmetric",percent:16,windowDays:90,scope:"model"}, dayAdvantage:{weekday:"Friday",liftPercent:16,scope:"model",window:180,sample:20}, reserveContext:{platform:"Bring a Trailer",make:"Chevrolet",band_key:"$50k to $100k",avg_with_reserve:65144,avg_no_reserve:60000,delta_dollars:5144,delta_pct:8.6,n_with:14,n_without:22,data_month:"2026-06"} } };

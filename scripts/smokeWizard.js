@@ -1026,7 +1026,7 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   const fastAltComps=Number(fastAltLC?.marketEvidence?.evidenceSales||0);
   check("ranking: no banned 'auction cycle' wording anywhere in the result", !/auction cycle/i.test(flatLC), (flatLC.match(/[^\n]*auction cycle[^\n]*/i)||[""])[0].slice(0,160));
   if(sellState.routingReason==="speed_unknown"){
-    check("branch 4: preference-led pick is a fast platform that cleared the 3+ floor", FAST.includes(pickRouteLC?.speedToList)&&Number(pickRouteLC?.marketEvidence?.evidenceSales||0)>=3, `pickSpeed=${pickRouteLC?.speedToList} comps=${pickRouteLC?.marketEvidence?.evidenceSales}`);
+    check("branch 4: preference-led pick is a fast platform that cleared the 3+ floor (landed rung OR model level)", FAST.includes(pickRouteLC?.speedToList)&&(Number(pickRouteLC?.marketEvidence?.evidenceSales||0)>=3||Number(pickRouteLC?.marketEvidence?.modelComps180||0)>=3), `pickSpeed=${pickRouteLC?.speedToList} comps=${pickRouteLC?.marketEvidence?.evidenceSales} modelComps180=${pickRouteLC?.marketEvidence?.modelComps180}`);
     check("branch 4: pick headline states the speed reason (time to list)", /You said speed matters\. .+ typically gets cars listed sooner and has closed recent .+ sales\./.test(flatLC), (flatLC.match(/[^\n]*speed matters[^\n]*/)||["missing"])[0].slice(0,200));
     check("branch 4: REQUIRED depth-honesty bullet renders", /holds most of the recent .+ sales we track\. If market depth matters more than timing, start there instead\./.test(flatLC), (flatLC.match(/[^\n]*holds most of the recent[^\n]*/)||["missing depth bullet"])[0].slice(0,200));
   }else if(sellState.routingReason==="speed"){

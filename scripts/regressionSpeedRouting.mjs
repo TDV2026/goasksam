@@ -149,5 +149,43 @@ function findingCount(c) {
   check("Mode B control: the faster platform (Hagerty) leads Card 1 with listing-speed wording, no auction cycle", /Hagerty/.test(pick && pick.name || "") && !/auction cycle/i.test(cardText(pick)), cardText(pick).slice(0, 240));
 }
 
+// ---- Branch 5: unknown spread + NO priority + a specialist (lift>=3, 5+) ----
+const specCell = { platform: "hagerty", scope: "model", scope_key: "model|chevrolet|camaro", scope_label: "Camaros", rung: "model", platform_count: 6, lift_rounded: 5, window: 180, data_month: "2026-07" };
+const withSpec = (r, cell) => { r.marketEvidence.specializationCell = cell; return r; };
+{
+  const bat = route("bringatrailer", "Bring a Trailer", "slower", 18, 70000,
+    { type: "market_dominance", gateType: "asymmetric", marketShare: 82, percent: null, windowDays: 180, platformSales: 18, othersSales: 4, scope: "model" }, null);
+  const hagerty = withSpec(route("hagerty", "Hagerty Marketplace", "medium_fast", 6, 66000, null, null), specCell);
+  await render([bat, hagerty], { timeline: "No rush, right result only" });
+  const cards = (sellState.sellOptions || []).filter(o => !o.powerSeller);
+  const pick = cards[0], alt = cards[1];
+  check("Branch 5: unknown spread + no priority + a specialist (lift>=3, 5+ comps) crowns the specialist (routingReason=specialist)", sellState.routingReason === "specialist", `reason=${sellState.routingReason}`);
+  check("Branch 5: the specialist (Hagerty), not the depth leader, leads Card 1", /Hagerty/.test(pick && pick.name || ""), `pick=${pick && pick.name}`);
+  check("Branch 5: pick headline states the specialization reason", /Hagerty Marketplace specializes in Camaros: they make up around 5 times larger a share of its sales than of the rest of the market we track over the past 180 days\./.test(cardText(pick)), cardText(pick).slice(0, 260));
+  check("Branch 5: depth leader (Bring a Trailer) is the alt", /Bring a Trailer/.test(alt && alt.name || ""), `alt=${alt && alt.name}`);
+}
+
+// ---- Branch 4 OUTRANKS branch 5: a stated speed preference wins ----
+{
+  const bat = route("bringatrailer", "Bring a Trailer", "slower", 18, 70000,
+    { type: "market_dominance", gateType: "asymmetric", marketShare: 82, percent: null, windowDays: 180, platformSales: 18, othersSales: 4, scope: "model" }, null);
+  const hagerty = withSpec(route("hagerty", "Hagerty Marketplace", "medium_fast", 6, 66000, null, null), specCell);
+  await render([bat, hagerty], { timeline: "Want it gone fast" });
+  const pick = (sellState.sellOptions || []).filter(o => !o.powerSeller)[0];
+  check("Interaction: a stated speed preference (branch 4) outranks specialization (branch 5)", sellState.routingReason === "speed_unknown", `reason=${sellState.routingReason}`);
+  check("Interaction: the pick states the speed reason, not the specialization headline", /You said speed matters/.test(cardText(pick)) && !/specializes in/.test(cardText(pick)), cardText(pick).slice(0, 200));
+}
+
+// ---- Specialist gate: lift < 3 earns NO crown; depth leads ----
+{
+  const weakCell = { ...specCell, lift_rounded: 2 };
+  const bat = route("bringatrailer", "Bring a Trailer", "slower", 18, 70000,
+    { type: "market_dominance", gateType: "asymmetric", marketShare: 82, percent: null, windowDays: 180, platformSales: 18, othersSales: 4, scope: "model" }, null);
+  const hagerty = withSpec(route("hagerty", "Hagerty Marketplace", "medium_fast", 6, 66000, null, null), weakCell);
+  await render([bat, hagerty], { timeline: "No rush, right result only" });
+  const pick = (sellState.sellOptions || []).filter(o => !o.powerSeller)[0];
+  check("Specialist gate: lift < 3 earns no crown; the depth leader leads (routingReason null)", sellState.routingReason === null && /Bring a Trailer/.test(pick && pick.name || ""), `reason=${sellState.routingReason} pick=${pick && pick.name}`);
+}
+
 console.log(failures ? `\n${failures} FAILURE(S)` : "\nSPEED-ROUTING ALL PASS");
 process.exit(failures ? 1 : 0);
