@@ -31,6 +31,13 @@ const POWERSELLER_MIN_VALUE_USD = Number(process.env.POWERSELLER_MIN_VALUE_USD |
 // under threshold: 90, then 180, then all-time (represented as 36500 days).
 const ALL_TIME_WINDOW_DAYS = 36500;
 const ANALYSIS_WINDOWS_DAYS = [45, 90, 180, ALL_TIME_WINDOW_DAYS];
+// Market-condition claims (price premium, concentration, segment majority) may
+// NEVER be backed by a window beyond 180 days (3.8). This is the single, hard
+// cap for every delta the frontend renders: if no window through 180 clears the
+// sample gate, no delta is produced (the card falls to the honest cascade
+// headline) rather than widening to all-time. The ladder walk above may still
+// LAND a rung at all-time to prove a car exists, but that never backs a delta.
+const PREMIUM_WINDOWS_DAYS = [45, 90, 180];
 
 function windowLabel(days) {
   return days >= ALL_TIME_WINDOW_DAYS ? "across everything tracked" : `in the last ${days} days`;
@@ -922,7 +929,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
   // gate; fuels the majority claim ("Most Audi sport-compact sales...").
   const segmentVolumeFor = platform => {
     if (!segmentDef) return null;
-    for (const window of [45, 90, 180]) {
+    for (const window of PREMIUM_WINDOWS_DAYS) {
       const eligible = pairedRecords.filter(item =>
         daysAgo(item.record.auction_end_date) <= window && segmentEligible(item));
       const mineSold = eligible.filter(item => recordPlatform(item.record) === platform).length;
@@ -956,7 +963,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     // A measured sub-10% gap at the first sample-sufficient step ships too:
     // the frontend renders it as the honest negligibility claim (Tier 1.5).
     let firstMeasured = null;
-    for (const window of [45, 90, 180]) {
+    for (const window of PREMIUM_WINDOWS_DAYS) {
       const scopeDefs = window === 45 ? [landed.definition] : [landed.definition, premiumGenerationDef].filter(Boolean);
       for (const def of scopeDefs) {
         const eligible = pairedRecords.filter(item =>
@@ -971,7 +978,6 @@ function analyze(records, classifications, ladder, vehicle, debug) {
         // prepend the requested year to an any-year or near-years window. An
         // absent scope makes the frontend fail closed instead of guessing.
         const scopeTags = def === landed.definition ? premiumLandedScopeTags(landed) : { scope: "generation", generationCode: def.generationCode || null };
-        const boundary = window >= 3650 ? { earliestSaleDate: eligible.map(item => item.record.auction_end_date).filter(Boolean).sort()[0] || null } : {};
         // Asymmetric gate fires ONLY when the "others" sample is too thin (<5)
         // to compute a symmetric price delta. When others has 5+, the delta is
         // computable and IS the decision reason, so it must be stated (headline
@@ -982,7 +988,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
         const marketShare = total > 0 ? Math.round(mine.length / total * 100) : 0;
         if (mine.length >= 5 && others.length < 5 && marketShare >= 75 && total >= 10) {
           if (step) { step.gateType = "asymmetric"; step.marketShare = marketShare; step.samplesGatePass = true; step.landed = true; trace.push(step); }
-          return { type: "market_dominance", gateType: "asymmetric", marketShare, percent: null, windowDays: window, platformSales: mine.length, othersSales: others.length, ...scopeTags, ...boundary };
+          return { type: "market_dominance", gateType: "asymmetric", marketShare, percent: null, windowDays: window, platformSales: mine.length, othersSales: others.length, ...scopeTags };
         }
         if (mine.length >= 5 && others.length >= 5) {
           const gap = Math.round((median(mine) - median(others)) / median(others) * 100);
@@ -990,7 +996,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
           const proof = {
             type: "premium", gateType: "symmetric",
             percent: gap, windowDays: window, platformSales: mine.length, othersSales: others.length,
-            ...scopeTags, ...boundary
+            ...scopeTags
           };
           if (gap >= 10) { if (step) step.landed = true; return proof; }
           if (!firstMeasured) firstMeasured = proof;
@@ -1004,7 +1010,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     // unlabeled segment-scope negligibility claim would violate scope
     // transparency.
     if (segmentDef) {
-      for (const window of [45, 90, 180]) {
+      for (const window of PREMIUM_WINDOWS_DAYS) {
         const eligible = pairedRecords.filter(item =>
           daysAgo(item.record.auction_end_date) <= window && segmentEligible(item));
         const mine = eligible.filter(item => recordPlatform(item.record) === platform)
@@ -1013,19 +1019,18 @@ function analyze(records, classifications, ladder, vehicle, debug) {
           .map(item => Number(item.classification.price)).filter(Number.isFinite);
         const step = trace ? { scope: `segment(${segmentDef.key})`, windowDays: window, mineSold: mine.length, othersSold: others.length } : null;
         const segTags = { scope: "segment", segmentLabel: segmentDef.label, models: segmentDef.models };
-        const segBoundary = window >= 3650 ? { earliestSaleDate: eligible.map(item => item.record.auction_end_date).filter(Boolean).sort()[0] || null } : {};
         const segTotal = mine.length + others.length;
         const segShare = segTotal > 0 ? Math.round(mine.length / segTotal * 100) : 0;
         if (mine.length >= 5 && others.length < 5 && segShare >= 75 && segTotal >= 10) {
           if (step) { step.gateType = "asymmetric"; step.marketShare = segShare; step.samplesGatePass = true; step.landed = true; trace.push(step); }
-          return { type: "market_dominance", gateType: "asymmetric", marketShare: segShare, percent: null, windowDays: window, platformSales: mine.length, othersSales: others.length, ...segTags, ...segBoundary };
+          return { type: "market_dominance", gateType: "asymmetric", marketShare: segShare, percent: null, windowDays: window, platformSales: mine.length, othersSales: others.length, ...segTags };
         }
         if (mine.length >= 5 && others.length >= 5) {
           const gap = Math.round((median(mine) - median(others)) / median(others) * 100);
           if (step) { step.gateType = "symmetric"; step.gapPercent = gap; step.samplesGatePass = true; step.premiumGatePass = gap >= 10; trace.push(step); }
           if (gap >= 10) {
             if (step) step.landed = true;
-            return { type: "premium", gateType: "symmetric", percent: gap, windowDays: window, platformSales: mine.length, othersSales: others.length, ...segTags, ...segBoundary };
+            return { type: "premium", gateType: "symmetric", percent: gap, windowDays: window, platformSales: mine.length, othersSales: others.length, ...segTags };
           }
         } else if (step) { step.samplesGatePass = false; trace.push(step); }
       }

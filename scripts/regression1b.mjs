@@ -62,5 +62,14 @@ check("3.5 absent-scope finding FAILS CLOSED (no year-mislabeled headline)", !(N
 // Banned strings appear in no composed output
 for(const [n,c] of [["A",A],["B",B],["H",H],["U",U],["Mk",Mk],["EX",EX],["AY",AY],["AYC",AYC]]) check(`1b: no banned strings in card ${n}`, !BANNED.test(allText(c)), allText(c));
 
+// (3.10) The render path routes every composed bullet through ONE filler gate
+// (result.js). A known filler string injected into a composed card must not
+// survive that gate, and the render site must actually be wired to it.
+const inj=composeCard(V06,{label:"carsandbids",platform:"carsandbids",marketEvidence:{evidenceSales:8,pricePremium:{gateType:"symmetric",percent:16,windowDays:90,scope:"exact_year"}}},{isPick:true,landedScope:"model"});
+inj.bullets.push({text:"Cars & Bids remains a strong option for a car like this",provenance:"injected-filler"});
+const gated=evidenceOnlyBullets(inj.bullets); // identical gate to result.js render site
+check("3.10 filler injected into a composed card does NOT survive the render gate", !gated.some(b=>/strong option|a car like this/.test(b.text))&&gated.length===inj.bullets.length-1, JSON.stringify(gated.map(b=>b.text)));
+check("3.10 render site (result.js) is wired to the filler gate", /evidenceOnlyBullets\(c\.bullets\)/.test(fs.readFileSync("js/result.js","utf8")));
+
 console.log(failures?`\n${failures} FAILURE(S)`:"\n1B ALL PASS");
 process.exit(failures?1:0);

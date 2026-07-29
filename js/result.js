@@ -427,7 +427,11 @@ async function showSellRecommendation(){
           if(!c)return "";
           const label=option.key==="specialist"?"Why I’d call them":(!isPrimary?"Why I’d also consider it":"Why I picked this");
           const head=c.headline&&c.headline.text?`<div class="sell-rec-samline voice">${numify(c.headline.text)}</div>`:"";
-          const list=(c.bullets&&c.bullets.length)?`<ul class="sell-rec-bullets">${c.bullets.map(b=>`<li>${numify(b.text)}</li>`).join("")}</ul>`:"";
+          // 3.10: EVERY composed bullet passes through the single filler gate
+          // here, at the one render site. Composers should never emit filler, but
+          // this guarantees no future composed bullet can bypass the filter.
+          const gated=(typeof evidenceOnlyBullets==="function")?evidenceOnlyBullets(c.bullets):(c.bullets||[]);
+          const list=(gated&&gated.length)?`<ul class="sell-rec-bullets">${gated.map(b=>`<li>${numify(b.text)}</li>`).join("")}</ul>`:"";
           if(!head&&!list)return "";
           return `<div class="sell-rec-reason-label label-mono">${label}</div>${head}${list}`;
         })()}
