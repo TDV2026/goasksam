@@ -1882,7 +1882,11 @@ export default async function handler(req, res) {
       }
       const overDaily = usedToday !== null && usedToday >= OCD_DAILY_REQUEST_BUDGET;
       const overMonthly = usedMonth !== null && usedMonth >= OCD_MONTHLY_BUDGET;
-      if (overDaily || overMonthly) {
+      // bypassCache is the measurement path (frontend never sets it): it still
+      // spends and logs real metered calls, but skips the soft-degrade so a
+      // cold-fetch measurement is not silently served from the store when the
+      // day's organic budget is already spent. Organic traffic stays fully guarded.
+      if (!bypassCache && (overDaily || overMonthly)) {
         // Loud log, soft degrade: no metered spend past the reached cap.
         const scope = overMonthly ? "monthly" : "daily";
         console.error(`OCD ${scope} budget reached (day ${usedToday}/${OCD_DAILY_REQUEST_BUDGET}, month ${usedMonth}/${OCD_MONTHLY_BUDGET}): soft degrading, no metered spend.`);
