@@ -20,6 +20,7 @@ import {
   recordPlatform,
   recordSellerUsername,
   sourceRecordId,
+  stableRecordId,
   sourceRecordKey,
   textHasTerm
 } from "../lib/_classify.js";
@@ -1766,7 +1767,7 @@ async function persistRawRecords(records, supabaseUrl, supabaseKey) {
   const batchId = crypto.randomUUID();
   const rows = records.map(record => ({
     source: recordPlatform(record),
-    source_record_id: sourceRecordId(record) || crypto.randomUUID(),
+    source_record_id: stableRecordId(record),
     source_url: record.url || record.listing_url || null,
     platform: recordPlatform(record),
     // NOT NULL columns; a null used to kill the whole batch (rule 5 violation)
