@@ -4,7 +4,7 @@ Collector car market intelligence platform. Answers "where should I sell my coll
 
 - Live: goasksam.vercel.app
 - Stack: Vercel serverless (Node.js ESM), Supabase (otkmxyrglikdoychnmvy.supabase.co), OldCarsData API, Claude API
-- Deploy: git add / commit / push to main, then `vercel --prod`
+- Deploy: `npm run deploy` (7F.1) which runs `git push origin HEAD && vercel --prod --yes`, so the working tree and origin/main can never diverge again. Never run `vercel --prod` without pushing first.
 
 ## Product rules (locked, never debate these)
 
@@ -45,7 +45,8 @@ Collector car market intelligence platform. Answers "where should I sell my coll
 - `api/_usage.js`: shared cost/usage helpers.
 
 ### Env vars (Vercel production)
-OLDCARSDATA_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, USAGE_DASHBOARD_KEY. Optional: OCD_DAILY_REQUEST_BUDGET caps fresh OldCarsData spend per day (default 33, plan pace); SAM_MODEL overrides the chat wording-layer model (defaults to claude-sonnet-4-6 in api/chat.js); never set it to a dated snapshot.
+OLDCARSDATA_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, USAGE_DASHBOARD_KEY. Optional: OCD_DAILY_REQUEST_BUDGET caps fresh OldCarsData spend per day (default 33, plan pace); OCD_MONTHLY_BUDGET caps monthly metered spend (default 1000; set 10000 for the upgraded plan; warnings fire at 50%/80%, 7A.2); OCD_WARM_BUDGET_FRACTION reserves budget for searches over the nightly warm (default 0.7, 7E); SAM_MODEL overrides the chat wording-layer model (defaults to claude-sonnet-4-6 in api/chat.js); never set it to a dated snapshot.
+- USAGE_DASHBOARD_KEY is currently UNSET in prod, so /api/usageDashboard and /api/outboundClicks 500 (serve no data) until it is set; setting it enables both keyed read paths.
 Server-side writes use the service role key. Never expose it in browser code.
 
 ### OldCarsData API facts (verified July 2026)
@@ -99,7 +100,7 @@ Rungs collapse sensibly when the vehicle has no trim. Fetching is rung-by-rung w
 - lookupDataTier.js deleted.
 - lib/ modules: _ocd.js (OldCarsData client), _supabase.js (supabaseEnv/supabaseSelect/supabaseInsert), _classify.js (classifyRecord plus shared record/text utils), vehicle.js, vehicleData.js. sellerDecision imports from all of them.
 - Market-fetch cache live in sellerDecision: 24h, keyed by make|model family (market_fetch_cache table). A hit serves stored records from vehicle_market_records at zero metered requests; only healthy fetches stamp the cache; everything degrades silently if the table is missing.
-- PENDING MANUAL STEP: run docs/supabase-market-fetch-cache.sql in the Supabase SQL editor to activate the cache.
+- APPLIED (verified live July 2026, 7A diagnosis): market_fetch_cache is live and serving hits at zero metered requests. The earlier "pending" marker was stale.
 - index.html is a thin shell (~60 lines) loading styles.css and js/ modules in order: wizard.js, pipeline.js, steps.js, result.js, chat-core.js, result-copy.js, entry.js. Classic scripts sharing global scope; load order matters and the concatenation must stay equivalent to one script. Both smoke harnesses load the concatenation the same way.
 - All demo data deleted (fake LISTINGS, DEMO_SIGNALS, scout card/modal layer, the stale Cars & Bids auction-mechanics line in SELL_SYS, dead sessionContext enrichment).
 
@@ -131,8 +132,15 @@ Shipped implementation (July 2026):
 ### Phase 5: Ops hardening
 - vercel.json maxDuration for sellerDecision.
 - Rate limiting / origin checks on chat and sellerDecision.
-- Fix ID lookup to (source, source_record_id); stable source_record_id derivation (hash of source_url as fallback, never a random UUID).
+- FIXED (7B.1): id-less records now persist with stableRecordId (lib/_classify.js), a sha1 hash of source_url + stable fields, never crypto.randomUUID(). ID lookup to (source, source_record_id) still open.
 - Fix chat.js model string.
+
+### Part 7: cost control, ingest, fetch efficiency (SHIPPED July 2026)
+- Usage meter (7A): recordUsageEvent logs loudly on failure (never swallows); the OCD budget guard raises a loud CRITICAL when the meter is BLIND (app_usage_events unreadable) and continues, never passes silently. Monthly cap from OCD_MONTHLY_BUDGET with 50%/80% warnings; daily guard unchanged. Request flag bypassCache forces a fresh fetch AND skips the soft-degrade (measurement only; the frontend never sets it).
+- Fetch efficiency (7C): the per-rung PRIMARY year-targeted fetches are unchanged (dense cars stay ~1 call, landed rung identical). The keyword/generation-code FALLBACKS - the thin-nameplate call-explosion source - now run ONCE per search (year-unbounded, sliced locally) instead of once per rung. NOTE: broad-nameplate-first was tried and rejected - sort=date desc surfaces recent MODERN sales that are excluded comps for a classic query, so it wasted a call and shifted landed rungs. buildLadder order and every gate/threshold are unchanged.
+- Daily ingest (7D): scripts/ingest.js (npm run ingest) replaces the deleted June-hardcoded juneReport.js. --date / --from/--to / --delta (stop-on-known). Writes sales_archive. Health floor (--floor, default 30/day) surfaces below-floor days loudly + logs ingest_health_below_floor.
+- Nightly warm (7E): scripts/warm.js (npm run warm) warms ~30 nameplates/night against the live engine (warm:true), reserved to OCD_WARM_BUDGET_FRACTION of the budget so a real search always outranks it. Top-300 by search volume once app_usage_events builds, else a curated seed.
+- Scheduling: the nightly GitHub Actions workflow (08:30 UTC, runs ingest --delta then warm) ships as ops/nightly-workflow.yml. Copy it to .github/workflows/nightly.yml and push with a workflow-scoped token (the CI PAT used here lacks `workflow` scope, so workflow files must be added by Sam). There are NO Vercel crons; GitHub Actions is the version-controlled scheduling mechanism (smoke-prod.yml is the other one).
 
 ### Partner (PowerSeller) layer (SHIPPED July 2026)
 Partners live in the Supabase partners table (docs/supabase-partners-schema.sql, seeded by npm run seed:partners). Every claim carries a source: partner_provided renders with attribution, data_verified is computed at request time from vehicle_market_records via the partner's seller_usernames (tracked sales count, top makes, platforms seen). sellerDecision evaluates the locked gate (product rules 9-11) and returns decision.partnerReferral; the frontend renders entirely from it. The old hardcoded frontend partner array (real howS content plus four invented placeholders) is deleted. Leads to a partner route through submitSellerLead with destinationType "powerseller", single destination as ever. Setup: run the partners SQL once, then seed.
