@@ -1,45 +1,77 @@
-name: Nightly Ingest & Warm
-
 on:
   schedule:
-    - cron: '0 2 * * *'
+    - cron: "30 8 * * *"   # 08:30 UTC nightly
   workflow_dispatch:
     inputs:
-      from_date:
-        description: 'Start date (YYYY-MM-DD)'
+      backfill_from:
+        description: "Backfill start date YYYY-MM-DD (blank = nightly delta)"
         required: false
-      to_date:
-        description: 'End date (YYYY-MM-DD)'
+      backfill_to:
+        description: "Backfill end date YYYY-MM-DD (blank = same as start)"
         required: false
+
+permissions:
+  contents: read
 
 jobs:
   ingest:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPAB
+      SUPABASE_SERVICE_ROLE_KEY: ${{ _KEY }}
+      OLDCARSDATA_API_KEY: ${{ secret
+      BACKFILL_FROM: ${{ github.event
+      BACKFILL_TO: ${{ github.event.inputs.backfill_to }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      - run: npm ci
-      - run: |
-          FROM_DATE=${{ github.event.inputs.from_date || 'yesterday' }}
-          TO_DATE=${{ github.event.inputs.to_date || 'today' }}
-          node scripts/ingest.js --from "$FROM_DATE" --to "$TO_DATE"
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          OLDCARSDATA_API_KEY: ${{ secrets.OLDCARSDATA_API_KEY }}
+          node-version: 22
+      - name: Verify required secrets
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in SUPABASE_URL SURSDATA_API_KEY; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::GitHub AY. Add it under Settings > Secrets and variables > Actions (separate from Vercel env vars)."
+              missing=1
+            else
+              echo "${name}: present"
+            fi
+          done
+          if [ "${missing}" -ne 0 ]; then
+            echo "::error::Aborting: one or more required secrets are missing."
+            exit 1
+          fi
+      - name: Ingest (backfill range if provided, else nightly delta)
+        run: |
+          set -euo pipefail
+          node --version
+          test -f scripts/ingest.js |gest.js not found in checkout"; exit1; }
+          if [ -n "${BACKFILL_FROM:-}
+            TO="${BACKFILL_TO:-$BACKFILL_FROM}"
+            echo "Backfill ingest: ${
+            node scripts/ingest.js --from="${BACKFILL_FROM}" --to="${TO}"
+          else
+            echo "Nightly delta inges
+            node scripts/ingest.js --
+          fi
 
   warm:
     runs-on: ubuntu-latest
+    needs: ingest
+    if: github.event_name == 'schedule'
+    continue-on-error: true
+    env:
+      SUPABASE_URL: ${{ secrets.SUPAB
+      SUPABASE_SERVICE_ROLE_KEY: ${{ _KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      - run: npm ci
-      - run: node scripts/warm.js
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          OLDCARSDATA_API_KEY: ${{ secrets.OLDCARSDATA_API_KEY }}
+          node-version: 22
+      - name: Rolling warm (~30 nameprch outranks it)
+        run: |
+          set -euo pipefail
+          test -f scripts/warm.js || { echo "::error::scripts/warm.js not found in checkout"; exit 1; }
+          node scripts/warm.js --count=30
