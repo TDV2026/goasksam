@@ -793,6 +793,9 @@ const MARKET_FETCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const OCD_DAILY_REQUEST_BUDGET = Number(process.env.OCD_DAILY_REQUEST_BUDGET || 33);
 // 7A.2: monthly plan cap, env-driven so the 1K->10K upgrade is a config change.
 const OCD_MONTHLY_BUDGET = Number(process.env.OCD_MONTHLY_BUDGET || 1000);
+// 7E: the nightly warm may spend only up to this fraction of the budget, so a
+// real seller search always has headroom left and outranks the warm.
+const WARM_BUDGET_FRACTION = Number(process.env.OCD_WARM_BUDGET_FRACTION || 0.7);
 
 async function ocdMeteredSince(sinceIso, supabaseUrl, supabaseKey, limit = 2000) {
   if (!supabaseUrl || !supabaseKey) return null;
@@ -1913,8 +1916,15 @@ export default async function handler(req, res) {
           metadata: { ...requestMetadata(req), usedToday, usedMonth }
         }, supabaseUrl, supabaseKey);
       }
-      const overDaily = usedToday !== null && usedToday >= OCD_DAILY_REQUEST_BUDGET;
-      const overMonthly = usedMonth !== null && usedMonth >= OCD_MONTHLY_BUDGET;
+      // 7E: the nightly warm runs against a RESERVED fraction of the budget so a
+      // real seller SEARCH always outranks it. A warm request degrades once the
+      // day/month reaches WARM_BUDGET_FRACTION of the cap, leaving headroom for
+      // searches; an organic search uses the full cap.
+      const isWarm = req.body?.warm === true;
+      const dailyCap = isWarm ? Math.floor(OCD_DAILY_REQUEST_BUDGET * WARM_BUDGET_FRACTION) : OCD_DAILY_REQUEST_BUDGET;
+      const monthlyCap = isWarm ? Math.floor(OCD_MONTHLY_BUDGET * WARM_BUDGET_FRACTION) : OCD_MONTHLY_BUDGET;
+      const overDaily = usedToday !== null && usedToday >= dailyCap;
+      const overMonthly = usedMonth !== null && usedMonth >= monthlyCap;
       // bypassCache is the measurement path (frontend never sets it): it still
       // spends and logs real metered calls, but skips the soft-degrade so a
       // cold-fetch measurement is not silently served from the store when the
