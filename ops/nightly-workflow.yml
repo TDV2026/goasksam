@@ -2,16 +2,21 @@ name: Nightly ingest and warm
 
 # 7D/7E: the version-controlled nightly mechanism (there are no Vercel crons in
 # vercel.json). GitHub Actions runs the delta ingest and the rolling warm.
+#
+# The three secrets below are GitHub Actions secrets, which are SEPARATE from the
+# Vercel env vars. Add them under: repo Settings > Secrets and variables > Actions.
+# If they are missing, the "Verify required secrets" step fails loudly and names
+# exactly which one is empty.
 on:
   schedule:
     - cron: "30 8 * * *"   # 08:30 UTC nightly
   workflow_dispatch:
     inputs:
       backfill_from:
-        description: "Optional backfill start (YYYY-MM-DD)"
+        description: "Backfill start date YYYY-MM-DD (blank = nightly delta)"
         required: false
       backfill_to:
-        description: "Optional backfill end (YYYY-MM-DD)"
+        description: "Backfill end date YYYY-MM-DD (blank = same as start)"
         required: false
 
 permissions:
@@ -20,36 +25,65 @@ permissions:
 jobs:
   ingest:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      OLDCARSDATA_API_KEY: ${{ secrets.OLDCARSDATA_API_KEY }}
+      BACKFILL_FROM: ${{ github.event.inputs.backfill_from }}
+      BACKFILL_TO: ${{ github.event.inputs.backfill_to }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Delta ingest (or backfill range if provided)
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          OLDCARSDATA_API_KEY: ${{ secrets.OLDCARSDATA_API_KEY }}
+      - name: Verify required secrets are present
         run: |
-          if [ -n "${{ github.event.inputs.backfill_from }}" ]; then
-            node scripts/ingest.js --from=${{ github.event.inputs.backfill_from }} --to=${{ github.event.inputs.backfill_to }}
+          set -euo pipefail
+          missing=0
+          for name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY OLDCARSDATA_API_KEY; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::GitHub Actions secret ${name} is EMPTY. Add it under Settings > Secrets and variables > Actions (these are separate from Vercel env vars)."
+              missing=1
+            else
+              echo "${name}: present"
+            fi
+          done
+          if [ "${missing}" -ne 0 ]; then
+            echo "::error::Aborting: one or more required secrets are missing."
+            exit 1
+          fi
+      - name: Ingest (backfill range if provided, else nightly delta)
+        run: |
+          set -euo pipefail
+          node --version
+          test -f scripts/ingest.js || { echo "::error::scripts/ingest.js not found in checkout"; exit 1; }
+          if [ -n "${BACKFILL_FROM:-}" ]; then
+            TO="${BACKFILL_TO:-$BACKFILL_FROM}"
+            echo "Backfill ingest: ${BACKFILL_FROM} .. ${TO}"
+            node scripts/ingest.js --from="${BACKFILL_FROM}" --to="${TO}"
           else
+            echo "Nightly delta ingest"
             node scripts/ingest.js --delta
           fi
 
   warm:
     runs-on: ubuntu-latest
     needs: ingest
-    # Only the nightly schedule warms. A manual backfill run (workflow_dispatch)
-    # does ingest only, so a large historical pull never also spends warm budget.
+    # Only the nightly schedule warms; a manual backfill dispatch runs ingest only,
+    # so a large historical pull never also spends warm budget. continue-on-error
+    # keeps a best-effort warm blip from marking the whole run failed.
     if: github.event_name == 'schedule'
+    continue-on-error: true
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - name: Rolling warm (~30 nameplates, budget-reserved so search outranks it)
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node scripts/warm.js --count=30
+        run: |
+          set -euo pipefail
+          test -f scripts/warm.js || { echo "::error::scripts/warm.js not found in checkout"; exit 1; }
+          node scripts/warm.js --count=30
