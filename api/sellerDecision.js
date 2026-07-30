@@ -522,6 +522,31 @@ function rungKeywordFallbackPasses(rung, vehicle, generationToken = null) {
   return passes;
 }
 
+// 7C name-mismatch fallbacks: when the broad model pass returns nothing usable,
+// try the generation code as a model and each model-search term as a keyword,
+// all WITHOUT year bounds (broadest), once each. Local slicing then applies every
+// rung and window to whatever returns.
+function broadFallbackPasses(vehicle, generationToken = null) {
+  const passes = [];
+  if (generationToken) {
+    passes.push({
+      name: `fallback_genmodel_${generationToken}`,
+      label: `${asText(vehicle.make)} ${generationToken} recent sales`,
+      rung: null, pages: 1,
+      params: { make: vehicle.make, model: generationToken }
+    });
+  }
+  for (const term of modelSearchTerms(vehicle)) {
+    passes.push({
+      name: `fallback_keyword_${term}`,
+      label: `${asText(vehicle.make)} "${term}" recent sales`,
+      rung: null, pages: 1,
+      params: { make: vehicle.make, keyword: term }
+    });
+  }
+  return passes;
+}
+
 function ladderEligible(item, rung) {
   const classification = item.classification;
   if (classification.comparison_tier === "excluded") return false;
@@ -687,50 +712,57 @@ async function fetchRecentRecords(vehicle, apiKey, generation = null) {
     return passResult;
   };
 
+  // 7C: the per-rung PRIMARY fetches are unchanged (year-targeted, one page at a
+  // time, stop when the rung meets its threshold), so the LANDED rung is identical
+  // to the original walk. The keyword / generation-code FALLBACKS - the source of
+  // the thin-nameplate call explosion, because the original ran them once PER rung
+  // with each rung's year bounds - now run ONCE per search, year-unbounded, so the
+  // one superset slices locally to every rung. Dense cars land on their primary
+  // fetch and never reach the fallback (~1 call, unchanged); a thin/oddly-named
+  // nameplate stops re-running the same keyword searches for every rung.
+  let ranBroadFallbacks = false;
+  const ensureBroadFallbacks = async () => {
+    if (ranBroadFallbacks) return;
+    ranBroadFallbacks = true;
+    for (const fallbackPass of broadFallbackPasses(vehicle, generationToken)) {
+      if (Date.now() >= deadline) break;
+      await runPass(fallbackPass);
+      if (evaluate().landed?.met) break;
+    }
+  };
+
   let ladderEval = evaluate();
   for (const rung of ladder) {
-    if (Date.now() >= deadline) {
-      stoppedEarly = true;
-      stopReason = "time_budget_reached";
-      break;
-    }
-
-    // No pre-fetch: pull one page at a time and stop the moment this rung
-    // meets its threshold at any window. Thin markets stop stalling on
-    // speculative pages.
+    if (Date.now() >= deadline) { stoppedEarly = true; stopReason = "time_budget_reached"; break; }
+    if (ladderEval.landed?.met && ladderEval.landed.rung <= rung.rung) break;
+    const rungMet = () => !!evaluate().walk.find(entry => entry.rung === rung.rung)?.met;
     let primary = null;
     for (let page = 1; page <= rung.pages; page++) {
       primary = await runPass({
         name: `rung${rung.rung}_${rung.key}_p${page}`,
-        label: rung.label,
-        rung: rung.rung,
-        pages: 1,
-        startPage: page,
+        label: rung.label, rung: rung.rung, pages: 1, startPage: page,
         params: rungFetchParams(rung, vehicle)
       });
       if (primary.error) break;
       if (!primary.records.length) break;
-      if (evaluate().walk.find(entry => entry.rung === rung.rung)?.met) break;
+      if (rungMet()) break;
       if (Date.now() >= deadline) break;
     }
-
-    // Keyword fallback whenever the rung is still unmet, not just on an empty
-    // primary: sources like OldCarsData file some cars under chassis-code
-    // models (997 vs 911) that only a title keyword search can reach.
-    const rungMetAfterPrimary = evaluate().walk.find(entry => entry.rung === rung.rung)?.met;
-    if (!rungMetAfterPrimary && !primary.error) {
-      for (const fallbackPass of rungKeywordFallbackPasses(rung, vehicle, generationToken)) {
-        if (Date.now() >= deadline) break;
-        await runPass(fallbackPass);
-      }
-    }
-
+    // Fallbacks once per search (deduped), only when a primary left the rung unmet.
+    if (!rungMet() && (!primary || !primary.error)) await ensureBroadFallbacks();
     ladderEval = evaluate();
     if (ladderEval.landed?.met && ladderEval.landed.rung <= rung.rung) {
       stoppedEarly = true;
       stopReason = `ladder_rung_${ladderEval.landed.rung}_satisfied`;
       break;
     }
+  }
+
+  if (ladderEval.landed?.met) {
+    stoppedEarly = true;
+    stopReason = stopReason || `ladder_rung_${ladderEval.landed.rung}_satisfied`;
+  } else if (!stopReason) {
+    stopReason = "ladder_walk_complete";
   }
 
   return {
