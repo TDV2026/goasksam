@@ -427,12 +427,14 @@ async function showSellRecommendation(){
           const c=option.composed;
           if(!c)return "";
           const label=option.key==="specialist"?"Why I’d call them":(!isPrimary?"Why I’d also consider it":"Why I picked this");
-          const head=c.headline&&c.headline.text?`<div class="sell-rec-samline voice">${numify(c.headline.text)}</div>`:"";
+          // Fix 5: card copy passes through the same shared count gate as chat.
+          const gate=t=>typeof samForbiddenScrub==="function"?samForbiddenScrub(t):t;
+          const head=c.headline&&c.headline.text?`<div class="sell-rec-samline voice">${numify(gate(c.headline.text))}</div>`:"";
           // 3.10: EVERY composed bullet passes through the single filler gate
           // here, at the one render site. Composers should never emit filler, but
           // this guarantees no future composed bullet can bypass the filter.
           const gated=(typeof evidenceOnlyBullets==="function")?evidenceOnlyBullets(c.bullets):(c.bullets||[]);
-          const list=(gated&&gated.length)?`<ul class="sell-rec-bullets">${gated.map(b=>`<li>${numify(b.text)}</li>`).join("")}</ul>`:"";
+          const list=(gated&&gated.length)?`<ul class="sell-rec-bullets">${gated.map(b=>`<li>${numify(gate(b.text))}</li>`).join("")}</ul>`:"";
           if(!head&&!list)return "";
           return `<div class="sell-rec-reason-label label-mono">${label}</div>${head}${list}`;
         })()}

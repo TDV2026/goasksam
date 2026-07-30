@@ -176,8 +176,24 @@ function parseResults(raw){
 }
 let __lastSamText=null;
 const __recentSamTexts=[];
+// Fix 1c / Fix 5: the ONE shared forbidden-copy gate for Sam-voice surfaces.
+// Market sample sizes (counts of sales/comps/comparables/records/results/listings)
+// are banned in every user-facing surface - the model must never state HOW MANY
+// exist, only qualitative confidence. This runs at render time on every Sam
+// message (chat, wizard, modals via addMsg) and on card copy (result.js calls it
+// on composeCard headline+bullets), as a belt to the payload-side prevention. A
+// hit is scrubbed to a qualitative phrase and logged. Years (4 digits) and
+// model numbers followed by a name are left untouched.
+const SAM_COUNT_RE=/\b\d{1,3}\s+(?:comparable\s+|recent\s+)?(comps?|comparables?|records?|results?|listings?|sales?)\b/gi;
+function samForbiddenScrub(text){
+  const original=String(text==null?"":text);
+  const scrubbed=original.replace(SAM_COUNT_RE,(m,noun)=>`recent ${noun}`);
+  if(scrubbed!==original){try{(typeof console!=="undefined"&&console.warn)&&console.warn("[copy-gate] scrubbed a sales-count phrase:",original.slice(0,140));}catch(e){}}
+  return scrubbed;
+}
 function addMsg(role,text,html="",chipsStr=""){
   hideHero();
+  if(role==="sam"&&text)text=samForbiddenScrub(text);
   // Global no-repeat backstop (locked rule 12): no Sam text renders twice in a
   // conversation, not just consecutively. A repeat within the recent window
   // (e.g. Sam P -> fallback -> Sam P) is caught and varied. Callers should still

@@ -17,6 +17,7 @@ export const LINT_RULES = [
   { id: "limited-caveat-old", re: /limited sales, running|so i ran this at|running at (the )?(model|make|generation|segment) level/i, msg: "banned uninformative caveat; cascade the rung ladder and state the finding (new floor: 'Analysis ran at X level')" },
   { id: "auction-cycle", re: /\bquicker cycle\b|\bauction cycle\b/i, msg: "speed is TIME TO LIST, not auction length; 'quicker cycle' / 'quicker auction cycle' are banned. Use 'generally gets your listing live faster'" },
   { id: "specialization-hype", re: /best place|the home of|you'?ll do better|home for these|\bbetter (results|money) (there|here)\b/i, msg: "specialization is an observation of share, never a promise or 'best place' / 'home of' hype" },
+  { id: "sales-count", re: /\b\d{1,3}\s+(?:comparable\s+|recent\s+)?(?:comps?|comparables?|records?|results?|listings?|sales?)\b/i, msg: "sample-size count (sales/comps/records/results/listings) is banned in every Sam surface; use qualitative confidence only (Fix 1/5)" },
 ];
 // A weekday claim must name its scope (car/generation/make) AND the window.
 export function lintWeekday(line) {

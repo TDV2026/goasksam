@@ -314,7 +314,7 @@ function powerSellerAdviceReason(hasNamedSellers){
 function powerSellerServiceLine(){
   return pickCopy([
     "Photography, listing, buyer questions and paperwork: they manage it all.",
-    "They handle everything: photos, listing, negotiations and logistics.",
+    "They handle everything: photos, listing, buyer questions and running the auction.",
     "One person manages photos, listing, buyer contact and platform choice."
   ],sellState.carName||"","ps-service");
 }
@@ -808,7 +808,7 @@ function powerSellerProofHTML(profile){
 // Education lives off-card (locked): the card sells THIS seller for THIS
 // car; the category explainer is a link that gets a real Sam answer.
 function samExplainPowerSeller(){
-  addMsg("sam","A PowerSeller manages the entire sale for a fee: prep, photos, listing, buyer questions, paperwork and platform choice. You approve the big decisions; they do the work.");
+  addMsg("sam","A PowerSeller runs the entire sale for you: prep, photos, listing, buyer questions, paperwork and platform choice. There is a fee, and you approve the big decisions while they do the work.");
 }
 
 function renderFeaturedPowerSellerProfile(profile,platformFirst,plateHTML){
@@ -1638,25 +1638,37 @@ function quick(text){document.getElementById("inp").value=text;send();}
 
 // Phase 1c: full evidence + cards context for the post-result chat, so answers
 // cite the real data instead of the frontend re-rendering a card.
+// Data confidence as a QUALITATIVE band, never a raw count. The chat model must
+// never see a sample size it could quote (Fix 1a): counts of sales/comps/records
+// are banned in every user-facing surface, so the number cannot exist in the payload.
+function evidenceBand(n){
+  n=Number(n)||0;
+  if(n>=10)return "a solid recent sample";
+  if(n>=5)return "a moderate recent sample";
+  if(n>=3)return "a modest recent sample";
+  if(n>=1)return "a thin recent sample";
+  return "no recent sample";
+}
 function sellChatEvidenceSummary(){
   const dec=sellState.sellDecision;
   if(!dec)return "";
   const routes=dec.decision?.routeFit?.routes||[];
   const lines=routes.filter(r=>r.marketEvidence&&Number(r.marketEvidence.evidenceSales||0)>0).map(r=>{
     const e=r.marketEvidence;const pp=e.pricePremium;
-    const parts=[`${Number(e.evidenceSales||0)} comps`];
+    const parts=[evidenceBand(e.evidenceSales)];
     if(pp&&pp.percent!=null&&pp.platformSales>=5&&pp.othersSales>=5)parts.push(`about ${pp.percent}% vs other platforms (${pp.scope||"model"} scope)`);
     const wk=e.dayAdvantage;
     if(wk&&wk.weekday&&Number.isFinite(Number(wk.liftPercent)))parts.push(`${wk.weekday} endings about ${wk.liftPercent}% stronger (${wk.scope||"make"} scope)`);
     return `${platformDisplayName(r.platform||r.label)}: ${parts.join(", ")}`;
   });
-  let out=lines.length?`Evidence by platform (only cite these numbers): ${lines.join("; ")}.`:"";
+  // Percentages may be cited; sample sizes are qualitative bands only. NEVER a count.
+  let out=lines.length?`Evidence by platform (cite the percentages only; describe sample size with the qualitative band given, NEVER as a number of sales, comps or records): ${lines.join("; ")}.`:"";
   // Reserve context (Phase 1.5): observational, correlation only. If asked about
   // reserves, answer from THIS and never claim the reserve caused anything.
   const rc=routes.map(r=>r.marketEvidence&&r.marketEvidence.reserveContext).find(Boolean);
   if(rc){
     const month=reserveMonthName(rc.data_month);
-    out+=`\nReserve context (observational only, NEVER say a reserve caused/boosts/earns anything; only that sales "averaged" a figure, and the choice is the seller's): in ${month}, ${platformDisplayName(rc.platform)} auctions in the ${rc.band_key} band averaged ${Math.abs(Number(rc.delta_pct))>=3?`$${Math.abs(Math.round(rc.delta_dollars)).toLocaleString()} ${Number(rc.delta_dollars)>=0?"higher":"lower"} with a reserve than without`:"similar money with or without a reserve"} (n=${rc.n_with} with, ${rc.n_without} without). If asked about reserves and no cell exists for this exact make and band, say we don't have enough recent reserve data for this combination to say, and do not generalize from other makes or bands.`;
+    out+=`\nReserve context (observational only, NEVER say a reserve caused/boosts/earns anything; only that sales "averaged" a figure, and the choice is the seller's): in ${month}, ${platformDisplayName(rc.platform)} auctions in the ${rc.band_key} band averaged ${Math.abs(Number(rc.delta_pct))>=3?`$${Math.abs(Math.round(rc.delta_dollars)).toLocaleString()} ${Number(rc.delta_dollars)>=0?"higher":"lower"} with a reserve than without`:"similar money with or without a reserve"}. If asked about reserves and no cell exists for this exact make and band, say we don't have enough recent reserve data for this combination to say, and do not generalize from other makes or bands.`;
   }
   return out;
 }

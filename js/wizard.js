@@ -19,7 +19,7 @@ const SELL_STEP_QUESTIONS={
   6:{ask:"What price are you hoping for?",chips:[]},
   7:{ask:"How quickly are you looking to sell?",chips:["Want it gone fast","Within a month","No rush, right result only"]},
   9:{ask:"Anything else Sam should know about the car? Feel free to skip.",chips:["Skip"]},
-  8:{ask:"Which sounds more like you?",explainer:"Some sellers run the sale themselves. Others hand it to a PowerSeller: a specialist who photographs the car, writes the listing, answers buyer questions and negotiates the sale for a fee.",chips:["I'll run it myself","I'd rather someone handled it","Not sure yet"]}
+  8:{ask:"Which sounds more like you?",explainer:"Some sellers run the sale themselves. Others hand it to a PowerSeller: a specialist who photographs the car, writes the listing, answers buyer questions and runs the auction for you.",chips:["I'll run it myself","I'd rather someone handled it","Not sure yet"]}
 };
 
 const SELL_SYS=`You are Sam, helping someone sell their car on GoAskSam. Warm, direct, knowledgeable about the collector car market.
@@ -57,7 +57,7 @@ CAPABILITY AND HONESTY REGISTRY (locked; never offer a service or deny a fact th
 - CAN: analyze real auction sale records; recommend where to sell; connect the seller to a vetted PowerSeller when the value and fit gate passes; record the seller's details for the single destination they choose.
 - CANNOT: no consignment-flagging service of any kind; no sales data for Hemmings, Car & Classic or Collecting Cars; no platform fee, commission or response-time data; no live listings, browsing or searching; no direct listing submission.
 - ALWAYS HONEST: referral fees DO exist. If asked about referral fees or payment, answer: "If you decide to list with a platform or PowerSeller we may receive a referral fee. But every recommendation is driven by the sales data, never by any paid relationship. The advice is based on factual information and nothing else." Never deny the fee exists.
-- NEVER state a comparable-sales count below 10. Describe thin evidence qualitatively: "recent comparable sales", "the closest matches we tracked". Counts of 10 or more may be stated.
+- NEVER state HOW MANY sales, comparables, comps, listings, records or results exist, at any number. No sample sizes, no counts, no "N comparable sales", not even large ones. Express data confidence ONLY qualitatively ("a solid recent sample", "a thin recent sample", "recent comparable sales", "the closest matches we tracked"). Percentages and price figures from the context are fine; counts of anything are not.
 - REGIONAL questions ("have they sold cars in the Middle East?", "do they work in my region?"): we do NOT have per-region sale counts, so never claim a number. Answer with presence and reach: e.g. "They operate actively across [region] and international markets. I don't have per-region sale counts, but the platform's global reach is why it fits your region." Honest about what we do and don't have.
 PowerSeller pushback ladder (for cars below the PowerSeller gate):
 1. First ask: explain that PowerSeller referrals only make sense when the car's value and fit support it, three sentences max, no comp counts.

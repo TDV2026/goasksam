@@ -83,7 +83,10 @@ async function send(){
         // Use the FINAL displayed pick (post frontend swaps) so the chat never
         // names a different platform than the card the seller is looking at.
         const shownPick=sellState.displayedRecommendedPath||dec.recommendedPath;
-        sellContext+=`\nDecision facts (the engine's recommendation, do not contradict it): recommended platform ${platformDisplayName(shownPick)}; basis ${dec.evidenceBasis}; confidence ${dec.confidence}; comparable sales analyzed ${sellState.sellDecision?.evidence?.evidenceSales??"n/a"} ${(sellState.sellDecision?.evidence?.windowDays??0)>=3650?"across everything tracked":`in the last ${sellState.sellDecision?.evidence?.windowDays??"n/a"} days`}; price signal: ${premiumLine}. Reasons: ${(dec.why||[]).join(" ")}`;
+        // Fix 1a: NEVER pass a raw comparable-sales COUNT to the chat model - it
+        // quotes it ("4 comparable sales"). Data confidence is a qualitative band only.
+        const evBand=typeof evidenceBand==="function"?evidenceBand(sellState.sellDecision?.evidence?.evidenceSales):"a recent sample";
+        sellContext+=`\nDecision facts (the engine's recommendation, do not contradict it): recommended platform ${platformDisplayName(shownPick)}; basis ${dec.evidenceBasis}; confidence ${dec.confidence}; data confidence ${evBand} ${(sellState.sellDecision?.evidence?.windowDays??0)>=3650?"across everything tracked":`in the last ${sellState.sellDecision?.evidence?.windowDays??"n/a"} days`}; price signal: ${premiumLine}. NEVER state how many comparable sales or comps there are; describe confidence with the band only. Reasons: ${(dec.why||[]).join(" ")}`;
         // Phase 1c: give the chat the real evidence object and the exact card
         // bullet text, so it answers post-result questions (including about the
         // PowerSeller) from data instead of the frontend re-rendering a card.
@@ -103,7 +106,7 @@ async function send(){
           gateBits.push(cond.segmentMet?"specialist expertise match: found":"specialist expertise match: none for this car");
         }
         gateBits.push(pr.eligible?"result: gate passed, PowerSeller offered as an option":(pr.secondary?"result: shown only as a modest secondary":"result: no PowerSeller shown"));
-        sellContext+=`\nPowerSeller gate outcome (answer "why not a powerseller" from THIS; NEVER imply the seller's car lacks value or does not qualify on worth): ${gateBits.join("; ")}. A PowerSeller runs the whole sale for a fee; it never gets more money; it is a hands-off vs hands-on choice; the platform pick stands either way.`;
+        sellContext+=`\nPowerSeller gate outcome (answer "why not a powerseller" from THIS; NEVER imply the seller's car lacks value or does not qualify on worth): ${gateBits.join("; ")}. A PowerSeller runs the whole sale for you; there is a fee; it never gets more money; it is a hands-off vs hands-on choice; the platform pick stands either way.`;
         // Part 4: bind "compare the options/tradeoffs" to the ACTUAL rendered
         // destinations so the chat never reframes a platform-vs-platform choice
         // as PowerSeller-vs-DIY or claims both paths end at the same platform.
@@ -112,7 +115,7 @@ async function send(){
         if(platformDest.length>=2){
           sellContext+=`\nRendered destinations (what the seller is looking at): PICK ${platformDest[0]}, ALT ${platformDest[1]}. A "compare the options / compare the tradeoffs / which should I pick" request means comparing THESE TWO PLATFORMS. Compare them on four axes ONLY: price outcome, time to list, audience fit, and how much sales data backs each (use the evidence-by-platform numbers above). They are two DIFFERENT platforms: NEVER say both paths lead to the same platform, NEVER reframe this as PowerSeller-vs-doing-it-yourself, and NEVER contradict either card's stated finding. The pick stays the recommendation; the comparison explains it, it does not reopen it.`;
         }else if(platformDest.length===1&&psShown){
-          sellContext+=`\nRendered destinations: one platform (${platformDest[0]}) plus a PowerSeller option. A "compare the options/tradeoffs" request here means handled-by-a-PowerSeller vs running it yourself; both routes list on ${platformDest[0]}, so here both paths do end at ${platformDest[0]}. Compare on how hands-on the seller wants to be (a PowerSeller handles photos, listing, buyer questions and paperwork for a fee; it never gets more money).`;
+          sellContext+=`\nRendered destinations: one platform (${platformDest[0]}) plus a PowerSeller option. A "compare the options/tradeoffs" request here means handled-by-a-PowerSeller vs running it yourself; both routes list on ${platformDest[0]}, so here both paths do end at ${platformDest[0]}. Compare on how hands-on the seller wants to be (a PowerSeller runs the auction for you (there is a fee); it never gets more money).`;
         }
       }
       try{
