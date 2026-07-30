@@ -39,10 +39,14 @@ export async function recordUsageEvent(event, supabaseUrl, supabaseKey) {
 
     if (!res.ok) {
       const text = await res.text();
+      // 7A.1: never swallow a failed usage write. Log loudly so a missing or
+      // unreadable app_usage_events table is visible in the logs, not silent.
+      console.error(`CRITICAL: usage event write failed (${res.status}) - app_usage_events may be missing (run docs/supabase-v1-schema.sql). Detail: ${text.slice(0, 200)}`);
       return { skipped: true, reason: `usage_insert_failed_${res.status}`, detail: text.slice(0, 300) };
     }
     return { recorded: true };
   } catch (err) {
+    console.error(`CRITICAL: usage event write threw: ${err.message}`);
     return { skipped: true, reason: err.message };
   }
 }

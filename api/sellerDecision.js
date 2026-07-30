@@ -758,17 +758,44 @@ const MARKET_FETCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 // whatever the store holds and log loudly, never spend past pace and never
 // dead-end (the ladder and policy floor handle a thin or empty set honestly).
 const OCD_DAILY_REQUEST_BUDGET = Number(process.env.OCD_DAILY_REQUEST_BUDGET || 33);
+// 7A.2: monthly plan cap, env-driven so the 1K->10K upgrade is a config change.
+const OCD_MONTHLY_BUDGET = Number(process.env.OCD_MONTHLY_BUDGET || 1000);
 
-async function ocdRequestsToday(supabaseUrl, supabaseKey) {
+async function ocdMeteredSince(sinceIso, supabaseUrl, supabaseKey, limit = 2000) {
   if (!supabaseUrl || !supabaseKey) return null;
-  const since = new Date();
-  since.setUTCHours(0, 0, 0, 0);
   const rows = await supabaseSelect(
     { supabaseUrl, supabaseKey },
-    `app_usage_events?created_at=gte.${since.toISOString()}&oldcarsdata_metered_requests=gt.0&select=oldcarsdata_metered_requests&limit=2000`
+    `app_usage_events?created_at=gte.${sinceIso}&oldcarsdata_metered_requests=gt.0&select=oldcarsdata_metered_requests&limit=${limit}`
   );
+  // null (unreadable/missing table) propagates so the guard can raise a BLIND
+  // critical condition rather than silently reading zero.
   if (!rows) return null;
   return rows.reduce((sum, row) => sum + (Number(row.oldcarsdata_metered_requests) || 0), 0);
+}
+
+async function ocdRequestsToday(supabaseUrl, supabaseKey) {
+  const since = new Date();
+  since.setUTCHours(0, 0, 0, 0);
+  return ocdMeteredSince(since.toISOString(), supabaseUrl, supabaseKey, 2000);
+}
+
+async function ocdRequestsThisMonth(supabaseUrl, supabaseKey) {
+  const since = new Date();
+  since.setUTCDate(1);
+  since.setUTCHours(0, 0, 0, 0);
+  return ocdMeteredSince(since.toISOString(), supabaseUrl, supabaseKey, 20000);
+}
+
+// Returns the highest monthly warning band (80% then 50%) that THIS fetch crosses
+// into, so the crossing is logged exactly once by the search that trips it.
+function budgetWarningCrossing(before, added, budget) {
+  if (before == null || !Number.isFinite(budget) || budget <= 0) return null;
+  const after = before + (Number(added) || 0);
+  for (const pct of [80, 50]) {
+    const threshold = Math.floor(budget * pct / 100);
+    if (before < threshold && after >= threshold) return { pct, threshold, after };
+  }
+  return null;
 }
 
 function marketFetchCacheKey(vehicle) {
@@ -1829,34 +1856,51 @@ export default async function handler(req, res) {
 
     let fetchResult = null;
     let cacheStatus = "miss";
-    if (await readMarketFetchCache(vehicle, supabaseUrl, supabaseKey)) {
+    // bypassCache forces a fresh fetch (used by cold-fetch measurement harnesses).
+    // The budget guards below still gate any metered spend.
+    const bypassCache = req.body?.bypassCache === true;
+    if (!bypassCache && await readMarketFetchCache(vehicle, supabaseUrl, supabaseKey)) {
       fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
       cacheStatus = fetchResult ? "hit" : "hit_store_empty_refetched";
     }
+    // Budget guards (7A): daily pace + monthly cap, read from app_usage_events.
+    let usedMonthBefore = null;
     if (!fetchResult) {
       const usedToday = await ocdRequestsToday(supabaseUrl, supabaseKey);
-      if (usedToday !== null && usedToday >= OCD_DAILY_REQUEST_BUDGET) {
-        // Loud log, soft degrade: no metered spend past plan pace.
-        console.error(`OCD daily budget reached: ${usedToday}/${OCD_DAILY_REQUEST_BUDGET} metered requests today`);
+      const usedMonth = await ocdRequestsThisMonth(supabaseUrl, supabaseKey);
+      usedMonthBefore = usedMonth;
+      // 7A.1: a null count means the meter is BLIND (app_usage_events unreadable).
+      // Never pass the guard silently: raise a loud critical condition and record
+      // it best-effort, then CONTINUE (never hard-fail on an unreadable table).
+      if (usedToday === null || usedMonth === null) {
+        console.error("CRITICAL: OCD budget meter is BLIND (app_usage_events unreadable). Spending with no guard - run docs/supabase-v1-schema.sql.");
         await recordUsageEvent({
-          event_type: "ocd_budget_guard",
-          route: "/api/sellerDecision",
-          status: "soft_degraded",
-          search_text: rawSearch,
-          oldcarsdata_metered_requests: 0,
-          duration_ms: 0,
-          metadata: { ...requestMetadata(req), usedToday, dailyBudget: OCD_DAILY_REQUEST_BUDGET }
+          event_type: "ocd_budget_meter_blind", route: "/api/sellerDecision", status: "critical",
+          search_text: rawSearch, oldcarsdata_metered_requests: 0, duration_ms: 0,
+          metadata: { ...requestMetadata(req), usedToday, usedMonth }
+        }, supabaseUrl, supabaseKey);
+      }
+      const overDaily = usedToday !== null && usedToday >= OCD_DAILY_REQUEST_BUDGET;
+      const overMonthly = usedMonth !== null && usedMonth >= OCD_MONTHLY_BUDGET;
+      if (overDaily || overMonthly) {
+        // Loud log, soft degrade: no metered spend past the reached cap.
+        const scope = overMonthly ? "monthly" : "daily";
+        console.error(`OCD ${scope} budget reached (day ${usedToday}/${OCD_DAILY_REQUEST_BUDGET}, month ${usedMonth}/${OCD_MONTHLY_BUDGET}): soft degrading, no metered spend.`);
+        await recordUsageEvent({
+          event_type: "ocd_budget_guard", route: "/api/sellerDecision", status: `soft_degraded_${scope}`,
+          search_text: rawSearch, oldcarsdata_metered_requests: 0, duration_ms: 0,
+          metadata: { ...requestMetadata(req), usedToday, usedMonth, dailyBudget: OCD_DAILY_REQUEST_BUDGET, monthlyBudget: OCD_MONTHLY_BUDGET, scope }
         }, supabaseUrl, supabaseKey);
         fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
         if (fetchResult) {
-          fetchResult.stopReason = "ocd_daily_budget_reached";
+          fetchResult.stopReason = `ocd_${scope}_budget_reached`;
           cacheStatus = "budget_degraded_store";
         } else {
           fetchResult = {
             records: [],
             passSummary: [],
             stoppedEarly: true,
-            stopReason: "ocd_daily_budget_reached",
+            stopReason: `ocd_${scope}_budget_reached`,
             elapsedMs: 0,
             timeBudgetMs: FETCH_TIME_BUDGET_MS,
             meteredRequests: 0,
@@ -1873,6 +1917,17 @@ export default async function handler(req, res) {
       // must retry next search, not lock in 24h of emptiness.
       const fetchHealthy = fetchResult.records.length > 0 || fetchResult.passSummary.every(pass => !pass.error);
       if (fetchHealthy) await writeMarketFetchCache(vehicle, fetchResult.meteredRequests, supabaseUrl, supabaseKey);
+      // 7A.2: monthly budget warnings at 50% and 80%, logged once by the search
+      // whose metered spend crosses each band.
+      const crossing = budgetWarningCrossing(usedMonthBefore, fetchResult.meteredRequests, OCD_MONTHLY_BUDGET);
+      if (crossing) {
+        console.warn(`OCD monthly budget ${crossing.pct}% reached: ${crossing.after}/${OCD_MONTHLY_BUDGET} metered requests this month.`);
+        await recordUsageEvent({
+          event_type: "ocd_budget_warning", route: "/api/sellerDecision", status: `monthly_${crossing.pct}pct`,
+          search_text: rawSearch, oldcarsdata_metered_requests: 0, duration_ms: 0,
+          metadata: { ...requestMetadata(req), usedMonth: crossing.after, monthlyBudget: OCD_MONTHLY_BUDGET, pct: crossing.pct }
+        }, supabaseUrl, supabaseKey);
+      }
     }
     const records = fetchResult.records;
     const classifications = records.map(record => classifyRecord(record, vehicle));
