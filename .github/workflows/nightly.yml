@@ -1,1 +1,45 @@
+name: Nightly Ingest & Warm
 
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      from_date:
+        description: 'Start date (YYYY-MM-DD)'
+        required: false
+      to_date:
+        description: 'End date (YYYY-MM-DD)'
+        required: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: |
+          FROM_DATE=${{ github.event.inputs.from_date || 'yesterday' }}
+          TO_DATE=${{ github.event.inputs.to_date || 'today' }}
+          node scripts/ingest.js --from "$FROM_DATE" --to "$TO_DATE"
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OLDCARSDATA_API_KEY: ${{ secrets.OLDCARSDATA_API_KEY }}
+
+  warm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: node scripts/warm.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OLDCARSDATA_API_KEY: ${{ secrets.OLDCARSDATA_API_KEY }}
