@@ -560,12 +560,17 @@ function outboundSearchId(){
   return sellState.searchId;
 }
 function outboundQuery(slug,card,extra){
-  const v=sellState.resolvedVehicle||{};
-  const landed=(sellState.sellDecision&&sellState.sellDecision.evidence&&sellState.sellDecision.evidence.ladder&&sellState.sellDecision.evidence.ladder.landed&&sellState.sellDecision.evidence.ladder.landed.key)||"";
+  const dec=sellState.sellDecision||{};
+  // The vehicle lives on resolvedVehicle in the wizard path, but a cold/direct
+  // search can leave that null while the decision still echoes the resolved
+  // vehicle. Fall back through the decision so the click log always carries
+  // year/make/model/trim (and the landed rung comes from the decision too).
+  const v=sellState.resolvedVehicle||dec.vehicle||sellState.vehicle||{};
+  const landed=(dec.evidence&&dec.evidence.ladder&&dec.evidence.ladder.landed&&dec.evidence.ladder.landed.key)||"";
   const params={p:slug,s:outboundSearchId(),sid:outboundSessionId(),card:card||"",
     year:v.year||"",make:v.make||"",model:v.model||"",trim:v.trim||"",
     location:sellState.state||sellState.region||"",rung:landed,
-    reason:sellState.routingReason||"",pref:sellState.sellerPreference||""};
+    reason:sellState.routingReason||dec.routingReason||"",pref:sellState.sellerPreference||""};
   if(extra)Object.assign(params,extra);
   return Object.keys(params).map(k=>`${encodeURIComponent(k)}=${encodeURIComponent(params[k]==null?"":params[k])}`).join("&");
 }
