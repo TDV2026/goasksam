@@ -40,6 +40,9 @@ jobs:
   warm:
     runs-on: ubuntu-latest
     needs: ingest
+    # Only the nightly schedule warms. A manual backfill run (workflow_dispatch)
+    # does ingest only, so a large historical pull never also spends warm budget.
+    if: github.event_name == 'schedule'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
