@@ -46,6 +46,9 @@ function enterHomeState() {
   // index.html and this call: loadDailyPulse();
   const inp = document.getElementById("inp");
   if (inp) { try { inp.focus(); } catch (e) {} }
+  // C5: rotation only ever runs on the fresh homepage; reset the stop flag so a
+  // return home (New conversation) starts the example rotation again.
+  __phStopped = false;
   startPlaceholderRotation();
 }
 function enterChatState() {
@@ -73,6 +76,10 @@ function startPlaceholderRotation() {
 function stopPlaceholderRotation() {
   __phStopped = true;
   if (__phTimer) { clearInterval(__phTimer); __phTimer = null; }
+  // C5: replace the frozen rotating car example with a quiet contextual placeholder
+  // so the homepage example never lingers in the wizard/chat input mid-conversation.
+  const inp = document.getElementById("inp");
+  if (inp) inp.placeholder = "Type your answer";
 }
 
 // ---- dashboard cards ----

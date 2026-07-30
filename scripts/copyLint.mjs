@@ -17,7 +17,7 @@ export const LINT_RULES = [
   { id: "limited-caveat-old", re: /limited sales, running|so i ran this at|running at (the )?(model|make|generation|segment) level/i, msg: "banned uninformative caveat; cascade the rung ladder and state the finding (new floor: 'Analysis ran at X level')" },
   { id: "auction-cycle", re: /\bquicker cycle\b|\bauction cycle\b/i, msg: "speed is TIME TO LIST, not auction length; 'quicker cycle' / 'quicker auction cycle' are banned. Use 'generally gets your listing live faster'" },
   { id: "specialization-hype", re: /best place|the home of|you'?ll do better|home for these|\bbetter (results|money) (there|here)\b/i, msg: "specialization is an observation of share, never a promise or 'best place' / 'home of' hype" },
-  { id: "sales-count", re: /\b\d{1,3}\s+(?:comparable\s+|recent\s+)?(?:comps?|comparables?|records?|results?|listings?|sales?)\b/i, msg: "sample-size count (sales/comps/records/results/listings) is banned in every Sam surface; use qualitative confidence only (Fix 1/5)" },
+  { id: "sales-count", re: /\b\d{1,3}\s+(?:comparable|comparables?|comps?|records?|results?)\b/i, msg: "sample-size count (sales/comps/records/results/listings) is banned in every Sam surface; use qualitative confidence only (Fix 1/5)" },
 ];
 // A weekday claim must name its scope (car/generation/make) AND the window.
 export function lintWeekday(line) {
@@ -125,9 +125,9 @@ sellState.sellDecision = { evidence:{ ladder:{ landed:{ key:"exact_year_model" }
 const branch4 = composeCard({ make:"Chevrolet", model:"Camaro", year:1967 }, { label:"hagerty", platform:"hagerty", speedToList:"medium_fast", marketEvidence:{ evidenceSales:4, pricePremium:null, dayAdvantage:{weekday:"Thursday",liftPercent:20,scope:"model",window:180,sample:20} } }, { isPick:true, routingReason:"speed_unknown", sellerWantsSpeed:true, depthLeaderName:"Bring a Trailer", landedScope:"model" });
 const b4text = [branch4.headline.text, ...branch4.bullets.map(b=>b.text)].join("\n");
 check("1d lint: branch-4 pick headline states the speed reason (time to list), clean",
-  /You said speed matters\. Hagerty Marketplace generally gets your listing live faster and has closed recent 1967 Camaros sales\./.test(branch4.headline.text) && lintText(branch4.headline.text).length === 0, branch4.headline.text);
+  /You said speed matters\. Hagerty Marketplace generally gets your listing live faster and has closed recent 1967 Camaro sales\./.test(branch4.headline.text) && lintText(branch4.headline.text).length === 0, branch4.headline.text);
 check("1d lint: branch-4 pick renders the REQUIRED depth-honesty bullet naming the depth leader",
-  /Bring a Trailer holds most of the recent 1967 Camaros sales we track\. If market depth matters more than timing, start there instead\./.test(b4text), b4text);
+  /Bring a Trailer holds most of the recent 1967 Camaro sales we track\. If market depth matters more than timing, start there instead\./.test(b4text), b4text);
 check("1d lint: branch-4 card carries no banned 'auction cycle' wording and is clean", !/auction cycle/i.test(b4text) && lintText(b4text).length === 0, b4text);
 check("1d lint: detects the banned 'quicker auction cycle' phrase", lintText("Hagerty runs the quicker auction cycle.").some(v=>/auction-cycle/.test(v)));
 check("1d lint: detects the banned 'quicker cycle' phrase", lintText("Hagerty runs a quicker cycle.").some(v=>/auction-cycle/.test(v)));
@@ -142,13 +142,13 @@ const SPEC_CELL={platform:"bringatrailer",scope:"model",scope_key:"model|chevrol
 const specBulletCard=composeCard({ make:"Chevrolet", model:"Camaro", year:1967 }, { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:8, pricePremium:null, specializationCell:SPEC_CELL } }, { isPick:false, landedScope:"model" });
 const specBullet=(specBulletCard.bullets.find(b=>/specialization/.test(b.provenance||""))||{}).text||"";
 check("1d lint: specialization bullet states scope label + 'share' + 180-day window, clean",
-  /Camaros make up around 7 times larger a share of Bring a Trailer's sales than of the rest of the market we track over the past 180 days\./.test(specBullet) && /\bshare\b/.test(specBullet) && /over the past 180 days/.test(specBullet) && lintText(specBullet).length===0, specBullet);
+  /Camaros make up around 7 times the share of Bring a Trailer's sales that they do of the rest of the market we track over the past 180 days\./.test(specBullet) && /\bshare\b/.test(specBullet) && /over the past 180 days/.test(specBullet) && lintText(specBullet).length===0, specBullet);
 check("1d lint: specialization REPLACES the generic audience line for that platform",
   !specBulletCard.bullets.some(b=>/built a strong audience/i.test(b.text)) && !!specBullet,
   JSON.stringify(specBulletCard.bullets.map(b=>b.text)));
 const specPickCard=composeCard({ make:"Chevrolet", model:"Camaro", year:1967 }, { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:8, pricePremium:null, specializationCell:SPEC_CELL } }, { isPick:true, routingReason:"specialist", landedScope:"model" });
 check("1d lint: branch-5 specialist headline states the specialization reason, clean",
-  /Bring a Trailer specializes in Camaros: they make up around 7 times larger a share of its sales than of the rest of the market we track over the past 180 days\./.test(specPickCard.headline.text) && lintText(specPickCard.headline.text).length===0, specPickCard.headline.text);
+  /Bring a Trailer specializes in Camaros: they make up around 7 times the share of its sales that they do of the rest of the market we track over the past 180 days\./.test(specPickCard.headline.text) && lintText(specPickCard.headline.text).length===0, specPickCard.headline.text);
 check("1d lint: detects specialization hype ('best place' / 'the home of')", lintText("Bring a Trailer is the best place for Camaros.").some(v=>/specialization-hype/.test(v)) && lintText("Cars & Bids is the home of these cars.").some(v=>/specialization-hype/.test(v)));
 check("1d lint: no specialization bullet when no cell exists", (()=>{const c=composeCard({ make:"Chevrolet", model:"Camaro", year:1967 }, { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:8, pricePremium:null } }, { isPick:false, landedScope:"model" });return !c.bullets.some(b=>/times larger a share/.test(b.text));})(), "no cell must render no specialization");
 

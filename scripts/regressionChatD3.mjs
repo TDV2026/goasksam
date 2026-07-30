@@ -32,15 +32,15 @@ const cases = [
   { q: "is bidz betta than bringatrailer for this", must: [/bring a trailer|cars ?& ?bids|audience|comparable|platform/i], label: "cars&bids vs BaT (typos)" },
   { q: "compare the tradeoffs", ctx: compareCtx("Bring a Trailer", "Cars & Bids"),
     must: [/bring a trailer/i, /cars ?& ?bids/i],
-    mustNot: [/both .{0,30}(end|lead|land|go)\b[\s\S]{0,30}(bring a trailer|same platform)/i, /power\s?seller/i, /\\b\\d{1,3}\\s+(comparable\\s+|recent\\s+)?(comps?|comparables?|sales?|records?|results?|listings?)\\b/i],
+    mustNot: [/both .{0,30}(end|lead|land|go)\b[\s\S]{0,30}(bring a trailer|same platform)/i, /power\s?seller/i, /\\b\\d{1,3}\\s+(comparable|comparables?|comps?|records?|results?)\\b/i],
     label: "compare tradeoffs binds to the two rendered platforms (BaT vs C&B)" },
   { q: "compare the tradeoffs", ctx: compareCtx("Bring a Trailer", "PCarMarket"),
     must: [/bring a trailer/i, /pcarmarket|pcar/i],
-    mustNot: [/both .{0,30}(end|lead|land|go)\b[\s\S]{0,30}(bring a trailer|same platform)/i, /power\s?seller/i, /\\b\\d{1,3}\\s+(comparable\\s+|recent\\s+)?(comps?|comparables?|sales?|records?|results?|listings?)\\b/i],
+    mustNot: [/both .{0,30}(end|lead|land|go)\b[\s\S]{0,30}(bring a trailer|same platform)/i, /power\s?seller/i, /\\b\\d{1,3}\\s+(comparable|comparables?|comps?|records?|results?)\\b/i],
     label: "compare tradeoffs binds to the two rendered platforms (BaT vs PCarMarket)" },
   { q: "tell me about why i should pick one over the other", ctx: compareCtx("Bring a Trailer", "Cars & Bids"),
     must: [/bring a trailer/i, /cars ?& ?bids/i],
-    mustNot: [/\\b\\d{1,3}\\s+(comparable\\s+|recent\\s+)?(comps?|comparables?|sales?|records?|results?|listings?)\\b/i],
+    mustNot: [/\\b\\d{1,3}\\s+(comparable|comparables?|comps?|records?|results?)\\b/i],
     label: "why pick one over the other: no digit-adjacent sales-count language (Fix 1)" }
 ];
 

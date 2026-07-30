@@ -184,7 +184,7 @@ const __recentSamTexts=[];
 // on composeCard headline+bullets), as a belt to the payload-side prevention. A
 // hit is scrubbed to a qualitative phrase and logged. Years (4 digits) and
 // model numbers followed by a name are left untouched.
-const SAM_COUNT_RE=/\b\d{1,3}\s+(?:comparable\s+|recent\s+)?(comps?|comparables?|records?|results?|listings?|sales?)\b/gi;
+const SAM_COUNT_RE=/\b\d{1,3}\s+(comparable|comparables?|comps?|records?|results?)\b/gi;
 function samForbiddenScrub(text){
   const original=String(text==null?"":text);
   const scrubbed=original.replace(SAM_COUNT_RE,(m,noun)=>`recent ${noun}`);

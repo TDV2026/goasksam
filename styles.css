@@ -393,6 +393,14 @@ body{font-family:var(--font-ui);color:var(--ink);}
 .sell-rec-card.primary-rec{border:var(--border-primary);}
 .power-seller-feature,.platform-compact-list{max-width:680px;}
 
+/* C1: clearer separation between the pick and the alternative. More whitespace
+   between cards; the pick stays white with the bold border and a gentle lift; the
+   alternative sits recessed on the paper-shade tint. Calm hairline/whitespace
+   language; the PowerSeller block keeps its own treatment (unaffected here). */
+.sell-rec-grid{gap:22px;}
+.sell-rec-card.primary-rec{box-shadow:0 2px 10px rgba(0,0,0,.05);}
+.sell-rec-card:not(.primary-rec):not(.specialist-rec){background:var(--paper-shade);}
+
 /* Verdict plate (primary card only, once per result). */
 .verdict-plate{border-bottom:var(--border-primary);margin:-18px -18px 12px;padding:20px 24px;background:var(--paper);border-radius:0;}
 .verdict-plate .vp-row1{display:flex;justify-content:space-between;align-items:baseline;}
@@ -469,6 +477,8 @@ body{background:var(--paper-shade);}
   font-family:var(--font-sans);font-weight:400;font-size:14px;padding:9px 12px;border-radius:9px;cursor:pointer;margin-bottom:2px;}
 .hp-newrec:hover{background:var(--paper-shade);}
 .hp-section{font-family:var(--font-sans);text-transform:none;font-size:11.5px;letter-spacing:0;color:var(--slate);font-weight:500;padding:24px 12px 8px;}
+/* C2: hairline between the Sell group and the Learn group. */
+.hp-rail-divider{height:1px;background:var(--line);margin:14px 12px 0;}
 .hp-navitem{display:flex;align-items:center;gap:9px;width:100%;border:0;background:transparent;text-align:left;
   font-family:var(--font-sans);font-size:14px;font-weight:400;color:var(--ink);padding:9px 12px;border-radius:9px;cursor:pointer;line-height:1.5;}
 .hp-navitem:hover{background:var(--paper-shade);}
