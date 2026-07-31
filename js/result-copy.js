@@ -545,6 +545,9 @@ const SUBMISSION_URLS={
   carsandbids:"https://carsandbids.com/sell-car/",
   hagerty:"https://www.hagerty.com/marketplace/sell",
   pcarmarket:"https://www.pcarmarket.com/submit-your-listing",
+  sothebysmotorsport:"https://sothebysmotorsport.com/sell",
+  autohunter:"https://autohunter.com/sell-your-vehicle",
+  hemmings:"https://www.hemmings.com/classifieds/bundles/carsforsale",
   carandclassic:"https://www.carandclassic.com/sell-your-vehicle",
   collectingcars:"https://collectingcars.com/sell-with-us"
 };
@@ -618,8 +621,18 @@ function platformDisplayName(name){
   // Consignment houses render under a generic label in user-facing copy (they
   // are never a pick or a card; the only surface is the stronger-non-routable
   // callout), so specific house names stay out of the copy.
-  const map={bringatrailer:"Bring a Trailer",bat:"Bring a Trailer",carsandbids:"Cars & Bids",pcarmarket:"PCarMarket",hagerty:"Hagerty Marketplace",rmsothebys:"a leading auction house",gooding:"a leading auction house",goodingco:"a leading auction house",acc:"All Collector Cars",allcollectorcars:"All Collector Cars",hemmings:"Hemmings",carandclassic:"Car & Classic",collectingcars:"Collecting Cars"};
-  return map[key]||String(name||"");
+  // Sotheby's Motorsport (SOMO) is ALWAYS named in full, never scrubbed to a
+  // generic and never a raw slug. rmsothebys/gooding (white-glove consignment,
+  // off the evidence allowlist) keep the generic "a leading auction house".
+  const map={bringatrailer:"Bring a Trailer",bat:"Bring a Trailer",carsandbids:"Cars & Bids",pcarmarket:"PCarMarket",hagerty:"Hagerty Marketplace",sothebysmotorsport:"Sotheby's Motorsport (SOMO)",autohunter:"AutoHunter",rmsothebys:"a leading auction house",gooding:"a leading auction house",goodingco:"a leading auction house",acc:"All Collector Cars",allcollectorcars:"All Collector Cars",hemmings:"Hemmings",carandclassic:"Car & Classic",collectingcars:"Collecting Cars"};
+  if(map[key])return map[key];
+  // Never leak a raw slug to a user. Internal slugs are lowercase single tokens
+  // (no spaces, no capitals); an unknown one renders as a safe generic. An
+  // already-human display string (has a space or a capital) passes through
+  // unchanged, so re-applying this helper to a display name is idempotent.
+  const raw=String(name||"");
+  if(/[A-Z ]/.test(raw))return raw;
+  return "another auction marketplace";
 }
 
 function extractVehicleMake(text=sellState.carName){

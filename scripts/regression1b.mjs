@@ -76,5 +76,15 @@ const gated=evidenceOnlyBullets(inj.bullets); // identical gate to result.js ren
 check("3.10 filler injected into a composed card does NOT survive the render gate", !gated.some(b=>/strong option|a car like this/.test(b.text))&&gated.length===inj.bullets.length-1, JSON.stringify(gated.map(b=>b.text)));
 check("3.10 render site (result.js) is wired to the filler gate", /evidenceOnlyBullets\(c\.bullets\)/.test(fs.readFileSync("js/result.js","utf8")));
 
+// (Part 3, July 2026) Evidence-allowlist SOURCE NAMING: no raw slug ever
+// reaches a user, SOMO is always named in full, excluded consignment houses
+// keep the generic label, and unknown slugs render the safe generic.
+check("naming: Sotheby's Motorsport (SOMO) is named in full", platformDisplayName("sothebysmotorsport")==="Sotheby's Motorsport (SOMO)", platformDisplayName("sothebysmotorsport"));
+check("naming: AutoHunter is named in full", platformDisplayName("autohunter")==="AutoHunter", platformDisplayName("autohunter"));
+check("naming: rmsothebys stays 'a leading auction house'", platformDisplayName("rmsothebys")==="a leading auction house", platformDisplayName("rmsothebys"));
+check("naming: gooding stays 'a leading auction house'", platformDisplayName("gooding")==="a leading auction house", platformDisplayName("gooding"));
+check("naming: an unknown raw slug never leaks, renders the safe generic", platformDisplayName("barrettjackson")==="another auction marketplace", platformDisplayName("barrettjackson"));
+check("naming: applying the map to an already-display name is idempotent", platformDisplayName("Hagerty Marketplace")==="Hagerty Marketplace", platformDisplayName("Hagerty Marketplace"));
+
 console.log(failures?`\n${failures} FAILURE(S)`:"\n1B ALL PASS");
 process.exit(failures?1:0);

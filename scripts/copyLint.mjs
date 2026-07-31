@@ -11,7 +11,12 @@ export const LINT_RULES = [
   { id: "filler", re: /\ba car like this\b|remains viable|not the clearest|clearest first choice|\bstrong option\b|\breal signal\b|one of the stronger platforms|worth a look if|still worth (a look|considering)/i, msg: "filler phrase with no evidence" },
   { id: "em-dash", re: /—/, msg: "em dash in user-facing copy" },
   { id: "en-dash", re: /–/, msg: "en dash in user-facing copy" },
-  { id: "removed-house", re: /\bSotheby|\bGooding/i, msg: "RM Sotheby's / Gooding removed from user-facing copy" },
+  // RM Sotheby's and Gooding stay banned from user-facing copy (off the
+  // evidence allowlist; they render as "a leading auction house"). Sotheby's
+  // Motorsport (SOMO) is an allowlisted, self-listable platform and is
+  // EXPLICITLY permitted by full name, so "Sotheby's" followed by "Motorsport"
+  // is not a match.
+  { id: "removed-house", re: /\bGooding\b|\bSotheby'?s\b(?!\s+Motorsport)/i, msg: "RM Sotheby's / Gooding removed from user-facing copy (Sotheby's Motorsport (SOMO) is permitted)" },
   { id: "reserve-causation", re: /\bcaused\b|because of the reserve|the reserve helped|will get you|you'?ll earn|\bboosts\b|increases your price/i, msg: "reserve causation/outcome claim (correlation only; allowed verb is 'averaged')" },
   { id: "volume-headline", re: /\bwhere most\b|most [^\n]{0,40} sales have closed|\bmoves most\b/i, msg: "volume language in a headline (state the delta or similarity finding instead)" },
   { id: "limited-caveat-old", re: /limited sales, running|so i ran this at|running at (the )?(model|make|generation|segment) level/i, msg: "banned uninformative caveat; cascade the rung ladder and state the finding (new floor: 'Analysis ran at X level')" },
@@ -197,6 +202,14 @@ const pulseJson = JSON.parse(fs.readFileSync("lib/dailyPulse.json", "utf8"));
 const pulseLines = pulseJson.cards.map(c => c.line).join("\n");
 check("homepage: dashboard card lines observation only, no dashes, no advice verbs",
   !/[–—]/.test(pulseLines) && !/\b(buy|sell|list|should|recommend|consider)\b/i.test(pulseLines) && lintText(pulseLines).length === 0, pulseLines);
+
+// (Part 3, July 2026) The removed-house rule keeps banning RM Sotheby's and
+// Gooding, but Sotheby's Motorsport (SOMO) is an allowlisted, self-listable
+// platform and is EXPLICITLY permitted by full name.
+check("1d lint: permits 'Sotheby's Motorsport (SOMO)' by full name", lintText("Sotheby's Motorsport (SOMO) shows the strongest comparable results in our records.").length === 0, lintText("Sotheby's Motorsport (SOMO) shows the strongest comparable results in our records.").join(" ; "));
+check("1d lint: still bans a bare 'RM Sotheby's' reference", lintText("records from RM Sotheby's").some(v=>/removed-house/.test(v)));
+check("1d lint: still bans a bare 'Gooding' reference", lintText("Gooding sold three of these").some(v=>/removed-house/.test(v)));
+check("1d lint: still bans a bare 'Sotheby's' reference (not Motorsport)", lintText("Sotheby's took this one").some(v=>/removed-house/.test(v)));
 
 console.log(failures ? `\n${failures} FAILURE(S)` : "\n1D-LINT ALL PASS");
 process.exit(failures ? 1 : 0);

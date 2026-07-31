@@ -83,12 +83,39 @@ const ROUTE_POLICIES = {
   hemmings: {
     about: { regionsLabel: "the US", since: 1954, knownFor: "classic American and pre-1990 collector cars", source: "policy_provided" },
     label: "Hemmings",
-    evidenceCapable: false,
+    // evidenceCapable flipped to true (July 2026): Hemmings is on the evidence
+    // allowlist (a self-listable marketplace with OldCarsData coverage), so it
+    // is a platform like any other and can be an evidence-backed pick.
+    evidenceCapable: true,
     priceOutcome: "medium",
     speedToList: "medium_fast",
     sellerEffort: "medium",
     regions: ["US"],
     strongSegments: ["older_classic", "classic_american", "pre_1990", "collector"]
+  },
+  // SOMO and AutoHunter are self-listable marketplaces on the evidence
+  // allowlist. No special treatment and no fixed segment boosts: they are
+  // pickable ONLY when the data clears the same evidence gates as everyone
+  // else (strongSegments empty => zero policy-driven score, evidence only).
+  sothebysmotorsport: {
+    about: { regionsLabel: "the US", since: 2020, knownFor: "collector and enthusiast cars", source: "policy_provided" },
+    label: "Sotheby's Motorsport (SOMO)",
+    evidenceCapable: true,
+    priceOutcome: "medium",
+    speedToList: "medium_fast",
+    sellerEffort: "medium",
+    regions: ["US"],
+    strongSegments: []
+  },
+  autohunter: {
+    about: { regionsLabel: "the US", since: 2021, knownFor: "enthusiast and collector cars", source: "policy_provided" },
+    label: "AutoHunter",
+    evidenceCapable: true,
+    priceOutcome: "medium",
+    speedToList: "fast",
+    sellerEffort: "medium",
+    regions: ["US"],
+    strongSegments: []
   },
   hagerty: {
     about: { regionsLabel: "the US", since: 2021, knownFor: "classic and collector cars, backed by the Hagerty community", source: "policy_provided" },
@@ -121,6 +148,38 @@ const ROUTE_POLICIES = {
     strongSegments: ["high_value", "premium_collectors", "international", "specialist", "modern_classic", "collector"]
   }
 };
+
+// ===================== EVIDENCE ALLOWLIST (July 2026) =====================
+// The allowlist governs EVIDENCE ONLY: which sources count toward the premium
+// "others" denominator and the evidence tallies (close/relevant/broad, sample
+// counts, estimated value, confidence). It NEVER touches routing or
+// recommendability. A market whose fixed policy rules route to Collecting Cars
+// or Car & Classic still renders that recommendation with no data behind it,
+// exactly as before; the allowlist only decides whose SOLD RECORDS are trusted
+// as comparable-sale evidence.
+//
+// INCLUDED: self-listable marketplaces a seller could actually use.
+// EXCLUDED for now: rmsothebys, gooding (white-glove consignment, not a
+// seller-usable alternative) and the "oldcarsdata" vendor-name anomaly. Their
+// medians still survive for the honest strongerNonRoutable pre-note (price
+// facts only), they just never enter the pick's evidence math.
+export const EVIDENCE_ALLOWLIST = new Set([
+  "bringatrailer", "bat", "carsandbids", "hagerty", "pcarmarket",
+  "acc", "allcollectorcars", "sothebysmotorsport", "hemmings", "autohunter"
+]);
+// Every source slug we have ever knowingly admitted. Anything outside this set
+// arriving on a fetched record is surfaced by new-source detection and never
+// silently trusted. Excluded-from-evidence houses (rmsothebys/gooding) are
+// still KNOWN; they render under "a leading auction house".
+export const KNOWN_SOURCE_SLUGS = new Set([
+  ...EVIDENCE_ALLOWLIST, "rmsothebys", "gooding", "goodingco"
+]);
+export function normSourceSlug(value) {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+export function isEvidenceSource(record) {
+  return EVIDENCE_ALLOWLIST.has(normSourceSlug(recordPlatform(record)));
+}
 
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -927,17 +986,25 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     .filter(item => item.classification.comparison_tier !== "excluded");
   const excludedRecords = pairedRecords
     .filter(item => item.classification.comparison_tier === "excluded");
-  const closeMatches = inWindow.filter(item => item.classification.comparison_tier === "close_match");
-  const relevantMatches = inWindow.filter(item => ["close_match", "relevant_match"].includes(item.classification.comparison_tier));
-  const broadMatches = inWindow.filter(item => item.classification.comparison_tier === "broad_match");
+  // Evidence tallies count ALLOWLISTED sources only (July 2026): white-glove
+  // consignment (rmsothebys/gooding) and the vendor-name anomaly never inflate
+  // the match counts that back the recommendation and its confidence.
+  const inWindowEvidence = inWindow.filter(isEvidenceSource);
+  const closeMatches = inWindowEvidence.filter(item => item.classification.comparison_tier === "close_match");
+  const relevantMatches = inWindowEvidence.filter(item => ["close_match", "relevant_match"].includes(item.classification.comparison_tier));
+  const broadMatches = inWindowEvidence.filter(item => item.classification.comparison_tier === "broad_match");
 
   // The evidence set is exactly what the landed rung defines. No rung with
   // evidence at all means the decision falls to the regional policy floor.
+  // evidenceSet stays FULL so excluded-source medians survive for the honest
+  // strongerNonRoutable pre-note; evidenceSetAllowed is the allowlisted subset
+  // that drives every tally, denominator and confidence number.
   const evidenceSet = landed
     ? pairedRecords.filter(item =>
         daysAgo(item.record.auction_end_date) <= windowDays && ladderEligible(item, landed.definition)
       )
     : [];
+  const evidenceSetAllowed = evidenceSet.filter(isEvidenceSource);
 
   const platformMap = new Map();
   for (const item of evidenceSet) {
@@ -955,8 +1022,8 @@ function analyze(records, classifications, ladder, vehicle, debug) {
       })
     : [];
 
-  const totalEvidenceSales = evidenceSet.length;
-  const strongestSales = [...evidenceSet]
+  const totalEvidenceSales = evidenceSetAllowed.length;
+  const strongestSales = [...evidenceSetAllowed]
     .filter(item => Number.isFinite(Number(item.classification.price)))
     .sort((a, b) => Number(b.classification.price) - Number(a.classification.price))
     .slice(0, 3);
@@ -994,7 +1061,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     if (!segmentDef) return null;
     for (const window of PREMIUM_WINDOWS_DAYS) {
       const eligible = pairedRecords.filter(item =>
-        daysAgo(item.record.auction_end_date) <= window && segmentEligible(item));
+        daysAgo(item.record.auction_end_date) <= window && segmentEligible(item) && isEvidenceSource(item.record));
       const mineSold = eligible.filter(item => recordPlatform(item.record) === platform).length;
       const othersSold = eligible.length - mineSold;
       if (mineSold >= 5 && othersSold >= 5) {
@@ -1030,7 +1097,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
       const scopeDefs = window === 45 ? [landed.definition] : [landed.definition, premiumGenerationDef].filter(Boolean);
       for (const def of scopeDefs) {
         const eligible = pairedRecords.filter(item =>
-          daysAgo(item.record.auction_end_date) <= window && ladderEligible(item, def));
+          daysAgo(item.record.auction_end_date) <= window && ladderEligible(item, def) && isEvidenceSource(item.record));
         const mine = eligible.filter(item => recordPlatform(item.record) === platform)
           .map(item => Number(item.classification.price)).filter(Number.isFinite);
         const others = eligible.filter(item => recordPlatform(item.record) !== platform)
@@ -1075,7 +1142,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     if (segmentDef) {
       for (const window of PREMIUM_WINDOWS_DAYS) {
         const eligible = pairedRecords.filter(item =>
-          daysAgo(item.record.auction_end_date) <= window && segmentEligible(item));
+          daysAgo(item.record.auction_end_date) <= window && segmentEligible(item) && isEvidenceSource(item.record));
         const mine = eligible.filter(item => recordPlatform(item.record) === platform)
           .map(item => Number(item.classification.price)).filter(Number.isFinite);
         const others = eligible.filter(item => recordPlatform(item.record) !== platform)
@@ -1144,7 +1211,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     .map(([platform, items]) => {
       const weekdayInsight = strongestWeekdayInsight(items);
       const otherPrices = evidenceSet
-        .filter(item => recordPlatform(item.record) !== platform)
+        .filter(item => recordPlatform(item.record) !== platform && isEvidenceSource(item.record))
         .map(item => item.classification.price)
         .filter(Number.isFinite);
       const recentPrices = items.map(item => item.classification.price).filter(Number.isFinite);
@@ -1261,15 +1328,15 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     excludedReasons: summarizeExclusions(excludedRecords),
     evidenceLevel: landed ? landed.key : "none",
     evidenceLabel: landed ? landed.label : "no comparable sales in tracked auction data",
-    evidenceSales: evidenceSet.length,
-    estimatedValue: median(evidenceSet.map(item => item.classification.price)),
+    evidenceSales: evidenceSetAllowed.length,
+    estimatedValue: median(evidenceSetAllowed.map(item => item.classification.price)),
     // Earliest boundary of the ladder-eligible set (all-time): the "since
     // YYYY" label on all-time claims must name a verifiable date.
     earliestSaleDate: landed
       ? pairedRecords.filter(item => ladderEligible(item, landed.definition))
           .map(item => item.record.auction_end_date).filter(Boolean).sort()[0] || null
       : null,
-    thinMarket: thin || !landed || evidenceSet.length < landed.threshold,
+    thinMarket: thin || !landed || evidenceSetAllowed.length < landed.threshold,
     ladder: {
       landed: landed ? {
         rung: landed.rung,
@@ -1277,7 +1344,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
         label: landed.label,
         generationCode: landed.definition?.generationCode ?? null,
         windowDays,
-        sales: evidenceSet.length,
+        sales: evidenceSetAllowed.length,
         effectiveSample: landed.effectiveSample ?? null,
         threshold: landed.threshold,
         thresholdMet: landed.met
@@ -1288,16 +1355,16 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     // Internal confidence (locked: engine telemetry, NEVER rendered and
     // never a reason to hedge a recommendation).
     internalConfidence: (() => {
-      if (!landed || !evidenceSet.length) return null;
-      const ages = evidenceSet.map(item => daysAgo(item.record.auction_end_date));
+      if (!landed || !evidenceSetAllowed.length) return null;
+      const ages = evidenceSetAllowed.map(item => daysAgo(item.record.auction_end_date));
       const recencySample = Math.round(ages.filter(a => a <= 90).reduce((sum, a) => sum + getRecencyMultiplier(a), 0) * 10) / 10;
       const counts = {};
-      for (const item of evidenceSet) counts[recordPlatform(item.record)] = (counts[recordPlatform(item.record)] || 0) + 1;
+      for (const item of evidenceSetAllowed) counts[recordPlatform(item.record)] = (counts[recordPlatform(item.record)] || 0) + 1;
       const score = calculateConfidenceScore({
         recencySample,
-        totalSample: landed.effectiveSample ?? evidenceSet.length,
+        totalSample: landed.effectiveSample ?? evidenceSetAllowed.length,
         platformDominance: getPlatformDominanceScore(counts),
-        outcomeSample: evidenceSet.length
+        outcomeSample: evidenceSetAllowed.length
       });
       return { score, level: getConfidenceLevel(score) };
     })(),
@@ -1977,6 +2044,29 @@ export default async function handler(req, res) {
       }
     }
     const records = fetchResult.records;
+    // New-source detection (July 2026): any source slug we have not knowingly
+    // admitted is logged loudly and NEVER silently trusted (the evidence
+    // allowlist already keeps it out of the pick's math). The vendor-name
+    // anomaly ("oldcarsdata") normalizes to "unknown" via recordPlatform, so it
+    // surfaces here too instead of masquerading as a source.
+    try {
+      const seen = new Map();
+      for (const record of records) {
+        const raw = record.platform || record.source || record.auction_platform || record.listing_source || "";
+        const slug = normSourceSlug(recordPlatform(record) === "unknown" ? raw : recordPlatform(record));
+        if (slug && !KNOWN_SOURCE_SLUGS.has(slug)) seen.set(slug, (seen.get(slug) || 0) + 1);
+      }
+      for (const [slug, count] of seen) {
+        await recordUsageEvent({
+          event_type: "new_source_detected",
+          route: "/api/sellerDecision",
+          status: "new_source",
+          search_text: rawSearch,
+          vehicle,
+          metadata: { ...requestMetadata(req), source_slug: slug, records: count, note: "unrecognized source slug; excluded from evidence until approved" }
+        }, supabaseUrl, supabaseKey);
+      }
+    } catch { /* detection is best-effort; never block the decision */ }
     const classifications = records.map(record => classifyRecord(record, vehicle));
     // Cache hits replay rows already stored permanently; re-inserting them
     // would be a no-op POST of up to 2000 rows, so only the id lookup runs.

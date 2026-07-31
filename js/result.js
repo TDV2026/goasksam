@@ -212,8 +212,23 @@ async function showSellRecommendation(){
   // own transparency line carries the scope/window story. The old opener
   // duplicated the plate window and the lookback line.
   if(decision.strongerNonRoutable){
-    const houseName=platformDisplayName(decision.strongerNonRoutable.platform);
-    addMsg("sam",`One thing to know up front: ${houseName} actually shows the strongest comparable results in our records. It's a consignment auction house rather than a platform you can list on yourself, so it isn't the pick, but it tells you serious money follows this car.`);
+    const slug=String(decision.strongerNonRoutable.platform||"").toLowerCase();
+    const houseName=platformDisplayName(slug);
+    // PRICE FACTS ONLY (July 2026): the pre-note may name the source and report
+    // its price signal, but makes NO claim about how the business operates. The
+    // old "consignment auction house you can't list on yourself" sentence was a
+    // hardcoded assertion that fired for any non-pick source and was false for
+    // some of them; it is gone. If the named source is self-listable (has a
+    // submission URL), we end with the door: honest signal plus a way in.
+    const door=hasOutboundSubmission(slug)
+      ? ` If you want to explore it yourself, you can start on ${houseName}'s own site.`
+      : "";
+    addMsg("sam",`One thing to know up front: ${houseName} shows the strongest comparable results in our records. It isn't the pick here, but it tells you serious money follows this car.${door}`);
+    if(hasOutboundSubmission(slug)){
+      const row=document.createElement("div");row.className="row sam";
+      row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sell-rec-actions"><button class="ghost" onclick="openOutboundModal('${escapeHtml(slug)}','prenote')">Send my details to ${escapeHtml(houseName)}</button></div></div></div>`;
+      msgs.appendChild(row);
+    }
   }
 
   // Data pick (1b): the platform with the highest CLEARED positive comparative
