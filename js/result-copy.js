@@ -605,7 +605,14 @@ function continueOutbound(){
   const m=document.getElementById("outbound-modal");if(!m)return;
   const slug=m.dataset.slug,card=m.dataset.card;
   m.dataset.continued="1";
-  window.location.href=apiPath(`/out?${outboundQuery(slug,card)}`);
+  // Open the platform handoff in a NEW tab (rel=noopener) so GoAskSam stays open
+  // in the original tab. The /out hit still lands in the new tab, so the click
+  // row logs server-side before the 302; if a popup blocker kills the new tab we
+  // fall back to same-tab navigation so the handoff is never lost.
+  const url=apiPath(`/out?${outboundQuery(slug,card)}`);
+  const w=window.open(url,"_blank","noopener");
+  if(!w){window.location.href=url;return;}
+  if(m.remove)m.remove();
 }
 function closeOutboundModal(abandoned){
   const m=document.getElementById("outbound-modal");if(!m)return;

@@ -759,6 +759,15 @@ function startSellFlow(initialCar, showUserBubble=true){
   resetSellState();
   sellState.active=true;sellState.step=1;
   hideHero();
+  // Rail/menu entry (no seed car): reset the view to a clean surface anchored at
+  // the top of the screen, so a click from a scrolled-down results page lands on
+  // the fresh question rather than mid-thread.
+  if(!initialCar){
+    if(typeof enterChatState==="function")enterChatState();
+    if(typeof toggleRail==="function")toggleRail(false);
+    const msgsEl=document.getElementById("msgs");if(msgsEl){msgsEl.innerHTML="";msgsEl.scrollTop=0;}
+    try{window.scrollTo&&window.scrollTo(0,0);}catch(e){}
+  }
   if(initialCar){
     // No entry text is ever discarded: the resolver decides what it is. Only
     // input the resolver cannot read as a vehicle gets the funnel line.

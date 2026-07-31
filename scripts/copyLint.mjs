@@ -195,8 +195,15 @@ const homepageCopy = [
 ].join("\n");
 check("homepage: no en/em dashes in ANY homepage copy (zero exceptions, hero line included)", !/[–—]/.test(homepageCopy), (homepageCopy.match(/[^\n]*[–—][^\n]*/) || [""])[0]);
 check("homepage: all non-hero homepage copy passes standard lint", lintText(homepageCopy).length === 0, lintText(homepageCopy).join(" ; "));
-check("homepage: Selling Platforms names no removed auction houses", !/\bSotheby|\bGooding/i.test(homepageCopy), "removed house named");
+check("homepage: Selling Platforms names no REMOVED auction houses (SOMO permitted)", !/\bGooding\b|\bSotheby'?s\b(?!\s+Motorsport)/i.test(homepageCopy), (homepageCopy.match(/\bGooding\b|\bSotheby'?s\b(?!\s+Motorsport)/i) || ["none"])[0]);
 check("homepage: placeholder examples are real cars (year + make)", PLACEHOLDER_EXAMPLES.every(e => /^\d{4}\s+[A-Z]/.test(e)), JSON.stringify(PLACEHOLDER_EXAMPLES));
+// (Polish round, July 2026) The three newly-tracked platforms appear on the
+// Selling Platforms page; SOMO is always named in full.
+for (const name of ["Hemmings", "Sotheby's Motorsport (SOMO)", "AutoHunter"]) {
+  check(`homepage: Selling Platforms lists ${name}`, LEARN_PLATFORMS.platforms.some(p => p.name === name), name);
+}
+// The algorithm-ownership sentence renders on How Recommendations Work.
+check("homepage: How-it-works states the algorithm is ours", LEARN_HOW.sections.some(s => /The recommendation itself comes from our own algorithm\./.test(s.body) && /the judgement of where your car should sell is ours\./.test(s.body)), "algorithm sentence missing");
 // Dashboard card lines (from the committed lib/dailyPulse.json): observation only.
 const pulseJson = JSON.parse(fs.readFileSync("lib/dailyPulse.json", "utf8"));
 const pulseLines = pulseJson.cards.map(c => c.line).join("\n");

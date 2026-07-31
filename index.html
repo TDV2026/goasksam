@@ -13,14 +13,14 @@
 <div id="rail-scrim" onclick="toggleRail(false)"></div>
 
 <div id="rail">
-  <div class="hp-logo">
+  <a class="hp-logo" href="/">
     <div class="hp-logo-name">GoAskSam</div>
     <div class="hp-logo-tag">Seller intelligence from The Daily Vroom</div>
-  </div>
+  </a>
   <div class="hp-rail-scroll">
     <div class="hp-section">Sell</div>
-    <button class="hp-navitem" onclick="startSellFlow()">Sell my car</button>
-    <button class="hp-navitem" onclick="showPowerSellerExplainer()">Find a PowerSeller</button>
+    <button class="hp-navitem" onclick="setActiveNav(this);startSellFlow()">Sell my car</button>
+    <button class="hp-navitem" onclick="setActiveNav(this);showPowerSellerExplainer()">Find a PowerSeller</button>
 
     <!-- PULSE_RAIL: TODAY'S MARKET sidebar section removed pre-Phase-3. The daily
          pulse pipeline (scripts/refreshDailyPulse.js, lib/dailyPulse.json,
@@ -30,8 +30,8 @@
 
     <div class="hp-rail-divider"></div>
     <div class="hp-section">Learn</div>
-    <button class="hp-navitem" onclick="showHowItWorks()">How Recommendations Work</button>
-    <button class="hp-navitem" onclick="showSellingPlatforms()">Selling Platforms</button>
+    <button class="hp-navitem" onclick="setActiveNav(this);showHowItWorks()">How Recommendations Work</button>
+    <button class="hp-navitem" onclick="setActiveNav(this);showSellingPlatforms()">Selling Platforms</button>
   </div>
   <div class="hp-rail-footer">
     <!-- STAGE_B: referral panel -->

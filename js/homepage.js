@@ -14,6 +14,7 @@ const LEARN_HOW = {
   sections: [
     { h: "What we look at", body: "Sam reads real, recent sold results from the collector car auction platforms we track. For your exact car, we look at where comparable cars have actually sold, and how those results compare across platforms. Every claim states the scope it was measured at and the time window it covers, so you always know what a number is based on." },
     { h: "How the comparison works", body: "We start narrow, at your exact year and trim, and only widen the scope when the close data is too thin to be useful. When we widen, we say so. The recommendation is the platform where cars like yours have found the strongest, most consistent results, judged on recent sold records rather than opinion." },
+    { h: "Where the recommendation comes from", body: "The recommendation itself comes from our own algorithm. We built the ranking rules, the evidence thresholds, and the honesty gates ourselves. The sales data informs it, but the judgement of where your car should sell is ours." },
     { h: "What we never do", body: "We never value your car, and we never invent a number. Every figure you see comes from real records. We hold no platform fee data and never state fees as fact. If the data is thin, we tell you plainly and give an honest read rather than a confident guess." },
     { h: "Platform or PowerSeller", body: "Sometimes the answer is a platform you list on yourself. For some cars, we may suggest speaking to a PowerSeller, someone who runs the whole sale for you for a fee. A PowerSeller is a hands off choice, not a way to get more money, and the platform read stands either way. Nobody pays to be recommended here." }
   ]
@@ -26,6 +27,9 @@ const LEARN_PLATFORMS = {
     { name: "Cars & Bids", body: "An online auction platform with a particularly strong audience for late model performance and enthusiast cars. We track its sold results." },
     { name: "Hagerty Marketplace", body: "An online marketplace connected to the wider classic car world, spanning classics and modern collectibles. We track its sold results." },
     { name: "PCarMarket", body: "An online auction platform with a deep Porsche and enthusiast following. We track its sold results." },
+    { name: "Hemmings", body: "A long-established US marketplace for classic and collector cars, with deep roots in classic American and vintage vehicles. We track its sold results." },
+    { name: "Sotheby's Motorsport (SOMO)", body: "An online marketplace carrying the Sotheby's Motorsport name, for collector and enthusiast cars. We track its sold results." },
+    { name: "AutoHunter", body: "An online auction platform for enthusiast and collector cars. We track its sold results." },
     { name: "Car & Classic", body: "A European online marketplace for classic and collector cars, a newer addition as we broaden coverage." }
   ],
   outro: "More online platforms are being added as we widen the data we track."
@@ -144,6 +148,18 @@ function closeHpDialog() {
 // STAGE_B: sign-in, referral panel, settings/profile modal all wire here.
 function stageBStub(label) {
   showHpDialog(String(label || "This feature"), "Arriving shortly. Sign-in and accounts land in the next release.", `<button class="ghost" onclick="closeHpDialog()">Close</button>`);
+}
+
+// ---- left-rail active state ----
+// The clicked rail item keeps a persistent highlight (same tint as hover) so
+// the current section reads as active. A full navigation home (logo) reloads
+// the page and clears it. Stub items never take the active state.
+function setActiveNav(el) {
+  if (typeof document === "undefined" || !document.querySelectorAll) return;
+  try {
+    document.querySelectorAll(".hp-navitem.active").forEach(n => n.classList.remove("active"));
+    if (el && el.classList && !el.classList.contains("stub")) el.classList.add("active");
+  } catch (e) { /* non-fatal: active state is cosmetic */ }
 }
 
 // ---- hamburger (mobile) ----
