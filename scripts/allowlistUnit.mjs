@@ -55,5 +55,19 @@ check("premium 'others' denominator drops rmsothebys, gooding and the vendor ano
   !others.includes("rmsothebys") && !others.includes("gooding") && !others.includes("oldcarsdata"),
   JSON.stringify(others));
 
+// Contract guard: analyze() filters PAIRS ({record, classification}); the
+// predicate takes a BARE record, so the call site MUST unwrap .record. Passing
+// the pair reads pair.platform (undefined) -> "unknown" -> excludes everything
+// (the July 2026 landedSales=0 bug). Lock the shape so it cannot silently return.
+const pairs = [
+  { record: rec("bringatrailer"), classification: {} },
+  { record: rec("carsandbids"), classification: {} },
+  { record: rec("rmsothebys"), classification: {} }
+];
+const keptWrong = pairs.filter(isEvidenceSource);                 // the bug
+const keptRight = pairs.filter(item => isEvidenceSource(item.record)); // correct
+check("evidence filter on PAIRS drops everything if not unwrapped (bug guard)", keptWrong.length === 0, `keptWrong=${keptWrong.length}`);
+check("evidence filter on PAIRS keeps allowlisted when unwrapped", keptRight.length === 2 && keptRight.every(p => normSourceSlug(recordPlatform(p.record)) !== "rmsothebys"), `keptRight=${keptRight.length}`);
+
 console.log(failures ? `\n${failures} FAILURE(S)` : "\nALLOWLIST-UNIT ALL PASS");
 process.exit(failures ? 1 : 0);

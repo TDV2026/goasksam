@@ -989,7 +989,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
   // Evidence tallies count ALLOWLISTED sources only (July 2026): white-glove
   // consignment (rmsothebys/gooding) and the vendor-name anomaly never inflate
   // the match counts that back the recommendation and its confidence.
-  const inWindowEvidence = inWindow.filter(isEvidenceSource);
+  const inWindowEvidence = inWindow.filter(item => isEvidenceSource(item.record));
   const closeMatches = inWindowEvidence.filter(item => item.classification.comparison_tier === "close_match");
   const relevantMatches = inWindowEvidence.filter(item => ["close_match", "relevant_match"].includes(item.classification.comparison_tier));
   const broadMatches = inWindowEvidence.filter(item => item.classification.comparison_tier === "broad_match");
@@ -1004,7 +1004,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
         daysAgo(item.record.auction_end_date) <= windowDays && ladderEligible(item, landed.definition)
       )
     : [];
-  const evidenceSetAllowed = evidenceSet.filter(isEvidenceSource);
+  const evidenceSetAllowed = evidenceSet.filter(item => isEvidenceSource(item.record));
 
   const platformMap = new Map();
   for (const item of evidenceSet) {
