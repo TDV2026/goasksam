@@ -23,7 +23,7 @@ function everyLineHasProvenance(c){const items=[c.headline,...(c.bullets||[])].f
 // Mode A: cleared delta headline + model weekday
 const A=composeCard({make:"Chevrolet",model:"Camaro",year:1967},{label:"hagerty",platform:"hagerty",speedToList:"medium_fast",marketEvidence:{evidenceSales:8,pricePremium:{gateType:"symmetric",percent:16,windowDays:90,scope:"model"},dayAdvantage:{weekday:"Friday",liftPercent:16,scope:"model",window:180}}},{isPick:true,landedScope:"model"});
 check("1b Mode A: delta headline names platform, %, scope, window", /Hagerty.*16% higher than the other platforms.*over the past 90 days/.test(A.headline.text), A.headline.text);
-check("1b Mode A: weekday bullet states scope + 180d window", A.bullets.some(b=>/1967 Camaros.*Fridays.*16% above other days.*over the past 180 days/.test(b.text)), JSON.stringify(A.bullets));
+check("1b Mode A: weekday bullet states scope + 180d window (lift 16 -> rounded to 15)", A.bullets.some(b=>/1967 Camaros.*Fridays.*15% above other days.*over the past 180 days/.test(b.text)), JSON.stringify(A.bullets));
 check("1b Mode A: every line has provenance", everyLineHasProvenance(A));
 
 // Mode B (speed): similarity + speed reason

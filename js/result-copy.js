@@ -1135,24 +1135,98 @@ function composerLandedYearScope(){
 // Weekday sample gate mirrored on the render side (1b): even if a dayAdvantage
 // object arrives, a weekday claim needs 15+ backing comps and a scope word.
 const WEEKDAY_MIN_SAMPLE=15;
+
+// ===================== PLAUSIBILITY GATE (Ford GT round, July 2026) =====================
+// ONE gate every numeric template passes through before it prints a percentage.
+// A value outside its sane band (a pollution/composition artifact, e.g. a 1049%
+// weekday) fails closed - the template renders nothing - and is logged. Bands
+// are per template; weekday also rounds to the nearest 5 for display stability.
+const METRIC_BANDS={
+  weekday:{min:5,max:40,round:5},        // day-of-week timing realistically moves closing price only modestly
+  premium:{min:10,max:150,round:null},   // a cross-platform price delta above ~1.5x is composition, not a real premium
+  specialization:{min:2,max:25,round:null} // "N times the share": beyond 25x is a computation artifact
+};
+function logImplausibleMetric(template,value,extra){
+  try{
+    const rec={template,value,at:new Date().toISOString(),...(extra||{})};
+    (globalThis.__implausibleMetrics=globalThis.__implausibleMetrics||[]).push(rec);
+    if(typeof console!=="undefined"&&console.warn)console.warn(`[plausibility] suppressed ${template} value ${value}`,extra||"");
+  }catch(e){}
+}
+// Returns {ok, value}. ok=false means the template must render nothing.
+function metricGate(value,template,extra){
+  const b=METRIC_BANDS[template];const v=Number(value);
+  if(!b||!Number.isFinite(v))return {ok:false,value:v};
+  const mag=Math.abs(v);
+  if(mag<b.min||mag>b.max){logImplausibleMetric(template,v,extra);return {ok:false,value:v};}
+  const display=b.round?Math.round(v/b.round)*b.round:v;
+  return {ok:true,value:display};
+}
+// At most ONE weekday bullet per rendered result: the caller (result.js) drops
+// weekday bullets from every card after the first that carries one. Kept pure so
+// composeCard has no cross-call state. Provenance starts "dayAdvantage(".
+function dedupeWeekdayAcrossCards(options){
+  let seen=false;
+  for(const opt of options||[]){
+    const b=opt&&opt.composed&&opt.composed.bullets;
+    if(!Array.isArray(b))continue;
+    opt.composed.bullets=b.filter(x=>{
+      if(x&&/^dayAdvantage\(/.test(x.provenance||"")){ if(seen)return false; seen=true; }
+      return true;
+    });
+  }
+}
+// A price delta is only usable as a Mode-A finding when it clears the sample
+// gate AND the plausibility band (an implausibly large delta is a residual
+// composition/pollution artifact and fails closed to the honest cascade).
+function premiumIsPlausible(p){
+  if(!p)return false;
+  if(p.type==="market_dominance")return true;
+  if(p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10)return metricGate(p.percent,"premium",{scope:p.scope}).ok;
+  return false;
+}
+// Weekday bullet, TIERED by bucket sample (Ford GT round). At most one per result.
+//  TIER 1 (strong): winning-day bucket >= 5 AND total >= 20 AND lift in the
+//          plausibility band [5,40] -> renders the percentage, ROUNDED TO 5.
+//  TIER 2 (direction): winning-day bucket >= 3 AND total >= 12, lift in [5,60]
+//          -> "has tended to close strongest on Fridays", NO number.
+//  TIER 3 (below floor, or lift outside band) -> renders nothing (logged).
+// The make-scope line was always direction-only and maps to Tier 2.
+const WEEKDAY_TIER1_DAY=5, WEEKDAY_TIER1_TOTAL=20;
+const WEEKDAY_TIER2_DAY=3, WEEKDAY_TIER2_TOTAL=12, WEEKDAY_TIER2_MAX_LIFT=60;
+// PURE (no shared state): the "at most one weekday card per result" rule is
+// enforced by the caller (result.js dedupes across cards). An absent sample is
+// treated as sufficient (the backend already gated it), preserving prior recall.
 function composerWeekdayBullet(vehicle,ev){
   const d=ev&&ev.dayAdvantage;
   if(!d||!d.weekday||!d.scope||!Number.isFinite(Number(d.liftPercent)))return null;
-  if(d.sample!=null&&Number(d.sample)<WEEKDAY_MIN_SAMPLE)return null;
+  const total=d.sample!=null?Number(d.sample):null;
+  const daySales=d.sales!=null?Number(d.sales):null;
+  const lift=Number(d.liftPercent);
   const win=`over the past ${d.window||180} days`;
-  let text;
+  const prov=t=>`dayAdvantage(${d.scope},${d.window||180}d${t})`;
+  // make scope is inherently coarse: ALWAYS direction only, established wording,
+  // gated to a directionally-sane lift so an absurd internal figure never routes.
   if(d.scope==="make"){
+    if(!(Math.abs(lift)>=METRIC_BANDS.weekday.min&&Math.abs(lift)<=WEEKDAY_TIER2_MAX_LIFT))return null;
     const make=vehicle&&vehicle.make?composerPlural(vehicle.make):"These cars";
-    text=`${make} as a whole have closed strongest on ${d.weekday}s ${win}`;
-  }else{
-    // Fail closed: a generation-scoped weekday with no generation code (an
-    // unmapped handover year) has no honest label, so drop the bullet rather
-    // than interpolate a null into the sentence.
-    const phrase=composerScopePhrase(vehicle,d.scope,d.generationCode);
-    if(!phrase)return null;
-    text=`${phrase} have closed strongest on ${d.weekday}s, around ${d.liftPercent}% above other days, ${win}`;
+    return { text:`${make} as a whole have closed strongest on ${d.weekday}s ${win}.`, provenance:prov(",direction") };
   }
-  return { text:`${text}.`, provenance:`dayAdvantage(${d.scope},${d.window||180}d)` };
+  const phrase=composerScopePhrase(vehicle,d.scope,d.generationCode);
+  if(!phrase)return null; // fail closed: generation rung with no code
+  // TIER 1: strong sample + gated, rounded, plausible lift -> percentage.
+  const tier1=(total==null||total>=WEEKDAY_TIER1_TOTAL)&&(daySales==null||daySales>=WEEKDAY_TIER1_DAY);
+  if(tier1){
+    const g=metricGate(lift,"weekday",{scope:d.scope,weekday:d.weekday,sample:total});
+    if(g.ok)return { text:`${phrase} have closed strongest on ${d.weekday}s, around ${g.value}% above other days, ${win}.`, provenance:prov(`,${g.value}%`) };
+    // outside the band: no number; fall through to a direction line if sane.
+  }
+  // TIER 2: direction only.
+  const tier2=(total==null||total>=WEEKDAY_TIER2_TOTAL)&&(daySales==null||daySales>=WEEKDAY_TIER2_DAY);
+  if(tier2&&Math.abs(lift)>=METRIC_BANDS.weekday.min&&Math.abs(lift)<=WEEKDAY_TIER2_MAX_LIFT){
+    return { text:`${phrase} have tended to close strongest on ${d.weekday}s ${win}.`, provenance:prov(",direction") };
+  }
+  return null; // TIER 3
 }
 // Curated audience/specialty fact from the platform copy library.
 function composerAudienceBullet(ev){
@@ -1166,6 +1240,7 @@ function composerAudienceBullet(ev){
 function composerSpecializationBullet(ev){
   const sc=ev&&ev.specializationCell;
   if(!sc||!Number.isFinite(Number(sc.lift_rounded))||!sc.scope_label)return null;
+  if(!metricGate(sc.lift_rounded,"specialization",{scope:sc.scope,platform:ev.platform}).ok)return null;
   const name=platformDisplayName(ev.label||ev.platform);
   return { text:`${sc.scope_label} make up around ${sc.lift_rounded} times the share of ${platformPossessive(name)} sales that they do of the rest of the market we track over the past 180 days.`, provenance:`specialization(${sc.scope},${sc.lift_rounded}x)` };
 }
@@ -1174,6 +1249,7 @@ function composerSpecializationBullet(ev){
 function composerSpecialistHeadline(ev){
   const sc=ev&&ev.specializationCell;
   if(!sc||!Number.isFinite(Number(sc.lift_rounded))||!sc.scope_label)return null;
+  if(!metricGate(sc.lift_rounded,"specialization",{scope:sc.scope,platform:ev.platform}).ok)return null;
   const name=platformDisplayName(ev.label||ev.platform);
   return { text:`${name} specializes in ${sc.scope_label}: they make up around ${sc.lift_rounded} times the share of its sales that they do of the rest of the market we track over the past 180 days.`, provenance:`specialistPick(${sc.scope},${sc.lift_rounded}x)` };
 }
@@ -1346,7 +1422,7 @@ function composeCard(vehicle,route,opts={}){
     headline=composerSpeedPreferenceHeadline(vehicle,ev);
   }else if(opts.isPick){
     const p=ev.pricePremium;
-    if(p&&(p.type==="market_dominance"||(p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10))){
+    if(premiumIsPlausible(p)){
       headline=composerDeltaHeadline(vehicle,ev);
     }else if(p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)&&Math.abs(p.percent)<10){
       // Similarity is a SMALL spread only. A large negative delta means this
@@ -1362,7 +1438,7 @@ function composeCard(vehicle,route,opts={}){
     // (market_dominance) states its concentration finding; otherwise the honest
     // existence line.
     const p=ev.pricePremium;
-    if(p&&(p.type==="market_dominance"||(p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10))){
+    if(premiumIsPlausible(p)){
       headline=composerDeltaHeadline(vehicle,ev);
     }else if(Number(ev.evidenceSales||0)>0){
       // Landed-scope aware: the requested year appears only at an exact-year rung (3.5).
@@ -1373,6 +1449,10 @@ function composeCard(vehicle,route,opts={}){
       headline=null;
     }
   }
+  // Safety net: a pick card must never be headless. If a gated template (an
+  // implausible specialist lift, an absent scope) returned null, fall to the
+  // honest cascade so the pick always states its landed-rung finding.
+  if(!headline&&opts.isPick&&!unverified){ headline=composerCascadeHeadline(vehicle,ev,opts,landedScope); }
   const branch4=opts.isPick&&opts.routingReason==="speed_unknown";
   const bullets=[];
   if(!unverified){ const wk=composerWeekdayBullet(vehicle,ev); if(wk)bullets.push(wk); }

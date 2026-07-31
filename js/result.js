@@ -373,6 +373,8 @@ async function showSellRecommendation(){
       routeFitFacts:facts
     };
   });
+  // Ford GT round: the weekday bullet renders on at most ONE card per result.
+  if(typeof dedupeWeekdayAcrossCards==="function")dedupeWeekdayAcrossCards(routeSellOptions);
 
   const powerSellerOption=leadWithPartner?{
       key:"specialist",

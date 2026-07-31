@@ -25,7 +25,15 @@ export const LINT_RULES = [
   { id: "sales-count", re: /\b\d{1,3}\s+(?:comparable|comparables?|comps?|records?|results?)\b/i, msg: "sample-size count (sales/comps/records/results/listings) is banned in every Sam surface; use qualitative confidence only (Fix 1/5)" },
 ];
 // A weekday claim must name its scope (car/generation/make) AND the window.
+// (Ford GT round) A weekday PERCENTAGE must be divisible by 5 (display stability)
+// and inside the plausibility band [5,40] (a 1049% figure is a pollution artifact).
 export function lintWeekday(line) {
+  const pctMatch = line.match(/around (\d+)% above other days/i);
+  if (pctMatch) {
+    const pct = Number(pctMatch[1]);
+    if (pct % 5 !== 0) return `weekday percentage ${pct}% not divisible by 5`;
+    if (pct < 5 || pct > 40) return `weekday percentage ${pct}% outside the plausibility band [5,40]`;
+  }
   if (!/closed strongest on [A-Z]/i.test(line)) return null;
   const hasScope = /(as a whole|[A-Za-z0-9-]+s have closed strongest|-generation )/i.test(line);
   const hasWindow = /over the past 180 days/i.test(line);
@@ -225,6 +233,29 @@ const liveResultJs = fs.readFileSync("js/result.js", "utf8").split("\n").filter(
 check("layout: 'fee earns its keep' deleted from live copy", !/fee earns its keep/.test(liveResultJs));
 check("layout: PowerSeller 'my personal preference' claim deleted from live copy", !/my personal preference is generally/.test(liveResultJs));
 check("layout: 'If selling yourself' demotion badge deleted from live copy", !/["']If selling yourself["']/.test(liveResultJs));
+
+// ===== Plausibility gate regressions (Ford GT round, July 2026) =====
+sellState.sellDecision = { evidence: { ladder: { landed: { key: "exact_year_model" } } } };
+const gtVeh = { make: "Ford", model: "GT", year: 2006 };
+const mkRoute = ev => ({ label: "bringatrailer", platform: "bringatrailer", speedToList: "slower", marketEvidence: ev });
+// 1. An injected ABSURD weekday (1049%) renders NO weekday bullet.
+globalThis.__weekdayBulletUsed = false;
+const absurdWk = composeCard(gtVeh, mkRoute({ evidenceSales: 8, pricePremium: null, dayAdvantage: { weekday: "Wednesday", liftPercent: 1049, sample: 30, sales: 8, scope: "model", window: 180 } }), { isPick: true, landedScope: "model" });
+check("plausibility: an absurd 1049% weekday renders nothing", !/1049|above other days/i.test(cardText(absurdWk)), cardText(absurdWk));
+check("plausibility: absurd weekday leaves the card lint-clean", lintText(cardText(absurdWk)).length === 0, lintText(cardText(absurdWk)).join(" ; "));
+// 2. A PLAUSIBLE weekday (12%) renders, ROUNDED to the nearest 5 (10%).
+globalThis.__weekdayBulletUsed = false;
+const okWk = composeCard(gtVeh, mkRoute({ evidenceSales: 25, pricePremium: null, dayAdvantage: { weekday: "Friday", liftPercent: 12, sample: 25, sales: 6, scope: "model", window: 180 } }), { isPick: true, landedScope: "model" });
+check("plausibility: a 12% weekday renders rounded to 10% (nearest 5)", /around 10% above other days/.test(cardText(okWk)) && !/around 12%/.test(cardText(okWk)), cardText(okWk));
+check("plausibility: the rounded weekday is lint-clean", lintText(cardText(okWk)).length === 0, lintText(cardText(okWk)).join(" ; "));
+// 3. An injected ABSURD premium (400%) never becomes a delta headline.
+globalThis.__weekdayBulletUsed = false;
+const absurdPrem = composeCard(gtVeh, mkRoute({ evidenceSales: 9, pricePremium: { type: "premium", gateType: "symmetric", percent: 400, platformSales: 9, othersSales: 9, scope: "model", windowDays: 180 } }), { isPick: true, landedScope: "model" });
+check("plausibility: an absurd 400% premium renders no delta headline", !/400%|% higher than/i.test(cardText(absurdPrem)), cardText(absurdPrem));
+// 4. A sane premium (34%) still renders unchanged.
+globalThis.__weekdayBulletUsed = false;
+const okPrem = composeCard({ make: "BMW", model: "M3", year: 2015 }, mkRoute({ evidenceSales: 9, pricePremium: { type: "premium", gateType: "symmetric", percent: 34, platformSales: 9, othersSales: 11, scope: "model", windowDays: 180 } }), { isPick: true, landedScope: "model" });
+check("plausibility: a sane 34% premium still renders (unchanged)", /34% higher than/.test(cardText(okPrem)), cardText(okPrem));
 
 console.log(failures ? `\n${failures} FAILURE(S)` : "\n1D-LINT ALL PASS");
 process.exit(failures ? 1 : 0);
