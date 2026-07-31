@@ -855,11 +855,15 @@ const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsc
   check("non-US AU: Collecting Cars only with approved copy", /Collecting Cars/.test(au) && /350,000\+ members in 100\+ countries/.test(au) && !/Car &(amp;)? Classic/.test(au), au.slice(0, 300));
   check("non-US AU: no involvement choice", !/Want it handled, or run it yourself/.test(au), "choice rendered");
 
-  const us = await runResult("US", "California", "140k", gts);
-  check("US $50k+: involvement choice renders with three chips", /Want it handled, or run it yourself/.test(us) && /Have it handled/.test(us) && /run it myself/.test(us) && /Not sure/.test(us), us.slice(0, 400));
-  handleSellRecommendationFollowup("Not sure");
-  await new Promise(r => setTimeout(r, 100));
-  const usCards = renderedResult();
+  // Layout round (July 2026): step 8 is the SINGLE ask. The post-result
+  // "Want it handled, or run it yourself?" chips are gone; the preference drives
+  // the layout directly. "unsure" => platform-first (platform holds the pick),
+  // PowerSeller block prominent below, no chips.
+  const us = await runResult("US", "California", "140k", gts, { sellerPreference: "unsure" });
+  check("US $50k+: no post-result path-choice chips (step 8 is the single ask)", !/Want it handled, or run it yourself/.test(us), us.slice(0, 300));
+  check("US $50k+ 'unsure': platform holds the pick badge (Sam's pick)", /Sam's pick/.test(us), us.slice(0, 300));
+  if (sellState.partnerReferral?.eligible) check("US $50k+ 'unsure': PowerSeller block renders below, prominent (not quiet)", /Have it handled/.test(us) && !/ps-quiet/.test(us), us.slice(0, 300));
+  const usCards = us;
   check("US: no sample-size counts on platform cards", !/\d+ of \d+ comparable|\d+ sales? in the last \d+|recent vs \d+ earlier|\(\d+ listings\)|versus the prior \d+/.test(usCards), (usCards.match(/[^\n]*\d+ (of|sales?|recent)[^\n]*/) || [""])[0].slice(0, 200));
   // Partner relevance numbers must be the make-scoped query result, verbatim,
   // and the price-band count must be a subset of the make count.

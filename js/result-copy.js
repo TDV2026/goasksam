@@ -701,6 +701,8 @@ function partnerProfileFromReferral(referral){
       relevance:verified.relevance||null
     },
     specialtiesNote:partner.specialties?.notes||"",
+    specialtySegments:partner.specialties?.segments||[],
+    specialtyMakes:partner.specialties?.makes||[],
     referralTerms:partner.referralTerms||"",
     strengths:[],
     platforms:(partner.platforms||[]).map(p=>p.name),
@@ -824,6 +826,50 @@ function samExplainPowerSeller(){
   addMsg("sam","A PowerSeller runs the entire sale for you: prep, photos, listing, buyer questions, paperwork and platform choice. There is a fee, and you approve the big decisions while they do the work.");
 }
 
+// (Layout round, July 2026) The strong "squarely in his lane" claim requires a
+// genuine specialty match with THIS car, not just makeCount>=3. A consignor
+// whose stated lane is air-cooled/vintage does NOT get the strong form for a
+// modern water-cooled car; make-level history earns the weak, data-true form.
+function pluralizeMake(make){
+  const m=String(make||"").trim();
+  if(!m)return "These";
+  if(/([sxz]|ch|sh)$/i.test(m))return `${m}es`;
+  return `${m}s`;
+}
+function partnerSpecialtyText(profile){
+  return [String(profile?.specialtiesNote||""),...(profile?.specialtySegments||[])].join(" ").toLowerCase();
+}
+function carEraMatchesSpecialty(vehicle,profile){
+  const make=String(vehicle?.make||"").toLowerCase();
+  if(!make)return false;
+  const makes=(profile?.specialtyMakes||[]).map(m=>String(m).toLowerCase());
+  if(makes.length&&!makes.includes(make))return false;
+  const spec=partnerSpecialtyText(profile);
+  const year=Number(vehicle?.year)||0;
+  // Air-cooled Porsche: the 911 went water-cooled with the 996 (1999); the 993
+  // was the last air-cooled (1998). A modern Porsche is out of an air-cooled
+  // specialist's lane, so a 2021 992 gets the weak form, not "squarely".
+  if(make==="porsche"&&/air.?cool/.test(spec)){
+    return year>0&&year<=1998;
+  }
+  // A vintage/classic-qualified specialty gates on the car being of that era.
+  if(/\bvintage\b|\bclassic\b|pre-?\d{2,4}/.test(spec)){
+    return year>0&&year<=1990;
+  }
+  // No era qualifier for this make: a listed-make match stands as a lane match.
+  return true;
+}
+// The strong form only when the car genuinely sits in the partner's specialty
+// era; otherwise the honest, data-true weak form. Empty when make history is
+// too thin (the caller falls back to the curated specialty line).
+function laneWhyLine(profile){
+  const rel=profile?.verified?.relevance;
+  if(!(rel&&rel.makeCount>=3))return "";
+  return carEraMatchesSpecialty(sellState.resolvedVehicle,profile)
+    ?`${rel.make} is squarely in his lane.`
+    :`${pluralizeMake(rel.make)} are core to his tracked record.`;
+}
+
 function renderFeaturedPowerSellerProfile(profile,platformFirst,plateHTML){
   if(!profile)return "";
   const firstName=powerSellerFirstName(profile);
@@ -836,9 +882,9 @@ function renderFeaturedPowerSellerProfile(profile,platformFirst,plateHTML){
   // The why-line is the card's hero (locked hierarchy): serif voice, the
   // make-scoped numbers when he genuinely has the make (3+ tracked),
   // otherwise his curated specialty line. Never an invented claim.
-  const rel=v.relevance;
-  const whyLine=(rel&&rel.makeCount>=3)
-    ?`<div class="dossier-why">${escapeHtml(`${rel.make} is squarely in his lane.`)}</div>`
+  const laneText=laneWhyLine(profile);
+  const whyLine=laneText
+    ?`<div class="dossier-why">${escapeHtml(laneText)}</div>`
     :(()=>{
       const specialty=(profile.profileStats||[]).find(l=>/^specializes in/i.test(l.text||""));
       const tail=specialty?String(specialty.text).replace(/^specializes in:?\s*/i,""):"";
@@ -888,10 +934,8 @@ function powerSellerMiniReason(profile){
   const region=profile.region?` ${profile.region}`:"";
   // Car-specific first (locked): the tracked make relevance names THIS car;
   // the curated specialty note (attributed) is the fallback.
-  const rel=profile?.verified?.relevance;
-  const carLine=(rel&&rel.makeCount>=3)
-    ?`A ${cleanCarForCopy()} is squarely in his lane. `
-    :"";
+  const lane=laneWhyLine(profile);
+  const carLine=lane?`${lane} `:"";
   if(profile.note&&!/^I’d ask\b/i.test(profile.note))return `${carLine}${profile.note}`;
   return `${carLine}${firstName} is another good fit${region ? ` in${region}` : ""} if you want help with auction management, buyer questions and deciding where the car should run.`;
 }

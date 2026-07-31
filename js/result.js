@@ -300,8 +300,14 @@ async function showSellRecommendation(){
   const twoRouteMode=hasTwoRouteTradeoff(routeOptions);
   const partnerReferral=decision.partnerReferral||{};
   sellState.partnerReferral=partnerReferral;
-  const hasNamedPowerSellerAdvice=shouldLeadWithPartner(partnerReferral);
-  const powerSellerProfiles=hasNamedPowerSellerAdvice?[partnerProfileFromReferral(partnerReferral)]:[];
+  // The partner block is BUILT whenever the gate genuinely passes (value,
+  // segment, region, active partner - all decided server-side). Where it sits,
+  // and whether it LEADS, is decided by the seller's step-8 preference, never a
+  // post-result re-ask. The pick badge follows the data in every case except
+  // sellerPreference="powerseller", where the howS-forward composition leads.
+  const partnerGatePasses=!!(partnerReferral.eligible&&partnerReferral.partner);
+  const leadWithPartner=partnerGatePasses&&sellState.sellerPreference==="powerseller";
+  const powerSellerProfiles=partnerGatePasses?[partnerProfileFromReferral(partnerReferral)]:[];
   sellState.powerSellerProfiles=powerSellerProfiles;
 
   // Deepest recent market among the cards, used to ground the cascade's
@@ -335,13 +341,16 @@ async function showSellRecommendation(){
       // header). The badge is the single positioning label now; this subtitle is
       // dropped for the alt so it does not render "Worth comparing" a second time.
       type:index===0?"Platform I’d use":"",
-      badge:hasNamedPowerSellerAdvice?(index===0?"If selling yourself":"Also strong here"):(twoRouteMode?(index===0?"Sam's lean":"Also strong here"):(index===0?"Sam's pick":"Also strong here")),
+      // The "If selling yourself" demotion is gone. The pick badge belongs to
+      // the evidence platform unless the PowerSeller leads (powerseller pref),
+      // where the platform reads as the neutral self-run option, not the pick.
+      badge:leadWithPartner?(index===0?"Platform I’d use":"Also strong here"):(twoRouteMode?(index===0?"Sam's lean":"Also strong here"):(index===0?"Sam's pick":"Also strong here")),
       badgeClass:index===0?"top":"alt",
-      cardClass:index===0&&!hasNamedPowerSellerAdvice?"primary-rec":"",
-      // The verdict plate follows the pick (locked): when the PowerSeller
-      // leads, the plate moves to the dossier and this card renders as the
-      // alternative. The DIY ordering re-renders this card with the plate.
-      showPlate:index===0&&!hasNamedPowerSellerAdvice,
+      cardClass:index===0&&!leadWithPartner?"primary-rec":"",
+      // The verdict plate follows the pick (locked): only when the PowerSeller
+      // leads does the platform card drop its plate; in diy/unsure the platform
+      // IS the pick and carries it.
+      showPlate:index===0&&!leadWithPartner,
       actionLabel:index===0?`Submit your car to ${platformLogo({name:routeName}).text}`:`Consider ${routeName}`,
       // 1b: the composer is the ONLY source of card headline + bullets.
       composed:composeCard(sellState.resolvedVehicle,route,{
@@ -365,7 +374,7 @@ async function showSellRecommendation(){
     };
   });
 
-  const powerSellerOption=hasNamedPowerSellerAdvice?{
+  const powerSellerOption=leadWithPartner?{
       key:"specialist",
       name:"People I’d call first",
       type:"PowerSeller conversation",
@@ -373,8 +382,8 @@ async function showSellRecommendation(){
       badgeClass:"specialist",
       cardClass:"specialist-rec primary-rec",
       actionLabel:"Speak to PowerSeller",
-      reason:powerSellerAdviceReason(hasNamedPowerSellerAdvice),
-      evidenceBullets:powerSellerAdviceBullets(hasNamedPowerSellerAdvice),
+      reason:powerSellerAdviceReason(leadWithPartner),
+      evidenceBullets:powerSellerAdviceBullets(leadWithPartner),
       evidenceLine:"",
       stat:"",
       bestFor:"",
@@ -387,7 +396,7 @@ async function showSellRecommendation(){
   // alternative) plus the partner secondary card whenever the $50k+ context
   // holds, gate-closed (suppressed only by a stated DIY preference per
   // rule 10; gate-open renders the dossier choice instead).
-  const partnerSecondary=(!hasNamedPowerSellerAdvice&&partnerReferral.secondary&&partnerReferral.partner&&!sellerWantsToManageSelf())
+  const partnerSecondary=(!partnerGatePasses&&partnerReferral.secondary&&partnerReferral.partner&&!sellerWantsToManageSelf())
     ?partnerProfileFromReferral(partnerReferral)
     :null;
   if(partnerSecondary){
@@ -423,6 +432,16 @@ async function showSellRecommendation(){
         <div class="vp-name">${escapeHtml(option.name)}</div>
         <div class="vp-hairline"></div>
         <div class="vp-vehicle-row"><span class="label-mono">${numify(`${carDisplayLabel("Car")} · ${[sellState.state,sellState.region].filter(Boolean)[0]||"US"}`)}</span>${windowLabel?`<span class="label-mono">${numify(`Data: ${windowLabel}`)}</span>`:""}</div>
+      </div>`;
+  // Track-record chrome for the PowerSeller dossier: visually distinct from the
+  // market Data plate (it is a career record, rule 14, NOT a 180-day market
+  // window). No "Sam's pick", no "Data: ..." market row: it reads "{Name}'s
+  // track record" and never borrows the market plate's meaning.
+  const trackRecordPlate=profile=>`<div class="verdict-plate track-record">
+        <div class="vp-row1"><span class="label-mono">${escapeHtml(powerSellerFirstName(profile))}'s track record</span><span class="num label-mono">${escapeHtml(verdictRefCode)}</span></div>
+        <div class="vp-name">${escapeHtml(profile.displayName||profile.name)}</div>
+        <div class="vp-hairline"></div>
+        <div class="vp-vehicle-row"><span class="label-mono">Auction consignor · career to date</span></div>
       </div>`;
   const renderOptionCard=option=>{
     const isPrimary=!!option.showPlate;
@@ -506,45 +525,40 @@ async function showSellRecommendation(){
   };
 
   const featuredPowerSeller=powerSellerProfiles[0]||null;
-  const secondaryPowerSellers=[];
   const featuredPowerSellerName=featuredPowerSeller?powerSellerFirstName(featuredPowerSeller):"";
-  // Two copy variants: the intro and badge reference where the platform pick
-  // sits, so the section leading the layout reads differently from the section
-  // rendered second (after a DIY answer or a price-divergence flag).
-  // The verdict plate goes to whichever section leads (locked): handled
-  // order crowns the PowerSeller dossier, DIY order crowns the platform card.
-  const buildPowerSellerHTML=platformFirst=>featuredPowerSeller?`
-    <div class="sell-section-label">Have it handled</div>
-    <div class="sell-section-note">${platformFirst
-      ?`If you'd rather have it handled: you do pay a fee, but a good PowerSeller takes on everything, prep, photos, listing, buyer questions, paperwork and platform choice, and in most cases the fee earns its keep. ${escapeHtml(featuredPowerSellerName)} is who I'd call. The platform pick above is the place to start if you're running it yourself.`
-      :`Honestly? At this level my personal preference is generally a good PowerSeller. You do pay a fee, but a good one handles everything: prep, photos, listing, buyer questions, paperwork and platform choice. In most cases the fee earns its keep. ${escapeHtml(featuredPowerSellerName)} is who I'd call. If you'd rather run it yourself, the platform pick is right below.`}</div>
-    ${renderFeaturedPowerSellerProfile(featuredPowerSeller,platformFirst,platformFirst?null:verdictPlate({name:featuredPowerSeller.displayName||featuredPowerSeller.name},"All-time"))}
-  `:"";
-  const powerSellerHTML=buildPowerSellerHTML(false);
-  const powerSellerSecondHTML=buildPowerSellerHTML(true);
+  // Warm, non-asserting handoff copy. The old own-voice value claims ("the fee
+  // earns its keep", "my personal preference is generally a good PowerSeller")
+  // are deleted: no unbacked claim about fee worth. We say what a PowerSeller
+  // does and who I'd call, nothing more.
+  const handledIntro=featuredPowerSeller
+    ?`If you'd rather hand the whole thing to someone, ${escapeHtml(featuredPowerSellerName)} is who I'd call. He takes on the entire sale: prep, photos, listing, buyer questions, paperwork and platform choice.`
+    :"";
+  // The PowerSeller block, positioned by the seller's step-8 preference (no
+  // post-result re-ask). "lead" carries the track-record plate and heads the
+  // layout; below the platform it is an offer, "prominent" for unsure, "quiet"
+  // for diy. renderFeaturedPowerSellerProfile takes (profile, notLeading, plate).
+  const powerSellerSection=mode=>{
+    if(!featuredPowerSeller)return "";
+    const lead=mode==="lead";
+    const quiet=mode==="quiet";
+    const plate=lead?trackRecordPlate(featuredPowerSeller):null;
+    return `<div class="sell-section-label${quiet?" ps-quiet":""}" style="margin-top:${lead?0:14}px">Have it handled</div>
+      <div class="sell-section-note${quiet?" ps-quiet":""}">${handledIntro}${lead?" The platform below is where to start if you'd rather run it yourself.":""}</div>
+      ${renderFeaturedPowerSellerProfile(featuredPowerSeller,!lead,plate)}`;
+  };
+
   const platformOptions=sellState.sellOptions.filter(option=>option.key!=="specialist");
   const primaryPlatform=platformOptions[0]||null;
-  const secondaryPlatforms=powerSellerHTML?[]:platformOptions.slice(1,2);
-  const diySecondaryLine=(!powerSellerHTML&&sellState.partnerReferral?.eligible&&sellerWantsToManageSelf())
+  // An alternative platform card appears only when no PowerSeller block is
+  // competing for attention, keeping the layout to one clear axis.
+  const secondaryPlatforms=featuredPowerSeller?[]:platformOptions.slice(1,2);
+  const diySecondaryLine=(!featuredPowerSeller&&sellState.partnerReferral?.eligible&&sellerWantsToManageSelf())
     ?`<div class="sell-section-note" style="margin-top:10px">You said you’d rather run it yourself, so that’s the plan. If you’d rather have someone handle the whole sale, I know who I’d call. Just ask.</div>`
     :"";
-  const platformCardsHTML=primaryPlatform?(powerSellerHTML?`
-    <div class="sell-section-label" style="margin-top:12px">Run it yourself</div>
-    <div class="sell-rec-grid">${renderOptionCard(primaryPlatform)}</div>
-  `:`
-    <div class="sell-rec-grid">${renderOptionCard(primaryPlatform)}${secondaryPlatforms.map(renderOptionCard).join("")}</div>
-    ${partnerSecondary?`<div class="sell-section-note" style="margin-top:12px">${escapeHtml(powerSellerIntroLine())}</div>${renderMiniPowerSellerProfile(partnerSecondary,"Also worth considering")}`:""}
-    ${diySecondaryLine}
-  `):"";
-  // DIY ordering: the platform IS the pick, so its card carries the plate.
-  const platformCardsPlatedHTML=(primaryPlatform&&powerSellerHTML)?`
-    <div class="sell-section-label" style="margin-top:12px">Run it yourself</div>
-    <div class="sell-rec-grid">${renderOptionCard({...primaryPlatform,showPlate:true,cardClass:"primary-rec"})}</div>
-  `:platformCardsHTML;
-
-  // Price-gap paragraphs are deleted (locked): variant spread within a model
-  // year makes a single average false precision, and comparing the seller's
-  // ask to it reads as doubt. Nothing renders about the ask vs comps.
+  const platformGrid=primaryPlatform
+    ?`<div class="sell-rec-grid">${renderOptionCard(primaryPlatform)}${secondaryPlatforms.map(renderOptionCard).join("")}</div>`
+    :"";
+  const noFeatureExtras=`${partnerSecondary?`<div class="sell-section-note" style="margin-top:12px">${escapeHtml(powerSellerIntroLine())}</div>${renderMiniPowerSellerProfile(partnerSecondary,"Also worth considering")}`:""}${diySecondaryLine}`;
 
   // 1b: the header carries only the factual car label. The finding lives in the
   // pick card's composed headline; the old templated title/subtitle are deleted.
@@ -554,28 +568,30 @@ async function showSellRecommendation(){
     </div>`;
   const caveatText=unverifiedModelNote()||adverseConditionCaveat();
   const caveatHTML=caveatText?`<div class="sell-section-note" style="margin-top:10px">${escapeHtml(caveatText)}</div>`:"";
+
+  // LAYOUT BY PREFERENCE (step 8 is the single ask; the double-ask chips are gone).
+  //  powerseller -> PowerSeller-forward: track-record plate leads, platform below.
+  //  diy         -> platform-first (platform holds the pick plate), PowerSeller quiet below.
+  //  unsure      -> platform-first, PowerSeller prominent below; both doors, the click is the choice.
+  let orderedSections;
+  if(leadWithPartner){
+    orderedSections=`${powerSellerSection("lead")}
+      <div class="sell-section-label" style="margin-top:12px">Run it yourself</div>
+      ${platformGrid}`;
+  }else if(featuredPowerSeller){
+    orderedSections=`${platformGrid}${powerSellerSection(sellState.sellerPreference==="diy"?"quiet":"prominent")}`;
+  }else{
+    orderedSections=`${platformGrid}${noFeatureExtras}`;
+  }
+
   // Recommendation closes are declarative (locked): a period, never a
   // question, never an escape hatch.
-  const afterText=powerSellerHTML?"Both are real options and the choice is yours. Pick one, or ask me to compare the tradeoffs.":(secondaryPlatforms.length?"Pick either, or ask me to compare the tradeoffs.":"Ask me anything about the pick, or how I'd run the listing.");
+  const afterText=featuredPowerSeller
+    ?"Both are real options and the choice is yours. Pick one, or ask me to compare the tradeoffs."
+    :(secondaryPlatforms.length?"Pick either, or ask me to compare the tradeoffs.":"Ask me anything about the pick, or how I'd run the listing.");
   sellState.generatedPrimaryName=sellState.sellOptions[0]?.name||null;
   sellState.generatedSecondaryName=sellState.sellOptions[1]?.name||null;
 
-  if(powerSellerHTML&&isUSRegion(sellState.region)&&sellState.sellerPreference!=="powerseller"){
-    // Gate-open, US sellers only: one light choice orders the sections before
-    // anything renders. Skipped when the seller already chose PowerSeller at the
-    // last wizard step (FIX 3) -- we honor that and render PowerSeller-first
-    // below rather than re-asking. Non-US goes straight to the platform result.
-    sellState.pendingResultSections={headerHTML,powerSellerHTML,powerSellerSecondHTML,platformCardsHTML,platformCardsPlatedHTML,caveatHTML,afterText};
-    sellState.awaitingPathChoice=true;
-    sellState.step=12;
-    const row=document.createElement("div");row.className="row sam";
-    row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${headerHTML}<div class="sam-text">Want it handled, or run it yourself?</div>${chipsHTML(["Have it handled","I'll run it myself","Not sure"])}</div></div>`;
-    msgs.appendChild(row);
-    row.scrollIntoView({behavior:"smooth",block:"start"});
-    return;
-  }
-
-  const orderedSections=`${powerSellerHTML}${platformCardsHTML}`;
   // Store the rendered result so an explicit "show the cards again" can re-append
   // it without re-running the analysis (Phase 1c).
   sellState.lastResultHTML=`${headerHTML}${orderedSections}${caveatHTML}`;
@@ -591,44 +607,10 @@ async function showSellRecommendation(){
   row.scrollIntoView({behavior:"smooth",block:"start"});
 }
 
-function renderPendingResultSections(choice){
-  const parts=sellState.pendingResultSections;
-  if(!parts)return;
-  sellState.awaitingPathChoice=false;
-  sellState.pendingResultSections=null;
-  const platformFirst=choice==="diy";
-  const sections=platformFirst?`${parts.platformCardsPlatedHTML}${parts.powerSellerSecondHTML}`:`${parts.powerSellerHTML}${parts.platformCardsHTML}`;
-  const msgs=document.getElementById("msgs");
-  const row=document.createElement("div");row.className="row sam";
-  row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${sections}${parts.caveatHTML}<div class="sam-text after-results">${parts.afterText}</div></div></div>`;
-  msgs.appendChild(row);
-  row.scrollIntoView({behavior:"smooth",block:"start"});
-}
-
 function handleSellRecommendationFollowup(q){
   const lower=q.toLowerCase();
-
-  if(sellState.awaitingPathChoice){
-    if(isQuestionInput(q))return false; // chat answers, choice stays pending
-    if(/handled|someone|help me|have it/i.test(lower)){
-      sellState.involvement="Want someone to handle everything";
-      renderPendingResultSections("handled");
-      return true;
-    }
-    if(/myself|diy|run it|i'?ll run|on my own|self/i.test(lower)||detectIntent(lower)==="negation"){
-      sellState.involvement="I'll manage it myself";
-      renderPendingResultSections("diy");
-      return true;
-    }
-    if(/^not sure$/i.test(lower.trim())||detectIntent(lower)==="refusal"||detectIntent(lower)==="moveOn"){
-      renderPendingResultSections("handled");
-      return true;
-    }
-    sellState.pathChoiceEscalations=(sellState.pathChoiceEscalations||0)+1;
-    if(sellState.pathChoiceEscalations>=2){renderPendingResultSections("handled");return true;}
-    addMsg("sam","Quick one first: want it handled end to end, or run it yourself?","",chipsHTML(["Have it handled","I'll run it myself","Not sure"]));
-    return true;
-  }
+  // The post-result path-choice chips are gone (step 8 is the single ask), so
+  // there is no awaitingPathChoice state to intercept here anymore.
   const options=sellState.sellOptions||[];
   if(sellState.noEvidenceFallback&&handleNoEvidenceFollowup(q))return true;
   if(!options.length&&handleNoEvidenceFollowup(q))return true;

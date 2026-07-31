@@ -211,5 +211,13 @@ check("1d lint: still bans a bare 'RM Sotheby's' reference", lintText("records f
 check("1d lint: still bans a bare 'Gooding' reference", lintText("Gooding sold three of these").some(v=>/removed-house/.test(v)));
 check("1d lint: still bans a bare 'Sotheby's' reference (not Motorsport)", lintText("Sotheby's took this one").some(v=>/removed-house/.test(v)));
 
+// (Layout round, July 2026) The own-voice PowerSeller value claims are deleted
+// from LIVE copy (they may only survive in code comments). Strip full-line
+// comments, then assert the phrases are gone from what can render.
+const liveResultJs = fs.readFileSync("js/result.js", "utf8").split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n");
+check("layout: 'fee earns its keep' deleted from live copy", !/fee earns its keep/.test(liveResultJs));
+check("layout: PowerSeller 'my personal preference' claim deleted from live copy", !/my personal preference is generally/.test(liveResultJs));
+check("layout: 'If selling yourself' demotion badge deleted from live copy", !/["']If selling yourself["']/.test(liveResultJs));
+
 console.log(failures ? `\n${failures} FAILURE(S)` : "\n1D-LINT ALL PASS");
 process.exit(failures ? 1 : 0);
