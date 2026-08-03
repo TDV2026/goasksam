@@ -1,0 +1,4 @@
+# CURTAIN (pre-launch): block indexing until launch day.
+# Delete this Disallow (or replace with an Allow) in the single curtain-removal commit.
+User-agent: *
+Disallow: /

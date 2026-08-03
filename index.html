@@ -6,8 +6,31 @@
 <title>GoAskSam</title>
 <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="styles.css">
+<!-- ===================== CURTAIN (pre-launch holding state) =====================
+     Temporary. Delete this whole block, the #curtain div below, the .curtain*
+     CSS in styles.css, api/crew.js, and the robots.txt Disallow in ONE commit at
+     launch. Presentation-level only: it hides the app with CSS and never touches
+     auth, the API, or anything 2A built. Unlock: /?crew=<CURTAIN_CREW_CODE>. -->
+<meta name="robots" content="noindex, nofollow">
+<style>.curtained #rail,.curtained #main,.curtained #hp-hamburger,.curtained #rail-scrim{display:none!important}#curtain{display:none}.curtained #curtain{display:flex}</style>
+<script>
+(function(){try{
+  if(document.cookie.indexOf("gas_crew=ok")!==-1)return;                                 // unlocked device: no curtain
+  var m=/[?&]crew=([^&]*)/.exec(location.search||"");
+  if(m){location.replace("/api/crew?code="+encodeURIComponent(m[1])+"&to="+encodeURIComponent(location.pathname||"/"));return;}
+  document.documentElement.className+=" curtained";                                      // CSS hides the app, shows #curtain
+}catch(e){}})();
+</script>
+<!-- ===================== /CURTAIN ===================== -->
 </head>
 <body class="home">
+<!-- CURTAIN -->
+<div id="curtain"><div class="curtain-card">
+  <div class="curtain-mark">GoAskSam</div>
+  <div class="curtain-line">Launching soon for Daily Vroom readers.</div>
+  <a class="curtain-sub" href="https://thedailyvroom.com/subscribe">Not a reader yet? Join free &rarr;</a>
+</div></div>
+<!-- /CURTAIN -->
 
 <button id="hp-hamburger" aria-label="Menu" onclick="toggleRail()">☰</button>
 <div id="rail-scrim" onclick="toggleRail(false)"></div>
