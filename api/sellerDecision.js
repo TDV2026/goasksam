@@ -1969,11 +1969,17 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
     await logFunnel("second_search_attempt", { anon_session_id: anonSessionId }, supabaseUrl, supabaseKey);
     return { block: { status: "account_required" } };
   }
-  // FLAG 1: anonymous may not spend the auth-reserved top of the daily OCD budget.
-  const reserved = await appConfigInt("ocd_auth_reserved_requests", 8, supabaseUrl, supabaseKey);
-  const usedToday = await ocdRequestsToday(supabaseUrl, supabaseKey);
-  if (usedToday !== null && usedToday >= (OCD_DAILY_REQUEST_BUDGET - reserved)) {
-    return { block: { status: "capacity" } };
+  // FLAG 1: anonymous may not spend the auth-reserved top of the daily OCD
+  // budget. But a cache-hit search costs nothing, so only floor anonymous when a
+  // FRESH metered fetch would actually be needed (cache miss). This keeps the
+  // free-first path open on a busy day for the many cars already in the store.
+  const cacheHit = await readMarketFetchCache(vehicle, supabaseUrl, supabaseKey);
+  if (!cacheHit) {
+    const reserved = await appConfigInt("ocd_auth_reserved_requests", 8, supabaseUrl, supabaseKey);
+    const usedToday = await ocdRequestsToday(supabaseUrl, supabaseKey);
+    if (usedToday !== null && usedToday >= (OCD_DAILY_REQUEST_BUDGET - reserved)) {
+      return { block: { status: "capacity" } };
+    }
   }
   return { ok: true, anonFirstFree: true, anonSessionId };
 }
