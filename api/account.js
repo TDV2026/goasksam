@@ -56,6 +56,7 @@ function publicAccount(row) {
     status: "ok",
     email: row.email,
     tier: row.tier || "free",
+    tierCheckedAt: row.tier_checked_at || null,   // null => Beehiiv check unknown/failed; set => a definite answer
     bonusSearches: row.bonus_searches || 0,
     marketingConsent: !!row.marketing_consent
   };
