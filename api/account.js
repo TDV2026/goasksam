@@ -23,6 +23,31 @@ function cors(res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 }
 
+async function supabaseRpc(fn, args, url, key) {
+  try {
+    const r = await fetch(`${url}/rest/v1/rpc/${fn}`, {
+      method: "POST", headers: { "Content-Type": "application/json", apikey: key, Authorization: `Bearer ${key}` },
+      body: JSON.stringify(args)
+    });
+    if (!r.ok) return null;
+    const t = await r.text(); return t ? JSON.parse(t) : null;
+  } catch { return null; }
+}
+// 11a: attach a pending anonymous result to this account. Never re-runs; a no-op
+// when the id is missing, expired, or already claimed.
+async function claimResultIfAny(req, env, userId) {
+  const id = req.body && typeof req.body.claimResultId === "string" ? req.body.claimResultId : null;
+  if (!id) return;
+  try { await supabaseRpc("claim_result", { p_result_id: id, p_account_id: userId }, env.supabaseUrl, env.supabaseKey); } catch {}
+}
+async function funnel(env, event, fields) {
+  try {
+    await supabaseInsert("funnel_events", [{
+      event, anon_session_id: fields.anon_session_id || null, account_id: fields.account_id || null, dedup_key: fields.dedup_key || null
+    }], env.supabaseUrl, env.supabaseKey, "resolution=ignore-duplicates,return=minimal", fields.dedup_key ? "?on_conflict=event,dedup_key" : "");
+  } catch {}
+}
+
 function publicAccount(row) {
   return {
     status: "ok",
@@ -67,6 +92,8 @@ export default async function handler(req, res) {
       }], env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=representation", "?on_conflict=user_id");
       const created = (insert.rows && insert.rows[0]) ||
         { email: auth.email, tier: checked || "free", bonus_searches: 0, marketing_consent: consent === true };
+      await funnel(env, "signup_completed", { account_id: auth.userId, dedup_key: `signup:${auth.userId}` });
+      await claimResultIfAny(req, env, auth.userId);
       res.status(200).json(publicAccount(created));
       return;
     }
@@ -89,6 +116,7 @@ export default async function handler(req, res) {
         tier_checked_at: row.tier_checked_at, created_at: row.created_at
       }], env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=representation", "?on_conflict=user_id");
     }
+    await claimResultIfAny(req, env, auth.userId);
     res.status(200).json(publicAccount(row));
   } catch (err) {
     res.status(500).json({ error: err.message });

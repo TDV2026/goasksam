@@ -55,7 +55,8 @@ async function showSellRecommendation(){
           involvement:sellState.involvement,
           sellerPreference:sellState.sellerPreference,
           notes:sellState.notes
-        }
+        },
+        anonSessionId:(typeof gasAnonId==="function"?gasAnonId():null)
       })
     });
     decisionData=await res.json();
@@ -90,7 +91,19 @@ async function showSellRecommendation(){
     return;
   }
 
+  // 2C: the account gate + limit statuses. Byte-identical for a normal decision;
+  // these branches only fire for the new gate responses, rendered by auth.js.
+  if(decisionData&&/^(account_required|limit_reached|auth_required|capacity)$/.test(decisionData.status||"")){
+    if(typeof gateRenderStatus==="function")gateRenderStatus(decisionData);
+    const b=document.getElementById("btn");if(b)b.disabled=false;
+    return;
+  }
+
   sellState.sellDecision=decisionData;
+  // 2C: stash the anonymous free result id for claim-on-sign-in (11a), and drop
+  // the subtle "first one's on me" line under the free result (item 2).
+  if(decisionData.resultId&&typeof gasStashResultId==="function")gasStashResultId(decisionData.resultId,!!decisionData.firstFree);
+  if(decisionData.firstFree&&typeof gateAppendFirstFreeLine==="function")setTimeout(()=>{try{gateAppendFirstFreeLine();}catch(e){}},0);
   const decision=decisionData.decision||{};
   const practicalFallback=regionalNoEvidenceFallback();
   const routeFit=decision.routeFit||{};

@@ -1,6 +1,7 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
+import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
 import { findGeneration, generationModelToken } from "../lib/generations.js";
 import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
@@ -1897,6 +1898,86 @@ async function persistClassifications(records, classifications, idLookup, supaba
   return result;
 }
 
+// ===================== 2C: account gate, monthly limits, saved results, funnel =====================
+function parseCookies(header) {
+  const out = {};
+  String(header || "").split(";").forEach(part => {
+    const i = part.indexOf("=");
+    if (i > 0) { try { out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim()); } catch (e) {} }
+  });
+  return out;
+}
+async function supabaseRpc(fn, args, supabaseUrl, supabaseKey) {
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/rpc/${fn}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
+      body: JSON.stringify(args)
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
+  } catch { return null; }
+}
+async function appConfigInt(key, fallback, supabaseUrl, supabaseKey) {
+  const rows = await supabaseSelect({ supabaseUrl, supabaseKey }, `app_config?key=eq.${encodeURIComponent(key)}&select=value&limit=1`);
+  const n = Number(rows && rows[0] && rows[0].value);
+  return Number.isFinite(n) ? n : fallback;
+}
+async function logFunnel(event, fields, supabaseUrl, supabaseKey) {
+  try {
+    await supabaseInsert("funnel_events", [{
+      event,
+      anon_session_id: fields.anon_session_id || null,
+      account_id: fields.account_id || null,
+      dedup_key: fields.dedup_key || null
+    }], supabaseUrl, supabaseKey, "resolution=ignore-duplicates,return=minimal", fields.dedup_key ? "?on_conflict=event,dedup_key" : "");
+  } catch {}
+}
+function coarseMonthKey() {
+  const d = new Date(Date.now() - 5 * 3600 * 1000); // rough US-eastern shift; dedup tolerance only
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+async function persistSavedResult(accountId, payload, supabaseUrl, supabaseKey) {
+  try {
+    const ins = await supabaseInsert("saved_results", [{ account_id: accountId || null, payload }],
+      supabaseUrl, supabaseKey, "return=representation", "");
+    return (ins.rows && ins.rows[0] && ins.rows[0].id) || null;
+  } catch { return null; }
+}
+// Returns { block } to short-circuit with that JSON, or { ok, reservationEventId,
+// accountId, anonFirstFree, anonSessionId } to proceed. Internal callers skip this.
+async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
+  const anonSessionId = typeof req.body?.anonSessionId === "string" ? req.body.anonSessionId.slice(0, 64) : null;
+  const authHeader = req.headers.authorization;
+  if (authHeader) {
+    const auth = await validateBearer(authHeader);
+    if (!auth) return { block: { status: "auth_required" } };
+    const r = await supabaseRpc("reserve_search", {
+      p_account_id: auth.userId, p_make: vehicle.make || null, p_model: vehicle.model || null, p_year: vehicle.year || null
+    }, supabaseUrl, supabaseKey);
+    const row = Array.isArray(r) ? r[0] : r;
+    if (!row || !row.allowed) {
+      await logFunnel("limit_hit", { account_id: auth.userId, dedup_key: `limit:${auth.userId}:${coarseMonthKey()}` }, supabaseUrl, supabaseKey);
+      return { block: { status: "limit_reached", tier: (row && row.tier) || "free" } };
+    }
+    return { ok: true, reservationEventId: row.event_id, accountId: auth.userId, anonSessionId };
+  }
+  // Anonymous free-first-search.
+  const cookies = parseCookies(req.headers.cookie);
+  if (cookies.gas_free_used) {
+    await logFunnel("second_search_attempt", { anon_session_id: anonSessionId }, supabaseUrl, supabaseKey);
+    return { block: { status: "account_required" } };
+  }
+  // FLAG 1: anonymous may not spend the auth-reserved top of the daily OCD budget.
+  const reserved = await appConfigInt("ocd_auth_reserved_requests", 8, supabaseUrl, supabaseKey);
+  const usedToday = await ocdRequestsToday(supabaseUrl, supabaseKey);
+  if (usedToday !== null && usedToday >= (OCD_DAILY_REQUEST_BUDGET - reserved)) {
+    return { block: { status: "capacity" } };
+  }
+  return { ok: true, anonFirstFree: true, anonSessionId };
+}
+
 export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -1911,6 +1992,9 @@ export default async function handler(req, res) {
   const sellerCriteria = getSellerCriteria(car);
   const rawSearch = req.body?.car?.raw || req.body?.car?.vehicle?.raw || req.body?.car || req.body?.search || req.body?.query;
   if (!rawSearch && !car.vehicle) return res.status(400).json({ error: "Missing car/search field" });
+
+  // 2C: an authenticated reservation to refund if the search fails server-side.
+  let reservationEventId = null;
 
   try {
     // The frontend validates with vehicleIdentity and passes the resolved
@@ -1955,6 +2039,19 @@ export default async function handler(req, res) {
         ladder: buildLadder(vehicle, generation).map(({ rung, key, label, threshold, yearMin, yearMax, maxYearGap }) =>
           ({ rung, key, label, threshold, yearMin: yearMin ?? null, yearMax: yearMax ?? null, maxYearGap: maxYearGap ?? null }))
       });
+    }
+
+    // 2C: account gate + monthly limits. Internal callers (warm, bypassCache;
+    // ladderPreview already returned) run unenforced and never write gate state.
+    const internalCall = req.body?.warm === true || req.body?.bypassCache === true;
+    let searchAccountId = null, anonFirstFree = false, anonSessionId = null;
+    if (!internalCall) {
+      const gate = await computeSearchGate(req, vehicle, supabaseUrl, supabaseKey);
+      if (gate.block) return res.status(200).json(gate.block);
+      reservationEventId = gate.reservationEventId || null;
+      searchAccountId = gate.accountId || null;
+      anonFirstFree = !!gate.anonFirstFree;
+      anonSessionId = gate.anonSessionId || null;
     }
 
     let fetchResult = null;
@@ -2121,7 +2218,7 @@ export default async function handler(req, res) {
       }
     }, supabaseUrl, supabaseKey);
 
-    return res.status(200).json({
+    const responsePayload = {
       status: "decision_ready",
       vehicle,
       sellerCriteria,
@@ -2168,8 +2265,26 @@ export default async function handler(req, res) {
         classifications: classificationPersistence,
         usage: usageLog
       }
-    });
+    };
+
+    // 2C finalize: persist the result (FLAG 2 - every signed-in result; the
+    // anonymous free result with account_id null for claim), fire rec_shown
+    // (deduped by the result id, 11e), and mark the free-search cookie.
+    if (!internalCall) {
+      const savedId = await persistSavedResult(searchAccountId, responsePayload, supabaseUrl, supabaseKey);
+      if (savedId) {
+        responsePayload.resultId = savedId;
+        await logFunnel("rec_shown", { account_id: searchAccountId, anon_session_id: anonSessionId, dedup_key: `rec:${savedId}` }, supabaseUrl, supabaseKey);
+      }
+      if (anonFirstFree) {
+        responsePayload.firstFree = true;
+        res.setHeader("Set-Cookie", "gas_free_used=1; Max-Age=31536000; Path=/; SameSite=Lax; Secure");
+      }
+    }
+    return res.status(200).json(responsePayload);
   } catch (err) {
+    // 2C: a server-side failure consumes nothing - refund the reservation (11b).
+    if (reservationEventId) { try { await supabaseRpc("release_search", { p_event_id: reservationEventId }, supabaseUrl, supabaseKey); } catch (e) {} }
     return res.status(500).json({ error: err.message });
   }
 }

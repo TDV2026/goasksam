@@ -88,14 +88,20 @@ async function authSignOut() {
 async function authEnsureAccount() {
   const token = await authValidToken(); if (!token) return null;
   const consent = authPopConsent();
+  // 11a: claim the anonymous free result onto the new account (attach, never rerun).
+  let claimId = null; try { claimId = localStorage.getItem("gas_free_result"); } catch (e) {}
+  const body = {};
+  if (consent !== undefined) body.marketingConsent = consent;
+  if (claimId) body.claimResultId = claimId;
   try {
     const res = await fetch(authApiPath("/api/account"), {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(consent === undefined ? {} : { marketingConsent: consent })
+      body: JSON.stringify(body)
     });
     if (!res.ok) { if (res.status === 401) authSetSession(null); return null; }
     const acc = await res.json();
     __authAccount = { email: acc.email, tier: acc.tier, marketingConsent: acc.marketingConsent };
+    try { if (claimId) localStorage.removeItem("gas_free_result"); } catch (e) {}
     return __authAccount;
   } catch (e) { return null; }
 }
@@ -200,10 +206,72 @@ async function authBoot() {
   const returned = authHandleCallback();
   authRenderTopbar();               // immediate paint from stored session
   if (authIsSignedIn()) {
-    await authEnsureAccount();       // create/refresh the account row (+ apply consent)
+    await authEnsureAccount();       // create/refresh the account row (+ apply consent, claim result)
     authRenderTopbar();              // repaint with the resolved email/tier
   }
-  if (returned) authCloseModal();    // if we just came back from a door, drop any stale modal
+  if (returned) { authCloseModal(); gateResumePendingSearch(); }  // 11d: resume the search that hit the gate
+}
+
+// ===================== 2C: the account gate (client) =====================
+// Auth WRAPS the product: gate cards render into #msgs, none of the wizard,
+// #inp/#btn, or send() is touched. sellerDecision returns the gate statuses.
+function gasAnonId() {
+  try { let id = localStorage.getItem("gas_anon"); if (!id) { id = "a_" + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem("gas_anon", id); } return id; } catch (e) { return null; }
+}
+function gasStashResultId(id, isFirstFree) { try { if (isFirstFree && id) localStorage.setItem("gas_free_result", id); } catch (e) {} }
+function gateAppendCard(html) {
+  const msgs = document.getElementById("msgs"); if (!msgs) return;
+  const row = document.createElement("div"); row.className = "row sam";
+  row.innerHTML = `<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${html}</div></div>`;
+  msgs.appendChild(row); try { row.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
+}
+// The subtle "first one's on me" line under the free result (amendment item 2).
+function gateAppendFirstFreeLine() {
+  gateAppendCard(`<div class="sam-text gate-firstfree">Your first one's on me. <button class="gate-inline-link" onclick="gateCreateAccount()">Create a free account</button> for more searches and to keep your results.</div>`);
+}
+// Render the calm Sam-voiced card for each gate status (2D refines the copy).
+function gateRenderStatus(data) {
+  const status = data && data.status;
+  if (status === "account_required") {
+    gateAppendCard(`<div class="sam-text">That first search was on me. Create a free account to keep going, and I'll hold onto your results.</div><div class="sell-rec-actions"><button class="primary" onclick="gateCreateAccount()">Create a free account</button></div>`);
+  } else if (status === "limit_reached") {
+    if ((data.tier || "free") === "tdv") {
+      gateAppendCard(`<div class="sam-text">You've used this month's searches. I'll be here next month with a fresh set.</div>`);
+    } else {
+      gateAppendCard(`<div class="sam-text">That's your searches for this month. Daily Vroom readers get more, free. <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">Join free</a>.</div><div class="sam-text gate-sub">Already a reader? <button class="gate-inline-link" onclick="openSignInCard('Sign in with the email you subscribed with.')">sign in with the email you subscribed with</button>.</div>`);
+    }
+  } else if (status === "auth_required") {
+    gateAppendCard(`<div class="sam-text">I lost your session. Sign in again and we'll pick up where we left off.</div><div class="sell-rec-actions"><button class="primary" onclick="openSignInCard()">Sign in</button></div>`);
+  } else if (status === "capacity") {
+    gateAppendCard(`<div class="sam-text">I'm flat out right now. Give it a few minutes, or create a free account and I'll get to your search.</div><div class="sell-rec-actions"><button class="primary" onclick="gateCreateAccount()">Create a free account</button></div>`);
+  }
+}
+function gateCreateAccount() { gateStashPendingSearch(); openSignInCard("Create a free account to keep going. I'll keep your results."); }
+// 11d: stash the search that hit the gate so it resumes after sign-in.
+function gateStashPendingSearch() {
+  try {
+    if (typeof sellState === "undefined" || !sellState.resolvedVehicle) return;
+    const snap = {
+      resolvedVehicle: sellState.resolvedVehicle, carName: sellState.carName,
+      vehicleIdentityValidated: sellState.vehicleIdentityValidated, vehicleDetailSkipped: sellState.vehicleDetailSkipped,
+      region: sellState.region, state: sellState.state, price: sellState.price, timeline: sellState.timeline,
+      mileage: sellState.mileage, condition: sellState.condition, records: sellState.records, title: sellState.title,
+      notes: sellState.notes, sellerPreference: sellState.sellerPreference, involvement: sellState.involvement
+    };
+    localStorage.setItem("gas_pending_search", JSON.stringify(snap));
+  } catch (e) {}
+}
+function gateResumePendingSearch() {
+  try {
+    const raw = localStorage.getItem("gas_pending_search"); if (!raw) return false;
+    localStorage.removeItem("gas_pending_search");
+    const snap = JSON.parse(raw); if (!snap || !snap.resolvedVehicle || typeof sellState === "undefined") return false;
+    Object.assign(sellState, snap); sellState.active = true;
+    if (typeof hideHero === "function") hideHero();
+    if (typeof enterChatState === "function") enterChatState();
+    if (typeof showSellRecommendation === "function") { showSellRecommendation(); return true; }
+  } catch (e) {}
+  return false;
 }
 if (typeof document !== "undefined" && document.addEventListener) {
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", authBoot);
