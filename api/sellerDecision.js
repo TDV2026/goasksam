@@ -1961,7 +1961,8 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
       await logFunnel("limit_hit", { user_id: auth.userId, dedup_key: `limit:${auth.userId}:${coarseMonthKey()}` }, supabaseUrl, supabaseKey);
       return { block: { status: "limit_reached", tier: (row && row.tier) || "free" } };
     }
-    return { ok: true, reservationEventId: row.event_id, accountId: auth.userId, anonSessionId };
+    return { ok: true, reservationEventId: row.event_id, accountId: auth.userId, anonSessionId,
+      quota: { used: row.used, limit: row.limit, tier: row.tier } };
   }
   // Anonymous free-first-search.
   const cookies = parseCookies(req.headers.cookie);
@@ -2050,7 +2051,7 @@ export default async function handler(req, res) {
     // 2C: account gate + monthly limits. Internal callers (warm, bypassCache;
     // ladderPreview already returned) run unenforced and never write gate state.
     const internalCall = req.body?.warm === true || req.body?.bypassCache === true;
-    let searchAccountId = null, anonFirstFree = false, anonSessionId = null;
+    let searchAccountId = null, anonFirstFree = false, anonSessionId = null, searchQuota = null;
     if (!internalCall) {
       const gate = await computeSearchGate(req, vehicle, supabaseUrl, supabaseKey);
       if (gate.block) return res.status(200).json(gate.block);
@@ -2058,6 +2059,7 @@ export default async function handler(req, res) {
       searchAccountId = gate.accountId || null;
       anonFirstFree = !!gate.anonFirstFree;
       anonSessionId = gate.anonSessionId || null;
+      searchQuota = gate.quota || null;
     }
 
     let fetchResult = null;
@@ -2277,6 +2279,7 @@ export default async function handler(req, res) {
     // anonymous free result with user_id null for claim), fire rec_shown
     // (deduped by the result id, 11e), and mark the free-search cookie.
     if (!internalCall) {
+      if (searchQuota) responsePayload.quota = searchQuota;  // authenticated: monthly meter (used/limit/tier)
       const savedId = await persistSavedResult(searchAccountId, responsePayload, supabaseUrl, supabaseKey);
       if (savedId) {
         responsePayload.resultId = savedId;
