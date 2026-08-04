@@ -37,8 +37,11 @@ async function supabaseRpc(fn, args, url, key) {
 // when the id is missing, expired, or already claimed.
 async function claimResultIfAny(req, env, userId) {
   const id = req.body && typeof req.body.claimResultId === "string" ? req.body.claimResultId : null;
-  if (!id) return;
-  try { await supabaseRpc("claim_result", { p_result_id: id, p_user_id: userId }, env.supabaseUrl, env.supabaseKey); } catch {}
+  if (!id) return undefined;
+  try {
+    const r = await supabaseRpc("claim_result", { p_result_id: id, p_user_id: userId }, env.supabaseUrl, env.supabaseKey);
+    return r === true || (Array.isArray(r) && r[0] === true);
+  } catch { return false; }
 }
 async function funnel(env, event, fields) {
   try {
@@ -93,8 +96,9 @@ export default async function handler(req, res) {
       const created = (insert.rows && insert.rows[0]) ||
         { email: auth.email, tier: checked || "free", bonus_searches: 0, marketing_consent: consent === true };
       await funnel(env, "signup_completed", { user_id: auth.userId, dedup_key: `signup:${auth.userId}` });
-      await claimResultIfAny(req, env, auth.userId);
-      res.status(200).json(publicAccount(created));
+      const claimedNew = await claimResultIfAny(req, env, auth.userId);
+      const respNew = publicAccount(created); if (claimedNew !== undefined) respNew.claimed = claimedNew;
+      res.status(200).json(respNew);
       return;
     }
 
@@ -116,8 +120,9 @@ export default async function handler(req, res) {
         tier_checked_at: row.tier_checked_at, created_at: row.created_at
       }], env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=representation", "?on_conflict=user_id");
     }
-    await claimResultIfAny(req, env, auth.userId);
-    res.status(200).json(publicAccount(row));
+    const claimed = await claimResultIfAny(req, env, auth.userId);
+    const resp = publicAccount(row); if (claimed !== undefined) resp.claimed = claimed;
+    res.status(200).json(resp);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
