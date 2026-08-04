@@ -187,6 +187,40 @@ function showSellingPlatforms() {
   renderArticleShell(`<h1>${escapeHtml(LEARN_PLATFORMS.title)}</h1><p>${escapeHtml(LEARN_PLATFORMS.intro)}</p>${body}<p>${escapeHtml(LEARN_PLATFORMS.outro)}</p>`);
 }
 
+// ---- 2E: the hunt door (buyer demand capture) ----
+// Available to every signed-in account. No matching, no results, no timing
+// promise - just capture what they're hunting.
+function showHuntPage() {
+  if (typeof authIsSignedIn === "function" && !authIsSignedIn()) {
+    renderArticleShell(`<h1>Buying?</h1><p>Sam's working on it. Sign in and tell him what you're hunting, and you'll hear from him when it goes live.</p><div><button class="primary hunt-signin" onclick="openSignInCard('Sign in to tell Sam what you\\'re hunting.')">Sign in</button></div>`);
+    return;
+  }
+  renderHuntForm();
+}
+function renderHuntForm() {
+  renderArticleShell(`<h1>Buying?</h1><p>Sam's working on it. Tell him what you're hunting.</p>
+    <textarea id="hunt-text" class="hunt-textarea" rows="4" placeholder="e.g. Clean 1973 911 Carrera RS, driver grade, under $500k"></textarea>
+    <div><button class="primary hunt-submit" onclick="submitHunt()">Tell Sam</button></div>`);
+  const t = document.getElementById("hunt-text"); if (t) { try { t.focus(); } catch (e) {} }
+}
+async function submitHunt() {
+  const el = document.getElementById("hunt-text");
+  const text = String(el && el.value || "").trim();
+  if (!text) { if (el) el.focus(); return; }
+  const btn = document.querySelector(".hunt-submit");
+  if (btn) { btn.disabled = true; btn.textContent = "Sending..."; }
+  try {
+    const r = await fetch(apiPath("/api/hunts"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+    if (r.status === 401) { if (typeof openSignInCard === "function") openSignInCard("Sign in to tell Sam what you're hunting."); if (btn) { btn.disabled = false; btn.textContent = "Tell Sam"; } return; }
+    if (!r.ok) throw new Error("failed");
+    renderArticleShell(`<h1>Noted.</h1><p>You'll hear from me when this goes live. Want to add another? <button class="gate-inline-link" onclick="renderHuntForm()">Tell me about another car</button>.</p>`);
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = "Tell Sam"; }
+    const page = document.querySelector(".hp-article");
+    if (page) { const err = document.createElement("div"); err.className = "hunt-confirm"; err.textContent = "I couldn't save that just now. Try again in a moment."; page.appendChild(err); }
+  }
+}
+
 // ---- boot (browser only; harness-safe) ----
 function bootHomepage() { try { enterHomeState(); } catch (e) {} }
 if (typeof document !== "undefined" && document.body && document.body.classList
