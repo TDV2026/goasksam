@@ -41,10 +41,10 @@ const ctx = "s=q_test&sid=s_testsession&card=pick&year=2006&make=Ford&model=Focu
 // Without the key it is 401 (key configured, none provided) or 500 (key not yet
 // set in Vercel, same as the usage dashboard) - either way, no data is served.
 {
-  const noKey = await fetch(`${BASE}/api/outboundClicks`);
+  const noKey = await fetch(`${BASE}/api/usageDashboard?view=outbound`);
   const noKeyBody = await noKey.text();
   check("read path: serves no data without a key (not public)", [401, 500].includes(noKey.status) && !/<table/i.test(noKeyBody), `status=${noKey.status}`);
-  const wrongKey = await fetch(`${BASE}/api/outboundClicks?key=definitely-wrong-key`);
+  const wrongKey = await fetch(`${BASE}/api/usageDashboard?view=outbound&key=definitely-wrong-key`);
   const wrongBody = await wrongKey.text();
   check("read path: serves no data with a wrong key", [401, 500].includes(wrongKey.status) && !/<table/i.test(wrongBody), `status=${wrongKey.status}`);
 }
