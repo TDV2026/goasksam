@@ -38,12 +38,12 @@ async function supabaseRpc(fn, args, url, key) {
 async function claimResultIfAny(req, env, userId) {
   const id = req.body && typeof req.body.claimResultId === "string" ? req.body.claimResultId : null;
   if (!id) return;
-  try { await supabaseRpc("claim_result", { p_result_id: id, p_account_id: userId }, env.supabaseUrl, env.supabaseKey); } catch {}
+  try { await supabaseRpc("claim_result", { p_result_id: id, p_user_id: userId }, env.supabaseUrl, env.supabaseKey); } catch {}
 }
 async function funnel(env, event, fields) {
   try {
     await supabaseInsert("funnel_events", [{
-      event, anon_session_id: fields.anon_session_id || null, account_id: fields.account_id || null, dedup_key: fields.dedup_key || null
+      event, anon_session_id: fields.anon_session_id || null, user_id: fields.user_id || null, dedup_key: fields.dedup_key || null
     }], env.supabaseUrl, env.supabaseKey, "resolution=ignore-duplicates,return=minimal", fields.dedup_key ? "?on_conflict=event,dedup_key" : "");
   } catch {}
 }
@@ -92,7 +92,7 @@ export default async function handler(req, res) {
       }], env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=representation", "?on_conflict=user_id");
       const created = (insert.rows && insert.rows[0]) ||
         { email: auth.email, tier: checked || "free", bonus_searches: 0, marketing_consent: consent === true };
-      await funnel(env, "signup_completed", { account_id: auth.userId, dedup_key: `signup:${auth.userId}` });
+      await funnel(env, "signup_completed", { user_id: auth.userId, dedup_key: `signup:${auth.userId}` });
       await claimResultIfAny(req, env, auth.userId);
       res.status(200).json(publicAccount(created));
       return;

@@ -1,4 +1,5 @@
 -- Phase 3 / 2C: enforcement core. Run once in the Supabase SQL editor.
+-- Account-keyed columns are named user_id everywhere, matching accounts.user_id.
 -- Tables are server-controlled (RLS on, no policies -> service-role only).
 
 -- ---- the dial: monthly search limits per tier (change numbers here, no deploy)
@@ -24,29 +25,29 @@ insert into public.app_config (key, value) values
 -- ---- the reservation/consumption ledger (authenticated searches only)
 create table if not exists public.search_events (
   id bigint generated always as identity primary key,
-  account_id uuid not null references public.accounts(user_id) on delete cascade,
+  user_id uuid not null references public.accounts(user_id) on delete cascade,
   make text, model text, year integer,
   created_at timestamptz not null default now()
 );
-create index if not exists search_events_account_created_idx on public.search_events (account_id, created_at);
+create index if not exists search_events_user_created_idx on public.search_events (user_id, created_at);
 
 -- ---- saved results (FLAG 2): every signed-in result; the anonymous free result
---      is stored with account_id null and claimed on sign-in. Never re-run (11a).
+--      is stored with user_id null and claimed on sign-in. Never re-run (11a).
 create table if not exists public.saved_results (
   id uuid primary key default gen_random_uuid(),
-  account_id uuid references public.accounts(user_id) on delete cascade,
+  user_id uuid references public.accounts(user_id) on delete cascade,
   payload jsonb not null,
   created_at timestamptz not null default now(),
   expires_at timestamptz not null default (now() + interval '90 days')
 );
-create index if not exists saved_results_account_idx on public.saved_results (account_id);
+create index if not exists saved_results_user_idx on public.saved_results (user_id);
 
 -- ---- funnel events, deduped by a stable key where dup firing is likely (11e)
 create table if not exists public.funnel_events (
   id bigint generated always as identity primary key,
   event text not null,
   anon_session_id text,
-  account_id uuid,
+  user_id uuid,
   dedup_key text,
   created_at timestamptz not null default now()
 );
@@ -62,14 +63,14 @@ alter table public.funnel_events  enable row level security;
 -- ---- atomic monthly reserve (11b). Counts this calendar month's searches (in
 --      the configured timezone) under a row lock; if under the tier limit +
 --      bonus, inserts a reservation and returns it. Exactly-once, race-safe.
-create or replace function public.reserve_search(p_account_id uuid, p_make text, p_model text, p_year integer)
+create or replace function public.reserve_search(p_user_id uuid, p_make text, p_model text, p_year integer)
 returns jsonb language plpgsql security definer as $$
 declare
   v_tier text; v_bonus integer; v_limit integer;
   v_tz text; v_month_start timestamptz; v_used integer; v_event_id bigint;
 begin
   select tier, bonus_searches into v_tier, v_bonus
-    from public.accounts where user_id = p_account_id for update;
+    from public.accounts where user_id = p_user_id for update;
   if v_tier is null then
     return jsonb_build_object('allowed', false, 'reason', 'no_account');
   end if;
@@ -80,12 +81,12 @@ begin
   select coalesce(monthly_searches, 0) into v_limit from public.rate_limits where tier = v_tier;
   v_limit := coalesce(v_limit, 0) + coalesce(v_bonus, 0);
   select count(*) into v_used from public.search_events
-    where account_id = p_account_id and created_at >= v_month_start;
+    where user_id = p_user_id and created_at >= v_month_start;
   if v_used >= v_limit then
     return jsonb_build_object('allowed', false, 'tier', v_tier, 'used', v_used, 'limit', v_limit);
   end if;
-  insert into public.search_events (account_id, make, model, year)
-    values (p_account_id, p_make, p_model, p_year) returning id into v_event_id;
+  insert into public.search_events (user_id, make, model, year)
+    values (p_user_id, p_make, p_model, p_year) returning id into v_event_id;
   return jsonb_build_object('allowed', true, 'event_id', v_event_id, 'tier', v_tier, 'used', v_used + 1, 'limit', v_limit);
 end; $$;
 
@@ -97,13 +98,13 @@ $$;
 
 -- ---- claim an anonymous saved result onto an account on sign-in (11a). Never
 --      re-runs; a no-op when missing/expired/already claimed.
-create or replace function public.claim_result(p_result_id uuid, p_account_id uuid)
+create or replace function public.claim_result(p_result_id uuid, p_user_id uuid)
 returns boolean language plpgsql security definer as $$
-declare v_ok boolean;
+declare v_count integer;
 begin
   update public.saved_results
-    set account_id = p_account_id
-    where id = p_result_id and account_id is null and expires_at > now();
-  get diagnostics v_ok = row_count;
-  return v_ok > 0;
+    set user_id = p_user_id
+    where id = p_result_id and user_id is null and expires_at > now();
+  get diagnostics v_count = row_count;
+  return v_count > 0;
 end; $$;

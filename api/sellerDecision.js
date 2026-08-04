@@ -1929,7 +1929,7 @@ async function logFunnel(event, fields, supabaseUrl, supabaseKey) {
     await supabaseInsert("funnel_events", [{
       event,
       anon_session_id: fields.anon_session_id || null,
-      account_id: fields.account_id || null,
+      user_id: fields.user_id || null,
       dedup_key: fields.dedup_key || null
     }], supabaseUrl, supabaseKey, "resolution=ignore-duplicates,return=minimal", fields.dedup_key ? "?on_conflict=event,dedup_key" : "");
   } catch {}
@@ -1940,7 +1940,7 @@ function coarseMonthKey() {
 }
 async function persistSavedResult(accountId, payload, supabaseUrl, supabaseKey) {
   try {
-    const ins = await supabaseInsert("saved_results", [{ account_id: accountId || null, payload }],
+    const ins = await supabaseInsert("saved_results", [{ user_id: accountId || null, payload }],
       supabaseUrl, supabaseKey, "return=representation", "");
     return (ins.rows && ins.rows[0] && ins.rows[0].id) || null;
   } catch { return null; }
@@ -1954,11 +1954,11 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
     const auth = await validateBearer(authHeader);
     if (!auth) return { block: { status: "auth_required" } };
     const r = await supabaseRpc("reserve_search", {
-      p_account_id: auth.userId, p_make: vehicle.make || null, p_model: vehicle.model || null, p_year: vehicle.year || null
+      p_user_id: auth.userId, p_make: vehicle.make || null, p_model: vehicle.model || null, p_year: vehicle.year || null
     }, supabaseUrl, supabaseKey);
     const row = Array.isArray(r) ? r[0] : r;
     if (!row || !row.allowed) {
-      await logFunnel("limit_hit", { account_id: auth.userId, dedup_key: `limit:${auth.userId}:${coarseMonthKey()}` }, supabaseUrl, supabaseKey);
+      await logFunnel("limit_hit", { user_id: auth.userId, dedup_key: `limit:${auth.userId}:${coarseMonthKey()}` }, supabaseUrl, supabaseKey);
       return { block: { status: "limit_reached", tier: (row && row.tier) || "free" } };
     }
     return { ok: true, reservationEventId: row.event_id, accountId: auth.userId, anonSessionId };
@@ -2268,13 +2268,13 @@ export default async function handler(req, res) {
     };
 
     // 2C finalize: persist the result (FLAG 2 - every signed-in result; the
-    // anonymous free result with account_id null for claim), fire rec_shown
+    // anonymous free result with user_id null for claim), fire rec_shown
     // (deduped by the result id, 11e), and mark the free-search cookie.
     if (!internalCall) {
       const savedId = await persistSavedResult(searchAccountId, responsePayload, supabaseUrl, supabaseKey);
       if (savedId) {
         responsePayload.resultId = savedId;
-        await logFunnel("rec_shown", { account_id: searchAccountId, anon_session_id: anonSessionId, dedup_key: `rec:${savedId}` }, supabaseUrl, supabaseKey);
+        await logFunnel("rec_shown", { user_id: searchAccountId, anon_session_id: anonSessionId, dedup_key: `rec:${savedId}` }, supabaseUrl, supabaseKey);
       }
       if (anonFirstFree) {
         responsePayload.firstFree = true;
