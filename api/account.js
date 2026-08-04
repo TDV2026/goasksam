@@ -107,7 +107,8 @@ export default async function handler(req, res) {
     // result (unknown) leaves the stored tier and timestamp untouched (retry
     // later); a definite result updates both.
     let dirty = false;
-    if (tierIsStale(row.tier_checked_at)) {
+    const forceRecheck = !!(req.body && req.body.recheckTier === true);
+    if (forceRecheck || tierIsStale(row.tier_checked_at)) {
       const checked = await beehiivTier(auth.email);
       if (checked !== null) { row.tier = checked; row.tier_checked_at = new Date().toISOString(); dirty = true; }
     }
