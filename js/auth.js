@@ -160,6 +160,7 @@ function authCloseModal() { const m = document.getElementById("auth-modal"); if 
 
 // The sign-in card. Sam-voiced, two doors, one unticked consent checkbox.
 function openSignInCard(subtitle) {
+  gasFunnel("signup_shown");   // 2F: the sign-in card was shown (a funnel step)
   authCloseModal();
   const scrim = document.createElement("div");
   scrim.className = "hp-dialog-scrim"; scrim.id = "auth-modal";
@@ -210,6 +211,7 @@ async function authBoot() {
     authRenderTopbar();              // repaint with the resolved email/tier
   }
   if (returned) { authCloseModal(); gateResumePendingSearch(); }  // 11d: resume the search that hit the gate
+  gasFunnelOnce("homepage_view");  // 2F: one homepage_view per session
 }
 
 // ===================== 2C: the account gate (client) =====================
@@ -219,6 +221,25 @@ function gasAnonId() {
   try { let id = localStorage.getItem("gas_anon"); if (!id) { id = "a_" + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem("gas_anon", id); } return id; } catch (e) { return null; }
 }
 function gasStashResultId(id, isFirstFree) { try { if (isFirstFree && id) localStorage.setItem("gas_free_result", id); } catch (e) {} }
+// 2F: fire-and-forget funnel beacon for client-only steps. Idempotent per-session
+// via a stable dedupKey (11e) so a refresh doesn't double-count.
+function gasFunnel(event, dedupKey) {
+  try {
+    const body = JSON.stringify({ event, anonSessionId: gasAnonId(), dedupKey: dedupKey || null });
+    const url = authApiPath("/api/funnel");
+    if (navigator && navigator.sendBeacon) { navigator.sendBeacon(url, new Blob([body], { type: "application/json" })); return; }
+    fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => {});
+  } catch (e) {}
+}
+// Fire an event at most once per browser session (dedup within the tab's life).
+function gasFunnelOnce(event, dedupKey) {
+  try {
+    const k = "gas_fe_" + event + (dedupKey ? ":" + dedupKey : "");
+    if (sessionStorage.getItem(k)) return;
+    sessionStorage.setItem(k, "1");
+  } catch (e) {}
+  gasFunnel(event, dedupKey);
+}
 function gateAppendCard(html) {
   const msgs = document.getElementById("msgs"); if (!msgs) return;
   const row = document.createElement("div"); row.className = "row sam";

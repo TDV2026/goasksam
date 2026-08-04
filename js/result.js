@@ -6,6 +6,7 @@ async function showSellRecommendation(){
   // fresh vehicle entry, so stray text after this point can never re-parse as
   // a new car.
   sellState.step=12;
+  if(typeof gasFunnel==="function")gasFunnel("wizard_complete");  // 2F: the wizard finished, analysis starting
   hideHero();
   const msgs=document.getElementById("msgs");
   const thinkRow=document.createElement("div");thinkRow.className="row sam";thinkRow.id="sellThinking";

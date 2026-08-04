@@ -758,6 +758,7 @@ function sellerFunnelReply(){
 function startSellFlow(initialCar, showUserBubble=true){
   resetSellState();
   sellState.active=true;sellState.step=1;
+  if(typeof gasFunnel==="function")gasFunnel("wizard_start");  // 2F
   hideHero();
   // Rail/menu entry (no seed car): reset the view to a clean surface anchored at
   // the top of the screen, so a click from a scrolled-down results page lands on
