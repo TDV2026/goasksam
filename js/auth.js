@@ -235,10 +235,12 @@ function gateRenderStatus(data) {
   if (status === "account_required") {
     gateAppendCard(`<div class="sam-text">That first search was on me. Create a free account to keep going, and I'll hold onto your results.</div><div class="sell-rec-actions"><button class="primary" onclick="gateCreateAccount()">Create a free account</button></div>`);
   } else if (status === "limit_reached") {
+    // 2D: the only paywall-shaped surface. It sells the newsletter, never a price
+    // (no fees, no countdown, nothing blurred). tdv = come back next month.
     if ((data.tier || "free") === "tdv") {
-      gateAppendCard(`<div class="sam-text">You've used this month's searches. I'll be here next month with a fresh set.</div>`);
+      gateAppendCard(`<div class="sam-text">That's this month's searches. I'll have a fresh set for you next month.</div>`);
     } else {
-      gateAppendCard(`<div class="sam-text">That's your searches for this month. Daily Vroom readers get more, free. <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">Join free</a>.</div><div class="sam-text gate-sub">Already a reader? <button class="gate-inline-link" onclick="openSignInCard('Sign in with the email you subscribed with.')">sign in with the email you subscribed with</button>.</div>`);
+      gateAppendCard(`<div class="sam-text">That's your free searches for this month. Daily Vroom readers get more, on the house. <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">Join free &rarr;</a></div><div class="sam-text gate-sub">Already a reader? <button class="gate-inline-link" onclick="openSignInCard('Sign in with the email you subscribed with and your searches are yours.')">Sign in with the email you subscribed with</button>.</div>`);
     }
   } else if (status === "auth_required") {
     gateAppendCard(`<div class="sam-text">I lost your session. Sign in again and we'll pick up where we left off.</div><div class="sell-rec-actions"><button class="primary" onclick="openSignInCard()">Sign in</button></div>`);
