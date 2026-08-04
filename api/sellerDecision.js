@@ -1957,9 +1957,15 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
       p_user_id: auth.userId, p_make: vehicle.make || null, p_model: vehicle.model || null, p_year: vehicle.year || null
     }, supabaseUrl, supabaseKey);
     const row = Array.isArray(r) ? r[0] : r;
-    if (!row || !row.allowed) {
+    if (!row) {
+      // RPC/infra failure (NOT a real limit): fail OPEN so an outage never blocks
+      // a legitimate search. Runs unmetered (no reservation) and logs loudly.
+      console.error("reserve_search returned no row for", auth.userId, "- allowing search unmetered (RPC/infra issue)");
+      return { ok: true, reservationEventId: null, accountId: auth.userId, anonSessionId };
+    }
+    if (!row.allowed) {
       await logFunnel("limit_hit", { user_id: auth.userId, dedup_key: `limit:${auth.userId}:${coarseMonthKey()}` }, supabaseUrl, supabaseKey);
-      return { block: { status: "limit_reached", tier: (row && row.tier) || "free" } };
+      return { block: { status: "limit_reached", tier: row.tier || "free" } };
     }
     return { ok: true, reservationEventId: row.event_id, accountId: auth.userId, anonSessionId,
       quota: { used: row.used, limit: row.limit, tier: row.tier } };
