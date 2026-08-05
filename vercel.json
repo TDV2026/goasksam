@@ -1,4 +1,12 @@
 {
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "goasksam.vercel.app" }],
+      "destination": "https://goasksam.com/$1",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     { "source": "/out", "destination": "/api/out" }
   ]
