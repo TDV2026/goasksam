@@ -461,6 +461,12 @@ async function showSellRecommendation(){
       </div>`;
   const renderOptionCard=option=>{
     const isPrimary=!!option.showPlate;
+    // Card redesign (flag-gated): the redesigned Platform pick card renders only
+    // for the primary platform pick when gas_cardv2 is on. Old render untouched.
+    if(isPrimary&&option.key!=="specialist"&&typeof cardV2Active==="function"&&cardV2Active()&&typeof renderPickCardV2==="function"){
+      const v2=renderPickCardV2(option);
+      if(v2)return v2;
+    }
     return `
       <div class="sell-rec-card ${escapeHtml(option.cardClass||"")}" onclick="chooseSellOption('${escapeHtml(option.key)}')">
         ${isPrimary&&option.key!=="specialist"?verdictPlate(option,plateWindowLabel(option)):`
