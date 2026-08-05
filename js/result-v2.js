@@ -6,13 +6,19 @@
 // result re-renders identically. Source of truth: scratchpad/variants-final-ready.md.
 
 (function(){
-  // ---- flag ----
+  // ---- flags ----
   try{
-    var m=/[?&]cardv2=([01])/.exec(location.search||"");
+    var s=location.search||"";
+    var m=/[?&]cardv2=([01])/.exec(s);
     if(m){ if(m[1]==="1")localStorage.setItem("gas_cardv2","1"); else localStorage.removeItem("gas_cardv2"); }
+    // realgate: makes a crew device run the REAL free-first/quota gate on demand,
+    // overriding the crew bypass server-side (sent as body.forceGate).
+    var g=/[?&]realgate=([01])/.exec(s);
+    if(g){ if(g[1]==="1")localStorage.setItem("gas_realgate","1"); else localStorage.removeItem("gas_realgate"); }
   }catch(e){}
 })();
 function cardV2Active(){ try{ return localStorage.getItem("gas_cardv2")==="1"; }catch(e){ return false; } }
+function gasRealGate(){ try{ return localStorage.getItem("gas_realgate")==="1"; }catch(e){ return false; } }
 
 // ---------- deterministic selection (reuse the site's textSeed/pickCopy) ----------
 function v2Seed(){ try{ return String(sellState.sellDecision&&sellState.sellDecision.resultId||sellState.carName||"car"); }catch(e){ return "car"; } }

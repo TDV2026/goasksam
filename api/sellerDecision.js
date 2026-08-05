@@ -1949,6 +1949,17 @@ async function persistSavedResult(accountId, payload, supabaseUrl, supabaseKey) 
 // accountId, anonFirstFree, anonSessionId } to proceed. Internal callers skip this.
 async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
   const anonSessionId = typeof req.body?.anonSessionId === "string" ? req.body.anonSessionId.slice(0, 64) : null;
+  const cookies = parseCookies(req.headers.cookie);
+  // Crew-testing bypass: a device holding the pre-launch crew cookie (gas_crew=ok)
+  // skips the free-first gate AND the monthly quota entirely so testing never
+  // burns quota or hits the account wall. The search still runs and still logs
+  // (app_usage_events seller_decision), but consumes nothing (no reservation, no
+  // gas_free_used cookie). The escape hatch: body.forceGate (set by ?realgate=1)
+  // makes a crew device run the REAL gate flows on demand.
+  const forceGate = req.body?.forceGate === true;
+  if (cookies.gas_crew === "ok" && !forceGate) {
+    return { ok: true, crewBypass: true, anonSessionId };
+  }
   const authHeader = req.headers.authorization;
   if (authHeader) {
     const auth = await validateBearer(authHeader);
@@ -1971,7 +1982,6 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
       quota: { used: row.used, limit: row.limit, tier: row.tier } };
   }
   // Anonymous free-first-search.
-  const cookies = parseCookies(req.headers.cookie);
   if (cookies.gas_free_used) {
     await logFunnel("second_search_attempt", { anon_session_id: anonSessionId }, supabaseUrl, supabaseKey);
     return { block: { status: "account_required" } };

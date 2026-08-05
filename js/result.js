@@ -57,7 +57,8 @@ async function showSellRecommendation(){
           sellerPreference:sellState.sellerPreference,
           notes:sellState.notes
         },
-        anonSessionId:(typeof gasAnonId==="function"?gasAnonId():null)
+        anonSessionId:(typeof gasAnonId==="function"?gasAnonId():null),
+        forceGate:(typeof gasRealGate==="function"&&gasRealGate())
       })
     });
     decisionData=await res.json();
