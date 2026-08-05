@@ -2175,19 +2175,39 @@ export default async function handler(req, res) {
         }, supabaseUrl, supabaseKey);
       }
     }
+    // Starved-fetch store fallback: if the live fetch failed (OCD 429 / all rung
+    // fetches errored) but we hold permanent records for this car, serve those
+    // (real data) rather than failing. Records in vehicle_market_records are
+    // immutable (rule 5); the 24h cache is only a freshness gate, so an OCD
+    // outage should still surface the stored market rather than nothing.
+    {
+      const passes0 = fetchResult.passSummary || [];
+      const starved = fetchResult.records.length === 0 && cacheStatus !== "hit"
+        && (fetchResult.rateLimited || (passes0.length > 0 && passes0.every(p => p.error)));
+      if (starved) {
+        const store = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
+        if (store && store.records && store.records.length) {
+          const ocdRL = fetchResult.rateLimit, ocdRLd = fetchResult.rateLimited;
+          fetchResult = store;
+          fetchResult.rateLimit = ocdRL; fetchResult.rateLimited = ocdRLd;
+          fetchResult.stopReason = "rate_limited_served_store";
+          cacheStatus = "rate_limited_store";
+        }
+      }
+    }
     const records = fetchResult.records;
 
     // DATA UNAVAILABLE (Aug 2026): a STARVED fetch must never render as a thin
-    // market. When we pulled nothing AND the reason was a fetch failure (OCD 429
-    // rate-limit, all rung fetches errored, or the local budget guard degraded)
-    // rather than a genuinely empty market, return a distinct signal so the
-    // frontend renders "I couldn't pull the full picture right now" instead of
-    // "sales are limited" or a rarity-hook pick. A genuinely obscure car returns
-    // 0 records with NO fetch errors -> stays a real thin-market read.
+    // market. Only when we pulled nothing AND the store fallback was also empty
+    // AND the reason was a fetch failure (OCD 429, all rung fetches errored, or
+    // the local budget guard degraded) rather than a genuinely empty market do we
+    // return a distinct signal so the frontend renders "I couldn't pull the full
+    // picture right now" instead of "sales are limited" or a rarity-hook pick. A
+    // genuinely obscure car returns 0 records with NO fetch errors -> real thin read.
     const passes = fetchResult.passSummary || [];
     const allFetchesFailed = passes.length > 0 && passes.every(p => p.error);
     const budgetDegraded = cacheStatus === "budget_degraded_store" || /budget_reached/.test(fetchResult.stopReason || "");
-    const dataUnavailable = records.length === 0 && cacheStatus !== "hit"
+    const dataUnavailable = records.length === 0 && cacheStatus !== "hit" && cacheStatus !== "rate_limited_store"
       && (fetchResult.rateLimited || allFetchesFailed || budgetDegraded);
     if (dataUnavailable) {
       const reason = fetchResult.rateLimited ? "ocd_rate_limited" : budgetDegraded ? "budget_degraded" : "fetch_failed";
