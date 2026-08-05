@@ -685,6 +685,8 @@ async function fetchPass(pass, apiKey, deadline) {
   let error = null;
   let meteredRequests = 0;
   let pagesFetched = 0;
+  let rateLimited = false;      // OCD's own monthly plan is exhausted (429)
+  let rateLimit = null;         // OCD rate-limit headers (authoritative remaining)
   const firstPage = pass.startPage || 1;
   for (let page = firstPage; page < firstPage + pass.pages; page++) {
     const remainingMs = deadline - Date.now();
@@ -711,11 +713,13 @@ async function fetchPass(pass, apiKey, deadline) {
       }, apiKey, { signal: controller.signal });
     } catch (err) {
       error = err.name === "AbortError" ? "request_timeout" : err.message;
+      if (err.status === 429 || err.rateLimited) { rateLimited = true; rateLimit = err.rateLimit || rateLimit; }
       break;
     } finally {
       clearTimeout(timeout);
     }
 
+    if (result && result.__rateLimit) rateLimit = result.__rateLimit;
     pagesFetched++;
     const pageRecords = result.data || [];
     records.push(...pageRecords.map(record => ({
@@ -726,7 +730,7 @@ async function fetchPass(pass, apiKey, deadline) {
     if (!pageRecords.length) break;
     if (page >= (result.meta?.total_pages || 1)) break;
   }
-  return { records, error, meteredRequests, pagesFetched };
+  return { records, error, meteredRequests, pagesFetched, rateLimited, rateLimit };
 }
 
 async function fetchRecentRecords(vehicle, apiKey, generation = null) {
@@ -741,6 +745,8 @@ async function fetchRecentRecords(vehicle, apiKey, generation = null) {
   let stoppedEarly = false;
   let stopReason = null;
   let meteredRequests = 0;
+  let rateLimited = false;      // OCD monthly plan exhausted mid-walk
+  let rateLimit = null;         // latest OCD rate-limit headers
 
   const evaluate = () => evaluateLadder(
     records.map(record => ({ record, classification: classifyRecord(record, vehicle) })),
@@ -750,6 +756,8 @@ async function fetchRecentRecords(vehicle, apiKey, generation = null) {
   const runPass = async pass => {
     const passResult = await fetchPass(pass, apiKey, deadline);
     meteredRequests += passResult.meteredRequests;
+    if (passResult.rateLimited) { rateLimited = true; rateLimit = passResult.rateLimit || rateLimit; }
+    else if (passResult.rateLimit) { rateLimit = passResult.rateLimit; }
     let added = 0;
     for (const record of passResult.records) {
       if (daysAgo(record.auction_end_date) > maxWindow) continue;
@@ -794,6 +802,7 @@ async function fetchRecentRecords(vehicle, apiKey, generation = null) {
 
   let ladderEval = evaluate();
   for (const rung of ladder) {
+    if (rateLimited) { stoppedEarly = true; stopReason = "rate_limited"; break; }  // don't fire doomed 429s at every rung
     if (Date.now() >= deadline) { stoppedEarly = true; stopReason = "time_budget_reached"; break; }
     if (ladderEval.landed?.met && ladderEval.landed.rung <= rung.rung) break;
     const rungMet = () => !!evaluate().walk.find(entry => entry.rung === rung.rung)?.met;
@@ -834,6 +843,8 @@ async function fetchRecentRecords(vehicle, apiKey, generation = null) {
     elapsedMs: Date.now() - startedAt,
     timeBudgetMs: FETCH_TIME_BUDGET_MS,
     meteredRequests,
+    rateLimited,
+    rateLimit,
     ladder
   };
 }
@@ -2165,6 +2176,30 @@ export default async function handler(req, res) {
       }
     }
     const records = fetchResult.records;
+
+    // DATA UNAVAILABLE (Aug 2026): a STARVED fetch must never render as a thin
+    // market. When we pulled nothing AND the reason was a fetch failure (OCD 429
+    // rate-limit, all rung fetches errored, or the local budget guard degraded)
+    // rather than a genuinely empty market, return a distinct signal so the
+    // frontend renders "I couldn't pull the full picture right now" instead of
+    // "sales are limited" or a rarity-hook pick. A genuinely obscure car returns
+    // 0 records with NO fetch errors -> stays a real thin-market read.
+    const passes = fetchResult.passSummary || [];
+    const allFetchesFailed = passes.length > 0 && passes.every(p => p.error);
+    const budgetDegraded = cacheStatus === "budget_degraded_store" || /budget_reached/.test(fetchResult.stopReason || "");
+    const dataUnavailable = records.length === 0 && cacheStatus !== "hit"
+      && (fetchResult.rateLimited || allFetchesFailed || budgetDegraded);
+    if (dataUnavailable) {
+      const reason = fetchResult.rateLimited ? "ocd_rate_limited" : budgetDegraded ? "budget_degraded" : "fetch_failed";
+      await recordUsageEvent({
+        event_type: "data_unavailable", route: "/api/sellerDecision", status: reason,
+        search_text: rawSearch, vehicle, oldcarsdata_metered_requests: fetchResult.meteredRequests || 0, duration_ms: fetchResult.elapsedMs || 0,
+        metadata: { ...requestMetadata(req), reason, ocdRateLimit: fetchResult.rateLimit || null, stopReason: fetchResult.stopReason }
+      }, supabaseUrl, supabaseKey);
+      if (reservationEventId) { try { await supabaseRpc("release_search", { p_event_id: reservationEventId }, supabaseUrl, supabaseKey); } catch (e) {} }
+      return res.status(200).json({ status: "data_unavailable", reason, vehicle });
+    }
+
     // New-source detection (July 2026): any source slug we have not knowingly
     // admitted is logged loudly and NEVER silently trusted (the evidence
     // allowlist already keeps it out of the pick's math). The vendor-name
@@ -2223,6 +2258,11 @@ export default async function handler(req, res) {
         ...requestMetadata(req),
         stopReason: fetchResult.stopReason,
         marketFetchCache: cacheStatus,
+        // OCD's authoritative rate-limit headers (meter reconciliation): the real
+        // remaining/limit/reset OCD reports, so the guard can be compared against
+        // OCD's own monthly count rather than only our tally.
+        ocdRateLimit: fetchResult.rateLimit || null,
+        ocdRateLimited: !!fetchResult.rateLimited,
         // Coverage grows from real demand: unmapped ladders are queryable as
         // metadata->>generationMapped = 'false', grouped by make/model.
         generationMapped: !!generation,

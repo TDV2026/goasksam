@@ -93,6 +93,14 @@ async function showSellRecommendation(){
     return;
   }
 
+  // Data unavailable (starved fetch): the data pull failed (rate limit or budget),
+  // so we never render market-thinness copy or a rarity pick. Honest hold.
+  if(decisionData?.status==="data_unavailable"){
+    addMsg("sam","I couldn't pull the full picture for your car right now. This is on my end, not a shortage of sales. Give it a moment and try again.");
+    document.getElementById("btn").disabled=false;
+    return;
+  }
+
   // 2C: the account gate + limit statuses. Byte-identical for a normal decision;
   // these branches only fire for the new gate responses, rendered by auth.js.
   if(decisionData&&/^(account_required|limit_reached|auth_required|capacity)$/.test(decisionData.status||"")){
