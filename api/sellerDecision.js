@@ -1935,6 +1935,30 @@ async function appConfigInt(key, fallback, supabaseUrl, supabaseKey) {
   const n = Number(rows && rows[0] && rows[0].value);
   return Number.isFinite(n) ? n : fallback;
 }
+// OCD authoritative rate-limit reconciliation (Aug 2026). We persist OCD's own
+// x-ratelimit-remaining header (read in lib/_ocd.js) after every real fetch so the
+// NEXT search's budget guard can soft-degrade BEFORE a 429, using OCD's real count
+// rather than only our app_usage_events tally. Stored as a single app_config row.
+async function persistOcdRateLimit(rateLimit, supabaseUrl, supabaseKey) {
+  try {
+    if (!rateLimit) return;
+    const num = (v) => (v != null && v !== "" && Number.isFinite(Number(v))) ? Number(v) : null;
+    const remaining = num(rateLimit.remaining);
+    if (remaining === null) return; // nothing authoritative to store
+    const value = { remaining, limit: num(rateLimit.limit), reset: rateLimit.reset != null ? String(rateLimit.reset) : null, at: Date.now() };
+    await supabaseInsert("app_config", [{ key: "ocd_rate_limit", value }],
+      supabaseUrl, supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=key");
+  } catch {}
+}
+async function readOcdRateLimit(supabaseUrl, supabaseKey) {
+  try {
+    const rows = await supabaseSelect({ supabaseUrl, supabaseKey }, `app_config?key=eq.ocd_rate_limit&select=value&limit=1`);
+    const raw = rows && rows[0] && rows[0].value;
+    if (!raw) return null;
+    const v = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return (v && typeof v === "object" && Number.isFinite(Number(v.remaining))) ? { remaining: Number(v.remaining), at: Number(v.at) || 0, reset: v.reset || null } : null;
+  } catch { return null; }
+}
 async function logFunnel(event, fields, supabaseUrl, supabaseKey) {
   try {
     await supabaseInsert("funnel_events", [{
@@ -2124,18 +2148,29 @@ export default async function handler(req, res) {
       const monthlyCap = isWarm ? Math.floor(OCD_MONTHLY_BUDGET * WARM_BUDGET_FRACTION) : OCD_MONTHLY_BUDGET;
       const overDaily = usedToday !== null && usedToday >= dailyCap;
       const overMonthly = usedMonth !== null && usedMonth >= monthlyCap;
+      // OCD's OWN remaining-quota header, persisted by the previous fetch, is the
+      // authoritative backstop: soft-degrade BEFORE a 429 once OCD reports it is at
+      // (or within a small reserve floor of) zero. Only trust it while fresh so a
+      // stale zero from before a quota reset cannot pin us degraded forever - once
+      // the TTL lapses a real fetch fires, refreshes the header, and self-corrects.
+      const ocdRL = await readOcdRateLimit(supabaseUrl, supabaseKey);
+      const rlFloor = await appConfigInt("ocd_rate_limit_floor", 5, supabaseUrl, supabaseKey);
+      const rlTtlMs = (await appConfigInt("ocd_rate_limit_ttl_min", 120, supabaseUrl, supabaseKey)) * 60 * 1000;
+      const rlFresh = ocdRL && ocdRL.at && (Date.now() - ocdRL.at) < rlTtlMs;
+      const ocdRemaining = rlFresh ? ocdRL.remaining : null;
+      const overOcdRemaining = ocdRemaining !== null && ocdRemaining <= rlFloor;
       // bypassCache is the measurement path (frontend never sets it): it still
       // spends and logs real metered calls, but skips the soft-degrade so a
       // cold-fetch measurement is not silently served from the store when the
       // day's organic budget is already spent. Organic traffic stays fully guarded.
-      if (!bypassCache && (overDaily || overMonthly)) {
+      if (!bypassCache && (overDaily || overMonthly || overOcdRemaining)) {
         // Loud log, soft degrade: no metered spend past the reached cap.
-        const scope = overMonthly ? "monthly" : "daily";
-        console.error(`OCD ${scope} budget reached (day ${usedToday}/${OCD_DAILY_REQUEST_BUDGET}, month ${usedMonth}/${OCD_MONTHLY_BUDGET}): soft degrading, no metered spend.`);
+        const scope = overOcdRemaining ? "ocd_remaining" : overMonthly ? "monthly" : "daily";
+        console.error(`OCD budget guard [${scope}] (day ${usedToday}/${OCD_DAILY_REQUEST_BUDGET}, month ${usedMonth}/${OCD_MONTHLY_BUDGET}, ocd_remaining ${ocdRemaining}): soft degrading, no metered spend.`);
         await recordUsageEvent({
           event_type: "ocd_budget_guard", route: "/api/sellerDecision", status: `soft_degraded_${scope}`,
           search_text: rawSearch, oldcarsdata_metered_requests: 0, duration_ms: 0,
-          metadata: { ...requestMetadata(req), usedToday, usedMonth, dailyBudget: OCD_DAILY_REQUEST_BUDGET, monthlyBudget: OCD_MONTHLY_BUDGET, scope }
+          metadata: { ...requestMetadata(req), usedToday, usedMonth, dailyBudget: OCD_DAILY_REQUEST_BUDGET, monthlyBudget: OCD_MONTHLY_BUDGET, scope, ocdRemaining, ocdRemainingAt: ocdRL ? ocdRL.at : null, ocdRemainingFloor: rlFloor }
         }, supabaseUrl, supabaseKey);
         fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
         if (fetchResult) {
@@ -2194,6 +2229,12 @@ export default async function handler(req, res) {
           cacheStatus = "rate_limited_store";
         }
       }
+    }
+    // Persist OCD's authoritative remaining-quota header (present on 200s and 429s
+    // alike) so the NEXT search's guard soft-degrades before a 429. Skips cache/store
+    // paths where no live fetch happened and rateLimit is absent.
+    if (fetchResult.rateLimit && fetchResult.rateLimit.remaining != null) {
+      await persistOcdRateLimit(fetchResult.rateLimit, supabaseUrl, supabaseKey);
     }
     const records = fetchResult.records;
 
