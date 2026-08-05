@@ -1950,6 +1950,20 @@ async function persistOcdRateLimit(rateLimit, supabaseUrl, supabaseKey) {
       supabaseUrl, supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=key");
   } catch {}
 }
+// OCD's reset header may be a unix-ms timestamp, a unix-seconds timestamp, a
+// retry-after style seconds-from-now count, or an ISO date. Normalize to epoch ms
+// (relative counts are measured from persist time `at`). Returns null if unparseable.
+function parseOcdResetMs(reset, at) {
+  if (reset == null || reset === "") return null;
+  const n = Number(reset);
+  if (Number.isFinite(n)) {
+    if (n > 1e12) return n;            // already ms
+    if (n > 1e9) return n * 1000;      // unix seconds
+    return (Number(at) || Date.now()) + n * 1000; // seconds-from-now
+  }
+  const t = Date.parse(reset);
+  return Number.isFinite(t) ? t : null;
+}
 async function readOcdRateLimit(supabaseUrl, supabaseKey) {
   try {
     const rows = await supabaseSelect({ supabaseUrl, supabaseKey }, `app_config?key=eq.ocd_rate_limit&select=value&limit=1`);
@@ -2157,7 +2171,12 @@ export default async function handler(req, res) {
       const rlFloor = await appConfigInt("ocd_rate_limit_floor", 5, supabaseUrl, supabaseKey);
       const rlTtlMs = (await appConfigInt("ocd_rate_limit_ttl_min", 120, supabaseUrl, supabaseKey)) * 60 * 1000;
       const rlFresh = ocdRL && ocdRL.at && (Date.now() - ocdRL.at) < rlTtlMs;
-      const ocdRemaining = rlFresh ? ocdRL.remaining : null;
+      // OCD's reset is a real Unix timestamp: once it has passed the quota has
+      // refreshed, so a persisted zero is stale regardless of TTL - allow the fetch
+      // immediately rather than waiting out the TTL.
+      const resetMs = rlFresh ? parseOcdResetMs(ocdRL.reset, ocdRL.at) : null;
+      const resetPassed = resetMs !== null && Date.now() >= resetMs;
+      const ocdRemaining = (rlFresh && !resetPassed) ? ocdRL.remaining : null;
       const overOcdRemaining = ocdRemaining !== null && ocdRemaining <= rlFloor;
       // bypassCache is the measurement path (frontend never sets it): it still
       // spends and logs real metered calls, but skips the soft-degrade so a
