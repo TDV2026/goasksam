@@ -1772,6 +1772,18 @@ function partnerSegmentMatch(partner, vehicle, priorities) {
   return priorities.segments.some(segment => segments.includes(segment));
 }
 
+// A partner is LOCAL to the seller when they explicitly list the seller's state
+// (not merely via "nationwide"). Locality lets a regional specialist outrank a
+// broad nationwide generalist for the same car, so all four partners function in
+// their own regions instead of the first nationwide row (howS) always winning.
+function partnerLocalState(partner, criteria) {
+  const sellerState = asText(criteria.state).toLowerCase();
+  if (!sellerState) return false;
+  return (partner.regions || []).map(r => String(r).toLowerCase())
+    .filter(r => r !== "nationwide")
+    .some(r => r === sellerState || r.includes(sellerState) || sellerState.includes(r));
+}
+
 async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl, supabaseKey) {
   const partners = await loadActivePartners(supabaseUrl, supabaseKey);
   const priorities = inferSellerPriorities(vehicle, criteria);
@@ -1780,16 +1792,23 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
   const estimatedValue = landedMet && Number.isFinite(analysis.estimatedValue) ? analysis.estimatedValue : null;
   const valueMet = Number.isFinite(estimatedValue) && estimatedValue >= POWERSELLER_MIN_VALUE_USD;
 
-  let matched = null;
-  let anySegment = false;
-  let anyRegion = false;
-  for (const partner of partners) {
-    const segmentMet = partnerSegmentMatch(partner, vehicle, priorities);
-    const regionMet = partnerRegionCovered(partner, criteria);
-    anySegment = anySegment || segmentMet;
-    anyRegion = anyRegion || regionMet;
-    if (!matched && segmentMet && regionMet) matched = partner;
-  }
+  // Rank every partner, then pick, so a local specialist beats a broad nationwide
+  // generalist for the same car. Order: local state > segment fit > tighter
+  // regional focus (fewer regions) > stable table order.
+  const cands = partners.map(partner => ({
+    partner,
+    segmentMet: partnerSegmentMatch(partner, vehicle, priorities),
+    regionMet: partnerRegionCovered(partner, criteria),
+    local: partnerLocalState(partner, criteria),
+    regionCount: (partner.regions || []).length
+  }));
+  const anySegment = cands.some(c => c.segmentMet);
+  const anyRegion = cands.some(c => c.regionMet);
+  const rankPartner = (a, b) => (Number(b.local) - Number(a.local))
+    || (Number(b.segmentMet) - Number(a.segmentMet))
+    || (a.regionCount - b.regionCount);
+  const matchedCand = cands.filter(c => c.segmentMet && c.regionMet).sort(rankPartner)[0] || null;
+  let matched = matchedCand ? matchedCand.partner : null;
   // A partner whose specialization does not list the searched make needs
   // real tracked relevance for it (5+ sales) or the gate closes: a
   // mismatched card is worse than no card.
@@ -1814,7 +1833,11 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
     Number.isFinite(estimatedValue) ? estimatedValue : 0,
     Number.isFinite(askingPrice) ? askingPrice : 0
   );
-  const secondaryPartner = matched || partners.find(partner => partnerRegionCovered(partner, criteria)) || null;
+  // Secondary is ranked over ALL region-covered partners local-first, NOT defaulted
+  // to `matched`: a nationwide generalist that segment-matches broadly (e.g. a
+  // "collections, pre-war" partner) must not preempt the seller's own local partner
+  // on a secondary card. `matched` still drives the eligible LEAD above.
+  const secondaryPartner = (cands.filter(c => c.regionMet).sort(rankPartner)[0]?.partner) || null;
   const secondary = !eligible && !!secondaryPartner && secondaryValue >= 50000;
 
   const result = {
