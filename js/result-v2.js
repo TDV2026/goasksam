@@ -308,7 +308,7 @@ function renderPowerSellerCardV2(opts){
     // trust blocks (partner_provided -> attributed "per {handle}")
     var trust="";
     if(trophy)trust+='<div class="psv2-tblk"><span class="psv2-tic">'+psvSvg("trophy")+'</span><div><div class="psv2-tp big">'+esc(trophy)+'</div><div class="psv2-ts">enthusiast auctions, per '+esc(handle)+'</div></div></div>';
-    if(spec)trust+='<div class="psv2-tblk"><span class="psv2-tic">'+psvSvg("car")+'</span><div><div class="psv2-tp">Specialises in '+esc(spec.toLowerCase())+'</div><div class="psv2-ts">his stated focus</div></div></div>';
+    if(spec)trust+='<div class="psv2-tblk"><span class="psv2-tic">'+psvSvg("car")+'</span><div><div class="psv2-tp">Specialises in '+esc(spec)+'</div><div class="psv2-ts">his stated focus</div></div></div>';
     if(loc)trust+='<div class="psv2-tblk"><span class="psv2-tic">'+psvSvg("pin")+'</span><div><div class="psv2-tp">Based in '+esc(loc)+'</div>'+(cov?'<div class="psv2-ts">'+esc(cov)+'</div>':'')+'</div></div>';
     var whyB=psvWhyBullets(matchType,make,first).map(function(b){ return '<div class="psv2-wb">'+psvSvg("check")+'<p>'+esc(b)+'</p></div>'; }).join("");
     var svc=[["cam","Photography"],["chat","Buyer communication"],["target","Platform strategy"],["doc","Paperwork and logistics"]]
