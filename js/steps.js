@@ -237,49 +237,57 @@ async function handleSellStep(q){
       return true;
     }
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    if(sellState.mileage){
-      sellState.step=3;
-      addMsg("sam",conditionAskText(),"",chipsHTML(["Completely stock","Minor mods","Heavily modified"]));
-      return true;
-    }
-    sellState.step=2;
-    addMsg("sam","Rough mileage?","",chipsHTML(["Under 30k","30k to 60k","60k to 100k","Over 100k"]));
+    // Non-US region answered here goes straight to price (Thesis v1: no
+    // mileage/condition steps). US falls to the state step above.
+    if(sellState.price){sellState.step=8;askPowerSellerStep();return true;}
+    sellState.step=6;
+    addMsg("sam",SELL_STEP_QUESTIONS[6].ask);
     return true;
   }
 
-  // ── STEP 18: US state ────────────────────────────────────────
+  // ── STEP 18: LOCATION (single location question, Thesis v1) ──
+  // One question folds the old region + state steps: a US state resolves to
+  // US + state; a non-US region keyword sets the region and skips state (it
+  // drives the regional policy floor). Then straight to price.
   if(step===18){
     if(/^other$/i.test(lower)){
-      addMsg("sam","No problem. Which state? Type the name, the two-letter code, or the ZIP.");
+      addMsg("sam","No problem. Which state or country? Type the name, the two-letter code, or the ZIP.");
       return true;
     }
-    // Best-effort mapping first (state names, codes, nicknames, ZIP, "in X",
-    // country, skip). Never dead-ends: a country name gets a conversational
-    // re-ask, skip/refusal advances as "Not sure", genuine off-script questions
-    // still fall to the pipeline's chat routing below.
-    const resolved=resolveStateInput(q);
-    if(resolved.kind==="country"){
-      addMsg("sam",`${resolved.name} is the country, not the state. Which state is it in? Type the name, the two-letter code, or the ZIP.`);
-      return true;
-    }
-    if(resolved.kind==="state"||resolved.kind==="skip"){
-      sellState.region="US";
-      sellState.state=resolved.kind==="skip"?"Not sure":resolved.value;
+    const nonUs=(() => {
+      if(/\b(uk|u\.k\.|united kingdom|britain|great britain|gb|england|scotland|wales|northern ireland)\b/i.test(lower))return "UK";
+      if(/\b(europe|european|germany|france|italy|spain|netherlands|belgium|switzerland|sweden|austria|portugal|ireland)\b/i.test(lower))return "Europe";
+      if(/\b(australia|australian|aus|nz|new zealand)\b/i.test(lower))return "Australia";
+      if(/\b(middle east|uae|u\.a\.e\.|dubai|abu dhabi|saudi|qatar|kuwait|bahrain|oman)\b/i.test(lower))return "Middle East";
+      if(/\b(canada|canadian)\b/i.test(lower))return "Canada";
+      return null;
+    })();
+    if(nonUs){
+      sellState.region=nonUs;
+      sellState.state=null;
     }else{
-      const pipedState=pipelineProcess(q,step);
-      if(pipedState.action==="chat")return false;
-      if(pipedState.action==="escalate"){escalateStep(step);return true;}
-      sellState.region="US";
-      sellState.state=pipedState.action==="store"&&typeof pipedState.value==="string"?pipedState.value:"Not sure";
+      // US path: state names, codes, nicknames, ZIP, "in X", skip. A bare country
+      // that is not a known non-US region re-asks; genuine off-script routes to chat.
+      const resolved=resolveStateInput(q);
+      if(resolved.kind==="country"){
+        addMsg("sam",`${resolved.name} is the country, not the state. Which state is it in? Type the name, the two-letter code, or the ZIP.`);
+        return true;
+      }
+      if(resolved.kind==="state"||resolved.kind==="skip"){
+        sellState.region="US";
+        sellState.state=resolved.kind==="skip"?"Not sure":resolved.value;
+      }else{
+        const pipedState=pipelineProcess(q,step);
+        if(pipedState.action==="chat")return false;
+        if(pipedState.action==="escalate"){escalateStep(step);return true;}
+        sellState.region="US";
+        sellState.state=pipedState.action==="store"&&typeof pipedState.value==="string"?pipedState.value:"Not sure";
+      }
     }
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    if(sellState.mileage){
-      sellState.step=3;
-      addMsg("sam",conditionAskText(),"",chipsHTML(["Completely stock","Minor mods","Heavily modified"]));
-      return true;
-    }
-    sellState.step=2;
-    addMsg("sam","Rough mileage?","",chipsHTML(["Under 30k","30k to 60k","60k to 100k","Over 100k"]));
+    if(sellState.price){sellState.step=8;askPowerSellerStep();return true;}
+    sellState.step=6;
+    addMsg("sam",SELL_STEP_QUESTIONS[6].ask);
     return true;
   }
 
@@ -290,12 +298,16 @@ async function handleSellStep(q){
     if(piped.action==="escalate"){escalateStep(step);return true;}
     sellState[STEP_SPECS[step].field]=piped.value;
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    const FLOW_AFTER={2:3,3:4,4:5,5:6,6:7,7:9};
-    if(step===9){sellState.step=10;showPhotoUpload();return true;}
-    const next=FLOW_AFTER[step];
+    // Thesis v1: price is the last free-text intake step; it hands to the
+    // PowerSeller-preference question (step 8), then confirm.
+    if(step===6){sellState.step=8;askPowerSellerStep();return true;}
+    // Legacy fall-through for any still-declared step (2-9); none are in the
+    // four-question flow, but keep a safe route if one is ever reached directly.
+    const FLOW_AFTER={2:6,3:6,4:6,5:6,7:6,9:6};
+    const next=FLOW_AFTER[step]||6;
     sellState.step=next;
     const nextQ=SELL_STEP_QUESTIONS[next];
-    addMsg("sam",next===3?conditionAskText():nextQ.ask,"",nextQ.chips&&nextQ.chips.length?chipsHTML(nextQ.chips):"");
+    addMsg("sam",nextQ.ask,"",nextQ.chips&&nextQ.chips.length?chipsHTML(nextQ.chips):"");
     return true;
   }
 
@@ -311,7 +323,12 @@ async function handleSellStep(q){
     sellState.sellerPreference=pref;
     // Reuse the existing involvement gate so the result stage honors the choice.
     sellState.involvement=pref==="powerseller"?"Want someone to handle everything":pref==="diy"?"I'll manage it myself":"";
-    showSellRecommendation();
+    // Thesis v1: preference is the FOURTH intake question, asked before the
+    // confirm card (which now shows it as its fourth row). Editing it from the
+    // confirm returns to the confirm; a fresh run advances to the confirm.
+    if(sellState.returnToConfirm){goBackToConfirm();return true;}
+    sellState.step=16;
+    showConfirmation();
     return true;
   }
 
@@ -324,27 +341,20 @@ async function handleSellStep(q){
         askMissingVehicleDetail(missing);
         return true;
       }
-      // FIX 3: the PowerSeller preference is the LAST step, asked after the
-      // summary is confirmed and immediately before results compile.
-      askPowerSellerStep();
+      // Thesis v1: preference was already the fourth intake question, so
+      // confirming goes straight to the analysis + recommendation.
+      showSellRecommendation();
       return true;
     }
     if(/change something|i want to change|change|edit|no|wrong|mistake/i.test(lower)){
-      addMsg("sam","No problem. What would you like to change?","",chipsHTML(["Car","Location","State","Mileage","Condition","Service records","Title","Price","Timeline","Notes"]));
+      addMsg("sam","No problem. What would you like to change?","",chipsHTML(["Car","Location","Price","How I'll sell it"]));
       return true;
     }
-    // Field-specific change chips
-    if(/^car$/i.test(lower)){sellState.returnToConfirm=true;sellState.carName=null;sellState.carType=null;sellState.vehicleIdentityValidated=false;sellState.pendingVehicleIdentity=null;sellState.step=1;addMsg("sam","What are we selling today? Year, make, and model.");return true;}
-    if(/^location$|^region$/i.test(lower)){sellState.returnToConfirm=true;sellState.region=null;sellState.state=null;sellState.step=11;addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));return true;}
-    if(/^state$/i.test(lower)){sellState.returnToConfirm=true;sellState.region="US";sellState.state=null;sellState.step=18;addMsg("sam","Which state is it in? This helps me think about PowerSeller and handoff options. Type it if it is not shown.","",chipsHTML(["California","Florida","Texas","New York","New Jersey","Other"]));return true;}
-    if(/^mileage$/i.test(lower)){sellState.returnToConfirm=true;sellState.mileage=null;sellState.step=2;addMsg("sam","Rough mileage?","",chipsHTML(["Under 30k","30k to 60k","60k to 100k","Over 100k"]));return true;}
-    if(/^condition$/i.test(lower)){sellState.returnToConfirm=true;sellState.condition=null;sellState.step=3;addMsg("sam","Stock or modified?","",chipsHTML(["Completely stock","Minor mods","Heavily modified"]));return true;}
-    if(/^service records$/i.test(lower)){sellState.returnToConfirm=true;sellState.records=null;sellState.step=4;addMsg("sam","Service records?","",chipsHTML(["Full history","Some records","No records"]));return true;}
-    if(/^title$/i.test(lower)){sellState.returnToConfirm=true;sellState.title=null;sellState.step=5;addMsg("sam","Clean title or is there a lien on it?","",chipsHTML(["Clean title","Lien on it"]));return true;}
-    if(/^price$/i.test(lower)){sellState.returnToConfirm=true;sellState.price=null;sellState.step=6;addMsg("sam","What price are you hoping for?");return true;}
-    if(/^timeline$/i.test(lower)){sellState.returnToConfirm=true;sellState.timeline=null;sellState.step=7;addMsg("sam","How quickly are you looking to sell?","",chipsHTML(["Want it gone fast","Within a month","No rush, right result only"]));return true;}
-    if(/^involvement$/i.test(lower)){sellState.returnToConfirm=true;sellState.involvement=null;sellState.step=8;addMsg("sam","Hands-on or hands-off?","",chipsHTML(["I'll manage it","Want someone to handle everything","Either works"]));return true;}
-    if(/^notes$/i.test(lower)){sellState.returnToConfirm=true;sellState.notes=null;sellState.step=9;addMsg("sam","Anything else Sam should know about the car?","",chipsHTML(["Skip"]));return true;}
+    // Field-specific change chips (four-question flow).
+    if(/^car$/i.test(lower)){sellState.returnToConfirm=true;sellState.carName=null;sellState.carType=null;sellState.vehicleIdentityValidated=false;sellState.pendingVehicleIdentity=null;sellState.step=1;addMsg("sam","What are you selling? Year, make, and model.");return true;}
+    if(/^location$|^region$|^state$/i.test(lower)){sellState.returnToConfirm=true;sellState.region=null;sellState.state=null;sellState.step=18;addMsg("sam",SELL_STEP_QUESTIONS[18].ask,"",chipsHTML(SELL_STEP_QUESTIONS[18].chips));return true;}
+    if(/^price$/i.test(lower)){sellState.returnToConfirm=true;sellState.price=null;sellState.step=6;addMsg("sam",SELL_STEP_QUESTIONS[6].ask);return true;}
+    if(/^how i'll sell it$|^preference$|^selling preference$|^involvement$|^how i sell/i.test(lower)){sellState.returnToConfirm=true;sellState.sellerPreference=null;sellState.involvement=null;sellState.step=8;askPowerSellerStep();return true;}
     return true;
   }
 
@@ -423,19 +433,16 @@ function showConfirmation(){
   hideHero();
   const msgs=document.getElementById("msgs");
   const row=document.createElement("div");row.className="row sam";
+  // Thesis v1: exactly four rows (car, location, price, preference).
+  const prefLabel=sellState.sellerPreference==="powerseller"?"Have someone handle it"
+    :sellState.sellerPreference==="diy"?"Sell it myself"
+    :sellState.sellerPreference==="unsure"?"Not sure yet":"Not set";
   const rows=[
     {label:"Car",value:sellState.carName?carDisplayLabel():"Not set"},
-    {label:"Location",value:sellState.region||"Not set"},
-    sellState.state?{label:"State",value:sellState.state}:null,
-    {label:"Mileage",value:sellState.mileage||"Not set"},
-    {label:"Condition",value:sellState.condition||"Not set"},
-    {label:"Service records",value:sellState.records||"Not set"},
-    {label:"Title",value:sellState.title||"Not set"},
+    {label:"Location",value:sellState.state||sellState.region||"Not set"},
     {label:"Asking price",value:sellState.price||"Not set"},
-    {label:"Timeline",value:sellState.timeline||"Not set"},
-    sellState.notes?{label:"Notes",value:sellState.notes}:null,
-    sellState.photo?{label:"Photo",value:sellState.photo}:null,
-  ].filter(Boolean);
+    {label:"How you'll sell it",value:prefLabel},
+  ];
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
     <div class="sam-text">Before I show you where to take this, does everything look right?</div>

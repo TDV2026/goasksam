@@ -9,31 +9,32 @@ async function showSellRecommendation(){
   if(typeof gasFunnel==="function")gasFunnel("wizard_complete");  // 2F: the wizard finished, analysis starting
   hideHero();
   const msgs=document.getElementById("msgs");
+  // Analysis screen (Thesis v1): staged lines that mirror the real pipeline
+  // (fetch comps -> compare platforms -> check specialists -> write rec). Each
+  // ticks over briskly; the REVEAL is gated on the real response, so a cache-warm
+  // result flashes through and a data_unavailable response never lets the final
+  // "Writing my recommendation" stage complete.
   const thinkRow=document.createElement("div");thinkRow.className="row sam";thinkRow.id="sellThinking";
-  const loadingLines=[
-    "Searching the available market data and recent sales now.",
-    "Checking close matches first, then widening only when it adds useful context.",
-    "Comparing platform fit, seller region, timing and likely audience.",
-    "Looking at whether PowerSellers should be on the table.",
-    "Nearly there. I would rather be thorough than give you a lazy answer."
+  const stages=[
+    "Finding comparable sales",
+    "Comparing auction platform performance",
+    "Checking for specialist representation",
+    "Writing my recommendation"
   ];
   thinkRow.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>
-    <div class="analysis-loader">
-      <div class="market-swirl" aria-hidden="true"></div>
-      <div class="analysis-copy">
-        <div class="analysis-title">Analyzing the market for your ${escapeHtml(sellState.carName||"car")}</div>
-        <div class="analysis-line" id="analysisLine">${escapeHtml(loadingLines[0])}</div>
-        <div class="analysis-note">This can take a moment because Sam is checking sales evidence before making a recommendation.</div>
-      </div>
+    <div class="analysis-stages" id="analysisStages" role="status" aria-live="polite">
+      <div class="analysis-stages-title">Analyzing the market for your ${escapeHtml(sellState.carName||"car")}</div>
+      ${stages.map((s,i)=>`<div class="analysis-stage${i===0?" active":""}" data-i="${i}"><span class="stage-dot" aria-hidden="true"></span><span class="stage-text">${escapeHtml(s)}</span></div>`).join("")}
     </div>
   </div></div>`;
   msgs.appendChild(thinkRow);msgs.scrollTop=msgs.scrollHeight;
-  let loadingIndex=0;
-  const loadingTimer=setInterval(()=>{
-    loadingIndex=(loadingIndex+1)%loadingLines.length;
-    const line=document.getElementById("analysisLine");
-    if(line)line.textContent=loadingLines[loadingIndex];
-  },3600);
+  let stageIdx=0;
+  const advanceStage=()=>{
+    const el=document.getElementById("analysisStages");if(!el)return;
+    const cur=el.querySelector(`.analysis-stage[data-i="${stageIdx}"]`);if(cur){cur.classList.remove("active");cur.classList.add("done");}
+    if(stageIdx<stages.length-1){stageIdx++;const nxt=el.querySelector(`.analysis-stage[data-i="${stageIdx}"]`);if(nxt)nxt.classList.add("active");}
+  };
+  const stageTimer=setInterval(()=>{ if(stageIdx<stages.length-1)advanceStage(); },720);
 
   let decisionData=null;
   try{
@@ -65,7 +66,7 @@ async function showSellRecommendation(){
   }catch(e){
     decisionData={status:"error",error:e.message};
   }
-  clearInterval(loadingTimer);
+  clearInterval(stageTimer);
 
   const tr=document.getElementById("sellThinking");if(tr)tr.remove();
 

@@ -8,18 +8,18 @@ function resetSellState(){
 }
 
 const SELL_STEP_QUESTIONS={
-  1:{ask:"What are we selling today?",chips:[]},
+  1:{ask:"What are you selling?",chips:[]},
   17:{ask:"Which model or trim is it? Pick one below, or just type the exact trim (like Alpina B3, M Sport or GTS) if it's not shown.",chips:["911","944","928","356","Boxster","Cayman","Not sure"]},
   11:{ask:"Where is the car located?",chips:["US","UK","Europe","Australia","Middle East","Other"]},
-  18:{ask:"Which state is it in? This helps me think about PowerSeller and handoff options. Type it if it is not shown.",chips:["California","Florida","Texas","New York","New Jersey","Other"]},
+  18:{ask:"Where's the car? A state is perfect, or the nearest city.",chips:["California","Florida","Texas","New York","New Jersey","Other"]},
   2:{ask:"Rough mileage?",chips:["Under 30k","30k to 60k","60k to 100k","Over 100k"]},
   3:{ask:"Stock or modified?",chips:["Completely stock","Minor mods","Heavily modified"]},
   4:{ask:"Service records?",chips:["Full history","Some records","No records"]},
   5:{ask:"Clean title or is there a lien on it?",chips:["Clean title","Lien on it"]},
-  6:{ask:"What price are you hoping for?",chips:[]},
+  6:{ask:"Roughly what are you hoping to get for it?",chips:[]},
   7:{ask:"How quickly are you looking to sell?",chips:["Want it gone fast","Within a month","No rush, right result only"]},
   9:{ask:"Anything else Sam should know about the car? Feel free to skip.",chips:["Skip"]},
-  8:{ask:"Which sounds more like you?",explainer:"Some sellers run the sale themselves. Others hand it to a PowerSeller: a specialist who photographs the car, writes the listing, answers buyer questions and runs the auction for you.",chips:["I'll run it myself","I'd rather someone handled it","Not sure yet"]}
+  8:{ask:"How would you like to sell it?",explainer:"Last one. Some sellers run the sale themselves; others hand it to a PowerSeller who photographs the car, writes the listing, answers buyer questions and runs the auction for them.",chips:["I'll sell it myself","I'd like someone to handle everything","I'm not sure yet"]}
 };
 
 const SELL_SYS=`You are Sam, helping someone sell their car on GoAskSam. Warm, direct, knowledgeable about the collector car market.
@@ -832,15 +832,17 @@ function resumeWizardAfterVehicle(prefix){
     addMsg("sam",[prefix,backQ.ask].filter(Boolean).join(" "),"",backQ.chips&&backQ.chips.length?chipsHTML(backQ.chips):"");
     return;
   }
-  const next=!sellState.region?11
-    :(isUSRegion(sellState.region)&&!sellState.state?18
-    :(!sellState.mileage?2
-    :(!sellState.condition?3
-    :(!sellState.records?4
-    :(!sellState.title?5
+  // Search Flow Thesis v1: four intake questions only -> car, location, price,
+  // preference -> confirm. mileage/condition/records/title/timeline/notes are gone.
+  const locationAnswered = !!sellState.state || (sellState.region && sellState.region !== "US" && sellState.region !== "");
+  const next=!locationAnswered?18
     :(!sellState.price?6
-    :(!sellState.timeline?7
-    :(!sellState.notes?9:16))))))));
+    :(!sellState.sellerPreference?8:16));
+  if(next===8){
+    if(prefix)addMsg("sam",prefix);
+    askPowerSellerStep();
+    return;
+  }
   if(next===16){
     if(prefix)addMsg("sam",prefix);
     sellState.step=16;
@@ -849,8 +851,7 @@ function resumeWizardAfterVehicle(prefix){
   }
   sellState.step=next;
   const q=SELL_STEP_QUESTIONS[next];
-  const askText=next===3?conditionAskText():q.ask;
-  addMsg("sam",[prefix,askText].filter(Boolean).join(" "),"",q.chips&&q.chips.length?chipsHTML(q.chips):"");
+  addMsg("sam",[prefix,q.ask].filter(Boolean).join(" "),"",q.chips&&q.chips.length?chipsHTML(q.chips):"");
 }
 
 function editCarName(){
@@ -974,12 +975,12 @@ function applySellStateUpdate(text){
 }
 
 function remainingWizardQuestions(){
-  const order=[1,11,18,2,3,4,5,6,7,9];
+  // Four-question intake: car -> location -> price -> preference (Thesis v1).
+  const order=[1,18,6,8];
   const idx=order.indexOf(sellState.step);
   if(idx<0)return 0;
   let rest=order.slice(idx+1);
-  if(sellState.region&&sellState.region!=="US")rest=rest.filter(step=>step!==18);
-  if(sellState.state)rest=rest.filter(step=>step!==18);
+  if(sellState.state||(sellState.region&&sellState.region!=="US"))rest=rest.filter(step=>step!==18);
   return rest.length;
 }
 
