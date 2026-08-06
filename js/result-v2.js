@@ -182,7 +182,7 @@ function renderPickCardV2(option){
     var evHTML=subs.length?('<div class="pv2-ev pv2-n'+subs.length+'">'+subs.map(function(s){
       return '<div class="pv2-ecard"><span class="pv2-eic">'+v2Svg(s.ic)+'</span><span class="pv2-el">'+esc(s.l)+'</span><span class="pv2-eh">'+esc(s.h)+'</span><span class="pv2-eb">'+esc(s.b)+'</span>'+(s.note?'<span class="pv2-en">'+esc(s.note)+'</span>':'')+'</div>';
     }).join("")+'</div>')
-    : '<div class="pv2-empty">'+v2Svg("info")+'<p><b>Not enough recent data for timing, audience, or reserve signals yet.</b> This read stands on the platform match alone.</p></div>';
+    : '<div class="pv2-empty">'+v2Svg("info")+'<p><b>No standout timing, audience, or reserve signal for '+esc(name)+' yet.</b> This pick stands on the platform match. Those signals are platform-specific, so a thin one here is about '+esc(name)+', not your car.</p></div>';
     var because=v2Because(mode,slots);
     var why=v2Why(mode,slots);
     var outbound=slug&&typeof hasOutboundSubmission==="function"&&hasOutboundSubmission(slug);
@@ -205,4 +205,191 @@ function renderPickCardV2(option){
       + '<div class="pv2-foot">'+v2Svg("shield")+'<div><div class="pv2-f1">This takes you to '+esc(name)+' to complete your listing.</div><div class="pv2-f2">Nothing is committed, and you stay in control.</div></div></div>'
       + '</div>';
   }catch(e){ if(typeof console!=="undefined")console.warn("pickCardV2 failed, falling back",e); return null; }
+}
+
+// ========================= STAGE 4: FULL V2 RESULT PAGE =========================
+// When cardv2 is on, the result page renders ONLY V2 components: the pick hero, an
+// optional compact V2 secondary (when the alt genuinely competes), and the V2
+// PowerSeller dossier positioned by preference + value. No old alt card, no old
+// howS strip, no "Send my details", no "around". Curated strings only.
+
+// ---- PowerSeller field extraction (real data only, never invented) ----
+function psvPartner(){ try{ return (sellState.partnerReferral&&sellState.partnerReferral.partner)||null; }catch(e){ return null; } }
+function psvName(p){ var d=String(p.displayName||p.name||"this consignor"); return d.split(" / ")[0].trim()||d; }
+function psvFirst(p){ return psvName(p).split(/\s+/)[0]; }
+function psvHandle(p){ return String(p.name||psvName(p)); }
+function psvPoss(n){ return n+(/s$/i.test(n)?"'":"'s"); }
+function psvMakePlural(make){ try{ return (typeof pluralizeMake==="function")?pluralizeMake(make):(v2Pl(make)); }catch(e){ return v2Pl(make||"cars"); } }
+function psvTrophy(p){
+  var pool=[].concat((p.specialties&&p.specialties.profile_stats||[]).map(function(s){return s&&s.text;}),
+                     (p.serviceClaims||[]).map(function(s){return s&&s.text;})).filter(Boolean);
+  for(var i=0;i<pool.length;i++){ var m=/(\d[\d,]*)\s*\+?\s*(?:listings|auctions)/i.exec(pool[i]); if(m)return m[1].replace(/,/g,"")+"+"; }
+  return null;
+}
+function psvSpecialtyShort(p){
+  var notes=String((p.specialties&&p.specialties.notes)||"").replace(/\s*\(per[^)]*\)\s*$/i,"").trim();
+  if(notes)return notes.split(",")[0].trim();
+  return "";
+}
+function psvLocation(p){
+  var pool=(p.serviceClaims||[]).map(function(s){return s&&s.text;}).filter(Boolean);
+  for(var i=0;i<pool.length;i++){ var m=/Based in ([^,.;]+)/i.exec(pool[i]); if(m)return m[1].trim(); }
+  return "";
+}
+function psvCoverage(p){
+  var regions=(p.regions||[]).map(function(r){return String(r).toLowerCase();});
+  if(regions.indexOf("nationwide")>=0)return "Works nationwide";
+  var first=(p.regions||[]).find(function(r){return String(r).toLowerCase()!=="nationwide";});
+  return first?("Serves "+first):"";
+}
+
+// ---- PowerSeller curated copy, match-reason variants (he/him locked) ----
+function psvReasonNote(matchType,make,first){
+  var m={
+    specialty:"Recommended because this "+make+" closely matches "+psvPoss(first)+" strongest area of expertise.",
+    region:"Recommended because "+first+" covers your region and takes the whole sale off your plate.",
+    generalist:"Recommended because "+psvPoss(first)+" track record spans exactly this kind of car."
+  };
+  return m[matchType]||m.generalist;
+}
+function psvPara(matchType,make,first){
+  var opener={
+    specialty:psvMakePlural(make)+" are one of "+psvPoss(first)+" strongest areas.",
+    region:first+" covers your area and takes on the entire sale himself.",
+    generalist:first+" has represented a deep bench of enthusiast cars over his career."
+  }[matchType]||"";
+  return opener+" For this "+make+", I'd trust him to choose the right platform, present it professionally and manage the process from start to finish if you'd like experienced representation.";
+}
+function psvWhyBullets(matchType,make,first){
+  var lead={
+    specialty:psvMakePlural(make)+" are one of "+psvPoss(first)+" strongest areas.",
+    region:first+" covers your area and runs the whole sale himself.",
+    generalist:first+" has represented a wide range of enthusiast cars over his career."
+  }[matchType]||"";
+  return [
+    lead,
+    "He'll settle with you on the auction platform that gives this "+make+" the best shot, rather than assuming one is always right.",
+    "He handles everything from photography to paperwork if you'd rather have experienced representation."
+  ];
+}
+// Value-preference line (Stage 4, PENDING APPROVAL). Renders when the card LEADS
+// because the seller is unsure and the car's value clears the dial. Declarative,
+// no money figure, service framing only (never "gets you more").
+function psvValueLine(first){ return "For a car of this value, "+first+" is who I'd hand it to."; }
+
+var PSV2_ICON={
+  person:'<circle cx="12" cy="8" r="3.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5 20c0-3.6 3-6 7-6s7 2.4 7 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+  trophy:'<path d="M7 4h10v4a5 5 0 0 1-10 0z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M7 5H4v1.5A3.5 3.5 0 0 0 7 10M17 5h3v1.5A3.5 3.5 0 0 1 17 10M10 13.5h4M9 20h6M12 13.5V17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>',
+  car:V2_ICON.car, pin:'<path d="M12 21s-6.5-5-6.5-10a6.5 6.5 0 0 1 13 0c0 5-6.5 10-6.5 10z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="11" r="2.4" fill="currentColor"/>',
+  star:V2_ICON.spark, check:'<path d="M4.5 12.5l5 5 10-11" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>',
+  clip:'<rect x="5" y="4.5" width="14" height="16.5" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="9" y="2.8" width="6" height="3.4" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8.5 11h7M8.5 15h5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+  cam:'<rect x="3" y="7" width="18" height="13" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 7l1.4-2.4h4.2L15.5 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="13.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/>',
+  chat:'<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7A2.5 2.5 0 0 1 17.5 16H9l-4 4v-4H6.5A2.5 2.5 0 0 1 4 13.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+  target:'<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/>',
+  doc:'<path d="M6 3h8l4 4v14H6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 3v4h4M9 12h6M9 16h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  hand:'<path d="M3 9l3-2 5 4 2-1M21 9l-3-2-4 3M8.5 11l2.5 2.5a1.6 1.6 0 0 0 2.3 0M11 13.5l2 2a1.5 1.5 0 0 0 2.1 0M6 7v6l-3 1M18 7v6l3 1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+  arrow:V2_ICON.arrow, shield:V2_ICON.shield
+};
+function psvSvg(k,cls){ return '<svg class="'+(cls||"")+'" viewBox="0 0 24 24" aria-hidden="true">'+(PSV2_ICON[k]||"")+'</svg>'; }
+
+// ---- THE POWERSELLER CARD ----
+function renderPowerSellerCardV2(opts){
+  try{
+    var p=psvPartner(); if(!p)return "";
+    var referral=sellState.partnerReferral||{};
+    var lead=!!(opts&&opts.lead), valueLed=!!(opts&&opts.valueLed);
+    var v=sellState.resolvedVehicle||(sellState.sellDecision&&sellState.sellDecision.vehicle)||{};
+    var make=v.make||"car";
+    var carLabel=[v.year,v.make,v.model].filter(Boolean).join(" ")||"car";
+    var name=psvName(p), first=psvFirst(p), handle=psvHandle(p);
+    var matchType=referral.matchType||"generalist";
+    var esc=escapeHtml;
+    var trophy=psvTrophy(p), spec=psvSpecialtyShort(p), loc=psvLocation(p), cov=psvCoverage(p);
+    // trust blocks (partner_provided -> attributed "per {handle}")
+    var trust="";
+    if(trophy)trust+='<div class="psv2-tblk"><span class="psv2-tic">'+psvSvg("trophy")+'</span><div><div class="psv2-tp big">'+esc(trophy)+'</div><div class="psv2-ts">enthusiast auctions, per '+esc(handle)+'</div></div></div>';
+    if(spec)trust+='<div class="psv2-tblk"><span class="psv2-tic">'+psvSvg("car")+'</span><div><div class="psv2-tp">Specialises in '+esc(spec.toLowerCase())+'</div><div class="psv2-ts">his stated focus</div></div></div>';
+    if(loc)trust+='<div class="psv2-tblk"><span class="psv2-tic">'+psvSvg("pin")+'</span><div><div class="psv2-tp">Based in '+esc(loc)+'</div>'+(cov?'<div class="psv2-ts">'+esc(cov)+'</div>':'')+'</div></div>';
+    var whyB=psvWhyBullets(matchType,make,first).map(function(b){ return '<div class="psv2-wb">'+psvSvg("check")+'<p>'+esc(b)+'</p></div>'; }).join("");
+    var svc=[["cam","Photography"],["chat","Buyer communication"],["target","Platform strategy"],["doc","Paperwork and logistics"]]
+      .map(function(s){ return '<div class="psv2-sc">'+psvSvg(s[0])+'<span>'+esc(s[1])+'</span></div>'; }).join("");
+    var valueLine=(lead&&valueLed)?'<p class="psv2-valline">'+psvSvg("star","psv2-vlic")+esc(psvValueLine(first))+'</p>':"";
+    return '<div class="psv2-card" onclick="choosePowerSeller(\''+esc(p.slug||"partner")+'\')">'
+      + '<div class="psv2-rowtop"><span class="psv2-badge">'+psvSvg("person")+"Sam's Recommendation</span>"+(handle&&handle!==name?'<span class="psv2-known">Known online as <b>'+esc(handle)+'</b></span>':'')+'</div>'
+      + '<div class="psv2-top">'
+        + '<div class="psv2-hero">'
+          + '<span class="psv2-script">If this were my car</span>'
+          + '<h2 class="psv2-name">I\'d ask '+esc(name)+' to represent my '+esc(carLabel)+'.</h2>'
+          + '<p class="psv2-para">'+esc(psvPara(matchType,make,first))+'</p>'
+          + valueLine
+          + '<p class="psv2-recnote">'+esc(psvReasonNote(matchType,make,first))+'</p>'
+        + '</div>'
+        + (trust?'<div class="psv2-trust">'+trust+'</div>':'')
+      + '</div>'
+      + '<div class="psv2-why"><div class="psv2-whyh"><span class="psv2-whystar">'+psvSvg("star")+'</span><span class="psv2-whyl">Why '+esc(first)+' is a good match for this '+esc(make)+'</span></div>'+whyB+'</div>'
+      + '<div class="psv2-svc"><div class="psv2-svch"><span class="psv2-svcic">'+psvSvg("clip")+'</span><span class="psv2-svcl">What '+esc(first)+' takes care of</span></div><div class="psv2-svcrow">'+svc+'</div></div>'
+      + '<button class="psv2-cta" onclick="event.stopPropagation();choosePowerSeller(\''+esc(p.slug||"partner")+'\')"><span class="psv2-mid">'+psvSvg("hand","psv2-hs")+'Request an introduction to '+esc(name)+'</span><span class="psv2-end">'+psvSvg("arrow","psv2-ar")+'</span></button>'
+      + '<div class="psv2-foot">'+psvSvg("shield")+'<div><div class="psv2-f1">You\'ll speak directly with '+esc(first)+' before deciding whether you\'d like to move forward.</div><div class="psv2-f2">No obligation. You\'re always in control.</div></div></div>'
+      + '</div>';
+  }catch(e){ if(typeof console!=="undefined")console.warn("psCardV2 failed",e); return ""; }
+}
+
+// ---- compact V2 secondary platform (only when the alt genuinely competes) ----
+function v2AltCompetes(alt,pick){
+  if(!alt||!pick)return false;
+  var pm=v2Mode(pick.marketEvidence||{});
+  var altEv=alt.marketEvidence||{}; var altSales=Number(altEv.evidenceSales||0);
+  if(pm==="modeA")return false;              // clear winner: no runner-up
+  if(pm==="modeB")return altSales>=3;        // prices close: the alt is a real option
+  var ap=altEv.pricePremium;                 // otherwise only a near-miss that itself cleared a symmetric gate
+  return !!(ap&&ap.gateType==="symmetric"&&isFinite(ap.percent)&&ap.percent>=5&&altSales>=5);
+}
+function renderSecondaryPlatformV2(alt,pick){
+  try{
+    if(!v2AltCompetes(alt,pick))return "";
+    var slug=alt.platformSlug||""; var name=platformDisplayName(alt.name||slug); var esc=escapeHtml;
+    var ev=alt.marketEvidence||{}; var mode=v2Mode(ev);
+    var line=mode==="modeB"
+      ?"Prices run close, so this is a genuine alternative if you'd rather list here."
+      :"A real second option: recent sales here have stayed competitive.";
+    var outbound=slug&&typeof hasOutboundSubmission==="function"&&hasOutboundSubmission(slug);
+    var onclick=outbound?("event.stopPropagation();openOutboundModal('"+esc(slug)+"','alt')"):("event.stopPropagation();chooseSellOption('"+esc(alt.key)+"')");
+    return '<div class="pv2-sec" style="--pa:'+v2Accent(slug)+'">'
+      + '<div class="pv2-sec-main"><div class="pv2-sec-l">Also worth a look</div><div class="pv2-sec-name">'+esc(name)+'</div><div class="pv2-sec-copy">'+esc(line)+'</div></div>'
+      + '<button class="pv2-sec-cta" onclick="'+onclick+'">Continue with '+esc(name)+' '+v2Svg("arrow","pv2-sar")+'</button>'
+      + '</div>';
+  }catch(e){ return ""; }
+}
+
+// ---- FULL PAGE COMPOSER ----
+function renderResultV2Page(){
+  try{
+    var opts=(sellState.sellOptions||[]).filter(function(o){return o.key!=="specialist";});
+    var pick=opts[0]; if(!pick)return null;
+    var pickHTML=renderPickCardV2(pick); if(!pickHTML)return null;
+    var referral=sellState.partnerReferral||{};
+    var pref=sellState.sellerPreference;
+    // PowerSeller composition (value-aware). diy: never. else render iff a partner
+    // cleared server-side (never stretch a match). Lead when preference is
+    // powerseller, or unsure AND value clears the dial.
+    var psHTML="", psLead=false;
+    if(pref!=="diy"&&referral.partner){
+      psLead=(pref==="powerseller")||(pref==="unsure"&&referral.leadOnValue===true);
+      var valueLed=(pref==="unsure"&&referral.leadOnValue===true);
+      psHTML=renderPowerSellerCardV2({lead:psLead,valueLed:valueLed});
+    }
+    // Secondary platform only when the alt genuinely competes AND the PS block is
+    // not leading (keep one clear axis when the handled door leads).
+    var secHTML=psLead?"":renderSecondaryPlatformV2(opts[1],pick);
+    var esc=escapeHtml;
+    var carLbl=(typeof carDisplayLabel==="function")?carDisplayLabel("your car"):(sellState.carName||"your car");
+    var header='<div class="pv2-page-head"><span class="pv2-kicker">Seller Intelligence</span><span class="pv2-cartitle">'+esc(carLbl)+'</span></div>';
+    var caveatText=(typeof unverifiedModelNote==="function"&&unverifiedModelNote())||(typeof adverseConditionCaveat==="function"&&adverseConditionCaveat())||"";
+    var caveat=caveatText?'<div class="pv2-caveat">'+esc(caveatText)+'</div>':"";
+    var body=psLead?(psHTML+pickHTML+secHTML):(pickHTML+secHTML+psHTML);
+    var after=referral.partner&&pref!=="diy"
+      ?'<div class="pv2-after">Both are real options and the choice is yours. Ask me to compare the tradeoffs, or how I\'d run the listing.</div>'
+      :'<div class="pv2-after">Ask me anything about the pick, or how I\'d run the listing.</div>';
+    return '<div class="pv2-page">'+header+body+caveat+after+'</div>';
+  }catch(e){ if(typeof console!=="undefined")console.warn("renderResultV2Page failed",e); return null; }
 }

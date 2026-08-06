@@ -25,7 +25,7 @@ globalThis.localStorage={getItem:()=>null,setItem:noop,removeItem:noop};
 globalThis.fetch=async()=>({ok:true,json:async()=>({})});
 const html=fs.readFileSync("index.html","utf8");
 const files=[...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
-(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.v2Because=v2Because;globalThis.v2Why=v2Why;globalThis.v2Weekday=v2Weekday;globalThis.v2Reserve=v2Reserve;globalThis.v2Audience=v2Audience;globalThis.v2ScopePlural=v2ScopePlural;globalThis.v2RungRef=v2RungRef;globalThis.v2RungNoun=v2RungNoun;globalThis.CLAUSE_A=CLAUSE_A;globalThis.CLAUSE_B=CLAUSE_B;globalThis.CLAUSE_C=CLAUSE_C;");
+(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.v2Because=v2Because;globalThis.v2Why=v2Why;globalThis.v2Weekday=v2Weekday;globalThis.v2Reserve=v2Reserve;globalThis.v2Audience=v2Audience;globalThis.v2ScopePlural=v2ScopePlural;globalThis.v2RungRef=v2RungRef;globalThis.v2RungNoun=v2RungNoun;globalThis.CLAUSE_A=CLAUSE_A;globalThis.CLAUSE_B=CLAUSE_B;globalThis.CLAUSE_C=CLAUSE_C;globalThis.psvReasonNote=psvReasonNote;globalThis.psvPara=psvPara;globalThis.psvWhyBullets=psvWhyBullets;globalThis.psvValueLine=psvValueLine;globalThis.psvPoss=psvPoss;");
 
 let failures=0;
 const check=(name,ok,detail="")=>{console.log(`${ok?"PASS":"FAIL"}  ${name}${ok?"":"  ->  "+String(detail).slice(0,200)}`);if(!ok)failures++;};
@@ -71,6 +71,28 @@ const rvGate=v2Reserve({label:"bringatrailer",platform:"bringatrailer",reserveCo
 check("reserve hidden when n_with < 10", rvGate===null, JSON.stringify(rvGate));
 const rvSim=v2Reserve({label:"bringatrailer",platform:"bringatrailer",reserveContext:{delta_pct:1.5,n_with:40,n_without:30,data_month:"2026-06"}});
 check("reserve <3% uses similarity wording (within three points)", rvSim&&/within three points/.test(rvSim.body)&&!/\$/.test(rvSim.body), rvSim&&rvSim.body);
+
+// ---- STAGE 4: PowerSeller copy across all three match-reason variants ----
+for(const mt of ["specialty","region","generalist"]){
+  for(const make of ["Porsche","BMW","Ferrari"]){
+    const first="howS";
+    const note=psvReasonNote(mt,make,first), para=psvPara(mt,make,first), bl=psvWhyBullets(mt,make,first);
+    const rn=clean(note), rp=clean(para);
+    check(`ps.reasonNote.${mt}.${make} clean`, rn.ok, rn.detail);
+    check(`ps.para.${mt}.${make} clean`, rp.ok, rp.detail);
+    check(`ps.para.${mt}.${make} names the car (For this ${make})`, para.includes(`For this ${make}`), para);
+    check(`ps.whyBullets.${mt}.${make} 3 bullets, all clean`, bl.length===3&&bl.every(b=>clean(b).ok), bl.map(b=>clean(b).detail).filter(d=>!/^\s*::/.test(d)).join(" | "));
+    // "decide with you on the platform" framing present, never "a car like this" filler
+    check(`ps.whyBullets.${mt}.${make} has decide-with-you framing`, bl.some(b=>/with you/.test(b)), bl.join(" | "));
+  }
+}
+// value-preference line: declarative, service framing, no money figure, no "gets you more"
+const vl=psvValueLine("howS");
+check("ps.valueLine clean", clean(vl).ok, clean(vl).detail);
+check("ps.valueLine no money/earn/get-more", !/\$|\bmore money\b|gets? you|will get|you'?ll (earn|get)/i.test(vl), vl);
+check("ps.valueLine mentions value + name", /value/i.test(vl)&&/howS/.test(vl), vl);
+// possessive helper renders correctly for an s-ending name
+check("ps.poss handles s-ending name", psvPoss("howS")==="howS'"||psvPoss("Chris")==="Chris'", psvPoss("Chris"));
 
 console.log(failures?`\n${failures} FAILURE(S)`:"\nCARD-V2-LINT ALL PASS");
 process.exit(failures?1:0);

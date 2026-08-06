@@ -747,3 +747,77 @@ body.home #input-box:focus-within{box-shadow:0 2px 10px rgba(22,20,15,.05);borde
 .pv2-f1{font-size:14px;color:#38342D;line-height:1.45;}
 .pv2-f2{font-size:13.5px;color:#6E6A62;margin-top:2px;}
 @media(max-width:640px){.pv2-card{padding:26px 22px 22px;}.pv2-meta{grid-template-columns:1fr;}.pv2-mcol+.pv2-mcol{border-left:0;border-top:1px solid #EAE7DF;}.pv2-ev,.pv2-ev.pv2-n2,.pv2-ev.pv2-n1{grid-template-columns:1fr;}}
+
+/* ===================== STAGE 4: full V2 page ===================== */
+.pv2-page{display:flex;flex-direction:column;gap:16px;--pa-amber:#A9772E;--pa-amber-soft:#F3E8D6;--v2-green:#2F7A40;--v2-green-solid:#2C5A38;--v2-cta:#2C4A31;}
+.pv2-page-head{display:flex;flex-direction:column;gap:5px;margin:2px 2px 0;}
+.pv2-kicker{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#A7A29A;font-weight:600;}
+.pv2-cartitle{font-family:var(--font-serif,Georgia,serif);font-size:22px;font-weight:700;color:#1A1915;letter-spacing:-.01em;}
+.pv2-caveat{background:#FCFCFA;border:1px solid #ECEAE2;border-radius:14px;padding:14px 18px;font-size:14px;line-height:1.5;color:#6E6A62;}
+.pv2-after{font-size:14.5px;line-height:1.55;color:#6E6A62;margin:2px 4px;}
+
+/* compact secondary platform */
+.pv2-sec{--pa:#2F7A40;background:var(--card,#fff);border:1px solid #ECEAE2;border-left:3px solid var(--pa);border-radius:16px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;}
+.pv2-sec-l{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#A7A29A;font-weight:700;}
+.pv2-sec-name{font-size:18px;font-weight:700;color:#1A1915;margin:3px 0 4px;}
+.pv2-sec-copy{font-size:14px;line-height:1.45;color:#6E6A62;max-width:52ch;}
+.pv2-sec-cta{border:1px solid color-mix(in srgb,var(--pa) 40%,#fff);background:color-mix(in srgb,var(--pa) 8%,#fff);color:var(--pa);font-family:var(--font-sans);font-weight:700;font-size:14px;border-radius:10px;padding:11px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;}
+.pv2-sec-cta svg{width:16px;height:16px;}.pv2-sec-cta:hover{filter:brightness(.97);}
+
+/* PowerSeller dossier (amber = seller identity, green = Sam's judgment + action) */
+.psv2-card{background:var(--card,#fff);border:1px solid #ECEAE2;border-radius:26px;box-shadow:0 1px 2px rgba(26,25,21,.03),0 24px 56px -34px rgba(26,25,21,.16);padding:36px 40px 30px;font-family:var(--font-sans);color:#1A1915;cursor:pointer;}
+.psv2-rowtop{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:28px;flex-wrap:wrap;}
+.psv2-badge{display:inline-flex;align-items:center;gap:9px;background:var(--pa-amber-soft);color:var(--pa-amber);border-radius:999px;padding:9px 16px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+.psv2-badge svg{width:15px;height:15px;}
+.psv2-known{font-size:14px;color:#6E6A62;}.psv2-known b{font-family:var(--font-serif,Georgia,serif);font-weight:700;color:#1A1915;font-size:17px;}
+.psv2-top{display:grid;grid-template-columns:1.42fr 1fr;gap:30px;align-items:start;}
+.psv2-script{font-family:"Bradley Hand","Segoe Script","Snell Roundhand",cursive;font-size:24px;color:var(--pa-amber);line-height:1;display:inline-block;margin-bottom:6px;}
+.psv2-name{font-family:var(--font-serif,Georgia,serif);font-weight:700;font-size:clamp(26px,3.2vw,34px);line-height:1.1;letter-spacing:-.015em;color:#1A1915;margin:6px 0 0;text-wrap:balance;}
+.psv2-para{font-size:15.5px;line-height:1.6;color:#38342D;max-width:44ch;margin:18px 0 0;}
+.psv2-valline{display:flex;gap:10px;align-items:flex-start;margin:16px 0 0;font-family:var(--font-serif,Georgia,serif);font-size:16.5px;line-height:1.45;color:var(--v2-green-solid);font-style:italic;}
+.psv2-valline .psv2-vlic{width:18px;height:18px;color:var(--v2-green);flex:none;margin-top:3px;}
+.psv2-recnote{font-size:13px;line-height:1.5;color:#6E6A62;max-width:46ch;margin:14px 0 0;}
+.psv2-trust{background:var(--pa-amber-soft,#F7F3EC);border:1px solid color-mix(in srgb,var(--pa-amber) 18%,#F7F3EC);border-radius:18px;padding:4px 20px;}
+.psv2-tblk{display:flex;align-items:center;gap:14px;padding:16px 0;}
+.psv2-tblk+.psv2-tblk{border-top:1px solid color-mix(in srgb,var(--pa-amber) 16%,#EBE9E2);}
+.psv2-tic{width:46px;height:46px;border-radius:50%;background:color-mix(in srgb,var(--pa-amber) 15%,#fff);display:flex;align-items:center;justify-content:center;flex:none;}
+.psv2-tic svg{width:23px;height:23px;color:var(--pa-amber);}
+.psv2-tp{font-size:16px;font-weight:700;color:var(--pa-amber);line-height:1.2;}.psv2-tp.big{font-size:24px;letter-spacing:-.01em;}
+.psv2-ts{font-size:13px;color:#6E6A62;margin-top:2px;line-height:1.3;}
+.psv2-why{margin-top:30px;background:#F6F6F2;border:1px solid #ECEAE2;border-radius:18px;padding:24px 28px;}
+.psv2-whyh{display:flex;align-items:center;gap:13px;margin-bottom:16px;}
+.psv2-whystar{width:36px;height:36px;border-radius:50%;background:var(--v2-green-solid);display:flex;align-items:center;justify-content:center;flex:none;}
+.psv2-whystar svg{width:18px;height:18px;color:#fff;}
+.psv2-whyl{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--v2-green);}
+.psv2-wb{display:flex;gap:13px;align-items:flex-start;padding:7px 0;}
+.psv2-wb svg{width:18px;height:18px;color:var(--v2-green);flex:none;margin-top:2px;}
+.psv2-wb p{margin:0;font-size:16px;line-height:1.5;color:#1A1915;max-width:64ch;}
+.psv2-svc{margin-top:20px;background:#F6F6F2;border:1px solid #ECEAE2;border-radius:18px;padding:22px 28px 26px;}
+.psv2-svch{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.psv2-svcic{width:36px;height:36px;border-radius:50%;background:color-mix(in srgb,var(--pa-amber) 15%,#fff);display:flex;align-items:center;justify-content:center;flex:none;}
+.psv2-svcic svg{width:18px;height:18px;color:var(--pa-amber);}
+.psv2-svcl{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pa-amber);}
+.psv2-svcrow{display:grid;grid-template-columns:repeat(4,1fr);}
+.psv2-sc{display:flex;flex-direction:column;align-items:center;gap:11px;padding:6px 10px;text-align:center;}
+.psv2-sc+.psv2-sc{border-left:1px solid #E8E5DD;}
+.psv2-sc svg{width:24px;height:24px;color:#38342D;}.psv2-sc span{font-size:14px;color:#38342D;}
+.psv2-cta{margin-top:26px;width:100%;border:0;cursor:pointer;background:var(--v2-cta);color:#F6F5EF;font-family:var(--font-sans);font-weight:700;font-size:16.5px;height:64px;border-radius:14px;position:relative;display:flex;align-items:center;justify-content:center;padding:0 26px;}
+.psv2-mid{display:inline-flex;align-items:center;gap:13px;}.psv2-mid .psv2-hs{width:21px;height:21px;}
+.psv2-end{position:absolute;right:24px;top:50%;transform:translateY(-50%);display:inline-flex;}.psv2-end .psv2-ar{width:19px;height:19px;}
+.psv2-cta:hover{filter:brightness(1.08);}.psv2-cta:focus-visible{outline:2px solid #1A1915;outline-offset:3px;}
+.psv2-foot{margin-top:15px;background:#F6F6F2;border-radius:14px;padding:15px 20px;display:flex;gap:12px;align-items:flex-start;}
+.psv2-foot svg{width:17px;height:17px;color:var(--v2-green);flex:none;margin-top:1px;}
+.psv2-f1{font-size:14px;color:#38342D;line-height:1.45;}.psv2-f2{font-size:13.5px;color:#6E6A62;margin-top:2px;}
+@media(max-width:760px){.psv2-top{grid-template-columns:1fr;gap:22px;}}
+@media(max-width:640px){.psv2-card{padding:26px 22px 22px;border-radius:20px;}.psv2-svcrow{grid-template-columns:1fr 1fr;}.psv2-sc:nth-child(3),.psv2-sc:nth-child(4){border-top:1px solid #E8E5DD;padding-top:16px;margin-top:6px;}.psv2-sc:nth-child(3){border-left:0;}.pv2-sec{flex-direction:column;align-items:flex-start;}.pv2-sec-cta{width:100%;justify-content:center;}}
+@media (prefers-color-scheme:dark){
+  .pv2-cartitle,.pv2-sec-name{color:#F1EEE7;}.pv2-caveat,.pv2-after{color:#9C968B;}
+  .pv2-sec{background:#1A1815;border-color:#2A2620;}.pv2-sec-copy{color:#9C968B;}
+  .psv2-card{background:#1A1815;border-color:#2A2620;color:#F1EEE7;}
+  .psv2-name,.psv2-wb p{color:#F1EEE7;}.psv2-para,.psv2-f1,.psv2-sc span,.psv2-sc svg{color:#CBC5BA;}
+  .psv2-known b{color:#F1EEE7;}.psv2-known,.psv2-recnote,.psv2-ts,.psv2-f2{color:#9C968B;}
+  .psv2-why,.psv2-svc,.psv2-foot{background:#211E19;border-color:#2A2620;}
+  .psv2-trust{background:#221D15;border-color:#312C25;}
+  .psv2-badge{background:#2A2115;}.psv2-tic,.psv2-svcic{background:#2A2115;}
+  .pv2-page{--pa-amber:#D8A75E;--pa-amber-soft:#2A2115;--v2-green:#8CBF95;--v2-green-solid:#3E6B48;--v2-cta:#3C5A43;}
+}

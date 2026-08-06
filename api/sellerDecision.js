@@ -1819,6 +1819,24 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
       referralTerms: source.referral_terms || null,
       verified: await partnerVerifiedStats(source, vehicle, analysis.estimatedValue, supabaseUrl, supabaseKey)
     };
+    // Match-reason variant (Stage 4): specialty (make/segment fits his stated
+    // lane), region (covered but no specialty fit), or generalist (trusted on
+    // his whole record). Drives the card's reason line and why-bullets.
+    const seg = partnerSegmentMatch(source, vehicle, priorities);
+    const makeListed = (source.specialties?.makes || []).map(m => String(m).toLowerCase()).includes(String(vehicle?.make || "").toLowerCase());
+    result.matchType = (seg || makeListed) ? "specialty" : (partnerRegionCovered(source, criteria) ? "region" : "generalist");
+    // Value-aware lead (Stage 4): for a "not sure" seller the card LEADS when the
+    // context value clears a dial (app_config powerseller_value_lead_usd, default
+    // 40000), read from the met-comps estimate or the asking price. Threshold lives
+    // server-side so it is tunable without a deploy; the frontend reads the boolean.
+    // The lead value is the seller's ASKING PRICE from the wizard (not the comp
+    // estimate): a "not sure" seller who names a high number is telling us the car
+    // is worth handling. No asking price -> never leads on value (platform leads).
+    const valueLeadThreshold = await appConfigInt("powerseller_value_lead_usd", 40000, supabaseUrl, supabaseKey);
+    const leadValue = Number.isFinite(askingPrice) ? askingPrice : 0;
+    result.leadValueUsd = leadValue || null;
+    result.valueLeadThresholdUsd = valueLeadThreshold;
+    result.leadOnValue = leadValue >= valueLeadThreshold;
   }
   return result;
 }

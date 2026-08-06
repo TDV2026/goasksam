@@ -623,6 +623,20 @@ async function showSellRecommendation(){
   sellState.generatedPrimaryName=sellState.sellOptions[0]?.name||null;
   sellState.generatedSecondaryName=sellState.sellOptions[1]?.name||null;
 
+  // Stage 4: when cardv2 is on, the ENTIRE result page renders from the V2
+  // composer (pick hero + value-aware PowerSeller dossier + optional compact
+  // secondary). Zero old-style components render. Falls back to the old
+  // composition if the V2 page fails to build.
+  const v2Page=(typeof cardV2Active==="function"&&cardV2Active()&&typeof renderResultV2Page==="function")?renderResultV2Page():null;
+  if(v2Page){
+    sellState.lastResultHTML=v2Page;
+    const row=document.createElement("div");row.className="row sam";
+    row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${v2Page}</div></div>`;
+    msgs.appendChild(row);
+    row.scrollIntoView({behavior:"smooth",block:"start"});
+    return;
+  }
+
   // Store the rendered result so an explicit "show the cards again" can re-append
   // it without re-running the analysis (Phase 1c).
   sellState.lastResultHTML=`${headerHTML}${orderedSections}${caveatHTML}`;
