@@ -46,6 +46,9 @@ function v2RungRef(v){
 }
 function v2RungNoun(){ var kind=v2RungKind(); return kind==="generation"?"generation":kind==="segment"?"segment":kind==="make"?"make":"model"; }
 function v2Window(ev){ var p=ev&&ev.pricePremium; return (p&&isFinite(p.windowDays))?Number(p.windowDays):(sellState.sellDecision&&sellState.sellDecision.evidence&&sellState.sellDecision.evidence.windowDays)||90; }
+// Window stated in the true unit: the 270-day price rung reads "nine months"; the
+// 45/90/180 rungs stay in days. Cascading windows always name the window they used.
+function v2WindowLabel(n){ n=Number(n); return n>=270?"nine months":(n+" days"); }
 
 // ---------- mode ----------
 function v2Mode(ev){
@@ -57,9 +60,9 @@ function v2Mode(ev){
 }
 
 // ---------- canonical clauses (locked) ----------
-function CLAUSE_A(s){ return v2Fill("{scope} have closed {delta}% higher on {platform} than the other platforms I track over the past {window} days",s); }
-function CLAUSE_B(s){ return v2Fill("prices for {scope} have run close across the platforms I track over the past {window} days",s); }
-function CLAUSE_C(s){ return v2Fill("recent {scope} sales have concentrated on {platform}, with too few on other platforms to compare prices over the past {window} days",s); }
+function CLAUSE_A(s){ return v2Fill("{scope} have closed {delta}% higher on {platform} than the other platforms I track over the past {window}",s); }
+function CLAUSE_B(s){ return v2Fill("prices for {scope} have run close across the platforms I track over the past {window}",s); }
+function CLAUSE_C(s){ return v2Fill("recent {scope} sales have concentrated on {platform}, with too few on other platforms to compare prices over the past {window}",s); }
 
 // ---------- FAMILY A: because line ----------
 function v2Because(mode,s){
@@ -123,12 +126,13 @@ function v2Reserve(ev){
   var rc=ev&&ev.reserveContext; if(!rc)return null;
   if(!(Number(rc.n_with)>=10&&Number(rc.n_without)>=10))return null;
   var platform=platformDisplayName(ev.label||ev.platform);
+  var win="the past "+(rc.window||"three months");
   var pct=Number(rc.delta_pct);
   if(Math.abs(pct)<3){
-    return { headline:"Within a few points", body:"Over the past three months, "+platform+" auctions with and without a reserve in your price band averaged within three points of each other.", note:"Whether a reserve suits your car is your call." };
+    return { headline:"Within a few points", body:"Over "+win+", "+platform+" auctions with and without a reserve in your price band averaged within three points of each other.", note:"Whether a reserve suits your car is your call." };
   }
   var dir=pct>=0?"higher":"lower", N=Math.round(Math.abs(pct));
-  return { headline:N+"% "+dir, body:"Over the past three months, "+platform+" auctions with a reserve in your price band averaged "+N+"% "+dir+" than those without.", note:"Whether a reserve suits your car is your call." };
+  return { headline:N+"% "+dir, body:"Over "+win+", "+platform+" auctions with a reserve in your price band averaged "+N+"% "+dir+" than those without.", note:"Whether a reserve suits your car is your call." };
 }
 
 // ---------- 9-platform muted accent map ----------
@@ -163,7 +167,7 @@ function renderPickCardV2(option){
     var mode=v2Mode(ev);
     var win=v2Window(ev);
     var p=ev.pricePremium;
-    var slots={ scope:v2ScopePlural(v), rungRef:v2RungRef(v), rungWord:v2RungNoun(), platform:name, make:v.make||"car", delta:(p&&isFinite(p.percent))?Math.abs(Math.round(p.percent)):"", window:win };
+    var slots={ scope:v2ScopePlural(v), rungRef:v2RungRef(v), rungWord:v2RungNoun(), platform:name, make:v.make||"car", delta:(p&&isFinite(p.percent))?Math.abs(Math.round(p.percent)):"", window:v2WindowLabel(win) };
     var esc=escapeHtml;
     // metadata
     var loc=[sellState.state,sellState.region].filter(Boolean)[0]||"US";
@@ -181,7 +185,7 @@ function renderPickCardV2(option){
     var evHTML=subs.length?('<div class="pv2-ev pv2-n'+subs.length+'">'+subs.map(function(s){
       return '<div class="pv2-ecard"><span class="pv2-eic">'+v2Svg(s.ic)+'</span><span class="pv2-el">'+esc(s.l)+'</span><span class="pv2-eh">'+esc(s.h)+'</span><span class="pv2-eb">'+esc(s.b)+'</span>'+(s.note?'<span class="pv2-en">'+esc(s.note)+'</span>':'')+'</div>';
     }).join("")+'</div>')
-    : '<div class="pv2-empty">'+v2Svg("info")+'<p><b>No standout timing, audience, or reserve signal for '+esc(name)+' yet.</b> This pick stands on the platform match. Those signals are platform-specific, so a thin one here is about '+esc(name)+', not your car.</p></div>';
+    : '<div class="pv2-empty">'+v2Svg("info")+'<p><b>A clean platform call, plain and simple.</b> More reads fill in as sales land.</p></div>';
     var because=v2Because(mode,slots);
     var why=v2Why(mode,slots);
     var outbound=slug&&typeof hasOutboundSubmission==="function"&&hasOutboundSubmission(slug);

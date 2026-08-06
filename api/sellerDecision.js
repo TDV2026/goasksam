@@ -39,7 +39,7 @@ const ANALYSIS_WINDOWS_DAYS = [45, 90, 180, ALL_TIME_WINDOW_DAYS];
 // sample gate, no delta is produced (the card falls to the honest cascade
 // headline) rather than widening to all-time. The ladder walk above may still
 // LAND a rung at all-time to prove a car exists, but that never backs a delta.
-const PREMIUM_WINDOWS_DAYS = [45, 90, 180];
+const PREMIUM_WINDOWS_DAYS = [45, 90, 180, 270];
 
 function windowLabel(days) {
   return days >= ALL_TIME_WINDOW_DAYS ? "across everything tracked" : `in the last ${days} days`;
@@ -2164,7 +2164,8 @@ export default async function handler(req, res) {
       const monthKey = d => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
       const now = new Date();
       const lastComplete = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)); // previous calendar month
-      const months = [0, 1, 2].map(i => monthKey(new Date(Date.UTC(lastComplete.getUTCFullYear(), lastComplete.getUTCMonth() - i, 1))));
+      const months6 = [0, 1, 2, 3, 4, 5].map(i => monthKey(new Date(Date.UTC(lastComplete.getUTCFullYear(), lastComplete.getUTCMonth() - i, 1))));
+      const months = months6.slice(0, 3);
       const loadMonth = async m => {
         const out = []; let offset = 0;
         for (let page = 0; page < 20; page++) {
@@ -2174,25 +2175,31 @@ export default async function handler(req, res) {
         }
         return out;
       };
-      const rowsByMonth = {}; for (const m of months) rowsByMonth[m] = await loadMonth(m);
+      const rowsByMonth = {}; for (const m of months6) rowsByMonth[m] = await loadMonth(m);
       const oneRows = rowsByMonth[months[0]] || [];
       const threeRows = months.flatMap(m => rowsByMonth[m] || []);
+      const sixRows = months6.flatMap(m => rowsByMonth[m] || []);
       const summarize = cells => ({
         cellCount: cells.length,
         cells: cells.map(c => ({ platform: c.platform, make: c.make, band: c.band_key, n_with: c.n_with, n_without: c.n_without, delta_pct: c.delta_pct }))
           .sort((a, b) => (b.n_with + b.n_without) - (a.n_with + a.n_without))
       });
+      const stableSort = cells => cells.slice().sort((a, b) =>
+        a.platform.localeCompare(b.platform) || a.make.localeCompare(b.make) || a.band_low - b.band_low);
       const threeLabel = `${months[2]}..${months[0]}`;
-      const oneCells = computeReserveCells(oneRows, months[0]);
-      const threeCells = computeReserveCells(threeRows, threeLabel);
+      const sixLabel = `${months6[5]}..${months6[0]}`;
+      const oneCells = computeReserveCells(oneRows, months[0], "one month");
+      const threeCells = computeReserveCells(threeRows, threeLabel, "three months");
+      const sixCells = computeReserveCells(sixRows, sixLabel, "six months");
       return res.status(200).json({
         status: "reserve_sim",
         perSideGate: RESERVE_MIN_PER_SIDE,
         window1Month: { month: months[0], rows: oneRows.length, ...summarize(oneCells) },
         window3Month: { months: months.slice().reverse(), rows: threeRows.length, ...summarize(threeCells) },
-        // Full cells for the 3-month window, sorted for a stable RESERVE_CONTEXT write.
-        window3MonthFullCells: req.body.full ? threeCells.slice().sort((a, b) =>
-          a.platform.localeCompare(b.platform) || a.make.localeCompare(b.make) || a.band_low - b.band_low) : undefined
+        window6Month: { months: months6.slice().reverse(), rows: sixRows.length, ...summarize(sixCells) },
+        // Full cells for a stable RESERVE_CONTEXT / RESERVE_CONTEXT_6MO write.
+        window3MonthFullCells: req.body.full ? stableSort(threeCells) : undefined,
+        window6MonthFullCells: req.body.full ? stableSort(sixCells) : undefined
       });
     }
 

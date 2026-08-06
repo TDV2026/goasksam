@@ -28,31 +28,40 @@ function previousMonthKey() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 const ANCHOR = process.argv[2] || previousMonthKey();
-const MONTHS = monthKeysBack(ANCHOR, 3);
-const WINDOW_LABEL = `${MONTHS[2]}..${MONTHS[0]}`;
-console.log(`Reserve-context refresh, rolling 3 months ending ${ANCHOR} (${MONTHS.join(", ")}; from sales_archive, no OCD calls).`);
+const MONTHS6 = monthKeysBack(ANCHOR, 6);
+const MONTHS3 = MONTHS6.slice(0, 3);
+const LABEL3 = `${MONTHS3[2]}..${MONTHS3[0]}`;
+const LABEL6 = `${MONTHS6[5]}..${MONTHS6[0]}`;
+console.log(`Reserve-context refresh ending ${ANCHOR}: 3-month primary (${MONTHS3.join(", ")}) + 6-month fallback (${MONTHS6.join(", ")}); from sales_archive, no OCD calls.`);
 
-const rows = [];
-for (const month of MONTHS) {
+const rowsByMonth = {};
+for (const month of MONTHS6) {
+  const acc = [];
   for (let offset = 0; offset < 50000; offset += 1000) {
     const batch = await supabaseSelect(env, `sales_archive?month=eq.${month}&select=platform,make,sale_price,has_reserve&limit=1000&offset=${offset}`);
     if (!batch || !batch.length) break;
-    rows.push(...batch);
+    acc.push(...batch);
     if (batch.length < 1000) break;
   }
+  rowsByMonth[month] = acc;
 }
-console.log(`  ${rows.length} sold records across ${WINDOW_LABEL}.`);
-if (!rows.length) { console.error("No records for that window; nothing written."); process.exit(1); }
+const rows3 = MONTHS3.flatMap(m => rowsByMonth[m] || []);
+const rows6 = MONTHS6.flatMap(m => rowsByMonth[m] || []);
+console.log(`  ${rows3.length} sold records across ${LABEL3} (3mo); ${rows6.length} across ${LABEL6} (6mo).`);
+if (!rows6.length) { console.error("No records in the window; nothing written."); process.exit(1); }
 
-const cells = computeReserveCells(rows, WINDOW_LABEL).sort((a, b) =>
-  a.platform.localeCompare(b.platform) || a.make.localeCompare(b.make) || a.band_low - b.band_low);
-console.log(`  ${cells.length} usable cell(s) (both sides >= 10 sold records):`);
-for (const c of cells) console.log(`    ${c.platform} | ${c.make} | ${c.band_key}: with=${c.avg_with_reserve} (n=${c.n_with}) vs without=${c.avg_no_reserve} (n=${c.n_without}) -> ${c.delta_dollars >= 0 ? "+" : ""}${c.delta_dollars} (${c.delta_pct}%)`);
+const sortCells = a => a.sort((x, y) => x.platform.localeCompare(y.platform) || x.make.localeCompare(y.make) || x.band_low - y.band_low);
+const cells3 = sortCells(computeReserveCells(rows3, LABEL3, "three months"));
+const cells6 = sortCells(computeReserveCells(rows6, LABEL6, "six months"));
+console.log(`  3mo: ${cells3.length} cell(s); 6mo: ${cells6.length} cell(s) (both sides >= 10).`);
 
 const file = "lib/reserveContext.js";
-const src = fs.readFileSync(file, "utf8");
-const rendered = "export const RESERVE_CONTEXT = " + JSON.stringify(cells, null, 2) + ";";
-const next = src.replace(/export const RESERVE_CONTEXT = [\s\S]*?\];/, rendered);
-if (next === src) { console.error("Could not find RESERVE_CONTEXT to replace."); process.exit(1); }
-fs.writeFileSync(file, next);
-console.log(`  Wrote ${cells.length} cell(s) to ${file}. Commit + deploy to publish.`);
+let src = fs.readFileSync(file, "utf8");
+const r3 = "export const RESERVE_CONTEXT = " + JSON.stringify(cells3, null, 2) + ";";
+const r6 = "export const RESERVE_CONTEXT_6MO = " + JSON.stringify(cells6, null, 2) + ";";
+const s2 = src.replace(/export const RESERVE_CONTEXT = [\s\S]*?\n\];/, r3);
+if (s2 === src) { console.error("Could not find RESERVE_CONTEXT to replace."); process.exit(1); }
+const s3 = s2.replace(/export const RESERVE_CONTEXT_6MO = [\s\S]*?\];/, r6);
+if (s3 === s2) { console.error("Could not find RESERVE_CONTEXT_6MO to replace."); process.exit(1); }
+fs.writeFileSync(file, s3);
+console.log(`  Wrote 3mo(${cells3.length}) + 6mo(${cells6.length}) to ${file}. Commit + deploy to publish.`);

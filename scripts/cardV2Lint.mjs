@@ -25,7 +25,7 @@ globalThis.localStorage={getItem:()=>null,setItem:noop,removeItem:noop};
 globalThis.fetch=async()=>({ok:true,json:async()=>({})});
 const html=fs.readFileSync("index.html","utf8");
 const files=[...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
-(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.v2Because=v2Because;globalThis.v2Why=v2Why;globalThis.v2Weekday=v2Weekday;globalThis.v2Reserve=v2Reserve;globalThis.v2Audience=v2Audience;globalThis.v2ScopePlural=v2ScopePlural;globalThis.v2RungRef=v2RungRef;globalThis.v2RungNoun=v2RungNoun;globalThis.CLAUSE_A=CLAUSE_A;globalThis.CLAUSE_B=CLAUSE_B;globalThis.CLAUSE_C=CLAUSE_C;globalThis.psvReasonNote=psvReasonNote;globalThis.psvPara=psvPara;globalThis.psvWhyBullets=psvWhyBullets;globalThis.psvValueLine=psvValueLine;globalThis.psvPoss=psvPoss;");
+(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.v2Because=v2Because;globalThis.v2Why=v2Why;globalThis.v2Weekday=v2Weekday;globalThis.v2Reserve=v2Reserve;globalThis.v2Audience=v2Audience;globalThis.v2ScopePlural=v2ScopePlural;globalThis.v2RungRef=v2RungRef;globalThis.v2RungNoun=v2RungNoun;globalThis.CLAUSE_A=CLAUSE_A;globalThis.CLAUSE_B=CLAUSE_B;globalThis.CLAUSE_C=CLAUSE_C;globalThis.v2WindowLabel=v2WindowLabel;globalThis.psvReasonNote=psvReasonNote;globalThis.psvPara=psvPara;globalThis.psvWhyBullets=psvWhyBullets;globalThis.psvValueLine=psvValueLine;globalThis.psvPoss=psvPoss;");
 
 let failures=0;
 const check=(name,ok,detail="")=>{console.log(`${ok?"PASS":"FAIL"}  ${name}${ok?"":"  ->  "+String(detail).slice(0,200)}`);if(!ok)failures++;};
@@ -38,7 +38,7 @@ globalThis.sellState=Object.assign(globalThis.sellState||{},{
   sellDecision:{ resultId:"seed-abc", evidence:{ windowDays:90, generation:{code:"997"}, ladder:{landed:{key:"generation_trim",generationCode:"997"}} } }
 });
 const v={make:"Porsche",model:"911",year:2011};
-const slots={scope:v2ScopePlural(v),rungRef:v2RungRef(v),rungWord:v2RungNoun(),platform:"Bring a Trailer",make:"Porsche",delta:12,window:90};
+const slots={scope:v2ScopePlural(v),rungRef:v2RungRef(v),rungWord:v2RungNoun(),platform:"Bring a Trailer",make:"Porsche",delta:12,window:"90 days"};
 
 // FAMILY A + B across modes
 for(const mode of ["modeA","modeB","concentration","thin"]){
@@ -86,6 +86,13 @@ for(const mt of ["specialty","region","generalist"]){
     check(`ps.whyBullets.${mt}.${make} has decide-with-you framing`, bl.some(b=>/with you/.test(b)), bl.join(" | "));
   }
 }
+// cascading price window: 270 rung reads "nine months", tighter rungs read days
+check("windowLabel 270 -> nine months", v2WindowLabel(270)==="nine months", v2WindowLabel(270));
+check("windowLabel 90 -> 90 days", v2WindowLabel(90)==="90 days", v2WindowLabel(90));
+check("windowLabel 180 -> 180 days", v2WindowLabel(180)==="180 days", v2WindowLabel(180));
+{ const s9=Object.assign({},slots,{window:v2WindowLabel(270)}); const a9=CLAUSE_A(s9);
+  check("CLAUSE_A at 270 says 'over the past nine months', clean", /over the past nine months$/.test(a9)&&clean(a9).ok, a9); }
+
 // value-preference line: declarative, service framing, no money figure, no "gets you more"
 const vl=psvValueLine("howS");
 check("ps.valueLine clean", clean(vl).ok, clean(vl).detail);
