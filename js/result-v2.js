@@ -214,10 +214,23 @@ function renderPickCardV2(option){
 // howS strip, no "Send my details", no "around". Curated strings only.
 
 // ---- PowerSeller field extraction (real data only, never invented) ----
+// Person references use display_name; the handle appears ONLY in "Known online as".
+// When display_name is stored as "{handle} / {professional name}", the handle
+// segment is stripped so the person reference is the professional name.
 function psvPartner(){ try{ return (sellState.partnerReferral&&sellState.partnerReferral.partner)||null; }catch(e){ return null; } }
-function psvName(p){ var d=String(p.displayName||p.name||"this consignor"); return d.split(" / ")[0].trim()||d; }
-function psvFirst(p){ return psvName(p).split(/\s+/)[0]; }
-function psvHandle(p){ return String(p.name||psvName(p)); }
+function psvHandle(p){ return String(p.name||"").trim(); }
+function psvDisplay(p){
+  var d=String(p.displayName||p.name||"this consignor").trim();
+  var h=psvHandle(p);
+  if(d.indexOf(" / ")>=0){
+    var parts=d.split(" / ").map(function(s){return s.trim();}).filter(Boolean);
+    if(parts.length>1&&h&&parts[0].toLowerCase()===h.toLowerCase())return parts.slice(1).join(" / ");
+    return parts[0];
+  }
+  return d;
+}
+function psvFirst(p){ return psvDisplay(p).split(/\s+/)[0]; }
+function psvShowKnownAs(p){ var h=psvHandle(p); return !!h&&h.toLowerCase()!==psvDisplay(p).toLowerCase(); }
 function psvPoss(n){ return n+(/s$/i.test(n)?"'":"'s"); }
 function psvMakePlural(make){ try{ return (typeof pluralizeMake==="function")?pluralizeMake(make):(v2Pl(make)); }catch(e){ return v2Pl(make||"cars"); } }
 function psvTrophy(p){
@@ -231,10 +244,18 @@ function psvSpecialtyShort(p){
   if(notes)return notes.split(",")[0].trim();
   return "";
 }
+var PSV2_STATES={al:"Alabama",ak:"Alaska",az:"Arizona",ar:"Arkansas",ca:"California",co:"Colorado",ct:"Connecticut",de:"Delaware",fl:"Florida",ga:"Georgia",hi:"Hawaii",id:"Idaho",il:"Illinois",in:"Indiana",ia:"Iowa",ks:"Kansas",ky:"Kentucky",la:"Louisiana",me:"Maine",md:"Maryland",ma:"Massachusetts",mi:"Michigan",mn:"Minnesota",ms:"Mississippi",mo:"Missouri",mt:"Montana",ne:"Nebraska",nv:"Nevada",nh:"New Hampshire",nj:"New Jersey",nm:"New Mexico",ny:"New York",nc:"North Carolina",nd:"North Dakota",oh:"Ohio",ok:"Oklahoma",or:"Oregon",pa:"Pennsylvania",ri:"Rhode Island",sc:"South Carolina",sd:"South Dakota",tn:"Tennessee",tx:"Texas",ut:"Utah",vt:"Vermont",va:"Virginia",wa:"Washington",wv:"West Virginia",wi:"Wisconsin",wy:"Wyoming"};
+// Location, STATE-LEVEL only: parse the "Based in ..." claim, resolve to a state name.
 function psvLocation(p){
   var pool=(p.serviceClaims||[]).map(function(s){return s&&s.text;}).filter(Boolean);
-  for(var i=0;i<pool.length;i++){ var m=/Based in ([^,.;]+)/i.exec(pool[i]); if(m)return m[1].trim(); }
-  return "";
+  var based="";
+  for(var i=0;i<pool.length;i++){ var m=/Based in ([^,.;]+)/i.exec(pool[i]); if(m){ based=m[1].trim(); break; } }
+  if(!based)return "";
+  var full=Object.keys(PSV2_STATES).map(function(k){return PSV2_STATES[k];});
+  for(var j=0;j<full.length;j++){ if(new RegExp("\\b"+full[j]+"\\b","i").test(based))return full[j]; }
+  var ab=/\b([A-Za-z]{2})\b\s*$/.exec(based); // trailing 2-letter code, e.g. "Upper Makefield PA"
+  if(ab&&PSV2_STATES[ab[1].toLowerCase()])return PSV2_STATES[ab[1].toLowerCase()];
+  return based;
 }
 function psvCoverage(p){
   var regions=(p.regions||[]).map(function(r){return String(r).toLowerCase();});
@@ -301,25 +322,26 @@ function renderPowerSellerCardV2(opts){
     var v=sellState.resolvedVehicle||(sellState.sellDecision&&sellState.sellDecision.vehicle)||{};
     var make=v.make||"car";
     var carLabel=[v.year,v.make,v.model].filter(Boolean).join(" ")||"car";
-    var name=psvName(p), first=psvFirst(p), handle=psvHandle(p);
+    var display=psvDisplay(p), first=psvFirst(p), handle=psvHandle(p);
     var matchType=referral.matchType||"generalist";
     var esc=escapeHtml;
     var trophy=psvTrophy(p), spec=psvSpecialtyShort(p), loc=psvLocation(p), cov=psvCoverage(p);
-    // trust blocks (partner_provided -> attributed "per {handle}")
+    // Trust rail. partner_provided claims carry a muted "per {handle}" attribution
+    // (rule 11) until API-verified. Location is state-level; coverage stays as sub.
     var trust="";
-    if(trophy)trust+='<div class="psv2-tblk"><span class="psv2-tic">'+psvSvg("trophy")+'</span><div><div class="psv2-tp big">'+esc(trophy)+'</div><div class="psv2-ts">enthusiast auctions, per '+esc(handle)+'</div></div></div>';
-    if(spec)trust+='<div class="psv2-tblk"><span class="psv2-tic">'+psvSvg("car")+'</span><div><div class="psv2-tp">Specialises in '+esc(spec)+'</div><div class="psv2-ts">his stated focus</div></div></div>';
+    if(trophy)trust+='<div class="psv2-tblk"><span class="psv2-tic">'+psvSvg("trophy")+'</span><div><div class="psv2-tp big">'+esc(trophy)+' enthusiast auctions</div><div class="psv2-ts">represented <span class="psv2-attrib">per '+esc(handle)+'</span></div></div></div>';
+    if(spec)trust+='<div class="psv2-tblk"><span class="psv2-tic">'+psvSvg("car")+'</span><div><div class="psv2-tp">'+esc(spec)+' specialist</div><div class="psv2-ts"><span class="psv2-attrib">per '+esc(handle)+'</span></div></div></div>';
     if(loc)trust+='<div class="psv2-tblk"><span class="psv2-tic">'+psvSvg("pin")+'</span><div><div class="psv2-tp">Based in '+esc(loc)+'</div>'+(cov?'<div class="psv2-ts">'+esc(cov)+'</div>':'')+'</div></div>';
     var whyB=psvWhyBullets(matchType,make,first).map(function(b){ return '<div class="psv2-wb">'+psvSvg("check")+'<p>'+esc(b)+'</p></div>'; }).join("");
-    var svc=[["cam","Photography"],["chat","Buyer communication"],["target","Platform strategy"],["doc","Paperwork and logistics"]]
+    var svc=[["cam","Photography"],["chat","Buyer communication"],["target","Platform strategy"],["doc","Paperwork"]]
       .map(function(s){ return '<div class="psv2-sc">'+psvSvg(s[0])+'<span>'+esc(s[1])+'</span></div>'; }).join("");
-    var valueLine=(lead&&valueLed)?'<p class="psv2-valline">'+psvSvg("star","psv2-vlic")+esc(psvValueLine(first))+'</p>':"";
+    var valueLine=(lead&&valueLed)?'<p class="psv2-valline">'+psvSvg("star","psv2-vlic")+esc(psvValueLine(display))+'</p>':"";
     return '<div class="psv2-card" onclick="choosePowerSeller(\''+esc(p.slug||"partner")+'\')">'
-      + '<div class="psv2-rowtop"><span class="psv2-badge">'+psvSvg("person")+"Sam's Recommendation</span>"+(handle&&handle!==name?'<span class="psv2-known">Known online as <b>'+esc(handle)+'</b></span>':'')+'</div>'
+      + '<div class="psv2-rowtop"><span class="psv2-badge">'+psvSvg("person")+"Sam's Recommendation</span>"+(psvShowKnownAs(p)?'<span class="psv2-known">Known online as <b>'+esc(handle)+'</b></span>':'')+'</div>'
       + '<div class="psv2-top">'
         + '<div class="psv2-hero">'
           + '<span class="psv2-script">If this were my car</span>'
-          + '<h2 class="psv2-name">I\'d ask '+esc(name)+' to represent my '+esc(carLabel)+'.</h2>'
+          + '<h2 class="psv2-name">I\'d ask '+esc(display)+' to represent my '+esc(carLabel)+'.</h2>'
           + '<p class="psv2-para">'+esc(psvPara(matchType,make,first))+'</p>'
           + valueLine
           + '<p class="psv2-recnote">'+esc(psvReasonNote(matchType,make,first))+'</p>'
@@ -328,7 +350,7 @@ function renderPowerSellerCardV2(opts){
       + '</div>'
       + '<div class="psv2-why"><div class="psv2-whyh"><span class="psv2-whystar">'+psvSvg("star")+'</span><span class="psv2-whyl">Why '+esc(first)+' is a good match for this '+esc(make)+'</span></div>'+whyB+'</div>'
       + '<div class="psv2-svc"><div class="psv2-svch"><span class="psv2-svcic">'+psvSvg("clip")+'</span><span class="psv2-svcl">What '+esc(first)+' takes care of</span></div><div class="psv2-svcrow">'+svc+'</div></div>'
-      + '<button class="psv2-cta" onclick="event.stopPropagation();choosePowerSeller(\''+esc(p.slug||"partner")+'\')"><span class="psv2-mid">'+psvSvg("hand","psv2-hs")+'Request an introduction to '+esc(name)+'</span><span class="psv2-end">'+psvSvg("arrow","psv2-ar")+'</span></button>'
+      + '<button class="psv2-cta" onclick="event.stopPropagation();choosePowerSeller(\''+esc(p.slug||"partner")+'\')"><span class="psv2-mid">'+psvSvg("hand","psv2-hs")+'Request an introduction to '+esc(display)+'</span><span class="psv2-end">'+psvSvg("arrow","psv2-ar")+'</span></button>'
       + '<div class="psv2-foot">'+psvSvg("shield")+'<div><div class="psv2-f1">You\'ll speak directly with '+esc(first)+' before deciding whether you\'d like to move forward.</div><div class="psv2-f2">No obligation. You\'re always in control.</div></div></div>'
       + '</div>';
   }catch(e){ if(typeof console!=="undefined")console.warn("psCardV2 failed",e); return ""; }

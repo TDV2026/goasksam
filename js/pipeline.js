@@ -18,12 +18,26 @@ function isQuestionInput(input){
     ||/^(what'?s?|how'?s?|why'?s?|when|where|who'?s?|can|could|will|would|does|do|is|are|should|but|explain|tell me)\b/.test(lower)
     ||/\b(how long|how many|how much|you never|what happens|whats the point|what is the point)\b/.test(lower);
 }
+// Shared asking-price parser (mirror of the backend parseSellerTargetPrice). The
+// price step validates against this, so any digit-bearing input the backend could
+// not parse is re-asked here instead of being stored and silently read as null.
+function parseAskingPrice(value){
+  const text=String(value==null?"":value).toLowerCase().trim();
+  if(!text)return null;
+  if(/six[\s-]?figure/.test(text))return 100000;
+  const compact=text.replace(/,/g,"");
+  const suffix=compact.match(/\$?\s*(\d+(?:\.\d+)?)\s*(k|grand|thousand|m|mm|million)\b/);
+  if(suffix)return Math.round(Number(suffix[1])*(/^(m|mm|million)$/.test(suffix[2])?1e6:1e3));
+  const num=compact.match(/\$?\s*(\d{4,7})\b/);
+  if(num)return Number(num[1]);
+  return null;
+}
 const STEP_SPECS={
   2:{field:"mileage",valid:v=>/\d/.test(v)||/\b(under|over|low|high|barely|hardly)\b/i.test(v)},
   3:{field:"condition",valid:v=>/\b(stock|mod|mods|modded|modified|original|restored|resto|mint|excellent|great|good|fair|poor|project|clean|rough|concours|survivor)\b/i.test(v)},
   4:{field:"records",valid:v=>/\b(full|complete|some|partial|most|every|no records|none|missing|record|history|documented|binder|receipts|stamps)\b/i.test(v)},
   5:{field:"title",valid:v=>/\b(clean|clear|lien|salvage|rebuilt|branded|title|paid off|financed)\b/i.test(v)},
-  6:{field:"price",valid:v=>/\d/.test(v)||/\b(flexible|open|offers?|market)\b/i.test(v)},
+  6:{field:"price",valid:v=>parseAskingPrice(v)!==null||/\b(flexible|open|offers?|market)\b/i.test(v)},
   7:{field:"timeline",valid:v=>/\b(fast|quick|quickly|asap|soon|week|month|months|year|rush|flexible|whenever|no hurry|hurry|result|gone)\b/i.test(v)},
   8:{field:"sellerPreference",valid:v=>/\b(powerseller|power seller|handle|help|myself|list it|diy|self|someone|not sure|yes|no)\b/i.test(v)},
   9:{field:"notes",freeText:true,refusalValue:null,negationValue:null},
@@ -59,7 +73,13 @@ function escalateStep(step){
   sellState.stepEscalations=sellState.stepEscalations||{};
   const n=(sellState.stepEscalations[step]=(sellState.stepEscalations[step]||0)+1);
   const stepQ=SELL_STEP_QUESTIONS[step]||{ask:"the current question",chips:[]};
-  const variants=[
+  // Price step: a digit-bearing input that did not parse is ambiguous, not
+  // unrecognized. Ask for a clear figure rather than a generic re-ask, so it is
+  // never silently dropped to "no price".
+  const variants=(step===6)?[
+    `I want to get the number right. Roughly what are you hoping for? You can say something like 65k, $65,000, or 'not sure'.`,
+    `Still on price: give me a rough figure like 65k or $65,000, or say 'not sure'.`
+  ]:[
     `I didn't catch that as an answer to this one. ${stepQ.ask}`,
     `Still on this question: ${stepQ.ask} 'Not sure' works too.`
   ];

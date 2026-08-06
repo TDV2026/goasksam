@@ -188,16 +188,22 @@ function setCors(res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
+// Freeform asking-price parser. Must stay in lockstep with the frontend's
+// parseAskingPrice (js/pipeline.js) so the wizard never accepts an input the
+// backend then silently reads as null. Handles: "$65k", "65k", "65,000",
+// "$65,000", "65000", "65 grand", "$1.2m", "six figures".
 function parseSellerTargetPrice(value) {
   const text = asText(value).toLowerCase();
   if (!text) return null;
   if (text.includes("six figure") || text.includes("six-figure")) return 100000;
 
   const compact = text.replace(/,/g, "");
-  const kMatch = compact.match(/\$?\s*(\d+(?:\.\d+)?)\s*k\b/);
-  if (kMatch) return Math.round(Number(kMatch[1]) * 1000);
+  const suffix = compact.match(/\$?\s*(\d+(?:\.\d+)?)\s*(k|grand|thousand|m|mm|million)\b/);
+  if (suffix) return Math.round(Number(suffix[1]) * (/^(m|mm|million)$/.test(suffix[2]) ? 1e6 : 1e3));
 
-  const numberMatch = compact.match(/\$?\s*(\d{5,7})\b/);
+  // A bare number is a literal dollar figure only at 4-7 digits (>= 1000). Below
+  // that it is ambiguous (65 could mean 65 or 65k) and the caller re-asks.
+  const numberMatch = compact.match(/\$?\s*(\d{4,7})\b/);
   if (numberMatch) return Number(numberMatch[1]);
 
   return null;
