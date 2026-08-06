@@ -8,7 +8,7 @@ import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
 import { MODEL_SEGMENTS } from "../lib/vehicleData.js";
 import { calculateEffectiveSampleSize, MINIMUM_EFFECTIVE_SAMPLE, getRecencyMultiplier, getPlatformDominanceScore, calculateConfidenceScore, getConfidenceLevel } from "../lib/weighting.js";
 import { computePartnerCareerStats, partnerRelevance, priceBand } from "../lib/marketStats.js";
-import { findReserveContext } from "../lib/reserveContext.js";
+import { findReserveContext, computeReserveCells, RESERVE_MIN_PER_SIDE } from "../lib/reserveContext.js";
 import { findSpecializationContext } from "../lib/specializationShare.js";
 import {
   asText,
@@ -1105,6 +1105,10 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     return { median: median(prices), count: prices.length };
   };
   const premiumWalkTraces = debug ? {} : null;
+  // Debug-only per-platform weekday-signal trace: every scope attempt (model ->
+  // generation -> make) with its 180-day weekday comps vs the sample gate and the
+  // best-day margin vs the tier bars. Powers the gate audit (numbers, not opinions).
+  const signalTraces = debug ? {} : null;
   const pricePremiumFor = platform => {
     if (!landed || landed.key === "make_context") return null;
     const trace = premiumWalkTraces ? (premiumWalkTraces[platform] = []) : null;
@@ -1210,8 +1214,20 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     const WEEKDAY_MIN_SAMPLE = 15;
     const build = (records, scope) => {
       const pool = weekdaysOnly(within180(records));
-      if (pool.length < WEEKDAY_MIN_SAMPLE) return null;
-      const insight = strongestWeekdayInsight(pool);
+      const insight = pool.length ? strongestWeekdayInsight(pool) : null;
+      const sampleGatePass = pool.length >= WEEKDAY_MIN_SAMPLE;
+      const dayGatePass = sampleGatePass && gate(insight);
+      if (signalTraces) {
+        const t = (signalTraces[platform] = signalTraces[platform] || { weekday: [] });
+        t.weekday.push({
+          scope, weekdayComps180: pool.length, sampleGateNeed: WEEKDAY_MIN_SAMPLE, sampleGatePass,
+          bestDay: insight ? insight.strongestWeekday : null,
+          bestDaySales: insight ? insight.strongestWeekdaySales : null, bestDayNeed: 3,
+          liftPercent: insight ? insight.strongestWeekdayLiftPercent : null,
+          dayGatePass: !!dayGatePass, failedThreshold: !sampleGatePass ? "sample<15" : !dayGatePass ? "day<3 or lift<10 or weekend" : null
+        });
+      }
+      if (!sampleGatePass) return null;
       return gate(insight)
         ? { weekday: insight.strongestWeekday, sales: insight.strongestWeekdaySales, liftPercent: insight.strongestWeekdayLiftPercent, scope, window: 180, sample: pool.length }
         : null;
@@ -1389,6 +1405,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     platformPerformance,
     sellerActivity: analyzeSellerActivity(pairedRecords),
     debugPremiumWalk: premiumWalkTraces || undefined,
+    debugSignalTraces: signalTraces || undefined,
     // Request-gated diagnostics (body.debug === true): per-window eligible
     // counts, pairwise premium math and earliest dates. Never rendered.
     debugWindows: debug && landed ? [45, 90, 180].map(window => {
@@ -2137,6 +2154,42 @@ export default async function handler(req, res) {
       });
     }
 
+    // Reserve-window simulation (debug/audit only, no OCD calls): compares the
+    // reserve-cell render surface at a 1-month vs rolling-3-month window over
+    // sales_archive, keeping the 10/10 per-side gate unchanged. Answers the gate
+    // audit's "what does render-rate become with a 3-month window" numerically.
+    if (req.body?.reserveSim) {
+      const monthKey = d => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+      const now = new Date();
+      const lastComplete = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)); // previous calendar month
+      const months = [0, 1, 2].map(i => monthKey(new Date(Date.UTC(lastComplete.getUTCFullYear(), lastComplete.getUTCMonth() - i, 1))));
+      const loadMonth = async m => {
+        const out = []; let offset = 0;
+        for (let page = 0; page < 20; page++) {
+          const batch = await supabaseSelect({ supabaseUrl, supabaseKey }, `sales_archive?month=eq.${m}&select=platform,make,sale_price,has_reserve&limit=1000&offset=${offset}`);
+          if (!batch || !batch.length) break;
+          out.push(...batch); offset += batch.length; if (batch.length < 1000) break;
+        }
+        return out;
+      };
+      const rowsByMonth = {}; for (const m of months) rowsByMonth[m] = await loadMonth(m);
+      const oneRows = rowsByMonth[months[0]] || [];
+      const threeRows = months.flatMap(m => rowsByMonth[m] || []);
+      const summarize = cells => ({
+        cellCount: cells.length,
+        cells: cells.map(c => ({ platform: c.platform, make: c.make, band: c.band_key, n_with: c.n_with, n_without: c.n_without, delta_pct: c.delta_pct }))
+          .sort((a, b) => (b.n_with + b.n_without) - (a.n_with + a.n_without))
+      });
+      const oneCells = computeReserveCells(oneRows, months[0]);
+      const threeCells = computeReserveCells(threeRows, `${months[2]}..${months[0]}`);
+      return res.status(200).json({
+        status: "reserve_sim",
+        perSideGate: RESERVE_MIN_PER_SIDE,
+        window1Month: { month: months[0], rows: oneRows.length, ...summarize(oneCells) },
+        window3Month: { months: months.slice().reverse(), rows: threeRows.length, ...summarize(threeCells) }
+      });
+    }
+
     // 2C: account gate + monthly limits. Internal callers (warm, bypassCache;
     // ladderPreview already returned) run unenforced and never write gate state.
     const internalCall = req.body?.warm === true || req.body?.bypassCache === true;
@@ -2405,6 +2458,7 @@ export default async function handler(req, res) {
         earliestSaleDate: analysis.earliestSaleDate,
         debugWindows: analysis.debugWindows,
         debugPremiumWalk: analysis.debugPremiumWalk,
+        debugSignalTraces: analysis.debugSignalTraces,
         windowDays: analysis.windowDays,
         thinMarket: analysis.thinMarket,
         historicalWeekday: analysis.historicalWeekday,
