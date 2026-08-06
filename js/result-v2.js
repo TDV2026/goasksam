@@ -97,12 +97,12 @@ function v2Weekday(ev,v){
   var t1=(total==null||total>=20)&&(day==null||day>=5);
   if(d.scope!=="make"&&t1){
     var N=Math.round(lift/5)*5;
-    if(N>=5&&N<=40){ s.N=N; return { headline:d.weekday, body:v2Fill(v2Pick(["{scope} have closed strongest on {day}s, {N}% above other days over the past 180 days.","If timing's flexible, {scope} have closed strongest on {day}s, {N}% above other days over the past 180 days.","For when to list, {scope} have closed strongest on {day}s, {N}% above other days over the past 180 days."],"weekday"),s) }; }
+    if(N>=5&&N<=40){ s.N=N; return { headline:d.weekday, body:v2Fill(v2Pick(["{scope} have closed strongest on {day}s, {N}% above other days over the past year.","If timing's flexible, {scope} have closed strongest on {day}s, {N}% above other days over the past year.","For when to list, {scope} have closed strongest on {day}s, {N}% above other days over the past year."],"weekday"),s) }; }
   }
   // Tier 2: direction only
   var t2=(total==null||total>=12)&&(day==null||day>=3);
   if((t2||d.scope==="make")&&lift>=5&&lift<=60){
-    return { headline:d.weekday, body:v2Fill(v2Pick(["{scope} have tended to close strongest on {day}s over the past 180 days.","If timing's flexible, {scope} have tended to close strongest on {day}s over the past 180 days."],"weekday"),s) };
+    return { headline:d.weekday, body:v2Fill(v2Pick(["{scope} have tended to close strongest on {day}s over the past year.","If timing's flexible, {scope} have tended to close strongest on {day}s over the past year."],"weekday"),s) };
   }
   return null;
 }
@@ -122,14 +122,13 @@ function v2Audience(ev){
 function v2Reserve(ev){
   var rc=ev&&ev.reserveContext; if(!rc)return null;
   if(!(Number(rc.n_with)>=10&&Number(rc.n_without)>=10))return null;
-  var month=(typeof reserveMonthName==="function")?reserveMonthName(rc.data_month):"recent months";
   var platform=platformDisplayName(ev.label||ev.platform);
   var pct=Number(rc.delta_pct);
   if(Math.abs(pct)<3){
-    return { headline:"Within a few points", body:"In "+month+", "+platform+" auctions with and without a reserve in your price band averaged within three points of each other.", note:"Whether a reserve suits your car is your call." };
+    return { headline:"Within a few points", body:"Over the past three months, "+platform+" auctions with and without a reserve in your price band averaged within three points of each other.", note:"Whether a reserve suits your car is your call." };
   }
   var dir=pct>=0?"higher":"lower", N=Math.round(Math.abs(pct));
-  return { headline:N+"% "+dir, body:"In "+month+", "+platform+" auctions with a reserve in your price band averaged "+N+"% "+dir+" than those without.", note:"Whether a reserve suits your car is your call." };
+  return { headline:N+"% "+dir, body:"Over the past three months, "+platform+" auctions with a reserve in your price band averaged "+N+"% "+dir+" than those without.", note:"Whether a reserve suits your car is your call." };
 }
 
 // ---------- 9-platform muted accent map ----------
@@ -269,7 +268,7 @@ function psvReasonNote(matchType,make,first){
   var m={
     specialty:"Recommended because this "+make+" closely matches "+psvPoss(first)+" strongest area of expertise.",
     region:"Recommended because "+first+" covers your region and takes the whole sale off your plate.",
-    generalist:"Recommended because "+psvPoss(first)+" track record spans exactly this kind of car."
+    generalist:"Recommended because "+psvPoss(first)+" track record covers cars like this across his career."
   };
   return m[matchType]||m.generalist;
 }

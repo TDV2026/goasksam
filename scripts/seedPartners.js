@@ -22,7 +22,9 @@ const PARTNERS = [
   {
     slug: "hows-motorcars-main-line",
     name: "howS",
-    display_name: "howS / Motorcars of the Main Line",
+    // Person display name (roster-confirmed, Aug 2026). The card renders this for
+    // person references; the handle "howS" stays in `name` for "Known online as".
+    display_name: "Howard Silvers",
     active: true,
     regions: [
       "Nationwide", "Pennsylvania", "New Jersey", "New York", "Connecticut",

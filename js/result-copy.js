@@ -1203,7 +1203,7 @@ function composerWeekdayBullet(vehicle,ev){
   const total=d.sample!=null?Number(d.sample):null;
   const daySales=d.sales!=null?Number(d.sales):null;
   const lift=Number(d.liftPercent);
-  const win=`over the past ${d.window||180} days`;
+  const win=Number(d.window)>=365?`over the past year`:`over the past ${d.window||180} days`;
   const prov=t=>`dayAdvantage(${d.scope},${d.window||180}d${t})`;
   // make scope is inherently coarse: ALWAYS direction only, established wording,
   // gated to a directionally-sane lift so an absurd internal figure never routes.

@@ -1194,12 +1194,14 @@ function analyze(records, classifications, ladder, vehicle, debug) {
   // sales only, weekdays only (Saturday/Sunday excluded from both the best
   // day and the comparison base), model scope with make fallback. Cars &
   // Bids never gets one (no weekend auctions; the frontend also skips it).
-  // Weekday advantage is a MARKET-CONDITION claim, so it computes at the 180-day
-  // window ONLY (1b): shorter windows split a small sample across seven days and
-  // are noise. Scope preference model -> generation -> make; the scope and the
-  // 180-day window are carried through so the composer states both.
+  // Weekday advantage is a TIMING pattern (not a price claim), so it computes over
+  // the past 365 days (approved widen, Aug 2026): a full year gives day-of-week
+  // patterns a real base without touching the 180-day price-delta cap. ALL quality
+  // gates unchanged (15 sample, 10% lift, 3 sales, non-weekend). Scope preference
+  // model -> generation -> make; scope and the 365-day window are carried through.
+  const WEEKDAY_WINDOW_DAYS = 365;
   const platformDayAdvantage = platform => {
-    const within180 = list => list.filter(item => daysAgo(item.record.auction_end_date) <= 180);
+    const withinWindow = list => list.filter(item => daysAgo(item.record.auction_end_date) <= WEEKDAY_WINDOW_DAYS);
     const weekdaysOnly = list => list.filter(item => {
       const day = weekdayName(item.record.auction_end_date);
       return day && day !== "Saturday" && day !== "Sunday";
@@ -1209,18 +1211,18 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     const mine = item => recordPlatform(item.record) === platform;
     // Weekday sample gate (1b): a day-of-week pattern splits the sample across
     // seven days, so it needs a real base. Require 15+ weekday sold comps in the
-    // 180-day window at the rendered scope AND 3+ sales on the winning day.
-    // Below the gate we fall through to the next scope; if none clears, no line.
+    // window at the rendered scope AND 3+ sales on the winning day. Below the gate
+    // we fall through to the next scope; if none clears, no line.
     const WEEKDAY_MIN_SAMPLE = 15;
     const build = (records, scope) => {
-      const pool = weekdaysOnly(within180(records));
+      const pool = weekdaysOnly(withinWindow(records));
       const insight = pool.length ? strongestWeekdayInsight(pool) : null;
       const sampleGatePass = pool.length >= WEEKDAY_MIN_SAMPLE;
       const dayGatePass = sampleGatePass && gate(insight);
       if (signalTraces) {
         const t = (signalTraces[platform] = signalTraces[platform] || { weekday: [] });
         t.weekday.push({
-          scope, weekdayComps180: pool.length, sampleGateNeed: WEEKDAY_MIN_SAMPLE, sampleGatePass,
+          scope, weekdayComps: pool.length, windowDays: WEEKDAY_WINDOW_DAYS, sampleGateNeed: WEEKDAY_MIN_SAMPLE, sampleGatePass,
           bestDay: insight ? insight.strongestWeekday : null,
           bestDaySales: insight ? insight.strongestWeekdaySales : null, bestDayNeed: 3,
           liftPercent: insight ? insight.strongestWeekdayLiftPercent : null,
@@ -1229,7 +1231,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
       }
       if (!sampleGatePass) return null;
       return gate(insight)
-        ? { weekday: insight.strongestWeekday, sales: insight.strongestWeekdaySales, liftPercent: insight.strongestWeekdayLiftPercent, scope, window: 180, sample: pool.length }
+        ? { weekday: insight.strongestWeekday, sales: insight.strongestWeekdaySales, liftPercent: insight.strongestWeekdayLiftPercent, scope, window: WEEKDAY_WINDOW_DAYS, sample: pool.length }
         : null;
     };
     const model = build(pairedRecords.filter(item => mine(item) && ["close_match", "relevant_match"].includes(item.classification?.comparison_tier)), "model");
@@ -2180,13 +2182,17 @@ export default async function handler(req, res) {
         cells: cells.map(c => ({ platform: c.platform, make: c.make, band: c.band_key, n_with: c.n_with, n_without: c.n_without, delta_pct: c.delta_pct }))
           .sort((a, b) => (b.n_with + b.n_without) - (a.n_with + a.n_without))
       });
+      const threeLabel = `${months[2]}..${months[0]}`;
       const oneCells = computeReserveCells(oneRows, months[0]);
-      const threeCells = computeReserveCells(threeRows, `${months[2]}..${months[0]}`);
+      const threeCells = computeReserveCells(threeRows, threeLabel);
       return res.status(200).json({
         status: "reserve_sim",
         perSideGate: RESERVE_MIN_PER_SIDE,
         window1Month: { month: months[0], rows: oneRows.length, ...summarize(oneCells) },
-        window3Month: { months: months.slice().reverse(), rows: threeRows.length, ...summarize(threeCells) }
+        window3Month: { months: months.slice().reverse(), rows: threeRows.length, ...summarize(threeCells) },
+        // Full cells for the 3-month window, sorted for a stable RESERVE_CONTEXT write.
+        window3MonthFullCells: req.body.full ? threeCells.slice().sort((a, b) =>
+          a.platform.localeCompare(b.platform) || a.make.localeCompare(b.make) || a.band_low - b.band_low) : undefined
       });
     }
 
