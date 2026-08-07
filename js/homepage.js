@@ -10,9 +10,9 @@ const PLACEHOLDER_EXAMPLES = ["2021 Porsche 911 GT3 Touring", "1987 Ferrari Test
 
 // ---- Learn page copy (prose, Paddock system, no dashes) ----
 const LEARN_HOW = {
-  title: "How Recommendations Work",
+  title: "How Sam works",
   sections: [
-    { h: "What we look at", body: "Sam reads real, recent sold results from the collector car auction platforms we track. For your exact car, we look at where comparable cars have actually sold, and how those results compare across platforms. Every claim states the scope it was measured at and the time window it covers, so you always know what a number is based on." },
+    { h: "What we look at", body: "Sam analyzes recent auction results, seller performance, platform trends and market conditions before making a recommendation. For your exact car, we look at where comparable cars have actually sold, how those results compare across platforms, and which sellers have handled cars like yours. We never value your car and never predict a price. Every claim states the scope it was measured at and the time window it covers, so you always know what a number is based on." },
     { h: "How the comparison works", body: "We start narrow, at your exact year and trim, and only widen the scope when the close data is too thin to be useful. When we widen, we say so. The recommendation is the platform where cars like yours have found the strongest, most consistent results, judged on recent sold records rather than opinion." },
     { h: "Where the recommendation comes from", body: "The recommendation itself comes from our own algorithm. We built the ranking rules, the evidence thresholds, and the honesty gates ourselves. The sales data informs it, but the judgement of where your car should sell is ours." },
     { h: "What we never do", body: "We never value your car, and we never invent a number. Every figure you see comes from real records. We hold no platform fee data and never state fees as fact. If the data is thin, we tell you plainly and give an honest read rather than a confident guess." },
@@ -146,6 +146,9 @@ function closeHpDialog() {
 
 // ---- STAGE B stubs (visible, not yet active) ----
 // STAGE_B: sign-in, referral panel, settings/profile modal all wire here.
+function openSettings() {
+  showHpDialog("Settings", "Theme and account preferences are coming soon. For now, GoAskSam follows your device's light or dark appearance automatically.", `<button class="ghost" onclick="closeHpDialog()">Close</button>`);
+}
 function stageBStub(label) {
   showHpDialog(String(label || "This feature"), "Arriving shortly. Sign-in and accounts land in the next release.", `<button class="ghost" onclick="closeHpDialog()">Close</button>`);
 }
