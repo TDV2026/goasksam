@@ -583,18 +583,20 @@ a.hp-logo:hover{opacity:.72;}
 #rail-scrim{display:none;}
 
 /* Home layout: ONE centred stack in the upper-middle, space falling below */
-body.home #main{justify-content:flex-start;align-items:center;padding-top:clamp(52px,15vh,168px);}
+body.home #main{justify-content:flex-start;align-items:center;padding-top:clamp(44px,11vh,128px);background:#F4F1EA;}
 body.home #msgs{flex:0 0 auto;overflow:visible;padding:0;width:100%;}
 body.home #input-area{flex:0 0 auto;}
-.hp-hero{max-width:640px;margin:0 auto;text-align:center;padding:0 24px;}
-.hp-hero h1{font-family:var(--font-sans);font-weight:300;font-size:clamp(38px,5vw,54px);line-height:1.14;letter-spacing:-.5px;color:var(--ink);margin-bottom:15px;}
+.hp-hero{max-width:660px;margin:0 auto 32px;text-align:center;padding:0 24px;}
+.hp-script{font-family:var(--pc-script-f);font-size:27px;color:var(--pc-script);line-height:1;margin-bottom:14px;}
+.hp-hero h1{font-family:var(--pc-serif);font-weight:600;font-size:clamp(26px,4.4vw,50px);line-height:1.14;letter-spacing:-.01em;color:var(--pc-ink);margin-bottom:0;text-wrap:balance;}
 .hp-supporting{font-family:var(--font-sans);font-weight:400;font-size:17px;line-height:1.6;color:rgba(22,20,15,.72);max-width:392px;margin:0 auto 26px;}
 .hp-input-label{font-family:var(--font-sans);text-transform:none;letter-spacing:0;font-size:18px;font-weight:400;color:var(--ink);line-height:1.5;margin-bottom:11px;text-align:center;}
 
 /* The search field: a premium object. Light border, whisper shadow, ghost submit. */
 body.home #input-area{max-width:640px;margin:0 auto;width:100%;padding:0 24px;}
-body.home #input-box{position:relative;display:flex;align-items:center;border:1px solid var(--line);border-radius:30px;
-  background:var(--paper);padding:0 10px 0 54px;min-height:70px;box-shadow:0 1px 4px rgba(22,20,15,.05);transition:box-shadow var(--dur-base) var(--ease),border-color var(--dur-base) var(--ease);}
+body.home #input-box{position:relative;display:flex;align-items:center;border:1px solid var(--line);border-radius:34px;
+  background:var(--paper);padding:0 12px 0 58px;min-height:84px;box-shadow:0 1px 4px rgba(22,20,15,.05);transition:box-shadow var(--dur-base) var(--ease),border-color var(--dur-base) var(--ease);}
+body.home #inp{font-size:18px;}
 body.home #input-box:focus-within{border-color:#d8d6cf;box-shadow:0 3px 14px rgba(22,20,15,.07);}
 body.home #input-box::before{content:"";position:absolute;left:22px;top:50%;width:18px;height:18px;transform:translateY(-50%);
   background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B6861' stroke-width='1.6'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3'/%3E%3C/svg%3E");}
@@ -603,7 +605,8 @@ body.home #inp::placeholder{color:rgba(22,20,15,.4);font-weight:300;transition:o
 body.home #inp.ph-fade::placeholder{opacity:0;}
 body.home #btn{background:transparent;color:var(--slate);border:0;width:40px;height:40px;font-size:18px;font-weight:400;cursor:pointer;flex-shrink:0;opacity:.5;transition:opacity var(--dur-fast) var(--ease);}
 body.home #btn:hover{opacity:.85;}
-.hp-reassurance{font-family:var(--font-sans);font-size:13px;line-height:1.6;color:rgba(22,20,15,.66);text-align:center;max-width:344px;margin:15px auto 0;}
+.hp-value-preview{font-family:var(--font-sans);font-size:13.5px;color:var(--slate);text-align:center;margin:16px auto 0;letter-spacing:.02em;}
+.hp-reassurance{font-family:var(--font-sans);font-size:13px;line-height:1.6;color:rgba(22,20,15,.66);text-align:center;max-width:480px;margin:10px auto 0;}
 
 /* Mobile market cards (under the input) */
 #market-cards-mobile{display:none;flex-direction:column;gap:0;max-width:600px;margin:26px auto 0;padding:0 24px;}

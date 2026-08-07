@@ -6,7 +6,7 @@
 const HERO_SUPPORTING = "I'll recommend where I'd sell your car and show you exactly why.";
 
 // Rotating placeholder: real, resolver-parseable examples.
-const PLACEHOLDER_EXAMPLES = ["2006 Ford GT", "1995 Ferrari F355", "2018 Porsche 911 Carrera GTS", "1970 Chevelle SS", "2021 Porsche 911 GT3 Touring"];
+const PLACEHOLDER_EXAMPLES = ["2021 Porsche 911 GT3 Touring", "1987 Ferrari Testarossa", "2005 Ford GT"];
 
 // ---- Learn page copy (prose, Paddock system, no dashes) ----
 const LEARN_HOW = {

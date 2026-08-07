@@ -1845,7 +1845,7 @@ function homeHeroHTML(){
   // home state), so submitting runs the existing send() flow unchanged.
   const supporting=(typeof HERO_SUPPORTING!=="undefined")?HERO_SUPPORTING:"";
   return `<div class="hero" id="hero"><div class="hp-hero">
-    <h1>Where should you sell your car?</h1>
-    <div class="hp-supporting">${supporting}</div>
+    <div class="hp-script">Go ahead, ask Sam.</div>
+    <h1>Tell me what you're selling.<br>I'll tell you where I'd sell it, and why.</h1>
   </div></div>`;
 }

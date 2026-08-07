@@ -41,10 +41,8 @@
     <div class="hp-logo-tag">Seller intelligence from The Daily Vroom</div>
   </a>
   <div class="hp-rail-scroll">
-    <div class="hp-section">Sell</div>
     <button class="hp-navitem" onclick="setActiveNav(this);startSellFlow()">Sell my car</button>
     <button class="hp-navitem" onclick="setActiveNav(this);showPowerSellerExplainer()">Find a PowerSeller</button>
-    <button class="hp-navitem" onclick="setActiveNav(this);showHuntPage()">Buy a car</button>
 
     <!-- PULSE_RAIL: TODAY'S MARKET sidebar section removed pre-Phase-3. The daily
          pulse pipeline (scripts/refreshDailyPulse.js, lib/dailyPulse.json,
@@ -53,9 +51,8 @@
          here and the loadDailyPulse() call in js/homepage.js. -->
 
     <div class="hp-rail-divider"></div>
-    <div class="hp-section">Learn</div>
-    <button class="hp-navitem" onclick="setActiveNav(this);showHowItWorks()">How Recommendations Work</button>
-    <button class="hp-navitem" onclick="setActiveNav(this);showSellingPlatforms()">Selling Platforms</button>
+    <button class="hp-navitem" onclick="setActiveNav(this);showHowItWorks()">How Sam works</button>
+    <button class="hp-navitem" onclick="setActiveNav(this);showSellingPlatforms()">Selling platforms</button>
   </div>
   <div class="hp-rail-footer">
     <!-- STAGE_B: referral panel -->
@@ -73,12 +70,12 @@
   </div>
   <div id="msgs"></div>
   <div id="input-area">
-    <div class="hp-input-label hp-home-only">What are you selling?</div>
     <div id="input-box">
-      <textarea id="inp" rows="1" placeholder="2018 Porsche 911 Carrera GTS"></textarea>
+      <textarea id="inp" rows="1" placeholder="2021 Porsche 911 GT3 Touring"></textarea>
       <button id="btn">↑</button>
     </div>
-    <div class="hp-reassurance hp-home-only">Recommendations are based on recent sales, seller performance and market trends.</div>
+    <div class="hp-value-preview hp-home-only">Platform fit · PowerSeller match · Selling strategy</div>
+    <div class="hp-reassurance hp-home-only">Sam analyzes recent auction results, seller performance, platform trends and market conditions before making a recommendation.</div>
     <!-- PULSE_RAIL: mobile market cards removed with the sidebar section. -->
     <div id="hint"></div>
   </div>
