@@ -176,7 +176,9 @@ function renderPickCardV2(option){
     var winLbl=win<=45?"Last 45 Days":win<=90?"Last 90 Days":win<=180?"Last 180 Days":"Last 270 Days";
     var because=v2Because(mode,slots);
     var why=v2Why(mode,slots);
-    var carLbl=carDisplayLabel("Car");
+    // Resolved vehicle drives the metadata (year make model), never the "Car"
+    // fallback: sellState.carName can be empty at render, so bind from v directly.
+    var carLbl=[v.year,v.make,v.model].filter(Boolean).join(" ")||carDisplayLabel("your car");
     // ---- two evidence tiles (weekday + reserve; audience fills a slot if needed) ----
     var tiles=[];
     var wk=v2Weekday(ev,v);
@@ -212,7 +214,7 @@ function renderPickCardV2(option){
         + '<div class="pcard-rule"></div>'
         + '<div class="pcard-whyl">Why I Picked This</div>'
         + '<p class="pcard-why">'+esc(why)+'</p>'
-        + tilesHTML
+        + '<div class="pcard-ev"><div class="pcard-rule"></div>'+tilesHTML+'</div>'
       + '</div>'
       + '</div>';
   }catch(e){ if(typeof console!=="undefined")console.warn("pickCardV2 failed, falling back",e); return null; }
@@ -407,14 +409,13 @@ function renderResultV2Page(){
     // not leading (keep one clear axis when the handled door leads).
     var secHTML=psLead?"":renderSecondaryPlatformV2(opts[1],pick);
     var esc=escapeHtml;
-    var carLbl=(typeof carDisplayLabel==="function")?carDisplayLabel("your car"):(sellState.carName||"your car");
-    var header='<div class="pv2-page-head"><span class="pv2-kicker">Seller Intelligence</span><span class="pv2-cartitle">'+esc(carLbl)+'</span></div>';
+    // No heading above the card (approved mockup is the card alone).
     var caveatText=(typeof unverifiedModelNote==="function"&&unverifiedModelNote())||(typeof adverseConditionCaveat==="function"&&adverseConditionCaveat())||"";
     var caveat=caveatText?'<div class="pv2-caveat">'+esc(caveatText)+'</div>':"";
     var body=psLead?(psHTML+pickHTML+secHTML):(pickHTML+secHTML+psHTML);
     var after=referral.partner&&pref!=="diy"
       ?'<div class="pv2-after">Both are real options and the choice is yours. Ask me to compare the tradeoffs, or how I\'d run the listing.</div>'
       :'<div class="pv2-after">Ask me anything about the pick, or how I\'d run the listing.</div>';
-    return '<div class="pv2-page">'+header+body+caveat+after+'</div>';
+    return '<div class="pv2-page">'+body+caveat+after+'</div>';
   }catch(e){ if(typeof console!=="undefined")console.warn("renderResultV2Page failed",e); return null; }
 }
