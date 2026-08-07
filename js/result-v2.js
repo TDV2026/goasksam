@@ -9,15 +9,17 @@
   // ---- flags ----
   try{
     var s=location.search||"";
+    // V2 cards are the DEFAULT now. ?cardv2=0 opts out to the legacy cards;
+    // ?cardv2=1 clears the opt-out (back to default on).
     var m=/[?&]cardv2=([01])/.exec(s);
-    if(m){ if(m[1]==="1")localStorage.setItem("gas_cardv2","1"); else localStorage.removeItem("gas_cardv2"); }
+    if(m){ if(m[1]==="0")localStorage.setItem("gas_cardv2","0"); else localStorage.removeItem("gas_cardv2"); }
     // realgate: makes a crew device run the REAL free-first/quota gate on demand,
     // overriding the crew bypass server-side (sent as body.forceGate).
     var g=/[?&]realgate=([01])/.exec(s);
     if(g){ if(g[1]==="1")localStorage.setItem("gas_realgate","1"); else localStorage.removeItem("gas_realgate"); }
   }catch(e){}
 })();
-function cardV2Active(){ try{ return localStorage.getItem("gas_cardv2")==="1"; }catch(e){ return false; } }
+function cardV2Active(){ try{ return localStorage.getItem("gas_cardv2")!=="0"; }catch(e){ return true; } }
 function gasRealGate(){ try{ return localStorage.getItem("gas_realgate")==="1"; }catch(e){ return false; } }
 
 // ---------- deterministic selection (reuse the site's textSeed/pickCopy) ----------
