@@ -286,13 +286,19 @@ function psvReasonNote(matchType,make,first){
   };
   return m[matchType]||m.generalist;
 }
-function psvPara(matchType,make,first){
+function psvPara(matchType,make,first,spec,hasRecord){
+  var specPhrase=spec?(spec.charAt(0).toLowerCase()+spec.slice(1)):psvMakePlural(make);
+  // "has represented hundreds" is a career-volume claim, so it renders only when a
+  // tracked auction count backs it; otherwise state the specialty without volume.
+  var specOpener=hasRecord
+    ?(first+" has represented hundreds of enthusiast cars, and "+specPhrase+" are one of his strongest areas.")
+    :(specPhrase.charAt(0).toUpperCase()+specPhrase.slice(1)+" are one of "+psvPoss(first)+" strongest areas.");
   var opener={
-    specialty:psvMakePlural(make)+" are one of "+psvPoss(first)+" strongest areas.",
-    region:first+" covers your area and takes on the entire sale himself.",
+    specialty:specOpener,
+    region:first+" covers your area and takes on the whole sale himself.",
     generalist:first+" has represented a deep bench of enthusiast cars over his career."
   }[matchType]||"";
-  return opener+" For this "+make+", I'd trust him to choose the right platform, present it professionally and manage the process from start to finish if you'd like experienced representation.";
+  return opener+" For this "+make+", I'd trust him to choose the right platform, present it professionally and manage the sale from start to finish.";
 }
 function psvWhyBullets(matchType,make,first){
   var lead={
@@ -334,7 +340,7 @@ function renderPowerSellerCardV2(opts){
     var lead=!!(opts&&opts.lead), valueLed=!!(opts&&opts.valueLed);
     var v=sellState.resolvedVehicle||(sellState.sellDecision&&sellState.sellDecision.vehicle)||{};
     var make=v.make||"car";
-    var carLabel=[v.year,v.make,v.model].filter(Boolean).join(" ")||"car";
+    var carLabel=[v.year,v.make,v.model,v.trim].filter(Boolean).join(" ")||"car";
     var display=psvDisplay(p), first=psvFirst(p), handle=psvHandle(p);
     var matchType=referral.matchType||"generalist";
     var esc=escapeHtml;
@@ -349,7 +355,7 @@ function renderPowerSellerCardV2(opts){
         + '<span class="pcard-badge">+ Sam\'s Recommendation</span>'
         + '<div class="pcard-script">If this were my car,</div>'
         + '<h1 class="pcard-name pcard-name-ps">I\'d ask <span class="pcard-hl">'+esc(display)+'</span> to represent my '+esc(carLabel)+'.</h1>'
-        + '<p class="pcard-lead">'+esc(psvPara(matchType,make,first))+'</p>'
+        + '<p class="pcard-lead">'+esc(psvPara(matchType,make,first,spec,!!trophy))+'</p>'
         + '<button class="pcard-cta" onclick="event.stopPropagation();choosePowerSeller(\''+esc(p.slug||"partner")+'\')">Request an Introduction to '+esc(display)+v2Svg("arrow","cta-arrow")+'</button>'
         + '<div class="pcard-reassure">'+psvSvg("shield")+'<span>'+esc(first)+' will contact you directly if you decide to proceed. There is no obligation, and you\'re always in control.</span></div>'
       + '</div>'
