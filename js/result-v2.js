@@ -169,43 +169,51 @@ function renderPickCardV2(option){
     var p=ev.pricePremium;
     var slots={ scope:v2ScopePlural(v), rungRef:v2RungRef(v), rungWord:v2RungNoun(), platform:name, make:v.make||"car", delta:(p&&isFinite(p.percent))?Math.abs(Math.round(p.percent)):"", window:v2WindowLabel(win) };
     var esc=escapeHtml;
-    // metadata
+    // ---- data bindings (all dynamic) ----
     var loc=[sellState.state,sellState.region].filter(Boolean)[0]||"US";
     var genCode=v2GenCode();
-    var cohort=(v2RungKind()==="generation"&&genCode)?String(genCode).toUpperCase()+" generation":(v2RungKind()==="make"?"Make level":(v.model?v.model+" level":"Model level"));
-    var winLbl=win<=45?"Last 45 days":win<=90?"Last 90 days":"Last 180 days";
-    // chip
-    var chip=mode==="modeA"?'<span class="pv2-mode">'+v2Svg("win")+'Clear price winner</span>':mode==="modeB"?'<span class="pv2-mode">'+v2Svg("close")+'Prices close across platforms</span>':"";
-    // evidence sub-cards
-    var subs=[];
-    var wk=v2Weekday(ev,v); if(wk)subs.push({ic:"cal",l:"Best day to sell",h:wk.headline,b:wk.body});
-    var au=v2Audience(ev); if(au)subs.push({ic:"people",l:"Strong audience",h:au.headline,b:au.body});
-    var rv=v2Reserve(ev); if(rv)subs.push({ic:"reserve",l:"Reserve position",h:rv.headline,b:rv.body,note:rv.note});
-    subs=subs.slice(0,3);
-    var evHTML=subs.length?('<div class="pv2-ev pv2-n'+subs.length+'">'+subs.map(function(s){
-      return '<div class="pv2-ecard"><span class="pv2-eic">'+v2Svg(s.ic)+'</span><span class="pv2-el">'+esc(s.l)+'</span><span class="pv2-eh">'+esc(s.h)+'</span><span class="pv2-eb">'+esc(s.b)+'</span>'+(s.note?'<span class="pv2-en">'+esc(s.note)+'</span>':'')+'</div>';
-    }).join("")+'</div>')
-    : '<div class="pv2-empty">'+v2Svg("info")+'<p><b>A clean platform call, plain and simple.</b> More reads fill in as sales land.</p></div>';
+    var genLabel=(v2RungKind()==="generation"&&genCode)?String(genCode).toUpperCase()+" Generation":(v2RungKind()==="make"?"Make level":(v.model?v.model:(v.make||"Model")));
+    var winLbl=win<=45?"Last 45 Days":win<=90?"Last 90 Days":win<=180?"Last 180 Days":"Last 270 Days";
     var because=v2Because(mode,slots);
     var why=v2Why(mode,slots);
+    var carLbl=carDisplayLabel("Car");
+    // ---- two evidence tiles (weekday + reserve; audience fills a slot if needed) ----
+    var tiles=[];
+    var wk=v2Weekday(ev,v);
+    if(wk){ var dA=ev.dayAdvantage||{}; var lift=Math.round(Math.abs(Number(dA.liftPercent))/5)*5; var hasPct=/%/.test(wk.body);
+      tiles.push({l:"Best day to sell",v:wk.headline,s:hasPct?("Average prices "+lift+"% stronger than other weekdays."):("Its strongest recent closing day.")}); }
+    var rv=v2Reserve(ev);
+    if(rv){ var rc=ev.reserveContext||{}; var pct=Number(rc.delta_pct);
+      if(Math.abs(pct)<3){ tiles.push({l:"Reserve strategy",v:"About even",s:"Reserve and no-reserve auctions performed about the same in your price range."}); }
+      else { var Nr=Math.round(Math.abs(pct)); tiles.push({l:"Reserve strategy",v:(pct>=0?"+":"-")+Nr+"%",s:"Reserve auctions performed "+Nr+"% "+(pct>=0?"better":"lower")+" in your price range."}); } }
+    if(tiles.length<2){ var au=v2Audience(ev); if(au)tiles.push({l:"Audience",v:au.headline,s:au.body}); }
+    tiles=tiles.slice(0,2);
+    var tilesHTML=tiles.length
+      ? '<div class="pcard-tiles'+(tiles.length===1?' one':'')+'">'+tiles.map(function(t){ return '<div class="pcard-tile"><div class="pcard-tl">'+esc(t.l)+'</div>'+(t.v?'<div class="pcard-tv">'+esc(t.v)+'</div>':'')+'<div class="pcard-ts">'+esc(t.s)+'</div></div>'; }).join("")+'</div>'
+      : '<div class="pcard-tiles one"><div class="pcard-tile"><div class="pcard-tl">The read</div><div class="pcard-ts">A clean platform call, plain and simple. More reads fill in as sales land.</div></div></div>';
     var outbound=slug&&typeof hasOutboundSubmission==="function"&&hasOutboundSubmission(slug);
     var ctaOnClick=outbound?("event.stopPropagation();openOutboundModal('"+esc(slug)+"','pick')"):("event.stopPropagation();chooseSellOption('"+esc(option.key)+"')");
-    return '<div class="pv2-card" style="--pa:'+v2Accent(slug)+'" onclick="chooseSellOption(\''+esc(option.key)+'\')">'
-      + '<div class="pv2-top"><span class="pv2-badge">'+v2Svg("spark")+"Sam's Pick</span><span class=\"pv2-mark\">"+esc(name)+'</span></div>'
-      + '<div class="pv2-script">I\'d sell your '+esc(v.make||"car")+' on</div>'
-      + '<h1 class="pv2-name">'+esc(name)+'</h1>'
-      + '<p class="pv2-reason">'+esc(because)+'</p>'
-      + chip
-      + '<div class="pv2-meta">'
-        + '<div class="pv2-mcol">'+v2Svg("car","pv2-mi")+'<div><div class="pv2-mp">'+esc(carDisplayLabel("Car"))+'</div><div class="pv2-ms">'+esc(loc)+'</div></div></div>'
-        + '<div class="pv2-mcol">'+v2Svg("bars","pv2-mi")+'<div><div class="pv2-mp">'+esc(cohort)+'</div><div class="pv2-ms">Data analysis</div></div></div>'
-        + '<div class="pv2-mcol">'+v2Svg("cal","pv2-mi")+'<div><div class="pv2-mp">'+esc(winLbl)+'</div><div class="pv2-ms">Analysis window</div></div></div>'
+    return '<div class="pcard pcard-platform" onclick="chooseSellOption(\''+esc(option.key)+'\')">'
+      + '<div class="pcard-left">'
+        + '<span class="pcard-badge">+ Sam\'s Pick</span>'
+        + '<div class="pcard-script">I\'d sell your '+esc(v.make||"car")+' on</div>'
+        + '<h1 class="pcard-name">'+esc(name)+'</h1>'
+        + '<p class="pcard-lead">'+esc(because)+'</p>'
+        + '<button class="pcard-cta" onclick="'+ctaOnClick+'">Start Listing With '+esc(name)+v2Svg("arrow","cta-arrow")+'</button>'
+        + '<div class="pcard-reassure">'+v2Svg("shield")+'<span>You\'ll be taken to '+esc(name)+' to begin your listing. Nothing is committed until you decide to publish.</span></div>'
       + '</div>'
-      + '<div class="pv2-whyh"><span class="pv2-whyic">'+v2Svg("trend")+'</span><span class="pv2-whyl">Why I picked this</span></div>'
-      + '<p class="pv2-whyb">'+esc(why)+'</p>'
-      + evHTML
-      + '<button class="pv2-cta" onclick="'+ctaOnClick+'"><span class="pv2-mid">'+v2Svg("send","pv2-pp")+'Continue with '+esc(name)+'</span><span class="pv2-end">'+v2Svg("arrow","pv2-ar")+'</span></button>'
-      + '<div class="pv2-foot">'+v2Svg("shield")+'<div><div class="pv2-f1">This takes you to '+esc(name)+' to complete your listing.</div><div class="pv2-f2">Nothing is committed, and you stay in control.</div></div></div>'
+      + '<div class="pcard-right">'
+        + '<div class="pcard-wordmark">'+esc(name)+'</div>'
+        + '<div class="pcard-meta">'
+          + '<div class="pcard-mrow">'+psvSvg("pin")+'<div><div class="pcard-mp">'+esc(carLbl)+'</div><div class="pcard-ms">'+esc(loc)+'</div></div></div>'
+          + '<div class="pcard-mrow">'+v2Svg("car")+'<div><div class="pcard-mp">'+esc(genLabel)+'</div><div class="pcard-ms">Analysis</div></div></div>'
+          + '<div class="pcard-mrow">'+v2Svg("cal")+'<div><div class="pcard-mp">'+esc(winLbl)+'</div><div class="pcard-ms">Analysis window</div></div></div>'
+        + '</div>'
+        + '<div class="pcard-rule"></div>'
+        + '<div class="pcard-whyl">Why I Picked This</div>'
+        + '<p class="pcard-why">'+esc(why)+'</p>'
+        + tilesHTML
+      + '</div>'
       + '</div>';
   }catch(e){ if(typeof console!=="undefined")console.warn("pickCardV2 failed, falling back",e); return null; }
 }
@@ -329,32 +337,24 @@ function renderPowerSellerCardV2(opts){
     var matchType=referral.matchType||"generalist";
     var esc=escapeHtml;
     var trophy=psvTrophy(p), spec=psvSpecialtyShort(p), loc=psvLocation(p), cov=psvCoverage(p);
-    // Trust rail. partner_provided claims carry a muted "per {handle}" attribution
-    // (rule 11) until API-verified. Location is state-level; coverage stays as sub.
-    var trust="";
-    if(trophy)trust+='<div class="psv2-tblk"><span class="psv2-tic">'+psvSvg("trophy")+'</span><div><div class="psv2-tp big">'+esc(trophy)+' enthusiast auctions</div><div class="psv2-ts">represented <span class="psv2-attrib">per '+esc(handle)+'</span></div></div></div>';
-    if(spec)trust+='<div class="psv2-tblk"><span class="psv2-tic">'+psvSvg("car")+'</span><div><div class="psv2-tp">'+esc(spec)+' specialist</div><div class="psv2-ts"><span class="psv2-attrib">per '+esc(handle)+'</span></div></div></div>';
-    if(loc)trust+='<div class="psv2-tblk"><span class="psv2-tic">'+psvSvg("pin")+'</span><div><div class="psv2-tp">Based in '+esc(loc)+'</div>'+(cov?'<div class="psv2-ts">'+esc(cov)+'</div>':'')+'</div></div>';
-    var whyB=psvWhyBullets(matchType,make,first).map(function(b){ return '<div class="psv2-wb">'+psvSvg("check")+'<p>'+esc(b)+'</p></div>'; }).join("");
-    var svc=[["cam","Photography"],["chat","Buyer communication"],["target","Platform strategy"],["doc","Paperwork"]]
-      .map(function(s){ return '<div class="psv2-sc">'+psvSvg(s[0])+'<span>'+esc(s[1])+'</span></div>'; }).join("");
-    var valueLine=(lead&&valueLed)?'<p class="psv2-valline">'+psvSvg("star","psv2-vlic")+esc(psvValueLine(display))+'</p>':"";
-    return '<div class="psv2-card" onclick="choosePowerSeller(\''+esc(p.slug||"partner")+'\')">'
-      + '<div class="psv2-rowtop"><span class="psv2-badge">'+psvSvg("person")+"Sam's Recommendation</span>"+(psvShowKnownAs(p)?'<span class="psv2-known">Known online as <b>'+esc(handle)+'</b></span>':'')+'</div>'
-      + '<div class="psv2-top">'
-        + '<div class="psv2-hero">'
-          + '<span class="psv2-script">If this were my car</span>'
-          + '<h2 class="psv2-name">I\'d ask '+esc(display)+' to represent my '+esc(carLabel)+'.</h2>'
-          + '<p class="psv2-para">'+esc(psvPara(matchType,make,first))+'</p>'
-          + valueLine
-          + '<p class="psv2-recnote">'+esc(psvReasonNote(matchType,make,first))+'</p>'
-        + '</div>'
-        + (trust?'<div class="psv2-trust">'+trust+'</div>':'')
+    // Right-rail trust tiles: auctions, single specialty, location + coverage.
+    var tstack="";
+    if(trophy)tstack+='<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("trophy")+'</span><div class="pcard-tt"><div class="pcard-tnum">'+esc(trophy)+'</div><div class="val">enthusiast auctions represented</div></div></div>';
+    if(spec)tstack+='<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("car")+'</span><div class="pcard-tt"><div class="lab">Specialises in</div><div class="val green">'+esc(spec)+'</div></div></div>';
+    if(loc)tstack+='<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("pin")+'</span><div class="pcard-tt"><div class="lab">Based in '+esc(loc)+'</div>'+(cov?'<div class="sub">'+esc(cov)+'</div>':'')+'</div></div>';
+    return '<div class="pcard pcard-ps" onclick="choosePowerSeller(\''+esc(p.slug||"partner")+'\')">'
+      + '<div class="pcard-left">'
+        + '<span class="pcard-badge">+ Sam\'s Recommendation</span>'
+        + '<div class="pcard-script">If this were my car,</div>'
+        + '<h1 class="pcard-name pcard-name-ps">I\'d ask <span class="pcard-hl">'+esc(display)+'</span> to represent my '+esc(carLabel)+'.</h1>'
+        + '<p class="pcard-lead">'+esc(psvPara(matchType,make,first))+'</p>'
+        + '<button class="pcard-cta" onclick="event.stopPropagation();choosePowerSeller(\''+esc(p.slug||"partner")+'\')">Request an Introduction to '+esc(display)+v2Svg("arrow","cta-arrow")+'</button>'
+        + '<div class="pcard-reassure">'+psvSvg("shield")+'<span>'+esc(first)+' will contact you directly if you decide to proceed. There is no obligation, and you\'re always in control.</span></div>'
       + '</div>'
-      + '<div class="psv2-why"><div class="psv2-whyh"><span class="psv2-whystar">'+psvSvg("star")+'</span><span class="psv2-whyl">Why '+esc(first)+' is a good match for this '+esc(make)+'</span></div>'+whyB+'</div>'
-      + '<div class="psv2-svc"><div class="psv2-svch"><span class="psv2-svcic">'+psvSvg("clip")+'</span><span class="psv2-svcl">What '+esc(first)+' takes care of</span></div><div class="psv2-svcrow">'+svc+'</div></div>'
-      + '<button class="psv2-cta" onclick="event.stopPropagation();choosePowerSeller(\''+esc(p.slug||"partner")+'\')"><span class="psv2-mid">'+psvSvg("hand","psv2-hs")+'Request an introduction to '+esc(display)+'</span><span class="psv2-end">'+psvSvg("arrow","psv2-ar")+'</span></button>'
-      + '<div class="psv2-foot">'+psvSvg("shield")+'<div><div class="psv2-f1">You\'ll speak directly with '+esc(first)+' before deciding whether you\'d like to move forward.</div><div class="psv2-f2">No obligation. You\'re always in control.</div></div></div>'
+      + '<div class="pcard-right pcard-right-ps">'
+        + (psvShowKnownAs(p)?'<div class="pcard-known">Known online as <b>'+esc(handle)+'</b></div>':'')
+        + '<div class="pcard-tstack">'+tstack+'</div>'
+      + '</div>'
       + '</div>';
   }catch(e){ if(typeof console!=="undefined")console.warn("psCardV2 failed",e); return ""; }
 }

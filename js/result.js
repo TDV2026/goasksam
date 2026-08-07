@@ -631,7 +631,7 @@ async function showSellRecommendation(){
   const v2Page=(typeof cardV2Active==="function"&&cardV2Active()&&typeof renderResultV2Page==="function")?renderResultV2Page():null;
   if(v2Page){
     sellState.lastResultHTML=v2Page;
-    const row=document.createElement("div");row.className="row sam";
+    const row=document.createElement("div");row.className="row sam v2-result";
     row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${v2Page}</div></div>`;
     msgs.appendChild(row);
     row.scrollIntoView({behavior:"smooth",block:"start"});
