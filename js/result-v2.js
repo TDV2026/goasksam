@@ -67,7 +67,7 @@ function CLAUSE_C(s){ return v2Fill("recent {scope} sales have concentrated on {
 // ---------- FAMILY A: because line ----------
 function v2Because(mode,s){
   var pools={
-    modeA:["Because {scope} have closed higher there than anywhere else I track.","Because {platform} is where {scope} have been fetching the strongest prices.","Because, of everywhere I track, {scope} have closed highest on {platform}."],
+    modeA:["Because, of everywhere I track, {scope} have consistently achieved the strongest results on {platform} over the past {window}.","Because {scope} have consistently achieved the strongest results on {platform} over the past {window}.","Because {platform} is where {scope} have delivered the strongest results over the past {window}."],
     modeB:["Because {scope} prices run close across platforms, and this is where they've been trading.","Because prices are close everywhere, so recent sales decide, and {platform} has the most.","Because {platform} has the most recent {scope} sales when prices are this close."],
     concentration:["Because recent {scope} activity has concentrated on {platform}.","Because {platform} is where the {scope} market actually trades right now.","Because the {scope} market has gathered on {platform}, where buyers are looking."],
     thin:["Because for a car this uncommon, {platform} reaches the buyers who actually want one.","Because {platform} is where buyers for something this rare tend to look.","Because a car this uncommon needs {platform}'s reach to find its buyer."]
@@ -79,7 +79,7 @@ function v2Because(mode,s){
 function v2Why(mode,s){
   var a=CLAUSE_A(s), b=CLAUSE_B(s), c=CLAUSE_C(s);
   var pools={
-    modeA:[a+".","Here's the read: "+a+".",a+". That gap is why I'd start there."],
+    modeA:[a+".",a+"."],
     modeB:[b+", so the room decides, and {platform} has the most recent {scope} sales.","Since "+b+", the room decides, and {platform} has the most recent {scope} sales.",b+". With little to separate them on price, {platform} has the most recent {scope} sales."],
     concentration:[c+". It's where the market for {rungRef} is actually trading.","Right now, "+c+", so that's where buyers are looking.",c+", which makes it the honest place to meet the market for {rungRef}."],
     thin:["recent sales for {rungRef} are limited, so I ran this at the {rungWord} level. {platform} is where the few that trade tend to surface, and it reaches the buyers who want something this uncommon.","recent sales for {rungRef} are limited, so I ran this at the {rungWord} level. For a car this rare, {platform} is where the patient buyers tend to look.","recent sales for {rungRef} are limited, so I ran this at the {rungWord} level. {platform} reaches the patient buyers who actually want one; treat this as directional."]
