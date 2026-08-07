@@ -534,9 +534,13 @@ a.hp-logo:hover{opacity:.72;}
 .pulse-card.quiet .pc-line{color:var(--slate);font-family:var(--font-sans);font-style:normal;}
 
 /* Top-right sign-in (STAGE B stub): plain, borderless */
-#hp-topbar{position:absolute;top:0;right:0;left:0;height:0;pointer-events:none;z-index:5;}
-#signin-area{position:absolute;top:20px;right:72px;pointer-events:auto;display:flex;align-items:center;gap:10px;}
-#hp-gear{position:absolute;top:18px;right:24px;pointer-events:auto;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--paper);border-radius:11px;color:var(--slate);cursor:pointer;transition:background .15s ease,color .15s ease;}
+#hp-topbar{position:absolute;top:0;right:0;left:0;height:0;pointer-events:none;z-index:60;}
+/* Gear + Sign in as ONE flex row anchored to the header's top-right corner, with an
+   explicit gap. Flex means they can never overlap, regardless of the sign-in width
+   (signed-out button vs signed-in email + Sign out). */
+.hp-actions{position:absolute;top:16px;right:26px;pointer-events:auto;display:flex;align-items:center;gap:12px;}
+#signin-area{display:flex;align-items:center;gap:10px;}
+#hp-gear{flex:none;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--paper);border-radius:11px;color:var(--slate);cursor:pointer;transition:background .15s ease,color .15s ease;}
 #hp-gear:hover{background:var(--paper-shade);color:var(--ink);}
 #hp-gear:focus-visible{outline:2px solid var(--ink);outline-offset:2px;}
 .hp-signin{font-family:var(--font-sans);font-size:13px;color:var(--slate);border:0;background:transparent;padding:6px 4px;cursor:pointer;}
@@ -591,7 +595,7 @@ body.home #msgs{flex:0 0 auto;overflow:visible;padding:0;width:100%;}
 body.home #input-area{flex:0 0 auto;}
 .hp-hero{max-width:660px;margin:0 auto 32px;text-align:center;padding:0 24px;}
 .hp-script{font-family:var(--pc-script-f);font-size:27px;color:var(--pc-script);line-height:1;margin-bottom:14px;}
-.hp-hero h1{font-family:var(--pc-serif);font-weight:600;font-size:clamp(26px,4.4vw,50px);line-height:1.14;letter-spacing:-.01em;color:var(--pc-ink);margin-bottom:0;text-wrap:balance;}
+.hp-hero h1{font-family:var(--pc-serif);font-weight:600;font-size:clamp(30px,3.4vw,44px);line-height:1.18;letter-spacing:-.01em;color:var(--pc-ink);margin-bottom:0;text-wrap:balance;}
 .hp-supporting{font-family:var(--font-sans);font-weight:400;font-size:17px;line-height:1.6;color:rgba(22,20,15,.72);max-width:392px;margin:0 auto 26px;}
 .hp-input-label{font-family:var(--font-sans);text-transform:none;letter-spacing:0;font-size:18px;font-weight:400;color:var(--ink);line-height:1.5;margin-bottom:11px;text-align:center;}
 
@@ -637,11 +641,10 @@ body.home #btn:hover{opacity:.85;}
   body.rail-open #rail{transform:translateX(0);}
   body.rail-open #rail-scrim{display:block;position:fixed;inset:0;background:rgba(22,20,15,.22);z-index:25;}
   #hp-hamburger{display:block;}
-  #signin-area{top:14px;right:60px;}
-  #hp-gear{top:12px;right:14px;width:38px;height:38px;}
+  .hp-actions{top:12px;right:14px;gap:10px;}
+  #hp-gear{width:38px;height:38px;}
   body.home #main{padding-top:clamp(56px,12vh,120px);}
   body.home #msgs,body.home #input-area{padding-left:18px;padding-right:18px;}
-  .hp-hero h1{font-size:clamp(32px,9vw,42px);}
   #market-cards-mobile{display:flex;}
   #market-cards-desktop{display:none;}
 }
@@ -660,9 +663,8 @@ body.home #msgs .hero-inner{max-width:none;}
   body.home #main{width:100%;max-width:100vw;}
   body.home #msgs,body.home #input-area{width:100%;max-width:100%;}
   .hp-hero,body.home #input-box,#market-cards-mobile{max-width:100%;}
-  .hp-hero h1{font-size:34px;letter-spacing:-.3px;}
   .hp-supporting,.hp-reassurance{max-width:320px;}
-  body.home #inp{min-width:0;font-size:17px;}
+  body.home #inp{min-width:0;}
   .pulse-card .pc-line{overflow-wrap:anywhere;}
 }
 
@@ -674,7 +676,7 @@ body{background:#FBFAF6;}
 /* ---- PART 2: HOMEPAGE ---- */
 /* 5 + 12: vertically centred (not top-anchored), nudged right of centre so the
    stack optically balances the sidebar. */
-body.home #main{justify-content:center;align-items:center;padding-top:0;}
+body.home #main{justify-content:flex-start;align-items:center;padding-top:clamp(88px,14vh,150px);}
 @media(min-width:821px){ body.home #main{padding-left:52px;} }
 /* 4: headline weight 450-500 (never 600+), balanced two-line break. */
 .hp-hero h1{font-weight:460;text-wrap:balance;letter-spacing:-.4px;}
