@@ -185,11 +185,12 @@ function renderPickCardV2(option){
     var tiles=[];
     var wk=v2Weekday(ev,v);
     if(wk){ var dA=ev.dayAdvantage||{}; var lift=Math.round(Math.abs(Number(dA.liftPercent))/5)*5; var hasPct=/%/.test(wk.body);
-      tiles.push({l:"Best day to sell",v:wk.headline,s:hasPct?("Average prices "+lift+"% stronger than other weekdays."):("Its strongest recent closing day.")}); }
+      var wkScope=v2ScopePlural(v);
+      tiles.push({l:"Best day to sell",v:wk.headline,s:wkScope+" have closed strongest on "+wk.headline+"s"+(hasPct?(", "+lift+"% above other days."):".")}); }
     var rv=v2Reserve(ev);
     if(rv){ var rc=ev.reserveContext||{}; var pct=Number(rc.delta_pct);
-      if(Math.abs(pct)<3){ tiles.push({l:"Reserve strategy",v:"About even",s:"Reserve and no-reserve auctions performed about the same in your price range."}); }
-      else { var Nr=Math.round(Math.abs(pct)); tiles.push({l:"Reserve strategy",v:(pct>=0?"+":"-")+Nr+"%",s:"Reserve auctions performed "+Nr+"% "+(pct>=0?"better":"lower")+" in your price range."}); } }
+      if(Math.abs(pct)<3){ tiles.push({l:"Reserve position",v:"About even",s:"Cars like yours with and without reserves on "+name+" have closed within a few points of each other."}); }
+      else { var Nr=Math.round(Math.abs(pct)); tiles.push({l:"Reserve position",v:(pct>=0?"+":"-")+Nr+"%",s:"Cars like yours with reserves on "+name+" have closed "+Nr+"% "+(pct>=0?"higher":"lower")+" than those without."}); } }
     if(tiles.length<2){ var au=v2Audience(ev); if(au)tiles.push({l:"Audience",v:au.headline,s:au.body}); }
     tiles=tiles.slice(0,2);
     var tilesHTML=tiles.length
