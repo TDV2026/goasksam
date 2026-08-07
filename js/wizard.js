@@ -10,8 +10,8 @@ function resetSellState(){
 const SELL_STEP_QUESTIONS={
   1:{ask:"What are you selling?",chips:[]},
   17:{ask:"Which model or trim is it? Pick one below, or just type the exact trim (like Alpina B3, M Sport or GTS) if it's not shown.",chips:["911","944","928","356","Boxster","Cayman","Not sure"]},
-  11:{ask:"Where is the car located?",chips:["US","UK","Europe","Australia","Middle East","Other"]},
-  18:{ask:"Where's the car? A state is perfect, or the nearest city.",chips:["California","Florida","Texas","New York","New Jersey","Other"]},
+  11:{ask:"Which country is the car in?",chips:["United States","United Kingdom","Canada","Elsewhere"]},
+  18:{ask:"Which state is it in?",chips:["California","Florida","Texas","New York","New Jersey","Other"]},
   2:{ask:"Rough mileage?",chips:["Under 30k","30k to 60k","60k to 100k","Over 100k"]},
   3:{ask:"Stock or modified?",chips:["Completely stock","Minor mods","Heavily modified"]},
   4:{ask:"Service records?",chips:["Full history","Some records","No records"]},
@@ -630,7 +630,7 @@ async function handleVehicleValidationAnswer(q){
       sellState.vehicleDetailSkipped=true;sellState.pendingVehicleIdentity=null;
       sellState.vehicleIdentityValidated=false;sellState.notSureRepeats=0;
       sellState.step=11;
-      addMsg("sam",`No problem, I'll work with the ${baseVehicle} at that level. The read will be more directional than model-specific, and I'll say so in the result. Where is the car located?`,"",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+      addMsg("sam",`No problem, I'll work with the ${baseVehicle} at that level. The read will be more directional than model-specific, and I'll say so in the result. ${SELL_STEP_QUESTIONS[11].ask}`,"",chipsHTML(SELL_STEP_QUESTIONS[11].chips));
       return true;
     }
     addMsg("sam",sellState.notSureRepeats===1
@@ -648,7 +648,7 @@ async function handleVehicleValidationAnswer(q){
     addMsg("sam",vehicleAcceptPrefix());
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=11;
-    addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+    addMsg("sam",SELL_STEP_QUESTIONS[11].ask,"",chipsHTML(SELL_STEP_QUESTIONS[11].chips));
     return true;
   }
   if(currentIssue?.suggestion&&normalizeVehicleAnswer(q)===normalizeVehicleAnswer(currentIssue.suggestion)){
@@ -661,7 +661,7 @@ async function handleVehicleValidationAnswer(q){
     addMsg("sam",vehicleAcceptPrefix());
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=11;
-    addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+    addMsg("sam",SELL_STEP_QUESTIONS[11].ask,"",chipsHTML(SELL_STEP_QUESTIONS[11].chips));
     return true;
   }
   if(currentIssue?.baseVehicle){
@@ -685,7 +685,7 @@ async function handleVehicleValidationAnswer(q){
         addMsg("sam",vehicleAcceptPrefix());
         if(sellState.returnToConfirm){goBackToConfirm();return true;}
         sellState.step=11;
-        addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+        addMsg("sam",SELL_STEP_QUESTIONS[11].ask,"",chipsHTML(SELL_STEP_QUESTIONS[11].chips));
         return true;
       }
     }
@@ -704,7 +704,7 @@ async function handleVehicleValidationAnswer(q){
     addMsg("sam",vehicleAcceptPrefix());
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=11;
-    addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+    addMsg("sam",SELL_STEP_QUESTIONS[11].ask,"",chipsHTML(SELL_STEP_QUESTIONS[11].chips));
     return true;
   }
   // Accepted partial state accumulates: a bare year or model-only answer is
@@ -733,7 +733,7 @@ async function handleVehicleValidationAnswer(q){
     addMsg("sam",vehicleAcceptPrefix());
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=11;
-    addMsg("sam","Where is the car located?","",chipsHTML(["US","UK","Europe","Australia","Middle East","Other"]));
+    addMsg("sam",SELL_STEP_QUESTIONS[11].ask,"",chipsHTML(SELL_STEP_QUESTIONS[11].chips));
     return true;
   }
   // Locked rule 12: this fallback also never repeats verbatim and only asks
@@ -832,26 +832,34 @@ function resumeWizardAfterVehicle(prefix){
     addMsg("sam",[prefix,backQ.ask].filter(Boolean).join(" "),"",backQ.chips&&backQ.chips.length?chipsHTML(backQ.chips):"");
     return;
   }
-  // Search Flow Thesis v1: four intake questions only -> car, location, price,
-  // preference -> confirm. mileage/condition/records/title/timeline/notes are gone.
-  const locationAnswered = !!sellState.state || (sellState.region && sellState.region !== "US" && sellState.region !== "");
-  const next=!locationAnswered?18
+  // Intake: car -> country(11) -> state/city(18) -> price(6) -> preference(8) ->
+  // analysis. No confirm step: the preference answer runs the analysis directly.
+  const countryAnswered=!!sellState.region;
+  const localityAnswered=!!sellState.state;
+  const next=!countryAnswered?11
+    :(!localityAnswered?18
     :(!sellState.price?6
-    :(!sellState.sellerPreference?8:16));
-  if(next===8){
-    if(prefix)addMsg("sam",prefix);
-    askPowerSellerStep();
-    return;
-  }
-  if(next===16){
-    if(prefix)addMsg("sam",prefix);
-    sellState.step=16;
-    setTimeout(()=>showConfirmation(),300);
-    return;
-  }
+    :(!sellState.sellerPreference?8:99)));
+  if(next===8){ if(prefix)addMsg("sam",prefix); askPowerSellerStep(); return; }
+  if(next===99){ if(prefix)addMsg("sam",prefix); showSellRecommendation(); return; }
   sellState.step=next;
   const q=SELL_STEP_QUESTIONS[next];
-  addMsg("sam",[prefix,q.ask].filter(Boolean).join(" "),"",q.chips&&q.chips.length?chipsHTML(q.chips):"");
+  const ask=next===18?locationAskText():q.ask;
+  const chips=(next===18&&sellState.region!=="US")?[]:(q.chips||[]);
+  addMsg("sam",[prefix,ask].filter(Boolean).join(" "),"",chips&&chips.length?chipsHTML(chips):"");
+}
+// Country detection at step 11. A US state typed directly still reads as US.
+function detectCountry(q){
+  const l=String(q||"").toLowerCase().trim();
+  if(typeof normalizeUSState==="function"&&normalizeUSState(q))return {region:"US",label:"United States"};
+  if(/^us$|^u\.s\.$|\b(united states|usa|u\.s\.a|america|american|the states)\b/.test(l))return {region:"US",label:"United States"};
+  if(/^uk$|^gb$|\b(united kingdom|u\.k\.|britain|great britain|england|scotland|wales|northern ireland)\b/.test(l))return {region:"UK",label:"United Kingdom"};
+  if(/\b(canada|canadian)\b/.test(l))return {region:"Canada",label:"Canada"};
+  return {region:"international",label:(q||"").trim()||"Elsewhere"};
+}
+// Step 18 asks for a US state or, for non-US countries, a free-text city/region.
+function locationAskText(){
+  return sellState.region==="US"?SELL_STEP_QUESTIONS[18].ask:"Which city or region? A city or area is perfect.";
 }
 
 function editCarName(){
@@ -901,9 +909,10 @@ function askPowerSellerStep(){
 }
 
 function goBackToConfirm(){
+  // The confirm step is gone: any edit that finishes with all fields present
+  // re-runs the analysis directly rather than re-showing a confirm card.
   sellState.returnToConfirm=false;
-  sellState.step=16;
-  setTimeout(()=>showConfirmation(),400);
+  showSellRecommendation();
 }
 
 function normalizeUpdateValue(value){

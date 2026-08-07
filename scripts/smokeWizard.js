@@ -622,7 +622,7 @@ if (sellState.step === 17) {
   askNextSellQuestion(); // attempt 2
   askNextSellQuestion(); // attempt 3
   askNextSellQuestion(); // would be attempt 4: must auto-advance instead
-  check("trim: auto-advance after 3 attempts, no fourth ask", sellState.step === 11 && /where is the car located/i.test(lastSam() || ""), `step=${sellState.step} last="${lastSam()}"`);
+  check("trim: auto-advance after 3 attempts, no fourth ask", sellState.step === 11 && /which country is the car in/i.test(lastSam() || ""), `step=${sellState.step} last="${lastSam()}"`);
 }
 // Explicit move-on advances from the clarification sub-state too.
 resetToStep1();
@@ -658,33 +658,55 @@ if (sellState.step === 17) {
   check("trim: skipping the optional generic trim advances to location", sellState.step === 11 && sellState.vehicleDetailSkipped === true, `step=${sellState.step} skipped=${sellState.vehicleDetailSkipped}`);
 }
 
-// 5a2. FIX 3: PowerSeller preference is the LAST wizard step, asked after the
-// summary is confirmed and immediately before results compile.
+// Country-before-state two-step location flow. US -> state question (chips);
+// non-US -> free-text city/region (no chips), feeding the policy region.
 resetToStep1();
-sellState.step = 16;
+sellState.carName = "2016 Mazda MX-5"; sellState.resolvedVehicle = { make: "Mazda", model: "MX-5", year: 2016 };
+sellState.vehicleIdentityValidated = true; sellState.vehicleDetailSkipped = true;
+sellState.region = null; sellState.state = null; sellState.step = 11;
+await handleSellStep("United States");
+check("country: US answer advances to the state question", sellState.region === "US" && sellState.step === 18 && /which state is it in/i.test(lastSam() || ""), `region=${sellState.region} step=${sellState.step} last="${lastSam()}"`);
+await handleSellStep("California");
+check("country->state: state stored, advances to price", sellState.state === "California" && sellState.step === 6, `state=${sellState.state} step=${sellState.step}`);
+
+resetToStep1();
+sellState.carName = "2016 Mazda MX-5"; sellState.resolvedVehicle = { make: "Mazda", model: "MX-5", year: 2016 };
+sellState.vehicleIdentityValidated = true; sellState.vehicleDetailSkipped = true;
+sellState.region = null; sellState.state = null; sellState.step = 11;
+await handleSellStep("United Kingdom");
+check("country: UK answer sets non-US region and asks for a city/region (no state chips)", sellState.region === "UK" && sellState.step === 18 && /which city or region/i.test(lastSam() || "") && !String(addMsgLog.at(-1)?.[3] || ""), `region=${sellState.region} step=${sellState.step} last="${lastSam()}" chips="${String(addMsgLog.at(-1)?.[3] || "")}"`);
+await handleSellStep("London");
+check("country->city: free-text city stored, advances to price", sellState.state === "London" && sellState.step === 6, `state=${sellState.state} step=${sellState.step}`);
+
+// 5a2. FIX 3 (updated flow): PowerSeller preference is the LAST wizard step,
+// asked right after price. There is NO confirm step: answering the preference
+// runs the analysis directly (the parsed summary shows as a strip on the
+// analysis screen). We reach step 8 by answering the price question.
+resetToStep1();
 sellState.carName = "2016 Mazda MX-5"; sellState.carRaw = "2016 Mazda MX-5";
 sellState.resolvedVehicle = { make: "Mazda", model: "MX-5", year: 2016, trim: "Club" };
 sellState.vehicleIdentityValidated = true; sellState.vehicleDetailSkipped = true;
-sellState.region = "US"; sellState.state = "California"; sellState.mileage = "40,000";
-sellState.condition = "Completely stock"; sellState.records = "Full history"; sellState.title = "Clean title";
-sellState.price = "30000"; sellState.timeline = "No rush, right result only"; sellState.notes = "Not set";
-sellState.sellerPreference = null; sellState.involvement = null;
-await handleSellStep("Looks good");
-check("FIX 3: confirming the summary asks the PowerSeller question as the last step", sellState.step === 8 && /which sounds more like you/i.test(lastSam() || ""), `step=${sellState.step} last="${lastSam()}"`);
+sellState.region = "US"; sellState.state = "California";
+sellState.price = null; sellState.sellerPreference = null; sellState.involvement = null;
+sellState.step = 6;
+await handleSellStep("30000");
+check("FIX 3: answering price asks the PowerSeller preference question next", sellState.step === 8 && /how would you like to sell it/i.test(lastSam() || ""), `step=${sellState.step} last="${lastSam()}"`);
 {
   const psChips = String(addMsgLog.at(-1)?.[3] || "");
   const psText = String(lastSam() || "");
-  // Part 5: the explainer now renders ABOVE the chips (inside the Sam text,
-  // the only above-chips slot), dash-free, and names what a PowerSeller does.
-  check("FIX 3: chips offer run-it-myself / someone-handled-it / not-sure", /run it myself/.test(psChips) && /rather someone handled it/.test(psChips) && /Not sure yet/.test(psChips), psChips.slice(0, 200));
-  check("FIX 3: explainer renders above the chips, dash-free", /Others hand it to a PowerSeller: a specialist who photographs the car/.test(psText) && !/[—–]/.test(psText), psText.slice(0, 200));
+  // The explainer renders ABOVE the chips (inside the Sam text, the only
+  // above-chips slot), dash-free, and names what a PowerSeller does.
+  // Chip labels render with HTML-escaped apostrophes (I&#39;ll), so match on the
+  // apostrophe-free substrings.
+  check("FIX 3: chips offer sell-myself / someone-handles / not-sure", /sell it myself/.test(psChips) && /someone to handle everything/.test(psChips) && /not sure yet/.test(psChips), psChips.slice(0, 200));
+  check("FIX 3: explainer renders above the chips, dash-free", /others hand it to a PowerSeller who photographs the car/i.test(psText) && !/[—–]/.test(psText), psText.slice(0, 200));
 }
-await handleSellStep("I'd rather someone handled it");
-check("FIX 3: 'someone handled it' stores sellerPreference=powerseller and the handle-it involvement", sellState.sellerPreference === "powerseller" && /handle everything/i.test(sellState.involvement || ""), `pref=${sellState.sellerPreference} inv=${sellState.involvement}`);
-sellState.step = 8; await handleSellStep("I'll run it myself");
-check("FIX 3: 'run it myself' stores sellerPreference=diy and the manage-myself involvement", sellState.sellerPreference === "diy" && /manage it myself/i.test(sellState.involvement || ""), `pref=${sellState.sellerPreference} inv=${sellState.involvement}`);
-sellState.step = 8; await handleSellStep("Not sure yet");
-check("FIX 3: 'not sure yet' stores sellerPreference=unsure (result-stage choice still offered)", sellState.sellerPreference === "unsure", `pref=${sellState.sellerPreference}`);
+await handleSellStep("I'd like someone to handle everything");
+check("FIX 3: 'someone handles it' stores sellerPreference=powerseller and the handle-it involvement, then runs analysis (no confirm)", sellState.sellerPreference === "powerseller" && /handle everything/i.test(sellState.involvement || "") && sellState.step === 12, `pref=${sellState.sellerPreference} inv=${sellState.involvement} step=${sellState.step}`);
+sellState.step = 8; await handleSellStep("I'll sell it myself");
+check("FIX 3: 'sell it myself' stores sellerPreference=diy and the manage-myself involvement", sellState.sellerPreference === "diy" && /manage it myself/i.test(sellState.involvement || ""), `pref=${sellState.sellerPreference} inv=${sellState.involvement}`);
+sellState.step = 8; await handleSellStep("I'm not sure yet");
+check("FIX 3: 'not sure yet' stores sellerPreference=unsure", sellState.sellerPreference === "unsure", `pref=${sellState.sellerPreference}`);
 // The step-8 answers each fire a background showSellRecommendation() (live
 // fetch + render). Drain those, then discard their output and reset the result
 // state so later design checks start from a clean slate.
@@ -800,7 +822,7 @@ if (sellState.step === 17) {
   const before = samMessages().length;
   await handleSellStep("lets forget the model now");
   const msgs17 = samMessages().slice(before);
-  check("move-on waiver: advances to location in the same turn", sellState.step === 11 && msgs17.some(m => /where is the car located/i.test(m)), `step=${sellState.step} msgs=${JSON.stringify(msgs17)}`);
+  check("move-on waiver: advances to location in the same turn", sellState.step === 11 && msgs17.some(m => /which country is the car in/i.test(m)), `step=${sellState.step} msgs=${JSON.stringify(msgs17)}`);
 }
 
 // 8. Confirmation affirmation: "yeh" accepts the cleaned corrected suggestion.
@@ -1233,10 +1255,10 @@ if (sellState.step === 17) await handleSellStep("Competition");
 check("edit-resume: M3 lands on the location question", sellState.step === 11, `step=${sellState.step} last="${lastSam()}"`);
 editCarName();
 await handleSellStep("yes it is that car my bad");
-check("edit-resume: same-car confirm with suffix resumes at location", sellState.step === 11 && /where is the car located/i.test(lastSam() || "") && /M3/i.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
+check("edit-resume: same-car confirm with suffix resumes at location", sellState.step === 11 && /which country is the car in/i.test(lastSam() || "") && /M3/i.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
 editCarName();
 await handleSellStep("my mistake its is this car");
-check("edit-resume: prefix suffix + 'is this car' confirms and resumes", sellState.step === 11 && /where is the car located/i.test(lastSam() || "") && /M3/i.test(sellState.carName || "") && !/mistake/i.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
+check("edit-resume: prefix suffix + 'is this car' confirms and resumes", sellState.step === 11 && /which country is the car in/i.test(lastSam() || "") && /M3/i.test(sellState.carName || "") && !/mistake/i.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
 editCarName();
 await handleSellStep("actually different car 1965 jag");
 check("edit-resume: different car resolves, model clarification allowed", sellState.step === 17 || sellState.step === 11, `step=${sellState.step} last="${lastSam()}"`);
@@ -1244,7 +1266,7 @@ if (sellState.step === 17) await handleSellStep("e-type");
 // New contract: a classic without a curated trim set gets the optional
 // free-text trim step; skipping it advances to location.
 if (sellState.step === 17) await handleSellStep("skip");
-check("edit-resume: different car resumes at location after clarification", sellState.step === 11 && /where is the car located/i.test(lastSam() || "") && /Jaguar/i.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
+check("edit-resume: different car resumes at location after clarification", sellState.step === 11 && /which country is the car in/i.test(lastSam() || "") && /Jaguar/i.test(sellState.carName || ""), `step=${sellState.step} car=${sellState.carName} last="${lastSam()}"`);
 
 // Edit at every step: clicking returns to vehicle entry keeping answers.
 resetToStep1();

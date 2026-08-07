@@ -9,6 +9,22 @@ async function showSellRecommendation(){
   if(typeof gasFunnel==="function")gasFunnel("wizard_complete");  // 2F: the wizard finished, analysis starting
   hideHero();
   const msgs=document.getElementById("msgs");
+  // Parsed-summary strip at the top of the analysis screen (replaces the old
+  // confirm card). Reads car / location / price / preference, dot-separated.
+  (function renderSummaryStrip(){
+    if(document.getElementById("sellSummaryStrip"))return;
+    const car=sellState.carName?(typeof carDisplayLabel==="function"?carDisplayLabel():sellState.carName):"your car";
+    const loc=sellState.state||sellState.region||"your area";
+    const price=(typeof formatAskingPrice==="function")?formatAskingPrice(sellState.price):(sellState.price||"price to set");
+    const prefLabel=sellState.sellerPreference==="powerseller"?"open to a PowerSeller"
+      :sellState.sellerPreference==="diy"?"selling it myself"
+      :"deciding how to sell";
+    const parts=[car,loc,price,prefLabel].map(p=>escapeHtml(String(p)));
+    const strip=document.createElement("div");
+    strip.className="row sam";strip.id="sellSummaryStrip";
+    strip.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sell-summary-strip">${parts.join(' <span class="ss-dot" aria-hidden="true">&middot;</span> ')}</div></div></div>`;
+    msgs.appendChild(strip);
+  })();
   // Analysis screen (Thesis v1): staged lines that mirror the real pipeline
   // (fetch comps -> compare platforms -> check specialists -> write rec). Each
   // ticks over briskly; the REVEAL is gated on the real response, so a cache-warm

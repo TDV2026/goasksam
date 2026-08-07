@@ -833,8 +833,12 @@ body.home #input-box:focus-within{box-shadow:0 2px 10px rgba(22,20,15,.05);borde
 .pv2-cartitle{font-family:var(--font-serif,Georgia,serif);font-size:22px;font-weight:700;color:#1A1915;letter-spacing:-.01em;}
 .pv2-caveat{background:#FCFCFA;border:1px solid #ECEAE2;border-radius:14px;padding:14px 18px;font-size:14px;line-height:1.5;color:#6E6A62;}
 .pv2-after{font-size:14.5px;line-height:1.55;color:#6E6A62;margin:2px 4px;}
-.pv2-bridge{font-size:15.5px;line-height:1.5;color:#6E6A62;text-align:center;margin:6px auto 2px;max-width:620px;}
-@media (prefers-color-scheme:dark){.pv2-bridge{color:#9C968B;}}
+.pv2-bridge{font-size:16px;line-height:1.5;color:var(--pc-ink);text-align:center;margin:22px auto;max-width:620px;}
+@media (prefers-color-scheme:dark){.pv2-bridge{color:#F1EEE7;}}
+/* Parsed-summary strip at the top of the analysis screen (replaces confirm card). */
+.sell-summary-strip{font-size:14.5px;line-height:1.45;color:var(--pc-ink);letter-spacing:.01em;padding:9px 15px;background:var(--pc-tile,#F0EDE5);border:1px solid var(--pc-line,#EDE9E0);border-radius:12px;display:inline-block;}
+.sell-summary-strip .ss-dot{color:var(--pc-faint,#8C877C);margin:0 2px;}
+@media (prefers-color-scheme:dark){.sell-summary-strip{color:#F1EEE7;background:#22201B;border-color:#33302A;}}
 
 /* compact secondary platform */
 .pv2-sec{--pa:#2F7A40;background:var(--card,#fff);border:1px solid #ECEAE2;border-left:3px solid var(--pa);border-radius:16px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;}

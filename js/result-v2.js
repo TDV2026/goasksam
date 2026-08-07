@@ -409,7 +409,10 @@ function renderResultV2Page(){
     // cleared server-side (never stretch a match). Lead when preference is
     // powerseller, or unsure AND value clears the dial.
     var psHTML="", psLead=false;
-    if(pref!=="diy"&&referral.partner){
+    // Hard gate: every partner is US-based ("nationwide" means US-nationwide), so
+    // a car outside the US never shows a PowerSeller card regardless of the gate.
+    var usCar=(typeof isUSRegion==="function")?isUSRegion(sellState.region):(sellState.region==="US");
+    if(usCar&&pref!=="diy"&&referral.partner){
       psLead=(pref==="powerseller")||(pref==="unsure"&&referral.leadOnValue===true);
       var valueLed=(pref==="unsure"&&referral.leadOnValue===true);
       psHTML=renderPowerSellerCardV2({lead:psLead,valueLed:valueLed});
@@ -429,7 +432,7 @@ function renderResultV2Page(){
         : '<div class="pv2-bridge">Want it handled end to end instead? Here\'s who I\'d trust with it.</div>';
     }
     var body=psLead?(psHTML+bridge+pickHTML+secHTML):(pickHTML+secHTML+bridge+psHTML);
-    var after=referral.partner&&pref!=="diy"
+    var after=usCar&&referral.partner&&pref!=="diy"
       ?'<div class="pv2-after">Both are real options and the choice is yours. Ask me to compare the tradeoffs, or how I\'d run the listing.</div>'
       :'<div class="pv2-after">Ask me anything about the pick, or how I\'d run the listing.</div>';
     return '<div class="pv2-page">'+body+caveat+after+'</div>';

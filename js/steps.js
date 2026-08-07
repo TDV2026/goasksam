@@ -218,71 +218,40 @@ async function handleSellStep(q){
     return true;
   }
 
-  // ── STEP 11: region ──────────────────────────────────────────
+  // ── STEP 11: COUNTRY (first location step) ───────────────────
   if(step===11){
-    const pipedRegion=pipelineProcess(q,step);
-    if(pipedRegion.action==="chat")return false;
-    if(pipedRegion.action==="escalate"){escalateStep(step);return true;}
-    const stateFromAnswer=normalizeUSState(q);
-    sellState.region=stateFromAnswer?"US":q;
-    sellState.state=stateFromAnswer||null;
-    if(isUSRegion(sellState.region)&&!sellState.state){
-      if(sellState.returnToConfirm){
-        sellState.step=18;
-        addMsg("sam","Which state is it in? This helps me think about PowerSeller and handoff options. Type it if it is not shown.","",chipsHTML(["California","Florida","Texas","New York","New Jersey","Other"]));
-        return true;
-      }
-      sellState.step=18;
-      addMsg("sam","Which state is it in? This helps me think about PowerSeller and handoff options. Type it if it is not shown.","",chipsHTML(["California","Florida","Texas","New York","New Jersey","Other"]));
-      return true;
-    }
+    // Off-script questions route to chat; any other input maps to a country
+    // (US / UK / Canada / international) via detectCountry.
+    if(isQuestionInput(q)&&!/united states|united kingdom|canada|elsewhere|^us\b|^uk\b|america|britain|england|scotland|wales/i.test(lower))return false;
+    const c=detectCountry(q);
+    sellState.region=c.region;
+    sellState.state=null;
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    // Non-US region answered here goes straight to price (Thesis v1: no
-    // mileage/condition steps). US falls to the state step above.
-    if(sellState.price){sellState.step=8;askPowerSellerStep();return true;}
-    sellState.step=6;
-    addMsg("sam",SELL_STEP_QUESTIONS[6].ask);
+    sellState.step=18;
+    addMsg("sam",locationAskText(),"",sellState.region==="US"?chipsHTML(SELL_STEP_QUESTIONS[18].chips):"");
     return true;
   }
 
-  // ── STEP 18: LOCATION (single location question, Thesis v1) ──
-  // One question folds the old region + state steps: a US state resolves to
-  // US + state; a non-US region keyword sets the region and skips state (it
-  // drives the regional policy floor). Then straight to price.
+  // ── STEP 18: STATE (US) or CITY/REGION (non-US) ──────────────
+  // Country is already set at step 11. US -> resolve a state; non-US -> a free
+  // text city/region that feeds the policy-region handling. Then straight to price.
   if(step===18){
-    if(/^other$/i.test(lower)){
-      addMsg("sam","No problem. Which state or country? Type the name, the two-letter code, or the ZIP.");
-      return true;
-    }
-    const nonUs=(() => {
-      if(/\b(uk|u\.k\.|united kingdom|britain|great britain|gb|england|scotland|wales|northern ireland)\b/i.test(lower))return "UK";
-      if(/\b(europe|european|germany|france|italy|spain|netherlands|belgium|switzerland|sweden|austria|portugal|ireland)\b/i.test(lower))return "Europe";
-      if(/\b(australia|australian|aus|nz|new zealand)\b/i.test(lower))return "Australia";
-      if(/\b(middle east|uae|u\.a\.e\.|dubai|abu dhabi|saudi|qatar|kuwait|bahrain|oman)\b/i.test(lower))return "Middle East";
-      if(/\b(canada|canadian)\b/i.test(lower))return "Canada";
-      return null;
-    })();
-    if(nonUs){
-      sellState.region=nonUs;
-      sellState.state=null;
-    }else{
-      // US path: state names, codes, nicknames, ZIP, "in X", skip. A bare country
-      // that is not a known non-US region re-asks; genuine off-script routes to chat.
+    if(sellState.region==="US"){
+      if(/^other$/i.test(lower)){addMsg("sam","No problem. Which state? Type the name, the two-letter code, or the ZIP.");return true;}
       const resolved=resolveStateInput(q);
-      if(resolved.kind==="country"){
-        addMsg("sam",`${resolved.name} is the country, not the state. Which state is it in? Type the name, the two-letter code, or the ZIP.`);
-        return true;
-      }
+      if(resolved.kind==="country"){addMsg("sam",`${resolved.name} is a country, not a state. Which state is it in? Type the name, the two-letter code, or the ZIP.`);return true;}
       if(resolved.kind==="state"||resolved.kind==="skip"){
-        sellState.region="US";
         sellState.state=resolved.kind==="skip"?"Not sure":resolved.value;
       }else{
         const pipedState=pipelineProcess(q,step);
         if(pipedState.action==="chat")return false;
         if(pipedState.action==="escalate"){escalateStep(step);return true;}
-        sellState.region="US";
         sellState.state=pipedState.action==="store"&&typeof pipedState.value==="string"?pipedState.value:"Not sure";
       }
+    }else{
+      // Non-US: free-text city/region. Off-script questions still route to chat.
+      if(isQuestionInput(q)&&!/^skip$|not sure/i.test(lower))return false;
+      sellState.state=/^(skip|not sure)$/i.test(lower)?"Not sure":(String(q||"").trim()||"Not sure");
     }
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     if(sellState.price){sellState.step=8;askPowerSellerStep();return true;}
@@ -323,12 +292,11 @@ async function handleSellStep(q){
     sellState.sellerPreference=pref;
     // Reuse the existing involvement gate so the result stage honors the choice.
     sellState.involvement=pref==="powerseller"?"Want someone to handle everything":pref==="diy"?"I'll manage it myself":"";
-    // Thesis v1: preference is the FOURTH intake question, asked before the
-    // confirm card (which now shows it as its fourth row). Editing it from the
-    // confirm returns to the confirm; a fresh run advances to the confirm.
-    if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    sellState.step=16;
-    showConfirmation();
+    // Preference is the final intake question. There is no confirm step: the
+    // answer runs the analysis directly (the parsed summary shows as a strip at
+    // the top of the analysis screen). An edit re-runs the analysis too.
+    sellState.returnToConfirm=false;
+    showSellRecommendation();
     return true;
   }
 
@@ -352,7 +320,7 @@ async function handleSellStep(q){
     }
     // Field-specific change chips (four-question flow).
     if(/^car$/i.test(lower)){sellState.returnToConfirm=true;sellState.carName=null;sellState.carType=null;sellState.vehicleIdentityValidated=false;sellState.pendingVehicleIdentity=null;sellState.step=1;addMsg("sam","What are you selling? Year, make, and model.");return true;}
-    if(/^location$|^region$|^state$/i.test(lower)){sellState.returnToConfirm=true;sellState.region=null;sellState.state=null;sellState.step=18;addMsg("sam",SELL_STEP_QUESTIONS[18].ask,"",chipsHTML(SELL_STEP_QUESTIONS[18].chips));return true;}
+    if(/^location$|^region$|^country$|^state$/i.test(lower)){sellState.returnToConfirm=true;sellState.region=null;sellState.state=null;sellState.step=11;addMsg("sam",SELL_STEP_QUESTIONS[11].ask,"",chipsHTML(SELL_STEP_QUESTIONS[11].chips));return true;}
     if(/^price$/i.test(lower)){sellState.returnToConfirm=true;sellState.price=null;sellState.step=6;addMsg("sam",SELL_STEP_QUESTIONS[6].ask);return true;}
     if(/^how i'll sell it$|^preference$|^selling preference$|^involvement$|^how i sell/i.test(lower)){sellState.returnToConfirm=true;sellState.sellerPreference=null;sellState.involvement=null;sellState.step=8;askPowerSellerStep();return true;}
     return true;
