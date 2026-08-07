@@ -67,7 +67,7 @@ function CLAUSE_C(s){ return v2Fill("recent {scope} sales have concentrated on {
 // ---------- FAMILY A: because line ----------
 function v2Because(mode,s){
   var pools={
-    modeA:["Because, of everywhere I track, {scope} have consistently achieved the strongest results on {platform} over the past {window}.","Because {scope} have consistently achieved the strongest results on {platform} over the past {window}.","Because {platform} is where {scope} have delivered the strongest results over the past {window}."],
+    modeA:["Because {platform} is where {scope} have consistently delivered the strongest results for cars like yours over the past {window}."],
     modeB:["Because {scope} prices run close across platforms, and this is where they've been trading.","Because prices are close everywhere, so recent sales decide, and {platform} has the most.","Because {platform} has the most recent {scope} sales when prices are this close."],
     concentration:["Because recent {scope} activity has concentrated on {platform}.","Because {platform} is where the {scope} market actually trades right now.","Because the {scope} market has gathered on {platform}, where buyers are looking."],
     thin:["Because for a car this uncommon, {platform} reaches the buyers who actually want one.","Because {platform} is where buyers for something this rare tend to look.","Because a car this uncommon needs {platform}'s reach to find its buyer."]
