@@ -1788,6 +1788,18 @@ function showTyping(){
   msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
 }
 function hideTyping(){const t=document.getElementById("typing");if(t)t.remove();}
+// Vehicle-lookup loader (Bug 1): the resolver's /api/vehicleIdentity call can
+// take a couple of seconds; never leave the seller staring at silence. Shows a
+// Sam line + animated dots the moment a car is submitted, and is removed the
+// instant the next question (or clarification) renders.
+function showVehicleLookup(){
+  const msgs=document.getElementById("msgs");
+  if(!msgs||document.getElementById("vehLookup"))return;
+  const row=document.createElement("div");row.id="vehLookup";row.className="row sam";
+  row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div><div class="veh-lookup"><span class="veh-lookup-text">Looking that up</span><span class="typing veh-lookup-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div></div></div>`;
+  msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
+}
+function hideVehicleLookup(){const t=document.getElementById("vehLookup");if(t)t.remove();}
 function quick(text){document.getElementById("inp").value=text;send();}
 
 // Phase 1c: full evidence + cards context for the post-result chat, so answers

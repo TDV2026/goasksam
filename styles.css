@@ -146,6 +146,11 @@ body{
 .dot:nth-child(2){animation-delay:.15s}
 .dot:nth-child(3){animation-delay:.3s}
 @keyframes pulse{0%,80%,100%{opacity:.3}40%{opacity:1}}
+/* Vehicle-lookup loader (Bug 1): Sam line + inline dots while the resolver runs. */
+.veh-lookup{display:flex;align-items:center;gap:8px;color:var(--pc-ink,#181712);font-size:15px;line-height:1.4;}
+.veh-lookup-dots{height:auto;}
+.veh-lookup-dots .dot{width:5px;height:5px;}
+@media (prefers-color-scheme:dark){.veh-lookup{color:#F1EEE7;}}
 .cards-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:2px;}
 .card{
   border:1px solid #e5e5e2;background:white;border-radius:18px;
@@ -847,6 +852,9 @@ body.home #input-box:focus-within{box-shadow:0 2px 10px rgba(22,20,15,.05);borde
 .pv2-sec-copy{font-size:14px;line-height:1.45;color:#6E6A62;max-width:52ch;}
 .pv2-sec-cta{border:1px solid color-mix(in srgb,var(--pa) 40%,#fff);background:color-mix(in srgb,var(--pa) 8%,#fff);color:var(--pa);font-family:var(--font-sans);font-weight:700;font-size:14px;border-radius:10px;padding:11px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;}
 .pv2-sec-cta svg{width:16px;height:16px;}.pv2-sec-cta:hover{filter:brightness(.97);}
+/* Bug 3: Mode-B alt as one quiet inline line, never a second hero card. */
+.pv2-inline-alt{font-size:14.5px;line-height:1.5;color:#6E6A62;margin:2px 4px;}
+@media (prefers-color-scheme:dark){.pv2-inline-alt{color:#9C968B;}}
 
 /* PowerSeller dossier (amber = seller identity, green = Sam's judgment + action) */
 .psv2-card{background:var(--card,#fff);border:1px solid #ECEAE2;border-radius:26px;box-shadow:0 1px 2px rgba(26,25,21,.03),0 24px 56px -34px rgba(26,25,21,.16);padding:36px 40px 30px;font-family:var(--font-sans);color:#1A1915;cursor:pointer;}

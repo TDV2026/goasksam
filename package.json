@@ -8,6 +8,7 @@
     "seed:aliases": "node scripts/generateAliases.js",
     "seed:generations": "node scripts/seedGenerations.js",
     "backfill:partners": "node scripts/backfillPartnerHistory.js",
+    "lint:cards": "node scripts/cardV2Lint.mjs && node scripts/verifyBugs.mjs",
     "smoke:prod": "node scripts/smokeProd.js && node scripts/smokeWizard.js",
     "ingest": "node scripts/ingest.js",
     "warm": "node scripts/warm.js",

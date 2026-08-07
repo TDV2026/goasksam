@@ -382,12 +382,20 @@ function v2AltCompetes(alt,pick){
 }
 function renderSecondaryPlatformV2(alt,pick){
   try{
-    if(!v2AltCompetes(alt,pick))return "";
+    if(!alt||!pick)return "";
+    var pm=v2Mode(pick.marketEvidence||{});
+    var altEv=alt.marketEvidence||{}; var altSales=Number(altEv.evidenceSales||0);
     var slug=alt.platformSlug||""; var name=platformDisplayName(alt.name||slug); var esc=escapeHtml;
-    var ev=alt.marketEvidence||{}; var mode=v2Mode(ev);
-    var line=mode==="modeB"
-      ?"Prices run close, so this is a genuine alternative if you'd rather list here."
-      :"A real second option: recent sales here have stayed competitive.";
+    // Bug 3: Mode B (prices run close) must NOT spawn a second hero card. When the
+    // alt has real depth it surfaces as one inline line under the pick; otherwise
+    // nothing. Only a genuine runner-up that itself cleared a symmetric gate earns
+    // the compact secondary card.
+    if(pm==="modeB"){
+      if(altSales<3)return "";
+      return '<div class="pv2-inline-alt">Prices run close across platforms, so '+esc(name)+' is also competitive if you\'d rather list there.</div>';
+    }
+    if(!v2AltCompetes(alt,pick))return "";
+    var line="A real second option: recent sales here have stayed competitive.";
     var outbound=slug&&typeof hasOutboundSubmission==="function"&&hasOutboundSubmission(slug);
     var onclick=outbound?("event.stopPropagation();openOutboundModal('"+esc(slug)+"','alt')"):("event.stopPropagation();chooseSellOption('"+esc(alt.key)+"')");
     return '<div class="pv2-sec" style="--pa:'+v2Accent(slug)+'">'

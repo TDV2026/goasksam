@@ -110,6 +110,9 @@ async function resolveVehicleInput(candidate,opts={}){
   sellState.vehicleIdentityValidated=false;
   sellState.resolvedVehicle=null;
   sellState.lastIdentityVerdict=null;
+  // Bug 1: show the lookup loader while the identity call is in flight; the
+  // finally below removes it right before the next question/clarification renders.
+  if(typeof showVehicleLookup==="function")showVehicleLookup();
   try{
     const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:candidate})});
     const data=await res.json();
@@ -161,6 +164,8 @@ async function resolveVehicleInput(candidate,opts={}){
     }
   }catch(e){
     return true;
+  }finally{
+    if(typeof hideVehicleLookup==="function")hideVehicleLookup();
   }
   return true;
 }
