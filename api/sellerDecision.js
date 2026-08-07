@@ -201,10 +201,11 @@ function parseSellerTargetPrice(value) {
   const suffix = compact.match(/\$?\s*(\d+(?:\.\d+)?)\s*(k|grand|thousand|m|mm|million)\b/);
   if (suffix) return Math.round(Number(suffix[1]) * (/^(m|mm|million)$/.test(suffix[2]) ? 1e6 : 1e3));
 
-  // A bare number is a literal dollar figure only at 4-7 digits (>= 1000). Below
-  // that it is ambiguous (65 could mean 65 or 65k) and the caller re-asks.
-  const numberMatch = compact.match(/\$?\s*(\d{4,7})\b/);
-  if (numberMatch) return Number(numberMatch[1]);
+  // Bare number: >= 1000 is a literal figure; 1-999 is read as thousands (55 ->
+  // 55000, 150 -> 150000), since nobody sells a collector car for $55. Mirrored
+  // exactly in the frontend parseAskingPrice.
+  const numberMatch = compact.match(/\$?\s*(\d{1,7})\b/);
+  if (numberMatch) { const n = Number(numberMatch[1]); return n >= 1000 ? n : n * 1000; }
 
   return null;
 }

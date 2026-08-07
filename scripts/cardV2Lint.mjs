@@ -101,5 +101,11 @@ check("ps.valueLine mentions value + name", /value/i.test(vl)&&/howS/.test(vl), 
 // possessive helper renders correctly for an s-ending name
 check("ps.poss handles s-ending name", psvPoss("howS")==="howS'"||psvPoss("Chris")==="Chris'", psvPoss("Chris"));
 
+// bridge lines between the two cards (order-aware, locked)
+const bridgePS="If you'd rather run the sale yourself, here's where I'd go.";
+const bridgePlat="Want it handled end to end instead? Here's who I'd trust with it.";
+check("bridge (PS leads) lint-clean", clean(bridgePS).ok, clean(bridgePS).detail);
+check("bridge (platform leads) lint-clean", clean(bridgePlat).ok, clean(bridgePlat).detail);
+
 console.log(failures?`\n${failures} FAILURE(S)`:"\nCARD-V2-LINT ALL PASS");
 process.exit(failures?1:0);

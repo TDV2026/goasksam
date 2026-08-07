@@ -252,7 +252,7 @@ function psvMakePlural(make){ try{ return (typeof pluralizeMake==="function")?pl
 function psvTrophy(p){
   var pool=[].concat((p.specialties&&p.specialties.profile_stats||[]).map(function(s){return s&&s.text;}),
                      (p.serviceClaims||[]).map(function(s){return s&&s.text;})).filter(Boolean);
-  for(var i=0;i<pool.length;i++){ var m=/(\d[\d,]*)\s*\+?\s*(?:listings|auctions)/i.exec(pool[i]); if(m)return m[1].replace(/,/g,"")+"+"; }
+  for(var i=0;i<pool.length;i++){ var m=/(\d[\d,]*)\s*\+?\s*(?:[a-z]+\s+)?(?:listings|auctions)/i.exec(pool[i]); if(m)return m[1].replace(/,/g,"")+"+"; }
   return null;
 }
 function psvSpecialtyShort(p){
@@ -421,7 +421,14 @@ function renderResultV2Page(){
     // No heading above the card (approved mockup is the card alone).
     var caveatText=(typeof unverifiedModelNote==="function"&&unverifiedModelNote())||(typeof adverseConditionCaveat==="function"&&adverseConditionCaveat())||"";
     var caveat=caveatText?'<div class="pv2-caveat">'+esc(caveatText)+'</div>':"";
-    var body=psLead?(psHTML+pickHTML+secHTML):(pickHTML+secHTML+psHTML);
+    // Bridge line between the two cards (locked, order-aware): only when BOTH render.
+    var bridge="";
+    if(psHTML&&pickHTML){
+      bridge=psLead
+        ? '<div class="pv2-bridge">If you\'d rather run the sale yourself, here\'s where I\'d go.</div>'
+        : '<div class="pv2-bridge">Want it handled end to end instead? Here\'s who I\'d trust with it.</div>';
+    }
+    var body=psLead?(psHTML+bridge+pickHTML+secHTML):(pickHTML+secHTML+bridge+psHTML);
     var after=referral.partner&&pref!=="diy"
       ?'<div class="pv2-after">Both are real options and the choice is yours. Ask me to compare the tradeoffs, or how I\'d run the listing.</div>'
       :'<div class="pv2-after">Ask me anything about the pick, or how I\'d run the listing.</div>';

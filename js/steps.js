@@ -334,7 +334,7 @@ async function handleSellStep(q){
 
   // ── STEP 16: confirmation ────────────────────────────────────
   if(step===16){
-    if(detectIntent(lower)==="affirmation"||/looks good|looking good|confirm|all good|submit|perfect|great/i.test(lower)){
+    if(detectIntent(lower)==="affirmation"||/run my analysis|run the analysis|analy[sz]e|looks good|looking good|confirm|all good|submit|perfect|great/i.test(lower)){
       const missing=currentMissingVehicleDetail();
       if(missing){
         sellState.returnToConfirm=true;
@@ -431,29 +431,14 @@ function showConfirmation(){
   }
   sellState.step=16;
   hideHero();
-  const msgs=document.getElementById("msgs");
-  const row=document.createElement("div");row.className="row sam";
-  // Thesis v1: exactly four rows (car, location, price, preference).
-  const prefLabel=sellState.sellerPreference==="powerseller"?"Have someone handle it"
-    :sellState.sellerPreference==="diy"?"Sell it myself"
-    :sellState.sellerPreference==="unsure"?"Not sure yet":"Not set";
-  const rows=[
-    {label:"Car",value:sellState.carName?carDisplayLabel():"Not set"},
-    {label:"Location",value:sellState.state||sellState.region||"Not set"},
-    {label:"Asking price",value:sellState.price||"Not set"},
-    {label:"How you'll sell it",value:prefLabel},
-  ];
-  row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
-    <div class="sam-label">Sam</div>
-    <div class="sam-text">Before I show you where to take this, does everything look right?</div>
-    <table class="spec-table">
-      ${rows.map(r=>`<tr><td class="spec-key">${escapeHtml(r.label)}</td><td>${numify(r.value)}</td></tr>`).join("")}
-    </table>
-    <div class="chips" style="margin-top:10px">
-      <button class="chip" style="border-color:#171717;color:#171717;font-weight:800" onclick="handleChip('Looks good')">Looks good →</button>
-      <button class="chip" onclick="handleChip('Change something')">Change something</button>
-    </div>
-  </div></div>`;
-  msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
+  // Compressed confirm (no standalone table): one acknowledgment line + chips.
+  // Same error-gate above; wizard_complete still fires on Run my analysis.
+  const car=sellState.carName?carDisplayLabel():"your car";
+  const loc=sellState.state||sellState.region||"your area";
+  const price=(typeof formatAskingPrice==="function")?formatAskingPrice(sellState.price):(sellState.price||"a price you'll set");
+  const prefLabel=sellState.sellerPreference==="powerseller"?"having it handled"
+    :sellState.sellerPreference==="diy"?"selling it yourself"
+    :"not sure yet";
+  addMsg("sam",`Got it. ${car}, ${loc}, asking ${price}, ${prefLabel}.`,"",chipsHTML(["Run my analysis →","Change something"]));
 }
 

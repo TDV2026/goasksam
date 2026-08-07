@@ -17,13 +17,14 @@ insert into partners (slug, name, display_name, active, regions, specialties, pl
 values (
   'genau-auto-werks', 'GenauAutoWerks', 'Ingo Schmoldt', true,
   '["California","San Francisco Peninsula","East Bay","Marin County","Bay Area","West Coast"]'::jsonb,
-  '{"makes":[],"segments":["collector","premium_collectors","classic_european"],"notes":"Collector and specialty vehicles (per GenauAutoWerks)","source":"partner_provided"}'::jsonb,
-  '[]'::jsonb, '[]'::jsonb,
+  '{"makes":[],"segments":["collector","premium_collectors","classic_european"],"notes":"Collector and specialty vehicles (per GenauAutoWerks)","source":"partner_provided","profile_stats":[{"text":"440+ enthusiast auctions represented, 300 on Bring a Trailer and 140 on Cars and Bids","source":"partner_provided"}]}'::jsonb,
+  '[]'::jsonb,
+  '[{"text":"Based in the Bay Area, serving the San Francisco Peninsula, East Bay and Marin County","source":"partner_provided"}]'::jsonb,
   '["GenauAutoWerks"]'::jsonb, null, 40000
 )
 on conflict (slug) do update set
   name = excluded.name, display_name = excluded.display_name, active = excluded.active,
-  regions = excluded.regions, specialties = excluded.specialties,
+  regions = excluded.regions, specialties = excluded.specialties, service_claims = excluded.service_claims,
   seller_usernames = excluded.seller_usernames, min_value_usd = excluded.min_value_usd, updated_at = now();
 
 -- 3) Dan Gray (AuthenticAuctions) - New England, nationwide, no floor

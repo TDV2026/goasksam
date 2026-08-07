@@ -28,9 +28,18 @@ function parseAskingPrice(value){
   const compact=text.replace(/,/g,"");
   const suffix=compact.match(/\$?\s*(\d+(?:\.\d+)?)\s*(k|grand|thousand|m|mm|million)\b/);
   if(suffix)return Math.round(Number(suffix[1])*(/^(m|mm|million)$/.test(suffix[2])?1e6:1e3));
-  const num=compact.match(/\$?\s*(\d{4,7})\b/);
-  if(num)return Number(num[1]);
+  // Bare number: >=1000 literal; 1-999 read as thousands (55 -> 55000). Mirrors
+  // the backend parseSellerTargetPrice exactly.
+  const num=compact.match(/\$?\s*(\d{1,7})\b/);
+  if(num){var n=Number(num[1]);return n>=1000?n:n*1000;}
   return null;
+}
+// Confirm-summary display: the PARSED interpretation, formatted, never the raw
+// string (so "55" reads back as "$55,000"). Flexible answers show a word.
+function formatAskingPrice(raw){
+  var n=parseAskingPrice(raw);
+  if(n==null)return /\b(flexible|open|offers?|market)\b/i.test(String(raw||""))?"Open to offers":(String(raw||"").trim()||"Not set");
+  return "$"+n.toLocaleString("en-US");
 }
 const STEP_SPECS={
   2:{field:"mileage",valid:v=>/\d/.test(v)||/\b(under|over|low|high|barely|hardly)\b/i.test(v)},
