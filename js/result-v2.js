@@ -405,23 +405,112 @@ function renderSecondaryPlatformV2(alt,pick){
   }catch(e){ return ""; }
 }
 
+// ---- SHARED COMPOSITION (one source of truth: page + chat context + composers) ----
+// Everything that reads "what actually rendered" (the page, the chat context in
+// send(), and the curated follow-up composers) derives it here, so they can never
+// disagree about the pick, whether a PowerSeller shows/leads, or whether a
+// secondary platform card rendered.
+function v2Composition(){
+  var opts=(sellState.sellOptions||[]).filter(function(o){return o&&o.key!=="specialist";});
+  var pick=opts[0]||null, alt=opts[1]||null;
+  var referral=sellState.partnerReferral||{};
+  var pref=sellState.sellerPreference;
+  // Hard gate: every partner is US-based, so a non-US car never shows a PowerSeller.
+  var usCar=(typeof isUSRegion==="function")?isUSRegion(sellState.region):(sellState.region==="US");
+  var psRendered=!!(usCar&&pref!=="diy"&&referral.partner);
+  var psLead=psRendered&&((pref==="powerseller")||(pref==="unsure"&&referral.leadOnValue===true));
+  var secondaryRendered=!!(!psLead&&pick&&alt&&typeof renderSecondaryPlatformV2==="function"&&renderSecondaryPlatformV2(alt,pick));
+  return { opts:opts, pick:pick, alt:alt, referral:referral, pref:pref, usCar:usCar,
+    psRendered:psRendered, psLead:psLead, secondaryRendered:secondaryRendered };
+}
+
+// ---- CARD-IDENTICAL FACTS for the pick ----
+// Returns the SAME numbers and scope labels the pick card renders (same rounding:
+// delta = Math.round(percent); weekday % = Math.round(lift/5)*5; scope =
+// v2ScopePlural landed-rung). The chat context and composers quote ONLY these, so
+// they can never diverge from the card (17% vs 15%, generation vs model, etc.).
+function v2PickFacts(option){
+  try{
+    if(!option)return null;
+    var v=sellState.resolvedVehicle||(sellState.sellDecision&&sellState.sellDecision.vehicle)||{};
+    var ev=option.marketEvidence||{};
+    var facts={ platform:platformDisplayName(option.name||option.platformSlug||""),
+      scope:v2ScopePlural(v), rungNoun:v2RungNoun(), window:v2WindowLabel(v2Window(ev)), mode:v2Mode(ev) };
+    var p=ev.pricePremium;
+    if(facts.mode==="modeA"&&p&&isFinite(p.percent))facts.pricePremium={ delta:Math.abs(Math.round(p.percent)), direction:(p.percent>=0?"higher":"lower") };
+    var wk=v2Weekday(ev,v);
+    if(wk){ var dA=ev.dayAdvantage||{}; var hasPct=/%/.test(wk.body);
+      facts.weekday={ day:wk.headline, pct:hasPct?Math.round(Math.abs(Number(dA.liftPercent))/5)*5:null, scope:facts.scope }; }
+    var rv=v2Reserve(ev);
+    if(rv){ var rc=ev.reserveContext||{}; var rp=Number(rc.delta_pct);
+      facts.reserve=Math.abs(rp)<3?{even:true}:{ pct:Math.round(Math.abs(rp)), direction:(rp>=0?"higher":"lower") }; }
+    return facts;
+  }catch(e){ return null; }
+}
+
+// ---- CURATED POST-RESULT COMPOSERS (the two invited follow-ups) ----
+// Deterministic, composition-aware, quote v2PickFacts verbatim. They intercept
+// BEFORE /api/chat so the chat layer can never contradict the cards on these.
+function v2FollowupIntent(q){
+  var l=String(q||"").toLowerCase();
+  if(/\bhow\b/.test(l)&&/\b(run|running|list|listing|set ?up|approach|start)\b/.test(l)&&/\b(listing|sale|auction|it|this|car)\b/.test(l))return "runlisting";
+  if(/\brun the listing\b|\bhow (i|you)'?d run\b|\bhow to (run|list)\b/.test(l))return "runlisting";
+  if(/\bcompare\b.*\b(option|tradeoff|trade-off|them|the two|both|route|path|door)\b|\btrade-?offs?\b|\bpros and cons\b/.test(l))return "tradeoffs";
+  if(/\bwhich (one|should i|would you|do you|is better)\b/.test(l)&&/\b(pick|choose|go with|recommend|prefer|better)\b/.test(l))return "tradeoffs";
+  return null;
+}
+function v2ComposeTradeoffs(){
+  try{
+    var c=v2Composition(); if(!c.pick)return null;
+    var f=v2PickFacts(c.pick); if(!f)return null;
+    if(c.psRendered){
+      // PowerSeller route vs running it yourself on the rendered platform. Axes:
+      // effort, fee, control, timeline. Service framing, never "gets more money".
+      var first=(typeof psvFirst==="function"&&c.referral.partner)?psvFirst(c.referral.partner):((c.referral.partner&&(c.referral.partner.displayName||c.referral.partner.name))||"the PowerSeller");
+      return "Two real paths, and it comes down to how hands on you want to be. "
+        +first+" runs the whole sale for you: photography, the writeup, buyer questions and the auction itself, for a fee. "
+        +"Running it yourself on "+f.platform+" keeps full control of timing and presentation and skips the PowerSeller fee, but the work is yours. "
+        +"On timing they land close, since "+first+" would list on a strong platform too, so the choice is effort versus control. "
+        +f.platform+" stays the platform pick either way.";
+    }
+    if(c.secondaryRendered&&f.mode==="modeB"){
+      // Prices close: a genuine platform vs platform call.
+      var altName=platformDisplayName(c.alt.name||c.alt.platformSlug||"");
+      return "With prices running close across the platforms I track, this comes down to reach and recent activity. "
+        +f.platform+" holds the most recent "+f.scope+" sales I track, so it is the surer read. "
+        +altName+" is a genuine alternative on price if you would rather list there. "
+        +f.platform+" is my call.";
+    }
+    return null; // one clear pick, nothing to compare: corrected-context chat handles it
+  }catch(e){ return null; }
+}
+function v2ComposeRunListing(){
+  try{
+    var c=v2Composition(); if(!c.pick)return null;
+    var f=v2PickFacts(c.pick); if(!f)return null;
+    var v=sellState.resolvedVehicle||(sellState.sellDecision&&sellState.sellDecision.vehicle)||{};
+    var carLabel=[v.year,v.make,v.model].filter(Boolean).join(" ")||"your car";
+    var parts=["I would list your "+carLabel+" on "+f.platform+"."];
+    if(f.weekday&&f.weekday.pct!=null)parts.push("If your timing is flexible, "+f.weekday.scope+" have closed strongest on "+f.weekday.day+"s, "+f.weekday.pct+"% above other days.");
+    else if(f.weekday)parts.push("If your timing is flexible, "+f.weekday.scope+" have tended to close strongest on "+f.weekday.day+"s.");
+    parts.push("Lead with honest, well lit photos and a straight writeup of history and condition, and let the platform's audience do the rest.");
+    return parts.join(" ");
+  }catch(e){ return null; }
+}
+
 // ---- FULL PAGE COMPOSER ----
 function renderResultV2Page(){
   try{
-    var opts=(sellState.sellOptions||[]).filter(function(o){return o.key!=="specialist";});
-    var pick=opts[0]; if(!pick)return null;
+    var c=v2Composition();
+    var opts=c.opts;
+    var pick=c.pick; if(!pick)return null;
     var pickHTML=renderPickCardV2(pick); if(!pickHTML)return null;
-    var referral=sellState.partnerReferral||{};
-    var pref=sellState.sellerPreference;
-    // PowerSeller composition (value-aware). diy: never. else render iff a partner
-    // cleared server-side (never stretch a match). Lead when preference is
-    // powerseller, or unsure AND value clears the dial.
-    var psHTML="", psLead=false;
-    // Hard gate: every partner is US-based ("nationwide" means US-nationwide), so
-    // a car outside the US never shows a PowerSeller card regardless of the gate.
-    var usCar=(typeof isUSRegion==="function")?isUSRegion(sellState.region):(sellState.region==="US");
-    if(usCar&&pref!=="diy"&&referral.partner){
-      psLead=(pref==="powerseller")||(pref==="unsure"&&referral.leadOnValue===true);
+    var referral=c.referral;
+    var pref=c.pref;
+    // PowerSeller composition (value-aware) + hard US gate live in v2Composition.
+    var psLead=c.psLead;
+    var psHTML="";
+    if(c.psRendered){
       var valueLed=(pref==="unsure"&&referral.leadOnValue===true);
       psHTML=renderPowerSellerCardV2({lead:psLead,valueLed:valueLed});
     }
@@ -440,7 +529,7 @@ function renderResultV2Page(){
         : '<div class="pv2-bridge">Want it handled end to end instead? Here\'s who I\'d trust with it.</div>';
     }
     var body=psLead?(psHTML+bridge+pickHTML+secHTML):(pickHTML+secHTML+bridge+psHTML);
-    var after=usCar&&referral.partner&&pref!=="diy"
+    var after=c.psRendered
       ?'<div class="pv2-after">Both are real options and the choice is yours. Ask me to compare the tradeoffs, or how I\'d run the listing.</div>'
       :'<div class="pv2-after">Ask me anything about the pick, or how I\'d run the listing.</div>';
     return '<div class="pv2-page">'+body+caveat+after+'</div>';

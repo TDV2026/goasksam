@@ -107,15 +107,24 @@ async function send(){
         }
         gateBits.push(pr.eligible?"result: gate passed, PowerSeller offered as an option":(pr.secondary?"result: shown only as a modest secondary":"result: no PowerSeller shown"));
         sellContext+=`\nPowerSeller gate outcome (answer "why not a powerseller" from THIS; NEVER imply the seller's car lacks value or does not qualify on worth): ${gateBits.join("; ")}. A PowerSeller runs the whole sale for you; there is a fee; it never gets more money; it is a hands-off vs hands-on choice; the platform pick stands either way.`;
-        // Part 4: bind "compare the options/tradeoffs" to the ACTUAL rendered
-        // destinations so the chat never reframes a platform-vs-platform choice
-        // as PowerSeller-vs-DIY or claims both paths end at the same platform.
-        const platformDest=(sellState.sellOptions||[]).filter(o=>o&&o.key!=="specialist").map(o=>o.name).filter(Boolean);
-        const psShown=(sellState.sellOptions||[]).some(o=>o&&o.key==="specialist");
-        if(platformDest.length>=2){
-          sellContext+=`\nRendered destinations (what the seller is looking at): PICK ${platformDest[0]}, ALT ${platformDest[1]}. A "compare the options / compare the tradeoffs / which should I pick" request means comparing THESE TWO PLATFORMS. Compare them on four axes ONLY: price outcome, time to list, audience fit, and how much sales data backs each (use the evidence-by-platform numbers above). They are two DIFFERENT platforms: NEVER say both paths lead to the same platform, NEVER reframe this as PowerSeller-vs-doing-it-yourself, and NEVER contradict either card's stated finding. The pick stays the recommendation; the comparison explains it, it does not reopen it.`;
-        }else if(platformDest.length===1&&psShown){
-          sellContext+=`\nRendered destinations: one platform (${platformDest[0]}) plus a PowerSeller option. A "compare the options/tradeoffs" request here means handled-by-a-PowerSeller vs running it yourself; both routes list on ${platformDest[0]}, so here both paths do end at ${platformDest[0]}. Compare on how hands-on the seller wants to be (a PowerSeller runs the auction for you (there is a fee); it never gets more money).`;
+        // Rendered destinations = what actually rendered, from the SHARED
+        // composition (never the raw route list). The chat may name ONLY these,
+        // and the framing follows the composition: PS-led -> handled vs running it
+        // yourself; two platforms -> platform vs platform. (The two invited
+        // follow-ups are answered by curated composers before this; this guards
+        // every OTHER free-text question.)
+        const comp=(typeof v2Composition==="function")?v2Composition():null;
+        if(comp&&comp.pick){
+          const pickNm=platformDisplayName(comp.pick.name||comp.pick.platformSlug);
+          const psNm=comp.psRendered&&comp.referral.partner?(comp.referral.partner.displayName||comp.referral.partner.name):null;
+          const altNm=comp.secondaryRendered&&comp.alt?platformDisplayName(comp.alt.name||comp.alt.platformSlug):null;
+          if(comp.psLead&&psNm){
+            sellContext+=`\nRendered destinations (the ONLY options shown; never name any other platform or consignor): PowerSeller ${psNm} leads, with ${pickNm} as the platform to run it yourself. A "compare/tradeoffs" request means handled-by-${psNm} vs running it yourself on ${pickNm}, on effort, fee, control and timeline, NEVER platform vs platform. Both list on a strong platform so timing is close; the choice is how hands-on the seller wants to be (a PowerSeller runs the sale for a fee and never gets more money). ${pickNm} is the platform pick either way.`;
+          }else if(altNm){
+            sellContext+=`\nRendered destinations (the ONLY platforms shown; never name any other platform): PICK ${pickNm}, ALT ${altNm}${psNm?`, plus PowerSeller ${psNm} shown below`:""}. Prices run close, so a "compare/tradeoffs" request compares THESE TWO PLATFORMS on price outcome, time to list, audience fit and how much sales data backs each. Never contradict either card; ${pickNm} stays the pick.`;
+          }else{
+            sellContext+=`\nRendered destinations (the ONLY destinations shown; never name any other platform or consignor): ${pickNm} is the pick${psNm?`, with PowerSeller ${psNm} shown below (handled-by-${psNm} vs running it yourself on ${pickNm}, a fee for full service and never more money)`:""}. There is no second platform shown; ${pickNm} is the clear call.`;
+          }
         }
       }
       try{

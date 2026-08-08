@@ -1816,25 +1816,31 @@ function evidenceBand(n){
   return "no recent sample";
 }
 function sellChatEvidenceSummary(){
+  // Card-identical only: quote the EXACT numbers and scope labels the pick card
+  // renders (via v2PickFacts, same rounding), never the raw evidence. Never emit
+  // "about"/"around", never a re-derived stat, never a platform the page did not
+  // render. This is the single fact source the chat may cite.
   const dec=sellState.sellDecision;
   if(!dec)return "";
-  const routes=dec.decision?.routeFit?.routes||[];
-  const lines=routes.filter(r=>r.marketEvidence&&Number(r.marketEvidence.evidenceSales||0)>0).map(r=>{
-    const e=r.marketEvidence;const pp=e.pricePremium;
-    const parts=[evidenceBand(e.evidenceSales)];
-    if(pp&&pp.percent!=null&&pp.platformSales>=5&&pp.othersSales>=5)parts.push(`about ${pp.percent}% vs other platforms (${pp.scope||"model"} scope)`);
-    const wk=e.dayAdvantage;
-    if(wk&&wk.weekday&&Number.isFinite(Number(wk.liftPercent)))parts.push(`${wk.weekday} endings about ${wk.liftPercent}% stronger (${wk.scope||"make"} scope)`);
-    return `${platformDisplayName(r.platform||r.label)}: ${parts.join(", ")}`;
-  });
-  // Percentages may be cited; sample sizes are qualitative bands only. NEVER a count.
-  let out=lines.length?`Evidence by platform (cite the percentages only; describe sample size with the qualitative band given, NEVER as a number of sales, comps or records): ${lines.join("; ")}.`:"";
-  // Reserve context (Phase 1.5): observational, correlation only. If asked about
-  // reserves, answer from THIS and never claim the reserve caused anything.
-  const rc=routes.map(r=>r.marketEvidence&&r.marketEvidence.reserveContext).find(Boolean);
-  if(rc){
-    const month=reserveMonthName(rc.data_month);
-    out+=`\nReserve context (observational only, NEVER say a reserve caused/boosts/earns anything; only that sales "averaged" a figure, and the choice is the seller's): in ${month}, ${platformDisplayName(rc.platform)} auctions in the ${rc.band_key} band averaged ${Math.abs(Number(rc.delta_pct))>=3?`$${Math.abs(Math.round(rc.delta_dollars)).toLocaleString()} ${Number(rc.delta_dollars)>=0?"higher":"lower"} with a reserve than without`:"similar money with or without a reserve"}. If asked about reserves and no cell exists for this exact make and band, say we don't have enough recent reserve data for this combination to say, and do not generalize from other makes or bands.`;
+  const comp=(typeof v2Composition==="function")?v2Composition():null;
+  const pick=comp?.pick;
+  if(!pick||typeof v2PickFacts!=="function")return "";
+  const f=v2PickFacts(pick);
+  if(!f)return "";
+  const bits=[];
+  if(f.pricePremium)bits.push(`${f.scope} have closed ${f.pricePremium.delta}% ${f.pricePremium.direction} on ${f.platform} than the other platforms tracked over the past ${f.window}`);
+  if(f.weekday)bits.push(f.weekday.pct!=null
+    ?`${f.weekday.scope} have closed strongest on ${f.weekday.day}s, ${f.weekday.pct}% above other days`
+    :`${f.weekday.scope} have tended to close strongest on ${f.weekday.day}s`);
+  if(f.reserve)bits.push(f.reserve.even
+    ?`in your price band, ${f.platform} auctions with and without a reserve averaged within three points of each other (observational only; never say a reserve caused, boosts or earns anything, the choice is the seller's)`
+    :`in your price band, ${f.platform} auctions with a reserve averaged ${f.reserve.pct}% ${f.reserve.direction} than those without (observational only; never say a reserve caused, boosts or earns anything, the choice is the seller's)`);
+  let out=bits.length
+    ?`Card facts for ${f.platform}, the pick (these are the EXACT figures and scope labels shown on the card; quote them verbatim, never re-derive, round, or hedge them, never add "about" or "around", never cite a statistic or platform not listed here; sample size is qualitative only, NEVER a count of sales, comps or records): ${bits.join("; ")}.`
+    :"";
+  // The ONLY other platform the chat may name is a secondary card that actually rendered.
+  if(comp.secondaryRendered&&comp.alt){
+    out+=`\nA secondary platform card also rendered: ${platformDisplayName(comp.alt.name||comp.alt.platformSlug)}. Prices run close, so it is a genuine alternative; it is the only other platform you may name.`;
   }
   return out;
 }

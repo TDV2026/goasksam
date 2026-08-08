@@ -701,6 +701,9 @@ function handleSellRecommendationFollowup(q){
     return true;
   }
 
+  // Note: the two invited composers ("compare the tradeoffs", "how I'd run the
+  // listing") are intercepted upstream in handleSellStep, before the step-12
+  // question->chat short-circuit. Everything else falls through to /api/chat.
   // Phase 1c: after results, ALL free text goes to /api/chat with full context.
   // ONLY explicit control intents act on the UI, and NEVER a substring inside a
   // genuine question ("so if the powerseller wants..." is a question -> chat).

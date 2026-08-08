@@ -56,6 +56,18 @@ async function handleSellStep(q){
 
   const step=sellState.step;
 
+  // Curated composition-aware answers for the two INVITED post-result follow-ups
+  // ("compare the tradeoffs", "how I'd run the listing"). These run BEFORE the
+  // generic step-12 question->chat short-circuit below, since "how I'd run the
+  // listing" is question-shaped. Deterministic and quote the card's own
+  // numbers/scope (v2PickFacts), so the chat layer can never contradict the cards
+  // on these; everything else still routes to /api/chat with corrected context.
+  if(step===12&&typeof cardV2Active==="function"&&cardV2Active()&&typeof v2FollowupIntent==="function"){
+    const composeIntent=v2FollowupIntent(q);
+    if(composeIntent==="tradeoffs"){const t=v2ComposeTradeoffs();if(t){addMsg("sam",t);return true;}}
+    else if(composeIntent==="runlisting"){const r=v2ComposeRunListing();if(r){addMsg("sam",r);return true;}}
+  }
+
   // Pipeline stage 2 for menu/confirm states without their own spec.
   if([12,14].includes(step)&&isQuestionInput(q))return false;
 

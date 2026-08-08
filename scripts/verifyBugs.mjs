@@ -12,10 +12,21 @@ globalThis.localStorage={getItem:()=>null,setItem:noop,removeItem:noop};
 globalThis.fetch=async()=>({ok:true,json:async()=>({})});
 const html=fs.readFileSync("index.html","utf8");
 const files=[...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
-(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.renderResultV2Page=renderResultV2Page;globalThis.renderSecondaryPlatformV2=renderSecondaryPlatformV2;globalThis.v2Mode=v2Mode;");
+(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.renderResultV2Page=renderResultV2Page;globalThis.renderSecondaryPlatformV2=renderSecondaryPlatformV2;globalThis.v2Mode=v2Mode;globalThis.renderPickCardV2=renderPickCardV2;globalThis.v2Composition=v2Composition;globalThis.v2PickFacts=v2PickFacts;globalThis.v2FollowupIntent=v2FollowupIntent;globalThis.v2ComposeTradeoffs=v2ComposeTradeoffs;globalThis.v2ComposeRunListing=v2ComposeRunListing;");
 
 let fails=0;
 const check=(name,ok,detail="")=>{console.log(`${ok?"PASS":"FAIL"}  ${name}${ok?"":"  ->  "+String(detail).slice(0,200)}`);if(!ok)fails++;};
+
+// V2_RULES lint (same rules the card composers are held to) for chat composers.
+const V2_RULES=[
+  {id:"em-dash",re:/—/},{id:"en-dash",re:/–/},{id:"dollar",re:/\$\s?\d/},
+  {id:"hedge",re:/\b(around|about|roughly|approximately)\b/i},
+  {id:"reserve-causal",re:/\bcaused\b|because of the reserve|the reserve helped|will get you|you'?ll earn|\bboosts\b|increases your price/i},
+  {id:"filler",re:/\ba car like this\b|remains viable|\bstrong option\b|\breal signal\b/i},
+  {id:"sell-through",re:/sell-?through|%\s*sold\b/i}
+];
+const lintText=t=>V2_RULES.filter(r=>r.re.test(String(t||""))).map(r=>r.id);
+const cleanC=t=>{const v=lintText(t);return {ok:v.length===0,detail:v.join(" ; ")+" :: "+t};};
 
 // ---- shared fixtures ----
 const bmw={year:2008,make:"BMW",model:"M3"};
@@ -72,6 +83,58 @@ check("Bug4 control: DIY suppresses PS lead (platform first, PS below or absent)
 Object.assign(globalThis.sellState,{sellerPreference:"unsure",region:"UK",state:"London"});
 const pageUK=renderResultV2Page()||"";
 check("Bug4 control: non-US (UK) renders NO PowerSeller card (hard gate)", !/pcard-ps/.test(pageUK), (pageUK.match(/pcard-ps/)||[""])[0]);
+
+// ============ CHAT COMPOSERS: exact 2005 BMW M3 PS-led scenario ============
+// Ingo leads; BaT platform card; weekday tile has raw lift 17 (card rounds -> 15%),
+// Monday, model-level scope (-> "M3s"). This is the reported contradiction case.
+const bat={key:"bringatrailer",name:"Bring a Trailer",platformSlug:"bringatrailer",
+  marketEvidence:{evidenceSales:9,windowDays:180,
+    pricePremium:{type:"premium",gateType:"symmetric",percent:4,windowDays:180}, // modeB (prices close)
+    dayAdvantage:{weekday:"Monday",liftPercent:17,scope:"model",sample:30,sales:8}}};
+const cb={key:"carsandbids",name:"Cars & Bids",platformSlug:"carsandbids",marketEvidence:{evidenceSales:4,windowDays:180}};
+const ingo={slug:"genau-auto-werks",name:"GenauAutoWerks",displayName:"Ingo Schmoldt",
+  regions:["California","Bay Area"],
+  specialties:{makes:[],segments:["collector","classic_european"],notes:"Collector and specialty vehicles (per GenauAutoWerks)",profile_stats:[{text:"440+ enthusiast auctions represented",source:"partner_provided"}]},
+  serviceClaims:[{text:"Based in the Bay Area",source:"partner_provided"}], verified:{trackedSales:440}};
+Object.assign(globalThis.sellState,{
+  resolvedVehicle:{year:2005,make:"BMW",model:"M3"}, region:"US", state:"California",
+  sellerPreference:"unsure", carName:"2005 BMW M3",
+  sellDecision:{resultId:"m3",vehicle:{year:2005,make:"BMW",model:"M3"},evidence:{windowDays:180,ladder:{landed:{key:"any_year_model",thresholdMet:true}}}},
+  sellOptions:[{key:"specialist",name:"Ingo Schmoldt"},bat,cb],
+  partnerReferral:{partner:ingo, eligible:false, secondary:true, matchType:"specialty", leadOnValue:true, leadValueUsd:55000}
+});
+
+// Composition sanity: PS leads, no secondary platform card (psLead suppresses it).
+const comp=v2Composition();
+check("M3: composition = PS leads, secondary suppressed", comp.psLead===true&&comp.secondaryRendered===false, `psLead=${comp.psLead} secondary=${comp.secondaryRendered}`);
+
+// Card-identical: the pick CARD tile and v2PickFacts agree on the weekday number/scope.
+const pf=v2PickFacts(bat);
+const cardHTML=renderPickCardV2(bat)||"";
+check("M3 card-identical: v2PickFacts weekday = 15% Monday, scope 'M3s'", pf.weekday&&pf.weekday.pct===15&&pf.weekday.day==="Monday"&&pf.weekday.scope==="M3s", JSON.stringify(pf.weekday));
+check("M3 card-identical: the rendered card tile shows the SAME 15% (not raw 17)", /15% above other days/.test(cardHTML)&&!/17%/.test(cardHTML), (cardHTML.match(/[^>]*% above other days/)||[""])[0].slice(0,80));
+
+// "compare the tradeoffs" -> Ingo vs DIY-on-BaT, NEVER platform vs platform, NEVER C&B.
+check("intent: 'compare the tradeoffs' -> tradeoffs", v2FollowupIntent("compare the tradeoffs")==="tradeoffs");
+const tradeoffs=v2ComposeTradeoffs()||"";
+check("M3 tradeoffs: Ingo-vs-DIY-on-BaT (names Ingo + Bring a Trailer)", /Ingo/.test(tradeoffs)&&/Bring a Trailer/.test(tradeoffs), tradeoffs.slice(0,160));
+check("M3 tradeoffs: NEVER names Cars & Bids (the unrendered alt)", !/Cars ?&? ?Bids|carsandbids/i.test(tradeoffs), tradeoffs);
+check("M3 tradeoffs: covers effort/fee/control framing", /hands on/.test(tradeoffs)&&/fee/.test(tradeoffs)&&/control/.test(tradeoffs), tradeoffs.slice(0,200));
+check("M3 tradeoffs: lint-clean (no hedge/dash/dollar)", cleanC(tradeoffs).ok, cleanC(tradeoffs).detail);
+
+// "how I'd run the listing" -> quotes Monday at the card's 15%, scope M3s, lint-clean.
+check("intent: 'how would you run the listing' -> runlisting", v2FollowupIntent("how would you run the listing")==="runlisting");
+const runListing=v2ComposeRunListing()||"";
+check("M3 run-listing: lists on Bring a Trailer", /I would list your .*Bring a Trailer/.test(runListing), runListing.slice(0,120));
+check("M3 run-listing: quotes Monday at the card's 15% (not 17), scope M3s", /M3s have closed strongest on Mondays, 15% above other days/.test(runListing)&&!/17%/.test(runListing), runListing);
+check("M3 run-listing: lint-clean (no hedge/dash/dollar)", cleanC(runListing).ok, cleanC(runListing).detail);
+
+// Platform-led Mode B control: no PS -> tradeoffs IS platform vs platform.
+Object.assign(globalThis.sellState,{sellerPreference:"diy", partnerReferral:{}, sellOptions:[bat,cb]});
+const compPlat=v2Composition();
+const tradeoffsPlat=v2ComposeTradeoffs()||"";
+check("Mode B platform-led: secondary renders, tradeoffs compares the two platforms", compPlat.secondaryRendered===true&&/Bring a Trailer/.test(tradeoffsPlat)&&/Cars &(amp;)? Bids/.test(tradeoffsPlat), tradeoffsPlat.slice(0,160));
+check("Mode B platform-led: tradeoffs lint-clean", cleanC(tradeoffsPlat).ok, cleanC(tradeoffsPlat).detail);
 
 console.log(fails?`\n${fails} FAILURE(S)`:"\nVERIFY-BUGS ALL PASS");
 process.exit(fails?1:0);
