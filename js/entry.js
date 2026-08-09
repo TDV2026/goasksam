@@ -73,57 +73,48 @@ async function send(){
       }
       const dec=sellState.sellDecision?.decision;
       if(dec?.recommendedPath){
-        const heroEvidence=(sellState.sellDecision?.analysis?.platformPerformance||[])[0]||{};
-        // Price signal is the premium percentage only (locked): a median in
-        // context invites a median in an answer, which is banned.
-        const premiumFact=heroEvidence.pricePremium;
-        const premiumLine=premiumFact
-          ?`${premiumFact.scope==="segment"?premiumFact.segmentLabel+" ":""}sales closed around ${premiumFact.percent}% higher on the recommended platform than on other platforms ${premiumFact.windowDays>=3650?"historically":`over the past ${premiumFact.windowDays} days`}`
-          :"none available";
-        // Use the FINAL displayed pick (post frontend swaps) so the chat never
-        // names a different platform than the card the seller is looking at.
-        const shownPick=sellState.displayedRecommendedPath||dec.recommendedPath;
-        // Fix 1a: NEVER pass a raw comparable-sales COUNT to the chat model - it
-        // quotes it ("4 comparable sales"). Data confidence is a qualitative band only.
         const evBand=typeof evidenceBand==="function"?evidenceBand(sellState.sellDecision?.evidence?.evidenceSales):"a recent sample";
-        sellContext+=`\nDecision facts (the engine's recommendation, do not contradict it): recommended platform ${platformDisplayName(shownPick)}; basis ${dec.evidenceBasis}; confidence ${dec.confidence}; data confidence ${evBand} ${(sellState.sellDecision?.evidence?.windowDays??0)>=3650?"across everything tracked":`in the last ${sellState.sellDecision?.evidence?.windowDays??"n/a"} days`}; price signal: ${premiumLine}. NEVER state how many comparable sales or comps there are; describe confidence with the band only. Reasons: ${(dec.why||[]).join(" ")}`;
-        // Phase 1c: give the chat the real evidence object and the exact card
-        // bullet text, so it answers post-result questions (including about the
-        // PowerSeller) from data instead of the frontend re-rendering a card.
+        const winDays=sellState.sellDecision?.evidence?.windowDays;
+        // Composition is authoritative: the recommendation the seller sees IS what
+        // the page rendered (PS-led -> the PowerSeller; else the platform). Every
+        // context block below is written to agree with it, so the LLM can never be
+        // told "recommended platform X" while the page leads with a PowerSeller.
+        const comp=(typeof v2Composition==="function")?v2Composition():null;
+        const pickNm=comp&&comp.pick?platformDisplayName(comp.pick.name||comp.pick.platformSlug):platformDisplayName(sellState.displayedRecommendedPath||dec.recommendedPath);
+        const psNm=comp&&comp.psRendered&&comp.referral.partner?(comp.referral.partner.displayName||comp.referral.partner.name):null;
+        const altNm=comp&&comp.secondaryRendered&&comp.alt?platformDisplayName(comp.alt.name||comp.alt.platformSlug):null;
+        if(comp&&comp.psLead&&psNm){
+          sellContext+=`\nThe recommendation the seller is looking at (authoritative, matches the page): hand the sale to ${psNm}, the PowerSeller leads, with ${pickNm} as the platform to run it yourself. When asked "what do you recommend" the answer is ${psNm}; ${pickNm} is where the car would be listed either way. NEVER say the recommendation is just a platform, and NEVER say the PowerSeller is only a secondary option; ${psNm} leads.`;
+        }else{
+          sellContext+=`\nThe recommendation the seller is looking at (authoritative, matches the page): ${pickNm}${psNm?`, with ${psNm} also shown if they would rather have it handled for them`:""}. When asked "what do you recommend" the answer is ${pickNm}.`;
+        }
+        sellContext+=`\nDecision facts (do not contradict): basis ${dec.evidenceBasis}; confidence ${dec.confidence}; data confidence ${evBand} ${(winDays??0)>=3650?"across everything tracked":`in the last ${winDays??"n/a"} days`}. NEVER state how many comparable sales or comps there are; describe confidence with the band only. Reasons: ${(dec.why||[]).join(" ")}`;
+        // Card-identical evidence + the exact card bullets (single fact source).
         const evidenceSummary=(typeof sellChatEvidenceSummary==="function")?sellChatEvidenceSummary():"";
         const cardsSummary=(typeof sellChatCardsSummary==="function")?sellChatCardsSummary():"";
         if(evidenceSummary)sellContext+=`\n${evidenceSummary}`;
         if(cardsSummary)sellContext+=`\n${cardsSummary}`;
-        // PowerSeller gate outcome (Defect 3): answer "why not a powerseller"
-        // from the REAL gate result, never with value insinuations.
-        const pr=sellState.partnerReferral||{};
-        const cond=pr.conditions||{};
-        const gateBits=[];
+        // Why a PowerSeller did or did not lead, in plain seller-facing words. No
+        // internal jargon (value gate, threshold, rung, composition), no fee talk,
+        // no price claims. Framing is effort, control and presentation only.
         if(sellState.resolvedVehicle?.unverified){
-          gateBits.push("the model could not be verified, so it could not be matched to a specialist's tracked track record with confidence (this is the reason, NOT the car's value)");
+          sellContext+=`\nPowerSeller note: the model could not be verified, so it could not be matched to a specialist's tracked record. That is the reason, never a judgment about the car's value.`;
+        }else if(comp&&comp.psLead&&psNm){
+          sellContext+=`\nPowerSeller note: ${psNm} leads because this car fits his lane and your area. Explain his value as effort, control and presentation: a well presented listing with strong photography and great answers to buyer questions can have a real impact. Never mention a fee, never claim he gets more money, and never use internal words like value gate, threshold, rung or composition.`;
+        }else if(psNm){
+          sellContext+=`\nPowerSeller note: ${psNm} is shown as an option, not the lead. Frame it as hands-off vs hands-on, on effort, control and presentation. Never mention a fee, never claim more money, never use internal words like value gate or threshold.`;
         }else{
-          gateBits.push(cond.valueMet?"value gate: met":"value gate: below threshold");
-          gateBits.push(cond.segmentMet?"specialist expertise match: found":"specialist expertise match: none for this car");
+          sellContext+=`\nPowerSeller note: no PowerSeller is shown for this car. If asked why, say a PowerSeller is worth it when the car and the fit line up, and this one is better served by listing on ${pickNm}. Never imply the car lacks value, never state a number it missed, never use internal words like value gate or threshold.`;
         }
-        gateBits.push(pr.eligible?"result: gate passed, PowerSeller offered as an option":(pr.secondary?"result: shown only as a modest secondary":"result: no PowerSeller shown"));
-        sellContext+=`\nPowerSeller gate outcome (answer "why not a powerseller" from THIS; NEVER imply the seller's car lacks value or does not qualify on worth): ${gateBits.join("; ")}. A PowerSeller runs the whole sale for you; there is a fee; it never gets more money; it is a hands-off vs hands-on choice; the platform pick stands either way.`;
-        // Rendered destinations = what actually rendered, from the SHARED
-        // composition (never the raw route list). The chat may name ONLY these,
-        // and the framing follows the composition: PS-led -> handled vs running it
-        // yourself; two platforms -> platform vs platform. (The two invited
-        // follow-ups are answered by curated composers before this; this guards
-        // every OTHER free-text question.)
-        const comp=(typeof v2Composition==="function")?v2Composition():null;
+        // Rendered destinations = what actually rendered (never the raw route
+        // list). The chat may name ONLY these. Framing follows the composition.
         if(comp&&comp.pick){
-          const pickNm=platformDisplayName(comp.pick.name||comp.pick.platformSlug);
-          const psNm=comp.psRendered&&comp.referral.partner?(comp.referral.partner.displayName||comp.referral.partner.name):null;
-          const altNm=comp.secondaryRendered&&comp.alt?platformDisplayName(comp.alt.name||comp.alt.platformSlug):null;
           if(comp.psLead&&psNm){
-            sellContext+=`\nRendered destinations (the ONLY options shown; never name any other platform or consignor): PowerSeller ${psNm} leads, with ${pickNm} as the platform to run it yourself. A "compare/tradeoffs" request means handled-by-${psNm} vs running it yourself on ${pickNm}, on effort, fee, control and timeline, NEVER platform vs platform. Both list on a strong platform so timing is close; the choice is how hands-on the seller wants to be (a PowerSeller runs the sale for a fee and never gets more money). ${pickNm} is the platform pick either way.`;
+            sellContext+=`\nRendered destinations (the ONLY options shown; never name any other platform or consignor): PowerSeller ${psNm} leads, with ${pickNm} as the platform to run it yourself. A "compare/tradeoffs" request means handled-by-${psNm} vs running it yourself on ${pickNm}, on effort, control and presentation, NEVER platform vs platform. The choice is how hands-on the seller wants to be. ${pickNm} is the platform pick either way.`;
           }else if(altNm){
             sellContext+=`\nRendered destinations (the ONLY platforms shown; never name any other platform): PICK ${pickNm}, ALT ${altNm}${psNm?`, plus PowerSeller ${psNm} shown below`:""}. Prices run close, so a "compare/tradeoffs" request compares THESE TWO PLATFORMS on price outcome, time to list, audience fit and how much sales data backs each. Never contradict either card; ${pickNm} stays the pick.`;
           }else{
-            sellContext+=`\nRendered destinations (the ONLY destinations shown; never name any other platform or consignor): ${pickNm} is the pick${psNm?`, with PowerSeller ${psNm} shown below (handled-by-${psNm} vs running it yourself on ${pickNm}, a fee for full service and never more money)`:""}. There is no second platform shown; ${pickNm} is the clear call.`;
+            sellContext+=`\nRendered destinations (the ONLY destinations shown; never name any other platform or consignor): ${pickNm} is the pick${psNm?`, with PowerSeller ${psNm} shown below (handled-by-${psNm} vs running it yourself on ${pickNm}, framed as effort, control and presentation)`:""}. There is no second platform shown; ${pickNm} is the clear call.`;
           }
         }
       }
@@ -136,7 +127,16 @@ async function send(){
           console.error("chat layer failed",res.status,data.error||"empty text");
           addMsg("sam","Good question. I'm having trouble answering it right now, so ask me again in a moment if it matters to you. It doesn't affect the market check itself.");
         }else{
-          addMsg("sam",stripChatMarkdown(data.text));
+          // Output guard: a post-result free-text answer is checked against the
+          // rendered composition. A wrong lead, an unshown platform, a hedged or
+          // re-derived number, or internal jargon is replaced by a safe curated
+          // fallback, so a seller never sees a contradiction (or silence).
+          let answer=stripChatMarkdown(data.text);
+          if(sellState.step===12&&typeof v2GuardChatAnswer==="function"){
+            const guarded=v2GuardChatAnswer(answer);
+            if(!guarded.ok)answer=guarded.text;
+          }
+          addMsg("sam",answer);
         }
         if(sellState.step>0&&sellState.step!==10&&sellState.step!==13&&sellState.step!==16&&!sellState.awaitingPathChoice){setTimeout(()=>askNextSellQuestion(),800);}
       }catch(e){hideTyping();addMsg("sam","Good question. I'm having trouble answering it right now because of a connection issue. Ask me again in a moment.");}

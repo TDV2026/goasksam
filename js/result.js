@@ -132,6 +132,14 @@ async function showSellRecommendation(){
   if(decisionData.resultId&&typeof gasStashResultId==="function")gasStashResultId(decisionData.resultId,!!decisionData.firstFree);
   if(decisionData.firstFree&&typeof gateAppendFirstFreeLine==="function")setTimeout(()=>{try{gateAppendFirstFreeLine();}catch(e){}},0);
   const decision=decisionData.decision||{};
+  // Honest country routing (phase 1): a non-US country we cannot route yet NEVER
+  // silently defaults to US platforms. Show the honest line instead of a US pick.
+  if(typeof isInternationalSellerRegion==="function"&&isInternationalSellerRegion()
+     &&typeof isRoutableInternationalRegion==="function"&&!isRoutableInternationalRegion()){
+    showHonestNoRouting(msgs);
+    document.getElementById("btn").disabled=false;
+    return;
+  }
   const practicalFallback=regionalNoEvidenceFallback();
   const routeFit=decision.routeFit||{};
   const allRouteOptions=routeFit.routes||[];
@@ -897,6 +905,17 @@ function regionalNoEvidenceFallback(){
     };
   }
   return null;
+}
+
+// Honest no-routing card (phase 1): a country we cannot route yet. Never a US
+// default, never invented data. Offers the real path (US/UK) if the car could
+// sell there. The curated country -> platform map is phase 2.
+function showHonestNoRouting(msgs){
+  const car=(typeof cleanCarForCopy==="function")?cleanCarForCopy():(sellState.carName||"your car");
+  const country=sellState.country||sellState.region||"your country";
+  sellState.sellOptions=[];
+  sellState.step=12;
+  addMsg("sam",`Here's the honest read for the ${car}. I route sellers to the auction platforms where I hold real sales data, and I don't yet have that coverage for ${country}, so I won't point you at a US platform as if it were the answer. That coverage is expanding. If the car could realistically sell into the US or UK markets, tell me and I'll run it there.`);
 }
 
 function showRegionalFallbackRecommendation(msgs,fallback){

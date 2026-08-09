@@ -10,7 +10,7 @@ function resetSellState(){
 const SELL_STEP_QUESTIONS={
   1:{ask:"What are you selling?",chips:[]},
   17:{ask:"Which model or trim is it? Pick one below, or just type the exact trim (like Alpina B3, M Sport or GTS) if it's not shown.",chips:["911","944","928","356","Boxster","Cayman","Not sure"]},
-  11:{ask:"Which country is the car in?",chips:["United States","United Kingdom","Canada","Elsewhere"]},
+  11:{ask:"Which country is the car in?",chips:["United States","United Kingdom","Canada","Australia","Somewhere else"]},
   18:{ask:"Which state is it in?",chips:["California","Florida","Texas","New York","New Jersey","Other"]},
   2:{ask:"Rough mileage?",chips:["Under 30k","30k to 60k","60k to 100k","Over 100k"]},
   3:{ask:"Stock or modified?",chips:["Completely stock","Minor mods","Heavily modified"]},
@@ -64,7 +64,7 @@ PowerSeller pushback ladder (for cars below the PowerSeller gate):
 2. Second ask: "For this car we don't have a PowerSeller who'd be the right fit, and that tracks: it fits the recommended platform better."
 3. If they persist: "Appreciate you pushing on this. GoAskSam is in beta and not everything will be perfect. If the answer on your car isn't what you expected, email news@thedailyvroom.com and we'll look at it."
 Never offer to flag, forward or queue their details for a consignment conversation; that service does not exist. Never name or describe a nonexistent service even to deny it; just state what GoAskSam does do.
-PowerSeller fee framing when comparing handled vs DIY: "You do pay a fee, but a good PowerSeller handles everything: prep, photos, listing, buyer questions, paperwork. In most cases the fee earns its keep." Never "you'll probably pay a fee".
+PowerSeller framing when comparing handled vs running it yourself: frame it as effort, control and presentation, never as price or fees. A good PowerSeller handles everything (prep, photography, videos, the listing, buyer questions, paperwork), and a well presented listing with great photography and great answers to buyer questions can have a real impact on how a listing performs. Never claim a PowerSeller gets more money, never say a fee "earns its keep" or "pays for itself", and never put a number on any of it.
 Key facts:
 - Fees: GoAskSam holds NO platform fee data. Never state platform fees, commissions, percentages, or caps as fact; those numbers would be invented. If asked about platform costs, say fee structures change and the platform's current terms are the place to check. If asked what howS or any consignor/PowerSeller charges: we do not hold his fee terms; per howS his structure is usually flexible (flat fee, percentage, or incentive), and the specifics are discussed directly with him if the seller requests an introduction.
 - Timing: the question flow takes under a minute, and the market analysis itself runs in seconds once the questions are done. Nothing here is a long process.
@@ -75,7 +75,7 @@ Key facts:
 - GoAskSam records seller details and the selected choice. Do not promise a specific response time unless it is confirmed.
 - Do not invent market performance claims. If current evidence is not available, say so.
 
-Style: never use em dashes or en dashes anywhere in your replies. Use commas or periods instead. Never hedge a number: quote every percentage and figure from the context EXACTLY as given, never prefixed with "about", "around", "roughly", "approximately" or "~". Never state a statistic, percentage or scope label that is not in the context, and never name a platform or consignor that is not in the Rendered destinations line. Write plain prose only: no markdown, no asterisks, no underscores, no bullet syntax, no headers. Never open with filler like "Great question" or "Good question"; start with the substance. Never announce honesty or directness in ANY reply ("I want to be straight", "to be honest", "I need to be honest", "honestly speaking"): just be direct without saying so.
+Style: never use em dashes or en dashes anywhere in your replies. Use commas or periods instead. Never hedge a number: quote every percentage and figure from the context EXACTLY as given, never prefixed with "about", "around", "roughly", "approximately" or "~". Never state a statistic, percentage or scope label that is not in the context, and never name a platform or consignor that is not in the Rendered destinations line. Never use internal jargon a seller would never hear: "value gate", "threshold", "gate", "gated", "composition", "rung", "evidence basis", "segment match". Explain everything in plain seller-facing words. Write plain prose only: no markdown, no asterisks, no underscores, no bullet syntax, no headers. Never open with filler like "Great question" or "Good question"; start with the substance. Never announce honesty or directness in ANY reply ("I want to be straight", "to be honest", "I need to be honest", "honestly speaking"): just be direct without saying so.
 
 Never say you are AI. You are Sam. End on your answer; the wizard re-asks its own question after you.`;
 
@@ -848,14 +848,27 @@ function resumeWizardAfterVehicle(prefix){
   const chips=(next===18&&sellState.region!=="US")?[]:(q.chips||[]);
   addMsg("sam",[prefix,ask].filter(Boolean).join(" "),"",chips&&chips.length?chipsHTML(chips):"");
 }
-// Country detection at step 11. A US state typed directly still reads as US.
+// Country detection at step 11. Resolves the input to a region bucket, a display
+// label, and whether we can route it today (phase 1: routable = US, UK, Europe,
+// Australia, Middle East; Canada and anything else get the honest line, never a
+// silent US default). A US state typed directly still reads as US.
 function detectCountry(q){
   const l=String(q||"").toLowerCase().trim();
-  if(typeof normalizeUSState==="function"&&normalizeUSState(q))return {region:"US",label:"United States"};
-  if(/^us$|^u\.s\.$|\b(united states|usa|u\.s\.a|america|american|the states)\b/.test(l))return {region:"US",label:"United States"};
-  if(/^uk$|^gb$|\b(united kingdom|u\.k\.|britain|great britain|england|scotland|wales|northern ireland)\b/.test(l))return {region:"UK",label:"United Kingdom"};
-  if(/\b(canada|canadian)\b/.test(l))return {region:"Canada",label:"Canada"};
-  return {region:"international",label:(q||"").trim()||"Elsewhere"};
+  if(typeof normalizeUSState==="function"&&normalizeUSState(q))return {region:"US",label:"United States",routable:true};
+  if(/^u\.?s\.?a?\.?$|\b(united states|usa|u\.s\.a|america|american|the states)\b/.test(l))return {region:"US",label:"United States",routable:true};
+  if(/^u\.?k\.?$|^gb$|\b(united kingdom|britain|great britain|england|scotland|wales|northern ireland)\b/.test(l))return {region:"UK",label:"the United Kingdom",routable:true};
+  if(/^au$|^nz$|\b(australia|australian|aussie|new zealand)\b/.test(l))return {region:"Australia",label:/new zealand|nz/.test(l)?"New Zealand":"Australia",routable:true};
+  if(/\b(germany|german|france|french|italy|italian|spain|spanish|netherlands|dutch|belgium|switzerland|swiss|sweden|austria|portugal|ireland|denmark|norway|finland|poland|europe|european|eu)\b/.test(l))return {region:"Europe",label:titleCaseCountry(l),routable:true};
+  if(/\b(uae|u\.a\.e|dubai|abu dhabi|saudi|qatar|kuwait|bahrain|oman|middle east)\b/.test(l))return {region:"Middle East",label:"the Middle East",routable:true};
+  if(/\b(canada|canadian)\b/.test(l))return {region:"Canada",label:"Canada",routable:false};
+  const label=(q||"").trim().replace(/^(in|from|the)\s+/i,"");
+  return {region:"international",label:label?titleCaseCountry(label):"another country",routable:false};
+}
+function titleCaseCountry(s){
+  const map={germany:"Germany",german:"Germany",france:"France",french:"France",italy:"Italy",italian:"Italy",spain:"Spain",spanish:"Spain",netherlands:"the Netherlands",dutch:"the Netherlands",belgium:"Belgium",switzerland:"Switzerland",swiss:"Switzerland",sweden:"Sweden",austria:"Austria",portugal:"Portugal",ireland:"Ireland",denmark:"Denmark",norway:"Norway",finland:"Finland",poland:"Poland",europe:"Europe",european:"Europe"};
+  const key=String(s||"").toLowerCase().trim();
+  if(map[key])return map[key];
+  return String(s||"").trim().replace(/\b\w/g,c=>c.toUpperCase());
 }
 // Step 18 asks for a US state or, for non-US countries, a free-text city/region.
 function locationAskText(){

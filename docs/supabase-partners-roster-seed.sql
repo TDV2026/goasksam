@@ -17,7 +17,7 @@ insert into partners (slug, name, display_name, active, regions, specialties, pl
 values (
   'genau-auto-werks', 'GenauAutoWerks', 'Ingo Schmoldt', true,
   '["California","San Francisco Peninsula","East Bay","Marin County","Bay Area","West Coast"]'::jsonb,
-  '{"makes":[],"segments":["collector","premium_collectors","classic_european"],"notes":"Collector and specialty vehicles (per GenauAutoWerks)","source":"partner_provided","profile_stats":[{"text":"440+ enthusiast auctions represented, 300 on Bring a Trailer and 140 on Cars and Bids","source":"partner_provided"}]}'::jsonb,
+  '{"makes":[],"segments":["collector","premium_collectors","classic_european"],"notes":"Collector and specialty vehicles (per GenauAutoWerks)","source":"partner_provided","profile_stats":[{"text":"440+ enthusiast auctions represented, 300 on Bring a Trailer and 140 on Cars and Bids","source":"partner_provided"},{"text":"Top 10% of all Bring a Trailer sellers","source":"partner_provided"},{"text":"Bring a Trailer community member since March 2011","source":"partner_provided"}]}'::jsonb,
   '[]'::jsonb,
   '[{"text":"Based in the Bay Area, serving the San Francisco Peninsula, East Bay and Marin County","source":"partner_provided"}]'::jsonb,
   '["GenauAutoWerks"]'::jsonb, null, 40000

@@ -47,6 +47,16 @@ function v2RungRef(v){
   return "the "+[v&&v.make,v&&v.model].filter(Boolean).join(" ")||"model";
 }
 function v2RungNoun(){ var kind=v2RungKind(); return kind==="generation"?"generation":kind==="segment"?"segment":kind==="make"?"make":"model"; }
+// Short landed-rung label for the metadata tile ("2018 M3", "997 Generation",
+// "Make level"). Unified with the why-prose scope so the tile and prose can never
+// disagree (metadata tile bug: tile read raw v.model while prose read the rung).
+function v2RungLabel(v){
+  var kind=v2RungKind(), gen=v2GenCode(), y=v&&v.year, model=(v&&v.model)||"", make=(v&&v.make)||"";
+  if(kind==="exact")return [y,model].filter(Boolean).join(" ")||model||make||"Model";
+  if(kind==="generation"&&gen)return String(gen).toUpperCase()+" Generation";
+  if(kind==="make")return "Make level";
+  return model||make||"Model";
+}
 function v2Window(ev){ var p=ev&&ev.pricePremium; return (p&&isFinite(p.windowDays))?Number(p.windowDays):(sellState.sellDecision&&sellState.sellDecision.evidence&&sellState.sellDecision.evidence.windowDays)||90; }
 // Window stated in the true unit: the 270-day price rung reads "nine months"; the
 // 45/90/180 rungs stay in days. Cascading windows always name the window they used.
@@ -174,10 +184,17 @@ function renderPickCardV2(option){
     // ---- data bindings (all dynamic) ----
     var loc=[sellState.state,sellState.region].filter(Boolean)[0]||"US";
     var genCode=v2GenCode();
-    var genLabel=(v2RungKind()==="generation"&&genCode)?String(genCode).toUpperCase()+" Generation":(v2RungKind()==="make"?"Make level":(v.model?v.model:(v.make||"Model")));
+    var genLabel=v2RungLabel(v);
     var winLbl=win<=45?"Last 45 Days":win<=90?"Last 90 Days":win<=180?"Last 180 Days":"Last 270 Days";
     var because=v2Because(mode,slots);
     var why=v2Why(mode,slots);
+    // Layout (Aug 2026, item 2b): the concrete evidence clause leads the MAIN
+    // column beneath the platform name; the summary "delivered the strongest
+    // results" line moves to the right rail under WHY I PICKED THIS (with the
+    // leading "Because " dropped and capitalized).
+    var leadMain=why;
+    var whyRail=String(because).replace(/^because\s+/i,"");
+    whyRail=whyRail.charAt(0).toUpperCase()+whyRail.slice(1);
     // Resolved vehicle drives the metadata (year make model), never the "Car"
     // fallback: sellState.carName can be empty at render, so bind from v directly.
     var carLbl=[v.year,v.make,v.model].filter(Boolean).join(" ")||carDisplayLabel("your car");
@@ -203,7 +220,7 @@ function renderPickCardV2(option){
         + '<span class="pcard-badge">+ Sam\'s Pick</span>'
         + '<div class="pcard-script">I\'d sell your '+esc(v.make||"car")+' on</div>'
         + '<h1 class="pcard-name">'+esc(name)+'</h1>'
-        + '<p class="pcard-lead">'+esc(because)+'</p>'
+        + '<p class="pcard-lead">'+esc(leadMain)+'</p>'
         + '<button class="pcard-cta" onclick="'+ctaOnClick+'">Start Listing With '+esc(name)+v2Svg("arrow","cta-arrow")+'</button>'
         + '<div class="pcard-reassure">'+v2Svg("shield")+'<span>You\'ll be taken to '+esc(name)+' to begin your listing. Nothing is committed until you decide to publish.</span></div>'
       + '</div>'
@@ -216,7 +233,7 @@ function renderPickCardV2(option){
         + '</div>'
         + '<div class="pcard-rule"></div>'
         + '<div class="pcard-whyl">Why I Picked This</div>'
-        + '<p class="pcard-why">'+esc(why)+'</p>'
+        + '<p class="pcard-why">'+esc(whyRail)+'</p>'
         + '<div class="pcard-ev"><div class="pcard-rule"></div>'+tilesHTML+'</div>'
       + '</div>'
       + '</div>';
@@ -259,6 +276,14 @@ function psvSpecialtyShort(p){
   var notes=String((p.specialties&&p.specialties.notes)||"").replace(/\s*\(per[^)]*\)\s*$/i,"").trim();
   if(notes)return notes.split(",")[0].trim();
   return "";
+}
+// Trust claims from profile_stats that psvTrophy did not consume (i.e. not the
+// auctions/listings total). Rendered as attributed track-record lines.
+function psvTrustLines(p){
+  var stats=(p.specialties&&p.specialties.profile_stats)||[];
+  return stats.map(function(s){return s&&s.text;}).filter(Boolean).filter(function(t){
+    return !/(\d[\d,]*)\s*\+?\s*(?:[a-z]+\s+)?(?:listings|auctions)/i.test(t);
+  }).slice(0,3);
 }
 var PSV2_STATES={al:"Alabama",ak:"Alaska",az:"Arizona",ar:"Arkansas",ca:"California",co:"Colorado",ct:"Connecticut",de:"Delaware",fl:"Florida",ga:"Georgia",hi:"Hawaii",id:"Idaho",il:"Illinois",in:"Indiana",ia:"Iowa",ks:"Kansas",ky:"Kentucky",la:"Louisiana",me:"Maine",md:"Maryland",ma:"Massachusetts",mi:"Michigan",mn:"Minnesota",ms:"Mississippi",mo:"Missouri",mt:"Montana",ne:"Nebraska",nv:"Nevada",nh:"New Hampshire",nj:"New Jersey",nm:"New Mexico",ny:"New York",nc:"North Carolina",nd:"North Dakota",oh:"Ohio",ok:"Oklahoma",or:"Oregon",pa:"Pennsylvania",ri:"Rhode Island",sc:"South Carolina",sd:"South Dakota",tn:"Tennessee",tx:"Texas",ut:"Utah",vt:"Vermont",va:"Virginia",wa:"Washington",wv:"West Virginia",wi:"Wisconsin",wy:"Wyoming"};
 // Location, STATE-LEVEL only: parse the "Based in ..." claim, resolve to a state name.
@@ -353,6 +378,10 @@ function renderPowerSellerCardV2(opts){
     if(trophy)tstack+='<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("trophy")+'</span><div class="pcard-tt"><div class="pcard-tnum">'+esc(trophy)+'</div><div class="val">enthusiast auctions represented</div></div></div>';
     if(spec)tstack+='<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("car")+'</span><div class="pcard-tt"><div class="lab">Specialises in</div><div class="val green">'+esc(spec)+'</div></div></div>';
     if(loc)tstack+='<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("pin")+'</span><div class="pcard-tt"><div class="lab">Based in '+esc(loc)+'</div>'+(cov?'<div class="sub">'+esc(cov)+'</div>':'')+'</div></div>';
+    // Attributed trust claims (the profile_stats lines that are not the auctions
+    // total, e.g. "Top 10% of all Bring a Trailer sellers", "member since 2011").
+    var trust=psvTrustLines(p);
+    if(trust.length)tstack+='<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("star")+'</span><div class="pcard-tt"><div class="lab">Track record</div>'+trust.map(function(x){return '<div class="val">'+esc(x)+'</div>';}).join("")+'</div></div>';
     return '<div class="pcard pcard-ps" onclick="choosePowerSeller(\''+esc(p.slug||"partner")+'\')">'
       + '<div class="pcard-left">'
         + '<span class="pcard-badge">+ Sam\'s Recommendation</span>'
@@ -455,23 +484,40 @@ function v2FollowupIntent(q){
   var l=String(q||"").toLowerCase();
   if(/\bhow\b/.test(l)&&/\b(run|running|list|listing|set ?up|approach|start)\b/.test(l)&&/\b(listing|sale|auction|it|this|car)\b/.test(l))return "runlisting";
   if(/\brun the listing\b|\bhow (i|you)'?d run\b|\bhow to (run|list)\b/.test(l))return "runlisting";
+  // "what do you recommend" and friends resolve to the rendered recommendation.
+  if(/\bwhat do you recommend\b|\bwhat would you do\b|\bwhat'?s your (recommendation|advice|call)\b|\bwhich (should i|would you) (choose|pick|go with|do)\b|\bwhat should i do\b|\bwhat'?s the (best )?(move|play)\b/.test(l))return "recommend";
   if(/\bcompare\b.*\b(option|tradeoff|trade-off|them|the two|both|route|path|door)\b|\btrade-?offs?\b|\bpros and cons\b/.test(l))return "tradeoffs";
-  if(/\bwhich (one|should i|would you|do you|is better)\b/.test(l)&&/\b(pick|choose|go with|recommend|prefer|better)\b/.test(l))return "tradeoffs";
+  if(/\bwhich (one|is better)\b/.test(l)&&/\b(pick|choose|go with|prefer|better)\b/.test(l))return "tradeoffs";
   return null;
+}
+// The recommendation IS whatever the page renders: PS-led -> the PowerSeller (with
+// the platform as where he'd run it); platform-led -> the platform. Never ranks
+// against the page, never re-derives.
+function v2ComposeRecommend(){
+  try{
+    var c=v2Composition(); if(!c.pick)return null;
+    var f=v2PickFacts(c.pick); if(!f)return null;
+    if(c.psRendered&&c.referral.partner){
+      var first=(typeof psvFirst==="function")?psvFirst(c.referral.partner):(c.referral.partner.displayName||c.referral.partner.name||"a PowerSeller");
+      if(c.psLead)return "I would hand it to "+first+", and "+f.platform+" is where he would most likely run it. If you would rather keep it in your own hands, "+f.platform+" is the platform I would use.";
+      return f.platform+" is where I would sell it, and "+first+" is right there if you would rather have it handled for you.";
+    }
+    return f.platform+" is where I would sell it.";
+  }catch(e){ return null; }
 }
 function v2ComposeTradeoffs(){
   try{
     var c=v2Composition(); if(!c.pick)return null;
     var f=v2PickFacts(c.pick); if(!f)return null;
     if(c.psRendered){
-      // PowerSeller route vs running it yourself on the rendered platform. Axes:
-      // effort, fee, control, timeline. Service framing, never "gets more money".
+      // PowerSeller route vs running it yourself on the rendered platform. Framing
+      // is effort, control and presentation ONLY: no fee talk, no price claims
+      // (locked). Closes on the approved verbatim line.
       var first=(typeof psvFirst==="function"&&c.referral.partner)?psvFirst(c.referral.partner):((c.referral.partner&&(c.referral.partner.displayName||c.referral.partner.name))||"the PowerSeller");
       return "Two real paths, and it comes down to how hands on you want to be. "
-        +first+" runs the whole sale for you: photography, the writeup, buyer questions and the auction itself, for a fee. "
-        +"Running it yourself on "+f.platform+" keeps full control of timing and presentation and skips the PowerSeller fee, but the work is yours. "
-        +"On timing they land close, since "+first+" would list on a strong platform too, so the choice is effort versus control. "
-        +f.platform+" stays the platform pick either way.";
+        +first+" runs the whole sale for you: photography, the writeup, buyer questions and the auction itself, so your effort is minimal. "
+        +"Running it yourself on "+f.platform+" keeps you in full control of the timing and how the car is presented, but the work is yours. "
+        +"Well presented listings, with great photography, videos, descriptions, and importantly great answers to all questions can have a significant impact on a listing. That is why I highly recommend the right PowerSeller for the right listing.";
     }
     if(c.secondaryRendered&&f.mode==="modeB"){
       // Prices close: a genuine platform vs platform call.
@@ -496,6 +542,50 @@ function v2ComposeRunListing(){
     parts.push("Lead with honest, well lit photos and a straight writeup of history and condition, and let the platform's audience do the rest.");
     return parts.join(" ");
   }catch(e){ return null; }
+}
+
+// ---- OUTPUT GUARD for the open free-text chat path ----
+// Checks a raw LLM answer against v2Composition. On a wrong lead, an unshown
+// tracked auction platform, a hedged/re-derived number, or internal jargon, it
+// replaces the answer with a safe curated fallback so a seller never sees a
+// contradiction (or an error/silence). Returns {ok, text}.
+var V2_TRACKED_PLATFORMS=["Bring a Trailer","Cars & Bids","PCarMarket","Hagerty"];
+function v2SafeFallback(){
+  try{
+    var c=v2Composition(); if(!c.pick)return "Let me stick to what is on the card. Ask me about the pick or how I would run the listing.";
+    var f=v2PickFacts(c.pick); var pickNm=f?f.platform:platformDisplayName(c.pick.name||c.pick.platformSlug);
+    if(c.psLead&&c.referral.partner){ var first=(typeof psvFirst==="function")?psvFirst(c.referral.partner):(c.referral.partner.displayName||c.referral.partner.name); return "Let me stick to what is on the card: I would hand it to "+first+", with "+pickNm+" as the platform to run it yourself."; }
+    return "Let me stick to what is on the card: the pick is "+pickNm+".";
+  }catch(e){ return "Let me stick to what is on the card. Ask me about the pick."; }
+}
+function v2GuardChatAnswer(text){
+  try{
+    var t=String(text||"");
+    if(!t.trim())return { ok:false, text:v2SafeFallback() };
+    var c=v2Composition(); if(!c||!c.pick)return { ok:true, text:t };
+    var f=v2PickFacts(c.pick);
+    // 1. internal jargon a seller must never see.
+    if(/\b(value gate|threshold|the gate\b|gate (passed|closed|outcome)|gated|composition|landed rung|\brung\b|evidence basis|leadonvalue|segment match|secondary card)\b/i.test(t))return { ok:false, text:v2SafeFallback() };
+    // 2. hedged numbers ("around 17%", "~18").
+    if(/\b(around|about|roughly|approximately)\s+~?\d|~\s*\d/i.test(t))return { ok:false, text:v2SafeFallback() };
+    // 3. re-derived percentages: any N% that is not one of the card's own numbers.
+    var allowed={};
+    if(f){ if(f.pricePremium)allowed[f.pricePremium.delta]=1; if(f.weekday&&f.weekday.pct!=null)allowed[f.weekday.pct]=1; if(f.reserve&&f.reserve.pct!=null)allowed[f.reserve.pct]=1; }
+    var pcts=t.match(/\b(\d{1,3})\s*%/g)||[];
+    for(var i=0;i<pcts.length;i++){ var n=Number(String(pcts[i]).replace(/[^\d]/g,"")); if(!allowed[n])return { ok:false, text:v2SafeFallback() }; }
+    // 4. an unshown tracked auction platform named as a place to sell/list.
+    var pickNm=f?f.platform:platformDisplayName(c.pick.name||c.pick.platformSlug);
+    var shown=[pickNm]; if(c.secondaryRendered&&c.alt)shown.push(platformDisplayName(c.alt.name||c.alt.platformSlug));
+    for(var j=0;j<V2_TRACKED_PLATFORMS.length;j++){ var p=V2_TRACKED_PLATFORMS[j];
+      if(shown.indexOf(p)>=0)continue;
+      var pRe=p.replace(/[.*+?^${}()|[\]\\]/g,"\\$&").replace(/&/g,"&(?:amp;)?");
+      if(new RegExp("\\b(sell|list|go with|use|recommend|pick|choose|start (?:it |the listing )?(?:on|with)|better on)\\b[^.]{0,40}"+pRe,"i").test(t))return { ok:false, text:v2SafeFallback() };
+    }
+    // 5. wrong lead: PS leads the page but the answer says the recommendation is
+    // just the platform / a PowerSeller is only secondary or not recommended.
+    if(c.psLead&&/\b(not a powerseller|no powerseller|just (?:the )?platform|only a secondary|isn'?t a powerseller|platform is (?:the|my) recommendation|recommend (?:the )?platform)\b/i.test(t))return { ok:false, text:v2SafeFallback() };
+    return { ok:true, text:t };
+  }catch(e){ return { ok:true, text:String(text||"") }; }
 }
 
 // ---- FULL PAGE COMPOSER ----

@@ -66,6 +66,7 @@ async function handleSellStep(q){
     const composeIntent=v2FollowupIntent(q);
     if(composeIntent==="tradeoffs"){const t=v2ComposeTradeoffs();if(t){addMsg("sam",t);return true;}}
     else if(composeIntent==="runlisting"){const r=v2ComposeRunListing();if(r){addMsg("sam",r);return true;}}
+    else if(composeIntent==="recommend"){const rc=v2ComposeRecommend();if(rc){addMsg("sam",rc);return true;}}
   }
 
   // Pipeline stage 2 for menu/confirm states without their own spec.
@@ -232,11 +233,17 @@ async function handleSellStep(q){
 
   // ── STEP 11: COUNTRY (first location step) ───────────────────
   if(step===11){
-    // Off-script questions route to chat; any other input maps to a country
-    // (US / UK / Canada / international) via detectCountry.
-    if(isQuestionInput(q)&&!/united states|united kingdom|canada|elsewhere|^us\b|^uk\b|america|britain|england|scotland|wales/i.test(lower))return false;
+    // Off-script questions route to chat; any other input maps to a country.
+    if(isQuestionInput(q)&&!/united states|united kingdom|canada|australia|somewhere|elsewhere|^us\b|^uk\b|america|britain|england|scotland|wales/i.test(lower))return false;
+    // "Somewhere else" opens a free-text country prompt and stays on step 11.
+    if(/^\s*(somewhere else|some ?where else|other|elsewhere)\s*$/i.test(lower)){
+      addMsg("sam","Which country is the car in? Type the country name.");
+      return true;
+    }
     const c=detectCountry(q);
     sellState.region=c.region;
+    sellState.country=c.label;
+    sellState.countryRoutable=c.routable!==false;
     sellState.state=null;
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=18;

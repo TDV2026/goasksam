@@ -678,6 +678,18 @@ check("country: UK answer sets non-US region and asks for a city/region (no stat
 await handleSellStep("London");
 check("country->city: free-text city stored, advances to price", sellState.state === "London" && sellState.step === 6, `state=${sellState.state} step=${sellState.step}`);
 
+// Country phase 1: "Somewhere else" opens a free-text country prompt (no region
+// stored yet), then a typed country resolves and advances.
+resetToStep1();
+sellState.carName = "2016 Mazda MX-5"; sellState.resolvedVehicle = { make: "Mazda", model: "MX-5", year: 2016 };
+sellState.vehicleIdentityValidated = true; sellState.vehicleDetailSkipped = true;
+sellState.region = null; sellState.state = null; sellState.step = 11;
+await handleSellStep("Somewhere else");
+check("country: 'Somewhere else' opens a free-text country prompt, no region yet", sellState.region === null && sellState.step === 11 && /type the country name/i.test(lastSam() || ""), `region=${sellState.region} step=${sellState.step} last="${lastSam()}"`);
+await handleSellStep("Canada");
+check("country: typed 'Canada' resolves, marked NOT routable, asks city", sellState.region === "Canada" && sellState.countryRoutable === false && sellState.step === 18 && /which city or region/i.test(lastSam() || ""), `region=${sellState.region} routable=${sellState.countryRoutable} step=${sellState.step}`);
+check("country: Canada is international AND not routable (honest line, never US)", isInternationalSellerRegion() === true && isRoutableInternationalRegion() === false, `intl=${isInternationalSellerRegion()} routable=${isRoutableInternationalRegion()}`);
+
 // 5a2. FIX 3 (updated flow): PowerSeller preference is the LAST wizard step,
 // asked right after price. There is NO confirm step: answering the preference
 // runs the analysis directly (the parsed summary shows as a strip on the
@@ -803,7 +815,9 @@ for (const [stepStr, cfg] of Object.entries(PIPELINE_STEPS)) {
 // 7b. EVERY step accepts EVERY one of its own chip labels as typed text.
 for (const [stepStr, cfg] of Object.entries(PIPELINE_STEPS)) {
   const step = Number(stepStr);
-  const chips = (globalThis.__t.SELL_STEP_QUESTIONS[step]?.chips || []).filter(c => !/^(not sure|skip|other)$/i.test(c));
+  // "Somewhere else" (step 11) is a prompt chip: it opens a free-text country
+  // input rather than storing a region, so it is excluded like skip/other.
+  const chips = (globalThis.__t.SELL_STEP_QUESTIONS[step]?.chips || []).filter(c => !/^(not sure|skip|other|somewhere else)$/i.test(c));
   for (const chip of chips) {
     resetToStep1();
     sellState.step = step; sellState.carName = "2018 Porsche 911"; if (step === 18) sellState.region = "US";

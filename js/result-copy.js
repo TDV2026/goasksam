@@ -165,7 +165,16 @@ function shouldSuppressRouteForSellerRegion(route){
 
 function isInternationalSellerRegion(){
   const region=String(sellState.region||"").toLowerCase();
-  return /\b(uk|europe|australia|middle east)\b/.test(region);
+  return /\b(uk|united kingdom|england|scotland|wales|europe|european|australia|new zealand|middle east|canada|canadian)\b/.test(region)
+    || (!!sellState.country && sellState.countryRoutable===false);
+}
+// Which international regions we can genuinely route TODAY (phase 1): the ones
+// with a real regional card (UK/Europe -> Car & Classic / Collecting Cars,
+// Australia + Middle East -> Collecting Cars). Canada and any free-text country
+// are NOT routable yet and get the honest line, never a silent US default.
+function isRoutableInternationalRegion(){
+  const region=String(sellState.region||"").toLowerCase();
+  return /\b(uk|united kingdom|england|scotland|wales|europe|european|australia|new zealand|middle east)\b/.test(region);
 }
 
 function routeWorthShowing(route,index,primary){

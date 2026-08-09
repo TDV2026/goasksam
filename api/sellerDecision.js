@@ -1785,13 +1785,35 @@ function partnerLocalState(partner, criteria) {
     .some(r => r === sellerState || r.includes(sellerState) || sellerState.includes(r));
 }
 
+// PowerSeller value gate with minimum tolerance (product rule, Aug 2026).
+// Sellers understate value, so the eligibility floor is the minimum minus a
+// tolerance (default 20% -> floor = min * 0.8). The value weighed is the HIGHER
+// of the seller's stated asking price and the comps estimate. Pure + exported
+// for unit testing. The $40k lead dial (powerseller_value_lead_usd) is separate.
+export function powerSellerValueMet(estimatedValue, askingPrice, minValueUsd, tolerancePct) {
+  const tol = Math.max(0, Math.min(90, Number(tolerancePct) || 0));
+  const floor = Number(minValueUsd) * (1 - tol / 100);
+  const gateValue = Math.max(
+    Number.isFinite(estimatedValue) ? estimatedValue : 0,
+    Number.isFinite(askingPrice) ? askingPrice : 0
+  );
+  return gateValue > 0 && gateValue >= floor;
+}
+
 async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl, supabaseKey) {
   const partners = await loadActivePartners(supabaseUrl, supabaseKey);
   const priorities = inferSellerPriorities(vehicle, criteria);
   // Value must come from actual comps at a met rung, never thin or policy data.
   const landedMet = !!analysis.ladder?.landed?.thresholdMet;
   const estimatedValue = landedMet && Number.isFinite(analysis.estimatedValue) ? analysis.estimatedValue : null;
-  const valueMet = Number.isFinite(estimatedValue) && estimatedValue >= POWERSELLER_MIN_VALUE_USD;
+  // Minimum tolerance (product rule, Aug 2026): sellers understate value, so the
+  // eligibility floor is the minimum minus a tolerance (dial ps_min_tolerance_pct,
+  // default 20 -> floor = min * 0.8). The value weighed is the HIGHER of the
+  // seller's stated asking price and the comps estimate. The $40k lead dial
+  // (powerseller_value_lead_usd) is separate and unchanged.
+  const minTolerancePct = await appConfigInt("ps_min_tolerance_pct", 20, supabaseUrl, supabaseKey);
+  const askingForGate = parseSellerTargetPrice(criteria.targetPrice);
+  const valueMet = powerSellerValueMet(estimatedValue, askingForGate, POWERSELLER_MIN_VALUE_USD, minTolerancePct);
 
   // Rank every partner, then pick, so a local specialist beats a broad nationwide
   // generalist for the same car. Order: local state > segment fit > tighter

@@ -12,7 +12,7 @@ globalThis.localStorage={getItem:()=>null,setItem:noop,removeItem:noop};
 globalThis.fetch=async()=>({ok:true,json:async()=>({})});
 const html=fs.readFileSync("index.html","utf8");
 const files=[...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
-(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.renderResultV2Page=renderResultV2Page;globalThis.renderSecondaryPlatformV2=renderSecondaryPlatformV2;globalThis.v2Mode=v2Mode;globalThis.renderPickCardV2=renderPickCardV2;globalThis.v2Composition=v2Composition;globalThis.v2PickFacts=v2PickFacts;globalThis.v2FollowupIntent=v2FollowupIntent;globalThis.v2ComposeTradeoffs=v2ComposeTradeoffs;globalThis.v2ComposeRunListing=v2ComposeRunListing;");
+(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.renderResultV2Page=renderResultV2Page;globalThis.renderSecondaryPlatformV2=renderSecondaryPlatformV2;globalThis.v2Mode=v2Mode;globalThis.renderPickCardV2=renderPickCardV2;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.v2Composition=v2Composition;globalThis.v2PickFacts=v2PickFacts;globalThis.v2FollowupIntent=v2FollowupIntent;globalThis.v2ComposeTradeoffs=v2ComposeTradeoffs;globalThis.v2ComposeRunListing=v2ComposeRunListing;globalThis.v2ComposeRecommend=v2ComposeRecommend;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2SafeFallback=v2SafeFallback;globalThis.v2RungLabel=v2RungLabel;");
 
 let fails=0;
 const check=(name,ok,detail="")=>{console.log(`${ok?"PASS":"FAIL"}  ${name}${ok?"":"  ->  "+String(detail).slice(0,200)}`);if(!ok)fails++;};
@@ -27,6 +27,16 @@ const V2_RULES=[
 ];
 const lintText=t=>V2_RULES.filter(r=>r.re.test(String(t||""))).map(r=>r.id);
 const cleanC=t=>{const v=lintText(t);return {ok:v.length===0,detail:v.join(" ; ")+" :: "+t};};
+// PowerSeller copy: definitive price claims and fee talk are banned everywhere;
+// qualitative impact claims ("can have a significant impact") are allowed.
+const PS_RULES=[
+  {id:"fee-talk",re:/\bfee\b|\bcommission\b|\byou pay\b|\bpaid\b/i},
+  {id:"price-claim",re:/\b(more money|gets? you (more|a better)|worth more|higher price|nets? you|earns? (it|its)|pays for itself|maximi[sz]e|top dollar)\b/i},
+  {id:"dollar",re:/\$\s?\d/}
+];
+const psClean=t=>{const v=[...V2_RULES,...PS_RULES].filter(r=>r.re.test(String(t||""))).map(r=>r.id);return {ok:v.length===0,detail:v.join(" ; ")+" :: "+t};};
+// Internal jargon a seller must never see.
+const JARGON=/\b(value gate|threshold|the gate\b|gate (passed|closed|outcome)|gated|composition|landed rung|\brung\b|evidence basis|leadonvalue|segment match|secondary card)\b/i;
 
 // ---- shared fixtures ----
 const bmw={year:2008,make:"BMW",model:"M3"};
@@ -119,8 +129,9 @@ check("intent: 'compare the tradeoffs' -> tradeoffs", v2FollowupIntent("compare 
 const tradeoffs=v2ComposeTradeoffs()||"";
 check("M3 tradeoffs: Ingo-vs-DIY-on-BaT (names Ingo + Bring a Trailer)", /Ingo/.test(tradeoffs)&&/Bring a Trailer/.test(tradeoffs), tradeoffs.slice(0,160));
 check("M3 tradeoffs: NEVER names Cars & Bids (the unrendered alt)", !/Cars ?&? ?Bids|carsandbids/i.test(tradeoffs), tradeoffs);
-check("M3 tradeoffs: covers effort/fee/control framing", /hands on/.test(tradeoffs)&&/fee/.test(tradeoffs)&&/control/.test(tradeoffs), tradeoffs.slice(0,200));
-check("M3 tradeoffs: lint-clean (no hedge/dash/dollar)", cleanC(tradeoffs).ok, cleanC(tradeoffs).detail);
+check("M3 tradeoffs: effort + control + presentation framing", /hands on/.test(tradeoffs)&&/control/.test(tradeoffs)&&/present/.test(tradeoffs), tradeoffs.slice(0,200));
+check("M3 tradeoffs: NO fee talk, NO price claims (re-voice)", psClean(tradeoffs).ok, psClean(tradeoffs).detail);
+check("M3 tradeoffs: closes on the exact locked line", /Well presented listings, with great photography, videos, descriptions, and importantly great answers to all questions can have a significant impact on a listing\. That is why I highly recommend the right PowerSeller for the right listing\.$/.test(tradeoffs), tradeoffs.slice(-160));
 
 // "how I'd run the listing" -> quotes Monday at the card's 15%, scope M3s, lint-clean.
 check("intent: 'how would you run the listing' -> runlisting", v2FollowupIntent("how would you run the listing")==="runlisting");
@@ -129,12 +140,57 @@ check("M3 run-listing: lists on Bring a Trailer", /I would list your .*Bring a T
 check("M3 run-listing: quotes Monday at the card's 15% (not 17), scope M3s", /M3s have closed strongest on Mondays, 15% above other days/.test(runListing)&&!/17%/.test(runListing), runListing);
 check("M3 run-listing: lint-clean (no hedge/dash/dollar)", cleanC(runListing).ok, cleanC(runListing).detail);
 
+// "what do you recommend" (3rd composer) -> PS-led = the PowerSeller.
+check("intent: 'what do you recommend' -> recommend", v2FollowupIntent("what do you recommend")==="recommend");
+check("intent: 'what would you do' -> recommend", v2FollowupIntent("what would you do")==="recommend");
+const recommend=v2ComposeRecommend()||"";
+check("M3 recommend (PS-led): answer IS Ingo, with BaT as where he runs it", /hand it to Ingo/.test(recommend)&&/Bring a Trailer/.test(recommend), recommend.slice(0,160));
+check("M3 recommend: no fee talk / price claims / jargon", psClean(recommend).ok&&!JARGON.test(recommend), psClean(recommend).detail);
+
+// Scope-label bug (2a): at an EXACT-year rung the prose reads "2018 M3s" while the
+// tile used to read raw "M3". Both must now read the landed rung. Set an exact rung.
+{
+  const prevDecision=globalThis.sellState.sellDecision;
+  const batExact={key:"bringatrailer",name:"Bring a Trailer",platformSlug:"bringatrailer",marketEvidence:{evidenceSales:9,windowDays:180,pricePremium:{type:"premium",gateType:"symmetric",percent:34,windowDays:180}}};
+  Object.assign(globalThis.sellState,{resolvedVehicle:{year:2018,make:"BMW",model:"M3"},sellDecision:{resultId:"m3e",vehicle:{year:2018,make:"BMW",model:"M3"},evidence:{windowDays:180,ladder:{landed:{key:"exact_year_model",thresholdMet:true}}}},sellOptions:[batExact]});
+  const exactScope=v2PickFacts(batExact).scope;
+  const exactCard=renderPickCardV2(batExact)||"";
+  check("scope label (2a): prose scope reads '2018 M3s' at the exact rung", exactScope==="2018 M3s", exactScope);
+  check("scope label (2a): v2RungLabel exact rung = '2018 M3' (not raw 'M3')", v2RungLabel(globalThis.sellState.resolvedVehicle)==="2018 M3", v2RungLabel(globalThis.sellState.resolvedVehicle));
+  check("scope label (2a): tile label now matches the rung ('2018 M3', not bare 'M3')", /pcard-mp">2018 M3<\/div><div class="pcard-ms">Analysis/.test(exactCard), (exactCard.match(/pcard-mp">[^<]*<\/div><div class="pcard-ms">Analysis/)||[""])[0].slice(0,80));
+  // restore the model-level M3 scenario for the remaining checks
+  Object.assign(globalThis.sellState,{resolvedVehicle:{year:2005,make:"BMW",model:"M3"},sellDecision:prevDecision,sellOptions:[{key:"specialist",name:"Ingo Schmoldt"},bat,cb]});
+}
+
+// OUTPUT GUARD (4d): contradictory LLM answers are replaced by a safe fallback.
+Object.assign(globalThis.sellState,{sellerPreference:"unsure", partnerReferral:{partner:ingo, eligible:false, secondary:true, matchType:"specialty", leadOnValue:true}, sellOptions:[{key:"specialist",name:"Ingo Schmoldt"},bat,cb]});
+check("guard: clean card-true answer passes", v2GuardChatAnswer("Bring a Trailer is the platform, and 2005 M3s closed 15% higher on Mondays.").ok===true);
+check("guard: internal jargon -> replaced", v2GuardChatAnswer("The value gate was below threshold so it is only a secondary.").ok===false);
+check("guard: hedged number -> replaced", v2GuardChatAnswer("Mondays close around 17% higher.").ok===false);
+check("guard: re-derived % (17 not the card's 15) -> replaced", v2GuardChatAnswer("2005 M3s closed 17% higher on Mondays.").ok===false);
+check("guard: unshown platform as a place to sell -> replaced", v2GuardChatAnswer("Honestly I would sell it on Cars & Bids instead.").ok===false);
+check("guard: wrong lead (PS leads but says not a powerseller) -> replaced", v2GuardChatAnswer("This is not a powerseller situation, just list it yourself.").ok===false);
+const gfb=v2GuardChatAnswer("The value gate failed.");
+check("guard: PS-led fallback names Ingo + BaT, no jargon", /Ingo/.test(gfb.text)&&/Bring a Trailer/.test(gfb.text)&&!JARGON.test(gfb.text), gfb.text);
+
+// Ingo trust enrichment (item 6): the two attributed claims render as trust lines.
+const ingoTrust=Object.assign({},ingo,{specialties:Object.assign({},ingo.specialties,{profile_stats:[
+  {text:"440+ enthusiast auctions represented",source:"partner_provided"},
+  {text:"Top 10% of all Bring a Trailer sellers",source:"partner_provided"},
+  {text:"Bring a Trailer community member since March 2011",source:"partner_provided"}]})});
+Object.assign(globalThis.sellState,{partnerReferral:{partner:ingoTrust, secondary:true, matchType:"specialty", leadOnValue:true}});
+const psCard=renderPowerSellerCardV2({lead:true,valueLed:true})||"";
+check("Ingo trust: card shows 'Top 10% of all Bring a Trailer sellers'", /Top 10% of all Bring a Trailer sellers/.test(psCard), "missing");
+check("Ingo trust: card shows 'community member since March 2011'", /community member since March 2011/.test(psCard), "missing");
+check("Ingo trust: 440+ auctions still the trophy tile (not duplicated as trust)", /pcard-tnum">440\+/.test(psCard), "missing trophy");
+
 // Platform-led Mode B control: no PS -> tradeoffs IS platform vs platform.
 Object.assign(globalThis.sellState,{sellerPreference:"diy", partnerReferral:{}, sellOptions:[bat,cb]});
 const compPlat=v2Composition();
 const tradeoffsPlat=v2ComposeTradeoffs()||"";
 check("Mode B platform-led: secondary renders, tradeoffs compares the two platforms", compPlat.secondaryRendered===true&&/Bring a Trailer/.test(tradeoffsPlat)&&/Cars &(amp;)? Bids/.test(tradeoffsPlat), tradeoffsPlat.slice(0,160));
 check("Mode B platform-led: tradeoffs lint-clean", cleanC(tradeoffsPlat).ok, cleanC(tradeoffsPlat).detail);
+check("Mode B platform-led recommend: answer IS the platform", /Bring a Trailer is where I would sell it/.test(v2ComposeRecommend()||""), v2ComposeRecommend());
 
 console.log(fails?`\n${fails} FAILURE(S)`:"\nVERIFY-BUGS ALL PASS");
 process.exit(fails?1:0);
