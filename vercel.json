@@ -8,6 +8,7 @@
     }
   ],
   "rewrites": [
-    { "source": "/out", "destination": "/api/out" }
+    { "source": "/out", "destination": "/api/out" },
+    { "source": "/styles.20260809c.css", "destination": "/styles.css" }
   ]
 }
