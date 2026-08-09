@@ -233,6 +233,7 @@ function renderPickCardV2(option){
           + '<div class="pcard-mrow">'+v2Svg("cal")+'<div><div class="pcard-mp">'+esc(winLbl)+'</div><div class="pcard-ms">Analysis window</div></div></div>'
         + '</div>'
         + '<div class="pcard-rule"></div>'
+        + '<div class="pcard-tl pcard-trackl">Track Record</div>'
         + '<p class="pcard-why">'+esc(whyRail)+'</p>'
         + '<div class="pcard-ev"><div class="pcard-rule"></div>'+tilesHTML+'</div>'
       + '</div>'

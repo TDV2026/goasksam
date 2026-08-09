@@ -774,8 +774,8 @@ body.home #input-box:focus-within{box-shadow:0 2px 10px rgba(22,20,15,.05);borde
 .pcard-ps .pcard-cta{margin-top:40px;}
 .pcard-ps .pcard-reassure{margin-top:26px;}
 .pcard-lead{font-size:clamp(16px,3.6cqi,23px);line-height:1.58;color:#3B372F;max-width:54ch;margin:34px 0 0;text-wrap:balance;}
-.pcard-whyl-main{margin-top:34px;}
-.pcard-whyl-main+.pcard-lead{margin-top:12px;}
+.pcard-whyl-main{margin-top:30px;}
+.pcard-whyl-main+.pcard-lead{margin-top:14px;}
 .pcard-cta{margin-top:46px;width:100%;border:0;cursor:pointer;background:var(--pc-cta);color:#F4F6F1;font-family:var(--font-sans);font-weight:600;font-size:16.5px;letter-spacing:.035em;text-transform:uppercase;min-height:68px;border-radius:15px;position:relative;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px 60px;box-shadow:0 14px 30px -16px rgba(30,90,44,.6);transition:filter .16s ease,transform .12s ease;}
 .pcard-cta .cta-arrow{position:absolute;right:30px;top:50%;transform:translateY(-50%);width:24px;height:24px;}
 .pcard-cta:hover{filter:brightness(1.07);}.pcard-cta:active{transform:translateY(1px);}.pcard-cta:focus-visible{outline:2px solid var(--pc-ink);outline-offset:3px;}
