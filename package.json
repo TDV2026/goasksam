@@ -10,8 +10,12 @@
     "backfill:partners": "node scripts/backfillPartnerHistory.js",
     "lint:cards": "node scripts/cardV2Lint.mjs && node scripts/verifyBugs.mjs && node scripts/verifyValueGate.mjs",
     "smoke:prod": "node scripts/smokeProd.js && node scripts/smokeWizard.js",
+    "verify:real": "node scripts/driveReal.mjs",
     "ingest": "node scripts/ingest.js",
     "warm": "node scripts/warm.js",
     "deploy": "git push origin HEAD && vercel --prod --yes"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.5.0"
   }
 }
