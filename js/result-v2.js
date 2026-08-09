@@ -385,12 +385,19 @@ function renderPowerSellerCardV2(opts){
     if(trust.length)tstack+='<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("star")+'</span><div class="pcard-tt"><div class="lab">Track record</div>'+trust.map(function(x){return '<div class="val">'+esc(x)+'</div>';}).join("")+'</div></div>';
     return '<div class="pcard pcard-ps" onclick="choosePowerSeller(\''+esc(p.slug||"partner")+'\')">'
       + '<div class="pcard-left">'
-        + '<span class="pcard-badge">+ Sam\'s Recommendation</span>'
-        + '<div class="pcard-script">If this were my car,</div>'
-        + '<h1 class="pcard-name pcard-name-ps">I\'d ask <span class="pcard-hl">'+esc(display)+'</span> to represent my '+esc(carLabel)+'.</h1>'
-        + '<p class="pcard-lead">'+esc(psvPara(matchType,make,first,spec,!!trophy))+'</p>'
-        + '<button class="pcard-cta" onclick="event.stopPropagation();choosePowerSeller(\''+esc(p.slug||"partner")+'\')">Request an Introduction to '+esc(display)+v2Svg("arrow","cta-arrow")+'</button>'
-        + '<div class="pcard-reassure">'+psvSvg("shield")+'<span>'+esc(first)+' will contact you directly if you decide to proceed. There is no obligation, and you\'re always in control.</span></div>'
+        // Distributed rhythm: hero group anchored top, action group anchored
+        // bottom, so the card height is driven by the taller (right-rail) column
+        // and the CTA + reassurance always sit at the base regardless of tile count.
+        + '<div class="pcard-hero">'
+          + '<span class="pcard-badge">+ Sam\'s Recommendation</span>'
+          + '<div class="pcard-script">If this were my car,</div>'
+          + '<h1 class="pcard-name pcard-name-ps">I\'d ask <span class="pcard-hl">'+esc(display)+'</span> to represent my '+esc(carLabel)+'.</h1>'
+          + '<p class="pcard-lead">'+esc(psvPara(matchType,make,first,spec,!!trophy))+'</p>'
+        + '</div>'
+        + '<div class="pcard-foot">'
+          + '<button class="pcard-cta" onclick="event.stopPropagation();choosePowerSeller(\''+esc(p.slug||"partner")+'\')">Request an Introduction to '+esc(display)+v2Svg("arrow","cta-arrow")+'</button>'
+          + '<div class="pcard-reassure">'+psvSvg("shield")+'<span>'+esc(first)+' will contact you directly if you decide to proceed. There is no obligation, and you\'re always in control.</span></div>'
+        + '</div>'
       + '</div>'
       + '<div class="pcard-right pcard-right-ps">'
         + (psvShowKnownAs(p)?'<div class="pcard-known">Known online as <b>'+esc(handle)+'</b></div>':'')
@@ -559,6 +566,38 @@ function v2SafeFallback(){
     return "Let me stick to what is on the card: the pick is "+pickNm+".";
   }catch(e){ return "Let me stick to what is on the card. Ask me about the pick."; }
 }
+// The set of actions that ACTUALLY exist, derived from the composition. This is
+// the whitelist: continue with {platform} (list it yourself), request an
+// introduction to {name} (he contacts you), edit your answers, ask another
+// question. Nothing submits, forwards, blasts, queues or auto-lists anything.
+function v2ActionFallback(){
+  try{
+    var c=v2Composition(); var f=c&&c.pick?v2PickFacts(c.pick):null;
+    var plat=f?f.platform:(c&&c.pick?platformDisplayName(c.pick.name||c.pick.platformSlug):"the platform");
+    if(c&&c.psLead&&c.referral.partner){ var first=(typeof psvFirst==="function")?psvFirst(c.referral.partner):(c.referral.partner.displayName||c.referral.partner.name);
+      return "Here is what actually happens. You can request an introduction to "+first+" and he contacts you directly, or continue with "+plat+" to list it yourself. Nothing is sent anywhere until you choose, and you can edit your answers or ask me anything first."; }
+    return "Here is what actually happens. You continue with "+plat+" to start your listing yourself, and nothing is sent anywhere until you choose. You can edit your answers or ask me anything first.";
+  }catch(e){ return "Nothing is sent anywhere until you choose. You can continue with the pick, edit your answers, or ask me anything."; }
+}
+// Allowed-actions vocabulary guard: flags any answer describing an action or
+// data-flow OUTSIDE the real set. The real actions never submit, forward, share,
+// blast, queue or auto-list the seller's details; the only outreach is the
+// PowerSeller contacting the seller AFTER an introduction is requested. The
+// vocabulary is the whitelist, so these are the flows that fall outside it.
+function v2ActionViolation(t){
+  var s=String(t||"");
+  return [
+    /\b(hit|click|press|tap)\s+(the\s+)?submit\b/i,
+    /\bsubmit\s+(your|the)\s+(details|info|information|car|listing|form)\b/i,
+    /\byour\s+(details|info|information|contact details?)\b[^.?!]*\b(go|are|will be|get|are being|end up)\b[^.?!]*\b(sent|forwarded|shared|passed|to)\b/i,
+    /\bwe('| wi)?ll\s+(send|forward|share|pass|submit|list|post|blast|queue)\b/i,
+    /\b(forward|send|pass|share|hand over)\s+your\s+(details|info|information|contact)\b/i,
+    /\b(blast|auto-?list|list it for you|post it for you|we (list|post) it|list your car for you)\b/i,
+    /\b(sent|forwarded|shared)\s+to\s+(multiple|several|other|all|both)\b/i,
+    /\bthe platform\s+(will\s+)?(contacts?|reach(es)?\s+out|gets?\s+in touch|be in touch)\b/i,
+    /\byour details go to\b/i
+  ].some(function(re){ return re.test(s); });
+}
 function v2GuardChatAnswer(text){
   try{
     var t=String(text||"");
@@ -585,6 +624,9 @@ function v2GuardChatAnswer(text){
     // 5. wrong lead: PS leads the page but the answer says the recommendation is
     // just the platform / a PowerSeller is only secondary or not recommended.
     if(c.psLead&&/\b(not a powerseller|no powerseller|just (?:the )?platform|only a secondary|isn'?t a powerseller|platform is (?:the|my) recommendation|recommend (?:the )?platform)\b/i.test(t))return { ok:false, text:v2SafeFallback() };
+    // 6. an action or data-flow outside the real vocabulary (submit, forward,
+    // blast, details-go-to, the platform contacting you) -> the actions fallback.
+    if(v2ActionViolation(t))return { ok:false, text:v2ActionFallback() };
     return { ok:true, text:t };
   }catch(e){ return { ok:true, text:String(text||"") }; }
 }

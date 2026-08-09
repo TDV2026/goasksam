@@ -7,10 +7,27 @@ function resetSellState(){
   sellState.active=false;sellState.step=0;sellState.returnToConfirm=false;sellState.vehicleDetailSkipped=false;sellState.vehicleIdentityValidated=false;sellState.pendingVehicleIdentity=null;sellState.sellOptions=[];sellState.allRouteOptions=[];sellState.powerSellerProfiles=[];sellState.noEvidenceFallback=null;
 }
 
+// Routable-country registry: the SINGLE SOURCE OF TRUTH for which countries we
+// can route today. The step-11 chips derive from this, detectCountry resolves
+// from it, and isRoutableInternationalRegion checks against it. A country is
+// listed ONLY if it routes today (US platforms, or a regional card). Not-routable
+// countries (e.g. Canada until phase 2) are absent -> no chip, and they fall to
+// the honest no-routing line. Phase 2 adds a region here and its chip appears with
+// zero other edits. `route` is documentation of where the region lands.
+const COUNTRY_REGISTRY=[
+  { chip:"United States", region:"US",          label:"the United States", route:"US auction platforms", match:/^u\.?s\.?a?\.?$|\b(united states|usa|u\.s\.a|america|american|the states)\b/ },
+  { chip:"United Kingdom", region:"UK",         label:"the United Kingdom", route:"Car & Classic (Collecting Cars at $100k+)", match:/^u\.?k\.?$|^gb$|\b(united kingdom|britain|great britain|england|scotland|wales|northern ireland)\b/ },
+  { chip:"Europe", region:"Europe",             label:"Europe", route:"Car & Classic (Collecting Cars at $100k+)", match:/\b(germany|german|france|french|italy|italian|spain|spanish|netherlands|dutch|belgium|switzerland|swiss|sweden|austria|portugal|ireland|denmark|norway|finland|poland|europe|european|eu)\b/ },
+  { chip:"Middle East", region:"Middle East",   label:"the Middle East", route:"Collecting Cars", match:/\b(uae|u\.a\.e|dubai|abu dhabi|saudi|qatar|kuwait|bahrain|oman|middle east)\b/ },
+  { chip:"Australia", region:"Australia",       label:"Australia", route:"Collecting Cars", match:/^au$|^nz$|\b(australia|australian|aussie|new zealand)\b/ }
+];
+function countryChips(){ return COUNTRY_REGISTRY.map(c=>c.chip).concat(["Somewhere else"]); }
+function registryRoutableRegion(region){ const r=String(region||"").toLowerCase(); return COUNTRY_REGISTRY.some(c=>c.region!=="US"&&c.region.toLowerCase()===r); }
+
 const SELL_STEP_QUESTIONS={
   1:{ask:"What are you selling?",chips:[]},
   17:{ask:"Which model or trim is it? Pick one below, or just type the exact trim (like Alpina B3, M Sport or GTS) if it's not shown.",chips:["911","944","928","356","Boxster","Cayman","Not sure"]},
-  11:{ask:"Which country is the car in?",chips:["United States","United Kingdom","Canada","Australia","Somewhere else"]},
+  11:{ask:"Which country is the car in?",chips:countryChips()},
   18:{ask:"Which state is it in?",chips:["California","Florida","Texas","New York","New Jersey","Other"]},
   2:{ask:"Rough mileage?",chips:["Under 30k","30k to 60k","60k to 100k","Over 100k"]},
   3:{ask:"Stock or modified?",chips:["Completely stock","Minor mods","Heavily modified"]},
@@ -854,13 +871,10 @@ function resumeWizardAfterVehicle(prefix){
 // silent US default). A US state typed directly still reads as US.
 function detectCountry(q){
   const l=String(q||"").toLowerCase().trim();
-  if(typeof normalizeUSState==="function"&&normalizeUSState(q))return {region:"US",label:"United States",routable:true};
-  if(/^u\.?s\.?a?\.?$|\b(united states|usa|u\.s\.a|america|american|the states)\b/.test(l))return {region:"US",label:"United States",routable:true};
-  if(/^u\.?k\.?$|^gb$|\b(united kingdom|britain|great britain|england|scotland|wales|northern ireland)\b/.test(l))return {region:"UK",label:"the United Kingdom",routable:true};
-  if(/^au$|^nz$|\b(australia|australian|aussie|new zealand)\b/.test(l))return {region:"Australia",label:/new zealand|nz/.test(l)?"New Zealand":"Australia",routable:true};
-  if(/\b(germany|german|france|french|italy|italian|spain|spanish|netherlands|dutch|belgium|switzerland|swiss|sweden|austria|portugal|ireland|denmark|norway|finland|poland|europe|european|eu)\b/.test(l))return {region:"Europe",label:titleCaseCountry(l),routable:true};
-  if(/\b(uae|u\.a\.e|dubai|abu dhabi|saudi|qatar|kuwait|bahrain|oman|middle east)\b/.test(l))return {region:"Middle East",label:"the Middle East",routable:true};
-  if(/\b(canada|canadian)\b/.test(l))return {region:"Canada",label:"Canada",routable:false};
+  if(typeof normalizeUSState==="function"&&normalizeUSState(q))return {region:"US",label:"the United States",routable:true};
+  for(const c of COUNTRY_REGISTRY){ if(c.match.test(l))return {region:c.region,label:c.label,routable:true}; }
+  // Not in the routable registry (e.g. Canada, or any other country): resolved to
+  // a real country label for the honest no-routing line, marked not routable.
   const label=(q||"").trim().replace(/^(in|from|the)\s+/i,"");
   return {region:"international",label:label?titleCaseCountry(label):"another country",routable:false};
 }

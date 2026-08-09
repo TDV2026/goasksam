@@ -165,16 +165,18 @@ function shouldSuppressRouteForSellerRegion(route){
 
 function isInternationalSellerRegion(){
   const region=String(sellState.region||"").toLowerCase();
-  return /\b(uk|united kingdom|england|scotland|wales|europe|european|australia|new zealand|middle east|canada|canadian)\b/.test(region)
-    || (!!sellState.country && sellState.countryRoutable===false);
+  if(!region||/^(us|usa|united states)$/.test(region))return false;
+  // A routable non-US registry region, or any not-routable country (Canada, free text).
+  if(typeof registryRoutableRegion==="function"&&registryRoutableRegion(region))return true;
+  return !!sellState.country && sellState.countryRoutable===false || region==="international";
 }
-// Which international regions we can genuinely route TODAY (phase 1): the ones
-// with a real regional card (UK/Europe -> Car & Classic / Collecting Cars,
-// Australia + Middle East -> Collecting Cars). Canada and any free-text country
-// are NOT routable yet and get the honest line, never a silent US default.
+// Which international regions we can genuinely route TODAY: derived from the
+// routable-country registry (single source of truth). Not-routable countries
+// (Canada until phase 2, any free-text country) return false and get the honest
+// no-routing line, never a silent US default.
 function isRoutableInternationalRegion(){
   const region=String(sellState.region||"").toLowerCase();
-  return /\b(uk|united kingdom|england|scotland|wales|europe|european|australia|new zealand|middle east)\b/.test(region);
+  return typeof registryRoutableRegion==="function" && registryRoutableRegion(region);
 }
 
 function routeWorthShowing(route,index,primary){
@@ -1862,9 +1864,30 @@ function sellChatCardsSummary(){
   });
   return lines.length?`Cards shown to the seller with their exact bullet text:\n${lines.join("\n")}`:"";
 }
-function handleChip(text){quick(text);}
+// Chip dispatch by step-id (locked): every chip carries the wizard step it was
+// rendered for. A chip fires only when its step still matches sellState.step;
+// once the step moves on (including post-result and after an Edit reset to the
+// car step), the chip is inert and visually dimmed. This kills the whole misroute
+// class (e.g. a stale country chip landing in the car-entry handler after Edit).
+function currentChipStep(){ try{ return (typeof sellState!=="undefined"&&sellState.step!=null)?Number(sellState.step):0; }catch(e){ return 0; } }
+function handleChip(text,chipStep){
+  if(chipStep!=null&&Number(chipStep)!==currentChipStep())return; // stale chip: inert
+  quick(text);
+}
 function chipsHTML(chips){
-  return`<div class="chips">${chips.map(c=>`<button class="chip" onclick="handleChip('${c.replace(/'/g,"\\'")}')"> ${escapeHtml(c)}</button>`).join("")}</div>`;
+  const step=currentChipStep();
+  return`<div class="chips" data-chip-step="${step}">${chips.map(c=>`<button class="chip" data-chip-step="${step}" onclick="handleChip('${String(c).replace(/'/g,"\\'")}',${step})"> ${escapeHtml(c)}</button>`).join("")}</div>`;
+}
+// Dim + disable every chip whose step no longer matches the current step. Called
+// on each message render, so a completed step's chips deactivate immediately.
+function dimStaleChips(){
+  try{
+    const cur=String(currentChipStep());
+    document.querySelectorAll(".chip[data-chip-step]").forEach(function(b){
+      if(b.getAttribute("data-chip-step")!==cur)b.classList.add("chip-spent");
+      else b.classList.remove("chip-spent");
+    });
+  }catch(e){}
 }
 function homeHeroHTML(){
   // Homepage hero (Stage A): serif headline + the exempted supporting line. The

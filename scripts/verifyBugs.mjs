@@ -12,7 +12,7 @@ globalThis.localStorage={getItem:()=>null,setItem:noop,removeItem:noop};
 globalThis.fetch=async()=>({ok:true,json:async()=>({})});
 const html=fs.readFileSync("index.html","utf8");
 const files=[...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
-(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.renderResultV2Page=renderResultV2Page;globalThis.renderSecondaryPlatformV2=renderSecondaryPlatformV2;globalThis.v2Mode=v2Mode;globalThis.renderPickCardV2=renderPickCardV2;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.v2Composition=v2Composition;globalThis.v2PickFacts=v2PickFacts;globalThis.v2FollowupIntent=v2FollowupIntent;globalThis.v2ComposeTradeoffs=v2ComposeTradeoffs;globalThis.v2ComposeRunListing=v2ComposeRunListing;globalThis.v2ComposeRecommend=v2ComposeRecommend;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2SafeFallback=v2SafeFallback;globalThis.v2RungLabel=v2RungLabel;");
+(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.renderResultV2Page=renderResultV2Page;globalThis.renderSecondaryPlatformV2=renderSecondaryPlatformV2;globalThis.v2Mode=v2Mode;globalThis.renderPickCardV2=renderPickCardV2;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.v2Composition=v2Composition;globalThis.v2PickFacts=v2PickFacts;globalThis.v2FollowupIntent=v2FollowupIntent;globalThis.v2ComposeTradeoffs=v2ComposeTradeoffs;globalThis.v2ComposeRunListing=v2ComposeRunListing;globalThis.v2ComposeRecommend=v2ComposeRecommend;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2SafeFallback=v2SafeFallback;globalThis.v2RungLabel=v2RungLabel;globalThis.v2ActionViolation=v2ActionViolation;globalThis.v2ActionFallback=v2ActionFallback;globalThis.detectCountry=detectCountry;globalThis.COUNTRY_REGISTRY=COUNTRY_REGISTRY;globalThis.countryChips=countryChips;globalThis.registryRoutableRegion=registryRoutableRegion;globalThis.chipsHTML=chipsHTML;globalThis.currentChipStep=currentChipStep;globalThis.SELL_STEP_QUESTIONS=SELL_STEP_QUESTIONS;");
 
 let fails=0;
 const check=(name,ok,detail="")=>{console.log(`${ok?"PASS":"FAIL"}  ${name}${ok?"":"  ->  "+String(detail).slice(0,200)}`);if(!ok)fails++;};
@@ -191,6 +191,37 @@ const tradeoffsPlat=v2ComposeTradeoffs()||"";
 check("Mode B platform-led: secondary renders, tradeoffs compares the two platforms", compPlat.secondaryRendered===true&&/Bring a Trailer/.test(tradeoffsPlat)&&/Cars &(amp;)? Bids/.test(tradeoffsPlat), tradeoffsPlat.slice(0,160));
 check("Mode B platform-led: tradeoffs lint-clean", cleanC(tradeoffsPlat).ok, cleanC(tradeoffsPlat).detail);
 check("Mode B platform-led recommend: answer IS the platform", /Bring a Trailer is where I would sell it/.test(v2ComposeRecommend()||""), v2ComposeRecommend());
+
+// ============ #2 COUNTRY REGISTRY (single source of truth) ============
+check("registry: chips = registry labels + 'Somewhere else' last", JSON.stringify(countryChips())===JSON.stringify(COUNTRY_REGISTRY.map(c=>c.chip).concat(["Somewhere else"]))&&countryChips().at(-1)==="Somewhere else", JSON.stringify(countryChips()));
+check("registry: step-11 chips render from the registry", JSON.stringify(SELL_STEP_QUESTIONS[11].chips)===JSON.stringify(countryChips()), JSON.stringify(SELL_STEP_QUESTIONS[11].chips));
+check("registry: Canada is NOT a chip (not routable, drops until curated)", !countryChips().some(c=>/canada/i.test(c)), JSON.stringify(countryChips()));
+check("registry: Europe + Middle East ARE chips (routable today)", countryChips().includes("Europe")&&countryChips().includes("Middle East"));
+check("registry: detectCountry('Germany') -> Europe, routable", detectCountry("Germany").region==="Europe"&&detectCountry("Germany").routable===true);
+check("registry: detectCountry('Dubai') -> Middle East, routable", detectCountry("Dubai").region==="Middle East"&&detectCountry("Dubai").routable===true);
+check("registry: detectCountry('Canada') -> not routable (honest line)", detectCountry("Canada").routable===false&&/canada/i.test(detectCountry("Canada").label));
+check("registry: detectCountry('Brazil') -> not routable", detectCountry("Brazil").routable===false);
+check("registry: registryRoutableRegion europe=true, middle east=true, canada=false", registryRoutableRegion("europe")===true&&registryRoutableRegion("middle east")===true&&registryRoutableRegion("canada")===false&&registryRoutableRegion("us")===false);
+
+// ============ #3 CHIP DISPATCH BY STEP-ID ============
+Object.assign(globalThis.sellState,{step:11});
+const chipHtml=chipsHTML(["United States","Somewhere else"]);
+check("chip dispatch: chips carry the current step-id", /data-chip-step="11"/.test(chipHtml)&&/handleChip\('United States',11\)/.test(chipHtml), chipHtml.slice(0,120));
+check("chip dispatch: currentChipStep reads sellState.step", currentChipStep()===11);
+Object.assign(globalThis.sellState,{step:1});
+check("chip dispatch: after step moves (11->1), a step-11 chip no longer matches", currentChipStep()===1&&Number(11)!==currentChipStep());
+
+// ============ #4 GUARD: ALLOWED-ACTIONS VOCABULARY ============
+Object.assign(globalThis.sellState,{sellerPreference:"unsure", region:"US", state:"California", resolvedVehicle:{year:2005,make:"BMW",model:"M3"}, partnerReferral:{partner:ingo, secondary:true, matchType:"specialty", leadOnValue:true}, sellOptions:[{key:"specialist",name:"Ingo Schmoldt"},bat,cb], sellDecision:{resultId:"m3",vehicle:{year:2005,make:"BMW",model:"M3"},evidence:{windowDays:180,ladder:{landed:{key:"any_year_model",thresholdMet:true}}}}});
+check("guard action: 'hit submit and your details go to Ingo' -> violation", v2ActionViolation("Just hit submit and your details go to Ingo.")===true);
+check("guard action: 'we'll forward your details' -> violation", v2ActionViolation("From there we'll forward your details to the PowerSeller.")===true);
+check("guard action: 'blast to multiple partners' -> violation", v2ActionViolation("We blast your car to multiple partners.")===true);
+check("guard action: 'the platform will contact you' -> violation", v2ActionViolation("The platform will reach out to you after that.")===true);
+check("guard action: allowed 'request an introduction, he contacts you' -> NOT a violation", v2ActionViolation("You can request an introduction to Ingo and he will contact you directly.")===false);
+check("guard action: allowed 'continue with Bring a Trailer to list it yourself' -> NOT a violation", v2ActionViolation("Continue with Bring a Trailer to list it yourself.")===false);
+const av=v2GuardChatAnswer("Hit submit and your details go straight to Ingo.");
+check("guard: an action violation is replaced by the actions fallback", av.ok===false&&/request an introduction to Ingo/.test(av.text)&&/list it yourself/.test(av.text), av.text.slice(0,160));
+check("guard: the actions fallback names only real actions, no submit/forward", !/submit|forward|blast|goes to|go to Ingo/i.test(v2ActionFallback())&&/request an introduction/.test(v2ActionFallback()), v2ActionFallback().slice(0,160));
 
 console.log(fails?`\n${fails} FAILURE(S)`:"\nVERIFY-BUGS ALL PASS");
 process.exit(fails?1:0);

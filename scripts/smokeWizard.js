@@ -687,7 +687,7 @@ sellState.region = null; sellState.state = null; sellState.step = 11;
 await handleSellStep("Somewhere else");
 check("country: 'Somewhere else' opens a free-text country prompt, no region yet", sellState.region === null && sellState.step === 11 && /type the country name/i.test(lastSam() || ""), `region=${sellState.region} step=${sellState.step} last="${lastSam()}"`);
 await handleSellStep("Canada");
-check("country: typed 'Canada' resolves, marked NOT routable, asks city", sellState.region === "Canada" && sellState.countryRoutable === false && sellState.step === 18 && /which city or region/i.test(lastSam() || ""), `region=${sellState.region} routable=${sellState.countryRoutable} step=${sellState.step}`);
+check("country: typed 'Canada' is NOT in the routable registry, marked not routable, asks city", /canada/i.test(sellState.country || "") && sellState.countryRoutable === false && sellState.step === 18 && /which city or region/i.test(lastSam() || ""), `country=${sellState.country} region=${sellState.region} routable=${sellState.countryRoutable} step=${sellState.step}`);
 check("country: Canada is international AND not routable (honest line, never US)", isInternationalSellerRegion() === true && isRoutableInternationalRegion() === false, `intl=${isInternationalSellerRegion()} routable=${isRoutableInternationalRegion()}`);
 
 // 5a2. FIX 3 (updated flow): PowerSeller preference is the LAST wizard step,

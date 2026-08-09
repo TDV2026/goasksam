@@ -198,6 +198,8 @@ function samForbiddenScrub(text){
 }
 function addMsg(role,text,html="",chipsStr=""){
   hideHero();
+  // Deactivate chips from completed steps before rendering the next message.
+  if(typeof dimStaleChips==="function")dimStaleChips();
   if(role==="sam"&&text)text=samForbiddenScrub(text);
   // Global no-repeat backstop (locked rule 12): no Sam text renders twice in a
   // conversation, not just consecutively. A repeat within the recent window
