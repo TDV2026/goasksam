@@ -617,10 +617,46 @@ function v2ActionViolation(t){
     /\byour details go to\b/i
   ].some(function(re){ return re.test(s); });
 }
+// Roster-name rule: a partner's display name or handle may appear in chat ONLY
+// when that partner is rendered in the current composition. On empty-composition
+// paths (pre-wizard, out-of-scope, or a car with no PowerSeller) NO roster name
+// is allowed. Curated roster tokens; add new partners here.
+var ROSTER_NAMES=["howS","Howard Silvers","Ingo Schmoldt","Ingo","GenauAutoWerks","Dan Gray","AuthenticAuctions","Chris Carbine","carbine123"];
+function v2RosterNameViolation(t){
+  try{
+    var s=String(t||""); if(!s)return false;
+    var allowed=[];
+    var c=(typeof v2Composition==="function")?v2Composition():null;
+    if(c&&c.psRendered&&c.referral&&c.referral.partner){
+      var p=c.referral.partner;
+      [p.displayName,p.name,(typeof psvFirst==="function"?psvFirst(p):"")].forEach(function(x){ if(x)allowed.push(String(x).toLowerCase()); });
+    }
+    for(var i=0;i<ROSTER_NAMES.length;i++){
+      var nm=ROSTER_NAMES[i];
+      if(new RegExp("\\b"+nm.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","i").test(s)){
+        var okName=allowed.some(function(a){ return a&&(a.indexOf(nm.toLowerCase())>=0||nm.toLowerCase().indexOf(a)>=0); });
+        if(!okName)return true; // named a partner that is not the rendered one
+      }
+    }
+    return false;
+  }catch(e){ return false; }
+}
+function v2RosterFallback(){
+  try{
+    var c=(typeof v2Composition==="function")?v2Composition():null;
+    if(c&&c.psRendered&&c.referral&&c.referral.partner){
+      var first=(typeof psvFirst==="function")?psvFirst(c.referral.partner):(c.referral.partner.displayName||c.referral.partner.name);
+      return "The only specialist I would point you to for this car is "+first+", shown above. I do not name others unless the data points to them.";
+    }
+    return "I only point to a specific PowerSeller once I have seen your car and the data supports one. Tell me what you are selling and I will take a look.";
+  }catch(e){ return "Tell me what you are selling and I will take a look."; }
+}
 function v2GuardChatAnswer(text){
   try{
     var t=String(text||"");
     if(!t.trim())return { ok:false, text:v2SafeFallback() };
+    // Roster-name check runs on EVERY path, including empty composition.
+    if(v2RosterNameViolation(t))return { ok:false, text:v2RosterFallback() };
     var c=v2Composition(); if(!c||!c.pick)return { ok:true, text:t };
     var f=v2PickFacts(c.pick);
     // 1. internal jargon a seller must never see.

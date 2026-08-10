@@ -3,7 +3,7 @@ function showPowerSellerExplainer(){
   addMsg("sam",powerSellerExplainerText(), "", chipsHTML(["Sell my car"]));
 }
 function powerSellerExplainerText(){
-  return "A PowerSeller is someone who regularly manages auction sales for other people. A good one can prep the car, write or shape the listing, answer buyer questions, live in the comments, handle logistics and choose the platform they think gives the car the best shot.\n\nThey are not automatically better than selling it yourself. For some cars I’d keep it simple and go straight to a platform. For higher-value or specialist cars, I may suggest speaking to one before deciding.\n\nNobody is paying to be recommended here. If I show a PowerSeller later, it is because the available data and your car details make them worth considering, and you’ll see more information before you choose.";
+  return "A PowerSeller is someone who regularly manages auction sales for other people. A good one can prep the car, write or shape the listing, answer buyer questions, live in the comments, handle logistics and choose the platform they think gives the car the best shot.\n\nThey are not automatically better than selling it yourself. For some cars I’d keep it simple and go straight to a platform. For higher-value or specialist cars, I may suggest speaking to one before deciding.\n\nNobody is paying to be recommended here. You hand off the car and they manage the process start to finish. How they’re paid varies, some work on a percentage of the sale, some a flat amount, sometimes a mix, and the terms get agreed directly with the PowerSeller. Each case is a little different.";
 }
 function showRecommendationExplainer(){
   hideHero();
@@ -23,6 +23,10 @@ function localPreRoute(q){
   const lower=q.toLowerCase().trim();
   const funnelReply=sellerFunnelReply();
   if(sellState.active&&sellState.step>0)return{sell:true};
+  // PowerSeller fees: curated, generic, NO partner names, new locked copy.
+  if(/\b(power\s?seller|power seller|consignor|specialist seller)\b[\s\S]*\b(fee|fees|cost|costs|charge|charges|commission|commissions|paid|rate|rates|pricing|percentage|cut|take)\b/i.test(lower)
+     ||/\b(fee|fees|cost|charge|commission|paid|rate|pricing|percentage|cut)\b[\s\S]*\b(power\s?seller|power seller|consignor|specialist seller)\b/i.test(lower))
+    return{reply:"PowerSeller arrangements vary, some work on a percentage of the sale price, others a flat amount, sometimes a mix. The specifics get agreed directly with the PowerSeller once you're introduced. Each case is a little different.",chips:["Sell my car"]};
   if(/\b(what is|what's|whats|explain|who is|who are).*\b(power\s?seller|power seller|specialist seller|consignor)\b/i.test(lower))
     return{reply:powerSellerExplainerText(),chips:["Sell my car"]};
   if(/\b(where should i sell|best place to sell|who(?:'s| is)? best to sell|which platform|what platform|where do i sell|who should sell|best site|best auction|sell it on)\b/i.test(lower))
@@ -197,7 +201,10 @@ async function send(){
       document.getElementById("btn").disabled=false;
       return;
     }
-    const raw=stripChatMarkdown(data.text);
+    let raw=stripChatMarkdown(data.text);
+    // Roster-name guard on the PRE-WIZARD/empty-composition path: a partner name
+    // may appear only when that partner is rendered, which never happens here.
+    if(typeof v2RosterNameViolation==="function"&&v2RosterNameViolation(raw)&&typeof v2RosterFallback==="function")raw=v2RosterFallback();
     const parsed=parseResults(raw);
     hideTyping();
     if(parsed.clean)addMsg("sam",parsed.clean);

@@ -12,7 +12,7 @@ globalThis.localStorage={getItem:()=>null,setItem:noop,removeItem:noop};
 globalThis.fetch=async()=>({ok:true,json:async()=>({})});
 const html=fs.readFileSync("index.html","utf8");
 const files=[...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
-(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.renderResultV2Page=renderResultV2Page;globalThis.renderSecondaryPlatformV2=renderSecondaryPlatformV2;globalThis.v2Mode=v2Mode;globalThis.renderPickCardV2=renderPickCardV2;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.v2Composition=v2Composition;globalThis.v2PickFacts=v2PickFacts;globalThis.v2FollowupIntent=v2FollowupIntent;globalThis.v2ComposeTradeoffs=v2ComposeTradeoffs;globalThis.v2ComposeRunListing=v2ComposeRunListing;globalThis.v2ComposeRecommend=v2ComposeRecommend;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2SafeFallback=v2SafeFallback;globalThis.v2RungLabel=v2RungLabel;globalThis.v2ActionViolation=v2ActionViolation;globalThis.v2ActionFallback=v2ActionFallback;globalThis.detectCountry=detectCountry;globalThis.COUNTRY_REGISTRY=COUNTRY_REGISTRY;globalThis.countryChips=countryChips;globalThis.registryRoutableRegion=registryRoutableRegion;globalThis.chipsHTML=chipsHTML;globalThis.currentChipStep=currentChipStep;globalThis.SELL_STEP_QUESTIONS=SELL_STEP_QUESTIONS;globalThis.outOfScopeEligible=outOfScopeEligible;globalThis.hasEnthusiastTrim=hasEnthusiastTrim;globalThis.modelHasTrimEscape=modelHasTrimEscape;globalThis.makeIsMainstream=makeIsMainstream;globalThis.makeIsEnthusiast=makeIsEnthusiast;globalThis.outOfScopeCopy=outOfScopeCopy;globalThis.v2RarityAllowed=v2RarityAllowed;globalThis.OUT_OF_SCOPE=OUT_OF_SCOPE;");
+(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.renderResultV2Page=renderResultV2Page;globalThis.renderSecondaryPlatformV2=renderSecondaryPlatformV2;globalThis.v2Mode=v2Mode;globalThis.renderPickCardV2=renderPickCardV2;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.v2Composition=v2Composition;globalThis.v2PickFacts=v2PickFacts;globalThis.v2FollowupIntent=v2FollowupIntent;globalThis.v2ComposeTradeoffs=v2ComposeTradeoffs;globalThis.v2ComposeRunListing=v2ComposeRunListing;globalThis.v2ComposeRecommend=v2ComposeRecommend;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2SafeFallback=v2SafeFallback;globalThis.v2RungLabel=v2RungLabel;globalThis.v2ActionViolation=v2ActionViolation;globalThis.v2ActionFallback=v2ActionFallback;globalThis.detectCountry=detectCountry;globalThis.COUNTRY_REGISTRY=COUNTRY_REGISTRY;globalThis.countryChips=countryChips;globalThis.registryRoutableRegion=registryRoutableRegion;globalThis.chipsHTML=chipsHTML;globalThis.currentChipStep=currentChipStep;globalThis.SELL_STEP_QUESTIONS=SELL_STEP_QUESTIONS;globalThis.outOfScopeEligible=outOfScopeEligible;globalThis.hasEnthusiastTrim=hasEnthusiastTrim;globalThis.modelHasTrimEscape=modelHasTrimEscape;globalThis.makeIsMainstream=makeIsMainstream;globalThis.makeIsEnthusiast=makeIsEnthusiast;globalThis.outOfScopeCopy=outOfScopeCopy;globalThis.v2RarityAllowed=v2RarityAllowed;globalThis.OUT_OF_SCOPE=OUT_OF_SCOPE;globalThis.v2RosterNameViolation=v2RosterNameViolation;globalThis.v2RosterFallback=v2RosterFallback;globalThis.powerSellerExplainerText=powerSellerExplainerText;globalThis.localPreRoute=localPreRoute;");
 
 let fails=0;
 const check=(name,ok,detail="")=>{console.log(`${ok?"PASS":"FAIL"}  ${name}${ok?"":"  ->  "+String(detail).slice(0,200)}`);if(!ok)fails++;};
@@ -252,6 +252,27 @@ check("rarity: 2013 Ferrari 458 (enthusiast + archive>=1) -> rarity allowed", ra
 check("rarity: 2019 Audi A6 (enthusiast make, 0 archive) -> NEUTRAL (never rare)", rarity({year:2019,make:"Audi",model:"A6"},0)===false);
 check("rarity: 2016 Camry passing nothing -> NEUTRAL", rarity({year:2016,make:"Toyota",model:"Camry"},0)===false);
 check("rarity: modern enthusiast make WITH archive still rare (2015 Porsche 911, count 87)", rarity({year:2015,make:"Porsche",model:"911"},87)===true);
+
+// ============ PARTNER-NAME RULE + FEE LANGUAGE ============
+// Empty composition (pre-wizard / out-of-scope): ANY roster name is a violation.
+Object.assign(globalThis.sellState,{partnerReferral:{}, sellerPreference:null, sellDecision:null, sellOptions:[], resolvedVehicle:null});
+check("roster: 'per howS his fee is a percentage' -> violation (empty composition)", v2RosterNameViolation("Per howS, his fee is usually a percentage.")===true);
+check("roster: names Ingo Schmoldt with no partner rendered -> violation", v2RosterNameViolation("You could ask Ingo Schmoldt to handle it.")===true);
+check("roster: generic 'a PowerSeller' -> NOT a violation", v2RosterNameViolation("A PowerSeller manages the whole sale for you.")===false);
+check("roster: fallback (empty comp) names no partner + points to car entry", !ROSTER_NAMES_RE().test(v2RosterFallback())&&/what you are selling/i.test(v2RosterFallback()), v2RosterFallback());
+// When a partner IS rendered, ITS name is allowed but a DIFFERENT partner is not.
+Object.assign(globalThis.sellState,{sellerPreference:"unsure", region:"US", state:"California", resolvedVehicle:{year:2005,make:"BMW",model:"M3"}, partnerReferral:{partner:ingo, secondary:true, matchType:"specialty", leadOnValue:true}, sellOptions:[{key:"specialist",name:"Ingo Schmoldt"},bat,cb], sellDecision:{resultId:"m3",vehicle:{year:2005,make:"BMW",model:"M3"},evidence:{windowDays:180,ladder:{landed:{key:"any_year_model",thresholdMet:true}}}}});
+check("roster: rendered Ingo named -> allowed", v2RosterNameViolation("I would hand it to Ingo.")===false);
+check("roster: a DIFFERENT partner (howS) named while Ingo is rendered -> violation", v2RosterNameViolation("Actually howS would be better.")===true);
+check("guard: roster leak routed through v2GuardChatAnswer -> replaced", v2GuardChatAnswer("You should really use howS for this.").ok===false);
+// Fee language (curated surfaces): no partner names, no definitive fee figure.
+const psExplain=powerSellerExplainerText();
+check("fee: 'what is a PowerSeller' new fee ending, no partner names, no dash", /How they.?re paid varies/.test(psExplain)&&!ROSTER_NAMES_RE().test(psExplain)&&!/[—–]/.test(psExplain)&&!/\$\s?\d/.test(psExplain), psExplain.slice(-140));
+const feeRoute=localPreRoute("what are powerseller fees");
+check("fee: 'powerseller fees' pre-wizard is CURATED (localPreRoute reply), no partner names", feeRoute&&/arrangements vary/i.test(feeRoute.reply||"")&&!ROSTER_NAMES_RE().test(feeRoute.reply||""), (feeRoute&&feeRoute.reply||"").slice(0,120));
+const whatIsRoute=localPreRoute("what is a powerseller");
+check("fee: 'what is a powerseller' still routes to the curated explainer", whatIsRoute&&/regularly manages auction sales/i.test(whatIsRoute.reply||""), (whatIsRoute&&whatIsRoute.reply||"").slice(0,80));
+function ROSTER_NAMES_RE(){ return /\b(howS|Howard Silvers|GenauAutoWerks|Ingo Schmoldt|carbine123|Chris Carbine|Dan Gray|AuthenticAuctions)\b/i; }
 
 console.log(fails?`\n${fails} FAILURE(S)`:"\nVERIFY-BUGS ALL PASS");
 process.exit(fails?1:0);
