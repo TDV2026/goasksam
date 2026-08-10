@@ -271,6 +271,9 @@ function gateRenderStatus(data) {
       ? "That's your search for today. It resets tomorrow, and everything you've run is saved under your results. See you then."
       : `That's your ${n} for today. Your searches reset tomorrow, and everything you've run is saved under your results. See you then.`;
     gateAppendCard(`<div class="sam-text">${authEsc(line)}</div>`);
+  } else if (status === "ip_rate_limited") {
+    // Spec C: per-IP cap tripped. Honest, no blame, offers the two real outs.
+    gateAppendCard(`<div class="sam-text">A lot of searches are coming from your connection. Sign in, or try again in a bit.</div>`);
   } else if (status === "auth_required") {
     gateAppendCard(`<div class="sam-text">I lost your session. Sign in again and we'll pick up where we left off.</div><div class="sell-rec-actions"><button class="primary" onclick="openSignInCard()">Sign in</button></div>`);
   } else if (status === "capacity") {

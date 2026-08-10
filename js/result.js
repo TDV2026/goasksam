@@ -120,7 +120,7 @@ async function showSellRecommendation(){
 
   // 2C: the account gate + limit statuses. Byte-identical for a normal decision;
   // these branches only fire for the new gate responses, rendered by auth.js.
-  if(decisionData&&/^(account_required|limit_reached|daily_limit_reached|auth_required|capacity)$/.test(decisionData.status||"")){
+  if(decisionData&&/^(account_required|limit_reached|daily_limit_reached|ip_rate_limited|auth_required|capacity)$/.test(decisionData.status||"")){
     if(typeof gateRenderStatus==="function")gateRenderStatus(decisionData);
     const b=document.getElementById("btn");if(b)b.disabled=false;
     return;

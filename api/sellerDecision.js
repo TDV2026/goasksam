@@ -2024,6 +2024,22 @@ async function appConfigInt(key, fallback, supabaseUrl, supabaseKey) {
   const n = Number(rows && rows[0] && rows[0].value);
   return Number.isFinite(n) ? n : fallback;
 }
+// Spec C: per-IP rate caps. Count-then-record against the ip_rate_hits ledger.
+// Soft (a tiny race is fine for abuse protection) and fail-OPEN: an unreadable
+// ledger never blocks a legitimate search. Crew/internal callers never reach here.
+function clientIp(req) {
+  return req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress || null;
+}
+async function ipHitsSince(ip, kind, sinceIso, supabaseUrl, supabaseKey) {
+  if (!ip) return null;
+  const rows = await supabaseSelect({ supabaseUrl, supabaseKey },
+    `ip_rate_hits?ip=eq.${encodeURIComponent(ip)}&kind=eq.${encodeURIComponent(kind)}&created_at=gte.${encodeURIComponent(sinceIso)}&select=id&limit=1000`);
+  return rows ? rows.length : null; // null => unreadable/missing table => fail open
+}
+async function recordIpHit(ip, kind, supabaseUrl, supabaseKey) {
+  if (!ip) return;
+  try { await supabaseInsert("ip_rate_hits", [{ ip, kind }], supabaseUrl, supabaseKey, "return=minimal", ""); } catch (e) {}
+}
 // OCD authoritative rate-limit reconciliation (Aug 2026). We persist OCD's own
 // x-ratelimit-remaining header (read in lib/_ocd.js) after every real fetch so the
 // NEXT search's budget guard can soft-degrade BEFORE a 429, using OCD's real count
@@ -2102,6 +2118,18 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
   if (cookies.gas_crew === "ok" && !forceGate) {
     return { ok: true, crewBypass: true, anonSessionId };
   }
+  // Spec C (b): total searches per IP per hour, for every non-crew search (auth
+  // and anon alike). Set high (default 60/hr) so signed-in users - already daily-
+  // capped by A - effectively never hit it; it only catches scripted abuse. Fail
+  // open on an unreadable ledger.
+  const ip = clientIp(req);
+  const hourAgo = new Date(Date.now() - 3600 * 1000).toISOString();
+  const hourHits = await ipHitsSince(ip, "search", hourAgo, supabaseUrl, supabaseKey);
+  const hourCap = await appConfigInt("ip_cap_all_hour", 60, supabaseUrl, supabaseKey);
+  if (hourHits !== null && hourHits >= hourCap) {
+    return { block: { status: "ip_rate_limited" } };
+  }
+  await recordIpHit(ip, "search", supabaseUrl, supabaseKey);
   const authHeader = req.headers.authorization;
   if (authHeader) {
     const auth = await validateBearer(authHeader);
@@ -2130,6 +2158,16 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
     return { ok: true, reservationEventId: row.event_id, accountId: auth.userId, anonSessionId,
       quota: { used: row.used, limit: row.limit, tier: row.tier } };
   }
+  // Spec C (a): anonymous searches per IP per day. Protects the anonymous
+  // endpoint from cookie-clearing abuse (a signed-in user is on the auth path
+  // above and never reaches this). Fail open on an unreadable ledger.
+  const dayStartIso = new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z").toISOString();
+  const anonDayHits = await ipHitsSince(ip, "anon_search", dayStartIso, supabaseUrl, supabaseKey);
+  const anonDayCap = await appConfigInt("ip_cap_anon_day", 20, supabaseUrl, supabaseKey);
+  if (anonDayHits !== null && anonDayHits >= anonDayCap) {
+    return { block: { status: "ip_rate_limited" } };
+  }
+  await recordIpHit(ip, "anon_search", supabaseUrl, supabaseKey);
   // Anonymous free-first-search.
   if (cookies.gas_free_used) {
     await logFunnel("second_search_attempt", { anon_session_id: anonSessionId }, supabaseUrl, supabaseKey);
