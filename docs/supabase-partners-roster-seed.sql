@@ -33,12 +33,15 @@ values (
   'authentic-auctions', 'AuthenticAuctions', 'Dan Gray', true,
   '["New England","Maine","New Hampshire","Vermont","Massachusetts","Rhode Island","Connecticut","Nationwide"]'::jsonb,
   '{"makes":["Audi"],"segments":["classic_european","european_sports","collector","older_enthusiast","pre_1990"],"notes":"Older Audis, high-end camper vans, and collections; pre-war through memorabilia (per AuthenticAuctions)","source":"partner_provided"}'::jsonb,
-  '[]'::jsonb, '[]'::jsonb,
+  '[]'::jsonb,
+  -- Operational roster facts (item 7): no "per {name}" attribution (that stays on
+  -- performance claims only), no fee figures, no auction counts.
+  '[{"text":"Based in New England","source":"partner_provided"},{"text":"Serves sellers nationwide","source":"partner_provided"},{"text":"Nationwide professional photographer network","source":"partner_provided"}]'::jsonb,
   '["AuthenticAuctions"]'::jsonb, null, null
 )
 on conflict (slug) do update set
   name = excluded.name, display_name = excluded.display_name, active = excluded.active,
-  regions = excluded.regions, specialties = excluded.specialties,
+  regions = excluded.regions, specialties = excluded.specialties, service_claims = excluded.service_claims,
   seller_usernames = excluded.seller_usernames, min_value_usd = excluded.min_value_usd, updated_at = now();
 
 -- 4) Chris Carbine (carbine123) - South, nationwide (South primary), German+European marques
@@ -46,13 +49,15 @@ insert into partners (slug, name, display_name, active, regions, specialties, pl
 values (
   'carbine123', 'carbine123', 'Chris Carbine', true,
   '["South","Louisiana","Mississippi","Alabama","Florida","Georgia","Texas","Nationwide"]'::jsonb,
-  '{"makes":["BMW","Porsche","Mercedes-Benz","Jaguar","Ferrari","Lexus"],"segments":["classic_european","european_sports","porsche","bmw_m","modern_enthusiast"],"notes":"BMW, Porsche, Mercedes, Jaguar, Ferrari and Lexus (per carbine123)","source":"partner_provided"}'::jsonb,
-  '[]'::jsonb, '[]'::jsonb,
+  '{"makes":["BMW","Porsche","Mercedes-Benz","Jaguar","Ferrari","Lexus"],"segments":["classic_european","european_sports","porsche","bmw_m","modern_enthusiast"],"notes":"BMW, Porsche, Mercedes, Jaguar, Ferrari and Lexus (per carbine123)","company":"Carbine Motors","source":"partner_provided"}'::jsonb,
+  '[]'::jsonb,
+  -- Operational roster facts (item 7): no attribution, no fee figures, no counts.
+  '[{"text":"Based in the South","source":"partner_provided"},{"text":"Serves Louisiana, Mississippi, Alabama, Florida, Georgia and Texas","source":"partner_provided"},{"text":"Full-service preparation: PDR, detailing and reconditioning handled in-house","source":"partner_provided"}]'::jsonb,
   '["carbine123"]'::jsonb, null, 40000
 )
 on conflict (slug) do update set
   name = excluded.name, display_name = excluded.display_name, active = excluded.active,
-  regions = excluded.regions, specialties = excluded.specialties,
+  regions = excluded.regions, specialties = excluded.specialties, service_claims = excluded.service_claims,
   seller_usernames = excluded.seller_usernames, min_value_usd = excluded.min_value_usd, updated_at = now();
 
 -- Verify:

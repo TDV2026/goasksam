@@ -362,10 +362,22 @@ function psvLocation(p){
   return based;
 }
 function psvCoverage(p){
+  // Prefer an explicit "Serves ..." service claim (item 7 roster copy) over the
+  // regions-derived fallback, so "Serves Louisiana, Mississippi, ..." renders as
+  // written even when the partner also carries "Nationwide" for matching.
+  var pool=(p.serviceClaims||[]).map(function(s){return s&&s.text;}).filter(Boolean);
+  for(var i=0;i<pool.length;i++){ var m=/^\s*(Serves .+?)\s*$/i.exec(pool[i]); if(m)return m[1]; }
   var regions=(p.regions||[]).map(function(r){return String(r).toLowerCase();});
   if(regions.indexOf("nationwide")>=0)return "Works nationwide";
   var first=(p.regions||[]).find(function(r){return String(r).toLowerCase()!=="nationwide";});
   return first?("Serves "+first):"";
+}
+// Preparation/service tile (item 7): the first service claim that is neither the
+// "Based in ..." location line nor the "Serves ..." coverage line.
+function psvPrep(p){
+  var pool=(p.serviceClaims||[]).map(function(s){return s&&s.text;}).filter(Boolean);
+  for(var i=0;i<pool.length;i++){ var t=pool[i].trim(); if(!/^Based in\b/i.test(t)&&!/^Serves\b/i.test(t))return t.replace(/\s*\(per[^)]*\)\s*$/i,""); }
+  return "";
 }
 
 // ---- PowerSeller curated copy, match-reason variants (he/him locked) ----
@@ -442,6 +454,8 @@ function renderPowerSellerCardV2(opts){
     if(trophy)tstack+='<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("trophy")+'</span><div class="pcard-tt"><div class="pcard-tnum">'+esc(trophy)+'</div><div class="val">enthusiast auctions represented</div></div></div>';
     if(spec)tstack+='<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("car")+'</span><div class="pcard-tt"><div class="lab">Specialises in</div><div class="val green">'+esc(spec)+'</div></div></div>';
     if(loc)tstack+='<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("pin")+'</span><div class="pcard-tt"><div class="lab">Based in '+esc(loc)+'</div>'+(cov?'<div class="sub">'+esc(cov)+'</div>':'')+'</div></div>';
+    var prep=psvPrep(p);
+    if(prep)tstack+='<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("clip")+'</span><div class="pcard-tt"><div class="lab">Preparation</div><div class="val">'+esc(prep)+'</div></div></div>';
     // Attributed trust claims (the profile_stats lines that are not the auctions
     // total, e.g. "Top 10% of all Bring a Trailer sellers", "member since 2011").
     var trust=psvTrustLines(p);
