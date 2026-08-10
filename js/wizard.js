@@ -863,6 +863,9 @@ function startSellFlow(initialCar, showUserBubble=true){
         }
         return;
       }
+      // Out-of-scope gate, phase 1 (homepage entry path): refuse a no-escape
+      // modern mainstream economy car before asking the optional trim.
+      if(typeof maybeGateOutOfScope==="function"&&maybeGateOutOfScope("preTrim"))return;
       const missing=currentMissingVehicleDetail();
       if(missing){
         askMissingVehicleDetail(missing);
