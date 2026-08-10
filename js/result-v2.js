@@ -76,15 +76,32 @@ function CLAUSE_A(s){ return v2Fill("{scope} have closed {delta}% higher on {pla
 function CLAUSE_B(s){ return v2Fill("prices for {scope} have run close across the platforms I track over the past {window}",s); }
 function CLAUSE_C(s){ return v2Fill("recent {scope} sales have concentrated on {platform}, with too few on other platforms to compare prices over the past {window}",s); }
 
+// Rarity wording is allowed only for cars that are genuinely old or genuinely
+// collectible: >25 years old, OR an enthusiast-tier make that actually has
+// archive presence (>=1). A modern enthusiast-make sedan with no archive (a 2019
+// A6) stays neutral; a Merkur (>25yr) or a 458 (enthusiast + archive) keeps the
+// rarity story. Neutral wording is the default for every other thin state.
+function v2RarityAllowed(){
+  try{
+    var v=sellState.resolvedVehicle||(sellState.sellDecision&&sellState.sellDecision.vehicle)||{};
+    var yr=Number(v.year);
+    if(yr&&((new Date().getFullYear())-yr)>25)return true;
+    var count=Number(sellState.archiveModelCount);
+    if(typeof makeIsEnthusiast==="function"&&makeIsEnthusiast(v.make)&&isFinite(count)&&count>=1)return true;
+    return false;
+  }catch(e){ return false; }
+}
 // ---------- FAMILY A: because line ----------
 function v2Because(mode,s){
   var pools={
     modeA:["Because {platform} is where {scope} have consistently delivered the strongest results for cars like yours over the past {window}."],
     modeB:["Because {scope} prices run close across platforms, and this is where they've been trading.","Because prices are close everywhere, so recent sales decide, and {platform} has the most.","Because {platform} has the most recent {scope} sales when prices are this close."],
     concentration:["Because recent {scope} activity has concentrated on {platform}.","Because {platform} is where the {scope} market actually trades right now.","Because the {scope} market has gathered on {platform}, where buyers are looking."],
-    thin:["Because for a car this uncommon, {platform} reaches the buyers who actually want one.","Because {platform} is where buyers for something this rare tend to look.","Because a car this uncommon needs {platform}'s reach to find its buyer."]
+    thin:["Because for a car this uncommon, {platform} reaches the buyers who actually want one.","Because {platform} is where buyers for something this rare tend to look.","Because a car this uncommon needs {platform}'s reach to find its buyer."],
+    thinNeutral:["Because recent {scope} sales are limited, so {platform} is where the few that trade tend to surface.","Because with little recent {scope} data, {platform} is where I'd start.","Because {platform} holds the recent {scope} sales I can see."]
   };
-  return v2Fill(v2Pick(pools[mode||"thin"],"because"),s);
+  var key=(mode||"thin"); if(key==="thin"&&!v2RarityAllowed())key="thinNeutral";
+  return v2Fill(v2Pick(pools[key],"because"),s);
 }
 
 // ---------- FAMILY B: why prose ----------
@@ -94,9 +111,11 @@ function v2Why(mode,s){
     modeA:[a+".",a+"."],
     modeB:[b+", so the room decides, and {platform} has the most recent {scope} sales.","Since "+b+", the room decides, and {platform} has the most recent {scope} sales.",b+". With little to separate them on price, {platform} has the most recent {scope} sales."],
     concentration:[c+". It's where the market for {rungRef} is actually trading.","Right now, "+c+", so that's where buyers are looking.",c+", which makes it the honest place to meet the market for {rungRef}."],
-    thin:["recent sales for {rungRef} are limited, so I ran this at the {rungWord} level. {platform} is where the few that trade tend to surface, and it reaches the buyers who want something this uncommon.","recent sales for {rungRef} are limited, so I ran this at the {rungWord} level. For a car this rare, {platform} is where the patient buyers tend to look.","recent sales for {rungRef} are limited, so I ran this at the {rungWord} level. {platform} reaches the patient buyers who actually want one; treat this as directional."]
+    thin:["recent sales for {rungRef} are limited, so I ran this at the {rungWord} level. {platform} is where the few that trade tend to surface, and it reaches the buyers who want something this uncommon.","recent sales for {rungRef} are limited, so I ran this at the {rungWord} level. For a car this rare, {platform} is where the patient buyers tend to look.","recent sales for {rungRef} are limited, so I ran this at the {rungWord} level. {platform} reaches the patient buyers who actually want one; treat this as directional."],
+    thinNeutral:["recent sales for {rungRef} are limited, so I ran this at the {rungWord} level. {platform} holds the few recent {scope} sales I can see, so treat this as directional.","recent sales for {rungRef} are limited, so I ran this at the {rungWord} level. {platform} is where those sales have happened; treat this as directional.","recent sales for {rungRef} are limited, so I ran this at the {rungWord} level, and {platform} is where I would start."]
   };
-  var t=v2Pick(pools[mode||"thin"],"why");
+  var key=(mode||"thin"); if(key==="thin"&&!v2RarityAllowed())key="thinNeutral";
+  var t=v2Pick(pools[key],"why");
   var out=v2Fill(t,s);
   return out.charAt(0).toUpperCase()+out.slice(1);
 }

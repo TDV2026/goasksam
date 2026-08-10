@@ -12,7 +12,7 @@ globalThis.localStorage={getItem:()=>null,setItem:noop,removeItem:noop};
 globalThis.fetch=async()=>({ok:true,json:async()=>({})});
 const html=fs.readFileSync("index.html","utf8");
 const files=[...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
-(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.renderResultV2Page=renderResultV2Page;globalThis.renderSecondaryPlatformV2=renderSecondaryPlatformV2;globalThis.v2Mode=v2Mode;globalThis.renderPickCardV2=renderPickCardV2;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.v2Composition=v2Composition;globalThis.v2PickFacts=v2PickFacts;globalThis.v2FollowupIntent=v2FollowupIntent;globalThis.v2ComposeTradeoffs=v2ComposeTradeoffs;globalThis.v2ComposeRunListing=v2ComposeRunListing;globalThis.v2ComposeRecommend=v2ComposeRecommend;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2SafeFallback=v2SafeFallback;globalThis.v2RungLabel=v2RungLabel;globalThis.v2ActionViolation=v2ActionViolation;globalThis.v2ActionFallback=v2ActionFallback;globalThis.detectCountry=detectCountry;globalThis.COUNTRY_REGISTRY=COUNTRY_REGISTRY;globalThis.countryChips=countryChips;globalThis.registryRoutableRegion=registryRoutableRegion;globalThis.chipsHTML=chipsHTML;globalThis.currentChipStep=currentChipStep;globalThis.SELL_STEP_QUESTIONS=SELL_STEP_QUESTIONS;");
+(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.renderResultV2Page=renderResultV2Page;globalThis.renderSecondaryPlatformV2=renderSecondaryPlatformV2;globalThis.v2Mode=v2Mode;globalThis.renderPickCardV2=renderPickCardV2;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.v2Composition=v2Composition;globalThis.v2PickFacts=v2PickFacts;globalThis.v2FollowupIntent=v2FollowupIntent;globalThis.v2ComposeTradeoffs=v2ComposeTradeoffs;globalThis.v2ComposeRunListing=v2ComposeRunListing;globalThis.v2ComposeRecommend=v2ComposeRecommend;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2SafeFallback=v2SafeFallback;globalThis.v2RungLabel=v2RungLabel;globalThis.v2ActionViolation=v2ActionViolation;globalThis.v2ActionFallback=v2ActionFallback;globalThis.detectCountry=detectCountry;globalThis.COUNTRY_REGISTRY=COUNTRY_REGISTRY;globalThis.countryChips=countryChips;globalThis.registryRoutableRegion=registryRoutableRegion;globalThis.chipsHTML=chipsHTML;globalThis.currentChipStep=currentChipStep;globalThis.SELL_STEP_QUESTIONS=SELL_STEP_QUESTIONS;globalThis.outOfScopeEligible=outOfScopeEligible;globalThis.hasEnthusiastTrim=hasEnthusiastTrim;globalThis.modelHasTrimEscape=modelHasTrimEscape;globalThis.makeIsMainstream=makeIsMainstream;globalThis.makeIsEnthusiast=makeIsEnthusiast;globalThis.outOfScopeCopy=outOfScopeCopy;globalThis.v2RarityAllowed=v2RarityAllowed;globalThis.OUT_OF_SCOPE=OUT_OF_SCOPE;");
 
 let fails=0;
 const check=(name,ok,detail="")=>{console.log(`${ok?"PASS":"FAIL"}  ${name}${ok?"":"  ->  "+String(detail).slice(0,200)}`);if(!ok)fails++;};
@@ -222,6 +222,36 @@ check("guard action: allowed 'continue with Bring a Trailer to list it yourself'
 const av=v2GuardChatAnswer("Hit submit and your details go straight to Ingo.");
 check("guard: an action violation is replaced by the actions fallback", av.ok===false&&/request an introduction to Ingo/.test(av.text)&&/list it yourself/.test(av.text), av.text.slice(0,160));
 check("guard: the actions fallback names only real actions, no submit/forward", !/submit|forward|blast|goes to|go to Ingo/i.test(v2ActionFallback())&&/request an introduction/.test(v2ActionFallback()), v2ActionFallback().slice(0,160));
+
+// ============ OUT-OF-SCOPE GATE (detector logic) ============
+const NOW=new Date().getFullYear();
+const elig=(v,c)=>outOfScopeEligible(v,c);
+// verdict = eligible AND no enthusiast trim AND (postTrim, or model has no escape)
+const verdict=(v,c)=>elig(v,c)&&!hasEnthusiastTrim(v)&&true; // postTrim
+check("oos: 2016 Camry (Toyota, count 0) -> eligible + verdict OUT", elig({year:2016,make:"Toyota",model:"Camry"},0)===true&&verdict({year:2016,make:"Toyota",model:"Camry"},0)===true);
+check("oos: 1988 Camry (age>25) -> NOT eligible (age guard)", elig({year:1988,make:"Toyota",model:"Camry"},0)===false);
+check("oos: 1957 Chevrolet Bel Air (age>25, mainstream, 0 archive) -> NOT eligible", elig({year:1957,make:"Chevrolet",model:"Bel Air"},0)===false);
+check("oos: Pontiac (not on mainstream list) -> NOT eligible (fail-open)", elig({year:2016,make:"Pontiac",model:"G6"},0)===false&&makeIsMainstream("Pontiac")===false);
+check("oos: count >= 20 -> NOT eligible (in scope via presence)", elig({year:2016,make:"Toyota",model:"Camry"},25)===false);
+check("oos: count null (unknown) -> NOT eligible (fail-open)", elig({year:2016,make:"Toyota",model:"Camry"},null)===false);
+check("oos: no year -> NOT eligible (fail-open)", elig({make:"Toyota",model:"Camry"},0)===false);
+check("oos: 2017 Mustang GT350 -> trim escape (never out)", hasEnthusiastTrim({year:2017,make:"Ford",model:"Mustang",trim:"GT350"})===true&&verdict({year:2017,make:"Ford",model:"Mustang",trim:"GT350"},0)===false);
+check("oos: 1994 Supra (enthusiast token in model) -> escape / and BMW/enthusiast unaffected", hasEnthusiastTrim({make:"Toyota",model:"Supra"})===true);
+check("oos: Mustang has a trim escape (wait for trim); Camry does not", modelHasTrimEscape("Mustang")===true&&modelHasTrimEscape("Camry")===false);
+// preTrim vs postTrim: a Corolla (escape model) with no trim yet waits; with an economy trim it goes out
+check("oos preTrim: escape model with no trim waits (not refused pre-trim)", (elig({year:2018,make:"Toyota",model:"Corolla"},0)&&!hasEnthusiastTrim({year:2018,make:"Toyota",model:"Corolla"})&&modelHasTrimEscape("Corolla"))===true /* -> preTrim returns false, waits */);
+// locked copy
+const copy=outOfScopeCopy({year:2016,make:"Toyota",model:"Camry"});
+check("oos copy: names the car + CarMax + Carvana + Facebook Marketplace", /2016 Toyota Camry/.test(copy)&&/CarMax/.test(copy)&&/Carvana/.test(copy)&&/Facebook Marketplace/.test(copy), copy.slice(0,80));
+check("oos copy: no em/en dash, ends on the Marketplace line (no escape hatch)", !/[—–]/.test(copy)&&/there myself\.$/.test(copy.trim()), copy.slice(-60));
+
+// ============ RARITY WORDING RULE ============
+const rarity=(v,c)=>{ Object.assign(globalThis.sellState,{resolvedVehicle:v,archiveModelCount:c,sellDecision:null}); return v2RarityAllowed(); };
+check("rarity: Merkur (1988, >25yr) -> rarity allowed", rarity({year:1988,make:"Merkur",model:"XR4Ti"},3)===true);
+check("rarity: 2013 Ferrari 458 (enthusiast + archive>=1) -> rarity allowed", rarity({year:2013,make:"Ferrari",model:"458"},40)===true);
+check("rarity: 2019 Audi A6 (enthusiast make, 0 archive) -> NEUTRAL (never rare)", rarity({year:2019,make:"Audi",model:"A6"},0)===false);
+check("rarity: 2016 Camry passing nothing -> NEUTRAL", rarity({year:2016,make:"Toyota",model:"Camry"},0)===false);
+check("rarity: modern enthusiast make WITH archive still rare (2015 Porsche 911, count 87)", rarity({year:2015,make:"Porsche",model:"911"},87)===true);
 
 console.log(fails?`\n${fails} FAILURE(S)`:"\nVERIFY-BUGS ALL PASS");
 process.exit(fails?1:0);

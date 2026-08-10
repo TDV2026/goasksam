@@ -117,6 +117,8 @@ async function resolveVehicleInput(candidate,opts={}){
     const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:candidate})});
     const data=await res.json();
     if(!res.ok||!data)return true;
+    // Model-level archive count for the out-of-scope gate + rarity wording.
+    if(data.archiveModelCount!==undefined)sellState.archiveModelCount=data.archiveModelCount;
     // Field hints apply regardless of resolution status: a location or price
     // token belongs to its field even when the car still needs clarifying.
     if(data.vehicle?.locationHint&&!sellState.region){

@@ -116,6 +116,10 @@ async function handleSellStep(q){
       return true;
     }
     sellState.trimAskAttempts=0;
+    // Out-of-scope gate, phase 1: refuse a modern mainstream economy car
+    // immediately after the model, BEFORE asking the optional trim, unless the
+    // model is one a trim could rescue (then we wait for the trim).
+    if(typeof maybeGateOutOfScope==="function"&&maybeGateOutOfScope("preTrim"))return true;
     const missing=currentMissingVehicleDetail();
     if(missing){
       askMissingVehicleDetail(missing);

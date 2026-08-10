@@ -52,6 +52,19 @@ async function send(){
 
   const pre=localPreRoute(q);
 
+  // Out-of-scope aftermath: after a refusal the input reverts to car entry. A car
+  // starts a fresh search; any other input gets ONE curated line, never the LLM
+  // (the output guard is never run against an empty out-of-scope composition).
+  if(sellState.afterOutOfScope){
+    if(pre&&pre.sellTrigger){
+      sellState.afterOutOfScope=false;
+      startSellFlow(pre.initialCar,false);
+      document.getElementById("btn").disabled=false;return;
+    }
+    addMsg("sam","For this one I'd genuinely go the mainstream route, it'll do better there than anywhere I'd send you. Got another car? Type it and I'll take a look.");
+    document.getElementById("btn").disabled=false;return;
+  }
+
   if(pre&&pre.sellTrigger){
     const genericSell=/^(sell|selling|sell my car|i want to sell|want to sell|start the questions)$/i.test(q.trim());
     startSellFlow(genericSell?null:pre.initialCar,false);

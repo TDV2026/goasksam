@@ -1,7 +1,7 @@
 // Partner (PowerSeller) profiles come from the backend partners table via
 // decision.partnerReferral. Nothing partner-related is hardcoded here.
 
-const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,region:null,state:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,sellerPreference:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,vehicleDetailSkipped:false,vehicleIdentityValidated:false,pendingVehicleIdentity:null,resolvedVehicle:null,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[],allRouteOptions:[],powerSellerProfiles:[],selectedPowerSellerId:null,noEvidenceFallback:null};
+const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,region:null,state:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,sellerPreference:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,vehicleDetailSkipped:false,vehicleIdentityValidated:false,pendingVehicleIdentity:null,resolvedVehicle:null,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[],allRouteOptions:[],powerSellerProfiles:[],selectedPowerSellerId:null,noEvidenceFallback:null,archiveModelCount:null,afterOutOfScope:false};
 function resetSellState(){
   Object.keys(sellState).forEach(k=>sellState[k]=null);
   sellState.active=false;sellState.step=0;sellState.returnToConfirm=false;sellState.vehicleDetailSkipped=false;sellState.vehicleIdentityValidated=false;sellState.pendingVehicleIdentity=null;sellState.sellOptions=[];sellState.allRouteOptions=[];sellState.powerSellerProfiles=[];sellState.noEvidenceFallback=null;
@@ -23,6 +23,70 @@ const COUNTRY_REGISTRY=[
 ];
 function countryChips(){ return COUNTRY_REGISTRY.map(c=>c.chip).concat(["Somewhere else"]); }
 function registryRoutableRegion(region){ const r=String(region||"").toLowerCase(); return COUNTRY_REGISTRY.some(c=>c.region!=="US"&&c.region.toLowerCase()===r); }
+
+// ─────────────────────────── OUT-OF-SCOPE GATE ───────────────────────────
+// Refuses modern mainstream economy cars (Camry, Accord, F-150) that our
+// enthusiast-auction data cannot serve, at car resolution, before any search.
+// Fail-open by design: a false refusal is the worst error, so every ambiguous
+// path proceeds. Curated lists below are Sam's to extend.
+const OUT_OF_SCOPE={ maxAgeYears:25, countThreshold:20 };
+// Only these makes ever trigger the gate. Any make NOT listed runs normally.
+const MAINSTREAM_MAKES=["toyota","honda","nissan","ford","chevrolet","chevy","volkswagen","vw","hyundai","kia","mazda","subaru","dodge","chrysler","buick","gmc","mitsubishi","acura","lexus","infiniti","ram"];
+// Enthusiast marques: skip the gate entirely, and (with archive presence) earn
+// the rarity wording. Their models clear the count anyway; this is belt + rarity.
+const ENTHUSIAST_MAKES=["porsche","ferrari","lamborghini","aston martin","bentley","rolls-royce","maserati","mclaren","lotus","alfa romeo","jaguar","lancia","de tomaso","bmw","mercedes-benz","mercedes","audi","land rover","datsun","shelby","merkur"];
+// An enthusiast trim/model token anywhere in the resolved car rescues it (never
+// out-of-scope). Matched against model + trim + canonical label.
+const ENTHUSIAST_TRIM_TOKENS=["supra","gt-r","gtr","skyline","mr2","2000gt","land cruiser","fj40","fj60","fj62","nsx","type r","s2000","integra","gt350","gt500","boss 302","mach 1","ford gt","svt","lightning","raptor","z/28","z28","chevelle ss","zl1","z06","grand sport","gti","golf r","gli","miata","mx-5","rx-7","rx-8","wrx","sti","240z","260z","280z","300zx","350z","370z","viper","hellcat","scat pack","r/t","srt","demon","trd pro","gr corolla","gr86","se-r","cobalt ss","focus rs","focus st","fiesta st","svt cobra","shelby"];
+// Models with a hot trim: wait for the trim answer before gating (a base one may
+// be out, a hot one in). Other models gate immediately after the model answer.
+const ESCAPE_MODELS=["mustang","corolla","civic","camaro","charger","challenger","golf","jetta","celica","cobalt","focus","fiesta","sentra","integra","accord","sonic","cruze"];
+
+function makeIsMainstream(make){ return MAINSTREAM_MAKES.includes(String(make||"").toLowerCase().trim()); }
+function makeIsEnthusiast(make){ return ENTHUSIAST_MAKES.includes(String(make||"").toLowerCase().trim()); }
+function modelHasTrimEscape(model){ const m=String(model||"").toLowerCase(); return ESCAPE_MODELS.some(e=>m.includes(e)); }
+function hasEnthusiastTrim(v){
+  const hay=[v&&v.trim,v&&v.model,v&&v.canonicalLabel].map(x=>String(x||"").toLowerCase()).join(" ");
+  return ENTHUSIAST_TRIM_TOKENS.some(t=>hay.includes(t));
+}
+// Conditions 0-2 (age, mainstream make, count < threshold). Fails open on any
+// missing signal (no year, unknown count).
+function outOfScopeEligible(v,count){
+  if(!v||!v.year)return false;
+  const age=(new Date().getFullYear())-Number(v.year);
+  if(!Number.isFinite(age)||age>OUT_OF_SCOPE.maxAgeYears)return false; // 0: older cars never out
+  if(!makeIsMainstream(v.make))return false;                          // 1: fail-open
+  if(count==null||!Number.isFinite(Number(count))||Number(count)>=OUT_OF_SCOPE.countThreshold)return false; // 2
+  return true;
+}
+// Full verdict at a gate phase. preTrim only fires for models that no trim could
+// rescue; postTrim fires once the trim is in.
+function maybeGateOutOfScope(phase){
+  try{
+    const v=sellState.resolvedVehicle;
+    if(!outOfScopeEligible(v,sellState.archiveModelCount))return false;
+    if(hasEnthusiastTrim(v))return false;                              // 3: trim escape
+    if(phase==="preTrim"&&modelHasTrimEscape(v.model))return false;    // wait for the trim
+    renderOutOfScope(v);
+    return true;
+  }catch(e){ return false; }
+}
+function outOfScopeCopy(v){
+  const car=[v&&v.year,v&&v.make,v&&v.model].filter(Boolean).join(" ")||"car like this";
+  // LOCKED copy (Sam). This is the only surface that may name CarMax, Carvana and
+  // Facebook Marketplace. No escape-hatch sentence; ends on the Marketplace line.
+  return `I'll be straight with you: a ${car} isn't really my patch. My data covers the enthusiast auction world, and a car like yours sells best through the mainstream channels. CarMax or Carvana will give you a fast, clean sale. Facebook Marketplace usually gets you more if you don't mind fielding the messages, I've bought and sold plenty of cars there myself.`;
+}
+function renderOutOfScope(v){
+  hideHero();
+  addMsg("sam",outOfScopeCopy(v));
+  // No search reservation, the free anonymous search is NOT consumed: we end the
+  // flow here without ever calling sellerDecision. Input reverts to car entry.
+  sellState.active=false;
+  sellState.step=0;
+  sellState.afterOutOfScope=true;
+  if(typeof gasFunnel==="function")gasFunnel("out_of_scope");  // logged with the resolved car (search_text carries it via the event pipeline)
+}
 
 const SELL_STEP_QUESTIONS={
   1:{ask:"What are you selling?",chips:[]},
@@ -839,6 +903,10 @@ function vehicleAcceptPrefix(){
 // Resume at the first unanswered question: a vehicle edit mid-flow keeps
 // every answer already given and re-flows only through what is missing.
 function resumeWizardAfterVehicle(prefix){
+  // Out-of-scope gate, phase 2: the car is fully resolved (model + any trim). A
+  // modern mainstream economy car with no rescuing trim is refused here, before
+  // advancing to the country step, so no search is ever reserved.
+  if(maybeGateOutOfScope("postTrim"))return;
   if(sellState.returnToConfirm){goBackToConfirm();return;}
   if(sellState.editReturnStep&&SELL_STEP_QUESTIONS[sellState.editReturnStep]){
     const back=sellState.editReturnStep;

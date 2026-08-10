@@ -26,6 +26,18 @@ function nothingUnderstood(result) {
     && !result.vehicle?.make && !result.vehicle?.model;
 }
 
+// Model-level all-time count in our archive (vehicle_market_records). Feeds the
+// frontend out-of-scope gate and the rarity wording rule. Free service-role read;
+// null on any error so the gate fails open (never refuses on a missing count).
+async function archiveModelCount(make, model, supabaseUrl, supabaseKey) {
+  if (!make || !model || !supabaseUrl || !supabaseKey) return null;
+  try {
+    const url = `${supabaseUrl}/rest/v1/vehicle_market_records?make=ilike.${encodeURIComponent(make)}&model=ilike.${encodeURIComponent("*" + model + "*")}&select=id`;
+    const r = await fetch(url, { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`, Prefer: "count=exact", Range: "0-0" } });
+    return Number((r.headers.get("content-range") || "*/0").split("/")[1] || 0);
+  } catch (e) { return null; }
+}
+
 // Dirty input: the deterministic parse dropped conversational tokens. The
 // cached extraction arbitrates so meaning (a second year, an "or 88") is
 // recovered rather than discarded.
@@ -154,11 +166,17 @@ export default async function handler(req, res) {
     // The wizard treats a typo confirmation like any other clarification: it
     // shows the question and the "Did you mean ..." suggestion chip.
     const status = result.status === "needs_confirmation" ? "needs_clarification" : result.status;
+    // Model-level archive count for the out-of-scope gate + rarity wording (only
+    // when a make+model actually resolved). Null if unknown -> gate fails open.
+    const modelCount = (result.vehicle?.make && result.vehicle?.model && (result.status === "valid" || result.status === "needs_confirmation"))
+      ? await archiveModelCount(result.vehicle.make, result.vehicle.model, supabaseUrl, supabaseKey)
+      : null;
     return res.status(200).json({
       status,
       vehicle: result.vehicle,
       clarification: result.clarification,
       corrections: result.corrections,
+      archiveModelCount: modelCount,
       fallback: fallbackUsed || undefined
     });
   } catch (err) {
