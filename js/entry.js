@@ -26,6 +26,19 @@ function moneyQuestionReply(q){
   if(!hit)return null;
   return "GoAskSam is free for sellers. We have commercial arrangements with some of the PowerSellers we work with, and nobody can pay to be recommended. The recommendation always comes first.";
 }
+// Curated answer for "do you have a PowerSeller in Canada" style questions.
+// Locked copy, nothing more (no routing promise). US-based-partner reality,
+// consistent with the hard US-only partner gate. Used pre-wizard and
+// post-result (step 12), never the LLM. A bare region answer ("Canada" at the
+// region step) is NOT intercepted here: it needs a PowerSeller/representation
+// token AND runs only outside the active pre-result wizard.
+function canadaPowerSellerReply(q){
+  const lower=(q||"").toLowerCase();
+  if(!/\bcanad(?:a|ian)\b/i.test(lower))return null;
+  const psContext=/\b(power\s?sellers?|consignors?|specialist sellers?|represent(?:ative|ed|ing)?|handle (?:the|my|it|this) sale|someone to (?:sell|handle)|hand(?:le)? (?:it|the car|the keys)|sell (?:it |my car )?for me|do (?:it|this) for me)\b/i.test(lower);
+  if(!psContext)return null;
+  return "Not yet. Our PowerSellers are US-based today, and we're careful about who we add.";
+}
 function showRecommendationExplainer(){
   hideHero();
   addMsg("sam","I start with recent market activity. If there is enough recent data, I use that. If the signal is too thin, I widen the window rather than pretending the answer is stronger than it is.\n\nThen I weigh your car, timing, location and how much of the sale you want to manage yourself. Sometimes that points straight to a platform. Sometimes I’d speak to a PowerSeller first. Either way, nobody is paying to be recommended and nothing gets sent until you approve it.","",chipsHTML(["Sell my car"]));
@@ -49,6 +62,8 @@ function localPreRoute(q){
   if(/\b(power\s?sellers?|consignors?|specialist sellers?)\b[\s\S]*\b(fee|fees|cost|costs|charge|charges|commission|commissions|paid|rate|rates|pricing|percentage|cut|take)\b/i.test(lower)
      ||/\b(fee|fees|cost|charge|commission|paid|rate|pricing|percentage|cut)\b[\s\S]*\b(power\s?sellers?|consignors?|specialist sellers?)\b/i.test(lower))
     return{reply:"PowerSeller arrangements vary, some work on a percentage of the sale price, others a flat amount, sometimes a mix. The specifics get agreed directly with the PowerSeller once you're introduced. Each case is a little different.",chips:["Sell my car"]};
+  const canadaReply=canadaPowerSellerReply(q);
+  if(canadaReply)return{reply:canadaReply,chips:["Sell my car"]};
   const moneyReply=moneyQuestionReply(q);
   if(moneyReply)return{reply:moneyReply,chips:["Sell my car"]};
   if(/\b(what is|what's|whats|what are|what're|explain|who is|who are|tell me about).*\b(power\s?sellers?|specialist sellers?|consignors?)\b/i.test(lower))
@@ -104,6 +119,8 @@ async function send(){
     // pre-wizard intercept; the wizard early-returns {sell:true} before
     // localPreRoute can catch it, so it is handled here for the result state.
     if(sellState.step===12){
+      const canadaReply=canadaPowerSellerReply(q);
+      if(canadaReply){addMsg("sam",canadaReply);document.getElementById("btn").disabled=false;return;}
       const moneyReply=moneyQuestionReply(q);
       if(moneyReply){addMsg("sam",moneyReply);document.getElementById("btn").disabled=false;return;}
     }
