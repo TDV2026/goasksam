@@ -236,7 +236,7 @@ function showHowItWorks() {
     </section>
     <section class="hd-sec">
       <div class="hd-eyebrow">Why searches are limited</div>
-      <p>Real data costs real money. Every search pulls real market records, and running that properly is expensive, so for now we cap searches rather than cut corners on the data. Daily Vroom readers get 15 searches a month, up to 3 a day; everyone else gets 5 a month, one a day. Before we open this up wider, we wanted to share it with the TDV community first. More ways to earn extra searches, starting with referring friends, are coming. Signing in is what keeps your results, applies your allowance, and helps us trace bugs when you report them.</p>
+      <p>There's a lot happening behind every Sam recommendation, so while we're opening things up we're keeping usage sensible rather than cutting corners on the data. Daily Vroom readers get 3 searches every day. Everyone else gets 1 a day. Your allowance resets each day, so there are no monthly credits to keep track of. Signing in keeps your results, applies your allowance, and helps us trace bugs when you report them.</p>
     </section>
     <section class="hd-sec">
       <div class="hp-script">Sometimes I'd hand the keys to someone else.</div>

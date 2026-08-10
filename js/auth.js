@@ -259,16 +259,18 @@ function gateRenderStatus(data) {
   if (status === "account_required") {
     gateAppendCard(`<div class="sam-text">That first search was on me. Create a free account to keep going, and I'll hold onto your results.</div><div class="sell-rec-actions"><button class="primary" onclick="gateCreateAccount()">Create a free account</button></div>`);
   } else if (status === "limit_reached") {
-    // 2D: the only paywall-shaped surface. It sells the newsletter, never a price
-    // (no fees, no countdown, nothing blurred). tdv = come back next month.
+    // MONTHLY wall - now UNREACHABLE for standard tiers (daily-only policy: free +
+    // tdv have monthly_searches = null, so reserve_search never returns
+    // monthly_limit). Kept only as a defensive handler for any future tier that
+    // explicitly sets a monthly cap; the live wall is daily_limit_reached below.
     if ((data.tier || "free") === "tdv") {
       gateAppendCard(`<div class="sam-text">That's this month's searches. I'll have a fresh set for you next month.</div>`);
     } else {
       gateAppendCard(`<div class="sam-text">That's your free searches for this month. Daily Vroom readers get more, on the house. <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">Join free &rarr;</a></div><div class="sam-text gate-sub">Already a reader? <button class="gate-inline-link" onclick="openSignInCard('Sign in with the email you subscribed with and your searches are yours.')">Sign in with the email you subscribed with</button>.</div>`);
     }
   } else if (status === "daily_limit_reached") {
-    // Spec A daily wall: locked copy, two variants selected by the account's
-    // daily cap (n). Monthly quota is unaffected; this resets at midnight ET.
+    // Daily wall (the only per-user limit now): locked copy, two variants selected
+    // by the account's daily cap (n). Resets at midnight ET; no monthly credits.
     const n = Number(data && data.dailyCap) || 1;
     const line = n === 1
       ? "That's your search for today. It resets tomorrow, and everything you've run is saved under your results. See you then."
