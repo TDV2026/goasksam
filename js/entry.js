@@ -23,11 +23,12 @@ function localPreRoute(q){
   const lower=q.toLowerCase().trim();
   const funnelReply=sellerFunnelReply();
   if(sellState.active&&sellState.step>0)return{sell:true};
-  // PowerSeller fees: curated, generic, NO partner names, new locked copy.
-  if(/\b(power\s?seller|power seller|consignor|specialist seller)\b[\s\S]*\b(fee|fees|cost|costs|charge|charges|commission|commissions|paid|rate|rates|pricing|percentage|cut|take)\b/i.test(lower)
-     ||/\b(fee|fees|cost|charge|commission|paid|rate|pricing|percentage|cut)\b[\s\S]*\b(power\s?seller|power seller|consignor|specialist seller)\b/i.test(lower))
+  // PowerSeller fees: curated, generic, NO partner names, new locked copy. The
+  // make/consignor tokens allow plurals (powersellers) and the reverse order.
+  if(/\b(power\s?sellers?|consignors?|specialist sellers?)\b[\s\S]*\b(fee|fees|cost|costs|charge|charges|commission|commissions|paid|rate|rates|pricing|percentage|cut|take)\b/i.test(lower)
+     ||/\b(fee|fees|cost|charge|commission|paid|rate|pricing|percentage|cut)\b[\s\S]*\b(power\s?sellers?|consignors?|specialist sellers?)\b/i.test(lower))
     return{reply:"PowerSeller arrangements vary, some work on a percentage of the sale price, others a flat amount, sometimes a mix. The specifics get agreed directly with the PowerSeller once you're introduced. Each case is a little different.",chips:["Sell my car"]};
-  if(/\b(what is|what's|whats|explain|who is|who are).*\b(power\s?seller|power seller|specialist seller|consignor)\b/i.test(lower))
+  if(/\b(what is|what's|whats|what are|what're|explain|who is|who are|tell me about).*\b(power\s?sellers?|specialist sellers?|consignors?)\b/i.test(lower))
     return{reply:powerSellerExplainerText(),chips:["Sell my car"]};
   if(/\b(where should i sell|best place to sell|who(?:'s| is)? best to sell|which platform|what platform|where do i sell|who should sell|best site|best auction|sell it on)\b/i.test(lower))
     return{reply:funnelReply,chips:["Start the questions"]};

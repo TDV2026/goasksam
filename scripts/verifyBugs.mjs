@@ -268,8 +268,11 @@ check("guard: roster leak routed through v2GuardChatAnswer -> replaced", v2Guard
 // Fee language (curated surfaces): no partner names, no definitive fee figure.
 const psExplain=powerSellerExplainerText();
 check("fee: 'what is a PowerSeller' new fee ending, no partner names, no dash", /How they.?re paid varies/.test(psExplain)&&!ROSTER_NAMES_RE().test(psExplain)&&!/[—–]/.test(psExplain)&&!/\$\s?\d/.test(psExplain), psExplain.slice(-140));
-const feeRoute=localPreRoute("what are powerseller fees");
-check("fee: 'powerseller fees' pre-wizard is CURATED (localPreRoute reply), no partner names", feeRoute&&/arrangements vary/i.test(feeRoute.reply||"")&&!ROSTER_NAMES_RE().test(feeRoute.reply||""), (feeRoute&&feeRoute.reply||"").slice(0,120));
+for(const phrasing of ["what are powerseller fees","what are powersellers fees","how much do powersellers charge","powerseller fees"]){
+  const fr=localPreRoute(phrasing);
+  check(`fee: '${phrasing}' -> CURATED locked copy, no partner names`, fr&&/arrangements vary/i.test(fr.reply||"")&&!ROSTER_NAMES_RE().test(fr.reply||""), (fr&&fr.reply||"").slice(0,90));
+}
+const feeRoute=localPreRoute("what are powersellers fees");
 const whatIsRoute=localPreRoute("what is a powerseller");
 check("fee: 'what is a powerseller' still routes to the curated explainer", whatIsRoute&&/regularly manages auction sales/i.test(whatIsRoute.reply||""), (whatIsRoute&&whatIsRoute.reply||"").slice(0,80));
 function ROSTER_NAMES_RE(){ return /\b(howS|Howard Silvers|GenauAutoWerks|Ingo Schmoldt|carbine123|Chris Carbine|Dan Gray|AuthenticAuctions)\b/i; }
