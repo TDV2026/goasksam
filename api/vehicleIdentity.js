@@ -85,6 +85,13 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
+  // Spec D: server-side curtain seal (same gate as the decision API). Pre-launch,
+  // non-crew requests are refused here, not merely hidden by CSS. Env-gated
+  // (CURTAIN_SEALED=1), default off; removed on launch day with the curtain.
+  if (process.env.CURTAIN_SEALED === "1" && (req.headers.cookie || "").indexOf("gas_crew=ok") === -1) {
+    return res.status(403).json({ status: "sealed", error: "Not open yet." });
+  }
+
   const raw = req.body?.text || req.body?.car || req.body?.search || req.body?.query;
   if (!raw) return res.status(400).json({ error: "Missing text" });
   const supabaseUrl = process.env.SUPABASE_URL;

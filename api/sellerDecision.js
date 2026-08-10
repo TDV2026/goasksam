@@ -2155,6 +2155,19 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
+  // Spec D: server-side curtain seal. Pre-launch, non-crew requests to the
+  // decision API are refused HERE, not merely hidden by CSS. Crew devices and
+  // internal jobs (warm / bypassCache) pass. Env-gated (CURTAIN_SEALED=1),
+  // default off so a deploy never locks out crew testing before Sam enables it;
+  // removed on launch day with the rest of the curtain.
+  if (process.env.CURTAIN_SEALED === "1") {
+    const sealCookies = parseCookies(req.headers.cookie);
+    const internalSeal = req.body?.warm === true || req.body?.bypassCache === true;
+    if (sealCookies.gas_crew !== "ok" && !internalSeal) {
+      return res.status(403).json({ status: "sealed", error: "Not open yet." });
+    }
+  }
+
   const apiKey = process.env.OLDCARSDATA_API_KEY;
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
