@@ -260,6 +260,66 @@ function showHowItWorks() {
   msgs.scrollTop = 0;
 }
 
+// Spec E: "Your results" surface. Lists the signed-in user's saved results with
+// a "Saved {date}" label (conditional year), a staleness note + "Run it fresh"
+// chip once older than the dial, and never mutates the stored result itself.
+function savedDateLabel(iso) {
+  const d = new Date(iso); if (isNaN(d.getTime())) return "Saved";
+  const mo = d.toLocaleDateString(undefined, { month: "long" }), day = d.getDate(), y = d.getFullYear();
+  return y === new Date().getFullYear() ? `Saved ${mo} ${day}` : `Saved ${mo} ${day}, ${y}`;
+}
+async function showSavedResults() {
+  enterChatState();
+  if (typeof toggleRail === "function") toggleRail(false);
+  const msgs = document.getElementById("msgs");
+  if (!msgs) return;
+  const shell = body => `<div class="hp-decides"><button class="hp-back" onclick="newConversation()">&larr; Back to home</button>
+    <section class="hd-hero"><div class="hp-script">Everything you've run.</div><h1 class="hd-h1">Your results.</h1></section>${body}</div>`;
+  msgs.innerHTML = shell(`<section class="hd-sec"><p>Loading your results...</p></section>`);
+  msgs.scrollTop = 0;
+  let data = null;
+  try {
+    const session = (typeof authGetSession === "function") ? authGetSession() : null;
+    const token = session && session.access_token;
+    if (!token) { msgs.innerHTML = shell(`<section class="hd-sec"><p>Sign in to see your saved results.</p></section>`); return; }
+    const res = await fetch(apiPath("/api/account"), {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action: "savedResults" })
+    });
+    data = await res.json();
+    if (!res.ok || data.status !== "ok") throw new Error(data && data.error || "failed");
+  } catch (e) {
+    msgs.innerHTML = shell(`<section class="hd-sec"><p>I couldn't load your results right now. Try again in a moment.</p></section>`);
+    return;
+  }
+  const results = data.results || [];
+  if (!results.length) {
+    msgs.innerHTML = shell(`<section class="hd-sec"><p>Nothing saved yet. Every search you run gets saved here.</p>
+      <button class="hd-cta" onclick="startSellFlow()">Sell my car &rarr;</button></section>`);
+    return;
+  }
+  const esc = typeof escapeHtml === "function" ? escapeHtml : (s => String(s == null ? "" : s));
+  const cards = results.map(r => {
+    const pick = r.pick ? (typeof platformDisplayName === "function" ? platformDisplayName(r.pick) : r.pick) : null;
+    const stale = r.stale ? `<p class="hd-note" style="margin-top:8px">Sales have landed since, so today's read could differ.</p>
+      <button class="hd-link" onclick="runSavedFresh(this)" data-car="${esc(r.car)}">Run it fresh &rarr;</button>` : "";
+    return `<section class="hd-sec">
+      <div class="hd-eyebrow">${esc(savedDateLabel(r.createdAt))}</div>
+      <p style="font-family:var(--pc-serif);font-size:19px;color:var(--pc-ink);margin:0">${esc(r.car)}</p>
+      ${pick ? `<p class="hd-note" style="margin-top:4px">Pick: ${esc(pick)}</p>` : ""}
+      ${stale}
+    </section>`;
+  }).join("");
+  msgs.innerHTML = shell(cards);
+  msgs.scrollTop = 0;
+}
+// "Run it fresh" starts a NORMAL, quota-consuming search for the same car. The
+// stored saved result is never touched.
+function runSavedFresh(btn) {
+  const car = btn && btn.getAttribute("data-car");
+  if (car && typeof startSellFlow === "function") startSellFlow(car, false);
+}
+
 // PowerSellers page (editorial; locked copy). Reached from the rail and from the
 // "How we choose PowerSellers" link on How Sam decides. The named roster comes
 // later, post-briefing.

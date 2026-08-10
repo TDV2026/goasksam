@@ -51,6 +51,37 @@ async function funnel(env, event, fields) {
   } catch {}
 }
 
+async function appConfigInt(env, key, fallback) {
+  try {
+    const rows = await supabaseSelect(env, `app_config?key=eq.${encodeURIComponent(key)}&select=value&limit=1`);
+    const n = Number(rows && rows[0] && rows[0].value);
+    return Number.isFinite(n) ? n : fallback;
+  } catch { return fallback; }
+}
+// Spec E: a slim summary of a saved result for the "Your results" surface. The
+// saved payload is the full sellerDecision response; we surface only the car and
+// the pick. The stored result is never mutated or re-run - "Run it fresh" starts
+// a new (quota-consuming) search.
+function savedSummary(payload) {
+  const v = (payload && payload.vehicle) || {};
+  const car = [v.year, v.make, v.model].filter(Boolean).join(" ") || v.label || "your car";
+  const pick = (payload && (payload.decision?.recommendedPath || payload.recommendedPath
+    || payload.routeFacts?.pick?.platformSlug || payload.routeFacts?.pick?.name)) || null;
+  return { car, pick };
+}
+async function handleSavedResults(req, res, env, auth) {
+  const staleDays = await appConfigInt(env, "saved_result_stale_days", 14);
+  const rows = await supabaseSelect(env,
+    `saved_results?user_id=eq.${auth.userId}&select=id,created_at,payload&order=created_at.desc&limit=50`);
+  const now = Date.now();
+  const results = (rows || []).map(r => {
+    const s = savedSummary(r.payload || {});
+    const ageDays = (now - new Date(r.created_at).getTime()) / 864e5;
+    return { id: r.id, createdAt: r.created_at, stale: ageDays > staleDays, car: s.car, pick: s.pick };
+  });
+  return res.status(200).json({ status: "ok", staleDays, results });
+}
+
 function publicAccount(row) {
   return {
     status: "ok",
@@ -72,6 +103,13 @@ export default async function handler(req, res) {
 
   const env = supabaseEnv();
   if (!env) { res.status(500).json({ error: "storage not configured" }); return; }
+
+  // Spec E: "Your results" read. Returns the signed-in user's saved results with
+  // a per-result stale flag (age > saved_result_stale_days, default 14).
+  if (req.body && req.body.action === "savedResults") {
+    try { return await handleSavedResults(req, res, env, auth); }
+    catch (err) { return res.status(500).json({ error: err.message }); }
+  }
 
   // Consent is only meaningful when the client explicitly sends it (captured at
   // the sign-in card, applied once the account exists per 11d). Absent => leave

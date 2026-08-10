@@ -199,6 +199,9 @@ function authRenderTopbar() {
   } else {
     area.innerHTML = `<button class="hp-signin" onclick="openSignInCard()">Sign in</button>`;
   }
+  // Spec E: the "Your results" rail entry is signed-in only.
+  const savedNav = document.getElementById("nav-saved");
+  if (savedNav) savedNav.style.display = authIsSignedIn() ? "" : "none";
 }
 
 // ---------------- boot ----------------
