@@ -50,12 +50,15 @@ function v2RungNoun(){ var kind=v2RungKind(); return kind==="generation"?"genera
 // Short landed-rung label for the metadata tile ("2018 M3", "997 Generation",
 // "Make level"). Unified with the why-prose scope so the tile and prose can never
 // disagree (metadata tile bug: tile read raw v.model while prose read the rung).
+// H: display mapping (Aug 2026). exact-year -> "This exact year"; generation ->
+// "{GEN} Generation"; make -> "{Make}-wide"; model (default) -> "All {model}s".
+// Subtext is always "Analysis scope" (set at the tile render).
 function v2RungLabel(v){
-  var kind=v2RungKind(), gen=v2GenCode(), y=v&&v.year, model=(v&&v.model)||"", make=(v&&v.make)||"";
-  if(kind==="exact")return [y,model].filter(Boolean).join(" ")||model||make||"Model";
+  var kind=v2RungKind(), gen=v2GenCode(), model=(v&&v.model)||"", make=(v&&v.make)||"";
+  if(kind==="exact")return "This exact year";
   if(kind==="generation"&&gen)return String(gen).toUpperCase()+" Generation";
-  if(kind==="make")return "Make level";
-  return model||make||"Model";
+  if(kind==="make")return make?make+"-wide":"Make-wide";
+  return model?"All "+v2Pl(model):"All models";
 }
 function v2Window(ev){ var p=ev&&ev.pricePremium; return (p&&isFinite(p.windowDays))?Number(p.windowDays):(sellState.sellDecision&&sellState.sellDecision.evidence&&sellState.sellDecision.evidence.windowDays)||90; }
 // Window stated in the true unit: the 270-day price rung reads "nine months"; the
@@ -248,7 +251,7 @@ function renderPickCardV2(option){
         + '<div class="pcard-wordmark">'+esc(name)+'</div>'
         + '<div class="pcard-meta">'
           + '<div class="pcard-mrow">'+psvSvg("pin")+'<div><div class="pcard-mp">'+esc(carLbl)+'</div><div class="pcard-ms">'+esc(loc)+'</div></div></div>'
-          + '<div class="pcard-mrow">'+v2Svg("car")+'<div><div class="pcard-mp">'+esc(genLabel)+'</div><div class="pcard-ms">Analysis</div></div></div>'
+          + '<div class="pcard-mrow">'+v2Svg("car")+'<div><div class="pcard-mp">'+esc(genLabel)+'</div><div class="pcard-ms">Analysis scope</div></div></div>'
           + '<div class="pcard-mrow">'+v2Svg("cal")+'<div><div class="pcard-mp">'+esc(winLbl)+'</div><div class="pcard-ms">Analysis window</div></div></div>'
         + '</div>'
         + '<div class="pcard-rule"></div>'
