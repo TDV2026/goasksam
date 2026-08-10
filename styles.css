@@ -646,6 +646,45 @@ body.home #btn:hover{opacity:.85;}
 .hp-article p{font-family:var(--font-sans);font-size:15px;line-height:1.75;color:var(--ink);margin-bottom:13px;}
 .hp-article .hp-back{font-family:var(--font-sans);font-size:13px;color:var(--slate);background:none;border:none;cursor:pointer;padding:0;margin-bottom:18px;}
 
+/* "How Sam decides" page: editorial, on the cream canvas, thin rules; cards only
+   for the three-card row. */
+.hp-decides{max-width:900px;margin:0 auto;padding:14px 32px 72px;}
+.hp-decides .hp-back{font-family:var(--font-sans);font-size:13px;color:var(--slate);background:none;border:none;cursor:pointer;padding:0;margin-bottom:20px;}
+.hd-hero{padding:6px 0 30px;}
+.hd-hero .hp-script{font-size:24px;margin-bottom:10px;}
+.hd-h1{font-family:var(--pc-serif);font-weight:600;font-size:clamp(30px,3.7vw,46px);line-height:1.14;letter-spacing:-.01em;color:var(--pc-ink);margin:0;text-wrap:balance;}
+.hd-lead{font-family:var(--font-sans);font-size:clamp(16px,1.4vw,18px);line-height:1.7;color:#3B372F;max-width:64ch;margin:18px 0 0;}
+.hd-cred{font-family:var(--font-sans);font-size:12.5px;letter-spacing:.01em;color:var(--slate);margin-top:18px;}
+.hd-process{border-top:1px solid var(--pc-line);padding:30px 0;}
+.hd-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:26px;}
+.hd-steps li{display:flex;flex-direction:column;gap:8px;}
+.hd-step-n{font-family:var(--pc-serif);font-size:32px;font-weight:600;color:var(--pc-green);line-height:1;}
+.hd-step-t{font-family:var(--pc-mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--pc-ink);}
+.hd-step-b{font-family:var(--font-sans);font-size:13.5px;line-height:1.5;color:#3B372F;}
+.hd-note{font-family:var(--font-sans);font-size:13.5px;line-height:1.6;color:var(--slate);margin:24px 0 0;max-width:72ch;}
+.hd-cards{border-top:1px solid var(--pc-line);padding:30px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+.hd-card{background:var(--pc-card);border:1px solid #EDE8DE;border-radius:18px;padding:24px 22px;display:flex;flex-direction:column;gap:9px;}
+.hd-card-t{font-family:var(--pc-mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--pc-pillink);}
+.hd-card-q{font-family:var(--pc-serif);font-size:18.5px;font-weight:600;color:var(--pc-ink);line-height:1.25;}
+.hd-card-b{font-family:var(--font-sans);font-size:14px;line-height:1.55;color:#3B372F;}
+.hd-sec{border-top:1px solid var(--pc-line);padding:30px 0;}
+.hd-sec p{font-family:var(--font-sans);font-size:15px;line-height:1.72;color:var(--pc-ink);margin:0 0 12px;max-width:68ch;}
+.hd-sec .hp-script{font-size:22px;margin-bottom:8px;}
+.hd-eyebrow{font-family:var(--pc-mono);font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--pc-pillink);margin-bottom:14px;}
+.hd-h2{font-family:var(--pc-serif);font-size:25px;font-weight:600;color:var(--pc-ink);margin:2px 0 12px;}
+.hd-link{display:inline-block;font-family:var(--font-sans);font-size:14px;font-weight:500;color:var(--pc-cta);text-decoration:none;cursor:pointer;margin-top:4px;}
+.hd-link:hover{text-decoration:underline;}
+.hd-know{padding:13px 0;border-top:1px solid var(--pc-line);display:flex;flex-direction:column;gap:3px;}
+.hd-know:first-of-type{border-top:0;padding-top:2px;}
+.hd-know b{font-family:var(--font-sans);font-size:15.5px;color:var(--pc-ink);font-weight:600;}
+.hd-know span{font-family:var(--font-sans);font-size:14.5px;color:#3B372F;line-height:1.5;}
+.hd-close{margin-top:26px;font-size:22px;}
+@media(max-width:768px){
+  .hp-decides{padding:12px 20px 56px;}
+  .hd-steps{grid-template-columns:1fr;gap:22px;}
+  .hd-cards{grid-template-columns:1fr;}
+}
+
 /* Mobile */
 @media(max-width:820px){
   #rail{position:fixed;left:0;top:0;bottom:0;z-index:30;width:280px;transform:translateX(-100%);transition:transform var(--dur-base) var(--ease);}

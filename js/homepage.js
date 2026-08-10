@@ -181,9 +181,67 @@ function renderArticleShell(innerHTML) {
   msgs.innerHTML = `<div class="hp-article"><button class="hp-back" onclick="newConversation()">&larr; Back to home</button>${innerHTML}</div>`;
   msgs.scrollTop = 0;
 }
+// "How Sam decides" (editorial page; locked copy). Person-case Sam throughout,
+// no dashes. Content sits on the cream canvas with typography + thin rules; cards
+// only for the three-card row.
 function showHowItWorks() {
-  const body = LEARN_HOW.sections.map(s => `<h2>${escapeHtml(s.h)}</h2><p>${escapeHtml(s.body)}</p>`).join("");
-  renderArticleShell(`<h1>${escapeHtml(LEARN_HOW.title)}</h1>${body}`);
+  enterChatState();
+  if (typeof toggleRail === "function") toggleRail(false);
+  const msgs = document.getElementById("msgs");
+  if (!msgs) return;
+  const step = (n, t, b) => `<li><span class="hd-step-n">${n}</span><span class="hd-step-t">${t}</span><span class="hd-step-b">${b}</span></li>`;
+  const card = (t, q, b) => `<div class="hd-card"><div class="hd-card-t">${t}</div><div class="hd-card-q">${q}</div><div class="hd-card-b">${b}</div></div>`;
+  const know = (h, b) => `<div class="hd-know"><b>${h}</b><span>${b}</span></div>`;
+  msgs.innerHTML = `<div class="hp-decides">
+    <button class="hp-back" onclick="newConversation()">&larr; Back to home</button>
+    <section class="hd-hero">
+      <div class="hp-script">This isn't guesswork.</div>
+      <h1 class="hd-h1">How Sam decides where I'd sell your car.</h1>
+      <p class="hd-lead">Sam analyzes real auction results, platform performance and timing patterns to work out where cars like yours have been getting the strongest results. The data does the heavy lifting. Our own rules and methodology turn it into a recommendation.</p>
+      <div class="hd-cred">Built by The Daily Vroom · Tracking the enthusiast auction market every day</div>
+    </section>
+    <section class="hd-process">
+      <ol class="hd-steps">
+        ${step("01", "Your car", "We start with exactly what you're selling.")}
+        ${step("02", "Finding comparable sales", "We look first at your exact year, model and trim, then widen the comparison only when necessary.")}
+        ${step("03", "Comparing platform performance", "We analyze recent sold results, timing patterns and reserve outcomes across the platforms we track.")}
+        ${step("04", "Writing the recommendation", "We turn that evidence into a clear answer about where I'd sell your car and why.")}
+      </ol>
+      <p class="hd-note">Whenever we widen the comparison beyond your exact car, we'll tell you. Every statistic shows the period and scope it came from.</p>
+    </section>
+    <section class="hd-cards">
+      ${card("Recent sales", "Where have cars like yours actually sold?", "We compare recent completed auctions across the enthusiast platforms we monitor.")}
+      ${card("Platform performance", "Where are cars like yours performing strongest?", "Sam looks for meaningful differences between platforms, not simply which one sells the most cars.")}
+      ${card("Professional representation", "Who's well suited to handle a car like yours?", "When professional representation makes sense, Sam can match your car with one of our selected PowerSellers.")}
+    </section>
+    <section class="hd-sec">
+      <div class="hd-eyebrow">The data behind the recommendation</div>
+      <p>Sam monitors results from Bring a Trailer, Cars & Bids, Hagerty Marketplace, PCarMarket, Sotheby's Motorsport, Hemmings, Car & Classic and Collecting Cars, with more sources being added. We're interested in what actually happened: what sold, where it sold, when it sold and what it sold for.</p>
+      <p>More data isn't automatically better. Sam starts with the closest match to your car and only broadens the comparison when there isn't enough useful evidence.</p>
+    </section>
+    <section class="hd-sec">
+      <div class="hp-script">Built by people who live this market.</div>
+      <h2 class="hd-h2">From The Daily Vroom</h2>
+      <p>GoAskSam grew out of The Daily Vroom, our daily look at the enthusiast auction market. For three years we've covered the platforms, sellers, cars and trends in this market without running a single paid advertisement.</p>
+      <p>Along the way we've built free tools for the community, including our Import Calculator, Domestic Shipping Calculator and industry Jobs Board. Sam is the next step: taking the data and knowledge we've accumulated and making it useful when someone has a car to sell.</p>
+      <p>This is the first version. We already know people will want Sam to do more, and there's a lot more coming.</p>
+    </section>
+    <section class="hd-sec">
+      <div class="hp-script">Sometimes I'd hand the keys to someone else.</div>
+      <p>Not every owner wants to photograph the car, write the listing, answer questions and manage an auction themselves. For some cars, Sam may recommend one of our selected PowerSellers instead.</p>
+      <p>That doesn't mean we think they'll magically get you more money. It means we think professional representation may be the better way to sell your particular car.</p>
+      <a class="hd-link" onclick="showPowerSellerExplainer()">How we choose PowerSellers &rarr;</a>
+    </section>
+    <section class="hd-sec">
+      <div class="hd-eyebrow">A few things you should know</div>
+      ${know("We don't value your car.", "Sam recommends how to sell it, not what it's worth.")}
+      ${know("We don't invent numbers.", "If we don't have enough useful data, we'll tell you.")}
+      ${know("Recommendations aren't for sale.", "Platforms can't pay to be the pick, and PowerSellers can't pay to be the match.")}
+      ${know("We show our work.", "When Sam makes a data claim, you'll see the scope and time period behind it.")}
+      <div class="hp-script hd-close">You make the decision. Sam just helps you make a better-informed one.</div>
+    </section>
+  </div>`;
+  msgs.scrollTop = 0;
 }
 function showSellingPlatforms() {
   const body = LEARN_PLATFORMS.platforms.map(p => `<h2>${escapeHtml(p.name)}</h2><p>${escapeHtml(p.body)}</p>`).join("");
