@@ -12,7 +12,7 @@ const PLACEHOLDER_EXAMPLES = ["2021 Porsche 911 GT3 Touring", "1987 Ferrari Test
 const LEARN_HOW = {
   title: "How Sam works",
   sections: [
-    { h: "What we look at", body: "Sam analyzes recent auction results, seller performance, platform trends and market conditions before making a recommendation. For your exact car, we look at where comparable cars have actually sold, how those results compare across platforms, and which sellers have handled cars like yours. We never value your car and never predict a price. Every claim states the scope it was measured at and the time window it covers, so you always know what a number is based on." },
+    { h: "What we look at", body: "Sam analyzes recent auction results, platform performance and timing patterns before making a recommendation. For your exact car, we look at where comparable cars have actually sold and how those results compare across platforms. We never value your car and never predict a price. Every claim states the scope it was measured at and the time window it covers, so you always know what a number is based on." },
     { h: "How the comparison works", body: "We start narrow, at your exact year and trim, and only widen the scope when the close data is too thin to be useful. When we widen, we say so. The recommendation is the platform where cars like yours have found the strongest, most consistent results, judged on recent sold records rather than opinion." },
     { h: "Where the recommendation comes from", body: "The recommendation itself comes from our own algorithm. We built the ranking rules, the evidence thresholds, and the honesty gates ourselves. The sales data informs it, but the judgement of where your car should sell is ours." },
     { h: "What we never do", body: "We never value your car, and we never invent a number. Every figure you see comes from real records. We hold no platform fee data and never state fees as fact. If the data is thin, we tell you plainly and give an honest read rather than a confident guess." },
@@ -34,7 +34,7 @@ const LEARN_PLATFORMS = {
   ],
   outro: "More online platforms are being added as we widen the data we track."
 };
-const HP_REASSURANCE = "Recommendations are based on recent sales, seller performance and market trends.";
+const HP_REASSURANCE = "Recommendations are based on recent auction results and platform performance.";
 
 // ---- state ----
 let __phTimer = null, __phIndex = 0, __phStopped = false;
