@@ -12,6 +12,7 @@
     "smoke:prod": "node scripts/smokeProd.js && node scripts/smokeWizard.js",
     "verify:real": "node scripts/driveReal.mjs",
     "ingest": "node scripts/ingest.js",
+    "probe:depth": "node scripts/depthProbe.js",
     "warm": "node scripts/warm.js",
     "deploy": "git push origin HEAD && vercel --prod --yes"
   },
