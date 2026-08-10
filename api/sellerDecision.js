@@ -2276,7 +2276,7 @@ export default async function handler(req, res) {
     // 2C: account gate + monthly limits. Internal callers (warm, bypassCache;
     // ladderPreview already returned) run unenforced and never write gate state.
     const internalCall = req.body?.warm === true || req.body?.bypassCache === true;
-    let searchAccountId = null, anonFirstFree = false, anonSessionId = null, searchQuota = null;
+    let searchAccountId = null, anonFirstFree = false, anonSessionId = null, searchQuota = null, crewBypass = false;
     if (!internalCall) {
       const gate = await computeSearchGate(req, vehicle, supabaseUrl, supabaseKey);
       if (gate.block) return res.status(200).json(gate.block);
@@ -2285,7 +2285,10 @@ export default async function handler(req, res) {
       anonFirstFree = !!gate.anonFirstFree;
       anonSessionId = gate.anonSessionId || null;
       searchQuota = gate.quota || null;
+      crewBypass = !!gate.crewBypass;
     }
+    // F: coarse tier for the dashboard (forward-only). internal jobs -> "internal".
+    const searchTier = internalCall ? "internal" : crewBypass ? "crew" : (searchQuota?.tier || (searchAccountId ? "free" : "anon"));
 
     let fetchResult = null;
     let cacheStatus = "miss";
@@ -2434,7 +2437,8 @@ export default async function handler(req, res) {
       await recordUsageEvent({
         event_type: "data_unavailable", route: "/api/sellerDecision", status: reason,
         search_text: rawSearch, vehicle, oldcarsdata_metered_requests: fetchResult.meteredRequests || 0, duration_ms: fetchResult.elapsedMs || 0,
-        metadata: { ...requestMetadata(req), reason, ocdRateLimit: fetchResult.rateLimit || null, stopReason: fetchResult.stopReason }
+        metadata: { ...requestMetadata(req), reason, ocdRateLimit: fetchResult.rateLimit || null, stopReason: fetchResult.stopReason,
+          enteredState: sellerCriteria.state || null, enteredCountry: sellerCriteria.region || null, tier: searchTier, outcome: "data_unavailable" }
       }, supabaseUrl, supabaseKey);
       if (reservationEventId) { try { await supabaseRpc("release_search", { p_event_id: reservationEventId }, supabaseUrl, supabaseKey); } catch (e) {} }
       return res.status(200).json({ status: "data_unavailable", reason, vehicle });
@@ -2518,7 +2522,28 @@ export default async function handler(req, res) {
         internalConfidenceLevel: analysis.internalConfidence?.level ?? null,
         evidenceLevel: analysis.evidenceLevel,
         ladderRung: analysis.ladder?.landed?.rung || null,
-        evidenceBasis: decision.evidenceBasis
+        evidenceBasis: decision.evidenceBasis,
+        // F (forward-only, no backfill): the dashboard view=searches / view=geo
+        // fields. Entered location (never raw IP), tier, coarse outcome, the pick
+        // platform, and whether a PowerSeller was shown / eligible-to-lead + who.
+        enteredState: sellerCriteria.state || null,
+        enteredCountry: sellerCriteria.region || null,
+        tier: searchTier,
+        outcome: (() => {
+          const p = analysis.pricePremium;
+          if (p) {
+            if (p.type === "premium" && p.gateType === "symmetric" && Number.isFinite(p.percent) && Math.abs(p.percent) >= 10) return "mode_a";
+            if (p.gateType === "symmetric" && Number.isFinite(p.percent) && Math.abs(p.percent) < 10) return "mode_b";
+            if (p.type === "market_dominance") return "concentration";
+          }
+          return "thin";
+        })(),
+        pickPlatform: decision.recommendedPath || null,
+        powerSeller: {
+          shown: !!(decision.partnerReferral && (decision.partnerReferral.eligible || decision.partnerReferral.secondary)),
+          eligible: !!(decision.partnerReferral && decision.partnerReferral.eligible),
+          name: (decision.partnerReferral && decision.partnerReferral.partner && decision.partnerReferral.partner.name) || null
+        }
       }
     }, supabaseUrl, supabaseKey);
 

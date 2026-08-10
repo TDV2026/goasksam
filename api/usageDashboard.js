@@ -36,6 +36,22 @@ async function renderAccountsView(req, res) {
   const yStart = new Date(now - 2 * 864e5).toISOString().slice(0, 10);
   const f7 = {}, fy = {};
   for (const e of (funnel7 || [])) { f7[e.event] = (f7[e.event] || 0) + 1; if (adminDayKey(e.created_at) === yStart) fy[e.event] = (fy[e.event] || 0) + 1; }
+  // F item 4: today's searches by outcome (rich / thin / refused / unavailable).
+  // rich = a real evidence read; refused = gate blocks (funnel); unavailable = the
+  // data_unavailable event. Read from the same decision-event source as the views.
+  const todayDecisions = await fetchDecisionEvents(env, 1, 100000);
+  const outcomeToday = { rich: 0, thin: 0, unavailable: 0, refused: 0 };
+  for (const e of todayDecisions) {
+    if (e.created_at < todayIso) continue;
+    const o = eventOutcome(e);
+    if (o === "data_unavailable") outcomeToday.unavailable++;
+    else if (o === "thin") outcomeToday.thin++;
+    else outcomeToday.rich++;
+  }
+  for (const e of (funnel7 || [])) {
+    if (e.created_at < todayIso) continue;
+    if (["limit_hit", "daily_limit_hit", "account_required", "second_search_attempt"].includes(e.event)) outcomeToday.refused++;
+  }
   const data = {
     generatedAt: new Date().toISOString(),
     accounts: { total: accts.length, byTier, byDay: acctDays }, limits,
@@ -57,6 +73,14 @@ async function renderAccountsView(req, res) {
   <div class="card"><div class="big">${data.searches.today}</div>searches today</div>
   <div class="card"><div class="big">${data.hunts.total}</div>hunts (${data.hunts.today} today)</div>
 </div>
+<h2>Today by outcome</h2>
+<div class="grid">
+  <div class="card"><div class="big">${outcomeToday.rich}</div>rich</div>
+  <div class="card"><div class="big">${outcomeToday.thin}</div>thin</div>
+  <div class="card"><div class="big">${outcomeToday.refused}</div>refused</div>
+  <div class="card"><div class="big">${outcomeToday.unavailable}</div>unavailable</div>
+</div>
+<nav style="margin-top:12px"><a href="?view=searches&key=${adminEsc(req.query?.key || "")}">searches &rarr;</a> <a href="?view=cars&key=${adminEsc(req.query?.key || "")}">cars &rarr;</a> <a href="?view=geo&key=${adminEsc(req.query?.key || "")}">geo &rarr;</a></nav>
 <h2>Accounts by tier</h2><table><tr><th>Tier</th><th>Accounts</th><th>Limit</th></tr>${tierRows || "<tr><td colspan=3>none</td></tr>"}</table>
 <h2>Accounts created (last 14 days)</h2><table><tr><th>Day</th><th>New accounts</th></tr>${acctDayRows || "<tr><td colspan=2>none</td></tr>"}</table>
 <h2>Funnel (yesterday vs 7-day)</h2><table><tr><th>Step</th><th>Yesterday</th><th>7-day</th></tr>${funnelRows}</table>`);
@@ -75,6 +99,105 @@ async function renderOutboundView(req, res) {
   const note = !env ? "Supabase env missing." : rows === null ? "outbound_clicks table not found yet." : `${list.length} rows.`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.status(200).send(`<!doctype html><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Outbound clicks</title><h3>Outbound clicks (newest first)</h3><table border="1" cellpadding="4" cellspacing="0"><tr><th>date</th><th>year</th><th>make</th><th>model</th><th>trim</th><th>location</th><th>platform</th><th>card</th><th>outcome</th><th>rung</th><th>reason</th><th>pref</th></tr>${trs}</table><p>${adminEsc(note)}</p>`);
+}
+
+// ===================== F: decision-event views (searches / cars / geo) =====================
+// Read-only, from the forward-only fields logged on seller_decision +
+// data_unavailable events (entered location, tier, outcome, pick, PowerSeller).
+// Crew searches are flagged and filterable everywhere (?crew=include|exclude|only).
+// Entered location only is ever rendered - never a raw IP.
+const OUTCOME_LABELS = { mode_a: "Mode A", mode_b: "Mode B", concentration: "Concentration", thin: "Thin", data_unavailable: "Unavailable" };
+function crewMode(req) { const c = String(req.query?.crew || "include").toLowerCase(); return (c === "exclude" || c === "only") ? c : "include"; }
+function applyCrew(events, mode) {
+  if (mode === "exclude") return events.filter(e => (e.metadata?.tier) !== "crew");
+  if (mode === "only") return events.filter(e => (e.metadata?.tier) === "crew");
+  return events;
+}
+async function fetchDecisionEvents(env, days, limit = 100000) {
+  const since = new Date(Date.now() - days * 864e5).toISOString();
+  const rows = await supabaseSelect(env, `app_usage_events?created_at=gte.${encodeURIComponent(since)}&event_type=in.(seller_decision,data_unavailable)&select=created_at,event_type,status,search_text,vehicle,metadata&order=created_at.desc&limit=${limit}`);
+  return rows || [];
+}
+const carLabel = v => [v?.year, v?.make, v?.model].filter(Boolean).join(" ") || v?.label || "unknown";
+const nameKey = v => [v?.make, v?.model].filter(Boolean).join(" ").toLowerCase() || "unknown";
+const geoKey = m => [m?.enteredState, m?.enteredCountry].filter(Boolean).join(" / ") || "unknown";
+function eventOutcome(e) { return (e.metadata?.outcome) || (e.event_type === "data_unavailable" ? "data_unavailable" : "thin"); }
+function pageChrome(title, body) {
+  return `<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${adminEsc(title)}</title>
+<style>body{font:14px/1.5 system-ui;margin:28px;color:#16140f}h1{font-size:20px}h2{font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:#6b6861;margin-top:26px}table{border-collapse:collapse;width:100%;margin-top:8px}td,th{border:1px solid #e3e1db;padding:5px 9px;text-align:left;font-size:13px}th{background:#f6f5f2}nav a{margin-right:14px;font-size:13px}.pill{font-size:11px;padding:1px 6px;border-radius:8px;background:#eee}.crew{background:#ffe8c2}</style>
+<nav>${["searches", "cars", "geo", "accounts", "usage", "outbound"].map(v => `<a href="?view=${v}&key=${adminEsc((body.__key) || "")}">${v}</a>`).join("")}</nav>
+<h1>${adminEsc(title)}</h1>${body.html}`;
+}
+// ?view=searches : last 100 decisions, one row each.
+async function renderSearchesView(req, res) {
+  const env = supabaseEnv(); if (!env) return res.status(500).json({ error: "storage not configured" });
+  const days = Math.max(1, Math.min(30, Number(req.query?.days || 7)));
+  const mode = crewMode(req);
+  let events = applyCrew(await fetchDecisionEvents(env, days), mode).slice(0, 100);
+  // best-effort outbound y/n: an outbound_click for the same car within 3h after.
+  const sinceIso = new Date(Date.now() - days * 864e5).toISOString();
+  const clicks = (await supabaseSelect(env, `outbound_clicks?created_at=gte.${sinceIso}&select=created_at,year,make,model&limit=100000`)) || [];
+  const clickKey = c => `${(c.make || "").toLowerCase()}|${(c.model || "").toLowerCase()}`;
+  const clickIndex = new Map();
+  for (const c of clicks) { const k = clickKey(c); (clickIndex.get(k) || clickIndex.set(k, []).get(k)).push(new Date(c.created_at).getTime()); }
+  const outboundFor = e => {
+    const k = `${(e.vehicle?.make || "").toLowerCase()}|${(e.vehicle?.model || "").toLowerCase()}`;
+    const t = new Date(e.created_at).getTime(); const arr = clickIndex.get(k) || [];
+    return arr.some(ct => ct >= t && ct - t <= 3 * 3600 * 1000);
+  };
+  const rows = events.map(e => {
+    const m = e.metadata || {}; const ps = m.powerSeller || {};
+    const psCell = ps.shown ? `${adminEsc(ps.name || "yes")}${ps.eligible ? " (lead-eligible)" : ""}` : "-";
+    return `<tr><td>${new Date(e.created_at).toLocaleString()}</td><td>${adminEsc(carLabel(e.vehicle))}</td><td>${adminEsc(geoKey(m))}</td>
+    <td>${adminEsc(m.tier || "")}${m.tier === "crew" ? ' <span class="pill crew">crew</span>' : ""}</td>
+    <td>${adminEsc(OUTCOME_LABELS[eventOutcome(e)] || eventOutcome(e))}</td><td>${adminEsc(m.pickPlatform || "-")}</td>
+    <td>${psCell}</td><td>${outboundFor(e) ? "yes" : "-"}</td></tr>`;
+  }).join("");
+  if (req.query?.format === "json") return res.status(200).json({ days, crew: mode, count: events.length, searches: events.map(e => ({ at: e.created_at, car: carLabel(e.vehicle), location: geoKey(e.metadata), tier: e.metadata?.tier, outcome: eventOutcome(e), pick: e.metadata?.pickPlatform || null, powerSeller: e.metadata?.powerSeller || null, outbound: outboundFor(e) })) });
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.status(200).send(pageChrome("Searches", { __key: req.query?.key, html: `<div>last ${days}d, crew: ${mode} &middot; <a href="?view=searches&crew=exclude&key=${adminEsc(req.query?.key || "")}">exclude</a> <a href="?view=searches&crew=only&key=${adminEsc(req.query?.key || "")}">only</a> <a href="?view=searches&crew=include&key=${adminEsc(req.query?.key || "")}">all</a></div>
+  <table><tr><th>Time</th><th>Car</th><th>Location</th><th>Tier</th><th>Outcome</th><th>Pick</th><th>PowerSeller</th><th>Outbound</th></tr>${rows || "<tr><td colspan=8>none</td></tr>"}</table>
+  <p style="color:#6b6861">Outbound is best-effort (car+time match); a per-search intro/outbound join key is a follow-up.</p>` }));
+}
+// ?view=cars : top searched models, 7d and 30d.
+async function renderCarsView(req, res) {
+  const env = supabaseEnv(); if (!env) return res.status(500).json({ error: "storage not configured" });
+  const mode = crewMode(req);
+  const all = applyCrew(await fetchDecisionEvents(env, 30), mode);
+  const cut7 = Date.now() - 7 * 864e5;
+  const agg = new Map();
+  for (const e of all) {
+    const k = nameKey(e.vehicle); if (k === "unknown") continue;
+    const a = agg.get(k) || { name: carLabel({ make: e.vehicle?.make, model: e.vehicle?.model }), c7: 0, c30: 0, hit: 0, outcomes: {} };
+    a.c30++; if (new Date(e.created_at).getTime() >= cut7) a.c7++;
+    if ((e.metadata?.marketFetchCache) === "hit") a.hit++;
+    const o = eventOutcome(e); a.outcomes[o] = (a.outcomes[o] || 0) + 1;
+    agg.set(k, a);
+  }
+  const list = [...agg.values()].map(a => ({ ...a, hitRate: a.c30 ? Math.round(100 * a.hit / a.c30) : 0, dominant: Object.entries(a.outcomes).sort((x, y) => y[1] - x[1])[0]?.[0] || "-" }))
+    .sort((x, y) => y.c30 - x.c30).slice(0, 100);
+  if (req.query?.format === "json") return res.status(200).json({ crew: mode, cars: list });
+  const rows = list.map(a => `<tr><td>${adminEsc(a.name)}</td><td>${a.c7}</td><td>${a.c30}</td><td>${a.hitRate}%</td><td>${adminEsc(OUTCOME_LABELS[a.dominant] || a.dominant)}</td></tr>`).join("");
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.status(200).send(pageChrome("Top cars", { __key: req.query?.key, html: `<div>crew: ${mode}</div><table><tr><th>Model</th><th>7d</th><th>30d</th><th>Cache hit</th><th>Dominant outcome</th></tr>${rows || "<tr><td colspan=5>none</td></tr>"}</table>` }));
+}
+// ?view=geo : searches by entered state/country, 7d and 30d. No raw IPs.
+async function renderGeoView(req, res) {
+  const env = supabaseEnv(); if (!env) return res.status(500).json({ error: "storage not configured" });
+  const mode = crewMode(req);
+  const all = applyCrew(await fetchDecisionEvents(env, 30), mode);
+  const cut7 = Date.now() - 7 * 864e5;
+  const agg = new Map();
+  for (const e of all) {
+    const k = geoKey(e.metadata || {});
+    const a = agg.get(k) || { loc: k, c7: 0, c30: 0 };
+    a.c30++; if (new Date(e.created_at).getTime() >= cut7) a.c7++; agg.set(k, a);
+  }
+  const list = [...agg.values()].sort((x, y) => y.c30 - x.c30);
+  if (req.query?.format === "json") return res.status(200).json({ crew: mode, geo: list });
+  const rows = list.map(a => `<tr><td>${adminEsc(a.loc)}</td><td>${a.c7}</td><td>${a.c30}</td></tr>`).join("");
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.status(200).send(pageChrome("Geo", { __key: req.query?.key, html: `<div>crew: ${mode} &middot; entered location only, never IPs</div><table><tr><th>Location</th><th>7d</th><th>30d</th></tr>${rows || "<tr><td colspan=3>none</td></tr>"}</table>` }));
 }
 
 function setCors(res) {
@@ -278,6 +401,9 @@ export default async function handler(req, res) {
   try {
     if (req.query?.view === "accounts") return await renderAccountsView(req, res);
     if (req.query?.view === "outbound") return await renderOutboundView(req, res);
+    if (req.query?.view === "searches") return await renderSearchesView(req, res);
+    if (req.query?.view === "cars") return await renderCarsView(req, res);
+    if (req.query?.view === "geo") return await renderGeoView(req, res);
   } catch (err) { return res.status(500).json({ error: err.message }); }
 
   const supabaseUrl = process.env.SUPABASE_URL;
