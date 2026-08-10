@@ -14,7 +14,9 @@
     "ingest": "node scripts/ingest.js",
     "probe:depth": "node scripts/depthProbe.js",
     "warm": "node scripts/warm.js",
-    "deploy": "git push origin HEAD && vercel --prod --yes"
+    "deploy": "git push origin HEAD && vercel --prod --yes",
+    "warm:list": "node scripts/buildWarmList.js",
+    "fill:ladder": "node scripts/fillLadder.js"
   },
   "devDependencies": {
     "puppeteer-core": "^25.5.0"
