@@ -5,6 +5,27 @@ function showPowerSellerExplainer(){
 function powerSellerExplainerText(){
   return "A PowerSeller is someone who regularly manages auction sales for other people. A good one can prep the car, write or shape the listing, answer buyer questions, live in the comments, handle logistics and choose the platform they think gives the car the best shot.\n\nThey are not automatically better than selling it yourself. For some cars I’d keep it simple and go straight to a platform. For higher-value or specialist cars, I may suggest speaking to one before deciding.\n\nNobody is paying to be recommended here. You hand off the car and they manage the process start to finish. How they’re paid varies, some work on a percentage of the sale, some a flat amount, sometimes a mix, and the terms get agreed directly with the PowerSeller. Each case is a little different.";
 }
+// Curated answer for "how does GoAskSam make money / is this free / who pays"
+// questions. Locked copy, no partner names, no figures, no platform claims. Used
+// both pre-wizard (localPreRoute) and post-result (step 12), never the LLM.
+// Queries specifically about PowerSeller/consignor pay are left to the dedicated
+// fees intercept, so this returns null for those.
+function moneyQuestionReply(q){
+  const lower=(q||"").toLowerCase();
+  if(/\b(power\s?sellers?|consignors?|specialist sellers?)\b/i.test(lower))return null;
+  const hit=
+    /\b(?:you|goasksam|go\s?ask\s?sam|guys|sam|this|it|y'?all|ya'?ll)\s+(?:guys\s+)?(?:make|makes|making|earn|earns)\s+(?:any\s+|your\s+|its?\s+|the\s+)?(?:money|anything|revenue|a living)\b/i.test(lower)
+    ||/\b(?:you|goasksam|go\s?ask\s?sam|guys|sam)\s+(?:guys\s+)?(?:get|gets|getting)?\s*paid\b/i.test(lower)
+    ||/\bhow\s+(?:do|does|are|is)\s+(?:you|goasksam|this|it|guys|ya|y'?all)\b[\s\S]{0,24}\b(?:paid|money|revenue|monet)/i.test(lower)
+    ||/\bwho\s+(?:pays|'s paying|is paying|pay)\b/i.test(lower)
+    ||/\bis\s+(?:this|it|goasksam|the (?:app|service|tool|site))\s+(?:really\s+|actually\s+|all\s+)?free\b/i.test(lower)
+    ||/\bfree to use\b/i.test(lower)
+    ||/\b(?:what'?s|whats)\s+(?:the\s+)?catch\b/i.test(lower)
+    ||/\bbusiness model\b/i.test(lower)
+    ||/\b(?:monet(?:ise|ize)|monetization|monetisation)\b/i.test(lower);
+  if(!hit)return null;
+  return "GoAskSam is free for sellers. We have commercial arrangements with some of the PowerSellers we work with, and nobody can pay to be recommended. The recommendation always comes first.";
+}
 function showRecommendationExplainer(){
   hideHero();
   addMsg("sam","I start with recent market activity. If there is enough recent data, I use that. If the signal is too thin, I widen the window rather than pretending the answer is stronger than it is.\n\nThen I weigh your car, timing, location and how much of the sale you want to manage yourself. Sometimes that points straight to a platform. Sometimes I’d speak to a PowerSeller first. Either way, nobody is paying to be recommended and nothing gets sent until you approve it.","",chipsHTML(["Sell my car"]));
@@ -28,6 +49,8 @@ function localPreRoute(q){
   if(/\b(power\s?sellers?|consignors?|specialist sellers?)\b[\s\S]*\b(fee|fees|cost|costs|charge|charges|commission|commissions|paid|rate|rates|pricing|percentage|cut|take)\b/i.test(lower)
      ||/\b(fee|fees|cost|charge|commission|paid|rate|pricing|percentage|cut)\b[\s\S]*\b(power\s?sellers?|consignors?|specialist sellers?)\b/i.test(lower))
     return{reply:"PowerSeller arrangements vary, some work on a percentage of the sale price, others a flat amount, sometimes a mix. The specifics get agreed directly with the PowerSeller once you're introduced. Each case is a little different.",chips:["Sell my car"]};
+  const moneyReply=moneyQuestionReply(q);
+  if(moneyReply)return{reply:moneyReply,chips:["Sell my car"]};
   if(/\b(what is|what's|whats|what are|what're|explain|who is|who are|tell me about).*\b(power\s?sellers?|specialist sellers?|consignors?)\b/i.test(lower))
     return{reply:powerSellerExplainerText(),chips:["Sell my car"]};
   if(/\b(where should i sell|best place to sell|who(?:'s| is)? best to sell|which platform|what platform|where do i sell|who should sell|best site|best auction|sell it on)\b/i.test(lower))
@@ -77,6 +100,13 @@ async function send(){
   }
 
   if(pre&&pre.sell){
+    // Post-result money question: curated answer, never the LLM. Mirrors the
+    // pre-wizard intercept; the wizard early-returns {sell:true} before
+    // localPreRoute can catch it, so it is handled here for the result state.
+    if(sellState.step===12){
+      const moneyReply=moneyQuestionReply(q);
+      if(moneyReply){addMsg("sam",moneyReply);document.getElementById("btn").disabled=false;return;}
+    }
     const handled=await handleSellStep(q);
     if(!handled){
       showTyping();

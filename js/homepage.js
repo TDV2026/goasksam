@@ -283,10 +283,6 @@ function showPowerSellers() {
     <section class="hd-sec">
       <div class="hd-eyebrow">What it costs</div>
       <p>How they're paid varies, some work on a percentage of the sale, some a flat amount, sometimes a mix, and the terms get agreed directly with the PowerSeller. Each case is a little different.</p>
-    </section>
-    <section class="hd-sec">
-      <div class="hd-eyebrow">Where we make money</div>
-      <p>Fair question. GoAskSam is free for sellers, and the platforms pay us nothing: not for placement, not per click, not per sale. When a PowerSeller closes a sale that began with an introduction from us, they pay us a referral fee out of their side of the arrangement. That's the whole business. It only works if the recommendations stay worth trusting, which is why nobody can pay to be one.</p>
       <button class="hd-cta" onclick="startSellFlow()">Tell me what you're selling &rarr;</button>
     </section>
   </div>`;
