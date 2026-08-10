@@ -39,6 +39,20 @@ function v2ScopePlural(v){
   if(kind==="make")return v2Pl(v&&v.make||"these cars");
   return model+"s";
 }
+// Attributive-SINGULAR scope: the form used directly before a noun ("... sales",
+// "... market", "... prices"). "8N-generation TT sales", not "TTs sales". Same
+// landed rung as v2ScopePlural; only the trailing plural drops.
+function v2ScopeAttr(v){
+  var kind=v2RungKind(), model=String(v&&v.model||"car"), gen=v2GenCode(), year=v&&v.year;
+  if(kind==="exact"&&year)return year+" "+model;
+  if(kind==="generation"&&gen)return String(gen).toUpperCase()+"-generation "+model;
+  if(kind==="make")return String(v&&v.make||"these cars");
+  return model;
+}
+// Item 4: the ONE resolved-car display, used everywhere the car is named (PS
+// headline, platform card, metadata tile). Includes the trim when resolved, so
+// the summary strip and the card metadata can never disagree.
+function v2CarDisplay(v){ v=v||{}; return [v.year,v.make,v.model,v.trim].filter(Boolean).join(" ")||"your car"; }
 function v2RungRef(v){
   var kind=v2RungKind(), gen=v2GenCode();
   if(kind==="exact")return "this exact car";
@@ -77,7 +91,7 @@ function v2Mode(ev){
 // ---------- canonical clauses (locked) ----------
 function CLAUSE_A(s){ return v2Fill("{scope} have closed {delta}% higher on {platform} than the other platforms I track over the past {window}",s); }
 function CLAUSE_B(s){ return v2Fill("prices for {scope} have run close across the platforms I track over the past {window}",s); }
-function CLAUSE_C(s){ return v2Fill("recent {scope} sales have concentrated on {platform}, with too few on other platforms to compare prices over the past {window}",s); }
+function CLAUSE_C(s){ return v2Fill("recent {scopeAttr} sales have concentrated on {platform}, with too few on other platforms to compare prices over the past {window}",s); }
 
 // Rarity wording is allowed only for cars that are genuinely old or genuinely
 // collectible: >25 years old, OR an enthusiast-tier make that actually has
@@ -98,10 +112,10 @@ function v2RarityAllowed(){
 function v2Because(mode,s){
   var pools={
     modeA:["Because {platform} is where {scope} have consistently delivered the strongest results for cars like yours over the past {window}."],
-    modeB:["Because {scope} prices run close across platforms, and this is where they've been trading.","Because prices are close everywhere, so recent sales decide, and {platform} has the most.","Because {platform} has the most recent {scope} sales when prices are this close."],
-    concentration:["Because recent {scope} activity has concentrated on {platform}.","Because {platform} is where the {scope} market actually trades right now.","Because the {scope} market has gathered on {platform}, where buyers are looking."],
+    modeB:["Because {scopeAttr} prices run close across platforms, and this is where they've been trading.","Because prices are close everywhere, so recent sales decide, and {platform} has the most.","Because {platform} has the most recent {scopeAttr} sales when prices are this close."],
+    concentration:["Because recent {scopeAttr} activity has concentrated on {platform}.","Because {platform} is where the {scopeAttr} market actually trades right now.","Because the {scopeAttr} market has gathered on {platform}, where buyers are looking."],
     thin:["Because for a car this uncommon, {platform} reaches the buyers who actually want one.","Because {platform} is where buyers for something this rare tend to look.","Because a car this uncommon needs {platform}'s reach to find its buyer."],
-    thinNeutral:["Because recent {scope} sales are limited, so {platform} is where the few that trade tend to surface.","Because with little recent {scope} data, {platform} is where I'd start.","Because {platform} holds the recent {scope} sales I can see."]
+    thinNeutral:["Because recent {scopeAttr} sales are limited, so {platform} is where the few that trade tend to surface.","Because with little recent {scopeAttr} data, {platform} is where I'd start.","Because {platform} holds the recent {scopeAttr} sales I can see."]
   };
   var key=(mode||"thin"); if(key==="thin"&&!v2RarityAllowed())key="thinNeutral";
   return v2Fill(v2Pick(pools[key],"because"),s);
@@ -112,10 +126,10 @@ function v2Why(mode,s){
   var a=CLAUSE_A(s), b=CLAUSE_B(s), c=CLAUSE_C(s);
   var pools={
     modeA:[a+".",a+"."],
-    modeB:[b+", so the room decides, and {platform} has the most recent {scope} sales.","Since "+b+", the room decides, and {platform} has the most recent {scope} sales.",b+". With little to separate them on price, {platform} has the most recent {scope} sales."],
+    modeB:[b+", so the room decides, and {platform} has the most recent {scopeAttr} sales.","Since "+b+", the room decides, and {platform} has the most recent {scopeAttr} sales.",b+". With little to separate them on price, {platform} has the most recent {scopeAttr} sales."],
     concentration:[c+". It's where the market for {rungRef} is actually trading.","Right now, "+c+", so that's where buyers are looking.",c+", which makes it the honest place to meet the market for {rungRef}."],
     thin:["recent sales for {rungRef} are limited, so I ran this at the {rungWord} level. {platform} is where the few that trade tend to surface, and it reaches the buyers who want something this uncommon.","recent sales for {rungRef} are limited, so I ran this at the {rungWord} level. For a car this rare, {platform} is where the patient buyers tend to look.","recent sales for {rungRef} are limited, so I ran this at the {rungWord} level. {platform} reaches the patient buyers who actually want one; treat this as directional."],
-    thinNeutral:["recent sales for {rungRef} are limited, so I ran this at the {rungWord} level. {platform} holds the few recent {scope} sales I can see, so treat this as directional.","recent sales for {rungRef} are limited, so I ran this at the {rungWord} level. {platform} is where those sales have happened; treat this as directional.","recent sales for {rungRef} are limited, so I ran this at the {rungWord} level, and {platform} is where I would start."]
+    thinNeutral:["recent sales for {rungRef} are limited, so I ran this at the {rungWord} level. {platform} holds the few recent {scopeAttr} sales I can see, so treat this as directional.","recent sales for {rungRef} are limited, so I ran this at the {rungWord} level. {platform} is where those sales have happened; treat this as directional.","recent sales for {rungRef} are limited, so I ran this at the {rungWord} level, and {platform} is where I would start."]
   };
   var key=(mode||"thin"); if(key==="thin"&&!v2RarityAllowed())key="thinNeutral";
   var t=v2Pick(pools[key],"why");
@@ -201,7 +215,7 @@ function renderPickCardV2(option){
     var mode=v2Mode(ev);
     var win=v2Window(ev);
     var p=ev.pricePremium;
-    var slots={ scope:v2ScopePlural(v), rungRef:v2RungRef(v), rungWord:v2RungNoun(), platform:name, make:v.make||"car", delta:(p&&isFinite(p.percent))?Math.abs(Math.round(p.percent)):"", window:v2WindowLabel(win) };
+    var slots={ scope:v2ScopePlural(v), scopeAttr:v2ScopeAttr(v), rungRef:v2RungRef(v), rungWord:v2RungNoun(), platform:name, make:v.make||"car", delta:(p&&isFinite(p.percent))?Math.abs(Math.round(p.percent)):"", window:v2WindowLabel(win) };
     var esc=escapeHtml;
     // ---- data bindings (all dynamic) ----
     var loc=[sellState.state,sellState.region].filter(Boolean)[0]||"US";
@@ -219,7 +233,7 @@ function renderPickCardV2(option){
     whyRail=whyRail.charAt(0).toUpperCase()+whyRail.slice(1);
     // Resolved vehicle drives the metadata (year make model), never the "Car"
     // fallback: sellState.carName can be empty at render, so bind from v directly.
-    var carLbl=[v.year,v.make,v.model].filter(Boolean).join(" ")||carDisplayLabel("your car");
+    var carLbl=v2CarDisplay(v);
     // ---- two evidence tiles (weekday + reserve; audience fills a slot if needed) ----
     var tiles=[];
     var wk=v2Weekday(ev,v);
@@ -287,7 +301,33 @@ function psvDisplay(p){
 }
 function psvFirst(p){ return psvDisplay(p).split(/\s+/)[0]; }
 function psvShowKnownAs(p){ var h=psvHandle(p); return !!h&&h.toLowerCase()!==psvDisplay(p).toLowerCase(); }
-function psvPoss(n){ return n+(/s$/i.test(n)?"'":"'s"); }
+// House style (item 2c): possessive is always {Name}'s - "Chris's", never "Chris'".
+function psvPoss(n){ return String(n||"")+"'s"; }
+// Item 2: the marque a partner specialty shares with the car (case-insensitive),
+// or null when the car is out of the partner's listed wheelhouse.
+function psvMatchingMarque(p,v){
+  var makes=(p&&p.specialties&&p.specialties.makes)||[]; var carMake=String((v&&v.make)||"").toLowerCase();
+  if(!carMake)return null;
+  for(var i=0;i<makes.length;i++){ if(String(makes[i]).toLowerCase()===carMake)return makes[i]; }
+  return null;
+}
+// Item 2: car-aware PS intro. When a specialty matches the car's marque, lead with
+// THAT marque (singular, no plural trap); otherwise drop brand claims entirely and
+// only vouch for the service. Never names a marque that isn't the car's (lint 2d).
+function psvIntro(first,matchingMarque,carShort){
+  var tail="For this "+carShort+", I'd trust him to choose the right platform, present it professionally and manage the sale from start to finish.";
+  return matchingMarque
+    ? (matchingMarque+" is one of "+psvPoss(first)+" strongest areas. "+tail)
+    : tail;
+}
+// Item 2: the SPECIALISES IN tile value. A matching marque shows that single
+// marque; out-of-wheelhouse shows the honest full list, never one non-matching one.
+function psvSpecTile(p,v){
+  var mm=psvMatchingMarque(p,v);
+  if(mm)return mm;
+  var makes=(p&&p.specialties&&p.specialties.makes)||[];
+  return makes.length?makes.join(", "):"";
+}
 function psvMakePlural(make){ try{ return (typeof pluralizeMake==="function")?pluralizeMake(make):(v2Pl(make)); }catch(e){ return v2Pl(make||"cars"); } }
 function psvTrophy(p){
   var pool=[].concat((p.specialties&&p.specialties.profile_stats||[]).map(function(s){return s&&s.text;}),
@@ -391,11 +431,12 @@ function renderPowerSellerCardV2(opts){
     var lead=!!(opts&&opts.lead), valueLed=!!(opts&&opts.valueLed);
     var v=sellState.resolvedVehicle||(sellState.sellDecision&&sellState.sellDecision.vehicle)||{};
     var make=v.make||"car";
-    var carLabel=[v.year,v.make,v.model,v.trim].filter(Boolean).join(" ")||"car";
+    var carLabel=v2CarDisplay(v);
+    var carShort=[v.make,v.model].filter(Boolean).join(" ")||"car";
     var display=psvDisplay(p), first=psvFirst(p), handle=psvHandle(p);
-    var matchType=referral.matchType||"generalist";
+    var matchingMarque=psvMatchingMarque(p,v);
     var esc=escapeHtml;
-    var trophy=psvTrophy(p), spec=psvSpecialtyShort(p), loc=psvLocation(p), cov=psvCoverage(p);
+    var trophy=psvTrophy(p), spec=psvSpecTile(p,v), loc=psvLocation(p), cov=psvCoverage(p);
     // Right-rail trust tiles: auctions, single specialty, location + coverage.
     var tstack="";
     if(trophy)tstack+='<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("trophy")+'</span><div class="pcard-tt"><div class="pcard-tnum">'+esc(trophy)+'</div><div class="val">enthusiast auctions represented</div></div></div>';
@@ -414,7 +455,7 @@ function renderPowerSellerCardV2(opts){
           + '<span class="pcard-badge">+ Sam\'s Recommendation</span>'
           + '<div class="pcard-script">If this were my car,</div>'
           + '<h1 class="pcard-name pcard-name-ps">I\'d ask <span class="pcard-hl">'+esc(display)+'</span> to represent my '+esc(carLabel)+'.</h1>'
-          + '<p class="pcard-lead">'+esc(psvPara(matchType,make,first,spec,!!trophy))+'</p>'
+          + '<p class="pcard-lead">'+esc(psvIntro(first,matchingMarque,carShort))+'</p>'
         + '</div>'
         + '<div class="pcard-foot">'
           + '<button class="pcard-cta" onclick="event.stopPropagation();choosePowerSeller(\''+esc(p.slug||"partner")+'\')">Request an Introduction to '+esc(display)+v2Svg("arrow","cta-arrow")+'</button>'
@@ -494,7 +535,7 @@ function v2PickFacts(option){
     var v=sellState.resolvedVehicle||(sellState.sellDecision&&sellState.sellDecision.vehicle)||{};
     var ev=option.marketEvidence||{};
     var facts={ platform:platformDisplayName(option.name||option.platformSlug||""),
-      scope:v2ScopePlural(v), rungNoun:v2RungNoun(), window:v2WindowLabel(v2Window(ev)), mode:v2Mode(ev) };
+      scope:v2ScopePlural(v), scopeAttr:v2ScopeAttr(v), rungNoun:v2RungNoun(), window:v2WindowLabel(v2Window(ev)), mode:v2Mode(ev) };
     var p=ev.pricePremium;
     if(facts.mode==="modeA"&&p&&isFinite(p.percent))facts.pricePremium={ delta:Math.abs(Math.round(p.percent)), direction:(p.percent>=0?"higher":"lower") };
     var wk=v2Weekday(ev,v);
@@ -553,7 +594,7 @@ function v2ComposeTradeoffs(){
       // Prices close: a genuine platform vs platform call.
       var altName=platformDisplayName(c.alt.name||c.alt.platformSlug||"");
       return "With prices running close across the platforms I track, this comes down to reach and recent activity. "
-        +f.platform+" holds the most recent "+f.scope+" sales I track, so it is the surer read. "
+        +f.platform+" holds the most recent "+f.scopeAttr+" sales I track, so it is the surer read. "
         +altName+" is a genuine alternative on price if you would rather list there. "
         +f.platform+" is my call.";
     }
@@ -565,7 +606,7 @@ function v2ComposeRunListing(){
     var c=v2Composition(); if(!c.pick)return null;
     var f=v2PickFacts(c.pick); if(!f)return null;
     var v=sellState.resolvedVehicle||(sellState.sellDecision&&sellState.sellDecision.vehicle)||{};
-    var carLabel=[v.year,v.make,v.model].filter(Boolean).join(" ")||"your car";
+    var carLabel=v2CarDisplay(v);
     var parts=["I would list your "+carLabel+" on "+f.platform+"."];
     if(f.weekday&&f.weekday.pct!=null)parts.push("If your timing is flexible, "+f.weekday.scope+" have closed strongest on "+f.weekday.day+"s, "+f.weekday.pct+"% above other days.");
     else if(f.weekday)parts.push("If your timing is flexible, "+f.weekday.scope+" have tended to close strongest on "+f.weekday.day+"s.");
@@ -660,6 +701,11 @@ function v2GuardChatAnswer(text){
     if(!t.trim())return { ok:false, text:v2SafeFallback() };
     // Roster-name check runs on EVERY path, including empty composition.
     if(v2RosterNameViolation(t))return { ok:false, text:v2RosterFallback() };
+    // FEE FIGURES never render (item 5), on EVERY path (before the composition
+    // early-return): a $ or % adjacent to a fee/commission word. Fees change.
+    if(/(?:\$\s?\d[\d,]*|\d+(?:\.\d+)?\s?%)[^.]{0,24}\b(fee|fees|commission|commissions|cut|charge|charges|rate|rates)\b/i.test(t)
+       ||/\b(fee|fees|commission|commissions|cut|charges?|rate|rates|takes?|charging)\b[^.]{0,24}(?:\$\s?\d[\d,]*|\d+(?:\.\d+)?\s?%)/i.test(t))
+      return { ok:false, text:v2SafeFallback() };
     var c=v2Composition(); if(!c||!c.pick)return { ok:true, text:t };
     var f=v2PickFacts(c.pick);
     // 1. internal jargon a seller must never see.

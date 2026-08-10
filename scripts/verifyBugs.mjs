@@ -156,8 +156,8 @@ check("M3 recommend: no fee talk / price claims / jargon", psClean(recommend).ok
   const exactScope=v2PickFacts(batExact).scope;
   const exactCard=renderPickCardV2(batExact)||"";
   check("scope label (2a): prose scope reads '2018 M3s' at the exact rung", exactScope==="2018 M3s", exactScope);
-  check("scope label (2a): v2RungLabel exact rung = '2018 M3' (not raw 'M3')", v2RungLabel(globalThis.sellState.resolvedVehicle)==="2018 M3", v2RungLabel(globalThis.sellState.resolvedVehicle));
-  check("scope label (2a): tile label now matches the rung ('2018 M3', not bare 'M3')", /pcard-mp">2018 M3<\/div><div class="pcard-ms">Analysis/.test(exactCard), (exactCard.match(/pcard-mp">[^<]*<\/div><div class="pcard-ms">Analysis/)||[""])[0].slice(0,80));
+  check("scope label (2a): v2RungLabel exact rung = 'This exact year' (H mapping)", v2RungLabel(globalThis.sellState.resolvedVehicle)==="This exact year", v2RungLabel(globalThis.sellState.resolvedVehicle));
+  check("scope label (2a): tile label = 'This exact year', subtext 'Analysis scope'", /pcard-mp">This exact year<\/div><div class="pcard-ms">Analysis scope/.test(exactCard), (exactCard.match(/pcard-mp">[^<]*<\/div><div class="pcard-ms">Analysis[^<]*/)||[""])[0].slice(0,90));
   // restore the model-level M3 scenario for the remaining checks
   Object.assign(globalThis.sellState,{resolvedVehicle:{year:2005,make:"BMW",model:"M3"},sellDecision:prevDecision,sellOptions:[{key:"specialist",name:"Ingo Schmoldt"},bat,cb]});
 }

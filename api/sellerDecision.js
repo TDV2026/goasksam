@@ -1766,9 +1766,16 @@ function partnerRegionCovered(partner, criteria) {
   return false;
 }
 
-function partnerSegmentMatch(partner, vehicle, priorities) {
+// A partner MARQUE match: the partner explicitly lists the car's make in their
+// specialties. This is a stronger, ranked-above signal than a broad segment
+// overlap (a European-segment generalist is not an Audi specialist).
+function partnerMarqueMatch(partner, vehicle) {
   const makes = (partner.specialties?.makes || []).map(make => String(make).toLowerCase());
-  if (makes.includes(asText(vehicle.make).toLowerCase())) return true;
+  return makes.includes(asText(vehicle.make).toLowerCase());
+}
+
+function partnerSegmentMatch(partner, vehicle, priorities) {
+  if (partnerMarqueMatch(partner, vehicle)) return true;
   const segments = partner.specialties?.segments || [];
   return priorities.segments.some(segment => segments.includes(segment));
 }
@@ -1820,6 +1827,7 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
   // regional focus (fewer regions) > stable table order.
   const cands = partners.map(partner => ({
     partner,
+    marqueMet: partnerMarqueMatch(partner, vehicle),
     segmentMet: partnerSegmentMatch(partner, vehicle, priorities),
     regionMet: partnerRegionCovered(partner, criteria),
     local: partnerLocalState(partner, criteria),
@@ -1827,7 +1835,13 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
   }));
   const anySegment = cands.some(c => c.segmentMet);
   const anyRegion = cands.some(c => c.regionMet);
+  // Marque-aware ranking (Aug 2026): a partner who lists the car's actual marque
+  // outranks one who only shares a broad European segment. Order: local state >
+  // marque match > segment fit > tighter regional focus > stable table order. This
+  // is why a nationwide Audi specialist (Dan) wins the Audi over a South-region
+  // generalist (Chris) whose only tie was the classic_european segment.
   const rankPartner = (a, b) => (Number(b.local) - Number(a.local))
+    || (Number(b.marqueMet) - Number(a.marqueMet))
     || (Number(b.segmentMet) - Number(a.segmentMet))
     || (a.regionCount - b.regionCount);
   const matchedCand = cands.filter(c => c.segmentMet && c.regionMet).sort(rankPartner)[0] || null;

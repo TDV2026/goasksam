@@ -11,7 +11,10 @@ const V2_RULES=[
   {id:"hedge-around",re:/\baround\b/i},
   {id:"reserve-causal",re:/\bcaused\b|because of the reserve|the reserve helped|will get you|you'?ll earn|\bboosts\b|increases your price/i},
   {id:"filler",re:/\ba car like this\b|remains viable|\bstrong option\b|\breal signal\b/i},
-  {id:"sell-through",re:/sell-?through|%\s*sold\b/i}
+  {id:"sell-through",re:/sell-?through|%\s*sold\b/i},
+  // Item 5: no fee/commission FIGURE ($ or %) on any surface. Fee-context only, so
+  // legit card percentages ("25% above other days", "7% higher") stay clean.
+  {id:"fee-figure",re:/(?:\$\s?\d[\d,]*|\d+(?:\.\d+)?\s?%)[^.]{0,24}\b(fee|fees|commission|commissions|cut|charges?|rate|rates)\b|\b(fee|fees|commission|commissions|cut|charges?|rate|rates|takes?|charging)\b[^.]{0,24}(?:\$\s?\d[\d,]*|\d+(?:\.\d+)?\s?%)/i}
 ];
 const lintText=t=>V2_RULES.filter(r=>r.re.test(String(t||""))).map(r=>r.id);
 
@@ -25,7 +28,7 @@ globalThis.localStorage={getItem:()=>null,setItem:noop,removeItem:noop};
 globalThis.fetch=async()=>({ok:true,json:async()=>({})});
 const html=fs.readFileSync("index.html","utf8");
 const files=[...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
-(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.v2Because=v2Because;globalThis.v2Why=v2Why;globalThis.v2Weekday=v2Weekday;globalThis.v2Reserve=v2Reserve;globalThis.v2Audience=v2Audience;globalThis.v2ScopePlural=v2ScopePlural;globalThis.v2RungRef=v2RungRef;globalThis.v2RungNoun=v2RungNoun;globalThis.CLAUSE_A=CLAUSE_A;globalThis.CLAUSE_B=CLAUSE_B;globalThis.CLAUSE_C=CLAUSE_C;globalThis.v2WindowLabel=v2WindowLabel;globalThis.psvReasonNote=psvReasonNote;globalThis.psvPara=psvPara;globalThis.psvWhyBullets=psvWhyBullets;globalThis.psvValueLine=psvValueLine;globalThis.psvPoss=psvPoss;");
+(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.v2Because=v2Because;globalThis.v2Why=v2Why;globalThis.v2Weekday=v2Weekday;globalThis.v2Reserve=v2Reserve;globalThis.v2Audience=v2Audience;globalThis.v2ScopePlural=v2ScopePlural;globalThis.v2RungRef=v2RungRef;globalThis.v2RungNoun=v2RungNoun;globalThis.CLAUSE_A=CLAUSE_A;globalThis.CLAUSE_B=CLAUSE_B;globalThis.CLAUSE_C=CLAUSE_C;globalThis.v2WindowLabel=v2WindowLabel;globalThis.psvReasonNote=psvReasonNote;globalThis.psvPara=psvPara;globalThis.psvWhyBullets=psvWhyBullets;globalThis.psvValueLine=psvValueLine;globalThis.psvPoss=psvPoss;globalThis.psvIntro=psvIntro;globalThis.psvSpecTile=psvSpecTile;globalThis.psvMatchingMarque=psvMatchingMarque;globalThis.v2CarDisplay=v2CarDisplay;globalThis.v2ScopeAttr=v2ScopeAttr;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2Composition=typeof v2Composition==='function'?v2Composition:function(){return null};");
 
 let failures=0;
 const check=(name,ok,detail="")=>{console.log(`${ok?"PASS":"FAIL"}  ${name}${ok?"":"  ->  "+String(detail).slice(0,200)}`);if(!ok)failures++;};
@@ -98,8 +101,46 @@ const vl=psvValueLine("howS");
 check("ps.valueLine clean", clean(vl).ok, clean(vl).detail);
 check("ps.valueLine no money/earn/get-more", !/\$|\bmore money\b|gets? you|will get|you'?ll (earn|get)/i.test(vl), vl);
 check("ps.valueLine mentions value + name", /value/i.test(vl)&&/howS/.test(vl), vl);
-// possessive helper renders correctly for an s-ending name
-check("ps.poss handles s-ending name", psvPoss("howS")==="howS'"||psvPoss("Chris")==="Chris'", psvPoss("Chris"));
+// Item 2c: possessive is always {Name}'s, including s-ending names.
+check("ps.poss always 's (Chris's)", psvPoss("Chris")==="Chris's", psvPoss("Chris"));
+check("ps.poss s-ending name (James's)", psvPoss("James")==="James's", psvPoss("James"));
+
+// ---- Item 2: car-aware specialty selection (intro + tile) ----
+const MARQUES=["BMW","Porsche","Mercedes-Benz","Mercedes","Audi","Jaguar","Ferrari","Lexus","Toyota","Chevrolet","Ford"];
+const chrisMakes=["BMW","Porsche","Mercedes-Benz","Jaguar","Ferrari","Lexus"];
+const pPorsche={specialties:{makes:chrisMakes}};
+// a) marque match -> names THAT marque, singular, possessive 's
+const introP=psvIntro("Chris",psvMatchingMarque(pPorsche,{make:"Porsche",model:"911"}),"Porsche 911");
+check("intro (Porsche match) leads with Porsche + Chris's", /^Porsche is one of Chris's strongest areas\./.test(introP), introP);
+check("intro (Porsche match) has service tail", /choose the right platform, present it professionally and manage the sale from start to finish\.$/.test(introP), introP);
+check("intro (Porsche match) tile = Porsche", psvSpecTile(pPorsche,{make:"Porsche",model:"911"})==="Porsche", psvSpecTile(pPorsche,{make:"Porsche"}));
+// b) NO marque match (Audi) -> brand-free intro, tile = full wheelhouse list
+const introA=psvIntro("Chris",psvMatchingMarque(pPorsche,{make:"Audi",model:"TT"}),"Audi TT");
+check("intro (Audi, no match) is brand-free", introA==="For this Audi TT, I'd trust him to choose the right platform, present it professionally and manage the sale from start to finish.", introA);
+check("intro (Audi, no match) names NO other marque (lint 2d)", !MARQUES.filter(m=>m.toLowerCase()!=="audi").some(m=>new RegExp("\\b"+m.replace(/[-]/g,"\\-")+"\\b").test(introA)), introA);
+check("tile (Audi, no match) = full wheelhouse list", psvSpecTile(pPorsche,{make:"Audi",model:"TT"})===chrisMakes.join(", "), psvSpecTile(pPorsche,{make:"Audi"}));
+// Mercedes-Benz (plural-trap check): singular marque, no "Mercedes-Benzs"
+const introM=psvIntro("Chris",psvMatchingMarque(pPorsche,{make:"Mercedes-Benz",model:"SL"}),"Mercedes-Benz SL");
+check("intro (Mercedes-Benz) singular, no plural trap", /^Mercedes-Benz is one of Chris's strongest areas\./.test(introM)&&!/Mercedes-Benzs/.test(introM), introM);
+
+// ---- Item 5: fee figures can never reach a rendered PS card ----
+// Seed a partner carrying a fee in referral terms + notes; render the real card.
+globalThis.sellState.partnerReferral={ eligible:true, partner:{ slug:"feeguy", name:"FeeGuy", display_name:"Fee Guy",
+  specialties:{makes:["Porsche"],notes:"Takes a 6% commission (per FeeGuy)",segments:[]}, regions:["Nationwide"],
+  referralTerms:"6% on the first $100k, 5% after", serviceClaims:[], platforms:[] } };
+globalThis.psvPartner=()=>sellState.partnerReferral.partner;
+let cardHtml="";
+try{ cardHtml=renderPowerSellerCardV2({lead:true})||""; }catch(e){ cardHtml="__ERR__"+e.message; }
+check("PS card renders (no throw)", cardHtml.indexOf("__ERR__")!==0, cardHtml);
+check("PS card carries NO fee figure (item 5)", clean(cardHtml).ok&&!/6%|5%|\$\s?100k/i.test(cardHtml), lintText(cardHtml).join(" ; ")+" :: contains-6%="+/6%/.test(cardHtml));
+
+// ---- Item 5: chat guard blocks a fee figure ----
+if(typeof v2GuardChatAnswer==="function"){
+  const g1=v2GuardChatAnswer("He takes a 6% commission on the sale.");
+  check("chat guard blocks '6% commission'", g1&&g1.ok===false, JSON.stringify(g1).slice(0,120));
+  const g2=v2GuardChatAnswer("His fee is $2,500 flat.");
+  check("chat guard blocks '$2,500 fee'", g2&&g2.ok===false, JSON.stringify(g2).slice(0,120));
+}
 
 // bridge lines between the two cards (order-aware, locked)
 const bridgePS="If you'd rather run the sale yourself, here's where I'd go.";

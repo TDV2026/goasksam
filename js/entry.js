@@ -22,7 +22,11 @@ function moneyQuestionReply(q){
     ||/\bfree to use\b/i.test(lower)
     ||/\b(?:what'?s|whats)\s+(?:the\s+)?catch\b/i.test(lower)
     ||/\bbusiness model\b/i.test(lower)
-    ||/\b(?:monet(?:ise|ize)|monetization|monetisation)\b/i.test(lower);
+    ||/\b(?:monet(?:ise|ize)|monetization|monetisation)\b/i.test(lower)
+    // Item 6: referral / commission / cut phrasings about GoAskSam itself. Scoped
+    // to a you/goasksam subject so "how do I make the most money on my car" (the
+    // control) still routes to the LLM.
+    ||/\b(?:you|goasksam|go\s?ask\s?sam|guys|sam)\b[\s\S]{0,32}\b(?:referral fee|referral fees|referral|commission|kickback|finder'?s? fee|take a cut|get a cut|getting a cut|take a percentage)\b/i.test(lower);
   if(!hit)return null;
   return "GoAskSam is free for sellers. We have commercial arrangements with some of the PowerSellers we work with, and nobody can pay to be recommended. The recommendation always comes first.";
 }
