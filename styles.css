@@ -674,6 +674,8 @@ body.home #btn:hover{opacity:.85;}
 .hd-h2{font-family:var(--pc-serif);font-size:25px;font-weight:600;color:var(--pc-ink);margin:2px 0 12px;}
 .hd-link{display:inline-block;font-family:var(--font-sans);font-size:14px;font-weight:500;color:var(--pc-cta);text-decoration:none;cursor:pointer;margin-top:4px;}
 .hd-link:hover{text-decoration:underline;}
+.hd-cta{display:inline-block;margin-top:18px;font-family:var(--font-sans);font-size:15px;font-weight:600;color:#fff;background:var(--pc-cta);border:none;border-radius:12px;padding:13px 22px;cursor:pointer;transition:background var(--dur-base) var(--ease);}
+.hd-cta:hover{background:var(--pc-green);}
 .hd-know{padding:13px 0;border-top:1px solid var(--pc-line);display:flex;flex-direction:column;gap:3px;}
 .hd-know:first-of-type{border-top:0;padding-top:2px;}
 .hd-know b{font-family:var(--font-sans);font-size:15.5px;color:var(--pc-ink);font-weight:600;}
