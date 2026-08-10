@@ -303,30 +303,52 @@ function psvFirst(p){ return psvDisplay(p).split(/\s+/)[0]; }
 function psvShowKnownAs(p){ var h=psvHandle(p); return !!h&&h.toLowerCase()!==psvDisplay(p).toLowerCase(); }
 // House style (item 2c): possessive is always {Name}'s - "Chris's", never "Chris'".
 function psvPoss(n){ return String(n||"")+"'s"; }
-// Item 2: the marque a partner specialty shares with the car (case-insensitive),
-// or null when the car is out of the partner's listed wheelhouse.
-function psvMatchingMarque(p,v){
-  var makes=(p&&p.specialties&&p.specialties.makes)||[]; var carMake=String((v&&v.make)||"").toLowerCase();
-  if(!carMake)return null;
-  for(var i=0;i<makes.length;i++){ if(String(makes[i]).toLowerCase()===carMake)return makes[i]; }
+// Pronoun (item 5): roster-driven, defaults him/his for the current four partners.
+function psvPron(p){ var pr=(p&&p.specialties&&p.specialties.pronoun)||{}; return {subj:pr.subj||"he",obj:pr.obj||"him",poss:pr.poss||"his"}; }
+// CLAIM SOURCE is the partner's CURATED wheelhouse (true specialty), NEVER the
+// broad matching `makes` - which is intentionally wide for the ranking ladder and
+// can list marques the partner does not actually specialise in (howS carries Audi,
+// Toyota, Land Rover for matching but specialises in air-cooled Porsche + vintage
+// Mustangs). Falls back to `makes` only pre-seed so nothing breaks before the SQL.
+function psvWheelhouse(p){
+  var wh=(p&&p.specialties&&p.specialties.wheelhouse)||null;
+  if(wh&&(wh.marques||wh.models))return {marques:(wh.marques||[]),models:(wh.models||[])};
+  return {marques:((p&&p.specialties&&p.specialties.makes)||[]),models:[]};
+}
+// Match the car against the wheelhouse at MARQUE then MODEL level (item 1e): a
+// 1966 Ford Mustang matches Howard's "Vintage Mustangs" model entry even though
+// its marque (Ford) is not one Howard claims wholesale.
+function psvClaim(p,v){
+  var wh=psvWheelhouse(p);
+  var carMake=String((v&&v.make)||"").toLowerCase(), carModel=String((v&&v.model)||"").toLowerCase();
+  for(var i=0;i<wh.marques.length;i++){ if(carMake&&String(wh.marques[i]).toLowerCase()===carMake)return {level:"marque",label:wh.marques[i]}; }
+  for(var j=0;j<wh.models.length;j++){ var m=wh.models[j]||{}; if(carModel&&String(m.model||"").toLowerCase()===carModel&&(!m.make||String(m.make).toLowerCase()===carMake))return {level:"model",label:m.label||m.model}; }
   return null;
 }
-// Item 2: car-aware PS intro. When a specialty matches the car's marque, lead with
-// THAT marque (singular, no plural trap); otherwise drop brand claims entirely and
-// only vouch for the service. Never names a marque that isn't the car's (lint 2d).
-function psvIntro(first,matchingMarque,carShort){
-  var tail="For this "+carShort+", I'd trust him to choose the right platform, present it professionally and manage the sale from start to finish.";
-  return matchingMarque
-    ? (matchingMarque+" is one of "+psvPoss(first)+" strongest areas. "+tail)
-    : tail;
+// The honest wheelhouse list for the tile when the car is out of wheelhouse.
+function psvWheelhouseList(p){
+  var wh=psvWheelhouse(p);
+  return wh.marques.concat(wh.models.map(function(m){return m.label||m.model;})).join(", ");
 }
-// Item 2: the SPECIALISES IN tile value. A matching marque shows that single
-// marque; out-of-wheelhouse shows the honest full list, never one non-matching one.
+// Car-aware PS intro (item 1/1e): claim the marque OR model the partner actually
+// specialises in; otherwise drop brand claims entirely. Pronoun-threaded (item 5).
+// A marque claim is singular ("Porsche is"); a model claim uses the curated plural
+// label ("Vintage Mustangs are").
+function psvIntro(p,first,claim,carShort){
+  var pron=psvPron(p);
+  var tail="For this "+carShort+", I'd trust "+pron.obj+" to choose the right platform, present it professionally and manage the sale from start to finish.";
+  if(!claim)return tail;
+  var verb=claim.level==="marque"?"is":"are";
+  return claim.label+" "+verb+" one of "+psvPoss(first)+" strongest areas. "+tail;
+}
+// SPECIALISES IN tile: the matched marque/model label; else the honest full
+// wheelhouse (marques + model labels); else the notes-level specialty for a
+// generalist with no marque wheelhouse (e.g. Ingo's "Collector and specialty
+// vehicles"). Never a single non-matching marque.
 function psvSpecTile(p,v){
-  var mm=psvMatchingMarque(p,v);
-  if(mm)return mm;
-  var makes=(p&&p.specialties&&p.specialties.makes)||[];
-  return makes.length?makes.join(", "):"";
+  var claim=psvClaim(p,v);
+  if(claim)return claim.label;
+  return psvWheelhouseList(p)||psvSpecialtyShort(p);
 }
 function psvMakePlural(make){ try{ return (typeof pluralizeMake==="function")?pluralizeMake(make):(v2Pl(make)); }catch(e){ return v2Pl(make||"cars"); } }
 function psvTrophy(p){
@@ -345,7 +367,10 @@ function psvSpecialtyShort(p){
 function psvTrustLines(p){
   var stats=(p.specialties&&p.specialties.profile_stats)||[];
   return stats.map(function(s){return s&&s.text;}).filter(Boolean).filter(function(t){
-    return !/(\d[\d,]*)\s*\+?\s*(?:[a-z]+\s+)?(?:listings|auctions)/i.test(t);
+    // Never render the auctions total (that is the trophy tile) NOR any string
+    // carrying an unfilled {placeholder} (item 3a): a half-composed line must
+    // never reach a card.
+    return !/(\d[\d,]*)\s*\+?\s*(?:[a-z]+\s+)?(?:listings|auctions)/i.test(t) && !/\{[^}]+\}/.test(t);
   }).slice(0,3);
 }
 var PSV2_STATES={al:"Alabama",ak:"Alaska",az:"Arizona",ar:"Arkansas",ca:"California",co:"Colorado",ct:"Connecticut",de:"Delaware",fl:"Florida",ga:"Georgia",hi:"Hawaii",id:"Idaho",il:"Illinois",in:"Indiana",ia:"Iowa",ks:"Kansas",ky:"Kentucky",la:"Louisiana",me:"Maine",md:"Maryland",ma:"Massachusetts",mi:"Michigan",mn:"Minnesota",ms:"Mississippi",mo:"Missouri",mt:"Montana",ne:"Nebraska",nv:"Nevada",nh:"New Hampshire",nj:"New Jersey",nm:"New Mexico",ny:"New York",nc:"North Carolina",nd:"North Dakota",oh:"Ohio",ok:"Oklahoma",or:"Oregon",pa:"Pennsylvania",ri:"Rhode Island",sc:"South Carolina",sd:"South Dakota",tn:"Tennessee",tx:"Texas",ut:"Utah",vt:"Vermont",va:"Virginia",wa:"Washington",wv:"West Virginia",wi:"Wisconsin",wy:"Wyoming"};
@@ -446,20 +471,22 @@ function renderPowerSellerCardV2(opts){
     var carLabel=v2CarDisplay(v);
     var carShort=[v.make,v.model].filter(Boolean).join(" ")||"car";
     var display=psvDisplay(p), first=psvFirst(p), handle=psvHandle(p);
-    var matchingMarque=psvMatchingMarque(p,v);
+    var claim=psvClaim(p,v);
     var esc=escapeHtml;
-    var trophy=psvTrophy(p), spec=psvSpecTile(p,v), loc=psvLocation(p), cov=psvCoverage(p);
-    // Right-rail trust tiles: auctions, single specialty, location + coverage.
-    var tstack="";
-    if(trophy)tstack+='<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("trophy")+'</span><div class="pcard-tt"><div class="pcard-tnum">'+esc(trophy)+'</div><div class="val">enthusiast auctions represented</div></div></div>';
-    if(spec)tstack+='<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("car")+'</span><div class="pcard-tt"><div class="lab">Specialises in</div><div class="val green">'+esc(spec)+'</div></div></div>';
-    if(loc)tstack+='<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("pin")+'</span><div class="pcard-tt"><div class="lab">Based in '+esc(loc)+'</div>'+(cov?'<div class="sub">'+esc(cov)+'</div>':'')+'</div></div>';
-    var prep=psvPrep(p);
-    if(prep)tstack+='<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("clip")+'</span><div class="pcard-tt"><div class="lab">Preparation</div><div class="val">'+esc(prep)+'</div></div></div>';
-    // Attributed trust claims (the profile_stats lines that are not the auctions
-    // total, e.g. "Top 10% of all Bring a Trailer sellers", "member since 2011").
+    var trophy=psvTrophy(p), spec=psvSpecTile(p,v), loc=psvLocation(p), cov=psvCoverage(p), prep=psvPrep(p);
+    // FIXED tile budget (item 4c): at most 4 tiles, built in KEEP priority so the
+    // weakest drops entirely rather than overflowing the card height budget.
+    // Order: counts > specialty > location > service (prep) > track-record.
+    var tiles=[];
+    if(trophy)tiles.push('<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("trophy")+'</span><div class="pcard-tt"><div class="pcard-tnum">'+esc(trophy)+'</div><div class="val">enthusiast auctions represented</div></div></div>');
+    if(spec)tiles.push('<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("car")+'</span><div class="pcard-tt"><div class="lab">Specialises in</div><div class="val green">'+esc(spec)+'</div></div></div>');
+    if(loc)tiles.push('<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("pin")+'</span><div class="pcard-tt"><div class="lab">Based in '+esc(loc)+'</div>'+(cov?'<div class="sub">'+esc(cov)+'</div>':'')+'</div></div>');
+    if(prep)tiles.push('<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("clip")+'</span><div class="pcard-tt"><div class="lab">Preparation</div><div class="val">'+esc(prep)+'</div></div></div>');
+    // Attributed track-record lines (profile_stats that are not the auctions total,
+    // e.g. "Top 10% of all Bring a Trailer sellers"). Lowest priority: drops first.
     var trust=psvTrustLines(p);
-    if(trust.length)tstack+='<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("star")+'</span><div class="pcard-tt"><div class="lab">Track record</div>'+trust.map(function(x){return '<div class="val">'+esc(x)+'</div>';}).join("")+'</div></div>';
+    if(trust.length)tiles.push('<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg("star")+'</span><div class="pcard-tt"><div class="lab">Track record</div>'+trust.map(function(x){return '<div class="val">'+esc(x)+'</div>';}).join("")+'</div></div>');
+    var tstack=tiles.slice(0,4).join("");
     return '<div class="pcard pcard-ps" onclick="choosePowerSeller(\''+esc(p.slug||"partner")+'\')">'
       + '<div class="pcard-left">'
         // Distributed rhythm: hero group anchored top, action group anchored
@@ -469,7 +496,7 @@ function renderPowerSellerCardV2(opts){
           + '<span class="pcard-badge">+ Sam\'s Recommendation</span>'
           + '<div class="pcard-script">If this were my car,</div>'
           + '<h1 class="pcard-name pcard-name-ps">I\'d ask <span class="pcard-hl">'+esc(display)+'</span> to represent my '+esc(carLabel)+'.</h1>'
-          + '<p class="pcard-lead">'+esc(psvIntro(first,matchingMarque,carShort))+'</p>'
+          + '<p class="pcard-lead">'+esc(psvIntro(p,first,claim,carShort))+'</p>'
         + '</div>'
         + '<div class="pcard-foot">'
           + '<button class="pcard-cta" onclick="event.stopPropagation();choosePowerSeller(\''+esc(p.slug||"partner")+'\')">Request an Introduction to '+esc(display)+v2Svg("arrow","cta-arrow")+'</button>'

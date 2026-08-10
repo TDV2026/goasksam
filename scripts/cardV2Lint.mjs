@@ -28,7 +28,7 @@ globalThis.localStorage={getItem:()=>null,setItem:noop,removeItem:noop};
 globalThis.fetch=async()=>({ok:true,json:async()=>({})});
 const html=fs.readFileSync("index.html","utf8");
 const files=[...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
-(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.v2Because=v2Because;globalThis.v2Why=v2Why;globalThis.v2Weekday=v2Weekday;globalThis.v2Reserve=v2Reserve;globalThis.v2Audience=v2Audience;globalThis.v2ScopePlural=v2ScopePlural;globalThis.v2RungRef=v2RungRef;globalThis.v2RungNoun=v2RungNoun;globalThis.CLAUSE_A=CLAUSE_A;globalThis.CLAUSE_B=CLAUSE_B;globalThis.CLAUSE_C=CLAUSE_C;globalThis.v2WindowLabel=v2WindowLabel;globalThis.psvReasonNote=psvReasonNote;globalThis.psvPara=psvPara;globalThis.psvWhyBullets=psvWhyBullets;globalThis.psvValueLine=psvValueLine;globalThis.psvPoss=psvPoss;globalThis.psvIntro=psvIntro;globalThis.psvSpecTile=psvSpecTile;globalThis.psvMatchingMarque=psvMatchingMarque;globalThis.v2CarDisplay=v2CarDisplay;globalThis.v2ScopeAttr=v2ScopeAttr;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2Composition=typeof v2Composition==='function'?v2Composition:function(){return null};");
+(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.v2Because=v2Because;globalThis.v2Why=v2Why;globalThis.v2Weekday=v2Weekday;globalThis.v2Reserve=v2Reserve;globalThis.v2Audience=v2Audience;globalThis.v2ScopePlural=v2ScopePlural;globalThis.v2RungRef=v2RungRef;globalThis.v2RungNoun=v2RungNoun;globalThis.CLAUSE_A=CLAUSE_A;globalThis.CLAUSE_B=CLAUSE_B;globalThis.CLAUSE_C=CLAUSE_C;globalThis.v2WindowLabel=v2WindowLabel;globalThis.psvReasonNote=psvReasonNote;globalThis.psvPara=psvPara;globalThis.psvWhyBullets=psvWhyBullets;globalThis.psvValueLine=psvValueLine;globalThis.psvPoss=psvPoss;globalThis.psvIntro=psvIntro;globalThis.psvSpecTile=psvSpecTile;globalThis.psvClaim=psvClaim;globalThis.psvWheelhouse=psvWheelhouse;globalThis.psvWheelhouseList=psvWheelhouseList;globalThis.psvPron=psvPron;globalThis.psvTrustLines=psvTrustLines;globalThis.v2CarDisplay=v2CarDisplay;globalThis.v2ScopeAttr=v2ScopeAttr;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2Composition=typeof v2Composition==='function'?v2Composition:function(){return null};");
 
 let failures=0;
 const check=(name,ok,detail="")=>{console.log(`${ok?"PASS":"FAIL"}  ${name}${ok?"":"  ->  "+String(detail).slice(0,200)}`);if(!ok)failures++;};
@@ -105,23 +105,81 @@ check("ps.valueLine mentions value + name", /value/i.test(vl)&&/howS/.test(vl), 
 check("ps.poss always 's (Chris's)", psvPoss("Chris")==="Chris's", psvPoss("Chris"));
 check("ps.poss s-ending name (James's)", psvPoss("James")==="James's", psvPoss("James"));
 
-// ---- Item 2: car-aware specialty selection (intro + tile) ----
-const MARQUES=["BMW","Porsche","Mercedes-Benz","Mercedes","Audi","Jaguar","Ferrari","Lexus","Toyota","Chevrolet","Ford"];
+// ---- Item 1/1e: claim truth against the ROSTER (wheelhouse), not the car ----
+const MARQUES=["BMW","Porsche","Mercedes-Benz","Mercedes","Audi","Jaguar","Ferrari","Lexus","Toyota","Chevrolet","Ford","Nissan","Honda"];
 const chrisMakes=["BMW","Porsche","Mercedes-Benz","Jaguar","Ferrari","Lexus"];
-const pPorsche={specialties:{makes:chrisMakes}};
-// a) marque match -> names THAT marque, singular, possessive 's
-const introP=psvIntro("Chris",psvMatchingMarque(pPorsche,{make:"Porsche",model:"911"}),"Porsche 911");
-check("intro (Porsche match) leads with Porsche + Chris's", /^Porsche is one of Chris's strongest areas\./.test(introP), introP);
-check("intro (Porsche match) has service tail", /choose the right platform, present it professionally and manage the sale from start to finish\.$/.test(introP), introP);
-check("intro (Porsche match) tile = Porsche", psvSpecTile(pPorsche,{make:"Porsche",model:"911"})==="Porsche", psvSpecTile(pPorsche,{make:"Porsche"}));
-// b) NO marque match (Audi) -> brand-free intro, tile = full wheelhouse list
-const introA=psvIntro("Chris",psvMatchingMarque(pPorsche,{make:"Audi",model:"TT"}),"Audi TT");
-check("intro (Audi, no match) is brand-free", introA==="For this Audi TT, I'd trust him to choose the right platform, present it professionally and manage the sale from start to finish.", introA);
-check("intro (Audi, no match) names NO other marque (lint 2d)", !MARQUES.filter(m=>m.toLowerCase()!=="audi").some(m=>new RegExp("\\b"+m.replace(/[-]/g,"\\-")+"\\b").test(introA)), introA);
-check("tile (Audi, no match) = full wheelhouse list", psvSpecTile(pPorsche,{make:"Audi",model:"TT"})===chrisMakes.join(", "), psvSpecTile(pPorsche,{make:"Audi"}));
-// Mercedes-Benz (plural-trap check): singular marque, no "Mercedes-Benzs"
-const introM=psvIntro("Chris",psvMatchingMarque(pPorsche,{make:"Mercedes-Benz",model:"SL"}),"Mercedes-Benz SL");
+// Chris: wheelhouse == his true marques.
+const chris={specialties:{makes:chrisMakes,wheelhouse:{marques:chrisMakes,models:[]}}};
+// Howard: matching `makes` is BLOATED (includes Audi/Toyota/Ford for the ladder)
+// but his true wheelhouse is Porsche + the Vintage Mustangs model entry.
+const howard={specialties:{makes:["Porsche","Audi","Toyota","Ford","BMW","Jaguar"],
+  wheelhouse:{marques:["Porsche"],models:[{label:"Vintage Mustangs",make:"Ford",model:"Mustang"}]}}};
+// roster-truth: any marque NAMED AS A CLAIM ("{X} is/are one of ...'s strongest
+// areas") must be in the wheelhouse. The car reference ("For this Audi TT") is
+// exempt - naming the car is not claiming a specialty.
+const MARQUE_RE=/\b(BMW|Porsche|Mercedes-Benz|Mercedes|Audi|Jaguar|Ferrari|Lexus|Toyota|Chevrolet|Ford|Nissan|Honda)\b/g;
+const rosterTruth=(text,wh)=>{
+  const allowed=(wh.marques||[]).map(m=>m.toLowerCase());
+  const m=/^(.*?) (?:is|are) one of .+?'s strongest areas/.exec(text);
+  const claimPart=m?m[1]:""; // brand-free intro -> no claim -> passes
+  return (claimPart.match(MARQUE_RE)||[]).every(n=>allowed.includes(n.toLowerCase()));
+};
+// tile truth: the tile IS the claim, so its whole value is checked.
+const tileTruth=(tile,wh)=>{
+  const allowed=(wh.marques||[]).map(m=>m.toLowerCase());
+  return (String(tile).match(MARQUE_RE)||[]).every(n=>allowed.includes(n.toLowerCase()));
+};
+// a) Chris + Porsche -> marque claim, singular, Chris's
+const cP=psvClaim(chris,{make:"Porsche",model:"911"});
+const introP=psvIntro(chris,"Chris",cP,"Porsche 911");
+check("intro (Chris/Porsche) leads with Porsche + Chris's", /^Porsche is one of Chris's strongest areas\./.test(introP), introP);
+check("tile (Chris/Porsche) = Porsche", psvSpecTile(chris,{make:"Porsche",model:"911"})==="Porsche", psvSpecTile(chris,{make:"Porsche"}));
+check("intro (Chris/Porsche) roster-truth", rosterTruth(introP,chris.specialties.wheelhouse), introP);
+// b) Chris + Audi -> brand-free, tile = wheelhouse list
+const introCA=psvIntro(chris,"Chris",psvClaim(chris,{make:"Audi",model:"TT"}),"Audi TT");
+check("intro (Chris/Audi) brand-free", introCA==="For this Audi TT, I'd trust him to choose the right platform, present it professionally and manage the sale from start to finish.", introCA);
+check("tile (Chris/Audi) = full wheelhouse", psvSpecTile(chris,{make:"Audi",model:"TT"})===chrisMakes.join(", "), psvSpecTile(chris,{make:"Audi"}));
+// c) Mercedes-Benz plural-trap: singular
+const introM=psvIntro(chris,"Chris",psvClaim(chris,{make:"Mercedes-Benz",model:"SL"}),"Mercedes-Benz SL");
 check("intro (Mercedes-Benz) singular, no plural trap", /^Mercedes-Benz is one of Chris's strongest areas\./.test(introM)&&!/Mercedes-Benzs/.test(introM), introM);
+// d) REGRESSION: Howard + Audi. `makes` has Audi but wheelhouse does NOT -> the
+// claim must be brand-free and the tile must NOT read "Audi" (truth vs ROSTER).
+const introHA=psvIntro(howard,"Howard",psvClaim(howard,{make:"Audi",model:"TT"}),"Audi TT");
+const tileHA=psvSpecTile(howard,{make:"Audi",model:"TT"});
+check("intro (Howard/Audi) brand-free (roster, not car)", introHA==="For this Audi TT, I'd trust him to choose the right platform, present it professionally and manage the sale from start to finish.", introHA);
+check("intro (Howard/Audi) claims NO Audi (roster-truth; car ref exempt)", rosterTruth(introHA,howard.specialties.wheelhouse), introHA);
+check("tile (Howard/Audi) = wheelhouse, not 'Audi'", tileHA==="Porsche, Vintage Mustangs"&&tileTruth(tileHA,howard.specialties.wheelhouse), tileHA);
+// e) MODEL-LEVEL: Howard + Ford Mustang -> "Vintage Mustangs are one of Howard's"
+const cHM=psvClaim(howard,{make:"Ford",model:"Mustang"});
+const introHM=psvIntro(howard,"Howard",cHM,"Ford Mustang");
+check("claim (Howard/Mustang) = model level", cHM&&cHM.level==="model"&&cHM.label==="Vintage Mustangs", JSON.stringify(cHM));
+check("intro (Howard/Mustang) 'Vintage Mustangs are one of Howard's'", /^Vintage Mustangs are one of Howard's strongest areas\./.test(introHM), introHM);
+check("tile (Howard/Mustang) = Vintage Mustangs", psvSpecTile(howard,{make:"Ford",model:"Mustang"})==="Vintage Mustangs", psvSpecTile(howard,{make:"Ford",model:"Mustang"}));
+// Pronoun (item 5): default him, roster-overridable to her/their.
+check("pronoun default = him", psvPron({})?.obj==="him", JSON.stringify(psvPron({})));
+check("pronoun override = her", psvPron({specialties:{pronoun:{obj:"her",poss:"her",subj:"she"}}}).obj==="her", "");
+const introHer=psvIntro({specialties:{pronoun:{obj:"her"},wheelhouse:{marques:["Porsche"]}}},"Robin",psvClaim({specialties:{wheelhouse:{marques:["Porsche"]}}},{make:"Audi"}),"Audi TT");
+check("intro threads pronoun (I'd trust her)", /I'd trust her to/.test(introHer), introHer);
+
+// ---- Item 3a: an unfilled {placeholder} must never render ----
+const phPartner={slug:"ph",name:"PH",display_name:"P H",specialties:{makes:["Porsche"],wheelhouse:{marques:["Porsche"]},
+  profile_stats:[{text:"400+ auctions represented"},{text:"{sellThroughPercent}% sell-through rate"},{text:"Specializes in: Porsche and other European marques"}]},regions:["Nationwide"],serviceClaims:[],platforms:[]};
+check("psvTrustLines drops the {placeholder} line", !psvTrustLines(phPartner).some(t=>/\{/.test(t)), JSON.stringify(psvTrustLines(phPartner)));
+globalThis.sellState.resolvedVehicle={make:"Porsche",model:"911",year:2019};
+globalThis.sellState.sellDecision={vehicle:{make:"Porsche",model:"911",year:2019},evidence:{ladder:{landed:{key:"exact_year_model"}}}};
+globalThis.sellState.partnerReferral={eligible:true,partner:phPartner}; globalThis.psvPartner=()=>phPartner;
+const phCard=renderPowerSellerCardV2({lead:true})||"";
+check("rendered card has NO unfilled placeholder (item 3a)", !/\{[^}]+\}/.test(phCard), (phCard.match(/\{[^}]+\}/g)||[]).join(","));
+
+// ---- Item 4c: at most 4 tiles (drop weakest) ----
+const fivePartner={slug:"f5",name:"F5",display_name:"F Five",specialties:{makes:["Porsche"],wheelhouse:{marques:["Porsche"]},
+  profile_stats:[{text:"400+ auctions represented"},{text:"Top 10% of all Bring a Trailer sellers"}]},
+  regions:["Nationwide"],serviceClaims:[{text:"Based in California"},{text:"Serves the West Coast"},{text:"Full-service prep in-house"}],platforms:[]};
+globalThis.sellState.partnerReferral={eligible:true,partner:fivePartner}; globalThis.psvPartner=()=>fivePartner;
+const fiveCard=renderPowerSellerCardV2({lead:true})||"";
+const tileCount=(fiveCard.match(/pcard-ttile/g)||[]).length;
+check("card renders at most 4 tiles (item 4c)", tileCount<=4, "tiles="+tileCount);
+check("over-budget drops the weakest (Track record), keeps prep", /Preparation/.test(fiveCard)&&!/Track record/.test(fiveCard), "prep="+/Preparation/.test(fiveCard)+" trust="+/Track record/.test(fiveCard));
 
 // ---- Item 5: fee figures can never reach a rendered PS card ----
 // Seed a partner carrying a fee in referral terms + notes; render the real card.

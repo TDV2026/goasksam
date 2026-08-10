@@ -17,6 +17,9 @@ alter table public.rate_limits add column if not exists daily_searches integer;
 update public.rate_limits set daily_searches = 1 where tier = 'free';
 update public.rate_limits set daily_searches = 3 where tier = 'tdv';
 -- Monthly retired: NULL = unlimited (reserve_search skips the monthly check).
+-- monthly_searches was created NOT NULL, so drop that constraint before nulling
+-- it (fixes 23502). Idempotent: DROP NOT NULL is a no-op if already dropped.
+alter table public.rate_limits alter column monthly_searches drop not null;
 update public.rate_limits set monthly_searches = null where tier in ('free', 'tdv');
 
 -- ---- reserve_search: OPTIONAL monthly, then daily, under one row lock --------
