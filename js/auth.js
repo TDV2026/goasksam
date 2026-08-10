@@ -263,6 +263,14 @@ function gateRenderStatus(data) {
     } else {
       gateAppendCard(`<div class="sam-text">That's your free searches for this month. Daily Vroom readers get more, on the house. <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">Join free &rarr;</a></div><div class="sam-text gate-sub">Already a reader? <button class="gate-inline-link" onclick="openSignInCard('Sign in with the email you subscribed with and your searches are yours.')">Sign in with the email you subscribed with</button>.</div>`);
     }
+  } else if (status === "daily_limit_reached") {
+    // Spec A daily wall: locked copy, two variants selected by the account's
+    // daily cap (n). Monthly quota is unaffected; this resets at midnight ET.
+    const n = Number(data && data.dailyCap) || 1;
+    const line = n === 1
+      ? "That's your search for today. It resets tomorrow, and everything you've run is saved under your results. See you then."
+      : `That's your ${n} for today. Your searches reset tomorrow, and everything you've run is saved under your results. See you then.`;
+    gateAppendCard(`<div class="sam-text">${authEsc(line)}</div>`);
   } else if (status === "auth_required") {
     gateAppendCard(`<div class="sam-text">I lost your session. Sign in again and we'll pick up where we left off.</div><div class="sell-rec-actions"><button class="primary" onclick="openSignInCard()">Sign in</button></div>`);
   } else if (status === "capacity") {

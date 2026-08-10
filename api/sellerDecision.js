@@ -2076,6 +2076,10 @@ function coarseMonthKey() {
   const d = new Date(Date.now() - 5 * 3600 * 1000); // rough US-eastern shift; dedup tolerance only
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
+function coarseDayKey() {
+  const d = new Date(Date.now() - 5 * 3600 * 1000); // rough US-eastern shift; dedup tolerance only
+  return d.toISOString().slice(0, 10);
+}
 async function persistSavedResult(accountId, payload, supabaseUrl, supabaseKey) {
   try {
     const ins = await supabaseInsert("saved_results", [{ user_id: accountId || null, payload }],
@@ -2113,6 +2117,13 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
       return { ok: true, reservationEventId: null, accountId: auth.userId, anonSessionId };
     }
     if (!row.allowed) {
+      // Spec A: the daily wall is a distinct block from the monthly one, with its
+      // own funnel event, and carries the tier's daily cap as `dailyCap` so the
+      // frontend picks the singular (n=1) vs plural (n>1) wall copy.
+      if (row.reason === "daily_limit") {
+        await logFunnel("daily_limit_hit", { user_id: auth.userId, dedup_key: `daily:${auth.userId}:${coarseDayKey()}` }, supabaseUrl, supabaseKey);
+        return { block: { status: "daily_limit_reached", tier: row.tier || "free", dailyCap: Number(row.daily_limit) || 1 } };
+      }
       await logFunnel("limit_hit", { user_id: auth.userId, dedup_key: `limit:${auth.userId}:${coarseMonthKey()}` }, supabaseUrl, supabaseKey);
       return { block: { status: "limit_reached", tier: row.tier || "free" } };
     }
