@@ -149,6 +149,12 @@ const tileHA=psvSpecTile(howard,{make:"Audi",model:"TT"});
 check("intro (Howard/Audi) brand-free (roster, not car)", introHA==="For this Audi TT, I'd trust him to choose the right platform, present it professionally and manage the sale from start to finish.", introHA);
 check("intro (Howard/Audi) claims NO Audi (roster-truth; car ref exempt)", rosterTruth(introHA,howard.specialties.wheelhouse), introHA);
 check("tile (Howard/Audi) = wheelhouse, not 'Audi'", tileHA==="Porsche, Vintage Mustangs"&&tileTruth(tileHA,howard.specialties.wheelhouse), tileHA);
+// d2) ABSENT WHEELHOUSE (roster SQL not run): bloated `makes` includes the car
+// marque, but with no wheelhouse the claim must be brand-free (fail-honest), NOT
+// fall back to makes. Locks STEP 2.
+const noWh={specialties:{makes:["Porsche","Audi","Toyota","Ford"]}}; // no wheelhouse
+check("absent wheelhouse -> no claim (brand-free), never makes", psvClaim(noWh,{make:"Audi",model:"TT"})===null, JSON.stringify(psvClaim(noWh,{make:"Audi",model:"TT"})));
+check("absent wheelhouse intro is brand-free", psvIntro(noWh,"X",psvClaim(noWh,{make:"Audi",model:"TT"}),"Audi TT")==="For this Audi TT, I'd trust him to choose the right platform, present it professionally and manage the sale from start to finish.", "");
 // e) MODEL-LEVEL: Howard + Ford Mustang -> "Vintage Mustangs are one of Howard's"
 const cHM=psvClaim(howard,{make:"Ford",model:"Mustang"});
 const introHM=psvIntro(howard,"Howard",cHM,"Ford Mustang");

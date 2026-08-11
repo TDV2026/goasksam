@@ -311,9 +311,13 @@ function psvPron(p){ var pr=(p&&p.specialties&&p.specialties.pronoun)||{}; retur
 // Toyota, Land Rover for matching but specialises in air-cooled Porsche + vintage
 // Mustangs). Falls back to `makes` only pre-seed so nothing breaks before the SQL.
 function psvWheelhouse(p){
+  // FAIL-HONEST when the curated wheelhouse is absent (e.g. the roster SQL has not
+  // run yet): return empty so no marque/model is claimed and the intro renders
+  // brand-free. NEVER fall back to the broad matching `makes` - that is
+  // intentionally wide for the ladder and would claim a marque the partner does
+  // not actually specialise in (howS carries Audi for matching, not as a claim).
   var wh=(p&&p.specialties&&p.specialties.wheelhouse)||null;
-  if(wh&&(wh.marques||wh.models))return {marques:(wh.marques||[]),models:(wh.models||[])};
-  return {marques:((p&&p.specialties&&p.specialties.makes)||[]),models:[]};
+  return {marques:(wh&&wh.marques)||[],models:(wh&&wh.models)||[]};
 }
 // Match the car against the wheelhouse at MARQUE then MODEL level (item 1e): a
 // 1966 Ford Mustang matches Howard's "Vintage Mustangs" model entry even though
@@ -348,7 +352,14 @@ function psvIntro(p,first,claim,carShort){
 function psvSpecTile(p,v){
   var claim=psvClaim(p,v);
   if(claim)return claim.label;
-  return psvWheelhouseList(p)||psvSpecialtyShort(p);
+  var list=psvWheelhouseList(p);
+  if(list)return list;
+  // Fallback (generalist, or pre-seed with no wheelhouse): the FULL notes-level
+  // specialty - never the first token alone, so a multi-marque partner shows his
+  // whole honest list ("BMW, Porsche, ...") rather than a single non-matching
+  // marque. Fail-honest: never surface a fee figure or an unfilled {placeholder}.
+  var notes=String((p&&p.specialties&&p.specialties.notes)||"").replace(/\s*\(per[^)]*\)\s*$/i,"").trim();
+  return /(\$\s?\d|\d+(?:\.\d+)?\s?%|\{)/.test(notes)?"":notes;
 }
 function psvMakePlural(make){ try{ return (typeof pluralizeMake==="function")?pluralizeMake(make):(v2Pl(make)); }catch(e){ return v2Pl(make||"cars"); } }
 function psvTrophy(p){
