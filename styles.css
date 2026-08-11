@@ -875,8 +875,9 @@ body.home #input-box:focus-within{box-shadow:0 2px 10px rgba(22,20,15,.05);borde
 /* TWO-COLUMN only when the card container is genuinely wide enough (>=730px).
    Below that it stays single-column (the base above), so the middle range
    (~560-720px, incl. the rail-docked case) STACKS instead of squeezing. Reported
-   threshold: 730px container width. */
-@container (min-width:730px){
+   threshold: 745px container width (two-column only within ~15px of the 760px
+   design width, so anything meaningfully narrower - incl. 768px viewport - stacks). */
+@container (min-width:745px){
   .pcard{grid-template-columns:55fr 45fr;}
   .pcard-left{padding:52px 60px 50px;}
   .pcard-ps .pcard-left{padding:48px 58px 44px;}
