@@ -9,6 +9,6 @@
   ],
   "rewrites": [
     { "source": "/out", "destination": "/api/out" },
-    { "source": "/styles.20260809o.css", "destination": "/styles.css" }
+    { "source": "/styles.20260809p.css", "destination": "/styles.css" }
   ]
 }
