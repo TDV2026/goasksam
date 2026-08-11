@@ -499,19 +499,18 @@ function renderPowerSellerCardV2(opts){
     // FIXED tile budget (item 4c): at most 4 tiles, built in KEEP priority so the
     // weakest drops entirely rather than overflowing the card height budget.
     // Order: counts > specialty > location > service (prep) > track-record.
-    // Compact tile (item 1b): icon inline with the label line, value below. Rendered
-    // as a 2x2 grid at desktop so the rail is short and the whole card fits one
-    // viewport. Helper keeps the markup uniform.
-    var tile=function(icon,label,body){ return '<div class="pcard-ttile"><div class="pcard-thead"><span class="pcard-tic">'+psvSvg(icon)+'</span><span class="pcard-tl">'+label+'</span></div><div class="pcard-tbody">'+body+'</div></div>'; };
+    // Mockup geometry: icon-left tiles (circle icon, then label + value), STACKED
+    // one per row down the rail. Helper keeps the markup uniform.
+    var tile=function(icon,inner){ return '<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg(icon)+'</span><div class="pcard-tt">'+inner+'</div></div>'; };
     var tiles=[];
-    if(trophy)tiles.push(tile("trophy","Auctions represented",'<div class="pcard-tnum">'+esc(trophy)+'</div>'));
-    if(spec)tiles.push(tile("car","Specialises in",'<div class="val green">'+esc(spec)+'</div>'));
-    if(loc)tiles.push(tile("pin","Based in "+esc(loc),(cov?'<div class="sub">'+esc(cov)+'</div>':'')));
-    if(prep)tiles.push(tile("clip","Preparation",'<div class="val">'+esc(prep)+'</div>'));
+    if(trophy)tiles.push(tile("trophy",'<div class="pcard-tnum">'+esc(trophy)+'</div><div class="val">enthusiast auctions represented</div>'));
+    if(spec)tiles.push(tile("car",'<div class="lab">Specialises in</div><div class="val green">'+esc(spec)+'</div>'));
+    if(loc)tiles.push(tile("pin",'<div class="lab">Based in '+esc(loc)+'</div>'+(cov?'<div class="sub">'+esc(cov)+'</div>':'')));
+    if(prep)tiles.push(tile("clip",'<div class="lab">Preparation</div><div class="val">'+esc(prep)+'</div>'));
     // Attributed track-record lines (profile_stats that are not the auctions total,
     // e.g. "Top 10% of all Bring a Trailer sellers"). Lowest priority: drops first.
     var trust=psvTrustLines(p);
-    if(trust.length)tiles.push(tile("star","Track record",trust.map(function(x){return '<div class="val">'+esc(x)+'</div>';}).join("")));
+    if(trust.length)tiles.push(tile("star",'<div class="lab">Track record</div>'+trust.map(function(x){return '<div class="val">'+esc(x)+'</div>';}).join("")));
     var tstack=tiles.slice(0,4).join("");
     return '<div class="pcard pcard-ps" onclick="choosePowerSeller(\''+esc(p.slug||"partner")+'\')">'
       + '<div class="pcard-left">'
