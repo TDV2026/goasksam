@@ -121,8 +121,13 @@ async function resolveVehicleInput(candidate,opts={}){
     if(data.archiveModelCount!==undefined)sellState.archiveModelCount=data.archiveModelCount;
     // Field hints apply regardless of resolution status: a location or price
     // token belongs to its field even when the car still needs clarifying.
-    if(data.vehicle?.locationHint&&!sellState.region){
-      sellState.region=data.vehicle.locationHint.region;
+    // US-only launch: a location hint from the car text pre-fills the state ONLY
+    // when it resolves to the US (so "911 in California" skips the state step). A
+    // non-US hint is ignored, so region never silently becomes non-US; the seller
+    // still reaches the state step and its locked non-US line. Parked: full non-US
+    // hint handling returns with the UK launch.
+    if(data.vehicle?.locationHint&&!sellState.region&&data.vehicle.locationHint.region==="US"){
+      sellState.region="US";
       sellState.state=data.vehicle.locationHint.state||null;
     }
     if(data.vehicle?.priceHint&&!sellState.price)sellState.price=data.vehicle.priceHint;

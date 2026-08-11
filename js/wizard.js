@@ -1133,8 +1133,10 @@ function applySellStateUpdate(text){
     const value=normalizeUpdateValue(match[1]);
     if(!value)return null;
     if(pattern.key==="region"){
+      // US-only launch: an inline region edit never sets a non-US region. A US-state
+      // value pre-fills the state; anything else leaves region US, state unset.
       const stateFromValue=normalizeUSState(value);
-      sellState.region=stateFromValue?"US":value;
+      sellState.region="US";
       sellState.state=stateFromValue||null;
     }else{
       sellState[pattern.key]=pattern.key==="state"?(normalizeUSState(value)||value):value;
