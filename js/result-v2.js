@@ -184,7 +184,7 @@ function v2Reserve(ev){
 }
 
 // ---------- 9-platform muted accent map ----------
-var V2_ACCENT={ bringatrailer:"#2F7A40", carsandbids:"#2C6E72", pcarmarket:"#464C57", hemmings:"#7E3A44", hagerty:"#A65A3C", sothebysmotorsport:"#33406A", autohunter:"#96702E", carandclassic:"#5E6B39", collectingcars:"#6E4A6B" };
+var V2_ACCENT={ bringatrailer:"#2F7A40", carsandbids:"#2C6E72", pcarmarket:"#464C57", hemmings:"#7E3A44", hagerty:"#A65A3C", sothebysmotorsport:"#33406A", autohunter:"#96702E", mbmarket:"#3A4A5A", carandclassic:"#5E6B39", collectingcars:"#6E4A6B" };
 function v2Accent(slug){ return V2_ACCENT[String(slug||"").toLowerCase()]||"#2F7A40"; }
 
 // ---------- icons ----------

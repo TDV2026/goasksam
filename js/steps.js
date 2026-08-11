@@ -273,7 +273,17 @@ async function handleSellStep(q){
     if(sellState.region==="US"){
       if(/^other$/i.test(lower)){addMsg("sam","No problem. Which state? Type the name, the two-letter code, or the ZIP.");return true;}
       const resolved=resolveStateInput(q);
-      if(resolved.kind==="country"){addMsg("sam",`${resolved.name} is a country, not a state. Which state is it in? Type the name, the two-letter code, or the ZIP.`);return true;}
+      // "US"/"USA" typed here is under-specified (the country, not the state), not a
+      // non-US answer: re-ask for the specific state.
+      if(resolved.kind==="country"&&resolved.name==="US"){addMsg("sam","Which state is the car in? Type the name, the two-letter code, or the ZIP.");return true;}
+      // Non-US answer (US-only launch): a country or clearly non-US place gets the
+      // locked line and stays on the step. Log non_us_attempt as the UK-launch demand
+      // signal. (typeof gasFunnel guard keeps the smoke harness, which stubs it, safe.)
+      if((resolved.kind==="country"&&resolved.name!=="US")||(typeof looksNonUS==="function"&&looksNonUS(q))){
+        if(typeof gasFunnel==="function")gasFunnel("non_us_attempt");
+        addMsg("sam","Right now I work with US sales data, with the UK and Europe next on the list. If the car is in the States, tell me which state.");
+        return true;
+      }
       if(resolved.kind==="state"||resolved.kind==="skip"){
         sellState.state=resolved.kind==="skip"?"Not sure":resolved.value;
       }else{
@@ -357,7 +367,7 @@ async function handleSellStep(q){
     }
     // Field-specific change chips (four-question flow).
     if(/^car$/i.test(lower)){sellState.returnToConfirm=true;sellState.carName=null;sellState.carType=null;sellState.vehicleIdentityValidated=false;sellState.pendingVehicleIdentity=null;sellState.step=1;addMsg("sam","What are you selling? Year, make, and model.");return true;}
-    if(/^location$|^region$|^country$|^state$/i.test(lower)){sellState.returnToConfirm=true;sellState.region=null;sellState.state=null;sellState.step=11;addMsg("sam",SELL_STEP_QUESTIONS[11].ask,"",chipsHTML(SELL_STEP_QUESTIONS[11].chips));return true;}
+    if(/^location$|^region$|^country$|^state$/i.test(lower)){sellState.returnToConfirm=true;askLocationStep();return true;}
     if(/^price$/i.test(lower)){sellState.returnToConfirm=true;sellState.price=null;sellState.step=6;addMsg("sam",SELL_STEP_QUESTIONS[6].ask);return true;}
     if(/^how i'll sell it$|^preference$|^selling preference$|^involvement$|^how i sell/i.test(lower)){sellState.returnToConfirm=true;sellState.sellerPreference=null;sellState.involvement=null;sellState.step=8;askPowerSellerStep();return true;}
     return true;

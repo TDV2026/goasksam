@@ -2,7 +2,7 @@
 // governs which sources count as comparable-sale EVIDENCE (the premium "others"
 // denominator and the evidence tallies). Routing/recommendability is a separate
 // axis and is intentionally NOT tested here: the allowlist never touches it.
-import { isEvidenceSource, EVIDENCE_ALLOWLIST, KNOWN_SOURCE_SLUGS, normSourceSlug } from "../api/sellerDecision.js";
+import { isEvidenceSource, EVIDENCE_ALLOWLIST, KNOWN_SOURCE_SLUGS, MARQUE_GATED_EVIDENCE, marqueGatedBlocked, normSourceSlug } from "../api/sellerDecision.js";
 import { recordPlatform } from "../lib/_classify.js";
 
 let failures = 0;
@@ -26,6 +26,21 @@ for (const slug of ["rmsothebys", "gooding", "goodingco", "oldcarsdata", "someth
 check("rmsothebys is known (not new-source)", KNOWN_SOURCE_SLUGS.has("rmsothebys"));
 check("gooding is known (not new-source)", KNOWN_SOURCE_SLUGS.has("gooding"));
 check("a novel slug is NOT known (triggers new-source detection)", !KNOWN_SOURCE_SLUGS.has(normSourceSlug("Barrett-Jackson")));
+
+// ---- MB Market: marque-gated evidence (Mercedes-Benz only) ----
+// MB Market is NOT in the unconditional allowlist: with no vehicle, or a non-Mercedes
+// vehicle, it is NOT an evidence source. It counts only for a Mercedes-Benz search.
+check("MB Market is marque-gated (mapped to Mercedes-Benz)", MARQUE_GATED_EVIDENCE.mbmarket === "Mercedes-Benz");
+check("MB Market is NOT in the unconditional allowlist", !EVIDENCE_ALLOWLIST.has("mbmarket"));
+check("MB Market is a KNOWN source (never new-source-flagged)", KNOWN_SOURCE_SLUGS.has("mbmarket"));
+check("MB Market is NOT evidence with no vehicle (fail-closed)", isEvidenceSource(rec("mbmarket")) === false);
+check("MB Market is NOT evidence for a non-Mercedes search", isEvidenceSource(rec("mbmarket"), { make: "Porsche" }) === false);
+check("MB Market IS evidence for a Mercedes-Benz search", isEvidenceSource(rec("mbmarket"), { make: "Mercedes-Benz" }) === true);
+check("MB Market IS evidence for a bare 'Mercedes' search", isEvidenceSource(rec("mbmarket"), { make: "Mercedes" }) === true);
+check("marqueGatedBlocked: MB Market blocked for Porsche", marqueGatedBlocked(rec("mbmarket"), { make: "Porsche" }) === true);
+check("marqueGatedBlocked: MB Market allowed for Mercedes-Benz", marqueGatedBlocked(rec("mbmarket"), { make: "Mercedes-Benz" }) === false);
+check("marqueGatedBlocked: a normal source is never blocked", marqueGatedBlocked(rec("bringatrailer"), { make: "Porsche" }) === false);
+check("a normal allowlisted source ignores the vehicle arg", isEvidenceSource(rec("carsandbids"), { make: "Porsche" }) === true);
 
 // ---- attribution guard: the vendor name is never a source ----
 check("recordPlatform maps the vendor name to 'unknown'", recordPlatform({ source: "oldcarsdata" }) === "unknown", recordPlatform({ source: "oldcarsdata" }));

@@ -710,8 +710,7 @@ async function handleVehicleValidationAnswer(q){
       sellState.carName=baseVehicle;sellState.carRaw=baseVehicle;
       sellState.vehicleDetailSkipped=true;sellState.pendingVehicleIdentity=null;
       sellState.vehicleIdentityValidated=false;sellState.notSureRepeats=0;
-      sellState.step=11;
-      addMsg("sam",`No problem, I'll work with the ${baseVehicle} at that level. The read will be more directional than model-specific, and I'll say so in the result. ${SELL_STEP_QUESTIONS[11].ask}`,"",chipsHTML(SELL_STEP_QUESTIONS[11].chips));
+      askLocationStep(`No problem, I'll work with the ${baseVehicle} at that level. The read will be more directional than model-specific, and I'll say so in the result.`);
       return true;
     }
     addMsg("sam",sellState.notSureRepeats===1
@@ -728,8 +727,7 @@ async function handleVehicleValidationAnswer(q){
     if(!(await validateVehicleIdentityPreflight(sellState.carName)))return true;
     addMsg("sam",vehicleAcceptPrefix());
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    sellState.step=11;
-    addMsg("sam",SELL_STEP_QUESTIONS[11].ask,"",chipsHTML(SELL_STEP_QUESTIONS[11].chips));
+      askLocationStep();
     return true;
   }
   if(currentIssue?.suggestion&&normalizeVehicleAnswer(q)===normalizeVehicleAnswer(currentIssue.suggestion)){
@@ -741,8 +739,7 @@ async function handleVehicleValidationAnswer(q){
     if(!(await validateVehicleIdentityPreflight(sellState.carName)))return true;
     addMsg("sam",vehicleAcceptPrefix());
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    sellState.step=11;
-    addMsg("sam",SELL_STEP_QUESTIONS[11].ask,"",chipsHTML(SELL_STEP_QUESTIONS[11].chips));
+      askLocationStep();
     return true;
   }
   if(currentIssue?.baseVehicle){
@@ -765,8 +762,7 @@ async function handleVehicleValidationAnswer(q){
         if(missingR){askMissingVehicleDetail(missingR);return true;}
         addMsg("sam",vehicleAcceptPrefix());
         if(sellState.returnToConfirm){goBackToConfirm();return true;}
-        sellState.step=11;
-        addMsg("sam",SELL_STEP_QUESTIONS[11].ask,"",chipsHTML(SELL_STEP_QUESTIONS[11].chips));
+      askLocationStep();
         return true;
       }
     }
@@ -784,8 +780,7 @@ async function handleVehicleValidationAnswer(q){
     }
     addMsg("sam",vehicleAcceptPrefix());
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    sellState.step=11;
-    addMsg("sam",SELL_STEP_QUESTIONS[11].ask,"",chipsHTML(SELL_STEP_QUESTIONS[11].chips));
+      askLocationStep();
     return true;
   }
   // Accepted partial state accumulates: a bare year or model-only answer is
@@ -813,8 +808,7 @@ async function handleVehicleValidationAnswer(q){
     }
     addMsg("sam",vehicleAcceptPrefix());
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    sellState.step=11;
-    addMsg("sam",SELL_STEP_QUESTIONS[11].ask,"",chipsHTML(SELL_STEP_QUESTIONS[11].chips));
+      askLocationStep();
     return true;
   }
   // Locked rule 12: this fallback also never repeats verbatim and only asks
@@ -920,14 +914,15 @@ function resumeWizardAfterVehicle(prefix){
     addMsg("sam",[prefix,backQ.ask].filter(Boolean).join(" "),"",backQ.chips&&backQ.chips.length?chipsHTML(backQ.chips):"");
     return;
   }
-  // Intake: car -> country(11) -> state/city(18) -> price(6) -> preference(8) ->
-  // analysis. No confirm step: the preference answer runs the analysis directly.
-  const countryAnswered=!!sellState.region;
+  // Intake (US-only launch): car -> state(18) -> price(6) -> preference(8) ->
+  // analysis. No country step (dormant), no confirm step: the preference answer
+  // runs the analysis directly. Region defaults to US so downstream never sees a
+  // null region.
+  if(!sellState.region){ sellState.region="US"; sellState.country="the United States"; sellState.countryRoutable=true; }
   const localityAnswered=!!sellState.state;
-  const next=!countryAnswered?11
-    :(!localityAnswered?18
+  const next=!localityAnswered?18
     :(!sellState.price?6
-    :(!sellState.sellerPreference?8:99)));
+    :(!sellState.sellerPreference?8:99));
   if(next===8){ if(prefix)addMsg("sam",prefix); askPowerSellerStep(); return; }
   if(next===99){ if(prefix)addMsg("sam",prefix); showSellRecommendation(); return; }
   sellState.step=next;
@@ -949,6 +944,35 @@ function detectCountry(q){
   const label=(q||"").trim().replace(/^(in|from|the)\s+/i,"");
   return {region:"international",label:label?titleCaseCountry(label):"another country",routable:false};
 }
+// Positive non-US detector for the state step (US-only launch). resolveStateInput
+// already flags typed country names (UK, Canada, Australia, UAE, Mexico, Europe);
+// this adds country-level terms it misses (Germany, France...) and well-known
+// non-US cities and provinces, the shape a seller's bare answer usually takes
+// ("London", "Ontario"). It is deliberately a POSITIVE list, never a catch-all,
+// so an unrecognized US city ("Tulsa") is NEVER mistaken for non-US. A handful of
+// minor US namesakes are accepted: the locked reply invites the seller to name
+// their state, which resolves on the next turn. Parked to widen at the UK launch.
+const NON_US_PLACES=[
+  // Canada
+  "canada","canadian","ontario","quebec","alberta","manitoba","saskatchewan","british columbia","nova scotia","newfoundland","new brunswick",
+  "toronto","montreal","vancouver","calgary","ottawa","edmonton","winnipeg","mississauga","halifax",
+  // UK / Ireland
+  "london","glasgow","edinburgh","liverpool","leeds","manchester","cardiff","aberdeen","dublin","belfast",
+  // Europe
+  "munich","frankfurt","hamburg","cologne","stuttgart","amsterdam","rotterdam","brussels","antwerp","zurich","geneva",
+  "milan","rome","turin","madrid","barcelona","lisbon","porto","vienna","prague","warsaw","stockholm","copenhagen",
+  "oslo","helsinki","monaco","nice","lyon","marseille","mexico","mexico city",
+  // Australia / NZ / Middle East / Asia
+  "sydney","melbourne","brisbane","perth","adelaide","auckland","wellington",
+  "dubai","abu dhabi","doha","riyadh","tokyo","osaka","hong kong","singapore","shanghai","beijing"
+];
+function looksNonUS(text){
+  const l=String(text||"").toLowerCase().replace(/[.,]/g," ").replace(/\s+/g," ").trim();
+  if(!l)return false;
+  if(typeof normalizeUSState==="function"&&normalizeUSState(l))return false; // a real US state wins
+  for(const c of COUNTRY_REGISTRY){ if(c.region!=="US"&&c.match.test(l))return true; }
+  return NON_US_PLACES.some(p=>new RegExp("\\b"+p.replace(/[-/\\^$*+?.()|[\]{}]/g,"\\$&")+"\\b").test(l));
+}
 function titleCaseCountry(s){
   const map={germany:"Germany",german:"Germany",france:"France",french:"France",italy:"Italy",italian:"Italy",spain:"Spain",spanish:"Spain",netherlands:"the Netherlands",dutch:"the Netherlands",belgium:"Belgium",switzerland:"Switzerland",swiss:"Switzerland",sweden:"Sweden",austria:"Austria",portugal:"Portugal",ireland:"Ireland",denmark:"Denmark",norway:"Norway",finland:"Finland",poland:"Poland",europe:"Europe",european:"Europe"};
   const key=String(s||"").toLowerCase().trim();
@@ -958,6 +982,18 @@ function titleCaseCountry(s){
 // Step 18 asks for a US state or, for non-US countries, a free-text city/region.
 function locationAskText(){
   return sellState.region==="US"?SELL_STEP_QUESTIONS[18].ask:"Which city or region? A city or area is perfect.";
+}
+
+// LAUNCH (US-only, Aug 2026): the country step (11) is DORMANT, not deleted.
+// Vehicle completion hands straight to the state question (18) with the region
+// pre-set to US, so the flow is car -> state -> price -> preference. COUNTRY_REGISTRY,
+// detectCountry, countryChips and the step-11 handler stay in the file, unused, ready
+// for the UK/Europe launch: restore these call sites to step 11 to re-enable the
+// country question. A non-US answer is now caught at the state step (see steps.js).
+function askLocationStep(prefix){
+  sellState.region="US"; sellState.country="the United States"; sellState.countryRoutable=true; sellState.state=null;
+  sellState.step=18;
+  addMsg("sam",[prefix,SELL_STEP_QUESTIONS[18].ask].filter(Boolean).join(" "),"",chipsHTML(SELL_STEP_QUESTIONS[18].chips));
 }
 
 function editCarName(){
@@ -1003,7 +1039,7 @@ function beginScopedField(field){
     addMsg("sam","Sure. What's the car? Year, make and model. If it's the same, just say so.");
     return;
   }
-  if(field==="location"){ sellState.region=null; sellState.state=null; sellState.step=11; addMsg("sam",SELL_STEP_QUESTIONS[11].ask,"",chipsHTML(SELL_STEP_QUESTIONS[11].chips)); return; }
+  if(field==="location"){ askLocationStep(); return; }
   if(field==="price"){ sellState.price=null; sellState.step=6; addMsg("sam",SELL_STEP_QUESTIONS[6].ask); return; }
   if(field==="preference"){ sellState.sellerPreference=null; sellState.involvement=null; sellState.step=8; askPowerSellerStep(); return; }
 }

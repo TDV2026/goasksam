@@ -54,11 +54,11 @@ const patched = script.replace(
   /function addMsg\(/,
   "function addMsg(...__a){__samLog.push(__a);return __addMsgReal(...__a)}\nfunction __addMsgReal("
 );
-const exportTail = `;globalThis.__t={handleSellStep,sellState,addMsgLog:__samLog,SELL_SYS,SELL_STEP_QUESTIONS,remainingWizardQuestions,localPreRoute,askNextSellQuestion,showSellRecommendation,handleSellRecommendationFollowup,editCarName};`;
+const exportTail = `;globalThis.__t={handleSellStep,sellState,addMsgLog:__samLog,SELL_SYS,SELL_STEP_QUESTIONS,remainingWizardQuestions,localPreRoute,askNextSellQuestion,showSellRecommendation,handleSellRecommendationFollowup,editCarName,askLocationStep};`;
 const fn = new Function("document", "window", "fetch", "localStorage", "navigator", "location", "MutationObserver", "IntersectionObserver", "requestAnimationFrame", prelude + patched + exportTail);
 fn(documentStub, windowStub, prodFetch, { getItem: () => null, setItem() {}, removeItem() {} }, { userAgent: "smoke", clipboard: {} }, { search: "", hostname: "smoke", href: "", pathname: "/" }, class { observe() {} disconnect() {} }, class { observe() {} disconnect() {} }, cb => cb && cb(0));
 
-const { handleSellStep, sellState, addMsgLog, SELL_SYS, remainingWizardQuestions, localPreRoute , askNextSellQuestion, showSellRecommendation, handleSellRecommendationFollowup, editCarName } = globalThis.__t;
+const { handleSellStep, sellState, addMsgLog, SELL_SYS, remainingWizardQuestions, localPreRoute , askNextSellQuestion, showSellRecommendation, handleSellRecommendationFollowup, editCarName, askLocationStep } = globalThis.__t;
 const samMessages = () => addMsgLog.filter(a => a[0] === "sam").map(a => String(a[1]));
 const artifactsDir = path.join(repoRoot, "smoke-artifacts");
 fs.mkdirSync(artifactsDir, { recursive: true });
@@ -658,37 +658,46 @@ if (sellState.step === 17) {
   check("trim: skipping the optional generic trim advances to location", sellState.step === 11 && sellState.vehicleDetailSkipped === true, `step=${sellState.step} skipped=${sellState.vehicleDetailSkipped}`);
 }
 
-// Country-before-state two-step location flow. US -> state question (chips);
-// non-US -> free-text city/region (no chips), feeding the policy region.
+// US-ONLY LAUNCH (Aug 2026): the country step is DORMANT. The flow is
+// car -> state(18) -> price(6). Vehicle completion pre-sets region=US and asks the
+// state question directly; a non-US answer at the state step gets the locked line
+// and stays on the step (logging non_us_attempt). detectCountry / COUNTRY_REGISTRY
+// remain in the file, unused, for the UK launch.
 resetToStep1();
 sellState.carName = "2016 Mazda MX-5"; sellState.resolvedVehicle = { make: "Mazda", model: "MX-5", year: 2016 };
 sellState.vehicleIdentityValidated = true; sellState.vehicleDetailSkipped = true;
-sellState.region = null; sellState.state = null; sellState.step = 11;
-await handleSellStep("United States");
-check("country: US answer advances to the state question", sellState.region === "US" && sellState.step === 18 && /which state is it in/i.test(lastSam() || ""), `region=${sellState.region} step=${sellState.step} last="${lastSam()}"`);
+sellState.region = null; sellState.state = null; sellState.step = 18;
+askLocationStep();
+check("launch: vehicle completion pre-sets region=US and asks the state question", sellState.region === "US" && sellState.step === 18 && /which state is it in/i.test(lastSam() || ""), `region=${sellState.region} step=${sellState.step} last="${lastSam()}"`);
+check("launch: the state step shows state chips (no country chips)", /handleChip\('California',18\)/.test(String(addMsgLog.at(-1)?.[3] || "")), `chips="${String(addMsgLog.at(-1)?.[3] || "").slice(0,120)}"`);
 await handleSellStep("California");
-check("country->state: state stored, advances to price", sellState.state === "California" && sellState.step === 6, `state=${sellState.state} step=${sellState.step}`);
+check("launch: state stored, advances straight to price", sellState.state === "California" && sellState.step === 6, `state=${sellState.state} step=${sellState.step}`);
 
+// Non-US answer at the state step: locked line, stays on step 18, region stays US.
+for (const nonUS of ["United Kingdom", "London", "Ontario", "Germany", "Toronto"]) {
+  resetToStep1();
+  sellState.carName = "2016 Mazda MX-5"; sellState.resolvedVehicle = { make: "Mazda", model: "MX-5", year: 2016 };
+  sellState.vehicleIdentityValidated = true; sellState.vehicleDetailSkipped = true;
+  askLocationStep();
+  await handleSellStep(nonUS);
+  check(`launch: non-US answer "${nonUS}" gets the locked line and stays on the state step`,
+    sellState.step === 18 && sellState.region === "US" && !sellState.state
+    && /work with US sales data/i.test(lastSam() || "") && /the UK and Europe next on the list/i.test(lastSam() || ""),
+    `step=${sellState.step} region=${sellState.region} state=${sellState.state} last="${lastSam()}"`);
+}
+
+// "US"/"USA" typed at the state step is under-specified (the country, not a state):
+// re-ask for the state, never the non-US line.
 resetToStep1();
 sellState.carName = "2016 Mazda MX-5"; sellState.resolvedVehicle = { make: "Mazda", model: "MX-5", year: 2016 };
 sellState.vehicleIdentityValidated = true; sellState.vehicleDetailSkipped = true;
-sellState.region = null; sellState.state = null; sellState.step = 11;
-await handleSellStep("United Kingdom");
-check("country: UK answer sets non-US region and asks for a city/region (no state chips)", sellState.region === "UK" && sellState.step === 18 && /which city or region/i.test(lastSam() || "") && !String(addMsgLog.at(-1)?.[3] || ""), `region=${sellState.region} step=${sellState.step} last="${lastSam()}" chips="${String(addMsgLog.at(-1)?.[3] || "")}"`);
-await handleSellStep("London");
-check("country->city: free-text city stored, advances to price", sellState.state === "London" && sellState.step === 6, `state=${sellState.state} step=${sellState.step}`);
-
-// Country phase 1: "Somewhere else" opens a free-text country prompt (no region
-// stored yet), then a typed country resolves and advances.
-resetToStep1();
-sellState.carName = "2016 Mazda MX-5"; sellState.resolvedVehicle = { make: "Mazda", model: "MX-5", year: 2016 };
-sellState.vehicleIdentityValidated = true; sellState.vehicleDetailSkipped = true;
-sellState.region = null; sellState.state = null; sellState.step = 11;
-await handleSellStep("Somewhere else");
-check("country: 'Somewhere else' opens a free-text country prompt, no region yet", sellState.region === null && sellState.step === 11 && /type the country name/i.test(lastSam() || ""), `region=${sellState.region} step=${sellState.step} last="${lastSam()}"`);
-await handleSellStep("Canada");
-check("country: typed 'Canada' is NOT in the routable registry, marked not routable, asks city", /canada/i.test(sellState.country || "") && sellState.countryRoutable === false && sellState.step === 18 && /which city or region/i.test(lastSam() || ""), `country=${sellState.country} region=${sellState.region} routable=${sellState.countryRoutable} step=${sellState.step}`);
-check("country: Canada is international AND not routable (honest line, never US)", isInternationalSellerRegion() === true && isRoutableInternationalRegion() === false, `intl=${isInternationalSellerRegion()} routable=${isRoutableInternationalRegion()}`);
+askLocationStep();
+await handleSellStep("USA");
+check("launch: 'USA' at the state step re-asks for the state (not the non-US line)",
+  sellState.step === 18 && !sellState.state && /which state/i.test(lastSam() || "") && !/work with US sales data/i.test(lastSam() || ""),
+  `step=${sellState.step} last="${lastSam()}"`);
+await handleSellStep("Texas");
+check("launch: a real state after the USA re-ask advances to price", sellState.state === "Texas" && sellState.step === 6, `state=${sellState.state} step=${sellState.step}`);
 
 // 5a2. FIX 3 (updated flow): PowerSeller preference is the LAST wizard step,
 // asked right after price. There is NO confirm step: answering the preference
@@ -882,14 +891,25 @@ const mustang = { label: "1990 Ford Mustang", vehicle: { raw: "1990 Ford Mustang
 const gts = { label: "2018 Porsche 911 Carrera GTS", vehicle: { raw: "2018 Porsche 911 Carrera GTS", year: 2018, make: "Porsche", model: "911", trim: "Carrera GTS", confidence: "high", canonicalLabel: "2018 Porsche 911 Carrera GTS" } };
 
 {
-  const uk = await runResult("UK", null, "150k", mustang);
-  check("non-US UK: Car & Classic card is contextual with the volume stat", /Car &(amp;)? Classic/.test(uk) && /130K\+ sales annually/.test(uk) && !/Classic cars, modern classics, performance models/.test(uk), uk.replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g," ").slice(0, 300));
-  check("non-US UK: Collecting Cars card at $100k+ with approved copy", /Collecting Cars/.test(uk) && /24,000\+ lots sold/.test(uk) && /\$1\.5B\+ generated for sellers/.test(uk), uk.slice(0, 300));
-  check("non-US UK: no involvement choice", !/Want it handled, or run it yourself/.test(uk), "choice rendered");
+  // PHASE 2 (dormant under the US-only launch, Aug 2026): the international
+  // regional result cards (Car & Classic / Collecting Cars) have NO live trigger
+  // now that the country step is dormant and every seller resolves to region=US.
+  // The render code is intentionally kept for the UK/Europe launch; these copy
+  // assertions force region=UK/Australia directly and are therefore parked, not
+  // run on the launch path. Flip PHASE2_INTL_CARDS to re-arm them at the UK launch.
+  const PHASE2_INTL_CARDS = false;
+  if (PHASE2_INTL_CARDS) {
+    const uk = await runResult("UK", null, "150k", mustang);
+    check("non-US UK: Car & Classic card is contextual with the volume stat", /Car &(amp;)? Classic/.test(uk) && /130K\+ sales annually/.test(uk) && !/Classic cars, modern classics, performance models/.test(uk), uk.replace(/<span class="num">([^<]*)<\/span>/g,"$1").replace(/<[^>]+>/g," ").slice(0, 300));
+    check("non-US UK: Collecting Cars card at $100k+ with approved copy", /Collecting Cars/.test(uk) && /24,000\+ lots sold/.test(uk) && /\$1\.5B\+ generated for sellers/.test(uk), uk.slice(0, 300));
+    check("non-US UK: no involvement choice", !/Want it handled, or run it yourself/.test(uk), "choice rendered");
 
-  const au = await runResult("Australia", null, "150k", mustang);
-  check("non-US AU: Collecting Cars only with approved copy", /Collecting Cars/.test(au) && /350,000\+ members in 100\+ countries/.test(au) && !/Car &(amp;)? Classic/.test(au), au.slice(0, 300));
-  check("non-US AU: no involvement choice", !/Want it handled, or run it yourself/.test(au), "choice rendered");
+    const au = await runResult("Australia", null, "150k", mustang);
+    check("non-US AU: Collecting Cars only with approved copy", /Collecting Cars/.test(au) && /350,000\+ members in 100\+ countries/.test(au) && !/Car &(amp;)? Classic/.test(au), au.slice(0, 300));
+    check("non-US AU: no involvement choice", !/Want it handled, or run it yourself/.test(au), "choice rendered");
+  } else {
+    console.log("SKIP  [wizard] non-US international result cards (Car & Classic / Collecting Cars): phase-2 dormant, no live trigger under the US-only launch");
+  }
 
   // Layout round (July 2026): step 8 is the SINGLE ask. The post-result
   // "Want it handled, or run it yourself?" chips are gone; the preference drives

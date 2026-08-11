@@ -5,7 +5,7 @@
 // never blocks the UI. Idempotent where a dedup_key is supplied (11e).
 import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
 
-const ALLOWED = new Set(["homepage_view", "wizard_start", "wizard_complete", "signup_shown"]);
+const ALLOWED = new Set(["homepage_view", "wizard_start", "wizard_complete", "signup_shown", "non_us_attempt"]);
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");

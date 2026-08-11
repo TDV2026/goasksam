@@ -118,6 +118,21 @@ const ROUTE_POLICIES = {
     regions: ["US"],
     strongSegments: []
   },
+  // MB Market is a Mercedes-Benz-only marketplace on the evidence allowlist, but
+  // MARQUE-GATED: its sold records count as evidence ONLY for Mercedes-Benz
+  // searches (see MARQUE_GATED_EVIDENCE / isEvidenceSource). No policy boost:
+  // strongSegments is empty, so it is pickable only when the Mercedes data clears
+  // the same evidence gates as everyone else.
+  mbmarket: {
+    about: { regionsLabel: "the US", since: 2019, knownFor: "Mercedes-Benz cars", source: "policy_provided" },
+    label: "MB Market",
+    evidenceCapable: true,
+    priceOutcome: "medium",
+    speedToList: "medium_fast",
+    sellerEffort: "medium",
+    regions: ["US"],
+    strongSegments: []
+  },
   hagerty: {
     about: { regionsLabel: "the US", since: 2021, knownFor: "classic and collector cars, backed by the Hagerty community", source: "policy_provided" },
     label: "Hagerty Marketplace",
@@ -168,18 +183,49 @@ export const EVIDENCE_ALLOWLIST = new Set([
   "bringatrailer", "bat", "carsandbids", "hagerty", "pcarmarket",
   "acc", "allcollectorcars", "sothebysmotorsport", "hemmings", "autohunter"
 ]);
+// MARQUE-GATED evidence sources: allowlisted, but ONLY for a specific marque.
+// MB Market is a Mercedes-Benz-only marketplace, so its sold records may only
+// count as comparable evidence when the searched car is a Mercedes-Benz. It is
+// intentionally NOT in the unconditional EVIDENCE_ALLOWLIST above; isEvidenceSource
+// admits it only when the vehicle marque matches. It is a KNOWN source so
+// new-source detection never flags it.
+export const MARQUE_GATED_EVIDENCE = { mbmarket: "Mercedes-Benz" };
 // Every source slug we have ever knowingly admitted. Anything outside this set
 // arriving on a fetched record is surfaced by new-source detection and never
 // silently trusted. Excluded-from-evidence houses (rmsothebys/gooding) are
 // still KNOWN; they render under "a leading auction house".
 export const KNOWN_SOURCE_SLUGS = new Set([
-  ...EVIDENCE_ALLOWLIST, "rmsothebys", "gooding", "goodingco"
+  ...EVIDENCE_ALLOWLIST, ...Object.keys(MARQUE_GATED_EVIDENCE), "rmsothebys", "gooding", "goodingco"
 ]);
 export function normSourceSlug(value) {
   return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
-export function isEvidenceSource(record) {
-  return EVIDENCE_ALLOWLIST.has(normSourceSlug(recordPlatform(record)));
+// A vehicle make "matches" a gated marque when it is that marque (case-insensitive).
+// The one gated marque is Mercedes-Benz; the resolver canonicalizes "Mercedes" to
+// "Mercedes-Benz", so a simple mercedes-prefix check is robust to either form.
+export function makeMatchesMarque(make, marque) {
+  const m = String(make || "").toLowerCase().trim();
+  const g = String(marque || "").toLowerCase().trim();
+  if (!m || !g) return false;
+  if (m === g) return true;
+  return g.startsWith("mercedes") && m.startsWith("mercedes");
+}
+// isEvidenceSource governs which SOLD RECORDS count as comparable-sale evidence.
+// Pass the searched `vehicle` so marque-gated sources (MB Market) are admitted
+// only for their marque; without a vehicle the gate blocks them (fail-closed),
+// which never affects the unconditional allowlist sources.
+export function isEvidenceSource(record, vehicle) {
+  const slug = normSourceSlug(recordPlatform(record));
+  if (EVIDENCE_ALLOWLIST.has(slug)) return true;
+  const marque = MARQUE_GATED_EVIDENCE[slug];
+  if (marque) return makeMatchesMarque(vehicle && vehicle.make, marque);
+  return false;
+}
+// True when a record's source is marque-gated AND the searched vehicle is not the
+// gated marque: such a record can never enter this car's comparison at all.
+export function marqueGatedBlocked(record, vehicle) {
+  const marque = MARQUE_GATED_EVIDENCE[normSourceSlug(recordPlatform(record))];
+  return !!marque && !makeMatchesMarque(vehicle && vehicle.make, marque);
 }
 
 function setCors(res) {
@@ -1008,7 +1054,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
   // Evidence tallies count ALLOWLISTED sources only (July 2026): white-glove
   // consignment (rmsothebys/gooding) and the vendor-name anomaly never inflate
   // the match counts that back the recommendation and its confidence.
-  const inWindowEvidence = inWindow.filter(item => isEvidenceSource(item.record));
+  const inWindowEvidence = inWindow.filter(item => isEvidenceSource(item.record, vehicle));
   const closeMatches = inWindowEvidence.filter(item => item.classification.comparison_tier === "close_match");
   const relevantMatches = inWindowEvidence.filter(item => ["close_match", "relevant_match"].includes(item.classification.comparison_tier));
   const broadMatches = inWindowEvidence.filter(item => item.classification.comparison_tier === "broad_match");
@@ -1023,10 +1069,14 @@ function analyze(records, classifications, ladder, vehicle, debug) {
         daysAgo(item.record.auction_end_date) <= windowDays && ladderEligible(item, landed.definition)
       )
     : [];
-  const evidenceSetAllowed = evidenceSet.filter(item => isEvidenceSource(item.record));
+  const evidenceSetAllowed = evidenceSet.filter(item => isEvidenceSource(item.record, vehicle));
 
   const platformMap = new Map();
   for (const item of evidenceSet) {
+    // Marque gate (belt-and-suspenders): a Mercedes-only source (MB Market) never
+    // forms a platform entry for a non-Mercedes search, so it can never be a pick,
+    // a comparison card, or a denominator outside its marque.
+    if (marqueGatedBlocked(item.record, vehicle)) continue;
     const platform = recordPlatform(item.record);
     if (!platformMap.has(platform)) platformMap.set(platform, []);
     platformMap.get(platform).push(item);
@@ -1080,7 +1130,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     if (!segmentDef) return null;
     for (const window of PREMIUM_WINDOWS_DAYS) {
       const eligible = pairedRecords.filter(item =>
-        daysAgo(item.record.auction_end_date) <= window && segmentEligible(item) && isEvidenceSource(item.record));
+        daysAgo(item.record.auction_end_date) <= window && segmentEligible(item) && isEvidenceSource(item.record, vehicle));
       const mineSold = eligible.filter(item => recordPlatform(item.record) === platform).length;
       const othersSold = eligible.length - mineSold;
       if (mineSold >= 5 && othersSold >= 5) {
@@ -1120,7 +1170,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
       const scopeDefs = window === 45 ? [landed.definition] : [landed.definition, premiumGenerationDef].filter(Boolean);
       for (const def of scopeDefs) {
         const eligible = pairedRecords.filter(item =>
-          daysAgo(item.record.auction_end_date) <= window && ladderEligible(item, def) && isEvidenceSource(item.record));
+          daysAgo(item.record.auction_end_date) <= window && ladderEligible(item, def) && isEvidenceSource(item.record, vehicle));
         const mine = eligible.filter(item => recordPlatform(item.record) === platform)
           .map(item => Number(item.classification.price)).filter(Number.isFinite);
         const others = eligible.filter(item => recordPlatform(item.record) !== platform)
@@ -1165,7 +1215,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     if (segmentDef) {
       for (const window of PREMIUM_WINDOWS_DAYS) {
         const eligible = pairedRecords.filter(item =>
-          daysAgo(item.record.auction_end_date) <= window && segmentEligible(item) && isEvidenceSource(item.record));
+          daysAgo(item.record.auction_end_date) <= window && segmentEligible(item) && isEvidenceSource(item.record, vehicle));
         const mine = eligible.filter(item => recordPlatform(item.record) === platform)
           .map(item => Number(item.classification.price)).filter(Number.isFinite);
         const others = eligible.filter(item => recordPlatform(item.record) !== platform)
@@ -1248,7 +1298,7 @@ function analyze(records, classifications, ladder, vehicle, debug) {
     .map(([platform, items]) => {
       const weekdayInsight = strongestWeekdayInsight(items);
       const otherPrices = evidenceSet
-        .filter(item => recordPlatform(item.record) !== platform && isEvidenceSource(item.record))
+        .filter(item => recordPlatform(item.record) !== platform && isEvidenceSource(item.record, vehicle))
         .map(item => item.classification.price)
         .filter(Number.isFinite);
       const recentPrices = items.map(item => item.classification.price).filter(Number.isFinite);
