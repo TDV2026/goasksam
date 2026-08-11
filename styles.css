@@ -898,22 +898,24 @@ body.home #input-box:focus-within{box-shadow:0 2px 10px rgba(22,20,15,.05);borde
 /* Platform mockup rhythm: dominant serif platform name, metadata list, WHY
    narrative, then the paired small stat tiles side-by-side in the rail. Scaled to
    fit the viewport. */
-.pcard-platform .pcard-script{font-size:clamp(24px,6.6cqi,40px);margin-top:6px;line-height:1.02;}
-.pcard-platform .pcard-name{font-size:clamp(30px,9cqi,64px);margin-top:10px;line-height:1.0;}
-.pcard-platform .pcard-whyl-main{margin-top:22px;}
-.pcard-platform .pcard-lead{margin-top:14px;font-size:clamp(15px,3cqi,18px);line-height:1.5;}
-.pcard-platform .pcard-cta{margin-top:28px;min-height:60px;font-size:15.5px;letter-spacing:.03em;}
-.pcard-platform .pcard-reassure{margin-top:20px;}
-.pcard-platform .pcard-reassure span{font-size:14px;line-height:1.45;}
-.pcard-platform .pcard-wordmark{margin-bottom:22px;}
-.pcard-platform .pcard-mrow{padding:11px 0;}
-.pcard-platform .pcard-rule{margin:18px 0;}
+.pcard-platform .pcard-script{font-size:clamp(21px,5.8cqi,34px);margin-top:4px;line-height:1.02;}
+.pcard-platform .pcard-name{font-size:clamp(28px,8cqi,50px);margin-top:8px;line-height:1.0;}
+.pcard-platform .pcard-whyl-main{margin-top:16px;}
+.pcard-platform .pcard-lead{margin-top:10px;font-size:clamp(15px,2.9cqi,17px);line-height:1.45;}
+.pcard-platform .pcard-cta{margin-top:20px;min-height:54px;font-size:15px;letter-spacing:.03em;}
+.pcard-platform .pcard-reassure{margin-top:13px;}
+.pcard-platform .pcard-reassure span{font-size:13.5px;line-height:1.4;}
+.pcard-platform .pcard-wordmark{margin-bottom:14px;}
+.pcard-platform .pcard-mrow{padding:7px 0;}
+.pcard-platform .pcard-mp{font-size:15.5px;}
+.pcard-platform .pcard-ms{font-size:13.5px;}
+.pcard-platform .pcard-rule{margin:11px 0;}
 .pcard-platform .pcard-ev{margin-top:auto;}
-.pcard-platform .pcard-why{margin-top:10px;font-size:15px;line-height:1.45;}
-.pcard-platform .pcard-tiles{margin-top:18px;gap:14px;}
-.pcard-platform .pcard-tile{padding:16px 18px;}
-.pcard-platform .pcard-tv{font-size:clamp(22px,6.4cqi,30px);margin:7px 0 8px;}
-.pcard-platform .pcard-ts{font-size:14px;line-height:1.45;}
+.pcard-platform .pcard-why{margin-top:7px;font-size:14px;line-height:1.4;}
+.pcard-platform .pcard-tiles{margin-top:12px;gap:12px;}
+.pcard-platform .pcard-tile{padding:12px 14px;}
+.pcard-platform .pcard-tv{font-size:clamp(19px,5.4cqi,25px);margin:5px 0 5px;}
+.pcard-platform .pcard-ts{font-size:13px;line-height:1.38;}
 /* Mockup rhythm: the large serif headline DOMINATES the left column, with intro,
    CTA and reassurance below it - scaled so the whole panel is ~3:2 and still fits
    the viewport (badge->reassurance) at 1366x768 / 1280x800. */
