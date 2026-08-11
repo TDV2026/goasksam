@@ -946,6 +946,8 @@ body.home #input-box:focus-within{box-shadow:0 2px 10px rgba(22,20,15,.05);borde
 /* Parsed-summary strip at the top of the analysis screen (replaces confirm card). */
 .sell-summary-strip{font-size:14.5px;line-height:1.45;color:var(--pc-ink);letter-spacing:.01em;padding:9px 15px;background:var(--pc-tile,#F0EDE5);border:1px solid var(--pc-line,#EDE9E0);border-radius:12px;display:inline-block;}
 .sell-summary-strip .ss-dot{color:var(--pc-faint,#8C877C);margin:0 2px;}
+.ss-edit{margin-left:8px;font:inherit;font-size:13px;font-weight:600;color:var(--pc-cta,#1E5A2C);background:none;border:0;padding:2px 4px;cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+.ss-edit:hover{opacity:.8;}
 @media (prefers-color-scheme:dark){.sell-summary-strip{color:#F1EEE7;background:#22201B;border-color:#33302A;}}
 
 /* compact secondary platform */

@@ -974,6 +974,63 @@ function editCarName(){
   addMsg("sam",`No problem. What's the car instead of the ${sellState.carName||"one we had"}? Year, make and model. If it's actually right, just say so.`);
 }
 
+// ===================== Item 3: SCOPED EDIT from the summary strip =====================
+// Opens field chips; each re-asks ONLY that field, keeping everything else. After
+// the scoped answer we RETURN to the question the seller was on (mid-wizard) or
+// RE-RUN the analysis with no new credit (post-result). A car change follows the
+// existing change-car path and its normal rules.
+function openScopedEdit(){
+  sellState.scopedEdit={ postResult: sellState.step===12, returnStep:(sellState.step>0&&sellState.step!==12)?sellState.step:null, awaitingField:true };
+  addMsg("sam","What would you like to change?","",chipsHTML(["The car","Location","Price","How I'll sell"]));
+}
+function scopedFieldFromInput(text){
+  var l=String(text||"").toLowerCase().trim();
+  if(/^the car$|^car$|^vehicle$/.test(l))return "car";
+  if(/^location$|^region$|^country$|^state$|^where/.test(l))return "location";
+  if(/^price$|^asking/.test(l))return "price";
+  if(/^how i'?ll sell$|^how i sell|^preference$|^powerseller|^involvement$/.test(l))return "preference";
+  return null;
+}
+function beginScopedField(field){
+  var se=sellState.scopedEdit||{}; se.awaitingField=false; se.field=field; sellState.scopedEdit=se;
+  if(field==="car"){
+    // Change-car path (normal rules): snapshot for same-car re-confirm; post-result
+    // flows through to the analysis, mid-wizard returns to the saved step.
+    sellState.editPrevVehicle={carName:sellState.carName,carRaw:sellState.carRaw,resolvedVehicle:sellState.resolvedVehicle};
+    sellState.editReturnStep=se.postResult?null:se.returnStep;
+    sellState.scopedEdit=null;
+    sellState.step=1; sellState.vehicleIdentityValidated=false; sellState.resolvedVehicle=null; sellState.pendingVehicleIdentity=null; sellState.trimAskAttempts=0;
+    addMsg("sam","Sure. What's the car? Year, make and model. If it's the same, just say so.");
+    return;
+  }
+  if(field==="location"){ sellState.region=null; sellState.state=null; sellState.step=11; addMsg("sam",SELL_STEP_QUESTIONS[11].ask,"",chipsHTML(SELL_STEP_QUESTIONS[11].chips)); return; }
+  if(field==="price"){ sellState.price=null; sellState.step=6; addMsg("sam",SELL_STEP_QUESTIONS[6].ask); return; }
+  if(field==="preference"){ sellState.sellerPreference=null; sellState.involvement=null; sellState.step=8; askPowerSellerStep(); return; }
+}
+function scopedEditActive(field){ var se=sellState.scopedEdit; return !!(se&&!se.awaitingField&&se.field===field); }
+function finishScopedEdit(){
+  var se=sellState.scopedEdit; sellState.scopedEdit=null;
+  if(se&&se.postResult){ showSellRecommendation({rerun:true}); return true; }
+  if(se&&se.returnStep){ sellState.step=se.returnStep; if(se.returnStep===8)askPowerSellerStep(); else askNextSellQuestion(); return true; }
+  showSellRecommendation(); return true;
+}
+// A reply carrying a price signal ("worth 55", "$55k", "55000", "asking 55")
+// routes the number to PRICE (never a year). Returns {value, formatted, cleaned}
+// with the price text stripped so the remainder can resolve as the car.
+function extractPriceSignal(text){
+  var t=String(text||"");
+  var m=/\b(?:worth|asking|want|get|around|about|approx(?:imately)?|price[d]?(?:\s+at)?|selling for|for)\s*\$?\s*(\d[\d,]*)\s*(k|grand|thousand)?\b/i.exec(t)
+      ||/\$\s*(\d[\d,]*)\s*(k|grand|thousand)?\b/i.exec(t)
+      ||/\b(\d[\d,]*)\s*(k|grand|thousand)\b/i.exec(t)   // "55k"
+      ||/\b(\d{5,})\b/.exec(t);                          // bare "55000"
+  if(!m)return null;
+  var n=Number(String(m[1]).replace(/,/g,"")); if(!isFinite(n)||n<=0)return null;
+  if(/k|grand|thousand/i.test(m[2]||"")||n<1000)n=n*1000;   // "55" / "55k" -> 55000
+  var formatted="$"+n.toLocaleString("en-US");
+  var cleaned=t.replace(m[0],"").replace(/\s*(?:,|\.|;)?\s*(?:and|its|it'?s|and it'?s)\s*$/i,"").replace(/\s{2,}/g," ").trim();
+  return {value:n,formatted:formatted,cleaned:cleaned};
+}
+
 // The condition question acknowledges a condition already volunteered at
 // entry ("73 bronco half restored") instead of asking cold.
 function conditionAskText(){

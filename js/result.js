@@ -1,4 +1,7 @@
-async function showSellRecommendation(){
+async function showSellRecommendation(opts){
+  // rerun: a same-session re-run after a scoped Location/Price/Preference edit -
+  // it must not consume a new search credit (item 3).
+  var sellRerun=!!(opts&&opts.rerun);
   // No results-stage vehicle re-ask (locked A1): once the summary is confirmed
   // we go straight to the analysis at whatever level we know. A year-less
   // vehicle runs at model level (acceptModelLevel below) and is labeled as
@@ -22,7 +25,7 @@ async function showSellRecommendation(){
     const parts=[car,loc,price,prefLabel].map(p=>escapeHtml(String(p)));
     const strip=document.createElement("div");
     strip.className="row sam";strip.id="sellSummaryStrip";
-    strip.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sell-summary-strip">${parts.join(' <span class="ss-dot" aria-hidden="true">&middot;</span> ')}</div></div></div>`;
+    strip.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sell-summary-strip">${parts.join(' <span class="ss-dot" aria-hidden="true">&middot;</span> ')} <button class="ss-edit" onclick="openScopedEdit()">Edit</button></div></div></div>`;
     msgs.appendChild(strip);
   })();
   // Analysis screen (Thesis v1): staged lines that mirror the real pipeline
@@ -75,7 +78,8 @@ async function showSellRecommendation(){
           notes:sellState.notes
         },
         anonSessionId:(typeof gasAnonId==="function"?gasAnonId():null),
-        forceGate:(typeof gasRealGate==="function"&&gasRealGate())
+        forceGate:(typeof gasRealGate==="function"&&gasRealGate()),
+        rerun:sellRerun
       })
     });
     decisionData=await res.json();

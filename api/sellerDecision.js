@@ -2327,7 +2327,10 @@ export default async function handler(req, res) {
 
     // 2C: account gate + monthly limits. Internal callers (warm, bypassCache;
     // ladderPreview already returned) run unenforced and never write gate state.
-    const internalCall = req.body?.warm === true || req.body?.bypassCache === true;
+    // `rerun` is a same-session post-result edit (location/price/preference changed
+    // through the summary-strip Edit). The search was already reserved this session,
+    // so it must NOT consume a new credit - skip the gate like the internal callers.
+    const internalCall = req.body?.warm === true || req.body?.bypassCache === true || req.body?.rerun === true;
     let searchAccountId = null, anonFirstFree = false, anonSessionId = null, searchQuota = null, crewBypass = false;
     if (!internalCall) {
       const gate = await computeSearchGate(req, vehicle, supabaseUrl, supabaseKey);

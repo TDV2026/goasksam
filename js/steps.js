@@ -8,7 +8,15 @@ async function handleSellStep(q){
     const stripped=String(q).replace(SELF_CORRECTION,"").replace(SELF_CORRECTION_PREFIX,"").trim();
     if(stripped&&stripped!==String(q).trim())q=stripped;
   }
-  const lower=q.toLowerCase().trim();
+  let lower=q.toLowerCase().trim();
+
+  // Item 3: a scoped-edit field choice (the summary-strip Edit chips). Routes the
+  // chosen field to its scoped re-ask; a non-field reply cancels and falls through.
+  if(sellState.scopedEdit&&sellState.scopedEdit.awaitingField){
+    const f=scopedFieldFromInput(q);
+    if(f){ beginScopedField(f); return true; }
+    sellState.scopedEdit=null;
+  }
 
   // Holding phrases, any step
   if(/one second|one sec|give me a sec|just a sec|hold on|one moment|give me a moment|bear with me|hang on|^sec$|2 secs|two secs|two seconds|gimme a sec|back in a sec|just a moment|brb|be right back|bathroom|give me a minute|one minute|two minutes/i.test(lower)){
@@ -74,6 +82,9 @@ async function handleSellStep(q){
 
   // ── STEP 1: car name ─────────────────────────────────────────
   if(step===1){
+    // A price signal in a car reply routes the number to PRICE, never a year
+    // (item 3): "no 2018 audi tt and its worth 55" -> car 2018 Audi TT, price $55,000.
+    { const ps=extractPriceSignal(q); if(ps){ sellState.price=ps.formatted; if(ps.cleaned&&ps.cleaned!==String(q).trim()){ q=ps.cleaned; lower=q.toLowerCase().trim(); } } }
     if(/later|not sure|don.t know|skip|tell you later|can i give|give it later/i.test(lower)&&!looksLikeVehicleText(q)){
       addMsg("sam","Of course. Whenever you're ready, just tell me the year, make, and model.");
       return true;
@@ -276,6 +287,7 @@ async function handleSellStep(q){
       if(isQuestionInput(q)&&!/^skip$|not sure/i.test(lower))return false;
       sellState.state=/^(skip|not sure)$/i.test(lower)?"Not sure":(String(q||"").trim()||"Not sure");
     }
+    if(scopedEditActive("location"))return finishScopedEdit();
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     if(sellState.price){sellState.step=8;askPowerSellerStep();return true;}
     sellState.step=6;
@@ -289,6 +301,7 @@ async function handleSellStep(q){
     if(piped.action==="chat")return false;
     if(piped.action==="escalate"){escalateStep(step);return true;}
     sellState[STEP_SPECS[step].field]=piped.value;
+    if(step===6&&scopedEditActive("price"))return finishScopedEdit();
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     // Thesis v1: price is the last free-text intake step; it hands to the
     // PowerSeller-preference question (step 8), then confirm.
@@ -319,6 +332,7 @@ async function handleSellStep(q){
     // answer runs the analysis directly (the parsed summary shows as a strip at
     // the top of the analysis screen). An edit re-runs the analysis too.
     sellState.returnToConfirm=false;
+    if(scopedEditActive("preference"))return finishScopedEdit();
     showSellRecommendation();
     return true;
   }
