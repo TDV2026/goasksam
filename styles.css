@@ -932,9 +932,9 @@ body.home #input-box:focus-within{box-shadow:0 2px 10px rgba(22,20,15,.05);borde
 .pcard-ps .pcard-right{justify-content:flex-start;}
 .pcard-ps .pcard-tstack{flex:1;justify-content:space-between;gap:16px;}
 .pcard-ttile{flex:1 1 0;}
-/* Platform card's internal evidence tiles: two-up when the right column has room,
-   one-up when narrow (container = the right column, which is a query container). */
-@container (max-width:360px){.pcard-tiles{grid-template-columns:1fr;}}
+/* Platform card's paired stat tiles: side-by-side in the rail (mockup), stacking
+   only on a genuinely tiny rail (container = the right column). */
+@container (max-width:280px){.pcard-tiles{grid-template-columns:1fr;}}
 @media (prefers-color-scheme:dark){
   :root{--pc-card:#1A1815;--pc-rail:#171410;--pc-ink:#F1EEE7;--pc-grey:#A39E93;--pc-faint:#7C776D;--pc-line:#2E2A23;--pc-tile:#221E19;--pc-pill:#243020;--pc-pillink:#8FBF97;--pc-green:#8FBF97;--pc-script:#7FA886;--pc-cta:#356B41;}
   .pcard{border-color:#2A2620;}.pcard-lead,.pcard-why{color:#CBC5BA;}.pcard-ts{color:#B7B1A6;}
