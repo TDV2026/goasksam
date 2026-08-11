@@ -200,6 +200,17 @@ if(typeof v2GuardChatAnswer==="function"){
   check("chat guard blocks '$2,500 fee'", g2&&g2.ok===false, JSON.stringify(g2).slice(0,120));
 }
 
+// ---- Item 4c: tile-body copy length is the PRIMARY control (<=110 chars) ----
+const tileBodies=[
+  "Manages the entire auction end to end, prep through paperwork",
+  "Based in Upper Makefield PA",
+  "Serves Louisiana, Mississippi, Alabama, Florida, Georgia and Texas",
+  "Full-service preparation: PDR, detailing and reconditioning handled in-house",
+  "Nationwide professional photographer network",
+  "Serves sellers nationwide","Based in New England","Based in the South"
+];
+for(const t of tileBodies) check("tile-body copy <=110 chars: "+t.slice(0,22), t.length<=110, t.length+" chars :: "+t);
+
 // bridge lines between the two cards (order-aware, locked)
 const bridgePS="If you'd rather run the sale yourself, here's where I'd go.";
 const bridgePlat="Want it handled end to end instead? Here's who I'd trust with it.";
