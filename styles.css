@@ -875,10 +875,10 @@ body.home #input-box:focus-within{box-shadow:0 2px 10px rgba(22,20,15,.05);borde
    4-tile cap + one-sentence tile bodies + the copy-length lint are the real
    controls, and the clamps are sized so the locked roster copy never truncates. */
 @media(min-width:881px){ .pcard-ps{max-height:952px;} }
-.pcard-tt .val{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
+.pcard-tt .val{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;}
 .pcard-tt .sub{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;}
-.pcard-ps .pcard-lead{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:5;overflow:hidden;}
-.pcard-name-ps{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;}
+.pcard-ps .pcard-lead{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:6;overflow:hidden;}
+.pcard-name-ps{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;}
 @media(max-width:880px){
   .pcard{grid-template-columns:1fr;}
   .pcard-left{padding:30px 26px 8px;}
