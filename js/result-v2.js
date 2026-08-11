@@ -253,6 +253,14 @@ function renderPickCardV2(option){
     var tilesHTML=tiles.length
       ? '<div class="pcard-tiles'+(tiles.length===1?' one':'')+'">'+tiles.map(function(t){ return '<div class="pcard-tile"><div class="pcard-tl">'+esc(t.l)+'</div>'+(t.v?'<div class="pcard-tv">'+esc(t.v)+'</div>':'')+'<div class="pcard-ts pcard-ts-c">'+esc(t.sc||t.s)+'</div><div class="pcard-ts pcard-ts-f">'+esc(t.s)+'</div></div>'; }).join("")+'</div>'
       : '';
+    // TRACK RECORD, ADAPTIVE SLOT: rendered ONLY in delta mode (modeA), where its
+    // consistency claim differs from the WHY's delta claim (concentration/modeB/
+    // thin restate the WHY -> suppressed). Exactly one slot per render, chosen by
+    // stat-tile count: with stat tiles -> bottom-left under the reassurance; with
+    // NO stat tiles -> in the rail beneath the metadata. Never both.
+    var trackHTML=(mode==="modeA"&&whyRail)?'<div class="pcard-trackblock"><div class="pcard-whyl">Track Record</div><p class="pcard-why pcard-tracktext">'+esc(whyRail)+'</p></div>':'';
+    var trackLeft=(trackHTML&&tiles.length)?trackHTML:'';
+    var trackRail=(trackHTML&&!tiles.length)?trackHTML:'';
     var outbound=slug&&typeof hasOutboundSubmission==="function"&&hasOutboundSubmission(slug);
     var ctaOnClick=outbound?("event.stopPropagation();openOutboundModal('"+esc(slug)+"','pick')"):("event.stopPropagation();chooseSellOption('"+esc(option.key)+"')");
     return '<div class="pcard pcard-platform" onclick="chooseSellOption(\''+esc(option.key)+'\')">'
@@ -264,14 +272,7 @@ function renderPickCardV2(option){
         + '<p class="pcard-lead">'+esc(leadMain)+'</p>'
         + '<button class="pcard-cta" onclick="'+ctaOnClick+'">Start Listing With '+esc(name)+v2Svg("arrow","cta-arrow")+'</button>'
         + '<div class="pcard-reassure">'+v2Svg("shield")+'<span>You\'ll be taken to '+esc(name)+' to begin your listing. Nothing is committed until you decide to publish.</span></div>'
-        // Polish 3: the TRACK RECORD narrative lives in the LEFT column beneath the
-        // reassurance (quiet block), so the rail holds only wordmark + metadata +
-        // stat tiles.
-        // TRACK RECORD DEDUPE: render only when its claim family DIFFERS from the
-        // WHY's. Delta mode (modeA) adds new information - consistency over the
-        // window - so it renders; concentration/modeB/thin restate the WHY's own
-        // claim, so the block is SUPPRESSED with no filler.
-        + ((mode==="modeA"&&whyRail)?'<div class="pcard-trackblock"><div class="pcard-whyl">Track Record</div><p class="pcard-why pcard-tracktext">'+esc(whyRail)+'</p></div>':'')
+        + trackLeft
       + '</div>'
       + '<div class="pcard-right">'
         + '<div class="pcard-wordmark">'+esc(name)+'</div>'
@@ -280,6 +281,7 @@ function renderPickCardV2(option){
           + '<div class="pcard-mrow">'+v2Svg("car")+'<div><div class="pcard-mp">'+esc(genLabel)+'</div><div class="pcard-ms">Analysis scope</div></div></div>'
           + '<div class="pcard-mrow">'+v2Svg("cal")+'<div><div class="pcard-mp">'+esc(winLbl)+'</div><div class="pcard-ms">Analysis window</div></div></div>'
         + '</div>'
+        + (trackRail?'<div class="pcard-rule"></div>'+trackRail:'')
         + (tilesHTML?'<div class="pcard-ev"><div class="pcard-rule"></div>'+tilesHTML+'</div>':'')
       + '</div>'
       + '</div>';

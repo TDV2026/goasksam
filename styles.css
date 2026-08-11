@@ -928,6 +928,10 @@ body.home #input-box:focus-within{box-shadow:0 2px 10px rgba(22,20,15,.05);borde
    (fills the void under the CTA). Same label + body type as the rail version. */
 .pcard-platform .pcard-trackblock{margin-top:22px;}
 .pcard-platform .pcard-trackblock .pcard-why{max-width:56ch;margin-top:7px;font-size:14px;line-height:1.5;color:#4A463E;}
+/* Adaptive slot: when the track block sits in the RAIL (no stat tiles) it takes
+   the rail's narrower measure and a touch less top margin. */
+.pcard-platform .pcard-right .pcard-trackblock{margin-top:16px;}
+.pcard-platform .pcard-right .pcard-trackblock .pcard-why{max-width:none;font-size:13.5px;}
 /* Mockup rhythm: the large serif headline DOMINATES the left column, with intro,
    CTA and reassurance below it - scaled so the whole panel is ~3:2 and still fits
    the viewport (badge->reassurance) at 1366x768 / 1280x800. */

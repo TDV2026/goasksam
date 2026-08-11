@@ -246,13 +246,17 @@ for(const t of tileBodies) check("tile-body copy <=110 chars: "+t.slice(0,22), t
 // ---- Platform TRACK RECORD dedupe (delta renders, concentration suppressed) ----
 globalThis.sellState.resolvedVehicle={make:"Porsche",model:"911",year:2020};
 globalThis.sellState.sellDecision={vehicle:{make:"Porsche",model:"911",year:2020},evidence:{windowDays:180,ladder:{landed:{key:"exact_year_model"}}}};
-const mkPick=(pp)=>{ const opt={key:"bringatrailer",name:"Bring a Trailer",platformSlug:"bringatrailer",marketEvidence:{evidenceSales:12,windowDays:180,pricePremium:pp,dayAdvantage:{weekday:"Wednesday",liftPercent:25,scope:"model",sample:34,sales:11},reserveContext:{delta_pct:7,n_with:14,n_without:16}}}; globalThis.sellState.sellOptions=[opt]; return renderPickCardV2(opt)||""; };
-const cardDelta=mkPick({type:"premium",gateType:"symmetric",percent:22,windowDays:180});
-const cardConc=mkPick({type:"market_dominance",windowDays:180});
+const mkPick=(pp,withTiles=true)=>{ const ev={evidenceSales:12,windowDays:180,pricePremium:pp}; if(withTiles){ ev.dayAdvantage={weekday:"Wednesday",liftPercent:25,scope:"model",sample:34,sales:11}; ev.reserveContext={delta_pct:7,n_with:14,n_without:16}; } const opt={key:"bringatrailer",name:"Bring a Trailer",platformSlug:"bringatrailer",marketEvidence:ev}; globalThis.sellState.sellOptions=[opt]; return renderPickCardV2(opt)||""; };
+const trackSlots=(card)=>{ const parts=card.split('class="pcard-right"'); const left=parts[0], right=parts.slice(1).join(''); return { count:(card.match(/pcard-trackblock/g)||[]).length, inLeft:/pcard-trackblock/.test(left), inRight:/pcard-trackblock/.test(right) }; };
+const cardDelta=mkPick({type:"premium",gateType:"symmetric",percent:22,windowDays:180},true);   // delta WITH stat tiles
+const cardDeltaBare=mkPick({type:"premium",gateType:"symmetric",percent:22,windowDays:180},false);// delta WITHOUT stat tiles
+const cardConc=mkPick({type:"market_dominance",windowDays:180},true);
 check("delta card: TRACK RECORD present (distinct consistency claim)", /Track Record/i.test(cardDelta), cardDelta.slice(0,60));
-check("concentration card: TRACK RECORD SUPPRESSED (no duplicate of WHY)", !/Track Record/i.test(cardConc), "still present");
-// no same claim twice: 'consistently delivered' (track) must not also be the WHY line family
+check("concentration card: TRACK RECORD SUPPRESSED (no duplicate of WHY)", !/Track Record/i.test(cardConc)&&trackSlots(cardConc).count===0, "still present");
 check("delta card: WHY (delta %) and TRACK (consistency) are different families", /closed 22% higher/.test(cardDelta)&&/consistently delivered/.test(cardDelta), cardDelta.slice(0,80));
+// Adaptive slot: exactly ONE slot, chosen by stat-tile count. Never both.
+check("delta WITH stat tiles -> TRACK in LEFT (not rail), exactly one", (()=>{const s=trackSlots(cardDelta);return s.count===1&&s.inLeft&&!s.inRight;})(), JSON.stringify(trackSlots(cardDelta)));
+check("delta WITHOUT stat tiles -> TRACK in RAIL (not left), exactly one", (()=>{const s=trackSlots(cardDeltaBare);return s.count===1&&s.inRight&&!s.inLeft;})(), JSON.stringify(trackSlots(cardDeltaBare)));
 
 // ---- Paired stat-tile compact support copy <=70 chars ----
 check("compact BEST DAY support present + <=70 chars", (()=>{ const m=cardDelta.match(/pcard-ts-c">([^<]*)</g)||[]; return m.length>=2 && m.every(x=>{const t=x.replace(/^[^>]*>/,'').replace(/<$/,''); return t.length<=70;}); })(), (cardDelta.match(/pcard-ts-c">([^<]*)</g)||[]).join(" | "));
