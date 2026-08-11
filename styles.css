@@ -874,14 +874,18 @@ body.home #input-box:focus-within{box-shadow:0 2px 10px rgba(22,20,15,.05);borde
    scrolls with the PAGE, never inside the card. Clamps are belt-and-braces: the
    4-tile cap + one-sentence tile bodies + the copy-length lint are the real
    controls, and the clamps are sized so the locked roster copy never truncates. */
-@media(min-width:881px){ .pcard-ps{max-height:1000px;} }
-/* Clamps are pure RUNAWAY guards, sized ABOVE the longest locked roster copy so
-   they never visibly truncate it (item 4c: the <=110-char tile-body copy lint is
-   the PRIMARY control; the 4-tile cap + the max-height above are the size
-   ceiling). The natural 4-tile reference card is ~969px, under the 1000px budget. */
-.pcard-tt .val,.pcard-tt .sub{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:8;overflow:hidden;}
-.pcard-ps .pcard-lead{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:7;overflow:hidden;}
-.pcard-name-ps{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;}
+/* DESKTOP only (two-column): a hard height budget + runaway-guard clamps. The
+   clamps sit ABOVE the longest locked roster copy so they never visibly truncate
+   it (item 4c: the <=110-char tile-body copy lint is the PRIMARY control; the
+   4-tile cap + max-height are the ceiling). Natural 4-tile ref card ~969px < 1000.
+   MOBILE stacks and scrolls with the PAGE, so it needs neither cap nor clamp -
+   the full copy shows untruncated. */
+@media(min-width:881px){
+  .pcard-ps{max-height:1000px;}
+  .pcard-tt .val,.pcard-tt .sub{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:8;overflow:hidden;}
+  .pcard-ps .pcard-lead{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:7;overflow:hidden;}
+  .pcard-name-ps{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;}
+}
 @media(max-width:880px){
   .pcard{grid-template-columns:1fr;}
   .pcard-left{padding:30px 26px 8px;}
