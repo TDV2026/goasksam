@@ -135,10 +135,23 @@ const introP=psvIntro(chris,"Chris",cP,"Porsche 911");
 check("intro (Chris/Porsche) leads with Porsche + Chris's", /^Porsche is one of Chris's strongest areas\./.test(introP), introP);
 check("tile (Chris/Porsche) = Porsche", psvSpecTile(chris,{make:"Porsche",model:"911"})==="Porsche", psvSpecTile(chris,{make:"Porsche"}));
 check("intro (Chris/Porsche) roster-truth", rosterTruth(introP,chris.specialties.wheelhouse), introP);
-// b) Chris + Audi -> brand-free, tile = wheelhouse list
+// Intro reason copy (locked): nationwide + locality variants.
+const NAT=(f)=>f+" works with sellers across the country and handles the whole job: choosing the right platform, presenting it properly and managing the sale from start to finish.";
+const LOC=(car,state,poss,subj)=>"Your "+car+" is in "+state+", right in "+poss+" patch, and "+subj+" handles the whole job: choosing the right platform, presenting it properly and managing the sale from start to finish.";
+const prevState=sellState.state;
+// b) no marque + no locality -> NATIONWIDE reason (chris has no regions here).
+sellState.state="";
 const introCA=psvIntro(chris,"Chris",psvClaim(chris,{make:"Audi",model:"TT"}),"Audi TT");
-check("intro (Chris/Audi) brand-free", introCA==="For this Audi TT, I'd trust him to choose the right platform, present it professionally and manage the sale from start to finish.", introCA);
+check("intro (Chris/Audi, no locality) = nationwide reason", introCA===NAT("Chris"), introCA);
 check("tile (Chris/Audi) = first 3 wheelhouse marques (item 4 cap)", psvSpecTile(chris,{make:"Audi",model:"TT"})==="BMW, Porsche, Mercedes-Benz", psvSpecTile(chris,{make:"Audi"}));
+// b2) LOCALITY reason when the car's state IS in the partner's roster regions.
+const localP={specialties:{wheelhouse:{marques:[]},pronoun:{obj:"him",subj:"he",poss:"his"}},regions:["Florida","Georgia","Nationwide"]};
+sellState.state="Florida";
+check("intro (locality) = 'in Florida, right in Chris's patch, and he handles'", psvIntro(localP,"Chris",psvClaim(localP,{make:"Audi",model:"TT"}),"Audi TT")===LOC("Audi TT","Florida","Chris's","he"), psvIntro(localP,"Chris",null,"Audi TT"));
+// LOCALITY-TRUTH: a state NOT in the partner's regions falls back to nationwide.
+sellState.state="New York";
+check("locality line only when state IS in roster regions (roster-truth)", psvIntro(localP,"Chris",psvClaim(localP,{make:"Audi",model:"TT"}),"Audi TT")===NAT("Chris"), psvIntro(localP,"Chris",null,"Audi TT"));
+sellState.state=prevState;
 // c) Mercedes-Benz plural-trap: singular
 const introM=psvIntro(chris,"Chris",psvClaim(chris,{make:"Mercedes-Benz",model:"SL"}),"Mercedes-Benz SL");
 check("intro (Mercedes-Benz) singular, no plural trap", /^Mercedes-Benz is one of Chris's strongest areas\./.test(introM)&&!/Mercedes-Benzs/.test(introM), introM);
@@ -146,7 +159,7 @@ check("intro (Mercedes-Benz) singular, no plural trap", /^Mercedes-Benz is one o
 // claim must be brand-free and the tile must NOT read "Audi" (truth vs ROSTER).
 const introHA=psvIntro(howard,"Howard",psvClaim(howard,{make:"Audi",model:"TT"}),"Audi TT");
 const tileHA=psvSpecTile(howard,{make:"Audi",model:"TT"});
-check("intro (Howard/Audi) brand-free (roster, not car)", introHA==="For this Audi TT, I'd trust him to choose the right platform, present it professionally and manage the sale from start to finish.", introHA);
+check("intro (Howard/Audi) = nationwide reason (no false marque)", introHA===NAT("Howard"), introHA);
 check("intro (Howard/Audi) claims NO Audi (roster-truth; car ref exempt)", rosterTruth(introHA,howard.specialties.wheelhouse), introHA);
 check("tile (Howard/Audi) = wheelhouse, not 'Audi'", tileHA==="Porsche, Vintage Mustangs"&&tileTruth(tileHA,howard.specialties.wheelhouse), tileHA);
 // Item 4: honest-list tile caps at 3 entries + drops "unusual automotive items"
@@ -159,7 +172,7 @@ check("tile notes-fallback caps at 3 + excludes junk", psvSpecTile(howNotes,{mak
 // fall back to makes. Locks STEP 2.
 const noWh={specialties:{makes:["Porsche","Audi","Toyota","Ford"]}}; // no wheelhouse
 check("absent wheelhouse -> no claim (brand-free), never makes", psvClaim(noWh,{make:"Audi",model:"TT"})===null, JSON.stringify(psvClaim(noWh,{make:"Audi",model:"TT"})));
-check("absent wheelhouse intro is brand-free", psvIntro(noWh,"X",psvClaim(noWh,{make:"Audi",model:"TT"}),"Audi TT")==="For this Audi TT, I'd trust him to choose the right platform, present it professionally and manage the sale from start to finish.", "");
+check("absent wheelhouse intro = nationwide reason", psvIntro(noWh,"X",psvClaim(noWh,{make:"Audi",model:"TT"}),"Audi TT")===NAT("X"), "");
 // e) MODEL-LEVEL: Howard + Ford Mustang -> "Vintage Mustangs are one of Howard's"
 const cHM=psvClaim(howard,{make:"Ford",model:"Mustang"});
 const introHM=psvIntro(howard,"Howard",cHM,"Ford Mustang");
@@ -169,8 +182,12 @@ check("tile (Howard/Mustang) = Vintage Mustangs", psvSpecTile(howard,{make:"Ford
 // Pronoun (item 5): default him, roster-overridable to her/their.
 check("pronoun default = him", psvPron({})?.obj==="him", JSON.stringify(psvPron({})));
 check("pronoun override = her", psvPron({specialties:{pronoun:{obj:"her",poss:"her",subj:"she"}}}).obj==="her", "");
-const introHer=psvIntro({specialties:{pronoun:{obj:"her"},wheelhouse:{marques:["Porsche"]}}},"Robin",psvClaim({specialties:{wheelhouse:{marques:["Porsche"]}}},{make:"Audi"}),"Audi TT");
-check("intro threads pronoun (I'd trust her)", /I'd trust her to/.test(introHer), introHer);
+const herP={specialties:{pronoun:{obj:"her",subj:"she",poss:"her"},wheelhouse:{marques:["Porsche"]}}};
+const introHer=psvIntro(herP,"Robin",psvClaim(herP,{make:"Porsche",model:"911"}),"Porsche 911");
+check("intro threads pronoun (marque match, I'd trust her)", /I'd trust her to/.test(introHer), introHer);
+// locality pronoun: "she handles"
+const herLocP={specialties:{pronoun:{obj:"her",subj:"she",poss:"her"},wheelhouse:{marques:[]}},regions:["Texas"]};
+{ const ps=sellState.state; sellState.state="Texas"; check("intro (locality) threads subject pronoun (she handles)", /and she handles the whole job/.test(psvIntro(herLocP,"Robin",null,"Audi TT")), psvIntro(herLocP,"Robin",null,"Audi TT")); sellState.state=ps; }
 
 // ---- Item 3a: an unfilled {placeholder} must never render ----
 const phPartner={slug:"ph",name:"PH",display_name:"P H",specialties:{makes:["Porsche"],wheelhouse:{marques:["Porsche"]},

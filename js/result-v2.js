@@ -246,9 +246,11 @@ function renderPickCardV2(option){
       else { var Nr=Math.round(Math.abs(pct)); tiles.push({l:"Reserve position",v:(pct>=0?"+":"-")+Nr+"%",s:"Cars like yours with reserves on "+name+" have closed "+Nr+"% "+(pct>=0?"higher":"lower")+" than those without."}); } }
     if(tiles.length<2){ var au=v2Audience(ev); if(au)tiles.push({l:"Audience",v:au.headline,s:au.body}); }
     tiles=tiles.slice(0,2);
+    // Zero stat tiles: the rail simply ends at TRACK RECORD - no empty-state filler
+    // tile (the old "The read" tile is deleted).
     var tilesHTML=tiles.length
       ? '<div class="pcard-tiles'+(tiles.length===1?' one':'')+'">'+tiles.map(function(t){ return '<div class="pcard-tile"><div class="pcard-tl">'+esc(t.l)+'</div>'+(t.v?'<div class="pcard-tv">'+esc(t.v)+'</div>':'')+'<div class="pcard-ts">'+esc(t.s)+'</div></div>'; }).join("")+'</div>'
-      : '<div class="pcard-tiles one"><div class="pcard-tile"><div class="pcard-tl">The read</div><div class="pcard-ts">A clean platform call, plain and simple. More reads fill in as sales land.</div></div></div>';
+      : '';
     var outbound=slug&&typeof hasOutboundSubmission==="function"&&hasOutboundSubmission(slug);
     var ctaOnClick=outbound?("event.stopPropagation();openOutboundModal('"+esc(slug)+"','pick')"):("event.stopPropagation();chooseSellOption('"+esc(option.key)+"')");
     return '<div class="pcard pcard-platform" onclick="chooseSellOption(\''+esc(option.key)+'\')">'
@@ -344,16 +346,31 @@ function psvHonestList(entries){
     .filter(function(s){return !/^unusual automotive items$/i.test(s);})
     .slice(0,3).join(", ");
 }
-// Car-aware PS intro (item 1/1e): claim the marque OR model the partner actually
-// specialises in; otherwise drop brand claims entirely. Pronoun-threaded (item 5).
-// A marque claim is singular ("Porsche is"); a model claim uses the curated plural
-// label ("Vintage Mustangs are").
+// The car's state IF it is genuinely in the partner's roster regions (locality
+// match, roster-truth). Excludes "nationwide". Returns the display state or null.
+function psvLocalityState(p){
+  var st=""; try{ st=(sellState&&sellState.state)||""; }catch(e){}
+  if(!st||/^not sure$/i.test(st))return null;
+  var sl=String(st).toLowerCase();
+  var regions=((p&&p.regions)||[]).map(function(r){return String(r).toLowerCase();}).filter(function(r){return r&&r!=="nationwide";});
+  for(var i=0;i<regions.length;i++){ if(regions[i]===sl||regions[i].indexOf(sl)>=0||sl.indexOf(regions[i])>=0)return st; }
+  return null;
+}
+// PS intro ALWAYS carries the true reason for the match (locked copy by match
+// type): (a) marque/model the partner specialises in; (b) locality when the car's
+// state is in the partner's roster regions; (c) nationwide otherwise. Pronoun-
+// threaded; no dashes.
 function psvIntro(p,first,claim,carShort){
   var pron=psvPron(p);
-  var tail="For this "+carShort+", I'd trust "+pron.obj+" to choose the right platform, present it professionally and manage the sale from start to finish.";
-  if(!claim)return tail;
-  var verb=claim.level==="marque"?"is":"are";
-  return claim.label+" "+verb+" one of "+psvPoss(first)+" strongest areas. "+tail;
+  if(claim){
+    var verb=claim.level==="marque"?"is":"are";
+    return claim.label+" "+verb+" one of "+psvPoss(first)+" strongest areas. For this "+carShort+", I'd trust "+pron.obj+" to choose the right platform, present it professionally and manage the sale from start to finish.";
+  }
+  var locState=psvLocalityState(p);
+  if(locState){
+    return "Your "+carShort+" is in "+locState+", right in "+psvPoss(first)+" patch, and "+pron.subj+" handles the whole job: choosing the right platform, presenting it properly and managing the sale from start to finish.";
+  }
+  return first+" works with sellers across the country and handles the whole job: choosing the right platform, presenting it properly and managing the sale from start to finish.";
 }
 // SPECIALISES IN tile: the matched marque/model label; else the honest full
 // wheelhouse (marques + model labels); else the notes-level specialty for a
