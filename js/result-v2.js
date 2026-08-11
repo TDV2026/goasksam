@@ -317,7 +317,7 @@ function psvWheelhouse(p){
   // intentionally wide for the ladder and would claim a marque the partner does
   // not actually specialise in (howS carries Audi for matching, not as a claim).
   var wh=(p&&p.specialties&&p.specialties.wheelhouse)||null;
-  return {marques:(wh&&wh.marques)||[],models:(wh&&wh.models)||[]};
+  return {marques:(wh&&wh.marques)||[],models:(wh&&wh.models)||[],display:(wh&&wh.display)||[]};
 }
 // Match the car against the wheelhouse at MARQUE then MODEL level (item 1e): a
 // 1966 Ford Mustang matches Howard's "Vintage Mustangs" model entry even though
@@ -332,7 +332,17 @@ function psvClaim(p,v){
 // The honest wheelhouse list for the tile when the car is out of wheelhouse.
 function psvWheelhouseList(p){
   var wh=psvWheelhouse(p);
-  return wh.marques.concat(wh.models.map(function(m){return m.label||m.model;})).join(", ");
+  if(wh.display&&wh.display.length)return psvHonestList(wh.display);
+  var list=wh.marques.concat(wh.models.map(function(m){return m.label||m.model;}));
+  return list.length?psvHonestList(list):"";
+}
+// Item 4: the tile shows a SUBSET of roster truth - the first three entries, with
+// "unusual automotive items" (roster-true, wrong register for a specialty tile)
+// excluded. The full list stays in the data.
+function psvHonestList(entries){
+  return (entries||[]).map(function(s){return String(s).trim();}).filter(Boolean)
+    .filter(function(s){return !/^unusual automotive items$/i.test(s);})
+    .slice(0,3).join(", ");
 }
 // Car-aware PS intro (item 1/1e): claim the marque OR model the partner actually
 // specialises in; otherwise drop brand claims entirely. Pronoun-threaded (item 5).
@@ -359,7 +369,8 @@ function psvSpecTile(p,v){
   // whole honest list ("BMW, Porsche, ...") rather than a single non-matching
   // marque. Fail-honest: never surface a fee figure or an unfilled {placeholder}.
   var notes=String((p&&p.specialties&&p.specialties.notes)||"").replace(/\s*\(per[^)]*\)\s*$/i,"").trim();
-  return /(\$\s?\d|\d+(?:\.\d+)?\s?%|\{)/.test(notes)?"":notes;
+  if(/(\$\s?\d|\d+(?:\.\d+)?\s?%|\{)/.test(notes))return "";
+  return psvHonestList(notes.split(","));
 }
 function psvMakePlural(make){ try{ return (typeof pluralizeMake==="function")?pluralizeMake(make):(v2Pl(make)); }catch(e){ return v2Pl(make||"cars"); } }
 function psvTrophy(p){

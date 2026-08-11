@@ -15,11 +15,15 @@
 -- "Specializes in: ... European marques" line (item 3b), keeping only the auction
 -- count that feeds the trophy tile. The matching `makes`/`segments` are left
 -- untouched so the locked ladder (item 2) is unaffected. Shorten the prep claim
--- to one sentence (item 4c) and drop the fee-structure claim.
+-- to one sentence (item 4c) and drop the fee-structure claim. The wheelhouse also
+-- carries a `display` list (the exact three tile entries) and the regions revert
+-- to Master v4 Northeast (nationwide flag kept), which strips Florida so a FL
+-- Audi seller matches Chris (FL-local), not Howard.
 update partners set
   display_name = 'Howard Silvers',
+  regions = '["Northeast","Pennsylvania","New Jersey","New York","Connecticut","Massachusetts","Rhode Island","Vermont","New Hampshire","Maine","Nationwide"]'::jsonb,
   specialties = specialties
-    || '{"wheelhouse":{"marques":["Porsche"],"models":[{"label":"Vintage Mustangs","make":"Ford","model":"Mustang"}]},"pronoun":{"subj":"he","obj":"him","poss":"his"}}'::jsonb
+    || '{"wheelhouse":{"marques":["Porsche"],"models":[{"label":"Vintage Mustangs","make":"Ford","model":"Mustang"}],"display":["Air-cooled Porsche","911s","vintage Mustangs"]},"pronoun":{"subj":"he","obj":"him","poss":"his"}}'::jsonb
     || jsonb_build_object('profile_stats',
          '[{"text":"400+ listings tracked across Bring a Trailer and other platforms","source":"partner_provided"}]'::jsonb),
   service_claims =

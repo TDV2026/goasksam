@@ -138,7 +138,7 @@ check("intro (Chris/Porsche) roster-truth", rosterTruth(introP,chris.specialties
 // b) Chris + Audi -> brand-free, tile = wheelhouse list
 const introCA=psvIntro(chris,"Chris",psvClaim(chris,{make:"Audi",model:"TT"}),"Audi TT");
 check("intro (Chris/Audi) brand-free", introCA==="For this Audi TT, I'd trust him to choose the right platform, present it professionally and manage the sale from start to finish.", introCA);
-check("tile (Chris/Audi) = full wheelhouse", psvSpecTile(chris,{make:"Audi",model:"TT"})===chrisMakes.join(", "), psvSpecTile(chris,{make:"Audi"}));
+check("tile (Chris/Audi) = first 3 wheelhouse marques (item 4 cap)", psvSpecTile(chris,{make:"Audi",model:"TT"})==="BMW, Porsche, Mercedes-Benz", psvSpecTile(chris,{make:"Audi"}));
 // c) Mercedes-Benz plural-trap: singular
 const introM=psvIntro(chris,"Chris",psvClaim(chris,{make:"Mercedes-Benz",model:"SL"}),"Mercedes-Benz SL");
 check("intro (Mercedes-Benz) singular, no plural trap", /^Mercedes-Benz is one of Chris's strongest areas\./.test(introM)&&!/Mercedes-Benzs/.test(introM), introM);
@@ -149,6 +149,11 @@ const tileHA=psvSpecTile(howard,{make:"Audi",model:"TT"});
 check("intro (Howard/Audi) brand-free (roster, not car)", introHA==="For this Audi TT, I'd trust him to choose the right platform, present it professionally and manage the sale from start to finish.", introHA);
 check("intro (Howard/Audi) claims NO Audi (roster-truth; car ref exempt)", rosterTruth(introHA,howard.specialties.wheelhouse), introHA);
 check("tile (Howard/Audi) = wheelhouse, not 'Audi'", tileHA==="Porsche, Vintage Mustangs"&&tileTruth(tileHA,howard.specialties.wheelhouse), tileHA);
+// Item 4: honest-list tile caps at 3 entries + drops "unusual automotive items"
+const howDisplay={specialties:{wheelhouse:{marques:["Porsche"],models:[],display:["Air-cooled Porsche","911s","vintage Mustangs","unusual automotive items"]}}};
+check("tile display caps at 3 + excludes 'unusual automotive items'", psvSpecTile(howDisplay,{make:"Audi",model:"TT"})==="Air-cooled Porsche, 911s, vintage Mustangs", psvSpecTile(howDisplay,{make:"Audi"}));
+const howNotes={specialties:{notes:"Air-cooled Porsche, 911s, vintage Mustangs, unusual automotive items (per howS)"}};
+check("tile notes-fallback caps at 3 + excludes junk", psvSpecTile(howNotes,{make:"Audi",model:"TT"})==="Air-cooled Porsche, 911s, vintage Mustangs", psvSpecTile(howNotes,{make:"Audi"}));
 // d2) ABSENT WHEELHOUSE (roster SQL not run): bloated `makes` includes the car
 // marque, but with no wheelhouse the claim must be brand-free (fail-honest), NOT
 // fall back to makes. Locks STEP 2.
