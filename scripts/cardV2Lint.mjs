@@ -28,7 +28,7 @@ globalThis.localStorage={getItem:()=>null,setItem:noop,removeItem:noop};
 globalThis.fetch=async()=>({ok:true,json:async()=>({})});
 const html=fs.readFileSync("index.html","utf8");
 const files=[...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
-(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.v2Because=v2Because;globalThis.v2Why=v2Why;globalThis.v2Weekday=v2Weekday;globalThis.v2Reserve=v2Reserve;globalThis.v2Audience=v2Audience;globalThis.v2ScopePlural=v2ScopePlural;globalThis.v2RungRef=v2RungRef;globalThis.v2RungNoun=v2RungNoun;globalThis.CLAUSE_A=CLAUSE_A;globalThis.CLAUSE_B=CLAUSE_B;globalThis.CLAUSE_C=CLAUSE_C;globalThis.v2WindowLabel=v2WindowLabel;globalThis.psvReasonNote=psvReasonNote;globalThis.psvPara=psvPara;globalThis.psvWhyBullets=psvWhyBullets;globalThis.psvValueLine=psvValueLine;globalThis.psvPoss=psvPoss;globalThis.psvIntro=psvIntro;globalThis.psvSpecTile=psvSpecTile;globalThis.psvClaim=psvClaim;globalThis.psvWheelhouse=psvWheelhouse;globalThis.psvWheelhouseList=psvWheelhouseList;globalThis.psvPron=psvPron;globalThis.psvTrustLines=psvTrustLines;globalThis.v2CarDisplay=v2CarDisplay;globalThis.v2ScopeAttr=v2ScopeAttr;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2Composition=typeof v2Composition==='function'?v2Composition:function(){return null};");
+(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.v2Because=v2Because;globalThis.v2Why=v2Why;globalThis.v2Weekday=v2Weekday;globalThis.v2Reserve=v2Reserve;globalThis.v2Audience=v2Audience;globalThis.v2ScopePlural=v2ScopePlural;globalThis.v2RungRef=v2RungRef;globalThis.v2RungNoun=v2RungNoun;globalThis.CLAUSE_A=CLAUSE_A;globalThis.CLAUSE_B=CLAUSE_B;globalThis.CLAUSE_C=CLAUSE_C;globalThis.v2WindowLabel=v2WindowLabel;globalThis.psvReasonNote=psvReasonNote;globalThis.psvPara=psvPara;globalThis.psvWhyBullets=psvWhyBullets;globalThis.psvValueLine=psvValueLine;globalThis.psvPoss=psvPoss;globalThis.psvIntro=psvIntro;globalThis.psvSpecTile=psvSpecTile;globalThis.psvClaim=psvClaim;globalThis.psvWheelhouse=psvWheelhouse;globalThis.psvWheelhouseList=psvWheelhouseList;globalThis.psvPron=psvPron;globalThis.psvTrustLines=psvTrustLines;globalThis.v2CarDisplay=v2CarDisplay;globalThis.v2ScopeAttr=v2ScopeAttr;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.renderPickCardV2=renderPickCardV2;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2Composition=typeof v2Composition==='function'?v2Composition:function(){return null};");
 
 let failures=0;
 const check=(name,ok,detail="")=>{console.log(`${ok?"PASS":"FAIL"}  ${name}${ok?"":"  ->  "+String(detail).slice(0,200)}`);if(!ok)failures++;};
@@ -242,6 +242,21 @@ const tileBodies=[
   "Serves sellers nationwide","Based in New England","Based in the South"
 ];
 for(const t of tileBodies) check("tile-body copy <=110 chars: "+t.slice(0,22), t.length<=110, t.length+" chars :: "+t);
+
+// ---- Platform TRACK RECORD dedupe (delta renders, concentration suppressed) ----
+globalThis.sellState.resolvedVehicle={make:"Porsche",model:"911",year:2020};
+globalThis.sellState.sellDecision={vehicle:{make:"Porsche",model:"911",year:2020},evidence:{windowDays:180,ladder:{landed:{key:"exact_year_model"}}}};
+const mkPick=(pp)=>{ const opt={key:"bringatrailer",name:"Bring a Trailer",platformSlug:"bringatrailer",marketEvidence:{evidenceSales:12,windowDays:180,pricePremium:pp,dayAdvantage:{weekday:"Wednesday",liftPercent:25,scope:"model",sample:34,sales:11},reserveContext:{delta_pct:7,n_with:14,n_without:16}}}; globalThis.sellState.sellOptions=[opt]; return renderPickCardV2(opt)||""; };
+const cardDelta=mkPick({type:"premium",gateType:"symmetric",percent:22,windowDays:180});
+const cardConc=mkPick({type:"market_dominance",windowDays:180});
+check("delta card: TRACK RECORD present (distinct consistency claim)", /Track Record/i.test(cardDelta), cardDelta.slice(0,60));
+check("concentration card: TRACK RECORD SUPPRESSED (no duplicate of WHY)", !/Track Record/i.test(cardConc), "still present");
+// no same claim twice: 'consistently delivered' (track) must not also be the WHY line family
+check("delta card: WHY (delta %) and TRACK (consistency) are different families", /closed 22% higher/.test(cardDelta)&&/consistently delivered/.test(cardDelta), cardDelta.slice(0,80));
+
+// ---- Paired stat-tile compact support copy <=70 chars ----
+check("compact BEST DAY support present + <=70 chars", (()=>{ const m=cardDelta.match(/pcard-ts-c">([^<]*)</g)||[]; return m.length>=2 && m.every(x=>{const t=x.replace(/^[^>]*>/,'').replace(/<$/,''); return t.length<=70;}); })(), (cardDelta.match(/pcard-ts-c">([^<]*)</g)||[]).join(" | "));
+check("compact RESERVE copy = 'Reserved cars have closed 7% higher than those without.'", /Reserved cars have closed 7% higher than those without\./.test(cardDelta), "missing");
 
 // bridge lines between the two cards (order-aware, locked)
 const bridgePS="If you'd rather run the sale yourself, here's where I'd go.";

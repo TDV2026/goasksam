@@ -239,17 +239,19 @@ function renderPickCardV2(option){
     var wk=v2Weekday(ev,v);
     if(wk){ var dA=ev.dayAdvantage||{}; var lift=Math.round(Math.abs(Number(dA.liftPercent))/5)*5; var hasPct=/%/.test(wk.body);
       var wkScope=v2ScopePlural(v);
-      tiles.push({l:"Best day to sell",v:wk.headline,s:wkScope+" have closed strongest on "+wk.headline+"s"+(hasPct?(", "+lift+"% above other days."):".")}); }
+      tiles.push({l:"Best day to sell",v:wk.headline,s:wkScope+" have closed strongest on "+wk.headline+"s"+(hasPct?(", "+lift+"% above other days."):"."),sc:wkScope+(hasPct?" close "+lift+"% above other days.":" close strongest on "+wk.headline+"s.")}); }
     var rv=v2Reserve(ev);
     if(rv){ var rc=ev.reserveContext||{}; var pct=Number(rc.delta_pct);
-      if(Math.abs(pct)<3){ tiles.push({l:"Reserve position",v:"About even",s:"Cars like yours with and without reserves on "+name+" have closed within a few points of each other."}); }
-      else { var Nr=Math.round(Math.abs(pct)); tiles.push({l:"Reserve position",v:(pct>=0?"+":"-")+Nr+"%",s:"Cars like yours with reserves on "+name+" have closed "+Nr+"% "+(pct>=0?"higher":"lower")+" than those without."}); } }
+      if(Math.abs(pct)<3){ tiles.push({l:"Reserve position",v:"About even",s:"Cars like yours with and without reserves on "+name+" have closed within a few points of each other.",sc:"Reserved and unreserved cars closed within a few points."}); }
+      else { var Nr=Math.round(Math.abs(pct)); tiles.push({l:"Reserve position",v:(pct>=0?"+":"-")+Nr+"%",s:"Cars like yours with reserves on "+name+" have closed "+Nr+"% "+(pct>=0?"higher":"lower")+" than those without.",sc:"Reserved cars have closed "+Nr+"% "+(pct>=0?"higher":"lower")+" than those without."}); } }
     if(tiles.length<2){ var au=v2Audience(ev); if(au)tiles.push({l:"Audience",v:au.headline,s:au.body}); }
     tiles=tiles.slice(0,2);
     // Zero stat tiles: the rail simply ends at TRACK RECORD - no empty-state filler
-    // tile (the old "The read" tile is deleted).
+    // tile (the old "The read" tile is deleted). Paired tiles carry a COMPACT
+    // support line (<=70 chars) for the side-by-side layout plus the full line for
+    // the single/stacked context; CSS shows the right one.
     var tilesHTML=tiles.length
-      ? '<div class="pcard-tiles'+(tiles.length===1?' one':'')+'">'+tiles.map(function(t){ return '<div class="pcard-tile"><div class="pcard-tl">'+esc(t.l)+'</div>'+(t.v?'<div class="pcard-tv">'+esc(t.v)+'</div>':'')+'<div class="pcard-ts">'+esc(t.s)+'</div></div>'; }).join("")+'</div>'
+      ? '<div class="pcard-tiles'+(tiles.length===1?' one':'')+'">'+tiles.map(function(t){ return '<div class="pcard-tile"><div class="pcard-tl">'+esc(t.l)+'</div>'+(t.v?'<div class="pcard-tv">'+esc(t.v)+'</div>':'')+'<div class="pcard-ts pcard-ts-c">'+esc(t.sc||t.s)+'</div><div class="pcard-ts pcard-ts-f">'+esc(t.s)+'</div></div>'; }).join("")+'</div>'
       : '';
     var outbound=slug&&typeof hasOutboundSubmission==="function"&&hasOutboundSubmission(slug);
     var ctaOnClick=outbound?("event.stopPropagation();openOutboundModal('"+esc(slug)+"','pick')"):("event.stopPropagation();chooseSellOption('"+esc(option.key)+"')");
@@ -265,7 +267,11 @@ function renderPickCardV2(option){
         // Polish 3: the TRACK RECORD narrative lives in the LEFT column beneath the
         // reassurance (quiet block), so the rail holds only wordmark + metadata +
         // stat tiles.
-        + (whyRail?'<div class="pcard-trackblock"><div class="pcard-whyl">Track Record</div><p class="pcard-why pcard-tracktext">'+esc(whyRail)+'</p></div>':'')
+        // TRACK RECORD DEDUPE: render only when its claim family DIFFERS from the
+        // WHY's. Delta mode (modeA) adds new information - consistency over the
+        // window - so it renders; concentration/modeB/thin restate the WHY's own
+        // claim, so the block is SUPPRESSED with no filler.
+        + ((mode==="modeA"&&whyRail)?'<div class="pcard-trackblock"><div class="pcard-whyl">Track Record</div><p class="pcard-why pcard-tracktext">'+esc(whyRail)+'</p></div>':'')
       + '</div>'
       + '<div class="pcard-right">'
         + '<div class="pcard-wordmark">'+esc(name)+'</div>'

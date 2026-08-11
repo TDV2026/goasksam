@@ -916,6 +916,13 @@ body.home #input-box:focus-within{box-shadow:0 2px 10px rgba(22,20,15,.05);borde
 .pcard-platform .pcard-tile{padding:12px 14px;}
 .pcard-platform .pcard-tv{font-size:clamp(19px,5.4cqi,25px);margin:5px 0 5px;}
 .pcard-platform .pcard-ts{font-size:13px;line-height:1.38;}
+/* Paired stat tiles show the COMPACT support line (side-by-side default); a single
+   tile shows the FULL line. Padding nudged so the compact line sits <=3 lines. */
+.pcard-tile .pcard-ts-f{display:none;}
+.pcard-tiles.one .pcard-tile .pcard-ts-c{display:none;}
+.pcard-tiles.one .pcard-tile .pcard-ts-f{display:block;}
+.pcard-platform .pcard-tiles:not(.one) .pcard-tile{padding:13px 14px;}
+.pcard-platform .pcard-tiles:not(.one) .pcard-ts{font-size:12.5px;line-height:1.36;}
 /* Polish 3: TRACK RECORD as a quiet block in the LEFT column under the reassurance
    (fills the void under the CTA). Same label + body type as the rail version. */
 .pcard-platform .pcard-trackblock{margin-top:22px;}
