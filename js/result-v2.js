@@ -262,6 +262,10 @@ function renderPickCardV2(option){
         + '<p class="pcard-lead">'+esc(leadMain)+'</p>'
         + '<button class="pcard-cta" onclick="'+ctaOnClick+'">Start Listing With '+esc(name)+v2Svg("arrow","cta-arrow")+'</button>'
         + '<div class="pcard-reassure">'+v2Svg("shield")+'<span>You\'ll be taken to '+esc(name)+' to begin your listing. Nothing is committed until you decide to publish.</span></div>'
+        // Polish 3: the TRACK RECORD narrative lives in the LEFT column beneath the
+        // reassurance (quiet block), so the rail holds only wordmark + metadata +
+        // stat tiles.
+        + (whyRail?'<div class="pcard-trackblock"><div class="pcard-whyl">Track Record</div><p class="pcard-why pcard-tracktext">'+esc(whyRail)+'</p></div>':'')
       + '</div>'
       + '<div class="pcard-right">'
         + '<div class="pcard-wordmark">'+esc(name)+'</div>'
@@ -270,10 +274,7 @@ function renderPickCardV2(option){
           + '<div class="pcard-mrow">'+v2Svg("car")+'<div><div class="pcard-mp">'+esc(genLabel)+'</div><div class="pcard-ms">Analysis scope</div></div></div>'
           + '<div class="pcard-mrow">'+v2Svg("cal")+'<div><div class="pcard-mp">'+esc(winLbl)+'</div><div class="pcard-ms">Analysis window</div></div></div>'
         + '</div>'
-        + '<div class="pcard-rule"></div>'
-        + '<div class="pcard-tl pcard-trackl">Track Record</div>'
-        + '<p class="pcard-why">'+esc(whyRail)+'</p>'
-        + '<div class="pcard-ev"><div class="pcard-rule"></div>'+tilesHTML+'</div>'
+        + (tilesHTML?'<div class="pcard-ev"><div class="pcard-rule"></div>'+tilesHTML+'</div>':'')
       + '</div>'
       + '</div>';
   }catch(e){ if(typeof console!=="undefined")console.warn("pickCardV2 failed, falling back",e); return null; }
@@ -356,21 +357,26 @@ function psvLocalityState(p){
   for(var i=0;i<regions.length;i++){ if(regions[i]===sl||regions[i].indexOf(sl)>=0||sl.indexOf(regions[i])>=0)return st; }
   return null;
 }
+// A curated one-sentence roster hook, woven into the locality/nationwide intros.
+// Roster-sourced (never composed); a missing hook drops the sentence gracefully.
+function psvIntroHook(p){ return String((p&&p.specialties&&p.specialties.intro_hook)||"").trim(); }
 // PS intro ALWAYS carries the true reason for the match (locked copy by match
 // type): (a) marque/model the partner specialises in; (b) locality when the car's
-// state is in the partner's roster regions; (c) nationwide otherwise. Pronoun-
-// threaded; no dashes.
+// state is in the partner's roster regions; (c) nationwide otherwise. The locality
+// and nationwide intros weave in the partner's intro_hook. Pronoun-threaded; no dashes.
 function psvIntro(p,first,claim,carShort){
   var pron=psvPron(p);
   if(claim){
     var verb=claim.level==="marque"?"is":"are";
     return claim.label+" "+verb+" one of "+psvPoss(first)+" strongest areas. For this "+carShort+", I'd trust "+pron.obj+" to choose the right platform, present it professionally and manage the sale from start to finish.";
   }
+  var hook=psvIntroHook(p); var hookPart=hook?(" "+hook):"";
+  var tail=" I'd trust "+pron.obj+" to run the whole sale, from choosing the platform to the final paperwork.";
   var locState=psvLocalityState(p);
   if(locState){
-    return "Your "+carShort+" is in "+locState+", right in "+psvPoss(first)+" patch, and "+pron.subj+" handles the whole job: choosing the right platform, presenting it properly and managing the sale from start to finish.";
+    return "Your "+carShort+" is in "+locState+", right in "+psvPoss(first)+" patch."+hookPart+tail;
   }
-  return first+" works with sellers across the country and handles the whole job: choosing the right platform, presenting it properly and managing the sale from start to finish.";
+  return first+" works with sellers across the country."+hookPart+tail;
 }
 // SPECIALISES IN tile: the matched marque/model label; else the honest full
 // wheelhouse (marques + model labels); else the notes-level specialty for a
@@ -410,7 +416,7 @@ function psvTrustLines(p){
     // carrying an unfilled {placeholder} (item 3a): a half-composed line must
     // never reach a card.
     return !/(\d[\d,]*)\s*\+?\s*(?:[a-z]+\s+)?(?:listings|auctions)/i.test(t) && !/\{[^}]+\}/.test(t);
-  }).slice(0,3);
+  }).slice(0,1);   // one line only (top-ranked trust fact); the rest stay in data.
 }
 var PSV2_STATES={al:"Alabama",ak:"Alaska",az:"Arizona",ar:"Arkansas",ca:"California",co:"Colorado",ct:"Connecticut",de:"Delaware",fl:"Florida",ga:"Georgia",hi:"Hawaii",id:"Idaho",il:"Illinois",in:"Indiana",ia:"Iowa",ks:"Kansas",ky:"Kentucky",la:"Louisiana",me:"Maine",md:"Maryland",ma:"Massachusetts",mi:"Michigan",mn:"Minnesota",ms:"Mississippi",mo:"Missouri",mt:"Montana",ne:"Nebraska",nv:"Nevada",nh:"New Hampshire",nj:"New Jersey",nm:"New Mexico",ny:"New York",nc:"North Carolina",nd:"North Dakota",oh:"Ohio",ok:"Oklahoma",or:"Oregon",pa:"Pennsylvania",ri:"Rhode Island",sc:"South Carolina",sd:"South Dakota",tn:"Tennessee",tx:"Texas",ut:"Utah",vt:"Vermont",va:"Virginia",wa:"Washington",wv:"West Virginia",wi:"Wisconsin",wy:"Wyoming"};
 // Location, STATE-LEVEL only: parse the "Based in ..." claim, resolve to a state name.

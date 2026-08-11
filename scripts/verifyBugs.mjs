@@ -180,8 +180,9 @@ const ingoTrust=Object.assign({},ingo,{specialties:Object.assign({},ingo.special
   {text:"Bring a Trailer community member since March 2011",source:"partner_provided"}]})});
 Object.assign(globalThis.sellState,{partnerReferral:{partner:ingoTrust, secondary:true, matchType:"specialty", leadOnValue:true}});
 const psCard=renderPowerSellerCardV2({lead:true,valueLed:true})||"";
-check("Ingo trust: card shows 'Top 10% of all Bring a Trailer sellers'", /Top 10% of all Bring a Trailer sellers/.test(psCard), "missing");
-check("Ingo trust: card shows 'community member since March 2011'", /community member since March 2011/.test(psCard), "missing");
+check("Ingo trust: card shows the TOP trust fact 'Top 10% of all Bring a Trailer sellers'", /Top 10% of all Bring a Trailer sellers/.test(psCard), "missing");
+// Polish 2: the trust tile is ONE line - the 'member since 2011' fact stays in data, off the card.
+check("Ingo trust: 'community member since March 2011' is OFF the card (one-line tile)", !/community member since March 2011/.test(psCard), "should be absent");
 check("Ingo trust: 440+ auctions still the trophy tile (not duplicated as trust)", /pcard-tnum">440\+/.test(psCard), "missing trophy");
 
 // Platform-led Mode B control: no PS -> tradeoffs IS platform vs platform.

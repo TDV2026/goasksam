@@ -136,8 +136,9 @@ check("intro (Chris/Porsche) leads with Porsche + Chris's", /^Porsche is one of 
 check("tile (Chris/Porsche) = Porsche", psvSpecTile(chris,{make:"Porsche",model:"911"})==="Porsche", psvSpecTile(chris,{make:"Porsche"}));
 check("intro (Chris/Porsche) roster-truth", rosterTruth(introP,chris.specialties.wheelhouse), introP);
 // Intro reason copy (locked): nationwide + locality variants.
-const NAT=(f)=>f+" works with sellers across the country and handles the whole job: choosing the right platform, presenting it properly and managing the sale from start to finish.";
-const LOC=(car,state,poss,subj)=>"Your "+car+" is in "+state+", right in "+poss+" patch, and "+subj+" handles the whole job: choosing the right platform, presenting it properly and managing the sale from start to finish.";
+const TAIL=(obj="him")=>" I'd trust "+obj+" to run the whole sale, from choosing the platform to the final paperwork.";
+const NAT=(f,obj="him",hook="")=>f+" works with sellers across the country."+(hook?" "+hook:"")+TAIL(obj);
+const LOC=(car,state,poss,obj="him",hook="")=>"Your "+car+" is in "+state+", right in "+poss+" patch."+(hook?" "+hook:"")+TAIL(obj);
 const prevState=sellState.state;
 // b) no marque + no locality -> NATIONWIDE reason (chris has no regions here).
 sellState.state="";
@@ -147,7 +148,10 @@ check("tile (Chris/Audi) = first 3 wheelhouse marques (item 4 cap)", psvSpecTile
 // b2) LOCALITY reason when the car's state IS in the partner's roster regions.
 const localP={specialties:{wheelhouse:{marques:[]},pronoun:{obj:"him",subj:"he",poss:"his"}},regions:["Florida","Georgia","Nationwide"]};
 sellState.state="Florida";
-check("intro (locality) = 'in Florida, right in Chris's patch, and he handles'", psvIntro(localP,"Chris",psvClaim(localP,{make:"Audi",model:"TT"}),"Audi TT")===LOC("Audi TT","Florida","Chris's","he"), psvIntro(localP,"Chris",null,"Audi TT"));
+check("intro (locality) = 'in Florida, right in Chris's patch' + trust tail", psvIntro(localP,"Chris",psvClaim(localP,{make:"Audi",model:"TT"}),"Audi TT")===LOC("Audi TT","Florida","Chris's","him"), psvIntro(localP,"Chris",null,"Audi TT"));
+// intro_hook woven in when present; omitted gracefully when absent.
+const hookP={specialties:{wheelhouse:{marques:[]},pronoun:{obj:"him",subj:"he",poss:"his"},intro_hook:"He preps every car in-house."},regions:["Florida","Nationwide"]};
+{ const ps=sellState.state; sellState.state="Florida"; check("intro weaves the roster intro_hook", psvIntro(hookP,"Chris",null,"Audi TT")===LOC("Audi TT","Florida","Chris's","him","He preps every car in-house."), psvIntro(hookP,"Chris",null,"Audi TT")); sellState.state=ps; }
 // LOCALITY-TRUTH: a state NOT in the partner's regions falls back to nationwide.
 sellState.state="New York";
 check("locality line only when state IS in roster regions (roster-truth)", psvIntro(localP,"Chris",psvClaim(localP,{make:"Audi",model:"TT"}),"Audi TT")===NAT("Chris"), psvIntro(localP,"Chris",null,"Audi TT"));
@@ -187,7 +191,7 @@ const introHer=psvIntro(herP,"Robin",psvClaim(herP,{make:"Porsche",model:"911"})
 check("intro threads pronoun (marque match, I'd trust her)", /I'd trust her to/.test(introHer), introHer);
 // locality pronoun: "she handles"
 const herLocP={specialties:{pronoun:{obj:"her",subj:"she",poss:"her"},wheelhouse:{marques:[]}},regions:["Texas"]};
-{ const ps=sellState.state; sellState.state="Texas"; check("intro (locality) threads subject pronoun (she handles)", /and she handles the whole job/.test(psvIntro(herLocP,"Robin",null,"Audi TT")), psvIntro(herLocP,"Robin",null,"Audi TT")); sellState.state=ps; }
+{ const ps=sellState.state; sellState.state="Texas"; check("intro (locality) threads object pronoun (I'd trust her)", /I'd trust her to run the whole sale/.test(psvIntro(herLocP,"Robin",null,"Audi TT")), psvIntro(herLocP,"Robin",null,"Audi TT")); sellState.state=ps; }
 
 // ---- Item 3a: an unfilled {placeholder} must never render ----
 const phPartner={slug:"ph",name:"PH",display_name:"P H",specialties:{makes:["Porsche"],wheelhouse:{marques:["Porsche"]},
