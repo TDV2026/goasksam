@@ -444,6 +444,31 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
+  // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
+  // identifiers for a make (/models is free) and probes a few keywords for
+  // reported totals + the ocd_model_name each keyword's records actually carry -
+  // so we can see whether "E-Class" sales live under E320/E350/E63 badge-models.
+  if (task === "modelscan") {
+    const make = String(req.query?.make || "Mercedes-Benz");
+    const filter = String(req.query?.filter || "").toLowerCase();
+    const probes = req.query?.probes ? String(req.query.probes).split(",").map(s => s.trim()).filter(Boolean) : [];
+    let models = [];
+    try { const m = await callOldCarsData("/models", { make }, apiKey); const arr = m.data || m.models || (Array.isArray(m) ? m : []); models = arr.map(x => (x && (x.name || x.model)) || x).filter(Boolean).map(String); }
+    catch (e) { return res.status(200).json({ task: "modelscan", error: "models fetch: " + e.message }); }
+    const filtered = filter ? models.filter(m => m.toLowerCase().includes(filter)) : models;
+    let metered = 0; const probeResults = [];
+    for (const kw of probes) {
+      metered++;
+      let resp; try { resp = await callOldCarsData("/auctions", { keyword: kw, status: "sold", sort: "date", direction: "desc", page: 1, limit: 50 }, apiKey); }
+      catch (e) { probeResults.push({ keyword: kw, error: e.message }); continue; }
+      const rows = resp.data || [];
+      const modelNames = {}; let recent = 0; const now = Date.now();
+      for (const r of rows) { const mn = r.ocd_model_name || r.listing_model || "?"; modelNames[mn] = (modelNames[mn] || 0) + 1; const d = r.auction_end_date ? new Date(r.auction_end_date).getTime() : 0; if (d && now - d <= 180 * 864e5) recent++; }
+      probeResults.push({ keyword: kw, reportedTotal: resp.meta?.total_results ?? resp.meta?.total ?? rows.length, recentInPage180d: recent, sampleModelNames: modelNames });
+    }
+    return res.status(200).json({ task: "modelscan", make, modelCount: models.length, filtered, probes: probeResults, meteredThisRun: metered });
+  }
+
   if (task === "probe") {
     const spent = await meteredToday();
     const budgetLeft = spent === null ? Infinity : Math.max(0, dailyBudget - spent);
