@@ -462,6 +462,33 @@ async function handleOps(req, res) {
     const maxPagesPerHandle = Math.max(1, Math.min(20, Number(req.query?.pages || 6)));
     const sellerOf = r => String(r.seller_username || r.seller_name || r.seller || r.username || "").toLowerCase();
     let metered = 0;
+
+    // debug=<handle>: raw diagnostic to see what OCD actually returns for one handle -
+    // does any seller filter param work, do records carry a seller field, in what shape.
+    if (req.query?.debug) {
+      const handle = String(req.query.debug);
+      const norm = handle.toLowerCase();
+      const out = [];
+      for (const param of ["seller_username", "seller", "keyword"]) {
+        if (budgetLeft !== Infinity && metered >= budgetLeft) break;
+        metered++;
+        let resp, err = null;
+        try { resp = await callOldCarsData("/auctions", { [param]: handle, sort: "date", direction: "desc", page: 1, limit: 50 }, apiKey); }
+        catch (e) { err = e.message; }
+        const rows = (resp && resp.data) || [];
+        const first = rows[0] || {};
+        const sellerKeys = Object.keys(first).filter(k => /seller|user|consign|vendor|account/i.test(k));
+        out.push({
+          param, err, rowsReturned: rows.length, reportedTotal: resp?.meta?.total_results ?? resp?.meta?.total ?? null,
+          matchedThisHandle: rows.filter(r => sellerOf(r) === norm).length,
+          sellerFieldsOnRecord: sellerKeys.length ? sellerKeys : "(none present)",
+          sellerFieldSamples: sellerKeys.length ? rows.slice(0, 5).map(r => sellerKeys.reduce((o, k) => (o[k] = r[k], o), {})) : [],
+          anyFieldMentionsHandle: rows.slice(0, 10).some(r => JSON.stringify(r).toLowerCase().includes(norm)),
+          firstRecordKeys: Object.keys(first).slice(0, 40)
+        });
+      }
+      return res.status(200).json({ task: "handles", debug: handle, meteredThisRun: metered, diagnostics: out });
+    }
     async function checkHandle(handle) {
       const norm = String(handle).toLowerCase();
       // Try each filter param; use the first that actually returns seller-matched rows.
