@@ -430,6 +430,20 @@ async function handleOps(req, res) {
     return rows.reduce((s, r) => s + (Number(r.oldcarsdata_metered_requests) || 0), 0);
   }
 
+  // task=status: spend + budget headroom + OCD's OWN remaining quota (1 metered
+  // call reads the live rate-limit header), so we can tell if OCD itself is the wall.
+  if (task === "status") {
+    const spentToday = await meteredToday();
+    const monthStart = new Date(new Date().toISOString().slice(0, 7) + "-01T00:00:00Z").toISOString();
+    const monthRows = env ? await supabaseSelect(env, `app_usage_events?created_at=gte.${monthStart}&oldcarsdata_metered_requests=gt.0&select=oldcarsdata_metered_requests&limit=20000`) : null;
+    const spentMonth = monthRows ? monthRows.reduce((s, r) => s + (Number(r.oldcarsdata_metered_requests) || 0), 0) : null;
+    const monthlyBudget = Number(process.env.OCD_MONTHLY_BUDGET || 10000);
+    let ocd = null;
+    try { const r = await callOldCarsData("/auctions", { page: 1, limit: 1 }, apiKey); ocd = r.__rateLimit || null; }
+    catch (e) { ocd = { error: e.message, rateLimited: !!e.rateLimited, rateLimit: e.rateLimit || null }; }
+    return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
+  }
+
   if (task === "probe") {
     const spent = await meteredToday();
     const budgetLeft = spent === null ? Infinity : Math.max(0, dailyBudget - spent);
@@ -648,19 +662,11 @@ async function handleOps(req, res) {
     const spent0 = await meteredToday();
     const budgetLeft = spent0 === null ? Infinity : Math.max(0, dailyBudget - spent0);
     if (budgetLeft <= 0) return res.status(200).json({ task: "histfetch", skipped: "daily_budget_spent", spentToday: spent0, dailyBudget });
-    const tRows = await supabaseSelect(env, `app_usage_events?event_type=eq.warm_targeted&select=metadata&order=created_at.desc&limit=1`);
-    const models = (tRows && tRows[0] && Array.isArray(tRows[0].metadata?.models)) ? tRows[0].metadata.models : [];
-    if (!models.length) return res.status(500).json({ error: "No targeted models; run task=partnerfetch first." });
-    const reset = req.query?.reset === "1" || req.query?.reset === "true";
-    let cursor = { index: 0, spent: 0, persisted: 0, runs: 0 };
-    if (!reset) { const c = await supabaseSelect(env, `app_usage_events?event_type=eq.histfetch_cursor&select=metadata&order=created_at.desc&limit=1`); if (c && c[0] && c[0].metadata) cursor = { ...cursor, ...c[0].metadata }; }
-    if (cursor.index >= models.length) return res.status(200).json({ task: "histfetch", done: true, message: "Historical backfill complete. &reset=1 to re-run.", cursor, total: models.length });
     const US8 = new Set(["bringatrailer", "bat", "carsandbids", "hagerty", "pcarmarket", "sothebysmotorsport", "hemmings", "autohunter", "mbmarket"]);
     const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
     const floor = String(req.query?.floor || "2018-01-01");
     const maxPagesPerModel = Math.max(2, Math.min(30, Number(req.query?.pages || 16)));
-    const drain = isCron || req.query?.drain === "1" || req.query?.drain === "true" || true; // always loop models within budget/time
-    let metered = 0, persisted = 0, idx = cursor.index, modelsProcessed = 0;
+    let metered = 0, persisted = 0, modelsProcessed = 0, ocdRemaining = null;
     const t0 = Date.now();
     async function doModel(make, model) {
       const recs = [];
@@ -668,6 +674,7 @@ async function handleOps(req, res) {
         if (budgetLeft !== Infinity && metered >= budgetLeft) break;
         metered++;
         let resp; try { resp = await callOldCarsData("/auctions", { keyword: `${make} ${model}`, status: "sold", sort: "date", direction: "desc", page, limit: 50 }, apiKey); } catch (e) { if (e.rateLimited) throw e; break; }
+        if (resp.__rateLimit && resp.__rateLimit.remaining != null) ocdRemaining = Number(resp.__rateLimit.remaining);
         const rows = resp.data || [];
         if (!rows.length) break;
         for (const r of rows) { const mm = persistableMakeModel(r); if (US8.has(norm(r.platform || r.source)) && norm(mm.make) === norm(make) && norm(mm.model) === norm(model)) recs.push(r); }
@@ -687,20 +694,43 @@ async function handleOps(req, res) {
         if (payload.length) { try { await supabaseInsert("vehicle_market_records", payload, env.supabaseUrl, env.supabaseKey, "resolution=ignore-duplicates,return=minimal", "?on_conflict=source,source_record_id"); persisted += payload.length; } catch (e) { /* non-fatal */ } }
       }
     }
-    let stopReason = "list_done";
+    // PARTNERS priority slice: fetch the DISTINCT models these partners actually sold
+    // FIRST (one-off, ahead of the standing interest x gap queue; does not touch the
+    // standing cursor). Used to stabilize a specific partner's four numbers fast.
+    if (req.query?.partners) {
+      const handles = String(req.query.partners).split(",").map(s => s.trim()).filter(Boolean);
+      const inList = handles.map(h => `"${h}"`).join(",");
+      const rows = await supabaseSelect(env, `vehicle_market_records?seller_username=in.(${encodeURIComponent(inList)})&select=raw_record&limit=5000`);
+      const set = new Map();
+      for (const r of (rows || [])) { const rec = r.raw_record || {}; const mk = String(rec.ocd_make_name || rec.listing_make || "").trim(), md = String(rec.ocd_model_name || rec.listing_model || "").trim(); if (mk && md) { const k = `${mk}|${md}`; const e = set.get(k) || { make: mk, model: md, n: 0 }; e.n++; set.set(k, e); } }
+      const queue = [...set.values()].sort((a, b) => b.n - a.n).map(e => [e.make, e.model]);
+      let stopReason = "list_done";
+      try { for (const [mk, md] of queue) { if (budgetLeft !== Infinity && metered >= budgetLeft) { stopReason = "budget"; break; } if (Date.now() - t0 > 230000) { stopReason = "time"; break; } await doModel(mk, md); modelsProcessed++; } }
+      catch (e) { stopReason = "ratelimit"; }
+      if (env && metered > 0) { try { await recordUsageEvent({ event_type: "partner_histfetch", route: "histfetch?partners", status: stopReason, oldcarsdata_metered_requests: metered, duration_ms: 0, metadata: { handles, models: queue.length, persisted } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ } }
+      return res.status(200).json({ task: "histfetch", mode: "partners", partners: handles, modelCount: queue.length, models: queue, meteredThisRun: metered, persistedThisRun: persisted, modelsProcessed, stopReason, ocdRemaining, spentToday: spent0, dailyBudget });
+    }
+    // STANDARD cursor mode over the warm_targeted (soon: interest x gap) queue.
+    const tRows = await supabaseSelect(env, `app_usage_events?event_type=eq.warm_targeted&select=metadata&order=created_at.desc&limit=1`);
+    const models = (tRows && tRows[0] && Array.isArray(tRows[0].metadata?.models)) ? tRows[0].metadata.models : [];
+    if (!models.length) return res.status(500).json({ error: "No targeted models; run task=partnerfetch first." });
+    const reset = req.query?.reset === "1" || req.query?.reset === "true";
+    let cursor = { index: 0, spent: 0, persisted: 0, runs: 0 };
+    if (!reset) { const c = await supabaseSelect(env, `app_usage_events?event_type=eq.histfetch_cursor&select=metadata&order=created_at.desc&limit=1`); if (c && c[0] && c[0].metadata) cursor = { ...cursor, ...c[0].metadata }; }
+    if (cursor.index >= models.length) return res.status(200).json({ task: "histfetch", done: true, message: "Historical backfill complete. &reset=1 to re-run.", cursor, total: models.length });
+    let idx = cursor.index, stopReason = "list_done";
     try {
       while (idx < models.length) {
         if (budgetLeft !== Infinity && metered >= budgetLeft) { stopReason = "budget"; break; }
         if (Date.now() - t0 > 230000) { stopReason = "time"; break; }
-        const [mk, md] = models[idx];
-        await doModel(mk, md);
+        await doModel(models[idx][0], models[idx][1]);
         idx++; modelsProcessed++;
         if (modelsProcessed % 3 === 0) { try { await recordUsageEvent({ event_type: "histfetch_cursor", route: "histfetch", status: "chunk", oldcarsdata_metered_requests: 0, duration_ms: 0, metadata: { index: idx, spent: (cursor.spent || 0) + metered, persisted: (cursor.persisted || 0) + persisted, runs: (cursor.runs || 0) + 1 } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ } }
       }
     } catch (e) { stopReason = "ratelimit"; }
     const next = { index: idx, spent: (cursor.spent || 0) + metered, persisted: (cursor.persisted || 0) + persisted, runs: (cursor.runs || 0) + 1 };
     try { await recordUsageEvent({ event_type: "histfetch_cursor", route: "histfetch", status: idx >= models.length ? "complete" : stopReason, oldcarsdata_metered_requests: 0, duration_ms: 0, metadata: next }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ }
-    return res.status(200).json({ task: "histfetch", spentToday: spent0, meteredThisRun: metered, persistedThisRun: persisted, modelsProcessed, stopReason, cursor: next, total: models.length, done: idx >= models.length });
+    return res.status(200).json({ task: "histfetch", spentToday: spent0, meteredThisRun: metered, persistedThisRun: persisted, modelsProcessed, stopReason, ocdRemaining, cursor: next, total: models.length, done: idx >= models.length });
   }
 
   if (task === "fill") {
