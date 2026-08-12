@@ -637,6 +637,72 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerfetch", spentToday: spent0, meteredThisRun: metered, persisted: totalPersisted, targetedModelCount: targeted.length, targetedModels: targeted, summary });
   }
 
+  // task=histfetch: the historical comp backfill. Warming (fill) only fetches each
+  // model's RECENT (~180d) sales, so a partner's 2019-2024 sale has no comps in its
+  // +/-6mo window and stays unmatched (the recent-bias that pins Dan/Chris to a thin
+  // recent slice). This pages each TARGETED model's SOLD history back through time
+  // (to ~2018) across the 8 US platforms and persists it, so every partner sale finds
+  // like-for-like comps. Budget-guarded (daily cap), resumable, drain/cron-able.
+  if (task === "histfetch") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const spent0 = await meteredToday();
+    const budgetLeft = spent0 === null ? Infinity : Math.max(0, dailyBudget - spent0);
+    if (budgetLeft <= 0) return res.status(200).json({ task: "histfetch", skipped: "daily_budget_spent", spentToday: spent0, dailyBudget });
+    const tRows = await supabaseSelect(env, `app_usage_events?event_type=eq.warm_targeted&select=metadata&order=created_at.desc&limit=1`);
+    const models = (tRows && tRows[0] && Array.isArray(tRows[0].metadata?.models)) ? tRows[0].metadata.models : [];
+    if (!models.length) return res.status(500).json({ error: "No targeted models; run task=partnerfetch first." });
+    const reset = req.query?.reset === "1" || req.query?.reset === "true";
+    let cursor = { index: 0, spent: 0, persisted: 0, runs: 0 };
+    if (!reset) { const c = await supabaseSelect(env, `app_usage_events?event_type=eq.histfetch_cursor&select=metadata&order=created_at.desc&limit=1`); if (c && c[0] && c[0].metadata) cursor = { ...cursor, ...c[0].metadata }; }
+    if (cursor.index >= models.length) return res.status(200).json({ task: "histfetch", done: true, message: "Historical backfill complete. &reset=1 to re-run.", cursor, total: models.length });
+    const US8 = new Set(["bringatrailer", "bat", "carsandbids", "hagerty", "pcarmarket", "sothebysmotorsport", "hemmings", "autohunter", "mbmarket"]);
+    const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const floor = String(req.query?.floor || "2018-01-01");
+    const maxPagesPerModel = Math.max(2, Math.min(30, Number(req.query?.pages || 16)));
+    const drain = isCron || req.query?.drain === "1" || req.query?.drain === "true" || true; // always loop models within budget/time
+    let metered = 0, persisted = 0, idx = cursor.index, modelsProcessed = 0;
+    const t0 = Date.now();
+    async function doModel(make, model) {
+      const recs = [];
+      for (let page = 1; page <= maxPagesPerModel; page++) {
+        if (budgetLeft !== Infinity && metered >= budgetLeft) break;
+        metered++;
+        let resp; try { resp = await callOldCarsData("/auctions", { keyword: `${make} ${model}`, status: "sold", sort: "date", direction: "desc", page, limit: 50 }, apiKey); } catch (e) { if (e.rateLimited) throw e; break; }
+        const rows = resp.data || [];
+        if (!rows.length) break;
+        for (const r of rows) { const mm = persistableMakeModel(r); if (US8.has(norm(r.platform || r.source)) && norm(mm.make) === norm(make) && norm(mm.model) === norm(model)) recs.push(r); }
+        const oldest = rows.map(r => r.auction_end_date).filter(Boolean).sort()[0];
+        if (oldest && String(oldest).slice(0, 10) < floor) break;
+        if (rows.length < 50) break;
+        if (page >= (resp.meta?.total_pages || 1)) break;
+      }
+      if (recs.length) {
+        const payload = recs.map(record => ({
+          source: recordPlatform(record), source_record_id: stableRecordId(record), source_url: record.url || record.listing_url || null, platform: recordPlatform(record),
+          ...persistableMakeModel(record), year: record.year || null, raw_title: record.title || record.listing_title || null,
+          price: Number(record.price ?? record.sold_price ?? record.final_price ?? record.current_bid) || null,
+          auction_status: record.auction_status || record.status || null, auction_end_date: record.auction_end_date || null,
+          seller_username: record.seller_username || null, raw_record: record
+        })).filter(p => p.source_record_id);
+        if (payload.length) { try { await supabaseInsert("vehicle_market_records", payload, env.supabaseUrl, env.supabaseKey, "resolution=ignore-duplicates,return=minimal", "?on_conflict=source,source_record_id"); persisted += payload.length; } catch (e) { /* non-fatal */ } }
+      }
+    }
+    let stopReason = "list_done";
+    try {
+      while (idx < models.length) {
+        if (budgetLeft !== Infinity && metered >= budgetLeft) { stopReason = "budget"; break; }
+        if (Date.now() - t0 > 230000) { stopReason = "time"; break; }
+        const [mk, md] = models[idx];
+        await doModel(mk, md);
+        idx++; modelsProcessed++;
+        if (modelsProcessed % 3 === 0) { try { await recordUsageEvent({ event_type: "histfetch_cursor", route: "histfetch", status: "chunk", oldcarsdata_metered_requests: 0, duration_ms: 0, metadata: { index: idx, spent: (cursor.spent || 0) + metered, persisted: (cursor.persisted || 0) + persisted, runs: (cursor.runs || 0) + 1 } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ } }
+      }
+    } catch (e) { stopReason = "ratelimit"; }
+    const next = { index: idx, spent: (cursor.spent || 0) + metered, persisted: (cursor.persisted || 0) + persisted, runs: (cursor.runs || 0) + 1 };
+    try { await recordUsageEvent({ event_type: "histfetch_cursor", route: "histfetch", status: idx >= models.length ? "complete" : stopReason, oldcarsdata_metered_requests: 0, duration_ms: 0, metadata: next }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ }
+    return res.status(200).json({ task: "histfetch", spentToday: spent0, meteredThisRun: metered, persistedThisRun: persisted, modelsProcessed, stopReason, cursor: next, total: models.length, done: idx >= models.length });
+  }
+
   if (task === "fill") {
     if (!env) return res.status(500).json({ error: "Supabase env not set (fill needs the cursor store)." });
     const reset = req.query?.reset === "1" || req.query?.reset === "true";
