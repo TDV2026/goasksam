@@ -805,6 +805,10 @@ async function handleOps(req, res) {
       cursor = { index: 0, cycle: (cursor.cycle || 0) + 1, models: ranked, builtAt: new Date().toISOString() };
       rebuilt = true;
     }
+    // dry=1 previews the ranked universe WITHOUT any OCD spend (verify the ranking).
+    if (req.query?.dry === "1" || req.query?.dry === "true") {
+      return res.status(200).json({ task: "depth", dry: true, depthCap, depthFraction, cycle: cursor.cycle, rebuilt, universeSize: cursor.models.length, cursorIndex: cursor.index, deepenedTotal: Object.keys(history).length, nextUp: cursor.models.slice(cursor.index, cursor.index + 40).map(([mk, md]) => `${mk} ${md}`) });
+    }
     let idx = cursor.index, stopReason = "cycle_done";
     try {
       while (idx < cursor.models.length) {
