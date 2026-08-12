@@ -32,12 +32,19 @@ function v2Landed(){ try{ return (sellState.sellDecision&&sellState.sellDecision
 function v2GenCode(){ var l=v2Landed(); return (l.generationCode)||(sellState.sellDecision&&sellState.sellDecision.evidence&&sellState.sellDecision.evidence.generation&&sellState.sellDecision.evidence.generation.code)||null; }
 function v2RungKind(){ var k=String(v2Landed().key||""); if(/exact_year/.test(k))return "exact"; if(/generation/.test(k))return "generation"; if(/segment/.test(k))return "segment"; if(/make/.test(k))return "make"; return "model"; }
 function v2Pl(w){ w=String(w||""); return /([sxz]|ch|sh)$/i.test(w)?w+"es":w+"s"; }
+// "Series"/"Class"-style model names read as a category and never take a plural
+// suffix: "6-Series" (never "6-Seriess"/"6-Serieses"), "S-Class", "M-Class", etc.
+// Singular and plural both render as the bare name. Everything else pluralizes
+// normally, so a genuinely pluralizable trailing-s model like "Bus" still becomes
+// "Buses" (only the category endings are invariant).
+function v2ModelInvariant(w){ return /(series|class)$/i.test(String(w||"").trim()); }
+function v2PlModel(w){ w=String(w||""); return (!w||v2ModelInvariant(w))?w:v2Pl(w); }
 function v2ScopePlural(v){
   var kind=v2RungKind(), model=String(v&&v.model||"car"), gen=v2GenCode(), year=v&&v.year;
-  if(kind==="exact"&&year)return year+" "+model+"s";
-  if(kind==="generation"&&gen)return String(gen).toUpperCase()+"-generation "+model+"s";
+  if(kind==="exact"&&year)return year+" "+v2PlModel(model);
+  if(kind==="generation"&&gen)return String(gen).toUpperCase()+"-generation "+v2PlModel(model);
   if(kind==="make")return v2Pl(v&&v.make||"these cars");
-  return model+"s";
+  return v2PlModel(model);
 }
 // Attributive-SINGULAR scope: the form used directly before a noun ("... sales",
 // "... market", "... prices"). "8N-generation TT sales", not "TTs sales". Same
@@ -72,7 +79,7 @@ function v2RungLabel(v){
   if(kind==="exact")return "This exact year";
   if(kind==="generation"&&gen)return String(gen).toUpperCase()+" Generation";
   if(kind==="make")return make?make+"-wide":"Make-wide";
-  return model?"All "+v2Pl(model):"All models";
+  return model?"All "+v2PlModel(model):"All models";
 }
 function v2Window(ev){ var p=ev&&ev.pricePremium; return (p&&isFinite(p.windowDays))?Number(p.windowDays):(sellState.sellDecision&&sellState.sellDecision.evidence&&sellState.sellDecision.evidence.windowDays)||90; }
 // Window stated in the true unit: the 270-day price rung reads "nine months"; the
