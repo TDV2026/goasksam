@@ -144,7 +144,7 @@ const prevState=sellState.state;
 sellState.state="";
 const introCA=psvIntro(chris,"Chris",psvClaim(chris,{make:"Audi",model:"TT"}),"Audi TT");
 check("intro (Chris/Audi, no locality) = nationwide reason", introCA===NAT("Chris"), introCA);
-check("tile (Chris/Audi) = first 3 wheelhouse marques (item 4 cap)", psvSpecTile(chris,{make:"Audi",model:"TT"})==="BMW, Porsche, Mercedes-Benz", psvSpecTile(chris,{make:"Audi"}));
+check("tile (Chris/Audi, no-match) = SUPPRESSED (context-aware)", psvSpecTile(chris,{make:"Audi",model:"TT"})==="", psvSpecTile(chris,{make:"Audi",model:"TT"}));
 // b2) LOCALITY reason when the car's state IS in the partner's roster regions.
 const localP={specialties:{wheelhouse:{marques:[]},pronoun:{obj:"him",subj:"he",poss:"his"}},regions:["Florida","Georgia","Nationwide"]};
 sellState.state="Florida";
@@ -165,12 +165,14 @@ const introHA=psvIntro(howard,"Howard",psvClaim(howard,{make:"Audi",model:"TT"})
 const tileHA=psvSpecTile(howard,{make:"Audi",model:"TT"});
 check("intro (Howard/Audi) = nationwide reason (no false marque)", introHA===NAT("Howard"), introHA);
 check("intro (Howard/Audi) claims NO Audi (roster-truth; car ref exempt)", rosterTruth(introHA,howard.specialties.wheelhouse), introHA);
-check("tile (Howard/Audi) = wheelhouse, not 'Audi'", tileHA==="Porsche, Vintage Mustangs"&&tileTruth(tileHA,howard.specialties.wheelhouse), tileHA);
-// Item 4: honest-list tile caps at 3 entries + drops "unusual automotive items"
+check("tile (Howard/Audi, no-match) = SUPPRESSED (not the Porsche wheelhouse)", tileHA==="", tileHA);
+// Context-aware: the wheelhouse/notes fallbacks no longer surface a NON-matching
+// specialty. A no-match car suppresses the tile entirely.
 const howDisplay={specialties:{wheelhouse:{marques:["Porsche"],models:[],display:["Air-cooled Porsche","911s","vintage Mustangs","unusual automotive items"]}}};
-check("tile display caps at 3 + excludes 'unusual automotive items'", psvSpecTile(howDisplay,{make:"Audi",model:"TT"})==="Air-cooled Porsche, 911s, vintage Mustangs", psvSpecTile(howDisplay,{make:"Audi"}));
+check("tile (display wheelhouse, no-match Audi) = SUPPRESSED", psvSpecTile(howDisplay,{make:"Audi",model:"TT"})==="", psvSpecTile(howDisplay,{make:"Audi",model:"TT"}));
+check("tile (display wheelhouse, MATCH Porsche) = the matched marque", psvSpecTile(howDisplay,{make:"Porsche",model:"911"})==="Porsche", psvSpecTile(howDisplay,{make:"Porsche",model:"911"}));
 const howNotes={specialties:{notes:"Air-cooled Porsche, 911s, vintage Mustangs, unusual automotive items (per howS)"}};
-check("tile notes-fallback caps at 3 + excludes junk", psvSpecTile(howNotes,{make:"Audi",model:"TT"})==="Air-cooled Porsche, 911s, vintage Mustangs", psvSpecTile(howNotes,{make:"Audi"}));
+check("tile (notes-only, no-match Audi) = SUPPRESSED", psvSpecTile(howNotes,{make:"Audi",model:"TT"})==="", psvSpecTile(howNotes,{make:"Audi",model:"TT"}));
 // d2) ABSENT WHEELHOUSE (roster SQL not run): bloated `makes` includes the car
 // marque, but with no wheelhouse the claim must be brand-free (fail-honest), NOT
 // fall back to makes. Locks STEP 2.
@@ -257,6 +259,19 @@ globalThis.sellState.resolvedVehicle={make:"Porsche",model:"911",year:2019};
 globalThis.sellState.partnerReferral={eligible:true,partner:shortP}; globalThis.psvPartner=()=>shortP;
 const shortCard=renderPowerSellerCardV2({lead:true})||"";
 check("short state lists keep full names (<=3)", /Serves Texas and Louisiana/.test(shortCard)&&!/two states/.test(shortCard), "");
+
+// ---- Context-aware specialty tile on the RENDERED card ----
+function specCard(partner,car){
+  globalThis.sellState.resolvedVehicle=car; globalThis.sellState.sellDecision={vehicle:car,evidence:{windowDays:180}};
+  globalThis.sellState.partnerReferral={eligible:true,partner}; globalThis.psvPartner=()=>partner;
+  return (renderPowerSellerCardV2({lead:true})||"").replace(/&#39;/g,"'");
+}
+const howardCtx={slug:"hw",name:"Howard",display_name:"Howard Silvers",specialties:{wheelhouse:{marques:["Porsche"],models:[{label:"Vintage Mustangs",make:"Ford",model:"Mustang"}],display:["911s"]},pronoun:{subj:"he",obj:"him",poss:"his"},premium:{pct:20,n:142,source:"data_verified"},profile_stats:[{text:"400+ enthusiast auctions represented",source:"partner_provided"}]},regions:["Pennsylvania","Nationwide"],serviceClaims:[{text:"Based in Upper Makefield PA"},{text:"Manages the entire auction end to end"}]};
+const noMatchCard=specCard(howardCtx,{make:"Mercedes-Benz",model:"E-Class",year:2018});
+const matchCard=specCard(howardCtx,{make:"Porsche",model:"911",year:2018});
+check("NO-MATCH card (Howard/Mercedes) SUPPRESSES the specialty tile", !/Specialises in/i.test(noMatchCard)&&/Track record/.test(noMatchCard), (noMatchCard.match(/Specialises in[^<]*/i)||[""])[0]);
+check("no-match card names no non-matching specialty (roster-truth)", !/Specialises in/i.test(noMatchCard)&&!/Air-cooled Porsche|911s|Vintage Mustangs/.test(noMatchCard.replace(/pcard-tnum[^>]*>\+?\d+%/g,"")), "");
+check("MATCH card (Howard/911) KEEPS the specialty tile", /Specialises in/i.test(matchCard)&&/Track record/.test(matchCard), "");
 check("PS card carries NO fee figure (item 5)", clean(cardHtml).ok&&!/6%|5%|\$\s?100k/i.test(cardHtml), lintText(cardHtml).join(" ; ")+" :: contains-6%="+/6%/.test(cardHtml));
 
 // ---- Item 5: chat guard blocks a fee figure ----

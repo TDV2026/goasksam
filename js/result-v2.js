@@ -406,17 +406,14 @@ function psvIntro(p,first,claim,carShort){
 // generalist with no marque wheelhouse (e.g. Ingo's "Collector and specialty
 // vehicles"). Never a single non-matching marque.
 function psvSpecTile(p,v){
+  // CONTEXT-AWARE: the SPECIALISES IN tile renders ONLY when the partner's wheelhouse
+  // genuinely matches THIS car (same marque or model) - the exact match the intro
+  // templates use (psvClaim). On a non-matching car it is SUPPRESSED entirely: a
+  // Porsche specialist's "Air-cooled Porsche" tile next to a Mercedes plants exactly
+  // the wrong question, and the premium + counts now carry the trust case. The old
+  // wheelhouse/notes fallbacks (which surfaced a non-matching specialty) are gone.
   var claim=psvClaim(p,v);
-  if(claim)return claim.label;
-  var list=psvWheelhouseList(p);
-  if(list)return list;
-  // Fallback (generalist, or pre-seed with no wheelhouse): the FULL notes-level
-  // specialty - never the first token alone, so a multi-marque partner shows his
-  // whole honest list ("BMW, Porsche, ...") rather than a single non-matching
-  // marque. Fail-honest: never surface a fee figure or an unfilled {placeholder}.
-  var notes=String((p&&p.specialties&&p.specialties.notes)||"").replace(/\s*\(per[^)]*\)\s*$/i,"").trim();
-  if(/(\$\s?\d|\d+(?:\.\d+)?\s?%|\{)/.test(notes))return "";
-  return psvHonestList(notes.split(","));
+  return claim?claim.label:"";
 }
 function psvMakePlural(make){ try{ return (typeof pluralizeMake==="function")?pluralizeMake(make):(v2Pl(make)); }catch(e){ return v2Pl(make||"cars"); } }
 function psvTrophy(p){
