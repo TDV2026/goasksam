@@ -112,17 +112,20 @@ function CLAUSE_B(s){ return v2Fill("prices for {scope} have run close across th
 function CLAUSE_C(s){ return v2Fill("recent {scopeAttr} sales have concentrated on {platform}, with too few on other platforms to compare prices over the past {window}",s); }
 
 // Rarity wording is allowed only for cars that are genuinely old or genuinely
-// collectible: >25 years old, OR an enthusiast-tier make that actually has
-// archive presence (>=1). A modern enthusiast-make sedan with no archive (a 2019
-// A6) stays neutral; a Merkur (>25yr) or a 458 (enthusiast + archive) keeps the
-// rarity story. Neutral wording is the default for every other thin state.
+// collectible: >25 years old, OR an enthusiast-tier make whose SPECIFIC MODEL is a
+// specialty line (not a mainstream volume nameplate) with archive presence (>=1).
+// The enthusiast check is model-aware, not marque-blanket: a 2018 E-Class or 2019
+// A6 stays neutral even though Mercedes and Audi are enthusiast marques, because
+// the E-Class/A6 are volume sedans; an SL, AMG GT, M3, or 458 keeps the rarity
+// story. Age >25 (a W124 E-Class, a Merkur) earns rarity unconditionally.
 function v2RarityAllowed(){
   try{
     var v=sellState.resolvedVehicle||(sellState.sellDecision&&sellState.sellDecision.vehicle)||{};
     var yr=Number(v.year);
     if(yr&&((new Date().getFullYear())-yr)>25)return true;
     var count=Number(sellState.archiveModelCount);
-    if(typeof makeIsEnthusiast==="function"&&makeIsEnthusiast(v.make)&&isFinite(count)&&count>=1)return true;
+    var mainstreamModel=(typeof modelIsMainstream==="function")&&modelIsMainstream(v.make,v.model);
+    if(typeof makeIsEnthusiast==="function"&&makeIsEnthusiast(v.make)&&!mainstreamModel&&isFinite(count)&&count>=1)return true;
     return false;
   }catch(e){ return false; }
 }

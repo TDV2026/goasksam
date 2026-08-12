@@ -44,6 +44,27 @@ const ESCAPE_MODELS=["mustang","corolla","civic","camaro","charger","challenger"
 
 function makeIsMainstream(make){ return MAINSTREAM_MAKES.includes(String(make||"").toLowerCase().trim()); }
 function makeIsEnthusiast(make){ return ENTHUSIAST_MAKES.includes(String(make||"").toLowerCase().trim()); }
+// Rarity flavor is MARQUE-blanket for enthusiast makes, but a marque's mainstream
+// VOLUME line must never inherit rarity earned by its specialty models: a 2018
+// E-Class is not rare just because Mercedes also builds the SL and AMG GT. This
+// denylist suppresses rarity for the base sedans/SUVs (E-Class, 3-Series, A6, and
+// their engine badges E350/328i/etc.) while the specialty models (SL, AMG GT, M3,
+// M5, Z4, R8, RS/S variants) stay eligible. Matched against the resolved model
+// head OR its engine badge, per marque. Age >25 still earns rarity unconditionally,
+// so a W124-era E-Class classic is unaffected.
+const MAINSTREAM_MODEL_RE={
+  "mercedes-benz":/^((a|b|c|e|s)[\s-]?class|(a|b|c|e|s)\d{2,3}|cla\d*|cls\d*|gl[abcesk]?\d*|gl[abcesk]?[\s-]?class|ml\d*|m[\s-]?class|r[\s-]?class|glk\d*)$/,
+  "bmw":/^([12345 7][\s-]?series|[12345 7]\d{2}(i|d|xi|ix|e)?|x[1-7]\d?|x[1-7]m?)$/,
+  "audi":/^(a[3-8]|q[3-8]|a[3-8][\s-]?(avant|sportback|allroad)|allroad)$/,
+  "land rover":/^(range[\s-]?rover([\s-]?(sport|evoque|velar))?|discovery.*|evoque|velar|freelander|lr[234])$/,
+  "jaguar":/^(xf|xe|xj[\s-]?\d*|xj)$/
+};
+function modelIsMainstream(make,model){
+  var re=MAINSTREAM_MODEL_RE[String(make||"").toLowerCase().trim()];
+  if(!re)return false;
+  var md=String(model||"").toLowerCase().replace(/\s+/g," ").trim();
+  return re.test(md);
+}
 function modelHasTrimEscape(model){ const m=String(model||"").toLowerCase(); return ESCAPE_MODELS.some(e=>m.includes(e)); }
 function hasEnthusiastTrim(v){
   const hay=[v&&v.trim,v&&v.model,v&&v.canonicalLabel].map(x=>String(x||"").toLowerCase()).join(" ");
