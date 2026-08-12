@@ -18,7 +18,7 @@
     }
   },
   "crons": [
-    { "path": "/api/usageDashboard?view=ops&task=histfetch", "schedule": "0 8 * * *" },
+    { "path": "/api/usageDashboard?view=ops&task=depth", "schedule": "0 8 * * *" },
     { "path": "/api/usageDashboard?view=ops&task=fill", "schedule": "0 12 * * *" }
   ]
 }

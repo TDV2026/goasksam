@@ -734,6 +734,94 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "histfetch", spentToday: spent0, meteredThisRun: metered, persistedThisRun: persisted, modelsProcessed, stopReason, ocdRemaining, cursor: next, total: models.length, done: idx >= models.length });
   }
 
+  // task=depth: the STANDING archive-depth job. Not partner-scoped - it keeps the
+  // whole enthusiast catalog historically deep, ranked by interest x coverage-gap, so
+  // a future partner plugs into an already-deep archive instead of triggering a fetch
+  // scramble. Universe = curated 463 seed + real search volume (app_usage_events) +
+  // partner models (one input, not the driver). Interest-weighted; a model deepened
+  // within REFRESH_DAYS is skipped (its gap is ~0). Budget-capped to the DEPTH slice
+  // (floor(dailyBudget * OCD_DEPTH_BUDGET_FRACTION)) so it layers UNDER warm and live.
+  if (task === "depth") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const spent0 = await meteredToday();
+    const depthFraction = Number(process.env.OCD_DEPTH_BUDGET_FRACTION || 0.4);
+    const depthCap = Math.max(1, Math.floor(dailyBudget * depthFraction));
+    const depthLeft = spent0 === null ? Infinity : Math.max(0, depthCap - spent0);
+    if (depthLeft <= 0) return res.status(200).json({ task: "depth", skipped: "depth_slice_reached", spentToday: spent0, depthCap, depthFraction });
+    const US8 = new Set(["bringatrailer", "bat", "carsandbids", "hagerty", "pcarmarket", "sothebysmotorsport", "hemmings", "autohunter", "mbmarket"]);
+    const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const key = (mk, md) => `${norm(mk)}|${norm(md)}`;
+    const floor = String(req.query?.floor || "2018-01-01");
+    const maxPagesPerModel = Math.max(2, Math.min(30, Number(req.query?.pages || 16)));
+    const REFRESH_DAYS = Math.max(1, Number(req.query?.refresh || 45));
+    let metered = 0, persisted = 0, modelsProcessed = 0, ocdRemaining = null;
+    const t0 = Date.now();
+    async function deepen(make, model) {
+      const recs = [];
+      for (let page = 1; page <= maxPagesPerModel; page++) {
+        if (metered >= depthLeft) break;
+        metered++;
+        let resp; try { resp = await callOldCarsData("/auctions", { keyword: `${make} ${model}`, status: "sold", sort: "date", direction: "desc", page, limit: 50 }, apiKey); } catch (e) { if (e.rateLimited) throw e; break; }
+        if (resp.__rateLimit && resp.__rateLimit.remaining != null) ocdRemaining = Number(resp.__rateLimit.remaining);
+        const rows = resp.data || [];
+        if (!rows.length) break;
+        for (const r of rows) { const mm = persistableMakeModel(r); if (US8.has(norm(r.platform || r.source)) && norm(mm.make) === norm(make) && norm(mm.model) === norm(model)) recs.push(r); }
+        const oldest = rows.map(r => r.auction_end_date).filter(Boolean).sort()[0];
+        if (oldest && String(oldest).slice(0, 10) < floor) break;
+        if (rows.length < 50) break;
+        if (page >= (resp.meta?.total_pages || 1)) break;
+      }
+      if (recs.length) {
+        const payload = recs.map(record => ({
+          source: recordPlatform(record), source_record_id: stableRecordId(record), source_url: record.url || record.listing_url || null, platform: recordPlatform(record),
+          ...persistableMakeModel(record), year: record.year || null, raw_title: record.title || record.listing_title || null,
+          price: Number(record.price ?? record.sold_price ?? record.final_price ?? record.current_bid) || null,
+          auction_status: record.auction_status || record.status || null, auction_end_date: record.auction_end_date || null,
+          seller_username: record.seller_username || null, raw_record: record
+        })).filter(p => p.source_record_id);
+        if (payload.length) { try { await supabaseInsert("vehicle_market_records", payload, env.supabaseUrl, env.supabaseKey, "resolution=ignore-duplicates,return=minimal", "?on_conflict=source,source_record_id"); persisted += payload.length; } catch (e) { /* non-fatal */ } }
+      }
+    }
+    // Load the deepened-history map + the resumable cursor (which carries the ranked
+    // snapshot so a mid-cycle re-run is stable even as new searches arrive).
+    const histRow = await supabaseSelect(env, `app_usage_events?event_type=eq.depth_history&select=metadata&order=created_at.desc&limit=1`);
+    const history = (histRow && histRow[0] && histRow[0].metadata && histRow[0].metadata.h) || {};
+    const curRow = await supabaseSelect(env, `app_usage_events?event_type=eq.depth_cursor&select=metadata&order=created_at.desc&limit=1`);
+    let cursor = (curRow && curRow[0] && curRow[0].metadata) || { index: 0, cycle: 0, models: null };
+    const reset = req.query?.reset === "1" || req.query?.reset === "true";
+    let rebuilt = false;
+    if (reset || !Array.isArray(cursor.models) || cursor.index >= cursor.models.length) {
+      // Rebuild the interest x gap snapshot.
+      const map = new Map();
+      const add = (mk, md, w) => { const a = String(mk || "").trim(), b = String(md || "").trim(); if (!a || !b) return; const k = key(a, b); const e = map.get(k) || { make: a, model: b, interest: 0 }; e.interest += w; map.set(k, e); };
+      try { const seed = JSON.parse(fs.readFileSync(new URL("../scripts/warm-list.json", import.meta.url), "utf8")).models || []; for (const [mk, md] of seed) add(mk, md, 1); } catch { /* seed optional */ }
+      try { const t = await supabaseSelect(env, `app_usage_events?event_type=eq.warm_targeted&select=metadata&order=created_at.desc&limit=1`); for (const [mk, md] of ((t && t[0] && t[0].metadata && t[0].metadata.models) || [])) add(mk, md, 2); } catch { /* partners optional */ }
+      try { const since = new Date(Date.now() - 180 * 864e5).toISOString(); const rows = await supabaseSelect(env, `app_usage_events?event_type=eq.seller_decision&created_at=gte.${since}&select=vehicle&limit=20000`); for (const r of (rows || [])) { const v = r.vehicle || {}; add(v.make, v.model, 3); } } catch { /* search history optional */ }
+      const now = Date.now();
+      const ranked = [...map.values()]
+        .filter(m => { const last = history[key(m.make, m.model)]; return !last || (now - new Date(last).getTime()) > REFRESH_DAYS * 864e5; })
+        .sort((a, b) => b.interest - a.interest)
+        .map(m => [m.make, m.model]);
+      cursor = { index: 0, cycle: (cursor.cycle || 0) + 1, models: ranked, builtAt: new Date().toISOString() };
+      rebuilt = true;
+    }
+    let idx = cursor.index, stopReason = "cycle_done";
+    try {
+      while (idx < cursor.models.length) {
+        if (metered >= depthLeft) { stopReason = "budget"; break; }
+        if (Date.now() - t0 > 230000) { stopReason = "time"; break; }
+        const [mk, md] = cursor.models[idx];
+        await deepen(mk, md);
+        history[key(mk, md)] = new Date().toISOString();
+        idx++; modelsProcessed++;
+      }
+    } catch (e) { stopReason = "ratelimit"; }
+    cursor.index = idx;
+    try { await recordUsageEvent({ event_type: "depth_cursor", route: "depth", status: idx >= cursor.models.length ? "cycle_complete" : stopReason, oldcarsdata_metered_requests: 0, duration_ms: 0, metadata: cursor }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ }
+    try { await recordUsageEvent({ event_type: "depth_history", route: "depth", status: "ok", oldcarsdata_metered_requests: 0, duration_ms: 0, metadata: { h: history, models: Object.keys(history).length } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ }
+    return res.status(200).json({ task: "depth", spentToday: spent0, depthCap, depthFraction, meteredThisRun: metered, persistedThisRun: persisted, modelsProcessed, stopReason, ocdRemaining, cycle: cursor.cycle, rebuilt, universeSize: cursor.models.length, cursorIndex: idx, cycleDone: idx >= cursor.models.length, deepenedTotal: Object.keys(history).length });
+  }
+
   if (task === "fill") {
     if (!env) return res.status(500).json({ error: "Supabase env not set (fill needs the cursor store)." });
     const reset = req.query?.reset === "1" || req.query?.reset === "true";
