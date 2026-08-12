@@ -6,6 +6,7 @@ import fs from "node:fs";
 import { supabaseEnv, supabaseSelect, supabaseInsert } from "../lib/_supabase.js";
 import { callOldCarsData } from "../lib/_ocd.js";
 import { persistableMakeModel, recordPlatform, stableRecordId } from "../lib/_classify.js";
+import { CURATED_GENERATIONS } from "../lib/generations.js";
 import { recordUsageEvent } from "./_usage.js";
 import { runDepthProbe, LAUNCH_SOURCES } from "../lib/ops/depthProbe.js";
 import { runFillBatch } from "../lib/ops/fillLadder.js";
@@ -726,10 +727,21 @@ async function handleOps(req, res) {
       const rows = await supabaseSelect(env, `vehicle_market_records?make=ilike.${encodeURIComponent(make)}&auction_end_date=gte.${lo}&auction_end_date=lte.${hi}&select=make,model,year,price,auction_status,auction_end_date,platform,source,seller_username&limit=3000`);
       return (rows || []).filter(r => soldOk(r) && platOk(r) && !allPartnerSellers.has(String(r.seller_username || "").toLowerCase()));
     }
+    // Generation span for a (make, model, year) from the curated map. OCD already
+    // files some generations as their own model ("997" vs "911"), so a chassis-code
+    // model is generation-level on its own; the span here year-scopes the catch-all
+    // nameplates ("911") so a 1973 and a 2013 never land in the same pool.
+    const genSpan = (make, model, year) => {
+      const y = Number(year); if (!y) return null;
+      const fam = String(model).split(/\s+/)[0].toLowerCase();
+      const rows = CURATED_GENERATIONS.filter(g => String(g.make).toLowerCase() === String(make).toLowerCase() && String(g.model).split(/\s+/)[0].toLowerCase() === fam);
+      const hit = rows.find(g => y >= g.yearStart && y <= g.yearEnd);
+      return hit ? [hit.yearStart, hit.yearEnd] : null;
+    };
     const report = [];
     for (const p of roster) {
       const sales = await partnerSales(p.handles);
-      const deltas = []; const rungCount = { model: 0, make: 0, unmatched: 0 }; let minD = null, maxD = null;
+      const deltas = []; const rungCount = { generation: 0, yearband: 0, model: 0, unmatched: 0 }; let minD = null, maxD = null;
       // Cache baselines per make|model|monthbucket to limit queries.
       const cache = new Map();
       for (const s of sales) {
@@ -738,16 +750,24 @@ async function handleOps(req, res) {
         const ckey = `${norm(mk)}|${norm(md)}|${bucket}`;
         let pool = cache.get(ckey);
         if (!pool) { pool = await baselineFor(mk, md, s.auction_end_date); cache.set(ckey, pool); }
-        // Tightest-first: same model; if <5, broaden to same make (segment proxy).
-        // (Generation-level refinement is a future rung; the pool is already make-
-        // scoped by the query and date-windowed to +/- the sale's own date.)
-        let rung = "model";
-        let comps = pool.filter(r => norm(r.model) === norm(md) && String(r.auction_end_date) !== String(s.auction_end_date));
-        if (comps.length < 5) {
-          rung = "make";
-          comps = pool.filter(r => String(r.auction_end_date) !== String(s.auction_end_date));
+        // Like-for-like ladder, tightest-first, to cancel generation/variant mix:
+        //   1) generation: SAME model + year within the mapped generation span
+        //   2) yearband:   SAME model + year within +/-2 (fallback when unmapped)
+        //   3) model:      SAME model, any year
+        // The coarse make rung is deliberately gone - matching a specific 911 against
+        // all Porsches was the source of the mix-driven negatives. No pool>=5 at any
+        // like-for-like rung => the sale is unmatched, never forced into a bad pool.
+        const sameModel = pool.filter(r => norm(r.model) === norm(md) && String(r.auction_end_date) !== String(s.auction_end_date));
+        const yr = Number(s.year);
+        let rung = null, comps = null;
+        if (yr) {
+          const span = genSpan(mk, md, yr);
+          const [lo, hi] = span || [yr - 2, yr + 2];
+          const band = sameModel.filter(r => Number(r.year) && Number(r.year) >= lo && Number(r.year) <= hi);
+          if (band.length >= 5) { rung = span ? "generation" : "yearband"; comps = band; }
         }
-        if (comps.length < 5) { rungCount.unmatched++; continue; }
+        if (!comps && sameModel.length >= 5) { rung = "model"; comps = sameModel; }
+        if (!comps) { rungCount.unmatched++; continue; }
         const med = median(comps.map(r => Number(r.price)).filter(n => n > 0));
         if (!med || med <= 0) { rungCount.unmatched++; continue; }
         const delta = Math.round((price - med) / med * 100);
