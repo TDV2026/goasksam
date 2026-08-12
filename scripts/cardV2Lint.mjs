@@ -222,6 +222,27 @@ globalThis.psvPartner=()=>sellState.partnerReferral.partner;
 let cardHtml="";
 try{ cardHtml=renderPowerSellerCardV2({lead:true})||""; }catch(e){ cardHtml="__ERR__"+e.message; }
 check("PS card renders (no throw)", cardHtml.indexOf("__ERR__")!==0, cardHtml);
+
+// ---- Premium tile (Track Record): IDENTICAL treatment for every magnitude ----
+function premiumCard(pct,pron){
+  const p={slug:"pm",name:"PM",display_name:"P M",specialties:{makes:["Porsche"],wheelhouse:{marques:["Porsche"]},pronoun:pron||{subj:"he",obj:"him",poss:"his"},premium:{pct,n:99,source:"data_verified"},profile_stats:[{text:"400+ auctions represented"}]},regions:["Nationwide"],serviceClaims:[{text:"Based in California"}],platforms:[]};
+  globalThis.sellState.resolvedVehicle={make:"Porsche",model:"911",year:2019};
+  globalThis.sellState.partnerReferral={eligible:true,partner:p}; globalThis.psvPartner=()=>p;
+  return (renderPowerSellerCardV2({lead:true})||"").replace(/&#39;/g,"'");
+}
+const pmHi=premiumCard(20), pmLo=premiumCard(4);
+const pmSub="higher sale prices on cars he's represented, compared with similar cars";
+check("premium tile: label + figure + exact sentence (+20%)", /Track record/i.test(pmHi)&&/\+20%/.test(pmHi)&&pmHi.includes(pmSub), pmHi.slice(0,60));
+check("premium tile: same template renders a small number (+4%)", /\+4%/.test(pmLo)&&pmLo.includes(pmSub), pmLo.slice(0,60));
+const stripPct=h=>h.replace(/\+\d+%/g,"+N%");
+check("premium tile: BYTE-IDENTICAL regardless of magnitude (no prominence/format variation)", stripPct(pmHi)===stripPct(pmLo), "differ");
+check("premium tile: NO sample size / n / comparisons count", !/\bn\s*=|across \d|\bcomparisons\b|\bcomps\b/i.test(pmHi), "");
+check("premium tile: NO matched-date range", !/(19|20)\d{2}\s*(to|\.\.|–|-)\s*(19|20)\d{2}/.test(pmHi), "");
+check("premium tile: NO rung words", !/generation|yearband|\brung\b/i.test(pmHi), "");
+check("premium tile: NO asterisk", !/\*/.test(pmHi), "");
+check("premium tile: NO fee figure (item 5)", clean(pmHi).ok, lintText(pmHi).join(" ; "));
+check("premium tile: pronoun respected (she's)", premiumCard(12,{subj:"she",obj:"her",poss:"her"}).includes("cars she's represented"), "");
+check("card footnote present: 'recalculated as new sales close'", /All numbers recalculated as new sales close\./.test(pmHi), "");
 check("PS card carries NO fee figure (item 5)", clean(cardHtml).ok&&!/6%|5%|\$\s?100k/i.test(cardHtml), lintText(cardHtml).join(" ; ")+" :: contains-6%="+/6%/.test(cardHtml));
 
 // ---- Item 5: chat guard blocks a fee figure ----

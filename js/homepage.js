@@ -345,6 +345,7 @@ function showPowerSellers() {
       <p>Every PowerSeller sets their own fee and agrees it with you upfront, before anything is listed. Some charge a percentage of the sale, some a flat fee, sometimes a mix. Each case is a little different.</p>
       <p>The way to think about it is simple: weigh the fee they quote you against what representation returns. A good PowerSeller earns their fee in the result: the right platform, professional photography and presentation, buyer questions handled, and the sale managed start to finish. They will also tell you what is worth fixing before listing and what is not, which often saves money rather than costing it.</p>
       <p>And where we have the data, we show it. When you see a number on a PowerSeller's card, that is how cars they represented have closed against comparable sales.</p>
+      <p>The number on a PowerSeller's card measures price alone. It can't count the weeks of listing work, the buyer questions answered, or the mistakes a good professional stops you making before they cost money. Weigh the whole job, not just the figure.</p>
       <button class="hd-cta" onclick="startSellFlow()">Tell me what you're selling &rarr;</button>
     </section>
   </div>`;

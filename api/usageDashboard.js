@@ -883,7 +883,28 @@ async function handleOps(req, res) {
         note: deltas.length < 10 ? "below n>=10 (baseline likely not warm yet)" : premium == null ? "no median" : premium <= 0 ? "non-positive median, never renders" : "clears gate"
       });
     }
-    return res.status(200).json({ task: "premium", windowDays, gate: "n>=10, positive median, whole-percent, 8 US platforms, partners excluded", report });
+    // persist=1 writes each GATE-PASSING partner's premium into partners.specialties.premium
+    // (data_verified) so the card renders it; a partner that fails the gate has it cleared
+    // (never a stale tile). Matched to the partner row by seller_username. Redeploy after
+    // to bust the ~10-min partners cache.
+    let persisted = null;
+    if (req.query?.persist === "1" || req.query?.persist === "true") {
+      persisted = [];
+      const partnerRows = await supabaseSelect(env, `partners?select=id,name,slug,specialties,seller_usernames&limit=50`) || [];
+      for (const p of report) {
+        const handles = (roster.find(r => r.partner === p.partner)?.handles || []).map(h => h.toLowerCase());
+        const row = partnerRows.find(pr => (pr.seller_usernames || []).some(u => handles.includes(String(u).toLowerCase())));
+        if (!row) { persisted.push({ partner: p.partner, wrote: false, reason: "no partner row matched" }); continue; }
+        const spec = (row.specialties && typeof row.specialties === "object") ? { ...row.specialties } : {};
+        if (p.gatePassed) spec.premium = { pct: p.premiumPct, n: p.n, source: "data_verified", computedAt: new Date().toISOString() };
+        else delete spec.premium;
+        try {
+          const resp = await fetch(`${env.supabaseUrl}/rest/v1/partners?id=eq.${row.id}`, { method: "PATCH", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ specialties: spec }) });
+          persisted.push({ partner: p.partner, slug: row.slug, wrote: resp.ok, premiumPct: p.gatePassed ? p.premiumPct : null });
+        } catch (e) { persisted.push({ partner: p.partner, wrote: false, reason: e.message }); }
+      }
+    }
+    return res.status(200).json({ task: "premium", windowDays, gate: "n>=10, positive median, whole-percent, 8 US platforms, partners excluded", report, persisted });
   }
 
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium." });

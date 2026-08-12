@@ -291,6 +291,7 @@ function renderPickCardV2(option){
         + (trackRail?'<div class="pcard-rule"></div>'+trackRail:'')
         + (tilesHTML?'<div class="pcard-ev"><div class="pcard-rule"></div>'+tilesHTML+'</div>':'')
       + '</div>'
+      + '<div class="pcard-note">All numbers recalculated as new sales close.</div>'
       + '</div>';
   }catch(e){ if(typeof console!=="undefined")console.warn("pickCardV2 failed, falling back",e); return null; }
 }
@@ -323,6 +324,13 @@ function psvShowKnownAs(p){ var h=psvHandle(p); return !!h&&h.toLowerCase()!==ps
 function psvPoss(n){ return String(n||"")+"'s"; }
 // Pronoun (item 5): roster-driven, defaults him/his for the current four partners.
 function psvPron(p){ var pr=(p&&p.specialties&&p.specialties.pronoun)||{}; return {subj:pr.subj||"he",obj:pr.obj||"him",poss:pr.poss||"his"}; }
+// Data-verified price premium: persisted to specialties.premium by the offline
+// compute ONLY once it clears the n>=10, positive-median gate. Rendered identically
+// for every partner regardless of magnitude - no sample size, no window, no rung,
+// no asterisk on the tile.
+function psvPremium(p){ try{ var pr=p&&p.specialties&&p.specialties.premium; var pct=pr&&Number(pr.pct); if(pct>0)return Math.round(pct); }catch(e){} return null; }
+// "he's" / "she's" / "they've" for "cars {subj} represented" (pronoun respected).
+function psvSubjHas(p){ var s=(psvPron(p).subj)||"he"; return s==="they"?"they've":s+"'s"; }
 // CLAIM SOURCE is the partner's CURATED wheelhouse (true specialty), NEVER the
 // broad matching `makes` - which is intentionally wide for the ranking ladder and
 // can list marques the partner does not actually specialise in (howS carries Audi,
@@ -541,13 +549,19 @@ function renderPowerSellerCardV2(opts){
     // one per row down the rail. Helper keeps the markup uniform.
     var tile=function(icon,inner){ return '<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg(icon)+'</span><div class="pcard-tt">'+inner+'</div></div>'; };
     var tiles=[];
+    // TOP tile when the premium clears its gate: identical big-figure treatment for
+    // every partner (no n / window / rung / asterisk). Supersedes the old attributed
+    // track-record tile, which stays as the fallback only when there is no premium.
+    var premiumPct=psvPremium(p);
+    if(premiumPct!=null)tiles.push(tile("star",'<div class="lab">Track record</div><div class="pcard-tnum green">+'+premiumPct+'%</div><div class="val">higher sale prices on cars '+psvSubjHas(p)+' represented, compared with similar cars</div>'));
     if(trophy)tiles.push(tile("trophy",'<div class="pcard-tnum">'+esc(trophy)+'</div><div class="val">enthusiast auctions represented</div>'));
     if(spec)tiles.push(tile("car",'<div class="lab">Specialises in</div><div class="val green">'+esc(spec)+'</div>'));
     if(loc)tiles.push(tile("pin",'<div class="lab">Based in '+esc(loc)+'</div>'+(cov?'<div class="sub">'+esc(cov)+'</div>':'')));
     if(prep)tiles.push(tile("clip",'<div class="lab">Preparation</div><div class="val">'+esc(prep)+'</div>'));
     // Attributed track-record lines (profile_stats that are not the auctions total,
-    // e.g. "Top 10% of all Bring a Trailer sellers"). Lowest priority: drops first.
-    var trust=psvTrustLines(p);
+    // e.g. "Top 10% of all Bring a Trailer sellers"). FALLBACK only: drops entirely
+    // when the premium tile is present so the two never both claim "Track record".
+    var trust=premiumPct!=null?[]:psvTrustLines(p);
     if(trust.length)tiles.push(tile("star",'<div class="lab">Track record</div>'+trust.map(function(x){return '<div class="val">'+esc(x)+'</div>';}).join("")));
     var tstack=tiles.slice(0,4).join("");
     return '<div class="pcard pcard-ps" onclick="choosePowerSeller(\''+esc(p.slug||"partner")+'\')">'
@@ -570,6 +584,7 @@ function renderPowerSellerCardV2(opts){
         + (psvShowKnownAs(p)?'<div class="pcard-known">Known online as <b>'+esc(handle)+'</b></div>':'')
         + '<div class="pcard-tstack">'+tstack+'</div>'
       + '</div>'
+      + '<div class="pcard-note">All numbers recalculated as new sales close.</div>'
       + '</div>';
   }catch(e){ if(typeof console!=="undefined")console.warn("psCardV2 failed",e); return ""; }
 }
