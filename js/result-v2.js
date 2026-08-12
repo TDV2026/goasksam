@@ -454,12 +454,25 @@ function psvLocation(p){
   if(ab&&PSV2_STATES[ab[1].toLowerCase()])return PSV2_STATES[ab[1].toLowerCase()];
   return based;
 }
+// A "Serves ..." roster line: full names for a short list (2-3 states), but a list
+// above ~3 states collapses to one line so the location tile never wraps 3 lines
+// (the "Based in ..." label already names the region). "Serves Louisiana,
+// Mississippi, Alabama, Florida, Georgia and Texas" -> "Serves six states,
+// Louisiana to Texas."
+function psvServesLine(text){
+  var body=String(text||"").replace(/^\s*Serves\s+/i,"").trim();
+  var parts=body.split(/\s*,\s*|\s+and\s+/i).map(function(x){return x.trim();}).filter(Boolean);
+  if(parts.length<=3)return text;
+  var words=["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve"];
+  var n=parts.length, w=words[n]||String(n);
+  return "Serves "+w+" states, "+parts[0]+" to "+parts[parts.length-1]+".";
+}
 function psvCoverage(p){
   // Prefer an explicit "Serves ..." service claim (item 7 roster copy) over the
   // regions-derived fallback, so "Serves Louisiana, Mississippi, ..." renders as
   // written even when the partner also carries "Nationwide" for matching.
   var pool=(p.serviceClaims||[]).map(function(s){return s&&s.text;}).filter(Boolean);
-  for(var i=0;i<pool.length;i++){ var m=/^\s*(Serves .+?)\s*$/i.exec(pool[i]); if(m)return m[1]; }
+  for(var i=0;i<pool.length;i++){ var m=/^\s*(Serves .+?)\s*$/i.exec(pool[i]); if(m)return psvServesLine(m[1]); }
   var regions=(p.regions||[]).map(function(r){return String(r).toLowerCase();});
   if(regions.indexOf("nationwide")>=0)return "Works nationwide";
   var first=(p.regions||[]).find(function(r){return String(r).toLowerCase()!=="nationwide";});
@@ -548,22 +561,28 @@ function renderPowerSellerCardV2(opts){
     // Mockup geometry: icon-left tiles (circle icon, then label + value), STACKED
     // one per row down the rail. Helper keeps the markup uniform.
     var tile=function(icon,inner){ return '<div class="pcard-ttile"><span class="pcard-tic">'+psvSvg(icon)+'</span><div class="pcard-tt">'+inner+'</div></div>'; };
-    var tiles=[];
-    // TOP tile when the premium clears its gate: identical big-figure treatment for
-    // every partner (no n / window / rung / asterisk). Supersedes the old attributed
-    // track-record tile, which stays as the fallback only when there is no premium.
+    // Priority order: premium > counts > specialty > location > service > track-record.
+    // Each tile carries a HEIGHT WEIGHT (the premium tile is taller = 2); the rail is
+    // bounded by that weight, not a raw count, so the tall premium tile forces the
+    // weakest (service, then track-record) to drop rather than overflow the panel.
+    var tileDefs=[];
     var premiumPct=psvPremium(p);
-    if(premiumPct!=null)tiles.push(tile("star",'<div class="lab">Track record</div><div class="pcard-tnum green">+'+premiumPct+'%</div><div class="val">higher sale prices on cars '+psvSubjHas(p)+' represented, compared with similar cars</div>'));
-    if(trophy)tiles.push(tile("trophy",'<div class="pcard-tnum">'+esc(trophy)+'</div><div class="val">enthusiast auctions represented</div>'));
-    if(spec)tiles.push(tile("car",'<div class="lab">Specialises in</div><div class="val green">'+esc(spec)+'</div>'));
-    if(loc)tiles.push(tile("pin",'<div class="lab">Based in '+esc(loc)+'</div>'+(cov?'<div class="sub">'+esc(cov)+'</div>':'')));
-    if(prep)tiles.push(tile("clip",'<div class="lab">Preparation</div><div class="val">'+esc(prep)+'</div>'));
-    // Attributed track-record lines (profile_stats that are not the auctions total,
-    // e.g. "Top 10% of all Bring a Trailer sellers"). FALLBACK only: drops entirely
-    // when the premium tile is present so the two never both claim "Track record".
+    if(premiumPct!=null)tileDefs.push({w:2,html:tile("star",'<div class="lab">Track record</div><div class="pcard-tnum green">+'+premiumPct+'%</div><div class="val">higher sale prices on cars '+psvSubjHas(p)+' represented, compared with similar cars</div>')});
+    if(trophy)tileDefs.push({w:1,html:tile("trophy",'<div class="pcard-tnum">'+esc(trophy)+'</div><div class="val">enthusiast auctions represented</div>')});
+    if(spec)tileDefs.push({w:1,html:tile("car",'<div class="lab">Specialises in</div><div class="val green">'+esc(spec)+'</div>')});
+    if(loc)tileDefs.push({w:1,html:tile("pin",'<div class="lab">Based in '+esc(loc)+'</div>'+(cov?'<div class="sub">'+esc(cov)+'</div>':''))});
+    if(prep)tileDefs.push({w:1,html:tile("clip",'<div class="lab">Preparation</div><div class="val">'+esc(prep)+'</div>')});
+    // Attributed track-record lines (profile_stats that are not the auctions total).
+    // FALLBACK only: dropped entirely when the premium tile is present so the two
+    // never both claim "Track record", and lowest priority under the weight budget.
     var trust=premiumPct!=null?[]:psvTrustLines(p);
-    if(trust.length)tiles.push(tile("star",'<div class="lab">Track record</div>'+trust.map(function(x){return '<div class="val">'+esc(x)+'</div>';}).join("")));
-    var tstack=tiles.slice(0,4).join("");
+    if(trust.length)tileDefs.push({w:1,html:tile("star",'<div class="lab">Track record</div>'+trust.map(function(x){return '<div class="val">'+esc(x)+'</div>';}).join(""))});
+    // Height budget (weight 4): keep in priority order until adding the next tile would
+    // overflow. A card with the premium tile (w2) fits premium + 2 more; one without
+    // fits 4. Dropped service/prep content is not lost - it lives in intro_hook/roster.
+    var TILE_BUDGET=4, acc=0, kept=[];
+    for(var ti=0;ti<tileDefs.length;ti++){ if(acc+tileDefs[ti].w>TILE_BUDGET)break; acc+=tileDefs[ti].w; kept.push(tileDefs[ti].html); }
+    var tstack=kept.join("");
     return '<div class="pcard pcard-ps" onclick="choosePowerSeller(\''+esc(p.slug||"partner")+'\')">'
       + '<div class="pcard-left">'
         // Distributed rhythm: hero group anchored top, action group anchored

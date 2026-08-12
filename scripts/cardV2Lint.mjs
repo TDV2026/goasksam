@@ -243,6 +243,20 @@ check("premium tile: NO asterisk", !/\*/.test(pmHi), "");
 check("premium tile: NO fee figure (item 5)", clean(pmHi).ok, lintText(pmHi).join(" ; "));
 check("premium tile: pronoun respected (she's)", premiumCard(12,{subj:"she",obj:"her",poss:"her"}).includes("cars she's represented"), "");
 check("card footnote present: 'recalculated as new sales close'", /All numbers recalculated as new sales close\./.test(pmHi), "");
+
+// ---- Rail height budget: the tall premium tile drops the weakest (service/prep) ----
+const chrisRail={slug:"cr",name:"Chris",display_name:"Chris Carbine",specialties:{makes:["Mercedes-Benz"],wheelhouse:{marques:["Mercedes-Benz"],models:[]},pronoun:{subj:"he",obj:"him",poss:"his"},premium:{pct:5,n:34,source:"data_verified"}},regions:["Nationwide"],serviceClaims:[{text:"Based in the South"},{text:"Serves Louisiana, Mississippi, Alabama, Florida, Georgia and Texas"},{text:"Full-service preparation: PDR, detailing and reconditioning handled in-house"}],platforms:[]};
+globalThis.sellState.resolvedVehicle={make:"Mercedes-Benz",model:"E-Class",year:2018};
+globalThis.sellState.partnerReferral={eligible:true,partner:chrisRail}; globalThis.psvPartner=()=>chrisRail;
+const chrisCard=(renderPowerSellerCardV2({lead:true})||"").replace(/&#39;/g,"'");
+const chrisTiles=(chrisCard.match(/pcard-ttile/g)||[]).length;
+check("premium present -> service/prep tile DROPS on height (Chris rail = 3 tiles)", chrisTiles===3&&!/Preparation/.test(chrisCard)&&/Track record/.test(chrisCard), "tiles="+chrisTiles+" prep="+/Preparation/.test(chrisCard));
+check("location list >3 states collapses to ONE line (label carries the region)", /Serves six states, Louisiana to Texas\./.test(chrisCard)&&!/Mississippi/.test(chrisCard), (chrisCard.match(/Serves[^<]*/)||[""])[0]);
+const shortP={slug:"sp",name:"SP",display_name:"S P",specialties:{wheelhouse:{marques:["Porsche"],models:[]},pronoun:{subj:"he",obj:"him",poss:"his"}},regions:["Nationwide"],serviceClaims:[{text:"Based in Texas"},{text:"Serves Texas and Louisiana"}],platforms:[]};
+globalThis.sellState.resolvedVehicle={make:"Porsche",model:"911",year:2019};
+globalThis.sellState.partnerReferral={eligible:true,partner:shortP}; globalThis.psvPartner=()=>shortP;
+const shortCard=renderPowerSellerCardV2({lead:true})||"";
+check("short state lists keep full names (<=3)", /Serves Texas and Louisiana/.test(shortCard)&&!/two states/.test(shortCard), "");
 check("PS card carries NO fee figure (item 5)", clean(cardHtml).ok&&!/6%|5%|\$\s?100k/i.test(cardHtml), lintText(cardHtml).join(" ; ")+" :: contains-6%="+/6%/.test(cardHtml));
 
 // ---- Item 5: chat guard blocks a fee figure ----
