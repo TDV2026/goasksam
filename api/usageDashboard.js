@@ -399,10 +399,19 @@ function renderHtml({ summary, events, days }) {
 // BOUNDED, resumable slice so it fits the serverless timeout; the shared cores live
 // in lib/ops/. This is the standing pattern for any future metered script.
 async function handleOps(req, res) {
+  // Two auth paths, neither committed to the repo: Sam's manual PROBE_KEY (in the
+  // URL), OR Vercel's built-in cron auth (the platform sends Authorization: Bearer
+  // ${CRON_SECRET} on scheduled requests; CRON_SECRET is a Vercel env var). vercel.json
+  // only names the path, never a secret.
   const opsKey = process.env.PROBE_KEY || process.env.OPS_KEY;
+  const cronSecret = process.env.CRON_SECRET;
   const provided = req.headers["x-ops-key"] || req.query?.opskey || req.query?.key;
-  if (!opsKey) return res.status(500).json({ error: "Set PROBE_KEY in Vercel to enable the ops endpoint." });
-  if (provided !== opsKey) return res.status(401).json({ error: "Unauthorized (ops)." });
+  const authHeader = String(req.headers["authorization"] || "");
+  const isCron = !!cronSecret && authHeader === `Bearer ${cronSecret}`;
+  if (!isCron) {
+    if (!opsKey) return res.status(500).json({ error: "Set PROBE_KEY in Vercel to enable the ops endpoint." });
+    if (provided !== opsKey) return res.status(401).json({ error: "Unauthorized (ops)." });
+  }
 
   const apiKey = process.env.OLDCARSDATA_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "OLDCARSDATA_API_KEY not set in Vercel." });
@@ -433,6 +442,71 @@ async function handleOps(req, res) {
     // Compact per-source summary alongside the full report (easy to read in a browser).
     const summary = report.sources.map(s => ({ platform: s.label, source: s.source, integrated: s.integrated, soldInWindow: s.totalSold, us: s.counts.US[report.widestDays], uk: s.counts.UK[report.widestDays], sawData: s.sawData, note: s.note }));
     return res.status(200).json({ task: "probe", spentToday: spent, dailyBudget, summary, report });
+  }
+
+  // task=handles: verify partner seller handles against LIVE OCD before any fetch.
+  // Reports records-per-handle-per-platform so a wrong spelling (zero records)
+  // surfaces loudly instead of silently computing on a partial history.
+  if (task === "handles") {
+    const spent0 = await meteredToday();
+    const budgetLeft = spent0 === null ? Infinity : Math.max(0, dailyBudget - spent0);
+    if (budgetLeft <= 0) return res.status(200).json({ task: "handles", skipped: "daily_budget_spent", spentToday: spent0, dailyBudget });
+    // The roster to verify. Handles supplied by Sam; grouped by partner.
+    const roster = [
+      { partner: "Howard Silvers", handles: ["howS", "bruce_m"] },
+      { partner: "Ingo Schmoldt", handles: ["GenauAutoWerks"] },
+      { partner: "Dan Gray", handles: ["AuthenticAuctions"] },
+      { partner: "Chris Carbine", handles: ["carbine123"] }
+    ];
+    const custom = req.query?.handles ? String(req.query.handles).split(",").map(s => s.trim()).filter(Boolean) : null;
+    const maxPagesPerHandle = Math.max(1, Math.min(20, Number(req.query?.pages || 6)));
+    const sellerOf = r => String(r.seller_username || r.seller_name || r.seller || r.username || "").toLowerCase();
+    let metered = 0;
+    async function checkHandle(handle) {
+      const norm = String(handle).toLowerCase();
+      // Try each filter param; use the first that actually returns seller-matched rows.
+      for (const param of ["seller_username", "seller", "keyword"]) {
+        if (budgetLeft !== Infinity && metered >= budgetLeft) return { handle, param: null, count: 0, byPlatform: {}, note: "daily_budget_reached" };
+        const matched = [];
+        let usedParam = false, pages = 0, capped = false;
+        for (let page = 1; page <= maxPagesPerHandle; page++) {
+          if (budgetLeft !== Infinity && metered >= budgetLeft) { capped = true; break; }
+          metered++; pages = page;
+          let resp;
+          try { resp = await callOldCarsData("/auctions", { [param]: handle, sort: "date", direction: "desc", page, limit: 50 }, apiKey); }
+          catch (e) { if (e.rateLimited) return { handle, param: null, count: 0, byPlatform: {}, note: "ratelimit" }; break; }
+          const rows = resp.data || [];
+          const m = rows.filter(r => sellerOf(r) === norm);
+          if (page === 1 && m.length === 0) break; // this param does not seller-filter; try the next
+          usedParam = true;
+          matched.push(...m);
+          if (rows.length < 50) break;
+          if (page >= (resp.meta?.total_pages || 1)) break;
+          if (page === maxPagesPerHandle) capped = true;
+        }
+        if (usedParam && matched.length) {
+          const byPlatform = {}; let minD = null, maxD = null;
+          for (const r of matched) {
+            const pf = (r.platform || r.source || "unknown"); byPlatform[pf] = (byPlatform[pf] || 0) + 1;
+            const d = r.auction_end_date ? String(r.auction_end_date).slice(0, 10) : null;
+            if (d) { if (!minD || d < minD) minD = d; if (!maxD || d > maxD) maxD = d; }
+          }
+          return { handle, param, count: matched.length, byPlatform, dateRange: minD && maxD ? [minD, maxD] : null, pagesRead: pages, capped };
+        }
+      }
+      return { handle, param: null, count: 0, byPlatform: {}, note: "zero records (check spelling with the partner)" };
+    }
+    const results = [];
+    for (const entry of (custom ? [{ partner: "custom", handles: custom }] : roster)) {
+      const handleResults = [];
+      for (const h of entry.handles) handleResults.push(await checkHandle(h));
+      results.push({ partner: entry.partner, handles: handleResults });
+    }
+    if (env && metered > 0) {
+      try { await recordUsageEvent({ event_type: "handle_probe", route: "api/usageDashboard.js?task=handles", status: "ok", oldcarsdata_metered_requests: metered, duration_ms: 0, metadata: { handles: results.flatMap(r => r.handles.map(h => ({ h: h.handle, n: h.count, param: h.param }))) } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ }
+    }
+    const zeros = results.flatMap(r => r.handles.filter(h => h.count === 0).map(h => `${r.partner}:${h.handle}`));
+    return res.status(200).json({ task: "handles", spentToday: spent0, meteredThisRun: metered, dailyBudget, zeros, results });
   }
 
   if (task === "fill") {
