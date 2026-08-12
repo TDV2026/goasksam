@@ -463,6 +463,29 @@ async function handleOps(req, res) {
     const maxPagesPerHandle = Math.max(1, Math.min(20, Number(req.query?.pages || 6)));
     const sellerOf = r => String(r.seller_username || r.seller_name || r.seller || r.username || "").toLowerCase();
     let metered = 0;
+    // OCD's seller_username filter is CASE-SENSITIVE and authoritative; keyword is
+    // case-insensitive but UNDERCOUNTS (e.g. "carbine123" -> 12 via keyword vs 83 via
+    // seller_username=Carbine123). So: paginate seller_username with the given case;
+    // if that finds nothing, keyword-probe to discover the real case, then re-query
+    // seller_username with the corrected spelling for the full server-side set.
+    async function fetchBySellerUsername(handle) {
+      const norm = String(handle).toLowerCase();
+      const matched = []; let pages = 0, capped = false, reported = null, ratelimit = false;
+      for (let page = 1; page <= maxPagesPerHandle; page++) {
+        if (budgetLeft !== Infinity && metered >= budgetLeft) { capped = true; break; }
+        metered++; pages = page;
+        let resp;
+        try { resp = await callOldCarsData("/auctions", { seller_username: handle, sort: "date", direction: "desc", page, limit: 50 }, apiKey); }
+        catch (e) { if (e.rateLimited) { ratelimit = true; } break; }
+        const rows = resp.data || [];
+        reported = resp.meta?.total_results ?? resp.meta?.total ?? reported;
+        matched.push(...rows.filter(r => sellerOf(r) === norm));
+        if (rows.length < 50) break;
+        if (page >= (resp.meta?.total_pages || 1)) break;
+        if (page === maxPagesPerHandle) capped = true;
+      }
+      return { matched, pages, capped, reported, ratelimit };
+    }
 
     // debug=<handle>: raw diagnostic to see what OCD actually returns for one handle -
     // does any seller filter param work, do records carry a seller field, in what shape.
@@ -492,37 +515,30 @@ async function handleOps(req, res) {
     }
     async function checkHandle(handle) {
       const norm = String(handle).toLowerCase();
-      // Try each filter param; use the first that actually returns seller-matched rows.
-      for (const param of ["seller_username", "seller", "keyword"]) {
-        if (budgetLeft !== Infinity && metered >= budgetLeft) return { handle, param: null, count: 0, byPlatform: {}, note: "daily_budget_reached" };
-        const matched = [];
-        let usedParam = false, pages = 0, capped = false;
-        for (let page = 1; page <= maxPagesPerHandle; page++) {
-          if (budgetLeft !== Infinity && metered >= budgetLeft) { capped = true; break; }
-          metered++; pages = page;
-          let resp;
-          try { resp = await callOldCarsData("/auctions", { [param]: handle, sort: "date", direction: "desc", page, limit: 50 }, apiKey); }
-          catch (e) { if (e.rateLimited) return { handle, param: null, count: 0, byPlatform: {}, note: "ratelimit" }; break; }
-          const rows = resp.data || [];
-          const m = rows.filter(r => sellerOf(r) === norm);
-          if (page === 1 && m.length === 0) break; // this param does not seller-filter; try the next
-          usedParam = true;
-          matched.push(...m);
-          if (rows.length < 50) break;
-          if (page >= (resp.meta?.total_pages || 1)) break;
-          if (page === maxPagesPerHandle) capped = true;
-        }
-        if (usedParam && matched.length) {
-          const byPlatform = {}; let minD = null, maxD = null;
-          for (const r of matched) {
-            const pf = (r.platform || r.source || "unknown"); byPlatform[pf] = (byPlatform[pf] || 0) + 1;
-            const d = r.auction_end_date ? String(r.auction_end_date).slice(0, 10) : null;
-            if (d) { if (!minD || d < minD) minD = d; if (!maxD || d > maxD) maxD = d; }
-          }
-          return { handle, param, count: matched.length, byPlatform, dateRange: minD && maxD ? [minD, maxD] : null, pagesRead: pages, capped };
+      let res = await fetchBySellerUsername(handle);
+      let resolvedHandle = handle, method = "seller_username";
+      if (res.ratelimit && !res.matched.length) return { handle, resolvedHandle, param: null, count: 0, byPlatform: {}, note: "ratelimit" };
+      // Case mismatch: the given spelling filtered nothing. Keyword-probe the real case,
+      // then re-query seller_username with it (keyword alone undercounts).
+      if (!res.matched.length && !(budgetLeft !== Infinity && metered >= budgetLeft)) {
+        metered++;
+        let kw; try { kw = await callOldCarsData("/auctions", { keyword: handle, sort: "date", direction: "desc", page: 1, limit: 50 }, apiKey); } catch (e) { kw = null; }
+        const kwSellers = {};
+        for (const r of ((kw && kw.data) || [])) { const su = String(r.seller_username || ""); if (su.toLowerCase() === norm) kwSellers[su] = (kwSellers[su] || 0) + 1; }
+        const corrected = Object.keys(kwSellers).sort((a, b) => kwSellers[b] - kwSellers[a])[0];
+        if (corrected && corrected !== handle) {
+          const res2 = await fetchBySellerUsername(corrected);
+          if (res2.matched.length >= res.matched.length) { res = res2; resolvedHandle = corrected; method = "seller_username (case-corrected)"; }
         }
       }
-      return { handle, param: null, count: 0, byPlatform: {}, note: "zero records (check spelling with the partner)" };
+      if (!res.matched.length) return { handle, resolvedHandle, param: null, count: 0, byPlatform: {}, note: "zero records (check spelling with the partner)" };
+      const byPlatform = {}; let minD = null, maxD = null;
+      for (const r of res.matched) {
+        const pf = (r.platform || r.source || "unknown"); byPlatform[pf] = (byPlatform[pf] || 0) + 1;
+        const d = r.auction_end_date ? String(r.auction_end_date).slice(0, 10) : null;
+        if (d) { if (!minD || d < minD) minD = d; if (!maxD || d > maxD) maxD = d; }
+      }
+      return { handle, resolvedHandle, param: method, count: res.matched.length, reportedTotal: res.reported, byPlatform, dateRange: minD && maxD ? [minD, maxD] : null, pagesRead: res.pages, capped: res.capped };
     }
     const results = [];
     for (const entry of (custom ? [{ partner: "custom", handles: custom }] : roster)) {
