@@ -704,11 +704,12 @@ async function handleOps(req, res) {
       const set = new Map();
       for (const r of (rows || [])) { const rec = r.raw_record || {}; const mk = String(rec.ocd_make_name || rec.listing_make || "").trim(), md = String(rec.ocd_model_name || rec.listing_model || "").trim(); if (mk && md) { const k = `${mk}|${md}`; const e = set.get(k) || { make: mk, model: md, n: 0 }; e.n++; set.set(k, e); } }
       const queue = [...set.values()].sort((a, b) => b.n - a.n).map(e => [e.make, e.model]);
-      let stopReason = "list_done";
-      try { for (const [mk, md] of queue) { if (budgetLeft !== Infinity && metered >= budgetLeft) { stopReason = "budget"; break; } if (Date.now() - t0 > 230000) { stopReason = "time"; break; } await doModel(mk, md); modelsProcessed++; } }
+      const offset = Math.max(0, Number(req.query?.offset || 0)); // resume point (queue is deterministic)
+      let nextIdx = offset, stopReason = "list_done";
+      try { for (let i = offset; i < queue.length; i++) { if (budgetLeft !== Infinity && metered >= budgetLeft) { stopReason = "budget"; break; } if (Date.now() - t0 > 230000) { stopReason = "time"; break; } await doModel(queue[i][0], queue[i][1]); modelsProcessed++; nextIdx = i + 1; } }
       catch (e) { stopReason = "ratelimit"; }
-      if (env && metered > 0) { try { await recordUsageEvent({ event_type: "partner_histfetch", route: "histfetch?partners", status: stopReason, oldcarsdata_metered_requests: metered, duration_ms: 0, metadata: { handles, models: queue.length, persisted } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ } }
-      return res.status(200).json({ task: "histfetch", mode: "partners", partners: handles, modelCount: queue.length, models: queue, meteredThisRun: metered, persistedThisRun: persisted, modelsProcessed, stopReason, ocdRemaining, spentToday: spent0, dailyBudget });
+      if (env && metered > 0) { try { await recordUsageEvent({ event_type: "partner_histfetch", route: "histfetch?partners", status: stopReason, oldcarsdata_metered_requests: metered, duration_ms: 0, metadata: { handles, models: queue.length, offset, nextIdx, persisted } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ } }
+      return res.status(200).json({ task: "histfetch", mode: "partners", partners: handles, modelCount: queue.length, offset, nextIdx, done: nextIdx >= queue.length, meteredThisRun: metered, persistedThisRun: persisted, modelsProcessed, stopReason, ocdRemaining, spentToday: spent0, dailyBudget });
     }
     // STANDARD cursor mode over the warm_targeted (soon: interest x gap) queue.
     const tRows = await supabaseSelect(env, `app_usage_events?event_type=eq.warm_targeted&select=metadata&order=created_at.desc&limit=1`);
