@@ -747,7 +747,8 @@ async function handleOps(req, res) {
     const depthFraction = Number(process.env.OCD_DEPTH_BUDGET_FRACTION || 0.4);
     const depthCap = Math.max(1, Math.floor(dailyBudget * depthFraction));
     const depthLeft = spent0 === null ? Infinity : Math.max(0, depthCap - spent0);
-    if (depthLeft <= 0) return res.status(200).json({ task: "depth", skipped: "depth_slice_reached", spentToday: spent0, depthCap, depthFraction });
+    const dry = req.query?.dry === "1" || req.query?.dry === "true";
+    if (depthLeft <= 0 && !dry) return res.status(200).json({ task: "depth", skipped: "depth_slice_reached", spentToday: spent0, depthCap, depthFraction });
     const US8 = new Set(["bringatrailer", "bat", "carsandbids", "hagerty", "pcarmarket", "sothebysmotorsport", "hemmings", "autohunter", "mbmarket"]);
     const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
     const key = (mk, md) => `${norm(mk)}|${norm(md)}`;
