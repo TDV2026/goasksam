@@ -719,6 +719,20 @@ async function handleOps(req, res) {
         if (payload.length) { try { await supabaseInsert("vehicle_market_records", payload, env.supabaseUrl, env.supabaseKey, "resolution=ignore-duplicates,return=minimal", "?on_conflict=source,source_record_id"); persisted += payload.length; } catch (e) { /* non-fatal */ } }
       }
     }
+    // AD-HOC models slice: &models=Make:Model,Make:Model persists exactly those
+    // nameplates (one-off, does not touch the standing cursor). Used to backfill a
+    // family's badge nameplates (E350, E550, E63 ...) so the fragmentation fix has
+    // badge records to defrag under the family head.
+    if (req.query?.models) {
+      const pairs = String(req.query.models).split(",").map(s => s.trim()).filter(Boolean)
+        .map(s => { const i = s.indexOf(":"); return i < 0 ? null : [s.slice(0, i).trim(), s.slice(i + 1).trim()]; })
+        .filter(p => p && p[0] && p[1]);
+      let nextIdx = 0, stopReason = "list_done";
+      try { for (let i = 0; i < pairs.length; i++) { if (budgetLeft !== Infinity && metered >= budgetLeft) { stopReason = "budget"; break; } if (Date.now() - t0 > 230000) { stopReason = "time"; break; } await doModel(pairs[i][0], pairs[i][1]); modelsProcessed++; nextIdx = i + 1; } }
+      catch (e) { stopReason = "ratelimit"; }
+      if (env && metered > 0) { try { await recordUsageEvent({ event_type: "adhoc_histfetch", route: "histfetch?models", status: stopReason, oldcarsdata_metered_requests: metered, duration_ms: 0, metadata: { models: pairs.map(p => p.join(" ")), persisted } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ } }
+      return res.status(200).json({ task: "histfetch", mode: "adhoc", models: pairs.map(p => p.join(" ")), modelCount: pairs.length, nextIdx, done: nextIdx >= pairs.length, meteredThisRun: metered, persistedThisRun: persisted, modelsProcessed, stopReason, ocdRemaining, spentToday: spent0, dailyBudget });
+    }
     // PARTNERS priority slice: fetch the DISTINCT models these partners actually sold
     // FIRST (one-off, ahead of the standing interest x gap queue; does not touch the
     // standing cursor). Used to stabilize a specific partner's four numbers fast.
