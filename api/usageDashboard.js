@@ -4,6 +4,7 @@
 // and api/outboundClicks.js, July 2026.)
 import fs from "node:fs";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
+import { callOldCarsData } from "../lib/_ocd.js";
 import { recordUsageEvent } from "./_usage.js";
 import { runDepthProbe, LAUNCH_SOURCES } from "../lib/ops/depthProbe.js";
 import { runFillBatch } from "../lib/ops/fillLadder.js";
