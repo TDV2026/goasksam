@@ -342,7 +342,9 @@ function showPowerSellers() {
     </section>
     <section class="hd-sec">
       <div class="hd-eyebrow">What it costs</div>
-      <p>How they're paid varies, some work on a percentage of the sale, some a flat amount, sometimes a mix, and the terms get agreed directly with the PowerSeller. Each case is a little different.</p>
+      <p>Every PowerSeller sets their own fee and agrees it with you upfront, before anything is listed. Some charge a percentage of the sale, some a flat fee, sometimes a mix. Each case is a little different.</p>
+      <p>The way to think about it is simple: weigh the fee they quote you against what representation returns. A good PowerSeller earns their fee in the result: the right platform, professional photography and presentation, buyer questions handled, and the sale managed start to finish. They will also tell you what is worth fixing before listing and what is not, which often saves money rather than costing it.</p>
+      <p>And where we have the data, we show it. When you see a number on a PowerSeller's card, that is how cars they represented have closed against comparable sales.</p>
       <button class="hd-cta" onclick="startSellFlow()">Tell me what you're selling &rarr;</button>
     </section>
   </div>`;

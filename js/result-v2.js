@@ -556,7 +556,7 @@ function renderPowerSellerCardV2(opts){
         + '</div>'
         + '<div class="pcard-foot">'
           + '<button class="pcard-cta" onclick="event.stopPropagation();choosePowerSeller(\''+esc(p.slug||"partner")+'\')">Request an Introduction to '+esc(display)+v2Svg("arrow","cta-arrow")+'</button>'
-          + '<div class="pcard-reassure">'+psvSvg("shield")+'<span>'+esc(first)+' will contact you directly if you decide to proceed. There is no obligation, and you\'re always in control.</span></div>'
+          + '<div class="pcard-reassure">'+psvSvg("shield")+'<span>'+esc(first)+' will contact you directly if you decide to proceed. '+esc((function(pp){return pp.charAt(0).toUpperCase()+pp.slice(1);})(psvPron(p).poss))+' fee is agreed upfront, there is no obligation, and you\'re always in control.</span></div>'
         + '</div>'
       + '</div>'
       + '<div class="pcard-right pcard-right-ps">'
@@ -685,7 +685,7 @@ function v2ComposeTradeoffs(){
       return "Two real paths, and it comes down to how hands on you want to be. "
         +first+" runs the whole sale for you: photography, the writeup, buyer questions and the auction itself, so your effort is minimal. "
         +"Running it yourself on "+f.platform+" keeps you in full control of the timing and how the car is presented, but the work is yours. "
-        +"Well presented listings, with great photography, videos, descriptions, and importantly great answers to all questions can have a significant impact on a listing. That is why I highly recommend the right PowerSeller for the right listing.";
+        +"Well presented listings, with great photography, videos, descriptions, and importantly great answers to all questions can have a significant impact on a listing. A good PowerSeller often knows exactly what's worth fixing before you list, and what isn't, which can matter as much as the platform itself. That's why I highly recommend the right PowerSeller for the right listing.";
     }
     if(c.secondaryRendered&&f.mode==="modeB"){
       // Prices close: a genuine platform vs platform call.

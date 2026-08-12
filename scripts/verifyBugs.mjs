@@ -131,7 +131,7 @@ check("M3 tradeoffs: Ingo-vs-DIY-on-BaT (names Ingo + Bring a Trailer)", /Ingo/.
 check("M3 tradeoffs: NEVER names Cars & Bids (the unrendered alt)", !/Cars ?&? ?Bids|carsandbids/i.test(tradeoffs), tradeoffs);
 check("M3 tradeoffs: effort + control + presentation framing", /hands on/.test(tradeoffs)&&/control/.test(tradeoffs)&&/present/.test(tradeoffs), tradeoffs.slice(0,200));
 check("M3 tradeoffs: NO fee talk, NO price claims (re-voice)", psClean(tradeoffs).ok, psClean(tradeoffs).detail);
-check("M3 tradeoffs: closes on the exact locked line", /Well presented listings, with great photography, videos, descriptions, and importantly great answers to all questions can have a significant impact on a listing\. That is why I highly recommend the right PowerSeller for the right listing\.$/.test(tradeoffs), tradeoffs.slice(-160));
+check("M3 tradeoffs: closes on the exact locked line", /Well presented listings, with great photography, videos, descriptions, and importantly great answers to all questions can have a significant impact on a listing\. A good PowerSeller often knows exactly what's worth fixing before you list, and what isn't, which can matter as much as the platform itself\. That's why I highly recommend the right PowerSeller for the right listing\.$/.test(tradeoffs), tradeoffs.slice(-160));
 
 // "how I'd run the listing" -> quotes Monday at the card's 15%, scope M3s, lint-clean.
 check("intent: 'how would you run the listing' -> runlisting", v2FollowupIntent("how would you run the listing")==="runlisting");

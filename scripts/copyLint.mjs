@@ -98,7 +98,7 @@ check("1d lint: weekday claim below the 15-comp gate does not render", !/closed 
 // causation/filler rules that govern rendered card output.
 const lintPrompt = t => lintText(t).filter(v => /removed-house|dash/.test(v));
 check("1d lint: 'what is GoAskSam' answer (SYS) names no removed houses + lists the new set",
-  lintPrompt(SYS).length === 0 && /Bring a Trailer, Cars & Bids, Hagerty, PCarMarket and Car & Classic/.test(SYS) && /more online platforms being added/.test(SYS),
+  lintPrompt(SYS).length === 0 && /Bring a Trailer, Cars & Bids, Hagerty, PCarMarket, Hemmings, Sotheby's Motorsport, AutoHunter and MB Market/.test(SYS) && !/Car & Classic|Collecting Cars/.test(SYS) && /more online platforms being added/.test(SYS),
   lintPrompt(SYS).join(" ; ") || "list/added-clause missing");
 check("1d lint: sell-flow prompt (SELL_SYS) names no removed houses", lintPrompt(SELL_SYS).length === 0, lintPrompt(SELL_SYS).join(" ; "));
 check("1d lint: the stronger-non-routable callout never renders a removed house name",
