@@ -16,5 +16,8 @@
       "maxDuration": 300,
       "includeFiles": "scripts/warm-list.json"
     }
-  }
+  },
+  "crons": [
+    { "path": "/api/usageDashboard?view=ops&task=fill", "schedule": "0 9 * * *" }
+  ]
 }

@@ -613,13 +613,24 @@ async function handleOps(req, res) {
           };
         }).filter(p => p.source_record_id);
         if (payload.length) { try { await supabaseInsert("vehicle_market_records", payload, env.supabaseUrl, env.supabaseKey, "resolution=ignore-duplicates,return=minimal", "?on_conflict=source,source_record_id"); totalPersisted += payload.length; } catch (e) { /* non-fatal */ } }
-        for (const record of recs) { const mm = persistableMakeModel(record); const k = `${mm.make}|${mm.model}`; if (mm.make && mm.model && mm.make !== "Other" && mm.model !== "Other" && !modelSet.has(k)) modelSet.set(k, [mm.make, mm.model]); }
+        // Targeted warm list from OCD's STRUCTURED make/model only (never the title
+        // fallback, which turns prefixes like "24-Years-Owned" / "Modified" into fake
+        // makes). Frequency-counted so the fill warms the partners' most-sold models
+        // first, maximizing matched comps for the premium fastest.
+        for (const record of recs) {
+          const mk = String(record.ocd_make_name || record.listing_make || "").trim();
+          const md = String(record.ocd_model_name || record.listing_model || "").trim();
+          if (!mk || !md) continue;
+          const k = `${mk}|${md}`;
+          const e = modelSet.get(k) || { make: mk, model: md, n: 0 };
+          e.n++; modelSet.set(k, e);
+        }
         partnerRecords += recs.length;
         handleInfo.push({ handle: h, resolved: real, records: recs.length });
       }
       summary.push({ partner: entry.partner, handles: handleInfo, records: partnerRecords });
     }
-    const targeted = [...modelSet.values()];
+    const targeted = [...modelSet.values()].sort((a, b) => b.n - a.n).map(e => [e.make, e.model]);
     try { await recordUsageEvent({ event_type: "warm_targeted", route: "partnerfetch", status: "ok", oldcarsdata_metered_requests: 0, duration_ms: 0, metadata: { models: targeted, count: targeted.length, generatedAt: new Date().toISOString() } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ }
     if (env && metered > 0) { try { await recordUsageEvent({ event_type: "partner_fetch", route: "api/usageDashboard.js?task=partnerfetch", status: "ok", oldcarsdata_metered_requests: metered, duration_ms: 0, metadata: { persisted: totalPersisted, targetedModels: targeted.length } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ } }
     return res.status(200).json({ task: "partnerfetch", spentToday: spent0, meteredThisRun: metered, persisted: totalPersisted, targetedModelCount: targeted.length, targetedModels: targeted, summary });
@@ -628,37 +639,134 @@ async function handleOps(req, res) {
   if (task === "fill") {
     if (!env) return res.status(500).json({ error: "Supabase env not set (fill needs the cursor store)." });
     const reset = req.query?.reset === "1" || req.query?.reset === "true";
-    // Durable cursor in app_usage_events (event_type=fill_cursor); no DDL needed.
     let cursor = { index: 0, warmed: 0, spent: 0, runs: 0 };
     if (!reset) {
       const rows = await supabaseSelect(env, `app_usage_events?event_type=eq.fill_cursor&select=metadata&order=created_at.desc&limit=1`);
       if (rows && rows[0] && rows[0].metadata) cursor = { ...cursor, ...rows[0].metadata };
     }
-    let list;
-    try { list = JSON.parse(fs.readFileSync(new URL("../scripts/warm-list.json", import.meta.url), "utf8")).models || []; }
+    // Targeted-first: the partners' own models (event_type=warm_targeted) warm BEFORE
+    // the generic 463, so the premium can compute without waiting for the full list.
+    let targeted = [];
+    try { const t = await supabaseSelect(env, `app_usage_events?event_type=eq.warm_targeted&select=metadata&order=created_at.desc&limit=1`); if (t && t[0] && Array.isArray(t[0].metadata?.models)) targeted = t[0].metadata.models; } catch { /* none yet */ }
+    let generic;
+    try { generic = JSON.parse(fs.readFileSync(new URL("../scripts/warm-list.json", import.meta.url), "utf8")).models || []; }
     catch (e) { return res.status(500).json({ error: "warm-list.json unavailable in the function bundle: " + e.message }); }
-    if (!list.length) return res.status(500).json({ error: "warm-list.json has no models." });
-    if (cursor.index >= list.length) return res.status(200).json({ task: "fill", done: true, message: "Fill complete. Pass &reset=1 to run again.", cursor, total: list.length });
-    // Bounded batch so a single invocation fits the timeout; the engine's warm-budget
-    // guard also stops the batch early once the reserved warm budget is spent.
+    const tgtKeys = new Set(targeted.map(([mk, md]) => `${mk}|${md}`.toLowerCase()));
+    const list = [...targeted, ...generic.filter(([mk, md]) => !tgtKeys.has(`${mk}|${md}`.toLowerCase()))];
+    const targetedCount = targeted.length;
+    if (!list.length) return res.status(500).json({ error: "No nameplates to warm." });
+    if (cursor.index >= list.length) return res.status(200).json({ task: "fill", done: true, message: "Fill complete. Pass &reset=1 to run again.", cursor, total: list.length, targetedCount });
     const limit = Math.max(1, Math.min(20, Number(req.query?.limit || 12)));
-    // dry=1 previews the next batch and cursor WITHOUT calling the engine (no spend);
-    // used to sanity-check the endpoint before the warm list is approved.
     if (req.query?.dry === "1" || req.query?.dry === "true") {
-      return res.status(200).json({ task: "fill", dry: true, cursor, total: list.length, nextUp: list.slice(cursor.index, cursor.index + limit).map(([mk, md]) => `${mk} ${md}`) });
+      return res.status(200).json({ task: "fill", dry: true, cursor, total: list.length, targetedCount, targetedDone: cursor.index >= targetedCount, phase: cursor.index < targetedCount ? "targeted" : "generic", nextUp: list.slice(cursor.index, cursor.index + limit).map(([mk, md]) => `${mk} ${md}`) });
     }
     const base = `https://${req.headers.host}`;
+    // Cron / drain: loop bounded chunks until the warm budget caps, the list is done,
+    // or a soft time budget (~230s, under maxDuration 300) is hit. A daily cron run
+    // therefore spends the full daily warm cap in one pass. Persists the cursor after
+    // each chunk so a timeout never loses progress. Manual URL uses a single chunk.
+    const drain = isCron || req.query?.drain === "1" || req.query?.drain === "true";
+    const persistCursor = async (c, status) => { try { await recordUsageEvent({ event_type: "fill_cursor", route: "api/usageDashboard.js?task=fill", status, oldcarsdata_metered_requests: 0, duration_ms: 0, metadata: c }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ } };
+    if (drain) {
+      const t0 = Date.now(); let idx = cursor.index, warmed = cursor.warmed || 0, spent = cursor.spent || 0, runs = (cursor.runs || 0) + 1;
+      let processed = 0, budgetStopped = false, done = false, chunks = 0;
+      while (true) {
+        const r = await runFillBatch({ base, list, startIndex: idx, limit: 10 });
+        idx = r.nextIndex; processed += r.processed; warmed += r.processed; spent += r.spent; chunks++;
+        await persistCursor({ index: idx, warmed, spent, runs }, "drain_chunk");
+        if (r.done) { done = true; break; }
+        if (r.budgetStopped) { budgetStopped = true; break; }
+        if (r.processed === 0) break;
+        if (Date.now() - t0 > 230000) break;
+      }
+      return res.status(200).json({ task: "fill", mode: "drain", via: isCron ? "cron" : "manual", chunks, processedThisRun: processed, spentThisRun: spent, cursor: { index: idx, warmed, spent, runs }, total: list.length, targetedCount, targetedDone: idx >= targetedCount, done, budgetStopped });
+    }
     const r = await runFillBatch({ base, list, startIndex: cursor.index, limit });
     const next = { index: r.nextIndex, warmed: (cursor.warmed || 0) + r.processed, spent: (cursor.spent || 0) + r.spent, runs: (cursor.runs || 0) + 1 };
-    try { await recordUsageEvent({ event_type: "fill_cursor", route: "api/usageDashboard.js?task=fill", status: r.done ? "complete" : r.budgetStopped ? "budget_paused" : "batch_ok", oldcarsdata_metered_requests: 0, duration_ms: 0, metadata: next }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ }
+    await persistCursor(next, r.done ? "complete" : r.budgetStopped ? "budget_paused" : "batch_ok");
     return res.status(200).json({
       task: "fill", batch: { processed: r.processed, spent: r.spent, degraded: r.degraded, budgetStopped: r.budgetStopped, lastNameplate: r.lastNameplate },
-      cursor: next, total: list.length, done: r.done,
-      note: r.done ? "Fill complete." : r.budgetStopped ? "Warm budget reached for now; re-open this URL after the next daily reset to continue." : "Batch done; re-open this URL to continue the next batch."
+      cursor: next, total: list.length, targetedCount, targetedDone: next.index >= targetedCount, done: r.done,
+      note: r.done ? "Fill complete." : r.budgetStopped ? "Warm budget reached; resume after the next daily reset." : "Batch done; re-open to continue."
     });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe or ?view=ops&task=fill." });
+  // task=premium: the matched-pool partner premium precompute (report-only, renders
+  // nothing). For each partner sale, the baseline is other qualifying sales within a
+  // window centered on THAT sale's date (not today), from the 8 US launch platforms,
+  // EXCLUDING every partner seller. Ladder tightest-first (generation -> model ->
+  // make/segment) to the first rung with pool>=5; per-sale delta vs pool median; per
+  // partner the MEDIAN of deltas, gated at n>=10, rounded to whole percent.
+  if (task === "premium") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const windowDays = Math.max(30, Math.min(365, Number(req.query?.window || 183)));
+    const US8 = new Set(["bringatrailer", "bat", "carsandbids", "hagerty", "pcarmarket", "sothebysmotorsport", "hemmings", "autohunter", "mbmarket"]);
+    const roster = [
+      { partner: "Howard Silvers", handles: ["howS", "bruce_m"] },
+      { partner: "Ingo Schmoldt", handles: ["GenauAutoWerks"] },
+      { partner: "Dan Gray", handles: ["AuthenticAuctions"] },
+      { partner: "Chris Carbine", handles: ["Carbine123", "carbine123"] }
+    ];
+    const allPartnerSellers = new Set(roster.flatMap(r => r.handles.map(h => h.toLowerCase())));
+    const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+    const soldOk = r => { const st = String(r.auction_status || "").toLowerCase(); return (st.includes("sold") || st === "" ) && Number(r.price) > 0; };
+    const platOk = r => US8.has(norm(r.platform || r.source));
+    // Pull each partner's SOLD sales (persisted by partnerfetch), then their baselines.
+    async function partnerSales(handles) {
+      const inList = handles.map(h => `"${h}"`).join(",");
+      const rows = await supabaseSelect(env, `vehicle_market_records?seller_username=in.(${encodeURIComponent(inList)})&select=make,model,year,price,auction_status,auction_end_date,platform,source,seller_username&limit=5000`);
+      return (rows || []).filter(r => soldOk(r) && r.make && r.model && r.auction_end_date && Number(r.price) > 0);
+    }
+    // Baseline candidates for one make+model within +/- window of the sale date.
+    async function baselineFor(make, model, dateIso) {
+      const d = new Date(dateIso); if (!Number.isFinite(d.getTime())) return [];
+      const lo = new Date(d.getTime() - windowDays * 864e5).toISOString();
+      const hi = new Date(d.getTime() + windowDays * 864e5).toISOString();
+      const rows = await supabaseSelect(env, `vehicle_market_records?make=ilike.${encodeURIComponent(make)}&auction_end_date=gte.${lo}&auction_end_date=lte.${hi}&select=make,model,year,price,auction_status,auction_end_date,platform,source,seller_username&limit=3000`);
+      return (rows || []).filter(r => soldOk(r) && platOk(r) && !allPartnerSellers.has(String(r.seller_username || "").toLowerCase()));
+    }
+    const report = [];
+    for (const p of roster) {
+      const sales = await partnerSales(p.handles);
+      const deltas = []; const rungCount = { model: 0, make: 0, unmatched: 0 }; let minD = null, maxD = null;
+      // Cache baselines per make|model|monthbucket to limit queries.
+      const cache = new Map();
+      for (const s of sales) {
+        const mk = String(s.make), md = String(s.model), price = Number(s.price);
+        const bucket = String(s.auction_end_date).slice(0, 7);
+        const ckey = `${norm(mk)}|${norm(md)}|${bucket}`;
+        let pool = cache.get(ckey);
+        if (!pool) { pool = await baselineFor(mk, md, s.auction_end_date); cache.set(ckey, pool); }
+        // Tightest-first: same model; if <5, broaden to same make (segment proxy).
+        // (Generation-level refinement is a future rung; the pool is already make-
+        // scoped by the query and date-windowed to +/- the sale's own date.)
+        let rung = "model";
+        let comps = pool.filter(r => norm(r.model) === norm(md) && String(r.auction_end_date) !== String(s.auction_end_date));
+        if (comps.length < 5) {
+          rung = "make";
+          comps = pool.filter(r => String(r.auction_end_date) !== String(s.auction_end_date));
+        }
+        if (comps.length < 5) { rungCount.unmatched++; continue; }
+        const med = median(comps.map(r => Number(r.price)).filter(n => n > 0));
+        if (!med || med <= 0) { rungCount.unmatched++; continue; }
+        const delta = Math.round((price - med) / med * 100);
+        deltas.push(delta); rungCount[rung]++;
+        const dd = String(s.auction_end_date).slice(0, 10);
+        if (!minD || dd < minD) minD = dd; if (!maxD || dd > maxD) maxD = dd;
+      }
+      const premium = deltas.length >= 10 ? Math.round(median(deltas)) : null;
+      report.push({
+        partner: p.partner, salesConsidered: sales.length, n: deltas.length,
+        premiumPct: premium, gatePassed: deltas.length >= 10 && premium !== null && premium > 0,
+        matchedDateRange: minD && maxD ? [minD, maxD] : null, rungDistribution: rungCount,
+        note: deltas.length < 10 ? "below n>=10 (baseline likely not warm yet)" : premium == null ? "no median" : premium <= 0 ? "non-positive median, never renders" : "clears gate"
+      });
+    }
+    return res.status(200).json({ task: "premium", windowDays, gate: "n>=10, positive median, whole-percent, 8 US platforms, partners excluded", report });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium." });
 }
 
 export default async function handler(req, res) {
