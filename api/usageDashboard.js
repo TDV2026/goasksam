@@ -711,7 +711,10 @@ async function handleOps(req, res) {
     const allPartnerSellers = new Set(roster.flatMap(r => r.handles.map(h => h.toLowerCase())));
     const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
     const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
-    const soldOk = r => { const st = String(r.auction_status || "").toLowerCase(); return (st.includes("sold") || st === "" ) && Number(r.price) > 0; };
+    // A completed SALE only: a positive price and a status that is not an unsold
+    // outcome. ("unsold".includes("sold") was true, so bid-but-not-sold listings
+    // were polluting both pools and inflating comp medians.)
+    const soldOk = r => Number(r.price) > 0 && !/unsold|not sold|no sale|reserve not met|withdrawn|cancell?ed/i.test(String(r.auction_status || ""));
     const platOk = r => US8.has(norm(r.platform || r.source));
     // Pull each partner's SOLD sales (persisted by partnerfetch), then their baselines.
     async function partnerSales(handles) {
@@ -741,7 +744,7 @@ async function handleOps(req, res) {
     const report = [];
     for (const p of roster) {
       const sales = await partnerSales(p.handles);
-      const deltas = []; const rungCount = { generation: 0, yearband: 0, model: 0, unmatched: 0 }; let minD = null, maxD = null;
+      const deltas = []; const rungCount = { generation: 0, yearband: 0, unmatched: 0 }; let minD = null, maxD = null;
       // Cache baselines per make|model|monthbucket to limit queries.
       const cache = new Map();
       for (const s of sales) {
@@ -750,23 +753,23 @@ async function handleOps(req, res) {
         const ckey = `${norm(mk)}|${norm(md)}|${bucket}`;
         let pool = cache.get(ckey);
         if (!pool) { pool = await baselineFor(mk, md, s.auction_end_date); cache.set(ckey, pool); }
-        // Like-for-like ladder, tightest-first, to cancel generation/variant mix:
+        // Like-for-like ONLY (year-scoped), to cancel generation/variant mix:
         //   1) generation: SAME model + year within the mapped generation span
         //   2) yearband:   SAME model + year within +/-2 (fallback when unmapped)
-        //   3) model:      SAME model, any year
-        // The coarse make rung is deliberately gone - matching a specific 911 against
-        // all Porsches was the source of the mix-driven negatives. No pool>=5 at any
-        // like-for-like rung => the sale is unmatched, never forced into a bad pool.
-        const sameModel = pool.filter(r => norm(r.model) === norm(md) && String(r.auction_end_date) !== String(s.auction_end_date));
+        // The any-year model rung and the coarse make rung are deliberately gone -
+        // both compared a specific older car against pools dominated by newer/pricier
+        // variants of the nameplate, which is what drove the negatives. No year-scoped
+        // pool>=5 => the sale is unmatched, never forced into a mixed pool. A sale with
+        // no usable year can't be year-scoped, so it is unmatched too.
+        const sameModel = pool.filter(r => Number(r.year) && norm(r.model) === norm(md) && String(r.auction_end_date) !== String(s.auction_end_date));
         const yr = Number(s.year);
         let rung = null, comps = null;
         if (yr) {
           const span = genSpan(mk, md, yr);
           const [lo, hi] = span || [yr - 2, yr + 2];
-          const band = sameModel.filter(r => Number(r.year) && Number(r.year) >= lo && Number(r.year) <= hi);
+          const band = sameModel.filter(r => Number(r.year) >= lo && Number(r.year) <= hi);
           if (band.length >= 5) { rung = span ? "generation" : "yearband"; comps = band; }
         }
-        if (!comps && sameModel.length >= 5) { rung = "model"; comps = sameModel; }
         if (!comps) { rungCount.unmatched++; continue; }
         const med = median(comps.map(r => Number(r.price)).filter(n => n > 0));
         if (!med || med <= 0) { rungCount.unmatched++; continue; }
