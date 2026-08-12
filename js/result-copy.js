@@ -1331,12 +1331,14 @@ function composerSimilarityHeadline(vehicle,ev,opts){
     :`so the deepest recent market for this car leads: ${name} has the most recent sales`;
   return { text:`Prices for ${phrase}${span} have been within a small percentage across the top platforms ${win}, ${reason}.`, provenance:`pricePremium.negligible(${p?p.windowDays+"d":"?"})` };
 }
-// Thin-data caveat: no rung carries a real comp base. Names the rung the
-// analysis landed on. The banned "limited sales, running at model level" and
-// "so I ran this at X level" phrasings are gone; this is the one honest floor.
+// Thin-data caveat: no rung carries a real comp base. Names the rung that was
+// actually THIN (the exact year-specific car) and states we widened to the landed
+// rung - never names the landed rung as if IT were the thin one.
 function composerHonestHeadline(vehicle,rungWord){
-  const car=vehicle&&vehicle.model?`the ${[vehicle.make,vehicle.model].filter(Boolean).join(" ")}`:`this ${vehicle&&vehicle.make?vehicle.make:"car"}`;
-  return { text:`Recent sales for ${car} are limited. Analysis ran at ${rungWord||"model"} level.`, provenance:`ladder.landed(${rungWord||"model"})` };
+  const yr=vehicle&&vehicle.year?`${vehicle.year} `:"";
+  const car=vehicle&&vehicle.model?`the ${yr}${[vehicle.make,vehicle.model].filter(Boolean).join(" ")}`:`this ${vehicle&&vehicle.make?vehicle.make:"car"}`;
+  const word=rungWord||"model";
+  return { text:`Recent sales for ${car} are limited, so I widened to the ${word}.`, provenance:`ladder.landed(${word})` };
 }
 // Generation code for the landed rung, when the ladder mapped one.
 function composerLandedGenerationCode(){

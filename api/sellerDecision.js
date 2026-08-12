@@ -28,7 +28,12 @@ import {
 
 // Powerseller referrals are gated (locked product rule): estimated value from
 // actual comps must clear this threshold before a partner can lead.
-const POWERSELLER_MIN_VALUE_USD = Number(process.env.POWERSELLER_MIN_VALUE_USD || 75000);
+// PowerSeller eligibility floor (business decision, Aug 2026): lowered 75000 -> 40000.
+// The standard 20% tolerance (ps_min_tolerance_pct) applies underneath, so the
+// effective floor is 40000 * 0.8 = 32000, and the secondary card folds into the SAME
+// floor (below). Distinct from the $40k LEAD-LAYOUT dial (powerseller_value_lead_usd),
+// which controls PS-forward vs platform-forward presentation and is untouched.
+const POWERSELLER_MIN_VALUE_USD = Number(process.env.POWERSELLER_MIN_VALUE_USD || 40000);
 // Depth-first breadth: evaluate 45 days first, broaden only while comps stay
 // under threshold: 90, then 180, then all-time (represented as 36500 days).
 const ALL_TIME_WINDOW_DAYS = 36500;
@@ -1879,6 +1884,10 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
   const minTolerancePct = await appConfigInt("ps_min_tolerance_pct", 20, supabaseUrl, supabaseKey);
   const askingForGate = parseSellerTargetPrice(criteria.targetPrice);
   const valueMet = powerSellerValueMet(estimatedValue, askingForGate, POWERSELLER_MIN_VALUE_USD, minTolerancePct);
+  // Secondary folds into the SAME effective floor as eligibility (min * (1 - tol)),
+  // so the PS-render threshold is uniform: a matched partner leads, a region-covered-
+  // only partner shows secondary, both from the same value bar.
+  const psFloor = POWERSELLER_MIN_VALUE_USD * (1 - Math.max(0, Math.min(90, minTolerancePct)) / 100);
 
   // Rank every partner, then pick, so a local specialist beats a broad nationwide
   // generalist for the same car. Order: local state > segment fit > tighter
@@ -1933,12 +1942,12 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
   // "collections, pre-war" partner) must not preempt the seller's own local partner
   // on a secondary card. `matched` still drives the eligible LEAD above.
   const secondaryPartner = (cands.filter(c => c.regionMet).sort(rankPartner)[0]?.partner) || null;
-  const secondary = !eligible && !!secondaryPartner && secondaryValue >= 50000;
+  const secondary = !eligible && !!secondaryPartner && secondaryValue >= psFloor;
 
   const result = {
     eligible,
     secondary,
-    secondaryMinUsd: 50000,
+    secondaryMinUsd: psFloor,
     minValueUsd: POWERSELLER_MIN_VALUE_USD,
     estimatedValue,
     conditions: {
