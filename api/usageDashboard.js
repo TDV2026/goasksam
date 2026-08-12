@@ -469,6 +469,65 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "modelscan", make, modelCount: models.length, filtered, probes: probeResults, meteredThisRun: metered });
   }
 
+  // task=fragscan: FREE systematic fragmentation scan across the model catalog.
+  // The archive `model` column IS the OCD badge (persistableMakeModel keeps E550/M5,
+  // it does not defrag at persist), so the per-make model-name distribution is a
+  // full-count fragmentation signal at zero OCD cost. Auto-flags umbrella families
+  // (names ending Series/Class/Type whose badge siblings outweigh the head) and
+  // ranks makes by the SAME interest x gap the standing depth job uses (warm seed
+  // w1, partner models w2, 180d search history w3). Archive is head-keyword-biased,
+  // so siblingCount is a LOWER BOUND: a high ratio despite that bias confirms
+  // fragmentation; topModels is returned for judgment on non-umbrella patterns
+  // (Audi A4/S4/RS4, Lexus LS, Cadillac CTS/CTS-V). &probe=1 adds bounded live
+  // head-vs-badge keyword counts, budget-gated.
+  if (task === "fragscan") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const key = (mk, md) => `${norm(mk)}|${norm(md)}`;
+    const makes = req.query?.makes ? String(req.query.makes).split(",").map(s => s.trim()).filter(Boolean)
+      : ["Ford", "Audi", "Mercedes-Benz", "BMW", "Jaguar", "Land Rover", "Cadillac", "Lexus", "Porsche", "Chevrolet", "Toyota", "Nissan"];
+    // Interest x gap map, reused from the depth ranking.
+    const makeInterest = new Map();
+    const modelInterest = new Map();
+    const addI = (mk, md, w) => { const a = String(mk || "").trim(), b = String(md || "").trim(); if (!a || !b) return; makeInterest.set(norm(a), (makeInterest.get(norm(a)) || 0) + w); modelInterest.set(key(a, b), (modelInterest.get(key(a, b)) || 0) + w); };
+    try { const seed = JSON.parse(fs.readFileSync(new URL("../scripts/warm-list.json", import.meta.url), "utf8")).models || []; for (const [mk, md] of seed) addI(mk, md, 1); } catch { /* seed optional */ }
+    try { const t = await supabaseSelect(env, `app_usage_events?event_type=eq.warm_targeted&select=metadata&order=created_at.desc&limit=1`); for (const [mk, md] of ((t && t[0] && t[0].metadata && t[0].metadata.models) || [])) addI(mk, md, 2); } catch { /* partners optional */ }
+    try { const since = new Date(Date.now() - 180 * 864e5).toISOString(); const rows = await supabaseSelect(env, `app_usage_events?event_type=eq.seller_decision&created_at=gte.${since}&select=vehicle&limit=20000`); for (const r of (rows || [])) { const v = r.vehicle || {}; addI(v.make, v.model, 3); } } catch { /* history optional */ }
+    const probe = req.query?.probe === "1" || req.query?.probe === "true";
+    const spent0 = probe ? await meteredToday() : null;
+    let probeLeft = probe ? (spent0 === null ? Infinity : Math.max(0, dailyBudget - spent0)) : 0;
+    let metered = 0;
+    const probeKw = async kw => { if (probeLeft !== Infinity && metered >= probeLeft) return null; metered++; try { const resp = await callOldCarsData("/auctions", { keyword: kw, status: "sold", page: 1, limit: 1 }, apiKey); return resp.meta?.total_results ?? resp.meta?.total ?? (resp.data || []).length; } catch { return null; } };
+    const out = [];
+    for (const make of makes) {
+      const rows = await supabaseSelect(env, `vehicle_market_records?make=ilike.${encodeURIComponent(make)}&select=model&limit=100000`);
+      const counts = new Map();
+      for (const r of (rows || [])) { const m = String(r.model || "").trim(); if (!m || m.toLowerCase() === "other") continue; counts.set(m, (counts.get(m) || 0) + 1); }
+      const total = rows ? rows.length : 0;
+      const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 30).map(([model, n]) => ({ model, n }));
+      const umbrellas = [];
+      for (const [name, n] of counts) {
+        const low = name.toLowerCase().trim();
+        const mCS = low.match(/^([a-z0-9]+)[\s-]?(series|class|type)$/); // E-Class, F-Series, 3-Series, F-Type
+        if (!mCS) continue;
+        const stem = mCS[1];
+        const stemEsc = stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const sibRe = new RegExp(`^${stemEsc}[\\s-]?\\d`, "i");
+        let sibSum = 0; const sibEx = [];
+        for (const [nm, c] of counts) { if (nm === name) continue; const bare = nm.replace(/[^a-z0-9\s-]/gi, ""); if (sibRe.test(nm) || sibRe.test(bare)) { sibSum += c; sibEx.push({ model: nm, n: c }); } }
+        if (/^\d/.test(stem)) { const mRe = new RegExp(`^m${stem}`, "i"); for (const [nm, c] of counts) { if (nm === name) continue; if (mRe.test(nm.replace(/[^a-z0-9]/gi, ""))) { sibSum += c; sibEx.push({ model: nm, n: c }); } } }
+        sibEx.sort((a, b) => b.n - a.n);
+        const flag = { umbrella: name, headCount: n, siblingCount: sibSum, ratio: n ? +(sibSum / n).toFixed(1) : null, siblingExamples: sibEx.slice(0, 8) };
+        if (probe && sibSum > 0) { flag.liveHead = await probeKw(`${make} ${name}`); flag.liveTopBadge = sibEx[0] ? await probeKw(`${make} ${sibEx[0].model}`) : null; }
+        umbrellas.push(flag);
+      }
+      umbrellas.sort((a, b) => b.siblingCount - a.siblingCount);
+      out.push({ make, archiveTotal: total, truncated: total >= 100000, interest: makeInterest.get(norm(make)) || 0, umbrellaFlags: umbrellas.filter(u => u.siblingCount > 0), topModels: top });
+    }
+    out.sort((a, b) => (b.interest - a.interest) || (b.archiveTotal - a.archiveTotal));
+    return res.status(200).json({ task: "fragscan", probe, meteredThisRun: metered, spentToday: spent0, makes: out });
+  }
+
   if (task === "probe") {
     const spent = await meteredToday();
     const budgetLeft = spent === null ? Infinity : Math.max(0, dailyBudget - spent);
