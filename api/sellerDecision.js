@@ -179,9 +179,13 @@ const ROUTE_POLICIES = {
 // seller-usable alternative) and the "oldcarsdata" vendor-name anomaly. Their
 // medians still survive for the honest strongerNonRoutable pre-note (price
 // facts only), they just never enter the pick's evidence math.
+// US launch (Aug 2026): the evidence pool is EXACTLY these eight platforms.
+// All Collector Cars (acc/allcollectorcars) was dropped from evidence by Sam so
+// the pool matches the launch spec precisely; its records still persist (rule 5)
+// and it stays a KNOWN source below, but it never counts as comparable evidence.
 export const EVIDENCE_ALLOWLIST = new Set([
   "bringatrailer", "bat", "carsandbids", "hagerty", "pcarmarket",
-  "acc", "allcollectorcars", "sothebysmotorsport", "hemmings", "autohunter"
+  "sothebysmotorsport", "hemmings", "autohunter"
 ]);
 // MARQUE-GATED evidence sources: allowlisted, but ONLY for a specific marque.
 // MB Market is a Mercedes-Benz-only marketplace, so its sold records may only
@@ -195,7 +199,11 @@ export const MARQUE_GATED_EVIDENCE = { mbmarket: "Mercedes-Benz" };
 // silently trusted. Excluded-from-evidence houses (rmsothebys/gooding) are
 // still KNOWN; they render under "a leading auction house".
 export const KNOWN_SOURCE_SLUGS = new Set([
-  ...EVIDENCE_ALLOWLIST, ...Object.keys(MARQUE_GATED_EVIDENCE), "rmsothebys", "gooding", "goodingco"
+  ...EVIDENCE_ALLOWLIST, ...Object.keys(MARQUE_GATED_EVIDENCE),
+  // Known but NOT evidence: white-glove consignment houses and All Collector Cars
+  // (dropped from the launch evidence pool). They render under a generic label and
+  // never trip new-source detection.
+  "acc", "allcollectorcars", "rmsothebys", "gooding", "goodingco"
 ]);
 export function normSourceSlug(value) {
   return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");

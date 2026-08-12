@@ -12,14 +12,19 @@ const check = (name, ok, detail = "") => {
 };
 const rec = source => ({ source });
 
-// ---- membership: self-listable marketplaces a seller could actually use ----
-for (const slug of ["bringatrailer", "bat", "carsandbids", "hagerty", "pcarmarket", "acc", "allcollectorcars", "sothebysmotorsport", "hemmings", "autohunter"]) {
+// ---- membership: the EXACTLY EIGHT US launch platforms ----
+for (const slug of ["bringatrailer", "bat", "carsandbids", "hagerty", "pcarmarket", "sothebysmotorsport", "hemmings", "autohunter"]) {
   check(`allowlist INCLUDES ${slug}`, isEvidenceSource(rec(slug)) === true, `isEvidenceSource=${isEvidenceSource(rec(slug))}`);
 }
-// ---- excluded: white-glove consignment + anomalies + unknowns ----
-for (const slug of ["rmsothebys", "gooding", "goodingco", "oldcarsdata", "somethingnew", ""]) {
+// ---- excluded: white-glove consignment + All Collector Cars (dropped from the
+// launch pool) + anomalies + unknowns ----
+for (const slug of ["acc", "allcollectorcars", "rmsothebys", "gooding", "goodingco", "oldcarsdata", "somethingnew", ""]) {
   check(`allowlist EXCLUDES ${slug || "(empty)"}`, isEvidenceSource(rec(slug)) === false, `isEvidenceSource=${isEvidenceSource(rec(slug))}`);
 }
+// All Collector Cars is EXCLUDED from evidence but still KNOWN (records persist per
+// rule 5 and never trip new-source detection).
+check("acc is known (not new-source)", KNOWN_SOURCE_SLUGS.has("acc"));
+check("allcollectorcars is known (not new-source)", KNOWN_SOURCE_SLUGS.has("allcollectorcars"));
 // rmsothebys/gooding are EXCLUDED from evidence but still KNOWN (they render as
 // "a leading auction house" and can back the honest pre-note); a genuinely new
 // slug is neither.
