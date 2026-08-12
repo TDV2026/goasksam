@@ -3,8 +3,9 @@
 // deploy cap; all three share USAGE_DASHBOARD_KEY. (Merged from api/adminAccounts.js
 // and api/outboundClicks.js, July 2026.)
 import fs from "node:fs";
-import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
+import { supabaseEnv, supabaseSelect, supabaseInsert } from "../lib/_supabase.js";
 import { callOldCarsData } from "../lib/_ocd.js";
+import { persistableMakeModel, recordPlatform, stableRecordId } from "../lib/_classify.js";
 import { recordUsageEvent } from "./_usage.js";
 import { runDepthProbe, LAUNCH_SOURCES } from "../lib/ops/depthProbe.js";
 import { runFillBatch } from "../lib/ops/fillLadder.js";
@@ -551,6 +552,77 @@ async function handleOps(req, res) {
     }
     const zeros = results.flatMap(r => r.handles.filter(h => h.count === 0).map(h => `${r.partner}:${h.handle}`));
     return res.status(200).json({ task: "handles", spentToday: spent0, meteredThisRun: metered, dailyBudget, zeros, results });
+  }
+
+  // task=partnerfetch: pull each partner's full sold history (case-corrected handle),
+  // persist to vehicle_market_records (rule 5, upsert), and derive the distinct
+  // model list that the premium compute needs its baseline pools warmed for. Stores
+  // that list as event_type=warm_targeted so the fill warms it FIRST.
+  if (task === "partnerfetch") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const spent0 = await meteredToday();
+    const budgetLeft = spent0 === null ? Infinity : Math.max(0, dailyBudget - spent0);
+    if (budgetLeft <= 0) return res.status(200).json({ task: "partnerfetch", skipped: "daily_budget_spent", spentToday: spent0 });
+    const roster = [
+      { partner: "Howard Silvers", handles: ["howS", "bruce_m"] },
+      { partner: "Ingo Schmoldt", handles: ["GenauAutoWerks"] },
+      { partner: "Dan Gray", handles: ["AuthenticAuctions"] },
+      { partner: "Chris Carbine", handles: ["carbine123"] }
+    ];
+    const maxPages = Math.max(1, Math.min(30, Number(req.query?.pages || 15)));
+    const sellerLc = r => String(r.seller_username || "").toLowerCase();
+    let metered = 0;
+    async function resolveCase(handle) {
+      const norm = handle.toLowerCase();
+      metered++;
+      let r; try { r = await callOldCarsData("/auctions", { seller_username: handle, page: 1, limit: 50 }, apiKey); } catch (e) { return handle; }
+      if ((r.data || []).some(x => sellerLc(x) === norm)) return handle;
+      metered++;
+      let kw; try { kw = await callOldCarsData("/auctions", { keyword: handle, page: 1, limit: 50 }, apiKey); } catch (e) { return handle; }
+      const c = {}; for (const x of (kw.data || [])) { const su = String(x.seller_username || ""); if (su.toLowerCase() === norm) c[su] = (c[su] || 0) + 1; }
+      return Object.keys(c).sort((a, b) => c[b] - c[a])[0] || handle;
+    }
+    const modelSet = new Map(); const summary = []; let totalPersisted = 0;
+    for (const entry of roster) {
+      let partnerRecords = 0; const handleInfo = [];
+      for (const h of entry.handles) {
+        if (budgetLeft !== Infinity && metered >= budgetLeft) { handleInfo.push({ handle: h, note: "budget_reached" }); continue; }
+        const real = await resolveCase(h);
+        const recs = [];
+        for (let page = 1; page <= maxPages; page++) {
+          if (budgetLeft !== Infinity && metered >= budgetLeft) break;
+          metered++;
+          let resp; try { resp = await callOldCarsData("/auctions", { seller_username: real, sort: "date", direction: "desc", page, limit: 50 }, apiKey); } catch (e) { break; }
+          const rows = (resp.data || []);
+          recs.push(...rows.filter(x => sellerLc(x) === String(real).toLowerCase()));
+          if (rows.length < 50) break;
+          if (page >= (resp.meta?.total_pages || 1)) break;
+        }
+        // Persist (rule 5): stamp the resolved seller so the compute can filter.
+        const payload = recs.map(record => {
+          record.seller_username = record.seller_username || real;
+          return {
+            source: recordPlatform(record), source_record_id: stableRecordId(record),
+            source_url: record.url || record.listing_url || null, platform: recordPlatform(record),
+            ...persistableMakeModel(record), year: record.year || null,
+            raw_title: record.title || record.listing_title || null,
+            price: Number(record.price ?? record.sold_price ?? record.final_price ?? record.current_bid) || null,
+            auction_status: record.auction_status || record.status || null,
+            auction_end_date: record.auction_end_date || null,
+            seller_username: record.seller_username || real, raw_record: record
+          };
+        }).filter(p => p.source_record_id);
+        if (payload.length) { try { await supabaseInsert("vehicle_market_records", payload, env.supabaseUrl, env.supabaseKey, "resolution=ignore-duplicates,return=minimal", "?on_conflict=source,source_record_id"); totalPersisted += payload.length; } catch (e) { /* non-fatal */ } }
+        for (const record of recs) { const mm = persistableMakeModel(record); const k = `${mm.make}|${mm.model}`; if (mm.make && mm.model && mm.make !== "Other" && mm.model !== "Other" && !modelSet.has(k)) modelSet.set(k, [mm.make, mm.model]); }
+        partnerRecords += recs.length;
+        handleInfo.push({ handle: h, resolved: real, records: recs.length });
+      }
+      summary.push({ partner: entry.partner, handles: handleInfo, records: partnerRecords });
+    }
+    const targeted = [...modelSet.values()];
+    try { await recordUsageEvent({ event_type: "warm_targeted", route: "partnerfetch", status: "ok", oldcarsdata_metered_requests: 0, duration_ms: 0, metadata: { models: targeted, count: targeted.length, generatedAt: new Date().toISOString() } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ }
+    if (env && metered > 0) { try { await recordUsageEvent({ event_type: "partner_fetch", route: "api/usageDashboard.js?task=partnerfetch", status: "ok", oldcarsdata_metered_requests: metered, duration_ms: 0, metadata: { persisted: totalPersisted, targetedModels: targeted.length } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ } }
+    return res.status(200).json({ task: "partnerfetch", spentToday: spent0, meteredThisRun: metered, persisted: totalPersisted, targetedModelCount: targeted.length, targetedModels: targeted, summary });
   }
 
   if (task === "fill") {
