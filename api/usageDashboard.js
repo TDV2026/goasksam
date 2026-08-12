@@ -2,7 +2,11 @@
 // (?view=usage default, accounts, outbound) so the app stays under the 12-function
 // deploy cap; all three share USAGE_DASHBOARD_KEY. (Merged from api/adminAccounts.js
 // and api/outboundClicks.js, July 2026.)
+import fs from "node:fs";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
+import { recordUsageEvent } from "./_usage.js";
+import { runDepthProbe, LAUNCH_SOURCES } from "../lib/ops/depthProbe.js";
+import { runFillBatch } from "../lib/ops/fillLadder.js";
 
 function adminEsc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 const adminDayKey = ts => new Date(ts).toISOString().slice(0, 10);
@@ -386,10 +390,97 @@ function renderHtml({ summary, events, days }) {
 </html>`;
 }
 
+// ===================== ?view=ops : web-triggered metered jobs =====================
+// Sam has no terminal, so the metered scripts (probe:depth, fill:ladder) run as an
+// authenticated GET he opens in a browser. Secrets (OLDCARSDATA_API_KEY,
+// SUPABASE_SERVICE_ROLE_KEY) are read from Vercel's OWN environment, never from a
+// shell. This branch is gated by its OWN key (PROBE_KEY), independent of the
+// read-only dashboard key, because it SPENDS metered budget. Each invocation runs a
+// BOUNDED, resumable slice so it fits the serverless timeout; the shared cores live
+// in lib/ops/. This is the standing pattern for any future metered script.
+async function handleOps(req, res) {
+  const opsKey = process.env.PROBE_KEY || process.env.OPS_KEY;
+  const provided = req.headers["x-ops-key"] || req.query?.opskey || req.query?.key;
+  if (!opsKey) return res.status(500).json({ error: "Set PROBE_KEY in Vercel to enable the ops endpoint." });
+  if (provided !== opsKey) return res.status(401).json({ error: "Unauthorized (ops)." });
+
+  const apiKey = process.env.OLDCARSDATA_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: "OLDCARSDATA_API_KEY not set in Vercel." });
+  const env = supabaseEnv();
+  const task = String(req.query?.task || "");
+  const dailyBudget = Number(process.env.OCD_DAILY_REQUEST_BUDGET || 900);
+
+  async function meteredToday() {
+    if (!env) return null;
+    const since = new Date(); since.setUTCHours(0, 0, 0, 0);
+    const rows = await supabaseSelect(env, `app_usage_events?created_at=gte.${since.toISOString()}&oldcarsdata_metered_requests=gt.0&select=oldcarsdata_metered_requests&limit=2000`);
+    if (!rows) return null;
+    return rows.reduce((s, r) => s + (Number(r.oldcarsdata_metered_requests) || 0), 0);
+  }
+
+  if (task === "probe") {
+    const spent = await meteredToday();
+    const budgetLeft = spent === null ? Infinity : Math.max(0, dailyBudget - spent);
+    if (budgetLeft <= 0) return res.status(200).json({ task: "probe", skipped: "daily_budget_spent", spentToday: spent, dailyBudget });
+    // Hard-capped request ceiling so a single invocation fits the function timeout.
+    const max = Math.max(1, Math.min(120, Number(req.query?.max || 40)));
+    const sources = req.query?.sources ? String(req.query.sources).split(",").map(s => s.trim()).filter(Boolean) : LAUNCH_SOURCES;
+    const windows = req.query?.windows ? String(req.query.windows).split(",").map(Number).filter(n => n > 0) : [45, 90, 180];
+    const report = await runDepthProbe({ apiKey, sources, windows, maxRequests: Math.min(max, budgetLeft === Infinity ? max : budgetLeft), budgetLeft });
+    if (env && report.meteredRequests > 0) {
+      try { await recordUsageEvent({ event_type: "depth_probe", route: "api/usageDashboard.js?task=probe", status: "ok", oldcarsdata_metered_requests: report.meteredRequests, duration_ms: 0, metadata: { sources: sources.length, windows, ukPlatforms: report.ukPool.length, via: "web" } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ }
+    }
+    // Compact per-source summary alongside the full report (easy to read in a browser).
+    const summary = report.sources.map(s => ({ platform: s.label, source: s.source, integrated: s.integrated, soldInWindow: s.totalSold, us: s.counts.US[report.widestDays], uk: s.counts.UK[report.widestDays], sawData: s.sawData, note: s.note }));
+    return res.status(200).json({ task: "probe", spentToday: spent, dailyBudget, summary, report });
+  }
+
+  if (task === "fill") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set (fill needs the cursor store)." });
+    const reset = req.query?.reset === "1" || req.query?.reset === "true";
+    // Durable cursor in app_usage_events (event_type=fill_cursor); no DDL needed.
+    let cursor = { index: 0, warmed: 0, spent: 0, runs: 0 };
+    if (!reset) {
+      const rows = await supabaseSelect(env, `app_usage_events?event_type=eq.fill_cursor&select=metadata&order=created_at.desc&limit=1`);
+      if (rows && rows[0] && rows[0].metadata) cursor = { ...cursor, ...rows[0].metadata };
+    }
+    let list;
+    try { list = JSON.parse(fs.readFileSync(new URL("../scripts/warm-list.json", import.meta.url), "utf8")).models || []; }
+    catch (e) { return res.status(500).json({ error: "warm-list.json unavailable in the function bundle: " + e.message }); }
+    if (!list.length) return res.status(500).json({ error: "warm-list.json has no models." });
+    if (cursor.index >= list.length) return res.status(200).json({ task: "fill", done: true, message: "Fill complete. Pass &reset=1 to run again.", cursor, total: list.length });
+    // Bounded batch so a single invocation fits the timeout; the engine's warm-budget
+    // guard also stops the batch early once the reserved warm budget is spent.
+    const limit = Math.max(1, Math.min(20, Number(req.query?.limit || 12)));
+    // dry=1 previews the next batch and cursor WITHOUT calling the engine (no spend);
+    // used to sanity-check the endpoint before the warm list is approved.
+    if (req.query?.dry === "1" || req.query?.dry === "true") {
+      return res.status(200).json({ task: "fill", dry: true, cursor, total: list.length, nextUp: list.slice(cursor.index, cursor.index + limit).map(([mk, md]) => `${mk} ${md}`) });
+    }
+    const base = `https://${req.headers.host}`;
+    const r = await runFillBatch({ base, list, startIndex: cursor.index, limit });
+    const next = { index: r.nextIndex, warmed: (cursor.warmed || 0) + r.processed, spent: (cursor.spent || 0) + r.spent, runs: (cursor.runs || 0) + 1 };
+    try { await recordUsageEvent({ event_type: "fill_cursor", route: "api/usageDashboard.js?task=fill", status: r.done ? "complete" : r.budgetStopped ? "budget_paused" : "batch_ok", oldcarsdata_metered_requests: 0, duration_ms: 0, metadata: next }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ }
+    return res.status(200).json({
+      task: "fill", batch: { processed: r.processed, spent: r.spent, degraded: r.degraded, budgetStopped: r.budgetStopped, lastNameplate: r.lastNameplate },
+      cursor: next, total: list.length, done: r.done,
+      note: r.done ? "Fill complete." : r.budgetStopped ? "Warm budget reached for now; re-open this URL after the next daily reset to continue." : "Batch done; re-open this URL to continue the next batch."
+    });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe or ?view=ops&task=fill." });
+}
+
 export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
+
+  // Metered ops jobs (probe/fill): own PROBE_KEY gate, runs BEFORE the dashboard-key
+  // gate so it is independent of the read-only dashboard key.
+  if (req.query?.view === "ops") {
+    try { return await handleOps(req, res); } catch (err) { return res.status(500).json({ error: err.message }); }
+  }
 
   const configuredKey = process.env.USAGE_DASHBOARD_KEY || process.env.ADMIN_DASHBOARD_KEY;
   const providedKey = req.headers["x-admin-key"] || req.query?.key;

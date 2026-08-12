@@ -10,5 +10,11 @@
   "rewrites": [
     { "source": "/out", "destination": "/api/out" },
     { "source": "/styles.20260809y.css", "destination": "/styles.css" }
-  ]
+  ],
+  "functions": {
+    "api/usageDashboard.js": {
+      "maxDuration": 300,
+      "includeFiles": "scripts/warm-list.json"
+    }
+  }
 }
