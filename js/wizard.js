@@ -447,7 +447,7 @@ function missingVehicleDetail(text){
     return {type:"trim",ask:"Which 911 is it? Carrera, Carrera T, GTS, Turbo, GT3 and Sport Classic behave very differently. Pick one below, or type the exact trim if it is not shown.",chips:["Carrera","Carrera S","Carrera T","GTS","Turbo","Turbo S","GT3","GT3 RS","Sport Classic","Not sure"]};
   }
   if(/\bbmw\b/.test(lower)&&!/\b(m\d|[1-8]\d{2}[a-z]{0,3}|z3|z4|z8|x[1-7]|i8|2002|e30|e36|e46|e90|e92|e39|e60)\b/.test(lower)){
-    return {type:"model",ask:"Which BMW model or trim is it? These are just common examples. Pick one below, or type the exact model if it is not shown.",chips:["318i","M3","2002","Z4","X5","Not sure"]};
+    return {type:"model",ask:"Which BMW model or trim is it? These are just common examples. Pick one below, or type the exact model if it is not shown.",chips:["M3","2002","6-Series","3-Series","Z4","X5","Not sure"]};
   }
   if(/\baudi\b/.test(lower)&&!/\b(a[1-8]|s[1-8]|rs[3-7]|r8|tt|tts|ttrs|q[2-8]|e-tron|allroad)\b/.test(lower)){
     return {type:"model",ask:`Which model is the${year?` ${year}`:""} Audi? Pick one below, or type the exact model if it is not shown.`,chips:["A4","S4","RS3","RS6","R8","TT","Q5","Not sure"]};
@@ -475,6 +475,7 @@ const TRIM_911_ASK={type:"trim",ask:"Which 911 is it? Carrera, Carrera T, GTS, T
 const CURATED_TRIM_ASKS=[
   {make:/porsche/i,model:/^(911|964|993|996|997|991|992)$/i,ask:TRIM_911_ASK.ask,chips:TRIM_911_ASK.chips.slice()},
   {make:/bmw/i,model:/^m3$/i,yearMin:2015,ask:"Which M3 is it? Base and Competition sell differently. Pick one below, or type the exact trim.",chips:["Base","Competition","CS","Not sure"]},
+  {make:/bmw/i,model:/^6-?series$/i,yearMax:1989,ask:"Which 6-Series is it? The 630CS, 633CSi, 635CSi and M635CSi sell very differently. Pick one below, or type the exact trim.",chips:["630CS","633CSi","635CSi","M635CSi","Other","Not sure"]},
   {make:/mercedes/i,model:/^c-class$/i,trimRe:/^c63$/i,ask:"Which C63 is it? C63 and C63 S behave differently. Pick one below, or type it.",chips:["C63","C63 S","Not sure"]},
   {make:/chevrolet|chevy/i,model:/^camaro$/i,ask:"Which Camaro is it? Base, SS, RS and Z/28 sell very differently. Pick one below, or type the exact trim.",chips:["Base","SS","RS","Z/28","Other","Not sure"]},
   {make:/ford/i,model:/^mustang$/i,ask:"Which Mustang is it? Base, GT, Mach 1, Boss and Shelby sell very differently. Pick one below, or type the exact trim.",chips:["Base","GT","Mach 1","Boss 302","Shelby GT350","Shelby GT500","Other","Not sure"]},
