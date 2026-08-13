@@ -6,6 +6,7 @@ import { callOldCarsData } from "../lib/_ocd.js";
 import { findGeneration, generationModelToken } from "../lib/generations.js";
 import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
 import { MODEL_SEGMENTS } from "../lib/vehicleData.js";
+import { poolTrimFor } from "../lib/modelFamilies.js";
 import { calculateEffectiveSampleSize, MINIMUM_EFFECTIVE_SAMPLE, getRecencyMultiplier, getPlatformDominanceScore, calculateConfidenceScore, getConfidenceLevel } from "../lib/weighting.js";
 import { computePartnerCareerStats, partnerRelevance, priceBand } from "../lib/marketStats.js";
 import { findReserveContext, computeReserveCells, RESERVE_MIN_PER_SIDE } from "../lib/reserveContext.js";
@@ -608,7 +609,10 @@ function rungFetchParams(rung, vehicle) {
   // Body style only narrows when the seller actually specified one (extractor is
   // conservative), so recall loss is limited to those cars.
   const keywords = [];
-  if (rung.needTrim && vehicle.trim) keywords.push(vehicle.trim);
+  // fetchTrim = the pool-alias parent badge when set (Weissach->GT3 RS), else the
+  // real trim. Pooling only; the display trim (vehicle.trim) is untouched.
+  const fetchTrim = vehicle.fetchTrim || vehicle.trim;
+  if (rung.needTrim && fetchTrim) keywords.push(fetchTrim);
   if (vehicle.bodyStyle) keywords.push(vehicle.bodyStyle);
   if (keywords.length) params.keyword = keywords.join(" ");
   return params;
@@ -622,6 +626,7 @@ function rungFetchParams(rung, vehicle) {
 function rungKeywordFallbackPasses(rung, vehicle, generationToken = null) {
   if (rung.makeOnly) return [];
   const bounds = rungYearBounds(rung, vehicle) || {};
+  const fetchTrim = vehicle.fetchTrim || vehicle.trim; // pool-alias parent badge when set
   const passes = [];
   if (rung.generationCode && generationToken) {
     passes.push({
@@ -633,7 +638,7 @@ function rungKeywordFallbackPasses(rung, vehicle, generationToken = null) {
         make: vehicle.make,
         model: generationToken,
         ...bounds,
-        ...(rung.needTrim && vehicle.trim ? { keyword: vehicle.trim } : {})
+        ...(rung.needTrim && fetchTrim ? { keyword: fetchTrim } : {})
       }
     });
   }
@@ -643,7 +648,7 @@ function rungKeywordFallbackPasses(rung, vehicle, generationToken = null) {
       label: `${rung.label} (keyword ${term})`,
       rung: rung.rung,
       pages: 1,
-      params: { make: vehicle.make, keyword: [term, rung.needTrim ? vehicle.trim : null].filter(Boolean).join(" "), ...bounds }
+      params: { make: vehicle.make, keyword: [term, rung.needTrim ? fetchTrim : null].filter(Boolean).join(" "), ...bounds }
     });
   }
   return passes;
@@ -2328,6 +2333,14 @@ export default async function handler(req, res) {
         vehicle = resolution.vehicle;
       }
     }
+
+    // Curated package-name pool alias (Aug 2026): a named package (Weissach,
+    // Touring) keeps its true trim for display + rarity, but pools against the
+    // parent badge's comps (GT3 RS, GT3 Touring) because the archive titles those
+    // exact cars there. Internal plumbing only: fetch keyword + classify trim-match
+    // read vehicle.fetchTrim; every label and card still shows vehicle.trim.
+    const poolAlias = poolTrimFor(vehicle);
+    if (poolAlias) vehicle.fetchTrim = poolAlias;
 
     // Generation mapping (Phase 4): null is safe and means the ladder keeps
     // its calendar +/- 2 rungs, exactly as unmapped models behave today.
