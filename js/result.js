@@ -238,7 +238,6 @@ async function showSellRecommendation(opts){
   // Runs ONCE, before the opener and any card.
   sellState.routingReason=null;
   {
-    const FAST=["fast","medium_fast"];
     const verifiedPremium=route=>{
       const p=route?.marketEvidence?.pricePremium;
       return (p&&p.platformSales>=5&&p.othersSales>=5)?Number(p.percent):null;
@@ -252,33 +251,13 @@ async function showSellRecommendation(opts){
         sellState.routingReason="price";
       }
     }
-    const pickRoute=routeOptions[0],altRoute=routeOptions[1];
-    const pickPremium=verifiedPremium(pickRoute);
-    // Raw median gap at the same scope (apples-to-apples), so price still
-    // protects the pick when the backend did not send a verified pricePremium.
-    const pickMedian=Number(pickRoute?.marketEvidence?.medianSalePrice||0);
-    const altMedian=Number(altRoute?.marketEvidence?.medianSalePrice||0);
-    const rawGapPercent=(pickMedian&&altMedian)
-      ?Math.round(Math.abs(pickMedian-altMedian)/Math.max(pickMedian,altMedian)*100)
-      :null;
-    const priceProtects=(pickPremium!=null&&pickPremium>=10)||(rawGapPercent!==null&&rawGapPercent>=10);
-    // Unknown spread is NEVER negligible spread. Speed may re-rank Card 1 only
-    // in measured Mode B: a 5+/5+ symmetric price proof exists (so the spread
-    // was actually computed) and, since price does not protect the pick, it is
-    // under 10%. When no delta cleared at any rung the spread is UNKNOWN, and
-    // speed must not override the evidence leader; it becomes a bullet instead.
-    const altPremium=verifiedPremium(altRoute);
-    const spreadMeasured=pickPremium!=null||altPremium!=null;
-    if(sellState.routingReason!=="price"&&!priceProtects&&spreadMeasured
-      &&sellerWantsSpeed()&&pickRoute&&altRoute
-      &&FAST.includes(altRoute.speedToList)&&!FAST.includes(pickRoute.speedToList)
-      &&routeHasTrueComparableEvidence(altRoute)){
-      routeOptions[0]=altRoute;routeOptions[1]=pickRoute;
-      // The routing reason carries the speed story now; the curated
-      // speed-argument secondary copy would contradict a pick card.
-      delete routeOptions[0].speedArgument;
-      sellState.routingReason="speed";
-    }
+    // SPEED RE-RANK DELETED (Aug 2026): the Mode-B / unknown-spread speedToList
+    // promotion that used to swap Card 1 for a faster-to-list platform is GONE.
+    // sellOptions now stays in pure PRICE/EVIDENCE order out of this ladder, and
+    // ALL speed behaviour (the Bring a Trailer exclusion, the speed pick, the
+    // speed-vs-price composition) lives in v2Composition - the single source of
+    // truth for composition. The old promotion was guarded by sellerWantsSpeed(),
+    // so removing it is byte-identical for every non-ASAP path.
   }
   // No redundant chat opener (locked): the card is self-contained, and its
   // own transparency line carries the scope/window story. The old opener
@@ -305,23 +284,16 @@ async function showSellRecommendation(opts){
 
   // Data pick (1b): the platform with the highest CLEARED positive comparative
   // delta (symmetric, >=10%, 5+/5+) leads Card 1 -- the data wins the card, never
-  // an assumption. Skipped when the seller prioritized speed (Mode B speed rule
-  // keeps the faster platform on Card 1) or when a PowerSeller leads the layout.
+  // an assumption. (Speed no longer re-ranks here; v2Composition applies the speed
+  // pick on top of this price/evidence order.)
   // THE RANKING LADDER (platform-agnostic; every crown re-derived from data).
-  // Priority for Card 1, top to bottom:
+  // PRICE/EVIDENCE ONLY - speed re-ranks were deleted Aug 2026 (v2Composition owns
+  // speed). Priority for Card 1, top to bottom:
   //  1 MODE A (spread>=10%): price winner leads, always.
-  //  2 MODE B (<10%) + speed pref: faster-to-list leads (routingReason "speed",
-  //    set above in the measured swap).
-  //  3 MODE B, no pref: deepest recent market leads.
-  //  4 UNKNOWN spread + speed pref: faster-to-list leads IF it clears the 3+
-  //    relevant-comps floor at the landed rung (180d); else fall through to 5.
-  //  5 UNKNOWN, no pref (or 4 floored): depth/concentration leader leads.
-  //    (Stage 2 inserts the specialist crown ahead of the depth leader here.)
-  const FAST_POOL=["fast","medium_fast"];
-  const SPEED_FLOOR_COMPS=3;
+  //  2 UNKNOWN spread: specialist crown leads if a platform OTHER than the depth
+  //    leader holds a specialization cell (lift >= 3x AND 5+ scope comps).
+  //  3 otherwise: deepest recent market leads.
   const routesForCards=(()=>{
-    // A measured Mode B speed route (branch 2) already re-ranked above; keep it.
-    if(sellState.routingReason==="speed")return routeOptions;
     const routable=routeOptions.filter(r=>r.routable!==false);
     const cleared=r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10?p.percent:-1;};
     // Branch 1 (Mode A): highest cleared positive delta leads.
@@ -332,27 +304,17 @@ async function showSellRecommendation(opts){
     let deep=null,deepN=-1;
     for(const r of routable){const n=Number(r.marketEvidence&&r.marketEvidence.evidenceSales||0);if(n>deepN){deep=r;deepN=n;}}
     // Is the spread MEASURED? (any 5+/5+ symmetric premium exists). If not, it
-    // is UNKNOWN, and a stated speed preference may promote a faster-to-list
-    // platform (branch 4) as long as it clears the relevant-comps floor.
+    // is UNKNOWN. The old unknown-spread SPEED promotion (branch 4) is DELETED
+    // (Aug 2026): speed is now v2Composition's job, so this ladder never re-ranks
+    // for speed. sellOptions stays pure price/evidence order.
     const measured=routable.some(r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.platformSales>=5&&p.othersSales>=5;});
-    if(!measured&&sellerWantsSpeed()){
-      // Relevance floor: 3+ sold comps at the landed rung OR at model level
-      // (180d). The model-level fallback keeps a trim-narrowed landed rung from
-      // wrongly flooring out a platform that has the sales at model level.
-      const clearsFloor=r=>{const e=r&&r.marketEvidence||{};return Number(e.evidenceSales||0)>=SPEED_FLOOR_COMPS||Number(e.modelComps180||0)>=SPEED_FLOOR_COMPS;};
-      const fast=routable.find(r=>FAST_POOL.includes(r.speedToList)&&clearsFloor(r));
-      if(fast&&fast!==deep){
-        sellState.routingReason="speed_unknown";
-        return routeOptions[0]===fast?routeOptions:[fast,...routeOptions.filter(r=>r!==fast)];
-      }
-      // Branch 4 floored (fast platform has no relevant sales): fall to depth.
-      // A stated preference outranks specialization, so no specialist crown here.
-    }
-    // Branch 5 specialist crown: UNKNOWN spread + NO stated priority. A platform
-    // OTHER than the depth leader holding a specialization cell for the landed
-    // scope (lift >= 3x AND 5+ scope comps) leads with the specialization
-    // headline. Specialization is only the no-priority tiebreaker.
-    if(!measured&&!sellerWantsSpeed()){
+    // Branch 5 specialist crown: UNKNOWN spread. A platform OTHER than the depth
+    // leader holding a specialization cell for the landed scope (lift >= 3x AND
+    // 5+ scope comps) leads with the specialization headline. No longer gated on
+    // speed preference (the speed branch that preceded it is gone), so for every
+    // non-ASAP path - where sellerWantsSpeed() was already false - this is the
+    // exact same condition as before.
+    if(!measured){
       const specialistCell=r=>{const c=r&&r.marketEvidence&&r.marketEvidence.specializationCell;return c&&Number(c.lift_rounded)>=3&&Number(c.platform_count)>=5?c:null;};
       const specialist=routable.find(r=>r!==deep&&specialistCell(r));
       if(specialist){

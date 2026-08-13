@@ -28,7 +28,7 @@ globalThis.localStorage={getItem:()=>null,setItem:noop,removeItem:noop};
 globalThis.fetch=async()=>({ok:true,json:async()=>({})});
 const html=fs.readFileSync("index.html","utf8");
 const files=[...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"js/"+m[1]);
-(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.v2Because=v2Because;globalThis.v2Why=v2Why;globalThis.v2Weekday=v2Weekday;globalThis.v2Reserve=v2Reserve;globalThis.v2Audience=v2Audience;globalThis.v2ScopePlural=v2ScopePlural;globalThis.v2RungRef=v2RungRef;globalThis.v2FailedRungRef=v2FailedRungRef;globalThis.v2RungNoun=v2RungNoun;globalThis.CLAUSE_A=CLAUSE_A;globalThis.CLAUSE_B=CLAUSE_B;globalThis.CLAUSE_C=CLAUSE_C;globalThis.v2WindowLabel=v2WindowLabel;globalThis.psvReasonNote=psvReasonNote;globalThis.psvPara=psvPara;globalThis.psvWhyBullets=psvWhyBullets;globalThis.psvValueLine=psvValueLine;globalThis.psvPoss=psvPoss;globalThis.psvIntro=psvIntro;globalThis.psvSpecTile=psvSpecTile;globalThis.psvClaim=psvClaim;globalThis.psvWheelhouse=psvWheelhouse;globalThis.psvWheelhouseList=psvWheelhouseList;globalThis.psvPron=psvPron;globalThis.psvTrustLines=psvTrustLines;globalThis.v2CarDisplay=v2CarDisplay;globalThis.v2ScopeAttr=v2ScopeAttr;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.renderPickCardV2=renderPickCardV2;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2Composition=typeof v2Composition==='function'?v2Composition:function(){return null};");
+(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.v2Because=v2Because;globalThis.v2Why=v2Why;globalThis.v2Weekday=v2Weekday;globalThis.v2Reserve=v2Reserve;globalThis.v2Audience=v2Audience;globalThis.v2ScopePlural=v2ScopePlural;globalThis.v2RungRef=v2RungRef;globalThis.v2FailedRungRef=v2FailedRungRef;globalThis.v2RungNoun=v2RungNoun;globalThis.CLAUSE_A=CLAUSE_A;globalThis.CLAUSE_B=CLAUSE_B;globalThis.CLAUSE_C=CLAUSE_C;globalThis.v2WindowLabel=v2WindowLabel;globalThis.psvReasonNote=psvReasonNote;globalThis.psvPara=psvPara;globalThis.psvWhyBullets=psvWhyBullets;globalThis.psvValueLine=psvValueLine;globalThis.psvPoss=psvPoss;globalThis.psvIntro=psvIntro;globalThis.psvSpecTile=psvSpecTile;globalThis.psvClaim=psvClaim;globalThis.psvWheelhouse=psvWheelhouse;globalThis.psvWheelhouseList=psvWheelhouseList;globalThis.psvPron=psvPron;globalThis.psvTrustLines=psvTrustLines;globalThis.v2CarDisplay=v2CarDisplay;globalThis.v2ScopeAttr=v2ScopeAttr;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.renderPickCardV2=renderPickCardV2;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2SpeedWhy=typeof v2SpeedWhy==='function'?v2SpeedWhy:function(){return '';};globalThis.v2Composition=typeof v2Composition==='function'?v2Composition:function(){return null};");
 
 let failures=0;
 const check=(name,ok,detail="")=>{console.log(`${ok?"PASS":"FAIL"}  ${name}${ok?"":"  ->  "+String(detail).slice(0,200)}`);if(!ok)failures++;};
@@ -67,6 +67,22 @@ for(const mode of ["modeA","modeB","concentration","thin"]){
     }
   }
 }
+
+// SPEED PICK WORDING (Aug 2026): locked template, real {N}/{window}, count-gate
+// clean, sentence-3 disclosure only when asked, no fabricated count at N=0.
+globalThis.sellState.resolvedVehicle = { make: "Porsche", model: "911", year: 2011 };
+globalThis.sellState.sellDecision = { vehicle: { make: "Porsche", model: "911", year: 2011 }, evidence: { windowDays: 180, ladder: { landed: { key: "generation_trim" } } } };
+const spPick = { name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 7, windowDays: 180 } };
+const spPrice = { name: "Bring a Trailer", platformSlug: "bringatrailer", marketEvidence: { evidenceSales: 20, windowDays: 180, pricePremium: { gateType: "symmetric", percent: 12 } } };
+const sw1 = v2SpeedWhy(spPick, null, false);
+check("speed WHY: sentences 1-2, real count, NO disclosure", /Since you'd like to sell quickly, I'd list your 911 on Cars & Bids\./.test(sw1) && /sold 7 911s over the past 180 days/.test(sw1) && !/closed higher/.test(sw1), sw1);
+check("speed WHY: lint-clean", clean(sw1).ok, clean(sw1).detail);
+const sw2 = v2SpeedWhy(spPick, spPrice, true);
+check("speed WHY: sentence-3 discloses the price leader", /Bring a Trailer has closed higher for 911s over this period, if getting the top price matters more than speed\./.test(sw2), sw2);
+check("speed WHY w/ disclosure: lint-clean", clean(sw2).ok, clean(sw2).detail);
+check("speed WHY: passes the copy/count gate (no volume-headline / sell-through)", !/\bwhere most\b|most [^\n]{0,40} sales have closed|sell-?through|%\s*sold\b/i.test(sw2), sw2);
+const sw3 = v2SpeedWhy({ name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 0, windowDays: 180 } }, null, false);
+check("speed WHY: drops the count clause at N=0 (no fabricated count)", !/sold 0/.test(sw3) && /active audience/.test(sw3), sw3);
 
 // WEEKDAY: tier1 rounds to 5, no "around"; tier2 direction-only
 const wk1=v2Weekday({dayAdvantage:{weekday:"Wednesday",liftPercent:24,scope:"generation",window:180,sample:30,sales:8}},v);

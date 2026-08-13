@@ -1134,7 +1134,26 @@ function askNextSellQuestion(){
 function askPowerSellerStep(){
   sellState.step=8;
   const q=SELL_STEP_QUESTIONS[8];
-  addMsg("sam",`${q.explainer} ${q.ask}`,"",chipsHTML(q.chips));
+  // Folded timing question (Aug 2026): a LIGHT second question on the same screen.
+  // The rush chips are an INLINE selector (setRushTiming sets sellState.timeline
+  // with no conversational turn); the preference chips stay the submit action that
+  // runs the analysis. So preference is always the trigger, timing an optional
+  // modifier answered first. Not answering timing = today's exact behavior.
+  const rushChips=["ASAP","No rush","Skip"];
+  const rushHTML=`<div class="chip-subq">First, are you in a rush to list it?</div>`
+    +`<div class="chips" data-chip-step="8">`
+    +rushChips.map(c=>`<button class="chip chip-rush" data-rush="${escapeHtml(c)}" onclick="setRushTiming('${c}',this)">${escapeHtml(c)}</button>`).join("")
+    +`</div>`;
+  const prefHTML=`<div class="chip-subq">${escapeHtml(q.ask)}</div>`+chipsHTML(q.chips);
+  addMsg("sam",`${q.explainer}`,"",rushHTML+prefHTML);
+}
+// Inline timing selector (folded into step 8). Sets sellState.timeline so
+// sellerWantsSpeed() reactivates; highlights the chosen chip; posts no message and
+// never advances - the preference chip is what runs the analysis.
+function setRushTiming(val,el){
+  sellState.timeline=val==="ASAP"?"ASAP":val==="No rush"?"No rush":null;
+  sellState.timelineAsked=true;
+  try{ const g=el.parentElement; g.querySelectorAll(".chip").forEach(c=>c.classList.remove("chip-selected")); el.classList.add("chip-selected"); }catch(e){}
 }
 
 function goBackToConfirm(){

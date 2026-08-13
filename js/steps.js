@@ -329,18 +329,43 @@ async function handleSellStep(q){
   // ── STEP 8: PowerSeller preference (FIX 3, LAST wizard step) ──
   if(step===8){
     // Off-script questions route to the chat layer (locked rule 12); a wordy
-    // move-on/refusal advances as "unsure" rather than stalling.
-    if(isQuestionInput(q)&&!/powerseller|power seller|handle|help|myself|list it|diy|not sure|^yes|^no/i.test(lower))return false;
-    let pref;
-    if(/powerseller|power seller|handle everything|have it handled|handled|someone|get help|^yes\b/i.test(lower))pref="powerseller";
-    else if(/myself|list and handle|handle it myself|list it|run it|on my own|diy|^no\b/i.test(lower)||detectIntent(lower)==="negation")pref="diy";
-    else pref="unsure";
-    sellState.sellerPreference=pref;
-    // Reuse the existing involvement gate so the result stage honors the choice.
-    sellState.involvement=pref==="powerseller"?"Want someone to handle everything":pref==="diy"?"I'll manage it myself":"";
-    // Preference is the final intake question. There is no confirm step: the
-    // answer runs the analysis directly (the parsed summary shows as a strip at
-    // the top of the analysis screen). An edit re-runs the analysis too.
+    // move-on/refusal advances as "unsure" rather than stalling. Timing tokens
+    // (folded rush question) are in-scope answers, not off-script.
+    if(isQuestionInput(q)&&!/powerseller|power seller|handle|help|myself|list it|diy|not sure|^yes|^no|asap|rush|hurry|quick|fast|no rush|skip/i.test(lower))return false;
+    // Folded TIMING signal from a TYPED answer (chip clicks set it via
+    // setRushTiming with no turn). Extract it first, then look for a preference.
+    let typedTiming=false;
+    if(/\basap\b|in a (rush|hurry)|gone fast|sell (it )?(fast|quick|quickly|soon)|\brush\b/.test(lower)&&!/no (rush|hurry)/.test(lower)){ sellState.timeline="ASAP"; sellState.timelineAsked=true; typedTiming=true; }
+    else if(/\bno rush\b|no hurry|not in a (rush|hurry)|right result|take my time/.test(lower)){ sellState.timeline="No rush"; sellState.timelineAsked=true; typedTiming=true; }
+    // Preference detection (the submit answer). "not sure"/"unsure" is the
+    // preference-unsure; the timing "Skip" is handled separately below.
+    const hasPref=/powerseller|power seller|handle everything|have it handled|handled|someone|get help|myself|list and handle|handle it myself|list it|run it|on my own|diy|not sure|unsure|^yes\b|^no\b/i.test(lower);
+    if(hasPref){
+      let pref;
+      if(/powerseller|power seller|handle everything|have it handled|handled|someone|get help|^yes\b/i.test(lower))pref="powerseller";
+      else if(/myself|list and handle|handle it myself|list it|run it|on my own|diy|^no\b/i.test(lower)||detectIntent(lower)==="negation")pref="diy";
+      else pref="unsure";
+      sellState.sellerPreference=pref;
+      // Reuse the existing involvement gate so the result stage honors the choice.
+      sellState.involvement=pref==="powerseller"?"Want someone to handle everything":pref==="diy"?"I'll manage it myself":"";
+      // Preference is the final intake question. There is no confirm step: the
+      // answer runs the analysis directly (the parsed summary shows as a strip at
+      // the top of the analysis screen). An edit re-runs the analysis too.
+      sellState.returnToConfirm=false;
+      if(scopedEditActive("preference"))return finishScopedEdit();
+      showSellRecommendation();
+      return true;
+    }
+    // Timing-only typed answer (or the "Skip" timing chip typed): store the
+    // timeline and wait for the preference answer, which is what runs the analysis.
+    if(typedTiming||/^\s*skip\s*$/.test(lower)){
+      if(/^\s*skip\s*$/.test(lower)){ sellState.timeline=null; sellState.timelineAsked=true; }
+      addMsg("sam","Noted. And how would you like to handle the sale?","",chipsHTML(SELL_STEP_QUESTIONS[8].chips));
+      return true;
+    }
+    // Unrecognized: preserve the move-on-as-unsure behavior.
+    sellState.sellerPreference="unsure";
+    sellState.involvement="";
     sellState.returnToConfirm=false;
     if(scopedEditActive("preference"))return finishScopedEdit();
     showSellRecommendation();

@@ -158,6 +158,35 @@ function v2Why(mode,s){
   return out.charAt(0).toUpperCase()+out.slice(1);
 }
 
+// Speed-pick WHY (locked wording, Aug 2026). Sentences 1-2 ALWAYS render;
+// sentence 3 (price disclosure) renders ONLY when includeDisclose is true (a
+// genuine price leader differs from the speed pick and it stays a single card;
+// the large-divergence case shows a full second price card instead of this
+// clause). {N}/{window} are the speed platform's OWN real sales figures; the
+// {N} clause is dropped entirely when N=0 (never a fabricated count). The count
+// wording is confirmed clean against the shared copy/count gate (no exemption).
+function v2SpeedWhy(pick, priceAlt, includeDisclose){
+  // Returns RAW prose (like v2Why); renderPickCardV2 escapes the whole WHY once at
+  // render (pcard-lead), so escaping here would double-encode "Cars & Bids".
+  var v=sellState.resolvedVehicle||(sellState.sellDecision&&sellState.sellDecision.vehicle)||{};
+  var model=String(v.model||v.make||"car");
+  var modelPl=(typeof v2PlModel==="function")?v2PlModel(model):(model+"s");
+  var plat=platformDisplayName(pick.name||pick.platformSlug||"");
+  var ev=pick.marketEvidence||{};
+  var n=Number(ev.evidenceSales||0);
+  var win=(typeof v2WindowLabel==="function"&&typeof v2Window==="function")?v2WindowLabel(v2Window(ev)):"period";
+  var s1="Since you'd like to sell quickly, I'd list your "+model+" on "+plat+".";
+  var s2=n>0
+    ? " It's generally quicker to get a listing live than some other platforms, and it's sold "+n+" "+modelPl+" over the past "+win+", so buyers are already there."
+    : " It's generally quicker to get a listing live than some other platforms, and there's an active audience for cars like yours here.";
+  var s3="";
+  if(includeDisclose&&priceAlt){
+    var pp=platformDisplayName(priceAlt.name||priceAlt.platformSlug||"");
+    s3=" "+pp+" has closed higher for "+modelPl+" over this period, if getting the top price matters more than speed.";
+  }
+  return s1+s2+s3;
+}
+
 // ---------- weekday (tiered) ----------
 function v2Weekday(ev,v){
   var d=ev&&ev.dayAdvantage; if(!d||!d.weekday||!isFinite(Number(d.liftPercent)))return null;
@@ -227,8 +256,9 @@ var V2_ICON={
 function v2Svg(k,cls){ return '<svg class="'+(cls||"")+'" viewBox="0 0 24 24" aria-hidden="true">'+(V2_ICON[k]||"")+'</svg>'; }
 
 // ---------- THE CARD ----------
-function renderPickCardV2(option){
+function renderPickCardV2(option,over){
   try{
+    over=over||{};
     var v=sellState.resolvedVehicle||(sellState.sellDecision&&sellState.sellDecision.vehicle)||{};
     var ev=option.marketEvidence||{};
     var slug=option.platformSlug||"";
@@ -244,7 +274,10 @@ function renderPickCardV2(option){
     var genLabel=v2RungLabel(v);
     var winLbl=win<=45?"Last 45 Days":win<=90?"Last 90 Days":win<=180?"Last 180 Days":"Last 270 Days";
     var because=v2Because(mode,slots);
-    var why=v2Why(mode,slots);
+    // over.why overrides the WHY prose (the locked speed wording for a speed pick;
+    // otherwise the standard v2Why). The card SHAPE, tiles and dimensions are
+    // untouched - only the WHY text and (optionally) the badge label change.
+    var why=over.why||v2Why(mode,slots);
     // Layout (Aug 2026, item 2b): the concrete evidence clause leads the MAIN
     // column beneath the platform name; the summary "delivered the strongest
     // results" line moves to the right rail under WHY I PICKED THIS (with the
@@ -286,10 +319,10 @@ function renderPickCardV2(option){
     var ctaOnClick=outbound?("event.stopPropagation();openOutboundModal('"+esc(slug)+"','pick')"):("event.stopPropagation();chooseSellOption('"+esc(option.key)+"')");
     return '<div class="pcard pcard-platform" onclick="chooseSellOption(\''+esc(option.key)+'\')">'
       + '<div class="pcard-left">'
-        + '<span class="pcard-badge">+ Sam\'s Pick</span>'
-        + '<div class="pcard-script">I\'d sell your '+esc(v.make||"car")+' on</div>'
+        + '<span class="pcard-badge">'+esc(over.badge||"+ Sam's Pick")+'</span>'
+        + '<div class="pcard-script">'+esc(over.script||("I'd sell your "+(v.make||"car")+" on"))+'</div>'
         + '<h1 class="pcard-name">'+esc(name)+'</h1>'
-        + '<div class="pcard-whyl pcard-whyl-main">Why I Picked This</div>'
+        + '<div class="pcard-whyl pcard-whyl-main">'+esc(over.whyLabel||"Why I Picked This")+'</div>'
         + '<p class="pcard-lead">'+esc(leadMain)+'</p>'
         + '<button class="pcard-cta" onclick="'+ctaOnClick+'">Start Listing With '+esc(name)+v2Svg("arrow","cta-arrow")+'</button>'
         + '<div class="pcard-reassure">'+v2Svg("shield")+'<span>You\'ll be taken to '+esc(name)+' to begin your listing. Nothing is committed until you decide to publish.</span></div>'
@@ -659,18 +692,50 @@ function renderSecondaryPlatformV2(alt,pick){
 // send(), and the curated follow-up composers) derives it here, so they can never
 // disagree about the pick, whether a PowerSeller shows/leads, or whether a
 // secondary platform card rendered.
+function v2IsBaT(o){ return !!(o&&/bringatrailer|bring ?a ?trailer/i.test(String(o.platformSlug||o.name||""))); }
 function v2Composition(){
   var opts=(sellState.sellOptions||[]).filter(function(o){return o&&o.key!=="specialist";});
-  var pick=opts[0]||null, alt=opts[1]||null;
   var referral=sellState.partnerReferral||{};
   var pref=sellState.sellerPreference;
+  // SPEED (Aug 2026, V2 owns speed): the ranking ladder now hands opts in pure
+  // PRICE/EVIDENCE order (opts[0] = price leader). On an ASAP timeline, Bring a
+  // Trailer is excluded from the SPEED-pick pool only (slower to list); the speed
+  // pick is the top remaining platform by that same evidence order. BaT can still
+  // be the named PRICE alternative. Divergence exists exactly when opts[0] is BaT.
+  var wantsSpeed=(typeof sellerWantsSpeed==="function")&&sellerWantsSpeed();
+  var pick, alt, speedMode=false, speedDiverges=false, priceAlt=null, priceCompetesFull=false;
+  if(wantsSpeed&&opts.length){
+    speedMode=true;
+    var priceLeader=opts[0];
+    var speedPick=null;
+    for(var i=0;i<opts.length;i++){ if(!v2IsBaT(opts[i])){ speedPick=opts[i]; break; } }
+    if(!speedPick)speedPick=opts[0]; // degenerate: only BaT has evidence
+    pick=speedPick;
+    speedDiverges=!!(priceLeader&&speedPick&&v2IsBaT(priceLeader)
+      &&String(priceLeader.platformSlug||priceLeader.name)!==String(speedPick.platformSlug||speedPick.name));
+    if(speedDiverges){
+      priceAlt=priceLeader;
+      priceCompetesFull=!!(typeof v2AltCompetes==="function"&&v2AltCompetes(priceAlt,speedPick));
+      alt=priceAlt;
+    } else {
+      alt=opts[1]||null;
+    }
+  } else {
+    pick=opts[0]||null; alt=opts[1]||null;
+  }
   // Hard gate: every partner is US-based, so a non-US car never shows a PowerSeller.
   var usCar=(typeof isUSRegion==="function")?isUSRegion(sellState.region):(sellState.region==="US");
   var psRendered=!!(usCar&&pref!=="diy"&&referral.partner);
   var psLead=psRendered&&((pref==="powerseller")||(pref==="unsure"&&referral.leadOnValue===true));
-  var secondaryRendered=!!(!psLead&&pick&&alt&&typeof renderSecondaryPlatformV2==="function"&&renderSecondaryPlatformV2(alt,pick));
+  // A full second platform card renders for a LARGE price divergence (speed mode)
+  // or the standard genuinely-competitive alt (non-speed). A small divergence puts
+  // the price disclosure inline in the speed pick's WHY instead of a second card.
+  var secondaryRendered;
+  if(speedMode){ secondaryRendered=!!(!psLead&&speedDiverges&&priceCompetesFull); }
+  else { secondaryRendered=!!(!psLead&&pick&&alt&&typeof renderSecondaryPlatformV2==="function"&&renderSecondaryPlatformV2(alt,pick)); }
   return { opts:opts, pick:pick, alt:alt, referral:referral, pref:pref, usCar:usCar,
-    psRendered:psRendered, psLead:psLead, secondaryRendered:secondaryRendered };
+    psRendered:psRendered, psLead:psLead, secondaryRendered:secondaryRendered,
+    speedMode:speedMode, speedDiverges:speedDiverges, priceAlt:priceAlt, priceCompetesFull:priceCompetesFull };
 }
 
 // ---- CARD-IDENTICAL FACTS for the pick ----
@@ -890,7 +955,13 @@ function renderResultV2Page(){
     var c=v2Composition();
     var opts=c.opts;
     var pick=c.pick; if(!pick)return null;
-    var pickHTML=renderPickCardV2(pick); if(!pickHTML)return null;
+    var esc=escapeHtml;
+    // SPEED PICK (Aug 2026): the WHY is overridden with the locked speed wording.
+    // Sentence 3 (price disclosure) goes INLINE only for a SMALL divergence (stays
+    // one card); a LARGE divergence shows a full second price card instead.
+    var speedInlineDisclose=c.speedMode&&c.speedDiverges&&!c.priceCompetesFull;
+    var speedWhy=c.speedMode?v2SpeedWhy(pick,c.priceAlt,speedInlineDisclose):null;
+    var pickHTML=renderPickCardV2(pick, speedWhy?{why:speedWhy}:null); if(!pickHTML)return null;
     var referral=c.referral;
     var pref=c.pref;
     // PowerSeller composition (value-aware) + hard US gate live in v2Composition.
@@ -900,21 +971,41 @@ function renderResultV2Page(){
       var valueLed=(pref==="unsure"&&referral.leadOnValue===true);
       psHTML=renderPowerSellerCardV2({lead:psLead,valueLed:valueLed});
     }
-    // Secondary platform only when the alt genuinely competes AND the PS block is
-    // not leading (keep one clear axis when the handled door leads).
-    var secHTML=psLead?"":renderSecondaryPlatformV2(opts[1],pick);
-    var esc=escapeHtml;
+    // Second platform card:
+    //  - SPEED mode + LARGE divergence (not PS-lead): a FULL price card (the price
+    //    leader, i.e. Bring a Trailer) with its own price preamble.
+    //  - NON-speed: the standard genuinely-competitive secondary (v2AltCompetes).
+    var secHTML="";
+    if(c.speedMode){
+      if(!psLead&&c.speedDiverges&&c.priceCompetesFull&&c.priceAlt){
+        var pricePlatName=platformDisplayName(c.priceAlt.name||c.priceAlt.platformSlug);
+        var pricePre='<div class="pv2-bridge">If getting the strongest price matters more, '+esc(pricePlatName)+' has closed higher for cars like yours.</div>';
+        secHTML=pricePre+renderPickCardV2(c.priceAlt,{badge:"+ For the top price",whyLabel:"Why It Closes Higher",script:"For the strongest price,"});
+      }
+    } else {
+      secHTML=psLead?"":renderSecondaryPlatformV2(opts[1],pick);
+    }
     // No heading above the card (approved mockup is the card alone).
     var caveatText=(typeof unverifiedModelNote==="function"&&unverifiedModelNote())||(typeof adverseConditionCaveat==="function"&&adverseConditionCaveat())||"";
     var caveat=caveatText?'<div class="pv2-caveat">'+esc(caveatText)+'</div>':"";
-    // Bridge line between the two cards (locked, order-aware): only when BOTH render.
+    // Speed preamble (spec #5): a short intro above the speed pick, ONLY when it
+    // shares the page with another card (a price card and/or a PowerSeller card).
+    var speedPre="";
+    if(c.speedMode&&(psHTML||secHTML)){
+      var pickNm=platformDisplayName(pick.name||pick.platformSlug);
+      speedPre='<div class="pv2-bridge">For the fastest path to a sale, I\'d list on '+esc(pickNm)+'.</div>';
+    }
+    // PS<->platform transition (unchanged for NON-speed; in speed mode the speed
+    // preamble already introduces the platform section, so the generic bridge is
+    // suppressed to avoid a double intro).
     var bridge="";
-    if(psHTML&&pickHTML){
+    if(psHTML&&pickHTML&&!c.speedMode){
       bridge=psLead
         ? '<div class="pv2-bridge">If you\'d rather run the sale yourself, here\'s where I\'d go.</div>'
         : '<div class="pv2-bridge">Want it handled end to end instead? Here\'s who I\'d trust with it.</div>';
     }
-    var body=psLead?(psHTML+bridge+pickHTML+secHTML):(pickHTML+secHTML+bridge+psHTML);
+    var platformBlock=speedPre+pickHTML+secHTML;
+    var body=psLead?(psHTML+bridge+platformBlock):(platformBlock+bridge+psHTML);
     var after=c.psRendered
       ?'<div class="pv2-after">Both are real options and the choice is yours. Ask me to compare the tradeoffs, or how I\'d run the listing.</div>'
       :'<div class="pv2-after">Ask me anything about the pick, or how I\'d run the listing.</div>';
