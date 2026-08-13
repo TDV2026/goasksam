@@ -174,10 +174,12 @@ function v2SpeedWhy(pick, priceAlt, includeDisclose){
   var plat=platformDisplayName(pick.name||pick.platformSlug||"");
   var ev=pick.marketEvidence||{};
   var n=Number(ev.evidenceSales||0);
+  // A COUNT takes the singular model at 1 ("sold 1 California T"), plural above.
+  var modelCounted=(n===1)?model:modelPl;
   var win=(typeof v2WindowLabel==="function"&&typeof v2Window==="function")?v2WindowLabel(v2Window(ev)):"period";
   var s1="Since you'd like to sell quickly, I'd list your "+model+" on "+plat+".";
   var s2=n>0
-    ? " It's generally quicker to get a listing live than some other platforms, and it's sold "+n+" "+modelPl+" over the past "+win+", so buyers are already there."
+    ? " It's generally quicker to get a listing live than some other platforms, and it's sold "+n+" "+modelCounted+" over the past "+win+", so buyers are already there."
     : " It's generally quicker to get a listing live than some other platforms, and there's an active audience for cars like yours here.";
   var s3="";
   if(includeDisclose&&priceAlt){

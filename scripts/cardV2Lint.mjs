@@ -83,6 +83,11 @@ check("speed WHY w/ disclosure: lint-clean", clean(sw2).ok, clean(sw2).detail);
 check("speed WHY: passes the copy/count gate (no volume-headline / sell-through)", !/\bwhere most\b|most [^\n]{0,40} sales have closed|sell-?through|%\s*sold\b/i.test(sw2), sw2);
 const sw3 = v2SpeedWhy({ name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 0, windowDays: 180 } }, null, false);
 check("speed WHY: drops the count clause at N=0 (no fabricated count)", !/sold 0/.test(sw3) && /active audience/.test(sw3), sw3);
+// N=1 grammar: a count of 1 takes the SINGULAR model ("sold 1 Cayenne", never "1 Cayennes").
+globalThis.sellState.resolvedVehicle = { make: "Porsche", model: "Cayenne", year: 2020 };
+const sw1n = v2SpeedWhy({ name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 1, windowDays: 90 } }, null, false);
+check("speed WHY: N=1 uses the SINGULAR model (no plural -s)", /sold 1 Cayenne over the past \d+ days/.test(sw1n) && !/sold 1 Cayennes/.test(sw1n), sw1n);
+globalThis.sellState.resolvedVehicle = { make: "Porsche", model: "911", year: 2011 };
 
 // WEEKDAY: tier1 rounds to 5, no "around"; tier2 direction-only
 const wk1=v2Weekday({dayAdvantage:{weekday:"Wednesday",liftPercent:24,scope:"generation",window:180,sample:30,sales:8}},v);
