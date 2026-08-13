@@ -1133,11 +1133,11 @@ function askNextSellQuestion(){
 // per the locked no-dash rule.
 function askPowerSellerStep(){
   sellState.step=8;
-  // Timing question FIRST, on its own screen (Aug 2026). The three chips submit
-  // like any other chip; the step-8 handler stores sellState.timeline and then
-  // shows the SECOND screen (the PowerSeller explainer + the preference question).
-  // Not answering timing (typing a preference straight away) = today's behavior.
-  addMsg("sam","First, are you in a rush to list it?","",chipsHTML(["ASAP","No rush","Skip"]));
+  // Timing question first, on its own screen (Aug 2026). Both chips submit like
+  // any other chip; the step-8 handler stores sellState.timeline and then shows
+  // the SECOND screen (the PowerSeller explainer + the preference question). Not
+  // answering timing (typing a preference straight away) = today's behavior.
+  addMsg("sam","Are you in a rush to list it?","",chipsHTML(["ASAP","No rush"]));
 }
 // Second screen of step 8: the PowerSeller explainer + the preference question.
 // Shown after the timing chip is tapped. The preference chip runs the analysis.
