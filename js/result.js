@@ -98,7 +98,14 @@ async function showSellRecommendation(opts){
     // backend gap, so we stay on the confirmed summary and say so honestly
     // instead of looping. Otherwise (trim gap, pre-analysis) ask only the trim.
     if(sellState.vehicleDetailSkipped){
-      addMsg("sam","I don't have enough tracked sales on that exact car to be confident, so I'll keep the read at the model level. That's reflected in the recommendation.");
+      // Funnel complete and the seller accepted a model-level read, but the
+      // backend cannot resolve even a model (make-only or unrecognized model,
+      // e.g. a 1925 Duesenberg). This used to emit a bare line claiming a
+      // recommendation that never rendered - a silent dead-end. Rule 8: render
+      // the honest fallback CARD instead (policy-fit direction, labeled as fit).
+      const fallback=genericNoEvidenceFallback();
+      sellState.noEvidenceFallback=fallback;
+      showRegionalFallbackRecommendation(msgs,fallback);
     }else{
       const missing=currentMissingVehicleDetail();
       if(missing){sellState.returnToConfirm=true;askMissingVehicleDetail(missing);}
