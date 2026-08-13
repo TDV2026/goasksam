@@ -171,6 +171,17 @@ const ROUTE_POLICIES = {
   }
 };
 
+// US launch (Aug 2026): a US seller is only ever routed to platforms that actually
+// serve US sellers. This is an EXPLICIT ALLOWLIST, not a UK denylist: a new non-US
+// platform that turns up in the records (The Market, PistonHeads, Car & Classic,
+// Collecting Cars...) is excluded by default rather than needing to be denylisted
+// one at a time. SOMO stays in (a global operation with real US consignment reach).
+// The routeFit build below is the source of truth; the frontend re-checks it too.
+export const US_ROUTE_ALLOWLIST = new Set([
+  "bringatrailer", "bat", "carsandbids", "pcarmarket", "hemmings",
+  "sothebysmotorsport", "autohunter", "mbmarket", "hagerty"
+]);
+
 // ===================== EVIDENCE ALLOWLIST (July 2026) =====================
 // The allowlist governs EVIDENCE ONLY: which sources count toward the premium
 // "others" denominator and the evidence tallies (close/relevant/broad, sample
@@ -420,6 +431,17 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
     if (priorities.fastSale && ["fast", "medium_fast"].includes(policy.speedToList)) candidateKeys.add(key);
     if (facts.includes("region_fit")) candidateKeys.add(key);
     if (priorities.segments.some(segment => policy.strongSegments.includes(segment))) candidateKeys.add(key);
+  }
+
+  // US-only launch (source of truth): candidateKeys is seeded from EVERY platform
+  // with records above, so a non-US platform that has a sold record (Collecting
+  // Cars, The Market) would otherwise become a routable candidate for a US seller.
+  // Enforce the explicit US allowlist here so no non-US route ever leaves the
+  // backend. International sellers are untouched (their region logic is unchanged).
+  if (priorities.region === "US") {
+    for (const key of [...candidateKeys]) {
+      if (!US_ROUTE_ALLOWLIST.has(normSourceSlug(key))) candidateKeys.delete(key);
+    }
   }
 
   const routes = [...candidateKeys].map(key => {

@@ -157,8 +157,17 @@ function lookbackLine(option){
   return "";
 }
 
+// US-only launch: platforms that actually serve US sellers. Mirrors the backend
+// US_ROUTE_ALLOWLIST (api/sellerDecision.js) - the frontend can't import lib/api,
+// so it is duplicated here. Explicit allowlist, not a UK denylist: a new non-US
+// platform is excluded by default.
+const US_ROUTE_ALLOWLIST_FE=new Set(["bringatrailer","bat","carsandbids","pcarmarket","hemmings","sothebysmotorsport","autohunter","mbmarket","hagerty"]);
 function shouldSuppressRouteForSellerRegion(route){
-  if(!isInternationalSellerRegion())return false;
+  const slug=String(route?.platform||route?.platformSlug||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+  // US seller (defense in depth): the backend already filters routeFit to the US
+  // allowlist; this independently catches any non-US route that still slips
+  // through, under EVERY composition path (pick, speed pick, price alt, secondary).
+  if(!isInternationalSellerRegion())return slug?!US_ROUTE_ALLOWLIST_FE.has(slug):false;
   const facts=route?.routeFitFacts||[];
   return facts.includes("region_mismatch");
 }
