@@ -1106,7 +1106,10 @@ function beginScopedField(field){
   }
   if(field==="location"){ askLocationStep(); return; }
   if(field==="price"){ sellState.price=null; sellState.step=6; addMsg("sam",SELL_STEP_QUESTIONS[6].ask); return; }
-  if(field==="preference"){ sellState.sellerPreference=null; sellState.involvement=null; sellState.step=8; askPowerSellerStep(); return; }
+  // A preference edit goes straight to the preference question (keeps the timing
+  // answer; askSellPreferenceStep sets awaitingPreference so the answer parses
+  // correctly and finishScopedEdit closes the edit).
+  if(field==="preference"){ sellState.sellerPreference=null; sellState.involvement=null; sellState.step=8; askSellPreferenceStep(); return; }
 }
 function scopedEditActive(field){ var se=sellState.scopedEdit; return !!(se&&!se.awaitingField&&se.field===field); }
 function finishScopedEdit(){
@@ -1160,16 +1163,19 @@ function askNextSellQuestion(){
 // per the locked no-dash rule.
 function askPowerSellerStep(){
   sellState.step=8;
-  // Timing question first, on its own screen (Aug 2026). Both chips submit like
-  // any other chip; the step-8 handler stores sellState.timeline and then shows
-  // the SECOND screen (the PowerSeller explainer + the preference question). Not
-  // answering timing (typing a preference straight away) = today's behavior.
+  // TIMING sub-question first, on its own screen (Aug 2026). awaitingPreference
+  // false marks this as the timing answer, so the step-8 handler stores
+  // sellState.timeline and advances to the SECOND screen (the PowerSeller
+  // explainer + the preference question) rather than misreading "No rush" as DIY.
+  sellState.awaitingPreference=false;
   addMsg("sam","Are you in a rush to list it?","",chipsHTML(["ASAP","No rush"]));
 }
 // Second screen of step 8: the PowerSeller explainer + the preference question.
-// Shown after the timing chip is tapped. The preference chip runs the analysis.
+// Shown after the timing answer. awaitingPreference true routes the next answer to
+// the preference parser; the preference chip runs the analysis.
 function askSellPreferenceStep(){
   sellState.step=8;
+  sellState.awaitingPreference=true;
   const q=SELL_STEP_QUESTIONS[8];
   addMsg("sam",`${q.explainer} ${q.ask}`,"",chipsHTML(q.chips));
 }

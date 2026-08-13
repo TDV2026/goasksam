@@ -332,15 +332,15 @@ async function handleSellStep(q){
     // move-on/refusal advances as "unsure" rather than stalling. Timing tokens
     // (folded rush question) are in-scope answers, not off-script.
     if(isQuestionInput(q)&&!/powerseller|power seller|handle|help|myself|list it|diy|not sure|^yes|^no|asap|rush|hurry|quick|fast|no rush|skip/i.test(lower))return false;
-    // TIMING answer (first screen of step 8), from a chip or typed. Extract it
-    // first (store sellState.timeline), then look for a preference below.
-    let typedTiming=false;
-    if(/\basap\b|in a (rush|hurry)|gone fast|sell (it )?(fast|quick|quickly|soon)|\brush\b/.test(lower)&&!/no (rush|hurry)/.test(lower)){ sellState.timeline="ASAP"; sellState.timelineAsked=true; typedTiming=true; }
-    else if(/\bno rush\b|no hurry|not in a (rush|hurry)|right result|take my time/.test(lower)){ sellState.timeline="No rush"; sellState.timelineAsked=true; typedTiming=true; }
-    // Preference detection (the submit answer). "not sure"/"unsure" is the
-    // preference-unsure; the timing "Skip" is handled separately below.
-    const hasPref=/powerseller|power seller|handle everything|have it handled|handled|someone|get help|myself|list and handle|handle it myself|list it|run it|on my own|diy|not sure|unsure|^yes\b|^no\b/i.test(lower);
-    if(hasPref){
+    // Step 8 has TWO sub-questions: TIMING first, then PREFERENCE.
+    // sellState.awaitingPreference tracks which one THIS answer belongs to, so a
+    // timing answer of "No rush" (which also matches the bare-"no" -> DIY pattern)
+    // is never misread as the preference and never skips the preference question.
+    // askPowerSellerStep clears the flag; askSellPreferenceStep sets it.
+    // Extract the timing signal (chip or typed) regardless of sub-state.
+    if(/\basap\b|in a (rush|hurry)|gone fast|sell (it )?(fast|quick|quickly|soon)|\brush\b/.test(lower)&&!/no (rush|hurry)/.test(lower)){ sellState.timeline="ASAP"; sellState.timelineAsked=true; }
+    else if(/\bno rush\b|no hurry|not in a (rush|hurry)|right result|take my time/.test(lower)){ sellState.timeline="No rush"; sellState.timelineAsked=true; }
+    const runPreference=()=>{
       let pref;
       if(/powerseller|power seller|handle everything|have it handled|handled|someone|get help|^yes\b/i.test(lower))pref="powerseller";
       else if(/myself|list and handle|handle it myself|list it|run it|on my own|diy|^no\b/i.test(lower)||detectIntent(lower)==="negation")pref="diy";
@@ -348,29 +348,24 @@ async function handleSellStep(q){
       sellState.sellerPreference=pref;
       // Reuse the existing involvement gate so the result stage honors the choice.
       sellState.involvement=pref==="powerseller"?"Want someone to handle everything":pref==="diy"?"I'll manage it myself":"";
-      // Preference is the final intake question. There is no confirm step: the
-      // answer runs the analysis directly (the parsed summary shows as a strip at
-      // the top of the analysis screen). An edit re-runs the analysis too.
+      // Preference is the final intake question: the answer runs the analysis
+      // directly (no confirm step). An edit re-runs the analysis too.
       sellState.returnToConfirm=false;
       if(scopedEditActive("preference"))return finishScopedEdit();
       showSellRecommendation();
       return true;
-    }
-    // Timing chip/typed answer (first screen of step 8): store the timeline, then
-    // show the SECOND screen - the PowerSeller explainer + the preference question,
-    // which is what runs the analysis.
-    if(typedTiming||/^\s*skip\s*$/.test(lower)){
-      if(/^\s*skip\s*$/.test(lower)){ sellState.timeline=null; sellState.timelineAsked=true; }
+    };
+    if(!sellState.awaitingPreference){
+      // TIMING sub-question. Only a CLEAR preference (never the ambiguous bare
+      // no/yes/skip) short-circuits straight to the analysis; everything else -
+      // including "No rush"/"ASAP" - advances to the PowerSeller preference step.
+      const clearPref=/powerseller|power seller|handle everything|have it handled|handled|someone|get help|myself|list and handle|handle it myself|list it|run it|on my own|\bdiy\b|not sure|unsure/i.test(lower);
+      if(clearPref)return runPreference();
       askSellPreferenceStep();
       return true;
     }
-    // Unrecognized: preserve the move-on-as-unsure behavior.
-    sellState.sellerPreference="unsure";
-    sellState.involvement="";
-    sellState.returnToConfirm=false;
-    if(scopedEditActive("preference"))return finishScopedEdit();
-    showSellRecommendation();
-    return true;
+    // PREFERENCE sub-question: parse the preference and run the analysis.
+    return runPreference();
   }
 
   // ── STEP 16: confirmation ────────────────────────────────────
