@@ -332,8 +332,8 @@ async function handleSellStep(q){
     // move-on/refusal advances as "unsure" rather than stalling. Timing tokens
     // (folded rush question) are in-scope answers, not off-script.
     if(isQuestionInput(q)&&!/powerseller|power seller|handle|help|myself|list it|diy|not sure|^yes|^no|asap|rush|hurry|quick|fast|no rush|skip/i.test(lower))return false;
-    // Folded TIMING signal from a TYPED answer (chip clicks set it via
-    // setRushTiming with no turn). Extract it first, then look for a preference.
+    // TIMING answer (first screen of step 8), from a chip or typed. Extract it
+    // first (store sellState.timeline), then look for a preference below.
     let typedTiming=false;
     if(/\basap\b|in a (rush|hurry)|gone fast|sell (it )?(fast|quick|quickly|soon)|\brush\b/.test(lower)&&!/no (rush|hurry)/.test(lower)){ sellState.timeline="ASAP"; sellState.timelineAsked=true; typedTiming=true; }
     else if(/\bno rush\b|no hurry|not in a (rush|hurry)|right result|take my time/.test(lower)){ sellState.timeline="No rush"; sellState.timelineAsked=true; typedTiming=true; }
@@ -356,11 +356,12 @@ async function handleSellStep(q){
       showSellRecommendation();
       return true;
     }
-    // Timing-only typed answer (or the "Skip" timing chip typed): store the
-    // timeline and wait for the preference answer, which is what runs the analysis.
+    // Timing chip/typed answer (first screen of step 8): store the timeline, then
+    // show the SECOND screen - the PowerSeller explainer + the preference question,
+    // which is what runs the analysis.
     if(typedTiming||/^\s*skip\s*$/.test(lower)){
       if(/^\s*skip\s*$/.test(lower)){ sellState.timeline=null; sellState.timelineAsked=true; }
-      addMsg("sam","Noted. And how would you like to handle the sale?","",chipsHTML(SELL_STEP_QUESTIONS[8].chips));
+      askSellPreferenceStep();
       return true;
     }
     // Unrecognized: preserve the move-on-as-unsure behavior.

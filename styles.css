@@ -95,17 +95,6 @@ body{
   padding:8px 14px;font-family:inherit;font-size:13px;color:#444;cursor:pointer;
 }
 .chip:hover{border-color:#171717;color:#171717;background:#fafafa;}
-/* Folded step-8 timing question: each question label is a full-size prompt (body
-   size + weight, dark ink) so both read as questions requiring a tap, never fine
-   print; the selected inline timing chip uses .chip-selected (setRushTiming). */
-.chip-subq{font-size:15px;line-height:1.5;color:#1b1b1b;font-weight:600;margin:12px 0 9px;font-family:inherit;}
-.chip-subq:first-child{margin-top:4px;}
-/* Split the two folded questions into visibly distinct prompts: the second
-   question (the preference sub-label, which follows the rush chip row) gets extra
-   top space and a light divider so it never blurs into the first. */
-.chips + .chip-subq{margin-top:22px;padding-top:20px;border-top:1px solid var(--line,#e9e9e6);}
-.chip-selected{border-color:#171717;background:#171717;color:#fff;}
-.chip-selected:hover{border-color:#171717;background:#171717;color:#fff;}
 /* Chip dispatch by step-id: a chip from a completed step is inert + dimmed. */
 .chip-spent{opacity:.4;pointer-events:none;cursor:default;filter:grayscale(.35);}
 .chip-spent:hover{border-color:#dededb;color:#444;background:white;}

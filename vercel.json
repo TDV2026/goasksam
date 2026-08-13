@@ -9,8 +9,8 @@
   ],
   "rewrites": [
     { "source": "/out", "destination": "/api/out" },
-    { "source": "/styles.20260813b.css", "destination": "/styles.css" },
-    { "source": "/js.20260813a/(.*)", "destination": "/js/$1" }
+    { "source": "/styles.20260813c.css", "destination": "/styles.css" },
+    { "source": "/js.20260813b/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
     "api/usageDashboard.js": {
