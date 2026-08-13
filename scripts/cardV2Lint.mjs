@@ -69,7 +69,9 @@ for(const mode of ["modeA","modeB","concentration","thin"]){
 }
 
 // SPEED PICK WORDING (Aug 2026): locked template, real {N}/{window}, count-gate
-// clean, sentence-3 disclosure only when asked, no fabricated count at N=0.
+// clean, sentence-3 disclosure only when asked. The speed pick is guaranteed
+// evidence-backed by v2Composition, so the count clause always states a real
+// number and there is NO N=0 "active audience" fallback (deleted, not dormant).
 globalThis.sellState.resolvedVehicle = { make: "Porsche", model: "911", year: 2011 };
 globalThis.sellState.sellDecision = { vehicle: { make: "Porsche", model: "911", year: 2011 }, evidence: { windowDays: 180, ladder: { landed: { key: "generation_trim" } } } };
 const spPick = { name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 7, windowDays: 180 } };
@@ -81,8 +83,24 @@ const sw2 = v2SpeedWhy(spPick, spPrice, true);
 check("speed WHY: sentence-3 discloses the price leader", /Bring a Trailer has closed higher for 911s over this period, if getting the top price matters more than speed\./.test(sw2), sw2);
 check("speed WHY w/ disclosure: lint-clean", clean(sw2).ok, clean(sw2).detail);
 check("speed WHY: passes the copy/count gate (no volume-headline / sell-through)", !/\bwhere most\b|most [^\n]{0,40} sales have closed|sell-?through|%\s*sold\b/i.test(sw2), sw2);
-const sw3 = v2SpeedWhy({ name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 0, windowDays: 180 } }, null, false);
-check("speed WHY: drops the count clause at N=0 (no fabricated count)", !/sold 0/.test(sw3) && /active audience/.test(sw3), sw3);
+check("speed WHY: the 'active audience' N=0 fallback is GONE (no unsourced colour)", !/active audience/.test(v2SpeedWhy(spPick, null, false)), "active-audience fallback still present");
+// COMPOSITION: the speed pick MUST be evidence-backed. A non-BaT route with NO
+// evidence is never the speed pick; if none has evidence, no speed elevation and
+// the standard leader (opts[0]) leads - same shape as the no-divergence case.
+{
+  const savedTimeline = globalThis.sellState.timeline, savedPref = globalThis.sellState.sellerPreference, savedRegion = globalThis.sellState.region, savedRef = globalThis.sellState.partnerReferral;
+  globalThis.sellState.timeline = "ASAP"; globalThis.sellState.sellerPreference = "diy"; globalThis.sellState.region = "US"; globalThis.sellState.partnerReferral = {};
+  const batEv = { key: "r0", name: "Bring a Trailer", platformSlug: "bringatrailer", marketEvidence: { evidenceSales: 4, windowDays: 180 } };
+  const hemNoEv = { key: "r1", name: "Hemmings", platformSlug: "hemmings", marketEvidence: null };
+  const cbEv = { key: "r2", name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 5, windowDays: 180, pricePremium: { gateType: "symmetric", percent: 4 } } };
+  globalThis.sellState.sellOptions = [batEv, hemNoEv];
+  let cc = v2Composition();
+  check("speed pick: no non-BaT EVIDENCE route -> no speed elevation, BaT (leader) leads", cc.speedMode === false && cc.pick && cc.pick.platformSlug === "bringatrailer", JSON.stringify({ speedMode: cc.speedMode, pick: cc.pick && cc.pick.platformSlug }));
+  globalThis.sellState.sellOptions = [batEv, cbEv];
+  cc = v2Composition();
+  check("speed pick: a non-BaT evidence route present -> it leads as the speed pick", cc.speedMode === true && cc.pick && cc.pick.platformSlug === "carsandbids", JSON.stringify({ speedMode: cc.speedMode, pick: cc.pick && cc.pick.platformSlug }));
+  globalThis.sellState.timeline = savedTimeline; globalThis.sellState.sellerPreference = savedPref; globalThis.sellState.region = savedRegion; globalThis.sellState.partnerReferral = savedRef; globalThis.sellState.sellOptions = [];
+}
 // N=1 grammar: a count of 1 takes the SINGULAR model ("sold 1 Cayenne", never "1 Cayennes").
 globalThis.sellState.resolvedVehicle = { make: "Porsche", model: "Cayenne", year: 2020 };
 const sw1n = v2SpeedWhy({ name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 1, windowDays: 90 } }, null, false);

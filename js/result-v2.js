@@ -178,9 +178,11 @@ function v2SpeedWhy(pick, priceAlt, includeDisclose){
   var modelCounted=(n===1)?model:modelPl;
   var win=(typeof v2WindowLabel==="function"&&typeof v2Window==="function")?v2WindowLabel(v2Window(ev)):"period";
   var s1="Since you'd like to sell quickly, I'd list your "+model+" on "+plat+".";
-  var s2=n>0
-    ? " It's generally quicker to get a listing live than some other platforms, and it's sold "+n+" "+modelCounted+" over the past "+win+", so buyers are already there."
-    : " It's generally quicker to get a listing live than some other platforms, and there's an active audience for cars like yours here.";
+  // The speed pick is guaranteed evidence-backed by v2Composition (evidenceSales>0),
+  // so the count clause always states a real number. There is NO N=0 fallback: an
+  // unsourced "active audience" line asserting market colour we cannot back is the
+  // same problem as a fabricated number, so it was deleted rather than left dormant.
+  var s2=" It's generally quicker to get a listing live than some other platforms, and it's sold "+n+" "+modelCounted+" over the past "+win+", so buyers are already there.";
   var s3="";
   if(includeDisclose&&priceAlt){
     var pp=platformDisplayName(priceAlt.name||priceAlt.platformSlug||"");
@@ -699,28 +701,38 @@ function v2Composition(){
   var opts=(sellState.sellOptions||[]).filter(function(o){return o&&o.key!=="specialist";});
   var referral=sellState.partnerReferral||{};
   var pref=sellState.sellerPreference;
-  // SPEED (Aug 2026, V2 owns speed): the ranking ladder now hands opts in pure
+  // SPEED (Aug 2026, V2 owns speed): the ranking ladder hands opts in pure
   // PRICE/EVIDENCE order (opts[0] = price leader). On an ASAP timeline, Bring a
   // Trailer is excluded from the SPEED-pick pool only (slower to list); the speed
-  // pick is the top remaining platform by that same evidence order. BaT can still
-  // be the named PRICE alternative. Divergence exists exactly when opts[0] is BaT.
+  // pick is the top remaining platform that WINS THE EVIDENCE LOGIC - i.e. it must
+  // have real comparable-sales evidence (evidenceSales>0), never a policy-backup
+  // route with none. If NO non-BaT route has evidence, there is no honest speed
+  // pick: no speed elevation, and the standard evidence leader (opts[0], usually
+  // BaT) leads the card exactly as in the no-divergence case. Divergence exists
+  // only when the evidence-backed speed pick differs from the price leader (BaT).
   var wantsSpeed=(typeof sellerWantsSpeed==="function")&&sellerWantsSpeed();
+  var evBacked=function(o){ return !!(o&&o.marketEvidence&&Number(o.marketEvidence.evidenceSales||0)>0); };
   var pick, alt, speedMode=false, speedDiverges=false, priceAlt=null, priceCompetesFull=false;
   if(wantsSpeed&&opts.length){
-    speedMode=true;
     var priceLeader=opts[0];
     var speedPick=null;
-    for(var i=0;i<opts.length;i++){ if(!v2IsBaT(opts[i])){ speedPick=opts[i]; break; } }
-    if(!speedPick)speedPick=opts[0]; // degenerate: only BaT has evidence
-    pick=speedPick;
-    speedDiverges=!!(priceLeader&&speedPick&&v2IsBaT(priceLeader)
-      &&String(priceLeader.platformSlug||priceLeader.name)!==String(speedPick.platformSlug||speedPick.name));
-    if(speedDiverges){
-      priceAlt=priceLeader;
-      priceCompetesFull=!!(typeof v2AltCompetes==="function"&&v2AltCompetes(priceAlt,speedPick));
-      alt=priceAlt;
+    for(var i=0;i<opts.length;i++){ if(!v2IsBaT(opts[i])&&evBacked(opts[i])){ speedPick=opts[i]; break; } }
+    if(speedPick){
+      speedMode=true;
+      pick=speedPick;
+      speedDiverges=!!(priceLeader&&v2IsBaT(priceLeader)
+        &&String(priceLeader.platformSlug||priceLeader.name)!==String(speedPick.platformSlug||speedPick.name));
+      if(speedDiverges){
+        priceAlt=priceLeader;
+        priceCompetesFull=!!(typeof v2AltCompetes==="function"&&v2AltCompetes(priceAlt,speedPick));
+        alt=priceAlt;
+      } else {
+        alt=opts[1]||null;
+      }
     } else {
-      alt=opts[1]||null;
+      // No non-BaT route with evidence -> no honest speed pick. Standard leader
+      // leads (no speed elevation, no fabricated market color). speedMode stays false.
+      pick=opts[0]||null; alt=opts[1]||null;
     }
   } else {
     pick=opts[0]||null; alt=opts[1]||null;
