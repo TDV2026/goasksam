@@ -59,10 +59,24 @@ const MAINSTREAM_MODEL_RE={
   "land rover":/^(range[\s-]?rover([\s-]?(sport|evoque|velar))?|discovery.*|evoque|velar|freelander|lr[234])$/,
   "jaguar":/^(xf|xe|xj[\s-]?\d*|xj)$/
 };
-function modelIsMainstream(make,model){
-  var re=MAINSTREAM_MODEL_RE[String(make||"").toLowerCase().trim()];
-  if(!re)return false;
+// Porsche 911 splits by TRIM, not model (the model is always "911"): the base
+// Carrera/Targa lines are mainstream volume and must never read as rare, while the
+// halo trims (GT3/GT3 RS/GT3 Touring, GT2, Turbo/Turbo S, Sport Classic, Dakar,
+// Speedster, S/T, 911 R, Weissach package) stay rarity-eligible. Same split-by-trim
+// as Mercedes (E-Class suppressed, AMG GT eligible). Cayenne/Macan/Panamera are
+// mainstream Porsche volume; Cayman/Boxster stay eligible.
+const PORSCHE_911_HALO=/(gt1|gt2|gt3|turbo|sport ?classic|dakar|speedster|weissach|carrera gt\b|\brs\b|s\/t|\br\b|\b912\b|50th|heritage)/i;
+function modelIsMainstream(make,model,trim){
+  var mk=String(make||"").toLowerCase().trim();
   var md=String(model||"").toLowerCase().replace(/\s+/g," ").trim();
+  var tr=String(trim||"").toLowerCase().replace(/\s+/g," ").trim();
+  if(mk==="porsche"){
+    if(/(^|\b)911\b/.test(md)||/^(carrera|targa)/.test(md)) return !PORSCHE_911_HALO.test(tr+" "+md);
+    if(/^(cayenne|macan|panamera)/.test(md)) return true;
+    return false;
+  }
+  var re=MAINSTREAM_MODEL_RE[mk];
+  if(!re)return false;
   return re.test(md);
 }
 function modelHasTrimEscape(model){ const m=String(model||"").toLowerCase(); return ESCAPE_MODELS.some(e=>m.includes(e)); }

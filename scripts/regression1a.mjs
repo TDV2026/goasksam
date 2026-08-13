@@ -18,7 +18,7 @@ const realFetch = globalThis.fetch;
 globalThis.fetch = (url,opts) => realFetch(String(url).startsWith("http")?url:BASE+(String(url).startsWith("/")?url:"/"+url), opts);
 
 const html = fs.readFileSync("index.html","utf8");
-const files = [...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
+const files = [...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"js/"+m[1]);
 const script = files.map(f=>fs.readFileSync(f,"utf8")).join("\n");
 const bootstrap = `globalThis.__SAM=SAM;globalThis.sellState=sellState;globalThis.send=send;globalThis.startSellFlow=startSellFlow;
 const __a=addMsg; addMsg=function(r,t,h,c){ if(r==="sam")SAM.push(String(t||"")); try{return __a(r,t,h,c);}catch(e){} };`;

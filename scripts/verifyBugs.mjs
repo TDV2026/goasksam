@@ -11,7 +11,7 @@ globalThis.location={hostname:"localhost",protocol:"file:",search:""};
 globalThis.localStorage={getItem:()=>null,setItem:noop,removeItem:noop};
 globalThis.fetch=async()=>({ok:true,json:async()=>({})});
 const html=fs.readFileSync("index.html","utf8");
-const files=[...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
+const files=[...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"js/"+m[1]);
 (0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.renderResultV2Page=renderResultV2Page;globalThis.renderSecondaryPlatformV2=renderSecondaryPlatformV2;globalThis.v2Mode=v2Mode;globalThis.renderPickCardV2=renderPickCardV2;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.v2Composition=v2Composition;globalThis.v2PickFacts=v2PickFacts;globalThis.v2FollowupIntent=v2FollowupIntent;globalThis.v2ComposeTradeoffs=v2ComposeTradeoffs;globalThis.v2ComposeRunListing=v2ComposeRunListing;globalThis.v2ComposeRecommend=v2ComposeRecommend;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2SafeFallback=v2SafeFallback;globalThis.v2RungLabel=v2RungLabel;globalThis.v2ActionViolation=v2ActionViolation;globalThis.v2ActionFallback=v2ActionFallback;globalThis.detectCountry=detectCountry;globalThis.COUNTRY_REGISTRY=COUNTRY_REGISTRY;globalThis.countryChips=countryChips;globalThis.registryRoutableRegion=registryRoutableRegion;globalThis.chipsHTML=chipsHTML;globalThis.currentChipStep=currentChipStep;globalThis.SELL_STEP_QUESTIONS=SELL_STEP_QUESTIONS;globalThis.outOfScopeEligible=outOfScopeEligible;globalThis.hasEnthusiastTrim=hasEnthusiastTrim;globalThis.modelHasTrimEscape=modelHasTrimEscape;globalThis.makeIsMainstream=makeIsMainstream;globalThis.makeIsEnthusiast=makeIsEnthusiast;globalThis.outOfScopeCopy=outOfScopeCopy;globalThis.v2RarityAllowed=v2RarityAllowed;globalThis.OUT_OF_SCOPE=OUT_OF_SCOPE;globalThis.v2RosterNameViolation=v2RosterNameViolation;globalThis.v2RosterFallback=v2RosterFallback;globalThis.powerSellerExplainerText=powerSellerExplainerText;globalThis.localPreRoute=localPreRoute;");
 
 let fails=0;
@@ -252,7 +252,13 @@ check("rarity: Merkur (1988, >25yr) -> rarity allowed", rarity({year:1988,make:"
 check("rarity: 2013 Ferrari 458 (enthusiast + archive>=1) -> rarity allowed", rarity({year:2013,make:"Ferrari",model:"458"},40)===true);
 check("rarity: 2019 Audi A6 (enthusiast make, 0 archive) -> NEUTRAL (never rare)", rarity({year:2019,make:"Audi",model:"A6"},0)===false);
 check("rarity: 2016 Camry passing nothing -> NEUTRAL", rarity({year:2016,make:"Toyota",model:"Camry"},0)===false);
-check("rarity: modern enthusiast make WITH archive still rare (2015 Porsche 911, count 87)", rarity({year:2015,make:"Porsche",model:"911"},87)===true);
+// Porsche 911 splits by TRIM (Aug 2026): base Carrera/Targa are mainstream volume
+// (never rare); halo trims stay rarity-eligible. Age >25 still earns it regardless.
+check("rarity: 2015 Porsche 911 (base, no trim) -> NEUTRAL (mainstream volume)", rarity({year:2015,make:"Porsche",model:"911"},87)===false);
+check("rarity: 2015 Porsche 911 Carrera S -> NEUTRAL (mainstream)", rarity({year:2015,make:"Porsche",model:"911",trim:"Carrera S"},87)===false);
+check("rarity: 2023 Porsche 911 GT3 RS -> rarity allowed (halo trim)", rarity({year:2023,make:"Porsche",model:"911",trim:"GT3 RS"},87)===true);
+check("rarity: 2023 Porsche 911 Weissach -> rarity allowed (halo package)", rarity({year:2023,make:"Porsche",model:"911",trim:"Weissach"},87)===true);
+check("rarity: 1973 Porsche 911 (base but >25yr) -> rarity allowed (age)", rarity({year:1973,make:"Porsche",model:"911"},87)===true);
 
 // ============ PARTNER-NAME RULE + FEE LANGUAGE ============
 // Empty composition (pre-wizard / out-of-scope): ANY roster name is a violation.

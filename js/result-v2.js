@@ -124,7 +124,7 @@ function v2RarityAllowed(){
     var yr=Number(v.year);
     if(yr&&((new Date().getFullYear())-yr)>25)return true;
     var count=Number(sellState.archiveModelCount);
-    var mainstreamModel=(typeof modelIsMainstream==="function")&&modelIsMainstream(v.make,v.model);
+    var mainstreamModel=(typeof modelIsMainstream==="function")&&modelIsMainstream(v.make,v.model,v.trim);
     if(typeof makeIsEnthusiast==="function"&&makeIsEnthusiast(v.make)&&!mainstreamModel&&isFinite(count)&&count>=1)return true;
     return false;
   }catch(e){ return false; }
@@ -149,8 +149,8 @@ function v2Why(mode,s){
     modeA:[a+".",a+"."],
     modeB:[b+", so the room decides, and {platform} has the most recent {scopeAttr} sales.","Since "+b+", the room decides, and {platform} has the most recent {scopeAttr} sales.",b+". With little to separate them on price, {platform} has the most recent {scopeAttr} sales."],
     concentration:[c+". It's where the market for {rungRef} is actually trading.","Right now, "+c+", so that's where buyers are looking.",c+", which makes it the honest place to meet the market for {rungRef}."],
-    thin:["recent sales for {failedRef} are limited, so I widened to the {rungWord}. {platform} is where the few that trade tend to surface, and it reaches the buyers who want something this uncommon.","recent sales for {failedRef} are limited, so I widened to the {rungWord}. For a car this rare, {platform} is where the patient buyers tend to look.","recent sales for {failedRef} are limited, so I widened to the {rungWord}. {platform} reaches the patient buyers who actually want one; treat this as directional."],
-    thinNeutral:["recent sales for {failedRef} are limited, so I widened to the {rungWord}. {platform} holds the few recent {scopeAttr} sales I can see, so treat this as directional.","recent sales for {failedRef} are limited, so I widened to the {rungWord}. {platform} is where those sales have happened; treat this as directional.","recent sales for {failedRef} are limited, so I widened to the {rungWord}, and {platform} is where I would start."]
+    thin:["{platform} is where I'd sell {carRef}. Recent sales for {failedRef} are limited, so I widened the analysis to the {rungWord}; for a car this uncommon, that reach is what finds the buyer.","I'd sell {carRef} on {platform}. Sales for {failedRef} are thin right now, so I widened to the {rungWord}, and a car this rare needs {platform}'s buyers.","{platform} is my pick for {carRef}. Recent {failedRef} sales are limited, so I widened to the {rungWord}, and {platform} is where the few that trade surface."],
+    thinNeutral:["{platform} is where I'd sell {carRef}. Recent sales for {failedRef} are limited, so I widened the analysis to the {rungWord} to be sure of the read.","I'd sell {carRef} on {platform}. Sales for {failedRef} are thin right now, so I based this on the wider {rungWord} to be confident.","{platform} is my pick for {carRef}. Recent {failedRef} sales are limited, so I widened to the {rungWord} to ground the read."]
   };
   var key=(mode||"thin"); if(key==="thin"&&!v2RarityAllowed())key="thinNeutral";
   var t=v2Pick(pools[key],"why");
@@ -236,7 +236,7 @@ function renderPickCardV2(option){
     var mode=v2Mode(ev);
     var win=v2Window(ev);
     var p=ev.pricePremium;
-    var slots={ scope:v2ScopePlural(v), scopeAttr:v2ScopeAttr(v), rungRef:v2RungRef(v), failedRef:v2FailedRungRef(v), rungWord:v2RungNoun(), platform:name, make:v.make||"car", delta:(p&&isFinite(p.percent))?Math.abs(Math.round(p.percent)):"", window:v2WindowLabel(win) };
+    var slots={ scope:v2ScopePlural(v), scopeAttr:v2ScopeAttr(v), rungRef:v2RungRef(v), failedRef:v2FailedRungRef(v), rungWord:v2RungNoun(), platform:name, make:v.make||"car", carRef:"your "+(v.model||v.make||"car"), delta:(p&&isFinite(p.percent))?Math.abs(Math.round(p.percent)):"", window:v2WindowLabel(win) };
     var esc=escapeHtml;
     // ---- data bindings (all dynamic) ----
     var loc=[sellState.state,sellState.region].filter(Boolean)[0]||"US";
@@ -262,9 +262,9 @@ function renderPickCardV2(option){
       var wkScope=v2ScopePlural(v);
       tiles.push({l:"Best day to sell",v:wk.headline,s:wkScope+" have closed strongest on "+wk.headline+"s"+(hasPct?(", "+lift+"% above other days."):"."),sc:wkScope+(hasPct?" close "+lift+"% above other days.":" close strongest on "+wk.headline+"s.")}); }
     var rv=v2Reserve(ev);
-    if(rv){ var rc=ev.reserveContext||{}; var pct=Number(rc.delta_pct);
-      if(Math.abs(pct)<3){ tiles.push({l:"Reserve position",v:"About even",s:"Cars like yours with and without reserves on "+name+" have closed within a few points of each other.",sc:"Reserved and unreserved cars closed within a few points."}); }
-      else { var Nr=Math.round(Math.abs(pct)); tiles.push({l:"Reserve position",v:(pct>=0?"+":"-")+Nr+"%",s:"Cars like yours with reserves on "+name+" have closed "+Nr+"% "+(pct>=0?"higher":"lower")+" than those without.",sc:"Reserved cars have closed "+Nr+"% "+(pct>=0?"higher":"lower")+" than those without."}); } }
+    if(rv){ var rc=ev.reserveContext||{}; var pct=Number(rc.delta_pct); var rvScope=v2ScopePlural(v);
+      if(Math.abs(pct)<3){ tiles.push({l:"Reserve position",v:"About even",s:rvScope+" listings with and without a reserve have closed within a few points of each other.",sc:rvScope+" closed within a few points with or without a reserve."}); }
+      else { var Nr=Math.round(Math.abs(pct)); var rdir=(pct>=0?"higher":"lower"); tiles.push({l:"Reserve position",v:(pct>=0?"+":"-")+Nr+"%",s:rvScope+" listings with a reserve have closed "+Nr+"% "+rdir+" than those without.",sc:rvScope+" with a reserve closed "+Nr+"% "+rdir+"."}); } }
     if(tiles.length<2){ var au=v2Audience(ev); if(au)tiles.push({l:"Audience",v:au.headline,s:au.body}); }
     tiles=tiles.slice(0,2);
     // Zero stat tiles: the rail simply ends at TRACK RECORD - no empty-state filler

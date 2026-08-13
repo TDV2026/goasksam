@@ -23,7 +23,7 @@ globalThis.localStorage = { getItem: () => null, setItem: noop, removeItem: noop
 globalThis.setInterval = () => 0; globalThis.clearInterval = noop; globalThis.setTimeout = () => 0;
 
 const html = fs.readFileSync("index.html", "utf8");
-const files = [...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m => m[1]);
+const files = [...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m => "js/"+m[1]);
 (0, eval)(files.map(f => fs.readFileSync(f, "utf8")).join("\n") + "\nglobalThis.showSellRecommendation=showSellRecommendation;globalThis.sellState=sellState;");
 
 const css = fs.readFileSync("styles.css", "utf8");

@@ -35,7 +35,7 @@ globalThis.fetch = async (url, opts) => {
 
 const SAM = [];
 const html = fs.readFileSync("index.html","utf8");
-const files = [...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
+const files = [...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"js/"+m[1]);
 const script = files.map(f=>fs.readFileSync(f,"utf8")).join("\n");
 const bootstrap = `
 globalThis.__SAM = SAM;

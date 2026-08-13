@@ -27,7 +27,7 @@ globalThis.location={hostname:"localhost",protocol:"file:",search:""};
 globalThis.localStorage={getItem:()=>null,setItem:noop,removeItem:noop};
 globalThis.fetch=async()=>({ok:true,json:async()=>({})});
 const html=fs.readFileSync("index.html","utf8");
-const files=[...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
+const files=[...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"js/"+m[1]);
 (0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.v2Because=v2Because;globalThis.v2Why=v2Why;globalThis.v2Weekday=v2Weekday;globalThis.v2Reserve=v2Reserve;globalThis.v2Audience=v2Audience;globalThis.v2ScopePlural=v2ScopePlural;globalThis.v2RungRef=v2RungRef;globalThis.v2FailedRungRef=v2FailedRungRef;globalThis.v2RungNoun=v2RungNoun;globalThis.CLAUSE_A=CLAUSE_A;globalThis.CLAUSE_B=CLAUSE_B;globalThis.CLAUSE_C=CLAUSE_C;globalThis.v2WindowLabel=v2WindowLabel;globalThis.psvReasonNote=psvReasonNote;globalThis.psvPara=psvPara;globalThis.psvWhyBullets=psvWhyBullets;globalThis.psvValueLine=psvValueLine;globalThis.psvPoss=psvPoss;globalThis.psvIntro=psvIntro;globalThis.psvSpecTile=psvSpecTile;globalThis.psvClaim=psvClaim;globalThis.psvWheelhouse=psvWheelhouse;globalThis.psvWheelhouseList=psvWheelhouseList;globalThis.psvPron=psvPron;globalThis.psvTrustLines=psvTrustLines;globalThis.v2CarDisplay=v2CarDisplay;globalThis.v2ScopeAttr=v2ScopeAttr;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.renderPickCardV2=renderPickCardV2;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2Composition=typeof v2Composition==='function'?v2Composition:function(){return null};");
 
 let failures=0;
@@ -41,7 +41,7 @@ globalThis.sellState=Object.assign(globalThis.sellState||{},{
   sellDecision:{ resultId:"seed-abc", evidence:{ windowDays:90, generation:{code:"997"}, ladder:{landed:{key:"generation_trim",generationCode:"997"}} } }
 });
 const v={make:"Porsche",model:"911",year:2011};
-const slots={scope:v2ScopePlural(v),rungRef:v2RungRef(v),failedRef:v2FailedRungRef(v),rungWord:v2RungNoun(),platform:"Bring a Trailer",make:"Porsche",delta:12,window:"90 days"};
+const slots={scope:v2ScopePlural(v),rungRef:v2RungRef(v),failedRef:v2FailedRungRef(v),rungWord:v2RungNoun(),platform:"Bring a Trailer",make:"Porsche",carRef:"your 911",delta:12,window:"90 days"};
 
 // FAMILY A + B across modes
 for(const mode of ["modeA","modeB","concentration","thin"]){
@@ -51,8 +51,20 @@ for(const mode of ["modeA","modeB","concentration","thin"]){
     const rb=clean(bc), rw=clean(wy);
     check(`because.${mode} clean`, rb.ok, rb.detail);
     check(`why.${mode} clean`, rw.ok, rw.detail);
-    const canon=(mode==="modeA"?CLAUSE_A(slots):mode==="modeB"?CLAUSE_B(slots):mode==="concentration"?CLAUSE_C(slots):("recent sales for "+slots.failedRef+" are limited, so I widened to the "+slots.rungWord)).toLowerCase();
-    check(`why.${mode} contains canonical clause`, wy.toLowerCase().includes(canon), wy);
+    if(mode==="thin"){
+      // Thin/widened WHY leads with the PICK, method follows as support (no weak
+      // hedge). Assert pick-first ordering + the facts (failed rung + landed rung).
+      const w=wy.toLowerCase();
+      const pj=w.indexOf(slots.platform.toLowerCase()); const sj=w.indexOf("i'd sell");
+      const pick=Math.min(...[pj,sj].filter(x=>x>=0));
+      const method=Math.max(w.indexOf("limited"),w.indexOf(" thin"));
+      const hasFacts=w.includes(String(slots.failedRef).toLowerCase())&&w.includes(String(slots.rungWord).toLowerCase());
+      check(`why.thin leads with pick, method follows, names failed+landed rung`, hasFacts && pick>=0 && method>pick, wy);
+      check(`why.thin drops the weak hedge`, !/is where i would start|treat this as directional/.test(w), wy);
+    } else {
+      const canon=(mode==="modeA"?CLAUSE_A(slots):mode==="modeB"?CLAUSE_B(slots):CLAUSE_C(slots)).toLowerCase();
+      check(`why.${mode} contains canonical clause`, wy.toLowerCase().includes(canon), wy);
+    }
   }
 }
 
@@ -310,7 +322,9 @@ check("delta WITHOUT stat tiles -> TRACK in RAIL (not left), exactly one", (()=>
 
 // ---- Paired stat-tile compact support copy <=70 chars ----
 check("compact BEST DAY support present + <=70 chars", (()=>{ const m=cardDelta.match(/pcard-ts-c">([^<]*)</g)||[]; return m.length>=2 && m.every(x=>{const t=x.replace(/^[^>]*>/,'').replace(/<$/,''); return t.length<=70;}); })(), (cardDelta.match(/pcard-ts-c">([^<]*)</g)||[]).join(" | "));
-check("compact RESERVE copy = 'Reserved cars have closed 7% higher than those without.'", /Reserved cars have closed 7% higher than those without\./.test(cardDelta), "missing");
+check("compact RESERVE copy names the car ('...911s with a reserve closed 7% higher.')", /911s with a reserve closed 7% higher\./.test(cardDelta), "missing");
+check("full RESERVE copy names the car ('...911s listings with a reserve have closed 7% higher...')", /911s listings with a reserve have closed 7% higher than those without\./.test(cardDelta), "missing");
+check("RESERVE copy never says 'Reserved cars' (typo)", !/Reserved cars/i.test(cardDelta), "found 'Reserved cars'");
 
 // bridge lines between the two cards (order-aware, locked)
 const bridgePS="If you'd rather run the sale yourself, here's where I'd go.";

@@ -29,7 +29,7 @@ const check = (name, ok, detail = "") => {
   globalThis.fetch = async () => ({ ok:true, json:async()=>({}) });
 
   const html = fs.readFileSync("index.html","utf8");
-  const files = [...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
+  const files = [...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"js/"+m[1]);
   const script = files.map(f=>fs.readFileSync(f,"utf8")).join("\n");
   const probe = `
     sellState.price="165";

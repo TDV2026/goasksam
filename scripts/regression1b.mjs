@@ -8,7 +8,7 @@ globalThis.window=globalThis;globalThis.document={getElementById:()=>elem(),quer
 try{Object.defineProperty(globalThis,"navigator",{value:{language:"en-US"},configurable:true});}catch{}
 globalThis.location={hostname:"localhost",protocol:"file:"};globalThis.localStorage={getItem:()=>null,setItem:noop};globalThis.fetch=async()=>({ok:true,json:async()=>({})});
 const html=fs.readFileSync("index.html","utf8");
-const files=[...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
+const files=[...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"js/"+m[1]);
 const script=files.map(f=>fs.readFileSync(f,"utf8")).join("\n");
 const bootstrap="globalThis.sellState=sellState;globalThis.composeCard=composeCard;";
 (0,eval)(script+"\n"+bootstrap);

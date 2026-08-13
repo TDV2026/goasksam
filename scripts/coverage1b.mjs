@@ -11,7 +11,7 @@ try{Object.defineProperty(globalThis,"navigator",{value:{language:"en-US"},confi
 globalThis.location={hostname:"localhost",protocol:"file:"};globalThis.localStorage={getItem:()=>null,setItem:noop};
 const realFetch=globalThis.fetch;globalThis.fetch=async()=>({ok:true,json:async()=>({})});
 const html=fs.readFileSync("index.html","utf8");
-const files=[...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m=>m[1]);
+const files=[...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"js/"+m[1]);
 const script=files.map(f=>fs.readFileSync(f,"utf8")).join("\n");
 (0,eval)(script+"\nglobalThis.sellState=sellState;globalThis.composeCard=composeCard;globalThis.composerLandedScope=composerLandedScope;globalThis.sellerWantsSpeed=sellerWantsSpeed;");
 
