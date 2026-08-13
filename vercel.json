@@ -10,7 +10,7 @@
   "rewrites": [
     { "source": "/out", "destination": "/api/out" },
     { "source": "/styles.20260810a.css", "destination": "/styles.css" },
-    { "source": "/js.20260812c/(.*)", "destination": "/js/$1" }
+    { "source": "/js.20260812d/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
     "api/usageDashboard.js": {

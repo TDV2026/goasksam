@@ -152,6 +152,19 @@ async function showSellRecommendation(opts){
     .filter(routeHasTrueComparableEvidence)
     .filter(route=>route.routable!==false)
     .filter(route=>!shouldSuppressRouteForSellerRegion(route));
+  // ZERO comparable sales (rule 8: never dead-end). A completed funnel with no
+  // evidence-backed route ALWAYS renders an honest fallback card - every region,
+  // US included. Bespoke regional cards win where they exist (UK/Europe/AU/ME);
+  // everything else gets the generic policy-fit card, labeled as fit not data.
+  // Without this a US zero-archive car (1925 Duesenberg) fell through to an
+  // evidence-less pick that rendered nothing at all.
+  if(!evidenceBackedRoutes.length){
+    const fallback=practicalFallback||genericNoEvidenceFallback();
+    sellState.noEvidenceFallback=fallback;
+    showRegionalFallbackRecommendation(msgs,fallback);
+    document.getElementById("btn").disabled=false;
+    return;
+  }
   // Non-US sellers whose result has no region-usable evidence (thin, none,
   // or all of it on region-mismatched US platforms) get the regional cards
   // directly: no OldCarsData fallback rendering, no involvement choice.
@@ -909,6 +922,35 @@ function regionalNoEvidenceFallback(){
     };
   }
   return null;
+}
+
+// Honest low/zero-evidence fallback for ANY region without a bespoke regional
+// card (US included). A completed funnel must never dead-end (rule 8): when the
+// archive has zero comparable sales, we still render a card - the backend's
+// route-POLICY fit, labeled as fit rather than data, with directional guidance
+// for genuinely rare cars. Never invents a number, never quotes a fee, never
+// claims sales evidence it does not have.
+function genericNoEvidenceFallback(){
+  const car=cleanCarForCopy();
+  const recommended=sellState.sellDecision?.decision?.recommendedPath;
+  const primaryName=recommended?platformDisplayName(recommended):"Bring a Trailer";
+  const yr=Number(sellState.resolvedVehicle?.year)||Number(sellState.sellDecision?.vehicle?.year)||null;
+  const preWar=yr&&yr<1945;
+  const reason=preWar
+    ?`I don't have enough tracked auction sales on ${car} to back a specific data-led call. For a car this rare, ${primaryName} is where I'd start, and pre-war classics like this most often trade through specialist auction houses and marque events. That's a fit for the car, not a read from sales data.`
+    :`I don't have enough tracked auction sales on ${car} to back a specific data-led call. ${primaryName} is where I'd start for a car like yours. That's a fit for the car, not a read from sales data.`;
+  return {
+    region:"generic",
+    primary:primaryName,
+    secondary:null,
+    title:`Here's what I'd do with ${car}.`,
+    subtitle:`${primaryName} is where I'd start.`,
+    primaryReason:reason,
+    bullets:[],
+    caveat:"When comparable sales show up in my data, I can back this with real evidence.",
+    secondaryReason:"",
+    secondaryBullets:[]
+  };
 }
 
 // Honest no-routing card (phase 1): a country we cannot route yet. Never a US
