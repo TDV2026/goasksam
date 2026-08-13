@@ -9,7 +9,7 @@
   ],
   "rewrites": [
     { "source": "/out", "destination": "/api/out" },
-    { "source": "/styles.20260813a.css", "destination": "/styles.css" },
+    { "source": "/styles.20260813b.css", "destination": "/styles.css" },
     { "source": "/js.20260813a/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
