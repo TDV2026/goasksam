@@ -937,6 +937,18 @@ function vehicleAcceptPrefix(){
 
 // Resume at the first unanswered question: a vehicle edit mid-flow keeps
 // every answer already given and re-flows only through what is missing.
+// Porsche mid-engine body-style follow-up (Aug 2026): "718"/"981"/"987" are
+// generation names shared by the Boxster (roadster) and Cayman (coupe). A
+// body-style-specific trim (Spyder/GT4) already resolved the body in the resolver;
+// this only fires when the model is STILL a shared code (ambiguous/skip/"not
+// sure"). Never a silent default. Kept in sync with lib/vehicleData.js
+// BODY_STYLE_SPLITS (frontend can't import lib/, so the codes are mirrored here).
+function porscheBodyStyleSplitFor(v){
+  if(!v||!v.model)return null;
+  if(String(v.make||"").toLowerCase().trim()!=="porsche")return null;
+  if(!["718","981","987"].includes(String(v.model)))return null;
+  return { question:"Is it the Boxster or the Cayman?", chips:["Boxster","Cayman","Not sure"] };
+}
 function resumeWizardAfterVehicle(prefix){
   // Out-of-scope gate, phase 2: the car is fully resolved (model + any trim). A
   // modern mainstream economy car with no rescuing trim is refused here, before
@@ -951,6 +963,21 @@ function resumeWizardAfterVehicle(prefix){
     const backQ=SELL_STEP_QUESTIONS[back];
     addMsg("sam",[prefix,backQ.ask].filter(Boolean).join(" "),"",backQ.chips&&backQ.chips.length?chipsHTML(backQ.chips):"");
     return;
+  }
+  // Body-style follow-up: asked ONCE, after the trim step, before the state step.
+  // Tapping Boxster/Cayman re-resolves through the normal step-17 path; "Not sure"
+  // keeps the shared line (the read covers both body styles).
+  const bsSplit=porscheBodyStyleSplitFor(sellState.resolvedVehicle);
+  if(bsSplit){
+    if(!sellState.bodyStyleAsked){
+      sellState.bodyStyleAsked=true;
+      if(prefix)addMsg("sam",prefix);
+      askMissingVehicleDetail({type:"bodystyle",ask:bsSplit.question,chips:bsSplit.chips});
+      return;
+    }
+    // Already asked and the seller stayed unsure: proceed with the shared line.
+  }else{
+    sellState.bodyStyleAsked=false; // resolved to a real body (or non-Porsche): reset for any later edit
   }
   // Intake (US-only launch): car -> state(18) -> price(6) -> preference(8) ->
   // analysis. No country step (dormant), no confirm step: the preference answer

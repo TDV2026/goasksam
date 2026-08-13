@@ -49,22 +49,61 @@ console.log(`Seeded ${generationRows.length} generation rows.`);
 // 2. Derive chassis-code aliases (silent expansions) for codes that read as
 // chassis codes. Skip codes already aliased for that make; never overwrite
 // curated rows.
+//
+// AMBIGUITY GUARD (Aug 2026): NEVER derive an alias for a code that spans two or
+// more distinct NAMEPLATES, because a single alias silently collapses them:
+// "718" -> Boxster would hide Cayman; "E46" -> M3 would hide the base 3-Series.
+// A code is safe to alias only when it resolves to exactly ONE real nameplate.
+// The 911 chassis codes are safe: "996" maps to {911, 996}, but "996" is itself
+// an OCD chassis-model, so excluding that self-named entry leaves the single real
+// nameplate (911) -> 996 -> 911 is kept. Body-style splits (718/981/987 ->
+// Boxster/Cayman) and variant splits (E30/E36/E46 -> M3/3-Series) have NO
+// self-named model, leave 2 targets, and are skipped.
 const existing = await select("taxonomy_aliases?select=alias_slug,make&limit=5000");
 const existingKeys = new Set(existing.map(a => `${a.alias_slug}|${slug(a.make)}`));
+// code|make -> Map(modelSlug -> modelDisplayName)
+const nameplatesByCode = new Map();
+for (const g of CURATED_GENERATIONS) {
+  const token = generationModelToken(g);
+  if (!token) continue;
+  const key = `${slug(token)}|${slug(g.make)}`;
+  const map = nameplatesByCode.get(key) || new Map();
+  map.set(slug(g.model), g.model);
+  nameplatesByCode.set(key, map);
+}
+// When a code maps to several nameplates, one may be the FAMILY HEAD and the
+// others its performance badges (E46 -> {3-Series, M3}: 3-Series is the family,
+// M3 a variant). Aliasing to the family head is safe and correct. A split with no
+// family head is a genuine sibling ambiguity (718 -> {Boxster, Cayman}) -> no alias.
+function familyHeadOf(make, models) {
+  for (const head of models) {
+    const fam = familyFor(make, head);
+    if (fam && models.every(m => slug(m) === slug(head) || fam.badgeRe.test(slug(m)))) return head;
+  }
+  return null;
+}
 const aliasRows = [];
 const seen = new Set();
+let skippedAmbiguous = 0;
 for (const g of CURATED_GENERATIONS) {
   const token = generationModelToken(g);
   if (!token) continue;
   const key = `${slug(token)}|${slug(g.make)}`;
   if (seen.has(key) || existingKeys.has(key)) continue;
   seen.add(key);
+  // Exclude a model whose slug equals the code itself (the OCD chassis-model,
+  // e.g. the "996" nameplate for code 996); what remains is the real target(s).
+  const nonSelf = [...(nameplatesByCode.get(key) || new Map()).values()].filter(m => slug(m) !== slug(token));
+  let targetModel = null;
+  if (nonSelf.length === 1) targetModel = nonSelf[0];                 // 901/996 -> 911, 986 -> Boxster
+  else if (nonSelf.length >= 2) targetModel = familyHeadOf(g.make, nonSelf); // E46 -> 3-Series; 718 -> null
+  if (!targetModel) { skippedAmbiguous++; continue; } // self-only, or a genuine sibling split: no alias
   aliasRows.push({
     alias: token.toLowerCase(),
     alias_slug: slug(token),
     kind: "nickname",
     make: g.make,
-    model: g.model,
+    model: targetModel,
     trim: null,
     confirm: false,
     source: "generated",
@@ -72,7 +111,7 @@ for (const g of CURATED_GENERATIONS) {
   });
 }
 if (aliasRows.length) await upsert("taxonomy_aliases", aliasRows, "alias_slug,make");
-console.log(`Derived ${aliasRows.length} new chassis-code aliases (${existingKeys.size} already present).`);
+console.log(`Derived ${aliasRows.length} chassis-code aliases (${existingKeys.size} already present, ${skippedAmbiguous} skipped as ambiguous body/variant splits).`);
 
 // 3. Coverage report: most-recorded models vs seeded generation coverage.
 const records = await select("vehicle_market_records?select=make,model&limit=10000&order=ingested_at.desc");
