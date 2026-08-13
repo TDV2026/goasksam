@@ -7,6 +7,7 @@
 // Usage: SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run seed:generations
 
 import { CURATED_GENERATIONS, generationModelToken } from "../lib/generations.js";
+import { familyFor } from "../lib/modelFamilies.js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
