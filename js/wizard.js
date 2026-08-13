@@ -65,7 +65,9 @@ const MAINSTREAM_MODEL_RE={
 // Speedster, S/T, 911 R, Weissach package) stay rarity-eligible. Same split-by-trim
 // as Mercedes (E-Class suppressed, AMG GT eligible). Cayenne/Macan/Panamera are
 // mainstream Porsche volume; Cayman/Boxster stay eligible.
-const PORSCHE_911_HALO=/(gt1|gt2|gt3|turbo|sport ?classic|dakar|speedster|weissach|carrera gt\b|\brs\b|s\/t|\br\b|\b912\b|50th|heritage)/i;
+// "touring" bare = the GT3 Touring (a halo); GT3 Touring also matches via gt3. A
+// Carrera "Sport Touring" is niche and treating it as eligible is harmless.
+const PORSCHE_911_HALO=/(gt1|gt2|gt3|turbo|sport ?classic|dakar|speedster|weissach|\btouring\b|carrera gt\b|\brs\b|s\/t|\br\b|\b912\b|50th|heritage)/i;
 function modelIsMainstream(make,model,trim){
   var mk=String(make||"").toLowerCase().trim();
   var md=String(model||"").toLowerCase().replace(/\s+/g," ").trim();
