@@ -1,6 +1,8 @@
 // GOLDEN PATH v1 - drives the DEPLOYED production page (goasksam.com) end to end
 // via the real UI (crew cookie lifts the curtain). Real API, real DB, real OCD.
-// RANGE env selects scenarios, e.g. RANGE=1-7. Writes scripts/gp-out/<n>.json + png.
+// RANGE env selects scenarios: empty = the full suite (resolver checks + all 20 UI
+// scenarios); RANGE=resolver = B8/B9 resolver assertions only (no browser); RANGE=1-7
+// = those UI scenarios only. Writes scripts/gp-out/<n>.json + png for UI runs.
 import puppeteer from "puppeteer-core";
 import fs from "node:fs";
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -124,26 +126,62 @@ async function drive(page, scn) {
   return { steps, es, finalText, msgsText, cardHtml };
 }
 
-const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new" });
-const page = await browser.newPage();
-await page.setViewport({ width: 1000, height: 1300, deviceScaleFactor: 1 });
-await page.setCookie({ name:"gas_crew", value:"ok", domain:"goasksam.com", path:"/" });
-
-for (const key of pickRange()) {
-  const scn = ALL[key];
-  process.stdout.write(`\n### Scenario ${key}: ${scn.veh} / ${scn.state} / $${scn.price} / ${scn.pref} / ${scn.timing}\n`);
-  try {
-    const r = await drive(page, scn);
-    fs.writeFileSync(`${OUT}/${key}.json`, JSON.stringify({ key, scn, ...r, at:new Date().toISOString() }, null, 1));
-    await page.screenshot({ path:`${OUT}/${key}.png`, fullPage:false });
-    const e=r.es;
-    console.log(`  end: card=${e.card} oos=${e.oos} nonus=${e.nonus} gate=${e.gate} steps=${r.steps.length}`);
-    console.log(`  steps: ${r.steps.map(s=>s.action).join(" | ")}`);
-    console.log(`  RESULT(first 500): ${r.msgsText.replace(/\n+/g," ").slice(-500)}`);
-  } catch (e) {
-    console.log(`  ERROR: ${e.message}`);
-    fs.writeFileSync(`${OUT}/${key}.json`, JSON.stringify({ key, scn, error:e.message }, null, 1));
+// ---- RESOLVER CHECKS (Set-2 B8/B9): pass/fail assertions against the real
+// resolver, fetch-based (no UI). Folded into this one suite so there is a single
+// standing check. B8: a misspelled MAKE (curated or not) CONFIRMS "Did you mean the
+// X?" (rule 6) while abbreviations + concatenated multi-word makes resolve silently;
+// B9: a pasted VIN decodes via vPIC. The API remaps needs_confirmation ->
+// needs_clarification, so a confirmation is asserted on its question. ----
+async function resolverChecks() {
+  let fails = 0;
+  const check = (name, ok, detail = "") => { console.log(`  ${ok ? "PASS" : "FAIL"}  ${name}${ok ? "" : "  ->  " + String(detail).slice(0, 120)}`); if (!ok) fails++; };
+  const rx = m => new RegExp(m.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&"), "i");
+  const resolve = async text => { try { const r = await fetch(`${BASE}/api/vehicleIdentity`, { method: "POST", headers: { "Content-Type": "application/json", Cookie: "gas_crew=ok" }, body: JSON.stringify({ text }) }); return await r.json(); } catch (e) { return { status: `(fetch ${e.message})` }; } };
+  console.log(`\n### Resolver checks (B8 make-typo confirmation + B9 VIN decode)`);
+  for (const [text, make] of [["2006 porsch", "Porsche"], ["Poesche 911", "Porsche"], ["2015 chevorlet", "Chevrolet"], ["2012 mercedez", "Mercedes-Benz"], ["2018 ferarri", "Ferrari"], ["2010 nisan", "Nissan"], ["2010 volkswagon", "Volkswagen"]]) {
+    const j = await resolve(text); const q = String(j.clarification?.question || "");
+    check(`B8 typo "${text}" -> CONFIRM ${make}`, /did you mean/i.test(q) && rx(make).test(q + " " + (j.clarification?.suggestion || "")) && j.status !== "valid", `q="${q}" status=${j.status}`);
   }
+  for (const [text, make] of [["2015 chevy", "Chevrolet"], ["2012 merc", "Mercedes-Benz"], ["2018 vw", "Volkswagen"], ["2010 landrover", "Land Rover"], ["mercedesbenz", "Mercedes-Benz"], ["astonmartin", "Aston Martin"]]) {
+    const j = await resolve(text); check(`B8 silent "${text}" -> ${make}`, j.vehicle?.make === make && !/did you mean/i.test(String(j.clarification?.question || "")), `make=${j.vehicle?.make} q="${j.clarification?.question || ""}"`);
+  }
+  for (const [vin, make, model] of [["WP0AB2A99KS123456", "Porsche", "911"], ["1G1YY22G965105633", "Chevrolet", "Corvette"]]) {
+    const j = await resolve(vin); const v = j.vehicle || {}; check(`B9 VIN ${vin} -> ${make} ${model}`, v.make === make && rx(model).test(String(v.model || "")), `status=${j.status} make=${v.make} model=${v.model}`);
+  }
+  return fails;
 }
-await browser.close();
-console.log("\nDONE");
+
+// ---- run. RANGE empty = everything; RANGE=resolver = B8/B9 only (no browser);
+// RANGE=1-7 (etc) = those UI scenarios only. ----
+const range = process.env.RANGE || "";
+const uiKeys = pickRange();
+const runResolver = !range || /resolver|b8|b9/i.test(range);
+const runUi = !range || uiKeys.length > 0;
+let resolverFails = 0;
+if (runResolver) resolverFails = await resolverChecks();
+
+if (runUi) {
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new" });
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1000, height: 1300, deviceScaleFactor: 1 });
+  await page.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
+  for (const key of uiKeys) {
+    const scn = ALL[key];
+    process.stdout.write(`\n### Scenario ${key}: ${scn.veh} / ${scn.state} / $${scn.price} / ${scn.pref} / ${scn.timing}\n`);
+    try {
+      const r = await drive(page, scn);
+      fs.writeFileSync(`${OUT}/${key}.json`, JSON.stringify({ key, scn, ...r, at: new Date().toISOString() }, null, 1));
+      await page.screenshot({ path: `${OUT}/${key}.png`, fullPage: false });
+      const e = r.es;
+      console.log(`  end: card=${e.card} oos=${e.oos} nonus=${e.nonus} gate=${e.gate} steps=${r.steps.length}`);
+      console.log(`  steps: ${r.steps.map(s => s.action).join(" | ")}`);
+      console.log(`  RESULT(first 500): ${r.msgsText.replace(/\n+/g, " ").slice(-500)}`);
+    } catch (e) {
+      console.log(`  ERROR: ${e.message}`);
+      fs.writeFileSync(`${OUT}/${key}.json`, JSON.stringify({ key, scn, error: e.message }, null, 1));
+    }
+  }
+  await browser.close();
+}
+console.log(resolverFails ? `\n${resolverFails} RESOLVER FAILURE(S)` : "\nDONE");
+process.exit(resolverFails ? 1 : 0);
