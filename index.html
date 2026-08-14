@@ -8,7 +8,7 @@
 <!-- CSS served at a VERSIONED PATH (not a ?query, which some edge caches ignore).
      styles.css stays on disk; a vercel.json rewrite maps this path to it. BUMP the
      token in BOTH index.html and vercel.json on every styles.css change. -->
-<link rel="stylesheet" href="styles.20260813d.css">
+<link rel="stylesheet" href="styles.20260813e.css">
 <!-- ===================== CURTAIN (pre-launch holding state) =====================
      Temporary. Delete this whole block, the #curtain div below, the .curtain*
      CSS in styles.css, api/crew.js, and the robots.txt Disallow in ONE commit at
@@ -52,8 +52,7 @@
     <span>Selling strategy</span>
   </div>
   <div class="hp-rail-scroll">
-    <button class="hp-navitem" onclick="setActiveNav(this);startSellFlow()">Sell my car</button>
-    <button class="hp-navitem" onclick="setActiveNav(this);showPowerSellers()">PowerSellers</button>
+    <button class="hp-navitem" onclick="setActiveNav(this);startSellFlow()">Where to sell</button>
     <button class="hp-navitem" id="nav-saved" style="display:none" onclick="setActiveNav(this);showSavedResults()">Your results</button>
 
     <!-- PULSE_RAIL: TODAY'S MARKET sidebar section removed pre-Phase-3. The daily
@@ -62,12 +61,11 @@
          by restoring the section heading + <div id="market-cards-desktop"></div>
          here and the loadDailyPulse() call in js/homepage.js. -->
 
-    <div class="hp-rail-divider"></div>
+    <div class="hp-rail-label">Learn</div>
+    <button class="hp-navitem" onclick="setActiveNav(this);showPowerSellers()">PowerSellers</button>
     <button class="hp-navitem" onclick="setActiveNav(this);showHowItWorks()">How Sam decides</button>
   </div>
   <div class="hp-rail-footer">
-    <!-- STAGE_B: referral panel -->
-    <button class="hp-navitem stub" data-stage-b="refer" onclick="stageBStub('Refer friends')">Refer friends</button>
     <!-- STAGE_B: profile modal -->
     <a class="hp-navitem" href="mailto:news@thedailyvroom.com?subject=GoAskSam%20feedback">Send feedback</a>
     <a class="hp-navitem" href="/privacy">Privacy</a>
