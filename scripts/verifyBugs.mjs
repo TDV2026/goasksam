@@ -343,6 +343,12 @@ function ROSTER_NAMES_RE(){ return /\b(howS|Howard Silvers|GenauAutoWerks|Ingo S
     ["Audi","5000","",1987],["Audi","80","",1990],["Audi","90","",1991],
     ["Jaguar","XJ6","",1990],["Jaguar","XJ12","",1993],["Jaguar","XJS","",1990],["Jaguar","XJ-S","",1988],
     ["Jaguar","XK8","",1997],["Jaguar","XK8","Convertible",2004],["Jaguar","XK 8","",1998],
+    // Mercedes classics in the RESOLVED shape (model = bare number, suffix in trim),
+    // which is what production actually produces (golden-path FAIL #12). Bare "300"
+    // with NO trim is deliberately in SPECIAL below (ambiguous -> age -> rarity).
+    ["Mercedes-Benz","300","CE",1993],["Mercedes-Benz","300","TE",1991],["Mercedes-Benz","300","D",1987],
+    ["Mercedes-Benz","300","SD",1985],["Mercedes-Benz","420","SEL",1990],["Mercedes-Benz","560","SEC",1990],
+    ["Mercedes-Benz","190","D",1991],["Mercedes-Benz","400","E",1992],["Mercedes-Benz","300","E",1990],
     ["Land Rover","Range Rover","",1995],["Land Rover","Discovery","",1998],["Land Rover","Freelander","",2004]
   ];
   for(const [mk,md,tr,yr] of NEUTRAL)
@@ -352,6 +358,9 @@ function ROSTER_NAMES_RE(){ return /\b(howS|Howard Silvers|GenauAutoWerks|Ingo S
   const SPECIAL=[
     ["Mercedes-Benz","500 E","",1993],["Mercedes-Benz","E500","",1993],
     ["Mercedes-Benz","560 SL","",1989],["Mercedes-Benz","300 SL","",1990],
+    // Resolved shape: a 300 SL with the suffix in trim stays special; a bare "300"
+    // with no suffix is ambiguous and must NOT be guessed mainstream (age -> rarity).
+    ["Mercedes-Benz","300","SL",1990],["Mercedes-Benz","500","E",1993],["Mercedes-Benz","300","",1993],
     ["Mercedes-Benz","190 E","2.5-16 Evolution",1990],["Mercedes-Benz","300 CE","AMG 6.0 Hammer",1990],
     ["BMW","M3","",1988],["BMW","M5","",1991],["BMW","M635CSi","",1986],
     // Audi / Jaguar / Land Rover genuine specials

@@ -87,15 +87,20 @@ function modelIsMainstream(make,model,trim){
     return false;
   }
   if(mk==="mercedes-benz"||mk==="mercedes"){
-    // Genuine specials first: they share model heads with the volume lines.
-    if(/\bsl\b/.test(md))return false;                      // SL roadsters (280SL..600SL, SL-Class)
-    if(MB_SPECIAL_RE.test(md+" "+tr))return false;          // AMG / 190E 2.5-16 Evo / Cosworth / 6.3 / 6.9
-    if(/^(500[\s-]?e|e[\s-]?500)$/.test(md))return false;   // Porsche-built 500 E / E500
+    // The resolver drops the body-letter suffix (CE/TE/SEL/D) off classic Mercedes,
+    // leaving a bare number as the MODEL and (sometimes) the suffix as the TRIM. Judge
+    // the COMBINED model+trim so "300"+"CE" reads as a 300 CE, "300"+"SL" as a 300 SL,
+    // and a bare "300" (no suffix) stays UNCLASSIFIED (falls through to age) - never
+    // guessed, since bare 300 spans mainstream (300 E/CE) and special (300 SL).
+    var mbFull=(md+" "+tr).replace(/\s+/g," ").trim();
+    if(/\bsl\b/.test(mbFull))return false;                  // SL roadsters (280SL..600SL, SL-Class)
+    if(MB_SPECIAL_RE.test(mbFull))return false;             // AMG / 190E 2.5-16 Evo / Cosworth / 6.3 / 6.9
+    if(/^(500[\s-]?e|e[\s-]?500)$/.test(mbFull))return false; // Porsche-built 500 E / E500
     if(MAINSTREAM_MODEL_RE["mercedes-benz"].test(md))return true;  // modern letter-first (E-Class, C300, GLE...)
-    // Classic number-first volume naming (W124/W126/W123/W201): 300 CE/E/TE/D,
-    // 190 E/D, 260 E, 320 CE, 400 E, 300/420/560 SE/SEL, 300 SD, 380/560 SEC,
-    // 240 D, 280 E. SL is excluded above; "sl" is deliberately not a suffix here.
-    if(/^\d{3}[\s-]?(ce|te|td|cd|sec|sel|se|sd|e|d)$/.test(md))return true;
+    // Classic number + body-suffix (W124/W126/W123/W201): 300 CE/E/TE/D, 190 E/D,
+    // 260 E, 400 E, 300/420/560 SE/SEL, 300 SD, 380/560 SEC, 240 D, 280 E. The suffix
+    // may arrive in the model or the trim; SL/AMG/500E are excluded above.
+    if(/^\d{3}[\s-]?(ce|te|td|cd|sec|sel|se|sd|e|d)$/.test(mbFull))return true;
     return false;
   }
   if(mk==="audi"){
