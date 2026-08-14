@@ -111,13 +111,17 @@ async function renderOutboundView(req, res) {
 // ===================== F: decision-event views (searches / cars / geo) =====================
 // Read-only, from the forward-only fields logged on seller_decision +
 // data_unavailable events (entered location, tier, outcome, pick, PowerSeller).
-// Crew searches are flagged and filterable everywhere (?crew=include|exclude|only).
-// Entered location only is ever rendered - never a raw IP.
+// Crew AND tester searches are flagged and filterable everywhere
+// (?crew=include|exclude|only). "exclude" = real users only (drops BOTH the crew
+// and the pre-launch tester cohort, so post-launch and golden-path metrics stay
+// clean); "only" = the internal cohorts (crew + tester), still distinguished by the
+// per-row tier pill. Entered location only is ever rendered - never a raw IP.
 const OUTCOME_LABELS = { mode_a: "Mode A", mode_b: "Mode B", concentration: "Concentration", thin: "Thin", data_unavailable: "Unavailable" };
 function crewMode(req) { const c = String(req.query?.crew || "include").toLowerCase(); return (c === "exclude" || c === "only") ? c : "include"; }
+function isInternalTier(t) { return t === "crew" || t === "tester"; }
 function applyCrew(events, mode) {
-  if (mode === "exclude") return events.filter(e => (e.metadata?.tier) !== "crew");
-  if (mode === "only") return events.filter(e => (e.metadata?.tier) === "crew");
+  if (mode === "exclude") return events.filter(e => !isInternalTier(e.metadata?.tier)); // real users only
+  if (mode === "only") return events.filter(e => isInternalTier(e.metadata?.tier));      // crew + testers
   return events;
 }
 async function fetchDecisionEvents(env, days, limit = 100000) {
@@ -131,7 +135,7 @@ const geoKey = m => [m?.enteredState, m?.enteredCountry].filter(Boolean).join(" 
 function eventOutcome(e) { return (e.metadata?.outcome) || (e.event_type === "data_unavailable" ? "data_unavailable" : "thin"); }
 function pageChrome(title, body) {
   return `<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${adminEsc(title)}</title>
-<style>body{font:14px/1.5 system-ui;margin:28px;color:#16140f}h1{font-size:20px}h2{font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:#6b6861;margin-top:26px}table{border-collapse:collapse;width:100%;margin-top:8px}td,th{border:1px solid #e3e1db;padding:5px 9px;text-align:left;font-size:13px}th{background:#f6f5f2}nav a{margin-right:14px;font-size:13px}.pill{font-size:11px;padding:1px 6px;border-radius:8px;background:#eee}.crew{background:#ffe8c2}</style>
+<style>body{font:14px/1.5 system-ui;margin:28px;color:#16140f}h1{font-size:20px}h2{font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:#6b6861;margin-top:26px}table{border-collapse:collapse;width:100%;margin-top:8px}td,th{border:1px solid #e3e1db;padding:5px 9px;text-align:left;font-size:13px}th{background:#f6f5f2}nav a{margin-right:14px;font-size:13px}.pill{font-size:11px;padding:1px 6px;border-radius:8px;background:#eee}.crew{background:#ffe8c2}.tester{background:#d7ebff}</style>
 <nav>${["searches", "cars", "geo", "accounts", "usage", "outbound"].map(v => `<a href="?view=${v}&key=${adminEsc((body.__key) || "")}">${v}</a>`).join("")}</nav>
 <h1>${adminEsc(title)}</h1>${body.html}`;
 }
@@ -156,13 +160,13 @@ async function renderSearchesView(req, res) {
     const m = e.metadata || {}; const ps = m.powerSeller || {};
     const psCell = ps.shown ? `${adminEsc(ps.name || "yes")}${ps.eligible ? " (lead-eligible)" : ""}` : "-";
     return `<tr><td>${new Date(e.created_at).toLocaleString()}</td><td>${adminEsc(carLabel(e.vehicle))}</td><td>${adminEsc(geoKey(m))}</td>
-    <td>${adminEsc(m.tier || "")}${m.tier === "crew" ? ' <span class="pill crew">crew</span>' : ""}</td>
+    <td>${adminEsc(m.tier || "")}${m.tier === "crew" ? ' <span class="pill crew">crew</span>' : m.tier === "tester" ? ' <span class="pill tester">tester</span>' : ""}</td>
     <td>${adminEsc(OUTCOME_LABELS[eventOutcome(e)] || eventOutcome(e))}</td><td>${adminEsc(m.pickPlatform || "-")}</td>
     <td>${psCell}</td><td>${outboundFor(e) ? "yes" : "-"}</td></tr>`;
   }).join("");
   if (req.query?.format === "json") return res.status(200).json({ days, crew: mode, count: events.length, searches: events.map(e => ({ at: e.created_at, car: carLabel(e.vehicle), location: geoKey(e.metadata), tier: e.metadata?.tier, outcome: eventOutcome(e), pick: e.metadata?.pickPlatform || null, powerSeller: e.metadata?.powerSeller || null, outbound: outboundFor(e) })) });
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  return res.status(200).send(pageChrome("Searches", { __key: req.query?.key, html: `<div>last ${days}d, crew: ${mode} &middot; <a href="?view=searches&crew=exclude&key=${adminEsc(req.query?.key || "")}">exclude</a> <a href="?view=searches&crew=only&key=${adminEsc(req.query?.key || "")}">only</a> <a href="?view=searches&crew=include&key=${adminEsc(req.query?.key || "")}">all</a></div>
+  return res.status(200).send(pageChrome("Searches", { __key: req.query?.key, html: `<div>last ${days}d, crew + testers: ${mode} &middot; <a href="?view=searches&crew=exclude&key=${adminEsc(req.query?.key || "")}">exclude (real users)</a> <a href="?view=searches&crew=only&key=${adminEsc(req.query?.key || "")}">only</a> <a href="?view=searches&crew=include&key=${adminEsc(req.query?.key || "")}">all</a></div>
   <table><tr><th>Time</th><th>Car</th><th>Location</th><th>Tier</th><th>Outcome</th><th>Pick</th><th>PowerSeller</th><th>Outbound</th></tr>${rows || "<tr><td colspan=8>none</td></tr>"}</table>
   <p style="color:#6b6861">Outbound is best-effort (car+time match); a per-search intro/outbound join key is a follow-up.</p>` }));
 }

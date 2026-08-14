@@ -3,6 +3,7 @@ import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
+import { testerCodeExpired } from "../lib/_tester.js";
 import { findGeneration, generationModelToken } from "../lib/generations.js";
 import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
 import { MODEL_SEGMENTS } from "../lib/vehicleData.js";
@@ -2238,6 +2239,24 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
     return { block: { status: "ip_rate_limited" } };
   }
   await recordIpHit(ip, "search", supabaseUrl, supabaseKey);
+  // Tester cohort (pre-launch): a device holding gas_tester=ok gets its OWN daily
+  // allowance (default 10, app_config tester_cap_day) on a SEPARATE counter (kind
+  // tester_search), never mixed with the free-tier or subscriber buckets. Searches
+  // log with tier "tester" so the dashboard keeps them out of real-user metrics.
+  // HARD-REVOKED at the expiry: testerCodeExpired() true -> the cookie is ignored
+  // and the device falls through to the normal anon/free gate below. No account.
+  // forceGate (?realgate=1) opts a tester into the real gate flows on demand.
+  if (cookies.gas_tester === "ok" && !forceGate && !testerCodeExpired()) {
+    const dayStartIso = new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z").toISOString();
+    const testerHits = await ipHitsSince(ip, "tester_search", dayStartIso, supabaseUrl, supabaseKey);
+    const testerCap = await appConfigInt("tester_cap_day", 10, supabaseUrl, supabaseKey);
+    if (testerHits !== null && testerHits >= testerCap) {
+      await logFunnel("tester_daily_limit_hit", { anon_session_id: anonSessionId, dedup_key: `tester:${ip}:${coarseDayKey()}` }, supabaseUrl, supabaseKey);
+      return { block: { status: "tester_daily_limit_reached", tier: "tester", dailyCap: testerCap } };
+    }
+    await recordIpHit(ip, "tester_search", supabaseUrl, supabaseKey);
+    return { ok: true, testerBypass: true, anonSessionId };
+  }
   const authHeader = req.headers.authorization;
   if (authHeader) {
     const auth = await validateBearer(authHeader);
@@ -2309,7 +2328,8 @@ export default async function handler(req, res) {
   if (process.env.CURTAIN_SEALED === "1") {
     const sealCookies = parseCookies(req.headers.cookie);
     const internalSeal = req.body?.warm === true || req.body?.bypassCache === true;
-    if (sealCookies.gas_crew !== "ok" && !internalSeal) {
+    const testerSeal = sealCookies.gas_tester === "ok" && !testerCodeExpired(); // expired testers are re-sealed
+    if (sealCookies.gas_crew !== "ok" && !testerSeal && !internalSeal) {
       return res.status(403).json({ status: "sealed", error: "Not open yet." });
     }
   }
@@ -2433,7 +2453,7 @@ export default async function handler(req, res) {
     // through the summary-strip Edit). The search was already reserved this session,
     // so it must NOT consume a new credit - skip the gate like the internal callers.
     const internalCall = req.body?.warm === true || req.body?.bypassCache === true || req.body?.rerun === true;
-    let searchAccountId = null, anonFirstFree = false, anonSessionId = null, searchQuota = null, crewBypass = false;
+    let searchAccountId = null, anonFirstFree = false, anonSessionId = null, searchQuota = null, crewBypass = false, testerBypass = false;
     if (!internalCall) {
       const gate = await computeSearchGate(req, vehicle, supabaseUrl, supabaseKey);
       if (gate.block) return res.status(200).json(gate.block);
@@ -2443,9 +2463,10 @@ export default async function handler(req, res) {
       anonSessionId = gate.anonSessionId || null;
       searchQuota = gate.quota || null;
       crewBypass = !!gate.crewBypass;
+      testerBypass = !!gate.testerBypass;
     }
     // F: coarse tier for the dashboard (forward-only). internal jobs -> "internal".
-    const searchTier = internalCall ? "internal" : crewBypass ? "crew" : (searchQuota?.tier || (searchAccountId ? "free" : "anon"));
+    const searchTier = internalCall ? "internal" : crewBypass ? "crew" : testerBypass ? "tester" : (searchQuota?.tier || (searchAccountId ? "free" : "anon"));
 
     let fetchResult = null;
     let cacheStatus = "miss";

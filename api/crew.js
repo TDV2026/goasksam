@@ -5,6 +5,7 @@
 // only: it never touches auth, the product API, or 2A. Rotate the code by
 // changing the env var (existing unlocked devices keep their cookie).
 import { callOldCarsData } from "../lib/_ocd.js";
+import { TESTER_CODE, testerCodeExpired, testerCookieMaxAge } from "../lib/_tester.js";
 
 export default async function handler(req, res) {
   const q = req.query || {};
@@ -34,9 +35,26 @@ export default async function handler(req, res) {
     }
     return res.status(200).json(out);
   }
-  const code = String(q.code || "");
   const rawTo = String(q.to || "/");
   const to = /^\/(?!\/)/.test(rawTo) ? rawTo : "/"; // same-origin path only, never an open redirect
+  // TESTER cohort redemption: ?tcode=<TESTER_CODE>. Sets a gas_tester cookie whose
+  // Max-Age ends at the hard expiry, and NEVER issues once the code has expired
+  // (the search gate + curtain seal also re-check expiry, so this is one of two
+  // enforcement points). Falls through to the curtain on a bad or expired code.
+  const tcode = String(q.tcode || "");
+  if (tcode) {
+    if (tcode === TESTER_CODE && !testerCodeExpired()) {
+      const maxAge = testerCookieMaxAge();
+      res.setHeader("Set-Cookie", `gas_tester=ok; Max-Age=${maxAge}; Path=/; SameSite=Lax; Secure`);
+      res.setHeader("Location", to);
+      res.status(302).end();
+      return;
+    }
+    res.setHeader("Location", "/"); // wrong or expired tester code -> curtain
+    res.status(302).end();
+    return;
+  }
+  const code = String(q.code || "");
   const expected = process.env.CURTAIN_CREW_CODE || "";
   if (expected && code === expected) {
     // 1-year, path-wide, JS-readable (the inline curtain script reads it), Secure.
