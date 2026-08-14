@@ -101,10 +101,16 @@ check("speed WHY: the 'active audience' N=0 fallback is GONE (no unsourced colou
   check("speed pick: a non-BaT evidence route present -> it leads as the speed pick", cc.speedMode === true && cc.pick && cc.pick.platformSlug === "carsandbids", JSON.stringify({ speedMode: cc.speedMode, pick: cc.pick && cc.pick.platformSlug }));
   globalThis.sellState.timeline = savedTimeline; globalThis.sellState.sellerPreference = savedPref; globalThis.sellState.region = savedRegion; globalThis.sellState.partnerReferral = savedRef; globalThis.sellState.sellOptions = [];
 }
-// N=1 grammar: a count of 1 takes the SINGULAR model ("sold 1 Cayenne", never "1 Cayennes").
+// MIN-EVIDENCE FLOOR (N>=3): below the floor a single sale can't back "buyers are
+// already there", so the VOLUME clause is dropped and the speed benefit carries the
+// card alone - never a softer overclaim in its place.
 globalThis.sellState.resolvedVehicle = { make: "Porsche", model: "Cayenne", year: 2020 };
-const sw1n = v2SpeedWhy({ name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 1, windowDays: 90 } }, null, false);
-check("speed WHY: N=1 uses the SINGULAR model (no plural -s)", /sold 1 Cayenne over the past \d+ days/.test(sw1n) && !/sold 1 Cayennes/.test(sw1n), sw1n);
+const swFloor1 = v2SpeedWhy({ name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 1, windowDays: 90 } }, null, false);
+check("speed WHY: N=1 (below floor) DROPS the count clause, keeps the speed benefit", !/\bsold 1\b|buyers are already there/.test(swFloor1) && /quicker to get a listing live/.test(swFloor1), swFloor1);
+const swFloor2 = v2SpeedWhy({ name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 2, windowDays: 90 } }, null, false);
+check("speed WHY: N=2 (below floor) DROPS the count clause too", !/\bsold 2\b|buyers are already there/.test(swFloor2), swFloor2);
+const swFloor3 = v2SpeedWhy({ name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 3, windowDays: 90 } }, null, false);
+check("speed WHY: N=3 (at floor) RENDERS the count clause (plural)", /sold 3 Cayennes over the past \d+ days, so buyers are already there/.test(swFloor3), swFloor3);
 globalThis.sellState.resolvedVehicle = { make: "Porsche", model: "911", year: 2011 };
 
 // WEEKDAY: tier1 rounds to 5, no "around"; tier2 direction-only

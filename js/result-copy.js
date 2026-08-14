@@ -1347,7 +1347,7 @@ function composerHonestHeadline(vehicle,rungWord){
   const yr=vehicle&&vehicle.year?`${vehicle.year} `:"";
   const car=vehicle&&vehicle.model?`the ${yr}${[vehicle.make,vehicle.model].filter(Boolean).join(" ")}`:`this ${vehicle&&vehicle.make?vehicle.make:"car"}`;
   const word=rungWord||"model";
-  return { text:`Recent sales for ${car} are limited, so I widened to the ${word}.`, provenance:`ladder.landed(${word})` };
+  return { text:`Recent sales for ${car} are limited, so I widened to the ${word} to reach the buyers for it.`, provenance:`ladder.landed(${word})` };
 }
 // Generation code for the landed rung, when the ladder mapped one.
 function composerLandedGenerationCode(){

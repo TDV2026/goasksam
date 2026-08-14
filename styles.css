@@ -137,7 +137,7 @@ body{
 .analysis-stage.active .stage-dot{border-color:#171717;border-top-color:transparent;animation:spin .8s linear infinite;}
 .analysis-stage.done{color:#5f5f5a;}
 .analysis-stage.done .stage-dot{border-color:#2F7A40;background:#2F7A40;animation:none;}
-.analysis-stage.done .stage-dot:after{content:"";position:absolute;left:4px;top:1.5px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);}
+.analysis-stage.done .stage-dot:after{content:"";position:absolute;left:50%;top:50%;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:translate(-50%,-58%) rotate(45deg);}
 @media (prefers-color-scheme:dark){
   .analysis-stages{background:#1a1a18;border-color:#2a2a26;}
   .analysis-stages-title{color:#f1efe9;}

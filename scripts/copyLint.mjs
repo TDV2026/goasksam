@@ -125,10 +125,10 @@ check("1d lint: rung-4 (make) headline leads with the make + caveats the exact m
   /Among recent Chevrolet sales, .+ leads\. Limited recent data for this exact model\./.test(rung4.headline.text) && lintText(rung4.headline.text).length === 0, rung4.headline.text);
 const thinCascade = composeCard({make:"Porsche",model:"911",year:1995}, { label:"pcarmarket", platform:"pcarmarket", marketEvidence:{ evidenceSales:2, pricePremium:null } }, { isPick:true, isVolumeLeader:true, landedScope:"model" });
 check("1d lint: thin-data floor names the FAILED rung (year-specific), widened to landed, no banned phrase",
-  /Recent sales for the 1995 Porsche 911 are limited, so I widened to the model\./.test(thinCascade.headline.text) && lintText(thinCascade.headline.text).length === 0, thinCascade.headline.text);
+  /Recent sales for the 1995 Porsche 911 are limited, so I widened to the model to reach the buyers for it\./.test(thinCascade.headline.text) && lintText(thinCascade.headline.text).length === 0, thinCascade.headline.text);
 const speedNonLeader = composeCard({make:"BMW",model:"M3",year:2018}, { label:"carsandbids", platform:"carsandbids", speedToList:"fast", marketEvidence:{ evidenceSales:1, pricePremium:null } }, { isPick:true, isVolumeLeader:false, sellerWantsSpeed:true, landedScope:"generation", landedGenerationCode:"f80" });
 check("1d lint: speed-routed non-leader falls to the honest floor, never a false 'strongest'",
-  /Recent sales for the 2018 BMW M3 are limited, so I widened to the generation\./.test(speedNonLeader.headline.text) && !/strongest among recent sales/.test(speedNonLeader.headline.text) && lintText(speedNonLeader.headline.text).length === 0, speedNonLeader.headline.text);
+  /Recent sales for the 2018 BMW M3 are limited, so I widened to the generation to reach the buyers for it\./.test(speedNonLeader.headline.text) && !/strongest among recent sales/.test(speedNonLeader.headline.text) && lintText(speedNonLeader.headline.text).length === 0, speedNonLeader.headline.text);
 check("1d lint: detects the banned 'running at model level' caveat", lintText("Recent sales are limited, running at model level.").some(v=>/limited-caveat-old/.test(v)));
 sellState.sellDecision = { evidence:{ ladder:{ landed:{ key:"exact_year_model" } } } };
 

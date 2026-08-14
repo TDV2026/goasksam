@@ -150,7 +150,7 @@ function v2Why(mode,s){
     modeB:[b+", so the room decides, and {platform} has the most recent {scopeAttr} sales.","Since "+b+", the room decides, and {platform} has the most recent {scopeAttr} sales.",b+". With little to separate them on price, {platform} has the most recent {scopeAttr} sales."],
     concentration:[c+". It's where the market for {rungRef} is actually trading.","Right now, "+c+", so that's where buyers are looking.",c+", which makes it the honest place to meet the market for {rungRef}."],
     thin:["{platform} is where I'd sell {carRef}. Recent sales for {failedRef} are limited, so I widened the analysis to the {rungWord}; for a car this uncommon, that reach is what finds the buyer.","I'd sell {carRef} on {platform}. Sales for {failedRef} are thin right now, so I widened to the {rungWord}, and a car this rare needs {platform}'s buyers.","{platform} is my pick for {carRef}. Recent {failedRef} sales are limited, so I widened to the {rungWord}, and {platform} is where the few that trade surface."],
-    thinNeutral:["{platform} is where I'd sell {carRef}. Recent sales for {failedRef} are limited, so I widened the analysis to the {rungWord} to be sure of the read.","I'd sell {carRef} on {platform}. Sales for {failedRef} are thin right now, so I based this on the wider {rungWord} to be confident.","{platform} is my pick for {carRef}. Recent {failedRef} sales are limited, so I widened to the {rungWord} to ground the read."]
+    thinNeutral:["{platform} is where I'd sell {carRef}. Recent sales for {failedRef} are limited, so I widened the analysis to the {rungWord}, where the buyers for it are looking.","I'd sell {carRef} on {platform}. Sales for {failedRef} are thin right now, so I based this on the wider {rungWord}, which is where its comparable sales trade.","{platform} is my pick for {carRef}. Recent {failedRef} sales are limited, so I widened to the {rungWord} to reach the buyers who want it."]
   };
   var key=(mode||"thin"); if(key==="thin"&&!v2RarityAllowed())key="thinNeutral";
   var t=v2Pick(pools[key],"why");
@@ -158,13 +158,18 @@ function v2Why(mode,s){
   return out.charAt(0).toUpperCase()+out.slice(1);
 }
 
-// Speed-pick WHY (locked wording, Aug 2026). Sentences 1-2 ALWAYS render;
-// sentence 3 (price disclosure) renders ONLY when includeDisclose is true (a
+// Speed-pick WHY (locked wording, Aug 2026). Sentence 1 (the pick) and the speed
+// benefit always render; the VOLUME clause ("sold N ... so buyers are already
+// there") renders only at N>=3 (SPEED_COUNT_FLOOR), below which one or two sales
+// can't back "buyers are already there" and the clause is dropped (the honest
+// speed benefit carries the card on its own, never a softer overclaim in its
+// place). This matches the >=3 real-comp-base gate composerCascadeHeadline uses.
+// Sentence 3 (price disclosure) renders ONLY when includeDisclose is true (a
 // genuine price leader differs from the speed pick and it stays a single card;
 // the large-divergence case shows a full second price card instead of this
-// clause). {N}/{window} are the speed platform's OWN real sales figures; the
-// {N} clause is dropped entirely when N=0 (never a fabricated count). The count
-// wording is confirmed clean against the shared copy/count gate (no exemption).
+// clause). {N}/{window} are the speed platform's OWN real sales figures. The
+// count wording is confirmed clean against the shared copy/count gate (no
+// exemption).
 function v2SpeedWhy(pick, priceAlt, includeDisclose){
   // Returns RAW prose (like v2Why); renderPickCardV2 escapes the whole WHY once at
   // render (pcard-lead), so escaping here would double-encode "Cars & Bids".
@@ -178,11 +183,15 @@ function v2SpeedWhy(pick, priceAlt, includeDisclose){
   var modelCounted=(n===1)?model:modelPl;
   var win=(typeof v2WindowLabel==="function"&&typeof v2Window==="function")?v2WindowLabel(v2Window(ev)):"period";
   var s1="Since you'd like to sell quickly, I'd list your "+model+" on "+plat+".";
-  // The speed pick is guaranteed evidence-backed by v2Composition (evidenceSales>0),
-  // so the count clause always states a real number. There is NO N=0 fallback: an
-  // unsourced "active audience" line asserting market colour we cannot back is the
-  // same problem as a fabricated number, so it was deleted rather than left dormant.
-  var s2=" It's generally quicker to get a listing live than some other platforms, and it's sold "+n+" "+modelCounted+" over the past "+win+", so buyers are already there.";
+  // The speed pick is evidence-backed by v2Composition (evidenceSales>0), but a
+  // single sale doesn't support "buyers are already there" as a claim, so the count
+  // clause is gated at SPEED_COUNT_FLOOR (3). Below it, the clause is dropped and the
+  // honest speed benefit carries the card alone - never a softer overclaim, and never
+  // the deleted N=0 "active audience" line (thin evidence is never dressed as depth).
+  var SPEED_COUNT_FLOOR=3;
+  var s2=(n>=SPEED_COUNT_FLOOR)
+    ? " It's generally quicker to get a listing live than some other platforms, and it's sold "+n+" "+modelCounted+" over the past "+win+", so buyers are already there."
+    : " It's generally quicker to get a listing live than some other platforms.";
   var s3="";
   if(includeDisclose&&priceAlt){
     var pp=platformDisplayName(priceAlt.name||priceAlt.platformSlug||"");
