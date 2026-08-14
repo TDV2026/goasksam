@@ -337,16 +337,26 @@ function ROSTER_NAMES_RE(){ return /\b(howS|Howard Silvers|GenauAutoWerks|Ingo S
     ["Mercedes-Benz","300 D","",1987],["Mercedes-Benz","560 SEC","",1990],
     ["Mercedes-Benz","E320","",1994],
     ["BMW","325i","",1990],["BMW","325is","",1989],["BMW","535i","",1991],
-    ["BMW","528e","",1986],["BMW","635CSi","",1989]
+    ["BMW","528e","",1986],["BMW","635CSi","",1989],
+    // Audi / Jaguar / Land Rover volume classics (Aug 13 second pass)
+    ["Audi","A6","",1997],["Audi","100","",1991],["Audi","200","",1990],
+    ["Audi","5000","",1987],["Audi","80","",1990],["Audi","90","",1991],
+    ["Jaguar","XJ6","",1990],["Jaguar","XJ12","",1993],["Jaguar","XJS","",1990],["Jaguar","XJ-S","",1988],
+    ["Land Rover","Range Rover","",1995],["Land Rover","Discovery","",1998],["Land Rover","Freelander","",2004]
   ];
   for(const [mk,md,tr,yr] of NEUTRAL)
     check(`rarity: ${md||mk} (${yr}) mainstream classic -> NEUTRAL`, rar(mk,md,tr,yr)===false, `${mk} ${md} -> rarity=true`);
   // Genuine specials -> KEEP RARITY (true), even sharing a mainstream model head.
+  // (age>25 specials rescue via age; age<25 specials via enthusiast+archive, count>=1.)
   const SPECIAL=[
     ["Mercedes-Benz","500 E","",1993],["Mercedes-Benz","E500","",1993],
     ["Mercedes-Benz","560 SL","",1989],["Mercedes-Benz","300 SL","",1990],
     ["Mercedes-Benz","190 E","2.5-16 Evolution",1990],["Mercedes-Benz","300 CE","AMG 6.0 Hammer",1990],
-    ["BMW","M3","",1988],["BMW","M5","",1991],["BMW","M635CSi","",1986]
+    ["BMW","M3","",1988],["BMW","M5","",1991],["BMW","M635CSi","",1986],
+    // Audi / Jaguar / Land Rover genuine specials
+    ["Audi","Quattro","",1985],["Audi","RS6","",2003],["Audi","R8","",2009],
+    ["Jaguar","XJ220","",1993],["Jaguar","E-Type","",1968],["Jaguar","XKR","",2003],["Jaguar","Mark 2","",1965],
+    ["Land Rover","Defender","",1994],["Land Rover","Defender 90","",1995],["Land Rover","Series III","",1980]
   ];
   for(const [mk,md,tr,yr] of SPECIAL)
     check(`rarity: ${md} ${tr||""}`.trim()+` (${yr}) genuine special -> RARITY`, rar(mk,md,tr,yr,1)===true, `${mk} ${md} ${tr} -> rarity=false`);

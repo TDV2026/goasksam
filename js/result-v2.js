@@ -115,19 +115,20 @@ function CLAUSE_C(s){ return v2Fill("recent {scopeAttr} sales have concentrated 
 // collectible: an enthusiast-tier make whose SPECIFIC MODEL is a specialty line (not
 // a mainstream volume nameplate) with archive presence (>=1), OR >25 years old. The
 // mainstream check is model-aware, not marque-blanket. For the LUXURY VOLUME marques
-// (Mercedes, BMW) a recognized mainstream nameplate is a common classic at any age,
-// so it now wins over the age>25 rule: a 2018 E-Class, a 1993 W124 300 CE, and an
-// E30 325i all stay neutral, while an SL, AMG, 190E 2.5-16 Evolution, 500E, or M3
-// keeps the rarity story. Porsche's mainstream 911 line is deliberately NOT scoped
-// here: an air-cooled base 911 stays age-rescued (locked). Pre-Aug-13 the age>25
-// rule fired first for everyone and let luxury volume classics read as "uncommon".
+// (Mercedes, BMW, Audi, Jaguar, Land Rover) a recognized mainstream nameplate is a
+// common classic at any age, so it now wins over the age>25 rule: a 2018 E-Class, a
+// 1993 W124 300 CE, an E30 325i, an Audi 100, a Jaguar XJ6, a classic Range Rover
+// all stay neutral, while an SL, AMG, 190E 2.5-16 Evolution, 500E, M3, RS6, XJ220,
+// or Defender keeps the rarity story. Porsche's mainstream 911 line is deliberately
+// NOT scoped here: an air-cooled base 911 stays age-rescued (locked). Pre-Aug-13 the
+// age>25 rule fired first for everyone and let luxury volume classics read "uncommon".
 function v2RarityAllowed(){
   try{
     var v=sellState.resolvedVehicle||(sellState.sellDecision&&sellState.sellDecision.vehicle)||{};
     var mk=String(v.make||"").toLowerCase().trim();
     var mainstreamModel=(typeof modelIsMainstream==="function")&&modelIsMainstream(v.make,v.model,v.trim);
     // Luxury volume marque + mainstream nameplate: never rarity, at any age.
-    if(mainstreamModel&&(mk==="mercedes-benz"||mk==="mercedes"||mk==="bmw"))return false;
+    if(mainstreamModel&&/^(mercedes(-benz)?|bmw|audi|jaguar|land rover)$/.test(mk))return false;
     var yr=Number(v.year);
     if(yr&&((new Date().getFullYear())-yr)>25)return true; // otherwise age>25 earns it (base 911 too)
     var count=Number(sellState.archiveModelCount);

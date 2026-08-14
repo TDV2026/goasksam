@@ -98,6 +98,16 @@ function modelIsMainstream(make,model,trim){
     if(/^\d{3}[\s-]?(ce|te|td|cd|sec|sel|se|sd|e|d)$/.test(md))return true;
     return false;
   }
+  if(mk==="audi"){
+    if(MAINSTREAM_MODEL_RE["audi"].test(md))return true;    // A3-A8, Q3-Q8, allroad
+    if(/^(80|90|100|200|5000|4000)$/.test(md))return true;  // classic volume sedans (B2/C3/C4)
+    return false;                                           // ur-Quattro / RS / S / R8 / TT stay rare
+  }
+  if(mk==="jaguar"){
+    if(/^xj[\s-]?220$/.test(md))return false;               // XJ220 supercar stays rare
+    if(/^(xjs|xj[\s-]?s)$/.test(md))return true;             // XJS grand tourer = volume (SEC/6-series analog)
+    return MAINSTREAM_MODEL_RE["jaguar"].test(md);           // XJ/XJ6/XJ8/XJ12/XF sedans; E-Type stays rare
+  }
   var re=MAINSTREAM_MODEL_RE[mk];
   if(!re)return false;
   return re.test(md);
