@@ -5,9 +5,15 @@
       "has": [{ "type": "host", "value": "goasksam.vercel.app" }],
       "destination": "https://goasksam.com/$1",
       "permanent": true
+    },
+    {
+      "source": "/",
+      "destination": "/sell",
+      "permanent": false
     }
   ],
   "rewrites": [
+    { "source": "/sell", "destination": "/index.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/out", "destination": "/api/out" },
     { "source": "/styles.20260813e.css", "destination": "/styles.css" },
