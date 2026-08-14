@@ -342,6 +342,7 @@ function ROSTER_NAMES_RE(){ return /\b(howS|Howard Silvers|GenauAutoWerks|Ingo S
     ["Audi","A6","",1997],["Audi","100","",1991],["Audi","200","",1990],
     ["Audi","5000","",1987],["Audi","80","",1990],["Audi","90","",1991],
     ["Jaguar","XJ6","",1990],["Jaguar","XJ12","",1993],["Jaguar","XJS","",1990],["Jaguar","XJ-S","",1988],
+    ["Jaguar","XK8","",1997],["Jaguar","XK8","Convertible",2004],["Jaguar","XK 8","",1998],
     ["Land Rover","Range Rover","",1995],["Land Rover","Discovery","",1998],["Land Rover","Freelander","",2004]
   ];
   for(const [mk,md,tr,yr] of NEUTRAL)
@@ -355,7 +356,7 @@ function ROSTER_NAMES_RE(){ return /\b(howS|Howard Silvers|GenauAutoWerks|Ingo S
     ["BMW","M3","",1988],["BMW","M5","",1991],["BMW","M635CSi","",1986],
     // Audi / Jaguar / Land Rover genuine specials
     ["Audi","Quattro","",1985],["Audi","RS6","",2003],["Audi","R8","",2009],
-    ["Jaguar","XJ220","",1993],["Jaguar","E-Type","",1968],["Jaguar","XKR","",2003],["Jaguar","Mark 2","",1965],
+    ["Jaguar","XJ220","",1993],["Jaguar","E-Type","",1968],["Jaguar","XKR","",2003],["Jaguar","XK8","XKR",2002],["Jaguar","XK8","R",2003],["Jaguar","Mark 2","",1965],
     ["Land Rover","Defender","",1994],["Land Rover","Defender 90","",1995],["Land Rover","Series III","",1980]
   ];
   for(const [mk,md,tr,yr] of SPECIAL)

@@ -105,7 +105,8 @@ function modelIsMainstream(make,model,trim){
   }
   if(mk==="jaguar"){
     if(/^xj[\s-]?220$/.test(md))return false;               // XJ220 supercar stays rare
-    if(/^(xjs|xj[\s-]?s)$/.test(md))return true;             // XJS grand tourer = volume (SEC/6-series analog)
+    if(/\bxkr\b|supercharged/.test(md+" "+tr)||/^r$/.test(tr))return false; // XKR performance variant stays rare
+    if(/^(xjs|xj[\s-]?s|xk[\s-]?8)$/.test(md))return true;   // XJS + XK8 volume GTs (neutral, coupe-vs-sedan is not rarity)
     return MAINSTREAM_MODEL_RE["jaguar"].test(md);           // XJ/XJ6/XJ8/XJ12/XF sedans; E-Type stays rare
   }
   var re=MAINSTREAM_MODEL_RE[mk];
