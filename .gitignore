@@ -6,3 +6,4 @@ node_modules
 .DS_Store
 scripts/coverage-progress.json
 scripts/warm-progress.json
+scripts/gp-out/
