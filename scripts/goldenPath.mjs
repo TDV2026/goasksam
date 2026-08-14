@@ -138,11 +138,14 @@ async function resolverChecks() {
   const rx = m => new RegExp(m.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&"), "i");
   const resolve = async text => { try { const r = await fetch(`${BASE}/api/vehicleIdentity`, { method: "POST", headers: { "Content-Type": "application/json", Cookie: "gas_crew=ok" }, body: JSON.stringify({ text }) }); return await r.json(); } catch (e) { return { status: `(fetch ${e.message})` }; } };
   console.log(`\n### Resolver checks (B8 make-typo confirmation + B9 VIN decode)`);
-  for (const [text, make] of [["2006 porsch", "Porsche"], ["Poesche 911", "Porsche"], ["2015 chevorlet", "Chevrolet"], ["2012 mercedez", "Mercedes-Benz"], ["2018 ferarri", "Ferrari"], ["2010 nisan", "Nissan"], ["2010 volkswagon", "Volkswagen"]]) {
+  // Misspelled + concatenated-multi-word makes (a missing space reads as a near-miss)
+  // CONFIRM "Did you mean the X?" - curated or edit-distance, never silent (rule 6).
+  for (const [text, make] of [["2006 porsch", "Porsche"], ["Poesche 911", "Porsche"], ["2015 chevorlet", "Chevrolet"], ["2012 mercedez", "Mercedes-Benz"], ["2018 ferarri", "Ferrari"], ["2010 nisan", "Nissan"], ["2010 volkswagon", "Volkswagen"], ["2010 landrover", "Land Rover"], ["mercedesbenz", "Mercedes-Benz"]]) {
     const j = await resolve(text); const q = String(j.clarification?.question || "");
     check(`B8 typo "${text}" -> CONFIRM ${make}`, /did you mean/i.test(q) && rx(make).test(q + " " + (j.clarification?.suggestion || "")) && j.status !== "valid", `q="${q}" status=${j.status}`);
   }
-  for (const [text, make] of [["2015 chevy", "Chevrolet"], ["2012 merc", "Mercedes-Benz"], ["2018 vw", "Volkswagen"], ["2010 landrover", "Land Rover"], ["mercedesbenz", "Mercedes-Benz"], ["astonmartin", "Aston Martin"]]) {
+  // Real abbreviations/nicknames expand silently (rule 6).
+  for (const [text, make] of [["2015 chevy", "Chevrolet"], ["2012 merc", "Mercedes-Benz"], ["2018 vw", "Volkswagen"], ["bimmer", "BMW"]]) {
     const j = await resolve(text); check(`B8 silent "${text}" -> ${make}`, j.vehicle?.make === make && !/did you mean/i.test(String(j.clarification?.question || "")), `make=${j.vehicle?.make} q="${j.clarification?.question || ""}"`);
   }
   for (const [vin, make, model] of [["WP0AB2A99KS123456", "Porsche", "911"], ["1G1YY22G965105633", "Chevrolet", "Corvette"]]) {
