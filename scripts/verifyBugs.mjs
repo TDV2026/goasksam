@@ -12,7 +12,7 @@ globalThis.localStorage={getItem:()=>null,setItem:noop,removeItem:noop};
 globalThis.fetch=async()=>({ok:true,json:async()=>({})});
 const html=fs.readFileSync("index.html","utf8");
 const files=[...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"js/"+m[1]);
-(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.renderResultV2Page=renderResultV2Page;globalThis.renderSecondaryPlatformV2=renderSecondaryPlatformV2;globalThis.v2Mode=v2Mode;globalThis.renderPickCardV2=renderPickCardV2;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.v2Composition=v2Composition;globalThis.v2PickFacts=v2PickFacts;globalThis.v2FollowupIntent=v2FollowupIntent;globalThis.v2ComposeTradeoffs=v2ComposeTradeoffs;globalThis.v2ComposeRunListing=v2ComposeRunListing;globalThis.v2ComposeRecommend=v2ComposeRecommend;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2SafeFallback=v2SafeFallback;globalThis.v2RungLabel=v2RungLabel;globalThis.v2ActionViolation=v2ActionViolation;globalThis.v2ActionFallback=v2ActionFallback;globalThis.detectCountry=detectCountry;globalThis.COUNTRY_REGISTRY=COUNTRY_REGISTRY;globalThis.countryChips=countryChips;globalThis.registryRoutableRegion=registryRoutableRegion;globalThis.chipsHTML=chipsHTML;globalThis.currentChipStep=currentChipStep;globalThis.SELL_STEP_QUESTIONS=SELL_STEP_QUESTIONS;globalThis.outOfScopeEligible=outOfScopeEligible;globalThis.hasEnthusiastTrim=hasEnthusiastTrim;globalThis.modelHasTrimEscape=modelHasTrimEscape;globalThis.makeIsMainstream=makeIsMainstream;globalThis.makeIsEnthusiast=makeIsEnthusiast;globalThis.outOfScopeCopy=outOfScopeCopy;globalThis.v2RarityAllowed=v2RarityAllowed;globalThis.OUT_OF_SCOPE=OUT_OF_SCOPE;globalThis.v2RosterNameViolation=v2RosterNameViolation;globalThis.v2RosterFallback=v2RosterFallback;globalThis.powerSellerExplainerText=powerSellerExplainerText;globalThis.localPreRoute=localPreRoute;");
+(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.renderResultV2Page=renderResultV2Page;globalThis.renderSecondaryPlatformV2=renderSecondaryPlatformV2;globalThis.v2Mode=v2Mode;globalThis.renderPickCardV2=renderPickCardV2;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.v2Composition=v2Composition;globalThis.v2PickFacts=v2PickFacts;globalThis.v2FollowupIntent=v2FollowupIntent;globalThis.v2ComposeTradeoffs=v2ComposeTradeoffs;globalThis.v2ComposeRunListing=v2ComposeRunListing;globalThis.v2ComposeRecommend=v2ComposeRecommend;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2SafeFallback=v2SafeFallback;globalThis.v2RungLabel=v2RungLabel;globalThis.v2ActionViolation=v2ActionViolation;globalThis.v2ActionFallback=v2ActionFallback;globalThis.detectCountry=detectCountry;globalThis.COUNTRY_REGISTRY=COUNTRY_REGISTRY;globalThis.countryChips=countryChips;globalThis.registryRoutableRegion=registryRoutableRegion;globalThis.chipsHTML=chipsHTML;globalThis.currentChipStep=currentChipStep;globalThis.SELL_STEP_QUESTIONS=SELL_STEP_QUESTIONS;globalThis.outOfScopeEligible=outOfScopeEligible;globalThis.hasEnthusiastTrim=hasEnthusiastTrim;globalThis.modelHasTrimEscape=modelHasTrimEscape;globalThis.makeIsMainstream=makeIsMainstream;globalThis.makeIsEnthusiast=makeIsEnthusiast;globalThis.outOfScopeCopy=outOfScopeCopy;globalThis.v2RarityAllowed=v2RarityAllowed;globalThis.OUT_OF_SCOPE=OUT_OF_SCOPE;globalThis.v2RosterNameViolation=v2RosterNameViolation;globalThis.v2RosterFallback=v2RosterFallback;globalThis.powerSellerExplainerText=powerSellerExplainerText;globalThis.localPreRoute=localPreRoute;globalThis.askNextSellQuestion=askNextSellQuestion;globalThis.currentMissingVehicleDetail=currentMissingVehicleDetail;globalThis.resumeWizardAfterVehicle=resumeWizardAfterVehicle;");
 
 let fails=0;
 const check=(name,ok,detail="")=>{console.log(`${ok?"PASS":"FAIL"}  ${name}${ok?"":"  ->  "+String(detail).slice(0,200)}`);if(!ok)fails++;};
@@ -283,6 +283,42 @@ const feeRoute=localPreRoute("what are powersellers fees");
 const whatIsRoute=localPreRoute("what is a powerseller");
 check("fee: 'what is a powerseller' still routes to the curated explainer", whatIsRoute&&/regularly manages auction sales/i.test(whatIsRoute.reply||""), (whatIsRoute&&whatIsRoute.reply||"").slice(0,80));
 function ROSTER_NAMES_RE(){ return /\b(howS|Howard Silvers|GenauAutoWerks|Ingo Schmoldt|carbine123|Chris Carbine|Dan Gray|AuthenticAuctions)\b/i; }
+
+// ===== ITEM 1: a non-curated make must never render another marque's model chips =====
+// A make with no curated trim/model handler (e.g. Duesenberg) that reaches the
+// step-17 vehicle sub-state - which the off-script chat re-ask does by calling
+// askNextSellQuestion() while step===17 - must NOT render the legacy static
+// SELL_STEP_QUESTIONS[17] Porsche ask+chips. Two layers guard this.
+{
+  const MARQUE_CHIPS=/\b911\b|\b944\b|\b928\b|\b356\b|Boxster|Cayman/;
+  // Layer B (defense in depth): the static step-17 config carries NO marque models.
+  check("Item1: static SELL_STEP_QUESTIONS[17] chips carry NO marque model names",
+    !SELL_STEP_QUESTIONS[17].chips.some(c=>MARQUE_CHIPS.test(String(c))), JSON.stringify(SELL_STEP_QUESTIONS[17].chips));
+  check("Item1: static SELL_STEP_QUESTIONS[17] ask names no marque model",
+    !MARQUE_CHIPS.test(SELL_STEP_QUESTIONS[17].ask), SELL_STEP_QUESTIONS[17].ask);
+  // Layer A (primary): drive askNextSellQuestion at step 17 for a non-curated make.
+  const rendered=[];
+  const realAddMsg=globalThis.addMsg;
+  globalThis.addMsg=(role,text,html,chips)=>{ rendered.push({text:String(text||""),chips:String(chips||"")}); };
+  Object.assign(globalThis.sellState,{
+    step:17, carName:"1925 Duesenberg", carRaw:"1925 Duesenberg",
+    resolvedVehicle:{make:"Duesenberg",model:null,year:1925,unverified:true},
+    vehicleIdentityValidated:false, vehicleDetailSkipped:false, archiveModelCount:0,
+    pendingVehicleIdentity:null, state:null, price:null, sellerPreference:null,
+    region:"US", country:"the United States", countryRoutable:true,
+    returnToConfirm:false, editReturnStep:null, editPrevVehicle:null, bodyStyleAsked:false
+  });
+  const missingNull=(typeof currentMissingVehicleDetail==="function")&&currentMissingVehicleDetail()===null;
+  try{ askNextSellQuestion(); }catch(e){ rendered.push({text:"THREW:"+e.message,chips:""}); }
+  globalThis.addMsg=realAddMsg;
+  const advancedStep=globalThis.sellState.step;
+  const allText=rendered.map(r=>r.text).join(" || ");
+  const allChips=rendered.map(r=>r.chips).join(" || ");
+  check("Item1: a non-curated make at step 17 has NO detail to clarify (missing===null)", missingNull, "currentMissingVehicleDetail() did not return null");
+  check("Item1: step-17 re-ask for a non-curated make renders NO marque model chips", !MARQUE_CHIPS.test(allChips), allChips.slice(0,200));
+  check("Item1: the wizard ADVANCES off step 17 (does not re-render the vehicle clarification)",
+    advancedStep!==17 && !/Which model or trim is it/.test(allText), JSON.stringify({step:advancedStep, firstText:(rendered[0]&&rendered[0].text||"").slice(0,80)}));
+}
 
 console.log(fails?`\n${fails} FAILURE(S)`:"\nVERIFY-BUGS ALL PASS");
 process.exit(fails?1:0);

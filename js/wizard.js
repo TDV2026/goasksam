@@ -127,7 +127,11 @@ function renderOutOfScope(v){
 
 const SELL_STEP_QUESTIONS={
   1:{ask:"What are you selling?",chips:[]},
-  17:{ask:"Which model or trim is it? Pick one below, or just type the exact trim (like Alpina B3, M Sport or GTS) if it's not shown.",chips:["911","944","928","356","Boxster","Cayman","Not sure"]},
+  // Neutral generic fallback ONLY. The real step-17 clarification is always built
+  // dynamically (make-appropriate) by askMissingVehicleDetail; this static entry
+  // must carry no marque-specific model chips, so if it ever renders it can never
+  // show one make's models for another car (see askNextSellQuestion).
+  17:{ask:"Which model or trim is it? Type the exact model or trim if you can.",chips:[]},
   11:{ask:"Which country is the car in?",chips:countryChips()},
   18:{ask:"Which state is it in?",chips:["California","Florida","Texas","New York","New Jersey","Other"]},
   2:{ask:"Rough mileage?",chips:["Under 30k","30k to 60k","60k to 100k","Over 100k"]},
@@ -1147,6 +1151,17 @@ function askNextSellQuestion(){
   if(sellState.step===17){
     const missing=currentMissingVehicleDetail();
     if(missing){askMissingVehicleDetail(missing);return;}
+    // Nothing left to clarify at the vehicle sub-state (a make with no curated
+    // trim/model handler and no pending identity). Advance the wizard instead of
+    // falling through to the static SELL_STEP_QUESTIONS[17] default, which is a
+    // legacy Porsche-specific ask+chips: rendering it here showed one marque's
+    // model chips for an unrelated car (e.g. a Duesenberg landing on the
+    // off-script chat re-ask). Mirror the trim-attempt-exhaustion proceed path.
+    sellState.vehicleDetailSkipped=true;
+    sellState.lastMissingAsk=null;
+    sellState.trimAskAttempts=0;
+    resumeWizardAfterVehicle("");
+    return;
   }
   if(sellState.step===8){askPowerSellerStep();return;}
   const q=SELL_STEP_QUESTIONS[sellState.step];
