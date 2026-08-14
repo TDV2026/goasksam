@@ -12,7 +12,7 @@ globalThis.localStorage={getItem:()=>null,setItem:noop,removeItem:noop};
 globalThis.fetch=async()=>({ok:true,json:async()=>({})});
 const html=fs.readFileSync("index.html","utf8");
 const files=[...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"js/"+m[1]);
-(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.renderResultV2Page=renderResultV2Page;globalThis.renderSecondaryPlatformV2=renderSecondaryPlatformV2;globalThis.v2Mode=v2Mode;globalThis.renderPickCardV2=renderPickCardV2;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.v2Composition=v2Composition;globalThis.v2PickFacts=v2PickFacts;globalThis.v2FollowupIntent=v2FollowupIntent;globalThis.v2ComposeTradeoffs=v2ComposeTradeoffs;globalThis.v2ComposeRunListing=v2ComposeRunListing;globalThis.v2ComposeRecommend=v2ComposeRecommend;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2SafeFallback=v2SafeFallback;globalThis.v2RungLabel=v2RungLabel;globalThis.v2ActionViolation=v2ActionViolation;globalThis.v2ActionFallback=v2ActionFallback;globalThis.detectCountry=detectCountry;globalThis.COUNTRY_REGISTRY=COUNTRY_REGISTRY;globalThis.countryChips=countryChips;globalThis.registryRoutableRegion=registryRoutableRegion;globalThis.chipsHTML=chipsHTML;globalThis.currentChipStep=currentChipStep;globalThis.SELL_STEP_QUESTIONS=SELL_STEP_QUESTIONS;globalThis.outOfScopeEligible=outOfScopeEligible;globalThis.hasEnthusiastTrim=hasEnthusiastTrim;globalThis.modelHasTrimEscape=modelHasTrimEscape;globalThis.makeIsMainstream=makeIsMainstream;globalThis.makeIsEnthusiast=makeIsEnthusiast;globalThis.outOfScopeCopy=outOfScopeCopy;globalThis.v2RarityAllowed=v2RarityAllowed;globalThis.OUT_OF_SCOPE=OUT_OF_SCOPE;globalThis.v2RosterNameViolation=v2RosterNameViolation;globalThis.v2RosterFallback=v2RosterFallback;globalThis.powerSellerExplainerText=powerSellerExplainerText;globalThis.localPreRoute=localPreRoute;globalThis.askNextSellQuestion=askNextSellQuestion;globalThis.currentMissingVehicleDetail=currentMissingVehicleDetail;globalThis.resumeWizardAfterVehicle=resumeWizardAfterVehicle;");
+(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.renderResultV2Page=renderResultV2Page;globalThis.renderSecondaryPlatformV2=renderSecondaryPlatformV2;globalThis.v2Mode=v2Mode;globalThis.renderPickCardV2=renderPickCardV2;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.v2Composition=v2Composition;globalThis.v2PickFacts=v2PickFacts;globalThis.v2FollowupIntent=v2FollowupIntent;globalThis.v2ComposeTradeoffs=v2ComposeTradeoffs;globalThis.v2ComposeRunListing=v2ComposeRunListing;globalThis.v2ComposeRecommend=v2ComposeRecommend;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2SafeFallback=v2SafeFallback;globalThis.v2RungLabel=v2RungLabel;globalThis.v2ActionViolation=v2ActionViolation;globalThis.v2ActionFallback=v2ActionFallback;globalThis.detectCountry=detectCountry;globalThis.COUNTRY_REGISTRY=COUNTRY_REGISTRY;globalThis.countryChips=countryChips;globalThis.registryRoutableRegion=registryRoutableRegion;globalThis.chipsHTML=chipsHTML;globalThis.currentChipStep=currentChipStep;globalThis.SELL_STEP_QUESTIONS=SELL_STEP_QUESTIONS;globalThis.outOfScopeEligible=outOfScopeEligible;globalThis.hasEnthusiastTrim=hasEnthusiastTrim;globalThis.modelHasTrimEscape=modelHasTrimEscape;globalThis.makeIsMainstream=makeIsMainstream;globalThis.makeIsEnthusiast=makeIsEnthusiast;globalThis.outOfScopeCopy=outOfScopeCopy;globalThis.v2RarityAllowed=v2RarityAllowed;globalThis.OUT_OF_SCOPE=OUT_OF_SCOPE;globalThis.v2RosterNameViolation=v2RosterNameViolation;globalThis.v2RosterFallback=v2RosterFallback;globalThis.powerSellerExplainerText=powerSellerExplainerText;globalThis.localPreRoute=localPreRoute;globalThis.askNextSellQuestion=askNextSellQuestion;globalThis.currentMissingVehicleDetail=currentMissingVehicleDetail;globalThis.resumeWizardAfterVehicle=resumeWizardAfterVehicle;globalThis.v2RarityAllowed=v2RarityAllowed;globalThis.modelIsMainstream=modelIsMainstream;");
 
 let fails=0;
 const check=(name,ok,detail="")=>{console.log(`${ok?"PASS":"FAIL"}  ${name}${ok?"":"  ->  "+String(detail).slice(0,200)}`);if(!ok)fails++;};
@@ -318,6 +318,42 @@ function ROSTER_NAMES_RE(){ return /\b(howS|Howard Silvers|GenauAutoWerks|Ingo S
   check("Item1: step-17 re-ask for a non-curated make renders NO marque model chips", !MARQUE_CHIPS.test(allChips), allChips.slice(0,200));
   check("Item1: the wizard ADVANCES off step 17 (does not re-render the vehicle clarification)",
     advancedStep!==17 && !/Which model or trim is it/.test(allText), JSON.stringify({step:advancedStep, firstText:(rendered[0]&&rendered[0].text||"").slice(0,80)}));
+}
+
+// ===== RARITY: mainstream-classic suppression must win over the age>25 gate =====
+// A W124 300 CE (33 years old) is a common classic, not rare - it must render the
+// neutral/thinNeutral wording, never "for a car this uncommon". The age>25 rule may
+// no longer short-circuit past the model-level mainstream check.
+{
+  const rar=(make,model,trim,year,count)=>{
+    Object.assign(globalThis.sellState,{ resolvedVehicle:{make,model,trim:trim||"",year}, sellDecision:{vehicle:{make,model,trim:trim||"",year}}, archiveModelCount:(count==null?0:count) });
+    return v2RarityAllowed();
+  };
+  // Mainstream classics (age>25) -> NEUTRAL (false)
+  const NEUTRAL=[
+    ["Mercedes-Benz","300 CE","",1993],["Mercedes-Benz","300CE","",1993],
+    ["Mercedes-Benz","300 E","",1990],["Mercedes-Benz","300 TE","",1991],
+    ["Mercedes-Benz","190 E","",1991],["Mercedes-Benz","560 SEL","",1990],
+    ["Mercedes-Benz","300 D","",1987],["Mercedes-Benz","560 SEC","",1990],
+    ["Mercedes-Benz","E320","",1994],
+    ["BMW","325i","",1990],["BMW","325is","",1989],["BMW","535i","",1991],
+    ["BMW","528e","",1986],["BMW","635CSi","",1989]
+  ];
+  for(const [mk,md,tr,yr] of NEUTRAL)
+    check(`rarity: ${md||mk} (${yr}) mainstream classic -> NEUTRAL`, rar(mk,md,tr,yr)===false, `${mk} ${md} -> rarity=true`);
+  // Genuine specials -> KEEP RARITY (true), even sharing a mainstream model head.
+  const SPECIAL=[
+    ["Mercedes-Benz","500 E","",1993],["Mercedes-Benz","E500","",1993],
+    ["Mercedes-Benz","560 SL","",1989],["Mercedes-Benz","300 SL","",1990],
+    ["Mercedes-Benz","190 E","2.5-16 Evolution",1990],["Mercedes-Benz","300 CE","AMG 6.0 Hammer",1990],
+    ["BMW","M3","",1988],["BMW","M5","",1991],["BMW","M635CSi","",1986]
+  ];
+  for(const [mk,md,tr,yr] of SPECIAL)
+    check(`rarity: ${md} ${tr||""}`.trim()+` (${yr}) genuine special -> RARITY`, rar(mk,md,tr,yr,1)===true, `${mk} ${md} ${tr} -> rarity=false`);
+  // Modern volume baselines stay neutral (unchanged).
+  check("rarity: 2018 E-Class -> NEUTRAL (unchanged)", rar("Mercedes-Benz","E-Class","",2018)===false);
+  check("rarity: 2015 328i -> NEUTRAL (unchanged)", rar("BMW","328i","",2015)===false);
+  globalThis.sellState.archiveModelCount=0; globalThis.sellState.resolvedVehicle=undefined; globalThis.sellState.sellDecision=undefined;
 }
 
 console.log(fails?`\n${fails} FAILURE(S)`:"\nVERIFY-BUGS ALL PASS");

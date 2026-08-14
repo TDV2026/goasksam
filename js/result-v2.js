@@ -112,19 +112,25 @@ function CLAUSE_B(s){ return v2Fill("prices for {scope} have run close across th
 function CLAUSE_C(s){ return v2Fill("recent {scopeAttr} sales have concentrated on {platform}, with too few on other platforms to compare prices over the past {window}",s); }
 
 // Rarity wording is allowed only for cars that are genuinely old or genuinely
-// collectible: >25 years old, OR an enthusiast-tier make whose SPECIFIC MODEL is a
-// specialty line (not a mainstream volume nameplate) with archive presence (>=1).
-// The enthusiast check is model-aware, not marque-blanket: a 2018 E-Class or 2019
-// A6 stays neutral even though Mercedes and Audi are enthusiast marques, because
-// the E-Class/A6 are volume sedans; an SL, AMG GT, M3, or 458 keeps the rarity
-// story. Age >25 (a W124 E-Class, a Merkur) earns rarity unconditionally.
+// collectible: an enthusiast-tier make whose SPECIFIC MODEL is a specialty line (not
+// a mainstream volume nameplate) with archive presence (>=1), OR >25 years old. The
+// mainstream check is model-aware, not marque-blanket. For the LUXURY VOLUME marques
+// (Mercedes, BMW) a recognized mainstream nameplate is a common classic at any age,
+// so it now wins over the age>25 rule: a 2018 E-Class, a 1993 W124 300 CE, and an
+// E30 325i all stay neutral, while an SL, AMG, 190E 2.5-16 Evolution, 500E, or M3
+// keeps the rarity story. Porsche's mainstream 911 line is deliberately NOT scoped
+// here: an air-cooled base 911 stays age-rescued (locked). Pre-Aug-13 the age>25
+// rule fired first for everyone and let luxury volume classics read as "uncommon".
 function v2RarityAllowed(){
   try{
     var v=sellState.resolvedVehicle||(sellState.sellDecision&&sellState.sellDecision.vehicle)||{};
-    var yr=Number(v.year);
-    if(yr&&((new Date().getFullYear())-yr)>25)return true;
-    var count=Number(sellState.archiveModelCount);
+    var mk=String(v.make||"").toLowerCase().trim();
     var mainstreamModel=(typeof modelIsMainstream==="function")&&modelIsMainstream(v.make,v.model,v.trim);
+    // Luxury volume marque + mainstream nameplate: never rarity, at any age.
+    if(mainstreamModel&&(mk==="mercedes-benz"||mk==="mercedes"||mk==="bmw"))return false;
+    var yr=Number(v.year);
+    if(yr&&((new Date().getFullYear())-yr)>25)return true; // otherwise age>25 earns it (base 911 too)
+    var count=Number(sellState.archiveModelCount);
     if(typeof makeIsEnthusiast==="function"&&makeIsEnthusiast(v.make)&&!mainstreamModel&&isFinite(count)&&count>=1)return true;
     return false;
   }catch(e){ return false; }

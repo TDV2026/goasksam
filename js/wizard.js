@@ -50,15 +50,24 @@ function makeIsEnthusiast(make){ return ENTHUSIAST_MAKES.includes(String(make||"
 // denylist suppresses rarity for the base sedans/SUVs (E-Class, 3-Series, A6, and
 // their engine badges E350/328i/etc.) while the specialty models (SL, AMG GT, M3,
 // M5, Z4, R8, RS/S variants) stay eligible. Matched against the resolved model
-// head OR its engine badge, per marque. Age >25 still earns rarity unconditionally,
-// so a W124-era E-Class classic is unaffected.
+// head OR its engine badge, per marque. For the luxury volume marques (Mercedes,
+// BMW) a recognized mainstream model is suppressed at ANY age (v2RarityAllowed
+// checks it BEFORE the age>25 rule), so a W124 300 CE / E30 325i reads as the common
+// classic it is, not "uncommon"; Porsche's base 911 keeps its age-rescue. The
+// classic-era NUMBER-FIRST naming (300 CE, 190 E, 560 SEL, 635CSi) is handled in
+// modelIsMainstream, since it also needs the trim-aware specials escape below.
 const MAINSTREAM_MODEL_RE={
   "mercedes-benz":/^((a|b|c|e|s)[\s-]?class|(a|b|c|e|s)\d{2,3}|cla\d*|cls\d*|gl[abcesk]?\d*|gl[abcesk]?[\s-]?class|ml\d*|m[\s-]?class|r[\s-]?class|glk\d*)$/,
-  "bmw":/^([12345 7][\s-]?series|[12345 7]\d{2}(i|d|xi|ix|e)?|x[1-7]\d?|x[1-7]m?)$/,
+  "bmw":/^([1-7][\s-]?series|[1-7]\d{2}(csi|cs|is|es|xi|ix|td|tds|ti|i|d|e)?|x[1-7](\d|m)?)$/,
   "audi":/^(a[3-8]|q[3-8]|a[3-8][\s-]?(avant|sportback|allroad)|allroad)$/,
   "land rover":/^(range[\s-]?rover([\s-]?(sport|evoque|velar))?|discovery.*|evoque|velar|freelander|lr[234])$/,
   "jaguar":/^(xf|xe|xj[\s-]?\d*|xj)$/
 };
+// Mercedes specials that must KEEP rarity language even when they share a model head
+// with a volume line: SL roadsters, AMG, the homologation 190 E 2.5-16 / Evolution /
+// Cosworth / 16-valve, and the 6.3 / 6.9. The Porsche-built 500 E / E500 is excluded
+// separately (it collides with the "500 SEL" volume line only by displacement).
+const MB_SPECIAL_RE=/\bamg\b|2\.?5[\s-]?16|\bevolution\b|\bevo\b|cosworth|16[\s-]?v(alve)?\b|\b6\.9\b|\b6\.3\b/i;
 // Porsche 911 splits by TRIM, not model (the model is always "911"): the base
 // Carrera/Targa lines are mainstream volume and must never read as rare, while the
 // halo trims (GT3/GT3 RS/GT3 Touring, GT2, Turbo/Turbo S, Sport Classic, Dakar,
@@ -75,6 +84,18 @@ function modelIsMainstream(make,model,trim){
   if(mk==="porsche"){
     if(/(^|\b)911\b/.test(md)||/^(carrera|targa)/.test(md)) return !PORSCHE_911_HALO.test(tr+" "+md);
     if(/^(cayenne|macan|panamera)/.test(md)) return true;
+    return false;
+  }
+  if(mk==="mercedes-benz"||mk==="mercedes"){
+    // Genuine specials first: they share model heads with the volume lines.
+    if(/\bsl\b/.test(md))return false;                      // SL roadsters (280SL..600SL, SL-Class)
+    if(MB_SPECIAL_RE.test(md+" "+tr))return false;          // AMG / 190E 2.5-16 Evo / Cosworth / 6.3 / 6.9
+    if(/^(500[\s-]?e|e[\s-]?500)$/.test(md))return false;   // Porsche-built 500 E / E500
+    if(MAINSTREAM_MODEL_RE["mercedes-benz"].test(md))return true;  // modern letter-first (E-Class, C300, GLE...)
+    // Classic number-first volume naming (W124/W126/W123/W201): 300 CE/E/TE/D,
+    // 190 E/D, 260 E, 320 CE, 400 E, 300/420/560 SE/SEL, 300 SD, 380/560 SEC,
+    // 240 D, 280 E. SL is excluded above; "sl" is deliberately not a suffix here.
+    if(/^\d{3}[\s-]?(ce|te|td|cd|sec|sel|se|sd|e|d)$/.test(md))return true;
     return false;
   }
   var re=MAINSTREAM_MODEL_RE[mk];
