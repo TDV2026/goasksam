@@ -99,6 +99,17 @@ check("speed WHY: the 'active audience' N=0 fallback is GONE (no unsourced colou
   globalThis.sellState.sellOptions = [batEv, cbEv];
   cc = v2Composition();
   check("speed pick: a non-BaT evidence route present -> it leads as the speed pick", cc.speedMode === true && cc.pick && cc.pick.platformSlug === "carsandbids", JSON.stringify({ speedMode: cc.speedMode, pick: cc.pick && cc.pick.platformSlug }));
+  // FAIL #5: a non-BaT route with 1-2 sales (below the N>=3 evidence floor) must NOT
+  // win the speed slot - it would render a countless "generally quicker" pick. No
+  // route clears the floor -> no speed elevation, BaT leads (same as the #6 case).
+  const hemThin = { key: "r1", name: "Hemmings", platformSlug: "hemmings", marketEvidence: { evidenceSales: 2, windowDays: 180 } };
+  globalThis.sellState.sellOptions = [batEv, hemThin];
+  cc = v2Composition();
+  check("speed pick: a non-BaT route with N<3 does NOT get the speed slot (no countless pick)", cc.speedMode === false && cc.pick && cc.pick.platformSlug === "bringatrailer", JSON.stringify({ speedMode: cc.speedMode, pick: cc.pick && cc.pick.platformSlug }));
+  const cbThreshold = { key: "r2", name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 3, windowDays: 180, pricePremium: { gateType: "symmetric", percent: 4 } } };
+  globalThis.sellState.sellOptions = [batEv, cbThreshold];
+  cc = v2Composition();
+  check("speed pick: a non-BaT route at exactly N=3 DOES get the speed slot", cc.speedMode === true && cc.pick && cc.pick.platformSlug === "carsandbids", JSON.stringify({ speedMode: cc.speedMode, pick: cc.pick && cc.pick.platformSlug }));
   globalThis.sellState.timeline = savedTimeline; globalThis.sellState.sellerPreference = savedPref; globalThis.sellState.region = savedRegion; globalThis.sellState.partnerReferral = savedRef; globalThis.sellState.sellOptions = [];
 }
 // MIN-EVIDENCE FLOOR (N>=3): below the floor a single sale can't back "buyers are

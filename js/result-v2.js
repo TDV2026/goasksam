@@ -165,6 +165,11 @@ function v2Why(mode,s){
   return out.charAt(0).toUpperCase()+out.slice(1);
 }
 
+// Minimum evidence for a speed pick - the SINGLE bar for both selecting the pick
+// (v2Composition evBacked) and stating its "sold N" count (v2SpeedWhy). A pick can
+// never be selected below the count it would need to show, so a countless speed pick
+// (golden-path FAIL #5) is impossible.
+var V2_SPEED_EVIDENCE_FLOOR=3;
 // Speed-pick WHY (locked wording, Aug 2026). Sentence 1 (the pick) and the speed
 // benefit always render; the VOLUME clause ("sold N ... so buyers are already
 // there") renders only at N>=3 (SPEED_COUNT_FLOOR), below which one or two sales
@@ -190,13 +195,11 @@ function v2SpeedWhy(pick, priceAlt, includeDisclose){
   var modelCounted=(n===1)?model:modelPl;
   var win=(typeof v2WindowLabel==="function"&&typeof v2Window==="function")?v2WindowLabel(v2Window(ev)):"period";
   var s1="Since you'd like to sell quickly, I'd list your "+model+" on "+plat+".";
-  // The speed pick is evidence-backed by v2Composition (evidenceSales>0), but a
-  // single sale doesn't support "buyers are already there" as a claim, so the count
-  // clause is gated at SPEED_COUNT_FLOOR (3). Below it, the clause is dropped and the
-  // honest speed benefit carries the card alone - never a softer overclaim, and never
-  // the deleted N=0 "active audience" line (thin evidence is never dressed as depth).
-  var SPEED_COUNT_FLOOR=3;
-  var s2=(n>=SPEED_COUNT_FLOOR)
+  // The speed pick is selected only at evidenceSales>=V2_SPEED_EVIDENCE_FLOOR (the
+  // same bar), so at render n is always >= the floor and the count clause always
+  // states a real number. The guard stays as a belt: if n somehow dips below, the
+  // clause drops rather than overclaims (never the deleted N=0 "active audience").
+  var s2=(n>=V2_SPEED_EVIDENCE_FLOOR)
     ? " It's generally quicker to get a listing live than some other platforms, and it's sold "+n+" "+modelCounted+" over the past "+win+", so buyers are already there."
     : " It's generally quicker to get a listing live than some other platforms.";
   var s3="";
@@ -727,7 +730,13 @@ function v2Composition(){
   // BaT) leads the card exactly as in the no-divergence case. Divergence exists
   // only when the evidence-backed speed pick differs from the price leader (BaT).
   var wantsSpeed=(typeof sellerWantsSpeed==="function")&&sellerWantsSpeed();
-  var evBacked=function(o){ return !!(o&&o.marketEvidence&&Number(o.marketEvidence.evidenceSales||0)>0); };
+  // A speed pick must clear the SAME bar to be SELECTED as it does to STATE its
+  // evidence: V2_SPEED_EVIDENCE_FLOOR (3). Previously selection gated at >0 while the
+  // count clause floored at 3, so a 1-2 sale route (e.g. Hemmings for a modern M3)
+  // won the non-BaT speed slot but rendered "generally quicker" with NO count -
+  // golden-path FAIL #5. Now, if no non-BaT route clears the floor, no speed
+  // elevation and BaT leads exactly as in the no-evidence case (#6).
+  var evBacked=function(o){ return !!(o&&o.marketEvidence&&Number(o.marketEvidence.evidenceSales||0)>=V2_SPEED_EVIDENCE_FLOOR); };
   var pick, alt, speedMode=false, speedDiverges=false, priceAlt=null, priceCompetesFull=false;
   if(wantsSpeed&&opts.length){
     var priceLeader=opts[0];
