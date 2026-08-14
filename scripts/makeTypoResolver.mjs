@@ -21,7 +21,10 @@ const TYPOS = [
 for (const [text, make] of TYPOS) {
   const j = await resolve(text);
   const q = String(j.clarification?.question || "");
-  check(`typo "${text}" -> CONFIRM "${make}"`, /did you mean/i.test(q) && rx(make).test(q + " " + (j.clarification?.suggestion || "")) && j.vehicle?.make !== make, `q="${q}" make=${j.vehicle?.make}`);
+  // A "Did you mean the X?" confirmation (never a silent resolve). The proposed make
+  // may ride along on the partial so cold entry can start the wizard, but the status
+  // is a confirmation, not valid - the question is the assertion.
+  check(`typo "${text}" -> CONFIRM "${make}"`, /did you mean/i.test(q) && rx(make).test(q + " " + (j.clarification?.suggestion || "")) && j.status !== "valid", `q="${q}" status=${j.status}`);
 }
 // B8b: ABBREVIATIONS still resolve silently (no "Did you mean").
 const ABBR = [["2015 chevy", "Chevrolet"], ["2012 merc", "Mercedes-Benz"], ["2016 lambo", "Lamborghini"], ["2018 vw", "Volkswagen"]];
