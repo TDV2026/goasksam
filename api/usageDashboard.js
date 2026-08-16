@@ -8,6 +8,7 @@ import { callOldCarsData } from "../lib/_ocd.js";
 import { persistableMakeModel, recordPlatform, stableRecordId } from "../lib/_classify.js";
 import { CURATED_GENERATIONS } from "../lib/generations.js";
 import { recordUsageEvent } from "./_usage.js";
+import { journeyManualUpdate } from "../lib/_journey.js";
 import { runDepthProbe, LAUNCH_SOURCES } from "../lib/ops/depthProbe.js";
 import { runFillBatch } from "../lib/ops/fillLadder.js";
 
@@ -1327,6 +1328,62 @@ async function renderBusinessView(req, res) {
 
 const STAGE_LABEL = { seller_journey_started: "Started", vehicle_identified: "Vehicle identified", seller_questions_completed: "Questions done", recommendation_completed: "Recommendation", platform_recommended: "Platform rec", powerseller_recommended: "PowerSeller rec", platform_cta_viewed: "CTA viewed", powerseller_card_viewed: "PS card viewed", platform_cta_clicked: "CTA clicked", powerseller_intro_clicked: "Intro clicked", powerseller_intro_requested: "Intro requested", powerseller_intro_sent: "Intro sent", powerseller_contacted: "Contacted", powerseller_engaged: "Engaged", consignment_accepted: "Consignment", vehicle_listed: "Listed", vehicle_sold: "Sold", journey_closed_no_sale: "Closed, no sale" };
 
+// ---- Phase 3: manual downstream editor ----
+// The single source of truth for what an admin may edit. Each field maps to a
+// journey_manual_update-allowlisted column; "type" drives the input + the
+// change-detection normalizer (so unchanged fields never write a no-op audit row).
+// Dates are captured day-granular (lifecycle milestones, not second precision).
+const MANUAL_FIELDS = [
+  { f: "sale_status", label: "Sale status", type: "status" },
+  { f: "actual_platform", label: "Actual platform used", type: "text", ph: "e.g. bringatrailer" },
+  { f: "listing_url", label: "Listing URL", type: "text", ph: "https://..." },
+  { f: "listing_date", label: "Listing date", type: "date" },
+  { f: "intro_sent_at", label: "Intro sent", type: "date" },
+  { f: "contacted_at", label: "PowerSeller contacted seller", type: "date" },
+  { f: "engaged_at", label: "Seller engaged", type: "date" },
+  { f: "consignment_at", label: "Consignment accepted", type: "date" },
+  { f: "listed_at", label: "Listed", type: "date" },
+  { f: "sold_at", label: "Sold", type: "date" },
+  { f: "closed_no_sale_at", label: "Closed, no sale", type: "date" },
+  { f: "sale_price", label: "Sale price (USD)", type: "num" },
+  { f: "gas_revenue", label: "GoAskSam revenue (USD)", type: "num" },
+  { f: "internal_notes", label: "Internal notes", type: "textarea" }
+];
+const SALE_STATUS_OPTS = ["", "listed", "sold", "no_sale"];
+// Canonical string for change detection. Dates compare day-only; numbers compare
+// numerically; text trims. Equal normalized values => no write, no audit row.
+function normField(type, v) {
+  if (v == null || v === "") return "";
+  if (type === "date") return String(v).slice(0, 10);
+  if (type === "num") { const n = Number(v); return Number.isFinite(n) ? String(n) : String(v).trim(); }
+  return String(v).trim();
+}
+
+// Process a manual-update POST: iterate the allowlisted fields present in the body,
+// write ONLY the ones whose value actually changed, each as its own audited RPC call.
+// Returns {saved, errors, changedBy} for the flash. Requires a non-empty changed_by
+// so every audit row records WHO. Never throws.
+async function processManualUpdate(env, req) {
+  const body = req.body || {};
+  const jid = String(body.jid || "").trim();
+  const changedBy = String(body.changed_by || "").trim();
+  const note = String(body.note || "").trim() || null;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(jid)) return { saved: 0, errors: ["bad_journey_id"], changedBy };
+  if (!changedBy) return { saved: 0, errors: ["missing_operator"], changedBy };
+  const cur = (await supabaseSelect(env, `journeys?journey_id=eq.${encodeURIComponent(jid)}&select=*&limit=1`)) || [];
+  const row = cur[0];
+  if (!row) return { saved: 0, errors: ["journey_not_found"], changedBy };
+  let saved = 0; const errors = [];
+  for (const spec of MANUAL_FIELDS) {
+    if (!(spec.f in body)) continue;
+    const next = String(body[spec.f] ?? "");
+    if (normField(spec.type, next) === normField(spec.type, row[spec.f])) continue; // unchanged: skip
+    const r = await journeyManualUpdate(env, { journeyId: jid, field: spec.f, value: next, changedBy, note });
+    if (r && r.ok) saved++; else errors.push(`${spec.f}:${(r && (r.reason || r.status)) || "fail"}`);
+  }
+  return { saved, errors, changedBy, jid };
+}
+
 async function renderJourneysView(req, res) {
   const env = supabaseEnv(); if (!env) return res.status(500).json({ error: "storage not configured" });
   const key = req.query?.key;
@@ -1336,16 +1393,50 @@ async function renderJourneysView(req, res) {
     const jr = await supabaseSelect(env, `journeys?journey_id=eq.${encodeURIComponent(jid)}&select=*&limit=1`);
     const j = jr && jr[0];
     if (!j) { res.setHeader("Content-Type", "text/html"); return res.status(200).send(bizChrome("Journey", key, "journeys") + "<p>Journey not found.</p></div>"); }
-    const evs = (await supabaseSelect(env, `journey_events?journey_id=eq.${encodeURIComponent(jid)}&select=event_type,platform_id,powerseller_id,metadata,occurred_at&order=occurred_at.asc&limit=200`)) || [];
+    const [evs, audit] = await Promise.all([
+      supabaseSelect(env, `journey_events?journey_id=eq.${encodeURIComponent(jid)}&select=event_type,platform_id,powerseller_id,metadata,occurred_at&order=occurred_at.asc&limit=200`),
+      supabaseSelect(env, `journey_audit?journey_id=eq.${encodeURIComponent(jid)}&select=changed_by,field,old_value,new_value,changed_at,note&order=changed_at.desc&limit=100`)
+    ]);
     const veh = [j.vehicle_year, j.vehicle_make, j.vehicle_model, j.vehicle_trim].filter(Boolean).join(" ") || "Unknown vehicle";
     const day = t => t ? new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
     const line = (t, lab, extra) => `<div class="ev"><div class="d">${day(t)}</div><div>${lab}${extra ? `<br><span class="samp">${extra}</span>` : ""}</div></div>`;
-    const evLines = evs.map(e => line(e.occurred_at, STAGE_LABEL[e.event_type] || e.event_type, [e.platform_id && `Platform: ${e.platform_id}`, e.powerseller_id && `PowerSeller: ${e.powerseller_id}`].filter(Boolean).join(" &middot; "))).join("");
+    const evLines = (evs || []).map(e => line(e.occurred_at, STAGE_LABEL[e.event_type] || e.event_type, [e.platform_id && `Platform: ${e.platform_id}`, e.powerseller_id && `PowerSeller: ${e.powerseller_id}`].filter(Boolean).join(" &middot; "))).join("");
     // manual milestones from the spine (Phase 3 data)
     const man = [["intro_sent_at", "Introduction sent"], ["contacted_at", "PowerSeller contacted seller"], ["engaged_at", "Seller engaged"], ["consignment_at", "Consignment accepted"], ["listed_at", `Listed${j.actual_platform ? " on " + j.actual_platform : ""}${j.listing_url ? ` &middot; <a href="${adminEsc(j.listing_url)}">listing</a>` : ""}`], ["sold_at", `Vehicle sold${j.sale_price ? " &middot; " + fmtMoney(j.sale_price) : ""}`], ["closed_no_sale_at", "Closed, no sale"]].filter(([f]) => j[f]).map(([f, lab]) => line(j[f], lab)).join("");
+
+    // manual editor (writes via the audited journey_manual_update RPC on POST)
+    const dv = v => v == null ? "" : adminEsc(String(v).slice(0, 10)); // date input value
+    const field = spec => {
+      const cur = j[spec.f];
+      if (spec.type === "status") return `<select name="${spec.f}">${SALE_STATUS_OPTS.map(o => `<option value="${o}"${(cur || "") === o ? " selected" : ""}>${o || "unknown"}</option>`).join("")}</select>`;
+      if (spec.type === "date") return `<input type="date" name="${spec.f}" value="${dv(cur)}">`;
+      if (spec.type === "num") return `<input type="number" step="1" name="${spec.f}" value="${cur == null ? "" : adminEsc(String(cur))}">`;
+      if (spec.type === "textarea") return `<textarea name="${spec.f}" rows="2" style="width:100%">${adminEsc(cur || "")}</textarea>`;
+      return `<input type="text" name="${spec.f}" value="${adminEsc(cur == null ? "" : String(cur))}" placeholder="${adminEsc(spec.ph || "")}">`;
+    };
+    const editRows = MANUAL_FIELDS.map(s => `<div class="efield"><label>${s.label}</label>${field(s)}</div>`).join("");
+    const saved = Number(req.query?.saved || 0), errs = String(req.query?.errs || "");
+    const flash = (req.query?.saved != null)
+      ? `<div class="note" style="background:${errs ? "#fdeceb" : "#eaf6ee"};border-color:${errs ? "#f0c3bf" : "#bfe3cc"};color:${errs ? "#7a2a24" : "#215c39"}">${saved > 0 ? `Saved ${saved} change${saved === 1 ? "" : "s"}, each written to the audit log.` : "No changes to save."}${errs ? ` Errors: ${adminEsc(errs)}` : ""}</div>`
+      : "";
+    const editor = `<h2>Update downstream outcome</h2>
+      <div class="note">Every change is written to the audit log below with who, field, old value, new value and timestamp. Dates are day granular. Leave a field blank to clear it. Sold is never inferred, so set the sale status explicitly.</div>
+      ${flash}
+      <form method="post" action="?view=journeys&jid=${encodeURIComponent(jid)}&key=${bizKey(req)}">
+        <input type="hidden" name="jid" value="${adminEsc(jid)}"><input type="hidden" name="key" value="${bizKey(req)}">
+        <div class="editgrid">${editRows}</div>
+        <div class="efield" style="margin-top:10px"><label>Your initials or name (recorded in the audit) *</label><input type="text" name="changed_by" required placeholder="e.g. Sam"></div>
+        <div class="efield"><label>Note (optional, applies to this update)</label><input type="text" name="note" placeholder="context for the change"></div>
+        <button type="submit" style="margin-top:12px;background:#0b5c3e;color:#fff;border:0;border-radius:7px;padding:9px 18px;font:inherit;cursor:pointer">Save changes</button>
+      </form>`;
+
+    const auditRows = (audit || []).map(a => `<tr><td>${new Date(a.changed_at).toLocaleString()}</td><td>${adminEsc(a.changed_by)}</td><td>${adminEsc(a.field)}</td><td class="samp">${adminEsc(a.old_value == null ? "(empty)" : a.old_value)}</td><td>${adminEsc(a.new_value == null ? "(cleared)" : a.new_value)}</td><td class="samp">${adminEsc(a.note || "")}</td></tr>`).join("");
+    const auditSection = `<h2>Audit trail</h2><table><tr><th>When</th><th>Who</th><th>Field</th><th>Old</th><th>New</th><th>Note</th></tr>${auditRows || `<tr><td colspan=6>No manual changes yet.</td></tr>`}</table>`;
+
     const html = `${bizChrome("__bare", key, "journeys")}
+      <style>.editgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin-top:10px}.efield label{display:block;font-size:11.5px;color:var(--slate);margin-bottom:3px}.efield input,.efield select{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font:inherit}.efield:has(textarea),.efield:last-of-type,.efield:nth-last-of-type(2){grid-column:1 / -1}</style>
       <h1>${adminEsc(veh)}</h1>
-      <div class="sub">${adminEsc(j.vehicle_location || "Location unknown")} &middot; journey ${adminEsc(jid.slice(0, 8))} &middot; ${j.user_id ? "signed-in" : "anonymous"}</div>
+      <div class="sub">${adminEsc(j.vehicle_location || "Location unknown")} &middot; journey ${adminEsc(jid.slice(0, 8))} &middot; ${j.user_id ? "signed-in" : "anonymous"} &middot; <a class="jlink" href="?view=journeys&key=${bizKey(req)}">back to explorer</a></div>
       <div class="split" style="grid-template-columns:2fr 1fr">
         <div><h2>History</h2><div class="tl">${evLines}${man}</div></div>
         <div><h2>Recommendation</h2><div class="path">
@@ -1356,8 +1447,11 @@ async function renderJourneysView(req, res) {
           <div class="r"><span>Est. value</span><b>${j.rec_estimated_value ? fmtMoney(j.rec_estimated_value) : "-"}</b></div>
           <div class="r"><span>Stage</span><b>${adminEsc(STAGE_LABEL[j.stage] || j.stage || "-")}</b></div>
           <div class="r"><span>Sale status</span><b>${adminEsc(j.sale_status || "unknown")}</b></div>
-        </div>${j.internal_notes ? `<div class="note" style="margin-top:10px"><b>Internal notes:</b> ${adminEsc(j.internal_notes)}</div>` : ""}</div>
-      </div></div>`;
+        </div></div>
+      </div>
+      ${editor}
+      ${auditSection}
+    </div>`;
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     return res.status(200).send(html);
   }
@@ -1397,7 +1491,8 @@ async function renderJourneysView(req, res) {
 export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
+  // GET serves the dashboard; POST is the Phase-3 audited manual update only.
+  if (req.method !== "GET" && req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   // Metered ops jobs (probe/fill): own PROBE_KEY gate, runs BEFORE the dashboard-key
   // gate so it is independent of the read-only dashboard key.
@@ -1406,9 +1501,23 @@ export default async function handler(req, res) {
   }
 
   const configuredKey = process.env.USAGE_DASHBOARD_KEY || process.env.ADMIN_DASHBOARD_KEY;
-  const providedKey = req.headers["x-admin-key"] || req.query?.key;
+  const providedKey = req.headers["x-admin-key"] || req.query?.key || req.body?.key;
   if (!configuredKey) return res.status(500).json({ error: "Set USAGE_DASHBOARD_KEY in Vercel before using this dashboard." });
   if (providedKey !== configuredKey) return res.status(401).json({ error: "Unauthorized" });
+
+  // Phase 3 write path: audited manual downstream update, then Post/Redirect/Get
+  // back to the journey detail so a refresh never re-submits.
+  if (req.method === "POST") {
+    try {
+      const env = supabaseEnv();
+      if (!env) return res.status(500).json({ error: "storage not configured" });
+      const result = await processManualUpdate(env, req);
+      const params = new URLSearchParams({ view: "journeys", jid: result.jid || String(req.body?.jid || ""), key: String(providedKey || ""), saved: String(result.saved) });
+      if (result.errors && result.errors.length) params.set("errs", result.errors.join(","));
+      res.setHeader("Location", `?${params.toString()}`);
+      return res.status(303).end();
+    } catch (err) { return res.status(500).json({ error: err.message }); }
+  }
 
   // View dispatch (consolidated admin function): accounts + funnel (2G), outbound
   // clicks, or the default usage view.

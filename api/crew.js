@@ -24,6 +24,32 @@ export default async function handler(req, res) {
     const events = await read(`journey_events?${jFilter}select=journey_id,event_type,dedup_key,platform_id,powerseller_id,occurred_at&order=occurred_at.asc&limit=200`);
     return res.status(200).json({ journeys: journeys || [], events: events || [], journeyCount: (journeys || []).length, eventCount: (events || []).length });
   }
+  // Crew-gated Phase-3 manual-update verification harness (temporary, removed with
+  // the curtain). Exercises the REAL journey_manual_update RPC + audit capture end
+  // to end against prod on a throwaway internal-tier test journey, then purges it.
+  // Proves: allowlist enforcement, old->new capture, who/what/when auditing.
+  if (q.jmanual === "1") {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    if ((req.headers.cookie || "").indexOf("gas_crew=ok") === -1) return res.status(403).json({ error: "forbidden (crew only)" });
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY, url = process.env.SUPABASE_URL;
+    if (!key || !url) return res.status(500).json({ error: "supabase not configured" });
+    const H = { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" };
+    const rpc = (name, payload) => fetch(`${url}/rest/v1/rpc/${name}`, { method: "POST", headers: H, body: JSON.stringify(payload) }).then(r => r.json()).catch(e => ({ error: e.message }));
+    const read = (path) => fetch(`${url}/rest/v1/${path}`, { headers: H }).then(r => r.ok ? r.json() : null).catch(() => null);
+    const del = (path) => fetch(`${url}/rest/v1/${path}`, { method: "DELETE", headers: H }).then(r => r.status).catch(() => -1);
+    const jid = globalThis.crypto.randomUUID();
+    const who = "verify-harness";
+    await rpc("record_journey_event", { p_journey_id: jid, p_event_type: "recommendation_completed", p_anon_id: who, p_metadata: { tier: "internal" }, p_vehicle: { make: "Test", model: "Harness", year: "2000" }, p_snapshot: { rec_status: "completed", rec_platform: "bringatrailer" } });
+    const u1 = await rpc("journey_manual_update", { p_journey_id: jid, p_field: "sale_status", p_value: "listed", p_changed_by: who, p_note: "step1 set" });
+    const u2 = await rpc("journey_manual_update", { p_journey_id: jid, p_field: "sale_status", p_value: "sold", p_changed_by: who, p_note: "step2 change" });
+    const u3 = await rpc("journey_manual_update", { p_journey_id: jid, p_field: "sale_price", p_value: "12345", p_changed_by: who });
+    const uBad = await rpc("journey_manual_update", { p_journey_id: jid, p_field: "rec_platform", p_value: "should_be_rejected", p_changed_by: who });
+    const audit = await read(`journey_audit?journey_id=eq.${jid}&select=changed_by,field,old_value,new_value,changed_at,note&order=changed_at.asc`);
+    const journey = await read(`journeys?journey_id=eq.${jid}&select=sale_status,sale_price,rec_platform,updated_at`);
+    let cleaned = null;
+    if (q.cleanup !== "0") cleaned = { audit: await del(`journey_audit?journey_id=eq.${jid}`), events: await del(`journey_events?journey_id=eq.${jid}`), journey: await del(`journeys?journey_id=eq.${jid}`) };
+    return res.status(200).json({ jid, updates: { u1, u2, u3, disallowed: uBad }, audit: audit || [], journey: (journey || [])[0] || null, cleaned });
+  }
   // Read-only out-of-scope calibration probe (crew cookie required). Folded in
   // here to stay under the Hobby-plan 12-function cap. Returns per make+model the
   // all-time vehicle_market_records count (our archive) and the OldCarsData
