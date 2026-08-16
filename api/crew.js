@@ -9,6 +9,21 @@ import { TESTER_CODE, testerCodeExpired, testerCookieMaxAge } from "../lib/_test
 
 export default async function handler(req, res) {
   const q = req.query || {};
+  // Crew-gated journey verification read (temporary, removed with the curtain).
+  // Reads the RLS-locked analytics tables via the service role so Phase-1 dedup +
+  // anon->signed-in continuity can be verified before USAGE_DASHBOARD_KEY is set.
+  if (q.jread === "1") {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    if ((req.headers.cookie || "").indexOf("gas_crew=ok") === -1) return res.status(403).json({ error: "forbidden (crew only)" });
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY, url = process.env.SUPABASE_URL;
+    if (!key || !url) return res.status(500).json({ error: "supabase not configured" });
+    const read = (path) => fetch(`${url}/rest/v1/${path}`, { headers: { apikey: key, Authorization: `Bearer ${key}` } }).then(r => r.ok ? r.json() : null).catch(() => null);
+    const anon = String(q.anon || "").slice(0, 64), jid = String(q.jid || "").slice(0, 64);
+    const jFilter = jid ? `journey_id=eq.${encodeURIComponent(jid)}&` : anon ? `anon_id=eq.${encodeURIComponent(anon)}&` : "";
+    const journeys = await read(`journeys?${jFilter}select=journey_id,anon_id,user_id,stage,vehicle_make,vehicle_model,vehicle_year,rec_platform,rec_powerseller,last_activity_at&order=created_at.desc&limit=20`);
+    const events = await read(`journey_events?${jFilter}select=journey_id,event_type,dedup_key,platform_id,powerseller_id,occurred_at&order=occurred_at.asc&limit=200`);
+    return res.status(200).json({ journeys: journeys || [], events: events || [], journeyCount: (journeys || []).length, eventCount: (events || []).length });
+  }
   // Read-only out-of-scope calibration probe (crew cookie required). Folded in
   // here to stay under the Hobby-plan 12-function cap. Returns per make+model the
   // all-time vehicle_market_records count (our archive) and the OldCarsData
