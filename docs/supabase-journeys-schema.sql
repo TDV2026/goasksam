@@ -232,14 +232,21 @@ declare
     'intro_sent_at','contacted_at','engaged_at','consignment_at','listed_at',
     'actual_platform','listing_url','listing_date','sale_status','sold_at',
     'sale_price','gas_revenue','closed_no_sale_at','internal_notes','stage'];
-  v_old text;
+  v_old  text;
+  v_type text;
 begin
   if not (p_field = any(v_allowed)) then
     return jsonb_build_object('ok', false, 'reason', 'field_not_allowed');
   end if;
+  -- p_value always arrives as text; cast it to the column's real type so numeric,
+  -- date and timestamptz fields assign cleanly (a bound text param gets no implicit
+  -- assignment cast, which errored 42804 on sale_price / *_at before this).
+  select format_type(a.atttypid, a.atttypmod) into v_type
+    from pg_attribute a
+    where a.attrelid = 'public.journeys'::regclass and a.attname = p_field and a.attnum > 0 and not a.attisdropped;
   execute format('select (%I)::text from public.journeys where journey_id = $1', p_field) into v_old using p_journey_id;
-  execute format('update public.journeys set %I = $1, updated_at = now() where journey_id = $2', p_field)
-    using nullif(p_value, ''), p_journey_id;
+  execute format('update public.journeys set %I = nullif($1, '''')::%s, updated_at = now() where journey_id = $2', p_field, v_type)
+    using p_value, p_journey_id;
   insert into public.journey_audit (journey_id, changed_by, field, old_value, new_value, note)
     values (p_journey_id, p_changed_by, p_field, v_old, nullif(p_value, ''), p_note);
   return jsonb_build_object('ok', true, 'field', p_field, 'old', v_old, 'new', nullif(p_value, ''));

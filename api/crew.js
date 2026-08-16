@@ -42,13 +42,15 @@ export default async function handler(req, res) {
     await rpc("record_journey_event", { p_journey_id: jid, p_event_type: "recommendation_completed", p_anon_id: who, p_metadata: { tier: "internal" }, p_vehicle: { make: "Test", model: "Harness", year: "2000" }, p_snapshot: { rec_status: "completed", rec_platform: "bringatrailer" } });
     const u1 = await rpc("journey_manual_update", { p_journey_id: jid, p_field: "sale_status", p_value: "listed", p_changed_by: who, p_note: "step1 set" });
     const u2 = await rpc("journey_manual_update", { p_journey_id: jid, p_field: "sale_status", p_value: "sold", p_changed_by: who, p_note: "step2 change" });
-    const u3 = await rpc("journey_manual_update", { p_journey_id: jid, p_field: "sale_price", p_value: "12345", p_changed_by: who });
+    const u3 = await rpc("journey_manual_update", { p_journey_id: jid, p_field: "sale_price", p_value: "12345", p_changed_by: who });        // numeric
+    const u4 = await rpc("journey_manual_update", { p_journey_id: jid, p_field: "sold_at", p_value: "2026-08-10", p_changed_by: who });        // timestamptz
+    const u5 = await rpc("journey_manual_update", { p_journey_id: jid, p_field: "listing_date", p_value: "2026-08-01", p_changed_by: who });   // date
     const uBad = await rpc("journey_manual_update", { p_journey_id: jid, p_field: "rec_platform", p_value: "should_be_rejected", p_changed_by: who });
     const audit = await read(`journey_audit?journey_id=eq.${jid}&select=changed_by,field,old_value,new_value,changed_at,note&order=changed_at.asc`);
-    const journey = await read(`journeys?journey_id=eq.${jid}&select=sale_status,sale_price,rec_platform,updated_at`);
+    const journey = await read(`journeys?journey_id=eq.${jid}&select=sale_status,sale_price,sold_at,listing_date,rec_platform,updated_at`);
     let cleaned = null;
     if (q.cleanup !== "0") cleaned = { audit: await del(`journey_audit?journey_id=eq.${jid}`), events: await del(`journey_events?journey_id=eq.${jid}`), journey: await del(`journeys?journey_id=eq.${jid}`) };
-    return res.status(200).json({ jid, updates: { u1, u2, u3, disallowed: uBad }, audit: audit || [], journey: (journey || [])[0] || null, cleaned });
+    return res.status(200).json({ jid, updates: { u1, u2, u3, u4, u5, disallowed: uBad }, audit: audit || [], journey: (journey || [])[0] || null, cleaned });
   }
   // Read-only out-of-scope calibration probe (crew cookie required). Folded in
   // here to stay under the Hobby-plan 12-function cap. Returns per make+model the
