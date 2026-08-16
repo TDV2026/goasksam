@@ -995,6 +995,12 @@ function resumeWizardAfterVehicle(prefix){
   // modern mainstream economy car with no rescuing trim is refused here, before
   // advancing to the country step, so no search is ever reserved.
   if(maybeGateOutOfScope("postTrim"))return;
+  // Business journey: an in-scope vehicle is resolved and we are proceeding. This is
+  // the journey's entry (deterministic per-vehicle id). Once per session + server dedup.
+  if(sellState.resolvedVehicle&&typeof gasJourneyEventOnce==="function"){
+    gasJourneyEventOnce("seller_journey_started",{vehicle:sellState.resolvedVehicle});
+    gasJourneyEventOnce("vehicle_identified",{vehicle:sellState.resolvedVehicle});
+  }
   if(sellState.returnToConfirm){goBackToConfirm();return;}
   if(sellState.editReturnStep&&SELL_STEP_QUESTIONS[sellState.editReturnStep]){
     const back=sellState.editReturnStep;

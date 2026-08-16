@@ -4,6 +4,7 @@ import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
 import { testerCodeExpired } from "../lib/_tester.js";
+import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
 import { findGeneration, generationModelToken } from "../lib/generations.js";
 import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
 import { MODEL_SEGMENTS } from "../lib/vehicleData.js";
@@ -2724,6 +2725,34 @@ export default async function handler(req, res) {
         }
       }
     }, supabaseUrl, supabaseKey);
+
+    // Business-journey events (best-effort, never blocks). The client sends the
+    // deterministic per-vehicle journeyId; anonId = the gas_anon it also sends as
+    // anonSessionId; userId links the account (anon -> signed-in continuity). Deduped
+    // per (journey, day) so a same-day re-run or refresh is not double counted.
+    if (!internalCall && typeof req.body?.journeyId === "string" && req.body.journeyId) {
+      const jEnv = { supabaseUrl, supabaseKey };
+      const partner = decision.partnerReferral && decision.partnerReferral.partner;
+      const psId = partner ? (partner.slug || partner.name || null) : null;
+      const psShown = !!(decision.partnerReferral && (decision.partnerReferral.eligible || decision.partnerReferral.secondary));
+      const jCommon = { journeyId: req.body.journeyId, anonId: anonSessionId, userId: searchAccountId, vehicle: journeyVehicle(vehicle, sellerCriteria) };
+      const dk = coarseDayKey();
+      const snapshot = {
+        rec_status: "completed",
+        rec_platform: decision.recommendedPath || null,
+        rec_powerseller: psShown ? psId : null,
+        rec_scope: analysis.ladder?.landed?.rung || null,
+        rec_window: analysis.windowDays >= ALL_TIME_WINDOW_DAYS ? "all_time" : `${analysis.windowDays}d`,
+        rec_estimated_value: (analysis.estimatedValue != null && Number.isFinite(analysis.estimatedValue)) ? String(analysis.estimatedValue) : null
+      };
+      try {
+        await Promise.all([
+          recordJourneyEvent(jEnv, { ...jCommon, eventType: "recommendation_completed", dedupKey: dk, snapshot, metadata: { tier: searchTier, evidenceSales: analysis.evidenceSales, evidenceBasis: decision.evidenceBasis } }),
+          recordJourneyEvent(jEnv, { ...jCommon, eventType: "platform_recommended", platformId: decision.recommendedPath || null, dedupKey: dk }),
+          psShown ? recordJourneyEvent(jEnv, { ...jCommon, eventType: "powerseller_recommended", powersellerId: psId, dedupKey: dk, metadata: { eligible: !!decision.partnerReferral.eligible, secondary: !!decision.partnerReferral.secondary } }) : Promise.resolve()
+        ]);
+      } catch { /* analytics never blocks the decision */ }
+    }
 
     const responsePayload = {
       status: "decision_ready",

@@ -5,6 +5,7 @@
 // or beacon=1) logs only and returns 204 with no redirect.
 import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
 import { SUBMISSION_URLS, REFERRAL_UTM } from "../lib/submissionUrls.js";
+import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
 
 function clip(value, max = 160) {
   if (value == null) return null;
@@ -44,6 +45,17 @@ export default async function handler(req, res) {
         outcome
       };
       await supabaseInsert("outbound_clicks", [row], env.supabaseUrl, env.supabaseKey, "return=minimal");
+      // Business journey: a REAL platform CTA click (not the abandon beacon). Deduped
+      // per (journey, platform, search) so a re-click/refresh is not double counted.
+      if (!beacon && q.j) {
+        await recordJourneyEvent(env, {
+          journeyId: String(q.j), eventType: "platform_cta_clicked",
+          anonId: clip(q.a, 64), platformId: slug || clip(q.p, 40),
+          dedupKey: `${slug}:${clip(q.s) || ""}`,
+          vehicle: journeyVehicle({ year: q.year, make: clip(q.make), model: clip(q.model), trim: clip(q.trim) }, { state: clip(q.location) }),
+          metadata: { card: row.card, reason: row.reason, pref: row.seller_preference }
+        });
+      }
     }
   } catch { /* never block the redirect on a logging failure */ }
 

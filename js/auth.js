@@ -224,6 +224,60 @@ function gasAnonId() {
   try { let id = localStorage.getItem("gas_anon"); if (!id) { id = "a_" + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem("gas_anon", id); } return id; } catch (e) { return null; }
 }
 function gasStashResultId(id, isFirstFree) { try { if (isFirstFree && id) localStorage.setItem("gas_free_result", id); } catch (e) {} }
+// ---- Business journey tracking (deterministic per-vehicle journey id) ----
+// A person's attempt to sell ONE vehicle is one journey across visits; a different
+// car is a new journey. Keyed by normalized make|model|year in localStorage so the
+// same id is reused. journey_id is a real uuid (the analytics table PK).
+function gasUuid() {
+  try { if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16); });
+}
+function gasJourneyKey(v) {
+  if (!v) return null;
+  const n = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const make = n(v.make), model = n(v.model), year = (v.year != null ? String(v.year) : "");
+  if (!make || !model) return null; // no stable key until make+model are known
+  return [make, model, year].filter(Boolean).join("|");
+}
+function gasJourneyId(v) {
+  try {
+    const key = gasJourneyKey(v); if (!key) return null;
+    const k = "gas_jid:" + key;
+    let id = localStorage.getItem(k);
+    if (!id) { id = gasUuid(); localStorage.setItem(k, id); }
+    return id;
+  } catch (e) { return null; }
+}
+// Fire-and-forget business-journey event beacon (client-emittable events only; the
+// server enforces the allowlist). Carries the journey id + resolved vehicle so the
+// server can materialize the journey. Never blocks the UI.
+function gasJourneyEvent(eventType, opts) {
+  opts = opts || {};
+  try {
+    const jid = opts.journeyId || gasJourneyId(opts.vehicle || (typeof sellState !== "undefined" ? sellState.resolvedVehicle : null));
+    if (!jid) return;
+    const body = JSON.stringify({
+      kind: "journey", event: eventType, journeyId: jid, anonId: gasAnonId(),
+      vehicle: opts.vehicle || (typeof sellState !== "undefined" ? sellState.resolvedVehicle : null) || null,
+      dedupKey: opts.dedupKey || null, platformId: opts.platformId || null,
+      powersellerId: opts.powersellerId || null, metadata: opts.metadata || null
+    });
+    const url = authApiPath("/api/funnel");
+    if (navigator && navigator.sendBeacon) { navigator.sendBeacon(url, new Blob([body], { type: "application/json" })); return; }
+    fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => {});
+  } catch (e) {}
+}
+// Once-per-browser-tab wrapper (refresh/re-render safe on top of the server dedup).
+function gasJourneyEventOnce(eventType, opts) {
+  opts = opts || {};
+  try {
+    const jid = opts.journeyId || gasJourneyId(opts.vehicle || (typeof sellState !== "undefined" ? sellState.resolvedVehicle : null));
+    const k = "gas_je_" + eventType + ":" + (jid || "") + (opts.dedupKey ? ":" + opts.dedupKey : "");
+    if (sessionStorage.getItem(k)) return;
+    sessionStorage.setItem(k, "1");
+  } catch (e) {}
+  gasJourneyEvent(eventType, opts);
+}
 // 2F: fire-and-forget funnel beacon for client-only steps. Idempotent per-session
 // via a stable dedupKey (11e) so a refresh doesn't double-count.
 function gasFunnel(event, dedupKey) {

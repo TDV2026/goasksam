@@ -592,6 +592,8 @@ function outboundQuery(slug,card,extra){
   const v=sellState.resolvedVehicle||dec.vehicle||sellState.vehicle||{};
   const landed=(dec.evidence&&dec.evidence.ladder&&dec.evidence.ladder.landed&&dec.evidence.ladder.landed.key)||"";
   const params={p:slug,s:outboundSearchId(),sid:outboundSessionId(),card:card||"",
+    j:(typeof gasJourneyId==="function"?(gasJourneyId(v)||""):""),
+    a:(typeof gasAnonId==="function"?(gasAnonId()||""):""),
     year:v.year||"",make:v.make||"",model:v.model||"",trim:v.trim||"",
     location:sellState.state||sellState.region||"",rung:landed,
     reason:sellState.routingReason||dec.routingReason||"",pref:sellState.sellerPreference||""};

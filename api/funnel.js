@@ -4,6 +4,7 @@
 // where they happen and never come through here. Fire-and-forget: always 204,
 // never blocks the UI. Idempotent where a dedup_key is supplied (11e).
 import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
+import { recordJourneyEvent, journeyVehicle, CLIENT_JOURNEY_EVENTS } from "../lib/_journey.js";
 
 const ALLOWED = new Set(["homepage_view", "wizard_start", "wizard_complete", "signup_shown", "non_us_attempt"]);
 
@@ -15,6 +16,21 @@ export default async function handler(req, res) {
   // Always answer 204 so a beacon never surfaces an error to the user.
   try {
     const body = typeof req.body === "object" && req.body ? req.body : {};
+    // Business-journey event (client-emittable only). Anon-tagged; the account is
+    // learned later from the server-side events that carry a bearer. Never blocks.
+    if (body.kind === "journey" && body.journeyId && CLIENT_JOURNEY_EVENTS.has(String(body.event || ""))) {
+      const env = supabaseEnv();
+      if (env) await recordJourneyEvent(env, {
+        journeyId: body.journeyId, eventType: String(body.event),
+        anonId: body.anonId ? String(body.anonId).slice(0, 64) : null,
+        platformId: body.platformId ? String(body.platformId).slice(0, 40) : null,
+        powersellerId: body.powersellerId ? String(body.powersellerId).slice(0, 40) : null,
+        dedupKey: body.dedupKey ? String(body.dedupKey).slice(0, 128) : null,
+        metadata: (body.metadata && typeof body.metadata === "object") ? body.metadata : {},
+        vehicle: body.vehicle ? journeyVehicle(body.vehicle, null) : null
+      });
+      res.status(204).end(); return;
+    }
     const event = String(body.event || "");
     if (ALLOWED.has(event)) {
       const env = supabaseEnv();

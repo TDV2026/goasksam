@@ -1,3 +1,5 @@
+import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
+
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -112,6 +114,23 @@ export default async function handler(req, res) {
 
   try {
     const inserted = await insertLeadWithFallback(row, supabaseUrl, supabaseKey);
+    // Business journey: a PowerSeller introduction request. Deduped by the unique
+    // lead reference. Best-effort; a failure never affects the lead confirmation.
+    try {
+      const journeyId = asText(req.body?.journeyId);
+      const isPs = asText(choice.destinationType).toLowerCase() === "powerseller";
+      if (journeyId && isPs) {
+        const partner = choice.powerSeller || {};
+        await recordJourneyEvent({ supabaseUrl, supabaseKey }, {
+          journeyId, eventType: "powerseller_intro_requested",
+          anonId: asText(req.body?.anonId) || null,
+          powersellerId: partner.slug || asText(choice.destination) || null,
+          dedupKey: inserted?.reference || reference,
+          vehicle: journeyVehicle(decision.vehicle || { make: null }, { state: asText(car.state), region: asText(car.region), targetPrice: asText(car.targetPrice) }),
+          metadata: { reference: inserted?.reference || reference, destination: asText(choice.destination) }
+        });
+      }
+    } catch { /* analytics never blocks the lead */ }
     return res.status(200).json({
       status: "submitted",
       reference: inserted?.reference || reference,

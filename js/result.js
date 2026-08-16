@@ -10,6 +10,7 @@ async function showSellRecommendation(opts){
   // a new car.
   sellState.step=12;
   if(typeof gasFunnel==="function")gasFunnel("wizard_complete");  // 2F: the wizard finished, analysis starting
+  if(typeof gasJourneyEventOnce==="function")gasJourneyEventOnce("seller_questions_completed",{vehicle:sellState.resolvedVehicle});  // business journey
   hideHero();
   const msgs=document.getElementById("msgs");
   // Parsed-summary strip at the top of the analysis screen (replaces the old
@@ -78,6 +79,7 @@ async function showSellRecommendation(opts){
           notes:sellState.notes
         },
         anonSessionId:(typeof gasAnonId==="function"?gasAnonId():null),
+        journeyId:(typeof gasJourneyId==="function"?gasJourneyId(sellState.resolvedVehicle):null),
         forceGate:(typeof gasRealGate==="function"&&gasRealGate()),
         rerun:sellRerun
       })
@@ -645,6 +647,13 @@ async function showSellRecommendation(opts){
     row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${v2Page}</div></div>`;
     msgs.appendChild(row);
     row.scrollIntoView({behavior:"smooth",block:"start"});
+    // Business journey: card impressions (once per journey; the server also dedups).
+    if(typeof gasJourneyEventOnce==="function"){
+      const _dec=(sellState.sellDecision&&sellState.sellDecision.decision)||{};
+      gasJourneyEventOnce("platform_cta_viewed",{platformId:_dec.recommendedPath||null});
+      const _pr=_dec.partnerReferral;
+      if(_pr&&(_pr.eligible||_pr.secondary)){ const _p=_pr.partner||{}; gasJourneyEventOnce("powerseller_card_viewed",{powersellerId:_p.slug||_p.name||null}); }
+    }
     return;
   }
 
@@ -1163,6 +1172,7 @@ function explainSellOption(which){
 
 function choosePowerSeller(id){
   sellState.selectedPowerSellerId=id;
+  if(typeof gasJourneyEvent==="function")gasJourneyEvent("powerseller_intro_clicked",{vehicle:sellState.resolvedVehicle,powersellerId:id,dedupKey:String(id||"")});  // business journey
   chooseSellOption("specialist");
 }
 
@@ -1210,6 +1220,8 @@ async function submitContactForm(){
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
+        journeyId:(typeof gasJourneyId==="function"?gasJourneyId(sellState.resolvedVehicle):null),
+        anonId:(typeof gasAnonId==="function"?gasAnonId():null),
         seller:{email,phone},
         car:{
           raw:sellState.carName,
