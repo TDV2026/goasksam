@@ -41,6 +41,17 @@ export default async function handler(req, res) {
     });
     return res.status(200).json(out);
   }
+  // Crew-gated one-time purge of verification journeys (temporary). Deletes by anon
+  // prefix so the Phase-1 test rows never pollute real analytics.
+  if (q.jdelete === "1") {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    if ((req.headers.cookie || "").indexOf("gas_crew=ok") === -1) return res.status(403).json({ error: "forbidden (crew only)" });
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY, url = process.env.SUPABASE_URL;
+    const pre = String(q.prefix || "a_verify");
+    const del = (tbl) => fetch(`${url}/rest/v1/${tbl}?anon_id=like.${encodeURIComponent(pre + "%")}`, { method: "DELETE", headers: { apikey: key, Authorization: `Bearer ${key}`, Prefer: "return=minimal" } }).then(r => r.status).catch(() => 0);
+    const ev = await del("journey_events"); const jn = await del("journeys");
+    return res.status(200).json({ deleted_from: { journey_events: ev, journeys: jn }, prefix: pre });
+  }
   // Read-only out-of-scope calibration probe (crew cookie required). Folded in
   // here to stay under the Hobby-plan 12-function cap. Returns per make+model the
   // all-time vehicle_market_records count (our archive) and the OldCarsData
