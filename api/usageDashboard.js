@@ -136,7 +136,7 @@ function eventOutcome(e) { return (e.metadata?.outcome) || (e.event_type === "da
 function pageChrome(title, body) {
   return `<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${adminEsc(title)}</title>
 <style>body{font:14px/1.5 system-ui;margin:28px;color:#16140f}h1{font-size:20px}h2{font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:#6b6861;margin-top:26px}table{border-collapse:collapse;width:100%;margin-top:8px}td,th{border:1px solid #e3e1db;padding:5px 9px;text-align:left;font-size:13px}th{background:#f6f5f2}nav a{margin-right:14px;font-size:13px}.pill{font-size:11px;padding:1px 6px;border-radius:8px;background:#eee}.crew{background:#ffe8c2}.tester{background:#d7ebff}</style>
-<nav>${["searches", "cars", "geo", "accounts", "usage", "outbound"].map(v => `<a href="?view=${v}&key=${adminEsc((body.__key) || "")}">${v}</a>`).join("")}</nav>
+<nav><a href="?view=business&key=${adminEsc((body.__key) || "")}" style="font-weight:700;color:#0b5c3e">&larr; BUSINESS</a><span style="color:#c9c5bc;margin-right:14px">|</span><span style="color:#a29e95;font-size:12px;margin-right:8px">Engineering / Costs:</span>${["searches", "cars", "geo", "accounts", "usage", "outbound"].map(v => `<a href="?view=${v}&key=${adminEsc((body.__key) || "")}">${v}</a>`).join("")}</nav>
 <h1>${adminEsc(title)}</h1>${body.html}`;
 }
 // ?view=searches : last 100 decisions, one row each.
@@ -328,7 +328,7 @@ async function fetchUsageEvents(supabaseUrl, supabaseKey, days) {
   return Array.isArray(data) ? data : [];
 }
 
-function renderHtml({ summary, events, days }) {
+function renderHtml({ summary, events, days, key }) {
   const rows = summary.days.map(day => `
     <tr>
       <td>${day.day}</td>
@@ -373,6 +373,7 @@ function renderHtml({ summary, events, days }) {
   </style>
 </head>
 <body>
+  <div style="margin-bottom:12px"><a href="?view=business&key=${adminEsc(key || "")}" style="font-weight:700;color:#0b5c3e;text-decoration:none">&larr; BUSINESS dashboard</a></div>
   <h1>GoAskSam Usage</h1>
   <div class="muted">Last ${days} days. OldCarsData cost shows both current 1K pricing and 10K pricing.</div>
   <div class="grid">
@@ -1105,6 +1106,294 @@ async function handleOps(req, res) {
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium." });
 }
 
+// ===================== BUSINESS DASHBOARD (Phase 2) =====================
+// Reads the verified journeys / journey_events tables. Canonical, tier-filtered,
+// cohort-based. "Not yet tracked" (NYT) is shown wherever the capture mechanism has
+// produced no data yet - never a fabricated 0. Downstream lifecycle (listed/sold/
+// revenue) is manual (Phase 3) and reads NYT until the first real entry.
+const NYT = `<span style="color:#a29e95;font-style:italic">Not yet tracked</span>`;
+const fmtN = n => (n == null ? "0" : Number(n).toLocaleString());
+const fmtPct = (num, den) => (den > 0 ? `${(100 * num / den).toFixed(num / den >= 0.1 ? 0 : 1)}%` : NYT);
+const fmtMoney = n => (n == null ? NYT : "$" + Math.round(Number(n)).toLocaleString());
+const bizKey = req => adminEsc(req.query?.key || "");
+
+// Internal-cohort filter (mirrors crew filter): default EXCLUDE crew/tester/internal
+// so business numbers reflect real sellers. Tier is derived from the journey's
+// recommendation_completed event metadata; journeys with no rec event are treated as
+// real (early-funnel), never as internal.
+function bizMode(req) { const c = String(req.query?.biz || "exclude").toLowerCase(); return (c === "include" || c === "only") ? c : "exclude"; }
+
+function bizRange(req) {
+  const r = String(req.query?.range || "7d").toLowerCase();
+  const now = new Date();
+  let since, label;
+  if (r === "today") { since = new Date(now); since.setUTCHours(0, 0, 0, 0); label = "Today"; }
+  else if (r === "30d") { since = new Date(now - 30 * 864e5); label = "Last 30 days"; }
+  else if (r === "all") { since = new Date("2026-08-01T00:00:00Z"); label = "All time (since launch)"; }
+  else if (r === "custom" && req.query?.from) { since = new Date(String(req.query.from)); label = `${req.query.from} to ${req.query.to || "now"}`; }
+  else { since = new Date(now - 7 * 864e5); label = "Last 7 days"; }
+  const to = (r === "custom" && req.query?.to) ? new Date(String(req.query.to)) : now;
+  return { sinceIso: since.toISOString(), toIso: to.toISOString(), label, range: r };
+}
+
+async function anyRows(env, filter) {
+  const rows = await supabaseSelect(env, `journeys?${filter}&select=journey_id&limit=1`);
+  return !!(rows && rows.length);
+}
+
+// One canonical computation of every business number for a range + cohort mode.
+async function computeBusiness(env, range, mode) {
+  const JCOLS = "journey_id,anon_id,user_id,vehicle_year,vehicle_make,vehicle_model,vehicle_trim,vehicle_location,rec_platform,rec_powerseller,rec_scope,rec_window,rec_estimated_value,stage,sale_status,listed_at,consignment_at,sold_at,sale_price,gas_revenue,actual_platform,listing_url,created_at,last_activity_at,contacted_at,engaged_at,intro_sent_at,intro_requested_at";
+  const journeysAll = (await supabaseSelect(env, `journeys?created_at=gte.${encodeURIComponent(range.sinceIso)}&created_at=lt.${encodeURIComponent(range.toIso)}&select=${JCOLS}&order=created_at.desc&limit=5000`)) || [];
+  const events = (await supabaseSelect(env, `journey_events?occurred_at=gte.${encodeURIComponent(range.sinceIso)}&select=journey_id,event_type,platform_id,powerseller_id,metadata,occurred_at&order=occurred_at.asc&limit=30000`)) || [];
+
+  // tier per journey (from its recommendation_completed event metadata)
+  const tierBy = new Map();
+  for (const e of events) if (e.event_type === "recommendation_completed" && e.metadata && e.metadata.tier) tierBy.set(e.journey_id, e.metadata.tier);
+  const internal = j => isInternalTier(tierBy.get(j.journey_id)) || tierBy.get(j.journey_id) === "internal";
+  const journeys = journeysAll.filter(j => mode === "include" ? true : mode === "only" ? internal(j) : !internal(j));
+  const idset = new Set(journeys.map(j => j.journey_id));
+  const evts = events.filter(e => idset.has(e.journey_id));
+
+  // per-journey event-type presence
+  const has = {};
+  const EV = ["seller_journey_started", "vehicle_identified", "seller_questions_completed", "recommendation_completed", "platform_recommended", "powerseller_recommended", "platform_cta_viewed", "powerseller_card_viewed", "platform_cta_clicked", "powerseller_intro_clicked", "powerseller_intro_requested"];
+  for (const t of EV) has[t] = new Set();
+  for (const e of evts) if (has[e.event_type]) has[e.event_type].add(e.journey_id);
+
+  const uniqueSellers = new Set(journeys.map(j => j.user_id || j.anon_id).filter(Boolean)).size;
+  const started = journeys.length;
+  const recs = has.recommendation_completed.size;
+  const platRec = has.platform_recommended.size;
+  const psRec = has.powerseller_recommended.size;
+  const platViews = has.platform_cta_viewed.size;
+  const platClicks = has.platform_cta_clicked.size;
+  const psCardViews = has.powerseller_card_viewed.size;
+  const psIntros = has.powerseller_intro_requested.size;
+
+  // downstream (manual) - NYT until any journey anywhere carries the field
+  const [soldTracked, listedTracked, gmvTracked, revTracked, actualTracked] = await Promise.all([
+    anyRows(env, "sale_status=not.is.null"), anyRows(env, "or=(listed_at.not.is.null,consignment_at.not.is.null,sale_status.not.is.null)"),
+    anyRows(env, "sale_price=not.is.null"), anyRows(env, "gas_revenue=not.is.null"), anyRows(env, "actual_platform=not.is.null")
+  ]);
+  const listings = journeys.filter(j => j.sale_status === "listed" || j.sale_status === "sold" || j.listed_at || j.consignment_at).length;
+  const sold = journeys.filter(j => j.sale_status === "sold").length;
+  const gmv = journeys.reduce((s, j) => s + (j.sale_status === "sold" && Number.isFinite(Number(j.sale_price)) ? Number(j.sale_price) : 0), 0);
+  const revenue = journeys.reduce((s, j) => s + (Number.isFinite(Number(j.gas_revenue)) ? Number(j.gas_revenue) : 0), 0);
+
+  return { range, mode, journeys, evts, has, tierBy,
+    uniqueSellers, started, recs, platRec, psRec, platViews, platClicks, psCardViews, psIntros,
+    listings, sold, gmv, revenue, soldTracked, listedTracked, gmvTracked, revTracked, actualTracked };
+}
+
+function bizChrome(title, key, active) {
+  const nav = (v, label) => `<a href="?view=${v}&key=${adminEsc(key || "")}"${v === active ? ' style="font-weight:700;color:#0b5c3e"' : ""}>${label}</a>`;
+  return `<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${adminEsc(title)}</title>
+<style>
+:root{--ink:#16140f;--slate:#6b6861;--line:#e3e1db;--green:#0b5c3e;--paper:#fff;--shade:#f6f5f2}
+body{font:14px/1.55 system-ui,-apple-system,sans-serif;margin:0;color:var(--ink);background:var(--shade)}
+.wrap{max-width:1120px;margin:0 auto;padding:22px 26px 80px}
+h1{font-size:22px;margin:0 0 2px}h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--slate);margin:34px 0 10px}
+nav.top{display:flex;gap:16px;font-size:13px;padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:8px;flex-wrap:wrap}
+nav.top a{color:var(--slate);text-decoration:none}
+.sub{color:var(--slate);font-size:13px;margin-bottom:6px}
+.filters a{margin-right:10px;font-size:12.5px;color:var(--slate);text-decoration:none;padding:2px 8px;border-radius:20px;border:1px solid transparent}
+.filters a.on{background:var(--green);color:#fff}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-top:8px}
+.kpi{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:13px 15px}
+.kpi .n{font-size:26px;font-weight:650;line-height:1.1}.kpi .l{font-size:12px;color:var(--slate);margin-top:3px}.kpi .s{font-size:11px;color:#a29e95;margin-top:2px}
+.funnel{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.fstage{display:flex;align-items:center;gap:14px;padding:7px 0}
+.fbar{height:30px;border-radius:5px;background:linear-gradient(90deg,#0b5c3e,#0f6b49);min-width:2px}
+.fstage .lab{width:230px;font-size:13px}.fstage .cnt{width:70px;text-align:right;font-weight:650;font-variant-numeric:tabular-nums}
+.fconv{font-size:11.5px;color:var(--slate);margin:0 0 0 244px;padding:1px 0}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}
+.path{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:12px 15px}
+.path h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--slate);margin:0 0 8px}
+.path .r{display:flex;justify-content:space-between;padding:3px 0;font-size:13px;border-bottom:1px dashed var(--line)}
+table{border-collapse:collapse;width:100%;margin-top:8px;background:var(--paper)}
+td,th{border:1px solid var(--line);padding:6px 9px;text-align:left;font-size:12.5px;vertical-align:top}
+th{background:var(--shade);font-weight:600;font-size:11.5px}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.samp{color:#a29e95;font-size:11px}
+input[type=text]{padding:6px 9px;border:1px solid var(--line);border-radius:6px;font:inherit;width:220px}
+a.jlink{color:var(--green);text-decoration:none}
+.note{background:#fff9ec;border:1px solid #f0e2c0;border-radius:7px;padding:9px 13px;font-size:12.5px;color:#6b5a2a;margin-top:8px}
+.tl{border-left:2px solid var(--line);margin-left:8px;padding-left:16px}
+.tl .ev{margin:0 0 12px;position:relative}.tl .ev:before{content:"";position:absolute;left:-22px;top:5px;width:8px;height:8px;border-radius:50%;background:var(--green)}
+.tl .d{font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.04em}
+</style>
+<div class="wrap">
+<nav class="top">${nav("business", "BUSINESS")}${nav("journeys", "Journeys")}<span style="color:#c9c5bc">|</span><span style="color:#a29e95;font-size:12px">Engineering / Costs:</span>${nav("usage", "usage")}${nav("searches", "searches")}${nav("cars", "cars")}${nav("geo", "geo")}${nav("accounts", "accounts")}${nav("outbound", "outbound")}</nav>
+${title !== "__bare" ? `<h1>${adminEsc(title)}</h1>` : ""}`;
+}
+
+function bizFilters(req, view) {
+  const k = bizKey(req), r = String(req.query?.range || "7d"), m = bizMode(req);
+  const rl = [["today", "Today"], ["7d", "7 days"], ["30d", "30 days"], ["all", "All time"]];
+  const rangeLinks = rl.map(([v, l]) => `<a class="${r === v ? "on" : ""}" href="?view=${view}&range=${v}&biz=${m}&key=${k}">${l}</a>`).join("");
+  const ml = [["exclude", "Real sellers"], ["include", "All (incl. testers)"], ["only", "Testers only"]];
+  const modeLinks = ml.map(([v, l]) => `<a class="${m === v ? "on" : ""}" href="?view=${view}&range=${r}&biz=${v}&key=${k}">${l}</a>`).join("");
+  return `<div class="filters" style="margin:6px 0">${rangeLinks} <span style="color:#c9c5bc">&nbsp;|&nbsp;</span> ${modeLinks}</div>`;
+}
+
+async function renderBusinessView(req, res) {
+  const env = supabaseEnv(); if (!env) return res.status(500).json({ error: "storage not configured" });
+  const range = bizRange(req), mode = bizMode(req), key = req.query?.key;
+  const b = await computeBusiness(env, range, mode);
+
+  // funnel (cohort of journeys started in range). Platform & PowerSeller kept separate.
+  const stage = (lab, n, den) => {
+    const w = den > 0 ? Math.max(2, Math.round(560 * n / den)) : 2;
+    return `<div class="fstage"><div class="lab">${lab}</div><div class="cnt">${fmtN(n)}</div><div class="fbar" style="width:${w}px"></div></div>`;
+  };
+  const conv = (n, den) => `<div class="fconv">&darr; ${fmtPct(n, den)} of previous</div>`;
+  const funnel = `<div class="funnel">
+    ${stage("Unique sellers", b.uniqueSellers, b.uniqueSellers)}
+    ${stage("Seller journeys started", b.started, b.uniqueSellers)}${conv(b.started, b.uniqueSellers)}
+    ${stage("Recommendations completed", b.recs, b.started)}${conv(b.recs, b.started)}
+    <div class="split">
+      <div class="path"><h3>Platform path</h3>
+        <div class="r"><span>Platform recommended</span><b>${fmtN(b.platRec)}</b></div>
+        <div class="r"><span>CTA viewed</span><b>${fmtN(b.platViews)}</b></div>
+        <div class="r"><span>CTA clicked</span><b>${fmtN(b.platClicks)}</b> <span class="samp">${fmtPct(b.platClicks, b.platRec)} of recommended</span></div>
+      </div>
+      <div class="path"><h3>PowerSeller path</h3>
+        <div class="r"><span>PowerSeller recommended</span><b>${fmtN(b.psRec)}</b></div>
+        <div class="r"><span>Card viewed</span><b>${fmtN(b.psCardViews)}</b></div>
+        <div class="r"><span>Introduction requested</span><b>${fmtN(b.psIntros)}</b> <span class="samp">${fmtPct(b.psIntros, b.psCardViews)} of card views</span></div>
+      </div>
+    </div>
+    ${stage("Listings / consignments", b.listedTracked ? b.listings : 0, b.started)}${b.listedTracked ? conv(b.listings, b.recs) : `<div class="fconv">${NYT} (manual entry, Phase 3)</div>`}
+    ${stage("Vehicles sold", b.soldTracked ? b.sold : 0, b.started)}${b.soldTracked ? conv(b.sold, Math.max(b.listings, 1)) : `<div class="fconv">${NYT} (manual entry, Phase 3)</div>`}
+  </div>`;
+
+  // KPI cards
+  const kpi = (n, l, s) => `<div class="kpi"><div class="n">${n}</div><div class="l">${l}</div>${s ? `<div class="s">${s}</div>` : ""}</div>`;
+  const sellThrough = (b.listedTracked && b.listings >= 5) ? fmtPct(b.sold, b.listings) : NYT;
+  const kpis = `<div class="kpis">
+    ${kpi(fmtN(b.uniqueSellers), "Unique sellers")}
+    ${kpi(fmtN(b.started), "Seller journeys")}
+    ${kpi(fmtN(b.recs), "Completed recommendations")}
+    ${kpi(fmtPct(b.recs, b.started), "Recommendation completion rate")}
+    ${kpi(fmtN(b.platRec), "Platform recommendations")}
+    ${kpi(fmtN(b.psRec), "PowerSeller recommendations")}
+    ${kpi(fmtN(b.platClicks), "Platform CTA clicks")}
+    ${kpi(fmtPct(b.platClicks, b.platRec), "Platform CTA conversion", "clicks / platform recommended")}
+    ${kpi(fmtN(b.psCardViews), "PowerSeller card views")}
+    ${kpi(fmtN(b.psIntros), "PowerSeller introductions")}
+    ${kpi(fmtPct(b.psIntros, b.psCardViews), "PowerSeller intro conversion", "requests / card views")}
+    ${kpi(b.listedTracked ? fmtN(b.listings) : NYT, "Consignments / listings")}
+    ${kpi(b.soldTracked ? fmtN(b.sold) : NYT, "Vehicles sold")}
+    ${kpi(sellThrough, "Sell-through rate", b.listedTracked ? "sold / listed (needs 5+ listings)" : "")}
+    ${kpi(b.gmvTracked ? fmtMoney(b.gmv) : NYT, "Sale value influenced (GMV)")}
+    ${kpi(b.revTracked ? fmtMoney(b.revenue) : NYT, "GoAskSam revenue")}
+    ${kpi(b.revTracked && b.recs > 0 ? fmtMoney(b.revenue / b.recs) : NYT, "Revenue per completed journey")}
+  </div>`;
+
+  // PowerSeller performance (sample sizes always shown; no performance ranking yet)
+  const psRows = {};
+  const bump = (map, id, k2, v = 1) => { if (!id) return; (map[id] = map[id] || {}).name = id; map[id][k2] = (map[id][k2] || 0) + v; };
+  for (const e of b.evts) {
+    if (e.event_type === "powerseller_card_viewed") bump(psRows, e.powerseller_id, "cards");
+    if (e.event_type === "powerseller_intro_requested") bump(psRows, e.powerseller_id, "intros");
+  }
+  for (const j of b.journeys) if (j.rec_powerseller) { const m = psRows[j.rec_powerseller] = psRows[j.rec_powerseller] || { name: j.rec_powerseller }; if (j.intro_sent_at) m.sent = (m.sent || 0) + 1; if (j.contacted_at) m.contacts = (m.contacts || 0) + 1; if (j.engaged_at) m.engaged = (m.engaged || 0) + 1; if (j.consignment_at) m.consign = (m.consign || 0) + 1; if (j.sale_status === "sold") { m.sold = (m.sold || 0) + 1; m.gmv = (m.gmv || 0) + (Number(j.sale_price) || 0); m.rev = (m.rev || 0) + (Number(j.gas_revenue) || 0); } }
+  const psTable = Object.values(psRows).sort((a, z) => (z.cards || 0) - (a.cards || 0)).map(p => `<tr><td>${adminEsc(p.name)}</td><td class="num">${fmtN(p.cards || 0)}</td><td class="num">${fmtN(p.intros || 0)}</td><td class="num">${(p.cards || 0) >= 5 ? fmtPct(p.intros || 0, p.cards || 0) : `<span class="samp">n=${p.cards || 0}</span>`}</td><td class="num">${b.actualTracked ? fmtN(p.sent || 0) : NYT}</td><td class="num">${b.actualTracked ? fmtN(p.contacts || 0) : NYT}</td><td class="num">${b.actualTracked ? fmtN(p.consign || 0) : NYT}</td><td class="num">${b.soldTracked ? fmtN(p.sold || 0) : NYT}</td><td class="num">${b.gmvTracked ? fmtMoney(p.gmv || 0) : NYT}</td></tr>`).join("");
+  const psSection = `<h2>PowerSeller performance</h2><div class="note">Sample sizes shown; conversion is only computed at 5+ card views, and PowerSellers are never ranked by performance on small samples. Downstream columns are manual (Phase 3).</div>
+    <table><tr><th>PowerSeller</th><th class="num">Cards shown</th><th class="num">Intro requests</th><th class="num">Intro rate</th><th class="num">Intros sent</th><th class="num">Contacts</th><th class="num">Consignments</th><th class="num">Sold</th><th class="num">Sale value</th></tr>${psTable || `<tr><td colspan=9>No PowerSeller activity in range.</td></tr>`}</table>`;
+
+  // Platform performance + Sam-recommended vs actually-chosen
+  const platRows = {};
+  for (const e of b.evts) { if (e.event_type === "platform_recommended") bump(platRows, e.platform_id, "rec"); if (e.event_type === "platform_cta_viewed") bump(platRows, e.platform_id, "views"); if (e.event_type === "platform_cta_clicked") bump(platRows, e.platform_id, "clicks"); }
+  const platTable = Object.values(platRows).sort((a, z) => (z.rec || 0) - (a.rec || 0)).map(p => `<tr><td>${adminEsc(p.name)}</td><td class="num">${fmtN(p.rec || 0)}</td><td class="num">${fmtN(p.views || 0)}</td><td class="num">${fmtN(p.clicks || 0)}</td><td class="num">${(p.rec || 0) >= 5 ? fmtPct(p.clicks || 0, p.rec || 0) : `<span class="samp">n=${p.rec || 0}</span>`}</td><td class="num">${b.actualTracked ? "" : NYT}</td></tr>`).join("");
+  const followed = b.actualTracked ? (() => { const withBoth = b.journeys.filter(j => j.rec_platform && j.actual_platform); const match = withBoth.filter(j => j.rec_platform === j.actual_platform).length; return withBoth.length ? `${match} of ${withBoth.length} (${fmtPct(match, withBoth.length)}) sold on Sam's recommended platform` : NYT; })() : NYT;
+  const platSection = `<h2>Platform performance</h2>
+    <table><tr><th>Platform</th><th class="num">Recommendations</th><th class="num">CTA views</th><th class="num">CTA clicks</th><th class="num">Click-through</th><th class="num">Known sales</th></tr>${platTable || `<tr><td colspan=6>No platform activity in range.</td></tr>`}</table>
+    <div class="sub" style="margin-top:10px"><b>Sam recommended vs. actually chosen:</b> ${followed} <span class="samp">(a CTA click is intent, not confirmed use; the actual platform is captured manually in Phase 3)</span></div>`;
+
+  const html = `${bizChrome("Business", key, "business")}
+    <div class="sub">${adminEsc(range.label)} &middot; ${mode === "exclude" ? "real sellers only" : mode === "only" ? "testers only" : "all traffic"}</div>
+    ${bizFilters(req, "business")}
+    <h2>Seller funnel</h2>${funnel}
+    <h2>Key metrics</h2>${kpis}
+    ${psSection}
+    ${platSection}
+    <p style="margin-top:22px"><a class="jlink" href="?view=journeys&range=${range.range}&biz=${mode}&key=${bizKey(req)}">Open the Journey Explorer &rarr;</a></p>
+  </div>`;
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.status(200).send(html);
+}
+
+const STAGE_LABEL = { seller_journey_started: "Started", vehicle_identified: "Vehicle identified", seller_questions_completed: "Questions done", recommendation_completed: "Recommendation", platform_recommended: "Platform rec", powerseller_recommended: "PowerSeller rec", platform_cta_viewed: "CTA viewed", powerseller_card_viewed: "PS card viewed", platform_cta_clicked: "CTA clicked", powerseller_intro_clicked: "Intro clicked", powerseller_intro_requested: "Intro requested", powerseller_intro_sent: "Intro sent", powerseller_contacted: "Contacted", powerseller_engaged: "Engaged", consignment_accepted: "Consignment", vehicle_listed: "Listed", vehicle_sold: "Sold", journey_closed_no_sale: "Closed, no sale" };
+
+async function renderJourneysView(req, res) {
+  const env = supabaseEnv(); if (!env) return res.status(500).json({ error: "storage not configured" });
+  const key = req.query?.key;
+  // Single-journey detail
+  if (req.query?.jid) {
+    const jid = String(req.query.jid);
+    const jr = await supabaseSelect(env, `journeys?journey_id=eq.${encodeURIComponent(jid)}&select=*&limit=1`);
+    const j = jr && jr[0];
+    if (!j) { res.setHeader("Content-Type", "text/html"); return res.status(200).send(bizChrome("Journey", key, "journeys") + "<p>Journey not found.</p></div>"); }
+    const evs = (await supabaseSelect(env, `journey_events?journey_id=eq.${encodeURIComponent(jid)}&select=event_type,platform_id,powerseller_id,metadata,occurred_at&order=occurred_at.asc&limit=200`)) || [];
+    const veh = [j.vehicle_year, j.vehicle_make, j.vehicle_model, j.vehicle_trim].filter(Boolean).join(" ") || "Unknown vehicle";
+    const day = t => t ? new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+    const line = (t, lab, extra) => `<div class="ev"><div class="d">${day(t)}</div><div>${lab}${extra ? `<br><span class="samp">${extra}</span>` : ""}</div></div>`;
+    const evLines = evs.map(e => line(e.occurred_at, STAGE_LABEL[e.event_type] || e.event_type, [e.platform_id && `Platform: ${e.platform_id}`, e.powerseller_id && `PowerSeller: ${e.powerseller_id}`].filter(Boolean).join(" &middot; "))).join("");
+    // manual milestones from the spine (Phase 3 data)
+    const man = [["intro_sent_at", "Introduction sent"], ["contacted_at", "PowerSeller contacted seller"], ["engaged_at", "Seller engaged"], ["consignment_at", "Consignment accepted"], ["listed_at", `Listed${j.actual_platform ? " on " + j.actual_platform : ""}${j.listing_url ? ` &middot; <a href="${adminEsc(j.listing_url)}">listing</a>` : ""}`], ["sold_at", `Vehicle sold${j.sale_price ? " &middot; " + fmtMoney(j.sale_price) : ""}`], ["closed_no_sale_at", "Closed, no sale"]].filter(([f]) => j[f]).map(([f, lab]) => line(j[f], lab)).join("");
+    const html = `${bizChrome("__bare", key, "journeys")}
+      <h1>${adminEsc(veh)}</h1>
+      <div class="sub">${adminEsc(j.vehicle_location || "Location unknown")} &middot; journey ${adminEsc(jid.slice(0, 8))} &middot; ${j.user_id ? "signed-in" : "anonymous"}</div>
+      <div class="split" style="grid-template-columns:2fr 1fr">
+        <div><h2>History</h2><div class="tl">${evLines}${man}</div></div>
+        <div><h2>Recommendation</h2><div class="path">
+          <div class="r"><span>Platform</span><b>${adminEsc(j.rec_platform || "-")}</b></div>
+          <div class="r"><span>PowerSeller</span><b>${adminEsc(j.rec_powerseller || "-")}</b></div>
+          <div class="r"><span>Scope</span><b>${adminEsc(j.rec_scope || "-")}</b></div>
+          <div class="r"><span>Window</span><b>${adminEsc(j.rec_window || "-")}</b></div>
+          <div class="r"><span>Est. value</span><b>${j.rec_estimated_value ? fmtMoney(j.rec_estimated_value) : "-"}</b></div>
+          <div class="r"><span>Stage</span><b>${adminEsc(STAGE_LABEL[j.stage] || j.stage || "-")}</b></div>
+          <div class="r"><span>Sale status</span><b>${adminEsc(j.sale_status || "unknown")}</b></div>
+        </div>${j.internal_notes ? `<div class="note" style="margin-top:10px"><b>Internal notes:</b> ${adminEsc(j.internal_notes)}</div>` : ""}</div>
+      </div></div>`;
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    return res.status(200).send(html);
+  }
+  // Explorer table
+  const range = bizRange(req), mode = bizMode(req);
+  const b = await computeBusiness(env, range, mode);
+  const q = String(req.query?.q || "").toLowerCase();
+  const fStage = String(req.query?.stage || ""), fPs = String(req.query?.ps || ""), fPlat = String(req.query?.plat || "");
+  let rows = b.journeys;
+  if (q) rows = rows.filter(j => [j.vehicle_make, j.vehicle_model, j.vehicle_trim, j.vehicle_location].filter(Boolean).join(" ").toLowerCase().includes(q));
+  if (fStage) rows = rows.filter(j => j.stage === fStage);
+  if (fPs) rows = rows.filter(j => j.rec_powerseller === fPs);
+  if (fPlat) rows = rows.filter(j => j.rec_platform === fPlat);
+  const day = t => t ? new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+  const tr = rows.slice(0, 300).map(j => `<tr>
+    <td>${day(j.created_at)}</td>
+    <td><a class="jlink" href="?view=journeys&jid=${encodeURIComponent(j.journey_id)}&key=${bizKey(req)}">${adminEsc([j.vehicle_year, j.vehicle_make, j.vehicle_model].filter(Boolean).join(" ") || "?")}</a></td>
+    <td>${adminEsc(j.vehicle_location || "")}</td>
+    <td>${adminEsc(j.rec_platform || "")}</td>
+    <td>${adminEsc(j.rec_powerseller || "")}</td>
+    <td>${adminEsc(STAGE_LABEL[j.stage] || j.stage || "")}</td>
+    <td>${adminEsc(j.actual_platform || "")}</td>
+    <td>${adminEsc(j.sale_status || "")}</td>
+    <td class="num">${j.sale_price ? fmtMoney(j.sale_price) : ""}</td>
+    <td class="num">${j.gas_revenue ? fmtMoney(j.gas_revenue) : ""}</td>
+  </tr>`).join("");
+  const html = `${bizChrome("Journey Explorer", key, "journeys")}
+    ${bizFilters(req, "journeys")}
+    <form method="get" style="margin:8px 0"><input type="hidden" name="view" value="journeys"><input type="hidden" name="key" value="${bizKey(req)}"><input type="hidden" name="range" value="${range.range}"><input type="hidden" name="biz" value="${mode}"><input type="text" name="q" value="${adminEsc(req.query?.q || "")}" placeholder="Search vehicle or location"> <button>Search</button></form>
+    <div class="sub">${rows.length} journeys ${q || fStage || fPs || fPlat ? "(filtered)" : ""}</div>
+    <table><tr><th>Date</th><th>Vehicle</th><th>Location</th><th>Recommendation</th><th>PowerSeller</th><th>Stage</th><th>Actual platform</th><th>Sale status</th><th class="num">Sale price</th><th class="num">Revenue</th></tr>${tr || `<tr><td colspan=10>No journeys.</td></tr>`}</table>
+  </div>`;
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.status(200).send(html);
+}
+
 export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -1124,6 +1413,8 @@ export default async function handler(req, res) {
   // View dispatch (consolidated admin function): accounts + funnel (2G), outbound
   // clicks, or the default usage view.
   try {
+    if (req.query?.view === "business") return await renderBusinessView(req, res);
+    if (req.query?.view === "journeys") return await renderJourneysView(req, res);
     if (req.query?.view === "accounts") return await renderAccountsView(req, res);
     if (req.query?.view === "outbound") return await renderOutboundView(req, res);
     if (req.query?.view === "searches") return await renderSearchesView(req, res);
@@ -1143,7 +1434,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ days, summary, events: events.slice(0, 100) });
     }
     res.setHeader("Content-Type", "text/html; charset=utf-8");
-    return res.status(200).send(renderHtml({ summary, events, days }));
+    return res.status(200).send(renderHtml({ summary, events, days, key: req.query?.key }));
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
