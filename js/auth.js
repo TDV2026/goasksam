@@ -248,6 +248,50 @@ function gasJourneyId(v) {
     return id;
   } catch (e) { return null; }
 }
+// ---- Acquisition / attribution (Phase 4) ----
+// First-party only: the utm params on the landing URL + the referring host,
+// classified into a coarse source. first-touch is immutable (the very first visit);
+// last-touch updates whenever a visit carries a real acquisition signal, so an
+// internal click-through never overwrites the meaningful most-recent source. Stored
+// in localStorage and attached to journey-event metadata so it lands with the event.
+function gasClassifySource(utm, ref) {
+  const social = /facebook|fbclid|instagram|twitter|x\.com|linkedin|reddit|t\.co|tiktok|youtube|threads/;
+  const us = String(utm.utm_source || "").toLowerCase();
+  if (/dailyvroom|thedailyvroom|tdv/.test(us)) return "The Daily Vroom";
+  if (us) return social.test(us) ? "Social" : us.charAt(0).toUpperCase() + us.slice(1);
+  let host = "";
+  try { host = ref ? new URL(ref).hostname.replace(/^www\./, "").toLowerCase() : ""; } catch (e) {}
+  if (!host) return "Direct";
+  try { if (host === String(location.hostname || "").replace(/^www\./, "").toLowerCase()) return "Direct"; } catch (e) {}
+  if (/thedailyvroom\.com|dailyvroom/.test(host)) return "The Daily Vroom";
+  if (/google|bing|duckduckgo|yahoo|ecosia|baidu|search/.test(host)) return "Organic";
+  if (social.test(host)) return "Social";
+  return "Referral";
+}
+function gasCurrentTouch() {
+  let p; try { p = new URLSearchParams(location.search || ""); } catch (e) { p = new URLSearchParams(""); }
+  const utm = { utm_source: p.get("utm_source") || null, utm_medium: p.get("utm_medium") || null, utm_campaign: p.get("utm_campaign") || null };
+  const ref = (typeof document !== "undefined" && document.referrer) || "";
+  return { source: gasClassifySource(utm, ref), utm_source: utm.utm_source, utm_medium: utm.utm_medium, utm_campaign: utm.utm_campaign, referrer: ref ? ref.slice(0, 300) : null, at: new Date().toISOString() };
+}
+function gasCaptureTouch() {
+  try {
+    const t = gasCurrentTouch();
+    if (!localStorage.getItem("gas_first_touch")) localStorage.setItem("gas_first_touch", JSON.stringify(t));
+    const meaningful = !!t.utm_source || t.source !== "Direct";
+    if (meaningful || !localStorage.getItem("gas_last_touch")) localStorage.setItem("gas_last_touch", JSON.stringify(t));
+  } catch (e) {}
+}
+function gasAttribution() {
+  try {
+    const f = JSON.parse(localStorage.getItem("gas_first_touch") || "null");
+    const l = JSON.parse(localStorage.getItem("gas_last_touch") || "null");
+    if (!f && !l) return null;
+    return { first: f || l, last: l || f };
+  } catch (e) { return null; }
+}
+try { gasCaptureTouch(); } catch (e) {} // capture the landing touch the moment auth.js parses
+
 // Fire-and-forget business-journey event beacon (client-emittable events only; the
 // server enforces the allowlist). Carries the journey id + resolved vehicle so the
 // server can materialize the journey. Never blocks the UI.
@@ -256,11 +300,14 @@ function gasJourneyEvent(eventType, opts) {
   try {
     const jid = opts.journeyId || gasJourneyId(opts.vehicle || (typeof sellState !== "undefined" ? sellState.resolvedVehicle : null));
     if (!jid) return;
+    const meta = Object.assign({}, opts.metadata || {});
+    const attribution = gasAttribution();
+    if (attribution && meta.attribution == null) meta.attribution = attribution;
     const body = JSON.stringify({
       kind: "journey", event: eventType, journeyId: jid, anonId: gasAnonId(),
       vehicle: opts.vehicle || (typeof sellState !== "undefined" ? sellState.resolvedVehicle : null) || null,
       dedupKey: opts.dedupKey || null, platformId: opts.platformId || null,
-      powersellerId: opts.powersellerId || null, metadata: opts.metadata || null
+      powersellerId: opts.powersellerId || null, metadata: Object.keys(meta).length ? meta : null
     });
     const url = authApiPath("/api/funnel");
     if (navigator && navigator.sendBeacon) { navigator.sendBeacon(url, new Blob([body], { type: "application/json" })); return; }

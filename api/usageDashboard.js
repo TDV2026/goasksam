@@ -1225,14 +1225,15 @@ a.jlink{color:var(--green);text-decoration:none}
 .tl .d{font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.04em}
 </style>
 <div class="wrap">
-<nav class="top">${nav("business", "BUSINESS")}${nav("journeys", "Journeys")}<span style="color:#c9c5bc">|</span><span style="color:#a29e95;font-size:12px">Engineering / Costs:</span>${nav("usage", "usage")}${nav("searches", "searches")}${nav("cars", "cars")}${nav("geo", "geo")}${nav("accounts", "accounts")}${nav("outbound", "outbound")}</nav>
+<nav class="top">${nav("business", "BUSINESS")}${nav("journeys", "Journeys")}${nav("economics", "Economics")}${nav("quality", "Quality")}<span style="color:#c9c5bc">|</span><span style="color:#a29e95;font-size:12px">Engineering / Costs:</span>${nav("usage", "usage")}${nav("searches", "searches")}${nav("cars", "cars")}${nav("geo", "geo")}${nav("accounts", "accounts")}${nav("outbound", "outbound")}</nav>
 ${title !== "__bare" ? `<h1>${adminEsc(title)}</h1>` : ""}`;
 }
 
-function bizFilters(req, view) {
+function bizFilters(req, view, opts = {}) {
   const k = bizKey(req), r = String(req.query?.range || "7d"), m = bizMode(req);
   const rl = [["today", "Today"], ["7d", "7 days"], ["30d", "30 days"], ["all", "All time"]];
   const rangeLinks = rl.map(([v, l]) => `<a class="${r === v ? "on" : ""}" href="?view=${view}&range=${v}&biz=${m}&key=${k}">${l}</a>`).join("");
+  if (opts.noMode) return `<div class="filters" style="margin:6px 0">${rangeLinks}</div>`;
   const ml = [["exclude", "Real sellers"], ["include", "All (incl. testers)"], ["only", "Testers only"]];
   const modeLinks = ml.map(([v, l]) => `<a class="${m === v ? "on" : ""}" href="?view=${view}&range=${r}&biz=${v}&key=${k}">${l}</a>`).join("");
   return `<div class="filters" style="margin:6px 0">${rangeLinks} <span style="color:#c9c5bc">&nbsp;|&nbsp;</span> ${modeLinks}</div>`;
@@ -1313,14 +1314,27 @@ async function renderBusinessView(req, res) {
     <table><tr><th>Platform</th><th class="num">Recommendations</th><th class="num">CTA views</th><th class="num">CTA clicks</th><th class="num">Click-through</th><th class="num">Known sales</th></tr>${platTable || `<tr><td colspan=6>No platform activity in range.</td></tr>`}</table>
     <div class="sub" style="margin-top:10px"><b>Sam recommended vs. actually chosen:</b> ${followed} <span class="samp">(a CTA click is intent, not confirmed use; the actual platform is captured manually in Phase 3)</span></div>`;
 
+  // Acquisition (Phase 4): first-touch source per journey, derived from the earliest
+  // event that carries client attribution. Journeys with no captured touch (pre-Phase-4
+  // or attribution blocked) count as "Unknown" - never silently folded into Direct.
+  const firstTouch = new Map();
+  for (const e of b.evts) { const a = e.metadata && e.metadata.attribution; if (a && a.first && !firstTouch.has(e.journey_id)) firstTouch.set(e.journey_id, a.first.source || "Unknown"); }
+  const srcCounts = {};
+  for (const j of b.journeys) { const s = firstTouch.get(j.journey_id) || "Unknown"; srcCounts[s] = (srcCounts[s] || 0) + 1; }
+  const attributed = b.journeys.length - (srcCounts["Unknown"] || 0);
+  const acqRows = Object.entries(srcCounts).sort((a, z) => z[1] - a[1]).map(([s, n]) => `<tr><td>${adminEsc(s)}</td><td class="num">${fmtN(n)}</td><td class="num">${fmtPct(n, b.journeys.length)}</td></tr>`).join("");
+  const acqSection = `<h2>Acquisition (first touch)</h2><div class="note">Source of the first visit that opened each journey, from first-party utm + referrer only. ${attributed} of ${b.journeys.length} journeys carry a captured touch; the rest show as Unknown (attribution is forward-only from Phase 4 launch and never inferred).</div>
+    <table><tr><th>Source</th><th class="num">Journeys</th><th class="num">Share</th></tr>${acqRows || `<tr><td colspan=3>No journeys in range.</td></tr>`}</table>`;
+
   const html = `${bizChrome("Business", key, "business")}
     <div class="sub">${adminEsc(range.label)} &middot; ${mode === "exclude" ? "real sellers only" : mode === "only" ? "testers only" : "all traffic"}</div>
     ${bizFilters(req, "business")}
     <h2>Seller funnel</h2>${funnel}
     <h2>Key metrics</h2>${kpis}
+    ${acqSection}
     ${psSection}
     ${platSection}
-    <p style="margin-top:22px"><a class="jlink" href="?view=journeys&range=${range.range}&biz=${mode}&key=${bizKey(req)}">Open the Journey Explorer &rarr;</a></p>
+    <p style="margin-top:22px"><a class="jlink" href="?view=journeys&range=${range.range}&biz=${mode}&key=${bizKey(req)}">Open the Journey Explorer &rarr;</a> &middot; <a class="jlink" href="?view=economics&range=${range.range}&key=${bizKey(req)}">Economics &rarr;</a> &middot; <a class="jlink" href="?view=quality&range=${range.range}&key=${bizKey(req)}">Product quality &rarr;</a></p>
   </div>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.status(200).send(html);
@@ -1488,6 +1502,115 @@ async function renderJourneysView(req, res) {
   return res.status(200).send(html);
 }
 
+// Cost + operational events for a range (app_usage_events). Not tier-filterable:
+// we pay OldCarsData + Claude for every search regardless of who ran it, so cost
+// and quality are computed over ALL traffic (stated on each view).
+async function fetchUsageInRange(env, sinceIso) {
+  const cols = "event_type,status,duration_ms,oldcarsdata_cost_1k_usd,oldcarsdata_cost_10k_usd,anthropic_cost_usd,oldcarsdata_metered_requests,metadata,created_at";
+  return (await supabaseSelect(env, `app_usage_events?created_at=gte.${encodeURIComponent(sinceIso)}&select=${cols}&order=created_at.desc&limit=50000`)) || [];
+}
+async function fetchFunnelInRange(env, sinceIso) {
+  return (await supabaseSelect(env, `funnel_events?created_at=gte.${encodeURIComponent(sinceIso)}&select=event,created_at&limit=100000`)) || [];
+}
+const num = v => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+
+// ===================== ECONOMICS (Phase 4) =====================
+async function renderEconomicsView(req, res) {
+  const env = supabaseEnv(); if (!env) return res.status(500).json({ error: "storage not configured" });
+  const range = bizRange(req), key = req.query?.key;
+  const [b, usage] = await Promise.all([computeBusiness(env, range, "include"), fetchUsageInRange(env, range.sinceIso)]);
+  // Tracked VARIABLE costs only. Fixed costs (the $49/$X monthly plan floor) are NOT
+  // variable and are deliberately excluded from gross contribution.
+  const ocdCost = usage.reduce((s, e) => s + num(e.oldcarsdata_cost_1k_usd), 0);
+  const claudeCost = usage.reduce((s, e) => s + num(e.anthropic_cost_usd), 0);
+  const varCost = ocdCost + claudeCost;
+  const meteredReq = usage.reduce((s, e) => s + num(e.oldcarsdata_metered_requests), 0);
+  const perJourney = b.started > 0 ? varCost / b.started : null;
+  const perRec = b.recs > 0 ? varCost / b.recs : null;
+  const perIntro = b.psIntros > 0 ? varCost / b.psIntros : null;
+  const revenue = b.revTracked ? b.revenue : null;
+  const contribution = b.revTracked ? b.revenue - varCost : null;
+
+  const kpi = (n, l, s) => `<div class="kpi"><div class="n">${n}</div><div class="l">${l}</div>${s ? `<div class="s">${s}</div>` : ""}</div>`;
+  const usd2 = n => "$" + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); // cents-precise so low early-days spend never reads as $0/free
+  const cards = `<div class="kpis">
+    ${kpi(usd2(varCost), "Tracked variable cost", "OldCarsData + Claude")}
+    ${kpi(usd2(ocdCost), "OldCarsData (metered)", `${fmtN(meteredReq)} requests`)}
+    ${kpi(usd2(claudeCost), "Claude (chat + narration)")}
+    ${kpi(perJourney == null ? NYT : "$" + perJourney.toFixed(2), "Cost per journey", `${fmtN(b.started)} journeys`)}
+    ${kpi(perRec == null ? NYT : "$" + perRec.toFixed(2), "Cost per recommendation", `${fmtN(b.recs)} recommendations`)}
+    ${kpi(perIntro == null ? NYT : "$" + perIntro.toFixed(2), "Cost per PowerSeller intro", `${fmtN(b.psIntros)} intros`)}
+    ${kpi(revenue == null ? NYT : fmtMoney(revenue), "GoAskSam revenue", b.revTracked ? "from captured sales" : "manual, Phase 3")}
+    ${kpi(contribution == null ? NYT : fmtMoney(contribution), "Gross contribution", "revenue minus tracked variable cost")}
+  </div>`;
+  const html = `${bizChrome("Economics", key, "economics")}
+    <div class="sub">${adminEsc(range.label)} &middot; all traffic (cost is not tier-attributable)</div>
+    ${bizFilters(req, "economics", { noMode: true })}
+    <h2>Unit economics</h2>${cards}
+    <div class="note">Gross contribution counts <b>tracked variable costs only</b> (OldCarsData metered requests + Claude tokens). It deliberately excludes fixed monthly plan costs, which are not variable and would distort per-journey economics. Revenue is manual (Phase 3) and reads Not yet tracked until real sale revenue is entered; contribution stays Not yet tracked until then rather than showing a cost-only negative that reads as a loss.</div>
+    <p style="margin-top:18px"><a class="jlink" href="?view=business&range=${range.range}&key=${bizKey(req)}">&larr; Business</a> &middot; <a class="jlink" href="?view=quality&range=${range.range}&key=${bizKey(req)}">Product quality &rarr;</a></p>
+  </div>`;
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.status(200).send(html);
+}
+
+// ===================== PRODUCT QUALITY (Phase 4) =====================
+async function renderQualityView(req, res) {
+  const env = supabaseEnv(); if (!env) return res.status(500).json({ error: "storage not configured" });
+  const range = bizRange(req), key = req.query?.key;
+  const [usage, funnel, b] = await Promise.all([fetchUsageInRange(env, range.sinceIso), fetchFunnelInRange(env, range.sinceIso), computeBusiness(env, range, "include")]);
+  const fc = {}; for (const f of funnel) fc[f.event] = (fc[f.event] || 0) + 1;
+  const decisions = usage.filter(e => e.event_type === "seller_decision");
+  const policyFallback = decisions.filter(e => (e.metadata && e.metadata.evidenceBasis) === "regional_policy").length;
+  const dataBacked = decisions.filter(e => (e.metadata && e.metadata.evidenceBasis) === "market_evidence").length;
+  const dataUnavail = usage.filter(e => e.event_type === "data_unavailable").length;
+  const resFallback = usage.filter(e => e.event_type === "vehicle_resolution_fallback").length;
+  const meterBlind = usage.filter(e => e.event_type === "ocd_budget_meter_blind").length;
+  const budgetGuard = usage.filter(e => e.event_type === "ocd_budget_guard").length;
+  const chatErrors = usage.filter(e => e.event_type === "chat" && /error|fail/i.test(String(e.status || ""))).length;
+  const durs = decisions.map(e => num(e.duration_ms)).filter(n => n > 0).sort((a, z) => a - z);
+  const avgDur = durs.length ? durs.reduce((s, n) => s + n, 0) / durs.length : null;
+  const p95 = durs.length ? durs[Math.min(durs.length - 1, Math.floor(durs.length * 0.95))] : null;
+  const started = fc.wizard_start || 0, completed = fc.wizard_complete || 0;
+
+  const kpi = (n, l, s) => `<div class="kpi"><div class="n">${n}</div><div class="l">${l}</div>${s ? `<div class="s">${s}</div>` : ""}</div>`;
+  const ms = v => v == null ? NYT : (v >= 1000 ? (v / 1000).toFixed(1) + "s" : Math.round(v) + "ms");
+  const resolution = `<h2>Vehicle resolution</h2><div class="kpis">
+    ${kpi(fmtN(fc.out_of_scope || 0), "Out-of-scope searches", "forward-only from this deploy")}
+    ${kpi(fmtN(fc.non_us_attempt || 0), "Non-US attempts")}
+    ${kpi(fmtN(resFallback), "Resolver fallbacks", "used the live fallback resolver")}
+  </div>`;
+  const recq = `<h2>Recommendation quality</h2><div class="kpis">
+    ${kpi(fmtN(decisions.length), "Recommendations run")}
+    ${kpi(fmtN(dataBacked), "Data-backed", "real market evidence")}
+    ${kpi(fmtN(policyFallback), "Policy fallback", "regional floor, no comps")}
+    ${kpi(decisions.length ? fmtPct(policyFallback, decisions.length) : NYT, "Fallback rate", "lower is better")}
+    ${kpi(fmtN(dataUnavail), "Zero-evidence dead-ends avoided", "returned honest data-unavailable")}
+  </div>`;
+  const perf = `<h2>Performance and errors</h2><div class="kpis">
+    ${kpi(ms(avgDur), "Avg recommendation time")}
+    ${kpi(ms(p95), "p95 recommendation time")}
+    ${kpi(fmtN(chatErrors), "Chat errors")}
+    ${kpi(fmtN(meterBlind), "Usage-meter blind events", meterBlind ? "investigate" : "")}
+    ${kpi(fmtN(budgetGuard), "Budget-guard soft-degrades")}
+  </div>`;
+  const abandon = `<h2>Flow completion</h2><div class="kpis">
+    ${kpi(fmtN(started), "Wizards started")}
+    ${kpi(fmtN(completed), "Wizards completed")}
+    ${kpi(started ? fmtPct(completed, started) : NYT, "Completion rate")}
+    ${kpi(fmtN(Math.max(0, b.started - b.recs)), "Journeys without a recommendation", "started, no rec reached")}
+  </div>`;
+  const html = `${bizChrome("Product quality", key, "quality")}
+    <div class="sub">${adminEsc(range.label)} &middot; all traffic</div>
+    ${bizFilters(req, "quality", { noMode: true })}
+    ${resolution}${recq}${perf}${abandon}
+    <div class="note">Signals are forward-only from when each was wired; a metric with no source in range reads 0 for a genuine zero and Not yet tracked where nothing emits it yet. Out-of-scope capture starts at this deploy.</div>
+    <p style="margin-top:18px"><a class="jlink" href="?view=business&range=${range.range}&key=${bizKey(req)}">&larr; Business</a> &middot; <a class="jlink" href="?view=economics&range=${range.range}&key=${bizKey(req)}">Economics &rarr;</a></p>
+  </div>`;
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.status(200).send(html);
+}
+
 export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -1524,6 +1647,8 @@ export default async function handler(req, res) {
   try {
     if (req.query?.view === "business") return await renderBusinessView(req, res);
     if (req.query?.view === "journeys") return await renderJourneysView(req, res);
+    if (req.query?.view === "economics") return await renderEconomicsView(req, res);
+    if (req.query?.view === "quality") return await renderQualityView(req, res);
     if (req.query?.view === "accounts") return await renderAccountsView(req, res);
     if (req.query?.view === "outbound") return await renderOutboundView(req, res);
     if (req.query?.view === "searches") return await renderSearchesView(req, res);
