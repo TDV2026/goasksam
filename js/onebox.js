@@ -39,6 +39,12 @@
     return '<div class="ob-tiles' + cls + '">' + cards.map(card).join("") + "</div>";
   }
 
+  function chips(options) {
+    return '<div class="ob-chips">' + options.map(function (o) {
+      return '<button class="ob-chip" onclick="oneBoxBody(' + JSON.stringify(o).replace(/"/g, "&quot;") + ')">' + esc(o) + "</button>";
+    }).join("") + "</div>";
+  }
+
   function render(d) {
     if (d.status === "needs_clarification") {
       result.innerHTML = '<div class="ob-note">I could not pin that exact car down. Try the year, make and model together, like 1972 Porsche 911 or 1969 Ford Mustang.</div>';
@@ -48,8 +54,14 @@
       result.innerHTML = '<div class="ob-note">I am having trouble reading the market right now. Give it another try in a moment.</div>';
       return;
     }
+    // Body-style follow-up: one tap, only when the market spans body styles.
+    if (d.tier === "body_choice") {
+      result.innerHTML = samRead(d.prompt) + chips(d.bodyOptions);
+      return;
+    }
     var html = '<div class="ob-resolved">' + esc(d.resolvedSpec) + "</div>";
-    if (d.tier === "zero") {
+    // Zero comps, or too varied for an honest spread: say so plainly, no cards.
+    if (d.tier === "zero" || d.tier === "underspecified") {
       html += samRead(d.samLine) + cta();
       result.innerHTML = html;
       return;
@@ -80,6 +92,11 @@
     location.href = "/sell";
   };
   window.oneBoxRun = function () { run(input.value); };
+  // One-tap body-style pick: re-run the same query with the chosen body appended.
+  window.oneBoxBody = function (bodyLabel) {
+    var base = lastText || (input && input.value) || "";
+    run(base + " " + bodyLabel);
+  };
 
   if (input) {
     document.getElementById("ob-go").addEventListener("click", function () { run(input.value); });
