@@ -1,5 +1,6 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
+import { runOneBox } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -2388,6 +2389,16 @@ export default async function handler(req, res) {
     // Generation mapping (Phase 4): null is safe and means the ladder keeps
     // its calendar +/- 2 rungs, exactly as unmapped models behave today.
     const generation = await findGeneration(vehicle, { supabaseUrl, supabaseKey });
+
+    // One Box (archive-only, read-only): a single honest result tier from our own
+    // records for "what have cars like yours sold for". Returns BEFORE the search
+    // gate, so it burns no allowance, makes zero OldCarsData calls, and writes
+    // nothing. Tester/crew devices reach it (the curtain seal above lets them in).
+    if (req.body?.oneBox) {
+      const oneBoxText = typeof rawSearch === "string" ? rawSearch : (vehicle?.raw || vehicle?.canonicalLabel || "");
+      const oneBox = await runOneBox(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey });
+      return res.status(200).json({ status: "one_box", ...oneBox });
+    }
 
     // Free structural preview for smoke tests: the ladder that WOULD be
     // walked, with zero metered fetches and zero writes.
