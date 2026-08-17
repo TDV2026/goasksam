@@ -1065,7 +1065,9 @@ body.home #input-box:focus-within{box-shadow:0 2px 10px rgba(22,20,15,.05);borde
      Correction (approved): balance the horizontal padding (was 52px left / 0 right,
      which pushed the composition ~28px right of the main-area centre). */
   body.home #main{justify-content:center;padding-top:0;padding-bottom:56px;padding-left:24px;padding-right:24px;}
-  body.home #hero{margin-top:-2vh;}
+  /* Correction (approved): drop the whole composition ~50px lower in the viewport
+     (it read too high). The half is absorbed by the flex centring, so 83px -> ~50px. */
+  body.home #hero{margin-top:83px;}
   /* Correction (approved): the heavier serif weight from the mockup (Georgia bold);
      the live h1 was computing to 460 (Georgia regular). */
   body.home .hp-hero h1{font-weight:600;}
