@@ -34,7 +34,7 @@ try {
     await page.waitForFunction(() => { const r = document.getElementById("ob-result"); return r && (r.querySelector(".ob-tile") || r.querySelector(".ob-note") || r.querySelector(".ob-read")); }, { timeout: 20000 });
     return page.evaluate(() => {
       const q = s => document.querySelector(s);
-      const tiles = [...document.querySelectorAll(".ob-tile")].map(t => ({ rank: t.querySelector(".ob-rank")?.textContent, price: t.querySelector(".ob-price")?.textContent, miles: t.querySelector(".ob-miles")?.textContent }));
+      const tiles = [...document.querySelectorAll(".ob-tile")].map(t => ({ rank: t.querySelector(".ob-rank")?.textContent, price: t.querySelector(".ob-price")?.textContent, miles: t.querySelector(".ob-miles")?.textContent, spec: t.querySelector(".ob-spec")?.textContent }));
       return { n: tiles.length, tiles, stat: q(".ob-stat")?.textContent, sam: q(".ob-read p")?.textContent, cta: !!q(".ob-cta .ob-btn"), chips: [...document.querySelectorAll(".ob-chip")].map(c => c.textContent) };
     });
   }
@@ -45,11 +45,26 @@ try {
   ok(/Based on \d+ relevant sales/.test(r.stat || ""), "3-tier: stat line present");
   ok(r.cta && r.tiles.every(t => /\$/.test(t.price) && t.miles), "3-tier: CTA + price/mileage on every card");
 
-  r = await search("1995 Lotus Esprit");
+  r = await search("1972 Mercedes-Benz 280SL");
   ok(r.n === 2 && r.tiles.every(t => t.rank === "RECENT SALE"), "2-tier: 2 cards, both RECENT SALE");
 
   r = await search("1979 AMC Pacer");
   ok(r.n === 0 && /enough comparable sales/.test(r.sam || "") && r.cta, "0-tier: fallback line + CTA, no cards");
+
+  // Badged family: a number+letter Mercedes resolves and pulls its badge comps (Bug 1)
+  r = await search("1991 Mercedes-Benz 500SL");
+  ok(r.n === 3 && r.tiles.every(t => /500SL/.test(t.spec || "")), "Bug 1: 500SL resolves to three 500SL comps (family-title search)");
+
+  // Trim scoping: X5 M shows X5 Ms labeled with the model; base X5 excludes the halo (Bug 2)
+  r = await search("2011 BMW X5 M");
+  ok(r.n >= 3 && r.tiles.every(t => /X5 M/.test(t.spec || "")), "Bug 2: X5 M comps labeled 'X5 M', not bare 'M'");
+  const price = s => Number(String(s || "").replace(/[^0-9]/g, ""));
+  r = await search("2011 BMW X5");
+  ok(r.n >= 3 && r.tiles.every(t => t.spec === "X5") && price(r.tiles[0].price) < 40000, "Bug 2: base X5 shows regular X5s, no X5 M anchoring the high");
+
+  // Underspecified: a trim-varied query (base 190E vs 16-valve Cosworth) asks for more
+  r = await search("1985 Mercedes-Benz 190E");
+  ok(r.n === 0 && /vary too much|too varied|honest spread/i.test(r.sam || ""), "underspecified: trim-varied query asks for the trim, no fake spread");
 
   // body follow-up: underspecified body must ask, not mix coupe/targa/cabriolet
   r = await search("1989 porsche 911");
@@ -58,10 +73,6 @@ try {
   await page.waitForFunction(() => document.querySelector(".ob-tile"), { timeout: 20000 });
   const picked = await page.evaluate(() => ({ n: document.querySelectorAll(".ob-tile").length, resolved: document.querySelector(".ob-resolved")?.textContent }));
   ok(picked.n === 3 && /Coupe/.test(picked.resolved || ""), "body follow-up: tapping Coupe yields 3 coupe cards");
-
-  // outlier/underspecified: a trim-varied single-body query does not force three cards
-  r = await search("1970 Corvette Coupe");
-  ok(r.n === 0 && /vary too much|too varied|honest spread/i.test(r.sam || ""), "outlier guard: L88-class query returns underspecified, not a fake spread");
 
   await search("1989 911 Carrera Coupe");
   const body = await page.evaluate(() => document.body.innerText.toLowerCase());
