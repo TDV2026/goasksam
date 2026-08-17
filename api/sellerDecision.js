@@ -2396,7 +2396,7 @@ export default async function handler(req, res) {
     // nothing. Tester/crew devices reach it (the curtain seal above lets them in).
     if (req.body?.oneBox) {
       const oneBoxText = typeof rawSearch === "string" ? rawSearch : (vehicle?.raw || vehicle?.canonicalLabel || "");
-      const oneBox = await runOneBox(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey });
+      const oneBox = await runOneBox(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey }, req.body?.oneBoxDebug === true);
       return res.status(200).json({ status: "one_box", ...oneBox });
     }
 
