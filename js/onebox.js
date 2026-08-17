@@ -76,6 +76,8 @@
     text = String(text || "").trim();
     if (!text) return;
     lastText = text;
+    var intro = document.getElementById("ob-intro"); // the empty-state explainer clears on first search
+    if (intro) intro.style.display = "none";
     result.innerHTML = '<div class="ob-loading">Reading the market for real sold prices.</div>';
     fetch(API_ORIGIN + "/api/sellerDecision", {
       method: "POST", credentials: "include",

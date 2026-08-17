@@ -76,6 +76,11 @@ details.ob-how p{color:var(--faint);font:italic 400 13.5px/1.55 Georgia,serif;ma
 .ob-note{margin:22px 2px 0;color:var(--slate);font-size:16px;padding:14px 16px;background:var(--card);border:1px solid var(--line);border-radius:12px}
 .ob-loading{margin:22px 2px 0;color:var(--faint);font-size:15px;font-style:italic}
 .ob-foot{margin:26px 2px 0;color:var(--faint);font-size:13.5px}
+#ob-intro{margin:30px 2px 0;max-width:60ch}
+#ob-intro p{margin:0 0 12px}
+#ob-intro .ob-intro-lead{color:var(--ink);font-size:17px;font-weight:600;letter-spacing:-.01em}
+#ob-intro p:not(.ob-intro-lead):not(.ob-intro-bridge){color:var(--slate);font-size:15.5px;line-height:1.65}
+#ob-intro .ob-intro-bridge{color:var(--faint);font-size:14.5px;margin-top:18px;margin-bottom:0}
 #ob-result:empty{display:none}
 @media (max-width:720px){.ob-tiles{grid-template-columns:1fr;gap:14px}.ob-tiles.two{max-width:none}.ob-cta{flex-direction:column;align-items:flex-start}h1{font-size:31px}}
 </style>
@@ -92,10 +97,16 @@ details.ob-how p{color:var(--faint);font:italic 400 13.5px/1.55 Georgia,serif;ma
   </div>
   <details class="ob-how"><summary>How this works</summary><p>One box, plain text in, the same resolver the sell wizard uses. No filters, no dropdowns. Comparable means a genuinely similar stock car, so modified and backdated examples are set aside before the range is drawn. Every price is a real completed auction from our own archive, never a live lookup.</p></details>
 
+  <div id="ob-intro">
+    <p class="ob-intro-lead">No charts. No estimates. No digging through pages of results. One Box keeps it deliberately simple.</p>
+    <p>Tell us what you've got and we'll show you up to three real, comparable cars that actually sold, using real auction results from our archive. Three cars. That's it. One at the top of the market. One around the middle. One at the bottom.</p>
+    <p class="ob-intro-bridge">Thinking of selling? From there, Sam can tell you where he'd sell yours.</p>
+  </div>
+
   <div id="ob-result"></div>
 
   <div class="ob-foot">Every figure here is a real auction result from GoAskSam's own archive. No estimates. No valuations.</div>
 </div>
-<script src="js.20260817b/onebox.js"></script>
+<script src="js.20260817c/onebox.js"></script>
 </body>
 </html>
