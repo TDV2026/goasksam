@@ -13,6 +13,13 @@
 - [ ] Remove the curtain block + `#curtain` + `.curtain*` CSS + `api/crew.js` + the
   robots.txt `Disallow: /` (keep `Allow: /privacy`).
 - [ ] Remove the temporary root -> /sell redirect when a broader homepage ships at root.
+- [ ] **One Box** is internal-only, gated through `api/crew` (the `/onebox?tester=`/
+  `?crew=` links). Its gate script in `onebox.html` redirects unlocked devices via
+  `/api/crew`, so removing `api/crew.js` at launch breaks that gate. When the curtain
+  comes down, decide One Box's fate in the SAME commit: either remove it (`onebox.html`,
+  `js/onebox.js`, the `/onebox` rewrite in vercel.json, and the `oneBox` branch in
+  `api/sellerDecision.js`) or open it (drop the gate script, keep the branch) if it goes
+  public. Do not leave a dangling `/api/crew` dependency.
 
 ## Analytics
 - [ ] Run `docs/supabase-journeys-schema.sql` once in Supabase (journeys / journey_events
