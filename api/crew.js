@@ -24,33 +24,41 @@ export default async function handler(req, res) {
     const events = await read(`journey_events?${jFilter}select=journey_id,event_type,dedup_key,platform_id,powerseller_id,occurred_at&order=occurred_at.asc&limit=200`);
     return res.status(200).json({ journeys: journeys || [], events: events || [], journeyCount: (journeys || []).length, eventCount: (events || []).length });
   }
-  // Crew-gated Phase-3 manual-update verification harness (temporary, removed with
-  // the curtain). Exercises the REAL journey_manual_update RPC + audit capture end
-  // to end against prod on a throwaway internal-tier test journey, then purges it.
-  // Proves: allowlist enforcement, old->new capture, who/what/when auditing.
-  if (q.jmanual === "1") {
+  // One Box discovery probe (temporary, crew-gated). Answers the two build-gating
+  // questions with Supabase-only reads (ZERO OCD/metered cost): (1) photo coverage
+  // + a sample of featured_image_url across models for a manual quality spot-check,
+  // (2) current billing-period metered usage vs the 10k cap and per-model archive
+  // depth so we can size the initial set. Removed after the questions are settled.
+  if (q.onebox_probe === "1") {
     res.setHeader("Access-Control-Allow-Origin", "*");
     if ((req.headers.cookie || "").indexOf("gas_crew=ok") === -1) return res.status(403).json({ error: "forbidden (crew only)" });
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY, url = process.env.SUPABASE_URL;
     if (!key || !url) return res.status(500).json({ error: "supabase not configured" });
-    const H = { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" };
-    const rpc = (name, payload) => fetch(`${url}/rest/v1/rpc/${name}`, { method: "POST", headers: H, body: JSON.stringify(payload) }).then(r => r.json()).catch(e => ({ error: e.message }));
+    const H = { apikey: key, Authorization: `Bearer ${key}` };
     const read = (path) => fetch(`${url}/rest/v1/${path}`, { headers: H }).then(r => r.ok ? r.json() : null).catch(() => null);
-    const del = (path) => fetch(`${url}/rest/v1/${path}`, { method: "DELETE", headers: H }).then(r => r.status).catch(() => -1);
-    const jid = globalThis.crypto.randomUUID();
-    const who = "verify-harness";
-    await rpc("record_journey_event", { p_journey_id: jid, p_event_type: "recommendation_completed", p_anon_id: who, p_metadata: { tier: "internal" }, p_vehicle: { make: "Test", model: "Harness", year: "2000" }, p_snapshot: { rec_status: "completed", rec_platform: "bringatrailer" } });
-    const u1 = await rpc("journey_manual_update", { p_journey_id: jid, p_field: "sale_status", p_value: "listed", p_changed_by: who, p_note: "step1 set" });
-    const u2 = await rpc("journey_manual_update", { p_journey_id: jid, p_field: "sale_status", p_value: "sold", p_changed_by: who, p_note: "step2 change" });
-    const u3 = await rpc("journey_manual_update", { p_journey_id: jid, p_field: "sale_price", p_value: "12345", p_changed_by: who });        // numeric
-    const u4 = await rpc("journey_manual_update", { p_journey_id: jid, p_field: "sold_at", p_value: "2026-08-10", p_changed_by: who });        // timestamptz
-    const u5 = await rpc("journey_manual_update", { p_journey_id: jid, p_field: "listing_date", p_value: "2026-08-01", p_changed_by: who });   // date
-    const uBad = await rpc("journey_manual_update", { p_journey_id: jid, p_field: "rec_platform", p_value: "should_be_rejected", p_changed_by: who });
-    const audit = await read(`journey_audit?journey_id=eq.${jid}&select=changed_by,field,old_value,new_value,changed_at,note&order=changed_at.asc`);
-    const journey = await read(`journeys?journey_id=eq.${jid}&select=sale_status,sale_price,sold_at,listing_date,rec_platform,updated_at`);
-    let cleaned = null;
-    if (q.cleanup !== "0") cleaned = { audit: await del(`journey_audit?journey_id=eq.${jid}`), events: await del(`journey_events?journey_id=eq.${jid}`), journey: await del(`journeys?journey_id=eq.${jid}`) };
-    return res.status(200).json({ jid, updates: { u1, u2, u3, u4, u5, disallowed: uBad }, audit: audit || [], journey: (journey || [])[0] || null, cleaned });
+    const count = async (path) => { const r = await fetch(`${url}/rest/v1/${path}`, { headers: { ...H, Prefer: "count=exact", Range: "0-0" } }).catch(() => null); return r ? Number((r.headers.get("content-range") || "*/0").split("/")[1] || 0) : -1; };
+    // (2a) metered usage this billing period (plan resets 2026-08-26; period start 2026-07-26)
+    const periodStart = "2026-07-26T00:00:00Z";
+    const usage = await read(`app_usage_events?created_at=gte.${periodStart}&select=oldcarsdata_metered_requests&limit=100000`) || [];
+    const meteredThisPeriod = usage.reduce((s, e) => s + (Number(e.oldcarsdata_metered_requests) || 0), 0);
+    // (2b) archive depth per enthusiast model: total sold-with-price vs with a photo
+    const SET = [["Porsche", "911"], ["Porsche", "356"], ["Porsche", "Cayman"], ["Ford", "Mustang"], ["Ford", "Bronco"], ["Chevrolet", "Corvette"], ["Chevrolet", "Camaro"], ["BMW", "M3"], ["BMW", "2002"], ["Mazda", "Miata"], ["Toyota", "Land Cruiser"], ["Toyota", "Supra"], ["Jaguar", "E-Type"], ["Datsun", "240Z"], ["Mercedes-Benz", "SL"], ["Dodge", "Charger"], ["Land Rover", "Defender"], ["Volkswagen", "Beetle"]];
+    const depth = [];
+    for (const [mk, md] of SET) {
+      const base = `make=ilike.${encodeURIComponent(mk)}&model=ilike.${encodeURIComponent("*" + md + "*")}&price=not.is.null`;
+      const total = await count(`vehicle_market_records?${base}`);
+      const withPhoto = await count(`vehicle_market_records?${base}&raw_record->>featured_image_url=not.is.null`);
+      depth.push({ make: mk, model: md, soldWithPrice: total, withPhoto });
+    }
+    const totalRecords = await count(`vehicle_market_records?select=id`);
+    // (1) photo sample across a few models for the manual quality spot-check
+    const sampleModels = [["Porsche", "911"], ["Ford", "Mustang"], ["Chevrolet", "Corvette"], ["BMW", "M3"], ["Toyota", "Land Cruiser"], ["Jaguar", "E-Type"], ["Datsun", "240Z"]];
+    const photoSample = [];
+    for (const [mk, md] of sampleModels) {
+      const rows = await read(`vehicle_market_records?make=ilike.${encodeURIComponent(mk)}&model=ilike.${encodeURIComponent("*" + md + "*")}&price=not.is.null&select=make,model,year,price,source,auction_status,image:raw_record->>featured_image_url&order=price.desc&limit=3`) || [];
+      for (const r of rows) photoSample.push(r);
+    }
+    return res.status(200).json({ billingPeriod: { start: periodStart, resets: "2026-08-26", cap: 10000, meteredThisPeriod, remaining: 10000 - meteredThisPeriod }, totalRecords, depth, photoSampleCount: photoSample.length, photoSample });
   }
   // Read-only out-of-scope calibration probe (crew cookie required). Folded in
   // here to stay under the Hobby-plan 12-function cap. Returns per make+model the
