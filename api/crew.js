@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ make: mk, model: md, total: rows.length, modelCounts,
       top: rows.slice(0, 6).map(r => ({ model: r.model, year: r.year, price: Math.round(+r.price), title: r.raw_title })),
       bottom: rows.slice(-6).map(r => ({ model: r.model, year: r.year, price: Math.round(+r.price), title: r.raw_title })),
-      grepCount: matched.length, grepSample: matched.slice(0, 12).map(r => ({ price: Math.round(+r.price), title: r.raw_title, sold: r.auction_end_date, status: r.auction_status })) });
+      grepCount: matched.length, grepSample: matched.slice(0, 12).map(r => ({ price: Math.round(+r.price), title: r.raw_title, sold: r.auction_end_date, status: r.auction_status, yr: r.year })) });
   }
   // Read-only out-of-scope calibration probe (crew cookie required). Folded in
   // here to stay under the Hobby-plan 12-function cap. Returns per make+model the
