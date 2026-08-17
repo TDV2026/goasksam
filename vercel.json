@@ -14,10 +14,11 @@
   ],
   "rewrites": [
     { "source": "/sell", "destination": "/index.html" },
+    { "source": "/onebox", "destination": "/onebox.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/out", "destination": "/api/out" },
     { "source": "/styles.20260813e.css", "destination": "/styles.css" },
-    { "source": "/js.20260816a/(.*)", "destination": "/js/$1" }
+    { "source": "/js.20260817a/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
     "api/usageDashboard.js": {

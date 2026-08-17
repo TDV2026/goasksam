@@ -272,3 +272,13 @@ async function send(){
 document.getElementById("btn").addEventListener("click",send);
 document.getElementById("inp").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}});
 document.getElementById("inp").addEventListener("input",function(){this.style.height="auto";this.style.height=Math.min(this.scrollHeight,160)+"px";});
+
+// One Box handoff: a car handed over from the One Box page (gas_onebox_prefill)
+// pre-fills the entry box and auto-runs the wizard, so the seller does not retype it.
+(function(){try{
+  var pref=localStorage.getItem("gas_onebox_prefill");
+  if(!pref)return;
+  localStorage.removeItem("gas_onebox_prefill");
+  var inp=document.getElementById("inp");
+  if(inp&&typeof send==="function"){inp.value=pref;send();}
+}catch(e){}})();

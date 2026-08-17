@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>One Box: GoAskSam</title>
+<meta name="robots" content="noindex, nofollow" />
+<!-- Internal review surface. Gated by the same mechanism as the tester tier: only a
+     device holding gas_tester=ok (or gas_crew=ok) is let in. The invite links are
+     /onebox?tester=<code> and /onebox?crew=<code>; anything else is sent home. Not
+     linked anywhere public. Removed with the curtain at launch. -->
+<script>
+(function(){try{
+  var c=document.cookie||"";
+  if(c.indexOf("gas_tester=ok")!==-1||c.indexOf("gas_crew=ok")!==-1)return; // already unlocked
+  var m=/[?&](tester|crew)=([^&]*)/.exec(location.search||"");
+  if(m){var q=m[1]==="tester"?"tcode":"code";location.replace("/api/crew?"+q+"="+encodeURIComponent(m[2])+"&to="+encodeURIComponent(location.pathname||"/onebox"));return;}
+  location.replace("/"); // no access
+}catch(e){location.replace("/");}})();
+</script>
+<style>
+:root{--paper:#f4efe4;--card:#fffdf9;--ink:#191510;--slate:#6d6759;--faint:#928b7a;--line:#e6ddcc;--line2:#efe8da;--green:#0b5c3e;--green-deep:#093c29;--clay:#a4571f;--shadow:0 1px 2px rgba(40,30,10,.05),0 12px 34px rgba(40,30,10,.07);}
+@media (prefers-color-scheme:dark){:root{--paper:#141109;--card:#1f1a11;--ink:#efe7d6;--slate:#a59d8b;--faint:#7c7565;--line:#332c1e;--line2:#2a2418;--green:#77c8a2;--green-deep:#0f4e36;--clay:#d3944f;--shadow:0 1px 2px rgba(0,0,0,.3),0 14px 40px rgba(0,0,0,.4);}}
+:root[data-theme="dark"]{--paper:#141109;--card:#1f1a11;--ink:#efe7d6;--slate:#a59d8b;--faint:#7c7565;--line:#332c1e;--line2:#2a2418;--green:#77c8a2;--green-deep:#0f4e36;--clay:#d3944f;--shadow:0 1px 2px rgba(0,0,0,.3),0 14px 40px rgba(0,0,0,.4);}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.ob-wrap{max-width:1000px;margin:0 auto;padding:40px 24px 90px}
+.ob-eyebrow{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.2em;color:var(--faint);text-transform:uppercase;margin-bottom:16px}
+h1{font-size:38px;line-height:1.05;letter-spacing:-.03em;font-weight:700;margin:0 0 8px;text-wrap:balance}
+.ob-lede{color:var(--slate);font-size:17px;margin:0 0 22px}
+.ob-box{background:var(--card);border:1.5px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 18px 18px 22px;display:flex;align-items:center;gap:14px}
+.ob-box input{flex:1;border:0;background:transparent;color:var(--ink);font:400 20px/1.4 inherit;outline:none;letter-spacing:-.01em}
+.ob-box .cam{width:44px;height:44px;border-radius:11px;border:1px solid var(--line);background:transparent;color:var(--slate);display:grid;place-items:center;flex:none;font-size:18px;cursor:default}
+.ob-box .go{width:46px;height:46px;border-radius:12px;background:var(--green);color:#fff;border:0;font-size:20px;display:grid;place-items:center;flex:none;cursor:pointer}
+@media (prefers-color-scheme:dark){.ob-box .go{color:#0c130f}}
+:root[data-theme="dark"] .ob-box .go{color:#0c130f}
+details.ob-how{margin:12px 2px 0}
+details.ob-how summary{color:var(--green);font-size:13.5px;cursor:pointer;list-style:none;font-weight:600}
+details.ob-how summary::-webkit-details-marker{display:none}
+details.ob-how p{color:var(--faint);font:italic 400 13.5px/1.55 Georgia,serif;margin:8px 0 0;padding-left:12px;border-left:2px solid var(--line);max-width:62ch}
+.ob-resolved{margin:0 2px 0;color:var(--ink);font-size:15.5px}
+.ob-answer{font-size:24px;line-height:1.2;letter-spacing:-.02em;font-weight:700;margin:22px 0 3px;text-wrap:balance}
+.ob-sub{color:var(--slate);margin:0 0 20px;font-size:15px}
+.ob-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.ob-tiles.two{grid-template-columns:repeat(2,minmax(0,1fr));max-width:620px}
+.ob-tiles.one{grid-template-columns:minmax(0,340px)}
+.ob-tile{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.ob-tile.mid{border-color:color-mix(in srgb,var(--green) 42%,var(--line));box-shadow:0 2px 4px rgba(40,30,10,.06),0 16px 40px rgba(11,92,62,.12)}
+.ob-ph{aspect-ratio:16/10;background:#0c0a06}
+.ob-ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ob-ph.ob-noimg{background:var(--line2) center/cover;position:relative}
+.ob-ph.ob-noimg::after{content:"photo unavailable";position:absolute;inset:0;display:grid;place-items:center;color:var(--faint);font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.05em}
+.ob-body{padding:15px 17px 17px}
+.ob-rank{font:600 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:9px}
+.ob-rank.mid{color:var(--green)}
+.ob-price{font-size:27px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
+.ob-miles{font-size:14.5px;color:var(--ink);margin-top:6px;font-variant-numeric:tabular-nums}
+.ob-spec{color:var(--slate);font-size:13.5px;margin-top:2px}
+.ob-meta{color:var(--slate);font-size:12.5px;margin-top:11px;padding-top:10px;border-top:1px solid var(--line2);display:flex;justify-content:space-between;gap:8px}
+.ob-meta .ob-plat{font-weight:600;color:var(--ink)}
+.ob-stat{margin:24px 2px 0;font:600 13px/1 ui-monospace,Menlo,monospace;letter-spacing:.02em;color:var(--slate);display:flex;align-items:center;gap:9px}
+.ob-stat .ob-dot{color:var(--faint)}
+.ob-read{display:flex;gap:13px;margin:13px 2px 0;align-items:center}
+.ob-read .ob-who{flex:none;display:flex;align-items:center;gap:8px}
+.ob-read .ob-who i{width:9px;height:9px;border-radius:50%;background:var(--green);display:block}
+.ob-read .ob-who span{font:600 12px/1 ui-monospace,Menlo,monospace;letter-spacing:.11em;color:var(--slate);text-transform:uppercase}
+.ob-read p{margin:0;font-size:17.5px;color:var(--ink);max-width:64ch}
+.ob-cta{margin:34px 0 0;background:var(--green);border-radius:18px;padding:24px 28px;display:flex;align-items:center;justify-content:space-between;gap:22px;flex-wrap:wrap}
+.ob-cta p{margin:0;color:#fff;font-size:19px;font-weight:600;letter-spacing:-.01em;max-width:32ch}
+@media (prefers-color-scheme:dark){.ob-cta p{color:#0c130f}}
+:root[data-theme="dark"] .ob-cta p{color:#0c130f}
+.ob-cta .ob-btn{flex:none;background:#fff;color:var(--green-deep);border:0;border-radius:12px;padding:15px 24px;font-size:16px;font-weight:700;letter-spacing:-.01em;cursor:pointer}
+.ob-note{margin:22px 2px 0;color:var(--slate);font-size:16px;padding:14px 16px;background:var(--card);border:1px solid var(--line);border-radius:12px}
+.ob-loading{margin:22px 2px 0;color:var(--faint);font-size:15px;font-style:italic}
+.ob-foot{margin:26px 2px 0;color:var(--faint);font-size:13.5px}
+#ob-result:empty{display:none}
+@media (max-width:720px){.ob-tiles{grid-template-columns:1fr;gap:14px}.ob-tiles.two{max-width:none}.ob-cta{flex-direction:column;align-items:flex-start}h1{font-size:31px}}
+</style>
+</head>
+<body>
+<div class="ob-wrap">
+  <div class="ob-eyebrow">GoAskSam &middot; One Box</div>
+  <h1>What's it been selling for?</h1>
+  <p class="ob-lede">Type your car, or add a photo. Real sold prices, nothing invented.</p>
+  <div class="ob-box">
+    <input id="ob-input" type="text" autocomplete="off" placeholder="1989 Porsche 911 Carrera Coupe" aria-label="Your car" />
+    <button class="cam" title="Add a photo (coming soon)" aria-label="Add a photo">&#9635;</button>
+    <button id="ob-go" class="go" aria-label="Show me">&#8593;</button>
+  </div>
+  <details class="ob-how"><summary>How this works</summary><p>One box, plain text in, the same resolver the sell wizard uses. No filters, no dropdowns. Comparable means a genuinely similar stock car, so modified and backdated examples are set aside before the range is drawn. Every price is a real completed auction from our own archive, never a live lookup.</p></details>
+
+  <div id="ob-result"></div>
+
+  <div class="ob-foot">Every figure here is a real auction result from GoAskSam's own archive. No estimates. No valuations.</div>
+</div>
+<script src="js.20260817a/onebox.js"></script>
+</body>
+</html>
