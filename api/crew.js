@@ -60,6 +60,34 @@ export default async function handler(req, res) {
     }
     return res.status(200).json({ billingPeriod: { start: periodStart, resets: "2026-08-26", cap: 10000, meteredThisPeriod, remaining: 10000 - meteredThisPeriod }, totalRecords, depth, photoSampleCount: photoSample.length, photoSample });
   }
+  // OCD usage trace (temporary, crew-gated): reconciles our internal tally against
+  // OCD's authoritative rate-limit headers, breaks metered requests down by the code
+  // path that logged them, and fingerprints the PROD key so Sam can match it to the
+  // OCD account dashboard. &live=1 spends ONE metered request for a fresh header read.
+  if (q.ocd_trace === "1") {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    if ((req.headers.cookie || "").indexOf("gas_crew=ok") === -1) return res.status(403).json({ error: "forbidden (crew only)" });
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY, url = process.env.SUPABASE_URL;
+    if (!key || !url) return res.status(500).json({ error: "supabase not configured" });
+    const read = (path) => fetch(`${url}/rest/v1/${path}`, { headers: { apikey: key, Authorization: `Bearer ${key}` } }).then(r => r.ok ? r.json() : null).catch(() => null);
+    const since = String(q.since || "2026-07-26T00:00:00Z");
+    // our internal tally, broken down by the event_type that logged it
+    const rows = await read(`app_usage_events?created_at=gte.${encodeURIComponent(since)}&select=event_type,oldcarsdata_metered_requests&limit=200000`) || [];
+    const byType = {}; let internalTotal = 0;
+    for (const r of rows) { const m = Number(r.oldcarsdata_metered_requests) || 0; byType[r.event_type] = (byType[r.event_type] || 0) + m; internalTotal += m; }
+    // OCD's authoritative headers, as last logged by the prod key (seller_decision.metadata.ocdRateLimit)
+    const rl = await read(`app_usage_events?metadata->ocdRateLimit=not.is.null&select=created_at,metadata->ocdRateLimit&order=created_at.desc&limit=5`) || [];
+    // prod key fingerprint (masked) so Sam can match it against the 4 dashboard keys
+    const apiKey = process.env.OLDCARSDATA_API_KEY || "";
+    const fp = apiKey ? { prefix: apiKey.slice(0, 14), len: apiKey.length, set: true } : { set: false };
+    // optional fresh live read (1 metered request)
+    let live = null;
+    if (q.live === "1" && apiKey) {
+      try { const ocd = await callOldCarsData("/auctions", { make: "Porsche", model: "911", status: "sold", sort: "date", direction: "desc", page: 1, limit: 1 }, apiKey); live = { rateLimit: ocd.__rateLimit || null, metaTotal: ocd.meta?.total ?? ocd.meta?.total_results ?? null }; }
+      catch (e) { live = { error: e.message, rateLimit: e.rateLimit || null }; }
+    }
+    return res.status(200).json({ since, prodKeyFingerprint: fp, internalTallyTotal: internalTotal, byEventType: byType, latestAuthoritativeHeaders: rl, live });
+  }
   // One Box comps pull (temporary, crew-gated): the full sold-with-photo price
   // distribution for one spec so a mockup can show a genuine top/median/bottom
   // spread (not the top-3 outliers). Supabase-only, zero metered cost.
