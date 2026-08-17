@@ -35,7 +35,7 @@ try {
     return page.evaluate(() => {
       const q = s => document.querySelector(s);
       const tiles = [...document.querySelectorAll(".ob-tile")].map(t => ({ rank: t.querySelector(".ob-rank")?.textContent, price: t.querySelector(".ob-price")?.textContent, miles: t.querySelector(".ob-miles")?.textContent }));
-      return { n: tiles.length, tiles, stat: q(".ob-stat")?.textContent, sam: q(".ob-read p")?.textContent, cta: !!q(".ob-cta .ob-btn") };
+      return { n: tiles.length, tiles, stat: q(".ob-stat")?.textContent, sam: q(".ob-read p")?.textContent, cta: !!q(".ob-cta .ob-btn"), chips: [...document.querySelectorAll(".ob-chip")].map(c => c.textContent) };
     });
   }
 
@@ -50,6 +50,18 @@ try {
 
   r = await search("1979 AMC Pacer");
   ok(r.n === 0 && /enough comparable sales/.test(r.sam || "") && r.cta, "0-tier: fallback line + CTA, no cards");
+
+  // body follow-up: underspecified body must ask, not mix coupe/targa/cabriolet
+  r = await search("1989 porsche 911");
+  ok(r.n === 0 && r.chips.length >= 2 && r.chips.some(c => /coupe/i.test(c)) && r.chips.some(c => /targa|cabriolet/i.test(c)), "body follow-up: chips (not mixed cards) for underspecified body");
+  await page.evaluate(() => { const b = [...document.querySelectorAll(".ob-chip")].find(x => /coupe/i.test(x.textContent)); if (b) b.click(); });
+  await page.waitForFunction(() => document.querySelector(".ob-tile"), { timeout: 20000 });
+  const picked = await page.evaluate(() => ({ n: document.querySelectorAll(".ob-tile").length, resolved: document.querySelector(".ob-resolved")?.textContent }));
+  ok(picked.n === 3 && /Coupe/.test(picked.resolved || ""), "body follow-up: tapping Coupe yields 3 coupe cards");
+
+  // outlier/underspecified: a trim-varied single-body query does not force three cards
+  r = await search("1970 Corvette Coupe");
+  ok(r.n === 0 && /vary too much|too varied|honest spread/i.test(r.sam || ""), "outlier guard: L88-class query returns underspecified, not a fake spread");
 
   await search("1989 911 Carrera Coupe");
   const body = await page.evaluate(() => document.body.innerText.toLowerCase());
