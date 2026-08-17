@@ -24,6 +24,24 @@ export default async function handler(req, res) {
     const events = await read(`journey_events?${jFilter}select=journey_id,event_type,dedup_key,platform_id,powerseller_id,occurred_at&order=occurred_at.asc&limit=200`);
     return res.status(200).json({ journeys: journeys || [], events: events || [], journeyCount: (journeys || []).length, eventCount: (events || []).length });
   }
+  // TEMP archive-shape probe (crew-gated, Supabase-only): how a make+model is stored
+  // (model-string distribution) plus price/title samples, to trace One Box resolution
+  // and comp-pool bugs. Removed with the fix.
+  if (q.tprobe === "1") {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    if ((req.headers.cookie || "").indexOf("gas_crew=ok") === -1) return res.status(403).json({ error: "forbidden (crew only)" });
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY, url = process.env.SUPABASE_URL;
+    const read = (path) => fetch(`${url}/rest/v1/${path}`, { headers: { apikey: key, Authorization: `Bearer ${key}` } }).then(r => r.ok ? r.json() : null).catch(() => null);
+    const mk = String(q.make || "").trim(), md = String(q.model || "").trim();
+    const rows = (await read(`vehicle_market_records?make=ilike.${encodeURIComponent(mk)}&model=ilike.${encodeURIComponent("*" + md + "*")}&price=not.is.null&raw_record->>featured_image_url=not.is.null&select=model,year,price,raw_title,auction_end_date&order=price.desc&limit=2000`)) || [];
+    const modelCounts = {}; rows.forEach(r => { modelCounts[r.model] = (modelCounts[r.model] || 0) + 1; });
+    const grep = String(q.grep || "");
+    const matched = grep ? rows.filter(r => new RegExp(grep, "i").test(r.raw_title || "")) : [];
+    return res.status(200).json({ make: mk, model: md, total: rows.length, modelCounts,
+      top: rows.slice(0, 6).map(r => ({ model: r.model, year: r.year, price: Math.round(+r.price), title: r.raw_title })),
+      bottom: rows.slice(-6).map(r => ({ model: r.model, year: r.year, price: Math.round(+r.price), title: r.raw_title })),
+      grepCount: matched.length, grepSample: matched.slice(0, 6).map(r => ({ price: Math.round(+r.price), title: r.raw_title })) });
+  }
   // Read-only out-of-scope calibration probe (crew cookie required). Folded in
   // here to stay under the Hobby-plan 12-function cap. Returns per make+model the
   // all-time vehicle_market_records count (our archive) and the OldCarsData
