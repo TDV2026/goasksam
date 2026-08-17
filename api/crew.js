@@ -33,14 +33,14 @@ export default async function handler(req, res) {
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY, url = process.env.SUPABASE_URL;
     const read = (path) => fetch(`${url}/rest/v1/${path}`, { headers: { apikey: key, Authorization: `Bearer ${key}` } }).then(r => r.ok ? r.json() : null).catch(() => null);
     const mk = String(q.make || "").trim(), md = String(q.model || "").trim();
-    const rows = (await read(`vehicle_market_records?make=ilike.${encodeURIComponent(mk)}&model=ilike.${encodeURIComponent("*" + md + "*")}&price=not.is.null&raw_record->>featured_image_url=not.is.null&select=model,year,price,raw_title,auction_end_date&order=price.desc&limit=2000`)) || [];
+    const rows = (await read(`vehicle_market_records?make=ilike.${encodeURIComponent(mk)}&model=ilike.${encodeURIComponent("*" + md + "*")}&price=not.is.null&raw_record->>featured_image_url=not.is.null&select=model,year,price,raw_title,auction_end_date,auction_status&order=price.desc&limit=2000`)) || [];
     const modelCounts = {}; rows.forEach(r => { modelCounts[r.model] = (modelCounts[r.model] || 0) + 1; });
     const grep = String(q.grep || "");
     const matched = grep ? rows.filter(r => new RegExp(grep, "i").test(r.raw_title || "")) : [];
     return res.status(200).json({ make: mk, model: md, total: rows.length, modelCounts,
       top: rows.slice(0, 6).map(r => ({ model: r.model, year: r.year, price: Math.round(+r.price), title: r.raw_title })),
       bottom: rows.slice(-6).map(r => ({ model: r.model, year: r.year, price: Math.round(+r.price), title: r.raw_title })),
-      grepCount: matched.length, grepSample: matched.slice(0, 6).map(r => ({ price: Math.round(+r.price), title: r.raw_title })) });
+      grepCount: matched.length, grepSample: matched.slice(0, 12).map(r => ({ price: Math.round(+r.price), title: r.raw_title, sold: r.auction_end_date, status: r.auction_status })) });
   }
   // Read-only out-of-scope calibration probe (crew cookie required). Folded in
   // here to stay under the Hobby-plan 12-function cap. Returns per make+model the
