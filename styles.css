@@ -731,7 +731,7 @@ body.home #msgs .hero-inner{max-width:none;}
 /* ============ FINAL DESIGN PASS: Geist, calm homepage + interior ============ */
 /* Canvas + sidebar sheets (item 6/13): light workspace, slightly darker rail. */
 body{background:#FBFAF6;}
-#rail{background:#F4F2ED;border-right:1px solid var(--line);width:296px;padding:26px 24px;}
+#rail{background:#FFFFFF;border-right:1px solid var(--line);width:296px;padding:26px 24px;}
 
 /* ---- PART 2: HOMEPAGE ---- */
 /* 5 + 12: vertically centred (not top-anchored), nudged right of centre so the
