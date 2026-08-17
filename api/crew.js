@@ -98,7 +98,8 @@ export default async function handler(req, res) {
     if (!key || !url) return res.status(500).json({ error: "supabase not configured" });
     const read = (path) => fetch(`${url}/rest/v1/${path}`, { headers: { apikey: key, Authorization: `Bearer ${key}` } }).then(r => r.ok ? r.json() : null).catch(() => null);
     const mk = String(q.make || "").trim(), md = String(q.model || "").trim(), ymin = String(q.ymin || "").trim(), ymax = String(q.ymax || "").trim();
-    let path = `vehicle_market_records?make=ilike.${encodeURIComponent(mk)}&model=ilike.${encodeURIComponent("*" + md + "*")}&price=not.is.null&raw_record->>featured_image_url=not.is.null&select=year,price,source,auction_status,auction_end_date,raw_title,image:raw_record->>featured_image_url&order=price.desc&limit=400`;
+    if (q.full === "1") { const one = await read(`vehicle_market_records?make=ilike.${encodeURIComponent(mk)}&model=ilike.${encodeURIComponent("*" + md + "*")}&price=not.is.null&select=raw_record&limit=2`) || []; return res.status(200).json({ sampleRawRecords: one }); }
+    let path = `vehicle_market_records?make=ilike.${encodeURIComponent(mk)}&model=ilike.${encodeURIComponent("*" + md + "*")}&price=not.is.null&raw_record->>featured_image_url=not.is.null&select=year,price,source,auction_status,auction_end_date,raw_title,image:raw_record->>featured_image_url,mileage:raw_record->>mileage,odometer:raw_record->>odometer,modifications:raw_record->>modifications,modified:raw_record->>modified&order=price.desc&limit=400`;
     if (ymin) path += `&year=gte.${encodeURIComponent(ymin)}`;
     if (ymax) path += `&year=lte.${encodeURIComponent(ymax)}`;
     const rows = (await read(path)) || [];
