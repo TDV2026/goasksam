@@ -1061,10 +1061,16 @@ body.home #input-box:focus-within{box-shadow:0 2px 10px rgba(22,20,15,.05);borde
 .hp-evidence{font-family:var(--font-sans);font-size:13px;letter-spacing:.01em;color:#5A564E;text-align:center;margin:26px auto 0;}
 .hp-evidence i{color:#BEB8AB;font-style:normal;margin:0 6px;}
 @media (min-width:901px){
-  /* optically centre the hero + input as a group, biased a touch above centre */
-  body.home #main{justify-content:center;padding-top:0;padding-bottom:56px;}
+  /* optically centre the hero + input as a group, biased a touch above centre.
+     Correction (approved): balance the horizontal padding (was 52px left / 0 right,
+     which pushed the composition ~28px right of the main-area centre). */
+  body.home #main{justify-content:center;padding-top:0;padding-bottom:56px;padding-left:24px;padding-right:24px;}
   body.home #hero{margin-top:-2vh;}
-  body.home #input-area{max-width:600px;padding:0 24px;}
+  /* Correction (approved): the heavier serif weight from the mockup (Georgia bold);
+     the live h1 was computing to 460 (Georgia regular). */
+  body.home .hp-hero h1{font-weight:600;}
+  /* Correction (approved): the search box is the central product interaction, ~690px. */
+  body.home #input-area{max-width:690px;padding:0;}
   /* the search box: the centerpiece, given real presence and a soft premium float */
   body.home #input-box{
     align-items:center;gap:14px;border:1px solid #E4E0D6;border-radius:18px;
