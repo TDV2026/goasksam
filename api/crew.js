@@ -60,6 +60,24 @@ export default async function handler(req, res) {
     }
     return res.status(200).json({ billingPeriod: { start: periodStart, resets: "2026-08-26", cap: 10000, meteredThisPeriod, remaining: 10000 - meteredThisPeriod }, totalRecords, depth, photoSampleCount: photoSample.length, photoSample });
   }
+  // One Box comps pull (temporary, crew-gated): the full sold-with-photo price
+  // distribution for one spec so a mockup can show a genuine top/median/bottom
+  // spread (not the top-3 outliers). Supabase-only, zero metered cost.
+  if (q.onebox_comps === "1") {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    if ((req.headers.cookie || "").indexOf("gas_crew=ok") === -1) return res.status(403).json({ error: "forbidden (crew only)" });
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY, url = process.env.SUPABASE_URL;
+    if (!key || !url) return res.status(500).json({ error: "supabase not configured" });
+    const read = (path) => fetch(`${url}/rest/v1/${path}`, { headers: { apikey: key, Authorization: `Bearer ${key}` } }).then(r => r.ok ? r.json() : null).catch(() => null);
+    const mk = String(q.make || "").trim(), md = String(q.model || "").trim(), ymin = String(q.ymin || "").trim(), ymax = String(q.ymax || "").trim();
+    let path = `vehicle_market_records?make=ilike.${encodeURIComponent(mk)}&model=ilike.${encodeURIComponent("*" + md + "*")}&price=not.is.null&raw_record->>featured_image_url=not.is.null&select=year,price,source,auction_status,auction_end_date,raw_title,image:raw_record->>featured_image_url&order=price.desc&limit=400`;
+    if (ymin) path += `&year=gte.${encodeURIComponent(ymin)}`;
+    if (ymax) path += `&year=lte.${encodeURIComponent(ymax)}`;
+    const rows = (await read(path)) || [];
+    const prices = rows.map(r => Number(r.price)).filter(Number.isFinite).sort((a, b) => a - b);
+    const pct = p => prices.length ? prices[Math.min(prices.length - 1, Math.floor(prices.length * p))] : null;
+    return res.status(200).json({ spec: { make: mk, model: md, ymin, ymax }, n: rows.length, min: prices[0] ?? null, p25: pct(0.25), median: pct(0.5), p75: pct(0.75), max: prices[prices.length - 1] ?? null, rows });
+  }
   // Read-only out-of-scope calibration probe (crew cookie required). Folded in
   // here to stay under the Hobby-plan 12-function cap. Returns per make+model the
   // all-time vehicle_market_records count (our archive) and the OldCarsData
