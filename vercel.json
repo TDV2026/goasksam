@@ -17,7 +17,7 @@
     { "source": "/onebox", "destination": "/onebox.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/out", "destination": "/api/out" },
-    { "source": "/styles.20260819e.css", "destination": "/styles.css" },
+    { "source": "/styles.20260819f.css", "destination": "/styles.css" },
     { "source": "/js.20260817c/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
