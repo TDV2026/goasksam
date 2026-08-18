@@ -1058,7 +1058,7 @@ body.home #input-box:focus-within{box-shadow:0 2px 10px rgba(22,20,15,.05);borde
    untouched. The desktop composition changes sit behind the rail breakpoint
    (min-width:901px, where the rail shows); mobile home is left exactly as it was. ===== */
 .hp-search-ico{display:none;}
-.hp-evidence{font-family:var(--font-sans);font-size:13px;letter-spacing:.01em;color:#5A564E;text-align:center;margin:26px auto 0;}
+.hp-evidence{font-family:var(--font-sans);font-size:13px;font-weight:600;letter-spacing:.01em;color:#5A564E;text-align:center;margin:26px auto 0;}
 .hp-evidence i{color:#BEB8AB;font-style:normal;margin:0 6px;}
 @media (min-width:901px){
   /* optically centre the hero + input as a group, biased a touch above centre.
