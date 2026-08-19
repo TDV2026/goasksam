@@ -38,6 +38,13 @@ import {
 // floor (below). Distinct from the $40k LEAD-LAYOUT dial (powerseller_value_lead_usd),
 // which controls PS-forward vs platform-forward presentation and is untouched.
 const POWERSELLER_MIN_VALUE_USD = Number(process.env.POWERSELLER_MIN_VALUE_USD || 40000);
+// vehicle_classifications is a classifier-QA audit log that NOTHING in the product
+// reads (write-only). It has no dedup and is re-written on every search, including
+// cache hits that fetch zero new data, so it grew to 61% of the database. Writing is
+// OFF by default. Set PERSIST_CLASSIFICATIONS=1 only to sample classifier judgments
+// for a bounded review; leave it unset in normal operation. classifyRecord still runs
+// in memory and feeds analyze() either way; this flag governs the DB write alone.
+const PERSIST_CLASSIFICATIONS = process.env.PERSIST_CLASSIFICATIONS === "1";
 // Depth-first breadth: evaluate 45 days first, broaden only while comps stay
 // under threshold: 90, then 180, then all-time (represented as 36500 days).
 const ALL_TIME_WINDOW_DAYS = 36500;
@@ -2077,6 +2084,10 @@ async function persistRawRecords(records, supabaseUrl, supabaseKey) {
 }
 
 async function persistClassifications(records, classifications, idLookup, supabaseUrl, supabaseKey) {
+  // Gated OFF by default: this table is write-only dead weight (see the flag note
+  // above). Skip the insert entirely and return the same skipped shape supabaseInsert
+  // yields, so the response diagnostic stays well-formed.
+  if (!PERSIST_CLASSIFICATIONS) return { skipped: true, disabled: true, rows: [] };
   const batchId = crypto.randomUUID();
   const rows = records.map((record, index) => ({
     market_record_id: idLookup?.[sourceRecordKey(recordPlatform(record), sourceRecordId(record))] || null,

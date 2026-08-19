@@ -28,7 +28,7 @@ Collector car market intelligence platform. Answers "where should I sell my coll
 
 ### Supabase tables actually in use
 - `vehicle_market_records`: immutable raw auction records. Unique on (source, source_record_id). Source values are real platform slugs (bringatrailer, carsandbids, pcarmarket, hagerty, gooding, rmsothebys, acc/allcollectorcars).
-- `vehicle_classifications`: computed classification of records against a search. FK `market_record_id` to vehicle_market_records.id.
+- `vehicle_classifications`: computed classification of records against a search. FK `market_record_id` to vehicle_market_records.id. WRITE-GATED OFF (Aug 2026): this was a write-only classifier-QA audit log that nothing in the product ever read, had no dedup, and was re-written on every search (including cache hits), growing to 61% of the DB. `persistClassifications` is now gated behind `PERSIST_CLASSIFICATIONS=1` (unset in prod = no writes). classifyRecord still runs in memory and feeds the decision; only the DB write is disabled.
 - `seller_leads`: lead capture when a seller acts.
 - `app_usage_events`: cost and usage logging (OldCarsData metered requests, Anthropic tokens).
 - `market_fetch_cache`: 24h market-fetch cache rows (Phase 3), one per make|model family.
