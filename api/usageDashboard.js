@@ -563,7 +563,8 @@ async function handleOps(req, res) {
       { partner: "Howard Silvers", handles: ["howS", "bruce_m"] },
       { partner: "Ingo Schmoldt", handles: ["GenauAutoWerks"] },
       { partner: "Dan Gray", handles: ["AuthenticAuctions"] },
-      { partner: "Chris Carbine", handles: ["carbine123"] }
+      { partner: "Chris Carbine", handles: ["carbine123"] },
+      { partner: "Spencer Bailey", handles: ["SpecWerksLTD"] }
     ];
     const custom = req.query?.handles ? String(req.query.handles).split(",").map(s => s.trim()).filter(Boolean) : null;
     const maxPagesPerHandle = Math.max(1, Math.min(20, Number(req.query?.pages || 6)));
@@ -1000,7 +1001,8 @@ async function handleOps(req, res) {
       { partner: "Howard Silvers", handles: ["howS", "bruce_m"] },
       { partner: "Ingo Schmoldt", handles: ["GenauAutoWerks"] },
       { partner: "Dan Gray", handles: ["AuthenticAuctions"] },
-      { partner: "Chris Carbine", handles: ["Carbine123", "carbine123"] }
+      { partner: "Chris Carbine", handles: ["Carbine123", "carbine123"] },
+      { partner: "Spencer Bailey", handles: ["SpecWerksLTD"] }
     ];
     const allPartnerSellers = new Set(roster.flatMap(r => r.handles.map(h => h.toLowerCase())));
     const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -1038,6 +1040,12 @@ async function handleOps(req, res) {
     const report = [];
     for (const p of roster) {
       const sales = await partnerSales(p.handles);
+      // Archive-holdings breakdown (report-only, does not touch the computation):
+      // how many of this partner's sold rows the archive holds, by nameplate. Answers
+      // the "how many sales / across which models" vetting question before any fetch.
+      const held = {};
+      for (const s of sales) { const k = `${String(s.make)} ${String(s.model)}`.trim(); held[k] = (held[k] || 0) + 1; }
+      const modelsHeld = Object.entries(held).sort((a, b) => b[1] - a[1]).map(([nameplate, n]) => ({ nameplate, sales: n }));
       const deltas = []; const rungCount = { generation: 0, yearband: 0, unmatched: 0 }; let minD = null, maxD = null;
       // Cache baselines per make|model|monthbucket to limit queries.
       const cache = new Map();
@@ -1075,6 +1083,7 @@ async function handleOps(req, res) {
       const premium = deltas.length >= 10 ? Math.round(median(deltas)) : null;
       report.push({
         partner: p.partner, salesConsidered: sales.length, n: deltas.length,
+        modelsHeld,
         premiumPct: premium, gatePassed: deltas.length >= 10 && premium !== null && premium > 0,
         matchedDateRange: minD && maxD ? [minD, maxD] : null, rungDistribution: rungCount,
         note: deltas.length < 10 ? "below n>=10 (baseline likely not warm yet)" : premium == null ? "no median" : premium <= 0 ? "non-positive median, never renders" : "clears gate"
