@@ -1179,11 +1179,20 @@ function choosePowerSeller(id){
 function showContactForm(){
   sellState.step=13;
   hideHero();
+  // Personalize for a PowerSeller destination: the partner's FIRST name + the car, so the
+  // ask reads as "so Ingo can reach you about your 2022 911 Carrera". Platform destinations
+  // keep the generic line (no single partner reaches out).
+  const selectedPowerSeller=(sellState.powerSellerProfiles||[]).find(profile=>profile.id===sellState.selectedPowerSellerId);
+  const psFirst=String(selectedPowerSeller?.displayName||"").trim().split(/\s+/)[0];
+  const carLabel=escapeHtml(sellState.carName||"car");
+  const intro=selectedPowerSeller&&psFirst
+    ? `Last thing, so ${escapeHtml(psFirst)} can reach you about your ${carLabel}. Email is required, phone is optional.`
+    : `Last thing, so they can reach you directly. Email is required, phone is optional.`;
   const msgs=document.getElementById("msgs");
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
-    <div class="sam-text">Last thing, so they can reach you directly. Email is required, phone is optional.</div>
+    <div class="sam-text">${intro}</div>
     <div class="contact-form">
       <div class="contact-group">
         <div class="contact-label">Email address *</div>
@@ -1264,18 +1273,29 @@ function showSubmission(submission){
   const selectedPowerSeller=(sellState.powerSellerProfiles||[]).find(profile=>profile.id===sellState.selectedPowerSellerId);
   const destinationName=selectedPowerSeller?.displayName||option.name;
   const ref=submission?.reference||"Pending";
+  const isPS=!!selectedPowerSeller;
+  const psFirst=String(selectedPowerSeller?.displayName||destinationName||"").trim().split(/\s+/)[0];
   sellState.step=14;
   hideHero();
   const msgs=document.getElementById("msgs");
   const row=document.createElement("div");row.className="row sam";
+  // PowerSeller: a loop-closing "Sent." line (partner FIRST name + the email just entered
+  // + the single-destination reassurance), with the reference number demoted to a quiet
+  // line below. Platform: keep the existing card, only the unverified "within 24 hours"
+  // timeframe claim stripped (a fuller platform-confirmation rethink is a post-launch
+  // follow-up). No timeframe claim in either branch (no verified per-partner data).
+  const body=isPS
+    ? `<div class="sam-text">Sent. ${escapeHtml(psFirst)} will reach out to you directly at ${escapeHtml(sellState.email)}. That's the only place your details go.</div>
+       <div style="font-size:12.5px;color:#8C877C;margin-top:8px">Reference ${escapeHtml(ref)}</div>`
+    : `<div class="sam-text">We're submitting your ${escapeHtml(sellState.carName||"car")} to ${escapeHtml(destinationName)}. Here's your reference number.</div>
+       <div class="ref-card">
+         <div class="ref-label">Reference number</div>
+         <div class="ref-number">${escapeHtml(ref)}</div>
+         <div class="ref-detail">Your submission has been sent to ${escapeHtml(destinationName)}. They'll be in touch at ${escapeHtml(sellState.email)}. Keep this reference number handy.</div>
+       </div>`;
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
-    <div class="sam-text">We're submitting your ${escapeHtml(sellState.carName||"car")} to ${escapeHtml(destinationName)}. Here's your reference number.</div>
-    <div class="ref-card">
-      <div class="ref-label">Reference number</div>
-      <div class="ref-number">${ref}</div>
-      <div class="ref-detail">Your submission has been sent to ${escapeHtml(destinationName)}. They'll be in touch at ${escapeHtml(sellState.email)} within 24 hours. Keep this reference number handy.</div>
-    </div>
+    ${body}
     <div class="sam-text" style="margin-top:8px">Would you like to sell another car?</div>
     <div class="chips">
       <button class="chip" onclick="handleChip('Yes sell another car')">Yes, sell another car</button>

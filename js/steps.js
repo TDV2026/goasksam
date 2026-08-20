@@ -450,7 +450,7 @@ async function handleSellStep(q){
     if(/yes|another|sure|yeah/i.test(lower)){startSellFlow();}
     else{
       sellState.active=false;sellState.step=0;
-      addMsg("sam","You're all set. They'll be in touch within 24 hours. Feel free to browse what's live right now in the meantime.");
+      addMsg("sam","You're all set. Feel free to browse what's live right now in the meantime.");
       setTimeout(()=>{addMsg("sam","","",chipsHTML(["Browse live auctions","Find a Porsche","Show me weekend cars"]));},600);
     }
     return true;
