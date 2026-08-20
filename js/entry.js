@@ -48,7 +48,7 @@ function showRecommendationExplainer(){
   addMsg("sam","I start with recent market activity. If there is enough recent data, I use that. If the signal is too thin, I widen the window rather than pretending the answer is stronger than it is.\n\nThen I weigh your car, timing, location and how much of the sale you want to manage yourself. Sometimes that points straight to a platform. Sometimes I’d speak to a PowerSeller first. Either way, nobody is paying to be recommended and nothing gets sent until you approve it.","",chipsHTML(["Sell my car"]));
 }
 function newConversation(){
-  history.length=0;
+  chatHistory.length=0;
   resetSellState();
   if(window.__shownSessionStats)window.__shownSessionStats.clear();
   // The homepage shell owns the home state (hero + cards + focus + placeholder
@@ -188,7 +188,7 @@ async function send(){
         }
       }
       try{
-        const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[...history,{role:"user",content:q}],system:SELL_SYS,context:sellContext})});
+        const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[...chatHistory,{role:"user",content:q}],system:SELL_SYS,context:sellContext})});
         const data=await res.json();
         hideTyping();
         if(!res.ok||data.error||!data.text){
@@ -241,10 +241,10 @@ async function send(){
     }
   }
 
-  history.push({role:"user",content:q});
+  chatHistory.push({role:"user",content:q});
   showTyping();
   try{
-    const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:history,system:SYS})});
+    const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:chatHistory,system:SYS})});
     const data=await res.json();
     if(!res.ok||data.error||!data.text){
       console.error("chat layer failed",res.status,data.error||"empty text");
@@ -262,7 +262,7 @@ async function send(){
     if(parsed.clean)addMsg("sam",parsed.clean);
     if(parsed.chipsHTML)addMsg("sam","","",parsed.chipsHTML);
     document.getElementById("btn").disabled=false;
-    history.push({role:"assistant",content:raw});
+    chatHistory.push({role:"assistant",content:raw});
   }catch(e){
     hideTyping();addMsg("sam","Connection issue. Try again.");
     document.getElementById("btn").disabled=false;

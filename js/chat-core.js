@@ -15,7 +15,7 @@ NEVER GATHER VEHICLE DATA: you never ask for model, trim, mileage, options or sp
 OFF TOPIC: Warm redirect, vary wording, land on: what car are we selling?
 JOKES: Play along briefly, redirect to cars.`;
 
-const history=[];
+const chatHistory=[]; // NB: not window.history - named distinctly so it can't shadow the History API
 const API_ORIGIN=location.hostname==="localhost"||location.hostname==="127.0.0.1"||location.protocol==="file:"?"https://goasksam.vercel.app":"";
 
 function hideHero(){const h=document.getElementById("hero");if(h)h.remove();if(typeof enterChatState==="function")enterChatState();}
