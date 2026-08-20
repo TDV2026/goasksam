@@ -27,7 +27,7 @@ const ALL = {
  8:  { veh:"2022 Porsche 718 GTS", trim:"Not sure", body:"Boxster", state:"California", price:"90000", timing:"No rush", pref:"myself" },
  "9a":{ veh:"2022 Porsche 718 Spyder", trim:"Not sure", state:"California", price:"120000", timing:"No rush", pref:"myself" },
  "9b":{ veh:"2022 Porsche 718 GT4", trim:"Not sure", state:"California", price:"120000", timing:"No rush", pref:"myself" },
- 10: { veh:"2019 BMW M3", trim:"Not sure", state:"London", price:"55000", timing:"No rush", pref:"myself" },
+ 10: { veh:"2019 BMW M3", trim:"Not sure", state:"London", price:"55000", timing:"No rush", pref:"myself", expect:"nonus" },
  11: { veh:"1993 Mercedes-Benz 500 E", trim:"Not sure", state:"California", price:"60000", timing:"No rush", pref:"myself" },
  12: { veh:"1993 Mercedes-Benz 300 CE", trim:"Not sure", state:"Montana", price:"133000", timing:"No rush", pref:"notsure" },
  13: { veh:"1925 Duesenberg", trim:"Not sure", state:"California", price:"500000", timing:"No rush", pref:"notsure" },
@@ -35,7 +35,7 @@ const ALL = {
  15: { veh:"2018 Porsche 911 GT3", trim:"GT3", state:"California", price:"180000", timing:"No rush", pref:"handle" },
  16: { veh:"1972 Volkswagen Bus", trim:"Not sure", state:"Massachusetts", price:"60000", timing:"No rush", pref:"handle" },
  17: { veh:"2018 BMW M3", trim:"Not sure", state:"Florida", price:"60000", timing:"No rush", pref:"handle" },
- 18: { veh:"2021 Toyota Camry", trim:"Not sure", state:"Texas", price:"24000", timing:"No rush", pref:"myself" },
+ 18: { veh:"2021 Toyota Camry", trim:"Not sure", state:"Texas", price:"24000", timing:"No rush", pref:"myself", expect:"oos" },
  19: { veh:"2018 Mercedes-Benz E-Class", trim:"Skip", state:"California", price:"45000", timing:"No rush", pref:"myself" },
  20: { veh:"2017 Honda Accord", trim:"Not sure", state:"California", price:"18000", timing:"No rush", pref:"myself" },
 };
@@ -160,7 +160,7 @@ const range = process.env.RANGE || "";
 const uiKeys = pickRange();
 const runResolver = !range || /resolver|b8|b9/i.test(range);
 const runUi = !range || uiKeys.length > 0;
-let resolverFails = 0;
+let resolverFails = 0, uiFails = 0, uiPass = 0, uiTotal = 0;
 if (runResolver) resolverFails = await resolverChecks();
 
 if (runUi) {
@@ -176,15 +176,27 @@ if (runUi) {
       fs.writeFileSync(`${OUT}/${key}.json`, JSON.stringify({ key, scn, ...r, at: new Date().toISOString() }, null, 1));
       await page.screenshot({ path: `${OUT}/${key}.png`, fullPage: false });
       const e = r.es;
-      console.log(`  end: card=${e.card} oos=${e.oos} nonus=${e.nonus} gate=${e.gate} steps=${r.steps.length}`);
+      // Hard per-scenario assertion: the flow must reach its EXPECTED terminal state
+      // (default "card"; London -> "nonus", Camry -> "oos"). For the non-card edge
+      // cases we also require no card rendered, so a wrong card can't pass as "reached
+      // a terminal state". A thrown error (crash/hang) is a FAIL via the catch below.
+      const expect = scn.expect || "card";
+      const pass = e[expect] === true && (expect === "card" || e.card === false);
+      uiTotal++; if (pass) uiPass++; else uiFails++;
+      console.log(`  ${pass ? "PASS" : "FAIL"}  Scenario ${key}: expected ${expect} | got card=${e.card} oos=${e.oos} nonus=${e.nonus} gate=${e.gate} steps=${r.steps.length}`);
       console.log(`  steps: ${r.steps.map(s => s.action).join(" | ")}`);
-      console.log(`  RESULT(first 500): ${r.msgsText.replace(/\n+/g, " ").slice(-500)}`);
+      if (!pass) console.log(`  RESULT(last 500): ${r.msgsText.replace(/\n+/g, " ").slice(-500)}`);
     } catch (e) {
-      console.log(`  ERROR: ${e.message}`);
+      uiTotal++; uiFails++;
+      console.log(`  FAIL  Scenario ${key}: ERROR ${e.message}`);
       fs.writeFileSync(`${OUT}/${key}.json`, JSON.stringify({ key, scn, error: e.message }, null, 1));
     }
   }
   await browser.close();
 }
-console.log(resolverFails ? `\n${resolverFails} RESOLVER FAILURE(S)` : "\nDONE");
-process.exit(resolverFails ? 1 : 0);
+const totalFails = resolverFails + uiFails;
+console.log(`\n==== GOLDEN PATH SUMMARY ====`);
+if (runResolver) console.log(`Resolver: ${15 - resolverFails}/15 pass (${resolverFails} fail)`);
+if (runUi) console.log(`UI scenarios: ${uiPass}/${uiTotal} pass (${uiFails} fail)`);
+console.log(totalFails ? `\n${totalFails} TOTAL FAILURE(S)` : `\nALL PASS`);
+process.exit(totalFails ? 1 : 0);
