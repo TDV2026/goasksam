@@ -1854,7 +1854,7 @@ async function partnerVerifiedStats(partner, vehicle, estimatedValue, supabaseUr
   };
 }
 
-function partnerRegionCovered(partner, criteria) {
+export function partnerRegionCovered(partner, criteria) {
   const regions = (partner.regions || []).map(region => String(region).toLowerCase());
   if (!regions.length) return false;
   const sellerRegion = asText(criteria.region).toLowerCase();
@@ -1910,7 +1910,7 @@ export const rankPartnerCandidates = (a, b) => (Number(b.local) - Number(a.local
 // (not merely via "nationwide"). Locality lets a regional specialist outrank a
 // broad nationwide generalist for the same car, so all four partners function in
 // their own regions instead of the first nationwide row (howS) always winning.
-function partnerLocalState(partner, criteria) {
+export function partnerLocalState(partner, criteria) {
   const sellerState = asText(criteria.state).toLowerCase();
   if (!sellerState) return false;
   return (partner.regions || []).map(r => String(r).toLowerCase())

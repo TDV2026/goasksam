@@ -1,3 +1,14 @@
+// Shared continuation once the seller's state is resolved (from a direct answer OR a
+// confirmed city). Keeps the step-18 tail and the city-confirm path in lockstep.
+function continueAfterState(){
+  if(scopedEditActive("location"))return finishScopedEdit();
+  if(sellState.returnToConfirm){goBackToConfirm();return true;}
+  if(sellState.price){sellState.step=8;askPowerSellerStep();return true;}
+  sellState.step=6;
+  addMsg("sam",SELL_STEP_QUESTIONS[6].ask);
+  return true;
+}
+
 async function handleSellStep(q){
   // Self-correction suffixes are commentary, never content ("it is that car
   // my mistake" confirms the car; "my mistake" is not a car name and must
@@ -22,6 +33,30 @@ async function handleSellStep(q){
   if(/one second|one sec|give me a sec|just a sec|hold on|one moment|give me a moment|bear with me|hang on|^sec$|2 secs|two secs|two seconds|gimme a sec|back in a sec|just a moment|brb|be right back|bathroom|give me a minute|one minute|two minutes/i.test(lower)){
     addMsg("sam","No rush.");
     return true;
+  }
+
+  // City-confirmation reply ("Did you mean San Francisco, California?"). Locality is
+  // never auto-corrected: only an explicit yes stores the proposed state. A genuine
+  // off-script question still routes to chat (rule 12). Anything that reads like a new
+  // location (a state name, "portland maine") is re-resolved as a fresh state answer.
+  if(sellState.awaitingCityConfirm){
+    const cc=sellState.awaitingCityConfirm;
+    const intent=(typeof detectIntent==="function")?detectIntent(lower):null;
+    const yes=intent==="affirmation"||new RegExp("\\b"+cc.state.toLowerCase().replace(/[^a-z ]/g,"")+"\\b").test(lower)||/^(y|yes|yeah|yep|yup|correct|right|that'?s (it|right)|sure|ok(ay)?)\b/.test(lower);
+    if(yes){
+      sellState.awaitingCityConfirm=null;
+      sellState.state=cc.state;
+      if(typeof gasFunnel==="function")gasFunnel("city_confirm_yes");
+      return continueAfterState();
+    }
+    if(intent==="negation"||/^n(o|ope)?\b|somewhere else|different|not (that|it)|elsewhere/.test(lower)){
+      sellState.awaitingCityConfirm=null;
+      addMsg("sam","No problem. Which state is the car in? Type the state name, the two-letter code, or the ZIP.");
+      return true; // stays on step 18
+    }
+    if(typeof isQuestionInput==="function"&&isQuestionInput(q))return false; // off-script -> chat
+    // A new location typed instead of yes/no: clear and re-resolve below as a fresh answer.
+    sellState.awaitingCityConfirm=null;
   }
 
   const canApplyUpdate=/change|update|actually|wrong|mistake|make it|set it/i.test(lower)||sellState.step===16;
@@ -284,6 +319,15 @@ async function handleSellStep(q){
         addMsg("sam","Right now I work with US sales data, with the UK and Europe next on the list. If the car is in the States, tell me which state.");
         return true;
       }
+      // A curated city that needs confirmation (a fuzzy typo like "san fransisco", or
+      // an ambiguous name like "portland"): NEVER auto-correct locality silently.
+      // Surface a "Did you mean X, State?" confirm (make-typo pattern, rule 6). The
+      // awaitingCityConfirm interceptor at the top of handleSellStep handles the reply.
+      if(resolved.kind==="cityConfirm"){
+        sellState.awaitingCityConfirm={city:resolved.city,state:resolved.value};
+        addMsg("sam","Did you mean "+resolved.city+", "+resolved.value+"?","",chipsHTML(["Yes, "+resolved.value,"No, somewhere else"]));
+        return true;
+      }
       if(resolved.kind==="state"||resolved.kind==="skip"){
         sellState.state=resolved.kind==="skip"?"Not sure":resolved.value;
       }else{
@@ -297,12 +341,7 @@ async function handleSellStep(q){
       if(isQuestionInput(q)&&!/^skip$|not sure/i.test(lower))return false;
       sellState.state=/^(skip|not sure)$/i.test(lower)?"Not sure":(String(q||"").trim()||"Not sure");
     }
-    if(scopedEditActive("location"))return finishScopedEdit();
-    if(sellState.returnToConfirm){goBackToConfirm();return true;}
-    if(sellState.price){sellState.step=8;askPowerSellerStep();return true;}
-    sellState.step=6;
-    addMsg("sam",SELL_STEP_QUESTIONS[6].ask);
-    return true;
+    return continueAfterState();
   }
 
   // ── STEPS 2-9: all through the pipeline ─────────────────────

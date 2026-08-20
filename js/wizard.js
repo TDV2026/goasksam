@@ -1,7 +1,7 @@
 // Partner (PowerSeller) profiles come from the backend partners table via
 // decision.partnerReferral. Nothing partner-related is hardcoded here.
 
-const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,region:null,state:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,sellerPreference:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,vehicleDetailSkipped:false,vehicleIdentityValidated:false,pendingVehicleIdentity:null,resolvedVehicle:null,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[],allRouteOptions:[],powerSellerProfiles:[],selectedPowerSellerId:null,noEvidenceFallback:null,archiveModelCount:null,afterOutOfScope:false};
+const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,region:null,state:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,sellerPreference:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,awaitingCityConfirm:null,vehicleDetailSkipped:false,vehicleIdentityValidated:false,pendingVehicleIdentity:null,resolvedVehicle:null,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[],allRouteOptions:[],powerSellerProfiles:[],selectedPowerSellerId:null,noEvidenceFallback:null,archiveModelCount:null,afterOutOfScope:false};
 function resetSellState(){
   Object.keys(sellState).forEach(k=>sellState[k]=null);
   sellState.active=false;sellState.step=0;sellState.returnToConfirm=false;sellState.vehicleDetailSkipped=false;sellState.vehicleIdentityValidated=false;sellState.pendingVehicleIdentity=null;sellState.sellOptions=[];sellState.allRouteOptions=[];sellState.powerSellerProfiles=[];sellState.noEvidenceFallback=null;
@@ -278,6 +278,104 @@ const US_STATE_NICKNAMES={
   jersey:"New Jersey",tenn:"Tennessee",fla:"Florida","the district":"Washington, DC"
 };
 
+// Curated major-US-cities -> state (small/stable/curated, same principle as
+// MODEL_ALIASES and the platform allowlist). Prioritized around actual partner
+// territories, not raw population. Keys are lowercase and period-free (the resolver
+// strips periods before lookup). A city resolves to its STATE so a region-only
+// specialist (e.g. Ingo on "California") matches without depending on a brittle
+// label substring. Value is the DEFAULT state; ambiguous names (below) always
+// confirm even when spelled correctly, so nothing is silently miscategorized.
+const CITY_TO_STATE={
+  // California (the Ingo/Bay-Area fix)
+  "san francisco":"California","oakland":"California","san jose":"California","berkeley":"California",
+  "palo alto":"California","mountain view":"California","sunnyvale":"California","santa clara":"California",
+  "fremont":"California","redwood city":"California","san mateo":"California","hayward":"California",
+  "richmond":"California","san rafael":"California","sausalito":"California","walnut creek":"California",
+  "concord":"California","napa":"California","sonoma":"California","monterey":"California","carmel":"California",
+  "santa barbara":"California","ventura":"California","los angeles":"California","long beach":"California",
+  "anaheim":"California","santa ana":"California","irvine":"California","pasadena":"California","glendale":"California",
+  "burbank":"California","santa monica":"California","beverly hills":"California","malibu":"California",
+  "san diego":"California","sacramento":"California","fresno":"California","bakersfield":"California",
+  "riverside":"California","stockton":"California","modesto":"California",
+  // Colorado + Mountain West (Spencer)
+  "denver":"Colorado","aurora":"Colorado","boulder":"Colorado","colorado springs":"Colorado","fort collins":"Colorado",
+  "lakewood":"Colorado","golden":"Colorado","littleton":"Colorado","pueblo":"Colorado","greeley":"Colorado",
+  "salt lake city":"Utah","provo":"Utah","park city":"Utah","boise":"Idaho","cheyenne":"Wyoming","jackson":"Mississippi",
+  "albuquerque":"New Mexico","santa fe":"New Mexico","phoenix":"Arizona","scottsdale":"Arizona","tucson":"Arizona",
+  "las vegas":"Nevada","reno":"Nevada",
+  // Northeast (Howard)
+  "philadelphia":"Pennsylvania","pittsburgh":"Pennsylvania","allentown":"Pennsylvania","harrisburg":"Pennsylvania",
+  "lancaster":"Pennsylvania","king of prussia":"Pennsylvania","scranton":"Pennsylvania","new york city":"New York",
+  "brooklyn":"New York","queens":"New York","bronx":"New York","staten island":"New York","buffalo":"New York",
+  "rochester":"New York","albany":"New York","syracuse":"New York","yonkers":"New York","newark":"New Jersey",
+  "jersey city":"New Jersey","trenton":"New Jersey","princeton":"New Jersey","atlantic city":"New Jersey",
+  // New England (Dan)
+  "boston":"Massachusetts","cambridge":"Massachusetts","worcester":"Massachusetts","springfield":"Massachusetts",
+  "lowell":"Massachusetts","providence":"Rhode Island","newport":"Rhode Island","hartford":"Connecticut",
+  "new haven":"Connecticut","stamford":"Connecticut","bridgeport":"Connecticut","portland":"Oregon",
+  "manchester":"New Hampshire","nashua":"New Hampshire","burlington":"Vermont",
+  // South / Gulf / Texas / Florida (Chris)
+  "new orleans":"Louisiana","baton rouge":"Louisiana","shreveport":"Louisiana","lafayette":"Louisiana",
+  "metairie":"Louisiana","gulfport":"Mississippi","biloxi":"Mississippi","birmingham":"Alabama",
+  "montgomery":"Alabama","huntsville":"Alabama","mobile":"Alabama","tuscaloosa":"Alabama","atlanta":"Georgia",
+  "savannah":"Georgia","augusta":"Georgia","macon":"Georgia","houston":"Texas","dallas":"Texas","fort worth":"Texas",
+  "austin":"Texas","san antonio":"Texas","el paso":"Texas","arlington":"Texas","plano":"Texas","miami":"Florida",
+  "fort lauderdale":"Florida","west palm beach":"Florida","boca raton":"Florida","naples":"Florida","orlando":"Florida",
+  "tampa":"Florida","st petersburg":"Florida","jacksonville":"Florida","sarasota":"Florida",
+  // Pacific NW / Midwest / Mid-Atlantic / other (general coverage)
+  "seattle":"Washington","tacoma":"Washington","bellevue":"Washington","spokane":"Washington","eugene":"Oregon",
+  "chicago":"Illinois","naperville":"Illinois","detroit":"Michigan","ann arbor":"Michigan","grand rapids":"Michigan",
+  "cleveland":"Ohio","columbus":"Ohio","cincinnati":"Ohio","indianapolis":"Indiana","milwaukee":"Wisconsin",
+  "minneapolis":"Minnesota","st paul":"Minnesota","st louis":"Missouri","kansas city":"Missouri","omaha":"Nebraska",
+  "des moines":"Iowa","wichita":"Kansas","oklahoma city":"Oklahoma","tulsa":"Oklahoma","nashville":"Tennessee",
+  "memphis":"Tennessee","knoxville":"Tennessee","louisville":"Kentucky","charlotte":"North Carolina",
+  "raleigh":"North Carolina","durham":"North Carolina","greensboro":"North Carolina","charleston":"South Carolina",
+  "columbia":"South Carolina","virginia beach":"Virginia","norfolk":"Virginia","baltimore":"Maryland",
+  "honolulu":"Hawaii","anchorage":"Alaska"
+};
+// Names that mean different states in different regions: map to the largest metro as
+// the DEFAULT, but always confirm (even on an exact spelling) so a Portland-ME seller
+// is never silently sent to Oregon. (Richmond is CA here for the Bay Area; Richmond VA
+// sellers type "Virginia"/"VA"/a ZIP, all resolved before the city map.)
+const CITY_AMBIGUOUS=new Set(["portland","springfield","jackson","aurora","columbus","kansas city","charleston","columbia"]);
+function titleCaseCity(s){ return String(s||"").split(" ").map(function(w){return w?w.charAt(0).toUpperCase()+w.slice(1):w;}).join(" "); }
+// Bounded Levenshtein (early-exit at max+1); used for TIGHT typo tolerance only.
+function levenshtein(a,b,max){
+  a=String(a);b=String(b); if(Math.abs(a.length-b.length)>max)return max+1;
+  var prev=[],cur=[],i,j; for(j=0;j<=b.length;j++)prev[j]=j;
+  for(i=1;i<=a.length;i++){ cur[0]=i; var best=cur[0];
+    for(j=1;j<=b.length;j++){ var cost=a.charAt(i-1)===b.charAt(j-1)?0:1;
+      cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+cost); if(cur[j]<best)best=cur[j]; }
+    if(best>max)return max+1; for(j=0;j<=b.length;j++)prev[j]=cur[j]; }
+  return prev[b.length];
+}
+// City -> {kind:"state"} (exact, unambiguous), {kind:"cityConfirm"} (fuzzy typo, OR an
+// exact-but-ambiguous name), or null. Fuzzy tolerance is tight: distance <=1 for short
+// names (<6 chars), <=2 otherwise; too far off falls through (never a wild guess).
+function resolveCityInput(lower){
+  // "{city} {state}" / "{city}, {state}": an explicit trailing state name/code wins
+  // over the city default (e.g. "portland maine" -> Maine, "kansas city kansas" -> KS).
+  var words=lower.replace(/,/g," ").split(/\s+/).filter(Boolean);
+  for(var take=Math.min(3,words.length-1);take>=1;take--){
+    if(!words.slice(0,words.length-take).length)continue;
+    var tail=words.slice(words.length-take).join(" ");
+    var ts=US_STATE_NICKNAMES[tail]||normalizeUSState(tail);
+    if(ts)return {kind:"state",value:ts};
+  }
+  var exact=CITY_TO_STATE[lower];
+  if(exact)return CITY_AMBIGUOUS.has(lower)
+    ? {kind:"cityConfirm",value:exact,city:titleCaseCity(lower)}
+    : {kind:"state",value:exact};
+  // Fuzzy: nearest curated city within the tight bound.
+  var best=null,bestD=99;
+  for(var key in CITY_TO_STATE){
+    var bound=key.length<6?1:2; if(Math.abs(key.length-lower.length)>bound)continue;
+    var d=levenshtein(lower,key,bound); if(d<=bound&&d<bestD){bestD=d;best=key;}
+  }
+  if(best)return {kind:"cityConfirm",value:CITY_TO_STATE[best],city:titleCaseCity(best)};
+  return null;
+}
+
 // Compact ZIP 3-digit-prefix ranges -> state. Covers every state; unknown
 // prefixes fall through (the caller accepts the ZIP and advances anyway).
 const ZIP_PREFIX_RANGES=[
@@ -326,6 +424,10 @@ function resolveStateInput(q){
     const s=US_STATE_NICKNAMES[key]||normalizeUSState(key);
     if(s)return {kind:"state",value:s};
   }
+  // Curated city -> state (exact silent, fuzzy/ambiguous confirm). Last, so state
+  // names/codes/ZIPs/nicknames still win outright.
+  const city=resolveCityInput(lower);
+  if(city)return city;
   return {kind:"unknown"};
 }
 
