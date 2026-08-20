@@ -10,6 +10,7 @@ const AUTH_CONSENT_KEY = "gas_pending_consent";  // survives the sign-in redirec
 let __authConfig = null, __authConfigPromise = null;
 let __authAccount = null;      // { email, tier, marketingConsent } once ensured
 let __authPrefillEmail = "";
+let __authOtpEmail = "";        // the email a 6-digit code was sent to (for verify + resend)
 
 function authApiPath(p) { return (typeof apiPath === "function") ? apiPath(p) : p; }
 function authEsc(s) { return (typeof escapeHtml === "function") ? escapeHtml(String(s == null ? "" : s)) : String(s == null ? "" : s); }
@@ -64,18 +65,50 @@ async function authSignInGoogle() {
 }
 async function authSignInEmail() {
   const cfg = await authConfig(); if (!cfg) return authCardError("Sign-in isn't configured yet. Try again shortly.");
+  // Email OR the stashed code-email (so "Resend" works from the code screen where the
+  // email field no longer exists).
   const field = document.getElementById("auth-email");
-  const email = String(field && field.value || "").trim();
+  const email = String((field && field.value) || __authOtpEmail || "").trim();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { authCardError("That doesn't look like an email. Mind checking it?"); return; }
-  authStashConsent(authReadConsentCheckbox());
+  // Only (re)stash consent when the checkbox is on screen, so a Resend from the code
+  // screen doesn't clear a previously-ticked consent.
+  const consentEl = document.getElementById("auth-consent");
+  if (consentEl) authStashConsent(!!consentEl.checked);
+  __authOtpEmail = email;
   try {
+    // Code-only OTP (no magic link): the email template renders {{ .Token }}, a 6-digit
+    // code, so an email-scanner GET can't consume a link before the real user acts.
     const res = await fetch(`${cfg.supabaseUrl}/auth/v1/otp`, {
       method: "POST", headers: { "Content-Type": "application/json", apikey: cfg.anonKey },
-      body: JSON.stringify({ email, options: { email_redirect_to: location.origin + location.pathname } })
+      body: JSON.stringify({ email })
     });
-    if (!res.ok) { authCardError("I couldn't send the link just now. Try again in a moment."); return; }
+    if (!res.ok) { authCardError("I couldn't send the code just now. Try again in a moment."); return; }
     authRenderCheckEmail(email);
-  } catch (e) { authCardError("I couldn't send the link just now. Try again in a moment."); }
+  } catch (e) { authCardError("I couldn't send the code just now. Try again in a moment."); }
+}
+// Verify the 6-digit code and finalize the session (mirrors authBoot's post-login steps).
+async function authVerifyCode() {
+  const cfg = await authConfig(); if (!cfg) return authCardError("Sign-in isn't configured yet. Try again shortly.");
+  const codeField = document.getElementById("auth-code");
+  const code = String((codeField && codeField.value) || "").replace(/\s+/g, "").trim();
+  if (!/^\d{6}$/.test(code)) { authCardError("Enter the 6-digit code from your email."); return; }
+  const email = String(__authOtpEmail || "").trim();
+  if (!email) { authCardError("Something went wrong. Close this and sign in again."); return; }
+  try {
+    const res = await fetch(`${cfg.supabaseUrl}/auth/v1/verify`, {
+      method: "POST", headers: { "Content-Type": "application/json", apikey: cfg.anonKey },
+      body: JSON.stringify({ type: "email", email, token: code })
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok || !j.access_token) { authCardError("That code didn't work. Double-check it, or resend a new one."); return; }
+    const now = Math.floor(Date.now() / 1000);
+    authSetSession({ access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || (now + (j.expires_in || 3600)), email: (j.user && j.user.email) || email });
+    authRenderTopbar();
+    await authEnsureAccount();
+    authRenderTopbar();
+    authCloseModal();
+    if (typeof gateResumePendingSearch === "function") gateResumePendingSearch();
+  } catch (e) { authCardError("I couldn't verify that code just now. Try again in a moment."); }
 }
 async function authSignOut() {
   const cfg = await authConfig(); const s = authGetSession();
@@ -171,12 +204,12 @@ function openSignInCard(subtitle) {
     <p>${authEsc(subtitle || "Create a free account to run more searches and keep your results.")}</p>
     <button class="auth-google" onclick="authSignInGoogle()">Continue with Google</button>
     <div class="auth-or"><span>or</span></div>
-    <label class="auth-label" for="auth-email">Email me a magic link</label>
+    <label class="auth-label" for="auth-email">Email me a sign-in code</label>
     <input id="auth-email" class="auth-input" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" value="${prefill}" />
-    <button class="auth-email-btn" onclick="authSignInEmail()">Email me a link</button>
+    <button class="auth-email-btn" onclick="authSignInEmail()">Email me a code</button>
     <label class="auth-consent-row"><input id="auth-consent" type="checkbox" /> <span>Send me Sam's market notes</span></label>
     <div id="auth-error" class="auth-error" style="display:none"></div>
-    <div class="auth-fineprint">No passwords. We email you a one-time link. Marketing notes only if you tick the box.</div>
+    <div class="auth-fineprint">No passwords. We email you a one-time 6-digit code. Marketing notes only if you tick the box.</div>
   </div>`;
   document.body.appendChild(scrim);
   const f = document.getElementById("auth-email"); if (f && !prefill) { try { f.focus(); } catch (e) {} }
@@ -185,8 +218,13 @@ function authRenderCheckEmail(email) {
   const d = document.querySelector("#auth-modal .auth-dialog");
   if (!d) return;
   d.innerHTML = `<h3>Check your email</h3>
-    <p>I sent a sign-in link to <strong>${authEsc(email)}</strong>. Click it and you're in. You can close this.</p>
-    <button class="auth-email-btn" onclick="authCloseModal()">Done</button>`;
+    <p>I sent a 6-digit code to <strong>${authEsc(email)}</strong>. Enter it below and you're in.</p>
+    <input id="auth-code" class="auth-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" aria-label="6-digit code" />
+    <div id="auth-error" class="auth-error" style="display:none"></div>
+    <button class="auth-email-btn" onclick="authVerifyCode()">Verify and sign in</button>
+    <button onclick="authSignInEmail()" style="margin-top:10px;background:none;border:none;color:#6B6861;font-size:13px;cursor:pointer;text-decoration:underline">Resend code</button>`;
+  const f = document.getElementById("auth-code");
+  if (f) { try { f.focus(); } catch (e) {} f.addEventListener("keydown", e => { if (e.key === "Enter") authVerifyCode(); }); }
 }
 // Topbar: signed-out shows "Sign in"; signed-in shows the email + Sign out.
 function authRenderTopbar() {
