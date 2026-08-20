@@ -673,8 +673,13 @@ async function handleOps(req, res) {
       { partner: "Howard Silvers", handles: ["howS", "bruce_m"] },
       { partner: "Ingo Schmoldt", handles: ["GenauAutoWerks"] },
       { partner: "Dan Gray", handles: ["AuthenticAuctions"] },
-      { partner: "Chris Carbine", handles: ["carbine123"] }
+      { partner: "Chris Carbine", handles: ["carbine123"] },
+      { partner: "Spencer Bailey", handles: ["SpecWerksLTD"] }
     ];
+    // ?only=<handle> fetches a SINGLE partner (bounded spend, e.g. one new partner's
+    // history), instead of re-paging the whole roster. Case-insensitive handle match.
+    const only = req.query?.only ? String(req.query.only).toLowerCase() : null;
+    const activeRoster = only ? roster.filter(e => e.handles.some(h => h.toLowerCase() === only)) : roster;
     const maxPages = Math.max(1, Math.min(30, Number(req.query?.pages || 15)));
     const sellerLc = r => String(r.seller_username || "").toLowerCase();
     let metered = 0;
@@ -689,7 +694,7 @@ async function handleOps(req, res) {
       return Object.keys(c).sort((a, b) => c[b] - c[a])[0] || handle;
     }
     const modelSet = new Map(); const summary = []; let totalPersisted = 0;
-    for (const entry of roster) {
+    for (const entry of activeRoster) {
       let partnerRecords = 0; const handleInfo = [];
       for (const h of entry.handles) {
         if (budgetLeft !== Infinity && metered >= budgetLeft) { handleInfo.push({ handle: h, note: "budget_reached" }); continue; }

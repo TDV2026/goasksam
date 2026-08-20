@@ -1880,6 +1880,32 @@ function partnerSegmentMatch(partner, vehicle, priorities) {
   return priorities.segments.some(segment => segments.includes(segment));
 }
 
+// Spencer-specific PREWAR VETO (Option B, Aug 2026). Spencer's one stated blind spot
+// is prewar cars. The shared segment vocabulary has no year floor (older_enthusiast /
+// pre_1990 bucket a 1935 car identically to a 1985 one) and partnerMarqueMatch is
+// year-agnostic, so his 80s/90s segments and German marques would otherwise match a
+// prewar BMW/Mercedes. This veto removes ONLY Spencer from the candidate pool for a
+// prewar vehicle, so such a car routes to Dan (who covers prewar) or elsewhere with no
+// false-match or tie. It is gated on his slug, so it returns false for every other
+// partner and can never alter Howard/Ingo/Dan/Chris matching. Deliberately NOT the
+// shared era-floor change (parked as a post-launch improvement). Tunable via the
+// constant; <= PREWAR_MAX_YEAR is prewar.
+const SPENCER_SLUG = "specwerks-ltd";
+const PREWAR_MAX_YEAR = 1945;
+export function partnerPrewarVetoed(partner, vehicle) {
+  if (String(partner?.slug || "") !== SPENCER_SLUG) return false;
+  const year = Number(vehicle?.year);
+  return Number.isFinite(year) && year > 0 && year <= PREWAR_MAX_YEAR;
+}
+
+// Pure candidate comparator (hoisted + exported so the veto/routing invariants are
+// unit-testable against the REAL ranking, not a copy). Order: local state > marque
+// match > segment fit > tighter regional focus (fewer regions) > stable table order.
+export const rankPartnerCandidates = (a, b) => (Number(b.local) - Number(a.local))
+  || (Number(b.marqueMet) - Number(a.marqueMet))
+  || (Number(b.segmentMet) - Number(a.segmentMet))
+  || (a.regionCount - b.regionCount);
+
 // A partner is LOCAL to the seller when they explicitly list the seller's state
 // (not merely via "nationwide"). Locality lets a regional specialist outrank a
 // broad nationwide generalist for the same car, so all four partners function in
@@ -1929,14 +1955,19 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
   // Rank every partner, then pick, so a local specialist beats a broad nationwide
   // generalist for the same car. Order: local state > segment fit > tighter
   // regional focus (fewer regions) > stable table order.
-  const cands = partners.map(partner => ({
-    partner,
-    marqueMet: partnerMarqueMatch(partner, vehicle),
-    segmentMet: partnerSegmentMatch(partner, vehicle, priorities),
-    regionMet: partnerRegionCovered(partner, criteria),
-    local: partnerLocalState(partner, criteria),
-    regionCount: (partner.regions || []).length
-  }));
+  // Prewar veto filter (Option B): removes ONLY Spencer, and ONLY for a prewar
+  // vehicle. For any other car it is a no-op (the filter keeps everyone), and for
+  // every non-Spencer partner it is always a no-op, so the other four are untouched.
+  const cands = partners
+    .filter(partner => !partnerPrewarVetoed(partner, vehicle))
+    .map(partner => ({
+      partner,
+      marqueMet: partnerMarqueMatch(partner, vehicle),
+      segmentMet: partnerSegmentMatch(partner, vehicle, priorities),
+      regionMet: partnerRegionCovered(partner, criteria),
+      local: partnerLocalState(partner, criteria),
+      regionCount: (partner.regions || []).length
+    }));
   const anySegment = cands.some(c => c.segmentMet);
   const anyRegion = cands.some(c => c.regionMet);
   // Marque-aware ranking (Aug 2026): a partner who lists the car's actual marque
@@ -1944,10 +1975,7 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
   // marque match > segment fit > tighter regional focus > stable table order. This
   // is why a nationwide Audi specialist (Dan) wins the Audi over a South-region
   // generalist (Chris) whose only tie was the classic_european segment.
-  const rankPartner = (a, b) => (Number(b.local) - Number(a.local))
-    || (Number(b.marqueMet) - Number(a.marqueMet))
-    || (Number(b.segmentMet) - Number(a.segmentMet))
-    || (a.regionCount - b.regionCount);
+  const rankPartner = rankPartnerCandidates;
   const matchedCand = cands.filter(c => c.segmentMet && c.regionMet).sort(rankPartner)[0] || null;
   let matched = matchedCand ? matchedCand.partner : null;
   // A partner whose specialization does not list the searched make needs
