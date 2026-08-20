@@ -108,8 +108,11 @@ export default async function handler(req, res) {
     } catch (e) { /* attribution best-effort */ }
     // Lift the curtain for a verified active subscriber, then hand the tokens to the app.
     res.setHeader("Set-Cookie", `gas_tester=ok; Max-Age=${60 * 60 * 24 * 120}; Path=/; SameSite=Lax; Secure`);
+    // Redirect to the CANONICAL /sell path directly (not /), so the browser doesn't take
+    // the vercel.json / -> /sell hop, which would carry the token fragment past the auth
+    // callback's scrub and leave tokens in the URL. This matches the OAuth/magic-link path.
     const frag = `access_token=${encodeURIComponent(session.access_token)}&refresh_token=${encodeURIComponent(session.refresh_token)}&expires_at=${encodeURIComponent(session.expires_at)}&via=beehiiv`;
-    res.setHeader("Location", `/#${frag}`);
+    res.setHeader("Location", `/sell#${frag}`);
     res.status(302).end();
     return;
   }
