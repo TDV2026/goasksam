@@ -147,7 +147,7 @@ function authScrubPrefill() {
   try {
     const u = new URL(location.href);
     const pre = u.searchParams.get("email");
-    if (pre) { __authPrefillEmail = pre; u.searchParams.delete("email"); history.replaceState(null, "", u.pathname + (u.search || "") + (u.hash || "")); }
+    if (pre) { __authPrefillEmail = pre; u.searchParams.delete("email"); window.history.replaceState(null, "", u.pathname + (u.search || "") + (u.hash || "")); }
   } catch (e) {}
 }
 function authHandleCallback() {
@@ -160,7 +160,9 @@ function authHandleCallback() {
     const expires_at = Number(h.get("expires_at")) || (Math.floor(Date.now() / 1000) + Number(h.get("expires_in") || 3600));
     const via = h.get("via"); // "beehiiv" for a TDV link-minted session (distinct attribution)
     authSetSession({ access_token, refresh_token, expires_at });
-    history.replaceState(null, "", location.pathname + location.search); // scrub the hash (tokens + via)
+    // NB: use window.history explicitly - js/chat-core.js declares `const history=[]`
+    // (the chat array), which shadows the global History API in the concatenated bundle.
+    window.history.replaceState(null, "", location.pathname + location.search); // scrub tokens + via
     if (via === "beehiiv" && typeof gasFunnel === "function") { try { gasFunnel("beehiiv_link_signin"); } catch (e) {} }
     return true;
   } catch (e) { return false; }
