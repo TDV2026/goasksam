@@ -11,6 +11,7 @@ import { recordUsageEvent } from "./_usage.js";
 import { journeyManualUpdate } from "../lib/_journey.js";
 import { runDepthProbe, LAUNCH_SOURCES } from "../lib/ops/depthProbe.js";
 import { runFillBatch } from "../lib/ops/fillLadder.js";
+import { beehiivBySubscriberId } from "../lib/_beehiiv.js";
 
 function adminEsc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 const adminDayKey = ts => new Date(ts).toISOString().slice(0, 10);
@@ -1169,7 +1170,21 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
+  // task=beehiivprobe: read-only diagnostic for the bhs-only auto-signin. Looks a
+  // subscription up by its ID (the merge-tag value) via /subscriptions/{id} and reports
+  // whether it resolves + is active, WITHOUT minting any session. Email is masked (PII).
+  // Confirms Beehiiv's bhs tag is a subscription id (not a global subscriber id) before
+  // the real handler is built.
+  if (task === "beehiivprobe") {
+    const bhs = String(req.query?.bhs || "").trim();
+    if (!bhs) return res.status(400).json({ task: "beehiivprobe", error: "pass ?bhs=<subscriber_id>" });
+    const r = await beehiivBySubscriberId(bhs);
+    let emailMasked = null;
+    if (r.email) { const [u, d] = r.email.split("@"); emailMasked = (u ? u[0] : "") + "***@" + (d || ""); }
+    return res.status(200).json({ task: "beehiivprobe", bhsPrefix: bhs.slice(0, 8) + (bhs.length > 8 ? "..." : ""), result: { ...r, email: emailMasked } });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|beehiivprobe." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
