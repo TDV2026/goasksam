@@ -133,12 +133,23 @@ check("M3 tradeoffs: effort + control + presentation framing", /hands on/.test(t
 check("M3 tradeoffs: NO fee talk, NO price claims (re-voice)", psClean(tradeoffs).ok, psClean(tradeoffs).detail);
 check("M3 tradeoffs: closes on the exact locked line", /Well presented listings, with great photography, videos, descriptions, and importantly great answers to all questions can have a significant impact on a listing\. A good PowerSeller often knows exactly what's worth fixing before you list, and what isn't, which can matter as much as the platform itself\. That's why I highly recommend the right PowerSeller for the right listing\.$/.test(tradeoffs), tradeoffs.slice(-160));
 
-// "how I'd run the listing" -> quotes Monday at the card's 15%, scope M3s, lint-clean.
+// "how I'd run the listing" FOLLOWS THE LEAD (Aug 2026 fix): PS-led here (Ingo leads),
+// so it describes how Ingo runs it, NOT a pivot to the DIY platform path. (Previously it
+// hardcoded the self-managed answer even when a PowerSeller was the recommendation.)
 check("intent: 'how would you run the listing' -> runlisting", v2FollowupIntent("how would you run the listing")==="runlisting");
 const runListing=v2ComposeRunListing()||"";
-check("M3 run-listing: lists on Bring a Trailer", /I would list your .*Bring a Trailer/.test(runListing), runListing.slice(0,120));
-check("M3 run-listing: quotes Monday at the card's 15% (not 17), scope M3s", /M3s have closed strongest on Mondays, 15% above other days/.test(runListing)&&!/17%/.test(runListing), runListing);
-check("M3 run-listing: lint-clean (no hedge/dash/dollar)", cleanC(runListing).ok, cleanC(runListing).detail);
+check("M3 run-listing (PS-led): follows Ingo (the lead), BaT as where he lists, not a DIY pivot", /I'd have Ingo run it\./.test(runListing)&&/Bring a Trailer/.test(runListing)&&!/^I would list your/.test(runListing), runListing.slice(0,140));
+check("M3 run-listing (PS-led): lint-clean (no hedge/dash/dollar)", cleanC(runListing).ok, cleanC(runListing).detail);
+// DIY context: the SELF-MANAGED answer still quotes the card's weekday fact (Monday 15%,
+// scope M3s) - the platform-led path is unchanged by the fix.
+{
+  const savedPref=globalThis.sellState.sellerPreference;
+  Object.assign(globalThis.sellState,{sellerPreference:"diy"});
+  const diyRunListing=v2ComposeRunListing()||"";
+  check("M3 run-listing (DIY): self-managed on BaT, quotes Monday at 15% (not 17), scope M3s", /I would list your .*Bring a Trailer/.test(diyRunListing)&&/M3s have closed strongest on Mondays, 15% above other days/.test(diyRunListing)&&!/17%/.test(diyRunListing), diyRunListing.slice(0,180));
+  check("M3 run-listing (DIY): lint-clean", cleanC(diyRunListing).ok, cleanC(diyRunListing).detail);
+  Object.assign(globalThis.sellState,{sellerPreference:savedPref});
+}
 
 // "what do you recommend" (3rd composer) -> PS-led = the PowerSeller.
 check("intent: 'what do you recommend' -> recommend", v2FollowupIntent("what do you recommend")==="recommend");

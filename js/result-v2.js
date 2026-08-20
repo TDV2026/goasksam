@@ -867,6 +867,16 @@ function v2ComposeRunListing(){
     var f=v2PickFacts(c.pick); if(!f)return null;
     var v=sellState.resolvedVehicle||(sellState.sellDecision&&sellState.sellDecision.vehicle)||{};
     var carLabel=v2CarDisplay(v);
+    // PowerSeller-LED: when the leading recommendation is the PowerSeller and the
+    // question names no platform/path ("how would you run it"), it means how HE would
+    // run it - follow the recommendation, do NOT silently pivot to the DIY platform
+    // path. Affirm the partner and describe the full-service work; the platform is
+    // where he would list it. Service framing ONLY (locked): no fee, no price/outcome
+    // claims. Platform-led (incl. a stated DIY preference) keeps the self-managed answer.
+    if(c.psLead&&c.referral&&c.referral.partner){
+      var first=(typeof psvFirst==="function")?psvFirst(c.referral.partner):(c.referral.partner.displayName||c.referral.partner.name||"the PowerSeller");
+      return "I'd have "+first+" run it. He assesses the car and takes care of any prep that's genuinely worth doing, photographs it himself, writes the listing, handles the buyer questions and manages the auction from start to finish. He'd most likely list your "+carLabel+" on "+f.platform+", so your side of it stays light.";
+    }
     var parts=["I would list your "+carLabel+" on "+f.platform+"."];
     if(f.weekday&&f.weekday.pct!=null)parts.push("If your timing is flexible, "+f.weekday.scope+" have closed strongest on "+f.weekday.day+"s, "+f.weekday.pct+"% above other days.");
     else if(f.weekday)parts.push("If your timing is flexible, "+f.weekday.scope+" have tended to close strongest on "+f.weekday.day+"s.");

@@ -84,6 +84,16 @@ await card.screenshot({ path: `${OUT}/spencer-card.png` });
 await page.screenshot({ path: `${OUT}/spencer-fullpage.png`, fullPage: true });
 console.log(`\nscreenshots -> ${OUT}/spencer-card.png , ${OUT}/spencer-fullpage.png`);
 
+// Post-result chat: "how would u run it" (no path named) must FOLLOW the lead (Spencer),
+// not pivot to the DIY platform path. This is a local composer (v2ComposeRunListing), so
+// it spends ZERO OldCarsData - no fresh search. (Aug 2026 regression.)
+await page.evaluate(() => { const i = document.getElementById("inp"); i.value = "how would u run it"; });
+await page.click("#btn");
+await sleep(3000);
+const chatReply = await page.evaluate(() => { const r = [...document.querySelectorAll(".row.sam")]; const e = r[r.length - 1]; return e ? e.textContent.replace(/\s+/g, " ").trim() : ""; });
+console.log("\nCHAT 'how would u run it' ->", chatReply.slice(0, 200));
+ok(/spencer/i.test(chatReply) && /run it/i.test(chatReply) && !/^I would list your/.test(chatReply), "chat: 'how would u run it' follows Spencer (the lead), not a DIY platform pivot");
+
 await browser.close();
 console.log(fails === 0 ? "\nSPENCER DEPLOYED-PAGE CHECK: ALL PASS" : `\n${fails} FAILURES`);
 process.exit(fails ? 1 : 0);

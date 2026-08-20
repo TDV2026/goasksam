@@ -28,7 +28,7 @@ globalThis.localStorage={getItem:()=>null,setItem:noop,removeItem:noop};
 globalThis.fetch=async()=>({ok:true,json:async()=>({})});
 const html=fs.readFileSync("index.html","utf8");
 const files=[...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"js/"+m[1]);
-(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.v2Because=v2Because;globalThis.v2Why=v2Why;globalThis.v2Weekday=v2Weekday;globalThis.v2Reserve=v2Reserve;globalThis.v2Audience=v2Audience;globalThis.v2ScopePlural=v2ScopePlural;globalThis.v2RungRef=v2RungRef;globalThis.v2FailedRungRef=v2FailedRungRef;globalThis.v2RungNoun=v2RungNoun;globalThis.CLAUSE_A=CLAUSE_A;globalThis.CLAUSE_B=CLAUSE_B;globalThis.CLAUSE_C=CLAUSE_C;globalThis.v2WindowLabel=v2WindowLabel;globalThis.psvReasonNote=psvReasonNote;globalThis.psvPara=psvPara;globalThis.psvWhyBullets=psvWhyBullets;globalThis.psvValueLine=psvValueLine;globalThis.psvPoss=psvPoss;globalThis.psvIntro=psvIntro;globalThis.psvSpecTile=psvSpecTile;globalThis.psvClaim=psvClaim;globalThis.psvWheelhouse=psvWheelhouse;globalThis.psvWheelhouseList=psvWheelhouseList;globalThis.psvPron=psvPron;globalThis.psvTrustLines=psvTrustLines;globalThis.v2CarDisplay=v2CarDisplay;globalThis.v2ScopeAttr=v2ScopeAttr;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.renderPickCardV2=renderPickCardV2;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2SpeedWhy=typeof v2SpeedWhy==='function'?v2SpeedWhy:function(){return '';};globalThis.v2Composition=typeof v2Composition==='function'?v2Composition:function(){return null};");
+(0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.v2Because=v2Because;globalThis.v2Why=v2Why;globalThis.v2Weekday=v2Weekday;globalThis.v2Reserve=v2Reserve;globalThis.v2Audience=v2Audience;globalThis.v2ScopePlural=v2ScopePlural;globalThis.v2RungRef=v2RungRef;globalThis.v2FailedRungRef=v2FailedRungRef;globalThis.v2RungNoun=v2RungNoun;globalThis.CLAUSE_A=CLAUSE_A;globalThis.CLAUSE_B=CLAUSE_B;globalThis.CLAUSE_C=CLAUSE_C;globalThis.v2WindowLabel=v2WindowLabel;globalThis.psvReasonNote=psvReasonNote;globalThis.psvPara=psvPara;globalThis.psvWhyBullets=psvWhyBullets;globalThis.psvValueLine=psvValueLine;globalThis.psvPoss=psvPoss;globalThis.psvIntro=psvIntro;globalThis.psvSpecTile=psvSpecTile;globalThis.psvClaim=psvClaim;globalThis.psvWheelhouse=psvWheelhouse;globalThis.psvWheelhouseList=psvWheelhouseList;globalThis.psvPron=psvPron;globalThis.psvTrustLines=psvTrustLines;globalThis.v2CarDisplay=v2CarDisplay;globalThis.v2ScopeAttr=v2ScopeAttr;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.renderPickCardV2=renderPickCardV2;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2SpeedWhy=typeof v2SpeedWhy==='function'?v2SpeedWhy:function(){return '';};globalThis.v2Composition=typeof v2Composition==='function'?v2Composition:function(){return null};globalThis.v2FollowupIntent=v2FollowupIntent;globalThis.v2ComposeRunListing=v2ComposeRunListing;globalThis.v2ComposeRecommend=v2ComposeRecommend;");
 
 let failures=0;
 const check=(name,ok,detail="")=>{console.log(`${ok?"PASS":"FAIL"}  ${name}${ok?"":"  ->  "+String(detail).slice(0,200)}`);if(!ok)failures++;};
@@ -366,6 +366,31 @@ check("Spencer card: full-name headline 'Spencer Bailey' (not first-name-only, n
 check("Spencer card: premium tile present alongside identity (no dimension regression)", /Track record/.test(spencerCard)&&/\+5%/.test(spencerCard), "");
 const spencerTiles=(spencerCard.match(/pcard-ttile/g)||[]).length;
 check("Spencer card density: within budget (premium present -> weakest prep tile drops, 3 tiles)", spencerTiles===3&&/Specialises in/i.test(spencerCard)&&!/Preparation/.test(spencerCard), "tiles="+spencerTiles);
+
+// ---- Post-result chat: "how would you run it" follows the LEAD recommendation ----
+// Bug (Aug 2026): v2ComposeRunListing always described the DIY platform path even when a
+// PowerSeller was the lead. With no path named, it must follow the composition: PS-led ->
+// how HE runs it; platform-led/DIY -> the self-managed listing.
+{
+  const sv = { region: globalThis.sellState.region, pref: globalThis.sellState.sellerPreference, ref: globalThis.sellState.partnerReferral, opts: globalThis.sellState.sellOptions, rv: globalThis.sellState.resolvedVehicle, sd: globalThis.sellState.sellDecision, tl: globalThis.sellState.timeline };
+  globalThis.sellState.timeline = null;
+  globalThis.sellState.resolvedVehicle = { make: "BMW", model: "M3", year: 2005 };
+  globalThis.sellState.sellDecision = { vehicle: { make: "BMW", model: "M3", year: 2005 }, evidence: { windowDays: 180 } };
+  globalThis.sellState.sellOptions = [{ name: "Bring a Trailer", platformSlug: "bringatrailer", marketEvidence: { evidenceSales: 8, windowDays: 180 } }];
+  globalThis.sellState.region = "US";
+  globalThis.sellState.partnerReferral = { eligible: true, leadOnValue: true, partner: spencerCtx };
+  check("chat intent: 'how would u run it' classifies as runlisting", v2FollowupIntent("how would u run it") === "runlisting", String(v2FollowupIntent("how would u run it")));
+  // PS-LED: the answer follows Spencer (the lead), never pivots to the DIY platform path.
+  globalThis.sellState.sellerPreference = "powerseller";
+  const psRun = v2ComposeRunListing() || "";
+  check("runlisting PS-led: follows Spencer (the lead), not a DIY pivot", /I'd have Spencer run it\./.test(psRun) && /Bring a Trailer/.test(psRun) && !/^I would list your/.test(psRun), psRun);
+  check("runlisting PS-led: service framing only, no fee/price figure", clean(psRun).ok && !/\d+%|\$/.test(psRun), psRun);
+  // DIY / platform-led: the self-managed answer is unchanged (never claims Spencer runs it).
+  globalThis.sellState.sellerPreference = "diy";
+  const diyRun = v2ComposeRunListing() || "";
+  check("runlisting DIY: self-managed platform answer, not Spencer-runs-it", /I would list your 2005 BMW M3 on Bring a Trailer\./.test(diyRun) && !/have Spencer run it/.test(diyRun), diyRun);
+  globalThis.sellState.region = sv.region; globalThis.sellState.sellerPreference = sv.pref; globalThis.sellState.partnerReferral = sv.ref; globalThis.sellState.sellOptions = sv.opts; globalThis.sellState.resolvedVehicle = sv.rv; globalThis.sellState.sellDecision = sv.sd; globalThis.sellState.timeline = sv.tl;
+}
 
 check("PS card carries NO fee figure (item 5)", clean(cardHtml).ok&&!/6%|5%|\$\s?100k/i.test(cardHtml), lintText(cardHtml).join(" ; ")+" :: contains-6%="+/6%/.test(cardHtml));
 
