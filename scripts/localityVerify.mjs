@@ -14,6 +14,7 @@ await page.goto("https://goasksam.com/", { waitUntil: "networkidle2", timeout: 6
 await page.waitForSelector("#inp", { timeout: 30000 });
 const lastSam = () => page.evaluate(() => { const r = [...document.querySelectorAll(".row.sam")]; const e = r[r.length - 1]; return e ? e.textContent.replace(/\s+/g, " ").trim() : ""; });
 const chips = () => page.evaluate(() => [...document.querySelectorAll(".chip")].map(c => c.textContent.trim()));
+const activeChips = () => page.evaluate(() => [...document.querySelectorAll(".chip")].filter(c => !c.classList.contains("chip-spent")).map(c => c.textContent.trim()));
 async function type(t) { await page.evaluate(x => { document.getElementById("inp").value = x; }, t); await page.click("#btn"); await sleep(2200); }
 async function clickChip(l) { const h = await page.evaluate(x => { const c = [...document.querySelectorAll(".chip")].filter(b => b.textContent.trim().toLowerCase().includes(x.toLowerCase())); if (c.length) { c[c.length - 1].click(); return true; } return false; }, l); await sleep(2200); return h; }
 
@@ -28,11 +29,13 @@ for (let i = 0; i < 16; i++) {
   else if (/which country|located|region of the world/.test(s)) { if (!await clickChip("United States")) await type("United States"); }
   else await type("skip");
 }
-const reply = await lastSam(); const ch = await chips();
+const reply = await lastSam(); const ch = await chips(); const active = await activeChips();
 console.log("\nCONFIRM PROMPT ->", reply.slice(0, 140));
-console.log("CHIPS ->", JSON.stringify(ch));
+console.log("ALL CHIPS ->", JSON.stringify(ch));
+console.log("ACTIVE CHIPS ->", JSON.stringify(active));
 ok(confirmSeen || /did you mean san francisco, california/i.test(reply), "typo 'san fransisco' surfaces 'Did you mean San Francisco, California?'");
-ok(ch.some(c => /yes, california/i.test(c)) && ch.some(c => /somewhere else/i.test(c)), "confirm chips: 'Yes, California' + 'No, somewhere else'");
+ok(active.some(c => /yes, california/i.test(c)) && active.some(c => /somewhere else/i.test(c)), "confirm chips 'Yes, California' + 'No, somewhere else' are ACTIVE");
+ok(!active.some(c => /^(california|florida|texas|new york|new jersey|other)$/i.test(c)), "prior state-step chips are DIMMED (only the confirm set is active)");
 // Accept -> state stored as California (still zero OCD; the search only runs after prefs/confirm).
 await clickChip("Yes, California");
 const after = (await lastSam());

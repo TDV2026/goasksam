@@ -1883,7 +1883,13 @@ function sellChatCardsSummary(){
 // once the step moves on (including post-result and after an Edit reset to the
 // car step), the chip is inert and visually dimmed. This kills the whole misroute
 // class (e.g. a stale country chip landing in the car-entry handler after Edit).
-function currentChipStep(){ try{ return (typeof sellState!=="undefined"&&sellState.step!=null)?Number(sellState.step):0; }catch(e){ return 0; } }
+function currentChipStep(){ try{
+  // City-confirm is a sub-state of step 18 with its OWN chip-step sentinel (181), so the
+  // prior state-step chips (18) dim via dimStaleChips while the Yes/No confirm chips stay
+  // live. Only one chip set is ever active at a time.
+  if(typeof sellState!=="undefined"&&sellState&&sellState.awaitingCityConfirm)return 181;
+  return (typeof sellState!=="undefined"&&sellState.step!=null)?Number(sellState.step):0;
+}catch(e){ return 0; } }
 function handleChip(text,chipStep){
   if(chipStep!=null&&Number(chipStep)!==currentChipStep())return; // stale chip: inert
   quick(text);

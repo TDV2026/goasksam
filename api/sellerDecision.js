@@ -1918,6 +1918,16 @@ export function partnerLocalState(partner, criteria) {
     .some(r => r === sellerState || r.includes(sellerState) || sellerState.includes(r));
 }
 
+// US states (+ DC) for the last-resort locality check (Part 3). A seller's state is
+// CONFIRMED only when it resolves to one of these; empty, "Not sure", or an unrecognized
+// raw city (one the frontend city map did not cover) is UNCONFIRMABLE.
+const US_STATE_SET = new Set(["alabama","alaska","arizona","arkansas","california","colorado","connecticut","delaware","florida","georgia","hawaii","idaho","illinois","indiana","iowa","kansas","kentucky","louisiana","maine","maryland","massachusetts","michigan","minnesota","mississippi","missouri","montana","nebraska","nevada","new hampshire","new jersey","new mexico","new york","north carolina","north dakota","ohio","oklahoma","oregon","pennsylvania","rhode island","south carolina","south dakota","tennessee","texas","utah","vermont","virginia","washington","west virginia","wisconsin","wyoming","washington, dc","district of columbia","dc"]);
+export function localityConfirmed(criteria) {
+  const st = asText(criteria && criteria.state).trim().toLowerCase();
+  if (!st || /^not sure$/.test(st)) return false;
+  return US_STATE_SET.has(st);
+}
+
 // PowerSeller value gate with minimum tolerance (product rule, Aug 2026).
 // Sellers understate value, so the eligibility floor is the minimum minus a
 // tolerance (default 20% -> floor = min * 0.8). The value weighed is the HIGHER
@@ -1989,6 +1999,26 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
       if ((career?.rowsByMake?.[vehicle.make] || 0) < 5) matched = null;
     }
   }
+  // Part 3 (last-resort, Aug 2026): with UNCONFIRMABLE locality (US seller, no resolved
+  // state), a nationwide generalist must not keep the LEAD purely by ELIMINATION over a
+  // region-only specialist that is a STRICTLY STRONGER specialty match but was dropped on
+  // unprovable region. We can neither confirm the specialist covers the seller nor honestly
+  // claim locality, so we suppress the lead (the platform leads); the region-covered partner
+  // can still render as a neutral secondary. Fires only when the dropped regional specialist
+  // out-matches the nationwide lead (marque > segment), so a nationwide partner that is an
+  // equal-or-better specialty fit still leads legitimately (real coverage, no false claim).
+  // Confirmed locality is unchanged; with the current roster this is a rare/dormant safeguard.
+  let localitySuppressedLead = false;
+  const sellerRegionLc = asText(criteria.region).toLowerCase();
+  const isUsSeller = !sellerRegionLc || ["us", "usa", "united states"].includes(sellerRegionLc);
+  if (isUsSeller && matched && matchedCand && !localityConfirmed(criteria)) {
+    const nationwideOf = p => (p.regions || []).map(r => String(r).toLowerCase()).includes("nationwide");
+    const specialtyRank = c => (c.marqueMet ? 2 : 0) + (c.segmentMet ? 1 : 0);
+    const strongerRegionalDropped = cands.some(c =>
+      c !== matchedCand && !c.regionMet && !nationwideOf(c.partner) &&
+      (c.segmentMet || c.marqueMet) && specialtyRank(c) > specialtyRank(matchedCand));
+    if (nationwideOf(matched) && strongerRegionalDropped) { matched = null; localitySuppressedLead = true; }
+  }
   const eligible = !!(valueMet && matched);
   // Secondary mention (locked, updated July 2026): a $50k+ context (met-
   // comps estimate or the seller's asking price) ALWAYS shows the partner
@@ -2019,7 +2049,8 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
       valueMet,
       segmentMet: anySegment,
       regionMet: anyRegion,
-      partnerAvailable: partners.length > 0
+      partnerAvailable: partners.length > 0,
+      localitySuppressedLead
     },
     partner: null
   };
