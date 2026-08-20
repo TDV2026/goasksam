@@ -11,7 +11,7 @@ import { recordUsageEvent } from "./_usage.js";
 import { journeyManualUpdate } from "../lib/_journey.js";
 import { runDepthProbe, LAUNCH_SOURCES } from "../lib/ops/depthProbe.js";
 import { runFillBatch } from "../lib/ops/fillLadder.js";
-import { beehiivBySubscriberId, beehiivRawGet } from "../lib/_beehiiv.js";
+import { beehiivBySubscriberId } from "../lib/_beehiiv.js";
 
 function adminEsc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 const adminDayKey = ts => new Date(ts).toISOString().slice(0, 10);
@@ -1176,14 +1176,8 @@ async function handleOps(req, res) {
   // Confirms Beehiiv's bhs tag is a subscription id (not a global subscriber id) before
   // the real handler is built.
   if (task === "beehiivprobe") {
-    // Diagnostic path override (email-masked) to find the right subscriber-lookup endpoint.
-    if (req.query?.bhpath) {
-      const raw = await beehiivRawGet(String(req.query.bhpath));
-      const masked = raw.body ? raw.body.replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/g, m => (m[0] || "") + "***@" + (m.split("@")[1] || "")) : raw.body;
-      return res.status(200).json({ task: "beehiivprobe", path: String(req.query.bhpath), httpStatus: raw.httpStatus, ok: raw.ok, reason: raw.reason, body: masked });
-    }
     const bhs = String(req.query?.bhs || "").trim();
-    if (!bhs) return res.status(400).json({ task: "beehiivprobe", error: "pass ?bhs=<subscriber_id> or ?bhpath=<beehiiv path>" });
+    if (!bhs) return res.status(400).json({ task: "beehiivprobe", error: "pass ?bhs=<subscriber_id>" });
     const r = await beehiivBySubscriberId(bhs);
     let emailMasked = null;
     if (r.email) { const [u, d] = r.email.split("@"); emailMasked = (u ? u[0] : "") + "***@" + (d || ""); }

@@ -158,8 +158,10 @@ function authHandleCallback() {
     const access_token = h.get("access_token"), refresh_token = h.get("refresh_token");
     if (!access_token) return false;
     const expires_at = Number(h.get("expires_at")) || (Math.floor(Date.now() / 1000) + Number(h.get("expires_in") || 3600));
+    const via = h.get("via"); // "beehiiv" for a TDV link-minted session (distinct attribution)
     authSetSession({ access_token, refresh_token, expires_at });
-    history.replaceState(null, "", location.pathname + location.search); // scrub the hash
+    history.replaceState(null, "", location.pathname + location.search); // scrub the hash (tokens + via)
+    if (via === "beehiiv" && typeof gasFunnel === "function") { try { gasFunnel("beehiiv_link_signin"); } catch (e) {} }
     return true;
   } catch (e) { return false; }
 }
