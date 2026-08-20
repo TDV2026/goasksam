@@ -375,6 +375,20 @@ function resolveCityInput(lower){
   if(best)return {kind:"cityConfirm",value:CITY_TO_STATE[best],city:titleCaseCity(best)};
   return null;
 }
+// Fuzzy STATE-NAME typo -> the canonical state name, or null. FULL NAMES ONLY: the
+// 2-letter codes stay exact-only (fuzzing 2 chars collides - "mn"/"mo"/"me"). Tight
+// bound (<=1 short / <=2 longer), same as cities. Catches "minessota"->Minnesota (2),
+// "californa"->California (1); too far off falls through (no wild guess). Routes through
+// the cityConfirm flow (state-only phrasing), so it CONFIRMS, never silently corrects.
+function resolveFuzzyState(lower){
+  var best=null,bestD=99;
+  for(var key in US_STATES){
+    if(key.length<4)continue; // skip the 2-letter codes
+    var bound=key.length<6?1:2; if(Math.abs(key.length-lower.length)>bound)continue;
+    var d=levenshtein(lower,key,bound); if(d<=bound&&d<bestD){bestD=d;best=key;}
+  }
+  return best?US_STATES[best]:null;
+}
 
 // Compact ZIP 3-digit-prefix ranges -> state. Covers every state; unknown
 // prefixes fall through (the caller accepts the ZIP and advances anyway).
@@ -424,6 +438,10 @@ function resolveStateInput(q){
     const s=US_STATE_NICKNAMES[key]||normalizeUSState(key);
     if(s)return {kind:"state",value:s};
   }
+  // Fuzzy STATE-name typo (full names only) BEFORE the city map, so a misspelled state
+  // resolves as a state. Confirms via the cityConfirm flow with state-only phrasing.
+  const fuzzyState=resolveFuzzyState(lower);
+  if(fuzzyState)return {kind:"cityConfirm",value:fuzzyState,city:null};
   // Curated city -> state (exact silent, fuzzy/ambiguous confirm). Last, so state
   // names/codes/ZIPs/nicknames still win outright.
   const city=resolveCityInput(lower);

@@ -1,7 +1,8 @@
-// Deployed-page check for the locality confirmation (Part 2). Drives the wizard to the
-// state step and types the misspelled "san fransisco"; asserts the "Did you mean San
-// Francisco, California?" confirm + chips render. The confirm fires BEFORE any search,
-// so this spends ZERO OldCarsData. Usage: node scripts/localityVerify.mjs
+// Deployed-page check for the locality confirmation (Part 2 + the state-typo extension).
+// Drives the wizard to the state step and types a misspelled locality; asserts the "Did
+// you mean ...?" confirm + chips render, only the confirm chips are active (prior state
+// chips dimmed), and accepting advances. Covers a CITY typo and a STATE-NAME typo. The
+// confirm fires BEFORE any search, so this spends ZERO OldCarsData. Usage: node scripts/localityVerify.mjs
 import puppeteer from "puppeteer-core";
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -10,36 +11,37 @@ let fails = 0; const ok = (c, m) => { console.log((c ? "PASS  " : "FAIL  ") + m)
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 const page = await browser.newPage();
 await page.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
-await page.goto("https://goasksam.com/", { waitUntil: "networkidle2", timeout: 60000 });
-await page.waitForSelector("#inp", { timeout: 30000 });
 const lastSam = () => page.evaluate(() => { const r = [...document.querySelectorAll(".row.sam")]; const e = r[r.length - 1]; return e ? e.textContent.replace(/\s+/g, " ").trim() : ""; });
-const chips = () => page.evaluate(() => [...document.querySelectorAll(".chip")].map(c => c.textContent.trim()));
 const activeChips = () => page.evaluate(() => [...document.querySelectorAll(".chip")].filter(c => !c.classList.contains("chip-spent")).map(c => c.textContent.trim()));
 async function type(t) { await page.evaluate(x => { document.getElementById("inp").value = x; }, t); await page.click("#btn"); await sleep(2200); }
-async function clickChip(l) { const h = await page.evaluate(x => { const c = [...document.querySelectorAll(".chip")].filter(b => b.textContent.trim().toLowerCase().includes(x.toLowerCase())); if (c.length) { c[c.length - 1].click(); return true; } return false; }, l); await sleep(2200); return h; }
+async function clickChip(l) { const h = await page.evaluate(x => { const c = [...document.querySelectorAll(".chip")].filter(b => !b.classList.contains("chip-spent") && b.textContent.trim().toLowerCase().includes(x.toLowerCase())); if (c.length) { c[c.length - 1].click(); return true; } return false; }, l); await sleep(2200); return h; }
 
-await type("2021 Porsche 911 Carrera");
-let typedCity = false, confirmSeen = false;
-for (let i = 0; i < 16; i++) {
-  const s = (await lastSam()).toLowerCase();
-  if (/did you mean san francisco, california/.test(s)) { confirmSeen = true; break; }
-  if (/which state|what state/.test(s) && !typedCity) { typedCity = true; await type("san fransisco"); continue; }
-  console.log(`iter${i} sam="${s.slice(0, 80)}"`);
-  if (/which trim|any specific trim|edition|did you mean the/.test(s)) await type("skip");
-  else if (/which country|located|region of the world/.test(s)) { if (!await clickChip("United States")) await type("United States"); }
-  else await type("skip");
+// One case: fresh load, drive to the state step, type the misspelled locality, assert.
+async function testTypo(label, input, promptRe) {
+  await page.goto("https://goasksam.com/", { waitUntil: "networkidle2", timeout: 60000 });
+  await page.waitForSelector("#inp", { timeout: 30000 });
+  await type("2021 Porsche 911 Carrera");
+  let typed = false, seen = false;
+  for (let i = 0; i < 16; i++) {
+    const s = (await lastSam()).toLowerCase();
+    if (promptRe.test(s)) { seen = true; break; }
+    if (/which state|what state/.test(s) && !typed) { typed = true; await type(input); continue; }
+    if (/which trim|any specific trim|edition|did you mean the/.test(s)) await type("skip");
+    else if (/which country|located|region of the world/.test(s)) { if (!await clickChip("United States")) await type("United States"); }
+    else await type("skip");
+  }
+  const reply = await lastSam(); const active = await activeChips();
+  console.log(`\n[${label}] "${input}" -> ${reply.slice(0, 120)}`);
+  console.log(`[${label}] ACTIVE CHIPS -> ${JSON.stringify(active)}`);
+  ok(seen || promptRe.test(reply), `${label}: "${input}" surfaces the confirm prompt`);
+  ok(active.some(c => /^yes, california$/i.test(c)) && active.some(c => /somewhere else/i.test(c)), `${label}: only the confirm chips are active`);
+  ok(!active.some(c => /^(florida|texas|new york|new jersey|other)$/i.test(c)), `${label}: prior state-step chips are dimmed`);
+  await clickChip("Yes, California");
+  ok(!/did you mean/i.test(await lastSam()), `${label}: accepting the confirm advances`);
 }
-const reply = await lastSam(); const ch = await chips(); const active = await activeChips();
-console.log("\nCONFIRM PROMPT ->", reply.slice(0, 140));
-console.log("ALL CHIPS ->", JSON.stringify(ch));
-console.log("ACTIVE CHIPS ->", JSON.stringify(active));
-ok(confirmSeen || /did you mean san francisco, california/i.test(reply), "typo 'san fransisco' surfaces 'Did you mean San Francisco, California?'");
-ok(active.some(c => /yes, california/i.test(c)) && active.some(c => /somewhere else/i.test(c)), "confirm chips 'Yes, California' + 'No, somewhere else' are ACTIVE");
-ok(!active.some(c => /^(california|florida|texas|new york|new jersey|other)$/i.test(c)), "prior state-step chips are DIMMED (only the confirm set is active)");
-// Accept -> state stored as California (still zero OCD; the search only runs after prefs/confirm).
-await clickChip("Yes, California");
-const after = (await lastSam());
-ok(!/did you mean/i.test(after), "accepting the confirm advances (no longer asking to confirm)");
+
+await testTypo("city-typo", "san fransisco", /did you mean san francisco, california\?/);
+await testTypo("state-typo", "californa", /did you mean california\?/);
 
 await browser.close();
 console.log(fails === 0 ? "\nLOCALITY DEPLOYED-PAGE CHECK: ALL PASS" : `\n${fails} FAILURES`);

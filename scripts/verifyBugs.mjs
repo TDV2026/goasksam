@@ -404,6 +404,15 @@ function ROSTER_NAMES_RE(){ return /\b(howS|Howard Silvers|GenauAutoWerks|Ingo S
   check("resolver: 'bay area' nickname unchanged -> California", R("bay area").value==="California", JSON.stringify(R("bay area")));
   check("resolver: nonsense 'flerbville' -> unknown (no wild guess)", R("flerbville").kind==="unknown", JSON.stringify(R("flerbville")));
   check("resolver: far-off typo doesn't fuzzy-match a short city (guard)", R("xyzzyville").kind==="unknown", JSON.stringify(R("xyzzyville")));
+  // State-NAME typo tolerance (full names only; 2-letter codes stay exact). Fuzzy hits
+  // CONFIRM (state-only phrasing: city is null); exact names/codes resolve silently.
+  check("resolver: 'minessota' (state typo) -> CONFIRM Minnesota (state-only, city null)", (()=>{const r=R("minessota");return r.kind==="cityConfirm"&&r.value==="Minnesota"&&!r.city;})(), JSON.stringify(R("minessota")));
+  check("resolver: 'californa' (state typo) -> CONFIRM California (the wrong-partner entry)", (()=>{const r=R("californa");return r.kind==="cityConfirm"&&r.value==="California"&&!r.city;})(), JSON.stringify(R("californa")));
+  check("resolver: 'tejas' -> CONFIRM Texas (distance 1)", (()=>{const r=R("tejas");return r.kind==="cityConfirm"&&r.value==="Texas";})(), JSON.stringify(R("tejas")));
+  check("resolver: 'california' (exact) -> silent California, no confirm", R("california").kind==="state"&&R("california").value==="California", JSON.stringify(R("california")));
+  check("resolver: 'minnesota' (exact) -> silent Minnesota", R("minnesota").kind==="state"&&R("minnesota").value==="Minnesota", JSON.stringify(R("minnesota")));
+  check("resolver: 2-letter code 'mn' -> silent Minnesota (codes exact, never fuzzed)", R("mn").kind==="state"&&R("mn").value==="Minnesota", JSON.stringify(R("mn")));
+  check("resolver: 'cx' (bad 2-letter) -> unknown (codes never fuzzy-resolve to a state)", R("cx").kind==="unknown", JSON.stringify(R("cx")));
 }
 
 console.log(fails?`\n${fails} FAILURE(S)`:"\nVERIFY-BUGS ALL PASS");

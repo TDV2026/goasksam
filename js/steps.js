@@ -325,7 +325,9 @@ async function handleSellStep(q){
       // awaitingCityConfirm interceptor at the top of handleSellStep handles the reply.
       if(resolved.kind==="cityConfirm"){
         sellState.awaitingCityConfirm={city:resolved.city,state:resolved.value};
-        addMsg("sam","Did you mean "+resolved.city+", "+resolved.value+"?","",chipsHTML(["Yes, "+resolved.value,"No, somewhere else"]));
+        // City typo -> "Did you mean {city}, {state}?"; state-name typo -> "Did you mean {state}?".
+        const confirmQ=resolved.city?("Did you mean "+resolved.city+", "+resolved.value+"?"):("Did you mean "+resolved.value+"?");
+        addMsg("sam",confirmQ,"",chipsHTML(["Yes, "+resolved.value,"No, somewhere else"]));
         return true;
       }
       if(resolved.kind==="state"||resolved.kind==="skip"){
