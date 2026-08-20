@@ -44,6 +44,11 @@ values (
       'models', '[]'::jsonb,
       'display', '["Original and preserved modern classics","1980s to early-2000s enthusiast cars","Hands-on auction preparation"]'::jsonb
     ),
+    -- Curated ALWAYS-ON identity label for the "Specialises in" tile. His lane is a
+    -- category, not a marque, so this renders on every car he is shown for (the correct
+    -- functional equivalent of the other four's marque-match tile). Single short line,
+    -- same tile shape as the rest of the roster. Spelled-out "and" per house style.
+    'identity', 'Original and preserved enthusiast cars',
     'pronoun', jsonb_build_object('subj','he','obj','him','poss','his'),
     'intro_hook', 'He personally photographs, preps and manages every car he lists.',
     'notes', 'Original and preserved enthusiast vehicles, particularly 1980s to early-2000s modern classics; also 1960s/70s European sports, German, Japanese and American enthusiast cars, 4x4s and unusual vehicles (per SpecWerksLTD)',
@@ -53,7 +58,12 @@ values (
   '[{"name":"Bring a Trailer","source":"partner_provided"}]'::jsonb,
   -- Operational roster facts (no attribution, no fee figures, no counts, no money
   -- claims per product rule 11: service framing only).
-  '[{"text":"Based just south of Denver, Colorado","source":"partner_provided"},{"text":"Serves sellers nationwide and internationally, and ships cars","source":"partner_provided"},{"text":"Full-service preparation: assessment, mechanical and cosmetic repairs, return-to-stock, detailing and photography handled personally, with paint and body coordinated through outside specialists","source":"partner_provided"},{"text":"Recommends work only where he believes it is worthwhile, and discloses remaining flaws honestly","source":"partner_provided"}]'::jsonb,
+  -- Claim order matters: the location tile reads the "Based in {state}" claim (must
+  -- start with "Based in"), the coverage sub-line falls back to regions -> "Works
+  -- nationwide" when there is no "Serves ..." claim (a "Serves sellers nationwide..."
+  -- line would be mis-parsed as a state list), and the Preparation tile is the first
+  -- claim that is neither "Based in" nor "Serves".
+  '[{"text":"Based in Colorado","source":"partner_provided"},{"text":"Full-service preparation: assessment, mechanical and cosmetic repairs, return-to-stock, detailing and photography handled personally, with paint and body coordinated through outside specialists","source":"partner_provided"},{"text":"Ships cars nationwide and works with sellers internationally","source":"partner_provided"},{"text":"Recommends work only where he believes it is worthwhile, and discloses remaining flaws honestly","source":"partner_provided"}]'::jsonb,
   '["SpecWerksLTD"]'::jsonb,
   null, 35000
 )

@@ -475,15 +475,22 @@ function psvIntro(p,first,claim,carShort){
 // wheelhouse (marques + model labels); else the notes-level specialty for a
 // generalist with no marque wheelhouse (e.g. Ingo's "Collector and specialty
 // vehicles"). Never a single non-matching marque.
+// A curated ALWAYS-ON identity label (roster-truth) for a partner whose lane is a
+// CATEGORY, not a marque - e.g. Spencer's "Original & preserved enthusiast cars".
+// Curated only (specialties.identity), NEVER derived from `makes`/volume/makeMix, and
+// it is category-level so it is true for every car the partner is shown for - which is
+// why it can render always-on without planting the mismatched-marque question that the
+// marque tile is suppressed to avoid. Absent for the marque-specialist partners (they
+// have no `identity`), so their context-aware claim tile is unchanged.
+function psvIdentity(p){ return String((p&&p.specialties&&p.specialties.identity)||"").trim(); }
 function psvSpecTile(p,v){
-  // CONTEXT-AWARE: the SPECIALISES IN tile renders ONLY when the partner's wheelhouse
-  // genuinely matches THIS car (same marque or model) - the exact match the intro
-  // templates use (psvClaim). On a non-matching car it is SUPPRESSED entirely: a
-  // Porsche specialist's "Air-cooled Porsche" tile next to a Mercedes plants exactly
-  // the wrong question, and the premium + counts now carry the trust case. The old
-  // wheelhouse/notes fallbacks (which surfaced a non-matching specialty) are gone.
+  // Priority: a genuine marque/model wheelhouse match (psvClaim) wins - it is the most
+  // specific true statement. Else a curated category identity (always true). Else
+  // SUPPRESSED (""). It NEVER falls back to a non-matching wheelhouse marque/model: the
+  // only non-claim value it can show is the curated, car-independent identity label.
   var claim=psvClaim(p,v);
-  return claim?claim.label:"";
+  if(claim)return claim.label;
+  return psvIdentity(p);
 }
 function psvMakePlural(make){ try{ return (typeof pluralizeMake==="function")?pluralizeMake(make):(v2Pl(make)); }catch(e){ return v2Pl(make||"cars"); } }
 function psvTrophy(p){

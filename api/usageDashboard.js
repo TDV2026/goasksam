@@ -1118,7 +1118,58 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "premium", windowDays, gate: "n>=10, positive median, whole-percent, 8 US platforms, partners excluded", report, persisted });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium." });
+  // task=partnerseed: one-shot upsert of the fifth PowerSeller (Spencer Bailey /
+  // SpecWerksLTD), executed server-side with the service-role key (the seed cannot be
+  // pulled/run locally). Mirrors docs/supabase-partner-spencer-seed.sql exactly.
+  //   default:      full upsert with active=FALSE.
+  //   ?activate=1:  targeted PATCH of active=true ONLY (leaves specialties untouched,
+  //                 so a premium tile persisted between seed and activate survives).
+  // ORDER: seed (default) -> task=premium&persist=1 -> partnerseed&activate=1. Do NOT
+  // re-run the default upsert after premium persist (merge-duplicates would overwrite
+  // specialties and drop the premium tile).
+  if (task === "partnerseed") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const sb = (path, method, body, prefer) => fetch(`${env.supabaseUrl}/rest/v1/${path}`, {
+      method,
+      headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: prefer || "return=representation" },
+      body: body ? JSON.stringify(body) : undefined
+    });
+    if (req.query?.activate === "1" || req.query?.activate === "true") {
+      const resp = await sb("partners?slug=eq.specwerks-ltd", "PATCH", { active: true, updated_at: new Date().toISOString() });
+      const text = await resp.text();
+      return res.status(resp.ok ? 200 : 500).json({ task: "partnerseed", action: "activate", ok: resp.ok, row: text ? JSON.parse(text) : text });
+    }
+    const SPENCER = {
+      slug: "specwerks-ltd", name: "SpecWerksLTD", display_name: "Spencer Bailey", active: false,
+      regions: ["Colorado", "Denver", "Mountain West", "Nationwide", "International"],
+      specialties: {
+        makes: ["BMW", "Mercedes-Benz", "Porsche", "Audi", "Volkswagen", "Toyota", "Nissan", "Datsun", "Honda", "Mazda", "Jeep", "Land Rover", "Ford", "Chevrolet"],
+        segments: ["modern_enthusiast", "older_enthusiast", "pre_1990", "classic_european", "european_sports", "porsche", "bmw_m"],
+        wheelhouse: { marques: [], models: [], display: ["Original and preserved modern classics", "1980s to early-2000s enthusiast cars", "Hands-on auction preparation"] },
+        identity: "Original and preserved enthusiast cars",
+        pronoun: { subj: "he", obj: "him", poss: "his" },
+        intro_hook: "He personally photographs, preps and manages every car he lists.",
+        notes: "Original and preserved enthusiast vehicles, particularly 1980s to early-2000s modern classics; also 1960s/70s European sports, German, Japanese and American enthusiast cars, 4x4s and unusual vehicles (per SpecWerksLTD)",
+        company: "SpecWerks LTD",
+        source: "partner_provided"
+      },
+      platforms: [{ name: "Bring a Trailer", source: "partner_provided" }],
+      service_claims: [
+        { text: "Based in Colorado", source: "partner_provided" },
+        { text: "Full-service preparation: assessment, mechanical and cosmetic repairs, return-to-stock, detailing and photography handled personally, with paint and body coordinated through outside specialists", source: "partner_provided" },
+        { text: "Ships cars nationwide and works with sellers internationally", source: "partner_provided" },
+        { text: "Recommends work only where he believes it is worthwhile, and discloses remaining flaws honestly", source: "partner_provided" }
+      ],
+      seller_usernames: ["SpecWerksLTD"],
+      referral_terms: null, min_value_usd: 35000, updated_at: new Date().toISOString()
+    };
+    const resp = await sb("partners?on_conflict=slug", "POST", [SPENCER], "resolution=merge-duplicates,return=representation");
+    const text = await resp.text();
+    if (!resp.ok) return res.status(500).json({ task: "partnerseed", action: "seed", ok: false, error: text.slice(0, 400) });
+    return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================

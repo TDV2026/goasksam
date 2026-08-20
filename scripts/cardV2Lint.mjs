@@ -340,6 +340,33 @@ const matchCard=specCard(howardCtx,{make:"Porsche",model:"911",year:2018});
 check("NO-MATCH card (Howard/Mercedes) SUPPRESSES the specialty tile", !/Specialises in/i.test(noMatchCard)&&/Track record/.test(noMatchCard), (noMatchCard.match(/Specialises in[^<]*/i)||[""])[0]);
 check("no-match card names no non-matching specialty (roster-truth)", !/Specialises in/i.test(noMatchCard)&&!/Air-cooled Porsche|911s|Vintage Mustangs/.test(noMatchCard.replace(/pcard-tnum[^>]*>\+?\d+%/g,"")), "");
 check("MATCH card (Howard/911) KEEPS the specialty tile", /Specialises in/i.test(matchCard)&&/Track record/.test(matchCard), "");
+
+// ---- Fifth partner: Spencer's ALWAYS-ON curated identity tile (category, not marque) ----
+// His lane is not a marque, so specialties.identity renders on EVERY car (the correct
+// functional equivalent of the other four's marque-match tile) - single curated line,
+// never a marque, never a mismatched wheelhouse item, full-name headline like the rest.
+// displayName (camelCase) is the key the real frontend object carries (evaluatePartnerReferral
+// maps display_name -> displayName), so the full-name headline reads from it, not from `name`.
+const spencerCtx={slug:"specwerks-ltd",name:"SpecWerksLTD",displayName:"Spencer Bailey",
+  specialties:{identity:"Original and preserved enthusiast cars",wheelhouse:{marques:[],models:[]},pronoun:{subj:"he",obj:"him",poss:"his"},premium:{pct:5,n:18,source:"data_verified"}},
+  regions:["Colorado","Denver","Mountain West","Nationwide","International"],
+  serviceClaims:[{text:"Based in Colorado"},{text:"Full-service preparation: assessment, mechanical and cosmetic repairs, return-to-stock, detailing and photography handled personally, with paint and body coordinated through outside specialists"},{text:"Ships cars nationwide and works with sellers internationally"}],platforms:[]};
+// psvSpecTile is car-independent for Spencer: same identity string regardless of marque.
+check("Spencer tile: identity string for a BMW", psvSpecTile(spencerCtx,{make:"BMW",model:"M3",year:1990})==="Original and preserved enthusiast cars", psvSpecTile(spencerCtx,{make:"BMW",model:"M3"}));
+check("Spencer tile: SAME identity string for a Toyota 4x4 (always-on, car-independent)", psvSpecTile(spencerCtx,{make:"Toyota",model:"Land Cruiser",year:1994})==="Original and preserved enthusiast cars", "");
+check("Spencer tile: never a marque, never a mismatched wheelhouse item", !/BMW|Mercedes|Porsche|Toyota|Jeep|911/i.test(psvSpecTile(spencerCtx,{make:"BMW",model:"M3"})), "");
+check("Spencer wording: spelled-out 'and', not '&'", psvSpecTile(spencerCtx,{make:"BMW"}).indexOf("&")<0&&/Original and preserved/.test(psvSpecTile(spencerCtx,{make:"BMW"})), "");
+check("Marque specialists unaffected: no identity field -> non-match still suppresses", psvSpecTile(howardCtx,{make:"Mercedes-Benz",model:"E-Class"})==="", psvSpecTile(howardCtx,{make:"Mercedes-Benz"}));
+// Rendered card: tile present with the "Specialises in" label + full-name headline + density.
+const spencerCard=specCard(spencerCtx,{make:"BMW",model:"M3",year:1990});
+const spencerCard2=specCard(spencerCtx,{make:"Toyota",model:"Land Cruiser",year:1994});
+check("Spencer card: 'Specialises in' tile renders the identity on a BMW", /Specialises in/i.test(spencerCard)&&/Original and preserved enthusiast cars/.test(spencerCard), (spencerCard.match(/Specialises in[^<]*<[^>]*>[^<]*/i)||[""])[0]);
+check("Spencer card: identity tile ALSO renders on an unrelated Toyota (always-on)", /Specialises in/i.test(spencerCard2)&&/Original and preserved enthusiast cars/.test(spencerCard2), "");
+check("Spencer card: full-name headline 'Spencer Bailey' (not first-name-only, not the handle)", /I'd ask <span[^>]*>Spencer Bailey<\/span> to represent/.test(spencerCard)&&!/represent[^.]*SpecWerksLTD/.test(spencerCard), (spencerCard.match(/I'd ask[^<]*<span[^>]*>[^<]*/)||[""])[0]);
+check("Spencer card: premium tile present alongside identity (no dimension regression)", /Track record/.test(spencerCard)&&/\+5%/.test(spencerCard), "");
+const spencerTiles=(spencerCard.match(/pcard-ttile/g)||[]).length;
+check("Spencer card density: within budget (premium present -> weakest prep tile drops, 3 tiles)", spencerTiles===3&&/Specialises in/i.test(spencerCard)&&!/Preparation/.test(spencerCard), "tiles="+spencerTiles);
+
 check("PS card carries NO fee figure (item 5)", clean(cardHtml).ok&&!/6%|5%|\$\s?100k/i.test(cardHtml), lintText(cardHtml).join(" ; ")+" :: contains-6%="+/6%/.test(cardHtml));
 
 // ---- Item 5: chat guard blocks a fee figure ----
