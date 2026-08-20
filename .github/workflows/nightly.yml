@@ -87,7 +87,7 @@ jobs:
           set -euo pipefail
           test -f scripts/warm.js || { echo "::error::scripts/warm.js not found in checkout"; exit 1; }
           node scripts/warm.js --count=30
-premium:
+  premium:
     runs-on: ubuntu-latest
     needs: warm
     # Recompute + persist the data_verified premium for ALL FIVE partners AFTER the
