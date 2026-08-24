@@ -1267,7 +1267,52 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "limits", rate_limits: rl, app_config_dials: config, note: "anonymous = 1 free search then account_required (gas_free_used cookie); crew = unlimited; tester cookie = tester_cap_day on a separate counter" });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|beehiivprobe|identitycheck|otpselftest|limits." });
+  // task=savedcheck: READ-ONLY diagnostic. Answers "is the save-side working" for a
+  // user, independent of the view page. Lists every accounts row with its saved_results
+  // count (masked email), an optional ?email= deep-dive (the row details: car, pick,
+  // created_at), and the orphaned-anon count (user_id null = ran anon, never claimed).
+  // Temporary; strip pre-launch with the other ?view=ops diagnostics.
+  if (task === "savedcheck") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const mask = e => { const s = String(e || ""); if (s.indexOf("@") < 0) return s ? "***" : s; const [u, d] = s.split("@"); return (u[0] || "") + "***@" + d; };
+    const summ = payload => {
+      const v = (payload && payload.vehicle) || {};
+      const car = [v.year, v.make, v.model].filter(Boolean).join(" ") || v.label || "your car";
+      const pick = (payload && (payload.decision?.recommendedPath || payload.recommendedPath
+        || payload.routeFacts?.pick?.platformSlug || payload.routeFacts?.pick?.name)) || null;
+      return { car, pick };
+    };
+    const savedCountFor = async uid => {
+      const rows = await supabaseSelect(env, `saved_results?user_id=eq.${uid}&select=id&limit=1000`) || [];
+      return rows.length;
+    };
+    // Every account with its saved_results count.
+    const accts = await supabaseSelect(env, `accounts?select=user_id,email,tier,created_at&order=created_at.desc&limit=10000`) || [];
+    const allAccounts = [];
+    for (const a of accts) allAccounts.push({ emailMasked: mask(a.email), userId8: String(a.user_id).slice(0, 8) + "...", tier: a.tier, created_at: a.created_at, savedCount: await savedCountFor(a.user_id) });
+    // Optional deep-dive for one email: resolve user_id(s) via accounts + auth.users.
+    const email = req.query?.email ? String(req.query.email).toLowerCase() : null;
+    let lookup = null;
+    if (email) {
+      const authUsers = [];
+      try {
+        const r = await fetch(`${env.supabaseUrl}/auth/v1/admin/users?page=1&per_page=200`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
+        if (r.ok) { const j = await r.json().catch(() => ({})); const list = j.users || (Array.isArray(j) ? j : []); for (const u of list) if (String(u.email || "").toLowerCase() === email) authUsers.push({ id: u.id, providers: (u.identities || []).map(i => i.provider), created_at: u.created_at }); }
+      } catch (e) {}
+      const acctIds = accts.filter(a => String(a.email || "").toLowerCase() === email).map(a => a.user_id);
+      const ids = Array.from(new Set([...acctIds, ...authUsers.map(u => u.id)].filter(Boolean)));
+      const perUser = [];
+      for (const uid of ids) {
+        const rows = await supabaseSelect(env, `saved_results?user_id=eq.${uid}&select=id,created_at,payload&order=created_at.desc&limit=50`) || [];
+        perUser.push({ userId8: String(uid).slice(0, 8) + "...", hasAccountRow: acctIds.includes(uid), savedCount: rows.length, rows: rows.map(x => ({ id: x.id, createdAt: x.created_at, ...summ(x.payload || {}) })) });
+      }
+      lookup = { emailMasked: mask(email), authUserRows: authUsers.map(u => ({ userId8: String(u.id).slice(0, 8) + "...", providers: u.providers, created_at: u.created_at })), savedByUser: perUser, totalSaved: perUser.reduce((s, u) => s + u.savedCount, 0) };
+    }
+    const anon = await supabaseSelect(env, `saved_results?user_id=is.null&select=id&limit=5000`) || [];
+    return res.status(200).json({ task: "savedcheck", accountsTotal: accts.length, allAccounts, orphanedAnonRows: anon.length, lookup });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|beehiivprobe|identitycheck|otpselftest|limits|savedcheck." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
