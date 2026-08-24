@@ -39,6 +39,11 @@
 <style>.curtained #rail,.curtained #main,.curtained #hp-hamburger,.curtained #rail-scrim{display:none!important}#curtain{display:none}.curtained #curtain{display:flex}</style>
 <script>
 (function(){try{
+  // Persist realgate intent BEFORE any curtain redirect strips the query. The tester/crew
+  // redirect below lands on a bare path, so without this a fresh visit to
+  // ?tester=...&realgate=1 would drop realgate and run un-gated. Mirrors result-v2.js.
+  var g=/[?&]realgate=([01])/.exec(location.search||"");
+  if(g){ if(g[1]==="1")localStorage.setItem("gas_realgate","1"); else localStorage.removeItem("gas_realgate"); }
   if(document.cookie.indexOf("gas_crew=ok")!==-1||document.cookie.indexOf("gas_tester=ok")!==-1)return; // unlocked device (crew or tester): no curtain
   var m=/[?&]crew=([^&]*)/.exec(location.search||"");
   if(m){location.replace("/api/crew?code="+encodeURIComponent(m[1])+"&to="+encodeURIComponent(location.pathname||"/"));return;}

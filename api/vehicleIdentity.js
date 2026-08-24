@@ -9,6 +9,7 @@ import { createHash } from "node:crypto";
 import { resolveVehicle } from "../lib/vehicle.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { recordUsageEvent, anthropicCost } from "./_usage.js";
+import { testerCodeExpired } from "../lib/_tester.js";
 
 const EXTRACT_MODEL = process.env.SAM_MODEL || "claude-sonnet-4-6";
 const EXTRACT_SYS = `Extract vehicle facts from a message someone typed about a car they may sell. Reply with ONLY a JSON object, no prose:
@@ -88,8 +89,15 @@ export default async function handler(req, res) {
   // Spec D: server-side curtain seal (same gate as the decision API). Pre-launch,
   // non-crew requests are refused here, not merely hidden by CSS. Env-gated
   // (CURTAIN_SEALED=1), default off; removed on launch day with the curtain.
-  if (process.env.CURTAIN_SEALED === "1" && (req.headers.cookie || "").indexOf("gas_crew=ok") === -1) {
-    return res.status(403).json({ status: "sealed", error: "Not open yet." });
+  // Honor BOTH crew and (non-expired) tester cookies, identically to sellerDecision's
+  // seal. The old crew-only check 403'd every tester session on the resolver call, so a
+  // real tester-link visitor could never get past vehicle resolution while sealed.
+  if (process.env.CURTAIN_SEALED === "1") {
+    const cookie = req.headers.cookie || "";
+    const testerOk = cookie.indexOf("gas_tester=ok") !== -1 && !testerCodeExpired();
+    if (cookie.indexOf("gas_crew=ok") === -1 && !testerOk) {
+      return res.status(403).json({ status: "sealed", error: "Not open yet." });
+    }
   }
 
   const raw = req.body?.text || req.body?.car || req.body?.search || req.body?.query;
