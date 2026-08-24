@@ -1184,7 +1184,47 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "beehiivprobe", bhsPrefix: bhs.slice(0, 8) + (bhs.length > 8 ? "..." : ""), result: { ...r, email: emailMasked } });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|beehiivprobe." });
+  // task=identitycheck: read-only. (a) scans the accounts table for duplicate emails
+  // (same email under >1 user_id = linking OFF, downstream symptom); (b) lists auth.users
+  // (source of truth) grouped by email, so >1 user row per email proves linking OFF, and a
+  // single row carrying multiple identity providers (e.g. google + email) proves linking ON.
+  // Emails masked (PII). Confirms identity linking from existing data, no new sign-in needed.
+  if (task === "identitycheck") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const mask = e => { const s = String(e || ""); if (s.indexOf("@") < 0) return s ? "***" : s; const [u, d] = s.split("@"); return (u[0] || "") + "***@" + d; };
+    const accts = await supabaseSelect(env, `accounts?select=user_id,email,tier,created_at&limit=10000`) || [];
+    const byAcct = {};
+    for (const r of accts) { const e = String(r.email || "").toLowerCase(); (byAcct[e] = byAcct[e] || []).push(r); }
+    const acctDupes = Object.entries(byAcct).filter(([, l]) => l.length > 1)
+      .map(([e, l]) => ({ email: mask(e), count: l.length, tiers: l.map(x => x.tier), userIds: l.map(x => String(x.user_id).slice(0, 8) + "...") }));
+    // auth.users via the GoTrue admin API.
+    const users = [];
+    for (let page = 1; page <= 10; page++) {
+      let r; try { r = await fetch(`${env.supabaseUrl}/auth/v1/admin/users?page=${page}&per_page=200`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); } catch (e) { break; }
+      if (!r.ok) break;
+      const j = await r.json().catch(() => ({}));
+      const list = j.users || (Array.isArray(j) ? j : []);
+      if (!list.length) break;
+      users.push(...list); if (list.length < 200) break;
+    }
+    const byUser = {};
+    for (const u of users) { const e = String(u.email || "").toLowerCase(); (byUser[e] = byUser[e] || []).push(u); }
+    const authDupes = Object.entries(byUser).filter(([, l]) => l.length > 1)
+      .map(([e, l]) => ({ email: mask(e), userRows: l.length, providersPerRow: l.map(u => (u.identities || []).map(i => i.provider)), createdAt: l.map(u => u.created_at) }));
+    const linkedMultiProvider = Object.entries(byUser).filter(([, l]) => l.length === 1 && (l[0].identities || []).length > 1)
+      .map(([e, l]) => ({ email: mask(e), providers: (l[0].identities || []).map(i => i.provider) }));
+    const lookup = req.query?.email ? String(req.query.email).toLowerCase() : null;
+    const lookupResult = lookup ? { email: mask(lookup), userRows: (byUser[lookup] || []).length, providersPerRow: (byUser[lookup] || []).map(u => (u.identities || []).map(i => i.provider)), accountRows: (byAcct[lookup] || []).length } : null;
+    return res.status(200).json({
+      task: "identitycheck",
+      accounts: { total: accts.length, distinctEmails: Object.keys(byAcct).length, duplicateEmailGroups: acctDupes.length, dupes: acctDupes },
+      authUsers: { total: users.length, distinctEmails: Object.keys(byUser).length, duplicateEmailGroups: authDupes.length, dupes: authDupes, linkedMultiProviderExamples: linkedMultiProvider.slice(0, 10) },
+      lookup: lookupResult,
+      verdict: authDupes.length > 0 ? "LINKING_OFF (duplicate auth.users per email found)" : linkedMultiProvider.length > 0 ? "LINKING_ON (a user carries multiple providers in one row)" : "INCONCLUSIVE (no email yet used via two different providers)"
+    });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|beehiivprobe|identitycheck." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
