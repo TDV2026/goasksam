@@ -1256,7 +1256,18 @@ async function handleOps(req, res) {
     });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|beehiivprobe|identitycheck|otpselftest." });
+  // task=limits: read-only. The LIVE per-tier search caps (rate_limits table) + the
+  // app_config abuse dials, so the configured numbers can be tested against reality.
+  if (task === "limits") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const rl = await supabaseSelect(env, `rate_limits?select=tier,monthly_searches,daily_searches&order=tier.asc`) || [];
+    const keys = ["tester_cap_day", "ip_cap_all_hour", "ip_cap_anon_day", "ocd_auth_reserved_requests", "tier_recheck_days"];
+    const ac = await supabaseSelect(env, `app_config?select=key,value&key=in.(${keys.join(",")})`) || [];
+    const config = {}; for (const r of ac) config[r.key] = r.value;
+    return res.status(200).json({ task: "limits", rate_limits: rl, app_config_dials: config, note: "anonymous = 1 free search then account_required (gas_free_used cookie); crew = unlimited; tester cookie = tester_cap_day on a separate counter" });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|beehiivprobe|identitycheck|otpselftest|limits." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
