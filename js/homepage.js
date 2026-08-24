@@ -391,7 +391,14 @@ async function submitHunt() {
 }
 
 // ---- boot (browser only; harness-safe) ----
-function bootHomepage() { try { enterHomeState(); } catch (e) {} }
+function bootHomepage() {
+  try { enterHomeState(); } catch (e) {}
+  // #1 (gate timing): homepage.js is the last boot script, so the home surface it
+  // just painted would otherwise overwrite the upfront limit wall authBoot rendered.
+  // Re-run the check here so the wall is the final word for a depleted anonymous
+  // visitor (the signed-in case re-checks in authBoot after the async account load).
+  try { if (typeof gateCheckUpfront === "function") gateCheckUpfront(); } catch (e) {}
+}
 if (typeof document !== "undefined" && document.body && document.body.classList
   && typeof document.body.classList.contains === "function" && document.body.classList.contains("home")) {
   if (document.getElementById("inp") && typeof document.getElementById("inp").addEventListener === "function") {

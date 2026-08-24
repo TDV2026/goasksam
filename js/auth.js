@@ -459,7 +459,11 @@ function gasCookie(name) {
 // their one free search. Crew and tester devices bypass unconditionally.
 function gateCheckUpfront() {
   try {
-    if (gasCookie("gas_crew") === "ok" || gasCookie("gas_tester") === "ok") return false;
+    // Crew/tester devices bypass, matching the backend gate, UNLESS realgate is on
+    // (?realgate=1). realgate makes a crew device run the real gate for testing, so
+    // the upfront wall must appear then too (the backend honors it as forceGate).
+    const realgate = (typeof gasRealGate === "function") && gasRealGate();
+    if (!realgate && (gasCookie("gas_crew") === "ok" || gasCookie("gas_tester") === "ok")) return false;
     if (typeof authIsSignedIn === "function" && authIsSignedIn()) {
       const d = (typeof authAccount === "function") && authAccount() && authAccount().daily;
       if (d && d.dailyRemaining != null && d.dailyRemaining <= 0) {
