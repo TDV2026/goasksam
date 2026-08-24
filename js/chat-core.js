@@ -106,6 +106,19 @@ function preserveDetailedVehicleLabel(candidate,canonical){
 // Verdict as one of: "valid" (verified model), "unverified" (accepted but no
 // catalog match), "handled" (a did-you-mean/clarification was rendered), or
 // "not_vehicle". No code may set sellState.carName from raw text and skip this.
+// (a) Fail CLOSED on a resolver error: a network failure, non-ok/sealed response, or
+// any unrecognized status must NEVER be treated as "accept the raw typed text and
+// proceed" (the old fail-open let a misspelled marque skip the typo confirm, the model
+// question and the out-of-scope gate, and run the whole search on the raw string). Re-ask
+// the vehicle, every gate intact. Returns false so callers halt; opts.silentError
+// suppresses the seller-facing line (e.g. a background probe that will re-ask itself).
+function identityResolveError(opts){
+  sellState.lastIdentityVerdict="error";
+  if(!(opts&&opts.silentError)&&typeof addMsg==="function"){
+    addMsg("sam","I couldn't check that one just now. Mind giving me the year, make and model again?");
+  }
+  return false;
+}
 async function resolveVehicleInput(candidate,opts={}){
   sellState.vehicleIdentityValidated=false;
   sellState.resolvedVehicle=null;
@@ -114,9 +127,20 @@ async function resolveVehicleInput(candidate,opts={}){
   // finally below removes it right before the next question/clarification renders.
   if(typeof showVehicleLookup==="function")showVehicleLookup();
   try{
-    const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:candidate})});
-    const data=await res.json();
-    if(!res.ok||!data)return true;
+    // (b) Collapse the double /api/vehicleIdentity call: the cold-entry probe already
+    // resolved this exact text, so reuse its result instead of firing a second request
+    // (which halved the LLM cost and, more importantly, the failure surface that fed
+    // the fail-open above).
+    let res,data;
+    if(opts.preresolved&&opts.preresolvedText===candidate){
+      res={ok:true}; data=opts.preresolved;
+    }else{
+      try{
+        res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:candidate})});
+        data=await res.json();
+      }catch(e){ return identityResolveError(opts); }
+    }
+    if(!res.ok||!data) return identityResolveError(opts);
     // Model-level archive count for the out-of-scope gate + rarity wording.
     if(data.archiveModelCount!==undefined)sellState.archiveModelCount=data.archiveModelCount;
     // Field hints apply regardless of resolution status: a location or price
@@ -169,12 +193,15 @@ async function resolveVehicleInput(candidate,opts={}){
       sellState.lastIdentityVerdict="handled";
       return false;
     }
+    // (a) Any other/unrecognized status (e.g. a sealed body, or a shape we do not
+    // handle): fail closed, never silently accept the raw typed text.
+    return identityResolveError(opts);
   }catch(e){
-    return true;
+    // (a) Any processing error also fails closed rather than accepting raw text.
+    return identityResolveError(opts);
   }finally{
     if(typeof hideVehicleLookup==="function")hideVehicleLookup();
   }
-  return true;
 }
 // Back-compat alias: existing call sites keep working while the canonical name
 // is resolveVehicleInput. Both refer to the one resolver above.

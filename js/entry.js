@@ -222,7 +222,9 @@ async function send(){
       const probe=await probeRes.json();
       const understood=probe?.vehicle&&(probe.vehicle.make||probe.vehicle.model);
       if(probeRes.ok&&(probe.status==="valid"||probe.status==="needs_confirmation"||understood)){
-        startSellFlow(q,false);
+        // (b) Hand the probe's resolution to the wizard so its preflight reuses it
+        // instead of firing a second identical /api/vehicleIdentity call.
+        startSellFlow(q,false,{text:q,data:probe});
         document.getElementById("btn").disabled=false;
         return;
       }

@@ -105,7 +105,17 @@ export default async function handler(req, res) {
     let result = await resolveVehicle(raw, resolveOpts);
     let fallbackUsed = null;
 
-    if (nothingUnderstood(result) || dirtyInput(result)) {
+    // (b) A misspelled marque must ALWAYS land on the deterministic typo confirmation
+    // ("Did you mean the Porsche?"), never the non-deterministic LLM extraction fallback
+    // (which, being an LLM call, sometimes returned the "type it in one line" retype
+    // prompt for the same input). When the deterministic pass already produced a
+    // confident typo confirmation carrying a make, that IS the answer: short-circuit the
+    // LLM so the outcome is stable across identical inputs.
+    const confidentTypoConfirm = result.status === "needs_confirmation"
+      && result.clarification?.kind === "typo_confirmation"
+      && !!result.vehicle?.make;
+
+    if (!confidentTypoConfirm && (nothingUnderstood(result) || dirtyInput(result))) {
       const wasDirtyArbitration = !nothingUnderstood(result);
       var extraction = await llmExtractVehicle(String(raw), env);
       var parsed = extraction?.parsed;

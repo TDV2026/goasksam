@@ -1029,7 +1029,7 @@ function sellerFunnelReply(){
   return "Tell me the car and I’ll compare recent platform performance, timing patterns and PowerSeller fit before recommending what I’d do. A few quick questions, under a minute.";
 }
 
-function startSellFlow(initialCar, showUserBubble=true){
+function startSellFlow(initialCar, showUserBubble=true, preresolved=null){
   resetSellState();
   sellState.active=true;sellState.step=1;
   if(typeof gasFunnel==="function")gasFunnel("wizard_start");  // 2F
@@ -1049,7 +1049,11 @@ function startSellFlow(initialCar, showUserBubble=true){
     const carName=cleanInitialCarText(initialCar);
     sellState.carRaw=initialCar;sellState.carName=carName||initialCar;sellState.vehicleIdentityValidated=false;
     setTimeout(async()=>{
-      if(!(await validateVehicleIdentityPreflight(sellState.carName,{chatFallback:true}))){
+      // (b) Reuse the cold-entry probe's resolution for this exact text so the wizard
+      // does not fire a second identical /api/vehicleIdentity call.
+      const preOpts={chatFallback:true};
+      if(preresolved&&preresolved.text===sellState.carName){preOpts.preresolved=preresolved.data;preOpts.preresolvedText=sellState.carName;}
+      if(!(await validateVehicleIdentityPreflight(sellState.carName,preOpts))){
         if(sellState.lastIdentityVerdict==="not_vehicle"){
           sellState.carName=null;sellState.carRaw=null;
           addMsg("sam",sellerFunnelReply(),"",chipsHTML(["Start the questions"]));
