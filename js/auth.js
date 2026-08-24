@@ -109,7 +109,7 @@ async function authVerifyCode() {
     await authEnsureAccount();
     authRenderTopbar();
     authCloseModal();
-    if (typeof gateResumePendingSearch === "function") gateResumePendingSearch();
+    if (typeof gateAfterSignup === "function") gateAfterSignup();
   } catch (e) { authCardError("I couldn't verify that code just now. Try again in a moment."); }
 }
 async function authSignOut() {
@@ -135,7 +135,9 @@ async function authEnsureAccount() {
     });
     if (!res.ok) { if (res.status === 401) authSetSession(null); return null; }
     const acc = await res.json();
-    __authAccount = { email: acc.email, tier: acc.tier, marketingConsent: acc.marketingConsent };
+    // daily = { dailyLimit, dailyUsed, dailyRemaining } | null. Drives the upfront
+    // gate (#1): a signed-in user with 0 remaining is told before the wizard.
+    __authAccount = { email: acc.email, tier: acc.tier, marketingConsent: acc.marketingConsent, daily: acc.daily || null };
     try { if (claimId) localStorage.removeItem("gas_free_result"); } catch (e) {}
     return __authAccount;
   } catch (e) { return null; }
@@ -257,7 +259,8 @@ async function authBoot() {
     await authEnsureAccount();       // create/refresh the account row (+ apply consent, claim result)
     authRenderTopbar();              // repaint with the resolved email/tier
   }
-  if (returned) { authCloseModal(); gateResumePendingSearch(); }  // 11d: resume the search that hit the gate
+  if (returned) { authCloseModal(); gateAfterSignup(); }  // #2: land on the claimed result after a wall signup
+  else { gateCheckUpfront(); }                             // #1: tell a depleted visitor before the wizard
   gasFunnelOnce("homepage_view");  // 2F: one homepage_view per session
 }
 
@@ -417,9 +420,11 @@ function gateRenderStatus(data) {
     // Daily wall (the only per-user limit now): locked copy, two variants selected
     // by the account's daily cap (n). Resets at midnight ET; no monthly credits.
     const n = Number(data && data.dailyCap) || 1;
+    // The search that hit the wall did NOT run, so only claim saving for the ones that
+    // actually completed ("the one you ran" / "the ones you ran"), never the blocked attempt.
     const line = n === 1
-      ? "That's your search for today. It resets tomorrow, and everything you've run is saved under your results. See you then."
-      : `That's your ${n} for today. Your searches reset tomorrow, and everything you've run is saved under your results. See you then.`;
+      ? "That's your search for today. It resets tomorrow, and the one you ran is saved under your results. See you then."
+      : `That's your ${n} for today. Your searches reset tomorrow, and the ones you ran are saved under your results. See you then.`;
     gateAppendCard(`<div class="sam-text">${authEsc(line)}</div>`);
   } else if (status === "tester_daily_limit_reached") {
     // Tester cohort daily wall. No account nag (testers are deliberately account
@@ -435,7 +440,56 @@ function gateRenderStatus(data) {
     gateAppendCard(`<div class="sam-text">I'm flat out right now. Give it a few minutes, or create a free account and I'll get to your search.</div><div class="sell-rec-actions"><button class="primary" onclick="gateCreateAccount()">Create a free account</button></div>`);
   }
 }
-function gateCreateAccount() { gateStashPendingSearch(); openSignInCard("Create a free account to keep going. I'll keep your results."); }
+function gateCreateAccount() {
+  gateStashPendingSearch();
+  try { localStorage.setItem("gas_gate_signup", "1"); } catch (e) {}  // #2: mark this as a wall-triggered signup
+  openSignInCard("Create a free account to keep going. I'll keep your results.");
+}
+// Read a non-HttpOnly cookie by name (gas_free_used, gas_crew, gas_tester).
+function gasCookie(name) {
+  try {
+    const m = document.cookie.match(new RegExp("(?:^|; )" + name.replace(/[.$?*|{}()[\]\\/+^]/g, "\\$&") + "=([^;]*)"));
+    return m ? decodeURIComponent(m[1]) : null;
+  } catch (e) { return null; }
+}
+// #1 (gate timing): surface the daily limit BEFORE the wizard, not after a full car
+// entry. On the search surface, if the visitor has no searches left today, show the
+// wall as the first thing. Signed-in users check their real daily remaining (from
+// /api/account); anonymous visitors check the free-used cookie the backend sets after
+// their one free search. Crew and tester devices bypass unconditionally.
+function gateCheckUpfront() {
+  try {
+    if (gasCookie("gas_crew") === "ok" || gasCookie("gas_tester") === "ok") return false;
+    if (typeof authIsSignedIn === "function" && authIsSignedIn()) {
+      const d = (typeof authAccount === "function") && authAccount() && authAccount().daily;
+      if (d && d.dailyRemaining != null && d.dailyRemaining <= 0) {
+        gateShowUpfrontWall({ status: "daily_limit_reached", dailyCap: d.dailyLimit });
+        return true;
+      }
+    } else if (gasCookie("gas_free_used")) {
+      gateShowUpfrontWall({ status: "account_required" });
+      return true;
+    }
+  } catch (e) {}
+  return false;
+}
+function gateShowUpfrontWall(data) {
+  if (typeof hideHero === "function") hideHero();
+  if (typeof enterChatState === "function") enterChatState();
+  const msgs = document.getElementById("msgs"); if (msgs) msgs.innerHTML = "";
+  gateRenderStatus(data);
+}
+// #2 (return-to-result): after a wall-triggered signup, land the user on their claimed
+// result (the account-keyed "Your results" surface) rather than re-running the blocked
+// search or dropping to a blank homepage. The pending-search stash is cleared, never
+// re-run: signup returns them to what they already ran, not a fresh, quota-spending one.
+function gateAfterSignup() {
+  let gated = false;
+  try { gated = localStorage.getItem("gas_gate_signup") === "1"; } catch (e) {}
+  try { localStorage.removeItem("gas_gate_signup"); localStorage.removeItem("gas_pending_search"); } catch (e) {}
+  if (gated && typeof showSavedResults === "function") { showSavedResults(); return true; }
+  return false;
+}
 // 11d: stash the search that hit the gate so it resumes after sign-in.
 function gateStashPendingSearch() {
   try {

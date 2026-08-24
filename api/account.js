@@ -93,6 +93,51 @@ function publicAccount(row) {
   };
 }
 
+// ms that `timeZone` is ahead of UTC at `date` (handles DST).
+function tzOffsetMs(date, timeZone) {
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone, hourCycle: "h23",
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit"
+  });
+  const m = {};
+  for (const p of dtf.formatToParts(date)) m[p.type] = p.value;
+  const asUTC = Date.UTC(+m.year, +m.month - 1, +m.day, +m.hour, +m.minute, +m.second);
+  return asUTC - date.getTime();
+}
+// Start-of-day in `timeZone` as a UTC ISO string. Matches the reserve_search RPC,
+// which day-truncates in app_config.day_timezone (default America/New_York), so the
+// upfront count and the reserving count share one day boundary.
+function dayStartIsoInTz(timeZone) {
+  const now = new Date();
+  const off = tzOffsetMs(now, timeZone);
+  const wall = new Date(now.getTime() + off);
+  const wallMidnight = Date.UTC(wall.getUTCFullYear(), wall.getUTCMonth(), wall.getUTCDate(), 0, 0, 0);
+  return new Date(wallMidnight - off).toISOString();
+}
+// Read-only view of the signed-in user's daily search allowance. Never reserves.
+// { dailyLimit, dailyUsed, dailyRemaining } - a null limit means no daily cap
+// (unlimited, e.g. crew), and dailyRemaining is then null. Best-effort: any failure
+// returns nulls so the account bootstrap never breaks over a quota read.
+async function dailyQuota(env, userId, tier) {
+  const nulls = { dailyLimit: null, dailyUsed: 0, dailyRemaining: null };
+  try {
+    const rl = await supabaseSelect(env, `rate_limits?tier=eq.${encodeURIComponent(tier)}&select=daily_searches&limit=1`);
+    const dl = rl && rl[0] && rl[0].daily_searches;
+    const dailyLimit = (dl === null || dl === undefined) ? null : Number(dl);
+    if (dailyLimit === null || !Number.isFinite(dailyLimit)) return nulls;
+    let tz = "America/New_York";
+    try {
+      const cfg = await supabaseSelect(env, `app_config?key=eq.day_timezone&select=value&limit=1`);
+      const v = cfg && cfg[0] && cfg[0].value;
+      if (typeof v === "string" && v) tz = v.replace(/^"|"$/g, "");
+    } catch {}
+    const dayStart = dayStartIsoInTz(tz);
+    const rows = await supabaseSelect(env, `search_events?user_id=eq.${userId}&created_at=gte.${encodeURIComponent(dayStart)}&select=id`);
+    const dailyUsed = Array.isArray(rows) ? rows.length : 0;
+    return { dailyLimit, dailyUsed, dailyRemaining: Math.max(0, dailyLimit - dailyUsed) };
+  } catch { return nulls; }
+}
+
 export default async function handler(req, res) {
   cors(res);
   if (req.method === "OPTIONS") { res.status(204).end(); return; }
@@ -137,6 +182,7 @@ export default async function handler(req, res) {
       await funnel(env, "signup_completed", { user_id: auth.userId, dedup_key: `signup:${auth.userId}` });
       const claimedNew = await claimResultIfAny(req, env, auth.userId);
       const respNew = publicAccount(created); if (claimedNew !== undefined) respNew.claimed = claimedNew;
+      respNew.daily = await dailyQuota(env, auth.userId, respNew.tier);
       res.status(200).json(respNew);
       return;
     }
@@ -162,6 +208,7 @@ export default async function handler(req, res) {
     }
     const claimed = await claimResultIfAny(req, env, auth.userId);
     const resp = publicAccount(row); if (claimed !== undefined) resp.claimed = claimed;
+    resp.daily = await dailyQuota(env, auth.userId, resp.tier);
     res.status(200).json(resp);
   } catch (err) {
     res.status(500).json({ error: err.message });
