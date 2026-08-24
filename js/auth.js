@@ -106,7 +106,7 @@ async function authVerifyCode() {
     const now = Math.floor(Date.now() / 1000);
     authSetSession({ access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || (now + (j.expires_in || 3600)), email: (j.user && j.user.email) || email });
     authRenderTopbar();
-    await authEnsureAccount();
+    await authEnsureAccount({ forceRecheck: true });   // fresh sign-in: pick up a just-made TDV subscription now
     authRenderTopbar();
     authCloseModal();
     if (typeof gateAfterSignup === "function") gateAfterSignup();
@@ -120,7 +120,7 @@ async function authSignOut() {
 }
 
 // ---------------- account ensure ----------------
-async function authEnsureAccount() {
+async function authEnsureAccount(opts) {
   const token = await authValidToken(); if (!token) return null;
   const consent = authPopConsent();
   // 11a: claim the anonymous free result onto the new account (attach, never rerun).
@@ -128,6 +128,10 @@ async function authEnsureAccount() {
   const body = {};
   if (consent !== undefined) body.marketingConsent = consent;
   if (claimId) body.claimResultId = claimId;
+  // Item 2: force a live Beehiiv tier re-check (on fresh sign-in, or a mid-wall
+  // "Refresh your plan" tap) so a just-subscribed reader is upgraded to TDV now,
+  // not up to 7 days later when the cached tier goes stale.
+  if (opts && opts.forceRecheck) body.recheckTier = true;
   try {
     const res = await fetch(authApiPath("/api/account"), {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -209,7 +213,7 @@ function openSignInCard(subtitle) {
   const prefill = authEsc(__authPrefillEmail || "");
   scrim.innerHTML = `<div class="hp-dialog auth-dialog">
     <h3>Sign in to GoAskSam</h3>
-    <p>${authEsc(subtitle || "Create a free account to run more searches and keep your results.")}</p>
+    <p>${authEsc(subtitle || "Create a free account to run more searches.")}</p>
     <button class="auth-google" onclick="authSignInGoogle()">Continue with Google</button>
     <div class="auth-or"><span>or</span></div>
     <label class="auth-label" for="auth-email">Email me a sign-in code</label>
@@ -245,9 +249,12 @@ function authRenderTopbar() {
   } else {
     area.innerHTML = `<button class="hp-signin" onclick="openSignInCard()">Sign in</button>`;
   }
-  // Spec E: the "Your results" rail entry is signed-in only.
+  // Saved-results surface is HIDDEN for launch (the page still exists and the save
+  // pipeline keeps running; only the entry point is removed). Keep the "Your results"
+  // rail entry hidden for everyone, signed in or not. Re-enable post-launch by
+  // restoring the signed-in toggle here.
   const savedNav = document.getElementById("nav-saved");
-  if (savedNav) savedNav.style.display = authIsSignedIn() ? "" : "none";
+  if (savedNav) savedNav.style.display = "none";
 }
 
 // ---------------- boot ----------------
@@ -256,7 +263,9 @@ async function authBoot() {
   const returned = authHandleCallback();
   authRenderTopbar();               // immediate paint from stored session
   if (authIsSignedIn()) {
-    await authEnsureAccount();       // create/refresh the account row (+ apply consent, claim result)
+    // Fresh sign-in (returned via Google/magic-link callback) forces a live tier
+    // re-check so a just-subscribed reader is TDV immediately; a normal load does not.
+    await authEnsureAccount(returned ? { forceRecheck: true } : undefined);
     authRenderTopbar();              // repaint with the resolved email/tier
   }
   if (returned) { authCloseModal(); gateAfterSignup(); }  // #2: land on the claimed result after a wall signup
@@ -399,13 +408,13 @@ function gateAppendCard(html) {
 }
 // The subtle "first one's on me" line under the free result (amendment item 2).
 function gateAppendFirstFreeLine() {
-  gateAppendCard(`<div class="sam-text gate-firstfree">Your first one's on me. <button class="gate-inline-link" onclick="gateCreateAccount()">Create a free account</button> for more searches and to keep your results.</div>`);
+  gateAppendCard(`<div class="sam-text gate-firstfree">Your first one's on me. <button class="gate-inline-link" onclick="gateCreateAccount()">Create a free account</button> for a search every day. Daily Vroom readers get three, so if you want more, <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">subscribe</a> free with the same email.</div>`);
 }
 // Render the calm Sam-voiced card for each gate status (2D refines the copy).
 function gateRenderStatus(data) {
   const status = data && data.status;
   if (status === "account_required") {
-    gateAppendCard(`<div class="sam-text">That first search was on me. Create a free account to keep going, and I'll hold onto your results.</div><div class="sell-rec-actions"><button class="primary" onclick="gateCreateAccount()">Create a free account</button></div>`);
+    gateAppendCard(`<div class="sam-text">That first search was on me. Create a free account for a search every day. Daily Vroom readers get three, so if you want more, <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">subscribe</a> free with the same email.</div><div class="sell-rec-actions"><button class="primary" onclick="gateCreateAccount()">Create a free account</button></div>`);
   } else if (status === "limit_reached") {
     // MONTHLY wall - now UNREACHABLE for standard tiers (daily-only policy: free +
     // tdv have monthly_searches = null, so reserve_search never returns
@@ -417,15 +426,17 @@ function gateRenderStatus(data) {
       gateAppendCard(`<div class="sam-text">That's your free searches for this month. Daily Vroom readers get more, on the house. <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">Join free &rarr;</a></div><div class="sam-text gate-sub">Already a reader? <button class="gate-inline-link" onclick="openSignInCard('Sign in with the email you subscribed with and your searches are yours.')">Sign in with the email you subscribed with</button>.</div>`);
     }
   } else if (status === "daily_limit_reached") {
-    // Daily wall (the only per-user limit now): locked copy, two variants selected
-    // by the account's daily cap (n). Resets at midnight ET; no monthly credits.
+    // Daily wall (the only per-user limit now). Resets at midnight ET; no monthly
+    // credits. Branch by tier: free tier gets the TDV pitch (three a day) plus a
+    // refresh affordance so a same-session subscriber upgrades without re-signing-in;
+    // TDV tier gets a plain reset line with no subscribe mention.
     const n = Number(data && data.dailyCap) || 1;
-    // The search that hit the wall did NOT run, so only claim saving for the ones that
-    // actually completed ("the one you ran" / "the ones you ran"), never the blocked attempt.
-    const line = n === 1
-      ? "That's your search for today. It resets tomorrow, and the one you ran is saved under your results. See you then."
-      : `That's your ${n} for today. Your searches reset tomorrow, and the ones you ran are saved under your results. See you then.`;
-    gateAppendCard(`<div class="sam-text">${authEsc(line)}</div>`);
+    if ((data && data.tier) === "tdv") {
+      const line = n > 1 ? `That's your ${n} for today. It resets tomorrow.` : "That's your search for today. It resets tomorrow.";
+      gateAppendCard(`<div class="sam-text">${authEsc(line)}</div>`);
+    } else {
+      gateAppendCard(`<div class="sam-text">That's your search for today. It resets tomorrow. Want three a day? <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">Subscribe</a> to The Daily Vroom, free, with the email you signed in with.</div><div class="sam-text gate-sub">Already subscribed? <button class="gate-inline-link" onclick="gateRefreshTier()">Refresh your plan</button>.</div>`);
+    }
   } else if (status === "tester_daily_limit_reached") {
     // Tester cohort daily wall. No account nag (testers are deliberately account
     // free); resets at midnight ET. Locked copy, no dashes.
@@ -443,7 +454,7 @@ function gateRenderStatus(data) {
 function gateCreateAccount() {
   gateStashPendingSearch();
   try { localStorage.setItem("gas_gate_signup", "1"); } catch (e) {}  // #2: mark this as a wall-triggered signup
-  openSignInCard("Create a free account to keep going. I'll keep your results.");
+  openSignInCard("Create a free account to keep going.");
 }
 // Read a non-HttpOnly cookie by name (gas_free_used, gas_crew, gas_tester).
 function gasCookie(name) {
@@ -467,7 +478,7 @@ function gateCheckUpfront() {
     if (typeof authIsSignedIn === "function" && authIsSignedIn()) {
       const d = (typeof authAccount === "function") && authAccount() && authAccount().daily;
       if (d && d.dailyRemaining != null && d.dailyRemaining <= 0) {
-        gateShowUpfrontWall({ status: "daily_limit_reached", dailyCap: d.dailyLimit });
+        gateShowUpfrontWall({ status: "daily_limit_reached", dailyCap: d.dailyLimit, tier: authAccount().tier });
         return true;
       }
     } else if (gasCookie("gas_free_used")) {
@@ -483,16 +494,38 @@ function gateShowUpfrontWall(data) {
   const msgs = document.getElementById("msgs"); if (msgs) msgs.innerHTML = "";
   gateRenderStatus(data);
 }
-// #2 (return-to-result): after a wall-triggered signup, land the user on their claimed
-// result (the account-keyed "Your results" surface) rather than re-running the blocked
-// search or dropping to a blank homepage. The pending-search stash is cleared, never
-// re-run: signup returns them to what they already ran, not a fresh, quota-spending one.
+// After a wall-triggered signup, land the user on a clean HOME surface with their
+// signed-in state visible (topbar shows their email, quota now active). The saved-
+// results surface is hidden for launch, so we no longer route here; the claimed result
+// still saves silently for the post-launch results surface. The pending-search stash is
+// cleared, never re-run: signup returns them to a fresh search they can now run.
 function gateAfterSignup() {
   let gated = false;
   try { gated = localStorage.getItem("gas_gate_signup") === "1"; } catch (e) {}
   try { localStorage.removeItem("gas_gate_signup"); localStorage.removeItem("gas_pending_search"); } catch (e) {}
-  if (gated && typeof showSavedResults === "function") { showSavedResults(); return true; }
-  return false;
+  if (!gated) return false;
+  if (typeof enterHomeState === "function") enterHomeState();
+  if (typeof authRenderTopbar === "function") authRenderTopbar();
+  return true;
+}
+// Item 2: a free-tier seller who subscribed to The Daily Vroom mid-wall can refresh
+// their plan here without re-signing-in. Forces a live Beehiiv tier re-check; on an
+// upgrade with searches left today, they can search again straight away.
+async function gateRefreshTier() {
+  if (typeof authEnsureAccount !== "function") return;
+  const acc = await authEnsureAccount({ forceRecheck: true });
+  const tier = acc && acc.tier;
+  const d = acc && acc.daily;
+  if (tier === "tdv") {
+    if (d && d.dailyRemaining != null && d.dailyRemaining > 0) {
+      gateAppendCard(`<div class="sam-text">You're all set. The Daily Vroom gives you three a day, so you've got ${authEsc(String(d.dailyRemaining))} more today. Tell me the next car.</div>`);
+    } else {
+      gateAppendCard(`<div class="sam-text">You're all set on The Daily Vroom's three a day. You've used today's, so I'll see you tomorrow.</div>`);
+    }
+    if (typeof authRenderTopbar === "function") authRenderTopbar();
+  } else {
+    gateAppendCard(`<div class="sam-text">I don't see a Daily Vroom subscription on this email yet. Subscribe with the same email you signed in with, then tap refresh again.</div>`);
+  }
 }
 // 11d: stash the search that hit the gate so it resumes after sign-in.
 function gateStashPendingSearch() {
