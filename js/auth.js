@@ -10,7 +10,7 @@ const AUTH_CONSENT_KEY = "gas_pending_consent";  // survives the sign-in redirec
 let __authConfig = null, __authConfigPromise = null;
 let __authAccount = null;      // { email, tier, marketingConsent } once ensured
 let __authPrefillEmail = "";
-let __authOtpEmail = "";        // the email a 6-digit code was sent to (for verify + resend)
+let __authOtpEmail = "";        // the email a one-time code was sent to (for verify + resend)
 
 function authApiPath(p) { return (typeof apiPath === "function") ? apiPath(p) : p; }
 function authEsc(s) { return (typeof escapeHtml === "function") ? escapeHtml(String(s == null ? "" : s)) : String(s == null ? "" : s); }
@@ -76,7 +76,7 @@ async function authSignInEmail() {
   if (consentEl) authStashConsent(!!consentEl.checked);
   __authOtpEmail = email;
   try {
-    // Code-only OTP (no magic link): the email template renders {{ .Token }}, a 6-digit
+    // Code-only OTP (no magic link): the email template renders {{ .Token }}, a numeric
     // code, so an email-scanner GET can't consume a link before the real user acts.
     const res = await fetch(`${cfg.supabaseUrl}/auth/v1/otp`, {
       method: "POST", headers: { "Content-Type": "application/json", apikey: cfg.anonKey },
@@ -86,12 +86,14 @@ async function authSignInEmail() {
     authRenderCheckEmail(email);
   } catch (e) { authCardError("I couldn't send the code just now. Try again in a moment."); }
 }
-// Verify the 6-digit code and finalize the session (mirrors authBoot's post-login steps).
+// Verify the code and finalize the session (mirrors authBoot's post-login steps).
 async function authVerifyCode() {
   const cfg = await authConfig(); if (!cfg) return authCardError("Sign-in isn't configured yet. Try again shortly.");
   const codeField = document.getElementById("auth-code");
   const code = String((codeField && codeField.value) || "").replace(/\s+/g, "").trim();
-  if (!/^\d{6}$/.test(code)) { authCardError("Enter the 6-digit code from your email."); return; }
+  // Length-agnostic: Supabase's OTP length is a dashboard setting (this project sends 8).
+  // Accept any 4-10 digit numeric code so the frontend never has to track that setting.
+  if (!/^\d{4,10}$/.test(code)) { authCardError("Enter the code from your email."); return; }
   const email = String(__authOtpEmail || "").trim();
   if (!email) { authCardError("Something went wrong. Close this and sign in again."); return; }
   try {
@@ -213,7 +215,7 @@ function openSignInCard(subtitle) {
     <button class="auth-email-btn" onclick="authSignInEmail()">Email me a code</button>
     <label class="auth-consent-row"><input id="auth-consent" type="checkbox" /> <span>Send me Sam's market notes</span></label>
     <div id="auth-error" class="auth-error" style="display:none"></div>
-    <div class="auth-fineprint">No passwords. We email you a one-time 6-digit code. Marketing notes only if you tick the box.</div>
+    <div class="auth-fineprint">No passwords. We email you a one-time code. Marketing notes only if you tick the box.</div>
   </div>`;
   document.body.appendChild(scrim);
   const f = document.getElementById("auth-email"); if (f && !prefill) { try { f.focus(); } catch (e) {} }
@@ -222,8 +224,8 @@ function authRenderCheckEmail(email) {
   const d = document.querySelector("#auth-modal .auth-dialog");
   if (!d) return;
   d.innerHTML = `<h3>Check your email</h3>
-    <p>I sent a 6-digit code to <strong>${authEsc(email)}</strong>. Enter it below and you're in.</p>
-    <input id="auth-code" class="auth-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" aria-label="6-digit code" />
+    <p>I sent a code to <strong>${authEsc(email)}</strong>. Enter it below and you're in.</p>
+    <input id="auth-code" class="auth-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="Enter the code" aria-label="Sign-in code" />
     <div id="auth-error" class="auth-error" style="display:none"></div>
     <button class="auth-email-btn" onclick="authVerifyCode()">Verify and sign in</button>
     <button onclick="authSignInEmail()" style="margin-top:10px;background:none;border:none;color:#6B6861;font-size:13px;cursor:pointer;text-decoration:underline">Resend code</button>`;

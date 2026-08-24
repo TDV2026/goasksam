@@ -1224,7 +1224,39 @@ async function handleOps(req, res) {
     });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|beehiivprobe|identitycheck." });
+  // task=otpselftest: read-only-ish diagnostic. Obtains a REAL email OTP server-side
+  // (admin generate_link -> email_otp), reports its LENGTH (not the code), and confirms
+  // the /auth/v1/verify call the frontend makes accepts it and returns a session. Proves
+  // the OTP length setting + the verify loop without needing an email inbox. Uses a throwaway
+  // address so it never touches a real user.
+  if (task === "otpselftest") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const email = String(req.query?.email || `otpselftest+${Date.now()}@thedailyvroom.com`).toLowerCase();
+    const anonKey = process.env.SUPABASE_ANON_KEY;
+    const gen = await fetch(`${env.supabaseUrl}/auth/v1/admin/generate_link`, {
+      method: "POST", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "magiclink", email })
+    });
+    if (!gen.ok) return res.status(200).json({ task: "otpselftest", step: "generate_link", ok: false, httpStatus: gen.status });
+    const gj = await gen.json().catch(() => ({}));
+    const props = gj.properties || gj || {};
+    const otp = String(props.email_otp || gj.email_otp || "");
+    const verifyWith = async (type) => {
+      const r = await fetch(`${env.supabaseUrl}/auth/v1/verify`, { method: "POST", headers: { apikey: anonKey || env.supabaseKey, "Content-Type": "application/json" }, body: JSON.stringify({ type, email, token: otp }) });
+      const j = await r.json().catch(() => ({}));
+      return { httpStatus: r.status, gotSession: !!(j && j.access_token) };
+    };
+    const asEmail = otp ? await verifyWith("email") : null;
+    const asMagic = (otp && !(asEmail && asEmail.gotSession)) ? await verifyWith("magiclink") : null;
+    return res.status(200).json({
+      task: "otpselftest", emailMasked: (email[0] || "") + "***@" + (email.split("@")[1] || ""),
+      otpLength: otp.length, otpIsNumeric: /^\d+$/.test(otp),
+      verify_type_email: asEmail, verify_type_magiclink: asMagic,
+      verdict: (asEmail && asEmail.gotSession) ? `verify(type:email) works with a ${otp.length}-digit code` : (asMagic && asMagic.gotSession) ? `only verify(type:magiclink) works (frontend uses type:email for the signInWithOtp flow, which is separate)` : "verify did not return a session"
+    });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|beehiivprobe|identitycheck|otpselftest." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
