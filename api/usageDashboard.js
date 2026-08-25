@@ -1343,6 +1343,33 @@ function etDayStart(date) {
   const mid = Date.UTC(wall.getUTCFullYear(), wall.getUTCMonth(), wall.getUTCDate(), 0, 0, 0);
   return new Date(mid - off);
 }
+// ET midnight of a YYYY-MM-DD (+addDays), as a UTC Date. For custom ranges (Item 4):
+// from = etMidnight(from,0), to = etMidnight(to,1) so the end date is inclusive.
+function etMidnightFromYMD(ymd, addDays) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd || "").trim());
+  if (!m) return null;
+  const y = +m[1], mo = +m[2], d = +m[3] + (addDays || 0);
+  const guess = new Date(Date.UTC(y, mo - 1, d, 12, 0, 0)); // noon UTC near the target ET day (DST-safe)
+  const off = etOffsetMs(guess);
+  return new Date(Date.UTC(y, mo - 1, d, 0, 0, 0) - off);
+}
+// Signed-in requester emails for a set of journey user_ids (accounts table). Chunked to
+// keep the PostgREST in-list URL bounded. Item 1: Journey Explorer email column.
+async function fetchEmailsByUserId(env, userIds) {
+  const map = new Map();
+  const ids = [...new Set((userIds || []).filter(Boolean))];
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100).join(",");
+    const accs = (await supabaseSelect(env, `accounts?user_id=in.(${chunk})&select=user_id,email`)) || [];
+    for (const a of accs) map.set(a.user_id, a.email);
+  }
+  return map;
+}
+// Preserve the Journey Explorer search filters (q/stage/ps/plat) across range/mode
+// toggles so switching Today/7d/custom keeps the current search (Item 4).
+function bizExtraQS(req) {
+  return ["q", "stage", "ps", "plat"].filter(n => req.query?.[n]).map(n => `&${n}=${encodeURIComponent(req.query[n])}`).join("");
+}
 
 // --- Journey Explorer new columns (Item 1): asking price, sell preference, timing.
 // All three come from journeys.vehicle_attrs (price / preference / timeline), captured
@@ -1385,9 +1412,10 @@ function bizRange(req) {
   if (r === "today") { since = etDayStart(now); label = "Today (ET)"; }   // ET day, matching the quota-day boundary
   else if (r === "30d") { since = new Date(now - 30 * 864e5); label = "Last 30 days"; }
   else if (r === "all") { since = new Date("2026-08-01T00:00:00Z"); label = "All time (since launch)"; }
-  else if (r === "custom" && req.query?.from) { since = new Date(String(req.query.from)); label = `${req.query.from} to ${req.query.to || "now"}`; }
+  else if (r === "custom" && req.query?.from) { since = etMidnightFromYMD(String(req.query.from), 0) || new Date(now - 7 * 864e5); label = `${req.query.from} to ${req.query.to || "now"} (ET)`; }
   else { since = new Date(now - 7 * 864e5); label = "Last 7 days"; }
-  const to = (r === "custom" && req.query?.to) ? new Date(String(req.query.to)) : now;
+  // Custom end date is inclusive: use the ET start of the day AFTER `to`.
+  const to = (r === "custom" && req.query?.to) ? (etMidnightFromYMD(String(req.query.to), 1) || now) : now;
   return { sinceIso: since.toISOString(), toIso: to.toISOString(), label, range: r };
 }
 
@@ -1485,12 +1513,18 @@ ${title !== "__bare" ? `<h1>${adminEsc(title)}</h1>` : ""}`;
 
 function bizFilters(req, view, opts = {}) {
   const k = bizKey(req), r = String(req.query?.range || "7d"), m = bizMode(req);
+  const xq = bizExtraQS(req);
   const rl = [["today", "Today"], ["7d", "7 days"], ["30d", "30 days"], ["all", "All time"]];
-  const rangeLinks = rl.map(([v, l]) => `<a class="${r === v ? "on" : ""}" href="?view=${view}&range=${v}&biz=${m}&key=${k}">${l}</a>`).join("");
-  if (opts.noMode) return `<div class="filters" style="margin:6px 0">${rangeLinks}</div>`;
+  const rangeLinks = rl.map(([v, l]) => `<a class="${r === v ? "on" : ""}" href="?view=${view}&range=${v}&biz=${m}&key=${k}${xq}">${l}</a>`).join("");
+  // Custom date range (Item 4): start/end dates, applied in ET. Preserves mode + search
+  // filters via hidden inputs, so it works the same as the fixed buttons and with CSV.
+  const from = adminEsc(req.query?.from || ""), to = adminEsc(req.query?.to || "");
+  const hid = ["q", "stage", "ps", "plat"].filter(n => req.query?.[n]).map(n => `<input type="hidden" name="${n}" value="${adminEsc(req.query[n])}">`).join("");
+  const customForm = `<form method="get" style="display:inline-flex;gap:5px;align-items:center;margin-left:6px;vertical-align:middle"><input type="hidden" name="view" value="${view}"><input type="hidden" name="biz" value="${m}"><input type="hidden" name="key" value="${k}"><input type="hidden" name="range" value="custom">${hid}<span style="color:#6b6861;font-size:12px">Custom${r === "custom" ? " ●" : ""}:</span> <input type="date" name="from" value="${from}" style="padding:3px 5px;border:1px solid var(--line);border-radius:5px;font:inherit"><span style="color:#a29e95">to</span> <input type="date" name="to" value="${to}" style="padding:3px 5px;border:1px solid var(--line);border-radius:5px;font:inherit"> <button>Apply</button></form>`;
+  if (opts.noMode) return `<div class="filters" style="margin:6px 0">${rangeLinks}${customForm}</div>`;
   const ml = [["exclude", "Real sellers"], ["include", "All (incl. testers)"], ["only", "Testers only"]];
-  const modeLinks = ml.map(([v, l]) => `<a class="${m === v ? "on" : ""}" href="?view=${view}&range=${r}&biz=${v}&key=${k}">${l}</a>`).join("");
-  return `<div class="filters" style="margin:6px 0">${rangeLinks} <span style="color:#c9c5bc">&nbsp;|&nbsp;</span> ${modeLinks}</div>`;
+  const modeLinks = ml.map(([v, l]) => `<a class="${m === v ? "on" : ""}" href="?view=${view}&range=${r}&biz=${v}&key=${k}${r === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${xq}">${l}</a>`).join("");
+  return `<div class="filters" style="margin:6px 0">${rangeLinks}${customForm} <span style="color:#c9c5bc">&nbsp;|&nbsp;</span> ${modeLinks}</div>`;
 }
 
 async function renderBusinessView(req, res) {
@@ -1733,9 +1767,12 @@ async function renderJourneysView(req, res) {
   if (fStage) rows = rows.filter(j => j.stage === fStage);
   if (fPs) rows = rows.filter(j => j.rec_powerseller === fPs);
   if (fPlat) rows = rows.filter(j => j.rec_platform === fPlat);
-  const tr = rows.slice(0, 300).map(j => `<tr>
+  const shown = rows.slice(0, 300);
+  const emailBy = await fetchEmailsByUserId(env, shown.map(j => j.user_id));   // Item 1: signed-in requester email
+  const tr = shown.map(j => `<tr>
     <td>${fmtDayET(j.created_at)}</td>
     <td><a class="jlink" href="?view=journeys&jid=${encodeURIComponent(j.journey_id)}&key=${bizKey(req)}">${adminEsc([j.vehicle_year, j.vehicle_make, j.vehicle_model].filter(Boolean).join(" ") || "?")}</a></td>
+    <td>${adminEsc(j.user_id ? (emailBy.get(j.user_id) || "") : "")}</td>
     <td>${adminEsc(j.vehicle_location || "")}</td>
     <td class="num">${fmtAsk(attrOf(j, "price"))}</td>
     <td>${prefLabel(attrOf(j, "preference"))}</td>
@@ -1752,9 +1789,9 @@ async function renderJourneysView(req, res) {
   const csvParams = extra => `?view=journeys&format=csv&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${extra}`;
   const html = `${bizChrome("Journey Explorer", key, "journeys")}
     ${bizFilters(req, "journeys")}
-    <form method="get" style="margin:8px 0"><input type="hidden" name="view" value="journeys"><input type="hidden" name="key" value="${bizKey(req)}"><input type="hidden" name="range" value="${range.range}"><input type="hidden" name="biz" value="${mode}"><input type="text" name="q" value="${adminEsc(req.query?.q || "")}" placeholder="Search vehicle or location"> <button>Search</button></form>
+    <form method="get" style="margin:8px 0"><input type="hidden" name="view" value="journeys"><input type="hidden" name="key" value="${bizKey(req)}"><input type="hidden" name="range" value="${range.range}"><input type="hidden" name="biz" value="${mode}">${range.range === "custom" ? `<input type="hidden" name="from" value="${adminEsc(req.query?.from || "")}"><input type="hidden" name="to" value="${adminEsc(req.query?.to || "")}">` : ""}<input type="text" name="q" value="${adminEsc(req.query?.q || "")}" placeholder="Search vehicle or location"> <button>Search</button></form>
     <div class="sub">${rows.length} journeys ${q || fStage || fPs || fPlat ? "(filtered)" : ""} &nbsp;·&nbsp; Download CSV (current filters): <a href="${csvParams("&dataset=journeys")}">journeys</a> · <a href="${csvParams("&dataset=journey_events")}">events</a> · <a href="${csvParams("&dataset=funnel_events")}">funnel</a></div>
-    <table><tr><th>Date</th><th>Vehicle</th><th>Location</th><th class="num">Asking</th><th>Preference</th><th>Timing</th><th>Recommendation</th><th>PowerSeller</th><th>Stage</th><th>Actual platform</th><th>Sale status</th><th class="num">Sale price</th><th class="num">Revenue</th></tr>${tr || `<tr><td colspan=13>No journeys.</td></tr>`}</table>
+    <table><tr><th>Date</th><th>Vehicle</th><th>Email</th><th>Location</th><th class="num">Asking</th><th>Preference</th><th>Timing</th><th>Recommendation</th><th>PowerSeller</th><th>Stage</th><th>Actual platform</th><th>Sale status</th><th class="num">Sale price</th><th class="num">Revenue</th></tr>${tr || `<tr><td colspan=14>No journeys.</td></tr>`}</table>
   </div>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.status(200).send(html);
@@ -1784,8 +1821,9 @@ async function renderCsvExport(req, res) {
     if (fStage) rows = rows.filter(j => j.stage === fStage);
     if (fPs) rows = rows.filter(j => j.rec_powerseller === fPs);
     if (fPlat) rows = rows.filter(j => j.rec_platform === fPlat);
-    const headers = ["journey_id", "created_at", "tier", "anon_id", "user_id", "vehicle_year", "vehicle_make", "vehicle_model", "vehicle_trim", "vehicle_location", "asking_price", "sell_preference", "timing", "condition", "records", "title", "rec_platform", "rec_powerseller", "rec_scope", "rec_window", "rec_estimated_value", "stage", "sale_status", "listed_at", "consignment_at", "sold_at", "sale_price", "gas_revenue", "actual_platform", "listing_url", "last_activity_at", "contacted_at", "engaged_at", "intro_sent_at", "intro_requested_at"];
-    const body = rows.map(j => [j.journey_id, j.created_at, b.tierBy.get(j.journey_id) || "", j.anon_id, j.user_id, j.vehicle_year, j.vehicle_make, j.vehicle_model, j.vehicle_trim, j.vehicle_location, attrOf(j, "price"), attrOf(j, "preference"), attrOf(j, "timeline"), attrOf(j, "condition"), attrOf(j, "records"), attrOf(j, "title"), j.rec_platform, j.rec_powerseller, j.rec_scope, j.rec_window, j.rec_estimated_value, j.stage, j.sale_status, j.listed_at, j.consignment_at, j.sold_at, j.sale_price, j.gas_revenue, j.actual_platform, j.listing_url, j.last_activity_at, j.contacted_at, j.engaged_at, j.intro_sent_at, j.intro_requested_at]);
+    const emailBy = await fetchEmailsByUserId(env, rows.map(j => j.user_id));
+    const headers = ["journey_id", "created_at", "tier", "anon_id", "user_id", "email", "vehicle_year", "vehicle_make", "vehicle_model", "vehicle_trim", "vehicle_location", "asking_price", "sell_preference", "timing", "condition", "records", "title", "rec_platform", "rec_powerseller", "rec_scope", "rec_window", "rec_estimated_value", "stage", "sale_status", "listed_at", "consignment_at", "sold_at", "sale_price", "gas_revenue", "actual_platform", "listing_url", "last_activity_at", "contacted_at", "engaged_at", "intro_sent_at", "intro_requested_at"];
+    const body = rows.map(j => [j.journey_id, j.created_at, b.tierBy.get(j.journey_id) || "", j.anon_id, j.user_id, j.user_id ? (emailBy.get(j.user_id) || "") : "", j.vehicle_year, j.vehicle_make, j.vehicle_model, j.vehicle_trim, j.vehicle_location, attrOf(j, "price"), attrOf(j, "preference"), attrOf(j, "timeline"), attrOf(j, "condition"), attrOf(j, "records"), attrOf(j, "title"), j.rec_platform, j.rec_powerseller, j.rec_scope, j.rec_window, j.rec_estimated_value, j.stage, j.sale_status, j.listed_at, j.consignment_at, j.sold_at, j.sale_price, j.gas_revenue, j.actual_platform, j.listing_url, j.last_activity_at, j.contacted_at, j.engaged_at, j.intro_sent_at, j.intro_requested_at]);
     return send("journeys", toCsv(headers, body));
   }
   if (dataset === "journey_events") {
