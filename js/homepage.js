@@ -29,7 +29,6 @@ const LEARN_PLATFORMS = {
     { name: "PCarMarket", body: "An online auction platform with a deep Porsche and enthusiast following. We track its sold results." },
     { name: "Hemmings", body: "A long-established US marketplace for classic and collector cars, with deep roots in classic American and vintage vehicles. We track its sold results." },
     { name: "Sotheby's Motorsport (SOMO)", body: "An online marketplace carrying the Sotheby's Motorsport name, for collector and enthusiast cars. We track its sold results." },
-    { name: "AutoHunter", body: "An online auction platform for enthusiast and collector cars. We track its sold results." },
     { name: "MB Market", body: "An online marketplace dedicated to Mercedes-Benz, from classics to modern collectibles. We track its sold results for Mercedes-Benz cars." }
   ],
   outro: "More online platforms are being added as we widen the data we track."
@@ -216,7 +215,7 @@ function showHowItWorks() {
     </section>
     <section class="hd-sec">
       <div class="hd-eyebrow">The data behind the recommendation</div>
-      <p>Sam monitors results from Bring a Trailer, Cars & Bids, Hagerty Marketplace, PCarMarket, Sotheby's Motorsport, Hemmings, AutoHunter and MB Market, with more sources being added. We're interested in what actually happened: what sold, where it sold, when it sold and what it sold for.</p>
+      <p>Sam monitors results from Bring a Trailer, Cars & Bids, Hagerty Marketplace, PCarMarket, Sotheby's Motorsport, Hemmings and MB Market, with more sources being added. We're interested in what actually happened: what sold, where it sold, when it sold and what it sold for.</p>
       <p>More data isn't automatically better. Sam starts with the closest match to your car and only broadens the comparison when there isn't enough useful evidence.</p>
       <a class="hd-link" onclick="showSellingPlatforms()">More about the platforms we track &rarr;</a>
     </section>

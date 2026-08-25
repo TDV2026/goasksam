@@ -98,7 +98,7 @@ check("1d lint: weekday claim below the 15-comp gate does not render", !/closed 
 // causation/filler rules that govern rendered card output.
 const lintPrompt = t => lintText(t).filter(v => /removed-house|dash/.test(v));
 check("1d lint: 'what is GoAskSam' answer (SYS) names no removed houses + lists the new set",
-  lintPrompt(SYS).length === 0 && /Bring a Trailer, Cars & Bids, Hagerty, PCarMarket, Hemmings, Sotheby's Motorsport, AutoHunter and MB Market/.test(SYS) && !/Car & Classic|Collecting Cars/.test(SYS) && /more online platforms being added/.test(SYS),
+  lintPrompt(SYS).length === 0 && /Bring a Trailer, Cars & Bids, Hagerty, PCarMarket, Hemmings, Sotheby's Motorsport and MB Market/.test(SYS) && !/Car & Classic|Collecting Cars|AutoHunter/.test(SYS) && /more online platforms being added/.test(SYS),
   lintPrompt(SYS).join(" ; ") || "list/added-clause missing");
 check("1d lint: sell-flow prompt (SELL_SYS) names no removed houses", lintPrompt(SELL_SYS).length === 0, lintPrompt(SELL_SYS).join(" ; "));
 check("1d lint: the stronger-non-routable callout never renders a removed house name",
@@ -207,9 +207,12 @@ check("homepage: Selling Platforms names no REMOVED auction houses (SOMO permitt
 check("homepage: placeholder examples are real cars (year + make)", PLACEHOLDER_EXAMPLES.every(e => /^\d{4}\s+[A-Z]/.test(e)), JSON.stringify(PLACEHOLDER_EXAMPLES));
 // (Polish round, July 2026) The three newly-tracked platforms appear on the
 // Selling Platforms page; SOMO is always named in full.
-for (const name of ["Hemmings", "Sotheby's Motorsport (SOMO)", "AutoHunter"]) {
+for (const name of ["Hemmings", "Sotheby's Motorsport (SOMO)"]) {
   check(`homepage: Selling Platforms lists ${name}`, LEARN_PLATFORMS.platforms.some(p => p.name === name), name);
 }
+// AutoHunter is out of business (Aug 2026): removed as a live/tracked source from all
+// user-facing copy. It must NOT appear on the Selling Platforms page or the SYS source list.
+check("homepage: Selling Platforms does NOT list AutoHunter (defunct)", !LEARN_PLATFORMS.platforms.some(p => /autohunter/i.test(p.name)), "AutoHunter still listed");
 // The algorithm-ownership sentence renders on How Recommendations Work.
 check("homepage: How-it-works states the algorithm is ours", LEARN_HOW.sections.some(s => /The recommendation itself comes from our own algorithm\./.test(s.body) && /the judgement of where your car should sell is ours\./.test(s.body)), "algorithm sentence missing");
 // Dashboard card lines (from the committed lib/dailyPulse.json): observation only.
