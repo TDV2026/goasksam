@@ -1322,35 +1322,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "savedcheck", accountsTotal: accts.length, allAccounts, orphanedAnonRows: anon.length, lookup });
   }
 
-  // task=purgeuser: TEMPORARY. Deletes a throwaway walltest account's rows across every
-  // analytics table + its auth user. HARD SAFETY RAIL: refuses any email that is not a
-  // "walltest" throwaway, so it can never touch a real account. PROBE_KEY-gated; remove
-  // after use.
-  if (task === "purgeuser") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const email = String(req.query?.email || "").toLowerCase();
-    if (!/walltest/.test(email)) return res.status(400).json({ task: "purgeuser", ok: false, error: "refused: email must be a walltest throwaway" });
-    const del = async (path) => { const r = await fetch(`${env.supabaseUrl}/rest/v1/${path}`, { method: "DELETE", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "return=representation" } }); const j = await r.json().catch(() => []); return { ok: r.ok, n: Array.isArray(j) ? j.length : 0 }; };
-    const accts = (await supabaseSelect(env, `accounts?email=eq.${encodeURIComponent(email)}&select=user_id`)) || [];
-    const authIds = [];
-    try { const r = await fetch(`${env.supabaseUrl}/auth/v1/admin/users?page=1&per_page=200`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); if (r.ok) { const j = await r.json(); for (const u of (j.users || [])) if (String(u.email || "").toLowerCase() === email) authIds.push(u.id); } } catch (e) {}
-    const ids = [...new Set([...accts.map(a => a.user_id), ...authIds].filter(Boolean))];
-    const results = {};
-    for (const uid of ids) {
-      const r = {
-        saved_results: await del(`saved_results?user_id=eq.${uid}`),
-        search_events: await del(`search_events?user_id=eq.${uid}`),
-        journey_events: await del(`journey_events?user_id=eq.${uid}`),
-        journeys: await del(`journeys?user_id=eq.${uid}`),
-        funnel_events: await del(`funnel_events?user_id=eq.${uid}`),
-        accounts: await del(`accounts?user_id=eq.${uid}`)
-      };
-      try { const a = await fetch(`${env.supabaseUrl}/auth/v1/admin/users/${uid}`, { method: "DELETE", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); r.auth_user = a.ok; } catch (e) { r.auth_user = false; }
-      results[String(uid).slice(0, 8)] = r;
-    }
-    return res.status(200).json({ task: "purgeuser", ok: true, email, ids: ids.map(i => String(i).slice(0, 8)), results });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|beehiivprobe|identitycheck|otpselftest|limits|savedcheck." });
 }
 
