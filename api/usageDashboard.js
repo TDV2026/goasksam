@@ -1322,36 +1322,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "savedcheck", accountsTotal: accts.length, allAccounts, orphanedAnonRows: anon.length, lookup });
   }
 
-  // task=sessionmint: TEMPORARY launch-verification helper. Mints a real Supabase session
-  // for a (throwaway) email at a requested tier so the tester-bypass fix can be verified
-  // end-to-end (signed-in + gas_tester => reserve_search tiering, not the tester counter).
-  // Returns a token, so it is PROBE_KEY-gated and MUST be removed after verification.
-  if (task === "sessionmint") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const email = String(req.query?.email || `walltest+${Date.now()}@thedailyvroom.com`).toLowerCase();
-    const tier = String(req.query?.tier || "free");
-    const anonKey = process.env.SUPABASE_ANON_KEY;
-    const gen = await fetch(`${env.supabaseUrl}/auth/v1/admin/generate_link`, {
-      method: "POST", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "magiclink", email })
-    });
-    const gj = await gen.json().catch(() => ({}));
-    const otp = String((gj.properties || gj || {}).email_otp || "");
-    if (!otp) return res.status(500).json({ task: "sessionmint", step: "generate_link", ok: false, httpStatus: gen.status });
-    const ver = await fetch(`${env.supabaseUrl}/auth/v1/verify`, {
-      method: "POST", headers: { apikey: anonKey || env.supabaseKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "email", email, token: otp })
-    });
-    const vj = await ver.json().catch(() => ({}));
-    if (!vj.access_token || !vj.user) return res.status(500).json({ task: "sessionmint", step: "verify", ok: false });
-    const userId = vj.user.id;
-    await fetch(`${env.supabaseUrl}/rest/v1/accounts?on_conflict=user_id`, {
-      method: "POST", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" },
-      body: JSON.stringify([{ user_id: userId, email, tier, tier_checked_at: new Date().toISOString() }])
-    });
-    return res.status(200).json({ task: "sessionmint", ok: true, userId, email, tier, access_token: vj.access_token });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|beehiivprobe|identitycheck|otpselftest|limits|savedcheck." });
 }
 
