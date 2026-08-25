@@ -29,7 +29,7 @@
 <!-- CSS served at a VERSIONED PATH (not a ?query, which some edge caches ignore).
      styles.css stays on disk; a vercel.json rewrite maps this path to it. BUMP the
      token in BOTH index.html and vercel.json on every styles.css change. -->
-<link rel="stylesheet" href="styles.20260825b.css">
+<link rel="stylesheet" href="styles.20260825c.css">
 <!-- ===================== CURTAIN (pre-launch holding state) =====================
      Temporary. Delete this whole block, the #curtain div below, the .curtain*
      CSS in styles.css, api/crew.js, and the robots.txt Disallow in ONE commit at
@@ -93,7 +93,7 @@
   </div>
   <div class="hp-rail-footer">
     <!-- STAGE_B: profile modal -->
-    <a class="hp-navitem" href="mailto:feedback@goasksam.com?subject=GoAskSam%20feedback">Send feedback</a>
+    <a class="hp-navitem" href="mailto:feedback@goasksam.com?subject=GoAskSam%20feedback" onclick="var f=document.querySelector('.hp-feedback-fallback');if(f)f.classList.add('shown')">Send feedback</a>
     <div class="hp-feedback-fallback">If nothing opens, email us at <a class="hp-copy-email" href="mailto:feedback@goasksam.com" title="Click to copy" onclick="try{navigator.clipboard&&navigator.clipboard.writeText('feedback@goasksam.com')}catch(e){}">feedback@goasksam.com</a></div>
     <a class="hp-navitem" href="/privacy">Privacy</a>
   </div>
