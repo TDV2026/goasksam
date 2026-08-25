@@ -111,26 +111,17 @@ const ROUTE_POLICIES = {
     regions: ["US"],
     strongSegments: ["older_classic", "classic_american", "pre_1990", "collector"]
   },
-  // SOMO and AutoHunter are self-listable marketplaces on the evidence
-  // allowlist. No special treatment and no fixed segment boosts: they are
-  // pickable ONLY when the data clears the same evidence gates as everyone
-  // else (strongSegments empty => zero policy-driven score, evidence only).
+  // SOMO is a self-listable marketplace on the evidence allowlist. No special
+  // treatment and no fixed segment boosts: pickable ONLY when the data clears the
+  // same evidence gates as everyone else (strongSegments empty => zero policy-driven
+  // score, evidence only). AutoHunter was removed here (Aug 2026): out of business,
+  // no longer routable/recommendable anywhere.
   sothebysmotorsport: {
     about: { regionsLabel: "the US", since: 2020, knownFor: "collector and enthusiast cars", source: "policy_provided" },
     label: "Sotheby's Motorsport (SOMO)",
     evidenceCapable: true,
     priceOutcome: "medium",
     speedToList: "medium_fast",
-    sellerEffort: "medium",
-    regions: ["US"],
-    strongSegments: []
-  },
-  autohunter: {
-    about: { regionsLabel: "the US", since: 2021, knownFor: "enthusiast and collector cars", source: "policy_provided" },
-    label: "AutoHunter",
-    evidenceCapable: true,
-    priceOutcome: "medium",
-    speedToList: "fast",
     sellerEffort: "medium",
     regions: ["US"],
     strongSegments: []
@@ -190,7 +181,7 @@ const ROUTE_POLICIES = {
 // The routeFit build below is the source of truth; the frontend re-checks it too.
 export const US_ROUTE_ALLOWLIST = new Set([
   "bringatrailer", "bat", "carsandbids", "pcarmarket", "hemmings",
-  "sothebysmotorsport", "autohunter", "mbmarket", "hagerty"
+  "sothebysmotorsport", "mbmarket", "hagerty"   // autohunter removed Aug 2026 (defunct)
 ]);
 
 // ===================== EVIDENCE ALLOWLIST (July 2026) =====================
@@ -207,13 +198,14 @@ export const US_ROUTE_ALLOWLIST = new Set([
 // seller-usable alternative) and the "oldcarsdata" vendor-name anomaly. Their
 // medians still survive for the honest strongerNonRoutable pre-note (price
 // facts only), they just never enter the pick's evidence math.
-// US launch (Aug 2026): the evidence pool is EXACTLY these eight platforms.
-// All Collector Cars (acc/allcollectorcars) was dropped from evidence by Sam so
-// the pool matches the launch spec precisely; its records still persist (rule 5)
-// and it stays a KNOWN source below, but it never counts as comparable evidence.
+// US launch (Aug 2026): the evidence pool is EXACTLY these seven platforms.
+// Dropped from evidence by Sam, records still persist (rule 5) but never count as
+// comparable evidence: All Collector Cars (acc/allcollectorcars), and AutoHunter
+// (autohunter, Aug 2026, out of business, ACC-style treatment: historical rows stay
+// in the archive but are never counted or named as a live source).
 export const EVIDENCE_ALLOWLIST = new Set([
   "bringatrailer", "bat", "carsandbids", "hagerty", "pcarmarket",
-  "sothebysmotorsport", "hemmings", "autohunter"
+  "sothebysmotorsport", "hemmings"
 ]);
 // MARQUE-GATED evidence sources: allowlisted, but ONLY for a specific marque.
 // MB Market is a Mercedes-Benz-only marketplace, so its sold records may only

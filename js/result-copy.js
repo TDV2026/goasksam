@@ -161,7 +161,7 @@ function lookbackLine(option){
 // US_ROUTE_ALLOWLIST (api/sellerDecision.js) - the frontend can't import lib/api,
 // so it is duplicated here. Explicit allowlist, not a UK denylist: a new non-US
 // platform is excluded by default.
-const US_ROUTE_ALLOWLIST_FE=new Set(["bringatrailer","bat","carsandbids","pcarmarket","hemmings","sothebysmotorsport","autohunter","mbmarket","hagerty"]);
+const US_ROUTE_ALLOWLIST_FE=new Set(["bringatrailer","bat","carsandbids","pcarmarket","hemmings","sothebysmotorsport","mbmarket","hagerty"]); // autohunter removed Aug 2026 (defunct)
 function shouldSuppressRouteForSellerRegion(route){
   const slug=String(route?.platform||route?.platformSlug||"").toLowerCase().replace(/[^a-z0-9]/g,"");
   // US seller (defense in depth): the backend already filters routeFit to the US
@@ -566,7 +566,6 @@ const SUBMISSION_URLS={
   hagerty:"https://www.hagerty.com/marketplace/sell",
   pcarmarket:"https://www.pcarmarket.com/submit-your-listing",
   sothebysmotorsport:"https://sothebysmotorsport.com/sell",
-  autohunter:"https://autohunter.com/sell-your-vehicle",
   mbmarket:"https://mbmarket.com/sell",
   hemmings:"https://www.hemmings.com/classifieds/bundles/carsforsale",
   carandclassic:"https://www.carandclassic.com/sell-your-vehicle",

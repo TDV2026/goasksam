@@ -12,10 +12,12 @@ const check = (name, ok, detail = "") => {
 };
 const rec = source => ({ source });
 
-// ---- membership: the EXACTLY EIGHT US launch platforms ----
-for (const slug of ["bringatrailer", "bat", "carsandbids", "hagerty", "pcarmarket", "sothebysmotorsport", "hemmings", "autohunter"]) {
+// ---- membership: the EXACTLY SEVEN US launch platforms (AutoHunter dropped Aug 2026) ----
+for (const slug of ["bringatrailer", "bat", "carsandbids", "hagerty", "pcarmarket", "sothebysmotorsport", "hemmings"]) {
   check(`allowlist INCLUDES ${slug}`, isEvidenceSource(rec(slug)) === true, `isEvidenceSource=${isEvidenceSource(rec(slug))}`);
 }
+// AutoHunter is out of business (Aug 2026): dropped from evidence entirely.
+check("allowlist EXCLUDES autohunter (defunct)", isEvidenceSource(rec("autohunter")) === false, `isEvidenceSource=${isEvidenceSource(rec("autohunter"))}`);
 // ---- excluded: white-glove consignment + All Collector Cars (dropped from the
 // launch pool) + anomalies + unknowns ----
 for (const slug of ["acc", "allcollectorcars", "rmsothebys", "gooding", "goodingco", "oldcarsdata", "somethingnew", ""]) {
