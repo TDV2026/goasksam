@@ -2339,7 +2339,12 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
   // HARD-REVOKED at the expiry: testerCodeExpired() true -> the cookie is ignored
   // and the device falls through to the normal anon/free gate below. No account.
   // forceGate (?realgate=1) opts a tester into the real gate flows on demand.
-  if (cookies.gas_tester === "ok" && !forceGate && !testerCodeExpired()) {
+  // SIGNED-IN sessions are NEVER the tester cohort: the Beehiiv sign-in link
+  // (/api/crew?bhs=...) sets gas_tester ONLY to lift the curtain, but those are real
+  // subscriber ACCOUNTS. If a Bearer token is present, skip the tester bypass so the
+  // account is tiered by reserve_search (TDV 3/day) instead of the tester counter
+  // (10/day, IP-based). The anonymous ?tester= cohort has no token and still bypasses.
+  if (cookies.gas_tester === "ok" && !forceGate && !testerCodeExpired() && !req.headers.authorization) {
     const dayStartIso = new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z").toISOString();
     const testerHits = await ipHitsSince(ip, "tester_search", dayStartIso, supabaseUrl, supabaseKey);
     const testerCap = await appConfigInt("tester_cap_day", 10, supabaseUrl, supabaseKey);
