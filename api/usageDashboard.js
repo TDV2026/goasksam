@@ -104,7 +104,7 @@ async function renderOutboundView(req, res) {
     : null;
   if (req.query?.format === "json") { res.setHeader("Content-Type", "application/json"); return res.status(200).send(JSON.stringify(rows || [])); }
   const list = rows || [];
-  const trs = list.map(r => `<tr><td>${adminEsc(r.created_at)}</td><td>${adminEsc(r.year)}</td><td>${adminEsc(r.make)}</td><td>${adminEsc(r.model)}</td><td>${adminEsc(r.trim)}</td><td>${adminEsc(r.location)}</td><td>${adminEsc(r.platform)}</td><td>${adminEsc(r.card)}</td><td>${adminEsc(r.outcome)}</td><td>${adminEsc(r.landed_rung)}</td><td>${adminEsc(r.reason)}</td><td>${adminEsc(r.seller_preference)}</td></tr>`).join("");
+  const trs = list.map(r => `<tr><td>${adminEsc(fmtDateTimeET(r.created_at))}</td><td>${adminEsc(r.year)}</td><td>${adminEsc(r.make)}</td><td>${adminEsc(r.model)}</td><td>${adminEsc(r.trim)}</td><td>${adminEsc(r.location)}</td><td>${adminEsc(r.platform)}</td><td>${adminEsc(r.card)}</td><td>${adminEsc(r.outcome)}</td><td>${adminEsc(r.landed_rung)}</td><td>${adminEsc(r.reason)}</td><td>${adminEsc(r.seller_preference)}</td></tr>`).join("");
   const note = !env ? "Supabase env missing." : rows === null ? "outbound_clicks table not found yet." : `${list.length} rows.`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.status(200).send(`<!doctype html><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Outbound clicks</title><h3>Outbound clicks (newest first)</h3><table border="1" cellpadding="4" cellspacing="0"><tr><th>date</th><th>year</th><th>make</th><th>model</th><th>trim</th><th>location</th><th>platform</th><th>card</th><th>outcome</th><th>rung</th><th>reason</th><th>pref</th></tr>${trs}</table><p>${adminEsc(note)}</p>`);
@@ -161,7 +161,7 @@ async function renderSearchesView(req, res) {
   const rows = events.map(e => {
     const m = e.metadata || {}; const ps = m.powerSeller || {};
     const psCell = ps.shown ? `${adminEsc(ps.name || "yes")}${ps.eligible ? " (lead-eligible)" : ""}` : "-";
-    return `<tr><td>${new Date(e.created_at).toLocaleString()}</td><td>${adminEsc(carLabel(e.vehicle))}</td><td>${adminEsc(geoKey(m))}</td>
+    return `<tr><td>${adminEsc(fmtDateTimeET(e.created_at))}</td><td>${adminEsc(carLabel(e.vehicle))}</td><td>${adminEsc(geoKey(m))}</td>
     <td>${adminEsc(m.tier || "")}${m.tier === "crew" ? ' <span class="pill crew">crew</span>' : m.tier === "tester" ? ' <span class="pill tester">tester</span>' : ""}</td>
     <td>${adminEsc(OUTCOME_LABELS[eventOutcome(e)] || eventOutcome(e))}</td><td>${adminEsc(m.pickPlatform || "-")}</td>
     <td>${psCell}</td><td>${outboundFor(e) ? "yes" : "-"}</td></tr>`;
@@ -346,7 +346,7 @@ function renderHtml({ summary, events, days, key }) {
 
   const recent = events.slice(0, 50).map(event => `
     <tr>
-      <td>${new Date(event.created_at).toLocaleString()}</td>
+      <td>${adminEsc(fmtDateTimeET(event.created_at))}</td>
       <td>${event.event_type || ""}</td>
       <td>${event.status || ""}</td>
       <td>${event.search_text || event.vehicle?.label || ""}</td>
@@ -1326,6 +1326,52 @@ const fmtPct = (num, den) => (den > 0 ? `${(100 * num / den).toFixed(num / den >
 const fmtMoney = n => (n == null ? NYT : "$" + Math.round(Number(n)).toLocaleString());
 const bizKey = req => adminEsc(req.query?.key || "");
 
+// --- Timezone (Item 2): all dashboard dates render in ET (America/New_York) to match
+// the quota-day boundary (reserve_search day-truncates in the same zone). ---
+const ET_TZ = "America/New_York";
+const fmtDayET = t => t ? new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: ET_TZ }) : "";
+const fmtDateTimeET = t => { if (!t) return ""; try { return new Date(t).toLocaleString("en-US", { timeZone: ET_TZ, timeZoneName: "short" }); } catch { return String(t); } };
+// ms that ET is ahead of UTC at `date` (handles DST); used to align "today" to the ET day.
+function etOffsetMs(date) {
+  const dtf = new Intl.DateTimeFormat("en-US", { timeZone: ET_TZ, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const m = {}; for (const p of dtf.formatToParts(date)) m[p.type] = p.value;
+  return Date.UTC(+m.year, +m.month - 1, +m.day, +m.hour, +m.minute, +m.second) - date.getTime();
+}
+function etDayStart(date) {
+  const off = etOffsetMs(date);
+  const wall = new Date(date.getTime() + off);
+  const mid = Date.UTC(wall.getUTCFullYear(), wall.getUTCMonth(), wall.getUTCDate(), 0, 0, 0);
+  return new Date(mid - off);
+}
+
+// --- Journey Explorer new columns (Item 1): asking price, sell preference, timing.
+// All three come from journeys.vehicle_attrs (price / preference / timeline), captured
+// in the wizard and written by record_journey_event. Display-only. ---
+const fmtAsk = p => {
+  if (p == null || p === "") return "";
+  const n = Number(String(p).replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) && n > 0 ? "$" + Math.round(n).toLocaleString() : adminEsc(String(p));
+};
+const prefLabel = p => {
+  const s = String(p || "").toLowerCase().trim();
+  if (!s) return "";
+  if (s.includes("power") || s === "handle" || s.includes("handle")) return "Handle everything";
+  if (s === "diy" || s.includes("myself")) return "Myself";
+  if (s.includes("unsure") || s.includes("not sure") || s === "notsure") return "Not sure";
+  return adminEsc(String(p));
+};
+const attrOf = (j, k) => (j && j.vehicle_attrs && typeof j.vehicle_attrs === "object") ? j.vehicle_attrs[k] : null;
+
+// --- CSV (Item 4): RFC-4180-ish serialization. Objects become JSON strings. ---
+function csvCell(v) {
+  if (v == null) return "";
+  const s = typeof v === "object" ? JSON.stringify(v) : String(v);
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function toCsv(headers, rows) {
+  return [headers.map(csvCell).join(","), ...rows.map(r => r.map(csvCell).join(","))].join("\r\n");
+}
+
 // Internal-cohort filter (mirrors crew filter): default EXCLUDE crew/tester/internal
 // so business numbers reflect real sellers. Tier is derived from the journey's
 // recommendation_completed event metadata; journeys with no rec event are treated as
@@ -1336,7 +1382,7 @@ function bizRange(req) {
   const r = String(req.query?.range || "7d").toLowerCase();
   const now = new Date();
   let since, label;
-  if (r === "today") { since = new Date(now); since.setUTCHours(0, 0, 0, 0); label = "Today"; }
+  if (r === "today") { since = etDayStart(now); label = "Today (ET)"; }   // ET day, matching the quota-day boundary
   else if (r === "30d") { since = new Date(now - 30 * 864e5); label = "Last 30 days"; }
   else if (r === "all") { since = new Date("2026-08-01T00:00:00Z"); label = "All time (since launch)"; }
   else if (r === "custom" && req.query?.from) { since = new Date(String(req.query.from)); label = `${req.query.from} to ${req.query.to || "now"}`; }
@@ -1352,7 +1398,7 @@ async function anyRows(env, filter) {
 
 // One canonical computation of every business number for a range + cohort mode.
 async function computeBusiness(env, range, mode) {
-  const JCOLS = "journey_id,anon_id,user_id,vehicle_year,vehicle_make,vehicle_model,vehicle_trim,vehicle_location,rec_platform,rec_powerseller,rec_scope,rec_window,rec_estimated_value,stage,sale_status,listed_at,consignment_at,sold_at,sale_price,gas_revenue,actual_platform,listing_url,created_at,last_activity_at,contacted_at,engaged_at,intro_sent_at,intro_requested_at";
+  const JCOLS = "journey_id,anon_id,user_id,vehicle_year,vehicle_make,vehicle_model,vehicle_trim,vehicle_location,vehicle_attrs,rec_platform,rec_powerseller,rec_scope,rec_window,rec_estimated_value,stage,sale_status,listed_at,consignment_at,sold_at,sale_price,gas_revenue,actual_platform,listing_url,created_at,last_activity_at,contacted_at,engaged_at,intro_sent_at,intro_requested_at";
   const journeysAll = (await supabaseSelect(env, `journeys?created_at=gte.${encodeURIComponent(range.sinceIso)}&created_at=lt.${encodeURIComponent(range.toIso)}&select=${JCOLS}&order=created_at.desc&limit=5000`)) || [];
   const events = (await supabaseSelect(env, `journey_events?occurred_at=gte.${encodeURIComponent(range.sinceIso)}&select=journey_id,event_type,platform_id,powerseller_id,metadata,occurred_at&order=occurred_at.asc&limit=30000`)) || [];
 
@@ -1433,7 +1479,7 @@ a.jlink{color:var(--green);text-decoration:none}
 .tl .d{font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.04em}
 </style>
 <div class="wrap">
-<nav class="top">${nav("business", "BUSINESS")}${nav("journeys", "Journeys")}${nav("economics", "Economics")}${nav("quality", "Quality")}<span style="color:#c9c5bc">|</span><span style="color:#a29e95;font-size:12px">Engineering / Costs:</span>${nav("usage", "usage")}${nav("searches", "searches")}${nav("cars", "cars")}${nav("geo", "geo")}${nav("accounts", "accounts")}${nav("outbound", "outbound")}</nav>
+<nav class="top">${nav("business", "BUSINESS")}${nav("journeys", "Journeys")}${nav("economics", "Economics")}${nav("quality", "Quality")}<span style="color:#c9c5bc">|</span><span style="color:#a29e95;font-size:12px">Engineering / Costs:</span>${nav("usage", "usage")}${nav("searches", "searches")}${nav("cars", "cars")}${nav("geo", "geo")}${nav("accounts", "accounts")}${nav("outbound", "outbound")}<span style="margin-left:auto;color:#a29e95;font-size:12px" title="All dates and times on this dashboard are shown in US Eastern Time, matching the daily quota boundary.">All times ET (America/New_York)</span></nav>
 ${title !== "__bare" ? `<h1>${adminEsc(title)}</h1>` : ""}`;
 }
 
@@ -1620,7 +1666,7 @@ async function renderJourneysView(req, res) {
       supabaseSelect(env, `journey_audit?journey_id=eq.${encodeURIComponent(jid)}&select=changed_by,field,old_value,new_value,changed_at,note&order=changed_at.desc&limit=100`)
     ]);
     const veh = [j.vehicle_year, j.vehicle_make, j.vehicle_model, j.vehicle_trim].filter(Boolean).join(" ") || "Unknown vehicle";
-    const day = t => t ? new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+    const day = fmtDayET;
     const line = (t, lab, extra) => `<div class="ev"><div class="d">${day(t)}</div><div>${lab}${extra ? `<br><span class="samp">${extra}</span>` : ""}</div></div>`;
     const evLines = (evs || []).map(e => line(e.occurred_at, STAGE_LABEL[e.event_type] || e.event_type, [e.platform_id && `Platform: ${e.platform_id}`, e.powerseller_id && `PowerSeller: ${e.powerseller_id}`].filter(Boolean).join(" &middot; "))).join("");
     // manual milestones from the spine (Phase 3 data)
@@ -1652,7 +1698,7 @@ async function renderJourneysView(req, res) {
         <button type="submit" style="margin-top:12px;background:#0b5c3e;color:#fff;border:0;border-radius:7px;padding:9px 18px;font:inherit;cursor:pointer">Save changes</button>
       </form>`;
 
-    const auditRows = (audit || []).map(a => `<tr><td>${new Date(a.changed_at).toLocaleString()}</td><td>${adminEsc(a.changed_by)}</td><td>${adminEsc(a.field)}</td><td class="samp">${adminEsc(a.old_value == null ? "(empty)" : a.old_value)}</td><td>${adminEsc(a.new_value == null ? "(cleared)" : a.new_value)}</td><td class="samp">${adminEsc(a.note || "")}</td></tr>`).join("");
+    const auditRows = (audit || []).map(a => `<tr><td>${adminEsc(fmtDateTimeET(a.changed_at))}</td><td>${adminEsc(a.changed_by)}</td><td>${adminEsc(a.field)}</td><td class="samp">${adminEsc(a.old_value == null ? "(empty)" : a.old_value)}</td><td>${adminEsc(a.new_value == null ? "(cleared)" : a.new_value)}</td><td class="samp">${adminEsc(a.note || "")}</td></tr>`).join("");
     const auditSection = `<h2>Audit trail</h2><table><tr><th>When</th><th>Who</th><th>Field</th><th>Old</th><th>New</th><th>Note</th></tr>${auditRows || `<tr><td colspan=6>No manual changes yet.</td></tr>`}</table>`;
 
     const html = `${bizChrome("__bare", key, "journeys")}
@@ -1687,11 +1733,13 @@ async function renderJourneysView(req, res) {
   if (fStage) rows = rows.filter(j => j.stage === fStage);
   if (fPs) rows = rows.filter(j => j.rec_powerseller === fPs);
   if (fPlat) rows = rows.filter(j => j.rec_platform === fPlat);
-  const day = t => t ? new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
   const tr = rows.slice(0, 300).map(j => `<tr>
-    <td>${day(j.created_at)}</td>
+    <td>${fmtDayET(j.created_at)}</td>
     <td><a class="jlink" href="?view=journeys&jid=${encodeURIComponent(j.journey_id)}&key=${bizKey(req)}">${adminEsc([j.vehicle_year, j.vehicle_make, j.vehicle_model].filter(Boolean).join(" ") || "?")}</a></td>
     <td>${adminEsc(j.vehicle_location || "")}</td>
+    <td class="num">${fmtAsk(attrOf(j, "price"))}</td>
+    <td>${prefLabel(attrOf(j, "preference"))}</td>
+    <td>${adminEsc(attrOf(j, "timeline") || "")}</td>
     <td>${adminEsc(j.rec_platform || "")}</td>
     <td>${adminEsc(j.rec_powerseller || "")}</td>
     <td>${adminEsc(STAGE_LABEL[j.stage] || j.stage || "")}</td>
@@ -1700,14 +1748,61 @@ async function renderJourneysView(req, res) {
     <td class="num">${j.sale_price ? fmtMoney(j.sale_price) : ""}</td>
     <td class="num">${j.gas_revenue ? fmtMoney(j.gas_revenue) : ""}</td>
   </tr>`).join("");
+  // CSV download links carry the current tier/time filters (Item 4).
+  const csvParams = extra => `?view=journeys&format=csv&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${extra}`;
   const html = `${bizChrome("Journey Explorer", key, "journeys")}
     ${bizFilters(req, "journeys")}
     <form method="get" style="margin:8px 0"><input type="hidden" name="view" value="journeys"><input type="hidden" name="key" value="${bizKey(req)}"><input type="hidden" name="range" value="${range.range}"><input type="hidden" name="biz" value="${mode}"><input type="text" name="q" value="${adminEsc(req.query?.q || "")}" placeholder="Search vehicle or location"> <button>Search</button></form>
-    <div class="sub">${rows.length} journeys ${q || fStage || fPs || fPlat ? "(filtered)" : ""}</div>
-    <table><tr><th>Date</th><th>Vehicle</th><th>Location</th><th>Recommendation</th><th>PowerSeller</th><th>Stage</th><th>Actual platform</th><th>Sale status</th><th class="num">Sale price</th><th class="num">Revenue</th></tr>${tr || `<tr><td colspan=10>No journeys.</td></tr>`}</table>
+    <div class="sub">${rows.length} journeys ${q || fStage || fPs || fPlat ? "(filtered)" : ""} &nbsp;·&nbsp; Download CSV (current filters): <a href="${csvParams("&dataset=journeys")}">journeys</a> · <a href="${csvParams("&dataset=journey_events")}">events</a> · <a href="${csvParams("&dataset=funnel_events")}">funnel</a></div>
+    <table><tr><th>Date</th><th>Vehicle</th><th>Location</th><th class="num">Asking</th><th>Preference</th><th>Timing</th><th>Recommendation</th><th>PowerSeller</th><th>Stage</th><th>Actual platform</th><th>Sale status</th><th class="num">Sale price</th><th class="num">Revenue</th></tr>${tr || `<tr><td colspan=13>No journeys.</td></tr>`}</table>
   </div>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.status(200).send(html);
+}
+
+// CSV export (Item 4): journeys / journey_events / funnel_events for the current range +
+// tier cohort, honoring the same filters as the Journey Explorer. Behind the same
+// USAGE_DASHBOARD_KEY gate (checked in the handler before this ever runs). Timestamps
+// stay ISO/UTC in the file (raw-data export convention; the on-screen dashboard is ET).
+async function renderCsvExport(req, res) {
+  const env = supabaseEnv();
+  if (!env) return res.status(500).json({ error: "storage not configured" });
+  const dataset = String(req.query?.dataset || "journeys").toLowerCase();
+  const range = bizRange(req), mode = bizMode(req);
+  const send = (name, csv) => {
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="gas-${name}-${range.range}-${new Date().toISOString().slice(0, 10)}.csv"`);
+    return res.status(200).send(csv);
+  };
+  if (dataset === "journeys") {
+    const b = await computeBusiness(env, range, mode);
+    // Same explorer sub-filters as the view (q / stage / ps / plat).
+    const q = String(req.query?.q || "").toLowerCase();
+    const fStage = String(req.query?.stage || ""), fPs = String(req.query?.ps || ""), fPlat = String(req.query?.plat || "");
+    let rows = b.journeys;
+    if (q) rows = rows.filter(j => [j.vehicle_make, j.vehicle_model, j.vehicle_trim, j.vehicle_location].filter(Boolean).join(" ").toLowerCase().includes(q));
+    if (fStage) rows = rows.filter(j => j.stage === fStage);
+    if (fPs) rows = rows.filter(j => j.rec_powerseller === fPs);
+    if (fPlat) rows = rows.filter(j => j.rec_platform === fPlat);
+    const headers = ["journey_id", "created_at", "tier", "anon_id", "user_id", "vehicle_year", "vehicle_make", "vehicle_model", "vehicle_trim", "vehicle_location", "asking_price", "sell_preference", "timing", "condition", "records", "title", "rec_platform", "rec_powerseller", "rec_scope", "rec_window", "rec_estimated_value", "stage", "sale_status", "listed_at", "consignment_at", "sold_at", "sale_price", "gas_revenue", "actual_platform", "listing_url", "last_activity_at", "contacted_at", "engaged_at", "intro_sent_at", "intro_requested_at"];
+    const body = rows.map(j => [j.journey_id, j.created_at, b.tierBy.get(j.journey_id) || "", j.anon_id, j.user_id, j.vehicle_year, j.vehicle_make, j.vehicle_model, j.vehicle_trim, j.vehicle_location, attrOf(j, "price"), attrOf(j, "preference"), attrOf(j, "timeline"), attrOf(j, "condition"), attrOf(j, "records"), attrOf(j, "title"), j.rec_platform, j.rec_powerseller, j.rec_scope, j.rec_window, j.rec_estimated_value, j.stage, j.sale_status, j.listed_at, j.consignment_at, j.sold_at, j.sale_price, j.gas_revenue, j.actual_platform, j.listing_url, j.last_activity_at, j.contacted_at, j.engaged_at, j.intro_sent_at, j.intro_requested_at]);
+    return send("journeys", toCsv(headers, body));
+  }
+  if (dataset === "journey_events") {
+    const b = await computeBusiness(env, range, mode);   // b.evts is already filtered to the tier-filtered journey set + range
+    const headers = ["journey_id", "occurred_at", "event_type", "platform_id", "powerseller_id", "tier", "metadata"];
+    const body = b.evts.map(e => [e.journey_id, e.occurred_at, e.event_type, e.platform_id, e.powerseller_id, b.tierBy.get(e.journey_id) || "", e.metadata]);
+    return send("journey_events", toCsv(headers, body));
+  }
+  if (dataset === "funnel_events") {
+    // funnel_events are pre-recommendation step events with no tier attribution, so only
+    // the time filter applies (the tier cohort is not meaningful at this stage).
+    const rows = (await supabaseSelect(env, `funnel_events?created_at=gte.${encodeURIComponent(range.sinceIso)}&created_at=lt.${encodeURIComponent(range.toIso)}&select=id,event,anon_session_id,user_id,dedup_key,created_at&order=created_at.desc&limit=100000`)) || [];
+    const headers = ["id", "event", "anon_session_id", "user_id", "dedup_key", "created_at"];
+    const body = rows.map(r => [r.id, r.event, r.anon_session_id, r.user_id, r.dedup_key, r.created_at]);
+    return send("funnel_events", toCsv(headers, body));
+  }
+  return res.status(400).json({ error: "Unknown dataset. Use dataset=journeys|journey_events|funnel_events." });
 }
 
 // Cost + operational events for a range (app_usage_events). Not tier-filterable:
@@ -1853,6 +1948,7 @@ export default async function handler(req, res) {
   // View dispatch (consolidated admin function): accounts + funnel (2G), outbound
   // clicks, or the default usage view.
   try {
+    if (req.query?.format === "csv") return await renderCsvExport(req, res);   // Item 4: CSV download, same key gate + filters
     if (req.query?.view === "business") return await renderBusinessView(req, res);
     if (req.query?.view === "journeys") return await renderJourneysView(req, res);
     if (req.query?.view === "economics") return await renderEconomicsView(req, res);
