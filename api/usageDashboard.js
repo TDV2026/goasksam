@@ -1224,7 +1224,25 @@ async function handleOps(req, res) {
     const linkedMultiProvider = Object.entries(byUser).filter(([, l]) => l.length === 1 && (l[0].identities || []).length > 1)
       .map(([e, l]) => ({ email: mask(e), providers: (l[0].identities || []).map(i => i.provider) }));
     const lookup = req.query?.email ? String(req.query.email).toLowerCase() : null;
-    const lookupResult = lookup ? { email: mask(lookup), userRows: (byUser[lookup] || []).length, providersPerRow: (byUser[lookup] || []).map(u => (u.identities || []).map(i => i.provider)), accountRows: (byAcct[lookup] || []).length } : null;
+    let lookupResult = null;
+    if (lookup) {
+      const rows = byUser[lookup] || [];
+      // The admin LIST endpoint often omits identities/app_metadata, so fetch each matched
+      // user's FULL record for the authoritative provider mix (google, email, etc.).
+      const users = [];
+      for (const u of rows) {
+        let full = u;
+        try { const r = await fetch(`${env.supabaseUrl}/auth/v1/admin/users/${u.id}`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); if (r.ok) full = await r.json(); } catch (e) {}
+        users.push({
+          userId8: String(u.id).slice(0, 8) + "...",
+          identityProviders: (full.identities || []).map(i => i.provider),
+          appMetaProvider: (full.app_metadata && full.app_metadata.provider) || null,
+          appMetaProviders: (full.app_metadata && full.app_metadata.providers) || null,
+          created_at: full.created_at || null, last_sign_in_at: full.last_sign_in_at || null
+        });
+      }
+      lookupResult = { email: mask(lookup), userRows: rows.length, accountRows: (byAcct[lookup] || []).length, users };
+    }
     return res.status(200).json({
       task: "identitycheck",
       accounts: { total: accts.length, distinctEmails: Object.keys(byAcct).length, duplicateEmailGroups: acctDupes.length, dupes: acctDupes },
