@@ -97,6 +97,16 @@ async function send(){
   document.getElementById("btn").disabled=true;
   addMsg("user",q);
 
+  // Walled guard: once a hard daily/limit/account wall is up, a genuine question still
+  // reaches chat (no quota cost), but anything else - a new/continued search OR a plain
+  // comment ("so i cant see anymore for today") - gets a calm re-acknowledgement instead
+  // of a phantom flow. The backend re-blocks searches anyway; this stops the confusing UI.
+  if(typeof gasIsWalled==="function"&&gasIsWalled()&&!(typeof isQuestionInput==="function"&&isQuestionInput(q))){
+    if(typeof gateWalledReack==="function")gateWalledReack(gasIsWalled());
+    document.getElementById("btn").disabled=false;
+    return;
+  }
+
   const pre=localPreRoute(q);
 
   // Out-of-scope aftermath: after a refusal the input reverts to car entry. A car
