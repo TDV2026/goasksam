@@ -1365,10 +1365,36 @@ async function fetchEmailsByUserId(env, userIds) {
   }
   return map;
 }
-// Preserve the Journey Explorer search filters (q/stage/ps/plat) across range/mode
-// toggles so switching Today/7d/custom keeps the current search (Item 4).
+// Preserve the Journey Explorer search filters across range/mode toggles so switching
+// Today/7d/custom keeps the current search + region + person filter (Items 2/4).
 function bizExtraQS(req) {
-  return ["q", "stage", "ps", "plat"].filter(n => req.query?.[n]).map(n => `&${n}=${encodeURIComponent(req.query[n])}`).join("");
+  return ["q", "stage", "ps", "plat", "region", "uid", "aid"].filter(n => req.query?.[n]).map(n => `&${n}=${encodeURIComponent(req.query[n])}`).join("");
+}
+
+// Item 2: US Census Bureau 4 regions. vehicle_location is the state name captured in the
+// wizard; map it (full name or 2-letter) to a region. Non-US / blank -> "".
+const STATE_REGION = (() => {
+  const R = {
+    Northeast: ["Maine", "New Hampshire", "Vermont", "Massachusetts", "Rhode Island", "Connecticut", "New York", "New Jersey", "Pennsylvania"],
+    Midwest: ["Ohio", "Michigan", "Indiana", "Illinois", "Wisconsin", "Minnesota", "Iowa", "Missouri", "North Dakota", "South Dakota", "Nebraska", "Kansas"],
+    South: ["Delaware", "Maryland", "District of Columbia", "Washington DC", "Virginia", "West Virginia", "North Carolina", "South Carolina", "Georgia", "Florida", "Kentucky", "Tennessee", "Alabama", "Mississippi", "Arkansas", "Louisiana", "Oklahoma", "Texas"],
+    West: ["Montana", "Idaho", "Wyoming", "Colorado", "New Mexico", "Arizona", "Utah", "Nevada", "Washington", "Oregon", "California", "Alaska", "Hawaii"]
+  };
+  const ABBR = {
+    Northeast: ["ME", "NH", "VT", "MA", "RI", "CT", "NY", "NJ", "PA"],
+    Midwest: ["OH", "MI", "IN", "IL", "WI", "MN", "IA", "MO", "ND", "SD", "NE", "KS"],
+    South: ["DE", "MD", "DC", "VA", "WV", "NC", "SC", "GA", "FL", "KY", "TN", "AL", "MS", "AR", "LA", "OK", "TX"],
+    West: ["MT", "ID", "WY", "CO", "NM", "AZ", "UT", "NV", "WA", "OR", "CA", "AK", "HI"]
+  };
+  const m = new Map();
+  for (const [region, names] of Object.entries(R)) for (const n of names) m.set(n.toLowerCase(), region);
+  for (const [region, abbrs] of Object.entries(ABBR)) for (const a of abbrs) if (!m.has(a.toLowerCase())) m.set(a.toLowerCase(), region);
+  return m;
+})();
+const CENSUS_REGIONS = ["Northeast", "Midwest", "South", "West"];
+function stateRegion(loc) {
+  const s = String(loc || "").trim().toLowerCase();
+  return s ? (STATE_REGION.get(s) || "") : "";
 }
 
 // --- Journey Explorer new columns (Item 1): asking price, sell preference, timing.
@@ -1507,7 +1533,7 @@ a.jlink{color:var(--green);text-decoration:none}
 .tl .d{font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.04em}
 </style>
 <div class="wrap">
-<nav class="top">${nav("business", "BUSINESS")}${nav("journeys", "Journeys")}${nav("economics", "Economics")}${nav("quality", "Quality")}<span style="color:#c9c5bc">|</span><span style="color:#a29e95;font-size:12px">Engineering / Costs:</span>${nav("usage", "usage")}${nav("searches", "searches")}${nav("cars", "cars")}${nav("geo", "geo")}${nav("accounts", "accounts")}${nav("outbound", "outbound")}<span style="margin-left:auto;color:#a29e95;font-size:12px" title="All dates and times on this dashboard are shown in US Eastern Time, matching the daily quota boundary.">All times ET (America/New_York)</span></nav>
+<nav class="top">${nav("business", "BUSINESS")}${nav("journeys", "Journeys")}${nav("visitors", "Visitors")}${nav("economics", "Economics")}${nav("quality", "Quality")}<span style="color:#c9c5bc">|</span><span style="color:#a29e95;font-size:12px">Engineering / Costs:</span>${nav("usage", "usage")}${nav("searches", "searches")}${nav("cars", "cars")}${nav("geo", "geo")}${nav("accounts", "accounts")}${nav("outbound", "outbound")}<span style="margin-left:auto;color:#a29e95;font-size:12px" title="All dates and times on this dashboard are shown in US Eastern Time, matching the daily quota boundary.">All times ET (America/New_York)</span></nav>
 ${title !== "__bare" ? `<h1>${adminEsc(title)}</h1>` : ""}`;
 }
 
@@ -1614,9 +1640,29 @@ async function renderBusinessView(req, res) {
   const acqSection = `<h2>Acquisition (first touch)</h2><div class="note">Source of the first visit that opened each journey, from first-party utm + referrer only. ${attributed} of ${b.journeys.length} journeys carry a captured touch; the rest show as Unknown (attribution is forward-only from Phase 4 launch and never inferred).</div>
     <table><tr><th>Source</th><th class="num">Journeys</th><th class="num">Share</th></tr>${acqRows || `<tr><td colspan=3>No journeys in range.</td></tr>`}</table>`;
 
+  // Item 3(a): one consolidated linear drop-off across both paths, with the % drop at
+  // each step (distinct from the split funnel above and the per-row Stage column).
+  const uni = (...sets) => { const s = new Set(); for (const x of sets) if (x) for (const v of x) s.add(v); return s.size; };
+  const dropStages = [
+    ["Journeys started", b.started],
+    ["Recommendation shown", b.recs],
+    ["Viewed (CTA or PowerSeller card)", uni(b.has.platform_cta_viewed, b.has.powerseller_card_viewed)],
+    ["Clicked (CTA or intro)", uni(b.has.platform_cta_clicked, b.has.powerseller_intro_clicked)],
+    ["Introduction requested", b.psIntros]
+  ];
+  const dropRows = dropStages.map(([lab, n], i) => {
+    const prev = i > 0 ? dropStages[i - 1][1] : null;
+    const dropPct = (prev && prev > 0) ? `<span style="color:${n < prev ? "#a3432a" : "#6b6861"}">${n < prev ? `-${(100 * (prev - n) / prev).toFixed(0)}%` : "0%"}</span>` : "<span class=\"samp\">-</span>";
+    const ofStart = b.started > 0 ? fmtPct(n, b.started) : "-";
+    const w = b.started > 0 ? Math.max(2, Math.round(560 * n / b.started)) : 2;
+    return `<div class="fstage"><div class="lab">${lab}</div><div class="cnt">${fmtN(n)}</div><div class="fbar" style="width:${w}px"></div></div><div class="fconv">${ofStart} of started &middot; drop from previous: ${dropPct}</div>`;
+  }).join("");
+  const dropSection = `<h2>Drop-off funnel</h2><div class="note" style="background:#f6f5f2;border-color:var(--line);color:var(--slate)">One linear path across platform and PowerSeller journeys. "Viewed" and "Clicked" union both paths (a journey counts once). Drop is the fall from the stage above.</div><div class="funnel">${dropRows}</div>`;
+
   const html = `${bizChrome("Business", key, "business")}
     <div class="sub">${adminEsc(range.label)} &middot; ${mode === "exclude" ? "real sellers only" : mode === "only" ? "testers only" : "all traffic"}</div>
     ${bizFilters(req, "business")}
+    ${dropSection}
     <h2>Seller funnel</h2>${funnel}
     <h2>Key metrics</h2>${kpis}
     ${acqSection}
@@ -1762,11 +1808,17 @@ async function renderJourneysView(req, res) {
   const b = await computeBusiness(env, range, mode);
   const q = String(req.query?.q || "").toLowerCase();
   const fStage = String(req.query?.stage || ""), fPs = String(req.query?.ps || ""), fPlat = String(req.query?.plat || "");
+  const fReg = String(req.query?.region || "");                                  // Item 2: Census region filter
+  const fUid = String(req.query?.uid || ""), fAid = String(req.query?.aid || ""); // Item 3b: person filter (click-through from Visitors)
   let rows = b.journeys;
   if (q) rows = rows.filter(j => [j.vehicle_make, j.vehicle_model, j.vehicle_trim, j.vehicle_location].filter(Boolean).join(" ").toLowerCase().includes(q));
   if (fStage) rows = rows.filter(j => j.stage === fStage);
   if (fPs) rows = rows.filter(j => j.rec_powerseller === fPs);
   if (fPlat) rows = rows.filter(j => j.rec_platform === fPlat);
+  if (fReg) rows = rows.filter(j => stateRegion(j.vehicle_location) === fReg);
+  if (fUid) rows = rows.filter(j => j.user_id === fUid);
+  if (fAid) rows = rows.filter(j => j.anon_id === fAid && !j.user_id);
+  const anyFilter = q || fStage || fPs || fPlat || fReg || fUid || fAid;
   const shown = rows.slice(0, 300);
   const emailBy = await fetchEmailsByUserId(env, shown.map(j => j.user_id));   // Item 1: signed-in requester email
   const tr = shown.map(j => `<tr>
@@ -1774,6 +1826,7 @@ async function renderJourneysView(req, res) {
     <td><a class="jlink" href="?view=journeys&jid=${encodeURIComponent(j.journey_id)}&key=${bizKey(req)}">${adminEsc([j.vehicle_year, j.vehicle_make, j.vehicle_model].filter(Boolean).join(" ") || "?")}</a></td>
     <td>${adminEsc(j.user_id ? (emailBy.get(j.user_id) || "") : "")}</td>
     <td>${adminEsc(j.vehicle_location || "")}</td>
+    <td>${adminEsc(stateRegion(j.vehicle_location))}</td>
     <td class="num">${fmtAsk(attrOf(j, "price"))}</td>
     <td>${prefLabel(attrOf(j, "preference"))}</td>
     <td>${adminEsc(attrOf(j, "timeline") || "")}</td>
@@ -1785,13 +1838,71 @@ async function renderJourneysView(req, res) {
     <td class="num">${j.sale_price ? fmtMoney(j.sale_price) : ""}</td>
     <td class="num">${j.gas_revenue ? fmtMoney(j.gas_revenue) : ""}</td>
   </tr>`).join("");
-  // CSV download links carry the current tier/time filters (Item 4).
-  const csvParams = extra => `?view=journeys&format=csv&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${extra}`;
+  // CSV download links carry ALL current filters (Items 2/4/3b).
+  const filterQS = `${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}`;
+  const csvParams = extra => `?view=journeys&format=csv&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${filterQS}${extra}`;
+  // Region rollup filter chips (Item 2). Preserve every other current filter.
+  const regionBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}`;
+  const regionChips = `<div class="filters" style="margin:4px 0"><span style="color:#6b6861;font-size:12px">Region:</span> <a class="${!fReg ? "on" : ""}" href="${regionBase}">All</a>${CENSUS_REGIONS.map(rg => `<a class="${fReg === rg ? "on" : ""}" href="${regionBase}&region=${encodeURIComponent(rg)}">${rg}</a>`).join("")}</div>`;
+  // Person-filter banner when arriving from the Visitors view (Item 3b).
+  const personBanner = (fUid || fAid) ? `<div class="note">Showing journeys for ${fUid ? `signed-in user ${adminEsc((emailBy.get(fUid) || fUid.slice(0, 8) + "…"))}` : `anonymous device ${adminEsc(fAid.slice(0, 12) + "…")}`}. <a class="jlink" href="?view=visitors&range=${range.range}&biz=${mode}&key=${bizKey(req)}">Back to Visitors</a></div>` : "";
   const html = `${bizChrome("Journey Explorer", key, "journeys")}
     ${bizFilters(req, "journeys")}
-    <form method="get" style="margin:8px 0"><input type="hidden" name="view" value="journeys"><input type="hidden" name="key" value="${bizKey(req)}"><input type="hidden" name="range" value="${range.range}"><input type="hidden" name="biz" value="${mode}">${range.range === "custom" ? `<input type="hidden" name="from" value="${adminEsc(req.query?.from || "")}"><input type="hidden" name="to" value="${adminEsc(req.query?.to || "")}">` : ""}<input type="text" name="q" value="${adminEsc(req.query?.q || "")}" placeholder="Search vehicle or location"> <button>Search</button></form>
-    <div class="sub">${rows.length} journeys ${q || fStage || fPs || fPlat ? "(filtered)" : ""} &nbsp;·&nbsp; Download CSV (current filters): <a href="${csvParams("&dataset=journeys")}">journeys</a> · <a href="${csvParams("&dataset=journey_events")}">events</a> · <a href="${csvParams("&dataset=funnel_events")}">funnel</a></div>
-    <table><tr><th>Date</th><th>Vehicle</th><th>Email</th><th>Location</th><th class="num">Asking</th><th>Preference</th><th>Timing</th><th>Recommendation</th><th>PowerSeller</th><th>Stage</th><th>Actual platform</th><th>Sale status</th><th class="num">Sale price</th><th class="num">Revenue</th></tr>${tr || `<tr><td colspan=14>No journeys.</td></tr>`}</table>
+    ${regionChips}
+    ${personBanner}
+    <form method="get" style="margin:8px 0"><input type="hidden" name="view" value="journeys"><input type="hidden" name="key" value="${bizKey(req)}"><input type="hidden" name="range" value="${range.range}"><input type="hidden" name="biz" value="${mode}">${range.range === "custom" ? `<input type="hidden" name="from" value="${adminEsc(req.query?.from || "")}"><input type="hidden" name="to" value="${adminEsc(req.query?.to || "")}">` : ""}${fReg ? `<input type="hidden" name="region" value="${adminEsc(fReg)}">` : ""}${fUid ? `<input type="hidden" name="uid" value="${adminEsc(fUid)}">` : ""}${fAid ? `<input type="hidden" name="aid" value="${adminEsc(fAid)}">` : ""}<input type="text" name="q" value="${adminEsc(req.query?.q || "")}" placeholder="Search vehicle or location"> <button>Search</button></form>
+    <div class="sub">${rows.length} journeys ${anyFilter ? "(filtered)" : ""} &nbsp;·&nbsp; Download CSV (current filters): <a href="${csvParams("&dataset=journeys")}">journeys</a> · <a href="${csvParams("&dataset=journey_events")}">events</a> · <a href="${csvParams("&dataset=funnel_events")}">funnel</a></div>
+    <table><tr><th>Date</th><th>Vehicle</th><th>Email</th><th>Location</th><th>Region</th><th class="num">Asking</th><th>Preference</th><th>Timing</th><th>Recommendation</th><th>PowerSeller</th><th>Stage</th><th>Actual platform</th><th>Sale status</th><th class="num">Sale price</th><th class="num">Revenue</th></tr>${tr || `<tr><td colspan=15>No journeys.</td></tr>`}</table>
+  </div>`;
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.status(200).send(html);
+}
+
+// Item 3(b): group journeys into people. Signed-in users group by user_id (with email);
+// anonymous visitors group by anon_id (best effort — fragments across devices/browsers).
+function groupVisitors(journeys, emailBy) {
+  const map = new Map();
+  for (const j of journeys) {
+    const signedIn = !!j.user_id;
+    const id = signedIn ? j.user_id : j.anon_id;
+    if (!id) continue;
+    const key = (signedIn ? "u:" : "a:") + id;
+    let v = map.get(key);
+    if (!v) { v = { signedIn, id, email: signedIn ? (emailBy.get(id) || "") : "", journeys: 0, first: j.created_at, last: j.created_at, days: new Set() }; map.set(key, v); }
+    v.journeys++;
+    if (j.created_at < v.first) v.first = j.created_at;
+    if (j.created_at > v.last) v.last = j.created_at;
+    if (j.created_at) v.days.add(new Date(j.created_at).toLocaleDateString("en-CA", { timeZone: ET_TZ }));
+  }
+  return [...map.values()].map(v => ({ signedIn: v.signedIn, id: v.id, email: v.email, journeys: v.journeys, first: v.first, last: v.last, activeDays: v.days.size }))
+    .sort((a, z) => z.journeys - a.journeys || (String(z.last) < String(a.last) ? -1 : 1));
+}
+// Item 3(b): Visitors view — repeat activity by person across journeys/days.
+async function renderVisitorsView(req, res) {
+  const env = supabaseEnv(); if (!env) return res.status(500).json({ error: "storage not configured" });
+  const range = bizRange(req), mode = bizMode(req), key = req.query?.key;
+  const b = await computeBusiness(env, range, mode);
+  const emailBy = await fetchEmailsByUserId(env, b.journeys.map(j => j.user_id));
+  const all = groupVisitors(b.journeys, emailBy);
+  const returning = all.filter(v => v.journeys >= 2).length;
+  const showAll = req.query?.all === "1";
+  const visitors = (showAll ? all : all.filter(v => v.journeys >= 2)).slice(0, 500);
+  const linkBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}`;
+  const tr = visitors.map(v => {
+    const label = v.signedIn ? (v.email || v.id.slice(0, 8) + "…") : ("anon " + String(v.id).slice(0, 12) + "…");
+    const link = `${linkBase}&${v.signedIn ? "uid" : "aid"}=${encodeURIComponent(v.id)}`;
+    return `<tr><td><a class="jlink" href="${link}">${adminEsc(label)}</a></td><td>${v.signedIn ? "signed-in" : "anon"}</td><td class="num">${fmtN(v.journeys)}</td><td>${fmtDayET(v.first)}</td><td>${fmtDayET(v.last)}</td><td class="num">${fmtN(v.activeDays)}</td></tr>`;
+  }).join("");
+  const csvParams = `?view=visitors&format=csv&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}`;
+  const toggle = showAll
+    ? `<a class="jlink" href="?view=visitors&range=${range.range}&biz=${mode}&key=${bizKey(req)}">Show returning only (2+)</a>`
+    : `<a class="jlink" href="?view=visitors&all=1&range=${range.range}&biz=${mode}&key=${bizKey(req)}">Show all visitors</a>`;
+  const html = `${bizChrome("Visitors", key, "visitors")}
+    <div class="sub">${adminEsc(range.label)} &middot; ${mode === "exclude" ? "real sellers only" : mode === "only" ? "testers only" : "all traffic"}</div>
+    ${bizFilters(req, "visitors")}
+    <div class="note">Repeat activity grouped by person. Signed-in users group by account; anonymous visitors group by device id and will fragment if they switch device, browser, or clear cookies. ${fmtN(returning)} returning (2+ journeys) of ${fmtN(all.length)} total. ${toggle}</div>
+    <div class="sub">${visitors.length} shown${showAll ? "" : " (returning only)"} &nbsp;·&nbsp; <a href="${csvParams}">Download CSV</a></div>
+    <table><tr><th>Visitor</th><th>Type</th><th class="num">Journeys</th><th>First seen</th><th>Last seen</th><th class="num">Active days</th></tr>${tr || `<tr><td colspan=6>No repeat visitors in range.</td></tr>`}</table>
   </div>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.status(200).send(html);
@@ -1813,17 +1924,21 @@ async function renderCsvExport(req, res) {
   };
   if (dataset === "journeys") {
     const b = await computeBusiness(env, range, mode);
-    // Same explorer sub-filters as the view (q / stage / ps / plat).
+    // Same explorer sub-filters as the view (q / stage / ps / plat / region / person).
     const q = String(req.query?.q || "").toLowerCase();
     const fStage = String(req.query?.stage || ""), fPs = String(req.query?.ps || ""), fPlat = String(req.query?.plat || "");
+    const fReg = String(req.query?.region || ""), fUid = String(req.query?.uid || ""), fAid = String(req.query?.aid || "");
     let rows = b.journeys;
     if (q) rows = rows.filter(j => [j.vehicle_make, j.vehicle_model, j.vehicle_trim, j.vehicle_location].filter(Boolean).join(" ").toLowerCase().includes(q));
     if (fStage) rows = rows.filter(j => j.stage === fStage);
     if (fPs) rows = rows.filter(j => j.rec_powerseller === fPs);
     if (fPlat) rows = rows.filter(j => j.rec_platform === fPlat);
+    if (fReg) rows = rows.filter(j => stateRegion(j.vehicle_location) === fReg);
+    if (fUid) rows = rows.filter(j => j.user_id === fUid);
+    if (fAid) rows = rows.filter(j => j.anon_id === fAid && !j.user_id);
     const emailBy = await fetchEmailsByUserId(env, rows.map(j => j.user_id));
-    const headers = ["journey_id", "created_at", "tier", "anon_id", "user_id", "email", "vehicle_year", "vehicle_make", "vehicle_model", "vehicle_trim", "vehicle_location", "asking_price", "sell_preference", "timing", "condition", "records", "title", "rec_platform", "rec_powerseller", "rec_scope", "rec_window", "rec_estimated_value", "stage", "sale_status", "listed_at", "consignment_at", "sold_at", "sale_price", "gas_revenue", "actual_platform", "listing_url", "last_activity_at", "contacted_at", "engaged_at", "intro_sent_at", "intro_requested_at"];
-    const body = rows.map(j => [j.journey_id, j.created_at, b.tierBy.get(j.journey_id) || "", j.anon_id, j.user_id, j.user_id ? (emailBy.get(j.user_id) || "") : "", j.vehicle_year, j.vehicle_make, j.vehicle_model, j.vehicle_trim, j.vehicle_location, attrOf(j, "price"), attrOf(j, "preference"), attrOf(j, "timeline"), attrOf(j, "condition"), attrOf(j, "records"), attrOf(j, "title"), j.rec_platform, j.rec_powerseller, j.rec_scope, j.rec_window, j.rec_estimated_value, j.stage, j.sale_status, j.listed_at, j.consignment_at, j.sold_at, j.sale_price, j.gas_revenue, j.actual_platform, j.listing_url, j.last_activity_at, j.contacted_at, j.engaged_at, j.intro_sent_at, j.intro_requested_at]);
+    const headers = ["journey_id", "created_at", "tier", "anon_id", "user_id", "email", "vehicle_year", "vehicle_make", "vehicle_model", "vehicle_trim", "vehicle_location", "region", "asking_price", "sell_preference", "timing", "condition", "records", "title", "rec_platform", "rec_powerseller", "rec_scope", "rec_window", "rec_estimated_value", "stage", "sale_status", "listed_at", "consignment_at", "sold_at", "sale_price", "gas_revenue", "actual_platform", "listing_url", "last_activity_at", "contacted_at", "engaged_at", "intro_sent_at", "intro_requested_at"];
+    const body = rows.map(j => [j.journey_id, j.created_at, b.tierBy.get(j.journey_id) || "", j.anon_id, j.user_id, j.user_id ? (emailBy.get(j.user_id) || "") : "", j.vehicle_year, j.vehicle_make, j.vehicle_model, j.vehicle_trim, j.vehicle_location, stateRegion(j.vehicle_location), attrOf(j, "price"), attrOf(j, "preference"), attrOf(j, "timeline"), attrOf(j, "condition"), attrOf(j, "records"), attrOf(j, "title"), j.rec_platform, j.rec_powerseller, j.rec_scope, j.rec_window, j.rec_estimated_value, j.stage, j.sale_status, j.listed_at, j.consignment_at, j.sold_at, j.sale_price, j.gas_revenue, j.actual_platform, j.listing_url, j.last_activity_at, j.contacted_at, j.engaged_at, j.intro_sent_at, j.intro_requested_at]);
     return send("journeys", toCsv(headers, body));
   }
   if (dataset === "journey_events") {
@@ -1840,7 +1955,15 @@ async function renderCsvExport(req, res) {
     const body = rows.map(r => [r.id, r.event, r.anon_session_id, r.user_id, r.dedup_key, r.created_at]);
     return send("funnel_events", toCsv(headers, body));
   }
-  return res.status(400).json({ error: "Unknown dataset. Use dataset=journeys|journey_events|funnel_events." });
+  if (dataset === "visitors") {
+    const b = await computeBusiness(env, range, mode);
+    const emailBy = await fetchEmailsByUserId(env, b.journeys.map(j => j.user_id));
+    const visitors = groupVisitors(b.journeys, emailBy);
+    const headers = ["type", "id", "email", "journeys", "first_seen", "last_seen", "active_days"];
+    const body = visitors.map(v => [v.signedIn ? "signed-in" : "anon", v.id, v.email, v.journeys, v.first, v.last, v.activeDays]);
+    return send("visitors", toCsv(headers, body));
+  }
+  return res.status(400).json({ error: "Unknown dataset. Use dataset=journeys|journey_events|funnel_events|visitors." });
 }
 
 // Cost + operational events for a range (app_usage_events). Not tier-filterable:
@@ -1989,6 +2112,7 @@ export default async function handler(req, res) {
     if (req.query?.format === "csv") return await renderCsvExport(req, res);   // Item 4: CSV download, same key gate + filters
     if (req.query?.view === "business") return await renderBusinessView(req, res);
     if (req.query?.view === "journeys") return await renderJourneysView(req, res);
+    if (req.query?.view === "visitors") return await renderVisitorsView(req, res);
     if (req.query?.view === "economics") return await renderEconomicsView(req, res);
     if (req.query?.view === "quality") return await renderQualityView(req, res);
     if (req.query?.view === "accounts") return await renderAccountsView(req, res);
