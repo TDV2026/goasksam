@@ -1029,11 +1029,19 @@ function sellerFunnelReply(){
   return "Tell me the car and I’ll compare recent platform performance, timing patterns and PowerSeller fit before recommending what I’d do. A few quick questions, under a minute.";
 }
 
-function startSellFlow(initialCar, showUserBubble=true, preresolved=null){
+async function startSellFlow(initialCar, showUserBubble=true, preresolved=null){
   // Walled guard: a hard daily/limit/account wall is up, so refuse to start a new search
   // and re-acknowledge calmly instead of walking a phantom wizard (the backend re-blocks
   // it anyway). Reload re-derives the true state via gateCheckUpfront.
   if(typeof gasIsWalled==="function"&&gasIsWalled()){ if(typeof gateWalledReack==="function")gateWalledReack(gasIsWalled()); return; }
+  // Upfront gate on EVERY new car entry, not just page load (both the car-entry and the
+  // rail "Sell my car" paths run through here). A signed-in seller's cached daily remaining
+  // is refreshed LIVE first, so a mid-session entry by an account that has hit its cap gets
+  // the wall before the wizard starts instead of after a full walkthrough. Anonymous uses
+  // the gas_free_used cookie (already current). A failed refresh falls through (the backend
+  // gate is the backstop). gateCheckUpfront returns true when it renders a wall.
+  try{ if(typeof authIsSignedIn==="function"&&authIsSignedIn()&&typeof authEnsureAccount==="function") await authEnsureAccount(); }catch(e){}
+  if(typeof gateCheckUpfront==="function"&&gateCheckUpfront()) return;
   resetSellState();
   sellState.active=true;sellState.step=1;
   if(typeof gasFunnel==="function")gasFunnel("wizard_start");  // 2F
