@@ -537,6 +537,13 @@ a.hp-logo:hover{opacity:.72;}
 .hp-rail-scroll{flex:1;overflow-y:auto;min-height:0;}
 .hp-rail-footer{border-top:1px solid var(--line);padding-top:12px;margin-top:12px;}
 .hp-rail-footer a{color:var(--slate);text-decoration:none;}
+/* Feedback mailto fallback: DESKTOP ONLY. mailto silently fails on desktop Chrome/Safari
+   with no mail client configured, so we surface the address as visible, copy-on-click text.
+   Hidden on mobile (mailto works there), shown at the same min-width:901px desktop breakpoint. */
+.hp-feedback-fallback{display:none;font-size:11.5px;line-height:1.45;color:var(--slate);padding:4px 10px 2px;}
+.hp-copy-email{color:var(--green);text-decoration:none;cursor:pointer;word-break:break-all;}
+.hp-copy-email:hover{text-decoration:underline;}
+@media (min-width:901px){ .hp-feedback-fallback{display:block;} }
 
 /* TODAY'S MARKET: no boxes; label + value with a hairline divider */
 #market-cards-desktop{display:flex;flex-direction:column;gap:0;padding:4px 12px 6px;}
