@@ -12,6 +12,7 @@ import { MODEL_SEGMENTS } from "../lib/vehicleData.js";
 import { poolTrimFor } from "../lib/modelFamilies.js";
 import { calculateEffectiveSampleSize, MINIMUM_EFFECTIVE_SAMPLE, getRecencyMultiplier, getPlatformDominanceScore, calculateConfidenceScore, getConfidenceLevel } from "../lib/weighting.js";
 import { computePartnerCareerStats, partnerRelevance, priceBand } from "../lib/marketStats.js";
+import { censusRegion, partnerRegionBuckets } from "../lib/_regions.js";
 import { findReserveContext, computeReserveCells, RESERVE_MIN_PER_SIDE } from "../lib/reserveContext.js";
 import { findSpecializationContext } from "../lib/specializationShare.js";
 import {
@@ -1899,12 +1900,29 @@ export function partnerPrewarVetoed(partner, vehicle) {
 }
 
 // Pure candidate comparator (hoisted + exported so the veto/routing invariants are
-// unit-testable against the REAL ranking, not a copy). Order: local state > marque
-// match > segment fit > tighter regional focus (fewer regions) > stable table order.
+// unit-testable against the REAL ranking, not a copy). Order:
+//   local state > marque > segment > region-bucket proximity > fewer regions > track record.
+// Region-bucket proximity (Aug 2026 fix): when nobody explicitly lists the seller's state,
+// a partner who covers the seller's Census region (Northeast/Midwest/South/West) via
+// explicit coverage outranks one who does not, BEFORE the blunt "fewer regions" tiebreak.
+// That tiebreak alone used to hand a West Virginia seller to a Colorado partner (5 regions)
+// over a nationwide Northeast partner (11), purely on list length. Track record (tracked
+// career sales) is the final fallback so the more proven seller wins a true dead heat.
 export const rankPartnerCandidates = (a, b) => (Number(b.local) - Number(a.local))
   || (Number(b.marqueMet) - Number(a.marqueMet))
   || (Number(b.segmentMet) - Number(a.segmentMet))
-  || (a.regionCount - b.regionCount);
+  || (Number(b.regionProximity) - Number(a.regionProximity))
+  || (a.regionCount - b.regionCount)
+  || ((Number(b.trackRecord) || 0) - (Number(a.trackRecord) || 0));
+
+// Region-bucket proximity: the partner explicitly covers the seller's Census region (not
+// via Nationwide). Mirrors partnerLocalState but at region granularity, so a same-region
+// partner beats a distant one when neither lists the exact state.
+export function partnerRegionProximity(partner, criteria) {
+  const sellerBucket = censusRegion(asText(criteria && criteria.state));
+  if (!sellerBucket) return false;
+  return partnerRegionBuckets(partner && partner.regions || []).has(sellerBucket);
+}
 
 // A partner is LOCAL to the seller when they explicitly list the seller's state
 // (not merely via "nationwide"). Locality lets a regional specialist outrank a
@@ -1976,8 +1994,19 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
       segmentMet: partnerSegmentMatch(partner, vehicle, priorities),
       regionMet: partnerRegionCovered(partner, criteria),
       local: partnerLocalState(partner, criteria),
-      regionCount: (partner.regions || []).length
+      regionProximity: partnerRegionProximity(partner, criteria),
+      regionCount: (partner.regions || []).length,
+      trackRecord: 0
     }));
+  // Track-record fallback: tracked career sales per candidate, computed in parallel. It is
+  // only the LAST comparator key (a rare decider once locality + region proximity + region
+  // count are exhausted), but computing it up front keeps the comparator pure. Best-effort:
+  // a failed or empty lookup leaves 0.
+  await Promise.all(cands.map(async c => {
+    const usernames = (c.partner.seller_usernames || []).filter(Boolean);
+    if (!usernames.length) return;
+    try { const s = await computePartnerCareerStats(usernames, { supabaseUrl, supabaseKey }); c.trackRecord = (s && s.trackedSales) || 0; } catch (e) {}
+  }));
   const anySegment = cands.some(c => c.segmentMet);
   const anyRegion = cands.some(c => c.regionMet);
   // Marque-aware ranking (Aug 2026): a partner who lists the car's actual marque

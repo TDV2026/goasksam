@@ -26,10 +26,14 @@ const PARTNERS = [
     // person references; the handle "howS" stays in `name` for "Known online as".
     display_name: "Howard Silvers",
     active: true,
+    // Reconciled Aug 2026: Howard's real reach is Nationwide + Northeast + Mid-Atlantic/
+    // South (the live row had drifted to Northeast-only). Kept in sync with the
+    // usageDashboard task=partnerseed&target=howard PATCH that applies this live.
     regions: [
-      "Nationwide", "Pennsylvania", "New Jersey", "New York", "Connecticut",
-      "Massachusetts", "Maryland", "Virginia", "Washington DC", "East Coast",
-      "New England", "Florida", "Texas", "Colorado"
+      "Nationwide", "Northeast", "New England", "East Coast",
+      "Pennsylvania", "New Jersey", "New York", "Connecticut", "Massachusetts",
+      "Rhode Island", "Vermont", "New Hampshire", "Maine",
+      "Maryland", "Virginia", "Washington DC", "Florida", "Texas", "Colorado"
     ],
     specialties: {
       makes: ["Porsche", "Ford", "Ferrari", "BMW", "Mercedes-Benz", "Audi", "Toyota", "Land Rover", "Jaguar"],

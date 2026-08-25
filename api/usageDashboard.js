@@ -10,6 +10,7 @@ import { CURATED_GENERATIONS } from "../lib/generations.js";
 import { recordUsageEvent } from "./_usage.js";
 import { journeyManualUpdate } from "../lib/_journey.js";
 import { runDepthProbe, LAUNCH_SOURCES } from "../lib/ops/depthProbe.js";
+import { censusRegion, CENSUS_REGIONS } from "../lib/_regions.js";
 import { runFillBatch } from "../lib/ops/fillLadder.js";
 import { beehiivBySubscriberId } from "../lib/_beehiiv.js";
 
@@ -1140,8 +1141,17 @@ async function handleOps(req, res) {
       const text = await resp.text();
       return res.status(resp.ok ? 200 : 500).json({ task: "partnerseed", action: "activate", ok: resp.ok, row: text ? JSON.parse(text) : text });
     }
+    // Reconcile Howard's live coverage to his intended Mid-Atlantic/Southern + Northeast
+    // reach (the live row had drifted to Northeast-only; seedPartners.js intended MD/VA/DC/
+    // FL/TX/CO). Patches ONLY regions, leaving his other live fields untouched.
+    if (req.query?.target === "howard") {
+      const HOWARD_REGIONS = ["Nationwide", "Northeast", "New England", "East Coast", "Pennsylvania", "New Jersey", "New York", "Connecticut", "Massachusetts", "Rhode Island", "Vermont", "New Hampshire", "Maine", "Maryland", "Virginia", "Washington DC", "Florida", "Texas", "Colorado"];
+      const resp = await sb("partners?slug=eq.hows-motorcars-main-line", "PATCH", { regions: HOWARD_REGIONS, updated_at: new Date().toISOString() });
+      const text = await resp.text();
+      return res.status(resp.ok ? 200 : 500).json({ task: "partnerseed", action: "howard-regions", ok: resp.ok, row: text ? JSON.parse(text) : text });
+    }
     const SPENCER = {
-      slug: "specwerks-ltd", name: "SpecWerksLTD", display_name: "Spencer Bailey", active: false,
+      slug: "specwerks-ltd", name: "SpecWerksLTD", display_name: "Spencer Bailey", active: true,
       regions: ["Colorado", "Denver", "Mountain West", "Nationwide", "International"],
       specialties: {
         makes: ["BMW", "Mercedes-Benz", "Porsche", "Audi", "Volkswagen", "Toyota", "Nissan", "Datsun", "Honda", "Mazda", "Jeep", "Land Rover", "Ford", "Chevrolet"],
@@ -1371,31 +1381,9 @@ function bizExtraQS(req) {
   return ["q", "stage", "ps", "plat", "region", "uid", "aid"].filter(n => req.query?.[n]).map(n => `&${n}=${encodeURIComponent(req.query[n])}`).join("");
 }
 
-// Item 2: US Census Bureau 4 regions. vehicle_location is the state name captured in the
-// wizard; map it (full name or 2-letter) to a region. Non-US / blank -> "".
-const STATE_REGION = (() => {
-  const R = {
-    Northeast: ["Maine", "New Hampshire", "Vermont", "Massachusetts", "Rhode Island", "Connecticut", "New York", "New Jersey", "Pennsylvania"],
-    Midwest: ["Ohio", "Michigan", "Indiana", "Illinois", "Wisconsin", "Minnesota", "Iowa", "Missouri", "North Dakota", "South Dakota", "Nebraska", "Kansas"],
-    South: ["Delaware", "Maryland", "District of Columbia", "Washington DC", "Virginia", "West Virginia", "North Carolina", "South Carolina", "Georgia", "Florida", "Kentucky", "Tennessee", "Alabama", "Mississippi", "Arkansas", "Louisiana", "Oklahoma", "Texas"],
-    West: ["Montana", "Idaho", "Wyoming", "Colorado", "New Mexico", "Arizona", "Utah", "Nevada", "Washington", "Oregon", "California", "Alaska", "Hawaii"]
-  };
-  const ABBR = {
-    Northeast: ["ME", "NH", "VT", "MA", "RI", "CT", "NY", "NJ", "PA"],
-    Midwest: ["OH", "MI", "IN", "IL", "WI", "MN", "IA", "MO", "ND", "SD", "NE", "KS"],
-    South: ["DE", "MD", "DC", "VA", "WV", "NC", "SC", "GA", "FL", "KY", "TN", "AL", "MS", "AR", "LA", "OK", "TX"],
-    West: ["MT", "ID", "WY", "CO", "NM", "AZ", "UT", "NV", "WA", "OR", "CA", "AK", "HI"]
-  };
-  const m = new Map();
-  for (const [region, names] of Object.entries(R)) for (const n of names) m.set(n.toLowerCase(), region);
-  for (const [region, abbrs] of Object.entries(ABBR)) for (const a of abbrs) if (!m.has(a.toLowerCase())) m.set(a.toLowerCase(), region);
-  return m;
-})();
-const CENSUS_REGIONS = ["Northeast", "Midwest", "South", "West"];
-function stateRegion(loc) {
-  const s = String(loc || "").trim().toLowerCase();
-  return s ? (STATE_REGION.get(s) || "") : "";
-}
+// Item 2: US Census Bureau 4 regions. The map now lives in lib/_regions.js so the dashboard
+// Region column and the PowerSeller region-proximity ranking share ONE definition.
+const stateRegion = censusRegion;
 
 // --- Journey Explorer new columns (Item 1): asking price, sell preference, timing.
 // All three come from journeys.vehicle_attrs (price / preference / timeline), captured

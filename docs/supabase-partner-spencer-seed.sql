@@ -2,14 +2,13 @@
 -- Supabase SQL editor. Uses the SAME partners schema and matching fields as the
 -- existing four; NO special-case recommendation logic is added anywhere.
 --
--- active = FALSE on purpose. Spencer does not go live on any card until BOTH:
---   1) his premium vetting number has been computed and approved by Sam, and
---   2) the prewar-exclusion decision is made (see the flag in the handoff notes:
---      the current segment vocabulary cannot exclude prewar from his lane without
---      a shared-logic or negative-signal change, which was flagged, not built).
--- Flip to active = true only after both. loadActivePartners() reads active=is.true,
--- so while inactive he never matches, ranks, or renders. He is still seeded now so
--- the premium precompute (task=premium persist) can attach his data_verified tile.
+-- active = TRUE (official, Aug 2026, by Sam's decision). Both gates are resolved:
+--   1) his premium vetting number has been computed (data_verified tile, n=24), and
+--   2) the prewar exclusion is handled in code by partnerPrewarVetoed (SPENCER_SLUG +
+--      PREWAR_MAX_YEAR in api/sellerDecision.js), which removes ONLY Spencer for a
+--      prewar vehicle, so the year-agnostic marque leak below can no longer reach him.
+-- loadActivePartners() reads active=is.true, so he now matches, ranks and renders like
+-- the other four. (Historically seeded inactive; flipped live via task=partnerseed&activate=1.)
 --
 -- FEE DATA IS NOT STORED. His seller fee ($800 + 7.5% + servicing) and referral
 -- status are data-only and never render, exactly like Dan's 6%/5%. The partners
@@ -24,14 +23,14 @@
 
 insert into partners (slug, name, display_name, active, regions, specialties, platforms, service_claims, seller_usernames, referral_terms, min_value_usd)
 values (
-  'specwerks-ltd', 'SpecWerksLTD', 'Spencer Bailey', false,
+  'specwerks-ltd', 'SpecWerksLTD', 'Spencer Bailey', true,
   '["Colorado","Denver","Mountain West","Nationwide","International"]'::jsonb,
   jsonb_build_object(
     -- Marque list = his genuine specialty makes (German, Japanese, American
     -- enthusiast + 4x4). NOTE: partnerMarqueMatch is year-agnostic, so listing BMW
     -- and Mercedes here lets a PREWAR BMW/Mercedes marque-match him. That is the
-    -- flagged prewar leak; it is tolerated only because he is inactive. Do not flip
-    -- active=true until the prewar decision is made.
+    -- flagged prewar leak; it is now neutralized by partnerPrewarVetoed (a Spencer-only,
+    -- prewar-only filter in api/sellerDecision.js), so active=true is safe.
     'makes', '["BMW","Mercedes-Benz","Porsche","Audi","Volkswagen","Toyota","Nissan","Datsun","Honda","Mazda","Jeep","Land Rover","Ford","Chevrolet"]'::jsonb,
     -- Only vehicle-ASSIGNED segments can match (pre_1990/older_enthusiast/
     -- modern_enthusiast/classic_european/european_sports/porsche/bmw_m). These cover
