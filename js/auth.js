@@ -411,20 +411,31 @@ function gateAppendCard(html) {
 // phantom wizard. The BACKEND already re-blocks every search, so nothing was lossy; this
 // stops the confusing UI where a walled user could walk a new (blocked) flow. In-memory
 // per session; a page reload re-derives the true state via gateCheckUpfront.
-let gasWalledStatus = null;
+let gasWalledStatus = null, gasWalledTier = null;
 function gasIsWalled() { return gasWalledStatus; }
-function gasSetWalled(status) { gasWalledStatus = status || null; }
-function gasClearWalled() { gasWalledStatus = null; }
+function gasSetWalled(status, tier) { gasWalledStatus = status || null; gasWalledTier = tier || null; }
+function gasClearWalled() { gasWalledStatus = null; gasWalledTier = null; }
 // Statuses that mean "no more searches until reset / sign-in" (persistent), vs transient
 // ones (ip_rate_limited, auth_required) that a retry can clear on its own.
 function gasIsWallStatus(s) { return ["daily_limit_reached", "tester_daily_limit_reached", "limit_reached", "account_required", "capacity"].includes(s); }
+// ONE source of truth for the tier-branched daily-wall copy, used by BOTH the initial hard
+// wall (gateRenderStatus) and the walled-state re-ack (gateWalledReack). No dashes (house
+// rule). Anonymous (account_required) copy is separate and unchanged.
+function gateDailyWallHtml(tier) {
+  if (tier === "tdv") {
+    return `<div class="sam-text">I appreciate you wanting more. Right now at launch we're giving TDV subscribers 3 searches a day, and the clock resets at midnight ET. I'll be ready for the next one then.</div>`;
+  }
+  return `<div class="sam-text">I appreciate you wanting more. Free accounts get 1 search a day right now, resetting at midnight ET. Subscribing to <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">The Daily Vroom</a> gets you 3 a day instead, with the same email you signed in with.</div><div class="sam-text gate-sub">Already subscribed? <button class="gate-inline-link" onclick="gateRefreshTier()">Refresh your plan</button>.</div>`;
+}
 function gateWalledReack(status) {
+  status = status || gasWalledStatus;
   if (status === "account_required" || status === "capacity") {
     gateAppendCard(`<div class="sam-text">You'll need a free account to run another search. <button class="gate-inline-link" onclick="gateCreateAccount()">Create one</button> and I'll pick up right where we left off.</div>`);
   } else if (status === "tester_daily_limit_reached") {
     gateAppendCard(`<div class="sam-text">That's your test searches for today. They reset tomorrow, so I'll be here then.</div>`);
   } else {
-    gateAppendCard(`<div class="sam-text">That's your searches for today. They reset tomorrow, so I'll be here then.</div>`);
+    // daily_limit_reached / limit_reached: same tier-branched copy as the initial wall.
+    gateAppendCard(gateDailyWallHtml(gasWalledTier));
   }
 }
 // The subtle "first one's on me" line under the free result (amendment item 2).
@@ -447,17 +458,10 @@ function gateRenderStatus(data) {
       gateAppendCard(`<div class="sam-text">That's your free searches for this month. Daily Vroom readers get more, on the house. <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">Join free &rarr;</a></div><div class="sam-text gate-sub">Already a reader? <button class="gate-inline-link" onclick="openSignInCard('Sign in with the email you subscribed with and your searches are yours.')">Sign in with the email you subscribed with</button>.</div>`);
     }
   } else if (status === "daily_limit_reached") {
-    // Daily wall (the only per-user limit now). Resets at midnight ET; no monthly
-    // credits. Branch by tier: free tier gets the TDV pitch (three a day) plus a
-    // refresh affordance so a same-session subscriber upgrades without re-signing-in;
-    // TDV tier gets a plain reset line with no subscribe mention.
-    const n = Number(data && data.dailyCap) || 1;
-    if ((data && data.tier) === "tdv") {
-      const line = n > 1 ? `That's your ${n} for today. It resets tomorrow.` : "That's your search for today. It resets tomorrow.";
-      gateAppendCard(`<div class="sam-text">${authEsc(line)}</div>`);
-    } else {
-      gateAppendCard(`<div class="sam-text">That's your search for today. It resets tomorrow. Want three a day? <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">Subscribe</a> to The Daily Vroom, free, with the email you signed in with.</div><div class="sam-text gate-sub">Already subscribed? <button class="gate-inline-link" onclick="gateRefreshTier()">Refresh your plan</button>.</div>`);
-    }
+    // Daily wall (the only per-user limit now). Resets at midnight ET; tier-branched copy
+    // (free = TDV pitch + refresh affordance; TDV = no subscribe mention), shared verbatim
+    // with the walled-state re-ack via gateDailyWallHtml.
+    gateAppendCard(gateDailyWallHtml(data && data.tier));
   } else if (status === "tester_daily_limit_reached") {
     // Tester cohort daily wall. No account nag (testers are deliberately account
     // free); resets at midnight ET. Locked copy, no dashes.
@@ -472,7 +476,8 @@ function gateRenderStatus(data) {
     gateAppendCard(`<div class="sam-text">I'm flat out right now. Give it a few minutes, or create a free account and I'll get to your search.</div><div class="sell-rec-actions"><button class="primary" onclick="gateCreateAccount()">Create a free account</button></div>`);
   }
   // Arm the frontend guard so the next input can't start a phantom search behind the wall.
-  if (gasIsWallStatus(status)) gasSetWalled(status);
+  // Capture the tier so the re-ack shows the same tier-branched copy as this wall.
+  if (gasIsWallStatus(status)) gasSetWalled(status, data && data.tier);
 }
 function gateCreateAccount() {
   gateStashPendingSearch();

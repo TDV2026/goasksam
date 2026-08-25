@@ -67,7 +67,7 @@ async function drive(page, scn) {
     const card = has('.pcard-tic')||has('.psv2-tic')||has('.pcard-platform')||has('.pcard-lead')||has('.psv2-card')||has('.regional-card')||has('.sell-rec-card');
     const oos = /isn't really my patch|CarMax/i.test(txt);
     const nonus = /US sales data, with the UK and Europe/i.test(txt);
-    const gate = /free account|That's your .* for today|search for today/i.test(txt);
+    const gate = /free account|That's your .* for today|search for today|midnight ET|searches? a day/i.test(txt);
     return { done: card||oos||nonus||gate, card, oos, nonus, gate, hasDecision: !!(window.sellState&&window.sellState.sellDecision) };
   });
   async function type(t){ await page.evaluate(x=>{document.getElementById("inp").value=x;}, String(t)); await page.click("#btn"); }
