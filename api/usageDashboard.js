@@ -1312,9 +1312,12 @@ async function handleOps(req, res) {
       const acctIds = accts.filter(a => String(a.email || "").toLowerCase() === email).map(a => a.user_id);
       const ids = Array.from(new Set([...acctIds, ...authUsers.map(u => u.id)].filter(Boolean)));
       const perUser = [];
+      const etStart = etDayStart(new Date()).toISOString();
       for (const uid of ids) {
         const rows = await supabaseSelect(env, `saved_results?user_id=eq.${uid}&select=id,created_at,payload&order=created_at.desc&limit=50`) || [];
-        perUser.push({ userId8: String(uid).slice(0, 8) + "...", hasAccountRow: acctIds.includes(uid), savedCount: rows.length, rows: rows.map(x => ({ id: x.id, createdAt: x.created_at, ...summ(x.payload || {}) })) });
+        const searchesTodayET = (await supabaseSelect(env, `search_events?user_id=eq.${uid}&created_at=gte.${encodeURIComponent(etStart)}&select=id&limit=1000`) || []).length;
+        const tier = (accts.find(a => a.user_id === uid) || {}).tier || null;
+        perUser.push({ userId8: String(uid).slice(0, 8) + "...", tier, searchesTodayET, hasAccountRow: acctIds.includes(uid), savedCount: rows.length, rows: rows.map(x => ({ id: x.id, createdAt: x.created_at, ...summ(x.payload || {}) })) });
       }
       lookup = { emailMasked: mask(email), authUserRows: authUsers.map(u => ({ userId8: String(u.id).slice(0, 8) + "...", providers: u.providers, created_at: u.created_at })), savedByUser: perUser, totalSaved: perUser.reduce((s, u) => s + u.savedCount, 0) };
     }
