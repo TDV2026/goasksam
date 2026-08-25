@@ -406,6 +406,27 @@ function gateAppendCard(html) {
   row.innerHTML = `<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${html}</div></div>`;
   msgs.appendChild(row); try { row.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
 }
+// Walled-state guard (the wall is real, not cosmetic): once a hard wall renders, further
+// search attempts are intercepted with a calm re-acknowledgement instead of starting a
+// phantom wizard. The BACKEND already re-blocks every search, so nothing was lossy; this
+// stops the confusing UI where a walled user could walk a new (blocked) flow. In-memory
+// per session; a page reload re-derives the true state via gateCheckUpfront.
+let gasWalledStatus = null;
+function gasIsWalled() { return gasWalledStatus; }
+function gasSetWalled(status) { gasWalledStatus = status || null; }
+function gasClearWalled() { gasWalledStatus = null; }
+// Statuses that mean "no more searches until reset / sign-in" (persistent), vs transient
+// ones (ip_rate_limited, auth_required) that a retry can clear on its own.
+function gasIsWallStatus(s) { return ["daily_limit_reached", "tester_daily_limit_reached", "limit_reached", "account_required", "capacity"].includes(s); }
+function gateWalledReack(status) {
+  if (status === "account_required" || status === "capacity") {
+    gateAppendCard(`<div class="sam-text">You'll need a free account to run another search. <button class="gate-inline-link" onclick="gateCreateAccount()">Create one</button> and I'll pick up right where we left off.</div>`);
+  } else if (status === "tester_daily_limit_reached") {
+    gateAppendCard(`<div class="sam-text">That's your test searches for today. They reset tomorrow, so I'll be here then.</div>`);
+  } else {
+    gateAppendCard(`<div class="sam-text">That's your searches for today. They reset tomorrow, so I'll be here then.</div>`);
+  }
+}
 // The subtle "first one's on me" line under the free result (amendment item 2).
 function gateAppendFirstFreeLine() {
   gateAppendCard(`<div class="sam-text gate-firstfree">Your first one's on me. <button class="gate-inline-link" onclick="gateCreateAccount()">Create a free account</button> for a search every day. Daily Vroom readers get three, so if you want more, <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">subscribe</a> free with the same email.</div>`);
@@ -450,6 +471,8 @@ function gateRenderStatus(data) {
   } else if (status === "capacity") {
     gateAppendCard(`<div class="sam-text">I'm flat out right now. Give it a few minutes, or create a free account and I'll get to your search.</div><div class="sell-rec-actions"><button class="primary" onclick="gateCreateAccount()">Create a free account</button></div>`);
   }
+  // Arm the frontend guard so the next input can't start a phantom search behind the wall.
+  if (gasIsWallStatus(status)) gasSetWalled(status);
 }
 function gateCreateAccount() {
   gateStashPendingSearch();
@@ -504,6 +527,7 @@ function gateAfterSignup() {
   try { gated = localStorage.getItem("gas_gate_signup") === "1"; } catch (e) {}
   try { localStorage.removeItem("gas_gate_signup"); localStorage.removeItem("gas_pending_search"); } catch (e) {}
   if (!gated) return false;
+  gasClearWalled();   // fresh account has quota; lift the walled guard
   if (typeof enterHomeState === "function") enterHomeState();
   if (typeof authRenderTopbar === "function") authRenderTopbar();
   return true;
@@ -518,6 +542,7 @@ async function gateRefreshTier() {
   const d = acc && acc.daily;
   if (tier === "tdv") {
     if (d && d.dailyRemaining != null && d.dailyRemaining > 0) {
+      gasClearWalled();   // upgraded and has searches left today: lift the walled guard
       gateAppendCard(`<div class="sam-text">You're all set. The Daily Vroom gives you three a day, so you've got ${authEsc(String(d.dailyRemaining))} more today. Tell me the next car.</div>`);
     } else {
       gateAppendCard(`<div class="sam-text">You're all set on The Daily Vroom's three a day. You've used today's, so I'll see you tomorrow.</div>`);

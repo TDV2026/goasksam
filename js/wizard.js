@@ -1030,6 +1030,10 @@ function sellerFunnelReply(){
 }
 
 function startSellFlow(initialCar, showUserBubble=true, preresolved=null){
+  // Walled guard: a hard daily/limit/account wall is up, so refuse to start a new search
+  // and re-acknowledge calmly instead of walking a phantom wizard (the backend re-blocks
+  // it anyway). Reload re-derives the true state via gateCheckUpfront.
+  if(typeof gasIsWalled==="function"&&gasIsWalled()){ if(typeof gateWalledReack==="function")gateWalledReack(gasIsWalled()); return; }
   resetSellState();
   sellState.active=true;sellState.step=1;
   if(typeof gasFunnel==="function")gasFunnel("wizard_start");  // 2F

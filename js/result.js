@@ -2,6 +2,15 @@ async function showSellRecommendation(opts){
   // rerun: a same-session re-run after a scoped Location/Price/Preference edit -
   // it must not consume a new search credit (item 3).
   var sellRerun=!!(opts&&opts.rerun);
+  // Walled guard: once a hard wall is up, a walled user continuing an active wizard must
+  // not re-execute a (backend-blocked) search. Re-acknowledge calmly instead. The FIRST
+  // attempt that SETS the wall runs normally (gasIsWalled is still false then); scoped
+  // re-runs are exempt (credit-free re-display).
+  if(!sellRerun && typeof gasIsWalled==="function" && gasIsWalled()){
+    if(typeof gateWalledReack==="function")gateWalledReack(gasIsWalled());
+    const _b=document.getElementById("btn"); if(_b)_b.disabled=false;
+    return;
+  }
   // No results-stage vehicle re-ask (locked A1): once the summary is confirmed
   // we go straight to the analysis at whatever level we know. A year-less
   // vehicle runs at model level (acceptModelLevel below) and is labeled as
