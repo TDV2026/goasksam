@@ -2326,8 +2326,17 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
       await logFunnel("tester_daily_limit_hit", { anon_session_id: anonSessionId, dedup_key: `tester:${ip}:${coarseDayKey()}` }, supabaseUrl, supabaseKey);
       return { block: { status: "tester_daily_limit_reached", tier: "tester", dailyCap: testerCap } };
     }
+    // Attribution only (NOT allowance): if the tester is also signed in, attach the
+    // account id so the journey records WHO ran it and the Journey Explorer email column
+    // fills. The tester day counter above is untouched, tier stays "tester", and no
+    // reserve_search runs, so nothing counts against the account's own daily quota. A
+    // missing or invalid token simply leaves the search anonymous, exactly as before.
+    let testerAccountId = null;
+    if (req.headers.authorization) {
+      try { const a = await validateBearer(req.headers.authorization); if (a) testerAccountId = a.userId; } catch (e) {}
+    }
     await recordIpHit(ip, "tester_search", supabaseUrl, supabaseKey);
-    return { ok: true, testerBypass: true, anonSessionId };
+    return { ok: true, testerBypass: true, anonSessionId, accountId: testerAccountId };
   }
   const authHeader = req.headers.authorization;
   if (authHeader) {
