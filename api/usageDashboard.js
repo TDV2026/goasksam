@@ -1179,46 +1179,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  // TEMP archive-only scan (Aug 2026, remove after): the i8 window/fetch blast radius.
-  // For each model, compare ROUTABLE-platform comps in the last 90d vs 270d and flag
-  // where the recent window is thin+single-platform but the wider window holds a
-  // materially larger, differently-dominant set (the i8 failure shape). No OCD spend.
-  if (task === "windowscan") {
-    if (!env) return res.status(500).json({ error: "env" });
-    const ROUTABLE = new Set(["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "sothebysmotorsport", "hemmings", "mbmarket"]);
-    const now = Date.now();
-    const cut270 = new Date(now - 270 * 864e5).toISOString().slice(0, 10);
-    let rows = []; // PostgREST caps at 1000/req, so page through the 270d window
-    for (let pg = 0; pg < 30; pg++) {
-      const chunk = await supabaseSelect(env, `vehicle_market_records?auction_end_date=gte.${cut270}&select=make,model,source,auction_end_date&order=auction_end_date.desc&limit=1000&offset=${pg * 1000}`) || [];
-      rows = rows.concat(chunk);
-      if (chunk.length < 1000) break;
-    }
-    const daysAgo = d => (now - Date.parse(d)) / 864e5;
-    const byModel = new Map();
-    for (const r of rows) {
-      const src = String(r.source || "").toLowerCase();
-      if (!ROUTABLE.has(src) || !r.make || !r.model) continue;
-      const age = daysAgo(r.auction_end_date); if (!(age >= 0 && age <= 270)) continue;
-      const key = String(r.make).toLowerCase() + "|" + String(r.model).toLowerCase();
-      let m = byModel.get(key); if (!m) { m = { make: r.make, model: r.model, p90: {}, p270: {} }; byModel.set(key, m); }
-      m.p270[src] = (m.p270[src] || 0) + 1; if (age <= 90) m.p90[src] = (m.p90[src] || 0) + 1;
-    }
-    const exposed = [];
-    for (const m of byModel.values()) {
-      const p90k = Object.keys(m.p90); const c90 = Object.values(m.p90).reduce((a, b) => a + b, 0);
-      if (p90k.length !== 1 || c90 === 0 || c90 > 5) continue;   // thin single-platform recent window
-      const only90 = p90k[0];
-      const t270 = Object.values(m.p270).reduce((a, b) => a + b, 0);
-      if (t270 < 2 * c90 || t270 < 4) continue;                  // materially larger wider window
-      const bigger = Object.entries(m.p270).filter(([pl, ct]) => pl !== only90 && ct > (m.p90[only90] || 0)).sort((a, b) => b[1] - a[1]);
-      if (!bigger.length) continue;                              // a different, bigger platform is being missed
-      exposed.push({ car: `${m.make} ${m.model}`, recent90: `${only90}:${c90}`, wider270Total: t270, wider270: m.p270, missing: `${bigger[0][0]}:${bigger[0][1]}` });
-    }
-    exposed.sort((a, b) => b.wider270Total - a.wider270Total);
-    return res.status(200).json({ task: "windowscan", scannedRecords: rows.length, truncated: rows.length >= 30000, modelsWithRoutableComps: byModel.size, exposedCount: exposed.length, exposed: exposed.slice(0, 80) });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
