@@ -1079,6 +1079,12 @@ function getSellerCriteria(car = {}) {
     targetPrice: asText(car.targetPrice) || null,
     timeline: asText(car.timeline) || null,
     involvement: asText(car.involvement) || null,
+    // The clean preference value ("powerseller" | "diy" | "unsure"). Was dropped here,
+    // so the journey's recorded preference fell back to `involvement`, which is EMPTY
+    // for the "unsure" default - the Journey Explorer Preference column then read blank
+    // for every unsure seller. The engine reads criteria.involvement (not this), so
+    // carrying it through is journey-attribution only, no decision impact.
+    sellerPreference: asText(car.sellerPreference) || null,
     notes: asText(car.notes) || null
   };
 }

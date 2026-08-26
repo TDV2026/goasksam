@@ -1179,39 +1179,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  // TEMP read-only diagnostic (Aug 2026, remove after): why do completed journeys have
-  // empty Asking/Preference/Timing? Is the SERVER recommendation_completed event (the
-  // only carrier of criteria attrs) firing as often as the CLIENT deep-funnel beacons?
-  if (task === "attrscheck") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const g = q => supabaseSelect(env, q);
-    const etStart = etDayStart(new Date()).toISOString();
-    const REC_STAGES = ["recommendation_completed", "platform_recommended", "powerseller_recommended", "platform_cta_viewed", "powerseller_card_viewed", "platform_cta_clicked", "powerseller_intro_clicked", "powerseller_intro_requested"];
-    const journeys = await g(`journeys?created_at=gte.${encodeURIComponent(etStart)}&select=journey_id,stage,vehicle_attrs,created_at&order=created_at.desc&limit=1000`) || [];
-    const completed = journeys.filter(j => REC_STAGES.includes(j.stage));
-    const hasAttr = (j, k) => j.vehicle_attrs && typeof j.vehicle_attrs === "object" && j.vehicle_attrs[k] != null && j.vehicle_attrs[k] !== "";
-    const anyAttr = j => j.vehicle_attrs && typeof j.vehicle_attrs === "object" && Object.values(j.vehicle_attrs).some(v => v != null && v !== "");
-    // event-type presence today: does the SERVER recommendation_completed fire per journey
-    // as often as the CLIENT platform_cta_viewed / powerseller_card_viewed beacons?
-    const evs = await g(`journey_events?occurred_at=gte.${encodeURIComponent(etStart)}&select=event_type,journey_id&limit=30000`) || [];
-    const perEvent = {};
-    for (const e of evs) (perEvent[e.event_type] = perEvent[e.event_type] || new Set()).add(e.journey_id);
-    const distinctJourneysPerEvent = {};
-    for (const k in perEvent) distinctJourneysPerEvent[k] = perEvent[k].size;
-    return res.status(200).json({
-      task: "attrscheck", etStart,
-      completedJourneysToday: completed.length,
-      ofCompleted: {
-        withAnyAttr: completed.filter(anyAttr).length,
-        withPrice: completed.filter(j => hasAttr(j, "price")).length,
-        withPreference: completed.filter(j => hasAttr(j, "preference")).length,
-        withTimeline: completed.filter(j => hasAttr(j, "timeline")).length
-      },
-      distinctJourneysPerEventToday: distinctJourneysPerEvent,
-      sample: completed.slice(0, 12).map(j => ({ jid: String(j.journey_id).slice(0, 8), stage: j.stage, attrs: j.vehicle_attrs }))
-    });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
