@@ -1179,6 +1179,21 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
+  // TEMP read-only (Aug 2026, remove after): is BaT's i8 data missing from OCD (source
+  // gap), from our archive (fetch gap), or hidden by a model-name mismatch?
+  if (task === "i8check") {
+    if (!env) return res.status(500).json({ error: "env" });
+    const g = q => supabaseSelect(env, q);
+    let ocd = {}; try { ocd = await callOldCarsData("/auctions", { make: "BMW", model: "i8", status: "sold", sort: "date", direction: "desc", page: 1, limit: 100 }, apiKey); } catch (e) { ocd = { error: String(e) }; }
+    const items = ocd.data || ocd.auctions || (Array.isArray(ocd) ? ocd : []) || [];
+    const srcOf = it => String(it.source || it.platform || it.auction_source || it.site || "?").toLowerCase();
+    const bySrc = {}; for (const it of items) bySrc[srcOf(it)] = (bySrc[srcOf(it)] || 0) + 1;
+    const sample = items.slice(0, 10).map(it => ({ src: srcOf(it), title: it.title || it.listing_title || null, model: it.model || it.ocd_model_name || null, date: it.auction_end_date || it.sale_date || it.date || null, price: it.sold_price || it.final_price || it.price || null }));
+    const arch = await g(`vehicle_market_records?make=ilike.*bmw*&model=ilike.*i8*&select=source,model,auction_end_date&order=auction_end_date.desc&limit=1000`) || [];
+    const archBySrc = {}; for (const r of arch) archBySrc[String(r.source).toLowerCase()] = (archBySrc[String(r.source).toLowerCase()] || 0) + 1;
+    return res.status(200).json({ task: "i8check", ocd: { meta: ocd.meta || null, returned: items.length, bySource: bySrc, sample }, archive: { total: arch.length, bySource: archBySrc, newest: arch.slice(0, 3).map(r => ({ src: r.source, model: r.model, date: r.auction_end_date })) } });
+  }
+
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
