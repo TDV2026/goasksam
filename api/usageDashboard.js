@@ -451,43 +451,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
-  // TEMP ADMIN (Aug 2026): populate + verify partners.notification_email and test the
-  // Resend pipe end to end. op=dump (read), op=set (PATCH one slug), op=testsend (send a
-  // test notification to feedback@ only, no real partner emailed). Remove after setup.
-  if (task === "partnersadmin") {
-    if (!env) return res.status(500).json({ error: "no supabase env" });
-    const op = String(req.query?.op || "dump");
-    if (op === "dump") {
-      const rows = (await supabaseSelect(env, `partners?select=*&order=slug.asc&limit=20`)) || [];
-      return res.status(200).json({ op, count: rows.length, hasNotifyColumn: rows.length ? ("notification_email" in rows[0]) : null, columns: rows.length ? Object.keys(rows[0]) : [], rows: rows.map(r => ({ slug: r.slug, name: r.name, display_name: r.display_name, active: r.active, notification_email: r.notification_email })) });
-    }
-    if (op === "set") {
-      const slug = String(req.query?.slug || "");
-      const email = String(req.query?.email || "");
-      if (!slug || !email.includes("@")) return res.status(400).json({ error: "need slug + valid email" });
-      const r = await fetch(`${env.supabaseUrl}/rest/v1/partners?slug=eq.${encodeURIComponent(slug)}`, {
-        method: "PATCH",
-        headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "return=representation" },
-        body: JSON.stringify({ notification_email: email })
-      });
-      const body = await r.json().catch(() => []);
-      return res.status(r.ok ? 200 : 500).json({ op, slug, email, status: r.status, updated: Array.isArray(body) ? body.length : 0, row: Array.isArray(body) ? body[0] : body });
-    }
-    if (op === "testsend") {
-      const { sendLeadNotification } = await import("../lib/_email.js");
-      const result = await sendLeadNotification({
-        partnerEmail: null, // null -> routes to feedback@ only; no real partner is emailed
-        partnerName: "TEST pipeline check",
-        reference: "GAS-TEST-" + Date.now(),
-        seller: { email: "pipeline-test@goasksam.com" },
-        car: { raw: "TEST - ignore, lead-email pipeline check", region: "US", state: "CA", targetPrice: "$60,000" },
-        choice: { destination: "TEST" }
-      });
-      return res.status(200).json({ op, result });
-    }
-    return res.status(400).json({ error: "op must be dump|set|testsend" });
-  }
-
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
