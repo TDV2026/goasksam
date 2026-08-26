@@ -1235,7 +1235,7 @@ async function fetchEmailsByUserId(env, userIds) {
 // Preserve the Journey Explorer search filters across range/mode toggles so switching
 // Today/7d/custom keeps the current search + region + person filter (Items 2/4).
 function bizExtraQS(req) {
-  return ["q", "stage", "ps", "plat", "region", "uid", "aid"].filter(n => req.query?.[n]).map(n => `&${n}=${encodeURIComponent(req.query[n])}`).join("");
+  return ["q", "stage", "ps", "plat", "region", "uid", "aid", "sort"].filter(n => req.query?.[n]).map(n => `&${n}=${encodeURIComponent(req.query[n])}`).join("");
 }
 
 // Item 2: US Census Bureau 4 regions. The map now lives in lib/_regions.js so the dashboard
@@ -1390,7 +1390,7 @@ function bizFilters(req, view, opts = {}) {
   // Custom date range (Item 4): start/end dates, applied in ET. Preserves mode + search
   // filters via hidden inputs, so it works the same as the fixed buttons and with CSV.
   const from = adminEsc(req.query?.from || ""), to = adminEsc(req.query?.to || "");
-  const hid = ["q", "stage", "ps", "plat"].filter(n => req.query?.[n]).map(n => `<input type="hidden" name="${n}" value="${adminEsc(req.query[n])}">`).join("");
+  const hid = ["q", "stage", "ps", "plat", "sort"].filter(n => req.query?.[n]).map(n => `<input type="hidden" name="${n}" value="${adminEsc(req.query[n])}">`).join("");
   const customForm = `<form method="get" style="display:inline-flex;gap:5px;align-items:center;margin-left:6px;vertical-align:middle"><input type="hidden" name="view" value="${view}"><input type="hidden" name="biz" value="${m}"><input type="hidden" name="key" value="${k}"><input type="hidden" name="range" value="custom">${hid}<span style="color:#6b6861;font-size:12px">Custom${r === "custom" ? " ●" : ""}:</span> <input type="date" name="from" value="${from}" style="padding:3px 5px;border:1px solid var(--line);border-radius:5px;font:inherit"><span style="color:#a29e95">to</span> <input type="date" name="to" value="${to}" style="padding:3px 5px;border:1px solid var(--line);border-radius:5px;font:inherit"> <button>Apply</button></form>`;
   if (opts.noMode) return `<div class="filters" style="margin:6px 0">${rangeLinks}${customForm}</div>`;
   const ml = [["exclude", "Real sellers"], ["include", "All (incl. testers)"], ["only", "Testers only"]];
@@ -1655,14 +1655,24 @@ async function renderJourneysView(req, res) {
   const fStage = String(req.query?.stage || ""), fPs = String(req.query?.ps || ""), fPlat = String(req.query?.plat || "");
   const fReg = String(req.query?.region || "");                                  // Item 2: Census region filter
   const fUid = String(req.query?.uid || ""), fAid = String(req.query?.aid || ""); // Item 3b: person filter (click-through from Visitors)
+  const fSort = String(req.query?.sort || "");                                    // clickable-header sort (currently: stage)
   let rows = b.journeys;
   if (q) rows = rows.filter(j => [j.vehicle_make, j.vehicle_model, j.vehicle_trim, j.vehicle_location].filter(Boolean).join(" ").toLowerCase().includes(q));
-  if (fStage) rows = rows.filter(j => j.stage === fStage);
   if (fPs) rows = rows.filter(j => j.rec_powerseller === fPs);
   if (fPlat) rows = rows.filter(j => j.rec_platform === fPlat);
   if (fReg) rows = rows.filter(j => stateRegion(j.vehicle_location) === fReg);
   if (fUid) rows = rows.filter(j => j.user_id === fUid);
   if (fAid) rows = rows.filter(j => j.anon_id === fAid && !j.user_id);
+  // Stage filter + chips: count each stage over everything EXCEPT the stage filter, so a
+  // chip shows how many of the currently-filtered journeys sit at that stage (and the
+  // active stage's chip stays visible with its count). Funnel order = STAGE_LABEL order.
+  const STAGE_KEYS = Object.keys(STAGE_LABEL);
+  const stageRank = s => { const i = STAGE_KEYS.indexOf(s); return i < 0 ? 999 : i; };
+  const stageCounts = new Map();
+  for (const j of rows) { const s = j.stage || ""; stageCounts.set(s, (stageCounts.get(s) || 0) + 1); }
+  if (fStage) rows = rows.filter(j => j.stage === fStage);
+  // Sort by Stage (funnel order) when the Stage header is clicked; default stays date-desc.
+  if (fSort === "stage") rows = [...rows].sort((x, y) => stageRank(x.stage) - stageRank(y.stage) || String(y.created_at || "").localeCompare(String(x.created_at || "")));
   const anyFilter = q || fStage || fPs || fPlat || fReg || fUid || fAid;
   const shown = rows.slice(0, 300);
   const emailBy = await fetchEmailsByUserId(env, shown.map(j => j.user_id));   // Item 1: signed-in requester email
@@ -1687,17 +1697,28 @@ async function renderJourneysView(req, res) {
   const filterQS = `${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}`;
   const csvParams = extra => `?view=journeys&format=csv&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${filterQS}${extra}`;
   // Region rollup filter chips (Item 2). Preserve every other current filter.
-  const regionBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}`;
+  const regionBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
   const regionChips = `<div class="filters" style="margin:4px 0"><span style="color:#6b6861;font-size:12px">Region:</span> <a class="${!fReg ? "on" : ""}" href="${regionBase}">All</a>${CENSUS_REGIONS.map(rg => `<a class="${fReg === rg ? "on" : ""}" href="${regionBase}&region=${encodeURIComponent(rg)}">${rg}</a>`).join("")}</div>`;
+  // Stage filter chips (same pattern as Region). Preserves every other filter; shows only
+  // stages present in the current view, each with its own count so "just CTA clicked" etc.
+  // reads its count at a glance. "All" clears the stage filter.
+  const stageBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
+  const presentStages = STAGE_KEYS.filter(s => stageCounts.get(s));
+  const stageChips = presentStages.length ? `<div class="filters" style="margin:4px 0"><span style="color:#6b6861;font-size:12px">Stage:</span> <a class="${!fStage ? "on" : ""}" href="${stageBase}">All</a>${presentStages.map(s => `<a class="${fStage === s ? "on" : ""}" href="${stageBase}&stage=${encodeURIComponent(s)}">${adminEsc(STAGE_LABEL[s])} (${fmtN(stageCounts.get(s))})</a>`).join("")}</div>` : "";
+  // Clickable Stage column header: toggles funnel-order sort on/off (filterQS already
+  // carries every active filter; sort is added/removed on top).
+  const stageSortHref = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${filterQS}${fSort === "stage" ? "" : "&sort=stage"}`;
+  const stageHeader = `<a href="${stageSortHref}" style="color:inherit;text-decoration:none" title="Sort by stage (funnel order)">Stage ${fSort === "stage" ? "▲" : "⇅"}</a>`;
   // Person-filter banner when arriving from the Visitors view (Item 3b).
   const personBanner = (fUid || fAid) ? `<div class="note">Showing journeys for ${fUid ? `signed-in user ${adminEsc((emailBy.get(fUid) || fUid.slice(0, 8) + "…"))}` : `anonymous device ${adminEsc(fAid.slice(0, 12) + "…")}`}. <a class="jlink" href="?view=visitors&range=${range.range}&biz=${mode}&key=${bizKey(req)}">Back to Visitors</a></div>` : "";
   const html = `${bizChrome("Journey Explorer", key, "journeys")}
     ${bizFilters(req, "journeys")}
     ${regionChips}
+    ${stageChips}
     ${personBanner}
-    <form method="get" style="margin:8px 0"><input type="hidden" name="view" value="journeys"><input type="hidden" name="key" value="${bizKey(req)}"><input type="hidden" name="range" value="${range.range}"><input type="hidden" name="biz" value="${mode}">${range.range === "custom" ? `<input type="hidden" name="from" value="${adminEsc(req.query?.from || "")}"><input type="hidden" name="to" value="${adminEsc(req.query?.to || "")}">` : ""}${fReg ? `<input type="hidden" name="region" value="${adminEsc(fReg)}">` : ""}${fUid ? `<input type="hidden" name="uid" value="${adminEsc(fUid)}">` : ""}${fAid ? `<input type="hidden" name="aid" value="${adminEsc(fAid)}">` : ""}<input type="text" name="q" value="${adminEsc(req.query?.q || "")}" placeholder="Search vehicle or location"> <button>Search</button></form>
+    <form method="get" style="margin:8px 0"><input type="hidden" name="view" value="journeys"><input type="hidden" name="key" value="${bizKey(req)}"><input type="hidden" name="range" value="${range.range}"><input type="hidden" name="biz" value="${mode}">${range.range === "custom" ? `<input type="hidden" name="from" value="${adminEsc(req.query?.from || "")}"><input type="hidden" name="to" value="${adminEsc(req.query?.to || "")}">` : ""}${fReg ? `<input type="hidden" name="region" value="${adminEsc(fReg)}">` : ""}${fStage ? `<input type="hidden" name="stage" value="${adminEsc(fStage)}">` : ""}${fSort ? `<input type="hidden" name="sort" value="${adminEsc(fSort)}">` : ""}${fUid ? `<input type="hidden" name="uid" value="${adminEsc(fUid)}">` : ""}${fAid ? `<input type="hidden" name="aid" value="${adminEsc(fAid)}">` : ""}<input type="text" name="q" value="${adminEsc(req.query?.q || "")}" placeholder="Search vehicle or location"> <button>Search</button></form>
     <div class="sub">${rows.length} journeys ${anyFilter ? "(filtered)" : ""} &nbsp;·&nbsp; Download CSV (current filters): <a href="${csvParams("&dataset=journeys")}">journeys</a> · <a href="${csvParams("&dataset=journey_events")}">events</a> · <a href="${csvParams("&dataset=funnel_events")}">funnel</a></div>
-    <table><tr><th>Date</th><th>Vehicle</th><th>Email</th><th>Location</th><th>Region</th><th class="num">Asking</th><th>Preference</th><th>Timing</th><th>Recommendation</th><th>PowerSeller</th><th>Stage</th><th>Actual platform</th><th>Sale status</th><th class="num">Sale price</th><th class="num">Revenue</th></tr>${tr || `<tr><td colspan=15>No journeys.</td></tr>`}</table>
+    <table><tr><th>Date</th><th>Vehicle</th><th>Email</th><th>Location</th><th>Region</th><th class="num">Asking</th><th>Preference</th><th>Timing</th><th>Recommendation</th><th>PowerSeller</th><th>${stageHeader}</th><th>Actual platform</th><th>Sale status</th><th class="num">Sale price</th><th class="num">Revenue</th></tr>${tr || `<tr><td colspan=15>No journeys.</td></tr>`}</table>
   </div>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.status(200).send(html);
