@@ -599,50 +599,20 @@ function outboundQuery(slug,card,extra){
   if(extra)Object.assign(params,extra);
   return Object.keys(params).map(k=>`${encodeURIComponent(k)}=${encodeURIComponent(params[k]==null?"":params[k])}`).join("&");
 }
-// Confirmation modal before leaving for the platform's own site. No invented
-// platform process claims (fees/terms deferred to the platform). Dismissing it
-// (backdrop click) logs an abandon beacon; Continue navigates through /out.
-function openOutboundModal(slug,card){
+// Direct platform handoff (Aug 2026): the "Before you go to {platform}" interstitial was
+// removed, so a CTA click goes STRAIGHT to the platform. Opens /out in a NEW TAB
+// (rel=noopener) so GoAskSam stays open in the original tab with the session, chat history
+// and result card intact if the visitor comes back. The /out hit still lands in the new
+// tab, so the click row logs server-side (journey_events platform_cta_clicked +
+// outbound_clicks) before the 302. If a popup blocker kills the new tab, fall back to
+// same-tab navigation so the handoff is never lost. (The old modal also carried a disabled
+// "Email me this checklist" placeholder that never captured anything, so nothing is lost.)
+function outboundGo(slug,card){
   slug=String(slug||"").toLowerCase();
   if(!hasOutboundSubmission(slug))return;
-  const name=platformDisplayName(slug);
-  closeOutboundModal(false);
-  const scrim=document.createElement("div");
-  scrim.className="hp-dialog-scrim";scrim.id="outbound-modal";
-  scrim.dataset.slug=slug;scrim.dataset.card=card||"";
-  scrim.onclick=e=>{if(e.target===scrim)closeOutboundModal(true);};
-  scrim.innerHTML=`<div class="hp-dialog">
-    <h3>Before you go to ${escapeHtml(name)}</h3>
-    <p>You'll be submitting your car on ${escapeHtml(name)}'s own site.</p>
-    <p>Have these ready: clear photos, the VIN, service history and whether you want a reserve.</p>
-    <p>Fees and current terms are on their site.</p>
-    <div class="hp-dialog-actions">
-      <button class="primary" onclick="continueOutbound()">Continue to ${escapeHtml(name)}</button>
-      <button class="ghost" disabled title="Arriving shortly">Email me this checklist</button>
-    </div>
-  </div>`;
-  document.body.appendChild(scrim);
-}
-function continueOutbound(){
-  const m=document.getElementById("outbound-modal");if(!m)return;
-  const slug=m.dataset.slug,card=m.dataset.card;
-  m.dataset.continued="1";
-  // Open the platform handoff in a NEW tab (rel=noopener) so GoAskSam stays open
-  // in the original tab. The /out hit still lands in the new tab, so the click
-  // row logs server-side before the 302; if a popup blocker kills the new tab we
-  // fall back to same-tab navigation so the handoff is never lost.
   const url=apiPath(`/out?${outboundQuery(slug,card)}`);
   const w=window.open(url,"_blank","noopener");
-  if(!w){window.location.href=url;return;}
-  if(m.remove)m.remove();
-}
-function closeOutboundModal(abandoned){
-  const m=document.getElementById("outbound-modal");if(!m)return;
-  const slug=m.dataset.slug,card=m.dataset.card;
-  if(abandoned&&m.dataset.continued!=="1"&&slug){
-    try{navigator.sendBeacon&&navigator.sendBeacon(apiPath(`/out?${outboundQuery(slug,card,{outcome:"abandoned",beacon:1})}`));}catch(e){}
-  }
-  if(m.remove)m.remove();
+  if(!w){window.location.href=url;}
 }
 
 function platformDisplayName(name){

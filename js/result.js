@@ -288,7 +288,7 @@ async function showSellRecommendation(opts){
     addMsg("sam",`One thing to know up front: ${houseName} shows the strongest comparable results in our records. It isn't the pick here, but it tells you serious money follows this car.${door}`);
     if(hasOutboundSubmission(slug)){
       const row=document.createElement("div");row.className="row sam";
-      row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sell-rec-actions"><button class="ghost" onclick="openOutboundModal('${escapeHtml(slug)}','prenote')">Send my details to ${escapeHtml(houseName)}</button></div></div></div>`;
+      row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sell-rec-actions"><button class="ghost" onclick="outboundGo('${escapeHtml(slug)}','prenote')">Send my details to ${escapeHtml(houseName)}</button></div></div></div>`;
       msgs.appendChild(row);
     }
   }
@@ -544,7 +544,7 @@ async function showSellRecommendation(opts){
           const outbound=option.key!=="specialist"&&slug&&typeof hasOutboundSubmission==="function"&&hasOutboundSubmission(slug);
           if(outbound){
             const card=option.key==="primary"?"pick":"alt";
-            return `<div class="sell-rec-actions"><button class="${isPrimary?"primary":"ghost"}" onclick="event.stopPropagation();openOutboundModal('${escapeHtml(slug)}','${card}')">Send my details to ${escapeHtml(option.name)}</button></div>`;
+            return `<div class="sell-rec-actions"><button class="${isPrimary?"primary":"ghost"}" onclick="event.stopPropagation();outboundGo('${escapeHtml(slug)}','${card}')">Send my details to ${escapeHtml(option.name)}</button></div>`;
           }
           return `<div class="sell-rec-actions"><button class="${isPrimary?"primary":"ghost"}" onclick="event.stopPropagation();chooseSellOption('${escapeHtml(option.key)}')">${escapeHtml(option.actionLabel||"Consider this")}</button></div>`;
         })()}

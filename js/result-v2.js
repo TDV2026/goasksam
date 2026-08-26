@@ -145,7 +145,7 @@ function v2Because(mode,s){
     thin:["Because for a car this uncommon, {platform} reaches the buyers who actually want one.","Because {platform} is where buyers for something this rare tend to look.","Because a car this uncommon needs {platform}'s reach to find its buyer."],
     thinNeutral:["Because recent {scopeAttr} sales are limited, so {platform} is where the few that trade tend to surface.","Because with little recent {scopeAttr} data, {platform} is where I'd start.","Because {platform} holds the recent {scopeAttr} sales I can see."]
   };
-  var key=(mode||"thin"); if(key==="thin"&&!v2RarityAllowed())key="thinNeutral";
+  var key=(mode||"thin"); if(key==="thin")key="thinNeutral";   // thin-data widening is NEVER described as the car being "rare"; always neutral data-thinness copy (Aug 2026)
   return v2Fill(v2Pick(pools[key],"because"),s);
 }
 
@@ -159,7 +159,7 @@ function v2Why(mode,s){
     thin:["{platform} is where I'd sell {carRef}. Recent sales for {failedRef} are limited, so I widened the analysis to the {rungWord}; for a car this uncommon, that reach is what finds the buyer.","I'd sell {carRef} on {platform}. Sales for {failedRef} are thin right now, so I widened to the {rungWord}, and a car this rare needs {platform}'s buyers.","{platform} is my pick for {carRef}. Recent {failedRef} sales are limited, so I widened to the {rungWord}, and {platform} is where the few that trade surface."],
     thinNeutral:["{platform} is where I'd sell {carRef}. Recent sales for {failedRef} are limited, so I widened the analysis to the {rungWord}, where the buyers for it are looking.","I'd sell {carRef} on {platform}. Sales for {failedRef} are thin right now, so I based this on the wider {rungWord}, which is where its comparable sales trade.","{platform} is my pick for {carRef}. Recent {failedRef} sales are limited, so I widened to the {rungWord} to reach the buyers who want it."]
   };
-  var key=(mode||"thin"); if(key==="thin"&&!v2RarityAllowed())key="thinNeutral";
+  var key=(mode||"thin"); if(key==="thin")key="thinNeutral";   // thin-data widening is NEVER described as the car being "rare"; always neutral data-thinness copy (Aug 2026)
   var t=v2Pick(pools[key],"why");
   var out=v2Fill(t,s);
   return out.charAt(0).toUpperCase()+out.slice(1);
@@ -339,7 +339,7 @@ function renderPickCardV2(option,over){
     var trackLeft=(trackHTML&&tiles.length)?trackHTML:'';
     var trackRail=(trackHTML&&!tiles.length)?trackHTML:'';
     var outbound=slug&&typeof hasOutboundSubmission==="function"&&hasOutboundSubmission(slug);
-    var ctaOnClick=outbound?("event.stopPropagation();openOutboundModal('"+esc(slug)+"','pick')"):("event.stopPropagation();chooseSellOption('"+esc(option.key)+"')");
+    var ctaOnClick=outbound?("event.stopPropagation();outboundGo('"+esc(slug)+"','pick')"):("event.stopPropagation();chooseSellOption('"+esc(option.key)+"')");
     return '<div class="pcard pcard-platform" onclick="chooseSellOption(\''+esc(option.key)+'\')">'
       + '<div class="pcard-left">'
         + '<span class="pcard-badge">'+esc(over.badge||"+ Sam's Pick")+'</span>'
@@ -709,7 +709,7 @@ function renderSecondaryPlatformV2(alt,pick){
     if(!v2AltCompetes(alt,pick))return "";
     var line="A real second option: recent sales here have stayed competitive.";
     var outbound=slug&&typeof hasOutboundSubmission==="function"&&hasOutboundSubmission(slug);
-    var onclick=outbound?("event.stopPropagation();openOutboundModal('"+esc(slug)+"','alt')"):("event.stopPropagation();chooseSellOption('"+esc(alt.key)+"')");
+    var onclick=outbound?("event.stopPropagation();outboundGo('"+esc(slug)+"','alt')"):("event.stopPropagation();chooseSellOption('"+esc(alt.key)+"')");
     return '<div class="pv2-sec" style="--pa:'+v2Accent(slug)+'">'
       + '<div class="pv2-sec-main"><div class="pv2-sec-l">Also worth a look</div><div class="pv2-sec-name">'+esc(name)+'</div><div class="pv2-sec-copy">'+esc(line)+'</div></div>'
       + '<button class="pv2-sec-cta" onclick="'+onclick+'">Continue with '+esc(name)+' '+v2Svg("arrow","pv2-sar")+'</button>'
