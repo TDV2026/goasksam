@@ -1209,6 +1209,10 @@ async function handleOps(req, res) {
     const uids = [...new Set([...ferrari, ...deep].map(j => j.user_id).filter(Boolean))];
     const emailMap = {};
     if (uids.length) { const accs = await g(`accounts?user_id=in.(${uids.join(",")})&select=user_id,email`) || []; for (const a of accs) emailMap[a.user_id] = a.email; }
+    // Testarossa ALL-TIME (a re-run appends to the deterministic journey_id, so
+    // created_at stays on the FIRST-searched day; a today-only filter would miss it)
+    const testAll = await g(`journeys?vehicle_model=ilike.*testarossa*&${JSEL}&order=last_activity_at.desc&limit=10`) || [];
+    const testarossaAllTime = testAll.map(j => ({ jid: String(j.journey_id).slice(0, 8), car: [j.vehicle_year, j.vehicle_make, j.vehicle_model].filter(Boolean).join(" "), loc: j.vehicle_location, rec: j.rec_platform, stage: j.stage, hasUserId: !!j.user_id, created_at: j.created_at, last_activity_at: j.last_activity_at }));
     // today's totals
     const allToday = await g(`journeys?created_at=gte.${encodeURIComponent(etStart)}&select=user_id&limit=2000`) || [];
     const withUser = allToday.filter(j => j.user_id).length;
@@ -1216,7 +1220,8 @@ async function handleOps(req, res) {
     return res.status(200).json({
       task: "journeycheck", etStart,
       todayTotals: { journeys: allToday.length, withUserId: withUser, anonOnly: allToday.length - withUser },
-      ferrariTestarossa: { found: ferrari.length, rows: ferrari.map(shape) },
+      ferrariTestarossaToday: { found: ferrari.length, rows: ferrari.map(shape) },
+      testarossaAllTime: { found: testAll.length, rows: testarossaAllTime },
       deepFunnel: { found: deep.length, rows: deep.map(shape) },
       accounts: { setUserIdsSeen: uids.length, accountRowsFound: Object.keys(emailMap).length, withNonNullEmail: Object.values(emailMap).filter(Boolean).length }
     });
