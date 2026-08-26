@@ -679,7 +679,7 @@ function renderPowerSellerCardV2(opts){
           + '<p class="pcard-lead">'+esc(psvIntro(p,first,claim,carShort))+'</p>'
         + '</div>'
         + '<div class="pcard-foot">'
-          + '<button class="pcard-cta" onclick="event.stopPropagation();choosePowerSeller(\''+esc(p.slug||"partner")+'\')">Request an Introduction to '+esc(display)+v2Svg("arrow","cta-arrow")+'</button>'
+          + '<button class="pcard-cta" onclick="event.stopPropagation();choosePowerSeller(\''+esc(p.slug||"partner")+'\')">Get in touch with '+esc(first)+v2Svg("arrow","cta-arrow")+'</button>'
           + '<div class="pcard-reassure">'+psvSvg("shield")+'<span>'+esc(first)+' will contact you directly if you decide to proceed. '+esc((function(pp){return pp.charAt(0).toUpperCase()+pp.slice(1);})(psvPron(p).poss))+' fee is agreed upfront, there is no obligation, and you\'re always in control.</span></div>'
         + '</div>'
       + '</div>'

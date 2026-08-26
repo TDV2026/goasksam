@@ -1287,10 +1287,20 @@ function showContactForm(){
   // keep the generic line (no single partner reaches out).
   const selectedPowerSeller=(sellState.powerSellerProfiles||[]).find(profile=>profile.id===sellState.selectedPowerSellerId);
   const psFirst=String(selectedPowerSeller?.displayName||"").trim().split(/\s+/)[0];
+  // Signed-in seller: we already hold their account email plus the full car/journey
+  // context, so send the intro IMMEDIATELY - no form (funnel data showed intros stalling
+  // at the contact form, including signed-in users whose email we already have).
+  const acctEmail=(typeof authAccount==="function"&&authAccount()&&authAccount().email)||null;
+  if(typeof authIsSignedIn==="function"&&authIsSignedIn()&&acctEmail){
+    submitLead({email:acctEmail,phone:null});
+    return;
+  }
+  // Anonymous seller: ONE email field (phone dropped from this flow - the partner can
+  // ask directly), then send on submit.
   const carLabel=escapeHtml(sellState.carName||"car");
   const intro=selectedPowerSeller&&psFirst
-    ? `Last thing, so ${escapeHtml(psFirst)} can reach you about your ${carLabel}. Email is required, phone is optional.`
-    : `Last thing, so they can reach you directly. Email is required, phone is optional.`;
+    ? `Last thing, so ${escapeHtml(psFirst)} can reach you about your ${carLabel}. What's the best email?`
+    : `Last thing, so they can reach you directly. What's the best email?`;
   const msgs=document.getElementById("msgs");
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
@@ -1298,31 +1308,38 @@ function showContactForm(){
     <div class="sam-text">${intro}</div>
     <div class="contact-form">
       <div class="contact-group">
-        <div class="contact-label">Email address *</div>
+        <div class="contact-label">Email address</div>
         <input class="contact-input" type="email" id="sellEmail" placeholder="you@example.com">
-      </div>
-      <div class="contact-group">
-        <div class="contact-label">Phone number (optional)</div>
-        <input class="contact-input" type="tel" id="sellPhone" placeholder="+1 (555) 000-0000">
       </div>
     </div>
     <div class="chips" style="margin-top:10px">
-      <button class="chip" style="border-color:#171717;color:#171717;font-weight:800" onclick="submitContactForm()">Submit →</button>
+      <button class="chip" style="border-color:#171717;color:#171717;font-weight:800" onclick="submitContactForm()">Send &rarr;</button>
     </div>
   </div></div>`;
   msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
+  const inp=document.getElementById("sellEmail");if(inp)inp.focus();
 }
 
-async function submitContactForm(){
+function submitContactForm(){
   const email=document.getElementById("sellEmail")?.value?.trim();
-  const phone=document.getElementById("sellPhone")?.value?.trim();
   if(!email||!email.includes("@")){
     const input=document.getElementById("sellEmail");
     if(input){input.style.borderColor="#dc2626";input.focus();}
     return;
   }
-  sellState.email=email;sellState.phone=phone||null;
-  addMsg("user",phone?`${email} · ${phone}`:email);
+  addMsg("user",email);
+  submitLead({email,phone:null});
+}
+
+// Sends the lead payload (byte-identical to the old form submit; phone is now always
+// null - dropped from this flow, the partner can ask directly) and renders the
+// confirmation. Called immediately for a signed-in seller (email already on file) and
+// via submitContactForm for an anonymous seller.
+async function submitLead(seller){
+  if(sellState.leadSubmitting)return;
+  sellState.leadSubmitting=true;
+  const email=seller.email, phone=seller.phone||null;
+  sellState.email=email;sellState.phone=phone;
 
   const option=sellState.sellOptions.find(o=>o.key===sellState.chosen)||sellState.sellOptions[0]||{name:"the selected destination",type:null,key:sellState.chosen};
   const selectedPowerSeller=(sellState.powerSellerProfiles||[]).find(profile=>profile.id===sellState.selectedPowerSellerId);
@@ -1367,6 +1384,7 @@ async function submitContactForm(){
     if(!res.ok)throw new Error(data.error||"submission failed");
     setTimeout(()=>showSubmission(data),600);
   }catch(e){
+    sellState.leadSubmitting=false;
     setTimeout(()=>addMsg("sam",`I couldn't submit this yet: ${e.message}. Your recommendation is still here, but I don't want to pretend the lead went through.`),500);
   }
 }
