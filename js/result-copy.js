@@ -611,8 +611,17 @@ function outboundGo(slug,card){
   slug=String(slug||"").toLowerCase();
   if(!hasOutboundSubmission(slug))return;
   const url=apiPath(`/out?${outboundQuery(slug,card)}`);
-  const w=window.open(url,"_blank","noopener");
-  if(!w){window.location.href=url;}
+  // New tab via a synthetic anchor click, NOT window.open (Aug 2026). With
+  // window.open(url,"_blank","noopener") the browser returns null on SUCCESS
+  // whenever noopener is set, so the old `if(!w)location.href=url` fallback
+  // fired on EVERY click and navigated the original GoAskSam tab away too. An
+  // anchor click during the user gesture opens the new tab reliably and never
+  // touches the current tab, with no return-value guessing.
+  const a=document.createElement("a");
+  a.href=url;a.target="_blank";a.rel="noopener noreferrer";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 function platformDisplayName(name){
