@@ -727,7 +727,7 @@ function ladderEligible(item, rung) {
   return true;
 }
 
-function evaluateLadder(pairedRecords, ladder) {
+function evaluateLadder(pairedRecords, ladder, vehicle) {
   const maxWindow = ANALYSIS_WINDOWS_DAYS[ANALYSIS_WINDOWS_DAYS.length - 1];
   const walk = ladder.map(rung => {
     const eligible = pairedRecords.filter(item =>
@@ -741,7 +741,15 @@ function evaluateLadder(pairedRecords, ladder) {
     let landedWindow = null;
     let landedEffective = 0;
     for (const windowDays of ANALYSIS_WINDOWS_DAYS) {
-      const inWindow = eligible.filter(item => daysAgo(item.record.auction_end_date) <= windowDays);
+      // ROUTABLE-only stop/land gate (Aug 2026, i8 fix): the effective-sample decision
+      // that halts widening counts ONLY region-usable, allowlisted sources - never comps
+      // the pick can't use (UK/consignment). A thin single-platform recent window (2
+      // Cars & Bids i8 at 90d) no longer "clears" on non-routable neighbours, so the
+      // ladder keeps widening - and the fetch keeps paging / runs the broad fallback -
+      // until the real cross-platform routable picture is in hand (surfacing the 50
+      // Bring a Trailer i8 sitting slightly further back in our own archive). Dense
+      // models still clear at the narrow window unchanged (many routable comps there).
+      const inWindow = eligible.filter(item => daysAgo(item.record.auction_end_date) <= windowDays && (!vehicle || isEvidenceSource(item.record, vehicle)));
       const effective = calculateEffectiveSampleSize(inWindow.map(item => daysAgo(item.record.auction_end_date)), rung.key);
       if (effective >= MINIMUM_EFFECTIVE_SAMPLE) {
         landedWindow = windowDays;
@@ -846,7 +854,8 @@ async function fetchRecentRecords(vehicle, apiKey, generation = null) {
 
   const evaluate = () => evaluateLadder(
     records.map(record => ({ record, classification: classifyRecord(record, vehicle) })),
-    ladder
+    ladder,
+    vehicle
   );
 
   const runPass = async pass => {
@@ -1092,7 +1101,7 @@ function getSellerCriteria(car = {}) {
 function analyze(records, classifications, ladder, vehicle, debug) {
   const pairedRecords = records.map((record, index) => ({ record, classification: classifications[index] }));
   const maxWindow = ANALYSIS_WINDOWS_DAYS[ANALYSIS_WINDOWS_DAYS.length - 1];
-  const { walk, landed, thin } = evaluateLadder(pairedRecords, ladder);
+  const { walk, landed, thin } = evaluateLadder(pairedRecords, ladder, vehicle);
   const windowDays = landed?.windowDays ?? maxWindow;
 
   const inWindow = pairedRecords
