@@ -1,4 +1,22 @@
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
+import { sendLeadNotification } from "../lib/_email.js";
+
+// Partner destination email + display name for a lead notification, looked up
+// server-side by slug (never exposed to the browser). Best-effort: a missing
+// column or row returns nulls so the notification still BCCs feedback@.
+async function partnerNotifyTarget(slug, supabaseUrl, supabaseKey) {
+  if (!slug) return { email: null, name: null };
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/partners?slug=eq.${encodeURIComponent(slug)}&select=notification_email,display_name,name&limit=1`,
+      { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
+    );
+    if (!res.ok) return { email: null, name: null };
+    const rows = await res.json().catch(() => []);
+    const row = Array.isArray(rows) ? rows[0] : null;
+    return { email: row?.notification_email || null, name: row?.display_name || row?.name || null };
+  } catch { return { email: null, name: null }; }
+}
 
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -131,6 +149,33 @@ export default async function handler(req, res) {
         });
       }
     } catch { /* analytics never blocks the lead */ }
+    // Partner notification email (Aug 2026, product decision): notify the PowerSeller
+    // partner and BCC feedback@goasksam.com on EVERY send, so a real lead is never
+    // invisible even if the journey/dashboard layer fails again. Best-effort and fully
+    // non-blocking: the lead is already persisted; any email issue is swallowed and
+    // logged. Fires only for PowerSeller destinations (the ones a partner receives).
+    try {
+      const isPs = asText(choice.destinationType).toLowerCase() === "powerseller";
+      if (isPs) {
+        const partner = choice.powerSeller || {};
+        const slug = partner.slug || partner.id || null;
+        const target = await partnerNotifyTarget(slug, supabaseUrl, supabaseKey);
+        const notify = await sendLeadNotification({
+          partnerEmail: target.email,
+          partnerName: target.name || asText(choice.destination) || null,
+          reference: inserted?.reference || reference,
+          seller: { email },
+          car: {
+            raw: asText(car.raw), region: asText(car.region), state: asText(car.state),
+            mileage: asText(car.mileage), condition: asText(car.condition),
+            serviceRecords: asText(car.serviceRecords), title: asText(car.title),
+            targetPrice: asText(car.targetPrice), timeline: asText(car.timeline), notes: asText(car.notes)
+          },
+          choice: { destination: asText(choice.destination) }
+        });
+        if (!notify.ok && !notify.skipped) console.error("lead notification email failed:", notify.error || notify.status, "ref", inserted?.reference || reference);
+      }
+    } catch (e) { console.error("lead notification threw (non-fatal):", e.message); }
     return res.status(200).json({
       status: "submitted",
       reference: inserted?.reference || reference,
