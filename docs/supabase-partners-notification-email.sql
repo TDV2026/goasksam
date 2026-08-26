@@ -10,9 +10,11 @@
 --   update partners set notification_email = 'ingo@genauautowerks.com'   where slug = 'genau-auto-werks';
 -- (Use the real addresses you provide.)
 --
--- Also set RESEND_API_KEY in Vercel (and, once goasksam.com is verified in Resend,
--- optionally LEAD_EMAIL_FROM) to activate sending. Until RESEND_API_KEY is set,
--- sends are skipped cleanly and the lead still writes to seller_leads.
+-- Also set RESEND_API_KEY in Vercel to activate sending. The From address defaults
+-- to leads@mail.goasksam.com (the verified Resend sending subdomain; the root
+-- goasksam.com is NOT verified and would be rejected). Override with LEAD_EMAIL_FROM
+-- only if the sending address changes. Until RESEND_API_KEY is set, sends are skipped
+-- cleanly and the lead still writes to seller_leads.
 
 alter table partners add column if not exists notification_email text;
 
