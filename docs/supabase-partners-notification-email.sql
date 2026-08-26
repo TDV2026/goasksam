@@ -18,4 +18,12 @@
 
 alter table partners add column if not exists notification_email text;
 
+-- Real destination addresses (Master v5), matched to the actual live slugs.
+-- Note: Howard's slug is hows-motorcars-main-line (not hows-motorcars).
+update partners set notification_email = 'ingo@genauautowerks.com'   where slug = 'genau-auto-werks';
+update partners set notification_email = 'hows220@gmail.com'         where slug = 'hows-motorcars-main-line';
+update partners set notification_email = 'dan@authenticauctions.com' where slug = 'authentic-auctions';
+update partners set notification_email = 'chris@carbinemotors.com'   where slug = 'carbine123';
+update partners set notification_email = 'spencer@specwerksltd.com'  where slug = 'specwerks-ltd';
+
 notify pgrst, 'reload schema';
