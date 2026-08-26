@@ -757,12 +757,14 @@ function evaluateLadder(pairedRecords, ladder, vehicle) {
         break;
       }
     }
+    const routableEligible = vehicle ? eligible.filter(item => isEvidenceSource(item.record, vehicle)) : eligible;
     return {
       rung: rung.rung,
       key: rung.key,
       label: rung.label,
       threshold: rung.threshold,
       sales: eligible.length,
+      routableSales: routableEligible.length,
       effectiveSample: landedEffective || calculateEffectiveSampleSize(eligible.map(item => daysAgo(item.record.auction_end_date)), rung.key),
       windowDays: landedWindow,
       met: landedWindow !== null,
@@ -772,6 +774,20 @@ function evaluateLadder(pairedRecords, ladder, vehicle) {
 
   let landed = walk.find(entry => entry.met) || null;
   let thin = false;
+  // Specificity beats make-level noise (Aug 2026, i8 residual): if the only rung that
+  // cleared is make/segment context but a MODEL rung actually holds real routable comps
+  // (>=3, just too few to clear the recency-weighted gate), land there as THIN at the
+  // widest window - so an ultra-thin nameplate (Xterra) reads on its own cross-platform
+  // comps, never on make-level data. Prevents the routable-gate change from pushing
+  // ultra-thin models down to make_context.
+  if (landed && (landed.key === "make_context" || landed.key === "segment")) {
+    const modelRungs = walk.filter(entry => /_model$/.test(entry.key) && (entry.routableSales || 0) >= 3);
+    if (modelRungs.length) {
+      const best = modelRungs.sort((a, b) => (b.routableSales || 0) - (a.routableSales || 0))[0];
+      landed = { ...best, windowDays: maxWindow, met: true };
+      thin = true;
+    }
+  }
   if (!landed) {
     // No rung met its threshold: land on the narrowest rung with any evidence
     // at the widest window, honestly flagged as thin.
