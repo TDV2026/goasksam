@@ -451,6 +451,53 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
+  // TEMP DIAGNOSTIC (Aug 2026): lost-lead recovery scan. Finds today's journeys that
+  // clicked a PowerSeller intro but never recorded intro_requested (the choosePowerSeller
+  // outbound-bail bug). Read-only, no metered spend. Remove after recovery.
+  if (task === "lostleads") {
+    if (!env) return res.status(500).json({ error: "no supabase env" });
+    const dayStart = etDayStart(new Date()).toISOString();
+    const events = (await supabaseSelect(env, `journey_events?occurred_at=gte.${encodeURIComponent(dayStart)}&select=journey_id,event_type,powerseller_id,occurred_at&order=occurred_at.asc&limit=5000`)) || [];
+    const byJourney = new Map();
+    for (const e of events) {
+      const g = byJourney.get(e.journey_id) || { types: new Set(), ps: null };
+      g.types.add(e.event_type);
+      if (e.event_type === "powerseller_intro_clicked") g.ps = e.powerseller_id;
+      byJourney.set(e.journey_id, g);
+    }
+    // Broken path: intro clicked, intro NOT requested.
+    const stuckIds = [...byJourney.entries()]
+      .filter(([, g]) => g.types.has("powerseller_intro_clicked") && !g.types.has("powerseller_intro_requested"))
+      .map(([jid, g]) => ({ jid, ps: g.ps, wentOutbound: g.types.has("platform_cta_clicked") }));
+    let rows = [];
+    if (stuckIds.length) {
+      const inList = stuckIds.map(s => `"${s.jid}"`).join(",");
+      const journeys = (await supabaseSelect(env, `journeys?journey_id=in.(${encodeURIComponent(inList)})&select=journey_id,user_id,anon_id,vehicle_year,vehicle_make,vehicle_model,vehicle_trim,rec_powerseller,rec_estimated_value,stage,created_at,last_activity_at`)) || [];
+      const userIds = [...new Set(journeys.map(j => j.user_id).filter(Boolean))];
+      const emailByUser = new Map();
+      if (userIds.length) {
+        const accs = (await supabaseSelect(env, `accounts?user_id=in.(${encodeURIComponent(userIds.map(u => `"${u}"`).join(","))})&select=user_id,email`)) || [];
+        for (const a of accs) emailByUser.set(a.user_id, a.email);
+      }
+      rows = journeys.map(j => {
+        const s = stuckIds.find(x => x.jid === j.journey_id) || {};
+        return {
+          journey_id: j.journey_id,
+          signedIn: !!j.user_id,
+          email: j.user_id ? (emailByUser.get(j.user_id) || null) : null,
+          car: [j.vehicle_year, j.vehicle_make, j.vehicle_model, j.vehicle_trim].filter(Boolean).join(" "),
+          partner: s.ps || j.rec_powerseller || null,
+          estValue: j.rec_estimated_value,
+          wentOutbound: !!s.wentOutbound,
+          stage: j.stage,
+          created_at: j.created_at
+        };
+      }).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+    }
+    const recoverable = rows.filter(r => r.email);
+    return res.status(200).json({ task: "lostleads", etDayStart: dayStart, stuckCount: rows.length, recoverableCount: recoverable.length, rows });
+  }
+
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
