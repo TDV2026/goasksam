@@ -874,7 +874,9 @@ function regionalNoEvidenceFallback(){
       return {
         region:"uk_europe",
         primary:"Collecting Cars",
+        primarySlug:"collectingcars",
         secondary:"Car & Classic",
+        secondarySlug:"carandclassic",
         title:`Here’s what I’d do with the ${car}.`,
         subtitle:`Collecting Cars is where I’d sell this.`,
         primaryReason:collectingCarsReason(),
@@ -886,6 +888,7 @@ function regionalNoEvidenceFallback(){
     return {
       region:"uk_europe",
       primary:"Car & Classic",
+      primarySlug:"carandclassic",
       secondary:null,
       title:`Here’s what I’d do with the ${car}.`,
       subtitle:`Car & Classic is where I’d sell this.`,
@@ -898,6 +901,7 @@ function regionalNoEvidenceFallback(){
     return {
       region:"international",
       primary:"Collecting Cars",
+      primarySlug:"collectingcars",
       secondary:null,
       title:`Here’s what I’d do with the ${car}.`,
       subtitle:`I’d list it on Collecting Cars for a seller in your region.`,
@@ -920,15 +924,26 @@ function regionalNoEvidenceFallback(){
 function genericNoEvidenceFallback(){
   const car=cleanCarForCopy();
   const recommended=sellState.sellDecision?.decision?.recommendedPath;
-  const primaryName=recommended?platformDisplayName(recommended):"Bring a Trailer";
   const yr=Number(sellState.resolvedVehicle?.year)||Number(sellState.sellDecision?.vehicle?.year)||null;
   const preWar=yr&&yr<1945;
+  const classic=yr&&yr<1975;
+  // Car-type-aware, never a hardcoded BaT default (Aug 2026). Prewar and classic
+  // cars route to Hagerty, the genuine classic/collector specialist and the right
+  // policy-fit home. Newer zero-evidence cars keep the backend's recommended route,
+  // or BaT as the general enthusiast floor when there is none (make-only cars, where
+  // recommendedPath is absent - the exact case that used to hardcode BaT for a
+  // 1936 Packard). Hemmings is never used here: it carries no real evidence data.
+  const primarySlug=classic?"hagerty":(recommended||"bringatrailer");
+  const primaryName=platformDisplayName(primarySlug);
   const reason=preWar
-    ?`I don't have enough tracked auction sales on ${car} to back a specific data-led call. For a car this rare, ${primaryName} is where I'd start, and pre-war classics like this most often trade through specialist auction houses and marque events. That's a fit for the car, not a read from sales data.`
+    ?`I don't have enough tracked auction sales on ${car} to back a specific data-led call. ${primaryName} is where I'd start: it's the specialist home for prewar and classic collector cars, and cars like this most often trade through marque specialists and collector auctions. That's a fit for the car, not a read from sales data.`
+    :classic
+    ?`I don't have enough tracked auction sales on ${car} to back a specific data-led call. ${primaryName} is the specialist home for classic and collector cars like yours, so that's where I'd start. That's a fit for the car, not a read from sales data.`
     :`I don't have enough tracked auction sales on ${car} to back a specific data-led call. ${primaryName} is where I'd start for a car like yours. That's a fit for the car, not a read from sales data.`;
   return {
     region:"generic",
     primary:primaryName,
+    primarySlug,
     secondary:null,
     title:`Here's what I'd do with ${car}.`,
     subtitle:`${primaryName} is where I'd start.`,
@@ -975,7 +990,63 @@ function noEvidenceMessage(fallback){
   return `I checked recent sales for your ${car}, but there isn't enough model-specific activity to make a proper data-led platform call. ${fallback.primaryReason}${extra}`;
 }
 
+// Zero-evidence card in the CURRENT V2 design (Aug 2026). Shares the pcard chrome
+// with the evidence-backed pick (green "Sam's Pick" badge, pcard-name, pcard-cta,
+// reassurance) so a no-comps result never drops back to the old sell-rec styling.
+// It deliberately OMITS the analysis window/scope metadata (there is no analysis to
+// report) and states policy fit honestly instead. Covers both entry points
+// (make-only/unresolved and resolved-but-no-evidence). The CTA and whole-card click
+// go straight to the platform when it is self-listable (outboundGo), never the lead
+// form; only PowerSeller destinations capture a lead.
 function renderNoEvidenceFallback(fallback){
+  if(!fallback)return "";
+  const esc=escapeHtml;
+  const v=sellState.resolvedVehicle||sellState.sellDecision?.vehicle||{};
+  const name=fallback.primary;
+  const slug=String(fallback.primarySlug||"").toLowerCase();
+  const car=cleanCarForCopy();
+  const carLbl=(typeof v2CarDisplay==="function")?v2CarDisplay(v):([v.year,v.make,v.model].filter(Boolean).join(" ")||car);
+  const loc=[sellState.state,sellState.region].filter(Boolean)[0]||"US";
+  const svg=(k,c)=>(typeof v2Svg==="function")?v2Svg(k,c):"";
+  const pin=(typeof psvSvg==="function")?psvSvg("pin"):(svg("car"));
+  const outbound=slug&&typeof hasOutboundSubmission==="function"&&hasOutboundSubmission(slug);
+  const primaryCta=outbound?`outboundGo('${esc(slug)}','pick')`:`chooseFallbackDestination('${esc(name)}')`;
+  const secSlug=String(fallback.secondarySlug||"").toLowerCase();
+  const secOutbound=secSlug&&typeof hasOutboundSubmission==="function"&&hasOutboundSubmission(secSlug);
+  const secCta=secOutbound?`outboundGo('${esc(secSlug)}','alt')`:`chooseFallbackDestination('${esc(fallback.secondary||"")}')`;
+  const secondary=fallback.secondary?`
+    <div class="pv2-sec">
+      <div class="pv2-sec-main"><div class="pv2-sec-l">Also worth comparing</div><div class="pv2-sec-name">${esc(fallback.secondary)}</div><div class="pv2-sec-copy">${esc(fallback.secondaryReason||"")}</div></div>
+      <button class="pv2-sec-cta" onclick="event.stopPropagation();${secCta}">Continue with ${esc(fallback.secondary)}${svg("arrow","pv2-sar")}</button>
+    </div>`:"";
+  return `<div class="row-inner"><div class="msg-wrap">
+    <div class="sam-label">Sam</div>
+    <div class="pcard pcard-platform" onclick="${primaryCta}">
+      <div class="pcard-left">
+        <span class="pcard-badge">+ Sam's Pick</span>
+        <div class="pcard-script">For your ${esc(v.make||car||"car")}, I'd start with</div>
+        <h1 class="pcard-name">${esc(name)}</h1>
+        <div class="pcard-whyl pcard-whyl-main">Why This Fits</div>
+        <p class="pcard-lead">${esc(fallback.primaryReason)}</p>
+        <button class="pcard-cta" onclick="event.stopPropagation();${primaryCta}">Start Listing With ${esc(name)}${svg("arrow","cta-arrow")}</button>
+        <div class="pcard-reassure">${svg("shield")}<span>You'll be taken to ${esc(name)} to begin your listing. Nothing is committed until you decide to publish.</span></div>
+      </div>
+      <div class="pcard-right">
+        <div class="pcard-wordmark">${esc(name)}</div>
+        <div class="pcard-meta">
+          <div class="pcard-mrow">${pin}<div><div class="pcard-mp">${esc(carLbl)}</div><div class="pcard-ms">${esc(loc)}</div></div></div>
+          <div class="pcard-mrow">${svg("car")}<div><div class="pcard-mp">Policy fit</div><div class="pcard-ms">No comparable sales yet</div></div></div>
+        </div>
+      </div>
+      <div class="pcard-note">${esc(fallback.caveat||"When comparable sales show up in my data, I can back this with real evidence.")}</div>
+    </div>
+    ${secondary}
+    <div class="sam-text after-results">Ask me anything about the recommendation, or tell me more about the car.</div>
+  </div></div>`;
+}
+
+// Legacy sell-rec fallback markup retired Aug 2026 (replaced by the V2 pcard above).
+function renderNoEvidenceFallbackLegacy(fallback){
   if(!fallback)return "";
   const option={name:fallback.primary,key:"primary"};
   const logo=platformLogo(option);
@@ -1027,6 +1098,9 @@ function fallbackSellOption(fallback){
   return {
     key:"primary",
     name:fallback.primary,
+    // Slug marks this as a PLATFORM destination so a confirm (card, button, or typed
+    // chat) routes straight to the platform via outboundGo, never the lead form.
+    platformSlug:fallback.primarySlug||null,
     type:"Platform I’d use",
     badge:"Sam's pick",
     badgeClass:"top",
@@ -1164,8 +1238,23 @@ function mentionsCollectingCars(text){
 
 function chooseSellOption(which){
   if(sellState.chosen)return; // prevent double-fire, already chose
-  sellState.chosen=which;sellState.step=13;
   const option=sellState.sellOptions.find(o=>o.key===which)||sellState.sellOptions[0];
+  // A PLATFORM destination goes straight to the platform (new tab), exactly like the
+  // card's own CTA. It never opens the lead form: nobody "reaches you directly" for a
+  // self-serve platform, so that intro made no sense there (the reported bug). Only a
+  // genuine PowerSeller destination captures a lead. Platform options carry
+  // platformSlug; PowerSeller options are key "specialist" with observedSellers. This
+  // guards BOTH the typed-chat confirm ("go with Bring a Trailer") and the
+  // zero-evidence fallback button, which both land here via chooseFallbackDestination.
+  const isPowerSeller=!!(option&&(option.key==="specialist"||(option.observedSellers&&option.observedSellers.length)));
+  const slug=option&&String(option.platformSlug||option.slug||"").toLowerCase();
+  if(!isPowerSeller&&slug&&typeof hasOutboundSubmission==="function"&&hasOutboundSubmission(slug)){
+    sellState.chosen=which;
+    addMsg("user",`Go with ${option.name}`);
+    if(typeof outboundGo==="function")outboundGo(slug,"chat");
+    return;
+  }
+  sellState.chosen=which;sellState.step=13;
   const selectedPowerSeller=(sellState.powerSellerProfiles||[]).find(profile=>profile.id===sellState.selectedPowerSellerId);
   const displayName=selectedPowerSeller?.displayName||option?.name||"this choice";
   addMsg("user",`Go with ${displayName}`);

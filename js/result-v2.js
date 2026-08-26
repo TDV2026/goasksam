@@ -190,7 +190,11 @@ function v2SpeedWhy(pick, priceAlt, includeDisclose){
   var modelPl=(typeof v2PlModel==="function")?v2PlModel(model):(model+"s");
   var plat=platformDisplayName(pick.name||pick.platformSlug||"");
   var ev=pick.marketEvidence||{};
-  var n=Number(ev.evidenceSales||0);
+  // Model-specific count = genuine same-model sales only (backend modelSales), NEVER
+  // evidenceSales: at a make/broad landed rung evidenceSales counts OTHER models, so
+  // "9 Model Ts" was really 9 assorted 1922-1938 Fords (rule 1 violation). Fall back
+  // to relevantSales for stale cache rows that predate modelSales (safe undercount).
+  var n=Number(ev.modelSales!=null?ev.modelSales:(ev.relevantSales||0));
   // A COUNT takes the singular model at 1 ("sold 1 California T"), plural above.
   var modelCounted=(n===1)?model:modelPl;
   var win=(typeof v2WindowLabel==="function"&&typeof v2Window==="function")?v2WindowLabel(v2Window(ev)):"period";
@@ -743,7 +747,12 @@ function v2Composition(){
   // won the non-BaT speed slot but rendered "generally quicker" with NO count -
   // golden-path FAIL #5. Now, if no non-BaT route clears the floor, no speed
   // elevation and BaT leads exactly as in the no-evidence case (#6).
-  var evBacked=function(o){ return !!(o&&o.marketEvidence&&Number(o.marketEvidence.evidenceSales||0)>=V2_SPEED_EVIDENCE_FLOOR); };
+  // "Buyers are already there" is a MODEL-demand claim, so a speed pick must clear
+  // the floor on genuine same-model sales (modelSales), not landed-rung depth. A
+  // make/broad rung with 0-2 real model comps no longer elevates a speed pick that
+  // could only render a false or absent count (the 1930 Model T: 9 Fords, 1 Model T
+  // on the landed make rung -> no speed elevation, standard evidence leader leads).
+  var evBacked=function(o){ var m=o&&o.marketEvidence; return !!(m&&Number(m.modelSales!=null?m.modelSales:(m.relevantSales||0))>=V2_SPEED_EVIDENCE_FLOOR); };
   var pick, alt, speedMode=false, speedDiverges=false, priceAlt=null, priceCompetesFull=false;
   if(wantsSpeed&&opts.length){
     var priceLeader=opts[0];

@@ -1373,6 +1373,13 @@ function analyze(records, classifications, ladder, vehicle, debug) {
           return { low: q(0.25), high: q(0.75), sample: prices.length };
         })(),
         evidenceSales: items.length,
+        // Genuine same-model sales for THIS platform in the landed window (any
+        // year, excluded/non-genuine builds already removed). This is the ONLY
+        // count copy may render as a model-specific "sold N {model}s": evidenceSales
+        // counts the landed RUNG, which at a make/broad rung includes OTHER models,
+        // so labeling it with the searched model fabricates a statistic (rule 1).
+        // The "9 Model Ts" bug was 9 assorted 1922-1938 Fords; modelSales here is 1.
+        modelSales: items.filter(item => item.classification.same_model).length,
         // Model-level sold comps for THIS platform in the 180-day window (any
         // trim, model-relevant tiers). Feeds the ranking ladder's branch-4
         // relevance floor ("3+ at the landed rung OR model level"), so a
