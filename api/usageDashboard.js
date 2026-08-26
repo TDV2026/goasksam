@@ -1179,54 +1179,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  // TEMP read-only diagnostic (Aug 2026, remove after the journey-attribution check):
-  // does the Testarossa journey exist today, and what is the ACTUAL user_id on the
-  // deep-funnel rows (null vs set), plus does accounts.email resolve for the set ones.
-  if (task === "journeycheck") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const mask = e => { const s = String(e || ""); if (s.indexOf("@") < 0) return s ? "***" : s; const [u, d] = s.split("@"); return (u[0] || "") + "***@" + d; };
-    const etStart = etDayStart(new Date()).toISOString();
-    const g = q => supabaseSelect(env, q);
-    const JSEL = "select=journey_id,anon_id,user_id,vehicle_year,vehicle_make,vehicle_model,vehicle_trim,vehicle_location,rec_platform,stage,created_at,last_activity_at,platform_cta_clicked_at,powerseller_card_viewed_at,intro_requested_at";
-    // Q1: Ferrari make OR Testarossa model, today
-    const [byMake, byModel] = await Promise.all([
-      g(`journeys?created_at=gte.${encodeURIComponent(etStart)}&vehicle_make=ilike.*ferrari*&${JSEL}&order=created_at.desc&limit=50`),
-      g(`journeys?created_at=gte.${encodeURIComponent(etStart)}&vehicle_model=ilike.*testarossa*&${JSEL}&order=created_at.desc&limit=50`)
-    ]);
-    const ferMap = new Map();
-    for (const j of [...(byMake || []), ...(byModel || [])]) ferMap.set(j.journey_id, j);
-    const ferrari = [...ferMap.values()];
-    // Q2: deep-funnel rows today (CTA clicked / PS card viewed / intro requested)
-    const [cta, psv, intro] = await Promise.all([
-      g(`journeys?created_at=gte.${encodeURIComponent(etStart)}&platform_cta_clicked_at=not.is.null&${JSEL}&order=last_activity_at.desc&limit=50`),
-      g(`journeys?created_at=gte.${encodeURIComponent(etStart)}&powerseller_card_viewed_at=not.is.null&${JSEL}&order=last_activity_at.desc&limit=50`),
-      g(`journeys?created_at=gte.${encodeURIComponent(etStart)}&intro_requested_at=not.is.null&${JSEL}&order=last_activity_at.desc&limit=50`)
-    ]);
-    const deepMap = new Map();
-    for (const j of [...(cta || []), ...(psv || []), ...(intro || [])]) deepMap.set(j.journey_id, j);
-    const deep = [...deepMap.values()];
-    // accounts.email lookup for every set user_id seen
-    const uids = [...new Set([...ferrari, ...deep].map(j => j.user_id).filter(Boolean))];
-    const emailMap = {};
-    if (uids.length) { const accs = await g(`accounts?user_id=in.(${uids.join(",")})&select=user_id,email`) || []; for (const a of accs) emailMap[a.user_id] = a.email; }
-    // Testarossa ALL-TIME (a re-run appends to the deterministic journey_id, so
-    // created_at stays on the FIRST-searched day; a today-only filter would miss it)
-    const testAll = await g(`journeys?vehicle_model=ilike.*testarossa*&${JSEL}&order=last_activity_at.desc&limit=10`) || [];
-    const testarossaAllTime = testAll.map(j => ({ jid: String(j.journey_id).slice(0, 8), car: [j.vehicle_year, j.vehicle_make, j.vehicle_model].filter(Boolean).join(" "), loc: j.vehicle_location, rec: j.rec_platform, stage: j.stage, hasUserId: !!j.user_id, created_at: j.created_at, last_activity_at: j.last_activity_at }));
-    // today's totals
-    const allToday = await g(`journeys?created_at=gte.${encodeURIComponent(etStart)}&select=user_id&limit=2000`) || [];
-    const withUser = allToday.filter(j => j.user_id).length;
-    const shape = j => ({ jid: String(j.journey_id).slice(0, 8), car: [j.vehicle_year, j.vehicle_make, j.vehicle_model, j.vehicle_trim].filter(Boolean).join(" "), loc: j.vehicle_location, rec: j.rec_platform, stage: j.stage, hasUserId: !!j.user_id, user_id8: j.user_id ? String(j.user_id).slice(0, 8) + "..." : null, accountRowExists: j.user_id ? (emailMap[j.user_id] !== undefined) : null, emailResolved: j.user_id ? (emailMap[j.user_id] != null) : null, emailMasked: j.user_id && emailMap[j.user_id] ? mask(emailMap[j.user_id]) : null, cta: !!j.platform_cta_clicked_at, psCard: !!j.powerseller_card_viewed_at, intro: !!j.intro_requested_at });
-    return res.status(200).json({
-      task: "journeycheck", etStart,
-      todayTotals: { journeys: allToday.length, withUserId: withUser, anonOnly: allToday.length - withUser },
-      ferrariTestarossaToday: { found: ferrari.length, rows: ferrari.map(shape) },
-      testarossaAllTime: { found: testAll.length, rows: testarossaAllTime },
-      deepFunnel: { found: deep.length, rows: deep.map(shape) },
-      accounts: { setUserIdsSeen: uids.length, accountRowsFound: Object.keys(emailMap).length, withNonNullEmail: Object.values(emailMap).filter(Boolean).length }
-    });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
