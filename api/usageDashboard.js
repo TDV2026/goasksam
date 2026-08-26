@@ -458,8 +458,8 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "no supabase env" });
     const op = String(req.query?.op || "dump");
     if (op === "dump") {
-      const rows = (await supabaseSelect(env, `partners?select=slug,name,display_name,active,notification_email&order=slug.asc`)) || [];
-      return res.status(200).json({ op, count: rows.length, rows });
+      const rows = (await supabaseSelect(env, `partners?select=*&order=slug.asc&limit=20`)) || [];
+      return res.status(200).json({ op, count: rows.length, hasNotifyColumn: rows.length ? ("notification_email" in rows[0]) : null, columns: rows.length ? Object.keys(rows[0]) : [], rows: rows.map(r => ({ slug: r.slug, name: r.name, display_name: r.display_name, active: r.active, notification_email: r.notification_email })) });
     }
     if (op === "set") {
       const slug = String(req.query?.slug || "");
