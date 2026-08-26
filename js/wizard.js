@@ -676,7 +676,13 @@ const CURATED_TRIM_ASKS=[
   {make:/bmw/i,model:/^6-?series$/i,yearMax:1989,ask:"Which 6-Series is it? The 630CS, 633CSi, 635CSi and M635CSi sell very differently. Pick one below, or type the exact trim.",chips:["630CS","633CSi","635CSi","M635CSi","Other","Not sure"]},
   {make:/mercedes/i,model:/^c-class$/i,trimRe:/^c63$/i,ask:"Which C63 is it? C63 and C63 S behave differently. Pick one below, or type it.",chips:["C63","C63 S","Not sure"]},
   {make:/chevrolet|chevy/i,model:/^camaro$/i,ask:"Which Camaro is it? Base, SS, RS and Z/28 sell very differently. Pick one below, or type the exact trim.",chips:["Base","SS","RS","Z/28","Other","Not sure"]},
-  {make:/ford/i,model:/^mustang$/i,ask:"Which Mustang is it? Base, GT, Mach 1, Boss and Shelby sell very differently. Pick one below, or type the exact trim.",chips:["Base","GT","Mach 1","Boss 302","Shelby GT350","Shelby GT500","Other","Not sure"]},
+  // Mustang trims are year-scoped: the earlier single rule offered Boss 302 /
+  // Shelby GT350 / GT500 for every year (later-generation cars) and omitted the
+  // real 2003-2004 SVT Cobra. Each generation now shows only trims that existed.
+  {make:/ford/i,model:/^mustang$/i,yearMax:1973,ask:"Which Mustang is it? Base, GT, Mach 1, Boss and Shelby sell very differently. Pick one below, or type the exact trim.",chips:["Base","GT","Mach 1","Boss 302","Shelby GT350","Shelby GT500","Other","Not sure"]},
+  {make:/ford/i,model:/^mustang$/i,yearMin:1994,yearMax:2004,ask:"Which Mustang is it? Base, GT, Mach 1 and the SVT Cobra sell very differently. Pick one below, or type the exact trim.",chips:["Base","GT","Mach 1","SVT Cobra","Other","Not sure"]},
+  {make:/ford/i,model:/^mustang$/i,yearMin:2005,ask:"Which Mustang is it? Base, GT and the Shelby/Boss cars sell very differently. Pick one below, or type the exact trim.",chips:["Base","GT","Shelby GT500","Shelby GT350","Boss 302","Mach 1","Other","Not sure"]},
+  {make:/ford/i,model:/^mustang$/i,ask:"Which Mustang is it? Base, GT and the special editions sell very differently. Pick one below, or type the exact trim.",chips:["Base","GT","Mach 1","Cobra","Other","Not sure"]},
   {make:/chevrolet|chevy/i,model:/^chevelle$/i,ask:"Which Chevelle is it? Base, Malibu and the SS cars (SS 396, SS 454) sell very differently. Pick one below, or type the exact trim.",chips:["Base","Malibu","SS 396","SS 454","Other","Not sure"]},
   {make:/pontiac/i,model:/^(gto|firebird|trans\s*am)$/i,ask:"Which trim is it? The Judge, Trans Am and Formula command very different money. Pick one below, or type the exact trim.",chips:["Base","The Judge","Trans Am","Formula","Other","Not sure"]},
   {make:/dodge/i,model:/^(charger|challenger)$/i,yearMax:1974,ask:"Which trim is it? R/T, Super Bee and the Hemi cars sell very differently. Pick one below, or type the exact trim.",chips:["Base","R/T","Super Bee","Hemi","Other","Not sure"]},
