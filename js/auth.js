@@ -147,6 +147,16 @@ async function authEnsureAccount(opts) {
   } catch (e) { return null; }
 }
 function authAccount() { return __authAccount; }
+// Apply the authoritative post-reserve daily count returned by /api/sellerDecision
+// to the cached account, so the upfront gate on the NEXT search knows the true
+// remaining without depending on a separate /api/account refetch (which can fail on
+// mobile). Creates a minimal account object if none was ensured yet, so a search
+// that succeeds before authEnsureAccount does still records the count.
+function authApplyDaily(daily) {
+  if (!daily || typeof daily !== "object") return;
+  if (!__authAccount) __authAccount = { daily: null };
+  __authAccount.daily = { dailyLimit: daily.dailyLimit ?? null, dailyUsed: daily.dailyUsed ?? null, dailyRemaining: daily.dailyRemaining ?? null };
+}
 
 // ---------------- callback + prefill (on load) ----------------
 function authScrubPrefill() {

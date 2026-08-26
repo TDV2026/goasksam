@@ -149,6 +149,11 @@ async function showSellRecommendation(opts){
   }
 
   sellState.sellDecision=decisionData;
+  // Apply the authoritative post-reserve daily count (Part 1): every signed-in search
+  // returns the true remaining from the same reserve_search transaction, so the client
+  // ledger stays exact and the NEXT search's upfront gate walls deterministically at
+  // 0 remaining, even if a later /api/account refetch fails (mobile).
+  if(decisionData.daily&&typeof authApplyDaily==="function")authApplyDaily(decisionData.daily);
   // 2C: stash the anonymous free result id for claim-on-sign-in (11a), and drop
   // the subtle "first one's on me" line under the free result (item 2).
   if(decisionData.resultId&&typeof gasStashResultId==="function")gasStashResultId(decisionData.resultId,!!decisionData.firstFree);

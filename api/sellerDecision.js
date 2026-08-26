@@ -2396,8 +2396,16 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
       await logFunnel("limit_hit", { user_id: auth.userId, dedup_key: `limit:${auth.userId}:${coarseMonthKey()}` }, supabaseUrl, supabaseKey);
       return { block: { status: "limit_reached", tier: row.tier || "free" } };
     }
+    // Authoritative post-reserve DAILY count (same transaction as the insert, so it
+    // can never disagree with the wall). The frontend applies this to its cached
+    // account so the upfront gate on the NEXT search knows the true remaining without
+    // a separate /api/account refetch (which could fail on mobile). null daily_limit
+    // = uncapped tier (crew/unlimited) -> no client cap.
+    const daily = (row.daily_limit != null)
+      ? { dailyLimit: Number(row.daily_limit), dailyUsed: Number(row.daily_used), dailyRemaining: Math.max(0, Number(row.daily_limit) - Number(row.daily_used)) }
+      : null;
     return { ok: true, reservationEventId: row.event_id, accountId: auth.userId, anonSessionId,
-      quota: { used: row.used, limit: row.limit, tier: row.tier } };
+      quota: { used: row.used, limit: row.limit, tier: row.tier }, daily };
   }
   // Spec C (a): anonymous searches per IP per day. Protects the anonymous
   // endpoint from cookie-clearing abuse (a signed-in user is on the auth path
@@ -2460,6 +2468,9 @@ export default async function handler(req, res) {
 
   // 2C: an authenticated reservation to refund if the search fails server-side.
   let reservationEventId = null;
+  // Authoritative post-reserve daily count (from reserve_search), returned to the
+  // client so its upfront gate stays accurate without a separate /api/account call.
+  let searchDaily = null;
 
   try {
     // The frontend validates with vehicleIdentity and passes the resolved
@@ -2586,6 +2597,7 @@ export default async function handler(req, res) {
       anonFirstFree = !!gate.anonFirstFree;
       anonSessionId = gate.anonSessionId || null;
       searchQuota = gate.quota || null;
+      searchDaily = gate.daily || null;
       crewBypass = !!gate.crewBypass;
       testerBypass = !!gate.testerBypass;
     }
@@ -2932,6 +2944,7 @@ export default async function handler(req, res) {
     // (deduped by the result id, 11e), and mark the free-search cookie.
     if (!internalCall) {
       if (searchQuota) responsePayload.quota = searchQuota;  // authenticated: monthly meter (used/limit/tier)
+      if (searchDaily) responsePayload.daily = searchDaily;  // authenticated: authoritative post-reserve daily (drives the client's upfront gate)
       const savedId = await persistSavedResult(searchAccountId, responsePayload, supabaseUrl, supabaseKey);
       if (savedId) {
         responsePayload.resultId = savedId;

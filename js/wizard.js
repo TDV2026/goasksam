@@ -1035,11 +1035,15 @@ async function startSellFlow(initialCar, showUserBubble=true, preresolved=null){
   // it anyway). Reload re-derives the true state via gateCheckUpfront.
   if(typeof gasIsWalled==="function"&&gasIsWalled()){ if(typeof gateWalledReack==="function")gateWalledReack(gasIsWalled()); return; }
   // Upfront gate on EVERY new car entry, not just page load (both the car-entry and the
-  // rail "Sell my car" paths run through here). A signed-in seller's cached daily remaining
-  // is refreshed LIVE first, so a mid-session entry by an account that has hit its cap gets
-  // the wall before the wizard starts instead of after a full walkthrough. Anonymous uses
-  // the gas_free_used cookie (already current). A failed refresh falls through (the backend
-  // gate is the backstop). gateCheckUpfront returns true when it renders a wall.
+  // rail "Sell my car" paths run through here). gateCheckUpfront walls on the client's
+  // KNOWN daily remaining, which every prior search keeps exact via the authoritative
+  // post-reserve count (authApplyDaily, Part 1) - so a seller who has hit the cap gets the
+  // wall before the wizard starts, deterministically, even offline.
+  // Backstop (Part 2): the LIVE /api/account refresh below is best-effort freshness on top
+  // of that ledger. A refresh MISS no longer lets a capped seller through: authEnsureAccount
+  // only overwrites daily on SUCCESS and never wipes a last-known count on failure, so
+  // gateCheckUpfront still sees remaining 0 and walls. The backend reserve_search stays the
+  // final backstop only for a genuinely-unknown daily (no prior search this session).
   try{ if(typeof authIsSignedIn==="function"&&authIsSignedIn()&&typeof authEnsureAccount==="function") await authEnsureAccount(); }catch(e){}
   if(typeof gateCheckUpfront==="function"&&gateCheckUpfront()) return;
   resetSellState();
