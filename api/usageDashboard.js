@@ -451,6 +451,25 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
+  // TEMP DIAGNOSTIC (Aug 2026): PowerSeller intro-flow gap check for one account.
+  // Read-only, no metered spend. Remove after the beck@ intro investigation.
+  if (task === "leadcheck") {
+    if (!env) return res.status(500).json({ error: "no supabase env" });
+    const email = String(req.query?.email || "").toLowerCase().trim();
+    if (!email) return res.status(400).json({ error: "pass ?email=" });
+    const acct = (await supabaseSelect(env, `accounts?email=eq.${encodeURIComponent(email)}&select=user_id,email,tier,tier_checked_at,created_at&limit=1`)) || [];
+    const account = acct[0] || null;
+    let journeys = [], events = [];
+    if (account) {
+      journeys = (await supabaseSelect(env, `journeys?user_id=eq.${account.user_id}&select=journey_id,anon_id,user_id,vehicle_year,vehicle_make,vehicle_model,vehicle_trim,rec_powerseller,stage,intro_requested_at,intro_sent_at,created_at,last_activity_at&order=created_at.desc&limit=50`)) || [];
+      const jids = journeys.map(j => `"${j.journey_id}"`).join(",");
+      if (jids) events = (await supabaseSelect(env, `journey_events?journey_id=in.(${encodeURIComponent(jids)})&select=journey_id,event_type,powerseller_id,metadata,occurred_at&order=occurred_at.asc&limit=500`)) || [];
+    }
+    // seller_leads is keyed by email, not user_id. Pull recent rows for this email.
+    const leads = (await supabaseSelect(env, `seller_leads?seller_email=eq.${encodeURIComponent(email)}&select=reference,submitted_at,car_raw,chosen_destination,chosen_destination_type,lead_status&order=submitted_at.desc&limit=50`)) || [];
+    return res.status(200).json({ task: "leadcheck", email, account, journeys, events, leads });
+  }
+
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
