@@ -32,12 +32,13 @@ function v2Landed(){ try{ return (sellState.sellDecision&&sellState.sellDecision
 function v2GenCode(){ var l=v2Landed(); return (l.generationCode)||(sellState.sellDecision&&sellState.sellDecision.evidence&&sellState.sellDecision.evidence.generation&&sellState.sellDecision.evidence.generation.code)||null; }
 function v2RungKind(){ var k=String(v2Landed().key||""); if(/exact_year/.test(k))return "exact"; if(/generation/.test(k))return "generation"; if(/segment/.test(k))return "segment"; if(/make/.test(k))return "make"; return "model"; }
 function v2Pl(w){ w=String(w||""); return /([sxz]|ch|sh)$/i.test(w)?w+"es":w+"s"; }
-// "Series"/"Class"-style model names read as a category and never take a plural
-// suffix: "6-Series" (never "6-Seriess"/"6-Serieses"), "S-Class", "M-Class", etc.
-// Singular and plural both render as the bare name. Everything else pluralizes
-// normally, so a genuinely pluralizable trailing-s model like "Bus" still becomes
-// "Buses" (only the category endings are invariant).
-function v2ModelInvariant(w){ return /(series|class)$/i.test(String(w||"").trim()); }
+// "Series"-style model names read as a category and never take a plural suffix:
+// "3-Series"/"6-Series" (never "6-Seriess"/"6-Serieses"), exactly like the word
+// "series". "Class" names DO pluralize, though: "E-Class" -> "E-Classes",
+// "S-Class" -> "S-Classes" (Aug 2026 fix; "class" was wrongly invariant here). So
+// only "series" is invariant; everything else pluralizes via v2Pl ("Bus" -> "Buses",
+// "E-Class" -> "E-Classes" since it ends in "s").
+function v2ModelInvariant(w){ return /series$/i.test(String(w||"").trim()); }
 function v2PlModel(w){ w=String(w||""); return (!w||v2ModelInvariant(w))?w:v2Pl(w); }
 function v2ScopePlural(v){
   var kind=v2RungKind(), model=String(v&&v.model||"car"), gen=v2GenCode(), year=v&&v.year;
@@ -197,14 +198,19 @@ function v2SpeedWhy(pick, priceAlt, includeDisclose){
   var n=Number(ev.modelSales!=null?ev.modelSales:(ev.relevantSales||0));
   // A COUNT takes the singular model at 1 ("sold 1 California T"), plural above.
   var modelCounted=(n===1)?model:modelPl;
-  var win=(typeof v2WindowLabel==="function"&&typeof v2Window==="function")?v2WindowLabel(v2Window(ev)):"period";
+  var winDays=(typeof v2Window==="function")?Number(v2Window(ev)):90;
+  var win=(typeof v2WindowLabel==="function")?v2WindowLabel(winDays):"period";
   var s1="Since you'd like to sell quickly, I'd list your "+model+" on "+plat+".";
-  // The speed pick is selected only at evidenceSales>=V2_SPEED_EVIDENCE_FLOOR (the
-  // same bar), so at render n is always >= the floor and the count clause always
-  // states a real number. The guard stays as a belt: if n somehow dips below, the
-  // clause drops rather than overclaims (never the deleted N=0 "active audience").
-  var s2=(n>=V2_SPEED_EVIDENCE_FLOOR)
-    ? " It's generally quicker to get a listing live than some other platforms, and it's sold "+n+" "+modelCounted+" over the past "+win+", so buyers are already there."
+  // Volume-proportionate count clause (Aug 2026, two tiers). The "buyers are already
+  // there" conclusion renders ONLY when the model actually sells at a volume that
+  // supports it: at least 6 in the landed window AND an average of 2+/month. Below
+  // that the count does not help the pick, so it stays out of the copy ENTIRELY - no
+  // neutral "for reference" tier (same principle as fewer-bullets-beats-filler); the
+  // speed rationale stands alone. modelSales (n) is the genuine same-model count.
+  var monthlyRate=winDays>0?(n*30/winDays):0;
+  var supportsPick=(n>=6)&&(monthlyRate>=2);
+  var s2=supportsPick
+    ? " It's generally quicker to get a listing live than some other platforms, and it's sold "+n+" "+modelCounted+" there over the past "+win+", so buyers are already there."
     : " It's generally quicker to get a listing live than some other platforms.";
   var s3="";
   if(includeDisclose&&priceAlt){
