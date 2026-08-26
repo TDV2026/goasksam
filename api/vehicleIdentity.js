@@ -153,21 +153,39 @@ export default async function handler(req, res) {
           result = second;
           fallbackUsed = "extraction_resolved";
         } else {
-          // Low confidence: one grounded question echoing what WAS read.
           const seen = parsed.make || parsed.model;
           const missing = [!parsed.year && !parsed.decade ? "year" : null, !parsed.model ? "model" : null].filter(Boolean);
-          result = {
-            status: "needs_clarification",
-            vehicle: { ...result.vehicle, make: parsed.make || null, model: parsed.model || null },
-            clarification: {
-              question: `I can see a ${seen} in there. ${missing.length ? `Which ${missing.join(" and ")}?` : "Give me the year, make and model in one line."}`,
-              missing,
-              baseVehicle: [parsed.year, parsed.make, parsed.model].filter(Boolean).join(" ") || null,
-              chips: ["Change car", "Not sure"]
-            },
-            corrections: result.corrections
-          };
-          fallbackUsed = "extraction_grounded_question";
+          if (parsed.make && parsed.model && !missing.length) {
+            // Unknown-MAKE escape (mirrors the unknown-MODEL seller_designation_unverified
+            // path in resolveVehicle): the LLM confidently read a full make+model+year that
+            // the deterministic layer can't verify - a low-volume specialty marque like
+            // Rossion. Accept it MAKE-LEVEL UNVERIFIED and proceed (the analysis runs
+            // honestly at make level and never claims model comps) instead of re-asking for
+            // a car the seller already fully described (the infinite re-ask loop).
+            const tc = s => String(s || "").trim().replace(/\S+/g, w => (w.length <= 3 || /\d/.test(w)) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+            const yr = Number(parsed.year) || null;
+            const mk = tc(parsed.make), md = String(parsed.model).trim();
+            result = {
+              status: "valid",
+              vehicle: { ...result.vehicle, raw: text, year: yr, make: mk, model: md, trim: parsed.trim || null, unverified: true, confidence: "low", canonicalLabel: [yr, mk, md].filter(Boolean).join(" ") },
+              corrections: result.corrections
+            };
+            fallbackUsed = "extraction_unverified_make";
+          } else {
+            // Low confidence: one grounded question echoing what WAS read.
+            result = {
+              status: "needs_clarification",
+              vehicle: { ...result.vehicle, make: parsed.make || null, model: parsed.model || null },
+              clarification: {
+                question: `I can see a ${seen} in there. ${missing.length ? `Which ${missing.join(" and ")}?` : "Give me the year, make and model in one line."}`,
+                missing,
+                baseVehicle: [parsed.year, parsed.make, parsed.model].filter(Boolean).join(" ") || null,
+                chips: ["Change car", "Not sure"]
+              },
+              corrections: result.corrections
+            };
+            fallbackUsed = "extraction_grounded_question";
+          }
         }
       } else if (!wasDirtyArbitration) {
         fallbackUsed = "extraction_failed";
