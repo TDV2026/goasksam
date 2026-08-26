@@ -1,8 +1,5 @@
-# CURTAIN (pre-launch): block indexing until launch day.
-# The privacy policy is intentionally allowed: it must stay publicly reachable
-# (Google OAuth verification + user access) while the app itself is curtained.
-# Delete this Disallow (or replace with an Allow) in the single curtain-removal commit.
+# Launched Aug 2026: the site is public and indexable. The pre-launch rule that
+# blocked everything but /privacy while the curtain was up has been removed.
+# /onebox stays crew-gated and carries its own noindex, so it is not listed here.
 User-agent: *
-Allow: /privacy
-Allow: /privacy.html
-Disallow: /
+Allow: /

@@ -603,15 +603,6 @@ a.hp-logo:hover{opacity:.72;}
 .gate-inline-link:hover{opacity:.8;}
 .gate-firstfree{color:var(--slate);font-size:13.5px;margin-top:8px;}
 .gate-sub{color:var(--slate);font-size:13px;margin-top:6px;}
-/* ===== CURTAIN (pre-launch; delete this block in the single removal commit) ===== */
-#curtain{position:fixed;inset:0;z-index:1000;align-items:center;justify-content:center;background:var(--paper,#fff);padding:24px;}
-.curtain-card{max-width:440px;text-align:center;}
-.curtain-mark{font-family:var(--font-sans);font-weight:600;font-size:26px;color:var(--ink,#16140F);letter-spacing:-.3px;}
-.curtain-line{font-family:var(--font-sans);font-size:16px;color:var(--slate,#6B6861);margin-top:14px;line-height:1.6;}
-.curtain-sub{display:inline-block;margin-top:22px;font-family:var(--font-sans);font-size:13.5px;color:var(--accent,#8a7a55);text-decoration:none;}
-.curtain-sub:hover{text-decoration:underline;}
-/* ===== /CURTAIN ===== */
-
 /* Hamburger (mobile only) */
 #hp-hamburger{display:none;position:absolute;top:16px;left:16px;z-index:20;width:38px;height:38px;border:1px solid var(--line);
   background:var(--paper);border-radius:10px;cursor:pointer;font-size:16px;color:var(--slate);}

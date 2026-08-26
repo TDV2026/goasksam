@@ -29,41 +29,14 @@
 <!-- CSS served at a VERSIONED PATH (not a ?query, which some edge caches ignore).
      styles.css stays on disk; a vercel.json rewrite maps this path to it. BUMP the
      token in BOTH index.html and vercel.json on every styles.css change. -->
-<link rel="stylesheet" href="styles.20260825c.css">
-<!-- ===================== CURTAIN (pre-launch holding state) =====================
-     Temporary. Delete this whole block, the #curtain div below, the .curtain*
-     CSS in styles.css, api/crew.js, and the robots.txt Disallow in ONE commit at
-     launch. Presentation-level only: it hides the app with CSS and never touches
-     auth, the API, or anything 2A built. Unlock: /?crew=<CURTAIN_CREW_CODE>. -->
-<meta name="robots" content="noindex, nofollow">
-<style>.curtained #rail,.curtained #main,.curtained #hp-hamburger,.curtained #rail-scrim{display:none!important}#curtain{display:none}.curtained #curtain{display:flex}</style>
-<script>
-(function(){try{
-  // Persist realgate intent BEFORE any curtain redirect strips the query. The tester/crew
-  // redirect below lands on a bare path, so without this a fresh visit to
-  // ?tester=...&realgate=1 would drop realgate and run un-gated. Mirrors result-v2.js.
-  var g=/[?&]realgate=([01])/.exec(location.search||"");
-  if(g){ if(g[1]==="1")localStorage.setItem("gas_realgate","1"); else localStorage.removeItem("gas_realgate"); }
-  if(document.cookie.indexOf("gas_crew=ok")!==-1||document.cookie.indexOf("gas_tester=ok")!==-1)return; // unlocked device (crew or tester): no curtain
-  var m=/[?&]crew=([^&]*)/.exec(location.search||"");
-  if(m){location.replace("/api/crew?code="+encodeURIComponent(m[1])+"&to="+encodeURIComponent(location.pathname||"/"));return;}
-  var t=/[?&]tester=([^&]*)/.exec(location.search||"");                                  // tester invite link: /?tester=<code>
-  if(t){location.replace("/api/crew?tcode="+encodeURIComponent(t[1])+"&to="+encodeURIComponent(location.pathname||"/"));return;}
-  document.documentElement.className+=" curtained";                                      // CSS hides the app, shows #curtain
-}catch(e){}})();
-</script>
-<!-- ===================== /CURTAIN ===================== -->
+<link rel="stylesheet" href="styles.20260825d.css">
+<!-- Curtain removed at launch (Aug 2026): the pre-launch holding block, its inline
+     curtain script + CSS, and the #curtain div were deleted here so the site is
+     public. Crew access to the still-gated /onebox is via /api/crew?code= directly
+     (onebox.html carries its own gate); api/crew.js keeps the crew/tester + bhs
+     handling. robots.txt now allows indexing. -->
 </head>
 <body class="home">
-<!-- CURTAIN -->
-<div id="curtain"><div class="curtain-card">
-  <div class="curtain-mark">GoAskSam</div>
-  <div class="curtain-line">Launching soon for Daily Vroom readers.</div>
-  <a class="curtain-sub" href="https://thedailyvroom.com/subscribe">Not a reader yet? Join free &rarr;</a>
-  <div style="margin-top:30px"><a href="/privacy" style="font-size:12.5px;color:#9a968c;text-decoration:none">Privacy Policy</a></div>
-</div></div>
-<!-- /CURTAIN -->
-
 <button id="hp-hamburger" aria-label="Menu" onclick="toggleRail()">☰</button>
 <div id="rail-scrim" onclick="toggleRail(false)"></div>
 
