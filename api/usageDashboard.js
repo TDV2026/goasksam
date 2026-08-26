@@ -451,66 +451,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
-  // TEMP DIAGNOSTIC (Aug 2026): PRECISE lost-lead classification. For each "intro
-  // clicked, no intro requested" journey today, categorize by MECHANISM: outbound-bail
-  // (a platform_cta_clicked fired within a few seconds AFTER the intro click = the click
-  // silently failed and sent them to the platform) vs form-abandonment (no such event).
-  // Read-only, no metered spend. Remove after recovery.
-  if (task === "lostleads2") {
-    if (!env) return res.status(500).json({ error: "no supabase env" });
-    const WINDOW_SEC = Number(req.query?.window || 5); // outbound-bail proximity window
-    const dayStart = etDayStart(new Date()).toISOString();
-    let events = [];
-    for (let offset = 0; offset < 60000; offset += 1000) {
-      const page = (await supabaseSelect(env, `journey_events?occurred_at=gte.${encodeURIComponent(dayStart)}&select=journey_id,event_type,powerseller_id,occurred_at&order=occurred_at.asc&limit=1000&offset=${offset}`)) || [];
-      events.push(...page);
-      if (page.length < 1000) break;
-    }
-    // Per-journey timeline of the three events we care about.
-    const jmap = new Map();
-    for (const e of events) {
-      if (!["powerseller_intro_clicked", "powerseller_intro_requested", "platform_cta_clicked"].includes(e.event_type)) continue;
-      const g = jmap.get(e.journey_id) || { introAt: null, ps: null, requested: false, platClicks: [] };
-      if (e.event_type === "powerseller_intro_clicked") { g.introAt = e.occurred_at; g.ps = e.powerseller_id; }
-      else if (e.event_type === "powerseller_intro_requested") g.requested = true;
-      else if (e.event_type === "platform_cta_clicked") g.platClicks.push(e.occurred_at);
-      jmap.set(e.journey_id, g);
-    }
-    const stuck = [...jmap.entries()].filter(([, g]) => g.introAt && !g.requested);
-    // Classify: outbound-bail if a platform_cta_clicked occurs 0..WINDOW_SEC after intro.
-    const classified = stuck.map(([jid, g]) => {
-      const t0 = new Date(g.introAt).getTime();
-      const deltas = g.platClicks.map(t => (new Date(t).getTime() - t0) / 1000).filter(d => d >= -0.5); // after (allow tiny clock skew)
-      const bailDelta = deltas.filter(d => d <= WINDOW_SEC).sort((a, b) => a - b)[0];
-      return { jid, ps: g.ps, category: bailDelta != null ? "outbound_bail" : "form_abandonment", bailDeltaSec: bailDelta != null ? Number(bailDelta.toFixed(2)) : null };
-    });
-    const inList = classified.map(c => `"${c.jid}"`).join(",");
-    let journeys = [];
-    if (inList) journeys = (await supabaseSelect(env, `journeys?journey_id=in.(${encodeURIComponent(inList)})&select=journey_id,user_id,vehicle_year,vehicle_make,vehicle_model,vehicle_trim,rec_powerseller,rec_estimated_value,created_at`)) || [];
-    const userIds = [...new Set(journeys.map(j => j.user_id).filter(Boolean))];
-    const emailByUser = new Map();
-    if (userIds.length) {
-      const accs = (await supabaseSelect(env, `accounts?user_id=in.(${encodeURIComponent(userIds.map(u => `"${u}"`).join(","))})&select=user_id,email`)) || [];
-      for (const a of accs) emailByUser.set(a.user_id, a.email);
-    }
-    const rows = classified.map(c => {
-      const j = journeys.find(x => x.journey_id === c.jid) || {};
-      return {
-        category: c.category, bailDeltaSec: c.bailDeltaSec,
-        signedIn: !!j.user_id, email: j.user_id ? (emailByUser.get(j.user_id) || null) : null,
-        car: [j.vehicle_year, j.vehicle_make, j.vehicle_model, j.vehicle_trim].filter(Boolean).join(" "),
-        partner: c.ps || j.rec_powerseller || null, estValue: j.rec_estimated_value, created_at: j.created_at
-      };
-    }).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
-    const bail = rows.filter(r => r.category === "outbound_bail");
-    const recoverableBail = [...new Set(bail.filter(r => r.email).map(r => r.email))];
-    return res.status(200).json({
-      task: "lostleads2", windowSec: WINDOW_SEC, serverNow: new Date().toISOString(),
-      totals: { stuck: rows.length, outbound_bail: bail.length, form_abandonment: rows.length - bail.length, recoverableBailEmails: recoverableBail.length },
-      recoverableBailEmails: recoverableBail, rows
-    });
-  }
-
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
