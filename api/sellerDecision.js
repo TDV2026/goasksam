@@ -1048,12 +1048,30 @@ async function fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generati
   const ladder = buildLadder(vehicle, generation);
   const maxWindow = Math.max(...ANALYSIS_WINDOWS_DAYS, ...SELLER_ACTIVITY_WINDOWS_DAYS);
   const cutoff = new Date(Date.now() - maxWindow * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const rows = await supabaseSelect(
-    { supabaseUrl, supabaseKey },
-    `vehicle_market_records?make=ilike.${encodeURIComponent(vehicle.make)}&auction_end_date=gte.${cutoff}&select=raw_record&order=auction_end_date.desc&limit=2000`
-  );
-  if (!rows || !rows.length) return null;
-  const records = rows.map(row => row.raw_record).filter(record => record && typeof record === "object");
+  const env = { supabaseUrl, supabaseKey };
+  const mkq = encodeURIComponent(vehicle.make);
+  const modelHead = vehicle.model ? String(vehicle.model).split(/\s+/)[0] : "";
+  // PostgREST caps each read at 1000 rows. A make-wide read alone (BMW) is dominated by
+  // recent common models, so a LOW-VOLUME model inside a HIGH-VOLUME make (an i8 among
+  // thousands of 3-Series) has its older records crowded out of the top 1000 - the exact
+  // reason the i8's Bring a Trailer records were missing from the pick. So pull the
+  // MODEL's own records too (model-first at merge) so they can never be crowded out.
+  const [makeRows, modelRows] = await Promise.all([
+    supabaseSelect(env, `vehicle_market_records?make=ilike.${mkq}&auction_end_date=gte.${cutoff}&select=raw_record&order=auction_end_date.desc&limit=1000`),
+    modelHead ? supabaseSelect(env, `vehicle_market_records?make=ilike.${mkq}&model=ilike.${encodeURIComponent("*" + modelHead + "*")}&auction_end_date=gte.${cutoff}&select=raw_record&order=auction_end_date.desc&limit=1000`) : Promise.resolve(null)
+  ]);
+  const records = [];
+  const seenStore = new Set();
+  for (const list of [modelRows || [], makeRows || []]) {
+    for (const row of list) {
+      const rec = row && row.raw_record;
+      if (!rec || typeof rec !== "object") continue;
+      const k = sourceRecordKey(recordPlatform(rec), sourceRecordId(rec));
+      if (seenStore.has(k)) continue;
+      seenStore.add(k);
+      records.push(rec);
+    }
+  }
   if (!records.length) return null;
   return {
     records,
