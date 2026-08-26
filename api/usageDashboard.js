@@ -1179,6 +1179,39 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
+  // TEMP read-only diagnostic (Aug 2026, remove after): why do completed journeys have
+  // empty Asking/Preference/Timing? Is the SERVER recommendation_completed event (the
+  // only carrier of criteria attrs) firing as often as the CLIENT deep-funnel beacons?
+  if (task === "attrscheck") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const g = q => supabaseSelect(env, q);
+    const etStart = etDayStart(new Date()).toISOString();
+    const REC_STAGES = ["recommendation_completed", "platform_recommended", "powerseller_recommended", "platform_cta_viewed", "powerseller_card_viewed", "platform_cta_clicked", "powerseller_intro_clicked", "powerseller_intro_requested"];
+    const journeys = await g(`journeys?created_at=gte.${encodeURIComponent(etStart)}&select=journey_id,stage,vehicle_attrs,created_at&order=created_at.desc&limit=1000`) || [];
+    const completed = journeys.filter(j => REC_STAGES.includes(j.stage));
+    const hasAttr = (j, k) => j.vehicle_attrs && typeof j.vehicle_attrs === "object" && j.vehicle_attrs[k] != null && j.vehicle_attrs[k] !== "";
+    const anyAttr = j => j.vehicle_attrs && typeof j.vehicle_attrs === "object" && Object.values(j.vehicle_attrs).some(v => v != null && v !== "");
+    // event-type presence today: does the SERVER recommendation_completed fire per journey
+    // as often as the CLIENT platform_cta_viewed / powerseller_card_viewed beacons?
+    const evs = await g(`journey_events?occurred_at=gte.${encodeURIComponent(etStart)}&select=event_type,journey_id&limit=30000`) || [];
+    const perEvent = {};
+    for (const e of evs) (perEvent[e.event_type] = perEvent[e.event_type] || new Set()).add(e.journey_id);
+    const distinctJourneysPerEvent = {};
+    for (const k in perEvent) distinctJourneysPerEvent[k] = perEvent[k].size;
+    return res.status(200).json({
+      task: "attrscheck", etStart,
+      completedJourneysToday: completed.length,
+      ofCompleted: {
+        withAnyAttr: completed.filter(anyAttr).length,
+        withPrice: completed.filter(j => hasAttr(j, "price")).length,
+        withPreference: completed.filter(j => hasAttr(j, "preference")).length,
+        withTimeline: completed.filter(j => hasAttr(j, "timeline")).length
+      },
+      distinctJourneysPerEventToday: distinctJourneysPerEvent,
+      sample: completed.slice(0, 12).map(j => ({ jid: String(j.journey_id).slice(0, 8), stage: j.stage, attrs: j.vehicle_attrs }))
+    });
+  }
+
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
@@ -1520,6 +1553,14 @@ async function renderBusinessView(req, res) {
 }
 
 const STAGE_LABEL = { seller_journey_started: "Started", vehicle_identified: "Vehicle identified", seller_questions_completed: "Questions done", recommendation_completed: "Recommendation", platform_recommended: "Platform rec", powerseller_recommended: "PowerSeller rec", platform_cta_viewed: "CTA viewed", powerseller_card_viewed: "PS card viewed", platform_cta_clicked: "CTA clicked", powerseller_intro_clicked: "Intro clicked", powerseller_intro_requested: "Intro requested", powerseller_intro_sent: "Intro sent", powerseller_contacted: "Contacted", powerseller_engaged: "Engaged", consignment_accepted: "Consignment", vehicle_listed: "Listed", vehicle_sold: "Sold", journey_closed_no_sale: "Closed, no sale" };
+// The result-render moment fires three events tied at rank 40 (recommendation_completed,
+// platform_recommended, powerseller_recommended); which one a journey RESTS at is a
+// write-order race, so they collapse to ONE "Recommendation" stage for the Stage column,
+// chips, filter and sort. The platform-vs-PowerSeller detail lives in the Recommendation
+// and PowerSeller columns, so nothing is lost. (The per-event timeline in the journey
+// detail still shows each raw event.)
+const STAGE_CANON = { platform_recommended: "recommendation_completed", powerseller_recommended: "recommendation_completed" };
+const canonStage = s => STAGE_CANON[s] || s || "";
 
 // ---- Phase 3: manual downstream editor ----
 // The single source of truth for what an admin may edit. Each field maps to a
@@ -1638,7 +1679,7 @@ async function renderJourneysView(req, res) {
           <div class="r"><span>Scope</span><b>${adminEsc(j.rec_scope || "-")}</b></div>
           <div class="r"><span>Window</span><b>${adminEsc(j.rec_window || "-")}</b></div>
           <div class="r"><span>Est. value</span><b>${j.rec_estimated_value ? fmtMoney(j.rec_estimated_value) : "-"}</b></div>
-          <div class="r"><span>Stage</span><b>${adminEsc(STAGE_LABEL[j.stage] || j.stage || "-")}</b></div>
+          <div class="r"><span>Stage</span><b>${adminEsc(STAGE_LABEL[canonStage(j.stage)] || j.stage || "-")}</b></div>
           <div class="r"><span>Sale status</span><b>${adminEsc(j.sale_status || "unknown")}</b></div>
         </div></div>
       </div>
@@ -1667,10 +1708,10 @@ async function renderJourneysView(req, res) {
   // chip shows how many of the currently-filtered journeys sit at that stage (and the
   // active stage's chip stays visible with its count). Funnel order = STAGE_LABEL order.
   const STAGE_KEYS = Object.keys(STAGE_LABEL);
-  const stageRank = s => { const i = STAGE_KEYS.indexOf(s); return i < 0 ? 999 : i; };
+  const stageRank = s => { const i = STAGE_KEYS.indexOf(canonStage(s)); return i < 0 ? 999 : i; };
   const stageCounts = new Map();
-  for (const j of rows) { const s = j.stage || ""; stageCounts.set(s, (stageCounts.get(s) || 0) + 1); }
-  if (fStage) rows = rows.filter(j => j.stage === fStage);
+  for (const j of rows) { const s = canonStage(j.stage); stageCounts.set(s, (stageCounts.get(s) || 0) + 1); }
+  if (fStage) rows = rows.filter(j => canonStage(j.stage) === fStage);
   // Sort by Stage (funnel order) when the Stage header is clicked; default stays date-desc.
   if (fSort === "stage") rows = [...rows].sort((x, y) => stageRank(x.stage) - stageRank(y.stage) || String(y.created_at || "").localeCompare(String(x.created_at || "")));
   const anyFilter = q || fStage || fPs || fPlat || fReg || fUid || fAid;
@@ -1687,7 +1728,7 @@ async function renderJourneysView(req, res) {
     <td>${adminEsc(attrOf(j, "timeline") || "")}</td>
     <td>${adminEsc(j.rec_platform || "")}</td>
     <td>${adminEsc(j.rec_powerseller || "")}</td>
-    <td>${adminEsc(STAGE_LABEL[j.stage] || j.stage || "")}</td>
+    <td>${adminEsc(STAGE_LABEL[canonStage(j.stage)] || j.stage || "")}</td>
     <td>${adminEsc(j.actual_platform || "")}</td>
     <td>${adminEsc(j.sale_status || "")}</td>
     <td class="num">${j.sale_price ? fmtMoney(j.sale_price) : ""}</td>
