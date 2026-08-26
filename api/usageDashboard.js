@@ -461,7 +461,7 @@ async function handleOps(req, res) {
     const account = acct[0] || null;
     let journeys = [], events = [];
     if (account) {
-      journeys = (await supabaseSelect(env, `journeys?user_id=eq.${account.user_id}&select=journey_id,anon_id,user_id,vehicle_year,vehicle_make,vehicle_model,vehicle_trim,rec_powerseller,stage,intro_requested_at,intro_sent_at,created_at,last_activity_at&order=created_at.desc&limit=50`)) || [];
+      journeys = (await supabaseSelect(env, `journeys?user_id=eq.${account.user_id}&select=journey_id,anon_id,user_id,vehicle_year,vehicle_make,vehicle_model,vehicle_trim,vehicle_attrs,rec_powerseller,rec_estimated_value,stage,intro_requested_at,intro_sent_at,created_at,last_activity_at&order=created_at.desc&limit=50`)) || [];
       const jids = journeys.map(j => `"${j.journey_id}"`).join(",");
       if (jids) events = (await supabaseSelect(env, `journey_events?journey_id=in.(${encodeURIComponent(jids)})&select=journey_id,event_type,powerseller_id,metadata,occurred_at&order=occurred_at.asc&limit=500`)) || [];
     }
