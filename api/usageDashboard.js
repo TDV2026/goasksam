@@ -457,7 +457,14 @@ async function handleOps(req, res) {
   if (task === "lostleads") {
     if (!env) return res.status(500).json({ error: "no supabase env" });
     const dayStart = etDayStart(new Date()).toISOString();
-    const events = (await supabaseSelect(env, `journey_events?occurred_at=gte.${encodeURIComponent(dayStart)}&select=journey_id,event_type,powerseller_id,occurred_at&order=occurred_at.asc&limit=5000`)) || [];
+    // Paginate so a busy day cannot silently truncate the evening events.
+    let events = [];
+    for (let offset = 0; offset < 40000; offset += 1000) {
+      const page = (await supabaseSelect(env, `journey_events?occurred_at=gte.${encodeURIComponent(dayStart)}&select=journey_id,event_type,powerseller_id,occurred_at&order=occurred_at.asc&limit=1000&offset=${offset}`)) || [];
+      events.push(...page);
+      if (page.length < 1000) break;
+    }
+    const diag = { serverNow: new Date().toISOString(), totalEventsToday: events.length, maxOccurredAt: events.reduce((m, e) => e.occurred_at > m ? e.occurred_at : m, "") };
     const byJourney = new Map();
     for (const e of events) {
       const g = byJourney.get(e.journey_id) || { types: new Set(), ps: null };
@@ -495,7 +502,7 @@ async function handleOps(req, res) {
       }).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
     }
     const recoverable = rows.filter(r => r.email);
-    return res.status(200).json({ task: "lostleads", etDayStart: dayStart, stuckCount: rows.length, recoverableCount: recoverable.length, rows });
+    return res.status(200).json({ task: "lostleads", etDayStart: dayStart, diag, stuckCount: rows.length, recoverableCount: recoverable.length, rows });
   }
 
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
