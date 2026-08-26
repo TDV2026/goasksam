@@ -167,7 +167,7 @@ export default async function handler(req, res) {
             const mk = tc(parsed.make), md = String(parsed.model).trim();
             result = {
               status: "valid",
-              vehicle: { ...result.vehicle, raw: text, year: yr, make: mk, model: md, trim: parsed.trim || null, unverified: true, confidence: "low", canonicalLabel: [yr, mk, md].filter(Boolean).join(" ") },
+              vehicle: { ...result.vehicle, raw: rebuilt || raw, year: yr, make: mk, model: md, trim: parsed.trim || null, unverified: true, confidence: "low", canonicalLabel: [yr, mk, md].filter(Boolean).join(" ") },
               corrections: result.corrections
             };
             fallbackUsed = "extraction_unverified_make";
