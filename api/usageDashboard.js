@@ -451,6 +451,33 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
+  // TEMP DIAGNOSTIC (Aug 2026): quota-enforcement check for a single account.
+  // Read-only, no metered spend. Remove after the darin@ quota investigation.
+  if (task === "quotacheck") {
+    if (!env) return res.status(500).json({ error: "no supabase env" });
+    const email = String(req.query?.email || "").toLowerCase().trim();
+    if (!email) return res.status(400).json({ error: "pass ?email=" });
+    const acct = (await supabaseSelect(env, `accounts?email=eq.${encodeURIComponent(email)}&select=user_id,email,tier,tier_checked_at,created_at,bonus_searches&limit=1`)) || [];
+    const account = acct[0] || null;
+    const caps = (await supabaseSelect(env, `rate_limits?select=tier,daily_searches,monthly_searches`)) || [];
+    const dayStart = etDayStart(new Date()).toISOString();
+    let searchEventsToday = null, journeysToday = null, wallEventsToday = null, journeyTiers = null;
+    if (account) {
+      const se = (await supabaseSelect(env, `search_events?user_id=eq.${account.user_id}&created_at=gte.${encodeURIComponent(dayStart)}&select=*&order=created_at.asc&limit=200`)) || [];
+      searchEventsToday = { count: se.length, rows: se };
+      const jr = (await supabaseSelect(env, `journeys?user_id=eq.${account.user_id}&created_at=gte.${encodeURIComponent(dayStart)}&select=journey_id,vehicle_year,vehicle_make,vehicle_model,stage,created_at&order=created_at.asc&limit=200`)) || [];
+      journeysToday = jr;
+      const jids = jr.map(j => `"${j.journey_id}"`).join(",");
+      if (jids) {
+        const je = (await supabaseSelect(env, `journey_events?journey_id=in.(${encodeURIComponent(jids)})&event_type=eq.recommendation_completed&select=journey_id,metadata,occurred_at&limit=200`)) || [];
+        journeyTiers = je.map(e => ({ journey_id: e.journey_id, tier: e.metadata && e.metadata.tier, occurred_at: e.occurred_at }));
+      }
+      const fe = (await supabaseSelect(env, `funnel_events?user_id=eq.${account.user_id}&created_at=gte.${encodeURIComponent(dayStart)}&select=event,created_at&order=created_at.asc&limit=200`)) || [];
+      wallEventsToday = fe;
+    }
+    return res.status(200).json({ task: "quotacheck", email, etDayStart: dayStart, account, caps, searchEventsToday, journeysToday, journeyTiers, wallEventsToday });
+  }
+
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
