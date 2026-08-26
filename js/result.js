@@ -1276,7 +1276,21 @@ function explainSellOption(which){
 function choosePowerSeller(id){
   sellState.selectedPowerSellerId=id;
   if(typeof gasJourneyEvent==="function")gasJourneyEvent("powerseller_intro_clicked",{vehicle:sellState.resolvedVehicle,powersellerId:id,dedupKey:String(id||"")});  // business journey
-  chooseSellOption("specialist");
+  // Route straight to PowerSeller lead capture. Do NOT go through chooseSellOption's
+  // option lookup (Aug 2026 fix): when the gate is eligible but the seller's preference
+  // is not "powerseller", sellState.sellOptions has no key:"specialist" entry (that is
+  // built only for the powerseller-preference layout and pushed for the secondary
+  // layout), so the lookup fell back to sellOptions[0] (a platform) and fired an
+  // outbound handoff instead of capturing the lead - the seller was silently sent to
+  // the platform and no lead/intro_requested ever recorded. An intro click ALWAYS means
+  // "capture this lead", so it must reach showContactForm unconditionally. submitLead
+  // keys the destination off selectedPowerSeller, so a missing specialist sellOption is
+  // fine.
+  if(sellState.chosen)return; // double-fire guard, matches chooseSellOption
+  sellState.chosen="specialist";sellState.step=13;
+  const profile=(sellState.powerSellerProfiles||[]).find(p=>p.id===id);
+  addMsg("user",`Go with ${profile?.displayName||"this specialist"}`);
+  setTimeout(()=>showContactForm(),600);
 }
 
 function showContactForm(){
