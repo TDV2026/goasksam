@@ -1188,7 +1188,12 @@ async function handleOps(req, res) {
     const ROUTABLE = new Set(["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "sothebysmotorsport", "hemmings", "mbmarket"]);
     const now = Date.now();
     const cut270 = new Date(now - 270 * 864e5).toISOString().slice(0, 10);
-    const rows = await supabaseSelect(env, `vehicle_market_records?auction_end_date=gte.${cut270}&select=make,model,source,auction_end_date&order=auction_end_date.desc&limit=40000`) || [];
+    let rows = []; // PostgREST caps at 1000/req, so page through the 270d window
+    for (let pg = 0; pg < 30; pg++) {
+      const chunk = await supabaseSelect(env, `vehicle_market_records?auction_end_date=gte.${cut270}&select=make,model,source,auction_end_date&order=auction_end_date.desc&limit=1000&offset=${pg * 1000}`) || [];
+      rows = rows.concat(chunk);
+      if (chunk.length < 1000) break;
+    }
     const daysAgo = d => (now - Date.parse(d)) / 864e5;
     const byModel = new Map();
     for (const r of rows) {
@@ -1211,7 +1216,7 @@ async function handleOps(req, res) {
       exposed.push({ car: `${m.make} ${m.model}`, recent90: `${only90}:${c90}`, wider270Total: t270, wider270: m.p270, missing: `${bigger[0][0]}:${bigger[0][1]}` });
     }
     exposed.sort((a, b) => b.wider270Total - a.wider270Total);
-    return res.status(200).json({ task: "windowscan", scannedRecords: rows.length, truncated: rows.length >= 40000, modelsWithRoutableComps: byModel.size, exposedCount: exposed.length, exposed: exposed.slice(0, 80) });
+    return res.status(200).json({ task: "windowscan", scannedRecords: rows.length, truncated: rows.length >= 30000, modelsWithRoutableComps: byModel.size, exposedCount: exposed.length, exposed: exposed.slice(0, 80) });
   }
 
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
