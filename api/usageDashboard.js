@@ -451,6 +451,21 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
+  // TEMP (Aug 2026): read/delete a seller_leads row by reference, to verify the
+  // additionalDetails persistence end to end. Remove after verification.
+  if (task === "leadrow") {
+    if (!env) return res.status(500).json({ error: "no supabase env" });
+    const ref = String(req.query?.ref || "");
+    if (!ref) return res.status(400).json({ error: "pass ?ref=" });
+    if (String(req.query?.op) === "delete") {
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/seller_leads?reference=eq.${encodeURIComponent(ref)}`, {
+        method: "DELETE", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "return=minimal" } });
+      return res.status(200).json({ op: "delete", ref, status: r.status });
+    }
+    const rows = (await supabaseSelect(env, `seller_leads?reference=eq.${encodeURIComponent(ref)}&select=reference,car_raw,seller_email,vin,notes,chosen_destination,chosen_destination_type`)) || [];
+    return res.status(200).json({ op: "read", ref, row: rows[0] || null });
+  }
+
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
