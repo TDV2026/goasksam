@@ -1438,5 +1438,71 @@ function showSubmission(submission){
     </div>
   </div></div>`;
   msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
+  // Post-send upsell modal (PowerSeller only): after the lead + its email already went,
+  // offer to add an optional VIN / note that fires a second email to the partner.
+  sellState.leadReference=ref;
+  if(isPS)setTimeout(()=>openLeadDetailsModal(),450);
+}
+
+// Post-send modal: optional VIN + note the seller can add for the partner. Reuses the
+// shared hp-dialog scrim/card. Gender-safe pronouns via psvPron (the reassurance-line
+// helper). Skip / dismiss / empty-submit all close with no action.
+function openLeadDetailsModal(){
+  const selectedPowerSeller=(sellState.powerSellerProfiles||[]).find(profile=>profile.id===sellState.selectedPowerSellerId);
+  const first=String(selectedPowerSeller?.displayName||"").trim().split(/\s+/)[0]||"the specialist";
+  const partner=(sellState.partnerReferral&&sellState.partnerReferral.partner)||null;
+  const pron=(typeof psvPron==="function")?psvPron(partner):{subj:"they",obj:"them"};
+  const rv=sellState.resolvedVehicle||{};
+  const carLabel=[rv.year,rv.make,rv.model].filter(Boolean).join(" ")||sellState.carName||"your car";
+  const btnStyle="flex:1;padding:11px 14px;font-family:var(--font-sans);font-size:14px;font-weight:600;border:1px solid #171717;border-radius:10px;background:var(--paper);color:#171717;cursor:pointer;";
+  const existing=document.getElementById("lead-details-modal");if(existing&&existing.remove)existing.remove();
+  const scrim=document.createElement("div");
+  scrim.className="hp-dialog-scrim";scrim.id="lead-details-modal";
+  scrim.onclick=e=>{if(e.target===scrim)closeLeadDetailsModal();};
+  scrim.innerHTML=`<div class="hp-dialog" style="max-width:400px;text-align:left">
+    <h3 style="text-align:left">Sent!</h3>
+    <p style="text-align:left;margin-bottom:12px">Your details and ${escapeHtml(carLabel)} have been sent to ${escapeHtml(first)}, ${escapeHtml(pron.subj)}'ll reach out to you directly.</p>
+    <p style="text-align:left;margin-bottom:14px">Want to make it easier for ${escapeHtml(pron.obj)}? You can optionally add your VIN or a quick note about the car.</p>
+    <input id="lead-vin" class="auth-input" type="text" placeholder="VIN (optional)" style="margin-bottom:10px" />
+    <textarea id="lead-note" class="auth-input" rows="3" placeholder="Anything else ${escapeHtml(first)} should know?" style="resize:vertical;margin-bottom:16px"></textarea>
+    <div style="display:flex;gap:10px">
+      <button style="${btnStyle}" onclick="submitLeadDetails()">Send extra details</button>
+      <button style="${btnStyle}" onclick="closeLeadDetailsModal()">Skip</button>
+    </div>
+  </div>`;
+  document.body.appendChild(scrim);
+  const v=document.getElementById("lead-vin");if(v){try{v.focus();}catch(e){}}
+}
+
+function closeLeadDetailsModal(){const m=document.getElementById("lead-details-modal");if(m&&m.remove)m.remove();}
+
+async function submitLeadDetails(){
+  if(sellState.leadDetailsSubmitting)return;
+  const vin=String(document.getElementById("lead-vin")?.value||"").trim();
+  const note=String(document.getElementById("lead-note")?.value||"").trim();
+  if(!vin&&!note){closeLeadDetailsModal();return;}  // nothing filled = same as Skip
+  sellState.leadDetailsSubmitting=true;
+  const selectedPowerSeller=(sellState.powerSellerProfiles||[]).find(profile=>profile.id===sellState.selectedPowerSellerId);
+  const first=String(selectedPowerSeller?.displayName||"").trim().split(/\s+/)[0]||"the specialist";
+  const rv=sellState.resolvedVehicle||{};
+  const carLabel=[rv.year,rv.make,rv.model].filter(Boolean).join(" ")||sellState.carName||"the car";
+  try{
+    await fetch(apiPath("/api/submitSellerLead"),{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        action:"additionalDetails",
+        reference:sellState.leadReference||null,
+        partnerSlug:selectedPowerSeller?.id||null,
+        seller:{email:sellState.email},
+        car:{raw:carLabel},
+        vin,note,
+        journeyId:(typeof gasJourneyId==="function"?gasJourneyId(sellState.resolvedVehicle):null),
+        anonId:(typeof gasAnonId==="function"?gasAnonId():null)
+      })
+    });
+  }catch(e){/* best-effort: the lead already went, so never surface a hard error here */}
+  sellState.leadDetailsSubmitting=false;
+  closeLeadDetailsModal();
+  setTimeout(()=>addMsg("sam",`Passed those along to ${escapeHtml(first)}.`),250);
 }
 

@@ -1,5 +1,5 @@
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
-import { sendLeadNotification } from "../lib/_email.js";
+import { sendLeadNotification, sendAdditionalDetails } from "../lib/_email.js";
 
 // Partner destination email + display name for a lead notification, looked up
 // server-side by slug (never exposed to the browser). Best-effort: a missing
@@ -75,6 +75,57 @@ async function insertLeadWithFallback(row, supabaseUrl, supabaseKey) {
   return insertLead(attempt, supabaseUrl, supabaseKey);
 }
 
+// Second-touch handler: persist VIN/note onto the existing lead row (by reference) and
+// send the follow-up email. Requires at least one of VIN/note. The email is the point;
+// a persist failure never blocks it, and vice versa.
+async function handleAdditionalDetails(req, res, supabaseUrl, supabaseKey) {
+  const { seller = {}, car = {}, vin: vinRaw, note: noteRaw, partnerSlug, reference } = req.body || {};
+  const email = asText(seller.email);
+  const vin = asText(vinRaw);
+  const note = asText(noteRaw);
+  const ref = asText(reference);
+  if (!email || !email.includes("@")) return res.status(400).json({ error: "Valid email is required" });
+  if (!vin && !note) return res.status(400).json({ error: "Nothing to send" });
+
+  // Persist onto the existing lead row (best-effort). Append the note to any existing
+  // notes rather than overwriting; set the VIN if provided.
+  if (ref) {
+    try {
+      const cur = await fetch(`${supabaseUrl}/rest/v1/seller_leads?reference=eq.${encodeURIComponent(ref)}&select=notes,vin`,
+        { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } });
+      const rows = cur.ok ? await cur.json().catch(() => []) : [];
+      const existing = Array.isArray(rows) ? rows[0] : null;
+      const patch = {};
+      if (vin) patch.vin = vin;
+      if (note) patch.notes = [existing && existing.notes, `[Added by seller] ${note}`].filter(Boolean).join("\n");
+      if (Object.keys(patch).length) {
+        await fetch(`${supabaseUrl}/rest/v1/seller_leads?reference=eq.${encodeURIComponent(ref)}`, {
+          method: "PATCH",
+          headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`, "Content-Type": "application/json", Prefer: "return=minimal" },
+          body: JSON.stringify(patch)
+        });
+      }
+    } catch (e) { console.error("additionalDetails persist failed (non-fatal):", e.message, "ref", ref); }
+  }
+
+  // Follow-up email to the partner + feedback@ BCC.
+  try {
+    const target = await partnerNotifyTarget(asText(partnerSlug), supabaseUrl, supabaseKey);
+    const notify = await sendAdditionalDetails({
+      partnerEmail: target.email,
+      partnerName: target.name || null,
+      reference: ref || null,
+      seller: { email },
+      car: asText(car.raw) || "the car",
+      vin: vin || null,
+      note: note || null
+    });
+    if (!notify.ok && !notify.skipped) console.error("additionalDetails email failed:", notify.error || notify.status, "ref", ref);
+  } catch (e) { console.error("additionalDetails email threw (non-fatal):", e.message); }
+
+  return res.status(200).json({ status: "sent", reference: ref || null });
+}
+
 export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -83,6 +134,13 @@ export default async function handler(req, res) {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseKey) return res.status(500).json({ error: "Supabase not configured" });
+
+  // Second-touch: optional VIN + note the seller adds AFTER the lead already sent. Never
+  // touches the original lead insert; persists the extras onto the existing row (by
+  // reference) and fires a follow-up email to the partner + feedback@ BCC.
+  if (req.body && req.body.action === "additionalDetails") {
+    return await handleAdditionalDetails(req, res, supabaseUrl, supabaseKey);
+  }
 
   const { seller = {}, car = {}, choice = {}, decision = {} } = req.body || {};
   const email = asText(seller.email);
