@@ -471,11 +471,23 @@ async function handleOps(req, res) {
       searchEvents = (await supabaseSelect(env, `search_events?user_id=eq.${account.user_id}&created_at=gte.${encodeURIComponent(since48)}&select=id,make,model,year,created_at&order=created_at.desc&limit=40`)) || [];
     }
     const inToday = ts => ts >= etToday;
+    // Same-browser anonymous catch: if the search ran without auth, the journey has a
+    // null user_id but the SAME anon_id as his signed-in journeys. Pull by anon_id too.
+    const anonId = (journeys[0] && journeys[0].anon_id) || (account && null);
+    let anonJourneys = [];
+    if (anonId) anonJourneys = (await supabaseSelect(env, `journeys?anon_id=eq.${encodeURIComponent(anonId)}&created_at=gte.${encodeURIComponent(etYesterday)}&select=journey_id,user_id,vehicle_year,vehicle_make,vehicle_model,stage,created_at&order=created_at.desc&limit=40`)) || [];
+    // Did any search hit the server recently (regardless of who)?
+    const since3h = new Date(now.getTime() - 3 * 3600 * 1000).toISOString();
+    const sellerDecisions = (await supabaseSelect(env, `app_usage_events?event_type=eq.seller_decision&created_at=gte.${encodeURIComponent(since3h)}&select=created_at,status,route,metadata&order=created_at.desc&limit=40`)) || [];
+    const todayJourneysAll = (await supabaseSelect(env, `journeys?created_at=gte.${encodeURIComponent(etToday)}&select=journey_id&limit=1000`)) || [];
     return res.status(200).json({
       task: "acctcheck", email, serverNow: now.toISOString(), etTodayStart: etToday, etYesterdayStart: etYesterday, account,
+      knownAnonId: anonId, todayJourneyCountAllUsers: todayJourneysAll.length,
       journeys: journeys.map(j => ({ ...j, inTodayET: inToday(j.created_at) })),
+      anonJourneysSameBrowser: anonJourneys.map(j => ({ ...j, inTodayET: inToday(j.created_at), signedIn: !!j.user_id })),
       searchEvents: searchEvents.map(s => ({ ...s, inTodayET: inToday(s.created_at) })),
-      recEvents: events.filter(e => ["recommendation_completed", "platform_recommended", "powerseller_recommended"].includes(e.event_type)).map(e => ({ journey_id: e.journey_id, type: e.event_type, tier: e.metadata && e.metadata.tier, occurred_at: e.occurred_at })),
+      recentSellerDecisions: sellerDecisions.map(e => ({ created_at: e.created_at, status: e.status, route: e.route, make: e.metadata && e.metadata.make, model: e.metadata && e.metadata.model, tier: e.metadata && e.metadata.tier })),
+      recEvents: events.filter(e => ["recommendation_completed"].includes(e.event_type)).map(e => ({ journey_id: e.journey_id, tier: e.metadata && e.metadata.tier, occurred_at: e.occurred_at })),
       eventTypeCounts: events.reduce((m, e) => { m[e.event_type] = (m[e.event_type] || 0) + 1; return m; }, {})
     });
   }
