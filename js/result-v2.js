@@ -680,7 +680,7 @@ function renderPowerSellerCardV2(opts){
         + '</div>'
         + '<div class="pcard-foot">'
           + '<button class="pcard-cta" onclick="event.stopPropagation();choosePowerSeller(\''+esc(p.slug||"partner")+'\')">Get in touch with '+esc(first)+v2Svg("arrow","cta-arrow")+'</button>'
-          + '<div class="pcard-reassure">'+psvSvg("shield")+'<span>'+esc(first)+' will contact you directly if you decide to proceed. '+esc((function(pp){return pp.charAt(0).toUpperCase()+pp.slice(1);})(psvPron(p).poss))+' fee is agreed upfront, there is no obligation, and you\'re always in control.</span></div>'
+          + '<div class="pcard-reassure">'+psvSvg("shield")+'<span>'+esc(first)+' will reach out directly to talk through your car, how '+esc(psvPron(p).subj)+' can help, and '+esc(psvPron(p).poss)+' fee. There\'s no obligation and you\'re always in control of what happens next.</span></div>'
         + '</div>'
       + '</div>'
       + '<div class="pcard-right pcard-right-ps">'
