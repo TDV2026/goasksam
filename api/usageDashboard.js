@@ -451,6 +451,35 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
+  // TEMP DIAGNOSTIC (Aug 2026): account activity trace - why a search isn't surfacing
+  // in Journey Explorer. Read-only, no metered spend. Remove after investigation.
+  if (task === "acctcheck") {
+    if (!env) return res.status(500).json({ error: "no supabase env" });
+    const email = String(req.query?.email || "").toLowerCase().trim();
+    if (!email) return res.status(400).json({ error: "pass ?email=" });
+    const now = new Date();
+    const etToday = etDayStart(now).toISOString();
+    const etYesterday = etDayStart(new Date(now.getTime() - 24 * 3600 * 1000)).toISOString();
+    const since48 = new Date(now.getTime() - 48 * 3600 * 1000).toISOString();
+    const acct = (await supabaseSelect(env, `accounts?email=eq.${encodeURIComponent(email)}&select=user_id,email,tier,tier_checked_at,created_at&limit=1`)) || [];
+    const account = acct[0] || null;
+    let journeys = [], events = [], searchEvents = [];
+    if (account) {
+      journeys = (await supabaseSelect(env, `journeys?user_id=eq.${account.user_id}&created_at=gte.${encodeURIComponent(since48)}&select=journey_id,anon_id,user_id,vehicle_year,vehicle_make,vehicle_model,rec_platform,rec_powerseller,stage,created_at,last_activity_at&order=created_at.desc&limit=40`)) || [];
+      const jids = journeys.map(j => `"${j.journey_id}"`).join(",");
+      if (jids) events = (await supabaseSelect(env, `journey_events?journey_id=in.(${encodeURIComponent(jids)})&select=journey_id,event_type,metadata,occurred_at&order=occurred_at.asc&limit=400`)) || [];
+      searchEvents = (await supabaseSelect(env, `search_events?user_id=eq.${account.user_id}&created_at=gte.${encodeURIComponent(since48)}&select=id,make,model,year,created_at&order=created_at.desc&limit=40`)) || [];
+    }
+    const inToday = ts => ts >= etToday;
+    return res.status(200).json({
+      task: "acctcheck", email, serverNow: now.toISOString(), etTodayStart: etToday, etYesterdayStart: etYesterday, account,
+      journeys: journeys.map(j => ({ ...j, inTodayET: inToday(j.created_at) })),
+      searchEvents: searchEvents.map(s => ({ ...s, inTodayET: inToday(s.created_at) })),
+      recEvents: events.filter(e => ["recommendation_completed", "platform_recommended", "powerseller_recommended"].includes(e.event_type)).map(e => ({ journey_id: e.journey_id, type: e.event_type, tier: e.metadata && e.metadata.tier, occurred_at: e.occurred_at })),
+      eventTypeCounts: events.reduce((m, e) => { m[e.event_type] = (m[e.event_type] || 0) + 1; return m; }, {})
+    });
+  }
+
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
