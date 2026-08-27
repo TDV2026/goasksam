@@ -479,10 +479,14 @@ async function handleOps(req, res) {
     // Did any search hit the server recently (regardless of who)?
     const since3h = new Date(now.getTime() - 3 * 3600 * 1000).toISOString();
     const sellerDecisions = (await supabaseSelect(env, `app_usage_events?event_type=eq.seller_decision&created_at=gte.${encodeURIComponent(since3h)}&select=created_at,status,route,metadata&order=created_at.desc&limit=40`)) || [];
-    const todayJourneysAll = (await supabaseSelect(env, `journeys?created_at=gte.${encodeURIComponent(etToday)}&select=journey_id&limit=1000`)) || [];
+    const todayJourneysAll = (await supabaseSelect(env, `journeys?created_at=gte.${encodeURIComponent(etToday)}&select=journey_id,user_id,anon_id,vehicle_year,vehicle_make,vehicle_model,stage,created_at&order=created_at.desc&limit=1000`)) || [];
+    // Full metadata of the most recent seller_decisions so we can see who ran them.
+    const sdRaw = (await supabaseSelect(env, `app_usage_events?event_type=eq.seller_decision&created_at=gte.${encodeURIComponent(since3h)}&select=created_at,status,metadata&order=created_at.desc&limit=6`)) || [];
     return res.status(200).json({
       task: "acctcheck", email, serverNow: now.toISOString(), etTodayStart: etToday, etYesterdayStart: etYesterday, account,
       knownAnonId: anonId, todayJourneyCountAllUsers: todayJourneysAll.length,
+      todayJourneys: todayJourneysAll.map(j => ({ created_at: j.created_at, user_id: j.user_id ? j.user_id.slice(0, 8) : null, anon_id: j.anon_id, car: [j.vehicle_year, j.vehicle_make, j.vehicle_model].filter(Boolean).join(" "), stage: j.stage })),
+      sellerDecisionRaw: sdRaw.map(e => ({ created_at: e.created_at, status: e.status, metadata: e.metadata })),
       journeys: journeys.map(j => ({ ...j, inTodayET: inToday(j.created_at) })),
       anonJourneysSameBrowser: anonJourneys.map(j => ({ ...j, inTodayET: inToday(j.created_at), signedIn: !!j.user_id })),
       searchEvents: searchEvents.map(s => ({ ...s, inTodayET: inToday(s.created_at) })),
