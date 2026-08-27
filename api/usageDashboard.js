@@ -451,51 +451,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
-  // TEMP DIAGNOSTIC (Aug 2026): account activity trace - why a search isn't surfacing
-  // in Journey Explorer. Read-only, no metered spend. Remove after investigation.
-  if (task === "acctcheck") {
-    if (!env) return res.status(500).json({ error: "no supabase env" });
-    const email = String(req.query?.email || "").toLowerCase().trim();
-    if (!email) return res.status(400).json({ error: "pass ?email=" });
-    const now = new Date();
-    const etToday = etDayStart(now).toISOString();
-    const etYesterday = etDayStart(new Date(now.getTime() - 24 * 3600 * 1000)).toISOString();
-    const since48 = new Date(now.getTime() - 48 * 3600 * 1000).toISOString();
-    const acct = (await supabaseSelect(env, `accounts?email=eq.${encodeURIComponent(email)}&select=user_id,email,tier,tier_checked_at,created_at&limit=1`)) || [];
-    const account = acct[0] || null;
-    let journeys = [], events = [], searchEvents = [];
-    if (account) {
-      journeys = (await supabaseSelect(env, `journeys?user_id=eq.${account.user_id}&created_at=gte.${encodeURIComponent(since48)}&select=journey_id,anon_id,user_id,vehicle_year,vehicle_make,vehicle_model,rec_platform,rec_powerseller,stage,created_at,last_activity_at&order=created_at.desc&limit=40`)) || [];
-      const jids = journeys.map(j => `"${j.journey_id}"`).join(",");
-      if (jids) events = (await supabaseSelect(env, `journey_events?journey_id=in.(${encodeURIComponent(jids)})&select=journey_id,event_type,metadata,occurred_at&order=occurred_at.asc&limit=400`)) || [];
-      searchEvents = (await supabaseSelect(env, `search_events?user_id=eq.${account.user_id}&created_at=gte.${encodeURIComponent(since48)}&select=id,make,model,year,created_at&order=created_at.desc&limit=40`)) || [];
-    }
-    const inToday = ts => ts >= etToday;
-    // Same-browser anonymous catch: if the search ran without auth, the journey has a
-    // null user_id but the SAME anon_id as his signed-in journeys. Pull by anon_id too.
-    const anonId = (journeys[0] && journeys[0].anon_id) || (account && null);
-    let anonJourneys = [];
-    if (anonId) anonJourneys = (await supabaseSelect(env, `journeys?anon_id=eq.${encodeURIComponent(anonId)}&created_at=gte.${encodeURIComponent(etYesterday)}&select=journey_id,user_id,vehicle_year,vehicle_make,vehicle_model,stage,created_at&order=created_at.desc&limit=40`)) || [];
-    // Did any search hit the server recently (regardless of who)?
-    const since3h = new Date(now.getTime() - 3 * 3600 * 1000).toISOString();
-    const sellerDecisions = (await supabaseSelect(env, `app_usage_events?event_type=eq.seller_decision&created_at=gte.${encodeURIComponent(since3h)}&select=created_at,status,route,metadata&order=created_at.desc&limit=40`)) || [];
-    const todayJourneysAll = (await supabaseSelect(env, `journeys?created_at=gte.${encodeURIComponent(etToday)}&select=journey_id,user_id,anon_id,vehicle_year,vehicle_make,vehicle_model,stage,created_at&order=created_at.desc&limit=1000`)) || [];
-    // Full metadata of the most recent seller_decisions so we can see who ran them.
-    const sdRaw = (await supabaseSelect(env, `app_usage_events?event_type=eq.seller_decision&created_at=gte.${encodeURIComponent(since3h)}&select=created_at,status,metadata&order=created_at.desc&limit=6`)) || [];
-    return res.status(200).json({
-      task: "acctcheck", email, serverNow: now.toISOString(), etTodayStart: etToday, etYesterdayStart: etYesterday, account,
-      knownAnonId: anonId, todayJourneyCountAllUsers: todayJourneysAll.length,
-      todayJourneys: todayJourneysAll.map(j => ({ created_at: j.created_at, user_id: j.user_id ? j.user_id.slice(0, 8) : null, anon_id: j.anon_id, car: [j.vehicle_year, j.vehicle_make, j.vehicle_model].filter(Boolean).join(" "), stage: j.stage })),
-      sellerDecisionRaw: sdRaw.map(e => ({ created_at: e.created_at, status: e.status, metadata: e.metadata })),
-      journeys: journeys.map(j => ({ ...j, inTodayET: inToday(j.created_at) })),
-      anonJourneysSameBrowser: anonJourneys.map(j => ({ ...j, inTodayET: inToday(j.created_at), signedIn: !!j.user_id })),
-      searchEvents: searchEvents.map(s => ({ ...s, inTodayET: inToday(s.created_at) })),
-      recentSellerDecisions: sellerDecisions.map(e => ({ created_at: e.created_at, status: e.status, route: e.route, make: e.metadata && e.metadata.make, model: e.metadata && e.metadata.model, tier: e.metadata && e.metadata.tier })),
-      recEvents: events.filter(e => ["recommendation_completed"].includes(e.event_type)).map(e => ({ journey_id: e.journey_id, tier: e.metadata && e.metadata.tier, occurred_at: e.occurred_at })),
-      eventTypeCounts: events.reduce((m, e) => { m[e.event_type] = (m[e.event_type] || 0) + 1; return m; }, {})
-    });
-  }
-
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
