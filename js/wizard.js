@@ -691,8 +691,11 @@ const CURATED_TRIM_ASKS=[
 
 function genericTrimAsk(rv){
   // Never silently skip trim: a model with no curated variant set still gets an
-  // optional free-text trim step. Skip advances normally.
-  const label=[rv&&rv.year?rv.year:null,rv&&rv.make?rv.make:null,rv&&rv.model?rv.model:null].filter(Boolean).join(" ");
+  // optional free-text trim step. Skip advances normally. A captured body style
+  // (convertible/coupe/cabriolet/roadster) is reflected in the prompt so the seller
+  // sees it was registered, even though we are still asking for trim.
+  const body=rv&&rv.bodyStyle?String(rv.bodyStyle).replace(/^./,c=>c.toUpperCase()):null;
+  const label=[rv&&rv.year?rv.year:null,rv&&rv.make?rv.make:null,rv&&rv.model?rv.model:null,body].filter(Boolean).join(" ");
   return {type:"trim",optional:true,ask:`Any specific trim, package or edition on the ${label||"car"}? Type it, or say skip if it is the standard car.`,chips:["Skip","Not sure"]};
 }
 
