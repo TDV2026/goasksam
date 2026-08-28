@@ -135,8 +135,20 @@ function dayStartIsoInTz(timeZone) {
 // { dailyLimit, dailyUsed, dailyRemaining } - a null limit means no daily cap
 // (unlimited, e.g. crew), and dailyRemaining is then null. Best-effort: any failure
 // returns nulls so the account bootstrap never breaks over a quota read.
+// Guest tier: a fixed LIFETIME allowance of 30 total searches (not daily). The counter
+// is the account's all-time search_events. Surfaced through the same {dailyLimit,
+// dailyUsed, dailyRemaining} shape so the client's upfront gate walls at 0 remaining, and
+// tops out at 30 rather than resetting each day.
+const GUEST_TOTAL = 30;
 async function dailyQuota(env, userId, tier) {
   const nulls = { dailyLimit: null, dailyUsed: 0, dailyRemaining: null };
+  if (tier === "guest30") {
+    try {
+      const rows = await supabaseSelect(env, `search_events?user_id=eq.${userId}&select=id`);
+      const used = Array.isArray(rows) ? rows.length : 0;
+      return { dailyLimit: GUEST_TOTAL, dailyUsed: used, dailyRemaining: Math.max(0, GUEST_TOTAL - used) };
+    } catch { return nulls; }
+  }
   try {
     const rl = await supabaseSelect(env, `rate_limits?tier=eq.${encodeURIComponent(tier)}&select=daily_searches&limit=1`);
     const dl = rl && rl[0] && rl[0].daily_searches;
@@ -181,6 +193,9 @@ export default async function handler(req, res) {
   // the sign-in card, applied once the account exists per 11d). Absent => leave
   // whatever is stored; never silently flip an existing opt-in back off.
   const consent = req.body && typeof req.body.marketingConsent === "boolean" ? req.body.marketingConsent : undefined;
+  // Guest link cookie (set server-side by /api/crew?guest=<CODE>): promotes a free account
+  // to the "guest30" tier (30 lifetime searches). Never overrides a real TDV subscription.
+  const guestCookie = /(?:^|;\s*)gas_guest=ok(?:\s*;|\s*$)/.test(String(req.headers.cookie || ""));
 
   try {
     const existing = await supabaseSelect(env,
@@ -191,15 +206,17 @@ export default async function handler(req, res) {
       // New account: check Beehiiv (2B). null => unknown, stay 'free' and leave
       // tier_checked_at null so a later ensure retries. Never blocks signup.
       const checked = await beehiivTier(auth.email);
+      // Guest link makes a non-subscriber a guest30 (30 lifetime); a real TDV check wins.
+      const newTier = (guestCookie && checked !== "tdv") ? "guest30" : (checked || "free");
       const insert = await supabaseInsert("accounts", [{
         user_id: auth.userId,
         email: auth.email,
-        tier: checked || "free",
+        tier: newTier,
         tier_checked_at: checked !== null ? new Date().toISOString() : null,
         marketing_consent: consent === true
       }], env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=representation", "?on_conflict=user_id");
       const created = (insert.rows && insert.rows[0]) ||
-        { email: auth.email, tier: checked || "free", bonus_searches: 0, marketing_consent: consent === true };
+        { email: auth.email, tier: newTier, bonus_searches: 0, marketing_consent: consent === true };
       await funnel(env, "signup_completed", { user_id: auth.userId, dedup_key: `signup:${auth.userId}` });
       const claimedNew = await claimResultIfAny(req, env, auth.userId);
       const respNew = publicAccount(created); if (claimedNew !== undefined) respNew.claimed = claimedNew;
@@ -215,8 +232,18 @@ export default async function handler(req, res) {
     const forceRecheck = !!(req.body && req.body.recheckTier === true);
     if (forceRecheck || tierIsStale(row.tier_checked_at)) {
       const checked = await beehiivTier(auth.email);
-      if (checked !== null) { row.tier = checked; row.tier_checked_at = new Date().toISOString(); dirty = true; }
+      if (checked === "tdv") {
+        // A real subscription always wins - this is the guest30 -> TDV auto-upgrade too.
+        row.tier = "tdv"; row.tier_checked_at = new Date().toISOString(); dirty = true;
+      } else if (checked !== null) {
+        // checked === "free": refresh the timestamp, but NEVER downgrade a guest back to
+        // free just because they are not a Beehiiv subscriber.
+        row.tier_checked_at = new Date().toISOString(); dirty = true;
+        if (row.tier !== "guest30") row.tier = checked;
+      }
     }
+    // Guest link promotes a plain free account to guest30 on the first sign-in via the link.
+    if (guestCookie && row.tier === "free") { row.tier = "guest30"; dirty = true; }
     // Consent is applied when explicitly provided (11d), folded into the same write.
     if (consent !== undefined && consent !== row.marketing_consent) { row.marketing_consent = consent; dirty = true; }
     // Only write when something actually changed - not on every ensure.

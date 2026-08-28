@@ -97,6 +97,24 @@ export default async function handler(req, res) {
     res.status(302).end();
     return;
   }
+  // GUEST tier redemption: ?guest=<CODE>. Validated against the GUEST_CODE env var; sets a
+  // JS-readable gas_guest cookie so the frontend can nudge the visitor to sign in and claim
+  // their 30. On the normal email-OTP sign-in, /api/account tiers the account "guest30" (a
+  // FIXED LIFETIME allowance of 30 searches, fully attributed - not anonymous like tester).
+  // Falls through to home on a bad code. Distinct from tester (anonymous/IP, dashboard-excluded).
+  const guest = String(q.guest || "");
+  if (guest) {
+    const expectedGuest = process.env.GUEST_CODE || "";
+    if (expectedGuest && guest === expectedGuest) {
+      res.setHeader("Set-Cookie", `gas_guest=ok; Max-Age=${60 * 60 * 24 * 180}; Path=/; SameSite=Lax; Secure`);
+      res.setHeader("Location", to);
+      res.status(302).end();
+      return;
+    }
+    res.setHeader("Location", "/");
+    res.status(302).end();
+    return;
+  }
   const code = String(q.code || "");
   const expected = process.env.CURTAIN_CREW_CODE || "";
   if (expected && code === expected) {

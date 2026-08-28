@@ -53,6 +53,7 @@ function enterHomeState() {
   // return home (New conversation) starts the example rotation again.
   __phStopped = false;
   startPlaceholderRotation();
+  if (typeof gasGuestNudge === "function") gasGuestNudge();  // guest-link "claim your 30" prompt
 }
 function enterChatState() {
   if (typeof document === "undefined" || !document.body || !document.body.classList) return;

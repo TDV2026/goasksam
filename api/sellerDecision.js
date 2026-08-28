@@ -2361,6 +2361,20 @@ async function persistSavedResult(accountId, payload, supabaseUrl, supabaseKey) 
     return (ins.rows && ins.rows[0] && ins.rows[0].id) || null;
   } catch { return null; }
 }
+// All-time search count for a user (the guest30 lifetime counter). Uses PostgREST's
+// exact-count header (Range 0-0) so it never fetches the rows. Returns null on failure so
+// the caller fails OPEN (a count outage never wrongly walls a guest).
+async function countAllTimeSearchEvents(userId, supabaseUrl, supabaseKey) {
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/search_events?user_id=eq.${encodeURIComponent(userId)}&select=id`, {
+      headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`, Prefer: "count=exact", Range: "0-0" }
+    });
+    const cr = res.headers.get("content-range"); // "0-0/N" or "*/N"
+    if (cr && cr.includes("/")) { const n = Number(cr.split("/")[1]); return Number.isFinite(n) ? n : null; }
+    return null;
+  } catch { return null; }
+}
+
 // Returns { block } to short-circuit with that JSON, or { ok, reservationEventId,
 // accountId, anonFirstFree, anonSessionId } to proceed. Internal callers skip this.
 async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
@@ -2444,6 +2458,25 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
       }
       await logFunnel("limit_hit", { user_id: auth.userId, dedup_key: `limit:${auth.userId}:${coarseMonthKey()}` }, supabaseUrl, supabaseKey);
       return { block: { status: "limit_reached", tier: row.tier || "free" } };
+    }
+    // GUEST tier (guest30): a FIXED LIFETIME allowance of 30 total searches (not daily),
+    // enforced here against the account's ALL-TIME search_events - its own per-user counter,
+    // fully separate from crew/tester/free/TDV. reserve_search already reserved + attributed
+    // this row (so the search is dashboard-visible); if it pushed the lifetime total past 30,
+    // refund the reservation and wall honestly. guest30's rate_limits daily cap is set high
+    // enough that the daily wall never binds before this lifetime cap.
+    if (row.tier === "guest30") {
+      const GUEST_TOTAL = 30;
+      const used = await countAllTimeSearchEvents(auth.userId, supabaseUrl, supabaseKey);
+      if (used !== null && used > GUEST_TOTAL) {
+        if (row.event_id) { try { await supabaseRpc("release_search", { p_event_id: row.event_id }, supabaseUrl, supabaseKey); } catch (e) {} }
+        await logFunnel("guest_limit_hit", { user_id: auth.userId, dedup_key: `guest:${auth.userId}` }, supabaseUrl, supabaseKey);
+        return { block: { status: "guest_limit_reached", tier: "guest30", totalCap: GUEST_TOTAL } };
+      }
+      // Report the LIFETIME remaining (not daily) so the client's upfront gate walls at 0.
+      const guestDaily = { dailyLimit: GUEST_TOTAL, dailyUsed: used ?? 0, dailyRemaining: Math.max(0, GUEST_TOTAL - (used ?? 0)) };
+      return { ok: true, reservationEventId: row.event_id, accountId: auth.userId, anonSessionId,
+        quota: { used: used ?? 0, limit: GUEST_TOTAL, tier: "guest30" }, daily: guestDaily };
     }
     // Authoritative post-reserve DAILY count (same transaction as the insert, so it
     // can never disagree with the wall). The frontend applies this to its cached

@@ -1664,6 +1664,7 @@ async function renderJourneysView(req, res) {
   const fReg = String(req.query?.region || "");                                  // Item 2: Census region filter
   const fUid = String(req.query?.uid || ""), fAid = String(req.query?.aid || ""); // Item 3b: person filter (click-through from Visitors)
   const fSort = String(req.query?.sort || "");                                    // clickable-header sort (currently: stage)
+  const fTier = String(req.query?.tier || "");                                    // tier filter chip (e.g. guest30)
   let rows = b.journeys;
   if (q) rows = rows.filter(j => [j.vehicle_make, j.vehicle_model, j.vehicle_trim, j.vehicle_location].filter(Boolean).join(" ").toLowerCase().includes(q));
   if (fPs) rows = rows.filter(j => j.rec_powerseller === fPs);
@@ -1671,6 +1672,10 @@ async function renderJourneysView(req, res) {
   if (fReg) rows = rows.filter(j => stateRegion(j.vehicle_location) === fReg);
   if (fUid) rows = rows.filter(j => j.user_id === fUid);
   if (fAid) rows = rows.filter(j => j.anon_id === fAid && !j.user_id);
+  // Tier filter + chips (guest30, free, tdv, ...): count over the current rows, then filter.
+  const tierCounts = new Map();
+  for (const j of rows) { const t = b.tierBy.get(j.journey_id) || "(none)"; tierCounts.set(t, (tierCounts.get(t) || 0) + 1); }
+  if (fTier) rows = rows.filter(j => (b.tierBy.get(j.journey_id) || "(none)") === fTier);
   // Stage filter + chips: count each stage over everything EXCEPT the stage filter, so a
   // chip shows how many of the currently-filtered journeys sit at that stage (and the
   // active stage's chip stays visible with its count). Funnel order = STAGE_LABEL order.
@@ -1681,7 +1686,7 @@ async function renderJourneysView(req, res) {
   if (fStage) rows = rows.filter(j => canonStage(j.stage) === fStage);
   // Sort by Stage (funnel order) when the Stage header is clicked; default stays date-desc.
   if (fSort === "stage") rows = [...rows].sort((x, y) => stageRank(x.stage) - stageRank(y.stage) || String(y.created_at || "").localeCompare(String(x.created_at || "")));
-  const anyFilter = q || fStage || fPs || fPlat || fReg || fUid || fAid;
+  const anyFilter = q || fStage || fPs || fPlat || fReg || fUid || fAid || fTier;
   const shown = rows.slice(0, 300);
   const emailBy = await fetchEmailsByUserId(env, shown.map(j => j.user_id));   // Item 1: signed-in requester email
   const tr = shown.map(j => `<tr>
@@ -1702,17 +1707,22 @@ async function renderJourneysView(req, res) {
     <td class="num">${j.gas_revenue ? fmtMoney(j.gas_revenue) : ""}</td>
   </tr>`).join("");
   // CSV download links carry ALL current filters (Items 2/4/3b).
-  const filterQS = `${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}`;
+  const filterQS = `${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fTier ? `&tier=${encodeURIComponent(fTier)}` : ""}`;
   const csvParams = extra => `?view=journeys&format=csv&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${filterQS}${extra}`;
   // Region rollup filter chips (Item 2). Preserve every other current filter.
-  const regionBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
+  const regionBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fTier ? `&tier=${encodeURIComponent(fTier)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
   const regionChips = `<div class="filters" style="margin:4px 0"><span style="color:#6b6861;font-size:12px">Region:</span> <a class="${!fReg ? "on" : ""}" href="${regionBase}">All</a>${CENSUS_REGIONS.map(rg => `<a class="${fReg === rg ? "on" : ""}" href="${regionBase}&region=${encodeURIComponent(rg)}">${rg}</a>`).join("")}</div>`;
   // Stage filter chips (same pattern as Region). Preserves every other filter; shows only
   // stages present in the current view, each with its own count so "just CTA clicked" etc.
   // reads its count at a glance. "All" clears the stage filter.
-  const stageBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
+  const stageBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fTier ? `&tier=${encodeURIComponent(fTier)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
   const presentStages = STAGE_KEYS.filter(s => stageCounts.get(s));
   const stageChips = presentStages.length ? `<div class="filters" style="margin:4px 0"><span style="color:#6b6861;font-size:12px">Stage:</span> <a class="${!fStage ? "on" : ""}" href="${stageBase}">All</a>${presentStages.map(s => `<a class="${fStage === s ? "on" : ""}" href="${stageBase}&stage=${encodeURIComponent(s)}">${adminEsc(STAGE_LABEL[s])} (${fmtN(stageCounts.get(s))})</a>`).join("")}</div>` : "";
+  // Tier filter chips (guest30, free, tdv, ...). Preserves every other filter; guest30 is
+  // included by default (not internal), so this is the way to isolate a guest cohort.
+  const tierBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
+  const presentTiers = [...tierCounts.keys()].filter(t => t && t !== "(none)").sort();
+  const tierChips = presentTiers.length ? `<div class="filters" style="margin:4px 0"><span style="color:#6b6861;font-size:12px">Tier:</span> <a class="${!fTier ? "on" : ""}" href="${tierBase}">All</a>${presentTiers.map(t => `<a class="${fTier === t ? "on" : ""}" href="${tierBase}&tier=${encodeURIComponent(t)}">${adminEsc(t)} (${fmtN(tierCounts.get(t))})</a>`).join("")}</div>` : "";
   // Clickable Stage column header: toggles funnel-order sort on/off (filterQS already
   // carries every active filter; sort is added/removed on top).
   const stageSortHref = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${filterQS}${fSort === "stage" ? "" : "&sort=stage"}`;
@@ -1723,8 +1733,9 @@ async function renderJourneysView(req, res) {
     ${bizFilters(req, "journeys")}
     ${regionChips}
     ${stageChips}
+    ${tierChips}
     ${personBanner}
-    <form method="get" style="margin:8px 0"><input type="hidden" name="view" value="journeys"><input type="hidden" name="key" value="${bizKey(req)}"><input type="hidden" name="range" value="${range.range}"><input type="hidden" name="biz" value="${mode}">${range.range === "custom" ? `<input type="hidden" name="from" value="${adminEsc(req.query?.from || "")}"><input type="hidden" name="to" value="${adminEsc(req.query?.to || "")}">` : ""}${fReg ? `<input type="hidden" name="region" value="${adminEsc(fReg)}">` : ""}${fStage ? `<input type="hidden" name="stage" value="${adminEsc(fStage)}">` : ""}${fSort ? `<input type="hidden" name="sort" value="${adminEsc(fSort)}">` : ""}${fUid ? `<input type="hidden" name="uid" value="${adminEsc(fUid)}">` : ""}${fAid ? `<input type="hidden" name="aid" value="${adminEsc(fAid)}">` : ""}<input type="text" name="q" value="${adminEsc(req.query?.q || "")}" placeholder="Search vehicle or location"> <button>Search</button></form>
+    <form method="get" style="margin:8px 0"><input type="hidden" name="view" value="journeys"><input type="hidden" name="key" value="${bizKey(req)}"><input type="hidden" name="range" value="${range.range}"><input type="hidden" name="biz" value="${mode}">${range.range === "custom" ? `<input type="hidden" name="from" value="${adminEsc(req.query?.from || "")}"><input type="hidden" name="to" value="${adminEsc(req.query?.to || "")}">` : ""}${fReg ? `<input type="hidden" name="region" value="${adminEsc(fReg)}">` : ""}${fStage ? `<input type="hidden" name="stage" value="${adminEsc(fStage)}">` : ""}${fTier ? `<input type="hidden" name="tier" value="${adminEsc(fTier)}">` : ""}${fSort ? `<input type="hidden" name="sort" value="${adminEsc(fSort)}">` : ""}${fUid ? `<input type="hidden" name="uid" value="${adminEsc(fUid)}">` : ""}${fAid ? `<input type="hidden" name="aid" value="${adminEsc(fAid)}">` : ""}<input type="text" name="q" value="${adminEsc(req.query?.q || "")}" placeholder="Search vehicle or location"> <button>Search</button></form>
     <div class="sub">${rows.length} journeys ${anyFilter ? "(filtered)" : ""} &nbsp;·&nbsp; Download CSV (current filters): <a href="${csvParams("&dataset=journeys")}">journeys</a> · <a href="${csvParams("&dataset=journey_events")}">events</a> · <a href="${csvParams("&dataset=funnel_events")}">funnel</a></div>
     <table><tr><th>Date</th><th>Vehicle</th><th>Email</th><th>Location</th><th>Region</th><th class="num">Asking</th><th>Preference</th><th>Timing</th><th>Recommendation</th><th>PowerSeller</th><th>${stageHeader}</th><th>Actual platform</th><th>Sale status</th><th class="num">Sale price</th><th class="num">Revenue</th></tr>${tr || `<tr><td colspan=15>No journeys.</td></tr>`}</table>
   </div>`;
