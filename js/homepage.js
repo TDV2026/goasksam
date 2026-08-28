@@ -3,7 +3,7 @@
 // to today's entry path. Stage B items are stubbed and tagged STAGE_B in code.
 
 // Hero supporting line (no dash; the global no-dash rule now has zero exceptions).
-const HERO_SUPPORTING = "I'll recommend where I'd sell your car and show you exactly why.";
+const HERO_SUPPORTING = "I'll recommend where I'd sell your vehicle and show you exactly why.";
 
 // Rotating placeholder: real, resolver-parseable examples.
 const PLACEHOLDER_EXAMPLES = ["2021 Porsche 911 GT3 Touring", "1987 Ferrari Testarossa", "2005 Ford GT"];
@@ -12,24 +12,24 @@ const PLACEHOLDER_EXAMPLES = ["2021 Porsche 911 GT3 Touring", "1987 Ferrari Test
 const LEARN_HOW = {
   title: "How Sam works",
   sections: [
-    { h: "What we look at", body: "Sam analyzes recent auction results, platform performance and timing patterns before making a recommendation. For your exact car, we look at where comparable cars have actually sold and how those results compare across platforms. We never value your car and never predict a price. Every claim states the scope it was measured at and the time window it covers, so you always know what a number is based on." },
-    { h: "How the comparison works", body: "We start narrow, at your exact year and trim, and only widen the scope when the close data is too thin to be useful. When we widen, we say so. The recommendation is the platform where cars like yours have found the strongest, most consistent results, judged on recent sold records rather than opinion." },
-    { h: "Where the recommendation comes from", body: "The recommendation itself comes from our own algorithm. We built the ranking rules, the evidence thresholds, and the honesty gates ourselves. The sales data informs it, but the judgement of where your car should sell is ours." },
-    { h: "What we never do", body: "We never value your car, and we never invent a number. Every figure you see comes from real records. We hold no platform fee data and never state fees as fact. If the data is thin, we tell you plainly and give an honest read rather than a confident guess." },
-    { h: "Platform or PowerSeller", body: "Sometimes the answer is a platform you list on yourself. For some cars, we may suggest speaking to a PowerSeller, someone who runs the whole sale for you for a fee. A PowerSeller is a hands off choice, not a way to get more money, and the platform read stands either way. Nobody pays to be recommended here." }
+    { h: "What we look at", body: "Sam analyzes recent auction results, platform performance and timing patterns before making a recommendation. For your exact vehicle, we look at where comparable vehicles have actually sold and how those results compare across platforms. We never value your vehicle and never predict a price. Every claim states the scope it was measured at and the time window it covers, so you always know what a number is based on." },
+    { h: "How the comparison works", body: "We start narrow, at your exact year and trim, and only widen the scope when the close data is too thin to be useful. When we widen, we say so. The recommendation is the platform where vehicles like yours have found the strongest, most consistent results, judged on recent sold records rather than opinion." },
+    { h: "Where the recommendation comes from", body: "The recommendation itself comes from our own algorithm. We built the ranking rules, the evidence thresholds, and the honesty gates ourselves. The sales data informs it, but the judgement of where your vehicle should sell is ours." },
+    { h: "What we never do", body: "We never value your vehicle, and we never invent a number. Every figure you see comes from real records. We hold no platform fee data and never state fees as fact. If the data is thin, we tell you plainly and give an honest read rather than a confident guess." },
+    { h: "Platform or PowerSeller", body: "Sometimes the answer is a platform you list on yourself. For some vehicles, we may suggest speaking to a PowerSeller, someone who runs the whole sale for you for a fee. A PowerSeller is a hands off choice, not a way to get more money, and the platform read stands either way. Nobody pays to be recommended here." }
   ]
 };
 const LEARN_PLATFORMS = {
   title: "Selling Platforms",
   intro: "Sam compares recent sold results across the online auction platforms we track. Here is a short note on each, with more online platforms being added.",
   platforms: [
-    { name: "Bring a Trailer", body: "One of the largest online enthusiast auction audiences, strong across a wide range of collector and enthusiast cars. We track its sold results." },
-    { name: "Cars & Bids", body: "An online auction platform with a particularly strong audience for late model performance and enthusiast cars. We track its sold results." },
+    { name: "Bring a Trailer", body: "One of the largest online enthusiast auction audiences, strong across a wide range of collector and enthusiast vehicles. We track its sold results." },
+    { name: "Cars & Bids", body: "An online auction platform with a particularly strong audience for late model performance and enthusiast vehicles. We track its sold results." },
     { name: "Hagerty Marketplace", body: "An online marketplace connected to the wider classic car world, spanning classics and modern collectibles. We track its sold results." },
     { name: "PCarMarket", body: "An online auction platform with a deep Porsche and enthusiast following. We track its sold results." },
-    { name: "Hemmings", body: "A long-established US marketplace for classic and collector cars, with deep roots in classic American and vintage vehicles. We track its sold results." },
-    { name: "Sotheby's Motorsport (SOMO)", body: "An online marketplace carrying the Sotheby's Motorsport name, for collector and enthusiast cars. We track its sold results." },
-    { name: "MB Market", body: "An online marketplace dedicated to Mercedes-Benz, from classics to modern collectibles. We track its sold results for Mercedes-Benz cars." }
+    { name: "Hemmings", body: "A long-established US marketplace for classic and collector vehicles, with deep roots in classic American and vintage vehicles. We track its sold results." },
+    { name: "Sotheby's Motorsport (SOMO)", body: "An online marketplace carrying the Sotheby's Motorsport name, for collector and enthusiast vehicles. We track its sold results." },
+    { name: "MB Market", body: "An online marketplace dedicated to Mercedes-Benz, from classics to modern collectibles. We track its sold results for Mercedes-Benz vehicles." }
   ],
   outro: "More online platforms are being added as we widen the data we track."
 };
@@ -195,28 +195,28 @@ function showHowItWorks() {
     <button class="hp-back" onclick="newConversation()">&larr; Back to home</button>
     <section class="hd-hero">
       <div class="hp-script">This isn't guesswork.</div>
-      <h1 class="hd-h1">How Sam decides where I'd sell your car.</h1>
-      <p class="hd-lead">Sam analyzes real auction results, platform performance and timing patterns to work out where cars like yours have been getting the strongest results. The data does the heavy lifting. Our own rules and methodology turn it into a recommendation.</p>
+      <h1 class="hd-h1">How Sam decides where I'd sell your vehicle.</h1>
+      <p class="hd-lead">Sam analyzes real auction results, platform performance and timing patterns to work out where vehicles like yours have been getting the strongest results. The data does the heavy lifting. Our own rules and methodology turn it into a recommendation.</p>
       <div class="hd-cred">Built by The Daily Vroom · Tracking this market every day · Never generated by AI</div>
     </section>
     <section class="hd-process">
       <ol class="hd-steps">
-        ${step("01", "Your car", "We start with exactly what you're selling.")}
+        ${step("01", "Your vehicle", "We start with exactly what you're selling.")}
         ${step("02", "Finding comparable sales", "We look first at your exact year, model and trim, then widen the comparison only when necessary.")}
         ${step("03", "Comparing platform performance", "We analyze recent sold results, timing patterns and reserve outcomes across the platforms we track.")}
-        ${step("04", "Writing the recommendation", "We turn that evidence into a clear answer about where I'd sell your car and why.")}
+        ${step("04", "Writing the recommendation", "We turn that evidence into a clear answer about where I'd sell your vehicle and why.")}
       </ol>
-      <p class="hd-note">Whenever we widen the comparison beyond your exact car, we'll tell you. Every statistic shows the period and scope it came from.</p>
+      <p class="hd-note">Whenever we widen the comparison beyond your exact vehicle, we'll tell you. Every statistic shows the period and scope it came from.</p>
     </section>
     <section class="hd-cards">
-      ${card("Recent sales", "Where have cars like yours actually sold?", "We compare recent completed auctions across the enthusiast platforms we monitor.")}
-      ${card("Platform performance", "Where are cars like yours performing strongest?", "Sam looks for meaningful differences between platforms, not simply which one sells the most cars.")}
-      ${card("Professional representation", "Who's well suited to handle a car like yours?", "When professional representation makes sense, Sam can match your car with one of our selected PowerSellers.")}
+      ${card("Recent sales", "Where have vehicles like yours actually sold?", "We compare recent completed auctions across the enthusiast platforms we monitor.")}
+      ${card("Platform performance", "Where are vehicles like yours performing strongest?", "Sam looks for meaningful differences between platforms, not simply which one sells the most vehicles.")}
+      ${card("Professional representation", "Who's well suited to handle a vehicle like yours?", "When professional representation makes sense, Sam can match your vehicle with one of our selected PowerSellers.")}
     </section>
     <section class="hd-sec">
       <div class="hd-eyebrow">The data behind the recommendation</div>
       <p>Sam monitors results from Bring a Trailer, Cars & Bids, Hagerty Marketplace, PCarMarket, Sotheby's Motorsport, Hemmings and MB Market, with more sources being added. We're interested in what actually happened: what sold, where it sold, when it sold and what it sold for.</p>
-      <p>More data isn't automatically better. Sam starts with the closest match to your car and only broadens the comparison when there isn't enough useful evidence.</p>
+      <p>More data isn't automatically better. Sam starts with the closest match to your vehicle and only broadens the comparison when there isn't enough useful evidence.</p>
       <a class="hd-link" onclick="showSellingPlatforms()">More about the platforms we track &rarr;</a>
     </section>
     <section class="hd-sec">
@@ -226,8 +226,8 @@ function showHowItWorks() {
     <section class="hd-sec">
       <div class="hp-script">Built by people who live this market.</div>
       <h2 class="hd-h2">From The Daily Vroom</h2>
-      <p>GoAskSam grew out of The Daily Vroom, our daily look at the enthusiast auction market. For three years we've covered the platforms, sellers, cars and trends in this market without running a single paid advertisement.</p>
-      <p>Along the way we've built free tools for the community, including our Import Calculator, Domestic Shipping Calculator and industry Jobs Board. Sam is the next step: taking the data and knowledge we've accumulated and making it useful when someone has a car to sell.</p>
+      <p>GoAskSam grew out of The Daily Vroom, our daily look at the enthusiast auction market. For three years we've covered the platforms, sellers, vehicles and trends in this market without running a single paid advertisement.</p>
+      <p>Along the way we've built free tools for the community, including our Import Calculator, Domestic Shipping Calculator and industry Jobs Board. Sam is the next step: taking the data and knowledge we've accumulated and making it useful when someone has a vehicle to sell.</p>
     </section>
     <section class="hd-sec">
       <div class="hd-eyebrow">This is a beta</div>
@@ -239,13 +239,13 @@ function showHowItWorks() {
     </section>
     <section class="hd-sec">
       <div class="hp-script">Sometimes I'd hand the keys to someone else.</div>
-      <p>Not every owner wants to photograph the car, write the listing, answer questions and manage an auction themselves. For some cars, Sam may recommend one of our selected PowerSellers instead.</p>
-      <p>That doesn't mean we think they'll magically get you more money. It means we think professional representation may be the better way to sell your particular car.</p>
+      <p>Not every owner wants to photograph the vehicle, write the listing, answer questions and manage an auction themselves. For some vehicles, Sam may recommend one of our selected PowerSellers instead.</p>
+      <p>That doesn't mean we think they'll magically get you more money. It means we think professional representation may be the better way to sell your particular vehicle.</p>
       <a class="hd-link" onclick="showPowerSellers()">How we choose PowerSellers &rarr;</a>
     </section>
     <section class="hd-sec">
       <div class="hd-eyebrow">A few things you should know</div>
-      ${know("We don't value your car.", "Sam recommends how to sell it, not what it's worth.")}
+      ${know("We don't value your vehicle.", "Sam recommends how to sell it, not what it's worth.")}
       ${know("We don't invent numbers.", "If we don't have enough useful data, we'll tell you.")}
       ${know("Recommendations aren't for sale.", "Platforms can't pay to be the pick, and PowerSellers can't pay to be the match.")}
       ${know("We show our work.", "When Sam makes a data claim, you'll see the scope and time period behind it.")}
@@ -274,7 +274,7 @@ function savedMidWizardActive() {
 }
 function savedConfirmLeave() {
   if (!savedMidWizardActive()) return true;
-  const car = (typeof sellState !== "undefined" && sellState && sellState.carName) || "current car";
+  const car = (typeof sellState !== "undefined" && sellState && sellState.carName) || "current vehicle";
   try { return window.confirm(`You're mid-search on the ${car}. Open this result and start over?`); }
   catch (e) { return true; }
 }
@@ -322,7 +322,7 @@ async function showSavedResults() {
   const results = out.results;
   if (!results.length) {
     msgs.innerHTML = shell(`<section class="hd-sec"><p>Nothing saved yet. Every search you run gets saved here.</p>
-      <button class="hd-cta" onclick="startSellFlow()">Sell my car &rarr;</button></section>`);
+      <button class="hd-cta" onclick="startSellFlow()">Sell my vehicle &rarr;</button></section>`);
     return;
   }
   const rows = results.map(r => savedRowHTML(r, false)).join("");
@@ -396,7 +396,7 @@ async function reopenSavedResult(id) {
   // Reconstruct the few client fields the render reads; everything else is the payload.
   const v = payload.vehicle || {};
   const crit = payload.sellerCriteria || {};
-  __reopenCar = [v.year, v.make, v.model].filter(Boolean).join(" ") || v.raw || "your car";
+  __reopenCar = [v.year, v.make, v.model].filter(Boolean).join(" ") || v.raw || "your vehicle";
   __reopenPayload = payload;   // full snapshot, so Re-run can replay the saved criteria
   sellState.resolvedVehicle = v;
   sellState.carName = __reopenCar;
@@ -438,7 +438,7 @@ function rerunSavedResult() {
   const v = payload.vehicle || {};
   const crit = payload.sellerCriteria || {};
   sellState.resolvedVehicle = v;
-  sellState.carName = [v.year, v.make, v.model].filter(Boolean).join(" ") || v.raw || "your car";
+  sellState.carName = [v.year, v.make, v.model].filter(Boolean).join(" ") || v.raw || "your vehicle";
   sellState.vehicleIdentityValidated = true;   // send the resolved vehicle (incl. trim) as-is
   sellState.vehicleDetailSkipped = true;        // accept the saved level; never re-ask trim
   sellState.region = crit.region || null;
@@ -479,18 +479,18 @@ function showPowerSellers() {
     <section class="hd-hero">
       <div class="hp-script">Sometimes I'd hand the keys to someone else.</div>
       <h1 class="hd-h1">PowerSellers, and how we choose them.</h1>
-      <p class="hd-lead">A PowerSeller is someone who regularly manages auction sales for other people. A good one preps the car, shapes the listing, answers buyer questions, lives in the comments, handles logistics and picks the platform they think gives the car the best shot.</p>
-      <p class="hd-lead">They are not automatically better than selling it yourself. For some cars I'd keep it simple and go straight to a platform. For higher-value or specialist cars, speaking to one before deciding can be the smarter move.</p>
+      <p class="hd-lead">A PowerSeller is someone who regularly manages auction sales for other people. A good one preps the vehicle, shapes the listing, answers buyer questions, lives in the comments, handles logistics and picks the platform they think gives the vehicle the best shot.</p>
+      <p class="hd-lead">They are not automatically better than selling it yourself. For some vehicles I'd keep it simple and go straight to a platform. For higher-value or specialist vehicles, speaking to one before deciding can be the smarter move.</p>
     </section>
     <section class="hd-sec">
       <div class="hd-eyebrow">How we choose</div>
-      <p>We work with a small number of sellers we know from years covering this market. We look at their track record, what they specialise in and where they're based, and we match by fit: the right seller for the right car, in the right part of the country. Nobody pays to be recommended.</p>
+      <p>We work with a small number of sellers we know from years covering this market. We look at their track record, what they specialise in and where they're based, and we match by fit: the right seller for the right vehicle, in the right part of the country. Nobody pays to be recommended.</p>
     </section>
     <section class="hd-sec">
       <div class="hd-eyebrow">What it costs</div>
       <p>Every PowerSeller sets their own fee and agrees it with you upfront, before anything is listed. Some charge a percentage of the sale, some a flat fee, sometimes a mix. Each case is a little different.</p>
       <p>The way to think about it is simple: weigh the fee they quote you against what representation returns. A good PowerSeller earns their fee in the result: the right platform, professional photography and presentation, buyer questions handled, and the sale managed start to finish. They will also tell you what is worth fixing before listing and what is not, which often saves money rather than costing it.</p>
-      <p>And where we have the data, we show it. When you see a number on a PowerSeller's card, that is how cars they represented have closed against comparable sales.</p>
+      <p>And where we have the data, we show it. When you see a number on a PowerSeller's card, that is how vehicles they represented have closed against comparable sales.</p>
       <p>The number on a PowerSeller's card measures price alone. It can't count the weeks of listing work, the buyer questions answered, or the mistakes a good professional stops you making before they cost money. Weigh the whole job, not just the figure.</p>
       <button class="hd-cta" onclick="startSellFlow()">Tell me what you're selling &rarr;</button>
     </section>
@@ -528,7 +528,7 @@ async function submitHunt() {
     const r = await fetch(apiPath("/api/hunts"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
     if (r.status === 401) { if (typeof openSignInCard === "function") openSignInCard("Sign in to tell Sam what you're hunting."); if (btn) { btn.disabled = false; btn.textContent = "Tell Sam"; } return; }
     if (!r.ok) throw new Error("failed");
-    renderArticleShell(`<h1>Noted.</h1><p>You'll hear from me when this goes live. Want to add another? <button class="gate-inline-link" onclick="renderHuntForm()">Tell me about another car</button>.</p>`);
+    renderArticleShell(`<h1>Noted.</h1><p>You'll hear from me when this goes live. Want to add another? <button class="gate-inline-link" onclick="renderHuntForm()">Tell me about another vehicle</button>.</p>`);
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = "Tell Sam"; }
     const page = document.querySelector(".hp-article");
