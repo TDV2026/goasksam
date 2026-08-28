@@ -451,6 +451,29 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
+  // TEMP (Aug 2026): trace one lead + its journey (modal/attribution investigation). Read-only.
+  if (task === "modalcheck") {
+    if (!env) return res.status(500).json({ error: "no supabase env" });
+    const ref = String(req.query?.ref || "");
+    const leads = (await supabaseSelect(env, `seller_leads?reference=eq.${encodeURIComponent(ref)}&select=reference,submitted_at,car_raw,seller_email,vin,notes,mileage,condition,target_price,chosen_destination,chosen_destination_type,chosen_option_key,decision_summary`)) || [];
+    const lead = leads[0] || null;
+    // Find the journey via the powerseller_intro_requested event that carries this reference.
+    const introEvents = (await supabaseSelect(env, `journey_events?event_type=eq.powerseller_intro_requested&select=journey_id,metadata,occurred_at&order=occurred_at.desc&limit=200`)) || [];
+    const match = introEvents.find(e => e.metadata && e.metadata.reference === ref);
+    let journey = null, events = [];
+    if (match) {
+      const jr = (await supabaseSelect(env, `journeys?journey_id=eq.${match.journey_id}&select=journey_id,user_id,anon_id,vehicle_year,vehicle_make,vehicle_model,vehicle_trim,vehicle_attrs,rec_powerseller,stage,created_at,last_activity_at`)) || [];
+      journey = jr[0] || null;
+      events = (await supabaseSelect(env, `journey_events?journey_id=eq.${match.journey_id}&select=event_type,powerseller_id,metadata,occurred_at&order=occurred_at.asc&limit=200`)) || [];
+    }
+    return res.status(200).json({
+      task: "modalcheck", ref, lead,
+      journeyId: match ? match.journey_id : null,
+      journey,
+      eventSequence: events.map(e => ({ t: e.occurred_at, type: e.event_type, ps: e.powerseller_id || null }))
+    });
+  }
+
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
