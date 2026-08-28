@@ -451,6 +451,22 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
+  // TEMP (Aug 2026): confirm the additional_details_* allowlist recorded a test event, then
+  // delete the throwaway journey. Remove after.
+  if (task === "telverify") {
+    if (!env) return res.status(500).json({ error: "no supabase env" });
+    const jid = String(req.query?.jid || "");
+    if (!jid) return res.status(400).json({ error: "pass ?jid=" });
+    if (String(req.query?.op) === "del") {
+      const h = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "return=minimal" };
+      await fetch(`${env.supabaseUrl}/rest/v1/journey_events?journey_id=eq.${encodeURIComponent(jid)}`, { method: "DELETE", headers: h });
+      await fetch(`${env.supabaseUrl}/rest/v1/journeys?journey_id=eq.${encodeURIComponent(jid)}`, { method: "DELETE", headers: h });
+      return res.status(200).json({ op: "del", jid });
+    }
+    const ev = (await supabaseSelect(env, `journey_events?journey_id=eq.${encodeURIComponent(jid)}&select=event_type,occurred_at`)) || [];
+    return res.status(200).json({ jid, events: ev.map(e => e.event_type) });
+  }
+
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
