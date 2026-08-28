@@ -323,6 +323,7 @@ function savedShortDate(iso) {
 // is still the latest.
 let __reopenSeq = 0;
 let __reopenCar = null;
+let __reopenPayload = null;
 async function reopenSavedResult(id) {
   const seq = ++__reopenSeq;
   if (typeof enterChatState === "function") enterChatState();
@@ -353,6 +354,7 @@ async function reopenSavedResult(id) {
   const v = payload.vehicle || {};
   const crit = payload.sellerCriteria || {};
   __reopenCar = [v.year, v.make, v.model].filter(Boolean).join(" ") || v.raw || "your car";
+  __reopenPayload = payload;   // full snapshot, so Re-run can replay the saved criteria
   sellState.resolvedVehicle = v;
   sellState.carName = __reopenCar;
   sellState.vehicleIdentityValidated = true;
@@ -376,10 +378,44 @@ async function reopenSavedResult(id) {
   if (typeof renderDecision === "function") renderDecision(payload, { reopened: true });
   msgs.scrollTop = 0;
 }
-// "Re-run this search": a fresh, quota-consuming search for the same car through the
-// normal entry (never touches the saved row; the backend inserts a NEW saved result).
+// "Re-run this search": one click -> one fresh sellerDecision with the SAVED criteria,
+// no re-asked questions. Restores the full saved state (resolved vehicle incl. trim +
+// every sellerCriteria field) and calls showSellRecommendation directly, bypassing the
+// wizard. Must NOT route through startSellFlow(carString): that re-resolves the bare car
+// and drops into the wizard's trim-clarification step (the reported bug). Clears the
+// reopened snapshot first so the fresh flow REPLACES it, never stacks below it. The gate
+// runs normally inside showSellRecommendation's fetch, so exactly one search is consumed
+// (and the backend inserts a NEW saved row, leaving the snapshot intact).
 function rerunSavedResult() {
-  if (__reopenCar && typeof startSellFlow === "function") startSellFlow(__reopenCar, false);
+  const payload = __reopenPayload;
+  if (!payload) return;
+  // Wall / upfront gate first, so a capped seller is told before we clear the view.
+  if (typeof gasIsWalled === "function" && gasIsWalled()) { if (typeof gateWalledReack === "function") gateWalledReack(gasIsWalled()); return; }
+  if (typeof gateCheckUpfront === "function" && gateCheckUpfront()) return;
+  const v = payload.vehicle || {};
+  const crit = payload.sellerCriteria || {};
+  sellState.resolvedVehicle = v;
+  sellState.carName = [v.year, v.make, v.model].filter(Boolean).join(" ") || v.raw || "your car";
+  sellState.vehicleIdentityValidated = true;   // send the resolved vehicle (incl. trim) as-is
+  sellState.vehicleDetailSkipped = true;        // accept the saved level; never re-ask trim
+  sellState.region = crit.region || null;
+  sellState.state = crit.state || null;
+  sellState.mileage = crit.mileage || null;
+  sellState.condition = crit.condition || null;
+  sellState.records = crit.serviceRecords || null;
+  sellState.title = crit.title || null;
+  sellState.price = crit.targetPrice || null;
+  sellState.timeline = crit.timeline || null;
+  sellState.involvement = crit.involvement || null;
+  sellState.sellerPreference = crit.sellerPreference || null;
+  sellState.notes = crit.notes || null;
+  sellState.active = true; sellState.step = 12; sellState.chosen = null; sellState.selectedPowerSellerId = null;
+  sellState.returnToConfirm = false; sellState.noEvidenceFallback = null; sellState.sellOptions = []; sellState.powerSellerProfiles = [];
+  // Replace the reopened snapshot with the fresh flow, don't stack under it.
+  if (typeof enterChatState === "function") enterChatState();
+  const msgs = document.getElementById("msgs"); if (msgs) { msgs.innerHTML = ""; msgs.scrollTop = 0; }
+  try { window.scrollTo && window.scrollTo(0, 0); } catch (e) {}
+  if (typeof showSellRecommendation === "function") showSellRecommendation();
 }
 // Back-compat: old stale-row entry point, same behavior.
 function runSavedFresh(btn) {
