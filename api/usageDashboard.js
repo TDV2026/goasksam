@@ -451,63 +451,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
-  // TEMP (Aug 2026): guest30 e2e verification support. Remove after. Mints a session for a
-  // test email (stands in for OTP sign-in), seeds search_events to reach the cap, reads
-  // account/journey attribution, and cleans up. Service-role only.
-  if (task === "guesttest") {
-    if (!env) return res.status(500).json({ error: "no supabase env" });
-    const op = String(req.query?.op || "");
-    const url = env.supabaseUrl, sk = env.supabaseKey, anon = process.env.SUPABASE_ANON_KEY || sk;
-    const hdrs = { apikey: sk, Authorization: `Bearer ${sk}`, "Content-Type": "application/json" };
-    if (op === "mintsession") {
-      const email = String(req.query?.email || "").toLowerCase();
-      const gen = await fetch(`${url}/auth/v1/admin/generate_link`, { method: "POST", headers: hdrs, body: JSON.stringify({ type: "magiclink", email }) });
-      const g = await gen.json().catch(() => ({}));
-      const props = (g && g.properties) || g || {};
-      const tokenHash = props.hashed_token || g.hashed_token || null, emailOtp = props.email_otp || g.email_otp || null;
-      const tryVerify = async b => { const r = await fetch(`${url}/auth/v1/verify`, { method: "POST", headers: { apikey: anon, "Content-Type": "application/json" }, body: JSON.stringify(b) }); const j = await r.json().catch(() => ({})); return (r.ok && j.access_token) ? j : null; };
-      let sess = null;
-      if (tokenHash) sess = await tryVerify({ type: "magiclink", token_hash: tokenHash });
-      if (!sess && emailOtp) sess = await tryVerify({ type: "email", email, token: emailOtp });
-      return res.status(200).json({ op, ok: !!sess, access_token: sess?.access_token || null, user_id: (sess?.user && sess.user.id) || null });
-    }
-    if (op === "seed") {
-      const user_id = String(req.query?.user_id || ""), n = Number(req.query?.n || 0);
-      const rows = Array.from({ length: n }, (_, i) => ({ user_id, make: "TEST", model: "SEED" + i, year: 2000 }));
-      const r = await fetch(`${url}/rest/v1/search_events`, { method: "POST", headers: { ...hdrs, Prefer: "return=minimal" }, body: JSON.stringify(rows) });
-      return res.status(200).json({ op, status: r.status, seeded: n });
-    }
-    if (op === "readacct") {
-      const email = String(req.query?.email || "").toLowerCase();
-      const rows = (await supabaseSelect(env, `accounts?email=eq.${encodeURIComponent(email)}&select=user_id,email,tier,tier_checked_at`)) || [];
-      const uid = rows[0]?.user_id;
-      const se = uid ? ((await supabaseSelect(env, `search_events?user_id=eq.${uid}&select=id`)) || []) : [];
-      return res.status(200).json({ op, account: rows[0] || null, searchEventCount: se.length });
-    }
-    if (op === "readjourney") {
-      const uid = String(req.query?.user_id || "");
-      const jr = (await supabaseSelect(env, `journeys?user_id=eq.${uid}&select=journey_id,user_id,vehicle_make,vehicle_model,stage,created_at&order=created_at.desc&limit=5`)) || [];
-      const jids = jr.map(j => `"${j.journey_id}"`).join(",");
-      const je = jids ? ((await supabaseSelect(env, `journey_events?journey_id=in.(${encodeURIComponent(jids)})&event_type=eq.recommendation_completed&select=journey_id,metadata`)) || []) : [];
-      return res.status(200).json({ op, journeys: jr, recTiers: je.map(e => ({ jid: e.journey_id, tier: e.metadata && e.metadata.tier })) });
-    }
-    if (op === "cleanup") {
-      const email = String(req.query?.email || "").toLowerCase();
-      const acc = (await supabaseSelect(env, `accounts?email=eq.${encodeURIComponent(email)}&select=user_id`)) || [];
-      const uid = acc[0]?.user_id;
-      if (uid) {
-        const jr = (await supabaseSelect(env, `journeys?user_id=eq.${uid}&select=journey_id`)) || [];
-        const jids = jr.map(j => j.journey_id);
-        for (const jid of jids) await fetch(`${url}/rest/v1/journey_events?journey_id=eq.${encodeURIComponent(jid)}`, { method: "DELETE", headers: { ...hdrs, Prefer: "return=minimal" } });
-        await fetch(`${url}/rest/v1/journeys?user_id=eq.${uid}`, { method: "DELETE", headers: { ...hdrs, Prefer: "return=minimal" } });
-        await fetch(`${url}/rest/v1/search_events?user_id=eq.${uid}`, { method: "DELETE", headers: { ...hdrs, Prefer: "return=minimal" } });
-        await fetch(`${url}/rest/v1/accounts?user_id=eq.${uid}`, { method: "DELETE", headers: { ...hdrs, Prefer: "return=minimal" } });
-      }
-      return res.status(200).json({ op, cleaned: uid || null });
-    }
-    return res.status(400).json({ error: "op must be mintsession|seed|readacct|readjourney|cleanup" });
-  }
-
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
