@@ -18,7 +18,7 @@
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/out", "destination": "/api/out" },
     { "source": "/styles.20260827d.css", "destination": "/styles.css" },
-    { "source": "/js.20260826l/(.*)", "destination": "/js/$1" }
+    { "source": "/js.20260826m/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
     "api/usageDashboard.js": {

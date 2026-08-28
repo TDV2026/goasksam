@@ -1481,7 +1481,7 @@ function openLeadDetailsModal(){
   const existing=document.getElementById("lead-details-modal");if(existing&&existing.remove)existing.remove();
   const scrim=document.createElement("div");
   scrim.className="hp-dialog-scrim";scrim.id="lead-details-modal";
-  scrim.onclick=e=>{if(e.target===scrim)closeLeadDetailsModal();};
+  scrim.onclick=e=>{if(e.target===scrim)dismissLeadDetails();};
   scrim.innerHTML=`<div class="hp-dialog" style="max-width:400px;text-align:left">
     <h3 style="text-align:left">Sent!</h3>
     <p style="text-align:left;margin-bottom:12px">Your details and ${escapeHtml(carLabel)} have been sent to ${escapeHtml(first)}, ${escapeHtml(pron.subj)}'ll reach out to you directly.</p>
@@ -1490,20 +1490,31 @@ function openLeadDetailsModal(){
     <textarea id="lead-note" class="auth-input" rows="3" placeholder="Anything else ${escapeHtml(first)} should know?" style="resize:vertical;margin-bottom:16px"></textarea>
     <div style="display:flex;gap:10px">
       <button style="${btnStyle}" onclick="submitLeadDetails()">Send extra details</button>
-      <button style="${btnStyle}" onclick="closeLeadDetailsModal()">Skip</button>
+      <button style="${btnStyle}" onclick="dismissLeadDetails()">Skip</button>
     </div>
   </div>`;
   document.body.appendChild(scrim);
+  // Telemetry: the modal actually rendered. One outcome (submitted OR skipped) follows.
+  sellState.leadDetailsResolved=false;
+  if(typeof gasJourneyEvent==="function")gasJourneyEvent("additional_details_shown",{vehicle:sellState.resolvedVehicle,powersellerId:sellState.selectedPowerSellerId||null,dedupKey:"ad_shown:"+(sellState.leadReference||"")});
   const v=document.getElementById("lead-vin");if(v){try{v.focus();}catch(e){}}
 }
 
 function closeLeadDetailsModal(){const m=document.getElementById("lead-details-modal");if(m&&m.remove)m.remove();}
+// Exactly one outcome event per modal open (submitted OR skipped), deduped by lead ref.
+function leadDetailsOutcome(kind){
+  if(sellState.leadDetailsResolved)return;
+  sellState.leadDetailsResolved=true;
+  if(typeof gasJourneyEvent==="function")gasJourneyEvent("additional_details_"+kind,{vehicle:sellState.resolvedVehicle,powersellerId:sellState.selectedPowerSellerId||null,dedupKey:"ad_"+kind+":"+(sellState.leadReference||"")});
+}
+// Skip button / scrim dismiss / empty submit: record the skip, then close.
+function dismissLeadDetails(){leadDetailsOutcome("skipped");closeLeadDetailsModal();}
 
 async function submitLeadDetails(){
   if(sellState.leadDetailsSubmitting)return;
   const vin=String(document.getElementById("lead-vin")?.value||"").trim();
   const note=String(document.getElementById("lead-note")?.value||"").trim();
-  if(!vin&&!note){closeLeadDetailsModal();return;}  // nothing filled = same as Skip
+  if(!vin&&!note){dismissLeadDetails();return;}  // nothing filled = same as Skip
   sellState.leadDetailsSubmitting=true;
   const selectedPowerSeller=(sellState.powerSellerProfiles||[]).find(profile=>profile.id===sellState.selectedPowerSellerId);
   const first=String(selectedPowerSeller?.displayName||"").trim().split(/\s+/)[0]||"the specialist";
@@ -1525,6 +1536,7 @@ async function submitLeadDetails(){
     });
   }catch(e){/* best-effort: the lead already went, so never surface a hard error here */}
   sellState.leadDetailsSubmitting=false;
+  leadDetailsOutcome("submitted");
   closeLeadDetailsModal();
   setTimeout(()=>addMsg("sam",`Passed those along to ${escapeHtml(first)}.`),250);
 }
