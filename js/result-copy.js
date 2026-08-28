@@ -1894,6 +1894,6 @@ function homeHeroHTML(){
   const supporting=(typeof HERO_SUPPORTING!=="undefined")?HERO_SUPPORTING:"";
   return `<div class="hero" id="hero"><div class="hp-hero">
     <div class="hp-script">Go ahead, ask Sam.</div>
-    <h1>Tell me what vehicle you're selling.<br>I'll tell you where I'd sell it, and why.</h1>
+    <h1>Tell me what vehicle you're selling.<br>I'll tell you where I'd sell it, <br class="hero-br2">and why.</h1>
   </div></div>`;
 }
