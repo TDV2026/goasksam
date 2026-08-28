@@ -2449,6 +2449,13 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
       return { ok: true, reservationEventId: null, accountId: auth.userId, anonSessionId };
     }
     if (!row.allowed) {
+      // Guest tier: the daily cap equals the lifetime cap (30), so ANY reserve refusal for
+      // a guest means the 30 are spent - show the honest guest wall, never the daily-reset
+      // copy. (Across days the lifetime check below is what fires; same-day-30 lands here.)
+      if (row.tier === "guest30") {
+        await logFunnel("guest_limit_hit", { user_id: auth.userId, dedup_key: `guest:${auth.userId}` }, supabaseUrl, supabaseKey);
+        return { block: { status: "guest_limit_reached", tier: "guest30", totalCap: 30 } };
+      }
       // Spec A: the daily wall is a distinct block from the monthly one, with its
       // own funnel event, and carries the tier's daily cap as `dailyCap` so the
       // frontend picks the singular (n=1) vs plural (n>1) wall copy.
