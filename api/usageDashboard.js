@@ -451,6 +451,40 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
+  // TEMP (Aug 2026): saved-results + partner-validation verification support. Remove after.
+  if (task === "svtest") {
+    if (!env) return res.status(500).json({ error: "no supabase env" });
+    const op = String(req.query?.op || "");
+    const hdrs = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" };
+    if (op === "readsaved") {
+      const email = String(req.query?.email || "").toLowerCase();
+      const acc = (await supabaseSelect(env, `accounts?email=eq.${encodeURIComponent(email)}&select=user_id&limit=1`)) || [];
+      const uid = acc[0]?.user_id;
+      if (!uid) return res.status(200).json({ op, found: false, reason: "no account" });
+      const rows = (await supabaseSelect(env, `saved_results?user_id=eq.${uid}&select=id,created_at,payload&order=created_at.desc&limit=1`)) || [];
+      return res.status(200).json({ op, found: !!rows[0], id: rows[0]?.id || null, createdAt: rows[0]?.created_at || null, payload: rows[0]?.payload || null });
+    }
+    if (op === "addpartner") {
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/partners`, { method: "POST", headers: { ...hdrs, Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify([{ slug: "__gastest_active__", name: "GAS Test Partner", display_name: "Test Partner", active: true, regions: [], specialties: {}, platforms: [], service_claims: [], seller_usernames: [] }]) });
+      return res.status(200).json({ op, status: r.status });
+    }
+    if (op === "delpartner") {
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/partners?slug=eq.__gastest_active__`, { method: "DELETE", headers: { ...hdrs, Prefer: "return=minimal" } });
+      return res.status(200).json({ op, status: r.status });
+    }
+    if (op === "leads") {
+      const email = String(req.query?.email || "").toLowerCase();
+      const rows = (await supabaseSelect(env, `seller_leads?seller_email=eq.${encodeURIComponent(email)}&select=reference,chosen_destination,chosen_destination_type,car_raw`)) || [];
+      return res.status(200).json({ op, count: rows.length, rows });
+    }
+    if (op === "dellead") {
+      const email = String(req.query?.email || "").toLowerCase();
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/seller_leads?seller_email=eq.${encodeURIComponent(email)}`, { method: "DELETE", headers: { ...hdrs, Prefer: "return=minimal" } });
+      return res.status(200).json({ op, status: r.status });
+    }
+    return res.status(400).json({ error: "op must be readsaved|addpartner|delpartner|leads|dellead" });
+  }
+
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
