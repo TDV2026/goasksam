@@ -695,8 +695,10 @@ body.home #btn:active{transform:translateY(1px);}
   .hd-cards{grid-template-columns:1fr;}
 }
 
-/* Mobile */
-@media(max-width:820px){
+/* Mobile. Matches the max-width:900px rule that hides the inline rail: the drawer +
+   hamburger MUST restore at the same 900px boundary, otherwise the 821-900px band hid
+   the rail with no way to open it (the hamburger only appeared <=820px). */
+@media(max-width:900px){
   /* Restore display (the max-width:900px rule sets #rail{display:none}, which otherwise
      leaves the slide-in drawer invisible so the hamburger appears to do nothing). */
   #rail{display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:30;width:280px;transform:translateX(-100%);transition:transform var(--dur-base) var(--ease);}
@@ -739,7 +741,7 @@ body{background:#FBFAF6;}
 /* 5 + 12: vertically centred (not top-anchored), nudged right of centre so the
    stack optically balances the sidebar. */
 body.home #main{justify-content:flex-start;align-items:center;padding-top:clamp(88px,14vh,150px);}
-@media(min-width:821px){ body.home #main{padding-left:52px;} }
+@media(min-width:901px){ body.home #main{padding-left:52px;} }
 /* 4: headline weight 450-500 (never 600+), balanced two-line break. */
 .hp-hero h1{font-weight:460;text-wrap:balance;letter-spacing:-.4px;}
 .hp-hero{max-width:660px;}
