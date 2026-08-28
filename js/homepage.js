@@ -298,22 +298,90 @@ async function showSavedResults() {
     return;
   }
   const esc = typeof escapeHtml === "function" ? escapeHtml : (s => String(s == null ? "" : s));
-  const cards = results.map(r => {
-    const pick = r.pick ? (typeof platformDisplayName === "function" ? platformDisplayName(r.pick) : r.pick) : null;
-    const stale = r.stale ? `<p class="hd-note" style="margin-top:8px">Sales have landed since, so today's read could differ.</p>
-      <button class="hd-link" onclick="runSavedFresh(this)" data-car="${esc(r.car)}">Run it fresh &rarr;</button>` : "";
-    return `<section class="hd-sec">
-      <div class="hd-eyebrow">${esc(savedDateLabel(r.createdAt))}</div>
-      <p style="font-family:var(--pc-serif);font-size:19px;color:var(--pc-ink);margin:0">${esc(r.car)}</p>
-      ${pick ? `<p class="hd-note" style="margin-top:4px">Pick: ${esc(pick)}</p>` : ""}
-      ${stale}
-    </section>`;
+  // Rows: date . car -> pick (platform + partner where one was shown). The whole row is
+  // clickable to re-open the full saved card. Newest first (server order).
+  const rows = results.map(r => {
+    const plat = r.pick ? (typeof platformDisplayName === "function" ? platformDisplayName(r.pick) : r.pick) : null;
+    const pickLine = plat ? `${esc(plat)}${r.partner ? ` &middot; ${esc(r.partner)}` : ""}` : "";
+    return `<button class="saved-row" onclick="reopenSavedResult('${esc(r.id)}')">
+      <span class="saved-row-date">${esc(savedShortDate(r.createdAt))}</span>
+      <span class="saved-row-car">${esc(r.car)}</span>
+      ${pickLine ? `<span class="saved-row-arrow">&rarr;</span><span class="saved-row-pick">${pickLine}</span>` : ""}
+    </button>`;
   }).join("");
-  msgs.innerHTML = shell(cards);
+  msgs.innerHTML = shell(`<section class="hd-sec" style="display:flex;flex-direction:column;gap:2px">${rows}</section>`);
   msgs.scrollTop = 0;
 }
-// "Run it fresh" starts a NORMAL, quota-consuming search for the same car. The
-// stored saved result is never touched.
+// Short date for list rows + the as-of line: "Aug 26" (adds the year if not this year).
+function savedShortDate(iso) {
+  const d = new Date(iso); if (isNaN(d.getTime())) return "";
+  const mo = d.toLocaleDateString(undefined, { month: "short" }), day = d.getDate(), y = d.getFullYear();
+  return y === new Date().getFullYear() ? `${mo} ${day}` : `${mo} ${day}, ${y}`;
+}
+// Latest-click-wins guard (scenario 1): clicking A then B must never let A's slower fetch
+// overwrite B's card. Each click bumps the sequence; a resolved fetch renders only if it
+// is still the latest.
+let __reopenSeq = 0;
+let __reopenCar = null;
+async function reopenSavedResult(id) {
+  const seq = ++__reopenSeq;
+  if (typeof enterChatState === "function") enterChatState();
+  if (typeof toggleRail === "function") toggleRail(false);
+  const msgs = document.getElementById("msgs");
+  if (!msgs) return;
+  msgs.innerHTML = `<div class="row sam"><div class="row-inner"><div class="msg-wrap"><div class="sam-text">Opening your result...</div></div></div></div>`;
+  msgs.scrollTop = 0;
+  let payload = null, createdAt = null;
+  try {
+    const session = (typeof authGetSession === "function") ? authGetSession() : null;
+    const token = session && session.access_token;
+    if (!token) { if (seq === __reopenSeq) { msgs.innerHTML = ""; addMsg("sam", "Sign in to see your saved results."); } return; }
+    const res = await fetch(apiPath("/api/account"), {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action: "savedResult", id })
+    });
+    const data = await res.json();
+    if (seq !== __reopenSeq) return;               // a newer click won; drop this stale render
+    if (!res.ok || data.status !== "ok" || !data.payload) throw new Error("failed");
+    payload = data.payload; createdAt = data.createdAt;
+  } catch (e) {
+    if (seq === __reopenSeq) { msgs.innerHTML = ""; addMsg("sam", "I couldn't open that result right now. Try again in a moment."); }
+    return;
+  }
+  if (seq !== __reopenSeq) return;
+  // Reconstruct the few client fields the render reads; everything else is the payload.
+  const v = payload.vehicle || {};
+  const crit = payload.sellerCriteria || {};
+  __reopenCar = [v.year, v.make, v.model].filter(Boolean).join(" ") || v.raw || "your car";
+  sellState.resolvedVehicle = v;
+  sellState.carName = __reopenCar;
+  sellState.vehicleIdentityValidated = true;
+  sellState.sellerPreference = crit.sellerPreference || null;
+  sellState.region = crit.region || sellState.region;
+  sellState.state = crit.state || sellState.state;
+  sellState.chosen = null;
+  sellState.selectedPowerSellerId = null;
+  // As-of line + Re-run, above the (identical) card composite.
+  msgs.innerHTML = "";
+  const asOf = savedShortDate((payload.analysis && payload.analysis.analysisDate) || createdAt);
+  const header = document.createElement("div");
+  header.className = "row sam";
+  header.innerHTML = `<div class="row-inner"><div class="msg-wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:2px 0 10px">
+      <span style="font-family:var(--font-sans,inherit);font-size:13px;color:var(--slate,#6B6861);font-weight:600">Sam's read as of ${escapeHtml(asOf)}</span>
+      <button onclick="rerunSavedResult()" style="padding:8px 14px;font-family:var(--font-sans,inherit);font-size:13px;font-weight:600;border:1px solid #171717;border-radius:10px;background:var(--paper,#fff);color:#171717;cursor:pointer">Re-run this search</button>
+    </div>
+  </div></div>`;
+  msgs.appendChild(header);
+  if (typeof renderDecision === "function") renderDecision(payload, { reopened: true });
+  msgs.scrollTop = 0;
+}
+// "Re-run this search": a fresh, quota-consuming search for the same car through the
+// normal entry (never touches the saved row; the backend inserts a NEW saved result).
+function rerunSavedResult() {
+  if (__reopenCar && typeof startSellFlow === "function") startSellFlow(__reopenCar, false);
+}
+// Back-compat: old stale-row entry point, same behavior.
 function runSavedFresh(btn) {
   const car = btn && btn.getAttribute("data-car");
   if (car && typeof startSellFlow === "function") startSellFlow(car, false);

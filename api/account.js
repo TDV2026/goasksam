@@ -67,7 +67,12 @@ function savedSummary(payload) {
   const car = [v.year, v.make, v.model].filter(Boolean).join(" ") || v.label || "your car";
   const pick = (payload && (payload.decision?.recommendedPath || payload.recommendedPath
     || payload.routeFacts?.pick?.platformSlug || payload.routeFacts?.pick?.name)) || null;
-  return { car, pick };
+  // Partner where one was actually shown (eligible or the $50k+ secondary), for the
+  // "platform plus partner" list line. Frozen from the saved payload, never re-checked.
+  const pr = payload && payload.decision && payload.decision.partnerReferral;
+  const partner = (pr && (pr.eligible || pr.secondary) && pr.partner)
+    ? (pr.partner.displayName || pr.partner.name || null) : null;
+  return { car, pick, partner };
 }
 async function handleSavedResults(req, res, env, auth) {
   const staleDays = await appConfigInt(env, "saved_result_stale_days", 14);
@@ -77,9 +82,21 @@ async function handleSavedResults(req, res, env, auth) {
   const results = (rows || []).map(r => {
     const s = savedSummary(r.payload || {});
     const ageDays = (now - new Date(r.created_at).getTime()) / 864e5;
-    return { id: r.id, createdAt: r.created_at, stale: ageDays > staleDays, car: s.car, pick: s.pick };
+    return { id: r.id, createdAt: r.created_at, stale: ageDays > staleDays, car: s.car, pick: s.pick, partner: s.partner };
   });
   return res.status(200).json({ status: "ok", staleDays, results });
+}
+
+// Single saved result by id, OWNER-CHECKED (user_id filter in the query), returning the
+// full frozen payload for re-render. Viewing only - never re-runs or mutates anything.
+async function handleSavedResult(req, res, env, auth) {
+  const id = String((req.body && req.body.id) || "").trim();
+  if (!id) return res.status(400).json({ error: "id required" });
+  const rows = await supabaseSelect(env,
+    `saved_results?id=eq.${encodeURIComponent(id)}&user_id=eq.${auth.userId}&select=id,created_at,payload&limit=1`);
+  const row = rows && rows[0];
+  if (!row) return res.status(404).json({ status: "not_found" });
+  return res.status(200).json({ status: "ok", id: row.id, createdAt: row.created_at, payload: row.payload });
 }
 
 function publicAccount(row) {
@@ -153,6 +170,10 @@ export default async function handler(req, res) {
   // a per-result stale flag (age > saved_result_stale_days, default 14).
   if (req.body && req.body.action === "savedResults") {
     try { return await handleSavedResults(req, res, env, auth); }
+    catch (err) { return res.status(500).json({ error: err.message }); }
+  }
+  if (req.body && req.body.action === "savedResult") {
+    try { return await handleSavedResult(req, res, env, auth); }
     catch (err) { return res.status(500).json({ error: err.message }); }
   }
 

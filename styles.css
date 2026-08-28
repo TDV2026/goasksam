@@ -1089,3 +1089,11 @@ body.home #input-box:focus-within{box-shadow:0 2px 10px rgba(22,20,15,.05);borde
 /* Separator line before the Learn section, mirroring the footer divider so the rail
    reads as clear groups (nav / Learn / footer). Only "Learn" uses .hp-rail-label. */
 #rail .hp-rail-label{border-top:1px solid var(--line);margin-top:18px;padding-top:16px;}
+
+/* Saved results list rows ("Your results"): date . car -> pick, whole row clickable. */
+.saved-row{display:flex;align-items:baseline;gap:9px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:14px 6px;cursor:pointer;font-family:var(--font-sans,inherit);color:var(--ink,#16140F);flex-wrap:wrap;transition:background var(--dur-base,.15s) var(--ease,ease);}
+.saved-row:hover{background:var(--paper-shade,#F6F5F2);}
+.saved-row-date{font-size:12.5px;color:var(--slate,#6B6861);font-variant-numeric:tabular-nums;min-width:54px;flex:none;}
+.saved-row-car{font-size:15px;font-weight:600;}
+.saved-row-arrow{color:var(--slate,#6B6861);}
+.saved-row-pick{font-size:13.5px;color:var(--slate,#6B6861);}

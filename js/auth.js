@@ -259,12 +259,10 @@ function authRenderTopbar() {
   } else {
     area.innerHTML = `<button class="hp-signin" onclick="openSignInCard()">Sign in</button>`;
   }
-  // Saved-results surface is HIDDEN for launch (the page still exists and the save
-  // pipeline keeps running; only the entry point is removed). Keep the "Your results"
-  // rail entry hidden for everyone, signed in or not. Re-enable post-launch by
-  // restoring the signed-in toggle here.
+  // "Your results" (saved results) shows only when signed in; hidden signed-out. Runs on
+  // every auth state change, so it toggles on sign-in / sign-out.
   const savedNav = document.getElementById("nav-saved");
-  if (savedNav) savedNav.style.display = "none";
+  if (savedNav) savedNav.style.display = authIsSignedIn() ? "" : "none";
 }
 
 // ---------------- boot ----------------

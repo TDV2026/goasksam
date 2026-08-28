@@ -4,6 +4,24 @@ import { sendLeadNotification, sendAdditionalDetails } from "../lib/_email.js";
 // Partner destination email + display name for a lead notification, looked up
 // server-side by slug (never exposed to the browser). Best-effort: a missing
 // column or row returns nulls so the notification still BCCs feedback@.
+// Roster status for a partner slug: is it present AND active? A missing row (removed
+// partner) or active=false is "not available". Fails OPEN (active:true) on any infra
+// error, so a transient lookup failure never blocks a genuine live lead.
+async function partnerRosterStatus(slug, supabaseUrl, supabaseKey) {
+  if (!slug) return { active: false, name: null };
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/partners?slug=eq.${encodeURIComponent(slug)}&select=active,display_name,name&limit=1`,
+      { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
+    );
+    if (!res.ok) return { active: true, name: null };
+    const rows = await res.json().catch(() => []);
+    const row = Array.isArray(rows) ? rows[0] : null;
+    if (!row) return { active: false, name: null };
+    return { active: row.active !== false, name: row.display_name || row.name || null };
+  } catch { return { active: true, name: null }; }
+}
+
 async function partnerNotifyTarget(slug, supabaseUrl, supabaseKey) {
   if (!slug) return { email: null, name: null };
   try {
@@ -145,6 +163,19 @@ export default async function handler(req, res) {
   const { seller = {}, car = {}, choice = {}, decision = {} } = req.body || {};
   const email = asText(seller.email);
   if (!email || !email.includes("@")) return res.status(400).json({ error: "Valid email is required" });
+
+  // Partner re-validation on submit (scenario 7): a PowerSeller lead must go to a partner
+  // still on the ACTIVE roster. A live card's partner passes; a re-opened historical card
+  // can reference a since-removed partner - never record a lead to one. Fail OPEN on an
+  // infra error so a transient DB blip never blocks a legitimate live lead.
+  const isPowerSellerLead = asText(choice.destinationType).toLowerCase() === "powerseller";
+  if (isPowerSellerLead) {
+    const slug = (choice.powerSeller && (choice.powerSeller.slug || choice.powerSeller.id)) || null;
+    const roster = await partnerRosterStatus(slug, supabaseUrl, supabaseKey);
+    if (!roster.active) {
+      return res.status(200).json({ status: "partner_unavailable", partner: roster.name || asText(choice.destination) || "That specialist" });
+    }
+  }
 
   const reference = makeReference();
   const decisionSummary = {

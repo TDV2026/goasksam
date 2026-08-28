@@ -158,6 +158,19 @@ async function showSellRecommendation(opts){
   // the subtle "first one's on me" line under the free result (item 2).
   if(decisionData.resultId&&typeof gasStashResultId==="function")gasStashResultId(decisionData.resultId,!!decisionData.firstFree);
   if(decisionData.firstFree&&typeof gateAppendFirstFreeLine==="function")setTimeout(()=>{try{gateAppendFirstFreeLine();}catch(e){}},0);
+  renderDecision(decisionData,{});
+}
+
+// Pure render of a decision payload into #msgs: no fetch, no gate, no funnel. Used by
+// the live search (showSellRecommendation, above) AND by re-opening a saved result
+// (renderOpts.reopened suppresses the one-time impression events). The caller sets
+// sellState.sellerPreference / resolvedVehicle / carName / region / state beforehand;
+// everything else the card needs comes from decisionData.
+function renderDecision(decisionData,renderOpts){
+  renderOpts=renderOpts||{};
+  sellState.sellDecision=decisionData;
+  const msgs=document.getElementById("msgs");
+  if(!msgs)return;
   const decision=decisionData.decision||{};
   // Honest country routing (phase 1): a non-US country we cannot route yet NEVER
   // silently defaults to US platforms. Show the honest line instead of a US pick.
@@ -662,7 +675,8 @@ async function showSellRecommendation(opts){
     msgs.appendChild(row);
     row.scrollIntoView({behavior:"smooth",block:"start"});
     // Business journey: card impressions (once per journey; the server also dedups).
-    if(typeof gasJourneyEventOnce==="function"){
+    // Suppressed when re-opening a saved result - viewing history is not a new impression.
+    if(!renderOpts.reopened&&typeof gasJourneyEventOnce==="function"){
       const _dec=(sellState.sellDecision&&sellState.sellDecision.decision)||{};
       gasJourneyEventOnce("platform_cta_viewed",{platformId:_dec.recommendedPath||null});
       const _pr=_dec.partnerReferral;
@@ -1395,6 +1409,15 @@ async function submitLead(seller){
       })
     });
     const data=await res.json();
+    // Partner re-validation (scenario 7): a re-opened historical card can point at a
+    // partner since removed from the roster. The server recorded nothing; tell the seller
+    // plainly and point them at a fresh run. Never a hard error, never a fake confirmation.
+    if(data&&data.status==="partner_unavailable"){
+      sellState.leadSubmitting=false;
+      const pname=data.partner||"That specialist";
+      setTimeout(()=>addMsg("sam",`${escapeHtml(pname)} is no longer available. Re-run this search for Sam's current recommendation.`),300);
+      return;
+    }
     if(!res.ok)throw new Error(data.error||"submission failed");
     setTimeout(()=>showSubmission(data),600);
   }catch(e){
