@@ -267,7 +267,46 @@ function savedDateLabel(iso) {
   const mo = d.toLocaleDateString(undefined, { month: "long" }), day = d.getDate(), y = d.getFullYear();
   return y === new Date().getFullYear() ? `Saved ${mo} ${day}` : `Saved ${mo} ${day}, ${y}`;
 }
+// Mid-wizard guard: opening a saved result (or "View all") while a wizard search is in
+// progress (active, no result yet) asks first. Proceed on confirm, stay put on cancel.
+function savedMidWizardActive() {
+  return !!(typeof sellState !== "undefined" && sellState && sellState.active && !sellState.sellDecision);
+}
+function savedConfirmLeave() {
+  if (!savedMidWizardActive()) return true;
+  const car = (typeof sellState !== "undefined" && sellState && sellState.carName) || "current car";
+  try { return window.confirm(`You're mid-search on the ${car}. Open this result and start over?`); }
+  catch (e) { return true; }
+}
+// Shared list fetch. Re-fetches on EVERY call (never cached) so a just-completed search
+// shows immediately on the next open/expand, no page reload.
+async function fetchSavedResultsList() {
+  const session = (typeof authGetSession === "function") ? authGetSession() : null;
+  const token = session && session.access_token;
+  if (!token) return { status: "auth" };
+  const res = await fetch(apiPath("/api/account"), {
+    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ action: "savedResults" })
+  });
+  const data = await res.json();
+  if (!res.ok || data.status !== "ok") throw new Error((data && data.error) || "failed");
+  return { status: "ok", results: data.results || [] };
+}
+const __savedEsc = s => (typeof escapeHtml === "function" ? escapeHtml(s) : String(s == null ? "" : s));
+// One list row (date . car -> platform . partner), clickable to reopen. compact=rail submenu.
+function savedRowHTML(r, compact) {
+  const plat = r.pick ? (typeof platformDisplayName === "function" ? platformDisplayName(r.pick) : r.pick) : null;
+  const pickLine = plat ? `${__savedEsc(plat)}${r.partner ? ` &middot; ${__savedEsc(r.partner)}` : ""}` : "";
+  return `<button class="saved-row${compact ? " saved-row-compact" : ""}" onclick="reopenSavedResult('${__savedEsc(r.id)}')">
+    <span class="saved-row-date">${__savedEsc(savedShortDate(r.createdAt))}</span>
+    <span class="saved-row-car">${__savedEsc(r.car)}</span>
+    ${pickLine ? `<span class="saved-row-arrow">&rarr;</span><span class="saved-row-pick">${pickLine}</span>` : ""}
+  </button>`;
+}
+// Full list in the main content area ("View all", and the empty/entry point).
 async function showSavedResults() {
+  if (!savedConfirmLeave()) return;
+  if (typeof sellState !== "undefined" && sellState) sellState.active = false; // leaving the wizard for the list
   enterChatState();
   if (typeof toggleRail === "function") toggleRail(false);
   const msgs = document.getElementById("msgs");
@@ -276,41 +315,44 @@ async function showSavedResults() {
     <section class="hd-hero"><div class="hp-script">Everything you've run.</div><h1 class="hd-h1">Your results.</h1></section>${body}</div>`;
   msgs.innerHTML = shell(`<section class="hd-sec"><p>Loading your results...</p></section>`);
   msgs.scrollTop = 0;
-  let data = null;
-  try {
-    const session = (typeof authGetSession === "function") ? authGetSession() : null;
-    const token = session && session.access_token;
-    if (!token) { msgs.innerHTML = shell(`<section class="hd-sec"><p>Sign in to see your saved results.</p></section>`); return; }
-    const res = await fetch(apiPath("/api/account"), {
-      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ action: "savedResults" })
-    });
-    data = await res.json();
-    if (!res.ok || data.status !== "ok") throw new Error(data && data.error || "failed");
-  } catch (e) {
-    msgs.innerHTML = shell(`<section class="hd-sec"><p>I couldn't load your results right now. Try again in a moment.</p></section>`);
-    return;
-  }
-  const results = data.results || [];
+  let out = null;
+  try { out = await fetchSavedResultsList(); }
+  catch (e) { msgs.innerHTML = shell(`<section class="hd-sec"><p>I couldn't load your results right now. Try again in a moment.</p></section>`); return; }
+  if (out.status === "auth") { msgs.innerHTML = shell(`<section class="hd-sec"><p>Sign in to see your saved results.</p></section>`); return; }
+  const results = out.results;
   if (!results.length) {
     msgs.innerHTML = shell(`<section class="hd-sec"><p>Nothing saved yet. Every search you run gets saved here.</p>
       <button class="hd-cta" onclick="startSellFlow()">Sell my car &rarr;</button></section>`);
     return;
   }
-  const esc = typeof escapeHtml === "function" ? escapeHtml : (s => String(s == null ? "" : s));
-  // Rows: date . car -> pick (platform + partner where one was shown). The whole row is
-  // clickable to re-open the full saved card. Newest first (server order).
-  const rows = results.map(r => {
-    const plat = r.pick ? (typeof platformDisplayName === "function" ? platformDisplayName(r.pick) : r.pick) : null;
-    const pickLine = plat ? `${esc(plat)}${r.partner ? ` &middot; ${esc(r.partner)}` : ""}` : "";
-    return `<button class="saved-row" onclick="reopenSavedResult('${esc(r.id)}')">
-      <span class="saved-row-date">${esc(savedShortDate(r.createdAt))}</span>
-      <span class="saved-row-car">${esc(r.car)}</span>
-      ${pickLine ? `<span class="saved-row-arrow">&rarr;</span><span class="saved-row-pick">${pickLine}</span>` : ""}
-    </button>`;
-  }).join("");
+  const rows = results.map(r => savedRowHTML(r, false)).join("");
   msgs.innerHTML = shell(`<section class="hd-sec" style="display:flex;flex-direction:column;gap:2px">${rows}</section>`);
   msgs.scrollTop = 0;
+}
+// Rail submenu: expand/collapse "Your results" INLINE (recent 10 + View all). Never
+// navigates the main area; re-fetches on every expand. Mobile: expanding does NOT close
+// the drawer (only choosing a specific result / View all does, via their own toggleRail).
+let __savedSubmenuOpen = false;
+async function toggleSavedSubmenu() {
+  const sub = document.getElementById("saved-submenu");
+  const caret = document.getElementById("saved-caret");
+  const toggle = document.querySelector(".saved-toggle");
+  if (!sub) return;
+  __savedSubmenuOpen = !__savedSubmenuOpen;
+  if (caret) caret.style.transform = __savedSubmenuOpen ? "rotate(90deg)" : "";
+  if (toggle) toggle.setAttribute("aria-expanded", __savedSubmenuOpen ? "true" : "false");
+  if (!__savedSubmenuOpen) { sub.style.display = "none"; return; }
+  sub.style.display = "block";
+  sub.innerHTML = `<div class="saved-submenu-msg">Loading...</div>`;
+  let out = null;
+  try { out = await fetchSavedResultsList(); }
+  catch (e) { if (__savedSubmenuOpen) sub.innerHTML = `<div class="saved-submenu-msg">Couldn't load. Try again.</div>`; return; }
+  if (!__savedSubmenuOpen) return; // collapsed while loading
+  if (out.status === "auth") { sub.innerHTML = `<div class="saved-submenu-msg">Sign in to see your results.</div>`; return; }
+  if (!out.results.length) { sub.innerHTML = `<div class="saved-submenu-msg">Nothing saved yet.</div>`; return; }
+  const rows = out.results.slice(0, 10).map(r => savedRowHTML(r, true)).join("");
+  const viewAll = `<button class="saved-viewall" onclick="showSavedResults()">View all${out.results.length > 10 ? ` (${out.results.length})` : ""} &rarr;</button>`;
+  sub.innerHTML = rows + viewAll;
 }
 // Short date for list rows + the as-of line: "Aug 26" (adds the year if not this year).
 function savedShortDate(iso) {
@@ -325,6 +367,7 @@ let __reopenSeq = 0;
 let __reopenCar = null;
 let __reopenPayload = null;
 async function reopenSavedResult(id) {
+  if (!savedConfirmLeave()) return;   // mid-wizard: confirm before opening a saved result
   const seq = ++__reopenSeq;
   if (typeof enterChatState === "function") enterChatState();
   if (typeof toggleRail === "function") toggleRail(false);

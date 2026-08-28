@@ -30,7 +30,7 @@
 <!-- CSS served at a VERSIONED PATH (not a ?query, which some edge caches ignore).
      styles.css stays on disk; a vercel.json rewrite maps this path to it. BUMP the
      token in BOTH index.html and vercel.json on every styles.css change. -->
-<link rel="stylesheet" href="styles.20260827b.css">
+<link rel="stylesheet" href="styles.20260827c.css">
 <!-- Curtain removed at launch (Aug 2026): the pre-launch holding block, its inline
      curtain script + CSS, and the #curtain div were deleted here so the site is
      public. Crew access to the still-gated /onebox is via /api/crew?code= directly
@@ -53,17 +53,23 @@
   </div>
   <div class="hp-rail-scroll">
     <button class="hp-navitem" onclick="setActiveNav(this);startSellFlow()">Where to sell</button>
-    <button class="hp-navitem" id="nav-saved" style="display:none" onclick="setActiveNav(this);showSavedResults()">Your results</button>
+    <button class="hp-navitem" onclick="setActiveNav(this);showPowerSellers()">PowerSellers</button>
+    <button class="hp-navitem" onclick="setActiveNav(this);showHowItWorks()">How Sam decides</button>
+
+    <!-- Saved results: signed-in only (auth.js toggles #nav-saved). "Your results" is an
+         expandable inline section - expanding shows the recent 10 in the rail and never
+         navigates the main area; a specific result or "View all" opens in main. -->
+    <div id="nav-saved" class="saved-section" style="display:none">
+      <div class="hp-rail-divider"></div>
+      <button class="hp-navitem saved-toggle" aria-expanded="false" onclick="toggleSavedSubmenu()"><span>Your results</span><span class="saved-caret" id="saved-caret" aria-hidden="true">&#9656;</span></button>
+      <div id="saved-submenu" class="saved-submenu" style="display:none"></div>
+    </div>
 
     <!-- PULSE_RAIL: TODAY'S MARKET sidebar section removed pre-Phase-3. The daily
          pulse pipeline (scripts/refreshDailyPulse.js, lib/dailyPulse.json,
          api/dailyPulse.js, dailyPulseUnit) stays intact and scheduled. Re-enable
          by restoring the section heading + <div id="market-cards-desktop"></div>
          here and the loadDailyPulse() call in js/homepage.js. -->
-
-    <div class="hp-rail-label">Learn</div>
-    <button class="hp-navitem" onclick="setActiveNav(this);showPowerSellers()">PowerSellers</button>
-    <button class="hp-navitem" onclick="setActiveNav(this);showHowItWorks()">How Sam decides</button>
   </div>
   <div class="hp-rail-footer">
     <!-- STAGE_B: profile modal -->
@@ -100,15 +106,15 @@
      rewrite maps /js.<token>/* back to /js/*. BUMP the token in BOTH index.html
      (every src below) and vercel.json on every js/ change so returning browsers
      fetch fresh code instead of stale cache. -->
-<script src="js.20260826f/auth.js"></script>
-<script src="js.20260826f/wizard.js"></script>
-<script src="js.20260826f/pipeline.js"></script>
-<script src="js.20260826f/steps.js"></script>
-<script src="js.20260826f/result.js"></script>
-<script src="js.20260826f/chat-core.js"></script>
-<script src="js.20260826f/result-copy.js"></script>
-<script src="js.20260826f/result-v2.js"></script>
-<script src="js.20260826f/entry.js"></script>
-<script src="js.20260826f/homepage.js"></script>
+<script src="js.20260826g/auth.js"></script>
+<script src="js.20260826g/wizard.js"></script>
+<script src="js.20260826g/pipeline.js"></script>
+<script src="js.20260826g/steps.js"></script>
+<script src="js.20260826g/result.js"></script>
+<script src="js.20260826g/chat-core.js"></script>
+<script src="js.20260826g/result-copy.js"></script>
+<script src="js.20260826g/result-v2.js"></script>
+<script src="js.20260826g/entry.js"></script>
+<script src="js.20260826g/homepage.js"></script>
 </body>
 </html>
