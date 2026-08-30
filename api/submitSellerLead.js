@@ -260,7 +260,11 @@ export default async function handler(req, res) {
             serviceRecords: asText(car.serviceRecords), title: asText(car.title),
             targetPrice: asText(car.targetPrice), timeline: asText(car.timeline), notes: asText(car.notes)
           },
-          choice: { destination: asText(choice.destination) }
+          choice: { destination: asText(choice.destination) },
+          // Sam's platform recommendation the seller was shown, so the partner walks in
+          // knowing which platform was named. From the decision payload sent at lead time
+          // (decision.decision.recommendedPath); empty when no platform rec existed.
+          recommendedPath: asText(decision.decision && decision.decision.recommendedPath) || null
         });
         if (!notify.ok && !notify.skipped) console.error("lead notification email failed:", notify.error || notify.status, "ref", inserted?.reference || reference);
       }
