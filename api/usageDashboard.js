@@ -451,24 +451,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
-  // TEMP task=nlpull4: SELECT-ONLY coverage/backfill audit. Returns auction_end_date +
-  // ingested_at + platform + title for a make (+model/year/date filter), to date when
-  // our ingest actually captured records. No writes. Remove after.
-  if (task === "nlpull4") {
-    if (!env) return res.status(200).json({ task: "nlpull4", error: "no supabase env" });
-    const make = String(req.query?.make || "");
-    const yearMin = req.query?.yearMin ? Number(req.query.yearMin) : null;
-    const yearMax = req.query?.yearMax ? Number(req.query.yearMax) : null;
-    const sinceDays = Number(req.query?.sinceDays || 700);
-    const cutoff = new Date(Date.now() - sinceDays * 864e5).toISOString().slice(0, 10);
-    let filter = `make=ilike.${encodeURIComponent(make)}&auction_end_date=gte.${cutoff}`;
-    if (yearMin != null) filter += `&year=gte.${yearMin}`;
-    if (yearMax != null) filter += `&year=lte.${yearMax}`;
-    const rows = await supabaseSelect(env, `vehicle_market_records?${filter}&select=auction_end_date,ingested_at,platform,source,raw_title&order=auction_end_date.desc&limit=1000`) || [];
-    const out = rows.map(r => ({ date: r.auction_end_date, ingested: r.ingested_at, platform: r.platform || r.source, title: r.raw_title }));
-    return res.status(200).json({ task: "nlpull4", n: out.length, hasMore: rows.length === 1000, rows: out });
-  }
-
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
