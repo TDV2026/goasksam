@@ -451,36 +451,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
-  // TEMP task=pulse488: READ-ONLY listing-level 488 export for two 90-day windows.
-  // No writes, no OCD. Four online sources. Remove after.
-  if (task === "pulse488") {
-    if (!env) return res.status(200).json({ task: "pulse488", error: "no supabase env" });
-    const ONLINE4 = new Set(["bringatrailer", "pcarmarket", "carsandbids", "hemmings"]);
-    const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const variant = t => { t = String(t || "").toLowerCase(); if (/pista\s*spider/.test(t)) return "Pista Spider"; if (/pista/.test(t)) return "Pista"; if (/challenge/.test(t)) return "Challenge"; if (/spider/.test(t)) return "488 Spider"; if (/gtb/.test(t)) return "488 GTB"; return "488 (unspec)"; };
-    const mileageOf = rr => { for (const k of ["mileage", "miles", "odometer"]) if (rr && rr[k] != null && rr[k] !== "") return Number(rr[k]); return null; };
-    const med = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2); };
-    let rows = [];
-    for (let off = 0; off < 8000; off += 1000) {
-      const chunk = await supabaseSelect(env, `vehicle_market_records?make=ilike.Ferrari&auction_end_date=gte.2025-06-01&auction_end_date=lt.2026-09-01&select=auction_end_date,raw_title,platform,source,price,raw_record&order=auction_end_date.asc&limit=1000&offset=${off}`) || [];
-      rows = rows.concat(chunk); if (chunk.length < 1000) break;
-    }
-    const plat = r => r.platform || r.source || "?";
-    const all488 = rows.filter(r => /488/.test(r.raw_title || "") && Number(r.price) > 0);
-    const build = (lo, hi) => {
-      const w4 = all488.filter(r => ONLINE4.has(plat(r)) && r.auction_end_date >= lo && r.auction_end_date <= hi);
-      const listing = w4.map(r => { const d = new Date(String(r.auction_end_date).slice(0, 10) + "T12:00:00Z"); return { source: plat(r), date: String(r.auction_end_date).slice(0, 10), dow: DOW[d.getUTCDay()], price: Number(r.price), mileage: mileageOf(r.raw_record), variant: variant(r.raw_title), title: r.raw_title }; }).sort((a, b) => a.date < b.date ? -1 : 1);
-      const byPlat = {}; for (const r of listing) { (byPlat[r.source] = byPlat[r.source] || []).push(r.price); }
-      const perPlatform = Object.entries(byPlat).map(([p, arr]) => ({ platform: p, sold: arr.length, avg: Math.round(arr.reduce((s, x) => s + x, 0) / arr.length), median: med(arr) }));
-      const dow = {}; for (const r of listing) dow[r.dow] = (dow[r.dow] || 0) + 1;
-      const dowBat = {}, dowOther = {}; for (const r of listing) { const t = r.source === "bringatrailer" ? dowBat : dowOther; t[r.dow] = (t[r.dow] || 0) + 1; }
-      // sources OUTSIDE the four (online or not) with 488 sales in-window, for reconciliation
-      const otherSrc = {}; for (const r of all488) { if (r.auction_end_date >= lo && r.auction_end_date <= hi && !ONLINE4.has(plat(r))) otherSrc[plat(r)] = (otherSrc[plat(r)] || 0) + 1; }
-      return { window: `${lo}..${hi}`, total: listing.length, listing, perPlatform, dowAll: dow, dowBaT: dowBat, dowOther, otherSourcesInWindow: otherSrc };
-    };
-    return res.status(200).json({ task: "pulse488", scannedFerrari: rows.length, current_2026: build("2026-06-02", "2026-08-30"), prior_2025: build("2025-06-02", "2025-08-30") });
-  }
-
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
