@@ -550,11 +550,25 @@ function pickRecommendedRoute(routes) {
     const p = r && r.marketEvidence && r.marketEvidence.pricePremium;
     return (p && p.gateType === "symmetric" && Number.isFinite(p.percent) && p.percent >= 10) ? p.percent : -1;
   };
-  let best = null, bestPct = -1;
-  for (const r of routable) { const pct = clearedPct(r); if (pct > bestPct) { best = r; bestPct = pct; } }
-  if (best && bestPct >= 10) return best;
+  // Depth leader: most sold comps at the landed scope (computed before Branch 1 so the
+  // volume-aware premium gate can reference it).
   let deep = null, deepN = -1;
   for (const r of routable) { const n = Number((r.marketEvidence && r.marketEvidence.evidenceSales) || 0); if (n > deepN) { deep = r; deepN = n; } }
+  const deepPremium = deep ? clearedPct(deep) : -1;
+  // Branch 1 (Mode A), VOLUME-AWARE (kept in lockstep with routesForCards in
+  // js/result.js): among cleared symmetric premiums the highest leads, but a platform
+  // that is NOT the depth leader may lead only when its premium rests on a sample
+  // comparable to the leader's (platformSales >= half the leader's evidence, floor 5)
+  // OR it beats the leader's OWN cleared premium by 8+ points. A boutique's high-mix
+  // median on a thin sample (SOMO +27% on 8 sales) can no longer edge out the volume
+  // venue (BaT +26% on 20) on a single percentage point.
+  const cleared = routable.map(r => ({ r, pct: clearedPct(r) })).filter(x => x.pct >= 10).sort((a, b) => b.pct - a.pct);
+  for (const { r, pct } of cleared) {
+    const ps = Number((r.marketEvidence && r.marketEvidence.pricePremium && r.marketEvidence.pricePremium.platformSales) || 0);
+    const sampleOK = ps >= Math.max(5, deepN * 0.5);
+    const marginOK = deepPremium >= 10 && pct >= deepPremium + 8;
+    if (r === deep || sampleOK || marginOK) return r;
+  }
   const measured = routable.some(r => { const p = r && r.marketEvidence && r.marketEvidence.pricePremium; return p && p.platformSales >= 5 && p.othersSales >= 5; });
   if (!measured) {
     const specCell = r => { const c = r && r.marketEvidence && r.marketEvidence.specializationCell; return (c && Number(c.lift_rounded) >= 3 && Number(c.platform_count) >= 5) ? c : null; };

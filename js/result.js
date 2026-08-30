@@ -325,13 +325,26 @@ function renderDecision(decisionData,renderOpts){
   const routesForCards=(()=>{
     const routable=routeOptions.filter(r=>r.routable!==false);
     const cleared=r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10?p.percent:-1;};
-    // Branch 1 (Mode A): highest cleared positive delta leads.
-    let best=null,bestPct=-1;
-    for(const r of routable){const pct=cleared(r);if(pct>bestPct){best=r;bestPct=pct;}}
-    if(best&&bestPct>=10)return routeOptions[0]===best?routeOptions:[best,...routeOptions.filter(r=>r!==best)];
-    // Depth leader: most sold comps at the landed scope.
+    // Depth leader: most sold comps at the landed scope (needed by the volume-aware
+    // premium gate below, so it is computed BEFORE Branch 1).
     let deep=null,deepN=-1;
     for(const r of routable){const n=Number(r.marketEvidence&&r.marketEvidence.evidenceSales||0);if(n>deepN){deep=r;deepN=n;}}
+    const deepPremium=deep?cleared(deep):-1;
+    // Branch 1 (Mode A), VOLUME-AWARE (kept in lockstep with pickRecommendedRoute in
+    // api/sellerDecision.js): among cleared symmetric premiums (>=10%, 5+/5+) the
+    // highest leads, but a platform that is NOT the depth leader may lead only when its
+    // premium rests on a sample comparable to the leader's (platformSales >= half the
+    // leader's evidence, floor 5) OR it beats the leader's OWN cleared premium by a
+    // meaningful margin (8+ points). Stops a boutique's high-mix median on a thin sample
+    // (2020 992 Sport Classic: SOMO +27% on 8 sales) from out-leading the venue where
+    // most of these cars actually sell (BaT +26% on 20). A razor-thin edge no longer wins.
+    const clearedRoutes=routable.map(r=>({r,pct:cleared(r)})).filter(x=>x.pct>=10).sort((a,b)=>b.pct-a.pct);
+    for(const {r,pct} of clearedRoutes){
+      const ps=Number(r.marketEvidence&&r.marketEvidence.pricePremium&&r.marketEvidence.pricePremium.platformSales||0);
+      const sampleOK=ps>=Math.max(5,deepN*0.5);
+      const marginOK=deepPremium>=10&&pct>=deepPremium+8;
+      if(r===deep||sampleOK||marginOK)return routeOptions[0]===r?routeOptions:[r,...routeOptions.filter(x=>x!==r)];
+    }
     // Is the spread MEASURED? (any 5+/5+ symmetric premium exists). If not, it
     // is UNKNOWN. The old unknown-spread SPEED promotion (branch 4) is DELETED
     // (Aug 2026): speed is now v2Composition's job, so this ladder never re-ranks
