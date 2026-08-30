@@ -451,29 +451,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
-  // TEMP task=journeycheck: SELECT-ONLY journey pipeline health. Counts journeys +
-  // journey_events per UTC day for the last 8 days, plus latest timestamps, to see if
-  // recording stopped today. No writes. Remove after.
-  if (task === "journeycheck") {
-    if (!env) return res.status(200).json({ task: "journeycheck", error: "no supabase env" });
-    const since = new Date(Date.now() - 8 * 864e5).toISOString();
-    const journeys = await supabaseSelect(env, `journeys?created_at=gte.${since}&select=created_at,vehicle_make,vehicle_model,stage,anon_id,user_id&order=created_at.desc&limit=5000`) || [];
-    const events = await supabaseSelect(env, `journey_events?occurred_at=gte.${since}&select=occurred_at,event_type&order=occurred_at.desc&limit=20000`) || [];
-    const byDay = (rows, key) => { const m = {}; for (const r of rows) { const d = String(r[key] || "").slice(0, 10); if (d) m[d] = (m[d] || 0) + 1; } return m; };
-    const evtTypes = {}; for (const e of events) { const t = e.event_type || "?"; evtTypes[t] = (evtTypes[t] || 0) + 1; }
-    return res.status(200).json({
-      task: "journeycheck",
-      journeysTotal8d: journeys.length,
-      journeysByDay: byDay(journeys, "created_at"),
-      latestJourney: journeys[0] ? { at: journeys[0].created_at, car: [journeys[0].vehicle_make, journeys[0].vehicle_model].filter(Boolean).join(" "), stage: journeys[0].stage } : null,
-      eventsTotal8d: events.length,
-      eventsByDay: byDay(events, "occurred_at"),
-      eventTypes: evtTypes,
-      latestEvent: events[0] ? { at: events[0].occurred_at, type: events[0].event_type } : null,
-      nowUtc: new Date().toISOString()
-    });
-  }
-
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
