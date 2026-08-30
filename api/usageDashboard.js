@@ -476,13 +476,17 @@ async function handleOps(req, res) {
       const r = await callOldCarsData("/auctions", params, apiKey);
       const rows = r.data || [];
       const dates = rows.map(x => x.auction_end_date).filter(Boolean).sort();
-      const srcCounts = {}; for (const x of rows) { const s = x.source || x.ocd_source || "?"; srcCounts[s] = (srcCounts[s] || 0) + 1; }
+      const srcCounts = {}, monthHist = {};
+      for (const x of rows) {
+        const s = x.source || x.ocd_source || "?"; srcCounts[s] = (srcCounts[s] || 0) + 1;
+        const m = String(x.auction_end_date || "").slice(0, 7); if (m) monthHist[m] = (monthHist[m] || 0) + 1;
+      }
       return res.status(200).json({
         task: "ocddepth", params,
         total_results: r.meta?.total_results ?? r.meta?.total ?? null,
         page_n: rows.length, earliestInPage: dates[0] || null, latestInPage: dates[dates.length - 1] || null,
         first: rows[0] ? { date: rows[0].auction_end_date, source: rows[0].source, year: rows[0].year, title: rows[0].title } : null,
-        sourceBreakdown: srcCounts, rateRemaining: r.__rateLimit?.remaining || null
+        sourceBreakdown: srcCounts, monthHist, rateRemaining: r.__rateLimit?.remaining || null
       });
     } catch (e) { return res.status(200).json({ task: "ocddepth", params, error: e.message }); }
   }
