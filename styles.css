@@ -653,6 +653,18 @@ body.home #btn:active{transform:translateY(1px);}
 .hp-dialog .primary{background:var(--ink);color:#fff;border:0;}
 .hp-dialog .primary[disabled]{background:var(--slate);cursor:default;opacity:.7;}
 .hp-dialog .ghost{background:transparent;color:var(--ink);border:1px solid var(--line);}
+/* Methodology explainer: the "Why I Picked This" info affordance + its modal. */
+.methodology-info{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-left:6px;padding:0;width:17px;height:17px;border:0;border-radius:50%;background:transparent;color:var(--slate);opacity:.7;cursor:pointer;transition:opacity .15s,color .15s;}
+.methodology-info:hover,.methodology-info:focus-visible{opacity:1;color:var(--ink);outline:none;}
+.methodology-info svg{display:block;}
+.methodology-dialog{position:relative;max-width:460px;text-align:left;padding:26px 26px 22px;}
+.methodology-dialog h3{text-align:left;font-size:20px;margin-bottom:14px;padding-right:24px;}
+.methodology-dialog p{text-align:left;font-size:14px;color:var(--slate);line-height:1.62;margin-bottom:13px;}
+.methodology-dialog p:last-child{margin-bottom:0;}
+.methodology-close{position:absolute;top:14px;right:14px;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--slate);cursor:pointer;transition:background .15s,color .15s;}
+.methodology-close:hover,.methodology-close:focus-visible{background:var(--wash,rgba(22,20,15,.05));color:var(--ink);outline:none;}
+.hd-methodology-link{display:inline-flex;align-items:center;gap:5px;margin-top:14px;padding:0;border:0;background:transparent;font-family:var(--font-sans);font-size:14px;font-weight:500;color:var(--accent,#8a7a55);cursor:pointer;}
+.hd-methodology-link:hover{text-decoration:underline;}
 .hp-article{max-width:660px;margin:0 auto;padding:12px 32px 48px;}
 .hp-article h1{font-family:var(--font-sans);font-weight:400;font-size:28px;line-height:1.2;color:var(--ink);margin-bottom:8px;}
 .hp-article h2{font-family:var(--font-sans);font-weight:500;font-size:16px;color:var(--ink);margin:26px 0 7px;}

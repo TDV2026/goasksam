@@ -1501,6 +1501,39 @@ function openLeadDetailsModal(){
 }
 
 function closeLeadDetailsModal(){const m=document.getElementById("lead-details-modal");if(m&&m.remove)m.remove();}
+
+// Methodology explainer modal (static, identical for every car, no per-search
+// numbers). Opened from the result card's "Why I Picked This" info affordance and
+// from the How Sam decides page. Same hp-dialog scrim/card pattern as the VIN
+// modal; dismissible by the X, scrim click, or Escape. Fires the lightweight
+// unranked methodology_viewed journey event (allowlisted in lib/_journey.js).
+var METHODOLOGY_PARAS=[
+  "Every recommendation starts with real sales. Sam tracks completed sales across the major enthusiast platforms, what sold, where, and for how much, recalculated as new sales close.",
+  "For your vehicle, Sam looks at how cars like yours have actually performed on each platform: how many have sold, how consistently, and at what level. Volume matters, a platform with a deep track record for your kind of car counts for more than one with a couple of lucky results.",
+  "Sam also weighs what you've told him: your timing, how involved you want to be, and what you're hoping to get. The recommendation balances the market evidence with your situation, and where a PowerSeller has a proven record with cars like yours, Sam says so.",
+  "No platform or PowerSeller can pay to be recommended. Nothing you see is sponsored, and when the data is thin, Sam says that too, better nothing than a fake number."
+];
+var methodologyKeyHandler=null;
+function openMethodologyModal(){
+  const existing=document.getElementById("methodology-modal");if(existing&&existing.remove)existing.remove();
+  const scrim=document.createElement("div");
+  scrim.className="hp-dialog-scrim";scrim.id="methodology-modal";
+  scrim.onclick=e=>{if(e.target===scrim)closeMethodologyModal();};
+  const closeSvg='<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  scrim.innerHTML='<div class="hp-dialog methodology-dialog" role="dialog" aria-modal="true" aria-labelledby="methodology-title">'
+    +'<button type="button" class="methodology-close" aria-label="Close" onclick="closeMethodologyModal()">'+closeSvg+'</button>'
+    +'<h3 id="methodology-title">How Sam decides</h3>'
+    +METHODOLOGY_PARAS.map(p=>'<p>'+escapeHtml(p)+'</p>').join("")
+    +'</div>';
+  document.body.appendChild(scrim);
+  methodologyKeyHandler=function(e){if(e.key==="Escape")closeMethodologyModal();};
+  document.addEventListener("keydown",methodologyKeyHandler);
+  if(typeof gasJourneyEvent==="function")gasJourneyEvent("methodology_viewed",{vehicle:(typeof sellState!=="undefined"?sellState.resolvedVehicle:null)||null,dedupKey:"methodology_viewed"});
+}
+function closeMethodologyModal(){
+  const m=document.getElementById("methodology-modal");if(m&&m.remove)m.remove();
+  if(methodologyKeyHandler){document.removeEventListener("keydown",methodologyKeyHandler);methodologyKeyHandler=null;}
+}
 // Exactly one outcome event per modal open (submitted OR skipped), deduped by lead ref.
 function leadDetailsOutcome(kind){
   if(sellState.leadDetailsResolved)return;
