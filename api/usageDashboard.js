@@ -451,46 +451,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
-  // TEMP task=ocddepth: READ-ONLY 964/993 coverage investigation. Two modes:
-  //   ?store=1  -> Supabase SELECT of stored 964/993 records in 2025 by month (0 OCD cost).
-  //   otherwise -> ONE metered OCD /auctions read with whatever params are passed, returning
-  //                total_results, earliest/latest in the page, and source breakdown. Never
-  //                persists (callOldCarsData reads only; no supabaseInsert). Remove after.
-  if (task === "ocddepth") {
-    if (req.query?.store) {
-      if (!env) return res.status(200).json({ task: "ocddepth", error: "no supabase env" });
-      const rows = await supabaseSelect(env, `vehicle_market_records?make=ilike.Porsche&year=gte.1989&year=lte.1998&auction_end_date=gte.2025-01-01&auction_end_date=lte.2025-12-31&select=auction_end_date,year,raw_title,platform&order=auction_end_date.asc&limit=3000`) || [];
-      const g = rows.filter(r => /911|964|993|carrera|turbo|targa|speedster/i.test(r.raw_title || ""));
-      const byMonth = {}, byPlat = {};
-      for (const r of g) { const m = String(r.auction_end_date || "").slice(0, 7); byMonth[m] = (byMonth[m] || 0) + 1; const p = r.platform || "?"; byPlat[p] = (byPlat[p] || 0) + 1; }
-      // rough 964 vs 993 split by car year (964: 1989-1994, 993: 1994-1998)
-      const g964 = g.filter(r => Number(r.year) <= 1994).length, g993 = g.filter(r => Number(r.year) >= 1994).length;
-      return res.status(200).json({ task: "ocddepth", store: true, total_2025: g.length, byMonth, byPlatform: byPlat, yearSplit: { "<=1994(964)": g964, ">=1994(993)": g993 } });
-    }
-    const apiKey = process.env.OLDCARSDATA_API_KEY;
-    const params = {};
-    for (const k of ["keyword", "make", "model", "status", "sort", "direction", "page", "limit", "year_min", "year_max", "source", "date_min", "date_max", "date_from", "date_to", "sold_after", "sold_before", "auction_end_date_min", "auction_end_date_max"]) {
-      if (req.query?.[k] != null && req.query[k] !== "") params[k] = req.query[k];
-    }
-    try {
-      const r = await callOldCarsData("/auctions", params, apiKey);
-      const rows = r.data || [];
-      const dates = rows.map(x => x.auction_end_date).filter(Boolean).sort();
-      const srcCounts = {}, monthHist = {};
-      for (const x of rows) {
-        const s = x.source || x.ocd_source || "?"; srcCounts[s] = (srcCounts[s] || 0) + 1;
-        const m = String(x.auction_end_date || "").slice(0, 7); if (m) monthHist[m] = (monthHist[m] || 0) + 1;
-      }
-      return res.status(200).json({
-        task: "ocddepth", params,
-        total_results: r.meta?.total_results ?? r.meta?.total ?? null,
-        page_n: rows.length, earliestInPage: dates[0] || null, latestInPage: dates[dates.length - 1] || null,
-        first: rows[0] ? { date: rows[0].auction_end_date, source: rows[0].source, year: rows[0].year, title: rows[0].title } : null,
-        sourceBreakdown: srcCounts, monthHist, rateRemaining: r.__rateLimit?.remaining || null
-      });
-    } catch (e) { return res.status(200).json({ task: "ocddepth", params, error: e.message }); }
-  }
-
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
