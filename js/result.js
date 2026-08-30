@@ -274,7 +274,16 @@ function renderDecision(decisionData,renderOpts){
     const first=routeOptions[0],second=routeOptions[1];
     if(first&&second){
       const pFirst=verifiedPremium(first),pSecond=verifiedPremium(second);
-      if(pSecond!=null&&pSecond>=10&&(pFirst==null||pSecond>pFirst)&&routeHasTrueComparableEvidence(second)){
+      // Volume-aware (same gate as routesForCards / pickRecommendedRoute): the second
+      // route only overtakes the incumbent leader on a cleared premium when its premium
+      // sample is comparable to the leader's evidence (platformSales >= half, floor 5)
+      // OR it beats the leader's own premium by 8+ points. A thin high-mix premium
+      // (SOMO +27% on 8) no longer swaps ahead of the volume leader (BaT +26% on 20).
+      const psSecond=Number(second?.marketEvidence?.pricePremium?.platformSales||0);
+      const firstEvidence=Number(first?.marketEvidence?.evidenceSales||0);
+      const swapSampleOK=psSecond>=Math.max(5,firstEvidence*0.5);
+      const swapMarginOK=pFirst!=null&&pFirst>=10&&pSecond>=pFirst+8;
+      if(pSecond!=null&&pSecond>=10&&(pFirst==null||pSecond>pFirst)&&(swapSampleOK||swapMarginOK)&&routeHasTrueComparableEvidence(second)){
         routeOptions[0]=second;routeOptions[1]=first;
         delete routeOptions[0].speedArgument;
         sellState.routingReason="price";
@@ -372,7 +381,7 @@ function renderDecision(decisionData,renderOpts){
   // speed) so any post-result follow-up ("why this one") references the platform
   // the card actually shows, not the backend's pre-swap recommendedPath. Applies
   // to any recommendation whose displayed Card 1 differs from the backend pick.
-  sellState.displayedRecommendedPath=routeOptions[0]?.policyKey||routeOptions[0]?.platform||null;
+  sellState.displayedRecommendedPath=routesForCards[0]?.policyKey||routesForCards[0]?.platform||routeOptions[0]?.policyKey||routeOptions[0]?.platform||null;
   const twoRouteMode=hasTwoRouteTradeoff(routeOptions);
   const partnerReferral=decision.partnerReferral||{};
   sellState.partnerReferral=partnerReferral;
