@@ -461,7 +461,12 @@ async function handleOps(req, res) {
     const BATCH = "backfill_964993_20260830";
     const is964993 = t => /911|964|993|carrera|turbo|targa|speedster/i.test(t || "");
     if (req.query?.count) {
-      const rows = await supabaseSelect(env, `vehicle_market_records?make=ilike.Porsche&year=gte.1989&year=lte.1998&select=auction_end_date,year,raw_title,platform&order=auction_end_date.asc&limit=6000`) || [];
+      let rows = [];
+      for (let off = 0; off < 12000; off += 1000) {
+        const chunk = await supabaseSelect(env, `vehicle_market_records?make=ilike.Porsche&year=gte.1989&year=lte.1998&select=auction_end_date,year,raw_title,platform&order=auction_end_date.asc&limit=1000&offset=${off}`) || [];
+        rows = rows.concat(chunk);
+        if (chunk.length < 1000) break;
+      }
       const g = rows.filter(r => is964993(r.raw_title));
       const bySource = {}, s2025 = {}, m2025 = {}; let n2025 = 0;
       for (const r of g) {
@@ -469,7 +474,7 @@ async function handleOps(req, res) {
         const d = String(r.auction_end_date || "");
         if (d >= "2025-01-01" && d <= "2025-12-31") { n2025++; s2025[p] = (s2025[p] || 0) + 1; const m = d.slice(0, 7); m2025[m] = (m2025[m] || 0) + 1; }
       }
-      return res.status(200).json({ task: "backfill911", count: true, totalStored: g.length, bySource, stored2025: n2025, stored2025BySource: s2025, stored2025ByMonth: m2025 });
+      return res.status(200).json({ task: "backfill911", count: true, scannedRows: rows.length, totalStored: g.length, bySource, stored2025: n2025, stored2025BySource: s2025, stored2025ByMonth: m2025 });
     }
     if (req.query?.sample) {
       const rows = await supabaseSelect(env, `vehicle_market_records?ingestion_batch_id=eq.${BATCH}&select=source,auction_end_date,year,raw_title,price,source_url&order=auction_end_date.desc&limit=400`) || [];
