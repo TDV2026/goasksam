@@ -451,6 +451,39 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
+  // TEMP task=pulse911: READ-ONLY 964/993 rolling-window pull (informational). No writes.
+  // Two 90-day windows anchored to 2026-08-30, four online sources only. Remove after.
+  if (task === "pulse911") {
+    if (!env) return res.status(200).json({ task: "pulse911", error: "no supabase env" });
+    const is = t => /911|964|993|carrera|turbo|targa|speedster/i.test(t || "");
+    const ONLINE4 = new Set(["bringatrailer", "pcarmarket", "carsandbids", "hemmings"]);
+    let rows = [];
+    for (let off = 0; off < 12000; off += 1000) {
+      const chunk = await supabaseSelect(env, `vehicle_market_records?make=ilike.Porsche&year=gte.1989&year=lte.1998&auction_end_date=gte.2025-01-01&auction_end_date=lt.2026-09-01&select=auction_end_date,year,raw_title,platform,price,raw_record&order=auction_end_date.asc&limit=1000&offset=${off}`) || [];
+      rows = rows.concat(chunk); if (chunk.length < 1000) break;
+    }
+    const g = rows.filter(r => ONLINE4.has(r.platform) && is(r.raw_title) && Number(r.price) > 0);
+    const med = a => { if (a.length < 3) return null; const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2); };
+    const mileageOf = rr => { for (const k of ["mileage", "miles", "odometer"]) if (rr && rr[k] != null && rr[k] !== "") return Number(rr[k]); return null; };
+    const win = (lo, hi) => g.filter(r => r.auction_end_date >= lo && r.auction_end_date <= hi);
+    const summarize = w => { const bySrc = {}; for (const r of w) bySrc[r.platform] = (bySrc[r.platform] || 0) + 1; return { count: w.length, median: med(w.map(r => Number(r.price))), bySource: bySrc }; };
+    const cur = win("2026-06-02", "2026-08-30"), prev = win("2025-06-02", "2025-08-30");
+    // BaT share + mileage split in current window
+    const m = med(cur.map(r => Number(r.price)));
+    const mm = arr => { const x = arr.map(r => mileageOf(r.raw_record)).filter(v => v != null && Number.isFinite(v)); return { n: x.length, medianMiles: med(x) }; };
+    const mileageSplit = m ? { medianPrice: m, above: mm(cur.filter(r => Number(r.price) > m)), below: mm(cur.filter(r => Number(r.price) < m)) } : null;
+    const batCur = cur.filter(r => r.platform === "bringatrailer").length;
+    // coverage histogram (online4 only), all months in range
+    const monthHist = {}; for (const r of g) { const mo = String(r.auction_end_date).slice(0, 7); monthHist[mo] = (monthHist[mo] || 0) + 1; }
+    return res.status(200).json({
+      task: "pulse911", scannedRows: rows.length, online4_total: g.length,
+      current_2026: { window: "2026-06-02..2026-08-30", ...summarize(cur), batCount: batCur, batSharePct: cur.length ? Math.round(batCur / cur.length * 100) : null },
+      sameWindow_2025: { window: "2025-06-02..2025-08-30", ...summarize(prev) },
+      mileageSplit_current: mileageSplit,
+      coverageByMonth_online4: monthHist
+    });
+  }
+
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
