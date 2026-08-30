@@ -451,41 +451,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
-  // TEMP task=nlpull2: SELECT-ONLY newsletter data pull (follow-up cuts). No writes,
-  // no schema/product change. Returns bounded sold-record fields incl vin/url/country
-  // for dedup + US-venue cross-check. count=1 => exact count via Content-Range. Remove
-  // after the pull.
-  if (task === "nlpull2") {
-    if (!env) return res.status(200).json({ task: "nlpull2", error: "no supabase env" });
-    const make = String(req.query?.make || "");
-    const modelLike = String(req.query?.modelLike || "");
-    const yearMin = req.query?.yearMin ? Number(req.query.yearMin) : null;
-    const yearMax = req.query?.yearMax ? Number(req.query.yearMax) : null;
-    const sinceDays = Number(req.query?.sinceDays || 600);
-    const offset = Number(req.query?.offset || 0);
-    const cutoff = new Date(Date.now() - sinceDays * 864e5).toISOString().slice(0, 10);
-    let filter = `make=ilike.${encodeURIComponent(make)}&auction_end_date=gte.${cutoff}`;
-    if (modelLike) filter += `&or=(model.ilike.*${encodeURIComponent(modelLike)}*,raw_title.ilike.*${encodeURIComponent(modelLike)}*)`;
-    if (yearMin != null) filter += `&year=gte.${yearMin}`;
-    if (yearMax != null) filter += `&year=lte.${yearMax}`;
-    if (req.query?.count) {
-      const r = await fetch(`${env.supabaseUrl}/rest/v1/vehicle_market_records?${filter}&select=source_record_id&limit=1`,
-        { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact", Range: "0-0" } });
-      return res.status(200).json({ task: "nlpull2", countMode: true, contentRange: r.headers.get("content-range") });
-    }
-    const rows = await supabaseSelect(env, `vehicle_market_records?${filter}&select=make,model,year,price,auction_status,auction_end_date,platform,source,raw_title,raw_record&order=auction_end_date.desc&limit=1000&offset=${offset}`) || [];
-    const pick = (rr, keys) => { for (const k of keys) if (rr && rr[k] != null && rr[k] !== "") return rr[k]; return null; };
-    const out = rows.map(r => ({
-      make: r.make, model: r.model, year: r.year, price: r.price, status: r.auction_status,
-      date: r.auction_end_date, platform: r.platform || r.source, title: r.raw_title,
-      vin: pick(r.raw_record, ["vin"]), url: pick(r.raw_record, ["url", "listing_url"]),
-      country: pick(r.raw_record, ["country_code", "country"]), state: pick(r.raw_record, ["state"]),
-      mileage: pick(r.raw_record, ["mileage", "miles", "odometer"]),
-      color: pick(r.raw_record, ["exterior_color", "color", "exterior", "paint"])
-    }));
-    return res.status(200).json({ task: "nlpull2", n: out.length, hasMore: rows.length === 1000, rows: out });
-  }
-
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
