@@ -467,12 +467,24 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
         + Math.min(evidence.relevantSales || 0, 6) * 2
         + Math.min(evidence.broadSales || 0, 3);
       score += confidenceScore;
+      // Sample-size / share confidence (Aug 2026): a platform's median is only as
+      // trustworthy as the share of the tracked market it represents. Weighting the
+      // median bonus by share stops a low-share platform's high median (Hemmings on
+      // 9% of MGB sales, SOMO on 7% of 992 sales) from out-scoring the volume leader
+      // on price alone. Full trust at 50%+ share, floored so a real minority signal
+      // is not zeroed. The cheap-median PENALTY stays at full weight (never reward a
+      // platform for selling the car for less).
+      const sharePct = Number(evidence.evidenceSharePercent) || 0;
+      const shareConf = Math.max(0.25, Math.min(1, sharePct / 50));
       if (maxComparableMedian && (evidence.closeSales || evidence.relevantSales) && evidence.medianSalePrice) {
         const medianRatio = evidence.medianSalePrice / maxComparableMedian;
-        score += Math.round(medianRatio * 35);
+        score += Math.round(medianRatio * 35 * shareConf);
         if (medianRatio < 0.95) score -= Math.round((1 - medianRatio) * 45);
-        if (medianRatio >= 0.9 && ["fast", "medium_fast"].includes(policy.speedToList)) score += 8;
+        if (medianRatio >= 0.9 && shareConf >= 0.9 && ["fast", "medium_fast"].includes(policy.speedToList)) score += 8;
       }
+      // Volume leadership: a dominant share of the tracked market is itself a strong,
+      // trustworthy signal that this is where the car actually sells. +40 at 100% share.
+      score += Math.round(Math.min(sharePct, 100) * 0.4);
       if (comparableCount >= 3) score += 3;
       // Data pick (1b): the highest positive comparative delta leads. A cleared
       // premium (>=10%, 5+/5+ same rung and window) is the strongest signal,
@@ -520,6 +532,37 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
     priorities,
     routes
   };
+}
+
+// The authoritative recommended route, IDENTICAL in logic to the frontend's
+// routesForCards ladder (js/result.js): price-first, volume-second, never a
+// small-sample artifact. Kept in lockstep with that function so recommendedPath
+// (which the saved-results list renders) always equals the card the seller saw.
+//   Branch 1 (Mode A): the highest CLEARED symmetric premium (>=10%, 5+/5+) leads.
+//   Branch 5 (specialist crown, UNKNOWN spread only): a non-depth platform holding
+//     a specialization cell (lift >= 3x AND 5+ scope comps) leads.
+//   Branch 3: the depth leader (most sold comps at the landed scope) leads.
+// Only routable routes can be the pick; consignment-only sources never lead.
+function pickRecommendedRoute(routes) {
+  const routable = (routes || []).filter(r => r.routable !== false);
+  if (!routable.length) return (routes || []).find(r => r.routable) || (routes || [])[0] || null;
+  const clearedPct = r => {
+    const p = r && r.marketEvidence && r.marketEvidence.pricePremium;
+    return (p && p.gateType === "symmetric" && Number.isFinite(p.percent) && p.percent >= 10) ? p.percent : -1;
+  };
+  let best = null, bestPct = -1;
+  for (const r of routable) { const pct = clearedPct(r); if (pct > bestPct) { best = r; bestPct = pct; } }
+  if (best && bestPct >= 10) return best;
+  let deep = null, deepN = -1;
+  for (const r of routable) { const n = Number((r.marketEvidence && r.marketEvidence.evidenceSales) || 0); if (n > deepN) { deep = r; deepN = n; } }
+  const measured = routable.some(r => { const p = r && r.marketEvidence && r.marketEvidence.pricePremium; return p && p.platformSales >= 5 && p.othersSales >= 5; });
+  if (!measured) {
+    const specCell = r => { const c = r && r.marketEvidence && r.marketEvidence.specializationCell; return (c && Number(c.lift_rounded) >= 3 && Number(c.platform_count) >= 5) ? c : null; };
+    const specialist = routable.find(r => r !== deep && specCell(r));
+    if (specialist) return specialist;
+  }
+  if (deep && deepN > 0) return deep;
+  return routable[0] || (routes || [])[0] || null;
 }
 
 // Hybrid win-condition routing (Phase 2). A curated table marks a niche platform
@@ -1765,12 +1808,21 @@ function decide(analysis, criteria, vehicle) {
       if (spec) route.marketEvidence.specializationCell = spec;
     }
   }
-  const bestRoute = routeFit.routes.find(route => route.routable) || routeFit.routes[0] || null;
+  // The recommended route is the volume-aware pick, IDENTICAL to the frontend's
+  // routesForCards ladder (js/result.js) so the saved-list pick (read from
+  // recommendedPath) and the rendered card can never diverge. The old code took
+  // the raw score-sort winner, which let a small-sample, high-median platform
+  // (Hemmings on 10 MGB sales vs BaT's 105; SOMO on 1 992 sale vs BaT's 10)
+  // become recommendedPath while the card correctly showed the volume leader.
+  const bestRoute = pickRecommendedRoute(routeFit.routes)
+    || routeFit.routes.find(route => route.routable) || routeFit.routes[0] || null;
   // Coherence fact: a non-routable source with a stronger median than the pick
   // must be explained, never silently presented as "stronger but not chosen".
+  // Gated on a real sample (5+ sales): a one- or two-sale median is a mix
+  // artifact, not "the strongest comparable results", and must never headline.
   const pickMedian = bestRoute?.marketEvidence?.medianSalePrice || null;
   const strongerNonRoutable = routeFit.routes.find(route =>
-    !route.routable && route.marketEvidence?.evidenceSales > 0 &&
+    !route.routable && (route.marketEvidence?.evidenceSales || 0) >= 5 &&
     route.marketEvidence?.medianSalePrice && pickMedian &&
     route.marketEvidence.medianSalePrice > pickMedian
   ) || null;

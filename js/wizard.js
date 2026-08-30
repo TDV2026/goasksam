@@ -933,6 +933,13 @@ async function handleVehicleValidationAnswer(q){
     sellState.vehicleIdentityValidated=false;
     sellState.pendingVehicleIdentity=null;
     if(!(await validateVehicleIdentityPreflight(sellState.carName)))return true;
+    sellState.trimAskAttempts=0;
+    // A did-you-mean confirm must run the SAME missing-detail gate as the clean
+    // path (steps.js): confirming "Did you mean the Porsche?" for a trimless 911
+    // still owes the trim step before location. The old code jumped straight to
+    // location, silently skipping trim on every typo-confirmed vehicle.
+    const missingSug=currentMissingVehicleDetail();
+    if(missingSug){askMissingVehicleDetail(missingSug);return true;}
     addMsg("sam",vehicleAcceptPrefix());
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
       askLocationStep();
@@ -945,6 +952,9 @@ async function handleVehicleValidationAnswer(q){
     sellState.vehicleIdentityValidated=false;
     sellState.pendingVehicleIdentity=null;
     if(!(await validateVehicleIdentityPreflight(sellState.carName)))return true;
+    sellState.trimAskAttempts=0;
+    const missingSug=currentMissingVehicleDetail();
+    if(missingSug){askMissingVehicleDetail(missingSug);return true;}
     addMsg("sam",vehicleAcceptPrefix());
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
       askLocationStep();
