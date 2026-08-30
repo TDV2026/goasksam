@@ -484,12 +484,13 @@ async function handleOps(req, res) {
     const startPage = Math.max(1, Number(req.query?.start || 1));
     const maxPages = Math.max(1, Math.min(40, Number(req.query?.pages || 40)));
     const t0 = Date.now();
-    let metered = 0, fetched = 0, persistedAttempted = 0, page = startPage, totalResults = null, totalPages = null, lastDate = null, firstDate = null, stop = "complete", ocdRemaining = null;
-    for (; page < startPage + maxPages; page++) {
+    let metered = 0, fetched = 0, persistedAttempted = 0, page = startPage, totalResults = null, totalPages = null, lastDate = null, firstDate = null, stop = null, ocdRemaining = null, lastMeta = null, reachedEnd = false;
+    const capPage = startPage + maxPages;
+    for (; page < capPage; page++) {
       if (Date.now() - t0 > 225000) { stop = "time"; break; }
-      let resp; try { resp = await callOldCarsData("/auctions", { keyword: "911", make: "Porsche", status: "sold", year_min: yearMin, year_max: yearMax, source, sort: "date", direction: "asc", page, limit: 50 }, apiKey); metered++; ocdRemaining = resp.__rateLimit?.remaining || ocdRemaining; }
+      let resp; try { resp = await callOldCarsData("/auctions", { keyword: "911", make: "Porsche", status: "sold", year_min: yearMin, year_max: yearMax, source, sort: "date", direction: "asc", page, limit: 50 }, apiKey); metered++; ocdRemaining = resp.__rateLimit?.remaining || ocdRemaining; lastMeta = resp.meta || null; }
       catch (e) { stop = "ocd_error:" + e.message; break; }
-      totalResults = resp.meta?.total_results ?? totalResults; totalPages = resp.meta?.total_pages ?? totalPages;
+      totalResults = resp.meta?.total_results ?? resp.meta?.total ?? resp.meta?.count ?? totalResults; totalPages = resp.meta?.total_pages ?? resp.meta?.last_page ?? totalPages;
       const rows = resp.data || []; fetched += rows.length;
       if (rows.length) { if (!firstDate) firstDate = rows[0].auction_end_date; lastDate = rows[rows.length - 1].auction_end_date; }
       const payload = rows.map(record => ({
@@ -500,9 +501,12 @@ async function handleOps(req, res) {
         seller_username: record.seller_username || null, raw_record: record, ingestion_batch_id: BATCH
       })).filter(p => p.source_record_id);
       if (payload.length) { try { await supabaseInsert("vehicle_market_records", payload, env.supabaseUrl, env.supabaseKey, "resolution=ignore-duplicates,return=minimal", "?on_conflict=source,source_record_id"); persistedAttempted += payload.length; } catch (e) { stop = "persist_error:" + e.message; break; } }
-      if (rows.length < 50 || (totalPages && page >= totalPages)) { stop = "complete"; break; }
+      if (rows.length < 50 || (totalPages && page >= totalPages)) { reachedEnd = true; stop = "complete"; page++; break; }
     }
-    return res.status(200).json({ task: "backfill911", source, yearMin, yearMax, totalResults, totalPages, metered, fetched, persistedAttempted, firstDate, lastDate, startPage, lastPage: page, resumeFrom: stop === "time" ? page + 1 : null, stop, ocdRemaining });
+    // Distinguish a genuine end from hitting the page cap or the time guard: resume unless we truly reached the end.
+    if (!stop) stop = "page_cap";
+    const resumeFrom = (!reachedEnd && (stop === "time" || stop === "page_cap")) ? page : null;
+    return res.status(200).json({ task: "backfill911", source, yearMin, yearMax, totalResults, totalPages, lastMeta, metered, fetched, persistedAttempted, firstDate, lastDate, startPage, lastPage: page - 1, resumeFrom, reachedEnd, stop, ocdRemaining });
   }
 
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
