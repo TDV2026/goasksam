@@ -451,6 +451,31 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
+  // TEMP task=nlpull3: SELECT-ONLY newsletter data pull (online-only re-cut). No writes,
+  // no schema/product change. Bounded sold-record fields incl vin for dedup. Remove after.
+  if (task === "nlpull3") {
+    if (!env) return res.status(200).json({ task: "nlpull3", error: "no supabase env" });
+    const make = String(req.query?.make || "");
+    const modelLike = String(req.query?.modelLike || "");
+    const yearMin = req.query?.yearMin ? Number(req.query.yearMin) : null;
+    const yearMax = req.query?.yearMax ? Number(req.query.yearMax) : null;
+    const sinceDays = Number(req.query?.sinceDays || 600);
+    const cutoff = new Date(Date.now() - sinceDays * 864e5).toISOString().slice(0, 10);
+    let filter = `make=ilike.${encodeURIComponent(make)}&auction_end_date=gte.${cutoff}`;
+    if (modelLike) filter += `&or=(model.ilike.*${encodeURIComponent(modelLike)}*,raw_title.ilike.*${encodeURIComponent(modelLike)}*)`;
+    if (yearMin != null) filter += `&year=gte.${yearMin}`;
+    if (yearMax != null) filter += `&year=lte.${yearMax}`;
+    const rows = await supabaseSelect(env, `vehicle_market_records?${filter}&select=year,price,auction_status,auction_end_date,platform,source,raw_title,raw_record&order=auction_end_date.desc&limit=1000`) || [];
+    const pick = (rr, keys) => { for (const k of keys) if (rr && rr[k] != null && rr[k] !== "") return rr[k]; return null; };
+    const out = rows.map(r => ({
+      year: r.year, price: r.price, status: r.auction_status, date: r.auction_end_date,
+      platform: r.platform || r.source, title: r.raw_title,
+      vin: pick(r.raw_record, ["vin"]), mileage: pick(r.raw_record, ["mileage", "miles", "odometer"]),
+      color: pick(r.raw_record, ["exterior_color", "color", "exterior", "paint"])
+    }));
+    return res.status(200).json({ task: "nlpull3", n: out.length, hasMore: rows.length === 1000, rows: out });
+  }
+
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
