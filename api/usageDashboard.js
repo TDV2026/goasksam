@@ -451,6 +451,60 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
+  // TEMP task=backfill911: 964/993 historical backfill. Modes:
+  //   ?count=1                         -> read-only stored 964/993 counts (bySource + 2025 breakdown)
+  //   ?sample=1                        -> read-only sample of newly-inserted rows (by batch id)
+  //   ?source=X&year_min&year_max&start&pages -> page OCD sort=date asc and PERSIST (dedup on
+  //       source,source_record_id). Writes to vehicle_market_records only. Remove after.
+  if (task === "backfill911") {
+    if (!env) return res.status(200).json({ task: "backfill911", error: "no supabase env" });
+    const BATCH = "backfill_964993_20260830";
+    const is964993 = t => /911|964|993|carrera|turbo|targa|speedster/i.test(t || "");
+    if (req.query?.count) {
+      const rows = await supabaseSelect(env, `vehicle_market_records?make=ilike.Porsche&year=gte.1989&year=lte.1998&select=auction_end_date,year,raw_title,platform&order=auction_end_date.asc&limit=6000`) || [];
+      const g = rows.filter(r => is964993(r.raw_title));
+      const bySource = {}, s2025 = {}, m2025 = {}; let n2025 = 0;
+      for (const r of g) {
+        const p = r.platform || "?"; bySource[p] = (bySource[p] || 0) + 1;
+        const d = String(r.auction_end_date || "");
+        if (d >= "2025-01-01" && d <= "2025-12-31") { n2025++; s2025[p] = (s2025[p] || 0) + 1; const m = d.slice(0, 7); m2025[m] = (m2025[m] || 0) + 1; }
+      }
+      return res.status(200).json({ task: "backfill911", count: true, totalStored: g.length, bySource, stored2025: n2025, stored2025BySource: s2025, stored2025ByMonth: m2025 });
+    }
+    if (req.query?.sample) {
+      const rows = await supabaseSelect(env, `vehicle_market_records?ingestion_batch_id=eq.${BATCH}&select=source,auction_end_date,year,raw_title,price,source_url&order=auction_end_date.desc&limit=400`) || [];
+      // spread the sample across sources/years
+      const pick = []; const seen = new Set();
+      for (const r of rows) { const k = r.source + "|" + String(r.year); if (!seen.has(k) && pick.length < 10) { seen.add(k); pick.push({ source: r.source, sale_date: r.auction_end_date, year: r.year, title: r.raw_title, price: r.price, url: r.source_url }); } }
+      return res.status(200).json({ task: "backfill911", sample: true, totalInBatch: rows.length, records: pick });
+    }
+    const apiKey = process.env.OLDCARSDATA_API_KEY;
+    const source = String(req.query?.source || "");
+    const yearMin = Number(req.query?.year_min || 1989), yearMax = Number(req.query?.year_max || 1998);
+    const startPage = Math.max(1, Number(req.query?.start || 1));
+    const maxPages = Math.max(1, Math.min(40, Number(req.query?.pages || 40)));
+    const t0 = Date.now();
+    let metered = 0, fetched = 0, persistedAttempted = 0, page = startPage, totalResults = null, totalPages = null, lastDate = null, firstDate = null, stop = "complete", ocdRemaining = null;
+    for (; page < startPage + maxPages; page++) {
+      if (Date.now() - t0 > 225000) { stop = "time"; break; }
+      let resp; try { resp = await callOldCarsData("/auctions", { keyword: "911", make: "Porsche", status: "sold", year_min: yearMin, year_max: yearMax, source, sort: "date", direction: "asc", page, limit: 50 }, apiKey); metered++; ocdRemaining = resp.__rateLimit?.remaining || ocdRemaining; }
+      catch (e) { stop = "ocd_error:" + e.message; break; }
+      totalResults = resp.meta?.total_results ?? totalResults; totalPages = resp.meta?.total_pages ?? totalPages;
+      const rows = resp.data || []; fetched += rows.length;
+      if (rows.length) { if (!firstDate) firstDate = rows[0].auction_end_date; lastDate = rows[rows.length - 1].auction_end_date; }
+      const payload = rows.map(record => ({
+        source: recordPlatform(record), source_record_id: stableRecordId(record), source_url: record.url || record.listing_url || null, platform: recordPlatform(record),
+        ...persistableMakeModel(record), year: record.year || null, raw_title: record.title || record.listing_title || null,
+        price: Number(record.price ?? record.sold_price ?? record.final_price ?? record.current_bid) || null,
+        auction_status: record.auction_status || record.status || null, auction_end_date: record.auction_end_date || null,
+        seller_username: record.seller_username || null, raw_record: record, ingestion_batch_id: BATCH
+      })).filter(p => p.source_record_id);
+      if (payload.length) { try { await supabaseInsert("vehicle_market_records", payload, env.supabaseUrl, env.supabaseKey, "resolution=ignore-duplicates,return=minimal", "?on_conflict=source,source_record_id"); persistedAttempted += payload.length; } catch (e) { stop = "persist_error:" + e.message; break; } }
+      if (rows.length < 50 || (totalPages && page >= totalPages)) { stop = "complete"; break; }
+    }
+    return res.status(200).json({ task: "backfill911", source, yearMin, yearMax, totalResults, totalPages, metered, fetched, persistedAttempted, firstDate, lastDate, startPage, lastPage: page, resumeFrom: stop === "time" ? page + 1 : null, stop, ocdRemaining });
+  }
+
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
