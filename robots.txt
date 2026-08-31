@@ -3,3 +3,5 @@
 # /onebox stays crew-gated and carries its own noindex, so it is not listed here.
 User-agent: *
 Allow: /
+
+Sitemap: https://goasksam.com/sitemap.xml

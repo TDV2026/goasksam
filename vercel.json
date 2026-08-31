@@ -9,7 +9,7 @@
     {
       "source": "/",
       "destination": "/sell",
-      "permanent": false
+      "permanent": true
     },
     {
       "source": "/rudy",
