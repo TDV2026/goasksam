@@ -451,39 +451,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
-  // TEMP task=somo488: READ-ONLY. SOMO 488 records in both windows + price-field
-  // inspection across the four sources. No writes. Remove after.
-  if (task === "somo488") {
-    if (!env) return res.status(200).json({ task: "somo488", error: "no supabase env" });
-    const plat = r => r.platform || r.source || "?";
-    const variant = t => { t = String(t || "").toLowerCase(); if (/pista\s*spider/.test(t)) return "Pista Spider"; if (/pista/.test(t)) return "Pista"; if (/challenge/.test(t)) return "Challenge"; if (/spider/.test(t)) return "488 Spider"; if (/gtb/.test(t)) return "488 GTB"; return "488 (unspec)"; };
-    const mileageOf = rr => { for (const k of ["mileage", "miles", "odometer"]) if (rr && rr[k] != null && rr[k] !== "") return Number(rr[k]); return null; };
-    let rows = [];
-    for (let off = 0; off < 8000; off += 1000) {
-      const chunk = await supabaseSelect(env, `vehicle_market_records?make=ilike.Ferrari&auction_end_date=gte.2025-06-01&auction_end_date=lt.2026-09-01&select=auction_end_date,raw_title,platform,source,price,raw_record&order=auction_end_date.asc&limit=1000&offset=${off}`) || [];
-      rows = rows.concat(chunk); if (chunk.length < 1000) break;
-    }
-    const all488 = rows.filter(r => /488/.test(r.raw_title || "") && Number(r.price) > 0);
-    const inWin = (r, lo, hi) => r.auction_end_date >= lo && r.auction_end_date <= hi;
-    const somo = all488.filter(r => plat(r) === "sothebysmotorsport").map(r => ({
-      window: inWin(r, "2026-06-02", "2026-08-30") ? "current" : (inWin(r, "2025-06-02", "2025-08-30") ? "prior" : "other"),
-      date: String(r.auction_end_date).slice(0, 10), storedPrice: Number(r.price), mileage: mileageOf(r.raw_record),
-      variant: variant(r.raw_title), title: r.raw_title,
-      // raw price-related fields, to see whether a premium/fee layer is present
-      rawPriceFields: Object.fromEntries(Object.entries(r.raw_record || {}).filter(([k]) => /price|premium|fee|hammer|bid|sold|total/i.test(k)))
-    }));
-    // price-field inspection for the four sources (1 sample each)
-    const FOUR = ["bringatrailer", "pcarmarket", "carsandbids", "hemmings"];
-    const priceFields = {};
-    for (const src of FOUR) {
-      const r = all488.find(x => plat(x) === src);
-      priceFields[src] = r ? { storedPrice: Number(r.price), title: r.raw_title, rawPriceFields: Object.fromEntries(Object.entries(r.raw_record || {}).filter(([k]) => /price|premium|fee|hammer|bid|sold|total/i.test(k))) } : "no 488 sample in range";
-    }
-    // full 488 stored prices per window for the four sources (for the recompute)
-    const fourPrices = (lo, hi) => all488.filter(r => FOUR.includes(plat(r)) && inWin(r, lo, hi)).map(r => Number(r.price)).sort((a, b) => a - b);
-    return res.status(200).json({ task: "somo488", somoRecords: somo, priceFieldInspection: priceFields, fourSourcePrices_current: fourPrices("2026-06-02", "2026-08-30"), fourSourcePrices_prior: fourPrices("2025-06-02", "2025-08-30") });
-  }
-
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
