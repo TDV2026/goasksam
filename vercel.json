@@ -10,6 +10,11 @@
       "source": "/",
       "destination": "/sell",
       "permanent": false
+    },
+    {
+      "source": "/rudy",
+      "destination": "/api/crew?guest=clint&to=/sell",
+      "permanent": false
     }
   ],
   "rewrites": [
