@@ -451,6 +451,30 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
+  // TEMP task=live488: READ-ONLY. 488 sales at live auction houses, 2026 windows, with
+  // native currency preserved. No writes. Remove after.
+  if (task === "live488") {
+    if (!env) return res.status(200).json({ task: "live488", error: "no supabase env" });
+    const LIVE = new Set(["rmsothebys", "gooding", "goodingco", "mecum", "broadarrow", "broad_arrow", "bonhams", "barrettjackson", "barrett_jackson"]);
+    const plat = r => r.platform || r.source || "?";
+    const variant = t => { t = String(t || "").toLowerCase(); if (/pista\s*spider/.test(t)) return "Pista Spider"; if (/pista/.test(t)) return "Pista"; if (/challenge/.test(t)) return "Challenge"; if (/spider/.test(t)) return "488 Spider"; if (/gtb/.test(t)) return "488 GTB"; return "488 (unspec)"; };
+    const mileageOf = rr => { for (const k of ["mileage", "miles", "odometer"]) if (rr && rr[k] != null && rr[k] !== "") return Number(rr[k]); return null; };
+    const cur = rr => (rr && (rr.currency || rr.price_currency)) || null;
+    let rows = [];
+    for (let off = 0; off < 8000; off += 1000) {
+      const chunk = await supabaseSelect(env, `vehicle_market_records?make=ilike.Ferrari&auction_end_date=gte.2026-01-01&auction_end_date=lt.2026-09-01&select=auction_end_date,raw_title,platform,source,price,raw_record&order=auction_end_date.asc&limit=1000&offset=${off}`) || [];
+      rows = rows.concat(chunk); if (chunk.length < 1000) break;
+    }
+    const all = rows.filter(r => /488/.test(r.raw_title || "") && Number(r.price) > 0 && LIVE.has(plat(r)));
+    const rec = r => ({ source: plat(r), date: String(r.auction_end_date).slice(0, 10), price: Number(r.price), currency: cur(r.raw_record) || "?", variant: variant(r.raw_title), mileage: mileageOf(r.raw_record), year: r.year || (r.raw_record && r.raw_record.year), title: r.raw_title, vin: r.raw_record && r.raw_record.vin, url: (r.raw_record && r.raw_record.url) || null });
+    const carWeek = all.filter(r => { const d = String(r.auction_end_date).slice(0, 10); return d >= "2026-08-07" && d <= "2026-08-16"; }).map(rec);
+    const fullYear = all.map(rec);
+    const bySource = {}, byCurrency = {}, byMonth = {};
+    for (const r of fullYear) { bySource[r.source] = (bySource[r.source] || 0) + 1; byCurrency[r.currency] = (byCurrency[r.currency] || 0) + 1; const m = r.date.slice(0, 7); (byMonth[m] = byMonth[m] || []).push(r.variant); }
+    const monthHist = Object.fromEntries(Object.entries(byMonth).map(([m, v]) => [m, v.length]));
+    return res.status(200).json({ task: "live488", totalLive488_2026: fullYear.length, bySource, byCurrency, monthHist, carWeek, fullYear });
+  }
+
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
