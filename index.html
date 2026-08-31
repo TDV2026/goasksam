@@ -116,5 +116,24 @@
 <script src="js.20260831a/result-v2.js"></script>
 <script src="js.20260831a/entry.js"></script>
 <script src="js.20260831a/homepage.js"></script>
+<!-- Blank-pane watchdog (inline so it cannot itself fail to load): if a bundle
+     fetch was blocked, challenged, or dropped, bootHomepage never paints #msgs and
+     the main pane stays blank while the nav chrome (auth.js) still renders. This
+     grace-timed net shows an honest reload prompt instead of blank white space. It
+     only acts when #msgs is genuinely empty, so a rendered hero, wall, or chat never
+     triggers it. Not product copy or logic: a last-resort failure signal only. -->
+<script>
+  window.addEventListener("load", function () {
+    setTimeout(function () {
+      var m = document.getElementById("msgs");
+      if (!m || m.children.length > 0) return;
+      m.innerHTML = '<div class="row sam"><div class="row-inner"><div class="msg-wrap">'
+        + '<div class="sam-label">Sam</div>'
+        + '<div class="sam-text">Something did not load correctly. Reload the page and I\'ll pick up where we left off.</div>'
+        + '<div class="sell-rec-actions"><button class="primary" onclick="location.reload()">Reload</button></div>'
+        + '</div></div></div>';
+    }, 2500);
+  });
+</script>
 </body>
 </html>
