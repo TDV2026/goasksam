@@ -451,6 +451,48 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
+  // TEMP task=rx2audit: READ-ONLY. RX2 saved snapshot (list-vs-card pick) + RX2 comps
+  // coverage. No writes. Remove after.
+  if (task === "rx2audit") {
+    if (!env) return res.status(200).json({ task: "rx2audit", error: "no supabase env" });
+    // snapshot(s): saved_results whose vehicle is a Mazda RX2
+    const savedRows = await supabaseSelect(env, `saved_results?select=id,user_id,created_at,payload&order=created_at.desc&limit=500`) || [];
+    const cardPick = routes => {
+      const routable = (routes || []).filter(r => r.routable !== false);
+      const clearedPct = r => { const p = r && r.marketEvidence && r.marketEvidence.pricePremium; return (p && p.gateType === "symmetric" && Number.isFinite(p.percent) && p.percent >= 10) ? p.percent : -1; };
+      let deep = null, deepN = -1; for (const r of routable) { const n = Number((r.marketEvidence && r.marketEvidence.evidenceSales) || 0); if (n > deepN) { deep = r; deepN = n; } }
+      const cleared = routable.map(r => ({ r, pct: clearedPct(r) })).filter(x => x.pct >= 10).sort((a, b) => b.pct - a.pct);
+      for (const { r } of cleared) { if (r === deep) return r; }
+      return deep || routable[0] || null;
+    };
+    const snaps = [];
+    for (const row of savedRows) {
+      const p = row.payload || {}; const v = p.vehicle || {};
+      if (!(/mazda/i.test(v.make || "") && /rx.?2/i.test(v.model || v.canonicalLabel || ""))) continue;
+      const routes = p.decision?.routeFit?.routes || [];
+      const card = cardPick(routes);
+      snaps.push({
+        id: row.id, createdAt: row.created_at, car: v.canonicalLabel || [v.year, v.make, v.model].filter(Boolean).join(" "),
+        list_recommendedPath: p.decision?.recommendedPath || p.recommendedPath || null,
+        card_routesForCardsPick: card ? (card.platform || card.policyKey || card.label) : null,
+        evidenceBasis: p.decision?.evidenceBasis || null,
+        routes: routes.map(r => ({ platform: r.platform || r.policyKey, label: r.label, score: r.score, routable: r.routable, evSales: r.marketEvidence?.evidenceSales ?? 0, share: r.marketEvidence?.evidenceSharePercent ?? null, prem: r.marketEvidence?.pricePremium?.percent ?? null }))
+      });
+    }
+    // comps coverage: Mazda RX2 in vehicle_market_records
+    let comps = [];
+    for (let off = 0; off < 4000; off += 1000) {
+      const chunk = await supabaseSelect(env, `vehicle_market_records?make=ilike.Mazda&or=(model.ilike.*RX2*,model.ilike.*RX-2*,raw_title.ilike.*RX2*,raw_title.ilike.*RX-2*)&select=auction_end_date,year,price,platform,source,raw_title,auction_status&order=auction_end_date.desc&limit=1000&offset=${off}`) || [];
+      comps = comps.concat(chunk); if (chunk.length < 1000) break;
+    }
+    const byPlat = {}; for (const c of comps) { const s = c.platform || c.source || "?"; byPlat[s] = (byPlat[s] || 0) + 1; }
+    return res.status(200).json({
+      task: "rx2audit", snapshotCount: snaps.length, snapshots: snaps,
+      compsTotal: comps.length, compsByPlatform: byPlat,
+      compsSample: comps.slice(0, 12).map(c => ({ date: String(c.auction_end_date).slice(0, 10), year: c.year, price: Number(c.price), platform: c.platform || c.source, status: c.auction_status, title: String(c.raw_title || "").slice(0, 50) }))
+    });
+  }
+
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
