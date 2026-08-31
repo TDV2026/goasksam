@@ -451,6 +451,44 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
+  // TEMP task=somoaudit: READ-ONLY. Full raw_record for the suspect SOMO 488 row +
+  // scan of all SOMO records for the same failure signature. No writes. Remove after.
+  if (task === "somoaudit") {
+    if (!env) return res.status(200).json({ task: "somoaudit", error: "no supabase env" });
+    let rows = [];
+    for (let off = 0; off < 6000; off += 1000) {
+      const chunk = await supabaseSelect(env, `vehicle_market_records?or=(platform.eq.sothebysmotorsport,source.eq.sothebysmotorsport)&select=source_record_id,ingestion_batch_id,ingested_at,auction_end_date,year,price,raw_title,platform,source,source_url,raw_record&order=auction_end_date.asc&limit=1000&offset=${off}`) || [];
+      rows = rows.concat(chunk); if (chunk.length < 1000) break;
+    }
+    const d10 = r => String(r.auction_end_date || "").slice(0, 10);
+    const rrGet = (r, k) => r.raw_record && r.raw_record[k];
+    // 1. the suspect row (full raw_record)
+    const target = rows.find(r => d10(r) === "2026-08-19" && /488/.test(r.raw_title || "") && Math.round(Number(r.price)) === 283834);
+    // 2. near-date scan (mis-date candidates): any SOMO 488 / 2016 Spider around that date
+    const nearDates = rows.filter(r => d10(r) >= "2026-07-15" && d10(r) <= "2026-09-15").map(r => ({ id: r.source_record_id, date: d10(r), year: r.year, price: Number(r.price), title: r.raw_title, vin: rrGet(r, "vin"), url: r.source_url || rrGet(r, "url") }));
+    // 3a. duplicate VINs
+    const vinMap = {}; for (const r of rows) { const v = rrGet(r, "vin"); if (v) (vinMap[v] = vinMap[v] || []).push({ id: r.source_record_id, date: d10(r), price: Number(r.price), title: r.raw_title }); }
+    const dupVins = Object.entries(vinMap).filter(([, a]) => a.length > 1).map(([vin, recs]) => ({ vin, recs }));
+    // 3b. date histogram (isolated single-record days are candidates for "no real sales that day")
+    const dateHist = {}; for (const r of rows) { const d = d10(r); dateHist[d] = (dateHist[d] || 0) + 1; }
+    // 3c. structural signature: synthetic-looking id (uuid), missing vin, missing url, non-numeric/odd price
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const suspects = rows.map(r => {
+      const vin = rrGet(r, "vin"), url = r.source_url || rrGet(r, "url"), id = r.source_record_id;
+      const flags = [];
+      if (!vin) flags.push("no_vin");
+      if (!url) flags.push("no_url");
+      if (uuidRe.test(String(id))) flags.push("uuid_id");
+      if ((dateHist[d10(r)] || 0) === 1) flags.push("isolated_date");
+      return flags.length ? { id, date: d10(r), price: Number(r.price), title: r.raw_title, vin: vin || null, url: url || null, ingested_at: r.ingested_at, batch: r.ingestion_batch_id, flags } : null;
+    }).filter(Boolean);
+    return res.status(200).json({
+      task: "somoaudit", totalSomo: rows.length,
+      target: target ? { source_record_id: target.source_record_id, ingested_at: target.ingested_at, ingestion_batch_id: target.ingestion_batch_id, auction_end_date: target.auction_end_date, price: target.price, source_url: target.source_url, raw_record: target.raw_record } : "NOT FOUND",
+      nearDates, dupVins, dateHist, suspectCount: suspects.length, suspects
+    });
+  }
+
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
