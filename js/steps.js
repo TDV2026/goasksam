@@ -148,6 +148,7 @@ async function handleSellStep(q){
     sellState.carRaw=q;
     sellState.carName=q;
     sellState.vehicleIdentityValidated=false;
+    sellState.badgeAsked=false;sellState.awaitingBadge=false; // fresh vehicle: allow its own badge re-check
     if(/porsche|911/i.test(lower))sellState.carType="porsche";
     else if(/bmw|m2/i.test(lower))sellState.carType="bmw";
     else sellState.carType="generic";
@@ -176,6 +177,11 @@ async function handleSellStep(q){
   }
 
   if(step===17){
+    // Badge/designation re-check sub-state (unverified nameplates): its own step, so a
+    // supplied code is captured and matched, never force-parsed as the next question.
+    if(sellState.awaitingBadge){
+      return await handleBadgeAnswer(q);
+    }
     const currentIssue=activeVehicleIssue();
     if(currentIssue?.type==="invalid_vehicle"){
       return handleVehicleValidationAnswer(q);

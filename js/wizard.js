@@ -1,7 +1,7 @@
 // Partner (PowerSeller) profiles come from the backend partners table via
 // decision.partnerReferral. Nothing partner-related is hardcoded here.
 
-const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,region:null,state:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,sellerPreference:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,awaitingCityConfirm:null,vehicleDetailSkipped:false,vehicleIdentityValidated:false,pendingVehicleIdentity:null,resolvedVehicle:null,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[],allRouteOptions:[],powerSellerProfiles:[],selectedPowerSellerId:null,noEvidenceFallback:null,archiveModelCount:null,afterOutOfScope:false};
+const sellState={active:false,step:0,carRaw:null,carName:null,carType:null,region:null,state:null,mileage:null,condition:null,records:null,title:null,price:null,timeline:null,involvement:null,sellerPreference:null,notes:null,photo:null,chosen:null,email:null,phone:null,returnToConfirm:false,awaitingCityConfirm:null,vehicleDetailSkipped:false,vehicleIdentityValidated:false,pendingVehicleIdentity:null,resolvedVehicle:null,generatedPrimaryName:null,generatedSecondaryName:null,sellDecision:null,sellOptions:[],allRouteOptions:[],powerSellerProfiles:[],selectedPowerSellerId:null,noEvidenceFallback:null,archiveModelCount:null,afterOutOfScope:false,badgeAsked:false,awaitingBadge:false};
 function resetSellState(){
   Object.keys(sellState).forEach(k=>sellState[k]=null);
   sellState.active=false;sellState.step=0;sellState.returnToConfirm=false;sellState.vehicleDetailSkipped=false;sellState.vehicleIdentityValidated=false;sellState.pendingVehicleIdentity=null;sellState.sellOptions=[];sellState.allRouteOptions=[];sellState.powerSellerProfiles=[];sellState.noEvidenceFallback=null;
@@ -1130,9 +1130,53 @@ function vehicleAcceptPrefix(){
   const v=sellState.resolvedVehicle;
   if(v&&v.unverified){
     const label=v.model?`the ${v.make} ${v.model}`:"that";
-    return `I don't recognize ${label} as a model I track, so I'll run a broader ${v.make||"make"}-level read. Tell me the exact badge if you want to double-check the designation.`;
+    // The badge/designation re-check is now its OWN step (askBadgeStep, fired from
+    // resumeWizardAfterVehicle), so a supplied code is captured instead of being parsed
+    // as a state. This line only sets the make-level context; it no longer invites a
+    // badge inline (which used to collide with the very next question).
+    return `I don't recognize ${label} as a model I track, so I'll run a broader ${v.make||"make"}-level read.`;
   }
   return `Got it. ${sellState.carName}.`;
+}
+
+// Badge/designation re-check answer (unverified nameplates only). Captures and, where
+// possible, matches a supplied code against the taxonomy; otherwise acknowledges it and
+// keeps the make-level read. Skip/decline/non-code advances. Off-script questions route
+// to chat (rule 12). Copy here is user-facing (see the report note).
+async function handleBadgeAnswer(q){
+  const lower=String(q||"").toLowerCase().trim();
+  const questionLike=/\?\s*$/.test(q)||/^(what|how|why|when|where|who|can|could|will|would|does|do|is|are|should|but|explain|tell me)\b/i.test(lower);
+  if(questionLike&&!looksLikeVehicleText(q))return false; // off-script -> chat, badge re-asks after
+  const mk=(sellState.resolvedVehicle&&sellState.resolvedVehicle.make)||extractVehicleMake(sellState.carName||"")||"make";
+  // Skip / decline / not sure / no code to give -> advance with the make-level read.
+  if(detectIntent(lower)==="moveOn"||detectIntent(lower)==="refusal"||/^(skip|skip this( step)?|no|none|nope|not sure|dun+o|don'?t know|no idea|na|n\/a)\.?$/i.test(lower)){
+    sellState.awaitingBadge=false;
+    resumeWizardAfterVehicle();
+    return true;
+  }
+  // A supplied badge/code: acknowledge it, try a taxonomy match, then advance either way.
+  sellState.awaitingBadge=false;
+  const code=String(q).trim();
+  const year=sellState.resolvedVehicle&&sellState.resolvedVehicle.year;
+  let matched=false;
+  try{
+    const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:[year,mk,code].filter(Boolean).join(" ")})});
+    const data=await res.json();
+    if(res.ok&&data.status==="valid"&&data.vehicle&&data.vehicle.canonicalLabel&&!data.vehicle.unverified){
+      sellState.resolvedVehicle=data.vehicle;
+      sellState.carName=data.vehicle.canonicalLabel;
+      sellState.carRaw=data.vehicle.canonicalLabel;
+      sellState.vehicleIdentityValidated=true;
+      matched=true;
+    }
+  }catch(e){/* network issue: acknowledge the code, keep make-level */}
+  if(matched){
+    resumeWizardAfterVehicle(`Got it, that matches the ${sellState.carName}.`);
+  }else{
+    if(sellState.resolvedVehicle)sellState.resolvedVehicle.badgeNote=code;
+    resumeWizardAfterVehicle(`Got it, noting ${escapeHtml(code)}. It's still not a designation I track, so the read stays at the ${mk} level.`);
+  }
+  return true;
 }
 
 // Resume at the first unanswered question: a vehicle edit mid-flow keeps
@@ -1184,6 +1228,20 @@ function resumeWizardAfterVehicle(prefix){
     // Already asked and the seller stayed unsure: proceed with the shared line.
   }else{
     sellState.bodyStyleAsked=false; // resolved to a real body (or non-Porsche): reset for any later edit
+  }
+  // Unverified nameplate: offer a one-time badge/designation re-check as its OWN step,
+  // BEFORE the location question, so a supplied code is captured (and matched against the
+  // taxonomy if possible) instead of being force-parsed as a state and rejected. A skip,
+  // decline, or non-code advances normally to the make-level read. Never blocks: the
+  // broader make-level read is honest and correct when a badge does not resolve.
+  if(sellState.resolvedVehicle&&sellState.resolvedVehicle.unverified&&!sellState.badgeAsked&&!sellState.returnToConfirm){
+    sellState.badgeAsked=true;
+    sellState.awaitingBadge=true;
+    const mk=sellState.resolvedVehicle.make||"make";
+    if(prefix)addMsg("sam",prefix);
+    sellState.step=17; sellState.lastMissingAsk=null; sellState.trimAskAttempts=0;
+    addMsg("sam",`If you have the exact badge or model code from the car (data plate, engine bay, or the paperwork), type it and I'll try to match it. Otherwise say skip and I'll run the ${mk}-level read.`,"",chipsHTML(["Skip","Not sure"]));
+    return;
   }
   // Intake (US-only launch): car -> state(18) -> price(6) -> preference(8) ->
   // analysis. No country step (dormant), no confirm step: the preference answer
