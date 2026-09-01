@@ -1187,9 +1187,10 @@ async function handleOps(req, res) {
     const sub = String(req.query?.sub || "sources");
     const base = `${env.supabaseUrl}/rest/v1/vehicle_market_records`;
     const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    // House detection: explicit slug patterns for the six live houses.
-    const HOUSE_RE = /sotheby|gooding|mecum|bonham|broad.?arrow|barrett/i;
-    const isHouse = s => HOUSE_RE.test(String(s || ""));
+    // The six live auction houses (explicit; NOT sothebysmotorsport, which is the
+    // SOMO online platform included in the product, not an excluded live house).
+    const HOUSE_SLUGS = new Set(["rmsothebys", "gooding", "barrettjackson", "mecum", "broadarrow", "bonhams"]);
+    const isHouse = s => HOUSE_SLUGS.has(String(s || ""));
     async function pageAll(query, cap) {
       const out = []; let offset = 0; const step = 1000;
       while (out.length < cap) {
