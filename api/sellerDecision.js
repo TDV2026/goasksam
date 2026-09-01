@@ -2565,6 +2565,24 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
     await recordIpHit(ip, "tester_search", supabaseUrl, supabaseKey);
     return { ok: true, testerBypass: true, anonSessionId, accountId: testerAccountId };
   }
+  // Day pass (shareable giveaway): a device holding gas_pass=ok gets a small daily
+  // allowance (default 3, app_config daypass_cap_day) on its OWN IP-based counter
+  // (kind pass_search), resetting at midnight UTC, never mixed with the free/subscriber
+  // buckets. One shareable code, no account, no hard expiry - the daily reset IS the
+  // limit, so the same link can be handed to many people and each gets 3/day. Searches
+  // log with tier "daypass" (kept out of real-user metrics). Signed-in sessions skip it
+  // (a real account stays tiered by reserve_search). forceGate opts back into the real gate.
+  if (cookies.gas_pass === "ok" && !forceGate && !req.headers.authorization) {
+    const dayStartIso = new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z").toISOString();
+    const passHits = await ipHitsSince(ip, "pass_search", dayStartIso, supabaseUrl, supabaseKey);
+    const passCap = await appConfigInt("daypass_cap_day", 3, supabaseUrl, supabaseKey);
+    if (passHits !== null && passHits >= passCap) {
+      await logFunnel("daypass_daily_limit_hit", { anon_session_id: anonSessionId, dedup_key: `daypass:${ip}:${coarseDayKey()}` }, supabaseUrl, supabaseKey);
+      return { block: { status: "daypass_daily_limit_reached", tier: "daypass", dailyCap: passCap } };
+    }
+    await recordIpHit(ip, "pass_search", supabaseUrl, supabaseKey);
+    return { ok: true, daypassBypass: true, anonSessionId };
+  }
   const authHeader = req.headers.authorization;
   if (authHeader) {
     const auth = await validateBearer(authHeader);
@@ -2808,7 +2826,7 @@ export default async function handler(req, res) {
     // through the summary-strip Edit). The search was already reserved this session,
     // so it must NOT consume a new credit - skip the gate like the internal callers.
     const internalCall = req.body?.warm === true || req.body?.bypassCache === true || req.body?.rerun === true;
-    let searchAccountId = null, anonFirstFree = false, anonSessionId = null, searchQuota = null, crewBypass = false, testerBypass = false;
+    let searchAccountId = null, anonFirstFree = false, anonSessionId = null, searchQuota = null, crewBypass = false, testerBypass = false, daypassBypass = false;
     if (!internalCall) {
       const gate = await computeSearchGate(req, vehicle, supabaseUrl, supabaseKey);
       if (gate.block) return res.status(200).json(gate.block);
@@ -2820,9 +2838,10 @@ export default async function handler(req, res) {
       searchDaily = gate.daily || null;
       crewBypass = !!gate.crewBypass;
       testerBypass = !!gate.testerBypass;
+      daypassBypass = !!gate.daypassBypass;
     }
     // F: coarse tier for the dashboard (forward-only). internal jobs -> "internal".
-    const searchTier = internalCall ? "internal" : crewBypass ? "crew" : testerBypass ? "tester" : (searchQuota?.tier || (searchAccountId ? "free" : "anon"));
+    const searchTier = internalCall ? "internal" : crewBypass ? "crew" : testerBypass ? "tester" : daypassBypass ? "daypass" : (searchQuota?.tier || (searchAccountId ? "free" : "anon"));
 
     let fetchResult = null;
     let cacheStatus = "miss";

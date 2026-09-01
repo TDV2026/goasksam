@@ -115,6 +115,25 @@ export default async function handler(req, res) {
     res.status(302).end();
     return;
   }
+  // DAY PASS redemption: ?pass=<CODE>. Validated against DAYPASS_CODE (baked default so
+  // the link works the moment this deploys); sets a JS-readable gas_pass cookie granting
+  // a small daily allowance (daypass_cap_day, default 3) that resets at midnight, enforced
+  // server-side in sellerDecision's gate. Shareable to many people, no account, no hard
+  // expiry (the daily reset IS the limit). Falls through to home on a bad code. Distinct
+  // from tester (pre-launch, expired) and guest (30 lifetime).
+  const pass = String(q.pass || "");
+  if (pass) {
+    const expectedPass = process.env.DAYPASS_CODE || "tdv-day3-k7x2";
+    if (expectedPass && pass === expectedPass) {
+      res.setHeader("Set-Cookie", `gas_pass=ok; Max-Age=${60 * 60 * 24 * 180}; Path=/; SameSite=Lax; Secure`);
+      res.setHeader("Location", to);
+      res.status(302).end();
+      return;
+    }
+    res.setHeader("Location", "/");
+    res.status(302).end();
+    return;
+  }
   const code = String(q.code || "");
   const expected = process.env.CURTAIN_CREW_CODE || "";
   if (expected && code === expected) {

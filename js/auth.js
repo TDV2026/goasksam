@@ -442,7 +442,7 @@ function gasSetWalled(status, tier) { gasWalledStatus = status || null; gasWalle
 function gasClearWalled() { gasWalledStatus = null; gasWalledTier = null; }
 // Statuses that mean "no more searches until reset / sign-in" (persistent), vs transient
 // ones (ip_rate_limited, auth_required) that a retry can clear on its own.
-function gasIsWallStatus(s) { return ["daily_limit_reached", "tester_daily_limit_reached", "guest_limit_reached", "limit_reached", "account_required", "capacity"].includes(s); }
+function gasIsWallStatus(s) { return ["daily_limit_reached", "tester_daily_limit_reached", "daypass_daily_limit_reached", "guest_limit_reached", "limit_reached", "account_required", "capacity"].includes(s); }
 // Guest link present (server-set cookie from /api/crew?guest=<CODE>): the visitor is
 // entitled to 30 lifetime searches once they sign in with their email.
 function gasIsGuestLink() { return gasCookie("gas_guest") === "ok"; }
@@ -506,6 +506,11 @@ function gateRenderStatus(data) {
     // free); resets at midnight ET. Locked copy, no dashes.
     const tn = Number(data && data.dailyCap) || 10;
     gateAppendCard(`<div class="sam-text">That's your ${authEsc(String(tn))} test searches for today. They reset tomorrow. Thanks for helping put me through my paces.</div>`);
+  } else if (status === "daypass_daily_limit_reached") {
+    // Day-pass wall. No account nag (the pass is deliberately account free); the
+    // allowance resets at midnight. Locked copy, no dashes.
+    const dn = Number(data && data.dailyCap) || 3;
+    gateAppendCard(`<div class="sam-text">That's your ${authEsc(String(dn))} searches for today. They reset at midnight, so come back tomorrow for more.</div>`);
   } else if (status === "ip_rate_limited") {
     // Spec C: per-IP cap tripped. Honest, no blame, offers the two real outs.
     gateAppendCard(`<div class="sam-text">A lot of searches are coming from your connection. Sign in, or try again in a bit.</div>`);
@@ -541,7 +546,7 @@ function gateCheckUpfront() {
     // (?realgate=1). realgate makes a crew device run the real gate for testing, so
     // the upfront wall must appear then too (the backend honors it as forceGate).
     const realgate = (typeof gasRealGate === "function") && gasRealGate();
-    if (!realgate && (gasCookie("gas_crew") === "ok" || gasCookie("gas_tester") === "ok")) return false;
+    if (!realgate && (gasCookie("gas_crew") === "ok" || gasCookie("gas_tester") === "ok" || gasCookie("gas_pass") === "ok")) return false;
     if (typeof authIsSignedIn === "function" && authIsSignedIn()) {
       const d = (typeof authAccount === "function") && authAccount() && authAccount().daily;
       if (d && d.dailyRemaining != null && d.dailyRemaining <= 0) {
