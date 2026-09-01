@@ -1179,27 +1179,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  // TEMP read-only: verify the specific known RM Sotheby's duplicate pair collapses under
-  // the content-based dedup. Archive only, zero OCD cost, no writes. Remove after report.
-  if (task === "obxdedup") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { dedupBySaleIdentity } = await import("../lib/_houseComps.js");
-    const base = `${env.supabaseUrl}/rest/v1/vehicle_market_records`;
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    const cols = "source,source_record_id,price,auction_end_date,rtitle:raw_record->>title,raw_title,mileage:raw_record->>mileage";
-    const ids = String(req.query?.ids || "275379,5799727");
-    const r = await fetch(`${base}?select=${cols}&source=eq.rmsothebys&source_record_id=in.(${ids})`, { headers: H });
-    const rows = r.ok ? await r.json() : [];
-    const deduped = dedupBySaleIdentity(rows);
-    return res.status(200).json({
-      task: "obxdedup", ids,
-      before: rows.length, after: deduped.length,
-      collapsed: rows.length > 1 && deduped.length === 1,
-      inputs: rows.map(x => ({ id: x.source_record_id, title: x.rtitle || x.raw_title, price: x.price, date: x.auction_end_date })),
-      survivor: deduped.map(x => ({ id: x.source_record_id, title: x.rtitle || x.raw_title, price: x.price, date: x.auction_end_date }))
-    });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
