@@ -1239,11 +1239,13 @@ async function handleOps(req, res) {
       else q = "select=id,source,year,source_url,raw_record&source=in.(bringatrailer,bat,carsandbids)&order=auction_end_date.desc.nullslast";
       let rows = await pageAll(q, cap);
       const n = rows.length;
-      const keyFreq = {}; let mileage = 0, vin = 0, url = 0, color = 0, sy = 0, nonusd = 0; const currencies = {}; let basisKeyHits = 0; const basisKeysSeen = {};
+      const keyFreq = {}; let mileage = 0, mileageNz = 0, vin = 0, url = 0, color = 0, sy = 0, nonusd = 0; const currencies = {}; let basisKeyHits = 0; const basisKeysSeen = {};
       for (const row of rows) {
         const rr = row.raw_record || {};
         for (const k of Object.keys(rr)) keyFreq[k] = (keyFreq[k] || 0) + 1;
-        if (getMileage(rr) != null) mileage++;
+        const mv = getMileage(rr);
+        if (mv != null) mileage++;
+        if (mv != null && Number(mv) > 0) mileageNz++;
         if (getVin(rr) != null) vin++;
         if (getUrl(row, rr)) url++;
         if (getColor(rr) != null) color++;
@@ -1255,7 +1257,7 @@ async function handleOps(req, res) {
       const topKeys = Object.entries(keyFreq).sort((a, b) => b[1] - a[1]).slice(0, 45).map(([k, c]) => [k, pct(c)]);
       return res.status(200).json({
         task: "livehouse", sub, group: which, sampleSize: n,
-        coveragePct: { mileage: pct(mileage), vin: pct(vin), usableUrl: pct(url), exteriorColor: pct(color), structuredYear: pct(sy), nonUsdCurrency: pct(nonusd) },
+        coveragePct: { mileagePresent: pct(mileage), mileageGtZero: pct(mileageNz), vin: pct(vin), usableUrl: pct(url), exteriorColor: pct(color), structuredYear: pct(sy), nonUsdCurrency: pct(nonusd) },
         currenciesSeen: currencies, priceBasisKeyRecordsPct: pct(basisKeyHits), priceBasisKeysSeen: basisKeysSeen, rawRecordTopKeysPct: topKeys
       });
     }
