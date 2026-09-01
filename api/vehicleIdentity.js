@@ -110,10 +110,8 @@ export default async function handler(req, res) {
     // keepAsTyped (DEFECT 4): the seller insists on their designation after a
     // near-miss, so skip the "did you mean" confirmation and accept it unverified.
     const resolveOpts = req.body?.keepAsTyped ? { keepAsTyped: true } : {};
-    if (req.body?.debug) resolveOpts.debug = true; // TEMP diagnostic passthrough
     let result = await resolveVehicle(raw, resolveOpts);
     let fallbackUsed = null;
-    const _firstPass = req.body?.debug ? { status: result.status, make: result.vehicle?.make, model: result.vehicle?.model, trim: result.vehicle?.trim, dirtyTokens: result.vehicle?.dirtyTokens, dbg: result.vehicle?._dbg } : null; // TEMP
 
     // (b) A misspelled marque must ALWAYS land on the deterministic typo confirmation
     // ("Did you mean the Porsche?"), never the non-deterministic LLM extraction fallback
@@ -135,7 +133,7 @@ export default async function handler(req, res) {
         // deterministic (already whitelisted) resolution.
         if (parsed && (parsed.make || parsed.model)) {
           const rebuilt = [parsed.year || parsed.decade, parsed.make, parsed.model, parsed.trim].filter(Boolean).join(" ").trim();
-          const second = rebuilt ? await resolveVehicle(rebuilt, resolveOpts) : null;
+          const second = rebuilt ? await resolveVehicle(rebuilt) : null;
           if (second && ["valid", "needs_confirmation"].includes(second.status) && second.vehicle?.make && !second.vehicle?.dirtyTokens) {
             result = second;
             fallbackUsed = "dirty_arbitration_extraction";
@@ -150,7 +148,7 @@ export default async function handler(req, res) {
         // through the full deterministic pipeline (aliases, validation,
         // confirmation, contamination stripping) like any user input.
         const rebuilt = [parsed.year || parsed.decade, parsed.make, parsed.model, parsed.trim].filter(Boolean).join(" ").trim();
-        const second = rebuilt ? await resolveVehicle(rebuilt, resolveOpts) : null;
+        const second = rebuilt ? await resolveVehicle(rebuilt) : null;
         if (second && (second.status !== "needs_clarification" || second.vehicle?.make || second.vehicle?.model)) {
           result = second;
           fallbackUsed = "extraction_resolved";
@@ -222,8 +220,7 @@ export default async function handler(req, res) {
       clarification: result.clarification,
       corrections: result.corrections,
       archiveModelCount: modelCount,
-      fallback: fallbackUsed || undefined,
-      _firstPass // TEMP
+      fallback: fallbackUsed || undefined
     });
   } catch (err) {
     return res.status(500).json({ error: err.message || "Vehicle identity failed" });
