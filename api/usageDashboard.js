@@ -1237,14 +1237,16 @@ async function handleOps(req, res) {
     }
     const rows = await pageAll(`select=id,source,raw_title,raw_record&${HOUSE_IN}`, 8000);
     const houses = ["rmsothebys", "gooding", "barrettjackson", "mecum", "broadarrow", "bonhams"];
-    const per = {}; for (const h of houses) per[h] = { total: 0, recovered: 0, unknown: 0, ambiguous: 0, nothing: 0, noText: 0 };
+    const per = {}; for (const h of houses) per[h] = { total: 0, recovered: 0, unknown: 0, ambiguous: 0, nothing: 0, noText: 0, charsSum: 0 };
     const samples = []; const ambigExamples = {};
     for (const row of rows) {
       const h = row.source; if (!per[h]) continue; per[h].total++;
       const rr = row.raw_record || {};
       const ld = Array.isArray(rr.listing_details) ? rr.listing_details.join(". ") : "";
       const text = `${rr.description || ""}. ${ld}`.replace(/\s+/g, " ").trim();
-      if (!text) { per[h].noText++; continue; }
+      const wc = (text.match(/[a-z]{3,}/gi) || []).length; // real words (3+ letters)
+      per[h].charsSum += text.replace(/^[.\s]+$/, "").length;
+      if (wc < 3) { per[h].noText++; continue; } // effectively empty (no descriptive prose)
       // "X miles since (its/the) [year] restoration/build/completion/rebuild" is POST-
       // RESTORATION mileage, not a total/odometer reading -> ambiguous, never clean.
       const POSTRESTO = /since\s+(?:its\s+|the\s+)?(?:\w+\s+){0,2}(restoration|rebuild|build|completion|refresh|recommission|resto|frame-off|the\s+work)/i;
@@ -1271,7 +1273,7 @@ async function handleOps(req, res) {
     }
     const pct = (x, t) => t ? +(100 * x / t).toFixed(1) : null;
     const table = {};
-    for (const h of houses) { const p = per[h]; table[h] = { records: p.total, recoveredPct: pct(p.recovered, p.total), unknownPct: pct(p.unknown, p.total), ambiguousPct: pct(p.ambiguous, p.total), textSilentPct: pct(p.nothing, p.total), noDescriptionTextPct: pct(p.noText, p.total) }; }
+    for (const h of houses) { const p = per[h]; table[h] = { records: p.total, avgDescChars: p.total ? Math.round(p.charsSum / p.total) : 0, recoveredPct: pct(p.recovered, p.total), unknownPct: pct(p.unknown, p.total), ambiguousPct: pct(p.ambiguous, p.total), textSilentPct: pct(p.nothing, p.total), noDescriptionTextPct: pct(p.noText, p.total) }; }
     const totAll = houses.reduce((s, h) => s + per[h].total, 0), recAll = houses.reduce((s, h) => s + per[h].recovered, 0), unkAll = houses.reduce((s, h) => s + per[h].unknown, 0), ambAll = houses.reduce((s, h) => s + per[h].ambiguous, 0);
     return res.status(200).json({
       task: "milextract", totalHouseRecords: totAll,
