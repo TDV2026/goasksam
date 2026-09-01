@@ -5,6 +5,7 @@ import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
 import { testerCodeExpired } from "../lib/_tester.js";
+import { verifyOnce } from "../lib/_onepass.js";
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
 import { findGeneration, generationModelToken } from "../lib/generations.js";
 import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
@@ -2429,6 +2430,14 @@ async function recordIpHit(ip, kind, supabaseUrl, supabaseKey) {
   if (!ip) return;
   try { await supabaseInsert("ip_rate_hits", [{ ip, kind }], supabaseUrl, supabaseKey, "return=minimal", ""); } catch (e) {}
 }
+// Count ledger hits by KIND across all IPs (not IP-scoped). Used for the one-time
+// pass, where the allowance is bound to the token (kind once:<nonce>), not a device,
+// so it counts the same regardless of IP recycling / NAT. Fail-open (null) as above.
+async function kindHitsSince(kind, sinceIso, supabaseUrl, supabaseKey) {
+  const rows = await supabaseSelect({ supabaseUrl, supabaseKey },
+    `ip_rate_hits?kind=eq.${encodeURIComponent(kind)}&created_at=gte.${encodeURIComponent(sinceIso)}&select=id&limit=1000`);
+  return rows ? rows.length : null;
+}
 // OCD authoritative rate-limit reconciliation (Aug 2026). We persist OCD's own
 // x-ratelimit-remaining header (read in lib/_ocd.js) after every real fetch so the
 // NEXT search's budget guard can soft-degrade BEFORE a 429, using OCD's real count
@@ -2565,23 +2574,27 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
     await recordIpHit(ip, "tester_search", supabaseUrl, supabaseKey);
     return { ok: true, testerBypass: true, anonSessionId, accountId: testerAccountId };
   }
-  // Day pass (shareable giveaway): a device holding gas_pass=ok gets a small daily
-  // allowance (default 3, app_config daypass_cap_day) on its OWN IP-based counter
-  // (kind pass_search), resetting at midnight UTC, never mixed with the free/subscriber
-  // buckets. One shareable code, no account, no hard expiry - the daily reset IS the
-  // limit, so the same link can be handed to many people and each gets 3/day. Searches
-  // log with tier "daypass" (kept out of real-user metrics). Signed-in sessions skip it
-  // (a real account stays tiered by reserve_search). forceGate opts back into the real gate.
-  if (cookies.gas_pass === "ok" && !forceGate && !req.headers.authorization) {
-    const dayStartIso = new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z").toISOString();
-    const passHits = await ipHitsSince(ip, "pass_search", dayStartIso, supabaseUrl, supabaseKey);
-    const passCap = await appConfigInt("daypass_cap_day", 3, supabaseUrl, supabaseKey);
-    if (passHits !== null && passHits >= passCap) {
-      await logFunnel("daypass_daily_limit_hit", { anon_session_id: anonSessionId, dedup_key: `daypass:${ip}:${coarseDayKey()}` }, supabaseUrl, supabaseKey);
-      return { block: { status: "daypass_daily_limit_reached", tier: "daypass", dailyCap: passCap } };
+  // One-time pass: a device holding a gas_once cookie carrying a VALID signed token
+  // (verifyOnce, lib/_onepass.js) gets a small fixed number of TOTAL searches (default 3,
+  // app_config once_cap), counted PER TOKEN across all IPs (kind once:<nonce>), never
+  // per day and never mixed with the free/subscriber buckets. The whole link is worth 3
+  // searches and then dies for everyone; no account, no reset. A missing/forged token
+  // falls through to the normal gate (never trust the cookie: the signature is checked
+  // here too). Signed-in sessions skip it; forceGate opts back into the real gate. Logs
+  // tier "once" (kept out of real-user metrics).
+  if (cookies.gas_once && !forceGate && !req.headers.authorization) {
+    const nonce = verifyOnce(cookies.gas_once);
+    if (nonce) {
+      const kind = `once:${nonce}`;
+      const onceHits = await kindHitsSince(kind, "1970-01-01T00:00:00Z", supabaseUrl, supabaseKey);
+      const onceCap = await appConfigInt("once_cap", 3, supabaseUrl, supabaseKey);
+      if (onceHits !== null && onceHits >= onceCap) {
+        await logFunnel("once_limit_hit", { anon_session_id: anonSessionId, dedup_key: `once:${nonce}` }, supabaseUrl, supabaseKey);
+        return { block: { status: "once_limit_reached", tier: "once", dailyCap: onceCap } };
+      }
+      await recordIpHit(ip, kind, supabaseUrl, supabaseKey);
+      return { ok: true, onceBypass: true, anonSessionId };
     }
-    await recordIpHit(ip, "pass_search", supabaseUrl, supabaseKey);
-    return { ok: true, daypassBypass: true, anonSessionId };
   }
   const authHeader = req.headers.authorization;
   if (authHeader) {
@@ -2826,7 +2839,7 @@ export default async function handler(req, res) {
     // through the summary-strip Edit). The search was already reserved this session,
     // so it must NOT consume a new credit - skip the gate like the internal callers.
     const internalCall = req.body?.warm === true || req.body?.bypassCache === true || req.body?.rerun === true;
-    let searchAccountId = null, anonFirstFree = false, anonSessionId = null, searchQuota = null, crewBypass = false, testerBypass = false, daypassBypass = false;
+    let searchAccountId = null, anonFirstFree = false, anonSessionId = null, searchQuota = null, crewBypass = false, testerBypass = false, onceBypass = false;
     if (!internalCall) {
       const gate = await computeSearchGate(req, vehicle, supabaseUrl, supabaseKey);
       if (gate.block) return res.status(200).json(gate.block);
@@ -2838,10 +2851,10 @@ export default async function handler(req, res) {
       searchDaily = gate.daily || null;
       crewBypass = !!gate.crewBypass;
       testerBypass = !!gate.testerBypass;
-      daypassBypass = !!gate.daypassBypass;
+      onceBypass = !!gate.onceBypass;
     }
     // F: coarse tier for the dashboard (forward-only). internal jobs -> "internal".
-    const searchTier = internalCall ? "internal" : crewBypass ? "crew" : testerBypass ? "tester" : daypassBypass ? "daypass" : (searchQuota?.tier || (searchAccountId ? "free" : "anon"));
+    const searchTier = internalCall ? "internal" : crewBypass ? "crew" : testerBypass ? "tester" : onceBypass ? "once" : (searchQuota?.tier || (searchAccountId ? "free" : "anon"));
 
     let fetchResult = null;
     let cacheStatus = "miss";

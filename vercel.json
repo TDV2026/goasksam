@@ -15,11 +15,6 @@
       "source": "/rudy",
       "destination": "/api/crew?guest=clint&to=/sell",
       "permanent": false
-    },
-    {
-      "source": "/try3",
-      "destination": "/api/crew?pass=tdv-day3-k7x2&to=/sell",
-      "permanent": false
     }
   ],
   "rewrites": [
@@ -28,7 +23,7 @@
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/out", "destination": "/api/out" },
     { "source": "/styles.20260829a.css", "destination": "/styles.css" },
-    { "source": "/js.20260901a/(.*)", "destination": "/js/$1" }
+    { "source": "/js.20260901b/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
     "api/usageDashboard.js": {
