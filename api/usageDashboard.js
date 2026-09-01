@@ -1179,6 +1179,91 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
+  // TEMP read-only investigation: deterministic mileage recovery from house record
+  // description + listing_details prose. Archive only, ZERO OCD cost, NO writes (nothing
+  // is written to any mileage field; values land in the response only). Remove after report.
+  if (task === "milextract") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const base = `${env.supabaseUrl}/rest/v1/vehicle_market_records`;
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    const HOUSE_IN = "source=in.(rmsothebys,gooding,barrettjackson,mecum,broadarrow,bonhams)";
+    async function pageAll(query, cap) {
+      const out = []; let offset = 0; const step = 1000;
+      while (out.length < cap) {
+        const r = await fetch(`${base}?${query}&limit=${step}&offset=${offset}`, { headers: H });
+        if (!r.ok) break;
+        const rows = await r.json(); if (!rows.length) break;
+        out.push(...rows); offset += step; if (rows.length < step) break;
+      }
+      return out;
+    }
+    // number token -> integer (commas stripped, k/decimal handled)
+    function toNum(tok) {
+      let s = String(tok).trim().toLowerCase(); let mult = 1;
+      if (/k$/.test(s)) { mult = 1000; s = s.replace(/k$/, ""); }
+      s = s.replace(/,/g, "");
+      const n = parseFloat(s.replace(/[^\d.]/g, ""));
+      if (isNaN(n)) return null;
+      return Math.round(n * mult);
+    }
+    const KM = /kilomet|(?:^|\s)km\b/i;
+    const NUM = "([\\d][\\d,\\.]*\\s*k?)";
+    const UNIT = "(miles|mi\\b|kilomet\\w+|km\\b)";
+    // STRONG odometer-context patterns (require odometer/showing/from-new/indicated context)
+    const STRONG = [
+      new RegExp(`odometer\\s+(?:currently\\s+)?(?:reads?|shows?|showing|indicat\\w+|displays?|registers?|of|at|with)\\s+(?:approximately\\s+|approx\\.?\\s+|just\\s+|only\\s+|some\\s+|about\\s+|an?\\s+indicated\\s+)?${NUM}\\s*${UNIT}?`, "i"),
+      new RegExp(`showing\\s+(?:approximately\\s+|approx\\.?\\s+|just\\s+|only\\s+|some\\s+|about\\s+|an?\\s+indicated\\s+)?${NUM}\\s*${UNIT}`, "i"),
+      new RegExp(`${NUM}\\s*${UNIT}\\s+(?:from|since)\\s+new`, "i"),
+      new RegExp(`(?:indicated|actual|recorded|documented|genuine|warranted|covered|driven)\\s+(?:approximately\\s+|only\\s+|just\\s+)?${NUM}\\s*${UNIT}`, "i"),
+      new RegExp(`${NUM}\\s*${UNIT}\\s+(?:on\\s+the\\s+odometer|indicated|recorded|from\\s+new)`, "i")
+    ];
+    const AMBIG = [
+      { cls: "believed_to_be", re: new RegExp(`believed\\s+to\\s+(?:be|have|show|indicate|display|have\\s+covered)\\s+(?:approximately\\s+)?${NUM}\\s*${UNIT}`, "i") },
+      { cls: "since_restoration_or_rebuild", re: new RegExp(`${NUM}\\s*${UNIT}\\s+since\\s+(?:its\\s+)?(?:the\\s+)?(restoration|rebuild|engine\\s+rebuild|refresh|recommission\\w*|completion)`, "i") },
+      { cls: "approx_since", re: new RegExp(`(?:approximately|approx\\.?)\\s+${NUM}\\s*${UNIT}\\s+since`, "i") }
+    ];
+    const UNKNOWN = [
+      { cls: "TMU", re: /\bTMU\b/ },
+      { cls: "total_mileage_unknown", re: /total\s+mileage\s+unknown|true\s+mileage\s+unknown|mileage\s+(?:is\s+)?(?:unknown|not\s+known|undetermined)/i },
+      { cls: "unwarranted", re: /mileage\s+(?:is\s+)?(?:unwarranted|not\s+warranted|exempt)|odometer\s+(?:reading\s+)?(?:is\s+)?not\s+warranted|miles?\s+not\s+warranted/i }
+    ];
+    function sentenceAround(text, idx) {
+      const parts = text.split(/(?<=[.!?])\s+/);
+      let run = 0;
+      for (const p of parts) { if (idx >= run && idx < run + p.length + 1) return p.trim().slice(0, 240); run += p.length + 1; }
+      return text.slice(Math.max(0, idx - 60), idx + 100);
+    }
+    const rows = await pageAll(`select=id,source,raw_title,raw_record&${HOUSE_IN}`, 8000);
+    const houses = ["rmsothebys", "gooding", "barrettjackson", "mecum", "broadarrow", "bonhams"];
+    const per = {}; for (const h of houses) per[h] = { total: 0, recovered: 0, unknown: 0, ambiguous: 0, nothing: 0 };
+    const samples = []; const ambigExamples = {};
+    for (const row of rows) {
+      const h = row.source; if (!per[h]) continue; per[h].total++;
+      const rr = row.raw_record || {};
+      const ld = Array.isArray(rr.listing_details) ? rr.listing_details.join(". ") : "";
+      const text = `${rr.description || ""}. ${ld}`.replace(/\s+/g, " ").trim();
+      if (!text) { per[h].nothing++; continue; }
+      let hit = null;
+      for (const re of STRONG) { const m = re.exec(text); if (m && toNum(m[1]) != null) { const isKm = KM.test(m[2] || ""); const miVal = toNum(m[1]); hit = { value: isKm ? Math.round(miVal * 0.621371) : miVal, unit: isKm ? "km->mi" : "mi", raw: m[1], sentence: sentenceAround(text, m.index) }; break; } }
+      if (hit) { per[h].recovered++; if (samples.length < 14) samples.push({ house: h, title: row.raw_title, recovered_miles: hit.value, unit: hit.unit, matched: hit.raw, sentence: hit.sentence }); continue; }
+      let unk = UNKNOWN.find(u => u.re.test(text));
+      if (unk) { per[h].unknown++; continue; }
+      let amb = AMBIG.find(a => a.re.test(text));
+      if (amb) { per[h].ambiguous++; (ambigExamples[amb.cls] = ambigExamples[amb.cls] || []); if (ambigExamples[amb.cls].length < 3) { const m = amb.re.exec(text); ambigExamples[amb.cls].push({ house: h, title: row.raw_title, sentence: sentenceAround(text, m.index) }); } continue; }
+      per[h].nothing++;
+    }
+    const pct = (x, t) => t ? +(100 * x / t).toFixed(1) : null;
+    const table = {};
+    for (const h of houses) { const p = per[h]; table[h] = { records: p.total, recoveredPct: pct(p.recovered, p.total), unknownPct: pct(p.unknown, p.total), ambiguousPct: pct(p.ambiguous, p.total), nothingPct: pct(p.nothing, p.total) }; }
+    const totAll = houses.reduce((s, h) => s + per[h].total, 0), recAll = houses.reduce((s, h) => s + per[h].recovered, 0), unkAll = houses.reduce((s, h) => s + per[h].unknown, 0), ambAll = houses.reduce((s, h) => s + per[h].ambiguous, 0);
+    return res.status(200).json({
+      task: "milextract", totalHouseRecords: totAll,
+      overall: { recoveredPct: pct(recAll, totAll), unknownPct: pct(unkAll, totAll), ambiguousPct: pct(ambAll, totAll), nothingPct: pct(totAll - recAll - unkAll - ambAll, totAll) },
+      perHouse: table, sanitySample: samples, ambiguousClassExamples: ambigExamples,
+      note: "STRONG requires odometer/showing/from-new/indicated context (bare 'X miles' NOT counted, to avoid rally distances like '750-kilometer tour'). Values are report-only; nothing written."
+    });
+  }
+
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
