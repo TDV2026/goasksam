@@ -22,7 +22,7 @@
 
   function card(c) {
     var disp = c.display || {};
-    var mid = c.rank === "MIDDLE OF THE MARKET";
+    var mid = !!c.closest; // highlight the closest match, not a price position
     var note = disp.premiumInclusive ? '<div class="ob-price-note">includes buyer’s premium</div>' : "";
     var mileLine = c.mileage ? esc(miles(c.mileage))
       : (c.mileageStated ? '<span class="ob-stated">listed as ~' + esc(miles(c.mileageStated)) + "</span>" : "TMU");
@@ -79,8 +79,14 @@
       result.innerHTML = '<div class="ob-note">I am having trouble reading the market right now. Give it another try in a moment.</div>';
       return;
     }
-    // Resolved-car line renders on EVERY one_box path, including the body-style follow-up.
+    // Resolved-car line renders on EVERY one_box path, including the disambiguation asks.
     var head = resolvedLine(d.resolvedCar);
+    if (d.tier === "model_choice") {
+      // Make resolved, model missing/ambiguous: ask with real model chips (same one-tap
+      // pattern as the body-style follow-up); a chip appends the model and re-runs.
+      result.innerHTML = head + samRead(d.prompt) + chips(d.modelOptions);
+      return;
+    }
     if (d.tier === "body_choice") {
       result.innerHTML = head + samRead(d.prompt) + chips(d.bodyOptions);
       return;

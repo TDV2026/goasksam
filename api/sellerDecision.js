@@ -1,6 +1,6 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
-import { runOneBox } from "../lib/onebox.js";
+import { runOneBox, runOneBoxModelChoice } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -2739,6 +2739,14 @@ export default async function handler(req, res) {
         if (partial) {
           vehicle = partial;
         } else {
+          // One Box: a make resolved but the model is missing/ambiguous ("1989 Porsche")
+          // -> ASK which model with real chips (mirrors the body-style follow-up), never a
+          // flat rejection. Falls through to the normal re-ask only if the make has no
+          // usable archive models.
+          if (req.body?.oneBox && resolution.vehicle?.make) {
+            const mc = await runOneBoxModelChoice(resolution.vehicle, { supabaseUrl, supabaseKey });
+            if (mc) return res.status(200).json({ status: "one_box", ...mc });
+          }
           return res.status(200).json({
             status: "needs_clarification",
             vehicle: resolution.vehicle,
