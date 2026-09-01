@@ -1283,6 +1283,28 @@ async function handleOps(req, res) {
     });
   }
 
+  // TEMP read-only: pick low/mid/high sold lots per house (with URL) for the premium
+  // calibration hand-check. Archive only, zero OCD cost, no writes. Remove after report.
+  if (task === "housetiers") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const base = `${env.supabaseUrl}/rest/v1/vehicle_market_records`;
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    const houses = ["gooding", "rmsothebys", "broadarrow", "mecum", "bonhams", "barrettjackson"];
+    const out = {};
+    for (const h of houses) {
+      const q = `source=eq.${h}&auction_status=eq.sold&price=gt.0&source_url=not.is.null&select=id,price,curr:raw_record->>currency,raw_title,source_url,auction_end_date&order=price.asc&limit=3000`;
+      const r = await fetch(`${base}?${q}`, { headers: H });
+      if (!r.ok) { out[h] = { error: r.status }; continue; }
+      const rows = await r.json();
+      const n = rows.length;
+      if (!n) { out[h] = { soldWithUrl: 0 }; continue; }
+      const at = f => rows[Math.min(n - 1, Math.max(0, Math.round(f * (n - 1))))];
+      const pick = (f, label) => { const x = at(f); return { tier: label, id: x.id, price: x.price, currency: x.curr, date: x.auction_end_date, title: x.raw_title, url: x.source_url }; };
+      out[h] = { soldWithUrl: n, priceRange: [rows[0].price, rows[n - 1].price], picks: [pick(0.15, "low"), pick(0.5, "mid"), pick(0.85, "high")] };
+    }
+    return res.status(200).json({ task: "housetiers", houses: out });
+  }
+
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
