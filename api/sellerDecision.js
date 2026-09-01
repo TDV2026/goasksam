@@ -2738,15 +2738,22 @@ export default async function handler(req, res) {
         const partial = car.acceptModelLevel ? sanitizeResolvedVehicle(resolution.vehicle) : null;
         if (partial) {
           vehicle = partial;
+        } else if (req.body?.oneBox && resolution.vehicle?.make && resolution.vehicle?.model) {
+          // One Box: make + model resolved, only the year is missing/ambiguous ("Miata",
+          // "911", "Chevrolet Corvette") -> proceed YEAR-AGNOSTIC (comps across the model's
+          // years) rather than asking a model we already know or rejecting.
+          vehicle = sanitizeResolvedVehicle(resolution.vehicle) || resolution.vehicle;
+        } else if (req.body?.oneBox && resolution.vehicle?.make) {
+          // One Box: make resolved but NO model ("1989 Porsche") -> ASK which model with
+          // real chips (mirrors the body-style follow-up), never a flat rejection. Falls
+          // through to the normal re-ask only if the make has no usable archive models.
+          const mc = await runOneBoxModelChoice(resolution.vehicle, { supabaseUrl, supabaseKey });
+          if (mc) return res.status(200).json({ status: "one_box", ...mc });
+          return res.status(200).json({
+            status: "needs_clarification", vehicle: resolution.vehicle,
+            clarification: resolution.clarification || { question: "What year, make and model are you selling?" }
+          });
         } else {
-          // One Box: a make resolved but the model is missing/ambiguous ("1989 Porsche")
-          // -> ASK which model with real chips (mirrors the body-style follow-up), never a
-          // flat rejection. Falls through to the normal re-ask only if the make has no
-          // usable archive models.
-          if (req.body?.oneBox && resolution.vehicle?.make) {
-            const mc = await runOneBoxModelChoice(resolution.vehicle, { supabaseUrl, supabaseKey });
-            if (mc) return res.status(200).json({ status: "one_box", ...mc });
-          }
           return res.status(200).json({
             status: "needs_clarification",
             vehicle: resolution.vehicle,
