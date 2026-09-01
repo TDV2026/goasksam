@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>One Box results — redesign mockup</title>
+<meta name="robots" content="noindex, nofollow" />
+<!-- STATIC MOCKUP for Sam's review. No wiring, hardcoded sample data. Same crew/tester
+     gate as /onebox. Does NOT touch the live /onebox UI. Route: /onebox-preview -->
+<script>
+(function(){try{
+  var c=document.cookie||"";
+  if(c.indexOf("gas_tester=ok")!==-1||c.indexOf("gas_crew=ok")!==-1)return;
+  var m=/[?&](tester|crew)=([^&]*)/.exec(location.search||"");
+  if(m){var q=m[1]==="tester"?"tcode":"code";location.replace("/api/crew?"+q+"="+encodeURIComponent(m[2])+"&to="+encodeURIComponent(location.pathname||"/onebox-preview"));return;}
+  location.replace("/");
+}catch(e){location.replace("/");}})();
+</script>
+<style>
+/* ---- Paddock palette (shared with /onebox and the /sell result cards) ---- */
+:root{
+  --paper:#f4efe4; --card:#fffdf9; --ink:#191510; --slate:#6d6759; --faint:#928b7a;
+  --line:#e6ddcc; --line2:#efe8da; --green:#0b5c3e; --green-deep:#093c29; --clay:#a4571f;
+  --shadow:0 1px 2px rgba(40,30,10,.05),0 12px 34px rgba(40,30,10,.07);
+  --shadow-hero:0 2px 4px rgba(40,30,10,.06),0 24px 60px rgba(11,92,62,.14);
+  --serif:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Times New Roman',serif;
+  --grotesk:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root{--paper:#141109;--card:#1f1a11;--ink:#efe7d6;--slate:#a59d8b;--faint:#7c7565;--line:#332c1e;--line2:#2a2418;--green:#77c8a2;--green-deep:#0f4e36;--clay:#d3944f;--shadow:0 1px 2px rgba(0,0,0,.3),0 14px 40px rgba(0,0,0,.4);--shadow-hero:0 2px 4px rgba(0,0,0,.3),0 26px 64px rgba(0,0,0,.5);}}
+:root[data-theme="dark"]{--paper:#141109;--card:#1f1a11;--ink:#efe7d6;--slate:#a59d8b;--faint:#7c7565;--line:#332c1e;--line2:#2a2418;--green:#77c8a2;--green-deep:#0f4e36;--clay:#d3944f;--shadow:0 1px 2px rgba(0,0,0,.3),0 14px 40px rgba(0,0,0,.4);--shadow-hero:0 2px 4px rgba(0,0,0,.3),0 26px 64px rgba(0,0,0,.5);}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.6 var(--grotesk);-webkit-font-smoothing:antialiased}
+.wrap{max-width:940px;margin:0 auto;padding:36px 24px 100px}
+.eyebrow{font:600 11px/1 var(--mono);letter-spacing:.2em;color:var(--faint);text-transform:uppercase;margin-bottom:18px}
+.mock-flag{display:inline-block;font:600 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--clay);border:1px solid var(--clay);border-radius:4px;padding:4px 7px;margin-left:10px;vertical-align:middle}
+
+/* ---- Resolved-car confirmation ---- */
+.confirm{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:0 0 26px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.confirm .lab{font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.confirm .car{font-size:18px;font-weight:600;letter-spacing:-.01em}
+.confirm .change{margin-left:auto;background:none;border:0;color:var(--green);font:600 14px var(--grotesk);cursor:pointer;text-decoration:underline;padding:0}
+
+/* ---- Trust line as authority ---- */
+.trust{font:400 27px/1.28 var(--serif);letter-spacing:-.01em;color:var(--ink);margin:0 0 6px;max-width:20ch;text-wrap:balance}
+.trust b{font-weight:600;color:var(--green-deep);font-variant-numeric:tabular-nums}
+.trust-sub{font:600 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:0 0 30px}
+
+/* ---- HERO card (the answer) ---- */
+.hero{display:grid;grid-template-columns:1.15fr 1fr;background:var(--card);border:1.5px solid color-mix(in srgb,var(--green) 34%,var(--line));border-radius:18px;overflow:hidden;box-shadow:var(--shadow-hero)}
+.hero-ph{position:relative;background:#0c0a06;min-height:340px}
+.hero-ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hero-badge{position:absolute;top:16px;left:16px;z-index:2;background:var(--green);color:#fff;font:600 11px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;padding:8px 12px;border-radius:7px}
+@media (prefers-color-scheme:dark){.hero-badge{color:#0c130f}}
+.hero-body{padding:26px 28px 24px;display:flex;flex-direction:column}
+.hero-price{font:700 46px/1 var(--mono);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hero-price .cur{font-size:26px;color:var(--slate);font-weight:600;margin-right:2px}
+.usd{font:600 13px/1 var(--mono);color:var(--slate);margin-top:7px;font-variant-numeric:tabular-nums}
+.prem{font:600 10px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--clay);margin-top:9px}
+.facts{display:flex;gap:22px;margin:20px 0 0;padding:16px 0 0;border-top:1px solid var(--line2)}
+.fact .k{font:600 9.5px/1 var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--faint);margin-bottom:5px}
+.fact .v{font:600 15px/1.1 var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.hero-explain{font:italic 400 15px/1.5 var(--serif);color:var(--slate);margin:18px 0 0;max-width:40ch}
+.receipt{margin-top:auto;padding-top:22px}
+.receipt a{display:inline-flex;align-items:center;gap:9px;background:transparent;border:1.5px solid var(--green);color:var(--green);border-radius:11px;padding:12px 18px;font:600 14.5px var(--grotesk);text-decoration:none;letter-spacing:-.01em}
+.receipt a:hover{background:var(--green);color:#fff}
+@media (prefers-color-scheme:dark){.receipt a:hover{color:#0c130f}}
+.receipt .plat{color:var(--faint);font-weight:400}
+
+/* ---- Sam's Take, connected to the hero ---- */
+.take{position:relative;margin:0 0 34px;padding:20px 22px 20px 26px;background:color-mix(in srgb,var(--green) 6%,var(--card));border:1px solid color-mix(in srgb,var(--green) 22%,var(--line));border-top:0;border-radius:0 0 16px 16px;display:flex;gap:15px;align-items:flex-start}
+.take::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--green)}
+.take .who{flex:none;display:flex;align-items:center;gap:8px;padding-top:3px}
+.take .who i{width:10px;height:10px;border-radius:50%;background:var(--green);display:block}
+.take .who span{font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--green-deep)}
+.take p{margin:0;font:400 19px/1.5 var(--serif);color:var(--ink);letter-spacing:-.005em;max-width:56ch}
+
+/* ---- Secondary comps (recessed supporting evidence) ---- */
+.also{font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin:0 2px 14px}
+.seconds{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.sec{display:grid;grid-template-columns:104px 1fr;background:var(--card);border:1px solid var(--line);border-radius:13px;overflow:hidden;box-shadow:var(--shadow)}
+.sec-ph{position:relative;background:#0c0a06}
+.sec-ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.plate{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:5px;padding:12px 13px;background:var(--paper);background-image:linear-gradient(var(--line2) 1px,transparent 1px);background-size:100% 9px}
+.plate .m{font:600 8.5px/1.1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--green)}
+.plate .n{font:700 12px/1.2 var(--grotesk);color:var(--ink);letter-spacing:-.01em}
+.plate .s{font:600 8px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.sec-body{padding:14px 16px 14px}
+.sec-rank{font:600 9.5px/1 var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--slate);margin-bottom:8px}
+.sec-price{font:700 22px/1 var(--mono);letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.sec-price .cur{font-size:14px;color:var(--slate);font-weight:600}
+.sec .usd{margin-top:4px;font-size:11.5px}
+.sec .prem{margin-top:5px}
+.sec-line{font:600 12.5px/1.35 var(--mono);color:var(--slate);margin-top:10px;font-variant-numeric:tabular-nums}
+.sec-explain{font:italic 400 12.5px/1.45 var(--serif);color:var(--faint);margin-top:7px}
+.sec-receipt{margin-top:11px;padding-top:11px;border-top:1px solid var(--line2)}
+.sec-receipt a{display:inline-flex;align-items:center;gap:6px;color:var(--green);font:600 12.5px var(--grotesk);text-decoration:none}
+.sec-receipt a:hover{text-decoration:underline}
+.sec-receipt .plat{color:var(--faint);font-weight:400;margin-left:auto}
+
+/* ---- CTA ---- */
+.cta{margin:38px 0 0;background:var(--green);border-radius:18px;padding:26px 30px;display:flex;align-items:center;justify-content:space-between;gap:22px;flex-wrap:wrap}
+.cta p{margin:0;color:#fff;font-size:20px;font-weight:600;letter-spacing:-.01em;max-width:34ch}
+@media (prefers-color-scheme:dark){.cta p{color:#0c130f}}
+.cta a{flex:none;background:#fff;color:var(--green-deep);border:0;border-radius:12px;padding:15px 26px;font:700 16px var(--grotesk);letter-spacing:-.01em;text-decoration:none}
+.foot{margin:30px 2px 0;color:var(--faint);font-size:13px}
+
+@media (max-width:720px){
+  .wrap{padding:26px 16px 80px}
+  .trust{font-size:23px}
+  .hero{grid-template-columns:1fr}
+  .hero-ph{min-height:210px}
+  .hero-price{font-size:38px}
+  .seconds{grid-template-columns:1fr}
+  .take p{font-size:17px}
+  .cta{flex-direction:column;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">GoAskSam &middot; One Box <span class="mock-flag">Redesign mockup</span></div>
+
+  <!-- Resolved-car confirmation: answered before any price -->
+  <div class="confirm">
+    <span class="lab">Your car</span>
+    <span class="car">1973 Porsche 911 Carrera RS &middot; Coupe</span>
+    <button class="change">Change</button>
+  </div>
+
+  <!-- Trust line as the authority, in Sam's serif voice -->
+  <p class="trust">I found <b>4</b> relevant sales. Here are the three I'd pay most attention to.</p>
+  <p class="trust-sub">Real completed auctions &middot; last 24 months</p>
+
+  <!-- HERO: the closest match, the answer -->
+  <div class="hero">
+    <div class="hero-ph">
+      <span class="hero-badge">Closest match</span>
+      <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=900&q=70" alt="1973 Porsche 911 Carrera RS" onerror="this.style.display='none'">
+    </div>
+    <div class="hero-body">
+      <div class="hero-price"><span class="cur">$</span>875,000</div>
+      <div class="hero-explain">Same spec, closest to a typical driver-mileage example.</div>
+      <div class="facts">
+        <div class="fact"><div class="k">Mileage</div><div class="v">38,000 mi</div></div>
+        <div class="fact"><div class="k">Sold</div><div class="v">Jul 2026</div></div>
+        <div class="fact"><div class="k">Where</div><div class="v">Bring a Trailer</div></div>
+      </div>
+      <div class="receipt"><a href="#">View the sale <span class="plat">on Bring a Trailer</span> &#8594;</a></div>
+    </div>
+  </div>
+
+  <!-- Sam's Take, visually attached to the hero it anchors on -->
+  <div class="take">
+    <div class="who"><i></i><span>Sam</span></div>
+    <p>I'd anchor on the closest match. Across the full set of comparable sales, the differences come down to spec, mileage and condition.</p>
+  </div>
+
+  <!-- Secondary supporting comps, clearly recessed -->
+  <div class="also">Two more worth a look</div>
+  <div class="seconds">
+    <!-- non-USD + buyer's premium + spec-plate photo fallback -->
+    <div class="sec">
+      <div class="sec-ph">
+        <div class="plate" style="display:flex"><div class="m">RM Sotheby's</div><div class="n">1973 Porsche 911 Carrera RS</div><div class="s">Photo unavailable</div></div>
+      </div>
+      <div class="sec-body">
+        <div class="sec-rank">Lower mileage</div>
+        <div class="sec-price"><span class="cur">&euro;</span>685,000</div>
+        <div class="usd">&asymp; $739,800</div>
+        <div class="prem">Includes buyer's premium</div>
+        <div class="sec-line">21,000 mi &middot; May 2026</div>
+        <div class="sec-explain">Same spec, service history on file.</div>
+        <div class="sec-receipt"><a href="#">View the sale &#8594; <span class="plat">RM Sotheby's</span></a></div>
+      </div>
+    </div>
+    <!-- USD + buyer's premium, with photo -->
+    <div class="sec">
+      <div class="sec-ph"><img src="https://images.unsplash.com/photo-1544829099-b9a0c07fad1a?w=400&q=70" alt="911 Carrera RS" onerror="this.parentNode.querySelector('.plate').style.display='flex'"><div class="plate"><div class="m">Gooding &amp; Co</div><div class="n">1973 Porsche 911 Carrera RS</div><div class="s">Photo unavailable</div></div></div>
+      <div class="sec-body">
+        <div class="sec-rank">Higher mileage</div>
+        <div class="sec-price"><span class="cur">$</span>760,000</div>
+        <div class="prem">Includes buyer's premium</div>
+        <div class="sec-line">61,000 mi &middot; Mar 2026</div>
+        <div class="sec-explain">Same spec, matching-numbers engine.</div>
+        <div class="sec-receipt"><a href="#">View the sale &#8594; <span class="plat">Gooding &amp; Co</span></a></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta">
+    <p>I'll look at the same market and tell you where I'd sell it.</p>
+    <a href="#">See where I'd sell it &#8594;</a>
+  </div>
+  <div class="foot">Every figure here is a real auction result from GoAskSam's own archive. No estimates. No valuations. &middot; Sample data, static mockup for review.</div>
+</div>
+</body>
+</html>

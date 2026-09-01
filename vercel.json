@@ -20,6 +20,7 @@
   "rewrites": [
     { "source": "/sell", "destination": "/index.html" },
     { "source": "/onebox", "destination": "/onebox.html" },
+    { "source": "/onebox-preview", "destination": "/onebox-preview.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/out", "destination": "/api/out" },
     { "source": "/styles.20260829a.css", "destination": "/styles.css" },
