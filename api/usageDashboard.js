@@ -1235,26 +1235,41 @@ async function handleOps(req, res) {
     }
     const rows = await pageAll(`select=id,source,raw_title,raw_record&${HOUSE_IN}`, 8000);
     const houses = ["rmsothebys", "gooding", "barrettjackson", "mecum", "broadarrow", "bonhams"];
-    const per = {}; for (const h of houses) per[h] = { total: 0, recovered: 0, unknown: 0, ambiguous: 0, nothing: 0 };
+    const per = {}; for (const h of houses) per[h] = { total: 0, recovered: 0, unknown: 0, ambiguous: 0, nothing: 0, noText: 0 };
     const samples = []; const ambigExamples = {};
     for (const row of rows) {
       const h = row.source; if (!per[h]) continue; per[h].total++;
       const rr = row.raw_record || {};
       const ld = Array.isArray(rr.listing_details) ? rr.listing_details.join(". ") : "";
       const text = `${rr.description || ""}. ${ld}`.replace(/\s+/g, " ").trim();
-      if (!text) { per[h].nothing++; continue; }
-      let hit = null;
-      for (const re of STRONG) { const m = re.exec(text); if (m && toNum(m[1]) != null) { const isKm = KM.test(m[2] || ""); const miVal = toNum(m[1]); hit = { value: isKm ? Math.round(miVal * 0.621371) : miVal, unit: isKm ? "km->mi" : "mi", raw: m[1], sentence: sentenceAround(text, m.index) }; break; } }
-      if (hit) { per[h].recovered++; if (samples.length < 14) samples.push({ house: h, title: row.raw_title, recovered_miles: hit.value, unit: hit.unit, matched: hit.raw, sentence: hit.sentence }); continue; }
+      if (!text) { per[h].noText++; continue; }
+      // "X miles since (its/the) [year] restoration/build/completion/rebuild" is POST-
+      // RESTORATION mileage, not a total/odometer reading -> ambiguous, never clean.
+      const POSTRESTO = /since\s+(?:its\s+|the\s+)?(?:\w+\s+){0,2}(restoration|rebuild|build|completion|refresh|recommission|resto|frame-off|the\s+work)/i;
+      let clean = null, sawPostResto = false, prIdx = -1;
+      for (const re of STRONG) {
+        const m = re.exec(text); if (!m || toNum(m[1]) == null) continue;
+        const after = text.slice(m.index, m.index + m[0].length + 45);
+        if (POSTRESTO.test(after)) { if (!sawPostResto) { sawPostResto = true; prIdx = m.index; } continue; }
+        const isKm = KM.test(m[2] || ""); const miVal = toNum(m[1]);
+        clean = { value: isKm ? Math.round(miVal * 0.621371) : miVal, unit: isKm ? "km->mi" : "mi", raw: m[1], sentence: sentenceAround(text, m.index) }; break;
+      }
+      if (clean) {
+        per[h].recovered++;
+        const nPerHouse = samples.filter(s => s.house === h).length;
+        if (samples.length < 18 && nPerHouse < 3) samples.push({ house: h, title: row.raw_title, recovered_miles: clean.value, unit: clean.unit, matched: clean.raw, sentence: clean.sentence });
+        continue;
+      }
       let unk = UNKNOWN.find(u => u.re.test(text));
       if (unk) { per[h].unknown++; continue; }
+      if (sawPostResto) { per[h].ambiguous++; (ambigExamples["post_restoration"] = ambigExamples["post_restoration"] || []); if (ambigExamples["post_restoration"].length < 4) ambigExamples["post_restoration"].push({ house: h, title: row.raw_title, sentence: sentenceAround(text, prIdx) }); continue; }
       let amb = AMBIG.find(a => a.re.test(text));
       if (amb) { per[h].ambiguous++; (ambigExamples[amb.cls] = ambigExamples[amb.cls] || []); if (ambigExamples[amb.cls].length < 3) { const m = amb.re.exec(text); ambigExamples[amb.cls].push({ house: h, title: row.raw_title, sentence: sentenceAround(text, m.index) }); } continue; }
       per[h].nothing++;
     }
     const pct = (x, t) => t ? +(100 * x / t).toFixed(1) : null;
     const table = {};
-    for (const h of houses) { const p = per[h]; table[h] = { records: p.total, recoveredPct: pct(p.recovered, p.total), unknownPct: pct(p.unknown, p.total), ambiguousPct: pct(p.ambiguous, p.total), nothingPct: pct(p.nothing, p.total) }; }
+    for (const h of houses) { const p = per[h]; table[h] = { records: p.total, recoveredPct: pct(p.recovered, p.total), unknownPct: pct(p.unknown, p.total), ambiguousPct: pct(p.ambiguous, p.total), textSilentPct: pct(p.nothing, p.total), noDescriptionTextPct: pct(p.noText, p.total) }; }
     const totAll = houses.reduce((s, h) => s + per[h].total, 0), recAll = houses.reduce((s, h) => s + per[h].recovered, 0), unkAll = houses.reduce((s, h) => s + per[h].unknown, 0), ambAll = houses.reduce((s, h) => s + per[h].ambiguous, 0);
     return res.status(200).json({
       task: "milextract", totalHouseRecords: totAll,
