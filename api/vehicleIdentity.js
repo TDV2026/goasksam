@@ -134,7 +134,7 @@ export default async function handler(req, res) {
         // deterministic (already whitelisted) resolution.
         if (parsed && (parsed.make || parsed.model)) {
           const rebuilt = [parsed.year || parsed.decade, parsed.make, parsed.model, parsed.trim].filter(Boolean).join(" ").trim();
-          const second = rebuilt ? await resolveVehicle(rebuilt) : null;
+          const second = rebuilt ? await resolveVehicle(rebuilt, resolveOpts) : null;
           if (second && ["valid", "needs_confirmation"].includes(second.status) && second.vehicle?.make && !second.vehicle?.dirtyTokens) {
             result = second;
             fallbackUsed = "dirty_arbitration_extraction";
@@ -149,7 +149,7 @@ export default async function handler(req, res) {
         // through the full deterministic pipeline (aliases, validation,
         // confirmation, contamination stripping) like any user input.
         const rebuilt = [parsed.year || parsed.decade, parsed.make, parsed.model, parsed.trim].filter(Boolean).join(" ").trim();
-        const second = rebuilt ? await resolveVehicle(rebuilt) : null;
+        const second = rebuilt ? await resolveVehicle(rebuilt, resolveOpts) : null;
         if (second && (second.status !== "needs_clarification" || second.vehicle?.make || second.vehicle?.model)) {
           result = second;
           fallbackUsed = "extraction_resolved";
