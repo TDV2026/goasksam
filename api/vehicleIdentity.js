@@ -113,6 +113,7 @@ export default async function handler(req, res) {
     if (req.body?.debug) resolveOpts.debug = true; // TEMP diagnostic passthrough
     let result = await resolveVehicle(raw, resolveOpts);
     let fallbackUsed = null;
+    const _firstPass = req.body?.debug ? { status: result.status, make: result.vehicle?.make, model: result.vehicle?.model, trim: result.vehicle?.trim, dirtyTokens: result.vehicle?.dirtyTokens, dbg: result.vehicle?._dbg } : null; // TEMP
 
     // (b) A misspelled marque must ALWAYS land on the deterministic typo confirmation
     // ("Did you mean the Porsche?"), never the non-deterministic LLM extraction fallback
@@ -221,7 +222,8 @@ export default async function handler(req, res) {
       clarification: result.clarification,
       corrections: result.corrections,
       archiveModelCount: modelCount,
-      fallback: fallbackUsed || undefined
+      fallback: fallbackUsed || undefined,
+      _firstPass // TEMP
     });
   } catch (err) {
     return res.status(500).json({ error: err.message || "Vehicle identity failed" });
