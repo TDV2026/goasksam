@@ -1191,6 +1191,7 @@ async function handleOps(req, res) {
     // SOMO online platform included in the product, not an excluded live house).
     const HOUSE_SLUGS = new Set(["rmsothebys", "gooding", "barrettjackson", "mecum", "broadarrow", "bonhams"]);
     const isHouse = s => HOUSE_SLUGS.has(String(s || ""));
+    const HOUSE_IN = "source=in.(rmsothebys,gooding,barrettjackson,mecum,broadarrow,bonhams)";
     async function pageAll(query, cap) {
       const out = []; let offset = 0; const step = 1000;
       while (out.length < cap) {
@@ -1221,7 +1222,7 @@ async function handleOps(req, res) {
 
     if (sub === "sample") {
       // Highest-price live-house records, diversified across houses (top few per house), full raw_record.
-      const rows = await pageAll("select=id,source,price,auction_end_date,raw_title,source_url,year,raw_record&order=price.desc.nullslast", 4000);
+      const rows = await pageAll(`select=id,source,price,auction_end_date,raw_title,source_url,year,raw_record&${HOUSE_IN}&order=price.desc.nullslast`, 4000);
       const houseRows = rows.filter(r => isHouse(r.source));
       const perHouse = {}; const picked = [];
       for (const r of houseRows) { const h = r.source; perHouse[h] = (perHouse[h] || 0); if (perHouse[h] < 3) { perHouse[h]++; picked.push(r); } if (picked.length >= 10) break; }
@@ -1234,10 +1235,9 @@ async function handleOps(req, res) {
       const which = String(req.query?.group || "house"); // house | baseline
       const cap = Number(req.query?.cap || (which === "house" ? 50000 : 6000));
       let q;
-      if (which === "house") q = "select=id,source,year,source_url,raw_record&order=auction_end_date.desc.nullslast";
+      if (which === "house") q = `select=id,source,year,source_url,raw_record&${HOUSE_IN}&order=auction_end_date.desc.nullslast`;
       else q = "select=id,source,year,source_url,raw_record&source=in.(bringatrailer,bat,carsandbids)&order=auction_end_date.desc.nullslast";
       let rows = await pageAll(q, cap);
-      if (which === "house") rows = rows.filter(r => isHouse(r.source));
       const n = rows.length;
       const keyFreq = {}; let mileage = 0, vin = 0, url = 0, color = 0, sy = 0, nonusd = 0; const currencies = {}; let basisKeyHits = 0; const basisKeysSeen = {};
       for (const row of rows) {
@@ -1261,8 +1261,7 @@ async function handleOps(req, res) {
     }
 
     if (sub === "dups") {
-      const rows = await pageAll("select=id,source,source_record_id,price,auction_end_date,raw_title", 60000);
-      const house = rows.filter(r => isHouse(r.source));
+      const house = await pageAll(`select=id,source,source_record_id,price,auction_end_date,raw_title&${HOUSE_IN}`, 8000);
       const groups = {};
       for (const r of house) {
         const key = `${(r.raw_title || "").trim().toLowerCase()}||${r.price}||${r.auction_end_date}`;
