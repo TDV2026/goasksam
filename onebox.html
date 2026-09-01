@@ -52,10 +52,13 @@ details.ob-how p{color:var(--faint);font:italic 400 13.5px/1.55 Georgia,serif;ma
 .ob-tiles.one{grid-template-columns:minmax(0,340px)}
 .ob-tile{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
 .ob-tile.mid{border-color:color-mix(in srgb,var(--green) 42%,var(--line));box-shadow:0 2px 4px rgba(40,30,10,.06),0 16px 40px rgba(11,92,62,.12)}
-.ob-ph{aspect-ratio:16/10;background:#0c0a06}
+.ob-ph{aspect-ratio:16/10;background:#0c0a06;position:relative}
 .ob-ph img{width:100%;height:100%;object-fit:cover;display:block}
-.ob-ph.ob-noimg{background:var(--line2) center/cover;position:relative}
-.ob-ph.ob-noimg::after{content:"photo unavailable";position:absolute;inset:0;display:grid;place-items:center;color:var(--faint);font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.05em}
+.ob-plate{display:none;position:absolute;inset:0;flex-direction:column;justify-content:center;gap:7px;padding:18px 20px;background:var(--paper);background-image:linear-gradient(var(--line2) 1px,transparent 1px);background-size:100% 9px}
+.ob-plate-mark{font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--green)}
+.ob-plate-name{font-size:16.5px;font-weight:700;color:var(--ink);letter-spacing:-.01em;line-height:1.2;text-wrap:balance}
+.ob-plate-sub{font:600 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-top:2px}
+.ob-usd{font:600 12.5px/1 ui-monospace,Menlo,monospace;color:var(--slate);margin-top:4px;font-variant-numeric:tabular-nums}
 .ob-body{padding:15px 17px 17px}
 .ob-rank{font:600 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:9px}
 .ob-rank.mid{color:var(--green)}
@@ -113,6 +116,6 @@ details.ob-how p{color:var(--faint);font:italic 400 13.5px/1.55 Georgia,serif;ma
 
   <div class="ob-foot">Every figure here is a real auction result from GoAskSam's own archive. No estimates. No valuations.</div>
 </div>
-<script src="obx.20260901b/onebox.js"></script>
+<script src="obx.20260901c/onebox.js"></script>
 </body>
 </html>

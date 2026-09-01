@@ -20,17 +20,31 @@
   var result = document.getElementById("ob-result");
   var lastText = "";
 
+  // Photo-unavailable fallback (WS1.4): a build-sheet spec plate on the paper ground with
+  // the platform mark + car name, never a bare gray "photo unavailable" box.
+  function plateHTML(c, show) {
+    var name = [c.year, c.make, c.subjectName].filter(Boolean).join(" ");
+    return '<div class="ob-plate"' + (show ? ' style="display:flex"' : "") + ">" +
+      '<div class="ob-plate-mark">' + esc(c.platform || "") + "</div>" +
+      '<div class="ob-plate-name">' + esc(name) + "</div>" +
+      '<div class="ob-plate-sub">Photo unavailable</div></div>';
+  }
   function card(c) {
     var disp = c.display || {};
     var mid = !!c.closest; // highlight the closest match, not a price position
     var note = disp.premiumInclusive ? '<div class="ob-price-note">includes buyer’s premium</div>' : "";
+    // USD-equivalent anchor for non-USD cards (WS1.2).
+    var usd = c.usdApprox ? '<div class="ob-usd">&asymp; $' + Number(c.usdApprox).toLocaleString() + "</div>" : "";
     var mileLine = c.mileage ? esc(miles(c.mileage))
       : (c.mileageStated ? '<span class="ob-stated">listed as ~' + esc(miles(c.mileageStated)) + "</span>" : "TMU");
+    var photo = c.image
+      ? '<img src="' + esc(c.image) + '" alt="comparable sale" ' +
+          'onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.ob-plate\');if(p)p.style.display=\'flex\';">' + plateHTML(c, false)
+      : plateHTML(c, true);
     return '<div class="ob-tile' + (mid ? " mid" : "") + '">' +
-      '<div class="ob-ph"><img src="' + esc(c.image) + '" alt="comparable sale" ' +
-        'onerror="this.parentNode.classList.add(\'ob-noimg\');this.remove();"></div>' +
+      '<div class="ob-ph">' + photo + "</div>" +
       '<div class="ob-body"><div class="ob-rank' + (mid ? " mid" : "") + '">' + esc(c.rank) + "</div>" +
-      '<div class="ob-price">' + esc(priceStr(disp)) + "</div>" + note +
+      '<div class="ob-price">' + esc(priceStr(disp)) + "</div>" + usd + note +
       '<div class="ob-miles">' + mileLine + "</div>" +
       '<div class="ob-spec">' + esc(c.spec) + "</div>" +
       (c.explanation ? '<div class="ob-explain">' + esc(c.explanation) + "</div>" : "") +
