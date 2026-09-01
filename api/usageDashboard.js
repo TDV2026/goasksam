@@ -1207,7 +1207,9 @@ async function handleOps(req, res) {
       return Math.round(n * mult);
     }
     const KM = /kilomet|(?:^|\s)km\b/i;
-    const NUM = "([\\d][\\d,\\.]*\\s*k?)";
+    // number token; the k-thousands suffix must NOT be followed by a letter, so "45k"
+    // matches but the "k" in "5,547 km" is left for the unit group (was a x1000 bug).
+    const NUM = "([\\d][\\d,\\.]*(?:\\s*k(?![a-z]))?)";
     const UNIT = "(miles|mi\\b|kilomet\\w+|km\\b)";
     // STRONG odometer-context patterns (require odometer/showing/from-new/indicated context)
     const STRONG = [
@@ -1249,7 +1251,7 @@ async function handleOps(req, res) {
       let clean = null, sawPostResto = false, prIdx = -1;
       for (const re of STRONG) {
         const m = re.exec(text); if (!m || toNum(m[1]) == null) continue;
-        const after = text.slice(m.index, m.index + m[0].length + 45);
+        const after = text.slice(m.index, m.index + m[0].length + 80);
         if (POSTRESTO.test(after)) { if (!sawPostResto) { sawPostResto = true; prIdx = m.index; } continue; }
         const isKm = KM.test(m[2] || ""); const miVal = toNum(m[1]);
         clean = { value: isKm ? Math.round(miVal * 0.621371) : miVal, unit: isKm ? "km->mi" : "mi", raw: m[1], sentence: sentenceAround(text, m.index) }; break;
