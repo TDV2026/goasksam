@@ -333,6 +333,12 @@ function renderDecision(decisionData,renderOpts){
   //  3 otherwise: deepest recent market leads.
   const routesForCards=(()=>{
     const routable=routeOptions.filter(r=>r.routable!==false);
+    // Thin-window price-signal override (backend-set marker, api/sellerDecision.js): a
+    // flagged strong-price venue with materially deeper comps leads over a thin-window
+    // recency leader. Honored FIRST so the card, the backend recommendedPath, and this
+    // mirror stay in lockstep (the backend already reordered routes; this pins it).
+    const forced=routable.find(r=>r.thinWindowPriceLead);
+    if(forced){sellState.routingReason="thin_window_price";return routeOptions[0]===forced?routeOptions:[forced,...routeOptions.filter(x=>x!==forced)];}
     const cleared=r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10?p.percent:-1;};
     // Depth leader: most sold comps at the landed scope (needed by the volume-aware
     // premium gate below, so it is computed BEFORE Branch 1).

@@ -527,6 +527,7 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
   }).sort((a, b) => b.score - a.score);
 
   applyWinConditions(routes, vehicle);
+  applyThinWindowPriceOverride(routes);
 
   return {
     priorities,
@@ -546,6 +547,11 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
 function pickRecommendedRoute(routes) {
   const routable = (routes || []).filter(r => r.routable !== false);
   if (!routable.length) return (routes || []).find(r => r.routable) || (routes || [])[0] || null;
+  // Thin-window price-signal override (set in analyzeRouteFit): a flagged strong-price
+  // venue with materially deeper comps leads over a thin-window recency leader. Honored
+  // first so recommendedPath (saved-list) and the reordered card stay in lockstep.
+  const forced = routable.find(r => r.thinWindowPriceLead);
+  if (forced) return forced;
   const clearedPct = r => {
     const p = r && r.marketEvidence && r.marketEvidence.pricePremium;
     return (p && p.gateType === "symmetric" && Number.isFinite(p.percent) && p.percent >= 10) ? p.percent : -1;
@@ -577,6 +583,52 @@ function pickRecommendedRoute(routes) {
   }
   if (deep && deepN > 0) return deep;
   return routable[0] || (routes || [])[0] || null;
+}
+
+// Thin-window price-signal override (Aug 2026). A high-scoring leader whose landed
+// window sample is THIN must not hold the pick on a same-size recency edge when
+// another routable platform is flagged the STRONG-PRICE-SIGNAL route AND carries a
+// materially deeper comp record. In the reported case a 2-sale recent median edge on
+// Cars & Bids out-ranked Bring a Trailer for an E30 convertible, even though BaT is the
+// flagged strong-price venue with more comps. The thin leader wins on recent median;
+// the challenger wins on a deeper, price-stronger track record. This reorders on the
+// venue's OWN strong-price flag plus comp DEPTH, never a computed "more money" figure,
+// so it makes no unsupported price claim (rule 11). Thresholds are explicit so a razor
+// edge can never trigger it and a genuinely deep or price-strong leader is never demoted.
+const THIN_PICK_MAX = 3;         // leader is "thin" at <= 3 sold comps in the landed window
+const DEPTH_FLOOR = 8;           // challenger needs an absolute floor of 180-day model comps
+const DEPTH_RATIO = 1.2;         // ...AND >= 1.2x the leader's, so a 1-comp edge never qualifies
+function thinWindowPriceChallenger(routes) {
+  const routable = (routes || []).filter(r => r.routable !== false);
+  if (routable.length < 2) return null;
+  const top = routable[0];                         // current card leader (highest score / promoted)
+  if (top.winCondition) return null;               // a curated win-condition pick stands
+  const ev = top.marketEvidence || {};
+  const topSales = Number(ev.evidenceSales || 0);
+  if (topSales === 0 || topSales > THIN_PICK_MAX) return null;   // not thin (or no evidence at all)
+  if (top.priceOutcome === "strong") return null;               // leader IS the strong-price route: keep it
+  const topDepth = Number(ev.modelComps180 || 0);
+  const qualifying = routable.slice(1).filter(r => {
+    const e = r.marketEvidence || {};
+    if (!(r.routeFitFacts || []).includes("strong_price_signal_route")) return false;
+    if (Number(e.evidenceSales || 0) < topSales) return false;  // never trade down to an even thinner window
+    const depth = Number(e.modelComps180 || 0);
+    return depth >= DEPTH_FLOOR && depth >= topDepth * DEPTH_RATIO && depth > topDepth;
+  });
+  if (!qualifying.length) return null;
+  qualifying.sort((a, b) => (Number(b.marketEvidence?.modelComps180 || 0) - Number(a.marketEvidence?.modelComps180 || 0)) || (b.score - a.score));
+  return qualifying[0];
+}
+// Reorders `routes` in place: promotes the qualifying challenger to the front and marks
+// it, so BOTH the card order (routeFit.routes) and the recommended pick
+// (pickRecommendedRoute, which honors the marker) move together, and the frontend
+// routesForCards mirror honors the same marker. Kept in lockstep across all three.
+function applyThinWindowPriceOverride(routes) {
+  const challenger = thinWindowPriceChallenger(routes);
+  if (!challenger) return;
+  const idx = routes.indexOf(challenger);
+  if (idx > 0) { routes.splice(idx, 1); routes.unshift(challenger); }
+  challenger.thinWindowPriceLead = true;
 }
 
 // Hybrid win-condition routing (Phase 2). A curated table marks a niche platform
@@ -1880,15 +1932,25 @@ function decide(analysis, criteria, vehicle) {
       evidenceSales: strongerNonRoutable.marketEvidence.evidenceSales
     } : null,
     ladder: analysis.ladder,
-    why: [
-      bestRoute.marketEvidence
-        ? `${bestRoute.platform} is the strongest combined fit from market signal and seller priorities.`
-        : `${bestRoute.platform} is the strongest route-fit option for the stated priorities, while live market evidence is stronger on ${best.platform}.`,
-      `${best.platform} has the clearest recent support in the selected ${analysis.windowDays}-day window of ${analysis.evidenceLabel}.`,
-      wideningFact(analysis),
-      best.closeSales >= 10 ? `${best.closeSales} of those were close matches to the searched car.` : null,
-      sellerActivityExplanation(analysis.sellerActivity, best.platform)
-    ].filter(Boolean),
+    why: bestRoute.thinWindowPriceLead
+      // Thin-window price-signal override: state the reasoning honestly. The pick weighs
+      // a deeper, price-stronger track record over a small recent-window sample. No money
+      // claim (rule 11): it names the depth and the strong-price signal, not a "more money".
+      ? [
+          `${bestRoute.platform} has the deeper track record for this car and the stronger price signal in our data.`,
+          `Recent comparable sales are thin right now, so the pick weighs the broader record over a small recent sample.`,
+          wideningFact(analysis),
+          sellerActivityExplanation(analysis.sellerActivity, bestRoute.platform)
+        ].filter(Boolean)
+      : [
+          bestRoute.marketEvidence
+            ? `${bestRoute.platform} is the strongest combined fit from market signal and seller priorities.`
+            : `${bestRoute.platform} is the strongest route-fit option for the stated priorities, while live market evidence is stronger on ${best.platform}.`,
+          `${best.platform} has the clearest recent support in the selected ${analysis.windowDays}-day window of ${analysis.evidenceLabel}.`,
+          wideningFact(analysis),
+          best.closeSales >= 10 ? `${best.closeSales} of those were close matches to the searched car.` : null,
+          sellerActivityExplanation(analysis.sellerActivity, best.platform)
+        ].filter(Boolean),
     tradeoffs,
     powerSellerReferral,
     routeFit,
