@@ -110,6 +110,7 @@ export default async function handler(req, res) {
     // keepAsTyped (DEFECT 4): the seller insists on their designation after a
     // near-miss, so skip the "did you mean" confirmation and accept it unverified.
     const resolveOpts = req.body?.keepAsTyped ? { keepAsTyped: true } : {};
+    if (req.body?.debug) resolveOpts.debug = true; // TEMP diagnostic passthrough
     let result = await resolveVehicle(raw, resolveOpts);
     let fallbackUsed = null;
 
