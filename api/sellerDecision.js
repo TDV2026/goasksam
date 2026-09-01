@@ -527,7 +527,7 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
   }).sort((a, b) => b.score - a.score);
 
   applyWinConditions(routes, vehicle);
-  applyThinWindowPriceOverride(routes);
+  applyThinWindowPriceOverride(routes, priorities);
 
   return {
     priorities,
@@ -598,7 +598,10 @@ function pickRecommendedRoute(routes) {
 const THIN_PICK_MAX = 3;         // leader is "thin" at <= 3 sold comps in the landed window
 const DEPTH_FLOOR = 8;           // challenger needs an absolute floor of 180-day model comps
 const DEPTH_RATIO = 1.2;         // ...AND >= 1.2x the leader's, so a 1-comp edge never qualifies
-function thinWindowPriceChallenger(routes) {
+function thinWindowPriceChallenger(routes, priorities) {
+  // A speed-priority seller's fast thin-window pick is intentional; never demote it to a
+  // slower strong-price venue. The override is for the default (price/evidence) read only.
+  if (priorities && priorities.fastSale) return null;
   const routable = (routes || []).filter(r => r.routable !== false);
   if (routable.length < 2) return null;
   const top = routable[0];                         // current card leader (highest score / promoted)
@@ -623,8 +626,8 @@ function thinWindowPriceChallenger(routes) {
 // it, so BOTH the card order (routeFit.routes) and the recommended pick
 // (pickRecommendedRoute, which honors the marker) move together, and the frontend
 // routesForCards mirror honors the same marker. Kept in lockstep across all three.
-function applyThinWindowPriceOverride(routes) {
-  const challenger = thinWindowPriceChallenger(routes);
+function applyThinWindowPriceOverride(routes, priorities) {
+  const challenger = thinWindowPriceChallenger(routes, priorities);
   if (!challenger) return;
   const idx = routes.indexOf(challenger);
   if (idx > 0) { routes.splice(idx, 1); routes.unshift(challenger); }
