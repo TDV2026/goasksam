@@ -1179,6 +1179,24 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
+  // TEMP (VIN feature test): toggle the app_config vin_input_enabled flag and surface
+  // one real archive VIN for end-to-end testing. Remove after verification.
+  if (task === "vinflag") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const setVal = req.query?.set;
+    if (setVal === "0" || setVal === "1") {
+      await supabaseInsert("app_config", [{ key: "vin_input_enabled", value: setVal }], env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=key");
+    }
+    const rows = await supabaseSelect(env, `app_config?key=eq.vin_input_enabled&select=value&limit=1`);
+    // A real VIN present in the archive (non-null), plus its prior sale, for the 4a/4b test.
+    let sampleVin = null;
+    try {
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/vehicle_market_records?raw_record->>vin=not.is.null&select=source,auction_end_date,price,source_url,raw_record->>vin&order=auction_end_date.desc.nullslast&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
+      const j = await r.json(); if (Array.isArray(j) && j[0]) sampleVin = j[0];
+    } catch { /* non-fatal */ }
+    return res.status(200).json({ task: "vinflag", vin_input_enabled: rows?.[0]?.value ?? "(unset)", sampleVin });
+  }
+
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
