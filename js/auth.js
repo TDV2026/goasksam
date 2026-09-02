@@ -194,17 +194,28 @@ function authHandleCallback() {
   window.__authFetchWrapped = true;
   const orig = window.fetch.bind(window);
   window.fetch = function (input, init) {
+    let isApi = false, s = null, headers = null;
     try {
       const url = typeof input === "string" ? input : (input && input.url) || "";
-      const isApi = url.indexOf("/api/") === 0 || url.indexOf(location.origin + "/api/") === 0;
-      const s = authGetSession();
+      isApi = url.indexOf("/api/") === 0 || url.indexOf(location.origin + "/api/") === 0;
+      s = authGetSession();
       if (isApi && s && s.access_token) {
-        const headers = new Headers((init && init.headers) || (typeof input !== "string" && input.headers) || {});
-        if (!headers.has("Authorization")) headers.set("Authorization", "Bearer " + s.access_token);
-        init = Object.assign({}, init, { headers });
+        headers = new Headers((init && init.headers) || (typeof input !== "string" && input.headers) || {});
       }
     } catch (e) {}
-    return orig(input, init);
+    // Not an authenticated API call, or the caller already set Authorization: pass through.
+    if (!isApi || !s || !s.access_token || !headers || headers.has("Authorization")) return orig(input, init);
+    // REFRESH a near/expired token before attaching it, so a long-open session never sends
+    // a stale token. This is the single point that covers every authenticated call: the
+    // saved-results open/list AND the "run it again" wizard re-run the newsletter promises.
+    // authValidToken is a no-op returning the current token when it is still fresh (no
+    // network); it only round-trips to refresh within ~60s of expiry. Its own refresh call
+    // goes to the Supabase host (not /api/), so it is never re-wrapped (no recursion).
+    const p = (typeof authValidToken === "function") ? Promise.resolve().then(authValidToken) : Promise.resolve(s.access_token);
+    return p.then(function (tok) {
+      try { if (tok) { headers.set("Authorization", "Bearer " + tok); init = Object.assign({}, init, { headers }); } } catch (e) {}
+      return orig(input, init);
+    }, function () { return orig(input, init); });
   };
 })();
 
