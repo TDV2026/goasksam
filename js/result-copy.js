@@ -1211,8 +1211,15 @@ function composerWeekdayBullet(vehicle,ev){
   const total=d.sample!=null?Number(d.sample):null;
   const daySales=d.sales!=null?Number(d.sales):null;
   const lift=Number(d.liftPercent);
-  const win=Number(d.window)>=365?`over the past year`:`over the past ${d.window||180} days`;
-  const prov=t=>`dayAdvantage(${d.scope},${d.window||180}d${t})`;
+  // The stated window MUST be the real value the claim was computed on; never a
+  // guessed default. "all_time" is stated plainly; a missing/unusable window omits
+  // the whole day-specific claim rather than assert an unverified period.
+  const winNum=Number(d.window);
+  const win=(d.window==="all_time")?`across all recorded sales`
+    :((Number.isFinite(winNum)&&winNum>0)?(winNum>=365?`over the past year`:`over the past ${winNum} days`):null);
+  if(!win)return null;
+  const winTag=(d.window==="all_time")?"all_time":`${winNum}d`;
+  const prov=t=>`dayAdvantage(${d.scope},${winTag}${t})`;
   // make scope is inherently coarse: ALWAYS direction only, established wording,
   // gated to a directionally-sane lift so an absurd internal figure never routes.
   if(d.scope==="make"){
@@ -1250,7 +1257,10 @@ function composerSpecializationBullet(ev){
   if(!sc||!Number.isFinite(Number(sc.lift_rounded))||!sc.scope_label)return null;
   if(!metricGate(sc.lift_rounded,"specialization",{scope:sc.scope,platform:ev.platform}).ok)return null;
   const name=platformDisplayName(ev.label||ev.platform);
-  return { text:`${sc.scope_label} make up around ${sc.lift_rounded} times the share of ${platformPossessive(name)} sales that they do of the rest of the market we track over the past 180 days.`, provenance:`specialization(${sc.scope},${sc.lift_rounded}x)` };
+  // Read the cell's real window (currently 180d) rather than a hardcoded literal,
+  // so the copy can never silently go stale if the backend window changes.
+  const winClause=Number.isFinite(Number(sc.window))?` over the past ${Number(sc.window)} days`:"";
+  return { text:`${sc.scope_label} make up around ${sc.lift_rounded} times the share of ${platformPossessive(name)} sales that they do of the rest of the market we track${winClause}.`, provenance:`specialization(${sc.scope},${sc.lift_rounded}x,${sc.window||"?"}d)` };
 }
 // Branch-5 specialist headline: the specialist (not the depth leader) crowns
 // Card 1, so the headline states that reason from the computed cell.
@@ -1259,7 +1269,8 @@ function composerSpecialistHeadline(ev){
   if(!sc||!Number.isFinite(Number(sc.lift_rounded))||!sc.scope_label)return null;
   if(!metricGate(sc.lift_rounded,"specialization",{scope:sc.scope,platform:ev.platform}).ok)return null;
   const name=platformDisplayName(ev.label||ev.platform);
-  return { text:`${name} specializes in ${sc.scope_label}: they make up around ${sc.lift_rounded} times the share of its sales that they do of the rest of the market we track over the past 180 days.`, provenance:`specialistPick(${sc.scope},${sc.lift_rounded}x)` };
+  const winClause=Number.isFinite(Number(sc.window))?` over the past ${Number(sc.window)} days`:"";
+  return { text:`${name} specializes in ${sc.scope_label}: they make up around ${sc.lift_rounded} times the share of its sales that they do of the rest of the market we track${winClause}.`, provenance:`specialistPick(${sc.scope},${sc.lift_rounded}x,${sc.window||"?"}d)` };
 }
 // Speed copy (agnostic + accurate): the advantage is TIME TO LIST -- how fast a
 // submitted car gets listed and in front of buyers -- NOT auction length (live
