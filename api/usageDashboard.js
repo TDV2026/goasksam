@@ -1184,6 +1184,9 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const vin = String(req.query?.vin || "WAUSGAFC6CN001234").toUpperCase();
     const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    if (req.query?.set === "0" || req.query?.set === "1") {
+      await supabaseInsert("app_config", [{ key: "vin_input_enabled", value: req.query.set }], env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=key");
+    }
     async function get(q) { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: H }); return { ok: r.ok, status: r.status, rows: r.ok ? await r.json() : (await r.text()).slice(0, 200) }; } catch (e) { return { error: String(e) }; } }
     // sales_archive: by dedicated vin column, and by title/date for the sale.
     const saByVin = await get(`sales_archive?vin=eq.${encodeURIComponent(vin)}&select=source_id,platform,sale_date,sale_price,year,mileage,vin,raw_record`);
