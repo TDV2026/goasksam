@@ -1179,22 +1179,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  // TEMP: mint a session for an existing REAL account (verify the loading fix on a real
-  // session, not a throwaway). Read-only mint; remove after verification.
-  if (task === "mintone") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const url = env.supabaseUrl, sk = process.env.SUPABASE_SERVICE_ROLE_KEY, ak = process.env.SUPABASE_ANON_KEY;
-    const email = String(req.query?.email || "");
-    if (!email) return res.status(400).json({ error: "email required" });
-    const gen = await fetch(`${url}/auth/v1/admin/generate_link`, { method: "POST", headers: { apikey: sk, Authorization: `Bearer ${sk}`, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", email }) });
-    const gj = gen.ok ? await gen.json().catch(() => ({})) : {};
-    const props = (gj && gj.properties) || gj || {};
-    let sess = null;
-    if (props.hashed_token) { const v = await fetch(`${url}/auth/v1/verify`, { method: "POST", headers: { apikey: ak || sk, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", token_hash: props.hashed_token }) }); if (v.ok) sess = await v.json().catch(() => null); }
-    if (!sess || !sess.access_token) return res.status(200).json({ task: "mintone", error: "mint failed", genStatus: gen.status });
-    return res.status(200).json({ task: "mintone", email, uid: (sess.user && sess.user.id) || null, session: { access_token: sess.access_token, refresh_token: sess.refresh_token || "", expires_at: sess.expires_at || "" } });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
