@@ -1179,42 +1179,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  // TEMP: throwaway-account harness for the genuine-elapsed-time saved-results test.
-  // sub=setup mints a disposable account + seeds one real saved_result (cloned payload).
-  // sub=cleanup deletes the account + its rows. Remove after the test.
-  if (task === "stale") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const url = env.supabaseUrl, sk = process.env.SUPABASE_SERVICE_ROLE_KEY, ak = process.env.SUPABASE_ANON_KEY;
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    const sub = String(req.query?.sub || "setup");
-    if (sub === "cleanup") {
-      const uid = String(req.query?.uid || "");
-      if (!uid) return res.status(400).json({ error: "uid required" });
-      const delRows = await fetch(`${url}/rest/v1/saved_results?user_id=eq.${encodeURIComponent(uid)}`, { method: "DELETE", headers: { ...H, Prefer: "return=minimal" } });
-      const delUser = await fetch(`${url}/auth/v1/admin/users/${encodeURIComponent(uid)}`, { method: "DELETE", headers: { apikey: sk, Authorization: `Bearer ${sk}` } });
-      return res.status(200).json({ task: "stale", sub, rowsDeleted: delRows.status, userDeleted: delUser.status });
-    }
-    // setup: admin-create a confirmed throwaway user, then password-grant a real session.
-    const email = `gasm-stale-${Date.now().toString(36)}@example.com`;
-    const pw = "Stale!" + Math.random().toString(36).slice(2, 12) + "Xy9";
-    const cu = await fetch(`${url}/auth/v1/admin/users`, { method: "POST", headers: { apikey: sk, Authorization: `Bearer ${sk}`, "Content-Type": "application/json" }, body: JSON.stringify({ email, password: pw, email_confirm: true }) });
-    if (!cu.ok) return res.status(200).json({ task: "stale", sub, error: "create user failed", status: cu.status, body: (await cu.text()).slice(0, 200) });
-    const tg = await fetch(`${url}/auth/v1/token?grant_type=password`, { method: "POST", headers: { apikey: ak || sk, "Content-Type": "application/json" }, body: JSON.stringify({ email, password: pw }) });
-    const sess = tg.ok ? await tg.json().catch(() => null) : null;
-    if (!sess || !sess.access_token) return res.status(200).json({ task: "stale", sub, error: "password grant failed", status: tg.status });
-    const uid = (sess.user && sess.user.id) || null;
-    // accounts row with a 3/day tier so BOTH the fresh baseline search and the stale-tab
-    // new search (step 4) are allowed without tripping the free 1/day limit.
-    await fetch(`${url}/rest/v1/accounts`, { method: "POST", headers: { ...H, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify([{ user_id: uid, email, tier: "tdv" }]) }).catch(() => {});
-    // clone a recent payload into a saved_result for this throwaway user (a real, openable row)
-    const cloneR = await fetch(`${url}/rest/v1/saved_results?select=payload&order=created_at.desc&limit=1`, { headers: H });
-    const payload = cloneR.ok ? ((await cloneR.json())[0] || {}).payload : null;
-    const ins = await fetch(`${url}/rest/v1/saved_results`, { method: "POST", headers: { ...H, "Content-Type": "application/json", Prefer: "return=representation" }, body: JSON.stringify([{ user_id: uid, payload }]) });
-    const insBody = await ins.text();
-    let savedId = null; try { savedId = (JSON.parse(insBody)[0] || {}).id; } catch (e) {}
-    return res.status(200).json({ task: "stale", sub, email, uid, savedId, insStatus: ins.status, insErr: savedId ? undefined : insBody.slice(0, 160), clonedPayload: payload != null, session: { access_token: sess.access_token, refresh_token: sess.refresh_token || "", expires_at: sess.expires_at || "" } });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
