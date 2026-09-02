@@ -688,7 +688,15 @@ function premiumLandedScopeTags(landed) {
 function buildLadder(vehicle, generation = null) {
   const year = Number.isFinite(Number(vehicle.year)) ? Number(vehicle.year) : null;
   const trim = asText(vehicle.trim) || null;
-  const model = asText(vehicle.model);
+  const baseModel = asText(vehicle.model);
+  // Market-spec + wheelbase are part of the market identity, not a trim: name them
+  // in the ladder labels so every model/generation-scoped surface (card headline,
+  // "why", evidenceLabel) says which market the comps describe ("1997 Defender 90
+  // NAS sales"), never a generic "1997 Defender sales" that hides the NAS/wheelbase
+  // scoping the pool is actually applying. The make-context rung stays make-wide
+  // (no suffix), correctly, since it widens past the model. No-op when unset.
+  const specSuffix = [asText(vehicle.wheelbase) || null, asText(vehicle.marketSpecShort) || null].filter(Boolean).join(" ");
+  const model = specSuffix ? `${baseModel} ${specSuffix}` : baseModel;
   const modelTrim = [model, trim].filter(Boolean).join(" ");
   const gen = generation && year ? generation : null;
   // Decade input ("80s Bus"): no single year, but a range the rungs can use.

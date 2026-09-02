@@ -40,33 +40,44 @@ function v2Pl(w){ w=String(w||""); return /([sxz]|ch|sh)$/i.test(w)?w+"es":w+"s"
 // "E-Class" -> "E-Classes" since it ends in "s").
 function v2ModelInvariant(w){ return /series$/i.test(String(w||"").trim()); }
 function v2PlModel(w){ w=String(w||""); return (!w||v2ModelInvariant(w))?w:v2Pl(w); }
+// Market-spec + wheelbase suffix ("90 NAS", "110 Euro-spec"): part of the market
+// identity, so it rides along with the model in every model/generation-scoped
+// phrase. Never at make scope (that rung widens past the model). Not pluralized -
+// "Defender 90 NAS" is a category, so the model stays singular when it is present.
+function v2SpecSuffix(v){
+  var wb=v&&v.wheelbase?String(v.wheelbase):"", ms=v&&v.marketSpecShort?String(v.marketSpecShort):"";
+  var s=[wb,ms].filter(Boolean).join(" ");
+  return s?(" "+s):"";
+}
 function v2ScopePlural(v){
-  var kind=v2RungKind(), model=String(v&&v.model||"car"), gen=v2GenCode(), year=v&&v.year;
-  if(kind==="exact"&&year)return year+" "+v2PlModel(model);
-  if(kind==="generation"&&gen)return String(gen).toUpperCase()+"-generation "+v2PlModel(model);
+  var kind=v2RungKind(), model=String(v&&v.model||"car"), gen=v2GenCode(), year=v&&v.year, sfx=v2SpecSuffix(v);
+  var mw=sfx?model:v2PlModel(model); // keep singular when a spec suffix is present
+  if(kind==="exact"&&year)return year+" "+mw+sfx;
+  if(kind==="generation"&&gen)return String(gen).toUpperCase()+"-generation "+mw+sfx;
   if(kind==="make")return v2Pl(v&&v.make||"these cars");
-  return v2PlModel(model);
+  return mw+sfx;
 }
 // Attributive-SINGULAR scope: the form used directly before a noun ("... sales",
 // "... market", "... prices"). "8N-generation TT sales", not "TTs sales". Same
 // landed rung as v2ScopePlural; only the trailing plural drops.
 function v2ScopeAttr(v){
-  var kind=v2RungKind(), model=String(v&&v.model||"car"), gen=v2GenCode(), year=v&&v.year;
-  if(kind==="exact"&&year)return year+" "+model;
-  if(kind==="generation"&&gen)return String(gen).toUpperCase()+"-generation "+model;
+  var kind=v2RungKind(), model=String(v&&v.model||"car"), gen=v2GenCode(), year=v&&v.year, sfx=v2SpecSuffix(v);
+  if(kind==="exact"&&year)return year+" "+model+sfx;
+  if(kind==="generation"&&gen)return String(gen).toUpperCase()+"-generation "+model+sfx;
   if(kind==="make")return String(v&&v.make||"these cars");
-  return model;
+  return model+sfx;
 }
 // Item 4: the ONE resolved-car display, used everywhere the car is named (PS
 // headline, platform card, metadata tile). Includes the trim when resolved, so
 // the summary strip and the card metadata can never disagree.
-function v2CarDisplay(v){ v=v||{}; return [v.year,v.make,v.model,v.trim].filter(Boolean).join(" ")||"your car"; }
+function v2CarDisplay(v){ v=v||{}; return [v.year,v.make,v.model,v.wheelbase,v.trim,v.marketSpecShort].filter(Boolean).join(" ")||"your car"; }
 function v2RungRef(v){
   var kind=v2RungKind(), gen=v2GenCode();
   if(kind==="exact")return "this exact car";
   if(kind==="generation"&&gen)return "the "+String(gen).toUpperCase()+" generation";
   if(kind==="make")return "this make";
-  return "the "+[v&&v.make,v&&v.model].filter(Boolean).join(" ")||"model";
+  var base=[v&&v.make,v&&v.model].filter(Boolean).join(" ");
+  return base?("the "+base+v2SpecSuffix(v)):"the model";
 }
 function v2RungNoun(){ var kind=v2RungKind(); return kind==="generation"?"generation":kind==="segment"?"segment":kind==="make"?"make":"model"; }
 // The rung that was actually THIN (tighter than the one we landed on), for the
@@ -74,8 +85,8 @@ function v2RungNoun(){ var kind=v2RungKind(); return kind==="generation"?"genera
 // When we widened past the exact year to the model/generation, the thin rung is the
 // exact-year car; when we widened past the model to the make/segment, it is the model.
 function v2FailedRungRef(v){
-  var kind=v2RungKind(); var year=v&&v.year, mk=v&&v.make, md=v&&v.model;
-  var yearCar=[year,mk,md].filter(Boolean).join(" "), modelOnly=[mk,md].filter(Boolean).join(" ");
+  var kind=v2RungKind(); var year=v&&v.year, mk=v&&v.make, md=v&&v.model, sfx=v2SpecSuffix(v);
+  var yearCar=[year,mk,md].filter(Boolean).join(" ")+sfx, modelOnly=[mk,md].filter(Boolean).join(" ")+sfx;
   if(kind==="make"||kind==="segment")return modelOnly?("the "+modelOnly):"this model";
   if(kind==="exact")return yearCar?("the "+yearCar):"this exact car"; // thin even at the exact car
   return yearCar?("the "+yearCar):(modelOnly?("the "+modelOnly):"this car"); // widened from the exact year

@@ -1088,8 +1088,15 @@ function composerScopePhrase(vehicle,scope,generationCode,segmentLabel,singular)
   const make=vehicle&&vehicle.make?String(vehicle.make):"";
   const model=vehicle&&vehicle.model?String(vehicle.model):"";
   if(!scope){composerScopeMiss("(absent)");return null;}
+  // Market-spec + wheelbase suffix ("90 NAS"): part of the market identity, so it
+  // rides with the model at every model/generation scope (never make). Not
+  // pluralized - "Defender 90 NAS" is a category - so the model stays singular
+  // whenever the suffix is present. Keeps this composer in step with v2SpecSuffix.
+  const wb=vehicle&&vehicle.wheelbase?String(vehicle.wheelbase):"", ms=vehicle&&vehicle.marketSpecShort?String(vehicle.marketSpecShort):"";
+  const sfx=[wb,ms].filter(Boolean).join(" ");
+  const sfxTail=sfx?` ${sfx}`:"";
   if(scope==="make"||!model)return singular?(make||"these cars"):`${composerPlural(make||"these car")} as a whole`;
-  const modelWord=singular?model:composerPlural(model);
+  const modelWord=(sfx?model:(singular?model:composerPlural(model)))+sfxTail;
   if(scope==="generation"){
     if(!generationCode){composerScopeMiss("generation-without-code");return null;}
     return `${String(generationCode).toUpperCase()}-generation ${make} ${modelWord}`.trim();
