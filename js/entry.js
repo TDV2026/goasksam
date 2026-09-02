@@ -238,6 +238,14 @@ async function send(){
         document.getElementById("btn").disabled=false;
         return;
       }
+      // VIN feature: a VIN we could not decode is a KNOWN state, not gibberish for the
+      // chat layer. Show the honest line and stay in entry so the next message (the
+      // car in words) starts the wizard normally.
+      if(probeRes.ok&&probe.clarification&&probe.clarification.kind==="vin_decode_failed"){
+        addMsg("sam",probe.clarification.question);
+        document.getElementById("btn").disabled=false;
+        return;
+      }
     }catch(e){/* fall through to chat */}
     // falls through to the main chat below
   }

@@ -368,6 +368,10 @@ function renderPickCardV2(option,over){
         + '<h1 class="pcard-name">'+esc(name)+'</h1>'
         + '<div class="pcard-whyl pcard-whyl-main">'+esc(over.whyLabel||"Why I Picked This")+'<button type="button" class="methodology-info" aria-label="How Sam decides" title="How Sam decides" onclick="event.stopPropagation();openMethodologyModal()"><svg viewBox="0 0 20 20" width="13" height="13" aria-hidden="true"><circle cx="10" cy="10" r="8.4" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="6.4" r="1.05" fill="currentColor"/><rect x="9.05" y="8.7" width="1.9" height="6" rx="0.95" fill="currentColor"/></svg></button></div>'
         + '<p class="pcard-lead">'+esc(leadMain)+'</p>'
+        // VIN feature 4b: exact-VIN evidence line on the MAIN pick card only (not the
+        // price-alt override, which carries its own whyLabel). n=1 evidence; renders
+        // on whatever platform the data picked. Empty string when no VIN match.
+        + (function(){ if(over&&over.whyLabel)return''; try{ var vm=(typeof composerVinMatchBullet==="function")?composerVinMatchBullet(v):null; if(!vm)return''; return '<div class="pcard-vinmatch">'+esc(vm.text)+(vm.receiptUrl?' <a href="'+esc(vm.receiptUrl)+'" target="_blank" rel="noopener noreferrer" class="vin-receipt-link">View that sale</a>':'')+'</div>'; }catch(e){return'';} })()
         + '<button class="pcard-cta" onclick="'+ctaOnClick+'">Start Listing With '+esc(name)+v2Svg("arrow","cta-arrow")+'</button>'
         + '<div class="pcard-reassure">'+v2Svg("shield")+'<span>You\'ll be taken to '+esc(name)+' to begin your listing. Nothing is committed until you decide to publish.</span></div>'
         + trackLeft

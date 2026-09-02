@@ -1135,3 +1135,7 @@ body.home #input-box:focus-within{box-shadow:0 2px 10px rgba(22,20,15,.05);borde
 .vin-archive-callout{margin-top:8px;}
 .vin-receipt-link{display:inline-block;margin-top:2px;font-weight:600;font-size:13px;color:var(--pc-green,#0b5c3e);text-decoration:none;border-bottom:1px solid currentColor;}
 .vin-receipt-link:hover{opacity:.8;}
+
+/* VIN feature 4b: exact-VIN evidence line on the v2 pick card. Distinct from the
+   WHY prose per the mockup. Renders only when a VIN match exists (dark otherwise). */
+.pcard-vinmatch{margin:10px 0 2px;padding:10px 12px;background:rgba(11,92,62,.06);border-left:3px solid var(--pc-green,#0b5c3e);border-radius:6px;font-size:13.5px;line-height:1.45;color:var(--pc-ink,#171717);}
