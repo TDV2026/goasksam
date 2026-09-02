@@ -1199,7 +1199,30 @@ async function handleOps(req, res) {
       const hit = oJson && oJson[0];
       openTest = { httpOk: oR.ok, status: oR.status, foundRow: !!hit, hasPayload: hit ? hit.payload != null : null, idType: typeof r0.id };
     }
-    return res.status(200).json({ task: "savedcheck", totalRecent: rows.length, rows, openTest });
+    // Full end-to-end repro with a REAL minted token: does the deployed /api/account
+    // return 200 for BOTH savedResults and savedResult when the token is valid?
+    let e2e = null;
+    const target = list.find(r => r.user_id);
+    if (target) {
+      const url = env.supabaseUrl, sk = process.env.SUPABASE_SERVICE_ROLE_KEY, ak = process.env.SUPABASE_ANON_KEY;
+      const accs = await fetch(`${url}/rest/v1/accounts?user_id=eq.${target.user_id}&select=email&limit=1`, { headers: H });
+      const email = accs.ok ? ((await accs.json())[0] || {}).email : null;
+      if (email && sk) {
+        const gen = await fetch(`${url}/auth/v1/admin/generate_link`, { method: "POST", headers: { apikey: sk, Authorization: `Bearer ${sk}`, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", email }) });
+        const gj = gen.ok ? await gen.json().catch(() => ({})) : {};
+        const props = (gj && gj.properties) || gj || {};
+        let sess = null;
+        if (props.hashed_token) { const v = await fetch(`${url}/auth/v1/verify`, { method: "POST", headers: { apikey: ak || sk, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", token_hash: props.hashed_token }) }); if (v.ok) sess = await v.json().catch(() => null); }
+        if (sess && sess.access_token) {
+          const tok = sess.access_token;
+          const call = async body => { const r = await fetch(`https://goasksam.com/api/account`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify(body) }); let j = null; try { j = await r.json(); } catch (e) {} return { status: r.status, ok: r.ok, shape: j ? Object.keys(j) : "non-json", listCount: j && j.results ? j.results.length : undefined, hasPayload: j ? j.payload != null : undefined }; };
+          const listCall = await call({ action: "savedResults" });
+          const openCall = await call({ action: "savedResult", id: target.id });
+          e2e = { mintedFor: target.user_id, tokenSuffix: tok.slice(-6), savedResults: listCall, savedResult: openCall };
+        } else e2e = { error: "mint failed" };
+      } else e2e = { error: email ? "no service key" : "no email for user" };
+    }
+    return res.status(200).json({ task: "savedcheck", totalRecent: rows.length, rows: rows.slice(0, 2), openTest, e2e });
   }
 
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
