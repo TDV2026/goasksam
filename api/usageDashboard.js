@@ -1179,6 +1179,26 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
+  // TEMP (VIN bug): probe both stores for a specific sale/VIN. Remove after fix.
+  if (task === "vinbug") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const vin = String(req.query?.vin || "WAUSGAFC6CN001234").toUpperCase();
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    async function get(q) { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: H }); return { ok: r.ok, status: r.status, rows: r.ok ? await r.json() : (await r.text()).slice(0, 200) }; } catch (e) { return { error: String(e) }; } }
+    // sales_archive: by dedicated vin column, and by title/date for the sale.
+    const saByVin = await get(`sales_archive?vin=eq.${encodeURIComponent(vin)}&select=source_id,platform,sale_date,sale_price,year,mileage,vin,raw_record`);
+    const saByTitle = await get(`sales_archive?raw_title=ilike.*a7*&sale_date=gte.2026-08-25&select=source_id,platform,sale_date,sale_price,vin,raw_title&order=sale_date.desc&limit=20`);
+    // vehicle_market_records: recent Audi A7, check raw_record.vin.
+    const vmr = await get(`vehicle_market_records?make=ilike.*audi*&raw_title=ilike.*a7*&select=source,auction_end_date,price,source_url,raw_record&order=auction_end_date.desc.nullslast&limit=50`);
+    const vmrVins = Array.isArray(vmr.rows) ? vmr.rows.map(r => ({ date: r.auction_end_date, price: r.price, vin: (r.raw_record || {}).vin || null, title: (r.raw_record || {}).title || null })).slice(0, 20) : vmr;
+    return res.status(200).json({
+      task: "vinbug", vin,
+      sales_archive_by_vin: { ok: saByVin.ok, count: Array.isArray(saByVin.rows) ? saByVin.rows.length : saByVin.rows, sample: Array.isArray(saByVin.rows) ? saByVin.rows.map(r => ({ platform: r.platform, sale_date: r.sale_date, price: r.sale_price, mileage: r.mileage, vin_col: r.vin, rr_vin: (r.raw_record || {}).vin, url: (r.raw_record || {}).source_url || (r.raw_record || {}).url })) : null },
+      sales_archive_a7_recent: { ok: saByTitle.ok, rows: Array.isArray(saByTitle.rows) ? saByTitle.rows.map(r => ({ date: r.sale_date, price: r.sale_price, vin: r.vin, title: r.raw_title })) : saByTitle.rows },
+      vmr_a7_recent: { ok: vmr.ok, count: Array.isArray(vmr.rows) ? vmr.rows.length : null, vins: vmrVins }
+    });
+  }
+
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
