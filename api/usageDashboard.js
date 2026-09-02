@@ -1203,12 +1203,16 @@ async function handleOps(req, res) {
     const sess = tg.ok ? await tg.json().catch(() => null) : null;
     if (!sess || !sess.access_token) return res.status(200).json({ task: "stale", sub, error: "password grant failed", status: tg.status });
     const uid = (sess.user && sess.user.id) || null;
+    // accounts row with a 3/day tier so BOTH the fresh baseline search and the stale-tab
+    // new search (step 4) are allowed without tripping the free 1/day limit.
+    await fetch(`${url}/rest/v1/accounts`, { method: "POST", headers: { ...H, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify([{ user_id: uid, email, tier: "tdv" }]) }).catch(() => {});
     // clone a recent payload into a saved_result for this throwaway user (a real, openable row)
     const cloneR = await fetch(`${url}/rest/v1/saved_results?select=payload&order=created_at.desc&limit=1`, { headers: H });
     const payload = cloneR.ok ? ((await cloneR.json())[0] || {}).payload : null;
     const ins = await fetch(`${url}/rest/v1/saved_results`, { method: "POST", headers: { ...H, "Content-Type": "application/json", Prefer: "return=representation" }, body: JSON.stringify([{ user_id: uid, payload }]) });
-    const savedId = ins.ok ? ((await ins.json())[0] || {}).id : null;
-    return res.status(200).json({ task: "stale", sub, email, uid, savedId, session: { access_token: sess.access_token, refresh_token: sess.refresh_token || "", expires_at: sess.expires_at || "" } });
+    const insBody = await ins.text();
+    let savedId = null; try { savedId = (JSON.parse(insBody)[0] || {}).id; } catch (e) {}
+    return res.status(200).json({ task: "stale", sub, email, uid, savedId, insStatus: ins.status, insErr: savedId ? undefined : insBody.slice(0, 160), clonedPayload: payload != null, session: { access_token: sess.access_token, refresh_token: sess.refresh_token || "", expires_at: sess.expires_at || "" } });
   }
 
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
