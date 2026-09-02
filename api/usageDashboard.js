@@ -1191,8 +1191,12 @@ async function handleOps(req, res) {
     // A real VIN present in the archive (non-null), plus its prior sale, for the 4a/4b test.
     let sampleVin = null;
     try {
-      const r = await fetch(`${env.supabaseUrl}/rest/v1/vehicle_market_records?raw_record->>vin=not.is.null&select=source,auction_end_date,price,source_url,raw_record->>vin&order=auction_end_date.desc.nullslast&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
-      const j = await r.json(); if (Array.isArray(j) && j[0]) sampleVin = j[0];
+      // Prefer a NAS Defender (SALD* VIN) — federalized, so it decodes in vPIC AND
+      // exercises the WMI market-spec enrichment. Fall back to any 17-char archive VIN.
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/vehicle_market_records?raw_title=ilike.*defender*&select=source,year,auction_end_date,price,source_url,raw_record&order=auction_end_date.desc.nullslast&limit=200`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
+      const j = await r.json();
+      const cands = (Array.isArray(j) ? j : []).map(x => ({ source: x.source, year: x.year, soldDate: x.auction_end_date, price: x.price, url: x.source_url, vin: String((x.raw_record || {}).vin || "").toUpperCase() })).filter(x => /^[A-HJ-NPR-Z0-9]{17}$/.test(x.vin));
+      sampleVin = cands.find(x => x.vin.startsWith("SALD")) || cands.find(x => x.vin.startsWith("SALL")) || cands[0] || null;
     } catch { /* non-fatal */ }
     return res.status(200).json({ task: "vinflag", vin_input_enabled: rows?.[0]?.value ?? "(unset)", sampleVin });
   }
