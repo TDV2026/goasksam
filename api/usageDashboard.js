@@ -1198,7 +1198,16 @@ async function handleOps(req, res) {
       const cands = (Array.isArray(j) ? j : []).map(x => ({ source: x.source, year: x.year, soldDate: x.auction_end_date, price: x.price, url: x.source_url, vin: String((x.raw_record || {}).vin || "").toUpperCase() })).filter(x => /^[A-HJ-NPR-Z0-9]{17}$/.test(x.vin));
       sampleVin = cands.find(x => x.vin.startsWith("SALD")) || cands.find(x => x.vin.startsWith("SALL")) || cands[0] || null;
     } catch { /* non-fatal */ }
-    return res.status(200).json({ task: "vinflag", vin_input_enabled: rows?.[0]?.value ?? "(unset)", sampleVin });
+    // Probe: does the exact-VIN filter used by the archive match actually return the row?
+    let filterProbe = null;
+    if (sampleVin?.vin) {
+      try {
+        const q = `${env.supabaseUrl}/rest/v1/vehicle_market_records?raw_record->>vin=eq.${encodeURIComponent(sampleVin.vin)}&select=source,price&limit=5`;
+        const r = await fetch(q, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
+        filterProbe = { ok: r.ok, status: r.status, count: r.ok ? (await r.json()).length : null, body: r.ok ? null : (await r.text()).slice(0, 200) };
+      } catch (e) { filterProbe = { error: String(e) }; }
+    }
+    return res.status(200).json({ task: "vinflag", vin_input_enabled: rows?.[0]?.value ?? "(unset)", sampleVin, filterProbe });
   }
 
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
