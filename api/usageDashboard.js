@@ -1179,38 +1179,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  // TEMP read-only: can the archive distinguish NAS vs grey-market Defenders? Archive only,
-  // zero OCD cost, no writes. Remove after the report.
-  if (task === "nasscan") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const base = `${env.supabaseUrl}/rest/v1/vehicle_market_records`;
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    async function pageAll(q, cap) { const out = []; let off = 0; while (out.length < cap) { const r = await fetch(`${base}?${q}&limit=1000&offset=${off}`, { headers: H }); if (!r.ok) break; const rows = await r.json(); if (!rows.length) break; out.push(...rows); off += 1000; if (rows.length < 1000) break; } return out; }
-    // Defender records (model or title mentions defender)
-    const rows = await pageAll(`select=source,year,price,model,raw_title,vin:raw_record->>vin&or=(model.ilike.*defender*,raw_title.ilike.*defender*)`, 6000);
-    const t = r => String(r.raw_title || "").toLowerCase();
-    const has = (r, re) => re.test(t(r));
-    const NAS = /\bnas\b|north american spec|federali[sz]ed|u\.?s\.? market|us[- ]spec/i;
-    const NINETY = /\b90\b|d90|defender 90/i, ONETEN = /\b110\b|d110|defender 110/i;
-    const total = rows.length;
-    const nas = rows.filter(r => has(r, NAS));
-    const ninety = rows.filter(r => has(r, NINETY)), oneten = rows.filter(r => has(r, ONETEN));
-    // model-field distribution
-    const modelCounts = {}; for (const r of rows) { const m = String(r.model || "(null)"); modelCounts[m] = (modelCounts[m] || 0) + 1; }
-    // VIN signal: NAS Defenders have SALDV VINs (US 17-char); grey imports have SALLDV (UK)
-    const vinPrefix = {}; for (const r of rows) { const v = String(r.vin || "").toUpperCase().slice(0, 6); if (v) vinPrefix[v] = (vinPrefix[v] || 0) + 1; }
-    // a "1997 Defender 90" pool as the resolver builds it today (model=Defender, year~1997)
-    const pool97_90 = rows.filter(r => Number(r.year) >= 1995 && Number(r.year) <= 1999);
-    return res.status(200).json({
-      task: "nasscan", totalDefenderRecords: total,
-      titleMentions: { NAS: nas.length, ninety: ninety.length, oneTen: oneten.length },
-      modelFieldDistribution: Object.entries(modelCounts).sort((a, b) => b[1] - a[1]).slice(0, 15),
-      vinPrefixTop: Object.entries(vinPrefix).sort((a, b) => b[1] - a[1]).slice(0, 10),
-      nasSampleTitles: nas.slice(0, 8).map(r => ({ year: r.year, price: r.price, title: r.raw_title })),
-      pool1995to1999: { count: pool97_90.length, nasInPool: pool97_90.filter(r => has(r, NAS)).length, ninetyInPool: pool97_90.filter(r => has(r, NINETY)).length, sampleTitles: pool97_90.slice(0, 10).map(r => ({ y: r.year, p: r.price, t: r.raw_title })) }
-    });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
