@@ -699,6 +699,30 @@ function genericTrimAsk(rv){
   return {type:"trim",optional:true,ask:`Any specific trim, package or edition on the ${label||"car"}? Type it, or say skip if it is the standard car.`,chips:["Skip","Not sure"]};
 }
 
+// Market-spec nameplates (Sep 2026): frontend mirror of lib/marketSpec.js
+// MARKET_SPEC_MAP (the frontend cannot import lib/). Some nameplates trade as two
+// distinct markets that must never blend: a federalized North American Spec (NAS)
+// Land Rover Defender is a wholly different market than a grey-market / Euro-spec
+// import. When the seller gave a specific-enough Defender (a wheelbase, or a
+// NAS-era year) but has NOT said which market, ASK rather than guess, exactly the
+// way the Boxster/Cayman body split asks. The resolver recognizes the answer
+// (lib/marketSpec.js) and the comp pool then separates on it.
+function defenderIsMarketSpecNameplate(rv){
+  return !!rv&&/^land\s*rover$/i.test(String(rv.make||"").trim())&&/^defender/i.test(String(rv.model||"").trim());
+}
+function marketSpecAskFor(rv){
+  if(!defenderIsMarketSpecNameplate(rv))return null;
+  if(rv.marketSpec)return null; // the seller already told us which market
+  const yr=Number(rv.year);
+  const nasEra=yr>=1993&&yr<=1997;       // NAS Defenders are 1993-1997 only
+  if(!rv.wheelbase&&!nasEra)return null; // bare nameplate: behave as before
+  const wb=rv.wheelbase?` ${rv.wheelbase}`:"";
+  return {
+    type:"marketspec",
+    ask:`Is it a federalized North American Spec (NAS) Defender${wb}, or a grey-market / Euro import? It changes the comparable sales a lot.`,
+    chips:["North American Spec","Grey-market / Euro import","Not sure"]
+  };
+}
 function missingVehicleTrimDetail(text){
   // Trim-missing is judged on the RESOLVED vehicle when we have one: model
   // confirmed with no trim means the trim step ALWAYS runs before location
@@ -709,6 +733,15 @@ function missingVehicleTrimDetail(text){
   // the model itself is in question, so a trim probe would be nonsensical.
   if(rv&&rv.model&&!rv.unverified){
     const trimVal=String(rv.trim||"");
+    // Market-spec nameplates: the distinction that matters is federalized-vs-grey
+    // + wheelbase, not a package trim. Ask that when ambiguous; once the market is
+    // known, skip the generic trim step entirely (a Defender has no package trim).
+    if(defenderIsMarketSpecNameplate(rv)){
+      const specAsk=marketSpecAskFor(rv);
+      if(specAsk)return specAsk;
+      if(rv.marketSpec)return null; // fully specified: proceed, no trim probe
+      // bare nameplate (no wheelbase, no NAS-era year): fall through to generic.
+    }
     for(const rule of CURATED_TRIM_ASKS){
       if(!rule.make.test(String(rv.make||"")))continue;
       if(!rule.model.test(String(rv.model||"")))continue;
