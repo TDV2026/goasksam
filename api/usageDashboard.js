@@ -1179,37 +1179,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  // TEMP (VIN feature test): toggle the app_config vin_input_enabled flag and surface
-  // one real archive VIN for end-to-end testing. Remove after verification.
-  if (task === "vinflag") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const setVal = req.query?.set;
-    if (setVal === "0" || setVal === "1") {
-      await supabaseInsert("app_config", [{ key: "vin_input_enabled", value: setVal }], env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=key");
-    }
-    const rows = await supabaseSelect(env, `app_config?key=eq.vin_input_enabled&select=value&limit=1`);
-    // A real VIN present in the archive (non-null), plus its prior sale, for the 4a/4b test.
-    let sampleVin = null;
-    try {
-      // Prefer a NAS Defender (SALD* VIN) — federalized, so it decodes in vPIC AND
-      // exercises the WMI market-spec enrichment. Fall back to any 17-char archive VIN.
-      const r = await fetch(`${env.supabaseUrl}/rest/v1/vehicle_market_records?raw_title=ilike.*defender*&select=source,year,auction_end_date,price,source_url,raw_record&order=auction_end_date.desc.nullslast&limit=200`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
-      const j = await r.json();
-      const cands = (Array.isArray(j) ? j : []).map(x => ({ source: x.source, year: x.year, soldDate: x.auction_end_date, price: x.price, url: x.source_url, vin: String((x.raw_record || {}).vin || "").toUpperCase() })).filter(x => /^[A-HJ-NPR-Z0-9]{17}$/.test(x.vin));
-      sampleVin = cands.find(x => x.vin.startsWith("SALD")) || cands.find(x => x.vin.startsWith("SALL")) || cands[0] || null;
-    } catch { /* non-fatal */ }
-    // Probe: does the exact-VIN filter used by the archive match actually return the row?
-    let filterProbe = null;
-    if (sampleVin?.vin) {
-      try {
-        const q = `${env.supabaseUrl}/rest/v1/vehicle_market_records?raw_record->>vin=eq.${encodeURIComponent(sampleVin.vin)}&select=source,price&limit=5`;
-        const r = await fetch(q, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
-        filterProbe = { ok: r.ok, status: r.status, count: r.ok ? (await r.json()).length : null, body: r.ok ? null : (await r.text()).slice(0, 200) };
-      } catch (e) { filterProbe = { error: String(e) }; }
-    }
-    return res.status(200).json({ task: "vinflag", vin_input_enabled: rows?.[0]?.value ?? "(unset)", sampleVin, filterProbe });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
