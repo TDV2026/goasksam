@@ -280,24 +280,35 @@ function savedConfirmLeave() {
   try { return window.confirm(`You're mid-search on the ${car}. Open this result and start over?`); }
   catch (e) { return true; }
 }
+// Reject a promise if it does not settle in time, so a hung request surfaces the honest
+// error fallback the callers already have instead of an eternal "Loading..." state.
+function __withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error((label || "request") + " timed out")), ms))
+  ]);
+}
 // Shared list fetch. Re-fetches on EVERY call (never cached) so a just-completed search
-// shows immediately on the next open/expand, no page reload.
+// shows immediately on the next open/expand, no page reload. Time-boxed: token refresh or
+// the fetch can never hang the UI forever (the "Loading..." stuck bug).
 async function fetchSavedResultsList() {
-  // Use the REFRESHED token (same path as authEnsureAccount), not the raw stored
-  // access_token: a session that has been open past the token lifetime would otherwise
-  // send an expired token and 401, which read as "couldn't load" even though the user is
-  // still signed in. authValidToken refreshes via the refresh_token first.
-  const token = (typeof authValidToken === "function")
-    ? await authValidToken()
-    : (((typeof authGetSession === "function" && authGetSession()) || {}).access_token);
-  if (!token) return { status: "auth" };
-  const res = await fetch(apiPath("/api/account"), {
-    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ action: "savedResults" })
-  });
-  const data = await res.json();
-  if (!res.ok || data.status !== "ok") throw new Error((data && data.error) || "failed");
-  return { status: "ok", results: data.results || [] };
+  const work = (async () => {
+    // Use the REFRESHED token (same path as authEnsureAccount), not the raw stored
+    // access_token: a session open past the token lifetime would otherwise send an expired
+    // token and 401. authValidToken refreshes via the refresh_token first.
+    const token = (typeof authValidToken === "function")
+      ? await authValidToken()
+      : (((typeof authGetSession === "function" && authGetSession()) || {}).access_token);
+    if (!token) return { status: "auth" };
+    const res = await fetch(apiPath("/api/account"), {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action: "savedResults" })
+    });
+    const data = await res.json();
+    if (!res.ok || data.status !== "ok") throw new Error((data && data.error) || "failed");
+    return { status: "ok", results: data.results || [] };
+  })();
+  return await __withTimeout(work, 15000, "saved results");
 }
 const __savedEsc = s => (typeof escapeHtml === "function" ? escapeHtml(s) : String(s == null ? "" : s));
 // One list row (date . car -> platform . partner), clickable to reopen. compact=rail submenu.
@@ -387,17 +398,22 @@ async function reopenSavedResult(id) {
     // REFRESHED token (matches authEnsureAccount / fetchSavedResultsList): an expired
     // stored access_token in a long-open session caused every saved result to fail to open
     // with "I couldn't open that result" while the user was still signed in. Refresh first.
-    const token = (typeof authValidToken === "function")
-      ? await authValidToken()
-      : (((typeof authGetSession === "function" && authGetSession()) || {}).access_token);
-    if (!token) { if (seq === __reopenSeq) { msgs.innerHTML = ""; addMsg("sam", "Sign in to see your saved results."); } return; }
-    const res = await fetch(apiPath("/api/account"), {
-      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ action: "savedResult", id })
-    });
-    const data = await res.json();
+    // Time-boxed so a hung refresh/fetch surfaces the error fallback, never eternal loading.
+    const data = await __withTimeout((async () => {
+      const token = (typeof authValidToken === "function")
+        ? await authValidToken()
+        : (((typeof authGetSession === "function" && authGetSession()) || {}).access_token);
+      if (!token) return { __noToken: true };
+      const res = await fetch(apiPath("/api/account"), {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "savedResult", id })
+      });
+      const j = await res.json();
+      if (!res.ok || j.status !== "ok" || !j.payload) throw new Error("failed");
+      return j;
+    })(), 15000, "saved result");
     if (seq !== __reopenSeq) return;               // a newer click won; drop this stale render
-    if (!res.ok || data.status !== "ok" || !data.payload) throw new Error("failed");
+    if (data.__noToken) { if (seq === __reopenSeq) { msgs.innerHTML = ""; addMsg("sam", "Sign in to see your saved results."); } return; }
     payload = data.payload; createdAt = data.createdAt;
   } catch (e) {
     if (seq === __reopenSeq) { msgs.innerHTML = ""; addMsg("sam", "I couldn't open that result right now. Try again in a moment."); }

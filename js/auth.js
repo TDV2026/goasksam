@@ -197,7 +197,12 @@ function authHandleCallback() {
     let isApi = false, s = null, headers = null;
     try {
       const url = typeof input === "string" ? input : (input && input.url) || "";
-      isApi = url.indexOf("/api/") === 0 || url.indexOf(location.origin + "/api/") === 0;
+      // /api/publicConfig needs NO auth and is fetched BY authValidToken (via authConfig).
+      // If the wrapper ran authValidToken for it, that would re-enter authConfig ->
+      // fetch(/api/publicConfig) -> wrapper -> authValidToken -> ... a deadlock that hangs
+      // every authenticated call on a stale token (the "Loading..." forever bug). Exclude it.
+      const noAuth = url.indexOf("/api/publicConfig") !== -1;
+      isApi = !noAuth && (url.indexOf("/api/") === 0 || url.indexOf(location.origin + "/api/") === 0);
       s = authGetSession();
       if (isApi && s && s.access_token) {
         headers = new Headers((init && init.headers) || (typeof input !== "string" && input.headers) || {});
