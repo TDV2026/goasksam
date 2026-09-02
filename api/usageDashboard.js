@@ -1179,6 +1179,39 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
+  // TEMP: throwaway-account harness for the genuine-elapsed-time saved-results test.
+  // sub=setup mints a disposable account + seeds one real saved_result (cloned payload).
+  // sub=cleanup deletes the account + its rows. Remove after the test.
+  if (task === "stale") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const url = env.supabaseUrl, sk = process.env.SUPABASE_SERVICE_ROLE_KEY, ak = process.env.SUPABASE_ANON_KEY;
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    const sub = String(req.query?.sub || "setup");
+    if (sub === "cleanup") {
+      const uid = String(req.query?.uid || "");
+      if (!uid) return res.status(400).json({ error: "uid required" });
+      const delRows = await fetch(`${url}/rest/v1/saved_results?user_id=eq.${encodeURIComponent(uid)}`, { method: "DELETE", headers: { ...H, Prefer: "return=minimal" } });
+      const delUser = await fetch(`${url}/auth/v1/admin/users/${encodeURIComponent(uid)}`, { method: "DELETE", headers: { apikey: sk, Authorization: `Bearer ${sk}` } });
+      return res.status(200).json({ task: "stale", sub, rowsDeleted: delRows.status, userDeleted: delUser.status });
+    }
+    // setup
+    const email = `gasm-stale-${Date.now().toString(36)}@example.com`;
+    const gen = await fetch(`${url}/auth/v1/admin/generate_link`, { method: "POST", headers: { apikey: sk, Authorization: `Bearer ${sk}`, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", email }) });
+    if (!gen.ok) return res.status(200).json({ task: "stale", sub, error: "generate_link failed", status: gen.status });
+    const gj = await gen.json().catch(() => ({}));
+    const props = (gj && gj.properties) || gj || {};
+    let sess = null;
+    if (props.hashed_token) { const v = await fetch(`${url}/auth/v1/verify`, { method: "POST", headers: { apikey: ak || sk, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", token_hash: props.hashed_token }) }); if (v.ok) sess = await v.json().catch(() => null); }
+    if (!sess || !sess.access_token) return res.status(200).json({ task: "stale", sub, error: "mint failed" });
+    const uid = (sess.user && sess.user.id) || null;
+    // clone a recent payload into a saved_result for this throwaway user (a real, openable row)
+    const cloneR = await fetch(`${url}/rest/v1/saved_results?select=payload&order=created_at.desc&limit=1`, { headers: H });
+    const payload = cloneR.ok ? ((await cloneR.json())[0] || {}).payload : null;
+    const ins = await fetch(`${url}/rest/v1/saved_results`, { method: "POST", headers: { ...H, "Content-Type": "application/json", Prefer: "return=representation" }, body: JSON.stringify([{ user_id: uid, payload }]) });
+    const savedId = ins.ok ? ((await ins.json())[0] || {}).id : null;
+    return res.status(200).json({ task: "stale", sub, email, uid, savedId, session: { access_token: sess.access_token, refresh_token: sess.refresh_token || "", expires_at: sess.expires_at || "" } });
+  }
+
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
