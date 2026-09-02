@@ -78,6 +78,11 @@ function askVehicleIdentityClarification(clarification,status,partialVehicle){
     type:status==="invalid_vehicle"?"invalid_vehicle":"model",
     ask,
     chips,
+    // VIN feature: carry the clarification kind and, for a VIN proposal, the FULL
+    // enriched vehicle so confirming accepts it directly (VIN + WMI market spec +
+    // body style intact) instead of re-resolving a bare label and losing them.
+    kind:clarification.kind||null,
+    vinVehicle:clarification.kind==="vin_confirmation"?partialVehicle:null,
     suggestion:clarification.suggestion||null,
     baseVehicle:clarification.baseVehicle||[partialVehicle?.make,partialVehicle?.model].filter(Boolean).join(" ")||null,
     // Original raw input, preserved so a corrected year re-resolves the full
@@ -88,6 +93,30 @@ function askVehicleIdentityClarification(clarification,status,partialVehicle){
   };
   sellState.step=17;
   addMsg("sam",sellState.pendingVehicleIdentity.ask,"",chipsHTML(sellState.pendingVehicleIdentity.chips));
+}
+// Affirmation helper (shared): a plain yes to a confirm question.
+function affirmationLike(lower){
+  const s=String(lower||"").trim();
+  return (typeof detectIntent==="function"&&detectIntent(s)==="affirmation")
+    ||/^(yes|yep|yeah|yup|correct|right|confirmed?|looks? good|sounds? right|that'?s? (it|right|the one|correct))\b/i.test(s);
+}
+// VIN archive callout (VIN feature, 4a): renders ONLY when a real exact-VIN match
+// was returned. n=1 evidence, never ranking. Copy: outcome verb "sold", mono price,
+// no valuation, no dashes. No match = nothing renders (no empty state).
+function vinMatchWhen(d){ if(!d)return null; const dt=new Date(d); return isNaN(dt)?null:dt.toLocaleString("en-US",{month:"long",year:"numeric"}); }
+function vinCountWord(n){ n=Number(n)||0; return n===2?"twice":`${n} times`; }
+function renderVinArchiveCallout(match){
+  if(!match||(!match.soldDate&&!match.price))return;
+  const plat=(typeof platformDisplayName==="function")?platformDisplayName(match.source||""):(match.source||"");
+  const when=vinMatchWhen(match.soldDate);
+  const price=Number(match.price)?`$${Number(match.price).toLocaleString()}`:null;
+  const onPlat=plat?` on ${plat}`:"", whenTxt=when?` in ${when}`:"", forTxt=price?` for ${price}`:"";
+  const text=(Number(match.count)>1)
+    ? `I know this exact car. It's traded ${vinCountWord(match.count)} in our records, most recently${onPlat}${whenTxt}${forTxt}.`
+    : `I know this exact car. It sold${onPlat}${whenTxt}${forTxt}.`;
+  let html="";
+  if(match.url){ const a=document.createElement("a"); a.href=match.url; a.target="_blank"; a.rel="noopener noreferrer"; a.className="vin-receipt-link"; a.textContent="View that sale"; html=`<div class="vin-archive-callout">${a.outerHTML}</div>`; }
+  addMsg("sam",text,html);
 }
 function preserveDetailedVehicleLabel(candidate,canonical){
   const candidateText=String(candidate||"").replace(/\s+/g," ").trim();
@@ -189,6 +218,10 @@ async function resolveVehicleInput(candidate,opts={}){
         sellState.lastIdentityVerdict="not_vehicle";
         return false;
       }
+      // VIN feature (dark unless flag on): stash the exact-VIN archive match so the
+      // 4a callout can render right after the seller confirms the decoded car. Absent
+      // for every non-VIN / flag-off request, so nothing new renders otherwise.
+      sellState.pendingVinMatch=data.vinArchiveMatch||null;
       askVehicleIdentityClarification(data.clarification,data.status,partial);
       sellState.lastIdentityVerdict="handled";
       return false;

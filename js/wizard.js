@@ -801,6 +801,36 @@ async function handleVehicleValidationAnswer(q){
   // instruction to advance, not a question for the chat layer.
   const subStateIntent=detectIntent(lower);
 
+  // VIN CONFIRMATION (VIN feature, dark unless flag on): the seller confirms or
+  // rejects the decoded car. Confirming accepts the ALREADY-enriched vehicle object
+  // directly (VIN, WMI market spec, body style intact), never a re-resolve of the
+  // bare label. This branch is unreachable off-feature (no vin_confirmation ever set).
+  if(currentIssue?.kind==="vin_confirmation"){
+    const yes=affirmationLike(lower)||normalizeVehicleAnswer(lower)===normalizeVehicleAnswer(currentIssue.suggestion||"");
+    const no=/^(no|nope|nah|wrong|not (it|right|quite)|let me type|i'?ll type|type it)/i.test(lower)||subStateIntent==="refusal"||subStateIntent==="negation";
+    if(yes&&currentIssue.vinVehicle){
+      const v=currentIssue.vinVehicle;
+      sellState.resolvedVehicle=v;
+      sellState.carName=v.canonicalLabel;sellState.carRaw=v.canonicalLabel;
+      sellState.vehicleIdentityValidated=true;sellState.vehicleDetailSkipped=false;
+      sellState.pendingVehicleIdentity=null;sellState.lastVehicleAsk=null;sellState.notSureRepeats=0;
+      if(v.mileage&&!sellState.mileage)sellState.mileage=`${Number(v.mileage).toLocaleString()} miles`;
+      renderVinArchiveCallout(sellState.pendingVinMatch);
+      sellState.pendingVinMatch=null;
+      const missing=currentMissingVehicleDetail();
+      if(missing){askMissingVehicleDetail(missing);return true;}
+      resumeWizardAfterVehicle(`Got it, the ${v.canonicalLabel}.`);
+      return true;
+    }
+    if(no||!looksLikeVehicleText(q)){
+      sellState.pendingVehicleIdentity=null;sellState.pendingVinMatch=null;sellState.step=1;
+      addMsg("sam","No problem. Tell me the car instead, like the year, make and model.");
+      return true;
+    }
+    // They typed a car instead of yes/no: drop the VIN context and resolve it fresh.
+    sellState.pendingVehicleIdentity=null;sellState.pendingVinMatch=null;
+  }
+
   // Keep-as-typed (DEFECT 4): the seller insisted on their designation after we
   // said it doesn't match. Accept it unverified (resolver skips the near-miss).
   if(currentIssue?.keepDesignation&&(/^keep .* as typed$/i.test(lower)||normalizeVehicleAnswer(lower)===normalizeVehicleAnswer(currentIssue.keepDesignation))){
