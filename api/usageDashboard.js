@@ -1179,6 +1179,45 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
+  // TEMP read-only: market-spec (federalized vs grey) signal scan across flagged nameplates.
+  // Archive only, zero OCD cost, no writes. Remove after the report.
+  if (task === "specscan") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const base = `${env.supabaseUrl}/rest/v1/vehicle_market_records`;
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    async function pageAll(q, cap) { const out = []; let off = 0; while (out.length < cap) { const r = await fetch(`${base}?${q}&limit=1000&offset=${off}`, { headers: H }); if (!r.ok) break; const rows = await r.json(); if (!rows.length) break; out.push(...rows); off += 1000; if (rows.length < 1000) break; } return out; }
+    const nameplates = {
+      defender: "make.ilike.*land rover*,raw_title.ilike.*defender*",
+      skyline: "make.ilike.*nissan*,raw_title.ilike.*skyline*",
+      gtr: "raw_title.ilike.*gt-r*",
+      landcruiser: "raw_title.ilike.*land cruiser*",
+      gwagen: "raw_title.ilike.*g-wagen*,raw_title.ilike.*g-class*,raw_title.ilike.*gelandewagen*,raw_title.ilike.*geländewagen*,raw_title.ilike.*g550*,raw_title.ilike.*g500*,raw_title.ilike.*g55*,raw_title.ilike.*g63*,raw_title.ilike.*300gd*,raw_title.ilike.*280ge*",
+      p959: "raw_title.ilike.*959*"
+    };
+    const TOKENS = { nas:/\bnas\b/i, northAmSpec:/north american spec/i, federalized:/federali[sz]ed/i, motorex:/motorex/i, jdm:/\bjdm\b/i, euroSpec:/euro[- ]spec/i, greyMkt:/gr[ae]y[- ]market/i, canepa:/canepa/i, usSpec:/us[- ]spec|u\.s\.[- ]spec|usa[- ]spec/i, legallyImported:/legally imported|federal(ly)? legal|25[- ]year/i, ninety:/\b90\b/i, oneten:/\b110\b/i };
+    const key = String(req.query?.np || "");
+    const targets = key ? { [key]: nameplates[key] } : nameplates;
+    const out = {};
+    for (const [np, filt] of Object.entries(targets)) {
+      if (!filt) { out[np] = { error: "unknown nameplate" }; continue; }
+      const rows = await pageAll(`select=year,price,model,raw_title,vin:raw_record->>vin&or=(${filt})`, 6000);
+      const t = r => String(r.raw_title || "").toLowerCase();
+      const tokenCounts = {}; for (const [tk, re] of Object.entries(TOKENS)) tokenCounts[tk] = rows.filter(r => re.test(t(r))).length;
+      const vinPrefix = {}; for (const r of rows) { const v = String(r.vin || "").toUpperCase().slice(0, 6); if (v && v.length >= 3) vinPrefix[v] = (vinPrefix[v] || 0) + 1; }
+      const withVin = rows.filter(r => String(r.vin || "").length >= 11).length;
+      const prices = rows.map(r => Number(r.price)).filter(n => n > 0).sort((a, b) => a - b);
+      const q = f => prices.length ? prices[Math.min(prices.length - 1, Math.floor(f * (prices.length - 1)))] : null;
+      out[np] = {
+        count: rows.length, withUsableVin: withVin,
+        vinPrefixTop: Object.entries(vinPrefix).sort((a, b) => b[1] - a[1]).slice(0, 12),
+        titleTokens: Object.fromEntries(Object.entries(tokenCounts).filter(([, n]) => n > 0)),
+        priceSpread: prices.length ? { min: prices[0], p50: q(0.5), max: prices[prices.length - 1], ratio: +(prices[prices.length - 1] / Math.max(1, prices[0])).toFixed(1) } : null,
+        sampleTitles: rows.slice(0, 6).map(r => `${r.year} $${r.price} | ${r.raw_title}`)
+      };
+    }
+    return res.status(200).json({ task: "specscan", nameplates: out });
+  }
+
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
