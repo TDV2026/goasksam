@@ -283,8 +283,13 @@ function savedConfirmLeave() {
 // Shared list fetch. Re-fetches on EVERY call (never cached) so a just-completed search
 // shows immediately on the next open/expand, no page reload.
 async function fetchSavedResultsList() {
-  const session = (typeof authGetSession === "function") ? authGetSession() : null;
-  const token = session && session.access_token;
+  // Use the REFRESHED token (same path as authEnsureAccount), not the raw stored
+  // access_token: a session that has been open past the token lifetime would otherwise
+  // send an expired token and 401, which read as "couldn't load" even though the user is
+  // still signed in. authValidToken refreshes via the refresh_token first.
+  const token = (typeof authValidToken === "function")
+    ? await authValidToken()
+    : (((typeof authGetSession === "function" && authGetSession()) || {}).access_token);
   if (!token) return { status: "auth" };
   const res = await fetch(apiPath("/api/account"), {
     method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -379,8 +384,12 @@ async function reopenSavedResult(id) {
   msgs.scrollTop = 0;
   let payload = null, createdAt = null;
   try {
-    const session = (typeof authGetSession === "function") ? authGetSession() : null;
-    const token = session && session.access_token;
+    // REFRESHED token (matches authEnsureAccount / fetchSavedResultsList): an expired
+    // stored access_token in a long-open session caused every saved result to fail to open
+    // with "I couldn't open that result" while the user was still signed in. Refresh first.
+    const token = (typeof authValidToken === "function")
+      ? await authValidToken()
+      : (((typeof authGetSession === "function" && authGetSession()) || {}).access_token);
     if (!token) { if (seq === __reopenSeq) { msgs.innerHTML = ""; addMsg("sam", "Sign in to see your saved results."); } return; }
     const res = await fetch(apiPath("/api/account"), {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },

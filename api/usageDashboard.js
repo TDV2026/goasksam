@@ -1179,52 +1179,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  // TEMP read-only: reproduce the saved-result OPEN path against real rows (no token
-  // needed). Lists recent saved_results, then runs the EXACT single-open query the
-  // frontend triggers, so we can see if the server path returns the row + payload.
-  if (task === "savedcheck") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const base = `${env.supabaseUrl}/rest/v1/saved_results`;
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    const listR = await fetch(`${base}?select=id,user_id,created_at,payload&order=created_at.desc&limit=8`, { headers: H });
-    const list = listR.ok ? await listR.json() : [];
-    const rows = list.map(r => ({ id: r.id, user_id: r.user_id, created_at: r.created_at, hasPayload: r.payload != null, payloadKeys: r.payload && typeof r.payload === "object" ? Object.keys(r.payload).slice(0, 12) : (typeof r.payload) }));
-    let openTest = null;
-    if (list[0]) {
-      const r0 = list[0];
-      // EXACT query from handleSavedResult: id=eq.<id>&user_id=eq.<user_id>
-      const q = `${base}?id=eq.${encodeURIComponent(r0.id)}&user_id=eq.${encodeURIComponent(r0.user_id)}&select=id,created_at,payload&limit=1`;
-      const oR = await fetch(q, { headers: H });
-      const oJson = oR.ok ? await oR.json() : null;
-      const hit = oJson && oJson[0];
-      openTest = { httpOk: oR.ok, status: oR.status, foundRow: !!hit, hasPayload: hit ? hit.payload != null : null, idType: typeof r0.id };
-    }
-    // Full end-to-end repro with a REAL minted token: does the deployed /api/account
-    // return 200 for BOTH savedResults and savedResult when the token is valid?
-    let e2e = null;
-    const target = list.find(r => r.user_id);
-    if (target) {
-      const url = env.supabaseUrl, sk = process.env.SUPABASE_SERVICE_ROLE_KEY, ak = process.env.SUPABASE_ANON_KEY;
-      const accs = await fetch(`${url}/rest/v1/accounts?user_id=eq.${target.user_id}&select=email&limit=1`, { headers: H });
-      const email = accs.ok ? ((await accs.json())[0] || {}).email : null;
-      if (email && sk) {
-        const gen = await fetch(`${url}/auth/v1/admin/generate_link`, { method: "POST", headers: { apikey: sk, Authorization: `Bearer ${sk}`, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", email }) });
-        const gj = gen.ok ? await gen.json().catch(() => ({})) : {};
-        const props = (gj && gj.properties) || gj || {};
-        let sess = null;
-        if (props.hashed_token) { const v = await fetch(`${url}/auth/v1/verify`, { method: "POST", headers: { apikey: ak || sk, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", token_hash: props.hashed_token }) }); if (v.ok) sess = await v.json().catch(() => null); }
-        if (sess && sess.access_token) {
-          const tok = sess.access_token;
-          const call = async body => { const r = await fetch(`https://goasksam.com/api/account`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify(body) }); let j = null; try { j = await r.json(); } catch (e) {} return { status: r.status, ok: r.ok, shape: j ? Object.keys(j) : "non-json", listCount: j && j.results ? j.results.length : undefined, hasPayload: j ? j.payload != null : undefined }; };
-          const listCall = await call({ action: "savedResults" });
-          const openCall = await call({ action: "savedResult", id: target.id });
-          e2e = { mintedFor: target.user_id, savedResults: listCall, savedResult: openCall, session: { access_token: tok, refresh_token: sess.refresh_token || "", expires_at: sess.expires_at || "", email: (sess.user && sess.user.email) || email } };
-        } else e2e = { error: "mint failed" };
-      } else e2e = { error: email ? "no service key" : "no email for user" };
-    }
-    return res.status(200).json({ task: "savedcheck", totalRecent: rows.length, rows: rows.slice(0, 2), openTest, e2e });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
