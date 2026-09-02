@@ -1194,15 +1194,14 @@ async function handleOps(req, res) {
       const delUser = await fetch(`${url}/auth/v1/admin/users/${encodeURIComponent(uid)}`, { method: "DELETE", headers: { apikey: sk, Authorization: `Bearer ${sk}` } });
       return res.status(200).json({ task: "stale", sub, rowsDeleted: delRows.status, userDeleted: delUser.status });
     }
-    // setup
+    // setup: admin-create a confirmed throwaway user, then password-grant a real session.
     const email = `gasm-stale-${Date.now().toString(36)}@example.com`;
-    const gen = await fetch(`${url}/auth/v1/admin/generate_link`, { method: "POST", headers: { apikey: sk, Authorization: `Bearer ${sk}`, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", email }) });
-    if (!gen.ok) return res.status(200).json({ task: "stale", sub, error: "generate_link failed", status: gen.status });
-    const gj = await gen.json().catch(() => ({}));
-    const props = (gj && gj.properties) || gj || {};
-    let sess = null;
-    if (props.hashed_token) { const v = await fetch(`${url}/auth/v1/verify`, { method: "POST", headers: { apikey: ak || sk, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", token_hash: props.hashed_token }) }); if (v.ok) sess = await v.json().catch(() => null); }
-    if (!sess || !sess.access_token) return res.status(200).json({ task: "stale", sub, error: "mint failed" });
+    const pw = "Stale!" + Math.random().toString(36).slice(2, 12) + "Xy9";
+    const cu = await fetch(`${url}/auth/v1/admin/users`, { method: "POST", headers: { apikey: sk, Authorization: `Bearer ${sk}`, "Content-Type": "application/json" }, body: JSON.stringify({ email, password: pw, email_confirm: true }) });
+    if (!cu.ok) return res.status(200).json({ task: "stale", sub, error: "create user failed", status: cu.status, body: (await cu.text()).slice(0, 200) });
+    const tg = await fetch(`${url}/auth/v1/token?grant_type=password`, { method: "POST", headers: { apikey: ak || sk, "Content-Type": "application/json" }, body: JSON.stringify({ email, password: pw }) });
+    const sess = tg.ok ? await tg.json().catch(() => null) : null;
+    if (!sess || !sess.access_token) return res.status(200).json({ task: "stale", sub, error: "password grant failed", status: tg.status });
     const uid = (sess.user && sess.user.id) || null;
     // clone a recent payload into a saved_result for this throwaway user (a real, openable row)
     const cloneR = await fetch(`${url}/rest/v1/saved_results?select=payload&order=created_at.desc&limit=1`, { headers: H });
