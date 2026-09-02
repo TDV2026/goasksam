@@ -264,7 +264,11 @@ export default async function handler(req, res) {
           // Sam's platform recommendation the seller was shown, so the partner walks in
           // knowing which platform was named. From the decision payload sent at lead time
           // (decision.decision.recommendedPath); empty when no platform rec existed.
-          recommendedPath: asText(decision.decision && decision.decision.recommendedPath) || null
+          recommendedPath: asText(decision.decision && decision.decision.recommendedPath) || null,
+          // VIN feature (4c): the exact car's prior auction URL from the decision
+          // payload (attached by sellerDecision only when the VIN matched). Null
+          // otherwise, so ordinary leads are unchanged.
+          priorSaleUrl: asText(decision.vinArchiveMatch && decision.vinArchiveMatch.url) || null
         });
         if (!notify.ok && !notify.skipped) console.error("lead notification email failed:", notify.error || notify.status, "ref", inserted?.reference || reference);
       }

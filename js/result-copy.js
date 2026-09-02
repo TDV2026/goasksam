@@ -1399,6 +1399,31 @@ function reserveMonthName(m){
   const names=["","January","February","March","April","May","June","July","August","September","October","November","December"];
   return names[Number(String(m||"").split("-")[1])]||"recent months";
 }
+// Exact-VIN match bullet (VIN feature 4b). Reads the decision's vinArchiveMatch
+// (attached by the backend only when the exact car matched). Copy: outcome verb
+// "sold", mono numbers, no valuation, no dashes, and NEVER a comparison of the
+// prior price to the seller's hoped-for price. The mileage delta clause is the
+// prior recorded mileage vs the mileage learned this session; omitted if either
+// is missing. receiptUrl is rendered as a "View that sale" link by result.js.
+function composerVinMatchBullet(vehicle){
+  const match=(typeof sellState!=="undefined")&&sellState.sellDecision&&sellState.sellDecision.vinArchiveMatch;
+  if(!match||(!match.soldDate&&!match.price))return null;
+  const name=(typeof platformDisplayName==="function")?platformDisplayName(match.source||""):(match.source||"");
+  const when=(typeof vinMatchWhen==="function")?vinMatchWhen(match.soldDate):null;
+  const price=Number(match.price)?`$${Number(match.price).toLocaleString()}`:null;
+  const sessionMi=(sellState.mileage)?parseInt(String(sellState.mileage).replace(/[^0-9]/g,""),10):null;
+  const priorMi=Number(match.mileage)||null;
+  let delta="";
+  if(priorMi&&sessionMi&&isFinite(priorMi)&&isFinite(sessionMi)){
+    const d=Math.abs(sessionMi-priorMi);
+    if(d>=500){
+      const r=d>=1000?`${Math.round(d/1000).toLocaleString()},000`:`${Math.round(d/100)*100}`;
+      delta=(sessionMi>=priorMi)?`, about ${r} miles ago`:`, ${r} miles before its current reading`;
+    }
+  }
+  const onPlat=name?` on ${name}`:"", whenTxt=when?` in ${when}`:"", forTxt=price?` for ${price}`:"";
+  return { text:`This exact car sold${onPlat}${whenTxt}${forTxt}${delta}.`, receiptUrl:match.url||null, provenance:`vinExactMatch(${match.source||"?"})` };
+}
 function composerReserveBullet(ev){
   const rc=ev&&ev.reserveContext;
   if(!rc)return null;
@@ -1500,6 +1525,11 @@ function composeCard(vehicle,route,opts={}){
   // has a reserve cell for that platform+make+band, after core evidence and
   // never displacing it. composerReserveBullet returns null when no cell exists.
   { const rb=composerReserveBullet(ev); if(rb)core.push(rb); }
+  // Exact-VIN match (VIN feature 4b): ONE bullet on the PICK card only, from the
+  // decision's vinArchiveMatch. n=1 evidence, appended (never displacing ranking
+  // evidence); renders on the actual pick's card whichever platform that is. Null
+  // when no VIN match (every off-feature result), so ordinary cards are unchanged.
+  if(opts.isPick){ const vm=composerVinMatchBullet(vehicle); if(vm)core.push(vm); }
   return { headline, bullets: core };
 }
 

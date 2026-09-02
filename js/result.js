@@ -567,7 +567,7 @@ function renderDecision(decisionData,renderOpts){
           // here, at the one render site. Composers should never emit filler, but
           // this guarantees no future composed bullet can bypass the filter.
           const gated=(typeof evidenceOnlyBullets==="function")?evidenceOnlyBullets(c.bullets):(c.bullets||[]);
-          const list=(gated&&gated.length)?`<ul class="sell-rec-bullets">${gated.map(b=>`<li>${numify(gate(b.text))}</li>`).join("")}</ul>`:"";
+          const list=(gated&&gated.length)?`<ul class="sell-rec-bullets">${gated.map(b=>`<li>${numify(gate(b.text))}${b.receiptUrl?` <a href="${escapeHtml(b.receiptUrl)}" target="_blank" rel="noopener noreferrer" class="vin-receipt-link">View that sale</a>`:""}</li>`).join("")}</ul>`:"";
           if(!head&&!list)return "";
           return `<div class="sell-rec-reason-label label-mono">${label}</div>${head}${list}`;
         })()}
