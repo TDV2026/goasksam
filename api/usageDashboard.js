@@ -1194,11 +1194,15 @@ async function handleOps(req, res) {
     // vehicle_market_records: recent Audi A7, check raw_record.vin.
     const vmr = await get(`vehicle_market_records?make=ilike.*audi*&raw_title=ilike.*a7*&select=source,auction_end_date,price,source_url,raw_record&order=auction_end_date.desc.nullslast&limit=50`);
     const vmrVins = Array.isArray(vmr.rows) ? vmr.rows.map(r => ({ date: r.auction_end_date, price: r.price, vin: (r.raw_record || {}).vin || null, title: (r.raw_record || {}).title || null })).slice(0, 20) : vmr;
+    // Recent BaT sales that carry a VIN, for the recency sweep. vin is a real column.
+    const recent = await get(`sales_archive?platform=eq.Bring%20a%20Trailer&vin=not.is.null&sale_date=gte.2026-08-25&select=sale_date,sale_price,vin,mileage,raw_record&order=sale_date.desc&limit=40`);
+    const recentVins = Array.isArray(recent.rows) ? recent.rows.map(r => ({ date: r.sale_date, price: r.sale_price, vin: r.vin, mileage: r.mileage, title: (r.raw_record || {}).title })).filter(x => /^[A-HJ-NPR-Z0-9]{17}$/i.test(String(x.vin || ""))).slice(0, 12) : recent;
     return res.status(200).json({
       task: "vinbug", vin,
       sales_archive_by_vin: { ok: saByVin.ok, count: Array.isArray(saByVin.rows) ? saByVin.rows.length : saByVin.rows, sample: Array.isArray(saByVin.rows) ? saByVin.rows.map(r => ({ platform: r.platform, sale_date: r.sale_date, price: r.sale_price, mileage: r.mileage, vin_col: r.vin, rr_vin: (r.raw_record || {}).vin, url: (r.raw_record || {}).source_url || (r.raw_record || {}).url })) : null },
       sales_archive_a7_recent: { ok: saByTitle.ok, rows: Array.isArray(saByTitle.rows) ? saByTitle.rows.map(r => ({ date: r.sale_date, price: r.sale_price, vin: r.vin, title: r.raw_title })) : saByTitle.rows },
-      vmr_a7_recent: { ok: vmr.ok, count: Array.isArray(vmr.rows) ? vmr.rows.length : null, vins: vmrVins }
+      vmr_a7_recent: { ok: vmr.ok, count: Array.isArray(vmr.rows) ? vmr.rows.length : null, vins: vmrVins },
+      recentBatVins: recentVins
     });
   }
 
