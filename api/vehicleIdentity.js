@@ -10,7 +10,7 @@ import { resolveVehicle } from "../lib/vehicle.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { recordUsageEvent, anthropicCost } from "./_usage.js";
 import { testerCodeExpired } from "../lib/_tester.js";
-import { vinFeatureActive } from "../lib/_flags.js";
+import { vinFeatureActive, findVinArchiveMatch } from "../lib/_flags.js";
 
 // Privacy (VIN feature): a raw 17-char VIN must never land in a funnel/analytics
 // event or a log line. Replace any VIN run with a short truncated marker so the
@@ -19,30 +19,6 @@ function scrubVin(text) {
   return String(text || "").replace(/\b[A-HJ-NPR-Z0-9]{17}\b/gi, m => `[vin:${m.slice(-4)}]`);
 }
 
-// Exact-VIN archive match (VIN feature, 4a). Most recent prior sale of THIS exact
-// car in vehicle_market_records, plus how many times it has traded. Evidence only,
-// never ranking. Free service-role read; null on any error (feature degrades to no
-// callout, never an error).
-async function vinArchiveMatch(vin, supabaseUrl, supabaseKey) {
-  if (!vin || !supabaseUrl || !supabaseKey) return null;
-  try {
-    const url = `${supabaseUrl}/rest/v1/vehicle_market_records?raw_record->>vin=eq.${encodeURIComponent(vin)}&select=source,auction_end_date,price,source_url,raw_record&order=auction_end_date.desc.nullslast&limit=25`;
-    const r = await fetch(url, { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } });
-    if (!r.ok) return null;
-    const rows = await r.json();
-    if (!Array.isArray(rows) || !rows.length) return null;
-    const top = rows[0];
-    const rr = top.raw_record || {};
-    return {
-      count: rows.length,
-      source: top.source || null,
-      soldDate: top.auction_end_date || null,
-      price: Number(top.price) || null,
-      url: top.source_url || rr.source_url || rr.url || null,
-      mileage: Number(rr.mileage) || null
-    };
-  } catch { return null; }
-}
 
 const EXTRACT_MODEL = process.env.SAM_MODEL || "claude-sonnet-4-6";
 const EXTRACT_SYS = `Extract vehicle facts from a message someone typed about a car they may sell. Reply with ONLY a JSON object, no prose:
@@ -255,7 +231,7 @@ export default async function handler(req, res) {
     // request. Off-feature or no-VIN requests never carry it, so the response shape
     // is unchanged for every real seller.
     const vinMatch = (vinActive && result.vehicle?.vin)
-      ? await vinArchiveMatch(result.vehicle.vin, supabaseUrl, supabaseKey)
+      ? await findVinArchiveMatch(env, { vin: result.vehicle.vin, make: result.vehicle.make, model: result.vehicle.model, year: result.vehicle.year })
       : null;
     return res.status(200).json({
       status,

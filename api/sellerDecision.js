@@ -8,7 +8,7 @@ import { testerCodeExpired } from "../lib/_tester.js";
 import { verifyOnce } from "../lib/_onepass.js";
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
 import { findGeneration, generationModelToken } from "../lib/generations.js";
-import { vinFeatureActive } from "../lib/_flags.js";
+import { vinFeatureActive, findVinArchiveMatch } from "../lib/_flags.js";
 import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
 import { MODEL_SEGMENTS } from "../lib/vehicleData.js";
 import { poolTrimFor } from "../lib/modelFamilies.js";
@@ -3173,18 +3173,8 @@ export default async function handler(req, res) {
     // it always has; this surfacing adds zero ranking weight. Flag-gated + VIN-gated.
     let vinArchiveMatch = null;
     if (vehicle?.vin && await vinFeatureActive(req.headers.cookie, { supabaseUrl, supabaseKey })) {
-      try {
-        const rows = await supabaseSelect({ supabaseUrl, supabaseKey },
-          `vehicle_market_records?raw_record->>vin=eq.${encodeURIComponent(vehicle.vin)}&select=source,auction_end_date,price,source_url,raw_record&order=auction_end_date.desc.nullslast&limit=25`);
-        if (Array.isArray(rows) && rows.length) {
-          const top = rows[0], rr = top.raw_record || {};
-          vinArchiveMatch = {
-            count: rows.length, source: top.source || null, soldDate: top.auction_end_date || null,
-            price: Number(top.price) || null, url: top.source_url || rr.source_url || rr.url || null,
-            mileage: Number(rr.mileage) || null
-          };
-        }
-      } catch { /* evidence-only: never blocks the decision */ }
+      vinArchiveMatch = await findVinArchiveMatch({ supabaseUrl, supabaseKey },
+        { vin: vehicle.vin, make: vehicle.make, model: vehicle.model, year: vehicle.year });
     }
 
     const responsePayload = {
