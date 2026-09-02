@@ -1218,7 +1218,7 @@ async function handleOps(req, res) {
           const call = async body => { const r = await fetch(`https://goasksam.com/api/account`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` }, body: JSON.stringify(body) }); let j = null; try { j = await r.json(); } catch (e) {} return { status: r.status, ok: r.ok, shape: j ? Object.keys(j) : "non-json", listCount: j && j.results ? j.results.length : undefined, hasPayload: j ? j.payload != null : undefined }; };
           const listCall = await call({ action: "savedResults" });
           const openCall = await call({ action: "savedResult", id: target.id });
-          e2e = { mintedFor: target.user_id, tokenSuffix: tok.slice(-6), savedResults: listCall, savedResult: openCall };
+          e2e = { mintedFor: target.user_id, savedResults: listCall, savedResult: openCall, session: { access_token: tok, refresh_token: sess.refresh_token || "", expires_at: sess.expires_at || "", email: (sess.user && sess.user.email) || email } };
         } else e2e = { error: "mint failed" };
       } else e2e = { error: email ? "no service key" : "no email for user" };
     }
