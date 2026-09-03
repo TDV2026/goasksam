@@ -1949,10 +1949,30 @@ async function renderQualityView(req, res) {
     ${kpi(started ? fmtPct(completed, started) : NYT, "Completion rate")}
     ${kpi(fmtN(Math.max(0, b.started - b.recs)), "Journeys without a recommendation", "started, no rec reached")}
   </div>`;
+  // VIN entry (Sep 2026): VIN-originated journeys + decode/match/lead outcomes, read
+  // from the seller_journey_started event metadata (booleans/enums only - the raw VIN
+  // is NEVER stored in the journey path). Same honesty convention: sample sizes shown,
+  // "Not yet tracked" until any journey carries the entry_method marker.
+  const sjs = b.evts.filter(e => e.event_type === "seller_journey_started");
+  const sjsTracked = sjs.filter(e => e.metadata && e.metadata.entry_method);
+  const vinJ = sjs.filter(e => e.metadata && e.metadata.entry_method === "vin");
+  const vinIds = new Set(vinJ.map(e => e.journey_id));
+  const decodeKnown = vinJ.filter(e => e.metadata.vin_decode).length;
+  const decodeOk = vinJ.filter(e => e.metadata.vin_decode === "success").length;
+  const matchN = vinJ.filter(e => e.metadata.vin_archive_match === true).length;
+  const vinLeads = [...vinIds].filter(id => b.has.powerseller_intro_requested.has(id)).length;
+  const entryTracked = sjsTracked.length > 0;
+  const vinq = `<h2>VIN entry</h2><div class="kpis">
+    ${kpi(entryTracked ? fmtN(vinJ.length) : NYT, "VIN-originated journeys", entryTracked ? `of ${fmtN(sjsTracked.length)} with an entry marker` : "forward-only from this deploy")}
+    ${kpi(entryTracked ? fmtPct(vinJ.length, sjsTracked.length) : NYT, "VIN-originated share")}
+    ${kpi(decodeKnown ? fmtPct(decodeOk, decodeKnown) : NYT, "Decode success rate", decodeKnown ? `${decodeOk} / ${decodeKnown} VIN journeys` : "needs VIN journeys")}
+    ${kpi(vinJ.length ? fmtPct(matchN, vinJ.length) : NYT, "Archive-match hit rate", vinJ.length ? `${matchN} / ${vinJ.length} VIN journeys` : "")}
+    ${kpi(vinJ.length ? fmtPct(vinLeads, vinJ.length) : NYT, "VIN journey to lead", vinJ.length ? `${vinLeads} / ${vinJ.length}` : "")}
+  </div>`;
   const html = `${bizChrome("Product quality", key, "quality")}
     <div class="sub">${adminEsc(range.label)} &middot; all traffic</div>
     ${bizFilters(req, "quality", { noMode: true })}
-    ${resolution}${recq}${perf}${abandon}
+    ${resolution}${recq}${vinq}${perf}${abandon}
     <div class="note">Signals are forward-only from when each was wired; a metric with no source in range reads 0 for a genuine zero and Not yet tracked where nothing emits it yet. Out-of-scope capture starts at this deploy.</div>
     <p style="margin-top:18px"><a class="jlink" href="?view=business&range=${range.range}&key=${bizKey(req)}">&larr; Business</a> &middot; <a class="jlink" href="?view=economics&range=${range.range}&key=${bizKey(req)}">Economics &rarr;</a></p>
   </div>`;

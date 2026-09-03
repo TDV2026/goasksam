@@ -248,6 +248,9 @@ async function send(){
       const probeRes=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:q})});
       const probe=await probeRes.json();
       if(typeof hideVehicleLookup==="function")hideVehicleLookup();
+      // Journey analytics (VIN-originated marker): booleans/enums only, NEVER the VIN.
+      if(probe.clarification?.kind==="vin_confirmation"){ sellState.vinEntry=true; sellState.vinDecode="success"; }
+      else if(probe.clarification?.kind==="vin_decode_failed"){ sellState.vinEntry=true; sellState.vinDecode="fail"; }
       const understood=probe?.vehicle&&(probe.vehicle.make||probe.vehicle.model);
       if(probeRes.ok&&(probe.status==="valid"||probe.status==="needs_confirmation"||understood)){
         // (b) Hand the probe's resolution to the wizard so its preflight reuses it

@@ -8,6 +8,17 @@ import { recordJourneyEvent, journeyVehicle, CLIENT_JOURNEY_EVENTS } from "../li
 
 const ALLOWED = new Set(["homepage_view", "wizard_start", "wizard_complete", "signup_shown", "non_us_attempt", "out_of_scope"]);
 
+// HARD RULE (VIN feature): a raw 17-char VIN must NEVER be stored in a journey event.
+// The client only ever sends booleans/enums in journey metadata, but scrub defensively
+// so the invariant is server-enforced, not merely a client convention. Walks the
+// metadata object and replaces any VIN-shaped string with a marker.
+function scrubMetaVins(v) {
+  if (typeof v === "string") return v.replace(/\b[A-HJ-NPR-Z0-9]{17}\b/gi, "[vin]");
+  if (Array.isArray(v)) return v.map(scrubMetaVins);
+  if (v && typeof v === "object") { const o = {}; for (const k of Object.keys(v)) o[k] = scrubMetaVins(v[k]); return o; }
+  return v;
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -26,7 +37,7 @@ export default async function handler(req, res) {
         platformId: body.platformId ? String(body.platformId).slice(0, 40) : null,
         powersellerId: body.powersellerId ? String(body.powersellerId).slice(0, 40) : null,
         dedupKey: body.dedupKey ? String(body.dedupKey).slice(0, 128) : null,
-        metadata: (body.metadata && typeof body.metadata === "object") ? body.metadata : {},
+        metadata: (body.metadata && typeof body.metadata === "object") ? scrubMetaVins(body.metadata) : {},
         vehicle: body.vehicle ? journeyVehicle(body.vehicle, null) : null
       });
       res.status(204).end(); return;

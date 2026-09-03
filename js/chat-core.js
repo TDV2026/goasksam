@@ -224,6 +224,11 @@ async function resolveVehicleInput(candidate,opts={}){
       // 4a callout can render right after the seller confirms the decoded car. Absent
       // for every non-VIN / flag-off request, so nothing new renders otherwise.
       sellState.pendingVinMatch=data.vinArchiveMatch||null;
+      // Journey analytics (VIN-originated marker): record that this journey began with
+      // a detected VIN and the decode outcome. Booleans/enums only - NEVER the VIN
+      // string. Read into the seller_journey_started metadata at journey start.
+      if(data.clarification?.kind==="vin_confirmation"){ sellState.vinEntry=true; sellState.vinDecode="success"; }
+      else if(data.clarification?.kind==="vin_decode_failed"){ sellState.vinEntry=true; sellState.vinDecode="fail"; }
       askVehicleIdentityClarification(data.clarification,data.status,partial);
       sellState.lastIdentityVerdict="handled";
       return false;

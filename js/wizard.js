@@ -814,6 +814,8 @@ async function handleVehicleValidationAnswer(q){
       sellState.carName=v.canonicalLabel;sellState.carRaw=v.canonicalLabel;
       sellState.vehicleIdentityValidated=true;sellState.vehicleDetailSkipped=false;
       sellState.pendingVehicleIdentity=null;sellState.lastVehicleAsk=null;sellState.notSureRepeats=0;
+      // Journey analytics: confirmed the decode; record match-found before it's cleared.
+      sellState.vinConfirmed=true; sellState.vinArchiveMatchFound=!!sellState.pendingVinMatch;
       if(v.mileage&&!sellState.mileage)sellState.mileage=`${Number(v.mileage).toLocaleString()} miles`;
       renderVinArchiveCallout(sellState.pendingVinMatch);
       sellState.pendingVinMatch=null;
@@ -823,6 +825,8 @@ async function handleVehicleValidationAnswer(q){
       return true;
     }
     if(no||!looksLikeVehicleText(q)){
+      // Journey analytics: the decode was corrected, not confirmed.
+      sellState.vinConfirmed=false;
       sellState.pendingVehicleIdentity=null;sellState.pendingVinMatch=null;sellState.step=1;
       addMsg("sam","No problem. Tell me the car instead, like the year, make and model.");
       return true;
@@ -935,6 +939,9 @@ async function handleVehicleValidationAnswer(q){
   }
   if(/\b(change car|start over|wrong car|different car)\b/i.test(lower)){
     sellState.carName=null;sellState.carRaw=null;sellState.vehicleDetailSkipped=false;sellState.vehicleIdentityValidated=false;sellState.pendingVehicleIdentity=null;sellState.step=1;
+    // A genuine restart clears the VIN-origin markers so the next car's journey is
+    // classified on its own entry method.
+    sellState.vinEntry=false;sellState.vinDecode=null;sellState.vinConfirmed=null;sellState.vinArchiveMatchFound=false;sellState.pendingVinMatch=null;
     addMsg("sam","No problem. What are we selling today? Year, make and model.");
     return true;
   }
@@ -1264,6 +1271,16 @@ function porscheBodyStyleSplitFor(v){
   if(!["718","981","987"].includes(String(v.model)))return null;
   return { question:"Is it the Boxster or the Cayman?", chips:["Boxster","Cayman","Not sure"] };
 }
+// VIN-originated journey metadata (no raw VIN, ever - booleans/enums only). "typed"
+// for ordinary journeys; "vin" when this session began with a detected VIN, plus the
+// decode/confirm/archive-match outcome flags.
+function vinJourneyMeta(){
+  if(!sellState.vinEntry)return { entry_method:"typed" };
+  const m={ entry_method:"vin", vin_archive_match:!!sellState.vinArchiveMatchFound };
+  if(sellState.vinDecode)m.vin_decode=sellState.vinDecode;
+  if(sellState.vinConfirmed!=null)m.vin_confirmed=!!sellState.vinConfirmed;
+  return m;
+}
 function resumeWizardAfterVehicle(prefix){
   // Out-of-scope gate, phase 2: the car is fully resolved (model + any trim). A
   // modern mainstream economy car with no rescuing trim is refused here, before
@@ -1272,7 +1289,11 @@ function resumeWizardAfterVehicle(prefix){
   // Business journey: an in-scope vehicle is resolved and we are proceeding. This is
   // the journey's entry (deterministic per-vehicle id). Once per session + server dedup.
   if(sellState.resolvedVehicle&&typeof gasJourneyEventOnce==="function"){
-    gasJourneyEventOnce("seller_journey_started",{vehicle:sellState.resolvedVehicle});
+    // VIN-originated journey marker + decode/confirm/match outcome flags. Property of
+    // the journey ("this journey started with a VIN"), NOT the VIN value: booleans and
+    // enums only, the raw VIN never appears here. Absent for ordinary typed journeys
+    // (entry_method:"typed"). Read on the dashboard's Product Quality view.
+    gasJourneyEventOnce("seller_journey_started",{vehicle:sellState.resolvedVehicle,metadata:vinJourneyMeta()});
     gasJourneyEventOnce("vehicle_identified",{vehicle:sellState.resolvedVehicle});
   }
   if(sellState.returnToConfirm){goBackToConfirm();return;}

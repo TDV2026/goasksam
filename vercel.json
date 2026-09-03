@@ -24,7 +24,7 @@
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/out", "destination": "/api/out" },
     { "source": "/styles.20260903c.css", "destination": "/styles.css" },
-    { "source": "/js.20260903h/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20260903i/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20260901c/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
