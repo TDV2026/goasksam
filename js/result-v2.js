@@ -300,6 +300,31 @@ var V2_ICON={
 function v2Svg(k,cls){ return '<svg class="'+(cls||"")+'" viewBox="0 0 24 24" aria-hidden="true">'+(V2_ICON[k]||"")+'</svg>'; }
 
 // ---------- THE CARD ----------
+// VIN prior-sale -> current-pick bridging (copy only; never affects ranking). Composes
+// ONE Sam-voice sentence appended to the exact-match receipt line, grounded in TIME and
+// the pick's OWN already-computed evidence (window + mode) - never a new market claim,
+// never a market figure. Three cases: match (reinforce), quiet-platform (honest), and
+// mismatch (then-vs-now, comparative, never corrective). Window matches the card's WHY
+// (v2Window, same as the WHY line). No numbers except the prior sale's own receipt price.
+function v2NormPlat(x){ return String(x||"").toLowerCase().replace(/[^a-z0-9]/g,""); }
+function vinBridgeLine(match, pickSlug, pickName, ev){
+  if(!match||!match.source||!pickName)return "";
+  var priorName=platformDisplayName(match.source), priorSlug=v2NormPlat(match.source), pSlug=v2NormPlat(pickSlug);
+  if(priorSlug&&priorSlug===pSlug) return "That's still where the numbers point today.";
+  // Quiet platform: the prior platform has no recent comparable activity to compare against.
+  var perf=(sellState.sellDecision&&sellState.sellDecision.analysis&&sellState.sellDecision.analysis.platformPerformance)||[];
+  var pp=perf.filter(function(x){return v2NormPlat(x.platform)===priorSlug;})[0];
+  var priorRecent=pp?Number(pp.relevantSales||0):0;
+  if(priorRecent<1) return priorName+" has seen too few comparable sales recently to compare today; the recent activity for this car concentrates on "+pickName+".";
+  // Mismatch: prior platform is active, but the current numbers lean to the pick.
+  var win=v2WindowLabel(v2Window(ev)), mode=v2Mode(ev);
+  var reason = mode==="concentration" ? ("where most comparable sales have been closing over the past "+win)
+    : mode==="modeA" ? ("where comparable sales have been closing strongest over the past "+win)
+    : mode==="modeB" ? ("where the most recent comparable sales have been over the past "+win)
+    : ("where the recent comparable sales have been over the past "+win);
+  var recent = match.soldDate && ((Date.now()-new Date(match.soldDate).getTime())/86400000 < 120);
+  return "For selling it today, the recent numbers "+(recent?"still ":"")+"point to "+pickName+", "+reason+".";
+}
 function renderPickCardV2(option,over){
   try{
     over=over||{};
@@ -371,7 +396,7 @@ function renderPickCardV2(option,over){
         // VIN feature 4b: exact-VIN evidence line on the MAIN pick card only (not the
         // price-alt override, which carries its own whyLabel). n=1 evidence; renders
         // on whatever platform the data picked. Empty string when no VIN match.
-        + (function(){ if(over&&over.whyLabel)return''; try{ var vm=(typeof composerVinMatchBullet==="function")?composerVinMatchBullet(v):null; if(!vm)return''; return '<div class="pcard-vinmatch">'+esc(vm.text)+(vm.receiptUrl?' <a href="'+esc(vm.receiptUrl)+'" target="_blank" rel="noopener noreferrer" class="vin-receipt-link">View that sale</a>':'')+'</div>'; }catch(e){return'';} })()
+        + (function(){ if(over&&over.whyLabel)return''; try{ var vm=(typeof composerVinMatchBullet==="function")?composerVinMatchBullet(v):null; if(!vm)return''; var bridge=(typeof vinBridgeLine==="function")?vinBridgeLine(sellState.sellDecision&&sellState.sellDecision.vinArchiveMatch, slug||option.name, name, ev):''; var body=vm.text+(bridge?(' '+bridge):''); return '<div class="pcard-vinmatch">'+esc(body)+(vm.receiptUrl?' <a href="'+esc(vm.receiptUrl)+'" target="_blank" rel="noopener noreferrer" class="vin-receipt-link">View that sale</a>':'')+'</div>'; }catch(e){return'';} })()
         + '<button class="pcard-cta" onclick="'+ctaOnClick+'">Start Listing With '+esc(name)+v2Svg("arrow","cta-arrow")+'</button>'
         + '<div class="pcard-reassure">'+v2Svg("shield")+'<span>You\'ll be taken to '+esc(name)+' to begin your listing. Nothing is committed until you decide to publish.</span></div>'
         + trackLeft

@@ -198,6 +198,20 @@ async function send(){
             sellContext+=`\nPowerSeller note: no PowerSeller is shown for this car. If asked why, say a PowerSeller fits when the car and a specialist's focus line up, and this one is better served by listing on ${pickNm}. Never imply the car lacks value, never state a number it missed, never use internal words like value gate or threshold.`;
           }
         }
+        // VIN exact-match bridging (copy only, never ranking): give the chat the prior
+        // sale + the then-vs-now framing so "why not [prior platform]? it sold there"
+        // gets an honest, comparative answer instead of a repeated recommendation. Same
+        // discipline as the card: no current market figures (prior sale price is the only
+        // dollar), no mistake framing, no speculation about the previous owner, no causal
+        // decomposition of the price difference.
+        const _vm=sellState.sellDecision&&sellState.sellDecision.vinArchiveMatch;
+        if(_vm&&_vm.source){
+          const _priorNm=platformDisplayName(_vm.source);
+          const _when=(typeof vinMatchWhen==="function")?vinMatchWhen(_vm.soldDate):null;
+          const _pr=Number(_vm.price)?`$${Number(_vm.price).toLocaleString()}`:null;
+          const _bridge=(typeof vinBridgeLine==="function"&&comp&&comp.pick)?vinBridgeLine(_vm,comp.pick.platformSlug||comp.pick.name,pickNm,comp.pick.marketEvidence||{}):"";
+          sellContext+=`\nVIN exact-match note (the seller pasted a VIN and we matched this exact car's prior sale): it previously sold on ${_priorNm}${_when?` in ${_when}`:""}${_pr?` for ${_pr}`:""}. If the seller asks why not ${_priorNm} since it sold there before, answer honestly and in full: acknowledge that prior sale, then explain the recommendation goes on today's data - where comparable sales concentrate now and how recent they are - not on where the car came from; Sam has no loyalty to the prior platform.${_bridge?` The card states: "${_bridge}" - stay consistent with it.`:""} Never call ${_priorNm} or that sale a mistake, never guess why the previous owner chose it, never split the price difference into causes (platform vs market vs miles vs condition), and state NO current market figures - the prior sale price is the only dollar figure. Tone is then vs now, comparative, never corrective.`;
+        }
         // Rendered destinations = what actually rendered (never the raw route
         // list). The chat may name ONLY these. Framing follows the composition.
         if(comp&&comp.pick){
