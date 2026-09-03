@@ -1179,6 +1179,28 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
+  // TEMP (Market Pulse investigation): pull every 911 S/T sale from the archive. Read-only.
+  if (task === "stpull") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    async function get(q){ try{ const r=await fetch(`${env.supabaseUrl}/rest/v1/${q}`,{headers:H}); return r.ok?await r.json():{err:r.status,body:(await r.text()).slice(0,200)}; }catch(e){ return {err:String(e)}; } }
+    const tok = t => { const s=String(t||""); return { pts:/paint.to.sample|\bPTS\b/i.test(s), sonder:/sonderwunsch/i.test(s), albert:/albert blue/i.test(s) }; };
+    // sales_archive: real columns (make/listing_title), no JSON-path seq scan.
+    const sa = await get(`sales_archive?make=ilike.*porsche*&listing_title=ilike.*S/T*&select=platform,sale_date,sale_price,mileage,year,exterior_color,listing_title,has_reserve,vin,raw_record&order=sale_date.asc&limit=300`);
+    // vehicle_market_records: catch anything not yet in sales_archive (all platforms).
+    const vmr = await get(`vehicle_market_records?make=ilike.*porsche*&raw_title=ilike.*S/T*&select=source,auction_end_date,price,source_url,raw_record&order=auction_end_date.asc.nullslast&limit=300`);
+    const saRows = (Array.isArray(sa)?sa:[]).map(r=>{ const rr=r.raw_record||{}; const t=tok(r.listing_title+" "+(rr.description||"")+" "+(r.exterior_color||"")); return {
+      platform:r.platform, date:r.sale_date, price:r.sale_price, miles:r.mileage, year:r.year, color:r.exterior_color,
+      title:r.listing_title, reserve:r.has_reserve, status:rr.auction_status||rr.status||null,
+      vin:(r.vin||"").slice(-6), pts:t.pts, sonder:t.sonder, albert:t.albert };
+    });
+    const vmrRows = (Array.isArray(vmr)?vmr:[]).map(r=>{ const rr=r.raw_record||{}; const t=tok((rr.title||"")+" "+(rr.description||"")+" "+(rr.exterior_color||"")); return {
+      source:r.source, date:r.auction_end_date, price:r.price, miles:rr.mileage, title:rr.title,
+      status:rr.auction_status||rr.status||null, url:r.source_url, pts:t.pts, sonder:t.sonder, albert:t.albert };
+    });
+    return res.status(200).json({ task:"stpull", salesArchive:{count:saRows.length, rows:saRows}, vmr:{count:vmrRows.length, rows:vmrRows} });
+  }
+
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
