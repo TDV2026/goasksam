@@ -1143,6 +1143,10 @@ async function startSellFlow(initialCar, showUserBubble=true, preresolved=null){
   if(typeof gateCheckUpfront==="function"&&gateCheckUpfront()) return;
   resetSellState();
   sellState.active=true;sellState.step=1;
+  // VIN-origin marker for an undecoded-VIN entry that resetSellState just cleared: the
+  // seller pasted a VIN that failed to decode, then typed the car. Restore the flag so
+  // this journey is still classified VIN-originated (with a decode failure).
+  try{ if(sessionStorage.getItem("gas_vin_fail")){ sellState.vinEntry=true; sellState.vinDecode="fail"; sessionStorage.removeItem("gas_vin_fail"); } }catch(e){}
   if(typeof gasFunnel==="function")gasFunnel("wizard_start");  // 2F
   hideHero();
   // Rail/menu entry (no seed car): reset the view to a clean surface anchored at

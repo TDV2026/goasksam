@@ -263,6 +263,11 @@ async function send(){
       // chat layer. Show the honest line and stay in entry so the next message (the
       // car in words) starts the wizard normally.
       if(probeRes.ok&&probe.clarification&&probe.clarification.kind==="vin_decode_failed"){
+        // Bridge the VIN-origin marker across resetSellState: the seller now types the
+        // car, which runs startSellFlow -> resetSellState (wiping sellState flags). This
+        // undecoded-VIN journey is still VIN-originated, so persist that fact for the
+        // next startSellFlow to pick up. Boolean/enum only, never the VIN.
+        try{sessionStorage.setItem("gas_vin_fail","1");}catch(e){}
         addMsg("sam",probe.clarification.question);
         document.getElementById("btn").disabled=false;
         return;
