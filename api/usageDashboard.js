@@ -1179,19 +1179,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  // TEMP (VIN bridge test): recent VINs grouped by prior platform, to find a mismatch.
-  if (task === "vinplat") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    async function get(q){ try{ const r=await fetch(`${env.supabaseUrl}/rest/v1/${q}`,{headers:H}); return r.ok?await r.json():{err:r.status}; }catch(e){ return {err:String(e)}; } }
-    const out = {};
-    for (const plat of ["Cars & Bids", "PCarMarket", "Bring a Trailer"]) {
-      const rows = await get(`sales_archive?platform=eq.${encodeURIComponent(plat)}&vin=not.is.null&sale_date=gte.2026-08-01&select=sale_date,sale_price,vin,raw_record&order=sale_date.desc&limit=25`);
-      out[plat] = (Array.isArray(rows)?rows:[]).map(r=>({date:r.sale_date,price:r.sale_price,vin:r.vin,title:(r.raw_record||{}).title})).filter(x=>/^[A-HJ-NPR-Z0-9]{17}$/i.test(String(x.vin||""))).slice(0,6);
-    }
-    return res.status(200).json({ task:"vinplat", byPlatform: out });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
