@@ -851,9 +851,11 @@ async function offerReRun(rawText){
     addMsg("sam","Sure, I can re-run for a different car. Give me the year, make and model and I'll keep your other answers.");
     return;
   }
+  if(typeof showVehicleLookup==="function")showVehicleLookup();
   try{
     const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:cleaned})});
     const data=await res.json();
+    if(typeof hideVehicleLookup==="function")hideVehicleLookup();
     if(res.ok&&data.status==="needs_confirmation"&&data.clarification?.suggestion){
       const sug=data.clarification.suggestion;
       sellState.pendingRerun={rawText:sug};
@@ -869,6 +871,7 @@ async function offerReRun(rawText){
     }
     addMsg("sam","I couldn't read that as a car. Tell me the year, make and model and I'll re-run.");
   }catch(e){
+    if(typeof hideVehicleLookup==="function")hideVehicleLookup();
     addMsg("sam","I had trouble reading that model just now. Give me the year, make and model and I'll re-run.");
   }
 }

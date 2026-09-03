@@ -240,9 +240,14 @@ async function send(){
   if(pre&&pre.entryProbe){
     // Entry state runs the same resolver as everywhere else: vehicle-ish
     // text starts the wizard resolved; anything else gets a real chat answer.
+    // Show the "Looking that up" indicator immediately: this probe does the real
+    // resolution work (for a VIN, vPIC decode + archive lookup, several seconds),
+    // and without it the wait reads as dead. Same indicator used across the flow.
+    if(typeof showVehicleLookup==="function")showVehicleLookup();
     try{
       const probeRes=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:q})});
       const probe=await probeRes.json();
+      if(typeof hideVehicleLookup==="function")hideVehicleLookup();
       const understood=probe?.vehicle&&(probe.vehicle.make||probe.vehicle.model);
       if(probeRes.ok&&(probe.status==="valid"||probe.status==="needs_confirmation"||understood)){
         // (b) Hand the probe's resolution to the wizard so its preflight reuses it
@@ -259,7 +264,7 @@ async function send(){
         document.getElementById("btn").disabled=false;
         return;
       }
-    }catch(e){/* fall through to chat */}
+    }catch(e){ if(typeof hideVehicleLookup==="function")hideVehicleLookup(); /* fall through to chat */ }
     // falls through to the main chat below
   }
   if(pre&&pre.reply){

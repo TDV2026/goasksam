@@ -838,15 +838,17 @@ async function handleVehicleValidationAnswer(q){
     const candidate=[make,currentIssue.keepDesignation].filter(Boolean).join(" ").trim();
     sellState.pendingVehicleIdentity=null;
     try{
+      if(typeof showVehicleLookup==="function")showVehicleLookup();
       const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:candidate,keepAsTyped:true})});
       const data=await res.json();
+      if(typeof hideVehicleLookup==="function")hideVehicleLookup();
       if(res.ok&&data.vehicle?.canonicalLabel){
         sellState.resolvedVehicle=data.vehicle;sellState.carName=data.vehicle.canonicalLabel;sellState.carRaw=data.vehicle.canonicalLabel;
         sellState.vehicleIdentityValidated=!data.vehicle.unverified;sellState.vehicleDetailSkipped=false;sellState.notSureRepeats=0;
         resumeWizardAfterVehicle(`Got it, I'll run the ${sellState.carName} as typed and keep the read broad.`);
         return true;
       }
-    }catch(e){/* fall through */}
+    }catch(e){ if(typeof hideVehicleLookup==="function")hideVehicleLookup(); /* fall through */ }
   }
 
   // Negation-led correction (DEFECT 4): "no the 854f", "nope 850", "not that one
@@ -865,8 +867,10 @@ async function handleVehicleValidationAnswer(q){
       const candidate=[make,core].filter(Boolean).join(" ").trim();
       sellState.pendingVehicleIdentity=null;sellState.vehicleIdentityValidated=false;
       try{
+        if(typeof showVehicleLookup==="function")showVehicleLookup();
         const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:candidate})});
         const data=await res.json();
+        if(typeof hideVehicleLookup==="function")hideVehicleLookup();
         if(res.ok&&data.status==="valid"&&data.vehicle?.canonicalLabel&&!data.vehicle.unverified){
           sellState.resolvedVehicle=data.vehicle;sellState.carName=data.vehicle.canonicalLabel;sellState.carRaw=data.vehicle.canonicalLabel;
           sellState.vehicleIdentityValidated=true;sellState.vehicleDetailSkipped=false;sellState.notSureRepeats=0;
@@ -881,7 +885,7 @@ async function handleVehicleValidationAnswer(q){
         sellState.step=17;
         addMsg("sam",`${desig} isn't a ${make||"model"} I can match to a known listing.${suggestion?` The closest I have is ${suggestion}.`:""} Double-check the badge, or keep it as typed and I'll run a broader read.`,"",chipsHTML(chips));
         return true;
-      }catch(e){/* fall through to normal handling */}
+      }catch(e){ if(typeof hideVehicleLookup==="function")hideVehicleLookup(); /* fall through to normal handling */ }
     }
   }
 
@@ -940,8 +944,10 @@ async function handleVehicleValidationAnswer(q){
   const goWithTail=goWith?String(q).replace(/^[\s\S]*?\bgo with\b/i,"").trim():"";
   if(goWith&&goWithTail&&looksLikeVehicleText(goWithTail)){
     try{
+      if(typeof showVehicleLookup==="function")showVehicleLookup();
       const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:goWithTail})});
       const data=await res.json();
+      if(typeof hideVehicleLookup==="function")hideVehicleLookup();
       if(res.ok&&data.status==="valid"&&data.vehicle?.canonicalLabel){
         sellState.resolvedVehicle=data.vehicle;
         if(data.vehicle.mileage&&!sellState.mileage)sellState.mileage=`${Number(data.vehicle.mileage).toLocaleString()} miles`;
@@ -950,7 +956,7 @@ async function handleVehicleValidationAnswer(q){
         resumeWizardAfterVehicle(vehicleAcceptPrefix());
         return true;
       }
-    }catch{ /* fall through to advancing at the level known */ }
+    }catch{ if(typeof hideVehicleLookup==="function")hideVehicleLookup(); /* fall through to advancing at the level known */ }
   }
   if(detectIntent(lower)==="moveOn"||goWith){
     const baseVehicle=currentIssue?.baseVehicle||sellState.carName||"the car";
@@ -1223,8 +1229,10 @@ async function handleBadgeAnswer(q){
   const year=sellState.resolvedVehicle&&sellState.resolvedVehicle.year;
   let matched=false;
   try{
+    if(typeof showVehicleLookup==="function")showVehicleLookup();
     const res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:[year,mk,code].filter(Boolean).join(" ")})});
     const data=await res.json();
+    if(typeof hideVehicleLookup==="function")hideVehicleLookup();
     if(res.ok&&data.status==="valid"&&data.vehicle&&data.vehicle.canonicalLabel&&!data.vehicle.unverified){
       sellState.resolvedVehicle=data.vehicle;
       sellState.carName=data.vehicle.canonicalLabel;
@@ -1232,7 +1240,7 @@ async function handleBadgeAnswer(q){
       sellState.vehicleIdentityValidated=true;
       matched=true;
     }
-  }catch(e){/* network issue: acknowledge the code, keep make-level */}
+  }catch(e){ if(typeof hideVehicleLookup==="function")hideVehicleLookup(); /* network issue: acknowledge the code, keep make-level */ }
   if(matched){
     resumeWizardAfterVehicle(`Got it, that matches the ${sellState.carName}.`);
   }else{
