@@ -83,6 +83,10 @@
     <a class="hp-navitem" href="mailto:feedback@goasksam.com?subject=GoAskSam%20feedback" onclick="var f=document.querySelector('.hp-feedback-fallback');if(f)f.classList.add('shown')">Send feedback</a>
     <div class="hp-feedback-fallback">If nothing opens, email us at <a class="hp-copy-email" href="mailto:feedback@goasksam.com" title="Click to copy" onclick="try{navigator.clipboard&&navigator.clipboard.writeText('feedback@goasksam.com')}catch(e){}">feedback@goasksam.com</a></div>
     <a class="hp-navitem" href="/privacy">Privacy</a>
+    <!-- Attribution (crawlable, permanent): a true, indexable statement of who is behind
+         GoAskSam, so AI crawls find this instead of a hallucinated founder name. Static
+         HTML in the footer of /sell (indexable, in sitemap.xml). Persona voice, one line. -->
+    <div class="hp-attribution" style="padding:9px 10px;font-size:12px;line-height:1.45;color:var(--slate,#6b6861)">GoAskSam is built by Sam Gold, also behind <a href="https://thedailyvroom.com" rel="noopener" style="color:inherit;text-decoration:underline">The Daily Vroom</a>.</div>
   </div>
 </div>
 
