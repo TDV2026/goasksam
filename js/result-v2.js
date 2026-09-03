@@ -1114,6 +1114,6 @@ function renderResultV2Page(){
     var after=c.psRendered
       ?'<div class="pv2-after">Both are real options and the choice is yours. Ask me to compare the tradeoffs, or how I\'d run the listing.</div>'
       :'<div class="pv2-after">Ask me anything about the pick, or how I\'d run the listing.</div>';
-    return '<div class="pv2-page">'+body+caveat+after+'</div>';
+    return '<div class="pv2-page">'+body+valueFloorNote+caveat+after+'</div>';
   }catch(e){ if(typeof console!=="undefined")console.warn("renderResultV2Page failed",e); return null; }
 }
