@@ -1092,6 +1092,25 @@ function renderResultV2Page(){
     }
     var platformBlock=speedPre+pickHTML+secHTML;
     var body=psLead?(psHTML+bridge+platformBlock):(platformBlock+bridge+psHTML);
+    // Value-floor note (Sep 2026): a seller who leaned toward having it handled but
+    // whose car is below the PowerSeller value floor (segment + region matched, only
+    // value failed) gets the honest reason on the card instead of a silent platform-
+    // only result. Approved wording: about the seller's proceeds and the PowerSellers'
+    // focus, never a fee figure, never a judgment on the car's value. Only when NO
+    // PowerSeller renders (so the TT secondary + PS-lead paths are untouched).
+    var valueFloorNote="";
+    if(!c.psRendered){
+      var _cond=(sellState.partnerReferral&&sellState.partnerReferral.conditions)||(referral&&referral.conditions)||{};
+      var _vfm=_cond.valueMet===false&&_cond.segmentMet!==false&&_cond.regionMet!==false;
+      var _leaned=(pref==="powerseller"||pref==="unsure");
+      if(_vfm&&_leaned){
+        var _n=parseInt(String(sellState.price||"").replace(/[^0-9]/g,""),10);
+        var _ask=(isFinite(_n)&&_n>0)?("$"+_n.toLocaleString()):null;
+        var _plat=platformDisplayName(pick.name||pick.platformSlug);
+        var _vf=(_ask?("At your "+_ask+" target, "):"")+"our PowerSellers focus on higher-value cars, where their fee is worth what it costs. On a car in this range, that fee would eat into more of what you'd take home, so listing it yourself on "+_plat+" likely puts more in your pocket.";
+        valueFloorNote='<div class="pv2-vfnote">'+esc(_vf)+'</div>';
+      }
+    }
     var after=c.psRendered
       ?'<div class="pv2-after">Both are real options and the choice is yours. Ask me to compare the tradeoffs, or how I\'d run the listing.</div>'
       :'<div class="pv2-after">Ask me anything about the pick, or how I\'d run the listing.</div>';

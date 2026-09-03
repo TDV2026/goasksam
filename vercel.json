@@ -23,8 +23,8 @@
     { "source": "/onebox-preview", "destination": "/onebox-preview.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/out", "destination": "/api/out" },
-    { "source": "/styles.20260903b.css", "destination": "/styles.css" },
-    { "source": "/js.20260903e/(.*)", "destination": "/js/$1" },
+    { "source": "/styles.20260903c.css", "destination": "/styles.css" },
+    { "source": "/js.20260903f/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20260901c/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
