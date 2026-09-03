@@ -1179,24 +1179,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  // TEMP (VIN status check): flag get/set + real in-archive VINs to test with, and an
-  // optional specific-VIN archive check. Remove after verification.
-  if (task === "vindiag") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    async function get(q){ try{ const r=await fetch(`${env.supabaseUrl}/rest/v1/${q}`,{headers:H}); return r.ok?await r.json():{err:r.status}; }catch(e){ return {err:String(e)}; } }
-    if (req.query?.set === "0" || req.query?.set === "1") {
-      await supabaseInsert("app_config", [{ key: "vin_input_enabled", value: req.query.set }], env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=key");
-    }
-    const flag = await get(`app_config?key=eq.vin_input_enabled&select=value&limit=1`);
-    const pick = (rows, re) => (Array.isArray(rows)?rows:[]).map(r=>({date:r.sale_date,price:r.sale_price,vin:r.vin,title:(r.raw_record||{}).title||r.raw_title})).filter(x=>/^[A-HJ-NPR-Z0-9]{17}$/i.test(String(x.vin||""))).slice(0,6);
-    const p911 = pick(await get(`sales_archive?platform=eq.Bring%20a%20Trailer&vin=not.is.null&raw_record->>title=ilike.*911*&sale_date=gte.2026-07-01&select=sale_date,sale_price,vin,raw_record&order=sale_date.desc&limit=40`));
-    const f430 = pick(await get(`sales_archive?platform=eq.Bring%20a%20Trailer&vin=not.is.null&raw_record->>title=ilike.*430*&sale_date=gte.2026-05-01&select=sale_date,sale_price,vin,raw_record&order=sale_date.desc&limit=40`));
-    let specific = null;
-    if (req.query?.vin) { const v=String(req.query.vin).toUpperCase(); const rows=await get(`sales_archive?vin=eq.${encodeURIComponent(v)}&select=platform,sale_date,sale_price,mileage,raw_record`); specific={vin:v, found:Array.isArray(rows)?rows.length:rows, sample:Array.isArray(rows)&&rows[0]?{platform:rows[0].platform,date:rows[0].sale_date,price:rows[0].sale_price}:null}; }
-    return res.status(200).json({ task:"vindiag", vin_input_enabled: (Array.isArray(flag)&&flag[0])?flag[0].value:"(unset)", porsche911: p911, ferrari430: f430, specific });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
