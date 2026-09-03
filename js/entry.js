@@ -183,7 +183,20 @@ async function send(){
         }else if(psNm){
           sellContext+=`\nPowerSeller note: ${psNm} is shown as an option, not the lead. Frame it as hands-off vs hands-on, on effort, control and presentation. Never mention a fee, never claim more money, never use internal words like value gate or threshold.`;
         }else{
-          sellContext+=`\nPowerSeller note: no PowerSeller is shown for this car. If asked why, say a PowerSeller is worth it when the car and the fit line up, and this one is better served by listing on ${pickNm}. Never imply the car lacks value, never state a number it missed, never use internal words like value gate or threshold.`;
+          // No PowerSeller shown: give the chat the TRUE reason from the referral
+          // conditions, not a blanket "fit" excuse. A value-floor miss (segment +
+          // region matched, only value failed) gets the honest proceeds framing so
+          // the chat can fully answer "why no PowerSeller" / "I don't want to run my
+          // own auction"; a genuine fit/region miss keeps the specialist-fit framing.
+          const _ref=(sellState.sellDecision&&sellState.sellDecision.decision&&sellState.sellDecision.decision.partnerReferral)||(comp&&comp.referral)||{};
+          const _cond=_ref.conditions||{};
+          const _askN=(function(){const n=parseInt(String(sellState.price||"").replace(/[^0-9]/g,""),10);return (isFinite(n)&&n>0)?n:null;})();
+          const _ask=_askN?("$"+_askN.toLocaleString()):null;
+          if(_cond.valueMet===false&&_cond.segmentMet!==false&&_cond.regionMet!==false){
+            sellContext+=`\nPowerSeller note (this is the honest, COMPLETE answer; deliver it in full and do NOT just repeat the platform): ${_ask?`At your ${_ask} target, `:""}our PowerSellers focus on higher-value cars, where their fee is worth what it costs. On a car in this range, that fee would eat into more of what you'd take home, so listing it yourself on ${pickNm} likely puts more in your pocket. Give this whole answer whenever the seller asks why no PowerSeller, or says they'd rather not run their own auction - acknowledge the wish to have it handled, then explain this plainly. Never state a fee percentage or dollar amount, never imply the car itself lacks value, never use internal words like value gate, threshold or floor.`;
+          }else{
+            sellContext+=`\nPowerSeller note: no PowerSeller is shown for this car. If asked why, say a PowerSeller fits when the car and a specialist's focus line up, and this one is better served by listing on ${pickNm}. Never imply the car lacks value, never state a number it missed, never use internal words like value gate or threshold.`;
+          }
         }
         // Rendered destinations = what actually rendered (never the raw route
         // list). The chat may name ONLY these. Framing follows the composition.

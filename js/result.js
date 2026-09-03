@@ -654,10 +654,27 @@ function renderDecision(decisionData,renderOpts){
   const diySecondaryLine=(!featuredPowerSeller&&sellState.partnerReferral?.eligible&&sellerWantsToManageSelf())
     ?`<div class="sell-section-note" style="margin-top:10px">You said you’d rather run it yourself, so that’s the plan. If you’d rather have someone handle the whole sale, I know who I’d call. Just ask.</div>`
     :"";
+  // Value-floor note (Sep 2026): a seller who leaned toward having it handled but whose
+  // car sits below the PowerSeller value floor (segment + region matched, only value
+  // failed) must not get a silent platform-only card. State the honest reason - about
+  // the seller's proceeds and the PowerSeller's own focus, never a fee figure, never a
+  // judgment on the car's value. Only when NO PowerSeller renders at all.
+  const valueFloorNote=(function(){
+    if(featuredPowerSeller||partnerSecondary)return "";
+    const cond=(sellState.partnerReferral&&sellState.partnerReferral.conditions)||{};
+    const valueFloorMiss=cond.valueMet===false&&cond.segmentMet!==false&&cond.regionMet!==false;
+    const leanedHandled=sellState.sellerPreference==="powerseller"||sellState.sellerPreference==="unsure";
+    if(!valueFloorMiss||!leanedHandled)return "";
+    const n=parseInt(String(sellState.price||"").replace(/[^0-9]/g,""),10);
+    const ask=(isFinite(n)&&n>0)?("$"+n.toLocaleString()):null;
+    const plat=platformDisplayName((primaryPlatform&&(primaryPlatform.name||primaryPlatform.platformSlug))||sellState.displayedRecommendedPath||"");
+    const line=`${ask?`At your ${ask} target, `:""}our PowerSellers focus on higher-value cars, where their fee is worth what it costs. On a car in this range, that fee would eat into more of what you'd take home, so listing it yourself on ${plat} likely puts more in your pocket.`;
+    return `<div class="sell-section-note" style="margin-top:12px">${escapeHtml(line)}</div>`;
+  })();
   const platformGrid=primaryPlatform
     ?`<div class="sell-rec-grid">${renderOptionCard(primaryPlatform)}${secondaryPlatforms.map(renderOptionCard).join("")}</div>`
     :"";
-  const noFeatureExtras=`${partnerSecondary?`<div class="sell-section-note" style="margin-top:12px">${escapeHtml(powerSellerIntroLine())}</div>${renderMiniPowerSellerProfile(partnerSecondary,"Also worth considering")}`:""}${diySecondaryLine}`;
+  const noFeatureExtras=`${partnerSecondary?`<div class="sell-section-note" style="margin-top:12px">${escapeHtml(powerSellerIntroLine())}</div>${renderMiniPowerSellerProfile(partnerSecondary,"Also worth considering")}`:""}${diySecondaryLine}${valueFloorNote}`;
 
   // 1b: the header carries only the factual car label. The finding lives in the
   // pick card's composed headline; the old templated title/subtitle are deleted.

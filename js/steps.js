@@ -389,7 +389,7 @@ async function handleSellStep(q){
     else if(/\bno rush\b|no hurry|not in a (rush|hurry)|right result|take my time/.test(lower)){ sellState.timeline="No rush"; sellState.timelineAsked=true; }
     const runPreference=()=>{
       let pref;
-      if(/powerseller|power seller|handle everything|have it handled|handled|someone|get help|^yes\b/i.test(lower))pref="powerseller";
+      if(/powerseller|power seller|handle everything|have it handled|handled|someone|get help|help (me )?(with )?(the )?(auction|sale|selling)|help me sell|(need|want|'?d like|looking for) .{0,8}help|help selling|sell it for me|do it for me|sold for me|^yes\b/i.test(lower))pref="powerseller";
       else if(/myself|list and handle|handle it myself|list it|run it|on my own|diy|^no\b/i.test(lower)||detectIntent(lower)==="negation")pref="diy";
       else pref="unsure";
       sellState.sellerPreference=pref;
@@ -406,7 +406,7 @@ async function handleSellStep(q){
       // TIMING sub-question. Only a CLEAR preference (never the ambiguous bare
       // no/yes/skip) short-circuits straight to the analysis; everything else -
       // including "No rush"/"ASAP" - advances to the PowerSeller preference step.
-      const clearPref=/powerseller|power seller|handle everything|have it handled|handled|someone|get help|myself|list and handle|handle it myself|list it|run it|on my own|\bdiy\b|not sure|unsure/i.test(lower);
+      const clearPref=/powerseller|power seller|handle everything|have it handled|handled|someone|get help|help (me )?(with )?(the )?(auction|sale|selling)|help me sell|(need|want|'?d like|looking for) .{0,8}help|help selling|sell it for me|do it for me|sold for me|myself|list and handle|handle it myself|list it|run it|on my own|\bdiy\b|not sure|unsure/i.test(lower);
       if(clearPref)return runPreference();
       askSellPreferenceStep();
       return true;
