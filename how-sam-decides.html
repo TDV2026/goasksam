@@ -16,7 +16,14 @@ footer.bottom a{color:var(--pc-grey,#54504A);text-decoration:none;}
 footer.bottom a:hover{color:var(--pc-ink,#181712);text-decoration:underline;}
 @media (max-width:520px){footer.bottom{padding:20px 20px 36px;}}
 </style>
-<link rel="stylesheet" href="/styles.20260903c.css">
+<link rel="stylesheet" href="/styles.20260903d.css">
+<style>
+/* Standalone document: the shared stylesheet locks body to the app shell
+   (height:100dvh; display:flex; overflow:hidden). Reset to normal document flow so
+   the page scrolls full-length and the footer sits at the document bottom. */
+html{height:auto;overflow-y:auto;}
+body{height:auto;min-height:100vh;display:block;overflow:visible;background:#F4F1EA;}
+</style>
 </head>
 <body>
 <div class="hp-decides">
