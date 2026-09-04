@@ -1390,6 +1390,12 @@ function showContactForm(){
   }
   // Anonymous seller: ONE email field (phone dropped from this flow - the partner can
   // ask directly), then send on submit.
+  // Funnel visibility (Sep 2026): the email-capture step for anonymous sellers is the
+  // single most convertible drop point - someone who clicks the intro and then balks at
+  // the email ask. Signed-in sellers skip this form entirely (immediate submit above),
+  // so this event fires ONLY on the anonymous path. Abandonment is then the aggregate
+  // gap between this event and powerseller_intro_requested (the actual lead).
+  if(typeof gasJourneyEventOnce==="function")gasJourneyEventOnce("powerseller_contact_form_shown",{vehicle:sellState.resolvedVehicle,powersellerId:sellState.selectedPowerSellerId||null});
   const carLabel=escapeHtml(sellState.carName||"car");
   const intro=selectedPowerSeller&&psFirst
     ? `Last thing, so ${escapeHtml(psFirst)} can reach you about your ${carLabel}. What's the best email?`

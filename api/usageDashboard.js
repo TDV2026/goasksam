@@ -1179,56 +1179,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  if (task === "leadsendtest") {
-    // Regression test of the live lead-email path (renderLeadEmail + resendSend +
-    // Resend API), incl. the VIN prior-sale link added this week. Sends TO Resend's
-    // test inbox (delivered@resend.dev, absorbs harmlessly - no real partner emailed)
-    // with feedback@goasksam.com BCC'd, exactly as a real lead does. Both frontend
-    // paths (signed-in immediate + anonymous form) converge on this same send.
-    const { sendLeadNotification } = await import("../lib/_email.js");
-    const base = {
-      partnerEmail: "delivered@resend.dev",
-      partnerName: "Chris Carbine",
-      seller: { email: "regression-test@goasksam.com" },
-      choice: { destination: "Chris Carbine", destinationType: "powerseller" },
-      recommendedPath: "bringatrailer"
-    };
-    const noVin = await sendLeadNotification({ ...base, reference: "GAS-TEST-NOVIN",
-      car: { raw: "2016 Jaguar XJ" } });
-    const withVin = await sendLeadNotification({ ...base, reference: "GAS-TEST-VIN",
-      car: { raw: "2012 Audi A7" }, priorSaleUrl: "https://bringatrailer.com/listing/2012-audi-a7-42/" });
-    return res.status(200).json({ task: "leadsendtest",
-      recipients_rule: "TO partner (delivered@resend.dev here), BCC feedback@goasksam.com",
-      no_vin_send: noVin, with_vin_send: withVin });
-  }
-
-  if (task === "jagprobe") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    const get = async q => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: H }); return r.ok ? await r.json() : { err: r.status }; } catch (e) { return { err: String(e) }; } };
-    // Partner config (notification_email present + correct) - whole small table.
-    const partner = await get(`partners?select=slug,name,display_name,notification_email,active,seller_usernames`);
-    // Jaguar journeys in the window (Illinois, Jag), with their event trail.
-    const sinceIso = new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString();
-    const jags = await get(`journeys?vehicle_make=ilike.*jaguar*&created_at=gte.${encodeURIComponent(sinceIso)}&select=journey_id,created_at,vehicle_year,vehicle_make,vehicle_model,vehicle_attrs&order=created_at.desc&limit=20`);
-    const trails = [];
-    if (Array.isArray(jags)) for (const j of jags) {
-      const evs = await get(`journey_events?journey_id=eq.${encodeURIComponent(j.journey_id)}&select=event_type,powerseller_id,occurred_at&order=occurred_at.asc&limit=100`);
-      trails.push({ jid: j.journey_id.slice(0, 8), created: j.created_at, car: `${j.vehicle_year || ""} ${j.vehicle_make || ""} ${j.vehicle_model || ""}`.trim(),
-        stages: Array.isArray(evs) ? evs.map(e => e.event_type) : evs,
-        intro_clicked: Array.isArray(evs) && evs.some(e => e.event_type === "powerseller_intro_clicked"),
-        intro_requested: Array.isArray(evs) && evs.some(e => e.event_type === "powerseller_intro_requested") });
-    }
-    // Any seller_leads for Jag / carbine123 in the window.
-    const leads = await get(`seller_leads?submitted_at=gte.${encodeURIComponent(sinceIso)}&select=reference,submitted_at,seller_email,chosen_destination,chosen_destination_type,car_raw&order=submitted_at.desc&limit=50`);
-    const jagLeads = Array.isArray(leads) ? leads.filter(l => /jag/i.test(l.car_raw || "") || /carbine/i.test(l.chosen_destination || "")) : leads;
-    return res.status(200).json({ task: "jagprobe",
-      carbine_partner: partner,
-      jaguar_journeys: trails,
-      jaguar_or_carbine_leads: jagLeads,
-      resend_key_present: !!process.env.RESEND_API_KEY });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
@@ -1354,6 +1304,10 @@ async function computeBusiness(env, range, mode) {
   // tier per journey (from its recommendation_completed event metadata)
   const tierBy = new Map();
   for (const e of events) if (e.event_type === "recommendation_completed" && e.metadata && e.metadata.tier) tierBy.set(e.journey_id, e.metadata.tier);
+  // entry method per journey (from its seller_journey_started metadata): "vin" | "typed".
+  // Boolean provenance only - the raw VIN is never stored in the metadata or here.
+  const entryMethodBy = new Map();
+  for (const e of events) if (e.event_type === "seller_journey_started" && e.metadata && e.metadata.entry_method) entryMethodBy.set(e.journey_id, e.metadata.entry_method);
   const internal = j => isInternalTier(tierBy.get(j.journey_id)) || tierBy.get(j.journey_id) === "internal";
   const journeys = journeysAll.filter(j => mode === "include" ? true : mode === "only" ? internal(j) : !internal(j));
   const idset = new Set(journeys.map(j => j.journey_id));
@@ -1361,7 +1315,7 @@ async function computeBusiness(env, range, mode) {
 
   // per-journey event-type presence
   const has = {};
-  const EV = ["seller_journey_started", "vehicle_identified", "seller_questions_completed", "recommendation_completed", "platform_recommended", "powerseller_recommended", "platform_cta_viewed", "powerseller_card_viewed", "platform_cta_clicked", "powerseller_intro_clicked", "powerseller_intro_requested"];
+  const EV = ["seller_journey_started", "vehicle_identified", "seller_questions_completed", "recommendation_completed", "platform_recommended", "powerseller_recommended", "platform_cta_viewed", "powerseller_card_viewed", "platform_cta_clicked", "powerseller_intro_clicked", "powerseller_contact_form_shown", "powerseller_intro_requested"];
   for (const t of EV) has[t] = new Set();
   for (const e of evts) if (has[e.event_type]) has[e.event_type].add(e.journey_id);
 
@@ -1373,7 +1327,13 @@ async function computeBusiness(env, range, mode) {
   const platViews = has.platform_cta_viewed.size;
   const platClicks = has.platform_cta_clicked.size;
   const psCardViews = has.powerseller_card_viewed.size;
+  const psIntroClicks = has.powerseller_intro_clicked.size;
+  const psFormShown = has.powerseller_contact_form_shown.size;
   const psIntros = has.powerseller_intro_requested.size;
+  // Email-capture abandonment (anonymous path only - signed-in sellers never see the
+  // form, they submit immediately). A journey that showed the form but never reached
+  // intro_requested balked at the email ask: the most convertible lost user.
+  const psFormAbandoned = [...has.powerseller_contact_form_shown].filter(id => !has.powerseller_intro_requested.has(id)).length;
 
   // downstream (manual) - NYT until any journey anywhere carries the field
   const [soldTracked, listedTracked, gmvTracked, revTracked, actualTracked] = await Promise.all([
@@ -1385,8 +1345,9 @@ async function computeBusiness(env, range, mode) {
   const gmv = journeys.reduce((s, j) => s + (j.sale_status === "sold" && Number.isFinite(Number(j.sale_price)) ? Number(j.sale_price) : 0), 0);
   const revenue = journeys.reduce((s, j) => s + (Number.isFinite(Number(j.gas_revenue)) ? Number(j.gas_revenue) : 0), 0);
 
-  return { range, mode, journeys, evts, has, tierBy,
+  return { range, mode, journeys, evts, has, tierBy, entryMethodBy,
     uniqueSellers, started, recs, platRec, psRec, platViews, platClicks, psCardViews, psIntros,
+    psIntroClicks, psFormShown, psFormAbandoned,
     listings, sold, gmv, revenue, soldTracked, listedTracked, gmvTracked, revTracked, actualTracked };
 }
 
@@ -1472,7 +1433,10 @@ async function renderBusinessView(req, res) {
       <div class="path"><h3>PowerSeller path</h3>
         <div class="r"><span>PowerSeller recommended</span><b>${fmtN(b.psRec)}</b></div>
         <div class="r"><span>Card viewed</span><b>${fmtN(b.psCardViews)}</b></div>
+        <div class="r"><span>Intro clicked</span><b>${fmtN(b.psIntroClicks)}</b> <span class="samp">${fmtPct(b.psIntroClicks, b.psCardViews)} of card views</span></div>
+        <div class="r"><span>Contact form shown</span><b>${fmtN(b.psFormShown)}</b> <span class="samp">anonymous only</span></div>
         <div class="r"><span>Introduction requested</span><b>${fmtN(b.psIntros)}</b> <span class="samp">${fmtPct(b.psIntros, b.psCardViews)} of card views</span></div>
+        <div class="r"><span>Abandoned at email step</span><b>${fmtN(b.psFormAbandoned)}</b> <span class="samp">form shown, no lead</span></div>
       </div>
     </div>
     ${stage("Listings / consignments", b.listedTracked ? b.listings : 0, b.started)}${b.listedTracked ? conv(b.listings, b.recs) : `<div class="fconv">${NYT} (manual entry, Phase 3)</div>`}
@@ -1494,6 +1458,7 @@ async function renderBusinessView(req, res) {
     ${kpi(fmtN(b.psCardViews), "PowerSeller card views")}
     ${kpi(fmtN(b.psIntros), "PowerSeller introductions")}
     ${kpi(fmtPct(b.psIntros, b.psCardViews), "PowerSeller intro conversion", "requests / card views")}
+    ${kpi(fmtN(b.psFormAbandoned), "Abandoned at email step", "form shown, no lead (anon)")}
     ${kpi(b.listedTracked ? fmtN(b.listings) : NYT, "Consignments / listings")}
     ${kpi(b.soldTracked ? fmtN(b.sold) : NYT, "Vehicles sold")}
     ${kpi(sellThrough, "Sell-through rate", b.listedTracked ? "sold / listed (needs 5+ listings)" : "")}
@@ -1569,7 +1534,7 @@ async function renderBusinessView(req, res) {
   return res.status(200).send(html);
 }
 
-const STAGE_LABEL = { seller_journey_started: "Started", vehicle_identified: "Vehicle identified", seller_questions_completed: "Questions done", recommendation_completed: "Recommendation", platform_recommended: "Platform rec", powerseller_recommended: "PowerSeller rec", platform_cta_viewed: "CTA viewed", powerseller_card_viewed: "PS card viewed", platform_cta_clicked: "CTA clicked", powerseller_intro_clicked: "Intro clicked", powerseller_intro_requested: "Intro requested", powerseller_intro_sent: "Intro sent", powerseller_contacted: "Contacted", powerseller_engaged: "Engaged", consignment_accepted: "Consignment", vehicle_listed: "Listed", vehicle_sold: "Sold", journey_closed_no_sale: "Closed, no sale" };
+const STAGE_LABEL = { seller_journey_started: "Started", vehicle_identified: "Vehicle identified", seller_questions_completed: "Questions done", recommendation_completed: "Recommendation", platform_recommended: "Platform rec", powerseller_recommended: "PowerSeller rec", platform_cta_viewed: "CTA viewed", powerseller_card_viewed: "PS card viewed", platform_cta_clicked: "CTA clicked", powerseller_intro_clicked: "Intro clicked", powerseller_contact_form_shown: "Contact form shown", powerseller_intro_requested: "Intro requested", powerseller_intro_sent: "Intro sent", powerseller_contacted: "Contacted", powerseller_engaged: "Engaged", consignment_accepted: "Consignment", vehicle_listed: "Listed", vehicle_sold: "Sold", journey_closed_no_sale: "Closed, no sale" };
 // The result-render moment fires three events tied at rank 40 (recommendation_completed,
 // platform_recommended, powerseller_recommended); which one a journey RESTS at is a
 // write-order race, so they collapse to ONE "Recommendation" stage for the Stage column,
@@ -1715,6 +1680,7 @@ async function renderJourneysView(req, res) {
   const fUid = String(req.query?.uid || ""), fAid = String(req.query?.aid || ""); // Item 3b: person filter (click-through from Visitors)
   const fSort = String(req.query?.sort || "");                                    // clickable-header sort (currently: stage)
   const fTier = String(req.query?.tier || "");                                    // tier filter chip (e.g. guest30)
+  const fVin = String(req.query?.vin || "");                                      // entry-method filter chip (VIN-originated journeys)
   let rows = b.journeys;
   if (q) rows = rows.filter(j => [j.vehicle_make, j.vehicle_model, j.vehicle_trim, j.vehicle_location].filter(Boolean).join(" ").toLowerCase().includes(q));
   if (fPs) rows = rows.filter(j => j.rec_powerseller === fPs);
@@ -1734,14 +1700,17 @@ async function renderJourneysView(req, res) {
   const stageCounts = new Map();
   for (const j of rows) { const s = canonStage(j.stage); stageCounts.set(s, (stageCounts.get(s) || 0) + 1); }
   if (fStage) rows = rows.filter(j => canonStage(j.stage) === fStage);
+  // VIN-origin chip: count over the current rows (post other filters), then isolate.
+  const vinCount = rows.filter(j => b.entryMethodBy.get(j.journey_id) === "vin").length;
+  if (fVin) rows = rows.filter(j => b.entryMethodBy.get(j.journey_id) === "vin");
   // Sort by Stage (funnel order) when the Stage header is clicked; default stays date-desc.
   if (fSort === "stage") rows = [...rows].sort((x, y) => stageRank(x.stage) - stageRank(y.stage) || String(y.created_at || "").localeCompare(String(x.created_at || "")));
-  const anyFilter = q || fStage || fPs || fPlat || fReg || fUid || fAid || fTier;
+  const anyFilter = q || fStage || fPs || fPlat || fReg || fUid || fAid || fTier || fVin;
   const shown = rows.slice(0, 300);
   const emailBy = await fetchEmailsByUserId(env, shown.map(j => j.user_id));   // Item 1: signed-in requester email
   const tr = shown.map(j => `<tr>
     <td>${fmtDayET(j.created_at)}</td>
-    <td><a class="jlink" href="?view=journeys&jid=${encodeURIComponent(j.journey_id)}&key=${bizKey(req)}">${adminEsc([j.vehicle_year, j.vehicle_make, j.vehicle_model].filter(Boolean).join(" ") || "?")}</a></td>
+    <td><a class="jlink" href="?view=journeys&jid=${encodeURIComponent(j.journey_id)}&key=${bizKey(req)}">${adminEsc([j.vehicle_year, j.vehicle_make, j.vehicle_model].filter(Boolean).join(" ") || "?")}</a>${b.entryMethodBy.get(j.journey_id) === "vin" ? ` <span style="display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.4px;color:#0b5c3e;background:#e7f3ec;border:1px solid #bfe3cc;border-radius:4px;padding:1px 4px;vertical-align:middle;margin-left:5px" title="Started from a VIN">VIN</span>` : ""}</td>
     <td>${adminEsc(j.user_id ? (emailBy.get(j.user_id) || "") : "")}</td>
     <td>${adminEsc(j.vehicle_location || "")}</td>
     <td>${adminEsc(stateRegion(j.vehicle_location))}</td>
@@ -1757,22 +1726,26 @@ async function renderJourneysView(req, res) {
     <td class="num">${j.gas_revenue ? fmtMoney(j.gas_revenue) : ""}</td>
   </tr>`).join("");
   // CSV download links carry ALL current filters (Items 2/4/3b).
-  const filterQS = `${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fTier ? `&tier=${encodeURIComponent(fTier)}` : ""}`;
+  const filterQS = `${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fTier ? `&tier=${encodeURIComponent(fTier)}` : ""}${fVin ? `&vin=${encodeURIComponent(fVin)}` : ""}`;
   const csvParams = extra => `?view=journeys&format=csv&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${filterQS}${extra}`;
   // Region rollup filter chips (Item 2). Preserve every other current filter.
-  const regionBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fTier ? `&tier=${encodeURIComponent(fTier)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
+  const regionBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fTier ? `&tier=${encodeURIComponent(fTier)}` : ""}${fVin ? `&vin=${encodeURIComponent(fVin)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
   const regionChips = `<div class="filters" style="margin:4px 0"><span style="color:#6b6861;font-size:12px">Region:</span> <a class="${!fReg ? "on" : ""}" href="${regionBase}">All</a>${CENSUS_REGIONS.map(rg => `<a class="${fReg === rg ? "on" : ""}" href="${regionBase}&region=${encodeURIComponent(rg)}">${rg}</a>`).join("")}</div>`;
   // Stage filter chips (same pattern as Region). Preserves every other filter; shows only
   // stages present in the current view, each with its own count so "just CTA clicked" etc.
   // reads its count at a glance. "All" clears the stage filter.
-  const stageBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fTier ? `&tier=${encodeURIComponent(fTier)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
+  const stageBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fTier ? `&tier=${encodeURIComponent(fTier)}` : ""}${fVin ? `&vin=${encodeURIComponent(fVin)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
   const presentStages = STAGE_KEYS.filter(s => stageCounts.get(s));
   const stageChips = presentStages.length ? `<div class="filters" style="margin:4px 0"><span style="color:#6b6861;font-size:12px">Stage:</span> <a class="${!fStage ? "on" : ""}" href="${stageBase}">All</a>${presentStages.map(s => `<a class="${fStage === s ? "on" : ""}" href="${stageBase}&stage=${encodeURIComponent(s)}">${adminEsc(STAGE_LABEL[s])} (${fmtN(stageCounts.get(s))})</a>`).join("")}</div>` : "";
   // Tier filter chips (guest30, free, tdv, ...). Preserves every other filter; guest30 is
   // included by default (not internal), so this is the way to isolate a guest cohort.
-  const tierBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
+  const tierBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fVin ? `&vin=${encodeURIComponent(fVin)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
   const presentTiers = [...tierCounts.keys()].filter(t => t && t !== "(none)").sort();
   const tierChips = presentTiers.length ? `<div class="filters" style="margin:4px 0"><span style="color:#6b6861;font-size:12px">Tier:</span> <a class="${!fTier ? "on" : ""}" href="${tierBase}">All</a>${presentTiers.map(t => `<a class="${fTier === t ? "on" : ""}" href="${tierBase}&tier=${encodeURIComponent(t)}">${adminEsc(t)} (${fmtN(tierCounts.get(t))})</a>`).join("")}</div>` : "";
+  // Entry-method chip: isolate VIN-originated journeys at a glance. Preserves every other
+  // filter; only rendered when at least one VIN journey is present in the current view.
+  const vinBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fTier ? `&tier=${encodeURIComponent(fTier)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
+  const vinChip = (vinCount > 0 || fVin) ? `<div class="filters" style="margin:4px 0"><span style="color:#6b6861;font-size:12px">Entry:</span> <a class="${!fVin ? "on" : ""}" href="${vinBase}">All</a><a class="${fVin ? "on" : ""}" href="${vinBase}&vin=1">VIN journeys (${fmtN(vinCount)})</a></div>` : "";
   // Clickable Stage column header: toggles funnel-order sort on/off (filterQS already
   // carries every active filter; sort is added/removed on top).
   const stageSortHref = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${filterQS}${fSort === "stage" ? "" : "&sort=stage"}`;
@@ -1784,8 +1757,9 @@ async function renderJourneysView(req, res) {
     ${regionChips}
     ${stageChips}
     ${tierChips}
+    ${vinChip}
     ${personBanner}
-    <form method="get" style="margin:8px 0"><input type="hidden" name="view" value="journeys"><input type="hidden" name="key" value="${bizKey(req)}"><input type="hidden" name="range" value="${range.range}"><input type="hidden" name="biz" value="${mode}">${range.range === "custom" ? `<input type="hidden" name="from" value="${adminEsc(req.query?.from || "")}"><input type="hidden" name="to" value="${adminEsc(req.query?.to || "")}">` : ""}${fReg ? `<input type="hidden" name="region" value="${adminEsc(fReg)}">` : ""}${fStage ? `<input type="hidden" name="stage" value="${adminEsc(fStage)}">` : ""}${fTier ? `<input type="hidden" name="tier" value="${adminEsc(fTier)}">` : ""}${fSort ? `<input type="hidden" name="sort" value="${adminEsc(fSort)}">` : ""}${fUid ? `<input type="hidden" name="uid" value="${adminEsc(fUid)}">` : ""}${fAid ? `<input type="hidden" name="aid" value="${adminEsc(fAid)}">` : ""}<input type="text" name="q" value="${adminEsc(req.query?.q || "")}" placeholder="Search vehicle or location"> <button>Search</button></form>
+    <form method="get" style="margin:8px 0"><input type="hidden" name="view" value="journeys"><input type="hidden" name="key" value="${bizKey(req)}"><input type="hidden" name="range" value="${range.range}"><input type="hidden" name="biz" value="${mode}">${range.range === "custom" ? `<input type="hidden" name="from" value="${adminEsc(req.query?.from || "")}"><input type="hidden" name="to" value="${adminEsc(req.query?.to || "")}">` : ""}${fReg ? `<input type="hidden" name="region" value="${adminEsc(fReg)}">` : ""}${fStage ? `<input type="hidden" name="stage" value="${adminEsc(fStage)}">` : ""}${fTier ? `<input type="hidden" name="tier" value="${adminEsc(fTier)}">` : ""}${fVin ? `<input type="hidden" name="vin" value="${adminEsc(fVin)}">` : ""}${fSort ? `<input type="hidden" name="sort" value="${adminEsc(fSort)}">` : ""}${fUid ? `<input type="hidden" name="uid" value="${adminEsc(fUid)}">` : ""}${fAid ? `<input type="hidden" name="aid" value="${adminEsc(fAid)}">` : ""}<input type="text" name="q" value="${adminEsc(req.query?.q || "")}" placeholder="Search vehicle or location"> <button>Search</button></form>
     <div class="sub">${rows.length} journeys ${anyFilter ? "(filtered)" : ""} &nbsp;·&nbsp; Download CSV (current filters): <a href="${csvParams("&dataset=journeys")}">journeys</a> · <a href="${csvParams("&dataset=journey_events")}">events</a> · <a href="${csvParams("&dataset=funnel_events")}">funnel</a></div>
     <table><tr><th>Date</th><th>Vehicle</th><th>Email</th><th>Location</th><th>Region</th><th class="num">Asking</th><th>Preference</th><th>Timing</th><th>Recommendation</th><th>PowerSeller</th><th>${stageHeader}</th><th>Actual platform</th><th>Sale status</th><th class="num">Sale price</th><th class="num">Revenue</th></tr>${tr || `<tr><td colspan=15>No journeys.</td></tr>`}</table>
   </div>`;
