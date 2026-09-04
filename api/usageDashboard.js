@@ -1179,59 +1179,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  // TEMP (private Hagerty briefing): archive + analytics reads only, zero OCD, no writes.
-  if (task === "hagbrief") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    const base = env.supabaseUrl + "/rest/v1/";
-    async function count(q){ try{ const r=await fetch(base+q+"&limit=1",{headers:{...H,Prefer:"count=exact",Range:"0-0"}}); return Number((r.headers.get("content-range")||"*/0").split("/")[1]||0);}catch(e){return null;} }
-    async function pageAll(q,cap){ const out=[]; let off=0; while(out.length<cap){ const r=await fetch(base+q+`&limit=1000&offset=${off}`,{headers:H}); if(!r.ok)break; const rows=await r.json(); if(!Array.isArray(rows)||!rows.length)break; out.push(...rows); if(rows.length<1000)break; off+=1000;} return out; }
-    const iso=d=>new Date(Date.now()-d*86400000).toISOString().slice(0,10);
-    const med=a=>{const s=a.filter(x=>x>0).sort((x,y)=>x-y);return s.length?s[Math.floor(s.length/2)]:null;};
-    const enc=encodeURIComponent;
-    // 1 PRESENCE
-    const plats=["Hagerty","Bring a Trailer","Cars & Bids","PCARMarket","All Collector Cars","Gooding & Co","RM Sotheby's","Sotheby's Motorsport","Bonhams"];
-    const total=await count("sales_archive?select=source_id");
-    const byPlat={}; for(const pl of plats) byPlat[pl]=await count(`sales_archive?platform=eq.${enc(pl)}&select=source_id`);
-    // trend
-    const [d90,d270]=[iso(90),iso(270)];
-    const hagRecent=await count(`sales_archive?platform=eq.Hagerty&sale_date=gte.${d90}&select=source_id`);
-    const hagPrev=await count(`sales_archive?platform=eq.Hagerty&sale_date=gte.${d270}&sale_date=lt.${d90}&select=source_id`);
-    const totRecent=await count(`sales_archive?sale_date=gte.${d90}&select=source_id`);
-    const totPrev=await count(`sales_archive?sale_date=gte.${d270}&sale_date=lt.${d90}&select=source_id`);
-    // 2 WHERE THEY LIVE
-    const hag=await pageAll(`sales_archive?platform=eq.Hagerty&select=year,sale_price,make,model`,8000);
-    const pool=await pageAll(`sales_archive?select=sale_price&order=sale_date.desc`,8000);
-    const eraOf=y=>{y=Number(y); if(!y)return "unknown"; if(y<1980)return "pre-1980"; if(y<=2000)return "1980-2000"; if(y<=2015)return "2000-2015"; return "modern (2016+)";};
-    const bandOf=p=>{p=Number(p); if(!p)return "unknown"; if(p<25000)return "sub-$25k"; if(p<50000)return "$25-50k"; if(p<100000)return "$50-100k"; return "$100k+";};
-    const eraB={},bandB={}; for(const r of hag){eraB[eraOf(r.year)]=(eraB[eraOf(r.year)]||0)+1; bandB[bandOf(r.sale_price)]=(bandB[bandOf(r.sale_price)]||0)+1;}
-    const hagMed=med(hag.map(r=>Number(r.sale_price))), poolMed=med(pool.map(r=>Number(r.sale_price)));
-    // per-era hagerty median vs pool median (merit proxy)
-    const poolEra=await pageAll(`sales_archive?select=year,sale_price&order=sale_date.desc`,12000);
-    const eraStats={};
-    for(const e of ["pre-1980","1980-2000","2000-2015","modern (2016+)"]){
-      const hp=hag.filter(r=>eraOf(r.year)===e).map(r=>Number(r.sale_price));
-      const pp=poolEra.filter(r=>eraOf(r.year)===e).map(r=>Number(r.sale_price));
-      eraStats[e]={hagN:hp.length, hagMed:med(hp), poolN:pp.length, poolMed:med(pp)};
-    }
-    // 3 WHERE THEY WIN: outbound_clicks + journeys rec_platform (all-time = since launch)
-    const isHag=v=>String(v||"").toLowerCase().includes("hagerty");
-    const clicks=await pageAll(`outbound_clicks?select=platform,year,make,model,created_at`,20000);
-    const clkByPlat={}; for(const c of clicks){const k=String(c.platform||"?");clkByPlat[k]=(clkByPlat[k]||0)+1;}
-    const hagClicks=clicks.filter(c=>isHag(c.platform)).map(c=>`${c.year||""} ${c.make||""} ${c.model||""}`.trim());
-    const jour=await pageAll(`journeys?rec_platform=not.is.null&select=rec_platform,vehicle_year,vehicle_make,vehicle_model`,20000);
-    const jByPlat={}; for(const j of jour){const k=String(j.rec_platform||"?");jByPlat[k]=(jByPlat[k]||0)+1;}
-    const hagJour=jour.filter(j=>isHag(j.rec_platform)).map(j=>`${j.vehicle_year||""} ${j.vehicle_make||""} ${j.vehicle_model||""}`.trim());
-    return res.status(200).json({ task:"hagbrief",
-      presence:{ total, byPlatform:byPlat, hagertyPct: total?+(byPlat["Hagerty"]/total*100).toFixed(1):null,
-        trend:{ hagRecent90d:hagRecent, hagPrev90to270:hagPrev, totRecent90d:totRecent, totPrev90to270:totPrev,
-          hagShareRecent: totRecent?+(hagRecent/totRecent*100).toFixed(1):null, hagSharePrev: totPrev?+(hagPrev/totPrev*100).toFixed(1):null } },
-      whereLive:{ hagertyRecordsPulled:hag.length, byEra:eraB, byPriceBand:bandB, hagertyMedian:hagMed, poolMedian:poolMed },
-      merit:{ perEra:eraStats },
-      whereWin:{ outboundTotal:clicks.length, outboundByPlatform:clkByPlat, hagertyOutboundCount:hagClicks.length, hagertyOutboundCars:hagClicks.slice(0,25),
-        journeysWithRec:jour.length, journeyRecByPlatform:jByPlat, hagertyRecCount:hagJour.length, hagertyRecCars:hagJour.slice(0,25) } });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
