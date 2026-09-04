@@ -23,9 +23,11 @@
     { "source": "/onebox-preview", "destination": "/onebox-preview.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/about", "destination": "/about.html" },
+    { "source": "/how-sam-decides", "destination": "/how-sam-decides.html" },
+    { "source": "/powersellers", "destination": "/powersellers.html" },
     { "source": "/out", "destination": "/api/out" },
     { "source": "/styles.20260903c.css", "destination": "/styles.css" },
-    { "source": "/js.20260903k/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20260903l/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20260901c/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
