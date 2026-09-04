@@ -306,3 +306,30 @@ function addMsg(role,text,html="",chipsStr=""){
   row.appendChild(inner);msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight;
   return row;
 }
+
+// Scroll behavior for a freshly rendered block. Chat-style scroll-to-newest
+// (msgs.scrollTop = scrollHeight) is correct for short messages: a question, a
+// chip prompt, a confirmation are all shorter than the viewport, so landing at
+// the bottom shows the whole thing. But the RESULT render (summary strip + pick
+// card + secondary) is TALLER than the viewport, and scroll-to-bottom lands the
+// user below the cards, past the pick, reading the footer of the last card. For
+// those, anchor the TOP of the block at the top of the scrollport so the user
+// lands reading the summary and the top of Sam's pick.
+//
+// Rule of thumb (locked with the fix): if the content from topEl down to the end
+// is TALLER than the viewport, anchor topEl's top; otherwise scroll to newest as
+// before. Instant (not smooth): a smooth animation can be overridden mid-flight
+// by a later synchronous scroll (e.g. an async addendum), which is exactly the
+// race that made results land at the bottom. topEl is the row to bring to the top
+// (the summary strip on a fresh search, the "as of" header on a reopen).
+function anchorRenderTop(topEl){
+  const msgs=document.getElementById("msgs"); if(!msgs||!topEl) return;
+  const mTop=msgs.getBoundingClientRect().top;
+  const offsetWithin=msgs.scrollTop+(topEl.getBoundingClientRect().top-mTop); // scrollTop that puts topEl at msgs top
+  const contentBelow=msgs.scrollHeight-offsetWithin;                          // how much render sits from topEl down
+  if(contentBelow>msgs.clientHeight){
+    msgs.scrollTop=Math.max(0,offsetWithin-8); // taller than viewport: anchor top (small breathing gap)
+  }else{
+    msgs.scrollTop=msgs.scrollHeight;          // short render: scroll-to-newest, unchanged
+  }
+}

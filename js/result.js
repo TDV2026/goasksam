@@ -718,7 +718,11 @@ function renderDecision(decisionData,renderOpts){
     const row=document.createElement("div");row.className="row sam v2-result";
     row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${v2Page}</div></div>`;
     msgs.appendChild(row);
-    row.scrollIntoView({behavior:"smooth",block:"start"});
+    // Land the user reading the TOP of the result, not the bottom of the last card.
+    // On a fresh search the summary strip is the top of the block; on a reopen the
+    // "as of" header row is. anchorRenderTop only anchors when the render is taller
+    // than the viewport (it is), else it falls back to scroll-to-newest.
+    anchorResultBlock(msgs,row,renderOpts);
     // Business journey: card impressions (once per journey; the server also dedups).
     // Suppressed when re-opening a saved result - viewing history is not a new impression.
     if(!renderOpts.reopened&&typeof gasJourneyEventOnce==="function"){
@@ -742,7 +746,20 @@ function renderDecision(decisionData,renderOpts){
     <div class="sam-text after-results">${afterText}</div>
   </div></div>`;
   msgs.appendChild(row);
-  row.scrollIntoView({behavior:"smooth",block:"start"});
+  anchorResultBlock(msgs,row,renderOpts);
+}
+
+// Land a rendered result at the TOP of its block. Fresh search: the summary strip
+// (#sellSummaryStrip) is the top row; reopen: the "as of" header (msgs.firstChild)
+// is. Falls back to the result row itself, then to a plain block:start, so a
+// missing helper never breaks the render.
+function anchorResultBlock(msgs,row,renderOpts){
+  renderOpts=renderOpts||{};
+  const topEl=renderOpts.reopened
+    ? (msgs.firstElementChild||row)
+    : (document.getElementById("sellSummaryStrip")||row);
+  if(typeof anchorRenderTop==="function")anchorRenderTop(topEl);
+  else try{row.scrollIntoView({block:"start"});}catch(e){}
 }
 
 function handleSellRecommendationFollowup(q){

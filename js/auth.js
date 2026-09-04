@@ -441,11 +441,17 @@ function gasFunnelOnce(event, dedupKey) {
   } catch (e) {}
   gasFunnel(event, dedupKey);
 }
-function gateAppendCard(html) {
+function gateAppendCard(html, opts) {
   const msgs = document.getElementById("msgs"); if (!msgs) return;
   const row = document.createElement("div"); row.className = "row sam";
   row.innerHTML = `<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${html}</div></div>`;
-  msgs.appendChild(row); try { row.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
+  msgs.appendChild(row);
+  // noScroll: the card is an ADDENDUM under an already-anchored result (the
+  // first-one's-on-me line fires async AFTER the result render). Scrolling here
+  // would yank the just-anchored result down to the bottom, which is the exact bug
+  // we're fixing. Gate WALL cards (the caller default) still scroll into view.
+  if (opts && opts.noScroll) return;
+  try { row.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
 }
 // Walled-state guard (the wall is real, not cosmetic): once a hard wall renders, further
 // search attempts are intercepted with a calm re-acknowledgement instead of starting a
@@ -490,7 +496,9 @@ function gateGuestWallHtml() {
 }
 // The subtle "first one's on me" line under the free result (amendment item 2).
 function gateAppendFirstFreeLine() {
-  gateAppendCard(`<div class="sam-text gate-firstfree">Your first one's on me. <button class="gate-inline-link" onclick="gateCreateAccount()">Create a free account</button> for a search every day. Daily Vroom readers get three, so if you want more, <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">subscribe</a> free with the same email.</div>`);
+  // noScroll: this appends under the fresh result, which has already anchored the
+  // user at the top of the cards. Do not pull them back down to this line.
+  gateAppendCard(`<div class="sam-text gate-firstfree">Your first one's on me. <button class="gate-inline-link" onclick="gateCreateAccount()">Create a free account</button> for a search every day. Daily Vroom readers get three, so if you want more, <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">subscribe</a> free with the same email.</div>`, { noScroll: true });
 }
 // Render the calm Sam-voiced card for each gate status (2D refines the copy).
 function gateRenderStatus(data) {
