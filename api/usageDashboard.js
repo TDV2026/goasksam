@@ -1179,6 +1179,21 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
+  if (task === "journeyvin") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    async function get(q){ try{ const r=await fetch(`${env.supabaseUrl}/rest/v1/${q}`,{headers:H}); return r.ok?await r.json():{err:r.status}; }catch(e){ return {err:String(e)}; } }
+    const sinceIso = new Date(Date.now() - 30 * 60000).toISOString();
+    const evts = await get(`journey_events?event_type=eq.seller_journey_started&occurred_at=gte.${encodeURIComponent(sinceIso)}&select=journey_id,occurred_at,metadata&order=occurred_at.desc&limit=50`);
+    const jids = Array.isArray(evts) ? [...new Set(evts.map(e => e.journey_id))] : [];
+    const journeys = jids.length ? await get(`journeys?journey_id=in.(${jids.join(",")})&select=journey_id,vehicle_year,vehicle_make,vehicle_model,vehicle_trim,vehicle_attrs`) : [];
+    const scanAll = JSON.stringify({ evts, journeys });
+    const vinHits = (scanAll.match(/[A-HJ-NPR-Z0-9]{17}/gi) || []).filter(s => /[A-Z]/i.test(s) && /[0-9]/.test(s) && !/^[0-9]+$/.test(s));
+    return res.status(200).json({ task:"journeyvin", recentStarted: Array.isArray(evts)?evts.length:evts,
+      metadataByJourney: Array.isArray(evts)?evts.map(e=>({jid:e.journey_id.slice(0,8),metadata:e.metadata})):evts,
+      rawVinFoundAnywhere: vinHits.length ? vinHits : "NONE" });
+  }
+
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
