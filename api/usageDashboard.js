@@ -1179,6 +1179,33 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
+  if (task === "jagprobe") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    const get = async q => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: H }); return r.ok ? await r.json() : { err: r.status }; } catch (e) { return { err: String(e) }; } };
+    // carbine123 partner config (notification_email present + correct).
+    const partner = await get(`partners?or=(slug.eq.carbine123,seller_usernames.cs.{carbine123},name.ilike.*carbine*)&select=slug,name,display_name,notification_email,active,regions,seller_usernames`);
+    // Jaguar journeys in the window (Illinois, Jag), with their event trail.
+    const sinceIso = new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString();
+    const jags = await get(`journeys?vehicle_make=ilike.*jaguar*&created_at=gte.${encodeURIComponent(sinceIso)}&select=journey_id,created_at,vehicle_year,vehicle_make,vehicle_model,vehicle_attrs&order=created_at.desc&limit=20`);
+    const trails = [];
+    if (Array.isArray(jags)) for (const j of jags) {
+      const evs = await get(`journey_events?journey_id=eq.${encodeURIComponent(j.journey_id)}&select=event_type,powerseller_id,occurred_at&order=occurred_at.asc&limit=100`);
+      trails.push({ jid: j.journey_id.slice(0, 8), created: j.created_at, car: `${j.vehicle_year || ""} ${j.vehicle_make || ""} ${j.vehicle_model || ""}`.trim(),
+        stages: Array.isArray(evs) ? evs.map(e => e.event_type) : evs,
+        intro_clicked: Array.isArray(evs) && evs.some(e => e.event_type === "powerseller_intro_clicked"),
+        intro_requested: Array.isArray(evs) && evs.some(e => e.event_type === "powerseller_intro_requested") });
+    }
+    // Any seller_leads for Jag / carbine123 in the window.
+    const leads = await get(`seller_leads?created_at=gte.${encodeURIComponent(sinceIso)}&select=reference,created_at,seller_email,chosen_destination,chosen_destination_type,car_raw&order=created_at.desc&limit=50`);
+    const jagLeads = Array.isArray(leads) ? leads.filter(l => /jag/i.test(l.car_raw || "") || /carbine/i.test(l.chosen_destination || "")) : leads;
+    return res.status(200).json({ task: "jagprobe",
+      carbine_partner: partner,
+      jaguar_journeys: trails,
+      jaguar_or_carbine_leads: jagLeads,
+      resend_key_present: !!process.env.RESEND_API_KEY });
+  }
+
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
