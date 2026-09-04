@@ -1179,6 +1179,29 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
+  if (task === "leadsendtest") {
+    // Regression test of the live lead-email path (renderLeadEmail + resendSend +
+    // Resend API), incl. the VIN prior-sale link added this week. Sends TO Resend's
+    // test inbox (delivered@resend.dev, absorbs harmlessly - no real partner emailed)
+    // with feedback@goasksam.com BCC'd, exactly as a real lead does. Both frontend
+    // paths (signed-in immediate + anonymous form) converge on this same send.
+    const { sendLeadNotification } = await import("../lib/_email.js");
+    const base = {
+      partnerEmail: "delivered@resend.dev",
+      partnerName: "Chris Carbine",
+      seller: { email: "regression-test@goasksam.com" },
+      choice: { destination: "Chris Carbine", destinationType: "powerseller" },
+      recommendedPath: "bringatrailer"
+    };
+    const noVin = await sendLeadNotification({ ...base, reference: "GAS-TEST-NOVIN",
+      car: { raw: "2016 Jaguar XJ" } });
+    const withVin = await sendLeadNotification({ ...base, reference: "GAS-TEST-VIN",
+      car: { raw: "2012 Audi A7" }, priorSaleUrl: "https://bringatrailer.com/listing/2012-audi-a7-42/" });
+    return res.status(200).json({ task: "leadsendtest",
+      recipients_rule: "TO partner (delivered@resend.dev here), BCC feedback@goasksam.com",
+      no_vin_send: noVin, with_vin_send: withVin });
+  }
+
   if (task === "jagprobe") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
