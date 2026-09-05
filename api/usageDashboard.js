@@ -1306,8 +1306,13 @@ async function computeBusiness(env, range, mode) {
   for (const e of events) if (e.event_type === "recommendation_completed" && e.metadata && e.metadata.tier) tierBy.set(e.journey_id, e.metadata.tier);
   // entry method per journey (from its seller_journey_started metadata): "vin" | "typed".
   // Boolean provenance only - the raw VIN is never stored in the metadata or here.
+  // DEDICATED fetch (not the capped `events` array above): that fetch is asc-ordered with
+  // a 30k cap, so over a 30d window it truncates the NEWEST events - and VIN is a new
+  // feature, so every VIN journey is recent and would silently drop from the map. Scoped
+  // to one event type (one row per journey), this stays tiny and complete at any range.
   const entryMethodBy = new Map();
-  for (const e of events) if (e.event_type === "seller_journey_started" && e.metadata && e.metadata.entry_method) entryMethodBy.set(e.journey_id, e.metadata.entry_method);
+  const startEvents = (await supabaseSelect(env, `journey_events?event_type=eq.seller_journey_started&occurred_at=gte.${encodeURIComponent(range.sinceIso)}&select=journey_id,metadata&limit=20000`)) || [];
+  for (const e of startEvents) if (e.metadata && e.metadata.entry_method) entryMethodBy.set(e.journey_id, e.metadata.entry_method);
   const internal = j => isInternalTier(tierBy.get(j.journey_id)) || tierBy.get(j.journey_id) === "internal";
   const journeys = journeysAll.filter(j => mode === "include" ? true : mode === "only" ? internal(j) : !internal(j));
   const idset = new Set(journeys.map(j => j.journey_id));
