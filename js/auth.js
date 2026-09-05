@@ -61,7 +61,11 @@ async function authSignInGoogle() {
   const cfg = await authConfig(); if (!cfg) return authCardError("Sign-in isn't configured yet. Try again shortly.");
   authStashConsent(authReadConsentCheckbox());
   const redirect = encodeURIComponent(location.origin + location.pathname);
-  location.href = `${cfg.supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${redirect}`;
+  // Route the visible OAuth authorize through the custom auth domain when configured, so
+  // Google's consent screen reads "GoAskSam" / auth.goasksam.com instead of the raw
+  // <ref>.supabase.co. Falls back to supabaseUrl when SUPABASE_AUTH_URL is unset (today).
+  const authBase = cfg.authUrl || cfg.supabaseUrl;
+  location.href = `${authBase}/auth/v1/authorize?provider=google&redirect_to=${redirect}`;
 }
 async function authSignInEmail() {
   const cfg = await authConfig(); if (!cfg) return authCardError("Sign-in isn't configured yet. Try again shortly.");
