@@ -1299,11 +1299,17 @@ async function anyRows(env, filter) {
 async function computeBusiness(env, range, mode) {
   const JCOLS = "journey_id,anon_id,user_id,vehicle_year,vehicle_make,vehicle_model,vehicle_trim,vehicle_location,vehicle_attrs,rec_platform,rec_powerseller,rec_scope,rec_window,rec_estimated_value,stage,sale_status,listed_at,consignment_at,sold_at,sale_price,gas_revenue,actual_platform,listing_url,created_at,last_activity_at,contacted_at,engaged_at,intro_sent_at,intro_requested_at";
   const journeysAll = (await supabaseSelect(env, `journeys?created_at=gte.${encodeURIComponent(range.sinceIso)}&created_at=lt.${encodeURIComponent(range.toIso)}&select=${JCOLS}&order=created_at.desc&limit=5000`)) || [];
-  const events = (await supabaseSelect(env, `journey_events?occurred_at=gte.${encodeURIComponent(range.sinceIso)}&select=journey_id,event_type,platform_id,powerseller_id,metadata,occurred_at&order=occurred_at.asc&limit=30000`)) || [];
+  // Order DESC (newest first) so that when a wide window exceeds the row cap, the events
+  // that survive are the most RECENT - not the oldest. The prior asc+cap silently dropped
+  // today's activity on any 7d/30d window busy enough to exceed the cap, so every funnel
+  // metric read stale (recent journeys showed no clicks/intros at all). Cap raised too.
+  const events = (await supabaseSelect(env, `journey_events?occurred_at=gte.${encodeURIComponent(range.sinceIso)}&select=journey_id,event_type,platform_id,powerseller_id,metadata,occurred_at&order=occurred_at.desc&limit=60000`)) || [];
 
-  // tier per journey (from its recommendation_completed event metadata)
+  // tier per journey (from its recommendation_completed event metadata). Events are DESC,
+  // so keep-first = the LATEST recommendation_completed tier (preserves the prior asc
+  // last-write-wins semantics under the new ordering).
   const tierBy = new Map();
-  for (const e of events) if (e.event_type === "recommendation_completed" && e.metadata && e.metadata.tier) tierBy.set(e.journey_id, e.metadata.tier);
+  for (const e of events) if (e.event_type === "recommendation_completed" && e.metadata && e.metadata.tier && !tierBy.has(e.journey_id)) tierBy.set(e.journey_id, e.metadata.tier);
   // entry method per journey (from its seller_journey_started metadata): "vin" | "typed".
   // Boolean provenance only - the raw VIN is never stored in the metadata or here.
   // DEDICATED fetch (not the capped `events` array above): that fetch is asc-ordered with
