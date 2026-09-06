@@ -1179,6 +1179,21 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
+  if (task === "vinphotoprobe") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    const get = async q => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: H }); return r.ok ? await r.json() : { err: r.status }; } catch (e) { return { err: String(e) }; } };
+    // A few archive rows WITH a VIN but NO photo (raw_record.featured_image_url null) -
+    // candidates for the fallback test. Return the VIN + decoded car so a real confirm works.
+    const noPhoto = await get(`sales_archive?vin=not.is.null&raw_record->>featured_image_url=is.null&select=vin,year,make,model,platform,sale_date,sale_price&order=sale_date.desc.nullslast&limit=8`);
+    // Confirm the Ford GT test VIN has a photo.
+    const fordgt = await get(`sales_archive?vin=eq.1FAFP90S55Y400582&select=vin,year,make,model,platform,raw_record&limit=1`);
+    const fg = Array.isArray(fordgt) && fordgt[0];
+    return res.status(200).json({ task: "vinphotoprobe",
+      fordgt_photo: fg ? (fg.raw_record && (fg.raw_record.featured_image_url || null)) : "not found",
+      no_photo_candidates: Array.isArray(noPhoto) ? noPhoto.map(r => ({ vin: r.vin, car: `${r.year||""} ${r.make||""} ${r.model||""}`.trim(), platform: r.platform })) : noPhoto });
+  }
+
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
