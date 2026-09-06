@@ -1179,6 +1179,33 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
+  if (task === "vinbackfill") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    const get = async q => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: H }); if (r.ok) return await r.json(); return { err: r.status, body: (await r.text()).slice(0,200) }; } catch (e) { return { err: String(e) }; } };
+    const short = u => u ? String(u).slice(0, 70) : u;
+    // 1) The two rollback test VINs, in OUR sales_archive.
+    async function one(vin){ const r = await get(`sales_archive?vin=eq.${encodeURIComponent(vin)}&select=vin,year,make,model,platform,sale_date,raw_record&order=sale_date.desc.nullslast&limit=5`); const t = Array.isArray(r)&&r[0]; return t?{ car:`${t.year||""} ${t.make||""} ${t.model||""}`.trim(), platform:t.platform, sold:t.sale_date, rows:r.length, featured_image_url: short((t.raw_record||{}).featured_image_url) }:{ notfound:true, err:r.err }; }
+    // 2) Archive photo coverage by INGEST date (has re-ingest refilled recent rows?).
+    async function tl(platform){ const s = await get(`sales_archive?platform=eq.${encodeURIComponent(platform)}&select=created_at,f:raw_record->>featured_image_url&order=created_at.desc.nullslast&limit=1500`); if(!Array.isArray(s))return{err:s}; const wk={}; for(const r of s){const w=(r.created_at||"?").slice(0,10);wk[w]=wk[w]||{n:0,p:0};wk[w].n++;if(r.f)wk[w].p++;} return Object.keys(wk).sort().reverse().slice(0,16).map(d=>`${d}: ${wk[d].p}/${wk[d].n}`); }
+    // 3) A gap-window sale (sold Aug 21-28) - does OUR archive have its photo now?
+    const gap = await get(`sales_archive?sale_date=gte.2026-08-21&sale_date=lte.2026-08-28&vin=not.is.null&select=vin,sale_date,platform,f:raw_record->>featured_image_url&order=sale_date.asc&limit=12`);
+    // 4) LIVE OCD API right now: is featured_image_url populated upstream?
+    let ocdLive=null;
+    try { const { callOldCarsData } = await import("../lib/_ocd.js"); const apiKey=process.env.OLDCARSDATA_API_KEY;
+      const resp = await callOldCarsData("/auctions",{source:"carsandbids",status:"sold",sort:"date",direction:"desc",page:1,limit:5},apiKey);
+      const arr=(resp&&(resp.data||resp.results||resp.auctions))||(Array.isArray(resp)?resp:[]);
+      ocdLive=(Array.isArray(arr)?arr:[]).slice(0,5).map(x=>({car:`${x.year||""} ${x.ocd_make_name||x.listing_make||""}`.trim(),featured_image_url:short(x.featured_image_url)})); }
+    catch(e){ ocdLive={err:String(e)}; }
+    return res.status(200).json({ task:"vinbackfill",
+      fordgt: await one("1FAFP90S55Y400582"),
+      porsche: await one("WP0AA2A90RS209864"),
+      gap_window_sales: Array.isArray(gap)?gap.map(g=>({vin:g.vin,sold:g.sale_date,platform:g.platform,photo:short(g.f)})):gap,
+      archive_ingest_timeline_cb: await tl("Cars & Bids"),
+      archive_ingest_timeline_bat: await tl("Bring a Trailer"),
+      ocd_live_api: ocdLive });
+  }
+
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
