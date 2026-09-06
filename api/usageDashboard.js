@@ -1193,9 +1193,16 @@ async function handleOps(req, res) {
       return res.status(200).json({ task: "vinmulti", vin, sales_newest_first: Array.isArray(rows)?rows.map(r=>({sold:r.sale_date,platform:r.platform,photo_tail:short(r.f),listing:short(r.url)})):rows,
         engine_would_pick: Array.isArray(rows)&&rows[0]?{sold:rows[0].sale_date,photo_tail:short(rows[0].f)}:null });
     }
-    // Scan a sample and count VIN frequency to surface a multi-sale VIN.
-    const scan = await get(`sales_archive?vin=not.is.null&select=vin&order=sale_date.desc.nullslast&limit=6000`);
-    const freq = {}; if (Array.isArray(scan)) for (const r of scan){ const v=String(r.vin).toUpperCase(); if(v.length>=11) freq[v]=(freq[v]||0)+1; }
+    // Scan deeply (paginate past the PostgREST 1000-row cap) to surface a multi-sale VIN.
+    const freq = {}; let total=0;
+    for (let off=0; off<12000; off+=1000){
+      const page = await get(`sales_archive?vin=not.is.null&select=vin&order=sale_date.desc.nullslast&offset=${off}&limit=1000`);
+      if (!Array.isArray(page) || !page.length) break;
+      total += page.length;
+      for (const r of page){ const v=String(r.vin).toUpperCase(); if(v.length>=11) freq[v]=(freq[v]||0)+1; }
+      if (page.length<1000) break;
+    }
+    const scan = { length: total };
     const multi = Object.entries(freq).filter(([,n])=>n>=2).sort((a,b)=>b[1]-a[1]).slice(0,15).map(([v,n])=>({vin:v,sales:n}));
     return res.status(200).json({ task: "vinmulti", scanned: Array.isArray(scan)?scan.length:scan, multi_sale_vins: multi });
   }
