@@ -37,7 +37,7 @@
 <!-- CSS served at a VERSIONED PATH (not a ?query, which some edge caches ignore).
      styles.css stays on disk; a vercel.json rewrite maps this path to it. BUMP the
      token in BOTH index.html and vercel.json on every styles.css change. -->
-<link rel="stylesheet" href="styles.20260903d.css">
+<link rel="stylesheet" href="styles.20260906a.css">
 <!-- Curtain removed at launch (Aug 2026): the pre-launch holding block, its inline
      curtain script + CSS, and the #curtain div were deleted here so the site is
      public. Crew access to the still-gated /onebox is via /api/crew?code= directly
@@ -132,16 +132,16 @@
      rewrite maps /js.<token>/* back to /js/*. BUMP the token in BOTH index.html
      (every src below) and vercel.json on every js/ change so returning browsers
      fetch fresh code instead of stale cache. -->
-<script src="js.20260904d/auth.js"></script>
-<script src="js.20260904d/wizard.js"></script>
-<script src="js.20260904d/pipeline.js"></script>
-<script src="js.20260904d/steps.js"></script>
-<script src="js.20260904d/result.js"></script>
-<script src="js.20260904d/chat-core.js"></script>
-<script src="js.20260904d/result-copy.js"></script>
-<script src="js.20260904d/result-v2.js"></script>
-<script src="js.20260904d/entry.js"></script>
-<script src="js.20260904d/homepage.js"></script>
+<script src="js.20260906a/auth.js"></script>
+<script src="js.20260906a/wizard.js"></script>
+<script src="js.20260906a/pipeline.js"></script>
+<script src="js.20260906a/steps.js"></script>
+<script src="js.20260906a/result.js"></script>
+<script src="js.20260906a/chat-core.js"></script>
+<script src="js.20260906a/result-copy.js"></script>
+<script src="js.20260906a/result-v2.js"></script>
+<script src="js.20260906a/entry.js"></script>
+<script src="js.20260906a/homepage.js"></script>
 <!-- Blank-pane watchdog (inline so it cannot itself fail to load): if a bundle
      fetch was blocked, challenged, or dropped, bootHomepage never paints #msgs and
      the main pane stays blank while the nav chrome (auth.js) still renders. This

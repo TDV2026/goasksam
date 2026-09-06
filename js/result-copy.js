@@ -1422,7 +1422,7 @@ function composerVinMatchBullet(vehicle){
     }
   }
   const onPlat=name?` on ${name}`:"", whenTxt=when?` in ${when}`:"", forTxt=price?` for ${price}`:"";
-  return { text:`This exact car sold${onPlat}${whenTxt}${forTxt}${delta}.`, receiptUrl:match.url||null, provenance:`vinExactMatch(${match.source||"?"})` };
+  return { text:`This exact car sold${onPlat}${whenTxt}${forTxt}${delta}.`, receiptUrl:match.url||null, photoUrl:match.photoUrl||null, provenance:`vinExactMatch(${match.source||"?"})` };
 }
 function composerReserveBullet(ev){
   const rc=ev&&ev.reserveContext;
