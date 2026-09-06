@@ -1179,34 +1179,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  if (task === "vinmulti") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    const get = async q => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: H }); return r.ok ? await r.json() : { err: r.status }; } catch (e) { return { err: String(e) }; } };
-    const short = u => u ? String(u).slice(-24) : u;
-    // If a specific VIN is given, list its sales newest-first (what findVinArchiveMatch
-    // sees: it orders sale_date desc and takes row[0], so row[0].featured_image_url is the
-    // MOST RECENT sale's photo). Otherwise scan for a VIN that appears 2+ times.
-    if (req.query?.vin) {
-      const vin = String(req.query.vin).toUpperCase();
-      const rows = await get(`sales_archive?vin=eq.${encodeURIComponent(vin)}&select=sale_date,platform,f:raw_record->>featured_image_url,url:raw_record->>url&order=sale_date.desc.nullslast&limit=25`);
-      return res.status(200).json({ task: "vinmulti", vin, sales_newest_first: Array.isArray(rows)?rows.map(r=>({sold:r.sale_date,platform:r.platform,photo_tail:short(r.f),listing:short(r.url)})):rows,
-        engine_would_pick: Array.isArray(rows)&&rows[0]?{sold:rows[0].sale_date,photo_tail:short(rows[0].f)}:null });
-    }
-    // Scan deeply (paginate past the PostgREST 1000-row cap) to surface a multi-sale VIN.
-    const freq = {}; let total=0;
-    for (let off=0; off<12000; off+=1000){
-      const page = await get(`sales_archive?vin=not.is.null&select=vin&order=sale_date.desc.nullslast&offset=${off}&limit=1000`);
-      if (!Array.isArray(page) || !page.length) break;
-      total += page.length;
-      for (const r of page){ const v=String(r.vin).toUpperCase(); if(v.length>=11) freq[v]=(freq[v]||0)+1; }
-      if (page.length<1000) break;
-    }
-    const scan = { length: total };
-    const multi = Object.entries(freq).filter(([,n])=>n>=2).sort((a,b)=>b[1]-a[1]).slice(0,15).map(([v,n])=>({vin:v,sales:n}));
-    return res.status(200).json({ task: "vinmulti", scanned: Array.isArray(scan)?scan.length:scan, multi_sale_vins: multi });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
