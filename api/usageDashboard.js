@@ -1182,10 +1182,10 @@ async function handleOps(req, res) {
   if (task === "vinphotoprobe") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    const get = async q => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: H }); return r.ok ? await r.json() : { err: r.status }; } catch (e) { return { err: String(e) }; } };
+    const get = async q => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: H }); if (r.ok) return await r.json(); return { err: r.status, body: (await r.text()).slice(0,300) }; } catch (e) { return { err: String(e) }; } };
     // Scan recent archive rows with a VIN, alias the photo field, and pick ones where it's
     // null client-side (a clean is.null filter on a json path 500s here). Fallback candidates.
-    const scan = await get(`sales_archive?vin=not.is.null&select=vin,year,make,model,platform,photo:raw_record->>featured_image_url&order=sale_date.desc.nullslast&limit=400`);
+    const scan = await get(`sales_archive?vin=not.is.null&select=vin,year,make,model,platform,photo:raw_record->>featured_image_url&limit=200`);
     const noPhoto = Array.isArray(scan) ? scan.filter(r => !r.photo).slice(0, 10) : scan;
     // Confirm the Ford GT test VIN has a photo.
     const fordgt = await get(`sales_archive?vin=eq.1FAFP90S55Y400582&select=vin,year,make,model,platform,raw_record&limit=1`);
