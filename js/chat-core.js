@@ -237,7 +237,7 @@ async function resolveVehicleInput(candidate,opts={}){
       const nothingUnderstood=data.status==="needs_clarification"&&!partial.year&&!partial.make&&!partial.model;
       // A VIN that could not be decoded is a KNOWN state with its own honest line;
       // never route it to the chat layer as "not a vehicle" (which shows a filler joke).
-      if(nothingUnderstood&&opts.chatFallback&&data.clarification?.kind!=="vin_decode_failed"){
+      if(nothingUnderstood&&opts.chatFallback&&data.clarification?.kind!=="vin_decode_failed"&&data.clarification?.kind!=="vin_invalid_shape"){
         // Not a car and not a wizard answer: the caller routes it to the chat
         // layer for a real reply, then re-asks the current question.
         sellState.lastIdentityVerdict="not_vehicle";
@@ -251,7 +251,7 @@ async function resolveVehicleInput(candidate,opts={}){
       // a detected VIN and the decode outcome. Booleans/enums only - NEVER the VIN
       // string. Read into the seller_journey_started metadata at journey start.
       if(data.clarification?.kind==="vin_confirmation"){ sellState.vinEntry=true; sellState.vinDecode="success"; }
-      else if(data.clarification?.kind==="vin_decode_failed"){ sellState.vinEntry=true; sellState.vinDecode="fail"; }
+      else if(data.clarification?.kind==="vin_decode_failed"||data.clarification?.kind==="vin_invalid_shape"){ sellState.vinEntry=true; sellState.vinDecode="fail"; }
       askVehicleIdentityClarification(data.clarification,data.status,partial);
       sellState.lastIdentityVerdict="handled";
       return false;
