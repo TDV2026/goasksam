@@ -1208,6 +1208,19 @@ async function handleOps(req, res) {
       const days = Object.keys(wk).sort().reverse().slice(0,14);
       return days.map(d=>`${d}: ${wk[d].photo}/${wk[d].n}`);
     }
+    // LIVE OCD check (1 metered request): does the upstream /auctions API populate the
+    // photo NOW, or has OCD itself stopped sending it? This is the fixable-vs-upstream fork.
+    let ocdLive = null;
+    try {
+      const { callOldCarsData } = await import("../lib/_ocd.js");
+      const apiKey = process.env.OLDCARSDATA_API_KEY;
+      const resp = await callOldCarsData("/auctions", { source: "carsandbids", status: "sold", sort: "date", direction: "desc", page: 1, limit: 5 }, apiKey);
+      const arr = (resp && (resp.data || resp.results || resp.auctions)) || (Array.isArray(resp) ? resp : []);
+      ocdLive = { count: Array.isArray(arr) ? arr.length : 0, samples: (Array.isArray(arr) ? arr : []).slice(0,5).map(x => ({
+        car: `${x.year||""} ${x.ocd_make_name||x.listing_make||""} ${x.ocd_model_name||x.listing_model||""}`.trim(),
+        featured_image_url: x.featured_image_url ?? null,
+        image_keys: Object.keys(x||{}).filter(k=>/image|photo|thumb|picture|img/i.test(k)) })) };
+    } catch (e) { ocdLive = { err: String(e) }; }
     // Ford GT comparison record.
     const fg = await get(`sales_archive?vin=eq.1FAFP90S55Y400582&select=created_at,sale_date,platform,f:raw_record->>featured_image_url&limit=1`);
     // Nested-field dump for the target (in case OCD moved the image into listing_details/stats).
@@ -1216,6 +1229,7 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "vinphotogap", vin: VIN,
       ingest_timeline_cb: await timeline("Cars & Bids"),
       ingest_timeline_bat: await timeline("Bring a Trailer"),
+      ocd_live_api: ocdLive,
       fordgt: Array.isArray(fg)?fg[0]:fg,
       target_nested_image_urls: nestedImageHits.slice(0,3),
       record_found: !!target,
