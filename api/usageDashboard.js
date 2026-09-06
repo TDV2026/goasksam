@@ -1179,69 +1179,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  if (task === "vinphotogap") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    const get = async q => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: H }); if (r.ok) return await r.json(); return { err: r.status, body: (await r.text()).slice(0,300) }; } catch (e) { return { err: String(e) }; } };
-    const VIN = String(req.query?.vin || "WP0AA2A90RS209864").toUpperCase();
-    // 1) The exact record: all candidate photo fields + the full raw_record key list.
-    const rows = await get(`sales_archive?vin=eq.${encodeURIComponent(VIN)}&select=vin,year,make,model,platform,sale_date,sale_price,raw_record&limit=5`);
-    const target = Array.isArray(rows) && rows[0];
-    const rr = target && target.raw_record || {};
-    const photoFields = {};
-    for (const k of Object.keys(rr)) if (/image|photo|thumb|picture|img/i.test(k)) photoFields[k] = rr[k];
-    // 2) C&B vs BaT recent photo coverage (featured_image_url populated share).
-    async function coverage(platform){
-      const s = await get(`sales_archive?platform=eq.${encodeURIComponent(platform)}&select=f:raw_record->>featured_image_url,pu:raw_record->>photo_url,im:raw_record->>image&order=sale_date.desc.nullslast&limit=300`);
-      if (!Array.isArray(s)) return { err: s };
-      let withPhoto=0; for (const r of s) if (r.f||r.pu||r.im) withPhoto++;
-      return { sampled: s.length, withPhoto, without: s.length-withPhoto };
-    }
-    const cb = await coverage("Cars & Bids");
-    const bat = await coverage("Bring a Trailer");
-    // Timeline: photo coverage by INGEST week (created_at), to find when it dropped off.
-    async function timeline(platform){
-      const s = await get(`sales_archive?platform=eq.${encodeURIComponent(platform)}&select=created_at,sale_date,f:raw_record->>featured_image_url&order=created_at.desc.nullslast&limit=1500`);
-      if (!Array.isArray(s)) return { err: s };
-      const wk = {};
-      for (const r of s){ const w=(r.created_at||"?").slice(0,10); wk[w]=wk[w]||{n:0,photo:0}; wk[w].n++; if(r.f)wk[w].photo++; }
-      const days = Object.keys(wk).sort().reverse().slice(0,14);
-      return days.map(d=>`${d}: ${wk[d].photo}/${wk[d].n}`);
-    }
-    // LIVE OCD check (1 metered request): does the upstream /auctions API populate the
-    // photo NOW, or has OCD itself stopped sending it? This is the fixable-vs-upstream fork.
-    let ocdLive = null;
-    try {
-      const { callOldCarsData } = await import("../lib/_ocd.js");
-      const apiKey = process.env.OLDCARSDATA_API_KEY;
-      const resp = await callOldCarsData("/auctions", { source: "carsandbids", status: "sold", sort: "date", direction: "desc", page: 1, limit: 5 }, apiKey);
-      const arr = (resp && (resp.data || resp.results || resp.auctions)) || (Array.isArray(resp) ? resp : []);
-      ocdLive = { count: Array.isArray(arr) ? arr.length : 0, samples: (Array.isArray(arr) ? arr : []).slice(0,5).map(x => ({
-        car: `${x.year||""} ${x.ocd_make_name||x.listing_make||""} ${x.ocd_model_name||x.listing_model||""}`.trim(),
-        featured_image_url: x.featured_image_url ?? null,
-        image_keys: Object.keys(x||{}).filter(k=>/image|photo|thumb|picture|img/i.test(k)) })) };
-    } catch (e) { ocdLive = { err: String(e) }; }
-    // Ford GT comparison record.
-    const fg = await get(`sales_archive?vin=eq.1FAFP90S55Y400582&select=created_at,sale_date,platform,f:raw_record->>featured_image_url&limit=1`);
-    // Nested-field dump for the target (in case OCD moved the image into listing_details/stats).
-    const ld = rr.listing_details, stats = rr.stats;
-    const nestedImageHits = JSON.stringify({ld,stats}).match(/https?:[^"\\ ]*\.(jpg|jpeg|png|webp)[^"\\ ]*/gi) || [];
-    return res.status(200).json({ task: "vinphotogap", vin: VIN,
-      ingest_timeline_cb: await timeline("Cars & Bids"),
-      ingest_timeline_bat: await timeline("Bring a Trailer"),
-      ocd_live_api: ocdLive,
-      fordgt: Array.isArray(fg)?fg[0]:fg,
-      target_nested_image_urls: nestedImageHits.slice(0,3),
-      record_found: !!target,
-      record: target ? { car: `${target.year||""} ${target.make||""} ${target.model||""}`.trim(), platform: target.platform, sold: target.sale_date, price: target.sale_price } : null,
-      photo_fields_present: photoFields,
-      featured_image_url: rr.featured_image_url ?? null,
-      photo_url: rr.photo_url ?? null,
-      image: rr.image ?? null,
-      raw_record_keys: Object.keys(rr).sort(),
-      coverage: { "Cars & Bids": cb, "Bring a Trailer": bat } });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
