@@ -1179,26 +1179,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  if (task === "vinphotoprobe") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    const get = async q => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: H }); if (r.ok) return await r.json(); return { err: r.status, body: (await r.text()).slice(0,300) }; } catch (e) { return { err: String(e) }; } };
-    // Scan recent archive rows with a VIN, alias the photo field, and pick ones where it's
-    // null client-side (a clean is.null filter on a json path 500s here). Fallback candidates.
-    // Check ALL three fields findVinArchiveMatch falls back through, across platforms.
-    const scan = await get(`sales_archive?vin=not.is.null&select=vin,year,make,model,platform,f:raw_record->>featured_image_url,pu:raw_record->>photo_url,im:raw_record->>image&limit=2000`);
-    const byPlat = {};
-    let withPhoto=0, without=0;
-    const noPhoto=[];
-    if (Array.isArray(scan)) for (const r of scan){ const has=r.f||r.pu||r.im; if(has)withPhoto++; else {without++; if(noPhoto.length<10)noPhoto.push(r);} byPlat[r.platform]=byPlat[r.platform]||{w:0,n:0}; has?byPlat[r.platform].w++:byPlat[r.platform].n++; }
-    // Confirm the Ford GT test VIN has a photo.
-    const fordgt = await get(`sales_archive?vin=eq.1FAFP90S55Y400582&select=vin,year,make,model,platform,raw_record&limit=1`);
-    const fg = Array.isArray(fordgt) && fordgt[0];
-    return res.status(200).json({ task: "vinphotoprobe",
-      fordgt_photo: fg ? (fg.raw_record && (fg.raw_record.featured_image_url || null)) : "not found",
-      scanned: Array.isArray(scan)?scan.length:scan, withPhoto, without, byPlatform: byPlat, no_photo_candidates: Array.isArray(noPhoto) ? noPhoto.map(r => ({ vin: r.vin, car: `${r.year||""} ${r.make||""} ${r.model||""}`.trim(), platform: r.platform })) : noPhoto });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
