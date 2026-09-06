@@ -26,8 +26,8 @@
     { "source": "/how-sam-decides", "destination": "/how-sam-decides.html" },
     { "source": "/powersellers", "destination": "/powersellers.html" },
     { "source": "/out", "destination": "/api/out" },
-    { "source": "/styles.20260906a.css", "destination": "/styles.css" },
-    { "source": "/js.20260906b/(.*)", "destination": "/js/$1" },
+    { "source": "/styles.20260906b.css", "destination": "/styles.css" },
+    { "source": "/js.20260906c/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20260901c/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
