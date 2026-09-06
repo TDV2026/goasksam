@@ -1179,6 +1179,60 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
+  if (task === "ingestrange") {
+    // One-time server-side backfill: re-fetch sold records in a date window from OCD
+    // (now photo-populated after their regression fix) and upsert on source_id with
+    // merge-duplicates, so raw_record.featured_image_url refills on OUR archive. Mirrors
+    // scripts/ingest.js range mode; bounded by maxpages. Metered OCD requests.
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { callOldCarsData } = await import("../lib/_ocd.js");
+    const { supabaseInsert } = await import("../lib/_supabase.js");
+    const apiKey = process.env.OLDCARSDATA_API_KEY;
+    const DISPLAY = { bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", hagerty: "Hagerty", pcarmarket: "PCARMarket", gooding: "Gooding & Co", rmsothebys: "RM Sotheby's" };
+    const FROM = String(req.query?.from || "2026-08-21"), TO = String(req.query?.to || new Date().toISOString().slice(0,10));
+    const SOURCES = (req.query?.sources ? String(req.query.sources).split(",") : ["bringatrailer","carsandbids"]).map(s=>s.trim()).filter(Boolean);
+    const MAXP = Math.min(Number(req.query?.maxpages || 40), 80);
+    const toMoney = v => { const n = Number(String(v ?? "").replace(/[^0-9.]/g, "")); return Number.isFinite(n) && n > 0 ? n : null; };
+    const toInt = v => { const n = parseInt(String(v ?? "").replace(/[^0-9-]/g, ""), 10); return Number.isFinite(n) ? n : null; };
+    const toBool = v => v === true || v === "true" ? true : v === false || v === "false" ? false : null;
+    const toDate = v => { const d = new Date(v || ""); return Number.isFinite(d.getTime()) ? d : null; };
+    const dayKey = d => d ? d.toISOString().slice(0, 10) : null;
+    const toFullRow = (r, label) => { const d = toDate(r.auction_end_date); return {
+      source_id: String(r.id ?? ""), sale_date: dayKey(d), platform: label,
+      make: (r.ocd_make_name || r.listing_make || "Unknown").toString().trim(),
+      model: (r.ocd_model_name || r.listing_model || "Unknown").toString().trim(),
+      sale_price: toMoney(r.price), month: d ? d.toISOString().slice(0, 7) : null, raw_record: r,
+      year: toInt(r.year), mileage: toInt(r.mileage), body_style: r.body_style ?? null,
+      title_status: r.title_status ?? null, vin: r.vin ?? null, transmission: r.transmission ?? null,
+      drivetrain: r.drivetrain ?? null, exterior_color: r.exterior_color ?? null, interior_color: r.interior_color ?? null,
+      seller_type: r.seller_type ?? null, listing_title: r.title ?? null, description: r.description ?? null,
+      has_reserve: toBool(r.has_reserve), views: toInt(r.stats?.views), bids: toInt(r.stats?.bids),
+      known_flaws: r.known_flaws ?? null, recent_service_history: r.recent_service_history ?? null, modifications: r.modifications ?? null }; };
+    const kept = []; let metered = 0; const perSource = {};
+    for (const source of SOURCES) {
+      const label = DISPLAY[source] || source; let withPhoto = 0, n = 0;
+      for (let p = 1; p <= MAXP; p++) {
+        metered++;
+        let resp; try { resp = await callOldCarsData("/auctions", { source, status: "sold", sort: "date", direction: "desc", page: p, limit: 50 }, apiKey); }
+        catch (e) { perSource[label] = { error: e.message, page: p }; break; }
+        const rows = resp.data || []; if (!rows.length) break;
+        let oldest = null;
+        for (const r of rows) { const d = toDate(r.auction_end_date); if (d && (!oldest || d < oldest)) oldest = d;
+          const k = dayKey(d); if (k && k >= FROM && k <= TO) { kept.push(toFullRow(r, label)); n++; if (r.featured_image_url) withPhoto++; } }
+        if (oldest && dayKey(oldest) < FROM) break;
+        if (p >= (resp.meta?.total_pages || 1)) break;
+      }
+      perSource[label] = perSource[label] || { kept: n, withPhoto };
+    }
+    const uniq = [...new Map(kept.filter(r => r.source_id).map(r => [r.source_id, r])).values()];
+    let upserted = 0, err = null;
+    for (let i = 0; i < uniq.length; i += 250) {
+      const r = await supabaseInsert("sales_archive", uniq.slice(i, i + 250), env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id");
+      if (r.error) { err = r.error; break; } upserted += uniq.slice(i, i + 250).length;
+    }
+    return res.status(200).json({ task: "ingestrange", from: FROM, to: TO, sources: SOURCES, metered, fetched: kept.length, unique: uniq.length, upserted, perSource, error: err });
+  }
+
   if (task === "vinbackfill") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
