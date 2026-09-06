@@ -1136,9 +1136,21 @@ body.home #input-box:focus-within{box-shadow:0 2px 10px rgba(22,20,15,.05);borde
 .vin-receipt-link{display:inline-block;margin-top:2px;font-weight:600;font-size:13px;color:var(--pc-green,#0b5c3e);text-decoration:none;border-bottom:1px solid currentColor;}
 .vin-receipt-link:hover{opacity:.8;}
 
+/* VIN exact-match photo (re-enabled Sep 2026 after the OCD featured_image_url fix +
+   archive backfill): a small supporting thumbnail for the matched car, not a hero. Real
+   photo when the record has one; otherwise the build-sheet spec plate (mirrors the One
+   Box comp-card fallback) so it is never blank or a broken image. */
+.vin-photo{position:relative;width:100%;max-width:340px;aspect-ratio:16/10;margin:8px 0;border-radius:10px;overflow:hidden;background:var(--pc-paper-shade,#F4F1EA);border:1px solid var(--pc-line,#E3E1DB);}
+.vin-photo img{display:block;width:100%;height:100%;object-fit:cover;}
+.vin-photo-plate{display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;padding:12px;background:var(--pc-paper-shade,#F4F1EA);}
+.vin-plate-mark{font-family:var(--font-sans,inherit);font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--pc-green,#0b5c3e);}
+.vin-plate-name{font-family:var(--font-sans,inherit);font-size:13.5px;font-weight:600;color:var(--pc-ink,#171717);}
+.vin-plate-sub{font-family:var(--font-sans,inherit);font-size:11px;color:var(--pc-slate,#6B6861);}
+
 /* VIN feature 4b: exact-VIN evidence line on the v2 pick card. Distinct from the
    WHY prose per the mockup. Renders only when a VIN match exists (dark otherwise). */
 .pcard-vinmatch{margin:10px 0 2px;padding:10px 12px;background:rgba(11,92,62,.06);border-left:3px solid var(--pc-green,#0b5c3e);border-radius:6px;font-size:13.5px;line-height:1.45;color:var(--pc-ink,#171717);}
+.pcard-vinmatch .vin-photo{margin:0 0 8px;}
 
 /* Honest no-PowerSeller value-floor note (Sep 2026): shown on the v2 result when a
    seller leaned toward having it handled but the car is below the PowerSeller value

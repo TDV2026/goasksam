@@ -105,6 +105,29 @@ function affirmationLike(lower){
 // no valuation, no dashes. No match = nothing renders (no empty state).
 function vinMatchWhen(d){ if(!d)return null; const dt=new Date(d); return isNaN(dt)?null:dt.toLocaleString("en-US",{month:"long",year:"numeric"}); }
 function vinCountWord(n){ n=Number(n)||0; return n===2?"twice":`${n} times`; }
+// Small supporting photo for the exact-VIN match moment (presentation only). Uses the
+// matched archive record's photo; on a missing/null URL or a failed image load it falls
+// back to the build-sheet spec plate (same pattern as the One Box comp cards), so it is
+// never a blank box or a broken-image icon. A thumbnail for a sentence, not a hero card.
+// Re-enabled Sep 2026 after OCD restored featured_image_url and our archive was
+// backfilled for the Aug 21 to Sep 6 gap. See [[ocd-photo-regression]].
+function vinMatchPhotoHtml(match, vehicle){
+  if(!match)return "";
+  const v=vehicle||((typeof sellState!=="undefined")&&(sellState.resolvedVehicle||(sellState.sellDecision&&sellState.sellDecision.vehicle)))||{};
+  const esc=(typeof escapeHtml==="function")?escapeHtml:(s=>String(s==null?"":s));
+  const plat=(typeof platformDisplayName==="function")?platformDisplayName(match.source||""):(match.source||"");
+  const name=[v.year,v.make,v.model].filter(Boolean).join(" ")||"This car";
+  const plate=inline=>`<div class="vin-photo-plate"${inline?' style="display:flex"':''}>`
+    +`<div class="vin-plate-mark">${esc(plat)}</div>`
+    +`<div class="vin-plate-name">${esc(name)}</div>`
+    +`<div class="vin-plate-sub">Photo unavailable</div></div>`;
+  if(match.photoUrl){
+    return `<div class="vin-photo"><img src="${esc(match.photoUrl)}" alt="the exact car" loading="lazy" `
+      +`onerror="this.style.display='none';var p=this.parentNode.querySelector('.vin-photo-plate');if(p)p.style.display='flex';">`
+      +`${plate(false)}</div>`;
+  }
+  return `<div class="vin-photo">${plate(true)}</div>`;
+}
 function renderVinArchiveCallout(match){
   if(!match||(!match.soldDate&&!match.price))return;
   const plat=(typeof platformDisplayName==="function")?platformDisplayName(match.source||""):(match.source||"");
@@ -114,13 +137,10 @@ function renderVinArchiveCallout(match){
   const text=(Number(match.count)>1)
     ? `I know this exact car. It's traded ${vinCountWord(match.count)} in our records, most recently${onPlat}${whenTxt}${forTxt}.`
     : `I know this exact car. It sold${onPlat}${whenTxt}${forTxt}.`;
-  // Photo display rolled back Sep 2026 (OCD stopped populating featured_image_url, so
-  // recent cars showed a spec-plate fallback while older ones showed a real photo - an
-  // inconsistent launch experience). Text + receipt link only, as before the photo add.
-  // The photoUrl field wiring stays dormant on the match object; re-enabling the photo is
-  // re-adding a render call here once OCD restores images. See [[ocd-photo-regression]].
-  let html="";
-  if(match.url){ const a=document.createElement("a"); a.href=match.url; a.target="_blank"; a.rel="noopener noreferrer"; a.className="vin-receipt-link"; a.textContent="View that sale"; html=`<div class="vin-archive-callout">${a.outerHTML}</div>`; }
+  const photo=vinMatchPhotoHtml(match);
+  let link="";
+  if(match.url){ const a=document.createElement("a"); a.href=match.url; a.target="_blank"; a.rel="noopener noreferrer"; a.className="vin-receipt-link"; a.textContent="View that sale"; link=a.outerHTML; }
+  const html=(photo||link)?`<div class="vin-archive-callout">${photo}${link}</div>`:"";
   addMsg("sam",text,html);
 }
 function preserveDetailedVehicleLabel(candidate,canonical){
