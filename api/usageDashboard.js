@@ -1199,7 +1199,25 @@ async function handleOps(req, res) {
     }
     const cb = await coverage("Cars & Bids");
     const bat = await coverage("Bring a Trailer");
+    // Timeline: photo coverage by INGEST week (created_at), to find when it dropped off.
+    async function timeline(platform){
+      const s = await get(`sales_archive?platform=eq.${encodeURIComponent(platform)}&select=created_at,sale_date,f:raw_record->>featured_image_url&order=created_at.desc.nullslast&limit=1500`);
+      if (!Array.isArray(s)) return { err: s };
+      const wk = {};
+      for (const r of s){ const w=(r.created_at||"?").slice(0,10); wk[w]=wk[w]||{n:0,photo:0}; wk[w].n++; if(r.f)wk[w].photo++; }
+      const days = Object.keys(wk).sort().reverse().slice(0,14);
+      return days.map(d=>`${d}: ${wk[d].photo}/${wk[d].n}`);
+    }
+    // Ford GT comparison record.
+    const fg = await get(`sales_archive?vin=eq.1FAFP90S55Y400582&select=created_at,sale_date,platform,f:raw_record->>featured_image_url&limit=1`);
+    // Nested-field dump for the target (in case OCD moved the image into listing_details/stats).
+    const ld = rr.listing_details, stats = rr.stats;
+    const nestedImageHits = JSON.stringify({ld,stats}).match(/https?:[^"\\ ]*\.(jpg|jpeg|png|webp)[^"\\ ]*/gi) || [];
     return res.status(200).json({ task: "vinphotogap", vin: VIN,
+      ingest_timeline_cb: await timeline("Cars & Bids"),
+      ingest_timeline_bat: await timeline("Bring a Trailer"),
+      fordgt: Array.isArray(fg)?fg[0]:fg,
+      target_nested_image_urls: nestedImageHits.slice(0,3),
       record_found: !!target,
       record: target ? { car: `${target.year||""} ${target.make||""} ${target.model||""}`.trim(), platform: target.platform, sold: target.sale_date, price: target.sale_price } : null,
       photo_fields_present: photoFields,
