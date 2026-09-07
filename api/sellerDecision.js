@@ -2746,7 +2746,12 @@ export default async function handler(req, res) {
     // (same shared resolver) when a caller skips that step.
     let vehicle = sanitizeResolvedVehicle(car.vehicle);
     if (!vehicle) {
-      const resolution = await resolveVehicle(rawSearch);
+      // One Box: turn on VIN/chassis detection so a chassis-shaped query the reader typed
+      // with a space ("1E 31588", the way BaT shows it) resolves to a chassis_hint we can
+      // attach the exact archive match to. Only matters when nothing else resolves; a
+      // recognizable car ("Cayman GT4") resolves first and never reaches the chassis path.
+      const obVinActive = req.body?.oneBox ? await vinFeatureActive(req.headers.cookie, { supabaseUrl, supabaseKey }) : false;
+      const resolution = await resolveVehicle(rawSearch, obVinActive ? { vinConfirm: true } : {});
       if (resolution.status !== "valid") {
         // The caller already accepted a model-level read (the seller declined
         // the year in the wizard). Proceed with the partial make/model through
@@ -2771,12 +2776,20 @@ export default async function handler(req, res) {
             clarification: resolution.clarification || { question: "What year, make and model are you selling?" }
           });
         } else {
+          const cl = resolution.clarification || { question: "What year, make and model are you selling?" };
+          // Chassis exact-match (One Box, multi-token path): a chassis-shaped query that
+          // resolved to nothing. Attach the separator-tolerant archive match (evidence only,
+          // never ranking) so the frontend can lead with "I know this exact car" before
+          // asking for the year/make/model. No hit -> just the honest chassis line.
+          let obChassisMatch = null;
+          if (obVinActive && cl.kind === "chassis_hint") {
+            try { obChassisMatch = await findVinArchiveMatch({ supabaseUrl, supabaseKey }, { vin: rawSearch }); } catch { obChassisMatch = null; }
+          }
           return res.status(200).json({
             status: "needs_clarification",
             vehicle: resolution.vehicle,
-            clarification: resolution.clarification || {
-              question: "What year, make and model are you selling?"
-            }
+            clarification: cl,
+            vinArchiveMatch: obChassisMatch || undefined
           });
         }
       } else {

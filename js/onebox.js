@@ -308,6 +308,11 @@
   // pool: a SINGLE token that is either a 17-char VIN attempt (valid OR invalid) or a
   // chassis-shaped token (5-14 chars), in both cases mixing at least one letter and one
   // digit so bare numbers (years, prices, ZIPs) and plain words never route here.
+  // Single-token VIN or chassis routes through the shared resolver (decode/confirm/exact-
+  // match). MULTI-token chassis ("1E 31588", the way BaT shows it) stays on the normal pool
+  // path: sellerDecision flags chassis_hint and attaches the exact archive match, and
+  // runPool renders the callout - so normal yearless queries ("Cayman GT4") are never
+  // detoured through vehicleIdentity and its /sell-style year clarifications.
   function obIdentifierShaped(text) {
     var t = String(text || "").trim();
     if (!t || /\s/.test(t)) return false;
@@ -373,8 +378,11 @@
     }).then(function (r) { return r.json(); }).then(function (d) {
       pushRecent(text, d);
       if (d && d.status === "needs_clarification") {
-        // Surface the resolver's OWN honest question (the VIN-invalid reword, the chassis-
-        // number line, or a specific clarification) rather than a generic fallback.
+        // Multi-token chassis ("1E 31588"): an exact archive match came back -> lead with the
+        // "I know this exact car" callout, then the ask (same as the single-token path).
+        if (d.vinArchiveMatch) { obEvent("onebox_vin_anchor_shown"); renderChassisMatch(d.vinArchiveMatch); return; }
+        // Otherwise surface the resolver's OWN honest question (the VIN-invalid reword, the
+        // chassis-number line, or a specific clarification) rather than a generic fallback.
         renderError((d.clarification && d.clarification.question) || "I couldn’t pin that exact car down. Try the year, make and model together, like 1972 Porsche 911 or 1969 Ford Mustang.");
         return;
       }

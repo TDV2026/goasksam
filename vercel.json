@@ -29,7 +29,7 @@
     { "source": "/out", "destination": "/api/out" },
     { "source": "/styles.20260906c.css", "destination": "/styles.css" },
     { "source": "/js.20260907d/(.*)", "destination": "/js/$1" },
-    { "source": "/obx.20260907k/(.*)", "destination": "/js/$1" }
+    { "source": "/obx.20260907m/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
     "api/usageDashboard.js": {
