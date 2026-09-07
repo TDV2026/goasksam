@@ -357,18 +357,20 @@
     fetch(API_ORIGIN + "/api/vehicleIdentity", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: text }) })
       .then(function (r) { return r.json(); }).then(function (d) {
         var cl = d && d.clarification;
-        if (d && d.status === "needs_confirmation" && cl && cl.kind === "vin_confirmation") {
+        // Branch on clarification KIND first (status can be needs_confirmation OR
+        // needs_clarification for a vin_confirmation depending on the resolver path).
+        if (cl && cl.kind === "vin_confirmation") {
           pendingVin = d.vehicle || null; vinAnchor = d.vinArchiveMatch || null;
           renderVinConfirm(cl.question, d.vehicle);
           return;
         }
         if (cl && (cl.kind === "vin_decode_failed" || cl.kind === "vin_invalid_shape" || cl.kind === "chassis_hint")) { renderError(cl.question); return; }
+        if (d && d.status === "valid" && d.vehicle) { pendingVin = null; vinAnchor = null; runPool(text, d.vehicle); return; }
         if (d && d.status === "needs_clarification" && cl && (cl.chips || (d.vehicle && d.vehicle.make))) {
           // Partial decode (make+year, no model): ask the model with chips, same as /sell.
           renderChoice({ prompt: cl.question || "Which model is it?", modelOptions: (cl.chips || []).filter(function (c) { return !/^not sure$/i.test(c); }) });
           return;
         }
-        if (d && d.status === "valid" && d.vehicle) { pendingVin = null; vinAnchor = null; runPool(text, d.vehicle); return; }
         // Anything else: fall back to the pool on the raw text.
         runPool(text, null);
       }).catch(function () { runPool(text, null); });
