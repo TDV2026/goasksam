@@ -9,6 +9,8 @@
   var root = document.getElementById("ob");
   var lastQuery = "";
   var proofPool = [];
+  var obSnapshotId = null; // stable id of the last result, for the shareable /o/<id> URL
+  var obAsOf = null;       // when THIS analysis ran (product rule 4: run date, not freshness)
 
   // ---------------------------------------------------------------- helpers
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); }
@@ -77,6 +79,19 @@
     // Bell OMITTED at launch (no affordance renders). Share only.
     return '<div class="utils"><button class="util" data-share title="Share these sales">' +
       '<svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Share</button></div>';
+  }
+  // As-of line (Task 4): shown ONLY on a re-opened shared snapshot, so a reader who lands on
+  // an old /o/<id> link knows when the read was taken. Product rule 4: this is when the
+  // analysis RAN, never a claim about data freshness.
+  function monthDayYear(iso) {
+    var d = new Date(iso); if (isNaN(d)) return "";
+    var M = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    return M[d.getUTCMonth()] + " " + d.getUTCDate() + ", " + d.getUTCFullYear();
+  }
+  function asOfHtml() {
+    if (!obAsOf) return "";
+    var when = monthDayYear(obAsOf); if (!when) return "";
+    return '<span class="basis" style="margin-left:10px">As of ' + esc(when) + "</span>";
   }
 
   // ---------------------------------------------------------------- cards (T1.1)
@@ -236,7 +251,7 @@
     var head = vinAnchor ? anchorHtml(vinAnchor, d.resolvedCar) : (isResult ? samTakeHtml(d) : "");
     var body;
     if (d.tier === "three" || d.tier === "two" || d.tier === "one") {
-      body = '<div data-stage="answer">' + answerHtml(d) + '<div class="meta-row">' + basisHtml(d) + utilsHtml() + "</div></div>" +
+      body = '<div data-stage="answer">' + answerHtml(d) + '<div class="meta-row">' + basisHtml(d) + asOfHtml() + utilsHtml() + "</div></div>" +
         whyRow() + gridHtml(d.cards) + samNoteHtml(d) + refineHtml() + sellHtml() + recentHtml();
     } else if (d.tier === "zero") {
       body = '<div class="sam" data-stage="answer"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s take</div><p style="font-size:20px;line-height:1.45">' +
@@ -367,6 +382,7 @@
       if (d.tier === "rate_limited") { renderError(d.samLine || "That’s a lot of lookups for one day. Come back tomorrow and I’ll keep pulling real sales."); return; }
       if (d.tier === "model_choice" || d.tier === "body_choice") { renderChoice(d); return; }
       if (vinAnchor) obEvent("onebox_vin_anchor_shown");
+      obSnapshotId = d.snapshotId || null; obAsOf = null; // live result: shareable, no as-of line
       root.innerHTML = inboxHtml(text) + (vinAnchor ? "" : samTakeHtml(d)) + workingLine(carLabel(d.resolvedCar), d) + footHtml();
       wire();
       obAnalytics(d);
@@ -488,7 +504,12 @@
   function toSell() { try { if (lastQuery) localStorage.setItem("gas_onebox_prefill", lastQuery); } catch (e) {} obEvent("onebox_sell_handoff_clicked"); location.href = "/sell"; }
   function shareResult() {
     obEvent("onebox_share_clicked");
-    var url = location.origin + "/onebox?q=" + encodeURIComponent(lastQuery);
+    // Prefer the stable snapshot URL (/o/<id>): it re-opens the EXACT same answer cold and
+    // carries the OG answer line. Falls back to a re-run URL only if the snapshot didn't
+    // persist (e.g. a transient store error), so Share is never dead.
+    var url = obSnapshotId
+      ? location.origin + "/o/" + encodeURIComponent(obSnapshotId)
+      : location.origin + "/onebox?q=" + encodeURIComponent(lastQuery);
     if (navigator.clipboard) navigator.clipboard.writeText(url).catch(function () {});
     var btn = root.querySelector("[data-share]"); if (btn) { var old = btn.innerHTML; btn.innerHTML = "Copied"; setTimeout(function () { btn.innerHTML = old; }, 1400); }
   }
@@ -509,7 +530,21 @@
   }
 
   // ---------------------------------------------------------------- boot
+  // Cold-open a shared snapshot (Task 4): the /o/<id> route injects window.__OB_SNAPSHOT__
+  // (the exact stored result) + __OB_ASOF__. Render it straight to the result view with an
+  // as-of line, no fetch. The share URL therefore opens the same answer cold.
+  function renderSnapshot() {
+    var snap = (typeof window !== "undefined") && window.__OB_SNAPSHOT__;
+    if (!snap || !snap.tier) return false;
+    lastQuery = (window.__OB_QUERY__ || carLabel(snap.resolvedCar) || "").toString();
+    obAsOf = (typeof window !== "undefined" && window.__OB_ASOF__) || null;
+    obSnapshotId = (typeof window !== "undefined" && window.__OB_SNAPID__) || null;
+    vinAnchor = null; pendingVin = null;
+    renderResults(snap);
+    return true;
+  }
   function boot() {
+    if (renderSnapshot()) { fetchProof(); return; }
     renderEmpty();
     fetchProof();
     var q = /[?&]q=([^&]*)/.exec(location.search || "");

@@ -2823,7 +2823,22 @@ export default async function handler(req, res) {
       }
       const oneBoxText = typeof rawSearch === "string" ? rawSearch : (vehicle?.raw || vehicle?.canonicalLabel || "");
       const oneBox = await runOneBox(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey });
-      return res.status(200).json({ status: "one_box", ...oneBox });
+      // Addressable result (Task 4): persist a stable, shareable snapshot of THIS result so
+      // /o/<id> re-opens the exact same answer cold and its OG tags carry the answer line.
+      // Reuses the /sell saved_results store; tagged obShare:true so the public read path can
+      // ONLY ever serve One Box snapshots (never a /sell seller result). Archive-only aggregate
+      // payload, no seller PII, so it is safe to expose. Best-effort: a persist failure never
+      // fails the lookup (the result just isn't shareable). Only real answers get a snapshot.
+      let snapshotId = null;
+      if (oneBox && oneBox.answer && oneBox.tier !== "rate_limited") {
+        try {
+          snapshotId = await persistSavedResult(null, {
+            obShare: true, savedAt: new Date().toISOString(),
+            query: oneBoxText, oneBox
+          }, supabaseUrl, supabaseKey);
+        } catch { snapshotId = null; }
+      }
+      return res.status(200).json({ status: "one_box", ...oneBox, snapshotId: snapshotId || undefined });
     }
 
     // Free structural preview for smoke tests: the ladder that WOULD be
