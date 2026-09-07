@@ -20,7 +20,7 @@
   "rewrites": [
     { "source": "/sell", "destination": "/index.html" },
     { "source": "/onebox", "destination": "/onebox.html" },
-    { "source": "/o/:id", "destination": "/api/oneboxShare?id=:id" },
+    { "source": "/o/:id", "destination": "/api/publicConfig?obShare=:id" },
     { "source": "/onebox-preview", "destination": "/onebox-preview.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/about", "destination": "/about.html" },
@@ -36,7 +36,7 @@
       "maxDuration": 300,
       "includeFiles": "scripts/warm-list.json"
     },
-    "api/oneboxShare.js": {
+    "api/publicConfig.js": {
       "includeFiles": "onebox.html"
     }
   },
