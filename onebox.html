@@ -27,7 +27,10 @@
   // Hide the page until the flag resolves so no content flashes. Public -> reveal; not
   // public -> home. Instant rollback: set onebox_public=0 and non-crew visitors bounce.
   document.documentElement.style.visibility="hidden";
-  fetch("/api/publicConfig").then(function(r){return r.json();}).then(function(d){
+  // Cache-bust so the gate ALWAYS reads the flag fresh (publicConfig is edge-cached ~2min
+  // for the /sell auth path; the gate must not lag). This keeps both the flip and the
+  // rollback instant: set onebox_public=0 and the very next non-crew load bounces.
+  fetch("/api/publicConfig?ob="+Date.now(),{cache:"no-store"}).then(function(r){return r.json();}).then(function(d){
     if(d&&d.oneboxPublic){document.documentElement.style.visibility="";}
     else{location.replace("/");}
   }).catch(function(){location.replace("/");});
