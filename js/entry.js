@@ -244,8 +244,18 @@ async function send(){
           }
           addMsg("sam",answer);
         }
-        if(sellState.step>0&&sellState.step!==10&&sellState.step!==13&&sellState.step!==16&&!sellState.awaitingPathChoice){setTimeout(()=>askNextSellQuestion(),800);}
       }catch(e){hideTyping();addMsg("sam","Good question. I'm having trouble answering it right now because of a connection issue. Ask me again in a moment.");}
+      // Never dead-end (locked): after ANY chat outcome, success OR a thrown/failed
+      // request, always leave the seller with a next action. This re-ask used to sit
+      // INSIDE the try, so a chat fetch that threw (network/timeout) dead-ended with an
+      // error line and no next question. It now runs unconditionally. Sequential steps
+      // re-ask the current question; the contact form re-presents itself; post-result
+      // and confirm already have their card on screen, so they need nothing.
+      if(sellState.step>0&&sellState.step!==10&&sellState.step!==13&&sellState.step!==16&&!sellState.awaitingPathChoice){
+        setTimeout(()=>askNextSellQuestion(),800);
+      }else if(sellState.step===13){
+        setTimeout(()=>{ if(typeof showContactForm==="function"&&!document.getElementById("sellEmail"))showContactForm(); },800);
+      }
     }
     document.getElementById("btn").disabled=false;
     return;
