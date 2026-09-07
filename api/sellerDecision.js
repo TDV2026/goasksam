@@ -1,6 +1,6 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
-import { runOneBox, runOneBoxModelChoice } from "../lib/onebox.js";
+import { runOneBox, runOneBoxModelChoice, runOneBoxProof } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -2719,6 +2719,14 @@ export default async function handler(req, res) {
   const apiKey = process.env.OLDCARSDATA_API_KEY;
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+  // One Box empty-state proof line: recent real sales for the storefront. Archive-only,
+  // no OCD, no gate, no car needed -> answered before every other check.
+  if (req.body?.oneBoxProof) {
+    try {
+      const p = await runOneBoxProof({ supabaseUrl, supabaseKey });
+      return res.status(200).json({ status: "one_box_proof", ...p });
+    } catch (e) { return res.status(200).json({ status: "one_box_proof", proof: [] }); }
+  }
   if (!apiKey) return res.status(500).json({ error: "OldCarsData API key not configured" });
 
   const car = typeof req.body?.car === "object" ? req.body.car : {};
