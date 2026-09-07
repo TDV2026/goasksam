@@ -274,7 +274,7 @@ async function send(){
       if(typeof hideVehicleLookup==="function")hideVehicleLookup();
       // Journey analytics (VIN-originated marker): booleans/enums only, NEVER the VIN.
       if(probe.clarification?.kind==="vin_confirmation"){ sellState.vinEntry=true; sellState.vinDecode="success"; }
-      else if(probe.clarification?.kind==="vin_decode_failed"||probe.clarification?.kind==="vin_invalid_shape"){ sellState.vinEntry=true; sellState.vinDecode="fail"; }
+      else if(probe.clarification?.kind==="vin_decode_failed"||probe.clarification?.kind==="vin_invalid_shape"||probe.clarification?.kind==="chassis_hint"){ sellState.vinEntry=(probe.clarification.kind!=="chassis_hint"); sellState.vinDecode="fail"; }
       const understood=probe?.vehicle&&(probe.vehicle.make||probe.vehicle.model);
       if(probeRes.ok&&(probe.status==="valid"||probe.status==="needs_confirmation"||understood)){
         // (b) Hand the probe's resolution to the wizard so its preflight reuses it
@@ -286,7 +286,7 @@ async function send(){
       // VIN feature: a VIN we could not decode is a KNOWN state, not gibberish for the
       // chat layer. Show the honest line and stay in entry so the next message (the
       // car in words) starts the wizard normally.
-      if(probeRes.ok&&probe.clarification&&(probe.clarification.kind==="vin_decode_failed"||probe.clarification.kind==="vin_invalid_shape")){
+      if(probeRes.ok&&probe.clarification&&(probe.clarification.kind==="vin_decode_failed"||probe.clarification.kind==="vin_invalid_shape"||probe.clarification.kind==="chassis_hint")){
         // Bridge the VIN-origin marker across resetSellState: the seller now types the
         // car, which runs startSellFlow -> resetSellState (wiping sellState flags). This
         // undecoded-VIN journey is still VIN-originated, so persist that fact for the

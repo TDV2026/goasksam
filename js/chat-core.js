@@ -239,7 +239,7 @@ async function resolveVehicleInput(candidate,opts={}){
       const nothingUnderstood=data.status==="needs_clarification"&&!partial.year&&!partial.make&&!partial.model;
       // A VIN that could not be decoded is a KNOWN state with its own honest line;
       // never route it to the chat layer as "not a vehicle" (which shows a filler joke).
-      if(nothingUnderstood&&opts.chatFallback&&data.clarification?.kind!=="vin_decode_failed"&&data.clarification?.kind!=="vin_invalid_shape"){
+      if(nothingUnderstood&&opts.chatFallback&&data.clarification?.kind!=="vin_decode_failed"&&data.clarification?.kind!=="vin_invalid_shape"&&data.clarification?.kind!=="chassis_hint"){
         // Not a car and not a wizard answer: the caller routes it to the chat
         // layer for a real reply, then re-asks the current question.
         sellState.lastIdentityVerdict="not_vehicle";
