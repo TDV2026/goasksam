@@ -1453,6 +1453,9 @@ async function submitLead(seller){
         seller:{email,phone},
         car:{
           raw:sellState.carName,
+          // VIN (when the journey was VIN-sourced): forwarded so it reaches the partner
+          // email + seller_leads. Was previously never sent, so the VIN never landed.
+          vin:(sellState.resolvedVehicle&&sellState.resolvedVehicle.vin)||null,
           region:sellState.region,
           state:sellState.state,
           mileage:sellState.mileage,
@@ -1475,6 +1478,10 @@ async function submitLead(seller){
           vehicle:sellState.sellDecision?.vehicle||null,
           evidence:sellState.sellDecision?.evidence||null,
           decision:sellState.sellDecision?.decision||null,
+          // Exact-VIN archive match (VIN feature 4c): forwarded so the partner email can
+          // carry the prior-auction link when a match exists. Was never sent, so the
+          // backend's priorSaleUrl (decision.vinArchiveMatch.url) was always null.
+          vinArchiveMatch:sellState.sellDecision?.vinArchiveMatch||null,
           selectedOption:option
         }
       })
