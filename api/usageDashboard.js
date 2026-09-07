@@ -1179,6 +1179,40 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
+  if (task === "chassiscoverage") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    const get = async q => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: H }); return r.ok ? await r.json() : { err: r.status }; } catch (e) { return { err: String(e) }; } };
+    // sales_archive vin column: paginate, bucket into 17-char (modern) vs shorter
+    // (chassis-style) vs empty, and for the chassis-style ones break down by make + year.
+    var total = 0, has17 = 0, chassis = 0, empty = 0;
+    var byMake = {}, samples = {}, preByMake = {};
+    for (var off = 0; off < 40000; off += 1000) {
+      var page = await get(`sales_archive?select=vin,make,year&offset=${off}&limit=1000&order=id.asc`);
+      if (!Array.isArray(page) || !page.length) break;
+      total += page.length;
+      for (var i = 0; i < page.length; i++) {
+        var r = page[i], v = String(r.vin == null ? "" : r.vin).trim();
+        if (!v) { empty++; continue; }
+        var alnum = v.replace(/[^A-Za-z0-9]/g, "");
+        if (alnum.length === 17 && /[A-Z]/i.test(alnum) && /[0-9]/.test(alnum)) { has17++; continue; }
+        chassis++;
+        var mk = (r.make || "Unknown").trim();
+        byMake[mk] = (byMake[mk] || 0) + 1;
+        var yr = Number(r.year) || null;
+        if (yr && yr < 1981) preByMake[mk] = (preByMake[mk] || 0) + 1;
+        if (!samples[mk]) samples[mk] = [];
+        if (samples[mk].length < 3) samples[mk].push({ vin: v, year: yr });
+      }
+      if (page.length < 1000) break;
+    }
+    var topChassis = Object.entries(byMake).sort((a, b) => b[1] - a[1]).slice(0, 20);
+    var topPre = Object.entries(preByMake).sort((a, b) => b[1] - a[1]).slice(0, 20);
+    return res.status(200).json({ task: "chassiscoverage", scanned: total, has17, chassis_style: chassis, empty,
+      chassis_by_make: topChassis.map(e => ({ make: e[0], n: e[1], samples: samples[e[0]] })),
+      pre1981_by_make: topPre.map(e => ({ make: e[0], n: e[1] })) });
+  }
+
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
