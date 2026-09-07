@@ -28,7 +28,7 @@
     { "source": "/out", "destination": "/api/out" },
     { "source": "/styles.20260906c.css", "destination": "/styles.css" },
     { "source": "/js.20260907c/(.*)", "destination": "/js/$1" },
-    { "source": "/obx.20260907a/(.*)", "destination": "/js/$1" }
+    { "source": "/obx.20260907b/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
     "api/usageDashboard.js": {

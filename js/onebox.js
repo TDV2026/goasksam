@@ -228,7 +228,9 @@
     startProofRotation();
   }
   function renderResults(d) {
-    var head = samTakeHtml(d);
+    // Head "Sam's take" only leads a real result (three/two/one). Refusal and zero are
+    // their own single Sam block (matching the preview's one-Sam refusal state).
+    var head = (d.tier === "three" || d.tier === "two" || d.tier === "one") ? samTakeHtml(d) : "";
     var body;
     if (d.tier === "three" || d.tier === "two" || d.tier === "one") {
       body = '<div data-stage="answer">' + answerHtml(d) + '<div class="meta-row">' + basisHtml(d) + utilsHtml() + "</div></div>" +
