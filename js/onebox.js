@@ -228,11 +228,12 @@
     startProofRotation();
   }
   function renderResults(d) {
-    // Head: on a VIN exact match the ANCHOR beat (callout + bridge) leads, before the
-    // answer line (Task 2 three-beat). Otherwise the generic "Sam's take" leads a real
-    // result; refusal and zero are their own single Sam block.
+    // Head: on a VIN exact match the ANCHOR beat (callout + bridge) leads on EVERY tier -
+    // the exact car is known even if the similar-sales pool is thin or empty, so the anchor
+    // is never dropped. Otherwise the generic "Sam's take" leads a real result; refusal and
+    // zero are their own single Sam block.
     var isResult = (d.tier === "three" || d.tier === "two" || d.tier === "one");
-    var head = isResult ? (vinAnchor ? anchorHtml(vinAnchor, d.resolvedCar) : samTakeHtml(d)) : "";
+    var head = vinAnchor ? anchorHtml(vinAnchor, d.resolvedCar) : (isResult ? samTakeHtml(d) : "");
     var body;
     if (d.tier === "three" || d.tier === "two" || d.tier === "one") {
       body = '<div data-stage="answer">' + answerHtml(d) + '<div class="meta-row">' + basisHtml(d) + utilsHtml() + "</div></div>" +

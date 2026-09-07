@@ -2808,7 +2808,8 @@ export default async function handler(req, res) {
       // onebox_search funnel events. Soft-degrades with an honest line; never a hard error,
       // never touches the /sell counters. The server logs onebox_search (authoritative
       // count source + analytics); the client logs only the outcome/interaction events.
-      const obAnon = (typeof req.body?.anonId === "string" && req.body.anonId) ? req.body.anonId.slice(0, 64) : (anonSessionId || null);
+      const obAnon = (typeof req.body?.anonId === "string" && req.body.anonId) ? req.body.anonId.slice(0, 64)
+        : (typeof req.body?.anonSessionId === "string" && req.body.anonSessionId) ? req.body.anonSessionId.slice(0, 64) : null;
       if (obAnon) {
         try {
           const cap = await appConfigInt("onebox_daily_cap", 40, supabaseUrl, supabaseKey);
