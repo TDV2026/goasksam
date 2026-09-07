@@ -249,7 +249,12 @@ export default async function handler(req, res) {
       // car - no re-asking year/make/model - exactly like the 17-char VIN path on a match.
       if (vinMatch && vinMatch.make) {
         const canon = await resolveVehicle([vinMatch.year, vinMatch.make, vinMatch.model].filter(Boolean).join(" "));
-        if (canon?.vehicle?.make) chassisVehicle = canon.vehicle;
+        if (canon?.vehicle?.make) {
+          chassisVehicle = canon.vehicle;
+          // Carry the chassis token so sellerDecision attaches the SAME prior-sale lead
+          // enrichment a 17-char VIN gets (findVinArchiveMatch normalizes separators/case).
+          chassisVehicle.chassis = raw.trim();
+        }
       }
     }
     // A resolved chassis match is returned as a VALID vehicle (with the archive match and a

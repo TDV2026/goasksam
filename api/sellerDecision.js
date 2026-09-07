@@ -3228,9 +3228,13 @@ export default async function handler(req, res) {
     // The prior sale's own record still counts once as an ordinary same-model comp, as
     // it always has; this surfacing adds zero ranking weight. Flag-gated + VIN-gated.
     let vinArchiveMatch = null;
-    if (vehicle?.vin && await vinFeatureActive(req.headers.cookie, { supabaseUrl, supabaseKey })) {
+    // A 17-char VIN OR an older-car chassis token both key the exact-match. The chassis
+    // rides on the resolved vehicle when a chassis exact-match resolved the car upstream,
+    // so a chassis-matched car gets the SAME prior-sale lead enrichment a VIN does.
+    const exactId = vehicle?.vin || vehicle?.chassis || null;
+    if (exactId && await vinFeatureActive(req.headers.cookie, { supabaseUrl, supabaseKey })) {
       vinArchiveMatch = await findVinArchiveMatch({ supabaseUrl, supabaseKey },
-        { vin: vehicle.vin, make: vehicle.make, model: vehicle.model, year: vehicle.year });
+        { vin: exactId, make: vehicle.make, model: vehicle.model, year: vehicle.year });
     }
 
     const responsePayload = {
