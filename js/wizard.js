@@ -768,6 +768,14 @@ function currentMissingVehicleDetail(){
   if(sellState.vehicleDetailSkipped)return null;
   const trimMissing=missingVehicleTrimDetail(sellState.carName);
   if(trimMissing)return trimMissing;
+  // A VIN can validate a car at make + year ONLY, with no model - common for
+  // early-production / launch-edition VINs that vPIC (and other decoders) cover
+  // poorly. That is still model-incomplete, so ask the model with chips exactly as
+  // the typed make+year path does, instead of proceeding at make level. Guarded on a
+  // resolved vehicle that has a make but no model, so a normal decode (model present)
+  // is untouched and a "Not sure" answer still skips cleanly (vehicleDetailSkipped).
+  const rv=sellState.resolvedVehicle;
+  if(rv&&rv.make&&!rv.model){ const modelAsk=missingVehicleDetail(sellState.carName); if(modelAsk)return modelAsk; }
   if(sellState.vehicleIdentityValidated)return null;
   return missingVehicleDetail(sellState.carName);
 }
