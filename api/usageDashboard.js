@@ -1179,19 +1179,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  if (task === "oneboxflag") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const val = String(req.query?.set ?? "");
-    const sb = (path, method, body) => fetch(`${env.supabaseUrl}/rest/v1/${path}`, { method, headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=representation" }, body: body ? JSON.stringify(body) : undefined });
-    if (val === "0" || val === "1") {
-      const resp = await sb("app_config?on_conflict=key", "POST", [{ key: "onebox_public", value: val }]);
-      const t = await resp.text();
-      return res.status(resp.ok ? 200 : 500).json({ task: "oneboxflag", set: val, ok: resp.ok, row: t ? JSON.parse(t) : t });
-    }
-    const cur = await (await sb("app_config?key=eq.onebox_public&select=value", "GET")).json().catch(() => null);
-    return res.status(200).json({ task: "oneboxflag", current: cur });
-  }
-
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
