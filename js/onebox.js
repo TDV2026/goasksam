@@ -338,7 +338,12 @@
       body: JSON.stringify({ oneBox: true, anonId: obAnonId(), car: car })
     }).then(function (r) { return r.json(); }).then(function (d) {
       pushRecent(text, d);
-      if (d && d.status === "needs_clarification") { renderError("I couldn’t pin that exact car down. Try the year, make and model together, like 1972 Porsche 911 or 1969 Ford Mustang."); return; }
+      if (d && d.status === "needs_clarification") {
+        // Surface the resolver's OWN honest question (the VIN-invalid reword, the chassis-
+        // number line, or a specific clarification) rather than a generic fallback.
+        renderError((d.clarification && d.clarification.question) || "I couldn’t pin that exact car down. Try the year, make and model together, like 1972 Porsche 911 or 1969 Ford Mustang.");
+        return;
+      }
       if (!d || d.status !== "one_box") { renderError("I’m having trouble reading the market right now. Give it another try in a moment."); return; }
       if (d.tier === "rate_limited") { renderError(d.samLine || "That’s a lot of lookups for one day. Come back tomorrow and I’ll keep pulling real sales."); return; }
       if (d.tier === "model_choice" || d.tier === "body_choice") { renderChoice(d); return; }
