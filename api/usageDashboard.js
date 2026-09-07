@@ -1179,6 +1179,29 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
+  if (task === "leadaudit") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    const get = async q => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: H }); return r.ok ? await r.json() : { err: r.status }; } catch (e) { return { err: String(e) }; } };
+    const sinceIso = new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString();
+    // PowerSeller leads in the last 2 days.
+    const leads = await get(`seller_leads?submitted_at=gte.${encodeURIComponent(sinceIso)}&chosen_destination_type=eq.powerseller&select=reference,submitted_at,seller_email,chosen_destination,car_raw,vin,car_state&order=submitted_at.desc&limit=20`);
+    // Intro-requested journeys in the window + their start metadata (entry_method, vin_*).
+    const evs = await get(`journey_events?event_type=eq.powerseller_intro_requested&occurred_at=gte.${encodeURIComponent(sinceIso)}&select=journey_id,occurred_at,powerseller_id&order=occurred_at.desc&limit=20`);
+    const jids = Array.isArray(evs) ? [...new Set(evs.map(e => e.journey_id))] : [];
+    const starts = jids.length ? await get(`journey_events?event_type=eq.seller_journey_started&journey_id=in.(${jids.join(",")})&select=journey_id,metadata`) : [];
+    const startBy = {}; if (Array.isArray(starts)) for (const s of starts) startBy[s.journey_id] = s.metadata || {};
+    const journeys = jids.length ? await get(`journeys?journey_id=in.(${jids.join(",")})&select=journey_id,vehicle_year,vehicle_make,vehicle_model,vehicle_trim,created_at`) : [];
+    const jBy = {}; if (Array.isArray(journeys)) for (const j of journeys) jBy[j.journey_id] = j;
+    const intro = Array.isArray(evs) ? evs.map(e => { const m = startBy[e.journey_id] || {}; const j = jBy[e.journey_id] || {}; return {
+      jid: e.journey_id.slice(0, 8), at: e.occurred_at, powerseller: e.powerseller_id,
+      car: `${j.vehicle_year||""} ${j.vehicle_make||""} ${j.vehicle_model||""} ${j.vehicle_trim||""}`.replace(/\s+/g," ").trim(),
+      entry_method: m.entry_method || null, vin_confirmed: m.vin_confirmed ?? null, vin_archive_match: m.vin_archive_match ?? null }; }) : evs;
+    return res.status(200).json({ task: "leadaudit",
+      powerseller_leads: Array.isArray(leads) ? leads.map(l => ({ ref: l.reference, at: l.submitted_at, partner: l.chosen_destination, seller: l.seller_email, car_raw: l.car_raw, vin_stored: l.vin || null })) : leads,
+      intro_journeys: intro });
+  }
+
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
