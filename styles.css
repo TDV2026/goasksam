@@ -388,6 +388,11 @@ body{
 .wizard-car-context{font-size:12px;color:#8a8a93;margin-bottom:4px;display:flex;align-items:center;gap:6px;}
 .edit-car-link{background:none;border:1px solid #d8d8de;border-radius:10px;font-size:11px;padding:1px 8px;cursor:pointer;color:#6b6b74;}
 .edit-car-link:hover{color:#111;border-color:#aaa;}
+/* Price-step transparency affordance (#68): small (i) beside the price question. */
+.price-why{display:inline-flex;align-items:center;margin-top:8px;flex-wrap:wrap;gap:8px;}
+.price-why-i{width:18px;height:18px;flex:none;border-radius:50%;border:1px solid #c9c9d1;background:none;color:#6b6b74;font:italic 600 11px/1 Georgia,serif;cursor:pointer;display:inline-grid;place-items:center;padding:0;}
+.price-why-i:hover{color:#111;border-color:#9a9aa2;}
+.price-why-note{font-size:12.5px;line-height:1.5;color:#8a8a93;max-width:52ch;}
 
 /* ================= Design Phase 1 — Paddock tokens ================= */
 :root{

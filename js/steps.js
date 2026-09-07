@@ -436,7 +436,7 @@ async function handleSellStep(q){
     // Field-specific change chips (four-question flow).
     if(/^car$/i.test(lower)){sellState.returnToConfirm=true;sellState.carName=null;sellState.carType=null;sellState.vehicleIdentityValidated=false;sellState.pendingVehicleIdentity=null;sellState.step=1;addMsg("sam","What are you selling? Year, make, and model.");return true;}
     if(/^location$|^region$|^country$|^state$/i.test(lower)){sellState.returnToConfirm=true;askLocationStep();return true;}
-    if(/^price$/i.test(lower)){sellState.returnToConfirm=true;sellState.price=null;sellState.step=6;addMsg("sam",SELL_STEP_QUESTIONS[6].ask);return true;}
+    if(/^price$/i.test(lower)){sellState.returnToConfirm=true;sellState.price=null;sellState.step=6;addMsg("sam",SELL_STEP_QUESTIONS[6].ask,priceWhyHtml());return true;}
     if(/^how i'll sell it$|^preference$|^selling preference$|^involvement$|^how i sell/i.test(lower)){sellState.returnToConfirm=true;sellState.sellerPreference=null;sellState.involvement=null;sellState.step=8;askPowerSellerStep();return true;}
     return true;
   }

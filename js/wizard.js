@@ -1474,7 +1474,7 @@ function beginScopedField(field){
     return;
   }
   if(field==="location"){ askLocationStep(); return; }
-  if(field==="price"){ sellState.price=null; sellState.step=6; addMsg("sam",SELL_STEP_QUESTIONS[6].ask); return; }
+  if(field==="price"){ sellState.price=null; sellState.step=6; addMsg("sam",SELL_STEP_QUESTIONS[6].ask,priceWhyHtml()); return; }
   // A preference edit goes straight to the preference question (keeps the timing
   // answer; askSellPreferenceStep sets awaitingPreference so the answer parses
   // correctly and finishScopedEdit closes the edit).
@@ -1512,6 +1512,14 @@ function conditionAskText(){
     :SELL_STEP_QUESTIONS[3].ask;
 }
 
+// Price-step transparency affordance (#68): a small tappable/hoverable (i) beside the
+// "what are you hoping to get" question that honestly states what the answer affects
+// (PowerSeller fit, never the market read). Copy/UI only - it changes no ranking, comp, or
+// PowerSeller-floor logic. Rendered wherever the price step (6) is asked. Dash-free.
+function priceWhyHtml(){
+  const note="This affects whether a PowerSeller specialist fits your car, never what the market shows you.";
+  return `<span class="price-why"><button type="button" class="price-why-i" aria-label="Why Sam asks this" title="${note}" onclick="var n=this.parentNode.querySelector('.price-why-note');if(n)n.hidden=!n.hidden;">i</button><span class="price-why-note" hidden>${note}</span></span>`;
+}
 function askNextSellQuestion(){
   if(sellState.step===17){
     const missing=currentMissingVehicleDetail();
@@ -1531,7 +1539,8 @@ function askNextSellQuestion(){
   if(sellState.step===8){askPowerSellerStep();return;}
   const q=SELL_STEP_QUESTIONS[sellState.step];
   if(!q)return;
-  addMsg("sam",q.ask,"",q.chips.length?chipsHTML(q.chips):"");
+  const extra=sellState.step===6?priceWhyHtml():"";
+  addMsg("sam",q.ask,extra,q.chips.length?chipsHTML(q.chips):"");
 }
 
 // PowerSeller preference (FIX 3): the LAST wizard step, asked after the summary
