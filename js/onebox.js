@@ -38,7 +38,7 @@
   // claim, a predictive-price phrase, or an em/en dash. Money must use outcome verbs. In a
   // dev context (localhost or ?lint=1) a violation throws so it is caught in test; in prod
   // it logs and returns the string unchanged (never breaks a seller's result).
-  var LINT_BANNED = /\b(worth|valuation|valued|estimate[sd]?|estimating|apprais\w*|midpoint|average[sd]?|averaging|\bmean\b|typical price|best read|anchor|high(est)? price|low(est)? price|middle price|going rate|market value|fair value|book value|should (sell|go|fetch|bring) for|will (sell|go|fetch|bring) for|pristine|mint condition|excellent condition|concours)\b/i;
+  var LINT_BANNED = /\b(worth|valuation|valued|estimate[sd]?|estimating|apprais\w*|midpoint|average[sd]?|averaging|\bmean\b|typical price|best read|anchor|high(est)? price|low(est)? price|middle price|going rate|market value|fair value|book value|should (sell|go|fetch|bring) for|will (sell|go|fetch|bring) for|pristine|mint condition|excellent condition|concours|still looks? strong|holds? (its )?value|holding (its )?value|good investment|can'?t go wrong|only going up|solid buy)\b/i;
   var LINT_DASH = /[–—]/;
   function lint(s, where) {
     var str = String(s == null ? "" : s);
