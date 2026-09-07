@@ -239,9 +239,32 @@ export default async function handler(req, res) {
     // evidence, the resolution still comes from the user. Chassis is treated as a VIN for
     // privacy (request body only, never logged). Gated on vinActive like every VIN path so
     // the off-feature response shape is unchanged.
+    let chassisVehicle = null;
     if (!vinMatch && vinActive && result.clarification?.kind === "chassis_hint" && typeof raw === "string") {
       const chassisTok = raw.trim().replace(/\s+/g, "");
       if (chassisTok) vinMatch = await findVinArchiveMatch(env, { vin: chassisTok });
+      // On an exact chassis hit, the matched record IS the car's identity (evidence, not a
+      // chassis decode). Re-resolve its year/make/model through the shared resolver to a
+      // canonical vehicle so the caller can proceed straight into the wizard with the known
+      // car - no re-asking year/make/model - exactly like the 17-char VIN path on a match.
+      if (vinMatch && vinMatch.make) {
+        const canon = await resolveVehicle([vinMatch.year, vinMatch.make, vinMatch.model].filter(Boolean).join(" "));
+        if (canon?.vehicle?.make) chassisVehicle = canon.vehicle;
+      }
+    }
+    // A resolved chassis match is returned as a VALID vehicle (with the archive match and a
+    // chassis_match correction) so the frontend renders the "I know this exact car" callout,
+    // states the car, and enters the wizard. Unmatched/unresolvable chassis keep chassis_hint.
+    if (chassisVehicle) {
+      return res.status(200).json({
+        status: "valid",
+        vehicle: chassisVehicle,
+        clarification: null,
+        corrections: [...(result.corrections || []), { type: "chassis_match" }],
+        archiveModelCount: modelCount,
+        vinArchiveMatch: vinMatch || undefined,
+        fallback: fallbackUsed || undefined
+      });
     }
     return res.status(200).json({
       status,

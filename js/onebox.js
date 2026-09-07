@@ -11,6 +11,8 @@
   var proofPool = [];
   var obSnapshotId = null; // stable id of the last result, for the shareable /o/<id> URL
   var obAsOf = null;       // when THIS analysis ran (product rule 4: run date, not freshness)
+  var obResolvedCar = null; // the resolved vehicle of the current result, for the /sell handoff
+  var obSourceVin = null;   // the 17-char VIN when this result was VIN-sourced (travels to /sell)
 
   // ---------------------------------------------------------------- helpers
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); }
@@ -360,7 +362,7 @@
   function run(text) {
     text = String(text || "").trim();
     if (!text) return;
-    lastQuery = text; vinAnchor = null; pendingVin = null;
+    lastQuery = text; vinAnchor = null; pendingVin = null; obSourceVin = null;
     // Identifier-shaped input (VIN or chassis) routes through the shared resolver (decode +
     // confirm + exact-match + the honest VIN-invalid / chassis lines); everything else goes
     // straight to the archive pool.
@@ -391,6 +393,7 @@
       if (d.tier === "model_choice" || d.tier === "body_choice") { renderChoice(d); return; }
       if (vinAnchor) obEvent("onebox_vin_anchor_shown");
       obSnapshotId = d.snapshotId || null; obAsOf = null; // live result: shareable, no as-of line
+      obResolvedCar = d.resolvedCar || null;              // carried into the /sell handoff
       root.innerHTML = inboxHtml(text) + (vinAnchor ? "" : samTakeHtml(d)) + workingLine(carLabel(d.resolvedCar), d) + footHtml();
       wire();
       obAnalytics(d);
@@ -409,6 +412,7 @@
         // needs_clarification for a vin_confirmation depending on the resolver path).
         if (cl && cl.kind === "vin_confirmation") {
           pendingVin = d.vehicle || null; vinAnchor = d.vinArchiveMatch || null;
+          obSourceVin = (d.vehicle && d.vehicle.vin) || null; // travels to /sell for lead enrichment
           renderVinConfirm(cl.question, d.vehicle);
           return;
         }
@@ -420,7 +424,14 @@
           return;
         }
         if (cl && (cl.kind === "vin_decode_failed" || cl.kind === "vin_invalid_shape")) { renderError(cl.question); return; }
-        if (d && d.status === "valid" && d.vehicle) { pendingVin = null; vinAnchor = null; runPool(text, d.vehicle); return; }
+        if (d && d.status === "valid" && d.vehicle) {
+          pendingVin = null;
+          // Chassis exact-match resolved to a real car: keep the archive match as the anchor
+          // so the result leads with "I know this exact car" then shows comps for that car
+          // (same beat as a VIN match). Otherwise a plain resolution, no anchor.
+          vinAnchor = (d.vinArchiveMatch && (d.corrections || []).some(function (c) { return c && c.type === "chassis_match"; })) ? d.vinArchiveMatch : null;
+          runPool(text, d.vehicle); return;
+        }
         if (d && d.status === "needs_clarification" && cl && (cl.chips || (d.vehicle && d.vehicle.make))) {
           // Partial decode (make+year, no model): ask the model with chips, same as /sell.
           renderChoice({ prompt: cl.question || "Which model is it?", modelOptions: (cl.chips || []).filter(function (c) { return !/^not sure$/i.test(c); }) });
@@ -509,7 +520,16 @@
   }
 
   // ---------------------------------------------------------------- handoff + share
-  function toSell() { try { if (lastQuery) localStorage.setItem("gas_onebox_prefill", lastQuery); } catch (e) {} obEvent("onebox_sell_handoff_clicked"); location.href = "/sell"; }
+  // Sell handoff (Task 5): carry the resolved car into /sell so the seller never retypes it.
+  // VIN-sourced result -> hand the VIN itself, so /sell runs its full VIN flow (decode +
+  // confirm + exact archive match) and the lead enrichment (VIN row + prior-sale link)
+  // fires. Otherwise hand the resolved car label (falls back to the raw query).
+  function toSell() {
+    var prefill = obSourceVin || (obResolvedCar ? carLabel(obResolvedCar) : "") || lastQuery || "";
+    try { if (prefill) localStorage.setItem("gas_onebox_prefill", prefill); } catch (e) {}
+    obEvent("onebox_sell_handoff_clicked");
+    location.href = "/sell";
+  }
   function shareResult() {
     obEvent("onebox_share_clicked");
     // Prefer the stable snapshot URL (/o/<id>): it re-opens the EXACT same answer cold and
@@ -547,6 +567,8 @@
     lastQuery = (window.__OB_QUERY__ || carLabel(snap.resolvedCar) || "").toString();
     obAsOf = (typeof window !== "undefined" && window.__OB_ASOF__) || null;
     obSnapshotId = (typeof window !== "undefined" && window.__OB_SNAPID__) || null;
+    obResolvedCar = snap.resolvedCar || null; // a cold-opened shared result still hands off its car
+    obSourceVin = null;                       // the VIN is never stored in a shared snapshot
     vinAnchor = null; pendingVin = null;
     renderResults(snap);
     return true;

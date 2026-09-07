@@ -275,6 +275,16 @@ async function send(){
       // Journey analytics (VIN-originated marker): booleans/enums only, NEVER the VIN.
       if(probe.clarification?.kind==="vin_confirmation"){ sellState.vinEntry=true; sellState.vinDecode="success"; }
       else if(probe.clarification?.kind==="vin_decode_failed"||probe.clarification?.kind==="vin_invalid_shape"||probe.clarification?.kind==="chassis_hint"){ sellState.vinEntry=(probe.clarification.kind!=="chassis_hint"); sellState.vinDecode="fail"; }
+      // Chassis exact-match resolved to a real car (identity from the matched archive record):
+      // lead with the "I know this exact car" callout, then proceed straight into the wizard
+      // with the known car - no re-asking year/make/model - exactly like the 17-char VIN path.
+      if(probeRes.ok&&probe.status==="valid"&&probe.vinArchiveMatch&&probe.vehicle&&(probe.corrections||[]).some(c=>c&&c.type==="chassis_match")){
+        if(typeof renderVinArchiveCallout==="function")renderVinArchiveCallout(probe.vinArchiveMatch);
+        var _clbl=probe.vehicle.canonicalLabel||[probe.vehicle.year,probe.vehicle.make,probe.vehicle.model].filter(Boolean).join(" ");
+        startSellFlow(_clbl,false,{text:_clbl,data:probe});
+        document.getElementById("btn").disabled=false;
+        return;
+      }
       const understood=probe?.vehicle&&(probe.vehicle.make||probe.vehicle.model);
       if(probeRes.ok&&(probe.status==="valid"||probe.status==="needs_confirmation"||understood)){
         // (b) Hand the probe's resolution to the wizard so its preflight reuses it
