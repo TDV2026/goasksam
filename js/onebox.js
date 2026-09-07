@@ -228,9 +228,11 @@
     startProofRotation();
   }
   function renderResults(d) {
-    // Head "Sam's take" only leads a real result (three/two/one). Refusal and zero are
-    // their own single Sam block (matching the preview's one-Sam refusal state).
-    var head = (d.tier === "three" || d.tier === "two" || d.tier === "one") ? samTakeHtml(d) : "";
+    // Head: on a VIN exact match the ANCHOR beat (callout + bridge) leads, before the
+    // answer line (Task 2 three-beat). Otherwise the generic "Sam's take" leads a real
+    // result; refusal and zero are their own single Sam block.
+    var isResult = (d.tier === "three" || d.tier === "two" || d.tier === "one");
+    var head = isResult ? (vinAnchor ? anchorHtml(vinAnchor, d.resolvedCar) : samTakeHtml(d)) : "";
     var body;
     if (d.tier === "three" || d.tier === "two" || d.tier === "one") {
       body = '<div data-stage="answer">' + answerHtml(d) + '<div class="meta-row">' + basisHtml(d) + utilsHtml() + "</div></div>" +
@@ -265,7 +267,7 @@
 
   // ---------------------------------------------------------------- streaming (T1.4)
   function streamReveal() {
-    var stages = ["resolved", "answer", "cards", "note"];
+    var stages = ["resolved", "anchor", "answer", "cards", "note"];
     var els = [];
     stages.forEach(function (s) { Array.prototype.forEach.call(root.querySelectorAll('[data-stage="' + s + '"]'), function (e) { e.classList.add("stage-pending"); els.push(e); }); });
     var i = 0;
@@ -282,31 +284,104 @@
     return '<div class="working"><span class="pulse"></span>' + esc(txt) + "</div>";
   }
 
-  // ---------------------------------------------------------------- run
+  // ---------------------------------------------------------------- VIN anchor (Task 2)
+  var vinAnchor = null;   // carried from the confirm step into the result render
+  var pendingVin = null;  // resolved vehicle awaiting confirmation
+  function obDetectVin(text) {
+    var up = String(text || "").toUpperCase().replace(/[\s.\-]+/g, "");
+    if (up.length !== 17) return null;
+    if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(up)) return null;   // VIN alphabet (no I/O/Q)
+    return (/[A-Z]/.test(up) && /[0-9]/.test(up)) ? up : null;  // real VINs mix letters + digits
+  }
+  var OB_PLAT = { bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", pcarmarket: "PCarMarket", hagerty: "Hagerty", rmsothebys: "RM Sotheby's", gooding: "Gooding & Co", acc: "All Collector Cars", allcollectorcars: "All Collector Cars", collectingcars: "Collecting Cars" };
+  function obPlat(s) { var k = String(s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); return OB_PLAT[k] || (s ? String(s) : ""); }
+  function monthYear(dstr) { var p = String(dstr || "").slice(0, 10).split("-"); var M = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]; return p.length >= 2 ? ((M[Number(p[1])] || "") + " " + p[0]).trim() : ""; }
+  // The ANCHOR beat (a + b): "I know this exact car..." + photo + receipt, then a one-line
+  // BRIDGE into the pool. NEVER validates or predicts the anchor (no "still looks strong" /
+  // "holds its value") - factual sale record + a neutral transition only. Copy-lint enforced.
+  function anchorHtml(match, rc) {
+    if (!match || (!match.soldDate && !match.price)) return "";
+    var plat = obPlat(match.source), when = monthYear(match.soldDate), price = match.price ? usd(match.price) : null;
+    var onP = plat ? " on " + plat : "", whenT = when ? " in " + when : "", forT = price ? " for " + price : "";
+    var line = (Number(match.count) > 1)
+      ? ("I know this exact car. It’s traded " + (match.count === 2 ? "twice" : match.count + " times") + " in our records, most recently" + onP + whenT + forT + ".")
+      : ("I know this exact car. It sold" + onP + whenT + forT + ".");
+    var name = [rc && rc.year, rc && rc.make, rc && rc.model].filter(Boolean).join(" ") || "this car";
+    var photo;
+    if (match.photoUrl) photo = '<div class="vin-photo"><img src="' + esc(match.photoUrl) + '" alt="' + esc(name) + '" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.vin-plate\');if(p)p.style.display=\'flex\'"><div class="vin-plate"><div class="m">' + esc(plat) + '</div><div class="n">' + esc(name) + '</div><div class="s">Photo unavailable</div></div></div>';
+    else photo = '<div class="vin-photo"><div class="vin-plate" style="display:flex"><div class="m">' + esc(plat) + '</div><div class="n">' + esc(name) + '</div><div class="s">Photo unavailable</div></div></div>';
+    var receipt = match.url ? '<a class="anchor-receipt" href="' + esc(match.url) + '" target="_blank" rel="noopener">View that sale</a>' : "";
+    var bridge = "Let’s see what’s happened with similar " + esc((rc && rc.model) ? rc.model : "cars") + "s since.";
+    return '<div class="anchor" data-stage="anchor"><div class="sam"><div class="ava">SAM</div><div class="body"><div class="tag">The exact car</div>' +
+      "<p>" + lint(esc(line), "anchor") + "</p>" + photo + receipt + "</div></div>" +
+      '<p class="bridge">' + lint(bridge, "bridge") + "</p></div>";
+  }
+
+  // ---------------------------------------------------------------- run (dispatcher)
   function run(text) {
     text = String(text || "").trim();
     if (!text) return;
-    lastQuery = text;
-    // Stage 0: echo the query + a working line immediately, before the pool computes.
-    root.innerHTML = inboxHtml(text) + workingLine(esc(text), null) + footHtml();
+    lastQuery = text; vinAnchor = null; pendingVin = null;
+    // A 17-char VIN routes through the shared resolver (decode + confirm + exact match)
+    // before the pool; everything else goes straight to the archive pool.
+    if (obDetectVin(text)) { vinResolve(text); return; }
+    runPool(text, null);
+  }
+  function runPool(text, vehicle) {
+    root.innerHTML = inboxHtml(text) + workingLine(esc(carLabel(vehicle) || text), null) + footHtml();
     wire();
-    // onebox_search is logged SERVER-side (authoritative for the daily cap); anonId rides
-    // the request so the cap + the log are keyed to this device. No raw query is logged.
+    var car = { raw: text };
+    if (vehicle) car.vehicle = vehicle;
     fetch(API_ORIGIN + "/api/sellerDecision", {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ oneBox: true, anonId: obAnonId(), car: { raw: text } })
+      body: JSON.stringify({ oneBox: true, anonId: obAnonId(), car: car })
     }).then(function (r) { return r.json(); }).then(function (d) {
       pushRecent(text, d);
       if (d && d.status === "needs_clarification") { renderError("I couldn’t pin that exact car down. Try the year, make and model together, like 1972 Porsche 911 or 1969 Ford Mustang."); return; }
       if (!d || d.status !== "one_box") { renderError("I’m having trouble reading the market right now. Give it another try in a moment."); return; }
       if (d.tier === "rate_limited") { renderError(d.samLine || "That’s a lot of lookups for one day. Come back tomorrow and I’ll keep pulling real sales."); return; }
       if (d.tier === "model_choice" || d.tier === "body_choice") { renderChoice(d); return; }
-      // Brief working-with-figures beat (real numbers), then the staged result.
-      root.innerHTML = inboxHtml(text) + samTakeHtml(d) + workingLine(carLabel(d.resolvedCar), d) + footHtml();
+      if (vinAnchor) obEvent("onebox_vin_anchor_shown");
+      root.innerHTML = inboxHtml(text) + (vinAnchor ? "" : samTakeHtml(d)) + workingLine(carLabel(d.resolvedCar), d) + footHtml();
       wire();
       obAnalytics(d);
       setTimeout(function () { renderResults(d); }, 260);
     }).catch(function () { renderError("I’m having trouble reading the market right now. Give it another try in a moment."); });
+  }
+  // VIN path: decode + confirm (reuses /api/vehicleIdentity). VINs travel in the request
+  // body only; nothing here logs the raw VIN.
+  function vinResolve(text) {
+    root.innerHTML = inboxHtml(text) + workingLine("Reading that VIN", null) + footHtml();
+    wire();
+    fetch(API_ORIGIN + "/api/vehicleIdentity", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: text }) })
+      .then(function (r) { return r.json(); }).then(function (d) {
+        var cl = d && d.clarification;
+        if (d && d.status === "needs_confirmation" && cl && cl.kind === "vin_confirmation") {
+          pendingVin = d.vehicle || null; vinAnchor = d.vinArchiveMatch || null;
+          renderVinConfirm(cl.question, d.vehicle);
+          return;
+        }
+        if (cl && (cl.kind === "vin_decode_failed" || cl.kind === "vin_invalid_shape" || cl.kind === "chassis_hint")) { renderError(cl.question); return; }
+        if (d && d.status === "needs_clarification" && cl && (cl.chips || (d.vehicle && d.vehicle.make))) {
+          // Partial decode (make+year, no model): ask the model with chips, same as /sell.
+          renderChoice({ prompt: cl.question || "Which model is it?", modelOptions: (cl.chips || []).filter(function (c) { return !/^not sure$/i.test(c); }) });
+          return;
+        }
+        if (d && d.status === "valid" && d.vehicle) { pendingVin = null; vinAnchor = null; runPool(text, d.vehicle); return; }
+        // Anything else: fall back to the pool on the raw text.
+        runPool(text, null);
+      }).catch(function () { runPool(text, null); });
+  }
+  function renderVinConfirm(question, vehicle) {
+    root.innerHTML = inboxHtml(lastQuery) +
+      '<div class="sam" style="margin-top:26px"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s take</div>' +
+      '<p style="font-size:20px;line-height:1.4">' + lint(esc(question || "Is this your car?"), "vinconfirm") + "</p>" +
+      '<div class="chips"><button class="chip" id="ob-vin-yes">Yes, that’s it</button><button class="chip" id="ob-vin-no">No, let me type it</button></div>' +
+      "</div></div>" + footHtml();
+    wire();
+    var yes = document.getElementById("ob-vin-yes"), no = document.getElementById("ob-vin-no");
+    if (yes) yes.addEventListener("click", function () { runPool(lastQuery, pendingVin); });
+    if (no) no.addEventListener("click", function () { vinAnchor = null; pendingVin = null; renderEmpty(); });
   }
 
   // ---------------------------------------------------------------- analytics (T1.7)

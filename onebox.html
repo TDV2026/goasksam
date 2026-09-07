@@ -84,6 +84,18 @@ h1{font:800 48px/1.04 var(--serif);letter-spacing:-.025em;margin:14px 0 8px;text
 .sam .edit{flex:none;align-self:flex-start;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px 17px;font:600 14px var(--grotesk);color:var(--ink);cursor:pointer}
 .sam.note{background:color-mix(in srgb,var(--green) 4%,var(--card))}
 
+/* ---- VIN exact-match ANCHOR beat (Task 2): callout + photo + receipt, then a bridge ---- */
+.anchor{margin:20px 0 0}
+.anchor .vin-photo{position:relative;width:100%;max-width:340px;aspect-ratio:16/10;margin:14px 0 4px;border-radius:12px;overflow:hidden;background:var(--paper);border:1px solid var(--line)}
+.anchor .vin-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.vin-plate{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;gap:6px;padding:16px 18px;background:var(--paper);background-image:linear-gradient(var(--line2) 1px,transparent 1px);background-size:100% 9px}
+.vin-plate .m{font:600 9px/1.1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--green)}
+.vin-plate .n{font:800 14px/1.2 var(--grotesk);color:var(--ink);letter-spacing:-.01em}
+.vin-plate .s{font:600 8.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.anchor-receipt{display:inline-block;margin-top:4px;font:600 14px var(--grotesk);color:var(--green);text-decoration:none;border-bottom:1.5px solid currentColor}
+.anchor-receipt:hover{opacity:.8}
+.bridge{margin:16px 2px 0;font:400 17px/1.5 var(--serif);color:var(--slate)}
+
 /* ---- working line (streaming, pre-answer stage) ---- */
 .working{display:flex;align-items:center;gap:10px;margin:26px 0 6px;font:600 13px/1 var(--mono);letter-spacing:.03em;color:var(--slate)}
 .working .pulse{width:8px;height:8px;border-radius:50%;background:var(--green);animation:obpulse 1s ease-in-out infinite}
@@ -188,6 +200,6 @@ h1{font:800 48px/1.04 var(--serif);letter-spacing:-.025em;margin:14px 0 8px;text
   <nav><a href="/how-sam-decides" class="keep" target="_blank" rel="noopener">How it works</a><span class="avatar">SW</span></nav>
 </header>
 <main class="wrap"><div id="ob"></div></main>
-<script src="obx.20260907d/onebox.js"></script>
+<script src="obx.20260907e/onebox.js"></script>
 </body>
 </html>
