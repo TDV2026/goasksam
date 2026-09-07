@@ -1179,6 +1179,19 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
+  if (task === "oneboxflag") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const val = String(req.query?.set ?? "");
+    const sb = (path, method, body) => fetch(`${env.supabaseUrl}/rest/v1/${path}`, { method, headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=representation" }, body: body ? JSON.stringify(body) : undefined });
+    if (val === "0" || val === "1") {
+      const resp = await sb("app_config?on_conflict=key", "POST", [{ key: "onebox_public", value: val }]);
+      const t = await resp.text();
+      return res.status(resp.ok ? 200 : 500).json({ task: "oneboxflag", set: val, ok: resp.ok, row: t ? JSON.parse(t) : t });
+    }
+    const cur = await (await sb("app_config?key=eq.onebox_public&select=value", "GET")).json().catch(() => null);
+    return res.status(200).json({ task: "oneboxflag", current: cur });
+  }
+
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
 }
 
@@ -1530,12 +1543,33 @@ async function renderBusinessView(req, res) {
   }).join("");
   const dropSection = `<h2>Drop-off funnel</h2><div class="note" style="background:#f6f5f2;border-color:var(--line);color:var(--slate)">One linear path across platform and PowerSeller journeys. "Viewed" and "Clicked" union both paths (a journey counts once). Drop is the fall from the stage above.</div><div class="funnel">${dropRows}</div>`;
 
+  // One Box panel (T1.7): counts of the onebox_* funnel events over the range. One Box is
+  // deliberately SEPARATE from the /sell journey funnel above (it records to funnel_events,
+  // not the journey spine), so these numbers never distort the seller funnel. Honesty
+  // conventions: real zero shows 0; an empty range shows "not yet tracked".
+  const obEvents = (await supabaseSelect(env, `funnel_events?event=like.onebox_*&created_at=gte.${encodeURIComponent(range.sinceIso)}&created_at=lt.${encodeURIComponent(range.toIso)}&select=event,anon_session_id&limit=100000`)) || [];
+  const obc = {}; const obAnons = new Set();
+  for (const e of (Array.isArray(obEvents) ? obEvents : [])) { obc[e.event] = (obc[e.event] || 0) + 1; if (e.anon_session_id) obAnons.add(e.anon_session_id); }
+  const obN = k => fmtN(obc[k] || 0);
+  const obSection = (Array.isArray(obEvents) && obEvents.length) ? `<h2>One Box</h2>
+    <div class="kpis">
+      ${kpi(obN("onebox_search"), "Searches")}
+      ${kpi(fmtN(obAnons.size), "Unique devices")}
+      ${kpi(obN("onebox_answer_shown"), "Answers shown", "3+ sale results")}
+      ${kpi(obN("onebox_refusal_shown"), "Refusals", "variant-mix trim ask")}
+      ${kpi(fmtN((obc["onebox_thin_two"] || 0) + (obc["onebox_thin_one"] || 0)), "Thin results", "2 or 1 sale")}
+      ${kpi(obN("onebox_zero"), "Zero results")}
+      ${kpi(obN("onebox_vin_anchor_shown"), "VIN anchors")}
+      ${kpi(obN("onebox_share_clicked"), "Shares")}
+      ${kpi(obN("onebox_sell_handoff_clicked"), "Sell handoffs")}
+    </div>` : `<h2>One Box</h2><div class="sub">${NYT} (no One Box activity in range)</div>`;
   const html = `${bizChrome("Business", key, "business")}
     <div class="sub">${adminEsc(range.label)} &middot; ${mode === "exclude" ? "real sellers only" : mode === "only" ? "testers only" : "all traffic"}</div>
     ${bizFilters(req, "business")}
     ${dropSection}
     <h2>Seller funnel</h2>${funnel}
     <h2>Key metrics</h2>${kpis}
+    ${obSection}
     ${acqSection}
     ${psSection}
     ${platSection}

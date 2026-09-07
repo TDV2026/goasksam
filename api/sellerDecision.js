@@ -2801,6 +2801,25 @@ export default async function handler(req, res) {
     // gate, so it burns no allowance, makes zero OldCarsData calls, and writes
     // nothing. Tester/crew devices reach it (the curtain seal above lets them in).
     if (req.body?.oneBox) {
+      // Metering (T1.6): One Box is ARCHIVE-ONLY (zero OldCarsData cost), so it must NOT
+      // consume the seller's /sell daily reserve_search allowance - a free archive lookup
+      // should never burn a metered search. Hence a SEPARATE, lightweight per-anon daily
+      // cap (app_config onebox_daily_cap, default 40), counted from server-logged
+      // onebox_search funnel events. Soft-degrades with an honest line; never a hard error,
+      // never touches the /sell counters. The server logs onebox_search (authoritative
+      // count source + analytics); the client logs only the outcome/interaction events.
+      const obAnon = (typeof req.body?.anonId === "string" && req.body.anonId) ? req.body.anonId.slice(0, 64) : (anonSessionId || null);
+      if (obAnon) {
+        try {
+          const cap = await appConfigInt("onebox_daily_cap", 40, supabaseUrl, supabaseKey);
+          const since = coarseDayKey();
+          const seen = await supabaseSelect({ supabaseUrl, supabaseKey }, `funnel_events?event=eq.onebox_search&anon_session_id=eq.${encodeURIComponent(obAnon)}&created_at=gte.${since}&select=id&limit=${cap + 1}`);
+          if (Array.isArray(seen) && seen.length >= cap) {
+            return res.status(200).json({ status: "one_box", tier: "rate_limited", resolvedCar: null, samLine: "That's a lot of lookups for one day. Come back tomorrow and I'll keep pulling real sales for you." });
+          }
+        } catch (e) { /* cap is best-effort; never block a real lookup on a count error */ }
+        logFunnel("onebox_search", { anon_session_id: obAnon }, supabaseUrl, supabaseKey);
+      }
       const oneBoxText = typeof rawSearch === "string" ? rawSearch : (vehicle?.raw || vehicle?.canonicalLabel || "");
       const oneBox = await runOneBox(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey });
       return res.status(200).json({ status: "one_box", ...oneBox });

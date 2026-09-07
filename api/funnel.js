@@ -6,7 +6,12 @@
 import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
 import { recordJourneyEvent, journeyVehicle, CLIENT_JOURNEY_EVENTS } from "../lib/_journey.js";
 
-const ALLOWED = new Set(["homepage_view", "wizard_start", "wizard_complete", "signup_shown", "non_us_attempt", "out_of_scope"]);
+const ALLOWED = new Set(["homepage_view", "wizard_start", "wizard_complete", "signup_shown", "non_us_attempt", "out_of_scope",
+  // One Box (T1.7): aggregate-only client events. No raw VIN/chassis ever - only the
+  // event name + anon id + a hashed dedup key. onebox_search is logged SERVER-side
+  // (authoritative count for the cap); the client sends the outcome/interaction events.
+  "onebox_search", "onebox_answer_shown", "onebox_refusal_shown", "onebox_thin_two", "onebox_thin_one",
+  "onebox_zero", "onebox_vin_anchor_shown", "onebox_share_clicked", "onebox_sell_handoff_clicked"]);
 
 // HARD RULE (VIN feature): a raw 17-char VIN must NEVER be stored in a journey event.
 // The client only ever sends booleans/enums in journey metadata, but scrub defensively

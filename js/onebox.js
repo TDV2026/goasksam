@@ -290,14 +290,16 @@
     // Stage 0: echo the query + a working line immediately, before the pool computes.
     root.innerHTML = inboxHtml(text) + workingLine(esc(text), null) + footHtml();
     wire();
-    if (typeof gasJourneyEvent === "function") { try { obJourney("onebox_search", text); } catch (e) {} }
+    // onebox_search is logged SERVER-side (authoritative for the daily cap); anonId rides
+    // the request so the cap + the log are keyed to this device. No raw query is logged.
     fetch(API_ORIGIN + "/api/sellerDecision", {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ oneBox: true, car: { raw: text } })
+      body: JSON.stringify({ oneBox: true, anonId: obAnonId(), car: { raw: text } })
     }).then(function (r) { return r.json(); }).then(function (d) {
       pushRecent(text, d);
       if (d && d.status === "needs_clarification") { renderError("I couldn’t pin that exact car down. Try the year, make and model together, like 1972 Porsche 911 or 1969 Ford Mustang."); return; }
       if (!d || d.status !== "one_box") { renderError("I’m having trouble reading the market right now. Give it another try in a moment."); return; }
+      if (d.tier === "rate_limited") { renderError(d.samLine || "That’s a lot of lookups for one day. Come back tomorrow and I’ll keep pulling real sales."); return; }
       if (d.tier === "model_choice" || d.tier === "body_choice") { renderChoice(d); return; }
       // Brief working-with-figures beat (real numbers), then the staged result.
       root.innerHTML = inboxHtml(text) + samTakeHtml(d) + workingLine(carLabel(d.resolvedCar), d) + footHtml();
@@ -307,15 +309,29 @@
     }).catch(function () { renderError("I’m having trouble reading the market right now. Give it another try in a moment."); });
   }
 
-  // ---------------------------------------------------------------- analytics (thin; full panel is T1.7)
-  function obJourney(ev, text) {
-    if (typeof gasJourneyEventOnce === "function") gasJourneyEventOnce(ev, { dedupKey: String(hashStr(text || lastQuery)) });
+  // ---------------------------------------------------------------- analytics (T1.7)
+  // Aggregate-only: event name + a persistent anon id + a HASHED dedup key. Never the raw
+  // query, VIN or chassis string. onebox_search is logged server-side (the cap's
+  // authoritative source); the client logs outcome + interaction events.
+  function obAnonId() {
+    try { var a = localStorage.getItem("gas_ob_anon"); if (a) return a; a = "ob-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10); localStorage.setItem("gas_ob_anon", a); return a; }
+    catch (e) { return null; }
+  }
+  function obEvent(event, keySeed) {
+    try {
+      var body = JSON.stringify({ event: event, anonSessionId: obAnonId(), dedupKey: event + ":" + hashStr(String(keySeed || lastQuery)) });
+      var url = API_ORIGIN + "/api/funnel";
+      if (navigator.sendBeacon) { navigator.sendBeacon(url, new Blob([body], { type: "application/json" })); return; }
+      fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: body, keepalive: true }).catch(function () {});
+    } catch (e) {}
   }
   function obAnalytics(d) {
     try {
-      if (d.tier === "underspecified") obJourney("onebox_refusal_shown", lastQuery);
-      else if (d.tier === "zero" || d.tier === "one" || d.tier === "two") obJourney("onebox_thin_result_shown", lastQuery + ":" + d.tier);
-      else if (d.tier === "three") obJourney("onebox_answer_shown", lastQuery);
+      if (d.tier === "underspecified") obEvent("onebox_refusal_shown");
+      else if (d.tier === "zero") obEvent("onebox_zero");
+      else if (d.tier === "two") obEvent("onebox_thin_two");
+      else if (d.tier === "one") obEvent("onebox_thin_one");
+      else if (d.tier === "three") obEvent("onebox_answer_shown");
     } catch (e) {}
   }
 
@@ -352,9 +368,9 @@
   }
 
   // ---------------------------------------------------------------- handoff + share
-  function toSell() { try { if (lastQuery) localStorage.setItem("gas_onebox_prefill", lastQuery); } catch (e) {} if (typeof gasJourneyEvent === "function") { try { obJourney("onebox_sell_handoff_clicked", lastQuery); } catch (e) {} } location.href = "/sell"; }
+  function toSell() { try { if (lastQuery) localStorage.setItem("gas_onebox_prefill", lastQuery); } catch (e) {} obEvent("onebox_sell_handoff_clicked"); location.href = "/sell"; }
   function shareResult() {
-    try { obJourney("onebox_share_clicked", lastQuery); } catch (e) {}
+    obEvent("onebox_share_clicked");
     var url = location.origin + "/onebox?q=" + encodeURIComponent(lastQuery);
     if (navigator.clipboard) navigator.clipboard.writeText(url).catch(function () {});
     var btn = root.querySelector("[data-share]"); if (btn) { var old = btn.innerHTML; btn.innerHTML = "Copied"; setTimeout(function () { btn.innerHTML = old; }, 1400); }

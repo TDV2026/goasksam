@@ -18,10 +18,19 @@
 <script>
 (function(){try{
   var c=document.cookie||"";
-  if(c.indexOf("gas_tester=ok")!==-1||c.indexOf("gas_crew=ok")!==-1)return; // already unlocked
+  // Crew/tester device: in immediately, no flag fetch.
+  if(c.indexOf("gas_tester=ok")!==-1||c.indexOf("gas_crew=ok")!==-1)return;
+  // Invite code in the URL: exchange it (existing behavior), preserving query + hash.
   var m=/[?&](tester|crew)=([^&]*)/.exec(location.search||"");
-  if(m){var q=m[1]==="tester"?"tcode":"code";location.replace("/api/crew?"+q+"="+encodeURIComponent(m[2])+"&to="+encodeURIComponent(location.pathname||"/onebox"));return;}
-  location.replace("/"); // no access
+  if(m){var q=m[1]==="tester"?"tcode":"code";location.replace("/api/crew?"+q+"="+encodeURIComponent(m[2])+"&to="+encodeURIComponent((location.pathname||"/onebox")+(location.search||"")+(location.hash||"")));return;}
+  // Not crew: gate on the public-launch flag (app_config onebox_public via publicConfig).
+  // Hide the page until the flag resolves so no content flashes. Public -> reveal; not
+  // public -> home. Instant rollback: set onebox_public=0 and non-crew visitors bounce.
+  document.documentElement.style.visibility="hidden";
+  fetch("/api/publicConfig").then(function(r){return r.json();}).then(function(d){
+    if(d&&d.oneboxPublic){document.documentElement.style.visibility="";}
+    else{location.replace("/");}
+  }).catch(function(){location.replace("/");});
 }catch(e){location.replace("/");}})();
 </script>
 <style>
@@ -176,6 +185,6 @@ h1{font:800 48px/1.04 var(--serif);letter-spacing:-.025em;margin:14px 0 8px;text
   <nav><a href="/how-sam-decides" class="keep" target="_blank" rel="noopener">How it works</a><span class="avatar">SW</span></nav>
 </header>
 <main class="wrap"><div id="ob"></div></main>
-<script src="obx.20260907b/onebox.js"></script>
+<script src="obx.20260907c/onebox.js"></script>
 </body>
 </html>
