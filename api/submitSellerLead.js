@@ -255,7 +255,7 @@ export default async function handler(req, res) {
           reference: inserted?.reference || reference,
           seller: { email },
           car: {
-            raw: asText(car.raw), region: asText(car.region), state: asText(car.state),
+            raw: asText(car.raw), vin: asText(car.vin), region: asText(car.region), state: asText(car.state),
             mileage: asText(car.mileage), condition: asText(car.condition),
             serviceRecords: asText(car.serviceRecords), title: asText(car.title),
             targetPrice: asText(car.targetPrice), timeline: asText(car.timeline), notes: asText(car.notes)

@@ -1179,6 +1179,23 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
+  if (task === "leademailtest") {
+    const { renderLeadEmail, sendLeadNotification } = await import("../lib/_email.js");
+    const base = { partnerName: "Chris Carbine", reference: "GAS-TEST", seller: { email: "regression-test@goasksam.com" }, choice: { destination: "Chris Carbine", destinationType: "powerseller" }, recommendedPath: "bringatrailer" };
+    // (a) VIN + archive match: clean desc + VIN row + prior-listing link.
+    const a = renderLeadEmail({ ...base, car: { raw: "2005 Porsche 911", vin: "WP0AB29985S740317" }, priorSaleUrl: "https://bringatrailer.com/listing/2005-porsche-911-gt2/" });
+    // (b) VIN, no archive match: clean desc + VIN, NO link.
+    const b = renderLeadEmail({ ...base, car: { raw: "2024 Mercedes-Benz GLE-Class", vin: "4JGFB4FB0RA000000" } });
+    // (c) plain typed lead, no VIN: unchanged (no VIN row, no link).
+    const c = renderLeadEmail({ ...base, car: { raw: "1967 Shelby GT500" } });
+    const chk = t => ({ hasVinRow: /VIN:/.test(t.text), hasPriorLink: /previous auction:/.test(t.text), text: t.text });
+    let realSend = null;
+    if (req.query?.send === "1") {
+      realSend = await sendLeadNotification({ partnerEmail: "delivered@resend.dev", partnerName: "Chris Carbine", reference: "GAS-TEST-VINMATCH", seller: { email: "regression-test@goasksam.com" }, car: { raw: "2005 Porsche 911", vin: "WP0AB29985S740317" }, choice: { destination: "Chris Carbine" }, recommendedPath: "bringatrailer", priorSaleUrl: "https://bringatrailer.com/listing/2005-porsche-911-gt2/" });
+    }
+    return res.status(200).json({ task: "leademailtest", a_vin_match: chk(a), b_vin_nomatch: chk(b), c_plain_typed: chk(c), realSend });
+  }
+
   if (task === "leadaudit") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
