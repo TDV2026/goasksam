@@ -292,7 +292,16 @@ async function send(){
         // undecoded-VIN journey is still VIN-originated, so persist that fact for the
         // next startSellFlow to pick up. Boolean/enum only, never the VIN.
         try{sessionStorage.setItem("gas_vin_fail","1");}catch(e){}
-        addMsg("sam",probe.clarification.question);
+        // Chassis exact-match (Task 3): if the chassis-shaped token matched a real car in
+        // the archive, lead with the "I know this exact car" callout (evidence), then fall
+        // through to asking for the year/make/model (resolution still comes from the user,
+        // never inferred from the chassis). No match -> the honest chassis line as before.
+        if(probe.clarification.kind==="chassis_hint"&&probe.vinArchiveMatch&&typeof renderVinArchiveCallout==="function"){
+          renderVinArchiveCallout(probe.vinArchiveMatch);
+          addMsg("sam","Tell me the year, make and model and I'll pull what similar ones have done.");
+        }else{
+          addMsg("sam",probe.clarification.question);
+        }
         document.getElementById("btn").disabled=false;
         return;
       }

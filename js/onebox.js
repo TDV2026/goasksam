@@ -288,11 +288,17 @@
   // ---------------------------------------------------------------- VIN anchor (Task 2)
   var vinAnchor = null;   // carried from the confirm step into the result render
   var pendingVin = null;  // resolved vehicle awaiting confirmation
-  function obDetectVin(text) {
-    var up = String(text || "").toUpperCase().replace(/[\s.\-]+/g, "");
-    if (up.length !== 17) return null;
-    if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(up)) return null;   // VIN alphabet (no I/O/Q)
-    return (/[A-Z]/.test(up) && /[0-9]/.test(up)) ? up : null;  // real VINs mix letters + digits
+  // Identifier-shaped input that should route through the shared resolver (VIN decode/
+  // confirm, the VIN-invalid reword, the chassis-number line + exact match) instead of the
+  // pool: a SINGLE token that is either a 17-char VIN attempt (valid OR invalid) or a
+  // chassis-shaped token (5-14 chars), in both cases mixing at least one letter and one
+  // digit so bare numbers (years, prices, ZIPs) and plain words never route here.
+  function obIdentifierShaped(text) {
+    var t = String(text || "").trim();
+    if (!t || /\s/.test(t)) return false;
+    var c = t.replace(/[\s.\-/]+/g, "");
+    if (!/^[A-Za-z0-9]+$/.test(c) || !/[A-Za-z]/.test(c) || !/[0-9]/.test(c)) return false;
+    return c.length === 17 || (c.length >= 5 && c.length <= 14);
   }
   var OB_PLAT = { bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", pcarmarket: "PCarMarket", hagerty: "Hagerty", rmsothebys: "RM Sotheby's", gooding: "Gooding & Co", acc: "All Collector Cars", allcollectorcars: "All Collector Cars", collectingcars: "Collecting Cars" };
   function obPlat(s) { var k = String(s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); return OB_PLAT[k] || (s ? String(s) : ""); }
@@ -300,7 +306,7 @@
   // The ANCHOR beat (a + b): "I know this exact car..." + photo + receipt, then a one-line
   // BRIDGE into the pool. NEVER validates or predicts the anchor (no "still looks strong" /
   // "holds its value") - factual sale record + a neutral transition only. Copy-lint enforced.
-  function anchorHtml(match, rc) {
+  function anchorCalloutHtml(match, rc) {
     if (!match || (!match.soldDate && !match.price)) return "";
     var plat = obPlat(match.source), when = monthYear(match.soldDate), price = match.price ? usd(match.price) : null;
     var onP = plat ? " on " + plat : "", whenT = when ? " in " + when : "", forT = price ? " for " + price : "";
@@ -312,10 +318,22 @@
     if (match.photoUrl) photo = '<div class="vin-photo"><img src="' + esc(match.photoUrl) + '" alt="' + esc(name) + '" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.vin-plate\');if(p)p.style.display=\'flex\'"><div class="vin-plate"><div class="m">' + esc(plat) + '</div><div class="n">' + esc(name) + '</div><div class="s">Photo unavailable</div></div></div>';
     else photo = '<div class="vin-photo"><div class="vin-plate" style="display:flex"><div class="m">' + esc(plat) + '</div><div class="n">' + esc(name) + '</div><div class="s">Photo unavailable</div></div></div>';
     var receipt = match.url ? '<a class="anchor-receipt" href="' + esc(match.url) + '" target="_blank" rel="noopener">View that sale</a>' : "";
+    return '<div class="sam"><div class="ava">SAM</div><div class="body"><div class="tag">The exact car</div>' +
+      "<p>" + lint(esc(line), "anchor") + "</p>" + photo + receipt + "</div></div>";
+  }
+  function anchorHtml(match, rc) {
+    var callout = anchorCalloutHtml(match, rc);
+    if (!callout) return "";
     var bridge = "Let’s see what’s happened with similar " + esc((rc && rc.model) ? rc.model : "cars") + "s since.";
-    return '<div class="anchor" data-stage="anchor"><div class="sam"><div class="ava">SAM</div><div class="body"><div class="tag">The exact car</div>' +
-      "<p>" + lint(esc(line), "anchor") + "</p>" + photo + receipt + "</div></div>" +
-      '<p class="bridge">' + lint(bridge, "bridge") + "</p></div>";
+    return '<div class="anchor" data-stage="anchor">' + callout + '<p class="bridge">' + lint(bridge, "bridge") + "</p></div>";
+  }
+  // Chassis exact match (Task 3): the anchor callout + an honest ask for the car (the match
+  // is EVIDENCE only; the user still gives year/make/model). No decoding, no marque guess.
+  function renderChassisMatch(match) {
+    var ask = "Tell me the year, make and model and I’ll pull what similar ones have done.";
+    root.innerHTML = inboxHtml(lastQuery) + '<div class="anchor">' + anchorCalloutHtml(match, null) + "</div>" +
+      '<div class="sam" style="margin-top:16px"><div class="ava">SAM</div><div class="body"><p>' + lint(esc(ask), "chassisMatchAsk") + "</p></div></div>" + footHtml();
+    wire();
   }
 
   // ---------------------------------------------------------------- run (dispatcher)
@@ -323,9 +341,10 @@
     text = String(text || "").trim();
     if (!text) return;
     lastQuery = text; vinAnchor = null; pendingVin = null;
-    // A 17-char VIN routes through the shared resolver (decode + confirm + exact match)
-    // before the pool; everything else goes straight to the archive pool.
-    if (obDetectVin(text)) { vinResolve(text); return; }
+    // Identifier-shaped input (VIN or chassis) routes through the shared resolver (decode +
+    // confirm + exact-match + the honest VIN-invalid / chassis lines); everything else goes
+    // straight to the archive pool.
+    if (obIdentifierShaped(text)) { vinResolve(text); return; }
     runPool(text, null);
   }
   function runPool(text, vehicle) {
@@ -369,7 +388,14 @@
           renderVinConfirm(cl.question, d.vehicle);
           return;
         }
-        if (cl && (cl.kind === "vin_decode_failed" || cl.kind === "vin_invalid_shape" || cl.kind === "chassis_hint")) { renderError(cl.question); return; }
+        if (cl && cl.kind === "chassis_hint") {
+          // Chassis-shaped input: on an exact archive hit, show the anchor + ask for the
+          // car; otherwise just the honest chassis line. Match is evidence, never ranking.
+          if (d.vinArchiveMatch) { obEvent("onebox_vin_anchor_shown"); renderChassisMatch(d.vinArchiveMatch); }
+          else { renderError(cl.question); }
+          return;
+        }
+        if (cl && (cl.kind === "vin_decode_failed" || cl.kind === "vin_invalid_shape")) { renderError(cl.question); return; }
         if (d && d.status === "valid" && d.vehicle) { pendingVin = null; vinAnchor = null; runPool(text, d.vehicle); return; }
         if (d && d.status === "needs_clarification" && cl && (cl.chips || (d.vehicle && d.vehicle.make))) {
           // Partial decode (make+year, no model): ask the model with chips, same as /sell.

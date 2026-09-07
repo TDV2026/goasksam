@@ -230,9 +230,19 @@ export default async function handler(req, res) {
     // Exact-VIN archive match (4a): only when the VIN feature decoded a VIN this
     // request. Off-feature or no-VIN requests never carry it, so the response shape
     // is unchanged for every real seller.
-    const vinMatch = (vinActive && result.vehicle?.vin)
+    let vinMatch = (vinActive && result.vehicle?.vin)
       ? await findVinArchiveMatch(env, { vin: result.vehicle.vin, make: result.vehicle.make, model: result.vehicle.model, year: result.vehicle.year })
       : null;
+    // Chassis exact-match (Task 3, phase 1): when resolution fails into the chassis_hint
+    // path, do a PURE exact-string lookup of the chassis-shaped token against the archive
+    // vin/chassis field. No decoding, no prefix inference, no marque guessing - the match is
+    // evidence, the resolution still comes from the user. Chassis is treated as a VIN for
+    // privacy (request body only, never logged). Gated on vinActive like every VIN path so
+    // the off-feature response shape is unchanged.
+    if (!vinMatch && vinActive && result.clarification?.kind === "chassis_hint" && typeof raw === "string") {
+      const chassisTok = raw.trim().replace(/\s+/g, "");
+      if (chassisTok) vinMatch = await findVinArchiveMatch(env, { vin: chassisTok });
+    }
     return res.status(200).json({
       status,
       vehicle: result.vehicle,
