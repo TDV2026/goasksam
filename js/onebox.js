@@ -1,155 +1,384 @@
-// One Box frontend. One input, one result state, at most three cards. Talks only to
-// the archive-only oneBox branch of /api/sellerDecision. Never exposes the dataset:
-// no pagination, no see-more, no filters. The CTA hands the resolved car to /sell.
-// v2 phase 1: resolved-car confirmation line + trust line render first; each card shows
-// the native display price (with a buyer's-premium label for auction-house records) and
-// a deterministic comp explanation. All render, zero LLM.
+// One Box frontend (wiring phase). One input, one honest result state, at most three
+// cards, rendered into the approved /onebox-preview design. Talks only to the archive-only
+// oneBox branch of /api/sellerDecision. Never exposes the dataset. All render, zero LLM:
+// the answer line, cards, labels and Sam's take are composed deterministically from the
+// engine's structured facts. Engine truth wins over any sample data in the preview.
 (function () {
+  "use strict";
   var API_ORIGIN = (location.hostname === "localhost" || location.protocol === "file:") ? "https://goasksam.com" : "";
+  var root = document.getElementById("ob");
+  var lastQuery = "";
+  var proofPool = [];
+
+  // ---------------------------------------------------------------- helpers
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); }
-  function miles(m) { return m ? Number(m).toLocaleString() + " miles" : "TMU"; }
-  function cap(s) { return s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : s; }
-  // Native display price, never converted. House records carry a premium label separately.
+  function usd(n) { return "$" + Math.round(Number(n)).toLocaleString("en-US"); }
+  function sym(cur) { return ({ USD: "$", GBP: "£", EUR: "€" })[cur] || ""; }
   function priceStr(disp) {
     if (!disp || disp.amount == null) return "";
-    var sym = { USD: "$", GBP: "£", EUR: "€" }[disp.currency];
-    return sym ? sym + Number(disp.amount).toLocaleString() : Number(disp.amount).toLocaleString() + " " + esc(disp.currency);
+    var s = sym(disp.currency);
+    return s ? s + Number(disp.amount).toLocaleString("en-US") : Number(disp.amount).toLocaleString("en-US") + " " + esc(disp.currency);
+  }
+  function milesStr(c) {
+    if (Number.isFinite(c.mileage)) return Number(c.mileage).toLocaleString("en-US") + " miles";
+    if (c.mileageStated != null) return "listed as ~" + Number(c.mileageStated).toLocaleString("en-US") + " miles";
+    return "TMU";
+  }
+  function carLabel(rc) {
+    if (!rc) return "your car";
+    return [rc.year, rc.make, rc.model, rc.trim, rc.bodyStyle ? cap(rc.bodyStyle) : ""].filter(Boolean).join(" ") || "your car";
+  }
+  function cap(s) { s = String(s || ""); return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+  function hashStr(s) { var h = 0, i; s = String(s || ""); for (i = 0; i < s.length; i++) { h = (h << 5) - h + s.charCodeAt(i); h |= 0; } return Math.abs(h); }
+  var PLAT_SVG = '<svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg>';
+
+  // ---------------------------------------------------------------- copy lint (T1.8)
+  // A safety net over every user-facing string One Box composes: it must never carry a
+  // valuation/estimate word, a midpoint/average, positional labels, "anchor", a condition
+  // claim, a predictive-price phrase, or an em/en dash. Money must use outcome verbs. In a
+  // dev context (localhost or ?lint=1) a violation throws so it is caught in test; in prod
+  // it logs and returns the string unchanged (never breaks a seller's result).
+  var LINT_BANNED = /\b(worth|valuation|valued|estimate[sd]?|estimating|apprais\w*|midpoint|average[sd]?|averaging|\bmean\b|typical price|best read|anchor|high(est)? price|low(est)? price|middle price|going rate|market value|fair value|book value|should (sell|go|fetch|bring) for|will (sell|go|fetch|bring) for|pristine|mint condition|excellent condition|concours)\b/i;
+  var LINT_DASH = /[–—]/;
+  function lint(s, where) {
+    var str = String(s == null ? "" : s);
+    var dev = location.hostname === "localhost" || /[?&]lint=1\b/.test(location.search);
+    var hit = LINT_BANNED.test(str) ? (str.match(LINT_BANNED) || [])[0] : (LINT_DASH.test(str) ? "en/em dash" : null);
+    if (hit) {
+      var msg = "One Box copy-lint violation (" + (where || "?") + "): '" + hit + "' in: " + str.slice(0, 120);
+      if (dev) throw new Error(msg);
+      try { console.error(msg); } catch (e) {}
+    }
+    return str;
   }
 
-  var input = document.getElementById("ob-input");
-  var result = document.getElementById("ob-result");
-  var lastText = "";
+  // ---------------------------------------------------------------- answer-line composer (T1.2)
+  // Span endpoints are two REAL surviving sales from the full post-guard pool (engine
+  // d.answer), so they usually will not equal the shown cards - correct behaviour. Money
+  // verbs only: brought / been bringing / sold for. No midpoint, average or "best read".
+  function answerHtml(d) {
+    var a = d.answer;
+    if (!a) return "";
+    var n = '<span class="num">';
+    if (a.kind === "span") {
+      var z = a.closest != null ? (" The one most like yours brought " + n + usd(a.closest) + "</span>" + (a.closestMonth ? " in " + esc(a.closestMonth) : "") + ".") : "";
+      return '<p class="answer">' + lint("Cars like yours have been bringing " + n + usd(a.low) + "</span> to " + n + usd(a.high) + "</span>." + z, "answer.span") + "</p>";
+    }
+    if (a.kind === "two") return '<p class="answer">' + lint("The two closest sales brought " + n + usd(a.high) + "</span> and " + n + usd(a.low) + "</span>.", "answer.two") + "</p>";
+    if (a.kind === "one") return '<p class="answer">' + lint("The one sale I’d actually use brought " + n + usd(a.one) + "</span>.", "answer.one") + "</p>";
+    return "";
+  }
+  function basisHtml(d) {
+    var noun = d.count === 1 ? "sale" : "sales";
+    var win = /12 months/.test(d.windowLabel || "") ? "last <span class=\"num\">12</span> months" : "past <span class=\"num\">2</span> years";
+    return '<span class="basis">Based on <span class="num">' + d.count + "</span> " + noun + '<span class="dot">&middot;</span>' + win + "</span>";
+  }
+  function utilsHtml() {
+    // Bell OMITTED at launch (no affordance renders). Share only.
+    return '<div class="utils"><button class="util" data-share title="Share these sales">' +
+      '<svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Share</button></div>';
+  }
 
-  // Photo-unavailable fallback (WS1.4): a build-sheet spec plate on the paper ground with
-  // the platform mark + car name, never a bare gray "photo unavailable" box.
-  function plateHTML(c, show) {
+  // ---------------------------------------------------------------- cards (T1.1)
+  // Relevance label -> preview tab. Never positional (no High/Low/Middle), never "anchor".
+  function tabFor(rank) {
+    var r = String(rank || "");
+    if (r === "Closest match") return { label: "Closest match", cls: "match" };
+    if (r === "Lower mileage") return { label: "Fewer miles", cls: "diff" };
+    if (r === "Higher mileage") return { label: "More miles", cls: "diff" };
+    if (r === "More recent") return { label: "More recent", cls: "diff" };
+    if (r === "Earlier sale") return { label: "Earlier sale", cls: "diff" };
+    return { label: "Comparable sale", cls: "diff" };
+  }
+  function plateHtml(c, show) {
     var name = [c.year, c.make, c.subjectName].filter(Boolean).join(" ");
-    return '<div class="ob-plate"' + (show ? ' style="display:flex"' : "") + ">" +
-      '<div class="ob-plate-mark">' + esc(c.platform || "") + "</div>" +
-      '<div class="ob-plate-name">' + esc(name) + "</div>" +
-      '<div class="ob-plate-sub">Photo unavailable</div></div>';
+    return '<div class="plate"' + (show ? ' style="display:flex"' : "") + '><div class="m">' + esc(c.platform || "") + '</div>' +
+      '<div class="n">' + esc(name) + '</div><div class="s">Photo unavailable</div></div>';
   }
-  function card(c) {
-    var disp = c.display || {};
-    var mid = !!c.closest; // highlight the closest match, not a price position
-    var note = disp.premiumInclusive ? '<div class="ob-price-note">includes buyer’s premium</div>' : "";
-    // USD-equivalent anchor for non-USD cards (WS1.2).
-    var usd = c.usdApprox ? '<div class="ob-usd">&asymp; $' + Number(c.usdApprox).toLocaleString() + "</div>" : "";
-    var mileLine = c.mileage ? esc(miles(c.mileage))
-      : (c.mileageStated ? '<span class="ob-stated">listed as ~' + esc(miles(c.mileageStated)) + "</span>" : "TMU");
-    var photo = c.image
-      ? '<img src="' + esc(c.image) + '" alt="comparable sale" ' +
-          'onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.ob-plate\');if(p)p.style.display=\'flex\';">' + plateHTML(c, false)
-      : plateHTML(c, true);
-    return '<div class="ob-tile' + (mid ? " mid" : "") + '">' +
-      '<div class="ob-ph">' + photo + "</div>" +
-      '<div class="ob-body"><div class="ob-rank' + (mid ? " mid" : "") + '">' + esc(c.rank) + "</div>" +
-      '<div class="ob-price">' + esc(priceStr(disp)) + "</div>" + usd + note +
-      '<div class="ob-miles">' + mileLine + "</div>" +
-      '<div class="ob-spec">' + esc(c.spec) + "</div>" +
-      (c.explanation ? '<div class="ob-explain">' + esc(c.explanation) + "</div>" : "") +
-      '<div class="ob-meta"><span>' + esc(c.soldLabel) + '</span><span class="ob-plat">' + esc(c.platform) + "</span></div>" +
-      "</div></div>";
+  function phHtml(c) {
+    if (c.image) {
+      return '<div class="ph"><span class="tab ' + tabFor(c.rank).cls + '">' + esc(tabFor(c.rank).label) + '</span>' +
+        '<img src="' + esc(c.image) + '" alt="' + esc([c.year, c.make, c.subjectName].filter(Boolean).join(" ")) + '" ' +
+        'onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.plate\');if(p)p.style.display=\'flex\'">' + plateHtml(c, false) + "</div>";
+    }
+    return '<div class="ph"><span class="tab ' + tabFor(c.rank).cls + '">' + esc(tabFor(c.rank).label) + "</span>" + plateHtml(c, true) + "</div>";
+  }
+  function cardHtml(c, hero) {
+    // includes-buyer's-premium renders ONLY for a live-house premium-inclusive record.
+    // BaT / C&B (online) never carry it, per the engine's basis field.
+    var prem = (c.isHouse && c.display && c.display.premiumInclusive) ? '<div class="prem">Includes buyer’s premium</div>' : "";
+    var usdAnchor = c.usdApprox ? '<div class="usd">&asymp; ' + usd(c.usdApprox) + "</div>" : "";
+    var receipt = c.url || (c.receiptUrl) || null;   // engine card has no url today -> plate/label only
+    var view = receipt ? '<a class="viewsale" href="' + esc(receipt) + '" target="_blank" rel="noopener">View sale on ' + esc(c.platform || "the platform") + "</a>" : "";
+    return '<div class="card' + (hero ? " hero" : "") + '">' + phHtml(c) +
+      '<div class="cbody"><div class="solds"><span>' + esc(c.soldLabel || "Sold recently") + '</span>' +
+      '<span class="plat">' + PLAT_SVG + esc(c.platform || "") + "</span></div>" +
+      '<div class="price">' + esc(priceStr(c.display)) + "</div>" + usdAnchor + prem +
+      '<div class="miles">' + esc(milesStr(c)) + "</div>" +
+      '<div class="cspec">' + lint(esc(c.explanation || c.spec || ""), "card.explanation") + "</div>" + view + "</div></div>";
+  }
+  function gridHtml(cards) {
+    if (cards.length === 1) {
+      return '<div class="grid" data-stage="cards" style="grid-template-columns:minmax(0,360px)">' + cardHtml(cards[0], true) + "</div>";
+    }
+    if (cards.length === 2) {
+      return '<div class="grid" data-stage="cards" style="grid-template-columns:1fr 1fr;max-width:680px">' + cards.map(function (c) { return cardHtml(c, false); }).join("") + "</div>";
+    }
+    var hero = cards.filter(function (c) { return c.closest; })[0] || cards[0];
+    var rest = cards.filter(function (c) { return c !== hero; });
+    return '<div class="grid" data-stage="cards"><div>' + cardHtml(hero, true) + "</div>" +
+      '<div class="rightcol">' + rest.map(function (c) { return cardHtml(c, false); }).join("") + "</div></div>";
   }
 
-  // Resolved-car confirmation line (STEP 3): plain restatement + Change, first thing shown.
-  function resolvedLine(rc) {
-    if (!rc) return "";
-    var name = [rc.year, rc.make, rc.model, rc.trim].filter(Boolean).join(" ");
-    var extra = [rc.bodyStyle ? cap(rc.bodyStyle) : "", rc.transmission || ""].filter(Boolean).join(", ");
-    var full = name + (extra ? " · " + extra : "");
-    if (!full) return "";
-    return '<div class="ob-confirm"><span>Your car: <strong>' + esc(full) + "</strong></span>" +
-      '<button class="ob-change" onclick="oneBoxChange()">Change</button></div>';
+  // ---------------------------------------------------------------- Sam's Take variant pool (T1.5)
+  // A small pool of note-structures, selected DETERMINISTICALLY by evidence shape + car
+  // (no LLM), filled with the displayed cards' own numbers. Two different cars pick
+  // different structures. Money uses outcome verbs; no valuation/positional/anchor words.
+  function cardDesc(c, closest) {
+    var p = priceStr(c.display) || usd(c.value);
+    if (Number.isFinite(c.mileage) && Number.isFinite(closest.mileage)) {
+      var dm = c.mileage - closest.mileage;
+      if (Math.abs(dm) < 1500) return "the " + p + " car had similar miles";
+      return "the " + p + " car had " + Math.abs(dm).toLocaleString("en-US") + (dm < 0 ? " fewer" : " more") + " miles";
+    }
+    var cd = String(c.date || "").slice(0, 10), zd = String(closest.date || "").slice(0, 10);
+    if (cd && zd && cd > zd) return "the " + p + " car sold more recently";
+    if (cd && zd && cd < zd) return "the " + p + " car sold earlier";
+    return "the " + p + " car is the other comparable sale";
+  }
+  var THREE_TAKES = [
+    function (z, a, b) { return "The " + z + " sale is the one I’d pay most attention to. " + cap0(a) + ", while " + b + "."; },
+    function (z, a, b) { return "Of these, " + z + " lines up closest with yours. " + cap0(a) + "; " + b + "."; },
+    function (z, a, b) { return "I’d read the " + z + " result most closely. " + cap0(a) + ", and " + b + "."; },
+    function (z, a, b) { return "The clearest comparison here is the " + z + " car. " + cap0(a) + ", whereas " + b + "."; },
+    function (z, a, b) { return "Start with the " + z + " sale. " + cap0(a) + "; on the other side, " + b + "."; },
+    function (z, a, b) { return "The one that sits nearest yours is " + z + ". " + cap0(a) + ", and " + b + "."; }
+  ];
+  function cap0(s) { s = String(s || ""); return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+  function samNoteHtml(d) {
+    var cards = d.cards || [];
+    if (!cards.length) return "";
+    var closest = cards.filter(function (c) { return c.closest; })[0] || cards[0];
+    var zPrice = priceStr(closest.display) || usd(closest.value);
+    var seed = hashStr((d.vehicle ? (d.vehicle.make + d.vehicle.model + d.vehicle.year) : "") + ":" + d.count);
+    var text;
+    if (d.tier === "three") {
+      var others = cards.filter(function (c) { return c !== closest; });
+      var a = cardDesc(others[0], closest), b = others[1] ? cardDesc(others[1], closest) : "";
+      var pick = THREE_TAKES[seed % THREE_TAKES.length];
+      text = b ? pick(zPrice, a, b) : (cap0(a) + ", next to the " + zPrice + " sale I’d read most closely.");
+    } else if (d.tier === "two") {
+      var o = cards.filter(function (c) { return c !== closest; })[0];
+      var TWO = ["These are thin on the ground, so I’m reading the two sales I have. " + cap0(cardDesc(o, closest)) + ".",
+                 "With only two comparable sales, I’d weigh both: the " + zPrice + " car nearest yours, and " + cardDesc(o, closest) + ".",
+                 "Two sales is what the record holds here. The " + zPrice + " result reads closest, and " + cardDesc(o, closest) + "."];
+      text = TWO[seed % TWO.length];
+    } else {
+      var ONE = ["There isn’t enough recent activity for a range, so this " + zPrice + " sale is the one I’d actually read for yours.",
+                 "One sale is what I’d stand behind here: the " + zPrice + " result, closest to your car.",
+                 "The record is thin, but the " + zPrice + " sale is a real, comparable one I’d read for yours."];
+      text = ONE[seed % ONE.length];
+    }
+    return '<div class="sam note" data-stage="note"><div class="ava">SAM</div><div class="body"><p>' + lint(esc(text), "samNote").replace(/\$([\d,]+)/g, '<span class="num">$$$1</span>') + "</p></div></div>";
   }
 
-  function statLine(count, windowLabel) {
-    var noun = count === 1 ? "relevant sale" : "relevant sales";
-    return '<div class="ob-stat"><span>Based on ' + count + " " + noun + '</span><span class="ob-dot">&middot;</span><span>' + esc(windowLabel) + "</span></div>";
+  // ---------------------------------------------------------------- shared chrome
+  function inboxHtml(value, placeholder) {
+    return '<div class="inbox"><input id="ob-input" ' + (value ? 'value="' + esc(value) + '"' : 'placeholder="' + esc(placeholder || "2005 BMW M3 coupe manual 72k miles") + '"') + '>' +
+      '<button class="cam" title="Add a photo">&#9635;</button><button class="go" id="ob-go">&#8594;</button></div>';
   }
-  function samRead(line) {
-    return '<div class="ob-read"><div class="ob-who"><i></i><span>Sam</span></div><p>' + esc(line) + "</p></div>";
+  function footHtml() {
+    return '<div class="foot"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Real sales only. No estimates. No valuations.</div>';
   }
-  function cta() {
-    return '<div class="ob-cta"><p>I\'ll look at the same market and tell you where I\'d sell it.</p>' +
-      '<button class="ob-btn" onclick="oneBoxToSell()">See where I\'d sell it &#8594;</button></div>';
+  function samTakeHtml(d) {
+    var take = "Got it. I’m looking at comparable sales for your " + carLabel(d.resolvedCar) + ".";
+    return '<div data-stage="resolved"><div class="sam"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s take</div>' +
+      "<p>" + lint(esc(take), "samTake") + "</p></div>" +
+      '<button class="edit" id="ob-edit">Edit details</button></div></div>';
   }
-  function grid(cards) {
-    var cls = cards.length === 3 ? "" : cards.length === 2 ? " two" : " one";
-    return '<div class="ob-tiles' + cls + '">' + cards.map(card).join("") + "</div>";
+  function sellHtml() {
+    return '<div class="sell" data-stage="note"><div><h3>Ready to sell?</h3><p>I can tell you the best places to sell your car right now and why.</p></div>' +
+      '<a id="ob-sell">See where I’d sell it &#8594;</a></div>';
   }
-  function chips(options) {
-    return '<div class="ob-chips">' + options.map(function (o) {
-      return '<button class="ob-chip" onclick="oneBoxBody(' + JSON.stringify(o).replace(/"/g, "&quot;") + ')">' + esc(o) + "</button>";
-    }).join("") + "</div>";
+  function refineHtml() {
+    return '<div class="refine" data-stage="note"><p class="r-lead">Colour and history move individual cars. Tell me what matters about yours and I’ll tighten the read.</p>' +
+      '<input id="ob-refine" placeholder="e.g. Competition Package, recent service, original paint"></div>';
+  }
+  function recentHtml() {
+    var items = recentSearches();
+    if (!items.length) return "";
+    return '<div class="recent" data-stage="note"><div class="rh"><h4>Recent searches</h4></div><div class="rcards">' +
+      items.slice(0, 4).map(function (it) { return '<div class="rc" data-recent="' + esc(it.q) + '"><span class="th"></span><span><span class="t">' + esc(it.label) + '</span><span class="u">' + esc(it.when) + "</span></span></div>"; }).join("") + "</div></div>";
+  }
+  function whyRow() { return '<div class="whyrow" data-stage="answer"><button class="why"><span class="i">i</span>Why these cars?</button></div>'; }
+
+  // ---------------------------------------------------------------- state renderers
+  function chipsHtml(options, kind) {
+    return '<div class="chips">' + (options || []).map(function (o) { return '<button class="chip" data-' + kind + '="' + esc(o) + '">' + esc(o) + "</button>"; }).join("") + "</div>";
+  }
+  function renderEmpty() {
+    var proof = proofLine();
+    root.innerHTML =
+      "<h1>What have cars like yours actually sold for?</h1>" +
+      '<p class="lede">Real sales. Real cars. No guesswork.</p>' +
+      inboxHtml("", "2005 BMW M3 coupe manual 72k miles") +
+      (proof ? '<p class="proof" id="ob-proof">' + proof + "</p>" : "") +
+      recentHtml() + footHtml();
+    wire();
+    startProofRotation();
+  }
+  function renderResults(d) {
+    var head = samTakeHtml(d);
+    var body;
+    if (d.tier === "three" || d.tier === "two" || d.tier === "one") {
+      body = '<div data-stage="answer">' + answerHtml(d) + '<div class="meta-row">' + basisHtml(d) + utilsHtml() + "</div></div>" +
+        whyRow() + gridHtml(d.cards) + samNoteHtml(d) + refineHtml() + sellHtml() + recentHtml();
+    } else if (d.tier === "zero") {
+      body = '<div class="sam" data-stage="answer"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s take</div><p style="font-size:20px;line-height:1.45">' +
+        lint(esc("I don’t have enough real " + carLabel(d.resolvedCar) + " sales to show you an honest read, and I won’t make one up. Try another car and I’ll pull what actually sold."), "zero") + "</p>" +
+        chipsHtml(["Change the car"], "change") + "</div></div>" + sellHtml();
+    } else if (d.tier === "underspecified") {
+      // Refusal (signature trust state): NO answer line. Ask for the trim/engine.
+      body = '<div class="sam" data-stage="answer"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s take</div><p style="font-size:22px;line-height:1.4">' +
+        lint(esc(d.samLine || "The sold examples here vary too much to show you an honest read. Add the trim or engine and I’ll compare like for like."), "refuse") + "</p></div></div>";
+    }
+    root.innerHTML = inboxHtml(lastQuery) + head + body + footHtml();
+    wire();
+    streamReveal();
+  }
+  function renderChoice(d) {
+    var opts = d.modelOptions || d.bodyOptions || [];
+    var kind = d.modelOptions ? "model" : "body";
+    root.innerHTML = inboxHtml(lastQuery) +
+      '<div class="sam" style="margin-top:26px"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s take</div>' +
+      '<p style="font-size:22px;line-height:1.4">' + lint(esc(d.prompt || "Which one is it?"), "choice") + "</p>" +
+      chipsHtml(opts, kind) + "</div></div>" + footHtml();
+    wire();
+  }
+  function renderError(msg) {
+    root.innerHTML = inboxHtml(lastQuery) +
+      '<div class="sam" style="margin-top:26px"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s take</div><p>' + esc(msg) + "</p></div></div>" + footHtml();
+    wire();
   }
 
-  function render(d) {
-    if (d.status === "needs_clarification") {
-      result.innerHTML = '<div class="ob-note">I could not pin that exact car down. Try the year, make and model together, like 1972 Porsche 911 or 1969 Ford Mustang.</div>';
-      return;
-    }
-    if (d.status !== "one_box") {
-      result.innerHTML = '<div class="ob-note">I am having trouble reading the market right now. Give it another try in a moment.</div>';
-      return;
-    }
-    // Resolved-car line renders on EVERY one_box path, including the disambiguation asks.
-    var head = resolvedLine(d.resolvedCar);
-    if (d.tier === "model_choice") {
-      // Make resolved, model missing/ambiguous: ask with real model chips (same one-tap
-      // pattern as the body-style follow-up); a chip appends the model and re-runs.
-      result.innerHTML = head + samRead(d.prompt) + chips(d.modelOptions);
-      return;
-    }
-    if (d.tier === "body_choice") {
-      result.innerHTML = head + samRead(d.prompt) + chips(d.bodyOptions);
-      return;
-    }
-    if (d.tier === "zero" || d.tier === "underspecified") {
-      result.innerHTML = head + samRead(d.samLine) + cta();
-      return;
-    }
-    result.innerHTML = head +
-      (d.trustLine ? '<div class="ob-trust">' + esc(d.trustLine) + "</div>" : "") +
-      grid(d.cards) + statLine(d.count, d.windowLabel) + samRead(d.samLine) + cta();
+  // ---------------------------------------------------------------- streaming (T1.4)
+  function streamReveal() {
+    var stages = ["resolved", "answer", "cards", "note"];
+    var els = [];
+    stages.forEach(function (s) { Array.prototype.forEach.call(root.querySelectorAll('[data-stage="' + s + '"]'), function (e) { e.classList.add("stage-pending"); els.push(e); }); });
+    var i = 0;
+    (function step() {
+      if (i >= els.length) return;
+      els[i].classList.remove("stage-pending");
+      i++;
+      setTimeout(step, 170);
+    })();
+  }
+  function workingLine(car, d) {
+    var n = d ? d.count : null, m = d ? d.platformsCount : null;
+    var txt = (n != null) ? ("Reading the market · " + n + " " + (n === 1 ? "sale" : "sales") + " across " + m + " " + (m === 1 ? "platform" : "platforms")) : ("Reading the market for your " + car);
+    return '<div class="working"><span class="pulse"></span>' + esc(txt) + "</div>";
   }
 
+  // ---------------------------------------------------------------- run
   function run(text) {
     text = String(text || "").trim();
     if (!text) return;
-    lastText = text;
-    var intro = document.getElementById("ob-intro"); // the empty-state explainer clears on first search
-    if (intro) intro.style.display = "none";
-    result.innerHTML = '<div class="ob-loading">Reading the market for real sold prices.</div>';
+    lastQuery = text;
+    // Stage 0: echo the query + a working line immediately, before the pool computes.
+    root.innerHTML = inboxHtml(text) + workingLine(esc(text), null) + footHtml();
+    wire();
+    if (typeof gasJourneyEvent === "function") { try { obJourney("onebox_search", text); } catch (e) {} }
     fetch(API_ORIGIN + "/api/sellerDecision", {
-      method: "POST", credentials: "include",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ oneBox: true, car: { raw: text } })
-    }).then(function (r) { return r.json(); })
-      .then(render)
-      .catch(function () { result.innerHTML = '<div class="ob-note">I am having trouble reading the market right now. Give it another try in a moment.</div>'; });
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      pushRecent(text, d);
+      if (d && d.status === "needs_clarification") { renderError("I couldn’t pin that exact car down. Try the year, make and model together, like 1972 Porsche 911 or 1969 Ford Mustang."); return; }
+      if (!d || d.status !== "one_box") { renderError("I’m having trouble reading the market right now. Give it another try in a moment."); return; }
+      if (d.tier === "model_choice" || d.tier === "body_choice") { renderChoice(d); return; }
+      // Brief working-with-figures beat (real numbers), then the staged result.
+      root.innerHTML = inboxHtml(text) + samTakeHtml(d) + workingLine(carLabel(d.resolvedCar), d) + footHtml();
+      wire();
+      obAnalytics(d);
+      setTimeout(function () { renderResults(d); }, 260);
+    }).catch(function () { renderError("I’m having trouble reading the market right now. Give it another try in a moment."); });
   }
 
-  // Hand the resolved car to the sell wizard, pre-filled.
-  window.oneBoxToSell = function () {
-    try { if (lastText) localStorage.setItem("gas_onebox_prefill", lastText); } catch (e) {}
-    location.href = "/sell";
-  };
-  window.oneBoxRun = function () { run(input.value); };
-  // Change link on the confirmation line: clear the result, restore the input for a retype.
-  window.oneBoxChange = function () {
-    result.innerHTML = "";
-    var intro = document.getElementById("ob-intro"); if (intro) intro.style.display = "";
-    if (input) { if (lastText) input.value = lastText; input.focus(); try { input.select(); } catch (e) {} }
-  };
-  // One-tap body-style pick: re-run the same query with the chosen body appended.
-  window.oneBoxBody = function (bodyLabel) {
-    var base = lastText || (input && input.value) || "";
-    run(base + " " + bodyLabel);
-  };
-
-  if (input) {
-    document.getElementById("ob-go").addEventListener("click", function () { run(input.value); });
-    input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); run(input.value); } });
+  // ---------------------------------------------------------------- analytics (thin; full panel is T1.7)
+  function obJourney(ev, text) {
+    if (typeof gasJourneyEventOnce === "function") gasJourneyEventOnce(ev, { dedupKey: String(hashStr(text || lastQuery)) });
   }
+  function obAnalytics(d) {
+    try {
+      if (d.tier === "underspecified") obJourney("onebox_refusal_shown", lastQuery);
+      else if (d.tier === "zero" || d.tier === "one" || d.tier === "two") obJourney("onebox_thin_result_shown", lastQuery + ":" + d.tier);
+      else if (d.tier === "three") obJourney("onebox_answer_shown", lastQuery);
+    } catch (e) {}
+  }
+
+  // ---------------------------------------------------------------- proof line (T1.3 empty storefront)
+  function fetchProof() {
+    fetch(API_ORIGIN + "/api/sellerDecision", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ oneBoxProof: true }) })
+      .then(function (r) { return r.json(); }).then(function (d) { if (d && d.proof && d.proof.length) { proofPool = d.proof; var el = document.getElementById("ob-proof"); if (el) el.innerHTML = proofLine(); } }).catch(function () {});
+  }
+  function relDay(dstr) {
+    if (!dstr) return "recently";
+    var d = new Date(String(dstr).slice(0, 10)); if (isNaN(d)) return "recently";
+    var days = Math.round((Date.now() - d.getTime()) / 864e5);
+    if (days <= 0) return "today"; if (days === 1) return "yesterday"; if (days < 7) return days + " days ago"; if (days < 14) return "last week"; return "recently";
+  }
+  var proofIdx = 0;
+  function proofLine() {
+    if (!proofPool.length) return "";
+    var p = proofPool[proofIdx % proofPool.length];
+    var name = [p.year, p.make, p.model].filter(Boolean).join(" ");
+    return lint("A <span class=\"num\">" + esc(p.year) + "</span> " + esc([p.make, p.model].filter(Boolean).join(" ")) + " brought <span class=\"num\">" + usd(p.price) + "</span> on " + esc(p.platform) + " " + esc(relDay(p.date)) + ".", "proof");
+  }
+  var proofTimer = null;
+  function startProofRotation() { if (proofTimer) clearInterval(proofTimer); proofTimer = setInterval(function () { proofIdx++; var el = document.getElementById("ob-proof"); if (el && proofPool.length) el.innerHTML = proofLine(); else if (!document.getElementById("ob-proof")) { clearInterval(proofTimer); } }, 3200); }
+
+  // ---------------------------------------------------------------- recent searches (localStorage)
+  function recentSearches() { try { return JSON.parse(localStorage.getItem("gas_ob_recent") || "[]"); } catch (e) { return []; } }
+  function pushRecent(q, d) {
+    try {
+      var label = (d && d.resolvedCar) ? [d.resolvedCar.year, d.resolvedCar.make, d.resolvedCar.model].filter(Boolean).join(" ") : q;
+      var list = recentSearches().filter(function (it) { return it.q !== q; });
+      list.unshift({ q: q, label: label || q, when: "Just now" });
+      localStorage.setItem("gas_ob_recent", JSON.stringify(list.slice(0, 8)));
+    } catch (e) {}
+  }
+
+  // ---------------------------------------------------------------- handoff + share
+  function toSell() { try { if (lastQuery) localStorage.setItem("gas_onebox_prefill", lastQuery); } catch (e) {} if (typeof gasJourneyEvent === "function") { try { obJourney("onebox_sell_handoff_clicked", lastQuery); } catch (e) {} } location.href = "/sell"; }
+  function shareResult() {
+    try { obJourney("onebox_share_clicked", lastQuery); } catch (e) {}
+    var url = location.origin + "/onebox?q=" + encodeURIComponent(lastQuery);
+    if (navigator.clipboard) navigator.clipboard.writeText(url).catch(function () {});
+    var btn = root.querySelector("[data-share]"); if (btn) { var old = btn.innerHTML; btn.innerHTML = "Copied"; setTimeout(function () { btn.innerHTML = old; }, 1400); }
+  }
+
+  // ---------------------------------------------------------------- wiring
+  function wire() {
+    var input = document.getElementById("ob-input");
+    var go = document.getElementById("ob-go");
+    if (go) go.addEventListener("click", function () { run(input && input.value); });
+    if (input) input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); run(input.value); } });
+    var edit = document.getElementById("ob-edit"); if (edit) edit.addEventListener("click", function () { renderEmpty(); if (input && lastQuery) { var i2 = document.getElementById("ob-input"); if (i2) { i2.value = lastQuery; i2.focus(); } } });
+    var sell = document.getElementById("ob-sell"); if (sell) sell.addEventListener("click", toSell);
+    var share = root.querySelector("[data-share]"); if (share) share.addEventListener("click", shareResult);
+    Array.prototype.forEach.call(root.querySelectorAll("[data-model]"), function (b) { b.addEventListener("click", function () { run((lastQuery || "") + " " + b.getAttribute("data-model")); }); });
+    Array.prototype.forEach.call(root.querySelectorAll("[data-body]"), function (b) { b.addEventListener("click", function () { run((lastQuery || "") + " " + b.getAttribute("data-body")); }); });
+    Array.prototype.forEach.call(root.querySelectorAll("[data-change]"), function (b) { b.addEventListener("click", function () { renderEmpty(); }); });
+    Array.prototype.forEach.call(root.querySelectorAll("[data-recent]"), function (b) { b.addEventListener("click", function () { run(b.getAttribute("data-recent")); }); });
+  }
+
+  // ---------------------------------------------------------------- boot
+  function boot() {
+    renderEmpty();
+    fetchProof();
+    var q = /[?&]q=([^&]*)/.exec(location.search || "");
+    if (q) { try { run(decodeURIComponent(q[1])); } catch (e) {} }
+  }
+  boot();
 })();
