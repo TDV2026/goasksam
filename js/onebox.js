@@ -317,9 +317,17 @@
     try { var a = localStorage.getItem("gas_ob_anon"); if (a) return a; a = "ob-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10); localStorage.setItem("gas_ob_anon", a); return a; }
     catch (e) { return null; }
   }
+  var obFired = {};
   function obEvent(event, keySeed) {
     try {
-      var body = JSON.stringify({ event: event, anonSessionId: obAnonId(), dedupKey: event + ":" + hashStr(String(keySeed || lastQuery)) });
+      // Dedup CLIENT-side (per event + query, this page load): the server's
+      // on_conflict=event,dedup_key path is unavailable, so a dedup_key insert is
+      // dropped. We send NO dedup_key (plain insert records reliably) and guard
+      // re-renders here so a single render never double-counts.
+      var k = event + ":" + hashStr(String(keySeed || lastQuery));
+      if (obFired[k]) return;
+      obFired[k] = 1;
+      var body = JSON.stringify({ event: event, anonSessionId: obAnonId() });
       var url = API_ORIGIN + "/api/funnel";
       if (navigator.sendBeacon) { navigator.sendBeacon(url, new Blob([body], { type: "application/json" })); return; }
       fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: body, keepalive: true }).catch(function () {});
