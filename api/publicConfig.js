@@ -93,6 +93,36 @@ async function handleOneboxShare(req, res, id) {
 }
 
 export default async function handler(req, res) {
+  // TEMP diagnostic (C&B VIN-field investigation, read-only, removed after use). Nonce-gated.
+  if (req.query && req.query.diag === "cbvin7") {
+    const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    const h = { apikey: key, Authorization: `Bearer ${key}` };
+    const out = {};
+    // Auto-detect which raw_record key holds a VIN/chassis-shaped value.
+    const vinish = v => { const s = String(v == null ? "" : v).replace(/[\s.\-\/]/g, ""); return /^[A-Za-z0-9]{5,17}$/.test(s) && /[A-Za-z]/.test(s) && /[0-9]/.test(s); };
+    const sample = (rows) => (Array.isArray(rows) ? rows : []).map(r => {
+      const rr = r.raw_record || {};
+      const idKeys = {};
+      for (const k of Object.keys(rr)) { if (/vin|chassis|serial/i.test(k) || vinish(rr[k])) idKeys[k] = rr[k]; }
+      return { ourVin: r.vin, platform: r.platform, car: [r.year, r.make, r.model].filter(Boolean).join(" "), date: r.sale_date, idKeysInRaw: idKeys, rawKeyCount: Object.keys(rr).length };
+    });
+    try {
+      const q = (f) => `${url}/rest/v1/sales_archive?${f}&select=vin,platform,make,model,year,sale_date,raw_record&order=sale_date.desc.nullslast`;
+      out.cbRecent = sample(await (await fetch(q("platform=eq.Cars%20%26%20Bids") + "&limit=5", { headers: h })).json());
+      out.cbOlder2025 = sample(await (await fetch(q("platform=eq.Cars%20%26%20Bids&sale_date=lt.2026-01-01") + "&limit=5", { headers: h })).json());
+      out.batSample = sample(await (await fetch(q("platform=eq.Bring%20a%20Trailer&vin=not.is.null") + "&limit=3", { headers: h })).json());
+      // Counts: C&B total, C&B with our vin null, and how many of those null ones carry a
+      // vin-ish value SOMEWHERE in raw_record (a mapping miss vs a genuine source gap).
+      const cnt = async (f) => { const r = await fetch(`${url}/rest/v1/sales_archive?${f}&select=id`, { headers: { ...h, Prefer: "count=exact", Range: "0-0" } }); const cr = r.headers.get("content-range") || ""; return cr.includes("/") ? Number(cr.split("/")[1]) : null; };
+      out.counts = {
+        cbTotal: await cnt("platform=eq.Cars%20%26%20Bids"),
+        cbVinNull: await cnt("platform=eq.Cars%20%26%20Bids&vin=is.null"),
+        cbVinNull2026: await cnt("platform=eq.Cars%20%26%20Bids&vin=is.null&sale_date=gte.2026-01-01")
+      };
+    } catch (e) { out.error = e.message; }
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(200).json(out);
+  }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
   if (req.query && typeof req.query.obShare !== "undefined") {
