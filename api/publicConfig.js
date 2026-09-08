@@ -98,7 +98,12 @@ export default async function handler(req, res) {
     const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
     const h = { apikey: key, Authorization: `Bearer ${key}` };
     const sel = "source_id,sale_date,platform,sale_price,mileage,make,model,year,listing_title,auction_status,raw_record";
-    const get = async (q) => { try { const r = await fetch(`${url}/rest/v1/sales_archive?${q}&select=${sel}&limit=400`, { headers: h }); const j = await r.json(); return Array.isArray(j) ? j : []; } catch (e) { return []; } };
+    const errs = [];
+    const get = async (q) => { try { const r = await fetch(`${url}/rest/v1/sales_archive?${q}&select=${sel}&limit=400`, { headers: h }); const j = await r.json(); if (!Array.isArray(j)) { errs.push(q.slice(0, 40) + " => " + JSON.stringify(j).slice(0, 120)); return []; } return j; } catch (e) { errs.push(q.slice(0, 40) + " threw " + e.message); return []; } };
+    // Sanity: how many Mercedes SL records exist, and what do their model/title fields hold?
+    const cntMerc = await (async () => { try { const r = await fetch(`${url}/rest/v1/sales_archive?make=ilike.*mercedes*&select=id`, { headers: { ...h, Prefer: "count=exact", Range: "0-0" } }); const cr = r.headers.get("content-range") || ""; return cr.includes("/") ? Number(cr.split("/")[1]) : null; } catch { return null; } })();
+    const mercSample = await get("make=ilike.*mercedes*&model=ilike.*SL*");
+    const sampleModels = {}; for (const r of mercSample.slice(0, 400)) sampleModels[r.model] = (sampleModels[r.model] || 0) + 1;
     const rowsA = await get("listing_title=ilike.*black%20series*");
     const rowsB = await get("model=ilike.*sl65*");
     const rowsC = await get("model=ilike.*sl%2065*");
@@ -127,7 +132,7 @@ export default async function handler(req, res) {
     const diag = { A_title_blackseries: rowsA.length, B_model_sl65: rowsB.length, C_model_sl_65: rowsC.length, D_rawtitle_blackseries: rowsD.length, E_title_sl65: rowsE.length, F_rawtitle_sl65: rowsF.length, G_mb_slclass: rowsG.length, H_mb_sl65: rowsH.length };
     const anyBlackSeries = all.filter(r => /black\s?series/i.test(`${r.listing_title || ""} ${r.raw_record?.title || ""}`)).map(r => (r.listing_title || r.raw_record?.title || "").slice(0, 80)).slice(0, 20);
     res.setHeader("Cache-Control", "no-store");
-    return res.status(200).json({ count: match.length, statuses, candidatesScanned: all.length, diag, anyBlackSeriesTitles: anyBlackSeries, rows: match });
+    return res.status(200).json({ count: match.length, statuses, candidatesScanned: all.length, diag, errs, mercedesTotal: cntMerc, mercSLsampleCount: mercSample.length, sampleSLModels: sampleModels, anyBlackSeriesTitles: anyBlackSeries, rows: match });
   }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
