@@ -93,33 +93,6 @@ async function handleOneboxShare(req, res, id) {
 }
 
 export default async function handler(req, res) {
-  // TEMP diagnostic (chassis coverage investigation, removed after use). Nonce-gated.
-  if (req.query && req.query.diag === "brz9k2") {
-    const env = { url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY };
-    const h = { apikey: env.key, Authorization: `Bearer ${env.key}` };
-    const out = {};
-    try {
-      // Bronco: search by price + by make/model/year, NOT by vin.
-      out.byPrice = await (await fetch(`${env.url}/rest/v1/sales_archive?sale_price=eq.147500&select=vin,make,model,year,sale_date,platform&limit=25`, { headers: h })).json();
-      out.byModel = await (await fetch(`${env.url}/rest/v1/sales_archive?make=ilike.*ford*&model=ilike.*bronco*&year=eq.1966&select=vin,make,model,year,sale_date,platform,sale_price&order=sale_date.desc.nullslast&limit=25`, { headers: h })).json();
-      // Platform split of chassis-style (vin present, not 17-char) vs 17-char VINs.
-      const perPlat = {};
-      for (let offset = 0; offset < 40000; offset += 1000) {
-        const rows = await (await fetch(`${env.url}/rest/v1/sales_archive?vin=not.is.null&select=platform,vin&limit=1000&offset=${offset}`, { headers: h })).json();
-        if (!Array.isArray(rows) || !rows.length) break;
-        for (const r of rows) {
-          const c = String(r.vin || "").replace(/[\s.\-\/]/g, "");
-          const k = r.platform || "(null)";
-          perPlat[k] = perPlat[k] || { chassis: 0, vin17: 0 };
-          if (c.length === 17) perPlat[k].vin17++; else perPlat[k].chassis++;
-        }
-        if (rows.length < 1000) break;
-      }
-      out.platformSplit = perPlat;
-    } catch (e) { out.error = e.message; }
-    res.setHeader("Cache-Control", "no-store");
-    return res.status(200).json(out);
-  }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
   if (req.query && typeof req.query.obShare !== "undefined") {
