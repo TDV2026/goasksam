@@ -103,6 +103,14 @@ export default async function handler(req, res) {
     const cb = "Cars%20%26%20Bids";
     const slim = rows => Array.isArray(rows) ? rows.map(r => ({ platform: r.platform, date: r.sale_date || r.auction_end_date, price: r.sale_price || r.price, make: r.make, model: r.model, vin: r.vin, rawVin: r.raw_record && (r.raw_record.vin || r.raw_record.VIN), title: r.listing_title || (r.raw_record && r.raw_record.title) })) : rows;
     const out = {};
+    // Per-platform VIN coverage (fast count queries): how often a VIN match could fire.
+    out.coverage = {};
+    for (const pf of ["Cars %26 Bids", "Bring a Trailer", "RM Sotheby's", "Gooding %26 Co", "Hagerty", "All Collector Cars", "PCARMarket"]) {
+      const name = pf.replace("%26", "&");
+      const total = await cnt("sales_archive", `platform=eq.${encodeURIComponent(name)}`);
+      const withVin = await cnt("sales_archive", `platform=eq.${encodeURIComponent(name)}&vin=not.is.null`);
+      out.coverage[name] = { total, withVin, pct: (typeof total === "number" && total) ? Math.round(1000 * (typeof withVin === "number" ? withVin : 0) / total) / 10 : null };
+    }
     // sales_archive
     out.SA_byVinExact = slim(await get("sales_archive", `vin=eq.${VIN}&select=platform,sale_date,sale_price,make,model,vin,listing_title,raw_record`));
     out.SA_byDateMake = slim(await get("sales_archive", `platform=eq.${cb}&make=ilike.*lamborghini*&sale_date=eq.2023-06-15&select=platform,sale_date,sale_price,make,model,vin,listing_title,raw_record`));
