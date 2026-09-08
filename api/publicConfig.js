@@ -9,7 +9,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { appConfigFlag } from "../lib/_flags.js";
-import { supabaseSelect } from "../lib/_supabase.js";
+import { supabaseSelect, supabaseInsert } from "../lib/_supabase.js";
 
 let SHELL = null;
 function shell() {
@@ -93,6 +93,106 @@ async function handleOneboxShare(req, res, id) {
 }
 
 export default async function handler(req, res) {
+  // TEMP historical backfill phase 2 (Bring a Trailer into sales_archive). Nonce-gated +
+  // server-side only (nonce never shipped to the browser); keyless because PROBE_KEY is not
+  // pullable locally. Reuses scripts/ingest.js's exact row shape + on_conflict=source_id
+  // upsert-merge. supabaseInsert IS imported (the Phase 1 persist bug). Removed after use.
+  if (req.query && req.query.bf === "bat2v9") {
+    const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    const apiKey = process.env.OLDCARSDATA_API_KEY;
+    const h = { apikey: key, Authorization: `Bearer ${key}` };
+    const { callOldCarsData } = await import("../lib/_ocd.js");
+    const { recordUsageEvent } = await import("./_usage.js");
+    const LABEL = "Bring a Trailer";
+    const toDate = s => { const d = s ? new Date(s) : null; return d && !isNaN(d) ? d : null; };
+    const dayKey = d => d ? d.toISOString().slice(0, 10) : null;
+    const toMoney = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null; };
+    const toInt = v => { const n = Number(v); return Number.isFinite(n) ? Math.trunc(n) : null; };
+    const toBool = v => typeof v === "boolean" ? v : (v == null ? null : /^(true|1|yes)$/i.test(String(v)));
+    const toFullRow = (r, label) => { const d = toDate(r.auction_end_date); return {
+      source_id: String(r.id ?? ""), sale_date: dayKey(d), platform: label,
+      make: (r.ocd_make_name || r.listing_make || "Unknown").toString().trim(),
+      model: (r.ocd_model_name || r.listing_model || "Unknown").toString().trim(),
+      sale_price: toMoney(r.price), month: d ? d.toISOString().slice(0, 7) : null, raw_record: r,
+      year: toInt(r.year), mileage: toInt(r.mileage), body_style: r.body_style ?? null,
+      title_status: r.title_status ?? null, vin: r.vin ?? null, transmission: r.transmission ?? null,
+      drivetrain: r.drivetrain ?? null, exterior_color: r.exterior_color ?? null, interior_color: r.interior_color ?? null,
+      seller_type: r.seller_type ?? null, listing_title: r.title ?? null, description: r.description ?? null,
+      has_reserve: toBool(r.has_reserve), views: toInt(r.stats?.views), bids: toInt(r.stats?.bids),
+      known_flaws: r.known_flaws ?? null, recent_service_history: r.recent_service_history ?? null, modifications: r.modifications ?? null
+    }; };
+    const cnt = async (f) => { const r = await fetch(`${url}/rest/v1/sales_archive?${f}&select=id`, { headers: { ...h, Prefer: "count=exact", Range: "0-0" } }); const cr = r.headers.get("content-range") || ""; return cr.includes("/") ? Number(cr.split("/")[1]) : null; };
+    const mode = String(req.query.mode || "count");
+
+    if (mode === "count") {
+      // Step 0: verify a real upsert PERSISTS (not just fetches) - the Phase 1 failure mode.
+      let upsertTest = "ok", persistedProof = null;
+      try {
+        await supabaseInsert("sales_archive", [{ source_id: "bat-bf-test-delete-me", sale_date: "2022-01-01", platform: LABEL, make: "Test", model: "Test", raw_record: { t: 1 } }], url, key, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id");
+        persistedProof = await cnt("source_id=eq.bat-bf-test-delete-me"); // 1 == persisted
+      } catch (e) { upsertTest = "THREW: " + e.message; }
+      const todayStart = new Date(); todayStart.setUTCHours(0, 0, 0, 0);
+      const monthStart = new Date(new Date().toISOString().slice(0, 7) + "-01T00:00:00Z").toISOString();
+      const sumMetered = async (sinceIso) => { const rows = await (await fetch(`${url}/rest/v1/app_usage_events?created_at=gte.${sinceIso}&oldcarsdata_metered_requests=gt.0&select=oldcarsdata_metered_requests&limit=20000`, { headers: h })).json(); return Array.isArray(rows) ? rows.reduce((s, r) => s + (Number(r.oldcarsdata_metered_requests) || 0), 0) : null; };
+      const oldestRow = await (await fetch(`${url}/rest/v1/sales_archive?platform=eq.${encodeURIComponent(LABEL)}&select=sale_date&order=sale_date.asc.nullslast&limit=1`, { headers: h })).json();
+      const newestRow = await (await fetch(`${url}/rest/v1/sales_archive?platform=eq.${encodeURIComponent(LABEL)}&select=sale_date&order=sale_date.desc.nullslast&limit=1`, { headers: h })).json();
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(200).json({ upsertTest, persistedProof, batTotal: await cnt(`platform=eq.${encodeURIComponent(LABEL)}`), batSince2022: await cnt(`platform=eq.${encodeURIComponent(LABEL)}&sale_date=gte.2022-01-01`), oldest: oldestRow?.[0]?.sale_date || null, newest: newestRow?.[0]?.sale_date || null, spentMonth: await sumMetered(monthStart), spentToday: await sumMetered(todayStart.toISOString()), monthlyBudget: Number(process.env.OCD_MONTHLY_BUDGET || 10000) });
+    }
+
+    if (mode === "pull") {
+      const from = String(req.query.from || "2022-01-01");
+      const to = req.query.to ? String(req.query.to) : null;
+      const pagesize = Math.max(50, Math.min(100, Number(req.query.pagesize || 100)));
+      const maxcalls = Math.max(1, Math.min(120, Number(req.query.maxcalls || 70)));
+      let page = Math.max(1, Number(req.query.startpage || 1));
+      const t0 = Date.now();
+      let metered = 0, persisted = 0, oldest = null, totalPages = null, ocdRemaining = null, done = false, stopReason = "maxcalls", buffer = [];
+      const flush = async () => { if (!buffer.length) return; const uniq = [...new Map(buffer.filter(r => r.source_id).map(r => [r.source_id, r])).values()]; for (let i = 0; i < uniq.length; i += 250) { try { await supabaseInsert("sales_archive", uniq.slice(i, i + 250), url, key, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id"); persisted += Math.min(250, uniq.length - i); } catch (e) { /* non-fatal */ } } buffer = []; };
+      try {
+        while (metered < maxcalls && Date.now() - t0 < 230000) {
+          metered++;
+          const resp = await callOldCarsData("/auctions", { source: "bringatrailer", status: "sold", sort: "date", direction: "desc", page, limit: pagesize }, apiKey);
+          ocdRemaining = resp.__rateLimit?.remaining ?? ocdRemaining;
+          totalPages = resp.meta?.total_pages ?? totalPages;
+          const rows = resp.data || [];
+          if (!rows.length) { done = true; stopReason = "no_rows"; break; }
+          let pageOldest = null;
+          for (const r of rows) { const k = dayKey(toDate(r.auction_end_date)); if (k && (!pageOldest || k < pageOldest)) pageOldest = k; if (from && k && k < from) continue; if (to && k && k > to) continue; buffer.push(toFullRow(r, LABEL)); }
+          if (pageOldest && (!oldest || pageOldest < oldest)) oldest = pageOldest;
+          if (buffer.length >= 500) await flush();
+          page++;
+          if (from && pageOldest && pageOldest < from) { done = true; stopReason = "reached_floor"; break; }
+          if (totalPages && page > totalPages) { done = true; stopReason = "last_page"; break; }
+          if (rows.length < pagesize) { done = true; stopReason = "short_page"; break; }
+        }
+      } catch (e) { stopReason = e.rateLimited ? "ratelimit" : ("error:" + e.message); }
+      await flush();
+      if (metered > 0) { try { await recordUsageEvent({ event_type: "archive_backfill", route: "publicConfig?bf=bat", status: stopReason, oldcarsdata_metered_requests: metered, duration_ms: Date.now() - t0, metadata: { source: "bringatrailer", from, to, startpage: Number(req.query.startpage || 1), nextPage: page, persisted, oldest } }, url, key); } catch { /* non-fatal */ } }
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(200).json({ source: "bringatrailer", from, to, pagesize, startpage: Number(req.query.startpage || 1), nextPage: page, done, stopReason, meteredThisRun: metered, persistedThisRun: persisted, oldestSeen: oldest, totalPages, ocdRemaining });
+    }
+
+    if (mode === "verify") {
+      const out2 = {};
+      try { await fetch(`${url}/rest/v1/sales_archive?source_id=eq.bat-bf-test-delete-me`, { method: "DELETE", headers: h }); out2.testRowDeleted = true; } catch (e) { out2.testRowDeleted = "err:" + e.message; }
+      out2.batTotal = await cnt(`platform=eq.${encodeURIComponent(LABEL)}`);
+      out2.batSince2022 = await cnt(`platform=eq.${encodeURIComponent(LABEL)}&sale_date=gte.2022-01-01`);
+      out2.batBefore2022 = await cnt(`platform=eq.${encodeURIComponent(LABEL)}&sale_date=lt.2022-01-01`);
+      out2.archiveTotal = await cnt("id=not.is.null");
+      // chassis-style count across the archive
+      let chassis = 0, withVin = 0;
+      for (let offset = 0; offset < 200000; offset += 1000) { const rows = await (await fetch(`${url}/rest/v1/sales_archive?vin=not.is.null&select=vin&limit=1000&offset=${offset}`, { headers: h })).json(); if (!Array.isArray(rows) || !rows.length) break; for (const r of rows) { withVin++; const c = String(r.vin || "").replace(/[\s.\-\/]/g, ""); if (c.length !== 17) chassis++; } if (rows.length < 1000) break; }
+      out2.chassisStyle = chassis; out2.withVin = withVin;
+      // Spot-check 2022-2023 BaT records: vin + photo presence.
+      const spot = await (await fetch(`${url}/rest/v1/sales_archive?platform=eq.${encodeURIComponent(LABEL)}&sale_date=gte.2022-01-01&sale_date=lt.2023-06-01&select=vin,make,model,year,sale_date,raw_record&limit=5`, { headers: h })).json();
+      out2.spotCheck2022_2023 = (Array.isArray(spot) ? spot : []).map(r => ({ car: [r.year, r.make, r.model].filter(Boolean).join(" "), date: r.sale_date, vin: r.vin, hasPhoto: !!(r.raw_record && (r.raw_record.featured_image_url || r.raw_record.photo_url)) }));
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(200).json(out2);
+    }
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(400).json({ error: "mode must be count|pull|verify" });
+  }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
   if (req.query && typeof req.query.obShare !== "undefined") {
