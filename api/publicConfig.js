@@ -123,6 +123,28 @@ export default async function handler(req, res) {
     res.setHeader("Cache-Control", "no-store");
     return res.status(200).json(out);
   }
+  // TEMP metered probe (C&B history feasibility): 2 /auctions calls only. Nonce-gated.
+  if (req.query && req.query.diag === "cbocd3") {
+    const apiKey = process.env.OLDCARSDATA_API_KEY;
+    const out = {};
+    try {
+      const { callOldCarsData } = await import("../lib/_ocd.js");
+      const first = await callOldCarsData("/auctions", { source: "carsandbids", status: "sold", sort: "date", direction: "desc", page: 1, limit: 50 }, apiKey);
+      const tp = first.meta?.total_pages ?? null, tot = first.meta?.total ?? null;
+      const newest = (first.data || [])[0];
+      out.totalPages = tp; out.totalRecords = tot;
+      out.newest = newest ? { date: newest.auction_end_date, car: [newest.year, newest.make, newest.model].filter(Boolean).join(" "), vin: newest.vin ?? "(no vin field)" } : null;
+      if (tp && tp > 1) {
+        const last = await callOldCarsData("/auctions", { source: "carsandbids", status: "sold", sort: "date", direction: "desc", page: tp, limit: 50 }, apiKey);
+        const oldRows = last.data || [];
+        const oldest = oldRows[oldRows.length - 1];
+        out.oldest = oldest ? { date: oldest.auction_end_date, car: [oldest.year, oldest.make, oldest.model].filter(Boolean).join(" "), vin: oldest.vin ?? "(no vin field)" } : null;
+        out.lastPageVinPopulated = oldRows.filter(r => r.vin).length + "/" + oldRows.length;
+      }
+    } catch (e) { out.error = e.message; }
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(200).json(out);
+  }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
   if (req.query && typeof req.query.obShare !== "undefined") {
