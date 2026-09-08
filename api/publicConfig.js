@@ -102,8 +102,14 @@ export default async function handler(req, res) {
     const rowsA = await get("listing_title=ilike.*black%20series*");
     const rowsB = await get("model=ilike.*sl65*");
     const rowsC = await get("model=ilike.*sl%2065*");
+    const rowsD = await get("raw_record->>title=ilike.*black%20series*");
+    const rowsE = await get("listing_title=ilike.*sl65*");
+    const rowsF = await get("raw_record->>title=ilike.*sl65*");
+    // Broad Mercedes SL sweep (any year), scanned in JS.
+    const rowsG = await get("make=ilike.*mercedes*&model=ilike.*sl%2Dclass*");
+    const rowsH = await get("make=ilike.*mercedes*&model=ilike.*sl65*");
     const byId = new Map();
-    for (const r of [...rowsA, ...rowsB, ...rowsC]) byId.set(r.source_id, r);
+    for (const r of [...rowsA, ...rowsB, ...rowsC, ...rowsD, ...rowsE, ...rowsF, ...rowsG, ...rowsH]) byId.set(r.source_id, r);
     const all = [...byId.values()];
     // Keep genuine SL65 Black Series: title/model mentions SL 65 (or SL65) AND Black Series.
     const isSL65BS = r => {
@@ -117,8 +123,11 @@ export default async function handler(req, res) {
     })).sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
     // Distinct auction_status values present in the matched set (to see if any non-sold exist).
     const statuses = {}; for (const m of match) statuses[m.status] = (statuses[m.status] || 0) + 1;
+    // Diagnostics: raw hit counts per query + a peek at any Black Series titles found.
+    const diag = { A_title_blackseries: rowsA.length, B_model_sl65: rowsB.length, C_model_sl_65: rowsC.length, D_rawtitle_blackseries: rowsD.length, E_title_sl65: rowsE.length, F_rawtitle_sl65: rowsF.length, G_mb_slclass: rowsG.length, H_mb_sl65: rowsH.length };
+    const anyBlackSeries = all.filter(r => /black\s?series/i.test(`${r.listing_title || ""} ${r.raw_record?.title || ""}`)).map(r => (r.listing_title || r.raw_record?.title || "").slice(0, 80)).slice(0, 20);
     res.setHeader("Cache-Control", "no-store");
-    return res.status(200).json({ count: match.length, statuses, candidatesScanned: all.length, rows: match });
+    return res.status(200).json({ count: match.length, statuses, candidatesScanned: all.length, diag, anyBlackSeriesTitles: anyBlackSeries, rows: match });
   }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
