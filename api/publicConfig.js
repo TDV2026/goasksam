@@ -93,50 +93,6 @@ async function handleOneboxShare(req, res, id) {
 }
 
 export default async function handler(req, res) {
-  // TEMP read-only diagnostic (SL65 Black Series market check). Nonce-gated, no OCD, no writes.
-  if (req.query && req.query.diag === "sl65q") {
-    const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-    const h = { apikey: key, Authorization: `Bearer ${key}` };
-    const sel = "source_id,sale_date,platform,sale_price,mileage,make,model,year,listing_title,raw_record";
-    const errs = [];
-    const get = async (q) => { try { const r = await fetch(`${url}/rest/v1/sales_archive?${q}&select=${sel}&limit=400`, { headers: h }); const j = await r.json(); if (!Array.isArray(j)) { errs.push(q.slice(0, 40) + " => " + JSON.stringify(j).slice(0, 120)); return []; } return j; } catch (e) { errs.push(q.slice(0, 40) + " threw " + e.message); return []; } };
-    // Sanity: how many Mercedes SL records exist, and what do their model/title fields hold?
-    const cntMerc = await (async () => { try { const r = await fetch(`${url}/rest/v1/sales_archive?make=ilike.*mercedes*&select=id`, { headers: { ...h, Prefer: "count=exact", Range: "0-0" } }); const cr = r.headers.get("content-range") || ""; return cr.includes("/") ? Number(cr.split("/")[1]) : null; } catch { return null; } })();
-    const mercSample = await get("make=ilike.*mercedes*&model=ilike.*SL*");
-    const sampleModels = {}; for (const r of mercSample.slice(0, 400)) sampleModels[r.model] = (sampleModels[r.model] || 0) + 1;
-    const rowsA = await get("listing_title=ilike.*black%20series*");
-    const rowsB = await get("model=ilike.*sl65*");
-    const rowsC = await get("model=ilike.*sl%2065*");
-    const rowsD = await get("raw_record->>title=ilike.*black%20series*");
-    const rowsE = await get("listing_title=ilike.*sl65*");
-    const rowsF = await get("raw_record->>title=ilike.*sl65*");
-    // Broad Mercedes SL sweep (any year), scanned in JS.
-    const rowsG = await get("make=ilike.*mercedes*&model=ilike.*sl%2Dclass*");
-    const rowsH = await get("make=ilike.*mercedes*&model=ilike.*sl65*");
-    // Targeted, fast: every 2008-2009 Mercedes SL (all platforms), scanned in JS for BS.
-    const rowsI = await get("make=ilike.*mercedes*&year=in.(2008,2009)&model=ilike.*sl*");
-    const platformsOf2008_9SL = {}; for (const r of rowsI) platformsOf2008_9SL[r.platform] = (platformsOf2008_9SL[r.platform] || 0) + 1;
-    const byId = new Map();
-    for (const r of [...rowsA, ...rowsB, ...rowsC, ...rowsD, ...rowsE, ...rowsF, ...rowsG, ...rowsH, ...rowsI]) byId.set(r.source_id, r);
-    const all = [...byId.values()];
-    // Keep genuine SL65 Black Series: title/model mentions SL 65 (or SL65) AND Black Series.
-    const isSL65BS = r => {
-      const hay = `${r.listing_title || ""} ${r.model || ""} ${r.raw_record?.title || ""}`.toLowerCase();
-      return /sl\s?65/.test(hay) && /black\s?series/.test(hay);
-    };
-    const match = all.filter(isSL65BS).map(r => ({
-      date: r.sale_date, platform: r.platform, price: r.sale_price, mileage: r.mileage,
-      year: r.year, status: r.auction_status || r.raw_record?.auction_status || "sold",
-      title: r.listing_title || r.raw_record?.title || `${r.year} ${r.make} ${r.model}`
-    })).sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
-    // Distinct auction_status values present in the matched set (to see if any non-sold exist).
-    const statuses = {}; for (const m of match) statuses[m.status] = (statuses[m.status] || 0) + 1;
-    // Diagnostics: raw hit counts per query + a peek at any Black Series titles found.
-    const diag = { A_title_blackseries: rowsA.length, B_model_sl65: rowsB.length, C_model_sl_65: rowsC.length, D_rawtitle_blackseries: rowsD.length, E_title_sl65: rowsE.length, F_rawtitle_sl65: rowsF.length, G_mb_slclass: rowsG.length, H_mb_sl65: rowsH.length };
-    const anyBlackSeries = all.filter(r => /black\s?series/i.test(`${r.listing_title || ""} ${r.raw_record?.title || ""}`)).map(r => (r.listing_title || r.raw_record?.title || "").slice(0, 80)).slice(0, 20);
-    res.setHeader("Cache-Control", "no-store");
-    return res.status(200).json({ count: match.length, statuses, candidatesScanned: all.length, diag, errs, mercedesTotal: cntMerc, sl2008_9_count: rowsI.length, platformsOf2008_9SL, rows: match });
-  }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
   if (req.query && typeof req.query.obShare !== "undefined") {
