@@ -93,6 +93,34 @@ async function handleOneboxShare(req, res, id) {
 }
 
 export default async function handler(req, res) {
+  // TEMP diagnostic (vin-population by platform x era, read-only, removed after use). Nonce-gated.
+  if (req.query && req.query.diag === "era5") {
+    const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    const h = { apikey: key, Authorization: `Bearer ${key}` };
+    const cnt = async (f) => { const r = await fetch(`${url}/rest/v1/sales_archive?${f}&select=id`, { headers: { ...h, Prefer: "count=exact", Range: "0-0" } }); const cr = r.headers.get("content-range") || ""; return cr.includes("/") ? Number(cr.split("/")[1]) : null; };
+    const firstDate = async (f, dir) => { const r = await (await fetch(`${url}/rest/v1/sales_archive?${f}&select=sale_date&order=sale_date.${dir}.nullslast&limit=1`, { headers: h })).json(); return (r && r[0] && r[0].sale_date) || null; };
+    const platforms = ["Cars %26 Bids", "Bring a Trailer", "RM Sotheby's", "Gooding %26 Co", "Hagerty", "All Collector Cars", "PCARMarket"];
+    const out = { note: "per platform: total, vinNull, earliest/latest date, and vin-null rate by era", platforms: {} };
+    try {
+      for (const raw of platforms) {
+        const pf = `platform=eq.${encodeURIComponent(raw.replace("%26", "&"))}`;
+        const total = await cnt(pf);
+        const vinNull = await cnt(`${pf}&vin=is.null`);
+        const pre2025 = await cnt(`${pf}&sale_date=lt.2025-01-01`);
+        const pre2025Null = await cnt(`${pf}&sale_date=lt.2025-01-01&vin=is.null`);
+        const y2026 = await cnt(`${pf}&sale_date=gte.2026-01-01`);
+        const y2026Null = await cnt(`${pf}&sale_date=gte.2026-01-01&vin=is.null`);
+        out.platforms[raw.replace("%26", "&")] = {
+          total, vinNull, pctNull: total ? Math.round(1000 * vinNull / total) / 10 : null,
+          earliest: await firstDate(pf, "asc"), latest: await firstDate(pf, "desc"),
+          pre2025: { n: pre2025, null: pre2025Null, pctNull: pre2025 ? Math.round(1000 * pre2025Null / pre2025) / 10 : null },
+          y2026: { n: y2026, null: y2026Null, pctNull: y2026 ? Math.round(1000 * y2026Null / y2026) / 10 : null }
+        };
+      }
+    } catch (e) { out.error = e.message; }
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(200).json(out);
+  }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
   if (req.query && typeof req.query.obShare !== "undefined") {
