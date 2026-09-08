@@ -129,9 +129,9 @@ export default async function handler(req, res) {
       try {
         // Step 0: page-size probe (does OCD honor >50 per page?).
         const ps = {};
-        for (const lim of [50, 100, 200]) { const r = await callOldCarsData("/auctions", { source: "carsandbids", status: "sold", sort: "date", direction: "desc", page: 1, limit: lim }, apiKey); ps["limit" + lim] = (r.data || []).length; out.ocdRemaining = r.__rateLimit?.remaining ?? out.ocdRemaining; }
-        out.pageSize = ps;
-        const best = ps.limit200 > 50 ? 200 : (ps.limit100 > 50 ? 100 : 50);
+        for (const lim of [50, 100]) { try { const r = await callOldCarsData("/auctions", { source: "carsandbids", status: "sold", sort: "date", direction: "desc", page: 1, limit: lim }, apiKey); ps["limit" + lim] = (r.data || []).length; out.ocdRemaining = r.__rateLimit?.remaining ?? out.ocdRemaining; } catch (e) { ps["limit" + lim] = "err:" + e.message; } }
+        out.pageSize = { ...ps, maxObserved: "100 (limit=200 returns 400 Too big)" };
+        const best = ps.limit100 > 50 ? 100 : 50;
         out.confirmedPageSize = best;
         // Step 1: budget.
         const todayStart = new Date(); todayStart.setUTCHours(0, 0, 0, 0);
@@ -161,7 +161,7 @@ export default async function handler(req, res) {
       if (!label) { res.setHeader("Cache-Control", "no-store"); return res.status(400).json({ error: "source must be carsandbids|hagerty|pcarmarket" }); }
       const from = String(req.query.from || "2022-01-01");
       const to = req.query.to ? String(req.query.to) : null;
-      const pagesize = Math.max(50, Math.min(200, Number(req.query.pagesize || 200)));
+      const pagesize = Math.max(50, Math.min(100, Number(req.query.pagesize || 100)));
       const maxcalls = Math.max(1, Math.min(120, Number(req.query.maxcalls || 80)));
       let page = Math.max(1, Number(req.query.startpage || 1));
       const t0 = Date.now();
