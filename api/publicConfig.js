@@ -93,6 +93,33 @@ async function handleOneboxShare(req, res, id) {
 }
 
 export default async function handler(req, res) {
+  // TEMP read-only diagnostic (SL65 Black Series market check). Nonce-gated, no OCD, no writes.
+  if (req.query && req.query.diag === "sl65q") {
+    const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    const h = { apikey: key, Authorization: `Bearer ${key}` };
+    const sel = "source_id,sale_date,platform,sale_price,mileage,make,model,year,listing_title,auction_status,raw_record";
+    const get = async (q) => { try { const r = await fetch(`${url}/rest/v1/sales_archive?${q}&select=${sel}&limit=400`, { headers: h }); const j = await r.json(); return Array.isArray(j) ? j : []; } catch (e) { return []; } };
+    const rowsA = await get("listing_title=ilike.*black%20series*");
+    const rowsB = await get("model=ilike.*sl65*");
+    const rowsC = await get("model=ilike.*sl%2065*");
+    const byId = new Map();
+    for (const r of [...rowsA, ...rowsB, ...rowsC]) byId.set(r.source_id, r);
+    const all = [...byId.values()];
+    // Keep genuine SL65 Black Series: title/model mentions SL 65 (or SL65) AND Black Series.
+    const isSL65BS = r => {
+      const hay = `${r.listing_title || ""} ${r.model || ""} ${r.raw_record?.title || ""}`.toLowerCase();
+      return /sl\s?65/.test(hay) && /black\s?series/.test(hay);
+    };
+    const match = all.filter(isSL65BS).map(r => ({
+      date: r.sale_date, platform: r.platform, price: r.sale_price, mileage: r.mileage,
+      year: r.year, status: r.auction_status || r.raw_record?.auction_status || "sold",
+      title: r.listing_title || r.raw_record?.title || `${r.year} ${r.make} ${r.model}`
+    })).sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
+    // Distinct auction_status values present in the matched set (to see if any non-sold exist).
+    const statuses = {}; for (const m of match) statuses[m.status] = (statuses[m.status] || 0) + 1;
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(200).json({ count: match.length, statuses, candidatesScanned: all.length, rows: match });
+  }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
   if (req.query && typeof req.query.obShare !== "undefined") {
