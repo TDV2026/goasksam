@@ -9,7 +9,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { appConfigFlag } from "../lib/_flags.js";
-import { supabaseSelect } from "../lib/_supabase.js";
+import { supabaseSelect, supabaseInsert } from "../lib/_supabase.js";
 
 let SHELL = null;
 function shell() {
