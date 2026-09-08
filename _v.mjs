@@ -1,0 +1,10 @@
+import puppeteer from "puppeteer-core";
+const EXEC="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const b=await puppeteer.launch({executablePath:EXEC,headless:"new",args:["--no-sandbox"]});
+const p=await b.newPage();
+p.setDefaultTimeout(280000);
+await p.goto("https://goasksam.com/",{waitUntil:"networkidle2",timeout:60000});
+await new Promise(r=>setTimeout(r,2500));
+const out=await p.evaluate(async()=>{const r=await fetch("/api/publicConfig?bf=bat2v9&mode=verify");return await r.json();});
+console.log("VERIFY_RESULT "+JSON.stringify(out));
+await b.close();
