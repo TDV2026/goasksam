@@ -125,6 +125,16 @@ export default async function handler(req, res) {
     const out = {};
     const mode = String(req.query.mode || "probe");
 
+    if (mode === "count") {
+      const cnt = async (label) => { const r = await fetch(`${url}/rest/v1/sales_archive?platform=eq.${encodeURIComponent(label)}&select=id`, { headers: { ...h, Prefer: "count=exact", Range: "0-0" } }); const cr = r.headers.get("content-range") || ""; return cr.includes("/") ? Number(cr.split("/")[1]) : null; };
+      // Also test a single upsert to surface any error verbatim.
+      let upsertTest = "ok";
+      try { const r = await supabaseInsert("sales_archive", [{ source_id: "bf-test-row-delete-me", sale_date: "2020-01-01", platform: "Cars & Bids", make: "Test", model: "Test", raw_record: { t: 1 } }], url, key, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id"); upsertTest = JSON.stringify(r).slice(0, 300); }
+      catch (e) { upsertTest = "THREW: " + e.message; }
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(200).json({ cbTotal: await cnt("Cars & Bids"), hagerty: await cnt("Hagerty"), pcm: await cnt("PCARMarket"), upsertTest });
+    }
+
     if (mode === "probe") {
       try {
         // Step 0: page-size probe (does OCD honor >50 per page?).
