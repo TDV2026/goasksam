@@ -125,6 +125,28 @@ export default async function handler(req, res) {
     const out = {};
     const mode = String(req.query.mode || "probe");
 
+    if (mode === "finalize") {
+      const out2 = {};
+      // Delete the upsert-test row.
+      try { await fetch(`${url}/rest/v1/sales_archive?source_id=eq.bf-test-row-delete-me`, { method: "DELETE", headers: h }); out2.testRowDeleted = true; } catch (e) { out2.testRowDeleted = "err:" + e.message; }
+      const cnt = async (f) => { const r = await fetch(`${url}/rest/v1/sales_archive?${f}&select=id`, { headers: { ...h, Prefer: "count=exact", Range: "0-0" } }); const cr = r.headers.get("content-range") || ""; return cr.includes("/") ? Number(cr.split("/")[1]) : null; };
+      out2.counts = { total: await cnt("id=not.is.null"), cb: await cnt("platform=eq.Cars%20%26%20Bids"), hagerty: await cnt("platform=eq.Hagerty"), pcm: await cnt("platform=eq.PCARMarket") };
+      // Chassis-style (vin present, not 17-char) count across the archive.
+      let chassis = 0, withVin = 0;
+      for (let offset = 0; offset < 120000; offset += 1000) {
+        const rows = await (await fetch(`${url}/rest/v1/sales_archive?vin=not.is.null&select=vin&limit=1000&offset=${offset}`, { headers: h })).json();
+        if (!Array.isArray(rows) || !rows.length) break;
+        for (const r of rows) { withVin++; const c = String(r.vin || "").replace(/[\s.\-\/]/g, ""); if (c.length !== 17) chassis++; }
+        if (rows.length < 1000) break;
+      }
+      out2.chassisStyle = chassis; out2.withVin = withVin;
+      // Spot-check 3 pre-2023 C&B records: vin + photo presence.
+      const spot = await (await fetch(`${url}/rest/v1/sales_archive?platform=eq.Cars%20%26%20Bids&sale_date=lt.2023-01-01&select=vin,make,model,year,sale_date,raw_record&limit=3`, { headers: h })).json();
+      out2.spotCheckOlderCB = (Array.isArray(spot) ? spot : []).map(r => ({ car: [r.year, r.make, r.model].filter(Boolean).join(" "), date: r.sale_date, vin: r.vin, hasPhoto: !!(r.raw_record && (r.raw_record.featured_image_url || r.raw_record.photo_url)) }));
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(200).json(out2);
+    }
+
     if (mode === "count") {
       const cnt = async (label) => { const r = await fetch(`${url}/rest/v1/sales_archive?platform=eq.${encodeURIComponent(label)}&select=id`, { headers: { ...h, Prefer: "count=exact", Range: "0-0" } }); const cr = r.headers.get("content-range") || ""; return cr.includes("/") ? Number(cr.split("/")[1]) : null; };
       // Also test a single upsert to surface any error verbatim.
