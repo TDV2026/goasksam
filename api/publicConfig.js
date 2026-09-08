@@ -125,6 +125,13 @@ export default async function handler(req, res) {
     const out = {};
     const mode = String(req.query.mode || "probe");
 
+    if (mode === "batmeta") {
+      // Single metered call: BaT total for a grounded projection (BaT stays NOT STARTED).
+      try { const r = await callOldCarsData("/auctions", { source: "bringatrailer", status: "sold", sort: "date", direction: "desc", page: 1, limit: 100 }, apiKey);
+        res.setHeader("Cache-Control", "no-store");
+        return res.status(200).json({ batTotal: r.meta?.total ?? null, batTotalPages100: r.meta?.total_pages ?? null, newest: (r.data || [])[0]?.auction_end_date || null, ocdRemaining: r.__rateLimit?.remaining ?? null });
+      } catch (e) { return res.status(200).json({ error: e.message }); }
+    }
     if (mode === "finalize") {
       const out2 = {};
       // Delete the upsert-test row.
