@@ -93,6 +93,34 @@ async function handleOneboxShare(req, res, id) {
 }
 
 export default async function handler(req, res) {
+  // TEMP read-only diagnostic (Murcielago VIN-match investigation). Nonce-gated, no writes.
+  if (req.query && req.query.diag === "lam9v") {
+    const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    const h = { apikey: key, Authorization: `Bearer ${key}` };
+    const VIN = "ZHWBC8AH7ALA03815";
+    const get = async (tbl, q) => { try { const r = await fetch(`${url}/rest/v1/${tbl}?${q}`, { headers: h }); const t = await r.text(); let j; try { j = JSON.parse(t); } catch { return { err: t.slice(0, 150) }; } return Array.isArray(j) ? j : { err: JSON.stringify(j).slice(0, 150) }; } catch (e) { return { err: e.message }; } };
+    const cnt = async (tbl, f) => { try { const r = await fetch(`${url}/rest/v1/${tbl}?${f}&select=id`, { headers: { ...h, Prefer: "count=exact", Range: "0-0" } }); const cr = r.headers.get("content-range") || ""; return cr.includes("/") ? Number(cr.split("/")[1]) : ("hdr:" + r.status); } catch (e) { return "err:" + e.message; } };
+    const cb = "Cars%20%26%20Bids";
+    const slim = rows => Array.isArray(rows) ? rows.map(r => ({ platform: r.platform, date: r.sale_date || r.auction_end_date, price: r.sale_price || r.price, make: r.make, model: r.model, vin: r.vin, rawVin: r.raw_record && (r.raw_record.vin || r.raw_record.VIN), title: r.listing_title || (r.raw_record && r.raw_record.title) })) : rows;
+    const out = {};
+    // sales_archive
+    out.SA_byVinExact = slim(await get("sales_archive", `vin=eq.${VIN}&select=platform,sale_date,sale_price,make,model,vin,listing_title,raw_record`));
+    out.SA_byDateMake = slim(await get("sales_archive", `platform=eq.${cb}&make=ilike.*lamborghini*&sale_date=eq.2023-06-15&select=platform,sale_date,sale_price,make,model,vin,listing_title,raw_record`));
+    out.SA_byPrice = slim(await get("sales_archive", `sale_price=eq.700000&make=ilike.*lamborghini*&select=platform,sale_date,sale_price,make,model,vin,listing_title,raw_record`));
+    out.SA_murcielago2023 = slim(await get("sales_archive", `make=ilike.*lamborghini*&model=ilike.*murcielago*&sale_date=gte.2023-01-01&sale_date=lt.2024-01-01&select=platform,sale_date,sale_price,make,model,vin,listing_title,raw_record&limit=20`));
+    // vehicle_market_records: does it even have a vin column?
+    out.VMR_hasVinColumn = await get("vehicle_market_records", `select=vin&limit=1`);
+    out.VMR_byPrice = slim(await get("vehicle_market_records", `price=eq.700000&make=ilike.*lamborghini*&select=platform,auction_end_date,price,make,model,raw_record&limit=10`));
+    // C&B coverage + range in sales_archive
+    out.SA_cbTotal = await cnt("sales_archive", `platform=eq.${cb}`);
+    out.SA_cbVinNull = await cnt("sales_archive", `platform=eq.${cb}&vin=is.null`);
+    out.SA_cb2023Total = await cnt("sales_archive", `platform=eq.${cb}&sale_date=gte.2023-01-01&sale_date=lt.2024-01-01`);
+    out.SA_cbEarliest = slim(await get("sales_archive", `platform=eq.${cb}&select=sale_date&order=sale_date.asc.nullslast&limit=1`));
+    // Does OCD even have this VIN? (informational - via any store)
+    out.SA_vinIlike = slim(await get("sales_archive", `vin=ilike.*ZHWBC8AH7ALA03815*&select=platform,sale_date,vin,make,model`));
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(200).json(out);
+  }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
   if (req.query && typeof req.query.obShare !== "undefined") {
