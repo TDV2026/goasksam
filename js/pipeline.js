@@ -92,6 +92,6 @@ function escalateStep(step){
     `I didn't catch that as an answer to this one. ${stepQ.ask}`,
     `Still on this question: ${stepQ.ask} 'Not sure' works too.`
   ];
-  addMsg("sam",variants[(n-1)%2],"",stepQ.chips&&stepQ.chips.length?chipsHTML(stepQ.chips):"");
+  addMsg("sam",variants[(n-1)%2],step===6&&typeof priceWhyHtml==="function"?priceWhyHtml():"",stepQ.chips&&stepQ.chips.length?chipsHTML(stepQ.chips):"");
 }
 

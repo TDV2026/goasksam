@@ -5,7 +5,7 @@ function continueAfterState(){
   if(sellState.returnToConfirm){goBackToConfirm();return true;}
   if(sellState.price){sellState.step=8;askPowerSellerStep();return true;}
   sellState.step=6;
-  addMsg("sam",SELL_STEP_QUESTIONS[6].ask);
+  addMsg("sam",SELL_STEP_QUESTIONS[6].ask,priceWhyHtml());
   return true;
 }
 
