@@ -13,6 +13,10 @@
   var obAsOf = null;       // when THIS analysis ran (product rule 4: run date, not freshness)
   var obResolvedCar = null; // the resolved vehicle of the current result, for the /sell handoff
   var obSourceVin = null;   // the 17-char VIN when this result was VIN-sourced (travels to /sell)
+  // Two-beat rotating placeholder (Screen 1). No listing-URL example (not a built path),
+  // no real VIN string. Slow, subtle rotation handled by startPlaceholderRotation().
+  var PLACEHOLDER_BEATS = ["2005 BMW M3 coupe manual 72k miles", "Or paste your VIN"];
+  var phTimer = null, phIdx = 0;
 
   // ---------------------------------------------------------------- helpers
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); }
@@ -201,8 +205,10 @@
 
   // ---------------------------------------------------------------- shared chrome
   function inboxHtml(value, placeholder) {
-    return '<div class="inbox"><input id="ob-input" ' + (value ? 'value="' + esc(value) + '"' : 'placeholder="' + esc(placeholder || "2005 BMW M3 coupe manual 72k miles") + '"') + '>' +
-      '<button class="cam" title="Add a photo">&#9635;</button><button class="go" id="ob-go">&#8594;</button></div>';
+    // Single control: text input + green submit arrow. The square photo affordance is
+    // removed (photo input is not a built capability).
+    return '<div class="inbox"><input id="ob-input" ' + (value ? 'value="' + esc(value) + '"' : 'placeholder="' + esc(placeholder || PLACEHOLDER_BEATS[0]) + '"') + '>' +
+      '<button class="go" id="ob-go" aria-label="Ask Sam">&#8594;</button></div>';
   }
   function footHtml() {
     return '<div class="foot"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Real sales only. No estimates. No valuations.</div>';
@@ -228,21 +234,46 @@
       items.slice(0, 4).map(function (it) { return '<div class="rc" data-recent="' + esc(it.q) + '"><span class="th"></span><span><span class="t">' + esc(it.label) + '</span><span class="u">' + esc(it.when) + "</span></span></div>"; }).join("") + "</div></div>";
   }
   function whyRow() { return '<div class="whyrow" data-stage="answer"><button class="why"><span class="i">i</span>Why these cars?</button></div>'; }
+  // JUST SOLD signal: ONE real recent sale, serif line with mono numbers, links to the sale.
+  // Recency word is literally true; older than a week reads as the actual date, never "recently".
+  function justSoldRecency(dstr) {
+    if (!dstr) return "";
+    var d = new Date(String(dstr).slice(0, 10)); if (isNaN(d)) return "";
+    var days = Math.round((Date.now() - d.getTime()) / 864e5);
+    if (days <= 0) return "today";
+    if (days === 1) return "yesterday";
+    if (days < 7) return days + " days ago";
+    var M = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    return "on " + M[d.getUTCMonth()] + " " + d.getUTCDate();
+  }
+  function justSoldHtml() {
+    if (!proofPool.length) return "";
+    var p = proofPool[0];
+    var name = esc([p.make, p.model].filter(Boolean).join(" "));
+    var when = justSoldRecency(p.date);
+    var line = "A <span class=\"num\">" + esc(p.year) + "</span> " + name + " brought <span class=\"num\">" + usd(p.price) + "</span> on <span class=\"plat\">" + esc(p.platform) + "</span>" + (when ? " " + esc(when) : "") + ".";
+    var open = p.url ? '<a class="justsold" id="ob-justsold" href="' + esc(p.url) + '" target="_blank" rel="noopener">' : '<div class="justsold" id="ob-justsold">';
+    var close = p.url ? "</a>" : "</div>";
+    return open + '<span class="js-label">Just sold</span><span class="js-line">' + lint(line, "justsold") + "</span>" + close;
+  }
 
   // ---------------------------------------------------------------- state renderers
   function chipsHtml(options, kind) {
     return '<div class="chips">' + (options || []).map(function (o) { return '<button class="chip" data-' + kind + '="' + esc(o) + '">' + esc(o) + "</button>"; }).join("") + "</div>";
   }
   function renderEmpty() {
-    var proof = proofLine();
+    // Screen 1: green script kicker, dominant serif headline, one input, restrained
+    // positioning line, then the JUST SOLD signal. No subtitle, no square icon, no recent
+    // grid (past searches live in the rail's "Your results").
     root.innerHTML =
+      '<div class="ob-kicker">Go ahead, ask Sam.</div>' +
       "<h1>What have cars like yours actually sold for?</h1>" +
-      '<p class="lede">Real sales. Real cars. No guesswork.</p>' +
-      inboxHtml("", "2005 BMW M3 coupe manual 72k miles") +
-      (proof ? '<p class="proof" id="ob-proof">' + proof + "</p>" : "") +
-      recentHtml() + footHtml();
+      inboxHtml("", PLACEHOLDER_BEATS[0]) +
+      '<div class="posline">Real sales only. No estimates. No valuations.</div>' +
+      '<div id="ob-justsold-wrap">' + justSoldHtml() + "</div>";
     wire();
-    startProofRotation();
+    startPlaceholderRotation();
+    syncRailResults();
   }
   function renderResults(d) {
     // Head: on a VIN exact match the ANCHOR beat (callout + bridge) leads on EVERY tier -
@@ -487,26 +518,24 @@
     } catch (e) {}
   }
 
-  // ---------------------------------------------------------------- proof line (T1.3 empty storefront)
+  // ---------------------------------------------------------------- JUST SOLD proof (real recent sale)
   function fetchProof() {
     fetch(API_ORIGIN + "/api/sellerDecision", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ oneBoxProof: true }) })
-      .then(function (r) { return r.json(); }).then(function (d) { if (d && d.proof && d.proof.length) { proofPool = d.proof; var el = document.getElementById("ob-proof"); if (el) el.innerHTML = proofLine(); } }).catch(function () {});
+      .then(function (r) { return r.json(); }).then(function (d) { if (d && d.proof && d.proof.length) { proofPool = d.proof; var el = document.getElementById("ob-justsold-wrap"); if (el) el.innerHTML = justSoldHtml(); } }).catch(function () {});
   }
-  function relDay(dstr) {
-    if (!dstr) return "recently";
-    var d = new Date(String(dstr).slice(0, 10)); if (isNaN(d)) return "recently";
-    var days = Math.round((Date.now() - d.getTime()) / 864e5);
-    if (days <= 0) return "today"; if (days === 1) return "yesterday"; if (days < 7) return days + " days ago"; if (days < 14) return "last week"; return "recently";
+  // Two-beat placeholder rotation: slow and subtle, only while the input is empty. Not a
+  // ticker on the page - it lives inside the input's own placeholder.
+  function startPlaceholderRotation() {
+    if (phTimer) clearInterval(phTimer);
+    phIdx = 0;
+    phTimer = setInterval(function () {
+      var el = document.getElementById("ob-input");
+      if (!el) { clearInterval(phTimer); phTimer = null; return; }
+      if (el.value) return;                 // never fight real typing
+      phIdx = (phIdx + 1) % PLACEHOLDER_BEATS.length;
+      el.setAttribute("placeholder", PLACEHOLDER_BEATS[phIdx]);
+    }, 4200);
   }
-  var proofIdx = 0;
-  function proofLine() {
-    if (!proofPool.length) return "";
-    var p = proofPool[proofIdx % proofPool.length];
-    var name = [p.year, p.make, p.model].filter(Boolean).join(" ");
-    return lint("A <span class=\"num\">" + esc(p.year) + "</span> " + esc([p.make, p.model].filter(Boolean).join(" ")) + " brought <span class=\"num\">" + usd(p.price) + "</span> on " + esc(p.platform) + " " + esc(relDay(p.date)) + ".", "proof");
-  }
-  var proofTimer = null;
-  function startProofRotation() { if (proofTimer) clearInterval(proofTimer); proofTimer = setInterval(function () { proofIdx++; var el = document.getElementById("ob-proof"); if (el && proofPool.length) el.innerHTML = proofLine(); else if (!document.getElementById("ob-proof")) { clearInterval(proofTimer); } }, 3200); }
 
   // ---------------------------------------------------------------- recent searches (localStorage)
   function recentSearches() { try { return JSON.parse(localStorage.getItem("gas_ob_recent") || "[]"); } catch (e) { return []; } }
@@ -517,6 +546,21 @@
       list.unshift({ q: q, label: label || q, when: "Just now" });
       localStorage.setItem("gas_ob_recent", JSON.stringify(list.slice(0, 8)));
     } catch (e) {}
+    syncRailResults();
+  }
+  // Rail "Your results": surfaces past searches inline in the rail (same pattern as /sell's
+  // expandable Your results). Hidden when there are none. Re-running a search from here
+  // reuses run() - no new behavior, just a rail entry point for the existing recent list.
+  function syncRailResults() {
+    var nav = document.getElementById("ob-nav-results"), menu = document.getElementById("ob-results-menu");
+    if (!nav || !menu) return;
+    var items = recentSearches();
+    if (!items.length) { nav.style.display = "none"; menu.innerHTML = ""; return; }
+    nav.style.display = "";
+    menu.innerHTML = items.slice(0, 8).map(function (it) { return '<a data-recent="' + esc(it.q) + '">' + esc(it.label) + "</a>"; }).join("");
+    Array.prototype.forEach.call(menu.querySelectorAll("[data-recent]"), function (a) {
+      a.addEventListener("click", function () { if (typeof obToggleRail === "function") obToggleRail(false); run(a.getAttribute("data-recent")); });
+    });
   }
 
   // ---------------------------------------------------------------- handoff + share
@@ -574,9 +618,10 @@
     return true;
   }
   function boot() {
-    if (renderSnapshot()) { fetchProof(); return; }
+    if (renderSnapshot()) { fetchProof(); syncRailResults(); return; }
     renderEmpty();
     fetchProof();
+    syncRailResults();
     var q = /[?&]q=([^&]*)/.exec(location.search || "");
     if (q) { try { run(decodeURIComponent(q[1])); } catch (e) {} }
   }

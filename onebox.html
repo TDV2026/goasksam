@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>One Box: GoAskSam</title>
+<title>GoAskSam</title>
 <meta name="robots" content="noindex, nofollow" />
 <link rel="icon" href="/favicon.ico" sizes="any" />
 <link rel="icon" type="image/png" sizes="16x16" href="/icon-16.png" />
@@ -178,11 +178,60 @@ h1{font:800 48px/1.04 var(--serif);letter-spacing:-.025em;margin:14px 0 8px;text
 [data-stage]{opacity:1;transform:none;transition:opacity .28s ease,transform .28s ease}
 @media (prefers-reduced-motion:reduce){[data-stage]{transition:none}[data-stage].stage-pending{opacity:1;transform:none}}
 
+/* ---- Screen 1 shell: left rail + main (same component family as /sell's rail) ---- */
+#ob-hamburger{display:none;position:fixed;top:14px;left:14px;z-index:60;width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:18px;cursor:pointer;align-items:center;justify-content:center}
+#ob-scrim{display:none;position:fixed;inset:0;background:rgba(20,15,8,.36);z-index:45}
+#ob-scrim.open{display:block}
+#ob-rail{position:fixed;left:0;top:0;bottom:0;width:250px;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:22px 16px 18px;z-index:50}
+.ob-logo{text-decoration:none;display:block;margin:0 6px 20px}
+.ob-logo-name{font:800 20px/1 var(--serif);color:var(--ink);letter-spacing:-.01em}
+.ob-beta{font:600 9px/1 var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--green);border:1px solid color-mix(in srgb,var(--green) 38%,var(--line));border-radius:5px;padding:3px 5px;margin-left:8px;vertical-align:2px}
+.ob-rail-nav{display:flex;flex-direction:column;gap:2px;flex:1;min-height:0;overflow:auto}
+.ob-navitem{display:block;text-decoration:none;color:var(--slate);font:600 14.5px/1 var(--grotesk);padding:10px 10px;border-radius:9px;cursor:pointer;letter-spacing:-.01em}
+.ob-navitem:hover{background:var(--paper);color:var(--ink)}
+.ob-navitem.active{background:color-mix(in srgb,var(--green) 9%,var(--card));color:var(--green)}
+.ob-rail-divider{height:1px;background:var(--line);margin:10px 8px}
+.ob-rail-foot{display:flex;flex-direction:column;gap:1px;margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+.ob-rail-foot .ob-navitem{font-size:13px;color:var(--faint);padding:7px 10px}
+.ob-rail-foot .ob-navitem:hover{color:var(--ink);background:transparent}
+.ob-submenu{display:none;flex-direction:column;gap:1px;margin:1px 0 4px 6px;padding-left:8px;border-left:1px solid var(--line)}
+.ob-submenu.open{display:flex}
+.ob-submenu a{font:600 12.5px/1.3 var(--grotesk);color:var(--slate);text-decoration:none;padding:6px 8px;border-radius:7px;cursor:pointer}
+.ob-submenu a:hover{background:var(--paper);color:var(--ink)}
+#ob-main{margin-left:250px}
+.ob-topbar{display:flex;justify-content:flex-end;align-items:center;gap:14px;padding:18px 30px 0}
+.ob-topbar .avatar{width:34px;height:34px;border-radius:50%;background:var(--line);display:grid;place-items:center;font:600 12px var(--mono);color:var(--slate)}
+.wrap{max-width:900px}
+
+/* ---- Screen 1 hero ---- */
+.ob-kicker{font-family:'Bradley Hand','Segoe Print','Chalkboard SE','Comic Sans MS',cursive;font-size:25px;line-height:1;color:#4C7A55;margin:8px 0 10px;font-weight:600}
+@media (prefers-color-scheme:dark){.ob-kicker{color:var(--green)}}
+.posline{margin:14px 2px 0;font:600 12.5px/1 var(--mono);letter-spacing:.03em;color:var(--faint)}
+
+/* ---- JUST SOLD signal (restyled proof line; single real sale, links to it) ---- */
+.justsold{display:block;text-decoration:none;margin:34px 0 0;max-width:60ch}
+.js-label{display:block;font:600 10.5px/1 var(--mono);letter-spacing:.15em;text-transform:uppercase;color:var(--green);margin-bottom:9px}
+.js-line{display:block;font:400 18px/1.5 var(--serif);color:var(--slate)}
+.js-line .num{font-family:var(--mono);color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+a.justsold:hover .js-line{color:var(--ink)}
+a.justsold:hover .js-line .plat{text-decoration:underline}
+
+@media (max-width:860px){
+  #ob-hamburger{display:flex}
+  #ob-rail{transform:translateX(-100%);transition:transform .22s ease;box-shadow:var(--shadow-hero)}
+  #ob-rail.open{transform:none}
+  #ob-main{margin-left:0}
+  .ob-topbar{padding:16px 18px 0}
+}
+@media (prefers-reduced-motion:reduce){#ob-rail{transition:none}}
+
 @media (max-width:720px){
   .top{padding:16px 18px 0}
   .top nav a:not(.keep){display:none}
   .wrap{padding:16px 18px 70px}
   h1{font-size:34px}
+  .ob-kicker{font-size:22px}
+  .js-line{font-size:16.5px}
   .answer{font-size:26px}
   .grid{grid-template-columns:1fr}
   .rcards{grid-template-columns:1fr 1fr}
@@ -195,11 +244,33 @@ h1{font:800 48px/1.04 var(--serif);letter-spacing:-.025em;margin:14px 0 8px;text
 </style>
 </head>
 <body>
-<header class="top">
-  <span class="brand">GoAskSam<span class="ob">One Box</span></span>
-  <nav><a href="/how-sam-decides" class="keep" target="_blank" rel="noopener">How it works</a><span class="avatar">SW</span></nav>
-</header>
-<main class="wrap"><div id="ob"></div></main>
-<script src="/obx.20260907n/onebox.js"></script>
+<button id="ob-hamburger" aria-label="Menu" onclick="obToggleRail()">&#9776;</button>
+<div id="ob-scrim" onclick="obToggleRail(false)"></div>
+<aside id="ob-rail">
+  <a class="ob-logo" href="/onebox"><span class="ob-logo-name">GoAskSam<span class="ob-beta">Beta</span></span></a>
+  <nav class="ob-rail-nav">
+    <a class="ob-navitem active" href="/onebox">Ask Sam</a>
+    <a class="ob-navitem" href="/sell">Where to sell</a>
+    <a class="ob-navitem" href="/powersellers" target="_blank" rel="noopener">PowerSellers</a>
+    <div class="ob-rail-divider"></div>
+    <a class="ob-navitem" id="ob-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a>
+    <div class="ob-submenu" id="ob-results-menu"></div>
+    <a class="ob-navitem" href="/how-sam-decides" target="_blank" rel="noopener">How Sam decides</a>
+  </nav>
+  <div class="ob-rail-foot">
+    <a class="ob-navitem" href="mailto:feedback@goasksam.com?subject=GoAskSam%20feedback">Send feedback</a>
+    <a class="ob-navitem" href="/privacy">Privacy</a>
+    <a class="ob-navitem" href="/about">About</a>
+  </div>
+</aside>
+<div id="ob-main">
+  <header class="ob-topbar"><span class="avatar" id="ob-account" title="Account">SW</span></header>
+  <main class="wrap"><div id="ob"></div></main>
+</div>
+<script>
+function obToggleRail(open){var r=document.getElementById("ob-rail"),s=document.getElementById("ob-scrim");if(!r)return;var on=(open===undefined)?!r.classList.contains("open"):!!open;r.classList.toggle("open",on);if(s)s.classList.toggle("open",on);}
+function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("ob-results-menu");if(m)m.classList.toggle("open");return false;}
+</script>
+<script src="/obx.20260908a/onebox.js"></script>
 </body>
 </html>
