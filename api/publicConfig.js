@@ -97,7 +97,7 @@ export default async function handler(req, res) {
   if (req.query && req.query.diag === "sl65q") {
     const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
     const h = { apikey: key, Authorization: `Bearer ${key}` };
-    const sel = "source_id,sale_date,platform,sale_price,mileage,make,model,year,listing_title,auction_status,raw_record";
+    const sel = "source_id,sale_date,platform,sale_price,mileage,make,model,year,listing_title,raw_record";
     const errs = [];
     const get = async (q) => { try { const r = await fetch(`${url}/rest/v1/sales_archive?${q}&select=${sel}&limit=400`, { headers: h }); const j = await r.json(); if (!Array.isArray(j)) { errs.push(q.slice(0, 40) + " => " + JSON.stringify(j).slice(0, 120)); return []; } return j; } catch (e) { errs.push(q.slice(0, 40) + " threw " + e.message); return []; } };
     // Sanity: how many Mercedes SL records exist, and what do their model/title fields hold?
