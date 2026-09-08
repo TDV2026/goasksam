@@ -3,6 +3,43 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!-- ENTRY DIAGNOSTIC (temporary, for the desktop-Chrome unresponsiveness report): stays
+     SILENT for healthy sessions. Beacons ONLY when the entry path throws or is not
+     interactive 4s after load (missing handlers/elements, or something covering the input).
+     Server records the UA. Wrapped so it can never itself break the page. Remove once the
+     cause is captured. -->
+<script>
+(function(){
+  try{
+    var sent=0;
+    function beacon(kind,extra){
+      try{ if(sent>4)return; sent++;
+        var d={kind:kind,path:(location&&location.pathname)||"",ua:(navigator&&navigator.userAgent)||"",ts:Date.now()};
+        if(extra)for(var k in extra)d[k]=extra[k];
+        var body=JSON.stringify({kind:"client_diag",diag:d});
+        if(navigator&&navigator.sendBeacon){navigator.sendBeacon("/api/funnel",new Blob([body],{type:"application/json"}));}
+        else{fetch("/api/funnel",{method:"POST",headers:{"Content-Type":"application/json"},body:body,keepalive:true});}
+      }catch(e){}
+    }
+    window.addEventListener("error",function(e){ beacon("jserror",{msg:((e&&e.message)||"")+"",src:((e&&e.filename)||"")+"",line:e&&e.lineno,col:e&&e.colno,stack:((e&&e.error&&e.error.stack)||"").slice(0,400)}); });
+    window.addEventListener("unhandledrejection",function(e){ var r=e&&e.reason; beacon("promise",{msg:(((r&&(r.message||r))||"")+"").slice(0,300),stack:((r&&r.stack)||"").slice(0,300)}); });
+    // Health check 4s after load: only beacon when something is actually wrong.
+    function health(){
+      try{
+        var inp=document.getElementById("inp"), rail=document.getElementById("rail"), btn=document.getElementById("btn");
+        var okFns=(typeof window.send==="function")&&(typeof window.startSellFlow==="function")&&(typeof window.toggleRail==="function");
+        var cover="";
+        try{ if(inp){var rc=inp.getBoundingClientRect(); var t=document.elementFromPoint(rc.left+rc.width/2,rc.top+rc.height/2); if(t&&t!==inp&&!inp.contains(t))cover=(t.tagName||"")+"#"+(t.id||"")+"."+((t.className||"")+"").slice(0,30); } }catch(e){}
+        var storageOk=true; try{ localStorage.getItem("x"); }catch(e){ storageOk=false; }
+        var unhealthy=(!inp||!rail||!btn||!okFns||cover||!storageOk||(btn&&btn.disabled));
+        if(unhealthy){ beacon("unhealthy",{inp:!!inp,rail:!!rail,btn:!!btn,btnDisabled:!!(btn&&btn.disabled),send:typeof window.send,sf:typeof window.startSellFlow,tr:typeof window.toggleRail,cover:cover,storageOk:storageOk,vis:document.visibilityState}); }
+      }catch(e){ beacon("healththrew",{msg:((e&&e.message)||"")+""}); }
+    }
+    if(document.readyState==="complete")setTimeout(health,4000);
+    else window.addEventListener("load",function(){setTimeout(health,4000);});
+  }catch(e){}
+})();
+</script>
 <meta name="color-scheme" content="light" />
 <title>GoAskSam: Seller intelligence from The Daily Vroom</title>
 <meta name="description" content="GoAskSam tells you where to sell your car and why, backed by real market data. No valuations, no guesswork." />

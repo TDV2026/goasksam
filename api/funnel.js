@@ -32,6 +32,25 @@ export default async function handler(req, res) {
   // Always answer 204 so a beacon never surfaces an error to the user.
   try {
     const body = typeof req.body === "object" && req.body ? req.body : {};
+    // ENTRY DIAGNOSTIC (temporary): client-side entry errors / non-interactive snapshots,
+    // logged to app_usage_events with the SERVER-read User-Agent (the client can't spoof it
+    // and funnel_events has no metadata column). Fires only when the entry path throws or is
+    // unhealthy, so volume is near zero for normal sessions. Remove once the cause is found.
+    if (body.kind === "client_diag" && body.diag && typeof body.diag === "object") {
+      const env = supabaseEnv();
+      if (env) {
+        const d = body.diag;
+        await supabaseInsert("app_usage_events", [{
+          created_at: new Date().toISOString(),
+          event_type: "entry_diag",
+          route: String(d.path || "").slice(0, 80),
+          status: String(d.kind || "").slice(0, 40),
+          oldcarsdata_metered_requests: 0,
+          metadata: { ...scrubMetaVins(d), server_ua: String(req.headers["user-agent"] || "").slice(0, 300), ip_hint: String(req.headers["x-forwarded-for"] || "").split(",")[0].slice(0, 40) }
+        }], env.supabaseUrl, env.supabaseKey, "return=minimal", "");
+      }
+      res.status(204).end(); return;
+    }
     // Business-journey event (client-emittable only). Anon-tagged; the account is
     // learned later from the server-side events that carry a bearer. Never blocks.
     if (body.kind === "journey" && body.journeyId && CLIENT_JOURNEY_EVENTS.has(String(body.event || ""))) {
