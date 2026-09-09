@@ -113,7 +113,7 @@ export default async function handler(req, res) {
       // Slim columns (fewer JSONB extractions) so a large slice does not statement-timeout.
       const slim = "p:sale_price,d:sale_date,mi:raw_record->>mileage,pl:platform,t:listing_title,img:raw_record->>featured_image_url";
       if (part === "p997") {
-        const p997 = await pool(`sales_archive?select=${slim}&make=ilike.Porsche&model=ilike.*911*&year=gte.2005&year=lte.2012&sale_price=not.is.null&sale_date=gte.${since}&limit=400`);
+        const p997 = await pool(`sales_archive?select=${slim}&make=ilike.Porsche&listing_title=ilike.*Carrera*S*&year=gte.2005&year=lte.2012&sale_price=not.is.null&limit=400`);
         res.status(200).json({ p997 }); return;
       }
       if (part === "thin") {
