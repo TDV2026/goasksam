@@ -93,14 +93,6 @@ async function handleOneboxShare(req, res, id) {
 }
 
 export default async function handler(req, res) {
-  // TEMP read-only diag: dump the Murcielago dup rows. Nonce-gated, removed after.
-  if (req.query && req.query.diag === "dup7") {
-    const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-    const h = { apikey: key, Authorization: `Bearer ${key}` };
-    const r = await fetch(`${url}/rest/v1/sales_archive?vin_norm=eq.ZHWBC8AH7ALA03815&select=source_id,platform,sale_date,sale_price,vin,listing_title`, { headers: h });
-    res.setHeader("Cache-Control", "no-store");
-    return res.status(200).json(await r.json());
-  }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
   if (req.query && typeof req.query.obShare !== "undefined") {
