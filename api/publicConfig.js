@@ -109,9 +109,9 @@ export default async function handler(req, res) {
         res.status(200).json({ match, m3 }); return;
       }
       if (part === "p997") {
-        // Fetch the 997-era 911 pool broadly; the "Carrera S" scoping is applied in JS (the URL
-        // title filter with a space misbehaves through supabaseSelect).
-        const p997 = await pool(`sales_archive?select=${cols}&make=ilike.Porsche&model=ilike.*911*&year=gte.2005&year=lte.2012&sale_price=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=400`);
+        // Shrink the huge 911 slice with a title filter (wildcard for the space, so no URL-space
+        // issue) so the ordered query does not statement-timeout; refine to Carrera S in JS.
+        const p997 = await pool(`sales_archive?select=${cols}&make=ilike.Porsche&listing_title=ilike.*Carrera*S*&year=gte.2005&year=lte.2012&sale_price=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=250`);
         res.status(200).json({ p997 }); return;
       }
       if (part === "thinscan") {
