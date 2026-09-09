@@ -108,24 +108,15 @@ export default async function handler(req, res) {
         const m3 = await pool(`sales_archive?select=${cols}&make=ilike.BMW&model=ilike.*M3*&year=gte.1986&year=lte.1992&sale_price=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=200`);
         res.status(200).json({ match, m3 }); return;
       }
+      // Fast pattern: no order + no sale_date filter (those combined statement-timeout on a large
+      // slice). Recency/Carrera-S/photo filtering happens in JS from the returned rows.
       if (part === "p997") {
-        // Shrink the huge 911 slice with a title filter (wildcard for the space, so no URL-space
-        // issue) so the ordered query does not statement-timeout; refine to Carrera S in JS.
-        const p997 = await pool(`sales_archive?select=${cols}&make=ilike.Porsche&listing_title=ilike.*Carrera*S*&year=gte.2005&year=lte.2012&sale_price=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=250`);
+        const p997 = await pool(`sales_archive?select=${cols}&make=ilike.Porsche&model=ilike.*911*&year=gte.2005&year=lte.2012&sale_price=not.is.null&limit=1000`);
         res.status(200).json({ p997 }); return;
-      }
-      if (part === "thinscan") {
-        const cands = [["Alfa Romeo", "Montreal"], ["De Tomaso", "Pantera"], ["Lotus", "Esprit"], ["Jensen", "Interceptor"]];
-        const out = {};
-        for (const c of cands) {
-          const rows = await pool(`sales_archive?select=${cols}&make=ilike.${encodeURIComponent(c[0])}${c[1] ? "&model=ilike.*" + encodeURIComponent(c[1]) + "*" : ""}&sale_price=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=10`);
-          out[c[0] + " " + c[1]] = rows.filter(r => r.img).map(r => ({ p: Math.round(r.p), d: (r.d || "").slice(0, 10), t: r.t }));
-        }
-        res.status(200).json(out); return;
       }
       if (part === "thin") {
         const make = String(req.query.tmake || ""), model = String(req.query.tmodel || "");
-        const rows = await pool(`sales_archive?select=${cols}&make=ilike.${encodeURIComponent(make)}${model ? "&model=ilike.*" + encodeURIComponent(model) + "*" : ""}&sale_price=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=30`);
+        const rows = await pool(`sales_archive?select=${cols}&make=ilike.${encodeURIComponent(make)}${model ? "&model=ilike.*" + encodeURIComponent(model) + "*" : ""}&sale_price=not.is.null&limit=200`);
         res.status(200).json({ rows }); return;
       }
       res.status(200).json({ ok: "specify part" }); return;
