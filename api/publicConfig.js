@@ -8,7 +8,7 @@
 // plan caps deployments at 12 Serverless Functions. See handleOneboxShare below.
 import fs from "node:fs";
 import path from "node:path";
-import { appConfigFlag, findVinArchiveMatch } from "../lib/_flags.js";
+import { appConfigFlag } from "../lib/_flags.js";
 import { supabaseSelect } from "../lib/_supabase.js";
 
 let SHELL = null;
@@ -93,37 +93,6 @@ async function handleOneboxShare(req, res, id) {
 }
 
 export default async function handler(req, res) {
-  // TEMP DIAGNOSTIC (remove after use): real pools for the /onebox-preview Screen 2 mockup.
-  if (req.query && req.query.__mock === "1be08a27a854a34d") {
-    try {
-      const env2 = { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY };
-      const since = new Date(Date.now() - 760 * 86400000).toISOString().slice(0, 10);
-      const cols = "p:sale_price,d:sale_date,mi:raw_record->>mileage,pl:platform,t:listing_title,img:raw_record->>featured_image_url,mods:raw_record->>modifications,body:raw_record->>body_style";
-      async function pool(q) { return (await supabaseSelect(env2, q)) || []; }
-      const part = String(req.query.part || "");
-      // NOTE: the image filter + sale_date filter together return 0 on sales_archive (a PostgREST
-      // JSONB-filter quirk), so we omit the image filter here and keep photo-bearing rows in JS.
-      if (part === "m1") {
-        const match = await findVinArchiveMatch(env2, { vin: "WBSAK0301LAE33492" });
-        const m3 = await pool(`sales_archive?select=${cols}&make=ilike.BMW&model=ilike.*M3*&year=gte.1986&year=lte.1992&sale_price=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=200`);
-        res.status(200).json({ match, m3 }); return;
-      }
-      // Fast pattern: no order + no sale_date filter (those combined statement-timeout on a large
-      // slice). Recency/Carrera-S/photo filtering happens in JS from the returned rows.
-      // Slim columns (fewer JSONB extractions) so a large slice does not statement-timeout.
-      const slim = "p:sale_price,d:sale_date,mi:raw_record->>mileage,pl:platform,t:listing_title,img:raw_record->>featured_image_url";
-      if (part === "p997") {
-        const p997 = await pool(`sales_archive?select=${slim}&make=ilike.Porsche&listing_title=ilike.*Carrera*S*&year=gte.2005&year=lte.2012&sale_price=not.is.null&limit=400`);
-        res.status(200).json({ p997 }); return;
-      }
-      if (part === "thin") {
-        const make = String(req.query.tmake || ""), model = String(req.query.tmodel || "");
-        const rows = await pool(`sales_archive?select=${slim}&make=ilike.${encodeURIComponent(make)}${model ? "&model=ilike.*" + encodeURIComponent(model) + "*" : ""}&sale_price=not.is.null&limit=60`);
-        res.status(200).json({ rows }); return;
-      }
-      res.status(200).json({ ok: "specify part" }); return;
-    } catch (e) { res.status(500).json({ err: String(e && e.message), stack: String(e && e.stack || "").slice(0, 300) }); return; }
-  }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
   if (req.query && typeof req.query.obShare !== "undefined") {
