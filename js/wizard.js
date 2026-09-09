@@ -832,25 +832,31 @@ function applyMatchedConfig(v,m){
       model:v.model||m.model||null,year:v.year||m.year||null
     };
   }
-  // 1) Materially MODIFIED with a known engine: lead with the modified line (the engine sets
-  //    the value on these), do NOT set a trim, and skip the ask.
+  // The matched car is stated in the config line itself (no separate "Got it" restate, no
+  // "Not right? Tell me the trim." invitation - it's immediately followed by the state
+  // question so the seller never gets a turn to answer it, and on a car we just proved we
+  // know it contradicts the callout. A wrong match is corrected via the vehicle chip's Edit
+  // affordance, not a spoken prompt). year+make+model, no body style.
+  const label=[v.year,v.make,v.model].filter(Boolean).join(" ")||v.canonicalLabel||"it";
+  // 1) Materially MODIFIED with a known engine: state the car + the modified config (the
+  //    engine sets the value on these), do NOT set a trim, and skip the ask.
   if(m.isModified&&m.engine){
     const mods=m.modsSummary?` with ${m.modsSummary}`:"";
-    addMsg("sam",`The prior listing has it as a ${m.engine}${mods}, so a modified car rather than a numbers-matching one. Not right? Tell me the trim.`);
+    addMsg("sam",`It's a ${label}, and the prior listing has it as a ${m.engine}${mods}, so a modified car rather than a numbers-matching one.`);
     return "skip";
   }
   // 2) A real factory TRIM from the prior listing (e.g. "LP670-4 SuperVeloce"): fill it (a
-  //    trim is fine to set; an engine is not) and skip the ask.
+  //    trim is fine to set; an engine is not), state the car with the trim, and skip the ask.
   if(m.trim&&!v.trim){
     v.trim=m.trim;
     v.canonicalLabel=[v.year,v.make,v.model,v.wheelbase,v.trim].filter(Boolean).join(" ");
     sellState.carName=v.canonicalLabel;sellState.carRaw=v.canonicalLabel;
-    addMsg("sam",`The prior listing has it as a ${m.trim}. Not right? Tell me the trim.`);
+    addMsg("sam",`It's a ${v.canonicalLabel}, per the prior listing.`);
     return "skip";
   }
-  // 3) Engine known, no trim, not modified: surface the engine and skip the ask.
+  // 3) Engine known, no trim, not modified: state the car with its engine and skip the ask.
   if(m.engine&&!v.trim){
-    addMsg("sam",`The prior listing has it as a ${m.engine}. Not right? Tell me the trim.`);
+    addMsg("sam",`It's a ${label} with a ${m.engine}, per the prior listing.`);
     return "skip";
   }
   // 4) No usable config and no trim: fall to the trim ask, bridged by matchedBridgeLine().
@@ -934,7 +940,8 @@ async function handleVehicleValidationAnswer(q){
       const cfgMode=applyMatchedConfig(v,m);
       sellState.carName=v.canonicalLabel;sellState.carRaw=v.canonicalLabel;
       sellState.pendingVinMatch=null;
-      if(cfgMode==="skip"){ resumeWizardAfterVehicle(`Got it, the ${v.canonicalLabel}.`); return true; }
+      // Config line already stated the car; go straight to the next question (no "Got it" restate).
+      if(cfgMode==="skip"){ resumeWizardAfterVehicle(""); return true; }
       const missing=currentMissingVehicleDetail();
       if(missing){
         if(cfgMode==="bridge")addMsg("sam",matchedBridgeLine(v,m));
@@ -1302,7 +1309,8 @@ async function startSellFlow(initialCar, showUserBubble=true, preresolved=null){
       // record already has the answer; otherwise bridge into the ask (rule 5).
       const _m=(preresolved&&preresolved.data)?preresolved.data.vinArchiveMatch:null;
       const _cfgMode=_m?applyMatchedConfig(sellState.resolvedVehicle,_m):"none";
-      if(_cfgMode==="skip"){ resumeWizardAfterVehicle(vehicleAcceptPrefix()); return; }
+      // Config line already stated the car; go straight to the next question (no "Got it" restate).
+      if(_cfgMode==="skip"){ resumeWizardAfterVehicle(""); return; }
       const missing=currentMissingVehicleDetail();
       if(missing){
         if(_cfgMode==="bridge")addMsg("sam",matchedBridgeLine(sellState.resolvedVehicle,_m));
