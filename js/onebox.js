@@ -34,6 +34,9 @@
   }
   function carLabel(rc) {
     if (!rc) return "your car";
+    // Prefer the clean canonical/display label (the title-derived "1990 BMW M3") over rebuilding
+    // from the raw model field ("E30 M3") when it's present.
+    if (rc.canonicalLabel) return rc.canonicalLabel;
     return [rc.year, rc.make, rc.model, rc.trim, rc.bodyStyle ? cap(rc.bodyStyle) : ""].filter(Boolean).join(" ") || "your car";
   }
   function cap(s) { s = String(s || ""); return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
