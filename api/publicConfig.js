@@ -93,6 +93,23 @@ async function handleOneboxShare(req, res, id) {
 }
 
 export default async function handler(req, res) {
+  // TEMP DIAGNOSTIC (remove after use): dump raw_record shape for specific VINs so the
+  // engine-config surfacing can be templated off the real field names. Nonce-gated.
+  if (req.query && req.query.__rrdiag === "3088f02de4268698") {
+    try {
+      const vins = String(req.query.vins || "").split(",").map(s => s.trim()).filter(Boolean);
+      const norm = s => String(s || "").toUpperCase().replace(/[\s.\-\/]/g, "");
+      const out = {};
+      for (const v of vins) {
+        const rows = await supabaseSelect(
+          { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY },
+          `sales_archive?vin_norm=eq.${encodeURIComponent(norm(v))}&select=make,model,year,transmission,drivetrain,listing_title,raw_record&order=sale_date.desc.nullslast&limit=1`);
+        const r = rows && rows[0];
+        out[v] = r ? { make: r.make, model: r.model, year: r.year, top_transmission: r.transmission, top_drivetrain: r.drivetrain, listing_title: r.listing_title, raw_record_keys: Object.keys(r.raw_record || {}), engine: (r.raw_record || {}).engine, transmission: (r.raw_record || {}).transmission, drivetrain: (r.raw_record || {}).drivetrain, modifications: (r.raw_record || {}).modifications, subtitle: (r.raw_record || {}).subtitle } : null;
+      }
+      res.status(200).json(out); return;
+    } catch (e) { res.status(500).json({ err: String(e && e.message) }); return; }
+  }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
   if (req.query && typeof req.query.obShare !== "undefined") {
