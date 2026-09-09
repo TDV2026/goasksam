@@ -864,9 +864,10 @@ function applyMatchedConfig(v,m){
     addMsg("sam",`It's a ${ymm}, and the prior listing has it as a ${m.engine}${mods}, so a modified car rather than a numbers-matching one.`);
     return "skip";
   }
-  // 2) A real factory TRIM from the listing that ADDS to the model (e.g. "LP670-4 SuperVeloce"):
-  //    set it (a trim is fine; an engine is not), state the car with the trim, skip the ask.
-  if(m.trim&&!v.trim&&!redundantTrim(m.trim,v.model)){
+  // 2) A real factory TRIM from the listing that ADDS to the model (e.g. "LP670-4 SuperVeloce",
+  //    "Shelby GT500"): the record's title trim WINS over a partial decode trim ("Shelby"), and
+  //    a trim is fine to set (an engine is not). State the car with the trim, skip the ask.
+  if(m.trim&&!redundantTrim(m.trim,v.model)){
     v.trim=m.trim;
     v.canonicalLabel=mkFull();
     sellState.carName=v.canonicalLabel;sellState.carRaw=v.canonicalLabel;
@@ -874,11 +875,14 @@ function applyMatchedConfig(v,m){
     return "skip";
   }
   // 3) Not modified, no listing trim: state the car from the record (engine is NOT surfaced on
-  //    an unmodified car - it is not the value driver there). The caller then SKIPS the ask
-  //    when the model needs no further narrowing (we know it as well as the record does, e.g.
-  //    a 1990 M3), or BRIDGES into the trim ask (rule 5) when the model still needs a trim.
+  //    an unmodified car - it is not the value driver there), then SKIP all further vehicle
+  //    questions - we know the car as well as the listing does. The ONE exception (rule 5) is a
+  //    model with a CURATED trim narrowing the listing didn't pin (e.g. a Corvette generation):
+  //    bridge into that ask. A car we just matched is never quizzed on a model we don't curate.
   addMsg("sam",`It's a ${mkFull()}, per the prior listing.`);
-  return "bridge";
+  if(typeof missingVehicleTrimDetail==="function"&&missingVehicleTrimDetail(v.canonicalLabel))return "bridge";
+  sellState.vehicleDetailSkipped=true;
+  return "skip";
 }
 // Rule 5 bridging line: when a matched car's record carries no engine, the trim ask reads as
 // one thought after the callout, not a cold restart. Year is templated, never hardcoded.
@@ -1334,7 +1338,9 @@ async function startSellFlow(initialCar, showUserBubble=true, preresolved=null){
         askMissingVehicleDetail(missing);
         return;
       }
-      resumeWizardAfterVehicle(vehicleAcceptPrefix());
+      // Matched car already stated "It's a ..."; no "Got it" restate. Only an unmatched car
+      // (cfgMode "none") gets the normal acceptance prefix.
+      resumeWizardAfterVehicle(_cfgMode==="none"?vehicleAcceptPrefix():"");
     },400);
     return;
   }
