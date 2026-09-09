@@ -83,6 +83,9 @@ function askVehicleIdentityClarification(clarification,status,partialVehicle){
     // body style intact) instead of re-resolving a bare label and losing them.
     kind:clarification.kind||null,
     vinVehicle:clarification.kind==="vin_confirmation"?partialVehicle:null,
+    // Collapse: a vin_confirmation may carry year-scoped model chips (VIN decoded make+year, no
+    // model). A picked model resolves make+year+model in one step; no separate confirm screen.
+    modelOptions:clarification.modelOptions||null,
     suggestion:clarification.suggestion||null,
     baseVehicle:clarification.baseVehicle||[partialVehicle?.make,partialVehicle?.model].filter(Boolean).join(" ")||null,
     // Original raw input, preserved so a corrected year re-resolves the full

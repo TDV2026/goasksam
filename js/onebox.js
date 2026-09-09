@@ -76,7 +76,7 @@
       return '<p class="answer">' + lint("Cars like yours have been bringing " + n + usd(a.low) + "</span> to " + n + usd(a.high) + "</span>." + z, "answer.span") + "</p>";
     }
     if (a.kind === "two") return '<p class="answer">' + lint("The two closest sales brought " + n + usd(a.high) + "</span> and " + n + usd(a.low) + "</span>.", "answer.two") + "</p>";
-    if (a.kind === "one") return '<p class="answer">' + lint("The one sale I’d actually use brought " + n + usd(a.one) + "</span>.", "answer.one") + "</p>";
+    // "one" answer line removed pending the results-screen redesign (no replacement copy yet).
     return "";
   }
   function basisHtml(d) {
@@ -199,7 +199,6 @@
       text = TWO[seed % TWO.length];
     } else {
       var ONE = ["There isn’t enough recent activity for a range, so this " + zPrice + " sale is the one I’d actually read for yours.",
-                 "One sale is what I’d stand behind here: the " + zPrice + " result, closest to your car.",
                  "The record is thin, but the " + zPrice + " sale is a real, comparable one I’d read for yours."];
       text = ONE[seed % ONE.length];
     }
@@ -226,15 +225,16 @@
     return '<div class="sell" data-stage="note"><div><h3>Ready to sell?</h3><p>I can tell you the best places to sell your car right now and why.</p></div>' +
       '<a id="ob-sell">See where I’d sell it &#8594;</a></div>';
   }
-  function refineHtml() {
-    return '<div class="refine" data-stage="note"><p class="r-lead">Colour and history move individual cars. Tell me what matters about yours and I’ll tighten the read.</p>' +
-      '<input id="ob-refine" placeholder="e.g. Competition Package, recent service, original paint"></div>';
-  }
+  // refineHtml removed: it was an unbuilt feature (no submit, did nothing) and "tighten the
+  // read" is valuation language. Unbuilt features do not render.
   function recentHtml() {
     var items = recentSearches();
     if (!items.length) return "";
     return '<div class="recent" data-stage="note"><div class="rh"><h4>Recent searches</h4></div><div class="rcards">' +
-      items.slice(0, 4).map(function (it) { return '<div class="rc" data-recent="' + esc(it.q) + '"><span class="th"></span><span><span class="t">' + esc(it.label) + '</span><span class="u">' + esc(it.when) + "</span></span></div>"; }).join("") + "</div></div>";
+      items.slice(0, 4).map(function (it) {
+        var th = it.img ? '<span class="th" style="background-image:url(\'' + esc(it.img) + '\');background-size:cover;background-position:center"></span>' : '<span class="th"></span>';
+        return '<div class="rc" data-recent="' + esc(it.q) + '">' + th + '<span><span class="t">' + esc(it.label) + '</span><span class="u">' + esc(it.when) + "</span></span></div>";
+      }).join("") + "</div></div>";
   }
   function whyRow() { return '<div class="whyrow" data-stage="answer"><button class="why"><span class="i">i</span>Why these cars?</button></div>'; }
   // JUST SOLD signal: ONE real recent sale, serif line with mono numbers, links to the sale.
@@ -288,7 +288,7 @@
     var body;
     if (d.tier === "three" || d.tier === "two" || d.tier === "one") {
       body = '<div data-stage="answer">' + answerHtml(d) + '<div class="meta-row">' + basisHtml(d) + asOfHtml() + utilsHtml() + "</div></div>" +
-        whyRow() + gridHtml(d.cards) + samNoteHtml(d) + refineHtml() + sellHtml() + recentHtml();
+        whyRow() + gridHtml(d.cards) + samNoteHtml(d) + sellHtml() + recentHtml();
     } else if (d.tier === "zero") {
       body = '<div class="sam" data-stage="answer"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s take</div><p style="font-size:20px;line-height:1.45">' +
         lint(esc("I don’t have enough real " + carLabel(d.resolvedCar) + " sales to show you an honest read, and I won’t make one up. Try another car and I’ll pull what actually sold."), "zero") + "</p>" +
@@ -362,6 +362,11 @@
     if (match.year) v.year = match.year;
     if (match.make && (!v.make || !obSameIdentity(v.make, match.make))) v.make = match.make;
     if (match.model && (!v.model || !obSameIdentity(v.model, match.model))) v.model = match.model;
+    // The comp pool + generation lookup use the FAMILY model, not the chassis-prefixed field
+    // value ("E30 M3" -> "M3"), so the pool reflects the whole generation and the generation
+    // window resolves. The anchor still names the car from displayName. (Real models never match:
+    // M3/X5/A6 are 1 digit; 993/997 pure digits.)
+    if (v.model) v.model = String(v.model).replace(/^[A-Za-z]\d{2,3}\s+/, "").trim() || v.model;
     if (match.trim && !obRedundantTrim(match.trim, v.model)) v.trim = match.trim;
     v.canonicalLabel = match.displayName || [v.year, v.make, v.model, v.trim].filter(Boolean).join(" ");
     return v;
@@ -410,8 +415,9 @@
   function anchorHtml(match, rc) {
     var callout = anchorCalloutHtml(match, rc);
     if (!callout) return "";
-    var bridge = "Let’s see what’s happened with similar " + esc((rc && rc.model) ? rc.model : "cars") + "s since.";
-    return '<div class="anchor" data-stage="anchor">' + callout + '<p class="bridge">' + lint(bridge, "bridge") + "</p></div>";
+    // Bridge line removed pending the results-screen redesign (no replacement copy yet). The
+    // exact-car block stands on its own above the comps.
+    return '<div class="anchor" data-stage="anchor">' + callout + "</div>";
   }
   // Chassis exact match (Task 3): the anchor callout + an honest ask for the car (the match
   // is EVIDENCE only; the user still gives year/make/model). No decoding, no marque guess.
@@ -484,6 +490,13 @@
             obEvent("onebox_vin_anchor_shown");
             var mv = vehicleFromMatch(d.vinArchiveMatch, d.vehicle);
             runPool(d.vinArchiveMatch.displayName || carLabel(mv) || text, mv);
+            return;
+          }
+          // COLLAPSE (no match): the VIN decoded make+year but no model, so the clarification
+          // carries the year-scoped model chips - render ONE model ask ("...a 1990 BMW. Which
+          // model?"), not a confirm followed by a model screen. The chip builds "year make model".
+          if (cl.modelOptions && cl.modelOptions.length) {
+            renderChoice({ prompt: cl.question, modelOptions: cl.modelOptions, baseLabel: [d.vehicle && d.vehicle.year, d.vehicle && d.vehicle.make].filter(Boolean).join(" ") || null });
             return;
           }
           pendingVin = d.vehicle || null; vinAnchor = null;
@@ -594,9 +607,16 @@
   function recentSearches() { try { return JSON.parse(localStorage.getItem("gas_ob_recent") || "[]"); } catch (e) { return []; } }
   function pushRecent(q, d) {
     try {
-      var label = (d && d.resolvedCar) ? [d.resolvedCar.year, d.resolvedCar.make, d.resolvedCar.model].filter(Boolean).join(" ") : q;
-      var list = recentSearches().filter(function (it) { return it.q !== q; });
-      list.unshift({ q: q, label: label || q, when: "Just now" });
+      // Name each entry the SAME way as the results headline: for a matched car the record's
+      // title-derived displayName ("1990 BMW M3"), and carry its hero image. Dedupe by the CAR
+      // (normalized label), not the raw query, so one car never lingers as "1990 BMW M3",
+      // "1990 BMW E30 M3" and "1990 BMW" from different flow states.
+      var label = (vinAnchor && vinAnchor.displayName) ? vinAnchor.displayName
+        : ((d && d.resolvedCar) ? carLabel(d.resolvedCar) : q);
+      var img = (vinAnchor && vinAnchor.photoUrl) ? vinAnchor.photoUrl : null;
+      var key = String(label || q).toLowerCase().replace(/\s+/g, " ").trim();
+      var list = recentSearches().filter(function (it) { return (it.key || String(it.label || it.q || "").toLowerCase().replace(/\s+/g, " ").trim()) !== key; });
+      list.unshift({ q: q, label: label || q, img: img, key: key, when: "Just now" });
       localStorage.setItem("gas_ob_recent", JSON.stringify(list.slice(0, 8)));
     } catch (e) {}
     syncRailResults();

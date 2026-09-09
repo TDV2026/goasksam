@@ -93,38 +93,6 @@ async function handleOneboxShare(req, res, id) {
 }
 
 export default async function handler(req, res) {
-  // TEMP DIAGNOSTIC (remove after use): comp-pool depth for a model across scopings + tables.
-  // ?__pool=<nonce>&make=BMW&modelLike=M3&y0=1986&y1=1992
-  if (req.query && req.query.__pool === "2d29eedde69345f7") {
-    try {
-      const env2 = { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY };
-      const make = String(req.query.make || "");
-      const modelLike = String(req.query.modelLike || "");
-      const y0 = Number(req.query.y0), y1 = Number(req.query.y1);
-      const since730 = new Date(Date.now() - 730 * 86400000).toISOString().slice(0, 10);
-      const out = {};
-      for (const table of ["vehicle_market_records", "sales_archive"]) {
-        const dateCol = table === "sales_archive" ? "sale_date" : "auction_end_date";
-        const priceCol = table === "sales_archive" ? "sale_price" : "price";
-        const q = `${table}?select=model,year,${dateCol},img:raw_record->>featured_image_url&make=ilike.${encodeURIComponent(make)}&model=ilike.${encodeURIComponent("*" + modelLike + "*")}&year=gte.${y0}&year=lte.${y1}&limit=5000`;
-        const rows = (await supabaseSelect(env2, q)) || [];
-        const models = {};
-        let withImg = 0, in730 = 0, in730Img = 0;
-        for (const r of rows) {
-          models[r.model || "(null)"] = (models[r.model || "(null)"] || 0) + 1;
-          const hasImg = !!r.img;
-          if (hasImg) withImg++;
-          const recent = String(r[dateCol] || "").slice(0, 10) >= since730;
-          if (recent) in730++;
-          if (recent && hasImg) in730Img++;
-        }
-        out[table] = { total: rows.length, withImg, in730, in730Img, modelStrings: models };
-      }
-      // Exact record-field scoping the pool CURRENTLY uses (vmr, ILIKE the raw model field)
-      res.status(200).json({ query: { make, modelLike, y0, y1, since730 }, ...out });
-      return;
-    } catch (e) { res.status(500).json({ err: String(e && e.message) }); return; }
-  }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
   if (req.query && typeof req.query.obShare !== "undefined") {

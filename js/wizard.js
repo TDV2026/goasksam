@@ -955,6 +955,22 @@ async function handleVehicleValidationAnswer(q){
   // directly (VIN, WMI market spec, body style intact), never a re-resolve of the
   // bare label. This branch is unreachable off-feature (no vin_confirmation ever set).
   if(currentIssue?.kind==="vin_confirmation"){
+    // COLLAPSE: the confirm carried model chips (VIN decoded make+year, no model). Picking a
+    // model (chip or typed) resolves make+year+model in ONE step - no separate confirm screen.
+    // (An exact match never reaches here: Option B match-firsts it before the confirm renders.)
+    if(currentIssue.modelOptions&&currentIssue.modelOptions.length&&!affirmationLike(lower)&&subStateIntent!=="refusal"&&subStateIntent!=="negation"){
+      const picked=currentIssue.modelOptions.find(mo=>normalizeVehicleAnswer(mo)===normalizeVehicleAnswer(lower))||(looksLikeVehicleText(q)?q.trim():null);
+      if(picked&&!/^not sure$/i.test(lower)){
+        const combined=[currentIssue.baseVehicle,picked].filter(Boolean).join(" ").replace(/\s+/g," ").trim();
+        sellState.pendingVehicleIdentity=null;sellState.pendingVinMatch=null;
+        if(!(await validateVehicleIdentityPreflight(combined)))return true;
+        sellState.vehicleDetailSkipped=false;
+        const missing=currentMissingVehicleDetail();
+        if(missing){askMissingVehicleDetail(missing);return true;}
+        resumeWizardAfterVehicle(`Got it, the ${sellState.carName}.`);
+        return true;
+      }
+    }
     const yes=affirmationLike(lower)||normalizeVehicleAnswer(lower)===normalizeVehicleAnswer(currentIssue.suggestion||"");
     const no=/^(no|nope|nah|wrong|not (it|right|quite)|let me type|i'?ll type|type it)/i.test(lower)||subStateIntent==="refusal"||subStateIntent==="negation";
     if(yes&&currentIssue.vinVehicle){
