@@ -823,30 +823,38 @@ function missingVehicleTrimDetail(text){
 // sellState.matchedConfig so the result read can flag a modified car.
 function applyMatchedConfig(v,m){
   if(!m||!v)return "none";
-  // Stash config for the result condition note whenever the record carries one.
+  // MATCHED-PATH SOURCE OF TRUTH: the RECORD wins for identity. The decode only FOUND the
+  // match; "per the prior listing" is a provenance claim, so year/make/model (and trim below)
+  // must come from the record, never the decode, which can be wrong (a VIN year-code cycle
+  // miss returned "2020" for a 1990 E30 M3). Reconcile the resolved vehicle + the vehicle chip
+  // to the record BEFORE anything renders, so the comp fetch also scopes to the right car.
+  if(m.year)v.year=m.year;
+  if(m.make)v.make=m.make;
+  if(m.model)v.model=m.model;
+  v.canonicalLabel=[v.year,v.make,v.model,v.wheelbase].filter(Boolean).join(" ");
+  sellState.carName=v.canonicalLabel;sellState.carRaw=v.canonicalLabel;
+  const label=[v.year,v.make,v.model].filter(Boolean).join(" ")||v.canonicalLabel||"it";
+  // Stash config for the result condition note whenever the record carries one (record-aligned).
   if(m.engine||(m.modifications&&m.modifications.length)){
     sellState.matchedConfig={
       engine:m.engine||null,transmission:m.transmission||null,drivetrain:m.drivetrain||null,
       modifications:Array.isArray(m.modifications)?m.modifications:[],keyMods:Array.isArray(m.keyMods)?m.keyMods:[],
       isModified:!!m.isModified,modsSummary:m.modsSummary||"",
-      model:v.model||m.model||null,year:v.year||m.year||null
+      model:v.model||null,year:v.year||null
     };
   }
-  // The matched car is stated in the config line itself (no separate "Got it" restate, no
-  // "Not right? Tell me the trim." invitation - it's immediately followed by the state
-  // question so the seller never gets a turn to answer it, and on a car we just proved we
-  // know it contradicts the callout. A wrong match is corrected via the vehicle chip's Edit
-  // affordance, not a spoken prompt). year+make+model, no body style.
-  const label=[v.year,v.make,v.model].filter(Boolean).join(" ")||v.canonicalLabel||"it";
-  // 1) Materially MODIFIED with a known engine: state the car + the modified config (the
-  //    engine sets the value on these), do NOT set a trim, and skip the ask.
+  // The car is stated in the config line itself (no separate "Got it" restate, no "Not right?
+  // Tell me the trim." invitation - it's immediately followed by the state question so the
+  // seller never gets a turn to answer it, and on a car we just proved we know it contradicts
+  // the callout. A wrong match is corrected via the vehicle chip's Edit affordance).
+  // 1) Materially MODIFIED with a known engine: the engine sets the value; state it, skip ask.
   if(m.isModified&&m.engine){
     const mods=m.modsSummary?` with ${m.modsSummary}`:"";
     addMsg("sam",`It's a ${label}, and the prior listing has it as a ${m.engine}${mods}, so a modified car rather than a numbers-matching one.`);
     return "skip";
   }
-  // 2) A real factory TRIM from the prior listing (e.g. "LP670-4 SuperVeloce"): fill it (a
-  //    trim is fine to set; an engine is not), state the car with the trim, and skip the ask.
+  // 2) A real factory TRIM from the prior listing (e.g. "LP670-4 SuperVeloce"): set it (a trim
+  //    is fine; an engine is not), state the car with the trim, skip the ask.
   if(m.trim&&!v.trim){
     v.trim=m.trim;
     v.canonicalLabel=[v.year,v.make,v.model,v.wheelbase,v.trim].filter(Boolean).join(" ");
@@ -854,14 +862,12 @@ function applyMatchedConfig(v,m){
     addMsg("sam",`It's a ${v.canonicalLabel}, per the prior listing.`);
     return "skip";
   }
-  // 3) Engine known, no trim, not modified: state the car with its engine and skip the ask.
-  if(m.engine&&!v.trim){
-    addMsg("sam",`It's a ${label} with a ${m.engine}, per the prior listing.`);
-    return "skip";
-  }
-  // 4) No usable config and no trim: fall to the trim ask, bridged by matchedBridgeLine().
-  if(!v.trim)return "bridge";
-  return "none";
+  // 3) Not modified, no listing trim: state the car from the record (engine is NOT surfaced on
+  //    an unmodified car - it is not the value driver there). The caller then SKIPS the ask
+  //    when the model needs no further narrowing (we know it as well as the record does, e.g.
+  //    a 1990 M3), or BRIDGES into the trim ask (rule 5) when the model still needs a trim.
+  addMsg("sam",`It's a ${label}, per the prior listing.`);
+  return "bridge";
 }
 // Rule 5 bridging line: when a matched car's record carries no engine, the trim ask reads as
 // one thought after the callout, not a cold restart. Year is templated, never hardcoded.
