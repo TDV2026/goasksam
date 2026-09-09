@@ -8,7 +8,7 @@
 // plan caps deployments at 12 Serverless Functions. See handleOneboxShare below.
 import fs from "node:fs";
 import path from "node:path";
-import { appConfigFlag } from "../lib/_flags.js";
+import { appConfigFlag, findVinArchiveMatch } from "../lib/_flags.js";
 import { supabaseSelect } from "../lib/_supabase.js";
 
 let SHELL = null;
@@ -93,6 +93,28 @@ async function handleOneboxShare(req, res, id) {
 }
 
 export default async function handler(req, res) {
+  // TEMP DIAGNOSTIC (remove after use): real pools for the /onebox-preview Screen 2 mockup.
+  if (req.query && req.query.__mock === "1be08a27a854a34d") {
+    try {
+      const env2 = { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY };
+      const since = new Date(Date.now() - 760 * 86400000).toISOString().slice(0, 10);
+      const cols = "p:sale_price,d:sale_date,mi:raw_record->>mileage,pl:platform,t:listing_title,img:raw_record->>featured_image_url,mods:raw_record->>modifications,body:raw_record->>body_style";
+      async function pool(q) { return (await supabaseSelect(env2, q)) || []; }
+      // Frame 1: exact match + full E30 M3 pool (recent, with photo)
+      const match = await findVinArchiveMatch(env2, { vin: "WBSAK0301LAE33492" });
+      const m3 = await pool(`sales_archive?select=${cols}&make=ilike.BMW&model=ilike.*M3*&year=gte.1986&year=lte.1992&sale_price=not.is.null&raw_record->>featured_image_url=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=200`);
+      // Frame 2: 997 Carrera S (title carries "Carrera S"), 2005-2012, recent, with photo
+      const p997 = await pool(`sales_archive?select=${cols}&make=ilike.Porsche&model=ilike.*911*&listing_title=ilike.*Carrera S*&year=gte.2005&year=lte.2012&sale_price=not.is.null&raw_record->>featured_image_url=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=200`);
+      // Frame 3: candidate thin cars (pick one with 1-2 recent+photo sales)
+      const thinCands = {};
+      for (const c of [["Lamborghini", "Espada"], ["Maserati", "Ghibli"], ["Jensen", "Interceptor"], ["Iso", "Grifo"], ["Bristol", "*"]]) {
+        const rows = await pool(`sales_archive?select=${cols}&make=ilike.${encodeURIComponent(c[0])}${c[1] === "*" ? "" : "&model=ilike.*" + encodeURIComponent(c[1]) + "*"}&sale_price=not.is.null&raw_record->>featured_image_url=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=20`);
+        thinCands[c[0] + " " + c[1]] = rows;
+      }
+      res.status(200).json({ match, m3, p997, thinCands });
+      return;
+    } catch (e) { res.status(500).json({ err: String(e && e.message), stack: String(e && e.stack || "").slice(0, 300) }); return; }
+  }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
   if (req.query && typeof req.query.obShare !== "undefined") {
