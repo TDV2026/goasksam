@@ -777,12 +777,14 @@ function marketSpecAskFor(rv){
 // ask for a curated narrowing the listing didn't pin (rule 5), never the generic "any trim?".
 function hasCuratedTrimAsk(rv){
   if(!rv||!rv.model||rv.unverified)return false;
+  const trimVal=String(rv.trim||"");
   for(const rule of CURATED_TRIM_ASKS){
     if(!rule.make.test(String(rv.make||"")))continue;
     if(!rule.model.test(String(rv.model||"")))continue;
     if(rule.yearMin&&Number(rv.year)&&Number(rv.year)<rule.yearMin)continue;
     if(rule.yearMax&&Number(rv.year)&&Number(rv.year)>rule.yearMax)continue;
-    if(rule.trimRe&&!rule.trimRe.test(String(rv.trim||"")))continue;
+    if(rule.trimRe){if(!rule.trimRe.test(trimVal))continue;}
+    else if(trimVal)continue;   // generation ask, but a trim is already known -> no ask
     return true;
   }
   return false;
@@ -857,10 +859,15 @@ function applyMatchedConfig(v,m){
   if(m.year)v.year=m.year;
   if(m.make&&(!v.make||!sameIdentity(v.make,m.make)))v.make=m.make;
   if(m.model&&(!v.model||!sameIdentity(v.model,m.model)))v.model=m.model;
-  const mkFull=()=>dedupe([v.year,v.make,v.model,v.wheelbase,v.trim].filter(Boolean).join(" "));
-  const ymm=dedupe([v.year,v.make,v.model].filter(Boolean).join(" "))||v.canonicalLabel||"it";
-  v.canonicalLabel=mkFull();
-  sellState.carName=v.canonicalLabel;sellState.carRaw=v.canonicalLabel;
+  // The record's title trim WINS over a partial decode trim ("Shelby GT500" over "Shelby"), when
+  // it ADDS to the model (never redundant, e.g. "M3" over model "E30 M3"). Set on the vehicle for
+  // the fetch's exact-trim rung; the DISPLAY name comes from the title, not this field.
+  if(m.trim&&!redundantTrim(m.trim,v.model))v.trim=m.trim;
+  // DISPLAY NAME = what the seller's own listing called the car (title-derived headline: "1990
+  // BMW M3", not the internal model field "E30 M3"). Display only - the model field stays as-is
+  // for matching. Falls back to the structured fields. Dedupe belt guards any token repeat.
+  const name=dedupe((m.displayName&&m.displayName.trim())?m.displayName:[v.year,v.make,v.model,v.wheelbase,v.trim].filter(Boolean).join(" "))||"it";
+  v.canonicalLabel=name;sellState.carName=name;sellState.carRaw=name;
   // Stash config for the result condition note whenever the record carries one (record-aligned).
   if(m.engine||(m.modifications&&m.modifications.length)){
     sellState.matchedConfig={
@@ -877,25 +884,15 @@ function applyMatchedConfig(v,m){
   // 1) Materially MODIFIED with a known engine: the engine sets the value; state it, skip ask.
   if(m.isModified&&m.engine){
     const mods=m.modsSummary?` with ${m.modsSummary}`:"";
-    addMsg("sam",`It's a ${ymm}, and the prior listing has it as a ${m.engine}${mods}, so a modified car rather than a numbers-matching one.`);
+    addMsg("sam",`It's a ${name}, and the prior listing has it as a ${m.engine}${mods}, so a modified car rather than a numbers-matching one.`);
     return "skip";
   }
-  // 2) A real factory TRIM from the listing that ADDS to the model (e.g. "LP670-4 SuperVeloce",
-  //    "Shelby GT500"): the record's title trim WINS over a partial decode trim ("Shelby"), and
-  //    a trim is fine to set (an engine is not). State the car with the trim, skip the ask.
-  if(m.trim&&!redundantTrim(m.trim,v.model)){
-    v.trim=m.trim;
-    v.canonicalLabel=mkFull();
-    sellState.carName=v.canonicalLabel;sellState.carRaw=v.canonicalLabel;
-    addMsg("sam",`It's a ${v.canonicalLabel}, per the prior listing.`);
-    return "skip";
-  }
-  // 3) Not modified, no listing trim: state the car from the record (engine is NOT surfaced on
-  //    an unmodified car - it is not the value driver there), then SKIP all further vehicle
-  //    questions - we know the car as well as the listing does. The ONE exception (rule 5) is a
-  //    model with a CURATED trim narrowing the listing didn't pin (e.g. a Corvette generation):
-  //    bridge into that ask. A car we just matched is never quizzed on a model we don't curate.
-  addMsg("sam",`It's a ${mkFull()}, per the prior listing.`);
+  // 2) Not modified: state the car from the listing (the title name already carries any trim),
+  //    then SKIP all further vehicle questions - we know the car as well as the listing does. The
+  //    ONE exception (rule 5) is a model with a CURATED trim narrowing the listing didn't pin
+  //    (e.g. a Corvette generation): bridge into that ask. A matched car is never quizzed on a
+  //    model we don't curate, nor on the generic optional trim.
+  addMsg("sam",`It's a ${name}, per the prior listing.`);
   if(hasCuratedTrimAsk(v))return "bridge";
   sellState.vehicleDetailSkipped=true;
   return "skip";

@@ -234,6 +234,24 @@ async function resolveVehicleInput(candidate,opts={}){
       }
       return true;
     }
+    // Option B (fault 3): an EXACT archive match is stronger evidence than a VIN decode, so a
+    // decoded VIN we ALSO matched to a prior sale SKIPS the decode-confirmation entirely - the
+    // match IS the confirmation. Accept the decoded vehicle directly, lead with the "I know this
+    // exact car" callout, and let the caller's applyMatchedConfig state the car from the record.
+    // The decode-confirm step is reserved for the NO-match case (the decode is our only signal).
+    if(data.clarification?.kind==="vin_confirmation"&&data.vinArchiveMatch&&data.vehicle){
+      sellState.vehicleIdentityValidated=true;
+      sellState.pendingVehicleIdentity=null;
+      sellState.resolvedVehicle=data.vehicle;
+      sellState.pendingVinMatch=data.vinArchiveMatch;
+      sellState.vinEntry=true;sellState.vinDecode="success";sellState.vinConfirmed=true;sellState.vinArchiveMatchFound=true;
+      if(data.vehicle.mileage&&!sellState.mileage)sellState.mileage=`${Number(data.vehicle.mileage).toLocaleString()} miles`;
+      if(data.vehicle.canonicalLabel){sellState.carName=data.vehicle.canonicalLabel;sellState.carRaw=data.vehicle.canonicalLabel;}
+      sellState.lastVehicleAsk=null;sellState.vehicleClarifyRepeats=0;
+      sellState.lastIdentityVerdict="valid";
+      if(typeof renderVinArchiveCallout==="function")renderVinArchiveCallout(sellState.pendingVinMatch);
+      return true;
+    }
     if((data.status==="invalid_vehicle"||data.status==="needs_clarification"||data.status==="needs_confirmation")&&data.clarification?.question){
       const partial=data.vehicle||{};
       const nothingUnderstood=data.status==="needs_clarification"&&!partial.year&&!partial.make&&!partial.model;
