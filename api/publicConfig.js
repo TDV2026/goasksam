@@ -100,19 +100,22 @@ export default async function handler(req, res) {
       const since = new Date(Date.now() - 760 * 86400000).toISOString().slice(0, 10);
       const cols = "p:sale_price,d:sale_date,mi:raw_record->>mileage,pl:platform,t:listing_title,img:raw_record->>featured_image_url,mods:raw_record->>modifications,body:raw_record->>body_style";
       async function pool(q) { return (await supabaseSelect(env2, q)) || []; }
-      // Frame 1: exact match + full E30 M3 pool (recent, with photo)
-      const match = await findVinArchiveMatch(env2, { vin: "WBSAK0301LAE33492" });
-      const m3 = await pool(`sales_archive?select=${cols}&make=ilike.BMW&model=ilike.*M3*&year=gte.1986&year=lte.1992&sale_price=not.is.null&raw_record->>featured_image_url=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=200`);
-      // Frame 2: 997 Carrera S (title carries "Carrera S"), 2005-2012, recent, with photo
-      const p997 = await pool(`sales_archive?select=${cols}&make=ilike.Porsche&model=ilike.*911*&listing_title=ilike.*Carrera S*&year=gte.2005&year=lte.2012&sale_price=not.is.null&raw_record->>featured_image_url=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=200`);
-      // Frame 3: candidate thin cars (pick one with 1-2 recent+photo sales)
-      const thinCands = {};
-      for (const c of [["Lamborghini", "Espada"], ["Maserati", "Ghibli"], ["Jensen", "Interceptor"], ["Iso", "Grifo"], ["Bristol", "*"]]) {
-        const rows = await pool(`sales_archive?select=${cols}&make=ilike.${encodeURIComponent(c[0])}${c[1] === "*" ? "" : "&model=ilike.*" + encodeURIComponent(c[1]) + "*"}&sale_price=not.is.null&raw_record->>featured_image_url=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=20`);
-        thinCands[c[0] + " " + c[1]] = rows;
+      const part = String(req.query.part || "");
+      if (part === "m1") {
+        const match = await findVinArchiveMatch(env2, { vin: "WBSAK0301LAE33492" });
+        const m3 = await pool(`sales_archive?select=${cols}&make=ilike.BMW&model=ilike.*M3*&year=gte.1986&year=lte.1992&sale_price=not.is.null&raw_record->>featured_image_url=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=200`);
+        res.status(200).json({ match, m3 }); return;
       }
-      res.status(200).json({ match, m3, p997, thinCands });
-      return;
+      if (part === "p997") {
+        const p997 = await pool(`sales_archive?select=${cols}&make=ilike.Porsche&model=ilike.*911*&listing_title=ilike.*Carrera S*&year=gte.2005&year=lte.2012&sale_price=not.is.null&raw_record->>featured_image_url=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=200`);
+        res.status(200).json({ p997 }); return;
+      }
+      if (part === "thin") {
+        const make = String(req.query.tmake || ""), model = String(req.query.tmodel || "");
+        const rows = await pool(`sales_archive?select=${cols}&make=ilike.${encodeURIComponent(make)}${model ? "&model=ilike.*" + encodeURIComponent(model) + "*" : ""}&sale_price=not.is.null&raw_record->>featured_image_url=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=20`);
+        res.status(200).json({ rows }); return;
+      }
+      res.status(200).json({ ok: "specify part" }); return;
     } catch (e) { res.status(500).json({ err: String(e && e.message), stack: String(e && e.stack || "").slice(0, 300) }); return; }
   }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
