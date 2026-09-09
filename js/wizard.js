@@ -643,19 +643,19 @@ function missingVehicleDetail(text){
     return {type:"model",ask:`Which model is the${year?` ${year}`:""} Porsche? Pick one below, or type the exact model if it is not shown.`,chips:porscheModelChipsForYear(year)};
   }
   if(/\bporsche\b/.test(lower)&&/\b911\b/.test(lower)&&!/\b(carrera(?:\s+[124]?s|\s+t)?|gts|turbo(?:\s+s)?|gt3(?:\s+rs)?|gt2(?:\s+rs)?|sport\s+classic|dak(?:ar)?|speedster|targa|s\/t|992|991|997|996|993|964)\b/.test(lower)){
-    return {type:"trim",ask:"Which 911 is it? Carrera, Carrera T, GTS, Turbo, GT3 and Sport Classic behave very differently. Pick one below, or type the exact trim if it is not shown.",chips:["Carrera","Carrera S","Carrera T","GTS","Turbo","Turbo S","GT3","GT3 RS","Sport Classic","Not sure"]};
+    return {type:"trim",ask:"Which 911 is it? Carrera, Carrera T, GTS, Turbo, GT3 and Sport Classic behave very differently. Pick one below, or type the exact trim if it is not shown.",chips:filterChipsByEra(["Carrera","Carrera S","Carrera T","GTS","Turbo","Turbo S","GT3","GT3 RS","Sport Classic","Not sure"],year,TRIM_ERA)};
   }
   if(/\bbmw\b/.test(lower)&&!/\b(m\d|[1-8]\d{2}[a-z]{0,3}|z3|z4|z8|x[1-7]|i8|2002|e30|e36|e46|e90|e92|e39|e60)\b/.test(lower)){
-    return {type:"model",ask:"Which BMW model or trim is it? These are just common examples. Pick one below, or type the exact model if it is not shown.",chips:["M3","2002","6-Series","3-Series","Z4","X5","Not sure"]};
+    return {type:"model",ask:"Which BMW model or trim is it? These are just common examples. Pick one below, or type the exact model if it is not shown.",chips:filterChipsByEra(["M3","2002","6-Series","3-Series","Z4","X5","Not sure"],year,MODEL_ERA)};
   }
   if(/\baudi\b/.test(lower)&&!/\b(a[1-8]|s[1-8]|rs[3-7]|r8|tt|tts|ttrs|q[2-8]|e-tron|allroad)\b/.test(lower)){
     return {type:"model",ask:`Which model is the${year?` ${year}`:""} Audi? Pick one below, or type the exact model if it is not shown.`,chips:["A4","S4","RS3","RS6","R8","TT","Q5","Not sure"]};
   }
   if(/\bferrari\b/.test(lower)&&!/\b(308|328|348|355|360|430|458|488|f8|roma|california|testarossa|modena|spider|berlinetta|scuderia)\b/.test(lower)){
-    return {type:"model",ask:"Which Ferrari model or trim is it? Pick one below, or type the exact model if it is not shown.",chips:["360 Modena","F430","458","488","Not sure"]};
+    return {type:"model",ask:"Which Ferrari model or trim is it? Pick one below, or type the exact model if it is not shown.",chips:filterChipsByEra(["360 Modena","F430","458","488","Not sure"],year,MODEL_ERA)};
   }
   if(/\balfa(?:\s+romeo)?\b/.test(lower)&&!/\b(spider|gtv|giulia|giulietta|alfetta|164|sz|rz|4c|8c|stelvio|quadrifoglio|duetto|montreal)\b/.test(lower)){
-    return {type:"model",ask:"Which Alfa Romeo model or trim is it? Pick one below, or type the exact model if it is not shown.",chips:["Spider","GTV","Giulia","164","Montreal","Not sure"]};
+    return {type:"model",ask:"Which Alfa Romeo model or trim is it? Pick one below, or type the exact model if it is not shown.",chips:filterChipsByEra(["Spider","GTV","Giulia","164","Montreal","Not sure"],year,MODEL_ERA)};
   }
   const genericMissing=genericMakeMissingDetail(text,year);
   if(genericMissing)return genericMissing;
@@ -671,24 +671,71 @@ const TRIM_911_ASK={type:"trim",ask:"Which 911 is it? Carrera, Carrera T, GTS, T
 // family (C63 vs C63 S). yearMin/yearMax scope a rule to the era where the
 // trims apply. Classic American muscle is included because SS/RS/Z/28,
 // GT/Mach 1/Boss/Shelby, and SS 396/454 move the market by large multiples.
+// A multi-generation nameplate whose trim NAMES change across generations MUST be
+// year/generation-scoped (yearMin/yearMax), or it offers anachronistic trims (a 1971
+// Corvette must not show Z06/ZR1/Grand Sport). Generation boundaries mirror
+// lib/generations.js (Corvette C1-C8, Camaro, Chevelle). scripts/lintTrimAsks.js FAILS
+// if a MULTI_GEN nameplate here is not year-scoped, so this can't silently regress.
 const CURATED_TRIM_ASKS=[
   {make:/porsche/i,model:/^(911|964|993|996|997|991|992)$/i,ask:TRIM_911_ASK.ask,chips:TRIM_911_ASK.chips.slice()},
   {make:/bmw/i,model:/^m3$/i,yearMin:2015,ask:"Which M3 is it? Base and Competition sell differently. Pick one below, or type the exact trim.",chips:["Base","Competition","CS","Not sure"]},
   {make:/bmw/i,model:/^6-?series$/i,yearMax:1989,ask:"Which 6-Series is it? The 630CS, 633CSi, 635CSi and M635CSi sell very differently. Pick one below, or type the exact trim.",chips:["630CS","633CSi","635CSi","M635CSi","Other","Not sure"]},
   {make:/mercedes/i,model:/^c-class$/i,trimRe:/^c63$/i,ask:"Which C63 is it? C63 and C63 S behave differently. Pick one below, or type it.",chips:["C63","C63 S","Not sure"]},
-  {make:/chevrolet|chevy/i,model:/^camaro$/i,ask:"Which Camaro is it? Base, SS, RS and Z/28 sell very differently. Pick one below, or type the exact trim.",chips:["Base","SS","RS","Z/28","Other","Not sure"]},
+  // Camaro by generation (lib/generations.js: 67-69, 70-81, 82-92, 93-02, 10+).
+  {make:/chevrolet|chevy/i,model:/^camaro$/i,yearMax:1969,ask:"Which Camaro is it? Base, SS, RS, Z/28 and the COPO cars sell very differently. Pick one below, or type the exact trim.",chips:["Base","SS","RS","Z/28","COPO","Other","Not sure"]},
+  {make:/chevrolet|chevy/i,model:/^camaro$/i,yearMin:1970,yearMax:1981,ask:"Which Camaro is it? Base, RS and Z28 sell very differently. Pick one below, or type the exact trim.",chips:["Base","RS","Z28","Berlinetta","Other","Not sure"]},
+  {make:/chevrolet|chevy/i,model:/^camaro$/i,yearMin:1982,yearMax:1992,ask:"Which Camaro is it? Base, RS, Z28 and the IROC-Z sell very differently. Pick one below, or type the exact trim.",chips:["Base","RS","Z28","IROC-Z","Other","Not sure"]},
+  {make:/chevrolet|chevy/i,model:/^camaro$/i,yearMin:1993,yearMax:2002,ask:"Which Camaro is it? Base, Z28 and SS sell very differently. Pick one below, or type the exact trim.",chips:["Base","Z28","SS","Other","Not sure"]},
+  {make:/chevrolet|chevy/i,model:/^camaro$/i,yearMin:2010,ask:"Which Camaro is it? Base/LT, SS, ZL1 and the 1LE sell very differently. Pick one below, or type the exact trim.",chips:["Base","SS","ZL1","1LE","Z/28","Other","Not sure"]},
   // Mustang trims are year-scoped: the earlier single rule offered Boss 302 /
   // Shelby GT350 / GT500 for every year (later-generation cars) and omitted the
   // real 2003-2004 SVT Cobra. Each generation now shows only trims that existed.
   {make:/ford/i,model:/^mustang$/i,yearMax:1973,ask:"Which Mustang is it? Base, GT, Mach 1, Boss and Shelby sell very differently. Pick one below, or type the exact trim.",chips:["Base","GT","Mach 1","Boss 302","Shelby GT350","Shelby GT500","Other","Not sure"]},
   {make:/ford/i,model:/^mustang$/i,yearMin:1994,yearMax:2004,ask:"Which Mustang is it? Base, GT, Mach 1 and the SVT Cobra sell very differently. Pick one below, or type the exact trim.",chips:["Base","GT","Mach 1","SVT Cobra","Other","Not sure"]},
   {make:/ford/i,model:/^mustang$/i,yearMin:2005,ask:"Which Mustang is it? Base, GT and the Shelby/Boss cars sell very differently. Pick one below, or type the exact trim.",chips:["Base","GT","Shelby GT500","Shelby GT350","Boss 302","Mach 1","Other","Not sure"]},
-  {make:/ford/i,model:/^mustang$/i,ask:"Which Mustang is it? Base, GT and the special editions sell very differently. Pick one below, or type the exact trim.",chips:["Base","GT","Mach 1","Cobra","Other","Not sure"]},
-  {make:/chevrolet|chevy/i,model:/^chevelle$/i,ask:"Which Chevelle is it? Base, Malibu and the SS cars (SS 396, SS 454) sell very differently. Pick one below, or type the exact trim.",chips:["Base","Malibu","SS 396","SS 454","Other","Not sure"]},
-  {make:/pontiac/i,model:/^(gto|firebird|trans\s*am)$/i,ask:"Which trim is it? The Judge, Trans Am and Formula command very different money. Pick one below, or type the exact trim.",chips:["Base","The Judge","Trans Am","Formula","Other","Not sure"]},
+  {make:/ford/i,model:/^mustang$/i,yearMin:1974,yearMax:1993,ask:"Which Mustang is it? Base, GT and the special editions sell very differently. Pick one below, or type the exact trim.",chips:["Base","GT","Cobra","Other","Not sure"]},
+  // Chevelle by generation (64-72 SS 396/454; 73-77 Laguna, SS downgraded).
+  {make:/chevrolet|chevy/i,model:/^chevelle$/i,yearMax:1972,ask:"Which Chevelle is it? Base, Malibu and the SS cars (SS 396, SS 454) sell very differently. Pick one below, or type the exact trim.",chips:["Base","Malibu","SS 396","SS 454","Other","Not sure"]},
+  {make:/chevrolet|chevy/i,model:/^chevelle$/i,yearMin:1973,yearMax:1977,ask:"Which Chevelle is it? Base, Malibu, Laguna and SS sell very differently. Pick one below, or type the exact trim.",chips:["Base","Malibu","Laguna","SS","Other","Not sure"]},
+  // GTO split from Firebird (the old single rule mixed the two nameplates' trims).
+  {make:/pontiac/i,model:/^gto$/i,yearMax:1974,ask:"Which GTO is it? The Judge commands very different money from a base GTO. Pick one below, or type the exact trim.",chips:["Base","The Judge","Other","Not sure"]},
+  {make:/pontiac/i,model:/^(firebird|trans\s*am)$/i,yearMax:1981,ask:"Which trim is it? Esprit, Formula and Trans Am sell very differently. Pick one below, or type the exact trim.",chips:["Base","Esprit","Formula","Trans Am","Other","Not sure"]},
+  {make:/pontiac/i,model:/^(firebird|trans\s*am)$/i,yearMin:1982,ask:"Which trim is it? Formula and Trans Am sell very differently. Pick one below, or type the exact trim.",chips:["Base","Formula","Trans Am","Other","Not sure"]},
   {make:/dodge/i,model:/^(charger|challenger)$/i,yearMax:1974,ask:"Which trim is it? R/T, Super Bee and the Hemi cars sell very differently. Pick one below, or type the exact trim.",chips:["Base","R/T","Super Bee","Hemi","Other","Not sure"]},
-  {make:/chevrolet|chevy/i,model:/^corvette$/i,ask:"Which Corvette is it? The base, Stingray, Z06, ZR1 and Grand Sport sell very differently. Pick one below, or type the exact trim.",chips:["Base","Stingray","Z06","ZR1","Grand Sport","Other","Not sure"]}
+  // Corvette by generation (lib/generations.js C1-C8). C3 is ENGINE-led: the market
+  // differentiator for a 1968-82 car is the engine (LT1/LS5/LS6) + the ZR1/ZR2 packages,
+  // NOT Z06/Grand Sport (which are C4-C8). No 1983 model year.
+  {make:/chevrolet|chevy/i,model:/^corvette$/i,yearMax:1962,ask:"Which Corvette is it? Fuel-injected cars sell for a large premium. Pick one below, or type the exact trim.",chips:["Base","Fuel Injection","Other","Not sure"]},
+  {make:/chevrolet|chevy/i,model:/^corvette$/i,yearMin:1963,yearMax:1967,ask:"Which Corvette is it? The big-block 427s and the L88 sell for very different money. Pick one below, or type the exact trim.",chips:["Base","Sting Ray","427","L88","Other","Not sure"]},
+  {make:/chevrolet|chevy/i,model:/^corvette$/i,yearMin:1968,yearMax:1982,ask:"Which Corvette is it? On these the engine sets the value. Pick one below, or type the exact engine or package.",chips:["Base","LT1","LS5","LS6","ZR1","ZR2","Other","Not sure"]},
+  {make:/chevrolet|chevy/i,model:/^corvette$/i,yearMin:1984,yearMax:1996,ask:"Which Corvette is it? The ZR-1 and Grand Sport sell for very different money. Pick one below, or type the exact trim.",chips:["Base","ZR-1","Grand Sport","Other","Not sure"]},
+  {make:/chevrolet|chevy/i,model:/^corvette$/i,yearMin:1997,yearMax:2004,ask:"Which Corvette is it? The Z06 sells for a premium. Pick one below, or type the exact trim.",chips:["Base","Z06","Other","Not sure"]},
+  {make:/chevrolet|chevy/i,model:/^corvette$/i,yearMin:2005,yearMax:2013,ask:"Which Corvette is it? Base, Z06, ZR1 and Grand Sport sell very differently. Pick one below, or type the exact trim.",chips:["Base","Z06","ZR1","Grand Sport","Other","Not sure"]},
+  {make:/chevrolet|chevy/i,model:/^corvette$/i,yearMin:2014,yearMax:2019,ask:"Which Corvette is it? Stingray, Z06, Grand Sport and ZR1 sell very differently. Pick one below, or type the exact trim.",chips:["Stingray","Z06","Grand Sport","ZR1","Other","Not sure"]},
+  {make:/chevrolet|chevy/i,model:/^corvette$/i,yearMin:2020,ask:"Which Corvette is it? Stingray, Z06, E-Ray and ZR1 sell very differently. Pick one below, or type the exact trim.",chips:["Stingray","Z06","E-Ray","ZR1","Other","Not sure"]}
 ];
+// Era table for the structural guard (below): era-specific trim/config tokens -> the year
+// ranges in which they existed. filterChipsByEra drops any chip whose token is here but
+// whose ranges exclude the decoded year, so even a mis-gated or un-gated list can never emit
+// an anachronistic option. Tokens with NO entry always pass (Base, Other, Not sure, LT1...).
+const TRIM_ERA={
+  z06:[[1963,1963],[2001,2019],[2023,2035]], zr1:[[1970,1972],[1990,1995],[2009,2019],[2025,2035]],
+  zr2:[[1970,1972]], grandsport:[[1963,1963],[1996,1996],[2010,2013],[2017,2019]],
+  stingray:[[1963,1976],[2014,2035]], eray:[[2024,2035]], irocz:[[1985,1990]],
+  thejudge:[[1969,1971]], l88:[[1967,1969]], copo:[[1967,1969]], berlinetta:[[1979,1986]],
+  esprit:[[1970,1981]], supersnake:[[1967,1968]]
+};
+// Model tokens that are era-bound (a model-clarification chip must not offer a nameplate
+// that did not exist in the decoded year, e.g. a BMW 2002 for a 2020 BMW).
+const MODEL_ERA={ "2002":[[1968,1976]], montreal:[[1970,1977]], testarossa:[[1984,1996]] };
+// Shared year-filter, applied across trim asks AND model-clarification chips. Never strips
+// to empty (falls back to the original list if the filter would remove everything).
+function filterChipsByEra(chips,year,table){
+  const y=Number(year); if(!y||!Array.isArray(chips))return chips;
+  const norm=s=>String(s).toLowerCase().replace(/[^a-z0-9]/g,"");
+  const kept=chips.filter(c=>{const r=(table||{})[norm(c)];return !r||r.some(([a,b])=>y>=a&&y<=b);});
+  return kept.length?kept:chips;
+}
 
 function genericTrimAsk(rv){
   // Never silently skip trim: a model with no curated variant set still gets an
@@ -750,7 +797,7 @@ function missingVehicleTrimDetail(text){
       if(rule.yearMax&&Number(rv.year)&&Number(rv.year)>rule.yearMax)continue;
       if(rule.trimRe){if(!rule.trimRe.test(trimVal))continue;}
       else if(trimVal)continue;
-      return {type:"trim",ask:rule.ask,chips:rule.chips.slice()};
+      return {type:"trim",ask:rule.ask,chips:filterChipsByEra(rule.chips.slice(),Number(rv.year),TRIM_ERA)};
     }
     // No curated set matched. If a trim already resolved, we are done; otherwise
     // fire the generic optional trim step (never a silent skip).

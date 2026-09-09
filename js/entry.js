@@ -280,8 +280,16 @@ async function send(){
       // with the known car - no re-asking year/make/model - exactly like the 17-char VIN path.
       if(probeRes.ok&&probe.status==="valid"&&probe.vinArchiveMatch&&probe.vehicle&&(probe.corrections||[]).some(c=>c&&c.type==="chassis_match")){
         if(typeof renderVinArchiveCallout==="function")renderVinArchiveCallout(probe.vinArchiveMatch);
-        var _clbl=probe.vehicle.canonicalLabel||[probe.vehicle.year,probe.vehicle.make,probe.vehicle.model].filter(Boolean).join(" ");
-        startSellFlow(_clbl,false,{text:_clbl,data:probe});
+        // Trim pre-fill from the matched listing (same shown-not-asserted behavior as the
+        // 17-char VIN vin_confirmation path): if the match carries a trim the decode lacked,
+        // fill it, state the source, and the wizard skips the trim ask. Empty trim (e.g. a
+        // bare project-car listing) -> no pre-fill, the trim step still asks.
+        var _cv=probe.vehicle, _cm=probe.vinArchiveMatch;
+        var _ctrim=(_cm&&_cm.trim&&!_cv.trim)?_cm.trim:null;
+        if(_ctrim){_cv.trim=_ctrim;_cv.canonicalLabel=[_cv.year,_cv.make,_cv.model,_cv.wheelbase,_cv.trim].filter(Boolean).join(" ");}
+        var _clbl=_cv.canonicalLabel||[_cv.year,_cv.make,_cv.model].filter(Boolean).join(" ");
+        if(_ctrim)addMsg("sam",`Filled in the ${_ctrim} from the prior listing. Not right? Just tell me the trim.`);
+        startSellFlow(_clbl,false,{text:_clbl,data:{...probe,vehicle:_cv}});
         document.getElementById("btn").disabled=false;
         return;
       }
