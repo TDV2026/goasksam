@@ -110,19 +110,15 @@ export default async function handler(req, res) {
       }
       // Fast pattern: no order + no sale_date filter (those combined statement-timeout on a large
       // slice). Recency/Carrera-S/photo filtering happens in JS from the returned rows.
+      // Slim columns (fewer JSONB extractions) so a large slice does not statement-timeout.
+      const slim = "p:sale_price,d:sale_date,mi:raw_record->>mileage,pl:platform,t:listing_title,img:raw_record->>featured_image_url";
       if (part === "p997") {
-        const p997 = await pool(`sales_archive?select=${cols}&make=ilike.Porsche&model=ilike.*911*&year=gte.2005&year=lte.2012&sale_price=not.is.null&limit=1000`);
-        const dbg = {
-          m3check: (await pool(`sales_archive?select=p:sale_price,d:sale_date,t:listing_title,img:raw_record->>featured_image_url&make=ilike.BMW&model=ilike.*M3*&year=gte.1986&year=lte.1992&sale_price=not.is.null&limit=200`)).length,
-          bare911: (await pool(`sales_archive?select=model,year&make=ilike.Porsche&model=ilike.*911*&year=gte.2005&year=lte.2012&limit=1000`)).length,
-          fullcols911: p997.length,
-          esprit: (await pool(`sales_archive?select=model,year&make=ilike.Lotus&model=ilike.*Esprit*&limit=200`)).length
-        };
-        res.status(200).json({ p997, dbg }); return;
+        const p997 = await pool(`sales_archive?select=${slim}&make=ilike.Porsche&model=ilike.*911*&year=gte.2005&year=lte.2012&sale_price=not.is.null&limit=400`);
+        res.status(200).json({ p997 }); return;
       }
       if (part === "thin") {
         const make = String(req.query.tmake || ""), model = String(req.query.tmodel || "");
-        const rows = await pool(`sales_archive?select=${cols}&make=ilike.${encodeURIComponent(make)}${model ? "&model=ilike.*" + encodeURIComponent(model) + "*" : ""}&sale_price=not.is.null&limit=200`);
+        const rows = await pool(`sales_archive?select=${slim}&make=ilike.${encodeURIComponent(make)}${model ? "&model=ilike.*" + encodeURIComponent(model) + "*" : ""}&sale_price=not.is.null&limit=60`);
         res.status(200).json({ rows }); return;
       }
       res.status(200).json({ ok: "specify part" }); return;
