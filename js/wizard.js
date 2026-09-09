@@ -819,6 +819,17 @@ async function handleVehicleValidationAnswer(q){
     const no=/^(no|nope|nah|wrong|not (it|right|quite)|let me type|i'?ll type|type it)/i.test(lower)||subStateIntent==="refusal"||subStateIntent==="negation";
     if(yes&&currentIssue.vinVehicle){
       const v=currentIssue.vinVehicle;
+      const m=sellState.pendingVinMatch;
+      // Trim auto-fill from the matched prior listing (shown, not asserted): when the VIN
+      // decode had NO trim but we matched this exact car's prior sale and it carries one, fill
+      // it and STATE where it came from so the seller can correct it. Consistent with the
+      // shown-not-asserted principle - never silently stamp a trim we didn't decode.
+      let filledTrimMsg=null;
+      if(m&&m.trim&&!v.trim){
+        v.trim=m.trim;
+        v.canonicalLabel=[v.year,v.make,v.model,v.wheelbase,v.trim].filter(Boolean).join(" ");
+        filledTrimMsg=`Filled in the ${m.trim} from the prior listing. Not right? Just tell me the trim.`;
+      }
       sellState.resolvedVehicle=v;
       sellState.carName=v.canonicalLabel;sellState.carRaw=v.canonicalLabel;
       sellState.vehicleIdentityValidated=true;sellState.vehicleDetailSkipped=false;
@@ -828,6 +839,7 @@ async function handleVehicleValidationAnswer(q){
       if(v.mileage&&!sellState.mileage)sellState.mileage=`${Number(v.mileage).toLocaleString()} miles`;
       renderVinArchiveCallout(sellState.pendingVinMatch);
       sellState.pendingVinMatch=null;
+      if(filledTrimMsg)addMsg("sam",filledTrimMsg);
       const missing=currentMissingVehicleDetail();
       if(missing){askMissingVehicleDetail(missing);return true;}
       resumeWizardAfterVehicle(`Got it, the ${v.canonicalLabel}.`);
