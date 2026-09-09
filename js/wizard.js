@@ -771,6 +771,22 @@ function marketSpecAskFor(rv){
     chips:["North American Spec","Grey-market / Euro import","Not sure"]
   };
 }
+// Does this resolved vehicle have a CURATED trim narrowing (a model whose trims are value-
+// distinct enough that we ask, e.g. a Corvette generation), as opposed to the generic optional
+// trim fallback? Used by the matched-car path: a car we matched exactly is only worth a trim
+// ask for a curated narrowing the listing didn't pin (rule 5), never the generic "any trim?".
+function hasCuratedTrimAsk(rv){
+  if(!rv||!rv.model||rv.unverified)return false;
+  for(const rule of CURATED_TRIM_ASKS){
+    if(!rule.make.test(String(rv.make||"")))continue;
+    if(!rule.model.test(String(rv.model||"")))continue;
+    if(rule.yearMin&&Number(rv.year)&&Number(rv.year)<rule.yearMin)continue;
+    if(rule.yearMax&&Number(rv.year)&&Number(rv.year)>rule.yearMax)continue;
+    if(rule.trimRe&&!rule.trimRe.test(String(rv.trim||"")))continue;
+    return true;
+  }
+  return false;
+}
 function missingVehicleTrimDetail(text){
   // Trim-missing is judged on the RESOLVED vehicle when we have one: model
   // confirmed with no trim means the trim step ALWAYS runs before location
@@ -880,7 +896,7 @@ function applyMatchedConfig(v,m){
   //    model with a CURATED trim narrowing the listing didn't pin (e.g. a Corvette generation):
   //    bridge into that ask. A car we just matched is never quizzed on a model we don't curate.
   addMsg("sam",`It's a ${mkFull()}, per the prior listing.`);
-  if(typeof missingVehicleTrimDetail==="function"&&missingVehicleTrimDetail(v.canonicalLabel))return "bridge";
+  if(hasCuratedTrimAsk(v))return "bridge";
   sellState.vehicleDetailSkipped=true;
   return "skip";
 }
