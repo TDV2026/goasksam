@@ -109,8 +109,17 @@ export default async function handler(req, res) {
         res.status(200).json({ match, m3 }); return;
       }
       if (part === "p997") {
-        const p997 = await pool(`sales_archive?select=${cols}&make=ilike.Porsche&model=ilike.*911*&listing_title=ilike.*Carrera S*&year=gte.2005&year=lte.2012&sale_price=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=200`);
+        const p997 = await pool(`sales_archive?select=${cols}&make=ilike.Porsche&model=ilike.*911*&listing_title=ilike.${encodeURIComponent("*Carrera S*")}&year=gte.2005&year=lte.2012&sale_price=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=200`);
         res.status(200).json({ p997 }); return;
+      }
+      if (part === "thinscan") {
+        const cands = [["Alfa Romeo", "Montreal"], ["De Tomaso", "Pantera"], ["Lotus", "Esprit"], ["Maserati", "Ghibli"], ["Jensen", "Interceptor"], ["Iso", "Grifo"], ["Facel Vega", ""], ["Bizzarrini", ""], ["Monteverdi", ""], ["TVR", "Griffith"]];
+        const out = {};
+        for (const c of cands) {
+          const rows = await pool(`sales_archive?select=${cols}&make=ilike.${encodeURIComponent(c[0])}${c[1] ? "&model=ilike.*" + encodeURIComponent(c[1]) + "*" : ""}&sale_price=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=10`);
+          out[c[0] + " " + c[1]] = rows.filter(r => r.img).map(r => ({ p: Math.round(r.p), d: (r.d || "").slice(0, 10), t: r.t }));
+        }
+        res.status(200).json(out); return;
       }
       if (part === "thin") {
         const make = String(req.query.tmake || ""), model = String(req.query.tmodel || "");
