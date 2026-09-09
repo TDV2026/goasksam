@@ -28,11 +28,19 @@
       try{
         var inp=document.getElementById("inp"), rail=document.getElementById("rail"), btn=document.getElementById("btn");
         var okFns=(typeof window.send==="function")&&(typeof window.startSellFlow==="function")&&(typeof window.toggleRail==="function");
+        // An OPEN nav drawer legitimately covers the input (that is the point of a drawer),
+        // so don't read that as an overlay. Password-manager elements (1Password/LastPass)
+        // are the user's extension, not our layout, so they are ignored too.
+        var railOpen=false; try{ railOpen=!!(document.body&&document.body.classList&&document.body.classList.contains("rail-open")); }catch(e){}
         var cover="";
-        try{ if(inp){var rc=inp.getBoundingClientRect(); var t=document.elementFromPoint(rc.left+rc.width/2,rc.top+rc.height/2); if(t&&t!==inp&&!inp.contains(t))cover=(t.tagName||"")+"#"+(t.id||"")+"."+((t.className||"")+"").slice(0,30); } }catch(e){}
+        try{ if(inp&&!railOpen){var rc=inp.getBoundingClientRect(); var t=document.elementFromPoint(rc.left+rc.width/2,rc.top+rc.height/2); if(t&&t!==inp&&!inp.contains(t)){ var _sig=((t.tagName||"")+" "+(t.className||"")+" "+(t.id||"")).toLowerCase(); if(_sig.indexOf("1password")<0&&_sig.indexOf("lastpass")<0&&_sig.indexOf("-op-")<0)cover=(t.tagName||"")+"#"+(t.id||"")+"."+((t.className||"")+"").slice(0,30); } } }catch(e){}
         var storageOk=true; try{ localStorage.getItem("x"); }catch(e){ storageOk=false; }
-        var unhealthy=(!inp||!rail||!btn||!okFns||cover||!storageOk||(btn&&btn.disabled));
-        if(unhealthy){ beacon("unhealthy",{inp:!!inp,rail:!!rail,btn:!!btn,btnDisabled:!!(btn&&btn.disabled),send:typeof window.send,sf:typeof window.startSellFlow,tr:typeof window.toggleRail,cover:cover,storageOk:storageOk,vis:document.visibilityState}); }
+        // A disabled button is only a PROBLEM when no send is in flight: a normal pending
+        // request disables it on purpose (anti-double-submit). stuckBtn = disabled with no
+        // request running = the genuinely-dead "never enables" state (Rudy's dead-click).
+        var stuckBtn=!!(btn&&btn.disabled&&!window.__sendInFlight);
+        var unhealthy=(!inp||!rail||!btn||!okFns||cover||!storageOk||stuckBtn);
+        if(unhealthy){ beacon("unhealthy",{inp:!!inp,rail:!!rail,btn:!!btn,btnDisabled:!!(btn&&btn.disabled),stuckBtn:stuckBtn,inFlight:!!window.__sendInFlight,send:typeof window.send,sf:typeof window.startSellFlow,tr:typeof window.toggleRail,cover:cover,railOpen:railOpen,storageOk:storageOk,vis:document.visibilityState}); }
       }catch(e){ beacon("healththrew",{msg:((e&&e.message)||"")+""}); }
     }
     if(document.readyState==="complete")setTimeout(health,4000);
@@ -115,8 +123,8 @@
     <!-- Real crawlable URLs, opened in a NEW TAB so a mid-wizard seller never loses
          their place (the /sell tab is untouched). Content is single-sourced from these
          static pages; the old JS-injected views are removed. -->
-    <a class="hp-navitem" href="/powersellers" target="_blank" rel="noopener">PowerSellers</a>
-    <a class="hp-navitem" href="/how-sam-decides" target="_blank" rel="noopener">How Sam decides</a>
+    <a class="hp-navitem" href="/powersellers" target="_blank" rel="noopener" onclick="toggleRail(false)">PowerSellers</a>
+    <a class="hp-navitem" href="/how-sam-decides" target="_blank" rel="noopener" onclick="toggleRail(false)">How Sam decides</a>
 
     <!-- Saved results: signed-in only (auth.js toggles #nav-saved). "Your results" is an
          expandable inline section - expanding shows the recent 10 in the rail and never
@@ -154,7 +162,10 @@
   <div id="input-area">
     <div id="input-box">
       <span class="hp-search-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg></span>
-      <textarea id="inp" rows="1" placeholder="Type your car, or paste a VIN."></textarea>
+      <!-- Password-manager opt-out: this is a free-text car/VIN field, not a login input, so
+           tell 1Password/LastPass not to attach their icon/menu (which otherwise overlays the
+           field on some users' browsers). data-1p-ignore is 1Password's official opt-out. -->
+      <textarea id="inp" rows="1" placeholder="Type your car, or paste a VIN." autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other"></textarea>
       <button id="btn">↑</button>
     </div>
     <div class="hp-evidence hp-home-only">Real auction results <i>&middot;</i> Platform performance <i>&middot;</i> PowerSeller data</div>
@@ -169,16 +180,16 @@
      rewrite maps /js.<token>/* back to /js/*. BUMP the token in BOTH index.html
      (every src below) and vercel.json on every js/ change so returning browsers
      fetch fresh code instead of stale cache. -->
-<script src="js.20260908c/auth.js"></script>
-<script src="js.20260908c/wizard.js"></script>
-<script src="js.20260908c/pipeline.js"></script>
-<script src="js.20260908c/steps.js"></script>
-<script src="js.20260908c/result.js"></script>
-<script src="js.20260908c/chat-core.js"></script>
-<script src="js.20260908c/result-copy.js"></script>
-<script src="js.20260908c/result-v2.js"></script>
-<script src="js.20260908c/entry.js"></script>
-<script src="js.20260908c/homepage.js"></script>
+<script src="js.20260908d/auth.js"></script>
+<script src="js.20260908d/wizard.js"></script>
+<script src="js.20260908d/pipeline.js"></script>
+<script src="js.20260908d/steps.js"></script>
+<script src="js.20260908d/result.js"></script>
+<script src="js.20260908d/chat-core.js"></script>
+<script src="js.20260908d/result-copy.js"></script>
+<script src="js.20260908d/result-v2.js"></script>
+<script src="js.20260908d/entry.js"></script>
+<script src="js.20260908d/homepage.js"></script>
 <!-- Blank-pane watchdog (inline so it cannot itself fail to load): if a bundle
      fetch was blocked, challenged, or dropped, bootHomepage never paints #msgs and
      the main pane stays blank while the nav chrome (auth.js) still renders. This

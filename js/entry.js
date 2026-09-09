@@ -90,11 +90,30 @@ function localPreRoute(q){
   return{entryProbe:true};
 }
 
+// Abortable fetch so a stalled request can never hang the send button. On timeout the
+// request aborts and rejects, which flows into send()'s existing catch/finally, so the
+// button re-enables and the seller can retry - instead of the control staying dead forever
+// (the "button never enables" dead-click: the two awaited fetches in send() had no timeout,
+// so a single hung request left #btn disabled permanently).
+function fetchWithTimeout(url,opts,ms){
+  opts=opts||{};
+  if(typeof AbortController==="undefined")return fetch(url,opts);
+  var ctl=new AbortController();
+  var t=setTimeout(function(){try{ctl.abort();}catch(e){}},ms||20000);
+  var merged={};for(var k in opts)merged[k]=opts[k];merged.signal=ctl.signal;
+  return fetch(url,merged).finally(function(){clearTimeout(t);});
+}
+
 async function send(){
   const inp=document.getElementById("inp");
   const q=inp.value.trim();if(!q)return;
   inp.value="";inp.style.height="auto";
   document.getElementById("btn").disabled=true;
+  // SINGLE guaranteed re-enable: every branch below returns THROUGH the finally at the end,
+  // so no path (including a thrown exception) can leave the button stuck disabled. The
+  // in-flight flag lets the load watchdog tell a normal pending request from a dead control.
+  window.__sendInFlight=true;
+  try{
   addMsg("user",q);
 
   // Walled guard: once a hard daily/limit/account wall is up, a genuine question still
@@ -269,7 +288,7 @@ async function send(){
     // and without it the wait reads as dead. Same indicator used across the flow.
     if(typeof showVehicleLookup==="function")showVehicleLookup();
     try{
-      const probeRes=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:q})});
+      const probeRes=await fetchWithTimeout(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:q})},20000);
       const probe=await probeRes.json();
       if(typeof hideVehicleLookup==="function")hideVehicleLookup();
       // Journey analytics (VIN-originated marker): booleans/enums only, NEVER the VIN.
@@ -341,7 +360,7 @@ async function send(){
   chatHistory.push({role:"user",content:q});
   showTyping();
   try{
-    const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:chatHistory,system:SYS})});
+    const res=await fetchWithTimeout(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:chatHistory,system:SYS})},20000);
     const data=await res.json();
     if(!res.ok||data.error||!data.text){
       console.error("chat layer failed",res.status,data.error||"empty text");
@@ -362,8 +381,8 @@ async function send(){
     chatHistory.push({role:"assistant",content:raw});
   }catch(e){
     hideTyping();addMsg("sam","Connection issue. Try again.");
-    document.getElementById("btn").disabled=false;
   }
+  }finally{ window.__sendInFlight=false; var _b=document.getElementById("btn"); if(_b)_b.disabled=false; }
 }
 
 document.getElementById("btn").addEventListener("click",send);
