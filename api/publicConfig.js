@@ -93,20 +93,6 @@ async function handleOneboxShare(req, res, id) {
 }
 
 export default async function handler(req, res) {
-  // TEMP read-only diag: dump the matched Corvette record's engine/config fields. Nonce-gated.
-  if (req.query && req.query.diag === "eng5") {
-    const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-    const h = { apikey: key, Authorization: `Bearer ${key}` };
-    const r = await fetch(`${url}/rest/v1/sales_archive?vin_norm=eq.194371S119431&select=listing_title,make,model,year,transmission,drivetrain,raw_record&order=sale_date.desc.nullslast&limit=1`, { headers: h });
-    const rows = await r.json();
-    const row = Array.isArray(rows) ? rows[0] : null;
-    const rr = (row && row.raw_record) || {};
-    // Surface any field that looks engine/config/subtitle-ish, plus the full key list.
-    const interesting = {};
-    for (const k of Object.keys(rr)) { if (/engine|subtitle|highlight|spec|modif|title|desc|drivetrain|transmission|displac/i.test(k)) interesting[k] = typeof rr[k] === "string" ? rr[k].slice(0, 300) : rr[k]; }
-    res.setHeader("Cache-Control", "no-store");
-    return res.status(200).json({ listing_title: row && row.listing_title, transmission: row && row.transmission, drivetrain: row && row.drivetrain, rawKeys: Object.keys(rr), interestingFields: interesting });
-  }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
   if (req.query && typeof req.query.obShare !== "undefined") {
