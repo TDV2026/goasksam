@@ -387,8 +387,12 @@
   function refusalHtml(d) {
     var rf = d.refusal || {}, model = rf.model || carLabel(d.resolvedCar) || "car", reason, follow;
     if (rf.kind === "thin") {
-      var vb = rf.n === 1 ? "has" : "have", isare = rf.n === 1 ? "is" : "are";
-      reason = "Only " + spellK(rf.n) + " " + esc(model) + " " + vb + " sold in this window, too few to show an honest spread. Here " + isare + " what there " + isare + ".";
+      if (!rf.n) {
+        reason = "I don’t have any recent " + esc(model) + " sales in the record right now, so there’s nothing honest for me to build a range on.";
+      } else {
+        var vb = rf.n === 1 ? "has" : "have", isare = rf.n === 1 ? "is" : "are";
+        reason = "Only " + spellK(rf.n) + " " + esc(model) + " " + vb + " sold in this window, too few to show an honest spread. Here " + isare + " what there " + isare + ".";
+      }
       follow = "Give me a bit more, or a different car, and I’ll pull what actually sold.";
     } else {
       var listJoin = function (a) { return a.length <= 1 ? (a[0] || "") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; };
@@ -486,6 +490,10 @@
     // M3/X5/A6 are 1 digit; 993/997 pure digits.)
     if (v.model) v.model = String(v.model).replace(/^[A-Za-z]\d{2,3}\s+/, "").trim() || v.model;
     if (match.trim && !obRedundantTrim(match.trim, v.model)) v.trim = match.trim;
+    // On an exact match we know the body from the record: carry it so the comp pool scopes to
+    // the right body and never detours through the "coupe or convertible?" ask (the match IS
+    // the answer). detectBodyStyle in buildSpec normalizes the raw value ("Coupe" -> coupe).
+    if (match.bodyStyle) v.bodyStyle = match.bodyStyle;
     v.canonicalLabel = match.displayName || [v.year, v.make, v.model, v.trim].filter(Boolean).join(" ");
     return v;
   }
@@ -633,9 +641,12 @@
           pendingVin = null;
           // Chassis exact-match resolved to a real car: keep the archive match as the anchor
           // so the result leads with "I know this exact car" then shows comps for that car
-          // (same beat as a VIN match). Otherwise a plain resolution, no anchor.
-          vinAnchor = (d.vinArchiveMatch && (d.corrections || []).some(function (c) { return c && c.type === "chassis_match"; })) ? d.vinArchiveMatch : null;
-          runPool(text, d.vehicle); return;
+          // (same beat as a VIN match), and reconcile the vehicle THROUGH the match so the
+          // record's body (and identity) scopes the pool - otherwise a bodyless decode detours
+          // into the "coupe or convertible?" ask even though the match already knows the body.
+          var chassisMatched = !!(d.vinArchiveMatch && (d.corrections || []).some(function (c) { return c && c.type === "chassis_match"; }));
+          vinAnchor = chassisMatched ? d.vinArchiveMatch : null;
+          runPool(text, chassisMatched ? vehicleFromMatch(d.vinArchiveMatch, d.vehicle) : d.vehicle); return;
         }
         if (d && d.status === "needs_clarification" && cl && (cl.chips || (d.vehicle && d.vehicle.make))) {
           // MATCH-FIRST (fault 2, defensive): if a partial decode ALSO carries an exact match,
