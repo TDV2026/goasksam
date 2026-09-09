@@ -278,26 +278,144 @@
     startPlaceholderRotation();
     syncRailResults();
   }
-  function renderResults(d) {
-    // Head: on a VIN exact match the ANCHOR beat (callout + bridge) leads on EVERY tier -
-    // the exact car is known even if the similar-sales pool is thin or empty, so the anchor
-    // is never dropped. Otherwise the generic "Sam's take" leads a real result; refusal and
-    // zero are their own single Sam block.
-    var isResult = (d.tier === "three" || d.tier === "two" || d.tier === "one");
-    var head = vinAnchor ? anchorHtml(vinAnchor, d.resolvedCar) : (isResult ? samTakeHtml(d) : "");
-    var body;
-    if (d.tier === "three" || d.tier === "two" || d.tier === "one") {
-      body = '<div data-stage="answer">' + answerHtml(d) + '<div class="meta-row">' + basisHtml(d) + asOfHtml() + utilsHtml() + "</div></div>" +
-        whyRow() + gridHtml(d.cards) + samNoteHtml(d) + sellHtml() + recentHtml();
-    } else if (d.tier === "zero") {
-      body = '<div class="sam" data-stage="answer"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s take</div><p style="font-size:20px;line-height:1.45">' +
-        lint(esc("I don’t have enough real " + carLabel(d.resolvedCar) + " sales to show you an honest read, and I won’t make one up. Try another car and I’ll pull what actually sold."), "zero") + "</p>" +
-        chipsHtml(["Change the car"], "change") + "</div></div>" + sellHtml();
-    } else if (d.tier === "underspecified") {
-      // Refusal (signature trust state): NO answer line. Ask for the trim/engine.
-      body = '<div class="sam" data-stage="answer"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s take</div><p style="font-size:22px;line-height:1.4">' +
-        lint(esc(d.samLine || "The sold examples here vary too much to show you an honest read. Add the trim or engine and I’ll compare like for like."), "refuse") + "</p></div></div>";
+  // ---------------------------------------------------------------- round-3 result render
+  // The locked /onebox-preview (Screen 2) design, driven ENTIRELY by the engine's structured
+  // facts (span/cluster/recency/basis/platforms/cards/refusal). Prose is composed here with
+  // styled number spans; the engine never sends prose numbers. Matches the design of record.
+  function r3money(n) { return '<span class="num">' + usd(n) + "</span>"; }
+  function spellK(n) { return ({ 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten" })[n] || String(n); }
+  function bareModelOf(rc, m) {
+    var name = (m && m.displayName) || carLabel(rc) || "";
+    return String(name).replace(/^\d{4}\s+\S+\s+/, "").trim() || String(name) || "car";
+  }
+  function modelPluralLabel(rc) {
+    if (!rc) return "Cars like yours";
+    var parts = [rc.model, rc.trim].filter(Boolean).join(" ");
+    if (!parts) return "Cars like yours";
+    return parts + (rc.bodyStyle ? " " + cap(rc.bodyStyle) + "s" : "s");
+  }
+  // The exact-car header (matched only): "I know this exact car" + photo + config line + receipt.
+  function exactCarHtml(m, rc) {
+    if (!m || (!m.price && !m.soldDate)) return "";
+    var name = m.displayName || carLabel(rc);
+    var bare = bareModelOf(rc, m);
+    var plat = obPlat(m.source);
+    var mods = m.modifications || [];
+    var keyMods = ((m.keyMods && m.keyMods.length ? m.keyMods : mods.slice(0, 3)) || []).join(", ");
+    var cfg = "";
+    if (m.materialMods && m.materialMods.length) {
+      cfg = "The prior listing shows material work" + (m.engine ? " on the " + esc(m.engine) : "") + (keyMods ? ", the " + esc(keyMods) + " among it" : "") + ", so it reads as a modified car rather than a standard " + esc(bare) + ".";
+    } else if (mods.length) {
+      cfg = "The prior listing has it with " + (m.engine ? "the " + esc(m.engine) + " and " : "") + "a run of bolt-on fitments" + (keyMods ? ", the " + esc(keyMods) + " among them" : "") + ". All reversible, so it still reads as a standard " + esc(bare) + ", not a rebuilt car.";
+    } else if (m.engine) {
+      cfg = "The prior listing has it with the " + esc(m.engine) + ", otherwise a standard " + esc(bare) + ".";
     }
+    var photo = m.photoUrl ? '<img src="' + esc(m.photoUrl) + '" alt="' + esc(name) + '" onerror="this.style.display=\'none\'">' : "";
+    var rec = '<span class="p num">' + esc(usd(m.price)) + '</span><span>sold' + (plat ? " on " + esc(plat) : "") + (m.soldDate ? ", " + esc(monthYear(m.soldDate)) : "") + "</span>";
+    if (m.mileage) { var mi = Number(String(m.mileage).replace(/[^\d]/g, "")); if (mi) rec += '<span class="num">&middot; ' + mi.toLocaleString("en-US") + " mi</span>"; }
+    if (m.url) rec += '<a href="' + esc(m.url) + '" target="_blank" rel="noopener">View that sale &#8594;</a>';
+    var disc = mods.length ? '<details class="disc"><summary>See the ' + mods.length + ' listed fitments</summary><ul>' + mods.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></details>" : "";
+    return '<div class="exact" data-stage="anchor"><div class="grid">' +
+      '<div class="xph">' + photo + '<span class="tag">The exact car</span></div>' +
+      '<div class="xbody"><div class="kick">I know this exact car</div><h2>' + esc(name) + "</h2>" +
+      (cfg ? '<p class="cfg">' + lint(cfg, "exact.cfg") + "</p>" : "") +
+      '<div class="rec">' + rec + "</div>" + disc + "</div></div></div>";
+  }
+  // The answer block: headline span, gated cluster, gated recency, mono meta line, placement.
+  function answerBlockHtml(d, m) {
+    var matched = !!m, s = d.span || [0, 0];
+    var headline = matched
+      ? "Cars like yours have been bringing " + r3money(s[0]) + " to " + r3money(s[1]) + "."
+      : esc(modelPluralLabel(d.resolvedCar)) + " have been bringing " + r3money(s[0]) + " to " + r3money(s[1]) + ".";
+    var out = '<div class="ansblock' + (matched ? "" : " hero") + '" data-stage="answer">';
+    out += '<p class="ans' + (matched ? "" : " hero") + '">' + lint(headline, "ans") + "</p>";
+    if (d.cluster) out += '<p class="cluster">' + lint("Most sold between " + r3money(d.cluster[0]) + " and " + r3money(d.cluster[1]) + ".", "cluster") + "</p>";
+    if (d.recency) { var r = d.recency; out += '<p class="recent12">' + lint(r.n12 + " of the " + r.total + " sold in the last twelve months, and the most recent " + spellK(r.k) + " all landed between " + r3money(r.lo) + " and " + r3money(r.hi) + ".", "recent12") + "</p>"; }
+    var b = d.basis || { total: d.count, windowLabel: d.windowLabel, setAside: 0, asideTags: [] };
+    var win = /12 months/.test(b.windowLabel || "") ? "last 12 months" : "past 2 years";
+    var meta = 'Based on <span class="num">' + b.total + "</span> sales<span class=\"dot\">&middot;</span>" + win;
+    if (b.setAside > 0) meta += '<span class="dot">&middot;</span><span class="num">' + b.setAside + "</span> set aside" + (b.asideTags && b.asideTags.length ? " (" + esc(b.asideTags.join(", ")) + ")" : "");
+    out += '<span class="basis">' + meta + "</span>";
+    if (matched && d.cluster && m.price) {
+      var c = d.cluster, yp = m.price;
+      var place = yp < c[0] ? "toward the lower end of" : yp > c[1] ? "toward the upper end of" : (yp > (c[0] + c[1]) / 2 ? "a little above the middle of" : "a little below the middle of");
+      var tail = (b.setAside > 0) ? ", in company with the driver-grade cars rather than the set-aside examples" : "";
+      out += '<div class="sits">' + lint("Yours sold " + place + " where these have landed" + tail + ".", "sits") + "</div>";
+    }
+    return out + "</div>";
+  }
+  function receiptCardHtml(c, tagAside) {
+    var img = c.image ? '<img src="' + esc(c.image) + '" alt="' + esc(c.title) + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.rplate\');if(p)p.style.display=\'flex\'">' : "";
+    var aside = (tagAside && c.hollow) ? '<span class="aside">set aside</span>' : "";
+    return '<div class="rcard"><div class="rph">' + img + aside +
+      '<div class="rplate"><div class="n">' + esc(c.title) + '</div><div class="s">photo unavailable</div></div></div>' +
+      '<div class="rb"><div class="rprice num">' + esc(usd(c.price)) + "</div>" +
+      '<div class="rmeta"><span class="num">' + esc(c.mileageText) + '</span><span class="dot">&middot;</span>' + esc(c.platform) + "</div>" +
+      '<div class="rdate">' + esc(c.month) + "</div><div class=\"rtitle\">" + esc(c.title) + "</div></div></div>";
+  }
+  function receiptsHtml(cards, n, tagAside) { return (cards || []).slice(0, n).map(function (c) { return receiptCardHtml(c, tagAside); }).join(""); }
+  function platStripHtml(d, m) {
+    var plats = d.platforms || [];
+    if (!plats.length) return "";
+    var pills = plats.map(function (p) { return '<span class="plat-pill">' + esc(p[0]) + '<span class="c num">' + p[1] + "</span></span>"; }).join("");
+    var note = "";
+    if (d.singlePlatform && d.topPlatform) note = '<p class="plat-note">' + lint("Almost every " + esc(bareModelOf(d.resolvedCar, m)) + " that changes hands does so on " + esc(d.topPlatform) + ", so there is no cross-platform split to read here.", "platnote") + "</p>";
+    return '<div class="seclabel">Where they sold</div><div class="plat-strip">' + pills + "</div>" + note;
+  }
+  function samReadResultHtml(d, m) {
+    var text;
+    if (m && m.materialMods && m.materialMods.length) text = "The work on yours puts it in a different conversation from the stock cars here, so read this range as the backdrop rather than a like-for-like.";
+    else if (m && m.modifications && m.modifications.length) {
+      var tags = (d.basis && d.basis.asideTags && d.basis.asideTags.length) ? d.basis.asideTags.join(", ") : "untouched, low-mileage";
+      text = "The bolt-ons on yours are the kind buyers shrug off or quietly undo, so it belongs with the driver-grade cars, not marked down for them. The cars clearing the top of the range are the " + tags + " examples, which is a different conversation.";
+    } else if (m) text = "Yours is a clean, unmodified example, so it reads straight against this range.";
+    else text = "Add your year, gearbox and miles in the box above and I’ll narrow this to the cars most like yours.";
+    return '<div class="sam note" data-stage="note"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s read</div><p>' + lint(esc(text), "samread") + "</p></div></div>";
+  }
+  function resultHtml(d, m) {
+    var body = answerBlockHtml(d, m);
+    body += '<div class="seclabel">The sales<span class="sort">Sort: Most recent</span></div>';
+    body += '<div class="receipts">' + receiptsHtml(d.cards, 6) + "</div>";
+    var rest = (d.cards || []).slice(6).concat(d.asideCards || []);
+    if (rest.length) {
+      var total = (d.cards || []).length + (d.asideCards || []).length;
+      body += '<details class="showall"><summary>Show all ' + total + "</summary><div class=\"receipts\">" + receiptsHtml(rest, 999, true) + "</div></details>";
+    }
+    body += platStripHtml(d, m) + samReadResultHtml(d, m) + sellHtml() + recentHtml();
+    return body;
+  }
+  function refusalHtml(d) {
+    var rf = d.refusal || {}, model = rf.model || carLabel(d.resolvedCar) || "car", reason, follow;
+    if (rf.kind === "thin") {
+      var vb = rf.n === 1 ? "has" : "have", isare = rf.n === 1 ? "is" : "are";
+      reason = "Only " + spellK(rf.n) + " " + esc(model) + " " + vb + " sold in this window, too few to show an honest spread. Here " + isare + " what there " + isare + ".";
+      follow = "Give me a bit more, or a different car, and I’ll pull what actually sold.";
+    } else {
+      var listJoin = function (a) { return a.length <= 1 ? (a[0] || "") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; };
+      var yspan = rf.yearSpanPhrase || "a wide span of years";
+      if (rf.variants && rf.variants.length >= 2) reason = "The " + esc(model) + "s that have sold span the " + esc(listJoin(rf.variants)) + " across " + esc(yspan) + ", " + spellK(rf.n) + " sales in all. Cars this different do not trade as one market, so a single range would invent a pattern that is not there.";
+      else reason = "The " + esc(model) + "s that have sold range too widely in spec and condition to trade as one market, " + spellK(rf.n) + " sales across " + esc(yspan) + ". A single range would invent a pattern that is not there.";
+      follow = "Tell me which " + esc(model) + " yours is and I’ll compare it to the ones that match.";
+    }
+    var chips = (rf.kind === "varied" && rf.variants && rf.variants.length)
+      ? '<div class="wayfwd">' + rf.variants.map(function (v) { return '<button class="chip" data-model="' + esc(v) + '">' + esc(v) + "</button>"; }).join("") + '<a class="lnk" data-change>Or tell me the year and engine &#8594;</a></div>'
+      : "";
+    var head = '<div class="refusal" data-stage="answer"><p class="ans">' + lint(esc("I won’t give you a range on this one. It would be a guess."), "refuse") + "</p>" +
+      '<div class="sam"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s read</div><p>' + lint(reason, "refuse.reason") + "</p><p>" + lint(esc(follow), "refuse.follow") + "</p></div></div>" + chips + "</div>";
+    var sales = (d.cards || []).length ? ('<div class="seclabel">What has sold</div><div class="receipts">' + receiptsHtml(d.cards, 999) + "</div>") : "";
+    return head + sales + sellHtml();
+  }
+  function renderResults(d) {
+    // The exact-car header leads on a VIN match (matched frame); typed queries go straight
+    // to the answer block (unmatched frame). Refusal is its own frame. Every branch renders
+    // from the engine's structured facts - no fabricated numbers, ever.
+    var m = vinAnchor;
+    var head = m ? exactCarHtml(m, d.resolvedCar) : "";
+    var body;
+    if (d.tier === "refusal") body = refusalHtml(d);
+    else if (d.tier === "result") body = resultHtml(d, m);
+    else body = '<div class="sam" data-stage="answer"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s read</div><p>' +
+      lint(esc("I don’t have enough real " + carLabel(d.resolvedCar) + " sales to show you an honest read, and I won’t make one up. Try another car and I’ll pull what actually sold."), "zero") + "</p></div></div>" + sellHtml();
     root.innerHTML = inboxHtml(lastQuery) + head + body + footHtml();
     wire();
     streamReveal();
@@ -576,11 +694,8 @@
   }
   function obAnalytics(d) {
     try {
-      if (d.tier === "underspecified") obEvent("onebox_refusal_shown");
-      else if (d.tier === "zero") obEvent("onebox_zero");
-      else if (d.tier === "two") obEvent("onebox_thin_two");
-      else if (d.tier === "one") obEvent("onebox_thin_one");
-      else if (d.tier === "three") obEvent("onebox_answer_shown");
+      if (d.tier === "refusal") obEvent("onebox_refusal_shown");
+      else if (d.tier === "result") obEvent("onebox_answer_shown");
     } catch (e) {}
   }
 

@@ -29,6 +29,10 @@ function carLabel(rc) {
 }
 // Plain-text mirror of js/onebox.js answerHtml() - the span/two/one sentence, no markup.
 function answerSentence(d) {
+  // Round-3 result model: a trimmed low-high span. (Legacy d.answer kept for old snapshots.)
+  if (d && Array.isArray(d.span) && d.span.length === 2) {
+    return "Cars like yours have been bringing " + usd(d.span[0]) + " to " + usd(d.span[1]) + ".";
+  }
   const a = d && d.answer; if (!a) return "";
   if (a.kind === "span") {
     const z = a.closest != null ? (" The one most like yours brought " + usd(a.closest) + (a.closestMonth ? " in " + a.closestMonth : "") + ".") : "";

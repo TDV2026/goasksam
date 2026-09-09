@@ -241,6 +241,76 @@ a.justsold:hover .js-line .plat{text-decoration:underline}
   .sam .edit{margin-top:4px}
   .sell{flex-direction:column;align-items:flex-start}
 }
+
+/* ============ Round-3 RESULT surface (the locked /onebox-preview design of record) ============ */
+.exact{margin:18px 0 6px;background:var(--card);border:1.5px solid color-mix(in srgb,var(--green) 34%,var(--line));border-radius:18px;box-shadow:var(--shadow-hero);overflow:hidden}
+.exact .grid{display:grid;grid-template-columns:minmax(0,300px) 1fr;gap:0;align-items:stretch}
+.exact .xph{position:relative;background:#0c0a06;min-height:230px}
+.exact .xph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.exact .xph .tag{position:absolute;top:14px;left:14px;z-index:2;background:var(--green);color:#fff;font:600 10.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;padding:7px 11px;border-radius:6px}
+@media (prefers-color-scheme:dark){.exact .xph .tag{color:#0c130f}}
+.exact .xbody{padding:22px 24px}
+.exact .kick{font:600 11px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--green);margin-bottom:9px}
+.exact h2{margin:0 0 4px;font:800 28px/1.1 var(--serif);letter-spacing:-.02em}
+.exact .cfg{margin:8px 0 0;font:400 15.5px/1.5 var(--serif);color:var(--slate);max-width:52ch}
+.exact .rec{margin:15px 0 0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font:600 13px/1.3 var(--mono);color:var(--slate)}
+.exact .rec .p{font:700 20px/1 var(--mono);color:var(--ink)}
+.exact .rec a{color:var(--green);text-decoration:none;font-weight:600}
+.exact .disc{margin:11px 0 0}
+.exact .disc summary{font:600 13px var(--grotesk);color:var(--slate);cursor:pointer;list-style:none}
+.exact .disc summary::-webkit-details-marker{display:none}
+.exact .disc ul{margin:10px 0 0;padding-left:18px;columns:2;column-gap:26px;font:400 13px/1.5 var(--grotesk);color:var(--slate)}
+.ansblock{max-width:660px;--hl:34px}
+.ansblock.hero{--hl:42px}
+.ans{font:400 var(--hl)/1.24 var(--serif);letter-spacing:-.018em;margin:26px 0 10px;text-wrap:balance}
+.ans.hero{margin-top:22px}
+.ans .num{font-weight:600;color:var(--green-deep)}
+.cluster{font:400 calc(var(--hl) * .6)/1.35 var(--serif);letter-spacing:-.01em;color:var(--ink);margin:0}
+.cluster .num{font-weight:600}
+.recent12{font:400 16.5px/1.55 var(--serif);color:var(--ink);margin:9px 0 0}
+.recent12 .num{font-weight:600}
+.ansblock .basis{display:block;margin:13px 0 0;line-height:1.5}
+.sits{margin:15px 0 0;background:color-mix(in srgb,var(--green) 5%,var(--card));border:1px solid color-mix(in srgb,var(--green) 16%,var(--line));border-radius:12px;padding:14px 17px;font:400 16.5px/1.5 var(--serif);color:var(--ink)}
+.seclabel{font:600 11px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--faint);margin:30px 0 12px;display:flex;align-items:baseline;justify-content:space-between}
+.sort{font:600 12.5px var(--grotesk);color:var(--slate);border:1px solid var(--line);border-radius:9px;padding:7px 11px;background:var(--card);letter-spacing:0;text-transform:none}
+.receipts{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.rcard{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.rcard .rph{position:relative;background:#0c0a06;aspect-ratio:16/10}
+.rcard .rph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.rcard .aside{position:absolute;top:10px;left:10px;z-index:2;background:var(--paper);color:var(--slate);border:1px solid var(--line);font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:5px 8px;border-radius:5px}
+.rcard .rplate{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;gap:5px;padding:14px;background:var(--paper);background-image:linear-gradient(var(--line2) 1px,transparent 1px);background-size:100% 9px}
+.rcard .rplate .n{font:800 13px/1.2 var(--grotesk);color:var(--ink)}
+.rcard .rplate .s{font:600 8.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.rcard .rb{padding:13px 15px 15px}
+.rprice{font:700 22px/1 var(--mono);letter-spacing:-.02em}
+.rmeta{font:600 12.5px/1.3 var(--mono);color:var(--slate);margin-top:7px}
+.rmeta .dot{color:var(--faint);margin:0 6px}
+.rdate{font:600 11px/1 var(--mono);color:var(--faint);margin-top:6px;text-transform:uppercase;letter-spacing:.06em}
+.rtitle{font:400 13px/1.35 var(--grotesk);color:var(--slate);margin-top:8px}
+.showall{margin:16px 0 0}
+.showall>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:9px;background:var(--card);border:1.5px solid var(--line);border-radius:11px;padding:12px 20px;font:700 14.5px var(--grotesk);color:var(--ink)}
+.showall>summary::-webkit-details-marker{display:none}
+.showall>summary:hover{border-color:var(--green);color:var(--green)}
+.showall>summary::after{content:"\25BE";color:var(--faint);font-size:12px}
+.showall[open]>summary::after{content:"\25B4"}
+.showall .receipts{margin-top:16px}
+.plat-strip{margin:12px 0 0;display:flex;flex-wrap:wrap;gap:10px}
+.plat-pill{display:inline-flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:11px 15px;font:600 13.5px var(--grotesk);color:var(--ink)}
+.plat-pill .c{font:700 13px var(--mono);color:var(--green-deep)}
+.plat-note{margin:9px 2px 0;font:400 14px/1.5 var(--serif);color:var(--slate)}
+.refusal{margin:22px 0}
+.refusal .ans{font:400 30px/1.3 var(--serif);max-width:26ch;margin:0 0 14px}
+.wayfwd{display:flex;flex-wrap:wrap;gap:11px;margin:4px 0 0}
+.wayfwd .lnk{align-self:center;color:var(--green);font:600 14.5px var(--grotesk);text-decoration:none}
+@media (max-width:720px){
+  .exact .grid{grid-template-columns:1fr}
+  .exact .xph{min-height:200px}
+  .exact .disc ul{columns:1}
+  .exact h2{font-size:23px}
+  .receipts{grid-template-columns:1fr}
+  .ansblock{--hl:27px}
+  .ansblock.hero{--hl:30px}
+}
 </style>
 </head>
 <body>
@@ -271,6 +341,6 @@ a.justsold:hover .js-line .plat{text-decoration:underline}
 function obToggleRail(open){var r=document.getElementById("ob-rail"),s=document.getElementById("ob-scrim");if(!r)return;var on=(open===undefined)?!r.classList.contains("open"):!!open;r.classList.toggle("open",on);if(s)s.classList.toggle("open",on);}
 function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("ob-results-menu");if(m)m.classList.toggle("open");return false;}
 </script>
-<script src="/obx.20260909c/onebox.js"></script>
+<script src="/obx.20260909d/onebox.js"></script>
 </body>
 </html>
