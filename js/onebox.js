@@ -302,6 +302,11 @@
   function renderChoice(d) {
     var opts = d.modelOptions || d.bodyOptions || [];
     var kind = d.modelOptions ? "model" : "body";
+    // Base a chip appends its answer to: a passed baseLabel (year+make on a VIN model ask), else
+    // the resolved car (year+make+model on a body ask). A VIN query's raw text is the VIN, so
+    // this keeps the chip from appending to the VIN (which re-decodes and loops - fault 1). Null
+    // falls back to the raw query, which is correct for a typed query.
+    choiceCtx = d.baseLabel || (d.resolvedCar ? [d.resolvedCar.year, d.resolvedCar.make, d.resolvedCar.model].filter(Boolean).join(" ") : null) || null;
     root.innerHTML = inboxHtml(lastQuery) +
       '<div class="sam" style="margin-top:26px"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s take</div>' +
       '<p style="font-size:22px;line-height:1.4">' + lint(esc(d.prompt || "Which one is it?"), "choice") + "</p>" +
@@ -336,6 +341,28 @@
   // ---------------------------------------------------------------- VIN anchor (Task 2)
   var vinAnchor = null;   // carried from the confirm step into the result render
   var pendingVin = null;  // resolved vehicle awaiting confirmation
+  // Base label a clarification chip appends its answer to (year+make for a model ask, the full
+  // car for a body ask). A VIN query's raw text is the VIN, so a chip must NOT append to it (it
+  // re-decodes and loops) - the chip builds a clean query from this context instead. Null for a
+  // typed query, where appending to the raw text is correct.
+  var choiceCtx = null;
+  // Same physical identity (one string cleaner/more granular than the other): token subset.
+  function obNorm(s){ return String(s==null?"":s).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().trim(); }
+  function obSameIdentity(a,b){ a=obNorm(a);b=obNorm(b); if(!a||!b)return false; var ta=a.split(/\s+/),tb=b.split(/\s+/),sa={},sb={}; ta.forEach(function(t){sa[t]=1;}); tb.forEach(function(t){sb[t]=1;}); return ta.every(function(t){return sb[t];})||tb.every(function(t){return sa[t];}); }
+  function obRedundantTrim(t,model){ var mm={}; obNorm(model).split(/\s+/).forEach(function(x){mm[x]=1;}); var tt=obNorm(t).split(/\s+/); return tt.length>0&&tt.every(function(x){return mm[x];}); }
+  // Build the resolved vehicle for the comp fetch from an exact archive match (mirrors /sell's
+  // applyMatchedConfig reconciliation): the RECORD wins for year; make/model keep the decode's
+  // clean form when it is the same identity, else the record; the record title-trim is set when
+  // it adds to the model. canonicalLabel is the title-derived display name.
+  function vehicleFromMatch(match, decoded){
+    var v = {}; if (decoded) for (var k in decoded) v[k] = decoded[k];
+    if (match.year) v.year = match.year;
+    if (match.make && (!v.make || !obSameIdentity(v.make, match.make))) v.make = match.make;
+    if (match.model && (!v.model || !obSameIdentity(v.model, match.model))) v.model = match.model;
+    if (match.trim && !obRedundantTrim(match.trim, v.model)) v.trim = match.trim;
+    v.canonicalLabel = match.displayName || [v.year, v.make, v.model, v.trim].filter(Boolean).join(" ");
+    return v;
+  }
   // Identifier-shaped input that should route through the shared resolver (VIN decode/
   // confirm, the VIN-invalid reword, the chassis-number line + exact match) instead of the
   // pool: a SINGLE token that is either a 17-char VIN attempt (valid OR invalid) or a
@@ -363,10 +390,13 @@
     if (!match || (!match.soldDate && !match.price)) return "";
     var plat = obPlat(match.source), when = monthYear(match.soldDate), price = match.price ? usd(match.price) : null;
     var onP = plat ? " on " + plat : "", whenT = when ? " in " + when : "", forT = price ? " for " + price : "";
+    // Name the car from the MATCH's title-derived headline ("1990 BMW M3"), not the record's
+    // internal model field ("E30 M3") or the pool's resolvedCar; lead with it (match-first).
+    var name = (match && match.displayName) ? match.displayName : ([rc && rc.year, rc && rc.make, rc && rc.model].filter(Boolean).join(" ") || "this car");
+    var named = (name && name !== "this car") ? (", a " + name) : "";
     var line = (Number(match.count) > 1)
-      ? ("I know this exact car. It’s traded " + (match.count === 2 ? "twice" : match.count + " times") + " in our records, most recently" + onP + whenT + forT + ".")
-      : ("I know this exact car. It sold" + onP + whenT + forT + ".");
-    var name = [rc && rc.year, rc && rc.make, rc && rc.model].filter(Boolean).join(" ") || "this car";
+      ? ("I know this exact car" + named + ". It’s traded " + (match.count === 2 ? "twice" : match.count + " times") + " in our records, most recently" + onP + whenT + forT + ".")
+      : ("I know this exact car" + named + ". It sold" + onP + whenT + forT + ".");
     var photo;
     if (match.photoUrl) photo = '<div class="vin-photo"><img src="' + esc(match.photoUrl) + '" alt="' + esc(name) + '" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.vin-plate\');if(p)p.style.display=\'flex\'"><div class="vin-plate"><div class="m">' + esc(plat) + '</div><div class="n">' + esc(name) + '</div><div class="s">Photo unavailable</div></div></div>';
     else photo = '<div class="vin-photo"><div class="vin-plate" style="display:flex"><div class="m">' + esc(plat) + '</div><div class="n">' + esc(name) + '</div><div class="s">Photo unavailable</div></div></div>';
@@ -393,7 +423,7 @@
   function run(text) {
     text = String(text || "").trim();
     if (!text) return;
-    lastQuery = text; vinAnchor = null; pendingVin = null; obSourceVin = null;
+    lastQuery = text; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null;
     // Identifier-shaped input (VIN or chassis) routes through the shared resolver (decode +
     // confirm + exact-match + the honest VIN-invalid / chassis lines); everything else goes
     // straight to the archive pool.
@@ -442,8 +472,18 @@
         // Branch on clarification KIND first (status can be needs_confirmation OR
         // needs_clarification for a vin_confirmation depending on the resolver path).
         if (cl && cl.kind === "vin_confirmation") {
-          pendingVin = d.vehicle || null; vinAnchor = d.vinArchiveMatch || null;
           obSourceVin = (d.vehicle && d.vehicle.vin) || null; // travels to /sell for lead enrichment
+          // MATCH-FIRST (fault 2): an EXACT archive match is stronger evidence than a decode, so
+          // it IS the confirmation. Skip the confirm AND any model ask: lead with the matched car
+          // (named from its record) and go straight to comps for that car. Mirrors /sell Option B.
+          if (d.vinArchiveMatch && d.vinArchiveMatch.make) {
+            vinAnchor = d.vinArchiveMatch; pendingVin = null;
+            obEvent("onebox_vin_anchor_shown");
+            var mv = vehicleFromMatch(d.vinArchiveMatch, d.vehicle);
+            runPool(d.vinArchiveMatch.displayName || carLabel(mv) || text, mv);
+            return;
+          }
+          pendingVin = d.vehicle || null; vinAnchor = null;
           renderVinConfirm(cl.question, d.vehicle);
           return;
         }
@@ -464,8 +504,18 @@
           runPool(text, d.vehicle); return;
         }
         if (d && d.status === "needs_clarification" && cl && (cl.chips || (d.vehicle && d.vehicle.make))) {
-          // Partial decode (make+year, no model): ask the model with chips, same as /sell.
-          renderChoice({ prompt: cl.question || "Which model is it?", modelOptions: (cl.chips || []).filter(function (c) { return !/^not sure$/i.test(c); }) });
+          // MATCH-FIRST (fault 2, defensive): if a partial decode ALSO carries an exact match,
+          // the match names the model - skip the model ask, lead with the matched car, go to comps.
+          if (d.vinArchiveMatch && d.vinArchiveMatch.make && d.vinArchiveMatch.model) {
+            vinAnchor = d.vinArchiveMatch; pendingVin = null;
+            obEvent("onebox_vin_anchor_shown");
+            var mvc = vehicleFromMatch(d.vinArchiveMatch, d.vehicle);
+            runPool(d.vinArchiveMatch.displayName || carLabel(mvc) || text, mvc);
+            return;
+          }
+          // Partial decode (make+year, no model): ask the model with chips, same as /sell. The
+          // chips are year-scoped by the backend (modelSuggestionChips production filter).
+          renderChoice({ prompt: cl.question || "Which model is it?", modelOptions: (cl.chips || []).filter(function (c) { return !/^not sure$/i.test(c); }), baseLabel: [d.vehicle && d.vehicle.year, d.vehicle && d.vehicle.make].filter(Boolean).join(" ") || null });
           return;
         }
         // Anything else: fall back to the pool on the raw text.
@@ -595,8 +645,12 @@
     var edit = document.getElementById("ob-edit"); if (edit) edit.addEventListener("click", function () { renderEmpty(); if (input && lastQuery) { var i2 = document.getElementById("ob-input"); if (i2) { i2.value = lastQuery; i2.focus(); } } });
     var sell = document.getElementById("ob-sell"); if (sell) sell.addEventListener("click", toSell);
     var share = root.querySelector("[data-share]"); if (share) share.addEventListener("click", shareResult);
-    Array.prototype.forEach.call(root.querySelectorAll("[data-model]"), function (b) { b.addEventListener("click", function () { run((lastQuery || "") + " " + b.getAttribute("data-model")); }); });
-    Array.prototype.forEach.call(root.querySelectorAll("[data-body]"), function (b) { b.addEventListener("click", function () { run((lastQuery || "") + " " + b.getAttribute("data-body")); }); });
+    // A clarification chip RESOLVES the answer and advances: it builds a clean "year make model"
+    // (or "...body") query from the choice context, never appending to the raw query - which for
+    // a VIN would re-decode the VIN and loop forever (fault 1).
+    function chipAnswer(value) { var base = choiceCtx || lastQuery || ""; run((base + " " + value).replace(/\s+/g, " ").trim()); }
+    Array.prototype.forEach.call(root.querySelectorAll("[data-model]"), function (b) { b.addEventListener("click", function () { chipAnswer(b.getAttribute("data-model")); }); });
+    Array.prototype.forEach.call(root.querySelectorAll("[data-body]"), function (b) { b.addEventListener("click", function () { chipAnswer(b.getAttribute("data-body")); }); });
     Array.prototype.forEach.call(root.querySelectorAll("[data-change]"), function (b) { b.addEventListener("click", function () { renderEmpty(); }); });
     Array.prototype.forEach.call(root.querySelectorAll("[data-recent]"), function (b) { b.addEventListener("click", function () { run(b.getAttribute("data-recent")); }); });
   }
