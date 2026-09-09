@@ -109,11 +109,13 @@ export default async function handler(req, res) {
         res.status(200).json({ match, m3 }); return;
       }
       if (part === "p997") {
-        const p997 = await pool(`sales_archive?select=${cols}&make=ilike.Porsche&model=ilike.*911*&listing_title=ilike.${encodeURIComponent("*Carrera S*")}&year=gte.2005&year=lte.2012&sale_price=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=200`);
+        // Fetch the 997-era 911 pool broadly; the "Carrera S" scoping is applied in JS (the URL
+        // title filter with a space misbehaves through supabaseSelect).
+        const p997 = await pool(`sales_archive?select=${cols}&make=ilike.Porsche&model=ilike.*911*&year=gte.2005&year=lte.2012&sale_price=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=400`);
         res.status(200).json({ p997 }); return;
       }
       if (part === "thinscan") {
-        const cands = [["Alfa Romeo", "Montreal"], ["De Tomaso", "Pantera"], ["Lotus", "Esprit"], ["Maserati", "Ghibli"], ["Jensen", "Interceptor"], ["Iso", "Grifo"], ["Facel Vega", ""], ["Bizzarrini", ""], ["Monteverdi", ""], ["TVR", "Griffith"]];
+        const cands = [["Alfa Romeo", "Montreal"], ["De Tomaso", "Pantera"], ["Lotus", "Esprit"], ["Jensen", "Interceptor"]];
         const out = {};
         for (const c of cands) {
           const rows = await pool(`sales_archive?select=${cols}&make=ilike.${encodeURIComponent(c[0])}${c[1] ? "&model=ilike.*" + encodeURIComponent(c[1]) + "*" : ""}&sale_price=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=10`);
