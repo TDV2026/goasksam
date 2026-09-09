@@ -101,28 +101,20 @@ export default async function handler(req, res) {
       const cols = "p:sale_price,d:sale_date,mi:raw_record->>mileage,pl:platform,t:listing_title,img:raw_record->>featured_image_url,mods:raw_record->>modifications,body:raw_record->>body_style";
       async function pool(q) { return (await supabaseSelect(env2, q)) || []; }
       const part = String(req.query.part || "");
+      // NOTE: the image filter + sale_date filter together return 0 on sales_archive (a PostgREST
+      // JSONB-filter quirk), so we omit the image filter here and keep photo-bearing rows in JS.
       if (part === "m1") {
         const match = await findVinArchiveMatch(env2, { vin: "WBSAK0301LAE33492" });
-        const base = `sales_archive?select=${cols}&make=ilike.BMW&model=ilike.*M3*&year=gte.1986&year=lte.1992&sale_price=not.is.null`;
-        const m3 = await pool(base + `&raw_record->>featured_image_url=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=200`);
-        res.status(200).json({ match, m3,
-          dbg: {
-            since,
-            full: m3.length,
-            noDate: (await pool(base + `&raw_record->>featured_image_url=not.is.null&order=sale_price.desc&limit=200`)).length,
-            noImg: (await pool(base + `&sale_date=gte.${since}&order=sale_date.desc&limit=200`)).length,
-            bare: (await pool(base + `&limit=200`)).length,
-            simpleCols: (await pool(`sales_archive?select=p:sale_price,d:sale_date&make=ilike.BMW&model=ilike.*M3*&year=gte.1986&year=lte.1992&sale_date=gte.${since}&limit=200`)).length
-          }
-        }); return;
+        const m3 = await pool(`sales_archive?select=${cols}&make=ilike.BMW&model=ilike.*M3*&year=gte.1986&year=lte.1992&sale_price=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=200`);
+        res.status(200).json({ match, m3 }); return;
       }
       if (part === "p997") {
-        const p997 = await pool(`sales_archive?select=${cols}&make=ilike.Porsche&model=ilike.*911*&listing_title=ilike.*Carrera S*&year=gte.2005&year=lte.2012&sale_price=not.is.null&raw_record->>featured_image_url=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=200`);
+        const p997 = await pool(`sales_archive?select=${cols}&make=ilike.Porsche&model=ilike.*911*&listing_title=ilike.*Carrera S*&year=gte.2005&year=lte.2012&sale_price=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=200`);
         res.status(200).json({ p997 }); return;
       }
       if (part === "thin") {
         const make = String(req.query.tmake || ""), model = String(req.query.tmodel || "");
-        const rows = await pool(`sales_archive?select=${cols}&make=ilike.${encodeURIComponent(make)}${model ? "&model=ilike.*" + encodeURIComponent(model) + "*" : ""}&sale_price=not.is.null&raw_record->>featured_image_url=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=20`);
+        const rows = await pool(`sales_archive?select=${cols}&make=ilike.${encodeURIComponent(make)}${model ? "&model=ilike.*" + encodeURIComponent(model) + "*" : ""}&sale_price=not.is.null&sale_date=gte.${since}&order=sale_date.desc&limit=30`);
         res.status(200).json({ rows }); return;
       }
       res.status(200).json({ ok: "specify part" }); return;
