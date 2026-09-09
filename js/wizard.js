@@ -823,17 +823,28 @@ function missingVehicleTrimDetail(text){
 // sellState.matchedConfig so the result read can flag a modified car.
 function applyMatchedConfig(v,m){
   if(!m||!v)return "none";
-  // MATCHED-PATH SOURCE OF TRUTH: the RECORD wins for identity. The decode only FOUND the
-  // match; "per the prior listing" is a provenance claim, so year/make/model (and trim below)
-  // must come from the record, never the decode, which can be wrong (a VIN year-code cycle
-  // miss returned "2020" for a 1990 E30 M3). Reconcile the resolved vehicle + the vehicle chip
-  // to the record BEFORE anything renders, so the comp fetch also scopes to the right car.
+  const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().trim();
+  // Same physical identity, one string just cleaner/more granular than the other ("M3" vs the
+  // record's model field "E30 M3", "Murcielago" vs "Murciélago"): one token set is a subset of
+  // the other.
+  const sameIdentity=(a,b)=>{a=norm(a);b=norm(b);if(!a||!b)return false;const ta=a.split(/\s+/),tb=b.split(/\s+/),sa=new Set(ta),sb=new Set(tb);return ta.every(t=>sb.has(t))||tb.every(t=>sa.has(t));};
+  // A derived trim that adds nothing over the model (title "1990 BMW M3" -> trim "M3" when the
+  // record model is "E30 M3") would duplicate it ("E30 M3 M3"): drop it.
+  const redundantTrim=(t,model)=>{const mm=new Set(norm(model).split(/\s+/));const tt=norm(t).split(/\s+/);return tt.length>0&&tt.every(x=>mm.has(x));};
+  const dedupe=s=>{const seen=new Set();return String(s||"").split(/\s+/).filter(x=>{const k=x.toLowerCase();if(!x||seen.has(k))return false;seen.add(k);return true;}).join(" ");};
+  // MATCHED-PATH SOURCE OF TRUTH: the match proves the car, so the RECORD is authoritative for
+  // YEAR (the decode can land in the wrong 30-year VIN cycle: "2020" for a 1990 E30 M3). For
+  // make/model, the decode's clean canonical form is kept when it is the SAME identity as the
+  // record (it matches the listing TITLE - "1990 BMW M3" - which is what "per the prior listing"
+  // actually references); the record wins only on a genuine disagreement or a field the decode
+  // lacks. Reconcile the vehicle + chip here so the comp fetch also scopes to the right car.
   if(m.year)v.year=m.year;
-  if(m.make)v.make=m.make;
-  if(m.model)v.model=m.model;
-  v.canonicalLabel=[v.year,v.make,v.model,v.wheelbase].filter(Boolean).join(" ");
+  if(m.make&&(!v.make||!sameIdentity(v.make,m.make)))v.make=m.make;
+  if(m.model&&(!v.model||!sameIdentity(v.model,m.model)))v.model=m.model;
+  const mkFull=()=>dedupe([v.year,v.make,v.model,v.wheelbase,v.trim].filter(Boolean).join(" "));
+  const ymm=dedupe([v.year,v.make,v.model].filter(Boolean).join(" "))||v.canonicalLabel||"it";
+  v.canonicalLabel=mkFull();
   sellState.carName=v.canonicalLabel;sellState.carRaw=v.canonicalLabel;
-  const label=[v.year,v.make,v.model].filter(Boolean).join(" ")||v.canonicalLabel||"it";
   // Stash config for the result condition note whenever the record carries one (record-aligned).
   if(m.engine||(m.modifications&&m.modifications.length)){
     sellState.matchedConfig={
@@ -850,14 +861,14 @@ function applyMatchedConfig(v,m){
   // 1) Materially MODIFIED with a known engine: the engine sets the value; state it, skip ask.
   if(m.isModified&&m.engine){
     const mods=m.modsSummary?` with ${m.modsSummary}`:"";
-    addMsg("sam",`It's a ${label}, and the prior listing has it as a ${m.engine}${mods}, so a modified car rather than a numbers-matching one.`);
+    addMsg("sam",`It's a ${ymm}, and the prior listing has it as a ${m.engine}${mods}, so a modified car rather than a numbers-matching one.`);
     return "skip";
   }
-  // 2) A real factory TRIM from the prior listing (e.g. "LP670-4 SuperVeloce"): set it (a trim
-  //    is fine; an engine is not), state the car with the trim, skip the ask.
-  if(m.trim&&!v.trim){
+  // 2) A real factory TRIM from the listing that ADDS to the model (e.g. "LP670-4 SuperVeloce"):
+  //    set it (a trim is fine; an engine is not), state the car with the trim, skip the ask.
+  if(m.trim&&!v.trim&&!redundantTrim(m.trim,v.model)){
     v.trim=m.trim;
-    v.canonicalLabel=[v.year,v.make,v.model,v.wheelbase,v.trim].filter(Boolean).join(" ");
+    v.canonicalLabel=mkFull();
     sellState.carName=v.canonicalLabel;sellState.carRaw=v.canonicalLabel;
     addMsg("sam",`It's a ${v.canonicalLabel}, per the prior listing.`);
     return "skip";
@@ -866,7 +877,7 @@ function applyMatchedConfig(v,m){
   //    an unmodified car - it is not the value driver there). The caller then SKIPS the ask
   //    when the model needs no further narrowing (we know it as well as the record does, e.g.
   //    a 1990 M3), or BRIDGES into the trim ask (rule 5) when the model still needs a trim.
-  addMsg("sam",`It's a ${label}, per the prior listing.`);
+  addMsg("sam",`It's a ${mkFull()}, per the prior listing.`);
   return "bridge";
 }
 // Rule 5 bridging line: when a matched car's record carries no engine, the trim ask reads as

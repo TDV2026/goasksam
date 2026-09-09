@@ -93,22 +93,6 @@ async function handleOneboxShare(req, res, id) {
 }
 
 export default async function handler(req, res) {
-  // TEMP DIAGNOSTIC (remove after use): sample a few matched 17-char VINs + their RECORD
-  // year/make/model, to verify the config-line year matches the record everywhere. Nonce-gated.
-  if (req.query && req.query.__vinsample === "a7c21f09e5b83d46") {
-    try {
-      const env2 = { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY };
-      if (req.query.vin) {
-        const norm = s => String(s || "").toUpperCase().replace(/[^A-Za-z0-9]/g, "");
-        const rows = await supabaseSelect(env2, `sales_archive?vin_norm=eq.${encodeURIComponent(norm(req.query.vin))}&select=vin,year,make,model,listing_title&order=sale_date.desc.nullslast&limit=3`);
-        res.status(200).json(rows || []); return;
-      }
-      const rows = await supabaseSelect(env2, `sales_archive?vin=not.is.null&select=vin,year,make,model,listing_title&order=sale_date.desc.nullslast&limit=40`);
-      const out = (rows || []).filter(r => String(r.vin || "").replace(/[^A-Za-z0-9]/g, "").length === 17)
-        .slice(0, 6).map(r => ({ vin: r.vin, year: r.year, make: r.make, model: r.model, title: r.listing_title }));
-      res.status(200).json(out); return;
-    } catch (e) { res.status(500).json({ err: String(e && e.message) }); return; }
-  }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
   if (req.query && typeof req.query.obShare !== "undefined") {
