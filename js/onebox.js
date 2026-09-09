@@ -390,8 +390,8 @@
       if (!rf.n) {
         reason = "I don’t have any recent " + esc(model) + " sales in the record right now, so there’s nothing honest for me to build a range on.";
       } else {
-        var vb = rf.n === 1 ? "has" : "have", isare = rf.n === 1 ? "is" : "are";
-        reason = "Only " + spellK(rf.n) + " " + esc(model) + " " + vb + " sold in this window, too few to show an honest spread. Here " + isare + " what there " + isare + ".";
+        var vb = rf.n === 1 ? "has" : "have";
+        reason = "Only " + spellK(rf.n) + " " + esc(model) + " " + vb + " sold in this window, too few to show an honest spread. Here " + (rf.n === 1 ? "it is" : "they are") + ".";
       }
       follow = "Give me a bit more, or a different car, and I’ll pull what actually sold.";
     } else {
