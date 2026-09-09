@@ -93,6 +93,19 @@ async function handleOneboxShare(req, res, id) {
 }
 
 export default async function handler(req, res) {
+  // TEMP DIAGNOSTIC (remove after use): time the sales_archive comp query with vs without the
+  // JSONB image filter, to see if that filter is the slowness. ?__t=<nonce>
+  if (req.query && req.query.__t === "b91c4f7a20e6d835") {
+    try {
+      const env2 = { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY };
+      const cols = "price:sale_price,year,image:raw_record->>featured_image_url,mileage:raw_record->>mileage,body:raw_record->>body_style,mods:raw_record->>modifications,rtitle:raw_record->>title";
+      const base = `sales_archive?select=${cols}&make=ilike.BMW&model=ilike.*M3*&year=gte.1986&year=lte.1992&sale_price=not.is.null&order=sale_price.desc&limit=1000`;
+      const t = {};
+      let s = Date.now(); const a = (await supabaseSelect(env2, base)) || []; t.noImageFilter = { ms: Date.now() - s, rows: a.length, withImg: a.filter(r => r.img || r.image).length };
+      s = Date.now(); const b = (await supabaseSelect(env2, base + "&raw_record->>featured_image_url=not.is.null")) || []; t.withImageFilter = { ms: Date.now() - s, rows: b.length };
+      res.status(200).json(t); return;
+    } catch (e) { res.status(500).json({ err: String(e && e.message) }); return; }
+  }
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
   if (req.query && typeof req.query.obShare !== "undefined") {
