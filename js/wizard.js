@@ -811,6 +811,59 @@ function missingVehicleTrimDetail(text){
   return null;
 }
 
+// THE RULE (matched car): when a VIN/chassis matches an exact prior sale, describe the car
+// from its own record and never ask a factory-trim question we already have the answer to.
+// Returns:
+//   "skip"   - the record carried a usable config/trim; a config line was shown and the
+//              factory-trim ask is SKIPPED.
+//   "bridge" - the record had NO usable config; the caller shows the trim ask, bridged by
+//              matchedBridgeLine() so it reads as one thought after the callout.
+//   "none"   - no match, or the car already has a trim; proceed normally.
+// Never writes engine into vehicle.trim (engine does not map cleanly to a trim). Stores
+// sellState.matchedConfig so the result read can flag a modified car.
+function applyMatchedConfig(v,m){
+  if(!m||!v)return "none";
+  // Stash config for the result condition note whenever the record carries one.
+  if(m.engine||(m.modifications&&m.modifications.length)){
+    sellState.matchedConfig={
+      engine:m.engine||null,transmission:m.transmission||null,drivetrain:m.drivetrain||null,
+      modifications:Array.isArray(m.modifications)?m.modifications:[],keyMods:Array.isArray(m.keyMods)?m.keyMods:[],
+      isModified:!!m.isModified,modsSummary:m.modsSummary||"",
+      model:v.model||m.model||null,year:v.year||m.year||null
+    };
+  }
+  // 1) Materially MODIFIED with a known engine: lead with the modified line (the engine sets
+  //    the value on these), do NOT set a trim, and skip the ask.
+  if(m.isModified&&m.engine){
+    const mods=m.modsSummary?` with ${m.modsSummary}`:"";
+    addMsg("sam",`The prior listing has it as a ${m.engine}${mods}, so a modified car rather than a numbers-matching one. Not right? Tell me the trim.`);
+    return "skip";
+  }
+  // 2) A real factory TRIM from the prior listing (e.g. "LP670-4 SuperVeloce"): fill it (a
+  //    trim is fine to set; an engine is not) and skip the ask.
+  if(m.trim&&!v.trim){
+    v.trim=m.trim;
+    v.canonicalLabel=[v.year,v.make,v.model,v.wheelbase,v.trim].filter(Boolean).join(" ");
+    sellState.carName=v.canonicalLabel;sellState.carRaw=v.canonicalLabel;
+    addMsg("sam",`The prior listing has it as a ${m.trim}. Not right? Tell me the trim.`);
+    return "skip";
+  }
+  // 3) Engine known, no trim, not modified: surface the engine and skip the ask.
+  if(m.engine&&!v.trim){
+    addMsg("sam",`The prior listing has it as a ${m.engine}. Not right? Tell me the trim.`);
+    return "skip";
+  }
+  // 4) No usable config and no trim: fall to the trim ask, bridged by matchedBridgeLine().
+  if(!v.trim)return "bridge";
+  return "none";
+}
+// Rule 5 bridging line: when a matched car's record carries no engine, the trim ask reads as
+// one thought after the callout, not a cold restart. Year is templated, never hardcoded.
+function matchedBridgeLine(v,m){
+  const yr=(v&&v.year)||(m&&m.year);
+  return `The listing didn't record the engine, and on a ${yr||"car like this"} the VIN doesn't carry it either, so tell me which it is. On these, the engine sets the value.`;
+}
+
 function currentMissingVehicleDetail(){
   if(sellState.vehicleDetailSkipped)return null;
   const trimMissing=missingVehicleTrimDetail(sellState.carName);
@@ -867,16 +920,6 @@ async function handleVehicleValidationAnswer(q){
     if(yes&&currentIssue.vinVehicle){
       const v=currentIssue.vinVehicle;
       const m=sellState.pendingVinMatch;
-      // Trim auto-fill from the matched prior listing (shown, not asserted): when the VIN
-      // decode had NO trim but we matched this exact car's prior sale and it carries one, fill
-      // it and STATE where it came from so the seller can correct it. Consistent with the
-      // shown-not-asserted principle - never silently stamp a trim we didn't decode.
-      let filledTrimMsg=null;
-      if(m&&m.trim&&!v.trim){
-        v.trim=m.trim;
-        v.canonicalLabel=[v.year,v.make,v.model,v.wheelbase,v.trim].filter(Boolean).join(" ");
-        filledTrimMsg=`Filled in the ${m.trim} from the prior listing. Not right? Just tell me the trim.`;
-      }
       sellState.resolvedVehicle=v;
       sellState.carName=v.canonicalLabel;sellState.carRaw=v.canonicalLabel;
       sellState.vehicleIdentityValidated=true;sellState.vehicleDetailSkipped=false;
@@ -884,11 +927,19 @@ async function handleVehicleValidationAnswer(q){
       // Journey analytics: confirmed the decode; record match-found before it's cleared.
       sellState.vinConfirmed=true; sellState.vinArchiveMatchFound=!!sellState.pendingVinMatch;
       if(v.mileage&&!sellState.mileage)sellState.mileage=`${Number(v.mileage).toLocaleString()} miles`;
-      renderVinArchiveCallout(sellState.pendingVinMatch);
+      renderVinArchiveCallout(m);
+      // THE RULE: describe the matched car from its own record and skip the factory-trim ask
+      // when the record already carries the config/trim. applyMatchedConfig mutates v (trim
+      // only, never engine), shows the config line, and stashes matchedConfig for the result.
+      const cfgMode=applyMatchedConfig(v,m);
+      sellState.carName=v.canonicalLabel;sellState.carRaw=v.canonicalLabel;
       sellState.pendingVinMatch=null;
-      if(filledTrimMsg)addMsg("sam",filledTrimMsg);
+      if(cfgMode==="skip"){ resumeWizardAfterVehicle(`Got it, the ${v.canonicalLabel}.`); return true; }
       const missing=currentMissingVehicleDetail();
-      if(missing){askMissingVehicleDetail(missing);return true;}
+      if(missing){
+        if(cfgMode==="bridge")addMsg("sam",matchedBridgeLine(v,m));
+        askMissingVehicleDetail(missing);return true;
+      }
       resumeWizardAfterVehicle(`Got it, the ${v.canonicalLabel}.`);
       return true;
     }
@@ -1246,8 +1297,15 @@ async function startSellFlow(initialCar, showUserBubble=true, preresolved=null){
       // Out-of-scope gate, phase 1 (homepage entry path): refuse a no-escape
       // modern mainstream economy car before asking the optional trim.
       if(typeof maybeGateOutOfScope==="function"&&maybeGateOutOfScope("preTrim"))return;
+      // THE RULE (chassis-match entry path): an exact archive match carries its config via the
+      // reused probe. Describe the car from its record and skip the factory-trim ask when the
+      // record already has the answer; otherwise bridge into the ask (rule 5).
+      const _m=(preresolved&&preresolved.data)?preresolved.data.vinArchiveMatch:null;
+      const _cfgMode=_m?applyMatchedConfig(sellState.resolvedVehicle,_m):"none";
+      if(_cfgMode==="skip"){ resumeWizardAfterVehicle(vehicleAcceptPrefix()); return; }
       const missing=currentMissingVehicleDetail();
       if(missing){
+        if(_cfgMode==="bridge")addMsg("sam",matchedBridgeLine(sellState.resolvedVehicle,_m));
         askMissingVehicleDetail(missing);
         return;
       }

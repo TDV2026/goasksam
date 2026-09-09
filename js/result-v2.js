@@ -1097,7 +1097,7 @@ function renderResultV2Page(){
       secHTML=psLead?"":renderSecondaryPlatformV2(opts[1],pick);
     }
     // No heading above the card (approved mockup is the card alone).
-    var caveatText=(typeof unverifiedModelNote==="function"&&unverifiedModelNote())||(typeof adverseConditionCaveat==="function"&&adverseConditionCaveat())||"";
+    var caveatText=(typeof unverifiedModelNote==="function"&&unverifiedModelNote())||(typeof modifiedMatchNote==="function"&&modifiedMatchNote())||(typeof adverseConditionCaveat==="function"&&adverseConditionCaveat())||"";
     var caveat=caveatText?'<div class="pv2-caveat">'+esc(caveatText)+'</div>':"";
     // Speed preamble (spec #5): a short intro above the speed pick, ONLY when it
     // shares the page with another card (a price card and/or a PowerSeller card).

@@ -28,7 +28,7 @@
     { "source": "/powersellers", "destination": "/powersellers.html" },
     { "source": "/out", "destination": "/api/out" },
     { "source": "/styles.20260907a.css", "destination": "/styles.css" },
-    { "source": "/js.20260908d/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20260908e/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20260908a/(.*)", "destination": "/js/$1" }
   ],
   "functions": {

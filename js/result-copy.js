@@ -234,6 +234,25 @@ function unverifiedModelNote(){
   return `I couldn't verify ${label} against the models I track, so this read is at the ${v.make||"make"} level and broader than model-specific. If the exact model matters, tell me the badge on the car and I'll tighten it.`;
 }
 
+// Modified matched-car note (THE RULE, comp read): when a VIN/chassis match shows the car is
+// MATERIALLY modified (engine/fueling/forced-induction/drivetrain, per findVinArchiveMatch),
+// the read must say plainly that it is a modified car and that numbers-matching examples of
+// the same model sell differently, so a hot-rodded driver is never silently pooled against
+// concours cars with no flag. Condition note in Sam's voice, not a chip axis. No dashes.
+function modifiedMatchNote(){
+  const c=sellState.matchedConfig;
+  if(!c||!c.isModified)return null;
+  const model=c.model||(sellState.resolvedVehicle&&sellState.resolvedVehicle.model)||"car";
+  const mods=(c.keyMods&&c.keyMods.length)?c.keyMods.slice(0,3):[];
+  let modStr="";
+  if(mods.length===1)modStr=mods[0];
+  else if(mods.length===2)modStr=`${mods[0]} and ${mods[1]}`;
+  else if(mods.length>=3)modStr=`${mods.slice(0,-1).join(", ")} and ${mods[mods.length-1]}`;
+  const config=[c.engine,modStr?`with ${modStr}`:""].filter(Boolean).join(" ");
+  const desc=config?` (${config})`:"";
+  return `Worth being straight: yours is a modified ${model}${desc}, not a numbers-matching example. Original, numbers-matching ${model}s trade on that originality, so read the range below as the ${model} market overall, not a like-for-like on a modified car. A well-sorted build has its own buyers, just on different terms than a stock car.`;
+}
+
 // (1b) deleted: resultHeaderTitle - replaced by composeCard
 
 function sellerWantsSpeed(){

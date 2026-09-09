@@ -682,7 +682,7 @@ function renderDecision(decisionData,renderOpts){
       <div class="sell-rec-kicker">Seller Intelligence</div>
       <div class="sell-rec-title">${escapeHtml(carDisplayLabel("your car"))}</div>
     </div>`;
-  const caveatText=unverifiedModelNote()||adverseConditionCaveat();
+  const caveatText=unverifiedModelNote()||modifiedMatchNote()||adverseConditionCaveat();
   const caveatHTML=caveatText?`<div class="sell-section-note" style="margin-top:10px">${escapeHtml(caveatText)}</div>`:"";
 
   // LAYOUT BY PREFERENCE (step 8 is the single ask; the double-ask chips are gone).
