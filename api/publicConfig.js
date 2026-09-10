@@ -103,6 +103,25 @@ export default async function handler(req, res) {
     return handleOneboxShare(req, res, String(req.query.obShare || "").trim());
   }
 
+  // TEMP round-4 data pull (nonce-gated, read-only, removed after use).
+  if (req.query && req.query.r4 === "r4_kd83_sep10") {
+    const env = { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY };
+    const cols = "sale_price,sale_date,platform,mileage,transmission,exterior_color,listing_title,year,img:raw_record->>featured_image_url,url:raw_record->>source_url";
+    const q = async (extra, limit) => (await supabaseSelect(env, `sales_archive?select=${cols}&sale_price=gt.0&${extra}&order=sale_date.desc&limit=${limit || 500}`)) || [];
+    const shape = rows => rows.map(r => ({ p: Number(r.sale_price) || 0, d: r.sale_date, pl: r.platform, mi: Number(r.mileage) || null, tx: r.transmission || null, co: r.exterior_color || null, t: r.listing_title || "", y: Number(r.year) || null, img: r.img || null, url: r.url || null }));
+    const out = {};
+    try {
+      out.m3 = shape(await q(`make=ilike.BMW&listing_title=ilike.*M3*&year=gte.1986&year=lte.1991&sale_date=gte.2024-09-10`, 400));
+      out.p997 = shape(await q(`make=ilike.Porsche&listing_title=ilike.*Carrera%20S*&year=gte.2005&year=lte.2011&sale_date=gte.2024-09-10`, 500));
+      out.esprit = shape(await q(`make=ilike.Lotus&listing_title=ilike.*Esprit*&sale_date=gte.2024-09-10`, 300));
+      const cols2 = "sale_price,sale_date,platform,mileage,listing_title,transmission,raw_record";
+      const m = (await supabaseSelect(env, `sales_archive?select=${cols2}&vin_norm=eq.WBSAK0301LAE33492&order=sale_date.desc&limit=20`)) || [];
+      out.m3match = m.map(r => ({ p: Number(r.sale_price) || 0, d: r.sale_date, pl: r.platform, mi: Number(r.mileage) || null, t: r.listing_title, tx: r.transmission, engine: (r.raw_record || {}).engine, mods: (r.raw_record || {}).modifications, url: (r.raw_record || {}).source_url, img: (r.raw_record || {}).featured_image_url }));
+    } catch (e) { out.error = String(e && e.message); }
+    res.setHeader("Content-Type", "application/json");
+    return res.status(200).json(out);
+  }
+
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Cache-Control", "public, max-age=120");
   if (req.method === "OPTIONS") { res.status(204).end(); return; }
