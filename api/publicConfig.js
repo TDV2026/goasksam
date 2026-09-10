@@ -107,28 +107,31 @@ export default async function handler(req, res) {
   if (req.query && req.query.pdiag === "pd_9f4kq2_sep9") {
     const env = { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY };
     const out = {};
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    const countOf = async (q) => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: { ...H, Prefer: "count=exact", Range: "0-0" } }); const cr = r.headers.get("content-range") || ""; return Number((cr.split("/")[1]) || 0); } catch (e) { return -1; } };
     try {
-      // 1. raw_record keys + whether any category/listing-type field exists
-      const sample = await supabaseSelect(env, `sales_archive?make=ilike.Lamborghini&model=ilike.*Murcielago*&select=listing_title,sale_price,mileage,platform,sale_date,raw_record&order=sale_date.desc&limit=80`);
-      out.murcielagoRows = (sample || []).map(r => ({ t: r.listing_title, p: r.sale_price, mi: r.mileage, pl: r.platform, d: r.sale_date }));
-      const rr = (sample && sample[0] && sample[0].raw_record) || {};
-      out.rawRecordKeys = Object.keys(rr);
-      out.categoryLikeKeys = Object.keys(rr).filter(k => /categor|listing_type|item_type|\btype\b|is_part|automobilia|lot_type|product/i.test(k));
-      // 2. parts-noun scan across the archive
       const nouns = ["engine","transmission","gearbox","seat","seats","wheel","wheels","hardtop","hard%20top","literature","brochure","poster","memorabilia","steering%20wheel","body%20shell","%20sign%20","set%20of","pair%20of","emblem","%20badge"];
       const orq = "or=(" + nouns.map(n => `listing_title.ilike.*${n}*`).join(",") + ")";
-      const rows = await supabaseSelect(env, `sales_archive?select=platform,listing_title,sale_price,mileage&${orq}&limit=30000`) || [];
-      out.partsTitleTotal = rows.length;
+      // True counts via content-range header (not row-capped)
+      out.archiveTotal = await countOf(`sales_archive?select=source_id`);
+      out.partsTitleTrueCount = await countOf(`sales_archive?select=source_id&${orq}`);
+      out.partsTitleNoMileageCount = await countOf(`sales_archive?select=source_id&${orq}&mileage=is.null`);
+      out.partsTitleNoMileageUnder25k = await countOf(`sales_archive?select=source_id&${orq}&mileage=is.null&sale_price=lt.25000`);
+      // raw_record keys from any recent row + category-like field probe
+      const anyRow = await supabaseSelect(env, `sales_archive?select=raw_record&order=sale_date.desc&limit=1`);
+      const rr = (anyRow && anyRow[0] && anyRow[0].raw_record) || {};
+      out.rawRecordKeys = Object.keys(rr);
+      out.categoryLikeKeys = Object.keys(rr).filter(k => /categor|listing_type|item_type|is_part|automobilia|lot_type|product|\btype\b/i.test(k));
+      // high-confidence parts sample WITH their model field (do they land in car pools?)
+      const hc = await supabaseSelect(env, `sales_archive?select=platform,listing_title,sale_price,mileage,model,make&${orq}&mileage=is.null&sale_price=lt.25000&limit=1000`) || [];
       const split = arr => arr.reduce((a, r) => { a[r.platform] = (a[r.platform] || 0) + 1; return a; }, {});
-      out.partsTitleByPlatform = split(rows);
-      const noMi = rows.filter(r => r.mileage == null || Number(r.mileage) === 0);
-      const highConf = noMi.filter(r => Number(r.sale_price) > 0 && Number(r.sale_price) < 25000);
-      out.partsNoMileageCount = noMi.length;
-      out.highConfPartsCount = highConf.length;
-      out.highConfByPlatform = split(highConf);
-      out.highConfSamples = highConf.slice(0, 25).map(r => ({ t: r.listing_title, p: r.sale_price, pl: r.platform }));
-      // rows WITH mileage that still match a noun (false positives - real cars on aftermarket wheels etc.)
-      out.withMileageSamples = rows.filter(r => Number(r.mileage) > 0).slice(0, 12).map(r => ({ t: r.listing_title, p: r.sale_price, mi: r.mileage }));
+      out.highConfByPlatform = split(hc);
+      out.highConfSamples = hc.slice(0, 20).map(r => ({ t: r.listing_title, p: r.sale_price, make: r.make, model: r.model }));
+      // Murcielago accent check + its parts rows (the named $31.5k V12 engine, $7.5k seats)
+      out.murcielagoCount_noAccent = await countOf(`sales_archive?select=source_id&model=ilike.*Murcielago*`);
+      out.murcielagoCount_accentTolerant = await countOf(`sales_archive?select=source_id&model=ilike.*Murci*`);
+      const murc = await supabaseSelect(env, `sales_archive?select=listing_title,sale_price,mileage,model,sale_date&model=ilike.*Murci*&order=sale_date.desc&limit=40`) || [];
+      out.murcielagoSamples = murc.map(r => ({ t: r.listing_title, p: r.sale_price, mi: r.mileage, model: r.model, d: r.sale_date }));
     } catch (e) { out.error = String(e && e.message); }
     res.setHeader("Content-Type", "application/json");
     return res.status(200).json(out);
