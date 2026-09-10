@@ -110,14 +110,14 @@ export default async function handler(req, res) {
     const countOf = async q => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: { ...H, Prefer: "count=exact", Range: "0-0" } }); return Number((r.headers.get("content-range") || "").split("/")[1] || 0); } catch { return -1; } };
     const out = { coverageByPlatform: {}, pools: {} };
     try {
-      const plats = ["bringatrailer", "carsandbids", "pcarmarket", "hagerty", "rmsothebys", "gooding", "allcollectorcars"];
+      const plats = ["Bring a Trailer", "Cars & Bids", "PCARMarket", "Hagerty", "RM Sotheby's", "Gooding & Co", "All Collector Cars"];
       for (const pl of plats) {
         const p = `platform=eq.${encodeURIComponent(pl)}`;
         const total = await countOf(`sales_archive?select=source_id&${p}`);
         if (total <= 0) { out.coverageByPlatform[pl] = { total }; continue; }
         const mi = await countOf(`sales_archive?select=source_id&${p}&mileage=gt.0`);
-        const tx = await countOf(`sales_archive?select=source_id&${p}&transmission=not.is.null&transmission=neq.`);
-        const co = await countOf(`sales_archive?select=source_id&${p}&exterior_color=not.is.null&exterior_color=neq.`);
+        const tx = await countOf(`sales_archive?select=source_id&${p}&transmission=not.is.null`);
+        const co = await countOf(`sales_archive?select=source_id&${p}&exterior_color=not.is.null`);
         const pct = n => Math.round((n / total) * 1000) / 10;
         out.coverageByPlatform[pl] = { total, mileage: pct(mi), transmission: pct(tx), exterior_color: pct(co) };
       }
