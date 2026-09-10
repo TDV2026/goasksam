@@ -72,7 +72,7 @@ values (
   '[]'::jsonb,
   -- Operational roster facts (item 7): no attribution, no fee figures, no counts.
   '[{"text":"Based in the South","source":"partner_provided"},{"text":"Serves Louisiana, Mississippi, Alabama, Florida, Georgia and Texas","source":"partner_provided"},{"text":"Full-service preparation: PDR, detailing and reconditioning handled in-house","source":"partner_provided"}]'::jsonb,
-  '["carbine123"]'::jsonb, null, 40000
+  '["carbine123"]'::jsonb, null, 20000
 )
 on conflict (slug) do update set
   name = excluded.name, display_name = excluded.display_name, active = excluded.active,
