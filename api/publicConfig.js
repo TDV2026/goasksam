@@ -103,6 +103,37 @@ export default async function handler(req, res) {
     return handleOneboxShare(req, res, String(req.query.obShare || "").trim());
   }
 
+  // TEMP parts-contamination diagnostic (nonce-gated, read-only, removed after use).
+  if (req.query && req.query.pdiag === "pd_9f4kq2_sep9") {
+    const env = { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY };
+    const out = {};
+    try {
+      // 1. raw_record keys + whether any category/listing-type field exists
+      const sample = await supabaseSelect(env, `sales_archive?make=ilike.Lamborghini&model=ilike.*Murcielago*&select=listing_title,sale_price,mileage,platform,sale_date,raw_record&order=sale_date.desc&limit=80`);
+      out.murcielagoRows = (sample || []).map(r => ({ t: r.listing_title, p: r.sale_price, mi: r.mileage, pl: r.platform, d: r.sale_date }));
+      const rr = (sample && sample[0] && sample[0].raw_record) || {};
+      out.rawRecordKeys = Object.keys(rr);
+      out.categoryLikeKeys = Object.keys(rr).filter(k => /categor|listing_type|item_type|\btype\b|is_part|automobilia|lot_type|product/i.test(k));
+      // 2. parts-noun scan across the archive
+      const nouns = ["engine","transmission","gearbox","seat","seats","wheel","wheels","hardtop","hard%20top","literature","brochure","poster","memorabilia","steering%20wheel","body%20shell","%20sign%20","set%20of","pair%20of","emblem","%20badge"];
+      const orq = "or=(" + nouns.map(n => `listing_title.ilike.*${n}*`).join(",") + ")";
+      const rows = await supabaseSelect(env, `sales_archive?select=platform,listing_title,sale_price,mileage&${orq}&limit=30000`) || [];
+      out.partsTitleTotal = rows.length;
+      const split = arr => arr.reduce((a, r) => { a[r.platform] = (a[r.platform] || 0) + 1; return a; }, {});
+      out.partsTitleByPlatform = split(rows);
+      const noMi = rows.filter(r => r.mileage == null || Number(r.mileage) === 0);
+      const highConf = noMi.filter(r => Number(r.sale_price) > 0 && Number(r.sale_price) < 25000);
+      out.partsNoMileageCount = noMi.length;
+      out.highConfPartsCount = highConf.length;
+      out.highConfByPlatform = split(highConf);
+      out.highConfSamples = highConf.slice(0, 25).map(r => ({ t: r.listing_title, p: r.sale_price, pl: r.platform }));
+      // rows WITH mileage that still match a noun (false positives - real cars on aftermarket wheels etc.)
+      out.withMileageSamples = rows.filter(r => Number(r.mileage) > 0).slice(0, 12).map(r => ({ t: r.listing_title, p: r.sale_price, mi: r.mileage }));
+    } catch (e) { out.error = String(e && e.message); }
+    res.setHeader("Content-Type", "application/json");
+    return res.status(200).json(out);
+  }
+
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Cache-Control", "public, max-age=120");
   if (req.method === "OPTIONS") { res.status(204).end(); return; }
