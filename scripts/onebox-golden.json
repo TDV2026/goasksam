@@ -32,29 +32,35 @@
     "cards": false
   },
   "WBSAK0301LAE33492": {
-    "state": "choice",
-    "exact": null,
-    "cfg": null,
-    "disc": null,
+    "state": "matched_result",
+    "exact": "YYYY BMW M3",
+    "cfg": "The prior listing has it with the 2.3-Liter S14 Inline-Four and a run of bolt-on fitments, the Evo-style front and rear spoilers, Brembo brakes, H&R sport springs among them. All reversible, so it still reads as a standard M3, not a rebuilt car.",
+    "disc": "See the 20 listed fitments",
     "ladder": null,
-    "s1": null,
-    "s2": null,
-    "s3": null,
-    "s4": null,
-    "meta": null,
-    "earned": null,
-    "chips": [],
-    "platforms": [],
-    "platNote": null,
+    "s1": "Right now, cars like yours are bringing $N to $N in the last twelve months.",
+    "s2": "Most land between $N and $N. The ones at the top are the low-mileage cars; the cheaper end is high-mileage.",
+    "s3": "That’s about level with a year ago, when most landed between $N and $N.",
+    "s4": "Yours sold for $N in August. The ones since brought $N to $N.",
+    "meta": "Past twelve months·lowest-mileage cars set aside",
+    "earned": "How many miles on yours?",
+    "chips": [
+      "under Nk",
+      "Nk to Nk",
+      "Nk to Nk",
+      "over Nk",
+      "type it"
+    ],
+    "platforms": [
+      "Bring a Trailer",
+      "others"
+    ],
+    "platNote": "Almost all on Bring a Trailer, so there is no cross-platform split to read here.",
     "refusalAns": null,
     "refusalReason": [],
     "wayfwd": [],
-    "genPrompt": "These sold as Coupe and Convertible, and they price differently. Which one is yours?",
-    "genChips": [
-      "Coupe",
-      "Convertible"
-    ],
-    "cards": false
+    "genPrompt": null,
+    "genChips": [],
+    "cards": true
   },
   "ZHWBC8AH7ALA03815": {
     "state": "matched_result",
@@ -307,77 +313,92 @@
     "cards": true
   },
   "991 GT3 RS": {
-    "state": "thin_refusal",
+    "state": "unmatched_result",
     "exact": null,
     "cfg": null,
     "disc": null,
     "ladder": null,
-    "s1": null,
-    "s2": null,
-    "s3": null,
+    "s1": "Right now, the Porsche 991 GT3 RS (YYYY to YYYY) is bringing $N to $N in the last twelve months.",
+    "s2": "Most land between $N and $N. The ones at the top are the low-mileage cars; the cheaper end is high-mileage.",
+    "s3": "That’s about level with a year ago, when most landed between $N and $N.",
     "s4": null,
-    "meta": null,
-    "earned": null,
-    "chips": [],
-    "platforms": [],
-    "platNote": null,
-    "refusalAns": null,
-    "refusalReason": [
-      "Too few recent 991 GT3 RS sales to show an honest spread. Here’s what there is.",
-      "Give me a bit more, or a different car, and I’ll pull what actually sold."
+    "meta": "Past twelve months",
+    "earned": "How many miles on yours?",
+    "chips": [
+      "under Nk",
+      "Nk to Nk",
+      "over Nk",
+      "type it"
     ],
+    "platforms": [
+      "Bring a Trailer",
+      "others"
+    ],
+    "platNote": "Almost all on Bring a Trailer, so there is no cross-platform split to read here.",
+    "refusalAns": null,
+    "refusalReason": [],
     "wayfwd": [],
-    "genPrompt": "Too few recent 991 GT3 RS sales to show an honest spread. Here’s what there is.",
+    "genPrompt": null,
     "genChips": [],
     "cards": true
   },
   "2016 Chevrolet Corvette Z06 coupe": {
-    "state": "thin_refusal",
+    "state": "unmatched_result",
     "exact": null,
     "cfg": null,
     "disc": null,
     "ladder": null,
-    "s1": null,
-    "s2": null,
-    "s3": null,
+    "s1": "Right now, the Chevrolet Corvette Z06 (YYYY to YYYY) is bringing $N to $N in the last twelve months.",
+    "s2": "Most land between $N and $N. The ones at the top are the low-mileage cars; the cheaper end is high-mileage.",
+    "s3": "That’s a touch firmer than a year ago, when most landed between $N and $N.",
     "s4": null,
-    "meta": null,
-    "earned": null,
-    "chips": [],
-    "platforms": [],
-    "platNote": null,
-    "refusalAns": null,
-    "refusalReason": [
-      "Too few recent Corvette Z06 Coupe sales to show an honest spread. Here’s what there is.",
-      "Give me a bit more, or a different car, and I’ll pull what actually sold."
+    "meta": "Past twelve months",
+    "earned": "How many miles on yours?",
+    "chips": [
+      "under Nk",
+      "Nk to Nk",
+      "over Nk",
+      "type it"
     ],
+    "platforms": [
+      "Bring a Trailer",
+      "others"
+    ],
+    "platNote": "Almost all on Bring a Trailer, so there is no cross-platform split to read here.",
+    "refusalAns": null,
+    "refusalReason": [],
     "wayfwd": [],
-    "genPrompt": "Too few recent Corvette Z06 Coupe sales to show an honest spread. Here’s what there is.",
+    "genPrompt": null,
     "genChips": [],
     "cards": true
   },
   "2013 Ford Mustang Shelby GT500 coupe": {
-    "state": "thin_refusal",
+    "state": "unmatched_result",
     "exact": null,
     "cfg": null,
     "disc": null,
     "ladder": null,
-    "s1": null,
-    "s2": null,
-    "s3": null,
+    "s1": "Right now, the Ford Mustang Shelby GT500 (YYYY to YYYY) is bringing $N to $N in the last twelve months.",
+    "s2": "Most land between $N and $N. The ones at the top are the low-mileage cars; the cheaper end is high-mileage.",
+    "s3": "That’s a touch firmer than a year ago, when most landed between $N and $N.",
     "s4": null,
-    "meta": null,
-    "earned": null,
-    "chips": [],
-    "platforms": [],
-    "platNote": null,
-    "refusalAns": null,
-    "refusalReason": [
-      "Too few recent Mustang Shelby GT500 Coupe sales to show an honest spread. Here’s what there is.",
-      "Give me a bit more, or a different car, and I’ll pull what actually sold."
+    "meta": "Past twelve months",
+    "earned": "How many miles on yours?",
+    "chips": [
+      "under Nk",
+      "Nk to Nk",
+      "over Nk",
+      "type it"
     ],
+    "platforms": [
+      "Bring a Trailer",
+      "others"
+    ],
+    "platNote": "Almost all on Bring a Trailer, so there is no cross-platform split to read here.",
+    "refusalAns": null,
+    "refusalReason": [],
     "wayfwd": [],
-    "genPrompt": "Too few recent Mustang Shelby GT500 Coupe sales to show an honest spread. Here’s what there is.",
+    "genPrompt": null,
     "genChips": [],
     "cards": true
   },
