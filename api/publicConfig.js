@@ -103,6 +103,55 @@ export default async function handler(req, res) {
     return handleOneboxShare(req, res, String(req.query.obShare || "").trim());
   }
 
+  // TEMP field-coverage diagnostic (nonce-gated, read-only, removed after use).
+  if (req.query && req.query.fdiag === "fd_7h2x_sep9") {
+    const env = { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY };
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    const countOf = async q => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: { ...H, Prefer: "count=exact", Range: "0-0" } }); return Number((r.headers.get("content-range") || "").split("/")[1] || 0); } catch { return -1; } };
+    const out = { coverageByPlatform: {}, pools: {} };
+    try {
+      const plats = ["bringatrailer", "carsandbids", "pcarmarket", "hagerty", "rmsothebys", "gooding", "allcollectorcars"];
+      for (const pl of plats) {
+        const p = `platform=eq.${encodeURIComponent(pl)}`;
+        const total = await countOf(`sales_archive?select=source_id&${p}`);
+        if (total <= 0) { out.coverageByPlatform[pl] = { total }; continue; }
+        const mi = await countOf(`sales_archive?select=source_id&${p}&mileage=gt.0`);
+        const tx = await countOf(`sales_archive?select=source_id&${p}&transmission=not.is.null&transmission=neq.`);
+        const co = await countOf(`sales_archive?select=source_id&${p}&exterior_color=not.is.null&exterior_color=neq.`);
+        const pct = n => Math.round((n / total) * 1000) / 10;
+        out.coverageByPlatform[pl] = { total, mileage: pct(mi), transmission: pct(tx), exterior_color: pct(co) };
+      }
+      // Per-pool split feasibility (5+/5+) for mileage / transmission / exterior_color.
+      const pools = [
+        { key: "718 Cayman S (2017-2019)", make: "Porsche", title: "Cayman S", y0: 2017, y1: 2019 },
+        { key: "997 Carrera S (2005-2011)", make: "Porsche", title: "Carrera S", y0: 2005, y1: 2011 },
+        { key: "E30 M3 (1986-1991)", make: "BMW", title: "M3", y0: 1986, y1: 1991 }
+      ];
+      const isManual = s => /manual|\bstick\b|\d[- ]?speed(?!\s*automatic)|\bmd\b|\bmt\b/i.test(s) && !/automatic|pdk|dct|tiptronic|dsg|\bat\b/i.test(s);
+      const isAuto = s => /automatic|\bpdk\b|\bdct\b|tiptronic|\bdsg\b|\bat\b|paddle/i.test(s);
+      for (const pool of pools) {
+        const rows = await supabaseSelect(env, `sales_archive?select=sale_price,mileage,transmission,exterior_color,listing_title&make=ilike.${encodeURIComponent(pool.make)}&listing_title=ilike.${encodeURIComponent("*" + pool.title + "*")}&year=gte.${pool.y0}&year=lte.${pool.y1}&sale_price=gt.0&limit=1000`) || [];
+        const withMi = rows.filter(r => Number(r.mileage) > 0).map(r => Number(r.mileage)).sort((a, b) => a - b);
+        const med = withMi.length ? withMi[Math.floor(withMi.length / 2)] : 0;
+        const miLow = withMi.filter(m => m < med).length, miHigh = withMi.filter(m => m >= med).length;
+        const tx = rows.map(r => String(r.transmission || "")).filter(Boolean);
+        const man = tx.filter(isManual).length, aut = tx.filter(isAuto).length;
+        const colors = {};
+        for (const r of rows) { const c = String(r.exterior_color || "").toLowerCase().trim(); if (c) colors[c] = (colors[c] || 0) + 1; }
+        const colorArr = Object.entries(colors).sort((a, b) => b[1] - a[1]);
+        const topColor = colorArr[0] ? colorArr[0][1] : 0, restColor = colorArr.slice(1).reduce((a, c) => a + c[1], 0);
+        out.pools[pool.key] = {
+          n: rows.length,
+          mileage: { populated: withMi.length, median: med, lowVsHigh: [miLow, miHigh], clears5: miLow >= 5 && miHigh >= 5 },
+          transmission: { populated: tx.length, manual: man, auto: aut, clears5: man >= 5 && aut >= 5 },
+          exterior_color: { populated: Object.values(colors).reduce((a, c) => a + c, 0), distinct: colorArr.length, top: colorArr.slice(0, 5), topVsRest: [topColor, restColor], clears5: topColor >= 5 && restColor >= 5 }
+        };
+      }
+    } catch (e) { out.error = String(e && e.message); }
+    res.setHeader("Content-Type", "application/json");
+    return res.status(200).json(out);
+  }
+
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Cache-Control", "public, max-age=120");
   if (req.method === "OPTIONS") { res.status(204).end(); return; }

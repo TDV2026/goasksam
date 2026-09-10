@@ -288,11 +288,17 @@
     var name = (m && m.displayName) || carLabel(rc) || "";
     return String(name).replace(/^\d{4}\s+\S+\s+/, "").trim() || String(name) || "car";
   }
-  function modelPluralLabel(rc, trim) {
-    if (!rc) return "Cars like yours";
-    var parts = [rc.model, trim].filter(Boolean).join(" ");
-    if (!parts) return "Cars like yours";
-    return parts + (rc.bodyStyle ? " " + cap(rc.bodyStyle) + "s" : "s");
+  // Singular, make-inclusive headline subject: "The {make} {model} {trim} {Body}". Never
+  // pluralised (no "718 Cayman Ss"). Body is included only when it is a distinguishing open
+  // variant (Convertible/Cabriolet/Roadster/Targa) - coupe/sedan are the default and omitted.
+  function headlineSubject(rc, trim) {
+    if (!rc || (!rc.make && !rc.model)) return "This car";
+    var model = rc.model || "";
+    // Drop a trim that merely repeats the model ("M3" model + "M3" trim -> not "M3 M3").
+    var t = (trim && obNorm(trim) !== obNorm(model) && obNorm(model).indexOf(obNorm(trim)) < 0) ? trim : "";
+    var body = rc.bodyStyle && /^(convertible|cabriolet|roadster|targa|spyder|spider|wagon)$/i.test(rc.bodyStyle) ? cap(rc.bodyStyle) : "";
+    var parts = [rc.make, model, t, body].filter(Boolean).join(" ");
+    return "The " + parts;
   }
   // The exact-car header (matched only): "I know this exact car" + photo + config line + receipt.
   function exactCarHtml(m, rc) {
@@ -332,9 +338,10 @@
   // The answer block: headline span, gated cluster, gated recency, mono meta line, placement.
   function answerBlockHtml(d, m) {
     var matched = !!m, s = d.span || [0, 0];
-    var headline = matched
-      ? "Cars like yours have been bringing " + r3money(s[0]) + " to " + r3money(s[1]) + "."
-      : esc(modelPluralLabel(d.resolvedCar, d.poolTrim)) + " have been bringing " + r3money(s[0]) + " to " + r3money(s[1]) + ".";
+    // Singular template, make always included. State the pool years when the pool spans more
+    // than one model year ("The Porsche 718 Cayman S (2017 to 2019) has been bringing...").
+    var years = (d.poolYears && d.poolYears[1] > d.poolYears[0]) ? " (" + d.poolYears[0] + " to " + d.poolYears[1] + ")" : "";
+    var headline = esc(headlineSubject(d.resolvedCar, d.poolTrim)) + years + " has been bringing " + r3money(s[0]) + " to " + r3money(s[1]) + ".";
     var out = '<div class="ansblock' + (matched ? "" : " hero") + '" data-stage="answer">';
     // Ladder widening note: when the exact trim was too thin and the pool widened to the family
     // (or to a longer window), Sam states the step he took, halo set aside and labelled.
@@ -374,13 +381,17 @@
     return '<div class="seclabel">Where they sold</div><div class="plat-strip">' + pills + "</div>" + note;
   }
   function samReadResultHtml(d, m) {
-    var text;
+    // Sam's read renders ONLY when there is something true to say. For a MATCHED car that is
+    // the modification/condition note. For an UNMATCHED car it is either a pool-derived line
+    // (the refinement feature, not built yet) or nothing - the old "Add your year, gearbox and
+    // miles..." was a placeholder for that unbuilt feature and, per rule 7, does not render.
+    var text = null;
     if (m && m.materialMods && m.materialMods.length) text = "The work on yours puts it in a different conversation from the stock cars here, so read this range as the backdrop rather than a like-for-like.";
     else if (m && m.modifications && m.modifications.length) {
       var tags = (d.basis && d.basis.asideTags && d.basis.asideTags.length) ? d.basis.asideTags.join(", ") : "untouched, low-mileage";
       text = "The bolt-ons on yours are the kind buyers shrug off or quietly undo, so it belongs with the driver-grade cars, not marked down for them. The cars clearing the top of the range are the " + tags + " examples, which is a different conversation.";
     } else if (m) text = "Yours is a clean, unmodified example, so it reads straight against this range.";
-    else text = "Add your year, gearbox and miles in the box above and I’ll narrow this to the cars most like yours.";
+    if (!text) return "";
     return '<div class="sam note" data-stage="note"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s read</div><p>' + lint(esc(text), "samread") + "</p></div></div>";
   }
   function resultHtml(d, m) {
