@@ -13,6 +13,8 @@
   var obAsOf = null;       // when THIS analysis ran (product rule 4: run date, not freshness)
   var obResolvedCar = null; // the resolved vehicle of the current result, for the /sell handoff
   var obSourceVin = null;   // the 17-char VIN when this result was VIN-sourced (travels to /sell)
+  var obRefinePhrase = null; // the earned-question lead ("In the 100k to 160k miles band") on a refined view
+  var obLastVehicle = null;  // the resolved vehicle of the current pool, reused for an inline refine
   // Two-beat rotating placeholder (Screen 1). No listing-URL example (not a built path),
   // no real VIN string. Slow, subtle rotation handled by startPlaceholderRotation().
   var PLACEHOLDER_BEATS = ["2005 BMW M3 coupe manual 72k miles", "Or paste your VIN"];
@@ -336,91 +338,98 @@
       recLines + disc + "</div></div></div>";
   }
   // The answer block: headline span, gated cluster, gated recency, mono meta line, placement.
-  function answerBlockHtml(d, m) {
-    var matched = !!m, s = d.span || [0, 0];
-    // Singular template, make always included. State the pool years when the pool spans more
-    // than one model year ("The Porsche 718 Cayman S (2017 to 2019) has been bringing...").
-    var years = (d.poolYears && d.poolYears[1] > d.poolYears[0]) ? " (" + d.poolYears[0] + " to " + d.poolYears[1] + ")" : "";
-    var headline = esc(headlineSubject(d.resolvedCar, d.poolTrim)) + years + " has been bringing " + r3money(s[0]) + " to " + r3money(s[1]) + ".";
-    var out = '<div class="ansblock' + (matched ? "" : " hero") + '" data-stage="answer">';
-    // Ladder widening note: when the exact trim was too thin and the pool widened to the family
-    // (or to a longer window), Sam states the step he took, halo set aside and labelled.
-    if (d.widening) out += '<p class="widening">' + lint(esc(d.widening), "widening") + "</p>";
-    out += '<p class="ans' + (matched ? "" : " hero") + '">' + lint(headline, "ans") + "</p>";
-    if (d.cluster) out += '<p class="cluster">' + lint("Most sold between " + r3money(d.cluster[0]) + " and " + r3money(d.cluster[1]) + ".", "cluster") + "</p>";
-    if (d.recency) { var r = d.recency; out += '<p class="recent12">' + lint(r.n12 + " of the " + r.total + " sold in the last twelve months, and the most recent " + spellK(r.k) + " all landed between " + r3money(r.lo) + " and " + r3money(r.hi) + ".", "recent12") + "</p>"; }
-    var b = d.basis || { total: d.count, windowLabel: d.windowLabel, setAside: 0, asideTags: [] };
-    var win = /12 months/.test(b.windowLabel || "") ? "last 12 months" : "past 2 years";
-    var meta = 'Based on <span class="num">' + b.total + "</span> sales<span class=\"dot\">&middot;</span>" + win;
-    if (b.setAside > 0) meta += '<span class="dot">&middot;</span><span class="num">' + b.setAside + "</span> set aside" + (b.asideTags && b.asideTags.length ? " (" + esc(b.asideTags.join(", ")) + ")" : "");
-    out += '<span class="basis">' + meta + "</span>";
-    if (matched && d.cluster && m.price) {
-      var c = d.cluster, yp = m.price;
-      var place = yp < c[0] ? "toward the lower end of" : yp > c[1] ? "toward the upper end of" : (yp > (c[0] + c[1]) / 2 ? "a little above the middle of" : "a little below the middle of");
-      var tail = (b.setAside > 0) ? ", in company with the driver-grade cars rather than the set-aside examples" : "";
-      out += '<div class="sits">' + lint("Yours sold " + place + " where these have landed" + tail + ".", "sits") + "</div>";
+  // ---- Round-4 render: Sam's take folded block, earned question, clickable cards, no counts ----
+  var OB_UTM = "utm_source=goasksam&utm_medium=onebox&utm_campaign=comp_card";
+  function utmUrl(url) { return url ? url + (url.indexOf("?") >= 0 ? "&" : "?") + OB_UTM : null; }
+  function windowText(d) { return /12 months|twelve/.test(d.windowLabel || "") ? "the last twelve months" : "the past two years"; }
+  function windowMeta(d) { return /12 months|twelve/.test(d.windowLabel || "") ? "Past twelve months" : "Past two years"; }
+  function priceRange(a) { return r3money(a[0]) + " to " + r3money(a[1]); }
+  function monthOnly(dstr) { var p = String(dstr || "").slice(0, 10).split("-"); var M = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]; return p.length >= 2 ? (M[+p[1]] || "") : ""; }
+  function r500f(n) { return Math.round(n / 500) * 500; }
+  // Matched-car fourth beat: what the market has done SINCE the car sold, computed from the
+  // dated cards; falls back to a placement sentence when there is nothing since.
+  function sinceSold(m, cards) {
+    if (!m || !m.soldDate) return null;
+    var since = (cards || []).filter(function (c) { return c.date && String(c.date).slice(0, 10) > String(m.soldDate).slice(0, 10) && c.price > 0; }).map(function (c) { return c.price; });
+    if (since.length < 2) return null;
+    return [r500f(Math.min.apply(null, since)), r500f(Math.max.apply(null, since))];
+  }
+  // SAM'S TAKE: one folded block. Up to four sentences, three sizes, nothing restated elsewhere.
+  function samTakeBlock(d, m) {
+    var s = d.span || [0, 0], out = '<div class="samtake" data-stage="answer"><div class="tk">Sam’s take</div>';
+    if (d.widening) out += '<p class="ladder">' + lint(esc(d.widening), "widening") + "</p>";
+    var subj = m ? "cars like yours" : esc(headlineSubject(d.resolvedCar, d.poolTrim)) + ((d.poolYears && d.poolYears[1] > d.poolYears[0]) ? " (" + d.poolYears[0] + " to " + d.poolYears[1] + ")" : "");
+    var verb = m ? "are" : "is";
+    var s1 = (obRefinePhrase ? (obRefinePhrase + ", cars like yours are") : ("Right now, " + subj + " " + verb)) + " bringing " + priceRange(s) + " in " + windowText(d) + ".";
+    out += '<p class="s1">' + lint(s1, "s1") + "</p>";
+    if (d.cluster) {
+      var s2 = "Most land between " + priceRange(d.cluster) + ".";
+      if (d.driver === "mileage") s2 += " The ones at the top are the low-mileage cars; the cheaper end is high-mileage.";
+      out += '<p class="s2">' + lint(s2, "s2") + "</p>";
     }
+    if (d.direction && !obRefinePhrase) out += '<p class="s3">' + lint("That’s " + esc(d.direction.word) + " than a year ago, when most landed between " + priceRange(d.direction.prior) + ".", "s3") + "</p>";
+    if (m && m.price) {
+      var since = sinceSold(m, d.cards);
+      if (since) out += '<p class="s4">' + lint("Yours sold for " + r3money(m.price) + " in " + esc(monthOnly(m.soldDate)) + ". The ones since brought " + priceRange(since) + ".", "s4") + "</p>";
+      else if (d.cluster) { var c = d.cluster, yp = m.price; var place = yp < c[0] ? "toward the lower end" : yp > c[1] ? "toward the upper end" : (yp > (c[0] + c[1]) / 2 ? "a little above the middle" : "a little below the middle"); out += '<p class="s4">' + lint("Yours sold " + place + ", in company with the driver-grade cars.", "s4") + "</p>"; }
+    }
+    var tags = d.setAsideTags || [];
+    out += '<span class="meta">' + windowMeta(d) + (tags.length ? '<span class="dot">&middot;</span>' + esc(tags.join(" and ")) + " cars set aside" : "") + "</span>";
     return out + "</div>";
+  }
+  // THE EARNED QUESTION: mileage (pool-relative buckets) or transmission; answered inline.
+  function earnedHtml(d) {
+    var e = d.earned; if (!e) return "";
+    var q, chips;
+    if (e.kind === "mileage") {
+      q = "How many miles on yours?";
+      chips = (e.buckets || []).map(function (bk) { return '<button class="qchip" data-milemin="' + bk.min + '" data-milemax="' + (bk.max == null ? "" : bk.max) + '" data-mlabel="' + esc(bk.label) + '">' + esc(bk.label) + "</button>"; }).join("") + '<button class="qchip typeit" data-typemiles>type it</button>';
+    } else if (e.kind === "transmission") {
+      q = cap(e.labels.manual) + " or " + e.labels.auto + "?";
+      chips = '<button class="qchip" data-tx="manual" data-mlabel="' + esc(e.labels.manual) + '">' + esc(cap(e.labels.manual)) + '</button><button class="qchip" data-tx="auto" data-mlabel="' + esc(e.labels.auto) + '">' + esc(e.labels.auto) + "</button>";
+    } else return "";
+    return '<div class="earned" data-stage="answer"><p class="q">' + esc(q) + '</p><div class="qchips">' + chips + "</div></div>";
   }
   function receiptCardHtml(c, tagAside) {
     var img = c.image ? '<img src="' + esc(c.image) + '" alt="' + esc(c.title) + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.rplate\');if(p)p.style.display=\'flex\'">' : "";
     var aside = (tagAside && c.hollow) ? '<span class="aside">set aside</span>' : "";
-    return '<div class="rcard"><div class="rph">' + img + aside +
-      '<div class="rplate"><div class="n">' + esc(c.title) + '</div><div class="s">photo unavailable</div></div></div>' +
+    var ext = '<span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>';
+    var inner = '<div class="rph">' + img + ext + aside + '<div class="rplate"><div class="n">' + esc(c.title) + '</div><div class="s">photo unavailable</div></div></div>' +
       '<div class="rb"><div class="rprice num">' + esc(usd(c.price)) + "</div>" +
       '<div class="rmeta"><span class="num">' + esc(c.mileageText) + '</span><span class="dot">&middot;</span>' + esc(c.platform) + "</div>" +
-      '<div class="rdate">' + esc(c.month) + "</div><div class=\"rtitle\">" + esc(c.title) + "</div></div></div>";
+      '<div class="rdate">' + esc(c.month) + "</div><div class=\"rtitle\">" + esc(c.title) + "</div></div>";
+    var href = utmUrl(c.url);
+    return href ? '<a class="rcard" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="rcard">' + inner + "</div>";
   }
   function receiptsHtml(cards, n, tagAside) { return (cards || []).slice(0, n).map(function (c) { return receiptCardHtml(c, tagAside); }).join(""); }
   function platStripHtml(d, m) {
     var plats = d.platforms || [];
     if (!plats.length) return "";
-    var pills = plats.map(function (p) { return '<span class="plat-pill">' + esc(p[0]) + '<span class="c num">' + p[1] + "</span></span>"; }).join("");
+    var pills = plats.map(function (nm) { return '<span class="plat-pill">' + esc(nm) + "</span>"; }).join("");
     var note = "";
-    if (d.singlePlatform && d.topPlatform) note = '<p class="plat-note">' + lint("Almost every " + esc(bareModelOf(d.resolvedCar, m)) + " that changes hands does so on " + esc(d.topPlatform) + ", so there is no cross-platform split to read here.", "platnote") + "</p>";
+    if (d.singlePlatform && d.topPlatform) note = '<p class="plat-note">' + lint("Almost all on " + esc(d.topPlatform) + ", so there is no cross-platform split to read here.", "platnote") + "</p>";
+    else if (d.topPlatform) note = '<p class="plat-note">' + lint("Most change hands on " + esc(d.topPlatform) + ".", "platnote") + "</p>";
     return '<div class="seclabel">Where they sold</div><div class="plat-strip">' + pills + "</div>" + note;
   }
-  function samReadResultHtml(d, m) {
-    // Sam's read renders ONLY when there is something true to say. For a MATCHED car that is
-    // the modification/condition note. For an UNMATCHED car it is either a pool-derived line
-    // (the refinement feature, not built yet) or nothing - the old "Add your year, gearbox and
-    // miles..." was a placeholder for that unbuilt feature and, per rule 7, does not render.
-    var text = null;
-    if (m && m.materialMods && m.materialMods.length) text = "The work on yours puts it in a different conversation from the stock cars here, so read this range as the backdrop rather than a like-for-like.";
-    else if (m && m.modifications && m.modifications.length) {
-      var tags = (d.basis && d.basis.asideTags && d.basis.asideTags.length) ? d.basis.asideTags.join(", ") : "untouched, low-mileage";
-      text = "The bolt-ons on yours are the kind buyers shrug off or quietly undo, so it belongs with the driver-grade cars, not marked down for them. The cars clearing the top of the range are the " + tags + " examples, which is a different conversation.";
-    } else if (m) text = "Yours is a clean, unmodified example, so it reads straight against this range.";
-    if (!text) return "";
-    return '<div class="sam note" data-stage="note"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s read</div><p>' + lint(esc(text), "samread") + "</p></div></div>";
-  }
   function resultHtml(d, m) {
-    var body = answerBlockHtml(d, m);
+    var body = samTakeBlock(d, m) + earnedHtml(d);
     body += '<div class="seclabel">The sales<span class="sort">Sort: Most recent</span></div>';
     body += '<div class="receipts">' + receiptsHtml(d.cards, 6) + "</div>";
     var rest = (d.cards || []).slice(6).concat(d.asideCards || []);
-    if (rest.length) {
-      var total = (d.cards || []).length + (d.asideCards || []).length;
-      body += '<details class="showall"><summary>Show all ' + total + "</summary><div class=\"receipts\">" + receiptsHtml(rest, 999, true) + "</div></details>";
-    }
-    body += platStripHtml(d, m) + samReadResultHtml(d, m) + sellHtml() + recentHtml();
+    if (rest.length) body += '<details class="showall"><summary>Show more</summary><div class="receipts">' + receiptsHtml(rest, 999, true) + "</div></details>";
+    body += platStripHtml(d, m) + sellHtml() + recentHtml();
     return body;
   }
   function refusalHtml(d) {
     var rf = d.refusal || {}, model = rf.model || carLabel(d.resolvedCar) || "car", reason, follow;
     if (rf.kind === "thin") {
-      if (!rf.n) {
-        reason = "I don’t have any recent " + esc(model) + " sales in the record right now, so there’s nothing honest for me to build a range on.";
-      } else {
-        var vb = rf.n === 1 ? "has" : "have";
-        reason = "Only " + spellK(rf.n) + " " + esc(model) + " " + vb + " sold in this window, too few to show an honest spread. Here " + (rf.n === 1 ? "it is" : "they are") + ".";
-      }
+      reason = "Too few " + esc(model) + "s have sold recently to show an honest spread. Here’s what there is.";
       follow = "Give me a bit more, or a different car, and I’ll pull what actually sold.";
     } else {
       var listJoin = function (a) { return a.length <= 1 ? (a[0] || "") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; };
       var yspan = rf.yearSpanPhrase || "a wide span of years";
-      if (rf.variants && rf.variants.length >= 2) reason = "The " + esc(model) + "s that have sold span the " + esc(listJoin(rf.variants)) + " across " + esc(yspan) + ", " + spellK(rf.n) + " sales in all. Cars this different do not trade as one market, so a single range would invent a pattern that is not there.";
-      else reason = "The " + esc(model) + "s that have sold range too widely in spec and condition to trade as one market, " + spellK(rf.n) + " sales across " + esc(yspan) + ". A single range would invent a pattern that is not there.";
+      if (rf.variants && rf.variants.length >= 2) reason = "The " + esc(model) + "s that have sold span the " + esc(listJoin(rf.variants)) + " across " + esc(yspan) + ". Cars this different do not trade as one market, so a single range would invent a pattern that is not there.";
+      else reason = "The " + esc(model) + "s that have sold range too widely in spec and condition to trade as one market, across " + esc(yspan) + ". A single range would invent a pattern that is not there.";
       follow = "Tell me which " + esc(model) + " yours is and I’ll compare it to the ones that match.";
     }
     var chips = (rf.kind === "varied" && rf.variants && rf.variants.length)
@@ -592,21 +601,24 @@
   function run(text) {
     text = String(text || "").trim();
     if (!text) return;
-    lastQuery = text; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null;
+    lastQuery = text; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obRefinePhrase = null; obLastVehicle = null;
     // Identifier-shaped input (VIN or chassis) routes through the shared resolver (decode +
     // confirm + exact-match + the honest VIN-invalid / chassis lines); everything else goes
     // straight to the archive pool.
     if (obIdentifierShaped(text)) { vinResolve(text); return; }
     runPool(text, null);
   }
-  function runPool(text, vehicle) {
+  function runPool(text, vehicle, refine) {
+    obLastVehicle = vehicle || obLastVehicle;
     root.innerHTML = inboxHtml(text) + workingLine(esc(carLabel(vehicle) || text), null) + footHtml();
     wire();
     var car = { raw: text };
     if (vehicle) car.vehicle = vehicle;
+    var payload = { oneBox: true, anonId: obAnonId(), car: car };
+    if (refine) payload.refine = refine;   // inline earned-question refinement (mileage / transmission)
     fetch(API_ORIGIN + "/api/sellerDecision", {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ oneBox: true, anonId: obAnonId(), car: car })
+      body: JSON.stringify(payload)
     }).then(function (r) { return r.json(); }).then(function (d) {
       pushRecent(text, d);
       if (d && d.status === "needs_clarification") {
@@ -841,6 +853,38 @@
     Array.prototype.forEach.call(root.querySelectorAll("[data-recent]"), function (b) { b.addEventListener("click", function () { run(b.getAttribute("data-recent")); }); });
     // Generation chips carry a full year-resolvable query - run it directly (never appended).
     Array.prototype.forEach.call(root.querySelectorAll("[data-genquery]"), function (b) { b.addEventListener("click", function () { run(b.getAttribute("data-genquery")); }); });
+    // The earned question: a mileage band or transmission chip narrows the SAME pool inline
+    // (re-request with a refine), and Sam's take + the sales re-render to match.
+    Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-milemin]"), function (b) {
+      b.addEventListener("click", function () {
+        var lo = b.getAttribute("data-milemin"), hi = b.getAttribute("data-milemax"), label = b.getAttribute("data-mlabel");
+        obRefinePhrase = "In the " + label + " miles band";
+        runPool(lastQuery, obLastVehicle, { miMin: Number(lo), miMax: hi ? Number(hi) : null, label: label });
+      });
+    });
+    Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-tx]"), function (b) {
+      b.addEventListener("click", function () {
+        var tx = b.getAttribute("data-tx"), label = b.getAttribute("data-mlabel");
+        obRefinePhrase = tx === "manual" ? "As a manual" : "As " + (/^[aeiou]/i.test(label) ? "an " : "a ") + label;
+        runPool(lastQuery, obLastVehicle, { tx: tx, label: label });
+      });
+    });
+    // "type it": reveal a small inline mileage input; Enter narrows to a band around that number.
+    Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-typemiles]"), function (b) {
+      b.addEventListener("click", function () {
+        var wrap = b.parentNode;
+        b.outerHTML = '<span class="typemiles"><input id="ob-miles" type="number" inputmode="numeric" placeholder="miles" /><button class="qchip" id="ob-miles-go">Go</button></span>';
+        var inp = document.getElementById("ob-miles"); if (inp) inp.focus();
+        function submit() { var v = Number((document.getElementById("ob-miles") || {}).value); if (!(v > 0)) return; var band = v >= 60000 ? 25000 : 15000; obRefinePhrase = "Around " + v.toLocaleString() + " miles"; runPool(lastQuery, obLastVehicle, { miMin: Math.max(0, v - band), miMax: v + band, label: "around " + Math.round(v / 1000) + "k" }); }
+        var go = document.getElementById("ob-miles-go"); if (go) go.addEventListener("click", submit);
+        if (inp) inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); submit(); } });
+      });
+    });
+    // Outbound comp-card click: log the referral per platform (the card link already carries the
+    // UTM for the destination). Best-effort beacon, never blocks the navigation.
+    Array.prototype.forEach.call(root.querySelectorAll("a.rcard[data-cardclick]"), function (a) {
+      a.addEventListener("click", function () { try { obEvent("onebox_comp_click", a.getAttribute("data-cardclick") + ":" + lastQuery); } catch (e) {} });
+    });
   }
 
   // ---------------------------------------------------------------- boot
