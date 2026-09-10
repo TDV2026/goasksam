@@ -58,6 +58,7 @@ jobs:
           fi
 
   golden:
+    if: false  # PARKED: CI runner is WAF-429'd (see issues #2/#3). Re-enable when the WAF-CI-bypass lands. The `npm run deploy` golden gate is unaffected.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
