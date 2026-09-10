@@ -344,6 +344,7 @@
   function windowText(d) { return /12 months|twelve/.test(d.windowLabel || "") ? "the last twelve months" : "the past two years"; }
   function windowMeta(d) { return /12 months|twelve/.test(d.windowLabel || "") ? "Past twelve months" : "Past two years"; }
   function priceRange(a) { return r3money(a[0]) + " to " + r3money(a[1]); }
+  function betweenRange(a) { return r3money(a[0]) + " and " + r3money(a[1]); }
   function monthOnly(dstr) { var p = String(dstr || "").slice(0, 10).split("-"); var M = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]; return p.length >= 2 ? (M[+p[1]] || "") : ""; }
   function r500f(n) { return Math.round(n / 500) * 500; }
   // Matched-car fourth beat: what the market has done SINCE the car sold, computed from the
@@ -358,16 +359,17 @@
   function samTakeBlock(d, m) {
     var s = d.span || [0, 0], out = '<div class="samtake" data-stage="answer"><div class="tk">Sam’s take</div>';
     if (d.widening) out += '<p class="ladder">' + lint(esc(d.widening), "widening") + "</p>";
-    var subj = m ? "cars like yours" : esc(headlineSubject(d.resolvedCar, d.poolTrim)) + ((d.poolYears && d.poolYears[1] > d.poolYears[0]) ? " (" + d.poolYears[0] + " to " + d.poolYears[1] + ")" : "");
+    // "The Porsche 997..." stands alone as a headline subject; lowercased after "Right now,".
+    var subj = m ? "cars like yours" : esc(headlineSubject(d.resolvedCar, d.poolTrim)).replace(/^The /, "the ") + ((d.poolYears && d.poolYears[1] > d.poolYears[0]) ? " (" + d.poolYears[0] + " to " + d.poolYears[1] + ")" : "");
     var verb = m ? "are" : "is";
     var s1 = (obRefinePhrase ? (obRefinePhrase + ", cars like yours are") : ("Right now, " + subj + " " + verb)) + " bringing " + priceRange(s) + " in " + windowText(d) + ".";
     out += '<p class="s1">' + lint(s1, "s1") + "</p>";
     if (d.cluster) {
-      var s2 = "Most land between " + priceRange(d.cluster) + ".";
+      var s2 = "Most land between " + betweenRange(d.cluster) + ".";
       if (d.driver === "mileage") s2 += " The ones at the top are the low-mileage cars; the cheaper end is high-mileage.";
       out += '<p class="s2">' + lint(s2, "s2") + "</p>";
     }
-    if (d.direction && !obRefinePhrase) out += '<p class="s3">' + lint("That’s " + esc(d.direction.word) + " than a year ago, when most landed between " + priceRange(d.direction.prior) + ".", "s3") + "</p>";
+    if (d.direction && !obRefinePhrase) { var conn = d.direction.word === "about level" ? "with" : "than"; out += '<p class="s3">' + lint("That’s " + esc(d.direction.word) + " " + conn + " a year ago, when most landed between " + betweenRange(d.direction.prior) + ".", "s3") + "</p>"; }
     if (m && m.price) {
       var since = sinceSold(m, d.cards);
       if (since) out += '<p class="s4">' + lint("Yours sold for " + r3money(m.price) + " in " + esc(monthOnly(m.soldDate)) + ". The ones since brought " + priceRange(since) + ".", "s4") + "</p>";
