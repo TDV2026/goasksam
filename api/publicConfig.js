@@ -103,36 +103,6 @@ export default async function handler(req, res) {
     return handleOneboxShare(req, res, String(req.query.obShare || "").trim());
   }
 
-  // TEMP M4 pool diagnostic (nonce-gated, read-only, removed after use).
-  if (req.query && req.query.m4diag === "m4_qz71_sep10") {
-    const env = { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY };
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    const countOf = async q => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: { ...H, Prefer: "count=exact", Range: "0-0" } }); return Number((r.headers.get("content-range") || "").split("/")[1] || 0); } catch { return -1; } };
-    const out = {};
-    try {
-      const { resolveVehicle } = await import("../lib/vehicle.js");
-      const rv = await resolveVehicle("2019 BMW M4 Competition", { vinConfirm: true });
-      out.resolved_typed = rv && rv.vehicle ? { make: rv.vehicle.make, model: rv.vehicle.model, trim: rv.vehicle.trim, canonical: rv.vehicle.canonicalLabel, status: rv.status } : rv;
-      const { familyFor } = await import("../lib/modelFamilies.js");
-      const fam = familyFor("BMW", (rv.vehicle || {}).model || "M4");
-      out.familyFor_model = fam ? fam.head : null;
-      // Archive strings for F82/F83 M4 (2015-2020)
-      const rows = await supabaseSelect(env, `sales_archive?select=model,listing_title,transmission,sale_price,sale_date&make=ilike.BMW&listing_title=ilike.*M4*&year=gte.2015&year=lte.2021&sale_date=gte.2024-09-10&order=sale_date.desc&limit=400`) || [];
-      const byModel = {}; for (const r of rows) byModel[r.model] = (byModel[r.model] || 0) + 1;
-      out.m4_titleScope_total = rows.length;
-      out.m4_byModelField = byModel;
-      out.m4_sampleTitles = rows.slice(0, 12).map(r => ({ model: r.model, t: r.listing_title, p: r.sale_price, d: r.sale_date }));
-      // How each candidate scope counts (24mo)
-      out.count_model_eq_M4 = await countOf(`sales_archive?select=source_id&make=ilike.BMW&model=eq.M4&sale_date=gte.2024-09-10`);
-      out.count_model_ilike_M4 = await countOf(`sales_archive?select=source_id&make=ilike.BMW&model=ilike.*M4*&sale_date=gte.2024-09-10`);
-      out.count_model_4series = await countOf(`sales_archive?select=source_id&make=ilike.BMW&model=ilike.*4%20series*&sale_date=gte.2024-09-10`);
-      out.count_title_M4_Competition = await countOf(`sales_archive?select=source_id&make=ilike.BMW&listing_title=ilike.*M4%20Competition*&sale_date=gte.2024-09-10`);
-      out.count_title_M4_2015_2021 = await countOf(`sales_archive?select=source_id&make=ilike.BMW&listing_title=ilike.*M4*&year=gte.2015&year=lte.2021&sale_date=gte.2024-09-10`);
-    } catch (e) { out.error = String(e && e.message); }
-    res.setHeader("Content-Type", "application/json");
-    return res.status(200).json(out);
-  }
-
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Cache-Control", "public, max-age=120");
   if (req.method === "OPTIONS") { res.status(204).end(); return; }

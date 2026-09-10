@@ -308,16 +308,26 @@
     var name = m.displayName || carLabel(rc);
     var bare = bareModelOf(rc, m);
     var plat = obPlat(m.source);
+    // Cosmetic-only fitments (tint, wheels, mats, badges, stereo) do not change the car's
+    // market read - they never render a fitments sentence. Only material or a genuine RUN of
+    // bolt-ons does; n=1 reads "with X added" (no "run of", no "among them"); n=0 says nothing.
+    var COSMETIC = /tinted?\s?window|window\s?tint|wheels?|tyres?|tires?|floor\s?mats?|\bbadges?\b|emblem|stereo|radio|speakers?|head\s?unit|dash\s?cam|radar|cover|decal|sticker/i;
     var mods = m.modifications || [];
-    var keyMods = ((m.keyMods && m.keyMods.length ? m.keyMods : mods.slice(0, 3)) || []).join(", ");
+    var material = m.materialMods || [];
+    var substantive = mods.filter(function (x) { return !COSMETIC.test(x); });
+    var keyMods = ((m.keyMods && m.keyMods.length ? m.keyMods : substantive.slice(0, 3)) || []).join(", ");
     var cfg = "";
-    if (m.materialMods && m.materialMods.length) {
+    if (material.length) {
       cfg = "The prior listing shows material work" + (m.engine ? " on the " + esc(m.engine) : "") + (keyMods ? ", the " + esc(keyMods) + " among it" : "") + ", so it reads as a modified car rather than a standard " + esc(bare) + ".";
-    } else if (mods.length) {
-      cfg = "The prior listing has it with " + (m.engine ? "the " + esc(m.engine) + " and " : "") + "a run of bolt-on fitments" + (keyMods ? ", the " + esc(keyMods) + " among them" : "") + ". All reversible, so it still reads as a standard " + esc(bare) + ", not a rebuilt car.";
+    } else if (substantive.length >= 2) {
+      cfg = "The prior listing has it with " + (m.engine ? "the " + esc(m.engine) + " and " : "") + "a run of bolt-on fitments, the " + esc(substantive.slice(0, 3).join(", ")) + " among them. All reversible, so it still reads as a standard " + esc(bare) + ", not a rebuilt car.";
+    } else if (substantive.length === 1) {
+      cfg = "The prior listing has it with " + esc(String(substantive[0]).toLowerCase()) + " added" + (m.engine ? " on the " + esc(m.engine) : "") + ", otherwise a standard " + esc(bare) + ".";
     } else if (m.engine) {
       cfg = "The prior listing has it with the " + esc(m.engine) + ", otherwise a standard " + esc(bare) + ".";
     }
+    // The fitments detail lists ALL mods, but only renders when there is a real run to see.
+    var showDisc = material.length + substantive.length >= 2;
     var photo = m.photoUrl ? '<img src="' + esc(m.photoUrl) + '" alt="' + esc(name) + '" onerror="this.style.display=\'none\'">' : "";
     // Every prior sale on its own line with its own link (a car traded twice needs both links,
     // not one folded into the sentence). Falls back to the single-sale fields when no array.
@@ -330,7 +340,7 @@
       if (s.url) line += '<a href="' + esc(s.url) + '" target="_blank" rel="noopener">View that sale &#8594;</a>';
       return '<div class="rec">' + line + "</div>";
     }).join("");
-    var disc = mods.length ? '<details class="disc"><summary>See the ' + mods.length + ' listed fitments</summary><ul>' + mods.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></details>" : "";
+    var disc = showDisc ? '<details class="disc"><summary>See the ' + mods.length + " listed fitment" + (mods.length === 1 ? "" : "s") + '</summary><ul>' + mods.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></details>" : "";
     return '<div class="exact" data-stage="anchor"><div class="grid">' +
       '<div class="xph">' + photo + '<span class="tag">The exact car</span></div>' +
       '<div class="xbody"><div class="kick">I know this exact car</div><h2>' + esc(name) + "</h2>" +
@@ -422,25 +432,38 @@
     body += platStripHtml(d, m) + sellHtml() + recentHtml();
     return body;
   }
-  function refusalHtml(d) {
-    var rf = d.refusal || {}, model = rf.model || carLabel(d.resolvedCar) || "car", reason, follow;
+  // Two distinct refusal states, one template set each, so they can never mix:
+  //  - THIN: its own copy, shows the sales that exist (or says none), no "guess" headline,
+  //    and on a MATCHED car no "give me a different car" (they gave a VIN; the ladder widened).
+  //  - VARIED: the "I won't give you a range... a guess" headline + the templated reason + chips.
+  function refusalHtml(d, m) {
+    var rf = d.refusal || {};
+    // Name from the exact-car displayName when matched, else the clean resolved subject - never
+    // a raw model+trim concatenation ("4-Series M4 Competition Package").
+    var model = (m && m.displayName) ? m.displayName.replace(/^\d{4}\s+/, "") : (rf.model || carLabel(d.resolvedCar) || "car");
+    var cards = d.cards || [];
     if (rf.kind === "thin") {
-      reason = "Too few " + esc(model) + "s have sold recently to show an honest spread. Here’s what there is.";
-      follow = "Give me a bit more, or a different car, and I’ll pull what actually sold.";
-    } else {
-      var listJoin = function (a) { return a.length <= 1 ? (a[0] || "") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; };
-      var yspan = rf.yearSpanPhrase || "a wide span of years";
-      if (rf.variants && rf.variants.length >= 2) reason = "The " + esc(model) + "s that have sold span the " + esc(listJoin(rf.variants)) + " across " + esc(yspan) + ". Cars this different do not trade as one market, so a single range would invent a pattern that is not there.";
-      else reason = "The " + esc(model) + "s that have sold range too widely in spec and condition to trade as one market, across " + esc(yspan) + ". A single range would invent a pattern that is not there.";
-      follow = "Tell me which " + esc(model) + " yours is and I’ll compare it to the ones that match.";
+      var lead = cards.length
+        ? "Too few recent " + esc(model) + " sales to show an honest spread. Here’s what there is."
+        : "There are no recent " + esc(model) + " sales in the window I’d trust for a spread.";
+      var follow = m ? "" : "Give me a bit more, or a different car, and I’ll pull what actually sold.";
+      var block = '<div class="refusal" data-stage="answer"><div class="sam"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s read</div><p>' + lint(esc(lead), "thin") + "</p>" + (follow ? "<p>" + lint(esc(follow), "thin.follow") + "</p>" : "") + "</div></div></div>";
+      var sales = cards.length ? ('<div class="seclabel">What has sold</div><div class="receipts">' + receiptsHtml(cards, 999) + "</div>") : "";
+      return block + sales + sellHtml();
     }
-    var chips = (rf.kind === "varied" && rf.variants && rf.variants.length)
+    var listJoin = function (a) { return a.length <= 1 ? (a[0] || "") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; };
+    var yspan = rf.yearSpanPhrase || "a wide span of years";
+    var reason = (rf.variants && rf.variants.length >= 2)
+      ? "The " + esc(model) + "s that have sold span the " + esc(listJoin(rf.variants)) + " across " + esc(yspan) + ". Cars this different do not trade as one market, so a single range would invent a pattern that is not there."
+      : "The " + esc(model) + "s that have sold range too widely in spec and condition to trade as one market, across " + esc(yspan) + ". A single range would invent a pattern that is not there.";
+    var follow2 = "Tell me which " + esc(model) + " yours is and I’ll compare it to the ones that match.";
+    var chips = (rf.variants && rf.variants.length)
       ? '<div class="wayfwd">' + rf.variants.map(function (v) { return '<button class="chip" data-model="' + esc(v) + '">' + esc(v) + "</button>"; }).join("") + '<a class="lnk" data-change>Or tell me the year and engine &#8594;</a></div>'
       : "";
     var head = '<div class="refusal" data-stage="answer"><p class="ans">' + lint(esc("I won’t give you a range on this one. It would be a guess."), "refuse") + "</p>" +
-      '<div class="sam"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s read</div><p>' + lint(reason, "refuse.reason") + "</p><p>" + lint(esc(follow), "refuse.follow") + "</p></div></div>" + chips + "</div>";
-    var sales = (d.cards || []).length ? ('<div class="seclabel">What has sold</div><div class="receipts">' + receiptsHtml(d.cards, 999) + "</div>") : "";
-    return head + sales + sellHtml();
+      '<div class="sam"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s read</div><p>' + lint(reason, "refuse.reason") + "</p><p>" + lint(esc(follow2), "refuse.follow") + "</p></div></div>" + chips + "</div>";
+    var vsales = cards.length ? ('<div class="seclabel">What has sold</div><div class="receipts">' + receiptsHtml(cards, 999) + "</div>") : "";
+    return head + vsales + sellHtml();
   }
   function renderResults(d) {
     // The exact-car header leads on a VIN match (matched frame); typed queries go straight
@@ -449,7 +472,7 @@
     var m = vinAnchor;
     var head = m ? exactCarHtml(m, d.resolvedCar) : "";
     var body;
-    if (d.tier === "refusal") body = refusalHtml(d);
+    if (d.tier === "refusal") body = refusalHtml(d, m);
     else if (d.tier === "result") body = resultHtml(d, m);
     else body = '<div class="sam" data-stage="answer"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s read</div><p>' +
       lint(esc("I don’t have enough real " + carLabel(d.resolvedCar) + " sales to show you an honest read, and I won’t make one up. Try another car and I’ll pull what actually sold."), "zero") + "</p></div></div>" + sellHtml();
