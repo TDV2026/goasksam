@@ -22,15 +22,6 @@ jobs:
         run: |
           set -o pipefail
           npm run smoke:prod 2>&1 | tee smoke-output.txt
-      - name: Install Chrome for the One Box golden set
-        id: setup-chrome
-        uses: browser-actions/setup-chrome@v1
-      - name: Run One Box golden set (template/state regression guard)
-        env:
-          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
-        run: |
-          set -o pipefail
-          npm run test:golden 2>&1 | tee -a smoke-output.txt
       - name: Open or update failure issue
         if: failure()
         env:
@@ -64,4 +55,58 @@ jobs:
           EXISTING=$(gh issue list --repo "${{ github.repository }}" --label smoke-failure --state open --json number --jq '.[0].number // empty')
           if [ -n "$EXISTING" ]; then
             gh issue close "$EXISTING" --repo "${{ github.repository }}" --comment "Smoke tests passing again as of $(date -u '+%Y-%m-%d %H:%M UTC')."
+          fi
+
+  golden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies (puppeteer-core)
+        run: npm ci
+      - name: Install Chrome for the One Box golden set
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v1
+      - name: Run One Box golden set (template/state regression guard)
+        id: golden
+        env:
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+        run: |
+          set -o pipefail
+          npm run test:golden 2>&1 | tee golden-output.txt
+      - name: Open or update golden failure issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BODY_FILE=golden-body.md
+          {
+            echo "One Box golden set failed on $(date -u '+%Y-%m-%d %H:%M UTC')."
+            echo
+            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo
+            echo '```'
+            tail -60 golden-output.txt 2>/dev/null || echo "(no output captured)"
+            echo '```'
+          } > "$BODY_FILE"
+          gh label create onebox-golden-failure --repo "${{ github.repository }}" --description "One Box golden set regression" --color B60205 2>/dev/null || true
+          EXISTING=$(gh issue list --repo "${{ github.repository }}" --label onebox-golden-failure --state open --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "${{ github.repository }}" --body-file "$BODY_FILE"
+          else
+            gh issue create --repo "${{ github.repository }}" \
+              --title "One Box golden set regression" \
+              --label onebox-golden-failure \
+              --body-file "$BODY_FILE"
+          fi
+      - name: Close golden failure issue on recovery
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          EXISTING=$(gh issue list --repo "${{ github.repository }}" --label onebox-golden-failure --state open --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue close "$EXISTING" --repo "${{ github.repository }}" --comment "One Box golden set passing again as of $(date -u '+%Y-%m-%d %H:%M UTC')."
           fi
