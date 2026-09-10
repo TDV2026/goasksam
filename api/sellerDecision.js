@@ -2162,12 +2162,29 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
   // seller's stated asking price and the comps estimate. The $40k lead dial
   // (powerseller_value_lead_usd) is separate and unchanged.
   const minTolerancePct = await appConfigInt("ps_min_tolerance_pct", 20, supabaseUrl, supabaseKey);
+  const tolFraction = 1 - Math.max(0, Math.min(90, minTolerancePct)) / 100;
   const askingForGate = parseSellerTargetPrice(criteria.targetPrice);
-  const valueMet = powerSellerValueMet(estimatedValue, askingForGate, POWERSELLER_MIN_VALUE_USD, minTolerancePct);
-  // Secondary folds into the SAME effective floor as eligibility (min * (1 - tol)),
-  // so the PS-render threshold is uniform: a matched partner leads, a region-covered-
-  // only partner shows secondary, both from the same value bar.
-  const psFloor = POWERSELLER_MIN_VALUE_USD * (1 - Math.max(0, Math.min(90, minTolerancePct)) / 100);
+  // Per-partner value floor (product change, Sep 2026): each partner is gated on
+  // THEIR OWN min_value_usd, with the same tolerance the global floor uses, falling
+  // back to the global POWERSELLER_MIN_VALUE_USD only when the partner has no floor
+  // set. The gate MECHANIC is unchanged: gateValue = max(estimatedValue, askingPrice),
+  // compared against that partner's own tolerant floor. Applies to EVERY partner in
+  // the roster evaluation (the matched-lead pool AND the secondary pool), so a
+  // stricter partner is held to their higher number, a no-floor partner (Dan) uses
+  // the global floor, and a lower-floor partner (Chris at 20000) can take a car a
+  // $40k-floored partner would decline.
+  const partnerBaseFloor = p => {
+    const m = Number(p && p.min_value_usd);
+    return Number.isFinite(m) && m > 0 ? m : POWERSELLER_MIN_VALUE_USD;
+  };
+  const partnerValueMet = p => powerSellerValueMet(estimatedValue, askingForGate, partnerBaseFloor(p), minTolerancePct);
+  const gateValueUsd = Math.max(
+    Number.isFinite(estimatedValue) ? estimatedValue : 0,
+    Number.isFinite(askingForGate) ? askingForGate : 0
+  );
+  // Global gate kept only as the no-candidate reporting fallback for conditions.valueMet.
+  const globalValueMet = powerSellerValueMet(estimatedValue, askingForGate, POWERSELLER_MIN_VALUE_USD, minTolerancePct);
+  const psFloor = POWERSELLER_MIN_VALUE_USD * tolFraction;
 
   // Rank every partner, then pick, so a local specialist beats a broad nationwide
   // generalist for the same car. Order: local state > segment fit > tighter
@@ -2182,6 +2199,7 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
       marqueMet: partnerMarqueMatch(partner, vehicle),
       segmentMet: partnerSegmentMatch(partner, vehicle, priorities),
       regionMet: partnerRegionCovered(partner, criteria),
+      valueMet: partnerValueMet(partner),
       local: partnerLocalState(partner, criteria),
       regionProximity: partnerRegionProximity(partner, criteria),
       regionCount: (partner.regions || []).length,
@@ -2204,7 +2222,10 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
   // is why a nationwide Audi specialist (Dan) wins the Audi over a South-region
   // generalist (Chris) whose only tie was the classic_european segment.
   const rankPartner = rankPartnerCandidates;
-  const matchedCand = cands.filter(c => c.segmentMet && c.regionMet).sort(rankPartner)[0] || null;
+  // Eligible-lead pool is value-gated PER PARTNER: the best-ranked partner who
+  // segment+region matches AND clears their OWN tolerant floor. A higher-ranked
+  // partner who fails their floor steps aside for a lower-ranked one who clears theirs.
+  const matchedCand = cands.filter(c => c.segmentMet && c.regionMet && c.valueMet).sort(rankPartner)[0] || null;
   let matched = matchedCand ? matchedCand.partner : null;
   // A partner whose specialization does not list the searched make needs
   // real tracked relevance for it (5+ sales) or the gate closes: a
@@ -2237,34 +2258,38 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
       (c.segmentMet || c.marqueMet) && specialtyRank(c) > specialtyRank(matchedCand));
     if (nationwideOf(matched) && strongerRegionalDropped) { matched = null; localitySuppressedLead = true; }
   }
-  const eligible = !!(valueMet && matched);
-  // Secondary mention (locked, updated July 2026): a $50k+ context (met-
-  // comps estimate or the seller's asking price) ALWAYS shows the partner
-  // as a secondary card when a region-covered active partner exists, even
-  // without a segment match; the make-specific why-line falls back to his
-  // attributed specialty note, so nothing mismatched is claimed. Leading
-  // keeps the full gate. Never the lead, single destination unchanged,
-  // service framing only.
+  const eligible = !!matched;
+  // Secondary mention (locked, updated July 2026): shows a region-covered active
+  // partner as a secondary card even without a segment match; the make-specific
+  // why-line falls back to his attributed specialty note, so nothing mismatched is
+  // claimed. Leading keeps the full gate. Never the lead, single destination
+  // unchanged, service framing only. The value gate here is PER PARTNER too: the
+  // secondary partner must clear their OWN tolerant floor.
   const askingPrice = parseSellerTargetPrice(criteria.targetPrice);
-  const secondaryValue = Math.max(
-    Number.isFinite(estimatedValue) ? estimatedValue : 0,
-    Number.isFinite(askingPrice) ? askingPrice : 0
-  );
   // Secondary is ranked over ALL region-covered partners local-first, NOT defaulted
   // to `matched`: a nationwide generalist that segment-matches broadly (e.g. a
   // "collections, pre-war" partner) must not preempt the seller's own local partner
   // on a secondary card. `matched` still drives the eligible LEAD above.
-  const secondaryPartner = (cands.filter(c => c.regionMet).sort(rankPartner)[0]?.partner) || null;
-  const secondary = !eligible && !!secondaryPartner && secondaryValue >= psFloor;
+  const secondaryPartner = (cands.filter(c => c.regionMet && c.valueMet).sort(rankPartner)[0]?.partner) || null;
+  const secondary = !eligible && !!secondaryPartner;
+
+  // conditions.valueMet (read by the frontend for the "below the money floor"
+  // message) reflects the partner that would otherwise be recommended: true when a
+  // segment+region partner cleared their own floor, false when one matched on
+  // segment+region but the car sat below their floor. No seg+region partner falls
+  // back to the global gate (the frontend gates that message on segment/region too).
+  const segRegionCands = cands.filter(c => c.segmentMet && c.regionMet);
+  const reportedValueMet = segRegionCands.length ? segRegionCands.some(c => c.valueMet) : globalValueMet;
 
   const result = {
     eligible,
     secondary,
     secondaryMinUsd: psFloor,
     minValueUsd: POWERSELLER_MIN_VALUE_USD,
+    gateValueUsd,
     estimatedValue,
     conditions: {
-      valueMet,
+      valueMet: reportedValueMet,
       segmentMet: anySegment,
       regionMet: anyRegion,
       partnerAvailable: partners.length > 0,
@@ -2274,6 +2299,14 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
   };
   if (eligible || secondary) {
     const source = eligible ? matched : secondaryPartner;
+    // Report the floor ACTUALLY applied to the rendered partner (their own
+    // min_value_usd, or the global fallback), the tolerant floor, and the gate
+    // value it was compared against - so a trace shows the real per-partner numbers.
+    const appliedBase = partnerBaseFloor(source);
+    result.appliedMinValueUsd = appliedBase;
+    result.appliedFloorUsd = Math.round(appliedBase * tolFraction);
+    result.minValueUsd = appliedBase;
+    result.secondaryMinUsd = result.appliedFloorUsd;
     result.partner = {
       slug: source.slug,
       name: source.name,
