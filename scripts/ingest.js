@@ -13,6 +13,7 @@
 // Actions provides them as secrets; secrets are not pullable to a laptop).
 import { callOldCarsData } from "../lib/_ocd.js";
 import { supabaseEnv, supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
+import { isPartsListing } from "../lib/_classify.js";
 
 const DISPLAY = { bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", hagerty: "Hagerty", pcarmarket: "PCARMarket", acc: "All Collector Cars", gooding: "Gooding & Co", rmsothebys: "RM Sotheby's" };
 const ALL_SOURCES = Object.keys(DISPLAY);
@@ -75,6 +76,7 @@ for (const source of SOURCES) {
   const label = DISPLAY[source] || source;
   const held = DELTA ? await heldIds(source, label) : null;
   const before = kept.length;
+  let partsSkipped = 0;
   for (let p = 1; p <= 2000; p++) {
     metered++;
     let res;
@@ -87,6 +89,9 @@ for (const source of SOURCES) {
       const d = toDate(r.auction_end_date);
       if (d && (!oldest || d < oldest)) oldest = d;
       const id = String(r.id ?? "");
+      // Parts / automobilia never enter the archive (OCD has no category field; these
+      // list under a car's make/model and would poison the pool). Skipped in both modes.
+      if (isPartsListing(r.title, r.mileage)) { partsSkipped++; continue; }
       if (DELTA) {
         if (held.has(id)) continue;      // already held: skip
         pageAllKnown = false;            // a new record on this page
@@ -105,7 +110,7 @@ for (const source of SOURCES) {
     if (p >= (res.meta?.total_pages || 1)) break;
   }
   process.stderr.write("\n");
-  console.log(`${label}: ${kept.length - before} record(s) this source.`);
+  console.log(`${label}: ${kept.length - before} record(s) this source${partsSkipped ? ` (${partsSkipped} parts/automobilia skipped)` : ""}.`);
 }
 
 // Dedupe by source_id and upsert.

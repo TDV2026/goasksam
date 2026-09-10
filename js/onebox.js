@@ -288,9 +288,9 @@
     var name = (m && m.displayName) || carLabel(rc) || "";
     return String(name).replace(/^\d{4}\s+\S+\s+/, "").trim() || String(name) || "car";
   }
-  function modelPluralLabel(rc) {
+  function modelPluralLabel(rc, trim) {
     if (!rc) return "Cars like yours";
-    var parts = [rc.model, rc.trim].filter(Boolean).join(" ");
+    var parts = [rc.model, trim].filter(Boolean).join(" ");
     if (!parts) return "Cars like yours";
     return parts + (rc.bodyStyle ? " " + cap(rc.bodyStyle) + "s" : "s");
   }
@@ -311,23 +311,34 @@
       cfg = "The prior listing has it with the " + esc(m.engine) + ", otherwise a standard " + esc(bare) + ".";
     }
     var photo = m.photoUrl ? '<img src="' + esc(m.photoUrl) + '" alt="' + esc(name) + '" onerror="this.style.display=\'none\'">' : "";
-    var rec = '<span class="p num">' + esc(usd(m.price)) + '</span><span>sold' + (plat ? " on " + esc(plat) : "") + (m.soldDate ? ", " + esc(monthYear(m.soldDate)) : "") + "</span>";
-    if (m.mileage) { var mi = Number(String(m.mileage).replace(/[^\d]/g, "")); if (mi) rec += '<span class="num">&middot; ' + mi.toLocaleString("en-US") + " mi</span>"; }
-    if (m.url) rec += '<a href="' + esc(m.url) + '" target="_blank" rel="noopener">View that sale &#8594;</a>';
+    // Every prior sale on its own line with its own link (a car traded twice needs both links,
+    // not one folded into the sentence). Falls back to the single-sale fields when no array.
+    var salesArr = (m.sales && m.sales.length) ? m.sales : [{ platform: m.source, soldDate: m.soldDate, price: m.price, url: m.url, mileage: m.mileage }];
+    var recLines = salesArr.slice(0, 6).map(function (s) {
+      if (!s.price && !s.soldDate) return "";
+      var sp = obPlat(s.platform);
+      var line = '<span class="p num">' + esc(usd(s.price)) + '</span><span>sold' + (sp ? " on " + esc(sp) : "") + (s.soldDate ? ", " + esc(monthYear(s.soldDate)) : "") + "</span>";
+      if (s.mileage) { var mi = Number(String(s.mileage).replace(/[^\d]/g, "")); if (mi) line += '<span class="num">&middot; ' + mi.toLocaleString("en-US") + " mi</span>"; }
+      if (s.url) line += '<a href="' + esc(s.url) + '" target="_blank" rel="noopener">View that sale &#8594;</a>';
+      return '<div class="rec">' + line + "</div>";
+    }).join("");
     var disc = mods.length ? '<details class="disc"><summary>See the ' + mods.length + ' listed fitments</summary><ul>' + mods.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></details>" : "";
     return '<div class="exact" data-stage="anchor"><div class="grid">' +
       '<div class="xph">' + photo + '<span class="tag">The exact car</span></div>' +
       '<div class="xbody"><div class="kick">I know this exact car</div><h2>' + esc(name) + "</h2>" +
       (cfg ? '<p class="cfg">' + lint(cfg, "exact.cfg") + "</p>" : "") +
-      '<div class="rec">' + rec + "</div>" + disc + "</div></div></div>";
+      recLines + disc + "</div></div></div>";
   }
   // The answer block: headline span, gated cluster, gated recency, mono meta line, placement.
   function answerBlockHtml(d, m) {
     var matched = !!m, s = d.span || [0, 0];
     var headline = matched
       ? "Cars like yours have been bringing " + r3money(s[0]) + " to " + r3money(s[1]) + "."
-      : esc(modelPluralLabel(d.resolvedCar)) + " have been bringing " + r3money(s[0]) + " to " + r3money(s[1]) + ".";
+      : esc(modelPluralLabel(d.resolvedCar, d.poolTrim)) + " have been bringing " + r3money(s[0]) + " to " + r3money(s[1]) + ".";
     var out = '<div class="ansblock' + (matched ? "" : " hero") + '" data-stage="answer">';
+    // Ladder widening note: when the exact trim was too thin and the pool widened to the family
+    // (or to a longer window), Sam states the step he took, halo set aside and labelled.
+    if (d.widening) out += '<p class="widening">' + lint(esc(d.widening), "widening") + "</p>";
     out += '<p class="ans' + (matched ? "" : " hero") + '">' + lint(headline, "ans") + "</p>";
     if (d.cluster) out += '<p class="cluster">' + lint("Most sold between " + r3money(d.cluster[0]) + " and " + r3money(d.cluster[1]) + ".", "cluster") + "</p>";
     if (d.recency) { var r = d.recency; out += '<p class="recent12">' + lint(r.n12 + " of the " + r.total + " sold in the last twelve months, and the most recent " + spellK(r.k) + " all landed between " + r3money(r.lo) + " and " + r3money(r.hi) + ".", "recent12") + "</p>"; }
@@ -639,14 +650,17 @@
         if (cl && (cl.kind === "vin_decode_failed" || cl.kind === "vin_invalid_shape")) { renderError(cl.question); return; }
         if (d && d.status === "valid" && d.vehicle) {
           pendingVin = null;
-          // Chassis exact-match resolved to a real car: keep the archive match as the anchor
-          // so the result leads with "I know this exact car" then shows comps for that car
-          // (same beat as a VIN match), and reconcile the vehicle THROUGH the match so the
-          // record's body (and identity) scopes the pool - otherwise a bodyless decode detours
-          // into the "coupe or convertible?" ask even though the match already knows the body.
-          var chassisMatched = !!(d.vinArchiveMatch && (d.corrections || []).some(function (c) { return c && c.type === "chassis_match"; }));
-          vinAnchor = chassisMatched ? d.vinArchiveMatch : null;
-          runPool(text, chassisMatched ? vehicleFromMatch(d.vinArchiveMatch, d.vehicle) : d.vehicle); return;
+          // MATCH-FIRST on ANY exact archive match (chassis OR VIN), not just when a
+          // chassis_match correction is present: the record IS the answer, so lead with the
+          // exact car and take its model/trim/body from the record - never re-ask the model on
+          // a matched car (the MGA filed under model "A" was asking "Which model?" because the
+          // match wasn't forced through here). Reconcile the vehicle THROUGH the match so the
+          // record's body scopes the pool. No match -> plain resolution, no anchor.
+          if (d.vinArchiveMatch && d.vinArchiveMatch.make && d.vinArchiveMatch.model) {
+            vinAnchor = d.vinArchiveMatch;
+            runPool(d.vinArchiveMatch.displayName || carLabel(vehicleFromMatch(d.vinArchiveMatch, d.vehicle)) || text, vehicleFromMatch(d.vinArchiveMatch, d.vehicle));
+          } else { vinAnchor = null; runPool(text, d.vehicle); }
+          return;
         }
         if (d && d.status === "needs_clarification" && cl && (cl.chips || (d.vehicle && d.vehicle.make))) {
           // MATCH-FIRST (fault 2, defensive): if a partial decode ALSO carries an exact match,
