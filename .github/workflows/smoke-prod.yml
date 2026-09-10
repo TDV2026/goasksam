@@ -20,6 +20,13 @@ jobs:
       - name: Run production smoke tests
         id: smoke
         run: npm run smoke:prod 2>&1 | tee smoke-output.txt
+      - name: Install Chrome for the One Box golden set
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v1
+      - name: Run One Box golden set (template/state regression guard)
+        env:
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+        run: npm run test:golden 2>&1 | tee -a smoke-output.txt
       - name: Open or update failure issue
         if: failure()
         env:
