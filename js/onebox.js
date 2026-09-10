@@ -436,6 +436,18 @@
     streamReveal();
   }
   function renderChoice(d) {
+    // Generation choice: chips carry a full year-resolvable query (run directly, not appended).
+    if (d.generationOptions && d.generationOptions.length) {
+      var gchips = '<div class="chips">' + d.generationOptions.map(function (o) {
+        return '<button class="chip" data-genquery="' + esc(o.query) + '">' + esc(o.label) + "</button>";
+      }).join("") + "</div>";
+      root.innerHTML = inboxHtml(lastQuery) +
+        '<div class="sam" style="margin-top:26px"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s take</div>' +
+        '<p style="font-size:22px;line-height:1.4">' + lint(esc(d.prompt || "Which generation is it?"), "genchoice") + "</p>" +
+        gchips + "</div></div>" + footHtml();
+      wire();
+      return;
+    }
     var opts = d.modelOptions || d.bodyOptions || [];
     var kind = d.modelOptions ? "model" : "body";
     // Base a chip appends its answer to: a passed baseLabel (year+make on a VIN model ask), else
@@ -597,7 +609,7 @@
       }
       if (!d || d.status !== "one_box") { renderError("I’m having trouble reading the market right now. Give it another try in a moment."); return; }
       if (d.tier === "rate_limited") { renderError(d.samLine || "That’s a lot of lookups for one day. Come back tomorrow and I’ll keep pulling real sales."); return; }
-      if (d.tier === "model_choice" || d.tier === "body_choice") { renderChoice(d); return; }
+      if (d.tier === "model_choice" || d.tier === "body_choice" || d.tier === "generation_choice") { renderChoice(d); return; }
       if (vinAnchor) obEvent("onebox_vin_anchor_shown");
       obSnapshotId = d.snapshotId || null; obAsOf = null; // live result: shareable, no as-of line
       obResolvedCar = d.resolvedCar || null;              // carried into the /sell handoff
@@ -816,6 +828,8 @@
     Array.prototype.forEach.call(root.querySelectorAll("[data-body]"), function (b) { b.addEventListener("click", function () { chipAnswer(b.getAttribute("data-body")); }); });
     Array.prototype.forEach.call(root.querySelectorAll("[data-change]"), function (b) { b.addEventListener("click", function () { renderEmpty(); }); });
     Array.prototype.forEach.call(root.querySelectorAll("[data-recent]"), function (b) { b.addEventListener("click", function () { run(b.getAttribute("data-recent")); }); });
+    // Generation chips carry a full year-resolvable query - run it directly (never appended).
+    Array.prototype.forEach.call(root.querySelectorAll("[data-genquery]"), function (b) { b.addEventListener("click", function () { run(b.getAttribute("data-genquery")); }); });
   }
 
   // ---------------------------------------------------------------- boot
