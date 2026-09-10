@@ -17,7 +17,8 @@
     "deploy": "git push origin HEAD && vercel --prod --yes",
     "warm:list": "node scripts/buildWarmList.js",
     "fill:ladder": "node scripts/fillLadder.js",
-    "lint:trim-asks": "node scripts/lintTrimAsks.js"
+    "lint:trim-asks": "node scripts/lintTrimAsks.js",
+    "test:golden": "node scripts/oneboxGolden.mjs"
   },
   "devDependencies": {
     "puppeteer-core": "^25.5.0"
