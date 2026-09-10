@@ -115,18 +115,21 @@ export default async function handler(req, res) {
       // True counts via content-range header (not row-capped)
       out.archiveTotal = await countOf(`sales_archive?select=source_id`);
       out.partsTitleTrueCount = await countOf(`sales_archive?select=source_id&${orq}`);
-      out.partsTitleNoMileageCount = await countOf(`sales_archive?select=source_id&${orq}&mileage=is.null`);
-      out.partsTitleNoMileageUnder25k = await countOf(`sales_archive?select=source_id&${orq}&mileage=is.null&sale_price=lt.25000`);
+      out.partsTitle_mi0 = await countOf(`sales_archive?select=source_id&${orq}&mileage=eq.0`);
+      out.partsTitle_mi0_under25k = await countOf(`sales_archive?select=source_id&${orq}&mileage=eq.0&sale_price=lt.25000`);
+      out.partsTitle_mi0_under100k = await countOf(`sales_archive?select=source_id&${orq}&mileage=eq.0&sale_price=lt.100000`);
+      // baseline: how many REAL cars also have mileage 0 (older cars, TMU) - to gauge the price gate's necessity
+      out.allMi0 = await countOf(`sales_archive?select=source_id&mileage=eq.0`);
       // raw_record keys from any recent row + category-like field probe
       const anyRow = await supabaseSelect(env, `sales_archive?select=raw_record&order=sale_date.desc&limit=1`);
       const rr = (anyRow && anyRow[0] && anyRow[0].raw_record) || {};
       out.rawRecordKeys = Object.keys(rr);
       out.categoryLikeKeys = Object.keys(rr).filter(k => /categor|listing_type|item_type|is_part|automobilia|lot_type|product|\btype\b/i.test(k));
       // high-confidence parts sample WITH their model field (do they land in car pools?)
-      const hc = await supabaseSelect(env, `sales_archive?select=platform,listing_title,sale_price,mileage,model,make&${orq}&mileage=is.null&sale_price=lt.25000&limit=1000`) || [];
+      const hc = await supabaseSelect(env, `sales_archive?select=platform,listing_title,sale_price,mileage,model,make&${orq}&mileage=eq.0&sale_price=lt.25000&limit=1000`) || [];
       const split = arr => arr.reduce((a, r) => { a[r.platform] = (a[r.platform] || 0) + 1; return a; }, {});
       out.highConfByPlatform = split(hc);
-      out.highConfSamples = hc.slice(0, 20).map(r => ({ t: r.listing_title, p: r.sale_price, make: r.make, model: r.model }));
+      out.highConfSamples = hc.slice(0, 22).map(r => ({ t: r.listing_title, p: r.sale_price, make: r.make, model: r.model }));
       // Murcielago accent check + its parts rows (the named $31.5k V12 engine, $7.5k seats)
       out.murcielagoCount_noAccent = await countOf(`sales_archive?select=source_id&model=ilike.*Murcielago*`);
       out.murcielagoCount_accentTolerant = await countOf(`sales_archive?select=source_id&model=ilike.*Murci*`);
