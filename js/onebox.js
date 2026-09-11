@@ -322,9 +322,9 @@
     } else if (substantive.length >= 2) {
       cfg = "The prior listing has it with " + (m.engine ? "the " + esc(m.engine) + " and " : "") + "a run of bolt-on fitments, the " + esc(substantive.slice(0, 3).join(", ")) + " among them. All reversible, so it still reads as a standard " + esc(bare) + ", not a rebuilt car.";
     } else if (substantive.length === 1) {
-      cfg = "The prior listing has it with " + esc(String(substantive[0]).toLowerCase()) + " added" + (m.engine ? " on the " + esc(m.engine) : "") + ", otherwise a standard " + esc(bare) + ".";
+      cfg = "The prior listing has it with " + esc(String(substantive[0]).toLowerCase()) + " added" + (m.engine ? " on the " + esc(m.engine) : "") + ", so it still reads as a standard " + esc(bare) + ".";
     } else if (m.engine) {
-      cfg = "The prior listing has it with the " + esc(m.engine) + ", otherwise a standard " + esc(bare) + ".";
+      cfg = "The prior listing has it with the " + esc(m.engine) + ", so it still reads as a standard " + esc(bare) + ".";
     }
     // The fitments detail lists ALL mods, but only renders when there is a real run to see.
     var showDisc = material.length + substantive.length >= 2;
@@ -372,7 +372,14 @@
     // "The Porsche 997..." stands alone as a headline subject; lowercased after "Right now,".
     var subj = m ? "cars like yours" : esc(headlineSubject(d.resolvedCar, d.poolTrim)).replace(/^The /, "the ") + ((d.poolYears && d.poolYears[1] > d.poolYears[0]) ? " (" + d.poolYears[0] + " to " + d.poolYears[1] + ")" : "");
     var verb = m ? "are" : "is";
-    var s1 = (obRefinePhrase ? (obRefinePhrase + ", cars like yours are") : ("Right now, " + subj + " " + verb)) + " bringing " + priceRange(s) + " in " + windowText(d) + ".";
+    // "Right now," only leads when the window IS the last twelve months. When the pool
+    // widened to the past two years (12mo genuinely thin), drop "Right now," and let the
+    // subject start the sentence, so the opener never contradicts the stated window.
+    var isRecentWindow = /12 months|twelve/.test(d.windowLabel || "");
+    var lead = obRefinePhrase ? (obRefinePhrase + ", cars like yours are")
+      : (isRecentWindow ? ("Right now, " + subj + " " + verb)
+                        : (subj.charAt(0).toUpperCase() + subj.slice(1) + " " + verb));
+    var s1 = lead + " bringing " + priceRange(s) + " in " + windowText(d) + ".";
     out += '<p class="s1">' + lint(s1, "s1") + "</p>";
     if (d.cluster) {
       var s2 = "Most land between " + betweenRange(d.cluster) + ".";
