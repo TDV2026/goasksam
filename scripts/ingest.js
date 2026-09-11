@@ -76,7 +76,11 @@ for (const source of SOURCES) {
   const label = DISPLAY[source] || source;
   const held = DELTA ? await heldIds(source, label) : null;
   const before = kept.length;
-  let partsSkipped = 0;
+  let partsSkipped = 0, marketplaceSkipped = 0;
+  // PCarMarket "MarketPlace:" rows are fixed-price CLASSIFIEDS (asking price / for-sale), not
+  // completed auctions, so they carry an asking/scheduled date (some future-dated) and must never
+  // enter this completed-sales-only archive. Verified Sep 2026: 4 such rows had leaked in.
+  const isMarketplace = t => /^\s*marketplace:/i.test(String(t || ""));
   for (let p = 1; p <= 2000; p++) {
     metered++;
     let res;
@@ -92,6 +96,7 @@ for (const source of SOURCES) {
       // Parts / automobilia never enter the archive (OCD has no category field; these
       // list under a car's make/model and would poison the pool). Skipped in both modes.
       if (isPartsListing(r.title, r.mileage)) { partsSkipped++; continue; }
+      if (isMarketplace(r.title)) { marketplaceSkipped++; continue; }
       if (DELTA) {
         if (held.has(id)) continue;      // already held: skip
         pageAllKnown = false;            // a new record on this page
@@ -110,7 +115,7 @@ for (const source of SOURCES) {
     if (p >= (res.meta?.total_pages || 1)) break;
   }
   process.stderr.write("\n");
-  console.log(`${label}: ${kept.length - before} record(s) this source${partsSkipped ? ` (${partsSkipped} parts/automobilia skipped)` : ""}.`);
+  console.log(`${label}: ${kept.length - before} record(s) this source${partsSkipped ? ` (${partsSkipped} parts/automobilia skipped)` : ""}${marketplaceSkipped ? ` (${marketplaceSkipped} marketplace/asking-price skipped)` : ""}.`);
 }
 
 // Dedupe by source_id and upsert.
