@@ -2757,25 +2757,27 @@ export default async function handler(req, res) {
     const env = { supabaseUrl, supabaseKey };
     const cutoff = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
     const q = async url => (await supabaseSelect(env, url)) || [];
-    const cols = "listing_title,make,model,sale_date,sale_price,platform,img:raw_record->>featured_image_url";
-    // 1) RAW: every title containing "M4", sold in the last 12 months, no scoping.
-    const titleM4 = await q(`sales_archive?select=${cols}&listing_title=ilike.${encodeURIComponent("*M4*")}&sale_date=gte.${cutoff}&order=sale_date.desc&limit=1000`);
-    // 2) make=BMW filed models in the same window (where M4s live).
-    const bmw = await q(`sales_archive?select=model,platform&make=eq.BMW&sale_date=gte.${cutoff}&limit=2000`);
-    const byPlatform = {};
-    for (const r of titleM4) {
-      const p = r.platform || "?";
-      byPlatform[p] = byPlatform[p] || { total: 0, withImage: 0, withoutImage: 0 };
-      byPlatform[p].total++;
-      if (r.img) byPlatform[p].withImage++; else byPlatform[p].withoutImage++;
-    }
-    const bmwModels = {};
-    for (const r of bmw) { const k = (r.model || "?") + " / " + (r.platform || "?"); bmwModels[k] = (bmwModels[k] || 0) + 1; }
+    const enc = s => encodeURIComponent(s);
+    const byPlat = rows => { const o = {}; for (const r of rows) { const p = r.platform || "?"; o[p] = (o[p] || 0) + 1; } return o; };
+    // 1) NO img column: BMW + title~M4 + sold last 12mo (dodges the img+filter quirk).
+    const m4_12mo = await q(`sales_archive?select=listing_title,make,model,sale_date,sale_price,platform&make=ilike.BMW&sale_price=not.is.null&sale_date=gte.${cutoff}&listing_title=ilike.${enc("*M4*")}&order=sale_date.desc&limit=1000`);
+    // 2) SAME but WITH img column (does adding the img extraction change the count? = quirk test).
+    const m4_12mo_img = await q(`sales_archive?select=listing_title,sale_date,sale_price,platform,img:raw_record->>featured_image_url&make=ilike.BMW&sale_price=not.is.null&sale_date=gte.${cutoff}&listing_title=ilike.${enc("*M4*")}&order=sale_date.desc&limit=1000`);
+    // 3) ALL-TIME (no date filter): total M4 in archive + date span + platform.
+    const m4_all = await q(`sales_archive?select=listing_title,sale_date,sale_price,platform&make=ilike.BMW&listing_title=ilike.${enc("*M4*")}&order=sale_date.desc&limit=3000`);
+    // 4) IMG presence WITHOUT a date filter (img col is fine without the range filter), joined to 12mo in JS.
+    const m4_imgAll = await q(`sales_archive?select=listing_title,sale_date,platform,img:raw_record->>featured_image_url&make=ilike.BMW&listing_title=ilike.${enc("*M4*")}&limit=3000`);
+    const dates = m4_all.map(r => r.sale_date).filter(Boolean).sort();
+    const img12 = m4_imgAll.filter(r => String(r.sale_date || "") >= cutoff);
+    const imgYes = img12.filter(r => !!r.img).length;
     return res.status(200).json({
-      diag: "m4diag", cutoff,
-      titleM4_total: titleM4.length, byPlatform,
-      bmwModelBreakdown: Object.fromEntries(Object.entries(bmwModels).sort((a, b) => b[1] - a[1]).slice(0, 25)),
-      samples: titleM4.slice(0, 60).map(r => ({ t: r.listing_title, mk: r.make, md: r.model, d: r.sale_date, p: r.sale_price, plat: r.platform, img: !!r.img }))
+      diag: "m4diag-v2", cutoff,
+      m4_12mo_noImgCol: { total: m4_12mo.length, byPlatform: byPlat(m4_12mo) },
+      m4_12mo_withImgCol: { total: m4_12mo_img.length, byPlatform: byPlat(m4_12mo_img), withImg: m4_12mo_img.filter(r => !!r.img).length, withoutImg: m4_12mo_img.filter(r => !r.img).length },
+      m4_allTime: { total: m4_all.length, byPlatform: byPlat(m4_all), earliest: dates[0] || null, latest: dates[dates.length - 1] || null },
+      img12mo: { total: img12.length, withImg: imgYes, withoutImg: img12.length - imgYes },
+      priceMatches_12mo: m4_12mo.filter(r => [35000, 53000, 52500, 33000, 62000, 65000, 75500, 82500].includes(Number(r.sale_price))).map(r => ({ t: r.listing_title, d: r.sale_date, p: r.sale_price, plat: r.platform })),
+      samples_12mo: m4_12mo.slice(0, 40).map(r => ({ t: r.listing_title, md: r.model, d: r.sale_date, p: r.sale_price, plat: r.platform }))
     });
   }
   // One Box empty-state proof line: recent real sales for the storefront. Archive-only,
