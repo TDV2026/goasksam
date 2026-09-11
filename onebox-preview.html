@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>One Box results preview (Screen 2, round 5)</title>
+<title>One Box results preview (Screen 2, round 6)</title>
 <meta name="robots" content="noindex, nofollow" />
 <meta name="theme-color" content="#0b5c3e" />
 <script>
@@ -31,7 +31,7 @@ body{background:var(--paper);color:var(--ink);font:400 16px/1.6 var(--grotesk);-
 .inbox input{flex:1;border:0;background:transparent;color:var(--ink);font:400 17px/1.4 var(--grotesk);outline:none}
 .inbox .go{width:44px;height:44px;border-radius:11px;background:var(--green-btn);color:#fff;border:0;display:grid;place-items:center;flex:none;font-size:19px;cursor:pointer}
 .inbox .edit{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 15px;font:600 13.5px var(--grotesk);color:var(--slate);flex:none;cursor:pointer}
-/* 1 - EXACT CAR (unchanged, trust moment) */
+/* EXACT CAR (trust moment) */
 .exact{margin:18px 0 6px;background:var(--card);border:1.5px solid color-mix(in srgb,var(--green) 34%,var(--line));border-radius:18px;box-shadow:var(--shadow-hero);overflow:hidden}
 .exact .grid{display:grid;grid-template-columns:minmax(0,300px) 1fr;gap:0}
 .exact .xph{position:relative;background:#0c0a06;min-height:220px}
@@ -46,23 +46,24 @@ body{background:var(--paper);color:var(--ink);font:400 16px/1.6 var(--grotesk);-
 .exact .rec .p{font:700 20px/1 var(--mono);color:var(--ink)}
 .exact .rec a{color:var(--green);text-decoration:none;font-weight:600}
 @media (max-width:720px){.exact .grid{grid-template-columns:1fr}.exact .xph{min-height:200px}.exact h2{font-size:23px}}
-/* 2 - SAM'S TAKE (answer dominates; max three ideas + meta) */
-.samtake{max-width:680px;margin:28px 0 0;--hl:46px}
-.samtake .tk{font:600 11px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--green);margin-bottom:14px}
-.samtake .s1{font:400 var(--hl)/1.16 var(--serif);letter-spacing:-.02em;margin:0;text-wrap:balance}
-.samtake .s1 .num{font-weight:600;color:var(--green-deep)}
-.samtake .s2{font:400 calc(var(--hl) * .49)/1.36 var(--serif);color:var(--ink);margin:16px 0 0}
-.samtake .s2 .num{font-weight:600}
-.samtake .s3{font:400 16px/1.5 var(--serif);color:var(--slate);margin:12px 0 0}
-.samtake .s3 .num{font-weight:600;color:var(--ink)}
-.samtake .meta{font:600 12px/1.5 var(--mono);letter-spacing:.03em;color:var(--slate);margin:18px 0 0}
-.samtake .meta .dot{color:var(--faint);margin:0 7px}
-.gatenote{max-width:680px;margin:12px 0 0;font:400 13px/1.5 var(--serif);color:var(--faint);font-style:italic}
-/* 3 - THREE CARDS (closest match + two brackets) */
-.seclabel{font:600 11px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--faint);margin:34px 0 13px}
+/* LIVE TAKE (the cluster is the hero) */
+.livetake{max-width:720px;margin:30px 0 0}
+.lt-kick{font:600 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--green);margin-bottom:16px}
+.lt-hero{font:400 clamp(40px,8.6vw,68px)/1 var(--mono);letter-spacing:-.03em;color:var(--green-deep);margin:0}
+.lt-line{font:400 20px/1.4 var(--serif);color:var(--ink);margin:16px 0 0;max-width:40ch}
+.lt-span{font:400 15px/1.5 var(--serif);color:var(--ink);margin:14px 0 0}
+.lt-span .num{font-weight:600}
+.lt-fresh{font:600 12.5px/1.4 var(--mono);letter-spacing:.02em;color:var(--slate);margin:16px 0 0;display:flex;align-items:center;gap:8px}
+.lt-fresh .dotg{width:8px;height:8px;border-radius:50%;background:var(--green-btn);flex:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 20%,transparent)}
+/* SAM'S READ (above the cards, derived + gated, no prices) */
+.samread{max-width:720px;display:flex;gap:15px;align-items:flex-start;background:color-mix(in srgb,var(--green) 5%,var(--card));border:1px solid color-mix(in srgb,var(--green) 16%,var(--line));border-radius:14px;padding:17px 20px;margin:26px 0 0}
+.samread .ava{flex:none;width:34px;height:34px;border-radius:50%;border:1.5px solid var(--green);display:grid;place-items:center;font:600 10px var(--mono);color:var(--green)}
+.samread .tag{font:600 11px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--green);margin-bottom:8px}
+.samread p{margin:0;font:400 17px/1.55 var(--serif);color:var(--ink);max-width:64ch}
+/* THREE RECEIPTS */
+.seclabel{font:600 11px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--faint);margin:26px 0 13px}
 .cards3{display:grid;grid-template-columns:1.55fr 1fr;gap:16px;align-items:stretch}
 .brackets{display:flex;flex-direction:column;gap:16px;min-width:0}
-/* closest match - large */
 .cm{background:var(--card);border:1.5px solid color-mix(in srgb,var(--green) 40%,var(--line));border-radius:16px;overflow:hidden;box-shadow:var(--shadow-hero);display:flex;flex-direction:column;text-decoration:none;color:inherit;transition:border-color .15s}
 a.cm:hover{border-color:var(--green)}
 .cm .rph{position:relative;background:#0c0a06;aspect-ratio:16/10}
@@ -78,7 +79,6 @@ a.cm:hover .ext,a.bcard:hover .ext{color:var(--green);border-color:var(--green)}
 .cm .rmeta .dot{color:var(--faint);margin:0 7px}
 .cm .rtitle{font:400 13.5px/1.4 var(--grotesk);color:var(--slate);margin-top:9px}
 .cm .why{font:400 14.5px/1.5 var(--serif);color:var(--ink);margin:12px 0 0;padding-top:12px;border-top:1px solid var(--line2)}
-/* bracket - compact, stacked */
 .bcard{background:var(--card);border:1px solid var(--line);border-radius:13px;overflow:hidden;display:flex;text-decoration:none;color:inherit;box-shadow:var(--shadow);flex:1;transition:border-color .15s}
 a.bcard:hover{border-color:color-mix(in srgb,var(--green) 55%,var(--line))}
 .bcard .bth{position:relative;width:112px;flex:none;background:#0c0a06}
@@ -88,14 +88,7 @@ a.bcard:hover{border-color:color-mix(in srgb,var(--green) 55%,var(--line))}
 .bcard .bprice{font:700 20px/1 var(--mono);letter-spacing:-.02em}
 .bcard .bmeta{font:600 11.5px/1.3 var(--mono);color:var(--slate);margin-top:6px}
 .bcard .bmeta .dot{color:var(--faint);margin:0 5px}
-/* 4 - SAM'S READ (deterministic, under the cards) */
-.samread{display:flex;gap:15px;align-items:flex-start;background:color-mix(in srgb,var(--green) 5%,var(--card));border:1px solid color-mix(in srgb,var(--green) 16%,var(--line));border-radius:14px;padding:18px 20px;margin:18px 0 0}
-.samread .ava{flex:none;width:34px;height:34px;border-radius:50%;border:1.5px solid var(--green);display:grid;place-items:center;font:600 10px var(--mono);color:var(--green)}
-.samread .tag{font:600 11px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--green);margin-bottom:8px}
-.samread p{margin:0;font:400 17px/1.6 var(--serif);color:var(--ink);max-width:66ch}
-.samread p .num{font-weight:600;color:var(--green-deep)}
-.samread .place{margin:9px 0 0;color:var(--slate);font-size:16px}
-/* See all sales (secondary, folds the full pool + sort + platforms) */
+/* See all recent sales */
 .showall{margin:22px 0 0}
 .showall>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:9px;font:700 14px var(--grotesk);color:var(--green)}
 .showall>summary::-webkit-details-marker{display:none}
@@ -117,25 +110,32 @@ a.bcard:hover{border-color:color-mix(in srgb,var(--green) 55%,var(--line))}
 .plat-strip{display:flex;flex-wrap:wrap;gap:10px}
 .plat-pill{display:inline-flex;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:11px 15px;font:600 13.5px var(--grotesk);color:var(--ink)}
 .plat-note{margin:10px 2px 0;font:400 14px/1.5 var(--serif);color:var(--slate)}
-/* refusal + sell + foot */
+/* structured refinement (only where it works today) */
+.earned{max-width:720px;margin:26px 0 0;background:color-mix(in srgb,var(--green) 4%,var(--card));border:1px solid color-mix(in srgb,var(--green) 15%,var(--line));border-radius:14px;padding:16px 18px}
+.earned .q{font:600 15px/1.4 var(--grotesk);color:var(--ink);margin:0 0 12px}
+.earned .qchips{display:flex;flex-wrap:wrap;gap:8px}
+.earned .qchip{background:var(--card);border:1.5px solid var(--line);border-radius:20px;padding:9px 16px;font:600 13.5px var(--grotesk);color:var(--ink);cursor:pointer}
+.earned .qchip.typeit{border-style:dashed;color:var(--slate)}
+/* sell + recent + trust */
 .sell{margin:30px 0 0;border:1px solid var(--line);border-radius:16px;padding:22px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;background:var(--card)}
 .sell h3{margin:0 0 4px;font:800 21px/1.1 var(--serif)}
 .sell p{margin:0;color:var(--slate);font-size:14.5px}
 .sell a{flex:none;background:var(--green-btn);color:#fff;text-decoration:none;border-radius:12px;padding:15px 24px;font:700 16px var(--grotesk)}
-.foot{margin:36px 2px 0;padding-top:16px;border-top:1px solid var(--line);color:var(--faint);font:600 12.5px/1 var(--mono);letter-spacing:.03em}
+.recent{margin:30px 0 0}.recent .lab{font:600 11px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--faint);margin-bottom:12px}
+.recent .chips{display:flex;flex-wrap:wrap;gap:9px}
+.recent .rchip{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:8px 15px;font:600 13px var(--grotesk);color:var(--slate);text-decoration:none}
+.trust{margin:34px 2px 0;padding-top:16px;border-top:1px solid var(--line);color:var(--faint);font:600 12.5px/1.5 var(--mono);letter-spacing:.02em}
+.flagnote{max-width:720px;margin:14px 0 0;font:400 13px/1.5 var(--serif);color:var(--faint);font-style:italic}
 @media (max-width:720px){
   .top{padding:16px 18px 0}.top nav a{display:none}.wrap{padding:14px 18px 70px}
-  .samtake{--hl:30px}
-  .cards3{grid-template-columns:1fr}
-  .receipts{grid-template-columns:1fr}
-  .sell{flex-direction:column;align-items:flex-start}
+  .cards3{grid-template-columns:1fr}.receipts{grid-template-columns:1fr}.sell{flex-direction:column;align-items:flex-start}
 }
 </style>
 </head>
 <body>
-<div class="pv"><b>Screen 2 &middot; round 5</b>
+<div class="pv"><b>Screen 2 &middot; round 6</b>
   <a href="#m4" data-s="m4">1 &middot; M4 matched (hero)</a>
-  <a href="#p997" data-s="p997">2 &middot; 997 unmatched, trend gated off</a>
+  <a href="#p997" data-s="p997">2 &middot; 997 unmatched</a>
 </div>
 
 <div class="top">
@@ -149,146 +149,148 @@ a.bcard:hover{border-color:color-mix(in srgb,var(--green) 55%,var(--line))}
 <section id="s-m4" class="state">
   <div class="inbox"><input value="WBS4Y9C55KAG67564" readonly><button class="edit">Edit</button><button class="go">&#8594;</button></div>
 
-  <!-- 1. EXACT CAR -->
+  <!-- EXACT CAR (real record) -->
   <div class="exact"><div class="grid">
-    <div class="xph"><span class="tag">I know this exact car</span><img src="https://bringatrailer.com/wp-content/uploads/2025/11/1990_bmw_m3_img_1285-40840.jpeg?fit=940%2C626" alt="2019 BMW M4 Coupe Competition Package (illustrative)" onerror="this.style.display='none'"></div>
+    <div class="xph"><span class="tag">I know this exact car</span><img src="https://bringatrailer.com/wp-content/uploads/2025/11/1990_bmw_m3_img_1285-40840.jpeg?fit=940%2C626" alt="2019 BMW M4 Coupe Competition Package (illustrative photo)" onerror="this.style.display='none'"></div>
     <div class="xbody">
       <div class="kick">Your car</div>
       <h2>2019 BMW M4 Coupe Competition Package</h2>
       <p class="cfg">The prior listing has it with the 3.0L Turbocharged I6, so it still reads as a standard M4 Coupe Competition Package.</p>
-      <div class="rec">Last sold <span class="p num">$41,000</span> <span class="num">&middot; 66,700 mi</span> <span class="num">&middot; Cars &amp; Bids &middot; Sep 2025</span> <a href="#">View the listing &#8594;</a></div>
+      <div class="rec">Last sold <span class="p num">$35,000</span> <span class="num">&middot; 66,700 mi</span> <span class="num">&middot; Cars &amp; Bids &middot; Sep 2026</span> <a href="#">View the listing &#8594;</a></div>
     </div>
   </div></div>
 
-  <!-- 2. SAM'S TAKE -->
-  <div class="samtake">
-    <div class="tk">Sam&#8217;s take</div>
-    <p class="s1">Right now, cars like yours are bringing <span class="num">$30,000</span> to <span class="num">$65,000</span> in the last twelve months.</p>
-    <p class="s2">Most landed between <span class="num">$44,500</span> and <span class="num">$53,000</span>.</p>
-    <p class="s3">That&#8217;s about level with a year ago, when most landed between <span class="num">$43,000</span> and <span class="num">$54,000</span>.</p>
-    <p class="meta">Past twelve months<span class="dot">&middot;</span>Competition cars only</p>
+  <!-- LIVE TAKE (cluster is the hero) -->
+  <div class="livetake">
+    <div class="lt-kick">Sam&#8217;s live take</div>
+    <p class="lt-hero"><span class="num">$44,500</span> to <span class="num">$53,000</span></p>
+    <p class="lt-line">Cars like yours have mostly been bringing this over the last twelve months.</p>
+    <p class="lt-span">Everything from <span class="num">$30,000</span> to <span class="num">$65,000</span> has sold; most land here.</p>
+    <p class="lt-fresh"><span class="dotg"></span>Updated today &middot; a touch softer than a year ago</p>
   </div>
 
-  <!-- 3. THREE CARDS -->
+  <!-- SAM'S READ (above the cards; M4 mileage-driver did not clear 5+/5+, so the shape sentence is gated off) -->
+  <div class="samread"><div class="ava">SAM</div><div>
+    <div class="tag">Sam&#8217;s read</div>
+    <p>These are the three I&#8217;d pay closest attention to.</p>
+  </div></div>
+
+  <!-- THREE RECEIPTS (subject's own $35,000 sale excluded; it lives in the exact-car block) -->
   <div class="seclabel">The sales behind it</div>
   <div class="cards3">
     <a class="cm" href="#">
-      <div class="rph"><span class="cmkick">Closest match</span><span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span><img src="https://bringatrailer.com/wp-content/uploads/2026/08/DSC06763-scaled-copy-2026-08-25-w7d-90101.jpg?w=940" alt="2019 BMW M4 Competition" onerror="this.style.display='none'"></div>
+      <div class="rph"><span class="cmkick">Closest match</span><span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span><img src="https://bringatrailer.com/wp-content/uploads/2026/08/PHOTO_273_of_324-scaled-copy-2026-08-12-tzy-13287.jpg?w=940" alt="2017 BMW M4 Competition" onerror="this.style.display='none'"></div>
       <div class="rb">
-        <div class="rprice">$52,500</div>
-        <div class="rmeta"><span class="num">61,400 mi</span><span class="dot">&middot;</span>DCT<span class="dot">&middot;</span>clean title</div>
-        <div class="rtitle">2019 BMW M4 Coupe Competition Package &middot; Cars &amp; Bids &middot; Aug 2026</div>
-        <div class="why">Closest to yours on mileage and spec.</div>
+        <div class="rprice">$30,000</div>
+        <div class="rmeta"><span class="num">90,000 mi</span><span class="dot">&middot;</span>Automatic<span class="dot">&middot;</span>clean title</div>
+        <div class="rtitle">2017 BMW M4 Coupe Competition Package &middot; Cars &amp; Bids &middot; Mar 2026</div>
+        <div class="why">The nearest on mileage and spec. Yours has about 23,000 fewer miles, so read a little above this.</div>
       </div>
     </a>
     <div class="brackets">
       <a class="bcard" href="#">
-        <div class="bth"><span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span><img src="https://bringatrailer.com/wp-content/uploads/2026/07/13-print-1990_BMW_M3-013-scaled-copy-2026-08-24-d53-95281.jpg?w=940" alt="2020 BMW M4 Competition" onerror="this.style.display='none'"></div>
-        <div class="bb"><span class="blabel">Fewer miles</span><div class="bprice">$55,500</div><div class="bmeta"><span class="num">48,100 mi</span><span class="dot">&middot;</span>Bring a Trailer<span class="dot">&middot;</span>Jul 2026</div></div>
+        <div class="bth"><span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span><img src="https://bringatrailer.com/wp-content/uploads/2026/08/DSC_8885-scaled-copy-2026-07-08-cs1-28168.jpeg?w=940" alt="2018 BMW M4 Competition" onerror="this.style.display='none'"></div>
+        <div class="bb"><span class="blabel">Fewer miles</span><div class="bprice">$52,500</div><div class="bmeta"><span class="num">34,900 mi</span><span class="dot">&middot;</span>Automatic<span class="dot">&middot;</span>Sep 2026</div></div>
       </a>
       <a class="bcard" href="#">
-        <div class="bth"><span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span><img src="https://bringatrailer.com/wp-content/uploads/2026/08/PHOTO_273_of_324-scaled-copy-2026-08-12-tzy-13287.jpg?w=940" alt="2018 BMW M4 Competition" onerror="this.style.display='none'"></div>
-        <div class="bb"><span class="blabel">More miles</span><div class="bprice">$35,000</div><div class="bmeta"><span class="num">93,200 mi</span><span class="dot">&middot;</span>Cars &amp; Bids<span class="dot">&middot;</span>Jun 2026</div></div>
+        <div class="bth"><span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span><img src="https://bringatrailer.com/wp-content/uploads/2026/07/13-print-1990_BMW_M3-013-scaled-copy-2026-08-24-d53-95281.jpg?w=940" alt="2018 BMW M4 Competition 6-Speed" onerror="this.style.display='none'"></div>
+        <div class="bb"><span class="blabel">Fewer miles &middot; manual</span><div class="bprice">$65,000</div><div class="bmeta"><span class="num">4,800 mi</span><span class="dot">&middot;</span>Bring a Trailer<span class="dot">&middot;</span>Dec 2025</div></div>
       </a>
     </div>
   </div>
 
-  <!-- 4. SAM'S READ -->
-  <div class="samread">
-    <div class="ava">SAM</div>
-    <div>
-      <div class="tag">Sam&#8217;s read</div>
-      <p>The <span class="num">$52,500</span> sale is the one I&#8217;d pay most attention to: closest to yours on mileage and spec. The <span class="num">$35,000</span> car had <span class="num">31,800</span> more miles; the <span class="num">$55,500</span> car had <span class="num">13,300</span> fewer.</p>
-      <p class="place">Yours last sold for <span class="num">$41,000</span> in September, mid-pack in today&#8217;s market.</p>
-    </div>
-  </div>
-
-  <details class="showall"><summary>See all sales</summary>
-    <div class="allhead"><span class="lab">All Competition sales, last twelve months</span><span class="sort">Sort: Most recent</span></div>
+  <details class="showall"><summary>See all recent sales</summary>
+    <div class="allhead"><span class="lab">Competition sales, last twelve months</span><span class="sort">Sort: Most recent</span></div>
     <div class="receipts">
-      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/08/DSC06763-scaled-copy-2026-08-25-w7d-90101.jpg?w=940" alt="M4" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$52,500</div><div class="rm"><span class="num">61,400 mi</span><span class="dot">&middot;</span>Cars &amp; Bids</div></div></a>
-      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/07/13-print-1990_BMW_M3-013-scaled-copy-2026-08-24-d53-95281.jpg?w=940" alt="M4" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$55,500</div><div class="rm"><span class="num">48,100 mi</span><span class="dot">&middot;</span>Bring a Trailer</div></div></a>
-      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/08/PHOTO_273_of_324-scaled-copy-2026-08-12-tzy-13287.jpg?w=940" alt="M4" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$35,000</div><div class="rm"><span class="num">93,200 mi</span><span class="dot">&middot;</span>Cars &amp; Bids</div></div></a>
-      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2025/11/1990_bmw_m3_img_1285-40840.jpeg?fit=940%2C626" alt="M4" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$49,000</div><div class="rm"><span class="num">57,900 mi</span><span class="dot">&middot;</span>Bring a Trailer</div></div></a>
-      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/08/DSC_8885-scaled-copy-2026-07-08-cs1-28168.jpeg?w=940" alt="M4" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$47,250</div><div class="rm"><span class="num">64,000 mi</span><span class="dot">&middot;</span>Cars &amp; Bids</div></div></a>
-      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/06/2006_porsche_911-carrera-s-coupe_20260701_182049-scaled-18763.jpg?w=940" alt="M4" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$44,000</div><div class="rm"><span class="num">71,500 mi</span><span class="dot">&middot;</span>Bring a Trailer</div></div></a>
+      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/08/DSC_8885-scaled-copy-2026-07-08-cs1-28168.jpeg?w=940" alt="M4" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$53,000</div><div class="rm"><span class="num">17,100 mi</span><span class="dot">&middot;</span>Cars &amp; Bids</div></div></a>
+      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/07/13-print-1990_BMW_M3-013-scaled-copy-2026-08-24-d53-95281.jpg?w=940" alt="M4" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$52,500</div><div class="rm"><span class="num">34,900 mi</span><span class="dot">&middot;</span>Cars &amp; Bids</div></div></a>
+      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/08/PHOTO_273_of_324-scaled-copy-2026-08-12-tzy-13287.jpg?w=940" alt="M4" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$51,000</div><div class="rm"><span class="num">21,000 mi</span><span class="dot">&middot;</span>Bring a Trailer</div></div></a>
+      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2025/11/1990_bmw_m3_img_1285-40840.jpeg?fit=940%2C626" alt="M4" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$48,000</div><div class="rm"><span class="num">20,300 mi</span><span class="dot">&middot;</span>Cars &amp; Bids</div></div></a>
+      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/08/DSC_8885-scaled-copy-2026-07-08-cs1-28168.jpeg?w=940" alt="M4" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$44,500</div><div class="rm"><span class="num">19,000 mi</span><span class="dot">&middot;</span>Bring a Trailer</div></div></a>
+      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/07/13-print-1990_BMW_M3-013-scaled-copy-2026-08-24-d53-95281.jpg?w=940" alt="M4" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$30,000</div><div class="rm"><span class="num">90,000 mi</span><span class="dot">&middot;</span>Cars &amp; Bids</div></div></a>
     </div>
     <div class="platwrap"><div class="lab">Where they sold</div>
-      <div class="plat-strip"><span class="plat-pill">Bring a Trailer</span><span class="plat-pill">Cars &amp; Bids</span><span class="plat-pill">others</span></div>
-      <p class="plat-note">Most change hands on Bring a Trailer.</p>
+      <div class="plat-strip"><span class="plat-pill">Bring a Trailer</span><span class="plat-pill">Cars &amp; Bids</span></div>
+      <p class="plat-note">Split fairly evenly between Bring a Trailer and Cars &amp; Bids.</p>
     </div>
   </details>
+  <p class="flagnote">Structured refinement is hidden here: your mileage is already known from the record (66,700), so there is nothing to narrow.</p>
 
-  <div class="sell"><div><h3>Ready to sell?</h3><p>I can tell you the best place to sell yours right now and why.</p></div><a href="#">See where I&#8217;d sell it &#8594;</a></div>
-  <div class="foot">Real sales only. No estimates. No valuations.</div>
+  <div class="sell"><div><h3>Ready to sell?</h3><p>I&#8217;ll look at the same market and tell you where I&#8217;d sell it.</p></div><a href="#">Where I&#8217;d sell it &#8594;</a></div>
+  <div class="recent"><div class="lab">Your recent searches</div><div class="chips"><a class="rchip" href="#">997 Carrera S coupe</a><a class="rchip" href="#">2016 Corvette Z06</a><a class="rchip" href="#">Lotus Esprit</a></div></div>
+  <div class="trust">Real completed sales from GoAskSam&#8217;s archive. No estimates. No valuations.</div>
 </section>
 
-<!-- ============ FRAME 2 : 997 unmatched, trend hard-gated off ============ -->
+<!-- ============ FRAME 2 : 997 unmatched ============ -->
 <section id="s-p997" class="state">
   <div class="inbox"><input value="997 Carrera S coupe" readonly><button class="edit">Edit</button><button class="go">&#8594;</button></div>
 
-  <!-- No exact card (unmatched). Straight to the answer. -->
+  <!-- No exact card (unmatched). -->
 
-  <!-- 2. SAM'S TAKE (s3 omitted: prior-window mix not comparable) -->
-  <div class="samtake">
-    <div class="tk">Sam&#8217;s take</div>
-    <p class="s1">Right now, the Porsche 997 Carrera S is bringing <span class="num">$38,000</span> to <span class="num">$72,000</span> in the last twelve months.</p>
-    <p class="s2">Most landed between <span class="num">$46,000</span> and <span class="num">$58,000</span>.</p>
-    <p class="meta">Past twelve months<span class="dot">&middot;</span>Carrera S coupe</p>
+  <!-- LIVE TAKE (cluster gate cleared: 58 sales) -->
+  <div class="livetake">
+    <div class="lt-kick">Sam&#8217;s live take</div>
+    <p class="lt-hero"><span class="num">$50,500</span> to <span class="num">$68,000</span></p>
+    <p class="lt-line">Cars like yours have mostly been bringing this over the last twelve months.</p>
+    <p class="lt-span">Everything from <span class="num">$25,000</span> to <span class="num">$90,000</span> has sold; most land here.</p>
+    <p class="lt-fresh"><span class="dotg"></span>Updated today</p>
   </div>
-  <p class="gatenote">No trend line here: this year&#8217;s sales skew lower-mileage manuals and last year&#8217;s skewed Tiptronics, so a year-over-year move would be a mix shift, not the market. (Illustrates the hard gate on s3, never shown in the render.)</p>
 
-  <!-- 3. THREE CARDS (subject mileage unknown: labels fall back to spec / date, never a mileage claim) -->
+  <!-- SAM'S READ (mileage driver cleared 5+/5+, so the shape sentence renders) -->
+  <div class="samread"><div class="ava">SAM</div><div>
+    <div class="tag">Sam&#8217;s read</div>
+    <p>Mileage is doing most of the separating in the recent sales. These are the three I&#8217;d pay closest attention to.</p>
+  </div></div>
+
+  <!-- THREE RECEIPTS (subject mileage unknown: labels fall back to spec / date, never a mileage claim) -->
   <div class="seclabel">The sales behind it</div>
   <div class="cards3">
     <a class="cm" href="#">
-      <div class="rph"><span class="cmkick">Closest match</span><span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span><img src="https://bringatrailer.com/wp-content/uploads/2026/08/DSC06763-scaled-copy-2026-08-25-w7d-90101.jpg?w=940" alt="2005 Porsche 911 Carrera S" onerror="this.style.display='none'"></div>
+      <div class="rph"><span class="cmkick">Closest match</span><span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span><img src="https://bringatrailer.com/wp-content/uploads/2026/08/DSC06763-scaled-copy-2026-08-25-w7d-90101.jpg?w=940" alt="2007 Porsche 911 Carrera S" onerror="this.style.display='none'"></div>
       <div class="rb">
-        <div class="rprice">$54,000</div>
+        <div class="rprice">$53,000</div>
         <div class="rmeta"><span class="num">48,000 mi</span><span class="dot">&middot;</span>Tiptronic<span class="dot">&middot;</span>clean title</div>
-        <div class="rtitle">2006 Porsche 911 Carrera S Coupe &middot; Bring a Trailer &middot; Aug 2026</div>
+        <div class="rtitle">2007 Porsche 911 Carrera S Coupe &middot; Bring a Trailer &middot; Jun 2026</div>
         <div class="why">The middle of the market: a clean, average-mileage Carrera S coupe.</div>
       </div>
     </a>
     <div class="brackets">
       <a class="bcard" href="#">
-        <div class="bth"><span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span><img src="https://bringatrailer.com/wp-content/uploads/2026/06/2006_porsche_911-carrera-s-coupe_20260701_182049-scaled-18763.jpg?w=940" alt="Porsche 911 Carrera S 6-Speed" onerror="this.style.display='none'"></div>
-        <div class="bb"><span class="blabel">6-speed manual</span><div class="bprice">$62,000</div><div class="bmeta">Cars &amp; Bids<span class="dot">&middot;</span>Jul 2026</div></div>
+        <div class="bth"><span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span><img src="https://bringatrailer.com/wp-content/uploads/2026/06/2006_porsche_911-carrera-s-coupe_20260701_182049-scaled-18763.jpg?w=940" alt="2005 Porsche 911 Carrera S 6-Speed" onerror="this.style.display='none'"></div>
+        <div class="bb"><span class="blabel">6-speed manual</span><div class="bprice">$68,000</div><div class="bmeta"><span class="num">24,000 mi</span><span class="dot">&middot;</span>Bring a Trailer<span class="dot">&middot;</span>Mar 2026</div></div>
       </a>
       <a class="bcard" href="#">
-        <div class="bth"><span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span><img src="https://bringatrailer.com/wp-content/uploads/2026/08/DSC_8885-scaled-copy-2026-07-08-cs1-28168.jpeg?w=940" alt="Porsche 911 Carrera S" onerror="this.style.display='none'"></div>
-        <div class="bb"><span class="blabel">Earlier sale</span><div class="bprice">$44,000</div><div class="bmeta">Bring a Trailer<span class="dot">&middot;</span>Feb 2026</div></div>
+        <div class="bth"><span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span><img src="https://bringatrailer.com/wp-content/uploads/2026/08/DSC_8885-scaled-copy-2026-07-08-cs1-28168.jpeg?w=940" alt="2007 Porsche 911 Carrera S" onerror="this.style.display='none'"></div>
+        <div class="bb"><span class="blabel">Earlier sale</span><div class="bprice">$43,750</div><div class="bmeta"><span class="num">43,000 mi</span><span class="dot">&middot;</span>Bring a Trailer<span class="dot">&middot;</span>Sep 2025</div></div>
       </a>
     </div>
   </div>
 
-  <!-- 4. SAM'S READ (unmatched: no placement, receipt framing) -->
-  <div class="samread">
-    <div class="ava">SAM</div>
-    <div>
-      <div class="tag">Sam&#8217;s read</div>
-      <p>The <span class="num">$54,000</span> sale is the closest read on a clean Carrera S coupe. The <span class="num">$62,000</span> car had the 6-speed manual buyers pay up for; the <span class="num">$44,000</span> sale closed back in February, earlier in the window.</p>
-    </div>
-  </div>
-
-  <details class="showall"><summary>See all sales</summary>
-    <div class="allhead"><span class="lab">All Carrera S coupe sales, last twelve months</span><span class="sort">Sort: Most recent</span></div>
+  <details class="showall"><summary>See all recent sales</summary>
+    <div class="allhead"><span class="lab">Carrera S coupe sales, last twelve months</span><span class="sort">Sort: Most recent</span></div>
     <div class="receipts">
-      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/08/DSC06763-scaled-copy-2026-08-25-w7d-90101.jpg?w=940" alt="911" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$54,000</div><div class="rm"><span class="num">48,000 mi</span><span class="dot">&middot;</span>Bring a Trailer</div></div></a>
-      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/06/2006_porsche_911-carrera-s-coupe_20260701_182049-scaled-18763.jpg?w=940" alt="911" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$62,000</div><div class="rm"><span class="num">31,900 mi</span><span class="dot">&middot;</span>Cars &amp; Bids</div></div></a>
-      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/08/DSC_8885-scaled-copy-2026-07-08-cs1-28168.jpeg?w=940" alt="911" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$44,000</div><div class="rm"><span class="num">72,400 mi</span><span class="dot">&middot;</span>Bring a Trailer</div></div></a>
-      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2025/11/1990_bmw_m3_img_1285-40840.jpeg?fit=940%2C626" alt="911" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$57,500</div><div class="rm"><span class="num">39,000 mi</span><span class="dot">&middot;</span>Cars &amp; Bids</div></div></a>
-      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/07/13-print-1990_BMW_M3-013-scaled-copy-2026-08-24-d53-95281.jpg?w=940" alt="911" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$50,000</div><div class="rm"><span class="num">55,200 mi</span><span class="dot">&middot;</span>Bring a Trailer</div></div></a>
-      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/08/PHOTO_273_of_324-scaled-copy-2026-08-12-tzy-13287.jpg?w=940" alt="911" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$47,000</div><div class="rm"><span class="num">61,000 mi</span><span class="dot">&middot;</span>Cars &amp; Bids</div></div></a>
+      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/08/DSC06763-scaled-copy-2026-08-25-w7d-90101.jpg?w=940" alt="911" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$59,500</div><div class="rm"><span class="num">32,000 mi</span><span class="dot">&middot;</span>Bring a Trailer</div></div></a>
+      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/06/2006_porsche_911-carrera-s-coupe_20260701_182049-scaled-18763.jpg?w=940" alt="911" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$58,000</div><div class="rm"><span class="num">46,000 mi</span><span class="dot">&middot;</span>Bring a Trailer</div></div></a>
+      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/08/DSC_8885-scaled-copy-2026-07-08-cs1-28168.jpeg?w=940" alt="911" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$53,000</div><div class="rm"><span class="num">48,000 mi</span><span class="dot">&middot;</span>Bring a Trailer</div></div></a>
+      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/08/DSC06763-scaled-copy-2026-08-25-w7d-90101.jpg?w=940" alt="911" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$49,997</div><div class="rm"><span class="num">62,000 mi</span><span class="dot">&middot;</span>Bring a Trailer</div></div></a>
+      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/06/2006_porsche_911-carrera-s-coupe_20260701_182049-scaled-18763.jpg?w=940" alt="911" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$47,500</div><div class="rm"><span class="num">72,800 mi</span><span class="dot">&middot;</span>others</div></div></a>
+      <a class="rcard" href="#"><div class="rph2"><img src="https://bringatrailer.com/wp-content/uploads/2026/08/DSC_8885-scaled-copy-2026-07-08-cs1-28168.jpeg?w=940" alt="911" onerror="this.style.display='none'"></div><div class="rb2"><div class="rp">$43,750</div><div class="rm"><span class="num">43,000 mi</span><span class="dot">&middot;</span>Bring a Trailer</div></div></a>
     </div>
     <div class="platwrap"><div class="lab">Where they sold</div>
-      <div class="plat-strip"><span class="plat-pill">Bring a Trailer</span><span class="plat-pill">Cars &amp; Bids</span><span class="plat-pill">others</span></div>
-      <p class="plat-note">Split fairly evenly between Bring a Trailer and Cars &amp; Bids.</p>
+      <div class="plat-strip"><span class="plat-pill">Bring a Trailer</span><span class="plat-pill">Cars &amp; Bids</span><span class="plat-pill">PCarMarket</span></div>
+      <p class="plat-note">Mostly Bring a Trailer, with a handful on PCarMarket.</p>
     </div>
   </details>
 
-  <div class="sell"><div><h3>Ready to sell?</h3><p>I can tell you the best place to sell yours right now and why.</p></div><a href="#">See where I&#8217;d sell it &#8594;</a></div>
-  <div class="foot">Real sales only. No estimates. No valuations.</div>
+  <!-- structured refinement renders here: mileage is unknown for a typed query -->
+  <div class="earned">
+    <div class="q">How many miles on yours?</div>
+    <div class="qchips"><button class="qchip">under 40k</button><button class="qchip">40k to 60k</button><button class="qchip">60k to 85k</button><button class="qchip">over 85k</button><button class="qchip typeit">type it</button></div>
+  </div>
+
+  <div class="sell"><div><h3>Ready to sell?</h3><p>I&#8217;ll look at the same market and tell you where I&#8217;d sell it.</p></div><a href="#">Where I&#8217;d sell it &#8594;</a></div>
+  <div class="recent"><div class="lab">Your recent searches</div><div class="chips"><a class="rchip" href="#">2019 BMW M4 Competition</a><a class="rchip" href="#">2016 Corvette Z06</a><a class="rchip" href="#">Lotus Esprit</a></div></div>
+  <div class="trust">Real completed sales from GoAskSam&#8217;s archive. No estimates. No valuations.</div>
 </section>
 
 </main>

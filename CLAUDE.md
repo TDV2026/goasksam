@@ -26,6 +26,7 @@ Collector car market intelligence platform. Answers "where should I sell my coll
 16. Halo-classification rule (One Box halo-aside, lib/onebox.js HALO_PATTERNS + R4_SPECIAL; locked, Sep 2026). A trim/badge may be set aside as a "halo" ONLY when it is a genuinely pricier SEPARATE tier AND the base pool survives its removal. A token is MISCLASSIFIED (and must not be a halo) when it captures the queried badge itself or the model's mainstream trim, so the aside guts the pool. STANDING CHECK before adding or keeping any marque/trim in a halo list: measure the token's share of its actual pool in sales_archive (the byTitle-badge pool for badge cars, the byModel pool for model cars), never by intuition. Genuine halo = small/pricier tier that leaves a real base pool behind (e.g. Porsche GT3/Turbo S ~2-5%, Corvette Z06, Mustang Shelby, Dodge Hellcat/SRT - kept). Miscategorized = captures the mainstream/badge and empties the pool (BMW "competition" = 29% of M4, the mainstream M-variant; Mercedes "amg" = 100% of a C63 pool, the badge itself - both removed/made badge-aware). For a performance-BADGE car the aside sets aside only variants ABOVE the badge (Black Series for AMG), never the badge's own mainstream. High archive share is acceptable only if the token is a genuinely separate pricier tier and the base pool still stands.
 17. Closest match is a receipt, not a valuation.
 18. Refinement changes the evidence set, never the price.
+19. Yesterday's market can change today's Live Take.
 
 ## Current architecture (ground truth as of July 2026)
 
