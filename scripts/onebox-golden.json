@@ -153,7 +153,7 @@
     "exact": "YYYY BMW M4 Coupe Competition Package",
     "cfg": "The prior listing has it with the 3.0L Turbocharged I6, so it still reads as a standard M4 Coupe Competition Package.",
     "disc": null,
-    "ladder": "No recent M4 Competition sales, so this reads other M4s. The M4 Competition has sat above these when they trade.",
+    "ladder": "No recent M4 Competition sales in this window, so this reads other M4s.",
     "s1": "Cars like yours are bringing $N to $N in the past two years.",
     "s2": null,
     "s3": null,
@@ -468,7 +468,7 @@
     "exact": null,
     "cfg": null,
     "disc": null,
-    "ladder": "No recent M4 Competition sales, so this reads other M4s. The M4 Competition has sat above these when they trade.",
+    "ladder": "No recent M4 Competition sales in this window, so this reads other M4s.",
     "s1": "The BMW M4 (YYYY to YYYY) is bringing $N to $N in the past two years.",
     "s2": null,
     "s3": null,
@@ -489,29 +489,35 @@
     "cards": true
   },
   "2016 Mercedes-Benz C63 AMG coupe": {
-    "state": "thin_refusal",
+    "state": "unmatched_result",
     "exact": null,
     "cfg": null,
     "disc": null,
     "ladder": null,
-    "s1": null,
-    "s2": null,
-    "s3": null,
+    "s1": "Right now, the Mercedes-Benz C63 (YYYY to YYYY) is bringing $N to $N in the last twelve months.",
+    "s2": "Most land between $N and $N.",
+    "s3": "That’s a touch firmer than a year ago, when most landed between $N and $N.",
     "s4": null,
-    "meta": null,
-    "earned": null,
-    "chips": [],
-    "platforms": [],
-    "platNote": null,
-    "refusalAns": null,
-    "refusalReason": [
-      "There are no recent C63 Coupe sales in the window I’d trust for a spread.",
-      "Give me a bit more, or a different car, and I’ll pull what actually sold."
+    "meta": "Past twelve months·lowest-mileage cars set aside",
+    "earned": "How many miles on yours?",
+    "chips": [
+      "under Nk",
+      "Nk to Nk",
+      "Nk to Nk",
+      "over Nk",
+      "type it"
     ],
+    "platforms": [
+      "Bring a Trailer",
+      "others"
+    ],
+    "platNote": "Almost all on Bring a Trailer, so there is no cross-platform split to read here.",
+    "refusalAns": null,
+    "refusalReason": [],
     "wayfwd": [],
-    "genPrompt": "There are no recent C63 Coupe sales in the window I’d trust for a spread.",
+    "genPrompt": null,
     "genChips": [],
-    "cards": false
+    "cards": true
   },
   "2018 Audi RS5 coupe": {
     "state": "unmatched_result",
