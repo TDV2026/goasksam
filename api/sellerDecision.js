@@ -2752,28 +2752,6 @@ export default async function handler(req, res) {
   const apiKey = process.env.OLDCARSDATA_API_KEY;
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-  // TEMP nonce-gated: F82 (2014-2020) vs calendar (2017-2021) M4-coupe 12mo count. REMOVE after use.
-  if (req.body?.__m4gen === "m4gen-9f2k") {
-    const env = { supabaseUrl, supabaseKey };
-    const cutoff = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
-    const enc = s => encodeURIComponent(s);
-    const rows = (await supabaseSelect(env, `sales_archive?select=listing_title,year,sale_date,sale_price,platform&make=ilike.BMW&sale_price=not.is.null&sale_date=gte.${cutoff}&listing_title=ilike.${enc("*M4*")}&order=sale_date.desc&limit=1000`)) || [];
-    const conv = t => /convertible|cabriolet|\bvert\b|roadster/i.test(t || "");
-    const halo = t => /\b(csl|\bcs\b|sport\s?evolution|cecotto|\bgts\b)\b/i.test(t || "");
-    const coupe = rows.filter(r => !conv(r.listing_title));
-    const byYear = {};
-    for (const r of coupe) { const y = r.year || "?"; byYear[y] = (byYear[y] || 0) + 1; }
-    const inRange = (a, b) => coupe.filter(r => Number(r.year) >= a && Number(r.year) <= b);
-    const f82 = inRange(2014, 2020), cal = inRange(2017, 2021);
-    const solidish = arr => arr.filter(r => !halo(r.listing_title));  // approximates the sub-halo aside
-    return res.status(200).json({
-      m4gen: true, cutoff,
-      totalM4titled_12mo: rows.length, coupe_12mo: coupe.length,
-      byModelYear: byYear,
-      f82_2014_2020: { coupe: f82.length, exSubHalo: solidish(f82).length },
-      calendar_2017_2021: { coupe: cal.length, exSubHalo: solidish(cal).length }
-    });
-  }
   // One Box empty-state proof line: recent real sales for the storefront. Archive-only,
   // no OCD, no gate, no car needed -> answered before every other check.
   if (req.body?.oneBoxProof) {
