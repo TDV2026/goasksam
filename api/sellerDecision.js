@@ -2752,27 +2752,6 @@ export default async function handler(req, res) {
   const apiKey = process.env.OLDCARSDATA_API_KEY;
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-  // TEMP nonce-gated: freshness data + a mid-mileage matched M4 candidate. REMOVE after use.
-  if (req.body?.__fresh === "fresh-9f2k") {
-    const env = { supabaseUrl, supabaseKey };
-    const enc = s => encodeURIComponent(s);
-    const q = async u => (await supabaseSelect(env, u)) || [];
-    const today = new Date().toISOString().slice(0, 10);
-    const yday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-    const latest = await q(`sales_archive?select=created_at,sale_date&order=created_at.desc&limit=1`);
-    const maxSale = await q(`sales_archive?select=sale_date&order=sale_date.desc&limit=1`);
-    const ydaySales = await q(`sales_archive?select=listing_title,make,model,sale_date,platform&sale_date=eq.${yday}&limit=25`);
-    const todaySales = await q(`sales_archive?select=sale_date&sale_date=eq.${today}&limit=25`);
-    const midM4 = await q(`sales_archive?select=vin,listing_title,year,mileage,sale_price,sale_date,platform&make=ilike.BMW&listing_title=ilike.${enc("*M4*")}&listing_title=ilike.${enc("*Competition*")}&mileage=gte.18000&mileage=lte.35000&vin=not.is.null&limit=15`);
-    return res.status(200).json({
-      today, yday,
-      latestCreatedAt: latest[0] && latest[0].created_at, latestRowSaleDate: latest[0] && latest[0].sale_date,
-      maxSaleDate: maxSale[0] && maxSale[0].sale_date,
-      yesterdayCount: ydaySales.length, todayCount: todaySales.length,
-      yesterdaySamples: ydaySales.slice(0, 10).map(r => ({ t: r.listing_title, mk: r.make, md: r.model, d: r.sale_date, p: r.platform })),
-      midM4: midM4.map(r => ({ vin: r.vin, t: r.listing_title, y: r.year, mi: r.mileage, p: r.sale_price, d: r.sale_date }))
-    });
-  }
   // One Box empty-state proof line: recent real sales for the storefront. Archive-only,
   // no OCD, no gate, no car needed -> answered before every other check.
   if (req.body?.oneBoxProof) {
