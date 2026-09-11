@@ -2752,6 +2752,20 @@ export default async function handler(req, res) {
   const apiKey = process.env.OLDCARSDATA_API_KEY;
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+  // TEMP nonce-gated: find matched-shaped records (VIN present) whose mileage is null. REMOVE after use.
+  if (req.body?.__nullmi === "nullmi-9f2k") {
+    const env = { supabaseUrl, supabaseKey };
+    const enc = s => encodeURIComponent(s);
+    const q = async u => (await supabaseSelect(env, u)) || [];
+    // Anchor by make (indexed) so the null filter returns rows; look for VIN present + mileage null.
+    const makes = ["Porsche", "Ferrari", "BMW", "Mercedes-Benz", "Chevrolet"];
+    const out = {};
+    for (const mk of makes) {
+      const rows = await q(`sales_archive?select=vin,listing_title,make,model,year,mileage&make=ilike.${enc(mk)}&vin=not.is.null&mileage=is.null&limit=25`);
+      out[mk] = { total: rows.length, samples: rows.slice(0, 8).map(r => ({ vin: r.vin, t: r.listing_title, md: r.model, y: r.year, mi: r.mileage })) };
+    }
+    return res.status(200).json({ nullmi: true, byMake: out });
+  }
   // One Box empty-state proof line: recent real sales for the storefront. Archive-only,
   // no OCD, no gate, no car needed -> answered before every other check.
   if (req.body?.oneBoxProof) {
