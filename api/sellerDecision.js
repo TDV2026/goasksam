@@ -2752,6 +2752,31 @@ export default async function handler(req, res) {
   const apiKey = process.env.OLDCARSDATA_API_KEY;
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+  // TEMP nonce-gated: SUBSTANTIAL_MOD turbocharg/supercharg audit on the modifications field. REMOVE after use.
+  if (req.body?.__fimod === "fimod-9f2k") {
+    const env = { supabaseUrl, supabaseKey };
+    const enc = s => encodeURIComponent(s);
+    const q = async u => (await supabaseSelect(env, u)) || [];
+    const sel = "listing_title,make,model,year,mods:raw_record->>modifications";
+    // Rows whose MODIFICATIONS field contains the factory-or-added forced-induction tokens.
+    const turbo = await q(`sales_archive?select=${sel}&raw_record->>modifications=ilike.${enc("*turbocharg*")}&order=sale_date.desc&limit=400`);
+    const superc = await q(`sales_archive?select=${sel}&raw_record->>modifications=ilike.${enc("*supercharg*")}&order=sale_date.desc&limit=400`);
+    // Factory-forced-induction nameplates: how many of THEIR listings trip the token via mods.
+    const fiModels = ["718", "Cayman", "Boxster", "M5", "M2", "C63", "E63", "AMG", "911 Turbo", "Supra", "GT-R", "RS5", "RS6"];
+    const modelHits = {};
+    for (const m of fiModels) {
+      const rows = await q(`sales_archive?select=listing_title,mods:raw_record->>modifications&listing_title=ilike.${enc("*" + m + "*")}&raw_record->>modifications=ilike.${enc("*turbocharg*")}&limit=200`);
+      modelHits[m] = rows.length;
+    }
+    const clip = s => String(s || "").replace(/\s+/g, " ").slice(0, 140);
+    return res.status(200).json({
+      fimod: true,
+      turbo_total: turbo.length, superc_total: superc.length,
+      modelHits_turbo: modelHits,
+      turbo_samples: turbo.slice(0, 45).map(r => ({ t: r.listing_title, mk: r.make, md: r.model, y: r.year, mods: clip(r.mods) })),
+      superc_samples: superc.slice(0, 25).map(r => ({ t: r.listing_title, mods: clip(r.mods) }))
+    });
+  }
   // One Box empty-state proof line: recent real sales for the storefront. Archive-only,
   // no OCD, no gate, no car needed -> answered before every other check.
   if (req.body?.oneBoxProof) {
