@@ -2759,8 +2759,8 @@ export default async function handler(req, res) {
     const q = async u => (await supabaseSelect(env, u)) || [];
     const sel = "listing_title,make,model,year,mods:raw_record->>modifications";
     // Rows whose MODIFICATIONS field contains the factory-or-added forced-induction tokens.
-    const turbo = await q(`sales_archive?select=${sel}&raw_record->>modifications=ilike.${enc("*turbocharg*")}&order=sale_date.desc&limit=400`);
-    const superc = await q(`sales_archive?select=${sel}&raw_record->>modifications=ilike.${enc("*supercharg*")}&order=sale_date.desc&limit=400`);
+    const turbo = await q(`sales_archive?select=${sel}&raw_record->>modifications=ilike.${enc("*turbocharg*")}&limit=400`);
+    const superc = await q(`sales_archive?select=${sel}&raw_record->>modifications=ilike.${enc("*supercharg*")}&limit=400`);
     // Factory-forced-induction nameplates: how many of THEIR listings trip the token via mods.
     const fiModels = ["718", "Cayman", "Boxster", "M5", "M2", "C63", "E63", "AMG", "911 Turbo", "Supra", "GT-R", "RS5", "RS6"];
     const modelHits = {};
