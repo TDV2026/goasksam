@@ -2752,6 +2752,32 @@ export default async function handler(req, res) {
   const apiKey = process.env.OLDCARSDATA_API_KEY;
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+  // TEMP nonce-gated archive diagnostic (M4 ingestion-vs-scoping investigation). REMOVE after use.
+  if (req.body?.__diag === "m4diag-9f2k") {
+    const env = { supabaseUrl, supabaseKey };
+    const cutoff = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
+    const q = async url => (await supabaseSelect(env, url)) || [];
+    const cols = "listing_title,make,model,sale_date,sale_price,platform,img:raw_record->>featured_image_url";
+    // 1) RAW: every title containing "M4", sold in the last 12 months, no scoping.
+    const titleM4 = await q(`sales_archive?select=${cols}&listing_title=ilike.${encodeURIComponent("*M4*")}&sale_date=gte.${cutoff}&order=sale_date.desc&limit=1000`);
+    // 2) make=BMW filed models in the same window (where M4s live).
+    const bmw = await q(`sales_archive?select=model,platform&make=eq.BMW&sale_date=gte.${cutoff}&limit=2000`);
+    const byPlatform = {};
+    for (const r of titleM4) {
+      const p = r.platform || "?";
+      byPlatform[p] = byPlatform[p] || { total: 0, withImage: 0, withoutImage: 0 };
+      byPlatform[p].total++;
+      if (r.img) byPlatform[p].withImage++; else byPlatform[p].withoutImage++;
+    }
+    const bmwModels = {};
+    for (const r of bmw) { const k = (r.model || "?") + " / " + (r.platform || "?"); bmwModels[k] = (bmwModels[k] || 0) + 1; }
+    return res.status(200).json({
+      diag: "m4diag", cutoff,
+      titleM4_total: titleM4.length, byPlatform,
+      bmwModelBreakdown: Object.fromEntries(Object.entries(bmwModels).sort((a, b) => b[1] - a[1]).slice(0, 25)),
+      samples: titleM4.slice(0, 60).map(r => ({ t: r.listing_title, mk: r.make, md: r.model, d: r.sale_date, p: r.sale_price, plat: r.platform, img: !!r.img }))
+    });
+  }
   // One Box empty-state proof line: recent real sales for the storefront. Archive-only,
   // no OCD, no gate, no car needed -> answered before every other check.
   if (req.body?.oneBoxProof) {
