@@ -2877,7 +2877,15 @@ export default async function handler(req, res) {
         tx: rawRefine.tx === "manual" ? "manual" : rawRefine.tx === "auto" ? "auto" : null,
         label: typeof rawRefine.label === "string" ? rawRefine.label.slice(0, 40) : null
       } : null;
-      const oneBox = await runOneBox(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey }, obRefine);
+      // #1 divergence rule: the exact-car sale is fetched by the frontend (vehicleIdentity ->
+      // vinAnchor) and passed back in car.exactSale; the engine compares it to the cluster.
+      const rawES = car && typeof car.exactSale === "object" ? car.exactSale : null;
+      const exactSale = rawES && Number(rawES.price) > 0 ? {
+        price: Number(rawES.price),
+        mileage: Number.isFinite(Number(rawES.mileage)) && Number(rawES.mileage) > 0 ? Number(rawES.mileage) : null,
+        soldDate: typeof rawES.soldDate === "string" ? rawES.soldDate.slice(0, 10) : null
+      } : null;
+      const oneBox = await runOneBox(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale }, obRefine);
       // Addressable result (Task 4): persist a stable, shareable snapshot of THIS result so
       // /o/<id> re-opens the exact same answer cold and its OG tags carry the answer line.
       // Reuses the /sell saved_results store; tagged obShare:true so the public read path can

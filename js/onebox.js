@@ -653,6 +653,9 @@
     wire();
     var car = { raw: text };
     if (vehicle) car.vehicle = vehicle;
+    // #1 divergence rule: pass the exact car's own sale (from the VIN/chassis match) so the engine
+    // can compare it to the cluster. Only present on a matched car; harmless when absent.
+    if (vinAnchor && Number(vinAnchor.price) > 0) car.exactSale = { price: vinAnchor.price, mileage: vinAnchor.mileage, soldDate: vinAnchor.soldDate };
     var payload = { oneBox: true, anonId: obAnonId(), car: car };
     if (refine) payload.refine = refine;   // inline earned-question refinement (mileage / transmission)
     fetch(API_ORIGIN + "/api/sellerDecision", {
