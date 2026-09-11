@@ -2752,46 +2752,6 @@ export default async function handler(req, res) {
   const apiKey = process.env.OLDCARSDATA_API_KEY;
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-  // TEMP nonce-gated: (3) future-date integrity + (1) divergence-threshold validation. REMOVE after use.
-  if (req.body?.__val === "val-9f2k") {
-    const env = { supabaseUrl, supabaseKey };
-    const enc = s => encodeURIComponent(s);
-    const q = async u => (await supabaseSelect(env, u)) || [];
-    const today = new Date().toISOString().slice(0, 10);
-    const cutoff = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
-    // (3) FUTURE-DATED SALES
-    const fut = await q(`sales_archive?select=listing_title,make,model,sale_date,platform,raw_record->>status&sale_date=gt.${today}&order=sale_date.desc&limit=1000`);
-    const futByPlat = {}; for (const r of fut) { const p = r.platform || "?"; futByPlat[p] = (futByPlat[p] || 0) + 1; }
-    // (1) THRESHOLD VALIDATION: cluster + fire-rate per model (10% beyond nearer cluster edge), sale_date capped at today.
-    const pctNearest = (sorted, p) => { if (!sorted.length) return null; const i = Math.min(sorted.length - 1, Math.max(0, Math.round((sorted.length - 1) * p))); return sorted[i]; };
-    const models = [
-      { l: "BMW M3", make: "BMW", t: "M3" }, { l: "BMW M5", make: "BMW", t: "M5" }, { l: "BMW M4 Competition", make: "BMW", t: "M4*Competition" },
-      { l: "Porsche 911 Carrera S", make: "Porsche", t: "Carrera S" }, { l: "Porsche 911 Turbo", make: "Porsche", t: "911 Turbo" },
-      { l: "Chevrolet Corvette", make: "Chevrolet", m: "Corvette" }, { l: "Ford Mustang", make: "Ford", m: "Mustang" },
-      { l: "Nissan GT-R", make: "Nissan", m: "GT-R" }, { l: "Mazda Miata", make: "Mazda", m: "MX-5" }, { l: "Jaguar E-Type", make: "Jaguar", m: "E-Type" },
-      { l: "Toyota Supra", make: "Toyota", m: "Supra" }, { l: "Audi RS5", make: "Audi", t: "RS5" }, { l: "Porsche 718 Cayman", make: "Porsche", t: "Cayman" },
-      { l: "Mercedes SL", make: "Mercedes-Benz", m: "SL-Class" }, { l: "BMW Z3", make: "BMW", m: "Z3" }
-    ];
-    const out = [];
-    for (const md of models) {
-      let url = `sales_archive?select=sale_price&make=ilike.${enc(md.make)}&sale_price=not.is.null&sale_date=gte.${cutoff}&sale_date=lte.${today}`;
-      if (md.m) url += `&model=ilike.${enc("*" + md.m + "*")}`;
-      if (md.t) for (const tok of md.t.split("*")) url += `&listing_title=ilike.${enc("*" + tok + "*")}`;
-      url += `&limit=1000`;
-      const rows = await q(url);
-      const prices = rows.map(r => Number(r.sale_price)).filter(n => n > 0).sort((a, b) => a - b);
-      if (prices.length < 8) { out.push({ model: md.l, n: prices.length, note: "under cluster gate" }); continue; }
-      const q1 = pctNearest(prices, 0.25), q3 = pctNearest(prices, 0.75);
-      const lo = q1 * 0.90, hi = q3 * 1.10;
-      const fire = prices.filter(p => p < lo || p > hi).length;
-      out.push({ model: md.l, n: prices.length, span: [prices[0], prices[prices.length - 1]], cluster: [q1, q3], edges10: [Math.round(lo), Math.round(hi)], fireCount: fire, firePct: Math.round((fire / prices.length) * 100) });
-    }
-    return res.status(200).json({
-      today,
-      future: { total: fut.length, capped: fut.length === 1000, byPlatform: futByPlat, maxDate: fut[0] && fut[0].sale_date, samples: fut.slice(0, 12).map(r => ({ t: r.listing_title, mk: r.make, d: r.sale_date, plat: r.platform, status: r.status })) },
-      thresholdValidation: out
-    });
-  }
   // One Box empty-state proof line: recent real sales for the storefront. Archive-only,
   // no OCD, no gate, no car needed -> answered before every other check.
   if (req.body?.oneBoxProof) {
