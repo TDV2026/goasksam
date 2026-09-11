@@ -397,8 +397,15 @@
     return out + "</div>";
   }
   // THE EARNED QUESTION: mileage (pool-relative buckets) or transmission; answered inline.
-  function earnedHtml(d) {
+  function earnedHtml(d, m) {
     var e = d.earned; if (!e) return "";
+    // Never ask for a field the matched record already supplies. On an exact archive match the
+    // mileage and transmission are known from the listing, so the refinement question is already
+    // answered - it must not render (same class as the VIN-decode "don't re-ask what's known" rule).
+    if (m) {
+      if (e.kind === "mileage" && Number(String(m.mileage == null ? "" : m.mileage).replace(/[^\d]/g, "")) > 0) return "";
+      if (e.kind === "transmission" && m.transmission && String(m.transmission).trim()) return "";
+    }
     var q, chips;
     if (e.kind === "mileage") {
       q = "How many miles on yours?";
@@ -431,7 +438,7 @@
     return '<div class="seclabel">Where they sold</div><div class="plat-strip">' + pills + "</div>" + note;
   }
   function resultHtml(d, m) {
-    var body = samTakeBlock(d, m) + earnedHtml(d);
+    var body = samTakeBlock(d, m) + earnedHtml(d, m);
     body += '<div class="seclabel">The sales<span class="sort">Sort: Most recent</span></div>';
     body += '<div class="receipts">' + receiptsHtml(d.cards, 6) + "</div>";
     var rest = (d.cards || []).slice(6).concat(d.asideCards || []);
