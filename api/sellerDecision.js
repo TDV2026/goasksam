@@ -2752,27 +2752,6 @@ export default async function handler(req, res) {
   const apiKey = process.env.OLDCARSDATA_API_KEY;
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-  // TEMP nonce-gated: PCarMarket "MarketPlace" (asking-price) leak into the sold archive. REMOVE after use.
-  if (req.body?.__mkt === "mkt-9f2k") {
-    const env = { supabaseUrl, supabaseKey };
-    const enc = s => encodeURIComponent(s);
-    const q = async u => (await supabaseSelect(env, u)) || [];
-    const today = new Date().toISOString().slice(0, 10);
-    const cut12 = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
-    // "MarketPlace:" titled rows (PCarMarket fixed-price classifieds)
-    const mkAll = await q(`sales_archive?select=platform&listing_title=ilike.${enc("MarketPlace:*")}&limit=2000`);
-    const mk12 = await q(`sales_archive?select=platform&listing_title=ilike.${enc("MarketPlace:*")}&sale_date=gte.${cut12}&limit=2000`);
-    const mkByPlat = {}; for (const r of mkAll) { const p = r.platform || "?"; mkByPlat[p] = (mkByPlat[p] || 0) + 1; }
-    const samples = await q(`sales_archive?select=listing_title,make,sale_price,sale_date,platform&listing_title=ilike.${enc("MarketPlace:*")}&order=sale_date.desc&limit=12`);
-    // does any come through with a real sale_price + a plausible date? (would blend into pools)
-    return res.status(200).json({
-      today,
-      marketplaceRows_total: mkAll.length, capped2000: mkAll.length === 2000,
-      marketplaceRows_last12mo: mk12.length,
-      byPlatform: mkByPlat,
-      samples: samples.map(r => ({ t: r.listing_title, mk: r.make, p: r.sale_price, d: r.sale_date, plat: r.platform }))
-    });
-  }
   // One Box empty-state proof line: recent real sales for the storefront. Archive-only,
   // no OCD, no gate, no car needed -> answered before every other check.
   if (req.body?.oneBoxProof) {
