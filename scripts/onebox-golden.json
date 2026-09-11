@@ -470,12 +470,18 @@
     "disc": null,
     "ladder": "No recent M4 Competition sales in this window, so this reads other M4s.",
     "s1": "The BMW M4 (YYYY to YYYY) is bringing $N to $N in the past two years.",
-    "s2": null,
+    "s2": "Most land between $N and $N.",
     "s3": null,
     "s4": null,
     "meta": "Past two years",
-    "earned": null,
-    "chips": [],
+    "earned": "How many miles on yours?",
+    "chips": [
+      "under Nk",
+      "Nk to Nk",
+      "Nk to Nk",
+      "over Nk",
+      "type it"
+    ],
     "platforms": [
       "Bring a Trailer",
       "others"
