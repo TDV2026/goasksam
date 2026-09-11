@@ -42,14 +42,8 @@
     "s3": "That’s about level with a year ago, when most landed between $N and $N.",
     "s4": "Yours sold for $N in August. The ones since brought $N to $N.",
     "meta": "Past twelve months·lowest-mileage cars set aside",
-    "earned": "How many miles on yours?",
-    "chips": [
-      "under Nk",
-      "Nk to Nk",
-      "Nk to Nk",
-      "over Nk",
-      "type it"
-    ],
+    "earned": null,
+    "chips": [],
     "platforms": [
       "Bring a Trailer",
       "others"
@@ -129,14 +123,8 @@
     "s3": null,
     "s4": "Yours sold a little above the middle, in company with the driver-grade cars.",
     "meta": "Past two years",
-    "earned": "How many miles on yours?",
-    "chips": [
-      "under Nk",
-      "Nk to Nk",
-      "Nk to Nk",
-      "over Nk",
-      "type it"
-    ],
+    "earned": null,
+    "chips": [],
     "platforms": [
       "Bring a Trailer"
     ],
@@ -159,13 +147,8 @@
     "s3": "That’s a touch softer than a year ago, when most landed between $N and $N.",
     "s4": "Yours sold toward the lower end, in company with the driver-grade cars.",
     "meta": "Past twelve months",
-    "earned": "How many miles on yours?",
-    "chips": [
-      "under Nk",
-      "Nk to Nk",
-      "over Nk",
-      "type it"
-    ],
+    "earned": null,
+    "chips": [],
     "platforms": [
       "Bring a Trailer",
       "others"
