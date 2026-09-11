@@ -2757,15 +2757,13 @@ export default async function handler(req, res) {
     const env = { supabaseUrl, supabaseKey };
     const enc = s => encodeURIComponent(s);
     const q = async u => (await supabaseSelect(env, u)) || [];
-    const makes = ["Porsche", "Ferrari", "Jaguar", "Mercedes-Benz", "Chevrolet"];
+    const makes = ["Porsche", "Ferrari", "Jaguar", "Mercedes-Benz", "Chevrolet", "Ford"];
     const out = {};
     for (const mk of makes) {
-      const nullMi = await q(`sales_archive?select=vin,listing_title,model,year,mileage&make=ilike.${enc(mk)}&mileage=is.null&limit=30`);
-      const hasVin = await q(`sales_archive?select=vin&make=ilike.${enc(mk)}&vin=not.is.null&limit=1`);
+      const zero = await q(`sales_archive?select=vin,listing_title,model,year,mileage&make=ilike.${enc(mk)}&mileage=eq.0&vin=not.is.null&limit=30`);
       out[mk] = {
-        nullMileage_total: nullMi.length,
-        vinColumnUsed: hasVin.length > 0,
-        samples: nullMi.slice(0, 8).map(r => ({ id: r.vin, t: r.listing_title, md: r.model, y: r.year, mi: r.mileage }))
+        zeroMileage_withVin: zero.length,
+        samples: zero.slice(0, 6).map(r => ({ vin: r.vin, t: r.listing_title, md: r.model, y: r.year, mi: r.mileage }))
       };
     }
     return res.status(200).json({ nullmi: true, byMake: out });
