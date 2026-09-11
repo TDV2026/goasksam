@@ -2759,23 +2759,15 @@ export default async function handler(req, res) {
     const q = async u => (await supabaseSelect(env, u)) || [];
     const sel = "listing_title,make,model,year,mods:raw_record->>modifications";
     // Rows whose MODIFICATIONS field contains the factory-or-added forced-induction tokens.
-    const turbo = await q(`sales_archive?select=${sel}&raw_record->>modifications=ilike.${enc("*turbocharg*")}&limit=400`);
-    const superc = await q(`sales_archive?select=${sel}&raw_record->>modifications=ilike.${enc("*supercharg*")}&limit=400`);
-    // Factory-forced-induction nameplates: how many of THEIR listings trip the token via mods.
-    const fiModels = ["718", "Cayman", "Boxster", "M5", "M2", "C63", "E63", "AMG", "911 Turbo", "Supra", "GT-R", "RS5", "RS6"];
-    const modelHits = {};
-    for (const m of fiModels) {
-      const rows = await q(`sales_archive?select=listing_title,mods:raw_record->>modifications&listing_title=ilike.${enc("*" + m + "*")}&raw_record->>modifications=ilike.${enc("*turbocharg*")}&limit=200`);
-      modelHits[m] = rows.length;
+    const clip = s => String(s || "").replace(/\s+/g, " ").slice(0, 160);
+    // Anchor by MAKE (indexed) so the JSON-extraction ilike returns rows; pull the actual text.
+    const makes = ["Porsche", "Nissan", "BMW", "Toyota", "Mercedes-Benz"];
+    const out = {};
+    for (const mk of makes) {
+      const rows = await q(`sales_archive?select=listing_title,mods:raw_record->>modifications&make=ilike.${enc(mk)}&raw_record->>modifications=ilike.${enc("*turbocharg*")}&limit=300`);
+      out[mk] = { total: rows.length, samples: rows.slice(0, 12).map(r => ({ t: r.listing_title, mods: clip(r.mods) })) };
     }
-    const clip = s => String(s || "").replace(/\s+/g, " ").slice(0, 140);
-    return res.status(200).json({
-      fimod: true,
-      turbo_total: turbo.length, superc_total: superc.length,
-      modelHits_turbo: modelHits,
-      turbo_samples: turbo.slice(0, 45).map(r => ({ t: r.listing_title, mk: r.make, md: r.model, y: r.year, mods: clip(r.mods) })),
-      superc_samples: superc.slice(0, 25).map(r => ({ t: r.listing_title, mods: clip(r.mods) }))
-    });
+    return res.status(200).json({ fimod: true, byMake: out });
   }
   // One Box empty-state proof line: recent real sales for the storefront. Archive-only,
   // no OCD, no gate, no car needed -> answered before every other check.
