@@ -2752,48 +2752,6 @@ export default async function handler(req, res) {
   const apiKey = process.env.OLDCARSDATA_API_KEY;
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-  // TEMP nonce-gated halo-volume audit (per-marque halo-token share of its pool). REMOVE after use.
-  if (req.body?.__halo === "haloaudit-9f2k") {
-    const env = { supabaseUrl, supabaseKey };
-    const cutoff = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
-    const enc = s => encodeURIComponent(s);
-    const wb = tok => new RegExp("(^|[^a-z0-9])" + tok.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "[\\s-]+") + "([^a-z0-9]|$)", "i");
-    // Each pool is the actual halo-aside denominator: a byTitle-badge pool or a byModel pool.
-    const POOLS = [
-      { label: "BMW title~M4", make: "BMW", title: "M4", tokens: ["competition", "gts", "cs", "csl", "sport evolution", "cecotto"] },
-      { label: "BMW title~M3", make: "BMW", title: "M3", tokens: ["competition", "gts", "cs", "csl", "sport evolution", "cecotto"] },
-      { label: "BMW title~M5", make: "BMW", title: "M5", tokens: ["competition", "cs", "csl"] },
-      { label: "Mercedes title~C63", make: "Mercedes-Benz", title: "C63", tokens: ["63", "amg", "black series"] },
-      { label: "Mercedes title~E63", make: "Mercedes-Benz", title: "E63", tokens: ["63", "amg", "black series"] },
-      { label: "Porsche model~911", make: "Porsche", model: "911", tokens: ["gt3 rs", "gt3", "gt2 rs", "gt2", "turbo s", "turbo", "gts", "gt4 rs", "gt4", "speedster", "sport classic", "s/t"] },
-      { label: "Chevrolet title~Corvette", make: "Chevrolet", title: "Corvette", tokens: ["z06", "zr1", "zl1", "z28", "grand sport", "iroc", "callaway"] },
-      { label: "Ford title~Mustang", make: "Ford", title: "Mustang", tokens: ["shelby", "gt500", "gt350", "boss", "svt", "mach 1", "cobra jet"] },
-      { label: "Dodge title~Challenger", make: "Dodge", title: "Challenger", tokens: ["hellcat", "demon", "redeye", "acr", "scat pack", "srt"] },
-      { label: "Dodge title~Charger", make: "Dodge", title: "Charger", tokens: ["hellcat", "demon", "redeye", "scat pack", "srt"] },
-      { label: "Ferrari (marque)", make: "Ferrari", tokens: ["speciale", "scuderia", "pista", "competizione", "tdf", "stradale", "sv", "cs", "xx", "challenge"] },
-      { label: "Lamborghini (marque)", make: "Lamborghini", tokens: ["sv", "superveloce", "svj", "performante", "sto", "tecnica", "jota"] },
-      { label: "Nissan (marque)", make: "Nissan", tokens: ["nismo", "r32", "r33", "r34", "z tune"] },
-      { label: "Toyota (marque)", make: "Toyota", tokens: ["trd pro"] },
-      { label: "Honda title~Civic", make: "Honda", title: "Civic", tokens: ["type r", "type s"] }
-    ];
-    const out = [];
-    for (const p of POOLS) {
-      const url = `sales_archive?select=listing_title&make=ilike.${enc(p.make)}&sale_price=not.is.null&sale_date=gte.${cutoff}` +
-        (p.title ? `&listing_title=ilike.${enc("*" + p.title + "*")}` : "") +
-        (p.model ? `&model=ilike.${enc("*" + p.model + "*")}` : "") +
-        `&order=sale_date.desc&limit=1000`;
-      const rows = (await supabaseSelect(env, url)) || [];
-      const total = rows.length;
-      const per = {};
-      for (const tok of p.tokens) {
-        const re = wb(tok);
-        const n = rows.filter(r => re.test(String(r.listing_title || ""))).length;
-        per[tok] = { n, pct: total ? Math.round((n / total) * 100) : 0 };
-      }
-      out.push({ pool: p.label, total, capped: total === 1000, tokens: per });
-    }
-    return res.status(200).json({ halo: "audit", cutoff, pools: out });
-  }
   // One Box empty-state proof line: recent real sales for the storefront. Archive-only,
   // no OCD, no gate, no car needed -> answered before every other check.
   if (req.body?.oneBoxProof) {
