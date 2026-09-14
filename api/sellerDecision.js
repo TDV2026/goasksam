@@ -3025,12 +3025,14 @@ export default async function handler(req, res) {
     let cacheStatus = "miss";
     // bypassCache forces a fresh fetch (used by cold-fetch measurement harnesses).
     // The budget guards below still gate any metered spend.
-    const bypassCache = req.body?.bypassCache === true;
-    if (activeTxRefine) {
-      fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
-      cacheStatus = fetchResult ? "refine_store" : "refine_store_empty";
-    }
-    if (!fetchResult && !bypassCache && await readMarketFetchCache(vehicle, supabaseUrl, supabaseKey)) {
+    // Defect 5: a transmission refinement re-slices the pool. The store pool is
+    // materially thinner than a fresh ladder fetch, and the split gate fires on
+    // the (rich) pool THIS result was built on, so a refine must rebuild that same
+    // rich pool to stay coherent with the offer, not serve the thin store. It is
+    // rerun-class (no new search credit), user-gated behind a genuine 5+/5+ split,
+    // and still bounded by the daily/monthly OCD budget guards below.
+    const bypassCache = req.body?.bypassCache === true || !!activeTxRefine;
+    if (!bypassCache && await readMarketFetchCache(vehicle, supabaseUrl, supabaseKey)) {
       fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
       cacheStatus = fetchResult ? "hit" : "hit_store_empty_refetched";
     }

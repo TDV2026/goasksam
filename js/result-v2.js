@@ -1102,7 +1102,7 @@ function v2TransmissionRefine(){
     if(!active&&split&&split.auto){
       sellState.txSplitLabels={manual:"manual",auto:split.auto};
       var autoLbl=split.auto;
-      return '<div class="pv2-txrefine"><div class="pv2-txlead">Transmission moves this market. I have enough of each to split it, so I can narrow the read.</div>'
+      return '<div class="pv2-txrefine"><div class="pv2-txlead">Transmission can move this market. I can narrow the read to just the manual or just the automatic cars.</div>'
         +'<div class="pv2-txchips">'
         +'<button type="button" class="pv2-txchip" onclick="v2ApplyTxRefine(\'manual\')">Manual</button>'
         +'<button type="button" class="pv2-txchip" onclick="v2ApplyTxRefine(\'auto\')">'+esc(autoLbl.charAt(0).toUpperCase()+autoLbl.slice(1))+'</button>'
