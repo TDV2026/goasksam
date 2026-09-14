@@ -505,6 +505,14 @@ async function handleOps(req, res) {
     let ingestRuns;
     try { const r = await fetch(`${env.supabaseUrl}/rest/v1/ingest_runs?select=*&limit=3`, { headers: H }); ingestRuns = r.ok ? { exists: true, sample: await r.json() } : { exists: false, httpStatus: r.status, body: (await r.text()).slice(0, 200) }; }
     catch (e) { ingestRuns = { exists: false, error: e.message }; }
+    // 5b) VIN/chassis fill rate for the four live-auction houses (exact-car match depends on it).
+    const vinFill = {};
+    for (const s of ["barrettjackson", "mecum", "bonhams", "broadarrow"]) {
+      try { ocdMetered++; const r = await callOldCarsData("/auctions", { source: s, status: "sold", sort: "date", direction: "desc", page: 1, limit: 20 }, apiKey);
+        const rows = r.data || []; const withVin = rows.filter(x => x.vin && String(x.vin).trim());
+        vinFill[s] = { sampled: rows.length, withVin: withVin.length, samples: withVin.slice(0, 3).map(x => String(x.vin).slice(0, 20)) };
+      } catch (e) { vinFill[s] = { error: e.message }; }
+    }
     // 6) House-source reconciliation: does the stored platform value back out premium?
     // One Box reads sales_archive.platform AS row.source; isHouseSource/HOUSE_SCHEDULES key
     // on slugs. If the archive stores the DISPLAY LABEL ("RM Sotheby's"), the premium
@@ -520,7 +528,7 @@ async function handleOps(req, res) {
         houseCheck[q] = { storedPlatform: r.platform, isHouseSource: mod.isHouseSource(r.platform), price: asRow.price, hammerUsd: mod.hammerUsd(asRow), backedOut: mod.hammerUsd(asRow) !== mod.toUsd(asRow.price, asRow.currency) };
       }
     } catch (e) { houseCheck = { error: e.message }; }
-    return res.status(200).json({ task: "coverage", ocdMetered, ocdSources, archiveTotal, archivePlatforms, archiveSampleDist, vmrTotal, vmrSources, vmrSampleDist, marketplace, ingestRuns, houseCheck });
+    return res.status(200).json({ task: "coverage", ocdMetered, ocdSources, archiveTotal, archivePlatforms, archiveSampleDist, vmrTotal, vmrSources, vmrSampleDist, marketplace, ingestRuns, vinFill, houseCheck });
   }
 
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model

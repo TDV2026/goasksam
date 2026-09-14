@@ -15,7 +15,22 @@ import { callOldCarsData } from "../lib/_ocd.js";
 import { supabaseEnv, supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { isPartsListing } from "../lib/_classify.js";
 
-const DISPLAY = { bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", hagerty: "Hagerty", pcarmarket: "PCARMarket", acc: "All Collector Cars", gooding: "Gooding & Co", rmsothebys: "RM Sotheby's" };
+// All 19 OCD live sources (Sep 2026). Slugs are OCD's own /auctions?source= values,
+// verified live. The four live-auction houses (barrettjackson, mecum, bonhams, broadarrow)
+// already have premium schedules in lib/_houseComps.js. NOTE (launch blocker, reported
+// separately): One Box keys house premium back-out on the source SLUG, but sales_archive
+// stores the DISPLAY LABEL in `platform`, so isHouseSource never matches "RM Sotheby's" /
+// "Gooding & Co" etc. The houses must NOT be relied on in comp pools until that
+// label/slug mismatch is fixed, or their premium-inclusive prices distort the pool.
+const DISPLAY = {
+  bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", hagerty: "Hagerty",
+  pcarmarket: "PCARMarket", acc: "All Collector Cars", gooding: "Gooding & Co",
+  rmsothebys: "RM Sotheby's", hemmings: "Hemmings", sothebysmotorsport: "Sotheby's Motorsport",
+  mbmarket: "MB Market", autohunter: "AutoHunter",
+  barrettjackson: "Barrett-Jackson", mecum: "Mecum Auctions", bonhams: "Bonhams",
+  broadarrow: "Broad Arrow", carandclassic: "Car & Classic", collectingcars: "Collecting Cars",
+  themarket: "The Market", pistonheads: "PistonHeads"
+};
 const ALL_SOURCES = Object.keys(DISPLAY);
 
 const args = process.argv.slice(2);
