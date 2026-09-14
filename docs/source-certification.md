@@ -28,12 +28,15 @@ Premium back-out verified live 2026-09-14 (RM/Gooding rows: `isHouseSource: true
 
 | Source (slug) | Latest | Archive rows | VIN capture (20-sample) | Currency | Schedule used | Published (2026) | APPROVED FOR MATH |
 |---|---|---|---|---|---|---|---|
-| RM Sotheby's (rmsothebys) | 08-15 | 8,560 | high | USD/EUR/GBP | US 12%/10%@$250k; EU 15%/12.5%@€200k | Scottsdale/Miami/Monterey motor cars 12%/10%@$250k; Paris 15%/12.5%@€200k **+20% VAT** | **YES** (see VAT caveat) |
+| RM Sotheby's US (rmsothebys, USD) | 08-15 | 8,560 | high | USD | 12%/10%@$250k | Scottsdale/Miami/Monterey motor cars 12%/10%@$250k | **YES** ✅ exact |
+| RM Sotheby's EU (rmsothebys, EUR/GBP) | 08-15 | (in 8,560) | high | EUR/GBP | 15%/12.5%@€200k | Paris 15%/12.5%@€200k **+20% VAT** | **NO** — VAT unconfirmed; 0 EUR lots in recent window to test; needs a deeper RM Paris pull |
 | Gooding Christie's (gooding) | 08-15 | 2,645 | high | USD | 12%/10%@$250k | 12%/10%@$250k (US) | **YES** ✅ exact |
-| Bonhams (bonhams) | 08-13 | — | 18/20 | USD/GBP/EUR | 12%/10%@$250k (all currencies) | US 12%/10%@$250k; **UK 15%/12%@£500k**; **France flat 15%** | **NO** — non-USD schedule disagrees; backfill pending |
-| Broad Arrow (broadarrow) | 05-18 | — | 19/20 | USD/EUR | US 12%/10%@$250k; EU 15%/12.5%@€200k | US 12%/10%@$250k (confirmed); EU TBD | **NO** — backfill pending; EU terms unconfirmed |
-| Barrett-Jackson (barrettjackson) | 09-12 | — | 20/20 | USD | flat 10% | ~10% onsite baseline; **up to 12–13.5% by bid channel / payment** | **NO** — backfill pending; channel variation not modeled |
-| Mecum (mecum) | 07-25 | — | 17/20 | USD | flat 10% | ~10% (one 2026 lot confirms exactly; a second implied ~5% — likely approximate) | **NO** — backfill pending; re-verify high-value tier |
+| Bonhams US (bonhams, USD) | 08-13 | — | 18/20 | USD | 12%/10%@$250k | US 12%/10%@$250k | **YES** ✅ (backfill pending) |
+| Bonhams UK/FR (bonhams, GBP/EUR) | 08-13 | — | 18/20 | GBP/EUR | **NEW:** UK 15%/12%@£500k; FR flat 15% | UK 15%/12%@£500k; France flat 15% | **NO** — region schedule now built; approve after 3-lot verify per region post-backfill |
+| Broad Arrow US (broadarrow, USD) | 05-18 | — | 19/20 | USD | 12%/10%@$250k | US 12%/10%@$250k | **YES** ✅ exact (backfill pending) |
+| Broad Arrow EU (broadarrow, EUR) | 05-18 | — | 19/20 | EUR | 15%/12.5%@€200k | EU terms unconfirmed | **NO** — EU terms TBD |
+| Barrett-Jackson (barrettjackson) | 09-12 | — | 20/20 | USD | flat 10% | **10% confirmed: 100/100 lots back out to round $500 hammers at 10%** (12%→9/100, 13.5%→8/100) | **YES** ✅ flat 10% (backfill pending) |
+| Mecum (mecum) | 07-25 | — | 17/20 | USD | flat 10% | **10% confirmed: 19/20 lots round at 10%** | **YES** ✅ flat 10% (backfill pending) |
 
 ## Schedule verification — agreement / disagreement (task #2)
 
