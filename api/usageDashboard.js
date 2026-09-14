@@ -481,8 +481,11 @@ async function handleOps(req, res) {
       try { ocdMetered++; const r = await callOldCarsData("/auctions", { source: s, status: "sold", sort: "date", direction: "desc", page: 1, limit: 1 }, apiKey);
         const rec = (r.data || [])[0] || null;
         const vinField = rec ? (rec.vin || rec.chassis || rec.chassis_number || rec.vin_number || null) : null;
+        const geoKeys = rec ? Object.keys(rec).filter(k => /countr|locat|venue|city|state|region|address|lot|currenc/i.test(k)) : [];
+        const geoVals = {}; if (rec) for (const k of geoKeys) geoVals[k] = rec[k] == null ? null : String(rec[k]).slice(0, 30);
         ocdSources[s] = { total: r.meta?.total_results ?? r.meta?.total ?? (r.data || []).length, latest: rec?.auction_end_date || null, hasData: (r.data || []).length > 0,
-          vinSample: vinField ? String(vinField).slice(0, 20) : null, vinKeys: rec ? Object.keys(rec).filter(k => /vin|chassis/i.test(k)) : [], currencySample: rec?.currency || null };
+          vinSample: vinField ? String(vinField).slice(0, 20) : null, vinKeys: rec ? Object.keys(rec).filter(k => /vin|chassis/i.test(k)) : [], currencySample: rec?.currency || null,
+          geoVals, allKeys: (req.query?.keys && rec) ? Object.keys(rec) : undefined };
       } catch (e) { ocdSources[s] = { error: e.message }; }
     }
     // 2) sales_archive per platform label (One Box comp source) + distinct sample.
