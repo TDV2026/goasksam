@@ -2995,10 +2995,23 @@ export default async function handler(req, res) {
         const a = analyze(recs, cls, buildLadder(vehicle, generation), vehicle, false);
         return { evidenceSales: a.evidenceSales, landed: a.ladder?.landed ? { key: a.ladder.landed.key, sales: a.ladder.landed.sales, thresholdMet: a.ladder.landed.thresholdMet } : null, walk: (a.ladder?.rungs || []).map(x => ({ key: x.key, sales: x.sales, met: x.met })) };
       };
+      // For the freshOnly records: their model field, and a DIRECT DB existence
+      // probe by source_record_id, to tell a PERSIST gap (not in DB) from a QUERY
+      // gap (in DB but the store read didn't match it).
+      const foSample = freshOnly.slice(0, 8).map(r => ({ model: modelField(r), platform: recordPlatform(r), id: String(sourceRecordId(r)), date: r.auction_end_date || null }));
+      for (const s of foSample) {
+        try {
+          const hit = await supabaseSelect({ supabaseUrl, supabaseKey }, `vehicle_market_records?source_record_id=eq.${encodeURIComponent(s.id)}&select=make,model&limit=1`);
+          s.inDb = Array.isArray(hit) && hit.length > 0;
+          s.dbModel = s.inDb ? (hit[0].model || null) : null;
+        } catch (e) { s.inDb = "probe_err"; }
+      }
       return res.status(200).json({
         status: "pool_diag",
         vehicle: { make: vehicle.make, model: vehicle.model, year: vehicle.year, trim: vehicle.trim || null },
         maxWindowDays: days(Math.max(...ANALYSIS_WINDOWS_DAYS, ...SELLER_ACTIVITY_WINDOWS_DAYS)),
+        freshOnlySample: foSample,
+        freshOnlyModelDist: dist(freshOnly),
         fresh: { total: freshRecs.length, inWindow180: freshRecs.filter(inWin).length, metered: fresh.meteredRequests, modelKeyPresence: keyPresence(freshRecs), modelDist: dist(freshRecs), analysis: runLadder(freshRecs) },
         store: { total: storeRecs.length, inWindow180: storeRecs.filter(inWin).length, modelKeyPresence: keyPresence(storeRecs), modelDist: dist(storeRecs), analysis: runLadder(storeRecs) },
         gap: {
