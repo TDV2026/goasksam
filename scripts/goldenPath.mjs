@@ -5,6 +5,7 @@
 // = those UI scenarios only. Writes scripts/gp-out/<n>.json + png for UI runs.
 import puppeteer from "puppeteer-core";
 import fs from "node:fs";
+import { resolveVehicle } from "../lib/vehicle.js";
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const BASE = "https://goasksam.com";
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -151,6 +152,25 @@ async function resolverChecks() {
   for (const [vin, make, model] of [["WP0AB2A99KS123456", "Porsche", "911"], ["1G1YY22G965105633", "Chevrolet", "Corvette"]]) {
     const j = await resolve(vin); const v = j.vehicle || {}; check(`B9 VIN ${vin} -> ${make} ${model}`, v.make === make && rx(model).test(String(v.model || "")), `status=${j.status} make=${v.make} model=${v.model}`);
   }
+  // B10: the reader's live "928 S4" session (Sep 2026 defect report). Locks the four
+  // resolver-level fixes so this exact session can never regress:
+  //  - trim retention on typed input: "928 s4" keeps S4 (was dropped to bare 928)
+  //  - two-digit year is century-sensible: "88" -> 1988, NEVER 2088
+  //  - no make drift: an S4 on an established Porsche stays Porsche (never Audi S4)
+  //  - the recovered final input resolves clean
+  // B10 runs the resolver DIRECTLY (imported), not over the network like B8/B9,
+  // so it stays a green gate even when the production WAF challenges node fetch.
+  console.log(`\n### B10 reader "928 S4" session (trim retention + two-digit year + no make drift)`);
+  {
+    let j = await resolveVehicle("928 s4"); let v = j.vehicle || {};
+    check(`B10 "928 s4" -> Porsche 928 S4 (trim kept)`, v.make === "Porsche" && rx("928").test(String(v.model || "")) && rx("S4").test(String(v.trim || "")), `make=${v.make} model=${v.model} trim=${v.trim}`);
+    j = await resolveVehicle("88 928 S4"); v = j.vehicle || {};
+    check(`B10 "88 928 S4" -> 1988 (not 2088), trim S4`, v.year === 1988 && v.make === "Porsche" && rx("928").test(String(v.model || "")) && rx("S4").test(String(v.trim || "")), `year=${v.year} make=${v.make} model=${v.model} trim=${v.trim}`);
+    j = await resolveVehicle("an 88 928 S4"); v = j.vehicle || {};
+    check(`B10 "an 88 928 S4" -> valid 1988 Porsche 928 S4`, j.status === "valid" && v.year === 1988 && v.make === "Porsche" && rx("S4").test(String(v.trim || "")), `status=${j.status} year=${v.year} make=${v.make} trim=${v.trim}`);
+    j = await resolveVehicle("Porsche 928 S4"); v = j.vehicle || {};
+    check(`B10 "Porsche 928 S4" -> stays Porsche (no Audi drift)`, v.make === "Porsche" && rx("928").test(String(v.model || "")), `make=${v.make} model=${v.model}`);
+  }
   return fails;
 }
 
@@ -196,7 +216,7 @@ if (runUi) {
 }
 const totalFails = resolverFails + uiFails;
 console.log(`\n==== GOLDEN PATH SUMMARY ====`);
-if (runResolver) console.log(`Resolver: ${15 - resolverFails}/15 pass (${resolverFails} fail)`);
+if (runResolver) console.log(`Resolver: ${19 - resolverFails}/19 pass (${resolverFails} fail)`);
 if (runUi) console.log(`UI scenarios: ${uiPass}/${uiTotal} pass (${uiFails} fail)`);
 console.log(totalFails ? `\n${totalFails} TOTAL FAILURE(S)` : `\nALL PASS`);
 process.exit(totalFails ? 1 : 0);
