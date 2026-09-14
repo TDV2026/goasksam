@@ -2972,20 +2972,26 @@ export default async function handler(req, res) {
       const freshKeys = new Set(freshRecs.map(keyOf));
       const freshOnly = freshRecs.filter(r => !storeKeys.has(keyOf(r)));
       const storeOnly = storeRecs.filter(r => !freshKeys.has(keyOf(r)));
-      const dist = recs => { const m = {}; for (const r of recs) { const k = String(r.model || r.raw_record?.model || "?"); m[k] = (m[k] || 0) + 1; } return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 15); };
-      const sample = recs => recs.slice(0, 12).map(r => ({ model: r.model || null, platform: recordPlatform(r), id: sourceRecordId(r), date: r.auction_end_date || null, daysAgo: daysAgo(r.auction_end_date), inWin180: inWin(r) }));
+      const modelField = r => String(r.ocd_model_name || r.listing_model || r.model || (r.raw_record && (r.raw_record.ocd_model_name || r.raw_record.listing_model || r.raw_record.model)) || "?");
+      const dist = recs => { const m = {}; for (const r of recs) { const k = modelField(r); m[k] = (m[k] || 0) + 1; } return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 15); };
+      // Which model-field key is actually populated on each pool's records?
+      const keyPresence = recs => { const c = { ocd_model_name: 0, listing_model: 0, model: 0, none: 0 }; for (const r of recs) { if (r.ocd_model_name) c.ocd_model_name++; else if (r.listing_model) c.listing_model++; else if (r.model) c.model++; else c.none++; } return c; };
+      // Run the SAME analysis both pools drive live, so the landed rung is comparable.
+      const runLadder = recs => {
+        const cls = recs.map(r => classifyRecord(r, vehicle));
+        const a = analyze(recs, cls, buildLadder(vehicle, generation), vehicle, false);
+        return { evidenceSales: a.evidenceSales, landed: a.ladder?.landed ? { key: a.ladder.landed.key, sales: a.ladder.landed.sales, thresholdMet: a.ladder.landed.thresholdMet } : null, walk: (a.ladder?.rungs || []).map(x => ({ key: x.key, sales: x.sales, met: x.met })) };
+      };
       return res.status(200).json({
         status: "pool_diag",
         vehicle: { make: vehicle.make, model: vehicle.model, year: vehicle.year, trim: vehicle.trim || null },
         maxWindowDays: days(Math.max(...ANALYSIS_WINDOWS_DAYS, ...SELLER_ACTIVITY_WINDOWS_DAYS)),
-        fresh: { total: freshRecs.length, inWindow180: freshRecs.filter(inWin).length, metered: fresh.meteredRequests, passes: (fresh.passSummary || []).map(p => ({ name: p.name, added: p.added, fetched: p.fetched })), modelDist: dist(freshRecs) },
-        store: { total: storeRecs.length, inWindow180: storeRecs.filter(inWin).length, modelDist: dist(storeRecs) },
+        fresh: { total: freshRecs.length, inWindow180: freshRecs.filter(inWin).length, metered: fresh.meteredRequests, modelKeyPresence: keyPresence(freshRecs), modelDist: dist(freshRecs), analysis: runLadder(freshRecs) },
+        store: { total: storeRecs.length, inWindow180: storeRecs.filter(inWin).length, modelKeyPresence: keyPresence(storeRecs), modelDist: dist(storeRecs), analysis: runLadder(storeRecs) },
         gap: {
           freshOnlyCount: freshOnly.length,
           freshOnlyInWindow180: freshOnly.filter(inWin).length,
-          storeOnlyCount: storeOnly.length,
-          freshOnlySample: sample(freshOnly),
-          freshOnlyModelDist: dist(freshOnly)
+          storeOnlyCount: storeOnly.length
         }
       });
     }
