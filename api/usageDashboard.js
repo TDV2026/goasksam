@@ -534,6 +534,43 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "coverage", ocdMetered, ocdSources, archiveTotal, archivePlatforms, archiveSampleDist, vmrTotal, vmrSources, vmrSampleDist, marketplace, ingestRuns, vinFill, houseCheck });
   }
 
+  // task=houserates: empirical premium-rate calibration. A correct back-out rate turns a
+  // premium-INCLUSIVE total into a ROUND hammer (auction hammers land on $500/$1000 steps).
+  // Tests candidate rates and reports which reproduces round hammers most often. Also
+  // screens PistonHeads for asking-price/classified rows. Metered (~6 OCD calls). No writes.
+  if (task === "houserates") {
+    const inv = (total, tiers) => { let lo = 0, ft = 0; for (const [th, rate] of tiers) { const span = th - lo, top = ft + span * (1 + rate); if (total <= top || !Number.isFinite(th)) return lo + (total - ft) / (1 + rate); lo = th; ft = top; } return total; };
+    const roundHits = (hammers, step) => hammers.filter(h => { const r = Math.round(h); return Math.abs(r - Math.round(r / step) * step) <= 25; }).length;
+    const pull = async (source, pages) => { const out = []; for (let p = 1; p <= pages; p++) { try { const r = await callOldCarsData("/auctions", { source, status: "sold", sort: "date", direction: "desc", page: p, limit: 50 }, apiKey); out.push(...(r.data || [])); } catch (e) { break; } } return out; };
+    const out = {};
+    // Barrett-Jackson: flat 10 / 12 / 13.5
+    { const rows = (await pull("barrettjackson", 2)).filter(r => Number(r.price) > 0);
+      const prices = rows.map(r => Number(r.price));
+      out.barrettjackson = { lots: prices.length };
+      for (const rate of [0.10, 0.12, 0.135]) { const hs = prices.map(p => p / (1 + rate)); out.barrettjackson["rate_" + rate] = { round500: roundHits(hs, 500), round1000: roundHits(hs, 1000) }; }
+      out.barrettjackson.sampleTotals = prices.slice(0, 5);
+    }
+    // Mecum: flat 10
+    { const rows = (await pull("mecum", 1)).filter(r => Number(r.price) > 0).slice(0, 20);
+      const prices = rows.map(r => Number(r.price));
+      const hs = prices.map(p => p / 1.10);
+      out.mecum = { lots: prices.length, "rate_0.10": { round500: roundHits(hs, 500), round1000: roundHits(hs, 1000) }, sampleTotals: prices.slice(0, 5) }; }
+    // RM Paris EUR: EU_200 no-VAT vs +20% VAT on premium
+    { const rows = (await pull("rmsothebys", 3)).filter(r => Number(r.price) > 0 && String(r.currency).toUpperCase() === "EUR").slice(0, 20);
+      const prices = rows.map(r => Number(r.price));
+      const EU = [[200000, 0.15], [Infinity, 0.125]];
+      // no-VAT: total = hammer + premium(hammer). with-VAT: total = hammer + 1.2*premium(hammer).
+      const EU_VAT = [[200000, 0.15 * 1.2], [Infinity, 0.125 * 1.2]];
+      const hsNo = prices.map(p => inv(p, EU)); const hsVat = prices.map(p => inv(p, EU_VAT));
+      out.rmParisEUR = { lots: prices.length, noVat_round500: roundHits(hsNo, 500), withVat_round500: roundHits(hsVat, 500), sampleTotals: prices.slice(0, 5) }; }
+    // PistonHeads classified/asking-price screen
+    { const rows = await pull("pistonheads", 3);
+      const askRe = /for sale|asking|guide price|\bono\b|classified|p\.?o\.?a/i;
+      const flagged = rows.filter(r => askRe.test(String(r.title || "")) || !r.auction_end_date || Number(r.price) <= 0);
+      out.pistonheads = { sampled: rows.length, flagged: flagged.length, noEndDate: rows.filter(r => !r.auction_end_date).length, zeroPrice: rows.filter(r => !(Number(r.price) > 0)).length, sampleTitles: flagged.slice(0, 5).map(r => String(r.title || "").slice(0, 50)) }; }
+    return res.status(200).json({ task: "houserates", ...out });
+  }
+
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
