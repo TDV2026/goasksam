@@ -30,7 +30,13 @@ function v2Fill(t,slots){ return String(t).replace(/\{(\w+)\}/g,function(_,k){ r
 // ---------- rung-bound scope ----------
 function v2Landed(){ try{ return (sellState.sellDecision&&sellState.sellDecision.evidence&&sellState.sellDecision.evidence.ladder&&sellState.sellDecision.evidence.ladder.landed)||{}; }catch(e){ return {}; } }
 function v2GenCode(){ var l=v2Landed(); return (l.generationCode)||(sellState.sellDecision&&sellState.sellDecision.evidence&&sellState.sellDecision.evidence.generation&&sellState.sellDecision.evidence.generation.code)||null; }
-function v2RungKind(){ var k=String(v2Landed().key||""); if(/exact_year/.test(k))return "exact"; if(/generation/.test(k))return "generation"; if(/segment/.test(k))return "segment"; if(/make/.test(k))return "make"; return "model"; }
+function v2RungKind(){ var l=v2Landed(), k=String(l.key||"");
+  // A THIN exact/generation rung (thresholdMet false) means the market read widened past it, so the
+  // scope tile must not claim "This exact year"/"{gen} Generation" - it reflects the widened rung
+  // (model), matching the "widened to the model" narrative. A rung that MET threshold keeps its label.
+  if(/exact_year/.test(k))return l.thresholdMet===false?"model":"exact";
+  if(/generation/.test(k))return l.thresholdMet===false?"model":"generation";
+  if(/segment/.test(k))return "segment"; if(/make/.test(k))return "make"; return "model"; }
 function v2Pl(w){ w=String(w||""); return /([sxz]|ch|sh)$/i.test(w)?w+"es":w+"s"; }
 // "Series"-style model names read as a category and never take a plural suffix:
 // "3-Series"/"6-Series" (never "6-Seriess"/"6-Serieses"), exactly like the word
