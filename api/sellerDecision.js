@@ -3044,6 +3044,26 @@ export default async function handler(req, res) {
       });
     }
 
+    // Cache-hit ratio (Sep 2026): how often real /sell searches serve from the
+    // store vs a fresh metered fetch. Reads logged seller_decision events; no writes.
+    if (req.body?.cacheStats) {
+      const rows = await supabaseSelect({ supabaseUrl, supabaseKey }, `app_usage_events?event_type=eq.seller_decision&select=metadata,created_at&order=created_at.desc&limit=3000`);
+      const tally = {}; let total = 0; let hitLike = 0;
+      for (const r of (rows || [])) {
+        const c = String(r.metadata?.marketFetchCache || "unknown");
+        tally[c] = (tally[c] || 0) + 1; total++;
+        if (/^hit|refine_store|store$/.test(c)) hitLike++;
+      }
+      return res.status(200).json({
+        status: "cache_stats",
+        totalSellerDecisions: total,
+        cacheHitRatePct: total ? Math.round((hitLike / total) * 1000) / 10 : null,
+        byStatus: Object.entries(tally).sort((a, b) => b[1] - a[1]),
+        oldest: (rows || []).slice(-1)[0]?.created_at || null,
+        newest: (rows || [])[0]?.created_at || null
+      });
+    }
+
     // Reserve-window simulation (debug/audit only, no OCD calls): compares the
     // reserve-cell render surface at a 1-month vs rolling-3-month window over
     // sales_archive, keeping the 10/10 per-side gate unchanged. Answers the gate
