@@ -1217,10 +1217,15 @@ async function handleVehicleValidationAnswer(q){
     // original raw, re-resolve the ORIGINAL text with the corrected year so any
     // model detail dropped by a mis-parse (e.g. "718") comes back, instead of
     // combining the lossy base label with the year.
+    // Two-digit year resolves to the sensible century (>=30 -> 19xx, else 20xx), never a hard
+    // 2000+NN that invents a year the car was never built in ("88" -> 1988, not 2088).
+    const twoDigit=q.trim().replace(/'/,"");
     const yr=(q.match(/\b(19|20)\d{2}\b/)||[])[0]
-      ||(/^'?\d{2}$/.test(q.trim())?String(2000+Number(q.trim().replace(/'/,""))):null);
+      ||(/^'?\d{2}$/.test(q.trim())?String(Number(twoDigit)>=30?1900+Number(twoDigit):2000+Number(twoDigit)):null);
     if(yr&&currentIssue.rawInput){
-      const stripped=String(currentIssue.rawInput).replace(/^\s*\d{1,4}\b[\s,]*/,"").trim();
+      // Strip ONLY a leading YEAR-shaped token (2-digit or 19xx/20xx) that was mis-parsed - NEVER
+      // a 3-digit model number like "928", which would leave "s4" and drift the make to Audi.
+      const stripped=String(currentIssue.rawInput).replace(/^\s*(?:'?\d{2}|(?:19|20)\d{2})\b[\s,]*/,"").trim();
       const recovered=`${yr} ${stripped}`.replace(/\s+/g," ").trim();
       const base=normalizeVehicleAnswer(currentIssue.baseVehicle||"");
       // Only take the recovery path when the raw actually carries extra detail.
