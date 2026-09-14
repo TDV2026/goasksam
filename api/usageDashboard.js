@@ -468,13 +468,21 @@ async function handleOps(req, res) {
         return { count: total, latest: (Array.isArray(rows) && rows[0] && rows[0][dateCol]) || null };
       } catch (e) { return { error: e.message }; }
     };
-    // 1) OCD source universe - probe each candidate source for total + latest.
+    // 1) OCD source universe - probe each candidate source for total + latest + VIN/chassis.
     const ocdSources = {};
-    const ocdCandidates = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "sothebys", "goodingco"];
+    const ocdCandidates = req.query?.slugs ? String(req.query.slugs).split(",").map(s => s.trim()).filter(Boolean) : [
+      "bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter",
+      // the eight new candidates + common slug variants
+      "barrettjackson", "barrett-jackson", "mecum", "mecumauctions", "bonhams", "broadarrow", "broad-arrow", "broadarrowauctions",
+      "carandclassic", "car-and-classic", "carclassic", "collectingcars", "collecting-cars", "themarket", "the-market", "themarketbybonhams", "pistonheads", "piston-heads"
+    ];
     let ocdMetered = 0;
     for (const s of ocdCandidates) {
       try { ocdMetered++; const r = await callOldCarsData("/auctions", { source: s, status: "sold", sort: "date", direction: "desc", page: 1, limit: 1 }, apiKey);
-        ocdSources[s] = { total: r.meta?.total_results ?? r.meta?.total ?? (r.data || []).length, latest: (r.data || [])[0]?.auction_end_date || null, hasData: (r.data || []).length > 0 };
+        const rec = (r.data || [])[0] || null;
+        const vinField = rec ? (rec.vin || rec.chassis || rec.chassis_number || rec.vin_number || null) : null;
+        ocdSources[s] = { total: r.meta?.total_results ?? r.meta?.total ?? (r.data || []).length, latest: rec?.auction_end_date || null, hasData: (r.data || []).length > 0,
+          vinSample: vinField ? String(vinField).slice(0, 20) : null, vinKeys: rec ? Object.keys(rec).filter(k => /vin|chassis/i.test(k)) : [], currencySample: rec?.currency || null };
       } catch (e) { ocdSources[s] = { error: e.message }; }
     }
     // 2) sales_archive per platform label (One Box comp source) + distinct sample.
