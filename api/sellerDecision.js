@@ -1276,15 +1276,28 @@ function computeTransmissionSplit(items, make) {
   return { manual: "manual", auto, manualCount: man.length, autoCount: aut.length };
 }
 
-function analyze(records, classifications, ladder, vehicle, debug) {
+function analyze(records, classifications, ladder, vehicle, debug, txFilter) {
   const pairedRecords = records.map((record, index) => ({ record, classification: classifications[index] }));
   const maxWindow = ANALYSIS_WINDOWS_DAYS[ANALYSIS_WINDOWS_DAYS.length - 1];
   const { walk, landed, thin } = evaluateLadder(pairedRecords, ladder, vehicle);
   const windowDays = landed?.windowDays ?? maxWindow;
 
-  const inWindow = pairedRecords
+  // Defect 5: the transmission earned-gate narrows WITHIN the rung the ladder
+  // already landed on (computed just above, on the FULL pool). Filtering raw
+  // records BEFORE the ladder would let it re-land on a different, narrower rung
+  // (the split gate would promise 34 manual sales, then the refine collapses to a
+  // 5-sale generation rung). So the rung stays fixed and every downstream tally,
+  // median and pick is recomputed over just the chosen transmission. Records with
+  // no readable transmission drop out of a narrowed read. txSplitBase keeps the
+  // UNFILTERED evidence set so the split gate itself is computed on the real pool.
+  const txPass = txFilter === "manual" ? (it => TX_MANUAL(recordTransmission(it.record)))
+    : txFilter === "auto" ? (it => TX_AUTO(recordTransmission(it.record)))
+    : null;
+  const applyTx = arr => txPass ? arr.filter(txPass) : arr;
+
+  const inWindow = applyTx(pairedRecords
     .filter(item => daysAgo(item.record.auction_end_date) <= windowDays)
-    .filter(item => item.classification.comparison_tier !== "excluded");
+    .filter(item => item.classification.comparison_tier !== "excluded"));
   const excludedRecords = pairedRecords
     .filter(item => item.classification.comparison_tier === "excluded");
   // Evidence tallies count ALLOWLISTED sources only (July 2026): white-glove
@@ -1301,9 +1314,9 @@ function analyze(records, classifications, ladder, vehicle, debug) {
   // strongerNonRoutable pre-note; evidenceSetAllowed is the allowlisted subset
   // that drives every tally, denominator and confidence number.
   const evidenceSet = landed
-    ? pairedRecords.filter(item =>
+    ? applyTx(pairedRecords.filter(item =>
         daysAgo(item.record.auction_end_date) <= windowDays && ladderEligible(item, landed.definition)
-      )
+      ))
     : [];
   const evidenceSetAllowed = evidenceSet.filter(item => isEvidenceSource(item.record, vehicle));
 
@@ -1321,10 +1334,10 @@ function analyze(records, classifications, ladder, vehicle, debug) {
   // Momentum: the landed rung's comps in the prior equal-length window, per
   // platform. Only rendered when both windows carry a real sample.
   const priorWindowSet = landed
-    ? pairedRecords.filter(item => {
+    ? applyTx(pairedRecords.filter(item => {
         const age = daysAgo(item.record.auction_end_date);
         return age > windowDays && age <= windowDays * 2 && ladderEligible(item, landed.definition);
-      })
+      }))
     : [];
 
   const totalEvidenceSales = evidenceSetAllowed.length;
@@ -3155,14 +3168,7 @@ export default async function handler(req, res) {
     if (fetchResult.rateLimit && fetchResult.rateLimit.remaining != null) {
       await persistOcdRateLimit(fetchResult.rateLimit, supabaseUrl, supabaseKey);
     }
-    // Defect 5: narrow to the chosen transmission before anything downstream sees
-    // the pool. Records with no readable transmission drop out of a refined view
-    // (we only ever narrow to sales we can positively attribute to manual/auto).
-    const records = activeTxRefine
-      ? fetchResult.records.filter(r => activeTxRefine === "manual"
-          ? TX_MANUAL(recordTransmission(r))
-          : TX_AUTO(recordTransmission(r)))
-      : fetchResult.records;
+    const records = fetchResult.records;
 
     // DATA UNAVAILABLE (Aug 2026): a STARVED fetch must never render as a thin
     // market. Only when we pulled nothing AND the store fallback was also empty
@@ -3218,7 +3224,7 @@ export default async function handler(req, res) {
       ? { skipped: true, cached: true, idLookup: await lookupMarketRecordIds(records, supabaseUrl, supabaseKey) }
       : await persistRawRecords(records, supabaseUrl, supabaseKey);
     const classificationPersistence = await persistClassifications(records, classifications, rawPersistence.idLookup, supabaseUrl, supabaseKey);
-    const analysis = analyze(records, classifications, fetchResult.ladder, vehicle, req.body?.debug === true);
+    const analysis = analyze(records, classifications, fetchResult.ladder, vehicle, req.body?.debug === true, activeTxRefine);
 
     // Sell-through removed (1b): our search-path records are sold-only, so a
     // sold/listed rate cannot be computed. The old segmentSellThrough was the
