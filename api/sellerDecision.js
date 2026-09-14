@@ -2956,6 +2956,40 @@ export default async function handler(req, res) {
       });
     }
 
+    // Pool-depth diagnostic (Sep 2026): runs the FRESH ladder fetch and the STORE
+    // (cache-hit) fetch side by side for the same vehicle and reports the gap plus
+    // WHY, so the cache-vs-fresh thinning is measured on real data, not guessed.
+    // Metered (a real fresh fetch), so crew/probe-gated in practice; no DB writes.
+    if (req.body?.poolDiag) {
+      const days = n => n >= 36500 ? "all" : n;
+      const keyOf = r => sourceRecordKey(recordPlatform(r), sourceRecordId(r));
+      const inWin = r => daysAgo(r.auction_end_date) <= 180;
+      const fresh = await fetchRecentRecords(vehicle, apiKey, generation);
+      const store = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
+      const freshRecs = fresh.records || [];
+      const storeRecs = (store && store.records) || [];
+      const storeKeys = new Set(storeRecs.map(keyOf));
+      const freshKeys = new Set(freshRecs.map(keyOf));
+      const freshOnly = freshRecs.filter(r => !storeKeys.has(keyOf(r)));
+      const storeOnly = storeRecs.filter(r => !freshKeys.has(keyOf(r)));
+      const dist = recs => { const m = {}; for (const r of recs) { const k = String(r.model || r.raw_record?.model || "?"); m[k] = (m[k] || 0) + 1; } return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 15); };
+      const sample = recs => recs.slice(0, 12).map(r => ({ model: r.model || null, platform: recordPlatform(r), id: sourceRecordId(r), date: r.auction_end_date || null, daysAgo: daysAgo(r.auction_end_date), inWin180: inWin(r) }));
+      return res.status(200).json({
+        status: "pool_diag",
+        vehicle: { make: vehicle.make, model: vehicle.model, year: vehicle.year, trim: vehicle.trim || null },
+        maxWindowDays: days(Math.max(...ANALYSIS_WINDOWS_DAYS, ...SELLER_ACTIVITY_WINDOWS_DAYS)),
+        fresh: { total: freshRecs.length, inWindow180: freshRecs.filter(inWin).length, metered: fresh.meteredRequests, passes: (fresh.passSummary || []).map(p => ({ name: p.name, added: p.added, fetched: p.fetched })), modelDist: dist(freshRecs) },
+        store: { total: storeRecs.length, inWindow180: storeRecs.filter(inWin).length, modelDist: dist(storeRecs) },
+        gap: {
+          freshOnlyCount: freshOnly.length,
+          freshOnlyInWindow180: freshOnly.filter(inWin).length,
+          storeOnlyCount: storeOnly.length,
+          freshOnlySample: sample(freshOnly),
+          freshOnlyModelDist: dist(freshOnly)
+        }
+      });
+    }
+
     // Reserve-window simulation (debug/audit only, no OCD calls): compares the
     // reserve-cell render surface at a 1-month vs rolling-3-month window over
     // sales_archive, keeping the 10/10 per-side gate unchanged. Answers the gate
