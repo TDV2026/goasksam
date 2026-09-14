@@ -85,7 +85,10 @@ async function showSellRecommendation(opts){
           timeline:sellState.timeline,
           involvement:sellState.involvement,
           sellerPreference:sellState.sellerPreference,
-          notes:sellState.notes
+          notes:sellState.notes,
+          // Defect 5: an active transmission refinement re-slices the same paid
+          // pool (rerun-class, no new credit). Absent on the first search.
+          refine:(sellState.txRefine==="manual"||sellState.txRefine==="auto")?{tx:sellState.txRefine}:undefined
         },
         anonSessionId:(typeof gasAnonId==="function"?gasAnonId():null),
         journeyId:(typeof gasJourneyId==="function"?gasJourneyId(sellState.resolvedVehicle):null),

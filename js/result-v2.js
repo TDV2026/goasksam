@@ -1080,6 +1080,58 @@ function v2GuardChatAnswer(text){
 }
 
 // ---- FULL PAGE COMPOSER ----
+// Defect 5: the transmission earned-gate on /sell, mirroring One Box. Renders
+// ONLY when the engine reports a material split (5+ manual AND 5+ automatic in
+// the evidence pool). Two chips narrow the SAME already-paid pool (rerun-class,
+// no new search credit). Once narrowed, the engine reports no split, so the
+// active view offers a switch/clear instead of re-asking. The auto-side label
+// (PDK / Tiptronic / automatic) is stashed on the split render so the narrowed
+// view can still name both sides after the split itself drops to null.
+function v2TxAutoLabel(){
+  try{
+    var l=sellState.txSplitLabels;
+    return (l&&l.auto)||"automatic";
+  }catch(e){ return "automatic"; }
+}
+function v2TransmissionRefine(){
+  try{
+    var ev=(sellState.sellDecision&&sellState.sellDecision.evidence)||{};
+    var split=ev.transmissionSplit;
+    var active=ev.transmissionRefine==="manual"||ev.transmissionRefine==="auto"?ev.transmissionRefine:null;
+    var esc=escapeHtml;
+    if(!active&&split&&split.auto){
+      sellState.txSplitLabels={manual:"manual",auto:split.auto};
+      var autoLbl=split.auto;
+      return '<div class="pv2-txrefine"><div class="pv2-txlead">Transmission moves this market. I have enough of each to split it, so I can narrow the read.</div>'
+        +'<div class="pv2-txchips">'
+        +'<button type="button" class="pv2-txchip" onclick="v2ApplyTxRefine(\'manual\')">Manual</button>'
+        +'<button type="button" class="pv2-txchip" onclick="v2ApplyTxRefine(\'auto\')">'+esc(autoLbl.charAt(0).toUpperCase()+autoLbl.slice(1))+'</button>'
+        +'</div></div>';
+    }
+    if(active){
+      var autoLbl2=v2TxAutoLabel();
+      var curLabel=active==="manual"?"manual":autoLbl2;
+      var other=active==="manual"?"auto":"manual";
+      var otherLabel=active==="manual"?autoLbl2:"manual";
+      var cap=function(s){ return String(s).charAt(0).toUpperCase()+String(s).slice(1); };
+      return '<div class="pv2-txrefine pv2-txactive"><div class="pv2-txlead">This read is '+esc(curLabel)+' sales only.</div>'
+        +'<div class="pv2-txchips">'
+        +'<button type="button" class="pv2-txchip" onclick="v2ApplyTxRefine(\''+other+'\')">Show '+esc(cap(otherLabel))+'</button>'
+        +'<button type="button" class="pv2-txchip pv2-txclear" onclick="v2ApplyTxRefine(\'\')">Show both</button>'
+        +'</div></div>';
+    }
+    return "";
+  }catch(e){ return ""; }
+}
+function v2ApplyTxRefine(tx){
+  try{
+    sellState.txRefine=(tx==="manual"||tx==="auto")?tx:null;
+    // Re-slice the same paid pool: rerun-class, skips the gate, serves from store,
+    // never spends a metered request. Appends the narrowed read as a fresh turn.
+    if(typeof showSellRecommendation==="function")showSellRecommendation({rerun:true});
+  }catch(e){ if(typeof console!=="undefined")console.warn("v2ApplyTxRefine failed",e); }
+}
+
 function renderResultV2Page(){
   try{
     var c=v2Composition();
@@ -1158,6 +1210,7 @@ function renderResultV2Page(){
     var after=c.psRendered
       ?'<div class="pv2-after">Both are real options and the choice is yours. Ask me to compare the tradeoffs, or how I\'d run the listing.</div>'
       :'<div class="pv2-after">Ask me anything about the pick, or how I\'d run the listing.</div>';
-    return '<div class="pv2-page">'+body+valueFloorNote+caveat+after+'</div>';
+    var txRefine=v2TransmissionRefine();
+    return '<div class="pv2-page">'+body+valueFloorNote+txRefine+caveat+after+'</div>';
   }catch(e){ if(typeof console!=="undefined")console.warn("renderResultV2Page failed",e); return null; }
 }

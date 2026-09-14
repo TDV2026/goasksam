@@ -1254,6 +1254,28 @@ function getSellerCriteria(car = {}) {
   };
 }
 
+// Transmission earned-gate (defect 5, ported from One Box r4Transmission): the
+// /sell result offers a manual-vs-automatic refinement ONLY when the evidence
+// pool splits materially, 5+ genuine manual AND 5+ genuine automatic sales.
+// Below either side there is nothing honest to narrow, so no question renders.
+// Same regexes and Porsche PDK/Tiptronic labeling as One Box so both surfaces
+// read a split identically. Reads the raw OCD `transmission` field (present on
+// the same records One Box's archive stores as raw_record->>transmission).
+const TX_MANUAL = t => /manual|\d[- ]?speed(?!\s*auto)|\bmt\b|\bstick\b/i.test(t) && !/automatic|pdk|dct|tiptronic|dsg/i.test(t);
+const TX_AUTO = t => /automatic|\bpdk\b|\bdct\b|tiptronic|\bdsg\b|paddle/i.test(t);
+function recordTransmission(record) {
+  return String(record?.transmission || record?.raw_record?.transmission || "");
+}
+function computeTransmissionSplit(items, make) {
+  const man = items.filter(i => TX_MANUAL(recordTransmission(i.record)));
+  const aut = items.filter(i => TX_AUTO(recordTransmission(i.record)));
+  if (man.length < 5 || aut.length < 5) return null;
+  const auto = /porsche/i.test(make || "")
+    ? (aut.filter(i => /pdk/i.test(recordTransmission(i.record))).length >= aut.length / 2 ? "PDK" : "Tiptronic")
+    : "automatic";
+  return { manual: "manual", auto, manualCount: man.length, autoCount: aut.length };
+}
+
 function analyze(records, classifications, ladder, vehicle, debug) {
   const pairedRecords = records.map((record, index) => ({ record, classification: classifications[index] }));
   const maxWindow = ANALYSIS_WINDOWS_DAYS[ANALYSIS_WINDOWS_DAYS.length - 1];
@@ -1645,6 +1667,11 @@ function analyze(records, classifications, ladder, vehicle, debug) {
           .map(item => item.record.auction_end_date).filter(Boolean).sort()[0] || null
       : null,
     thinMarket: thin || !landed || evidenceSetAllowed.length < landed.threshold,
+    // Defect 5: does the evidence pool split materially by transmission? Computed
+    // over the same allowlisted evidence set the pick is built on. When the pool
+    // has already been narrowed by an active refine, one side falls below 5 and
+    // this returns null, so the answered question is never re-asked.
+    transmissionSplit: computeTransmissionSplit(evidenceSetAllowed, vehicle?.make),
     ladder: {
       landed: landed ? {
         rung: landed.rung,
@@ -2986,12 +3013,24 @@ export default async function handler(req, res) {
     // F: coarse tier for the dashboard (forward-only). internal jobs -> "internal".
     const searchTier = internalCall ? "internal" : crewBypass ? "crew" : testerBypass ? "tester" : onceBypass ? "once" : (searchQuota?.tier || (searchAccountId ? "free" : "anon"));
 
+    // Defect 5: an active transmission refinement re-slices the SAME pool the
+    // seller already paid for (rerun-class, gate-skipped above). It must never
+    // spend a metered request, so it always serves from the store, and it filters
+    // the pool to one transmission before classification so the whole decision
+    // (pick, median, confidence) reflects the narrowed set.
+    const rawTxRefine = (req.body?.refine && req.body.refine.tx) || (car && car.refine && car.refine.tx) || null;
+    const activeTxRefine = rawTxRefine === "manual" ? "manual" : rawTxRefine === "auto" ? "auto" : null;
+
     let fetchResult = null;
     let cacheStatus = "miss";
     // bypassCache forces a fresh fetch (used by cold-fetch measurement harnesses).
     // The budget guards below still gate any metered spend.
     const bypassCache = req.body?.bypassCache === true;
-    if (!bypassCache && await readMarketFetchCache(vehicle, supabaseUrl, supabaseKey)) {
+    if (activeTxRefine) {
+      fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
+      cacheStatus = fetchResult ? "refine_store" : "refine_store_empty";
+    }
+    if (!fetchResult && !bypassCache && await readMarketFetchCache(vehicle, supabaseUrl, supabaseKey)) {
       fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
       cacheStatus = fetchResult ? "hit" : "hit_store_empty_refetched";
     }
@@ -3114,7 +3153,14 @@ export default async function handler(req, res) {
     if (fetchResult.rateLimit && fetchResult.rateLimit.remaining != null) {
       await persistOcdRateLimit(fetchResult.rateLimit, supabaseUrl, supabaseKey);
     }
-    const records = fetchResult.records;
+    // Defect 5: narrow to the chosen transmission before anything downstream sees
+    // the pool. Records with no readable transmission drop out of a refined view
+    // (we only ever narrow to sales we can positively attribute to manual/auto).
+    const records = activeTxRefine
+      ? fetchResult.records.filter(r => activeTxRefine === "manual"
+          ? TX_MANUAL(recordTransmission(r))
+          : TX_AUTO(recordTransmission(r)))
+      : fetchResult.records;
 
     // DATA UNAVAILABLE (Aug 2026): a STARVED fetch must never render as a thin
     // market. Only when we pulled nothing AND the store fallback was also empty
@@ -3310,6 +3356,8 @@ export default async function handler(req, res) {
         debugSignalTraces: analysis.debugSignalTraces,
         windowDays: analysis.windowDays,
         thinMarket: analysis.thinMarket,
+        transmissionSplit: analysis.transmissionSplit || null,
+        transmissionRefine: activeTxRefine || null,
         historicalWeekday: analysis.historicalWeekday,
         generation: generation ? { code: generation.code, yearStart: generation.yearStart, yearEnd: generation.yearEnd } : null,
         ladder: analysis.ladder,
