@@ -1207,13 +1207,35 @@ async function fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generati
   // thousands of 3-Series) has its older records crowded out of the top 1000 - the exact
   // reason the i8's Bring a Trailer records were missing from the pick. So pull the
   // MODEL's own records too (model-first at merge) so they can never be crowded out.
-  const [makeRows, modelRows] = await Promise.all([
+  //
+  // But a HIGH-VOLUME model (the 911 family: 911/997/996/991/992...) overflows even the
+  // model read's 1000-row cap: ordered by sale date, the top 1000 is all recent sales
+  // across every 911 year, and the specific YEAR/GENERATION comps for the searched car
+  // fall off the end. The fresh ladder fetch surfaces them because it queries OCD with
+  // year_min/year_max; the store read did not, so a cache hit landed a different (wider)
+  // rung than a fresh fetch for the same car. Fix: add YEAR-SCOPED reads (exact year and
+  // the generation window) so the year-specific comps are always pulled regardless of how
+  // much recent family volume sits in front of them. year is the model-year column.
+  const yr = Number(vehicle.year);
+  const yearReads = [];
+  if (orClause && Number.isFinite(yr) && yr > 1900) {
+    yearReads.push(supabaseSelect(env, `vehicle_market_records?make=ilike.${mkq}&or=(${orClause})&year=eq.${yr}&auction_end_date=gte.${cutoff}&select=raw_record&order=auction_end_date.desc&limit=1000`));
+    if (generation && Number.isFinite(Number(generation.yearStart)) && Number.isFinite(Number(generation.yearEnd))) {
+      yearReads.push(supabaseSelect(env, `vehicle_market_records?make=ilike.${mkq}&or=(${orClause})&year=gte.${generation.yearStart}&year=lte.${generation.yearEnd}&auction_end_date=gte.${cutoff}&select=raw_record&order=auction_end_date.desc&limit=1000`));
+    } else {
+      // No generation mapping: fall back to a +/-2 year band (matches the calendar rungs).
+      yearReads.push(supabaseSelect(env, `vehicle_market_records?make=ilike.${mkq}&or=(${orClause})&year=gte.${yr - 2}&year=lte.${yr + 2}&auction_end_date=gte.${cutoff}&select=raw_record&order=auction_end_date.desc&limit=1000`));
+    }
+  }
+  const [makeRows, modelRows, ...yearRowSets] = await Promise.all([
     supabaseSelect(env, `vehicle_market_records?make=ilike.${mkq}&auction_end_date=gte.${cutoff}&select=raw_record&order=auction_end_date.desc&limit=1000`),
-    orClause ? supabaseSelect(env, `vehicle_market_records?make=ilike.${mkq}&or=(${orClause})&auction_end_date=gte.${cutoff}&select=raw_record&order=auction_end_date.desc&limit=1000`) : Promise.resolve(null)
+    orClause ? supabaseSelect(env, `vehicle_market_records?make=ilike.${mkq}&or=(${orClause})&auction_end_date=gte.${cutoff}&select=raw_record&order=auction_end_date.desc&limit=1000`) : Promise.resolve(null),
+    ...yearReads
   ]);
   const records = [];
   const seenStore = new Set();
-  for (const list of [modelRows || [], makeRows || []]) {
+  // Year-scoped reads first so year-specific comps can never be crowded out at merge.
+  for (const list of [...yearRowSets.map(s => s || []), modelRows || [], makeRows || []]) {
     for (const row of list) {
       const rec = row && row.raw_record;
       if (!rec || typeof rec !== "object") continue;
