@@ -505,7 +505,22 @@ async function handleOps(req, res) {
     let ingestRuns;
     try { const r = await fetch(`${env.supabaseUrl}/rest/v1/ingest_runs?select=*&limit=3`, { headers: H }); ingestRuns = r.ok ? { exists: true, sample: await r.json() } : { exists: false, httpStatus: r.status, body: (await r.text()).slice(0, 200) }; }
     catch (e) { ingestRuns = { exists: false, error: e.message }; }
-    return res.status(200).json({ task: "coverage", ocdMetered, ocdSources, archiveTotal, archivePlatforms, archiveSampleDist, vmrTotal, vmrSources, vmrSampleDist, marketplace, ingestRuns });
+    // 6) House-source reconciliation: does the stored platform value back out premium?
+    // One Box reads sales_archive.platform AS row.source; isHouseSource/HOUSE_SCHEDULES key
+    // on slugs. If the archive stores the DISPLAY LABEL ("RM Sotheby's"), the premium
+    // back-out silently never fires. Pull real rows and run the ACTUAL functions on them.
+    let houseCheck = {};
+    try {
+      const mod = await import("../lib/_houseComps.js");
+      for (const q of ["sotheby", "gooding", "bonham", "barrett", "mecum", "broad arrow"]) {
+        const rows = await supabaseSelect(env, `sales_archive?select=platform,sale_price,raw_record->>currency&platform=ilike.*${encodeURIComponent(q)}*&limit=1`);
+        const r = rows && rows[0];
+        if (!r) { houseCheck[q] = { rows: 0 }; continue; }
+        const asRow = { source: r.platform, price: Number(r.sale_price), currency: r.currency || "USD" };
+        houseCheck[q] = { storedPlatform: r.platform, isHouseSource: mod.isHouseSource(r.platform), price: asRow.price, hammerUsd: mod.hammerUsd(asRow), backedOut: mod.hammerUsd(asRow) !== mod.toUsd(asRow.price, asRow.currency) };
+      }
+    } catch (e) { houseCheck = { error: e.message }; }
+    return res.status(200).json({ task: "coverage", ocdMetered, ocdSources, archiveTotal, archivePlatforms, archiveSampleDist, vmrTotal, vmrSources, vmrSampleDist, marketplace, ingestRuns, houseCheck });
   }
 
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
