@@ -171,6 +171,23 @@ async function resolverChecks() {
     j = await resolveVehicle("Porsche 928 S4"); v = j.vehicle || {};
     check(`B10 "Porsche 928 S4" -> stays Porsche (no Audi drift)`, v.make === "Porsche" && rx("928").test(String(v.model || "")), `make=${v.make} model=${v.model}`);
   }
+  // B11: the reader's "1951 Aston Martin DB2" session (Sep 2026). A real, exact model
+  // must never be "corrected" to a sibling. Two fixes locked here:
+  //  - enum-split: OCD filed DB2 inside "DB2, DB2/4, and DB Mark III"; split so DB2
+  //    (and DB2/4) exact-match instead of falling to the fuzzy/designation matcher.
+  //  - numbered-series guard: an uncataloged series member (DB3) is accepted as-is,
+  //    never mangled into a present sibling (DB9), since every DBn sits 1 edit apart.
+  console.log(`\n### B11 "Aston Martin DB2/DB3" (enum-split model + numbered-series no-miscorrect)`);
+  {
+    let j = await resolveVehicle("1951 aston martin db2"); let v = j.vehicle || {};
+    check(`B11 "1951 aston martin db2" -> valid DB2, no "did you mean DB9"`, j.status === "valid" && v.make === "Aston Martin" && rx("DB2").test(String(v.model || "")) && !/did you mean/i.test(String(j.clarification?.question || "")), `status=${j.status} model=${v.model} q="${j.clarification?.question || ""}"`);
+    j = await resolveVehicle("1953 aston martin db2/4"); v = j.vehicle || {};
+    check(`B11 "db2/4" -> valid DB2/4`, j.status === "valid" && rx("DB2").test(String(v.model || "")), `status=${j.status} model=${v.model}`);
+    j = await resolveVehicle("1951 aston martin db3"); v = j.vehicle || {};
+    check(`B11 "db3" (uncataloged) -> DB3 as-is, not DB9`, rx("DB3").test(String(v.model || "")) && !/db9/i.test(String(j.clarification?.suggestion || "")), `model=${v.model} suggest=${j.clarification?.suggestion || ""}`);
+    j = await resolveVehicle("2015 porsche caymen"); v = j.vehicle || {};
+    check(`B11 genuine word typo still confirms (Caymen -> Cayman)`, /did you mean/i.test(String(j.clarification?.question || "")) && /cayman/i.test(String(j.clarification?.suggestion || "")), `q="${j.clarification?.question || ""}"`);
+  }
   return fails;
 }
 
@@ -216,7 +233,7 @@ if (runUi) {
 }
 const totalFails = resolverFails + uiFails;
 console.log(`\n==== GOLDEN PATH SUMMARY ====`);
-if (runResolver) console.log(`Resolver: ${19 - resolverFails}/19 pass (${resolverFails} fail)`);
+if (runResolver) console.log(`Resolver: ${23 - resolverFails}/23 pass (${resolverFails} fail)`);
 if (runUi) console.log(`UI scenarios: ${uiPass}/${uiTotal} pass (${uiFails} fail)`);
 console.log(totalFails ? `\n${totalFails} TOTAL FAILURE(S)` : `\nALL PASS`);
 process.exit(totalFails ? 1 : 0);
