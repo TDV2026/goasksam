@@ -7,7 +7,7 @@ import { callOldCarsData } from "../lib/_ocd.js";
 import { testerCodeExpired } from "../lib/_tester.js";
 import { verifyOnce } from "../lib/_onepass.js";
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
-import { findGeneration, generationModelToken } from "../lib/generations.js";
+import { findGeneration, generationModelToken, generationsForModel } from "../lib/generations.js";
 import { vinFeatureActive, findVinArchiveMatch } from "../lib/_flags.js";
 import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
 import { MODEL_SEGMENTS } from "../lib/vehicleData.js";
@@ -1189,6 +1189,19 @@ async function fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generati
   const env = { supabaseUrl, supabaseKey };
   const mkq = encodeURIComponent(vehicle.make);
   const modelHead = vehicle.model ? String(vehicle.model).split(/\s+/)[0] : "";
+  // The model-specific read must match records by the SAME breadth the live fetch
+  // and classifier use, or a cache hit silently misses records a fresh fetch pulled.
+  // OldCarsData files some generations under their CHASSIS CODE as the model (a 2008
+  // 911 stored as model "997", not "911"), so a plain `model ilike *911*` drops them
+  // and the cache-hit pool lands a different rung than the fresh pool for the same car.
+  // Widen to the model head PLUS every chassis-code generation token for this model.
+  const modelTokens = new Set();
+  if (modelHead) modelTokens.add(modelHead.toLowerCase());
+  for (const g of generationsForModel(vehicle.make, vehicle.model)) {
+    const tok = generationModelToken(g);
+    if (tok) modelTokens.add(tok.toLowerCase());
+  }
+  const orClause = [...modelTokens].map(t => `model.ilike.*${t}*`).join(",");
   // PostgREST caps each read at 1000 rows. A make-wide read alone (BMW) is dominated by
   // recent common models, so a LOW-VOLUME model inside a HIGH-VOLUME make (an i8 among
   // thousands of 3-Series) has its older records crowded out of the top 1000 - the exact
@@ -1196,7 +1209,7 @@ async function fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generati
   // MODEL's own records too (model-first at merge) so they can never be crowded out.
   const [makeRows, modelRows] = await Promise.all([
     supabaseSelect(env, `vehicle_market_records?make=ilike.${mkq}&auction_end_date=gte.${cutoff}&select=raw_record&order=auction_end_date.desc&limit=1000`),
-    modelHead ? supabaseSelect(env, `vehicle_market_records?make=ilike.${mkq}&model=ilike.${encodeURIComponent("*" + modelHead + "*")}&auction_end_date=gte.${cutoff}&select=raw_record&order=auction_end_date.desc&limit=1000`) : Promise.resolve(null)
+    orClause ? supabaseSelect(env, `vehicle_market_records?make=ilike.${mkq}&or=(${orClause})&auction_end_date=gte.${cutoff}&select=raw_record&order=auction_end_date.desc&limit=1000`) : Promise.resolve(null)
   ]);
   const records = [];
   const seenStore = new Set();
@@ -3264,7 +3277,38 @@ export default async function handler(req, res) {
       ? { skipped: true, cached: true, idLookup: await lookupMarketRecordIds(records, supabaseUrl, supabaseKey) }
       : await persistRawRecords(records, supabaseUrl, supabaseKey);
     const classificationPersistence = await persistClassifications(records, classifications, rawPersistence.idLookup, supabaseUrl, supabaseKey);
-    const analysis = analyze(records, classifications, fetchResult.ladder, vehicle, req.body?.debug === true, activeTxRefine);
+
+    // Depth unification (Sep 2026): a metered fresh fetch is SHALLOW - it pulls only
+    // what its year-targeted passes + early stop happen to reach, which is often too
+    // few generation-specific comps to meet the generation rung, so the ladder
+    // OVER-WIDENS to "all years" (a 2008 M3 landing on all M3s 1988-2023). A cache
+    // hit reads the full archive and lands the correct, more specific rung. Same car,
+    // different answer depending on invisible cache state. To make BOTH paths land the
+    // same rung, analyze over the UNION of the fresh fetch and the stored archive:
+    // fresh contributes brand-new + chassis-code-filed sales, the store contributes
+    // depth. Cache hits already read the store, so they are unchanged. Persistence
+    // above stays on the fresh records only. Best-effort: a store read failure leaves
+    // the fresh pool exactly as it was.
+    let analysisRecords = records, analysisClassifications = classifications;
+    if (!fetchResult.fromCache) {
+      try {
+        const deep = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
+        if (deep && Array.isArray(deep.records) && deep.records.length) {
+          const seen = new Set(records.map(r => sourceRecordKey(recordPlatform(r), sourceRecordId(r))));
+          const merged = records.slice();
+          for (const r of deep.records) {
+            const k = sourceRecordKey(recordPlatform(r), sourceRecordId(r));
+            if (seen.has(k)) continue;
+            seen.add(k); merged.push(r);
+          }
+          if (merged.length > records.length) {
+            analysisRecords = merged;
+            analysisClassifications = merged.map(r => classifyRecord(r, vehicle));
+          }
+        }
+      } catch { /* keep the fresh pool as-is */ }
+    }
+    const analysis = analyze(analysisRecords, analysisClassifications, fetchResult.ladder, vehicle, req.body?.debug === true, activeTxRefine);
 
     // Sell-through removed (1b): our search-path records are sold-only, so a
     // sold/listed rate cannot be computed. The old segmentSellThrough was the
