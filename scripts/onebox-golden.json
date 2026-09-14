@@ -219,30 +219,37 @@
     "cards": true
   },
   "718 Cayman S coupe": {
-    "state": "generation_choice",
+    "state": "unmatched_result",
     "exact": null,
     "cfg": null,
     "disc": null,
     "ladder": null,
-    "s1": null,
-    "s2": null,
-    "s3": null,
+    "s1": "Right now, the Porsche Cayman S (YYYY to YYYY) is bringing $N to $N in the last twelve months.",
+    "s2": "Most land between $N and $N. The ones at the top are the low-mileage cars; the cheaper end is high-mileage.",
+    "s3": "That’s a touch firmer than a year ago, when most landed between $N and $N.",
     "s4": null,
-    "meta": null,
-    "earned": null,
-    "chips": [],
-    "platforms": [],
-    "platNote": null,
+    "meta": "Past twelve months·lowest-mileage cars set aside",
+    "earned": "How many miles on yours?",
+    "chips": [
+      "under Nk",
+      "Nk to Nk",
+      "Nk to Nk",
+      "over Nk",
+      "type it"
+    ],
+    "platforms": [
+      "Bring a Trailer",
+      "PCarMarket",
+      "Hagerty",
+      "others"
+    ],
+    "platNote": "Most change hands on Bring a Trailer.",
     "refusalAns": null,
     "refusalReason": [],
     "wayfwd": [],
-    "genPrompt": "The Cayman spans generations that price very differently. Which is yours?",
-    "genChips": [
-      "987 (YYYY-YYYY)",
-      "981 (YYYY-YYYY)",
-      "718 (YYYY-YYYY)"
-    ],
-    "cards": false
+    "genPrompt": null,
+    "genChips": [],
+    "cards": true
   },
   "Lotus Esprit": {
     "state": "varied_refusal",
@@ -549,19 +556,13 @@
     "cfg": null,
     "disc": null,
     "ladder": null,
-    "s1": "Right now, the Ferrari 458 (YYYY to YYYY) is bringing $N to $N in the last twelve months.",
+    "s1": "The Ferrari 458 Speciale (YYYY to YYYY) is bringing $N to $N in the past two years.",
     "s2": "Most land between $N and $N.",
-    "s3": "That’s a touch firmer than a year ago, when most landed between $N and $N.",
+    "s3": null,
     "s4": null,
-    "meta": "Past twelve months",
-    "earned": "How many miles on yours?",
-    "chips": [
-      "under Nk",
-      "Nk to Nk",
-      "Nk to Nk",
-      "over Nk",
-      "type it"
-    ],
+    "meta": "Past two years",
+    "earned": null,
+    "chips": [],
     "platforms": [
       "Bring a Trailer",
       "others"
