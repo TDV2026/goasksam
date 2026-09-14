@@ -54,7 +54,7 @@ OLDCARSDATA_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY,
 Server-side writes use the service role key. Never expose it in browser code.
 
 ### OldCarsData API facts (verified July 2026)
-- Sources covered: Bring a Trailer, Cars & Bids, Hagerty, PCAR Market, All Collector Cars, Gooding & Co, RM Sotheby's. Hemmings is NOT covered. All data is auction results; there is no classified-listing data.
+- Sources covered (19, verified live Sep 2026): Bring a Trailer, Cars & Bids, Hagerty, PCAR Market, All Collector Cars, Gooding & Co, RM Sotheby's, Hemmings, Sotheby's Motorsport, MB Market, AutoHunter (defunct, historical only), Barrett-Jackson, Mecum, Bonhams, Broad Arrow, Car & Classic, Collecting Cars, The Market, PistonHeads. (Earlier "Hemmings is NOT covered" was stale: OCD carries ~5,600 Hemmings records syncing daily.) OCD slugs: bringatrailer, carsandbids, hagerty, pcarmarket, acc, gooding, rmsothebys, hemmings, sothebysmotorsport, mbmarket, autohunter, barrettjackson, mecum, bonhams, broadarrow, carandclassic, collectingcars, themarket, pistonheads. All data is auction results; there is no classified-listing data. Note: only 7 were ingested into sales_archive until Sep 2026; the DISPLAY map in scripts/ingest.js now lists all 19, but a backfill is still needed to populate the 12 new ones. Live-auction houses' premium back-out is currently INERT (label/slug mismatch, see routing note); fix before trusting house comps.
 - `/auctions` supports `year_min` and `year_max` natively. Use these for year targeting instead of stuffing years into `keyword`.
 - `/makes` and `/models` do not count toward the metered request quota. Only `/auctions` is metered.
 - Plan: 1K requests/month at $49 (account news@thedailyvroom.com).
