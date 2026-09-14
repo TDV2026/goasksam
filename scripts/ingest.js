@@ -53,10 +53,10 @@ const toBool = v => v === true || v === "true" ? true : v === false || v === "fa
 const toDate = v => { const d = new Date(v || ""); return Number.isFinite(d.getTime()) ? d : null; };
 const dayKey = d => d ? d.toISOString().slice(0, 10) : null;
 
-function toFullRow(r, label) {
+function toFullRow(r, label, source) {
   const d = toDate(r.auction_end_date);
   return {
-    source_id: String(r.id ?? ""), sale_date: dayKey(d), platform: label,
+    source_id: String(r.id ?? ""), sale_date: dayKey(d), platform: label, source_slug: source,
     make: (r.ocd_make_name || r.listing_make || "Unknown").toString().trim(),
     model: (r.ocd_model_name || r.listing_model || "Unknown").toString().trim(),
     sale_price: toMoney(r.price), month: d ? d.toISOString().slice(0, 7) : null, raw_record: r,
@@ -115,10 +115,10 @@ for (const source of SOURCES) {
       if (DELTA) {
         if (held.has(id)) continue;      // already held: skip
         pageAllKnown = false;            // a new record on this page
-        kept.push(toFullRow(r, label));
+        kept.push(toFullRow(r, label, source));
         if (d) perDay[dayKey(d)] = (perDay[dayKey(d)] || 0) + 1;
       } else if (inRange(d)) {
-        kept.push(toFullRow(r, label));
+        kept.push(toFullRow(r, label, source));
         perDay[dayKey(d)] = (perDay[dayKey(d)] || 0) + 1;
       }
     }
