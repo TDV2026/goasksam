@@ -587,18 +587,31 @@ function psvServesLine(text){
   var body=String(text||"").replace(/^\s*Serves\s+/i,"").trim();
   var parts=body.split(/\s*,\s*|\s+and\s+/i).map(function(x){return x.trim();}).filter(Boolean);
   if(parts.length<=3)return text;
+  // Never draw an "A to B" line between the first and last listed state - they do not bound a
+  // geographic range (Louisiana and Texas border). Name the first two and count the rest.
   var words=["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve"];
-  var n=parts.length, w=words[n]||String(n);
-  return "Serves "+w+" states, "+parts[0]+" to "+parts[parts.length-1]+".";
+  var more=parts.length-2, w=words[more]||String(more);
+  return "Serves "+parts[0]+", "+parts[1]+" and "+w+" more states.";
+}
+// Is the seller's own state inside this partner's HOME (non-nationwide) regions? null when the
+// seller region is unknown (One Box, or a seller who skipped it) - then we don't assume either way.
+function psvSellerInHomeRegion(p){
+  var st=String((typeof sellState!=="undefined"&&(sellState.state||sellState.region))||"").toLowerCase().trim();
+  if(!st)return null;
+  var regions=(p.regions||[]).map(function(r){return String(r).toLowerCase();}).filter(function(r){return r&&r!=="nationwide";});
+  return regions.some(function(r){ return r===st||st.indexOf(r)>=0||r.indexOf(st)>=0; });
 }
 function psvCoverage(p){
-  // Prefer an explicit "Serves ..." service claim (item 7 roster copy) over the
-  // regions-derived fallback, so "Serves Louisiana, Mississippi, ..." renders as
-  // written even when the partner also carries "Nationwide" for matching.
+  var regions=(p.regions||[]).map(function(r){return String(r).toLowerCase();});
+  var nationwide=regions.indexOf("nationwide")>=0;
+  // Rule 5.19 (locality first): a partner shown OUTSIDE his home region must never imply local
+  // coverage of the seller's area. If the roster says nationwide, say so plainly; otherwise state
+  // his home region honestly. Generalized across every Nationwide partner, not just one.
+  if(psvSellerInHomeRegion(p)===false){ return nationwide?"Works nationwide":""; }
+  // Seller in-region (or unknown): the explicit "Serves ..." claim, else regions/nationwide.
   var pool=(p.serviceClaims||[]).map(function(s){return s&&s.text;}).filter(Boolean);
   for(var i=0;i<pool.length;i++){ var m=/^\s*(Serves .+?)\s*$/i.exec(pool[i]); if(m)return psvServesLine(m[1]); }
-  var regions=(p.regions||[]).map(function(r){return String(r).toLowerCase();});
-  if(regions.indexOf("nationwide")>=0)return "Works nationwide";
+  if(nationwide)return "Works nationwide";
   var first=(p.regions||[]).find(function(r){return String(r).toLowerCase()!=="nationwide";});
   return first?("Serves "+first):"";
 }
