@@ -451,6 +451,55 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
+  // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
+  // source universe (probes each candidate source), what is ingested into sales_archive
+  // and vehicle_market_records (row count + latest record date per platform, to catch a
+  // silently-stale platform), the MarketPlace leak count, and whether ingest_runs exists.
+  // Metered: ~1 OCD /auctions call per probed source. No writes.
+  if (task === "coverage") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    const countAndMax = async (table, filter, dateCol) => {
+      try {
+        const q = `${table}?${filter ? filter + "&" : ""}select=${dateCol}&order=${dateCol}.desc.nullslast&limit=1`;
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: { ...H, Prefer: "count=exact" } });
+        const cr = r.headers.get("content-range"); const total = cr ? cr.split("/")[1] : null;
+        const rows = await r.json().catch(() => []);
+        return { count: total, latest: (Array.isArray(rows) && rows[0] && rows[0][dateCol]) || null };
+      } catch (e) { return { error: e.message }; }
+    };
+    // 1) OCD source universe - probe each candidate source for total + latest.
+    const ocdSources = {};
+    const ocdCandidates = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "sothebys", "goodingco"];
+    let ocdMetered = 0;
+    for (const s of ocdCandidates) {
+      try { ocdMetered++; const r = await callOldCarsData("/auctions", { source: s, status: "sold", sort: "date", direction: "desc", page: 1, limit: 1 }, apiKey);
+        ocdSources[s] = { total: r.meta?.total_results ?? r.meta?.total ?? (r.data || []).length, latest: (r.data || [])[0]?.auction_end_date || null, hasData: (r.data || []).length > 0 };
+      } catch (e) { ocdSources[s] = { error: e.message }; }
+    }
+    // 2) sales_archive per platform label (One Box comp source) + distinct sample.
+    const archiveLabels = ["Bring a Trailer", "Cars & Bids", "Hagerty", "PCARMarket", "All Collector Cars", "Gooding & Co", "RM Sotheby's", "Sotheby's Motorsport (SOMO)", "Sotheby's Motorsport", "Hemmings", "MB Market", "AutoHunter"];
+    const archivePlatforms = {};
+    for (const L of archiveLabels) archivePlatforms[L] = await countAndMax("sales_archive", `platform=eq.${encodeURIComponent(L)}`, "sale_date");
+    const archiveTotal = await countAndMax("sales_archive", "", "sale_date");
+    const aSample = await supabaseSelect(env, `sales_archive?select=platform&order=sale_date.desc&limit=1000`);
+    const archiveSampleDist = {}; for (const r of (aSample || [])) archiveSampleDist[r.platform] = (archiveSampleDist[r.platform] || 0) + 1;
+    // 3) vehicle_market_records per source (the /sell live-fetch store) + distinct sample.
+    const vmrLabels = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "allcollectorcars", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter"];
+    const vmrSources = {};
+    for (const s of vmrLabels) vmrSources[s] = await countAndMax("vehicle_market_records", `source=eq.${encodeURIComponent(s)}`, "auction_end_date");
+    const vmrTotal = await countAndMax("vehicle_market_records", "", "auction_end_date");
+    const vSample = await supabaseSelect(env, `vehicle_market_records?select=source&order=auction_end_date.desc&limit=1000`);
+    const vmrSampleDist = {}; for (const r of (vSample || [])) vmrSampleDist[r.source] = (vmrSampleDist[r.source] || 0) + 1;
+    // 4) MarketPlace leak (should be 0 after the purge).
+    const marketplace = await countAndMax("sales_archive", `listing_title=ilike.MarketPlace:*`, "sale_date");
+    // 5) ingest_runs existence + latest.
+    let ingestRuns;
+    try { const r = await fetch(`${env.supabaseUrl}/rest/v1/ingest_runs?select=*&limit=3`, { headers: H }); ingestRuns = r.ok ? { exists: true, sample: await r.json() } : { exists: false, httpStatus: r.status, body: (await r.text()).slice(0, 200) }; }
+    catch (e) { ingestRuns = { exists: false, error: e.message }; }
+    return res.status(200).json({ task: "coverage", ocdMetered, ocdSources, archiveTotal, archivePlatforms, archiveSampleDist, vmrTotal, vmrSources, vmrSampleDist, marketplace, ingestRuns });
+  }
+
   // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
   // identifiers for a make (/models is free) and probes a few keywords for
   // reported totals + the ocd_model_name each keyword's records actually carry -
