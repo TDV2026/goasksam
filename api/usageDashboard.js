@@ -551,6 +551,45 @@ async function handleOps(req, res) {
       canonicalCount: canonicals.length, canonicalSizes: canonicals.map(c => c.rows.length), aliases: aliases.map(a => ({ source_slug: a.source_slug, id: a.source_record_id, reason: a.match_reason })) });
   }
 
+  // task=canonstats: READ-ONLY per-source aggregates from the LIVE canonical tables:
+  // aliases (rows), primary canonicals, default-classified geography. For the cert table.
+  if (task === "canonstats") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    const count = async (q) => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: { ...H, Prefer: "count=exact" } }); const cr = r.headers.get("content-range"); return cr ? Number(cr.split("/")[1]) : null; } catch (e) { return null; } };
+    const sources = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
+    const per = {};
+    for (const s of sources) {
+      const aliases = await count(`sale_aliases?source_slug=eq.${s}&select=source_record_id&limit=1`);
+      const primary = await count(`canonical_sales?primary_source=eq.${s}&select=id&limit=1`);
+      const def = await count(`canonical_sales?primary_source=eq.${s}&default_classified=is.true&select=id&limit=1`);
+      if (aliases || primary) per[s] = { aliases, primaryCanonicals: primary, foldedIntoOther: (aliases != null && primary != null) ? aliases - primary : null, defaultClassified: def };
+    }
+    const totalCanonical = await count(`canonical_sales?select=id&limit=1`);
+    const totalAliases = await count(`sale_aliases?source_record_id&limit=1`);
+    const totalDefault = await count(`canonical_sales?default_classified=is.true&select=id&limit=1`);
+    return res.status(200).json({ task: "canonstats", totalCanonical, totalAliases, totalDefault, per });
+  }
+
+  // task=housecur: READ-ONLY. Round-hammer verification of house schedules by currency,
+  // now that non-USD house lots have landed. RM EUR (EU 15/12.5 @ €200k, +/-VAT), Bonhams
+  // GBP (UK 15/12 @ £500k), Bonhams EUR (FR flat 15%). Backs out in NATIVE currency.
+  if (task === "housecur") {
+    const inv = (total, tiers) => { let lo = 0, ft = 0; for (const [th, rate] of tiers) { const span = th - lo, top = ft + span * (1 + rate); if (total <= top || !Number.isFinite(th)) return lo + (total - ft) / (1 + rate); lo = th; ft = top; } return total; };
+    const round = (hs, step) => hs.filter(h => Math.abs(Math.round(h) - Math.round(Math.round(h) / step) * step) <= 25).length;
+    const pull = async (source, currency, pages) => { const out = []; for (let p = 0; p < pages; p++) { const rows = await supabaseSelect(env, `sales_archive?source_slug=eq.${source}&raw_record->>currency=eq.${currency}&sale_price=not.is.null&select=sale_price&limit=1000&offset=${p * 1000}`); if (!rows || !rows.length) break; out.push(...rows.map(r => Number(r.sale_price)).filter(v => v > 0)); if (rows.length < 1000) break; } return out; };
+    const EU = [[200000, 0.15], [Infinity, 0.125]];
+    const EU_VAT = [[200000, 0.18], [Infinity, 0.15]];   // +20% VAT on the premium
+    const UK = [[500000, 0.15], [Infinity, 0.12]];
+    const FR = [[Infinity, 0.15]];
+    const out = {};
+    { const p = await pull("rmsothebys", "EUR", 3); const hNo = p.map(x => inv(x, EU)), hVat = p.map(x => inv(x, EU_VAT)); out.rmEUR = { lots: p.length, noVat_round500: round(hNo, 500), withVat_round500: round(hVat, 500) }; }
+    { const p = await pull("bonhams", "GBP", 3); const h = p.map(x => inv(x, UK)); out.bonhamsGBP = { lots: p.length, uk_round500: round(h, 500), uk_round1000: round(h, 1000) }; }
+    { const p = await pull("bonhams", "EUR", 3); const h = p.map(x => inv(x, FR)); out.bonhamsEUR = { lots: p.length, fr_round500: round(h, 500), fr_round1000: round(h, 1000) }; }
+    { const p = await pull("broadarrow", "EUR", 2); const h = p.map(x => inv(x, EU)); out.broadarrowEUR = { lots: p.length, eu_round500: round(h, 500) }; }
+    return res.status(200).json({ task: "housecur", ...out });
+  }
+
   // task=vinaudit: READ-ONLY. Scans the whole archive and reports, per source, how many
   // rows carry a USABLE VIN/chassis vs a placeholder/none (validVin filter). This is the
   // cert table's "VIN/chassis capture %" column and the count excluded by the canonical
