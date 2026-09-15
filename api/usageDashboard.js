@@ -711,6 +711,35 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "nonsold2", rnmSampled: samples.length, samples, scannedForRelist: scanned, distinctVins: byVin.size, multiAttemptVins: multiAttempt.length, relistPair, multiAttemptExamples: multiAttempt.slice(0, 5) });
   }
 
+  // task=burn: OCD daily burn from app_usage_events (Supabase read ONLY - no OCD call, no
+  // metered spend). Sums oldcarsdata_metered_requests per day over the last 7 days, split
+  // by event_type, so we can size a safe reserve to the monthly reset. NOTE: routine sold
+  // ingest runs don't log a per-run usage event, so this reflects reader/live + warm +
+  // diagnostics; the nightly delta ingest is estimated separately.
+  if (task === "burn") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const since = new Date(Date.now() - 7 * 864e5).toISOString();
+    const rows = [];
+    let cursor = since;
+    for (let p = 0; p < 40; p++) {
+      const batch = await supabaseSelect(env, `app_usage_events?created_at=gte.${encodeURIComponent(since)}&oldcarsdata_metered_requests=gt.0&select=created_at,event_type,oldcarsdata_metered_requests&order=created_at.asc&limit=1000&offset=${p * 1000}`);
+      if (!batch || !batch.length) break;
+      rows.push(...batch);
+      if (batch.length < 1000) break;
+    }
+    const byDay = {}, byType = {};
+    for (const r of rows) {
+      const day = String(r.created_at).slice(0, 10);
+      const n = Number(r.oldcarsdata_metered_requests) || 0;
+      byDay[day] = (byDay[day] || 0) + n;
+      byType[r.event_type || "?"] = (byType[r.event_type || "?"] || 0) + n;
+    }
+    const days = Object.entries(byDay).sort();
+    const total = days.reduce((s, [, n]) => s + n, 0);
+    const avgPerDay = days.length ? Math.round(total / days.length) : 0;
+    return res.status(200).json({ task: "burn", windowDays: days.length, totalMetered: total, avgPerDay, byDay: days, byType: Object.entries(byType).sort((a, b) => b[1] - a[1]), note: "app_usage_events only; excludes routine sold-ingest runs (not logged per-run)" });
+  }
+
   // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
   // source universe (probes each candidate source), what is ingested into sales_archive
   // and vehicle_market_records (row count + latest record date per platform, to catch a
