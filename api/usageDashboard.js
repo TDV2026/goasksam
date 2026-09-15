@@ -688,26 +688,27 @@ async function handleOps(req, res) {
     // (b) 20 samples across three platforms
     const samples = [];
     for (const s of ["bringatrailer", "carsandbids", "hagerty"]) { const recs = await pullRNM(s, 3); for (const r of recs.slice(0, 7)) samples.push({ source: s, price: r.price, currency: r.currency, has_reserve: r.has_reserve, bids: r.stats?.bids, vin: r.vin, title: String(r.title || "").slice(0, 44), url: r.url }); }
-    // (a) relist pair: keyword-search OCD by each RNM VIN to surface ALL of that car's
-    // auction attempts. A VIN with 2+ distinct listing ids (one reserve-not-met, another
-    // sold/relisted) proves OCD keeps each attempt as a separate record, not overwritten.
-    let relistPair = null; let checked = 0; const multiAttempt = [];
-    const baRNM = await pullRNM("bringatrailer", 5);
-    for (const r of baRNM) {
-      if (!can.validVin(r.vin)) continue; checked++;
-      let recs = [];
-      try { const kr = await callOldCarsData("/auctions", { keyword: r.vin, page: 1, limit: 20 }, apiKey); recs = (kr.data || []).filter(x => norm(x.vin) === norm(r.vin)); } catch (e) {}
-      const ids = [...new Set(recs.map(x => String(x.id)))];
-      if (ids.length >= 2) {
-        const entry = { vin: r.vin, records: recs.map(x => ({ id: String(x.id), status: x.auction_status, price: x.price, date: x.auction_end_date, source: x.source, url: x.url })) };
-        multiAttempt.push(entry);
-        const hasSold = recs.some(x => /sold/i.test(String(x.auction_status || "")));
-        const hasRNM = recs.some(x => /reserve.*not.*met/i.test(String(x.auction_status || "")));
-        if (!relistPair && hasSold && hasRNM) relistPair = entry;
-      }
-      if (checked >= 30 || (relistPair && multiAttempt.length >= 3)) break;
+    // (a) relist pair: pull a large unfiltered window and group by VIN. Any VIN with 2+
+    // distinct listing ids proves OCD keeps each auction attempt as a separate record (no
+    // overwrite); a group with a reserve-not-met AND a sold is the resurfacing case.
+    const pages = Math.min(40, Number(req.query?.pages || 25));
+    const byVin = new Map(); let scanned = 0;
+    for (let p = 1; p <= pages; p++) {
+      let r; try { r = await callOldCarsData("/auctions", { source: "bringatrailer", sort: "date", direction: "desc", page: p, limit: 100 }, apiKey); } catch (e) { break; }
+      const rows = r.data || []; if (!rows.length) break;
+      for (const rec of rows) { if (!can.validVin(rec.vin)) continue; scanned++; const k = norm(rec.vin); const a = byVin.get(k) || []; a.push({ id: String(rec.id), status: rec.auction_status, price: rec.price, date: rec.auction_end_date, url: rec.url }); byVin.set(k, a); }
     }
-    return res.status(200).json({ task: "nonsold2", rnmSampled: samples.length, samples, relistCheckedVins: checked, relistPair, multiAttemptExamples: multiAttempt.slice(0, 4) });
+    const multiAttempt = []; let relistPair = null;
+    for (const [vin, recs] of byVin) {
+      const ids = [...new Set(recs.map(x => x.id))];
+      if (ids.length < 2) continue;
+      const entry = { vin, records: recs };
+      multiAttempt.push(entry);
+      const hasSold = recs.some(x => /sold/i.test(String(x.status || "")));
+      const hasRNM = recs.some(x => /reserve.*not.*met/i.test(String(x.status || "")));
+      if (!relistPair && hasSold && hasRNM) relistPair = entry;
+    }
+    return res.status(200).json({ task: "nonsold2", rnmSampled: samples.length, samples, scannedForRelist: scanned, distinctVins: byVin.size, multiAttemptVins: multiAttempt.length, relistPair, multiAttemptExamples: multiAttempt.slice(0, 5) });
   }
 
   // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
