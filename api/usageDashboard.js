@@ -628,6 +628,31 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "vinaudit", scanned, report });
   }
 
+  // task=ocdstatus: READ-ONLY. Probe OCD's non-sold status coverage. For each candidate
+  // status value, report meta.total_results per source; and tally the auction_status field
+  // from an unfiltered pull to see the real vocabulary. Metered (~a few /auctions calls).
+  if (task === "ocdstatus") {
+    const statuses = ["sold", "unsold", "not_sold", "reserve_not_met", "reserve_not_reached", "withdrawn", "live", "active", "upcoming", "ended"];
+    const srcs = req.query?.slugs ? String(req.query.slugs).split(",") : ["bringatrailer", "carsandbids", "rmsothebys", "bonhams", "barrettjackson"];
+    const out = { byStatusTotals: {}, unfilteredStatusTally: {}, sampleFields: null };
+    let metered = 0;
+    // 1) total_results per (source, status)
+    for (const s of srcs) {
+      out.byStatusTotals[s] = {};
+      for (const st of statuses) {
+        try { metered++; const r = await callOldCarsData("/auctions", { source: s, status: st, page: 1, limit: 1 }, apiKey); out.byStatusTotals[s][st] = r.meta?.total_results ?? r.meta?.total ?? (r.data || []).length; }
+        catch (e) { out.byStatusTotals[s][st] = `err:${String(e.message).slice(0, 30)}`; }
+      }
+    }
+    // 2) unfiltered pull to see the real auction_status vocabulary + which fields carry bid data
+    for (const s of ["bringatrailer", "rmsothebys"]) {
+      try { metered++; const r = await callOldCarsData("/auctions", { source: s, page: 1, limit: 100 }, apiKey); const t = {}; for (const rec of (r.data || [])) { const v = rec.auction_status || "(none)"; t[v] = (t[v] || 0) + 1; } out.unfilteredStatusTally[s] = t;
+        if (!out.sampleFields && (r.data || [])[0]) { const rec = r.data[0]; out.sampleFields = Object.keys(rec).filter(k => /status|bid|reserve|high|price|withdraw|sold|current|estimate/i.test(k)); } }
+      catch (e) { out.unfilteredStatusTally[s] = `err:${String(e.message).slice(0, 40)}`; }
+    }
+    return res.status(200).json({ task: "ocdstatus", metered, ...out });
+  }
+
   // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
   // source universe (probes each candidate source), what is ingested into sales_archive
   // and vehicle_market_records (row count + latest record date per platform, to catch a
