@@ -18,6 +18,10 @@ on:
       backfill_to:
         description: "Backfill end date YYYY-MM-DD (blank = same as start)"
         required: false
+      sources:
+        description: "Comma-separated OCD slugs (blank = all 19)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -31,6 +35,7 @@ jobs:
       OLDCARSDATA_API_KEY: ${{ secrets.OLDCARSDATA_API_KEY }}
       BACKFILL_FROM: ${{ github.event.inputs.backfill_from }}
       BACKFILL_TO: ${{ github.event.inputs.backfill_to }}
+      SOURCES: ${{ github.event.inputs.sources }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -59,8 +64,8 @@ jobs:
           test -f scripts/ingest.js || { echo "::error::scripts/ingest.js not found in checkout"; exit 1; }
           if [ -n "${BACKFILL_FROM:-}" ]; then
             TO="${BACKFILL_TO:-$BACKFILL_FROM}"
-            echo "Backfill ingest: ${BACKFILL_FROM} .. ${TO}"
-            node scripts/ingest.js --from="${BACKFILL_FROM}" --to="${TO}"
+            echo "Backfill ingest: ${BACKFILL_FROM} .. ${TO} sources=${SOURCES:-all}"
+            node scripts/ingest.js --from="${BACKFILL_FROM}" --to="${TO}" ${SOURCES:+--sources="$SOURCES"}
           else
             echo "Nightly delta ingest"
             node scripts/ingest.js --delta
@@ -111,17 +116,13 @@ jobs:
         run: |
           set -euo pipefail
           echo "Recomputing partner premiums (archive-only, zero OCD)..."
-          # -f fails the step on any non-2xx (network hiccup, 500, bad auth); capture body for the log.
           if ! body="$(curl -fsS --max-time 280 --get "https://goasksam.com/api/usageDashboard" \
               --data-urlencode "view=ops" --data-urlencode "task=premium" \
               --data-urlencode "persist=1" --data-urlencode "key=${PROBE_KEY}")"; then
             echo "::error::Premium recompute request FAILED (network/HTTP/auth). Numbers may be stale until the next successful run."
             exit 1
           fi
-          # Log one line per partner so a bad number is visible in the run output.
           echo "$body" | jq -r '.report[]? | "  \(.partner): n=\(.n) premium=\(.premiumPct // "null")% gate=\(.gatePassed)"'
-          # Fail the run if the response is malformed or any intended write did not land,
-          # so a silently-failed recompute turns the workflow RED (GitHub emails on failure).
           if ! echo "$body" | jq -e '(.report|length>0) and (.persisted|length>0) and (all(.persisted[]; .wrote==true))' >/dev/null; then
             echo "::error::Premium recompute did not persist cleanly; a stale number may be sitting on a card."
             echo "$body" | jq -r '.persisted[]? | select(.wrote != true) | "  NOT WRITTEN: \(.partner) reason=\(.reason // "unknown")"' || true
