@@ -3030,6 +3030,7 @@ export default async function handler(req, res) {
       }
       return res.status(200).json({
         status: "pool_diag",
+        freshSourceDist: (() => { const m = {}; for (const r of freshRecs) { const s = recordPlatform(r); m[s] = (m[s] || 0) + 1; } return Object.entries(m).sort((a, b) => b[1] - a[1]); })(),
         vehicle: { make: vehicle.make, model: vehicle.model, year: vehicle.year, trim: vehicle.trim || null },
         maxWindowDays: days(Math.max(...ANALYSIS_WINDOWS_DAYS, ...SELLER_ACTIVITY_WINDOWS_DAYS)),
         freshOnlySample: foSample,
