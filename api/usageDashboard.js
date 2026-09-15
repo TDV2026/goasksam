@@ -489,7 +489,7 @@ async function handleOps(req, res) {
       } catch (e) { ocdSources[s] = { error: e.message }; }
     }
     // 2) sales_archive per platform label (One Box comp source) + distinct sample.
-    const archiveLabels = ["Bring a Trailer", "Cars & Bids", "Hagerty", "PCARMarket", "All Collector Cars", "Gooding & Co", "RM Sotheby's", "Sotheby's Motorsport (SOMO)", "Sotheby's Motorsport", "Hemmings", "MB Market", "AutoHunter"];
+    const archiveLabels = ["Bring a Trailer", "Cars & Bids", "Hagerty", "PCARMarket", "All Collector Cars", "Gooding & Co", "RM Sotheby's", "Sotheby's Motorsport (SOMO)", "Sotheby's Motorsport", "Hemmings", "MB Market", "AutoHunter", "Barrett-Jackson", "Mecum Auctions", "Bonhams", "Broad Arrow", "Car & Classic", "Collecting Cars", "The Market", "PistonHeads"];
     const archivePlatforms = {};
     for (const L of archiveLabels) archivePlatforms[L] = await countAndMax("sales_archive", `platform=eq.${encodeURIComponent(L)}`, "sale_date");
     const archiveTotal = await countAndMax("sales_archive", "", "sale_date");
