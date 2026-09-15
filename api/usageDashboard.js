@@ -551,7 +551,7 @@ async function handleOps(req, res) {
       capturePct: o.total ? Math.round((o.valid / o.total) * 1000) / 10 : 0
     }));
     const scanned = report.reduce((n, r) => n + r.total, 0);
-    return res.status(200).json({ task: "vinaudit", scanned, complete: scanned >= 0 && offset < MAX_PAGES * LIMIT, report });
+    return res.status(200).json({ task: "vinaudit", scanned, report });
   }
 
   // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
