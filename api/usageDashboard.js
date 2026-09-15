@@ -520,6 +520,16 @@ async function handleOps(req, res) {
       split: { merge, priceDiverges, ambiguous }, examples: ex });
   }
 
+  // task=canonbuild: run the canonical builder in DRY mode (read-only, NO writes) and report
+  // the real dedupe rate / alias split / geography / ambiguous count over the full archive.
+  // The actual write-run is the Actions job (too many writes for a serverless call).
+  if (task === "canonbuild") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { runBuild } = await import("../scripts/buildCanonical.js");
+    const rep = await runBuild(env, { write: false });
+    return res.status(200).json({ task: "canonbuild", ...rep });
+  }
+
   // task=vinaudit: READ-ONLY. Scans the whole archive and reports, per source, how many
   // rows carry a USABLE VIN/chassis vs a placeholder/none (validVin filter). This is the
   // cert table's "VIN/chassis capture %" column and the count excluded by the canonical
