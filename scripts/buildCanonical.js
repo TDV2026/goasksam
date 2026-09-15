@@ -126,6 +126,88 @@ async function writeAll(env, canon, write) {
   return { geoBySource, canonRows: canonRows.length, aliasRows: aliasRows.length, canonWrite: c1, aliasWrite: c2 };
 }
 
+// ---- INCREMENTAL: process only rows not yet in sale_aliases, matched against the EXISTING
+// canonical_sales (seeded into the same blocking matcher) + each other. New rows either
+// create a new canonical, merge as an alias into an existing/new canonical, or land as a
+// flagged ambiguous separate sale. Self-correcting: any unprocessed row is caught whenever
+// added, so a missed nightly delta never sits unprocessed. Reads free; writes adaptive.
+async function loadAliasKeys(env) {
+  const keys = new Set(); let cursor = "";
+  for (let p = 0; p < 600; p++) {
+    const q = `sale_aliases?select=source_slug,source_record_id&order=source_record_id.asc&limit=1000` + (cursor ? `&source_record_id=gt.${encodeURIComponent(cursor)}` : "");
+    const batch = await supabaseSelect(env, q);
+    if (!batch || !batch.length) break;
+    for (const r of batch) keys.add(`${r.source_slug}|${r.source_record_id}`);
+    cursor = batch[batch.length - 1].source_record_id;
+    if (batch.length < 1000) break;
+  }
+  return keys;
+}
+async function loadCanonAnchors(env) {
+  // Reconstruct each existing canonical as a matcher "row" from its stored fields.
+  const out = []; let cursor = "";
+  for (let p = 0; p < 600; p++) {
+    const q = `canonical_sales?select=id,chassis_vin_norm,make,model,year,hammer_usd,sale_date,lot_number,primary_source,alias_count&order=id.asc&limit=1000` + (cursor ? `&id=gt.${encodeURIComponent(cursor)}` : "");
+    const batch = await supabaseSelect(env, q);
+    if (!batch || !batch.length) break;
+    for (const r of batch) out.push({
+      __canonId: r.id, __aliasCount: r.alias_count || 1, source_slug: r.primary_source, source: r.primary_source,
+      source_record_id: String(r.id).split(":").slice(1).join(":"), vin: r.chassis_vin_norm, chassis_vin_norm: r.chassis_vin_norm,
+      make: r.make, model: r.model, year: r.year, value: r.hammer_usd, sale_date: r.sale_date, lot: r.lot_number, title: null
+    });
+    cursor = batch[batch.length - 1].id;
+    if (batch.length < 1000) break;
+  }
+  return out;
+}
+export async function runIncremental(env) {
+  const aliasKeys = await loadAliasKeys(env);
+  const anchors = await loadCanonAnchors(env);
+  const allRows = await loadAll(env);
+  const fresh = allRows.filter(r => !aliasKeys.has(`${r.source_slug}|${r.source_record_id}`));
+  // Seed the blocking matcher with existing canonicals, then process only fresh rows.
+  const canon = anchors.map(a => ({ rows: [a], vin: (validVin(a.vin) ? normChassis(a.vin) : ""), existing: true, canonId: a.__canonId }));
+  const byVin = new Map(), byUrl = new Map(), bySDP = new Map();
+  const push = (m, k, i) => { if (!k) return; const a = m.get(k) || []; a.push(i); m.set(k, a); };
+  canon.forEach((c, i) => { push(byVin, c.vin, i); const a = c.rows[0]; push(bySDP, a.sale_date ? `${a.source_slug}|${String(a.sale_date).slice(0, 10)}|${priceBucket(a.value)}` : "", i); });
+  let newCanon = 0, mergedAlias = 0, ambiguous = 0; const ambiguousSample = [];
+  const newCanonRows = [], newAliasRows = [], bumped = new Map();
+  for (const row of fresh) {
+    const vk = validVin(row.vin) ? normChassis(row.vin) : "";
+    const cand = new Set();
+    if (vk) (byVin.get(vk) || []).forEach(i => cand.add(i));
+    const uk = urlOf(row); if (uk) (byUrl.get(uk) || []).forEach(i => cand.add(i));
+    const sk = row.sale_date ? `${row.source_slug}|${String(row.sale_date).slice(0, 10)}|${priceBucket(row.value)}` : ""; if (sk) (bySDP.get(sk) || []).forEach(i => cand.add(i));
+    let joined = -1, reason = "primary";
+    for (const idx of cand) {
+      for (const m of canon[idx].rows) { const res = sameTransaction(row, m); if (res.merge) { joined = idx; reason = res.reason; break; } if (res.ambiguous) { ambiguous++; if (ambiguousSample.length < 8) ambiguousSample.push({ vin: vk, existing: `${m.source_slug} ${Math.round(m.value || 0)} ${m.sale_date}`, new: `${row.source_slug} ${Math.round(row.value || 0)} ${row.sale_date}` }); } }
+      if (joined >= 0) break;
+    }
+    let idx;
+    if (joined >= 0) {
+      canon[joined].rows.push(row); idx = joined; mergedAlias++;
+      const cid = canon[joined].canonId || `${canon[joined].rows[0].source_slug}:${canon[joined].rows[0].source_record_id}`;
+      newAliasRows.push({ source_slug: row.source_slug, source_record_id: row.source_record_id, canonical_id: cid, match_reason: reason });
+      if (canon[joined].existing) bumped.set(cid, (bumped.get(cid) || canon[joined].rows[0].__aliasCount || 1) + 1);
+    } else {
+      idx = canon.length; const cid = `${row.source_slug}:${row.source_record_id}`;
+      canon.push({ rows: [row], vin: vk, existing: false, canonId: cid }); newCanon++;
+      newCanonRows.push(shapeCanonical(canon[idx]));
+      newAliasRows.push({ source_slug: row.source_slug, source_record_id: row.source_record_id, canonical_id: cid, match_reason: "primary" });
+    }
+    push(byVin, vk, idx); push(byUrl, uk, idx); push(bySDP, sk, idx);
+  }
+  // writes: new canonicals, new aliases, and alias_count bumps on merged-into existing canonicals.
+  const bumpRows = [...bumped.entries()].map(([id, alias_count]) => ({ id, alias_count }));
+  let w = { canon: null, alias: null, bumps: null };
+  async function upsert(table, rows, conflict) { if (!rows.length) return { ok: true, wrote: 0 }; let i = 0, chunk = 200; const MIN = 25; while (i < rows.length) { const slice = rows.slice(i, i + chunk); const r = await supabaseInsert(table, slice, env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", `?on_conflict=${conflict}`); if (r.error) { if (chunk > MIN) { chunk = Math.max(MIN, Math.floor(chunk / 2)); continue; } return { error: r.error, wrote: i }; } i += slice.length; } return { ok: true, wrote: i }; }
+  w.canon = await upsert("canonical_sales", newCanonRows, "id");
+  w.alias = w.canon.ok ? await upsert("sale_aliases", newAliasRows, "source_slug,source_record_id") : { error: "skipped" };
+  w.bumps = (w.alias.ok && bumpRows.length) ? await upsert("canonical_sales", bumpRows, "id") : { ok: true, wrote: 0 };
+  return { mode: "incremental", existingCanonicals: anchors.length, archiveRows: allRows.length, freshRows: fresh.length,
+    newCanonical: newCanon, mergedAsAlias: mergedAlias, ambiguousFlagged: ambiguous, ambiguousSample, writes: w };
+}
+
 // ---- reusable entry: load + build + (optionally) write; returns a report object ----
 export async function runBuild(env, { write } = { write: false }) {
   const rows = await loadAll(env);
@@ -143,13 +225,18 @@ export async function runBuild(env, { write } = { write: false }) {
 }
 
 // ---- CLI (Actions) ----
+//   node scripts/buildCanonical.js               full build (writes)
+//   node scripts/buildCanonical.js --dry         full build, report only
+//   node scripts/buildCanonical.js --incremental nightly: only rows not yet aliased
 if (process.argv[1] && process.argv[1].endsWith("buildCanonical.js")) {
   const env = supabaseEnv();
   if (!env) { console.error("Need SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY."); process.exit(1); }
-  const write = !process.argv.includes("--dry");
-  const rep = await runBuild(env, { write });
-  console.log(`\n=== canonical build ${write ? "" : "(DRY, no writes)"} ===`);
+  const incremental = process.argv.includes("--incremental");
+  const rep = incremental ? await runIncremental(env) : await runBuild(env, { write: !process.argv.includes("--dry") });
+  console.log(`\n=== canonical ${incremental ? "INCREMENTAL" : "full"} build ===`);
   for (const [k, v] of Object.entries(rep)) console.log(`  ${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`);
-  if (write && (rep.canonWrite?.error || rep.aliasWrite?.error)) { console.error("::error::canonical build write FAILED"); process.exit(1); }
+  const w = rep.writes || rep;
+  const failed = w.canon?.error || w.alias?.error || w.bumps?.error || rep.canonWrite?.error || rep.aliasWrite?.error;
+  if (failed) { console.error(`::error::canonical ${incremental ? "incremental" : ""} build write FAILED: ${failed}`); process.exit(1); }
   console.log("\nDONE.");
 }
