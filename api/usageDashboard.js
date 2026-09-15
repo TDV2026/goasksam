@@ -688,20 +688,26 @@ async function handleOps(req, res) {
     // (b) 20 samples across three platforms
     const samples = [];
     for (const s of ["bringatrailer", "carsandbids", "hagerty"]) { const recs = await pullRNM(s, 3); for (const r of recs.slice(0, 7)) samples.push({ source: s, price: r.price, currency: r.currency, has_reserve: r.has_reserve, bids: r.stats?.bids, vin: r.vin, title: String(r.title || "").slice(0, 44), url: r.url }); }
-    // (a) relist pair: for BaT RNM VINs, look for a same-VIN SOLD record in our archive
-    let relistPair = null; let checked = 0;
-    const baRNM = await pullRNM("bringatrailer", 4);
+    // (a) relist pair: keyword-search OCD by each RNM VIN to surface ALL of that car's
+    // auction attempts. A VIN with 2+ distinct listing ids (one reserve-not-met, another
+    // sold/relisted) proves OCD keeps each attempt as a separate record, not overwritten.
+    let relistPair = null; let checked = 0; const multiAttempt = [];
+    const baRNM = await pullRNM("bringatrailer", 5);
     for (const r of baRNM) {
-      const v = norm(r.vin); if (!can.validVin(r.vin)) continue; checked++;
-      const sold = await supabaseSelect(env, `sales_archive?vin=ilike.${encodeURIComponent(r.vin)}&select=source_id,source_slug,platform,sale_date,sale_price,vin&limit=5`);
-      const other = (sold || []).find(x => String(x.source_id) !== String(r.id));
-      if (other) { relistPair = {
-        reserveNotMet: { source: "bringatrailer(OCD, not ingested)", id: String(r.id), status: r.auction_status, highUnmetBid: r.price, date: r.auction_end_date, url: r.url, vin: r.vin },
-        laterSold: { source: other.platform || other.source_slug, id: String(other.source_id), soldPrice: other.sale_price, date: other.sale_date, vin: other.vin } };
-        break; }
-      if (checked >= 40) break;
+      if (!can.validVin(r.vin)) continue; checked++;
+      let recs = [];
+      try { const kr = await callOldCarsData("/auctions", { keyword: r.vin, page: 1, limit: 20 }, apiKey); recs = (kr.data || []).filter(x => norm(x.vin) === norm(r.vin)); } catch (e) {}
+      const ids = [...new Set(recs.map(x => String(x.id)))];
+      if (ids.length >= 2) {
+        const entry = { vin: r.vin, records: recs.map(x => ({ id: String(x.id), status: x.auction_status, price: x.price, date: x.auction_end_date, source: x.source, url: x.url })) };
+        multiAttempt.push(entry);
+        const hasSold = recs.some(x => /sold/i.test(String(x.auction_status || "")));
+        const hasRNM = recs.some(x => /reserve.*not.*met/i.test(String(x.auction_status || "")));
+        if (!relistPair && hasSold && hasRNM) relistPair = entry;
+      }
+      if (checked >= 30 || (relistPair && multiAttempt.length >= 3)) break;
     }
-    return res.status(200).json({ task: "nonsold2", rnmSampled: samples.length, samples, relistCheckedVins: checked, relistPair });
+    return res.status(200).json({ task: "nonsold2", rnmSampled: samples.length, samples, relistCheckedVins: checked, relistPair, multiAttemptExamples: multiAttempt.slice(0, 4) });
   }
 
   // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
