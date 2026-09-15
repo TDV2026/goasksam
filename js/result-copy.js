@@ -645,13 +645,13 @@ function outboundGo(slug,card){
 
 function platformDisplayName(name){
   const key=String(name||"").toLowerCase().replace(/[^a-z0-9]/g,"");
-  // Consignment houses render under a generic label in user-facing copy (they
-  // are never a pick or a card; the only surface is the stronger-non-routable
-  // callout), so specific house names stay out of the copy.
-  // Sotheby's Motorsport (SOMO) is ALWAYS named in full, never scrubbed to a
-  // generic and never a raw slug. rmsothebys/gooding (white-glove consignment,
-  // off the evidence allowlist) keep the generic "a leading auction house".
-  const map={bringatrailer:"Bring a Trailer",bat:"Bring a Trailer",carsandbids:"Cars & Bids",pcarmarket:"PCarMarket",hagerty:"Hagerty Marketplace",sothebysmotorsport:"Sotheby's Motorsport (SOMO)",autohunter:"AutoHunter",mbmarket:"MB Market",rmsothebys:"a leading auction house",gooding:"a leading auction house",goodingco:"a leading auction house",acc:"All Collector Cars",allcollectorcars:"All Collector Cars",hemmings:"Hemmings",carandclassic:"Car & Classic",collectingcars:"Collecting Cars"};
+  // House-naming-as-evidence (Sep 2026, decided rule): live-auction houses are NAMED
+  // plainly when they surface as evidence (the stronger-non-routable callout), instead of
+  // the old generic "a leading auction house". They remain NON-ROUTABLE - never a pick,
+  // never a submission button (they have no outbound submission URL, so the door in
+  // result.js never renders for them). Naming the source is a price-fact only; no claim
+  // about how the house operates.
+  const map={bringatrailer:"Bring a Trailer",bat:"Bring a Trailer",carsandbids:"Cars & Bids",pcarmarket:"PCarMarket",hagerty:"Hagerty Marketplace",sothebysmotorsport:"Sotheby's Motorsport (SOMO)",autohunter:"AutoHunter",mbmarket:"MB Market",rmsothebys:"RM Sotheby's",gooding:"Gooding",goodingco:"Gooding",bonhams:"Bonhams",barrettjackson:"Barrett-Jackson",broadarrow:"Broad Arrow",mecum:"Mecum",acc:"All Collector Cars",allcollectorcars:"All Collector Cars",hemmings:"Hemmings",carandclassic:"Car & Classic",collectingcars:"Collecting Cars"};
   if(map[key])return map[key];
   // Never leak a raw slug to a user. Internal slugs are lowercase single tokens
   // (no spaces, no capitals); an unknown one renders as a safe generic. An
