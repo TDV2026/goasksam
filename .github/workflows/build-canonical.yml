@@ -1,0 +1,23 @@
+name: Build canonical layer
+on:
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: "dry (report only, no writes) — leave blank to write"
+        required: false
+        default: ""
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build canonical_sales + sale_aliases
+        run: node scripts/buildCanonical.js ${{ inputs.dry && '--dry' || '' }}
