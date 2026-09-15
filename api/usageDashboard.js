@@ -653,6 +653,29 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "ocdstatus", metered, ...out });
   }
 
+  // task=nonsold: READ-ONLY non-sold data scoping (report-only). Per source: sold total,
+  // withdrawn total (both filterable), and an unfiltered auction_status tally (sold vs
+  // "reserve not met" vs withdrawn vs "result unavailable") to estimate the non-sold mix,
+  // recent-first (approximates last 12mo). Also grabs sample reserve-not-met records to
+  // show price / stats.bids / has_reserve semantics. Metered (~a few /auctions calls).
+  if (task === "nonsold") {
+    const srcs = req.query?.slugs ? String(req.query.slugs).split(",") : ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "hemmings", "sothebysmotorsport", "mbmarket", "acc", "carandclassic", "collectingcars", "themarket", "pistonheads", "rmsothebys", "gooding", "bonhams", "barrettjackson"];
+    let metered = 0; const per = {}; let sampleRNM = null;
+    for (const s of srcs) {
+      const o = { sold: null, withdrawn: null, unfilteredTally: {}, sampled: 0 };
+      try { metered++; const r = await callOldCarsData("/auctions", { source: s, status: "sold", page: 1, limit: 1 }, apiKey); o.sold = r.meta?.total_results ?? r.meta?.total ?? null; } catch (e) { o.sold = `err`; }
+      try { metered++; const r = await callOldCarsData("/auctions", { source: s, status: "withdrawn", page: 1, limit: 1 }, apiKey); o.withdrawn = r.meta?.total_results ?? r.meta?.total ?? null; } catch (e) { o.withdrawn = `err`; }
+      // unfiltered, recent-first: tally the real auction_status vocabulary
+      try {
+        metered++; const r = await callOldCarsData("/auctions", { source: s, sort: "date", direction: "desc", page: 1, limit: 100 }, apiKey);
+        for (const rec of (r.data || [])) { const v = String(rec.auction_status || "(none)"); o.unfilteredTally[v] = (o.unfilteredTally[v] || 0) + 1; o.sampled++;
+          if (!sampleRNM && /reserve.*not.*met/i.test(v)) sampleRNM = { source: s, auction_status: v, price: rec.price, currency: rec.currency, has_reserve: rec.has_reserve, bids: rec.stats?.bids, views: rec.stats?.views, title: String(rec.title || "").slice(0, 50), url: rec.url }; }
+      } catch (e) { o.unfilteredTally = { err: String(e.message).slice(0, 30) }; }
+      per[s] = o;
+    }
+    return res.status(200).json({ task: "nonsold", metered, sampleReserveNotMet: sampleRNM, per });
+  }
+
   // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
   // source universe (probes each candidate source), what is ingested into sales_archive
   // and vehicle_market_records (row count + latest record date per platform, to catch a
