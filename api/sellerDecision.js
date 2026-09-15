@@ -8,6 +8,7 @@ import { testerCodeExpired } from "../lib/_tester.js";
 import { verifyOnce } from "../lib/_onepass.js";
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
 import { findGeneration, generationModelToken, generationsForModel } from "../lib/generations.js";
+import { isHouseSource } from "../lib/_houseComps.js";
 import { vinFeatureActive, findVinArchiveMatch } from "../lib/_flags.js";
 import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
 import { MODEL_SEGMENTS } from "../lib/vehicleData.js";
@@ -225,7 +226,9 @@ export const KNOWN_SOURCE_SLUGS = new Set([
   // Known but NOT evidence: white-glove consignment houses and All Collector Cars
   // (dropped from the launch evidence pool). They render under a generic label and
   // never trip new-source detection.
-  "acc", "allcollectorcars", "rmsothebys", "gooding", "goodingco"
+  "acc", "allcollectorcars", "rmsothebys", "gooding", "goodingco",
+  // Live-auction houses: now evidence (premium backed out), non-routable, named.
+  "bonhams", "barrettjackson", "broadarrow", "mecum"
 ]);
 export function normSourceSlug(value) {
   return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -247,6 +250,11 @@ export function makeMatchesMarque(make, marque) {
 export function isEvidenceSource(record, vehicle) {
   const slug = normSourceSlug(recordPlatform(record));
   if (EVIDENCE_ALLOWLIST.has(slug)) return true;
+  // House-naming-as-evidence (Sep 2026): live-auction houses COUNT as comparable-sale
+  // evidence (their premium is backed out to hammer in classifyRecord), so their sales
+  // inform the read and they can be NAMED. They remain non-routable (not in
+  // US_ROUTE_ALLOWLIST -> routable:false), so a house is never the pick/a submission door.
+  if (isHouseSource(record)) return true;
   const marque = MARQUE_GATED_EVIDENCE[slug];
   if (marque) return makeMatchesMarque(vehicle && vehicle.make, marque);
   return false;
@@ -445,7 +453,10 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
   // backend. International sellers are untouched (their region logic is unchanged).
   if (priorities.region === "US") {
     for (const key of [...candidateKeys]) {
-      if (!US_ROUTE_ALLOWLIST.has(normSourceSlug(key))) candidateKeys.delete(key);
+      // Keep US-routable platforms AND the live-auction houses. Houses survive as
+      // routable:false routes (not in ROUTE_POLICIES), so they can be NAMED as evidence /
+      // surface as the stronger-non-routable callout, but never leave as a routable pick.
+      if (!US_ROUTE_ALLOWLIST.has(normSourceSlug(key)) && !isHouseSource(normSourceSlug(key))) candidateKeys.delete(key);
     }
   }
 
