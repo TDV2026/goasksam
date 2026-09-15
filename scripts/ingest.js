@@ -188,14 +188,33 @@ for (const source of SOURCES) {
   if (sourceError) failedSources.push(`${label} (${sourceError})`);
 }
 
-// Dedupe by source_id and upsert.
+// Dedupe by source_id and upsert. Adaptive chunking (Sep 2026): an upsert with
+// on_conflict=source_id becomes a heavy DO UPDATE when many rows already exist (large
+// raw_record JSONB + index maintenance), and a 250-row chunk hit Supabase's statement
+// timeout (57014) on the Collecting Cars re-ingest. So start SMALL and HALVE on any write
+// error down to a floor; only a chunk that fails even at the floor is a genuine failure
+// that reds the run. Progress advances only on a committed chunk, so nothing is skipped or
+// double-lost. --chunk overrides the base size.
 const uniq = [...new Map(kept.filter(r => r.source_id).map(r => [r.source_id, r])).values()];
-let inserted = 0;
-for (let i = 0; i < uniq.length; i += 250) {
-  const r = await supabaseInsert("sales_archive", uniq.slice(i, i + 250), env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id");
-  if (r.error) { console.error("insert error:", r.error); failedSources.push(`insert: ${r.error}`); break; }
-  inserted += uniq.slice(i, i + 250).length;
+const BASE_CHUNK = Math.max(1, Number(flag("chunk") || 100));
+const MIN_CHUNK = 25;
+let inserted = 0, insertError = null, chunk = BASE_CHUNK, i = 0, sinceGrow = 0;
+while (i < uniq.length) {
+  const slice = uniq.slice(i, i + chunk);
+  const r = await supabaseInsert("sales_archive", slice, env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id");
+  if (r.error) {
+    if (chunk > MIN_CHUNK) {
+      chunk = Math.max(MIN_CHUNK, Math.floor(chunk / 2)); sinceGrow = 0;
+      process.stderr.write(`\n  insert error, retrying same rows at chunk ${chunk}: ${r.error}\n`);
+      continue;   // retry the SAME offset at a smaller size
+    }
+    insertError = r.error; break;   // failed even at the floor -> genuine failure
+  }
+  inserted += slice.length; i += slice.length;
+  // Ease the size back up after sustained success so a one-off heavy chunk doesn't pin us at the floor.
+  if (chunk < BASE_CHUNK && ++sinceGrow >= 5) { chunk = Math.min(BASE_CHUNK, chunk * 2); sinceGrow = 0; }
 }
+if (insertError) { console.error("insert error:", insertError); failedSources.push(`insert: ${insertError}`); }
 
 // 7D.4 health check: any targeted day below the floor is surfaced loudly and
 // logged to app_usage_events, never silent.
