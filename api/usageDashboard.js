@@ -676,6 +676,34 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "nonsold", metered, sampleReserveNotMet: sampleRNM, per });
   }
 
+  // task=nonsold2: closes the non-sold scoping. (a) relist pair: pull reserve-not-met
+  // records, and for each VIN check whether a SOLD record with the same VIN exists in our
+  // archive (a later, separately-id'd sale) - proving both persist independently. (b) 20
+  // reserve-not-met records across BaT/C&B/Hagerty with price/bids/has_reserve for the
+  // price=high-unmet-bid semantics. Metered (a few /auctions calls). No writes.
+  if (task === "nonsold2") {
+    const can = await import("../lib/_canonical.js");
+    const norm = v => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const pullRNM = async (source, pages) => { const out = []; for (let p = 1; p <= pages; p++) { let r; try { r = await callOldCarsData("/auctions", { source, sort: "date", direction: "desc", page: p, limit: 100 }, apiKey); } catch (e) { break; } for (const rec of (r.data || [])) if (/reserve.*not.*met/i.test(String(rec.auction_status || "")) && Number(rec.price) > 0) out.push(rec); } return out; };
+    // (b) 20 samples across three platforms
+    const samples = [];
+    for (const s of ["bringatrailer", "carsandbids", "hagerty"]) { const recs = await pullRNM(s, 3); for (const r of recs.slice(0, 7)) samples.push({ source: s, price: r.price, currency: r.currency, has_reserve: r.has_reserve, bids: r.stats?.bids, vin: r.vin, title: String(r.title || "").slice(0, 44), url: r.url }); }
+    // (a) relist pair: for BaT RNM VINs, look for a same-VIN SOLD record in our archive
+    let relistPair = null; let checked = 0;
+    const baRNM = await pullRNM("bringatrailer", 4);
+    for (const r of baRNM) {
+      const v = norm(r.vin); if (!can.validVin(r.vin)) continue; checked++;
+      const sold = await supabaseSelect(env, `sales_archive?vin=ilike.${encodeURIComponent(r.vin)}&select=source_id,source_slug,platform,sale_date,sale_price,vin&limit=5`);
+      const other = (sold || []).find(x => String(x.source_id) !== String(r.id));
+      if (other) { relistPair = {
+        reserveNotMet: { source: "bringatrailer(OCD, not ingested)", id: String(r.id), status: r.auction_status, highUnmetBid: r.price, date: r.auction_end_date, url: r.url, vin: r.vin },
+        laterSold: { source: other.platform || other.source_slug, id: String(other.source_id), soldPrice: other.sale_price, date: other.sale_date, vin: other.vin } };
+        break; }
+      if (checked >= 40) break;
+    }
+    return res.status(200).json({ task: "nonsold2", rnmSampled: samples.length, samples, relistCheckedVins: checked, relistPair });
+  }
+
   // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
   // source universe (probes each candidate source), what is ingested into sales_archive
   // and vehicle_market_records (row count + latest record date per platform, to catch a
