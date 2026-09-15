@@ -528,9 +528,12 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const can = await import("../lib/_canonical.js");
     const per = {};   // source -> { total, nullVin, invalid, valid }
-    let offset = 0; const LIMIT = 1000; const MAX_PAGES = 320;
+    // Keyset pagination on the source_id PK (avoids the deep-offset statement timeout that
+    // capped an earlier offset-based scan at 114k of 281k).
+    let cursor = ""; const LIMIT = 1000; const MAX_PAGES = 400;
     for (let p = 0; p < MAX_PAGES; p++) {
-      const batch = await supabaseSelect(env, `sales_archive?select=source_slug,vin&order=source_id.asc&limit=${LIMIT}&offset=${offset}`);
+      const q = `sales_archive?select=source_slug,vin,source_id&order=source_id.asc&limit=${LIMIT}` + (cursor ? `&source_id=gt.${encodeURIComponent(cursor)}` : "");
+      const batch = await supabaseSelect(env, q);
       if (!batch || !batch.length) break;
       for (const r of batch) {
         const s = r.source_slug || "(null)";
@@ -540,7 +543,7 @@ async function handleOps(req, res) {
         else if (can.validVin(r.vin)) o.valid++;
         else o.invalid++;
       }
-      offset += batch.length;
+      cursor = batch[batch.length - 1].source_id;
       if (batch.length < LIMIT) break;
     }
     const report = Object.entries(per).sort((a, b) => b[1].total - a[1].total).map(([source, o]) => ({
