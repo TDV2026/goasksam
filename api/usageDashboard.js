@@ -575,9 +575,11 @@ async function handleOps(req, res) {
   // now that non-USD house lots have landed. RM EUR (EU 15/12.5 @ €200k, +/-VAT), Bonhams
   // GBP (UK 15/12 @ £500k), Bonhams EUR (FR flat 15%). Backs out in NATIVE currency.
   if (task === "housecur") {
+    const can = await import("../lib/_canonical.js");
+    const carOnly = req.query?.carsonly === "1";
     const inv = (total, tiers) => { let lo = 0, ft = 0; for (const [th, rate] of tiers) { const span = th - lo, top = ft + span * (1 + rate); if (total <= top || !Number.isFinite(th)) return lo + (total - ft) / (1 + rate); lo = th; ft = top; } return total; };
     const round = (hs, step) => hs.filter(h => Math.abs(Math.round(h) - Math.round(Math.round(h) / step) * step) <= 25).length;
-    const pull = async (source, currency, pages) => { const out = []; for (let p = 0; p < pages; p++) { const rows = await supabaseSelect(env, `sales_archive?source_slug=eq.${source}&raw_record->>currency=eq.${currency}&sale_price=not.is.null&select=sale_price&limit=1000&offset=${p * 1000}`); if (!rows || !rows.length) break; out.push(...rows.map(r => Number(r.sale_price)).filter(v => v > 0)); if (rows.length < 1000) break; } return out; };
+    const pull = async (source, currency, pages) => { const out = []; for (let p = 0; p < pages; p++) { const rows = await supabaseSelect(env, `sales_archive?source_slug=eq.${source}&raw_record->>currency=eq.${currency}&sale_price=not.is.null&select=sale_price,vin&limit=1000&offset=${p * 1000}`); if (!rows || !rows.length) break; for (const r of rows) { const v = Number(r.sale_price); if (!(v > 0)) continue; if (carOnly && !can.validVin(r.vin)) continue; out.push(v); } if (rows.length < 1000) break; } return out; };
     const EU = [[200000, 0.15], [Infinity, 0.125]];
     const EU_VAT = [[200000, 0.18], [Infinity, 0.15]];   // +20% VAT on the premium
     const UK = [[500000, 0.15], [Infinity, 0.12]];
