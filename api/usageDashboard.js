@@ -586,8 +586,10 @@ async function handleOps(req, res) {
     const FR = [[Infinity, 0.15]];
     const out = {};
     { const p = await pull("rmsothebys", "EUR", 3); const hNo = p.map(x => inv(x, EU)), hVat = p.map(x => inv(x, EU_VAT)); out.rmEUR = { lots: p.length, noVat_round500: round(hNo, 500), withVat_round500: round(hVat, 500) }; }
-    { const p = await pull("bonhams", "GBP", 3); const h = p.map(x => inv(x, UK)); out.bonhamsGBP = { lots: p.length, uk_round500: round(h, 500), uk_round1000: round(h, 1000) }; }
-    { const p = await pull("bonhams", "EUR", 3); const h = p.map(x => inv(x, FR)); out.bonhamsEUR = { lots: p.length, fr_round500: round(h, 500), fr_round1000: round(h, 1000) }; }
+    const UK_VAT = [[500000, 0.18], [Infinity, 0.144]];  // UK 15/12 + 20% VAT on the premium
+    const FR_VAT = [[Infinity, 0.18]];                     // FR flat 15 + 20% VAT on the premium
+    { const p = await pull("bonhams", "GBP", 3); const h = p.map(x => inv(x, UK)), hv = p.map(x => inv(x, UK_VAT)); out.bonhamsGBP = { lots: p.length, noVat_round500: round(h, 500), withVat_round500: round(hv, 500), withVat_round1000: round(hv, 1000) }; }
+    { const p = await pull("bonhams", "EUR", 3); const h = p.map(x => inv(x, FR)), hv = p.map(x => inv(x, FR_VAT)); out.bonhamsEUR = { lots: p.length, noVat_round500: round(h, 500), withVat_round500: round(hv, 500), withVat_round1000: round(hv, 1000) }; }
     { const p = await pull("broadarrow", "EUR", 2); const h = p.map(x => inv(x, EU)); out.broadarrowEUR = { lots: p.length, eu_round500: round(h, 500) }; }
     return res.status(200).json({ task: "housecur", ...out });
   }
