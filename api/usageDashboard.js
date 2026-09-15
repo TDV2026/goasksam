@@ -481,6 +481,45 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "canonproof", canonicalSales, saleAliases, archiveTotal, broadarrowVinRows: ba.length, hagertyVinRows: hag.length, crossSourceVinMatches: proof ? "found" : "none in sample", proof });
   }
 
+  // task=canonsample: READ-ONLY. Runs the price+date VIN merge rule over a sample of real
+  // same-VIN groups and reports the split (merge / price-diverges / ambiguous). Uses
+  // backed-out hammer for house rows so cross-source prices are comparable. No writes.
+  if (task === "canonsample") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const pages = Math.min(80, Math.max(1, Number(req.query?.pages || 50)));
+    const rows = [];
+    for (let p = 0; p < pages; p++) {
+      const batch = await supabaseSelect(env, `sales_archive?vin=not.is.null&select=source_id,source_slug,platform,vin,make,year,sale_price,sale_date,curr:raw_record->>currency&order=vin.asc&limit=1000&offset=${p * 1000}`);
+      if (!batch || !batch.length) break;
+      rows.push(...batch);
+      if (batch.length < 1000) break;
+    }
+    const hc = await import("../lib/_houseComps.js");
+    const can = await import("../lib/_canonical.js");
+    const norm = v => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const toRow = r => ({ source_slug: r.source_slug, source: r.platform, source_record_id: r.source_id, vin: r.vin, make: r.make, year: r.year, sale_date: r.sale_date,
+      value: hc.hammerUsd({ source_slug: r.source_slug, source: r.platform, price: Number(r.sale_price), currency: r.curr || "USD" }) });
+    // group by normalized VIN (>=11 chars only - real 17-char VINs, not short chassis)
+    const groups = new Map();
+    for (const r of rows) { const k = norm(r.vin); if (k.length >= 11) { if (!groups.has(k)) groups.set(k, []); groups.get(k).push(toRow(r)); } }
+    let merge = 0, priceDiverges = 0, ambiguous = 0, pairs = 0, crossSourcePairs = 0, collisionVins = 0;
+    const ex = { merge: [], priceDiverges: [], ambiguous: [] };
+    for (const [vin, grp] of groups) {
+      if (grp.length < 2) continue;
+      collisionVins++;
+      for (let i = 0; i < grp.length; i++) for (let j = i + 1; j < grp.length; j++) {
+        const a = grp[i], b = grp[j]; const res = can.sameTransaction(a, b); pairs++;
+        const cross = a.source_slug !== b.source_slug; if (cross) crossSourcePairs++;
+        const rec = { vin, a: `${a.source_slug} ${Math.round(a.value || 0)} ${a.sale_date}`, b: `${b.source_slug} ${Math.round(b.value || 0)} ${b.sale_date}`, cross };
+        if (res.merge) { merge++; if (ex.merge.length < 4) ex.merge.push(rec); }
+        else if (res.ambiguous) { ambiguous++; if (ex.ambiguous.length < 6) ex.ambiguous.push(rec); }
+        else if (res.reason === "vin_price_diverges") { priceDiverges++; if (ex.priceDiverges.length < 4) ex.priceDiverges.push(rec); }
+      }
+    }
+    return res.status(200).json({ task: "canonsample", sampledRows: rows.length, vinCollisionGroups: collisionVins, samePairs: pairs, crossSourcePairs,
+      split: { merge, priceDiverges, ambiguous }, examples: ex });
+  }
+
   // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
   // source universe (probes each candidate source), what is ingested into sales_archive
   // and vehicle_market_records (row count + latest record date per platform, to catch a
