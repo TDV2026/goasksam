@@ -520,6 +520,37 @@ async function handleOps(req, res) {
       split: { merge, priceDiverges, ambiguous }, examples: ex });
   }
 
+  // task=vinaudit: READ-ONLY. Scans the whole archive and reports, per source, how many
+  // rows carry a USABLE VIN/chassis vs a placeholder/none (validVin filter). This is the
+  // cert table's "VIN/chassis capture %" column and the count excluded by the canonical
+  // build's identifier filter. No writes.
+  if (task === "vinaudit") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const can = await import("../lib/_canonical.js");
+    const per = {};   // source -> { total, nullVin, invalid, valid }
+    let offset = 0; const LIMIT = 1000; const MAX_PAGES = 320;
+    for (let p = 0; p < MAX_PAGES; p++) {
+      const batch = await supabaseSelect(env, `sales_archive?select=source_slug,vin&order=source_id.asc&limit=${LIMIT}&offset=${offset}`);
+      if (!batch || !batch.length) break;
+      for (const r of batch) {
+        const s = r.source_slug || "(null)";
+        const o = per[s] || (per[s] = { total: 0, nullVin: 0, invalid: 0, valid: 0 });
+        o.total++;
+        if (r.vin == null || String(r.vin).trim() === "") o.nullVin++;
+        else if (can.validVin(r.vin)) o.valid++;
+        else o.invalid++;
+      }
+      offset += batch.length;
+      if (batch.length < LIMIT) break;
+    }
+    const report = Object.entries(per).sort((a, b) => b[1].total - a[1].total).map(([source, o]) => ({
+      source, total: o.total, valid: o.valid, invalidPlaceholder: o.invalid, nullVin: o.nullVin,
+      capturePct: o.total ? Math.round((o.valid / o.total) * 1000) / 10 : 0
+    }));
+    const scanned = report.reduce((n, r) => n + r.total, 0);
+    return res.status(200).json({ task: "vinaudit", scanned, complete: scanned >= 0 && offset < MAX_PAGES * LIMIT, report });
+  }
+
   // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
   // source universe (probes each candidate source), what is ingested into sales_archive
   // and vehicle_market_records (row count + latest record date per platform, to catch a
