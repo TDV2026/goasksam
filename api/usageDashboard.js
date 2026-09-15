@@ -451,6 +451,36 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
   }
 
+  // task=canonproof: READ-ONLY canonical-layer readiness + the Broad Arrow vs Hagerty VIN
+  // merge proof. Confirms the DDL is applied, sizes the archive, finds a real cross-source
+  // same-VIN pair and runs the actual canonicalize() on it. No writes.
+  if (task === "canonproof") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    const count = async (q) => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: { ...H, Prefer: "count=exact" } }); const cr = r.headers.get("content-range"); return { httpOk: r.ok, status: r.status, count: cr ? cr.split("/")[1] : null }; } catch (e) { return { error: e.message }; } };
+    const canonicalSales = await count("canonical_sales?select=id&limit=1");
+    const saleAliases = await count("sale_aliases?select=canonical_id&limit=1");
+    const archiveTotal = await count("sales_archive?select=source_id&limit=1");
+    const pullVins = async (slug, pages) => { const out = []; for (let p = 0; p < pages; p++) { const rows = await supabaseSelect(env, `sales_archive?source_slug=eq.${slug}&vin=not.is.null&select=source_id,platform,source_slug,vin,year,make,model,sale_price,sale_date,listing_title&limit=1000&offset=${p * 1000}`); if (!rows || !rows.length) break; out.push(...rows); if (rows.length < 1000) break; } return out; };
+    const norm = v => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const ba = await pullVins("broadarrow", 3);
+    const hag = await pullVins("hagerty", 6);
+    const haMap = new Map(); for (const r of hag) { const k = norm(r.vin); if (k.length >= 11) haMap.set(k, r); }
+    const mod = await import("../lib/_canonical.js");
+    let proof = null;
+    for (const r of ba) { const k = norm(r.vin); if (k.length >= 11 && haMap.has(k)) {
+      const h = haMap.get(k);
+      const rows = [
+        { source_slug: r.source_slug, source: r.platform, source_record_id: r.source_id, vin: r.vin, make: r.make, model: r.model, year: r.year, value: r.sale_price, sale_date: r.sale_date, title: r.listing_title },
+        { source_slug: h.source_slug, source: h.platform, source_record_id: h.source_id, vin: h.vin, make: h.make, model: h.model, year: h.year, value: h.sale_price, sale_date: h.sale_date, title: h.listing_title }
+      ];
+      const { canonicals, aliases } = mod.canonicalize(rows);
+      proof = { vin: k, sourceRows: rows.map(x => ({ source_slug: x.source_slug, id: x.source_record_id, car: [x.year, x.make, x.model].filter(Boolean).join(" "), price: x.value, date: x.sale_date })), canonicalCount: canonicals.length, aliases: aliases.map(a => ({ source_slug: a.source_slug, reason: a.match_reason })) };
+      break;
+    } }
+    return res.status(200).json({ task: "canonproof", canonicalSales, saleAliases, archiveTotal, broadarrowVinRows: ba.length, hagertyVinRows: hag.length, crossSourceVinMatches: proof ? "found" : "none in sample", proof });
+  }
+
   // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
   // source universe (probes each candidate source), what is ingested into sales_archive
   // and vehicle_market_records (row count + latest record date per platform, to catch a
