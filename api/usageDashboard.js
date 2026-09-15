@@ -530,6 +530,27 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "canonbuild", ...rep });
   }
 
+  // task=canonvin: READ-ONLY. Pull every archive row for one VIN and run the real
+  // canonicalize() on them - to prove a specific case lands right. Also returns the exact
+  // sales_archive row count (to confirm the loader isn't duplicating). No writes.
+  if (task === "canonvin") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    let archiveCount = null;
+    try { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?select=source_id&limit=1`, { headers: { ...H, Prefer: "count=exact" } }); const cr = r.headers.get("content-range"); archiveCount = cr ? cr.split("/")[1] : null; } catch (e) {}
+    const vin = String(req.query?.vin || "").trim();
+    if (!vin) return res.status(200).json({ task: "canonvin", archiveCount, error: "pass ?vin=" });
+    const rows = await supabaseSelect(env, `sales_archive?vin=ilike.${encodeURIComponent(vin)}&select=source_id,source_slug,platform,vin,make,model,year,sale_price,sale_date,listing_title,curr:raw_record->>currency&order=sale_date.asc&limit=200`);
+    const hc = await import("../lib/_houseComps.js");
+    const can = await import("../lib/_canonical.js");
+    const inRows = (rows || []).map(r => ({ source_slug: r.source_slug, source: r.platform, source_record_id: r.source_id, vin: r.vin, make: r.make, model: r.model, year: r.year, sale_date: r.sale_date, title: r.listing_title,
+      native_price: Number(r.sale_price), currency: r.curr || "USD", value: hc.hammerUsd({ source_slug: r.source_slug, source: r.platform, price: Number(r.sale_price), currency: r.curr || "USD" }) }));
+    const { canonicals, aliases } = can.canonicalize(inRows);
+    return res.status(200).json({ task: "canonvin", archiveCount, vin, rowCount: inRows.length,
+      rows: inRows.map(r => ({ source_slug: r.source_slug, id: r.source_record_id, car: [r.year, r.make, r.model].filter(Boolean).join(" "), nativePrice: r.native_price, currency: r.currency, hammerUsd: r.value != null ? Math.round(r.value) : null, date: r.sale_date })),
+      canonicalCount: canonicals.length, canonicalSizes: canonicals.map(c => c.rows.length), aliases: aliases.map(a => ({ source_slug: a.source_slug, id: a.source_record_id, reason: a.match_reason })) });
+  }
+
   // task=vinaudit: READ-ONLY. Scans the whole archive and reports, per source, how many
   // rows carry a USABLE VIN/chassis vs a placeholder/none (validVin filter). This is the
   // cert table's "VIN/chassis capture %" column and the count excluded by the canonical
