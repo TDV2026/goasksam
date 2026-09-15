@@ -53,6 +53,54 @@ const toBool = v => v === true || v === "true" ? true : v === false || v === "fa
 const toDate = v => { const d = new Date(v || ""); return Number.isFinite(d.getTime()) ? d : null; };
 const dayKey = d => d ? d.toISOString().slice(0, 10) : null;
 
+// --- Rate-limit-aware OCD fetch (Sep 2026). OCD enforces a HARD 250 requests/minute; a
+// flat-out backfill hit it at Collecting Cars p251 and the old catch-and-skip silently
+// dropped the next two sources while the run stayed green. Two protections:
+//  1. PACING: a sliding 60s window capped at 240 (margin under 250; the OCD quota is
+//     account-wide, so live searches also count - the retry below absorbs any overflow).
+//  2. RETRY-WITH-BACKOFF on 429: wait for the minute window to clear, then retry the SAME
+//     page, up to MAX_RETRIES. A page that succeeds on retry is NOT a failure. Only a
+//     non-429 error, or 429 still failing after all retries, propagates and reds the run.
+const RL_MAX_PER_MIN = 240;
+const RL_WINDOW_MS = 60000;
+const RL_MAX_RETRIES = 5;
+const reqTimes = [];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function paceBeforeRequest() {
+  const now = Date.now();
+  while (reqTimes.length && now - reqTimes[0] > RL_WINDOW_MS) reqTimes.shift();
+  if (reqTimes.length >= RL_MAX_PER_MIN) {
+    await sleep(RL_WINDOW_MS - (now - reqTimes[0]) + 100);
+    return paceBeforeRequest();
+  }
+  reqTimes.push(Date.now());
+}
+function retryAfterMs(e) {
+  const n = Number(e && e.rateLimit && e.rateLimit.reset);
+  if (Number.isFinite(n)) {
+    if (n > 1e9) return Math.max(1000, n * 1000 - Date.now()) + 500;   // epoch seconds
+    if (n > 0 && n <= 300) return n * 1000 + 500;                       // delta seconds
+  }
+  return RL_WINDOW_MS + 1000;   // default: clear the full 1-minute window
+}
+async function ocdFetch(params) {
+  for (let attempt = 0; ; attempt++) {
+    await paceBeforeRequest();
+    try {
+      return await callOldCarsData("/auctions", params, apiKey);
+    } catch (e) {
+      if (e.rateLimited && attempt < RL_MAX_RETRIES) {
+        const waitMs = retryAfterMs(e);
+        process.stderr.write(`\n  429 rate limit; waiting ${Math.round(waitMs / 1000)}s then retrying (attempt ${attempt + 1}/${RL_MAX_RETRIES})...\n`);
+        reqTimes.length = 0;   // window is over per the server; reset our tracker
+        await sleep(waitMs);
+        continue;
+      }
+      throw e;   // non-429, or 429 after all retries -> propagate (fail the source)
+    }
+  }
+}
+
 function toFullRow(r, label, source) {
   const d = toDate(r.auction_end_date);
   return {
@@ -79,6 +127,7 @@ async function heldIds(source, label) {
 let metered = 0;
 const perDay = {};
 const kept = [];
+const failedSources = [];   // sources that ended in an UNRESOLVED error -> red the run at exit
 const inRange = d => {
   if (!d) return false;
   const k = dayKey(d);
@@ -91,7 +140,7 @@ for (const source of SOURCES) {
   const label = DISPLAY[source] || source;
   const held = DELTA ? await heldIds(source, label) : null;
   const before = kept.length;
-  let partsSkipped = 0, marketplaceSkipped = 0, unpricedSkipped = 0;
+  let partsSkipped = 0, marketplaceSkipped = 0, unpricedSkipped = 0, sourceError = null;
   // PCarMarket "MarketPlace:" rows are fixed-price CLASSIFIEDS (asking price / for-sale), not
   // completed auctions, so they carry an asking/scheduled date (some future-dated) and must never
   // enter this completed-sales-only archive. Verified Sep 2026: 4 such rows had leaked in.
@@ -103,8 +152,8 @@ for (const source of SOURCES) {
   for (let p = 1; p <= 2000; p++) {
     metered++;
     let res;
-    try { res = await callOldCarsData("/auctions", { source, status: "sold", sort: "date", direction: "desc", page: p, limit: 50 }, apiKey); }
-    catch (e) { console.error(`\n${label} p${p} error: ${e.message}`); break; }
+    try { res = await ocdFetch({ source, status: "sold", sort: "date", direction: "desc", page: p, limit: 50 }); }
+    catch (e) { console.error(`\n${label} p${p} FAILED after retries: ${e.message}`); sourceError = `p${p}: ${e.message}`; break; }
     const rows = res.data || [];
     if (!rows.length) break;
     let oldest = null, pageAllKnown = DELTA;
@@ -135,7 +184,8 @@ for (const source of SOURCES) {
     if (p >= (res.meta?.total_pages || 1)) break;
   }
   process.stderr.write("\n");
-  console.log(`${label}: ${kept.length - before} record(s) this source${partsSkipped ? ` (${partsSkipped} parts/automobilia skipped)` : ""}${marketplaceSkipped ? ` (${marketplaceSkipped} marketplace/asking-price skipped)` : ""}${unpricedSkipped ? ` (${unpricedSkipped} unpriced/classified skipped)` : ""}.`);
+  console.log(`${label}: ${kept.length - before} record(s) this source${partsSkipped ? ` (${partsSkipped} parts/automobilia skipped)` : ""}${marketplaceSkipped ? ` (${marketplaceSkipped} marketplace/asking-price skipped)` : ""}${unpricedSkipped ? ` (${unpricedSkipped} unpriced/classified skipped)` : ""}${sourceError ? `  [UNRESOLVED ERROR: ${sourceError}]` : ""}.`);
+  if (sourceError) failedSources.push(`${label} (${sourceError})`);
 }
 
 // Dedupe by source_id and upsert.
@@ -143,7 +193,7 @@ const uniq = [...new Map(kept.filter(r => r.source_id).map(r => [r.source_id, r]
 let inserted = 0;
 for (let i = 0; i < uniq.length; i += 250) {
   const r = await supabaseInsert("sales_archive", uniq.slice(i, i + 250), env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id");
-  if (r.error) { console.error("insert error:", r.error); break; }
+  if (r.error) { console.error("insert error:", r.error); failedSources.push(`insert: ${r.error}`); break; }
   inserted += uniq.slice(i, i + 250).length;
 }
 
@@ -168,3 +218,13 @@ if (belowFloor.length) {
   } catch (e) { /* never block ingest on logging */ }
 }
 console.log(belowFloor.length ? "\nDONE (with health warnings above)." : "\nDONE.");
+
+// Fail loud, per source: any source that ended in an UNRESOLVED error (429 still failing
+// after all retries, or a non-429 error, or an insert failure) reds the run so a partial
+// or empty backfill can never report green again. A source that recovered via retry after
+// a 429 is NOT here, so a healthy paced run still exits 0.
+if (failedSources.length) {
+  console.error(`\n::error::INGEST FAILED: ${failedSources.length} source(s)/step(s) ended in an unresolved error:`);
+  for (const f of failedSources) console.error(`  - ${f}`);
+  process.exit(1);
+}
