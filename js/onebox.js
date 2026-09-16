@@ -507,7 +507,7 @@
   // House both-numbers (locked addition): the math number (hammer) is the headline; the all-in
   // premium-inclusive price shows beside it, never leading. Non-house cards show price alone.
   function repPrice(c) { return esc(usd(c.price)) + (c.isHouse && c.allIn ? ' <span class="allin">&middot; buyer paid ' + esc(usd(c.allIn)) + " incl. premium</span>" : ""); }
-  var DELTA_LABEL = { fewer_miles: "Fewer miles", more_miles: "More miles", manual: "6-speed manual", earlier: "Earlier sale", higher: "Higher sale", lower: "Lower sale" };
+  var DELTA_LABEL = { fewer_miles: "Fewer miles", more_miles: "More miles", manual: "Manual", automatic: "Automatic", earlier: "Earlier sale", higher: "Higher sale", lower: "Lower sale" };
   function bracketCard(c) {
     if (!c) return "";
     var ext = '<span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>';
