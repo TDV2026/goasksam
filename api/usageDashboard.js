@@ -960,6 +960,36 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "batch2", mode, cars: out });
   }
 
+  // task=srcaudit: READ-ONLY (archive only; ZERO OCD). Per-source counts across sales_archive,
+  // auction_attempts (non-sold), and canonical_sales, for the full 19-source coverage audit.
+  if (task === "srcaudit") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
+    const headers = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    const countOf = async (table, col, slug) => {
+      try {
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/${table}?${col}=eq.${slug}&select=${col}&limit=1`, { headers });
+        const cr = r.headers.get("content-range") || "";
+        const m = /\/(\d+|\*)$/.exec(cr); return m ? (m[1] === "*" ? 0 : Number(m[1])) : (r.ok ? (await r.json()).length : null);
+      } catch (e) { return null; }
+    };
+    const latestOf = async (slug) => {
+      const rows = await supabaseSelect(env, `sales_archive?source_slug=eq.${slug}&select=sale_date&order=sale_date.desc.nullslast&limit=1`);
+      return rows && rows[0] ? rows[0].sale_date : null;
+    };
+    // does auction_attempts exist?
+    let attemptsExists = true;
+    try { const r = await fetch(`${env.supabaseUrl}/rest/v1/auction_attempts?select=source_slug&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); attemptsExists = r.ok; } catch (e) { attemptsExists = false; }
+    const out = [];
+    for (const slug of SRCS) {
+      const archive = await countOf("sales_archive", "source_slug", slug);
+      const attempts = attemptsExists ? await countOf("auction_attempts", "source_slug", slug) : null;
+      const canon = await countOf("canonical_sales", "source_slug", slug).catch(() => null);
+      out.push({ slug, archive, latest: archive ? await latestOf(slug) : null, attempts, canon });
+    }
+    return res.status(200).json({ task: "srcaudit", attemptsTableExists: attemptsExists, sources: out });
+  }
+
   // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
   // source universe (probes each candidate source), what is ingested into sales_archive
   // and vehicle_market_records (row count + latest record date per platform, to catch a

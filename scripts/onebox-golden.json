@@ -185,8 +185,7 @@
     "cmKick": "Closest match",
     "cmWhy": "The nearest recent sale on mileage and spec.",
     "brackets": [
-      "Fewer miles",
-      "Lower sale"
+      "Fewer miles"
     ],
     "earned": null,
     "chips": [],
@@ -200,7 +199,7 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": 3
+    "cards": 2
   },
   "JTHMPAAY3TA113218": {
     "state": "matched_result",
