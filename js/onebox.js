@@ -385,6 +385,11 @@
       var s2 = "Most land between " + betweenRange(d.cluster) + ".";
       if (d.driver === "mileage") s2 += " The ones at the top are the low-mileage cars; the cheaper end is high-mileage.";
       out += '<p class="s2">' + lint(s2, "s2") + "</p>";
+    } else if (d.spanOnly && d.poolN && d.poolN < 8) {
+      // Span-without-cluster (#4): a real result with too few sales to mark a typical band.
+      // Show the full range (already in s1) and every sale, honestly caveated, no invented middle.
+      var n = d.poolN;
+      out += '<p class="s2">' + lint("Only " + n + " ha" + (n === 1 ? "s" : "ve") + " sold in " + windowText(d) + ", too few to mark a typical band, so that is the full range and every sale is below.", "s2") + "</p>";
     }
     if (d.direction && !obRefinePhrase) { var conn = d.direction.word === "about level" ? "with" : "than"; out += '<p class="s3">' + lint("That’s " + esc(d.direction.word) + " " + conn + " a year ago, when most landed between " + betweenRange(d.direction.prior) + ".", "s3") + "</p>"; }
     if (m && m.price) {

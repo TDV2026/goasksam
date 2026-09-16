@@ -769,6 +769,52 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "reviewfix", transmissionVsMileage: [tx928, tx997], slHouseBackout: houseRows });
   }
 
+  // task=tencars: READ-ONLY (archive + hammerUsd; NO OCD). Runs the REAL runOneBox on the ten
+  // method-review cars through the shared resolver, so the four approved fixes are confirmed on
+  // the actual engine (not a prototype). Returns the reader-facing result model per car.
+  if (task === "tencars") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { runOneBox } = await import("../lib/onebox.js");
+    const { findVinArchiveMatch } = await import("../lib/_flags.js");
+    const inputs = [
+      "WBS4Y9C55KAG67564", "1990 BMW E30 M3", "2006 Porsche 997 Carrera S",
+      "1965 Mercedes 300SL Roadster", "1972 Ferrari 365 GTB/4 Daytona", "1969 Ferrari 365 GTC",
+      "2016 Ferrari 488 GTB", "1994 Dodge Viper RT/10", "1988 Porsche 928 S4", "Lotus Esprit"
+    ];
+    const out = [];
+    for (const text of inputs) {
+      try {
+        const rv = await resolveVehicle(text, {});
+        const vehicle = rv && rv.vehicle ? rv.vehicle : null;
+        if (!vehicle || !vehicle.make) { out.push({ input: text, resolved: null, note: rv && rv.status ? rv.status : "unresolved" }); continue; }
+        // #1 divergence needs the exact car's own sale (frontend-fed in prod); reconstruct it
+        // here from the archive VIN match so the divergence path can be exercised.
+        let exactSale = null;
+        if (/^[A-HJ-NPR-Z0-9]{11,17}$/i.test(text)) {
+          try { const vm = await findVinArchiveMatch(env, { vin: text }); if (vm && Number(vm.price) > 0) exactSale = { price: Number(vm.price), mileage: Number(vm.mileage) || null, soldDate: (vm.soldDate || vm.sale_date || "").slice(0, 10) || null }; } catch { /* */ }
+        }
+        const generation = await findGeneration(vehicle, env);
+        const r = await runOneBox(vehicle, generation, text, { ...env, exactSale }, null);
+        const cards = Array.isArray(r.cards) ? r.cards : [];
+        const mix = {}; for (const c of cards) { const p = c.platform || c.source || "?"; mix[p] = (mix[p] || 0) + 1; }
+        out.push({
+          input: text,
+          resolved: `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}${vehicle.bodyStyle ? " [" + vehicle.bodyStyle + "]" : ""}`.trim(),
+          tier: r.tier, ladderStep: r.ladderStep || null, widening: r.widening || null,
+          span: r.span || null, cluster: r.cluster || null, spanOnly: r.spanOnly || false, poolN: r.poolN != null ? r.poolN : null,
+          earned: r.earned ? (r.earned.kind + (r.earned.labels ? " (" + r.earned.labels.manual + " vs " + r.earned.labels.auto + ", gap $" + Math.round(r.earned.labels.gap || 0) + ")" : "")) : null,
+          driver: r.driver || null, direction: r.direction ? r.direction.word : null,
+          divergence: r.divergence ? { dir: r.divergence.direction, price: r.divergence.price, kase: r.divergence.kase } : null,
+          refusalKind: r.refusal ? r.refusal.kind : null,
+          poolCards: cards.length, platformMix: mix, setAside: r.setAsideTags || []
+        });
+      } catch (e) { out.push({ input: text, error: String(e && e.message || e) }); }
+    }
+    return res.status(200).json({ task: "tencars", cars: out });
+  }
+
   // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
   // source universe (probes each candidate source), what is ingested into sales_archive
   // and vehicle_market_records (row count + latest record date per platform, to catch a
