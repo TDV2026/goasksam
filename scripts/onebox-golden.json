@@ -4,12 +4,16 @@
     "exact": null,
     "cfg": null,
     "disc": null,
-    "ladder": null,
-    "s1": null,
-    "s2": null,
-    "s3": null,
-    "s4": null,
-    "meta": null,
+    "ltHero": null,
+    "ltLine": null,
+    "ltSpan": null,
+    "ltFresh": null,
+    "read": [],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": null,
+    "cmWhy": null,
+    "brackets": [],
     "earned": null,
     "chips": [],
     "platforms": [],
@@ -29,19 +33,29 @@
       "991.2 (YYYY-YYYY)",
       "992 (YYYY-YYYY)"
     ],
-    "cards": false
+    "cards": 0
   },
   "WBSAK0301LAE33492": {
     "state": "matched_result",
     "exact": "YYYY BMW M3",
     "cfg": "The prior listing has it with the 2.3-Liter S14 Inline-Four and a run of bolt-on fitments, the Evo-style front and rear spoilers, Brembo brakes, H&R sport springs among them. All reversible, so it still reads as a standard M3, not a rebuilt car.",
     "disc": "See the 20 listed fitments",
-    "ladder": null,
-    "s1": "Right now, cars like yours are bringing $N to $N in the last twelve months.",
-    "s2": "Most land between $N and $N. The ones at the top are the low-mileage cars; the cheaper end is high-mileage.",
-    "s3": "That’s a touch firmer than a year ago, when most landed between $N and $N.",
-    "s4": "Yours sold for $N in August. The ones since brought $N to $N.",
-    "meta": "Past twelve months·lowest-mileage cars set aside",
+    "ltHero": "$N to $N",
+    "ltLine": "Cars like yours have mostly been bringing this over the last twelve months.",
+    "ltSpan": "Everything from $N to $N has sold; most land here.",
+    "ltFresh": null,
+    "read": [
+      "Mileage is doing most of the separating in the recent sales.",
+      "These are the three I’d pay closest attention to."
+    ],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": "Closest match",
+    "cmWhy": "The nearest recent sale on mileage and spec.",
+    "brackets": [
+      "Fewer miles",
+      "More miles"
+    ],
     "earned": null,
     "chips": [],
     "platforms": [
@@ -54,19 +68,23 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": true
+    "cards": 3
   },
   "ZHWBC8AH7ALA03815": {
     "state": "thin_refusal",
     "exact": "YYYY Lamborghini Murcielago LP670-4 SuperVeloce",
     "cfg": "The prior listing has it with the 6.5L V12 and a run of bolt-on fitments, the VelocityAP X-pipe exhaust, VelocityAP primary cat-delete pipes, Stick-on spot mirrors among them. All reversible, so it still reads as a standard Murcielago LP670-4 SuperVeloce, not a rebuilt car.",
     "disc": "See the 7 listed fitments",
-    "ladder": null,
-    "s1": null,
-    "s2": null,
-    "s3": null,
-    "s4": null,
-    "meta": null,
+    "ltHero": null,
+    "ltLine": null,
+    "ltSpan": null,
+    "ltFresh": null,
+    "read": [],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": null,
+    "cmWhy": null,
+    "brackets": [],
     "earned": null,
     "chips": [],
     "platforms": [],
@@ -78,19 +96,29 @@
     "wayfwd": [],
     "genPrompt": "Too few recent Lamborghini Murcielago LP670-4 SuperVeloce sales to show an honest spread. Here’s what there is.",
     "genChips": [],
-    "cards": true
+    "cards": 0
   },
   "194371S119431": {
     "state": "matched_result",
     "exact": "YYYY Chevrolet Corvette",
     "cfg": "The prior listing shows material work on the 355ci V8, the Holley EFI, forged pistons, cam among it, so it reads as a modified car rather than a standard Corvette.",
     "disc": "See the 5 listed fitments",
-    "ladder": null,
-    "s1": "Right now, cars like yours are bringing $N to $N in the last twelve months.",
-    "s2": "Most land between $N and $N. The ones at the top are the low-mileage cars; the cheaper end is high-mileage.",
-    "s3": "That’s a touch softer than a year ago, when most landed between $N and $N.",
-    "s4": "Yours sold for $N in August. The ones since brought $N to $N.",
-    "meta": "Past twelve months·lowest-mileage and special edition cars set aside",
+    "ltHero": "$N to $N",
+    "ltLine": "Cars like yours have mostly been bringing this over the last twelve months.",
+    "ltSpan": "Everything from $N to $N has sold; most land here.",
+    "ltFresh": null,
+    "read": [
+      "Mileage is doing most of the separating in the recent sales.",
+      "These are the three I’d pay closest attention to."
+    ],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": "Closest match",
+    "cmWhy": "The middle of the market, on mileage.",
+    "brackets": [
+      "Fewer miles",
+      "Lower sale"
+    ],
     "earned": null,
     "chips": [],
     "platforms": [
@@ -104,19 +132,28 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": true
+    "cards": 3
   },
   "HDK4316006": {
     "state": "matched_result",
     "exact": "YYYY MG MGA 1500",
     "cfg": "The prior listing has it with the 1.5-Liter Inline-Four, so it still reads as a standard MGA 1500.",
     "disc": null,
-    "ladder": null,
-    "s1": "Cars like yours are bringing $N to $N in the past two years.",
-    "s2": "Most land between $N and $N.",
-    "s3": null,
-    "s4": "Yours sold a little above the middle, in company with the driver-grade cars.",
-    "meta": "Past two years",
+    "ltHero": "$N to $N",
+    "ltLine": "Cars like yours have mostly been bringing this over the past two years.",
+    "ltSpan": "Everything from $N to $N has sold; most land here.",
+    "ltFresh": null,
+    "read": [
+      "These are the three I’d pay closest attention to."
+    ],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": "Closest match",
+    "cmWhy": "The nearest recent sale on mileage and spec.",
+    "brackets": [
+      "Higher sale",
+      "More miles"
+    ],
     "earned": null,
     "chips": [],
     "platforms": [
@@ -129,19 +166,28 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": true
+    "cards": 3
   },
   "WBS4Y9C55KAG67564": {
     "state": "matched_result",
     "exact": "YYYY BMW M4 Coupe Competition Package",
     "cfg": "The prior listing has it with the 3.0L Turbocharged I6, so it still reads as a standard M4 Coupe Competition Package.",
     "disc": null,
-    "ladder": null,
-    "s1": "Right now, cars like yours are bringing $N to $N in the last twelve months.",
-    "s2": "Most land between $N and $N.",
-    "s3": "That’s a touch softer than a year ago, when most landed between $N and $N.",
-    "s4": "Yours sold toward the lower end, in company with the driver-grade cars.",
-    "meta": "Past twelve months",
+    "ltHero": "$N to $N",
+    "ltLine": "Cars like yours have mostly been bringing this over the last twelve months.",
+    "ltSpan": "Everything from $N to $N has sold; most land here.",
+    "ltFresh": null,
+    "read": [
+      "These are the three I’d pay closest attention to."
+    ],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": "Closest match",
+    "cmWhy": "The nearest recent sale on mileage and spec.",
+    "brackets": [
+      "Fewer miles",
+      "More miles"
+    ],
     "earned": null,
     "chips": [],
     "platforms": [
@@ -154,19 +200,28 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": true
+    "cards": 3
   },
   "JTHMPAAY3TA113218": {
     "state": "matched_result",
     "exact": "YYYY Lexus LC 500",
     "cfg": "The prior listing has it with the 5.0L V8, so it still reads as a standard LC 500.",
     "disc": null,
-    "ladder": "Too few recent LC 500 sales on their own, so this reads other LCs.",
-    "s1": "Right now, cars like yours are bringing $N to $N in the last twelve months.",
-    "s2": "Most land between $N and $N.",
-    "s3": null,
-    "s4": "Yours sold a little above the middle, in company with the driver-grade cars.",
-    "meta": "Past twelve months",
+    "ltHero": "$N to $N",
+    "ltLine": "Cars like yours have mostly been bringing this over the last twelve months.",
+    "ltSpan": "Everything from $N to $N has sold; most land here.",
+    "ltFresh": null,
+    "read": [
+      "These are the three I’d pay closest attention to."
+    ],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": "Closest match",
+    "cmWhy": "The nearest recent sale on mileage and spec.",
+    "brackets": [
+      "Higher sale",
+      "More miles"
+    ],
     "earned": null,
     "chips": [],
     "platforms": [
@@ -179,19 +234,29 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": true
+    "cards": 3
   },
   "997 Carrera S coupe": {
     "state": "unmatched_result",
     "exact": null,
     "cfg": null,
     "disc": null,
-    "ladder": null,
-    "s1": "Right now, the Porsche 997 Carrera S (YYYY to YYYY) is bringing $N to $N in the last twelve months.",
-    "s2": "Most land between $N and $N. The ones at the top are the low-mileage cars; the cheaper end is high-mileage.",
-    "s3": "That’s a touch softer than a year ago, when most landed between $N and $N.",
-    "s4": null,
-    "meta": "Past twelve months·lowest-mileage cars set aside",
+    "ltHero": "$N to $N",
+    "ltLine": "Cars like yours have mostly been bringing this over the last twelve months.",
+    "ltSpan": "Everything from $N to $N has sold; most land here.",
+    "ltFresh": null,
+    "read": [
+      "Mileage is doing most of the separating in the recent sales.",
+      "These are the three I’d pay closest attention to."
+    ],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": "Closest match",
+    "cmWhy": "The middle of the market, on mileage.",
+    "brackets": [
+      "Fewer miles",
+      "Lower sale"
+    ],
     "earned": "How many miles on yours?",
     "chips": [
       "under Nk",
@@ -211,19 +276,29 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": true
+    "cards": 3
   },
   "718 Cayman S coupe": {
     "state": "unmatched_result",
     "exact": null,
     "cfg": null,
     "disc": null,
-    "ladder": null,
-    "s1": "Right now, the Porsche Cayman S (YYYY to YYYY) is bringing $N to $N in the last twelve months.",
-    "s2": "Most land between $N and $N. The ones at the top are the low-mileage cars; the cheaper end is high-mileage.",
-    "s3": "That’s a touch firmer than a year ago, when most landed between $N and $N.",
-    "s4": null,
-    "meta": "Past twelve months·lowest-mileage cars set aside",
+    "ltHero": "$N to $N",
+    "ltLine": "Cars like yours have mostly been bringing this over the last twelve months.",
+    "ltSpan": "Everything from $N to $N has sold; most land here.",
+    "ltFresh": null,
+    "read": [
+      "Mileage is doing most of the separating in the recent sales.",
+      "These are the three I’d pay closest attention to."
+    ],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": "Closest match",
+    "cmWhy": "The middle of the market, on mileage.",
+    "brackets": [
+      "Fewer miles",
+      "More miles"
+    ],
     "earned": "How many miles on yours?",
     "chips": [
       "under Nk",
@@ -244,19 +319,23 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": true
+    "cards": 3
   },
   "Lotus Esprit": {
     "state": "varied_refusal",
     "exact": null,
     "cfg": null,
     "disc": null,
-    "ladder": null,
-    "s1": null,
-    "s2": null,
-    "s3": null,
-    "s4": null,
-    "meta": null,
+    "ltHero": null,
+    "ltLine": null,
+    "ltSpan": null,
+    "ltFresh": null,
+    "read": [],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": null,
+    "cmWhy": null,
+    "brackets": [],
     "earned": null,
     "chips": [],
     "platforms": [],
@@ -276,19 +355,28 @@
     ],
     "genPrompt": "The Esprits that have sold span the V8, Turbo, SE, S2, S4 and S1 across more than twenty years. Cars this different do not trade as one market, so a single range would invent a pattern that is not there.",
     "genChips": [],
-    "cards": true
+    "cards": 0
   },
   "Maserati Merak": {
     "state": "unmatched_result",
     "exact": null,
     "cfg": null,
     "disc": null,
-    "ladder": null,
-    "s1": "The Maserati Merak (YYYY to YYYY) is bringing $N to $N in the past two years.",
-    "s2": "Only 4 have sold in the past two years, too few to mark a typical band, so that is the full range and every sale is below.",
-    "s3": null,
-    "s4": null,
-    "meta": "Past two years",
+    "ltHero": "$N to $N",
+    "ltLine": "Cars like yours have been bringing this over the past two years.",
+    "ltSpan": "Only 4 have sold in the past two years, too few to mark a typical band, so that is the full range and every sale is below.",
+    "ltFresh": null,
+    "read": [
+      "These are the three I’d pay closest attention to."
+    ],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": "Closest match",
+    "cmWhy": "The middle of the market.",
+    "brackets": [
+      "Fewer miles",
+      "Earlier sale"
+    ],
     "earned": null,
     "chips": [],
     "platforms": [
@@ -301,19 +389,29 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": true
+    "cards": 3
   },
   "991 GT3 RS": {
     "state": "unmatched_result",
     "exact": null,
     "cfg": null,
     "disc": null,
-    "ladder": null,
-    "s1": "Right now, the Porsche 991 GT3 RS (YYYY to YYYY) is bringing $N to $N in the last twelve months.",
-    "s2": "Most land between $N and $N. The ones at the top are the low-mileage cars; the cheaper end is high-mileage.",
-    "s3": null,
-    "s4": null,
-    "meta": "Past twelve months",
+    "ltHero": "$N to $N",
+    "ltLine": "Cars like yours have mostly been bringing this over the last twelve months.",
+    "ltSpan": "Everything from $N to $N has sold; most land here.",
+    "ltFresh": null,
+    "read": [
+      "Mileage is doing most of the separating in the recent sales.",
+      "These are the three I’d pay closest attention to."
+    ],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": "Closest match",
+    "cmWhy": "The middle of the market, on mileage.",
+    "brackets": [
+      "Fewer miles",
+      "More miles"
+    ],
     "earned": "How many miles on yours?",
     "chips": [
       "under Nk",
@@ -331,19 +429,29 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": true
+    "cards": 3
   },
   "2016 Chevrolet Corvette Z06 coupe": {
     "state": "unmatched_result",
     "exact": null,
     "cfg": null,
     "disc": null,
-    "ladder": null,
-    "s1": "Right now, the Chevrolet Corvette Z06 (YYYY to YYYY) is bringing $N to $N in the last twelve months.",
-    "s2": "Most land between $N and $N. The ones at the top are the low-mileage cars; the cheaper end is high-mileage.",
-    "s3": "That’s a touch firmer than a year ago, when most landed between $N and $N.",
-    "s4": null,
-    "meta": "Past twelve months",
+    "ltHero": "$N to $N",
+    "ltLine": "Cars like yours have mostly been bringing this over the last twelve months.",
+    "ltSpan": "Everything from $N to $N has sold; most land here.",
+    "ltFresh": null,
+    "read": [
+      "Mileage is doing most of the separating in the recent sales.",
+      "These are the three I’d pay closest attention to."
+    ],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": "Closest match",
+    "cmWhy": "The middle of the market, on mileage.",
+    "brackets": [
+      "Fewer miles",
+      "More miles"
+    ],
     "earned": "Manual or automatic?",
     "chips": [
       "Manual",
@@ -359,19 +467,29 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": true
+    "cards": 3
   },
   "2013 Ford Mustang Shelby GT500 coupe": {
     "state": "unmatched_result",
     "exact": null,
     "cfg": null,
     "disc": null,
-    "ladder": null,
-    "s1": "Right now, the Ford Mustang Shelby GT500 (YYYY to YYYY) is bringing $N to $N in the last twelve months.",
-    "s2": "Most land between $N and $N. The ones at the top are the low-mileage cars; the cheaper end is high-mileage.",
-    "s3": "That’s a touch firmer than a year ago, when most landed between $N and $N.",
-    "s4": null,
-    "meta": "Past twelve months",
+    "ltHero": "$N to $N",
+    "ltLine": "Cars like yours have mostly been bringing this over the last twelve months.",
+    "ltSpan": "Everything from $N to $N has sold; most land here.",
+    "ltFresh": null,
+    "read": [
+      "Mileage is doing most of the separating in the recent sales.",
+      "These are the three I’d pay closest attention to."
+    ],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": "Closest match",
+    "cmWhy": "The middle of the market, on mileage.",
+    "brackets": [
+      "Fewer miles",
+      "Earlier sale"
+    ],
     "earned": "How many miles on yours?",
     "chips": [
       "under Nk",
@@ -389,19 +507,23 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": true
+    "cards": 3
   },
   "Corvette": {
     "state": "generation_choice",
     "exact": null,
     "cfg": null,
     "disc": null,
-    "ladder": null,
-    "s1": null,
-    "s2": null,
-    "s3": null,
-    "s4": null,
-    "meta": null,
+    "ltHero": null,
+    "ltLine": null,
+    "ltSpan": null,
+    "ltFresh": null,
+    "read": [],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": null,
+    "cmWhy": null,
+    "brackets": [],
     "earned": null,
     "chips": [],
     "platforms": [],
@@ -420,19 +542,23 @@
       "C7 (YYYY-YYYY)",
       "C8 (YYYY-YYYY)"
     ],
-    "cards": false
+    "cards": 0
   },
   "Mustang": {
     "state": "generation_choice",
     "exact": null,
     "cfg": null,
     "disc": null,
-    "ladder": null,
-    "s1": null,
-    "s2": null,
-    "s3": null,
-    "s4": null,
-    "meta": null,
+    "ltHero": null,
+    "ltLine": null,
+    "ltSpan": null,
+    "ltFresh": null,
+    "read": [],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": null,
+    "cmWhy": null,
+    "brackets": [],
     "earned": null,
     "chips": [],
     "platforms": [],
@@ -450,19 +576,28 @@
       "S550 (YYYY-YYYY)",
       "S650 (YYYY-YYYY)"
     ],
-    "cards": false
+    "cards": 0
   },
   "2019 BMW M4 Competition coupe": {
     "state": "unmatched_result",
     "exact": null,
     "cfg": null,
     "disc": null,
-    "ladder": null,
-    "s1": "Right now, the BMW M4 Competition (YYYY to YYYY) is bringing $N to $N in the last twelve months.",
-    "s2": "Most land between $N and $N.",
-    "s3": "That’s a touch softer than a year ago, when most landed between $N and $N.",
-    "s4": null,
-    "meta": "Past twelve months",
+    "ltHero": "$N to $N",
+    "ltLine": "Cars like yours have mostly been bringing this over the last twelve months.",
+    "ltSpan": "Everything from $N to $N has sold; most land here.",
+    "ltFresh": null,
+    "read": [
+      "These are the three I’d pay closest attention to."
+    ],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": "Closest match",
+    "cmWhy": "The middle of the market.",
+    "brackets": [
+      "Fewer miles",
+      "More miles"
+    ],
     "earned": "How many miles on yours?",
     "chips": [
       "under Nk",
@@ -480,19 +615,29 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": true
+    "cards": 3
   },
   "2016 Mercedes-Benz C63 AMG coupe": {
     "state": "unmatched_result",
     "exact": null,
     "cfg": null,
     "disc": null,
-    "ladder": null,
-    "s1": "Right now, the Mercedes-Benz C63 (YYYY to YYYY) is bringing $N to $N in the last twelve months.",
-    "s2": "Most land between $N and $N. The ones at the top are the low-mileage cars; the cheaper end is high-mileage.",
-    "s3": "That’s a touch firmer than a year ago, when most landed between $N and $N.",
-    "s4": null,
-    "meta": "Past twelve months·lowest-mileage cars set aside",
+    "ltHero": "$N to $N",
+    "ltLine": "Cars like yours have mostly been bringing this over the last twelve months.",
+    "ltSpan": "Everything from $N to $N has sold; most land here.",
+    "ltFresh": null,
+    "read": [
+      "Mileage is doing most of the separating in the recent sales.",
+      "These are the three I’d pay closest attention to."
+    ],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": "Closest match",
+    "cmWhy": "The middle of the market, on mileage.",
+    "brackets": [
+      "Fewer miles",
+      "More miles"
+    ],
     "earned": "How many miles on yours?",
     "chips": [
       "under Nk",
@@ -511,19 +656,28 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": true
+    "cards": 3
   },
   "2018 Audi RS5 coupe": {
     "state": "unmatched_result",
     "exact": null,
     "cfg": null,
     "disc": null,
-    "ladder": null,
-    "s1": "Right now, the Audi RS5 (YYYY to YYYY) is bringing $N to $N in the last twelve months.",
-    "s2": "Most land between $N and $N.",
-    "s3": "That’s a touch firmer than a year ago, when most landed between $N and $N.",
-    "s4": null,
-    "meta": "Past twelve months",
+    "ltHero": "$N to $N",
+    "ltLine": "Cars like yours have mostly been bringing this over the last twelve months.",
+    "ltSpan": "Everything from $N to $N has sold; most land here.",
+    "ltFresh": null,
+    "read": [
+      "These are the three I’d pay closest attention to."
+    ],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": "Closest match",
+    "cmWhy": "The middle of the market.",
+    "brackets": [
+      "Fewer miles",
+      "More miles"
+    ],
     "earned": "How many miles on yours?",
     "chips": [
       "under Nk",
@@ -542,19 +696,28 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": true
+    "cards": 3
   },
   "458 Speciale coupe": {
     "state": "unmatched_result",
     "exact": null,
     "cfg": null,
     "disc": null,
-    "ladder": null,
-    "s1": "The Ferrari 458 Speciale (YYYY to YYYY) is bringing $N to $N in the past two years.",
-    "s2": "Most land between $N and $N.",
-    "s3": null,
-    "s4": null,
-    "meta": "Past two years",
+    "ltHero": "$N to $N",
+    "ltLine": "Cars like yours have mostly been bringing this over the past two years.",
+    "ltSpan": "Everything from $N to $N has sold; most land here.",
+    "ltFresh": null,
+    "read": [
+      "These are the three I’d pay closest attention to."
+    ],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": "Closest match",
+    "cmWhy": "The middle of the market.",
+    "brackets": [
+      "Fewer miles",
+      "Lower sale"
+    ],
     "earned": "How many miles on yours?",
     "chips": [
       "under Nk",
@@ -571,6 +734,6 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": true
+    "cards": 3
   }
 }
