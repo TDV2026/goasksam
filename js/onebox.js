@@ -471,10 +471,13 @@
       return block + sales + sellHtml();
     }
     var listJoin = function (a) { return a.length <= 1 ? (a[0] || "") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; };
-    var yspan = rf.yearSpanPhrase || "a wide span of years";
+    // Only claim a YEAR spread when there genuinely is one (>= 2 years, so no "across 1 years").
+    // A same-year blend nameplate (250 GT, all 1965) spreads by spec/variant, not by year, so the
+    // clause is dropped and the spec/variant argument carries the refusal on its own.
+    var yspan = rf.yearSpanPhrase ? (" across " + esc(rf.yearSpanPhrase)) : "";
     var reason = (rf.variants && rf.variants.length >= 2)
-      ? "The " + esc(model) + "s that have sold span the " + esc(listJoin(rf.variants)) + " across " + esc(yspan) + ". Cars this different do not trade as one market, so a single range would invent a pattern that is not there."
-      : "The " + esc(model) + "s that have sold range too widely in spec and condition to trade as one market, across " + esc(yspan) + ". A single range would invent a pattern that is not there.";
+      ? "The " + esc(model) + "s that have sold span the " + esc(listJoin(rf.variants)) + yspan + ". Cars this different do not trade as one market, so a single range would invent a pattern that is not there."
+      : "The " + esc(model) + "s that have sold range too widely in spec and condition to trade as one market" + yspan + ". A single range would invent a pattern that is not there.";
     var follow2 = "Tell me which " + esc(model) + " yours is and I’ll compare it to the ones that match.";
     var chips = (rf.variants && rf.variants.length)
       ? '<div class="wayfwd">' + rf.variants.map(function (v) { return '<button class="chip" data-model="' + esc(v) + '">' + esc(v) + "</button>"; }).join("") + '<a class="lnk" data-change>Or tell me the year and engine &#8594;</a></div>'
