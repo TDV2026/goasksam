@@ -965,7 +965,9 @@ async function handleOps(req, res) {
   if (task === "srcaudit") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
-    const headers = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    // count=estimated uses planner statistics (instant) instead of an exact seq-scan per source
+    // (sales_archive has no source_slug index, so count=exact times out across 19 sources).
+    const headers = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=estimated" };
     const countOf = async (table, col, slug) => {
       try {
         const r = await fetch(`${env.supabaseUrl}/rest/v1/${table}?${col}=eq.${slug}&select=${col}&limit=1`, { headers });
@@ -973,20 +975,13 @@ async function handleOps(req, res) {
         const m = /\/(\d+|\*)$/.exec(cr); return m ? (m[1] === "*" ? 0 : Number(m[1])) : (r.ok ? (await r.json()).length : null);
       } catch (e) { return null; }
     };
-    const latestOf = async (slug) => {
-      const rows = await supabaseSelect(env, `sales_archive?source_slug=eq.${slug}&select=sale_date&order=sale_date.desc.nullslast&limit=1`);
-      return rows && rows[0] ? rows[0].sale_date : null;
-    };
-    // does auction_attempts exist?
     let attemptsExists = true;
     try { const r = await fetch(`${env.supabaseUrl}/rest/v1/auction_attempts?select=source_slug&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); attemptsExists = r.ok; } catch (e) { attemptsExists = false; }
     const out = [];
     for (const slug of SRCS) {
-      const archive = await countOf("sales_archive", "source_slug", slug);
-      const attempts = attemptsExists ? await countOf("auction_attempts", "source_slug", slug) : null;
-      out.push({ slug, archive, latest: archive ? await latestOf(slug) : null, attempts });
+      out.push({ slug, archive: await countOf("sales_archive", "source_slug", slug), attempts: attemptsExists ? await countOf("auction_attempts", "source_slug", slug) : null });
     }
-    return res.status(200).json({ task: "srcaudit", attemptsTableExists: attemptsExists, sources: out });
+    return res.status(200).json({ task: "srcaudit", note: "archive/attempts are ESTIMATED row counts (planner stats)", attemptsTableExists: attemptsExists, sources: out });
   }
 
   // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
