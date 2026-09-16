@@ -630,7 +630,10 @@
     // the resolved car (year+make+model on a body ask). A VIN query's raw text is the VIN, so
     // this keeps the chip from appending to the VIN (which re-decodes and loops - fault 1). Null
     // falls back to the raw query, which is correct for a typed query.
-    choiceCtx = d.baseLabel || (d.resolvedCar ? [d.resolvedCar.year, d.resolvedCar.make, d.resolvedCar.model].filter(Boolean).join(" ") : null) || null;
+    // Include the TRIM: a body-choice answer must re-query the SAME car ("2006 Porsche 997
+    // Carrera S" + coupe), not drop to the base model ("2006 Porsche 997" + coupe), which would
+    // widen the pool from Carrera S to every 911 Carrera of the generation (Sep 2026 fix).
+    choiceCtx = d.baseLabel || (d.resolvedCar ? [d.resolvedCar.year, d.resolvedCar.make, d.resolvedCar.model, d.resolvedCar.trim].filter(Boolean).join(" ") : null) || null;
     root.innerHTML = inboxHtml(lastQuery) +
       '<div class="sam" style="margin-top:26px"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s take</div>' +
       '<p style="font-size:22px;line-height:1.4">' + lint(esc(d.prompt || "Which one is it?"), "choice") + "</p>" +
