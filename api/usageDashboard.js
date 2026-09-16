@@ -868,6 +868,98 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "nblend", note: "ratio>=5 AND distinctHeads>=3 = blend-risk model token", flagged: report });
   }
 
+  // task=batch2: READ-ONLY (archive; NO OCD). Second method-review verification batch.
+  //  mode=vinscan&make=&model=&title=  -> archived VINs + own price labelled inside/below/above
+  //     the pool cluster (p25-p75 of the price-fenced solid), to pick divergence candidates.
+  //  mode=vins&vins=v1,v2,...          -> per VIN: resolve + exact sale + runOneBox, report the
+  //     engine divergence FIELD (rendered separately via the real frontend), cluster, poolN.
+  //  mode=cars (default)               -> batch-2 non-VIN cars 4-10 through the real runOneBox.
+  if (task === "batch2") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const mode = String(req.query?.mode || "cars");
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { runOneBox } = await import("../lib/onebox.js");
+    const { findVinArchiveMatch } = await import("../lib/_flags.js");
+    const pct = (arr, p) => { const s = arr.filter(x => x > 0).sort((a, b) => a - b); if (!s.length) return 0; return s[Math.min(s.length - 1, Math.floor(p * s.length))]; };
+
+    if (mode === "vinscan") {
+      const make = String(req.query?.make || ""); const model = String(req.query?.model || ""); const title = String(req.query?.title || "");
+      let q = `sales_archive?sale_price=not.is.null&vin=not.is.null&select=vin,year,make,model,listing_title,sale_price,mileage,sale_date&order=sale_date.desc.nullslast&limit=400`;
+      if (make) q += `&make=ilike.${encodeURIComponent(make)}`;
+      if (model) q += `&model=ilike.${encodeURIComponent(model)}`;
+      if (title) q += `&listing_title=ilike.*${encodeURIComponent(title)}*`;
+      const rows = await supabaseSelect(env, q) || [];
+      const prices = rows.map(r => Number(r.sale_price)).filter(x => x > 0);
+      const p25 = pct(prices, 0.25), p75 = pct(prices, 0.75), p90 = pct(prices, 0.9);
+      // price-fence like r4Split (drop > p75*1.35) before the cluster read
+      const solid = prices.filter(x => x <= p75 * 1.35);
+      const c25 = pct(solid, 0.25), c75 = pct(solid, 0.75);
+      const cand = rows.filter(r => Number(r.sale_price) > 0).slice(0, 60).map(r => {
+        const p = Number(r.sale_price);
+        const where = p < c25 * 0.9 ? "below" : p > c75 * 1.1 ? "above" : "inside";
+        return { vin: r.vin, yr: r.year, price: p, mi: Number(r.mileage) || null, where, title: String(r.listing_title || "").slice(0, 70) };
+      });
+      return res.status(200).json({ task: "batch2", mode, cluster: [c25, c75], p90, n: rows.length, candidates: cand });
+    }
+
+    if (mode === "vins") {
+      const vins = String(req.query?.vins || "").split(",").map(s => s.trim()).filter(Boolean);
+      const out = [];
+      for (const vin of vins) {
+        try {
+          const rv = await resolveVehicle(vin, { vinConfirm: true });
+          const vehicle = rv && rv.vehicle ? rv.vehicle : null;
+          let exactSale = null;
+          const vm = await findVinArchiveMatch(env, { vin });
+          if (vm && Number(vm.price || vm.sale_price) > 0) exactSale = { price: Number(vm.price || vm.sale_price), mileage: Number(vm.mileage) || null, soldDate: String(vm.soldDate || vm.sale_date || "").slice(0, 10) || null };
+          if (!vehicle || !vehicle.make) { out.push({ vin, resolved: null, note: rv && rv.status, matchTitle: vm && (vm.displayName || vm.listing_title) }); continue; }
+          const generation = await findGeneration(vehicle, env);
+          const r = await runOneBox(vehicle, generation, vin, { ...env, exactSale }, null);
+          out.push({
+            vin, resolved: `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}`.trim(),
+            matchTitle: vm && (vm.displayName || vm.listing_title) || null, modifiedFlag: !!(vm && (vm.isModified || (vm.mods && vm.mods.length))),
+            tier: r.tier, step: r.ladderStep || null, cluster: r.cluster || null, span: r.span || null, poolN: r.poolN != null ? r.poolN : null,
+            exactPrice: exactSale ? exactSale.price : null,
+            divergence: r.divergence ? { dir: r.divergence.direction, kase: r.divergence.kase, price: r.divergence.price, mileage: r.divergence.mileage, poolMedianMileage: r.divergence.poolMedianMileage } : null
+          });
+        } catch (e) { out.push({ vin, error: String(e && e.message || e) }); }
+      }
+      return res.status(200).json({ task: "batch2", mode, cars: out });
+    }
+
+    // mode=cars: the batch-2 non-VIN cars 4-10
+    const med = arr => { const s = arr.filter(x => x > 0).sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : null; };
+    const cars = [
+      { text: "1965 Ferrari 250 GT", body: "coupe" }, { text: "1965 Ferrari 330 GTC", body: "coupe" },
+      { text: "Ferrari 512 BB", body: "coupe" }, { text: "Ferrari 250 GTO", body: "coupe" },
+      { text: "Lamborghini Miura", body: "coupe" }, { text: "1969 Ferrari 365 GTC", body: "coupe" },
+      { text: "Jaguar E-Type", body: "coupe" }
+    ];
+    const out = [];
+    for (const spec of cars) {
+      try {
+        const rv = await resolveVehicle(spec.text, {});
+        const vehicle = rv && rv.vehicle ? rv.vehicle : null;
+        if (!vehicle || !vehicle.make) { out.push({ input: spec.text, resolved: null, note: rv && rv.status, clarify: rv && rv.clarification ? rv.clarification.kind : null }); continue; }
+        if (spec.body && !vehicle.bodyStyle) vehicle.bodyStyle = spec.body;
+        const generation = await findGeneration(vehicle, env);
+        const r = await runOneBox(vehicle, generation, spec.text, env, null);
+        const cards = Array.isArray(r.cards) ? r.cards : [];
+        const mix = {}; for (const c of cards) { const p = c.platform || "?"; mix[p] = (mix[p] || 0) + 1; }
+        out.push({
+          input: spec.text, model: vehicle.model || null, trim: vehicle.trim || null,
+          resolved: `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}`.trim(),
+          tier: r.tier, step: r.ladderStep || null, refusalKind: r.refusal ? r.refusal.kind : null, widening: r.widening || null,
+          span: r.span || null, cluster: r.cluster || null, spanOnly: r.spanOnly || false, poolN: r.poolN != null ? r.poolN : null,
+          earned: r.earned ? r.earned.kind : null, driver: r.driver || null, direction: r.direction ? r.direction.word : null,
+          poolCards: cards.length, platformMix: mix, setAside: r.setAsideTags || []
+        });
+      } catch (e) { out.push({ input: spec.text, error: String(e && e.message || e) }); }
+    }
+    return res.status(200).json({ task: "batch2", mode, cars: out });
+  }
+
   // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
   // source universe (probes each candidate source), what is ingested into sales_archive
   // and vehicle_market_records (row count + latest record date per platform, to catch a
