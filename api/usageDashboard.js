@@ -740,6 +740,35 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "burn", windowDays: days.length, totalMetered: total, avgPerDay, byDay: days, byType: Object.entries(byType).sort((a, b) => b[1] - a[1]), note: "app_usage_events only; excludes routine sold-ingest runs (not logged per-run)" });
   }
 
+  // task=reviewfix: READ-ONLY (archive + hammerUsd; NO OCD). #3: transmission-split vs
+  // mileage-split median gaps for 928 + 997 (to test "transmission outranks mileage when its
+  // split is larger"). #4: 300SL house records raw price vs hammerUsd (confirm backed out).
+  if (task === "reviewfix") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const hc = await import("../lib/_houseComps.js");
+    const MAN = t => /manual|\d[- ]?speed(?!\s*auto)|\bmt\b|\bstick\b/i.test(t) && !/automatic|pdk|dct|tiptronic|dsg/i.test(t);
+    const AUT = t => /automatic|\bpdk\b|\bdct\b|tiptronic|\bdsg\b|paddle/i.test(t);
+    const median = arr => { if (!arr.length) return null; const s = [...arr].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
+    const since = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
+    const splitGaps = async (label, filter) => {
+      const rows = await supabaseSelect(env, `sales_archive?${filter}&sale_date=gte.${since}&sale_price=not.is.null&select=sale_price,mileage,tx:raw_record->>transmission&limit=1000`);
+      const R = (rows || []).map(r => ({ p: Number(r.sale_price), mi: Number(r.mileage), tx: String(r.tx || "") })).filter(r => r.p > 0);
+      const man = R.filter(r => MAN(r.tx)).map(r => r.p), aut = R.filter(r => AUT(r.tx)).map(r => r.p);
+      const withMi = R.filter(r => r.mi > 0); const miMed = median(withMi.map(r => r.mi));
+      const lowMi = withMi.filter(r => r.mi <= miMed).map(r => r.p), hiMi = withMi.filter(r => r.mi > miMed).map(r => r.p);
+      const txGap = (man.length >= 5 && aut.length >= 5) ? Math.abs(median(man) - median(aut)) : null;
+      const miGap = (lowMi.length >= 5 && hiMi.length >= 5) ? Math.abs(median(lowMi) - median(hiMi)) : null;
+      return { label, n: R.length, manN: man.length, autN: aut.length, manMed: median(man), autMed: median(aut), txGap, lowMiMed: median(lowMi), hiMiMed: median(hiMi), miGap, earnedByNewRule: (txGap != null && (miGap == null || txGap > miGap)) ? "transmission" : (miGap != null ? "mileage" : "none") };
+    };
+    const tx928 = await splitGaps("928 S4", `make=ilike.Porsche&listing_title=ilike.*928*`);
+    const tx997 = await splitGaps("997 Carrera S", `make=ilike.Porsche&listing_title=ilike.*997*&year=gte.2005&year=lte.2008`);
+    // #4: 300SL house back-out
+    const sl = await supabaseSelect(env, `sales_archive?make=ilike.*Mercedes*&listing_title=ilike.*300SL*&sale_price=not.is.null&select=source_slug,platform,sale_price,curr:raw_record->>currency&limit=50`);
+    const houseRows = (sl || []).filter(r => hc.isHouseSource(r.source_slug || r.platform)).slice(0, 8)
+      .map(r => ({ src: r.source_slug || r.platform, raw: Number(r.sale_price), cur: r.curr || "USD", hammerUsd: Math.round(hc.hammerUsd({ source: r.source_slug || r.platform, price: Number(r.sale_price), currency: r.curr || "USD" })), backedOut: Math.round(hc.hammerUsd({ source: r.source_slug || r.platform, price: Number(r.sale_price), currency: r.curr || "USD" })) !== Math.round(hc.toUsd(Number(r.sale_price), r.curr || "USD")) }));
+    return res.status(200).json({ task: "reviewfix", transmissionVsMileage: [tx928, tx997], slHouseBackout: houseRows });
+  }
+
   // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
   // source universe (probes each candidate source), what is ingested into sales_archive
   // and vehicle_market_records (row count + latest record date per platform, to catch a
