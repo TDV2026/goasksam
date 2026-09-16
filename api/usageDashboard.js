@@ -995,6 +995,49 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "srcaudit", note: "ESTIMATED counts (planner stats); archive = max(bySlug,byLabel)", attemptsTableExists: attemptsExists, sources: out });
   }
 
+  // task=nonsoldverify: READ-ONLY (archive; ZERO OCD). Closes out the non-sold thread: per-source
+  // landed counts (reserve_not_met vs withdrawn), canonical linkage rate, the hard exclusion rule
+  // (10 sources MUST be zero), and two real end-to-end sell-through examples with their queries.
+  if (task === "nonsoldverify") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const exactH = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    const cnt = async (table, filter) => {
+      try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${table}?${filter}&select=source_slug&limit=1`, { headers: exactH }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch (e) { return null; }
+    };
+    const since12 = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
+    // 1. per clean source: reserve_not_met + withdrawn
+    const CLEAN = ["bringatrailer", "carsandbids", "hagerty", "sothebysmotorsport", "mbmarket"];
+    const perSource = {};
+    for (const s of CLEAN) {
+      perSource[s] = {
+        reserve_not_met: await cnt("auction_attempts", `source_slug=eq.${s}&auction_status=eq.reserve_not_met`),
+        withdrawn: await cnt("auction_attempts", `source_slug=eq.${s}&auction_status=eq.withdrawn`),
+        total: await cnt("auction_attempts", `source_slug=eq.${s}`)
+      };
+    }
+    const grandTotal = await cnt("auction_attempts", "source_slug=not.is.null");
+    // 2. canonical linkage
+    const linked = await cnt("auction_attempts", "canonical_id=not.is.null");
+    // 4. hard exclusion rule: these MUST be zero
+    const EXCLUDED = ["pcarmarket", "collectingcars", "acc", "pistonheads", "rmsothebys", "gooding", "bonhams", "broadarrow", "barrettjackson", "mecum"];
+    const excludedCounts = {};
+    for (const s of EXCLUDED) excludedCounts[s] = await cnt("auction_attempts", `source_slug=eq.${s}`);
+    // 3. two real sell-through examples: sold (sales_archive) vs non-sold (auction_attempts), 12mo, BaT
+    const sellThrough = async (label, saFilter, aaFilter) => {
+      const sold = await cnt("sales_archive", saFilter);
+      const notSold = await cnt("auction_attempts", aaFilter);
+      const total = (sold || 0) + (notSold || 0);
+      return { label, sold, notSold, totalListings: total, sellThroughPct: total ? Math.round((sold / total) * 1000) / 10 : null, saFilter, aaFilter };
+    };
+    const e30 = await sellThrough("E30 M3 on Bring a Trailer, last 12 months",
+      `source_slug=eq.bringatrailer&make=ilike.BMW&listing_title=ilike.*M3*&year=gte.1986&year=lte.1991&sale_date=gte.${since12}`,
+      `source_slug=eq.bringatrailer&make=ilike.BMW&model=ilike.*M3*&year=gte.1986&year=lte.1991&attempt_date=gte.${since12}`);
+    const p997 = await sellThrough("997 Carrera S on Bring a Trailer, last 12 months",
+      `source_slug=eq.bringatrailer&make=ilike.Porsche&listing_title=ilike.*997*&sale_date=gte.${since12}`,
+      `source_slug=eq.bringatrailer&make=ilike.Porsche&model=ilike.*997*&attempt_date=gte.${since12}`);
+    return res.status(200).json({ task: "nonsoldverify", grandTotal, perSource, canonical: { linked, total: grandTotal, pct: grandTotal ? Math.round((linked / grandTotal) * 1000) / 10 : null }, exclusionRuleZero: excludedCounts, sellThrough: [e30, p997] });
+  }
+
   // task=poolsrc: READ-ONLY (archive; ZERO OCD). Platform-label breakdown of the raw One Box
   // comp pool for a make/model, and the same after the UK/EU region exclusion (FLAG A), so the
   // fix can be verified: which sources would have leaked, and the pool count before vs after.
