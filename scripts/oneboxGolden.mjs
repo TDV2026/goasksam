@@ -38,26 +38,32 @@ async function capture(page, input) {
   await page.waitForSelector("#ob-input", { timeout: 15000 });
   await page.type("#ob-input", input);
   await page.click("#ob-go");
-  await page.waitForFunction(() => { const r = document.getElementById("ob"); return r && (r.querySelector(".samtake") || r.querySelector(".refusal") || r.querySelector(".chips") || /trouble reading the market/i.test(r.textContent || "")); }, { timeout: 35000 }).catch(() => {});
+  await page.waitForFunction(() => { const r = document.getElementById("ob"); return r && (r.querySelector(".livetake") || r.querySelector(".samtake") || r.querySelector(".refusal") || r.querySelector(".chips") || /trouble reading the market/i.test(r.textContent || "")); }, { timeout: 35000 }).catch(() => {});
   await new Promise(r => setTimeout(r, 1300));
   return page.evaluate(() => {
     const g = s => { const e = document.querySelector(s); return e ? e.textContent.replace(/\s+/g, " ").trim() : null; };
     const all = s => [...document.querySelectorAll(s)].map(e => e.textContent.replace(/\s+/g, " ").trim());
     let state = "unknown";
-    if (document.querySelector(".samtake")) state = document.querySelector(".exact") ? "matched_result" : "unmatched_result";
+    if (document.querySelector(".livetake")) state = document.querySelector(".exact") ? "matched_result" : "unmatched_result";
     else if (document.querySelector(".refusal")) state = document.querySelector(".refusal .ans") ? "varied_refusal" : "thin_refusal";
     else if (document.querySelector(".chips .chip[data-genquery]")) state = "generation_choice";
     else if (document.querySelector(".chips")) state = "choice";
     else if (/trouble reading the market/i.test(document.getElementById("ob").textContent || "")) state = "error";
     return {
       state,
+      // exact card (matched)
       exact: g(".exact h2"), cfg: g(".exact .cfg"), disc: g(".exact .disc summary"),
-      ladder: g(".samtake .ladder"), s1: g(".samtake .s1"), s2: g(".samtake .s2"), s3: g(".samtake .s3"), s4: g(".samtake .s4"), meta: g(".samtake .meta"),
+      // render port (round 7): cluster hero, quiet span, freshness slot, Sam's Read
+      ltHero: g(".lt-hero"), ltLine: g(".lt-line"), ltSpan: g(".lt-span"), ltFresh: g(".lt-fresh"),
+      read: all(".samread p"), refineQ: g(".samread .refine .q"), refineChips: all(".samread .refine .chip, .samread .askchips .chip"),
+      // three representative cards
+      cmKick: g(".cm .cmkick"), cmWhy: g(".cm .why"), brackets: all(".bcard .blabel"),
+      // earned + platforms + refusal + generation (unchanged states)
       earned: g(".earned .q"), chips: all(".earned .qchip"),
       platforms: all(".plat-strip .plat-pill"), platNote: g(".plat-note"),
       refusalAns: g(".refusal .ans"), refusalReason: all(".refusal .sam p"), wayfwd: all(".wayfwd .chip"),
       genPrompt: g(".sam p"), genChips: all(".chips .chip"),
-      cards: document.querySelectorAll("a.rcard, .receipts .rcard").length > 0
+      cards: document.querySelectorAll("a.cm, .cards3 a.bcard").length
     };
   });
 }
