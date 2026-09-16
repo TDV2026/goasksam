@@ -995,6 +995,21 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "srcaudit", note: "ESTIMATED counts (planner stats); archive = max(bySlug,byLabel)", attemptsTableExists: attemptsExists, sources: out });
   }
 
+  // task=backtest: READ-ONLY (archive; ZERO OCD). Resumable chunk of the One Box structural
+  // backtest - builds the deterministic sample (seed) and runs subjects [offset, offset+limit)
+  // through the LIVE runOneBox, checking structural invariants. Driven in chunks by the caller.
+  if (task === "backtest") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { buildSample, runSubject } = await import("../lib/ops/backtestCore.js");
+    const seed = Number(req.query?.seed || 42), size = Number(req.query?.size || 400);
+    const offset = Number(req.query?.offset || 0), limit = Number(req.query?.limit || 15);
+    const sample = await buildSample(env, { size, seed });
+    const slice = sample.slice(offset, offset + limit);
+    const results = [];
+    for (const subj of slice) results.push(...await runSubject(env, subj));
+    return res.status(200).json({ task: "backtest", seed, size, offset, limit, sampleTotal: sample.length, done: offset + limit >= sample.length, results });
+  }
+
   // task=nonsoldverify: READ-ONLY (archive; ZERO OCD). Closes out the non-sold thread: per-source
   // landed counts (reserve_not_met vs withdrawn), canonical linkage rate, the hard exclusion rule
   // (10 sources MUST be zero), and two real end-to-end sell-through examples with their queries.

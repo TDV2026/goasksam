@@ -1,0 +1,55 @@
+name: One Box structural backtest
+
+# ARCHIVE-ONLY, ZERO OCD: samples ~400 real cars from canonical_sales and runs the LIVE
+# runOneBox against each (matched VIN + typed), checking structural invariants I1-I6 on the
+# actual result. No OldCarsData calls - Supabase reads only. Weekly + on-demand (dispatch after
+# any One Box engine change, same discipline as the golden gate). Fails the run if any invariant
+# broke, and uploads the grouped report as an artifact.
+#
+# COPY THIS FILE to .github/workflows/onebox-backtest.yml (workflow-scoped push is Sam's - the CI
+# PAT lacks `workflow` scope). Needs only the two Supabase secrets (NO OLDCARSDATA_API_KEY).
+on:
+  schedule:
+    - cron: "15 9 * * 1"   # 09:15 UTC every Monday
+  workflow_dispatch:
+    inputs:
+      size:
+        description: "Sample size (default 400)"
+        required: false
+        default: "400"
+      seed:
+        description: "Random seed (change to draw a fresh sample; default 42)"
+        required: false
+        default: "42"
+
+permissions:
+  contents: read
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SIZE: ${{ github.event.inputs.size }}
+      SEED: ${{ github.event.inputs.seed }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify Supabase secrets
+        run: |
+          set -euo pipefail
+          for name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY; do
+            if [ -z "${!name:-}" ]; then echo "::error::GitHub Actions secret ${name} is EMPTY."; exit 1; fi
+          done
+      - name: Run backtest (archive-only, zero OCD)
+        run: node scripts/oneboxBacktest.mjs --size="${SIZE:-400}" --seed="${SEED:-42}"
+      - name: Upload grouped report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: onebox-backtest-report
+          path: scripts/onebox-backtest-report.json
