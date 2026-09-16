@@ -984,8 +984,7 @@ async function handleOps(req, res) {
     for (const slug of SRCS) {
       const archive = await countOf("sales_archive", "source_slug", slug);
       const attempts = attemptsExists ? await countOf("auction_attempts", "source_slug", slug) : null;
-      const canon = await countOf("canonical_sales", "source_slug", slug).catch(() => null);
-      out.push({ slug, archive, latest: archive ? await latestOf(slug) : null, attempts, canon });
+      out.push({ slug, archive, latest: archive ? await latestOf(slug) : null, attempts });
     }
     return res.status(200).json({ task: "srcaudit", attemptsTableExists: attemptsExists, sources: out });
   }
