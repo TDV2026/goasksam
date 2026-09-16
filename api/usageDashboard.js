@@ -977,10 +977,12 @@ async function handleOps(req, res) {
     };
     let attemptsExists = true;
     try { const r = await fetch(`${env.supabaseUrl}/rest/v1/auction_attempts?select=source_slug&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); attemptsExists = r.ok; } catch (e) { attemptsExists = false; }
-    const out = [];
-    for (const slug of SRCS) {
-      out.push({ slug, archive: await countOf("sales_archive", "source_slug", slug), attempts: attemptsExists ? await countOf("auction_attempts", "source_slug", slug) : null });
-    }
+    // Parallel: 38 sequential Supabase round-trips exceed the function limit; fan out instead.
+    const out = await Promise.all(SRCS.map(async slug => ({
+      slug,
+      archive: await countOf("sales_archive", "source_slug", slug),
+      attempts: attemptsExists ? await countOf("auction_attempts", "source_slug", slug) : null
+    })));
     return res.status(200).json({ task: "srcaudit", note: "archive/attempts are ESTIMATED row counts (planner stats)", attemptsTableExists: attemptsExists, sources: out });
   }
 
