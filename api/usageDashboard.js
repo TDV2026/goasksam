@@ -965,25 +965,34 @@ async function handleOps(req, res) {
   if (task === "srcaudit") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
-    // count=estimated uses planner statistics (instant) instead of an exact seq-scan per source
-    // (sales_archive has no source_slug index, so count=exact times out across 19 sources).
+    // slug -> display label, so we can also count rows stored only under the platform LABEL
+    // (older sales_archive rows predate the source_slug column and have it NULL).
+    const LABEL = { bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", hagerty: "Hagerty", pcarmarket: "PCARMarket", acc: "All Collector Cars", gooding: "Gooding & Co", rmsothebys: "RM Sotheby's", hemmings: "Hemmings", sothebysmotorsport: "Sotheby's Motorsport", mbmarket: "MB Market", autohunter: "AutoHunter", barrettjackson: "Barrett-Jackson", mecum: "Mecum Auctions", bonhams: "Bonhams", broadarrow: "Broad Arrow", carandclassic: "Car & Classic", collectingcars: "Collecting Cars", themarket: "The Market", pistonheads: "PistonHeads" };
+    // count=estimated uses planner statistics (fast) instead of an exact seq-scan per source.
     const headers = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=estimated" };
-    const countOf = async (table, col, slug) => {
+    const count = async (table, filter) => {
       try {
-        const r = await fetch(`${env.supabaseUrl}/rest/v1/${table}?${col}=eq.${slug}&select=${col}&limit=1`, { headers });
-        const cr = r.headers.get("content-range") || "";
-        const m = /\/(\d+|\*)$/.exec(cr); return m ? (m[1] === "*" ? 0 : Number(m[1])) : (r.ok ? (await r.json()).length : null);
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/${table}?${filter}&select=id&limit=1`, { headers });
+        const cr = r.headers.get("content-range") || ""; const m = /\/(\d+|\*)$/.exec(cr);
+        return m ? (m[1] === "*" ? 0 : Number(m[1])) : null;
       } catch (e) { return null; }
     };
     let attemptsExists = true;
     try { const r = await fetch(`${env.supabaseUrl}/rest/v1/auction_attempts?select=source_slug&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); attemptsExists = r.ok; } catch (e) { attemptsExists = false; }
-    // Parallel: 38 sequential Supabase round-trips exceed the function limit; fan out instead.
-    const out = await Promise.all(SRCS.map(async slug => ({
-      slug,
-      archive: await countOf("sales_archive", "source_slug", slug),
-      attempts: attemptsExists ? await countOf("auction_attempts", "source_slug", slug) : null
-    })));
-    return res.status(200).json({ task: "srcaudit", note: "archive/attempts are ESTIMATED row counts (planner stats)", attemptsTableExists: attemptsExists, sources: out });
+    // Chunked (5 at a time) so we neither run 38 sequential round-trips (timeout) nor a 38-wide
+    // burst (pool exhaustion -> flaky nulls). Count by source_slug AND by platform label.
+    const out = [];
+    for (let i = 0; i < SRCS.length; i += 5) {
+      const chunk = SRCS.slice(i, i + 5);
+      const rows = await Promise.all(chunk.map(async slug => {
+        const bySlug = await count("sales_archive", `source_slug=eq.${slug}`);
+        const byLabel = await count("sales_archive", `platform=eq.${encodeURIComponent(LABEL[slug] || slug)}`);
+        const attempts = attemptsExists ? await count("auction_attempts", `source_slug=eq.${slug}`) : null;
+        return { slug, bySlug, byLabel, archive: Math.max(bySlug || 0, byLabel || 0), attempts };
+      }));
+      out.push(...rows);
+    }
+    return res.status(200).json({ task: "srcaudit", note: "ESTIMATED counts (planner stats); archive = max(bySlug,byLabel)", attemptsTableExists: attemptsExists, sources: out });
   }
 
   // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
