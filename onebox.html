@@ -340,7 +340,59 @@ a.rcard:hover .ext{color:var(--green);border-color:var(--green)}
   .ansblock{--hl:27px}
   .ansblock.hero{--hl:30px}
   .samtake{--hl:28px}
+  .cards3{grid-template-columns:1fr}
 }
+/* ===== RENDER PORT (round 7): cluster hero, Sam's read, three representative cards ===== */
+.livetake{max-width:720px;margin:30px 0 0}
+.lt-kick{font:600 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--green);margin-bottom:16px}
+.lt-hero{font:400 clamp(40px,8.6vw,68px)/1 var(--mono);letter-spacing:-.03em;color:var(--green-deep);margin:0}
+.lt-hero .num{font-weight:400}
+.lt-line{font:400 20px/1.4 var(--serif);color:var(--ink);margin:16px 0 0;max-width:40ch}
+.lt-span{font:400 15px/1.5 var(--serif);color:var(--ink);margin:14px 0 0}
+.lt-span .num{font-weight:600}
+.lt-fresh{font:600 12.5px/1.4 var(--mono);letter-spacing:.02em;color:var(--slate);margin:16px 0 0;display:flex;align-items:center;gap:8px}
+.lt-fresh .dotg{width:8px;height:8px;border-radius:50%;background:var(--green-btn);flex:none}
+.samread{max-width:720px;display:flex;gap:15px;align-items:flex-start;background:color-mix(in srgb,var(--green) 5%,var(--card));border:1px solid color-mix(in srgb,var(--green) 16%,var(--line));border-radius:14px;padding:17px 20px;margin:26px 0 0}
+.samread .ava{flex:none;width:34px;height:34px;border-radius:50%;border:1.5px solid var(--green);display:grid;place-items:center;font:600 10px var(--mono);color:var(--green)}
+.samread .tag{font:600 11px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--green);margin-bottom:8px}
+.samread p{margin:0 0 8px;font:400 17px/1.55 var(--serif);color:var(--ink);max-width:64ch}
+.samread p:last-of-type{margin-bottom:0}
+.samread p .num{font-weight:600;color:var(--green-deep)}
+.samread .refine{margin:13px 0 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font:600 13.5px var(--grotesk);color:var(--slate)}
+.samread .refine .q{color:var(--ink)}
+.samread .refine .chip,.samread .askchips .chip{background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:7px 14px;color:var(--ink);cursor:pointer;font:600 13px var(--grotesk)}
+.samread .refine .chip.g{border-color:var(--green);color:var(--green)}
+.samread .askchips{margin:12px 0 0;display:flex;flex-wrap:wrap;gap:8px}
+.samread .chip.typeit{border-style:dashed;color:var(--slate)}
+.cards3{display:grid;grid-template-columns:1.55fr 1fr;gap:16px;align-items:stretch;margin-top:13px}
+.brackets{display:flex;flex-direction:column;gap:16px;min-width:0}
+.cm{background:var(--card);border:1.5px solid color-mix(in srgb,var(--green) 40%,var(--line));border-radius:16px;overflow:hidden;box-shadow:var(--shadow-hero);display:flex;flex-direction:column;text-decoration:none;color:inherit;transition:border-color .15s}
+a.cm:hover{border-color:var(--green)}
+.cm .rph{position:relative;background:#0c0a06;aspect-ratio:16/10}
+.cm .rph img{width:100%;height:100%;object-fit:cover;display:block}
+.cm .cmkick{position:absolute;top:12px;left:12px;z-index:2;background:var(--green);color:#fff;font:600 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;padding:7px 10px;border-radius:6px}
+.cm .ext,.bcard .ext{position:absolute;top:11px;right:11px;z-index:3;width:24px;height:24px;border-radius:7px;background:color-mix(in srgb,var(--paper) 88%,transparent);border:1px solid var(--line);display:grid;place-items:center;color:var(--slate)}
+.cm .ext svg,.bcard .ext svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.9}
+a.cm:hover .ext,a.bcard:hover .ext{color:var(--green);border-color:var(--green)}
+.cm .rb{padding:16px 19px 18px}
+.cm .rprice{font:700 30px/1 var(--mono);letter-spacing:-.02em}
+.cm .rmeta{font:600 13px/1.3 var(--mono);color:var(--slate);margin-top:9px}
+.cm .rmeta .dot,.cm .rtitle .dot,.bcard .bmeta .dot{color:var(--faint);margin:0 7px}
+.cm .rtitle{font:400 13.5px/1.4 var(--grotesk);color:var(--slate);margin-top:9px}
+.cm .why{font:400 14.5px/1.5 var(--serif);color:var(--ink);margin:12px 0 0;padding-top:12px;border-top:1px solid var(--line2)}
+.bcard{background:var(--card);border:1px solid var(--line);border-radius:13px;overflow:hidden;display:flex;text-decoration:none;color:inherit;box-shadow:var(--shadow);flex:1;transition:border-color .15s}
+a.bcard:hover{border-color:color-mix(in srgb,var(--green) 55%,var(--line))}
+.bcard .bth{position:relative;width:112px;flex:none;background:#0c0a06}
+.bcard .bth img{width:100%;height:100%;object-fit:cover;display:block}
+.bcard .bth .plate{padding:10px}.bcard .bth .plate .n{font-size:11px}
+.bcard .bb{padding:13px 15px;min-width:0;display:flex;flex-direction:column;justify-content:center}
+.blabel{align-self:flex-start;font:600 9.5px/1 var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--clay);border:1px solid color-mix(in srgb,var(--clay) 32%,var(--line));border-radius:5px;padding:4px 7px;margin-bottom:9px}
+.bcard .bprice{font:700 20px/1 var(--mono);letter-spacing:-.02em}
+.bcard .bmeta{font:600 11.5px/1.3 var(--mono);color:var(--slate);margin-top:6px}
+.allin{font:600 .5em/1 var(--mono);color:var(--faint);letter-spacing:0;white-space:nowrap}
+.showall .allhead{display:flex;align-items:baseline;justify-content:space-between;margin:18px 0 12px}
+.showall .allhead .lab{font:600 11px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--faint)}
+.trust{margin:34px 2px 0;padding-top:16px;border-top:1px solid var(--line);color:var(--faint);font:600 12.5px/1.5 var(--mono);letter-spacing:.02em}
 </style>
 </head>
 <body>

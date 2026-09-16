@@ -442,13 +442,122 @@
     else if (d.topPlatform) note = '<p class="plat-note">' + lint("Most change hands on " + esc(d.topPlatform) + ".", "platnote") + "</p>";
     return '<div class="seclabel">Where they sold</div><div class="plat-strip">' + pills + "</div>" + note;
   }
+  // ============ RENDER PORT (round 7): cluster hero, quiet span, freshness slot, Sam's Read
+  // (driver + divergence), three representative cards, See-all -> platforms. Replaces the
+  // round-4 samTakeBlock/receipts grid. Engine facts only; copy is composed here (rule 3). ====
+  function bareNameOf(d, m) {
+    return (m && m.displayName) ? m.displayName.replace(/^\d{4}\s+/, "") : (carLabel(d.resolvedCar) || "car");
+  }
+  // HERO: the cluster is the unconditional headline; a pool under the cluster gate falls back to
+  // the full span. The quiet span line is ALWAYS present so the ceiling is never hidden.
+  function heroBlock(d) {
+    var hasCluster = !!d.cluster;
+    var heroRange = hasCluster ? d.cluster : d.span;
+    var out = '<div class="livetake" data-stage="answer"><div class="lt-kick">' + lint("Sam’s live take", "lt.kick") + "</div>";
+    out += '<p class="lt-hero">' + priceRange(heroRange) + "</p>";
+    out += '<p class="lt-line">' + lint("Cars like yours have " + (hasCluster ? "mostly " : "") + "been bringing this over " + windowText(d) + ".", "lt.line") + "</p>";
+    var spanLine = hasCluster
+      ? ("Everything from " + priceRange(d.span) + " has sold; most land here.")
+      : (d.spanOnly && d.poolN && d.poolN < 8
+          ? ("Only " + d.poolN + " ha" + (d.poolN === 1 ? "s" : "ve") + " sold in " + windowText(d) + ", too few to mark a typical band, so that is the full range and every sale is below.")
+          : ("Everything from " + priceRange(d.span) + " has sold."));
+    out += '<p class="lt-span">' + lint(spanLine, "lt.span") + "</p>";
+    // FRESHNESS SLOT: intentionally blank until ingest_runs exists (real ingest timestamp).
+    // Direction ("a touch softer than a year ago") returns here WITH freshness, not before it.
+    return out + "</div>";
+  }
+  // SAM'S READ: driver sentence (gated 5+/5+ in the engine) plus the divergence beat (cases
+  // a/b/c) when the matched car's own sale falls materially outside the cluster. No prices except
+  // the car's own sale. Refinement chips reuse the earned-question data attributes.
+  function samReadBlock(d, m) {
+    var driverS = d.driver === "mileage" ? "Mileage is doing most of the separating in the recent sales." : "";
+    var dv = d.divergence, parts = [], refine = "";
+    if (dv && (dv.kase === "a" || dv.kase === "b" || dv.kase === "c")) {
+      if (driverS) parts.push(driverS);
+      var price = r3money(dv.price), where = dv.direction; // "below" | "above"
+      if (dv.kase === "a") {
+        parts.push("Your car itself last sold for " + price + " at <span class=\"num\">" + Number(dv.mileage).toLocaleString("en-US") + "</span> miles. That’s outside where the closest recent sales are clustering today, so current mileage matters here.");
+        refine = '<div class="refine"><span class="q">' + lint("Still around " + Number(dv.mileage).toLocaleString("en-US") + " miles?", "read.refq") + '</span><button class="chip g" data-refyes>Yes</button><button class="chip typeit" data-typemiles>Update mileage</button></div>';
+      } else if (dv.kase === "b") {
+        var bare = bareNameOf(d, m), art = /^[aeiou8]/i.test(bare) ? "an" : "a";
+        parts.push("Your car itself last sold for " + price + ", " + where + " where these are clustering, but its listing didn’t record the mileage, and on " + art + " " + esc(bare) + " that is the one fact that would explain it.");
+        var bands = (d.earned && d.earned.kind === "mileage" && d.earned.buckets) ? d.earned.buckets : null;
+        var bandChips = bands
+          ? bands.map(function (bk) { return '<button class="chip" data-milemin="' + bk.min + '" data-milemax="' + (bk.max == null ? "" : bk.max) + '" data-mlabel="' + esc(bk.label) + '">' + esc(bk.label) + "</button>"; }).join("")
+          : '<button class="chip" data-milemin="0" data-milemax="100000" data-mlabel="under 100k">Under 100k</button><button class="chip" data-milemin="100000" data-milemax="160000" data-mlabel="100k to 160k">100k to 160k</button><button class="chip" data-milemin="160000" data-milemax="" data-mlabel="over 160k">Over 160k</button>';
+        refine = '<div class="refine"><span class="q">' + lint("Roughly how many miles?", "read.askq") + '</span></div><div class="askchips">' + bandChips + '<button class="chip typeit" data-typemiles>Enter miles</button></div>';
+      } else { // case c: diverges but mileage does not explain it - state it, ask nothing
+        parts.push("Your car itself last sold for " + price + ", " + where + " where these are clustering today.");
+      }
+    } else {
+      if (driverS) parts.push(driverS);
+      parts.push("These are the three I’d pay closest attention to.");
+    }
+    var ps = parts.map(function (p) { return "<p>" + lint(p, "read") + "</p>"; }).join("");
+    return '<div class="samread" data-stage="answer"><div class="ava">SAM</div><div><div class="tag">' + lint("Sam’s read", "read.tag") + "</div>" + ps + refine + "</div></div>";
+  }
+  // A divergence a/b already carries its own refine/ask chips in Sam's Read; the standalone
+  // earned block must not also render (one ask, never two).
+  function divergenceAsksInline(d) { var dv = d.divergence; return !!(dv && (dv.kase === "a" || dv.kase === "b")); }
+  function repMeta(c) {
+    var bits = ['<span class="num">' + esc(c.mileageText) + "</span>"];
+    if (c.transmission) bits.push(esc(cap(String(c.transmission))));
+    return bits.join('<span class="dot">&middot;</span>');
+  }
+  // House both-numbers (locked addition): the math number (hammer) is the headline; the all-in
+  // premium-inclusive price shows beside it, never leading. Non-house cards show price alone.
+  function repPrice(c) { return esc(usd(c.price)) + (c.isHouse && c.allIn ? ' <span class="allin">&middot; buyer paid ' + esc(usd(c.allIn)) + " incl. premium</span>" : ""); }
+  var DELTA_LABEL = { fewer_miles: "Fewer miles", more_miles: "More miles", manual: "6-speed manual", earlier: "Earlier sale", higher: "Higher sale", lower: "Lower sale" };
+  function bracketCard(c) {
+    if (!c) return "";
+    var ext = '<span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>';
+    var img = c.image ? '<img src="' + esc(c.image) + '" alt="' + esc(c.title) + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.plate\');if(p)p.style.display=\'flex\'">' : "";
+    var lbl = DELTA_LABEL[c.delta] || "Recent sale";
+    var meta = '<span class="num">' + esc(c.mileageText) + "</span>" + (c.transmission ? '<span class="dot">&middot;</span>' + esc(cap(String(c.transmission))) : "") + '<span class="dot">&middot;</span>' + esc(monthYear(c.date));
+    var inner = '<div class="bth">' + img + ext + '<div class="plate" style="display:' + (c.image ? "none" : "flex") + '"><div class="n">' + esc(c.title) + '</div></div></div>' +
+      '<div class="bb"><span class="blabel">' + esc(lbl) + '</span><div class="bprice num">' + repPrice(c) + '</div><div class="bmeta">' + meta + "</div></div>";
+    var href = utmUrl(c.url);
+    return href ? '<a class="bcard" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="bcard">' + inner + "</div>";
+  }
+  function cards3Html(d, m) {
+    var rep = d.representative; if (!rep || !rep.closest) return "";
+    var c = rep.closest;
+    var why = c.basis === "subject" ? "The nearest recent sale on mileage and spec."
+      : (d.driver === "mileage" ? "The middle of the market, on mileage." : "The middle of the market.");
+    var ext = '<span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>';
+    var img = c.image ? '<img src="' + esc(c.image) + '" alt="' + esc(c.title) + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.plate\');if(p)p.style.display=\'flex\'">' : "";
+    var cmInner = '<div class="rph">' + img + '<span class="cmkick">Closest match</span>' + ext + '<div class="plate" style="display:' + (c.image ? "none" : "flex") + '"><div class="n">' + esc(c.title) + '</div><div class="s">photo pending</div></div></div>' +
+      '<div class="rb"><div class="rprice num">' + repPrice(c) + '</div>' +
+      '<div class="rmeta">' + repMeta(c) + '</div>' +
+      '<div class="rtitle">' + esc(c.title) + '<span class="dot">&middot;</span>' + esc(c.platform) + '<span class="dot">&middot;</span>' + esc(monthYear(c.date)) + '</div>' +
+      '<div class="why">' + lint(why, "card.why") + "</div></div>";
+    var cmHref = utmUrl(c.url);
+    var cm = cmHref ? '<a class="cm" href="' + esc(cmHref) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + cmInner + "</a>" : '<div class="cm">' + cmInner + "</div>";
+    var brackets = bracketCard(rep.high) + bracketCard(rep.low);
+    return '<div class="cards3">' + cm + (brackets ? '<div class="brackets">' + brackets + "</div>" : "") + "</div>";
+  }
+  function seeAllHtml(d, m) {
+    var plats = d.platforms || [];
+    if (!plats.length) return "";
+    var pills = plats.map(function (nm) { return '<span class="plat-pill">' + esc(nm) + "</span>"; }).join("");
+    var note = "";
+    if (d.singlePlatform && d.topPlatform) note = '<p class="plat-note">' + lint("Almost all on " + esc(d.topPlatform) + ", so there is no cross-platform split to read here.", "platnote") + "</p>";
+    else if (d.topPlatform) note = '<p class="plat-note">' + lint("Most change hands on " + esc(d.topPlatform) + ".", "platnote") + "</p>";
+    var label = (d.poolTrim || bareNameOf(d, m)) + " sales, " + windowMeta(d).toLowerCase();
+    return '<details class="showall"><summary>See all recent sales</summary>' +
+      '<div class="allhead"><span class="lab">' + esc(label) + '</span></div>' +
+      '<div class="platwrap"><div class="lab">Where they sold</div><div class="plat-strip">' + pills + "</div>" + note + "</div></details>";
+  }
   function resultHtml(d, m) {
-    var body = samTakeBlock(d, m) + earnedHtml(d, m);
-    body += '<div class="seclabel">The sales<span class="sort">Sort: Most recent</span></div>';
-    body += '<div class="receipts">' + receiptsHtml(d.cards, 6) + "</div>";
-    var rest = (d.cards || []).slice(6).concat(d.asideCards || []);
-    if (rest.length) body += '<details class="showall"><summary>Show more</summary><div class="receipts">' + receiptsHtml(rest, 999, true) + "</div></details>";
-    body += platStripHtml(d, m) + sellHtml() + recentHtml();
+    var body = heroBlock(d) + samReadBlock(d, m);
+    body += '<div class="seclabel">The sales behind it</div>';
+    body += cards3Html(d, m);
+    body += seeAllHtml(d, m);
+    if (!divergenceAsksInline(d)) body += earnedHtml(d, m);
+    body += sellHtml() + recentHtml();
+    // Fixed approved disclaimer (round-7 mockup). NOT passed through lint(): "estimates" and
+    // "valuations" here are deliberate NEGATIONS of the banned terms, not claims.
+    body += '<div class="trust">Real completed sales from GoAskSam’s archive. No estimates. No valuations.</div>';
     return body;
   }
   // Two distinct refusal states, one template set each, so they can never mix:
