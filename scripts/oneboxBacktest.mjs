@@ -30,8 +30,10 @@ fs.writeFileSync("scripts/onebox-backtest-report.json", JSON.stringify({ generat
 console.log(`\n=== One Box backtest (seed ${seed}) ===`);
 console.log(`runs: ${sum.totalRuns} | result-state runs: ${sum.resultRuns} | runs with a failure: ${sum.runsWithFailures}`);
 console.log(`\nby invariant:`, JSON.stringify(sum.byInvariant));
-console.log(`\nby stratum (invariant -> count):`);
-for (const dim of ["marque", "tier", "genMapped", "path"]) { console.log(` ${dim}:`); for (const [k, v] of Object.entries(sum.byStratum[dim])) console.log(`   ${k}: ${JSON.stringify(v)}`); }
+console.log(`\ncoverage (result-state runs checked, per stratum):`);
+for (const dim of ["marque", "priceTier", "genMapped", "path"]) console.log(` ${dim}: ${JSON.stringify(sum.coverage[dim])}`);
+console.log(`\nfailures by stratum (invariant -> count):`);
+for (const dim of ["marque", "priceTier", "genMapped", "path"]) { console.log(` ${dim}:`); for (const [k, v] of Object.entries(sum.byStratum[dim])) console.log(`   ${k}: ${JSON.stringify(v)}`); }
 console.log(`\nfailures (${sum.failures.length}):`);
-for (const f of sum.failures) console.log(`  [${f.inv}] ${f.subject} (${f.path}, ${f.marque}, ${f.tier}, mapped=${f.genMapped}): ${f.detail}`);
+for (const f of sum.failures) console.log(`  [${f.inv}] ${f.subject} (${f.path}, ${f.marque}, ${f.priceTier}, mapped=${f.genMapped}): ${f.detail}`);
 process.exit(sum.failures.length ? 1 : 0);
