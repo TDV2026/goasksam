@@ -995,6 +995,26 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "srcaudit", note: "ESTIMATED counts (planner stats); archive = max(bySlug,byLabel)", attemptsTableExists: attemptsExists, sources: out });
   }
 
+  // task=poolsrc: READ-ONLY (archive; ZERO OCD). Platform-label breakdown of the raw One Box
+  // comp pool for a make/model, and the same after the UK/EU region exclusion (FLAG A), so the
+  // fix can be verified: which sources would have leaked, and the pool count before vs after.
+  if (task === "poolsrc") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const make = String(req.query?.make || ""); const model = String(req.query?.model || ""); const title = String(req.query?.title || "");
+    const yMin = req.query?.yearMin ? `&year=gte.${Number(req.query.yearMin)}` : ""; const yMax = req.query?.yearMax ? `&year=lte.${Number(req.query.yearMax)}` : "";
+    let q = `sales_archive?sale_price=not.is.null&select=platform&limit=2000`;
+    if (make) q += `&make=ilike.${encodeURIComponent(make)}`;
+    if (model) q += `&model=ilike.*${encodeURIComponent(model)}*`;
+    if (title) q += `&listing_title=ilike.*${encodeURIComponent(title)}*`;
+    q += yMin + yMax;
+    const rows = await supabaseSelect(env, q) || [];
+    const RE = /car\s*&\s*classic|carandclassic|collecting\s*cars|collectingcars|\bthe\s+market\b|themarket|pistonheads/i;
+    const counts = {}; for (const r of rows) { const p = r.platform || "?"; counts[p] = (counts[p] || 0) + 1; }
+    const excluded = Object.entries(counts).filter(([p]) => RE.test(p));
+    const raw = rows.length, kept = rows.filter(r => !RE.test(String(r.platform || ""))).length;
+    return res.status(200).json({ task: "poolsrc", make, model, title, rawPool: raw, keptAfterExclusion: kept, removed: raw - kept, ukSourcesInPool: Object.fromEntries(excluded), allPlatforms: counts });
+  }
+
   // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
   // source universe (probes each candidate source), what is ingested into sales_archive
   // and vehicle_market_records (row count + latest record date per platform, to catch a
