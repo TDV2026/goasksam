@@ -91,14 +91,8 @@
     "s3": "That’s a touch softer than a year ago, when most landed between $N and $N.",
     "s4": "Yours sold for $N in August. The ones since brought $N to $N.",
     "meta": "Past twelve months·lowest-mileage and special edition cars set aside",
-    "earned": "How many miles on yours?",
-    "chips": [
-      "under Nk",
-      "Nk to Nk",
-      "Nk to Nk",
-      "over Nk",
-      "type it"
-    ],
+    "earned": null,
+    "chips": [],
     "platforms": [
       "Bring a Trailer",
       "Hagerty",
@@ -291,7 +285,7 @@
     "disc": null,
     "ladder": null,
     "s1": "The Maserati Merak (YYYY to YYYY) is bringing $N to $N in the past two years.",
-    "s2": null,
+    "s2": "Only 4 have sold in the past two years, too few to mark a typical band, so that is the full range and every sale is below.",
     "s3": null,
     "s4": null,
     "meta": "Past two years",
@@ -350,12 +344,10 @@
     "s3": "That’s a touch firmer than a year ago, when most landed between $N and $N.",
     "s4": null,
     "meta": "Past twelve months",
-    "earned": "How many miles on yours?",
+    "earned": "Manual or automatic?",
     "chips": [
-      "under Nk",
-      "Nk to Nk",
-      "over Nk",
-      "type it"
+      "Manual",
+      "automatic"
     ],
     "platforms": [
       "Bring a Trailer",
@@ -529,7 +521,7 @@
     "ladder": null,
     "s1": "Right now, the Audi RS5 (YYYY to YYYY) is bringing $N to $N in the last twelve months.",
     "s2": "Most land between $N and $N.",
-    "s3": null,
+    "s3": "That’s a touch firmer than a year ago, when most landed between $N and $N.",
     "s4": null,
     "meta": "Past twelve months",
     "earned": "How many miles on yours?",
