@@ -778,17 +778,25 @@ async function handleOps(req, res) {
     const { findGeneration } = await import("../lib/generations.js");
     const { runOneBox } = await import("../lib/onebox.js");
     const { findVinArchiveMatch } = await import("../lib/_flags.js");
+    const med = arr => { const s = arr.filter(x => x > 0).sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : null; };
+    // Reader answers the body question in the real flow; supply it so these reach the result
+    // state we are reviewing. Roadster for the RT/10 and the 300SL, coupe/berlinetta for the rest.
     const inputs = [
-      "WBS4Y9C55KAG67564", "1990 BMW E30 M3", "2006 Porsche 997 Carrera S",
-      "1965 Mercedes 300SL Roadster", "1972 Ferrari 365 GTB/4 Daytona", "1969 Ferrari 365 GTC",
-      "2016 Ferrari 488 GTB", "1994 Dodge Viper RT/10", "1988 Porsche 928 S4", "Lotus Esprit"
+      { text: "WBS4Y9C55KAG67564", body: "coupe" }, { text: "1990 BMW E30 M3" }, { text: "2006 Porsche 997 Carrera S", body: "coupe" },
+      { text: "1965 Mercedes 300SL Roadster", body: "roadster" }, { text: "1972 Ferrari 365 GTB/4 Daytona", body: "coupe" }, { text: "1969 Ferrari 365 GTC", body: "coupe", forceTrim: "GTC" },
+      { text: "2016 Ferrari 488 GTB", body: "coupe" }, { text: "1994 Dodge Viper RT/10", body: "roadster" }, { text: "1988 Porsche 928 S4" }, { text: "Lotus Esprit" }
     ];
+    const MAN = t => /manual|\d[- ]?speed(?!\s*auto)|\bmt\b|\bstick\b/i.test(t) && !/automatic|pdk|dct|tiptronic|dsg/i.test(t);
+    const AUT = t => /automatic|\bpdk\b|\bdct\b|tiptronic|\bdsg\b|paddle/i.test(t);
     const out = [];
-    for (const text of inputs) {
+    for (const spec of inputs) {
+      const text = spec.text;
       try {
         const rv = await resolveVehicle(text, {});
         const vehicle = rv && rv.vehicle ? rv.vehicle : null;
         if (!vehicle || !vehicle.make) { out.push({ input: text, resolved: null, note: rv && rv.status ? rv.status : "unresolved" }); continue; }
+        if (spec.body && !vehicle.bodyStyle) vehicle.bodyStyle = spec.body;
+        if (spec.forceTrim && !vehicle.trim) vehicle.trim = spec.forceTrim;
         // #1 divergence needs the exact car's own sale (frontend-fed in prod); reconstruct it
         // here from the archive VIN match so the divergence path can be exercised.
         let exactSale = null;
@@ -799,10 +807,19 @@ async function handleOps(req, res) {
         const r = await runOneBox(vehicle, generation, text, { ...env, exactSale }, null);
         const cards = Array.isArray(r.cards) ? r.cards : [];
         const mix = {}; for (const c of cards) { const p = c.platform || c.source || "?"; mix[p] = (mix[p] || 0) + 1; }
+        // Recompute the two earned-split gaps from the solid pool (cards === shapeCards(solid)),
+        // so the priority decision (#3) is auditable regardless of which question won.
+        const man = cards.filter(c => MAN(String(c.transmission || ""))).map(c => c.price);
+        const aut = cards.filter(c => AUT(String(c.transmission || ""))).map(c => c.price);
+        const withMi = cards.filter(c => c.mi > 0); const miMed = med(withMi.map(c => c.mi));
+        const loMi = withMi.filter(c => c.mi <= miMed).map(c => c.price), hiMi = withMi.filter(c => c.mi > miMed).map(c => c.price);
+        const txGap = (man.length >= 5 && aut.length >= 5) ? Math.abs(med(man) - med(aut)) : null;
+        const miGap = (withMi.length >= 10 && loMi.length >= 5 && hiMi.length >= 5) ? Math.abs(med(loMi) - med(hiMi)) : null;
         out.push({
           input: text,
           resolved: `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}${vehicle.bodyStyle ? " [" + vehicle.bodyStyle + "]" : ""}`.trim(),
           tier: r.tier, ladderStep: r.ladderStep || null, widening: r.widening || null,
+          txSplit: { manN: man.length, autN: aut.length, gap: txGap }, miSplit: { withMi: withMi.length, loN: loMi.length, hiN: hiMi.length, gap: miGap },
           span: r.span || null, cluster: r.cluster || null, spanOnly: r.spanOnly || false, poolN: r.poolN != null ? r.poolN : null,
           earned: r.earned ? (r.earned.kind + (r.earned.labels ? " (" + r.earned.labels.manual + " vs " + r.earned.labels.auto + ", gap $" + Math.round(r.earned.labels.gap || 0) + ")" : "")) : null,
           driver: r.driver || null, direction: r.direction ? r.direction.word : null,
