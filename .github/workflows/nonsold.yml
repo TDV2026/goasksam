@@ -1,0 +1,52 @@
+name: Non-sold auction-attempt backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      months:
+        description: "How many months back to pull (default 12)"
+        required: false
+        default: "12"
+      sources:
+        description: "Comma-separated clean sources (blank = all 5: bringatrailer,carsandbids,hagerty,sothebysmotorsport,mbmarket)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  nonsold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      OLDCARSDATA_API_KEY: ${{ secrets.OLDCARSDATA_API_KEY }}
+      MONTHS: ${{ github.event.inputs.months }}
+      SOURCES: ${{ github.event.inputs.sources }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify required secrets are present
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY OLDCARSDATA_API_KEY; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::GitHub Actions secret ${name} is EMPTY. Add it under Settings > Secrets and variables > Actions (separate from Vercel env vars)."
+              missing=1
+            else
+              echo "${name}: present"
+            fi
+          done
+          if [ "${missing}" -ne 0 ]; then echo "::error::Aborting: required secret(s) missing."; exit 1; fi
+      - name: Non-sold backfill (paced, chunked, canonical-linked)
+        run: |
+          set -euo pipefail
+          ARGS="--months=${MONTHS:-12}"
+          if [ -n "${SOURCES:-}" ]; then ARGS="${ARGS} --sources=${SOURCES}"; fi
+          echo "Running: node scripts/ingestAttempts.js ${ARGS}"
+          node scripts/ingestAttempts.js ${ARGS}
