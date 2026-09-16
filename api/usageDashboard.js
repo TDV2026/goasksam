@@ -832,6 +832,42 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "tencars", cars: out });
   }
 
+  // task=nblend: READ-ONLY audit (archive; NO OCD). Finds model tokens whose drop-the-trim
+  // "family" pool blends genuinely DISTINCT models sharing a nameplate fragment (#2 audit).
+  // For enthusiast makes, groups sales_archive by model, and per model reports count, price
+  // dispersion (p10/p90 ratio) and the distinct leading title-head tokens after the model
+  // number - a high ratio WITH several distinct heads is the blend signature.
+  if (task === "nblend") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const makes = (req.query?.makes ? String(req.query.makes) : "Ferrari,Maserati,Lamborghini,Dodge,Lotus,Aston Martin,Jaguar,Alfa Romeo").split(",").map(s => s.trim());
+    const pct = (arr, p) => { const s = arr.filter(x => x > 0).sort((a, b) => a - b); if (!s.length) return 0; return s[Math.min(s.length - 1, Math.floor(p * s.length))]; };
+    const report = [];
+    for (const make of makes) {
+      const rows = await supabaseSelect(env, `sales_archive?make=ilike.${encodeURIComponent(make)}&sale_price=not.is.null&select=model,listing_title,sale_price&limit=6000`);
+      const byModel = {};
+      for (const r of (rows || [])) {
+        const model = String(r.model || "").trim(); const p = Number(r.sale_price); if (!model || !(p > 0)) continue;
+        (byModel[model] = byModel[model] || { n: 0, prices: [], heads: {} });
+        byModel[model].n++; byModel[model].prices.push(p);
+        // leading title-head token AFTER the model number: "365 GTB/4 Daytona" -> "gtb/4"
+        const t = String(r.listing_title || "").toLowerCase();
+        const idx = t.indexOf(model.toLowerCase());
+        const rest = idx >= 0 ? t.slice(idx + model.length).trim() : t;
+        const head = (rest.split(/[\s,]+/).find(w => w && !/^\d{4}$/.test(w)) || "").replace(/[^a-z0-9/]/g, "");
+        if (head) byModel[model].heads[head] = (byModel[model].heads[head] || 0) + 1;
+      }
+      for (const [model, d] of Object.entries(byModel)) {
+        if (d.n < 12) continue;
+        const p10 = pct(d.prices, 0.1), p90 = pct(d.prices, 0.9), ratio = p10 > 0 ? +(p90 / p10).toFixed(1) : null;
+        const heads = Object.entries(d.heads).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([h, c]) => `${h}:${c}`);
+        const distinctHeads = Object.keys(d.heads).length;
+        if (ratio && ratio >= 5 && distinctHeads >= 3) report.push({ make, model, n: d.n, p10, p90, ratio, distinctHeads, topHeads: heads });
+      }
+    }
+    report.sort((a, b) => b.ratio - a.ratio);
+    return res.status(200).json({ task: "nblend", note: "ratio>=5 AND distinctHeads>=3 = blend-risk model token", flagged: report });
+  }
+
   // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
   // source universe (probes each candidate source), what is ingested into sales_archive
   // and vehicle_market_records (row count + latest record date per platform, to catch a
