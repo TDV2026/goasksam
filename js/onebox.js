@@ -758,7 +758,7 @@
     var era = esc(ce.era), make = esc(ce.make);
     var out = '<div class="livetake" data-stage="answer"><div class="lt-kick">' + lint("Sam’s live take", "ce.kick") + "</div>";
     out += '<p class="lt-hero">' + priceRange([ce.lowHammer, ce.highHammer]) + "</p>";
-    var line = "No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ", so this is the wider " + era + " " + make + " market, not your exact car: " + ce.totalN + " sold, the middle around " + usd(ce.medianHammer) + ".";
+    var line = "No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ", so this is the wider " + era + " " + make + " market, not your exact car. " + ce.totalN + " sold; most landed in this range, the middle around " + usd(ce.medianHammer) + ".";
     out += '<p class="lt-line">' + lint(line, "ce.line") + "</p></div>";
     var reads = [
       "Your exact car is rare enough that it has not traded in the three years I track. Treat these as the neighborhood it sits in, not a figure for it.",

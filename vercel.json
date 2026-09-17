@@ -28,8 +28,8 @@
     { "source": "/powersellers", "destination": "/powersellers.html" },
     { "source": "/out", "destination": "/api/out" },
     { "source": "/styles.20260907a.css", "destination": "/styles.css" },
-    { "source": "/js.20260916b/(.*)", "destination": "/js/$1" },
-    { "source": "/obx.20260916f/(.*)", "destination": "/js/$1" }
+    { "source": "/js.20260916c/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20260916g/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
     "api/usageDashboard.js": {

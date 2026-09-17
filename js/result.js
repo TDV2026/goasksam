@@ -1154,8 +1154,8 @@ function renderClassEraSell(msgs,ce,decisionData){
   const recs=(ce.receipts||[]).slice().filter(r=>Number(r.hammer)>0);
   if(!recs.length){return false;}
   const sorted=recs.slice().sort((a,b)=>a.hammer-b.hammer);
-  const lo=sorted[0].hammer,hi=sorted[sorted.length-1].hammer;
-  const line=`No ${esc(carName)} has sold in the last three years, so this is the wider ${esc(ce.era)} ${esc(ce.make)} market, not your exact car: ${ce.totalN} sold, from ${money(lo)} to ${money(hi)}, the middle around ${money(ce.medianHammer)}.`;
+  const lo=(ce.lowHammer!=null?ce.lowHammer:sorted[0].hammer),hi=(ce.highHammer!=null?ce.highHammer:sorted[sorted.length-1].hammer);
+  const line=`No ${esc(carName)} has sold in the last three years, so this is the wider ${esc(ce.era)} ${esc(ce.make)} market, not your exact car. ${ce.totalN} sold; most landed between ${money(lo)} and ${money(hi)}, the middle around ${money(ce.medianHammer)}.`;
   const read=`Your exact car is rare enough that it hasn't traded in the three years I track. Treat these as the neighborhood it sits in, not a figure for it. The moment one like yours sells, I can read it directly.`;
   const list=sorted.slice().reverse().slice(0,6).map(rc=>{
     const link=rc.url?`<a href="${esc(rc.url)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(0,0,0,.18)">${esc(rc.venue)}</a>`:esc(rc.venue);
