@@ -1110,8 +1110,10 @@ function _thinPickCardHtml(o){
     const oth=o.others.map(h=>`${esc((typeof platformDisplayName==="function"&&platformDisplayName(h.slug))||h.venue)} (${h.count})`).join(", ");
     why+=` ${o.others.length===1?"The other house to take one":"Other houses that have taken them"}: ${oth}.`;
   }
+  // Receipt line leads with the SALE month (unambiguous "June 2024 · $960,000"), car/model year
+  // beneath it as context - not the other way round (a car year read like a sale year).
   const rc=(o.receipts||[]).filter(r=>String(r.slug||"").toLowerCase()===p.slug).sort((a,b)=>b.hammer-a.hammer).slice(0,3)
-    .map(r=>`<div class="pcard-mrow"><div><div class="pcard-mp" style="font-variant-numeric:tabular-nums">${esc(r.year||"")} · ${money(r.hammer)}${isHouse&&r.allIn?` <span style="opacity:.6">buyer paid ${money(r.allIn)}</span>`:""}</div><div class="pcard-ms">${esc(_thinMonthLabel(r.date))}</div></div></div>`).join("");
+    .map(r=>`<div class="pcard-mrow"><div><div class="pcard-mp" style="font-variant-numeric:tabular-nums">${esc(_thinMonthLabel(r.date)||"Recent")} · ${money(r.hammer)}${isHouse&&r.allIn?` <span style="opacity:.6">buyer paid ${money(r.allIn)}</span>`:""}</div><div class="pcard-ms">${esc([r.year,o.modelLabel].filter(Boolean).join(" "))}</div></div></div>`).join("");
   const cta=isHouse?`outboundGo('${esc(p.slug)}','consign')`:`outboundGo('${esc(p.slug)}','pick')`;
   const ctaLabel=isHouse?`Start a consignment with ${esc(name)}`:`Start listing on ${esc(name)}`;
   const reassure=isHouse
