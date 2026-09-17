@@ -995,6 +995,37 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "srcaudit", note: "ESTIMATED counts (planner stats); archive = max(bySlug,byLabel)", attemptsTableExists: attemptsExists, sources: out });
   }
 
+  // task=memcheck: READ-ONLY (archive; ZERO OCD). Archive-wide scan for memorabilia/replica/
+  // tribute listings (the 250-GTO wall-art class) and whether any live in a thin enough model
+  // pool to drag its span/cluster low. Informs the exclusion applied to online() + class fallback.
+  if (task === "memcheck") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    // ilike patterns PostgREST can OR (the deployed exclusion regex is the source of truth in code).
+    const pats = ["tribute", "replica", "recreation", "wall art", "diorama", "scale model", "1:18", "1:43", "1:12", "1:8", "poster", "-style", "model car", "toolbox", "tool box", "pedal car", "go-kart", "go kart", "brochure", "sign", "neon", "artwork", "print"];
+    const orFilter = "or=(" + pats.map(p => `listing_title.ilike.*${encodeURIComponent(p)}*`).join(",") + ")";
+    const rows = await supabaseSelect(env, `sales_archive?${orFilter}&sale_price=not.is.null&select=make,model,listing_title,sale_price,platform&limit=3000`) || [];
+    const byModel = {};
+    for (const r of rows) {
+      const k = `${r.make} ${r.model}`.trim();
+      const o = byModel[k] || (byModel[k] = { junk: 0, prices: [], samples: [] });
+      o.junk++; if (Number(r.sale_price) > 0) o.prices.push(Number(r.sale_price));
+      if (o.samples.length < 3) o.samples.push({ t: (r.listing_title || "").slice(0, 54), p: Number(r.sale_price) || null, v: r.platform });
+    }
+    // For the most-contaminated models, is the junk cheap relative to real sales (drags span low)?
+    const top = Object.entries(byModel).sort((a, b) => b[1].junk - a[1].junk).slice(0, 25);
+    const report = [];
+    for (const [model, o] of top) {
+      const [make, ...mm] = model.split(" "); const md = mm.join(" ");
+      // total pool for this model + its real price range (crude: min/median/max of ALL its sales)
+      const all = await supabaseSelect(env, `sales_archive?make=ilike.${encodeURIComponent(make)}&model=ilike.${encodeURIComponent(md)}&sale_price=not.is.null&select=sale_price&limit=1000`) || [];
+      const allP = all.map(r => Number(r.sale_price)).filter(x => x > 0).sort((a, b) => a - b);
+      const junkMin = Math.min(...o.prices), junkMax = Math.max(...o.prices);
+      const poolMin = allP[0] || null;
+      report.push({ model, junkListings: o.junk, poolTotal: all.length, junkPriceRange: [junkMin, junkMax], poolMin, junkIsFloor: poolMin != null && junkMin <= poolMin, samples: o.samples });
+    }
+    return res.status(200).json({ task: "memcheck", totalJunkListings: rows.length, contaminatedModels: Object.keys(byModel).length, top: report });
+  }
+
   // task=htground: READ-ONLY (archive; ZERO OCD). House-tier design grounding for one model:
   // 36-month approved-source receipts (venue/date/hammer/all-in/markers), trigger counts, and
   // paired-sale chassis (online vs house). ?make=&title=  e.g. make=Ferrari&title=365 GTB
