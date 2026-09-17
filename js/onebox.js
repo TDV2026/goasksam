@@ -39,7 +39,10 @@
     // Prefer the clean canonical/display label (the title-derived "1990 BMW M3") over rebuilding
     // from the raw model field ("E30 M3") when it's present.
     if (rc.canonicalLabel) return rc.canonicalLabel;
-    return [rc.year, rc.make, rc.model, rc.trim, rc.bodyStyle ? cap(rc.bodyStyle) : ""].filter(Boolean).join(" ") || "your car";
+    // Drop the body word when the trim already carries it (a "Roadster" trim + "roadster" body
+    // would print "300SL Roadster Roadster"); trim stays to protect real model names.
+    var body = rc.bodyStyle && !(rc.trim && String(rc.trim).toLowerCase().indexOf(String(rc.bodyStyle).toLowerCase()) >= 0) ? cap(rc.bodyStyle) : "";
+    return [rc.year, rc.make, rc.model, rc.trim, body].filter(Boolean).join(" ") || "your car";
   }
   function cap(s) { s = String(s || ""); return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
   function hashStr(s) { var h = 0, i; s = String(s || ""); for (i = 0; i < s.length; i++) { h = (h << 5) - h + s.charCodeAt(i); h |= 0; } return Math.abs(h); }
@@ -653,10 +656,21 @@
     var mid = Math.floor((n - 1) / 2);
     var lo = Math.max(0, mid - 1), hi = Math.min(n - 1, mid + (n >= 4 ? 2 : 1));
     var band = s.slice(lo, hi + 1);
+    // A band that still spans more than ~1.6x is not a band, it is a scatter (two competition
+    // Daytonas at $789k and $7.4M). Never fake a tight range: anchor on the most RECENT sale (a
+    // neutral, honest pick) and state the full spread as a sentence.
+    var wide = band[band.length - 1].hammer / Math.max(1, band[0].hammer) > 1.6;
+    if (wide) { var recent = scope.slice().sort(function (a, b) { return String(b.date).localeCompare(String(a.date)); })[0]; return { varied: recent, all: s }; }
     return { range: [band[0].hammer, band[band.length - 1].hammer], anchor: s[mid], band: band, all: s };
+  }
+  function htOnlineCeiling(scope) {
+    var onl = scope.filter(function (r) { return !r.isHouse; }).sort(function (x, y) { return y.hammer - x.hammer; });
+    return onl.length ? '<p class="lt-span">' + lint("Online, the highest to sell was " + usd(onl[0].hammer) + " on " + esc(onl[0].venue) + ".", "ht.online") + "</p>" : "";
   }
   function htHeroHtml(d, ht, name, scope, scopedLabel) {
     var a = htAnchor(scope);
+    var scopeClause = scopedLabel ? (" for " + scopedLabel + " cars") : "";
+    var scopeWord = scopedLabel ? (" " + scopedLabel) : "";
     var out = '<div class="livetake" data-stage="answer"><div class="lt-kick">' + lint("Sam’s live take", "ht.kick") + "</div>";
     if (a.single) {
       var rc = a.single;
@@ -665,18 +679,24 @@
       out += '<p class="lt-line">' + lint(one, "ht.hero1") + "</p>";
       return out + "</div>";
     }
+    var all = a.all, min = all[0].hammer, max = all[all.length - 1].hammer;
+    if (a.varied) {
+      var v = a.varied;
+      out += '<p class="lt-hero">' + esc(usd(v.hammer)) + "</p>";
+      var vl = "These are priced case by case, not as one band. The most recent" + scopeWord + " to sell, a " + v.year + " at " + esc(v.venue) + ", brought " + usd(v.hammer) + " in " + monthYear(v.date) + ".";
+      out += '<p class="lt-line">' + lint(vl, "ht.varied") + "</p>";
+      out += '<p class="lt-span">' + lint("Across the " + all.length + scopeWord + " " + name + "s that sold, the range ran " + usd(min) + " to " + usd(max) + ", on condition and originality.", "ht.variedspan") + "</p>";
+      out += htOnlineCeiling(scope);
+      return out + "</div>";
+    }
     out += '<p class="lt-hero">' + priceRange(a.range) + "</p>";
-    var scopeClause = scopedLabel ? (" for " + scopedLabel + " cars") : "";
     var line = "Recent " + name + " sales have mostly landed here" + scopeClause + ", over " + HT_WINDOW_TEXT + ". The closest is " + a.anchor.year + " at " + esc(a.anchor.venue) + ", " + usd(a.anchor.hammer) + ".";
     out += '<p class="lt-line">' + lint(line, "ht.hero") + "</p>";
     // Tails: the full range as a sentence, never a second hero number.
-    var all = a.all, min = all[0].hammer, max = all[all.length - 1].hammer;
     if (max > a.range[1] || min < a.range[0]) {
       out += '<p class="lt-span">' + lint("Across every " + name + " that sold" + scopeClause + ", the range ran " + usd(min) + " to " + usd(max) + ".", "ht.span") + "</p>";
     }
-    // Online ceiling: the top online (non-house) result, when one exists.
-    var onl = scope.filter(function (r) { return !r.isHouse; }).sort(function (x, y) { return y.hammer - x.hammer; });
-    if (onl.length) out += '<p class="lt-span">' + lint("Online, the highest to sell was " + usd(onl[0].hammer) + " on " + esc(onl[0].venue) + ".", "ht.online") + "</p>";
+    out += htOnlineCeiling(scope);
     return out + "</div>";
   }
   // Paired sales: same chassis at a house AND online. Two receipts side by side, NO percentage
@@ -723,7 +743,9 @@
     // The receipts.
     body += '<div class="seclabel" data-stage="cards">' + lint("What has sold, " + esc(name) + ", " + HT_WINDOW_TEXT, "ht.reclab") + "</div>";
     body += '<div class="htreceipts" data-stage="cards">' + scope.slice(0, 8).map(function (rc) { return htReceiptRow(rc); }).join("") + "</div>";
-    body += htPairsHtml(ht, name);
+    // Paired chassis are a whole-model signal; show them only in the unscoped view so a config
+    // scope (e.g. competition cars) is not muddied by an off-config pair.
+    if (scope === ht.receipts) body += htPairsHtml(ht, name);
     body += sellHtml() + recentHtml();
     body += '<div class="trust">Real completed sales from GoAskSam’s archive, hammer prices with the buyer premium backed out. No estimates. No valuations.</div>';
     return body;
