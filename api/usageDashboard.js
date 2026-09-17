@@ -1019,12 +1019,12 @@ async function handleOps(req, res) {
     // silently drops them). We fetch all matching and report date coverage + a 36mo count client-side.
     const base = `sales_archive?make=ilike.${encodeURIComponent(make)}&listing_title=ilike.*${encodeURIComponent(title)}*&sale_price=not.is.null`;
     // "desc" is a reserved PostgREST keyword; alias the description as descr.
-    const fullSel = `&select=year,listing_title,descr:raw_record->>description,platform,source_slug,sale_date,sale_price,vin,chassis_vin_norm,curr:raw_record->>currency&limit=300`;
-    const minSel = `&select=year,listing_title,platform,source_slug,sale_date,sale_price,chassis_vin_norm&limit=300`;
+    const fullSel = `&select=year,listing_title,descr:raw_record->>description,platform,source_slug,sale_date,sale_price,vin,vin_norm,curr:raw_record->>currency&limit=300`;
+    const minSel = `&select=year,listing_title,platform,source_slug,sale_date,sale_price,vin_norm&limit=300`;
     let rows = await supabaseSelect(env, base + fullSel) || [];
     let usedSelect = "full";
     if (!rows.length) { rows = await supabaseSelect(env, base + minSel) || []; usedSelect = rows.length ? "min" : "both-empty"; }
-    for (const r of rows) { r.chassis = r.chassis_vin_norm; r.desc = r.descr; }
+    for (const r of rows) { r.chassis = r.vin_norm; r.desc = r.descr; }
     const in36 = r => { const d = (r.sale_date || "").slice(0, 10); return d && d >= since; };
     const nullDate = rows.filter(r => !r.sale_date).length;
     const dates = rows.map(r => (r.sale_date || "").slice(0, 10)).filter(Boolean).sort();
