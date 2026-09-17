@@ -1038,15 +1038,16 @@ async function handleOps(req, res) {
         if (!v.bodyStyle && !/roadster|convertible|cabriolet|spider|spyder|gullwing/i.test(q)) v.bodyStyle = "coupe";
         const g = await findGeneration(v, env);
         const r = await runOneBox(v, g, q, env, null);
-        const ht = r.houseTier || null;
+        const ht = r.thin || null;
         out.push({
           q, resolved: `${v.year || ""} ${v.make} ${v.model || ""}${v.trim ? " " + v.trim : ""}`.trim(),
-          tier: r.tier, fired: !!(ht && ht.isHouseTier),
-          onlineN: ht ? ht.onlineN : null, houseN: ht ? ht.houseN : null, totalN: ht ? ht.totalN : null,
+          tier: r.tier, fired: !!(ht && ht.isThin), houseSteer: ht ? ht.houseSteer : (r.htMeta ? r.htMeta.houseSteer : null),
+          onlineN: ht ? ht.onlineN : null, onlineReceiptsN: ht ? ht.onlineReceiptsN : null, houseN: ht ? ht.houseN : null, totalN: ht ? ht.totalN : null,
+          houseShare: ht ? Math.round(100 * ht.houseN / Math.max(1, ht.houseN + ht.onlineReceiptsN)) + "%" : null,
           medianHammer: ht ? ht.medianHammer : null, pairsCount: ht ? ht.pairsCount : null, pairPctEligible: ht ? ht.pairPctEligible : null,
           notFiredMeta: (!ht && r.htMeta) ? { onlineN: r.htMeta.onlineN, onlineReceiptsN: r.htMeta.onlineReceiptsN, houseN: r.htMeta.houseN, totalN: r.htMeta.totalN } : null,
-          intakeMarkers: ht ? (ht.intakeMarkers || []).map(m => `${m.label} (${m.withN}/${m.withoutN})`) : null,
-          topReceipts: ht ? (ht.receipts || []).slice(0, 4).map(rc => `${rc.venue} ${rc.year || ""} $${Math.round(rc.hammer).toLocaleString()}${rc.isHouse ? " (H, all-in $" + Math.round(rc.allIn || 0).toLocaleString() + ")" : ""}${rc.markers.length ? " [" + rc.markers.map(m => m.label).join(", ") + "]" : ""}`) : null
+          intake: ht && ht.intake ? `${ht.intake.kind}${ht.intake.markerKey ? ":" + ht.intake.markerKey : ""}${ht.intake.thresholdK ? " @" + ht.intake.thresholdK + "k" : ""} (fork ${ht.intake.sep.toFixed(2)}x)` : null,
+          topReceipts: ht ? (ht.receipts || []).slice(0, 4).map(rc => `${rc.venue} ${rc.year || ""} $${Math.round(rc.hammer).toLocaleString()}${rc.isHouse ? " (H, all-in $" + Math.round(rc.allIn || 0).toLocaleString() + ")" : ""}${rc.mileage ? " " + rc.mileage.toLocaleString() + "mi" : ""}${rc.markers.length ? " [" + rc.markers.map(m => m.label).join(", ") + "]" : ""}`) : null
         });
       } catch (e) { out.push({ q, error: String(e && e.message || e).slice(0, 200) }); }
     }
