@@ -986,7 +986,7 @@ async function fetchPass(pass, apiKey, deadline) {
   return { records, error, meteredRequests, pagesFetched, rateLimited, rateLimit };
 }
 
-async function fetchRecentRecords(vehicle, apiKey, generation = null) {
+export async function fetchRecentRecords(vehicle, apiKey, generation = null) {
   const ladder = buildLadder(vehicle, generation);
   const generationToken = generationModelToken(generation);
   const startedAt = Date.now();

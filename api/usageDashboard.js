@@ -995,6 +995,44 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "srcaudit", note: "ESTIMATED counts (planner stats); archive = max(bySlug,byLabel)", attemptsTableExists: attemptsExists, sources: out });
   }
 
+  // task=selldiag: LIVE /sell fetch trace (METERED OCD). Runs the REAL fetchRecentRecords for a
+  // car and reports what sources the /sell pipeline actually pulls + whether houses clear the
+  // strongerNonRoutable gate (>=5 in-window sales AND median > the online pick). Answers "what is
+  // actually being considered as evidence for this car, live" without the WAF-blocked POST path.
+  if (task === "selldiag") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const apiKey = process.env.OLDCARSDATA_API_KEY; if (!apiKey) return res.status(500).json({ error: "OLDCARSDATA_API_KEY not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { fetchRecentRecords, isEvidenceSource, isHouseSource } = await import("./sellerDecision.js");
+    const { recordPlatform } = await import("../lib/_classify.js");
+    const { hammerUsd } = await import("../lib/_houseComps.js");
+    const q = String(req.query?.q || "1972 Ferrari 365 GTB/4 Daytona");
+    const rv = await resolveVehicle(q, {}); const vehicle = rv && rv.vehicle;
+    if (!vehicle || !vehicle.make) return res.status(200).json({ task: "selldiag", q, resolved: null, status: rv && rv.status });
+    const generation = await findGeneration(vehicle, env);
+    const fetched = await fetchRecentRecords(vehicle, apiKey, generation);
+    const recs = (fetched && fetched.records) || [];
+    const daysAgo = d => { const t = new Date(d || 0).getTime(); return t ? (Date.now() - t) / 864e5 : 1e9; };
+    const median = a => { const s = a.filter(x => x > 0).sort((x, y) => x - y); return s.length ? Math.round(s[Math.floor(s.length / 2)]) : null; };
+    const per = {};
+    for (const r of recs) {
+      const p = recordPlatform(r); const o = per[p] || (per[p] = { total: 0, inWin180: 0, evidence: isEvidenceSource(r, vehicle), house: isHouseSource(r), hammers: [] });
+      o.total++; const win = daysAgo(r.auction_end_date || r.sale_date) <= 180; if (win) { o.inWin180++; const h = hammerUsd(r); if (h > 0) o.hammers.push(h); }
+    }
+    const table = Object.entries(per).map(([platform, o]) => ({ platform, total: o.total, inWin180: o.inWin180, evidenceEligible: o.evidence, house: o.house, medianHammerInWin: median(o.hammers) })).sort((a, b) => b.total - a.total);
+    const houses = table.filter(r => r.house);
+    const houseGateClears = houses.filter(h => h.inWin180 >= 5);
+    return res.status(200).json({
+      task: "selldiag", q, resolved: `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}`.trim(),
+      landedRung: fetched && fetched.ladder && fetched.ladder.landed ? { key: fetched.ladder.landed.key, sales: fetched.ladder.landed.sales } : null,
+      totalFetched: recs.length, sourceTable: table,
+      housesPresent: houses.length, houseInWindowTotal: houses.reduce((s, h) => s + h.inWin180, 0),
+      houseGate5plus: houseGateClears.map(h => ({ platform: h.platform, inWin180: h.inWin180, medianHammer: h.medianHammerInWin })),
+      verdict: houses.length === 0 ? "NO house records fetched for this car" : (houseGateClears.length === 0 ? "houses fetched but NONE clear the 5+ in-window gate" : "houses clear the gate -> should be named")
+    });
+  }
+
   // task=taxprobe: READ-ONLY (archive; ZERO OCD). Grounding data for the class-taxonomy design +
   // the two resolver fixes: what the resolver returns for the flagged cars, the Viper body tags,
   // and title/body tokens actually present in the archive for rare/coachbuilt/era-reuse cars.
