@@ -1165,9 +1165,9 @@ async function handleOps(req, res) {
   if (task === "taxprobe") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js");
-    const texts = ["1969 Ferrari 365 GTC", "1972 Ferrari 365 GTB/4 Daytona", "1994 Dodge Viper RT/10", "Alfa Romeo 8C", "1967 Maserati Ghibli", "2014 Maserati Ghibli", "Ferrari 250 GTO", "McLaren F1"];
+    const texts = req.query?.q ? String(req.query.q).split("|") : ["1969 Ferrari 365 GTC", "1972 Ferrari 365 GTB/4 Daytona", "1994 Dodge Viper RT/10", "Alfa Romeo 8C", "1967 Maserati Ghibli", "2014 Maserati Ghibli", "Ferrari 250 GTO", "McLaren F1"];
     const resolver = [];
-    for (const t of texts) { try { const rv = await resolveVehicle(t, {}); const v = rv && rv.vehicle || {}; resolver.push({ input: t, make: v.make || null, model: v.model || null, trim: v.trim || null, year: v.year || null, bodyStyle: v.bodyStyle || null, status: rv && rv.status || null, clar: rv && rv.clarification ? rv.clarification.kind : null }); } catch (e) { resolver.push({ input: t, error: String(e && e.message || e) }); } }
+    for (const t of texts) { try { const rv = await resolveVehicle(t, {}); const v = rv && rv.vehicle || {}; const cl = rv && rv.clarification; resolver.push({ input: t, make: v.make || null, model: v.model || null, trim: v.trim || null, year: v.year || null, status: rv && rv.status || null, clar: cl ? cl.kind : null, suggestion: cl && (cl.suggestion || (cl.chips && cl.chips[0])) || (rv && rv.corrections && rv.corrections[0] && rv.corrections[0].to) || null }); } catch (e) { resolver.push({ input: t, error: String(e && e.message || e) }); } }
     // Viper body-style tags in the archive (Part 3 diagnosis)
     const viper = await supabaseSelect(env, `sales_archive?make=ilike.Dodge&listing_title=ilike.*Viper*&select=body:raw_record->>body_style,listing_title&limit=200`) || [];
     const viperBody = {}; for (const r of viper) { const b = (r.body || "(null)"); viperBody[b] = (viperBody[b] || 0) + 1; }
