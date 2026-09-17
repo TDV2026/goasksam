@@ -1115,7 +1115,7 @@ function _thinPickCardHtml(o){
   const cta=isHouse?`outboundGo('${esc(p.slug)}','consign')`:`outboundGo('${esc(p.slug)}','pick')`;
   const ctaLabel=isHouse?`Start a consignment with ${esc(name)}`:`Start listing on ${esc(name)}`;
   const reassure=isHouse
-    ?`You'll be taken to ${esc(name)}'s consignment page to begin an enquiry. Nothing is committed until you sign a consignment agreement.`
+    ?`You'll be taken to ${esc(name)} to begin a consignment enquiry. Nothing is committed until you sign a consignment agreement.`
     :`You'll be taken to ${esc(name)} to begin your listing. Nothing is committed until you decide to publish.`;
   return `<div class="pcard pcard-platform" onclick="${cta}">
     <div class="pcard-left">

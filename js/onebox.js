@@ -772,7 +772,7 @@
         '<div class="htc-name">' + esc(hn) + "</div>" +
         '<p class="htc-why">' + lint(esc(hn + " has the strongest recent " + name + " results: " + hpick.pick.count + " sold " + hrange + "."), "ht.cwhy") + "</p>" +
         '<a class="htc-cta" href="' + esc(hurl) + '" target="_blank" rel="noopener" data-consign="' + esc(hpick.pick.slug) + '">' + lint("Start a consignment with " + hn, "ht.ccta") + "</a>" +
-        '<p class="htc-sub">' + lint("You’ll go to " + hn + "’s consignment page to begin an enquiry. Nothing is committed until you sign a consignment agreement.", "ht.csub") + "</p></div>";
+        '<p class="htc-sub">' + lint("You’ll go to " + hn + " to begin a consignment enquiry. Nothing is committed until you sign a consignment agreement.", "ht.csub") + "</p></div>";
     }
     body += sellHtml() + recentHtml();
     body += '<div class="trust">Real completed sales from GoAskSam’s archive, hammer prices with the buyer premium backed out. No estimates. No valuations.</div>';
