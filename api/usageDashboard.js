@@ -1021,6 +1021,37 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "poolcheck", cars: out });
   }
 
+  // task=httrigger: READ-ONLY (archive; ZERO OCD). Runs runOneBox for the six design cars and
+  // returns the house-tier assessment (trigger counts, receipts, markers, pairs). Verifies the
+  // data-derived trigger fires on the rare/house cars and NOT on the volume cars. ?qs=a|b overrides.
+  if (task === "httrigger") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { runOneBox } = await import("../lib/onebox.js");
+    const qs = String(req.query?.qs || "1966 Ferrari 275 GTB|1972 Ferrari 365 GTB/4 Daytona|1959 Mercedes-Benz 300SL Roadster|1962 Ferrari 250 GTO|1973 Porsche 911|1967 Chevrolet Corvette").split("|");
+    const out = [];
+    for (const q of qs) {
+      try {
+        const rv = await resolveVehicle(q, {}); const v = rv && rv.vehicle;
+        if (!v || !v.make) { out.push({ q, status: rv && rv.status || "unresolved" }); continue; }
+        if (!v.bodyStyle && !/roadster|convertible|cabriolet|spider|spyder|gullwing/i.test(q)) v.bodyStyle = "coupe";
+        const g = await findGeneration(v, env);
+        const r = await runOneBox(v, g, q, env, null);
+        const ht = r.houseTier || null;
+        out.push({
+          q, resolved: `${v.year || ""} ${v.make} ${v.model || ""}${v.trim ? " " + v.trim : ""}`.trim(),
+          tier: r.tier, fired: !!(ht && ht.isHouseTier),
+          onlineN: ht ? ht.onlineN : null, houseN: ht ? ht.houseN : null, totalN: ht ? ht.totalN : null,
+          medianHammer: ht ? ht.medianHammer : null, pairsCount: ht ? ht.pairsCount : null, pairPctEligible: ht ? ht.pairPctEligible : null,
+          intakeMarkers: ht ? (ht.intakeMarkers || []).map(m => `${m.label} (${m.withN}/${m.withoutN})`) : null,
+          topReceipts: ht ? (ht.receipts || []).slice(0, 4).map(rc => `${rc.venue} ${rc.year || ""} $${Math.round(rc.hammer).toLocaleString()}${rc.isHouse ? " (H, all-in $" + Math.round(rc.allIn || 0).toLocaleString() + ")" : ""}${rc.markers.length ? " [" + rc.markers.map(m => m.label).join(", ") + "]" : ""}`) : null
+        });
+      } catch (e) { out.push({ q, error: String(e && e.message || e).slice(0, 200) }); }
+    }
+    return res.status(200).json({ task: "httrigger", cars: out });
+  }
+
   // task=memcheck: READ-ONLY (archive; ZERO OCD). Archive-wide scan for memorabilia/replica/
   // tribute listings (the 250-GTO wall-art class) and whether any live in a thin enough model
   // pool to drag its span/cluster low. Informs the exclusion applied to online() + class fallback.
