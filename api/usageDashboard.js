@@ -1017,8 +1017,14 @@ async function handleOps(req, res) {
     };
     // NOTE: no server-side date filter (house records often carry NULL sale_date -> a gte filter
     // silently drops them). We fetch all matching and report date coverage + a 36mo count client-side.
-    const q = `sales_archive?make=ilike.${encodeURIComponent(make)}&listing_title=ilike.*${encodeURIComponent(title)}*&sale_price=not.is.null&select=year,listing_title,desc:raw_record->>description,platform,source_slug,sale_date,sale_price,vin,chassis:chassis_vin_norm,curr:raw_record->>currency&order=sale_price.desc.nullslast&limit=300`;
-    const rows = await supabaseSelect(env, q) || [];
+    const base = `sales_archive?make=ilike.${encodeURIComponent(make)}&listing_title=ilike.*${encodeURIComponent(title)}*&sale_price=not.is.null`;
+    // "desc" is a reserved PostgREST keyword; alias the description as descr.
+    const fullSel = `&select=year,listing_title,descr:raw_record->>description,platform,source_slug,sale_date,sale_price,vin,chassis_vin_norm,curr:raw_record->>currency&limit=300`;
+    const minSel = `&select=year,listing_title,platform,source_slug,sale_date,sale_price,chassis_vin_norm&limit=300`;
+    let rows = await supabaseSelect(env, base + fullSel) || [];
+    let usedSelect = "full";
+    if (!rows.length) { rows = await supabaseSelect(env, base + minSel) || []; usedSelect = rows.length ? "min" : "both-empty"; }
+    for (const r of rows) { r.chassis = r.chassis_vin_norm; r.desc = r.descr; }
     const in36 = r => { const d = (r.sale_date || "").slice(0, 10); return d && d >= since; };
     const nullDate = rows.filter(r => !r.sale_date).length;
     const dates = rows.map(r => (r.sale_date || "").slice(0, 10)).filter(Boolean).sort();
@@ -1040,7 +1046,7 @@ async function handleOps(req, res) {
     const pairs = Object.entries(byChassis).filter(([, rs]) => rs.some(x => x.house) && rs.some(x => !x.house)).map(([c, rs]) => ({ chassis: c, sales: rs.map(x => ({ venue: x.venue, date: x.date, hammer: x.hammerUsd })) }));
     const approved36 = receipts.filter(r => r.approvedBasis && r.date >= since);
     return res.status(200).json({
-      task: "htground", make, title, windowMonths: 36, since,
+      task: "htground", make, title, windowMonths: 36, since, usedSelect,
       dateCoverage: { totalRows: rows.length, nullSaleDate: nullDate, earliest: dates[0] || null, latest: dates[dates.length - 1] || null },
       triggerAllTime: { approvedTotal: approved, houseSales: houseN, onlineSales: onlineN },
       trigger36mo: { approvedTotal: approved36.length, houseSales: approved36.filter(r => r.house).length, onlineSales: approved36.filter(r => !r.house).length },
