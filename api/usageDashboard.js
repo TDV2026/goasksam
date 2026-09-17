@@ -1454,6 +1454,78 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "coverage", ocdMetered, ocdSources, archiveTotal, archivePlatforms, archiveSampleDist, vmrTotal, vmrSources, vmrSampleDist, marketplace, ingestRuns, vinFill, houseCheck });
   }
 
+  // task=nlst3: TEMP - sample-size recheck + Corvette pull + weak-make day-of-week interaction.
+  // Archive-only (sales_archive + auction_attempts), ZERO OCD. Remove after capture.
+  if (task === "nlst3") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const slug = String(req.query?.slug || "bringatrailer");
+    const from = String(req.query?.from || "2026-08-01");
+    const to = String(req.query?.to || "2026-08-31");
+    const FLOOR = Math.max(1, Number(req.query?.min || 15));
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    const keyset = async (table, idCol, dateCol, cols) => {
+      const rows = []; let cursor = ""; const LIMIT = 1000;
+      for (let p = 0; p < 60; p++) {
+        const q = `${table}?source_slug=eq.${slug}&${dateCol}=gte.${from}&${dateCol}=lte.${to}&select=${cols}&order=${idCol}.asc&limit=${LIMIT}` + (cursor ? `&${idCol}=gt.${encodeURIComponent(cursor)}` : "");
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: H });
+        if (!r.ok) return { error: `${table} ${r.status}: ${(await r.text()).slice(0, 140)}` };
+        const b = await r.json(); if (!Array.isArray(b) || !b.length) break;
+        rows.push(...b); cursor = b[b.length - 1][idCol];
+        if (b.length < LIMIT) break;
+      }
+      return rows;
+    };
+    const sold = await keyset("sales_archive", "source_id", "sale_date", "source_id,sale_date,make,model");
+    if (sold.error) return res.status(200).json({ task: "nlst3", error: sold.error });
+    const att = await keyset("auction_attempts", "source_record_id", "attempt_date", "source_record_id,attempt_date,auction_status,make,model");
+    if (att.error) return res.status(200).json({ task: "nlst3", error: att.error });
+    const S = sold.filter(r => r.sale_date);
+    const nk = s => String(s || "Unknown").trim().toLowerCase();
+    const st = (soldN, tot) => tot ? Math.round(soldN / tot * 1000) / 10 : null;
+    const DOW = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const dowOf = d => DOW[new Date(d + "T00:00:00Z").getUTCDay()];
+    // Cell counter for a predicate over make(+model).
+    const cell = (predSold, predAtt) => {
+      const s = S.filter(predSold).length;
+      const rnm = att.filter(a => predAtt(a) && a.auction_status === "reserve_not_met").length;
+      const wd = att.filter(a => predAtt(a) && a.auction_status === "withdrawn").length;
+      const t = s + rnm + wd;
+      return { sold: s, reserveNotMet: rnm, withdrawn: wd, total: t, sellThroughPct: st(s, t), meetsFloor: t >= FLOOR };
+    };
+    const makeCell = m => cell(r => nk(r.make) === nk(m), a => nk(a.make) === nk(m));
+    const modelCell = (mk, md) => cell(r => nk(r.make) === nk(mk) && nk(r.model) === nk(md), a => nk(a.make) === nk(mk) && nk(a.model) === nk(md));
+    // (1) recheck: every reported cell, recomputed live, with its sample + floor pass/fail.
+    const recheck = {
+      makes: {}, models: {}
+    };
+    for (const m of ["Chevrolet", "Pontiac", "Rolls-Royce", "Buick", "Plymouth", "Chrysler", "MG", "Oldsmobile", "Ford", "Porsche", "Mercedes-Benz", "BMW"]) recheck.makes[m] = makeCell(m);
+    for (const [mk, md] of [["Mercedes-Benz", "Sprinter"], ["Chevrolet", "Chevelle"], ["Pontiac", "GTO"], ["Volkswagen", "Bus"], ["Land Rover", "Defender"], ["Jeep", "CJ"], ["Porsche", "992"], ["Toyota", "Land Cruiser 40 Series"], ["Jaguar", "XKE"], ["Pontiac", "Firebird"]]) recheck.models[`${mk} ${md}`] = modelCell(mk, md);
+    // Corvette specifically (was not in the reported lists).
+    const corvette = { "Chevrolet Corvette": modelCell("Chevrolet", "Corvette") };
+    // (2) weak-make day-of-week interaction. Named makes + a combined American-classic cluster.
+    const CLUSTER = (req.query?.cluster ? String(req.query.cluster).split(",") : ["Chevrolet", "Pontiac", "Buick", "Plymouth", "Chrysler", "Oldsmobile", "Dodge"]).map(s => s.trim());
+    const clusterSet = new Set(CLUSTER.map(nk));
+    const weekdayFor = (predSold, predAtt) => {
+      const d = {}; for (const x of DOW) d[x] = { sold: 0, notSold: 0 };
+      for (const r of S) if (predSold(r)) d[dowOf(r.sale_date)].sold++;
+      for (const a of att) if (predAtt(a) && a.attempt_date) d[dowOf(a.attempt_date)].notSold++;
+      return DOW.map(x => { const t = d[x].sold + d[x].notSold; return { day: x, sold: d[x].sold, notSold: d[x].notSold, total: t, sellThroughPct: st(d[x].sold, t), meetsFloor: t >= FLOOR }; });
+    };
+    const perMakeWeekday = {};
+    for (const m of ["Chevrolet", "Pontiac"]) perMakeWeekday[m] = weekdayFor(r => nk(r.make) === nk(m), a => nk(a.make) === nk(m));
+    const clusterWeekday = weekdayFor(r => clusterSet.has(nk(r.make)), a => clusterSet.has(nk(a.make)));
+    const clusterOverall = cell(r => clusterSet.has(nk(r.make)), a => clusterSet.has(nk(a.make)));
+    // spread of qualified cluster weekday cells (to say plainly whether a pattern exists).
+    const cq = clusterWeekday.filter(w => w.meetsFloor);
+    const clusterSpread = cq.length ? { lo: Math.min(...cq.map(w => w.sellThroughPct)), hi: Math.max(...cq.map(w => w.sellThroughPct)), best: cq.slice().sort((a, b) => b.sellThroughPct - a.sellThroughPct)[0], worst: cq.slice().sort((a, b) => a.sellThroughPct - b.sellThroughPct)[0] } : null;
+    return res.status(200).json({
+      task: "nlst3", platform: slug, dateRange: `${from} to ${to}`, floor: FLOOR, platformBaselinePct: 74.4,
+      totals: { sold: S.length, attempts: att.length },
+      recheck, corvette,
+      clusterMakes: CLUSTER, clusterOverall, clusterWeekday, clusterWeekdaySpread: clusterSpread, perMakeWeekday
+    });
+  }
+
   // task=houserates: empirical premium-rate calibration. A correct back-out rate turns a
   // premium-INCLUSIVE total into a ROUND hammer (auction hammers land on $500/$1000 steps).
   // Tests candidate rates and reports which reproduces round hammers most often. Also
