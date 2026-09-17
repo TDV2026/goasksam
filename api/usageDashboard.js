@@ -1044,6 +1044,7 @@ async function handleOps(req, res) {
           tier: r.tier, fired: !!(ht && ht.isHouseTier),
           onlineN: ht ? ht.onlineN : null, houseN: ht ? ht.houseN : null, totalN: ht ? ht.totalN : null,
           medianHammer: ht ? ht.medianHammer : null, pairsCount: ht ? ht.pairsCount : null, pairPctEligible: ht ? ht.pairPctEligible : null,
+          notFiredMeta: (!ht && r.htMeta) ? { onlineN: r.htMeta.onlineN, onlineReceiptsN: r.htMeta.onlineReceiptsN, houseN: r.htMeta.houseN, totalN: r.htMeta.totalN } : null,
           intakeMarkers: ht ? (ht.intakeMarkers || []).map(m => `${m.label} (${m.withN}/${m.withoutN})`) : null,
           topReceipts: ht ? (ht.receipts || []).slice(0, 4).map(rc => `${rc.venue} ${rc.year || ""} $${Math.round(rc.hammer).toLocaleString()}${rc.isHouse ? " (H, all-in $" + Math.round(rc.allIn || 0).toLocaleString() + ")" : ""}${rc.markers.length ? " [" + rc.markers.map(m => m.label).join(", ") + "]" : ""}`) : null
         });
