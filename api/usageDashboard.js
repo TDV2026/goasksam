@@ -1066,7 +1066,7 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
-    const { assessThinForVehicle } = await import("../lib/onebox.js");
+    const { assessThinForVehicle, assessClassEraForVehicle } = await import("../lib/onebox.js");
     const qs = String(req.query?.qs || "1966 Ferrari 275 GTB|1972 Ferrari 365 GTB/4 Daytona coupe").split("|");
     const criteria = { region: "US", state: req.query?.state || "" };
     // Select only columns known to exist (no consigns_to_houses column pre-DDL, else the select
@@ -1080,11 +1080,16 @@ async function handleOps(req, res) {
         if (!v || !v.make) { out.push({ q, status: rv && rv.status || "unresolved" }); continue; }
         const g = await findGeneration(v, env);
         const thin = await assessThinForVehicle(v, g, env);
+        let classEraProbe = null;
+        if (thin && thin.totalN === 0 && v.year) {
+          try { const ce = await assessClassEraForVehicle(v, g, env); classEraProbe = ce ? { isClass: ce.isClass, era: ce.era, totalN: ce.totalN, receipts: (ce.receipts || []).length, err: ce.error || null } : "null-return"; }
+          catch (e) { classEraProbe = { thrown: String((e && e.message) || e).slice(0, 150) }; }
+        }
         const houseVenues = [];
         for (const rc of (thin.receipts || [])) { if (rc.isHouse && !houseVenues.includes(rc.venue)) houseVenues.push(rc.venue); }
         out.push({
           q, resolved: `${v.year || ""} ${v.make} ${v.model || ""}${v.trim ? " " + v.trim : ""}`.trim(),
-          isThin: !!thin.isThin, houseSteer: !!thin.houseSteer, onlineN: thin.onlineN, houseN: thin.houseN, onlineReceiptsN: thin.onlineReceiptsN,
+          isThin: !!thin.isThin, houseSteer: !!thin.houseSteer, totalN: thin.totalN, classEraProbe, onlineN: thin.onlineN, houseN: thin.houseN, onlineReceiptsN: thin.onlineReceiptsN,
           houseVenues, medianHammer: thin.medianHammer,
           consignPartnerAvailable: consignors.length > 0, consignPartnerNames: consignors.map(p => p.name),
           topReceipts: (thin.receipts || []).slice(0, 4).map(rc => `${rc.year || ""} ${rc.venue} $${Math.round(rc.hammer).toLocaleString()}${rc.isHouse ? " (house)" : ""}`)
