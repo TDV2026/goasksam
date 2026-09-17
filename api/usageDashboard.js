@@ -995,6 +995,36 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "srcaudit", note: "ESTIMATED counts (planner stats); archive = max(bySlug,byLabel)", attemptsTableExists: attemptsExists, sources: out });
   }
 
+  // task=taxprobe: READ-ONLY (archive; ZERO OCD). Grounding data for the class-taxonomy design +
+  // the two resolver fixes: what the resolver returns for the flagged cars, the Viper body tags,
+  // and title/body tokens actually present in the archive for rare/coachbuilt/era-reuse cars.
+  if (task === "taxprobe") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const texts = ["1969 Ferrari 365 GTC", "1972 Ferrari 365 GTB/4 Daytona", "1994 Dodge Viper RT/10", "Alfa Romeo 8C", "1967 Maserati Ghibli", "2014 Maserati Ghibli", "Ferrari 250 GTO", "McLaren F1"];
+    const resolver = [];
+    for (const t of texts) { try { const rv = await resolveVehicle(t, {}); const v = rv && rv.vehicle || {}; resolver.push({ input: t, make: v.make || null, model: v.model || null, trim: v.trim || null, year: v.year || null, bodyStyle: v.bodyStyle || null, status: rv && rv.status || null, clar: rv && rv.clarification ? rv.clarification.kind : null }); } catch (e) { resolver.push({ input: t, error: String(e && e.message || e) }); } }
+    // Viper body-style tags in the archive (Part 3 diagnosis)
+    const viper = await supabaseSelect(env, `sales_archive?make=ilike.Dodge&listing_title=ilike.*Viper*&select=body:raw_record->>body_style,listing_title&limit=200`) || [];
+    const viperBody = {}; for (const r of viper) { const b = (r.body || "(null)"); viperBody[b] = (viperBody[b] || 0) + 1; }
+    // body_style value distribution across a few marques (Part 3 generalization)
+    const bodyDist = async (make) => { const rows = await supabaseSelect(env, `sales_archive?make=ilike.${encodeURIComponent(make)}&select=body:raw_record->>body_style&limit=300`) || []; const c = {}; for (const r of rows) { const b = (r.body || "(null)"); c[b] = (c[b] || 0) + 1; } return c; };
+    // title tokens for rare/coachbuilt/era-reuse cars (Part 1 grounding)
+    const titleSample = async (q) => { const rows = await supabaseSelect(env, `sales_archive?${q}&select=year,listing_title,body:raw_record->>body_style,price:sale_price&order=sale_price.desc.nullslast&limit=8`) || []; return rows.map(r => ({ y: r.year, t: (r.listing_title || "").slice(0, 60), body: r.body, p: r.price })); };
+    return res.status(200).json({
+      task: "taxprobe",
+      resolver,
+      viperBodyTags: viperBody,
+      bodyDistPorsche: await bodyDist("Porsche"),
+      titles: {
+        ferrari250: await titleSample("make=ilike.Ferrari&listing_title=ilike.*250*"),
+        alfa8c: await titleSample("make=ilike.Alfa*&listing_title=ilike.*8C*"),
+        maseratiGhibli: await titleSample("make=ilike.Maserati&listing_title=ilike.*Ghibli*"),
+        mclaren: await titleSample("make=ilike.McLaren")
+      }
+    });
+  }
+
   // task=backtest: READ-ONLY (archive; ZERO OCD). Resumable chunk of the One Box structural
   // backtest - builds the deterministic sample (seed) and runs subjects [offset, offset+limit)
   // through the LIVE runOneBox, checking structural invariants. Driven in chunks by the caller.
