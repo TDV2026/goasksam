@@ -454,7 +454,10 @@ function psvPron(p){ var pr=(p&&p.specialties&&p.specialties.pronoun)||{}; retur
 // compute ONLY once it clears the n>=10, positive-median gate. Rendered identically
 // for every partner regardless of magnitude - no sample size, no window, no rung,
 // no asterisk on the tile.
-function psvPremium(p){ try{ var pr=p&&p.specialties&&p.specialties.premium; var pct=pr&&Number(pr.pct); if(pct>0)return Math.round(pct); }catch(e){} return null; }
+// SYMMETRIC (Sep 2026): the computed delta renders whether positive OR negative (receipts-not-
+// claims: a performance stat that vanishes when unflattering is not a receipt). Gating stays on the
+// engine side (n>=10 matched sales); here we render any finite persisted value, sign and all.
+function psvPremium(p){ try{ var pr=p&&p.specialties&&p.specialties.premium; var pct=pr?Number(pr.pct):NaN; return Number.isFinite(pct)?Math.round(pct):null; }catch(e){} return null; }
 // "he's" / "she's" / "they've" for "cars {subj} represented" (pronoun respected).
 function psvSubjHas(p){ var s=(psvPron(p).subj)||"he"; return s==="they"?"they've":s+"'s"; }
 // CLAIM SOURCE is the partner's CURATED wheelhouse (true specialty), NEVER the
@@ -710,7 +713,15 @@ function renderPowerSellerCardV2(opts){
     // weakest (service, then track-record) to drop rather than overflow the panel.
     var tileDefs=[];
     var premiumPct=psvPremium(p);
-    if(premiumPct!=null)tileDefs.push({w:2,html:tile("star",'<div class="lab">Track record</div><div class="pcard-tnum green">+'+premiumPct+'%</div><div class="val">higher sale prices on cars '+psvSubjHas(p)+' represented, compared with similar cars</div>')});
+    if(premiumPct!=null){
+      // Sign-aware: + reads "higher" (green), - reads "lower" (neutral ink), 0 reads "in line".
+      var pPos=premiumPct>0, pNeg=premiumPct<0;
+      var pNum=(pPos?'+':pNeg?'-':'')+Math.abs(premiumPct)+'%';
+      var pVal=pPos?('higher sale prices on cars '+psvSubjHas(p)+' represented, compared with similar cars')
+        :pNeg?('lower sale prices on cars '+psvSubjHas(p)+' represented, compared with similar cars')
+        :('in line with similar cars on the ones '+psvSubjHas(p)+' represented');
+      tileDefs.push({w:2,html:tile("star",'<div class="lab">Track record</div><div class="pcard-tnum'+(pPos?' green':'')+'">'+pNum+'</div><div class="val">'+pVal+'</div>')});
+    }
     if(trophy)tileDefs.push({w:1,html:tile("trophy",'<div class="pcard-tnum">'+esc(trophy)+'</div><div class="val">enthusiast auctions represented</div>')});
     if(spec)tileDefs.push({w:1,html:tile("car",'<div class="lab">Specialises in</div><div class="val green">'+esc(spec)+'</div>')});
     if(loc)tileDefs.push({w:1,html:tile("pin",'<div class="lab">Based in '+esc(loc)+'</div>'+(cov?'<div class="sub">'+esc(cov)+'</div>':''))});
@@ -748,7 +759,20 @@ function renderPowerSellerCardV2(opts){
       + '</div>'
       + '<div class="pcard-note">All numbers recalculated as new sales close.</div>'
       + '</div>';
-  }catch(e){ if(typeof console!=="undefined")console.warn("psCardV2 failed",e); return ""; }
+  }catch(e){
+    // HONEST FAILURE (Sep 2026): a PowerSeller card that throws must NOT vanish silently and leave
+    // a normal-looking result with a missing section. Surface that the partner recommendation could
+    // not be built; the platform card still renders below (composed separately). Log unchanged.
+    if(typeof console!=="undefined")console.warn("psCardV2 failed",e);
+    var _who="";
+    try{ _who=escapeHtml((psvPartner()&&(psvPartner().name||psvPartner().slug))||""); }catch(_){ _who=""; }
+    return '<div class="pcard pcard-ps pcard-ps-failed">'
+      + '<div class="pcard-left"><div class="pcard-hero">'
+        + '<span class="pcard-badge">+ Sam\'s Recommendation</span>'
+        + '<h1 class="pcard-name pcard-name-ps">I couldn\'t put together a partner recommendation for this car right now.</h1>'
+        + '<p class="pcard-lead">Something went wrong assembling it'+(_who?(' for '+_who):'')+'. The platform call below stands on its own; if you\'d like a specialist to handle the sale, ask me and I\'ll try again.</p>'
+      + '</div></div></div>';
+  }
 }
 
 // ---- compact V2 secondary platform (only when the alt genuinely competes) ----

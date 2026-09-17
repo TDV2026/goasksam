@@ -2130,9 +2130,13 @@ async function handleOps(req, res) {
       report.push({
         partner: p.partner, salesConsidered: sales.length, n: deltas.length,
         modelsHeld,
-        premiumPct: premium, gatePassed: deltas.length >= 10 && premium !== null && premium > 0,
+        // SYMMETRIC gate (Sep 2026): pass on n>=10 matched sales, whatever the SIGN of the median
+        // delta. A negative result persists and renders as a negative tile (receipts-not-claims: a
+        // stat that only shows when flattering is a highlight reel, not a receipt). The sample-size
+        // gate (n>=10) is unchanged; only the "> 0" favorability gate is removed.
+        premiumPct: premium, gatePassed: deltas.length >= 10 && premium !== null,
         matchedDateRange: minD && maxD ? [minD, maxD] : null, rungDistribution: rungCount,
-        note: deltas.length < 10 ? "below n>=10 (baseline likely not warm yet)" : premium == null ? "no median" : premium <= 0 ? "non-positive median, never renders" : "clears gate"
+        note: deltas.length < 10 ? "below n>=10 (baseline likely not warm yet)" : premium == null ? "no median" : premium < 0 ? "clears gate (negative, renders as lower)" : premium === 0 ? "clears gate (in line)" : "clears gate"
       });
     }
     // persist=1 writes each GATE-PASSING partner's premium into partners.specialties.premium
