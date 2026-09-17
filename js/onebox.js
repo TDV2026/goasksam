@@ -746,6 +746,33 @@
     return body;
   }
 
+  // ============ CLASS-ERA render (Part 1, Sep 2026) =====================================
+  // The rung beneath thin mode: the exact model has NOT sold in three years, so this widens to the
+  // same marque within the car's decade era band. Rendered as a COARSE fallback, labelled plainly
+  // as the wider market, never as a price for the exact car (rule 17). Same receipt discipline.
+  function classEraHtml(d, m) {
+    var ce = d.classEra;
+    if (!ce || !ce.receipts || !ce.receipts.length) return refusalHtml(d, m);
+    var v = d.resolvedCar || d.vehicle || {};
+    var carName = [v.year, v.make, v.model, v.trim].filter(Boolean).join(" ") || bareNameOf(d, m);
+    var era = esc(ce.era), make = esc(ce.make);
+    var out = '<div class="livetake" data-stage="answer"><div class="lt-kick">' + lint("Sam’s live take", "ce.kick") + "</div>";
+    out += '<p class="lt-hero">' + priceRange([ce.lowHammer, ce.highHammer]) + "</p>";
+    var line = "No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ", so this is the wider " + era + " " + make + " market, not your exact car: " + ce.totalN + " sold, the middle around " + usd(ce.medianHammer) + ".";
+    out += '<p class="lt-line">' + lint(line, "ce.line") + "</p></div>";
+    var reads = [
+      "Your exact car is rare enough that it has not traded in the three years I track. Treat these as the neighborhood it sits in, not a figure for it.",
+      "The moment one like yours sells, I can read it directly."
+    ];
+    out += '<div class="samread" data-stage="answer"><div class="ava">SAM</div><div><div class="tag">' + lint("Sam’s read", "ce.readtag") + "</div>" +
+      reads.map(function (p) { return "<p>" + lint(esc(p), "ce.read") + "</p>"; }).join("") + "</div></div>";
+    out += '<div class="seclabel" data-stage="cards">' + lint(era + " " + make + " sales, " + HT_WINDOW_TEXT, "ce.reclab") + "</div>";
+    out += '<div class="htreceipts" data-stage="cards">' + ce.receipts.slice(0, 8).map(function (rc) { return htReceiptRow(rc); }).join("") + "</div>";
+    out += sellHtml() + recentHtml();
+    out += '<div class="trust">Real completed sales from GoAskSam’s archive, hammer prices with the buyer premium backed out. No estimates. No valuations.</div>';
+    return out;
+  }
+
   function renderResults(d) {
     // The exact-car header leads on a VIN match (matched frame); typed queries go straight
     // to the answer block (unmatched frame). Refusal is its own frame. Every branch renders
@@ -754,6 +781,7 @@
     var head = m ? exactCarHtml(m, d.resolvedCar) : "";
     var body;
     if (d.tier === "thin") body = thinHtml(d, m);
+    else if (d.tier === "class_era") body = classEraHtml(d, m);
     else if (d.tier === "refusal") body = refusalHtml(d, m);
     else if (d.tier === "result") body = resultHtml(d, m);
     else body = '<div class="sam" data-stage="answer"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s read</div><p>' +
@@ -1072,6 +1100,7 @@
       if (d.tier === "refusal") obEvent("onebox_refusal_shown");
       else if (d.tier === "result") obEvent("onebox_answer_shown");
       else if (d.tier === "thin") obEvent("onebox_thin_shown");
+      else if (d.tier === "class_era") obEvent("onebox_classera_shown");
     } catch (e) {}
   }
 

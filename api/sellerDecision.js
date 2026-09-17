@@ -1,6 +1,6 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
-import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle } from "../lib/onebox.js";
+import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -3427,8 +3427,14 @@ export default async function handler(req, res) {
         decision.thin.consignPartner = thin.houseSteer
           ? await findConsignsToHousesPartner(vehicle, sellerCriteria, supabaseUrl, supabaseKey)
           : null;
+      } else if (thin && thin.totalN === 0 && vehicle?.year) {
+        // CLASS-ERA rung: the exact model has not sold in three years. Widen to the same marque
+        // within the car's decade era band, rendered as a coarse honest fallback (never a price
+        // for the exact car). Archive-only, zero extra OldCarsData.
+        const ce = await assessClassEraForVehicle(vehicle, generation, { supabaseUrl, supabaseKey });
+        if (ce && ce.isClass && Array.isArray(ce.receipts) && ce.receipts.length) decision.classEra = ce;
       }
-    } catch { /* thin is additive; a failure here must never block the core decision */ }
+    } catch { /* thin/class is additive; a failure here must never block the core decision */ }
 
     const costEstimate = oldCarsDataCost(fetchResult.meteredRequests);
     const usageLog = await recordUsageEvent({

@@ -194,6 +194,15 @@ function renderDecision(decisionData,renderOpts){
       return;
     }
   }
+  // CLASS-ERA rung: the exact model has not sold in three years. A coarse, honestly-labelled
+  // fallback (same-marque era band), rendered before the no-evidence dead-end. US-only for now.
+  if(decision.classEra&&decision.classEra.isClass&&Array.isArray(decision.classEra.receipts)&&decision.classEra.receipts.length
+     &&!(typeof isInternationalSellerRegion==="function"&&isInternationalSellerRegion())){
+    if(renderClassEraSell(msgs,decision.classEra,decisionData)){
+      document.getElementById("btn").disabled=false;
+      return;
+    }
+  }
   const practicalFallback=regionalNoEvidenceFallback();
   const routeFit=decision.routeFit||{};
   const allRouteOptions=routeFit.routes||[];
@@ -1124,6 +1133,47 @@ function renderThinDecisionSell(msgs,thin,decisionData){
         <h1 class="pcard-name" style="font-variant-numeric:tabular-nums">${money(mid.hammer)}</h1>
         ${paras}
         <div class="pcard-whyl pcard-whyl-main">Recent sales, last three years</div>
+        <ul style="list-style:none;margin:8px 0 0;padding:0">${list}</ul>
+        <p class="pcard-lead" style="opacity:.6;font-size:12px;margin-top:14px">Real completed sales, hammer prices with the buyer premium backed out. No estimates. No valuations.</p>
+      </div>
+    </div>
+  </div></div>`;
+  msgs.appendChild(row);
+  row.scrollIntoView({behavior:"smooth",block:"start"});
+  return true;
+}
+
+// CLASS-ERA rung on /sell (Part 1). The exact model has not sold in three years; this is the
+// same-marque decade era band, rendered as a COARSE fallback, labelled plainly as the wider
+// market and never as a price for the exact car (rule 17). Same receipt discipline as thin mode.
+function renderClassEraSell(msgs,ce,decisionData){
+  const esc=escapeHtml;
+  const money=(typeof moneyShort==="function")?moneyShort:(n=>"$"+Math.round(Number(n)||0).toLocaleString("en-US"));
+  const v=sellState.resolvedVehicle||decisionData.vehicle||{};
+  const carName=[v.year,v.make,v.model,v.trim].filter(Boolean).join(" ")||((typeof cleanCarForCopy==="function")?cleanCarForCopy():"your car");
+  const recs=(ce.receipts||[]).slice().filter(r=>Number(r.hammer)>0);
+  if(!recs.length){return false;}
+  const sorted=recs.slice().sort((a,b)=>a.hammer-b.hammer);
+  const lo=sorted[0].hammer,hi=sorted[sorted.length-1].hammer;
+  const line=`No ${esc(carName)} has sold in the last three years, so this is the wider ${esc(ce.era)} ${esc(ce.make)} market, not your exact car: ${ce.totalN} sold, from ${money(lo)} to ${money(hi)}, the middle around ${money(ce.medianHammer)}.`;
+  const read=`Your exact car is rare enough that it hasn't traded in the three years I track. Treat these as the neighborhood it sits in, not a figure for it. The moment one like yours sells, I can read it directly.`;
+  const list=sorted.slice().reverse().slice(0,6).map(rc=>{
+    const link=rc.url?`<a href="${esc(rc.url)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(0,0,0,.18)">${esc(rc.venue)}</a>`:esc(rc.venue);
+    const mi=Number(rc.mileage)>0?` · ${Number(rc.mileage).toLocaleString()} mi`:"";
+    const allin=rc.isHouse&&rc.allIn?` <span style="opacity:.6;font-size:12px">buyer paid ${money(rc.allIn)}</span>`:"";
+    return `<li style="display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-top:1px solid rgba(0,0,0,.08)"><span>${esc(rc.year||"")} ${esc(rc.model||"")} ${link}${rc.isHouse?' <span style="opacity:.55;font-size:11px;text-transform:uppercase;letter-spacing:.06em">house</span>':""}${mi}</span><span style="font-variant-numeric:tabular-nums;font-weight:600">${money(rc.hammer)}${allin}</span></li>`;
+  }).join("");
+  sellState.sellOptions=[];
+  const row=document.createElement("div");row.className="row sam";
+  row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
+    <div class="sam-label">Sam</div>
+    <div class="pcard">
+      <div class="pcard-left">
+        <div class="pcard-script">For your ${esc(carName)}, here's the honest read.</div>
+        <h1 class="pcard-name" style="font-variant-numeric:tabular-nums">${money(lo)} to ${money(hi)}</h1>
+        <p class="pcard-lead">${line}</p>
+        <p class="pcard-lead">${read}</p>
+        <div class="pcard-whyl pcard-whyl-main">${esc(ce.era)} ${esc(ce.make)} sales, last three years</div>
         <ul style="list-style:none;margin:8px 0 0;padding:0">${list}</ul>
         <p class="pcard-lead" style="opacity:.6;font-size:12px;margin-top:14px">Real completed sales, hammer prices with the buyer premium backed out. No estimates. No valuations.</p>
       </div>

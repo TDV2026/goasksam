@@ -1045,6 +1045,7 @@ async function handleOps(req, res) {
           onlineN: ht ? ht.onlineN : null, onlineReceiptsN: ht ? ht.onlineReceiptsN : null, houseN: ht ? ht.houseN : null, totalN: ht ? ht.totalN : null,
           houseShare: ht ? Math.round(100 * ht.houseN / Math.max(1, ht.houseN + ht.onlineReceiptsN)) + "%" : null,
           medianHammer: ht ? ht.medianHammer : null, pairsCount: ht ? ht.pairsCount : null, pairPctEligible: ht ? ht.pairPctEligible : null,
+          classEra: r.classEra ? `${r.classEra.era} ${r.classEra.make}: ${r.classEra.totalN} sold $${Math.round(r.classEra.lowHammer).toLocaleString()}-$${Math.round(r.classEra.highHammer).toLocaleString()} (mid $${Math.round(r.classEra.medianHammer).toLocaleString()})` : null,
           notFiredMeta: (!ht && r.htMeta) ? { onlineN: r.htMeta.onlineN, onlineReceiptsN: r.htMeta.onlineReceiptsN, houseN: r.htMeta.houseN, totalN: r.htMeta.totalN } : null,
           intake: ht && ht.intake ? `${ht.intake.kind}${ht.intake.markerKey ? ":" + ht.intake.markerKey : ""}${ht.intake.thresholdK ? " @" + ht.intake.thresholdK + "k" : ""} (fork ${ht.intake.sep.toFixed(2)}x)` : null,
           topReceipts: ht ? (ht.receipts || []).slice(0, 4).map(rc => `${rc.venue} ${rc.year || ""} $${Math.round(rc.hammer).toLocaleString()}${rc.isHouse ? " (H, all-in $" + Math.round(rc.allIn || 0).toLocaleString() + ")" : ""}${rc.mileage ? " " + rc.mileage.toLocaleString() + "mi" : ""}${rc.markers.length ? " [" + rc.markers.map(m => m.label).join(", ") + "]" : ""}`) : null
