@@ -1015,8 +1015,13 @@ async function handleOps(req, res) {
       long_short_nose: /long[\s-]?nose|short[\s-]?nose/i, competizione: /competizione|competition/i,
       coachbuilder: /scaglietti|pininfarina|zagato|bertone|touring|ghia|fantuzzi|vignale|frua|figoni/i
     };
-    const q = `sales_archive?make=ilike.${encodeURIComponent(make)}&listing_title=ilike.*${encodeURIComponent(title)}*&sale_price=not.is.null&sale_date=gte.${since}&select=year,listing_title,description,platform,source_slug,sale_date,sale_price,vin,chassis:chassis_vin_norm,curr:raw_record->>currency&order=sale_price.desc.nullslast&limit=200`;
+    // NOTE: no server-side date filter (house records often carry NULL sale_date -> a gte filter
+    // silently drops them). We fetch all matching and report date coverage + a 36mo count client-side.
+    const q = `sales_archive?make=ilike.${encodeURIComponent(make)}&listing_title=ilike.*${encodeURIComponent(title)}*&sale_price=not.is.null&select=year,listing_title,description,platform,source_slug,sale_date,sale_price,vin,chassis:chassis_vin_norm,curr:raw_record->>currency&order=sale_price.desc.nullslast&limit=300`;
     const rows = await supabaseSelect(env, q) || [];
+    const in36 = r => { const d = (r.sale_date || "").slice(0, 10); return d && d >= since; };
+    const nullDate = rows.filter(r => !r.sale_date).length;
+    const dates = rows.map(r => (r.sale_date || "").slice(0, 10)).filter(Boolean).sort();
     const slugOf = r => String(r.source_slug || "").toLowerCase() || null;
     const markersOf = r => { const t = (r.listing_title || "") + " " + (r.description || ""); return Object.entries(MARK).filter(([, re]) => re.test(t)).map(([k]) => k); };
     let approved = 0, houseN = 0, onlineN = 0;
@@ -1033,11 +1038,14 @@ async function handleOps(req, res) {
     // paired-sale chassis: same chassis with an online AND a house sale (any window in this pool)
     const byChassis = {}; for (const r of receipts) { if (!r.chassis) continue; (byChassis[r.chassis] = byChassis[r.chassis] || []).push(r); }
     const pairs = Object.entries(byChassis).filter(([, rs]) => rs.some(x => x.house) && rs.some(x => !x.house)).map(([c, rs]) => ({ chassis: c, sales: rs.map(x => ({ venue: x.venue, date: x.date, hammer: x.hammerUsd })) }));
+    const approved36 = receipts.filter(r => r.approvedBasis && r.date >= since);
     return res.status(200).json({
       task: "htground", make, title, windowMonths: 36, since,
-      trigger: { approvedTotal: approved, houseSales: houseN, onlineSales: onlineN, firesUnderN: null },
+      dateCoverage: { totalRows: rows.length, nullSaleDate: nullDate, earliest: dates[0] || null, latest: dates[dates.length - 1] || null },
+      triggerAllTime: { approvedTotal: approved, houseSales: houseN, onlineSales: onlineN },
+      trigger36mo: { approvedTotal: approved36.length, houseSales: approved36.filter(r => r.house).length, onlineSales: approved36.filter(r => !r.house).length },
       pairedChassis: pairs.length, pairs: pairs.slice(0, 6),
-      receipts
+      receipts: receipts.slice(0, 40)
     });
   }
 
