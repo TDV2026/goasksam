@@ -765,7 +765,7 @@
     // ordered, never a house preference. Consignment is an enquiry + agreement, not a listing.
     var hpick = htHousePick(scope);
     if (hpick && ht.houseSteer) {
-      var hn = platformName(hpick.pick.slug) || hpick.pick.venue;
+      var hn = hpick.pick.venue;
       var hurl = HT_CONSIGN[hpick.pick.slug];
       var hrange = hpick.pick.count === 1 ? "at " + usd(hpick.pick.lo) : "from " + usd(hpick.pick.lo) + " to " + usd(hpick.pick.hi);
       body += '<div class="htconsign" data-stage="note"><div class="htc-kick">' + lint("Where I’d take it", "ht.ckick") + "</div>" +
