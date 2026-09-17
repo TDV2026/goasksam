@@ -1048,7 +1048,8 @@ async function handleOps(req, res) {
           classEra: r.classEra ? `${r.classEra.era} ${r.classEra.make}: ${r.classEra.totalN} sold $${Math.round(r.classEra.lowHammer).toLocaleString()}-$${Math.round(r.classEra.highHammer).toLocaleString()} (mid $${Math.round(r.classEra.medianHammer).toLocaleString()})` : null,
           notFiredMeta: (!ht && r.htMeta) ? { onlineN: r.htMeta.onlineN, onlineReceiptsN: r.htMeta.onlineReceiptsN, houseN: r.htMeta.houseN, totalN: r.htMeta.totalN } : null,
           intake: ht && ht.intake ? `${ht.intake.kind}${ht.intake.markerKey ? ":" + ht.intake.markerKey : ""}${ht.intake.thresholdK ? " @" + ht.intake.thresholdK + "k" : ""} (fork ${ht.intake.sep.toFixed(2)}x)` : null,
-          topReceipts: ht ? (ht.receipts || []).slice(0, 4).map(rc => `${rc.venue} ${rc.year || ""} $${Math.round(rc.hammer).toLocaleString()}${rc.isHouse ? " (H, all-in $" + Math.round(rc.allIn || 0).toLocaleString() + ")" : ""}${rc.mileage ? " " + rc.mileage.toLocaleString() + "mi" : ""}${rc.markers.length ? " [" + rc.markers.map(m => m.label).join(", ") + "]" : ""}`) : null
+          topReceipts: ht ? (ht.receipts || []).slice(0, 4).map(rc => `${rc.venue} ${rc.year || ""} $${Math.round(rc.hammer).toLocaleString()}${rc.isHouse ? " (H, all-in $" + Math.round(rc.allIn || 0).toLocaleString() + ")" : ""}${rc.mileage ? " " + rc.mileage.toLocaleString() + "mi" : ""}${rc.markers.length ? " [" + rc.markers.map(m => m.label).join(", ") + "]" : ""}`) : null,
+          bottomReceipts: ht ? (ht.receipts || []).slice(-3).map(rc => `$${Math.round(rc.hammer).toLocaleString()} | ${rc.year || ""} ${rc.venue}${rc.isHouse ? " (all-in $" + Math.round(rc.allIn || 0).toLocaleString() + ")" : ""} :: ${(rc.title || "").slice(0, 70)}`) : null
         });
       } catch (e) { out.push({ q, error: String(e && e.message || e).slice(0, 200) }); }
     }

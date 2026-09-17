@@ -28,10 +28,11 @@ function parseAskingPrice(value){
   const compact=text.replace(/,/g,"");
   const suffix=compact.match(/\$?\s*(\d+(?:\.\d+)?)\s*(k|grand|thousand|m|mm|million)\b/);
   if(suffix)return Math.round(Number(suffix[1])*(/^(m|mm|million)$/.test(suffix[2])?1e6:1e3));
-  // Bare number: >=1000 literal; 1-999 read as thousands (55 -> 55000). Mirrors
+  // Bare number: >=1000 literal; 1-999 read as thousands (55 -> 55000); a bare FRACTIONAL
+  // value reads as MILLIONS ("1.3" -> $1.3M, was dropping the decimal to $1,000). Mirrors
   // the backend parseSellerTargetPrice exactly.
-  const num=compact.match(/\$?\s*(\d{1,7})\b/);
-  if(num){var n=Number(num[1]);return n>=1000?n:n*1000;}
+  const num=compact.match(/\$?\s*(\d{1,7}(?:\.\d+)?)\b/);
+  if(num){var n=Number(num[1]);if(!isFinite(n))return null;if(num[1].indexOf(".")>=0&&n<100)return Math.round(n*1e6);return n>=1000?Math.round(n):Math.round(n*1000);}
   return null;
 }
 // Confirm-summary display: the PARSED interpretation, formatted, never the raw

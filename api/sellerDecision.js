@@ -286,10 +286,18 @@ function parseSellerTargetPrice(value) {
   if (suffix) return Math.round(Number(suffix[1]) * (/^(m|mm|million)$/.test(suffix[2]) ? 1e6 : 1e3));
 
   // Bare number: >= 1000 is a literal figure; 1-999 is read as thousands (55 ->
-  // 55000, 150 -> 150000), since nobody sells a collector car for $55. Mirrored
-  // exactly in the frontend parseAskingPrice.
-  const numberMatch = compact.match(/\$?\s*(\d{1,7})\b/);
-  if (numberMatch) { const n = Number(numberMatch[1]); return n >= 1000 ? n : n * 1000; }
+  // 55000, 150 -> 150000), since nobody sells a collector car for $55. A bare
+  // FRACTIONAL value reads as MILLIONS ("1.3" -> $1.3M): the old regex captured only
+  // the integer part ("1"), dropped the decimal, and returned $1,000 - which then
+  // silently failed the $100k+ high-value gate for a seven-figure car. Mirrored in
+  // the frontend parseAskingPrice.
+  const numberMatch = compact.match(/\$?\s*(\d{1,7}(?:\.\d+)?)\b/);
+  if (numberMatch) {
+    const n = Number(numberMatch[1]);
+    if (!Number.isFinite(n)) return null;
+    if (numberMatch[1].includes(".") && n < 100) return Math.round(n * 1e6);
+    return n >= 1000 ? Math.round(n) : Math.round(n * 1000);
+  }
 
   return null;
 }
