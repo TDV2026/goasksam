@@ -1081,62 +1081,96 @@ function showHonestNoRouting(msgs){
 // seeded and region-covered; with none it STANDS WITHOUT A DOOR - no partner card, and it never
 // implies GoAskSam holds a placement partner for it. Houses are never a routable button.
 function _thinMonthLabel(dstr){var p=String(dstr||"").slice(0,10).split("-");var M=["","January","February","March","April","May","June","July","August","September","October","November","December"];return p.length>=2?((M[+p[1]]||"")+" "+p[0]).trim():"";}
-function renderThinDecisionSell(msgs,thin,decisionData){
-  const esc=escapeHtml;
-  const money=(typeof moneyShort==="function")?moneyShort:(n=>"$"+Math.round(Number(n)||0).toLocaleString("en-US"));
-  const car=(typeof cleanCarForCopy==="function")?cleanCarForCopy():(sellState.carName||"your car");
-  const recs=(thin.receipts||[]).slice().filter(r=>Number(r.hammer)>0);
-  if(!recs.length){return false;}
-  const sorted=recs.slice().sort((a,b)=>a.hammer-b.hammer);
-  const mid=sorted[Math.floor((sorted.length-1)/2)];
-  const houseVenues=thin.houseVenues||[];
-  // Sale-anchored hero: always a single named sale.
-  const heroLine=sorted.length===1
-    ? `The one ${esc(car)} to change hands in the last three years brought ${money(mid.hammer)} at ${esc(mid.venue)}${mid.date?", "+esc(_thinMonthLabel(mid.date)):""}.`+(mid.isHouse&&mid.allIn?` The buyer paid ${money(mid.allIn)} with the premium.`:"")
-    : `The middle of the recent sales is ${money(mid.hammer)}, a ${esc(mid.year||"")} at ${esc(mid.venue)}${mid.date?", "+esc(_thinMonthLabel(mid.date)):""}.`;
-  // Market-shape read: house-steer text ONLY when house share >= 2/3; else venue-neutral.
-  let read="";
-  if(thin.houseSteer){
-    read=thin.onlineReceiptsN
-      ? `Most ${esc(car)}s that change hands do it at the auction houses; a few sell online.`
-      : `Cars at this level trade at the auction houses, not online. Every recorded sale in the last three years came through one.`;
-  } else if(thin.houseN&&thin.onlineReceiptsN){
-    read=`${esc(car)}s at this level sell both online and at the auction houses.`;
+// Venue pick from the scoped receipts: the venue with the strongest recorded results for THIS
+// model - most sales, then highest median - among venues that run a door (consignment for houses,
+// submission for online). Evidence-ordered by the car's own sales, never a venue preference. Others
+// named. isHouse selects the house set (consign door) or the online set (submission door).
+function _thinVenuePick(receipts,isHouse){
+  const g={};
+  for(const rc of (receipts||[])){
+    if(!!rc.isHouse!==!!isHouse)continue;
+    const slug=String(rc.slug||"").toLowerCase();
+    if(!slug||(typeof hasOutboundSubmission==="function"&&!hasOutboundSubmission(slug)))continue;
+    (g[slug]||(g[slug]={slug,venue:rc.venue,hammers:[]})).hammers.push(rc.hammer);
   }
-  // Venue guidance (steer only). With a seeded consignor: a partner line. Without: stands without
-  // a door - names the houses by this car's own results, explains consignment, no placement claim.
-  let venue="";
-  if(thin.houseSteer&&houseVenues.length){
-    const named=houseVenues.length===1?houseVenues[0]:(houseVenues.slice(0,-1).join(", ")+" and "+houseVenues[houseVenues.length-1]);
-    if(thin.consignPartner&&thin.consignPartner.name){
-      venue=`On its own recent results this car has sold at ${esc(named)}. A car at this level is usually placed through consignment with a house rather than listed online. ${esc(thin.consignPartner.name)} places cars into the houses and can handle it end to end.`;
-    } else {
-      venue=`On its own recent results this car has sold at ${esc(named)}. A car at this level is usually placed through consignment with an auction house rather than listed online, so I'd start with the house whose recent ${esc(car)} results fit yours. I don't have a placement partner to hand you for this one.`;
-    }
+  const ranked=Object.values(g).map(h=>{const s=h.hammers.slice().sort((a,b)=>a-b);return{slug:h.slug,venue:h.venue,count:s.length,median:s[Math.floor((s.length-1)/2)],lo:s[0],hi:s[s.length-1]};})
+    .sort((a,z)=>(z.count-a.count)||(z.median-a.median));
+  return ranked.length?{pick:ranked[0],others:ranked.slice(1,4)}:null;
+}
+// A pick card mirroring the online pick card. kind "house" = consignment door; "online" = listing.
+function _thinPickCardHtml(o){
+  const esc=escapeHtml, money=moneyShort, p=o.pick, isHouse=o.kind==="house";
+  const svg=(k,c)=>(typeof v2Svg==="function")?v2Svg(k,c):"";
+  const name=(typeof platformDisplayName==="function"&&platformDisplayName(p.slug))||p.venue;
+  const range=p.count===1?`at ${money(p.lo)}`:`from ${money(p.lo)} to ${money(p.hi)}`;
+  const badge=o.isLead?"+ Sam's Pick":(isHouse?"+ Have it handled at a house":"+ If you'd rather run it yourself");
+  const script=isHouse?`For your ${esc(o.make)}, I'd sell it through`:`For your ${esc(o.make)}, I'd list it on`;
+  let why=`${esc(name)} has sold ${p.count} ${esc(o.modelLabel)}${p.count===1?"":"s"} in the last three years, ${range}.`;
+  if(isHouse&&o.others&&o.others.length){
+    const oth=o.others.map(h=>`${esc((typeof platformDisplayName==="function"&&platformDisplayName(h.slug))||h.venue)} (${h.count})`).join(", ");
+    why+=` ${o.others.length===1?"The other house to take one":"Other houses that have taken them"}: ${oth}.`;
   }
-  let range="";
-  if(sorted.length>=2){const mn=sorted[0].hammer,mx=sorted[sorted.length-1].hammer;if(mx>mn)range=`Across the ${sorted.length} recorded sales, the range ran ${money(mn)} to ${money(mx)}.`;}
-  const list=sorted.slice().reverse().slice(0,6).map(rc=>{
-    const link=rc.url?`<a href="${esc(rc.url)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(0,0,0,.18)">${esc(rc.venue)}</a>`:esc(rc.venue);
-    const mi=Number(rc.mileage)>0?` · ${Number(rc.mileage).toLocaleString()} mi`:"";
-    const allin=rc.isHouse&&rc.allIn?` <span style="opacity:.6;font-size:12px">buyer paid ${money(rc.allIn)}</span>`:"";
-    return `<li style="display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-top:1px solid rgba(0,0,0,.08)"><span>${esc(rc.year||"")} ${link}${rc.isHouse?' <span style="opacity:.55;font-size:11px;text-transform:uppercase;letter-spacing:.06em">house</span>':""}${mi}</span><span style="font-variant-numeric:tabular-nums;font-weight:600">${money(rc.hammer)}${allin}</span></li>`;
-  }).join("");
-  sellState.sellOptions=[]; // no routable/lead destination in a no-door thin result
-  const paras=[heroLine,read,venue,range].filter(Boolean).map(p=>`<p class="pcard-lead">${p}</p>`).join("");
-  const row=document.createElement("div");row.className="row sam";
-  row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
-    <div class="sam-label">Sam</div>
-    <div class="pcard">
-      <div class="pcard-left">
-        <div class="pcard-script">For your ${esc(car)}, here's the honest read.</div>
-        <h1 class="pcard-name" style="font-variant-numeric:tabular-nums">${money(mid.hammer)}</h1>
-        ${paras}
-        <div class="pcard-whyl pcard-whyl-main">Recent sales, last three years</div>
-        <ul style="list-style:none;margin:8px 0 0;padding:0">${list}</ul>
-        <p class="pcard-lead" style="opacity:.6;font-size:12px;margin-top:14px">Real completed sales, hammer prices with the buyer premium backed out. No estimates. No valuations.</p>
+  const rc=(o.receipts||[]).filter(r=>String(r.slug||"").toLowerCase()===p.slug).sort((a,b)=>b.hammer-a.hammer).slice(0,3)
+    .map(r=>`<div class="pcard-mrow"><div><div class="pcard-mp" style="font-variant-numeric:tabular-nums">${esc(r.year||"")} · ${money(r.hammer)}${isHouse&&r.allIn?` <span style="opacity:.6">buyer paid ${money(r.allIn)}</span>`:""}</div><div class="pcard-ms">${esc(_thinMonthLabel(r.date))}</div></div></div>`).join("");
+  const cta=isHouse?`outboundGo('${esc(p.slug)}','consign')`:`outboundGo('${esc(p.slug)}','pick')`;
+  const ctaLabel=isHouse?`Start a consignment with ${esc(name)}`:`Start listing on ${esc(name)}`;
+  const reassure=isHouse
+    ?`You'll be taken to ${esc(name)}'s consignment page to begin an enquiry. Nothing is committed until you sign a consignment agreement.`
+    :`You'll be taken to ${esc(name)} to begin your listing. Nothing is committed until you decide to publish.`;
+  return `<div class="pcard pcard-platform" onclick="${cta}">
+    <div class="pcard-left">
+      <span class="pcard-badge">${esc(badge)}</span>
+      <div class="pcard-script">${script}</div>
+      <h1 class="pcard-name">${esc(name)}</h1>
+      <div class="pcard-whyl pcard-whyl-main">Why I picked this</div>
+      <p class="pcard-lead">${why}</p>
+      <button class="pcard-cta" onclick="event.stopPropagation();${cta}">${ctaLabel}${svg("arrow","cta-arrow")}</button>
+      <div class="pcard-reassure">${svg("shield")}<span>${reassure}</span></div>
+    </div>
+    <div class="pcard-right">
+      <div class="pcard-wordmark">${esc(name)}</div>
+      <div class="pcard-meta">
+        <div class="pcard-mrow">${(typeof psvSvg==="function"?psvSvg("pin"):svg("car"))}<div><div class="pcard-mp">${esc(o.carLbl)}</div><div class="pcard-ms">${esc(o.loc)}</div></div></div>
+        <div class="pcard-mrow"><div><div class="pcard-mp">All ${esc(o.modelLabel)}s · last three years</div><div class="pcard-ms">${p.count} sold ${range}</div></div></div>
+        ${rc}
       </div>
     </div>
+  </div>`;
+}
+function renderThinDecisionSell(msgs,thin,decisionData){
+  const esc=escapeHtml;
+  const v=sellState.resolvedVehicle||decisionData.vehicle||{};
+  const make=v.make||((typeof cleanCarForCopy==="function")?cleanCarForCopy():"your car");
+  const modelLabel=[v.model,v.trim].filter(Boolean).join(" ")||make;
+  const carLbl=(typeof v2CarDisplay==="function")?v2CarDisplay(v):([v.year,v.make,v.model].filter(Boolean).join(" ")||make);
+  const loc=[sellState.state,sellState.region].filter(Boolean)[0]||"US";
+  const recs=(thin.receipts||[]).filter(r=>Number(r.hammer)>0);
+  if(!recs.length)return false;
+  const hp=_thinVenuePick(recs,true), op=_thinVenuePick(recs,false);
+  if(!hp&&!op)return false;
+  const houseCard=hp?_thinPickCardHtml({kind:"house",pick:hp.pick,others:hp.others,receipts:recs,make,modelLabel,carLbl,loc,isLead:!!thin.houseSteer}):"";
+  const onlineCard=op?_thinPickCardHtml({kind:"online",pick:op.pick,others:op.others,receipts:recs,make,modelLabel,carLbl,loc,isLead:!thin.houseSteer}):"";
+  // consigns_to_houses PowerSeller (once seeded): the "have someone handle everything" route ABOVE
+  // the pick. None seeded today, so this never renders; when it does its CTA joins the lead flow.
+  let partnerCard="";
+  if(thin.houseSteer&&thin.consignPartner&&thin.consignPartner.name){
+    const pn=esc(thin.consignPartner.name);
+    partnerCard=`<div class="pcard pcard-platform"><div class="pcard-left"><span class="pcard-badge">+ Have it handled end to end</span><div class="pcard-script">For your ${esc(make)}, if you'd rather someone handled everything</div><h1 class="pcard-name">${pn}</h1><div class="pcard-whyl pcard-whyl-main">Why</div><p class="pcard-lead">${pn} places cars like this into the auction houses and handles the consignment on your behalf.</p></div></div><div class="pv2-bridge">Or take it to a house yourself:</div>`;
+  }
+  const bridgeOnline=`<div class="pv2-bridge">If you'd rather run the sale yourself, here's where I'd go.</div>`;
+  const bridgeHouse=`<div class="pv2-bridge">If you'd rather have it handled at a house, here's where its results are strongest.</div>`;
+  let body;
+  if(thin.houseSteer){
+    body=houseCard+(onlineCard?bridgeOnline+onlineCard:"");
+  } else {
+    body=(onlineCard||"")+(houseCard?bridgeHouse+houseCard:"");
+  }
+  body=partnerCard+body;
+  sellState.sellOptions=[]; // destinations are the outbound consign/list doors, not a captured lead
+  const row=document.createElement("div");row.className="row sam";
+  row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${body}
+    <div class="pcard-note" style="margin-top:14px">Real completed sales from GoAskSam's archive, hammer prices with the buyer premium backed out. No estimates. No valuations.</div>
+    <div class="sam-text after-results">Ask me anything about the recommendation, or tell me more about the car.</div>
   </div></div>`;
   msgs.appendChild(row);
   row.scrollIntoView({behavior:"smooth",block:"start"});

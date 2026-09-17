@@ -588,7 +588,15 @@ const SUBMISSION_URLS={
   mbmarket:"https://mbmarket.com/sell",
   hemmings:"https://www.hemmings.com/classifieds/bundles/carsforsale",
   carandclassic:"https://www.carandclassic.com/sell-your-vehicle",
-  collectingcars:"https://collectingcars.com/sell-with-us"
+  collectingcars:"https://collectingcars.com/sell-with-us",
+  // Auction-house CONSIGNMENT doors (Sep 2026): mirror of _houseComps.HOUSE_CONSIGN so the consign
+  // button gates + logs through /out exactly like an online submission. Keep in sync.
+  rmsothebys:"https://rmsothebys.com/consign/",
+  broadarrow:"https://www.broadarrowauctions.com/consignment",
+  gooding:"https://www.goodingco.com/consign",
+  barrettjackson:"https://www.barrett-jackson.com/consignment-leads",
+  bonhams:"https://sell.bonhams.com/?category=Motor%20Cars",
+  mecum:"https://www.mecum.com/collector-cars/how-to-sell/"
 };
 function hasOutboundSubmission(slug){return !!SUBMISSION_URLS[String(slug||"").toLowerCase()];}
 // Opaque per-browser id (never PII); only ever reaches OUR log, never the platform.

@@ -413,6 +413,13 @@ a.htr:hover{border-color:color-mix(in srgb,var(--green) 50%,var(--line))}
 .htr .htx{position:absolute;top:12px;right:12px;width:22px;height:22px;border-radius:6px;background:color-mix(in srgb,var(--paper) 88%,transparent);border:1px solid var(--line);display:grid;place-items:center;color:var(--slate)}
 .htr .htx svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.9}
 a.htr:hover .htx{color:var(--green);border-color:var(--green)}
+.htconsign{max-width:720px;margin:22px 0 0;background:color-mix(in srgb,var(--green) 6%,var(--card));border:1.5px solid color-mix(in srgb,var(--green) 34%,var(--line));border-radius:16px;padding:20px 22px;box-shadow:var(--shadow-hero)}
+.htc-kick{font:600 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--green);margin-bottom:9px}
+.htc-name{font:800 26px/1.05 var(--serif);letter-spacing:-.02em;color:var(--green-deep)}
+.htc-why{font:400 15.5px/1.5 var(--serif);color:var(--ink);margin:10px 0 0;max-width:60ch}
+.htc-cta{display:inline-block;margin:16px 0 0;background:var(--green-btn);color:#fff;text-decoration:none;font:600 15px var(--grotesk);padding:13px 20px;border-radius:11px}
+.htc-cta:hover{filter:brightness(1.05)}
+.htc-sub{font:400 12.5px/1.5 var(--grotesk);color:var(--slate);margin:11px 0 0;max-width:60ch}
 .htpair{max-width:720px;margin:12px 0 0;display:flex;flex-direction:column;gap:9px}
 .ht-note{max-width:64ch;font:400 14px/1.5 var(--serif);color:var(--slate);margin:11px 0 0}
 </style>
@@ -445,6 +452,6 @@ a.htr:hover .htx{color:var(--green);border-color:var(--green)}
 function obToggleRail(open){var r=document.getElementById("ob-rail"),s=document.getElementById("ob-scrim");if(!r)return;var on=(open===undefined)?!r.classList.contains("open"):!!open;r.classList.toggle("open",on);if(s)s.classList.toggle("open",on);}
 function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("ob-results-menu");if(m)m.classList.toggle("open");return false;}
 </script>
-<script src="/obx.20260916j/onebox.js"></script>
+<script src="/obx.20260916k/onebox.js"></script>
 </body>
 </html>

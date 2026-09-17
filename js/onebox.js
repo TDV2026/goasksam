@@ -608,6 +608,25 @@
   // chassis as two receipts (% dormant until 3 pairs). Houses are named by THIS model's own
   // results and are never a routable button here; the venue steer lives in the read + on /sell.
   var HT_WINDOW_TEXT = "the past three years";
+  // Consignment doors (Sep 2026): the six houses are routable via their consignment intake page
+  // (verb "consign", never "list"). Mirror of lib/_houseComps.HOUSE_CONSIGN.
+  var HT_CONSIGN = {
+    rmsothebys: "https://rmsothebys.com/consign/", broadarrow: "https://www.broadarrowauctions.com/consignment",
+    gooding: "https://www.goodingco.com/consign", barrettjackson: "https://www.barrett-jackson.com/consignment-leads",
+    bonhams: "https://sell.bonhams.com/?category=Motor%20Cars", mecum: "https://www.mecum.com/collector-cars/how-to-sell/"
+  };
+  // The house with the strongest recorded results for THIS model among scoped receipts: most sales,
+  // then highest median, among houses that run a consignment door. Evidence-ordered, not preference.
+  function htHousePick(scope) {
+    var g = {};
+    (scope || []).forEach(function (rc) {
+      if (!rc.isHouse) return; var slug = String(rc.slug || "").toLowerCase(); if (!HT_CONSIGN[slug]) return;
+      (g[slug] || (g[slug] = { slug: slug, venue: rc.venue, hammers: [] })).hammers.push(rc.hammer);
+    });
+    var ranked = Object.keys(g).map(function (k) { var s = g[k].hammers.slice().sort(function (a, b) { return a - b; }); return { slug: k, venue: g[k].venue, count: s.length, median: s[Math.floor((s.length - 1) / 2)], lo: s[0], hi: s[s.length - 1] }; })
+      .sort(function (a, z) { return (z.count - a.count) || (z.median - a.median); });
+    return ranked.length ? { pick: ranked[0], others: ranked.slice(1, 4) } : null;
+  }
   function R4C_MANUAL(t) { return /manual|\d[- ]?speed(?!\s*auto)|\bmt\b|\bstick\b/i.test(t) && !/automatic|pdk|dct|tiptronic|dsg/i.test(t); }
   function R4C_AUTO(t) { return /automatic|\bpdk\b|\bdct\b|tiptronic|\bdsg\b|paddle/i.test(t); }
   function htHasMk(rc, key) { return !!(rc.markers && rc.markers.some(function (mk) { return mk.key === key; })); }
@@ -741,6 +760,20 @@
     body += '<div class="htreceipts" data-stage="cards">' + scope.slice(0, 8).map(function (rc) { return htReceiptRow(rc); }).join("") + "</div>";
     // Paired chassis are a whole-model signal; show them only in the unscoped view.
     if (scope === ht.receipts) body += htPairsHtml(ht);
+    // CONSIGNMENT DOOR (Sep 2026): the houses are routable. On a house-forward car, name the house
+    // with the strongest recent results for this model and open its consignment page. Evidence-
+    // ordered, never a house preference. Consignment is an enquiry + agreement, not a listing.
+    var hpick = htHousePick(scope);
+    if (hpick && ht.houseSteer) {
+      var hn = platformName(hpick.pick.slug) || hpick.pick.venue;
+      var hurl = HT_CONSIGN[hpick.pick.slug];
+      var hrange = hpick.pick.count === 1 ? "at " + usd(hpick.pick.lo) : "from " + usd(hpick.pick.lo) + " to " + usd(hpick.pick.hi);
+      body += '<div class="htconsign" data-stage="note"><div class="htc-kick">' + lint("Where I’d take it", "ht.ckick") + "</div>" +
+        '<div class="htc-name">' + esc(hn) + "</div>" +
+        '<p class="htc-why">' + lint(esc(hn + " has the strongest recent " + name + " results: " + hpick.pick.count + " sold " + hrange + "."), "ht.cwhy") + "</p>" +
+        '<a class="htc-cta" href="' + esc(hurl) + '" target="_blank" rel="noopener" data-consign="' + esc(hpick.pick.slug) + '">' + lint("Start a consignment with " + hn, "ht.ccta") + "</a>" +
+        '<p class="htc-sub">' + lint("You’ll go to " + hn + "’s consignment page to begin an enquiry. Nothing is committed until you sign a consignment agreement.", "ht.csub") + "</p></div>";
+    }
     body += sellHtml() + recentHtml();
     body += '<div class="trust">Real completed sales from GoAskSam’s archive, hammer prices with the buyer premium backed out. No estimates. No valuations.</div>';
     return body;
@@ -1202,6 +1235,8 @@
     // decision scoped to the answer (no re-fetch; the engine returned every receipt).
     Array.prototype.forEach.call(root.querySelectorAll("[data-thinsplit]"), function (b) { b.addEventListener("click", function () { htChoice = b.getAttribute("data-thinsplit"); obEvent("onebox_ht_intake", lastQuery + ":" + htChoice); if (htLastD) { renderResults(htLastD); } }); });
     Array.prototype.forEach.call(root.querySelectorAll("[data-htskip]"), function (b) { b.addEventListener("click", function () { htChoice = "__skip__"; obEvent("onebox_ht_skip", lastQuery); if (htLastD) { renderResults(htLastD); } }); });
+    // Consignment-door click tracking (same idea as an online comp click): log which house.
+    Array.prototype.forEach.call(root.querySelectorAll("a[data-consign]"), function (a) { a.addEventListener("click", function () { try { obEvent("onebox_consign_click", a.getAttribute("data-consign") + ":" + lastQuery); } catch (e) {} }); });
     // The earned question: a mileage band or transmission chip narrows the SAME pool inline
     // (re-request with a refine), and Sam's take + the sales re-render to match.
     Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-milemin]"), function (b) {
