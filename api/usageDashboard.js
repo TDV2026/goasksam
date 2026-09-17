@@ -1004,9 +1004,9 @@ async function handleOps(req, res) {
     const apiKey = process.env.OLDCARSDATA_API_KEY; if (!apiKey) return res.status(500).json({ error: "OLDCARSDATA_API_KEY not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
-    const { fetchRecentRecords, isEvidenceSource, isHouseSource } = await import("./sellerDecision.js");
+    const { fetchRecentRecords, isEvidenceSource } = await import("./sellerDecision.js");
     const { recordPlatform } = await import("../lib/_classify.js");
-    const { hammerUsd } = await import("../lib/_houseComps.js");
+    const { hammerUsd, isHouseSource } = await import("../lib/_houseComps.js");
     const q = String(req.query?.q || "1972 Ferrari 365 GTB/4 Daytona");
     const rv = await resolveVehicle(q, {}); const vehicle = rv && rv.vehicle;
     if (!vehicle || !vehicle.make) return res.status(200).json({ task: "selldiag", q, resolved: null, status: rv && rv.status });
