@@ -454,10 +454,10 @@ function psvPron(p){ var pr=(p&&p.specialties&&p.specialties.pronoun)||{}; retur
 // compute ONLY once it clears the n>=10, positive-median gate. Rendered identically
 // for every partner regardless of magnitude - no sample size, no window, no rung,
 // no asterisk on the tile.
-// SYMMETRIC (Sep 2026): the computed delta renders whether positive OR negative (receipts-not-
-// claims: a performance stat that vanishes when unflattering is not a receipt). Gating stays on the
-// engine side (n>=10 matched sales); here we render any finite persisted value, sign and all.
-function psvPremium(p){ try{ var pr=p&&p.specialties&&p.specialties.premium; var pct=pr?Number(pr.pct):NaN; return Number.isFinite(pct)?Math.round(pct):null; }catch(e){} return null; }
+// DISPLAY GATE (Sep 2026, reverted): the tile renders ONLY when the computed premium is POSITIVE.
+// The underlying delta is still computed + persisted for EVERY partner regardless of sign (engine
+// side, symmetric) - a negative/zero value stays stored for internal reference but is not shown.
+function psvPremium(p){ try{ var pr=p&&p.specialties&&p.specialties.premium; var pct=pr?Number(pr.pct):NaN; return (Number.isFinite(pct)&&pct>0)?Math.round(pct):null; }catch(e){} return null; }
 // "he's" / "she's" / "they've" for "cars {subj} represented" (pronoun respected).
 function psvSubjHas(p){ var s=(psvPron(p).subj)||"he"; return s==="they"?"they've":s+"'s"; }
 // CLAIM SOURCE is the partner's CURATED wheelhouse (true specialty), NEVER the
@@ -712,16 +712,8 @@ function renderPowerSellerCardV2(opts){
     // bounded by that weight, not a raw count, so the tall premium tile forces the
     // weakest (service, then track-record) to drop rather than overflow the panel.
     var tileDefs=[];
-    var premiumPct=psvPremium(p);
-    if(premiumPct!=null){
-      // Sign-aware: + reads "higher" (green), - reads "lower" (neutral ink), 0 reads "in line".
-      var pPos=premiumPct>0, pNeg=premiumPct<0;
-      var pNum=(pPos?'+':pNeg?'-':'')+Math.abs(premiumPct)+'%';
-      var pVal=pPos?('higher sale prices on cars '+psvSubjHas(p)+' represented, compared with similar cars')
-        :pNeg?('lower sale prices on cars '+psvSubjHas(p)+' represented, compared with similar cars')
-        :('in line with similar cars on the ones '+psvSubjHas(p)+' represented');
-      tileDefs.push({w:2,html:tile("star",'<div class="lab">Track record</div><div class="pcard-tnum'+(pPos?' green':'')+'">'+pNum+'</div><div class="val">'+pVal+'</div>')});
-    }
+    var premiumPct=psvPremium(p); // positive-only (psvPremium gates pct>0)
+    if(premiumPct!=null)tileDefs.push({w:2,html:tile("star",'<div class="lab">Track record</div><div class="pcard-tnum green">+'+premiumPct+'%</div><div class="val">higher sale prices on cars '+psvSubjHas(p)+' represented, compared with similar cars</div>')});
     if(trophy)tileDefs.push({w:1,html:tile("trophy",'<div class="pcard-tnum">'+esc(trophy)+'</div><div class="val">enthusiast auctions represented</div>')});
     if(spec)tileDefs.push({w:1,html:tile("car",'<div class="lab">Specialises in</div><div class="val green">'+esc(spec)+'</div>')});
     if(loc)tileDefs.push({w:1,html:tile("pin",'<div class="lab">Based in '+esc(loc)+'</div>'+(cov?'<div class="sub">'+esc(cov)+'</div>':''))});
