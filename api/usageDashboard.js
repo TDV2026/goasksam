@@ -995,6 +995,32 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "srcaudit", note: "ESTIMATED counts (planner stats); archive = max(bySlug,byLabel)", attemptsTableExists: attemptsExists, sources: out });
   }
 
+  // task=poolcheck: READ-ONLY (archive; ZERO OCD). Runs the LIVE runOneBox for a query and reports
+  // the resulting pool (span/cluster + card titles), scanning them for any surviving memorabilia -
+  // proves the exclusion removed the junk from the engine pool (vs the raw archive which still has it).
+  if (task === "poolcheck") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { runOneBox } = await import("../lib/onebox.js");
+    const { isMemorabilia } = await import("../lib/_classify.js");
+    const qs = String(req.query?.qs || "Ferrari 250 GTO|1958 Porsche 356 Speedster|Chevrolet Corvette").split("|");
+    const out = [];
+    for (const q of qs) {
+      try {
+        const rv = await resolveVehicle(q, {}); const v = rv && rv.vehicle;
+        if (!v || !v.make) { out.push({ q, status: rv && rv.status || "unresolved" }); continue; }
+        if (!v.bodyStyle) v.bodyStyle = "coupe"; // bypass the body ask for a clean pool read
+        const g = await findGeneration(v, env);
+        const r = await runOneBox(v, g, q, env, null);
+        const cards = Array.isArray(r.cards) ? r.cards : [];
+        const junkCards = cards.filter(c => isMemorabilia(c.title)).map(c => ({ t: (c.title || "").slice(0, 44), p: c.price }));
+        out.push({ q, resolved: `${v.year || ""} ${v.make} ${v.model || ""}${v.trim ? " " + v.trim : ""}`.trim(), tier: r.tier, span: r.span || null, cluster: r.cluster || null, poolN: r.poolN != null ? r.poolN : cards.length, junkInPool: junkCards.length, junkSamples: junkCards.slice(0, 4), lowestCard: cards.length ? { t: (cards.map(c => c).sort((a, b) => a.price - b.price)[0].title || "").slice(0, 44), p: cards.map(c => c.price).sort((a, b) => a - b)[0] } : null });
+      } catch (e) { out.push({ q, error: String(e && e.message || e).slice(0, 140) }); }
+    }
+    return res.status(200).json({ task: "poolcheck", cars: out });
+  }
+
   // task=memcheck: READ-ONLY (archive; ZERO OCD). Archive-wide scan for memorabilia/replica/
   // tribute listings (the 250-GTO wall-art class) and whether any live in a thin enough model
   // pool to drag its span/cluster low. Informs the exclusion applied to online() + class fallback.

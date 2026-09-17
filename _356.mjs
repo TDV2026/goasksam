@@ -1,0 +1,13 @@
+import puppeteer from "puppeteer-core";
+import fs from "node:fs";
+const CHROME=["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"].find(p=>fs.existsSync(p));
+const b=await puppeteer.launch({executablePath:CHROME,headless:"new",args:["--no-sandbox"]});
+const p=await b.newPage(); await p.setCookie({name:"gas_crew",value:"ok",domain:"goasksam.com",path:"/"});
+await p.goto("https://goasksam.com/onebox",{waitUntil:"networkidle2"});
+await p.waitForSelector("#ob-input"); await p.type("#ob-input","1958 Porsche 356 Speedster"); await p.click("#ob-go");
+await p.waitForFunction(()=>{const r=document.getElementById("ob");return r&&r.textContent.length>200&&(r.querySelector(".livetake")||r.querySelector(".refusal")||r.querySelector(".chips")||r.querySelector(".cm"));},{timeout:50000}).catch(()=>{});
+await new Promise(r=>setTimeout(r,2500));
+const o=await p.evaluate(()=>{const g=s=>{const e=document.querySelector(s);return e?e.textContent.replace(/\s+/g," ").trim():null;};const all=s=>[...document.querySelectorAll(s)].map(e=>e.textContent.replace(/\s+/g," ").trim());
+return {state:document.querySelector(".livetake")?"result":document.querySelector(".refusal")?"refusal":document.querySelector(".chips")?"choice":"?",hero:g(".lt-hero"),span:g(".lt-span"),titles:[...document.querySelectorAll(".cm .rtitle,.bcard .plate .n,.cm .plate .n")].map(e=>e.textContent.trim().slice(0,52))};});
+console.log("356 Speedster:",JSON.stringify(o,null,1));
+await b.close();
