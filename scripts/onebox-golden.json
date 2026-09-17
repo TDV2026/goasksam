@@ -80,8 +80,8 @@
     "ltSpan": null,
     "ltFresh": null,
     "read": [
-      "Cars at this level trade at the auction houses, not online. Every recorded sale here came through one.",
-      "These are receipts, not a guess. What yours brings depends on the next one like it that comes up."
+      "These trade at the auction houses, not online. Every recorded sale here came through one.",
+      "Too few sold recently to mark a typical band, so these are the sales themselves, not a guess."
     ],
     "refineQ": null,
     "refineChips": [],
@@ -140,34 +140,28 @@
     "exact": "YYYY MG MGA 1500",
     "cfg": "The prior listing has it with the 1.5-Liter Inline-Four, so it still reads as a standard MGA 1500.",
     "disc": null,
-    "ltHero": "$N to $N",
-    "ltLine": "Cars like yours have mostly been bringing this over the past two years.",
-    "ltSpan": "Everything from $N to $N has sold; most land here.",
+    "ltHero": "$N",
+    "ltLine": "The middle of the recent sales: YYYY at Bring a Trailer, $N in September YYYY.",
+    "ltSpan": "Across the 13 recorded sales, the range ran $N to $N.",
     "ltFresh": null,
     "read": [
-      "These are the three I’d pay closest attention to."
+      "Too few sold recently to mark a typical band, so these are the sales themselves, not a guess."
     ],
     "refineQ": null,
     "refineChips": [],
-    "cmKick": "Closest match",
-    "cmWhy": "The nearest recent sale on mileage and spec.",
-    "brackets": [
-      "Higher sale",
-      "More miles"
-    ],
+    "cmKick": null,
+    "cmWhy": null,
+    "brackets": [],
     "earned": null,
     "chips": [],
-    "platforms": [
-      "Bring a Trailer",
-      "others"
-    ],
-    "platNote": "Almost all on Bring a Trailer, so there is no cross-platform split to read here.",
+    "platforms": [],
+    "platNote": null,
     "refusalAns": null,
     "refusalReason": [],
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": 3
+    "cards": 0
   },
   "WBS4Y9C55KAG67564": {
     "state": "matched_result",
@@ -210,34 +204,28 @@
     "exact": "YYYY Lexus LC 500",
     "cfg": "The prior listing has it with the 5.0L V8, so it still reads as a standard LC 500.",
     "disc": null,
-    "ltHero": "$N to $N",
-    "ltLine": "Cars like yours have mostly been bringing this over the last twelve months.",
-    "ltSpan": "Everything from $N to $N has sold; most land here.",
+    "ltHero": "$N",
+    "ltLine": "The middle of the recent sales: YYYY at Cars & Bids, $N in September YYYY.",
+    "ltSpan": "Across the 3 recorded sales, the range ran $N to $N.",
     "ltFresh": null,
     "read": [
-      "These are the three I’d pay closest attention to."
+      "Too few sold recently to mark a typical band, so these are the sales themselves, not a guess."
     ],
     "refineQ": null,
     "refineChips": [],
-    "cmKick": "Closest match",
-    "cmWhy": "The nearest recent sale on mileage and spec.",
-    "brackets": [
-      "Higher sale",
-      "More miles"
-    ],
+    "cmKick": null,
+    "cmWhy": null,
+    "brackets": [],
     "earned": null,
     "chips": [],
-    "platforms": [
-      "Bring a Trailer",
-      "others"
-    ],
-    "platNote": "Almost all on Bring a Trailer, so there is no cross-platform split to read here.",
+    "platforms": [],
+    "platNote": null,
     "refusalAns": null,
     "refusalReason": [],
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": 3
+    "cards": 0
   },
   "997 Carrera S coupe": {
     "state": "unmatched_result",
@@ -364,13 +352,13 @@
     "exact": null,
     "cfg": null,
     "disc": null,
-    "ltHero": "$N to $N",
-    "ltLine": "Recent Maserati Merak sales have mostly landed here, over the past three years. The closest is YYYY at PCarMarket, $N.",
-    "ltSpan": "Across every Maserati Merak that sold, the range ran $N to $N.",
+    "ltHero": "$N",
+    "ltLine": "The middle of the recent sales: YYYY at PCarMarket, $N in March YYYY.",
+    "ltSpan": "Across the 5 recorded sales, the range ran $N to $N.",
     "ltFresh": null,
     "read": [
-      "These sell in both places. The recorded sales are below, houses and online together.",
-      "These are receipts, not a guess. What yours brings depends on the next one like it that comes up."
+      "These sell online and at the auction houses. The recorded sales are below.",
+      "Too few sold recently to mark a typical band, so these are the sales themselves, not a guess."
     ],
     "refineQ": null,
     "refineChips": [],
@@ -695,18 +683,15 @@
     "cards": 3
   },
   "458 Speciale coupe": {
-    "state": "unmatched_result",
+    "state": "choice",
     "exact": null,
     "cfg": null,
     "disc": null,
-    "ltHero": "$N to $N",
-    "ltLine": "Recent Ferrari 458 Speciale Coupe sales have mostly landed here, over the past three years. The closest is YYYY at Bring a Trailer, $N.",
-    "ltSpan": "Across every Ferrari 458 Speciale Coupe that sold, the range ran $N to $N.",
+    "ltHero": null,
+    "ltLine": null,
+    "ltSpan": null,
     "ltFresh": null,
-    "read": [
-      "Most Ferrari 458 Speciale Coupes that change hands do it at the auction houses; a few sell online. Both are below.",
-      "These are receipts, not a guess. What yours brings depends on the next one like it that comes up."
-    ],
+    "read": [],
     "refineQ": null,
     "refineChips": [],
     "cmKick": null,
@@ -719,8 +704,12 @@
     "refusalAns": null,
     "refusalReason": [],
     "wayfwd": [],
-    "genPrompt": null,
-    "genChips": [],
+    "genPrompt": "Before I show you numbers, one thing about your Ferrari 458 Speciale Coupe. Mileage moves the number most on these. Roughly how many miles on yours?",
+    "genChips": [
+      "Under Nk",
+      "Over Nk",
+      "Just show me what sold"
+    ],
     "cards": 0
   },
   "1966 Ferrari 275 GTB": {
@@ -728,13 +717,13 @@
     "exact": null,
     "cfg": null,
     "disc": null,
-    "ltHero": "$N to $N",
-    "ltLine": "Recent YYYY Ferrari 275 GTB sales have mostly landed here, over the past three years. The closest is YYYY at RM Sotheby's, $N.",
-    "ltSpan": "Across every YYYY Ferrari 275 GTB that sold, the range ran $N to $N.",
+    "ltHero": "$N",
+    "ltLine": "The middle of the recent sales: YYYY at RM Sotheby's, $N in August YYYY.",
+    "ltSpan": "Across the 20 recorded sales, the range ran $N to $N.",
     "ltFresh": null,
     "read": [
-      "Cars at this level trade at the auction houses, not online. Every recorded sale here came through one.",
-      "These are receipts, not a guess. What yours brings depends on the next one like it that comes up."
+      "These trade at the auction houses, not online. Every recorded sale here came through one.",
+      "Too few sold recently to mark a typical band, so these are the sales themselves, not a guess."
     ],
     "refineQ": null,
     "refineChips": [],
