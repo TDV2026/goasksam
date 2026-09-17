@@ -1454,6 +1454,29 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "coverage", ocdMetered, ocdSources, archiveTotal, archivePlatforms, archiveSampleDist, vmrTotal, vmrSources, vmrSampleDist, marketplace, ingestRuns, vinFill, houseCheck });
   }
 
+  // task=baprobe: READ-ONLY live OCD feed-recency probe for one source (default broadarrow) +
+  // a targeted keyword search for a specific car. Confirms whether a house's OCD feed has moved
+  // and whether a named recent sale has landed. Metered (~4 /auctions calls). No writes.
+  if (task === "baprobe") {
+    const src = String(req.query?.src || "broadarrow");
+    const out = { task: "baprobe", src, at: new Date().toISOString(), metered: 0 };
+    try {
+      out.metered++;
+      const r = await callOldCarsData("/auctions", { source: src, status: "sold", sort: "date", direction: "desc", page: 1, limit: 100 }, apiKey);
+      const rows = r.data || [];
+      out.totalReported = r.meta?.total_results ?? r.meta?.total ?? rows.length;
+      const dated = rows.map(x => ({ date: String(x.auction_end_date || "").slice(0, 10), title: `${x.year || ""} ${x.make || ""} ${x.model || ""}`.trim(), vin: x.vin || x.chassis || null }))
+        .filter(x => x.date).sort((a, b) => b.date.localeCompare(a.date));
+      out.latest = dated[0] ? dated[0].date : null;
+      out.recentTop15 = dated.slice(0, 15);
+      out.afterMay18 = dated.filter(x => x.date > "2026-05-18").length;
+      out.aug2026Plus = dated.filter(x => x.date >= "2026-08-01").map(x => `${x.date} | ${x.title} | ${x.vin || "no-vin"}`);
+    } catch (e) { out.recentError = String(e && e.message).slice(0, 160); }
+    const kw = async label => { try { out.metered++; const r = await callOldCarsData("/auctions", { keyword: label, sort: "date", direction: "desc", page: 1, limit: 20 }, apiKey); return (r.data || []).map(x => ({ date: String(x.auction_end_date || "").slice(0, 10), src: x.platform || x.source, title: `${x.year || ""} ${x.make || ""} ${x.model || ""}`.trim(), vin: x.vin || null })); } catch (e) { return { error: String(e && e.message).slice(0, 120) }; } };
+    out.search = { "JZA800011586": await kw("JZA800011586"), "Toyota TRD 3000GT": await kw("Toyota TRD 3000GT"), "3000GT": await kw("3000GT") };
+    return res.status(200).json(out);
+  }
+
   // task=houserates: empirical premium-rate calibration. A correct back-out rate turns a
   // premium-INCLUSIVE total into a ROUND hammer (auction hammers land on $500/$1000 steps).
   // Tests candidate rates and reports which reproduces round hammers most often. Also
