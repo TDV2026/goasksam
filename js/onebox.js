@@ -698,7 +698,7 @@
     out += '<p class="lt-line">' + lint(line, "ht.hero") + "</p>";
     if (n >= 2) {
       var min = s[0].hammer, max = s[n - 1].hammer;
-      if (max > min) out += '<p class="lt-span">' + lint("Across the " + n + (scopedLabel ? " " + scopedLabel : "") + " that sold, the range ran " + usd(min) + " to " + usd(max) + ".", "ht.span") + "</p>";
+      if (max > min) out += '<p class="lt-span">' + lint("Across the " + n + (scopedLabel ? " " + scopedLabel + " cars" : " recorded sales") + ", the range ran " + usd(min) + " to " + usd(max) + ".", "ht.span") + "</p>";
     }
     out += htOnlineCeiling(scope);
     return out + "</div>";
