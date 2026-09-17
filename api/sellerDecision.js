@@ -1,6 +1,6 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
-import { runOneBox, runOneBoxModelChoice, runOneBoxProof } from "../lib/onebox.js";
+import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -2130,6 +2130,26 @@ async function partnerVerifiedStats(partner, vehicle, estimatedValue, supabaseUr
   };
 }
 
+// A partner who consigns cars into the auction houses (RM / Gooding / Broad Arrow etc.). Read
+// defensively from a top-level column OR the specialties JSON, so it works whichever way it is
+// seeded. NOTHING is seeded today: attribute must never be assumed true for any partner.
+function partnerConsignsToHouses(partner) {
+  if (!partner) return false;
+  if (partner.consigns_to_houses === true) return true;
+  const s = partner.specialties || {};
+  return s.consigns_to_houses === true || s.consignsToHouses === true;
+}
+// The HOUSE STEER practical-step partner: an active, region-covered consignor. Marque match ranks
+// first. Returns null when none is seeded (the house-steer result then stands WITHOUT a door).
+async function findConsignsToHousesPartner(vehicle, criteria, supabaseUrl, supabaseKey) {
+  const partners = await loadActivePartners(supabaseUrl, supabaseKey);
+  const eligible = (partners || []).filter(p => partnerConsignsToHouses(p) && partnerRegionCovered(p, criteria));
+  if (!eligible.length) return null;
+  eligible.sort((a, b) => (partnerMarqueMatch(b, vehicle) ? 1 : 0) - (partnerMarqueMatch(a, vehicle) ? 1 : 0));
+  const p = eligible[0];
+  return { name: p.name, marqueMatch: partnerMarqueMatch(p, vehicle), source: "consigns_to_houses" };
+}
+
 export function partnerRegionCovered(partner, criteria) {
   const regions = (partner.regions || []).map(region => String(region).toLowerCase());
   if (!regions.length) return false;
@@ -3384,6 +3404,31 @@ export default async function handler(req, res) {
 
     const decision = decide(analysis, sellerCriteria, vehicle);
     decision.partnerReferral = await evaluatePartnerReferral(analysis, sellerCriteria, vehicle, supabaseUrl, supabaseKey);
+
+    // THIN MODE + HOUSE STEER (Sep 2026): when the online market over 36 months is too thin for a
+    // volume band, /sell renders the same sale-anchored thin read as One Box. assessThinForVehicle
+    // reads the ARCHIVE only - ZERO extra OldCarsData. The HOUSE STEER (house share >= 2/3) routes
+    // the practical step to a consigns_to_houses partner; with none seeded it stands WITHOUT a door
+    // (names the houses evidence-ordered, explains consignment, never implies a placement partner).
+    try {
+      const thin = await assessThinForVehicle(vehicle, generation, { supabaseUrl, supabaseKey });
+      if (thin && thin.isThin && Array.isArray(thin.receipts) && thin.receipts.length) {
+        // Distinct house venues in evidence order (first appearance in the hammer-desc receipts).
+        const houseVenues = [];
+        for (const rc of thin.receipts) { if (rc.isHouse && !houseVenues.includes(rc.venue)) houseVenues.push(rc.venue); }
+        decision.thin = {
+          isThin: true, houseSteer: !!thin.houseSteer,
+          onlineN: thin.onlineN, houseN: thin.houseN, onlineReceiptsN: thin.onlineReceiptsN, totalN: thin.totalN,
+          medianHammer: thin.medianHammer, receipts: thin.receipts, intake: thin.intake || null,
+          pairs: thin.pairs || [], pairsCount: thin.pairsCount || 0, pairPctEligible: !!thin.pairPctEligible,
+          houseVenues
+        };
+        // House-first partner ONLY on the steer, and ONLY if a consignor is seeded + region-covered.
+        decision.thin.consignPartner = thin.houseSteer
+          ? await findConsignsToHousesPartner(vehicle, sellerCriteria, supabaseUrl, supabaseKey)
+          : null;
+      }
+    } catch { /* thin is additive; a failure here must never block the core decision */ }
 
     const costEstimate = oldCarsDataCost(fetchResult.meteredRequests);
     const usageLog = await recordUsageEvent({

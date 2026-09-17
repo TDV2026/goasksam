@@ -1054,6 +1054,42 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "httrigger", cars: out });
   }
 
+  // task=sellthin: READ-ONLY (archive + partners; ZERO OCD). Mirrors the /sell handler's thin
+  // block: assessThinForVehicle + the consigns_to_houses partner lookup, so we can verify the
+  // exact decision.thin facts the /sell render consumes (houseSteer, houseVenues, consignPartner)
+  // without a metered fetch. ?qs=a|b overrides.
+  if (task === "sellthin") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { assessThinForVehicle } = await import("../lib/onebox.js");
+    const qs = String(req.query?.qs || "1966 Ferrari 275 GTB|1972 Ferrari 365 GTB/4 Daytona coupe").split("|");
+    const criteria = { region: "US", state: req.query?.state || "" };
+    // Select only columns known to exist (no consigns_to_houses column pre-DDL, else the select
+    // 400s). The attribute is read from the specialties JSON, which is where it lives pre-column.
+    const partners = await supabaseSelect(env, "partners?active=is.true&select=name,regions,specialties&limit=50") || [];
+    const consignors = partners.filter(p => p.specialties && (p.specialties.consigns_to_houses === true || p.specialties.consignsToHouses === true));
+    const out = [];
+    for (const q of qs) {
+      try {
+        const rv = await resolveVehicle(q, {}); const v = rv && rv.vehicle;
+        if (!v || !v.make) { out.push({ q, status: rv && rv.status || "unresolved" }); continue; }
+        const g = await findGeneration(v, env);
+        const thin = await assessThinForVehicle(v, g, env);
+        const houseVenues = [];
+        for (const rc of (thin.receipts || [])) { if (rc.isHouse && !houseVenues.includes(rc.venue)) houseVenues.push(rc.venue); }
+        out.push({
+          q, resolved: `${v.year || ""} ${v.make} ${v.model || ""}${v.trim ? " " + v.trim : ""}`.trim(),
+          isThin: !!thin.isThin, houseSteer: !!thin.houseSteer, onlineN: thin.onlineN, houseN: thin.houseN, onlineReceiptsN: thin.onlineReceiptsN,
+          houseVenues, medianHammer: thin.medianHammer,
+          consignPartnerAvailable: consignors.length > 0, consignPartnerNames: consignors.map(p => p.name),
+          topReceipts: (thin.receipts || []).slice(0, 4).map(rc => `${rc.year || ""} ${rc.venue} $${Math.round(rc.hammer).toLocaleString()}${rc.isHouse ? " (house)" : ""}`)
+        });
+      } catch (e) { out.push({ q, error: String((e && e.message) || e).slice(0, 200) }); }
+    }
+    return res.status(200).json({ task: "sellthin", partnersActive: partners.length, consignorsSeeded: consignors.length, cars: out });
+  }
+
   // task=memcheck: READ-ONLY (archive; ZERO OCD). Archive-wide scan for memorabilia/replica/
   // tribute listings (the 250-GTO wall-art class) and whether any live in a thin enough model
   // pool to drag its span/cluster low. Informs the exclusion applied to online() + class fallback.

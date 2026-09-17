@@ -183,6 +183,17 @@ function renderDecision(decisionData,renderOpts){
     document.getElementById("btn").disabled=false;
     return;
   }
+  // THIN MODE + HOUSE STEER (Sep 2026): a car whose online market is too thin for a volume band
+  // renders the sale-anchored thin read here, BEFORE the no-evidence fallback (a thin car often
+  // has no routable comps and would otherwise dead-end on the generic policy card). US-only for
+  // now; international thin cars keep their regional cards below.
+  if(decision.thin&&decision.thin.isThin&&Array.isArray(decision.thin.receipts)&&decision.thin.receipts.length
+     &&!(typeof isInternationalSellerRegion==="function"&&isInternationalSellerRegion())){
+    if(renderThinDecisionSell(msgs,decision.thin,decisionData)){
+      document.getElementById("btn").disabled=false;
+      return;
+    }
+  }
   const practicalFallback=regionalNoEvidenceFallback();
   const routeFit=decision.routeFit||{};
   const allRouteOptions=routeFit.routes||[];
@@ -1051,6 +1062,76 @@ function showHonestNoRouting(msgs){
   sellState.sellOptions=[];
   sellState.step=12;
   addMsg("sam",`Here's the honest read for the ${car}. I route sellers to the auction platforms where I hold real sales data, and I don't yet have that coverage for ${country}, so I won't point you at a US platform as if it were the answer. That coverage is expanding. If the car could realistically sell into the US or UK markets, tell me and I'll run it there.`);
+}
+
+// THIN MODE + HOUSE STEER on /sell (Sep 2026). Mirrors One Box: the online market is too thin for
+// a volume band, so the answer is sale-anchored (a single named sale, never a wide band) with the
+// receipts below. The HOUSE STEER (house share >= 2/3) names the houses by THIS car's own recorded
+// results, evidence-ordered, and explains that a car at this level is typically placed through
+// consignment. It routes the practical step to a consigns_to_houses partner ONLY when one is
+// seeded and region-covered; with none it STANDS WITHOUT A DOOR - no partner card, and it never
+// implies GoAskSam holds a placement partner for it. Houses are never a routable button.
+function _thinMonthLabel(dstr){var p=String(dstr||"").slice(0,10).split("-");var M=["","January","February","March","April","May","June","July","August","September","October","November","December"];return p.length>=2?((M[+p[1]]||"")+" "+p[0]).trim():"";}
+function renderThinDecisionSell(msgs,thin,decisionData){
+  const esc=escapeHtml;
+  const money=(typeof moneyShort==="function")?moneyShort:(n=>"$"+Math.round(Number(n)||0).toLocaleString("en-US"));
+  const car=(typeof cleanCarForCopy==="function")?cleanCarForCopy():(sellState.carName||"your car");
+  const recs=(thin.receipts||[]).slice().filter(r=>Number(r.hammer)>0);
+  if(!recs.length){return false;}
+  const sorted=recs.slice().sort((a,b)=>a.hammer-b.hammer);
+  const mid=sorted[Math.floor((sorted.length-1)/2)];
+  const houseVenues=thin.houseVenues||[];
+  // Sale-anchored hero: always a single named sale.
+  const heroLine=sorted.length===1
+    ? `The one ${esc(car)} to change hands in the last three years brought ${money(mid.hammer)} at ${esc(mid.venue)}${mid.date?", "+esc(_thinMonthLabel(mid.date)):""}.`+(mid.isHouse&&mid.allIn?` The buyer paid ${money(mid.allIn)} with the premium.`:"")
+    : `The middle of the recent sales is ${money(mid.hammer)}, a ${esc(mid.year||"")} at ${esc(mid.venue)}${mid.date?", "+esc(_thinMonthLabel(mid.date)):""}.`;
+  // Market-shape read: house-steer text ONLY when house share >= 2/3; else venue-neutral.
+  let read="";
+  if(thin.houseSteer){
+    read=thin.onlineReceiptsN
+      ? `Most ${esc(car)}s that change hands do it at the auction houses; a few sell online.`
+      : `Cars at this level trade at the auction houses, not online. Every recorded sale in the last three years came through one.`;
+  } else if(thin.houseN&&thin.onlineReceiptsN){
+    read=`${esc(car)}s at this level sell both online and at the auction houses.`;
+  }
+  // Venue guidance (steer only). With a seeded consignor: a partner line. Without: stands without
+  // a door - names the houses by this car's own results, explains consignment, no placement claim.
+  let venue="";
+  if(thin.houseSteer&&houseVenues.length){
+    const named=houseVenues.length===1?houseVenues[0]:(houseVenues.slice(0,-1).join(", ")+" and "+houseVenues[houseVenues.length-1]);
+    if(thin.consignPartner&&thin.consignPartner.name){
+      venue=`On its own recent results this car has sold at ${esc(named)}. A car at this level is usually placed through consignment with a house rather than listed online. ${esc(thin.consignPartner.name)} places cars into the houses and can handle it end to end.`;
+    } else {
+      venue=`On its own recent results this car has sold at ${esc(named)}. A car at this level is usually placed through consignment with an auction house rather than listed online, so I'd start with the house whose recent ${esc(car)} results fit yours. I don't have a placement partner to hand you for this one.`;
+    }
+  }
+  let range="";
+  if(sorted.length>=2){const mn=sorted[0].hammer,mx=sorted[sorted.length-1].hammer;if(mx>mn)range=`Across the ${sorted.length} recorded sales, the range ran ${money(mn)} to ${money(mx)}.`;}
+  const list=sorted.slice().reverse().slice(0,6).map(rc=>{
+    const link=rc.url?`<a href="${esc(rc.url)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(0,0,0,.18)">${esc(rc.venue)}</a>`:esc(rc.venue);
+    const mi=Number(rc.mileage)>0?` · ${Number(rc.mileage).toLocaleString()} mi`:"";
+    const allin=rc.isHouse&&rc.allIn?` <span style="opacity:.6;font-size:12px">buyer paid ${money(rc.allIn)}</span>`:"";
+    return `<li style="display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-top:1px solid rgba(0,0,0,.08)"><span>${esc(rc.year||"")} ${link}${rc.isHouse?' <span style="opacity:.55;font-size:11px;text-transform:uppercase;letter-spacing:.06em">house</span>':""}${mi}</span><span style="font-variant-numeric:tabular-nums;font-weight:600">${money(rc.hammer)}${allin}</span></li>`;
+  }).join("");
+  sellState.sellOptions=[]; // no routable/lead destination in a no-door thin result
+  const paras=[heroLine,read,venue,range].filter(Boolean).map(p=>`<p class="pcard-lead">${p}</p>`).join("");
+  const row=document.createElement("div");row.className="row sam";
+  row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
+    <div class="sam-label">Sam</div>
+    <div class="pcard">
+      <div class="pcard-left">
+        <div class="pcard-script">For your ${esc(car)}, here's the honest read.</div>
+        <h1 class="pcard-name" style="font-variant-numeric:tabular-nums">${money(mid.hammer)}</h1>
+        ${paras}
+        <div class="pcard-whyl pcard-whyl-main">Recent sales, last three years</div>
+        <ul style="list-style:none;margin:8px 0 0;padding:0">${list}</ul>
+        <p class="pcard-lead" style="opacity:.6;font-size:12px;margin-top:14px">Real completed sales, hammer prices with the buyer premium backed out. No estimates. No valuations.</p>
+      </div>
+    </div>
+  </div></div>`;
+  msgs.appendChild(row);
+  row.scrollIntoView({behavior:"smooth",block:"start"});
+  return true;
 }
 
 function showRegionalFallbackRecommendation(msgs,fallback){
