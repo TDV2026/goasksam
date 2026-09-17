@@ -683,9 +683,10 @@
     if (a.varied) {
       var v = a.varied;
       out += '<p class="lt-hero">' + esc(usd(v.hammer)) + "</p>";
-      var vl = "These are priced case by case, not as one band. The most recent" + scopeWord + " to sell, a " + v.year + " at " + esc(v.venue) + ", brought " + usd(v.hammer) + " in " + monthYear(v.date) + ".";
+      var scopedCars = scopedLabel ? (scopedLabel + " cars") : (name + "s");
+      var vl = "These are priced case by case, not as one band. The most recent" + (scopedLabel ? " " + scopedLabel + " car" : "") + " to sell, a " + v.year + " at " + esc(v.venue) + ", brought " + usd(v.hammer) + " in " + monthYear(v.date) + ".";
       out += '<p class="lt-line">' + lint(vl, "ht.varied") + "</p>";
-      out += '<p class="lt-span">' + lint("Across the " + all.length + scopeWord + " " + name + "s that sold, the range ran " + usd(min) + " to " + usd(max) + ", on condition and originality.", "ht.variedspan") + "</p>";
+      out += '<p class="lt-span">' + lint("Across the " + all.length + " " + scopedCars + " that sold, the range ran " + usd(min) + " to " + usd(max) + ", on condition and originality.", "ht.variedspan") + "</p>";
       out += htOnlineCeiling(scope);
       return out + "</div>";
     }
