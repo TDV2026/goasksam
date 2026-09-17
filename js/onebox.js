@@ -596,6 +596,140 @@
     var vsales = cards.length ? ('<div class="seclabel">What has sold</div><div class="receipts">' + receiptsHtml(cards, 999) + "</div>") : "";
     return head + vsales + sellHtml();
   }
+  // ============ HOUSE-TIER render (Sep 2026) ============================================
+  // A rare car whose online market is too thin to stand on volume rules but which trades at the
+  // auction houses. Flow: intake FIRST when a config genuinely forks the price (else skip), then a
+  // SALE-anchored answer (never a wide span), receipt cards with venue + hammer + all-in and
+  // config markers, and paired chassis as two receipts (no percentage until a model clears 3
+  // pairs). Every figure is a real recorded sale. Houses are named by THIS model's own results and
+  // are never a routable button here - the practical step is the /sell surface (product RULE 2).
+  var HT_WINDOW_TEXT = "the past three years";
+  function htHasMk(rc, key) { return !!(rc.markers && rc.markers.some(function (mk) { return mk.key === key; })); }
+  function htMarkerChips(rc) {
+    if (!rc.markers || !rc.markers.length) return "";
+    return '<span class="htmk">' + rc.markers.map(function (mk) { return '<span class="mk">' + esc(mk.label) + "</span>"; }).join("") + "</span>";
+  }
+  function htPriceLine(rc) {
+    var main = '<span class="num">' + esc(usd(rc.hammer)) + "</span>";
+    if (rc.isHouse && rc.allIn) main += ' <span class="allin">&middot; buyer paid ' + esc(usd(rc.allIn)) + " incl. premium</span>";
+    return main;
+  }
+  function htYearVenue(rc) { return (rc.year ? esc(rc.year) + " " : "") + esc(rc.venue); }
+  function htReceiptRow(rc) {
+    var href = utmUrl(rc.url);
+    var inner = '<div class="htr-l"><div class="htr-v">' + htYearVenue(rc) + (rc.isHouse ? '<span class="htr-h">auction house</span>' : "") + "</div>" +
+      '<div class="htr-t">' + esc(rc.title) + "</div>" + htMarkerChips(rc) + "</div>" +
+      '<div class="htr-r"><div class="htr-p num">' + htPriceLine(rc) + "</div>" +
+      '<div class="htr-d">' + esc(monthYear(rc.date)) + "</div></div>";
+    var ext = href ? '<span class="ext htx"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>' : "";
+    return href ? '<a class="htr" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(rc.slug || "") + '">' + inner + ext + "</a>" : '<div class="htr">' + inner + "</div>";
+  }
+  var HT_INTAKE_PHRASE = {
+    competizione: { q: "At this level one thing sets the price apart: whether it is a competition car.", yes: "Competition car", no: "Road car" },
+    matching_numbers: { q: "At this level one thing moves the number most: whether it keeps its original matching-numbers engine.", yes: "Matching numbers", no: "Replacement engine" },
+    alloy_body: { q: "One thing sets these apart on price: whether it is an alloy-body car.", yes: "Alloy body", no: "Steel body" },
+    long_nose: { q: "One thing separates these on price: whether it is a long-nose car.", yes: "Long nose", no: "Short nose" }
+  };
+  function htIntakeCopy(mk) {
+    return HT_INTAKE_PHRASE[mk.key] || { q: "At this level the car itself sets the price. One thing separates these: whether it is " + String(mk.label).toLowerCase() + ".", yes: mk.label, no: "Not " + String(mk.label).toLowerCase() };
+  }
+  function htIntakeHtml(d, ht, name) {
+    var mk = ht.intakeMarkers[0];
+    var c = htIntakeCopy(mk);
+    var lead = "A " + esc(name) + " is priced on the car, not the year, so I want to place yours before I show you numbers. " + esc(c.q);
+    var chips = '<div class="chips htintake">' +
+      '<button class="chip" data-htmarker="' + esc(mk.key) + '">' + esc(c.yes) + "</button>" +
+      '<button class="chip" data-htmarker="no:' + esc(mk.key) + '">' + esc(c.no) + "</button>" +
+      '<button class="chip ghost" data-htskip>Just show me what sold</button></div>';
+    return '<div class="sam" data-stage="answer"><div class="ava">SAM</div><div class="body"><div class="tag">' + lint("Sam’s read", "ht.tag") + "</div>" +
+      "<p>" + lint(esc(lead), "ht.intake") + "</p>" + chips + "</div></div>";
+  }
+  // The sale-anchored hero: a single sale, or a tight band of the 2-4 receipts nearest the median
+  // with the median sale named. NEVER a wide span or a two-range hero (design).
+  function htAnchor(scope) {
+    var s = scope.slice().sort(function (a, b) { return a.hammer - b.hammer; });
+    var n = s.length;
+    if (n === 1) return { single: s[0], all: s };
+    var mid = Math.floor((n - 1) / 2);
+    var lo = Math.max(0, mid - 1), hi = Math.min(n - 1, mid + (n >= 4 ? 2 : 1));
+    var band = s.slice(lo, hi + 1);
+    return { range: [band[0].hammer, band[band.length - 1].hammer], anchor: s[mid], band: band, all: s };
+  }
+  function htHeroHtml(d, ht, name, scope, scopedLabel) {
+    var a = htAnchor(scope);
+    var out = '<div class="livetake" data-stage="answer"><div class="lt-kick">' + lint("Sam’s live take", "ht.kick") + "</div>";
+    if (a.single) {
+      var rc = a.single;
+      out += '<p class="lt-hero">' + esc(usd(rc.hammer)) + "</p>";
+      var one = "The one " + name + " to change hands in " + HT_WINDOW_TEXT + ": " + rc.year + " at " + esc(rc.venue) + ", " + monthYear(rc.date) + "." + (rc.isHouse && rc.allIn ? " The buyer paid " + usd(rc.allIn) + " with the premium." : "");
+      out += '<p class="lt-line">' + lint(one, "ht.hero1") + "</p>";
+      return out + "</div>";
+    }
+    out += '<p class="lt-hero">' + priceRange(a.range) + "</p>";
+    var scopeClause = scopedLabel ? (" for " + scopedLabel + " cars") : "";
+    var line = "Recent " + name + " sales have mostly landed here" + scopeClause + ", over " + HT_WINDOW_TEXT + ". The closest is " + a.anchor.year + " at " + esc(a.anchor.venue) + ", " + usd(a.anchor.hammer) + ".";
+    out += '<p class="lt-line">' + lint(line, "ht.hero") + "</p>";
+    // Tails: the full range as a sentence, never a second hero number.
+    var all = a.all, min = all[0].hammer, max = all[all.length - 1].hammer;
+    if (max > a.range[1] || min < a.range[0]) {
+      out += '<p class="lt-span">' + lint("Across every " + name + " that sold" + scopeClause + ", the range ran " + usd(min) + " to " + usd(max) + ".", "ht.span") + "</p>";
+    }
+    // Online ceiling: the top online (non-house) result, when one exists.
+    var onl = scope.filter(function (r) { return !r.isHouse; }).sort(function (x, y) { return y.hammer - x.hammer; });
+    if (onl.length) out += '<p class="lt-span">' + lint("Online, the highest to sell was " + usd(onl[0].hammer) + " on " + esc(onl[0].venue) + ".", "ht.online") + "</p>";
+    return out + "</div>";
+  }
+  // Paired sales: same chassis at a house AND online. Two receipts side by side, NO percentage
+  // until a model clears 3 such pairs (design: the % stays dormant below that).
+  function htPairsHtml(ht, name) {
+    if (!ht.pairs || !ht.pairs.length) return "";
+    var p = ht.pairs[0];
+    var rows = p.map(function (rc) { return htReceiptRow(rc); }).join("");
+    var note = ht.pairPctEligible
+      ? "Same car, both venues."
+      : "The same chassis, sold at a house and online. Too few matched pairs yet to read a house-versus-online pattern, so here are both receipts.";
+    return '<div class="seclabel">' + lint("The same car, twice", "ht.pairlab") + "</div>" +
+      '<div class="htpair">' + rows + "</div>" +
+      '<p class="ht-note">' + lint(note, "ht.pairnote") + "</p>";
+  }
+  function houseTierHtml(d, m) {
+    var ht = d.houseTier;
+    htLastD = d;
+    if (!ht || !ht.receipts || !ht.receipts.length) return refusalHtml(d, m); // safety: never dead-end
+    var name = bareNameOf(d, m);
+    // Intake FIRST, but only when a config genuinely forks the price and the user has not answered.
+    if (ht.intakeMarkers && ht.intakeMarkers.length && htChoice === null) return htIntakeHtml(d, ht, name);
+    // Scope the receipts by the intake answer (client-side; the engine returned them all).
+    var scope = ht.receipts, scopedLabel = null;
+    if (htChoice && htChoice !== "__skip__") {
+      if (htChoice.indexOf("no:") === 0) {
+        var key = htChoice.slice(3);
+        var kept = ht.receipts.filter(function (r) { return !htHasMk(r, key); });
+        if (kept.length) { scope = kept; scopedLabel = "standard"; }
+      } else {
+        var kept2 = ht.receipts.filter(function (r) { return htHasMk(r, htChoice); });
+        if (kept2.length) { scope = kept2; scopedLabel = (markerLabelOf(ht, htChoice) || "").toLowerCase(); }
+      }
+    }
+    var body = htHeroHtml(d, ht, name, scope, scopedLabel);
+    // Sam's read: honest framing of the market shape, no invented pattern, no fee/valuation words.
+    var reads = [];
+    if (ht.houseN && !ht.onlineN) reads.push("Cars at this level trade at the auction houses, not online. Every recorded sale here came through one.");
+    else if (ht.houseN >= ht.onlineReceiptsN) reads.push("Most " + name + "s that change hands do it at the auction houses; a few sell online. Both are below.");
+    else reads.push("These sell in both places. The recorded sales are below, houses and online together.");
+    reads.push("These are receipts, not a guess. What yours brings depends on the next one like it that comes up.");
+    body += '<div class="samread" data-stage="answer"><div class="ava">SAM</div><div><div class="tag">' + lint("Sam’s read", "ht.readtag") + "</div>" +
+      reads.map(function (p) { return "<p>" + lint(esc(p), "ht.read") + "</p>"; }).join("") + "</div></div>";
+    // The receipts.
+    body += '<div class="seclabel" data-stage="cards">' + lint("What has sold, " + esc(name) + ", " + HT_WINDOW_TEXT, "ht.reclab") + "</div>";
+    body += '<div class="htreceipts" data-stage="cards">' + scope.slice(0, 8).map(function (rc) { return htReceiptRow(rc); }).join("") + "</div>";
+    body += htPairsHtml(ht, name);
+    body += sellHtml() + recentHtml();
+    body += '<div class="trust">Real completed sales from GoAskSam’s archive, hammer prices with the buyer premium backed out. No estimates. No valuations.</div>';
+    return body;
+  }
+  function markerLabelOf(ht, key) { for (var i = 0; i < ht.intakeMarkers.length; i++) if (ht.intakeMarkers[i].key === key) return ht.intakeMarkers[i].label; return null; }
+
   function renderResults(d) {
     // The exact-car header leads on a VIN match (matched frame); typed queries go straight
     // to the answer block (unmatched frame). Refusal is its own frame. Every branch renders
@@ -603,7 +737,8 @@
     var m = vinAnchor;
     var head = m ? exactCarHtml(m, d.resolvedCar) : "";
     var body;
-    if (d.tier === "refusal") body = refusalHtml(d, m);
+    if (d.tier === "house_tier") body = houseTierHtml(d, m);
+    else if (d.tier === "refusal") body = refusalHtml(d, m);
     else if (d.tier === "result") body = resultHtml(d, m);
     else body = '<div class="sam" data-stage="answer"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s read</div><p>' +
       lint(esc("I don’t have enough real " + carLabel(d.resolvedCar) + " sales to show you an honest read, and I won’t make one up. Try another car and I’ll pull what actually sold."), "zero") + "</p></div></div>" + sellHtml();
@@ -673,6 +808,8 @@
   // re-decodes and loops) - the chip builds a clean query from this context instead. Null for a
   // typed query, where appending to the raw text is correct.
   var choiceCtx = null;
+  var htChoice = null; // house-tier intake selection: null=not asked, "__skip__", or a marker key
+  var htLastD = null;  // last house-tier decision, so an intake chip can re-render in place
   // Same physical identity (one string cleaner/more granular than the other): token subset.
   function obNorm(s){ return String(s==null?"":s).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().trim(); }
   function obSameIdentity(a,b){ a=obNorm(a);b=obNorm(b); if(!a||!b)return false; var ta=a.split(/\s+/),tb=b.split(/\s+/),sa={},sb={}; ta.forEach(function(t){sa[t]=1;}); tb.forEach(function(t){sb[t]=1;}); return ta.every(function(t){return sb[t];})||tb.every(function(t){return sa[t];}); }
@@ -760,7 +897,7 @@
   function run(text) {
     text = String(text || "").trim();
     if (!text) return;
-    lastQuery = text; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obRefinePhrase = null; obLastVehicle = null;
+    lastQuery = text; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obRefinePhrase = null; obLastVehicle = null; htChoice = null;
     // Identifier-shaped input (VIN or chassis) routes through the shared resolver (decode +
     // confirm + exact-match + the honest VIN-invalid / chassis lines); everything else goes
     // straight to the archive pool.
@@ -918,6 +1055,7 @@
     try {
       if (d.tier === "refusal") obEvent("onebox_refusal_shown");
       else if (d.tier === "result") obEvent("onebox_answer_shown");
+      else if (d.tier === "house_tier") obEvent("onebox_housetier_shown");
     } catch (e) {}
   }
 
@@ -1015,6 +1153,10 @@
     Array.prototype.forEach.call(root.querySelectorAll("[data-recent]"), function (b) { b.addEventListener("click", function () { run(b.getAttribute("data-recent")); }); });
     // Generation chips carry a full year-resolvable query - run it directly (never appended).
     Array.prototype.forEach.call(root.querySelectorAll("[data-genquery]"), function (b) { b.addEventListener("click", function () { run(b.getAttribute("data-genquery")); }); });
+    // House-tier intake: place the car by its price-forking config, then re-render the same
+    // decision scoped to the answer (no re-fetch; the engine returned every receipt).
+    Array.prototype.forEach.call(root.querySelectorAll("[data-htmarker]"), function (b) { b.addEventListener("click", function () { htChoice = b.getAttribute("data-htmarker"); obEvent("onebox_ht_intake", lastQuery + ":" + htChoice); if (htLastD) { renderResults(htLastD); } }); });
+    Array.prototype.forEach.call(root.querySelectorAll("[data-htskip]"), function (b) { b.addEventListener("click", function () { htChoice = "__skip__"; obEvent("onebox_ht_skip", lastQuery); if (htLastD) { renderResults(htLastD); } }); });
     // The earned question: a mileage band or transmission chip narrows the SAME pool inline
     // (re-request with a refine), and Sam's take + the sales re-render to match.
     Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-milemin]"), function (b) {

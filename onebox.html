@@ -393,6 +393,27 @@ a.bcard:hover{border-color:color-mix(in srgb,var(--green) 55%,var(--line))}
 .showall .allhead{display:flex;align-items:baseline;justify-content:space-between;margin:18px 0 12px}
 .showall .allhead .lab{font:600 11px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--faint)}
 .trust{margin:34px 2px 0;padding-top:16px;border-top:1px solid var(--line);color:var(--faint);font:600 12.5px/1.5 var(--mono);letter-spacing:.02em}
+/* ---- House-tier: intake chips, sale-anchored hero, receipt rows, paired sales ---- */
+.chips.htintake{margin-top:16px;display:flex;flex-wrap:wrap;gap:9px}
+.chips.htintake .chip.ghost{border-style:dashed;color:var(--slate);background:transparent}
+.htreceipts{max-width:720px;margin:12px 0 0;display:flex;flex-direction:column;gap:9px}
+.htr{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 17px;text-decoration:none;color:inherit;box-shadow:var(--shadow);position:relative;transition:border-color .15s}
+a.htr:hover{border-color:color-mix(in srgb,var(--green) 50%,var(--line))}
+.htr-l{min-width:0;flex:1}
+.htr-v{font:600 13px/1.2 var(--mono);letter-spacing:.02em;color:var(--green-deep);display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.htr-h{font:600 9px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--clay);border:1px solid color-mix(in srgb,var(--clay) 32%,var(--line));border-radius:5px;padding:3px 6px}
+.htr-t{font:400 14px/1.45 var(--grotesk);color:var(--slate);margin-top:6px;max-width:52ch}
+.htmk{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.htmk .mk{font:600 10.5px/1 var(--mono);letter-spacing:.02em;color:var(--green);background:color-mix(in srgb,var(--green) 8%,var(--card));border:1px solid color-mix(in srgb,var(--green) 22%,var(--line));border-radius:5px;padding:4px 7px}
+.htr-r{flex:none;text-align:right;padding-right:20px}
+.htr-p{font:700 21px/1 var(--mono);letter-spacing:-.02em;color:var(--green-deep)}
+.htr-p .allin{display:block;margin-top:5px;text-align:right}
+.htr-d{font:600 11.5px/1.3 var(--mono);color:var(--slate);margin-top:7px}
+.htr .htx{position:absolute;top:12px;right:12px;width:22px;height:22px;border-radius:6px;background:color-mix(in srgb,var(--paper) 88%,transparent);border:1px solid var(--line);display:grid;place-items:center;color:var(--slate)}
+.htr .htx svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.9}
+a.htr:hover .htx{color:var(--green);border-color:var(--green)}
+.htpair{max-width:720px;margin:12px 0 0;display:flex;flex-direction:column;gap:9px}
+.ht-note{max-width:64ch;font:400 14px/1.5 var(--serif);color:var(--slate);margin:11px 0 0}
 </style>
 </head>
 <body>
@@ -423,6 +444,6 @@ a.bcard:hover{border-color:color-mix(in srgb,var(--green) 55%,var(--line))}
 function obToggleRail(open){var r=document.getElementById("ob-rail"),s=document.getElementById("ob-scrim");if(!r)return;var on=(open===undefined)?!r.classList.contains("open"):!!open;r.classList.toggle("open",on);if(s)s.classList.toggle("open",on);}
 function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("ob-results-menu");if(m)m.classList.toggle("open");return false;}
 </script>
-<script src="/obx.20260910c/onebox.js"></script>
+<script src="/obx.20260916a/onebox.js"></script>
 </body>
 </html>
