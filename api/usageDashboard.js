@@ -1049,7 +1049,9 @@ async function handleOps(req, res) {
           notFiredMeta: (!ht && r.htMeta) ? { onlineN: r.htMeta.onlineN, onlineReceiptsN: r.htMeta.onlineReceiptsN, houseN: r.htMeta.houseN, totalN: r.htMeta.totalN } : null,
           intake: ht && ht.intake ? `${ht.intake.kind}${ht.intake.markerKey ? ":" + ht.intake.markerKey : ""}${ht.intake.thresholdK ? " @" + ht.intake.thresholdK + "k" : ""} (fork ${ht.intake.sep.toFixed(2)}x)` : null,
           topReceipts: ht ? (ht.receipts || []).slice(0, 4).map(rc => `${rc.venue} ${rc.year || ""} $${Math.round(rc.hammer).toLocaleString()}${rc.isHouse ? " (H, all-in $" + Math.round(rc.allIn || 0).toLocaleString() + ")" : ""}${rc.mileage ? " " + rc.mileage.toLocaleString() + "mi" : ""}${rc.markers.length ? " [" + rc.markers.map(m => m.label).join(", ") + "]" : ""}`) : null,
-          bottomReceipts: ht ? (ht.receipts || []).slice(-3).map(rc => `$${Math.round(rc.hammer).toLocaleString()} | ${rc.year || ""} ${rc.venue}${rc.isHouse ? " (all-in $" + Math.round(rc.allIn || 0).toLocaleString() + ")" : ""} :: ${(rc.title || "").slice(0, 70)}`) : null
+          bottomReceipts: ht ? (ht.receipts || []).slice(-3).map(rc => `$${Math.round(rc.hammer).toLocaleString()} | ${rc.year || ""} ${rc.venue}${rc.isHouse ? " (all-in $" + Math.round(rc.allIn || 0).toLocaleString() + ")" : ""} :: ${(rc.title || "").slice(0, 70)}`) : null,
+          rmReceipts: ht ? (ht.receipts || []).filter(rc => rc.slug === "rmsothebys").sort((a, b) => b.hammer - a.hammer).slice(0, 6).map(rc => `carYear=${rc.year || "?"} sold=${rc.date || "?"} hammer=$${Math.round(rc.hammer).toLocaleString()}`) : null,
+          receiptDateRange: ht ? (function () { const ds = (ht.receipts || []).map(r => r.date).filter(Boolean).sort(); return ds.length ? ds[0] + " .. " + ds[ds.length - 1] : null; })() : null
         });
       } catch (e) { out.push({ q, error: String(e && e.message || e).slice(0, 200) }); }
     }
