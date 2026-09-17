@@ -3418,10 +3418,17 @@ export default async function handler(req, res) {
     // reads the ARCHIVE only - ZERO extra OldCarsData. The HOUSE STEER (house share >= 2/3) routes
     // the practical step to a consigns_to_houses partner; with none seeded it stands WITHOUT a door
     // (names the houses evidence-ordered, explains consignment, never implies a placement partner).
-    try {
-      const thin = await assessThinForVehicle(vehicle, generation, { supabaseUrl, supabaseKey });
-      if (thin && thin.isThin && Array.isArray(thin.receipts) && thin.receipts.length) {
-        // Distinct house venues in evidence order (first appearance in the hammer-desc receipts).
+    // THIN and CLASS-ERA are computed in SEPARATE try/catch blocks so a failure in one never
+    // silently swallows the other (the earlier single-try/catch was a suspect for the 450S class
+    // dropping). thinEnv is asserted present so a missing env surfaces rather than reading as an
+    // empty pool. A debug field records what each stage saw (stripped from the client render).
+    const thinEnv = { supabaseUrl, supabaseKey };
+    const ceDbg = { thinTotalN: null, thinIsThin: null, vehYear: vehicle && vehicle.year || null, ceCalled: false, ceReceipts: null, ceErr: null };
+    let thin = null;
+    try { thin = await assessThinForVehicle(vehicle, generation, thinEnv); ceDbg.thinTotalN = thin && thin.totalN; ceDbg.thinIsThin = thin && thin.isThin; }
+    catch (e) { ceDbg.ceErr = "thin:" + String((e && e.message) || e).slice(0, 80); }
+    if (thin && thin.isThin && Array.isArray(thin.receipts) && thin.receipts.length) {
+      try {
         const houseVenues = [];
         for (const rc of thin.receipts) { if (rc.isHouse && !houseVenues.includes(rc.venue)) houseVenues.push(rc.venue); }
         decision.thin = {
@@ -3431,18 +3438,22 @@ export default async function handler(req, res) {
           pairs: thin.pairs || [], pairsCount: thin.pairsCount || 0, pairPctEligible: !!thin.pairPctEligible,
           houseVenues
         };
-        // House-first partner ONLY on the steer, and ONLY if a consignor is seeded + region-covered.
         decision.thin.consignPartner = thin.houseSteer
           ? await findConsignsToHousesPartner(vehicle, sellerCriteria, supabaseUrl, supabaseKey)
           : null;
-      } else if (thin && thin.totalN === 0 && vehicle?.year) {
-        // CLASS-ERA rung: the exact model has not sold in three years. Widen to the same marque
-        // within the car's decade era band, rendered as a coarse honest fallback (never a price
-        // for the exact car). Archive-only, zero extra OldCarsData.
-        const ce = await assessClassEraForVehicle(vehicle, generation, { supabaseUrl, supabaseKey });
+      } catch { /* thin render facts are additive */ }
+    } else if (vehicle && vehicle.year && (!thin || thin.totalN === 0)) {
+      // CLASS-ERA rung: the exact model has not sold in three years (empty model pool, or thin could
+      // not scope it). Widen to the same marque within the car's decade era band - a coarse honest
+      // fallback, never a price for the exact car. Archive-only, zero extra OldCarsData.
+      try {
+        ceDbg.ceCalled = true;
+        const ce = await assessClassEraForVehicle(vehicle, generation, thinEnv);
+        ceDbg.ceReceipts = ce && ce.receipts ? ce.receipts.length : (ce ? "no-receipts:" + JSON.stringify(ce).slice(0, 80) : "null");
         if (ce && ce.isClass && Array.isArray(ce.receipts) && ce.receipts.length) decision.classEra = ce;
-      }
-    } catch { /* thin/class is additive; a failure here must never block the core decision */ }
+      } catch (e) { ceDbg.ceErr = "class:" + String((e && e.message) || e).slice(0, 120); }
+    }
+    if (req.body && req.body.debug === true) decision._ceDebug = ceDbg;
 
     const costEstimate = oldCarsDataCost(fetchResult.meteredRequests);
     const usageLog = await recordUsageEvent({
