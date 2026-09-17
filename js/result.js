@@ -1205,8 +1205,9 @@ function renderClassEraSell(msgs,ce,decisionData){
     <div class="sam-label">Sam</div>
     <div class="pcard">
       <div class="pcard-left">
-        <div class="pcard-script">For your ${esc(carName)}, here's the honest read.</div>
-        <h1 class="pcard-name" style="font-variant-numeric:tabular-nums">${money(lo)} to ${money(hi)}</h1>
+        <div class="pcard-script">Here's the honest read for your</div>
+        <h1 class="pcard-name">${esc(carName)}</h1>
+        <div class="pcard-whyl pcard-whyl-main">The wider ${esc(ce.era)} ${esc(ce.make)} market</div>
         <p class="pcard-lead">${line}</p>
         <p class="pcard-lead">${read}</p>
         <div class="pcard-whyl pcard-whyl-main">${esc(ce.era)} ${esc(ce.make)} sales, last three years</div>
