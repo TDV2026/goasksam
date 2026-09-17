@@ -995,6 +995,76 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "srcaudit", note: "ESTIMATED counts (planner stats); archive = max(bySlug,byLabel)", attemptsTableExists: attemptsExists, sources: out });
   }
 
+  // task=htground: READ-ONLY (archive; ZERO OCD). House-tier design grounding for one model:
+  // 36-month approved-source receipts (venue/date/hammer/all-in/markers), trigger counts, and
+  // paired-sale chassis (online vs house). ?make=&title=  e.g. make=Ferrari&title=365 GTB
+  if (task === "htground") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { hammerUsd, isHouseSource, toUsd } = await import("../lib/_houseComps.js");
+    const make = String(req.query?.make || ""); const title = String(req.query?.title || "");
+    // Approved-for-math sources (source-certification.md). UK-only + AutoHunter excluded from bounds.
+    const ONLINE_OK = new Set(["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "sothebysmotorsport", "hemmings", "mbmarket"]);
+    const HOUSE_OK_USD = new Set(["rmsothebys", "gooding", "broadarrow", "barrettjackson", "mecum", "bonhams"]); // Bonhams non-USD flagged below
+    const since = new Date(Date.now() - 36 * 30.44 * 864e5).toISOString().slice(0, 10);
+    const MARK = {
+      matching_numbers: /matching[\s-]?numbers|numbers[\s-]?matching/i, classiche: /classiche/i, massini: /massini/i,
+      documented_history: /documented|known ownership|ownership history|history file|comprehensive history|well[\s-]?documented/i,
+      restored: /restored by|restoration by|nut[\s-]?and[\s-]?bolt|concours restoration|rebuilt by|body[\s-]?off/i,
+      original_paint: /original paint|unrestored|preservation|survivor|one[\s-]?owner/i,
+      rhd: /right[\s-]?hand[\s-]?drive|\brhd\b/i, plexi: /plexi/i, alloy_body: /alloy (body|coachwork)|aluminum body/i,
+      long_short_nose: /long[\s-]?nose|short[\s-]?nose/i, competizione: /competizione|competition/i,
+      coachbuilder: /scaglietti|pininfarina|zagato|bertone|touring|ghia|fantuzzi|vignale|frua|figoni/i
+    };
+    const q = `sales_archive?make=ilike.${encodeURIComponent(make)}&listing_title=ilike.*${encodeURIComponent(title)}*&sale_price=not.is.null&sale_date=gte.${since}&select=year,listing_title,description,platform,source_slug,sale_date,sale_price,vin,chassis:chassis_vin_norm,curr:raw_record->>currency&order=sale_price.desc.nullslast&limit=200`;
+    const rows = await supabaseSelect(env, q) || [];
+    const slugOf = r => String(r.source_slug || "").toLowerCase() || null;
+    const markersOf = r => { const t = (r.listing_title || "") + " " + (r.description || ""); return Object.entries(MARK).filter(([, re]) => re.test(t)).map(([k]) => k); };
+    let approved = 0, houseN = 0, onlineN = 0;
+    const receipts = rows.map(r => {
+      const slug = slugOf(r) || String(r.platform || "").toLowerCase().replace(/[^a-z]/g, "");
+      const house = isHouseSource(r.source_slug || r.platform);
+      const cur = r.curr || "USD";
+      const approvedBasis = house ? (HOUSE_OK_USD.has(slug) && cur === "USD") : ONLINE_OK.has(slug);
+      if (approvedBasis) { approved++; if (house) houseN++; else onlineN++; }
+      const hammer = Math.round(hammerUsd({ source_slug: r.source_slug, source: r.platform, price: Number(r.sale_price), currency: cur }));
+      const allIn = house ? Math.round(cur === "USD" ? Number(r.sale_price) : toUsd(Number(r.sale_price), cur)) : null;
+      return { year: r.year, venue: r.platform, house, approvedBasis, date: (r.sale_date || "").slice(0, 10), hammerUsd: hammer, allInUsd: allIn, currency: cur, chassis: r.chassis || null, markers: markersOf(r), title: (r.listing_title || "").slice(0, 58) };
+    });
+    // paired-sale chassis: same chassis with an online AND a house sale (any window in this pool)
+    const byChassis = {}; for (const r of receipts) { if (!r.chassis) continue; (byChassis[r.chassis] = byChassis[r.chassis] || []).push(r); }
+    const pairs = Object.entries(byChassis).filter(([, rs]) => rs.some(x => x.house) && rs.some(x => !x.house)).map(([c, rs]) => ({ chassis: c, sales: rs.map(x => ({ venue: x.venue, date: x.date, hammer: x.hammerUsd })) }));
+    return res.status(200).json({
+      task: "htground", make, title, windowMonths: 36, since,
+      trigger: { approvedTotal: approved, houseSales: houseN, onlineSales: onlineN, firesUnderN: null },
+      pairedChassis: pairs.length, pairs: pairs.slice(0, 6),
+      receipts
+    });
+  }
+
+  // task=pairgate: READ-ONLY (archive; ZERO OCD). Archive-wide count of models with 3+ physical
+  // cars (canonical) sold at BOTH an online and a house venue - the paired-sale evidence gate.
+  if (task === "pairgate") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { isHouseSource } = await import("../lib/_houseComps.js");
+    // Multi-alias canonicals only (a single-sale car cannot be a cross-venue pair).
+    const canon = await supabaseSelect(env, `canonical_sales?alias_count=gte.2&select=id,make,model&limit=3000`) || [];
+    const ids = canon.map(c => c.id);
+    const aliasBy = {};
+    for (let i = 0; i < ids.length; i += 80) {
+      const batch = ids.slice(i, i + 80);
+      const al = await supabaseSelect(env, `sale_aliases?canonical_id=in.(${batch.map(x => `"${x}"`).join(",")})&select=canonical_id,source_slug&limit=2000`) || [];
+      for (const a of al) (aliasBy[a.canonical_id] = aliasBy[a.canonical_id] || []).push(a.source_slug);
+    }
+    const modelPairs = {};
+    for (const c of canon) {
+      const slugs = aliasBy[c.id] || [];
+      const hasHouse = slugs.some(s => isHouseSource(s)), hasOnline = slugs.some(s => !isHouseSource(s));
+      if (hasHouse && hasOnline) { const k = `${c.make} ${c.model}`; modelPairs[k] = (modelPairs[k] || 0) + 1; }
+    }
+    const clearing = Object.entries(modelPairs).filter(([, n]) => n >= 3).sort((a, b) => b[1] - a[1]);
+    return res.status(200).json({ task: "pairgate", multiAliasCanonicals: canon.length, modelsWithAnyCrossVenuePair: Object.keys(modelPairs).length, modelsClearing3PairGate: clearing.length, list: clearing });
+  }
+
   // task=selldiag: LIVE /sell fetch trace (METERED OCD). Runs the REAL fetchRecentRecords for a
   // car and reports what sources the /sell pipeline actually pulls + whether houses clear the
   // strongerNonRoutable gate (>=5 in-window sales AND median > the online pick). Answers "what is
