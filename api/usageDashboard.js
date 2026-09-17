@@ -1017,13 +1017,13 @@ async function handleOps(req, res) {
     };
     // NOTE: no server-side date filter (house records often carry NULL sale_date -> a gte filter
     // silently drops them). We fetch all matching and report date coverage + a 36mo count client-side.
-    const q = `sales_archive?make=ilike.${encodeURIComponent(make)}&listing_title=ilike.*${encodeURIComponent(title)}*&sale_price=not.is.null&select=year,listing_title,description,platform,source_slug,sale_date,sale_price,vin,chassis:chassis_vin_norm,curr:raw_record->>currency&order=sale_price.desc.nullslast&limit=300`;
+    const q = `sales_archive?make=ilike.${encodeURIComponent(make)}&listing_title=ilike.*${encodeURIComponent(title)}*&sale_price=not.is.null&select=year,listing_title,desc:raw_record->>description,platform,source_slug,sale_date,sale_price,vin,chassis:chassis_vin_norm,curr:raw_record->>currency&order=sale_price.desc.nullslast&limit=300`;
     const rows = await supabaseSelect(env, q) || [];
     const in36 = r => { const d = (r.sale_date || "").slice(0, 10); return d && d >= since; };
     const nullDate = rows.filter(r => !r.sale_date).length;
     const dates = rows.map(r => (r.sale_date || "").slice(0, 10)).filter(Boolean).sort();
     const slugOf = r => String(r.source_slug || "").toLowerCase() || null;
-    const markersOf = r => { const t = (r.listing_title || "") + " " + (r.description || ""); return Object.entries(MARK).filter(([, re]) => re.test(t)).map(([k]) => k); };
+    const markersOf = r => { const t = (r.listing_title || "") + " " + (r.desc || ""); return Object.entries(MARK).filter(([, re]) => re.test(t)).map(([k]) => k); };
     let approved = 0, houseN = 0, onlineN = 0;
     const receipts = rows.map(r => {
       const slug = slugOf(r) || String(r.platform || "").toLowerCase().replace(/[^a-z]/g, "");
