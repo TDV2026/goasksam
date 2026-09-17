@@ -1150,20 +1150,47 @@ function renderThinDecisionSell(msgs,thin,decisionData){
   if(!recs.length)return false;
   const hp=_thinVenuePick(recs,true), op=_thinVenuePick(recs,false);
   if(!hp&&!op)return false;
-  const houseCard=hp?_thinPickCardHtml({kind:"house",pick:hp.pick,others:hp.others,receipts:recs,make,modelLabel,carLbl,loc,isLead:!!thin.houseSteer}):"";
-  const onlineCard=op?_thinPickCardHtml({kind:"online",pick:op.pick,others:op.others,receipts:recs,make,modelLabel,carLbl,loc,isLead:!thin.houseSteer}):"";
+  // ASAP GATE (locked): a house consignment is scheduled and settled over months, structurally
+  // incompatible with a seller who chose ASAP. When the seller is in a rush a house can NEVER be
+  // the pick/CTA, no matter how strong its comps are. The house result is still CITED as the
+  // benchmark (rushBridge below); the recommendation moves to the online listing venue and the
+  // copy connects the dots: the pick is elsewhere BECAUSE of the rush, not because the house
+  // evidence is weak (thin-evidence weakness is a different, non-ASAP reason on the normal path).
+  const rush=(typeof sellerWantsSpeed==="function")&&sellerWantsSpeed();
+  if(rush&&thin.houseSteer&&!op){
+    // Pure-house thin pool + ASAP: no online venue in this pool to carry the pick. Defer to the
+    // normal evidence ladder, which lands a routable ONLINE platform (houses are routable:false
+    // there, so a house can never win) and still names the house sale as the stronger evidence.
+    return false;
+  }
+  const houseLeads=!!thin.houseSteer&&!rush; // rush never lets a house lead
+  const houseCard=hp?_thinPickCardHtml({kind:"house",pick:hp.pick,others:hp.others,receipts:recs,make,modelLabel,carLbl,loc,isLead:houseLeads}):"";
+  const onlineCard=op?_thinPickCardHtml({kind:"online",pick:op.pick,others:op.others,receipts:recs,make,modelLabel,carLbl,loc,isLead:!houseLeads}):"";
   // consigns_to_houses PowerSeller (once seeded): the "have someone handle everything" route ABOVE
-  // the pick. None seeded today, so this never renders; when it does its CTA joins the lead flow.
+  // the pick. Suppressed under ASAP (a handled house consignment is equally months-long). None
+  // seeded today, so this never renders; when it does its CTA joins the lead flow.
   let partnerCard="";
-  if(thin.houseSteer&&thin.consignPartner&&thin.consignPartner.name){
+  if(houseLeads&&thin.consignPartner&&thin.consignPartner.name){
     const pn=esc(thin.consignPartner.name);
     partnerCard=`<div class="pcard pcard-platform"><div class="pcard-left"><span class="pcard-badge">+ Have it handled end to end</span><div class="pcard-script">For your ${esc(make)}, if you'd rather someone handled everything</div><h1 class="pcard-name">${pn}</h1><div class="pcard-whyl pcard-whyl-main">Why</div><p class="pcard-lead">${pn} places cars like this into the auction houses and handles the consignment on your behalf.</p></div></div><div class="pv2-bridge">Or take it to a house yourself:</div>`;
   }
   const bridgeOnline=`<div class="pv2-bridge">If you'd rather run the sale yourself, here's where I'd go.</div>`;
   const bridgeHouse=`<div class="pv2-bridge">If you'd rather have it handled at a house, here's where its results are strongest.</div>`;
+  // Locked ASAP line (Sam-approved, Sep 2026): cite the house result plainly with its number,
+  // then pin the pick elsewhere on the rush ALONE, never on house weakness. Venue names and the
+  // dollar figure interpolate from the real pool at render time. The single-sale figure carries
+  // no "at" prefix (the line already reads "...are at {House}, {figure}, so...").
+  const houseName=hp?((typeof platformDisplayName==="function"&&platformDisplayName(hp.pick.slug))||hp.pick.venue):"";
+  const onlineName=op?((typeof platformDisplayName==="function"&&platformDisplayName(op.pick.slug))||op.pick.venue):"";
+  const houseRange=hp?(hp.pick.count===1?`${moneyShort(hp.pick.hi)}`:`from ${moneyShort(hp.pick.lo)} to ${moneyShort(hp.pick.hi)}`):"";
+  const rushBridge=`<div class="pv2-bridge">The strongest results for this car are at ${esc(houseName)}, ${esc(houseRange)}, so that's the number to keep in mind. It isn't the pick here only because a house consignment takes months to schedule and settle, and you told me you want to move fast. For that timeline, ${esc(onlineName)} is where I'd list it now, and it still reaches serious buyers.</div>`;
   let body;
-  if(thin.houseSteer){
+  if(houseLeads){
     body=houseCard+(onlineCard?bridgeOnline+onlineCard:"");
+  } else if(rush&&thin.houseSteer){
+    // ASAP suppressed the house steer: online leads (Sam's Pick), the house is CITED by the
+    // locked line only (no consign CTA), so the house is never the routed recommendation.
+    body=onlineCard+rushBridge;
   } else {
     body=(onlineCard||"")+(houseCard?bridgeHouse+houseCard:"");
   }

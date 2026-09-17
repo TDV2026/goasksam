@@ -402,7 +402,11 @@ function renderPickCardV2(option,over){
         // VIN feature 4b: exact-VIN evidence line on the MAIN pick card only (not the
         // price-alt override, which carries its own whyLabel). n=1 evidence; renders
         // on whatever platform the data picked. Empty string when no VIN match.
-        + (function(){ if(over&&over.whyLabel)return''; try{ var vm=(typeof composerVinMatchBullet==="function")?composerVinMatchBullet(v):null; if(!vm)return''; var bridge=(typeof vinBridgeLine==="function")?vinBridgeLine(sellState.sellDecision&&sellState.sellDecision.vinArchiveMatch, slug||option.name, name, ev):''; var body=vm.text+(bridge?(' '+bridge):''); var photo=(typeof vinMatchPhotoHtml==="function")?vinMatchPhotoHtml(sellState.sellDecision&&sellState.sellDecision.vinArchiveMatch, v):''; return '<div class="pcard-vinmatch">'+photo+'<div class="vin-match-copy">'+esc(body)+(vm.receiptUrl?' <a href="'+esc(vm.receiptUrl)+'" target="_blank" rel="noopener noreferrer" class="vin-receipt-link">View that sale</a>':'')+'</div></div>'; }catch(e){return'';} })()
+        // The exact-car PHOTO already rendered once in the chat-level "I know this exact car"
+        // pre-note above (vinMatchPhotoHtml in the vin-archive-callout). Do NOT render it a
+        // second time inside the card: keep the reasoning line and the "View that sale" link,
+        // drop the image so the same asset never shows twice on one screen.
+        + (function(){ if(over&&over.whyLabel)return''; try{ var vm=(typeof composerVinMatchBullet==="function")?composerVinMatchBullet(v):null; if(!vm)return''; var bridge=(typeof vinBridgeLine==="function")?vinBridgeLine(sellState.sellDecision&&sellState.sellDecision.vinArchiveMatch, slug||option.name, name, ev):''; var body=vm.text+(bridge?(' '+bridge):''); return '<div class="pcard-vinmatch"><div class="vin-match-copy">'+esc(body)+(vm.receiptUrl?' <a href="'+esc(vm.receiptUrl)+'" target="_blank" rel="noopener noreferrer" class="vin-receipt-link">View that sale</a>':'')+'</div></div>'; }catch(e){return'';} })()
         + '<button class="pcard-cta" onclick="'+ctaOnClick+'">Start Listing With '+esc(name)+v2Svg("arrow","cta-arrow")+'</button>'
         + '<div class="pcard-reassure">'+v2Svg("shield")+'<span>You\'ll be taken to '+esc(name)+' to begin your listing. Nothing is committed until you decide to publish.</span></div>'
         + trackLeft
