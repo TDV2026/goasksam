@@ -1004,8 +1004,8 @@ async function handleOps(req, res) {
     const apiKey = process.env.OLDCARSDATA_API_KEY; if (!apiKey) return res.status(500).json({ error: "OLDCARSDATA_API_KEY not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
-    const { fetchRecentRecords, isEvidenceSource } = await import("./sellerDecision.js");
-    const { recordPlatform } = await import("../lib/_classify.js");
+    const { fetchRecentRecords, isEvidenceSource, analyze, buildLadder, decide } = await import("./sellerDecision.js");
+    const { recordPlatform, classifyRecord } = await import("../lib/_classify.js");
     const { hammerUsd, isHouseSource } = await import("../lib/_houseComps.js");
     const q = String(req.query?.q || "1972 Ferrari 365 GTB/4 Daytona");
     const rv = await resolveVehicle(q, {}); const vehicle = rv && rv.vehicle;
@@ -1023,7 +1023,18 @@ async function handleOps(req, res) {
     const table = Object.entries(per).map(([platform, o]) => ({ platform, total: o.total, inWin180: o.inWin180, evidenceEligible: o.evidence, house: o.house, medianHammerInWin: median(o.hammers) })).sort((a, b) => b.total - a.total);
     const houses = table.filter(r => r.house);
     const houseGateClears = houses.filter(h => h.inWin180 >= 5);
+    // Run the REAL decision so we see the actual decision.strongerNonRoutable value (null or a house),
+    // not just the raw gate inputs. Minimal US criteria (region-covered, no target price).
+    let realDecision = null;
+    try {
+      const cls = recs.map(r => classifyRecord(r, vehicle));
+      const analysis = analyze(recs, cls, buildLadder(vehicle, generation), vehicle, false);
+      const criteria = { region: { country: "US", regionLabel: "the US" }, state: "CA", timeline: "flexible", involvement: "diy", notes: "", targetPrice: null };
+      const dec = decide(analysis, criteria, vehicle);
+      realDecision = { recommendedPath: dec.recommendedPath, evidenceBasis: dec.evidenceBasis, landed: analysis.ladder && analysis.ladder.landed ? { key: analysis.ladder.landed.key, sales: analysis.ladder.landed.sales } : null, strongerNonRoutable: dec.strongerNonRoutable || null, routes: (dec.routeFit && dec.routeFit.routes || []).map(rt => ({ platform: rt.platform, routable: rt.routable, evidenceSales: rt.marketEvidence && rt.marketEvidence.evidenceSales, median: rt.marketEvidence && rt.marketEvidence.medianSalePrice })) };
+    } catch (e) { realDecision = { error: String(e && e.message || e) }; }
     return res.status(200).json({
+      realDecision,
       task: "selldiag", q, resolved: `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}`.trim(),
       landedRung: fetched && fetched.ladder && fetched.ladder.landed ? { key: fetched.ladder.landed.key, sales: fetched.ladder.landed.sales } : null,
       totalFetched: recs.length, sourceTable: table,

@@ -697,7 +697,7 @@ function premiumLandedScopeTags(landed) {
   return {};
 }
 
-function buildLadder(vehicle, generation = null) {
+export function buildLadder(vehicle, generation = null) {
   const year = Number.isFinite(Number(vehicle.year)) ? Number(vehicle.year) : null;
   const trim = asText(vehicle.trim) || null;
   const baseModel = asText(vehicle.model);
@@ -1322,7 +1322,7 @@ function computeTransmissionSplit(items, make) {
   return { manual: "manual", auto, manualCount: man.length, autoCount: aut.length };
 }
 
-function analyze(records, classifications, ladder, vehicle, debug, txFilter) {
+export function analyze(records, classifications, ladder, vehicle, debug, txFilter) {
   const pairedRecords = records.map((record, index) => ({ record, classification: classifications[index] }));
   const maxWindow = ANALYSIS_WINDOWS_DAYS[ANALYSIS_WINDOWS_DAYS.length - 1];
   const { walk, landed, thin } = evaluateLadder(pairedRecords, ladder, vehicle);
@@ -1944,7 +1944,7 @@ function wideningFact(analysis) {
   return `The analysis looked at ${landed.label}${countText}.`;
 }
 
-function decide(analysis, criteria, vehicle) {
+export function decide(analysis, criteria, vehicle) {
   const routeFit = analyzeRouteFit(analysis, criteria, vehicle);
   // Reserve context (Phase 1.5): attach the platform+make+asking-price-band cell
   // to every routable platform's evidence, so the composer can render it on the
