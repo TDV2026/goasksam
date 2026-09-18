@@ -1454,39 +1454,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "coverage", ocdMetered, ocdSources, archiveTotal, archivePlatforms, archiveSampleDist, vmrTotal, vmrSources, vmrSampleDist, marketplace, ingestRuns, vinFill, houseCheck });
   }
 
-  // task=ocdunsold: TEMP live probe of OCD's non-sold status filters (Drew, Sep 2026). Tests the
-  // exact "reserve not met" token under 3 encodings (%20 / + / underscore), what "unsold" returns
-  // and whether it preserves auction_status, and totals for the BaT backfill cost math. Remove after.
-  if (task === "ocdunsold") {
-    const src = String(req.query?.src || "bringatrailer");
-    const hdr = { Authorization: `Bearer ${apiKey}` };
-    const probe = async qs => {
-      try {
-        const r = await fetch(`https://api.oldcarsdata.com/auctions?${qs}`, { headers: hdr });
-        const j = await r.json().catch(() => ({}));
-        const rows = j.data || []; const tally = {};
-        for (const rec of rows) { const v = String(rec.auction_status || "(none)"); tally[v] = (tally[v] || 0) + 1; }
-        return { http: r.status, total: j.meta?.total_results ?? j.meta?.total ?? null, returned: rows.length, statusTally: tally };
-      } catch (e) { return { error: String(e && e.message).slice(0, 140) }; }
-    };
-    const out = { task: "ocdunsold", src, at: new Date().toISOString() };
-    out.reserveNotMet_pct20 = await probe(`source=${src}&status=reserve%20not%20met&page=1&limit=100`);
-    out.reserveNotMet_plus = await probe(`source=${src}&status=reserve+not+met&page=1&limit=100`);
-    out.reserveNotMet_underscore = await probe(`source=${src}&status=reserve_not_met&page=1&limit=100`);
-    out.unsold = await probe(`source=${src}&status=unsold&page=1&limit=100`);
-    out.withdrawn = await probe(`source=${src}&status=withdrawn&page=1&limit=100`);
-    out.sold = await probe(`source=${src}&status=sold&page=1&limit=1`);
-    out.sourceTotal = await probe(`source=${src}&page=1&limit=1`);
-    // what OUR client actually sends: callOldCarsData uses URLSearchParams, which encodes a space as "+".
-    try {
-      const r = await callOldCarsData("/auctions", { source: src, status: "reserve not met", page: 1, limit: 100 }, apiKey);
-      const rows = r.data || []; const tally = {};
-      for (const rec of rows) { const v = String(rec.auction_status || "(none)"); tally[v] = (tally[v] || 0) + 1; }
-      out.clientPath_spaceValue = { total: r.meta?.total_results ?? r.meta?.total ?? null, returned: rows.length, statusTally: tally };
-    } catch (e) { out.clientPath_spaceValue = { error: String(e && e.message).slice(0, 140) }; }
-    return res.status(200).json(out);
-  }
-
   // task=houserates: empirical premium-rate calibration. A correct back-out rate turns a
   // premium-INCLUSIVE total into a ROUND hammer (auction hammers land on $500/$1000 steps).
   // Tests candidate rates and reports which reproduces round hammers most often. Also

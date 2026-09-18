@@ -1,7 +1,12 @@
-// Non-sold auction-attempt ingest (Sep 2026). Writes auction_attempts (reserve-not-met +
-// withdrawn) for the FIVE platforms that report non-sold cleanly. STRICTLY SEPARATE from
-// sales_archive. "reserve not met" isn't filterable at the API, so we pull UNFILTERED and
-// keep only genuine non-sold rows client-side. Run in GitHub Actions (paced, heavy).
+// Non-sold auction-attempt ingest. Writes auction_attempts (reserve-not-met + withdrawn) for
+// the FIVE platforms that report non-sold cleanly. STRICTLY SEPARATE from sales_archive.
+// Sep 2026 (Drew/OCD): non-sold IS filterable - `status=unsold` returns the reserve-not-met +
+// withdrawn union in ONE query and each row KEEPS its auction_status, so we split the two
+// client-side by that field (verified live: BaT unsold 54,219 = 53,280 reserve-not-met + 930
+// withdrawn). This replaces the old unfiltered full-corpus paging (which walked all ~245k BaT
+// records to extract ~54k non-sold); the direct filter is ~4.5x cheaper. The exact token is
+// "reserve not met" WITH SPACES ("reserve_not_met" 400s); OCD accepts the space as %20 or +,
+// and our URLSearchParams client (which sends +) works as-is. Run in GitHub Actions (paced).
 //
 //   node scripts/ingestAttempts.js                 last 12 months (default), all 5 clean sources
 //   node scripts/ingestAttempts.js --months=12 --sources=carsandbids,hagerty,sothebysmotorsport,mbmarket
@@ -41,13 +46,15 @@ for (const source of SOURCES) {
   let kept = 0, sourceErr = null;
   for (let p = 1; p <= 3000; p++) {
     metered++;
-    let r; try { r = await ocd({ source, sort: "date", direction: "desc", page: p, limit: 100 }); }
+    // status=unsold: the reserve-not-met + withdrawn union in one filtered query (Drew, Sep 2026).
+    // Each row still carries its own auction_status, so normStatus below splits the two cleanly.
+    let r; try { r = await ocd({ source, status: "unsold", sort: "date", direction: "desc", page: p, limit: 100 }); }
     catch (e) { console.error(`\n${source} p${p} FAILED: ${e.message}`); sourceErr = `p${p}: ${e.message}`; break; }
     const rows = r.data || []; if (!rows.length) break;
     let oldest = null;
     for (const rec of rows) {
       const d = toDate(rec.auction_end_date); if (d && (!oldest || d < oldest)) oldest = d;
-      const status = normStatus(String(rec.auction_status || "")); if (!status) continue;   // keep ONLY reserve_not_met / withdrawn
+      const status = normStatus(String(rec.auction_status || "")); if (!status) continue;   // reserve_not_met / withdrawn (safety net; the filter already excludes sold)
       if (d && dayKey(d) < cutoff) continue;
       attempts.push({
         source_slug: source, source_record_id: String(rec.id ?? ""),
