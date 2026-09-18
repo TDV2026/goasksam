@@ -55,22 +55,53 @@ const batch = [];
 for (let i = 0; i < Math.min(COUNT, list.length); i++) { batch.push(list[(cursor + i) % list.length]); }
 saveCursor((cursor + batch.length) % list.length);
 
+// Vercel Protection Bypass for Automation: /api/sellerDecision sits behind the Vercel
+// firewall's Security Checkpoint, which 429s a headless (non-browser) client like this
+// GitHub Actions runner. The bypass secret (x-vercel-protection-bypass header) clears the
+// checkpoint. Project-wide secret, stored ONLY as the VERCEL_AUTOMATION_BYPASS_SECRET GitHub
+// Actions secret and passed in via env; never hardcoded. Absent -> we warn once and every
+// call will fail the res.ok check below (loud), instead of the old phantom-"warmed" success.
+const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || "";
+if (!BYPASS) console.error("::warning::VERCEL_AUTOMATION_BYPASS_SECRET is not set; warm calls will be blocked by the Vercel Security Checkpoint (429).");
+const reqHeaders = { "Content-Type": "application/json", ...(BYPASS ? { "x-vercel-protection-bypass": BYPASS } : {}) };
+
 console.log(`Warming ${batch.length} nameplate(s) from a ${list.length}-entry list (cursor ${cursor}).`);
-let warmed = 0, degraded = 0, spent = 0;
+let warmed = 0, degraded = 0, spent = 0, failed = 0;
+const failures = [];
 for (const [make, model] of batch) {
   const vehicle = make ? { raw: `${make} ${model}`, make, model, confidence: "high" } : { raw: model, confidence: "high" };
+  const label = `${make || ""} ${model}`.trim();
   try {
     const res = await fetch(`${BASE}/api/sellerDecision`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST", headers: reqHeaders,
       body: JSON.stringify({ warm: true, car: { vehicle, region: "US" } })
     });
-    const j = await res.json().catch(() => ({}));
+    // FAIL LOUD (defect: the old code did res.json().catch(()=>({})), so a 429 bot-checkpoint
+    // HTML page silently became {} and still counted as "warmed"). A non-2xx, or a 2xx whose
+    // body is not a real decision, is a hard failure now - never a phantom success.
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      const reason = /Vercel Security Checkpoint/i.test(body)
+        ? `HTTP ${res.status} Vercel Security Checkpoint (bot firewall) - VERCEL_AUTOMATION_BYPASS_SECRET missing or invalid`
+        : `HTTP ${res.status} - ${body.slice(0, 120)}`;
+      throw new Error(reason);
+    }
+    const j = await res.json().catch(() => null);
+    if (!j || (!j.evidence && !j.decision && !j.status)) {
+      throw new Error(`2xx but no decision body (keys: ${j ? Object.keys(j).join(",") : "non-json"})`);
+    }
     const fs2 = j.evidence?.fetchStrategy || {};
     spent += Number(fs2.meteredRequests || 0);
     const budgetHit = /budget/.test(String(fs2.stopReason || ""));
     if (budgetHit) degraded++; else warmed++;
-    console.log(`  ${warmed + degraded}. ${make || ""} ${model}: ${budgetHit ? "budget-reserved (stopped, search headroom kept)" : `warmed (${fs2.meteredRequests || 0} metered, cache=${fs2.marketFetchCache})`}`);
+    console.log(`  ${warmed + degraded}. ${label}: ${budgetHit ? "budget-reserved (stopped, search headroom kept)" : `warmed (${fs2.meteredRequests || 0} metered, cache=${fs2.marketFetchCache})`}`);
     if (budgetHit) break; // warm reserve reached: stop, leave the rest for searches
-  } catch (e) { console.error(`  ${make} ${model}: ${e.message}`); }
+  } catch (e) { failed++; failures.push(`${label}: ${e.message}`); console.error(`::error::warm ${label} FAILED: ${e.message}`); }
 }
-console.log(`\nDONE. warmed=${warmed} stopped-on-reserve=${degraded} metered=${spent}.`);
+console.log(`\nDONE. warmed=${warmed} stopped-on-reserve=${degraded} failed=${failed} metered=${spent}.`);
+// A warm run where every call failed (or any call failed) is a real red, not a green exit-0.
+// This is what should have been happening while the bot checkpoint was silently bouncing warm.
+if (failed > 0) {
+  console.error(`::error::warm: ${failed}/${batch.length} call(s) failed and reached no decision. First few: ${failures.slice(0, 3).join(" | ")}`);
+  process.exit(1);
+}
