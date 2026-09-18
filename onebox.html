@@ -389,6 +389,7 @@ a.bcard:hover{border-color:color-mix(in srgb,var(--green) 55%,var(--line))}
 .blabel{align-self:flex-start;font:600 9.5px/1 var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--clay);border:1px solid color-mix(in srgb,var(--clay) 32%,var(--line));border-radius:5px;padding:4px 7px;margin-bottom:9px}
 .bcard .bprice{font:700 20px/1 var(--mono);letter-spacing:-.02em}
 .bcard .bmeta{font:600 11.5px/1.3 var(--mono);color:var(--slate);margin-top:6px}
+.bcard .btitle{font:600 12px/1.35 var(--grotesk);color:var(--ink);margin-top:7px}
 .allin{font:600 .5em/1 var(--mono);color:var(--faint);letter-spacing:0;white-space:nowrap}
 .showall .allhead{display:flex;align-items:baseline;justify-content:space-between;margin:18px 0 12px}
 .showall .allhead .lab{font:600 11px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--faint)}
@@ -452,6 +453,6 @@ a.htr:hover .htx{color:var(--green);border-color:var(--green)}
 function obToggleRail(open){var r=document.getElementById("ob-rail"),s=document.getElementById("ob-scrim");if(!r)return;var on=(open===undefined)?!r.classList.contains("open"):!!open;r.classList.toggle("open",on);if(s)s.classList.toggle("open",on);}
 function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("ob-results-menu");if(m)m.classList.toggle("open");return false;}
 </script>
-<script src="/obx.20260916m/onebox.js"></script>
+<script src="/obx.20260919a/onebox.js"></script>
 </body>
 </html>

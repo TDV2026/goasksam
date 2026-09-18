@@ -518,7 +518,11 @@
     var lbl = DELTA_LABEL[c.delta] || "Recent sale";
     var meta = '<span class="num">' + esc(c.mileageText) + "</span>" + (c.transmission ? '<span class="dot">&middot;</span>' + esc(cap(String(c.transmission))) : "") + '<span class="dot">&middot;</span>' + esc(monthYear(c.date));
     var inner = '<div class="bth">' + img + ext + '<div class="plate" style="display:' + (c.image ? "none" : "flex") + '"><div class="n">' + esc(c.title) + '</div></div></div>' +
-      '<div class="bb"><span class="blabel">' + esc(lbl) + '</span><div class="bprice num">' + repPrice(c) + '</div><div class="bmeta">' + meta + "</div></div>";
+      '<div class="bb"><span class="blabel">' + esc(lbl) + '</span><div class="bprice num">' + repPrice(c) + '</div>' +
+      // Name the car as VISIBLE text (year/model/trim), not only in the image-plate that hides when
+      // the photo loads - a bracket must never render as an unlabelled $600k "peer" (Sep 2026 fix).
+      (c.title ? '<div class="btitle">' + esc(c.title) + '</div>' : "") +
+      '<div class="bmeta">' + meta + "</div></div>";
     var href = utmUrl(c.url);
     return href ? '<a class="bcard" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="bcard">' + inner + "</div>";
   }
@@ -819,7 +823,10 @@
     else if (d.tier === "result") body = resultHtml(d, m);
     else body = '<div class="sam" data-stage="answer"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s read</div><p>' +
       lint(esc("I don’t have enough real " + carLabel(d.resolvedCar) + " sales to show you an honest read, and I won’t make one up. Try another car and I’ll pull what actually sold."), "zero") + "</p></div></div>" + sellHtml();
-    root.innerHTML = inboxHtml(lastQuery) + head + body + footHtml();
+    // Result/thin/class bodies already end with their own ".trust" disclaimer; only append the
+    // generic footHtml() when the body has none (zero/refusal), so the "No estimates. No
+    // valuations." line never renders twice on one page (Sep 2026 fix).
+    root.innerHTML = inboxHtml(lastQuery) + head + body + (body.indexOf('class="trust"') < 0 ? footHtml() : "");
     wire();
     streamReveal();
   }
@@ -1166,8 +1173,18 @@
       // "1990 BMW E30 M3" and "1990 BMW" from different flow states.
       var label = (vinAnchor && vinAnchor.displayName) ? vinAnchor.displayName
         : ((d && d.resolvedCar) ? carLabel(d.resolvedCar) : q);
-      var img = (vinAnchor && vinAnchor.photoUrl) ? vinAnchor.photoUrl : null;
-      var key = String(label || q).toLowerCase().replace(/\s+/g, " ").trim();
+      // Dedup on the CAR, body-INDEPENDENT: "1994 Porsche 911 Coupe" and "1994 Porsche 911" are the
+      // same car at different flow states and must collapse to one entry. carLabel appends the body
+      // word, so the key is rebuilt WITHOUT it (year/make/model/trim only).
+      var rc = d && d.resolvedCar;
+      var keyBase = (vinAnchor && vinAnchor.displayName) ? vinAnchor.displayName
+        : (rc ? [rc.year, rc.make, rc.model, rc.trim].filter(Boolean).join(" ") : (label || q));
+      // Thumbnail: exact-car photo when VIN-anchored, else the closest comp's photo so a text search
+      // gets a real thumbnail instead of a blank grey plate.
+      var img = (vinAnchor && vinAnchor.photoUrl) ? vinAnchor.photoUrl
+        : (d && d.representative && d.representative.closest && d.representative.closest.image) ? d.representative.closest.image
+        : null;
+      var key = String(keyBase || q).toLowerCase().replace(/\s+/g, " ").trim();
       var list = recentSearches().filter(function (it) { return (it.key || String(it.label || it.q || "").toLowerCase().replace(/\s+/g, " ").trim()) !== key; });
       list.unshift({ q: q, label: label || q, img: img, key: key, when: "Just now" });
       localStorage.setItem("gas_ob_recent", JSON.stringify(list.slice(0, 8)));
