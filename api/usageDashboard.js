@@ -1487,9 +1487,12 @@ async function handleOps(req, res) {
     const sinceDay = dayStart.toISOString();
     // ATTEMPTS: rows the nightly attempts job just wrote (created_at today).
     try {
-      const arows = await supabaseSelect(env, `auction_attempts?created_at=gte.${sinceDay}&select=source_slug,auction_status,attempt_date&limit=10000`) || [];
+      const arows = await supabaseSelect(env, `auction_attempts?created_at=gte.${sinceDay}&select=source_slug,auction_status,attempt_date,high_bid&limit=10000`) || [];
       const bySrc = {}; for (const r of arows) { const k = r.source_slug || "?"; (bySrc[k] = bySrc[k] || { total: 0, reserve_not_met: 0, withdrawn: 0 }); bySrc[k].total++; if (r.auction_status === "reserve_not_met") bySrc[k].reserve_not_met++; else if (r.auction_status === "withdrawn") bySrc[k].withdrawn++; }
-      out.attempts = { writtenTodayUTC: arows.length, perSource: bySrc, latestAttemptDate: arows.map(r => r.attempt_date).filter(Boolean).sort().slice(-1)[0] || null };
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const future = arows.filter(r => r.attempt_date && String(r.attempt_date).slice(0, 10) > todayStr);
+      out.attempts = { writtenTodayUTC: arows.length, perSource: bySrc, latestAttemptDate: arows.map(r => r.attempt_date).filter(Boolean).sort().slice(-1)[0] || null,
+        futureDatedCount: future.length, futureDatedSample: future.slice(0, 6).map(r => ({ src: r.source_slug, status: r.auction_status, attempt_date: r.attempt_date, high_bid: r.high_bid })) };
     } catch (e) { out.attempts = { error: String(e.message).slice(0, 120) }; }
     // INGEST: no created_at on sales_archive, so this is a FRESHNESS proxy (max sale_date + recent
     // rows by source), not proof the specific 08:30 run ran. Flagged as such in the report.
