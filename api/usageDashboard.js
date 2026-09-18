@@ -440,7 +440,10 @@ async function handleOps(req, res) {
   // task=status: spend + budget headroom + OCD's OWN remaining quota (1 metered
   // call reads the live rate-limit header), so we can tell if OCD itself is the wall.
   if (task === "status") {
-    const spentToday = await meteredToday();
+    const spentTodayAllEvents = await meteredToday();
+    const todayStart = new Date(); todayStart.setUTCHours(0, 0, 0, 0);
+    const readerTodayRows = env ? await supabaseSelect(env, `app_usage_events?created_at=gte.${todayStart.toISOString()}&event_type=eq.seller_decision&oldcarsdata_metered_requests=gt.0&select=oldcarsdata_metered_requests&limit=5000`) : null;
+    const spentTodayReader = readerTodayRows ? readerTodayRows.reduce((s, r) => s + (Number(r.oldcarsdata_metered_requests) || 0), 0) : null;
     const monthStart = new Date(new Date().toISOString().slice(0, 7) + "-01T00:00:00Z").toISOString();
     // Internal reader-facing sum (seller_decision only) is the recurring-spend view; the ALL-events
     // sum (incl one-time ingest/backfill) is kept for cost visibility but is NOT the headline
@@ -460,9 +463,9 @@ async function handleOps(req, res) {
     const monthlyRemaining = ocdRemaining !== null ? ocdRemaining : (spentMonthReader != null ? monthlyBudget - spentMonthReader : null);
     const monthlyRemainingSource = ocdRemaining !== null ? "ocd_header" : "internal_seller_decision";
     return res.status(200).json({
-      task: "status", dailyBudget, monthlyBudget, spentToday,
-      spentMonthReader, spentMonthAllEvents,
-      dailyRemaining: spentToday != null ? dailyBudget - spentToday : null,
+      task: "status", dailyBudget, monthlyBudget,
+      spentTodayReader, spentTodayAllEvents, spentMonthReader, spentMonthAllEvents,
+      dailyRemaining: spentTodayReader != null ? dailyBudget - spentTodayReader : null,
       monthlyRemaining, monthlyRemainingSource, ocdApiRateLimit: ocd
     });
   }
