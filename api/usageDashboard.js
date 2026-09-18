@@ -1471,16 +1471,41 @@ async function handleOps(req, res) {
       (isInternal(ua) ? warm : reader).push(rec);
       if (!newestRL && r.metadata && r.metadata.ocdRateLimit) newestRL = { at: r.created_at, rl: r.metadata.ocdRateLimit };
     }
-    return res.status(200).json({
+    const out = {
       task: "warmverify", windowMins: mins, since,
-      warmCount: warm.length, readerCount: reader.length,
-      warmDecisionsReady: warm.filter(w => w.status === "decision_ready").length,
-      warmMeteredTotal: warm.reduce((a, w) => a + w.metered, 0),
-      warmFreshFetches: warm.filter(w => w.metered > 0).length,
-      warmBudgetDegraded: warm.filter(w => /budget/.test(String(w.cache || ""))).length,
-      warmSample: warm.slice(0, 20),
-      ocdAuthoritativeRemaining: newestRL
-    });
+      warm: {
+        warmCount: warm.length, readerCount: reader.length,
+        warmDecisionsReady: warm.filter(w => w.status === "decision_ready").length,
+        warmMeteredTotal: warm.reduce((a, w) => a + w.metered, 0),
+        warmFreshFetches: warm.filter(w => w.metered > 0).length,
+        warmBudgetDegraded: warm.filter(w => /budget/.test(String(w.cache || ""))).length,
+        warmSample: warm.slice(0, 20),
+        ocdAuthoritativeRemaining: newestRL
+      }
+    };
+    const dayStart = new Date(); dayStart.setUTCHours(0, 0, 0, 0);
+    const sinceDay = dayStart.toISOString();
+    // ATTEMPTS: rows the nightly attempts job just wrote (created_at today).
+    try {
+      const arows = await supabaseSelect(env, `auction_attempts?created_at=gte.${sinceDay}&select=source_slug,auction_status,attempt_date&limit=10000`) || [];
+      const bySrc = {}; for (const r of arows) { const k = r.source_slug || "?"; (bySrc[k] = bySrc[k] || { total: 0, reserve_not_met: 0, withdrawn: 0 }); bySrc[k].total++; if (r.auction_status === "reserve_not_met") bySrc[k].reserve_not_met++; else if (r.auction_status === "withdrawn") bySrc[k].withdrawn++; }
+      out.attempts = { writtenTodayUTC: arows.length, perSource: bySrc, latestAttemptDate: arows.map(r => r.attempt_date).filter(Boolean).sort().slice(-1)[0] || null };
+    } catch (e) { out.attempts = { error: String(e.message).slice(0, 120) }; }
+    // INGEST: no created_at on sales_archive, so this is a FRESHNESS proxy (max sale_date + recent
+    // rows by source), not proof the specific 08:30 run ran. Flagged as such in the report.
+    try {
+      const since2 = new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10);
+      const srows = await supabaseSelect(env, `sales_archive?sale_date=gte.${since2}&select=source_slug,sale_date&limit=20000`) || [];
+      const bySrc = {}; let maxDate = null; for (const r of srows) { const k = r.source_slug || "?"; bySrc[k] = (bySrc[k] || 0) + 1; const d = String(r.sale_date).slice(0, 10); if (!maxDate || d > maxDate) maxDate = d; }
+      out.ingest = { note: "freshness proxy (sales_archive has no ingest timestamp)", rowsWithSaleDateLast2d: srows.length, maxSaleDate: maxDate, perSourceLast2d: bySrc };
+    } catch (e) { out.ingest = { error: String(e.message).slice(0, 120) }; }
+    // PREMIUM: partners.specialties.premium.computedAt shows the nightly recompute ran (gate-
+    // passing partners get a fresh timestamp; gate-failers have premium removed = no timestamp).
+    try {
+      const prows = await supabaseSelect(env, `partners?select=name,active,specialties&limit=50`) || [];
+      out.premium = prows.map(p => { const pr = (p.specialties && p.specialties.premium) || null; return { partner: p.name, active: p.active, premiumPct: pr ? pr.pct : null, n: pr ? pr.n : null, computedAt: pr ? pr.computedAt : null }; });
+    } catch (e) { out.premium = { error: String(e.message).slice(0, 120) }; }
+    return res.status(200).json(out);
   }
 
   // task=houserates: empirical premium-rate calibration. A correct back-out rate turns a
