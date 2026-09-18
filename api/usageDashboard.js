@@ -1454,64 +1454,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "coverage", ocdMetered, ocdSources, archiveTotal, archivePlatforms, archiveSampleDist, vmrTotal, vmrSources, vmrSampleDist, marketplace, ingestRuns, vinFill, houseCheck });
   }
 
-  // task=nightcost: TEMP - real nightly OCD spend picture. (A) reader vs warm daily metered from
-  // app_usage_events (split by user_agent), plus OCD's authoritative account-wide remaining from
-  // the newest event's ocdRateLimit. (B) ingest --delta est from real new rows/day/source.
-  // (C) attempts --months=1 real per-source page cost via live status=unsold. Remove after.
-  if (task === "nightcost") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    const out = { task: "nightcost", at: new Date().toISOString() };
-    // (A) seller_decision events last 14d.
-    const since14 = new Date(Date.now() - 14 * 864e5).toISOString();
-    const ev = await supabaseSelect(env, `app_usage_events?event_type=eq.seller_decision&created_at=gte.${since14}&select=created_at,oldcarsdata_metered_requests,metadata&order=created_at.desc&limit=8000`) || [];
-    const isInternal = ua => !ua || /node|undici|axios|curl|python|go-http/i.test(String(ua));
-    const perDay = {}; let newestRL = null;
-    for (const e of ev) {
-      const day = String(e.created_at).slice(0, 10);
-      const m = Number(e.oldcarsdata_metered_requests) || 0;
-      const ua = e.metadata && e.metadata.user_agent;
-      const warm = isInternal(ua);
-      const d = perDay[day] || (perDay[day] = { readerReqs: 0, readerMetered: 0, warmReqs: 0, warmMetered: 0 });
-      if (warm) { d.warmReqs++; d.warmMetered += m; } else { d.readerReqs++; d.readerMetered += m; }
-      if (!newestRL && e.metadata && e.metadata.ocdRateLimit) newestRL = { at: e.created_at, rl: e.metadata.ocdRateLimit };
-    }
-    const days = Object.keys(perDay).sort().reverse();
-    out.sellerDecision14d = days.map(day => ({ day, ...perDay[day], totalMetered: perDay[day].readerMetered + perDay[day].warmMetered }));
-    const avg = (sel) => days.length ? Math.round(days.reduce((a, day) => a + sel(perDay[day]), 0) / days.length) : 0;
-    out.dailyAverages = { readerMetered: avg(d => d.readerMetered), warmMetered: avg(d => d.warmMetered), readerSearches: avg(d => d.readerReqs), warmSearches: avg(d => d.warmReqs) };
-    out.ocdAuthoritativeRemaining = newestRL; // from OCD's own rate-limit header, zero extra spend
-    // (B) ingest --delta est: real new rows/day/source over the last 5 full days.
-    const since5 = new Date(Date.now() - 5 * 864e5).toISOString().slice(0, 10);
-    const rows = await supabaseSelect(env, `sales_archive?sale_date=gte.${since5}&select=source_slug,sale_date&limit=20000`) || [];
-    const bySrcDay = {};
-    for (const r of rows) { const k = r.source_slug || "?"; (bySrcDay[k] = bySrcDay[k] || {}); const day = String(r.sale_date).slice(0, 10); bySrcDay[k][day] = (bySrcDay[k][day] || 0) + 1; }
-    const ingestPerSource = Object.entries(bySrcDay).map(([src, dd]) => { const vals = Object.values(dd); const perDayMax = Math.max(...vals); const perDayAvg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length); return { src, avgNewPerDay: perDayAvg, maxNewPerDay: perDayMax, deltaPagesPerNight: Math.max(1, Math.ceil(perDayMax / 100)) }; }).sort((a, b) => b.avgNewPerDay - a.avgNewPerDay);
-    out.ingestDelta = { perSource: ingestPerSource, estRequestsPerNight: ingestPerSource.reduce((a, s) => a + s.deltaPagesPerNight, 0), note: "delta is stop-on-known: ~1 page/source unless a source adds >100/day; based on real new rows/day over last 5 days" };
-    // (C) attempts --months=1 real per-source cost via live status=unsold (30d window).
-    const hdr = { Authorization: `Bearer ${apiKey}` };
-    const cutoff30 = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
-    const clean = String(req.query?.sources || "bringatrailer,carsandbids,hagerty,sothebysmotorsport,mbmarket").split(",");
-    const attempts = []; let attMetered = 0;
-    for (const src of clean) {
-      let count = 0, pages = 0;
-      for (let p = 1; p <= 40; p++) {
-        attMetered++;
-        let j; try { const r = await fetch(`https://api.oldcarsdata.com/auctions?source=${src}&status=unsold&sort=date&direction=desc&page=${p}&limit=100`, { headers: hdr }); j = await r.json().catch(() => ({})); } catch (e) { break; }
-        const rws = j.data || []; if (!rws.length) break;
-        let oldest = null;
-        for (const rec of rws) { const d = String(rec.auction_end_date || "").slice(0, 10); if (d && (!oldest || d < oldest)) oldest = d; if (d && d >= cutoff30) count++; }
-        pages = p;
-        if (oldest && oldest < cutoff30) break;
-        if (p >= (j.meta?.total_pages || 1)) break;
-      }
-      attempts.push({ src, nonSoldLast30d: count, pagesWalked: pages });
-    }
-    out.attemptsDelta = { window: `last 30d (>= ${cutoff30})`, perSource: attempts, batAlone: attempts.find(a => a.src === "bringatrailer")?.pagesWalked || null, all5Total: attempts.reduce((a, s) => a + s.pagesWalked, 0), probeMetered: attMetered };
-    out.monthlyQuota = 10000;
-    return res.status(200).json(out);
-  }
-
   // task=houserates: empirical premium-rate calibration. A correct back-out rate turns a
   // premium-INCLUSIVE total into a ROUND hammer (auction hammers land on $500/$1000 steps).
   // Tests candidate rates and reports which reproduces round hammers most often. Also
