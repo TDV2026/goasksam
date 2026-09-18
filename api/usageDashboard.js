@@ -1473,30 +1473,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "coverage", ocdMetered, ocdSources, archiveTotal, archivePlatforms, archiveSampleDist, vmrTotal, vmrSources, vmrSampleDist, marketplace, ingestRuns, vinFill, houseCheck });
   }
 
-  // task=outliertune: TEMP - before/after for the outlier-guard threshold pick. For the 964-911
-  // bracket pool and the 1950s-Maserati class pool, show the median and, at candidate median
-  // ratios, what each ratio excludes (halo highs / data-error lows). Read-only, zero OCD.
-  if (task === "outliertune") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { hammerUsd } = await import("../lib/_houseComps.js");
-    const med = a => { const s = a.filter(n => n > 0).sort((x, y) => x - y); return s.length ? s[Math.floor((s.length - 1) / 2)] : 0; };
-    const ratios = [3, 4, 5, 6, 8];
-    const analyze = async (filter, label) => {
-      const rows = await supabaseSelect(env, `sales_archive?${filter}&sale_price=not.is.null&select=year,listing_title,source_slug,platform,sale_price&limit=3000`) || [];
-      const prices = rows.map(r => Math.round(hammerUsd({ source_slug: r.source_slug, source: r.platform, price: Number(r.sale_price), currency: "USD" }))).filter(n => n > 0).sort((a, b) => a - b);
-      const m = med(prices);
-      const grid = ratios.map(r => {
-        const hi = m * r, lo = m / r;
-        const exHi = prices.filter(p => p > hi), exLo = prices.filter(p => p < lo);
-        return { ratio: r, hiFence: Math.round(hi), loFence: Math.round(lo), excludedHigh: exHi.length, excludedLow: exLo.length, kept: prices.length - exHi.length - exLo.length };
-      });
-      return { label, n: prices.length, median: m, p10: prices[Math.floor(prices.length * 0.1)], p90: prices[Math.floor(prices.length * 0.9)], min: prices[0], max: prices[prices.length - 1], grid };
-    };
-    const p911 = await analyze("model=ilike.*911*&year=gte.1990&year=lte.1994", "964-era 911 (1990-1994) bracket pool");
-    const pmas = await analyze("make=ilike.*Maserati*&year=gte.1950&year=lte.1959", "1950s Maserati class pool");
-    return res.status(200).json({ task: "outliertune", note: "hiFence=median*ratio, loFence=median/ratio; excludedHigh/Low = records the fence would drop", pools: [p911, pmas] });
-  }
-
   // task=houserates: empirical premium-rate calibration. A correct back-out rate turns a
   // premium-INCLUSIVE total into a ROUND hammer (auction hammers land on $500/$1000 steps).
   // Tests candidate rates and reports which reproduces round hammers most often. Also
