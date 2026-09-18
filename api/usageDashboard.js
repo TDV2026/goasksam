@@ -1454,6 +1454,33 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "coverage", ocdMetered, ocdSources, archiveTotal, archivePlatforms, archiveSampleDist, vmrTotal, vmrSources, vmrSampleDist, marketplace, ingestRuns, vinFill, houseCheck });
   }
 
+  // task=warmverify: TEMP - did the just-run warm job reach /api/sellerDecision and get real
+  // decisions? Reads app_usage_events seller_decision rows in a recent window, splits warm
+  // (non-browser UA) from reader, shows status/metered/cache. Zero OCD read. Remove after.
+  if (task === "warmverify") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const mins = Math.max(5, Math.min(720, Number(req.query?.mins || 90)));
+    const since = new Date(Date.now() - mins * 60000).toISOString();
+    const rows = await supabaseSelect(env, `app_usage_events?event_type=eq.seller_decision&created_at=gte.${since}&select=created_at,status,oldcarsdata_metered_requests,search_text,metadata&order=created_at.desc&limit=500`) || [];
+    const isInternal = ua => !ua || /node|undici|axios|curl|python|go-http/i.test(String(ua));
+    const warm = [], reader = [];
+    let newestRL = null;
+    for (const r of rows) {
+      const ua = r.metadata && r.metadata.user_agent;
+      const rec = { at: r.created_at, status: r.status, metered: Number(r.oldcarsdata_metered_requests) || 0, car: String(r.search_text || "").slice(0, 40), cache: r.metadata && r.metadata.marketFetchCache, ua: ua ? String(ua).slice(0, 40) : null };
+      (isInternal(ua) ? warm : reader).push(rec);
+      if (!newestRL && r.metadata && r.metadata.ocdRateLimit) newestRL = { at: r.created_at, rl: r.metadata.ocdRateLimit };
+    }
+    return res.status(200).json({
+      task: "warmverify", windowMins: mins, since,
+      warmCount: warm.length, readerCount: reader.length,
+      warmDecisionsReady: warm.filter(w => w.status === "decision_ready").length,
+      warmSample: warm.slice(0, 12),
+      warmMeteredTotal: warm.reduce((a, w) => a + w.metered, 0),
+      ocdAuthoritativeRemaining: newestRL
+    });
+  }
+
   // task=houserates: empirical premium-rate calibration. A correct back-out rate turns a
   // premium-INCLUSIVE total into a ROUND hammer (auction hammers land on $500/$1000 steps).
   // Tests candidate rates and reports which reproduces round hammers most often. Also
