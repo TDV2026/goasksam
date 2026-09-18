@@ -1454,47 +1454,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "coverage", ocdMetered, ocdSources, archiveTotal, archivePlatforms, archiveSampleDist, vmrTotal, vmrSources, vmrSampleDist, marketplace, ingestRuns, vinFill, houseCheck });
   }
 
-  // task=meteraudit: TEMP - why does the internal monthly meter (spentMonth) read ~4.6x OCD's own
-  // used count? Breaks app_usage_events oldcarsdata_metered_requests (month-to-date) down by
-  // event_type / day / route, flags duplicate logging, and shows the daily cumulative vs the warm
-  // reserve. Read-only, zero OCD. Remove after.
-  if (task === "meteraudit") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const monthStart = new Date(new Date().toISOString().slice(0, 7) + "-01T00:00:00Z").toISOString();
-    // paginate all metered>0 events this month (keyset on created_at)
-    const rows = []; let cursor = monthStart;
-    for (let p = 0; p < 40; p++) {
-      const q = `app_usage_events?created_at=gte.${encodeURIComponent(cursor)}&oldcarsdata_metered_requests=gt.0&select=id,created_at,event_type,route,status,oldcarsdata_metered_requests,search_text,metadata&order=created_at.asc&limit=1000`;
-      const batch = await supabaseSelect(env, q); if (!batch || !batch.length) break;
-      for (const r of batch) if (!rows.length || r.id !== rows[rows.length - 1].id) rows.push(r);
-      if (batch.length < 1000) break;
-      cursor = batch[batch.length - 1].created_at;
-    }
-    const sum = (arr, sel = r => Number(r.oldcarsdata_metered_requests) || 0) => arr.reduce((a, r) => a + sel(r), 0);
-    const grpSum = (keyer) => { const o = {}; for (const r of rows) { const k = keyer(r) || "(none)"; (o[k] = o[k] || { count: 0, metered: 0 }); o[k].count++; o[k].metered += Number(r.oldcarsdata_metered_requests) || 0; } return o; };
-    const byType = grpSum(r => r.event_type);
-    const byRoute = grpSum(r => r.route);
-    const byStatus = grpSum(r => r.status);
-    const byDay = grpSum(r => String(r.created_at).slice(0, 10));
-    const byUA = grpSum(r => { const ua = r.metadata && r.metadata.user_agent; return (!ua || /node|undici|axios|curl|python|go-http/i.test(String(ua))) ? "internal/node" : "browser"; });
-    // duplicate-logging check: same search_text + same second, metered>0, appearing >1x
-    const keyCount = {}; for (const r of rows) { const k = `${String(r.search_text || "").slice(0, 30)}|${String(r.created_at).slice(0, 19)}|${r.oldcarsdata_metered_requests}`; keyCount[k] = (keyCount[k] || 0) + 1; }
-    const dupGroups = Object.entries(keyCount).filter(([, c]) => c > 1);
-    const dupExtraEvents = dupGroups.reduce((a, [, c]) => a + (c - 1), 0);
-    // day-by-day cumulative vs warm monthly reserve (0.7 * 10000 = 7000)
-    const days = Object.keys(byDay).sort(); let cum = 0; const cumTrail = [];
-    for (const d of days) { cum += byDay[d].metered; cumTrail.push({ day: d, dayMetered: byDay[d].metered, cumulative: cum, overWarmReserve7000: cum >= 7000 }); }
-    // biggest single metered events (what individual rows cost the most)
-    const topEvents = rows.slice().sort((a, b) => b.oldcarsdata_metered_requests - a.oldcarsdata_metered_requests).slice(0, 10).map(r => ({ at: r.created_at, type: r.event_type, route: r.route, status: r.status, metered: r.oldcarsdata_metered_requests, car: String(r.search_text || "").slice(0, 30) }));
-    return res.status(200).json({
-      task: "meteraudit", monthStart, totalMeteredEventsRows: rows.length, internalMeteredSum: sum(rows),
-      note: "OCD header authoritative used ~= 1710; this sum is the internal spentMonth figure",
-      byEventType: byType, byStatus, byRoute, byUserAgent: byUA,
-      duplicateGroups: dupGroups.length, duplicateExtraEventsCounted: dupExtraEvents,
-      dailyCumulativeVsWarmReserve: cumTrail, topSingleEvents: topEvents
-    });
-  }
-
   // task=houserates: empirical premium-rate calibration. A correct back-out rate turns a
   // premium-INCLUSIVE total into a ROUND hammer (auction hammers land on $500/$1000 steps).
   // Tests candidate rates and reports which reproduces round hammers most often. Also
