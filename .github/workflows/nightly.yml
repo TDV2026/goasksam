@@ -78,9 +78,7 @@ jobs:
     # so a large historical pull never also spends warm budget. continue-on-error
     # keeps a best-effort warm blip from marking the whole run failed.
     #
-    # TEMPORARY: workflow_dispatch added alongside schedule for one-off same-day
-    # verification of the Vercel bypass fix. Revert to schedule-only after confirming.
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' 
     continue-on-error: true
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
