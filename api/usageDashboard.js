@@ -1473,27 +1473,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "coverage", ocdMetered, ocdSources, archiveTotal, archivePlatforms, archiveSampleDist, vmrTotal, vmrSources, vmrSampleDist, marketplace, ingestRuns, vinFill, houseCheck });
   }
 
-  // task=contamcheck: TEMP - identify the two contamination records (the $600k nameless 964-era
-  // 911 bracket card, and the ~$5,518 1950s Maserati class-era floor). Read-only, zero OCD.
-  if (task === "contamcheck") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { hammerUsd, isHouseSource } = await import("../lib/_houseComps.js");
-    const { isMemorabilia, isPartsListing } = await import("../lib/_classify.js");
-    const out = { task: "contamcheck" };
-    // 964-era 911 pool (1990-1994), matching One Box's model+year scope for "1994 911 coupe".
-    const p911 = await supabaseSelect(env, `sales_archive?model=ilike.*911*&year=gte.1990&year=lte.1994&sale_price=not.is.null&select=year,make,model,listing_title,vin,source_slug,platform,sale_date,mileage,sale_price&limit=2000`) || [];
-    const map911 = p911.map(r => ({ y: r.year, title: r.listing_title || "", blankTitle: !String(r.listing_title || "").trim(), vin: r.vin, src: r.source_slug || r.platform, date: (r.sale_date || "").slice(0, 10), mi: r.mileage, hammer: Math.round(hammerUsd({ source_slug: r.source_slug, source: r.platform, price: Number(r.sale_price), currency: "USD" })), rawPrice: Number(r.sale_price) }));
-    out.p911_count = map911.length;
-    out.p911_near600k = map911.filter(r => r.hammer >= 400000).sort((a, b) => b.hammer - a.hammer).slice(0, 8);
-    out.p911_blankTitle = map911.filter(r => r.blankTitle).sort((a, b) => b.hammer - a.hammer).slice(0, 8);
-    // 1950s Maserati class-era pool (make+year only, as assessClassEra builds it).
-    const pmas = await supabaseSelect(env, `sales_archive?make=ilike.*Maserati*&year=gte.1950&year=lte.1959&sale_price=not.is.null&select=year,make,model,listing_title,vin,source_slug,platform,sale_date,mileage,sale_price&limit=2000`) || [];
-    const mapMas = pmas.map(r => ({ y: r.year, title: (r.listing_title || "").slice(0, 60), model: r.model, vin: r.vin, src: r.source_slug || r.platform, date: (r.sale_date || "").slice(0, 10), hammer: Math.round(hammerUsd({ source_slug: r.source_slug, source: r.platform, price: Number(r.sale_price), currency: "USD" })), rawPrice: Number(r.sale_price), memorabilia: isMemorabilia(r.listing_title || "", r.model), parts: isPartsListing(r.listing_title || "", r.mileage) }));
-    out.maserati_count = mapMas.length;
-    out.maserati_cheapest = mapMas.sort((a, b) => a.hammer - b.hammer).slice(0, 8);
-    return res.status(200).json(out);
-  }
-
   // task=houserates: empirical premium-rate calibration. A correct back-out rate turns a
   // premium-INCLUSIVE total into a ROUND hammer (auction hammers land on $500/$1000 steps).
   // Tests candidate rates and reports which reproduces round hammers most often. Also
