@@ -9,8 +9,7 @@ name: Nightly ingest and warm
 # exactly which one is empty.
 on:
   schedule:
-    - cron: "11 7 * * *"   # 07:11 UTC nightly (off-peak minute; :30/:00 top-of-hour slots see the worst GitHub scheduler delay)  workflow_dispatch:
-    inputs:
+    - cron: "11 7 * * *"   # 07:11 UTC nightly (off-peak minute; :30/:00 top-of-hour slots see the worst GitHub scheduler delay)    inputs:
       backfill_from:
         description: "Backfill start date YYYY-MM-DD (blank = nightly delta)"
         required: false
