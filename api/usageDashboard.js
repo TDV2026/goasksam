@@ -442,13 +442,29 @@ async function handleOps(req, res) {
   if (task === "status") {
     const spentToday = await meteredToday();
     const monthStart = new Date(new Date().toISOString().slice(0, 7) + "-01T00:00:00Z").toISOString();
-    const monthRows = env ? await supabaseSelect(env, `app_usage_events?created_at=gte.${monthStart}&oldcarsdata_metered_requests=gt.0&select=oldcarsdata_metered_requests&limit=20000`) : null;
-    const spentMonth = monthRows ? monthRows.reduce((s, r) => s + (Number(r.oldcarsdata_metered_requests) || 0), 0) : null;
+    // Internal reader-facing sum (seller_decision only) is the recurring-spend view; the ALL-events
+    // sum (incl one-time ingest/backfill) is kept for cost visibility but is NOT the headline
+    // remaining - that conflation read ~4.6x OCD's real usage and phantom-throttled warm.
+    const readerRows = env ? await supabaseSelect(env, `app_usage_events?created_at=gte.${monthStart}&event_type=eq.seller_decision&oldcarsdata_metered_requests=gt.0&select=oldcarsdata_metered_requests&limit=20000`) : null;
+    const allRows = env ? await supabaseSelect(env, `app_usage_events?created_at=gte.${monthStart}&oldcarsdata_metered_requests=gt.0&select=oldcarsdata_metered_requests&limit=20000`) : null;
+    const sumRows = rr => rr ? rr.reduce((s, r) => s + (Number(r.oldcarsdata_metered_requests) || 0), 0) : null;
+    const spentMonthReader = sumRows(readerRows);
+    const spentMonthAllEvents = sumRows(allRows);
     const monthlyBudget = Number(process.env.OCD_MONTHLY_BUDGET || 10000);
     let ocd = null;
     try { const r = await callOldCarsData("/auctions", { page: 1, limit: 1 }, apiKey); ocd = r.__rateLimit || null; }
     catch (e) { ocd = { error: e.message, rateLimited: !!e.rateLimited, rateLimit: e.rateLimit || null }; }
-    return res.status(200).json({ task: "status", dailyBudget, monthlyBudget, spentToday, spentMonth, dailyRemaining: spentToday != null ? dailyBudget - spentToday : null, monthlyRemaining: spentMonth != null ? monthlyBudget - spentMonth : null, ocdApiRateLimit: ocd });
+    // AUTHORITATIVE monthly remaining = OCD's own live header when present, else budget minus the
+    // internal reader-facing sum. Matches the guard's reconciliation in api/sellerDecision.js.
+    const ocdRemaining = ocd && Number.isFinite(Number(ocd.remaining)) ? Number(ocd.remaining) : null;
+    const monthlyRemaining = ocdRemaining !== null ? ocdRemaining : (spentMonthReader != null ? monthlyBudget - spentMonthReader : null);
+    const monthlyRemainingSource = ocdRemaining !== null ? "ocd_header" : "internal_seller_decision";
+    return res.status(200).json({
+      task: "status", dailyBudget, monthlyBudget, spentToday,
+      spentMonthReader, spentMonthAllEvents,
+      dailyRemaining: spentToday != null ? dailyBudget - spentToday : null,
+      monthlyRemaining, monthlyRemainingSource, ocdApiRateLimit: ocd
+    });
   }
 
   // task=canonproof: READ-ONLY canonical-layer readiness + the Broad Arrow vs Hagerty VIN

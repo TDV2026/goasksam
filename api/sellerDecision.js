@@ -1132,9 +1132,15 @@ const WARM_BUDGET_FRACTION = Number(process.env.OCD_WARM_BUDGET_FRACTION || 0.7)
 
 async function ocdMeteredSince(sinceIso, supabaseUrl, supabaseKey, limit = 2000) {
   if (!supabaseUrl || !supabaseKey) return null;
+  // Only RECURRING READER-FACING spend counts toward the pace/fallback: event_type=seller_decision
+  // (real searches + warm). One-time BULK operations - ingest_health_below_floor, archive_backfill,
+  // probes - also write oldcarsdata_metered_requests here (for cost reporting), but must NEVER
+  // inflate a recurring-spend guard: unfiltered they pushed the calendar-month sum to ~4.6x OCD's
+  // real usage (7929 vs OCD's 1710), phantom-throttling warm and threatening reader searches. The
+  // monthly HARD cap is additionally reconciled against OCD's own rate-limit header in the guard.
   const rows = await supabaseSelect(
     { supabaseUrl, supabaseKey },
-    `app_usage_events?created_at=gte.${sinceIso}&oldcarsdata_metered_requests=gt.0&select=oldcarsdata_metered_requests&limit=${limit}`
+    `app_usage_events?created_at=gte.${sinceIso}&event_type=eq.seller_decision&oldcarsdata_metered_requests=gt.0&select=oldcarsdata_metered_requests&limit=${limit}`
   );
   // null (unreadable/missing table) propagates so the guard can raise a BLIND
   // critical condition rather than silently reading zero.
@@ -3221,24 +3227,29 @@ export default async function handler(req, res) {
       const isWarm = req.body?.warm === true;
       const dailyCap = isWarm ? Math.floor(OCD_DAILY_REQUEST_BUDGET * WARM_BUDGET_FRACTION) : OCD_DAILY_REQUEST_BUDGET;
       const monthlyCap = isWarm ? Math.floor(OCD_MONTHLY_BUDGET * WARM_BUDGET_FRACTION) : OCD_MONTHLY_BUDGET;
-      const overDaily = usedToday !== null && usedToday >= dailyCap;
-      const overMonthly = usedMonth !== null && usedMonth >= monthlyCap;
-      // OCD's OWN remaining-quota header, persisted by the previous fetch, is the
-      // authoritative backstop: soft-degrade BEFORE a 429 once OCD reports it is at
-      // (or within a small reserve floor of) zero. Only trust it while fresh so a
-      // stale zero from before a quota reset cannot pin us degraded forever - once
-      // the TTL lapses a real fetch fires, refreshes the header, and self-corrects.
+      // OCD's OWN remaining-quota header (persisted by the previous fetch) is the AUTHORITATIVE
+      // monthly meter. Read it FIRST so both the monthly cap and the warm reserve reconcile against
+      // OCD's real account usage, NOT the internal app_usage_events sum (which conflates one-time
+      // bulk ops with recurring spend and read ~4.6x high: 7929 vs OCD's real 1710, phantom-
+      // throttling warm). Trust the header only while fresh + pre-reset so a stale zero from before
+      // a quota reset cannot pin us degraded forever; the TTL lapse fires a real fetch that refreshes
+      // it and self-corrects. It also remains the near-zero 429 backstop (overOcdRemaining).
       const ocdRL = await readOcdRateLimit(supabaseUrl, supabaseKey);
       const rlFloor = await appConfigInt("ocd_rate_limit_floor", 5, supabaseUrl, supabaseKey);
       const rlTtlMs = (await appConfigInt("ocd_rate_limit_ttl_min", 120, supabaseUrl, supabaseKey)) * 60 * 1000;
       const rlFresh = ocdRL && ocdRL.at && (Date.now() - ocdRL.at) < rlTtlMs;
-      // OCD's reset is a real Unix timestamp: once it has passed the quota has
-      // refreshed, so a persisted zero is stale regardless of TTL - allow the fetch
-      // immediately rather than waiting out the TTL.
       const resetMs = rlFresh ? parseOcdResetMs(ocdRL.reset, ocdRL.at) : null;
       const resetPassed = resetMs !== null && Date.now() >= resetMs;
       const ocdRemaining = (rlFresh && !resetPassed) ? ocdRL.remaining : null;
       const overOcdRemaining = ocdRemaining !== null && ocdRemaining <= rlFloor;
+      // Monthly usage = OCD-header authoritative (budget minus OCD's real remaining) when fresh,
+      // else the internal reader-facing sum (now seller_decision-only) as fallback. usedToday
+      // stays the self-imposed daily PACE cap, also reader-facing-only after the ocdMeteredSince fix.
+      const monthlyUsedAuthoritative = ocdRemaining !== null ? Math.max(0, OCD_MONTHLY_BUDGET - ocdRemaining) : null;
+      const monthlyUsedEffective = monthlyUsedAuthoritative !== null ? monthlyUsedAuthoritative : usedMonth;
+      const monthlySource = monthlyUsedAuthoritative !== null ? "ocd_header" : "internal_seller_decision";
+      const overDaily = usedToday !== null && usedToday >= dailyCap;
+      const overMonthly = monthlyUsedEffective !== null && monthlyUsedEffective >= monthlyCap;
       // bypassCache is the measurement path (frontend never sets it): it still
       // spends and logs real metered calls, but skips the soft-degrade so a
       // cold-fetch measurement is not silently served from the store when the
@@ -3246,11 +3257,11 @@ export default async function handler(req, res) {
       if (!bypassCache && (overDaily || overMonthly || overOcdRemaining)) {
         // Loud log, soft degrade: no metered spend past the reached cap.
         const scope = overOcdRemaining ? "ocd_remaining" : overMonthly ? "monthly" : "daily";
-        console.error(`OCD budget guard [${scope}] (day ${usedToday}/${OCD_DAILY_REQUEST_BUDGET}, month ${usedMonth}/${OCD_MONTHLY_BUDGET}, ocd_remaining ${ocdRemaining}): soft degrading, no metered spend.`);
+        console.error(`OCD budget guard [${scope}] (day ${usedToday}/${OCD_DAILY_REQUEST_BUDGET}, month ${monthlyUsedEffective}/${OCD_MONTHLY_BUDGET} via ${monthlySource}, ocd_remaining ${ocdRemaining}): soft degrading, no metered spend.`);
         await recordUsageEvent({
           event_type: "ocd_budget_guard", route: "/api/sellerDecision", status: `soft_degraded_${scope}`,
           search_text: rawSearch, oldcarsdata_metered_requests: 0, duration_ms: 0,
-          metadata: { ...requestMetadata(req), usedToday, usedMonth, dailyBudget: OCD_DAILY_REQUEST_BUDGET, monthlyBudget: OCD_MONTHLY_BUDGET, scope, ocdRemaining, ocdRemainingAt: ocdRL ? ocdRL.at : null, ocdRemainingFloor: rlFloor }
+          metadata: { ...requestMetadata(req), usedToday, usedMonth, monthlyUsedEffective, monthlySource, dailyBudget: OCD_DAILY_REQUEST_BUDGET, monthlyBudget: OCD_MONTHLY_BUDGET, scope, ocdRemaining, ocdRemainingAt: ocdRL ? ocdRL.at : null, ocdRemainingFloor: rlFloor }
         }, supabaseUrl, supabaseKey);
         fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
         if (fetchResult) {
