@@ -206,7 +206,7 @@
     "disc": null,
     "ltHero": "$N",
     "ltLine": "The middle of the recent sales: YYYY at Cars & Bids, $N in September YYYY.",
-    "ltSpan": "Across the 3 recorded sales, the range ran $N to $N.",
+    "ltSpan": "Across the 4 recorded sales, the range ran $N to $N.",
     "ltFresh": null,
     "read": [
       "Too few sold recently to mark a typical band, so these are the sales themselves, not a guess."
