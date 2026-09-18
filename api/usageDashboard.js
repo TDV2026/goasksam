@@ -1454,42 +1454,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "coverage", ocdMetered, ocdSources, archiveTotal, archivePlatforms, archiveSampleDist, vmrTotal, vmrSources, vmrSampleDist, marketplace, ingestRuns, vinFill, houseCheck });
   }
 
-  // task=augcheck: TEMP - re-pull August 2026 BaT non-sold via the NEW status=unsold filter and
-  // compare to the reported/drafted numbers (3793 sold / 1282 rnm / 25 withdrawn / 5100 total).
-  // Mirrors ingestAttempts logic (same filter, auction_end_date, dedup, normStatus). Remove after.
-  if (task === "augcheck") {
-    const src = "bringatrailer", from = "2026-08-01", to = "2026-08-31";
-    const hdr = { Authorization: `Bearer ${apiKey}` };
-    const norm = st => /reserve.*not.*met/i.test(st) ? "rnm" : /withdrawn/i.test(st) ? "wd" : null;
-    const seen = new Set(); let rnm = 0, wd = 0, other = 0, metered = 0, pages = 0;
-    for (let p = 1; p <= 60; p++) {
-      metered++;
-      let j; try { const r = await fetch(`https://api.oldcarsdata.com/auctions?source=${src}&status=unsold&sort=date&direction=desc&page=${p}&limit=100`, { headers: hdr }); j = await r.json().catch(() => ({})); } catch (e) { return res.status(200).json({ task: "augcheck", error: String(e.message).slice(0, 140), pages: p }); }
-      const rows = j.data || []; if (!rows.length) break;
-      let oldest = null;
-      for (const rec of rows) {
-        const d = String(rec.auction_end_date || "").slice(0, 10); if (d && (!oldest || d < oldest)) oldest = d;
-        if (!d || d < from || d > to) continue;
-        const id = String(rec.id ?? ""); if (id && seen.has(id)) continue; if (id) seen.add(id);
-        const s = norm(String(rec.auction_status || "")); if (s === "rnm") rnm++; else if (s === "wd") wd++; else other++;
-      }
-      pages = p;
-      if (oldest && oldest < from) break;
-      if (p >= (j.meta?.total_pages || 1)) break;
-    }
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    let soldCount = null;
-    try { const cr = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?source_slug=eq.${src}&sale_date=gte.${from}&sale_date=lte.${to}&sale_price=gt.0&select=source_id&limit=1`, { headers: { ...H, Prefer: "count=exact" } }); soldCount = Number((cr.headers.get("content-range") || "").split("/")[1]) || null; } catch (e) { soldCount = `err:${String(e.message).slice(0, 40)}`; }
-    const nonSold = rnm + wd; const total = (typeof soldCount === "number" ? soldCount : 0) + nonSold;
-    const reported = { sold: 3793, reserveNotMet: 1282, withdrawn: 25, total: 5100 };
-    return res.status(200).json({
-      task: "augcheck", window: `${from} to ${to}`, method: "OCD status=unsold (filtered), fresh live pull", metered, pagesWalked: pages,
-      freshFiltered: { reserveNotMet: rnm, withdrawn: wd, otherStatus: other, nonSoldTotal: nonSold },
-      soldFromArchive: soldCount, totalAttempts: total, reported,
-      match: { sold: soldCount === reported.sold, reserveNotMet: rnm === reported.reserveNotMet, withdrawn: wd === reported.withdrawn, total: total === reported.total }
-    });
-  }
-
   // task=houserates: empirical premium-rate calibration. A correct back-out rate turns a
   // premium-INCLUSIVE total into a ROUND hammer (auction hammers land on $500/$1000 steps).
   // Tests candidate rates and reports which reproduces round hammers most often. Also
