@@ -132,6 +132,7 @@ a.bcard:hover{border-color:color-mix(in srgb,var(--green) 55%,var(--line))}
   <a href="#m4" data-s="m4">1 &middot; M4 matched (case a: known explanation)</a>
   <a href="#p997" data-s="p997">2 &middot; 997 unmatched</a>
   <a href="#m3" data-s="m3">3 &middot; E30 M3 (case b: missing info)</a>
+  <a href="#clarify" data-s="clarify">4 &middot; NEW two-question clarify (1994 911)</a>
 </div>
 
 <div class="top"><div class="brand">GoAskSam</div><nav><a href="#">How it works</a><a href="#">Sell</a><div class="avatar">DZ</div></nav></div>
@@ -326,9 +327,33 @@ a.bcard:hover{border-color:color-mix(in srgb,var(--green) 55%,var(--line))}
   <div class="trust">Real completed sales from GoAskSam&#8217;s archive. No estimates. No valuations.</div>
 </section>
 
+<!-- ============ FRAME 4 : NEW two-question clarify screen (1994 Porsche 911, split year) ============
+     Ask everything that matters once, on one screen, then answer once. Max two question rows:
+     Slot 1 identity (generation, the split the pool turns on) + Slot 2 mileage (always, pre-answer).
+     One sentence of why in Sam's voice. The typed year (1994) stays in the box; nothing is rewritten. -->
+<section id="s-clarify" class="state">
+  <div class="inbox"><input value="1994 Porsche 911" readonly><button class="edit">Edit</button><button class="go">&#8594;</button></div>
+  <div class="samread" style="margin-top:22px">
+    <div class="ava">SAM</div>
+    <div>
+      <div class="tag">Before I pull the sales</div>
+      <p>A 1994 911 sits right on the 964-to-993 changeover, and on these the mileage moves the price more than anything else, so two quick things and I&#8217;ll read the real sales for your exact car.</p>
+      <div class="earned" style="margin-top:16px">
+        <div class="q">Which generation is it?</div>
+        <div class="qchips"><button class="qchip">964 (1990-1994)</button><button class="qchip">993 (1994-1998)</button></div>
+      </div>
+      <div class="earned" style="margin-top:14px">
+        <div class="q">Roughly how many miles?</div>
+        <div class="qchips"><button class="qchip">under 30k</button><button class="qchip">30k to 60k</button><button class="qchip">60k to 100k</button><button class="qchip">over 100k</button><button class="qchip typeit">type it</button><button class="qchip typeit">not sure</button></div>
+      </div>
+      <a href="#" style="display:inline-block;margin-top:18px;background:var(--green-btn);color:#fff;border-radius:11px;padding:12px 22px;font:600 14.5px var(--grotesk);text-decoration:none">Show me the sales &#8594;</a>
+    </div>
+  </div>
+</section>
+
 </main>
 <script>
-(function(){var states=["m4","p997","m3"];function show(s){if(states.indexOf(s)<0)s="m4";states.forEach(function(k){var el=document.getElementById("s-"+k);if(el)el.classList.toggle("on",k===s);});document.querySelectorAll(".pv a").forEach(function(a){a.classList.toggle("on",a.getAttribute("data-s")===s);});}window.addEventListener("hashchange",function(){show((location.hash||"").replace("#",""));});show((location.hash||"#m4").replace("#",""));})();
+(function(){var states=["m4","p997","m3","clarify"];function show(s){if(states.indexOf(s)<0)s="m4";states.forEach(function(k){var el=document.getElementById("s-"+k);if(el)el.classList.toggle("on",k===s);});document.querySelectorAll(".pv a").forEach(function(a){a.classList.toggle("on",a.getAttribute("data-s")===s);});}window.addEventListener("hashchange",function(){show((location.hash||"").replace("#",""));});show((location.hash||"#m4").replace("#",""));})();
 </script>
 </body>
 </html>
