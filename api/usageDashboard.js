@@ -1473,31 +1473,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "coverage", ocdMetered, ocdSources, archiveTotal, archivePlatforms, archiveSampleDist, vmrTotal, vmrSources, vmrSampleDist, marketplace, ingestRuns, vinFill, houseCheck });
   }
 
-  // task=outlierba: TEMP - REAL before/after of the proposed thresholds. 964-911 brackets at 4x
-  // symmetric (named bracket ceiling/floor before vs after) + 1950s Maserati class band at
-  // median/6 LOW-SIDE-only (band + dropped floor records). Read-only, zero OCD.
-  if (task === "outlierba") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { hammerUsd } = await import("../lib/_houseComps.js");
-    const med = a => { const s = a.filter(n => n > 0).sort((x, y) => x - y); return s.length ? s[Math.floor((s.length - 1) / 2)] : 0; };
-    const pctl = (a, p) => { const s = a.slice().sort((x, y) => x - y); return s.length ? s[Math.floor(s.length * p)] : 0; };
-    const load = async filter => { const rows = await supabaseSelect(env, `sales_archive?${filter}&sale_price=not.is.null&select=year,listing_title,source_slug,platform,sale_date,mileage,sale_price&limit=3000`) || []; return rows.map(r => ({ y: r.year, title: (r.listing_title || "").slice(0, 42), date: (r.sale_date || "").slice(0, 10), mi: r.mileage, p: Math.round(hammerUsd({ source_slug: r.source_slug, source: r.platform, price: Number(r.sale_price), currency: "USD" })) })).filter(r => r.p > 0); };
-    const top = (arr, n) => arr.slice().sort((x, y) => y.p - x.p).slice(0, n).map(r => `$${r.p.toLocaleString()} | ${r.y} ${r.title} | ${r.mi || "?"}mi | ${r.date}`);
-    const bot = (arr, n) => arr.slice().sort((x, y) => x.p - y.p).slice(0, n).map(r => `$${r.p.toLocaleString()} | ${r.y} ${r.title} | ${r.date}`);
-    const out = { task: "outlierba" };
-    const a = await load("model=ilike.*911*&year=gte.1990&year=lte.1994");
-    const m4 = med(a.map(r => r.p)); const hi = m4 * 4, lo = m4 / 4; const fa = a.filter(r => r.p <= hi && r.p >= lo);
-    out.porsche964_brackets_4x = { n: a.length, median: m4, hiFence: Math.round(hi), loFence: Math.round(lo), droppedHigh: a.filter(r => r.p > hi).length, droppedLow: a.filter(r => r.p < lo).length,
-      ceiling_BEFORE: top(a, 3), ceiling_AFTER: top(fa, 3), floor_BEFORE: bot(a, 3), floor_AFTER: bot(fa, 3) };
-    const b = await load("make=ilike.*Maserati*&year=gte.1950&year=lte.1959");
-    const m6 = med(b.map(r => r.p)); const flo = m6 / 6; const kb = b.filter(r => r.p >= flo);
-    out.maserati_classband_lowside6 = { n: b.length, median: m6, loFence: Math.round(flo),
-      band_BEFORE: { p10: pctl(b.map(r => r.p), 0.1), p90: pctl(b.map(r => r.p), 0.9), trueLow: Math.min(...b.map(r => r.p)) },
-      band_AFTER: { p10: pctl(kb.map(r => r.p), 0.1), p90: pctl(kb.map(r => r.p), 0.9), trueLow: kb.length ? Math.min(...kb.map(r => r.p)) : null },
-      droppedFloorRecords: bot(b, 12).filter((_, i) => b.slice().sort((x, y) => x.p - y.p)[i] && b.slice().sort((x, y) => x.p - y.p)[i].p < flo) };
-    return res.status(200).json(out);
-  }
-
   // task=houserates: empirical premium-rate calibration. A correct back-out rate turns a
   // premium-INCLUSIVE total into a ROUND hammer (auction hammers land on $500/$1000 steps).
   // Tests candidate rates and reports which reproduces round hammers most often. Also
