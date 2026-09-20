@@ -95,9 +95,9 @@
     "clBand": null,
     "clTail": null,
     "ltFresh": "Auction results through January.",
-    "contradiction": null,
+    "contradiction": "These trade at the auction houses, not online. Every recorded sale here came through one.",
     "kickerGone": true,
-    "samReadBox": 1,
+    "samReadBox": 0,
     "recLabel": "What has sold, Lamborghini Murcielago LP670-4 SuperVeloce, in YYYY",
     "htSpec": [
       "Chassis ending A03932·SILVER"
@@ -105,10 +105,7 @@
     "htPrice": [
       "$N · buyer paid $N incl. premium"
     ],
-    "read": [
-      "These trade at the auction houses, not online. Every recorded sale here came through one.",
-      "Too few sold recently to mark a typical band, so these are the sales themselves, not a guess."
-    ],
+    "read": [],
     "refineQ": null,
     "refineChips": [],
     "cmKick": null,
@@ -185,9 +182,9 @@
     "clBand": null,
     "clTail": null,
     "ltFresh": "Real sales through last night. Nothing estimated.",
-    "contradiction": null,
+    "contradiction": "Too few sold recently to mark a typical band, so these are the sales themselves, not a guess.",
     "kickerGone": true,
-    "samReadBox": 1,
+    "samReadBox": 0,
     "recLabel": "What has sold, MG MGA 1500, YYYY to YYYY",
     "htSpec": [],
     "htPrice": [
@@ -195,9 +192,7 @@
       "$N",
       "$N"
     ],
-    "read": [
-      "Too few sold recently to mark a typical band, so these are the sales themselves, not a guess."
-    ],
+    "read": [],
     "refineQ": null,
     "refineChips": [],
     "cmKick": null,
@@ -269,9 +264,9 @@
     "clBand": null,
     "clTail": null,
     "ltFresh": "Real sales through last night. Nothing estimated.",
-    "contradiction": null,
+    "contradiction": "Too few sold recently to mark a typical band, so these are the sales themselves, not a guess.",
     "kickerGone": true,
-    "samReadBox": 1,
+    "samReadBox": 0,
     "recLabel": "What has sold, Lexus LC 500, in YYYY",
     "htSpec": [],
     "htPrice": [
@@ -279,9 +274,7 @@
       "$N",
       "$N"
     ],
-    "read": [
-      "Too few sold recently to mark a typical band, so these are the sales themselves, not a guess."
-    ],
+    "read": [],
     "refineQ": null,
     "refineChips": [],
     "cmKick": null,
@@ -449,9 +442,9 @@
     "clBand": null,
     "clTail": null,
     "ltFresh": "Real sales through last night. Nothing estimated.",
-    "contradiction": null,
+    "contradiction": "These sell online and at the auction houses. The recorded sales are below.",
     "kickerGone": true,
-    "samReadBox": 1,
+    "samReadBox": 0,
     "recLabel": "What has sold, Maserati Merak, YYYY to YYYY",
     "htSpec": [
       "Chassis 460516"
@@ -461,10 +454,7 @@
       "$N",
       "$N"
     ],
-    "read": [
-      "These sell online and at the auction houses. The recorded sales are below.",
-      "Too few sold recently to mark a typical band, so these are the sales themselves, not a guess."
-    ],
+    "read": [],
     "refineQ": null,
     "refineChips": [],
     "cmKick": null,
@@ -887,9 +877,9 @@
     "clBand": null,
     "clTail": null,
     "ltFresh": "Auction results through August.",
-    "contradiction": null,
+    "contradiction": "These trade at the auction houses, not online. Every recorded sale here came through one.",
     "kickerGone": true,
-    "samReadBox": 1,
+    "samReadBox": 0,
     "recLabel": "What has sold, YYYY Ferrari 275 GTB, YYYY to YYYY",
     "htSpec": [
       "Chassis ending 10311·Avorio (Ivory)",
@@ -901,10 +891,7 @@
       "$N · buyer paid $N incl. premium",
       "$N · buyer paid $N incl. premium"
     ],
-    "read": [
-      "These trade at the auction houses, not online. Every recorded sale here came through one.",
-      "Too few sold recently to mark a typical band, so these are the sales themselves, not a guess."
-    ],
+    "read": [],
     "refineQ": null,
     "refineChips": [],
     "cmKick": null,
