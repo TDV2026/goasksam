@@ -823,9 +823,11 @@
     t = t.replace(/\bby\s+[A-Z][\w'&.\- ]+$/, "");
     return t.replace(/\s{2,}/g, " ").replace(/[\s,;·-]+$/, "").trim();
   }
+  // Compact month for the house meta line ("Aug 2026") so venue + date + chassis scan as ONE line.
+  function monShort(dstr) { var p = String(dstr || "").slice(0, 10).split("-"); var M = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]; return p.length >= 2 ? ((M[+p[1]] || "") + " " + p[0]).trim() : ""; }
   function houseChassisMeta(rc) {
     if (rc.chassis) return "Chassis " + esc(rc.chassis);
-    if (rc.chassisTail) return "Chassis ending " + esc(rc.chassisTail);
+    if (rc.chassisTail) return "Chassis …" + esc(rc.chassisTail);   // ellipsis = partial (last digits)
     return "";
   }
   // House price, two readable lines (never tiny type): the hammer is the number the math uses, the
@@ -846,7 +848,7 @@
     // HOUSE-LED row (readability-first): thumb + short car name (2 lines max) + two-line price +
     // one meta line (venue bolder · date · chassis, once). No per-row "auction house" badge.
     if (rc.isHouse) {
-      var meta = ['<span class="ven">' + esc(rc.venue) + "</span>", esc(monthYear(rc.date)), houseChassisMeta(rc)].filter(Boolean).join(' <span class="dot">&middot;</span> ');
+      var meta = ['<span class="ven">' + esc(rc.venue) + "</span>", esc(monShort(rc.date)), houseChassisMeta(rc)].filter(Boolean).join(' <span class="dot">&middot;</span> ');
       var hInner = thumbEl(rc.image, rc.title) +
         '<div class="htr-l"><div class="htr-name">' + esc(shortCarName(rc.title)) + "</div>" +
         housePriceBlock(rc) +
