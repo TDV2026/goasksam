@@ -51,8 +51,8 @@ async function capture(page, input) {
     else if (/trouble reading the market/i.test(document.getElementById("ob").textContent || "")) state = "error";
     return {
       state,
-      // exact card (matched) - since = item 6 market-since-the-sale bridge line
-      exact: g(".exact h2"), cfg: g(".exact .cfg"), since: g(".exact .since"), disc: g(".exact .disc summary"),
+      // exact card (matched): name title + prior-listing note + restored receipt line + View sale
+      exact: g(".exact .xname"), cfg: g(".exact .cfg"), xrec: g(".exact .xrec .xrl"), xview: g(".exact .xview"), disc: g(".exact .disc summary"),
       // Cluster-led block (Sep 2026 port): car line + lead + serif band + tail + freshness; the
       // divergence contradiction sentence; the "Sam's live take" kicker must be GONE (kickerGone).
       carline: g(".carline"), clLead: g(".blk .lead"), clBand: g(".blk .band"), clTail: g(".blk .tail"),

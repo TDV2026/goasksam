@@ -25,11 +25,12 @@
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/about", "destination": "/about.html" },
     { "source": "/how-sam-decides", "destination": "/how-sam-decides.html" },
+    { "source": "/business", "destination": "/business.html" },
     { "source": "/powersellers", "destination": "/powersellers.html" },
     { "source": "/out", "destination": "/api/out" },
     { "source": "/styles.20260907a.css", "destination": "/styles.css" },
     { "source": "/js.20260920a/(.*)", "destination": "/js/$1" },
-    { "source": "/obx.20260920r/(.*)", "destination": "/js/$1" }
+    { "source": "/obx.20260920s/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
     "api/usageDashboard.js": {

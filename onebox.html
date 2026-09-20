@@ -203,10 +203,24 @@ h1{font:800 48px/1.04 var(--serif);letter-spacing:-.025em;margin:14px 0 8px;text
 .ob-topbar .avatar{width:34px;height:34px;border-radius:50%;background:var(--line);display:grid;place-items:center;font:600 12px var(--mono);color:var(--slate)}
 .wrap{max-width:900px}
 
-/* ---- Screen 1 hero ---- */
-.ob-kicker{font-family:'Bradley Hand','Segoe Print','Chalkboard SE','Comic Sans MS',cursive;font-size:25px;line-height:1;color:#4C7A55;margin:8px 0 10px;font-weight:600}
-@media (prefers-color-scheme:dark){.ob-kicker{color:var(--green)}}
-.posline{margin:14px 2px 0;font:600 12.5px/1 var(--mono);letter-spacing:.03em;color:var(--faint)}
+/* ---- Screen 1 empty state (item 1): wordmark, tagline, serif headline + subline, input, cue.
+   Vertically centred in the viewport (like /sell), left-aligned to the One Box style. ---- */
+.ob-home{min-height:calc(100dvh - 130px);display:flex;flex-direction:column;justify-content:center;max-width:640px}
+.ob-wordmark{font:800 19px/1 var(--serif);letter-spacing:-.01em;color:var(--ink)}
+.ob-tag{margin:7px 0 0;font:600 12.5px/1.4 var(--mono);letter-spacing:.02em;color:var(--faint)}
+.ob-head{font:800 46px/1.05 var(--serif);letter-spacing:-.025em;margin:26px 0 0;text-wrap:balance}
+.ob-sub{margin:12px 0 22px;font:400 20px/1.45 var(--serif);color:var(--slate);max-width:32ch}
+.ob-cue{margin:14px 2px 0;font:600 12.5px/1.4 var(--mono);letter-spacing:.02em;color:var(--faint)}
+
+/* ---- Narrated loading state (item 3): one Sam-voice line + animated dots. No progress bar. ---- */
+.loader{display:flex;align-items:baseline;gap:3px;margin:26px 0 6px;font:600 13.5px/1.5 var(--mono);letter-spacing:.02em;color:var(--slate)}
+.loader .ltext{color:var(--slate)}
+.loader .ldots{display:inline-flex;gap:3px;margin-left:1px}
+.loader .ldots i{width:3px;height:3px;border-radius:50%;background:var(--green);display:inline-block;animation:obdot 1.1s ease-in-out infinite}
+.loader .ldots i:nth-child(2){animation-delay:.18s}
+.loader .ldots i:nth-child(3){animation-delay:.36s}
+@keyframes obdot{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-2px)}}
+@media (prefers-reduced-motion:reduce){.loader .ldots i{animation:none;opacity:.6}}
 
 /* ---- JUST SOLD signal (restyled proof line; single real sale, links to it) ---- */
 .justsold{display:block;text-decoration:none;margin:34px 0 0;max-width:60ch}
@@ -230,6 +244,9 @@ a.justsold:hover .js-line .plat{text-decoration:underline}
   .top nav a:not(.keep){display:none}
   .wrap{padding:16px 18px 70px}
   h1{font-size:34px}
+  .ob-home{min-height:calc(100dvh - 150px)}
+  .ob-head{font-size:33px}
+  .ob-sub{font-size:18px}
   .ob-kicker{font-size:22px}
   .js-line{font-size:16.5px}
   .answer{font-size:26px}
@@ -244,20 +261,26 @@ a.justsold:hover .js-line .plat{text-decoration:underline}
 
 /* ============ Round-3 RESULT surface (the locked /onebox-preview design of record) ============ */
 .exact{margin:18px 0 6px;background:var(--card);border:1.5px solid color-mix(in srgb,var(--green) 34%,var(--line));border-radius:18px;box-shadow:var(--shadow-hero);overflow:hidden}
-.exact .grid{display:grid;grid-template-columns:minmax(0,300px) 1fr;gap:0;align-items:stretch}
-.exact .xph{position:relative;background:#0c0a06;min-height:230px}
+/* Item 4: card height follows the content (photo left stretches to match). No empty canvas. */
+.exact .grid{display:grid;grid-template-columns:minmax(0,264px) 1fr;gap:0;align-items:stretch}
+.exact .xph{position:relative;background:#0c0a06;min-height:135px}
 .exact .xph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.exact .xplate{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;text-align:center;background:linear-gradient(140deg,#14110b,#0c0a06)}
+.exact .xplate span{font:700 14px/1.35 var(--serif);color:#e8e2d4;letter-spacing:-.01em}
 .exact .xph .tag{position:absolute;top:14px;left:14px;z-index:2;background:var(--green);color:#fff;font:600 10.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;padding:7px 11px;border-radius:6px}
 @media (prefers-color-scheme:dark){.exact .xph .tag{color:#0c130f}}
-.exact .xbody{padding:22px 24px}
-.exact .kick{font:600 11px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--green);margin-bottom:9px}
-.exact h2{margin:0 0 4px;font:800 28px/1.1 var(--serif);letter-spacing:-.02em}
-.exact .cfg{margin:8px 0 0;font:400 15.5px/1.5 var(--serif);color:var(--slate);max-width:52ch}
-.exact .since{margin-top:12px;color:var(--ink)}
-.exact .since .num{font-weight:600}
-.exact .rec{margin:15px 0 0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font:600 13px/1.3 var(--mono);color:var(--slate)}
-.exact .rec .p{font:700 20px/1 var(--mono);color:var(--ink)}
-.exact .rec a{color:var(--green);text-decoration:none;font-weight:600}
+.exact .xbody{padding:18px 22px;display:flex;flex-direction:column;justify-content:center}
+.exact .kick{font:600 11px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--green);margin-bottom:7px}
+.exact .xname{font:800 24px/1.12 var(--serif);letter-spacing:-.02em;color:var(--ink)}
+.exact .cfg{margin:7px 0 0;font:400 14.5px/1.45 var(--serif);color:var(--slate);max-width:52ch;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.exact .xrecs{margin:11px 0 0;display:flex;flex-direction:column;gap:5px}
+.exact .xrec{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;font:600 13px/1.4 var(--mono);color:var(--slate)}
+.exact .xrec .xrl{color:var(--slate)}
+.exact .xrec .xp{font:700 15px/1 var(--mono);color:var(--ink)}
+.exact .xrec .num{color:var(--ink);font-variant-numeric:tabular-nums}
+.exact .xrec .dot{color:var(--faint);margin:0 2px}
+.exact .xrec .xview{color:var(--green);text-decoration:none;font-weight:600;white-space:nowrap}
+.exact .xrec .xview:hover{text-decoration:underline}
 .exact .disc{margin:11px 0 0}
 .exact .disc summary{font:600 13px var(--grotesk);color:var(--slate);cursor:pointer;list-style:none}
 .exact .disc summary::-webkit-details-marker{display:none}
@@ -501,15 +524,14 @@ a.htr:hover .htx{color:var(--green);border-color:var(--green)}
 <button id="ob-hamburger" aria-label="Menu" onclick="obToggleRail()">&#9776;</button>
 <div id="ob-scrim" onclick="obToggleRail(false)"></div>
 <aside id="ob-rail">
-  <a class="ob-logo" href="/onebox"><span class="ob-logo-name">GoAskSam<span class="ob-beta">Beta</span></span></a>
+  <a class="ob-logo" href="/onebox"><span class="ob-logo-name">GoAskSam</span></a>
   <nav class="ob-rail-nav">
     <a class="ob-navitem active" href="/onebox">Ask Sam</a>
     <a class="ob-navitem" href="/sell">Where to sell</a>
-    <a class="ob-navitem" href="/powersellers" target="_blank" rel="noopener">PowerSellers</a>
-    <div class="ob-rail-divider"></div>
     <a class="ob-navitem" id="ob-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a>
     <div class="ob-submenu" id="ob-results-menu"></div>
     <a class="ob-navitem" href="/how-sam-decides" target="_blank" rel="noopener">How Sam decides</a>
+    <a class="ob-navitem" href="/business">For business</a>
   </nav>
   <div class="ob-rail-foot">
     <a class="ob-navitem" href="mailto:feedback@goasksam.com?subject=GoAskSam%20feedback">Send feedback</a>
@@ -525,6 +547,6 @@ a.htr:hover .htx{color:var(--green);border-color:var(--green)}
 function obToggleRail(open){var r=document.getElementById("ob-rail"),s=document.getElementById("ob-scrim");if(!r)return;var on=(open===undefined)?!r.classList.contains("open"):!!open;r.classList.toggle("open",on);if(s)s.classList.toggle("open",on);}
 function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("ob-results-menu");if(m)m.classList.toggle("open");return false;}
 </script>
-<script src="/obx.20260920r/onebox.js"></script>
+<script src="/obx.20260920s/onebox.js"></script>
 </body>
 </html>

@@ -27,6 +27,7 @@ Collector car market intelligence platform. Answers "where should I sell my coll
 17. Closest match is a receipt, not a valuation.
 18. Refinement changes the evidence set, never the price.
 19. Yesterday's market can change today's Live Take.
+20. Ownership is never assumed (Sep 2026, One Box + product-wide). GoAskSam never presumes the user owns the car until they say so or enter the selling flow. User-facing copy uses ownership-neutral phrasing: "How many miles on it?" (not "on yours"), "This car last sold..." (not "Your car last sold..."), "cars like it" or the model name (not "cars like yours"), "Which one is it?" (not "Which is yours?"). The sell offer stays an offer, not an assertion ("Ready to sell?", "See where I'd sell it", "I can tell you the best places to sell your car" are fine). "I know this exact car." and "Still around X miles?" are already neutral. STANDING CHECK when adding One Box copy: grep for "yours"/"your car" before shipping; the only allowed "Your" on these surfaces is the "Your results" rail label (the user's own search history).
 
 ## Current architecture (ground truth as of July 2026)
 
