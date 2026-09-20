@@ -401,7 +401,13 @@ a.rcard:hover .ext{color:var(--green);border-color:var(--green)}
 .htr-house .htr-meta{font:600 12px/1.5 var(--mono);color:var(--faint);letter-spacing:.01em}
 .htr-house .htr-meta .ven{color:var(--ink)}
 .htr-house .htr-meta .dot{margin:0 6px;color:var(--faint)}
-@media (max-width:430px){ .htr-house .hp-hammer{font-size:17px} .htr-house .htr-name{font-size:14px} }
+@media (max-width:430px){
+  .htr-house .hp-hammer{font-size:17px}
+  .htr-house .htr-name{font-size:14px}
+  .htr-house .th{width:52px;height:38px}
+  .htr-house .htr-meta{font-size:11px;letter-spacing:0}
+  .htr-house .htr-meta .dot{margin:0 4px}
+}
 /* one quiet recent row under the CTA */
 .recentline{margin:20px 2px 0;font:600 12.5px/1.5 var(--mono);color:var(--faint);letter-spacing:.01em}
 .recentline .rl{color:var(--slate);text-decoration:none;border-bottom:1px solid var(--line);cursor:pointer}
@@ -518,6 +524,6 @@ a.htr:hover .htx{color:var(--green);border-color:var(--green)}
 function obToggleRail(open){var r=document.getElementById("ob-rail"),s=document.getElementById("ob-scrim");if(!r)return;var on=(open===undefined)?!r.classList.contains("open"):!!open;r.classList.toggle("open",on);if(s)s.classList.toggle("open",on);}
 function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("ob-results-menu");if(m)m.classList.toggle("open");return false;}
 </script>
-<script src="/obx.20260920p/onebox.js"></script>
+<script src="/obx.20260920q/onebox.js"></script>
 </body>
 </html>
