@@ -125,6 +125,59 @@ a.bcard:hover{border-color:color-mix(in srgb,var(--green) 55%,var(--line))}
 .recent .rchip{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:8px 15px;font:600 13px var(--grotesk);color:var(--slate);text-decoration:none}
 .trust{margin:34px 2px 0;padding-top:16px;border-top:1px solid var(--line);color:var(--faint);font:600 12.5px/1.5 var(--mono);letter-spacing:.02em}
 @media (max-width:720px){.top{padding:16px 18px 0}.top nav a{display:none}.wrap{padding:14px 18px 70px}.cards3{grid-template-columns:1fr}.sell{flex-direction:column;align-items:flex-start}}
+/* ===================== REDESIGN v2 — the six-state ask experience ===================== */
+.v2 .carline{font:600 13px/1.4 var(--mono);color:var(--slate);letter-spacing:.01em;margin:2px 0 14px}
+.v2 .carline .ch{color:var(--green);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--green) 45%,transparent);margin-left:2px}
+.v2 .lead,.v2 .tail{font:400 24px/1.42 var(--serif);color:var(--ink);max-width:20ch}
+.v2 .tail{margin-top:2px;max-width:44ch}
+/* the number: SERIF DISPLAY, lining figures, never mono at display size */
+.v2 .band{font:600 40px/1.14 var(--serif);letter-spacing:-.015em;color:var(--ink);font-variant-numeric:lining-nums;margin:4px 0}
+.v2 .band .n{color:var(--green-deep);cursor:pointer;border-bottom:2px solid transparent}
+.v2 .band .n:hover{border-bottom-color:color-mix(in srgb,var(--green) 40%,transparent)}
+.v2 .fresh{display:flex;align-items:center;gap:8px;margin-top:12px;font:600 13px var(--grotesk);color:var(--slate)}
+.v2 .fresh .dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex:none}
+/* closest-match dominant card */
+.v2 .cm{display:block;text-decoration:none;color:inherit;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card);box-shadow:var(--shadow);margin-top:20px;max-width:560px}
+.v2 .cm .kick{position:absolute;top:12px;left:12px;background:rgba(255,255,255,.92);color:var(--green-deep);font:600 9.5px/1 var(--mono);letter-spacing:.11em;text-transform:uppercase;padding:6px 9px;border-radius:6px}
+.v2 .cm .ph{position:relative;aspect-ratio:16/9;background:var(--line2)}
+.v2 .cm .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.v2 .cm .b{padding:15px 17px}
+.v2 .cm .p{font:700 22px/1 var(--mono);letter-spacing:-.02em;color:var(--ink)}
+.v2 .cm .meta{font:600 12.5px/1.4 var(--mono);color:var(--slate);margin-top:7px}
+.v2 .cm .nm{font:600 13px/1.35 var(--grotesk);color:var(--ink);margin-top:5px}
+/* compact fewer/more-miles rows */
+.v2 .mrow{display:flex;gap:13px;align-items:center;text-decoration:none;color:inherit;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:11px 13px;margin-top:10px;max-width:560px}
+.v2 .mrow .th{width:74px;height:52px;border-radius:8px;object-fit:cover;flex:none;background:var(--line2)}
+.v2 .mrow .lab{font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--clay);flex:none;width:78px}
+.v2 .mrow .p{font:700 16px/1 var(--mono);color:var(--ink)}
+.v2 .mrow .meta{font:600 11.5px/1.4 var(--mono);color:var(--slate);margin-top:4px}
+.v2 .mrow .meta b{color:var(--ink);font-weight:700}
+.v2 .seeall{display:inline-block;margin-top:12px;font:600 13px var(--grotesk);color:var(--slate);cursor:pointer}
+/* tapped-number receipt popover */
+.v2 .rcpt{position:absolute;z-index:5;width:230px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow-hero);padding:0;overflow:hidden}
+.v2 .rcpt img{width:100%;aspect-ratio:16/10;object-fit:cover;display:block;background:var(--line2)}
+.v2 .rcpt .b{padding:11px 13px}
+.v2 .rcpt .p{font:700 17px/1 var(--mono);color:var(--ink)}
+.v2 .rcpt .meta{font:600 11px/1.5 var(--mono);color:var(--slate);margin-top:5px}
+.v2 .rcpt .lk{display:inline-block;margin-top:8px;font:600 12px var(--grotesk);color:var(--green)}
+/* house-led both-numbers rows */
+.v2 .hrow{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:10px 13px;margin-top:9px;max-width:600px;text-decoration:none;color:inherit}
+.v2 .hrow .th{width:70px;height:48px;border-radius:8px;object-fit:cover;flex:none;background:var(--line2)}
+.v2 .hrow .p{font:700 14.5px/1.4 var(--mono);color:var(--ink)}
+.v2 .hrow .p .pr{color:var(--slate);font-weight:600}
+.v2 .hrow .nm{font:600 11.5px/1.35 var(--grotesk);color:var(--slate);margin-top:3px}
+/* generation photo chips */
+.v2 .genchips{display:flex;gap:14px;margin:10px 0 4px;flex-wrap:wrap}
+.v2 .genchip{width:150px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden;cursor:pointer;text-align:left;padding:0}
+.v2 .genchip.on{border-color:var(--green);box-shadow:0 0 0 2px color-mix(in srgb,var(--green) 22%,transparent)}
+.v2 .genchip img{width:100%;aspect-ratio:16/10;object-fit:cover;display:block;background:var(--line2)}
+.v2 .genchip .c{padding:9px 11px}
+.v2 .genchip .code{font:700 15px/1 var(--grotesk);color:var(--ink)}
+.v2 .genchip .yr{font:600 11.5px/1 var(--mono);color:var(--slate);margin-top:4px}
+.v2 .exactkick{font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:9px}
+.v2 .refnote{font:400 16px/1.5 var(--serif);color:var(--slate);margin-top:8px;max-width:52ch}
+.brand .beta{display:none}
+@media (max-width:720px){.v2 .lead,.v2 .tail{font-size:20px}.v2 .band{font-size:30px}.v2 .genchip{width:calc(50% - 7px)}.v2 .cm,.v2 .mrow,.v2 .hrow{max-width:none}}
 </style>
 </head>
 <body>
@@ -135,7 +188,7 @@ a.bcard:hover{border-color:color-mix(in srgb,var(--green) 55%,var(--line))}
   <a href="#clarify" data-s="clarify">4 &middot; NEW two-question clarify (1994 911)</a>
 </div>
 
-<div class="top"><div class="brand">GoAskSam</div><nav><a href="#">How it works</a><a href="#">Sell</a><div class="avatar">DZ</div></nav></div>
+<div class="top"><div class="brand">GoAskSam <span style="font:600 11px/1 var(--mono);color:var(--faint);margin-left:10px">Real sales, updated as auctions close.</span></div><nav><a href="#">How it works</a><a href="#">Sell</a><div class="avatar">DZ</div></nav></div>
 
 <main class="wrap">
 
@@ -351,9 +404,93 @@ a.bcard:hover{border-color:color-mix(in srgb,var(--green) 55%,var(--line))}
   </div>
 </section>
 
+
+<!-- ==================================================================================== -->
+<!-- ============ REDESIGN v2 : the six-state ask experience (design of record) ========== -->
+<!-- Photos are placeholder slots (grey), wired to real archive images in Stage 2. Copy is -->
+<!-- lint-clean: no em or en dashes anywhere. ============================================= -->
+
+<!-- ---- v2 STATE 1: PRE-ANSWER (1994 Porsche 911 Cabriolet) ---- -->
+<section id="s-v2pre" class="state v2">
+  <div class="inbox"><input value="1994 Porsche 911 Cabriolet" readonly><button class="edit">Edit</button><button class="go">&#8594;</button></div>
+  <p style="font:400 17px/1.5 var(--serif);color:var(--slate);margin:16px 0 22px">Two questions, then what actually sold. Nothing to adjust, nothing estimated.</p>
+  <div class="earned"><div class="q">Which generation is yours?</div>
+    <div class="genchips">
+      <button class="genchip on"><div class="ph" style="background:var(--line2)"></div><div class="c"><div class="code">964</div><div class="yr">1989 to 1994</div></div></button>
+      <button class="genchip"><div class="ph" style="background:var(--line2)"></div><div class="c"><div class="code">993</div><div class="yr">1994 to 1998</div></div></button>
+    </div>
+  </div>
+  <div class="earned" style="margin-top:18px"><div class="q">About how many miles are on it?</div>
+    <div class="qchips"><button class="qchip">Under 20k</button><button class="qchip">20k to 40k</button><button class="qchip" style="border-color:var(--green);color:var(--green)">40k to 60k</button><button class="qchip">60k to 80k</button><button class="qchip">80k+</button><button class="qchip typeit">type it</button><button class="qchip typeit">not sure</button></div>
+  </div>
+</section>
+
+<!-- ---- v2 STATE 2: GENERAL MATCH (answered, 964 @ 45k) ---- -->
+<section id="s-v2match" class="state v2">
+  <div class="carline">1994 Porsche 911 Cabriolet <span class="dot">&middot;</span> 964 <span class="dot">&middot;</span> around 45,000 miles <a class="ch" href="#">Change</a></div>
+  <div class="lead">Most 964 Cabriolets around 45,000 miles sold between</div>
+  <div class="band"><span class="n">$62,000</span> and <span class="n">$68,000</span></div>
+  <div class="tail">in the last twelve months. Everything from <span class="n" style="border-bottom:1px dotted var(--slate);cursor:pointer">$54,500</span> to <span class="n" style="border-bottom:1px dotted var(--slate);cursor:pointer">$86,500</span> has sold.</div>
+  <div class="fresh"><span class="dot"></span>Real sales through last night. No estimates.</div>
+  <a class="cm" href="#"><div class="ph"><span class="kick">Closest match</span></div><div class="b"><div class="p">$65,000</div><div class="meta">42,000 miles &middot; Manual</div><div class="meta"><b>Bring a Trailer</b> &middot; Feb 2024</div><div class="nm">1994 Porsche 911 Cabriolet (964)</div></div></a>
+  <a class="mrow" href="#"><img class="th" alt=""><div><div style="display:flex;gap:12px;align-items:baseline"><span class="lab">Fewer miles</span><span class="p">$86,500</span></div><div class="meta">17,000 miles &middot; Manual &middot; <b>Gooding &amp; Company</b> &middot; Aug 2023 &middot; 1994 Porsche 911 Cabriolet (964)</div></div></a>
+  <a class="mrow" href="#"><img class="th" alt=""><div><div style="display:flex;gap:12px;align-items:baseline"><span class="lab">More miles</span><span class="p">$54,500</span></div><div class="meta">118,000 miles &middot; Manual &middot; <b>Bring a Trailer</b> &middot; Nov 2023 &middot; 1994 Porsche 911 Cabriolet (964)</div></div></a>
+  <span class="seeall">See all recent sales &#8594;</span>
+  <div class="sell" style="margin-top:20px"><div><h3>Ready to sell?</h3><p>I&#8217;ll look at the same market and tell you where I&#8217;d sell it.</p></div><a href="#">Where I&#8217;d sell it &#8594;</a></div>
+</section>
+
+<!-- ---- v2 STATE 3: TAPPED NUMBER (receipt popover on the $62,000 band edge) ---- -->
+<section id="s-v2tap" class="state v2">
+  <div class="carline">1994 Porsche 911 Cabriolet <span class="dot">&middot;</span> 964 <span class="dot">&middot;</span> around 45,000 miles <a class="ch" href="#">Change</a></div>
+  <div class="lead">Most 964 Cabriolets around 45,000 miles sold between</div>
+  <div class="band" style="position:relative"><span class="n" style="border-bottom:2px solid var(--green)">$62,000</span> and <span class="n">$68,000</span>
+    <div class="rcpt" style="top:52px;left:0"><img alt=""><div class="b"><div class="p">$62,000</div><div class="meta">20,000 miles &middot; Manual<br>Bring a Trailer &middot; Jan 2024<br>1994 Porsche 911 Cabriolet (964)</div><a class="lk" href="#">View on Bring a Trailer &#8594;</a></div></div>
+  </div>
+  <div class="tail">in the last twelve months. Everything from $54,500 to $86,500 has sold.</div>
+  <div class="fresh"><span class="dot"></span>Real sales through last night. No estimates.</div>
+  <a class="cm" href="#" style="margin-top:120px"><div class="ph"><span class="kick">Closest match</span></div><div class="b"><div class="p">$65,000</div><div class="meta">42,000 miles &middot; Manual</div><div class="meta"><b>Bring a Trailer</b> &middot; Feb 2024</div><div class="nm">1994 Porsche 911 Cabriolet (964)</div></div></a>
+</section>
+
+<!-- ---- v2 STATE 4: EXACT CAR (E30 M3 VIN match) ---- -->
+<section id="s-v2exact" class="state v2">
+  <div class="carline">1988 BMW M3 <span class="dot">&middot;</span> VIN WBSAK0301LAE33492 <a class="ch" href="#">Change</a></div>
+  <div class="exactkick">I know this exact car.</div>
+  <a class="cm" href="#"><div class="ph"></div><div class="b"><div class="p">$75,000</div><div class="meta">61,000 miles &middot; Manual</div><div class="meta"><b>Bring a Trailer</b> &middot; Aug 2026</div><div class="nm">1988 BMW M3 (E30)</div></div></a>
+  <a class="mrow" href="#"><img class="th" alt=""><div><div style="display:flex;gap:12px;align-items:baseline"><span class="lab">Earlier</span><span class="p">$58,000</span></div><div class="meta">71,000 miles &middot; Manual &middot; <b>Bring a Trailer</b> &middot; Nov 2025 &middot; 1988 BMW M3 (E30)</div></div></a>
+  <div class="lead" style="margin-top:22px">Yours sold for $75,000 in August. Most E30 M3s since then sold between</div>
+  <div class="band"><span class="n">$56,000</span> and <span class="n">$82,000</span></div>
+  <div class="tail">on Bring a Trailer and Cars &amp; Bids.</div>
+  <div class="fresh"><span class="dot"></span>Real sales through last night. No estimates.</div>
+</section>
+
+<!-- ---- v2 STATE 5: HOUSE-LED (1957 Maserati 450S) ---- -->
+<section id="s-v2house" class="state v2">
+  <div class="carline">1957 Maserati 450S <a class="ch" href="#">Change</a></div>
+  <div class="lead" style="max-width:34ch">No 1957 450S has sold in the last three years. 1950s Maseratis have sold for</div>
+  <div class="band"><span class="n">$3,500,000</span> to <span class="n">$5,200,000</span></div>
+  <div class="tail">at the hammer at RM Sotheby&#8217;s, Gooding and Bonhams.</div>
+  <div class="fresh"><span class="dot"></span>Real sales through last night. No estimates.</div>
+  <a class="cm" href="#"><div class="ph"><span class="kick">Closest in class</span></div><div class="b"><div class="p">$3,850,000 <span style="font:600 12px var(--mono);color:var(--slate)">hammer &middot; buyer paid $4,240,000 with premium</span></div><div class="meta"><b>Gooding &amp; Company</b> &middot; Aug 2004</div><div class="nm">1957 Maserati 450S</div></div></a>
+  <a class="hrow" href="#"><img class="th" alt=""><div><div class="p">$5,175,000 <span class="pr">hammer &middot; buyer paid $5,692,500 with premium</span></div><div class="nm"><b>RM Sotheby&#8217;s</b> &middot; May 2014 &middot; 1956 Maserati 450S</div></div></a>
+  <a class="hrow" href="#"><img class="th" alt=""><div><div class="p">$3,960,000 <span class="pr">hammer &middot; buyer paid $4,356,000 with premium</span></div><div class="nm"><b>Bonhams</b> &middot; Feb 2016 &middot; 1957 Maserati 450S</div></div></a>
+  <div class="refnote">Rare enough that it hasn&#8217;t traded in the window I track. Treat these as the neighbourhood it sits in, not a figure for it.</div>
+  <div class="sell" style="margin-top:20px"><div><h3>Ready to sell?</h3><p>I&#8217;ll look at the same market and tell you where I&#8217;d sell it.</p></div><a href="#">Where I&#8217;d sell it &#8594;</a></div>
+</section>
+
+<!-- ---- v2 STATE 6: REFUSAL (Lotus Esprit) ---- -->
+<section id="s-v2refusal" class="state v2">
+  <div class="carline">Lotus Esprit <a class="ch" href="#">Change</a></div>
+  <div class="lead" style="max-width:40ch">Too few Esprits have sold recently to show an honest spread. Here&#8217;s what there is.</div>
+  <a class="mrow" href="#" style="margin-top:16px"><img class="th" alt=""><div><div class="p">$61,000</div><div class="meta"><b>Bring a Trailer</b> &middot; Mar 2023 &middot; Lotus Esprit Turbo (1988)</div></div></a>
+  <a class="mrow" href="#"><img class="th" alt=""><div><div class="p">$48,000</div><div class="meta"><b>Cars &amp; Bids</b> &middot; Nov 2022 &middot; Lotus Esprit S4 (1994)</div></div></a>
+  <a class="mrow" href="#"><img class="th" alt=""><div><div class="p">$52,000</div><div class="meta"><b>Bring a Trailer</b> &middot; Jun 2022 &middot; Lotus Esprit SE (1991)</div></div></a>
+  <div class="refnote">Tell me more about it, or ask me where I&#8217;d sell it, and I&#8217;ll read what there is. Or try a different car.</div>
+  <div class="sell" style="margin-top:18px"><div><h3>Ready to sell?</h3><p>I&#8217;ll read what there is and tell you where I&#8217;d sell it.</p></div><a href="#">Where I&#8217;d sell it &#8594;</a></div>
+</section>
+
 </main>
 <script>
-(function(){var states=["m4","p997","m3","clarify"];function show(s){if(states.indexOf(s)<0)s="m4";states.forEach(function(k){var el=document.getElementById("s-"+k);if(el)el.classList.toggle("on",k===s);});document.querySelectorAll(".pv a").forEach(function(a){a.classList.toggle("on",a.getAttribute("data-s")===s);});}window.addEventListener("hashchange",function(){show((location.hash||"").replace("#",""));});show((location.hash||"#m4").replace("#",""));})();
+(function(){var states=["m4","p997","m3","clarify","v2pre","v2match","v2tap","v2exact","v2house","v2refusal"];function show(s){if(states.indexOf(s)<0)s="m4";states.forEach(function(k){var el=document.getElementById("s-"+k);if(el)el.classList.toggle("on",k===s);});document.querySelectorAll(".pv a").forEach(function(a){a.classList.toggle("on",a.getAttribute("data-s")===s);});}window.addEventListener("hashchange",function(){show((location.hash||"").replace("#",""));});show((location.hash||"#m4").replace("#",""));})();
 </script>
 </body>
 </html>
