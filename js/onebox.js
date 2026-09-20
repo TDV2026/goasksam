@@ -1410,7 +1410,21 @@
     renderResults(snap);
     return true;
   }
+  // Item 10: the corner avatar is the signed-in TDV subscriber state (magic-link / Beehiiv auto
+  // sign-in). Render initials ONLY when a real session exists; render nothing for a guest - who
+  // still gets the full two-question-to-answer flow with no prompt (the answer is never gated on
+  // sign-in). Reads the session localStorage key auth.js writes; no dependency on auth.js loading.
+  function obAvatarInit() {
+    var el = document.getElementById("ob-account"); if (!el) return;
+    var email = null;
+    try { var s = JSON.parse(localStorage.getItem("gas_auth_session") || "null"); if (s && s.access_token) email = s.email || "signed-in"; } catch (e) {}
+    if (!email) { el.style.display = "none"; el.textContent = ""; return; }   // guest: no avatar, no prompt
+    var lp = String(email).split("@")[0].split(/[\s._-]+/).filter(Boolean);
+    var initials = (((lp[0] || "")[0] || "") + ((lp[1] || "")[0] || (lp[0] || "")[1] || "")).toUpperCase() || "•";
+    el.textContent = initials; el.title = email; el.style.display = "";
+  }
   function boot() {
+    obAvatarInit();
     if (renderSnapshot()) { fetchProof(); syncRailResults(); return; }
     renderEmpty();
     fetchProof();

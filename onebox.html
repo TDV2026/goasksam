@@ -459,13 +459,13 @@ a.htr:hover .htx{color:var(--green);border-color:var(--green)}
   </div>
 </aside>
 <div id="ob-main">
-  <header class="ob-topbar"><span class="avatar" id="ob-account" title="Account">SW</span></header>
+  <header class="ob-topbar"><span class="avatar" id="ob-account" title="Account" style="display:none"></span></header>
   <main class="wrap"><div id="ob"></div></main>
 </div>
 <script>
 function obToggleRail(open){var r=document.getElementById("ob-rail"),s=document.getElementById("ob-scrim");if(!r)return;var on=(open===undefined)?!r.classList.contains("open"):!!open;r.classList.toggle("open",on);if(s)s.classList.toggle("open",on);}
 function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("ob-results-menu");if(m)m.classList.toggle("open");return false;}
 </script>
-<script src="/obx.20260920h/onebox.js"></script>
+<script src="/obx.20260920i/onebox.js"></script>
 </body>
 </html>
