@@ -1014,37 +1014,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "srcaudit", note: "ESTIMATED counts (planner stats); archive = max(bySlug,byLabel)", attemptsTableExists: attemptsExists, sources: out });
   }
 
-  // TEMP (5-min check, remove after): does OCD's /auctions actually carry a description for the
-  // house sources that store 0% in the archive, or is our ingest dropping it? One live OCD call per
-  // house + a BaT control, plus the stored raw_record keys (ingest stores OCD verbatim).
-  if (task === "ocddesc") {
-    const { callOldCarsData } = await import("../lib/_ocd.js");
-    const apiKey = process.env.OLDCARSDATA_API_KEY;
-    if (!apiKey) return res.status(500).json({ error: "OLDCARSDATA_API_KEY not set." });
-    const out = { live: {}, stored: {} };
-    for (const source of ["bonhams", "gooding", "broadarrow", "bringatrailer"]) {
-      try {
-        const r = await callOldCarsData("/auctions", { source, status: "sold", sort: "date", direction: "desc", page: 1, limit: 3 }, apiKey);
-        const recs = (r && r.data) || [];
-        const first = recs.find(x => x && x.make && /ferrari/i.test(x.make)) || recs[0] || null;
-        out.live[source] = first
-          ? { hasDescriptionKey: "description" in first, descType: typeof first.description, descLen: first.description ? String(first.description).length : 0, descSample: first.description ? String(first.description).slice(0, 140) : null, allKeys: Object.keys(first).sort() }
-          : { note: "no records returned", shape: r && typeof r };
-      } catch (e) { out.live[source] = { error: String((e && e.message) || e).slice(0, 140) }; }
-    }
-    if (env) {
-      const headers = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-      for (const slug of ["bonhams", "bringatrailer"]) {
-        try {
-          const rows = await (await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?source_slug=eq.${slug}&make=ilike.*ferrari*&select=rr:raw_record&limit=1`, { headers })).json();
-          const rr = rows && rows[0] && rows[0].rr;
-          out.stored[slug] = rr ? { hasDescriptionKey: "description" in rr, descLen: rr.description ? String(rr.description).length : 0, keyCount: Object.keys(rr).length } : { note: "no ferrari row" };
-        } catch (e) { out.stored[slug] = { error: String(e).slice(0, 80) }; }
-      }
-    }
-    return res.status(200).json({ task: "ocddesc", ...out });
-  }
-
   // task=poolcheck: READ-ONLY (archive; ZERO OCD). Runs the LIVE runOneBox for a query and reports
   // the resulting pool (span/cluster + card titles), scanning them for any surviving memorabilia -
   // proves the exclusion removed the junk from the engine pool (vs the raw archive which still has it).
