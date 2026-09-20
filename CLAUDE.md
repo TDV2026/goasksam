@@ -159,6 +159,9 @@ Partners live in the Supabase partners table (docs/supabase-partners-schema.sql,
 - Classified-listing data source (needed before any "classified vs auction" recommendation, e.g. on Hemmings).
 - Richer decision UX: Sam narrating a reasoning path instead of presenting raw counts.
 
+## Known accepted limitations (not bugs, not actionable now)
+- Ferrari-house description gap (Sep 2026, One Box item 8). The rare-Ferrari auction houses (Bonhams, Gooding, Broad Arrow, Mecum) carry NO description text in OldCarsData's feed: OCD returns the `description` key but null for those sources (BaT/RM return full descriptions). Our ingest stores OCD verbatim, so this is a permanent OCD source-coverage limit, NOT an ingest bug and NOT fixable by seeding phrasings. Consequence: the item-8 dictionary-driver question (matching-numbers / Classiche etc.) can never fire for those cars, because the mineable provenance lives only in the description. The mechanism works where descriptions exist (verified on muscle cars + a 1969 Corvette). Revisit ONLY if OCD begins populating descriptions for those houses; do not re-investigate otherwise.
+
 ## Working style (how Sam the founder wants this run)
 
 - Read the actual code before assuming what's built.
