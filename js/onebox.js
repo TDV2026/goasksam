@@ -624,6 +624,13 @@
   // chassis as two receipts (% dormant until 3 pairs). Houses are named by THIS model's own
   // results and are never a routable button here; the venue steer lives in the read + on /sell.
   var HT_WINDOW_TEXT = "the past three years";
+  // Item 3 (window honesty): name the REAL span the visible receipts cover, never a blanket window
+  // they might contradict. Reads each receipt's sale year from .date (fallback .year). spanSince ->
+  // "since 2024" / "in 2026" for the lead sentence; spanRange -> "2024 to 2026" / "in 2026" for the
+  // receipt labels. Falls back to the window text when no receipt carries a readable date.
+  function receiptYears(list) { return (list || []).map(function (rc) { var y = String((rc && (rc.date || rc.year)) || "").slice(0, 4); return /^\d{4}$/.test(y) ? +y : null; }).filter(Boolean); }
+  function spanSince(list) { var ys = receiptYears(list); if (!ys.length) return "over " + HT_WINDOW_TEXT; var lo = Math.min.apply(null, ys), hi = Math.max.apply(null, ys); return lo === hi ? ("in " + lo) : ("since " + lo); }
+  function spanRange(list) { var ys = receiptYears(list); if (!ys.length) return HT_WINDOW_TEXT; var lo = Math.min.apply(null, ys), hi = Math.max.apply(null, ys); return lo === hi ? ("in " + lo) : (lo + " to " + hi); }
   // Consignment doors (Sep 2026): the six houses are routable via their consignment intake page
   // (verb "consign", never "list"). Mirror of lib/_houseComps.HOUSE_CONSIGN.
   var HT_CONSIGN = {
@@ -772,7 +779,7 @@
     reads.push("Too few sold recently to mark a typical band, so these are the sales themselves, not a guess.");
     body += '<div class="samread" data-stage="answer"><div class="ava">SAM</div><div><div class="tag">' + lint("Sam’s read", "ht.readtag") + "</div>" +
       reads.map(function (p) { return "<p>" + lint(esc(p), "ht.read") + "</p>"; }).join("") + "</div></div>";
-    body += '<div class="seclabel" data-stage="cards">' + lint("What has sold, " + esc(name) + ", " + HT_WINDOW_TEXT, "ht.reclab") + "</div>";
+    body += '<div class="seclabel" data-stage="cards">' + lint("What has sold, " + esc(name) + ", " + spanRange(scope), "ht.reclab") + "</div>";
     body += '<div class="htreceipts" data-stage="cards">' + scope.slice(0, 8).map(function (rc) { return htReceiptRow(rc); }).join("") + "</div>";
     // Paired chassis are a whole-model signal; show them only in the unscoped view.
     if (scope === ht.receipts) body += htPairsHtml(ht);
@@ -807,7 +814,7 @@
     var era = esc(ce.era), make = esc(ce.make);
     var out = '<div class="livetake" data-stage="answer"><div class="lt-kick">' + lint("Sam’s live take", "ce.kick") + "</div>";
     out += '<p class="lt-hero">' + priceRange([ce.lowHammer, ce.highHammer]) + "</p>";
-    var line = "No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ", so this is the wider " + era + " " + make + " market, not your exact car. " + ce.totalN + " sold; most landed in this range, the middle around " + usd(ce.medianHammer) + ".";
+    var line = "No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ", so this is the wider " + era + " " + make + " market, not your exact car. " + ce.totalN + " " + (ce.totalN === 1 ? "has" : "have") + " sold " + spanSince(ce.receipts) + "; most landed in this range, the middle around " + usd(ce.medianHammer) + ".";
     out += '<p class="lt-line">' + lint(line, "ce.line") + "</p>" + freshLine(d) + "</div>";
     var reads = [
       "Your exact car is rare enough that it has not traded in the three years I track. Treat these as the neighborhood it sits in, not a figure for it.",
@@ -815,7 +822,7 @@
     ];
     out += '<div class="samread" data-stage="answer"><div class="ava">SAM</div><div><div class="tag">' + lint("Sam’s read", "ce.readtag") + "</div>" +
       reads.map(function (p) { return "<p>" + lint(esc(p), "ce.read") + "</p>"; }).join("") + "</div></div>";
-    out += '<div class="seclabel" data-stage="cards">' + lint(era + " " + make + " sales, " + HT_WINDOW_TEXT, "ce.reclab") + "</div>";
+    out += '<div class="seclabel" data-stage="cards">' + lint(era + " " + make + " sales, " + spanRange(ce.receipts), "ce.reclab") + "</div>";
     out += '<div class="htreceipts" data-stage="cards">' + ce.receipts.slice(0, 8).map(function (rc) { return htReceiptRow(rc); }).join("") + "</div>";
     out += sellHtml() + recentHtml();
     out += '<div class="trust">Real completed sales from GoAskSam’s archive, hammer prices with the buyer premium backed out. No estimates. No valuations.</div>';
