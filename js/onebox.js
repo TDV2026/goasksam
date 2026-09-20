@@ -916,8 +916,8 @@
       reads.push("These sell online and at the auction houses. The recorded sales are below.");
     }
     reads.push("Too few sold recently to mark a typical band, so these are the sales themselves, not a guess.");
-    body += '<div class="samread" data-stage="answer"><div class="ava">SAM</div><div><div class="tag">' + lint("Sam’s read", "ht.readtag") + "</div>" +
-      reads.map(function (p) { return "<p>" + lint(esc(p), "ht.read") + "</p>"; }).join("") + "</div></div>";
+    // Plain serif lines, no green box (consistent with the result/exact states: evidence, not a widget).
+    body += '<div class="thinread" data-stage="answer">' + reads.map(function (p) { return '<p class="contradiction">' + lint(esc(p), "ht.read") + "</p>"; }).join("") + "</div>";
     body += '<div class="seclabel" data-stage="cards">' + lint("What has sold, " + esc(name) + ", " + spanRange(scope), "ht.reclab") + "</div>";
     body += '<div class="htreceipts" data-stage="cards">' + scope.slice(0, 8).map(function (rc) { return htReceiptRow(rc); }).join("") + "</div>";
     // Paired chassis are a whole-model signal; show them only in the unscoped view.

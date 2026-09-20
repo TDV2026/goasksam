@@ -53,8 +53,11 @@ async function capture(page, input) {
       state,
       // exact card (matched) - since = item 6 market-since-the-sale bridge line
       exact: g(".exact h2"), cfg: g(".exact .cfg"), since: g(".exact .since"), disc: g(".exact .disc summary"),
-      // render port (round 7): cluster hero, quiet span, freshness line (item 2), Sam's Read
-      ltHero: g(".lt-hero"), ltLine: g(".lt-line"), ltSpan: g(".lt-span"), ltFresh: g(".fresh"),
+      // Cluster-led block (Sep 2026 port): car line + lead + serif band + tail + freshness; the
+      // divergence contradiction sentence; the "Sam's live take" kicker must be GONE (kickerGone).
+      carline: g(".carline"), clLead: g(".blk .lead"), clBand: g(".blk .band"), clTail: g(".blk .tail"),
+      ltFresh: g(".blk .fresh") || g(".fresh"), contradiction: g(".contradiction"),
+      kickerGone: document.querySelectorAll(".lt-kick").length === 0, samReadBox: document.querySelectorAll(".samread").length,
       // house/class receipt tier fields (item 4) + labels (item 3)
       recLabel: g(".seclabel"), htSpec: all(".htr-spec").slice(0, 3), htPrice: all(".htr-p").slice(0, 3),
       read: all(".samread p"), refineQ: g(".samread .refine .q"), refineChips: all(".samread .refine .chip, .samread .askchips .chip"),
