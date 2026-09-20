@@ -564,7 +564,8 @@
     var ext = '<span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>';
     var img = c.image ? '<img src="' + esc(c.image) + '" alt="' + esc(c.title) + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.plate\');if(p)p.style.display=\'flex\'">' : "";
     var lbl = DELTA_LABEL[c.delta] || "Recent sale";
-    var meta = '<span class="num">' + esc(c.mileageText) + "</span>" + (c.transmission ? '<span class="dot">&middot;</span>' + esc(cap(String(c.transmission))) : "") + '<span class="dot">&middot;</span>' + esc(monthYear(c.date));
+    var venue = (c.platform && c.platform !== "others") ? c.platform : "";
+    var meta = '<span class="num">' + esc(c.mileageText) + "</span>" + (c.transmission ? '<span class="dot">&middot;</span>' + esc(cap(String(c.transmission))) : "") + (venue ? '<span class="dot">&middot;</span>' + esc(venue) : "") + '<span class="dot">&middot;</span>' + esc(monthYear(c.date));
     var inner = '<div class="bth">' + img + ext + '<div class="plate" style="display:' + (c.image ? "none" : "flex") + '"><div class="n">' + esc(c.title) + '</div></div></div>' +
       '<div class="bb"><span class="blabel">' + esc(lbl) + '</span><div class="bprice num">' + repPrice(c) + '</div>' +
       // Name the car as VISIBLE text (year/model/trim), not only in the image-plate that hides when
@@ -591,6 +592,24 @@
     var brackets = bracketCard(rep.high) + bracketCard(rep.low);
     return '<div class="cards3">' + cm + (brackets ? '<div class="brackets">' + brackets + "</div>" : "") + "</div>";
   }
+  // Exact-car state (item 1): the closest match must be a COMPACT ROW, not a second big photo card
+  // alongside the VIN hero - same treatment as house-led. Renders closest + fewer/more-miles as rows,
+  // each with its venue (item 3). One large photo card on the page (the VIN hero), never two.
+  function compactSalesHtml(d) {
+    var rep = d.representative; if (!rep || !rep.closest) return "";
+    var list = [rep.closest, rep.high, rep.low].filter(Boolean);
+    var rows = list.map(function (c) {
+      var lbl = c.role === "closest" ? "Closest match" : (DELTA_LABEL[c.delta] || "");
+      var venue = (c.platform && c.platform !== "others") ? c.platform : "";
+      var meta = [c.mileageText, c.transmission ? cap(String(c.transmission)) : "", venue].filter(Boolean).join(" · ");
+      var href = utmUrl(c.url);
+      var inner = '<div class="htr-l"><div class="htr-v">' + (lbl ? '<span class="cmkick">' + esc(lbl) + "</span>" : "") + '<span class="htr-yv">' + esc(c.title) + "</span></div>" +
+        '<div class="htr-sub">' + esc(meta) + "</div></div>" +
+        '<div class="htr-r"><div class="htr-p num">' + repPrice(c) + '</div><div class="htr-d">' + esc(monthYear(c.date)) + "</div></div>";
+      return href ? '<a class="htr" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="htr">' + inner + "</div>";
+    }).join("");
+    return '<div class="htreceipts">' + rows + "</div>";
+  }
   function seeAllHtml(d, m) {
     var plats = d.platforms || [];
     if (!plats.length) return "";
@@ -606,7 +625,9 @@
   function resultHtml(d, m) {
     var body = heroBlock(d) + observeAsideHtml(d) + samReadBlock(d, m);
     body += '<div class="seclabel">The sales behind it</div>';
-    body += cards3Html(d, m);
+    // Item 1: exact-car state renders compact rows (VIN hero is the only big card); typed searches
+    // keep the three-card layout.
+    body += m ? compactSalesHtml(d) : cards3Html(d, m);
     body += seeAllHtml(d, m);
     if (!divergenceAsksInline(d)) body += earnedHtml(d, m);
     // Item 7: wide band, nothing splits 5+/5+ -> one honest sentence instead of a question.
