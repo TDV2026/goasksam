@@ -1014,20 +1014,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "srcaudit", note: "ESTIMATED counts (planner stats); archive = max(bySlug,byLabel)", attemptsTableExists: attemptsExists, sources: out });
   }
 
-  // TEMP (S2 ingest diagnosis, remove after): freshest sale_date per online source, by BOTH
-  // source_slug (new rows) and platform label (old rows). Answers "is BaT/C&B ingest current?"
-  if (task === "freshaudit") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const LABEL = { bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", pcarmarket: "PCARMarket", hagerty: "Hagerty", collectingcars: "Collecting Cars", carandclassic: "Car & Classic", rmsothebys: "RM Sotheby's", gooding: "Gooding & Co", bonhams: "Bonhams", mecum: "Mecum Auctions", barrettjackson: "Barrett-Jackson" };
-    const headers = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    const newest = async (filter) => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}&order=sale_date.desc&limit=1&select=sale_date`, { headers }); const j = await r.json(); return (j && j[0] && j[0].sale_date) || null; } catch (e) { return null; } };
-    const out = [];
-    for (const slug of Object.keys(LABEL)) {
-      out.push({ slug, newestBySlug: await newest(`source_slug=eq.${slug}`), newestByLabel: await newest(`platform=eq.${encodeURIComponent(LABEL[slug])}`) });
-    }
-    return res.status(200).json({ task: "freshaudit", today: new Date().toISOString().slice(0, 10), sources: out });
-  }
-
   // task=poolcheck: READ-ONLY (archive; ZERO OCD). Runs the LIVE runOneBox for a query and reports
   // the resulting pool (span/cluster + card titles), scanning them for any surviving memorabilia -
   // proves the exclusion removed the junk from the engine pool (vs the raw archive which still has it).
