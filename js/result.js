@@ -1122,6 +1122,25 @@ function _thinPickCardHtml(o){
   // beneath it as context - not the other way round (a car year read like a sale year).
   const rc=(o.receipts||[]).filter(r=>String(r.slug||"").toLowerCase()===p.slug).sort((a,b)=>b.hammer-a.hammer).slice(0,3)
     .map(r=>`<div class="pcard-mrow"><div><div class="pcard-mp" style="font-variant-numeric:tabular-nums">${esc(_thinMonthLabel(r.date)||"Recent")} · ${money(r.hammer)}${isHouse&&r.allIn?` <span style="opacity:.6">buyer paid ${money(r.allIn)}</span>`:""}</div><div class="pcard-ms">${esc([r.year,o.modelLabel].filter(Boolean).join(" "))}</div></div></div>`).join("");
+  // Adjacent-year disclosure (Thread A, approved): the thin pool windows year +/-2, so a 1964
+  // query can legitimately pool 1963-1964 cars. When the receipts' actual year range differs from
+  // the typed year, say so on the scope line (the same honesty as the class-era band) instead of a
+  // bare "All {model}s". Gated on the pooled receipts differing from the typed year; identical when
+  // every comp matches the year, and silent when no year was typed.
+  const _yrs=(o.receipts||[]).map(r=>parseInt(r.year,10)).filter(y=>y>1900&&y<2100);
+  const _yMin=_yrs.length?Math.min(..._yrs):null, _yMax=_yrs.length?Math.max(..._yrs):null;
+  const _ty=parseInt(o.typedYear,10)||null;
+  const _adj=_ty&&_yMin!=null&&(_yMin!==_ty||_yMax!==_ty);
+  let scopeLabel=`All ${esc(o.modelLabel)}s · last three years`, scopeSub=`Sold ${range}`;
+  if(_adj){
+    if(_yMin!==_yMax){
+      scopeLabel=`${esc(o.modelLabel)}s, ${_yMin} to ${_yMax} · last three years`;
+      scopeSub=`Sold ${range}. Reading across ${_yMin} to ${_yMax}; a single year is too thin.`;
+    } else {
+      scopeLabel=`${esc(o.modelLabel)}s, ${_yMin} · last three years`;
+      scopeSub=`Sold ${range}. Comps here are ${_yMin}; yours is a ${_ty}.`;
+    }
+  }
   const cta=isHouse?`outboundGo('${esc(p.slug)}','consign')`:`outboundGo('${esc(p.slug)}','pick')`;
   const ctaLabel=isHouse?`Start a consignment with ${esc(name)}`:`Start listing on ${esc(name)}`;
   const reassure=isHouse
@@ -1141,7 +1160,7 @@ function _thinPickCardHtml(o){
       <div class="pcard-wordmark">${esc(name)}</div>
       <div class="pcard-meta">
         <div class="pcard-mrow">${(typeof psvSvg==="function"?psvSvg("pin"):svg("car"))}<div><div class="pcard-mp">${esc(o.carLbl)}</div><div class="pcard-ms">${esc(o.loc)}</div></div></div>
-        <div class="pcard-mrow"><div><div class="pcard-mp">All ${esc(o.modelLabel)}s · last three years</div><div class="pcard-ms">Sold ${range}</div></div></div>
+        <div class="pcard-mrow"><div><div class="pcard-mp">${scopeLabel}</div><div class="pcard-ms">${scopeSub}</div></div></div>
         ${rc}
       </div>
     </div>
@@ -1172,8 +1191,9 @@ function renderThinDecisionSell(msgs,thin,decisionData){
     return false;
   }
   const houseLeads=!!thin.houseSteer&&!rush; // rush never lets a house lead
-  const houseCard=hp?_thinPickCardHtml({kind:"house",pick:hp.pick,others:hp.others,receipts:recs,make,modelLabel,carLbl,loc,isLead:houseLeads}):"";
-  const onlineCard=op?_thinPickCardHtml({kind:"online",pick:op.pick,others:op.others,receipts:recs,make,modelLabel,carLbl,loc,isLead:!houseLeads}):"";
+  const typedYear=v.year;
+  const houseCard=hp?_thinPickCardHtml({kind:"house",pick:hp.pick,others:hp.others,receipts:recs,make,modelLabel,carLbl,loc,typedYear,isLead:houseLeads}):"";
+  const onlineCard=op?_thinPickCardHtml({kind:"online",pick:op.pick,others:op.others,receipts:recs,make,modelLabel,carLbl,loc,typedYear,isLead:!houseLeads}):"";
   // consigns_to_houses PowerSeller (once seeded): the "have someone handle everything" route ABOVE
   // the pick. Suppressed under ASAP (a handled house consignment is equally months-long). None
   // seeded today, so this never renders; when it does its CTA joins the lead flow.
