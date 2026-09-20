@@ -657,9 +657,19 @@
     if (!rc.markers || !rc.markers.length) return "";
     return '<span class="htmk">' + rc.markers.map(function (mk) { return '<span class="mk">' + esc(mk.label) + "</span>"; }).join("") + "</span>";
   }
+  function natMoney(cur, n) { var s = sym(cur); return s ? s + Number(n).toLocaleString("en-US") : Number(n).toLocaleString("en-US") + " " + esc(cur); }
+  // Item 5: EUR/GBP house sales lead with the native figure, USD computed beside it. USD sales
+  // render as before. Hammer + buyer-paid stay on one line (locked).
   function htPriceLine(rc) {
-    var main = '<span class="num">' + esc(usd(rc.hammer)) + "</span>";
-    if (rc.isHouse && rc.allIn) main += ' <span class="allin">&middot; buyer paid ' + esc(usd(rc.allIn)) + " incl. premium</span>";
+    var native = rc.nativeCur && rc.nativeHammer;
+    var main = native
+      ? '<span class="num">' + esc(natMoney(rc.nativeCur, rc.nativeHammer)) + '</span> <span class="usdconv">(' + esc(usd(rc.hammer)) + ")</span>"
+      : '<span class="num">' + esc(usd(rc.hammer)) + "</span>";
+    if (rc.isHouse && rc.allIn) {
+      main += native && rc.nativeAllIn
+        ? ' <span class="allin">&middot; buyer paid ' + esc(natMoney(rc.nativeCur, rc.nativeAllIn)) + " (" + esc(usd(rc.allIn)) + ") incl. premium</span>"
+        : ' <span class="allin">&middot; buyer paid ' + esc(usd(rc.allIn)) + " incl. premium</span>";
+    }
     return main;
   }
   function htYearVenue(rc) { return (rc.year ? esc(rc.year) + " " : "") + esc(rc.venue); }
