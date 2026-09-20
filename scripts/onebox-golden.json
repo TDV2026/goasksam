@@ -143,7 +143,10 @@
     "earned": "Documentation moves these. Is yours documented (build sheet, Marti report, tank sticker)?",
     "chips": [
       "Documented",
-      "No documentation"
+      "No documentation",
+      "Needs work",
+      "Modified",
+      "Nothing major"
     ],
     "platforms": [
       "Bring a Trailer",
