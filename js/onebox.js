@@ -615,6 +615,29 @@
     var href = utmUrl(c.url);
     return href ? '<a class="bcard" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="bcard">' + inner + "</div>";
   }
+  // HARD RULE: every supporting row keeps a real thumbnail. When the sale has no photo, render a
+  // CLEARLY MARKED placeholder (a labelled photo slot), never an empty text row.
+  function thumbEl(image, alt) {
+    return image
+      ? '<img class="th" src="' + esc(image) + '" alt="' + esc(alt || "") + '" loading="lazy" onerror="this.classList.add(\'th-none\');this.removeAttribute(\'src\')">'
+      : '<span class="th th-none" aria-label="No photo"></span>';
+  }
+  // One compact supporting row (closest / fewer / more) with a thumbnail. Natural height, full width,
+  // no shared height constraint - nothing clips.
+  function compactRow(c) {
+    if (!c) return "";
+    var lbl = c.role === "closest" ? "Closest match" : (DELTA_LABEL[c.delta] || "");
+    var venue = (c.platform && c.platform !== "others") ? c.platform : "";
+    var meta = [c.mileageText, c.transmission ? cap(String(c.transmission)) : "", venue].filter(Boolean).join(" · ");
+    var href = utmUrl(c.url);
+    var inner = thumbEl(c.image, c.title) + '<div class="htr-l"><div class="htr-v">' + (lbl ? '<span class="cmkick">' + esc(lbl) + "</span>" : "") + '<span class="htr-yv">' + esc(c.title) + "</span></div>" +
+      '<div class="htr-sub">' + esc(meta) + "</div></div>" +
+      '<div class="htr-r"><div class="htr-p num">' + repPrice(c) + '</div><div class="htr-d">' + esc(monthYear(c.date)) + "</div></div>";
+    return href ? '<a class="htr htr-thumb" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="htr htr-thumb">' + inner + "</div>";
+  }
+  // General match (locked hierarchy rule): ONE dominant CLOSEST MATCH photo card at full content
+  // width, then FEWER MILES and MORE MILES as stacked compact rows below. No side-by-side column
+  // (that squeezed + clipped the lower card).
   function cards3Html(d, m) {
     var rep = d.representative; if (!rep || !rep.closest) return "";
     var c = rep.closest;
@@ -628,29 +651,17 @@
       '<div class="rtitle">' + esc(c.title) + '<span class="dot">&middot;</span>' + esc(c.platform) + '<span class="dot">&middot;</span>' + esc(monthYear(c.date)) + '</div>' +
       '<div class="why">' + lint(why, "card.why") + "</div></div>";
     var cmHref = utmUrl(c.url);
-    var cm = cmHref ? '<a class="cm" href="' + esc(cmHref) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + cmInner + "</a>" : '<div class="cm">' + cmInner + "</div>";
-    var brackets = bracketCard(rep.high) + bracketCard(rep.low);
-    return '<div class="cards3">' + cm + (brackets ? '<div class="brackets">' + brackets + "</div>" : "") + "</div>";
+    var cm = cmHref ? '<a class="cm cm-solo" href="' + esc(cmHref) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + cmInner + "</a>" : '<div class="cm cm-solo">' + cmInner + "</div>";
+    return '<div class="stack3">' + cm + compactRow(rep.high) + compactRow(rep.low) + "</div>";
   }
   // Exact-car state (item 1): the closest match must be a COMPACT ROW, not a second big photo card
   // alongside the VIN hero - same treatment as house-led. Renders closest + fewer/more-miles as rows,
   // each with its venue (item 3). One large photo card on the page (the VIN hero), never two.
+  // Exact-car: all three market receipts are compact rows (VIN hero is the only big photo). Unified
+  // with the general-match supporting rows via compactRow (thumbnail guaranteed).
   function compactSalesHtml(d) {
     var rep = d.representative; if (!rep || !rep.closest) return "";
-    var list = [rep.closest, rep.high, rep.low].filter(Boolean);
-    var rows = list.map(function (c) {
-      var lbl = c.role === "closest" ? "Closest match" : (DELTA_LABEL[c.delta] || "");
-      var venue = (c.platform && c.platform !== "others") ? c.platform : "";
-      var meta = [c.mileageText, c.transmission ? cap(String(c.transmission)) : "", venue].filter(Boolean).join(" · ");
-      var href = utmUrl(c.url);
-      // Item 3: small thumbnail back on each row (the VIN hero stays the only large photo).
-      var th = c.image ? '<img class="th" src="' + esc(c.image) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' : '<span class="th"></span>';
-      var inner = th + '<div class="htr-l"><div class="htr-v">' + (lbl ? '<span class="cmkick">' + esc(lbl) + "</span>" : "") + '<span class="htr-yv">' + esc(c.title) + "</span></div>" +
-        '<div class="htr-sub">' + esc(meta) + "</div></div>" +
-        '<div class="htr-r"><div class="htr-p num">' + repPrice(c) + '</div><div class="htr-d">' + esc(monthYear(c.date)) + "</div></div>";
-      return href ? '<a class="htr htr-thumb" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="htr htr-thumb">' + inner + "</div>";
-    }).join("");
-    return '<div class="htreceipts">' + rows + "</div>";
+    return '<div class="htreceipts">' + [rep.closest, rep.high, rep.low].filter(Boolean).map(compactRow).join("") + "</div>";
   }
   function seeAllHtml(d, m) {
     var plats = d.platforms || [];
@@ -805,12 +816,13 @@
   }
   function htReceiptRow(rc) {
     var href = utmUrl(rc.url);
-    var inner = '<div class="htr-l"><div class="htr-v">' + htYearVenue(rc) + (rc.isHouse ? '<span class="htr-h">auction house</span>' : "") + "</div>" +
+    // Hard rule: every compact row keeps a thumbnail (or a clearly marked placeholder).
+    var inner = thumbEl(rc.image, rc.title) + '<div class="htr-l"><div class="htr-v">' + htYearVenue(rc) + (rc.isHouse ? '<span class="htr-h">auction house</span>' : "") + "</div>" +
       '<div class="htr-t">' + esc(rc.title) + "</div>" + (rc.isHouse ? htSpecLine(rc) : htMiText(rc)) + htMarkerChips(rc) + "</div>" +
       '<div class="htr-r"><div class="htr-p num">' + htPriceLine(rc) + "</div>" +
       '<div class="htr-d">' + esc(monthYear(rc.date)) + "</div></div>";
     var ext = href ? '<span class="ext htx"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>' : "";
-    return href ? '<a class="htr" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(rc.slug || "") + '">' + inner + ext + "</a>" : '<div class="htr">' + inner + "</div>";
+    return href ? '<a class="htr htr-thumb" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(rc.slug || "") + '">' + inner + ext + "</a>" : '<div class="htr htr-thumb">' + inner + "</div>";
   }
   // Intake copy composed CLIENT-side from the engine's split FACTS (product rule 3). Marker splits
   // carry a curated phrasing where we have one; mileage/transmission are generic. Returns the

@@ -367,10 +367,17 @@ a.rcard:hover .ext{color:var(--green);border-color:var(--green)}
 .contradiction .num{color:var(--ink);font-weight:600}
 /* small thumbnail on the exact-car compact rows */
 .htr.htr-thumb{display:flex;align-items:center;gap:13px}
-.htr-thumb .th{width:74px;height:52px;border-radius:8px;object-fit:cover;flex:none;background:var(--line2)}
+.htr-thumb .th{width:74px;height:52px;border-radius:8px;object-fit:cover;flex:none;background:var(--line2);display:block}
 .htr-thumb .htr-l{flex:1;min-width:0}
 .htr-thumb .htr-yv{font:600 13px/1.35 var(--grotesk);color:var(--ink)}
 .htr-thumb .cmkick{font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--clay);margin-right:8px}
+/* Clearly marked photo-slot placeholder (never an empty text row). */
+.th-none{background:var(--line2);position:relative;overflow:hidden}
+.th-none::after{content:"no photo";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:600 8px/1.1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+/* General match: ONE dominant card, then stacked compact rows (no side-by-side column, no clip). */
+.stack3{max-width:720px;margin-top:13px;display:flex;flex-direction:column;gap:12px}
+.stack3 .cm.cm-solo{width:100%;max-width:none;margin:0}
+.stack3 .htr{margin:0}
 /* one quiet recent row under the CTA */
 .recentline{margin:20px 2px 0;font:600 12.5px/1.5 var(--mono);color:var(--faint);letter-spacing:.01em}
 .recentline .rl{color:var(--slate);text-decoration:none;border-bottom:1px solid var(--line);cursor:pointer}
@@ -487,6 +494,6 @@ a.htr:hover .htx{color:var(--green);border-color:var(--green)}
 function obToggleRail(open){var r=document.getElementById("ob-rail"),s=document.getElementById("ob-scrim");if(!r)return;var on=(open===undefined)?!r.classList.contains("open"):!!open;r.classList.toggle("open",on);if(s)s.classList.toggle("open",on);}
 function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("ob-results-menu");if(m)m.classList.toggle("open");return false;}
 </script>
-<script src="/obx.20260920l/onebox.js"></script>
+<script src="/obx.20260920m/onebox.js"></script>
 </body>
 </html>
