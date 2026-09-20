@@ -663,11 +663,28 @@
     return main;
   }
   function htYearVenue(rc) { return (rc.year ? esc(rc.year) + " " : "") + esc(rc.venue); }
-  function htMiText(rc) { return Number(rc.mileage) > 0 ? '<span class="htr-mi num">' + Number(rc.mileage).toLocaleString("en-US") + " mi</span>" : ""; }
+  // Online receipts (item 4): mileage + gearbox prominent.
+  function htMiText(rc) {
+    var bits = [];
+    if (Number(rc.mileage) > 0) bits.push('<span class="htr-mi num">' + Number(rc.mileage).toLocaleString("en-US") + " mi</span>");
+    if (rc.transmission) bits.push('<span class="htr-tx">' + esc(cap(String(rc.transmission))) + "</span>");
+    return bits.length ? '<div class="htr-sub">' + bits.join('<span class="dot">&middot;</span>') + "</div>" : "";
+  }
+  // House/class receipts (item 4): chassis (full from the listing, else last digits of the VIN/
+  // chassis) + colour + the title clause (rendered above); mileage drops to a muted secondary.
+  function htSpecLine(rc) {
+    var bits = [];
+    if (rc.chassis) bits.push("Chassis " + esc(rc.chassis));
+    else if (rc.chassisTail) bits.push("Chassis ending " + esc(rc.chassisTail));
+    if (rc.color) bits.push(esc(cap(String(rc.color))));
+    var main = bits.length ? '<div class="htr-spec">' + bits.join('<span class="dot">&middot;</span>') + "</div>" : "";
+    var mi = Number(rc.mileage) > 0 ? '<div class="htr-mi2 num">' + Number(rc.mileage).toLocaleString("en-US") + " mi</div>" : "";
+    return main + mi;
+  }
   function htReceiptRow(rc) {
     var href = utmUrl(rc.url);
     var inner = '<div class="htr-l"><div class="htr-v">' + htYearVenue(rc) + (rc.isHouse ? '<span class="htr-h">auction house</span>' : "") + "</div>" +
-      '<div class="htr-t">' + esc(rc.title) + "</div>" + htMiText(rc) + htMarkerChips(rc) + "</div>" +
+      '<div class="htr-t">' + esc(rc.title) + "</div>" + (rc.isHouse ? htSpecLine(rc) : htMiText(rc)) + htMarkerChips(rc) + "</div>" +
       '<div class="htr-r"><div class="htr-p num">' + htPriceLine(rc) + "</div>" +
       '<div class="htr-d">' + esc(monthYear(rc.date)) + "</div></div>";
     var ext = href ? '<span class="ext htx"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>' : "";
