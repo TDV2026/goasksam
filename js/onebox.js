@@ -465,9 +465,21 @@
           ? ("Only " + d.poolN + " ha" + (d.poolN === 1 ? "s" : "ve") + " sold in " + windowText(d) + ", too few to mark a typical band, so that is the full range and every sale is below.")
           : ("Everything from " + priceRange(d.span) + " has sold."));
     out += '<p class="lt-span">' + lint(spanLine, "lt.span") + "</p>";
-    // FRESHNESS SLOT: intentionally blank until ingest_runs exists (real ingest timestamp).
-    // Direction ("a touch softer than a year ago") returns here WITH freshness, not before it.
-    return out + "</div>";
+    // FRESHNESS SLOT (S2-2): pool-aware. Online rides the ingest signal ("through last night" when
+    // the pipeline is current, else the real date); house-led states the newest house result in
+    // the pool. Direction ("a touch softer than a year ago") could return here alongside it.
+    return out + freshLine(d) + "</div>";
+  }
+  // Pool-aware freshness line (S2-2). NOT passed through lint(): "estimated" is a deliberate
+  // negation here (as in the trust line), not a valuation claim. No dashes.
+  function freshLine(d) {
+    var f = d && d.freshness; if (!f) return "";
+    var txt = "";
+    if (f.mode === "house") { if (f.through) txt = "Auction results through " + monthOnly(f.through) + "."; }
+    else if (f.lastNight) txt = "Real sales through last night. Nothing estimated.";
+    else if (f.through) txt = "Real sales through " + monthDayYear(f.through) + ". Nothing estimated.";
+    if (!txt) return "";
+    return '<div class="fresh"><span class="dot"></span>' + esc(txt) + "</div>";
   }
   // SAM'S READ: driver sentence (gated 5+/5+ in the engine) plus the divergence beat (cases
   // a/b/c) when the matched car's own sale falls materially outside the cluster. No prices except
@@ -747,7 +759,7 @@
     if (ht.intake && htChoice === null) { var iv = thinIntakeHtml(d, ht, name); if (iv) return iv; }
     var sc = thinScope(ht.receipts, ht.intake, htChoice);
     var scope = sc.scope, scopedLabel = sc.label, answered = !!(htChoice && htChoice !== "__skip__");
-    var body = thinHeroHtml(name, scope, scopedLabel, answered);
+    var body = thinHeroHtml(name, scope, scopedLabel, answered) + freshLine(d);
     // Sam's read: the HOUSE STEER text renders ONLY when house share >= 2/3 (ht.houseSteer).
     // Below that it is venue-neutral. No fee/valuation words, no invented pattern.
     var reads = [];
@@ -796,7 +808,7 @@
     var out = '<div class="livetake" data-stage="answer"><div class="lt-kick">' + lint("Sam’s live take", "ce.kick") + "</div>";
     out += '<p class="lt-hero">' + priceRange([ce.lowHammer, ce.highHammer]) + "</p>";
     var line = "No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ", so this is the wider " + era + " " + make + " market, not your exact car. " + ce.totalN + " sold; most landed in this range, the middle around " + usd(ce.medianHammer) + ".";
-    out += '<p class="lt-line">' + lint(line, "ce.line") + "</p></div>";
+    out += '<p class="lt-line">' + lint(line, "ce.line") + "</p>" + freshLine(d) + "</div>";
     var reads = [
       "Your exact car is rare enough that it has not traded in the three years I track. Treat these as the neighborhood it sits in, not a figure for it.",
       "The moment one like yours sells, I can read it directly."
@@ -880,7 +892,7 @@
   }
   function workingLine(car, d) {
     var n = d ? d.count : null, m = d ? d.platformsCount : null;
-    var txt = (n != null) ? ("Reading the market · " + n + " " + (n === 1 ? "sale" : "sales") + " across " + m + " " + (m === 1 ? "platform" : "platforms")) : ("Reading the market for your " + car);
+    var txt = (n != null) ? ("Reading the market · " + n + " " + (n === 1 ? "sale" : "sales") + " across " + m + " " + (m === 1 ? "platform" : "platforms")) : ("Reading the market for " + (/^your car$/i.test(String(car || "")) ? "your car" : "your " + car));
     return '<div class="working"><span class="pulse"></span>' + esc(txt) + "</div>";
   }
 
