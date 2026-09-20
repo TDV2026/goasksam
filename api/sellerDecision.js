@@ -2976,7 +2976,12 @@ export default async function handler(req, res) {
       // count source + analytics); the client logs only the outcome/interaction events.
       const obAnon = (typeof req.body?.anonId === "string" && req.body.anonId) ? req.body.anonId.slice(0, 64)
         : (typeof req.body?.anonSessionId === "string" && req.body.anonSessionId) ? req.body.anonSessionId.slice(0, 64) : null;
-      if (obAnon) {
+      // A refine tap (mileage / gearbox / dictionary-driver / observable-fact) re-scopes the SAME
+      // car - it is a continuation of an already-counted lookup, not a new one. Exempt it from the
+      // onebox_daily_cap count AND check (same spirit as the shareable-snapshot !obRefine gate below).
+      const _rr = req.body?.refine || (car && car.refine) || null;
+      const obIsRefine = !!(_rr && (_rr.miMin != null || _rr.tx || _rr.driver || _rr.observe));
+      if (obAnon && !obIsRefine) {
         try {
           const cap = await appConfigInt("onebox_daily_cap", 40, supabaseUrl, supabaseKey);
           const since = coarseDayKey();
