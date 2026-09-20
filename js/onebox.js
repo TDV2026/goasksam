@@ -438,6 +438,11 @@
     } else if (e.kind === "transmission") {
       q = cap(e.labels.manual) + " or " + e.labels.auto + "?";
       chips = '<button class="qchip" data-tx="manual" data-mlabel="' + esc(e.labels.manual) + '">' + esc(cap(e.labels.manual)) + '</button><button class="qchip" data-tx="auto" data-mlabel="' + esc(e.labels.auto) + '">' + esc(e.labels.auto) + "</button>";
+    } else if (e.kind === "driver") {
+      // Item 7/8: a dictionary-driven second question (mined from titles, so the pool splits on it).
+      q = e.q;
+      chips = '<button class="qchip" data-driver="' + esc(e.driverKey) + '" data-drvval="yes" data-mlabel="' + esc(e.yes) + '">' + esc(e.yes) + '</button>'
+            + '<button class="qchip" data-driver="' + esc(e.driverKey) + '" data-drvval="no" data-mlabel="' + esc(e.no) + '">' + esc(e.no) + "</button>";
     } else return "";
     return '<div class="earned" data-stage="answer"><p class="q">' + esc(q) + '</p><div class="qchips">' + chips + "</div></div>";
   }
@@ -590,6 +595,8 @@
     body += cards3Html(d, m);
     body += seeAllHtml(d, m);
     if (!divergenceAsksInline(d)) body += earnedHtml(d, m);
+    // Item 7: wide band, nothing splits 5+/5+ -> one honest sentence instead of a question.
+    if (d.driverSentence && !(d.earned)) body += '<p class="varynote">' + lint(esc(d.driverSentence), "varynote") + "</p>";
     body += sellHtml() + recentHtml();
     // Fixed approved disclaimer (round-7 mockup). NOT passed through lint(): "estimates" and
     // "valuations" here are deliberate NEGATIONS of the banned terms, not claims.
@@ -1331,6 +1338,16 @@
         var tx = b.getAttribute("data-tx"), label = b.getAttribute("data-mlabel");
         obRefinePhrase = tx === "manual" ? "As a manual" : "As " + (/^[aeiou]/i.test(label) ? "an " : "a ") + label;
         runPool(lastQuery, obLastVehicle, { tx: tx, label: label });
+      });
+    });
+    // Dictionary driver chip (item 7/8): narrows the pool to the listings that carry (or do not
+    // carry) the mined title flag. Framed "listed as" - it is read off the title, not inspected.
+    Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-driver]"), function (b) {
+      b.addEventListener("click", function () {
+        var key = b.getAttribute("data-driver"), val = b.getAttribute("data-drvval"), label = b.getAttribute("data-mlabel");
+        obRefinePhrase = "Among the ones listed as " + String(label || "").toLowerCase();
+        obEvent("onebox_driver_refine", lastQuery + ":" + key + ":" + val);
+        runPool(lastQuery, obLastVehicle, { driver: key, driverVal: val, label: label });
       });
     });
     // "type it": reveal a small inline mileage input; Enter narrows to a band around that number.
