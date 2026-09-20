@@ -306,7 +306,24 @@
     return "The " + parts;
   }
   // The exact-car header (matched only): "I know this exact car" + photo + config line + receipt.
-  function exactCarHtml(m, rc) {
+  // Item 6: the "since then" market band uses the SHORTER of (since the car's own last sale) and
+  // (the last twelve months), and the sentence names which window it used. Never a multi-year
+  // "since then" - if the car sold years ago, it reads "in the last twelve months" instead.
+  function sinceBandLine(m, d, bare) {
+    if (!m || !m.soldDate || !d) return "";
+    var cards = d.cards || [];
+    var soldISO = String(m.soldDate).slice(0, 10);
+    var now = Date.now();
+    var monthsSince = (now - new Date(soldISO).getTime()) / (1000 * 3600 * 24 * 30.44);
+    var use12 = !(monthsSince >= 0 && monthsSince <= 12);   // >12mo (or unparseable) -> last twelve months
+    var cutISO = use12 ? new Date(now - 365 * 864e5).toISOString().slice(0, 10) : soldISO;
+    var prices = cards.filter(function (c) { return c.date && String(c.date).slice(0, 10) > cutISO && c.price > 0; }).map(function (c) { return c.price; });
+    if (prices.length < 2) return "";
+    var lo = r500f(Math.min.apply(null, prices)), hi = r500f(Math.max.apply(null, prices));
+    var phrase = use12 ? "in the last twelve months" : ("since " + monthOnly(m.soldDate));
+    return '<p class="cfg since">' + lint("Most " + esc(bare) + "s " + phrase + " sold between " + r3money(lo) + " and " + r3money(hi) + ".", "exact.since") + "</p>";
+  }
+  function exactCarHtml(m, rc, d) {
     if (!m || (!m.price && !m.soldDate)) return "";
     var name = m.displayName || carLabel(rc);
     var bare = bareModelOf(rc, m);
@@ -348,7 +365,7 @@
       '<div class="xph">' + photo + '<span class="tag">The exact car</span></div>' +
       '<div class="xbody"><div class="kick">I know this exact car</div><h2>' + esc(name) + "</h2>" +
       (cfg ? '<p class="cfg">' + lint(cfg, "exact.cfg") + "</p>" : "") +
-      recLines + disc + "</div></div></div>";
+      recLines + disc + sinceBandLine(m, d, bare) + "</div></div></div>";
   }
   // The answer block: headline span, gated cluster, gated recency, mono meta line, placement.
   // ---- Round-4 render: Sam's take folded block, earned question, clickable cards, no counts ----
@@ -861,7 +878,7 @@
     // to the answer block (unmatched frame). Refusal is its own frame. Every branch renders
     // from the engine's structured facts - no fabricated numbers, ever.
     var m = vinAnchor;
-    var head = m ? exactCarHtml(m, d.resolvedCar) : "";
+    var head = m ? exactCarHtml(m, d.resolvedCar, d) : "";
     var body;
     if (d.tier === "thin") body = thinHtml(d, m);
     else if (d.tier === "class_era") body = classEraHtml(d, m);
