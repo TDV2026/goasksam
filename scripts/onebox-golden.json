@@ -51,19 +51,20 @@
     "ltFresh": "Real sales through last night. Nothing estimated.",
     "recLabel": "The sales behind it",
     "htSpec": [],
-    "htPrice": [],
+    "htPrice": [
+      "$N",
+      "$N",
+      "$N"
+    ],
     "read": [
       "Mileage is doing most of the separating in the recent sales.",
       "These are the three I’d pay closest attention to."
     ],
     "refineQ": null,
     "refineChips": [],
-    "cmKick": "Closest match",
-    "cmWhy": "The nearest recent sale on mileage and spec.",
-    "brackets": [
-      "Fewer miles",
-      "More miles"
-    ],
+    "cmKick": null,
+    "cmWhy": null,
+    "brackets": [],
     "earned": null,
     "chips": [],
     "platforms": [
@@ -76,7 +77,7 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": 3
+    "cards": 0
   },
   "ZHWBC8AH7ALA03815": {
     "state": "matched_result",
@@ -127,19 +128,20 @@
     "ltFresh": "Real sales through last night. Nothing estimated.",
     "recLabel": "The sales behind it",
     "htSpec": [],
-    "htPrice": [],
+    "htPrice": [
+      "$N",
+      "$N",
+      "$N"
+    ],
     "read": [
       "Mileage is doing most of the separating in the recent sales.",
       "These are the three I’d pay closest attention to."
     ],
     "refineQ": null,
     "refineChips": [],
-    "cmKick": "Closest match",
-    "cmWhy": "The middle of the market, on mileage.",
-    "brackets": [
-      "Manual",
-      "Lower sale"
-    ],
+    "cmKick": null,
+    "cmWhy": null,
+    "brackets": [],
     "earned": "Documentation moves these. Is yours documented (build sheet, Marti report, tank sticker)?",
     "chips": [
       "Documented",
@@ -151,6 +153,7 @@
     "platforms": [
       "Bring a Trailer",
       "Hagerty",
+      "Cars & Bids",
       "others"
     ],
     "platNote": "Most change hands on Bring a Trailer.",
@@ -159,7 +162,7 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": 3
+    "cards": 0
   },
   "HDK4316006": {
     "state": "matched_result",
@@ -209,7 +212,11 @@
     "ltFresh": "Real sales through last night. Nothing estimated.",
     "recLabel": "The sales behind it",
     "htSpec": [],
-    "htPrice": [],
+    "htPrice": [
+      "$N",
+      "$N",
+      "$N"
+    ],
     "read": [
       "Your car itself last sold for $N at 66,700 miles. That’s outside where the closest recent sales are clustering today, so current mileage matters here."
     ],
@@ -218,24 +225,22 @@
       "Yes",
       "Update mileage"
     ],
-    "cmKick": "Closest match",
-    "cmWhy": "The nearest recent sale on mileage and spec.",
-    "brackets": [
-      "Fewer miles"
-    ],
+    "cmKick": null,
+    "cmWhy": null,
+    "brackets": [],
     "earned": null,
     "chips": [],
     "platforms": [
-      "Bring a Trailer",
-      "others"
+      "Cars & Bids",
+      "Bring a Trailer"
     ],
-    "platNote": "Almost all on Bring a Trailer, so there is no cross-platform split to read here.",
+    "platNote": "Most change hands on Cars & Bids.",
     "refusalAns": null,
     "refusalReason": [],
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": 2
+    "cards": 0
   },
   "JTHMPAAY3TA113218": {
     "state": "matched_result",
@@ -308,6 +313,7 @@
     ],
     "platforms": [
       "Bring a Trailer",
+      "Cars & Bids",
       "PCarMarket",
       "others"
     ],
@@ -354,6 +360,7 @@
     ],
     "platforms": [
       "Bring a Trailer",
+      "Cars & Bids",
       "PCarMarket",
       "Hagerty",
       "others"
@@ -520,9 +527,10 @@
     ],
     "platforms": [
       "Bring a Trailer",
+      "Cars & Bids",
       "others"
     ],
-    "platNote": "Almost all on Bring a Trailer, so there is no cross-platform split to read here.",
+    "platNote": "Most change hands on Bring a Trailer.",
     "refusalAns": null,
     "refusalReason": [],
     "wayfwd": [],
@@ -564,9 +572,10 @@
     ],
     "platforms": [
       "Bring a Trailer",
+      "Cars & Bids",
       "others"
     ],
-    "platNote": "Almost all on Bring a Trailer, so there is no cross-platform split to read here.",
+    "platNote": "Most change hands on Bring a Trailer.",
     "refusalAns": null,
     "refusalReason": [],
     "wayfwd": [],
@@ -683,10 +692,10 @@
       "type it"
     ],
     "platforms": [
-      "Bring a Trailer",
-      "others"
+      "Cars & Bids",
+      "Bring a Trailer"
     ],
-    "platNote": "Almost all on Bring a Trailer, so there is no cross-platform split to read here.",
+    "platNote": "Most change hands on Cars & Bids.",
     "refusalAns": null,
     "refusalReason": [],
     "wayfwd": [],
@@ -728,9 +737,9 @@
     ],
     "platforms": [
       "Bring a Trailer",
-      "others"
+      "Cars & Bids"
     ],
-    "platNote": "Almost all on Bring a Trailer, so there is no cross-platform split to read here.",
+    "platNote": "Most change hands on Bring a Trailer.",
     "refusalAns": null,
     "refusalReason": [],
     "wayfwd": [],
@@ -772,9 +781,9 @@
     ],
     "platforms": [
       "Bring a Trailer",
-      "others"
+      "Cars & Bids"
     ],
-    "platNote": "Almost all on Bring a Trailer, so there is no cross-platform split to read here.",
+    "platNote": "Most change hands on Bring a Trailer.",
     "refusalAns": null,
     "refusalReason": [],
     "wayfwd": [],
