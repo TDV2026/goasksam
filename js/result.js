@@ -1103,11 +1103,19 @@ function _thinPickCardHtml(o){
   const svg=(k,c)=>(typeof v2Svg==="function")?v2Svg(k,c):"";
   const name=(typeof platformDisplayName==="function"&&platformDisplayName(p.slug))||p.venue;
   const range=p.count===1?`at ${money(p.lo)}`:`from ${money(p.lo)} to ${money(p.hi)}`;
-  const badge=o.isLead?"+ Sam's Pick":(isHouse?"+ Have it handled at a house":"+ If you'd rather run it yourself");
-  const script=isHouse?`For your ${esc(o.make)}, I'd sell it through`:`For your ${esc(o.make)}, I'd list it on`;
-  let why=`${esc(name)} has sold ${p.count} ${esc(o.modelLabel)}${p.count===1?"":"s"} in the last three years, ${range}.`;
+  // Badges + intro aligned to the locked V2 template (result-v2.js): lead = "Sam's Recommendation",
+  // the other door = "Sam's Pick"; intro "I'd sell your {make} on/through {name}" (house keeps the
+  // consign verb "through", online "on"). Was drifted to the thin card's own strings.
+  const badge=o.isLead?"+ Sam's Recommendation":"+ Sam's Pick";
+  const script=isHouse?`I'd sell your ${esc(o.make)} through`:`I'd sell your ${esc(o.make)} on`;
+  // No small-sample counts as headlines (CLAUDE.md decision coherence, locked): drop "has sold N"
+  // and the per-house "(N)". Receipts below carry the evidence (receipts over claims); the price
+  // range stays. This also removes the claimed-N-vs-shown-3 mismatch (no N is claimed).
+  let why=isHouse
+    ? `${esc(name)} is where ${esc(o.modelLabel)}s like this have been selling over the last three years, ${range}.`
+    : `${esc(o.modelLabel)}s like this have sold on ${esc(name)} over the last three years, ${range}.`;
   if(isHouse&&o.others&&o.others.length){
-    const oth=o.others.map(h=>`${esc((typeof platformDisplayName==="function"&&platformDisplayName(h.slug))||h.venue)} (${h.count})`).join(", ");
+    const oth=o.others.map(h=>`${esc((typeof platformDisplayName==="function"&&platformDisplayName(h.slug))||h.venue)}`).join(", ");
     why+=` ${o.others.length===1?"The other house to take one":"Other houses that have taken them"}: ${oth}.`;
   }
   // Receipt line leads with the SALE month (unambiguous "June 2024 · $960,000"), car/model year
@@ -1133,7 +1141,7 @@ function _thinPickCardHtml(o){
       <div class="pcard-wordmark">${esc(name)}</div>
       <div class="pcard-meta">
         <div class="pcard-mrow">${(typeof psvSvg==="function"?psvSvg("pin"):svg("car"))}<div><div class="pcard-mp">${esc(o.carLbl)}</div><div class="pcard-ms">${esc(o.loc)}</div></div></div>
-        <div class="pcard-mrow"><div><div class="pcard-mp">All ${esc(o.modelLabel)}s · last three years</div><div class="pcard-ms">${p.count} sold ${range}</div></div></div>
+        <div class="pcard-mrow"><div><div class="pcard-mp">All ${esc(o.modelLabel)}s · last three years</div><div class="pcard-ms">Sold ${range}</div></div></div>
         ${rc}
       </div>
     </div>
