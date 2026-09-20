@@ -17,11 +17,11 @@
         var d={kind:kind,path:(location&&location.pathname)||"",ua:(navigator&&navigator.userAgent)||"",ts:Date.now()};
         if(extra)for(var k in extra)d[k]=extra[k];
         var body=JSON.stringify({kind:"client_diag",diag:d});
-        if(navigator&&navigator.sendBeacon){navigator.sendBeacon("/api/funnel",new Blob([body],{type:"application/js.20260919bn"}));}
-        else{fetch("/api/funnel",{method:"POST",headers:{"Content-Type":"application/js.20260919bn"},body:body,keepalive:true});}
+        if(navigator&&navigator.sendBeacon){navigator.sendBeacon("/api/funnel",new Blob([body],{type:"application/json"}));}
+        else{fetch("/api/funnel",{method:"POST",headers:{"Content-Type":"application/json"},body:body,keepalive:true});}
       }catch(e){}
     }
-    window.addEventListener("error",function(e){ beacon("js.20260919brror",{msg:((e&&e.message)||"")+"",src:((e&&e.filename)||"")+"",line:e&&e.lineno,col:e&&e.colno,stack:((e&&e.error&&e.error.stack)||"").slice(0,400)}); });
+    window.addEventListener("error",function(e){ beacon("jserror",{msg:((e&&e.message)||"")+"",src:((e&&e.filename)||"")+"",line:e&&e.lineno,col:e&&e.colno,stack:((e&&e.error&&e.error.stack)||"").slice(0,400)}); });
     window.addEventListener("unhandledrejection",function(e){ var r=e&&e.reason; beacon("promise",{msg:(((r&&(r.message||r))||"")+"").slice(0,300),stack:((r&&r.stack)||"").slice(0,300)}); });
     // Health check 4s after load: only beacon when something is actually wrong.
     function health(){
@@ -80,18 +80,18 @@
 <meta name="twitter:image:alt" content="GoAskSam, seller intelligence from The Daily Vroom" />
 <link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <!-- CSS served at a VERSIONED PATH (not a ?query, which some edge caches ignore).
-     styles.css stays on disk; a vercel.js.20260919bn rewrite maps this path to it. BUMP the
-     token in BOTH index.html and vercel.js.20260919bn on every styles.css change. -->
+     styles.css stays on disk; a vercel.json rewrite maps this path to it. BUMP the
+     token in BOTH index.html and vercel.json on every styles.css change. -->
 <link rel="stylesheet" href="styles.20260907a.css">
 <!-- Curtain removed at launch (Aug 2026): the pre-launch holding block, its inline
      curtain script + CSS, and the #curtain div were deleted here so the site is
      public. Crew access to the still-gated /onebox is via /api/crew?code= directly
-     (onebox.html carries its own gate); api/crew.js.20260919bkeeps the crew/tester + bhs
+     (onebox.html carries its own gate); api/crew.js keeps the crew/tester + bhs
      handling. robots.txt now allows indexing. -->
 <!-- Organization schema (crawler/AI attribution): true, machine-readable statement of
      who is behind GoAskSam, in the raw HTML head so crawls read it without JS. The
      human-facing statement lives on /about; this is the structured mirror. -->
-<script type="application/ld+js.20260919bn">
+<script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "Organization",
@@ -126,7 +126,7 @@
     <a class="hp-navitem" href="/powersellers" target="_blank" rel="noopener" onclick="toggleRail(false)">PowerSellers</a>
     <a class="hp-navitem" href="/how-sam-decides" target="_blank" rel="noopener" onclick="toggleRail(false)">How Sam decides</a>
 
-    <!-- Saved results: signed-in only (auth.js.20260919btoggles #nav-saved). "Your results" is an
+    <!-- Saved results: signed-in only (auth.js toggles #nav-saved). "Your results" is an
          expandable inline section - expanding shows the recent 10 in the rail and never
          navigates the main area; a specific result or "View all" opens in main. -->
     <div id="nav-saved" class="saved-section" style="display:none">
@@ -136,10 +136,10 @@
     </div>
 
     <!-- PULSE_RAIL: TODAY'S MARKET sidebar section removed pre-Phase-3. The daily
-         pulse pipeline (scripts/refreshDailyPulse.js.20260919b lib/dailyPulse.js.20260919bn,
-         api/dailyPulse.js.20260919b dailyPulseUnit) stays intact and scheduled. Re-enable
+         pulse pipeline (scripts/refreshDailyPulse.js, lib/dailyPulse.json,
+         api/dailyPulse.js, dailyPulseUnit) stays intact and scheduled. Re-enable
          by restoring the section heading + <div id="market-cards-desktop"></div>
-         here and the loadDailyPulse() call in js.20260919bhomepage.js.20260919b -->
+         here and the loadDailyPulse() call in js/homepage.js. -->
   </div>
   <div class="hp-rail-footer">
     <!-- STAGE_B: profile modal -->
@@ -154,7 +154,7 @@
   <div id="hp-topbar">
     <div class="hp-actions">
       <button id="hp-gear" title="Settings" aria-label="Settings" onclick="openSettings()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
-      <!-- Phase 3 / 2A: js.20260919bauth.js.20260919bowns this area (Sign in, or email + Sign out). -->
+      <!-- Phase 3 / 2A: js/auth.js owns this area (Sign in, or email + Sign out). -->
       <div id="signin-area"></div>
     </div>
   </div>
@@ -176,23 +176,23 @@
 </div>
 
 <!-- JS served at a VERSIONED PATH PREFIX (same reason as styles above: a ?query is
-     ignored by some edge caches). The files stay on disk in /js.20260919b a vercel.js.20260919bn
-     rewrite maps /js.20260919b<token>/* back to /js.20260919b*. BUMP the token in BOTH index.html
-     (every src below) and vercel.js.20260919bn on every js.20260919b change so returning browsers
+     ignored by some edge caches). The files stay on disk in /js; a vercel.json
+     rewrite maps /js.<token>/* back to /js/*. BUMP the token in BOTH index.html
+     (every src below) and vercel.json on every js/ change so returning browsers
      fetch fresh code instead of stale cache. -->
-<script src="js.20260919b20260917a/auth.js.20260919b></script>
-<script src="js.20260919b20260917a/wizard.js.20260919b></script>
-<script src="js.20260919b20260917a/pipeline.js.20260919b></script>
-<script src="js.20260919b20260917a/steps.js.20260919b></script>
-<script src="js.20260919b20260917a/result.js.20260919b></script>
-<script src="js.20260919b20260917a/chat-core.js.20260919b></script>
-<script src="js.20260919b20260917a/result-copy.js.20260919b></script>
-<script src="js.20260919b20260917a/result-v2.js.20260919b></script>
-<script src="js.20260919b20260917a/entry.js.20260919b></script>
-<script src="js.20260919b20260917a/homepage.js.20260919b></script>
+<script src="js.20260919b/auth.js"></script>
+<script src="js.20260919b/wizard.js"></script>
+<script src="js.20260919b/pipeline.js"></script>
+<script src="js.20260919b/steps.js"></script>
+<script src="js.20260919b/result.js"></script>
+<script src="js.20260919b/chat-core.js"></script>
+<script src="js.20260919b/result-copy.js"></script>
+<script src="js.20260919b/result-v2.js"></script>
+<script src="js.20260919b/entry.js"></script>
+<script src="js.20260919b/homepage.js"></script>
 <!-- Blank-pane watchdog (inline so it cannot itself fail to load): if a bundle
      fetch was blocked, challenged, or dropped, bootHomepage never paints #msgs and
-     the main pane stays blank while the nav chrome (auth.js.20260919b still renders. This
+     the main pane stays blank while the nav chrome (auth.js) still renders. This
      grace-timed net shows an honest reload prompt instead of blank white space. It
      only acts when #msgs is genuinely empty, so a rendered hero, wall, or chat never
      triggers it. Not product copy or logic: a last-resort failure signal only. -->
