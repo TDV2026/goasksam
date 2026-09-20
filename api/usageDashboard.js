@@ -1014,6 +1014,47 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "srcaudit", note: "ESTIMATED counts (planner stats); archive = max(bySlug,byLabel)", attemptsTableExists: attemptsExists, sources: out });
   }
 
+  // TEMP (S2 item-8 Ferrari gap diagnosis, remove after): sample Ferrari classic listings across
+  // the archive and report, per source, whether the description exists and what REAL language shows
+  // up for the four price-moving concepts. Distinguishes a wording gap (phrases exist, dict misses
+  // them) from a source-coverage gap (descriptions absent for the sources carrying Ferraris).
+  if (task === "ferraridesc") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const headers = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    // Broad concept probes (deliberately wider than the shipped dict, to SEE what language exists).
+    const concepts = {
+      matching: /matching[\s-]?numbers|numbers[\s-]?matching|original engine|numbers[\s-]?correct|date[\s-]?code|born with|original block|original[\s-]?matching|correct numbers/i,
+      classiche: /classiche|red\s?book|ferrari\s?classiche|certificat/i,
+      coachwork: /berlinetta|coachwork|coachbuilt|scaglietti|carrozzeria|pininfarina|vignale|bodied by|spider|spyder|gtb|gts/i,
+      documented: /documented|history file|service record|books and tools|known history|ownership history|provenance|complete history|extensive history/i
+    };
+    const perSource = {};
+    const samples = { matching: [], classiche: [], coachwork: [], documented: [] };
+    let scanned = 0;
+    for (let p = 0; p < 6; p++) {
+      let rows = [];
+      try { rows = await (await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?make=ilike.*ferrari*&year=lte.1995&select=source_slug,platform,year,model,d:raw_record->>description&order=year.asc&limit=500&offset=${p * 500}`, { headers })).json(); } catch (e) { break; }
+      if (!Array.isArray(rows) || !rows.length) break;
+      for (const r of rows) {
+        scanned++;
+        const src = r.source_slug || r.platform || "?";
+        const s = (perSource[src] = perSource[src] || { n: 0, withDesc: 0, len: 0, matching: 0, classiche: 0, coachwork: 0, documented: 0 });
+        s.n++;
+        const d = String(r.d || "");
+        if (d.trim() && !/^null$/i.test(d)) {
+          s.withDesc++; s.len += d.length;
+          for (const k of Object.keys(concepts)) {
+            const m = d.match(concepts[k]);
+            if (m) { s[k]++; if (samples[k].length < 8) { const i = Math.max(0, m.index - 30); samples[k].push({ src, y: r.year, snip: d.slice(i, i + 100).replace(/\s+/g, " ") }); } }
+          }
+        }
+      }
+      if (rows.length < 500) break;
+    }
+    const out = Object.entries(perSource).map(([src, s]) => ({ src, n: s.n, withDescPct: Math.round(100 * s.withDesc / s.n), avgLen: s.withDesc ? Math.round(s.len / s.withDesc) : 0, matching: s.matching, classiche: s.classiche, coachwork: s.coachwork, documented: s.documented })).sort((a, z) => z.n - a.n);
+    return res.status(200).json({ task: "ferraridesc", scanned, perSource: out, samples });
+  }
+
   // task=poolcheck: READ-ONLY (archive; ZERO OCD). Runs the LIVE runOneBox for a query and reports
   // the resulting pool (span/cluster + card titles), scanning them for any surviving memorabilia -
   // proves the exclusion removed the junk from the engine pool (vs the raw archive which still has it).
