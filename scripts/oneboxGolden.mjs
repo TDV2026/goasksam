@@ -51,10 +51,12 @@ async function capture(page, input) {
     else if (/trouble reading the market/i.test(document.getElementById("ob").textContent || "")) state = "error";
     return {
       state,
-      // exact card (matched)
-      exact: g(".exact h2"), cfg: g(".exact .cfg"), disc: g(".exact .disc summary"),
-      // render port (round 7): cluster hero, quiet span, freshness slot, Sam's Read
-      ltHero: g(".lt-hero"), ltLine: g(".lt-line"), ltSpan: g(".lt-span"), ltFresh: g(".lt-fresh"),
+      // exact card (matched) - since = item 6 market-since-the-sale bridge line
+      exact: g(".exact h2"), cfg: g(".exact .cfg"), since: g(".exact .since"), disc: g(".exact .disc summary"),
+      // render port (round 7): cluster hero, quiet span, freshness line (item 2), Sam's Read
+      ltHero: g(".lt-hero"), ltLine: g(".lt-line"), ltSpan: g(".lt-span"), ltFresh: g(".fresh"),
+      // house/class receipt tier fields (item 4) + labels (item 3)
+      recLabel: g(".seclabel"), htSpec: all(".htr-spec").slice(0, 3), htPrice: all(".htr-p").slice(0, 3),
       read: all(".samread p"), refineQ: g(".samread .refine .q"), refineChips: all(".samread .refine .chip, .samread .askchips .chip"),
       // three representative cards
       cmKick: g(".cm .cmkick"), cmWhy: g(".cm .why"), brackets: all(".bcard .blabel"),
