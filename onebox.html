@@ -354,6 +354,27 @@ a.rcard:hover .ext{color:var(--green);border-color:var(--green)}
 .lt-span .num{font-weight:600}
 .fresh{display:flex;align-items:center;gap:8px;margin:14px 0 0;font:600 13px var(--grotesk);color:var(--slate)}
 .fresh .dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex:none}
+/* ---- Cluster-led block (retires the "Sam's live take" kicker; ports the approved /onebox-preview .v2 block) ---- */
+.livetake.blk{margin:22px 0 0}
+.carline{font:600 13px/1.4 var(--mono);color:var(--slate);letter-spacing:.01em;margin:2px 0 14px}
+.carline .dot{color:var(--faint);margin:0 6px}
+.carline .ch{color:var(--green);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--green) 45%,transparent);margin-left:2px;cursor:pointer}
+.blk .lead{font:400 24px/1.42 var(--serif);color:var(--ink);max-width:22ch}
+.blk .band{font:600 40px/1.14 var(--serif);letter-spacing:-.015em;color:var(--ink);font-variant-numeric:lining-nums;margin:4px 0}
+.blk .band .n{color:var(--green-deep)}
+.blk .tail{font:400 20px/1.42 var(--serif);color:var(--ink);max-width:46ch;margin-top:2px}
+.contradiction{font:400 18px/1.5 var(--serif);color:var(--slate);max-width:60ch;margin:20px 2px 0}
+.contradiction .num{color:var(--ink);font-weight:600}
+/* small thumbnail on the exact-car compact rows */
+.htr.htr-thumb{display:flex;align-items:center;gap:13px}
+.htr-thumb .th{width:74px;height:52px;border-radius:8px;object-fit:cover;flex:none;background:var(--line2)}
+.htr-thumb .htr-l{flex:1;min-width:0}
+.htr-thumb .htr-yv{font:600 13px/1.35 var(--grotesk);color:var(--ink)}
+.htr-thumb .cmkick{font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--clay);margin-right:8px}
+/* one quiet recent row under the CTA */
+.recentline{margin:20px 2px 0;font:600 12.5px/1.5 var(--mono);color:var(--faint);letter-spacing:.01em}
+.recentline .rl{color:var(--slate);text-decoration:none;border-bottom:1px solid var(--line);cursor:pointer}
+.recentline .rl:hover{color:var(--ink)}
 .lt-fresh{font:600 12.5px/1.4 var(--mono);letter-spacing:.02em;color:var(--slate);margin:16px 0 0;display:flex;align-items:center;gap:8px}
 .lt-fresh .dotg{width:8px;height:8px;border-radius:50%;background:var(--green-btn);flex:none}
 .samread{max-width:720px;display:flex;gap:15px;align-items:flex-start;background:color-mix(in srgb,var(--green) 5%,var(--card));border:1px solid color-mix(in srgb,var(--green) 16%,var(--line));border-radius:14px;padding:17px 20px;margin:26px 0 0}
@@ -466,6 +487,6 @@ a.htr:hover .htx{color:var(--green);border-color:var(--green)}
 function obToggleRail(open){var r=document.getElementById("ob-rail"),s=document.getElementById("ob-scrim");if(!r)return;var on=(open===undefined)?!r.classList.contains("open"):!!open;r.classList.toggle("open",on);if(s)s.classList.toggle("open",on);}
 function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("ob-results-menu");if(m)m.classList.toggle("open");return false;}
 </script>
-<script src="/obx.20260920j/onebox.js"></script>
+<script src="/obx.20260920k/onebox.js"></script>
 </body>
 </html>

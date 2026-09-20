@@ -232,14 +232,15 @@
   }
   // refineHtml removed: it was an unbuilt feature (no submit, did nothing) and "tighten the
   // read" is valuation language. Unbuilt features do not render.
+  // Item 5: one quiet row under the CTA, not four cards. Links the most recent prior search; a
+  // small "+ N more" affordance re-opens the full list only if the reader wants it.
   function recentHtml() {
     var items = recentSearches();
     if (!items.length) return "";
-    return '<div class="recent" data-stage="note"><div class="rh"><h4>Recent searches</h4></div><div class="rcards">' +
-      items.slice(0, 4).map(function (it) {
-        var th = it.img ? '<span class="th" style="background-image:url(\'' + esc(it.img) + '\');background-size:cover;background-position:center"></span>' : '<span class="th"></span>';
-        return '<div class="rc" data-recent="' + esc(it.q) + '">' + th + '<span><span class="t">' + esc(it.label) + '</span><span class="u">' + esc(it.when) + "</span></span></div>";
-      }).join("") + "</div></div>";
+    var it = items[0];
+    return '<div class="recentline" data-stage="note">Recent: ' +
+      '<a class="rl" data-recent="' + esc(it.q) + '">' + esc(it.label) + "</a>" +
+      '<span class="ru"> · ' + esc(it.when) + "</span></div>";
   }
   function whyRow() { return '<div class="whyrow" data-stage="answer"><button class="why"><span class="i">i</span>Why these cars?</button></div>'; }
   // JUST SOLD signal: ONE real recent sale, serif line with mono numbers, links to the sale.
@@ -361,11 +362,12 @@
       return '<div class="rec">' + line + "</div>";
     }).join("");
     var disc = showDisc ? '<details class="disc"><summary>See the ' + mods.length + " listed fitment" + (mods.length === 1 ? "" : "s") + '</summary><ul>' + mods.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></details>" : "";
+    // The VIN hero is the ONLY large photo (item 3). The car NAME + last-recorded mileage move to the
+    // block's car line, and the prior sale to the contradiction line, so neither is duplicated here.
     return '<div class="exact" data-stage="anchor"><div class="grid">' +
       '<div class="xph">' + photo + '<span class="tag">The exact car</span></div>' +
-      '<div class="xbody"><div class="kick">I know this exact car</div><h2>' + esc(name) + "</h2>" +
-      (cfg ? '<p class="cfg">' + lint(cfg, "exact.cfg") + "</p>" : "") +
-      recLines + disc + sinceBandLine(m, d, bare) + "</div></div></div>";
+      '<div class="xbody"><div class="kick">I know this exact car.</div>' +
+      (cfg ? '<p class="cfg">' + lint(cfg, "exact.cfg") + "</p>" : "") + disc + "</div></div></div>";
   }
   // The answer block: headline span, gated cluster, gated recency, mono meta line, placement.
   // ---- Round-4 render: Sam's take folded block, earned question, clickable cards, no counts ----
@@ -489,22 +491,60 @@
   }
   // HERO: the cluster is the unconditional headline; a pool under the cluster gate falls back to
   // the full span. The quiet span line is ALWAYS present so the ceiling is never hidden.
-  function heroBlock(d) {
-    var hasCluster = !!d.cluster;
-    var heroRange = hasCluster ? d.cluster : d.span;
-    var out = '<div class="livetake" data-stage="answer"><div class="lt-kick">' + lint("Sam’s live take", "lt.kick") + "</div>";
-    out += '<p class="lt-hero">' + priceRange(heroRange) + "</p>";
-    out += '<p class="lt-line">' + lint("Cars like yours have " + (hasCluster ? "mostly " : "") + "been bringing this over " + windowText(d) + ".", "lt.line") + "</p>";
-    var spanLine = hasCluster
-      ? ("Everything from " + priceRange(d.span) + " has sold; most land here.")
-      : (d.spanOnly && d.poolN && d.poolN < 8
-          ? ("Only " + d.poolN + " ha" + (d.poolN === 1 ? "s" : "ve") + " sold in " + windowText(d) + ", too few to mark a typical band, so that is the full range and every sale is below.")
-          : ("Everything from " + priceRange(d.span) + " has sold."));
-    out += '<p class="lt-span">' + lint(spanLine, "lt.span") + "</p>";
-    // FRESHNESS SLOT (S2-2): pool-aware. Online rides the ingest signal ("through last night" when
-    // the pipeline is current, else the real date); house-led states the newest house result in
-    // the pool. Direction ("a touch softer than a year ago") could return here alongside it.
-    return out + freshLine(d) + "</div>";
+  // The subject's mileage, from the exact sale (VIN) / divergence / typed input, whichever we have.
+  function subjMileageOf(d, m) {
+    var mi = m && Number(String(m.mileage == null ? "" : m.mileage).replace(/[^\d]/g, ""));
+    if (mi > 0) return mi;
+    if (d.divergence && d.divergence.mileage > 0) return d.divergence.mileage;
+    if (Number(d.subjectMileage) > 0) return Number(d.subjectMileage);
+    return null;
+  }
+  var BODY_PLURAL = { coupe: "coupes", cabriolet: "Cabriolets", convertible: "convertibles", roadster: "roadsters", targa: "Targas", sedan: "sedans", saloon: "saloons", wagon: "wagons", spider: "Spiders", spyder: "Spyders", hardtop: "hardtops" };
+  // The noun for the lead: trim (or generation code, or model) + pluralized body. "Competition
+  // Package coupes", "964 Cabriolets", "M4s". Empty -> the lead falls back to "Cars like yours".
+  function carNoun(d) {
+    var v = d.resolvedCar || d.vehicle || {};
+    var head = (v.trim && String(v.trim).trim()) || (d.poolTrim && String(d.poolTrim).trim()) || (v.model && String(v.model).trim()) || "";
+    var bw = v.bodyStyle ? BODY_PLURAL[String(v.bodyStyle).toLowerCase()] : "";
+    if (head && bw) return esc(head) + " " + bw;
+    if (head) return esc(head) + "s";
+    return "";
+  }
+  function carLineHtml(d, m) {
+    var bits = [], mi = subjMileageOf(d, m);
+    if (m) { bits.push(esc(m.displayName || carLabel(d.resolvedCar))); if (mi) bits.push("last recorded " + mi.toLocaleString("en-US") + " miles"); }
+    else { bits.push(esc(carLabel(d.resolvedCar))); if (mi) bits.push("around " + mi.toLocaleString("en-US") + " miles"); }
+    return '<div class="carline">' + bits.join(' <span class="dot">&middot;</span> ') + ' <a class="ch" data-change>Change</a></div>';
+  }
+  // CLUSTER-LED BLOCK (retires the "Sam's live take" kicker everywhere). Car line, then a sentence
+  // that leads INTO the number, the serif band, a tail with the window + full span, then freshness.
+  // Nothing else. The band edges are the cluster (typical middle) or the span when the pool is thin.
+  function heroBlock(d, m) {
+    var hasCluster = !!d.cluster, band = hasCluster ? d.cluster : d.span;
+    var noun = carNoun(d), mi = subjMileageOf(d, m);
+    var miCtx = mi ? (m ? " around this mileage" : " around " + mi.toLocaleString("en-US") + " miles") : "";
+    var lead = noun ? ("Most " + noun + miCtx + " sold between") : "Cars like yours sold between";
+    var thin = !hasCluster && d.spanOnly && d.poolN && d.poolN < 8;
+    var tail = thin
+      ? ("in " + windowText(d) + ". Only " + d.poolN + " ha" + (d.poolN === 1 ? "s" : "ve") + " sold, so that is the full range.")
+      : ("in " + windowText(d) + ". Everything from " + usd(d.span[0]) + " to " + usd(d.span[1]) + " has sold.");
+    return '<div class="livetake blk" data-stage="answer">' + carLineHtml(d, m) +
+      '<div class="lead">' + lint(lead, "cl.lead") + "</div>" +
+      '<div class="band"><span class="n">' + esc(usd(band[0])) + '</span> and <span class="n">' + esc(usd(band[1])) + "</span></div>" +
+      '<div class="tail">' + lint(tail, "cl.tail") + "</div>" +
+      freshLine(d) + "</div>";
+  }
+  // Item 2: the divergence contradiction as ONE plain serif line (no box, no kicker), assembled from
+  // the real numbers - same delta logic, rendered as a sentence.
+  function contradictionLine(d) {
+    var dv = d.divergence; if (!dv || !(Number(dv.price) > 0)) return "";
+    var trim = (d.resolvedCar && d.resolvedCar.trim) || "";
+    var tw = trim ? (String(trim).split(/\s+/)[0] + " ") : "";
+    var miPart = dv.mileage > 0 ? " at " + Number(dv.mileage).toLocaleString("en-US") + " miles" : "";
+    var dir = dv.direction === "below"
+      ? ("The recent market around lower-mileage " + esc(tw) + "cars sits higher.")
+      : ("The recent market around higher-mileage " + esc(tw) + "cars sits lower.");
+    return '<p class="contradiction">' + lint("Your car last sold for " + r3money(dv.price) + miPart + ". " + dir, "contra") + "</p>";
   }
   // Pool-aware freshness line (S2-2). NOT passed through lint(): "estimated" is a deliberate
   // negation here (as in the trust line), not a valuation claim. No dashes.
@@ -603,10 +643,12 @@
       var venue = (c.platform && c.platform !== "others") ? c.platform : "";
       var meta = [c.mileageText, c.transmission ? cap(String(c.transmission)) : "", venue].filter(Boolean).join(" · ");
       var href = utmUrl(c.url);
-      var inner = '<div class="htr-l"><div class="htr-v">' + (lbl ? '<span class="cmkick">' + esc(lbl) + "</span>" : "") + '<span class="htr-yv">' + esc(c.title) + "</span></div>" +
+      // Item 3: small thumbnail back on each row (the VIN hero stays the only large photo).
+      var th = c.image ? '<img class="th" src="' + esc(c.image) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' : '<span class="th"></span>';
+      var inner = th + '<div class="htr-l"><div class="htr-v">' + (lbl ? '<span class="cmkick">' + esc(lbl) + "</span>" : "") + '<span class="htr-yv">' + esc(c.title) + "</span></div>" +
         '<div class="htr-sub">' + esc(meta) + "</div></div>" +
         '<div class="htr-r"><div class="htr-p num">' + repPrice(c) + '</div><div class="htr-d">' + esc(monthYear(c.date)) + "</div></div>";
-      return href ? '<a class="htr" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="htr">' + inner + "</div>";
+      return href ? '<a class="htr htr-thumb" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="htr htr-thumb">' + inner + "</div>";
     }).join("");
     return '<div class="htreceipts">' + rows + "</div>";
   }
@@ -622,20 +664,30 @@
       '<div class="allhead"><span class="lab">' + esc(label) + '</span></div>' +
       '<div class="platwrap"><div class="lab">Where they sold</div><div class="plat-strip">' + pills + "</div>" + note + "</div></details>";
   }
+  // Item 4: the mileage reconfirm / earned question renders AFTER the evidence (answer, proof, then
+  // the refinement). On a divergent car it is the "still around X miles?" reconfirm; otherwise the
+  // normal earned question. One ask, never two.
+  function reconfirmHtml(d, m) {
+    var dv = d.divergence;
+    if (dv && dv.kase === "a" && dv.mileage > 0) {
+      return '<div class="earned reconfirm" data-stage="answer"><p class="q">' + lint("Still around " + Number(dv.mileage).toLocaleString("en-US") + " miles?", "rc.q") +
+        '</p><div class="qchips"><button class="qchip g" data-refyes>Yes</button><button class="qchip typeit" data-typemiles>Update mileage</button></div></div>';
+    }
+    return earnedHtml(d, m);
+  }
   function resultHtml(d, m) {
-    var body = heroBlock(d) + observeAsideHtml(d) + samReadBlock(d, m);
+    // Cluster-led block (retires the kicker) -> contradiction sentence (divergence) -> the sales
+    // (compact rows for exact-car so the VIN hero is the only big photo; three cards for typed) ->
+    // the reconfirm AFTER the evidence -> observe offer -> CTA -> quiet recent row.
+    var body = heroBlock(d, m) + contradictionLine(d) + observeAsideHtml(d);
     body += '<div class="seclabel">The sales behind it</div>';
-    // Item 1: exact-car state renders compact rows (VIN hero is the only big card); typed searches
-    // keep the three-card layout.
     body += m ? compactSalesHtml(d) : cards3Html(d, m);
     body += seeAllHtml(d, m);
-    if (!divergenceAsksInline(d)) body += earnedHtml(d, m);
-    // Item 7: wide band, nothing splits 5+/5+ -> one honest sentence instead of a question.
-    if (d.driverSentence && !(d.earned)) body += '<p class="varynote">' + lint(esc(d.driverSentence), "varynote") + "</p>";
-    body += observeHtml(d);   // item 9: "Anything I should know?" (only when the pool has such cars)
+    body += reconfirmHtml(d, m);
+    if (d.driverSentence && !(d.earned) && !(d.divergence && d.divergence.kase === "a")) body += '<p class="varynote">' + lint(esc(d.driverSentence), "varynote") + "</p>";
+    body += observeHtml(d);
     body += sellHtml() + recentHtml();
-    // Fixed approved disclaimer (round-7 mockup). NOT passed through lint(): "estimates" and
-    // "valuations" here are deliberate NEGATIONS of the banned terms, not claims.
+    // "estimates"/"valuations" here are deliberate NEGATIONS of the banned terms, not claims.
     body += '<div class="trust">Real completed sales from GoAskSam’s archive. No estimates. No valuations.</div>';
     return body;
   }
@@ -818,7 +870,7 @@
   function thinHeroHtml(name, scope, scopedLabel, answered) {
     var s = scope.slice().sort(function (a, b) { return a.hammer - b.hammer; });
     var n = s.length, mid = s[Math.floor((n - 1) / 2)];
-    var out = '<div class="livetake" data-stage="answer"><div class="lt-kick">' + lint("Sam’s live take", "ht.kick") + "</div>";
+    var out = '<div class="livetake blk" data-stage="answer">';
     out += '<p class="lt-hero">' + esc(usd(mid.hammer)) + "</p>";
     var line;
     if (n === 1) line = "The one " + name + " to change hands in " + HT_WINDOW_TEXT + ": " + mid.year + " at " + esc(mid.venue) + ", " + monthYear(mid.date) + "." + (mid.isHouse && mid.allIn ? " The buyer paid " + usd(mid.allIn) + " with the premium." : "");
@@ -899,16 +951,14 @@
     var v = d.resolvedCar || d.vehicle || {};
     var carName = [v.year, v.make, v.model, v.trim].filter(Boolean).join(" ") || bareNameOf(d, m);
     var era = esc(ce.era), make = esc(ce.make);
-    var out = '<div class="livetake" data-stage="answer"><div class="lt-kick">' + lint("Sam’s live take", "ce.kick") + "</div>";
-    out += '<p class="lt-hero">' + priceRange([ce.lowHammer, ce.highHammer]) + "</p>";
-    var line = "No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ", so this is the wider " + era + " " + make + " market, not your exact car. " + ce.totalN + " " + (ce.totalN === 1 ? "has" : "have") + " sold " + spanSince(ce.receipts) + "; most landed in this range, the middle around " + usd(ce.medianHammer) + ".";
-    out += '<p class="lt-line">' + lint(line, "ce.line") + "</p>" + freshLine(d) + "</div>";
-    var reads = [
-      "Your exact car is rare enough that it has not traded in the three years I track. Treat these as the neighborhood it sits in, not a figure for it.",
-      "The moment one like yours sells, I can read it directly."
-    ];
-    out += '<div class="samread" data-stage="answer"><div class="ava">SAM</div><div><div class="tag">' + lint("Sam’s read", "ce.readtag") + "</div>" +
-      reads.map(function (p) { return "<p>" + lint(esc(p), "ce.read") + "</p>"; }).join("") + "</div></div>";
+    // Cluster-led block (no kicker, no Sam's Read box). The rarity caveat is the refnote below.
+    var houses = []; ce.receipts.forEach(function (r) { if (r.isHouse && r.venue && houses.indexOf(r.venue) < 0) houses.push(r.venue); });
+    var hlist = houses.length ? (houses.length <= 1 ? houses[0] : houses.slice(0, 3).slice(0, -1).join(", ") + " and " + houses.slice(0, 3)[Math.min(2, houses.length - 1)]) : "the auction houses";
+    var out = '<div class="livetake blk" data-stage="answer">' + carLineHtml(d, null) +
+      '<div class="lead">' + lint("No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ". " + era + " " + make + "s have sold for", "ce.lead") + "</div>" +
+      '<div class="band"><span class="n">' + esc(usd(ce.lowHammer)) + '</span> to <span class="n">' + esc(usd(ce.highHammer)) + "</span></div>" +
+      '<div class="tail">' + lint("at the hammer at " + esc(hlist) + ".", "ce.tail") + "</div>" +
+      freshLine(d) + "</div>";
     out += '<div class="seclabel" data-stage="cards">' + lint(era + " " + make + " sales, " + spanRange(ce.receipts), "ce.reclab") + "</div>";
     out += '<div class="htreceipts" data-stage="cards">' + ce.receipts.slice(0, 8).map(function (rc) { return htReceiptRow(rc); }).join("") + "</div>";
     out += sellHtml() + recentHtml();
@@ -1351,6 +1401,8 @@
     Array.prototype.forEach.call(root.querySelectorAll("[data-model]"), function (b) { b.addEventListener("click", function () { chipAnswer(b.getAttribute("data-model")); }); });
     Array.prototype.forEach.call(root.querySelectorAll("[data-body]"), function (b) { b.addEventListener("click", function () { chipAnswer(b.getAttribute("data-body")); }); });
     Array.prototype.forEach.call(root.querySelectorAll("[data-change]"), function (b) { b.addEventListener("click", function () { renderEmpty(); }); });
+    // Reconfirm "Yes": the answer already reflects this mileage, so just dismiss the ask (no re-scope).
+    Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-refyes]"), function (b) { b.addEventListener("click", function () { var blk = b.parentNode && b.parentNode.parentNode; if (blk && blk.parentNode) blk.parentNode.removeChild(blk); }); });
     Array.prototype.forEach.call(root.querySelectorAll("[data-recent]"), function (b) { b.addEventListener("click", function () { run(b.getAttribute("data-recent")); }); });
     // Generation chips carry a full year-resolvable query - run it directly (never appended).
     Array.prototype.forEach.call(root.querySelectorAll("[data-genquery]"), function (b) { b.addEventListener("click", function () { run(b.getAttribute("data-genquery")); }); });
