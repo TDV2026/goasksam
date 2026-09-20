@@ -307,16 +307,16 @@
     "samReadBox": 0,
     "recLabel": "The sales behind it",
     "htSpec": [],
-    "htPrice": [],
+    "htPrice": [
+      "$N",
+      "$N"
+    ],
     "read": [],
     "refineQ": null,
     "refineChips": [],
     "cmKick": "Closest match",
     "cmWhy": "The middle of the market, on mileage.",
-    "brackets": [
-      "Fewer miles",
-      "Lower sale"
-    ],
+    "brackets": [],
     "earned": "How many miles on yours?",
     "chips": [
       "under Nk",
@@ -337,7 +337,7 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": 3
+    "cards": 1
   },
   "718 Cayman S coupe": {
     "state": "unmatched_result",
@@ -355,16 +355,16 @@
     "samReadBox": 0,
     "recLabel": "The sales behind it",
     "htSpec": [],
-    "htPrice": [],
+    "htPrice": [
+      "$N",
+      "$N"
+    ],
     "read": [],
     "refineQ": null,
     "refineChips": [],
     "cmKick": "Closest match",
     "cmWhy": "The middle of the market, on mileage.",
-    "brackets": [
-      "Fewer miles",
-      "More miles"
-    ],
+    "brackets": [],
     "earned": "How many miles on yours?",
     "chips": [
       "under Nk",
@@ -386,7 +386,7 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": 3
+    "cards": 1
   },
   "Lotus Esprit": {
     "state": "varied_refusal",
@@ -487,16 +487,16 @@
     "samReadBox": 0,
     "recLabel": "The sales behind it",
     "htSpec": [],
-    "htPrice": [],
+    "htPrice": [
+      "$N",
+      "$N"
+    ],
     "read": [],
     "refineQ": null,
     "refineChips": [],
     "cmKick": "Closest match",
     "cmWhy": "The middle of the market, on mileage.",
-    "brackets": [
-      "Fewer miles",
-      "More miles"
-    ],
+    "brackets": [],
     "earned": "How many miles on yours?",
     "chips": [
       "under Nk",
@@ -514,7 +514,7 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": 3
+    "cards": 1
   },
   "2016 Chevrolet Corvette Z06 coupe": {
     "state": "unmatched_result",
@@ -532,16 +532,16 @@
     "samReadBox": 0,
     "recLabel": "The sales behind it",
     "htSpec": [],
-    "htPrice": [],
+    "htPrice": [
+      "$N",
+      "$N"
+    ],
     "read": [],
     "refineQ": null,
     "refineChips": [],
     "cmKick": "Closest match",
     "cmWhy": "The middle of the market, on mileage.",
-    "brackets": [
-      "Fewer miles",
-      "More miles"
-    ],
+    "brackets": [],
     "earned": "Manual or automatic?",
     "chips": [
       "Manual",
@@ -558,7 +558,7 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": 3
+    "cards": 1
   },
   "2013 Ford Mustang Shelby GT500 coupe": {
     "state": "unmatched_result",
@@ -576,16 +576,16 @@
     "samReadBox": 0,
     "recLabel": "The sales behind it",
     "htSpec": [],
-    "htPrice": [],
+    "htPrice": [
+      "$N",
+      "$N"
+    ],
     "read": [],
     "refineQ": null,
     "refineChips": [],
     "cmKick": "Closest match",
     "cmWhy": "The middle of the market, on mileage.",
-    "brackets": [
-      "Higher sale",
-      "More miles"
-    ],
+    "brackets": [],
     "earned": "How many miles on yours?",
     "chips": [
       "under Nk",
@@ -604,7 +604,7 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": 3
+    "cards": 1
   },
   "Corvette": {
     "state": "generation_choice",
@@ -707,16 +707,16 @@
     "samReadBox": 0,
     "recLabel": "The sales behind it",
     "htSpec": [],
-    "htPrice": [],
+    "htPrice": [
+      "$N",
+      "$N"
+    ],
     "read": [],
     "refineQ": null,
     "refineChips": [],
     "cmKick": "Closest match",
     "cmWhy": "The middle of the market.",
-    "brackets": [
-      "Fewer miles",
-      "More miles"
-    ],
+    "brackets": [],
     "earned": "How many miles on yours?",
     "chips": [
       "under Nk",
@@ -734,7 +734,7 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": 3
+    "cards": 1
   },
   "2016 Mercedes-Benz C63 AMG coupe": {
     "state": "unmatched_result",
@@ -752,16 +752,16 @@
     "samReadBox": 0,
     "recLabel": "The sales behind it",
     "htSpec": [],
-    "htPrice": [],
+    "htPrice": [
+      "$N",
+      "$N"
+    ],
     "read": [],
     "refineQ": null,
     "refineChips": [],
     "cmKick": "Closest match",
     "cmWhy": "The middle of the market.",
-    "brackets": [
-      "Fewer miles",
-      "More miles"
-    ],
+    "brackets": [],
     "earned": "How many miles on yours?",
     "chips": [
       "under Nk",
@@ -780,7 +780,7 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": 3
+    "cards": 1
   },
   "2018 Audi RS5 coupe": {
     "state": "unmatched_result",
@@ -798,16 +798,16 @@
     "samReadBox": 0,
     "recLabel": "The sales behind it",
     "htSpec": [],
-    "htPrice": [],
+    "htPrice": [
+      "$N",
+      "$N"
+    ],
     "read": [],
     "refineQ": null,
     "refineChips": [],
     "cmKick": "Closest match",
     "cmWhy": "The middle of the market.",
-    "brackets": [
-      "Fewer miles",
-      "More miles"
-    ],
+    "brackets": [],
     "earned": "How many miles on yours?",
     "chips": [
       "under Nk",
@@ -826,7 +826,7 @@
     "wayfwd": [],
     "genPrompt": null,
     "genChips": [],
-    "cards": 3
+    "cards": 1
   },
   "458 Speciale coupe": {
     "state": "choice",
