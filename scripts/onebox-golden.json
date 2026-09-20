@@ -99,12 +99,8 @@
     "kickerGone": true,
     "samReadBox": 0,
     "recLabel": "What has sold, Lamborghini Murcielago LP670-4 SuperVeloce, in YYYY",
-    "htSpec": [
-      "Chassis ending A03932·SILVER"
-    ],
-    "htPrice": [
-      "$N · buyer paid $N incl. premium"
-    ],
+    "htSpec": [],
+    "htPrice": [],
     "read": [],
     "refineQ": null,
     "refineChips": [],
@@ -446,11 +442,9 @@
     "kickerGone": true,
     "samReadBox": 0,
     "recLabel": "What has sold, Maserati Merak, YYYY to YYYY",
-    "htSpec": [
-      "Chassis 460516"
-    ],
+    "htSpec": [],
     "htPrice": [
-      "£50,000 ($N) · buyer paid £57,500 ($N) incl. premium",
+      "$N",
       "$N",
       "$N"
     ],
@@ -881,16 +875,8 @@
     "kickerGone": true,
     "samReadBox": 0,
     "recLabel": "What has sold, YYYY Ferrari 275 GTB, YYYY to YYYY",
-    "htSpec": [
-      "Chassis ending 10311·Avorio (Ivory)",
-      "Chassis ending 08343·Blu Scuro",
-      "Chassis ending 10147"
-    ],
-    "htPrice": [
-      "$N · buyer paid $N incl. premium",
-      "$N · buyer paid $N incl. premium",
-      "$N · buyer paid $N incl. premium"
-    ],
+    "htSpec": [],
+    "htPrice": [],
     "read": [],
     "refineQ": null,
     "refineChips": [],
