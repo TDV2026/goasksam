@@ -140,8 +140,11 @@
       "Manual",
       "Lower sale"
     ],
-    "earned": null,
-    "chips": [],
+    "earned": "Documentation moves these. Is yours documented (build sheet, Marti report, tank sticker)?",
+    "chips": [
+      "Documented",
+      "No documentation"
+    ],
     "platforms": [
       "Bring a Trailer",
       "Hagerty",
