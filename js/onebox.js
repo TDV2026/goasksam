@@ -814,14 +814,50 @@
     var mi = Number(rc.mileage) > 0 ? '<div class="htr-mi2 num">' + Number(rc.mileage).toLocaleString("en-US") + " mi</div>" : "";
     return main + mi;
   }
+  // Short car-name header for a HOUSE row: year/make/model/variant only. Strip chassis/engine/serial
+  // clauses, parenthetical codes, and a trailing coachbuilder ("by X") - those move to the meta line.
+  function shortCarName(title) {
+    var t = String(title || "");
+    t = t.replace(/\b(?:chassis|engine|s\/n|serial)\s*(?:no\.?|number|#)?\s*[:.]?\s*[A-Za-z0-9][A-Za-z0-9.\-\/]*/gi, "");
+    t = t.replace(/\([^)]*\)/g, "");
+    t = t.replace(/\bby\s+[A-Z][\w'&.\- ]+$/, "");
+    return t.replace(/\s{2,}/g, " ").replace(/[\s,;·-]+$/, "").trim();
+  }
+  function houseChassisMeta(rc) {
+    if (rc.chassis) return "Chassis " + esc(rc.chassis);
+    if (rc.chassisTail) return "Chassis ending " + esc(rc.chassisTail);
+    return "";
+  }
+  // House price, two readable lines (never tiny type): the hammer is the number the math uses, the
+  // buyer-paid line is the transparency layer. Native EUR/GBP leads with its own figure, USD beside.
+  function housePriceBlock(rc) {
+    var natH = rc.nativeCur && rc.nativeHammer, natA = rc.nativeCur && rc.nativeAllIn;
+    var hammer = natH ? (esc(natMoney(rc.nativeCur, rc.nativeHammer)) + ' <span class="usdc">(' + esc(usd(rc.hammer)) + ")</span>") : esc(usd(rc.hammer));
+    var out = '<div class="hp-hammer num">' + hammer + ' <span class="hp-lbl">hammer</span></div>';
+    if (rc.allIn) {
+      var paid = natA ? (esc(natMoney(rc.nativeCur, rc.nativeAllIn)) + ' <span class="usdc">(' + esc(usd(rc.allIn)) + ")</span>") : esc(usd(rc.allIn));
+      out += '<div class="hp-paid">Buyer paid ' + paid + " with premium</div>";
+    }
+    return '<div class="htr-price">' + out + "</div>";
+  }
   function htReceiptRow(rc) {
     var href = utmUrl(rc.url);
-    // Hard rule: every compact row keeps a thumbnail (or a clearly marked placeholder).
-    var inner = thumbEl(rc.image, rc.title) + '<div class="htr-l"><div class="htr-v">' + htYearVenue(rc) + (rc.isHouse ? '<span class="htr-h">auction house</span>' : "") + "</div>" +
-      '<div class="htr-t">' + esc(rc.title) + "</div>" + (rc.isHouse ? htSpecLine(rc) : htMiText(rc)) + htMarkerChips(rc) + "</div>" +
+    var ext = href ? '<span class="ext htx"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>' : "";
+    // HOUSE-LED row (readability-first): thumb + short car name (2 lines max) + two-line price +
+    // one meta line (venue bolder · date · chassis, once). No per-row "auction house" badge.
+    if (rc.isHouse) {
+      var meta = ['<span class="ven">' + esc(rc.venue) + "</span>", esc(monthYear(rc.date)), houseChassisMeta(rc)].filter(Boolean).join(' <span class="dot">&middot;</span> ');
+      var hInner = thumbEl(rc.image, rc.title) +
+        '<div class="htr-l"><div class="htr-name">' + esc(shortCarName(rc.title)) + "</div>" +
+        housePriceBlock(rc) +
+        '<div class="htr-meta">' + meta + "</div>" + htMarkerChips(rc) + "</div>";
+      return href ? '<a class="htr htr-thumb htr-house" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(rc.slug || "") + '">' + hInner + ext + "</a>" : '<div class="htr htr-thumb htr-house">' + hInner + "</div>";
+    }
+    // Non-house (thin online) row - unchanged.
+    var inner = thumbEl(rc.image, rc.title) + '<div class="htr-l"><div class="htr-v">' + htYearVenue(rc) + "</div>" +
+      '<div class="htr-t">' + esc(rc.title) + "</div>" + htMiText(rc) + htMarkerChips(rc) + "</div>" +
       '<div class="htr-r"><div class="htr-p num">' + htPriceLine(rc) + "</div>" +
       '<div class="htr-d">' + esc(monthYear(rc.date)) + "</div></div>";
-    var ext = href ? '<span class="ext htx"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>' : "";
     return href ? '<a class="htr htr-thumb" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(rc.slug || "") + '">' + inner + ext + "</a>" : '<div class="htr htr-thumb">' + inner + "</div>";
   }
   // Intake copy composed CLIENT-side from the engine's split FACTS (product rule 3). Marker splits
