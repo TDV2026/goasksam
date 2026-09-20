@@ -2995,6 +2995,10 @@ export default async function handler(req, res) {
         miMin: Number.isFinite(Number(rawRefine.miMin)) ? Number(rawRefine.miMin) : null,
         miMax: Number.isFinite(Number(rawRefine.miMax)) ? Number(rawRefine.miMax) : null,
         tx: rawRefine.tx === "manual" ? "manual" : rawRefine.tx === "auto" ? "auto" : null,
+        // Item 7/8 dictionary-driver refine + item 9 observable-fact refine (both re-scope the pool).
+        driver: typeof rawRefine.driver === "string" ? rawRefine.driver.slice(0, 40) : null,
+        driverVal: rawRefine.driverVal === "no" ? "no" : rawRefine.driverVal === "yes" ? "yes" : null,
+        observe: typeof rawRefine.observe === "string" ? rawRefine.observe.slice(0, 40) : null,
         label: typeof rawRefine.label === "string" ? rawRefine.label.slice(0, 40) : null
       } : null;
       // #1 divergence rule: the exact-car sale is fetched by the frontend (vehicleIdentity ->
