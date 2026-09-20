@@ -446,6 +446,20 @@
     } else return "";
     return '<div class="earned" data-stage="answer"><p class="q">' + esc(q) + '</p><div class="qchips">' + chips + "</div></div>";
   }
+  // Item 9: the observable-fact refinement. Offers only the flags the pool actually contains; a tap
+  // re-scopes the evidence set and adds a sentence, never adjusts a price. "Nothing major" dismisses.
+  var OBS_CHIP = { needs_work: "Needs work", modified: "Modified", salvage: "Salvage or rebuilt title" };
+  function observeHtml(d) {
+    var offer = (d && d.observeOffer) || []; if (!offer.length) return "";
+    var chips = offer.map(function (o) { return '<button class="qchip" data-observe="' + esc(o.key) + '" data-olabel="' + esc(o.label) + '">' + esc(OBS_CHIP[o.key] || o.key) + "</button>"; }).join("");
+    chips += '<button class="qchip" data-observe="none">Nothing major</button>';
+    return '<div class="earned observe" data-stage="answer"><p class="q">' + lint("Anything I should know about yours?", "obs.q") + '</p><div class="qchips">' + chips + "</div></div>";
+  }
+  function observeAsideHtml(d) {
+    var a = d && d.observeAside; if (!a || !(a.lo > 0)) return "";
+    var bare = bareNameOf(d, null);
+    return '<p class="varynote">' + lint(esc(bare) + "s listed as " + esc(a.label) + " brought " + priceRange([a.lo, a.hi]) + "; the band above is for cars that didn’t.", "obs.aside") + "</p>";
+  }
   function receiptCardHtml(c, tagAside) {
     var img = c.image ? '<img src="' + esc(c.image) + '" alt="' + esc(c.title) + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.rplate\');if(p)p.style.display=\'flex\'">' : "";
     var aside = (tagAside && c.hollow) ? '<span class="aside">set aside</span>' : "";
@@ -590,13 +604,14 @@
       '<div class="platwrap"><div class="lab">Where they sold</div><div class="plat-strip">' + pills + "</div>" + note + "</div></details>";
   }
   function resultHtml(d, m) {
-    var body = heroBlock(d) + samReadBlock(d, m);
+    var body = heroBlock(d) + observeAsideHtml(d) + samReadBlock(d, m);
     body += '<div class="seclabel">The sales behind it</div>';
     body += cards3Html(d, m);
     body += seeAllHtml(d, m);
     if (!divergenceAsksInline(d)) body += earnedHtml(d, m);
     // Item 7: wide band, nothing splits 5+/5+ -> one honest sentence instead of a question.
     if (d.driverSentence && !(d.earned)) body += '<p class="varynote">' + lint(esc(d.driverSentence), "varynote") + "</p>";
+    body += observeHtml(d);   // item 9: "Anything I should know?" (only when the pool has such cars)
     body += sellHtml() + recentHtml();
     // Fixed approved disclaimer (round-7 mockup). NOT passed through lint(): "estimates" and
     // "valuations" here are deliberate NEGATIONS of the banned terms, not claims.
@@ -1348,6 +1363,17 @@
         obRefinePhrase = "Among the ones listed as " + String(label || "").toLowerCase();
         obEvent("onebox_driver_refine", lastQuery + ":" + key + ":" + val);
         runPool(lastQuery, obLastVehicle, { driver: key, driverVal: val, label: label });
+      });
+    });
+    // Item 9: observable-fact refinement. "Nothing major" just dismisses; a flag re-scopes the pool
+    // (main band = cars WITHOUT the flag) and the aside sentence reports what the flagged ones brought.
+    Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-observe]"), function (b) {
+      b.addEventListener("click", function () {
+        var key = b.getAttribute("data-observe"), label = b.getAttribute("data-olabel");
+        if (key === "none") { var blk = b.parentNode && b.parentNode.parentNode; if (blk && blk.parentNode) blk.parentNode.removeChild(blk); return; }
+        obRefinePhrase = null;   // the main band stays "cars that didn't"; the aside carries the context
+        obEvent("onebox_observe_refine", lastQuery + ":" + key);
+        runPool(lastQuery, obLastVehicle, { observe: key, label: label });
       });
     });
     // "type it": reveal a small inline mileage input; Enter narrows to a band around that number.
