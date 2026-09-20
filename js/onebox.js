@@ -848,7 +848,11 @@
     // HOUSE-LED row (readability-first): thumb + short car name (2 lines max) + two-line price +
     // one meta line (venue bolder · date · chassis, once). No per-row "auction house" badge.
     if (rc.isHouse) {
-      var meta = ['<span class="ven">' + esc(rc.venue) + "</span>", esc(monShort(rc.date)), houseChassisMeta(rc)].filter(Boolean).join(' <span class="dot">&middot;</span> ');
+      // Each segment is non-breaking, so the meta reads as one line and, if it must wrap at 390px,
+      // wraps ONLY at a "·" boundary (whole tokens) - never mid-phrase (venue/date/chassis stay intact).
+      var segs = ['<span class="mseg ven">' + esc(rc.venue) + "</span>", '<span class="mseg">' + esc(monShort(rc.date)) + "</span>"];
+      var chMeta = houseChassisMeta(rc); if (chMeta) segs.push('<span class="mseg">' + chMeta + "</span>");
+      var meta = segs.join(' <span class="dot">&middot;</span> ');
       var hInner = thumbEl(rc.image, rc.title) +
         '<div class="htr-l"><div class="htr-name">' + esc(shortCarName(rc.title)) + "</div>" +
         housePriceBlock(rc) +
