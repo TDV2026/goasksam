@@ -1014,19 +1014,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "srcaudit", note: "ESTIMATED counts (planner stats); archive = max(bySlug,byLabel)", attemptsTableExists: attemptsExists, sources: out });
   }
 
-  // TEMP (item 11.2 verify, remove after): count onebox_search funnel events for an anon over the
-  // last 24h - to confirm refine taps don't increment while a new car search does.
-  if (task === "obcount") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const anon = String(req.query?.anon || "").slice(0, 64);
-    if (!anon) return res.status(400).json({ error: "?anon= required" });
-    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-    const headers = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    let n = null;
-    try { const rows = await (await fetch(`${env.supabaseUrl}/rest/v1/funnel_events?event=eq.onebox_search&anon_session_id=eq.${encodeURIComponent(anon)}&created_at=gte.${since}&select=id&limit=200`, { headers })).json(); n = Array.isArray(rows) ? rows.length : null; } catch (e) { n = "err:" + String(e).slice(0, 60); }
-    return res.status(200).json({ task: "obcount", anon, onebox_search_24h: n });
-  }
-
   // task=poolcheck: READ-ONLY (archive; ZERO OCD). Runs the LIVE runOneBox for a query and reports
   // the resulting pool (span/cluster + card titles), scanning them for any surviving memorabilia -
   // proves the exclusion removed the junk from the engine pool (vs the raw archive which still has it).
