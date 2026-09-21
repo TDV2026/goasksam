@@ -222,7 +222,7 @@
     "clBand": "$N and $N",
     "clTail": "in the last twelve months. Everything from $N to $N has sold.",
     "ltFresh": "Real sales through last night. Nothing estimated.",
-    "contradiction": "This car last sold for $N at 66,700 miles. Recent lower-mileage Competition cars have sold higher.",
+    "contradiction": "Recent lower-mileage Competition cars have sold higher.",
     "kickerGone": true,
     "samReadBox": 0,
     "recLabel": null,
