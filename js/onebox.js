@@ -223,6 +223,29 @@
     return '<div class="inbox"><input id="ob-input" ' + (value ? 'value="' + esc(value) + '"' : 'placeholder="' + esc(placeholder || PLACEHOLDER_BEATS[0]) + '"') + '>' +
       '<button class="go" id="ob-go" aria-label="Ask Sam">&#8594;</button></div>';
   }
+  // Layout fix (item 3): the empty state centres the input in the viewport; the loading/result
+  // render re-anchors it to the top of the page. Swapping innerHTML would SNAP it up. This does a
+  // FLIP: render the new DOM (input at its final top position), then translate the whole #ob back
+  // down to where the input just was and transition to zero, so the input glides up instead of
+  // jumping. dy ~ 0 on renders that were already at the top (chip taps, refines), so it no-ops
+  // there. Honors prefers-reduced-motion.
+  function setRootHtmlLifted(html) {
+    var prev = document.getElementById("ob-input");
+    var prevTop = prev ? prev.getBoundingClientRect().top : null;
+    root.innerHTML = html;
+    if (prevTop == null) return;
+    var now = document.getElementById("ob-input"); if (!now) return;
+    var dy = prevTop - now.getBoundingClientRect().top;
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    if (dy <= 6 || reduce) return;
+    root.style.transform = "translateY(" + dy + "px)";
+    root.style.willChange = "transform";
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      root.style.transition = "transform .34s cubic-bezier(.4,0,.2,1)";
+      root.style.transform = "translateY(0)";
+    }); });
+    setTimeout(function () { root.style.transition = ""; root.style.transform = ""; root.style.willChange = ""; }, 440);
+  }
   function footHtml() {
     return '<div class="foot"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Real sales only. No estimates. No valuations.</div>';
   }
@@ -567,14 +590,17 @@
   // Item 2: the divergence contradiction as ONE plain serif line (no box, no kicker), assembled from
   // the real numbers - same delta logic, rendered as a sentence.
   function contradictionLine(d) {
-    var dv = d.divergence; if (!dv || !(Number(dv.price) > 0)) return "";
+    var dv = d.divergence; if (!dv) return "";
+    // The price/mileage fact is already in the exact-car hero ("Last sold $X ... N mi"), so it is
+    // NOT restated here. Render ONLY the new information (where the recent market sits relative to
+    // this car) and omit the line entirely when there is no such insight to add.
     var trim = (d.resolvedCar && d.resolvedCar.trim) || "";
     var tw = trim ? (String(trim).split(/\s+/)[0] + " ") : "";
-    var miPart = dv.mileage > 0 ? " at " + Number(dv.mileage).toLocaleString("en-US") + " miles" : "";
-    var dir = dv.direction === "below"
-      ? ("Recent lower-mileage " + esc(tw) + "cars have sold higher.")
-      : ("Recent higher-mileage " + esc(tw) + "cars have sold lower.");
-    return '<p class="contradiction">' + lint("This car last sold for " + r3money(dv.price) + miPart + ". " + dir, "contra") + "</p>";
+    var dir = dv.direction === "below" ? ("Recent lower-mileage " + esc(tw) + "cars have sold higher.")
+            : dv.direction === "above" ? ("Recent higher-mileage " + esc(tw) + "cars have sold lower.")
+            : "";
+    if (!dir) return "";
+    return '<p class="contradiction">' + lint(dir, "contra") + "</p>";
   }
   // Pool-aware freshness line (S2-2). NOT passed through lint(): "estimated" is a deliberate
   // negation here (as in the trust line), not a valuation claim. No dashes.
@@ -714,7 +740,10 @@
   function reconfirmHtml(d, m) {
     var dv = d.divergence;
     if (dv && dv.kase === "a" && dv.mileage > 0) {
+      // Refinement copy pattern (locked, CLAUDE.md): reruns the EVIDENCE around the current
+      // mileage, never promises a different number/range. "which real sales are used", not a result.
       return '<div class="earned reconfirm" data-stage="answer"><p class="q">' + lint("Still around " + Number(dv.mileage).toLocaleString("en-US") + " miles?", "rc.q") +
+        '</p><p class="rc-sub">' + lint("If not, update it and I’ll rerun the market around the current mileage.", "rc.sub") +
         '</p><div class="qchips"><button class="qchip g" data-refyes>Yes</button><button class="qchip typeit" data-typemiles>Update mileage</button></div></div>';
     }
     return earnedHtml(d, m);
@@ -1275,7 +1304,7 @@
   }
   function runPool(text, vehicle, refine) {
     obLastVehicle = vehicle || obLastVehicle;
-    root.innerHTML = inboxHtml(text) + loaderHtml() + footHtml();
+    setRootHtmlLifted(inboxHtml(text) + loaderHtml() + footHtml());
     wire();
     var loader = makeLoader();
     loader.start(["Working out exactly what car this is", "Pulling the real sales"]);
@@ -1318,7 +1347,7 @@
   // VIN path: decode + confirm (reuses /api/vehicleIdentity). VINs travel in the request
   // body only; nothing here logs the raw VIN.
   function vinResolve(text) {
-    root.innerHTML = inboxHtml(text) + loaderHtml() + footHtml();
+    setRootHtmlLifted(inboxHtml(text) + loaderHtml() + footHtml());
     wire(); setLoaderLine("Reading that VIN");
     fetch(API_ORIGIN + "/api/vehicleIdentity", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: text }) })
       .then(function (r) { return r.json(); }).then(function (d) {
