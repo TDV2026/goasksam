@@ -3475,7 +3475,7 @@ export default async function handler(req, res) {
           : null;
         // House-by-house comparison (Sep 2026): ranked record + rooms + next-sale, from the scoped
         // house receipts + the curated calendar. ASAP reorders to the soonest sale. Additive.
-        const asap = /asap|rush|urgent|soon|quick|fast|this week|right away/i.test(String((car && car.timeline) || ""));
+        const _tl = String((car && car.timeline) || ""); const asap = /\b(asap|rush|hurry|urgent|fast|quick|soon)\b|right away|this week/i.test(_tl) && !/\bno\s+(rush|hurry)\b/i.test(_tl);
         decision.thin.houseComparison = buildHouseComparison(thin.receipts, { todayISO: new Date().toISOString().slice(0, 10), asap });
       } catch { /* thin render facts are additive */ }
     } else if (vehicle && vehicle.year && (!thin || thin.totalN === 0)) {
@@ -3489,7 +3489,7 @@ export default async function handler(req, res) {
         if (ce && ce.isClass && Array.isArray(ce.receipts) && ce.receipts.length) {
           decision.classEra = ce;
           // House-by-house over the ERA band (the render frames it as the wider market, not the car).
-          const asap = /asap|rush|urgent|soon|quick|fast|this week|right away/i.test(String((car && car.timeline) || ""));
+          const _tl = String((car && car.timeline) || ""); const asap = /\b(asap|rush|hurry|urgent|fast|quick|soon)\b|right away|this week/i.test(_tl) && !/\bno\s+(rush|hurry)\b/i.test(_tl);
           decision.classEra.houseComparison = buildHouseComparison(ce.receipts, { todayISO: new Date().toISOString().slice(0, 10), asap, eraBand: true });
         }
       } catch (e) { ceDbg.ceErr = "class:" + String((e && e.message) || e).slice(0, 120); }
