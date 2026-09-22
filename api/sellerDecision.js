@@ -1,6 +1,6 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
-import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle } from "../lib/onebox.js";
+import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -3049,6 +3049,10 @@ export default async function handler(req, res) {
     // (the real range cars like this sold for), never a number. Archive-only (sales_archive),
     // ZERO OldCarsData, no search gate, no writes, returned BEFORE any metered fetch. NO median
     // is ever computed into the response - a midpoint a seller could adopt is a valuation.
+    if (req.body?.titleSearch) {
+      const ts = await rawTitleSearch(String(req.body.titleSearch), { supabaseUrl, supabaseKey }, Number(req.body?.sinceDays) || undefined, Number(req.body?.limit) || undefined);
+      return res.status(200).json({ status: "title_search", ...ts });
+    }
     if (req.body?.priceProbe) {
       const band = await priceBandForVehicle(vehicle, generation, { supabaseUrl, supabaseKey });
       // Optional per-transaction listing (archive-only) for verification pulls: pass listSales:true
