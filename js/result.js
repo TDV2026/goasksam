@@ -30,6 +30,7 @@ async function showSellRecommendation(opts){
     const loc=sellState.state||sellState.region||"your area";
     const price=(typeof formatAskingPrice==="function")?formatAskingPrice(sellState.price):(sellState.price||"price to set");
     const prefLabel=sellState.sellerPreference==="powerseller"?"open to a PowerSeller"
+      :sellState.sellerPreference==="auction_house"?"taking it through an auction house"
       :sellState.sellerPreference==="diy"?"selling it myself"
       :"deciding how to sell";
     const parts=[car,loc,price,prefLabel].map(p=>escapeHtml(String(p)));
@@ -189,6 +190,25 @@ function renderDecision(decisionData,renderOpts){
   // now; international thin cars keep their regional cards below.
   if(decision.thin&&decision.thin.isThin&&Array.isArray(decision.thin.receipts)&&decision.thin.receipts.length
      &&!(typeof isInternationalSellerRegion==="function"&&isInternationalSellerRegion())){
+    // HOUSE-BY-HOUSE COMPARISON (Sep 2026): the house-tier result IS the ranked house record when a
+    // house leads (house steer, not rushed) or the seller explicitly chose the auction-house door.
+    // The door skips the online alternative; a normal house-tier read keeps it below for a DIY seller.
+    // ASAP never lets a house auto-lead (the existing thin render cites the house, picks online), but
+    // an EXPLICIT auction-house choice is honoured and reorders to the soonest sale.
+    const hc=decision.thin.houseComparison;
+    const choseHouse=sellState.sellerPreference==="auction_house";
+    const rush=(typeof sellerWantsSpeed==="function")&&sellerWantsSpeed();
+    if(hc&&hc.houses&&hc.houses.length&&(choseHouse||(decision.thin.houseSteer&&!rush))){
+      let onlineCardHtml="";
+      if(!choseHouse){
+        const op=(typeof _thinVenuePick==="function")&&_thinVenuePick(decision.thin.receipts.filter(r=>Number(r.hammer)>0),false);
+        if(op){const v=sellState.resolvedVehicle||decisionData.vehicle||{};onlineCardHtml=_thinPickCardHtml({kind:"online",pick:op.pick,others:op.others,receipts:decision.thin.receipts.filter(r=>Number(r.hammer)>0),make:v.make||"",modelLabel:[v.model,v.trim].filter(Boolean).join(" ")||v.make||"",carLbl:[v.year,v.make,v.model].filter(Boolean).join(" "),loc:[sellState.state,sellState.region].filter(Boolean)[0]||"US",typedYear:v.year,isLead:false});}
+      }
+      if(renderHouseComparisonSell(msgs,hc,decisionData,{onlineCardHtml})){
+        document.getElementById("btn").disabled=false;
+        return;
+      }
+    }
     if(renderThinDecisionSell(msgs,decision.thin,decisionData)){
       document.getElementById("btn").disabled=false;
       return;
@@ -198,6 +218,14 @@ function renderDecision(decisionData,renderOpts){
   // fallback (same-marque era band), rendered before the no-evidence dead-end. US-only for now.
   if(decision.classEra&&decision.classEra.isClass&&Array.isArray(decision.classEra.receipts)&&decision.classEra.receipts.length
      &&!(typeof isInternationalSellerRegion==="function"&&isInternationalSellerRegion())){
+    // A very-thin, house-dominated era band (a pre-war Bentley) shows the ranked house record over the
+    // era band, framed as the wider market (never a price for the exact car). Falls back to the plain
+    // class-era card when no houses are in the band.
+    const hce=decision.classEra.houseComparison;
+    if(hce&&hce.houses&&hce.houses.length&&renderHouseComparisonSell(msgs,hce,decisionData,{eraBand:true})){
+      document.getElementById("btn").disabled=false;
+      return;
+    }
     if(renderClassEraSell(msgs,decision.classEra,decisionData)){
       document.getElementById("btn").disabled=false;
       return;
@@ -1242,6 +1270,124 @@ function renderThinDecisionSell(msgs,thin,decisionData){
   row.scrollIntoView({behavior:"smooth",block:"start"});
   return true;
 }
+
+// ============ HOUSE-BY-HOUSE COMPARISON on /sell (Sep 2026) ==============================
+// The product for a high-value seller: which house, which sale, when, from the record. Ranked
+// house blocks (Sam's pick on top by the RECORD - share, recency, hammer), each with its receipts,
+// the room where known/inferable, and the next sale + approximate consignment window. Record
+// language only: it ranks and shows what happened, never promises an outcome or a "best price";
+// a venue price difference is shown by the receipts, never stated. ASAP leads with the soonest sale.
+function _hcRoomLabel(room){
+  if(!room||!room.name)return "";
+  // Data-carried room stated plainly; inferred room is hedged (the two-fact honesty from discovery).
+  return room.source==="data"?` · ${escapeHtml(room.name)}`:"";
+}
+function _hcReceiptRow(rc,modelLabel){
+  const esc=escapeHtml, money=moneyShort;
+  const img=rc.image
+    ?`<img src="${esc(rc.image)}" alt="" loading="lazy" style="width:64px;height:46px;object-fit:cover;border-radius:7px;flex:none;background:#eee" onerror="this.style.visibility='hidden'">`
+    :`<span style="width:64px;height:46px;border-radius:7px;flex:none;background:#efece6;display:flex;align-items:center;justify-content:center;font:600 8px/1 monospace;letter-spacing:.06em;color:#a49a86;text-transform:uppercase">no photo</span>`;
+  const when=_thinMonthLabel(rc.date)||"Recent";
+  const paid=rc.allIn?` <span style="opacity:.6">buyer paid ${money(rc.allIn)}</span>`:"";
+  const chassis=rc.chassis?` · chassis ${esc(String(rc.chassis))}`:"";
+  const nameLine=[rc.year,modelLabel].filter(Boolean).join(" ");
+  const href=rc.url?`href="${esc(rc.url)}" target="_blank" rel="noopener"`:"";
+  const open=rc.url?`<a ${href} style="text-decoration:none;color:inherit;display:flex;gap:11px;align-items:flex-start">`:`<div style="display:flex;gap:11px;align-items:flex-start">`;
+  const close=rc.url?"</a>":"</div>";
+  return `<div style="padding:9px 0;border-top:1px solid rgba(0,0,0,.07)">${open}
+    ${img}
+    <div style="flex:1;min-width:0">
+      <div style="font-variant-numeric:tabular-nums;font-weight:700;font-size:15px">${money(rc.hammer)}${paid}</div>
+      <div style="font-size:12.5px;color:#6b6861;margin-top:2px">${esc(nameLine)}${_hcRoomLabel(rc.room)}</div>
+      <div style="font-size:11.5px;color:#928b7a;margin-top:2px;font-variant-numeric:tabular-nums">${esc(when)}${chassis}</div>
+    </div>${close}</div>`;
+}
+function _hcHouseBlock(h,ctx){
+  const esc=escapeHtml, money=moneyShort;
+  const badge=ctx.isLead?(ctx.asap?"Soonest sale":"Sam's pick"):"";
+  const receipts=(h.receipts||[]).slice(0,3).map(r=>_hcReceiptRow(r,ctx.modelLabel)).join("");
+  // Inferred-room hedge (two-fact): for houses whose room is NOT in the data, name the room from the
+  // published calendar as a separate, hedged fact, never merged into the sale claim above.
+  const inf={};
+  for(const r of (h.receipts||[])){ if(r.room&&r.room.source==="inferred"){const m=_thinMonthLabel(r.date).split(" ")[0]; if(m)inf[m]=r.room.name; } }
+  const infMonths=Object.keys(inf);
+  const infLine=infMonths.length
+    ?`<p style="font-size:12px;color:#928b7a;margin:8px 0 0;font-style:italic">By the published calendar, ${esc(h.display)}'s ${infMonths.map(m=>`${m} sale is typically ${esc(inf[m])}`).join(", ")} (confirm with ${esc(h.display)}).</p>`
+    :"";
+  // Next sale + approximate consignment window (say nothing if unknown).
+  let next="";
+  if(h.nextSale){
+    const ns=h.nextSale;
+    next=`<div style="margin:10px 0 0;padding:10px 12px;background:rgba(11,92,62,.05);border-radius:9px;font-size:12.5px;color:#3a463f">
+      <span style="font-weight:700">Next at ${esc(h.display)}:</span> ${esc(ns.city)}, ${esc(ns.monthName)} ${ns.year}${ns.intl?" (international)":""}. <span style="opacity:.8">${esc(ns.consignApprox)}.</span></div>`;
+  }
+  const badgeHtml=badge?`<span style="display:inline-block;font:700 10px/1 monospace;letter-spacing:.09em;text-transform:uppercase;color:#0b5c3e;background:rgba(11,92,62,.09);padding:5px 8px;border-radius:5px;margin-bottom:8px">${esc(badge)}</span><br>`:"";
+  return `<div style="margin:16px 0 0;padding:16px 18px;border:1px solid ${ctx.isLead?"rgba(11,92,62,.34)":"rgba(0,0,0,.1)"};border-radius:14px;background:#fffdf9">
+    ${badgeHtml}<h3 style="margin:0;font:800 20px/1.1 Georgia,serif;letter-spacing:-.01em">${esc(h.display)}</h3>
+    <div style="margin:9px 0 0">${receipts}</div>
+    ${infLine}
+    ${next}
+  </div>`;
+}
+// Returns true if it rendered. eraBand=true frames it as the wider-market (class-era) read.
+function renderHouseComparisonSell(msgs,hc,decisionData,opts){
+  opts=opts||{};
+  if(!hc||!Array.isArray(hc.houses)||!hc.houses.length)return false;
+  const esc=escapeHtml, money=moneyShort;
+  const v=sellState.resolvedVehicle||decisionData.vehicle||{};
+  const modelLabel=[v.model,v.trim].filter(Boolean).join(" ")||v.make||"this car";
+  const carLbl=[v.year,v.make,v.model,v.trim].filter(Boolean).join(" ")||modelLabel;
+  const asap=!!hc.asap;
+  let houses=hc.houses.slice();
+  if(asap&&hc.asapLead){houses.sort((a,b)=>((b.slug===hc.asapLead)-(a.slug===hc.asapLead)));}
+  const pick=houses[0];
+  const pickName=pick.display;
+  const others=houses.slice(1).map(h=>h.display);
+  const recency=pick.mostRecent?`, most recently in ${_thinMonthLabel(pick.mostRecent)}`:"";
+  // Hammer clause ONLY when the pick is also top by median (a true record statement, never a promise).
+  const topMedian=houses.reduce((m,h)=>Math.max(m,h.median||0),0);
+  const hammerClause=(!asap&&pick.median===topMedian&&houses.length>1)?" Its hammer results are the strongest of the group, too.":"";
+  const othersClause=others.length?` ${others.join(" and ")} ${others.length===1?"has":"have"} taken ${eraBandNote(opts)?"them":"them"} too; here's what each brought.`:"";
+  let lead;
+  if(eraBandNote(opts)){
+    lead=`No ${esc(carLbl)} has sold in the last three years, so this is the wider ${esc(v.make||"")} market at the houses, not your exact car. ${esc(pickName)} has handled these most often${recency}.${othersClause}`;
+  } else if(asap){
+    lead=`You told me you want to move quickly, so I'm leading with the soonest sale, not the strongest record. Every house below has taken ${esc(modelLabel)}s; here's the record, and when each one next runs.`;
+  } else {
+    lead=`${esc(modelLabel)}s have gone to ${esc(pickName)} more than to any other house over the last three years${recency}.${hammerClause}${othersClause}`;
+  }
+  // Timing-as-a-choice (B4): the pick's next sale, then a genuinely SOONER alternative house if one
+  // exists (never invented; only from a house that has actually taken this car).
+  let timing="";
+  if(!asap&&pick.nextSale){
+    const ns=pick.nextSale;
+    let alt=null;
+    for(const h of houses.slice(1)){
+      if(h.nextSale&&monthsFromToday(h.nextSale)<monthsFromToday(ns)){ if(!alt||monthsFromToday(h.nextSale)<monthsFromToday(alt.nextSale))alt=h; }
+    }
+    timing=`<p style="font-size:14px;line-height:1.55;color:#171717;margin:14px 0 0">The room where these have gone most is ${esc(ns.city)}, next ${esc(ns.monthName)} ${ns.year}.`;
+    if(alt){ timing+=` If you'd rather sell sooner, ${esc(alt.display)}'s ${esc(alt.nextSale.city)} sale is in ${esc(alt.nextSale.monthName)} and has taken ${esc(modelLabel)}s too.`; }
+    timing+=`</p>`;
+  }
+  const blocks=houses.map((h,i)=>_hcHouseBlock(h,{isLead:i===0,asap,modelLabel})).join("");
+  const row=document.createElement("div");row.className="row sam";
+  row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
+    <div class="sam-label">Sam</div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#928b7a;margin-bottom:6px">Which house, which sale, when</div>
+    <p style="font-size:15.5px;line-height:1.55;color:#171717;margin:0">${lead}</p>
+    ${timing}
+    ${blocks}
+    ${opts.onlineCardHtml?`<div class="pv2-bridge" style="margin-top:18px">If you'd rather run the sale yourself instead of consigning, here's where I'd go.</div>${opts.onlineCardHtml}`:""}
+    <p style="font-size:12px;color:#928b7a;margin-top:16px;line-height:1.5">Ranked by the record: how often ${esc(modelLabel)}s have gone to each house, how recently, and the hammer results shown. Consignment windows are approximate, confirm with the house. Real completed sales, hammer prices with the buyer premium backed out. No estimates, no valuations.</p>
+    <div class="sam-text after-results">Ask me anything about the recommendation, or tell me more about the car.</div>
+  </div></div>`;
+  sellState.sellOptions=[];
+  msgs.appendChild(row);
+  row.scrollIntoView({behavior:"smooth",block:"start"});
+  return true;
+}
+function eraBandNote(opts){return !!(opts&&opts.eraBand);}
+function monthsFromToday(ns){const t=new Date();return (ns.year-t.getUTCFullYear())*12+(ns.month-(t.getUTCMonth()+1));}
 
 // CLASS-ERA rung on /sell (Part 1). The exact model has not sold in three years; this is the
 // same-marque decade era band, rendered as a COARSE fallback, labelled plainly as the wider

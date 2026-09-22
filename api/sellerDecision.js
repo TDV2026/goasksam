@@ -9,6 +9,7 @@ import { verifyOnce } from "../lib/_onepass.js";
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
 import { findGeneration, generationModelToken, generationsForModel } from "../lib/generations.js";
 import { isMaterialVariant } from "../lib/materialVariants.js";
+import { buildHouseComparison } from "../lib/houseCalendar.js";
 import { isHouseSource } from "../lib/_houseComps.js";
 import { vinFeatureActive, findVinArchiveMatch } from "../lib/_flags.js";
 import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
@@ -3472,6 +3473,10 @@ export default async function handler(req, res) {
         decision.thin.consignPartner = thin.houseSteer
           ? await findConsignsToHousesPartner(vehicle, sellerCriteria, supabaseUrl, supabaseKey)
           : null;
+        // House-by-house comparison (Sep 2026): ranked record + rooms + next-sale, from the scoped
+        // house receipts + the curated calendar. ASAP reorders to the soonest sale. Additive.
+        const asap = /asap|rush|urgent|soon|quick|fast|this week|right away/i.test(String((car && car.timeline) || ""));
+        decision.thin.houseComparison = buildHouseComparison(thin.receipts, { todayISO: new Date().toISOString().slice(0, 10), asap });
       } catch { /* thin render facts are additive */ }
     } else if (vehicle && vehicle.year && (!thin || thin.totalN === 0)) {
       // CLASS-ERA rung: the exact model has not sold in three years (empty model pool, or thin could
@@ -3481,7 +3486,12 @@ export default async function handler(req, res) {
         ceDbg.ceCalled = true;
         const ce = await assessClassEraForVehicle(vehicle, generation, thinEnv);
         ceDbg.ceReceipts = ce && ce.receipts ? ce.receipts.length : (ce ? "no-receipts:" + JSON.stringify(ce).slice(0, 80) : "null");
-        if (ce && ce.isClass && Array.isArray(ce.receipts) && ce.receipts.length) decision.classEra = ce;
+        if (ce && ce.isClass && Array.isArray(ce.receipts) && ce.receipts.length) {
+          decision.classEra = ce;
+          // House-by-house over the ERA band (the render frames it as the wider market, not the car).
+          const asap = /asap|rush|urgent|soon|quick|fast|this week|right away/i.test(String((car && car.timeline) || ""));
+          decision.classEra.houseComparison = buildHouseComparison(ce.receipts, { todayISO: new Date().toISOString().slice(0, 10), asap, eraBand: true });
+        }
       } catch (e) { ceDbg.ceErr = "class:" + String((e && e.message) || e).slice(0, 120); }
     }
     if (req.body && req.body.debug === true) decision._ceDebug = ceDbg;

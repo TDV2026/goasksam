@@ -389,12 +389,16 @@ async function handleSellStep(q){
     else if(/\bno rush\b|no hurry|not in a (rush|hurry)|right result|take my time/.test(lower)){ sellState.timeline="No rush"; sellState.timelineAsked=true; }
     const runPreference=()=>{
       let pref;
-      if(/powerseller|power seller|handle everything|have it handled|handled|someone|get help|help (me )?(with )?(the )?(auction|sale|selling)|help me sell|(need|want|'?d like|looking for) .{0,8}help|help selling|sell it for me|do it for me|sold for me|^yes\b/i.test(lower))pref="powerseller";
+      // Auction-house door FIRST (the 4th option): an explicit choice to consign through a house,
+      // routing to the house-by-house comparison. Checked before the powerseller "handled" pattern
+      // (which "auction house" would otherwise partially match).
+      if(/auction house|through (an |a )?(auction|house)|go to auction|consign|at a house|to a house|the houses\b/i.test(lower))pref="auction_house";
+      else if(/powerseller|power seller|handle everything|have it handled|handled|someone|get help|help (me )?(with )?(the )?(auction|sale|selling)|help me sell|(need|want|'?d like|looking for) .{0,8}help|help selling|sell it for me|do it for me|sold for me|^yes\b/i.test(lower))pref="powerseller";
       else if(/myself|list and handle|handle it myself|list it|run it|on my own|diy|^no\b/i.test(lower)||detectIntent(lower)==="negation")pref="diy";
       else pref="unsure";
       sellState.sellerPreference=pref;
       // Reuse the existing involvement gate so the result stage honors the choice.
-      sellState.involvement=pref==="powerseller"?"Want someone to handle everything":pref==="diy"?"I'll manage it myself":"";
+      sellState.involvement=pref==="powerseller"?"Want someone to handle everything":pref==="auction_house"?"Take it through an auction house":pref==="diy"?"I'll manage it myself":"";
       // Preference is the final intake question: the answer runs the analysis
       // directly (no confirm step). An edit re-runs the analysis too.
       sellState.returnToConfirm=false;
@@ -520,6 +524,7 @@ function showConfirmation(){
   const loc=sellState.state||sellState.region||"your area";
   const price=(typeof formatAskingPrice==="function")?formatAskingPrice(sellState.price):(sellState.price||"a price you'll set");
   const prefLabel=sellState.sellerPreference==="powerseller"?"having it handled"
+    :sellState.sellerPreference==="auction_house"?"through an auction house"
     :sellState.sellerPreference==="diy"?"selling it yourself"
     :"not sure yet";
   addMsg("sam",`Got it. ${car}, ${loc}, asking ${price}, ${prefLabel}.`,"",chipsHTML(["Run my analysis →","Change something"]));

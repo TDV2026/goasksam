@@ -1758,11 +1758,31 @@ function askPowerSellerStep(){
 // Second screen of step 8: the PowerSeller explainer + the preference question.
 // Shown after the timing answer. awaitingPreference true routes the next answer to
 // the preference parser; the preference chip runs the analysis.
+// House-eligibility proxy for the seller-intent door (Sep 2026). The true house-tier decision needs
+// the comp pool (runs after the wizard), so at step 8 we use a high-value proxy: a stated price at or
+// above the powerseller floor, OR a collector-marque classic. Over-showing is low-harm: the door only
+// leads to the house comparison, which itself renders only when houses have actually sold the car,
+// and falls back gracefully otherwise.
+function houseEligibleProxy(){
+  const v=sellState.resolvedVehicle||{};
+  const priceNum=parseInt(String(sellState.price||"").replace(/[^\d]/g,""),10)||0;
+  if(priceNum>=75000)return true;
+  const marque=String(v.make||"").toLowerCase();
+  const yr=Number(v.year)||0;
+  const HIGH_END=/ferrari|bentley|bugatti|aston|maserati|lamborghini|rolls[- ]?royce|mclaren|duesenberg|delahaye|talbot|bizzarrini|iso\b|facel/;
+  if(HIGH_END.test(marque))return true;                 // marque that trades at the houses at any era
+  const CLASSIC_PERF=/porsche|mercedes|jaguar|alfa|shelby|chevrolet|ford|dodge|plymouth|pontiac/;
+  if(CLASSIC_PERF.test(marque)&&yr&&yr<1975)return true; // pre-1975 collector performance
+  return false;
+}
+const HOUSE_DOOR_CHIP="I'd like it to go through an auction house";
 function askSellPreferenceStep(){
   sellState.step=8;
   sellState.awaitingPreference=true;
   const q=SELL_STEP_QUESTIONS[8];
-  addMsg("sam",`${q.explainer} ${q.ask}`,"",chipsHTML(q.chips));
+  // Fourth option, house-eligible cars only: routes straight to the auction-house comparison.
+  const chips=houseEligibleProxy()?q.chips.slice(0,2).concat(HOUSE_DOOR_CHIP,q.chips.slice(2)):q.chips;
+  addMsg("sam",`${q.explainer} ${q.ask}`,"",chipsHTML(chips));
 }
 
 function goBackToConfirm(){
