@@ -6,6 +6,7 @@
 import puppeteer from "puppeteer-core";
 import fs from "node:fs";
 import { resolveVehicle } from "../lib/vehicle.js";
+import { buildLadder } from "../api/sellerDecision.js";
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const BASE = "https://goasksam.com";
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -206,6 +207,29 @@ async function resolverChecks() {
     check(`B12 unmatched typed model -> unverified broader read, NOT "which model?"`, j.status === "valid" && v.unverified === true && !/which model/i.test(String(j.clarification?.question || "")), `status=${j.status} unverified=${v.unverified} q="${j.clarification?.question || ""}"`);
     j = await resolveVehicle("2006 Mercedes-Benz"); v = j.vehicle || {};
     check(`B12 bare make (no model typed) still asks which model`, j.status === "needs_clarification" && /which model/i.test(String(j.clarification?.question || "")), `status=${j.status} q="${j.clarification?.question || ""}"`);
+  }
+  // B13: pre-war Bentley displacement models + the Blower, and the material-variant ladder guard
+  // (Sep 2026, "1928 Bentley 4.5 Supercharged Le Mans bodied" case + CLK DTM follow-up audit).
+  //  - displacement IS the model (3/4½/6½/8 Litre, Speed Six), decimal + British "Litre" survives.
+  //  - the Blower (4½ Litre Supercharged) is its OWN model, distinct from a plain 4½ Litre, so the
+  //    ladder cannot mix a multi-million Blower with an ordinary tourer.
+  //  - coachwork ("Supercharged", "Le Mans bodied") is never grabbed as the model.
+  //  - the ladder drops the base-model rungs for a MATERIAL VARIANT trim (250 GTO, Corvette ZR1),
+  //    so a rare halo never widens into the base-model pool.
+  console.log(`\n### B13 pre-war Bentley + material-variant ladder guard`);
+  {
+    let j = await resolveVehicle("1928 Bentley 4.5 Supercharged, Le Mans bodied"); let v = j.vehicle || {};
+    check(`B13 "4.5 Supercharged Le Mans bodied" -> Blower model, not "SUPERCHARGED"/re-ask`, j.status === "valid" && v.make === "Bentley" && /supercharged/i.test(String(v.model || "")) && /litre/i.test(String(v.model || "")), `status=${j.status} model=${v.model} trim=${v.trim}`);
+    j = await resolveVehicle("1928 Bentley 4.5 Litre"); v = j.vehicle || {};
+    check(`B13 "4.5 Litre" (decimal) -> 4½ Litre model, NOT stripped as displacement`, j.status === "valid" && /litre/i.test(String(v.model || "")) && !/supercharged/i.test(String(v.model || "")), `status=${j.status} model=${v.model}`);
+    j = await resolveVehicle("1930 Bentley Speed Six"); v = j.vehicle || {};
+    check(`B13 "Speed Six" -> Speed Six model (not "SPEED")`, j.status === "valid" && /speed\s*six/i.test(String(v.model || "")), `status=${j.status} model=${v.model}`);
+    j = await resolveVehicle("2015 Jaguar F-Type 5.0L"); v = j.vehicle || {};
+    check(`B13 regression: modern "5.0L" still stripped (F-Type resolves clean)`, j.status === "valid" && /f-?type/i.test(String(v.model || "")) && !/5|litre|liter|0l/i.test(String(v.trim || "")), `status=${j.status} model=${v.model} trim=${v.trim}`);
+    const gtoRungs = buildLadder({ make: "Ferrari", model: "250", trim: "GTO", year: 1962 }).map(r => r.key);
+    check(`B13 material-variant guard: 250 GTO ladder has NO base-model rungs`, !gtoRungs.some(k => /_model$/.test(k) && k !== "make_context"), `rungs=${gtoRungs.join(",")}`);
+    const m3Rungs = buildLadder({ make: "BMW", model: "M3", trim: "Competition", year: 2019 }).map(r => r.key);
+    check(`B13 ordinary trim (M3 Competition) STILL widens to base model`, m3Rungs.some(k => /_model$/.test(k) && k !== "make_context"), `rungs=${m3Rungs.join(",")}`);
   }
   return fails;
 }

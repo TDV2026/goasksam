@@ -8,6 +8,7 @@ import { testerCodeExpired } from "../lib/_tester.js";
 import { verifyOnce } from "../lib/_onepass.js";
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
 import { findGeneration, generationModelToken, generationsForModel } from "../lib/generations.js";
+import { isMaterialVariant } from "../lib/materialVariants.js";
 import { isHouseSource } from "../lib/_houseComps.js";
 import { vinFeatureActive, findVinArchiveMatch } from "../lib/_flags.js";
 import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
@@ -756,7 +757,17 @@ export function buildLadder(vehicle, generation = null) {
     pages: 2
   });
 
-  return rungs.map((rung, index) => ({ ...rung, rung: index + 1 }));
+  // Material-variant guard (Sep 2026, CLK DTM / Blower audit): a rare, materially-pricier
+  // variant of a shared nameplate (250 GTO, Corvette ZR1, 911 R, Boss 429, ...) must never
+  // widen into the base-model pool - that mixes a $50M car with $1M cars. Drop the
+  // trim-dropping model rungs so a thin variant lands thin on its own trim rung or falls to
+  // make context, never the base model. Variants folded into the model (CLK DTM, Blower) do
+  // not reach this (no trim to drop). No-op for ordinary trims.
+  let effective = rungs;
+  if (trim && isMaterialVariant(vehicle)) {
+    effective = rungs.filter(rung => rung.needTrim || rung.makeOnly);
+  }
+  return effective.map((rung, index) => ({ ...rung, rung: index + 1 }));
 }
 
 function rungYearBounds(rung, vehicle) {

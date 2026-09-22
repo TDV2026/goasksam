@@ -437,19 +437,6 @@ async function handleOps(req, res) {
     return rows.reduce((s, r) => s + (Number(r.oldcarsdata_metered_requests) || 0), 0);
   }
 
-  // TEMP task=qprobe (remove after Bentley resolver work): what OCD holds for a keyword.
-  if (task === "qprobe") {
-    const q = String(req.query?.q || "");
-    const make = String(req.query?.make || "Bentley");
-    const out = { task: "qprobe", q, make };
-    try {
-      const r = await callOldCarsData("/auctions", { make, keyword: q, sort: "date", direction: "desc", page: 1, limit: 25 }, apiKey);
-      out.ocdTotal = r.meta?.total_results ?? r.meta?.total ?? (r.data || []).length;
-      out.ocdSamples = (r.data || []).slice(0, 15).map(x => ({ title: x.title || x.name, year: x.year, price: x.price, status: x.auction_status, source: x.source }));
-    } catch (e) { out.ocdError = e.message; }
-    return res.status(200).json(out);
-  }
-
   // task=status: spend + budget headroom + OCD's OWN remaining quota (1 metered
   // call reads the live rate-limit header), so we can tell if OCD itself is the wall.
   if (task === "status") {
