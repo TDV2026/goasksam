@@ -310,6 +310,20 @@ await identityCase("identity: 67 corvette", "67 corvette", "valid", /1967 Chevro
   check("referral honesty: affirms data independence", /data|recommendation/i.test(text) && !findForbidden(text).length, text.slice(0, 250));
 }
 
+// Battery: VIN capability honesty (Sep 2026, partner-reported denial). After a VIN chain, "has
+// this car sold before?" must NEVER deny the capability ("VIN-level search isn't something
+// GoAskSam does", "the analysis runs on make, model, year and price band"). VIN/chassis matching
+// IS a real capability; the honest answer cites the prior sale or says none is on record for this
+// VIN - never a categorical denial.
+{
+  const SELL_SYS_LIVE = __wizardJs.match(/const SELL_SYS=`([\s\S]*?)`;\n/)?.[1] || WIZARD_SYSTEM;
+  const vinCtx = 'Current sell state: {"car":"1988 BMW 325iC","step":16}\nVIN note (the seller pasted a VIN and we resolved the exact car, but found NO prior sale on record for it): VIN and chassis matching IS a capability - never deny it. If the seller asks whether this car has sold before, say plainly "I don\'t have a prior sale on record for this VIN" and only then suggest the venue\'s own search.';
+  const { body } = await post("/api/chat", { bypassCache: true, messages: [{ role: "user", content: "has this car sold before?" }], system: SELL_SYS_LIVE, context: vinCtx });
+  const text = String(body.text || "");
+  const deniesVin = /vin[\s-]?level search (isn.?t|is not)|(vin|it).{0,30}(isn.?t|is not|not something) (we|goasksam|something goasksam)|(we|goasksam) (do not|don.?t|can.?t|cannot) (do|run|search)( on)? vin|analysis (runs |is )?only on make|only on make,? ?model,? ?year|make,? ?model,? ?year,? and price band/i.test(text);
+  check("VIN capability: 'has this car sold before?' never denies VIN search", !deniesVin && text.length > 20, text.slice(0, 240));
+}
+
 await identityCase("identity: 2015 Ferrari California resolves to the T", "2015 ferrari california", "valid", /2015 Ferrari California T/);
 await identityCase("identity: e46 m3 cold entry", "e46 m3", "needs_clarification", /BMW M3/i);
 await identityCase("identity: mustang vert never trims Vert", "1990 mustang vert", "valid", /^((?!Vert).)*$/s);
