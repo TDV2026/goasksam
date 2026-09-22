@@ -328,6 +328,10 @@ await identityCase("identity: 2015 Ferrari California resolves to the T", "2015 
 await identityCase("identity: e46 m3 cold entry", "e46 m3", "needs_clarification", /BMW M3/i);
 await identityCase("identity: mustang vert never trims Vert", "1990 mustang vert", "valid", /^((?!Vert).)*$/s);
 await identityCase("identity: non-car input", "after i give you this what will happen", "needs_clarification", /year, make and model/i);
+// Live session bugs (Sep 2026): an all-digit pre-1981 chassis number is a chassis, not a phone
+// number; conversational preamble never becomes the model ("think its a 1973 porsche vin" != THINK).
+await identityCase("chassis: all-digit Porsche chassis reads as a chassis, not a phone number", "9113111617", "needs_clarification", /chassis number/i);
+await identityCase("preamble: 'think its a 1973 porsche vin' asks the model, never grabs THINK", "think its a 1973 porsche vin", "needs_clarification", /which model[\s\S]*Porsche/i);
 
 console.log(`\n${failures === 0 ? "ALL PASS" : failures + " FAILURE(S)"} in ${Math.round((Date.now() - startedAt) / 1000)}s`);
 process.exit(failures === 0 ? 0 : 1);

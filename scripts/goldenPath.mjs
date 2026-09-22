@@ -297,6 +297,24 @@ async function resolverChecks() {
     j = await resolveVehicle("2015 BMW 3 Series");
     check(`B15 "3 Series" untouched (number leads, not a designator)`, /3\s*series/i.test(j.vehicle?.model || ""), `model=${j.vehicle?.model}`);
   }
+
+  // B16: pre-war/pre-1981 chassis numbers + conversational-preamble model grabbing (Sep 2026 live
+  // session: "9113111617" got "phone number!"; "think its a 1973 porsche vin" grabbed model "THINK").
+  console.log(`\n### B16 all-digit chassis + conversational model guard`);
+  {
+    let j = await resolveVehicle("9113111617"); // Porsche 911 chassis prefix -> confident chassis ask
+    check(`B16 all-digit "9113111617" -> chassis ask, not phone/model`,
+      j.status === "needs_clarification" && j.clarification?.kind === "chassis_hint" && /chassis number/i.test(j.clarification?.question || "") && !j.vehicle?.model, `kind=${j.clarification?.kind} model=${j.vehicle?.model}`);
+    j = await resolveVehicle("4155551234"); // bare unrecognized all-digit (phone) -> SOFTER ask, no assertion
+    check(`B16 bare all-digit "4155551234" -> softer "is that a chassis number?" ask`,
+      j.status === "needs_clarification" && /is that a chassis number/i.test(j.clarification?.question || ""), (j.clarification?.question || "").slice(0, 60));
+    j = await resolveVehicle("think its a 1973 porsche vin"); // preamble + doc words never a model
+    check(`B16 "think its a 1973 porsche vin" -> 1973 Porsche, model asked, never "THINK"`,
+      j.vehicle?.make === "Porsche" && j.vehicle?.year === 1973 && !/think|vin/i.test(String(j.vehicle?.model || "")) && !j.vehicle?.model, `make=${j.vehicle?.make} year=${j.vehicle?.year} model=${j.vehicle?.model}`);
+    j = await resolveVehicle("194371S119431"); // Corvette chassis control still matches
+    check(`B16 regression 194371S119431 -> Chevrolet Corvette (chassis match)`,
+      j.vehicle?.make === "Chevrolet" && /corvette/i.test(j.vehicle?.model || ""), `make=${j.vehicle?.make} model=${j.vehicle?.model}`);
+  }
   return fails;
 }
 
