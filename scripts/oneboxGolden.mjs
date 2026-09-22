@@ -40,18 +40,19 @@ const mask = s => String(s || "")
   .replace(/\b(?:19|20)\d{2}\b/g, "YYYY")
   .replace(/\s+/g, " ").trim();
 
-// A VIN or pre-1981 chassis input (a contiguous 10-17 char alphanumeric token) takes the
-// TWO-HOP identity path: decode/chassis-match -> archive exact-sale anchor -> comp pool. Its
-// cold tail runs ~24s locally and materially longer on a cold, shared CI runner, so the old 35s
-// paint wait would occasionally time out and record a FALSE "unknown" for a car that renders a
-// full matched result everywhere else (the 194371S119431 1971 Corvette flake). Give VIN-shaped
-// inputs a generous ceiling; everything else keeps the tight 35s so a real hang still surfaces.
+// Cold-runner paint budget. Two known slow tails render a FALSE "unknown" under a tight wait on
+// a cold, shared CI runner even though the car renders a full result everywhere else: (1) a VIN /
+// pre-1981 chassis input (contiguous 10-17 alnum) takes the TWO-HOP identity path
+// (decode/chassis-match -> archive exact-sale anchor -> pool), ~24s locally and more on CI (the
+// 194371S119431 1971 Corvette flake); (2) a muscle-car input triggers the bounded description
+// second-fetch (the 2013 Shelby GT500 flake). Give VINs a generous ceiling and raise the base
+// well clear of both tails; still finite so a genuine hang eventually surfaces.
 const isVinLike = input => /^[A-Z0-9]{10,17}$/i.test(String(input).replace(/\s+/g, ""));
 async function capture(page, input) {
   await page.waitForSelector("#ob-input", { timeout: 15000 });
   await page.type("#ob-input", input);
   await page.click("#ob-go");
-  const paintTimeout = isVinLike(input) ? 90000 : 35000;
+  const paintTimeout = isVinLike(input) ? 90000 : 60000;
   await page.waitForFunction(() => { const r = document.getElementById("ob"); return r && (r.querySelector(".livetake") || r.querySelector(".samtake") || r.querySelector(".refusal") || r.querySelector(".chips") || /trouble reading the market/i.test(r.textContent || "")); }, { timeout: paintTimeout }).catch(() => {});
   await new Promise(r => setTimeout(r, 1300));
   return page.evaluate(() => {
