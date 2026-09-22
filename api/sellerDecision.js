@@ -1,6 +1,6 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
-import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle } from "../lib/onebox.js";
+import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -3051,6 +3051,12 @@ export default async function handler(req, res) {
     // is ever computed into the response - a midpoint a seller could adopt is a valuation.
     if (req.body?.priceProbe) {
       const band = await priceBandForVehicle(vehicle, generation, { supabaseUrl, supabaseKey });
+      // Optional per-transaction listing (archive-only) for verification pulls: pass listSales:true
+      // and an optional sinceDays window. Trim-scoped like the band; the caller filters finer spec.
+      if (req.body?.listSales) {
+        const listing = await listSalesForVehicle(vehicle, generation, { supabaseUrl, supabaseKey }, Number(req.body?.sinceDays) || undefined);
+        return res.status(200).json({ status: "price_probe", band, listing });
+      }
       return res.status(200).json({ status: "price_probe", band });
     }
 
