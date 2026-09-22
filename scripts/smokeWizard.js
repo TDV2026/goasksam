@@ -1230,6 +1230,34 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   check("price gap: zero gap prose anywhere", !/your asking price|above the average|below the average|worth knowing/i.test(released), (released.match(/[^\n]*(asking price|the average)[^\n]*/i)||[""])[0].slice(0,180));
 }
 
+// Price-step transparency (#68): a DEFERRED ask ("you tell me") shows THE RECORD (a range,
+// never a number a seller could adopt), then Skip still reaches a full recommendation, and a
+// typed number stays the unchanged normal path. The band probe is a real archive read to prod.
+{
+  const seatAtPrice = () => {
+    resetToStep1();
+    sellState.resolvedVehicle = { year:1994, make:"Porsche", model:"964", trim:null, confidence:"high", raw:"1994 Porsche 964", canonicalLabel:"1994 Porsche 964" };
+    sellState.carName = "1994 Porsche 964"; sellState.vehicleIdentityValidated = true;
+    sellState.region = "US"; sellState.state = "California"; sellState.active = true; sellState.step = 6;
+    sellState.priceDeferShown = false; sellState.awaitingPriceDefer = false; sellState.price = null;
+  };
+  seatAtPrice();
+  await handleSellStep("you tell me");
+  const rec = lastSam() || "";
+  check("price defer: shows THE RECORD, never a median/midpoint",
+    /I don't put a number on any specific car/i.test(rec) && !/\b(median|midpoint|average)\b/i.test(rec),
+    rec.slice(0, 160));
+  await handleSellStep("Skip the price");
+  check("price defer: Skip is not a dead end (advances to the preference step on the evidence)",
+    sellState.price === "Not sure" && sellState.step === 8, `price=${sellState.price} step=${sellState.step}`);
+  // Normal path unchanged: a typed number never triggers the record.
+  seatAtPrice();
+  await handleSellStep("120k");
+  check("price normal: a typed figure stores and advances, no record shown",
+    sellState.price === "120k" && sellState.step === 8 && sellState.priceDeferShown !== true,
+    `price=${sellState.price} step=${sellState.step} deferShown=${sellState.priceDeferShown}`);
+}
+
 // Battery: field-contamination entries (locked guard D).
 resetToStep1();
 await handleSellStep("2020 BMW M3, US");

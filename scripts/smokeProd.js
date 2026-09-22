@@ -199,6 +199,24 @@ await identityCase("identity: 67 corvette", "67 corvette", "valid", /1967 Chevro
     ladder?.landed?.label);
 }
 
+// Price-step transparency (#68): the price probe is ARCHIVE-ONLY and returns THE RECORD (a real
+// range), never a number a seller could adopt. The NO-MEDIAN invariant is load-bearing - a
+// midpoint is a valuation whatever the sentence says - so the response must NEVER carry one.
+{
+  const dense = await post("/api/sellerDecision", { priceProbe: true, car: { vehicle: { make: "Porsche", model: "964", year: 1994, confidence: "high" }, region: "US", state: "California" } });
+  check("priceProbe: dense car returns a real range (low < high)",
+    dense.body?.band?.ok === true && Number(dense.body.band.low) > 0 && Number(dense.body.band.high) > Number(dense.body.band.low),
+    JSON.stringify(dense.body?.band));
+  check("priceProbe: NEVER a median/midpoint/average in the payload (no adoptable number)",
+    !/\b(median|midpoint|mid_point|average|mean)\b/i.test(JSON.stringify(dense.body || {})),
+    JSON.stringify(dense.body?.band));
+  // A car with no comparable sales says so honestly and returns no range - it never widens to fake one.
+  const none = await post("/api/sellerDecision", { priceProbe: true, car: { vehicle: { make: "Ferrari", model: "Zznotacar", year: 1990, confidence: "high" }, region: "US", state: "California" } });
+  check("priceProbe: no comps returns ok:false with no faked range",
+    none.body?.band?.ok === false && none.body.band.low == null && none.body.band.high == null,
+    JSON.stringify(none.body?.band));
+}
+
 // Decade year-range flows into the ladder as real rung bounds (fetch-free).
 {
   const { body } = await post("/api/sellerDecision", {
