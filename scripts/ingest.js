@@ -149,7 +149,11 @@ for (const source of SOURCES) {
   // (asking-price / ended-unsold listings). A completed-sales-only archive needs a real sale
   // price, so screen unpriced rows for PistonHeads at ingest (verified Sep 2026: 33/150).
   const isUnpriced = r => !(Number(String(r.price ?? "").replace(/[^0-9.]/g, "")) > 0);
-  for (let p = 1; p <= 2000; p++) {
+  // Page ceiling is a safety stop, not the real limit: DELTA stops on a fully-known page and a
+  // RANGE backfill stops the moment a page's oldest date passes FROM (below). The old 2000 cap
+  // silently truncated a deep backfill (a 2023-01-01 BaT range needs ~2,497 pages), so raise it
+  // well past OCD's deepest source (BaT ~3,825 pages) - the FROM/known stops still end it early.
+  for (let p = 1; p <= 6000; p++) {
     metered++;
     let res;
     try { res = await ocdFetch({ source, status: "sold", sort: "date", direction: "desc", page: p, limit: 50 }); }
