@@ -682,9 +682,10 @@
   // no shared height constraint - nothing clips.
   function compactRow(c) {
     if (!c) return "";
-    // Item 5c: in the divergence case the anchored receipt is the middle of the market, not the
-    // closest on mileage (basis "middle" vs "subject"), so it must not read "Closest match".
-    var lbl = c.role === "closest" ? (c.basis === "subject" ? "Closest match" : "Middle of the market") : (DELTA_LABEL[c.delta] || "");
+    // Item 5c + label-honesty (Sep 2026): when the anchor is the median of qualifying sales (basis
+    // "middle", the typical transaction) it reads "Typical sale"; only a genuine nearest-on-mileage
+    // anchor (basis "subject") reads "Closest match". The label states exactly what was selected.
+    var lbl = c.role === "closest" ? (c.basis === "subject" ? "Closest match" : "Typical sale") : (DELTA_LABEL[c.delta] || "");
     var venue = (c.platform && c.platform !== "others") ? c.platform : "";
     var meta = [c.mileageText, c.transmission ? cap(String(c.transmission)) : "", venue].filter(Boolean).join(" · ");
     var href = utmUrl(c.url);
@@ -700,10 +701,10 @@
     var rep = d.representative; if (!rep || !rep.closest) return "";
     var c = rep.closest;
     var why = c.basis === "subject" ? "The nearest recent sale on mileage and spec."
-      : (d.driver === "mileage" ? "The middle of the market, on mileage." : "The middle of the market.");
+      : "The sale nearest the median of what's actually sold.";
     var ext = '<span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>';
     var img = c.image ? '<img src="' + esc(c.image) + '" alt="' + esc(c.title) + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.plate\');if(p)p.style.display=\'flex\'">' : "";
-    var cmKick = c.basis === "subject" ? "Closest match" : "Middle of the market";
+    var cmKick = c.basis === "subject" ? "Closest match" : "Typical sale";
     var cmInner = '<div class="rph">' + img + '<span class="cmkick">' + cmKick + '</span>' + ext + '<div class="plate" style="display:' + (c.image ? "none" : "flex") + '"><div class="n">' + esc(c.title) + '</div><div class="s">photo pending</div></div></div>' +
       '<div class="rb"><div class="rprice num">' + repPrice(c) + '</div>' +
       '<div class="rmeta">' + repMeta(c) + '</div>' +

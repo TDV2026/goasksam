@@ -410,10 +410,20 @@ a.rcard:hover .ext{color:var(--green);border-color:var(--green)}
 .htr-thumb .htr-r{flex:0 1 auto;min-width:0;padding-right:16px}
 .htr-thumb .allin{white-space:normal}
 @media (max-width:430px){
-  .htr.htr-thumb{gap:10px}
-  .htr-thumb .th{width:58px;height:42px}
-  .htr-thumb .htr-r{padding-right:14px}
-  .htr-thumb .htr-p{font-size:16px}
+  /* 390px reflow: do NOT keep the desktop 3-column row (it squeezes the price column and wraps the
+     metadata into tiny fragments). Grid instead: thumbnail + label/title together on line 1, the
+     metadata beneath the title, then price + date as a clean block below - full width, price still
+     prominent, no horizontal squeeze. display:contents lifts the title + meta out of .htr-l so they
+     can take their own grid rows. */
+  .htr.htr-thumb{display:grid;grid-template-columns:auto 1fr;column-gap:11px;row-gap:3px;align-items:start;
+    grid-template-areas:"thumb title" "thumb meta" "price price"}
+  .htr-thumb .th{grid-area:thumb;width:58px;height:44px;align-self:start}
+  .htr-thumb .htr-l{display:contents}
+  .htr-thumb .htr-v{grid-area:title}
+  .htr-thumb .htr-sub{grid-area:meta;margin-top:2px}
+  .htr-thumb .htr-r{grid-area:price;text-align:left;padding:8px 0 0 0;display:flex;align-items:baseline;gap:12px}
+  .htr-thumb .htr-r .htr-p{font-size:18px}
+  .htr-thumb .htr-r .htr-d{margin-top:0}
 }
 /* House-led receipt (readability-first): thumb at top, then car name (2 lines) / two-line price /
    one meta line. No per-row "auction house" badge; venue is the trust signal, slightly bolder. */
@@ -551,6 +561,6 @@ a.htr:hover .htx{color:var(--green);border-color:var(--green)}
 function obToggleRail(open){var r=document.getElementById("ob-rail"),s=document.getElementById("ob-scrim");if(!r)return;var on=(open===undefined)?!r.classList.contains("open"):!!open;r.classList.toggle("open",on);if(s)s.classList.toggle("open",on);}
 function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("ob-results-menu");if(m)m.classList.toggle("open");return false;}
 </script>
-<script src="/obx.20260920t/onebox.js"></script>
+<script src="/obx.20260921a/onebox.js"></script>
 </body>
 </html>
