@@ -865,7 +865,11 @@ function v2Composition(){
   }
   // Hard gate: every partner is US-based, so a non-US car never shows a PowerSeller.
   var usCar=(typeof isUSRegion==="function")?isUSRegion(sellState.region):(sellState.region==="US");
-  var psRendered=!!(usCar&&pref!=="diy"&&referral.partner);
+  // A seller who chose the auction-house door is treated like diy for PowerSeller
+  // suppression: they asked for a house, not for someone to handle it, so the
+  // auction-house bridge shows the platform pick ALONE, never an uninvited PowerSeller
+  // card beneath it (the working house-comparison path returns before this composer).
+  var psRendered=!!(usCar&&pref!=="diy"&&pref!=="auction_house"&&referral.partner);
   var psLead=psRendered&&((pref==="powerseller")||(pref==="unsure"&&referral.leadOnValue===true));
   // A full second platform card renders for a LARGE price divergence (speed mode)
   // or the standard genuinely-competitive alt (non-speed). A small divergence puts

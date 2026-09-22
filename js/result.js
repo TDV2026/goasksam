@@ -39,6 +39,16 @@ async function showSellRecommendation(opts){
     strip.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sell-summary-strip">${parts.join(' <span class="ss-dot" aria-hidden="true">&middot;</span> ')} <button class="ss-edit" onclick="openScopedEdit()">Edit</button></div></div></div>`;
     msgs.appendChild(strip);
   })();
+  // REPLACE, never append, on a rerun (transmission refine or scoped edit): drop
+  // everything the previous render left below the summary strip before the new
+  // analysis draws, so a re-run swaps the result in place instead of stacking a
+  // second copy (the auction-house bridge + pick + PowerSeller used to reprint in
+  // full on every transmission chip tap). The strip and the conversation above it
+  // stay. Shared across every seller-preference branch, so no branch can regress.
+  if(sellRerun){
+    const strip=document.getElementById("sellSummaryStrip");
+    if(strip&&strip.parentNode){ while(strip.nextSibling)strip.parentNode.removeChild(strip.nextSibling); }
+  }
   // Analysis screen (Thesis v1): staged lines that mirror the real pipeline
   // (fetch comps -> compare platforms -> check specialists -> write rec). Each
   // ticks over briskly; the REVEAL is gated on the real response, so a cache-warm
@@ -547,7 +557,9 @@ function renderDecision(decisionData,renderOpts){
   // alternative) plus the partner secondary card whenever the $50k+ context
   // holds, gate-closed (suppressed only by a stated DIY preference per
   // rule 10; gate-open renders the dossier choice instead).
-  const partnerSecondary=(!partnerGatePasses&&partnerReferral.secondary&&partnerReferral.partner&&!sellerWantsToManageSelf())
+  // auction_house is treated like diy here (see result-v2.js psRendered): the bridge
+  // redirects them to a platform, so no uninvited "also worth considering" partner.
+  const partnerSecondary=(!partnerGatePasses&&partnerReferral.secondary&&partnerReferral.partner&&!sellerWantsToManageSelf()&&sellState.sellerPreference!=="auction_house")
     ?partnerProfileFromReferral(partnerReferral)
     :null;
   if(partnerSecondary){
