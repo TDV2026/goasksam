@@ -2906,8 +2906,34 @@ export default async function handler(req, res) {
     const sources = Array.isArray(req.body.sources) && req.body.sources.length ? req.body.sources : ["bringatrailer", "carsandbids"];
     const yearMin = Number(req.body.yearMin) || 2023, yearMax = Number(req.body.yearMax) || 2025;
     const out = []; let ocdRemaining = null, ocdLimit = null, ocdReset = null;
-    const useYear = req.body.noYear !== true;
+    // boundaryDate: the ingest paginates newest-first (status=sold, sort date desc) and filters
+    // app-side, so a "from <date>" backfill costs the page count from newest back to that date. Binary
+    // search the crossover page against OCD's real, date-desc pages - the authoritative request count.
+    const boundaryDate = typeof req.body.boundaryDate === "string" ? req.body.boundaryDate : null;
     const datesOf = r => (r.data || []).map(x => x.auction_end_date).filter(Boolean).sort();
+    if (boundaryDate) {
+      let spent = 0;
+      for (const source of sources) {
+        try {
+          const first = await callOldCarsData("/auctions", { source, status: "sold", sort: "date", direction: "desc", page: 1, limit: 50 }, apiKey); spent++;
+          const rl = first.__rateLimit || {}; if (rl.remaining != null) ocdRemaining = Number(rl.remaining); if (rl.limit != null) ocdLimit = Number(rl.limit);
+          const meta = first.meta || {}; const totalPages = Number(meta.total_pages || Math.ceil((meta.total || 0) / 50)) || 1;
+          // largest page whose NEWEST (first) row is still >= boundaryDate; that page + 1 = backfill cost
+          let lo = 1, hi = totalPages, boundary = 1;
+          while (lo <= hi) {
+            const mid = (lo + hi) >> 1;
+            const rm = await callOldCarsData("/auctions", { source, status: "sold", sort: "date", direction: "desc", page: mid, limit: 50 }, apiKey); spent++;
+            const rlm = rm.__rateLimit || {}; if (rlm.remaining != null) ocdRemaining = Number(rlm.remaining);
+            const ds = datesOf(rm); const newestOnPage = ds[ds.length - 1] || null;
+            if (newestOnPage && newestOnPage >= boundaryDate) { boundary = mid; lo = mid + 1; } else { hi = mid - 1; }
+          }
+          out.push({ source, totalPages, boundaryPage: boundary, backfillRequests: boundary + 1, totalRecords: Number(meta.total) || null });
+        } catch (e) { out.push({ source, error: String(e.message || e) }); }
+      }
+      const totalReq = out.reduce((s, o) => s + (o.backfillRequests || 0), 0);
+      return res.status(200).json({ status: "backfill_boundary", boundaryDate, ocdRemaining, ocdLimit, dryRunRequestsSpent: spent, totalBackfillRequests: totalReq, sources: out });
+    }
+    const useYear = req.body.noYear !== true;
     for (const source of sources) {
       try {
         const base = { source, status: "sold", limit: 50, ...(useYear ? { year_min: yearMin, year_max: yearMax } : {}) };
