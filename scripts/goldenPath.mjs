@@ -188,6 +188,25 @@ async function resolverChecks() {
     j = await resolveVehicle("2015 porsche caymen"); v = j.vehicle || {};
     check(`B11 genuine word typo still confirms (Caymen -> Cayman)`, /did you mean/i.test(String(j.clarification?.question || "")) && /cayman/i.test(String(j.clarification?.suggestion || "")), `q="${j.clarification?.question || ""}"`);
   }
+  // B12: reader Pat's "2006 Mercedes-Benz CLK DTM" session (Sep 2026). Three locked fixes:
+  //  - CLK/CL/CLS/SLK/ML/SLR are recognized Mercedes models (were silently dropped to a re-ask).
+  //  - "CLK DTM" (the rare house-sold car) resolves to the FULL nameplate MODEL, so the evidence
+  //    ladder keeps the pool scoped to the DTM instead of widening to mainstream CLK.
+  //  - a typed-but-unmatched model is accepted UNVERIFIED (broader make-level read), never a
+  //    "which model?" re-ask for what the seller already typed; only a bare make still asks.
+  console.log(`\n### B12 "2006 Mercedes-Benz CLK DTM" (Mercedes models recognized, no model re-ask)`);
+  {
+    let j = await resolveVehicle("2006 Mercedes-Benz CLK DTM"); let v = j.vehicle || {};
+    check(`B12 "CLK DTM" -> valid, model carries CLK + DTM, no "which model?"`,
+      j.status === "valid" && v.make === "Mercedes-Benz" && /clk/i.test(String(v.model || "")) && /dtm/i.test(`${v.model || ""} ${v.trim || ""}`) && !/which model/i.test(String(j.clarification?.question || "")),
+      `status=${j.status} make=${v.make} model=${v.model} trim=${v.trim} q="${j.clarification?.question || ""}"`);
+    j = await resolveVehicle("2006 Mercedes-Benz SLK"); v = j.vehicle || {};
+    check(`B12 bare "SLK" recognized (not dropped)`, j.status === "valid" && v.make === "Mercedes-Benz" && /slk/i.test(String(v.model || "")), `status=${j.status} model=${v.model}`);
+    j = await resolveVehicle("2006 Mercedes-Benz foobar"); v = j.vehicle || {};
+    check(`B12 unmatched typed model -> unverified broader read, NOT "which model?"`, j.status === "valid" && v.unverified === true && !/which model/i.test(String(j.clarification?.question || "")), `status=${j.status} unverified=${v.unverified} q="${j.clarification?.question || ""}"`);
+    j = await resolveVehicle("2006 Mercedes-Benz"); v = j.vehicle || {};
+    check(`B12 bare make (no model typed) still asks which model`, j.status === "needs_clarification" && /which model/i.test(String(j.clarification?.question || "")), `status=${j.status} q="${j.clarification?.question || ""}"`);
+  }
   return fails;
 }
 
