@@ -393,7 +393,13 @@ a.rcard:hover .ext{color:var(--green);border-color:var(--green)}
 .contradiction{font:400 18px/1.5 var(--serif);color:var(--slate);margin:var(--ob-gap) 0 0}
 .contradiction .num{color:var(--ink);font-weight:600}
 /* small thumbnail on the exact-car compact rows */
-.htr.htr-thumb{display:flex;align-items:center;gap:13px}
+/* Receipt rows are a flat LEDGER, not boxed cards (Sep 2026): no shell/shadow/radius, a thin
+   divider between rows. Text-and-photos = evidence; boxes are reserved for actions (the dominant
+   card, the CTAs). Overrides the base .htr card treatment for the thumbnail receipt rows only. */
+.htr.htr-thumb{display:flex;align-items:center;gap:13px;background:none;border:0;border-top:1px solid var(--line2);border-radius:0;box-shadow:none;padding:14px 2px}
+a.htr.htr-thumb:hover{border-top-color:color-mix(in srgb,var(--green) 40%,var(--line));box-shadow:none;background:color-mix(in srgb,var(--green) 3%,transparent)}
+.htreceipts.htledger{gap:0}
+.htreceipts.htledger .htr-thumb:first-child{border-top:0}
 .htr-thumb .th{width:74px;height:52px;border-radius:8px;object-fit:cover;flex:none;background:var(--line2);display:block}
 .htr-thumb .htr-l{flex:1;min-width:0}
 .htr-thumb .htr-yv{font:600 13px/1.35 var(--grotesk);color:var(--ink)}
@@ -561,6 +567,6 @@ a.htr:hover .htx{color:var(--green);border-color:var(--green)}
 function obToggleRail(open){var r=document.getElementById("ob-rail"),s=document.getElementById("ob-scrim");if(!r)return;var on=(open===undefined)?!r.classList.contains("open"):!!open;r.classList.toggle("open",on);if(s)s.classList.toggle("open",on);}
 function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("ob-results-menu");if(m)m.classList.toggle("open");return false;}
 </script>
-<script src="/obx.20260921a/onebox.js"></script>
+<script src="/obx.20260921b/onebox.js"></script>
 </body>
 </html>

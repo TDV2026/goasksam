@@ -678,6 +678,17 @@
       ? '<img class="th" src="' + esc(image) + '" alt="' + esc(alt || "") + '" loading="lazy" onerror="this.classList.add(\'th-none\');this.removeAttribute(\'src\')">'
       : '<span class="th th-none" aria-label="No photo"></span>';
   }
+  // Receipt-row title cleanup (Sep 2026): the raw OCD title leads with the listing's mileage hook
+  // ("21k-Mile ...", "4,800-Mile ...") and trails a gearbox tag ("... 6-Speed") - both redundant on
+  // a receipt row where the mileage + gearbox already sit in the meta line. Strip them to the clean
+  // nameplate ("2018 BMW M4 Coupe Competition Package"). Never returns empty (falls back to the raw).
+  function cleanReceiptTitle(title) {
+    var t = String(title == null ? "" : title);
+    t = t.replace(/^\s*[\d][\d,.]*\s*k?\s*[-\s]\s*(mile|kilometer|km)s?\b'?s?\s*/i, ""); // "21k-Mile " / "4,800-Mile " / "26k-Kilometer "
+    t = t.replace(/\s+\d+[-\s]speed\b/ig, "");   // " 6-Speed"
+    t = t.replace(/\s{2,}/g, " ").trim();
+    return t || String(title == null ? "" : title);
+  }
   // One compact supporting row (closest / fewer / more) with a thumbnail. Natural height, full width,
   // no shared height constraint - nothing clips.
   function compactRow(c) {
@@ -689,7 +700,7 @@
     var venue = (c.platform && c.platform !== "others") ? c.platform : "";
     var meta = [c.mileageText, c.transmission ? cap(String(c.transmission)) : "", venue].filter(Boolean).join(" · ");
     var href = utmUrl(c.url);
-    var inner = thumbEl(c.image, c.title) + '<div class="htr-l"><div class="htr-v">' + (lbl ? '<span class="cmkick">' + esc(lbl) + "</span>" : "") + '<span class="htr-yv">' + esc(c.title) + "</span></div>" +
+    var inner = thumbEl(c.image, c.title) + '<div class="htr-l"><div class="htr-v">' + (lbl ? '<span class="cmkick">' + esc(lbl) + "</span>" : "") + '<span class="htr-yv">' + esc(cleanReceiptTitle(c.title)) + "</span></div>" +
       '<div class="htr-sub">' + esc(meta) + "</div></div>" +
       '<div class="htr-r"><div class="htr-p num">' + repPrice(c) + '</div><div class="htr-d">' + esc(monthYear(c.date)) + "</div></div>";
     return href ? '<a class="htr htr-thumb" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="htr htr-thumb">' + inner + "</div>";
@@ -705,7 +716,7 @@
     var ext = '<span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>';
     var img = c.image ? '<img src="' + esc(c.image) + '" alt="' + esc(c.title) + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.plate\');if(p)p.style.display=\'flex\'">' : "";
     var cmKick = c.basis === "subject" ? "Closest match" : "Typical sale";
-    var cmInner = '<div class="rph">' + img + '<span class="cmkick">' + cmKick + '</span>' + ext + '<div class="plate" style="display:' + (c.image ? "none" : "flex") + '"><div class="n">' + esc(c.title) + '</div><div class="s">photo pending</div></div></div>' +
+    var cmInner = '<div class="rph">' + img + '<span class="cmkick">' + cmKick + '</span>' + ext + '<div class="plate" style="display:' + (c.image ? "none" : "flex") + '"><div class="n">' + esc(cleanReceiptTitle(c.title)) + '</div><div class="s">photo pending</div></div></div>' +
       '<div class="rb"><div class="rprice num">' + repPrice(c) + '</div>' +
       '<div class="rmeta">' + repMeta(c) + '</div>' +
       '<div class="rtitle">' + esc(c.title) + '<span class="dot">&middot;</span>' + esc(c.platform) + '<span class="dot">&middot;</span>' + esc(monthYear(c.date)) + '</div>' +
@@ -721,7 +732,7 @@
   // with the general-match supporting rows via compactRow (thumbnail guaranteed).
   function compactSalesHtml(d) {
     var rep = d.representative; if (!rep || !rep.closest) return "";
-    return '<div class="htreceipts">' + [rep.closest, rep.high, rep.low].filter(Boolean).map(compactRow).join("") + "</div>";
+    return '<div class="htreceipts htledger">' + [rep.closest, rep.high, rep.low].filter(Boolean).map(compactRow).join("") + "</div>";
   }
   function seeAllHtml(d, m) {
     var plats = d.platforms || [];
