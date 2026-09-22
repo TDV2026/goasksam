@@ -2892,6 +2892,12 @@ export default async function handler(req, res) {
       return res.status(200).json({ status: "one_box_proof", ...p });
     } catch (e) { return res.status(200).json({ status: "one_box_proof", proof: [] }); }
   }
+  // Raw archive title-search diagnostic (archive-only, no car needed, no OCD) -> answered before
+  // the car-required check so it is a pure verification tool.
+  if (req.body?.titleSearch) {
+    const ts = await rawTitleSearch(String(req.body.titleSearch), { supabaseUrl, supabaseKey }, Number(req.body?.sinceDays) || undefined, Number(req.body?.limit) || undefined);
+    return res.status(200).json({ status: "title_search", ...ts });
+  }
   if (!apiKey) return res.status(500).json({ error: "OldCarsData API key not configured" });
 
   const car = typeof req.body?.car === "object" ? req.body.car : {};
@@ -3049,10 +3055,6 @@ export default async function handler(req, res) {
     // (the real range cars like this sold for), never a number. Archive-only (sales_archive),
     // ZERO OldCarsData, no search gate, no writes, returned BEFORE any metered fetch. NO median
     // is ever computed into the response - a midpoint a seller could adopt is a valuation.
-    if (req.body?.titleSearch) {
-      const ts = await rawTitleSearch(String(req.body.titleSearch), { supabaseUrl, supabaseKey }, Number(req.body?.sinceDays) || undefined, Number(req.body?.limit) || undefined);
-      return res.status(200).json({ status: "title_search", ...ts });
-    }
     if (req.body?.priceProbe) {
       const band = await priceBandForVehicle(vehicle, generation, { supabaseUrl, supabaseKey });
       // Optional per-transaction listing (archive-only) for verification pulls: pass listSales:true
