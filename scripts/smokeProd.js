@@ -183,13 +183,19 @@ await identityCase("identity: 67 corvette", "67 corvette", "valid", /1967 Chevro
   });
   const ladder = real.body.evidence?.ladder;
   const rung1 = (ladder?.rungs || []).find(r => r.rung === 1);
+  const rung2 = (ladder?.rungs || []).find(r => r.rung === 2); // generation_trim for a mapped year
   const thinExactYear = rung1 && !rung1.met;
   check("generations: real run returns a decision", real.status === 200 && real.body.status === "decision_ready", `status=${real.status} ${real.body.status}`);
-  check("generations: thin exact year lands on the generation rung",
-    !thinExactYear || ladder?.landed?.key === "generation_trim",
-    `rung1 sales=${rung1?.sales} landed=${ladder?.landed?.key} (${ladder?.landed?.label})`);
-  check("generations: landed evidence names the generation when used",
-    !thinExactYear || /991\.2-generation/.test(ladder?.landed?.label || ""),
+  // The invariant is rung-primary, window-secondary: a thin exact year must WIDEN WITHIN
+  // the generation before the cross-generation pool, i.e. never SKIP a MET generation rung.
+  // If the generation rung is itself thin (not met in the recency windows), widening on to
+  // any_year_trim is correct, not a regression - so the check only bites when rung2 is met.
+  check("generations: thin exact year never skips a met generation rung",
+    !thinExactYear || !rung2 || !rung2.met || ladder?.landed?.key === "generation_trim",
+    `rung1.met=${rung1?.met} rung2(gen).met=${rung2?.met} landed=${ladder?.landed?.key} (${ladder?.landed?.label})`);
+  // Whenever the run DOES land on the generation rung, the evidence label must name it.
+  check("generations: landed evidence names the generation when it lands there",
+    ladder?.landed?.key !== "generation_trim" || /991\.2-generation/.test(ladder?.landed?.label || ""),
     ladder?.landed?.label);
 }
 

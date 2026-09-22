@@ -12,6 +12,12 @@ import path from "node:path";
 const args = process.argv.slice(2);
 const UPDATE = args.includes("--update");
 const BASE = (args.find(a => a.startsWith("http")) || "https://goasksam.com").replace(/\/$/, "");
+// Vercel Attack Challenge Mode returns HTTP 429 (x-vercel-mitigated: challenge) to bot-like
+// clients. A desktop browser solves the JS challenge transparently, but a headless browser on
+// a datacenter IP (the CI runner) can still be challenged, which is what parked this job. When
+// the Protection-Bypass-for-Automation secret is present we send it as a header so the CI
+// headless run clears the edge deterministically - same mechanism as scripts/smokeProd.js.
+const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || process.env.VERCEL_PROTECTION_BYPASS || "";
 const SNAP = path.join(process.cwd(), "scripts", "onebox-golden.json");
 const CHROME = [process.env.CHROME_PATH, "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/usr/bin/google-chrome", "/usr/bin/chromium-browser"].filter(Boolean).find(p => fs.existsSync(p));
 if (!CHROME) { console.error("No Chrome found. Set CHROME_PATH."); process.exit(2); }
@@ -79,6 +85,7 @@ try {
   const host = new URL(BASE).hostname;
   for (const input of INPUTS) {
     const page = await browser.newPage();
+    if (BYPASS) await page.setExtraHTTPHeaders({ "x-vercel-protection-bypass": BYPASS, "x-vercel-set-bypass-cookie": "samesitenone" });
     await page.setCookie({ name: "gas_crew", value: "ok", domain: host, path: "/" });
     await page.goto(BASE + "/onebox", { waitUntil: "networkidle2" });
     const raw = await capture(page, input);
