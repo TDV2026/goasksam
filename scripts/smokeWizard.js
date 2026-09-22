@@ -47,7 +47,15 @@ const windowStub = {
   addEventListener() {}, location: { search: "", hostname: "smoke", href: "" },
   matchMedia: () => ({ matches: false, addEventListener() {} }), innerWidth: 1200, scrollTo() {}
 };
-const prodFetch = (url, opts) => fetch(String(url).startsWith("http") ? url : `${BASE}${url}`, opts);
+// Vercel Attack Challenge Mode returns an HTML challenge (HTTP 429) to raw fetches, which
+// this harness would then fail to JSON.parse ("Unexpected token '<'") and read as a broken
+// wizard. Send the Protection-Bypass-for-Automation secret when present so the wizard harness
+// reaches the real endpoints - same mechanism as scripts/smokeProd.js and oneboxGolden.mjs.
+const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || process.env.VERCEL_PROTECTION_BYPASS || "";
+const prodFetch = (url, opts = {}) => fetch(
+  String(url).startsWith("http") ? url : `${BASE}${url}`,
+  BYPASS ? { ...opts, headers: { ...(opts.headers || {}), "x-vercel-protection-bypass": BYPASS, "x-vercel-set-bypass-cookie": "samesitenone" } } : opts
+);
 
 const prelude = `const __samLog=[];\n`;
 const patched = script.replace(
