@@ -264,6 +264,39 @@ async function resolverChecks() {
     const hcAsap = buildHouseComparison(recs, { todayISO: "2026-09-21", asap: true });
     check(`B14 ASAP sets an asapLead (soonest-sale house)`, !!(hcAsap && hcAsap.asap && hcAsap.asapLead), JSON.stringify(hcAsap && { asap: hcAsap.asap, lead: hcAsap.asapLead }));
   }
+
+  // B15: generic-designator pre-war models (Sep 2026, "1929 Duesenberg Model J" case). A model text
+  // that LEADS with a designator word (Model, Type, Tipo, Series) resolves as designator + the
+  // following token, never the bare designator uppercased with the token dropped ("MODEL"/"TIPO").
+  // A bare designator alone is NOT a model and asks once. "3 Series" (number leads) is untouched.
+  console.log(`\n### B15 generic-designator pre-war models (Model J / Type 57 / Tipo 61)`);
+  {
+    const wants = [
+      ["1929 Duesenberg Model J", "Duesenberg", "Model J"],
+      ["1913 Ford Model T", "Ford", "Model T"],
+      ["1937 Bugatti Type 57", "Bugatti", "Type 57"],
+      ["1960 Maserati Tipo 61", "Maserati", "Tipo 61"]
+    ];
+    for (const [text, make, model] of wants) {
+      const j = await resolveVehicle(text); const v = j.vehicle || {};
+      check(`B15 "${text}" -> ${make} ${model} (not a bare designator)`,
+        j.status === "valid" && v.make === make && v.model === model && !v.unverified, `status=${j.status} model=${v.model} unv=${v.unverified}`);
+    }
+    // A bare designator with nothing after it is not a model: ask once (never resolve to "MODEL").
+    for (const [text, make] of [["1929 Duesenberg Model", "Duesenberg"], ["1937 Bugatti Type", "Bugatti"]]) {
+      const j = await resolveVehicle(text); const v = j.vehicle || {};
+      check(`B15 bare "${text}" asks which model (no garbage "MODEL")`,
+        j.status === "needs_clarification" && !v.model && /which model/i.test(j.clarification?.question || ""), `status=${j.status} model=${v.model}`);
+    }
+    // Regressions: the Bentley 4½ Litre and CLK DTM resolvers still stand, and "3 Series" (number
+    // leads, not a designator) is untouched.
+    let j = await resolveVehicle("1928 Bentley 4.5 Litre");
+    check(`B15 regression Bentley 4.5 Litre -> "4½ Litre"`, j.vehicle?.model === "4½ Litre", `model=${j.vehicle?.model}`);
+    j = await resolveVehicle("2004 Mercedes CLK DTM AMG");
+    check(`B15 regression CLK DTM -> model "CLK DTM"`, j.vehicle?.model === "CLK DTM", `model=${j.vehicle?.model}`);
+    j = await resolveVehicle("2015 BMW 3 Series");
+    check(`B15 "3 Series" untouched (number leads, not a designator)`, /3\s*series/i.test(j.vehicle?.model || ""), `model=${j.vehicle?.model}`);
+  }
   return fails;
 }
 
