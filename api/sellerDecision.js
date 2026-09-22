@@ -2892,6 +2892,67 @@ export default async function handler(req, res) {
       return res.status(200).json({ status: "one_box_proof", ...p });
     } catch (e) { return res.status(200).json({ status: "one_box_proof", proof: [] }); }
   }
+  // Archive aggregation (archive-only, no car, no OCD). Modes: yearCounts (per-platform/per-year
+  // counts + earliest date, for backfill reporting) and houseLeaders (per-model house comparison).
+  if (req.body?.archiveQuery) {
+    const env2 = { supabaseUrl, supabaseKey };
+    const mode = String(req.body.archiveQuery);
+    const pageAll = async (base) => { // page sales_archive in 1000s
+      let all = [], off = 0;
+      for (let i = 0; i < 400; i++) {
+        const rows = await supabaseSelect(env2, `${base}&order=id&limit=1000&offset=${off}`);
+        if (!rows || !rows.length) break; all = all.concat(rows); if (rows.length < 1000) break; off += 1000;
+      }
+      return all;
+    };
+    if (mode === "yearCounts") {
+      const platforms = Array.isArray(req.body.platforms) ? req.body.platforms : ["Bring a Trailer", "Cars & Bids"];
+      const yMin = Number(req.body.yearMin) || 2023, yMax = Number(req.body.yearMax) || 2025;
+      const out = [];
+      for (const plat of platforms) {
+        const rows = await pageAll(`sales_archive?select=id,year,sale_date&platform=eq.${encodeURIComponent(plat)}&sale_price=not.is.null`);
+        const byYear = {}; let earliest = null;
+        for (const r of rows) { const y = Number(r.year); if (y >= yMin && y <= yMax) byYear[y] = (byYear[y] || 0) + 1; if (r.sale_date && (!earliest || r.sale_date < earliest)) earliest = r.sale_date; }
+        out.push({ platform: plat, total: rows.length, byYear, earliest });
+      }
+      return res.status(200).json({ status: "archive_query", mode, yMin, yMax, out });
+    }
+    if (mode === "houseLeaders") {
+      const HOUSES = ["RM Sotheby's", "Gooding & Co", "Bonhams", "Broad Arrow", "Barrett-Jackson", "Mecum Auctions"];
+      const since = new Date(Date.now() - 1096 * 864e5).toISOString().slice(0, 10);
+      const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+      const med = a => { const s = a.slice().sort((x, y) => x - y); const n = s.length; return n ? (n % 2 ? s[(n - 1) / 2] : Math.round((s[n / 2 - 1] + s[n / 2]) / 2)) : null; };
+      const models = {}; // key -> { display, houses: {house: prices[]} }
+      for (const h of HOUSES) {
+        const rows = await pageAll(`sales_archive?select=model,make,sale_price,listing_title&platform=eq.${encodeURIComponent(h)}&sale_price=not.is.null&sale_date=gte.${since}`);
+        for (const r of rows) {
+          const model = r.model || null; if (!model) continue;
+          const key = norm(`${r.make || ""} ${model}`); if (!key) continue;
+          const price = Number(r.sale_price); if (!(price > 0)) continue;
+          (models[key] = models[key] || { display: `${r.make ? r.make + " " : ""}${model}`.trim(), houses: {} });
+          (models[key].houses[h] = models[key].houses[h] || []).push(price);
+        }
+      }
+      const results = [];
+      for (const key of Object.keys(models)) {
+        const m = models[key];
+        const stats = Object.entries(m.houses).map(([house, prices]) => ({ house, count: prices.length, median: med(prices) }));
+        const totalHouse = stats.reduce((s, x) => s + x.count, 0);
+        if (totalHouse < 3) continue;
+        const mostSales = stats.slice().sort((a, b) => b.count - a.count || b.median - a.median)[0];
+        const highestMed = stats.slice().sort((a, b) => b.median - a.median || b.count - a.count)[0];
+        const gooding = stats.find(x => x.house === "Gooding & Co");
+        if (gooding && mostSales.house === "Gooding & Co" && highestMed.house === "Gooding & Co") {
+          const second = stats.filter(x => x.house !== "Gooding & Co").sort((a, b) => b.median - a.median)[0] || null;
+          results.push({ model: m.display, goodingCount: gooding.count, goodingMedian: gooding.median,
+            second: second ? { house: second.house, count: second.count, median: second.median } : null });
+        }
+      }
+      results.sort((a, b) => b.goodingMedian - a.goodingMedian);
+      return res.status(200).json({ status: "archive_query", mode, count: results.length, top: results.slice(0, 15) });
+    }
+    return res.status(400).json({ error: "unknown archiveQuery mode" });
+  }
   // Raw archive title-search diagnostic (archive-only, no car needed, no OCD) -> answered before
   // the car-required check so it is a pure verification tool.
   if (req.body?.titleSearch) {
