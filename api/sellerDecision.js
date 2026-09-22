@@ -2906,18 +2906,27 @@ export default async function handler(req, res) {
     const sources = Array.isArray(req.body.sources) && req.body.sources.length ? req.body.sources : ["bringatrailer", "carsandbids"];
     const yearMin = Number(req.body.yearMin) || 2023, yearMax = Number(req.body.yearMax) || 2025;
     const out = []; let ocdRemaining = null, ocdLimit = null, ocdReset = null;
+    const useYear = req.body.noYear !== true;
+    const datesOf = r => (r.data || []).map(x => x.auction_end_date).filter(Boolean).sort();
     for (const source of sources) {
       try {
-        const r = await callOldCarsData("/auctions", { source, status: "sold", year_min: yearMin, year_max: yearMax, page: 1, limit: 50 }, apiKey);
-        const rl = r.__rateLimit || {};
-        if (rl.remaining != null) ocdRemaining = Number(rl.remaining);
-        if (rl.limit != null) ocdLimit = Number(rl.limit);
-        if (rl.reset != null) ocdReset = rl.reset;
-        const total = r.total ?? r.count ?? r.total_count ?? r.totalCount ?? r.meta?.total ?? r.pagination?.total ?? r.pagination?.total_count ?? null;
-        const lastPage = r.last_page ?? r.pages ?? r.total_pages ?? r.meta?.last_page ?? r.pagination?.last_page ?? null;
-        out.push({ source, total: total != null ? Number(total) : null, lastPage: lastPage != null ? Number(lastPage) : null,
-          dataLen: (r.data || []).length, keys: Object.keys(r).slice(0, 20),
-          newest: (r.data || [])[0]?.auction_end_date || null, requestsIf50: total != null ? Math.ceil(Number(total) / 50) : null });
+        const base = { source, status: "sold", limit: 50, ...(useYear ? { year_min: yearMin, year_max: yearMax } : {}) };
+        const r = await callOldCarsData("/auctions", { ...base, page: 1 }, apiKey);
+        const rl = r.__rateLimit || {}; if (rl.remaining != null) ocdRemaining = Number(rl.remaining); if (rl.limit != null) ocdLimit = Number(rl.limit); if (rl.reset != null) ocdReset = rl.reset;
+        const meta = r.meta || r.pagination || {};
+        const total = r.total ?? r.count ?? r.total_count ?? meta.total ?? meta.total_count ?? meta.count ?? null;
+        const lastPageNo = r.last_page ?? r.pages ?? r.total_pages ?? meta.last_page ?? meta.total_pages ?? (total != null ? Math.ceil(Number(total) / 50) : null);
+        const d1 = datesOf(r);
+        // Probe the LAST page to learn the OLDEST date OCD actually holds for this filtered query.
+        let oldest = null, lastPageLen = null;
+        if (lastPageNo && lastPageNo > 1) {
+          const rL = await callOldCarsData("/auctions", { ...base, page: lastPageNo }, apiKey);
+          const dL = datesOf(rL); oldest = dL[0] || null; lastPageLen = (rL.data || []).length;
+          const rlL = rL.__rateLimit || {}; if (rlL.remaining != null) ocdRemaining = Number(rlL.remaining);
+        } else { oldest = d1[0] || null; }
+        out.push({ source, total: total != null ? Number(total) : null, lastPage: lastPageNo != null ? Number(lastPageNo) : null,
+          metaKeys: Object.keys(meta), newest: d1[d1.length - 1] || null, oldest, lastPageLen,
+          requestsIf50: total != null ? Math.ceil(Number(total) / 50) : null });
       } catch (e) { out.push({ source, error: String(e.message || e) }); }
     }
     const totalRequests = out.reduce((s, o) => s + (o.requestsIf50 || 0), 0);
