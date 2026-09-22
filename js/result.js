@@ -307,6 +307,13 @@ function renderDecision(decisionData,renderOpts){
     return;
   }
 
+  // Auction-house door bridge (Sep 2026): the seller chose "go through an auction house", but we
+  // reached the normal platform pick, which means NO house comparison existed for this car (dense
+  // online evidence, normal tier - a Turbo S / Z06 / GT3). Acknowledge what they asked for in one
+  // honest sentence before the platform card, rather than silently ignoring the choice.
+  if(sellState.sellerPreference==="auction_house"){
+    addMsg("sam","These actually trade mostly online, not through the houses, so here's where I'd sell it instead.");
+  }
   // RANKING-LADDER-START (platform-agnostic: no platform name may appear in the
   // ranking region below; every crown is re-derived from data or read via
   // platformDisplayName. Enforced by scripts/agnosticismGuard.mjs.)
