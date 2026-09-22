@@ -437,6 +437,30 @@ async function handleOps(req, res) {
     return rows.reduce((s, r) => s + (Number(r.oldcarsdata_metered_requests) || 0), 0);
   }
 
+  // TEMP task=eventprobe (remove after house-comparison discovery): dump the full OCD record
+  // shape for each house + sample titles/urls, to see if the auction EVENT/room is in the data.
+  if (task === "eventprobe") {
+    const houses = ["rmsothebys", "gooding", "bonhams", "broadarrow", "barrettjackson", "mecum"];
+    const out = { task: "eventprobe", perHouse: {} };
+    for (const s of houses) {
+      try {
+        const r = await callOldCarsData("/auctions", { source: s, status: "sold", sort: "date", direction: "desc", page: 1, limit: 5 }, apiKey);
+        const recs = r.data || [];
+        const sample = recs[0] || null;
+        // event-ish keys anywhere in the record
+        const eventKeys = sample ? Object.keys(sample).filter(k => /event|sale|location|city|state|venue|auction|lot|room|place/i.test(k)) : [];
+        out.perHouse[s] = {
+          total: r.meta?.total_results ?? r.meta?.total ?? recs.length,
+          allKeys: sample ? Object.keys(sample) : [],
+          eventKeys,
+          eventKeyValues: sample ? Object.fromEntries(eventKeys.map(k => [k, sample[k]])) : {},
+          samples: recs.slice(0, 5).map(x => ({ title: x.title || x.name, url: x.url || x.listing_url || x.source_url, location: x.location, city: x.city }))
+        };
+      } catch (e) { out.perHouse[s] = { error: e.message }; }
+    }
+    return res.status(200).json(out);
+  }
+
   // task=status: spend + budget headroom + OCD's OWN remaining quota (1 metered
   // call reads the live rate-limit header), so we can tell if OCD itself is the wall.
   if (task === "status") {
