@@ -1,6 +1,6 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
-import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle } from "../lib/onebox.js";
+import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -3043,6 +3043,15 @@ export default async function handler(req, res) {
         } catch { snapshotId = null; }
       }
       return res.status(200).json({ status: "one_box", ...oneBox, snapshotId: snapshotId || undefined });
+    }
+
+    // Price-step transparency (#68): a seller who DEFERS the asking price gets THE RECORD
+    // (the real range cars like this sold for), never a number. Archive-only (sales_archive),
+    // ZERO OldCarsData, no search gate, no writes, returned BEFORE any metered fetch. NO median
+    // is ever computed into the response - a midpoint a seller could adopt is a valuation.
+    if (req.body?.priceProbe) {
+      const band = await priceBandForVehicle(vehicle, generation, { supabaseUrl, supabaseKey });
+      return res.status(200).json({ status: "price_probe", band });
     }
 
     // Free structural preview for smoke tests: the ladder that WOULD be

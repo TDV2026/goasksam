@@ -9,6 +9,48 @@ function continueAfterState(){
   return true;
 }
 
+// ── PRICE-STEP TRANSPARENCY helpers (#68) ─────────────────────────────────────
+// When a seller DEFERS the asking price, show THE RECORD (the real range cars like this
+// sold for), never a number, then let them set a price or skip. NO median, NO midpoint, no
+// pre-filled number: a lone figure to adopt is a valuation (locked). Archive-only probe,
+// zero OldCarsData. US only (the band is US-market USD); other regions keep plain behaviour.
+function priceDeferDetected(text){
+  const l=String(text||"").toLowerCase().trim();
+  if(typeof parseAskingPrice==="function"&&parseAskingPrice(text)!==null)return false; // a typed number is always the normal path
+  return /^(not sure|no idea|dunno|no clue|unsure|idk|no idk)$|you tell me|you decide|your call|you pick|whatever( you| the market)?|what (would|do|should) you (say|think|price|put|list|suggest)|what('?s| is) it worth|don'?t know|do ?n'?t know|no clue|hard to say|help me (price|with the price)|price it for me|you price it|set the price for me|market (value|price|rate)|going rate|no idea what/i.test(l);
+}
+function priceDeferEligible(){
+  const v=sellState.resolvedVehicle;
+  return sellState.region==="US"&&!!(v&&v.make&&v.model);
+}
+function priceWindowLabel(m){
+  m=Number(m)||36;
+  if(m>=34&&m<=38)return "the last three years";
+  if(m>=22&&m<=26)return "the last two years";
+  if(m>=11&&m<=13)return "the last year";
+  return `the last ${m} months`;
+}
+async function showPriceRecord(){
+  sellState.priceDeferShown=true;
+  sellState.awaitingPriceDefer=true;
+  if(typeof gasJourneyEventOnce==="function")gasJourneyEventOnce("price_record_shown",{vehicle:sellState.resolvedVehicle});
+  addMsg("sam","Let me pull the record on cars like this.");
+  let band=null;
+  try{
+    const res=await fetch(apiPath("/api/sellerDecision"),{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({priceProbe:true,car:{vehicle:sellState.resolvedVehicle,region:sellState.region,state:sellState.state}})});
+    const j=await res.json(); band=j&&j.band;
+  }catch(e){ band=null; }
+  const tail="Where you set the ask is your call, and it matters for where I'd send it, so give me a number when you're ready, or skip it and I'll route on the evidence alone.";
+  const chips=chipsHTML(["Set my price","Skip the price"]);
+  if(band&&band.ok&&band.high>band.low){
+    const lo="$"+Number(band.low).toLocaleString("en-US"),hi="$"+Number(band.high).toLocaleString("en-US");
+    addMsg("sam",`I don't put a number on any specific car, that's the honest answer. What I can show you is the record: cars like this sold between ${lo} and ${hi} in ${priceWindowLabel(band.windowMonths)}. ${tail}`,"",chips);
+  }else{
+    addMsg("sam",`I don't put a number on any specific car, that's the honest answer, and I don't have enough recent sales of cars like this to show you an honest spread yet. ${tail}`,"",chips);
+  }
+  return true;
+}
 async function handleSellStep(q){
   // Self-correction suffixes are commentary, never content ("it is that car
   // my mistake" confirms the car; "my mistake" is not a car name and must
@@ -350,6 +392,37 @@ async function handleSellStep(q){
       sellState.state=/^(skip|not sure)$/i.test(lower)?"Not sure":(String(q||"").trim()||"Not sure");
     }
     return continueAfterState();
+  }
+
+  // ── PRICE-STEP TRANSPARENCY (#68) ───────────────────────────
+  // A deferred ask ("you tell me", "not sure") shows THE RECORD once (the real range
+  // cars like this sold for, never a number), then the seller sets a price or skips.
+  // Follow-up sub-state: after the record renders, interpret the next answer.
+  if(step===6&&sellState.awaitingPriceDefer){
+    const priced=parseAskingPrice(q);
+    if(priced!==null){ // a real number ends the defer and advances exactly like the normal path
+      sellState.awaitingPriceDefer=false; sellState.price=q;
+      if(sellState.returnToConfirm){goBackToConfirm();return true;}
+      sellState.step=8; askPowerSellerStep(); return true;
+    }
+    if(/^(set (my )?(price|own|number)|set it|i'?ll set|my (own )?(price|number)|give (you )?a number|name (a|my) price|i'?ll give (you )?a number)\b/i.test(lower)){
+      sellState.awaitingPriceDefer=false;
+      addMsg("sam","Sure. What would you like to ask? A rough figure is fine.",typeof priceWhyHtml==="function"?priceWhyHtml():"");
+      return true;
+    }
+    if(/^(skip( it| the price)?|no price|route on (the )?evidence|move on|not sure|no idea|dunno|whatever|you decide)\b/i.test(lower)||detectIntent(lower)==="refusal"||detectIntent(lower)==="moveOn"){
+      sellState.awaitingPriceDefer=false; sellState.price="Not sure";
+      if(sellState.returnToConfirm){goBackToConfirm();return true;}
+      sellState.step=8; askPowerSellerStep(); return true;
+    }
+    if(isQuestionInput(q))return false; // off-script -> chat; the record still stands
+    addMsg("sam","Give me a number when you're ready, or say skip and I'll route on the evidence alone.",typeof priceWhyHtml==="function"?priceWhyHtml():"",chipsHTML(["Set my price","Skip the price"]));
+    return true;
+  }
+  // First deferral at the price step: pull the record (US, scopable cars only; everything
+  // else keeps the plain pipeline that normalizes an unparseable price to "Not sure").
+  if(step===6&&!sellState.priceDeferShown&&!scopedEditActive("price")&&priceDeferEligible()&&priceDeferDetected(q)){
+    return await showPriceRecord();
   }
 
   // ── STEPS 2-9: all through the pipeline ─────────────────────
