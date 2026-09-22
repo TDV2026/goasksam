@@ -2899,6 +2899,30 @@ export default async function handler(req, res) {
     return res.status(200).json({ status: "title_search", ...ts });
   }
   if (!apiKey) return res.status(500).json({ error: "OldCarsData API key not configured" });
+  // Metered DRY-RUN for a backfill: reads OCD's own total count for a source+year range and its
+  // authoritative rate-limit header, so we can size a backfill (requests = ceil(total/50)) and
+  // confirm it fits the remaining quota BEFORE spending. ~1 metered request per source; no writes.
+  if (req.body?.backfillCount) {
+    const sources = Array.isArray(req.body.sources) && req.body.sources.length ? req.body.sources : ["bringatrailer", "carsandbids"];
+    const yearMin = Number(req.body.yearMin) || 2023, yearMax = Number(req.body.yearMax) || 2025;
+    const out = []; let ocdRemaining = null, ocdLimit = null, ocdReset = null;
+    for (const source of sources) {
+      try {
+        const r = await callOldCarsData("/auctions", { source, status: "sold", year_min: yearMin, year_max: yearMax, page: 1, limit: 50 }, apiKey);
+        const rl = r.__rateLimit || {};
+        if (rl.remaining != null) ocdRemaining = Number(rl.remaining);
+        if (rl.limit != null) ocdLimit = Number(rl.limit);
+        if (rl.reset != null) ocdReset = rl.reset;
+        const total = r.total ?? r.count ?? r.total_count ?? r.totalCount ?? r.meta?.total ?? r.pagination?.total ?? r.pagination?.total_count ?? null;
+        const lastPage = r.last_page ?? r.pages ?? r.total_pages ?? r.meta?.last_page ?? r.pagination?.last_page ?? null;
+        out.push({ source, total: total != null ? Number(total) : null, lastPage: lastPage != null ? Number(lastPage) : null,
+          dataLen: (r.data || []).length, keys: Object.keys(r).slice(0, 20),
+          newest: (r.data || [])[0]?.auction_end_date || null, requestsIf50: total != null ? Math.ceil(Number(total) / 50) : null });
+      } catch (e) { out.push({ source, error: String(e.message || e) }); }
+    }
+    const totalRequests = out.reduce((s, o) => s + (o.requestsIf50 || 0), 0);
+    return res.status(200).json({ status: "backfill_count", yearMin, yearMax, ocdRemaining, ocdLimit, ocdReset, dryRunRequestsSpent: sources.length, totalRequestsNeeded: totalRequests || null, sources: out });
+  }
 
   const car = typeof req.body?.car === "object" ? req.body.car : {};
   const sellerCriteria = getSellerCriteria(car);
