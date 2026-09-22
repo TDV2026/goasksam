@@ -40,11 +40,19 @@ const mask = s => String(s || "")
   .replace(/\b(?:19|20)\d{2}\b/g, "YYYY")
   .replace(/\s+/g, " ").trim();
 
+// A VIN or pre-1981 chassis input (a contiguous 10-17 char alphanumeric token) takes the
+// TWO-HOP identity path: decode/chassis-match -> archive exact-sale anchor -> comp pool. Its
+// cold tail runs ~24s locally and materially longer on a cold, shared CI runner, so the old 35s
+// paint wait would occasionally time out and record a FALSE "unknown" for a car that renders a
+// full matched result everywhere else (the 194371S119431 1971 Corvette flake). Give VIN-shaped
+// inputs a generous ceiling; everything else keeps the tight 35s so a real hang still surfaces.
+const isVinLike = input => /^[A-Z0-9]{10,17}$/i.test(String(input).replace(/\s+/g, ""));
 async function capture(page, input) {
   await page.waitForSelector("#ob-input", { timeout: 15000 });
   await page.type("#ob-input", input);
   await page.click("#ob-go");
-  await page.waitForFunction(() => { const r = document.getElementById("ob"); return r && (r.querySelector(".livetake") || r.querySelector(".samtake") || r.querySelector(".refusal") || r.querySelector(".chips") || /trouble reading the market/i.test(r.textContent || "")); }, { timeout: 35000 }).catch(() => {});
+  const paintTimeout = isVinLike(input) ? 90000 : 35000;
+  await page.waitForFunction(() => { const r = document.getElementById("ob"); return r && (r.querySelector(".livetake") || r.querySelector(".samtake") || r.querySelector(".refusal") || r.querySelector(".chips") || /trouble reading the market/i.test(r.textContent || "")); }, { timeout: paintTimeout }).catch(() => {});
   await new Promise(r => setTimeout(r, 1300));
   return page.evaluate(() => {
     const g = s => { const e = document.querySelector(s); return e ? e.textContent.replace(/\s+/g, " ").trim() : null; };
