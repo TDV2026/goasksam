@@ -921,16 +921,22 @@ function currentMissingVehicleDetail(){
 }
 
 function askMissingVehicleDetail(missing){
-  // Escalation (locked rule 12 pattern, same as the condition step): each
-  // render of the same ask counts as an attempt. Attempt 2+ offers a Skip
-  // chip; after 3 attempts the wizard advances on its own, never a 4th ask.
+  // Escalation (locked rule 12 pattern). A missing TRIM (model known) keeps the 3-attempt
+  // escalation with a Skip chip. A MODEL that was typed and not matched gets ONE clarifying
+  // attempt maximum, then proceeds at the make level with one sentence saying so - re-asking a
+  // model the seller already typed is a bug, not persistence (Sep 2026, reader "CLK DTM" four-
+  // round loop). "Not sure" already advances immediately via the declinesDetail path.
   if(missing.ask!==sellState.lastMissingAsk)sellState.trimAskAttempts=0;
   sellState.trimAskAttempts=(sellState.trimAskAttempts||0)+1;
-  if(sellState.trimAskAttempts>3){
+  const cap=missing.type==="model"?1:3;
+  if(sellState.trimAskAttempts>cap){
     sellState.vehicleDetailSkipped=true;
     sellState.lastMissingAsk=null;
     sellState.trimAskAttempts=0;
-    resumeWizardAfterVehicle(`I'll take the ${sellState.carName||"car"} as-is and keep the read broad.`);
+    const mk=(sellState.resolvedVehicle&&sellState.resolvedVehicle.make)||extractVehicleMake(sellState.carName||"")||"make";
+    resumeWizardAfterVehicle(missing.type==="model"
+      ?`No problem. I couldn't pin the exact model down, so I'll run a broader ${mk}-level read.`
+      :`I'll take the ${sellState.carName||"car"} as-is and keep the read broad.`);
     return;
   }
   sellState.step=17;
@@ -1394,8 +1400,16 @@ async function startSellFlow(initialCar, showUserBubble=true, preresolved=null){
 // acknowledgement is not the only signal across a 12-step flow. Verified models
 // never carry the tag.
 function carDisplayLabel(fallback){
-  const name=sellState.carName||fallback||"Car";
-  return sellState.resolvedVehicle?.unverified?`${name} (unverified)`:name;
+  const v=sellState.resolvedVehicle;
+  if(sellState.carName)return v&&v.unverified?`${sellState.carName} (unverified)`:sellState.carName;
+  // No carName yet: never render a bare "your car"/"Car" when we at least know the make. Name what
+  // WAS resolved so the evidence panel reads "2006 Mercedes-Benz, model not confirmed", not "your car".
+  if(v&&v.make){
+    const named=[v.year,v.make,v.model,v.trim].filter(Boolean).join(" ");
+    if(v.model)return v.unverified?`${named} (unverified)`:named;
+    return `${[v.year,v.make].filter(Boolean).join(" ")}, model not confirmed`;
+  }
+  return fallback||"Car";
 }
 function vehicleAcceptPrefix(){
   const v=sellState.resolvedVehicle;

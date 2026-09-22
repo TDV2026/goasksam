@@ -437,25 +437,6 @@ async function handleOps(req, res) {
     return rows.reduce((s, r) => s + (Number(r.oldcarsdata_metered_requests) || 0), 0);
   }
 
-  // TEMP task=qprobe (remove after CLK DTM resolver work): what OCD + the archive actually
-  // hold + name for a keyword, so the resolver's model value is chosen to match real titles.
-  if (task === "qprobe") {
-    const q = String(req.query?.q || "CLK DTM");
-    const make = String(req.query?.make || "Mercedes-Benz");
-    const out = { task: "qprobe", q, make };
-    try {
-      const r = await callOldCarsData("/auctions", { make, keyword: q, sort: "date", direction: "desc", page: 1, limit: 25 }, apiKey);
-      out.ocdTotal = r.meta?.total_results ?? r.meta?.total ?? (r.data || []).length;
-      out.ocdSamples = (r.data || []).slice(0, 12).map(x => ({ title: x.title || x.name, model: x.model, year: x.year, price: x.price, status: x.auction_status, source: x.source }));
-    } catch (e) { out.ocdError = e.message; }
-    if (env) {
-      const rows = await supabaseSelect(env, `sales_archive?raw_title=ilike.*${encodeURIComponent(q.replace(/\s+/g, "%"))}*&select=raw_title,platform,auction_end_date,price&limit=20`);
-      out.archiveCount = rows ? rows.length : null;
-      out.archiveSamples = rows ? rows.slice(0, 12).map(x => ({ title: x.raw_title, platform: x.platform, date: x.auction_end_date, price: x.price })) : null;
-    }
-    return res.status(200).json(out);
-  }
-
   // task=status: spend + budget headroom + OCD's OWN remaining quota (1 metered
   // call reads the live rate-limit header), so we can tell if OCD itself is the wall.
   if (task === "status") {

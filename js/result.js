@@ -1042,17 +1042,26 @@ function genericNoEvidenceFallback(){
   // 1936 Packard). Hemmings is never used here: it carries no real evidence data.
   const primarySlug=classic?"hagerty":(recommended||"bringatrailer");
   const primaryName=platformDisplayName(primarySlug);
-  const reason=preWar
+  // Model-unconfirmed case (Sep 2026, reader "CLK DTM"): the pool is empty because we could not
+  // identify the model, NOT because sales are scarce. Say that honestly instead of the false
+  // "not enough tracked auction sales" line, and name what WAS resolved (make + year).
+  const rv=sellState.resolvedVehicle||{};
+  const makeName=rv.make||((typeof extractVehicleMake==="function"&&extractVehicleMake(sellState.carName||""))||"");
+  const modelUnknown=!!makeName&&(!rv.model||rv.unverified);
+  const carNamed=modelUnknown?`${[rv.year,makeName].filter(Boolean).join(" ")}, model not confirmed`:car;
+  const reason=modelUnknown
+    ?`I couldn't pin down which ${makeName} this is, so I can't pull comparable sales. ${primaryName} is where I'd start for a car like this, but that's a fit, not a read from sales data.`
+    :preWar
     ?`I don't have enough tracked auction sales on ${car} to back a specific data-led call. ${primaryName} is where I'd start: it's the specialist home for prewar and classic collector cars, and cars like this most often trade through marque specialists and collector auctions. That's a fit for the car, not a read from sales data.`
     :classic
-    ?`I don't have enough tracked auction sales on ${car} to back a specific data-led call. ${primaryName} is the specialist home for classic and collector cars like yours, so that's where I'd start. That's a fit for the car, not a read from sales data.`
-    :`I don't have enough tracked auction sales on ${car} to back a specific data-led call. ${primaryName} is where I'd start for a car like yours. That's a fit for the car, not a read from sales data.`;
+    ?`I don't have enough tracked auction sales on ${car} to back a specific data-led call. ${primaryName} is the specialist home for classic and collector cars like this, so that's where I'd start. That's a fit for the car, not a read from sales data.`
+    :`I don't have enough tracked auction sales on ${car} to back a specific data-led call. ${primaryName} is where I'd start for a car like this. That's a fit for the car, not a read from sales data.`;
   return {
     region:"generic",
     primary:primaryName,
     primarySlug,
     secondary:null,
-    title:`Here's what I'd do with ${car}.`,
+    title:modelUnknown?`Here's the honest read on ${carNamed}.`:`Here's what I'd do with ${car}.`,
     subtitle:`${primaryName} is where I'd start.`,
     primaryReason:reason,
     bullets:[],
