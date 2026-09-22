@@ -1312,7 +1312,7 @@ function _hcHouseBlock(h,ctx){
   for(const r of (h.receipts||[])){ if(r.room&&r.room.source==="inferred"){const m=_thinMonthLabel(r.date).split(" ")[0]; if(m)inf[m]=r.room.name; } }
   const infMonths=Object.keys(inf);
   const infLine=infMonths.length
-    ?`<p style="font-size:12px;color:#928b7a;margin:8px 0 0;font-style:italic">By the published calendar, ${esc(h.display)}'s ${infMonths.map(m=>`${m} sale is typically ${esc(inf[m])}`).join(", ")} (confirm with ${esc(h.display)}).</p>`
+    ?`<p style="font-size:12px;color:#928b7a;margin:8px 0 0;font-style:italic">By the published calendar, the ${infMonths.map(m=>`${m} sale at ${esc(h.display)} is typically ${esc(inf[m])}`).join(", the ")} (confirm with ${esc(h.display)}).</p>`
     :"";
   // Next sale + approximate consignment window (say nothing if unknown).
   let next="";
@@ -1365,8 +1365,10 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
     for(const h of houses.slice(1)){
       if(h.nextSale&&monthsFromToday(h.nextSale)<monthsFromToday(ns)){ if(!alt||monthsFromToday(h.nextSale)<monthsFromToday(alt.nextSale))alt=h; }
     }
-    timing=`<p style="font-size:14px;line-height:1.55;color:#171717;margin:14px 0 0">The room where these have gone most is ${esc(ns.city)}, next ${esc(ns.monthName)} ${ns.year}.`;
-    if(alt){ timing+=` If you'd rather sell sooner, ${esc(alt.display)}'s ${esc(alt.nextSale.city)} sale is in ${esc(alt.nextSale.monthName)} and has taken ${esc(modelLabel)}s too.`; }
+    // Separate the RECORD (where these have gone most = the pick) from the pick's NEXT sale; never
+    // imply the next-sale city is where they've gone most.
+    timing=`<p style="font-size:14px;line-height:1.55;color:#171717;margin:14px 0 0">${esc(pickName)}, where these have gone most, next runs its ${esc(ns.city)} sale in ${esc(ns.monthName)} ${ns.year}${ns.intl?" (international)":""}.`;
+    if(alt){ timing+=` If you'd rather sell sooner, the ${esc(alt.nextSale.city)} sale at ${esc(alt.display)} is in ${esc(alt.nextSale.monthName)}, and it has taken ${esc(modelLabel)}s too.`; }
     timing+=`</p>`;
   }
   const blocks=houses.map((h,i)=>_hcHouseBlock(h,{isLead:i===0,asap,modelLabel})).join("");
