@@ -7,6 +7,7 @@ import puppeteer from "puppeteer-core";
 import fs from "node:fs";
 import { resolveVehicle } from "../lib/vehicle.js";
 import { buildLadder } from "../api/sellerDecision.js";
+import { buildHouseComparison, nextSaleForHouse, eventFromRecord } from "../lib/houseCalendar.js";
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const BASE = "https://goasksam.com";
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -230,6 +231,38 @@ async function resolverChecks() {
     check(`B13 material-variant guard: 250 GTO ladder has NO base-model rungs`, !gtoRungs.some(k => /_model$/.test(k) && k !== "make_context"), `rungs=${gtoRungs.join(",")}`);
     const m3Rungs = buildLadder({ make: "BMW", model: "M3", trim: "Competition", year: 2019 }).map(r => r.key);
     check(`B13 ordinary trim (M3 Competition) STILL widens to base model`, m3Rungs.some(k => /_model$/.test(k) && k !== "make_context"), `rungs=${m3Rungs.join(",")}`);
+  }
+  // B14: the /sell house-by-house comparison (Sep 2026). Deterministic checks of the calendar +
+  // buildHouseComparison over synthetic receipts shaped like the four verify cars (Lusso, 450S,
+  // Bentley Blower, 918). The live four-car renders are verified separately by hand.
+  console.log(`\n### B14 house comparison (calendar + ranking + event honesty)`);
+  {
+    // Event honesty: RM city + Barrett-Jackson URL are DATA; Bonhams "Salinas" is NOT data (inferred).
+    check(`B14 RM city -> data room`, (eventFromRecord({ slug: "rmsothebys", city: "Monterey" }) || {}).source === "data", JSON.stringify(eventFromRecord({ slug: "rmsothebys", city: "Monterey" })));
+    check(`B14 Barrett-Jackson URL -> data room`, (eventFromRecord({ slug: "barrettjackson", url: "https://www.barrett-jackson.com/2026-las-vegas/docket/vehicle/x" }) || {}).source === "data", "bj");
+    check(`B14 Bonhams "Salinas" is NOT data (inference, two-fact)`, eventFromRecord({ slug: "bonhams", city: "Salinas" }) === null, "bonhams should be null");
+    // nextSaleForHouse prefers a domestic (US) sale for the US launch.
+    const rmNext = nextSaleForHouse("rmsothebys", "2026-09-21");
+    check(`B14 RM next sale is domestic (not London)`, rmNext && rmNext.intl === false, JSON.stringify(rmNext && { city: rmNext.city, intl: rmNext.intl }));
+    check(`B14 consignment window is approximate + deferred`, rmNext && /confirm with/i.test(rmNext.consignApprox), rmNext && rmNext.consignApprox);
+    // buildHouseComparison: ranks by count; ASAP reorders to the soonest sale.
+    const recs = [
+      { isHouse: true, slug: "rmsothebys", venue: "RM Sotheby's", hammer: 1800000, date: "2025-08-15", year: 1964, city: "Monterey", url: "https://rmsothebys.com/auctions/mo25/lots/r1" },
+      { isHouse: true, slug: "rmsothebys", venue: "RM Sotheby's", hammer: 1650000, date: "2024-08-16", year: 1963 },
+      { isHouse: true, slug: "rmsothebys", venue: "RM Sotheby's", hammer: 1700000, date: "2024-03-01", year: 1964 },
+      { isHouse: true, slug: "gooding", venue: "Gooding", hammer: 1500000, date: "2025-03-01", year: 1964 },
+      { isHouse: true, slug: "bonhams", venue: "Bonhams", hammer: 1720000, date: "2024-08-13", year: 1964, city: "Salinas" }
+    ];
+    const hc = buildHouseComparison(recs, { todayISO: "2026-09-21" });
+    check(`B14 buildHouseComparison ranks RM first (most sales)`, hc && hc.houses[0].slug === "rmsothebys" && hc.houses[0].count === 3, hc && hc.houses.map(h => h.slug + ":" + h.count).join(","));
+    check(`B14 RM receipt with city -> data room; Bonhams -> inferred, never data`, (() => {
+      const rm = hc.houses.find(h => h.slug === "rmsothebys"), bon = hc.houses.find(h => h.slug === "bonhams");
+      const rmData = rm.receipts.some(r => r.room && r.room.source === "data");
+      const bonData = bon.receipts.some(r => r.room && r.room.source === "data");
+      return rmData && !bonData;
+    })(), "rm should have a data room; bonhams none");
+    const hcAsap = buildHouseComparison(recs, { todayISO: "2026-09-21", asap: true });
+    check(`B14 ASAP sets an asapLead (soonest-sale house)`, !!(hcAsap && hcAsap.asap && hcAsap.asapLead), JSON.stringify(hcAsap && { asap: hcAsap.asap, lead: hcAsap.asapLead }));
   }
   return fails;
 }
