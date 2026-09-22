@@ -2905,6 +2905,45 @@ export default async function handler(req, res) {
       }
       return all;
     };
+    if (mode === "pool") {
+      // Raw qualifying rows for ONE car scope: title term(s) + make + year range + date range.
+      // The hvt100 harness applies exclusions/metrics; this just returns the archive rows.
+      const terms = Array.isArray(req.body.terms) && req.body.terms.length ? req.body.terms : (req.body.term ? [req.body.term] : []);
+      const make = req.body.make ? String(req.body.make) : null;
+      const yMin = req.body.yearMin != null ? Number(req.body.yearMin) : null, yMax = req.body.yearMax != null ? Number(req.body.yearMax) : null;
+      const dFrom = req.body.dateFrom ? String(req.body.dateFrom) : null, dTo = req.body.dateTo ? String(req.body.dateTo) : null;
+      const seen = new Set(); let rows = [];
+      const cols = "id,price:sale_price,date:sale_date,platform,title:listing_title,make,model,year,vin_norm," +
+        "mileage:raw_record->>mileage,transmission:raw_record->>transmission,currency:raw_record->>currency,url:raw_record->>url,url2:raw_record->>source_url";
+      for (const term of (terms.length ? terms : [null])) {
+        let base = `sales_archive?select=${cols}&sale_price=not.is.null`;
+        if (term) base += `&listing_title=ilike.${encodeURIComponent("*" + term + "*")}`;
+        if (make) base += `&make=ilike.${encodeURIComponent(make)}`;
+        if (yMin != null) base += `&year=gte.${yMin}`;
+        if (yMax != null) base += `&year=lte.${yMax}`;
+        if (dFrom) base += `&sale_date=gte.${dFrom}`;
+        if (dTo) base += `&sale_date=lte.${dTo}`;
+        const got = await pageAll(base);
+        for (const r of got) { if (!seen.has(r.id)) { seen.add(r.id); rows.push(r); } }
+      }
+      rows = rows.map(r => ({ id: r.id, date: r.date, price: Number(r.price) || null, platform: r.platform || null,
+        make: r.make || null, model: r.model || null, year: r.year || null, title: r.title || null,
+        vin: r.vin_norm || null, transmission: r.transmission || null,
+        mileage: r.mileage != null ? Number(String(r.mileage).replace(/[^\d.]/g, "")) || null : null,
+        url: r.url || r.url2 || null }));
+      return res.status(200).json({ status: "archive_query", mode, count: rows.length, rows });
+    }
+    if (mode === "vinPresence") {
+      // For a batch of VIN/chassis strings, return how many appear in >=2 archive rows (a prior sale
+      // we could show) - used for the hvt100 vin_history metric. Archive-only.
+      const vins = (Array.isArray(req.body.vins) ? req.body.vins : []).map(v => String(v || "").trim()).filter(Boolean);
+      const out = {};
+      for (const v of vins) {
+        try { const rows = await supabaseSelect(env2, `sales_archive?select=id&vin_norm=eq.${encodeURIComponent(v)}&limit=5`); out[v] = (rows || []).length; }
+        catch { out[v] = 0; }
+      }
+      return res.status(200).json({ status: "archive_query", mode, presence: out });
+    }
     if (mode === "yearCounts") {
       const platforms = Array.isArray(req.body.platforms) ? req.body.platforms : ["Bring a Trailer", "Cars & Bids"];
       const yMin = Number(req.body.yearMin) || 2023, yMax = Number(req.body.yearMax) || 2025;
