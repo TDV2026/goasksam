@@ -2939,11 +2939,13 @@ export default async function handler(req, res) {
         const stats = Object.entries(m.houses).map(([house, prices]) => ({ house, count: prices.length, median: med(prices) }));
         const totalHouse = stats.reduce((s, x) => s + x.count, 0);
         if (totalHouse < 3) continue;
-        const mostSales = stats.slice().sort((a, b) => b.count - a.count || b.median - a.median)[0];
-        const highestMed = stats.slice().sort((a, b) => b.median - a.median || b.count - a.count)[0];
         const gooding = stats.find(x => x.house === "Gooding & Co");
-        if (gooding && mostSales.house === "Gooding & Co" && highestMed.house === "Gooding & Co") {
-          const second = stats.filter(x => x.house !== "Gooding & Co").sort((a, b) => b.median - a.median)[0] || null;
+        const others = stats.filter(x => x.house !== "Gooding & Co");
+        const maxOtherCount = Math.max(0, ...others.map(x => x.count));
+        const maxOtherMed = Math.max(0, ...others.map(x => x.median || 0));
+        // CLEAR leadership: Gooding STRICTLY most sales AND STRICTLY highest median (no ties).
+        if (gooding && gooding.count > maxOtherCount && (gooding.median || 0) > maxOtherMed) {
+          const second = others.sort((a, b) => b.median - a.median)[0] || null;
           results.push({ model: m.display, goodingCount: gooding.count, goodingMedian: gooding.median,
             second: second ? { house: second.house, count: second.count, median: second.median } : null });
         }
