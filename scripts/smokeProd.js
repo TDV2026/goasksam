@@ -8,6 +8,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findForbidden } from "./forbiddenPatterns.js";
 const BASE = process.env.SMOKE_BASE_URL || "https://goasksam.vercel.app";
+// Vercel "Protection Bypass for Automation" secret. Production may run with Attack Challenge Mode
+// (or bot challenge) active, which a browser solves transparently but a raw fetch cannot - the edge
+// returns HTTP 429 with `x-vercel-mitigated: challenge`. CI must carry the bypass secret (set it in
+// the Vercel project: Settings -> Deployment Protection -> Protection Bypass for Automation, then add
+// it as the VERCEL_AUTOMATION_BYPASS_SECRET GitHub Actions secret + local env). Real users need none.
+const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || process.env.VERCEL_PROTECTION_BYPASS || "";
 // The entry system prompt lives in js/chat-core.js since the index.html split.
 const __chatCore = fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "js", "chat-core.js"), "utf8");
 const ENTRY_SYS = __chatCore.match(/const SYS=`([\s\S]*?)`;\n/)[1];
@@ -22,10 +28,29 @@ function check(name, ok, detail) {
 async function post(path, body) {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(BYPASS ? { "x-vercel-protection-bypass": BYPASS, "x-vercel-set-bypass-cookie": "samesitenone" } : {})
+    },
     body: JSON.stringify(body)
   });
-  return { status: res.status, body: await res.json().catch(() => ({})) };
+  return { status: res.status, body: await res.json().catch(() => ({})), mitigated: res.headers.get("x-vercel-mitigated") };
+}
+
+// Preflight: one real call. If the edge is challenging us (429 + x-vercel-mitigated: challenge),
+// fail with ONE clear cause + remediation instead of 39 undefined-body cascade failures. This is a
+// harness/edge problem, never a claim that production is down - real browser users are unaffected.
+async function preflight() {
+  const r = await post("/api/vehicleIdentity", { text: "2019 BMW M3" });
+  if (r.status === 429 || r.mitigated === "challenge") {
+    console.error(`\nSMOKE ABORTED: the edge is blocking automated requests to ${BASE}.`);
+    console.error(`  HTTP ${r.status}${r.mitigated ? `, x-vercel-mitigated: ${r.mitigated}` : ""} (Vercel Attack Challenge Mode / bot challenge).`);
+    console.error(`  This blocks the raw-fetch harness, NOT real browser users (they solve the challenge transparently).`);
+    console.error(BYPASS
+      ? `  A bypass secret IS set but was rejected - regenerate it in Vercel (Settings -> Deployment Protection -> Protection Bypass for Automation) and update VERCEL_AUTOMATION_BYPASS_SECRET.`
+      : `  Fix: set VERCEL_AUTOMATION_BYPASS_SECRET (Vercel Settings -> Deployment Protection -> Protection Bypass for Automation) as a GitHub Actions secret + local env.`);
+    process.exit(2);
+  }
 }
 
 // Mirrors the wizard's SELL_SYS shape closely enough to test the chat layer
@@ -72,6 +97,7 @@ async function identityCase(name, input, expectedStatus, expectPattern) {
 
 const startedAt = Date.now();
 console.log(`Smoke tests against ${BASE}\n`);
+await preflight();
 
 await chatCase(
   "chat: how long will this take",
