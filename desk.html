@@ -127,6 +127,17 @@ tr.rec.excl .r{text-decoration:line-through}
 .msg{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--clay);border-radius:0 12px 12px 0;padding:16px 20px;font:400 16px/1.55 var(--serif);color:var(--ink);max-width:70ch}
 .msg .t{font:600 10.5px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--clay);margin-bottom:8px}
 
+/* charts */
+.ctabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.ctab{font:600 11px/1 var(--mono);letter-spacing:.04em;color:var(--slate);background:var(--card);border:1px solid var(--line);border-radius:7px;padding:7px 12px;cursor:pointer}
+.ctab.on{color:var(--green);border-color:color-mix(in srgb,var(--green) 40%,var(--line));background:color-mix(in srgb,var(--green) 6%,var(--card))}
+.ctab.png{margin-left:auto;color:var(--slate)}
+.cwrap{border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:var(--shadow);padding:10px 12px;overflow:hidden}
+.cwrap svg{display:block;max-width:100%}
+.cmark{transition:opacity .1s}
+.cmark:hover{opacity:1!important;stroke:#191410;stroke-width:1}
+.cnote{font:400 12px/1.5 var(--slate);margin:8px 2px 0}
+.charttip{position:absolute;z-index:50;display:none;pointer-events:none;background:var(--ink);color:var(--paper);font:600 11px/1.4 var(--mono);padding:7px 9px;border-radius:7px;max-width:240px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
 /* build chips + toolbar + saved views */
 .buildbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0 4px}
 .buildlabel{font:600 10.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
@@ -152,8 +163,9 @@ tr.rec.excl .r{text-decoration:line-through}
   .toolbar,.buildbar{gap:6px}.tbtn{padding:8px 11px;font-size:11.5px}
 }
 @media print{
-  .top .mode,.ask,.examples,.buildbar,.toolbar,#viewsPanel,.recmore,.whyread{display:none!important}
+  .top .mode,.ask,.examples,.buildbar,.toolbar,#viewsPanel,.recmore,.whyread,.ctabs{display:none!important}
   body{background:#fff}.wrap{padding:0}
+  #charts{break-inside:avoid}.cwrap{box-shadow:none}
   .result::after{content:"Sam Desk — org sam — archive only";display:block;margin-top:20px;font:600 10px var(--mono);color:#888;letter-spacing:.1em}
   table.receipts tr:nth-child(n+21){display:none}
 }

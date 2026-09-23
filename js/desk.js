@@ -83,7 +83,9 @@
     var a = res.answer, rows = a.rows || [];
     var dimLabel = (a.dimensions && a.dimensions.length ? a.dimensions.join(" · ") : (a.dimension || "overall")).replace(/_/g, " ");
     var M = a.measures || [];
-    var has = function (m) { return M.indexOf(m) !== -1 || rows.some(function (r) { return r[m] != null; }); };
+    // Table shows only REQUESTED measures (stats are always computed for charts, so a presence
+    // check would leak unrequested columns). count always shows.
+    var has = function (m) { return M.indexOf(m) !== -1; };
     var priceHdr = a.priceLabel && /bid-to/.test(a.priceLabel) ? "bid-to" : "median";
     var unit = res.status; // noop
     var cols = [];
@@ -109,6 +111,9 @@
       h += '</tr>';
     });
     h += '</tbody></table></div></div>';
+
+    // charts (spec-driven; drawn from the answer/receipts on screen)
+    if (res.charts && res.charts.length) h += '<div class="section" id="charts"></div>';
 
     // velocity section (same-chassis repeat sales)
     if (res.velocity && res.velocity.length) {
@@ -206,6 +211,262 @@
 
     wireToolbar(res);
     buildChips(res);
+    if (res.charts && res.charts.length) renderCharts(res);
+  }
+
+  // ================= CHARTS (SVG, every mark a real transaction) =================
+  // Colour-blind-safe fixed venue palette (Okabe-Ito); the SAME colour per venue on every chart.
+  var VENUE_COLORS = {
+    "Bring a Trailer": "#0072B2", "Cars & Bids": "#E69F00", "RM Sotheby's": "#009E73",
+    "Gooding & Co": "#CC79A7", "Gooding Christie's": "#CC79A7", "Bonhams": "#56B4E9",
+    "Broad Arrow": "#D55E00", "Barrett-Jackson": "#F0E442", "Mecum Auctions": "#8C564B",
+    "Hagerty": "#117733", "Sotheby's Motorsport": "#AA4499", "MB Market": "#44AA99", "Online": "#999999"
+  };
+  var PALETTE = ["#0072B2", "#E69F00", "#009E73", "#CC79A7", "#56B4E9", "#D55E00", "#F0E442", "#8C564B", "#117733", "#AA4499", "#44AA99", "#999999"];
+  function colorFor(name, i) { return VENUE_COLORS[name] || PALETTE[(i || 0) % PALETTE.length]; }
+  var SVGNS = "http://www.w3.org/2000/svg";
+  function E(tag, attrs, txt) { var e = document.createElementNS(SVGNS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (txt != null) e.textContent = txt; return e; }
+  function money(n) { return n == null ? "" : "$" + Math.round(n).toLocaleString("en-US"); }
+
+  // period order helpers (categorical order by MEANING, never by value)
+  var DOW_ORDER = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  var BAND_ORDER = ["under 25k", "25k to 50k", "50k to 100k", "100k to 250k", "250k to 500k", "500k to 1M", "1M and up", "unknown"];
+  function orderCats(dim, cats, rowsByCat) {
+    if (dim === "day_of_week") return DOW_ORDER.filter(function (d) { return cats.indexOf(d) !== -1; });
+    if (dim === "price_band") return BAND_ORDER.filter(function (d) { return cats.indexOf(d) !== -1; });
+    if (dim === "month" || dim === "quarter" || dim === "year" || dim === "model_year") return cats.slice().sort();
+    // venue / generation etc: by count descending
+    return cats.slice().sort(function (a, b) { return (rowsByCat[b] || 0) - (rowsByCat[a] || 0); });
+  }
+
+  var _tip;
+  function tip() { if (!_tip) { _tip = document.createElement("div"); _tip.className = "charttip"; document.body.appendChild(_tip); } return _tip; }
+  function showTip(x, y, html) { var t = tip(); t.innerHTML = html; t.style.display = "block"; t.style.left = (x + 12) + "px"; t.style.top = (y + 12) + "px"; }
+  function hideTip() { if (_tip) _tip.style.display = "none"; }
+
+  function renderCharts(res) {
+    var host = document.getElementById("charts"); if (!host) return;
+    var specs = res.charts;
+    var tabs = specs.map(function (s, i) { return '<button class="ctab' + (i === 0 ? ' on' : '') + '" data-i="' + i + '">' + esc(chartTabLabel(s)) + '</button>'; }).join("");
+    host.innerHTML = '<div class="slabel">Chart</div><div class="ctabs">' + tabs + '<button class="ctab png" id="chpng">Download PNG</button></div><div class="cwrap" id="cwrap"></div><div class="cnote" id="cnote"></div>';
+    function draw(i) {
+      var wrap = document.getElementById("cwrap"); wrap.innerHTML = ""; document.getElementById("cnote").textContent = "";
+      var spec = specs[i];
+      var w = Math.max(320, Math.min(920, wrap.clientWidth || 900)), narrow = w < 520;
+      var svg = E("svg", { viewBox: "0 0 " + w + " 460", width: "100%", height: "460", "font-family": "ui-monospace,Menlo,monospace", role: "img" });
+      wrap.appendChild(svg);
+      try {
+        if (spec.type === "bars") drawBars(svg, res, spec, w);
+        else if (spec.type === "line") drawLine(svg, res, spec, w);
+        else if (spec.type === "strip") drawStrip(svg, res, spec, w, narrow);
+        else if (spec.type === "stacked") drawStacked(svg, res, spec, w);
+      } catch (e) { wrap.innerHTML = msg("Chart", "Could not draw this from real points; the table above is the record."); }
+    }
+    Array.prototype.forEach.call(host.querySelectorAll(".ctab:not(.png)"), function (el) {
+      el.onclick = function () { host.querySelectorAll(".ctab").forEach(function (x) { x.classList.remove("on"); }); el.classList.add("on"); draw(Number(el.getAttribute("data-i"))); };
+    });
+    document.getElementById("chpng").onclick = function () { var s = document.querySelector("#cwrap svg"); if (s) chartToPNG(s); };
+    draw(0);
+    window.addEventListener("resize", function () { var on = host.querySelector(".ctab.on"); if (on) draw(Number(on.getAttribute("data-i"))); }, { once: true });
+  }
+  function chartTabLabel(s) { return s.type === "bars" ? "Bars" : s.type === "line" ? "Line over time" : s.type === "strip" ? "Distribution" : "Share over time"; }
+
+  var AX = "#928b7a", INK = "#191410", GRID = "#e4ddcd";
+
+  function drawBars(svg, res, spec, w) {
+    var rows = (res.answer.rows || []).filter(function (r) { return r.group !== "unknown"; });
+    var rowsByCat = {}; rows.forEach(function (r) { rowsByCat[r.group] = r.count; });
+    var cats = orderCats(spec.x, rows.map(function (r) { return r.group; }), rowsByCat);
+    var yKey = spec.y, m = 0;
+    cats.forEach(function (c) { var r = rowById(rows, c); if (r && r[yKey] != null) m = Math.max(m, r[yKey]); });
+    var L = 60, R = 20, T = 20, B = 90, H = 460, plotH = H - T - B, plotW = w - L - R;
+    axisY(svg, L, T, plotH, m, yKey === "median" ? money : String);
+    var bw = plotW / cats.length, barw = Math.min(64, bw * 0.62);
+    cats.forEach(function (c, i) {
+      var r = rowById(rows, c), val = r ? r[yKey] : 0; if (val == null) val = 0;
+      var x = L + i * bw + (bw - barw) / 2, bh = m ? (val / m) * plotH : 0, y = T + plotH - bh;
+      var col = spec.x === "venue" ? colorFor(c, i) : PALETTE[i % PALETTE.length];
+      var rect = E("rect", { x: x, y: y, width: barw, height: Math.max(0, bh), fill: col, rx: 3, class: "cmark" });
+      rect.addEventListener("mousemove", function (e) { showTip(e.pageX, e.pageY, "<b>" + esc(c) + "</b><br>" + (yKey === "median" ? "median " + money(val) : val + " sales")); });
+      rect.addEventListener("mouseleave", hideTip);
+      svg.appendChild(rect);
+      svg.appendChild(E("text", { x: x + barw / 2, y: y - 6, "text-anchor": "middle", "font-size": 11, fill: INK }, yKey === "median" ? money(val) : String(val)));
+      var lbl = E("text", { x: x + barw / 2, y: T + plotH + 16, "text-anchor": "end", "font-size": 10, fill: AX, transform: "rotate(-35 " + (x + barw / 2) + " " + (T + plotH + 16) + ")" }, c.length > 16 ? c.slice(0, 15) + "…" : c);
+      svg.appendChild(lbl);
+    });
+    caption(svg, w, H, spec.y === "median" ? "Median (" + basisShort(spec.basis) + ")" : "Count");
+  }
+
+  function drawLine(svg, res, spec, w) {
+    var rows = res.answer.rows || [];
+    var L = 64, R = 20, T = 20, B = 70, H = 460, plotH = H - T - B, plotW = w - L - R;
+    // periods (x) in chronological order; series (optional) e.g. price band
+    var periods = [], seriesKeys = [];
+    var byKey = {}; // "series|period" -> row
+    rows.forEach(function (r) {
+      var parts = String(r.group).split(" · ");
+      var per, ser;
+      if (spec.series) { // group is "series · period" OR "period · series" depending on order; find the time part
+        var timeIdx = parts.findIndex(function (p) { return /\d{4}/.test(p); });
+        per = parts[timeIdx]; ser = parts[1 - timeIdx] || parts.filter(function (_, i) { return i !== timeIdx; })[0];
+      } else { per = parts[0]; ser = "_"; }
+      if (periods.indexOf(per) === -1) periods.push(per);
+      if (seriesKeys.indexOf(ser) === -1) seriesKeys.push(ser);
+      byKey[ser + "|" + per] = r;
+    });
+    periods.sort();
+    var maxY = 0;
+    Object.keys(byKey).forEach(function (k) { var r = byKey[k]; if (r.p75 != null) maxY = Math.max(maxY, r.p75); else if (r.median != null) maxY = Math.max(maxY, r.median); });
+    var dotsMode = spec.mode === "dots";
+    // in dots mode overlay real sales; recompute maxY from receipts too
+    var recByPer = {};
+    if (dotsMode) { (res.receipts || []).filter(function (x) { return !x.excluded && x.hammer_usd > 0; }).forEach(function (x) { var per = periodOf(spec.x, x.date); (recByPer[per] = recByPer[per] || []).push(x); maxY = Math.max(maxY, x.hammer_usd); }); }
+    axisY(svg, L, T, plotH, maxY, money);
+    var xw = plotW / Math.max(1, periods.length);
+    var xAt = function (per) { return L + periods.indexOf(per) * xw + xw / 2; };
+    var yAt = function (v) { return T + plotH - (maxY ? (v / maxY) * plotH : 0); };
+    periods.forEach(function (per) { svg.appendChild(E("text", { x: xAt(per), y: T + plotH + 16, "text-anchor": "middle", "font-size": 10, fill: AX }, per)); });
+    seriesKeys.forEach(function (ser, si) {
+      var col = colorFor(ser, si);
+      // build points where data exists (break line across empty periods)
+      var segs = [], cur = [];
+      periods.forEach(function (per) {
+        var r = byKey[ser + "|" + per];
+        if (r && r.median != null && !r.thin) { cur.push([xAt(per), yAt(r.median), r, per]); }
+        else { if (cur.length) segs.push(cur); cur = []; }
+      });
+      if (cur.length) segs.push(cur);
+      segs.forEach(function (seg) {
+        if (seg.length > 1) { var d = seg.map(function (p, i) { return (i ? "L" : "M") + p[0] + " " + p[1]; }).join(" "); svg.appendChild(E("path", { d: d, fill: "none", stroke: col, "stroke-width": 2 })); }
+        seg.forEach(function (p) {
+          var r = p[2];
+          if (!dotsMode) { // median point + p25-p75 whisker
+            if (r.p25 != null && r.p75 != null) svg.appendChild(E("line", { x1: p[0], y1: yAt(r.p25), x2: p[0], y2: yAt(r.p75), stroke: col, "stroke-width": 1.5, opacity: 0.55 }));
+            var c = E("circle", { cx: p[0], cy: p[1], r: 4, fill: col, class: "cmark" });
+            c.addEventListener("mousemove", function (e) { showTip(e.pageX, e.pageY, "<b>" + esc(ser === "_" ? p[3] : ser + " · " + p[3]) + "</b><br>median " + money(r.median) + "<br>p25-p75 " + money(r.p25) + " to " + money(r.p75) + "<br>" + r.count + " sales"); });
+            c.addEventListener("mouseleave", hideTip); svg.appendChild(c);
+          }
+        });
+      });
+    });
+    // dots mode: every real sale as a clickable dot
+    if (dotsMode) {
+      periods.forEach(function (per) {
+        (recByPer[per] || []).forEach(function (x, i) {
+          var jx = xAt(per) + (Math.random() - 0.5) * Math.min(22, xw * 0.5);
+          var dot = E("circle", { cx: jx, cy: yAt(x.hammer_usd), r: 3, fill: colorFor(x.venue, 0), opacity: 0.7, class: "cmark clk" });
+          bindReceipt(dot, x);
+          svg.appendChild(dot);
+        });
+      });
+      document.getElementById("cnote").textContent = "Every dot is a real sale, clickable to its receipt.";
+    } else {
+      document.getElementById("cnote").textContent = "Pool " + spec.pool + " sales (300+): each period shows the median with a p25 to p75 whisker; individual dots folded for size. Every sale is in the receipts.";
+    }
+    caption(svg, w, H, "Median (" + basisShort(spec.basis) + ")");
+    if (seriesKeys.length > 1) legend(svg, w, seriesKeys);
+  }
+
+  function drawStrip(svg, res, spec, w, narrow) {
+    var recs = (res.receipts || []).filter(function (r) { return !r.excluded && r.hammer_usd > 0; });
+    var capped = false, N = recs.length;
+    if (recs.length > spec.cap) { recs = shuffle(recs.slice()).slice(0, spec.cap); capped = true; }
+    var groupKey = spec.by === "generation" ? function (r) { return r.generation || "unknown"; } : function (r) { return r.venue; };
+    var groups = []; recs.forEach(function (r) { var g = groupKey(r); if (groups.indexOf(g) === -1) groups.push(g); });
+    var byCount = {}; recs.forEach(function (r) { byCount[groupKey(r)] = (byCount[groupKey(r)] || 0) + 1; });
+    groups = orderCats(spec.by, groups, byCount);
+    var prices = recs.map(function (r) { return r.hammer_usd; }), mn = Math.min.apply(null, prices), mx = Math.max.apply(null, prices);
+    var log = spec.scale === "log";
+    var pos = function (v) { return log ? (Math.log(v) - Math.log(mn)) / (Math.log(mx) - Math.log(mn) || 1) : (v - mn) / (mx - mn || 1); };
+    var H = 460;
+    if (narrow) { // vertical: price on Y, groups on X
+      var L = 60, R = 12, T = 16, B = 90, plotH = H - T - B, plotW = w - L - R, gw = plotW / groups.length;
+      axisPrice(svg, L, T, plotH, mn, mx, log, true);
+      groups.forEach(function (g, gi) {
+        svg.appendChild(E("text", { x: L + gi * gw + gw / 2, y: T + plotH + 14, "text-anchor": "end", "font-size": 9, fill: AX, transform: "rotate(-35 " + (L + gi * gw + gw / 2) + " " + (T + plotH + 14) + ")" }, g.length > 12 ? g.slice(0, 11) + "…" : g));
+      });
+      recs.forEach(function (r) { var gi = groups.indexOf(groupKey(r)); var cx = L + gi * gw + gw / 2 + (Math.random() - 0.5) * gw * 0.6; var cy = T + plotH - pos(r.hammer_usd) * plotH; var d = E("circle", { cx: cx, cy: cy, r: 3, fill: colorFor(r.venue, 0), opacity: 0.5, class: "cmark clk" }); bindReceipt(d, r); svg.appendChild(d); });
+    } else { // horizontal: price on X, one row per group
+      var L2 = 130, R2 = 20, T2 = 16, B2 = 44, plotH2 = H - T2 - B2, plotW2 = w - L2 - R2, rh = plotH2 / groups.length;
+      axisPrice(svg, L2, T2, plotW2, mn, mx, log, false, H - B2);
+      groups.forEach(function (g, gi) {
+        var y0 = T2 + gi * rh + rh / 2;
+        svg.appendChild(E("text", { x: L2 - 8, y: y0 + 3, "text-anchor": "end", "font-size": 10, fill: INK }, g.length > 18 ? g.slice(0, 17) + "…" : g));
+        svg.appendChild(E("line", { x1: L2, y1: y0, x2: w - R2, y2: y0, stroke: GRID, "stroke-width": 1, opacity: 0.5 }));
+      });
+      recs.forEach(function (r) { var gi = groups.indexOf(groupKey(r)); var cx = L2 + pos(r.hammer_usd) * plotW2; var cy = T2 + gi * rh + rh / 2 + (Math.random() - 0.5) * rh * 0.6; var d = E("circle", { cx: cx, cy: cy, r: 3.2, fill: colorFor(r.venue, 0), opacity: 0.5, class: "cmark clk" }); bindReceipt(d, r); svg.appendChild(d); });
+    }
+    caption(svg, w, H, "Price " + (log ? "(log scale, " : "(") + basisShort(spec.basis) + ")");
+    document.getElementById("cnote").textContent = (capped ? "500 of " + N + " shown, all in receipts. " : "") + "Every dot is one real sale; click to open its receipt.";
+  }
+
+  function drawStacked(svg, res, spec, w) {
+    var rows = res.answer.rows || [];
+    var periods = [], segs = [], byPS = {}, totByP = {};
+    rows.forEach(function (r) {
+      var parts = String(r.group).split(" · ");
+      var ti = parts.findIndex(function (p) { return /\d{4}/.test(p); });
+      var per = parts[ti], seg = parts[1 - ti];
+      if (periods.indexOf(per) === -1) periods.push(per);
+      if (segs.indexOf(seg) === -1) segs.push(seg);
+      byPS[seg + "|" + per] = r.count; totByP[per] = (totByP[per] || 0) + r.count;
+    });
+    periods.sort();
+    var L = 40, R = 20, T = 20, B = 60, H = 460, plotH = H - T - B, plotW = w - L - R, bw = Math.min(70, plotW / periods.length * 0.6);
+    // Y is share 0-100%
+    [0, 0.25, 0.5, 0.75, 1].forEach(function (f) { var y = T + plotH - f * plotH; svg.appendChild(E("line", { x1: L, y1: y, x2: w - R, y2: y, stroke: GRID })); svg.appendChild(E("text", { x: L - 6, y: y + 3, "text-anchor": "end", "font-size": 10, fill: AX }, (f * 100) + "%")); });
+    var xw = plotW / periods.length;
+    periods.forEach(function (per, pi) {
+      var x = L + pi * xw + (xw - bw) / 2, tot = totByP[per] || 0, thin = tot < spec.thin, acc = 0;
+      if (thin) { svg.appendChild(E("text", { x: x + bw / 2, y: T + plotH - 6, "text-anchor": "middle", "font-size": 10, fill: "#a4571f" }, tot + " (thin)")); }
+      else segs.forEach(function (seg, si) {
+        var c = byPS[seg + "|" + per] || 0; if (!c) return; var frac = c / tot, bh = frac * plotH, y = T + plotH - acc - bh; acc += bh;
+        var rect = E("rect", { x: x, y: y, width: bw, height: bh, fill: colorFor(seg, si), class: "cmark" });
+        rect.addEventListener("mousemove", function (e) { showTip(e.pageX, e.pageY, "<b>" + esc(seg) + " · " + esc(per) + "</b><br>" + c + " of " + tot + " (" + Math.round(frac * 100) + "%)"); });
+        rect.addEventListener("mouseleave", hideTip); svg.appendChild(rect);
+      });
+      svg.appendChild(E("text", { x: x + bw / 2, y: T + plotH + 16, "text-anchor": "middle", "font-size": 10, fill: AX }, per));
+    });
+    caption(svg, w, H, "Share of sales by count");
+    legend(svg, w, segs);
+    document.getElementById("cnote").textContent = "Segments sum to the real total per period; periods under " + spec.thin + " sales show counts and are marked thin.";
+  }
+
+  // ---- chart helpers ----
+  function rowById(rows, g) { for (var i = 0; i < rows.length; i++) if (rows[i].group === g) return rows[i]; return null; }
+  function periodOf(dim, date) { var d = new Date(date); if (dim === "year") return String(d.getUTCFullYear()); if (dim === "quarter") return d.getUTCFullYear() + " Q" + (Math.floor(d.getUTCMonth() / 3) + 1); return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0"); }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function bindReceipt(el, r) {
+    el.addEventListener("mousemove", function (e) { showTip(e.pageX, e.pageY, "<b>" + esc(r.venue) + "</b> " + fmtDate(r.date) + "<br>" + money(r.hammer_usd) + (r.mileage ? "<br>" + Math.round(r.mileage).toLocaleString() + " mi" : "") + (r.chassis ? "<br>" + esc(r.chassis) : "") + "<br><span style='opacity:.7'>" + esc((r.title || "").slice(0, 44)) + "</span>"); });
+    el.addEventListener("mouseleave", hideTip);
+    el.style.cursor = "pointer";
+    el.addEventListener("click", function () { if (r.link) window.open(r.link, "_blank", "noopener"); else { var t = document.getElementById("receipts"); if (t) t.scrollIntoView({ behavior: "smooth" }); } });
+  }
+  function axisY(svg, L, T, plotH, maxY, fmt) {
+    for (var f = 0; f <= 1.0001; f += 0.25) { var y = T + plotH - f * plotH; svg.appendChild(E("line", { x1: L, y1: y, x2: L + 3000, y2: y, stroke: GRID, opacity: 0.6 })); svg.appendChild(E("text", { x: L - 6, y: y + 3, "text-anchor": "end", "font-size": 10, fill: AX }, fmt(Math.round(maxY * f)))); }
+  }
+  function axisPrice(svg, L, T, span, mn, mx, log, vertical, baseY) {
+    var ticks = log ? logTicks(mn, mx) : linTicks(mn, mx);
+    ticks.forEach(function (v) {
+      var f = log ? (Math.log(v) - Math.log(mn)) / (Math.log(mx) - Math.log(mn) || 1) : (v - mn) / (mx - mn || 1);
+      if (vertical) { var y = T + span - f * span; svg.appendChild(E("line", { x1: L, y1: y, x2: L + 3000, y2: y, stroke: GRID, opacity: 0.5 })); svg.appendChild(E("text", { x: L - 6, y: y + 3, "text-anchor": "end", "font-size": 9, fill: AX }, money(v))); }
+      else { var x = L + f * span; svg.appendChild(E("line", { x1: x, y1: T, x2: x, y2: baseY, stroke: GRID, opacity: 0.5 })); svg.appendChild(E("text", { x: x, y: baseY + 14, "text-anchor": "middle", "font-size": 9, fill: AX }, money(v))); }
+    });
+  }
+  function logTicks(mn, mx) { var t = [], p = Math.floor(Math.log10(mn)); for (; Math.pow(10, p) <= mx * 1.0001; p++) { var v = Math.pow(10, p); if (v >= mn * 0.5) t.push(v); } return t.length ? t : [mn, mx]; }
+  function linTicks(mn, mx) { var t = [], step = (mx - mn) / 4; for (var i = 0; i <= 4; i++) t.push(mn + step * i); return t; }
+  function caption(svg, w, H, txt) { svg.appendChild(E("text", { x: 8, y: 12, "font-size": 10, fill: "#928b7a" }, txt)); }
+  function basisShort(b) { return /bid-to/.test(b || "") ? "bid-to USD" : "hammer USD, premiums backed out"; }
+  function legend(svg, w, keys) {
+    var x = 60, y = 452;
+    keys.slice(0, 8).forEach(function (k, i) { svg.appendChild(E("rect", { x: x, y: y - 9, width: 10, height: 10, fill: colorFor(k, i), rx: 2 })); var t = E("text", { x: x + 14, y: y, "font-size": 10, fill: INK }, k.length > 14 ? k.slice(0, 13) + "…" : k); svg.appendChild(t); x += 16 + Math.min(110, (k.length * 6 + 24)); });
+  }
+  function chartToPNG(svg) {
+    var xml = new XMLSerializer().serializeToString(svg);
+    var vb = svg.getAttribute("viewBox").split(" "), W = Number(vb[2]) * 2, Hh = Number(vb[3]) * 2;
+    var img = new Image();
+    img.onload = function () { var cv = document.createElement("canvas"); cv.width = W; cv.height = Hh; var cx = cv.getContext("2d"); cx.fillStyle = "#fffdf9"; cx.fillRect(0, 0, W, Hh); cx.drawImage(img, 0, 0, W, Hh); cv.toBlob(function (bl) { var u = URL.createObjectURL(bl); var a = document.createElement("a"); a.href = u; a.download = "sam-desk-chart-" + new Date().toISOString().slice(0, 10) + ".png"; document.body.appendChild(a); a.click(); setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(u); }, 500); }); };
+    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(xml)));
   }
 
   // ---- editable Build chips: change window / channel / sale_type and rerun ----
