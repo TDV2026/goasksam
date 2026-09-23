@@ -106,7 +106,9 @@
     h += '<b>Coverage.</b> Window ' + esc(cov.window || "") + '. Basis ' + esc(cov.price_basis === "hammer" ? "implied hammer, house premiums backed out" : "buyer paid") + '. ';
     h += 'Pool drawn from: ' + (srcs || "none") + '. ';
     if (cov.generations && cov.generations.length) h += 'Generations: ' + esc(cov.generations.join(", ")) + '. ';
+    if (cov.sale_type_split && cov.sale_type_split.house_total) h += 'House sales: ' + cov.sale_type_split.live + ' live, ' + cov.sale_type_split.online + ' online' + (cov.sale_type_inferred ? ' (live/online inferred from the house calendar where the record does not carry it)' : '') + '. ';
     h += 'Rooms ' + (cov.rooms_inferred ? 'are inferred from the house calendar where the record does not carry them' : 'stated only where the record carries them') + '. ';
+    if (cov.excluded_total) { var er = Object.keys(cov.excluded_by_reason || {}).map(function (k) { return cov.excluded_by_reason[k] + ' ' + k; }).join(", "); h += cov.excluded_total + ' rows excluded (shown in receipts): ' + esc(er) + '. '; }
     h += 'Thin threshold ' + (cov.thin_threshold || 5) + ' sales.';
     h += '</div>';
 
@@ -124,13 +126,16 @@
       else more.style.display = "none";
     }
     function recRow(r) {
-      var room = r.room ? '<span class="room ' + (r.room.source === "data" ? "data" : "inferred") + '">' + esc(r.room.text) + (r.room.source === "inferred" ? " (inferred)" : "") + '</span>' : "";
-      var buyer = r.buyer_paid ? (r.buyer_paid.currency !== "USD" ? esc(r.buyer_paid.currency) + " " : "$") + Math.round(r.buyer_paid.amount).toLocaleString("en-US") + (r.buyer_paid.premium_inclusive ? "" : "") : "&mdash;";
+      var st = r.sale_type ? '<span class="stype ' + (r.sale_type.type === "live" ? "live" : "online") + '">' + esc(r.sale_type.type) + (r.sale_type.source === "inferred" ? " (inf)" : "") + '</span>' : "";
+      var buyer = r.buyer_paid ? (r.buyer_paid.currency !== "USD" ? esc(r.buyer_paid.currency) + " " : "$") + Math.round(r.buyer_paid.amount).toLocaleString("en-US") : "&mdash;";
       var title = r.link ? '<a class="reclink" href="' + esc(r.link) + '" target="_blank" rel="noopener">' + esc((r.title || "listing").slice(0, 54)) + '</a>' : esc((r.title || "").slice(0, 54));
-      return '<tr>' +
+      var excl = r.excluded ? ' excl' : '';
+      var roomcell = r.room ? esc(r.room.text) + (r.room.source === "inferred" ? ' <span class="rinf">inf</span>' : '') : "&mdash;";
+      var reason = r.excluded ? '<div class="exreason">excluded: ' + esc(r.excluded_reason || "") + '</div>' : '';
+      return '<tr class="rec' + excl + '">' +
         '<td class="r">' + fmtDate(r.date) + '</td>' +
-        '<td>' + esc(r.venue) + room + '</td>' +
-        '<td>' + (r.room ? esc(r.room.text) : "&mdash;") + '</td>' +
+        '<td>' + esc(r.venue) + ' ' + st + reason + '</td>' +
+        '<td>' + roomcell + '</td>' +
         '<td class="r">' + usd(r.hammer_usd) + '</td>' +
         '<td class="r">' + buyer + '</td>' +
         '<td class="r">' + (r.mileage != null ? Math.round(r.mileage).toLocaleString("en-US") : "&mdash;") + '</td>' +
