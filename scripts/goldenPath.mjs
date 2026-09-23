@@ -315,6 +315,24 @@ async function resolverChecks() {
     check(`B16 regression 194371S119431 -> Chevrolet Corvette (chassis match)`,
       j.vehicle?.make === "Chevrolet" && /corvette/i.test(j.vehicle?.model || ""), `make=${j.vehicle?.make} model=${j.vehicle?.model}`);
   }
+
+  // B17: Lamborghini Miura + the fuzzy P-designation guard (Sep 2026 live session). "Miura P400 S"
+  // fell through to fuzzy, where the "P400" spec token matched the "400" sub-token of the enum
+  // model "350 GT / 400 GT" at 0.75 and mis-suggested that car. Curated Miura ownership resolves it
+  // straight to Miura (P400 S rides as trim); the fuzzy guard stops a letter+digits token reaching a
+  // bare-numeric SUB-token of a compound model. R regression: a clean nameplate still resolves first-time.
+  console.log(`\n### B17 Lamborghini Miura + fuzzy P-designation guard`);
+  {
+    let j = await resolveVehicle("1970 Lamborghini Miura P400 S"); let v = j.vehicle || {};
+    check(`B17 "Miura P400 S" -> Lamborghini Miura, NO "350 GT / 400 GT" did-you-mean`,
+      j.status === "valid" && v.make === "Lamborghini" && /miura/i.test(String(v.model || "")) && !/350|400 gt/i.test(String(v.model || "")), `status=${j.status} model=${v.model} trim=${v.trim} clar=${j.clarification?.question || ""}`);
+    j = await resolveVehicle("1970 Lamborghini Miura"); v = j.vehicle || {};
+    check(`B17 bare "Miura" -> Lamborghini Miura (curated, proper case, not unverified "MIURA")`,
+      j.status === "valid" && /^miura$/i.test(String(v.model || "")) && v.model === "Miura", `status=${j.status} model=${v.model} unv=${v.unverified}`);
+    j = await resolveVehicle("2013 Ferrari 458 Spider"); v = j.vehicle || {};
+    check(`B17 R regression: "458 Spider" resolves first-time, no did-you-mean`,
+      j.status === "valid" && v.make === "Ferrari" && /458/.test(String(v.model || "")), `status=${j.status} model=${v.model} clar=${j.clarification?.question || ""}`);
+  }
   return fails;
 }
 

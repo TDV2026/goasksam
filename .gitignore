@@ -8,3 +8,7 @@ scripts/coverage-progress.json
 scripts/warm-progress.json
 scripts/gp-out/
 .env*.local
+
+# Claude Code transient settings temp files (never commit; may contain secrets)
+.claude/settings.local.json.tmp*
+.claude/*.tmp.*
