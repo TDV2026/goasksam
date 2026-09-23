@@ -6,7 +6,7 @@
 // and the canned "year, make and model" line only renders after both fail.
 
 import { createHash } from "node:crypto";
-import { resolveVehicle } from "../lib/vehicle.js";
+import { resolveVehicle, lastResolveDebug } from "../lib/vehicle.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { recordUsageEvent, anthropicCost } from "./_usage.js";
 import { testerCodeExpired } from "../lib/_tester.js";
@@ -122,8 +122,9 @@ export default async function handler(req, res) {
     const vinActive = await vinFeatureActive(req.headers.cookie, env);
     // keepAsTyped (DEFECT 4): the seller insists on their designation after a
     // near-miss, so skip the "did you mean" confirmation and accept it unverified.
-    const resolveOpts = { ...(req.body?.keepAsTyped ? { keepAsTyped: true } : {}), ...(vinActive ? { vinConfirm: true } : {}) };
+    const resolveOpts = { ...(req.body?.keepAsTyped ? { keepAsTyped: true } : {}), ...(vinActive ? { vinConfirm: true } : {}), ...(req.body?.debug ? { debug: true } : {}) };
     let result = await resolveVehicle(raw, resolveOpts);
+    if (req.body?.debug) { try { result = { ...result, _debug: lastResolveDebug() }; } catch (e) {} }
     let fallbackUsed = null;
 
     // (b) A misspelled marque must ALWAYS land on the deterministic typo confirmation

@@ -2948,11 +2948,19 @@ export default async function handler(req, res) {
       const platforms = Array.isArray(req.body.platforms) ? req.body.platforms : ["Bring a Trailer", "Cars & Bids"];
       const yMin = Number(req.body.yearMin) || 2023, yMax = Number(req.body.yearMax) || 2025;
       const out = [];
+      const dFrom = req.body.dateFrom ? String(req.body.dateFrom) : null, dTo = req.body.dateTo ? String(req.body.dateTo) : null;
       for (const plat of platforms) {
         const rows = await pageAll(`sales_archive?select=id,year,sale_date&platform=eq.${encodeURIComponent(plat)}&sale_price=not.is.null`);
-        const byYear = {}; let earliest = null;
-        for (const r of rows) { const y = Number(r.year); if (y >= yMin && y <= yMax) byYear[y] = (byYear[y] || 0) + 1; if (r.sale_date && (!earliest || r.sale_date < earliest)) earliest = r.sale_date; }
-        out.push({ platform: plat, total: rows.length, byYear, earliest });
+        const byYear = {}; const bySaleYear = {}; let earliest = null; let inRange = 0;
+        for (const r of rows) {
+          const y = Number(r.year); if (y >= yMin && y <= yMax) byYear[y] = (byYear[y] || 0) + 1;
+          if (r.sale_date) {
+            if (!earliest || r.sale_date < earliest) earliest = r.sale_date;
+            const sy = String(r.sale_date).slice(0, 4); bySaleYear[sy] = (bySaleYear[sy] || 0) + 1;
+            if ((!dFrom || r.sale_date >= dFrom) && (!dTo || r.sale_date <= dTo)) inRange++;
+          }
+        }
+        out.push({ platform: plat, total: rows.length, byYear, bySaleYear, earliest, inRange });
       }
       return res.status(200).json({ status: "archive_query", mode, yMin, yMax, out });
     }
