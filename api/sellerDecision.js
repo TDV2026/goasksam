@@ -2987,6 +2987,12 @@ export default async function handler(req, res) {
       }
       return res.status(200).json({ status: "archive_query", mode, presence: out });
     }
+    if (mode === "sample") {
+      // TEMP diagnostic: full raw_record for a few rows of a platform (to find a live/online signal).
+      const plat = req.body.platform || "RM Sotheby's";
+      const rows = await supabaseSelect(env2, `sales_archive?select=id,listing_title,sale_date,raw_record&platform=eq.${encodeURIComponent(plat)}&sale_price=not.is.null&order=sale_date.desc&limit=${Number(req.body.limit) || 6}`);
+      return res.status(200).json({ status: "archive_query", mode, platform: plat, rows: (rows || []).map(r => ({ title: r.listing_title, date: r.sale_date, keys: Object.keys(r.raw_record || {}), raw: r.raw_record })) });
+    }
     if (mode === "count") {
       // Exact row counts via PostgREST Content-Range (no paging, no deep-offset timeout).
       // Reports total + per-sale-year counts for each platform over the given window.
