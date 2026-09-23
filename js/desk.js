@@ -137,7 +137,11 @@
 
     // 2. the receipts (every transaction behind the numbers)
     var recs = res.receipts || [];
-    h += '<div class="section" id="receipts"><div class="slabel">Receipts <span class="n">' + recs.length + ' sales</span></div>';
+    var exclN = (res.coverage && res.coverage.excluded_total) || recs.filter(function (r) { return r.excluded; }).length;
+    var qualifyN = (res.answer && res.answer.total) != null ? res.answer.total : (recs.length - exclN);
+    var foundN = qualifyN + exclN;
+    h += '<div class="section" id="receipts"><div class="slabel">Receipts <span class="n">' + recs.length + ' shown</span></div>';
+    if (exclN > 0) h += '<div class="reconcile">' + foundN + ' sales found &middot; ' + qualifyN + ' qualify &middot; ' + exclN + ' excluded (listed below with reasons)</div>';
     h += '<div class="tblwrap"><table class="receipts"><thead><tr>';
     h += '<th>date</th><th>venue</th><th>room</th><th class="r">hammer (USD)</th><th class="r">buyer paid</th><th class="r">miles</th><th>chassis</th><th>title</th>';
     h += '</tr></thead><tbody id="recbody"></tbody></table></div>';
