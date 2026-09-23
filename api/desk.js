@@ -1,0 +1,186 @@
+// Sam Desk API (Stage 1). Crew-gated, archive-only, zero OldCarsData.
+// Actions:
+//   map : natural language -> validated DSL (the model fills the DSL, never SQL)
+//   run : execute a validated DSL (or a question) -> four-part result
+// The result is { answer, receipts, read, echo, coverage } — a table, the
+// transactions behind every number, one grounded paragraph, and the query echo.
+import { validateDsl, echoChips } from "../lib/desk/query.js";
+import { executeDsl } from "../lib/desk/execute.js";
+import { supabaseSelect, supabaseInsert } from "../lib/_supabase.js";
+
+const MAP_MODEL = process.env.SAM_MODEL || "claude-sonnet-4-6";
+
+function parseCookies(header) {
+  const out = {};
+  String(header || "").split(/;\s*/).forEach(p => { const i = p.indexOf("="); if (i > 0) out[p.slice(0, i).trim()] = decodeURIComponent(p.slice(i + 1)); });
+  return out;
+}
+
+// The DSL grammar the mapper must fill. Kept compact; the validator is the real gate.
+const MAP_SYSTEM = `You translate a plain-English question about the collector-car AUCTION MARKET into a single JSON object called a Desk DSL. You NEVER write SQL or prose. Output ONLY the JSON object, nothing else.
+
+Shape:
+{
+  "filters": {
+    "make": string?, "model": string?, "trim": string?,
+    "descriptor": string?,           // a car phrase to resolve, e.g. "air-cooled 911", "E30 M3"
+    "generation": string?,           // a generation code if explicitly named: "964","993","E30"
+    "channel": "online"|"house"|"all"?,   // "house"/"auction house(s)" -> "house"; "BaT/online" -> "online"
+    "venue": string|string[]?,       // a named source, e.g. "bringatrailer","gooding"
+    "outcome": "sold"|"reserve_not_met"|"withdrawn"|"all"?,  // default sold
+    "window": "7d"|"30d"|"90d"|"6mo"|"12mo"|"24mo"|"36mo"|"qtd"|"ytd"|"this_quarter"|"last_quarter"|"this_year"|"last_year"?,
+    "sale_from": "YYYY-MM-DD"?, "sale_to": "YYYY-MM-DD"?,
+    "year_min": number?, "year_max": number?,
+    "state": string?, "country": string?, "flags": ("modified"|"restored"|"matching_numbers"|"documented")[]?
+  },
+  "groupBy": string[],   // dimensions to break the answer down by: venue, month, quarter, year, day_of_week, season, price_band, generation, model_year, transmission, channel
+  "measures": string[],  // count, share, median, p25, p75, min, max, sell_through_rate, reserve_not_met_rate, withdrawn_rate, reserve_premium, trend, velocity, day_of_week_effect, month_effect, freshness
+  "price_basis": "hammer"|"buyer_paid"?,   // default hammer
+  "compare": { "dimension": string, "a": any, "b": any }?   // e.g. this_quarter vs last_quarter
+}
+
+Rules: NEVER emit "mean","average","midpoint" (banned). "how many"/"most"->count. "what did they bring"/"prices"->median,p25,p75,min,max. "which house"->groupBy ["venue"], channel "house". "over N years/months"->window. "by month/quarter/year"->groupBy that. Two years -> "24mo". A pure valuation question ("what's my car worth") is NOT answerable: return {"filters":{},"groupBy":[],"measures":[],"refusal":"valuation"}. Emit only fields you are confident about; omit the rest.
+
+Examples:
+Q: "Which house has sold the most air-cooled 911s in the last two years, and what did they bring?"
+{"filters":{"make":"Porsche","model":"911","descriptor":"air-cooled 911","channel":"house","window":"24mo"},"groupBy":["venue"],"measures":["count","median","p25","p75","min","max"]}
+Q: "E30 M3s: median and count by month over three years, houses and online."
+{"filters":{"descriptor":"E30 M3","channel":"all","window":"36mo"},"groupBy":["month"],"measures":["median","count"]}
+Q: "what's my car worth"
+{"filters":{},"groupBy":[],"measures":[],"refusal":"valuation"}`;
+
+async function mapQuestion(question, apiKey) {
+  const body = {
+    model: MAP_MODEL, max_tokens: 700,
+    system: [{ type: "text", text: MAP_SYSTEM, cache_control: { type: "ephemeral" } }],
+    messages: [{ role: "user", content: `Question: ${question}\nReturn only the JSON.` }]
+  };
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify(body)
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(`map failed: ${r.status} ${JSON.stringify(data).slice(0, 200)}`);
+  let text = (data.content && data.content[0] && data.content[0].text) || "";
+  const m = text.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error("mapper returned no JSON");
+  return { raw: JSON.parse(m[0]), usage: data.usage };
+}
+
+// Deterministic read: generated ONLY from the structured result. Counts + caveats +
+// at most one observation. Bans: worth/estimate/appraisal/valuation/predict/recommend.
+function buildRead(result, dsl) {
+  const figures = [];
+  const total = result.total;
+  const win = result.coverage.window;
+  const dim = result.primaryDimension;
+  const sentences = [];
+  figures.push(`pool total ${total}`, `window ${win}`);
+  if (total < 5) {
+    sentences.push(`Only ${total} qualifying ${total === 1 ? "sale" : "sales"} in the pool over ${win}, which is too thin to read; the record is shown below without a computed spread.`);
+    return { text: sentences.join(" "), figures, observation: null };
+  }
+  const channelWord = dsl.filters.channel === "house" ? "at auction houses" : dsl.filters.channel === "online" ? "online" : "across online and house sales";
+  sentences.push(`Over ${win}, the pool holds ${total} ${result.resolvedLabel} ${channelWord === "" ? "sales" : channelWord + " sales"}.`);
+  let observation = null;
+  if (dim === "venue" && result.answer.length) {
+    const top = result.answer[0];
+    figures.push(`${top.group} count ${top.count}`);
+    let bit = `${top.group} accounts for the most at ${top.count} ${top.count === 1 ? "sale" : "sales"}`;
+    if (top.median != null) { bit += `, median hammer ${usd(top.median)}`; figures.push(`${top.group} median ${top.median}`); }
+    if (top.p25 != null && top.p75 != null) { bit += ` (p25 to p75 ${usd(top.p25)} to ${usd(top.p75)})`; figures.push(`${top.group} p25 ${top.p25}`, `${top.group} p75 ${top.p75}`); }
+    bit += ".";
+    observation = bit;
+    sentences.push(bit);
+  } else if (result.answer.length === 1) {
+    const a = result.answer[0];
+    if (a.median != null) { sentences.push(`Median hammer is ${usd(a.median)} across ${a.count} sales (p25 to p75 ${usd(a.p25)} to ${usd(a.p75)}).`); figures.push(`median ${a.median}`); }
+  }
+  const caveats = [];
+  if (result.coverage.rooms_inferred) caveats.push("rooms marked inferred are read from the house calendar, not the record");
+  if (result.answer.some(r => r.thin)) caveats.push("groups with fewer than 5 sales are shown as counts only, no spread");
+  if (dsl.price_basis === "hammer") caveats.push("prices are implied hammer with house premiums backed out");
+  if (result.coverage.generations && result.coverage.generations.length) { caveats.push(`generations in scope: ${result.coverage.generations.join(", ")}`); }
+  if (caveats.length) sentences.push("Note: " + caveats.join("; ") + ".");
+  return { text: sentences.join(" "), figures, observation };
+}
+
+function usd(n) { if (n == null) return "n/a"; return "$" + Math.round(n).toLocaleString("en-US"); }
+
+export default async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  // Crew / curtain gate (mirror of the archiveQuery gate: crew or tester cookie, or curtain unsealed).
+  const cookies = parseCookies(req.headers.cookie);
+  const crew = cookies.gas_crew === "ok";
+  const tester = cookies.gas_tester === "ok";
+  if (process.env.CURTAIN_SEALED === "1" && !crew && !tester) {
+    return res.status(403).json({ status: "sealed", error: "Not open yet." });
+  }
+  // Single seeded tenant for now: crew resolves to org "sam".
+  const org = crew ? "sam" : (tester ? "tester" : "public");
+
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+  const env = { supabaseUrl, supabaseKey };
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+
+  try {
+    const action = req.body?.action || (req.body?.question ? "run" : req.body?.dsl ? "run" : null);
+
+    if (action === "map" || (action === "run" && req.body?.question && !req.body?.dsl)) {
+      const question = String(req.body.question || "").trim();
+      if (!question) return res.status(400).json({ error: "no question" });
+      if (!apiKey) return res.status(500).json({ error: "mapper unavailable (no ANTHROPIC_API_KEY)" });
+      let mapped;
+      try { mapped = await mapQuestion(question, apiKey); }
+      catch (e) { return res.status(200).json({ status: "map_error", error: String(e.message || e) }); }
+      if (mapped.raw && mapped.raw.refusal === "valuation") {
+        return res.status(200).json({
+          status: "refused", reason: "valuation",
+          message: "The Desk does not value individual cars. It reports what the market did, with the receipts. For a single car's market reference, use the Leads car read.",
+          question
+        });
+      }
+      const v = validateDsl(mapped.raw);
+      if (action === "map") return res.status(200).json({ status: "mapped", question, dsl: v.dsl, ignored: v.ignored, errors: v.errors, notice: v.notice, chips: echoChips(v.dsl) });
+      if (!v.dsl) return res.status(200).json({ status: "invalid", question, errors: v.errors, ignored: v.ignored });
+      const result = await executeDsl(v.dsl, env, { vehicle: req.body?.vehicle });
+      return res.status(200).json(shapeRun(question, v, result));
+    }
+
+    if (action === "run") {
+      const v = validateDsl(req.body.dsl);
+      if (!v.dsl) return res.status(200).json({ status: "invalid", errors: v.errors, ignored: v.ignored });
+      const result = await executeDsl(v.dsl, env, { vehicle: req.body?.vehicle });
+      return res.status(200).json(shapeRun(null, v, result));
+    }
+
+    return res.status(400).json({ error: "unknown action" });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "desk failed", org });
+  }
+}
+
+function shapeRun(question, v, result) {
+  if (!result.ok) {
+    return { status: result.reason === "unresolved_car" ? "unresolved" : "error", question, reason: result.reason, resolution: result.resolution || undefined, chips: echoChips(v.dsl) };
+  }
+  const read = buildRead(result, v.dsl);
+  return {
+    status: "ok",
+    question,
+    echo: { chips: echoChips(v.dsl, result.resolvedLabel), dsl: v.dsl, ignored: v.ignored, notice: v.notice },
+    answer: { dimension: result.primaryDimension, total: result.total, rows: result.answer },
+    receipts: result.receipts,
+    read: read.text,
+    read_figures: read.figures,
+    coverage: result.coverage
+  };
+}
