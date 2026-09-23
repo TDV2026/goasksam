@@ -2944,6 +2944,33 @@ export default async function handler(req, res) {
       }
       return res.status(200).json({ status: "archive_query", mode, presence: out });
     }
+    if (mode === "count") {
+      // Exact row counts via PostgREST Content-Range (no paging, no deep-offset timeout).
+      // Reports total + per-sale-year counts for each platform over the given window.
+      const platforms = Array.isArray(req.body.platforms) ? req.body.platforms : ["Bring a Trailer", "Cars & Bids"];
+      const dFrom = req.body.dateFrom ? String(req.body.dateFrom) : null, dTo = req.body.dateTo ? String(req.body.dateTo) : null;
+      const exactCount = async (filters) => {
+        try {
+          const r = await fetch(`${supabaseUrl}/rest/v1/sales_archive?select=id&${filters}&limit=1`, {
+            headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`, Prefer: "count=exact", Range: "0-0" }
+          });
+          const cr = r.headers.get("content-range") || ""; const m = cr.match(/\/(\d+)$/);
+          return m ? Number(m[1]) : null;
+        } catch { return null; }
+      };
+      const out = [];
+      for (const plat of platforms) {
+        const pf = `platform=eq.${encodeURIComponent(plat)}&sale_price=not.is.null`;
+        const total = await exactCount(pf);
+        const windowCount = (dFrom || dTo) ? await exactCount(`${pf}${dFrom ? `&sale_date=gte.${dFrom}` : ""}${dTo ? `&sale_date=lte.${dTo}` : ""}`) : null;
+        const bySaleYear = {};
+        for (const y of [2020, 2021, 2022, 2023, 2024, 2025, 2026]) {
+          bySaleYear[y] = await exactCount(`${pf}&sale_date=gte.${y}-01-01&sale_date=lte.${y}-12-31`);
+        }
+        out.push({ platform: plat, total, windowCount, bySaleYear });
+      }
+      return res.status(200).json({ status: "archive_query", mode, dateFrom: dFrom, dateTo: dTo, out });
+    }
     if (mode === "yearCounts") {
       const platforms = Array.isArray(req.body.platforms) ? req.body.platforms : ["Bring a Trailer", "Cars & Bids"];
       const yMin = Number(req.body.yearMin) || 2023, yMax = Number(req.body.yearMax) || 2025;
