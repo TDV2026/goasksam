@@ -2977,6 +2977,22 @@ export default async function handler(req, res) {
         url: r.url || r.url2 || null }));
       return res.status(200).json({ status: "archive_query", mode, count: rows.length, rows });
     }
+    if (mode === "canonCount") {
+      // Read-only counts of the canonical layer (service-role) + optional VIN-in-canonical lookup.
+      // Zero OCD. Used to report canonical_sales / sale_aliases before/after a relink.
+      const exact = async (table, col) => {
+        try {
+          const r = await fetch(`${supabaseUrl}/rest/v1/${table}?select=${col}&limit=1`, { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`, Prefer: "count=exact", Range: "0-0" } });
+          const cr = r.headers.get("content-range") || ""; const m = cr.match(/\/(\d+)$/); return m ? Number(m[1]) : null;
+        } catch { return null; }
+      };
+      const canonical_sales = await exact("canonical_sales", "id");
+      const sale_aliases = await exact("sale_aliases", "source_record_id");
+      const vin = req.body.vin ? String(req.body.vin) : null;
+      let vinRows = null;
+      if (vin) { try { vinRows = await supabaseSelect(env2, `canonical_sales?select=id,make,model,year,sale_date,hammer_usd,primary_source,alias_count,chassis_vin_norm&chassis_vin_norm=eq.${encodeURIComponent(vin)}&limit=5`); } catch { vinRows = null; } }
+      return res.status(200).json({ status: "archive_query", mode, canonical_sales, sale_aliases, vin, vinRows });
+    }
     if (mode === "vinPresence") {
       // For a batch of VIN/chassis strings, return how many appear in >=2 archive rows (a prior sale
       // we could show) - used for the hvt100 vin_history metric. Archive-only.
