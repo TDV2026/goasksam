@@ -353,6 +353,16 @@ async function resolverChecks() {
     let r3 = validateDsl({ filters: { descriptor: "E30 M3" }, measures: ["midpoint"] });
     check(`B18 bans midpoint too; defaults measures when all rejected`,
       r3.dsl && r3.ignored.some(i => i.value === "midpoint") && r3.dsl.measures.includes("median"), JSON.stringify({ ig: r3.ignored.map(i => i.value), m: r3.dsl && r3.dsl.measures }));
+    // Stage-1 additions: sale_type dimension, non-sold outcome, velocity/sell-through measures,
+    // and a car-less market query (venue/channel scope, no car) is now valid.
+    let r4 = validateDsl({ filters: { descriptor: "993 Turbo", sale_type: "live" }, groupBy: ["sale_type"], measures: ["velocity"] });
+    check(`B18 accepts sale_type + velocity`, r4.dsl && r4.dsl.filters.sale_type === "live" && r4.dsl.groupBy.join() === "sale_type" && r4.dsl.measures.join() === "velocity", JSON.stringify(r4.dsl));
+    let r5 = validateDsl({ filters: { descriptor: "C2 Corvette", outcome: "reserve_not_met" }, groupBy: ["price_band"], measures: ["count", "median"] });
+    check(`B18 accepts outcome reserve_not_met`, r5.dsl && r5.dsl.outcome === "reserve_not_met", JSON.stringify({ o: r5.dsl && r5.dsl.outcome }));
+    let r6 = validateDsl({ filters: { venue: "bringatrailer", channel: "online", window: "6mo" }, groupBy: ["price_band", "quarter"], measures: ["sell_through_rate", "count"] });
+    check(`B18 car-less market query (venue scope, no car) is valid`, !!r6.dsl && r6.errors.length === 0 && r6.dsl.measures.includes("sell_through_rate"), JSON.stringify({ err: r6.errors, m: r6.dsl && r6.dsl.measures }));
+    let r7 = validateDsl({ measures: ["count"] });
+    check(`B18 no car AND no market scope is rejected`, !r7.dsl && r7.errors.length > 0, JSON.stringify(r7.errors));
   }
   return fails;
 }
