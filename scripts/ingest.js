@@ -196,29 +196,54 @@ for (const source of SOURCES) {
 // on_conflict=source_id becomes a heavy DO UPDATE when many rows already exist (large
 // raw_record JSONB + index maintenance), and a 250-row chunk hit Supabase's statement
 // timeout (57014) on the Collecting Cars re-ingest. So start SMALL and HALVE on any write
-// error down to a floor; only a chunk that fails even at the floor is a genuine failure
-// that reds the run. Progress advances only on a committed chunk, so nothing is skipped or
-// double-lost. --chunk overrides the base size.
+// error down to a floor; only a chunk that fails even at the floor is a genuine failure.
+// Progress advances only on a committed chunk, so nothing is skipped or double-lost.
+// --chunk overrides the base size.
+//
+// SKIP-DON'T-ABORT (Sep 2026, post 2023-2025 backfill): a chunk that fails even at the
+// floor no longer BREAKS the whole upsert. Aborting on the first floor-failure once
+// discarded ~63k already-fetched (already-metered) rows because one pathological chunk
+// timed out. Now the run records the bad chunk, advances past it, and keeps writing; the
+// skipped source_ids are reported so a targeted re-run can recover only them. One bad
+// chunk costs its own rows, never the remainder.
+//
+// --ignore-dupes (Sep 2026): backfills are almost entirely NEW rows, so the expensive
+// on-conflict DO UPDATE (JSONB rewrite) buys nothing and is what trips the statement
+// timeout. This flag switches to resolution=ignore-duplicates (DO NOTHING), a far lighter
+// write path. Use it for historical backfills; the nightly delta keeps merge semantics.
 const uniq = [...new Map(kept.filter(r => r.source_id).map(r => [r.source_id, r])).values()];
 const BASE_CHUNK = Math.max(1, Number(flag("chunk") || 100));
 const MIN_CHUNK = 25;
+const IGNORE_DUPES = flag("ignore-dupes") != null;
+const UPSERT_RES = IGNORE_DUPES ? "resolution=ignore-duplicates,return=minimal" : "resolution=merge-duplicates,return=minimal";
 let inserted = 0, insertError = null, chunk = BASE_CHUNK, i = 0, sinceGrow = 0;
+const skipped = [];   // {from, size, error} for chunks that failed even at the floor
 while (i < uniq.length) {
   const slice = uniq.slice(i, i + chunk);
-  const r = await supabaseInsert("sales_archive", slice, env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id");
+  const r = await supabaseInsert("sales_archive", slice, env.supabaseUrl, env.supabaseKey, UPSERT_RES, "?on_conflict=source_id");
   if (r.error) {
     if (chunk > MIN_CHUNK) {
       chunk = Math.max(MIN_CHUNK, Math.floor(chunk / 2)); sinceGrow = 0;
       process.stderr.write(`\n  insert error, retrying same rows at chunk ${chunk}: ${r.error}\n`);
       continue;   // retry the SAME offset at a smaller size
     }
-    insertError = r.error; break;   // failed even at the floor -> genuine failure
+    // Failed even at the floor: record this chunk's source_ids, advance past it, keep going.
+    // One bad chunk must never abandon the rest of an already-metered fetch.
+    insertError = r.error;
+    for (const row of slice) if (row.source_id) skipped.push(row.source_id);
+    process.stderr.write(`\n  insert SKIPPED ${slice.length} row(s) at offset ${i} (failed at floor chunk ${chunk}): ${r.error}\n`);
+    i += slice.length; sinceGrow = 0; chunk = MIN_CHUNK;   // stay small after a floor failure
+    continue;
   }
   inserted += slice.length; i += slice.length;
   // Ease the size back up after sustained success so a one-off heavy chunk doesn't pin us at the floor.
   if (chunk < BASE_CHUNK && ++sinceGrow >= 5) { chunk = Math.min(BASE_CHUNK, chunk * 2); sinceGrow = 0; }
 }
-if (insertError) { console.error("insert error:", insertError); failedSources.push(`insert: ${insertError}`); }
+if (skipped.length) {
+  console.error(`insert: ${skipped.length} row(s) SKIPPED across ${Math.ceil(skipped.length / MIN_CHUNK)} floor-failed chunk(s); last error: ${insertError}`);
+  console.error(`SKIPPED source_ids (first 50): ${skipped.slice(0, 50).join(",")}`);
+  failedSources.push(`insert: ${skipped.length} row(s) skipped (statement timeout at floor chunk); re-run to recover`);
+}
 
 // 7D.4 health check: any targeted day below the floor is surfaced loudly and
 // logged to app_usage_events, never silent.
