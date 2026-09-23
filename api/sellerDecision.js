@@ -2905,7 +2905,8 @@ export default async function handler(req, res) {
     try {
       const out = await handleDeskRequest(req.body, {
         env: { supabaseUrl, supabaseKey }, apiKey: process.env.ANTHROPIC_API_KEY,
-        crew: deskCrew, tester: deskTester, curtainSealed: process.env.CURTAIN_SEALED === "1"
+        crew: deskCrew, tester: deskTester, curtainSealed: process.env.CURTAIN_SEALED === "1",
+        org: deskCrew ? "sam" : (deskTester ? "tester" : "public"), seat: "crew"
       });
       const code = out.httpStatus || 200; delete out.httpStatus;
       return res.status(code).json(out);
