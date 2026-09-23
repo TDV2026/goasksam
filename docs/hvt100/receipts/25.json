@@ -3,14 +3,13 @@
  "listed": "1972 Datsun 240Z",
  "status": "compare",
  "year_scope": "adjacent years pooled (1970-1974)",
- "basis": "mixed (63% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (70% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Datsun",
   "model": "240Z",
   "window": "36mo",
   "year_min": 1970,
-  "year_max": 1974,
-  "body": "coupe"
+  "year_max": 1974
  },
  "halo_dropped": 0,
  "sales": [
@@ -31,22 +30,6 @@
    "title": "1972 DATSUN 240Z"
   },
   {
-   "date": "2026-05-22",
-   "venue": "Hemmings",
-   "price_usd": 23625,
-   "basis": "sold+fee",
-   "hammer_usd": 22500,
-   "native": {
-    "amount": 22500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1970,
-   "url": "https://www.hemmings.com/auction/1970-datsun-240z-williamsburg-va-568641",
-   "chassis": "HLS3000633",
-   "title": "One-Owner, Early Build 1970 Datsun 240Z"
-  },
-  {
    "date": "2026-01-21",
    "venue": "Barrett-Jackson",
    "price_usd": 37400,
@@ -63,36 +46,36 @@
    "title": "1972 DATSUN 240Z"
   },
   {
-   "date": "2025-07-19",
-   "venue": "Hemmings",
-   "price_usd": 6143,
-   "basis": "sold+fee",
-   "hammer_usd": 5850,
+   "date": "2025-07-11",
+   "venue": "Bonhams",
+   "price_usd": 40894,
+   "basis": "buyer-paid",
+   "hammer_usd": 35560,
    "native": {
-    "amount": 5850,
-    "currency": "USD",
-    "premium_inclusive": false
+    "amount": 32200,
+    "currency": "GBP",
+    "premium_inclusive": true
    },
-   "year": 1971,
-   "url": "https://www.hemmings.com/auction/1971-datsun-240z-east-wenatchee-wa-481056",
-   "chassis": "HLS3019210",
-   "title": "No-Reserve 1971 Datsun 240Z"
+   "year": 1972,
+   "url": "https://cars.bonhams.com/auction/30543/lot/140/1972-datsun-240z-imsa-competition-coupe-chassis-no-ghls30-72903-engine-no-l24-114431/",
+   "chassis": "GHLS3072903",
+   "title": "1972 Datsun 240Z IMSA Competition Coupé Chassis no. GHLS30-72903 Engine no. L24-114431"
   },
   {
-   "date": "2025-04-15",
-   "venue": "Hemmings",
-   "price_usd": 31500,
-   "basis": "sold+fee",
-   "hammer_usd": 30000,
+   "date": "2025-07-11",
+   "venue": "Bonhams",
+   "price_usd": 38100,
+   "basis": "buyer-paid",
+   "hammer_usd": 33130,
    "native": {
     "amount": 30000,
-    "currency": "USD",
-    "premium_inclusive": false
+    "currency": "GBP",
+    "premium_inclusive": true
    },
-   "year": 1971,
-   "url": "https://www.hemmings.com/auction/1971-datsun-240z-calgary-ab-578374",
-   "chassis": "HLS3039365",
-   "title": "Award-Winning, Restored 1971 Datsun 240Z"
+   "year": 1972,
+   "url": "https://cars.bonhams.com/auction/30543/lot/135/1972-datsun-240z-28-litre-rally-coupe-chassis-no-hls30136517-engine-no-l28-069646/",
+   "chassis": "HLS30136517",
+   "title": "1972 Datsun 240Z 2.8-Litre Rally Coupé Chassis no. HLS30136517 Engine no. L28-069646"
   },
   {
    "date": "2025-03-08",
@@ -141,6 +124,54 @@
    "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1972-datsun-240z-274953?origin=results",
    "chassis": "HLS3070075",
    "title": "1972 DATSUN 240Z"
+  },
+  {
+   "date": "2026-05-22",
+   "venue": "Hemmings",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 22500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.hemmings.com/auction/1970-datsun-240z-williamsburg-va-568641",
+   "chassis": "HLS3000633",
+   "title": "One-Owner, Early Build 1970 Datsun 240Z"
+  },
+  {
+   "date": "2025-07-19",
+   "venue": "Hemmings",
+   "price_usd": 6143,
+   "basis": "sold+fee",
+   "hammer_usd": 5850,
+   "native": {
+    "amount": 5850,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1971,
+   "url": "https://www.hemmings.com/auction/1971-datsun-240z-east-wenatchee-wa-481056",
+   "chassis": "HLS3019210",
+   "title": "No-Reserve 1971 Datsun 240Z"
+  },
+  {
+   "date": "2025-04-15",
+   "venue": "Hemmings",
+   "price_usd": 31500,
+   "basis": "sold+fee",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 30000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1971,
+   "url": "https://www.hemmings.com/auction/1971-datsun-240z-calgary-ab-578374",
+   "chassis": "HLS3039365",
+   "title": "Award-Winning, Restored 1971 Datsun 240Z"
   }
  ]
 }

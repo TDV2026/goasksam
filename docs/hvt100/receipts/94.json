@@ -3,18 +3,257 @@
  "listed": "2019 Chevrolet Corvette ZR1",
  "status": "compare",
  "year_scope": "exact 2019",
- "basis": "mixed (14% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (11% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Chevrolet",
   "model": "Corvette",
   "window": "36mo",
   "year_min": 2019,
   "year_max": 2019,
-  "trim": "ZR1",
-  "body": "coupe"
+  "trim": "ZR1"
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2026-05-16",
+   "venue": "Mecum",
+   "price_usd": 170000,
+   "basis": "sold+fee",
+   "hammer_usd": 162500,
+   "native": {
+    "amount": 178750,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2019,
+   "url": "https://www.mecum.com/lots/1170634/2019-chevrolet-corvette-zr1-coupe?aa_id=780626-0",
+   "chassis": "1G1Y52D97K5802620",
+   "title": "2019 Chevrolet Corvette ZR1 Coupe"
+  },
+  {
+   "date": "2026-05-14",
+   "venue": "Mecum",
+   "price_usd": 141750,
+   "basis": "sold+fee",
+   "hammer_usd": 135000,
+   "native": {
+    "amount": 148500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2019,
+   "url": "https://www.mecum.com/lots/1167380/2019-chevrolet-corvette-zr1-coupe?aa_id=781724-0",
+   "chassis": "1G1Y52D96K5800583",
+   "title": "2019 Chevrolet Corvette ZR1 Coupe"
+  },
+  {
+   "date": "2026-05-09",
+   "venue": "Mecum",
+   "price_usd": 172500,
+   "basis": "sold+fee",
+   "hammer_usd": 165000,
+   "native": {
+    "amount": 181500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2019,
+   "url": "https://www.mecum.com/lots/1172501/2019-chevrolet-corvette-zr1-coupe?aa_id=775953-0",
+   "chassis": "1G1Y52D99K5802053",
+   "title": "2019 Chevrolet Corvette ZR1 Coupe"
+  },
+  {
+   "date": "2026-04-18",
+   "venue": "Barrett-Jackson",
+   "price_usd": 198000,
+   "basis": "buyer-paid",
+   "hammer_usd": 180000,
+   "native": {
+    "amount": 198000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2019,
+   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/2019-chevrolet-corvette-zr1-299207?origin=results",
+   "chassis": "1G1Y52D94K5800274",
+   "title": "2019 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2026-04-11",
+   "venue": "Mecum",
+   "price_usd": 147000,
+   "basis": "sold+fee",
+   "hammer_usd": 140000,
+   "native": {
+    "amount": 154000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2019,
+   "url": "https://www.mecum.com/lots/1169255/2019-chevrolet-corvette-zr1-3zr-coupe?aa_id=769522-0",
+   "chassis": "1G1Y52D94K5800615",
+   "title": "2019 Chevrolet Corvette ZR1 3ZR Coupe"
+  },
+  {
+   "date": "2025-10-18",
+   "venue": "Barrett-Jackson",
+   "price_usd": 181500,
+   "basis": "buyer-paid",
+   "hammer_usd": 165000,
+   "native": {
+    "amount": 181500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2019,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2025/docket/vehicle/2019-chevrolet-corvette-zr1-289614?origin=results",
+   "chassis": "1G1Y42D96K5801736",
+   "title": "2019 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2025-10-03",
+   "venue": "Bonhams",
+   "price_usd": 151200,
+   "basis": "buyer-paid",
+   "hammer_usd": 135000,
+   "native": {
+    "amount": 151200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2019,
+   "url": "https://cars.bonhams.com/auction/30560/lot/122/2019-chevrolet-corvette-zr1-3zr-ztk-coupe-vin-1g1y52d98k5800827/",
+   "chassis": "ZFFWA19B000072583",
+   "title": "2019 Chevrolet Corvette ZR1 3ZR ZTK Coupe VIN. 1G1Y52D98K5800827"
+  },
+  {
+   "date": "2025-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 176000,
+   "basis": "buyer-paid",
+   "hammer_usd": 160000,
+   "native": {
+    "amount": 176000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2019,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2019-chevrolet-corvette-zr1-285037?origin=results",
+   "chassis": "1G1Y52D92K5801049",
+   "title": "2019 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2025-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 192500,
+   "basis": "buyer-paid",
+   "hammer_usd": 175000,
+   "native": {
+    "amount": 192500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2019,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2019-chevrolet-corvette-zr1-281517?origin=results",
+   "chassis": "1G1Y52D98K5801105",
+   "title": "2019 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2024-03-02",
+   "venue": "RM Sotheby's",
+   "price_usd": 246400,
+   "basis": "buyer-paid",
+   "hammer_usd": 220000,
+   "native": {
+    "amount": 246400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2019,
+   "url": "https://rmsothebys.com/auctions/mi24/lots/r0008-2019-chevrolet-corvette-zr1/",
+   "chassis": "1G1Y42D96K5800876",
+   "title": "2019 Chevrolet Corvette ZR1"
+  },
+  {
+   "date": "2024-01-28",
+   "venue": "Barrett-Jackson",
+   "price_usd": 165000,
+   "basis": "buyer-paid",
+   "hammer_usd": 150000,
+   "native": {
+    "amount": 165000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2019,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2019-chevrolet-corvette-zr1-272618?origin=results",
+   "chassis": "1G1Y52D93K5801478",
+   "title": "2019 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2024-01-28",
+   "venue": "Barrett-Jackson",
+   "price_usd": 151800,
+   "basis": "buyer-paid",
+   "hammer_usd": 138000,
+   "native": {
+    "amount": 151800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2019,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2019-chevrolet-corvette-zr1-272344?origin=results",
+   "chassis": "1G1Y52D97K5802696",
+   "title": "2019 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2024-01-28",
+   "venue": "Barrett-Jackson",
+   "price_usd": 183700,
+   "basis": "buyer-paid",
+   "hammer_usd": 167000,
+   "native": {
+    "amount": 183700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2019,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2019-chevrolet-corvette-zr1-271650?origin=results",
+   "chassis": "1G1Y42D98K5800555",
+   "title": "2019 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2024-01-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 198000,
+   "basis": "buyer-paid",
+   "hammer_usd": 180000,
+   "native": {
+    "amount": 198000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2019,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2019-chevrolet-corvette-zr1-271919?origin=results",
+   "chassis": "1G1Y22D95K5802267",
+   "title": "2019 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2024-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 150700,
+   "basis": "buyer-paid",
+   "hammer_usd": 137000,
+   "native": {
+    "amount": 150700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2019,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2019-chevrolet-corvette-zr1-273637?origin=results",
+   "chassis": "1G1Y52D93K5800444",
+   "title": "2019 CHEVROLET CORVETTE ZR1"
+  },
   {
    "date": "2026-09-15",
    "venue": "Bring a Trailer",
@@ -80,22 +319,6 @@
    "title": "951-Mile 2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK"
   },
   {
-   "date": "2026-08-18",
-   "venue": "Bring a Trailer",
-   "price_usd": 188500,
-   "basis": "sold+fee",
-   "hammer_usd": 181000,
-   "native": {
-    "amount": 181000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-convertible-52/",
-   "chassis": "1G1Y53D95K5801147",
-   "title": "92-Mile 2019 Chevrolet Corvette ZR1 Convertible 3ZR"
-  },
-  {
    "date": "2026-08-11",
    "venue": "Bring a Trailer",
    "price_usd": 179217,
@@ -126,22 +349,6 @@
    "url": "https://carsandbids.com/auctions/3BZnQgdA/2019-chevrolet-corvette-zr1-coupe-3zr-ztk",
    "chassis": "1G1Y42D94K5801556",
    "title": "2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK"
-  },
-  {
-   "date": "2026-07-30",
-   "venue": "Bring a Trailer",
-   "price_usd": 182500,
-   "basis": "sold+fee",
-   "hammer_usd": 175000,
-   "native": {
-    "amount": 175000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-convertible-51/",
-   "chassis": "1G1Y53D94K5801110",
-   "title": "279-Mile 2019 Chevrolet Corvette ZR1 Convertible 3ZR"
   },
   {
    "date": "2026-07-27",
@@ -192,22 +399,6 @@
    "title": "7k-Mile 2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK 7-Speed"
   },
   {
-   "date": "2026-06-27",
-   "venue": "Barrett-Jackson",
-   "price_usd": 165000,
-   "basis": "buyer-paid",
-   "hammer_usd": 150000,
-   "native": {
-    "amount": 165000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.barrett-jackson.com/2026-columbus/docket/vehicle/2019-chevrolet-corvette-zr1-convertible-300625?origin=results",
-   "chassis": "1G1Y53D92K5800439",
-   "title": "2019 CHEVROLET CORVETTE ZR1 CONVERTIBLE"
-  },
-  {
    "date": "2026-05-27",
    "venue": "Bring a Trailer",
    "price_usd": 163501,
@@ -238,22 +429,6 @@
    "url": "https://www.sothebysmotorsport.com/auction/2019-chevrolet-corvettezr1coupe3zrztk-9920",
    "chassis": "1G1Y52D97K5802116",
    "title": "2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK"
-  },
-  {
-   "date": "2026-05-22",
-   "venue": "Sotheby's Motorsport",
-   "price_usd": 129150,
-   "basis": "sold+fee",
-   "hammer_usd": 123000,
-   "native": {
-    "amount": 123000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://www.sothebysmotorsport.com/auction/2019-chevrolet-corvettezr1convertible-8681",
-   "chassis": "1G1Y33D91K5802463",
-   "title": "2019 Chevrolet Corvette ZR1 Convertible"
   },
   {
    "date": "2026-05-22",
@@ -288,70 +463,6 @@
    "title": "1,600-Mile 2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK 7-Speed"
   },
   {
-   "date": "2026-05-16",
-   "venue": "Mecum",
-   "price_usd": 170000,
-   "basis": "sold+fee",
-   "hammer_usd": 162500,
-   "native": {
-    "amount": 178750,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.mecum.com/lots/1170634/2019-chevrolet-corvette-zr1-coupe?aa_id=780626-0",
-   "chassis": "1G1Y52D97K5802620",
-   "title": "2019 Chevrolet Corvette ZR1 Coupe"
-  },
-  {
-   "date": "2026-05-15",
-   "venue": "Mecum",
-   "price_usd": 157500,
-   "basis": "sold+fee",
-   "hammer_usd": 150000,
-   "native": {
-    "amount": 165000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.mecum.com/lots/1168752/2019-chevrolet-corvette-zr1-convertible?aa_id=778486-0",
-   "chassis": null,
-   "title": "2019 Chevrolet Corvette ZR1 Convertible"
-  },
-  {
-   "date": "2026-05-14",
-   "venue": "Mecum",
-   "price_usd": 141750,
-   "basis": "sold+fee",
-   "hammer_usd": 135000,
-   "native": {
-    "amount": 148500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.mecum.com/lots/1167380/2019-chevrolet-corvette-zr1-coupe?aa_id=781724-0",
-   "chassis": "1G1Y52D96K5800583",
-   "title": "2019 Chevrolet Corvette ZR1 Coupe"
-  },
-  {
-   "date": "2026-05-09",
-   "venue": "Mecum",
-   "price_usd": 172500,
-   "basis": "sold+fee",
-   "hammer_usd": 165000,
-   "native": {
-    "amount": 181500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.mecum.com/lots/1172501/2019-chevrolet-corvette-zr1-coupe?aa_id=775953-0",
-   "chassis": "1G1Y52D99K5802053",
-   "title": "2019 Chevrolet Corvette ZR1 Coupe"
-  },
-  {
    "date": "2026-05-06",
    "venue": "Sotheby's Motorsport",
    "price_usd": 177500,
@@ -366,22 +477,6 @@
    "url": "https://www.sothebysmotorsport.com/auction/2019-chevrolet-corvettezr1coupe3zrztk-9626",
    "chassis": "1G1Y52D97K5801595",
    "title": "2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK"
-  },
-  {
-   "date": "2026-04-18",
-   "venue": "Barrett-Jackson",
-   "price_usd": 198000,
-   "basis": "buyer-paid",
-   "hammer_usd": 180000,
-   "native": {
-    "amount": 198000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/2019-chevrolet-corvette-zr1-299207?origin=results",
-   "chassis": "1G1Y52D94K5800274",
-   "title": "2019 CHEVROLET CORVETTE ZR1"
   },
   {
    "date": "2026-04-17",
@@ -414,22 +509,6 @@
    "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-coupe-181/",
    "chassis": "1G1Y52D99K5800125",
    "title": "22k-Mile 2019 Chevrolet Corvette ZR1 Coupe 3ZR"
-  },
-  {
-   "date": "2026-04-11",
-   "venue": "Mecum",
-   "price_usd": 147000,
-   "basis": "sold+fee",
-   "hammer_usd": 140000,
-   "native": {
-    "amount": 154000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.mecum.com/lots/1169255/2019-chevrolet-corvette-zr1-3zr-coupe?aa_id=769522-0",
-   "chassis": "1G1Y52D94K5800615",
-   "title": "2019 Chevrolet Corvette ZR1 3ZR Coupe"
   },
   {
    "date": "2026-04-10",
@@ -576,38 +655,6 @@
    "title": "9k-Mile 2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK 7-Speed"
   },
   {
-   "date": "2026-01-28",
-   "venue": "Sotheby's Motorsport",
-   "price_usd": 219500,
-   "basis": "sold+fee",
-   "hammer_usd": 212000,
-   "native": {
-    "amount": 212000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://www.sothebysmotorsport.com/auction/2019-chevrolet-corvettezr1convertible3zr82miles-8443",
-   "chassis": "1G1Y53D90K5802612",
-   "title": "2019 Chevrolet Corvette ZR1 Convertible 3ZR — 82 Miles"
-  },
-  {
-   "date": "2026-01-24",
-   "venue": "Barrett-Jackson",
-   "price_usd": 170500,
-   "basis": "buyer-paid",
-   "hammer_usd": 155000,
-   "native": {
-    "amount": 170500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2019-chevrolet-corvette-zr1-convertible-292826?origin=results",
-   "chassis": "1G1Y53D93K5800143",
-   "title": "2019 CHEVROLET CORVETTE ZR1 CONVERTIBLE"
-  },
-  {
    "date": "2026-01-13",
    "venue": "Bring a Trailer",
    "price_usd": 347500,
@@ -622,22 +669,6 @@
    "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-coupe-159/",
    "chassis": "1G1Y42D99K5800547",
    "title": "3k-Mile 2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK 7-Speed"
-  },
-  {
-   "date": "2026-01-03",
-   "venue": "Bring a Trailer",
-   "price_usd": 227500,
-   "basis": "sold+fee",
-   "hammer_usd": 220000,
-   "native": {
-    "amount": 220000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-convertible-42/",
-   "chassis": "1G1Y43D99K5802188",
-   "title": "2,800-Mile 2019 Chevrolet Corvette ZR1 Convertible 3ZR 7-Speed"
   },
   {
    "date": "2025-12-17",
@@ -670,22 +701,6 @@
    "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-coupe-156/",
    "chassis": "1G1Y52D96K5700015",
    "title": "2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK"
-  },
-  {
-   "date": "2025-12-02",
-   "venue": "Cars & Bids",
-   "price_usd": 167500,
-   "basis": "sold+fee",
-   "hammer_usd": 160000,
-   "native": {
-    "amount": 160000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://carsandbids.com/auctions/9XQeWaJO/2019-chevrolet-corvette-zr1-convertible",
-   "chassis": "1G1Y53D93K5800210",
-   "title": "2019 Chevrolet Corvette ZR1 Convertible"
   },
   {
    "date": "2025-11-26",
@@ -736,38 +751,6 @@
    "title": "358-Mile 2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK"
   },
   {
-   "date": "2025-10-18",
-   "venue": "Barrett-Jackson",
-   "price_usd": 166100,
-   "basis": "buyer-paid",
-   "hammer_usd": 151000,
-   "native": {
-    "amount": 166100,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2025/docket/vehicle/2019-chevrolet-corvette-zr1-convertible-289731?origin=results",
-   "chassis": "1G1Y53D92K5800439",
-   "title": "2019 CHEVROLET CORVETTE ZR1 CONVERTIBLE"
-  },
-  {
-   "date": "2025-10-18",
-   "venue": "Barrett-Jackson",
-   "price_usd": 181500,
-   "basis": "buyer-paid",
-   "hammer_usd": 165000,
-   "native": {
-    "amount": 181500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2025/docket/vehicle/2019-chevrolet-corvette-zr1-289614?origin=results",
-   "chassis": "1G1Y42D96K5801736",
-   "title": "2019 CHEVROLET CORVETTE ZR1"
-  },
-  {
    "date": "2025-10-17",
    "venue": "Bring a Trailer",
    "price_usd": 167500,
@@ -782,22 +765,6 @@
    "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-coupe-148/",
    "chassis": "1G1Y52D91K5800006",
    "title": "897-Mile 2019 Chevrolet Corvette ZR1 Coupe"
-  },
-  {
-   "date": "2025-10-03",
-   "venue": "Bonhams",
-   "price_usd": 151200,
-   "basis": "buyer-paid",
-   "hammer_usd": 135000,
-   "native": {
-    "amount": 151200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://cars.bonhams.com/auction/30560/lot/122/2019-chevrolet-corvette-zr1-3zr-ztk-coupe-vin-1g1y52d98k5800827/",
-   "chassis": "ZFFWA19B000072583",
-   "title": "2019 Chevrolet Corvette ZR1 3ZR ZTK Coupe VIN. 1G1Y52D98K5800827"
   },
   {
    "date": "2025-10-02",
@@ -848,22 +815,6 @@
    "title": "3,900-Mile 2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK"
   },
   {
-   "date": "2025-09-12",
-   "venue": "Bring a Trailer",
-   "price_usd": 175500,
-   "basis": "sold+fee",
-   "hammer_usd": 168000,
-   "native": {
-    "amount": 168000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-convertible-37/",
-   "chassis": "1G1Y53D94K5802127",
-   "title": "3,300-Mile 2019 Chevrolet Corvette ZR1 Convertible 3ZR"
-  },
-  {
    "date": "2025-09-04",
    "venue": "Bring a Trailer",
    "price_usd": 197500,
@@ -880,22 +831,6 @@
    "title": "3,900-Mile 2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK 7-Speed"
   },
   {
-   "date": "2025-08-16",
-   "venue": "Gooding Christie's",
-   "price_usd": 145600,
-   "basis": "buyer-paid",
-   "hammer_usd": 130000,
-   "native": {
-    "amount": 145600,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.goodingco.com/lot/2019-chevrolet-corvette-zr1-convertible",
-   "chassis": "1G1Y53D9XK5802651",
-   "title": "2019 Chevrolet Corvette ZR1 Convertible"
-  },
-  {
    "date": "2025-08-12",
    "venue": "Bring a Trailer",
    "price_usd": 157500,
@@ -910,22 +845,6 @@
    "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-coupe-137/",
    "chassis": "1G1Y52D93K5800458",
    "title": "1,400-Mile 2019 Chevrolet Corvette ZR1 Coupe 3ZR"
-  },
-  {
-   "date": "2025-07-27",
-   "venue": "Bring a Trailer",
-   "price_usd": 237500,
-   "basis": "sold+fee",
-   "hammer_usd": 230000,
-   "native": {
-    "amount": 230000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-convertible-36/",
-   "chassis": "1G1Y53D94K5800894",
-   "title": "135-Kilometer 2019 Chevrolet Corvette ZR1 Convertible 3ZR ZTK"
   },
   {
    "date": "2025-07-10",
@@ -1024,22 +943,6 @@
    "title": "2019 Chevrolet Corvette ZR1 Coupe 3ZR"
   },
   {
-   "date": "2025-05-20",
-   "venue": "Bring a Trailer",
-   "price_usd": 171000,
-   "basis": "sold+fee",
-   "hammer_usd": 163500,
-   "native": {
-    "amount": 163500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-convertible-32/",
-   "chassis": "1G1Y43D91K5802010",
-   "title": "One-Owner 2019 Chevrolet Corvette ZR1 Convertible 3ZR 7-Speed"
-  },
-  {
    "date": "2025-05-19",
    "venue": "Bring a Trailer",
    "price_usd": 283500,
@@ -1054,22 +957,6 @@
    "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-coupe-127/",
    "chassis": "1G1Y42D90K5801571",
    "title": "5-Mile 2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK 7-Speed"
-  },
-  {
-   "date": "2025-04-26",
-   "venue": "Barrett-Jackson",
-   "price_usd": 184800,
-   "basis": "buyer-paid",
-   "hammer_usd": 168000,
-   "native": {
-    "amount": 184800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.barrett-jackson.com/palm-beach-2025/docket/vehicle/2019-chevrolet-corvette-zr1-convertible-287308?origin=results",
-   "chassis": "1G1Y53D96K5800928",
-   "title": "2019 CHEVROLET CORVETTE ZR1 CONVERTIBLE"
   },
   {
    "date": "2025-04-26",
@@ -1134,22 +1021,6 @@
    "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-coupe-123/",
    "chassis": "1G1Y42D91K5801336",
    "title": "13k-Mile 2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK 7-Speed"
-  },
-  {
-   "date": "2025-04-13",
-   "venue": "Bring a Trailer",
-   "price_usd": 153999,
-   "basis": "sold+fee",
-   "hammer_usd": 146666,
-   "native": {
-    "amount": 146666,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-convertible-30/",
-   "chassis": "1G1Y53D9XK5802844",
-   "title": "2019 Chevrolet Corvette ZR1 Convertible 3ZR"
   },
   {
    "date": "2025-03-25",
@@ -1232,22 +1103,6 @@
    "title": "2019 Chevrolet Corvette ZR1 Coupe"
   },
   {
-   "date": "2025-02-26",
-   "venue": "Bring a Trailer",
-   "price_usd": 129150,
-   "basis": "sold+fee",
-   "hammer_usd": 123000,
-   "native": {
-    "amount": 123000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-convertible-27/",
-   "chassis": "1G1Y53D95K5801374",
-   "title": "One-Owner 2019 Chevrolet Corvette ZR1 Convertible 3ZR"
-  },
-  {
    "date": "2025-02-13",
    "venue": "Bring a Trailer",
    "price_usd": 259500,
@@ -1262,38 +1117,6 @@
    "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-coupe-115/",
    "chassis": "1G1Y42D90K5802719",
    "title": "2,700-Mile 2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK 7-Speed"
-  },
-  {
-   "date": "2025-01-25",
-   "venue": "Barrett-Jackson",
-   "price_usd": 176000,
-   "basis": "buyer-paid",
-   "hammer_usd": 160000,
-   "native": {
-    "amount": 176000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2019-chevrolet-corvette-zr1-285037?origin=results",
-   "chassis": "1G1Y52D92K5801049",
-   "title": "2019 CHEVROLET CORVETTE ZR1"
-  },
-  {
-   "date": "2025-01-24",
-   "venue": "Barrett-Jackson",
-   "price_usd": 192500,
-   "basis": "buyer-paid",
-   "hammer_usd": 175000,
-   "native": {
-    "amount": 192500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2019-chevrolet-corvette-zr1-281517?origin=results",
-   "chassis": "1G1Y52D98K5801105",
-   "title": "2019 CHEVROLET CORVETTE ZR1"
   },
   {
    "date": "2025-01-09",
@@ -1456,22 +1279,6 @@
    "title": "3,400-Mile 2019 Chevrolet Corvette ZR1 Coupe ZTK 3ZR 7-Speed"
   },
   {
-   "date": "2024-09-24",
-   "venue": "Bring a Trailer",
-   "price_usd": 207500,
-   "basis": "sold+fee",
-   "hammer_usd": 200000,
-   "native": {
-    "amount": 200000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-convertible-20/",
-   "chassis": "1G1Y53D99K5802589",
-   "title": "102-Mile 2019 Chevrolet Corvette ZR1 Convertible 3ZR ZTK"
-  },
-  {
    "date": "2024-09-18",
    "venue": "Bring a Trailer",
    "price_usd": 259500,
@@ -1600,22 +1407,6 @@
    "title": "2019 Chevrolet Corvette ZR1 3ZR"
   },
   {
-   "date": "2024-04-28",
-   "venue": "Bring a Trailer",
-   "price_usd": 150150,
-   "basis": "sold+fee",
-   "hammer_usd": 143000,
-   "native": {
-    "amount": 143000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-convertible-21/",
-   "chassis": "1G1Y53D90K5800505",
-   "title": "6k-Mile 2019 Chevrolet Corvette ZR1 Convertible 3ZR"
-  },
-  {
    "date": "2024-04-14",
    "venue": "Bring a Trailer",
    "price_usd": 222500,
@@ -1648,22 +1439,6 @@
    "title": "1,500-Mile 2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK"
   },
   {
-   "date": "2024-03-02",
-   "venue": "RM Sotheby's",
-   "price_usd": 246400,
-   "basis": "buyer-paid",
-   "hammer_usd": 220000,
-   "native": {
-    "amount": 246400,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://rmsothebys.com/auctions/mi24/lots/r0008-2019-chevrolet-corvette-zr1/",
-   "chassis": "1G1Y42D96K5800876",
-   "title": "2019 Chevrolet Corvette ZR1"
-  },
-  {
    "date": "2024-02-06",
    "venue": "Bring a Trailer",
    "price_usd": 160500,
@@ -1678,102 +1453,6 @@
    "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-coupe-74/",
    "chassis": "1G1Y52D91K5802449",
    "title": "2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK"
-  },
-  {
-   "date": "2024-01-28",
-   "venue": "Barrett-Jackson",
-   "price_usd": 165000,
-   "basis": "buyer-paid",
-   "hammer_usd": 150000,
-   "native": {
-    "amount": 165000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2019-chevrolet-corvette-zr1-272618?origin=results",
-   "chassis": "1G1Y52D93K5801478",
-   "title": "2019 CHEVROLET CORVETTE ZR1"
-  },
-  {
-   "date": "2024-01-28",
-   "venue": "Barrett-Jackson",
-   "price_usd": 151800,
-   "basis": "buyer-paid",
-   "hammer_usd": 138000,
-   "native": {
-    "amount": 151800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2019-chevrolet-corvette-zr1-272344?origin=results",
-   "chassis": "1G1Y52D97K5802696",
-   "title": "2019 CHEVROLET CORVETTE ZR1"
-  },
-  {
-   "date": "2024-01-28",
-   "venue": "Barrett-Jackson",
-   "price_usd": 183700,
-   "basis": "buyer-paid",
-   "hammer_usd": 167000,
-   "native": {
-    "amount": 183700,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2019-chevrolet-corvette-zr1-271650?origin=results",
-   "chassis": "1G1Y42D98K5800555",
-   "title": "2019 CHEVROLET CORVETTE ZR1"
-  },
-  {
-   "date": "2024-01-27",
-   "venue": "Barrett-Jackson",
-   "price_usd": 198000,
-   "basis": "buyer-paid",
-   "hammer_usd": 180000,
-   "native": {
-    "amount": 198000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2019-chevrolet-corvette-zr1-271919?origin=results",
-   "chassis": "1G1Y22D95K5802267",
-   "title": "2019 CHEVROLET CORVETTE ZR1"
-  },
-  {
-   "date": "2024-01-27",
-   "venue": "Barrett-Jackson",
-   "price_usd": 221100,
-   "basis": "buyer-paid",
-   "hammer_usd": 201000,
-   "native": {
-    "amount": 221100,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2019-chevrolet-corvette-zr1-convertible-271780?origin=results",
-   "chassis": "1G1Y43D9XK5801051",
-   "title": "2019 CHEVROLET CORVETTE ZR1 CONVERTIBLE"
-  },
-  {
-   "date": "2024-01-26",
-   "venue": "Barrett-Jackson",
-   "price_usd": 150700,
-   "basis": "buyer-paid",
-   "hammer_usd": 137000,
-   "native": {
-    "amount": 150700,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2019,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2019-chevrolet-corvette-zr1-273637?origin=results",
-   "chassis": "1G1Y52D93K5800444",
-   "title": "2019 CHEVROLET CORVETTE ZR1"
   },
   {
    "date": "2024-01-09",
@@ -1806,22 +1485,6 @@
    "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-coupe-67/",
    "chassis": "1G1Y22D9XK5802202",
    "title": "1,700-Mile 2019 Chevrolet Corvette ZR1 Coupe 7-Speed"
-  },
-  {
-   "date": "2023-12-23",
-   "venue": "Bring a Trailer",
-   "price_usd": 151200,
-   "basis": "sold+fee",
-   "hammer_usd": 144000,
-   "native": {
-    "amount": 144000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://bringatrailer.com/listing/2019-chevrolet-corvette-zr1-convertible-17/",
-   "chassis": "1G1Y53D93K5801423",
-   "title": "6k-Mile 2019 Chevrolet Corvette ZR1 Convertible 3ZR"
   },
   {
    "date": "2023-12-16",

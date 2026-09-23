@@ -9,11 +9,58 @@
   "model": "M3",
   "window": "36mo",
   "year_min": 1989,
-  "year_max": 1991,
-  "body": "coupe"
+  "year_max": 1991
  },
- "halo_dropped": 13,
+ "halo_dropped": 9,
  "sales": [
+  {
+   "date": "2025-05-25",
+   "venue": "Broad Arrow",
+   "price_usd": 74520,
+   "basis": "buyer-paid",
+   "hammer_usd": 64800,
+   "native": {
+    "amount": 69000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1989,
+   "url": "https://www.broadarrowauctions.com/vehicles/ve25_r053/1989-bmw-m3",
+   "chassis": "WBSAK05000AE41401",
+   "title": "1989 BMW M3"
+  },
+  {
+   "date": "2025-05-25",
+   "venue": "Broad Arrow",
+   "price_usd": 99360,
+   "basis": "buyer-paid",
+   "hammer_usd": 86400,
+   "native": {
+    "amount": 92000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1989,
+   "url": "https://www.broadarrowauctions.com/vehicles/ve25_r054/1989-bmw-m3-cecotto",
+   "chassis": "WBSAK05010AE40578",
+   "title": "1989 BMW M3 Cecotto"
+  },
+  {
+   "date": "2024-08-17",
+   "venue": "RM Sotheby's",
+   "price_usd": 246400,
+   "basis": "buyer-paid",
+   "hammer_usd": 220000,
+   "native": {
+    "amount": 246400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1989,
+   "url": "https://rmsothebys.com/auctions/mo24/lots/r0019-1989-bmw-m3-cecotto-edition/",
+   "chassis": "WBSAK050X0AE40577",
+   "title": "1989 BMW M3 Cecotto Edition"
+  },
   {
    "date": "2026-09-21",
    "venue": "Cars & Bids",
@@ -319,38 +366,6 @@
    "title": "1990 BMW M3"
   },
   {
-   "date": "2025-05-25",
-   "venue": "Broad Arrow",
-   "price_usd": 74520,
-   "basis": "buyer-paid",
-   "hammer_usd": 64800,
-   "native": {
-    "amount": 69000,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 1989,
-   "url": "https://www.broadarrowauctions.com/vehicles/ve25_r053/1989-bmw-m3",
-   "chassis": "WBSAK05000AE41401",
-   "title": "1989 BMW M3"
-  },
-  {
-   "date": "2025-05-25",
-   "venue": "Broad Arrow",
-   "price_usd": 99360,
-   "basis": "buyer-paid",
-   "hammer_usd": 86400,
-   "native": {
-    "amount": 92000,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 1989,
-   "url": "https://www.broadarrowauctions.com/vehicles/ve25_r054/1989-bmw-m3-cecotto",
-   "chassis": "WBSAK05010AE40578",
-   "title": "1989 BMW M3 Cecotto"
-  },
-  {
    "date": "2025-05-22",
    "venue": "Bring a Trailer",
    "price_usd": 63525,
@@ -477,22 +492,6 @@
    "url": "https://bringatrailer.com/listing/1990-bmw-m3-101/",
    "chassis": "WBSAK0312LAE33834",
    "title": "1990 BMW M3"
-  },
-  {
-   "date": "2024-08-17",
-   "venue": "RM Sotheby's",
-   "price_usd": 246400,
-   "basis": "buyer-paid",
-   "hammer_usd": 220000,
-   "native": {
-    "amount": 246400,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1989,
-   "url": "https://rmsothebys.com/auctions/mo24/lots/r0019-1989-bmw-m3-cecotto-edition/",
-   "chassis": "WBSAK050X0AE40577",
-   "title": "1989 BMW M3 Cecotto Edition"
   },
   {
    "date": "2024-08-01",

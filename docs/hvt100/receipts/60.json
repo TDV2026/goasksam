@@ -10,8 +10,7 @@
   "window": "36mo",
   "year_min": 2002,
   "year_max": 2004,
-  "trim": "GT3",
-  "body": "coupe"
+  "trim": "GT3"
  },
  "halo_dropped": 0,
  "sales": [
@@ -30,6 +29,22 @@
    "url": "https://rmsothebys.com/auctions/mw26/lots/r0016-2004-porsche-911-gt3",
    "chassis": "WP0AC29904S692098",
    "title": "2004 Porsche 911 GT3"
+  },
+  {
+   "date": "2024-04-27",
+   "venue": "Broad Arrow",
+   "price_usd": 110880,
+   "basis": "buyer-paid",
+   "hammer_usd": 99000,
+   "native": {
+    "amount": 110880,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2002,
+   "url": "https://www.broadarrowauctions.com/vehicles/po24_r045/2002-porsche-911-gt3-cup",
+   "chassis": "INCLUDED",
+   "title": "2002 Porsche 911 GT3 Cup"
   },
   {
    "date": "2025-12-09",
@@ -190,22 +205,6 @@
    "url": "https://bringatrailer.com/listing/2004-porsche-911-gt3-90/",
    "chassis": "WP0AC299X4S692710",
    "title": "50k-Mile 2004 Porsche 911 GT3"
-  },
-  {
-   "date": "2024-04-27",
-   "venue": "Broad Arrow",
-   "price_usd": 110880,
-   "basis": "buyer-paid",
-   "hammer_usd": 99000,
-   "native": {
-    "amount": 110880,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2002,
-   "url": "https://www.broadarrowauctions.com/vehicles/po24_r045/2002-porsche-911-gt3-cup",
-   "chassis": "INCLUDED",
-   "title": "2002 Porsche 911 GT3 Cup"
   },
   {
    "date": "2024-03-04",

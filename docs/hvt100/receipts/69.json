@@ -10,11 +10,90 @@
   "window": "36mo",
   "year_min": 2006,
   "year_max": 2006,
-  "trim": "Z06",
-  "body": "coupe"
+  "trim": "Z06"
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2026-05-13",
+   "venue": "Mecum",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 55000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2006,
+   "url": "https://www.mecum.com/lots/1172622/2006-chevrolet-corvette-z06-coupe?aa_id=779503-0",
+   "chassis": "1G1YY26E665132534",
+   "title": "2006 Chevrolet Corvette Z06 Coupe"
+  },
+  {
+   "date": "2026-01-20",
+   "venue": "Barrett-Jackson",
+   "price_usd": 55000,
+   "basis": "buyer-paid",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 55000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2006,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2006-chevrolet-corvette-z06-292883?origin=results",
+   "chassis": "1G1YY25E165133088",
+   "title": "2006 CHEVROLET CORVETTE Z06"
+  },
+  {
+   "date": "2025-01-22",
+   "venue": "Barrett-Jackson",
+   "price_usd": 77000,
+   "basis": "buyer-paid",
+   "hammer_usd": 70000,
+   "native": {
+    "amount": 77000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2006,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2006-chevrolet-corvette-z06-280268?origin=results",
+   "chassis": "1G1YY26E165118914",
+   "title": "2006 CHEVROLET CORVETTE Z06"
+  },
+  {
+   "date": "2024-10-12",
+   "venue": "Barrett-Jackson",
+   "price_usd": 59400,
+   "basis": "buyer-paid",
+   "hammer_usd": 54000,
+   "native": {
+    "amount": 59400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2006,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/2006-chevrolet-corvette-z06-279381?origin=results",
+   "chassis": "1G1YY26Y165100097",
+   "title": "2006 CHEVROLET CORVETTE Z06"
+  },
+  {
+   "date": "2024-10-12",
+   "venue": "Barrett-Jackson",
+   "price_usd": 44000,
+   "basis": "buyer-paid",
+   "hammer_usd": 40000,
+   "native": {
+    "amount": 44000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2006,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/2006-chevrolet-corvette-z06-279379?origin=results",
+   "chassis": "1G1YY26Y065100057",
+   "title": "2006 CHEVROLET CORVETTE Z06"
+  },
   {
    "date": "2026-08-19",
    "venue": "Cars & Bids",
@@ -96,22 +175,6 @@
    "title": "2006 Chevrolet Corvette Z06 2LZ"
   },
   {
-   "date": "2026-05-13",
-   "venue": "Mecum",
-   "price_usd": 52500,
-   "basis": "sold+fee",
-   "hammer_usd": 50000,
-   "native": {
-    "amount": 55000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2006,
-   "url": "https://www.mecum.com/lots/1172622/2006-chevrolet-corvette-z06-coupe?aa_id=779503-0",
-   "chassis": "1G1YY26E665132534",
-   "title": "2006 Chevrolet Corvette Z06 Coupe"
-  },
-  {
    "date": "2026-03-13",
    "venue": "Cars & Bids",
    "price_usd": 47250,
@@ -126,22 +189,6 @@
    "url": "https://carsandbids.com/auctions/92vDEO5Q/2006-chevrolet-corvette-z06",
    "chassis": "1G1YY26E965126209",
    "title": "2006 Chevrolet Corvette Z06"
-  },
-  {
-   "date": "2026-01-20",
-   "venue": "Barrett-Jackson",
-   "price_usd": 55000,
-   "basis": "buyer-paid",
-   "hammer_usd": 50000,
-   "native": {
-    "amount": 55000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2006,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2006-chevrolet-corvette-z06-292883?origin=results",
-   "chassis": "1G1YY25E165133088",
-   "title": "2006 CHEVROLET CORVETTE Z06"
   },
   {
    "date": "2026-01-05",
@@ -336,22 +383,6 @@
    "title": "8k-Mile 2006 Chevrolet Corvette Z06 2LZ"
   },
   {
-   "date": "2025-01-22",
-   "venue": "Barrett-Jackson",
-   "price_usd": 77000,
-   "basis": "buyer-paid",
-   "hammer_usd": 70000,
-   "native": {
-    "amount": 77000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2006,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2006-chevrolet-corvette-z06-280268?origin=results",
-   "chassis": "1G1YY26E165118914",
-   "title": "2006 CHEVROLET CORVETTE Z06"
-  },
-  {
    "date": "2024-12-23",
    "venue": "Bring a Trailer",
    "price_usd": 40950,
@@ -414,38 +445,6 @@
    "url": "https://carsandbids.com/auctions/KDVjaR4o/2006-chevrolet-corvette-z06",
    "chassis": "1G1YY26E865127285",
    "title": "2006 Chevrolet Corvette Z06"
-  },
-  {
-   "date": "2024-10-12",
-   "venue": "Barrett-Jackson",
-   "price_usd": 59400,
-   "basis": "buyer-paid",
-   "hammer_usd": 54000,
-   "native": {
-    "amount": 59400,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2006,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/2006-chevrolet-corvette-z06-279381?origin=results",
-   "chassis": "1G1YY26Y165100097",
-   "title": "2006 CHEVROLET CORVETTE Z06"
-  },
-  {
-   "date": "2024-10-12",
-   "venue": "Barrett-Jackson",
-   "price_usd": 44000,
-   "basis": "buyer-paid",
-   "hammer_usd": 40000,
-   "native": {
-    "amount": 44000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2006,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/2006-chevrolet-corvette-z06-279379?origin=results",
-   "chassis": "1G1YY26Y065100057",
-   "title": "2006 CHEVROLET CORVETTE Z06"
   },
   {
    "date": "2024-08-31",

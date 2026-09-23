@@ -3,17 +3,16 @@
  "listed": "1969 Chevrolet Camaro Z/28",
  "status": "compare",
  "year_scope": "exact 1969",
- "basis": "mixed (45% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (53% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Chevrolet",
   "model": "Camaro",
   "window": "36mo",
   "year_min": 1969,
   "year_max": 1969,
-  "trim": "Z/28",
-  "body": "coupe"
+  "trim": "Z/28"
  },
- "halo_dropped": 1,
+ "halo_dropped": 0,
  "sales": [
   {
    "date": "2026-09-12",
@@ -30,22 +29,6 @@
    "url": "https://www.barrett-jackson.com/2026-las-vegas/docket/vehicle/1969-chevrolet-camaro-z28-302414?origin=results",
    "chassis": "124379N533456",
    "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2026-09-12",
-   "venue": "Bring a Trailer",
-   "price_usd": 90300,
-   "basis": "sold+fee",
-   "hammer_usd": 86000,
-   "native": {
-    "amount": 86000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1969,
-   "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-ss-123/",
-   "chassis": "124679N638336",
-   "title": "1969 Chevrolet Camaro Z11 Pace Car Convertible"
   },
   {
    "date": "2026-09-12",
@@ -80,6 +63,726 @@
    "title": "1969 CHEVROLET CAMARO Z/28"
   },
   {
+   "date": "2026-06-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 123200,
+   "basis": "buyer-paid",
+   "hammer_usd": 112000,
+   "native": {
+    "amount": 123200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/2026-columbus/docket/vehicle/1969-chevrolet-camaro-z28-300355?origin=results",
+   "chassis": "124379N612395",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2026-06-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 162800,
+   "basis": "buyer-paid",
+   "hammer_usd": 148000,
+   "native": {
+    "amount": 162800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/2026-columbus/docket/vehicle/1969-chevrolet-camaro-z28-301130?origin=results",
+   "chassis": "124379N543533",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2026-04-18",
+   "venue": "Barrett-Jackson",
+   "price_usd": 168300,
+   "basis": "buyer-paid",
+   "hammer_usd": 153000,
+   "native": {
+    "amount": 168300,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/1969-chevrolet-camaro-z28-299000?origin=results",
+   "chassis": "124379N683728",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2026-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 66000,
+   "basis": "buyer-paid",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 66000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-re-creation-295785?origin=results",
+   "chassis": "124379L523482",
+   "title": "1969 CHEVROLET CAMARO Z/28 RE-CREATION"
+  },
+  {
+   "date": "2026-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 170500,
+   "basis": "buyer-paid",
+   "hammer_usd": 155000,
+   "native": {
+    "amount": 170500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-293641?origin=results",
+   "chassis": "124379L518878",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 181500,
+   "basis": "buyer-paid",
+   "hammer_usd": 165000,
+   "native": {
+    "amount": 181500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-292749?origin=results",
+   "chassis": "124379L524809",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 101200,
+   "basis": "buyer-paid",
+   "hammer_usd": 92000,
+   "native": {
+    "amount": 101200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-294613?origin=results",
+   "chassis": "124379N570769",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 198000,
+   "basis": "buyer-paid",
+   "hammer_usd": 180000,
+   "native": {
+    "amount": 198000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-rs-293586?origin=results",
+   "chassis": "124379L515198",
+   "title": "1969 CHEVROLET CAMARO Z/28 RS"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 79200,
+   "basis": "buyer-paid",
+   "hammer_usd": 72000,
+   "native": {
+    "amount": 79200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-292621?origin=results",
+   "chassis": "124379N616410",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 264000,
+   "basis": "buyer-paid",
+   "hammer_usd": 240000,
+   "native": {
+    "amount": 264000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-rs-292645?origin=results",
+   "chassis": "124379N676957",
+   "title": "1969 CHEVROLET CAMARO Z/28 RS"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 187000,
+   "basis": "buyer-paid",
+   "hammer_usd": 170000,
+   "native": {
+    "amount": 187000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-292197?origin=results",
+   "chassis": "124379N646827",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 260700,
+   "basis": "buyer-paid",
+   "hammer_usd": 237000,
+   "native": {
+    "amount": 260700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-rs-292195?origin=results",
+   "chassis": "124379N531216",
+   "title": "1969 CHEVROLET CAMARO Z/28 RS"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 330000,
+   "basis": "buyer-paid",
+   "hammer_usd": 300000,
+   "native": {
+    "amount": 330000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-rs-292838?origin=results",
+   "chassis": "124379N617240",
+   "title": "1969 CHEVROLET CAMARO Z/28 RS"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 91300,
+   "basis": "buyer-paid",
+   "hammer_usd": 83000,
+   "native": {
+    "amount": 91300,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-292335?origin=results",
+   "chassis": "124379N619650",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2026-01-22",
+   "venue": "Barrett-Jackson",
+   "price_usd": 96800,
+   "basis": "buyer-paid",
+   "hammer_usd": 88000,
+   "native": {
+    "amount": 96800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-293504?origin=results",
+   "chassis": "124379N630009",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2025-10-17",
+   "venue": "Barrett-Jackson",
+   "price_usd": 93500,
+   "basis": "buyer-paid",
+   "hammer_usd": 85000,
+   "native": {
+    "amount": 93500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2025/docket/vehicle/1969-chevrolet-camaro-z28-formerly-owned-by-reggie-jackson-289776?origin=results",
+   "chassis": "124379L511782",
+   "title": "1969 CHEVROLET CAMARO Z/28 FORMERLY OWNED BY REGGIE JACKSON"
+  },
+  {
+   "date": "2025-08-15",
+   "venue": "Bonhams",
+   "price_usd": 67200,
+   "basis": "buyer-paid",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 67200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://cars.bonhams.com/auction/30559/lot/158/1969-chevrolet-camaro-z28-coupe-chassis-no-124379n593377/",
+   "chassis": "124379N593377",
+   "title": "1969 Chevrolet Camaro Z/28 Coupe Chassis no. 124379N593377"
+  },
+  {
+   "date": "2025-02-06",
+   "venue": "Bonhams",
+   "price_usd": 80730,
+   "basis": "buyer-paid",
+   "hammer_usd": 70200,
+   "native": {
+    "amount": 74750,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://cars.bonhams.com/auction/30406/lot/176/1969-chevrolet-camaro-z28-coupe-chassis-no-124379n645735/",
+   "chassis": "124379N645735",
+   "title": "1969 Chevrolet Camaro Z/28 Coupé Chassis no. 124379N645735"
+  },
+  {
+   "date": "2025-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 165000,
+   "basis": "buyer-paid",
+   "hammer_usd": 150000,
+   "native": {
+    "amount": 165000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1969-chevrolet-camaro-z28-281392?origin=results",
+   "chassis": "124379N685301",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2025-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 110000,
+   "basis": "buyer-paid",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 110000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1969-chevrolet-camaro-z28-281088?origin=results",
+   "chassis": "124379N647798",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2025-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 99000,
+   "basis": "buyer-paid",
+   "hammer_usd": 90000,
+   "native": {
+    "amount": 99000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1969-chevrolet-camaro-z28-282033?origin=results",
+   "chassis": "124379N709222",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2025-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 330000,
+   "basis": "buyer-paid",
+   "hammer_usd": 300000,
+   "native": {
+    "amount": 330000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1969-chevrolet-camaro-z28-rs-281210?origin=results",
+   "chassis": "124379N691902",
+   "title": "1969 CHEVROLET CAMARO Z/28 RS"
+  },
+  {
+   "date": "2025-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 132000,
+   "basis": "buyer-paid",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 132000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1969-chevrolet-camaro-z28-282330?origin=results",
+   "chassis": "124379N623023",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2025-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 203500,
+   "basis": "buyer-paid",
+   "hammer_usd": 185000,
+   "native": {
+    "amount": 203500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1969-chevrolet-camaro-z28-rs-281311?origin=results",
+   "chassis": "124379N652339",
+   "title": "1969 CHEVROLET CAMARO Z/28 RS"
+  },
+  {
+   "date": "2025-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 118800,
+   "basis": "buyer-paid",
+   "hammer_usd": 108000,
+   "native": {
+    "amount": 118800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1969-chevrolet-camaro-z28-281988?origin=results",
+   "chassis": "124379N693913",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2025-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 77000,
+   "basis": "buyer-paid",
+   "hammer_usd": 70000,
+   "native": {
+    "amount": 77000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1969-chevrolet-camaro-z28-280843?origin=results",
+   "chassis": "124379N594977",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2024-10-13",
+   "venue": "Barrett-Jackson",
+   "price_usd": 112200,
+   "basis": "buyer-paid",
+   "hammer_usd": 102000,
+   "native": {
+    "amount": 112200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1969-chevrolet-camaro-z28-279835?origin=results",
+   "chassis": "124379N635999",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2024-10-12",
+   "venue": "Barrett-Jackson",
+   "price_usd": 260700,
+   "basis": "buyer-paid",
+   "hammer_usd": 237000,
+   "native": {
+    "amount": 260700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1969-chevrolet-camaro-z28-rs-279074?origin=results",
+   "chassis": "124379N610881",
+   "title": "1969 CHEVROLET CAMARO Z/28 RS"
+  },
+  {
+   "date": "2024-10-11",
+   "venue": "Barrett-Jackson",
+   "price_usd": 91300,
+   "basis": "buyer-paid",
+   "hammer_usd": 83000,
+   "native": {
+    "amount": 91300,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1969-chevrolet-camaro-z28-278683?origin=results",
+   "chassis": "124379N655227",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2024-10-11",
+   "venue": "Barrett-Jackson",
+   "price_usd": 63800,
+   "basis": "buyer-paid",
+   "hammer_usd": 58000,
+   "native": {
+    "amount": 63800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1969-chevrolet-camaro-z28-279012?origin=results",
+   "chassis": "124379N619650",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2024-04-21",
+   "venue": "Barrett-Jackson",
+   "price_usd": 82500,
+   "basis": "buyer-paid",
+   "hammer_usd": 75000,
+   "native": {
+    "amount": 82500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/1969-chevrolet-camaro-z28-277723?origin=results",
+   "chassis": "124379N690698",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2024-04-19",
+   "venue": "Barrett-Jackson",
+   "price_usd": 104500,
+   "basis": "buyer-paid",
+   "hammer_usd": 95000,
+   "native": {
+    "amount": 104500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/1969-chevrolet-camaro-z28-277455?origin=results",
+   "chassis": "124379N642584",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2024-01-28",
+   "venue": "Barrett-Jackson",
+   "price_usd": 121000,
+   "basis": "buyer-paid",
+   "hammer_usd": 110000,
+   "native": {
+    "amount": 121000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-273836?origin=results",
+   "chassis": "124379N661717",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2024-01-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 99000,
+   "basis": "buyer-paid",
+   "hammer_usd": 90000,
+   "native": {
+    "amount": 99000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-270430?origin=results",
+   "chassis": "124379N543533",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2024-01-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 242000,
+   "basis": "buyer-paid",
+   "hammer_usd": 220000,
+   "native": {
+    "amount": 242000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-271570?origin=results",
+   "chassis": "124379N617900",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2024-01-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 187000,
+   "basis": "buyer-paid",
+   "hammer_usd": 170000,
+   "native": {
+    "amount": 187000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-271918?origin=results",
+   "chassis": "124379N681490",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2024-01-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 159500,
+   "basis": "buyer-paid",
+   "hammer_usd": 145000,
+   "native": {
+    "amount": 159500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-rs-271621?origin=results",
+   "chassis": "124379L507801",
+   "title": "1969 CHEVROLET CAMARO Z/28 RS"
+  },
+  {
+   "date": "2024-01-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 92400,
+   "basis": "buyer-paid",
+   "hammer_usd": 84000,
+   "native": {
+    "amount": 92400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-272616?origin=results",
+   "chassis": "124379N655227",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2024-01-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 117700,
+   "basis": "buyer-paid",
+   "hammer_usd": 107000,
+   "native": {
+    "amount": 117700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-272798?origin=results",
+   "chassis": "124379N570081",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2024-01-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 134200,
+   "basis": "buyer-paid",
+   "hammer_usd": 122000,
+   "native": {
+    "amount": 134200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-rs-271992?origin=results",
+   "chassis": "124379N641334",
+   "title": "1969 CHEVROLET CAMARO Z/28 RS"
+  },
+  {
+   "date": "2024-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 165000,
+   "basis": "buyer-paid",
+   "hammer_usd": 150000,
+   "native": {
+    "amount": 165000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-rs-271876?origin=results",
+   "chassis": "124379N602652",
+   "title": "1969 CHEVROLET CAMARO Z/28 RS"
+  },
+  {
+   "date": "2024-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 117700,
+   "basis": "buyer-paid",
+   "hammer_usd": 107000,
+   "native": {
+    "amount": 117700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-271630?origin=results",
+   "chassis": "124379N632792",
+   "title": "1969 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2024-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 110000,
+   "basis": "buyer-paid",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 110000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-rs-271936?origin=results",
+   "chassis": "124379N608032",
+   "title": "1969 CHEVROLET CAMARO Z/28 RS"
+  },
+  {
+   "date": "2024-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 156200,
+   "basis": "buyer-paid",
+   "hammer_usd": 142000,
+   "native": {
+    "amount": 156200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-rs-270346?origin=results",
+   "chassis": "124379N597147",
+   "title": "1969 CHEVROLET CAMARO Z/28 RS"
+  },
+  {
+   "date": "2024-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 68200,
+   "basis": "buyer-paid",
+   "hammer_usd": 62000,
+   "native": {
+    "amount": 68200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-rs-272644?origin=results",
+   "chassis": "124379L529824",
+   "title": "1969 CHEVROLET CAMARO Z/28 RS"
+  },
+  {
    "date": "2026-08-31",
    "venue": "Bring a Trailer",
    "price_usd": 42000,
@@ -110,70 +813,6 @@
    "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-z-28-294/",
    "chassis": "124379N566275",
    "title": "1969 Chevrolet Camaro Z/28 4-Speed"
-  },
-  {
-   "date": "2026-07-01",
-   "venue": "Bring a Trailer",
-   "price_usd": 85050,
-   "basis": "sold+fee",
-   "hammer_usd": 81000,
-   "native": {
-    "amount": 81000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1969,
-   "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-ss-116/",
-   "chassis": "124679N623365",
-   "title": "1969 Chevrolet Camaro Z11 Pace Car Convertible"
-  },
-  {
-   "date": "2026-06-27",
-   "venue": "Barrett-Jackson",
-   "price_usd": 162800,
-   "basis": "buyer-paid",
-   "hammer_usd": 148000,
-   "native": {
-    "amount": 162800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/2026-columbus/docket/vehicle/1969-chevrolet-camaro-z28-301130?origin=results",
-   "chassis": "124379N543533",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2026-06-27",
-   "venue": "Barrett-Jackson",
-   "price_usd": 123200,
-   "basis": "buyer-paid",
-   "hammer_usd": 112000,
-   "native": {
-    "amount": 123200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/2026-columbus/docket/vehicle/1969-chevrolet-camaro-z28-300355?origin=results",
-   "chassis": "124379N612395",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2026-06-19",
-   "venue": "Bring a Trailer",
-   "price_usd": 55650,
-   "basis": "sold+fee",
-   "hammer_usd": 53000,
-   "native": {
-    "amount": 53000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1969,
-   "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-ss-114/",
-   "chassis": "124679N627450",
-   "title": "35-Years-Owned 1969 Chevrolet Camaro Z11 Pace Car Convertible"
   },
   {
    "date": "2026-05-21",
@@ -224,22 +863,6 @@
    "title": "1969 Chevrolet Camaro Z/28 Coupe 4-Speed"
   },
   {
-   "date": "2026-04-18",
-   "venue": "Barrett-Jackson",
-   "price_usd": 168300,
-   "basis": "buyer-paid",
-   "hammer_usd": 153000,
-   "native": {
-    "amount": 168300,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/1969-chevrolet-camaro-z28-299000?origin=results",
-   "chassis": "124379N683728",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
    "date": "2026-03-22",
    "venue": "Bring a Trailer",
    "price_usd": 133350,
@@ -286,214 +909,6 @@
    "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-z-28-275/",
    "chassis": "124379N686425",
    "title": "1969 Chevrolet Camaro Z/28"
-  },
-  {
-   "date": "2026-01-25",
-   "venue": "Barrett-Jackson",
-   "price_usd": 66000,
-   "basis": "buyer-paid",
-   "hammer_usd": 60000,
-   "native": {
-    "amount": 66000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-re-creation-295785?origin=results",
-   "chassis": "124379L523482",
-   "title": "1969 CHEVROLET CAMARO Z/28 RE-CREATION"
-  },
-  {
-   "date": "2026-01-24",
-   "venue": "Barrett-Jackson",
-   "price_usd": 170500,
-   "basis": "buyer-paid",
-   "hammer_usd": 155000,
-   "native": {
-    "amount": 170500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-293641?origin=results",
-   "chassis": "124379L518878",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2026-01-23",
-   "venue": "Barrett-Jackson",
-   "price_usd": 79200,
-   "basis": "buyer-paid",
-   "hammer_usd": 72000,
-   "native": {
-    "amount": 79200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-292621?origin=results",
-   "chassis": "124379N616410",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2026-01-23",
-   "venue": "Barrett-Jackson",
-   "price_usd": 101200,
-   "basis": "buyer-paid",
-   "hammer_usd": 92000,
-   "native": {
-    "amount": 101200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-294613?origin=results",
-   "chassis": "124379N570769",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2026-01-23",
-   "venue": "Barrett-Jackson",
-   "price_usd": 181500,
-   "basis": "buyer-paid",
-   "hammer_usd": 165000,
-   "native": {
-    "amount": 181500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-292749?origin=results",
-   "chassis": "124379L524809",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2026-01-23",
-   "venue": "Barrett-Jackson",
-   "price_usd": 198000,
-   "basis": "buyer-paid",
-   "hammer_usd": 180000,
-   "native": {
-    "amount": 198000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-rs-293586?origin=results",
-   "chassis": "124379L515198",
-   "title": "1969 CHEVROLET CAMARO Z/28 RS"
-  },
-  {
-   "date": "2026-01-23",
-   "venue": "Barrett-Jackson",
-   "price_usd": 330000,
-   "basis": "buyer-paid",
-   "hammer_usd": 300000,
-   "native": {
-    "amount": 330000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-rs-292838?origin=results",
-   "chassis": "124379N617240",
-   "title": "1969 CHEVROLET CAMARO Z/28 RS"
-  },
-  {
-   "date": "2026-01-23",
-   "venue": "Barrett-Jackson",
-   "price_usd": 260700,
-   "basis": "buyer-paid",
-   "hammer_usd": 237000,
-   "native": {
-    "amount": 260700,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-rs-292195?origin=results",
-   "chassis": "124379N531216",
-   "title": "1969 CHEVROLET CAMARO Z/28 RS"
-  },
-  {
-   "date": "2026-01-23",
-   "venue": "Barrett-Jackson",
-   "price_usd": 187000,
-   "basis": "buyer-paid",
-   "hammer_usd": 170000,
-   "native": {
-    "amount": 187000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-292197?origin=results",
-   "chassis": "124379N646827",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2026-01-23",
-   "venue": "Barrett-Jackson",
-   "price_usd": 264000,
-   "basis": "buyer-paid",
-   "hammer_usd": 240000,
-   "native": {
-    "amount": 264000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-rs-292645?origin=results",
-   "chassis": "124379N676957",
-   "title": "1969 CHEVROLET CAMARO Z/28 RS"
-  },
-  {
-   "date": "2026-01-23",
-   "venue": "Barrett-Jackson",
-   "price_usd": 91300,
-   "basis": "buyer-paid",
-   "hammer_usd": 83000,
-   "native": {
-    "amount": 91300,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-292335?origin=results",
-   "chassis": "124379N619650",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2026-01-22",
-   "venue": "Barrett-Jackson",
-   "price_usd": 96800,
-   "basis": "buyer-paid",
-   "hammer_usd": 88000,
-   "native": {
-    "amount": 96800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1969-chevrolet-camaro-z28-293504?origin=results",
-   "chassis": "124379N630009",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2026-01-14",
-   "venue": "Bring a Trailer",
-   "price_usd": 130200,
-   "basis": "sold+fee",
-   "hammer_usd": 124000,
-   "native": {
-    "amount": 124000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1969,
-   "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-ss-98/",
-   "chassis": "124679N617205",
-   "title": "1969 Chevrolet Camaro Z11 Pace Car Convertible 396 4-Speed"
   },
   {
    "date": "2025-12-10",
@@ -560,22 +975,6 @@
    "title": "1969 Chevrolet Camaro Z/28 4-Speed w/Cross-Ram"
   },
   {
-   "date": "2025-10-17",
-   "venue": "Barrett-Jackson",
-   "price_usd": 93500,
-   "basis": "buyer-paid",
-   "hammer_usd": 85000,
-   "native": {
-    "amount": 93500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2025/docket/vehicle/1969-chevrolet-camaro-z28-formerly-owned-by-reggie-jackson-289776?origin=results",
-   "chassis": "124379L511782",
-   "title": "1969 CHEVROLET CAMARO Z/28 FORMERLY OWNED BY REGGIE JACKSON"
-  },
-  {
    "date": "2025-10-02",
    "venue": "Bring a Trailer",
    "price_usd": 131250,
@@ -608,22 +1007,6 @@
    "title": "1969 Chevrolet Camaro Z/28"
   },
   {
-   "date": "2025-09-09",
-   "venue": "Bring a Trailer",
-   "price_usd": 68775,
-   "basis": "sold+fee",
-   "hammer_usd": 65500,
-   "native": {
-    "amount": 65500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1969,
-   "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-495/",
-   "chassis": "124379L530031",
-   "title": "400-Powered 1969 Chevrolet Camaro 6-Speed w/DZ 302ci V8"
-  },
-  {
    "date": "2025-09-08",
    "venue": "Bring a Trailer",
    "price_usd": 105000,
@@ -638,22 +1021,6 @@
    "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-z-28-261/",
    "chassis": "124379N592787",
    "title": "1969 Chevrolet Camaro Z/28 Coupe 4-Speed"
-  },
-  {
-   "date": "2025-09-04",
-   "venue": "Bring a Trailer",
-   "price_usd": 68250,
-   "basis": "sold+fee",
-   "hammer_usd": 65000,
-   "native": {
-    "amount": 65000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1969,
-   "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-488/",
-   "chassis": "124679N618795",
-   "title": "1969 Chevrolet Camaro Z11 Pace Car Convertible 4-Speed"
   },
   {
    "date": "2025-08-18",
@@ -784,22 +1151,6 @@
    "title": "1969 Chevrolet Camaro Z/28 Coupe 4-Speed"
   },
   {
-   "date": "2025-05-19",
-   "venue": "Bring a Trailer",
-   "price_usd": 63072,
-   "basis": "sold+fee",
-   "hammer_usd": 60069,
-   "native": {
-    "amount": 60069,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1969,
-   "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-473/",
-   "chassis": "124679N642128",
-   "title": "1969 Chevrolet Camaro Z11 Pace Car Convertible"
-  },
-  {
    "date": "2025-05-05",
    "venue": "Bring a Trailer",
    "price_usd": 187500,
@@ -832,22 +1183,6 @@
    "title": "1969 Chevrolet Camaro Z/28 4-Speed"
   },
   {
-   "date": "2025-04-25",
-   "venue": "Bring a Trailer",
-   "price_usd": 75600,
-   "basis": "sold+fee",
-   "hammer_usd": 72000,
-   "native": {
-    "amount": 72000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1969,
-   "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-ss-67/",
-   "chassis": "124679N637473",
-   "title": "1969 Chevrolet Camaro Z11 Pace Car Convertible"
-  },
-  {
    "date": "2025-04-02",
    "venue": "Bring a Trailer",
    "price_usd": 79275,
@@ -878,150 +1213,6 @@
    "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-z-28-228/",
    "chassis": "124379N698107",
    "title": "1969 Chevrolet Camaro Z/28"
-  },
-  {
-   "date": "2025-01-24",
-   "venue": "Barrett-Jackson",
-   "price_usd": 110000,
-   "basis": "buyer-paid",
-   "hammer_usd": 100000,
-   "native": {
-    "amount": 110000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1969-chevrolet-camaro-z28-281088?origin=results",
-   "chassis": "124379N647798",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2025-01-24",
-   "venue": "Barrett-Jackson",
-   "price_usd": 203500,
-   "basis": "buyer-paid",
-   "hammer_usd": 185000,
-   "native": {
-    "amount": 203500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1969-chevrolet-camaro-z28-rs-281311?origin=results",
-   "chassis": "124379N652339",
-   "title": "1969 CHEVROLET CAMARO Z/28 RS"
-  },
-  {
-   "date": "2025-01-24",
-   "venue": "Barrett-Jackson",
-   "price_usd": 132000,
-   "basis": "buyer-paid",
-   "hammer_usd": 120000,
-   "native": {
-    "amount": 132000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1969-chevrolet-camaro-z28-282330?origin=results",
-   "chassis": "124379N623023",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2025-01-24",
-   "venue": "Barrett-Jackson",
-   "price_usd": 99000,
-   "basis": "buyer-paid",
-   "hammer_usd": 90000,
-   "native": {
-    "amount": 99000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1969-chevrolet-camaro-z28-282033?origin=results",
-   "chassis": "124379N709222",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2025-01-24",
-   "venue": "Barrett-Jackson",
-   "price_usd": 330000,
-   "basis": "buyer-paid",
-   "hammer_usd": 300000,
-   "native": {
-    "amount": 330000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1969-chevrolet-camaro-z28-rs-281210?origin=results",
-   "chassis": "124379N691902",
-   "title": "1969 CHEVROLET CAMARO Z/28 RS"
-  },
-  {
-   "date": "2025-01-24",
-   "venue": "Barrett-Jackson",
-   "price_usd": 165000,
-   "basis": "buyer-paid",
-   "hammer_usd": 150000,
-   "native": {
-    "amount": 165000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1969-chevrolet-camaro-z28-281392?origin=results",
-   "chassis": "124379N685301",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2025-01-23",
-   "venue": "Barrett-Jackson",
-   "price_usd": 77000,
-   "basis": "buyer-paid",
-   "hammer_usd": 70000,
-   "native": {
-    "amount": 77000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1969-chevrolet-camaro-z28-280843?origin=results",
-   "chassis": "124379N594977",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2025-01-23",
-   "venue": "Barrett-Jackson",
-   "price_usd": 118800,
-   "basis": "buyer-paid",
-   "hammer_usd": 108000,
-   "native": {
-    "amount": 118800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1969-chevrolet-camaro-z28-281988?origin=results",
-   "chassis": "124379N693913",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2025-01-21",
-   "venue": "Bring a Trailer",
-   "price_usd": 118650,
-   "basis": "sold+fee",
-   "hammer_usd": 113000,
-   "native": {
-    "amount": 113000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1969,
-   "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-ss-53/",
-   "chassis": "124679N613996",
-   "title": "1969 Chevrolet Camaro Z11 Pace Car Convertible 4-Speed"
   },
   {
    "date": "2024-12-18",
@@ -1072,22 +1263,6 @@
    "title": "1969 Chevrolet Camaro Z/28 4-Speed"
   },
   {
-   "date": "2024-11-01",
-   "venue": "Bring a Trailer",
-   "price_usd": 56175,
-   "basis": "sold+fee",
-   "hammer_usd": 53500,
-   "native": {
-    "amount": 53500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1969,
-   "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-ss-44-2/",
-   "chassis": "124679N627555",
-   "title": "28-Years-Owned 1969 Chevrolet Camaro Z11 Pace Car Convertible"
-  },
-  {
    "date": "2024-10-17",
    "venue": "Bring a Trailer",
    "price_usd": 55126,
@@ -1120,70 +1295,6 @@
    "title": "1969 Chevrolet Camaro Z/28 Coupe 4-Speed w/Cross-Ram"
   },
   {
-   "date": "2024-10-13",
-   "venue": "Barrett-Jackson",
-   "price_usd": 112200,
-   "basis": "buyer-paid",
-   "hammer_usd": 102000,
-   "native": {
-    "amount": 112200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1969-chevrolet-camaro-z28-279835?origin=results",
-   "chassis": "124379N635999",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2024-10-12",
-   "venue": "Barrett-Jackson",
-   "price_usd": 260700,
-   "basis": "buyer-paid",
-   "hammer_usd": 237000,
-   "native": {
-    "amount": 260700,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1969-chevrolet-camaro-z28-rs-279074?origin=results",
-   "chassis": "124379N610881",
-   "title": "1969 CHEVROLET CAMARO Z/28 RS"
-  },
-  {
-   "date": "2024-10-11",
-   "venue": "Barrett-Jackson",
-   "price_usd": 63800,
-   "basis": "buyer-paid",
-   "hammer_usd": 58000,
-   "native": {
-    "amount": 63800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1969-chevrolet-camaro-z28-279012?origin=results",
-   "chassis": "124379N619650",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2024-10-11",
-   "venue": "Barrett-Jackson",
-   "price_usd": 91300,
-   "basis": "buyer-paid",
-   "hammer_usd": 83000,
-   "native": {
-    "amount": 91300,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1969-chevrolet-camaro-z28-278683?origin=results",
-   "chassis": "124379N655227",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
    "date": "2024-10-08",
    "venue": "Bring a Trailer",
    "price_usd": 60480,
@@ -1214,22 +1325,6 @@
    "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-z-28-207/",
    "chassis": "124379N634765",
    "title": "1969 Chevrolet Camaro Z/28 Coupe 4-Speed w/Cross-Ram"
-  },
-  {
-   "date": "2024-09-18",
-   "venue": "Bring a Trailer",
-   "price_usd": 71400,
-   "basis": "sold+fee",
-   "hammer_usd": 68000,
-   "native": {
-    "amount": 68000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1969,
-   "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-z11-pace-car/",
-   "chassis": "124679N633932",
-   "title": "1969 Chevrolet Camaro Z11 Pace Car Convertible 4-Speed"
   },
   {
    "date": "2024-08-26",
@@ -1280,38 +1375,6 @@
    "title": "1969 Chevrolet Camaro Z/28 Coupe 4-Speed"
   },
   {
-   "date": "2024-06-25",
-   "venue": "Bring a Trailer",
-   "price_usd": 66675,
-   "basis": "sold+fee",
-   "hammer_usd": 63500,
-   "native": {
-    "amount": 63500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1969,
-   "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-36-2/",
-   "chassis": "124679N611315",
-   "title": "1969 Chevrolet Camaro Z11 Pace Car Convertible 4-Speed"
-  },
-  {
-   "date": "2024-06-18",
-   "venue": "Bring a Trailer",
-   "price_usd": 87150,
-   "basis": "sold+fee",
-   "hammer_usd": 83000,
-   "native": {
-    "amount": 83000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1969,
-   "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-ss-34/",
-   "chassis": "124679N628375",
-   "title": "1969 Chevrolet Camaro Z11 Pace Car Convertible"
-  },
-  {
    "date": "2024-05-19",
    "venue": "Bring a Trailer",
    "price_usd": 84000,
@@ -1344,246 +1407,6 @@
    "title": "1969 Chevrolet Camaro Z/28 Coupe 4-Speed w/Cross-Ram"
   },
   {
-   "date": "2024-04-21",
-   "venue": "Barrett-Jackson",
-   "price_usd": 82500,
-   "basis": "buyer-paid",
-   "hammer_usd": 75000,
-   "native": {
-    "amount": 82500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/1969-chevrolet-camaro-z28-277723?origin=results",
-   "chassis": "124379N690698",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2024-04-19",
-   "venue": "Barrett-Jackson",
-   "price_usd": 104500,
-   "basis": "buyer-paid",
-   "hammer_usd": 95000,
-   "native": {
-    "amount": 104500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/1969-chevrolet-camaro-z28-277455?origin=results",
-   "chassis": "124379N642584",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2024-02-03",
-   "venue": "Bring a Trailer",
-   "price_usd": 75810,
-   "basis": "sold+fee",
-   "hammer_usd": 72200,
-   "native": {
-    "amount": 72200,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1969,
-   "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-ss-11/",
-   "chassis": "124679N615835",
-   "title": "1969 Chevrolet Camaro Z11 Pace Car Convertible"
-  },
-  {
-   "date": "2024-01-28",
-   "venue": "Barrett-Jackson",
-   "price_usd": 121000,
-   "basis": "buyer-paid",
-   "hammer_usd": 110000,
-   "native": {
-    "amount": 121000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-273836?origin=results",
-   "chassis": "124379N661717",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2024-01-27",
-   "venue": "Barrett-Jackson",
-   "price_usd": 134200,
-   "basis": "buyer-paid",
-   "hammer_usd": 122000,
-   "native": {
-    "amount": 134200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-rs-271992?origin=results",
-   "chassis": "124379N641334",
-   "title": "1969 CHEVROLET CAMARO Z/28 RS"
-  },
-  {
-   "date": "2024-01-27",
-   "venue": "Barrett-Jackson",
-   "price_usd": 99000,
-   "basis": "buyer-paid",
-   "hammer_usd": 90000,
-   "native": {
-    "amount": 99000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-270430?origin=results",
-   "chassis": "124379N543533",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2024-01-27",
-   "venue": "Barrett-Jackson",
-   "price_usd": 187000,
-   "basis": "buyer-paid",
-   "hammer_usd": 170000,
-   "native": {
-    "amount": 187000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-271918?origin=results",
-   "chassis": "124379N681490",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2024-01-27",
-   "venue": "Barrett-Jackson",
-   "price_usd": 92400,
-   "basis": "buyer-paid",
-   "hammer_usd": 84000,
-   "native": {
-    "amount": 92400,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-272616?origin=results",
-   "chassis": "124379N655227",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2024-01-27",
-   "venue": "Barrett-Jackson",
-   "price_usd": 159500,
-   "basis": "buyer-paid",
-   "hammer_usd": 145000,
-   "native": {
-    "amount": 159500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-rs-271621?origin=results",
-   "chassis": "124379L507801",
-   "title": "1969 CHEVROLET CAMARO Z/28 RS"
-  },
-  {
-   "date": "2024-01-27",
-   "venue": "Barrett-Jackson",
-   "price_usd": 117700,
-   "basis": "buyer-paid",
-   "hammer_usd": 107000,
-   "native": {
-    "amount": 117700,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-272798?origin=results",
-   "chassis": "124379N570081",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2024-01-27",
-   "venue": "Barrett-Jackson",
-   "price_usd": 242000,
-   "basis": "buyer-paid",
-   "hammer_usd": 220000,
-   "native": {
-    "amount": 242000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-271570?origin=results",
-   "chassis": "124379N617900",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2024-01-26",
-   "venue": "Barrett-Jackson",
-   "price_usd": 165000,
-   "basis": "buyer-paid",
-   "hammer_usd": 150000,
-   "native": {
-    "amount": 165000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-rs-271876?origin=results",
-   "chassis": "124379N602652",
-   "title": "1969 CHEVROLET CAMARO Z/28 RS"
-  },
-  {
-   "date": "2024-01-26",
-   "venue": "Barrett-Jackson",
-   "price_usd": 156200,
-   "basis": "buyer-paid",
-   "hammer_usd": 142000,
-   "native": {
-    "amount": 156200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-rs-270346?origin=results",
-   "chassis": "124379N597147",
-   "title": "1969 CHEVROLET CAMARO Z/28 RS"
-  },
-  {
-   "date": "2024-01-26",
-   "venue": "Barrett-Jackson",
-   "price_usd": 117700,
-   "basis": "buyer-paid",
-   "hammer_usd": 107000,
-   "native": {
-    "amount": 117700,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-271630?origin=results",
-   "chassis": "124379N632792",
-   "title": "1969 CHEVROLET CAMARO Z/28"
-  },
-  {
-   "date": "2024-01-26",
-   "venue": "Barrett-Jackson",
-   "price_usd": 110000,
-   "basis": "buyer-paid",
-   "hammer_usd": 100000,
-   "native": {
-    "amount": 110000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-rs-271936?origin=results",
-   "chassis": "124379N608032",
-   "title": "1969 CHEVROLET CAMARO Z/28 RS"
-  },
-  {
    "date": "2024-01-24",
    "venue": "Bring a Trailer",
    "price_usd": 71400,
@@ -1598,22 +1421,6 @@
    "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-z-28-174/",
    "chassis": "124379N684801",
    "title": "1969 Chevrolet Camaro Z/28 Coupe 4-Speed"
-  },
-  {
-   "date": "2024-01-24",
-   "venue": "Barrett-Jackson",
-   "price_usd": 68200,
-   "basis": "buyer-paid",
-   "hammer_usd": 62000,
-   "native": {
-    "amount": 68200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1969,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1969-chevrolet-camaro-z28-rs-272644?origin=results",
-   "chassis": "124379L529824",
-   "title": "1969 CHEVROLET CAMARO Z/28 RS"
   },
   {
    "date": "2023-12-18",
@@ -1646,22 +1453,6 @@
    "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-z-28-161/",
    "chassis": "124379N621573",
    "title": "1969 Chevrolet Camaro Z/28"
-  },
-  {
-   "date": "2023-10-12",
-   "venue": "Bring a Trailer",
-   "price_usd": 86100,
-   "basis": "sold+fee",
-   "hammer_usd": 82000,
-   "native": {
-    "amount": 82000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1969,
-   "url": "https://bringatrailer.com/listing/1969-chevrolet-camaro-ss-6/",
-   "chassis": "124679N640473",
-   "title": "51-Years-Family-Owned 1969 Chevrolet Camaro Z11 Pace Car Convertible 4-Speed"
   }
  ]
 }

@@ -3,15 +3,14 @@
  "listed": "1979 Porsche 911 Turbo",
  "status": "compare",
  "year_scope": "adjacent years pooled (1977-1981)",
- "basis": "mixed (80% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (90% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Porsche",
   "model": "911",
   "window": "36mo",
   "year_min": 1977,
   "year_max": 1981,
-  "trim": "Turbo",
-  "body": "coupe"
+  "trim": "Turbo"
  },
  "halo_dropped": 0,
  "sales": [
@@ -32,20 +31,20 @@
    "title": "1979 Porsche 911 Turbo RUF BTR II Conversion"
   },
   {
-   "date": "2025-05-29",
-   "venue": "Sotheby's Motorsport",
-   "price_usd": 135001,
-   "basis": "sold+fee",
-   "hammer_usd": 128572,
+   "date": "2025-05-04",
+   "venue": "Bonhams",
+   "price_usd": 252000,
+   "basis": "buyer-paid",
+   "hammer_usd": 225000,
    "native": {
-    "amount": 128572,
+    "amount": 252000,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
-   "year": 1979,
-   "url": "https://www.sothebysmotorsport.com/auction/1979-porsche-911turbo-5090",
-   "chassis": "9309800147",
-   "title": "1979 Porsche 911 Turbo"
+   "year": 1978,
+   "url": "https://cars.bonhams.com/auction/30996/lot/52/1978-porsche-911-type-930-33-turbo-coupe-chassis-no-9308800410-engine-no-6880271/",
+   "chassis": "9308800410",
+   "title": "1978 Porsche 911 'Type 930' 3.3 Turbo Coupe Chassis no. 9308800410 Engine no. 6880271"
   },
   {
    "date": "2025-04-26",
@@ -62,6 +61,22 @@
    "url": "https://www.broadarrowauctions.com/vehicles/po25_r005/1978-porsche-911-turbo",
    "chassis": "9308800205",
    "title": "1978 Porsche 911 Turbo"
+  },
+  {
+   "date": "2025-04-13",
+   "venue": "Bonhams",
+   "price_usd": 189865,
+   "basis": "buyer-paid",
+   "hammer_usd": 165100,
+   "native": {
+    "amount": 149500,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1978,
+   "url": "https://cars.bonhams.com/auction/30542/lot/128/1978-porsche-911-type-930-33-litre-turbo-martini-coupe-chassis-no-9308700115-engine-no-6780188/",
+   "chassis": "9308700115",
+   "title": "1978 Porsche 911 Type 930 3.3-Litre Turbo 'Martini' Coupé Chassis no. 9308700115 Engine no. 6780188"
   },
   {
    "date": "2025-02-05",
@@ -94,6 +109,70 @@
    "url": "https://rmsothebys.com/auctions/mo24/lots/r0147-1979-porsche-911-turbo-coupe/",
    "chassis": "9309800959",
    "title": "1979 Porsche 911 Turbo Coupe"
+  },
+  {
+   "date": "2024-07-12",
+   "venue": "Bonhams",
+   "price_usd": 233680,
+   "basis": "buyer-paid",
+   "hammer_usd": 203200,
+   "native": {
+    "amount": 184000,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1978,
+   "url": "https://cars.bonhams.com/auction/29332/lot/260/1978-porsche-911-type-930-33-litre-turbo-martini-coupe-chassis-no-9308700183-engine-no-6790036/",
+   "chassis": "9308700183",
+   "title": "1978 Porsche 911 Type 930 3.3-Litre Turbo Martini Coupé Chassis no. 9308700183 Engine no. 6790036"
+  },
+  {
+   "date": "2024-07-12",
+   "venue": "Bonhams",
+   "price_usd": 240983,
+   "basis": "buyer-paid",
+   "hammer_usd": 209550,
+   "native": {
+    "amount": 189750,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1979,
+   "url": "https://cars.bonhams.com/auction/29332/lot/222/1979-porsche-911-type-930-33-litre-turbo-martini-coupe-chassis-no-9309700361-engine-no-6790631/",
+   "chassis": "9309700361",
+   "title": "1979 Porsche 911 Type 930 3.3-Litre Turbo Martini Coupé Chassis no. 9309700361 Engine no. 6790631"
+  },
+  {
+   "date": "2024-04-14",
+   "venue": "Bonhams",
+   "price_usd": 112459,
+   "basis": "buyer-paid",
+   "hammer_usd": 97790,
+   "native": {
+    "amount": 88550,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1977,
+   "url": "https://cars.bonhams.com/auction/29331/lot/145/1977-porsche-911-type-930-turbo-coupe-chassis-no-9307800471-engine-no-6870405/",
+   "chassis": "9307800471",
+   "title": "1977 Porsche 911 Type 930 Turbo Coupé Chassis no. 9307800471 Engine no. 6870405"
+  },
+  {
+   "date": "2025-05-29",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 135001,
+   "basis": "sold+fee",
+   "hammer_usd": 128572,
+   "native": {
+    "amount": 128572,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1979,
+   "url": "https://www.sothebysmotorsport.com/auction/1979-porsche-911turbo-5090",
+   "chassis": "9309800147",
+   "title": "1979 Porsche 911 Turbo"
   }
  ]
 }

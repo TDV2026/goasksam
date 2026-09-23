@@ -3,17 +3,64 @@
  "listed": "2019 McLaren 720S",
  "status": "coverage",
  "year_scope": "adjacent years pooled (2017-2021)",
- "basis": "mixed (33% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (43% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "McLaren",
   "model": "720S",
   "window": "36mo",
   "year_min": 2017,
-  "year_max": 2021,
-  "body": "coupe"
+  "year_max": 2021
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2025-10-18",
+   "venue": "Barrett-Jackson",
+   "price_usd": 227700,
+   "basis": "buyer-paid",
+   "hammer_usd": 207000,
+   "native": {
+    "amount": 227700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2025/docket/vehicle/2018-mclaren-720s-luxury-launch-edition-289907?origin=results",
+   "chassis": "SBM14DCA3JW000312",
+   "title": "2018 MCLAREN 720S LUXURY LAUNCH EDITION"
+  },
+  {
+   "date": "2024-06-01",
+   "venue": "RM Sotheby's",
+   "price_usd": 346000,
+   "basis": "buyer-paid",
+   "hammer_usd": 310000,
+   "native": {
+    "amount": 346000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://rmsothebys.com/auctions/dd24/lots/r0080-2018-mclaren-720s/",
+   "chassis": "SBM14DCA4JW001078",
+   "title": "2018 McLaren 720S"
+  },
+  {
+   "date": "2024-05-10",
+   "venue": "Bonhams",
+   "price_usd": 223560,
+   "basis": "buyer-paid",
+   "hammer_usd": 194400,
+   "native": {
+    "amount": 207000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://cars.bonhams.com/auction/29207/lot/135/2018-mclaren-720s-coupe-chassis-no-sbm14dcb5jw001082/",
+   "chassis": "SBM14DCB5JW001082",
+   "title": "2018 McLaren 720S Coupé Chassis no. SBM14DCB5JW001082"
+  },
   {
    "date": "2026-07-27",
    "venue": "Cars & Bids",
@@ -47,22 +94,6 @@
    "title": "7k-Mile 2018 McLaren 720S Luxury Coupe"
   },
   {
-   "date": "2025-10-18",
-   "venue": "Barrett-Jackson",
-   "price_usd": 227700,
-   "basis": "buyer-paid",
-   "hammer_usd": 207000,
-   "native": {
-    "amount": 227700,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2018,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2025/docket/vehicle/2018-mclaren-720s-luxury-launch-edition-289907?origin=results",
-   "chassis": "SBM14DCA3JW000312",
-   "title": "2018 MCLAREN 720S LUXURY LAUNCH EDITION"
-  },
-  {
    "date": "2025-02-20",
    "venue": "Sotheby's Motorsport",
    "price_usd": 202500,
@@ -77,22 +108,6 @@
    "url": "https://www.sothebysmotorsport.com/auction/2019-mclaren-720sluxury-4278",
    "chassis": "SBM14DCA3KW003258",
    "title": "2019 McLaren 720S Luxury"
-  },
-  {
-   "date": "2024-06-01",
-   "venue": "RM Sotheby's",
-   "price_usd": 346000,
-   "basis": "buyer-paid",
-   "hammer_usd": 310000,
-   "native": {
-    "amount": 346000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2018,
-   "url": "https://rmsothebys.com/auctions/dd24/lots/r0080-2018-mclaren-720s/",
-   "chassis": "SBM14DCA4JW001078",
-   "title": "2018 McLaren 720S"
   },
   {
    "date": "2023-11-24",

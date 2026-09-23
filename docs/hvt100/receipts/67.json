@@ -3,17 +3,288 @@
  "listed": "2005 Ford GT",
  "status": "compare",
  "year_scope": "exact 2005",
- "basis": "mixed (18% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (19% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Ford",
   "model": "GT",
   "window": "36mo",
   "year_min": 2005,
-  "year_max": 2005,
-  "body": "coupe"
+  "year_max": 2005
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2026-07-08",
+   "venue": "RM Sotheby's",
+   "price_usd": 506413,
+   "basis": "buyer-paid",
+   "hammer_usd": 444500,
+   "native": {
+    "amount": 398750,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://rmsothebys.com/auctions/wp26/lots/r0039-2005-ford-gt",
+   "chassis": "1FAFP90S55Y401070",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2026-05-15",
+   "venue": "Mecum",
+   "price_usd": 567500,
+   "basis": "sold+fee",
+   "hammer_usd": 560000,
+   "native": {
+    "amount": 616000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.mecum.com/lots/1168755/2005-ford-gt?aa_id=778521-0",
+   "chassis": null,
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2026-03-07",
+   "venue": "Broad Arrow",
+   "price_usd": 511000,
+   "basis": "buyer-paid",
+   "hammer_usd": 460000,
+   "native": {
+    "amount": 511000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.broadarrowauctions.com/vehicles/am26_r0005/2005-ford-gt",
+   "chassis": "1FAFP90S15Y401194",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2026-03-07",
+   "venue": "Broad Arrow",
+   "price_usd": 571500,
+   "basis": "buyer-paid",
+   "hammer_usd": 515000,
+   "native": {
+    "amount": 571500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.broadarrowauctions.com/vehicles/am26_r0127/2005-ford-gt",
+   "chassis": "1FAFP90SX5Y400805",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2026-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 440000,
+   "basis": "buyer-paid",
+   "hammer_usd": 400000,
+   "native": {
+    "amount": 440000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2005-ford-gt-292664?origin=results",
+   "chassis": "1FAFP90S55Y401117",
+   "title": "2005 FORD GT"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 550000,
+   "basis": "buyer-paid",
+   "hammer_usd": 500000,
+   "native": {
+    "amount": 550000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2005-ford-gt-291060?origin=results",
+   "chassis": "1FAFP90S35Y402055",
+   "title": "2005 FORD GT"
+  },
+  {
+   "date": "2025-08-16",
+   "venue": "Gooding Christie's",
+   "price_usd": 390000,
+   "basis": "buyer-paid",
+   "hammer_usd": 350000,
+   "native": {
+    "amount": 390000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.goodingco.com/lot/2005-ford-gt-1b",
+   "chassis": "1FAFP90S25Y400006",
+   "title": "2005 Ford GT (PB25)"
+  },
+  {
+   "date": "2025-05-25",
+   "venue": "Broad Arrow",
+   "price_usd": 359100,
+   "basis": "buyer-paid",
+   "hammer_usd": 314400,
+   "native": {
+    "amount": 332500,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.broadarrowauctions.com/vehicles/ve25_r108/2005-ford-gt",
+   "chassis": "1FAFP90S85Y401094",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2025-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 550000,
+   "basis": "buyer-paid",
+   "hammer_usd": 500000,
+   "native": {
+    "amount": 550000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2005-ford-gt-286133?origin=results",
+   "chassis": "1FAFP90S35Y401522",
+   "title": "2005 FORD GT"
+  },
+  {
+   "date": "2025-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 522500,
+   "basis": "buyer-paid",
+   "hammer_usd": 475000,
+   "native": {
+    "amount": 522500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2005-ford-gt-280631?origin=results",
+   "chassis": "1FAFP90S65Y401188",
+   "title": "2005 FORD GT"
+  },
+  {
+   "date": "2025-01-22",
+   "venue": "Barrett-Jackson",
+   "price_usd": 22000,
+   "basis": "buyer-paid",
+   "hammer_usd": 20000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2005-ford-mustang-gt-284344?origin=results",
+   "chassis": "1ZVHT82H655222786",
+   "title": "2005 FORD MUSTANG GT"
+  },
+  {
+   "date": "2024-04-20",
+   "venue": "Barrett-Jackson",
+   "price_usd": 451000,
+   "basis": "buyer-paid",
+   "hammer_usd": 410000,
+   "native": {
+    "amount": 451000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/2005-ford-gt-276798?origin=results",
+   "chassis": "1FAFP90SX5Y401873",
+   "title": "2005 FORD GT"
+  },
+  {
+   "date": "2024-02-29",
+   "venue": "Bonhams",
+   "price_usd": 409250,
+   "basis": "buyer-paid",
+   "hammer_usd": 367500,
+   "native": {
+    "amount": 409250,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://cars.bonhams.com/auction/29261/lot/32/2005-ford-gt-vin-1fafp90s35y400354/",
+   "chassis": "1FAFP90S35Y400354",
+   "title": "2005 Ford GT VIN. 1FAFP90S35Y400354"
+  },
+  {
+   "date": "2024-01-28",
+   "venue": "Barrett-Jackson",
+   "price_usd": 451000,
+   "basis": "buyer-paid",
+   "hammer_usd": 410000,
+   "native": {
+    "amount": 451000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2005-ford-gt-274404?origin=results",
+   "chassis": "1FAFP90S25Y400779",
+   "title": "2005 FORD GT"
+  },
+  {
+   "date": "2024-01-25",
+   "venue": "RM Sotheby's",
+   "price_usd": 434000,
+   "basis": "buyer-paid",
+   "hammer_usd": 390000,
+   "native": {
+    "amount": 434000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://rmsothebys.com/auctions/az24/lots/r0008-2005-ford-gt/",
+   "chassis": "1FAFP90SX5Y401565",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2023-11-25",
+   "venue": "RM Sotheby's",
+   "price_usd": 402705,
+   "basis": "buyer-paid",
+   "hammer_usd": 353160,
+   "native": {
+    "amount": 372875,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://rmsothebys.com/auctions/mu23/lots/r0080-2005-ford-gt/",
+   "chassis": "1FAFP90S65Y401076",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2023-09-30",
+   "venue": "Barrett-Jackson",
+   "price_usd": 418000,
+   "basis": "buyer-paid",
+   "hammer_usd": 380000,
+   "native": {
+    "amount": 418000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/new-orleans-2023/docket/vehicle/2005-ford-gt-270479?origin=results",
+   "chassis": "1FAFP90S35Y401598",
+   "title": "2005 FORD GT"
+  },
   {
    "date": "2026-09-21",
    "venue": "Bring a Trailer",
@@ -79,38 +350,6 @@
    "title": "8k-Mile 2005 Ford GT"
   },
   {
-   "date": "2026-07-22",
-   "venue": "Mecum",
-   "price_usd": 16275,
-   "basis": "sold+fee",
-   "hammer_usd": 15500,
-   "native": {
-    "amount": 17050,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.mecum.com/lots/1177874/2005-ford-mustang-gt-convertible?aa_id=798553-0",
-   "chassis": "1ZVFT85H455224667",
-   "title": "2005 Ford Mustang GT Convertible"
-  },
-  {
-   "date": "2026-07-08",
-   "venue": "RM Sotheby's",
-   "price_usd": 506413,
-   "basis": "buyer-paid",
-   "hammer_usd": 444500,
-   "native": {
-    "amount": 398750,
-    "currency": "GBP",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://rmsothebys.com/auctions/wp26/lots/r0039-2005-ford-gt",
-   "chassis": "1FAFP90S55Y401070",
-   "title": "2005 Ford GT"
-  },
-  {
    "date": "2026-05-27",
    "venue": "Bring a Trailer",
    "price_usd": 405500,
@@ -143,38 +382,6 @@
    "title": "2,300-Mile 2005 Ford GT"
   },
   {
-   "date": "2026-05-15",
-   "venue": "Mecum",
-   "price_usd": 567500,
-   "basis": "sold+fee",
-   "hammer_usd": 560000,
-   "native": {
-    "amount": 616000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.mecum.com/lots/1168755/2005-ford-gt?aa_id=778521-0",
-   "chassis": null,
-   "title": "2005 Ford GT"
-  },
-  {
-   "date": "2026-05-08",
-   "venue": "Mecum",
-   "price_usd": 8925,
-   "basis": "sold+fee",
-   "hammer_usd": 8500,
-   "native": {
-    "amount": 9350,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.mecum.com/lots/1168493/2005-ford-mustang-gt-convertible?aa_id=767483-0",
-   "chassis": "1ZVFT85H855230603",
-   "title": "2005 Ford Mustang GT Convertible"
-  },
-  {
    "date": "2026-03-13",
    "venue": "Bring a Trailer",
    "price_usd": 563500,
@@ -205,38 +412,6 @@
    "url": "https://bringatrailer.com/listing/2005-ford-gt-231/",
    "chassis": "1FAFP90S65Y400946",
    "title": "Original-Owner 2005 Ford GT"
-  },
-  {
-   "date": "2026-03-07",
-   "venue": "Broad Arrow",
-   "price_usd": 571500,
-   "basis": "buyer-paid",
-   "hammer_usd": 515000,
-   "native": {
-    "amount": 571500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.broadarrowauctions.com/vehicles/am26_r0127/2005-ford-gt",
-   "chassis": "1FAFP90SX5Y400805",
-   "title": "2005 Ford GT"
-  },
-  {
-   "date": "2026-03-07",
-   "venue": "Broad Arrow",
-   "price_usd": 511000,
-   "basis": "buyer-paid",
-   "hammer_usd": 460000,
-   "native": {
-    "amount": 511000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.broadarrowauctions.com/vehicles/am26_r0005/2005-ford-gt",
-   "chassis": "1FAFP90S15Y401194",
-   "title": "2005 Ford GT"
   },
   {
    "date": "2026-03-03",
@@ -285,38 +460,6 @@
    "url": "https://bringatrailer.com/listing/2005-ford-gt-224/",
    "chassis": "1FAFP90S85Y401063",
    "title": "2005 Ford GT"
-  },
-  {
-   "date": "2026-01-24",
-   "venue": "Barrett-Jackson",
-   "price_usd": 440000,
-   "basis": "buyer-paid",
-   "hammer_usd": 400000,
-   "native": {
-    "amount": 440000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2005-ford-gt-292664?origin=results",
-   "chassis": "1FAFP90S55Y401117",
-   "title": "2005 FORD GT"
-  },
-  {
-   "date": "2026-01-23",
-   "venue": "Barrett-Jackson",
-   "price_usd": 550000,
-   "basis": "buyer-paid",
-   "hammer_usd": 500000,
-   "native": {
-    "amount": 550000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2005-ford-gt-291060?origin=results",
-   "chassis": "1FAFP90S35Y402055",
-   "title": "2005 FORD GT"
   },
   {
    "date": "2026-01-15",
@@ -495,22 +638,6 @@
    "title": "3,800-Mile 2005 Ford GT"
   },
   {
-   "date": "2025-10-03",
-   "venue": "Bring a Trailer",
-   "price_usd": 655500,
-   "basis": "sold+fee",
-   "hammer_usd": 648000,
-   "native": {
-    "amount": 648000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2005,
-   "url": "https://bringatrailer.com/listing/2005-ford-gtx1/",
-   "chassis": "1FAFP90S75Y400292",
-   "title": "2005 Ford GTX1"
-  },
-  {
    "date": "2025-09-09",
    "venue": "Bring a Trailer",
    "price_usd": 489505,
@@ -557,22 +684,6 @@
    "url": "https://bringatrailer.com/listing/2005-ford-gt-208/",
    "chassis": "1FAFP90S15Y400756",
    "title": "3,800-Mile 2005 Ford GT"
-  },
-  {
-   "date": "2025-08-16",
-   "venue": "Gooding Christie's",
-   "price_usd": 390000,
-   "basis": "buyer-paid",
-   "hammer_usd": 350000,
-   "native": {
-    "amount": 390000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.goodingco.com/lot/2005-ford-gt-1b",
-   "chassis": "1FAFP90S25Y400006",
-   "title": "2005 Ford GT (PB25)"
   },
   {
    "date": "2025-07-17",
@@ -653,22 +764,6 @@
    "url": "https://bringatrailer.com/listing/2005-ford-gt-161-2/",
    "chassis": "1FAFP90S25Y401737",
    "title": "2,800-Mile 2005 Ford GT"
-  },
-  {
-   "date": "2025-05-25",
-   "venue": "Broad Arrow",
-   "price_usd": 359100,
-   "basis": "buyer-paid",
-   "hammer_usd": 314400,
-   "native": {
-    "amount": 332500,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.broadarrowauctions.com/vehicles/ve25_r108/2005-ford-gt",
-   "chassis": "1FAFP90S85Y401094",
-   "title": "2005 Ford GT"
   },
   {
    "date": "2025-05-21",
@@ -815,54 +910,6 @@
    "title": "One-Owner 2005 Ford GT"
   },
   {
-   "date": "2025-01-25",
-   "venue": "Barrett-Jackson",
-   "price_usd": 550000,
-   "basis": "buyer-paid",
-   "hammer_usd": 500000,
-   "native": {
-    "amount": 550000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2005-ford-gt-286133?origin=results",
-   "chassis": "1FAFP90S35Y401522",
-   "title": "2005 FORD GT"
-  },
-  {
-   "date": "2025-01-25",
-   "venue": "Barrett-Jackson",
-   "price_usd": 522500,
-   "basis": "buyer-paid",
-   "hammer_usd": 475000,
-   "native": {
-    "amount": 522500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2005-ford-gt-280631?origin=results",
-   "chassis": "1FAFP90S65Y401188",
-   "title": "2005 FORD GT"
-  },
-  {
-   "date": "2025-01-22",
-   "venue": "Barrett-Jackson",
-   "price_usd": 22000,
-   "basis": "buyer-paid",
-   "hammer_usd": 20000,
-   "native": {
-    "amount": 22000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2005-ford-mustang-gt-284344?origin=results",
-   "chassis": "1ZVHT82H655222786",
-   "title": "2005 FORD MUSTANG GT"
-  },
-  {
    "date": "2024-12-24",
    "venue": "Bring a Trailer",
    "price_usd": 471000,
@@ -973,22 +1020,6 @@
    "url": "https://bringatrailer.com/listing/2005-ford-gt-171/",
    "chassis": "1FAFP90S75Y401376",
    "title": "178-Mile 2005 Ford GT"
-  },
-  {
-   "date": "2024-10-11",
-   "venue": "Barrett-Jackson",
-   "price_usd": 18700,
-   "basis": "buyer-paid",
-   "hammer_usd": 17000,
-   "native": {
-    "amount": 18700,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/2005-ford-mustang-gt-convertible-278904?origin=results",
-   "chassis": "1ZVHT85H355241792",
-   "title": "2005 FORD MUSTANG GT CONVERTIBLE"
   },
   {
    "date": "2024-10-08",
@@ -1135,22 +1166,6 @@
    "title": "1,900-Mile 2005 Ford GT"
   },
   {
-   "date": "2024-04-20",
-   "venue": "Barrett-Jackson",
-   "price_usd": 451000,
-   "basis": "buyer-paid",
-   "hammer_usd": 410000,
-   "native": {
-    "amount": 451000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/2005-ford-gt-276798?origin=results",
-   "chassis": "1FAFP90SX5Y401873",
-   "title": "2005 FORD GT"
-  },
-  {
    "date": "2024-04-18",
    "venue": "Bring a Trailer",
    "price_usd": 11025,
@@ -1231,38 +1246,6 @@
    "title": "2005 Ford GT"
   },
   {
-   "date": "2024-01-28",
-   "venue": "Barrett-Jackson",
-   "price_usd": 451000,
-   "basis": "buyer-paid",
-   "hammer_usd": 410000,
-   "native": {
-    "amount": 451000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2005-ford-gt-274404?origin=results",
-   "chassis": "1FAFP90S25Y400779",
-   "title": "2005 FORD GT"
-  },
-  {
-   "date": "2024-01-25",
-   "venue": "RM Sotheby's",
-   "price_usd": 434000,
-   "basis": "buyer-paid",
-   "hammer_usd": 390000,
-   "native": {
-    "amount": 434000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://rmsothebys.com/auctions/az24/lots/r0008-2005-ford-gt/",
-   "chassis": "1FAFP90SX5Y401565",
-   "title": "2005 Ford GT"
-  },
-  {
    "date": "2023-12-20",
    "venue": "Bring a Trailer",
    "price_usd": 455500,
@@ -1309,22 +1292,6 @@
    "url": "https://bringatrailer.com/listing/2005-ford-gt-142/",
    "chassis": "1FAFP90S95Y401766",
    "title": "8k-Mile 2005 Ford GT"
-  },
-  {
-   "date": "2023-11-25",
-   "venue": "RM Sotheby's",
-   "price_usd": 402705,
-   "basis": "buyer-paid",
-   "hammer_usd": 353160,
-   "native": {
-    "amount": 372875,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://rmsothebys.com/auctions/mu23/lots/r0080-2005-ford-gt/",
-   "chassis": "1FAFP90S65Y401076",
-   "title": "2005 Ford GT"
   },
   {
    "date": "2023-11-21",
@@ -1389,22 +1356,6 @@
    "url": "https://bringatrailer.com/listing/2005-ford-gt-129/",
    "chassis": "1FAFP90S25Y400927",
    "title": "2005 Ford GT"
-  },
-  {
-   "date": "2023-09-30",
-   "venue": "Barrett-Jackson",
-   "price_usd": 418000,
-   "basis": "buyer-paid",
-   "hammer_usd": 380000,
-   "native": {
-    "amount": 418000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.barrett-jackson.com/new-orleans-2023/docket/vehicle/2005-ford-gt-270479?origin=results",
-   "chassis": "1FAFP90S35Y401598",
-   "title": "2005 FORD GT"
   }
  ]
 }

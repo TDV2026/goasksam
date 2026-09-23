@@ -3,34 +3,17 @@
  "listed": "2018 Lamborghini Aventador S",
  "status": "coverage",
  "year_scope": "adjacent years pooled (2016-2020)",
- "basis": "mixed (31% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (50% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Lamborghini",
   "model": "Aventador",
   "window": "36mo",
   "year_min": 2016,
   "year_max": 2020,
-  "trim": "S",
-  "body": "coupe"
+  "trim": "S"
  },
  "halo_dropped": 0,
  "sales": [
-  {
-   "date": "2026-09-22",
-   "venue": "Bring a Trailer",
-   "price_usd": 423500,
-   "basis": "sold+fee",
-   "hammer_usd": 416000,
-   "native": {
-    "amount": 416000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2016,
-   "url": "https://bringatrailer.com/listing/2016-lamborghini-aventador-lp700-4-roadster-6/",
-   "chassis": "ZHWUR1ZD6GLA04804",
-   "title": "10k-Mile 2016 Lamborghini Aventador LP700-4 Roadster"
-  },
   {
    "date": "2026-03-05",
    "venue": "Gooding Christie's",
@@ -46,86 +29,6 @@
    "url": "https://www.goodingco.com/lot/2016-lamborghini-aventador-superveloce-lp-750-4",
    "chassis": "ZHWUF3ZD1GLA04956",
    "title": "2016 Lamborghini Aventador Superveloce LP 750"
-  },
-  {
-   "date": "2025-12-18",
-   "venue": "Bring a Trailer",
-   "price_usd": 272500,
-   "basis": "sold+fee",
-   "hammer_usd": 265000,
-   "native": {
-    "amount": 265000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2018,
-   "url": "https://bringatrailer.com/listing/2018-lamborghini-aventador-s-coupe-8/",
-   "chassis": "ZHWUG4ZD2JLA06595",
-   "title": "2018 Lamborghini Aventador S Coupe"
-  },
-  {
-   "date": "2025-02-27",
-   "venue": "Bring a Trailer",
-   "price_usd": 559500,
-   "basis": "sold+fee",
-   "hammer_usd": 552000,
-   "native": {
-    "amount": 552000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2016,
-   "url": "https://bringatrailer.com/listing/2016-lamborghini-aventador-lp750-4-sv-roadster-2/",
-   "chassis": "ZHWUT3ZD7GLA05165",
-   "title": "2016 Lamborghini Aventador LP750-4 SV Roadster"
-  },
-  {
-   "date": "2025-01-17",
-   "venue": "Bring a Trailer",
-   "price_usd": 572500,
-   "basis": "sold+fee",
-   "hammer_usd": 565000,
-   "native": {
-    "amount": 565000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2017,
-   "url": "https://bringatrailer.com/listing/2017-lamborghini-aventador-lp750-4-sv-roadster-4/",
-   "chassis": "ZHWUT3ZDXHLA05484",
-   "title": "2017 Lamborghini Aventador LP750-4 SV Roadster"
-  },
-  {
-   "date": "2024-12-16",
-   "venue": "Bring a Trailer",
-   "price_usd": 618611,
-   "basis": "sold+fee",
-   "hammer_usd": 611111,
-   "native": {
-    "amount": 611111,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2017,
-   "url": "https://bringatrailer.com/listing/2017-lamborghini-aventador-lp750-4-sv-roadster-3/",
-   "chassis": "ZHWUT3ZDXHLA05856",
-   "title": "2017 Lamborghini Aventador LP750-4 SV Roadster"
-  },
-  {
-   "date": "2024-12-01",
-   "venue": "RM Sotheby's",
-   "price_usd": 2030000,
-   "basis": "buyer-paid",
-   "hammer_usd": 1840909,
-   "native": {
-    "amount": 2030000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2017,
-   "url": "https://rmsothebys.com/auctions/df24/lots/r0006-2017-lamborghini-centenario-lp7704-roadster/",
-   "chassis": "ZHWEZ5ZD9HLA06902",
-   "title": "2017 Lamborghini Centenario LP770-4 Roadster"
   },
   {
    "date": "2024-08-17",
@@ -144,38 +47,6 @@
    "title": "2017 Lamborghini Aventador SuperVeloce LP 750"
   },
   {
-   "date": "2024-02-29",
-   "venue": "Bring a Trailer",
-   "price_usd": 355500,
-   "basis": "sold+fee",
-   "hammer_usd": 348000,
-   "native": {
-    "amount": 348000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2018,
-   "url": "https://bringatrailer.com/listing/2018-lamborghini-aventador-s-coupe-4/",
-   "chassis": "ZHWUG4ZD4JLA06923",
-   "title": "2018 Lamborghini Aventador S"
-  },
-  {
-   "date": "2023-11-30",
-   "venue": "Bring a Trailer",
-   "price_usd": 564500,
-   "basis": "sold+fee",
-   "hammer_usd": 557000,
-   "native": {
-    "amount": 557000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2017,
-   "url": "https://bringatrailer.com/listing/2017-lamborghini-aventador-lp750-4-sv-roadster/",
-   "chassis": "ZHWUT3ZD3HLA05858",
-   "title": "2017 Lamborghini Aventador LP750-4 SV Roadster"
-  },
-  {
    "date": "2023-11-25",
    "venue": "RM Sotheby's",
    "price_usd": 357750,
@@ -192,6 +63,38 @@
    "title": "2016 Lamborghini Aventador LP750-4 SV Coupé"
   },
   {
+   "date": "2025-12-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 272500,
+   "basis": "sold+fee",
+   "hammer_usd": 265000,
+   "native": {
+    "amount": 265000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-lamborghini-aventador-s-coupe-8/",
+   "chassis": "ZHWUG4ZD2JLA06595",
+   "title": "2018 Lamborghini Aventador S Coupe"
+  },
+  {
+   "date": "2024-02-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 355500,
+   "basis": "sold+fee",
+   "hammer_usd": 348000,
+   "native": {
+    "amount": 348000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-lamborghini-aventador-s-coupe-4/",
+   "chassis": "ZHWUG4ZD4JLA06923",
+   "title": "2018 Lamborghini Aventador S"
+  },
+  {
    "date": "2023-11-08",
    "venue": "Bring a Trailer",
    "price_usd": 447500,
@@ -206,22 +109,6 @@
    "url": "https://bringatrailer.com/listing/2016-lamborghini-aventador-lp750-4-sv-coupe/",
    "chassis": "ZHWUF3ZD9GLA04770",
    "title": "2016 Lamborghini Aventador LP750-4 SV Coupe"
-  },
-  {
-   "date": "2023-11-02",
-   "venue": "Sotheby's Motorsport",
-   "price_usd": 622722,
-   "basis": "sold+fee",
-   "hammer_usd": 615222,
-   "native": {
-    "amount": 615222,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2017,
-   "url": "https://www.sothebysmotorsport.com/auction/2017-lamborghini-aventadorsvroadster-288",
-   "chassis": "ZHWUT3ZD0HLA05767",
-   "title": "2017 Lamborghini Aventador SV Roadster"
   }
  ]
 }

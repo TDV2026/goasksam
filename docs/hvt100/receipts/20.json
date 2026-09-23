@@ -3,17 +3,464 @@
  "listed": "1962 Mercedes-Benz 190SL",
  "status": "compare",
  "year_scope": "adjacent years pooled (1960-1964)",
- "basis": "mixed (45% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (61% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Mercedes-Benz",
   "model": "190SL",
   "window": "36mo",
   "year_min": 1960,
-  "year_max": 1964,
-  "body": "convertible"
+  "year_max": 1964
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2026-08-15",
+   "venue": "Gooding Christie's",
+   "price_usd": 196000,
+   "basis": "buyer-paid",
+   "hammer_usd": 175000,
+   "native": {
+    "amount": 196000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1960,
+   "url": "https://www.goodingco.com/lot/1960-mercedes-benz-190-sl-pb26",
+   "chassis": "12104210014430",
+   "title": "1960 Mercedes-Benz 190 SL (PB26)"
+  },
+  {
+   "date": "2026-07-04",
+   "venue": "RM Sotheby's",
+   "price_usd": 99360,
+   "basis": "buyer-paid",
+   "hammer_usd": 86400,
+   "native": {
+    "amount": 92000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1960,
+   "url": "https://rmsothebys.com/auctions/tc26/lots/r0015-1960-mercedesbenz-190-sl",
+   "chassis": "12104010017792",
+   "title": "1960 Mercedes-Benz 190 SL"
+  },
+  {
+   "date": "2026-04-24",
+   "venue": "Bonhams",
+   "price_usd": 77004,
+   "basis": "buyer-paid",
+   "hammer_usd": 66960,
+   "native": {
+    "amount": 71300,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1960,
+   "url": "https://cars.bonhams.com/auction/31711/lot/104/1960-mercedes-benz-190-sl-roadster-with-hardtop-chassis-no-12104210018306-engine-no-1219217501171/",
+   "chassis": "12104210018306",
+   "title": "1960 Mercedes-Benz 190 SL Roadster with Hardtop Chassis no. 121.042.10.018306 Engine no. 121.921.7501171"
+  },
+  {
+   "date": "2026-03-07",
+   "venue": "Broad Arrow",
+   "price_usd": 184800,
+   "basis": "buyer-paid",
+   "hammer_usd": 165000,
+   "native": {
+    "amount": 184800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1961,
+   "url": "https://www.broadarrowauctions.com/vehicles/am26_r0156/1961-mercedes-benz-190-sl",
+   "chassis": "12104010025444",
+   "title": "1961 Mercedes-Benz 190 SL"
+  },
+  {
+   "date": "2025-10-18",
+   "venue": "RM Sotheby's",
+   "price_usd": 192510,
+   "basis": "buyer-paid",
+   "hammer_usd": 167400,
+   "native": {
+    "amount": 178250,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1960,
+   "url": "https://rmsothebys.com/auctions/mu25/lots/r0034-1960-mercedesbenz-190-sl/",
+   "chassis": "12104010017823",
+   "title": "1960 Mercedes-Benz 190 SL"
+  },
+  {
+   "date": "2025-08-14",
+   "venue": "Broad Arrow",
+   "price_usd": 148400,
+   "basis": "buyer-paid",
+   "hammer_usd": 132500,
+   "native": {
+    "amount": 148400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1962,
+   "url": "https://www.broadarrowauctions.com/vehicles/jc25_r0124/1962-mercedes-benz-190-sl",
+   "chassis": "12104010024875",
+   "title": "1962 Mercedes-Benz 190 SL"
+  },
+  {
+   "date": "2025-05-25",
+   "venue": "Broad Arrow",
+   "price_usd": 93150,
+   "basis": "buyer-paid",
+   "hammer_usd": 81000,
+   "native": {
+    "amount": 86250,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1960,
+   "url": "https://www.broadarrowauctions.com/vehicles/ve25_r024/1960-mercedes-benz-190-sl",
+   "chassis": "12104210017921",
+   "title": "1960 Mercedes-Benz 190 SL"
+  },
+  {
+   "date": "2025-04-13",
+   "venue": "Bonhams",
+   "price_usd": 116840,
+   "basis": "buyer-paid",
+   "hammer_usd": 101600,
+   "native": {
+    "amount": 92000,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1960,
+   "url": "https://cars.bonhams.com/auction/30542/lot/119/1960-mercedes-benz-190-sl-convertible-with-hardtop-chassis-no-121042-10-018216/",
+   "chassis": "12104210018216",
+   "title": "1960 Mercedes-Benz 190 SL Convertible with Hardtop Chassis no. 121042-10-018216"
+  },
+  {
+   "date": "2025-03-06",
+   "venue": "Gooding Christie's",
+   "price_usd": 131600,
+   "basis": "buyer-paid",
+   "hammer_usd": 117500,
+   "native": {
+    "amount": 131600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1962,
+   "url": "https://www.goodingco.com/lot/1962-mercedes-benz-190-sl-1b",
+   "chassis": "12104010022618",
+   "title": "1962 Mercedes-Benz 190 SL (FL25)"
+  },
+  {
+   "date": "2025-02-28",
+   "venue": "RM Sotheby's",
+   "price_usd": 106400,
+   "basis": "buyer-paid",
+   "hammer_usd": 95000,
+   "native": {
+    "amount": 106400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1960,
+   "url": "https://rmsothebys.com/auctions/mi25/lots/r0091-1960-mercedesbenz-190-sl/",
+   "chassis": "12104210016299",
+   "title": "1960 Mercedes-Benz 190 SL"
+  },
+  {
+   "date": "2025-01-25",
+   "venue": "Bonhams",
+   "price_usd": 156800,
+   "basis": "buyer-paid",
+   "hammer_usd": 140000,
+   "native": {
+    "amount": 156800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1961,
+   "url": "https://cars.bonhams.com/auction/30558/lot/137/1961-mercedes-benz-190-sl-roadster-chassis-no-121042-10-022348-engine-no-121928-10-000218-body-no-121042-10-00784/",
+   "chassis": "12104210022348",
+   "title": "1961 Mercedes-Benz 190 SL Roadster Chassis no. 121042-10-022348 Engine no. 121928-10-000218 Body no. 121042-10-00784"
+  },
+  {
+   "date": "2025-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 187000,
+   "basis": "buyer-paid",
+   "hammer_usd": 170000,
+   "native": {
+    "amount": 187000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1960,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1960-mercedes-benz-190sl-roadster-281201?origin=results",
+   "chassis": "12104210018071",
+   "title": "1960 MERCEDES-BENZ 190SL ROADSTER"
+  },
+  {
+   "date": "2025-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 165000,
+   "basis": "buyer-paid",
+   "hammer_usd": 150000,
+   "native": {
+    "amount": 165000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1961,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1961-mercedes-benz-190sl-roadster-281352?origin=results",
+   "chassis": "1210421000297",
+   "title": "1961 MERCEDES-BENZ 190SL ROADSTER"
+  },
+  {
+   "date": "2024-12-04",
+   "venue": "Bonhams",
+   "price_usd": 67738,
+   "basis": "buyer-paid",
+   "hammer_usd": 58902,
+   "native": {
+    "amount": 62720,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1960,
+   "url": "https://cars.bonhams.com/auction/31286/lot/7/1960-mercedes-benz-190-sl-chassis-no-12104010017194-engine-no-12192110017251/",
+   "chassis": "12104010017194",
+   "title": "1960 Mercedes-Benz 190 SL Chassis no. 12104010017194 Engine no. 12192110017251"
+  },
+  {
+   "date": "2024-10-28",
+   "venue": "RM Sotheby's",
+   "price_usd": 15680,
+   "basis": "buyer-paid",
+   "hammer_usd": 14000,
+   "native": {
+    "amount": 15680,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1960,
+   "url": "https://rmsothebys.com/auctions/jy24/lots/r0021-1960-mercedesbenz-190-sl/",
+   "chassis": "12104010016733",
+   "title": "1960 Mercedes-Benz 190 SL"
+  },
+  {
+   "date": "2024-10-04",
+   "venue": "Bonhams",
+   "price_usd": 67200,
+   "basis": "buyer-paid",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 67200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1961,
+   "url": "https://cars.bonhams.com/auction/29264/lot/107/1961-mercedes-benz-190sl-chassis-no-121040-10-020474-engine-no-121921-10-020595/",
+   "chassis": "12104010020474",
+   "title": "1961 Mercedes-Benz 190SL Chassis no. 121040-10-020474 Engine no. 121921-10-020595"
+  },
+  {
+   "date": "2024-09-14",
+   "venue": "Bonhams",
+   "price_usd": 95250,
+   "basis": "buyer-paid",
+   "hammer_usd": 82826,
+   "native": {
+    "amount": 75000,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1962,
+   "url": "https://cars.bonhams.com/auction/29333/lot/536/1962-mercedes-benz-190-sl-roadster-chassis-no-121040124001-engine-no-001900/",
+   "chassis": "121040124001",
+   "title": "1962 Mercedes-Benz 190 SL Roadster Chassis no. 121040124001 Engine no. 001900"
+  },
+  {
+   "date": "2024-08-17",
+   "venue": "Gooding Christie's",
+   "price_usd": 224000,
+   "basis": "buyer-paid",
+   "hammer_usd": 200000,
+   "native": {
+    "amount": 224000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1962,
+   "url": "https://www.goodingco.com/lot/1962-mercedes-benz-190-sl-1a",
+   "chassis": "12104210023758",
+   "title": "1962 Mercedes-Benz 190 SL (PB24)"
+  },
+  {
+   "date": "2024-08-16",
+   "venue": "Bonhams",
+   "price_usd": 117600,
+   "basis": "buyer-paid",
+   "hammer_usd": 105000,
+   "native": {
+    "amount": 117600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1961,
+   "url": "https://cars.bonhams.com/auction/29263/lot/206/1961-mercedes-benz-190sl-chassis-no-121042-10-017699-engine-no-12192110-017813/",
+   "chassis": "12104210017699",
+   "title": "1961 Mercedes-Benz 190SL Chassis no. 121042-10-017699 Engine no. 121921.10-017813"
+  },
+  {
+   "date": "2024-07-12",
+   "venue": "Bonhams",
+   "price_usd": 95250,
+   "basis": "buyer-paid",
+   "hammer_usd": 82826,
+   "native": {
+    "amount": 75000,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1962,
+   "url": "https://cars.bonhams.com/auction/29332/lot/237/1962-mercedes-benz-190-sl-roadster-chassis-no-121040124001-engine-no-001900/",
+   "chassis": "121040124001",
+   "title": "1962 Mercedes-Benz 190 SL Roadster Chassis no. 121040124001 Engine no. 001900"
+  },
+  {
+   "date": "2024-04-14",
+   "venue": "Bonhams",
+   "price_usd": 124143,
+   "basis": "buyer-paid",
+   "hammer_usd": 107950,
+   "native": {
+    "amount": 97750,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1960,
+   "url": "https://cars.bonhams.com/auction/29331/lot/126/1960-mercedes-benz-190-sl-roadster-chassis-no-121040-10-019155/",
+   "chassis": "12104010019155",
+   "title": "1960 Mercedes-Benz 190 SL Roadster Chassis no. 121040-10-019155"
+  },
+  {
+   "date": "2024-03-02",
+   "venue": "Broad Arrow",
+   "price_usd": 112000,
+   "basis": "buyer-paid",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 112000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1960,
+   "url": "https://www.broadarrowauctions.com/vehicles/am24_r107/1960-mercedes-benz-190-sl",
+   "chassis": "12104010018268",
+   "title": "1960 Mercedes-Benz 190 SL"
+  },
+  {
+   "date": "2024-03-02",
+   "venue": "RM Sotheby's",
+   "price_usd": 179200,
+   "basis": "buyer-paid",
+   "hammer_usd": 160000,
+   "native": {
+    "amount": 179200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1961,
+   "url": "https://rmsothebys.com/auctions/mi24/lots/r0026-1961-mercedesbenz-190-sl/",
+   "chassis": "12104010025444",
+   "title": "1961 Mercedes-Benz 190 SL"
+  },
+  {
+   "date": "2024-02-29",
+   "venue": "Bonhams",
+   "price_usd": 162000,
+   "basis": "buyer-paid",
+   "hammer_usd": 144643,
+   "native": {
+    "amount": 162000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1962,
+   "url": "https://cars.bonhams.com/auction/29261/lot/70/1962-mercedes-benz-190sl-chassis-no-121040-10-025619-engine-no-121928-10-003501/",
+   "chassis": "12104010025619",
+   "title": "1962 Mercedes-Benz 190SL Chassis no. 121040-10-025619 Engine no. 121928-10-003501"
+  },
+  {
+   "date": "2024-02-01",
+   "venue": "Bonhams",
+   "price_usd": 121095,
+   "basis": "buyer-paid",
+   "hammer_usd": 105300,
+   "native": {
+    "amount": 112125,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1962,
+   "url": "https://cars.bonhams.com/auction/29216/lot/194/1962-mercedes-benz-190-sl-roadster-with-hardtop-chassis-no-121040-10-024851-engine-no-121928-10-002750/",
+   "chassis": "12104010024851",
+   "title": "1962 Mercedes-Benz 190 SL Roadster with Hardtop Chassis no. 121040-10-024851 Engine no. 121928-10-002750"
+  },
+  {
+   "date": "2024-01-25",
+   "venue": "Bonhams",
+   "price_usd": 184800,
+   "basis": "buyer-paid",
+   "hammer_usd": 165000,
+   "native": {
+    "amount": 184800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1962,
+   "url": "https://cars.bonhams.com/auction/29260/lot/52/1962-mercedes-benz-190-sl-roadster-chassis-no-121042-10-024855-engine-no-121928-10-000983/",
+   "chassis": "12104210024855",
+   "title": "1962 Mercedes-Benz 190 SL Roadster Chassis no. 121042-10-024855 Engine no. 121928-10-000983"
+  },
+  {
+   "date": "2023-12-15",
+   "venue": "Bonhams",
+   "price_usd": 120650,
+   "basis": "buyer-paid",
+   "hammer_usd": 104913,
+   "native": {
+    "amount": 95000,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1960,
+   "url": "https://cars.bonhams.com/auction/28309/lot/2/1960-mercedes-benz-190-sl-roadster-chassis-no-121040-10-019155/",
+   "chassis": "12104010019155",
+   "title": "1960 Mercedes-Benz 190 SL Roadster Chassis no. 121040-10-019155"
+  },
+  {
+   "date": "2023-10-08",
+   "venue": "Bonhams",
+   "price_usd": 130410,
+   "basis": "buyer-paid",
+   "hammer_usd": 113400,
+   "native": {
+    "amount": 120750,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1961,
+   "url": "https://cars.bonhams.com/auction/28312/lot/195/1961-mercedes-benz-190-sl-convertible-chassis-no-121040-10018980-engine-no-121921-10019115/",
+   "chassis": "12104010018980",
+   "title": "1961 Mercedes-Benz 190 SL Convertible Chassis no. 121040-10018980 Engine no. 121921-10019115"
+  },
   {
    "date": "2026-09-18",
    "venue": "Bring a Trailer",
@@ -77,22 +524,6 @@
    "url": "https://bringatrailer.com/listing/1961-mercedes-benz-190sl-98/",
    "chassis": "12104010019660",
    "title": "58-Years-Family-Owned 1961 Mercedes-Benz 190SL"
-  },
-  {
-   "date": "2026-08-15",
-   "venue": "Gooding Christie's",
-   "price_usd": 196000,
-   "basis": "buyer-paid",
-   "hammer_usd": 175000,
-   "native": {
-    "amount": 196000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1960,
-   "url": "https://www.goodingco.com/lot/1960-mercedes-benz-190-sl-pb26",
-   "chassis": "12104210014430",
-   "title": "1960 Mercedes-Benz 190 SL (PB26)"
   },
   {
    "date": "2026-07-29",
@@ -159,22 +590,6 @@
    "title": "1960 Mercedes-Benz 190SL"
   },
   {
-   "date": "2026-07-04",
-   "venue": "RM Sotheby's",
-   "price_usd": 99360,
-   "basis": "buyer-paid",
-   "hammer_usd": 86400,
-   "native": {
-    "amount": 92000,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 1960,
-   "url": "https://rmsothebys.com/auctions/tc26/lots/r0015-1960-mercedesbenz-190-sl",
-   "chassis": "12104010017792",
-   "title": "1960 Mercedes-Benz 190 SL"
-  },
-  {
    "date": "2026-06-22",
    "venue": "MB Market",
    "price_usd": 97650,
@@ -207,22 +622,6 @@
    "title": "46-Years-Owned 1962 Mercedes-Benz 190SL"
   },
   {
-   "date": "2026-04-24",
-   "venue": "Bonhams",
-   "price_usd": 77004,
-   "basis": "buyer-paid",
-   "hammer_usd": 66960,
-   "native": {
-    "amount": 71300,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 1960,
-   "url": "https://cars.bonhams.com/auction/31711/lot/104/1960-mercedes-benz-190-sl-roadster-with-hardtop-chassis-no-12104210018306-engine-no-1219217501171/",
-   "chassis": "12104210018306",
-   "title": "1960 Mercedes-Benz 190 SL Roadster with Hardtop Chassis no. 121.042.10.018306 Engine no. 121.921.7501171"
-  },
-  {
    "date": "2026-04-16",
    "venue": "Bring a Trailer",
    "price_usd": 89775,
@@ -253,22 +652,6 @@
    "url": "https://bringatrailer.com/listing/1961-mercedes-benz-190sl-86/",
    "chassis": "A1210401000421",
    "title": "1961 Mercedes-Benz 190SL"
-  },
-  {
-   "date": "2026-03-07",
-   "venue": "Broad Arrow",
-   "price_usd": 184800,
-   "basis": "buyer-paid",
-   "hammer_usd": 165000,
-   "native": {
-    "amount": 184800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1961,
-   "url": "https://www.broadarrowauctions.com/vehicles/am26_r0156/1961-mercedes-benz-190-sl",
-   "chassis": "12104010025444",
-   "title": "1961 Mercedes-Benz 190 SL"
   },
   {
    "date": "2026-02-05",
@@ -319,22 +702,6 @@
    "title": "1961 Mercedes-Benz 190SL"
   },
   {
-   "date": "2025-10-18",
-   "venue": "RM Sotheby's",
-   "price_usd": 192510,
-   "basis": "buyer-paid",
-   "hammer_usd": 167400,
-   "native": {
-    "amount": 178250,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 1960,
-   "url": "https://rmsothebys.com/auctions/mu25/lots/r0034-1960-mercedesbenz-190-sl/",
-   "chassis": "12104010017823",
-   "title": "1960 Mercedes-Benz 190 SL"
-  },
-  {
    "date": "2025-10-02",
    "venue": "MB Market",
    "price_usd": 84000,
@@ -349,70 +716,6 @@
    "url": "https://thembmarket.com/1961-mercedes-benz-190sl-1",
    "chassis": "12104010020015",
    "title": "1961 Mercedes-Benz 190SL"
-  },
-  {
-   "date": "2025-08-14",
-   "venue": "Broad Arrow",
-   "price_usd": 148400,
-   "basis": "buyer-paid",
-   "hammer_usd": 132500,
-   "native": {
-    "amount": 148400,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1962,
-   "url": "https://www.broadarrowauctions.com/vehicles/jc25_r0124/1962-mercedes-benz-190-sl",
-   "chassis": "12104010024875",
-   "title": "1962 Mercedes-Benz 190 SL"
-  },
-  {
-   "date": "2025-05-25",
-   "venue": "Broad Arrow",
-   "price_usd": 93150,
-   "basis": "buyer-paid",
-   "hammer_usd": 81000,
-   "native": {
-    "amount": 86250,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 1960,
-   "url": "https://www.broadarrowauctions.com/vehicles/ve25_r024/1960-mercedes-benz-190-sl",
-   "chassis": "12104210017921",
-   "title": "1960 Mercedes-Benz 190 SL"
-  },
-  {
-   "date": "2025-03-06",
-   "venue": "Gooding Christie's",
-   "price_usd": 131600,
-   "basis": "buyer-paid",
-   "hammer_usd": 117500,
-   "native": {
-    "amount": 131600,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1962,
-   "url": "https://www.goodingco.com/lot/1962-mercedes-benz-190-sl-1b",
-   "chassis": "12104010022618",
-   "title": "1962 Mercedes-Benz 190 SL (FL25)"
-  },
-  {
-   "date": "2025-02-28",
-   "venue": "RM Sotheby's",
-   "price_usd": 106400,
-   "basis": "buyer-paid",
-   "hammer_usd": 95000,
-   "native": {
-    "amount": 106400,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1960,
-   "url": "https://rmsothebys.com/auctions/mi25/lots/r0091-1960-mercedesbenz-190-sl/",
-   "chassis": "12104210016299",
-   "title": "1960 Mercedes-Benz 190 SL"
   },
   {
    "date": "2025-02-11",
@@ -431,38 +734,6 @@
    "title": "1960 Mercedes-Benz 190SL"
   },
   {
-   "date": "2025-01-25",
-   "venue": "Barrett-Jackson",
-   "price_usd": 187000,
-   "basis": "buyer-paid",
-   "hammer_usd": 170000,
-   "native": {
-    "amount": 187000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1960,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1960-mercedes-benz-190sl-roadster-281201?origin=results",
-   "chassis": "12104210018071",
-   "title": "1960 MERCEDES-BENZ 190SL ROADSTER"
-  },
-  {
-   "date": "2025-01-24",
-   "venue": "Barrett-Jackson",
-   "price_usd": 165000,
-   "basis": "buyer-paid",
-   "hammer_usd": 150000,
-   "native": {
-    "amount": 165000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1961,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1961-mercedes-benz-190sl-roadster-281352?origin=results",
-   "chassis": "1210421000297",
-   "title": "1961 MERCEDES-BENZ 190SL ROADSTER"
-  },
-  {
    "date": "2024-11-22",
    "venue": "Sotheby's Motorsport",
    "price_usd": 183500,
@@ -477,70 +748,6 @@
    "url": "https://www.sothebysmotorsport.com/auction/1961-mercedesbenz-190sl-3473",
    "chassis": "1210401002642",
    "title": "1961 Mercedes-Benz 190SL"
-  },
-  {
-   "date": "2024-10-28",
-   "venue": "RM Sotheby's",
-   "price_usd": 15680,
-   "basis": "buyer-paid",
-   "hammer_usd": 14000,
-   "native": {
-    "amount": 15680,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1960,
-   "url": "https://rmsothebys.com/auctions/jy24/lots/r0021-1960-mercedesbenz-190-sl/",
-   "chassis": "12104010016733",
-   "title": "1960 Mercedes-Benz 190 SL"
-  },
-  {
-   "date": "2024-08-17",
-   "venue": "Gooding Christie's",
-   "price_usd": 224000,
-   "basis": "buyer-paid",
-   "hammer_usd": 200000,
-   "native": {
-    "amount": 224000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1962,
-   "url": "https://www.goodingco.com/lot/1962-mercedes-benz-190-sl-1a",
-   "chassis": "12104210023758",
-   "title": "1962 Mercedes-Benz 190 SL (PB24)"
-  },
-  {
-   "date": "2024-03-02",
-   "venue": "Broad Arrow",
-   "price_usd": 112000,
-   "basis": "buyer-paid",
-   "hammer_usd": 100000,
-   "native": {
-    "amount": 112000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1960,
-   "url": "https://www.broadarrowauctions.com/vehicles/am24_r107/1960-mercedes-benz-190-sl",
-   "chassis": "12104010018268",
-   "title": "1960 Mercedes-Benz 190 SL"
-  },
-  {
-   "date": "2024-03-02",
-   "venue": "RM Sotheby's",
-   "price_usd": 179200,
-   "basis": "buyer-paid",
-   "hammer_usd": 160000,
-   "native": {
-    "amount": 179200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1961,
-   "url": "https://rmsothebys.com/auctions/mi24/lots/r0026-1961-mercedesbenz-190-sl/",
-   "chassis": "12104010025444",
-   "title": "1961 Mercedes-Benz 190 SL"
   }
  ]
 }

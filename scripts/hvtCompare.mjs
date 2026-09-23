@@ -69,16 +69,29 @@ function vehFor(m, yMin) {
   if (m.body) v.bodyStyle = m.body;
   return v;
 }
-async function fetchScoped(page, m, yMin, yMax) {
+async function fetchChannel(page, m, yMin, yMax, channel) {
+  const dsl = dslFor(m, yMin, yMax); dsl.filters.channel = channel;   // channel:house -> houseTier (no photo); channel:online -> photo-gated
   let res = null;
-  for (let a = 0; a < 6 && !(res && res.status === "ok"); a++) { res = await post(page, dslFor(m, yMin, yMax), vehFor(m, yMin)); if (!(res && res.status === "ok")) await new Promise(r => setTimeout(r, 1000 * (a + 1))); }
+  for (let a = 0; a < 6 && !(res && res.status === "ok"); a++) { res = await post(page, dsl, vehFor(m, yMin)); if (!(res && res.status === "ok")) await new Promise(r => setTimeout(r, 1000 * (a + 1))); }
   if (!(res && res.status === "ok")) return { ok: false, receipts: [], total: null };
-  let receipts = (res.receipts || []).filter(r => !r.excluded);
-  // car-2 fuelie + per-car halo title excludes
+  return { ok: true, receipts: (res.receipts || []).filter(r => !r.excluded).map(r => ({ ...r, _chan: channel })), total: res.answer && res.answer.total, capped: (res.answer && res.answer.total) != null && (res.receipts || []).length < res.answer.total };
+}
+// house (buyer-paid, no photo) UNION online (sold+fee, photo-gated), deduped through a canonical
+// proxy (chassis + sale month + rounded price) so a car on two sources counts once.
+async function fetchScoped(page, m, yMin, yMax) {
+  const H = await fetchChannel(page, m, yMin, yMax, "house");
+  const O = await fetchChannel(page, m, yMin, yMax, "online");
+  if (!H.ok && !O.ok) return { ok: false, receipts: [], total: null };
+  const seen = new Set(); let union = [];
+  for (const r of [...(H.receipts || []), ...(O.receipts || [])]) {
+    const key = (r.chassis || r.venue || "?") + "|" + String(r.date || "").slice(0, 7) + "|" + Math.round((r.hammer_usd || 0) / 1000);
+    if (seen.has(key)) continue; seen.add(key); union.push(r);
+  }
   const halo = HALO[Number(m.car_id)];
   let haloDropped = 0;
-  if (halo) { const before = receipts.length; receipts = receipts.filter(r => !halo.test(r.title || "")); haloDropped = before - receipts.length; }
-  return { ok: true, receipts, total: res.answer && res.answer.total, haloDropped, capped: (res.answer && res.answer.total) != null && (res.receipts || []).length < res.answer.total };
+  if (halo) { const before = union.length; union = union.filter(r => !halo.test(r.title || "")); haloDropped = before - union.length; }
+  return { ok: true, receipts: union, total: (H.total || 0) + (O.total || 0), haloDropped, capped: H.capped || O.capped,
+    houseN: (H.receipts || []).length, onlineN: (O.receipts || []).length };
 }
 
 (async () => {
@@ -107,6 +120,10 @@ async function fetchScoped(page, m, yMin, yMax) {
     const priced = f.receipts.map(r => ({ ...r, _p: basisPrice(r) })).filter(r => r._p.usd);
     const houseShare = priced.length ? priced.filter(r => HOUSES.has(r.venue)).length / priced.length : 0;
     const basisLabel = !priced.length ? "n/a" : houseShare === 1 ? "buyer-paid (houses)" : houseShare === 0 ? "sold+fee (online)" : `mixed (${Math.round(houseShare*100)}% house buyer-paid, rest sold+fee)`;
+    // channel mix (W1) + per-channel medians (condition 2)
+    const w1all = priced.filter(r => inWin(r, "W1"));
+    const w1house = w1all.filter(r => HOUSES.has(r.venue)), w1online = w1all.filter(r => !HOUSES.has(r.venue));
+    const chanMix = { houseN: w1house.length, onlineN: w1online.length, houseMedian: med(w1house.map(r => r._p.usd)), onlineMedian: med(w1online.map(r => r._p.usd)) };
     // windows
     const win = {};
     for (const wk of ["W1", "W2", "W3"]) { const rows = priced.filter(r => inWin(r, wk)); const vals = rows.map(r => r._p.usd); const n = rows.length, thin = n < 8;
@@ -120,6 +137,7 @@ async function fetchScoped(page, m, yMin, yMax) {
     const sorted = priced.slice().sort((a, b) => a._p.usd - b._p.usd);
     const mid = sorted[Math.floor(sorted.length / 2)];
     poolChecks.push({ id, listed: `${y} ${m.make} ${m.model} ${m.trim}`.trim(), status, n: priced.length, capped: f.capped, haloDropped: f.haloDropped || 0, yrange: yrs.length ? yrs[0] + "-" + yrs[yrs.length - 1] : "-", venues,
+      chan: `W1 house ${chanMix.houseN} (med ${money(chanMix.houseMedian)}) / online ${chanMix.onlineN} (med ${money(chanMix.onlineMedian)})`,
       cheapest: sorted[0] ? `${money(sorted[0]._p.usd)} ${(sorted[0].title||"").slice(0,50)}` : "-",
       median: mid ? `${money(mid._p.usd)} ${(mid.title||"").slice(0,50)}` : "-",
       dearest: sorted.length ? `${money(sorted[sorted.length-1]._p.usd)} ${(sorted[sorted.length-1].title||"").slice(0,50)}` : "-" });
@@ -162,7 +180,7 @@ async function fetchScoped(page, m, yMin, yMax) {
   md.push(`## d) Dispersion: our p25-p75 vs HVT #3 Lo-Hi`, rowsD.join("\n"), ``);
   md.push(`## e) Lag: our W2-vs-W1 move vs HVT printed quarterly change`, rowsE.length ? rowsE.join("\n") : "- (no car had non-thin W1 and W2)", ``);
   md.push(`## f) Pool check (every car)`, `car | status | n | halo-dropped | model-year range | venues | cheapest / median / dearest`);
-  for (const pc of poolChecks) md.push(`- **${pc.id}** ${pc.listed} [${pc.status}] n=${pc.n}${pc.capped?" CAPPED":""} halo-dropped=${pc.haloDropped} yrs=${pc.yrange} venues=${pc.venues.join(",")||"-"}\n    - cheapest: ${pc.cheapest}\n    - median: ${pc.median}\n    - dearest: ${pc.dearest}`);
+  for (const pc of poolChecks) md.push(`- **${pc.id}** ${pc.listed} [${pc.status}] n=${pc.n}${pc.capped?" CAPPED":""} halo-dropped=${pc.haloDropped} yrs=${pc.yrange} venues=${pc.venues.join(",")||"-"}\n    - channel: ${pc.chan}\n    - cheapest: ${pc.cheapest}\n    - median: ${pc.median}\n    - dearest: ${pc.dearest}`);
   md.push(``);
   fs.writeFileSync(path.join(OUT, "summary.md"), md.join("\n") + "\n");
   console.log(`\nWrote gas_100.csv (${csv.length - 1} rows), ${perCar.length} receipts, summary.md`);

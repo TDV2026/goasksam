@@ -1,18 +1,290 @@
 {
  "car_id": 50,
- "listed": "1990 Chevrolet Corvette ZR-1",
+ "listed": "1990 Chevrolet Corvette ZR1",
  "status": "compare",
  "year_scope": "adjacent years pooled (1988-1992)",
- "basis": "n/a",
+ "basis": "mixed (76% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Chevrolet",
   "model": "Corvette",
   "window": "36mo",
   "year_min": 1988,
   "year_max": 1992,
-  "trim": "ZR-1",
-  "body": "coupe"
+  "trim": "ZR1"
  },
  "halo_dropped": 0,
- "sales": []
+ "sales": [
+  {
+   "date": "2026-07-24",
+   "venue": "Mecum",
+   "price_usd": 39900,
+   "basis": "sold+fee",
+   "hammer_usd": 38000,
+   "native": {
+    "amount": 41800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1990,
+   "url": "https://www.mecum.com/lots/1176540/1990-chevrolet-corvette-zr1?aa_id=795291-0",
+   "chassis": "1G1YZ23J5L5800902",
+   "title": "1990 Chevrolet Corvette ZR1"
+  },
+  {
+   "date": "2026-06-05",
+   "venue": "Mecum",
+   "price_usd": 24150,
+   "basis": "sold+fee",
+   "hammer_usd": 23000,
+   "native": {
+    "amount": 25300,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1990,
+   "url": "https://www.mecum.com/lots/1173439/1990-chevrolet-corvette-zr1?aa_id=789009-0",
+   "chassis": "1G1YZ23J7L5800111",
+   "title": "1990 Chevrolet Corvette ZR1"
+  },
+  {
+   "date": "2026-05-14",
+   "venue": "Mecum",
+   "price_usd": 31500,
+   "basis": "sold+fee",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1990,
+   "url": "https://www.mecum.com/lots/1169423/1990-chevrolet-corvette-zr1?aa_id=771315-0",
+   "chassis": "1G1YZ23JXL5802354",
+   "title": "1990 Chevrolet Corvette ZR1"
+  },
+  {
+   "date": "2026-05-13",
+   "venue": "Mecum",
+   "price_usd": 29400,
+   "basis": "sold+fee",
+   "hammer_usd": 28000,
+   "native": {
+    "amount": 30800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1990,
+   "url": "https://www.mecum.com/lots/1167417/1990-chevrolet-corvette-zr1?aa_id=768133-0",
+   "chassis": "1G1YZ23J8L5800893",
+   "title": "1990 Chevrolet Corvette ZR1"
+  },
+  {
+   "date": "2026-01-22",
+   "venue": "Barrett-Jackson",
+   "price_usd": 66000,
+   "basis": "buyer-paid",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 66000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1992,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1992-chevrolet-corvette-zr1-290141?origin=results",
+   "chassis": "1G1YZ23J1N5800432",
+   "title": "1992 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2026-01-21",
+   "venue": "Barrett-Jackson",
+   "price_usd": 26400,
+   "basis": "buyer-paid",
+   "hammer_usd": 24000,
+   "native": {
+    "amount": 26400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1991,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1991-chevrolet-corvette-zr1-291100?origin=results",
+   "chassis": "1G1YZ23J0M5800324",
+   "title": "1991 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2026-01-20",
+   "venue": "Barrett-Jackson",
+   "price_usd": 22550,
+   "basis": "buyer-paid",
+   "hammer_usd": 20500,
+   "native": {
+    "amount": 22550,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1990,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1990-chevrolet-corvette-zr1-293762?origin=results",
+   "chassis": "1G1YZ23J5L5801595",
+   "title": "1990 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2025-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 29700,
+   "basis": "buyer-paid",
+   "hammer_usd": 27000,
+   "native": {
+    "amount": 29700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1992,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1992-chevrolet-corvette-zr1-snake-skinner-x-282173?origin=results",
+   "chassis": "1G1YZ23J4N5800151",
+   "title": "1992 CHEVROLET CORVETTE ZR1 'SNAKE SKINNER X'"
+  },
+  {
+   "date": "2025-01-21",
+   "venue": "Barrett-Jackson",
+   "price_usd": 36300,
+   "basis": "buyer-paid",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 36300,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1990,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1990-chevrolet-corvette-zr1-281698?origin=results",
+   "chassis": "1G1YZ23J9L5800367",
+   "title": "1990 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2024-10-11",
+   "venue": "Barrett-Jackson",
+   "price_usd": 71500,
+   "basis": "buyer-paid",
+   "hammer_usd": 65000,
+   "native": {
+    "amount": 71500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1992,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1992-chevrolet-corvette-zr1-279145?origin=results",
+   "chassis": "1G1YZ23J1N5800432",
+   "title": "1992 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2024-10-11",
+   "venue": "Barrett-Jackson",
+   "price_usd": 46200,
+   "basis": "buyer-paid",
+   "hammer_usd": 42000,
+   "native": {
+    "amount": 46200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1991,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1991-chevrolet-corvette-zr1-279143?origin=results",
+   "chassis": "1G1YZ23J1M5801885",
+   "title": "1991 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2024-10-11",
+   "venue": "Barrett-Jackson",
+   "price_usd": 49500,
+   "basis": "buyer-paid",
+   "hammer_usd": 45000,
+   "native": {
+    "amount": 49500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1990,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1990-chevrolet-corvette-zr1-279140?origin=results",
+   "chassis": "1G1YZ23J4L5803015",
+   "title": "1990 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2024-04-19",
+   "venue": "Barrett-Jackson",
+   "price_usd": 12100,
+   "basis": "buyer-paid",
+   "hammer_usd": 11000,
+   "native": {
+    "amount": 12100,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1990,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/1990-chevrolet-corvette-zr1-277213?origin=results",
+   "chassis": "1G1YZ23J0L5802072",
+   "title": "1990 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2024-04-18",
+   "venue": "Barrett-Jackson",
+   "price_usd": 42350,
+   "basis": "buyer-paid",
+   "hammer_usd": 38500,
+   "native": {
+    "amount": 42350,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1991,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/1991-chevrolet-corvette-zr1-277888?origin=results",
+   "chassis": "1G1YZ23J2M5800003",
+   "title": "1991 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2024-04-18",
+   "venue": "Barrett-Jackson",
+   "price_usd": 30800,
+   "basis": "buyer-paid",
+   "hammer_usd": 28000,
+   "native": {
+    "amount": 30800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1990,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/1990-chevrolet-corvette-zr1-277209?origin=results",
+   "chassis": "1G1YZ23J4L5801622",
+   "title": "1990 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2024-01-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 35200,
+   "basis": "buyer-paid",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 35200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1990,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1990-chevrolet-corvette-zr1-272021?origin=results",
+   "chassis": "1G1YZ23J7L5802246",
+   "title": "1990 CHEVROLET CORVETTE ZR1"
+  },
+  {
+   "date": "2024-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 46200,
+   "basis": "buyer-paid",
+   "hammer_usd": 42000,
+   "native": {
+    "amount": 46200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1990,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1990-chevrolet-corvette-zr1-271408?origin=results",
+   "chassis": "1G1YZ23JXL5802600",
+   "title": "1990 CHEVROLET CORVETTE ZR1"
+  }
+ ]
 }

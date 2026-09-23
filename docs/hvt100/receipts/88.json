@@ -3,17 +3,16 @@
  "listed": "2015 Ferrari 458 Speciale",
  "status": "compare",
  "year_scope": "exact 2015",
- "basis": "mixed (59% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (54% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Ferrari",
   "model": "458",
   "window": "36mo",
   "year_min": 2015,
   "year_max": 2015,
-  "trim": "Speciale",
-  "body": "coupe"
+  "trim": "Speciale"
  },
- "halo_dropped": 1,
+ "halo_dropped": 0,
  "sales": [
   {
    "date": "2026-08-15",
@@ -48,38 +47,6 @@
    "title": "2015 Ferrari 458 Speciale"
   },
   {
-   "date": "2026-07-29",
-   "venue": "Bring a Trailer",
-   "price_usd": 927500,
-   "basis": "sold+fee",
-   "hammer_usd": 920000,
-   "native": {
-    "amount": 920000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2015,
-   "url": "https://bringatrailer.com/listing/2015-ferrari-458-speciale-37/",
-   "chassis": "ZFF75VFA6F0208875",
-   "title": "2015 Ferrari 458 Speciale"
-  },
-  {
-   "date": "2026-07-22",
-   "venue": "Bring a Trailer",
-   "price_usd": 2132500,
-   "basis": "sold+fee",
-   "hammer_usd": 2125000,
-   "native": {
-    "amount": 2125000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2015,
-   "url": "https://bringatrailer.com/listing/2015-ferrari-458-speciale-a-6/",
-   "chassis": "ZFF78VHAXF0211296",
-   "title": "2,200-Mile 2015 Ferrari 458 Speciale A"
-  },
-  {
    "date": "2026-07-04",
    "venue": "RM Sotheby's",
    "price_usd": 734400,
@@ -94,38 +61,6 @@
    "url": "https://rmsothebys.com/auctions/tc26/lots/r0014-2015-ferrari-458-speciale",
    "chassis": "ZFF75VHB000208661",
    "title": "2015 Ferrari 458 Speciale"
-  },
-  {
-   "date": "2026-06-11",
-   "venue": "Bring a Trailer",
-   "price_usd": 1136500,
-   "basis": "sold+fee",
-   "hammer_usd": 1129000,
-   "native": {
-    "amount": 1129000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2015,
-   "url": "https://bringatrailer.com/listing/2015-ferrari-458-speciale-36/",
-   "chassis": "ZFF75VFA8F0205055",
-   "title": "4,100-Mile 2015 Ferrari 458 Speciale"
-  },
-  {
-   "date": "2026-04-25",
-   "venue": "RM Sotheby's",
-   "price_usd": 1269000,
-   "basis": "buyer-paid",
-   "hammer_usd": 1123200,
-   "native": {
-    "amount": 1175000,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 2015,
-   "url": "https://rmsothebys.com/auctions/mc26/lots/r0011-2015-ferrari-458-speciale-a",
-   "chassis": "ZFF78VHB000208106",
-   "title": "2015 Ferrari 458 Speciale A"
   },
   {
    "date": "2026-04-25",
@@ -176,36 +111,52 @@
    "title": "2015 Ferrari 458 Speciale"
   },
   {
-   "date": "2025-12-05",
+   "date": "2025-01-24",
    "venue": "RM Sotheby's",
-   "price_usd": 933125,
+   "price_usd": 786000,
    "basis": "buyer-paid",
-   "hammer_usd": 843750,
+   "hammer_usd": 710000,
    "native": {
-    "amount": 933125,
+    "amount": 786000,
     "currency": "USD",
     "premium_inclusive": true
    },
    "year": 2015,
-   "url": "https://rmsothebys.com/auctions/ad25/lots/r0019-2015-ferrari-458-speciale-a/",
-   "chassis": "ZFF78VHB000208551",
-   "title": "2015 Ferrari 458 Speciale A"
+   "url": "https://rmsothebys.com/auctions/az25/lots/r0008-2015-ferrari-458-speciale/",
+   "chassis": "ZFF75VFA7F0210568",
+   "title": "2015 Ferrari 458 Speciale"
   },
   {
-   "date": "2025-10-11",
-   "venue": "RM Sotheby's",
-   "price_usd": 950000,
-   "basis": "buyer-paid",
-   "hammer_usd": 859091,
+   "date": "2026-07-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 927500,
+   "basis": "sold+fee",
+   "hammer_usd": 920000,
    "native": {
-    "amount": 950000,
+    "amount": 920000,
     "currency": "USD",
-    "premium_inclusive": true
+    "premium_inclusive": false
    },
    "year": 2015,
-   "url": "https://rmsothebys.com/auctions/id25/lots/r0011-2015-ferrari-458-speciale-a/",
-   "chassis": "ZFF78VHB000213868",
-   "title": "2015 Ferrari 458 Speciale A"
+   "url": "https://bringatrailer.com/listing/2015-ferrari-458-speciale-37/",
+   "chassis": "ZFF75VFA6F0208875",
+   "title": "2015 Ferrari 458 Speciale"
+  },
+  {
+   "date": "2026-06-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 1136500,
+   "basis": "sold+fee",
+   "hammer_usd": 1129000,
+   "native": {
+    "amount": 1129000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-ferrari-458-speciale-36/",
+   "chassis": "ZFF75VFA8F0205055",
+   "title": "4,100-Mile 2015 Ferrari 458 Speciale"
   },
   {
    "date": "2025-07-03",
@@ -254,22 +205,6 @@
    "url": "https://bringatrailer.com/listing/2015-ferrari-458-speciale-29/",
    "chassis": "ZFF75VFA1F0207584",
    "title": "945-Mile 2015 Ferrari 458 Speciale"
-  },
-  {
-   "date": "2025-01-24",
-   "venue": "RM Sotheby's",
-   "price_usd": 786000,
-   "basis": "buyer-paid",
-   "hammer_usd": 710000,
-   "native": {
-    "amount": 786000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2015,
-   "url": "https://rmsothebys.com/auctions/az25/lots/r0008-2015-ferrari-458-speciale/",
-   "chassis": "ZFF75VFA7F0210568",
-   "title": "2015 Ferrari 458 Speciale"
   },
   {
    "date": "2024-12-13",

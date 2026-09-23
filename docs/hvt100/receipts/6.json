@@ -3,17 +3,16 @@
  "listed": "1970 Chevrolet Chevelle SS 396",
  "status": "compare",
  "year_scope": "exact 1970",
- "basis": "mixed (48% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (53% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Chevrolet",
   "model": "Chevelle",
   "window": "36mo",
   "year_min": 1970,
   "year_max": 1970,
-  "trim": "SS 396",
-  "body": "coupe"
+  "trim": "SS 396"
  },
- "halo_dropped": 24,
+ "halo_dropped": 0,
  "sales": [
   {
    "date": "2026-09-11",
@@ -32,150 +31,6 @@
    "title": "1970 CHEVROLET CHEVELLE SS 396"
   },
   {
-   "date": "2026-07-25",
-   "venue": "Mecum",
-   "price_usd": 80850,
-   "basis": "sold+fee",
-   "hammer_usd": 77000,
-   "native": {
-    "amount": 84700,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.mecum.com/lots/1176019/1970-chevrolet-chevelle-ss?aa_id=795835-0",
-   "chassis": "136370A105114",
-   "title": "1970 Chevrolet Chevelle SS"
-  },
-  {
-   "date": "2026-07-25",
-   "venue": "Mecum",
-   "price_usd": 79800,
-   "basis": "sold+fee",
-   "hammer_usd": 76000,
-   "native": {
-    "amount": 83600,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.mecum.com/lots/1175836/1970-chevrolet-chevelle-ss?aa_id=796459-0",
-   "chassis": "136370L146429",
-   "title": "1970 Chevrolet Chevelle SS"
-  },
-  {
-   "date": "2026-07-25",
-   "venue": "Mecum",
-   "price_usd": 52500,
-   "basis": "sold+fee",
-   "hammer_usd": 50000,
-   "native": {
-    "amount": 55000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.mecum.com/lots/1176703/1970-chevrolet-chevelle-ss?aa_id=796478-0",
-   "chassis": "136370B189873",
-   "title": "1970 Chevrolet Chevelle SS"
-  },
-  {
-   "date": "2026-07-24",
-   "venue": "Mecum",
-   "price_usd": 49350,
-   "basis": "sold+fee",
-   "hammer_usd": 47000,
-   "native": {
-    "amount": 51700,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.mecum.com/lots/1172012/1970-chevrolet-chevelle-ss?aa_id=788126-0",
-   "chassis": "136370R212831",
-   "title": "1970 Chevrolet Chevelle SS"
-  },
-  {
-   "date": "2026-06-26",
-   "venue": "Barrett-Jackson",
-   "price_usd": 96800,
-   "basis": "buyer-paid",
-   "hammer_usd": 88000,
-   "native": {
-    "amount": 96800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.barrett-jackson.com/2026-columbus/docket/vehicle/1970-chevrolet-chevelle-ss-301178?origin=results",
-   "chassis": "136370L186723",
-   "title": "1970 CHEVROLET CHEVELLE SS"
-  },
-  {
-   "date": "2026-05-14",
-   "venue": "Mecum",
-   "price_usd": 68250,
-   "basis": "sold+fee",
-   "hammer_usd": 65000,
-   "native": {
-    "amount": 71500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.mecum.com/lots/1172532/1970-chevrolet-chevelle-ss?aa_id=777653-0",
-   "chassis": "136370B137236",
-   "title": "1970 Chevrolet Chevelle SS"
-  },
-  {
-   "date": "2026-05-13",
-   "venue": "Mecum",
-   "price_usd": 68250,
-   "basis": "sold+fee",
-   "hammer_usd": 65000,
-   "native": {
-    "amount": 71500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.mecum.com/lots/1172589/1970-chevrolet-chevelle-ss?aa_id=778693-0",
-   "chassis": "136370A180509",
-   "title": "1970 Chevrolet Chevelle SS"
-  },
-  {
-   "date": "2026-05-13",
-   "venue": "Mecum",
-   "price_usd": 72450,
-   "basis": "sold+fee",
-   "hammer_usd": 69000,
-   "native": {
-    "amount": 75900,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.mecum.com/lots/1169128/1970-chevrolet-chevelle-ss?aa_id=771085-0",
-   "chassis": "136370B117621",
-   "title": "1970 Chevrolet Chevelle SS"
-  },
-  {
-   "date": "2026-04-18",
-   "venue": "Barrett-Jackson",
-   "price_usd": 135300,
-   "basis": "buyer-paid",
-   "hammer_usd": 123000,
-   "native": {
-    "amount": 135300,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/1970-chevrolet-chevelle-ss-396-convertible-293340?origin=results",
-   "chassis": "136670L178930",
-   "title": "1970 CHEVROLET CHEVELLE SS 396 CONVERTIBLE"
-  },
-  {
    "date": "2026-04-17",
    "venue": "Barrett-Jackson",
    "price_usd": 71500,
@@ -190,38 +45,6 @@
    "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/1970-chevrolet-chevelle-ss-396-298569?origin=results",
    "chassis": "136370L146429",
    "title": "1970 CHEVROLET CHEVELLE SS 396"
-  },
-  {
-   "date": "2026-04-11",
-   "venue": "Mecum",
-   "price_usd": 93450,
-   "basis": "sold+fee",
-   "hammer_usd": 89000,
-   "native": {
-    "amount": 97900,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.mecum.com/lots/1168207/1970-chevrolet-chevelle-ss?aa_id=767633-0",
-   "chassis": "136370R233321",
-   "title": "1970 Chevrolet Chevelle SS"
-  },
-  {
-   "date": "2026-04-11",
-   "venue": "Mecum",
-   "price_usd": 66150,
-   "basis": "sold+fee",
-   "hammer_usd": 63000,
-   "native": {
-    "amount": 69300,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.mecum.com/lots/1166898/1970-chevrolet-chevelle-ss-convertible?aa_id=769461-0",
-   "chassis": "136670B206000",
-   "title": "1970 Chevrolet Chevelle SS Convertible"
   },
   {
    "date": "2026-01-25",
@@ -288,54 +111,6 @@
    "title": "1970 CHEVROLET CHEVELLE SS 396"
   },
   {
-   "date": "2025-12-18",
-   "venue": "Bring a Trailer",
-   "price_usd": 120750,
-   "basis": "sold+fee",
-   "hammer_usd": 115000,
-   "native": {
-    "amount": 115000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1970,
-   "url": "https://bringatrailer.com/listing/1970-chevrolet-chevelle-123/",
-   "chassis": "136370K125775",
-   "title": "1970 Chevrolet Chevelle SS 396 Sport Coupe L78 4-Speed"
-  },
-  {
-   "date": "2025-10-30",
-   "venue": "Bring a Trailer",
-   "price_usd": 69300,
-   "basis": "sold+fee",
-   "hammer_usd": 66000,
-   "native": {
-    "amount": 66000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1970,
-   "url": "https://bringatrailer.com/listing/1970-chevrolet-chevelle-ss-396-31/",
-   "chassis": "1363701542434",
-   "title": "1970 Chevrolet Chevelle SS 396"
-  },
-  {
-   "date": "2025-10-22",
-   "venue": "Bring a Trailer",
-   "price_usd": 98175,
-   "basis": "sold+fee",
-   "hammer_usd": 93500,
-   "native": {
-    "amount": 93500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1970,
-   "url": "https://bringatrailer.com/listing/1970-chevrolet-chevelle-ss-396-30/",
-   "chassis": "136370L125223",
-   "title": "1970 Chevrolet Chevelle SS 396 Sport Coupe 4-Speed"
-  },
-  {
    "date": "2025-10-17",
    "venue": "Barrett-Jackson",
    "price_usd": 71500,
@@ -368,102 +143,6 @@
    "title": "1970 CHEVROLET CHEVELLE SS 396 L78"
   },
   {
-   "date": "2025-10-15",
-   "venue": "Bring a Trailer",
-   "price_usd": 65594,
-   "basis": "sold+fee",
-   "hammer_usd": 62470,
-   "native": {
-    "amount": 62470,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1970,
-   "url": "https://bringatrailer.com/listing/1970-chevrolet-chevelle-ss-396-26/",
-   "chassis": "136370A127312",
-   "title": "1970 Chevrolet Chevelle Malibu SS 396"
-  },
-  {
-   "date": "2025-09-17",
-   "venue": "Hemmings",
-   "price_usd": 67200,
-   "basis": "sold+fee",
-   "hammer_usd": 64000,
-   "native": {
-    "amount": 64000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1970,
-   "url": "https://www.hemmings.com/auction/1970-chevrolet-chevelle-morgan-hill-ca-506928",
-   "chassis": "136370K112305",
-   "title": "Restored 1970 Chevrolet Chevelle SS 396 Sport Coupe 4-Speed"
-  },
-  {
-   "date": "2025-08-24",
-   "venue": "Bring a Trailer",
-   "price_usd": 63000,
-   "basis": "sold+fee",
-   "hammer_usd": 60000,
-   "native": {
-    "amount": 60000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1970,
-   "url": "https://bringatrailer.com/listing/1970-chevrolet-chevelle-ss-396-23/",
-   "chassis": "136370A119963",
-   "title": "462–Powered 1970 Chevrolet Chevelle Malibu SS 396 Sport Coupe"
-  },
-  {
-   "date": "2025-07-22",
-   "venue": "Bring a Trailer",
-   "price_usd": 152250,
-   "basis": "sold+fee",
-   "hammer_usd": 145000,
-   "native": {
-    "amount": 145000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1970,
-   "url": "https://bringatrailer.com/listing/1970-chevrolet-chevelle-ss-396-21/",
-   "chassis": "136670B127051",
-   "title": "1970 Chevrolet Chevelle Malibu SS 396 Convertible 4-Speed"
-  },
-  {
-   "date": "2025-07-17",
-   "venue": "Bring a Trailer",
-   "price_usd": 166500,
-   "basis": "sold+fee",
-   "hammer_usd": 159000,
-   "native": {
-    "amount": 159000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1970,
-   "url": "https://bringatrailer.com/listing/1970-chevrolet-chevelle-ss-396-19/",
-   "chassis": "136370B167088",
-   "title": "1970 Chevrolet Chevelle Malibu SS 396 Sport Coupe"
-  },
-  {
-   "date": "2025-04-26",
-   "venue": "Barrett-Jackson",
-   "price_usd": 107800,
-   "basis": "buyer-paid",
-   "hammer_usd": 98000,
-   "native": {
-    "amount": 107800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.barrett-jackson.com/palm-beach-2025/docket/vehicle/1970-chevrolet-chevelle-ss-396-287884?origin=results",
-   "chassis": "136370A147325",
-   "title": "1970 CHEVROLET CHEVELLE SS 396"
-  },
-  {
    "date": "2025-04-26",
    "venue": "Barrett-Jackson",
    "price_usd": 69300,
@@ -482,66 +161,18 @@
   {
    "date": "2025-04-26",
    "venue": "Barrett-Jackson",
-   "price_usd": 198000,
+   "price_usd": 107800,
    "basis": "buyer-paid",
-   "hammer_usd": 180000,
+   "hammer_usd": 98000,
    "native": {
-    "amount": 198000,
+    "amount": 107800,
     "currency": "USD",
     "premium_inclusive": true
    },
    "year": 1970,
-   "url": "https://www.barrett-jackson.com/palm-beach-2025/docket/vehicle/1970-chevrolet-chevelle-ss-l34-convertible-287960?origin=results",
-   "chassis": "136670B180295",
-   "title": "1970 CHEVROLET CHEVELLE SS L34 CONVERTIBLE"
-  },
-  {
-   "date": "2025-04-25",
-   "venue": "Barrett-Jackson",
-   "price_usd": 55000,
-   "basis": "buyer-paid",
-   "hammer_usd": 50000,
-   "native": {
-    "amount": 55000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.barrett-jackson.com/palm-beach-2025/docket/vehicle/1970-chevrolet-chevelle-ss-287587?origin=results",
-   "chassis": "136370B207008",
-   "title": "1970 CHEVROLET CHEVELLE SS"
-  },
-  {
-   "date": "2025-03-17",
-   "venue": "Hagerty",
-   "price_usd": 60638,
-   "basis": "sold+fee",
-   "hammer_usd": 57750,
-   "native": {
-    "amount": 57750,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1970,
-   "url": "https://www.hagerty.com/marketplace/auction/1970-Chevrolet-Chevelle/bacddc79-e786-4f70-b194-3334db12344c",
-   "chassis": "136370A156188",
-   "title": "1970 Chevrolet Chevelle SS 396 Super Sport Coupe"
-  },
-  {
-   "date": "2025-02-12",
-   "venue": "Bring a Trailer",
-   "price_usd": 58275,
-   "basis": "sold+fee",
-   "hammer_usd": 55500,
-   "native": {
-    "amount": 55500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1970,
-   "url": "https://bringatrailer.com/listing/1970-chevrolet-chevelle-ss-396-15/",
-   "chassis": "136370A109848",
-   "title": "1970 Chevrolet Chevelle Malibu Sport Coupe SS 5-Speed"
+   "url": "https://www.barrett-jackson.com/palm-beach-2025/docket/vehicle/1970-chevrolet-chevelle-ss-396-287884?origin=results",
+   "chassis": "136370A147325",
+   "title": "1970 CHEVROLET CHEVELLE SS 396"
   },
   {
    "date": "2025-01-26",
@@ -574,22 +205,6 @@
    "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1970-chevrolet-chevelle-malibu-ss-396-283287?origin=results",
    "chassis": "136370L183270",
    "title": "1970 CHEVROLET CHEVELLE MALIBU SS 396"
-  },
-  {
-   "date": "2025-01-25",
-   "venue": "Barrett-Jackson",
-   "price_usd": 231000,
-   "basis": "buyer-paid",
-   "hammer_usd": 210000,
-   "native": {
-    "amount": 231000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1970-chevrolet-chevelle-ss-281489?origin=results",
-   "chassis": "136370A138533",
-   "title": "1970 CHEVROLET CHEVELLE SS"
   },
   {
    "date": "2025-01-24",
@@ -640,20 +255,180 @@
    "title": "1970 CHEVROLET CHEVELLE SS 396"
   },
   {
-   "date": "2025-01-21",
-   "venue": "Sotheby's Motorsport",
-   "price_usd": 53550,
-   "basis": "sold+fee",
-   "hammer_usd": 51000,
+   "date": "2024-01-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 107800,
+   "basis": "buyer-paid",
+   "hammer_usd": 98000,
    "native": {
-    "amount": 51000,
+    "amount": 107800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1970-chevrolet-chevelle-ss-396-272989?origin=results",
+   "chassis": "136370L159206",
+   "title": "1970 CHEVROLET CHEVELLE SS 396"
+  },
+  {
+   "date": "2024-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 66000,
+   "basis": "buyer-paid",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 66000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1970-chevrolet-chevelle-ss-396-271835?origin=results",
+   "chassis": "1363701535486",
+   "title": "1970 CHEVROLET CHEVELLE SS 396"
+  },
+  {
+   "date": "2023-09-29",
+   "venue": "Barrett-Jackson",
+   "price_usd": 63800,
+   "basis": "buyer-paid",
+   "hammer_usd": 58000,
+   "native": {
+    "amount": 63800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://www.barrett-jackson.com/new-orleans-2023/docket/vehicle/1970-chevrolet-chevelle-ss-396-270040?origin=results",
+   "chassis": "136370K111828",
+   "title": "1970 CHEVROLET CHEVELLE SS 396"
+  },
+  {
+   "date": "2025-12-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 120750,
+   "basis": "sold+fee",
+   "hammer_usd": 115000,
+   "native": {
+    "amount": 115000,
     "currency": "USD",
     "premium_inclusive": false
    },
    "year": 1970,
-   "url": "https://www.sothebysmotorsport.com/auction/1970-chevrolet-chevellessrecreation-4089",
-   "chassis": "0000136370R217475",
-   "title": "1970 Chevrolet Chevelle SS Re-Creation"
+   "url": "https://bringatrailer.com/listing/1970-chevrolet-chevelle-123/",
+   "chassis": "136370K125775",
+   "title": "1970 Chevrolet Chevelle SS 396 Sport Coupe L78 4-Speed"
+  },
+  {
+   "date": "2025-10-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 69300,
+   "basis": "sold+fee",
+   "hammer_usd": 66000,
+   "native": {
+    "amount": 66000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-chevrolet-chevelle-ss-396-31/",
+   "chassis": "1363701542434",
+   "title": "1970 Chevrolet Chevelle SS 396"
+  },
+  {
+   "date": "2025-10-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 98175,
+   "basis": "sold+fee",
+   "hammer_usd": 93500,
+   "native": {
+    "amount": 93500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-chevrolet-chevelle-ss-396-30/",
+   "chassis": "136370L125223",
+   "title": "1970 Chevrolet Chevelle SS 396 Sport Coupe 4-Speed"
+  },
+  {
+   "date": "2025-10-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 65594,
+   "basis": "sold+fee",
+   "hammer_usd": 62470,
+   "native": {
+    "amount": 62470,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-chevrolet-chevelle-ss-396-26/",
+   "chassis": "136370A127312",
+   "title": "1970 Chevrolet Chevelle Malibu SS 396"
+  },
+  {
+   "date": "2025-09-17",
+   "venue": "Hemmings",
+   "price_usd": 67200,
+   "basis": "sold+fee",
+   "hammer_usd": 64000,
+   "native": {
+    "amount": 64000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.hemmings.com/auction/1970-chevrolet-chevelle-morgan-hill-ca-506928",
+   "chassis": "136370K112305",
+   "title": "Restored 1970 Chevrolet Chevelle SS 396 Sport Coupe 4-Speed"
+  },
+  {
+   "date": "2025-08-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 63000,
+   "basis": "sold+fee",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 60000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-chevrolet-chevelle-ss-396-23/",
+   "chassis": "136370A119963",
+   "title": "462–Powered 1970 Chevrolet Chevelle Malibu SS 396 Sport Coupe"
+  },
+  {
+   "date": "2025-07-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 166500,
+   "basis": "sold+fee",
+   "hammer_usd": 159000,
+   "native": {
+    "amount": 159000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-chevrolet-chevelle-ss-396-19/",
+   "chassis": "136370B167088",
+   "title": "1970 Chevrolet Chevelle Malibu SS 396 Sport Coupe"
+  },
+  {
+   "date": "2025-03-17",
+   "venue": "Hagerty",
+   "price_usd": 60638,
+   "basis": "sold+fee",
+   "hammer_usd": 57750,
+   "native": {
+    "amount": 57750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.hagerty.com/marketplace/auction/1970-Chevrolet-Chevelle/bacddc79-e786-4f70-b194-3334db12344c",
+   "chassis": "136370A156188",
+   "title": "1970 Chevrolet Chevelle SS 396 Super Sport Coupe"
   },
   {
    "date": "2025-01-17",
@@ -672,22 +447,6 @@
    "title": "1970 Chevrolet Chevelle SS 396 Sport Coupe"
   },
   {
-   "date": "2024-11-04",
-   "venue": "Bring a Trailer",
-   "price_usd": 76676,
-   "basis": "sold+fee",
-   "hammer_usd": 73025,
-   "native": {
-    "amount": 73025,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1970,
-   "url": "https://bringatrailer.com/listing/1970-chevrolet-chevelle-ss-396-11/",
-   "chassis": "136670L195766",
-   "title": "34-Years-Owned 1970 Chevrolet Chevelle Malibu SS 396 Convertible"
-  },
-  {
    "date": "2024-10-15",
    "venue": "Hagerty",
    "price_usd": 50400,
@@ -702,54 +461,6 @@
    "url": "https://www.hagerty.com/marketplace/auction/1970-Chevrolet-Chevelle/ec9ee3ac-e0d1-4f7f-9880-e9746c94543e",
    "chassis": "136370B101603",
    "title": "1970 Chevrolet Chevelle SS 396 Sport Coupe "
-  },
-  {
-   "date": "2024-10-13",
-   "venue": "Barrett-Jackson",
-   "price_usd": 126500,
-   "basis": "buyer-paid",
-   "hammer_usd": 115000,
-   "native": {
-    "amount": 126500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1970-chevrolet-chevelle-ss-396-convertible-280081?origin=results",
-   "chassis": "136670K113918",
-   "title": "1970 CHEVROLET CHEVELLE SS 396 CONVERTIBLE"
-  },
-  {
-   "date": "2024-10-12",
-   "venue": "Barrett-Jackson",
-   "price_usd": 71500,
-   "basis": "buyer-paid",
-   "hammer_usd": 65000,
-   "native": {
-    "amount": 71500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1970-chevrolet-chevelle-ss-convertible-278720?origin=results",
-   "chassis": "136670K124897",
-   "title": "1970 CHEVROLET CHEVELLE SS CONVERTIBLE"
-  },
-  {
-   "date": "2024-09-26",
-   "venue": "Bring a Trailer",
-   "price_usd": 68250,
-   "basis": "sold+fee",
-   "hammer_usd": 65000,
-   "native": {
-    "amount": 65000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1970,
-   "url": "https://bringatrailer.com/listing/1970-chevrolet-chevelle-ss-454-9/",
-   "chassis": "136370K151252",
-   "title": "540-Powered 1970 Chevrolet Chevelle SS Malibu Sport Coupe 4-Speed"
   },
   {
    "date": "2024-09-14",
@@ -768,38 +479,6 @@
    "title": "1970 Chevrolet Chevelle Malibu SS 396 4-Speed"
   },
   {
-   "date": "2024-07-22",
-   "venue": "All Collector Cars",
-   "price_usd": 77175,
-   "basis": "sold+fee",
-   "hammer_usd": 73500,
-   "native": {
-    "amount": 73500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1970,
-   "url": "https://www.allcollectorcars.com/classic-car-auctions/vehicles/1970-chevrolet-chevelle-ss-454/",
-   "chassis": "1C37H2R557141",
-   "title": "1970 Chevrolet Chevelle SS"
-  },
-  {
-   "date": "2024-06-13",
-   "venue": "All Collector Cars",
-   "price_usd": 104738,
-   "basis": "sold+fee",
-   "hammer_usd": 99750,
-   "native": {
-    "amount": 99750,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1970,
-   "url": "https://www.allcollectorcars.com/classic-car-auctions/vehicles/1970-chevrolet-chevelle-ss-2/",
-   "chassis": "136370B203289",
-   "title": "1970 Chevrolet Chevelle SS"
-  },
-  {
    "date": "2024-05-27",
    "venue": "Bring a Trailer",
    "price_usd": 71400,
@@ -814,38 +493,6 @@
    "url": "https://bringatrailer.com/listing/1970-chevrolet-chevelle-ss-396-5/",
    "chassis": "136370K157519",
    "title": "1970 Chevrolet Chevelle Malibu SS 396 Sport Coupe 4-Speed"
-  },
-  {
-   "date": "2024-04-20",
-   "venue": "Barrett-Jackson",
-   "price_usd": 71500,
-   "basis": "buyer-paid",
-   "hammer_usd": 65000,
-   "native": {
-    "amount": 71500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/1970-chevrolet-chevelle-ss-277375?origin=results",
-   "chassis": "1363701524514",
-   "title": "1970 CHEVROLET CHEVELLE SS"
-  },
-  {
-   "date": "2024-04-19",
-   "venue": "Barrett-Jackson",
-   "price_usd": 88000,
-   "basis": "buyer-paid",
-   "hammer_usd": 80000,
-   "native": {
-    "amount": 88000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/1970-chevrolet-chevelle-ls5-ss-276792?origin=results",
-   "chassis": "136370A173979",
-   "title": "1970 CHEVROLET CHEVELLE LS5 SS"
   },
   {
    "date": "2024-03-13",
@@ -880,102 +527,6 @@
    "title": "Restored 1970 Chevrolet Chevelle SS 396"
   },
   {
-   "date": "2024-01-27",
-   "venue": "Barrett-Jackson",
-   "price_usd": 145750,
-   "basis": "buyer-paid",
-   "hammer_usd": 132500,
-   "native": {
-    "amount": 145750,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1970-chevrolet-chevelle-ss-396-convertible-272992?origin=results",
-   "chassis": "136670K113918",
-   "title": "1970 CHEVROLET CHEVELLE SS 396 CONVERTIBLE"
-  },
-  {
-   "date": "2024-01-27",
-   "venue": "Barrett-Jackson",
-   "price_usd": 107800,
-   "basis": "buyer-paid",
-   "hammer_usd": 98000,
-   "native": {
-    "amount": 107800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1970-chevrolet-chevelle-ss-396-272989?origin=results",
-   "chassis": "136370L159206",
-   "title": "1970 CHEVROLET CHEVELLE SS 396"
-  },
-  {
-   "date": "2024-01-27",
-   "venue": "Barrett-Jackson",
-   "price_usd": 187000,
-   "basis": "buyer-paid",
-   "hammer_usd": 170000,
-   "native": {
-    "amount": 187000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1970-chevrolet-chevelle-ls5-ss-convertible-272475?origin=results",
-   "chassis": "136670B159646",
-   "title": "1970 CHEVROLET CHEVELLE LS5 SS CONVERTIBLE"
-  },
-  {
-   "date": "2024-01-26",
-   "venue": "Barrett-Jackson",
-   "price_usd": 88000,
-   "basis": "buyer-paid",
-   "hammer_usd": 80000,
-   "native": {
-    "amount": 88000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1970-chevrolet-chevelle-ss-re-creation-271354?origin=results",
-   "chassis": "1343701564781",
-   "title": "1970 CHEVROLET CHEVELLE SS RE-CREATION"
-  },
-  {
-   "date": "2024-01-26",
-   "venue": "Barrett-Jackson",
-   "price_usd": 66000,
-   "basis": "buyer-paid",
-   "hammer_usd": 60000,
-   "native": {
-    "amount": 66000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1970-chevrolet-chevelle-ss-396-271835?origin=results",
-   "chassis": "1363701535486",
-   "title": "1970 CHEVROLET CHEVELLE SS 396"
-  },
-  {
-   "date": "2024-01-17",
-   "venue": "All Collector Cars",
-   "price_usd": 77175,
-   "basis": "sold+fee",
-   "hammer_usd": 73500,
-   "native": {
-    "amount": 73500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1970,
-   "url": "https://www.allcollectorcars.com/classic-car-auctions/vehicles/1970-chevrolet-chevelle-ss/",
-   "chassis": "136670L154323",
-   "title": "1970 Chevrolet Chevelle SS 396 Convertible"
-  },
-  {
    "date": "2023-10-16",
    "venue": "Bring a Trailer",
    "price_usd": 65625,
@@ -1006,22 +557,6 @@
    "url": "https://bringatrailer.com/listing/1970-chevrolet-chevelle-ss-154/",
    "chassis": "136370K195027",
    "title": "1970 Chevrolet Chevelle SS 396 Coupe 4-Speed"
-  },
-  {
-   "date": "2023-09-29",
-   "venue": "Barrett-Jackson",
-   "price_usd": 63800,
-   "basis": "buyer-paid",
-   "hammer_usd": 58000,
-   "native": {
-    "amount": 63800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.barrett-jackson.com/new-orleans-2023/docket/vehicle/1970-chevrolet-chevelle-ss-396-270040?origin=results",
-   "chassis": "136370K111828",
-   "title": "1970 CHEVROLET CHEVELLE SS 396"
   }
  ]
 }

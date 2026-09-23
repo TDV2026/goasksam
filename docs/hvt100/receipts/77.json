@@ -3,33 +3,96 @@
  "listed": "2006 Dodge Viper SRT-10",
  "status": "compare",
  "year_scope": "adjacent years pooled (2004-2008)",
- "basis": "mixed (16% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (25% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Dodge",
   "model": "Viper",
   "window": "36mo",
   "year_min": 2004,
   "year_max": 2008,
-  "trim": "SRT-10",
-  "body": "coupe"
+  "trim": "SRT-10"
  },
  "halo_dropped": 0,
  "sales": [
   {
-   "date": "2026-09-12",
-   "venue": "Barrett-Jackson",
-   "price_usd": 56100,
+   "date": "2026-05-31",
+   "venue": "Bonhams",
+   "price_usd": 84000,
    "basis": "buyer-paid",
-   "hammer_usd": 51000,
+   "hammer_usd": 75000,
    "native": {
-    "amount": 56100,
+    "amount": 84000,
     "currency": "USD",
     "premium_inclusive": true
    },
-   "year": 2005,
-   "url": "https://www.barrett-jackson.com/2026-las-vegas/docket/vehicle/2005-dodge-viper-srt-10-convertible-302151?origin=results",
-   "chassis": "1B3JZ65Z55V502003",
-   "title": "2005 DODGE VIPER SRT-10 CONVERTIBLE"
+   "year": 2006,
+   "url": "https://cars.bonhams.com/auction/32391/lot/9/2006-dodge-viper-srt-10-voi9-edition-prefix-aero-and-performance-package-vin-1b3jz69z66v101619/",
+   "chassis": "ZFFWP44B000109218",
+   "title": "2006 Dodge Viper SRT-10 VOI.9 Edition Prefix Aero and Performance Package VIN. 1B3JZ69Z66V101619"
+  },
+  {
+   "date": "2026-05-14",
+   "venue": "Mecum",
+   "price_usd": 85050,
+   "basis": "sold+fee",
+   "hammer_usd": 81000,
+   "native": {
+    "amount": 89100,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2006,
+   "url": "https://www.mecum.com/lots/1168037/2006-dodge-viper-srt-10-vca-special-edition-coupe?aa_id=782327-0",
+   "chassis": "1B3JZ69Z96V101016",
+   "title": "2006 Dodge Viper SRT-10 VCA Special Edition Coupe"
+  },
+  {
+   "date": "2026-04-17",
+   "venue": "Barrett-Jackson",
+   "price_usd": 118800,
+   "basis": "buyer-paid",
+   "hammer_usd": 108000,
+   "native": {
+    "amount": 118800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2006,
+   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/2006-dodge-viper-srt-10-297881?origin=results",
+   "chassis": "1B3JZ69ZX6V100814",
+   "title": "2006 DODGE VIPER SRT-10"
+  },
+  {
+   "date": "2026-04-17",
+   "venue": "Barrett-Jackson",
+   "price_usd": 132000,
+   "basis": "buyer-paid",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 132000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2004,
+   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/2004-dodge-viper-srt-10-mamba-edition-299453?origin=results",
+   "chassis": "1B3JZ65Z54V101033",
+   "title": "2004 DODGE VIPER SRT-10 MAMBA EDITION"
+  },
+  {
+   "date": "2024-10-12",
+   "venue": "Broad Arrow",
+   "price_usd": 86800,
+   "basis": "buyer-paid",
+   "hammer_usd": 77500,
+   "native": {
+    "amount": 86800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2006,
+   "url": "https://www.broadarrowauctions.com/vehicles/ch24_r090/2006-dodge-viper-srt-10-coupe",
+   "chassis": "1B3JZ69ZX6V101347",
+   "title": "2006 Dodge Viper SRT-10 Coupe"
   },
   {
    "date": "2026-09-09",
@@ -64,22 +127,6 @@
    "title": "2006 Dodge Viper SRT-10 VOI.9 Edition Coupe"
   },
   {
-   "date": "2026-08-01",
-   "venue": "Bring a Trailer",
-   "price_usd": 50925,
-   "basis": "sold+fee",
-   "hammer_usd": 48500,
-   "native": {
-    "amount": 48500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://bringatrailer.com/listing/2004-dodge-viper-srt-10-roadster-54/",
-   "chassis": "1B3JZ65Z84V100166",
-   "title": "21-Years-Owned 2004 Dodge Viper SRT-10 Roadster"
-  },
-  {
    "date": "2026-07-31",
    "venue": "Bring a Trailer",
    "price_usd": 85575,
@@ -94,38 +141,6 @@
    "url": "https://bringatrailer.com/listing/2006-dodge-viper-srt-10-coupe-39-2/",
    "chassis": "1B3JZ69Z16V101656",
    "title": "2006 Dodge Viper SRT-10 VOI.9 Edition Coupe"
-  },
-  {
-   "date": "2026-07-30",
-   "venue": "Bring a Trailer",
-   "price_usd": 63000,
-   "basis": "sold+fee",
-   "hammer_usd": 60000,
-   "native": {
-    "amount": 60000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2005,
-   "url": "https://bringatrailer.com/listing/2005-dodge-viper-srt-10-roadster-47/",
-   "chassis": "1B3JZ65Z55V501191",
-   "title": "18k-Mile 2005 Dodge Viper SRT-10 Roadster Mamba Edition"
-  },
-  {
-   "date": "2026-07-28",
-   "venue": "Bring a Trailer",
-   "price_usd": 61950,
-   "basis": "sold+fee",
-   "hammer_usd": 59000,
-   "native": {
-    "amount": 59000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2006,
-   "url": "https://bringatrailer.com/listing/2006-dodge-viper-srt-10-roadster-23/",
-   "chassis": "1B3JZ65Z76V100145",
-   "title": "4,800-Mile 2006 Dodge Viper SRT-10 Roadster"
   },
   {
    "date": "2026-07-22",
@@ -144,22 +159,6 @@
    "title": "2,900-Mile 2006 Dodge Viper SRT-10 Coupe"
   },
   {
-   "date": "2026-07-09",
-   "venue": "Sotheby's Motorsport",
-   "price_usd": 53550,
-   "basis": "sold+fee",
-   "hammer_usd": 51000,
-   "native": {
-    "amount": 51000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2005,
-   "url": "https://www.sothebysmotorsport.com/auction/2005-dodge-vipersrt10convertible6speedoriginalowner-10438",
-   "chassis": "1B3JZ65Z55V502003",
-   "title": "2005 Dodge Viper SRT-10 Convertible 6-Speed — Original Owner"
-  },
-  {
    "date": "2026-06-14",
    "venue": "Bring a Trailer",
    "price_usd": 110250,
@@ -174,182 +173,6 @@
    "url": "https://bringatrailer.com/listing/2006-dodge-viper-srt-10-coupe-38/",
    "chassis": "1B3JZ69Z06V101647",
    "title": "7k-Mile 2006 Dodge Viper SRT-10 VOI.9 Edition Coupe"
-  },
-  {
-   "date": "2026-06-04",
-   "venue": "Bring a Trailer",
-   "price_usd": 65100,
-   "basis": "sold+fee",
-   "hammer_usd": 62000,
-   "native": {
-    "amount": 62000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2005,
-   "url": "https://bringatrailer.com/listing/2005-dodge-viper-srt-10-roadster-44/",
-   "chassis": "1B3JZ65Z95V501548",
-   "title": "2005 Dodge Viper SRT-10 Roadster Copperhead Edition"
-  },
-  {
-   "date": "2026-05-31",
-   "venue": "Bonhams",
-   "price_usd": 84000,
-   "basis": "buyer-paid",
-   "hammer_usd": 75000,
-   "native": {
-    "amount": 84000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2006,
-   "url": "https://cars.bonhams.com/auction/32391/lot/9/2006-dodge-viper-srt-10-voi9-edition-prefix-aero-and-performance-package-vin-1b3jz69z66v101619/",
-   "chassis": "ZFFWP44B000109218",
-   "title": "2006 Dodge Viper SRT-10 VOI.9 Edition Prefix Aero and Performance Package VIN. 1B3JZ69Z66V101619"
-  },
-  {
-   "date": "2026-05-15",
-   "venue": "Cars & Bids",
-   "price_usd": 39900,
-   "basis": "sold+fee",
-   "hammer_usd": 38000,
-   "native": {
-    "amount": 38000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2005,
-   "url": "https://carsandbids.com/auctions/KdoqPD4j/2005-dodge-viper-srt-10-convertible",
-   "chassis": "1B3JZ65Z45V500548",
-   "title": "2005 Dodge Viper SRT-10 Convertible"
-  },
-  {
-   "date": "2026-05-14",
-   "venue": "Mecum",
-   "price_usd": 85050,
-   "basis": "sold+fee",
-   "hammer_usd": 81000,
-   "native": {
-    "amount": 89100,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2006,
-   "url": "https://www.mecum.com/lots/1168037/2006-dodge-viper-srt-10-vca-special-edition-coupe?aa_id=782327-0",
-   "chassis": "1B3JZ69Z96V101016",
-   "title": "2006 Dodge Viper SRT-10 VCA Special Edition Coupe"
-  },
-  {
-   "date": "2026-05-09",
-   "venue": "Mecum",
-   "price_usd": 42000,
-   "basis": "sold+fee",
-   "hammer_usd": 40000,
-   "native": {
-    "amount": 44000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.mecum.com/lots/1172685/2005-dodge-viper-srt-10-convertible?aa_id=785632-0",
-   "chassis": "1B3JZ65Z05V500854",
-   "title": "2005 Dodge Viper SRT-10 Convertible"
-  },
-  {
-   "date": "2026-05-07",
-   "venue": "Cars & Bids",
-   "price_usd": 40163,
-   "basis": "sold+fee",
-   "hammer_usd": 38250,
-   "native": {
-    "amount": 38250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://carsandbids.com/auctions/rbY1qbGJ/2004-dodge-viper-srt-10-convertible-mamba-edition",
-   "chassis": "1B3JZ65Z94V102265",
-   "title": "2004 Dodge Viper SRT-10 Convertible Mamba Edition"
-  },
-  {
-   "date": "2026-04-17",
-   "venue": "Barrett-Jackson",
-   "price_usd": 132000,
-   "basis": "buyer-paid",
-   "hammer_usd": 120000,
-   "native": {
-    "amount": 132000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2004,
-   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/2004-dodge-viper-srt-10-mamba-edition-299453?origin=results",
-   "chassis": "1B3JZ65Z54V101033",
-   "title": "2004 DODGE VIPER SRT-10 MAMBA EDITION"
-  },
-  {
-   "date": "2026-04-17",
-   "venue": "Barrett-Jackson",
-   "price_usd": 118800,
-   "basis": "buyer-paid",
-   "hammer_usd": 108000,
-   "native": {
-    "amount": 118800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2006,
-   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/2006-dodge-viper-srt-10-297881?origin=results",
-   "chassis": "1B3JZ69ZX6V100814",
-   "title": "2006 DODGE VIPER SRT-10"
-  },
-  {
-   "date": "2026-03-24",
-   "venue": "Bring a Trailer",
-   "price_usd": 45938,
-   "basis": "sold+fee",
-   "hammer_usd": 43750,
-   "native": {
-    "amount": 43750,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://bringatrailer.com/listing/2004-dodge-viper-srt-10-roadster-49/",
-   "chassis": "1B3JZ65Z74V102152",
-   "title": "Single-Family-Owned 2004 Dodge Viper SRT-10 Roadster Mamba Edition"
-  },
-  {
-   "date": "2026-02-20",
-   "venue": "Cars & Bids",
-   "price_usd": 47250,
-   "basis": "sold+fee",
-   "hammer_usd": 45000,
-   "native": {
-    "amount": 45000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://carsandbids.com/auctions/3gO2RbOe/2004-dodge-viper-srt-10-convertible-mamba-edition",
-   "chassis": "1B3JZ65Z04V102204",
-   "title": "2004 Dodge Viper SRT-10 Convertible Mamba Edition"
-  },
-  {
-   "date": "2026-01-22",
-   "venue": "Barrett-Jackson",
-   "price_usd": 56100,
-   "basis": "buyer-paid",
-   "hammer_usd": 51000,
-   "native": {
-    "amount": 56100,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2004,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2004-dodge-viper-srt10-convertible-292313?origin=results",
-   "chassis": "1B3JZ65Z74V100837",
-   "title": "2004 DODGE VIPER SRT/10 CONVERTIBLE"
   },
   {
    "date": "2026-01-22",
@@ -384,262 +207,6 @@
    "title": "2006 Dodge Viper SRT-10 Coupe"
   },
   {
-   "date": "2025-11-21",
-   "venue": "Bring a Trailer",
-   "price_usd": 60900,
-   "basis": "sold+fee",
-   "hammer_usd": 58000,
-   "native": {
-    "amount": 58000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://bringatrailer.com/listing/2004-dodge-viper-srt-10-roadster-47/",
-   "chassis": "1B3JZ65Z74V100739",
-   "title": "2,200-Mile 2004 Dodge Viper SRT-10 Roadster"
-  },
-  {
-   "date": "2025-11-06",
-   "venue": "Bring a Trailer",
-   "price_usd": 48300,
-   "basis": "sold+fee",
-   "hammer_usd": 46000,
-   "native": {
-    "amount": 46000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://bringatrailer.com/listing/2004-dodge-viper-srt-10-roadster-46/",
-   "chassis": "1B3JZ65Z84V101334",
-   "title": "11k-Mile 2004 Dodge Viper SRT-10 Roadster"
-  },
-  {
-   "date": "2025-10-17",
-   "venue": "Barrett-Jackson",
-   "price_usd": 44000,
-   "basis": "buyer-paid",
-   "hammer_usd": 40000,
-   "native": {
-    "amount": 44000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2025/docket/vehicle/2005-dodge-viper-srt10-convertible-289953?origin=results",
-   "chassis": "1B3JZ65Z65V501314",
-   "title": "2005 DODGE VIPER SRT/10 CONVERTIBLE"
-  },
-  {
-   "date": "2025-10-16",
-   "venue": "Cars & Bids",
-   "price_usd": 51450,
-   "basis": "sold+fee",
-   "hammer_usd": 49000,
-   "native": {
-    "amount": 49000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2005,
-   "url": "https://carsandbids.com/auctions/KPvqx0VL/2005-dodge-viper-srt-10-convertible",
-   "chassis": "1B3JZ65Z35V501951",
-   "title": "2005 Dodge Viper SRT-10 Convertible"
-  },
-  {
-   "date": "2025-10-08",
-   "venue": "Bring a Trailer",
-   "price_usd": 65100,
-   "basis": "sold+fee",
-   "hammer_usd": 62000,
-   "native": {
-    "amount": 62000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2005,
-   "url": "https://bringatrailer.com/listing/2005-dodge-viper-srt-10-roadster-38/",
-   "chassis": "1B3JZ65Z55V501742",
-   "title": "3,700-Mile 2005 Dodge Viper SRT-10 Roadster Copperhead Edition"
-  },
-  {
-   "date": "2025-08-20",
-   "venue": "Bring a Trailer",
-   "price_usd": 68145,
-   "basis": "sold+fee",
-   "hammer_usd": 64900,
-   "native": {
-    "amount": 64900,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2006,
-   "url": "https://bringatrailer.com/listing/2006-dodge-viper-srt-10-roadster-19/",
-   "chassis": "1B3JZ65ZX6V100589",
-   "title": "6k-Mile 2006 Dodge Viper SRT-10 Roadster"
-  },
-  {
-   "date": "2025-07-01",
-   "venue": "Bring a Trailer",
-   "price_usd": 55650,
-   "basis": "sold+fee",
-   "hammer_usd": 53000,
-   "native": {
-    "amount": 53000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://bringatrailer.com/listing/2004-dodge-viper-srt-10-roadster-43/",
-   "chassis": "1B3JZ65Z64V102434",
-   "title": "8k-Mile 2004 Dodge Viper SRT-10 Roadster"
-  },
-  {
-   "date": "2025-06-09",
-   "venue": "Bring a Trailer",
-   "price_usd": 46463,
-   "basis": "sold+fee",
-   "hammer_usd": 44250,
-   "native": {
-    "amount": 44250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2005,
-   "url": "https://bringatrailer.com/listing/2005-dodge-viper-srt-10-roadster-37/",
-   "chassis": "1B3JZ65Z65V500180",
-   "title": "19k-Mile 2005 Dodge Viper SRT-10 Roadster"
-  },
-  {
-   "date": "2025-05-12",
-   "venue": "Sotheby's Motorsport",
-   "price_usd": 63000,
-   "basis": "sold+fee",
-   "hammer_usd": 60000,
-   "native": {
-    "amount": 60000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://www.sothebysmotorsport.com/auction/2004-dodge-vipersrt10convertible-5216",
-   "chassis": "1B3JZ65Z24V100454",
-   "title": "2004 Dodge Viper SRT-10 Convertible"
-  },
-  {
-   "date": "2025-04-29",
-   "venue": "Cars & Bids",
-   "price_usd": 44363,
-   "basis": "sold+fee",
-   "hammer_usd": 42250,
-   "native": {
-    "amount": 42250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://carsandbids.com/auctions/9e0NdeO8/2004-dodge-viper-srt-10-convertible",
-   "chassis": "1B3JZ65Z64V100828",
-   "title": "2004 Dodge Viper SRT-10 Convertible"
-  },
-  {
-   "date": "2025-03-05",
-   "venue": "Bring a Trailer",
-   "price_usd": 44888,
-   "basis": "sold+fee",
-   "hammer_usd": 42750,
-   "native": {
-    "amount": 42750,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://bringatrailer.com/listing/2004-dodge-viper-srt-10-roadster-39/",
-   "chassis": "1B3JZ65ZX4V100721",
-   "title": "Modified 2004 Dodge Viper SRT-10 Roadster"
-  },
-  {
-   "date": "2025-02-21",
-   "venue": "Bring a Trailer",
-   "price_usd": 69300,
-   "basis": "sold+fee",
-   "hammer_usd": 66000,
-   "native": {
-    "amount": 66000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2005,
-   "url": "https://bringatrailer.com/listing/2005-dodge-viper-srt-10-roadster-35/",
-   "chassis": "1B3JZ65Z25V501875",
-   "title": "2005 Dodge Viper SRT-10 Roadster Commemorative Edition"
-  },
-  {
-   "date": "2025-01-22",
-   "venue": "Barrett-Jackson",
-   "price_usd": 51700,
-   "basis": "buyer-paid",
-   "hammer_usd": 47000,
-   "native": {
-    "amount": 51700,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2004,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2004-dodge-viper-srt10-convertible-283587?origin=results",
-   "chassis": "1B3JZ65Z74V101356",
-   "title": "2004 DODGE VIPER SRT/10 CONVERTIBLE"
-  },
-  {
-   "date": "2025-01-08",
-   "venue": "Bring a Trailer",
-   "price_usd": 48300,
-   "basis": "sold+fee",
-   "hammer_usd": 46000,
-   "native": {
-    "amount": 46000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://bringatrailer.com/listing/2004-dodge-viper-srt-10-roadster-38/",
-   "chassis": "1B3JZ65Z24V101104",
-   "title": "12k-Mile 2004 Dodge Viper SRT-10 Roadster Mamba Edition"
-  },
-  {
-   "date": "2024-11-29",
-   "venue": "Cars & Bids",
-   "price_usd": 49350,
-   "basis": "sold+fee",
-   "hammer_usd": 47000,
-   "native": {
-    "amount": 47000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://carsandbids.com/auctions/3gYBvGob/2004-dodge-viper-srt-10-convertible",
-   "chassis": "1B3JZ65Z44V100438",
-   "title": "2004 Dodge Viper SRT-10 Convertible"
-  },
-  {
-   "date": "2024-11-07",
-   "venue": "Bring a Trailer",
-   "price_usd": 65100,
-   "basis": "sold+fee",
-   "hammer_usd": 62000,
-   "native": {
-    "amount": 62000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2005,
-   "url": "https://bringatrailer.com/listing/2005-dodge-viper-srt-10-roadster-25/",
-   "chassis": "1B3JZ65Z45V500582",
-   "title": "3,300-Mile 2005 Dodge Viper SRT-10 Roadster"
-  },
-  {
    "date": "2024-10-17",
    "venue": "Bring a Trailer",
    "price_usd": 69615,
@@ -654,118 +221,6 @@
    "url": "https://bringatrailer.com/listing/2006-dodge-viper-srt-10-coupe-29/",
    "chassis": "1B3JZ69Z06V101003",
    "title": "6k-Mile 2006 Dodge Viper SRT-10 Coupe 50 VCA Edition"
-  },
-  {
-   "date": "2024-10-12",
-   "venue": "Broad Arrow",
-   "price_usd": 86800,
-   "basis": "buyer-paid",
-   "hammer_usd": 77500,
-   "native": {
-    "amount": 86800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2006,
-   "url": "https://www.broadarrowauctions.com/vehicles/ch24_r090/2006-dodge-viper-srt-10-coupe",
-   "chassis": "1B3JZ69ZX6V101347",
-   "title": "2006 Dodge Viper SRT-10 Coupe"
-  },
-  {
-   "date": "2024-10-10",
-   "venue": "Cars & Bids",
-   "price_usd": 60900,
-   "basis": "sold+fee",
-   "hammer_usd": 58000,
-   "native": {
-    "amount": 58000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://carsandbids.com/auctions/3BgoYEjA/2004-dodge-viper-srt-10-mamba-edition-convertible",
-   "chassis": "1B3JZ65Z34V101127",
-   "title": "2004 Dodge Viper SRT-10 Mamba Edition Convertible"
-  },
-  {
-   "date": "2024-09-27",
-   "venue": "Bring a Trailer",
-   "price_usd": 35700,
-   "basis": "sold+fee",
-   "hammer_usd": 34000,
-   "native": {
-    "amount": 34000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://bringatrailer.com/listing/2004-dodge-viper-srt-10-roadster-35/",
-   "chassis": "1B3JZ65Z24V101717",
-   "title": "2004 Dodge Viper SRT-10 Roadster"
-  },
-  {
-   "date": "2024-09-23",
-   "venue": "Cars & Bids",
-   "price_usd": 54600,
-   "basis": "sold+fee",
-   "hammer_usd": 52000,
-   "native": {
-    "amount": 52000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2005,
-   "url": "https://carsandbids.com/auctions/KZal5mxb/2005-dodge-viper-srt-10-copperhead-edition",
-   "chassis": "1B3JZ65Z65V501488",
-   "title": "2005 Dodge Viper SRT-10 Copperhead Edition"
-  },
-  {
-   "date": "2024-09-14",
-   "venue": "Bring a Trailer",
-   "price_usd": 55650,
-   "basis": "sold+fee",
-   "hammer_usd": 53000,
-   "native": {
-    "amount": 53000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2005,
-   "url": "https://bringatrailer.com/listing/2005-dodge-viper-srt-10-roadster-27/",
-   "chassis": "1B3JZ65Z85V500682",
-   "title": "Osamu Shikado’s 9k-Mile 2005 Dodge Viper SRT-10 Roadster"
-  },
-  {
-   "date": "2024-08-13",
-   "venue": "Bring a Trailer",
-   "price_usd": 42000,
-   "basis": "sold+fee",
-   "hammer_usd": 40000,
-   "native": {
-    "amount": 40000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2005,
-   "url": "https://bringatrailer.com/listing/2005-dodge-viper-srt-10-roadster-24/",
-   "chassis": "1B3JZ65Z75V501080",
-   "title": "2005 Dodge Viper SRT-10 Roadster"
-  },
-  {
-   "date": "2024-07-19",
-   "venue": "Bring a Trailer",
-   "price_usd": 51713,
-   "basis": "sold+fee",
-   "hammer_usd": 49250,
-   "native": {
-    "amount": 49250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2006,
-   "url": "https://bringatrailer.com/listing/2006-dodge-viper-srt-10-roadster-14/",
-   "chassis": "1B3JZ65Z56V101746",
-   "title": "23k-Mile 2006 Dodge Viper SRT-10 Roadster"
   },
   {
    "date": "2024-07-17",
@@ -784,150 +239,6 @@
    "title": "10k-Mile 2006 Dodge Viper SRT-10 VOI.9 Edition Coupe"
   },
   {
-   "date": "2024-07-09",
-   "venue": "Bring a Trailer",
-   "price_usd": 49613,
-   "basis": "sold+fee",
-   "hammer_usd": 47250,
-   "native": {
-    "amount": 47250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://bringatrailer.com/listing/2004-dodge-viper-srt-10-roadster-34/",
-   "chassis": "1B3JZ65Z84V101754",
-   "title": "16k-Mile 2004 Dodge Viper SRT-10 Roadster"
-  },
-  {
-   "date": "2024-06-28",
-   "venue": "Bring a Trailer",
-   "price_usd": 50400,
-   "basis": "sold+fee",
-   "hammer_usd": 48000,
-   "native": {
-    "amount": 48000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2005,
-   "url": "https://bringatrailer.com/listing/2005-dodge-viper-srt-10-roadster-23/",
-   "chassis": "1B3JZ65Z05V501132",
-   "title": "2005 Dodge Viper SRT-10 Roadster Mamba Edition"
-  },
-  {
-   "date": "2024-05-28",
-   "venue": "Cars & Bids",
-   "price_usd": 54075,
-   "basis": "sold+fee",
-   "hammer_usd": 51500,
-   "native": {
-    "amount": 51500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2005,
-   "url": "https://carsandbids.com/auctions/3ypobpXR/2005-dodge-viper-srt-10-copperhead-edition",
-   "chassis": "1B3JZ65ZX5V501591",
-   "title": "2005 Dodge Viper SRT-10 Copperhead Edition"
-  },
-  {
-   "date": "2024-05-11",
-   "venue": "Bring a Trailer",
-   "price_usd": 64457,
-   "basis": "sold+fee",
-   "hammer_usd": 61388,
-   "native": {
-    "amount": 61388,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://bringatrailer.com/listing/2004-dodge-viper-srt-10-roadster-31/",
-   "chassis": "1B3JZ65Z74V102040",
-   "title": "13k-Kilometer 2004 Dodge Viper SRT-10 Roadster"
-  },
-  {
-   "date": "2024-04-19",
-   "venue": "Bring a Trailer",
-   "price_usd": 70406,
-   "basis": "sold+fee",
-   "hammer_usd": 67053,
-   "native": {
-    "amount": 67053,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2005,
-   "url": "https://bringatrailer.com/listing/2005-dodge-viper-srt-10-roadster-18/",
-   "chassis": "1B3JZ65Z25V501049",
-   "title": "1,700-Mile 2005 Dodge Viper SRT-10 Roadster Mamba Edition"
-  },
-  {
-   "date": "2024-04-10",
-   "venue": "Bring a Trailer",
-   "price_usd": 54915,
-   "basis": "sold+fee",
-   "hammer_usd": 52300,
-   "native": {
-    "amount": 52300,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://bringatrailer.com/listing/2004-dodge-viper-srt-10-roadster-29/",
-   "chassis": "1B3JZ65Z34V100172",
-   "title": "28k-Mile 2004 Dodge Viper SRT-10 Roadster"
-  },
-  {
-   "date": "2024-02-14",
-   "venue": "Bring a Trailer",
-   "price_usd": 54600,
-   "basis": "sold+fee",
-   "hammer_usd": 52000,
-   "native": {
-    "amount": 52000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://bringatrailer.com/listing/2004-dodge-viper-srt-10-roadster-28/",
-   "chassis": "1B3JZ65ZX4V101593",
-   "title": "17k-Mile 2004 Dodge Viper SRT-10 Roadster"
-  },
-  {
-   "date": "2023-12-21",
-   "venue": "Bring a Trailer",
-   "price_usd": 65625,
-   "basis": "sold+fee",
-   "hammer_usd": 62500,
-   "native": {
-    "amount": 62500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2005,
-   "url": "https://bringatrailer.com/listing/2005-dodge-viper-srt-10-roadster-19/",
-   "chassis": "1B3JZ65Z45V500582",
-   "title": "3,300-Mile 2005 Dodge Viper SRT-10 Roadster"
-  },
-  {
-   "date": "2023-11-19",
-   "venue": "Bring a Trailer",
-   "price_usd": 63525,
-   "basis": "sold+fee",
-   "hammer_usd": 60500,
-   "native": {
-    "amount": 60500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://bringatrailer.com/listing/2004-dodge-viper-srt-10-roadster-19/",
-   "chassis": "1B3JZ65Z14V102275",
-   "title": "9k-Mile 2004 Dodge Viper SRT-10 Roadster Mamba Edition"
-  },
-  {
    "date": "2023-10-25",
    "venue": "Bring a Trailer",
    "price_usd": 49350,
@@ -944,22 +255,6 @@
    "title": "2006 Dodge Viper SRT-10 Coupe"
   },
   {
-   "date": "2023-10-23",
-   "venue": "Bring a Trailer",
-   "price_usd": 52500,
-   "basis": "sold+fee",
-   "hammer_usd": 50000,
-   "native": {
-    "amount": 50000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2006,
-   "url": "https://bringatrailer.com/listing/2006-dodge-viper-srt-10-roadster-12/",
-   "chassis": "1B3JZ65Z46V101558",
-   "title": "6k-Mile 2006 Dodge Viper SRT-10 Roadster"
-  },
-  {
    "date": "2023-10-18",
    "venue": "Bring a Trailer",
    "price_usd": 58275,
@@ -974,70 +269,6 @@
    "url": "https://bringatrailer.com/listing/2006-dodge-viper-srt-10-coupe-21/",
    "chassis": "1B3JZ69Z26V101505",
    "title": "46k-Mile 2006 Dodge Viper SRT-10 Coupe"
-  },
-  {
-   "date": "2023-10-02",
-   "venue": "Bring a Trailer",
-   "price_usd": 34650,
-   "basis": "sold+fee",
-   "hammer_usd": 33000,
-   "native": {
-    "amount": 33000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2004,
-   "url": "https://bringatrailer.com/listing/2004-dodge-viper-srt-10-roadster-21/",
-   "chassis": "1B3JZ65Z84V101799",
-   "title": "2004 Dodge Viper SRT-10 Roadster"
-  },
-  {
-   "date": "2023-10-01",
-   "venue": "Barrett-Jackson",
-   "price_usd": 55000,
-   "basis": "buyer-paid",
-   "hammer_usd": 50000,
-   "native": {
-    "amount": 55000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2004,
-   "url": "https://www.barrett-jackson.com/new-orleans-2023/docket/vehicle/2004-dodge-viper-srt10-mamba-edition-270580?origin=results",
-   "chassis": "1B3JZ65Z24V102124",
-   "title": "2004 DODGE VIPER SRT/10 MAMBA EDITION"
-  },
-  {
-   "date": "2023-09-30",
-   "venue": "Barrett-Jackson",
-   "price_usd": 45100,
-   "basis": "buyer-paid",
-   "hammer_usd": 41000,
-   "native": {
-    "amount": 45100,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2004,
-   "url": "https://www.barrett-jackson.com/new-orleans-2023/docket/vehicle/2004-dodge-viper-srt10-convertible-269779?origin=results",
-   "chassis": "1B3JZ65Z24V100499",
-   "title": "2004 DODGE VIPER SRT/10 CONVERTIBLE"
-  },
-  {
-   "date": "2023-09-25",
-   "venue": "Bring a Trailer",
-   "price_usd": 65625,
-   "basis": "sold+fee",
-   "hammer_usd": 62500,
-   "native": {
-    "amount": 62500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2006,
-   "url": "https://bringatrailer.com/listing/2006-dodge-viper-srt-10-roadster-9/",
-   "chassis": "1B3JZ65ZX6V100589",
-   "title": "6k-Mile 2006 Dodge Viper SRT-10 Roadster"
   }
  ]
 }

@@ -9,8 +9,7 @@
   "model": "Diablo",
   "window": "36mo",
   "year_min": 1989,
-  "year_max": 1993,
-  "body": "coupe"
+  "year_max": 1993
  },
  "halo_dropped": 0,
  "sales": [
@@ -28,22 +27,6 @@
    "year": 1991,
    "url": "https://rmsothebys.com/auctions/mo26/lots/r0160-1991-lamborghini-diablo",
    "chassis": "ZA9DU07G9MLA12251",
-   "title": "1991 Lamborghini Diablo"
-  },
-  {
-   "date": "2026-06-29",
-   "venue": "Cars & Bids",
-   "price_usd": 392500,
-   "basis": "sold+fee",
-   "hammer_usd": 385000,
-   "native": {
-    "amount": 385000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1991,
-   "url": "https://carsandbids.com/auctions/3qlExmmn/1991-lamborghini-diablo-restomod",
-   "chassis": "ZA9DE07A0MLA12070",
    "title": "1991 Lamborghini Diablo"
   },
   {
@@ -92,6 +75,22 @@
    "year": 1991,
    "url": "https://rmsothebys.com/auctions/mi25/lots/r0066-1991-lamborghini-diablo/",
    "chassis": "ZA9DU07P7MLA12362",
+   "title": "1991 Lamborghini Diablo"
+  },
+  {
+   "date": "2026-06-29",
+   "venue": "Cars & Bids",
+   "price_usd": 392500,
+   "basis": "sold+fee",
+   "hammer_usd": 385000,
+   "native": {
+    "amount": 385000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://carsandbids.com/auctions/3qlExmmn/1991-lamborghini-diablo-restomod",
+   "chassis": "ZA9DE07A0MLA12070",
    "title": "1991 Lamborghini Diablo"
   },
   {

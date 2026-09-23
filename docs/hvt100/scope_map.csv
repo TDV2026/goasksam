@@ -6,7 +6,7 @@ car_id,year,make,model,trim,body,generation,year_scope,notes
 5,1969,Chevrolet,Camaro,Z/28,coupe,2nd,exact,includes RS (Z/28 RS); exclude COPO/ZL1/Yenko/SS
 6,1970,Chevrolet,Chevelle,SS 396,coupe,,exact,"exclude LS6/SS 454, convertible"
 7,1970,Plymouth,Barracuda,340,coupe,,exact,"NO MATCHING HVT CAR (HVT gave AAR); run, exclude from comparison"
-8,1969,Dodge,Charger,R/T,coupe,,exact,"440; exclude Hemi 426, Daytona, 500"
+8,1969,Dodge,Charger,R/T,coupe,,exact,SCOPE GAP: trim R/T (slash) matches no titles via Desk; model-only pulls all Chargers; cannot isolate R/T without product fix
 9,1966,Shelby,GT350,,fastback,,exact,"1966 Shelby GT350; exclude GT500, GT350H if priced apart"
 10,1968,Pontiac,GTO,,coupe,,exact,"exclude Judge, Ram Air IV/V halos, convertible"
 11,1955,Ford,Thunderbird,,convertible,,exact,1955 292 V8
@@ -33,7 +33,7 @@ car_id,year,make,model,trim,body,generation,year_scope,notes
 32,1987,Porsche,911,Carrera,coupe,G50,exact,G50 gearbox 1987-89 gen boundary; widen +/-2 within 1987-89 if W1<8; EXCLUDE Turbo/Targa/Cabriolet/Speedster
 33,1989,Porsche,911,Speedster,,930,exact,1989 Speedster (G50); exclude Carrera coupe/cab
 34,1994,Porsche,911,Turbo,coupe,964,exact,"964 Turbo 3.6; exclude 3.3 964 Turbo, S/flachbau halo"
-35,1995,Porsche,928,GTS,coupe,,exact,EXCLUDE S4/GT/base 928
+35,1995,Porsche,928,,coupe,,exact,928 GTS = the only 928 in 1993-95; drop trim (trim GTS triggers perfInclude 911-wide leak); exclude S4/GT if pre-93
 36,1987,Porsche,944,Turbo,coupe,,exact,exclude S/S2/base; EXCLUDE Turbo S halo
 37,1989,Ferrari,Testarossa,,coupe,,exact,"EXCLUDE 512 TR/512 M, Koenig, early monospecchio if priced apart"
 38,1991,Ferrari,348,TS,targa,,exact,"348 TS targa; exclude TB coupe, Spider, GTB/GTS"
@@ -77,7 +77,7 @@ car_id,year,make,model,trim,body,generation,year_scope,notes
 76,2012,Lexus,LFA,,coupe,,exact,EXCLUDE Nurburgring pkg halo
 77,2006,Dodge,Viper,SRT-10,coupe,ZB2,exact,"coupe; exclude roadster, ACR halo"
 78,2000,Toyota,Land Cruiser,100,wagon,,exact,"NO MATCHING HVT CAR (HVT gave 1997 FJ80); run, exclude from comparison"
-79,2011,Mercedes-Benz,SLS AMG,,coupe,,exact,"EXCLUDE Black Series halo, Roadster, GT"
+79,2011,Mercedes-Benz,SLS AMG,,coupe,,exact,"SCOPE GAP: AMG-halo logic excludes all SLS AMG as halo (model name IS the badge, rule 16); cannot scope via Desk without product fix"
 80,2016,Porsche,911,GT3 RS,coupe,991,exact,"991.1 GT3 RS; EXCLUDE GT2 RS, base GT3"
 81,2019,Porsche,911,GT3 RS,coupe,991,exact,991.2 GT3 RS; EXCLUDE GT2 RS
 82,2018,Porsche,911,Carrera T,coupe,991,exact,991.2 Carrera T; exclude base/S/GTS

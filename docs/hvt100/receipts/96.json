@@ -2,19 +2,114 @@
  "car_id": 96,
  "listed": "2013 Ford Mustang Shelby GT500",
  "status": "compare",
- "year_scope": "exact 2013",
- "basis": "sold+fee (online)",
+ "year_scope": "adjacent years pooled (2011-2014)",
+ "basis": "mixed (4% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Ford",
   "model": "Mustang",
   "window": "36mo",
-  "year_min": 2013,
-  "year_max": 2013,
-  "trim": "Shelby GT500",
-  "body": "coupe"
+  "year_min": 2011,
+  "year_max": 2014,
+  "trim": "Shelby GT500"
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2026-09-12",
+   "venue": "Barrett-Jackson",
+   "price_usd": 41800,
+   "basis": "buyer-paid",
+   "hammer_usd": 38000,
+   "native": {
+    "amount": 41800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2011,
+   "url": "https://www.barrett-jackson.com/2026-las-vegas/docket/vehicle/2011-ford-shelby-gt500-302302?origin=results",
+   "chassis": "1ZVBP8JS6B5145193",
+   "title": "2011 FORD SHELBY GT500"
+  },
+  {
+   "date": "2025-01-22",
+   "venue": "Barrett-Jackson",
+   "price_usd": 52800,
+   "basis": "buyer-paid",
+   "hammer_usd": 48000,
+   "native": {
+    "amount": 52800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2014,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2014-ford-mustang-shelby-gt500-283119?origin=results",
+   "chassis": "1ZVBP8JZ2E5263078",
+   "title": "2014 FORD MUSTANG SHELBY GT500"
+  },
+  {
+   "date": "2026-09-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 69825,
+   "basis": "sold+fee",
+   "hammer_usd": 66500,
+   "native": {
+    "amount": 66500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-66/",
+   "chassis": "1ZVBP8JZ7E5271242",
+   "title": "3,800-Mile 2014 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2026-09-18",
+   "venue": "Cars & Bids",
+   "price_usd": 34125,
+   "basis": "sold+fee",
+   "hammer_usd": 32500,
+   "native": {
+    "amount": 32500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://carsandbids.com/auctions/3pBXkp06/2014-ford-mustang-shelby-gt500-coupe",
+   "chassis": "1ZVBP8JZ4E5218501",
+   "title": "2014 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2026-09-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 61950,
+   "basis": "sold+fee",
+   "hammer_usd": 59000,
+   "native": {
+    "amount": 59000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-ford-mustang-shelby-gt500-coupe-38/",
+   "chassis": "1ZVBP8JS6C5201084",
+   "title": "355-Mile 2012 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2026-08-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 39375,
+   "basis": "sold+fee",
+   "hammer_usd": 37500,
+   "native": {
+    "amount": 37500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-ford-mustang-shelby-gt500-coupe-36/",
+   "chassis": "1ZVBP8JS8C5214953",
+   "title": "30k-Mile 2012 Ford Mustang Shelby GT500 Coupe"
+  },
   {
    "date": "2026-07-26",
    "venue": "Bring a Trailer",
@@ -32,20 +127,52 @@
    "title": "2k-Mile 2013 Ford Mustang Shelby GT500 Coupe"
   },
   {
-   "date": "2026-06-17",
+   "date": "2026-07-22",
    "venue": "Bring a Trailer",
-   "price_usd": 67726,
+   "price_usd": 82950,
    "basis": "sold+fee",
-   "hammer_usd": 64501,
+   "hammer_usd": 79000,
    "native": {
-    "amount": 64501,
+    "amount": 79000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2013,
-   "url": "https://bringatrailer.com/listing/2013-ford-mustang-shelby-gt500-convertible-34/",
-   "chassis": "1ZVBP8KZ6D5238570",
-   "title": "Original-Owner 2013 Ford Mustang Shelby GT500 Convertible"
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-62/",
+   "chassis": "1ZVBP8JZ7E5263061",
+   "title": "883-Mile 2014 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2026-06-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 46200,
+   "basis": "sold+fee",
+   "hammer_usd": 44000,
+   "native": {
+    "amount": 44000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2011,
+   "url": "https://bringatrailer.com/listing/2011-ford-mustang-shelby-gt500-coupe-31-2/",
+   "chassis": "1ZVBP8JS1B5156103",
+   "title": "2k-Mile 2011 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2026-06-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 64838,
+   "basis": "sold+fee",
+   "hammer_usd": 61750,
+   "native": {
+    "amount": 61750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-61/",
+   "chassis": "1ZVBP8JZ8E5231431",
+   "title": "12k-Mile 2014 Ford Mustang Shelby GT500 Coupe"
   },
   {
    "date": "2026-06-11",
@@ -80,6 +207,22 @@
    "title": "Original-Owner, 1,400-Mile 2013 Ford Mustang Shelby GT500 Coupe"
   },
   {
+   "date": "2026-06-09",
+   "venue": "Cars & Bids",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 50000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2011,
+   "url": "https://carsandbids.com/auctions/3zd0kYlA/2011-ford-mustang-shelby-gt500-coupe",
+   "chassis": "1ZVBP8JS0B5104218",
+   "title": "2011 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
    "date": "2026-05-24",
    "venue": "Bring a Trailer",
    "price_usd": 48825,
@@ -96,20 +239,116 @@
    "title": "2013 Ford Mustang Shelby GT500 Coupe"
   },
   {
-   "date": "2026-03-31",
+   "date": "2026-05-22",
    "venue": "Bring a Trailer",
-   "price_usd": 66150,
+   "price_usd": 46200,
    "basis": "sold+fee",
-   "hammer_usd": 63000,
+   "hammer_usd": 44000,
    "native": {
-    "amount": 63000,
+    "amount": 44000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2013,
-   "url": "https://bringatrailer.com/listing/2013-ford-mustang-shelby-gt500-convertible-32/",
-   "chassis": "1ZVBP8KZ8D5233340",
-   "title": "12k-Mile 2013 Ford Mustang Shelby GT500 Convertible"
+   "year": 2011,
+   "url": "https://bringatrailer.com/listing/2011-ford-mustang-shelby-gt500-coupe-31/",
+   "chassis": "1ZVBP8JS1B5156103",
+   "title": "2k-Mile 2011 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2026-05-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 69301,
+   "basis": "sold+fee",
+   "hammer_usd": 66001,
+   "native": {
+    "amount": 66001,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-60/",
+   "chassis": "1ZVBP8JZ5E5249501",
+   "title": "1k-Mile 2014 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2026-05-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 65100,
+   "basis": "sold+fee",
+   "hammer_usd": 62000,
+   "native": {
+    "amount": 62000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-59/",
+   "chassis": "1ZVBP8JZ9E5244737",
+   "title": "10k-Mile 2014 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2026-04-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 64575,
+   "basis": "sold+fee",
+   "hammer_usd": 61500,
+   "native": {
+    "amount": 61500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-54/",
+   "chassis": "1ZVBP8JZ8E5226259",
+   "title": "1,200-Mile 2014 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2026-04-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 42525,
+   "basis": "sold+fee",
+   "hammer_usd": 40500,
+   "native": {
+    "amount": 40500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-ford-mustang-shelby-gt500-coupe-31/",
+   "chassis": "1ZVBP8JS9C5257603",
+   "title": "15k-Mile 2012 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2026-04-03",
+   "venue": "Hagerty",
+   "price_usd": 64575,
+   "basis": "sold+fee",
+   "hammer_usd": 61500,
+   "native": {
+    "amount": 61500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://www.hagerty.com/marketplace/auction/2014-Ford-Mustang/ba495dc5-f27d-4467-8905-cd3be3289a68",
+   "chassis": "1ZVBP8JZ5E5262815",
+   "title": "One-Owner 1,700-Mile 2014 Ford Mustang Shelby GT500"
+  },
+  {
+   "date": "2026-02-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 75075,
+   "basis": "sold+fee",
+   "hammer_usd": 71500,
+   "native": {
+    "amount": 71500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-53/",
+   "chassis": "1ZVBP8JZ0E5261121",
+   "title": "2,300-Mile 2014 Ford Mustang Shelby GT500 Coupe"
   },
   {
    "date": "2025-11-26",
@@ -128,36 +367,196 @@
    "title": "Original-Owner 2013 Ford Mustang Shelby GT500 Coupe"
   },
   {
-   "date": "2025-09-06",
-   "venue": "Bring a Trailer",
-   "price_usd": 60375,
+   "date": "2025-11-14",
+   "venue": "Hagerty",
+   "price_usd": 32550,
    "basis": "sold+fee",
-   "hammer_usd": 57500,
+   "hammer_usd": 31000,
    "native": {
-    "amount": 57500,
+    "amount": 31000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2013,
-   "url": "https://bringatrailer.com/listing/2013-ford-mustang-shelby-gt500-convertible-31/",
-   "chassis": "1ZVBP8KZ8D5272560",
-   "title": "9k-Mile 2013 Ford Mustang Shelby GT500 Convertible"
+   "year": 2011,
+   "url": "https://www.hagerty.com/marketplace/auction/2011-Ford-Mustang/e2bbe04d-ef28-4065-ae55-ccdb265408f7",
+   "chassis": "1ZVBP8JS7B5153352",
+   "title": "30k-Mile One-Owner 2011 Ford Mustang Shelby GT500 Coupe"
   },
   {
-   "date": "2025-07-17",
-   "venue": "Sotheby's Motorsport",
-   "price_usd": 56175,
+   "date": "2025-10-13",
+   "venue": "Cars & Bids",
+   "price_usd": 26775,
    "basis": "sold+fee",
-   "hammer_usd": 53500,
+   "hammer_usd": 25500,
    "native": {
-    "amount": 53500,
+    "amount": 25500,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2013,
-   "url": "https://www.sothebysmotorsport.com/auction/2013-ford-mustangshelbygt500convertible6speed-6070",
-   "chassis": "1ZVBP8KZ9D5245741",
-   "title": "2013 Ford Mustang Shelby GT500 Convertible 6-Speed"
+   "year": 2011,
+   "url": "https://carsandbids.com/auctions/9WM405BQ/2011-ford-mustang-shelby-gt500-coupe",
+   "chassis": "1ZVBP8JS8B5159239",
+   "title": "2011 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2025-10-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 71925,
+   "basis": "sold+fee",
+   "hammer_usd": 68500,
+   "native": {
+    "amount": 68500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-47/",
+   "chassis": "1ZVBP8JZ1E5216883",
+   "title": "9k-Mile 2014 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2025-09-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 55125,
+   "basis": "sold+fee",
+   "hammer_usd": 52500,
+   "native": {
+    "amount": 52500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-42/",
+   "chassis": "1ZVBP8JZ0E5214204",
+   "title": "Original-Owner 2014 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2025-09-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 50000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-43/",
+   "chassis": "1ZVBP8JZ7E5221098",
+   "title": "8k-Mile 2014 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2025-08-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 63525,
+   "basis": "sold+fee",
+   "hammer_usd": 60500,
+   "native": {
+    "amount": 60500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-35/",
+   "chassis": "1ZVBP8JZXE5275950",
+   "title": "2,400-Mile 2014 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2025-08-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 64050,
+   "basis": "sold+fee",
+   "hammer_usd": 61000,
+   "native": {
+    "amount": 61000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-37/",
+   "chassis": "1ZVBP8JZ1E5235269",
+   "title": "10k-Mile 2014 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2025-08-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 79538,
+   "basis": "sold+fee",
+   "hammer_usd": 75750,
+   "native": {
+    "amount": 75750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-38/",
+   "chassis": "1ZVBP8JZ7E5221165",
+   "title": "1,600-Mile 2014 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2025-08-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 75653,
+   "basis": "sold+fee",
+   "hammer_usd": 72050,
+   "native": {
+    "amount": 72050,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-39/",
+   "chassis": "1ZVBP8JZ2E5249603",
+   "title": "963-Mile 2014 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2025-07-29",
+   "venue": "Cars & Bids",
+   "price_usd": 59851,
+   "basis": "sold+fee",
+   "hammer_usd": 57001,
+   "native": {
+    "amount": 57001,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://carsandbids.com/auctions/9aYVkGYE/2014-ford-mustang-shelby-gt500-coupe",
+   "chassis": "1ZVBP8JZ5E5256741",
+   "title": "2014 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2025-07-07",
+   "venue": "Cars & Bids",
+   "price_usd": 46463,
+   "basis": "sold+fee",
+   "hammer_usd": 44250,
+   "native": {
+    "amount": 44250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://carsandbids.com/auctions/9Ap55n7w/2012-ford-mustang-shelby-gt500-coupe",
+   "chassis": "1ZVBP8JSXC5214744",
+   "title": "2012 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2025-05-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 59850,
+   "basis": "sold+fee",
+   "hammer_usd": 57000,
+   "native": {
+    "amount": 57000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-33-2/",
+   "chassis": "1ZVBP8JZ2E5260939",
+   "title": "530-Mile 2014 Ford Mustang Shelby GT500 Coupe"
   },
   {
    "date": "2025-05-01",
@@ -176,20 +575,36 @@
    "title": "18k-Mile 2013 Ford Mustang Shelby GT500 Coupe"
   },
   {
-   "date": "2025-02-17",
+   "date": "2025-01-03",
    "venue": "Bring a Trailer",
-   "price_usd": 67725,
+   "price_usd": 33075,
    "basis": "sold+fee",
-   "hammer_usd": 64500,
+   "hammer_usd": 31500,
    "native": {
-    "amount": 64500,
+    "amount": 31500,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2013,
-   "url": "https://bringatrailer.com/listing/2013-ford-mustang-shelby-gt500-convertible-27/",
-   "chassis": "1ZVBP8KZ6D5233210",
-   "title": "9k-Mile 2013 Ford Mustang Shelby GT500 Convertible"
+   "year": 2011,
+   "url": "https://bringatrailer.com/listing/2011-ford-mustang-shelby-gt500-coupe-21/",
+   "chassis": "1ZVBP8JS9B5136861",
+   "title": "17k-Mile 2011 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2024-10-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 53551,
+   "basis": "sold+fee",
+   "hammer_usd": 51001,
+   "native": {
+    "amount": 51001,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-31/",
+   "chassis": "1ZVBP8JZXE5216476",
+   "title": "17k-Mile 2014 Ford Mustang Shelby GT500 Coupe"
   },
   {
    "date": "2024-08-26",
@@ -224,36 +639,116 @@
    "title": "Original-Owner 2013 Ford Mustang Shelby GT500 Coupe"
   },
   {
-   "date": "2024-08-18",
-   "venue": "Bring a Trailer",
-   "price_usd": 65100,
+   "date": "2024-08-14",
+   "venue": "Cars & Bids",
+   "price_usd": 34440,
    "basis": "sold+fee",
-   "hammer_usd": 62000,
+   "hammer_usd": 32800,
    "native": {
-    "amount": 62000,
+    "amount": 32800,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2013,
-   "url": "https://bringatrailer.com/listing/2013-ford-mustang-shelby-gt500-convertible-24/",
-   "chassis": "1ZVBP8KZ3D5255648",
-   "title": "7k-Mile 2013 Ford Mustang Shelby GT500 Convertible"
+   "year": 2012,
+   "url": "https://carsandbids.com/auctions/rNXoYApk/2012-ford-mustang-shelby-gt500-coupe",
+   "chassis": "1ZVBP8JS3C5256267",
+   "title": "2012 Ford Mustang Shelby GT500 Coupe"
   },
   {
-   "date": "2023-11-24",
+   "date": "2024-05-01",
    "venue": "Bring a Trailer",
-   "price_usd": 66186,
+   "price_usd": 63000,
    "basis": "sold+fee",
-   "hammer_usd": 63034,
+   "hammer_usd": 60000,
    "native": {
-    "amount": 63034,
+    "amount": 60000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2013,
-   "url": "https://bringatrailer.com/listing/2013-ford-mustang-shelby-gt500-convertible-22/",
-   "chassis": "1ZVBP8KZ8D5258044",
-   "title": "10k-Mile 2013 Ford Mustang Shelby GT500 Convertible"
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-23/",
+   "chassis": "1ZVBP8JZ0E5208001",
+   "title": "520-Mile 2014 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2024-04-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 38325,
+   "basis": "sold+fee",
+   "hammer_usd": 36500,
+   "native": {
+    "amount": 36500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2011,
+   "url": "https://bringatrailer.com/listing/2011-ford-mustang-shelby-gt500-coupe-15/",
+   "chassis": "1ZVBP8JS8B5158026",
+   "title": "6k-Mile 2011 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2024-03-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 39639,
+   "basis": "sold+fee",
+   "hammer_usd": 37751,
+   "native": {
+    "amount": 37751,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2011,
+   "url": "https://bringatrailer.com/listing/2011-ford-mustang-shelby-gt500-coupe-13/",
+   "chassis": "1ZVBP8JS2B5130433",
+   "title": "4,800-Mile 2011 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2023-11-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 39113,
+   "basis": "sold+fee",
+   "hammer_usd": 37250,
+   "native": {
+    "amount": 37250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-ford-mustang-shelby-gt500-coupe-13/",
+   "chassis": "1ZVBP8JS3C5212012",
+   "title": "13k-Mile 2012 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2023-10-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 60900,
+   "basis": "sold+fee",
+   "hammer_usd": 58000,
+   "native": {
+    "amount": 58000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-14/",
+   "chassis": "1ZVBP8JZXE5260946",
+   "title": "8k-Mile 2014 Ford Mustang Shelby GT500 Coupe"
+  },
+  {
+   "date": "2023-10-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 60375,
+   "basis": "sold+fee",
+   "hammer_usd": 57500,
+   "native": {
+    "amount": 57500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-ford-mustang-shelby-gt500-coupe-13/",
+   "chassis": "1ZVBP8JZ0E5263063",
+   "title": "1,600-Mile 2014 Ford Mustang Shelby GT500 Coupe"
   }
  ]
 }

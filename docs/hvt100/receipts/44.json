@@ -3,528 +3,495 @@
  "listed": "1992 Mercedes-Benz 500E",
  "status": "compare",
  "year_scope": "exact 1992",
- "basis": "sold+fee (online)",
+ "basis": "mixed (17% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Mercedes-Benz",
   "model": "500E",
   "window": "36mo",
   "year_min": 1992,
-  "year_max": 1992,
-  "body": "sedan"
+  "year_max": 1992
  },
  "halo_dropped": 0,
  "sales": [
   {
-   "date": "2026-09-03",
-   "venue": "MB Market",
-   "price_usd": 2854,
-   "basis": "sold+fee",
-   "hammer_usd": 2718,
+   "date": "2026-08-15",
+   "venue": "Gooding Christie's",
+   "price_usd": 162400,
+   "basis": "buyer-paid",
+   "hammer_usd": 145000,
    "native": {
-    "amount": 2718,
+    "amount": 162400,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
    "year": 1992,
-   "url": "https://thembmarket.com/1992-mercedes-benz-300te-3",
-   "chassis": "WDBEA90E2NF204336",
-   "title": "1992 Mercedes-Benz 300TE"
+   "url": "https://www.goodingco.com/lot/1992-mercedes-benz-500e-pb26",
+   "chassis": "WDBEA36E1NB790751",
+   "title": "1992 Mercedes-Benz 500E (PB26)"
   },
   {
-   "date": "2026-08-26",
-   "venue": "Bring a Trailer",
-   "price_usd": 10499,
-   "basis": "sold+fee",
-   "hammer_usd": 9999,
+   "date": "2026-03-05",
+   "venue": "Gooding Christie's",
+   "price_usd": 357000,
+   "basis": "buyer-paid",
+   "hammer_usd": 320000,
    "native": {
-    "amount": 9999,
+    "amount": 357000,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
    "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-300te-45/",
-   "chassis": "WDBED90E6NF209529",
-   "title": "1992 Mercedes-Benz 300TE 4MATIC"
+   "url": "https://www.goodingco.com/lot/1992-mercedes-benz-500e-1",
+   "chassis": "WDBEA36E5NB713509",
+   "title": "1992 Mercedes-Benz 500E (FL26)"
   },
   {
-   "date": "2026-08-03",
-   "venue": "MB Market",
-   "price_usd": 15488,
-   "basis": "sold+fee",
-   "hammer_usd": 14750,
+   "date": "2024-06-30",
+   "venue": "Bonhams",
+   "price_usd": 43792,
+   "basis": "buyer-paid",
+   "hammer_usd": 39100,
    "native": {
-    "amount": 14750,
-    "currency": "USD",
-    "premium_inclusive": false
+    "amount": 39100,
+    "currency": "CHF",
+    "premium_inclusive": true
    },
    "year": 1992,
-   "url": "https://thembmarket.com/1992-mercedes-benz-300te-2",
-   "chassis": "WDB1240901F147809",
-   "title": "1992 Mercedes-Benz 300TE"
+   "url": "https://cars.bonhams.com/auction/29934/lot/112/1992-mercedes-benz-500e-chassis-no-wdbea36e1nb709246/",
+   "chassis": "WDBEA36E1NB709246",
+   "title": "1992 Mercedes-Benz 500E Chassis no. WDBEA36E1NB709246"
   },
   {
-   "date": "2026-08-03",
-   "venue": "Bring a Trailer",
-   "price_usd": 12600,
-   "basis": "sold+fee",
-   "hammer_usd": 12000,
+   "date": "2024-06-24",
+   "venue": "Bonhams",
+   "price_usd": 32200,
+   "basis": "buyer-paid",
+   "hammer_usd": 28750,
    "native": {
-    "amount": 12000,
+    "amount": 32200,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
    "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-300te-44/",
-   "chassis": "WDBED90E6NF197074",
-   "title": "31-Years-Owned 1992 Mercedes-Benz 300TE 4MATIC"
-  },
-  {
-   "date": "2026-07-10",
-   "venue": "Cars & Bids",
-   "price_usd": 7350,
-   "basis": "sold+fee",
-   "hammer_usd": 7000,
-   "native": {
-    "amount": 7000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://carsandbids.com/auctions/9Xq4mnMo/1992-mercedes-benz-300e-26",
-   "chassis": "WDBEA26D7NB751695",
-   "title": "1992 Mercedes-Benz 300E 2.6"
-  },
-  {
-   "date": "2026-03-11",
-   "venue": "Bring a Trailer",
-   "price_usd": 9100,
-   "basis": "sold+fee",
-   "hammer_usd": 8667,
-   "native": {
-    "amount": 8667,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-300e-37/",
-   "chassis": "WDBED30D8NB570370",
-   "title": "1992 Mercedes-Benz 300E 4MATIC"
-  },
-  {
-   "date": "2026-03-01",
-   "venue": "Bring a Trailer",
-   "price_usd": 13767,
-   "basis": "sold+fee",
-   "hammer_usd": 13111,
-   "native": {
-    "amount": 13111,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-300ce-33/",
-   "chassis": "WDBEA51EXNB683989",
-   "title": "1992 Mercedes-Benz 300CE Coupe"
-  },
-  {
-   "date": "2026-02-10",
-   "venue": "Bring a Trailer",
-   "price_usd": 6143,
-   "basis": "sold+fee",
-   "hammer_usd": 5850,
-   "native": {
-    "amount": 5850,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-300e-2-6/",
-   "chassis": "WDBEA26D7NB751695",
-   "title": "1992 Mercedes-Benz 300E 2.6"
-  },
-  {
-   "date": "2025-10-07",
-   "venue": "Bring a Trailer",
-   "price_usd": 7455,
-   "basis": "sold+fee",
-   "hammer_usd": 7100,
-   "native": {
-    "amount": 7100,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-400e-32/",
-   "chassis": "WDBEA34E3NB767426",
-   "title": "1992 Mercedes-Benz 400E"
-  },
-  {
-   "date": "2025-09-29",
-   "venue": "Bring a Trailer",
-   "price_usd": 2625,
-   "basis": "sold+fee",
-   "hammer_usd": 2500,
-   "native": {
-    "amount": 2500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-300e-36/",
-   "chassis": "WDBED30E7NB596662",
-   "title": "Original-Owner 1992 Mercedes-Benz 300E 4MATIC"
-  },
-  {
-   "date": "2025-08-10",
-   "venue": "Bring a Trailer",
-   "price_usd": 7036,
-   "basis": "sold+fee",
-   "hammer_usd": 6701,
-   "native": {
-    "amount": 6701,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-300e-35/",
-   "chassis": "WDBEA30D8NB648865",
-   "title": "1992 Mercedes-Benz 300E"
-  },
-  {
-   "date": "2025-07-23",
-   "venue": "Bring a Trailer",
-   "price_usd": 10500,
-   "basis": "sold+fee",
-   "hammer_usd": 10000,
-   "native": {
-    "amount": 10000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-300ce-32/",
-   "chassis": "WDBEA51E2NB623527",
-   "title": "1992 Mercedes-Benz 300CE"
-  },
-  {
-   "date": "2025-07-07",
-   "venue": "Cars & Bids",
-   "price_usd": 33075,
-   "basis": "sold+fee",
-   "hammer_usd": 31500,
-   "native": {
-    "amount": 31500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://carsandbids.com/auctions/3yl21o4o/1992-mercedes-benz-500e",
-   "chassis": "WDBEA36E1NB791060",
-   "title": "1992 Mercedes-Benz 500E"
-  },
-  {
-   "date": "2025-06-05",
-   "venue": "Cars & Bids",
-   "price_usd": 3045,
-   "basis": "sold+fee",
-   "hammer_usd": 2900,
-   "native": {
-    "amount": 2900,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://carsandbids.com/auctions/3BDmOyk4/1992-mercedes-benz-400e",
-   "chassis": "WDBEA34E5NB763264",
-   "title": "1992 Mercedes-Benz 400E"
-  },
-  {
-   "date": "2025-04-09",
-   "venue": "Bring a Trailer",
-   "price_usd": 9135,
-   "basis": "sold+fee",
-   "hammer_usd": 8700,
-   "native": {
-    "amount": 8700,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-400e-28/",
-   "chassis": "WDBEA34E9NB714925",
-   "title": "1992 Mercedes-Benz 400E"
-  },
-  {
-   "date": "2025-04-09",
-   "venue": "Bring a Trailer",
-   "price_usd": 8400,
-   "basis": "sold+fee",
-   "hammer_usd": 8000,
-   "native": {
-    "amount": 8000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-300td-4/",
-   "chassis": "WDB1241901F216466",
-   "title": "Euro 1992 Mercedes-Benz 300TD"
-  },
-  {
-   "date": "2025-04-01",
-   "venue": "Bring a Trailer",
-   "price_usd": 11813,
-   "basis": "sold+fee",
-   "hammer_usd": 11250,
-   "native": {
-    "amount": 11250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-300e-34/",
-   "chassis": "WDBEA30D2NB583219",
-   "title": "31-Years-Owned 1992 Mercedes-Benz 300E"
-  },
-  {
-   "date": "2025-03-25",
-   "venue": "Bring a Trailer",
-   "price_usd": 8400,
-   "basis": "sold+fee",
-   "hammer_usd": 8000,
-   "native": {
-    "amount": 8000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-400e-27/",
-   "chassis": "WDBEA34E2NB676941",
-   "title": "1992 Mercedes-Benz 400E"
-  },
-  {
-   "date": "2025-02-08",
-   "venue": "Bring a Trailer",
-   "price_usd": 8138,
-   "basis": "sold+fee",
-   "hammer_usd": 7750,
-   "native": {
-    "amount": 7750,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-300e-33/",
-   "chassis": "WDBEA30D3NB605860",
-   "title": "1992 Mercedes-Benz 300E"
-  },
-  {
-   "date": "2025-02-04",
-   "venue": "Bring a Trailer",
-   "price_usd": 10080,
-   "basis": "sold+fee",
-   "hammer_usd": 9600,
-   "native": {
-    "amount": 9600,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-300te-42/",
-   "chassis": "WDBED90E8NF209094",
-   "title": "1992 Mercedes-Benz 300TE 4MATIC"
-  },
-  {
-   "date": "2024-12-28",
-   "venue": "Bring a Trailer",
-   "price_usd": 4673,
-   "basis": "sold+fee",
-   "hammer_usd": 4450,
-   "native": {
-    "amount": 4450,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-300e-32/",
-   "chassis": "WDBEA30E6NB712006",
-   "title": "1992 Mercedes-Benz 300E Sportline"
-  },
-  {
-   "date": "2024-11-27",
-   "venue": "Cars & Bids",
-   "price_usd": 4200,
-   "basis": "sold+fee",
-   "hammer_usd": 4000,
-   "native": {
-    "amount": 4000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://carsandbids.com/auctions/9WvJmEgR/1992-mercedes-benz-300e-sportline",
-   "chassis": "WDBEA30E6NB712006",
-   "title": "1992 Mercedes-Benz 300E Sportline"
-  },
-  {
-   "date": "2024-09-12",
-   "venue": "Cars & Bids",
-   "price_usd": 7508,
-   "basis": "sold+fee",
-   "hammer_usd": 7150,
-   "native": {
-    "amount": 7150,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://carsandbids.com/auctions/rkEmGQyk/1992-mercedes-benz-300ce",
-   "chassis": "WDBEA51E6NB803304",
-   "title": "1992 Mercedes-Benz 300CE"
-  },
-  {
-   "date": "2024-07-16",
-   "venue": "Cars & Bids",
-   "price_usd": 9555,
-   "basis": "sold+fee",
-   "hammer_usd": 9100,
-   "native": {
-    "amount": 9100,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://carsandbids.com/auctions/3pNEOxn6/1992-mercedes-benz-300ce",
-   "chassis": "WDBEA51E9NB639076",
-   "title": "1992 Mercedes-Benz 300CE"
-  },
-  {
-   "date": "2024-05-29",
-   "venue": "Bring a Trailer",
-   "price_usd": 18638,
-   "basis": "sold+fee",
-   "hammer_usd": 17750,
-   "native": {
-    "amount": 17750,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-300e-31/",
-   "chassis": "WDBEA30E1NB636646",
-   "title": "44k-Mile 1992 Mercedes-Benz 300E"
-  },
-  {
-   "date": "2024-05-10",
-   "venue": "PCARMarket",
-   "price_usd": 8925,
-   "basis": "sold+fee",
-   "hammer_usd": 8500,
-   "native": {
-    "amount": 8500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://www.pcarmarket.com/auction/1992-mercedes-benz-300ce-1",
-   "chassis": "WDBEA51E4NB573827",
-   "title": "NO RESERVE 1992 Mercedes-Benz 300CE"
+   "url": "https://cars.bonhams.com/auction/29954/lot/213/1992-mercedes-benz-500e-vin-wdbea36e4nb776424/",
+   "chassis": "WDBEA36E4NB776424",
+   "title": "1992 Mercedes-Benz 500E VIN. WDBEA36E4NB776424"
   },
   {
    "date": "2024-02-29",
-   "venue": "Cars & Bids",
-   "price_usd": 6825,
-   "basis": "sold+fee",
-   "hammer_usd": 6500,
+   "venue": "Bonhams",
+   "price_usd": 41440,
+   "basis": "buyer-paid",
+   "hammer_usd": 37000,
    "native": {
-    "amount": 6500,
+    "amount": 41440,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
    "year": 1992,
-   "url": "https://carsandbids.com/auctions/KPL0MDx2/1992-mercedes-benz-300e",
-   "chassis": "WDBEA30E7NB646775",
-   "title": "1992 Mercedes-Benz 300E"
+   "url": "https://cars.bonhams.com/auction/29261/lot/50/1992-mercedes-benz-500e-vin-wdbea36e4nb799587/",
+   "chassis": "WDBEA36E4NB799587",
+   "title": "1992 Mercedes-Benz 500E VIN. WDBEA36E4NB799587"
   },
   {
-   "date": "2024-01-18",
+   "date": "2026-09-19",
    "venue": "Bring a Trailer",
-   "price_usd": 14228,
+   "price_usd": 50400,
    "basis": "sold+fee",
-   "hammer_usd": 13550,
+   "hammer_usd": 48000,
    "native": {
-    "amount": 13550,
+    "amount": 48000,
     "currency": "USD",
     "premium_inclusive": false
    },
    "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-300ce-25/",
-   "chassis": "WDB1240501B585023",
-   "title": "Euro 1992 Mercedes-Benz 300CE 5-Speed"
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-98/",
+   "chassis": "WDBEA36E1NB662820",
+   "title": "1992 Mercedes-Benz 500E"
   },
   {
-   "date": "2024-01-06",
+   "date": "2026-09-10",
    "venue": "Bring a Trailer",
-   "price_usd": 5240,
+   "price_usd": 34913,
    "basis": "sold+fee",
-   "hammer_usd": 4990,
+   "hammer_usd": 33250,
    "native": {
-    "amount": 4990,
+    "amount": 33250,
     "currency": "USD",
     "premium_inclusive": false
    },
    "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-300e-27/",
-   "chassis": "WDBEA30D3NB788340",
-   "title": "1992 Mercedes-Benz 300E"
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-100/",
+   "chassis": "WDBEA36E6NB705578",
+   "title": "1992 Mercedes-Benz 500E"
   },
   {
-   "date": "2023-12-12",
-   "venue": "PCARMarket",
-   "price_usd": 8715,
-   "basis": "sold+fee",
-   "hammer_usd": 8300,
-   "native": {
-    "amount": 8300,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://www.pcarmarket.com/auction/1992-mercedes-benz-300ce-2",
-   "chassis": "WDBEA51E4NB693319",
-   "title": "1992 Mercedes-Benz C124 300CE"
-  },
-  {
-   "date": "2023-10-09",
-   "venue": "PCARMarket",
-   "price_usd": 7245,
-   "basis": "sold+fee",
-   "hammer_usd": 6900,
-   "native": {
-    "amount": 6900,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1992,
-   "url": "https://www.pcarmarket.com/auction/1992-mercedes-benz-300ce",
-   "chassis": "WDBEA51E9NB684941",
-   "title": "NO RESERVE 1992 Mercedes-Benz 300CE"
-  },
-  {
-   "date": "2023-10-02",
+   "date": "2026-08-27",
    "venue": "Bring a Trailer",
-   "price_usd": 12233,
+   "price_usd": 55299,
    "basis": "sold+fee",
-   "hammer_usd": 11650,
+   "hammer_usd": 52666,
    "native": {
-    "amount": 11650,
+    "amount": 52666,
     "currency": "USD",
     "premium_inclusive": false
    },
    "year": 1992,
-   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-300e-26/",
-   "chassis": "WDBEA30E6NB746642",
-   "title": "1992 Mercedes-Benz 300E"
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-99/",
+   "chassis": "WDB1240361B702014",
+   "title": "Euro 1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2026-04-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 67200,
+   "basis": "sold+fee",
+   "hammer_usd": 64000,
+   "native": {
+    "amount": 64000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-97/",
+   "chassis": "WDBEA36E7NB634763",
+   "title": "1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2025-11-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 28875,
+   "basis": "sold+fee",
+   "hammer_usd": 27500,
+   "native": {
+    "amount": 27500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-96/",
+   "chassis": "WDBEA36E2NB763218",
+   "title": "One-Family-Owned 1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2025-10-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 36750,
+   "basis": "sold+fee",
+   "hammer_usd": 35000,
+   "native": {
+    "amount": 35000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-93/",
+   "chassis": "WDBEA36E0NB760852",
+   "title": "1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2025-10-14",
+   "venue": "MB Market",
+   "price_usd": 67725,
+   "basis": "sold+fee",
+   "hammer_usd": 64500,
+   "native": {
+    "amount": 64500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://thembmarket.com/1992-mercedes-benz-500e-11",
+   "chassis": "WDB1240361B872073",
+   "title": "Euro 1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2025-09-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 31920,
+   "basis": "sold+fee",
+   "hammer_usd": 30400,
+   "native": {
+    "amount": 30400,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-91/",
+   "chassis": "WDBEA36E9NB692308",
+   "title": "1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2025-06-16",
+   "venue": "MB Market",
+   "price_usd": 59430,
+   "basis": "sold+fee",
+   "hammer_usd": 56600,
+   "native": {
+    "amount": 56600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://thembmarket.com/1992-mercedes-benz-500e-10",
+   "chassis": "WDBEA36EXNB779926",
+   "title": "1992 Mercedes-Benz 500E w/56k Miles"
+  },
+  {
+   "date": "2025-06-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-85/",
+   "chassis": "WDBEA36E3NB797443",
+   "title": "30-Years-Owned 1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2025-05-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 36880,
+   "basis": "sold+fee",
+   "hammer_usd": 35124,
+   "native": {
+    "amount": 35124,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-86/",
+   "chassis": "WDBEA36E1NB730243",
+   "title": "1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2025-05-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 40950,
+   "basis": "sold+fee",
+   "hammer_usd": 39000,
+   "native": {
+    "amount": 39000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-87/",
+   "chassis": "WDBEA36E5NB761432",
+   "title": "1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2025-04-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 72975,
+   "basis": "sold+fee",
+   "hammer_usd": 69500,
+   "native": {
+    "amount": 69500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-84/",
+   "chassis": "WDB1240361B819337",
+   "title": "Euro 1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2024-10-31",
+   "venue": "MB Market",
+   "price_usd": 54927,
+   "basis": "sold+fee",
+   "hammer_usd": 52311,
+   "native": {
+    "amount": 52311,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://thembmarket.com/1992-mercedes-benz-500e-9",
+   "chassis": "WDBEA36E0NB728922",
+   "title": "1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2024-09-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 55650,
+   "basis": "sold+fee",
+   "hammer_usd": 53000,
+   "native": {
+    "amount": 53000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-79/",
+   "chassis": "WDBEA36E5NB681161",
+   "title": "30-Years-Owned 1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2024-09-03",
+   "venue": "MB Market",
+   "price_usd": 51450,
+   "basis": "sold+fee",
+   "hammer_usd": 49000,
+   "native": {
+    "amount": 49000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://thembmarket.com/1992-mercedes-benz-500e-8",
+   "chassis": "WDBEA36EXNB779926",
+   "title": "1992 Mercedes-Benz 500E w/56k Miles"
+  },
+  {
+   "date": "2024-07-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 44888,
+   "basis": "sold+fee",
+   "hammer_usd": 42750,
+   "native": {
+    "amount": 42750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-77/",
+   "chassis": "WDBEA36E3NB761008",
+   "title": "1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2024-06-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 29663,
+   "basis": "sold+fee",
+   "hammer_usd": 28250,
+   "native": {
+    "amount": 28250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-76/",
+   "chassis": "WDBEA36E0NB721310",
+   "title": "1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2024-06-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 64575,
+   "basis": "sold+fee",
+   "hammer_usd": 61500,
+   "native": {
+    "amount": 61500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-75/",
+   "chassis": "WDBEA36E5NB759843",
+   "title": "1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2024-05-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 59499,
+   "basis": "sold+fee",
+   "hammer_usd": 56666,
+   "native": {
+    "amount": 56666,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-72/",
+   "chassis": "WDB1240361B872073",
+   "title": "Euro 1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2024-04-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 36516,
+   "basis": "sold+fee",
+   "hammer_usd": 34777,
+   "native": {
+    "amount": 34777,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-70/",
+   "chassis": "WDBEA36E5NB764279",
+   "title": "1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2024-03-06",
+   "venue": "MB Market",
+   "price_usd": 32025,
+   "basis": "sold+fee",
+   "hammer_usd": 30500,
+   "native": {
+    "amount": 30500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://thembmarket.com/1992-mercedes-benz-500e-7",
+   "chassis": "WDBEA36E3NB612257",
+   "title": "1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2024-01-23",
+   "venue": "MB Market",
+   "price_usd": 22313,
+   "basis": "sold+fee",
+   "hammer_usd": 21250,
+   "native": {
+    "amount": 21250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://thembmarket.com/1992-mercedes-benz-500e-6",
+   "chassis": "WDBEA36E3NB761008",
+   "title": "Single-Family Owned 1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2024-01-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 25200,
+   "basis": "sold+fee",
+   "hammer_usd": 24000,
+   "native": {
+    "amount": 24000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-69/",
+   "chassis": "WDBEA36E8NB785286",
+   "title": "1992 Mercedes-Benz 500E"
+  },
+  {
+   "date": "2023-11-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 77000,
+   "basis": "sold+fee",
+   "hammer_usd": 73333,
+   "native": {
+    "amount": 73333,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://bringatrailer.com/listing/1992-mercedes-benz-500e-67/",
+   "chassis": "WDBEA36E0NB773276",
+   "title": "1992 Mercedes-Benz 500E"
   }
  ]
 }

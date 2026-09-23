@@ -9,11 +9,26 @@
   "model": "M5",
   "window": "36mo",
   "year_min": 2003,
-  "year_max": 2003,
-  "body": "sedan"
+  "year_max": 2003
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2025-03-06",
+   "venue": "Gooding Christie's",
+   "price_usd": 134400,
+   "basis": "buyer-paid",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 134400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2003,
+   "url": "https://www.goodingco.com/lot/2003-bmw-m5",
+   "chassis": "WBSDE93453CF92161",
+   "title": "2003 BMW M5"
+  },
   {
    "date": "2026-09-22",
    "venue": "Bring a Trailer",
@@ -412,22 +427,6 @@
    "year": 2003,
    "url": "https://bringatrailer.com/listing/2003-bmw-m5-226/",
    "chassis": "WBSDE93413CF92190",
-   "title": "2003 BMW M5"
-  },
-  {
-   "date": "2025-03-06",
-   "venue": "Gooding Christie's",
-   "price_usd": 134400,
-   "basis": "buyer-paid",
-   "hammer_usd": 120000,
-   "native": {
-    "amount": 134400,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2003,
-   "url": "https://www.goodingco.com/lot/2003-bmw-m5",
-   "chassis": "WBSDE93453CF92161",
    "title": "2003 BMW M5"
   },
   {

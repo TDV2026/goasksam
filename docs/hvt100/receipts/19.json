@@ -3,129 +3,48 @@
  "listed": "1966 Jaguar E-Type Series 1",
  "status": "compare",
  "year_scope": "adjacent years pooled (1964-1968)",
- "basis": "mixed (16% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (93% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Jaguar",
   "model": "E-Type",
   "window": "36mo",
   "year_min": 1964,
   "year_max": 1968,
-  "trim": "Series 1",
-  "body": "roadster"
+  "trim": "Series 1"
  },
  "halo_dropped": 0,
  "sales": [
   {
-   "date": "2026-09-16",
-   "venue": "Bring a Trailer",
-   "price_usd": 98175,
-   "basis": "sold+fee",
-   "hammer_usd": 93500,
+   "date": "2026-03-07",
+   "venue": "Broad Arrow",
+   "price_usd": 103600,
+   "basis": "buyer-paid",
+   "hammer_usd": 92500,
    "native": {
-    "amount": 93500,
+    "amount": 103600,
     "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke-series-1-5-roadster-17/",
-   "chassis": "1E17267",
-   "title": "1968 Jaguar XKE Series 1.5 4.2 Roadster"
-  },
-  {
-   "date": "2026-07-21",
-   "venue": "Bring a Trailer",
-   "price_usd": 79275,
-   "basis": "sold+fee",
-   "hammer_usd": 75500,
-   "native": {
-    "amount": 75500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1967,
-   "url": "https://bringatrailer.com/listing/1967-jaguar-e-type-series-1-roadster-13/",
-   "chassis": "1E15057",
-   "title": "39-Years-Family-Owned 1967 Jaguar XKE Series 1.25 4.2 Roadster"
-  },
-  {
-   "date": "2026-07-10",
-   "venue": "Bring a Trailer",
-   "price_usd": 80850,
-   "basis": "sold+fee",
-   "hammer_usd": 77000,
-   "native": {
-    "amount": 77000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-e-type-series-1-5-roadster-9/",
-   "chassis": "1E16352",
-   "title": "1968 Jaguar XKE Series 1.5 4.2 Roadster"
-  },
-  {
-   "date": "2026-06-15",
-   "venue": "Bring a Trailer",
-   "price_usd": 96600,
-   "basis": "sold+fee",
-   "hammer_usd": 92000,
-   "native": {
-    "amount": 92000,
-    "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
    "year": 1964,
-   "url": "https://bringatrailer.com/listing/1964-jaguar-e-type-series-1-roadster-7/",
-   "chassis": "881130",
-   "title": "1964 Jaguar XKE Series 1 3.8 Roadster"
+   "url": "https://www.broadarrowauctions.com/vehicles/am26_r0041/1964-jaguar-e-type-series-1-3-8-roadster",
+   "chassis": "881640",
+   "title": "1964 Jaguar E-Type Series 1 3.8 Roadster"
   },
   {
-   "date": "2026-06-12",
-   "venue": "Bring a Trailer",
-   "price_usd": 118650,
-   "basis": "sold+fee",
-   "hammer_usd": 113000,
+   "date": "2026-03-07",
+   "venue": "Broad Arrow",
+   "price_usd": 123200,
+   "basis": "buyer-paid",
+   "hammer_usd": 110000,
    "native": {
-    "amount": 113000,
+    "amount": 123200,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-e-type-series-1-5-roadster-8/",
-   "chassis": "1E16205",
-   "title": "42-Years-Owned 1968 Jaguar XKE Series 1.5 4.2 Roadster 5-Speed"
-  },
-  {
-   "date": "2026-05-18",
-   "venue": "Bring a Trailer",
-   "price_usd": 75600,
-   "basis": "sold+fee",
-   "hammer_usd": 72000,
-   "native": {
-    "amount": 72000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke-series-1-5-roadster-15/",
-   "chassis": "1E16206",
-   "title": "1968 Jaguar XKE Series 1.5 4.2 Roadster"
-  },
-  {
-   "date": "2026-04-09",
-   "venue": "Bring a Trailer",
-   "price_usd": 307500,
-   "basis": "sold+fee",
-   "hammer_usd": 300000,
-   "native": {
-    "amount": 300000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke-series-1-5-roadster-14/",
-   "chassis": "1E18367",
-   "title": "1968 Jaguar XKE Series 1.5 4.2 Roadster 5-Speed"
+   "year": 1967,
+   "url": "https://www.broadarrowauctions.com/vehicles/am26_r0126/1967-jaguar-e-type-series-1-4-2-roadster",
+   "chassis": "1E13918",
+   "title": "1967 Jaguar E-Type Series 1 4.2 Roadster"
   },
   {
    "date": "2026-01-23",
@@ -139,521 +58,169 @@
     "premium_inclusive": true
    },
    "year": 1964,
-   "url": "https://rmsothebys.com/auctions/az26/lots/r0045-1964-jaguar-etype-series-1-38litre-roadster/",
+   "url": "https://rmsothebys.com/auctions/az26/lots/r0045-1964-jaguar-etype-series-1-38litre-roadster",
    "chassis": "879997",
    "title": "1964 Jaguar E-Type Series 1 3.8-Litre Roadster"
   },
   {
-   "date": "2025-11-13",
-   "venue": "Bring a Trailer",
-   "price_usd": 81375,
-   "basis": "sold+fee",
-   "hammer_usd": 77500,
-   "native": {
-    "amount": 77500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke-series-1-5-roadster-11/",
-   "chassis": "1E17197",
-   "title": "1968 Jaguar XKE Series 1.5 4.2 Roadster"
-  },
-  {
-   "date": "2025-11-01",
-   "venue": "RM Sotheby's",
-   "price_usd": 73025,
+   "date": "2025-03-08",
+   "venue": "Broad Arrow",
+   "price_usd": 112000,
    "basis": "buyer-paid",
-   "hammer_usd": 63500,
-   "native": {
-    "amount": 57500,
-    "currency": "GBP",
-    "premium_inclusive": true
-   },
-   "year": 1968,
-   "url": "https://rmsothebys.com/auctions/lf25/lots/r0032-1968-jaguar-etype-series-15-42litre-roadster/",
-   "chassis": "1E17671",
-   "title": "1968 Jaguar E-Type Series 1.5 4.2-Litre Roadster"
-  },
-  {
-   "date": "2025-10-17",
-   "venue": "Bring a Trailer",
-   "price_usd": 38063,
-   "basis": "sold+fee",
-   "hammer_usd": 36250,
-   "native": {
-    "amount": 36250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-e-type-series-1-5-22/",
-   "chassis": "1E79150",
-   "title": "1968 Jaguar XKE Series 1.5 4.2 2+2 4-Speed"
-  },
-  {
-   "date": "2025-10-14",
-   "venue": "Bring a Trailer",
-   "price_usd": 101850,
-   "basis": "sold+fee",
-   "hammer_usd": 97000,
-   "native": {
-    "amount": 97000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1964,
-   "url": "https://bringatrailer.com/listing/1964-jaguar-xke-series-1-roadster-2/",
-   "chassis": "881533",
-   "title": "47-Years-Family-Owned 1964 Jaguar XKE Series 1 Roadster"
-  },
-  {
-   "date": "2025-10-13",
-   "venue": "Bring a Trailer",
-   "price_usd": 105000,
-   "basis": "sold+fee",
    "hammer_usd": 100000,
    "native": {
-    "amount": 100000,
+    "amount": 112000,
     "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-e-type-series-1-5-roadster-4/",
-   "chassis": "1E17422",
-   "title": "Original-Owner 1968 Jaguar XKE Series 1.5 4.2 Roadster"
-  },
-  {
-   "date": "2025-07-08",
-   "venue": "Bring a Trailer",
-   "price_usd": 147000,
-   "basis": "sold+fee",
-   "hammer_usd": 140000,
-   "native": {
-    "amount": 140000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke-series-1-5-roadster-10/",
-   "chassis": "1E17085",
-   "title": "One-Family-Owned 1968 Jaguar XKE Series 1.5 4.2 Roadster"
-  },
-  {
-   "date": "2025-06-29",
-   "venue": "Bring a Trailer",
-   "price_usd": 157500,
-   "basis": "sold+fee",
-   "hammer_usd": 150000,
-   "native": {
-    "amount": 150000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1965,
-   "url": "https://bringatrailer.com/listing/1965-jaguar-xke-roadster-45/",
-   "chassis": "1E10528",
-   "title": "1965 Jaguar XKE Series 1 Roadster"
-  },
-  {
-   "date": "2025-06-11",
-   "venue": "Bring a Trailer",
-   "price_usd": 84525,
-   "basis": "sold+fee",
-   "hammer_usd": 80500,
-   "native": {
-    "amount": 80500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1965,
-   "url": "https://bringatrailer.com/listing/1965-jaguar-xke-series-1-roadster-6/",
-   "chassis": "1E11260",
-   "title": "1965 Jaguar XKE Series 1 Roadster"
-  },
-  {
-   "date": "2025-05-26",
-   "venue": "Bring a Trailer",
-   "price_usd": 129150,
-   "basis": "sold+fee",
-   "hammer_usd": 123000,
-   "native": {
-    "amount": 123000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1965,
-   "url": "https://bringatrailer.com/listing/1965-jaguar-e-type-series-1-coupe-3/",
-   "chassis": "1E31120",
-   "title": "22-Years-Owned 1965 Jaguar E-Type Series 1 4.2 Coupe"
-  },
-  {
-   "date": "2025-05-20",
-   "venue": "Bring a Trailer",
-   "price_usd": 42788,
-   "basis": "sold+fee",
-   "hammer_usd": 40750,
-   "native": {
-    "amount": 40750,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke-series-1-5-22-6/",
-   "chassis": "1E79010",
-   "title": "1968 Jaguar XKE Series 1.5 4.2 2+2 4-Speed"
-  },
-  {
-   "date": "2025-05-19",
-   "venue": "Bring a Trailer",
-   "price_usd": 54600,
-   "basis": "sold+fee",
-   "hammer_usd": 52000,
-   "native": {
-    "amount": 52000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-e-type-series-ii-roadster/",
-   "chassis": "1E17645",
-   "title": "1968 Jaguar XKE Series 1.5 4.2 Roadster"
-  },
-  {
-   "date": "2025-04-25",
-   "venue": "Bring a Trailer",
-   "price_usd": 49088,
-   "basis": "sold+fee",
-   "hammer_usd": 46750,
-   "native": {
-    "amount": 46750,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke-series-1-5-3-2/",
-   "chassis": "1E17779",
-   "title": "34-Years-Owned 1968 Jaguar XKE Series 1.5 4.2 Roadster"
-  },
-  {
-   "date": "2025-03-07",
-   "venue": "Bring a Trailer",
-   "price_usd": 169500,
-   "basis": "sold+fee",
-   "hammer_usd": 162000,
-   "native": {
-    "amount": 162000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke-series-1-5-roadster-8/",
-   "chassis": "1E16822",
-   "title": "Modified 1968 Jaguar XKE Series 1.5 Roadster"
-  },
-  {
-   "date": "2025-02-12",
-   "venue": "Bring a Trailer",
-   "price_usd": 99750,
-   "basis": "sold+fee",
-   "hammer_usd": 95000,
-   "native": {
-    "amount": 95000,
-    "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
    "year": 1967,
-   "url": "https://bringatrailer.com/listing/1967-jaguar-xke-coupe-43/",
-   "chassis": "1E33934",
-   "title": "1967 Jaguar XKE Series 1 4.2 Coupe 4-Speed"
+   "url": "https://www.broadarrowauctions.com/vehicles/am25_r016/1967-jaguar-e-type-series-1-4-2-roadster",
+   "chassis": "1E15293",
+   "title": "1967 Jaguar E-Type Series 1 4.2 Roadster"
   },
   {
-   "date": "2025-01-31",
-   "venue": "Bring a Trailer",
-   "price_usd": 50820,
-   "basis": "sold+fee",
-   "hammer_usd": 48400,
-   "native": {
-    "amount": 48400,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke-series-1-5-coupe-4/",
-   "chassis": "1E35491",
-   "title": "1968 Jaguar XKE Series 1.5 4.2 Coupe"
-  },
-  {
-   "date": "2025-01-24",
-   "venue": "RM Sotheby's",
-   "price_usd": 64400,
+   "date": "2025-01-25",
+   "venue": "Bonhams",
+   "price_usd": 62720,
    "basis": "buyer-paid",
-   "hammer_usd": 57500,
+   "hammer_usd": 56000,
    "native": {
-    "amount": 64400,
+    "amount": 62720,
     "currency": "USD",
     "premium_inclusive": true
    },
-   "year": 1964,
-   "url": "https://rmsothebys.com/auctions/az25/lots/r0052-1964-jaguar-etype-series-1-38litre-roadster/",
-   "chassis": "880387",
-   "title": "1964 Jaguar E-Type Series 1 3.8-Litre Roadster"
+   "year": 1967,
+   "url": "https://cars.bonhams.com/auction/30558/lot/180/1967-jaguar-e-type-series-1-42-roadster-chassis-no-1e14702/",
+   "chassis": "1E14702",
+   "title": "1967 Jaguar E-Type Series 1 4.2 Roadster Chassis no. 1E14702"
   },
   {
-   "date": "2025-01-23",
-   "venue": "Bring a Trailer",
-   "price_usd": 73500,
-   "basis": "sold+fee",
+   "date": "2025-01-25",
+   "venue": "Bonhams",
+   "price_usd": 78400,
+   "basis": "buyer-paid",
    "hammer_usd": 70000,
    "native": {
-    "amount": 70000,
+    "amount": 78400,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-e-type-series-1-5-coupe/",
-   "chassis": "1E35809",
-   "title": "1968 Jaguar XKE Series 1.5 4.2 Coupe"
+   "year": 1967,
+   "url": "https://cars.bonhams.com/auction/30558/lot/111/1967-jaguar-e-type-series-15-42-liter-roadster-chassis-no-1e14967-engine-no-7e12623-9/",
+   "chassis": "1E14967",
+   "title": "1967 Jaguar E-Type 'Series 1.5' 4.2-Liter Roadster Chassis no. 1E14967 Engine no. 7E12623-9"
   },
   {
-   "date": "2025-01-13",
-   "venue": "Bring a Trailer",
-   "price_usd": 65064,
-   "basis": "sold+fee",
-   "hammer_usd": 61966,
+   "date": "2024-10-04",
+   "venue": "Bonhams",
+   "price_usd": 162400,
+   "basis": "buyer-paid",
+   "hammer_usd": 145000,
    "native": {
-    "amount": 61966,
+    "amount": 162400,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
    "year": 1966,
-   "url": "https://bringatrailer.com/listing/1966-jaguar-e-type-series-1-22/",
-   "chassis": "1E76912BW",
-   "title": "1966 Jaguar XKE Series 1 4.2 2+2 4-Speed"
+   "url": "https://cars.bonhams.com/auction/29264/lot/132/1966-jaguar-e-type-series-1-42-liter-roadster-chassis-no-1e-11449-engine-no-7e-5488-9/",
+   "chassis": "ZFFWA19B000072583",
+   "title": "1966 Jaguar E-Type Series 1 4.2-Liter Roadster Chassis no. 1E 11449 Engine no. 7E 5488-9"
   },
   {
-   "date": "2024-10-24",
-   "venue": "Bring a Trailer",
-   "price_usd": 84000,
-   "basis": "sold+fee",
-   "hammer_usd": 80000,
+   "date": "2024-08-16",
+   "venue": "Bonhams",
+   "price_usd": 123200,
+   "basis": "buyer-paid",
+   "hammer_usd": 110000,
    "native": {
-    "amount": 80000,
+    "amount": 123200,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke-series-1-5-roadster-6/",
-   "chassis": "1E17411",
-   "title": "1968 Jaguar XKE Series 1.5 4.2 Roadster"
+   "year": 1967,
+   "url": "https://cars.bonhams.com/auction/29263/lot/156/1967-jaguar-e-type-series-112-open-two-seater-chassis-no-1e16129-engine-no-7e14716-9/",
+   "chassis": "1E16129",
+   "title": "1967 Jaguar E-Type Series 1½ Open Two-Seater Chassis no. 1E16129 Engine no. 7E14716-9"
   },
   {
-   "date": "2024-10-09",
-   "venue": "Bring a Trailer",
-   "price_usd": 80325,
-   "basis": "sold+fee",
-   "hammer_usd": 76500,
-   "native": {
-    "amount": 76500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke-series-1-5-roadster-5/",
-   "chassis": "1E17077",
-   "title": "1968 Jaguar XKE Series 1.5 4.2 Roadster 5-Speed"
-  },
-  {
-   "date": "2024-10-01",
-   "venue": "Bring a Trailer",
+   "date": "2024-08-15",
+   "venue": "Broad Arrow",
    "price_usd": 100800,
-   "basis": "sold+fee",
-   "hammer_usd": 96000,
-   "native": {
-    "amount": 96000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1964,
-   "url": "https://bringatrailer.com/listing/1964-jaguar-e-type-series-1-coupe/",
-   "chassis": "890110",
-   "title": "1964 Jaguar XKE Series 1 3.8 Coupe 5-Speed"
-  },
-  {
-   "date": "2024-08-27",
-   "venue": "Bring a Trailer",
-   "price_usd": 93450,
-   "basis": "sold+fee",
-   "hammer_usd": 89000,
-   "native": {
-    "amount": 89000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke-series-1-5-roadster-3/",
-   "chassis": "1E18017",
-   "title": "1968 Jaguar XKE Series 1.5 4.2 Roadster"
-  },
-  {
-   "date": "2024-07-29",
-   "venue": "Bring a Trailer",
-   "price_usd": 175500,
-   "basis": "sold+fee",
-   "hammer_usd": 168000,
-   "native": {
-    "amount": 168000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke-series-1-5-2-2/",
-   "chassis": "1E35469",
-   "title": "Modified 1968 Jaguar XKE Series 1.5 Coupe 4-Speed"
-  },
-  {
-   "date": "2024-07-11",
-   "venue": "Hagerty",
-   "price_usd": 12495,
-   "basis": "sold+fee",
-   "hammer_usd": 11900,
-   "native": {
-    "amount": 11900,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://www.hagerty.com/marketplace/auction/1968-Jaguar-E-Type/de904f2c-73b9-4f9e-a59f-38cb74fde80b",
-   "chassis": "1E79154",
-   "title": "Two Owner 1968 Jaguar E-Type Series 1½ 2+2 "
-  },
-  {
-   "date": "2024-06-18",
-   "venue": "Bring a Trailer",
-   "price_usd": 72450,
-   "basis": "sold+fee",
-   "hammer_usd": 69000,
-   "native": {
-    "amount": 69000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1964,
-   "url": "https://bringatrailer.com/listing/1964-jaguar-xke-roadster-47/",
-   "chassis": "881663",
-   "title": "27-Years-Owned 1964 Jaguar XKE Series 1 3.8 Roadster 4-Speed"
-  },
-  {
-   "date": "2024-06-07",
-   "venue": "Hagerty",
-   "price_usd": 50925,
-   "basis": "sold+fee",
-   "hammer_usd": 48500,
-   "native": {
-    "amount": 48500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://www.hagerty.com/marketplace/auction/1968-Jaguar-E-Type/e670948f-ed5a-4504-8baf-8b1c6bf5aa0b",
-   "chassis": "1E78034",
-   "title": "1968 Jaguar E-Type Series 1½ 4.2 2+2 Coupe"
-  },
-  {
-   "date": "2024-06-01",
-   "venue": "RM Sotheby's",
-   "price_usd": 117600,
    "basis": "buyer-paid",
-   "hammer_usd": 105000,
+   "hammer_usd": 90000,
    "native": {
-    "amount": 117600,
+    "amount": 100800,
     "currency": "USD",
     "premium_inclusive": true
    },
-   "year": 1965,
-   "url": "https://rmsothebys.com/auctions/dd24/lots/r0063-1965-jaguar-etype-series-1-42litre-fixed-head-coupe/",
-   "chassis": "1E30131",
-   "title": "1965 Jaguar E-Type Series 1 4.2-Litre Fixed Head Coupe"
+   "year": 1967,
+   "url": "https://www.broadarrowauctions.com/vehicles/jc24_r010/1967-jaguar-e-type-series-1-4-2-roadster",
+   "chassis": "1E15790",
+   "title": "1967 Jaguar E-Type Series 1½ 4.2 Roadster"
   },
   {
-   "date": "2024-06-01",
-   "venue": "RM Sotheby's",
-   "price_usd": 280000,
+   "date": "2024-08-15",
+   "venue": "Broad Arrow",
+   "price_usd": 95200,
    "basis": "buyer-paid",
-   "hammer_usd": 250000,
+   "hammer_usd": 85000,
    "native": {
-    "amount": 280000,
+    "amount": 95200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1968,
+   "url": "https://www.broadarrowauctions.com/vehicles/jc24_r024/1968-jaguar-e-type-series-1-4-2-roadster",
+   "chassis": "1E18100",
+   "title": "1968 Jaguar E-Type Series 1½ 4.2 Roadster"
+  },
+  {
+   "date": "2024-02-29",
+   "venue": "Bonhams",
+   "price_usd": 123200,
+   "basis": "buyer-paid",
+   "hammer_usd": 110000,
+   "native": {
+    "amount": 123200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1968,
+   "url": "https://cars.bonhams.com/auction/29261/lot/66/1968-jaguar-e-type-series-1-12-42-roadster-chassis-no-1e16606-engine-no-7e15433-9/",
+   "chassis": "1E16606",
+   "title": "1968 Jaguar E-Type Series 1 ½ 4.2 Roadster Chassis no. 1E16606 Engine no. 7E15433-9"
+  },
+  {
+   "date": "2024-01-25",
+   "venue": "Bonhams",
+   "price_usd": 160000,
+   "basis": "buyer-paid",
+   "hammer_usd": 142857,
+   "native": {
+    "amount": 160000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1968,
+   "url": "https://cars.bonhams.com/auction/29260/lot/61/1968-jaguar-e-type-series-1-12-42-roadster-chassis-no-1e16622-engine-no-7d55228-9-see-text/",
+   "chassis": "1E16622",
+   "title": "1968 Jaguar E-Type Series 1 1⁄2 4.2 Roadster Chassis no. 1E16622 Engine no. 7D55228-9 (see text"
+  },
+  {
+   "date": "2023-09-29",
+   "venue": "Bonhams",
+   "price_usd": 184800,
+   "basis": "buyer-paid",
+   "hammer_usd": 165000,
+   "native": {
+    "amount": 184800,
     "currency": "USD",
     "premium_inclusive": true
    },
    "year": 1966,
-   "url": "https://rmsothebys.com/auctions/dd24/lots/r0064-1966-jaguar-etype-series-1-42litre-roadster/",
-   "chassis": "1E11911",
-   "title": "1966 Jaguar E-Type Series 1 4.2-Litre Roadster"
-  },
-  {
-   "date": "2024-05-17",
-   "venue": "Bring a Trailer",
-   "price_usd": 62475,
-   "basis": "sold+fee",
-   "hammer_usd": 59500,
-   "native": {
-    "amount": 59500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke-series-1-5-coupe/",
-   "chassis": "1E35388",
-   "title": "1968 Jaguar XKE Series 1.5 Coupe 4-Speed"
-  },
-  {
-   "date": "2024-04-13",
-   "venue": "Bring a Trailer",
-   "price_usd": 61950,
-   "basis": "sold+fee",
-   "hammer_usd": 59000,
-   "native": {
-    "amount": 59000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke-series-1-5-22-5/",
-   "chassis": "1E77993",
-   "title": "28-Years-Owned 1968 Jaguar XKE Series 1.5 2+2 Coupe 4-Speed"
-  },
-  {
-   "date": "2024-03-12",
-   "venue": "Bring a Trailer",
-   "price_usd": 29138,
-   "basis": "sold+fee",
-   "hammer_usd": 27750,
-   "native": {
-    "amount": 27750,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke-2/",
-   "chassis": "1E78317BW",
-   "title": "1968 Jaguar XKE Series 1.5 2+2"
-  },
-  {
-   "date": "2024-03-02",
-   "venue": "RM Sotheby's",
-   "price_usd": 89600,
-   "basis": "buyer-paid",
-   "hammer_usd": 80000,
-   "native": {
-    "amount": 89600,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1968,
-   "url": "https://rmsothebys.com/auctions/mi24/lots/r0116-1968-jaguar-etype-series-15-42litre-roadster/",
-   "chassis": "1E16458",
-   "title": "1968 Jaguar E-Type Series 1.5 4.2-Litre Roadster"
+   "url": "https://cars.bonhams.com/auction/28012/lot/46/1966-jaguar-e-type-series-1-42-litrer-roadster-chassis-no-1e-13831-engine-no-7e-10812-9-gearbox-no-ej-11455-see-text/",
+   "chassis": "AM1012838",
+   "title": "1966 Jaguar E-Type Series 1 4.2-Litrer Roadster Chassis no. 1E 13831 Engine no. 7E 10812-9 Gearbox no. EJ 11455 (see text)"
   },
   {
    "date": "2024-03-01",
@@ -670,70 +237,6 @@
    "url": "https://www.hemmings.com/auction/1966-jaguar-e-type-dallas-tx-829505",
    "chassis": "1E11389",
    "title": "Restored 1966 Jaguar E-type Series 1 4.2 Convertible"
-  },
-  {
-   "date": "2024-02-19",
-   "venue": "Bring a Trailer",
-   "price_usd": 120750,
-   "basis": "sold+fee",
-   "hammer_usd": 115000,
-   "native": {
-    "amount": 115000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke-series-1-5-roadster/",
-   "chassis": "1E16576",
-   "title": "1968 Jaguar XKE Series 1.5 Roadster"
-  },
-  {
-   "date": "2024-01-25",
-   "venue": "RM Sotheby's",
-   "price_usd": 61600,
-   "basis": "buyer-paid",
-   "hammer_usd": 55000,
-   "native": {
-    "amount": 61600,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1968,
-   "url": "https://rmsothebys.com/auctions/az24/lots/r0003-1968-jaguar-etype-series-15-42liter-roadster/",
-   "chassis": "1E18180",
-   "title": "1968 Jaguar E-Type Series 1.5 4.2-Liter Roadster"
-  },
-  {
-   "date": "2023-11-30",
-   "venue": "Bring a Trailer",
-   "price_usd": 44100,
-   "basis": "sold+fee",
-   "hammer_usd": 42000,
-   "native": {
-    "amount": 42000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke/",
-   "chassis": "1E78317BW",
-   "title": "1968 Jaguar XKE Series 1.5 2+2 Coupe"
-  },
-  {
-   "date": "2023-11-18",
-   "venue": "Bring a Trailer",
-   "price_usd": 57750,
-   "basis": "sold+fee",
-   "hammer_usd": 55000,
-   "native": {
-    "amount": 55000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-jaguar-xke-series-1-5-22/",
-   "chassis": "1E78426BW",
-   "title": "1968 Jaguar XKE Series 1.5 2+2 4-Speed"
   }
  ]
 }

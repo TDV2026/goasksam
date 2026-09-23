@@ -10,10 +10,9 @@
   "window": "36mo",
   "year_min": 1987,
   "year_max": 1987,
-  "trim": "Carrera",
-  "body": "coupe"
+  "trim": "Carrera"
  },
- "halo_dropped": 71,
+ "halo_dropped": 0,
  "sales": [
   {
    "date": "2026-09-20",

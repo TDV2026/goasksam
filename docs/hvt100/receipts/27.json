@@ -2,14 +2,14 @@
  "car_id": 27,
  "listed": "1973 BMW 2002 tii",
  "status": "compare",
- "year_scope": "exact 1973",
+ "year_scope": "adjacent years pooled (1971-1975)",
  "basis": "sold+fee (online)",
  "scope": {
   "make": "BMW",
   "model": "2002",
   "window": "36mo",
-  "year_min": 1973,
-  "year_max": 1973,
+  "year_min": 1971,
+  "year_max": 1975,
   "trim": "tii"
  },
  "halo_dropped": 0,
@@ -31,20 +31,20 @@
    "title": "1973 BMW 2002tii"
   },
   {
-   "date": "2026-06-19",
+   "date": "2026-06-23",
    "venue": "Bring a Trailer",
-   "price_usd": 11025,
+   "price_usd": 38588,
    "basis": "sold+fee",
-   "hammer_usd": 10500,
+   "hammer_usd": 36750,
    "native": {
-    "amount": 10500,
+    "amount": 36750,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 1973,
-   "url": "https://bringatrailer.com/listing/1973-bmw-2002-37-2/",
-   "chassis": "2585551",
-   "title": "1973 BMW 2002 4-Speed"
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-bmw-2002tii-134/",
+   "chassis": "2760477",
+   "title": "1972 BMW 2002tii"
   },
   {
    "date": "2026-06-06",
@@ -63,36 +63,20 @@
    "title": "1973 BMW 2002tii"
   },
   {
-   "date": "2026-06-02",
-   "venue": "Cars & Bids",
-   "price_usd": 28350,
+   "date": "2026-04-28",
+   "venue": "Hagerty",
+   "price_usd": 40845,
    "basis": "sold+fee",
-   "hammer_usd": 27000,
+   "hammer_usd": 38900,
    "native": {
-    "amount": 27000,
+    "amount": 38900,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 1973,
-   "url": "https://carsandbids.com/auctions/rGVV2BNK/1973-bmw-2002",
-   "chassis": "2588609",
-   "title": "1973 BMW 2002"
-  },
-  {
-   "date": "2026-04-05",
-   "venue": "Bring a Trailer",
-   "price_usd": 27825,
-   "basis": "sold+fee",
-   "hammer_usd": 26500,
-   "native": {
-    "amount": 26500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1973,
-   "url": "https://bringatrailer.com/listing/1973-bmw-2002-baur-cabriolet-6/",
-   "chassis": "2795954",
-   "title": "1973 BMW 2002 Baur Cabriolet 4-Speed"
+   "year": 1972,
+   "url": "https://www.hagerty.com/marketplace/auction/1972-BMW-2002/1fbe0a57-7ced-45d4-8e8f-e833cc03a953",
+   "chassis": "2760334",
+   "title": "25-Years-Owned 1972 BMW 2002tii"
   },
   {
    "date": "2026-02-01",
@@ -127,6 +111,22 @@
    "title": "23-Years-Owned 1973 BMW 2002tii"
   },
   {
+   "date": "2025-09-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 43050,
+   "basis": "sold+fee",
+   "hammer_usd": 41000,
+   "native": {
+    "amount": 41000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-bmw-2002tii-126/",
+   "chassis": "2760107",
+   "title": "1972 BMW 2002tii"
+  },
+  {
    "date": "2025-09-03",
    "venue": "Bring a Trailer",
    "price_usd": 39375,
@@ -159,6 +159,38 @@
    "title": "1973 BMW 2002tii 5-Speed"
   },
   {
+   "date": "2025-07-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 35700,
+   "basis": "sold+fee",
+   "hammer_usd": 34000,
+   "native": {
+    "amount": 34000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1971,
+   "url": "https://bringatrailer.com/listing/1971-bmw-2000-tii/",
+   "chassis": "3420207",
+   "title": "1971 BMW 2000tii Touring 4-Speed"
+  },
+  {
+   "date": "2025-07-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 91349,
+   "basis": "sold+fee",
+   "hammer_usd": 86999,
+   "native": {
+    "amount": 86999,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-bmw-2000-tii-3/",
+   "chassis": "2761327",
+   "title": "1972 BMW 2002tii 2.2L 5-Speed"
+  },
+  {
    "date": "2025-05-02",
    "venue": "Hagerty",
    "price_usd": 11109,
@@ -173,6 +205,54 @@
    "url": "https://www.hagerty.com/marketplace/auction/1973-BMW-2002tii/bed032b0-c886-4fd9-9451-20d4578413e7",
    "chassis": "2762950",
    "title": "1973 BMW 2002tii"
+  },
+  {
+   "date": "2025-05-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 54600,
+   "basis": "sold+fee",
+   "hammer_usd": 52000,
+   "native": {
+    "amount": 52000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-bmw-2000-tii/",
+   "chassis": "2706318",
+   "title": "Euro 1972 BMW 2002 tii"
+  },
+  {
+   "date": "2025-04-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 50000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-bmw-2002tii-115/",
+   "chassis": "2762049",
+   "title": "38-Years-Owned 1972 BMW 2002tii 5-Speed"
+  },
+  {
+   "date": "2025-04-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 53025,
+   "basis": "sold+fee",
+   "hammer_usd": 50500,
+   "native": {
+    "amount": 50500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-bmw-2002tii-122/",
+   "chassis": "2761404",
+   "title": "1972 BMW 2002tii"
   },
   {
    "date": "2025-03-12",
@@ -191,84 +271,20 @@
    "title": "1973 BMW 2002tii 5-Speed"
   },
   {
-   "date": "2025-02-28",
+   "date": "2024-10-27",
    "venue": "Bring a Trailer",
-   "price_usd": 9452,
+   "price_usd": 37275,
    "basis": "sold+fee",
-   "hammer_usd": 9002,
+   "hammer_usd": 35500,
    "native": {
-    "amount": 9002,
+    "amount": 35500,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 1973,
-   "url": "https://bringatrailer.com/listing/1973-bmw-2002-124/",
-   "chassis": "2534448",
-   "title": "1973 BMW 2002"
-  },
-  {
-   "date": "2024-12-18",
-   "venue": "Bring a Trailer",
-   "price_usd": 36225,
-   "basis": "sold+fee",
-   "hammer_usd": 34500,
-   "native": {
-    "amount": 34500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1973,
-   "url": "https://bringatrailer.com/listing/1973-bmw-2002-117/",
-   "chassis": "2593342",
-   "title": "1973 BMW 2002 5-Speed"
-  },
-  {
-   "date": "2024-12-13",
-   "venue": "Bring a Trailer",
-   "price_usd": 30713,
-   "basis": "sold+fee",
-   "hammer_usd": 29250,
-   "native": {
-    "amount": 29250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1973,
-   "url": "https://bringatrailer.com/listing/1973-bmw-2002-120/",
-   "chassis": "2590314",
-   "title": "1973 BMW 2002 4-Speed"
-  },
-  {
-   "date": "2024-12-06",
-   "venue": "Bring a Trailer",
-   "price_usd": 24413,
-   "basis": "sold+fee",
-   "hammer_usd": 23250,
-   "native": {
-    "amount": 23250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1973,
-   "url": "https://bringatrailer.com/listing/1971-bmw-2002-75/",
-   "chassis": "2533249",
-   "title": "1973 BMW 2002 4-Speed"
-  },
-  {
-   "date": "2024-10-29",
-   "venue": "Bring a Trailer",
-   "price_usd": 41475,
-   "basis": "sold+fee",
-   "hammer_usd": 39500,
-   "native": {
-    "amount": 39500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1973,
-   "url": "https://bringatrailer.com/listing/1973-bmw-2002-baur-cabriolet-5/",
-   "chassis": "3590051",
-   "title": "1973 BMW 2002 Baur Cabriolet"
+   "year": 1971,
+   "url": "https://bringatrailer.com/listing/1971-bmw-2002tii-4/",
+   "chassis": "2700056",
+   "title": "33-Years-Owned Euro 1971 BMW 2002tii 5-Speed"
   },
   {
    "date": "2024-10-10",
@@ -287,68 +303,132 @@
    "title": "1973 BMW 2002tii 5-Speed"
   },
   {
-   "date": "2024-09-03",
+   "date": "2024-09-25",
    "venue": "Bring a Trailer",
-   "price_usd": 28875,
+   "price_usd": 107100,
    "basis": "sold+fee",
-   "hammer_usd": 27500,
+   "hammer_usd": 102000,
    "native": {
-    "amount": 27500,
+    "amount": 102000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 1973,
-   "url": "https://bringatrailer.com/listing/1973-bmw-2002-113/",
-   "chassis": "2591255",
-   "title": "1973 BMW 2002 5-Speed"
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-bmw-2002tii-119/",
+   "chassis": "2761940",
+   "title": "Modified 1972 BMW 2002tii 5-Speed"
   },
   {
-   "date": "2024-07-24",
+   "date": "2024-09-21",
    "venue": "Bring a Trailer",
-   "price_usd": 23520,
+   "price_usd": 28088,
    "basis": "sold+fee",
-   "hammer_usd": 22400,
+   "hammer_usd": 26750,
    "native": {
-    "amount": 22400,
+    "amount": 26750,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 1973,
-   "url": "https://bringatrailer.com/listing/1973-bmw-2002-111/",
-   "chassis": "2586019",
-   "title": "1973 BMW 2002 2.2L 5-Speed"
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-bmw-2002tii-116/",
+   "chassis": "2760963",
+   "title": "1972 BMW 2002tii"
   },
   {
-   "date": "2024-04-17",
+   "date": "2024-08-20",
    "venue": "Bring a Trailer",
-   "price_usd": 21002,
+   "price_usd": 51975,
    "basis": "sold+fee",
-   "hammer_usd": 20002,
+   "hammer_usd": 49500,
    "native": {
-    "amount": 20002,
+    "amount": 49500,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 1973,
-   "url": "https://bringatrailer.com/listing/1973-bmw-2002-109/",
-   "chassis": "2590627",
-   "title": "1973 BMW 2002 4-Speed"
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-bmw-2002tii-117/",
+   "chassis": "2761597",
+   "title": "1972 BMW 2002tii"
   },
   {
-   "date": "2024-03-29",
+   "date": "2024-07-01",
    "venue": "Bring a Trailer",
-   "price_usd": 42263,
+   "price_usd": 34913,
    "basis": "sold+fee",
-   "hammer_usd": 40250,
+   "hammer_usd": 33250,
    "native": {
-    "amount": 40250,
+    "amount": 33250,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 1973,
-   "url": "https://bringatrailer.com/listing/1973-bmw-2002-108-2/",
-   "chassis": "2589173",
-   "title": "1973 BMW 2002 5-Speed"
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-bmw-2002tii-113/",
+   "chassis": "2760101",
+   "title": "1972 BMW 2002tii 5-Speed"
+  },
+  {
+   "date": "2024-06-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 37275,
+   "basis": "sold+fee",
+   "hammer_usd": 35500,
+   "native": {
+    "amount": 35500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-bmw-2000-tii-2/",
+   "chassis": "2761165",
+   "title": "1972 BMW 2002tii"
+  },
+  {
+   "date": "2024-05-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 105000,
+   "basis": "sold+fee",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 100000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-bmw-2002tii-112/",
+   "chassis": "2760026",
+   "title": "1972 BMW 2002tii 5-Speed"
+  },
+  {
+   "date": "2024-04-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 42000,
+   "basis": "sold+fee",
+   "hammer_usd": 40000,
+   "native": {
+    "amount": 40000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-bmw-2002tii-110/",
+   "chassis": "2761864",
+   "title": "1972 BMW 2002tii"
+  },
+  {
+   "date": "2024-04-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 43050,
+   "basis": "sold+fee",
+   "hammer_usd": 41000,
+   "native": {
+    "amount": 41000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-bmw-2002tii-111/",
+   "chassis": "2762081",
+   "title": "1972 BMW 2002tii"
   },
   {
    "date": "2024-02-23",
@@ -383,22 +463,6 @@
    "title": "1973 BMW 2002tii"
   },
   {
-   "date": "2024-01-11",
-   "venue": "Bring a Trailer",
-   "price_usd": 37014,
-   "basis": "sold+fee",
-   "hammer_usd": 35251,
-   "native": {
-    "amount": 35251,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1973,
-   "url": "https://bringatrailer.com/listing/1973-bmw-2002-108/",
-   "chassis": "2589173",
-   "title": "1973 BMW 2002 5-Speed"
-  },
-  {
    "date": "2023-12-17",
    "venue": "Bring a Trailer",
    "price_usd": 36750,
@@ -415,20 +479,20 @@
    "title": "1973 BMW 2000tii Touring"
   },
   {
-   "date": "2023-12-10",
+   "date": "2023-12-11",
    "venue": "Bring a Trailer",
-   "price_usd": 12180,
+   "price_usd": 27825,
    "basis": "sold+fee",
-   "hammer_usd": 11600,
+   "hammer_usd": 26500,
    "native": {
-    "amount": 11600,
+    "amount": 26500,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 1973,
-   "url": "https://bringatrailer.com/listing/1973-bmw-2002-107/",
-   "chassis": "2533277",
-   "title": "1973 BMW 2002"
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-bmw-2002tii-106/",
+   "chassis": "2761753",
+   "title": "1972 BMW 2002tii 5-Speed"
   },
   {
    "date": "2023-12-06",
@@ -463,52 +527,52 @@
    "title": "1973 BMW 2002tii"
   },
   {
-   "date": "2023-10-10",
+   "date": "2023-11-15",
    "venue": "Bring a Trailer",
-   "price_usd": 14175,
+   "price_usd": 28613,
    "basis": "sold+fee",
-   "hammer_usd": 13500,
+   "hammer_usd": 27250,
    "native": {
-    "amount": 13500,
+    "amount": 27250,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 1973,
-   "url": "https://bringatrailer.com/listing/1973-bmw-2002-101/",
-   "chassis": "2588211",
-   "title": "1973 BMW 2002"
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-bmw-2002tii-103/",
+   "chassis": "2761735",
+   "title": "25-Years-Owned: 1972 BMW 2002tii"
   },
   {
-   "date": "2023-10-03",
+   "date": "2023-11-07",
    "venue": "Bring a Trailer",
-   "price_usd": 16538,
+   "price_usd": 57750,
    "basis": "sold+fee",
-   "hammer_usd": 15750,
+   "hammer_usd": 55000,
    "native": {
-    "amount": 15750,
+    "amount": 55000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 1973,
-   "url": "https://bringatrailer.com/listing/1973-bmw-2002-103/",
-   "chassis": "2591019",
-   "title": "1973 BMW 2002 4-Speed"
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-bmw-2002tii-104/",
+   "chassis": "2706318",
+   "title": "Euro 1972 BMW 2002tii"
   },
   {
-   "date": "2023-09-25",
+   "date": "2023-10-30",
    "venue": "Bring a Trailer",
-   "price_usd": 23625,
+   "price_usd": 17850,
    "basis": "sold+fee",
-   "hammer_usd": 22500,
+   "hammer_usd": 17000,
    "native": {
-    "amount": 22500,
+    "amount": 17000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 1973,
-   "url": "https://bringatrailer.com/listing/1973-bmw-2002-102/",
-   "chassis": "2585852",
-   "title": "1973 BMW 2002 4-Speed"
+   "year": 1971,
+   "url": "https://bringatrailer.com/listing/1971-bmw-2002tii-106/",
+   "chassis": "2760055",
+   "title": "1971 BMW 2002tii"
   }
  ]
 }

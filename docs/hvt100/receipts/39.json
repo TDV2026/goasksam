@@ -1,17 +1,386 @@
 {
  "car_id": 39,
- "listed": "1985 Ferrari 308 GTS QV",
+ "listed": "1985 Ferrari 308 Quattrovalvole",
  "status": "compare",
- "year_scope": "adjacent years pooled (1983-1987)",
- "basis": "n/a",
+ "year_scope": "exact 1985",
+ "basis": "mixed (9% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Ferrari",
   "model": "308",
   "window": "36mo",
-  "year_min": 1983,
-  "year_max": 1987,
-  "trim": "GTS QV"
+  "year_min": 1985,
+  "year_max": 1985,
+  "trim": "Quattrovalvole"
  },
  "halo_dropped": 0,
- "sales": []
+ "sales": [
+  {
+   "date": "2025-08-16",
+   "venue": "RM Sotheby's",
+   "price_usd": 112000,
+   "basis": "buyer-paid",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 112000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1985,
+   "url": "https://rmsothebys.com/auctions/mo25/lots/r0086-1985-ferrari-308-gtb-quattrovalvole/",
+   "chassis": "ZFFUA12A8F0056241",
+   "title": "1985 Ferrari 308 GTB Quattrovalvole"
+  },
+  {
+   "date": "2024-08-17",
+   "venue": "RM Sotheby's",
+   "price_usd": 162400,
+   "basis": "buyer-paid",
+   "hammer_usd": 145000,
+   "native": {
+    "amount": 162400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1985,
+   "url": "https://rmsothebys.com/auctions/mo24/lots/r0146-1985-ferrari-308-gts-quattrovalvole/",
+   "chassis": "ZFFUA13A9F0055873",
+   "title": "1985 Ferrari 308 GTS Quattrovalvole"
+  },
+  {
+   "date": "2026-09-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 94500,
+   "basis": "sold+fee",
+   "hammer_usd": 90000,
+   "native": {
+    "amount": 90000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gts-quattrovalvole-61/",
+   "chassis": "ZFFLA13B000055317",
+   "title": "Euro 1985 Ferrari 308 GTS Quattrovalvole"
+  },
+  {
+   "date": "2026-07-24",
+   "venue": "Hemmings",
+   "price_usd": 90300,
+   "basis": "sold+fee",
+   "hammer_usd": 86000,
+   "native": {
+    "amount": 86000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://www.hemmings.com/auction/1985-ferrari-308-webster-ny-220095",
+   "chassis": "ZFFUA13A8F0055315",
+   "title": "Low-Mile 1985 Ferrari 308 GTS Quattrovalvole With Service History"
+  },
+  {
+   "date": "2026-07-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 126000,
+   "basis": "sold+fee",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 120000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gts-quattrovalvole-59/",
+   "chassis": "ZFFUA13A3F0056131",
+   "title": "1985 Ferrari 308 GTS Quattrovalvole"
+  },
+  {
+   "date": "2026-07-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 105000,
+   "basis": "sold+fee",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 100000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gts-quattrovalvole-60/",
+   "chassis": "ZFFUA13A4F0055117",
+   "title": "1985 Ferrari 308 GTS Quattrovalvole"
+  },
+  {
+   "date": "2026-04-24",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 176808,
+   "basis": "sold+fee",
+   "hammer_usd": 169308,
+   "native": {
+    "amount": 169308,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://www.sothebysmotorsport.com/auction/1985-ferrari-308gtsquattrovalvole3kmiles-9395",
+   "chassis": "ZFFUA13A0F0057169",
+   "title": "1985 Ferrari 308 GTS Quattrovalvole — 3k Miles"
+  },
+  {
+   "date": "2026-04-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 67725,
+   "basis": "sold+fee",
+   "hammer_usd": 64500,
+   "native": {
+    "amount": 64500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gts-quattrovalvole-55/",
+   "chassis": "ZFFUA13A9F0053959",
+   "title": "1985 Ferrari 308 GTS Quattrovalvole"
+  },
+  {
+   "date": "2025-09-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 88200,
+   "basis": "sold+fee",
+   "hammer_usd": 84000,
+   "native": {
+    "amount": 84000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gts-quattrovalvole-52/",
+   "chassis": "ZFFLA13B000056059",
+   "title": "Euro 1985 Ferrari 308 GTS Quattrovalvole"
+  },
+  {
+   "date": "2025-08-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 122115,
+   "basis": "sold+fee",
+   "hammer_usd": 116300,
+   "native": {
+    "amount": 116300,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gts-quattrovalvole-51/",
+   "chassis": "ZFFUA13A5F0053697",
+   "title": "26-Years-Owned 1985 Ferrari 308 GTS Quattrovalvole"
+  },
+  {
+   "date": "2025-06-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 189500,
+   "basis": "sold+fee",
+   "hammer_usd": 182000,
+   "native": {
+    "amount": 182000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gtb-quattrovalvole-6/",
+   "chassis": "ZFFLA12B000058711",
+   "title": "4,100-Kilometer Euro 1985 Ferrari 308 GTB Quattrovalvole"
+  },
+  {
+   "date": "2025-03-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 126062,
+   "basis": "sold+fee",
+   "hammer_usd": 120059,
+   "native": {
+    "amount": 120059,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gts-quattrovalvole-49/",
+   "chassis": "ZFFUA13A8F0057467",
+   "title": "1985 Ferrari 308 GTS Quattrovalvole"
+  },
+  {
+   "date": "2025-02-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 62475,
+   "basis": "sold+fee",
+   "hammer_usd": 59500,
+   "native": {
+    "amount": 59500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gts-quattrovalvole-45/",
+   "chassis": "ZFFUA13A2F0052975",
+   "title": "34-Years-Family-Owned 1985 Ferrari 308 GTS Quattrovalvole"
+  },
+  {
+   "date": "2024-09-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 90300,
+   "basis": "sold+fee",
+   "hammer_usd": 86000,
+   "native": {
+    "amount": 86000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gts-quattrovalvole-44/",
+   "chassis": "ZFFLA13S000058037",
+   "title": "Euro 1985 Ferrari 308 GTS Quattrovalvole"
+  },
+  {
+   "date": "2024-07-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 96075,
+   "basis": "sold+fee",
+   "hammer_usd": 91500,
+   "native": {
+    "amount": 91500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gts-quattrovalvole-42/",
+   "chassis": "ZFFLA13B000051161",
+   "title": "1985 Ferrari 308 GTS Quattrovalvole"
+  },
+  {
+   "date": "2024-07-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 111300,
+   "basis": "sold+fee",
+   "hammer_usd": 106000,
+   "native": {
+    "amount": 106000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gts-quattrovalvole-41/",
+   "chassis": "ZFFLA13B000052073",
+   "title": "Euro 1985 Ferrari 308 GTSi Quattrovalvole"
+  },
+  {
+   "date": "2024-05-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 78750,
+   "basis": "sold+fee",
+   "hammer_usd": 75000,
+   "native": {
+    "amount": 75000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gts-quattrovalvole-39/",
+   "chassis": "ZFFUA13A8F0053841",
+   "title": "36-Years-Owned 1985 Ferrari 308 GTSi Quattrovalvole"
+  },
+  {
+   "date": "2024-04-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 131250,
+   "basis": "sold+fee",
+   "hammer_usd": 125000,
+   "native": {
+    "amount": 125000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gtb-quattrovalvole-5/",
+   "chassis": "ZFFLA12C000056523",
+   "title": "1985 Ferrari 308 GTB Quattrovalvole"
+  },
+  {
+   "date": "2024-03-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 112350,
+   "basis": "sold+fee",
+   "hammer_usd": 107000,
+   "native": {
+    "amount": 107000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gts-quattrovalvole-28/",
+   "chassis": "ZFFUA13A9F0056733",
+   "title": "1985 Ferrari 308 GTS Quattrovalvole"
+  },
+  {
+   "date": "2024-01-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 110250,
+   "basis": "sold+fee",
+   "hammer_usd": 105000,
+   "native": {
+    "amount": 105000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gtb-quattrovalvole-4/",
+   "chassis": "ZFFUA12A0F0058999",
+   "title": "1985 Ferrari 308 GTB Quattrovalvole"
+  },
+  {
+   "date": "2023-12-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 105000,
+   "basis": "sold+fee",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 100000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gts-quattrovalvole-34/",
+   "chassis": "ZFFUA13A6F0055989",
+   "title": "1985 Ferrari 308 GTS Quattrovalvole"
+  },
+  {
+   "date": "2023-11-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 92723,
+   "basis": "sold+fee",
+   "hammer_usd": 88308,
+   "native": {
+    "amount": 88308,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gts-quattrovalvole-35/",
+   "chassis": "ZFFUA13A5F0054381",
+   "title": "1985 Ferrari 308 GTSi Quattrovalvole"
+  },
+  {
+   "date": "2023-11-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 79800,
+   "basis": "sold+fee",
+   "hammer_usd": 76000,
+   "native": {
+    "amount": 76000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-ferrari-308-gts-quattrovalvole-33/",
+   "chassis": "ZFFUA13A2F0055195",
+   "title": "1985 Ferrari 308 GTS Quattrovalvole"
+  }
+ ]
 }

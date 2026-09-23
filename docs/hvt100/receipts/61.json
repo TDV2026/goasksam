@@ -10,8 +10,7 @@
   "window": "36mo",
   "year_min": 2005,
   "year_max": 2009,
-  "trim": "GT3",
-  "body": "coupe"
+  "trim": "GT3"
  },
  "halo_dropped": 1,
  "sales": [
@@ -28,6 +27,22 @@
    },
    "year": 2005,
    "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/2005-porsche-911-gt3-297828?origin=results",
+   "chassis": "WP0AC29945S692221",
+   "title": "2005 PORSCHE 911 GT3"
+  },
+  {
+   "date": "2024-01-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 154000,
+   "basis": "buyer-paid",
+   "hammer_usd": 140000,
+   "native": {
+    "amount": 154000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2005-porsche-911-gt3-271438?origin=results",
    "chassis": "WP0AC29945S692221",
    "title": "2005 PORSCHE 911 GT3"
   },
@@ -206,22 +221,6 @@
    "url": "https://bringatrailer.com/listing/2007-porsche-911-gt3-80/",
    "chassis": "WP0AC29917S793204",
    "title": "5k-Mile 2007 Porsche 911 GT3"
-  },
-  {
-   "date": "2024-01-27",
-   "venue": "Barrett-Jackson",
-   "price_usd": 154000,
-   "basis": "buyer-paid",
-   "hammer_usd": 140000,
-   "native": {
-    "amount": 154000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2005-porsche-911-gt3-271438?origin=results",
-   "chassis": "WP0AC29945S692221",
-   "title": "2005 PORSCHE 911 GT3"
   },
   {
    "date": "2023-11-21",

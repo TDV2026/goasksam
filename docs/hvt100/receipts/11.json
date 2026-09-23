@@ -3,17 +3,160 @@
  "listed": "1955 Ford Thunderbird",
  "status": "compare",
  "year_scope": "exact 1955",
- "basis": "mixed (10% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (11% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Ford",
   "model": "Thunderbird",
   "window": "36mo",
   "year_min": 1955,
-  "year_max": 1955,
-  "body": "convertible"
+  "year_max": 1955
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2026-07-24",
+   "venue": "Mecum",
+   "price_usd": 13650,
+   "basis": "sold+fee",
+   "hammer_usd": 13000,
+   "native": {
+    "amount": 14300,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1955,
+   "url": "https://www.mecum.com/lots/1175753/1955-ford-thunderbird-convertible?aa_id=792537-0",
+   "chassis": "P5FH235919",
+   "title": "1955 Ford Thunderbird Convertible"
+  },
+  {
+   "date": "2026-07-23",
+   "venue": "Mecum",
+   "price_usd": 23100,
+   "basis": "sold+fee",
+   "hammer_usd": 22000,
+   "native": {
+    "amount": 24200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1955,
+   "url": "https://www.mecum.com/lots/1174393/1955-ford-thunderbird-convertible?aa_id=798341-0",
+   "chassis": "P5FH232491",
+   "title": "1955 Ford Thunderbird Convertible"
+  },
+  {
+   "date": "2026-04-17",
+   "venue": "Barrett-Jackson",
+   "price_usd": 34650,
+   "basis": "buyer-paid",
+   "hammer_usd": 31500,
+   "native": {
+    "amount": 34650,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1955,
+   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/1955-ford-thunderbird-convertible-298437?origin=results",
+   "chassis": "P5FH173144",
+   "title": "1955 FORD THUNDERBIRD CONVERTIBLE"
+  },
+  {
+   "date": "2026-01-21",
+   "venue": "Barrett-Jackson",
+   "price_usd": 35200,
+   "basis": "buyer-paid",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 35200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1955,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1955-ford-thunderbird-convertible-292388?origin=results",
+   "chassis": "P5FH131550",
+   "title": "1955 FORD THUNDERBIRD CONVERTIBLE"
+  },
+  {
+   "date": "2025-09-21",
+   "venue": "Bonhams",
+   "price_usd": 28000,
+   "basis": "buyer-paid",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 28000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1955,
+   "url": "https://cars.bonhams.com/auction/31569/lot/810/1955-ford-thunderbird-chassis-no-p5fh207124/",
+   "chassis": "P5FH207124",
+   "title": "1955 Ford Thunderbird Chassis no. P5FH207124"
+  },
+  {
+   "date": "2025-08-15",
+   "venue": "Bonhams",
+   "price_usd": 35840,
+   "basis": "buyer-paid",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 35840,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1955,
+   "url": "https://cars.bonhams.com/auction/30559/lot/144/1955-ford-thunderbird-chassis-no-p5fh126546/",
+   "chassis": "P5FH126546",
+   "title": "1955 Ford Thunderbird Chassis no. P5FH126546"
+  },
+  {
+   "date": "2025-01-20",
+   "venue": "Barrett-Jackson",
+   "price_usd": 22000,
+   "basis": "buyer-paid",
+   "hammer_usd": 20000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1955,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1955-ford-thunderbird-convertible-281967?origin=results",
+   "chassis": "P5FH214888",
+   "title": "1955 FORD THUNDERBIRD CONVERTIBLE"
+  },
+  {
+   "date": "2024-08-17",
+   "venue": "Gooding Christie's",
+   "price_usd": 58240,
+   "basis": "buyer-paid",
+   "hammer_usd": 52000,
+   "native": {
+    "amount": 58240,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1955,
+   "url": "https://www.goodingco.com/lot/1955-ford-thunderbird-1b",
+   "chassis": "P5FH115816",
+   "title": "1955 Ford Thunderbird (PB24)"
+  },
+  {
+   "date": "2024-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 44000,
+   "basis": "buyer-paid",
+   "hammer_usd": 40000,
+   "native": {
+    "amount": 44000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1955,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1955-ford-thunderbird-convertible-273909?origin=results",
+   "chassis": "P5FH171103",
+   "title": "1955 FORD THUNDERBIRD CONVERTIBLE"
+  },
   {
    "date": "2026-09-22",
    "venue": "Bring a Trailer",
@@ -77,38 +220,6 @@
    "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-236/",
    "chassis": "P5FH215920",
    "title": "1955 Ford Thunderbird 4-Speed"
-  },
-  {
-   "date": "2026-07-24",
-   "venue": "Mecum",
-   "price_usd": 13650,
-   "basis": "sold+fee",
-   "hammer_usd": 13000,
-   "native": {
-    "amount": 14300,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1955,
-   "url": "https://www.mecum.com/lots/1175753/1955-ford-thunderbird-convertible?aa_id=792537-0",
-   "chassis": "P5FH235919",
-   "title": "1955 Ford Thunderbird Convertible"
-  },
-  {
-   "date": "2026-07-23",
-   "venue": "Mecum",
-   "price_usd": 23100,
-   "basis": "sold+fee",
-   "hammer_usd": 22000,
-   "native": {
-    "amount": 24200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1955,
-   "url": "https://www.mecum.com/lots/1174393/1955-ford-thunderbird-convertible?aa_id=798341-0",
-   "chassis": "P5FH232491",
-   "title": "1955 Ford Thunderbird Convertible"
   },
   {
    "date": "2026-07-08",
@@ -207,22 +318,6 @@
    "title": "1955 Ford Thunderbird"
   },
   {
-   "date": "2026-04-17",
-   "venue": "Barrett-Jackson",
-   "price_usd": 34650,
-   "basis": "buyer-paid",
-   "hammer_usd": 31500,
-   "native": {
-    "amount": 34650,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1955,
-   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/1955-ford-thunderbird-convertible-298437?origin=results",
-   "chassis": "P5FH173144",
-   "title": "1955 FORD THUNDERBIRD CONVERTIBLE"
-  },
-  {
    "date": "2026-02-18",
    "venue": "Bring a Trailer",
    "price_usd": 28088,
@@ -237,22 +332,6 @@
    "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-223/",
    "chassis": "P5FH129996",
    "title": "1955 Ford Thunderbird"
-  },
-  {
-   "date": "2026-01-21",
-   "venue": "Barrett-Jackson",
-   "price_usd": 35200,
-   "basis": "buyer-paid",
-   "hammer_usd": 32000,
-   "native": {
-    "amount": 35200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1955,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1955-ford-thunderbird-convertible-292388?origin=results",
-   "chassis": "P5FH131550",
-   "title": "1955 FORD THUNDERBIRD CONVERTIBLE"
   },
   {
    "date": "2026-01-15",
@@ -397,22 +476,6 @@
    "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-204/",
    "chassis": "P5FH201334",
    "title": "1955 Ford Thunderbird"
-  },
-  {
-   "date": "2025-09-21",
-   "venue": "Bonhams",
-   "price_usd": 28000,
-   "basis": "buyer-paid",
-   "hammer_usd": 25000,
-   "native": {
-    "amount": 28000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1955,
-   "url": "https://cars.bonhams.com/auction/31569/lot/810/1955-ford-thunderbird-chassis-no-p5fh207124/",
-   "chassis": "P5FH207124",
-   "title": "1955 Ford Thunderbird Chassis no. P5FH207124"
   },
   {
    "date": "2025-09-19",
@@ -623,22 +686,6 @@
    "title": "1955 Ford Thunderbird 3-Speed"
   },
   {
-   "date": "2025-01-20",
-   "venue": "Barrett-Jackson",
-   "price_usd": 22000,
-   "basis": "buyer-paid",
-   "hammer_usd": 20000,
-   "native": {
-    "amount": 22000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1955,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1955-ford-thunderbird-convertible-281967?origin=results",
-   "chassis": "P5FH214888",
-   "title": "1955 FORD THUNDERBIRD CONVERTIBLE"
-  },
-  {
    "date": "2025-01-08",
    "venue": "Hemmings",
    "price_usd": 27930,
@@ -684,22 +731,6 @@
    "year": 1955,
    "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-176/",
    "chassis": "P5FH260358",
-   "title": "1955 Ford Thunderbird"
-  },
-  {
-   "date": "2024-10-20",
-   "venue": "Bring a Trailer",
-   "price_usd": 26250,
-   "basis": "sold+fee",
-   "hammer_usd": 25000,
-   "native": {
-    "amount": 25000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1955,
-   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-178/",
-   "chassis": "P5FH183685",
    "title": "1955 Ford Thunderbird"
   },
   {
@@ -767,22 +798,6 @@
    "title": "1955 Ford Thunderbird"
   },
   {
-   "date": "2024-08-17",
-   "venue": "Gooding Christie's",
-   "price_usd": 58240,
-   "basis": "buyer-paid",
-   "hammer_usd": 52000,
-   "native": {
-    "amount": 58240,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1955,
-   "url": "https://www.goodingco.com/lot/1955-ford-thunderbird-1b",
-   "chassis": "P5FH115816",
-   "title": "1955 Ford Thunderbird (PB24)"
-  },
-  {
    "date": "2024-08-07",
    "venue": "Bring a Trailer",
    "price_usd": 21000,
@@ -813,22 +828,6 @@
    "url": "https://www.hagerty.com/marketplace/auction/1955-Ford-Thunderbird/e9d9dc68-c000-4704-b484-02b9844b1dbe",
    "chassis": "P5FH198290",
    "title": "1955 Ford Thunderbird"
-  },
-  {
-   "date": "2024-06-26",
-   "venue": "Bring a Trailer",
-   "price_usd": 27300,
-   "basis": "sold+fee",
-   "hammer_usd": 26000,
-   "native": {
-    "amount": 26000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1955,
-   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-167/",
-   "chassis": "P5FH168766",
-   "title": "302-Powered 1955 Ford Thunderbird"
   },
   {
    "date": "2024-06-03",
@@ -893,38 +892,6 @@
    "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-157/",
    "chassis": "P5FH167963",
    "title": "1955 Ford Thunderbird"
-  },
-  {
-   "date": "2024-01-25",
-   "venue": "Barrett-Jackson",
-   "price_usd": 44000,
-   "basis": "buyer-paid",
-   "hammer_usd": 40000,
-   "native": {
-    "amount": 44000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1955,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1955-ford-thunderbird-convertible-273909?origin=results",
-   "chassis": "P5FH171103",
-   "title": "1955 FORD THUNDERBIRD CONVERTIBLE"
-  },
-  {
-   "date": "2023-12-15",
-   "venue": "Bring a Trailer",
-   "price_usd": 65100,
-   "basis": "sold+fee",
-   "hammer_usd": 62000,
-   "native": {
-    "amount": 62000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1955,
-   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-154/",
-   "chassis": "P5FH114109",
-   "title": "347-Powered 1955 Ford Thunderbird 5-Speed"
   },
   {
    "date": "2023-12-13",

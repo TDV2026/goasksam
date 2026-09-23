@@ -3,14 +3,13 @@
  "listed": "2012 McLaren MP4-12C",
  "status": "coverage",
  "year_scope": "exact 2012",
- "basis": "mixed (42% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (39% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "McLaren",
   "model": "MP4-12C",
   "window": "36mo",
   "year_min": 2012,
-  "year_max": 2012,
-  "body": "coupe"
+  "year_max": 2012
  },
  "halo_dropped": 0,
  "sales": [
@@ -29,6 +28,102 @@
    "url": "https://www.barrett-jackson.com/2026-las-vegas/docket/vehicle/2012-mclaren-mp4-12c-301963?origin=results",
    "chassis": "SBM11AAA0CW000801",
    "title": "2012 MCLAREN MP4-12C"
+  },
+  {
+   "date": "2026-03-07",
+   "venue": "Broad Arrow",
+   "price_usd": 123200,
+   "basis": "buyer-paid",
+   "hammer_usd": 110000,
+   "native": {
+    "amount": 123200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2012,
+   "url": "https://www.broadarrowauctions.com/vehicles/am26_r0091/2012-mclaren-mp4-12c",
+   "chassis": "SBM11AAA8CW000352",
+   "title": "2012 McLaren MP4-12C"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 103400,
+   "basis": "buyer-paid",
+   "hammer_usd": 94000,
+   "native": {
+    "amount": 103400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2012,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2012-mclaren-mp4-12c-295643?origin=results",
+   "chassis": "SBM11AAAXCW001373",
+   "title": "2012 MCLAREN MP4-12C"
+  },
+  {
+   "date": "2025-05-25",
+   "venue": "Broad Arrow",
+   "price_usd": 173880,
+   "basis": "buyer-paid",
+   "hammer_usd": 151200,
+   "native": {
+    "amount": 161000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 2012,
+   "url": "https://www.broadarrowauctions.com/vehicles/ve25_r014/2012-mclaren-mp4-12c-ex-lewis-hamilton",
+   "chassis": "SBM11AAB4CW000132",
+   "title": "2012 McLaren MP4-12C Ex-Lewis Hamilton"
+  },
+  {
+   "date": "2025-05-25",
+   "venue": "Broad Arrow",
+   "price_usd": 136620,
+   "basis": "buyer-paid",
+   "hammer_usd": 118800,
+   "native": {
+    "amount": 126500,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 2012,
+   "url": "https://www.broadarrowauctions.com/vehicles/ve25_r045/2012-mclaren-mp4-12c-ex-jenson-button",
+   "chassis": null,
+   "title": "2012 McLaren MP4-12C Ex-Jenson Button"
+  },
+  {
+   "date": "2024-10-12",
+   "venue": "Barrett-Jackson",
+   "price_usd": 118800,
+   "basis": "buyer-paid",
+   "hammer_usd": 108000,
+   "native": {
+    "amount": 118800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2012,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/2012-mclaren-mp4-12c-278519?origin=results",
+   "chassis": "SBM11AAA0CW000801",
+   "title": "2012 MCLAREN MP4-12C"
+  },
+  {
+   "date": "2024-06-03",
+   "venue": "RM Sotheby's",
+   "price_usd": 103040,
+   "basis": "buyer-paid",
+   "hammer_usd": 92000,
+   "native": {
+    "amount": 103040,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2012,
+   "url": "https://rmsothebys.com/auctions/mn24/lots/r0078-2012-mclaren-mp412c-coupe/",
+   "chassis": "SBM11AAA9CW001462",
+   "title": "2012 McLaren MP4-12C Coupe"
   },
   {
    "date": "2026-07-23",
@@ -79,22 +174,6 @@
    "title": "2012 McLaren MP4-12C"
   },
   {
-   "date": "2026-03-07",
-   "venue": "Broad Arrow",
-   "price_usd": 123200,
-   "basis": "buyer-paid",
-   "hammer_usd": 110000,
-   "native": {
-    "amount": 123200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2012,
-   "url": "https://www.broadarrowauctions.com/vehicles/am26_r0091/2012-mclaren-mp4-12c",
-   "chassis": "SBM11AAA8CW000352",
-   "title": "2012 McLaren MP4-12C"
-  },
-  {
    "date": "2026-02-10",
    "venue": "Hagerty",
    "price_usd": 105000,
@@ -109,22 +188,6 @@
    "url": "https://www.hagerty.com/marketplace/auction/2012-McLaren-MP4-12C/3iHzUnADTOBQoofZUcYl8k",
    "chassis": "SBM11AAA4CW000199",
    "title": "7k-Mile 2012 McLaren MP4-12C"
-  },
-  {
-   "date": "2026-01-23",
-   "venue": "Barrett-Jackson",
-   "price_usd": 103400,
-   "basis": "buyer-paid",
-   "hammer_usd": 94000,
-   "native": {
-    "amount": 103400,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2012,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2012-mclaren-mp4-12c-295643?origin=results",
-   "chassis": "SBM11AAAXCW001373",
-   "title": "2012 MCLAREN MP4-12C"
   },
   {
    "date": "2025-11-25",
@@ -159,54 +222,6 @@
    "title": "36k-Mile 2012 McLaren MP4-12C"
   },
   {
-   "date": "2025-05-25",
-   "venue": "Broad Arrow",
-   "price_usd": 173880,
-   "basis": "buyer-paid",
-   "hammer_usd": 151200,
-   "native": {
-    "amount": 161000,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 2012,
-   "url": "https://www.broadarrowauctions.com/vehicles/ve25_r014/2012-mclaren-mp4-12c-ex-lewis-hamilton",
-   "chassis": "SBM11AAB4CW000132",
-   "title": "2012 McLaren MP4-12C Ex-Lewis Hamilton"
-  },
-  {
-   "date": "2025-05-25",
-   "venue": "Broad Arrow",
-   "price_usd": 136620,
-   "basis": "buyer-paid",
-   "hammer_usd": 118800,
-   "native": {
-    "amount": 126500,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 2012,
-   "url": "https://www.broadarrowauctions.com/vehicles/ve25_r045/2012-mclaren-mp4-12c-ex-jenson-button",
-   "chassis": null,
-   "title": "2012 McLaren MP4-12C Ex-Jenson Button"
-  },
-  {
-   "date": "2025-01-24",
-   "venue": "Barrett-Jackson",
-   "price_usd": 81400,
-   "basis": "buyer-paid",
-   "hammer_usd": 74000,
-   "native": {
-    "amount": 81400,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2012,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2012-mclaren-mp4-12c-280138?origin=results",
-   "chassis": "SBM11AAA0CW000202",
-   "title": "2012 MCLAREN MP4-12C"
-  },
-  {
    "date": "2024-11-30",
    "venue": "Bring a Trailer",
    "price_usd": 91363,
@@ -221,38 +236,6 @@
    "url": "https://bringatrailer.com/listing/2012-mclaren-mp4-12c-61/",
    "chassis": "SBM11AAA9CW001087",
    "title": "Modified 18k-Mile 2012 McLaren MP4-12C"
-  },
-  {
-   "date": "2024-10-12",
-   "venue": "Barrett-Jackson",
-   "price_usd": 118800,
-   "basis": "buyer-paid",
-   "hammer_usd": 108000,
-   "native": {
-    "amount": 118800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2012,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/2012-mclaren-mp4-12c-278519?origin=results",
-   "chassis": "SBM11AAA0CW000801",
-   "title": "2012 MCLAREN MP4-12C"
-  },
-  {
-   "date": "2024-06-03",
-   "venue": "RM Sotheby's",
-   "price_usd": 103040,
-   "basis": "buyer-paid",
-   "hammer_usd": 92000,
-   "native": {
-    "amount": 103040,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2012,
-   "url": "https://rmsothebys.com/auctions/mn24/lots/r0078-2012-mclaren-mp412c-coupe/",
-   "chassis": "SBM11AAA9CW001462",
-   "title": "2012 McLaren MP4-12C Coupe"
   },
   {
    "date": "2024-04-03",

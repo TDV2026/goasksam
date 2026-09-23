@@ -9,11 +9,58 @@
   "model": "Bronco",
   "window": "36mo",
   "year_min": 1976,
-  "year_max": 1976,
-  "body": "wagon"
+  "year_max": 1976
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2026-05-13",
+   "venue": "Mecum",
+   "price_usd": 59850,
+   "basis": "sold+fee",
+   "hammer_usd": 57000,
+   "native": {
+    "amount": 62700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1976,
+   "url": "https://www.mecum.com/lots/1174019/1976-ford-bronco?aa_id=785473-0",
+   "chassis": "U15GLC30583",
+   "title": "1976 Ford Bronco"
+  },
+  {
+   "date": "2026-05-13",
+   "venue": "Mecum",
+   "price_usd": 48300,
+   "basis": "sold+fee",
+   "hammer_usd": 46000,
+   "native": {
+    "amount": 50600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1976,
+   "url": "https://www.mecum.com/lots/1169187/1976-ford-bronco?aa_id=775785-0",
+   "chassis": "U15GLC57739",
+   "title": "1976 Ford Bronco"
+  },
+  {
+   "date": "2026-04-11",
+   "venue": "Mecum",
+   "price_usd": 147000,
+   "basis": "sold+fee",
+   "hammer_usd": 140000,
+   "native": {
+    "amount": 154000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1976,
+   "url": "https://www.mecum.com/lots/1166790/1976-ford-bronco?aa_id=775712-0",
+   "chassis": "U15GLC60278",
+   "title": "1976 Ford Bronco"
+  },
   {
    "date": "2026-09-09",
    "venue": "Bring a Trailer",
@@ -93,54 +140,6 @@
    "url": "https://bringatrailer.com/listing/1976-ford-bronco-226/",
    "chassis": "U15GLB07201",
    "title": "Modified 1976 Ford Bronco"
-  },
-  {
-   "date": "2026-05-13",
-   "venue": "Mecum",
-   "price_usd": 59850,
-   "basis": "sold+fee",
-   "hammer_usd": 57000,
-   "native": {
-    "amount": 62700,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1976,
-   "url": "https://www.mecum.com/lots/1174019/1976-ford-bronco?aa_id=785473-0",
-   "chassis": "U15GLC30583",
-   "title": "1976 Ford Bronco"
-  },
-  {
-   "date": "2026-05-13",
-   "venue": "Mecum",
-   "price_usd": 48300,
-   "basis": "sold+fee",
-   "hammer_usd": 46000,
-   "native": {
-    "amount": 50600,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1976,
-   "url": "https://www.mecum.com/lots/1169187/1976-ford-bronco?aa_id=775785-0",
-   "chassis": "U15GLC57739",
-   "title": "1976 Ford Bronco"
-  },
-  {
-   "date": "2026-04-11",
-   "venue": "Mecum",
-   "price_usd": 147000,
-   "basis": "sold+fee",
-   "hammer_usd": 140000,
-   "native": {
-    "amount": 154000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1976,
-   "url": "https://www.mecum.com/lots/1166790/1976-ford-bronco?aa_id=775712-0",
-   "chassis": "U15GLC60278",
-   "title": "1976 Ford Bronco"
   },
   {
    "date": "2026-04-07",

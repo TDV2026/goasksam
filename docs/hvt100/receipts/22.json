@@ -10,8 +10,7 @@
   "window": "36mo",
   "year_min": 1955,
   "year_max": 1959,
-  "trim": "Roadster",
-  "body": "roadster"
+  "trim": "Roadster"
  },
  "halo_dropped": 0,
  "sales": [
@@ -80,20 +79,20 @@
    "title": "1957 Mercedes-Benz 300 SL Roadster (PB25)"
   },
   {
-   "date": "2025-08-12",
-   "venue": "Bring a Trailer",
-   "price_usd": 1657500,
-   "basis": "sold+fee",
-   "hammer_usd": 1650000,
+   "date": "2025-07-11",
+   "venue": "Bonhams",
+   "price_usd": 1100074,
+   "basis": "buyer-paid",
+   "hammer_usd": 965200,
    "native": {
-    "amount": 1650000,
-    "currency": "USD",
-    "premium_inclusive": false
+    "amount": 866200,
+    "currency": "GBP",
+    "premium_inclusive": true
    },
    "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-mercedes-benz-300sl-roadster-11/",
-   "chassis": "1980427500602",
-   "title": "1957 Mercedes-Benz 300SL Roadster"
+   "url": "https://cars.bonhams.com/auction/30543/lot/132/1957-mercedes-benz-300-sl-roadster-chassis-no-1980427500260-engine-no-1989807500274/",
+   "chassis": "1980427500260",
+   "title": "1957 Mercedes-Benz 300 SL Roadster Chassis no. 198.042.7500260 Engine no. 198.980.7500274"
   },
   {
    "date": "2025-05-25",
@@ -208,22 +207,6 @@
    "title": "1957 Mercedes-Benz 300 SL Roadster (PM24)"
   },
   {
-   "date": "2024-03-17",
-   "venue": "Bring a Trailer",
-   "price_usd": 1257500,
-   "basis": "sold+fee",
-   "hammer_usd": 1250000,
-   "native": {
-    "amount": 1250000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-mercedes-benz-300sl-roadster-9/",
-   "chassis": "7500255",
-   "title": "1957 Mercedes-Benz 300SL Roadster"
-  },
-  {
    "date": "2024-03-02",
    "venue": "Broad Arrow",
    "price_usd": 2260000,
@@ -270,6 +253,38 @@
    "url": "https://rmsothebys.com/auctions/lv23/lots/r0020-1957-mercedesbenz-300-sl-roadster/",
    "chassis": "1980427500115",
    "title": "1957 Mercedes-Benz 300 SL Roadster"
+  },
+  {
+   "date": "2025-08-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 1657500,
+   "basis": "sold+fee",
+   "hammer_usd": 1650000,
+   "native": {
+    "amount": 1650000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-mercedes-benz-300sl-roadster-11/",
+   "chassis": "1980427500602",
+   "title": "1957 Mercedes-Benz 300SL Roadster"
+  },
+  {
+   "date": "2024-03-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 1257500,
+   "basis": "sold+fee",
+   "hammer_usd": 1250000,
+   "native": {
+    "amount": 1250000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-mercedes-benz-300sl-roadster-9/",
+   "chassis": "7500255",
+   "title": "1957 Mercedes-Benz 300SL Roadster"
   }
  ]
 }

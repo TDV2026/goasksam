@@ -2,33 +2,112 @@
  "car_id": 63,
  "listed": "2001 BMW M3",
  "status": "compare",
- "year_scope": "exact 2001",
- "basis": "sold+fee (online)",
+ "year_scope": "adjacent years pooled (2000-2003)",
+ "basis": "mixed (4% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "BMW",
   "model": "M3",
   "window": "36mo",
-  "year_min": 2001,
-  "year_max": 2001,
-  "body": "coupe"
+  "year_min": 2000,
+  "year_max": 2003
  },
  "halo_dropped": 0,
  "sales": [
   {
-   "date": "2026-09-05",
-   "venue": "Bring a Trailer",
-   "price_usd": 18375,
-   "basis": "sold+fee",
-   "hammer_usd": 17500,
+   "date": "2025-10-18",
+   "venue": "RM Sotheby's",
+   "price_usd": 192510,
+   "basis": "buyer-paid",
+   "hammer_usd": 167400,
    "native": {
-    "amount": 17500,
+    "amount": 178250,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 2003,
+   "url": "https://rmsothebys.com/auctions/mu25/lots/b0011-2003-bmw-m3-csl/",
+   "chassis": "WBSBL950X0JB98430",
+   "title": "2003 BMW M3 CSL"
+  },
+  {
+   "date": "2025-09-13",
+   "venue": "Bonhams",
+   "price_usd": 115380,
+   "basis": "buyer-paid",
+   "hammer_usd": 100330,
+   "native": {
+    "amount": 90850,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 2003,
+   "url": "https://cars.bonhams.com/auction/30544/lot/160/2003-bmw-m3-e46-coupe-chassis-no-wbsbl92030jr06955/",
+   "chassis": "WBSBL92030JR06955",
+   "title": "2003 BMW M3 (E46) Coupé Chassis no. WBSBL92030JR06955"
+  },
+  {
+   "date": "2025-05-25",
+   "venue": "Broad Arrow",
+   "price_usd": 136620,
+   "basis": "buyer-paid",
+   "hammer_usd": 118800,
+   "native": {
+    "amount": 126500,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 2003,
+   "url": "https://www.broadarrowauctions.com/vehicles/ve25_r055/2003-bmw-m3-csl",
+   "chassis": "WBSBL950X0JB98315",
+   "title": "2003 BMW M3 CSL"
+  },
+  {
+   "date": "2023-11-25",
+   "venue": "RM Sotheby's",
+   "price_usd": 57132,
+   "basis": "buyer-paid",
+   "hammer_usd": 49680,
+   "native": {
+    "amount": 52900,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 2003,
+   "url": "https://rmsothebys.com/auctions/mu23/lots/r0062-2003-bmw-m3-coupe/",
+   "chassis": "WBSBL91010JP86333",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2023-11-04",
+   "venue": "RM Sotheby's",
+   "price_usd": 83249,
+   "basis": "buyer-paid",
+   "hammer_usd": 72390,
+   "native": {
+    "amount": 65550,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 2003,
+   "url": "https://rmsothebys.com/auctions/lf23/lots/r0002-2003-bmw-m3-csl/",
+   "chassis": "WBSBL96090JC98470",
+   "title": "2003 BMW M3 CSL"
+  },
+  {
+   "date": "2026-09-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 29768,
+   "basis": "sold+fee",
+   "hammer_usd": 28350,
+   "native": {
+    "amount": 28350,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-40/",
-   "chassis": "WBSBR93421EX21015",
-   "title": "2001 BMW M3 Convertible 6-Speed"
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-138/",
+   "chassis": "WBSBL93462JR14214",
+   "title": "2002 BMW M3 Coupe 6-Speed"
   },
   {
    "date": "2026-09-02",
@@ -47,36 +126,100 @@
    "title": "2001 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2026-08-18",
+   "date": "2026-08-30",
    "venue": "Bring a Trailer",
-   "price_usd": 28875,
+   "price_usd": 53235,
    "basis": "sold+fee",
-   "hammer_usd": 27500,
+   "hammer_usd": 50700,
    "native": {
-    "amount": 27500,
+    "amount": 50700,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-39/",
-   "chassis": "WBSBR93411EX20969",
-   "title": "2001 BMW M3 Convertible 6-Speed"
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-132/",
+   "chassis": "WBSBL93412JR12645",
+   "title": "47k-Mile 2002 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2026-08-14",
+   "date": "2026-08-22",
    "venue": "Bring a Trailer",
-   "price_usd": 42788,
+   "price_usd": 24675,
    "basis": "sold+fee",
-   "hammer_usd": 40750,
+   "hammer_usd": 23500,
    "native": {
-    "amount": 40750,
+    "amount": 23500,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-38/",
-   "chassis": "WBSBR93481EX20130",
-   "title": "21k-Mile 2001 BMW M3 Convertible 6-Speed"
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-135/",
+   "chassis": "WBSBL93402JR17397",
+   "title": "2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2026-08-21",
+   "venue": "Cars & Bids",
+   "price_usd": 16275,
+   "basis": "sold+fee",
+   "hammer_usd": 15500,
+   "native": {
+    "amount": 15500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/rxqv5EL8/2002-bmw-m3-coupe",
+   "chassis": "WBSBL93492JR15597",
+   "title": "2002 BMW M3 Coupe"
+  },
+  {
+   "date": "2026-08-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 23888,
+   "basis": "sold+fee",
+   "hammer_usd": 22750,
+   "native": {
+    "amount": 22750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-133/",
+   "chassis": "WBSBL93402JR16721",
+   "title": "2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2026-08-12",
+   "venue": "Cars & Bids",
+   "price_usd": 13650,
+   "basis": "sold+fee",
+   "hammer_usd": 13000,
+   "native": {
+    "amount": 13000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/rMkR7ePL/2003-bmw-m3-coupe",
+   "chassis": "WBSBL93453JR24119",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2026-08-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 27348,
+   "basis": "sold+fee",
+   "hammer_usd": 26046,
+   "native": {
+    "amount": 26046,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-316/",
+   "chassis": "WBSBL934X3JR23077",
+   "title": "2003 BMW M3 Coupe 6-Speed"
   },
   {
    "date": "2026-07-31",
@@ -95,84 +238,244 @@
    "title": "2001 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2026-07-08",
-   "venue": "Cars & Bids",
-   "price_usd": 20738,
-   "basis": "sold+fee",
-   "hammer_usd": 19750,
-   "native": {
-    "amount": 19750,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2001,
-   "url": "https://carsandbids.com/auctions/3o6L046V/2001-bmw-m3-convertible",
-   "chassis": "WBSBR93431EX21007",
-   "title": "2001 BMW M3 Convertible"
-  },
-  {
    "date": "2026-06-24",
    "venue": "Bring a Trailer",
-   "price_usd": 21105,
+   "price_usd": 37275,
    "basis": "sold+fee",
-   "hammer_usd": 20100,
+   "hammer_usd": 35500,
    "native": {
-    "amount": 20100,
+    "amount": 35500,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-35/",
-   "chassis": "WBSBR934X1EX20873",
-   "title": "2001 BMW M3 Convertible 6-Speed"
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-315/",
+   "chassis": "WBSBL93423JR23848",
+   "title": "49k-Mile 2003 BMW M3 Coupe"
   },
   {
-   "date": "2026-05-28",
-   "venue": "Cars & Bids",
-   "price_usd": 44625,
-   "basis": "sold+fee",
-   "hammer_usd": 42500,
-   "native": {
-    "amount": 42500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2001,
-   "url": "https://carsandbids.com/auctions/KdDxqYky/2001-bmw-m3-convertible",
-   "chassis": "WBSBR93481EX20435",
-   "title": "2001 BMW M3 Convertible"
-  },
-  {
-   "date": "2026-04-16",
-   "venue": "Cars & Bids",
-   "price_usd": 66150,
-   "basis": "sold+fee",
-   "hammer_usd": 63000,
-   "native": {
-    "amount": 63000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2001,
-   "url": "https://carsandbids.com/auctions/3vBZAEak/2001-bmw-m3-convertible",
-   "chassis": "WBSBR93401EX20574",
-   "title": "2001 BMW M3 Convertible"
-  },
-  {
-   "date": "2026-03-17",
+   "date": "2026-06-15",
    "venue": "Bring a Trailer",
-   "price_usd": 14438,
+   "price_usd": 36225,
    "basis": "sold+fee",
-   "hammer_usd": 13750,
+   "hammer_usd": 34500,
    "native": {
-    "amount": 13750,
+    "amount": 34500,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-32/",
-   "chassis": "WBSBR93421EX20897",
-   "title": "2001 BMW M3 Convertible 6-Speed"
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-314/",
+   "chassis": "WBSBL93443JR22944",
+   "title": "One-Owner 2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2026-06-12",
+   "venue": "Cars & Bids",
+   "price_usd": 33075,
+   "basis": "sold+fee",
+   "hammer_usd": 31500,
+   "native": {
+    "amount": 31500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/r4YYPDBx/2002-bmw-m3-coupe",
+   "chassis": "WBSBL93412JR17117",
+   "title": "2002 BMW M3 Coupe"
+  },
+  {
+   "date": "2026-06-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 31238,
+   "basis": "sold+fee",
+   "hammer_usd": 29750,
+   "native": {
+    "amount": 29750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-128/",
+   "chassis": "WBSBL93412JR16050",
+   "title": "50k-Mile 2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2026-05-20",
+   "venue": "Cars & Bids",
+   "price_usd": 35175,
+   "basis": "sold+fee",
+   "hammer_usd": 33500,
+   "native": {
+    "amount": 33500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/KPQXM2Vo/2002-bmw-m3-coupe",
+   "chassis": "WBSBL93472JR18370",
+   "title": "2002 BMW M3 Coupe"
+  },
+  {
+   "date": "2026-05-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 25563,
+   "basis": "sold+fee",
+   "hammer_usd": 24346,
+   "native": {
+    "amount": 24346,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-125/",
+   "chassis": "WBSBL93492JR16023",
+   "title": "Slicktop 2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2026-05-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 29400,
+   "basis": "sold+fee",
+   "hammer_usd": 28000,
+   "native": {
+    "amount": 28000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-126/",
+   "chassis": "WBSBL934X2JR15687",
+   "title": "2002 BMW M3 Coupe"
+  },
+  {
+   "date": "2026-05-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 58800,
+   "basis": "sold+fee",
+   "hammer_usd": 56000,
+   "native": {
+    "amount": 56000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-307/",
+   "chassis": "WBSBL93423JR20206",
+   "title": "4k-Mile 2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2026-04-28",
+   "venue": "Cars & Bids",
+   "price_usd": 46988,
+   "basis": "sold+fee",
+   "hammer_usd": 44750,
+   "native": {
+    "amount": 44750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/3BBVVxL4/2002-bmw-m3-coupe",
+   "chassis": "WBSBL93432JR18026",
+   "title": "2002 BMW M3 Coupe"
+  },
+  {
+   "date": "2026-04-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 36750,
+   "basis": "sold+fee",
+   "hammer_usd": 35000,
+   "native": {
+    "amount": 35000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-309/",
+   "chassis": "WBSBL93423JR21940",
+   "title": "Original-Owner, Slicktop 2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2026-04-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 75600,
+   "basis": "sold+fee",
+   "hammer_usd": 72000,
+   "native": {
+    "amount": 72000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-124/",
+   "chassis": "WBSBL93492JR17494",
+   "title": "2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2026-04-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 45938,
+   "basis": "sold+fee",
+   "hammer_usd": 43750,
+   "native": {
+    "amount": 43750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-306/",
+   "chassis": "WBSBL93433JR20490",
+   "title": "35k-Mile 2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2026-03-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 44100,
+   "basis": "sold+fee",
+   "hammer_usd": 42000,
+   "native": {
+    "amount": 42000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-215/",
+   "chassis": "WBSBL93443JR24242",
+   "title": "39k-Mile 2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2026-03-18",
+   "venue": "Cars & Bids",
+   "price_usd": 36488,
+   "basis": "sold+fee",
+   "hammer_usd": 34750,
+   "native": {
+    "amount": 34750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/r4dVJnGA/2003-bmw-m3-coupe",
+   "chassis": "WBSBL93463JR23092",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2026-03-11",
+   "venue": "Cars & Bids",
+   "price_usd": 35175,
+   "basis": "sold+fee",
+   "hammer_usd": 33500,
+   "native": {
+    "amount": 33500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/3zvMX87L/2002-bmw-m3-coupe",
+   "chassis": "WBSBL93452JR17167",
+   "title": "2002 BMW M3 Coupe"
   },
   {
    "date": "2026-03-05",
@@ -191,20 +494,100 @@
    "title": "2001 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2025-12-22",
-   "venue": "Cars & Bids",
-   "price_usd": 28088,
+   "date": "2026-02-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 42000,
    "basis": "sold+fee",
-   "hammer_usd": 26750,
+   "hammer_usd": 40000,
    "native": {
-    "amount": 26750,
+    "amount": 40000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://carsandbids.com/auctions/9WA6PGn5/2001-bmw-m3-convertible",
-   "chassis": "WBSBR93461EX21468",
-   "title": "2001 BMW M3 Convertible"
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-121/",
+   "chassis": "WBSBL93402JR18288",
+   "title": "20-Years-Owned 2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2026-02-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 39113,
+   "basis": "sold+fee",
+   "hammer_usd": 37250,
+   "native": {
+    "amount": 37250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-119/",
+   "chassis": "WBSBL93402JR12376",
+   "title": "Original-Owner 2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2025-12-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 26775,
+   "basis": "sold+fee",
+   "hammer_usd": 25500,
+   "native": {
+    "amount": 25500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-301/",
+   "chassis": "WBSBL93453JR22502",
+   "title": "2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2025-11-07",
+   "venue": "Cars & Bids",
+   "price_usd": 12495,
+   "basis": "sold+fee",
+   "hammer_usd": 11900,
+   "native": {
+    "amount": 11900,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/35DnP2XN/2003-bmw-m3-coupe",
+   "chassis": "WBSBL93493JR19778",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2025-10-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 37538,
+   "basis": "sold+fee",
+   "hammer_usd": 35750,
+   "native": {
+    "amount": 35750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-299/",
+   "chassis": "WBSBL93413JR23307",
+   "title": "2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2025-10-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 26775,
+   "basis": "sold+fee",
+   "hammer_usd": 25500,
+   "native": {
+    "amount": 25500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-295/",
+   "chassis": "WBSBL93413JR24182",
+   "title": "2003 BMW M3 Coupe"
   },
   {
    "date": "2025-10-08",
@@ -223,20 +606,36 @@
    "title": "2001 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2025-09-11",
-   "venue": "Bring a Trailer",
-   "price_usd": 39375,
+   "date": "2025-09-15",
+   "venue": "Cars & Bids",
+   "price_usd": 25200,
    "basis": "sold+fee",
-   "hammer_usd": 37500,
+   "hammer_usd": 24000,
    "native": {
-    "amount": 37500,
+    "amount": 24000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-31/",
-   "chassis": "WBSBR93421EX21046",
-   "title": "2001 BMW M3 Convertible 6-Speed"
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/3oYaWja1/2003-bmw-m3-coupe",
+   "chassis": "WBSBL93463JR23237",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2025-09-10",
+   "venue": "Cars & Bids",
+   "price_usd": 22838,
+   "basis": "sold+fee",
+   "hammer_usd": 21750,
+   "native": {
+    "amount": 21750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/9aLMX71X/2002-bmw-m3-coupe",
+   "chassis": "WBSBL93462JR13256",
+   "title": "2002 BMW M3 Coupe "
   },
   {
    "date": "2025-09-04",
@@ -255,55 +654,87 @@
    "title": "2001 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2025-08-15",
-   "venue": "Cars & Bids",
-   "price_usd": 22575,
-   "basis": "sold+fee",
-   "hammer_usd": 21500,
-   "native": {
-    "amount": 21500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2001,
-   "url": "https://carsandbids.com/auctions/9W1nJdDB/2001-bmw-m3-convertible",
-   "chassis": "WBSBR93481EX20080",
-   "title": "2001 BMW M3 Convertible"
-  },
-  {
-   "date": "2025-07-30",
-   "venue": "Cars & Bids",
-   "price_usd": 15593,
-   "basis": "sold+fee",
-   "hammer_usd": 14850,
-   "native": {
-    "amount": 14850,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2001,
-   "url": "https://carsandbids.com/auctions/3y4jeod9/2001-bmw-m3-convertible",
-   "chassis": "WBSBR93401EX20705",
-   "title": "2001 BMW M3 Convertible"
-  },
-  {
-   "date": "2025-06-08",
+   "date": "2025-08-29",
    "venue": "Bring a Trailer",
-   "price_usd": 59100,
+   "price_usd": 42000,
    "basis": "sold+fee",
-   "hammer_usd": 56286,
+   "hammer_usd": 40000,
    "native": {
-    "amount": 56286,
+    "amount": 40000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-25/",
-   "chassis": "WBSBR93411EX21216",
-   "title": "9k-Mile 2001 BMW M3 Convertible 6-Speed"
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-293/",
+   "chassis": "WBSBL93403JR24500",
+   "title": "47k-Mile 2003 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2025-05-30",
+   "date": "2025-08-26",
+   "venue": "Cars & Bids",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/3oqBNNPE/2002-bmw-m3-coupe",
+   "chassis": "WBSBL93462JR15542",
+   "title": "2002 BMW M3 Coupe"
+  },
+  {
+   "date": "2025-08-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 39900,
+   "basis": "sold+fee",
+   "hammer_usd": 38000,
+   "native": {
+    "amount": 38000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-109/",
+   "chassis": "WBSBL93482JR14909",
+   "title": "2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2025-08-14",
+   "venue": "Cars & Bids",
+   "price_usd": 21263,
+   "basis": "sold+fee",
+   "hammer_usd": 20250,
+   "native": {
+    "amount": 20250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/KPZD6eNV/2002-bmw-m3-coupe",
+   "chassis": "WBSBL93442JR17984",
+   "title": "2002 BMW M3 Coupe"
+  },
+  {
+   "date": "2025-08-06",
+   "venue": "Cars & Bids",
+   "price_usd": 26775,
+   "basis": "sold+fee",
+   "hammer_usd": 25500,
+   "native": {
+    "amount": 25500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/rGNlPaxN/2003-bmw-m3-coupe",
+   "chassis": "WBSBL93423JR23753",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2025-08-05",
    "venue": "Bring a Trailer",
    "price_usd": 24938,
    "basis": "sold+fee",
@@ -313,29 +744,61 @@
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-23-2/",
-   "chassis": "WBSBR93401EX21238",
-   "title": "2001 BMW M3 Convertible 6-Speed"
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-106/",
+   "chassis": "WBSBL93412JR14802",
+   "title": "2002 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2025-04-24",
-   "venue": "Bring a Trailer",
-   "price_usd": 18900,
+   "date": "2025-08-04",
+   "venue": "Cars & Bids",
+   "price_usd": 19688,
    "basis": "sold+fee",
-   "hammer_usd": 18000,
+   "hammer_usd": 18750,
    "native": {
-    "amount": 18000,
+    "amount": 18750,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-30/",
-   "chassis": "WBSBR93411EX20261",
-   "title": "2001 BMW M3 Convertible 6-Speed"
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/9XxZdnaz/2002-bmw-m3-coupe",
+   "chassis": "WBSBL93492JR15616",
+   "title": "2002 BMW M3 Coupe"
   },
   {
-   "date": "2025-04-11",
+   "date": "2025-07-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 19425,
+   "basis": "sold+fee",
+   "hammer_usd": 18500,
+   "native": {
+    "amount": 18500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-105/",
+   "chassis": "WBSBL93422JR17112",
+   "title": "2002 BMW M3 Coupe"
+  },
+  {
+   "date": "2025-07-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 59850,
+   "basis": "sold+fee",
+   "hammer_usd": 57000,
+   "native": {
+    "amount": 57000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-286/",
+   "chassis": "WBSBL93463JR24405",
+   "title": "29k-Mile 2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2025-07-04",
    "venue": "Bring a Trailer",
    "price_usd": 30975,
    "basis": "sold+fee",
@@ -345,26 +808,170 @@
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-26-2/",
-   "chassis": "WBSBR93441EX21551",
-   "title": "49k-Mile 2001 BMW M3 Convertible 6-Speed"
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-104/",
+   "chassis": "WBSBL93422JR16784",
+   "title": "47k-Mile 2002 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2025-04-04",
-   "venue": "Bring a Trailer",
-   "price_usd": 28875,
+   "date": "2025-06-27",
+   "venue": "Cars & Bids",
+   "price_usd": 25200,
    "basis": "sold+fee",
-   "hammer_usd": 27500,
+   "hammer_usd": 24000,
    "native": {
-    "amount": 27500,
+    "amount": 24000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-27/",
-   "chassis": "WBSBR934X1EX20307",
-   "title": "2001 BMW M3 Convertible 6-Speed"
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/30w72AlP/2002-bmw-m3-coupe",
+   "chassis": "WBSBL93492JR18547",
+   "title": "2002 BMW M3 Coupe"
+  },
+  {
+   "date": "2025-05-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 16223,
+   "basis": "sold+fee",
+   "hammer_usd": 15450,
+   "native": {
+    "amount": 15450,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-285/",
+   "chassis": "WBSBL93423JR23381",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2025-05-19",
+   "venue": "Cars & Bids",
+   "price_usd": 14805,
+   "basis": "sold+fee",
+   "hammer_usd": 14100,
+   "native": {
+    "amount": 14100,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/35wLl0Zj/2002-bmw-m3-coupe",
+   "chassis": "WBSBL93472JR16585",
+   "title": "2002 BMW M3 Coupe"
+  },
+  {
+   "date": "2025-05-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 25200,
+   "basis": "sold+fee",
+   "hammer_usd": 24000,
+   "native": {
+    "amount": 24000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-277-2/",
+   "chassis": "WBSBL93463JR21617",
+   "title": "2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2025-05-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 20475,
+   "basis": "sold+fee",
+   "hammer_usd": 19500,
+   "native": {
+    "amount": 19500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-281/",
+   "chassis": "WBSBL93413JR22089",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2025-04-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 23888,
+   "basis": "sold+fee",
+   "hammer_usd": 22750,
+   "native": {
+    "amount": 22750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-277/",
+   "chassis": "WBSBL93463JR21617",
+   "title": "2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2025-04-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 54123,
+   "basis": "sold+fee",
+   "hammer_usd": 51546,
+   "native": {
+    "amount": 51546,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-95/",
+   "chassis": "WBSBL93442JR17774",
+   "title": "2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2025-04-11",
+   "venue": "Cars & Bids",
+   "price_usd": 19950,
+   "basis": "sold+fee",
+   "hammer_usd": 19000,
+   "native": {
+    "amount": 19000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/30kz0nJR/2002-bmw-m3-coupe",
+   "chassis": "WBSBL93432JR12548",
+   "title": "2002 BMW M3 Coupe"
+  },
+  {
+   "date": "2025-04-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 24938,
+   "basis": "sold+fee",
+   "hammer_usd": 23750,
+   "native": {
+    "amount": 23750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-97/",
+   "chassis": "WBSBL93412JR17019",
+   "title": "2002 BMW M3 6-Speed"
+  },
+  {
+   "date": "2025-04-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 48300,
+   "basis": "sold+fee",
+   "hammer_usd": 46000,
+   "native": {
+    "amount": 46000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-94/",
+   "chassis": "WBSBL93482JR14621",
+   "title": "48k-Mile 2002 BMW M3 Coupe 6-Speed"
   },
   {
    "date": "2025-04-01",
@@ -383,52 +990,84 @@
    "title": "2001 BMW M3 Coupe"
   },
   {
-   "date": "2025-03-18",
+   "date": "2025-03-29",
    "venue": "Bring a Trailer",
-   "price_usd": 25200,
+   "price_usd": 26513,
    "basis": "sold+fee",
-   "hammer_usd": 24000,
+   "hammer_usd": 25250,
    "native": {
-    "amount": 24000,
+    "amount": 25250,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-28/",
-   "chassis": "WBSBR93431EX20293",
-   "title": "2001 BMW M3 Convertible 6-Speed"
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-250/",
+   "chassis": "WBSBL93473JR21383",
+   "title": "2003 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2025-03-02",
+   "date": "2025-03-13",
    "venue": "Bring a Trailer",
-   "price_usd": 21000,
+   "price_usd": 23100,
    "basis": "sold+fee",
-   "hammer_usd": 20000,
+   "hammer_usd": 22000,
    "native": {
-    "amount": 20000,
+    "amount": 22000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-23/",
-   "chassis": "WBSBR93401EX21238",
-   "title": "2001 BMW M3 Convertible 6-Speed"
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-92/",
+   "chassis": "WBSBL93442JR12557",
+   "title": "2002 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2025-02-28",
+   "date": "2025-03-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 20948,
+   "basis": "sold+fee",
+   "hammer_usd": 19950,
+   "native": {
+    "amount": 19950,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-89/",
+   "chassis": "WBSBL93422JR16459",
+   "title": "2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2025-02-11",
    "venue": "Cars & Bids",
-   "price_usd": 16905,
+   "price_usd": 20213,
    "basis": "sold+fee",
-   "hammer_usd": 16100,
+   "hammer_usd": 19250,
    "native": {
-    "amount": 16100,
+    "amount": 19250,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://carsandbids.com/auctions/r4kxdaGk/2001-bmw-m3-convertible",
-   "chassis": "WBSBR93481EX20807",
-   "title": "2001 BMW M3 Convertible"
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/3g1WPAjb/2002-bmw-m3-coupe",
+   "chassis": "WBSBL93492JR16555",
+   "title": "2002 BMW M3 Coupe"
+  },
+  {
+   "date": "2025-01-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 88725,
+   "basis": "sold+fee",
+   "hammer_usd": 84500,
+   "native": {
+    "amount": 84500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-51/",
+   "chassis": "WBSBL93492JR12294",
+   "title": "13k-Mile Slicktop 2002 BMW M3 Coupe 6-Speed"
   },
   {
    "date": "2025-01-28",
@@ -447,20 +1086,148 @@
    "title": "2001 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2025-01-20",
-   "venue": "Bring a Trailer",
-   "price_usd": 27825,
+   "date": "2025-01-15",
+   "venue": "Cars & Bids",
+   "price_usd": 11288,
    "basis": "sold+fee",
-   "hammer_usd": 26500,
+   "hammer_usd": 10750,
    "native": {
-    "amount": 26500,
+    "amount": 10750,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-24/",
-   "chassis": "WBSBR93401EX20865",
-   "title": "32k-Mile 2001 BMW M3 Convertible 6-Speed"
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/301oMEeP/2002-bmw-m3-coupe",
+   "chassis": "WBSBL93492JR15549",
+   "title": "2002 BMW M3 Coupe"
+  },
+  {
+   "date": "2025-01-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 77831,
+   "basis": "sold+fee",
+   "hammer_usd": 74125,
+   "native": {
+    "amount": 74125,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-79/",
+   "chassis": "WBSBL934X2JR15804",
+   "title": "Original-Owner, 24k-Mile 2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2025-01-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 17063,
+   "basis": "sold+fee",
+   "hammer_usd": 16250,
+   "native": {
+    "amount": 16250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-82/",
+   "chassis": "WBSBL93402JR13933",
+   "title": "2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2025-01-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 31080,
+   "basis": "sold+fee",
+   "hammer_usd": 29600,
+   "native": {
+    "amount": 29600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-83/",
+   "chassis": "WBSBL93462JR16920",
+   "title": "2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-12-26",
+   "venue": "Cars & Bids",
+   "price_usd": 37113,
+   "basis": "sold+fee",
+   "hammer_usd": 35346,
+   "native": {
+    "amount": 35346,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/rjBA8wEY/2003-bmw-m3-coupe",
+   "chassis": "WBSBL93403JR21841",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2024-12-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 26775,
+   "basis": "sold+fee",
+   "hammer_usd": 25500,
+   "native": {
+    "amount": 25500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-271/",
+   "chassis": "WBSBL93413JR22089",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2024-12-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 85575,
+   "basis": "sold+fee",
+   "hammer_usd": 81500,
+   "native": {
+    "amount": 81500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-272/",
+   "chassis": "WBSBL93413JR21752",
+   "title": "2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-12-02",
+   "venue": "Cars & Bids",
+   "price_usd": 25988,
+   "basis": "sold+fee",
+   "hammer_usd": 24750,
+   "native": {
+    "amount": 24750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/98OAbdMv/2003-bmw-m3-coupe",
+   "chassis": "WBSBL93453JR21821",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2024-11-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 28350,
+   "basis": "sold+fee",
+   "hammer_usd": 27000,
+   "native": {
+    "amount": 27000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-77/",
+   "chassis": "WBSBL93442JR16284",
+   "title": "2002 BMW M3 Coupe 6-Speed"
   },
   {
    "date": "2024-11-25",
@@ -479,100 +1246,212 @@
    "title": "20k-Mile 2001 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2024-10-07",
+   "date": "2024-11-22",
    "venue": "Bring a Trailer",
-   "price_usd": 36750,
+   "price_usd": 46200,
    "basis": "sold+fee",
-   "hammer_usd": 35000,
+   "hammer_usd": 44000,
    "native": {
-    "amount": 35000,
+    "amount": 44000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-22/",
-   "chassis": "WBSBR93431EX21136",
-   "title": "8k-Mile 2001 BMW M3 Convertible 6-Speed"
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-78/",
+   "chassis": "WBSBL93492JR18225",
+   "title": "2002 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2024-10-03",
+   "date": "2024-11-08",
    "venue": "Bring a Trailer",
-   "price_usd": 26250,
+   "price_usd": 44100,
    "basis": "sold+fee",
-   "hammer_usd": 25000,
+   "hammer_usd": 42000,
    "native": {
-    "amount": 25000,
+    "amount": 42000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-20/",
-   "chassis": "WBSBR93471EX21186",
-   "title": "30k-Mile 2001 BMW M3 Convertible 6-Speed"
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-269/",
+   "chassis": "WBSBL93443JR20918",
+   "title": "31k-Mile 2003 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2024-09-20",
-   "venue": "Cars & Bids",
-   "price_usd": 13650,
-   "basis": "sold+fee",
-   "hammer_usd": 13000,
-   "native": {
-    "amount": 13000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2001,
-   "url": "https://carsandbids.com/auctions/9n6Ro062/2001-bmw-m3-convertible",
-   "chassis": "WBSBR93451EX20960",
-   "title": "2001 BMW M3 Convertible"
-  },
-  {
-   "date": "2024-09-19",
-   "venue": "Cars & Bids",
-   "price_usd": 14648,
-   "basis": "sold+fee",
-   "hammer_usd": 13950,
-   "native": {
-    "amount": 13950,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2001,
-   "url": "https://carsandbids.com/auctions/rxPxzR1Q/2001-bmw-m3-convertible",
-   "chassis": "WBSBR93491EX21240",
-   "title": "2001 BMW M3 Convertible"
-  },
-  {
-   "date": "2024-08-31",
+   "date": "2024-11-01",
    "venue": "Bring a Trailer",
-   "price_usd": 21840,
+   "price_usd": 33338,
    "basis": "sold+fee",
-   "hammer_usd": 20800,
+   "hammer_usd": 31750,
    "native": {
-    "amount": 20800,
+    "amount": 31750,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-21/",
-   "chassis": "WBSBR93471EX20040",
-   "title": "40k-Mile 2001 BMW M3 Convertible 6-Speed"
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-76/",
+   "chassis": "WBSBL934X2JR14006",
+   "title": "2002 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2024-08-26",
-   "venue": "Cars & Bids",
-   "price_usd": 21525,
+   "date": "2024-10-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 66150,
    "basis": "sold+fee",
-   "hammer_usd": 20500,
+   "hammer_usd": 63000,
    "native": {
-    "amount": 20500,
+    "amount": 63000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://carsandbids.com/auctions/3vAggL0m/2001-bmw-m3-convertible",
-   "chassis": "WBSBR934X1EX20808",
-   "title": "2001 BMW M3 Convertible"
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-264/",
+   "chassis": "WBSBL93483JR19383",
+   "title": "35k-Mile 2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-10-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 35700,
+   "basis": "sold+fee",
+   "hammer_usd": 34000,
+   "native": {
+    "amount": 34000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-208/",
+   "chassis": "WBSBL93433JR22269",
+   "title": "41k-Mile 2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-10-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 33075,
+   "basis": "sold+fee",
+   "hammer_usd": 31500,
+   "native": {
+    "amount": 31500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-5/",
+   "chassis": "WBSBL93433JR24572",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2024-10-04",
+   "venue": "Cars & Bids",
+   "price_usd": 18432,
+   "basis": "sold+fee",
+   "hammer_usd": 17554,
+   "native": {
+    "amount": 17554,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/92gxWlV4/2003-bmw-m3-coupe",
+   "chassis": "WBSBL93423JR22876",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2024-09-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 28350,
+   "basis": "sold+fee",
+   "hammer_usd": 27000,
+   "native": {
+    "amount": 27000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-262/",
+   "chassis": "WBSBL93413JR24246",
+   "title": "2003 BMW M3 Dinan S2 Coupe"
+  },
+  {
+   "date": "2024-09-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 73500,
+   "basis": "sold+fee",
+   "hammer_usd": 70000,
+   "native": {
+    "amount": 70000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-73/",
+   "chassis": "WBSBL93492JR15860",
+   "title": "23k-Mile 2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-09-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 40950,
+   "basis": "sold+fee",
+   "hammer_usd": 39000,
+   "native": {
+    "amount": 39000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-260/",
+   "chassis": "WBSBL93483JR20842",
+   "title": "41k-Mile 2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-09-17",
+   "venue": "Cars & Bids",
+   "price_usd": 19688,
+   "basis": "sold+fee",
+   "hammer_usd": 18750,
+   "native": {
+    "amount": 18750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/3REV4RDX/2003-bmw-m3-coupe",
+   "chassis": "WBSBL93473JR23750",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2024-08-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 29663,
+   "basis": "sold+fee",
+   "hammer_usd": 28250,
+   "native": {
+    "amount": 28250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-70/",
+   "chassis": "WBSBL93402JR16783",
+   "title": "46k-Mile 2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-08-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 15488,
+   "basis": "sold+fee",
+   "hammer_usd": 14750,
+   "native": {
+    "amount": 14750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-52/",
+   "chassis": "WBSBL93402JR13530",
+   "title": "2002 BMW M3 Coupe 6-Speed"
   },
   {
    "date": "2024-08-05",
@@ -591,20 +1470,276 @@
    "title": "Single-Family-Owned 2001 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2024-07-13",
+   "date": "2024-07-21",
    "venue": "Bring a Trailer",
-   "price_usd": 31763,
+   "price_usd": 21000,
    "basis": "sold+fee",
-   "hammer_usd": 30250,
+   "hammer_usd": 20000,
    "native": {
-    "amount": 30250,
+    "amount": 20000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-19/",
-   "chassis": "WBSBR93461EX20448",
-   "title": "41k-Mile 2001 BMW M3 Convertible 6-Speed"
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-255/",
+   "chassis": "WBSBL93413JR22593",
+   "title": "2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-07-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 26513,
+   "basis": "sold+fee",
+   "hammer_usd": 25250,
+   "native": {
+    "amount": 25250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-65/",
+   "chassis": "WBSBL93462JR18098",
+   "title": "Slicktop 2002 BMW M3 Coupe"
+  },
+  {
+   "date": "2024-06-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 25200,
+   "basis": "sold+fee",
+   "hammer_usd": 24000,
+   "native": {
+    "amount": 24000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-253/",
+   "chassis": "WBSBL93483JR20355",
+   "title": "2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-06-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 37275,
+   "basis": "sold+fee",
+   "hammer_usd": 35500,
+   "native": {
+    "amount": 35500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-58-2/",
+   "chassis": "WBSBL93412JR17084",
+   "title": "One-Owner 2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-06-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 50400,
+   "basis": "sold+fee",
+   "hammer_usd": 48000,
+   "native": {
+    "amount": 48000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-249/",
+   "chassis": "WBSBL93423JR21954",
+   "title": "26k-Mile 2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-06-03",
+   "venue": "Cars & Bids",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 22500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/rk60z5lK/2003-bmw-m3-coupe",
+   "chassis": "WBSBL93443JR24225",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2024-05-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 67887,
+   "basis": "sold+fee",
+   "hammer_usd": 64654,
+   "native": {
+    "amount": 64654,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-223/",
+   "chassis": "WBSBL93493JR22261",
+   "title": "8k-Mile 2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-05-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 27300,
+   "basis": "sold+fee",
+   "hammer_usd": 26000,
+   "native": {
+    "amount": 26000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-49/",
+   "chassis": "WBSBL93452JR13054",
+   "title": "Slicktop 2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-05-22",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 63000,
+   "basis": "sold+fee",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 60000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://www.sothebysmotorsport.com/auction/2003-bmw-m3sixspeed-1744",
+   "chassis": "WBSBL93463JR22038",
+   "title": "2003 BMW M3 Six-Speed"
+  },
+  {
+   "date": "2024-05-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 39900,
+   "basis": "sold+fee",
+   "hammer_usd": 38000,
+   "native": {
+    "amount": 38000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-42-2-2/",
+   "chassis": "WBSBL93402JR13527",
+   "title": "15k-Mile 2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-05-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 28875,
+   "basis": "sold+fee",
+   "hammer_usd": 27500,
+   "native": {
+    "amount": 27500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-246/",
+   "chassis": "WBSBL93493JR18937",
+   "title": "2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-05-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 91350,
+   "basis": "sold+fee",
+   "hammer_usd": 87000,
+   "native": {
+    "amount": 87000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-56/",
+   "chassis": "WBSBL93462JR14634",
+   "title": "12k-Mile 2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-05-08",
+   "venue": "Cars & Bids",
+   "price_usd": 21573,
+   "basis": "sold+fee",
+   "hammer_usd": 20546,
+   "native": {
+    "amount": 20546,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/rEYNpQJV/2003-bmw-m3-coupe",
+   "chassis": "WBSBL93423JR22876",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2024-05-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 32025,
+   "basis": "sold+fee",
+   "hammer_usd": 30500,
+   "native": {
+    "amount": 30500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-48/",
+   "chassis": "WBSBL93402JR17397",
+   "title": "2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-05-07",
+   "venue": "Cars & Bids",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 22500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/30l2Nj8g/2003-bmw-m3-coupe",
+   "chassis": "WBSBL93473JR19469",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2024-04-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 42263,
+   "basis": "sold+fee",
+   "hammer_usd": 40250,
+   "native": {
+    "amount": 40250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-50/",
+   "chassis": "WBSBL93432JR17779",
+   "title": "2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-04-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 64050,
+   "basis": "sold+fee",
+   "hammer_usd": 61000,
+   "native": {
+    "amount": 61000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-248/",
+   "chassis": "WBSBL93483JR23966",
+   "title": "26k-Mile 2003 BMW M3 Coupe 6-Speed"
   },
   {
    "date": "2024-04-16",
@@ -623,6 +1758,38 @@
    "title": "2001 BMW M3 Coupe 6-Speed"
   },
   {
+   "date": "2024-03-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 50000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-244/",
+   "chassis": "WBSBL93433JR22966",
+   "title": "20k-Mile 2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-03-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-47/",
+   "chassis": "WBSBL93442JR13420",
+   "title": "2002 BMW M3 Coupe 6-Speed"
+  },
+  {
    "date": "2024-02-26",
    "venue": "Bring a Trailer",
    "price_usd": 18900,
@@ -639,20 +1806,132 @@
    "title": "2001 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2024-02-24",
-   "venue": "Bring a Trailer",
-   "price_usd": 31500,
+   "date": "2024-02-20",
+   "venue": "PCARMarket",
+   "price_usd": 42000,
    "basis": "sold+fee",
-   "hammer_usd": 30000,
+   "hammer_usd": 40000,
    "native": {
-    "amount": 30000,
+    "amount": 40000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-17/",
-   "chassis": "WBSBR93471EX21186",
-   "title": "30k-Mile 2001 BMW M3 Convertible 6-Speed"
+   "year": 2002,
+   "url": "https://www.pcarmarket.com/auction/2002-bmw-e46-m3",
+   "chassis": "WBSBL93412JR12645",
+   "title": "46k-Mile 2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-02-15",
+   "venue": "Cars & Bids",
+   "price_usd": 21788,
+   "basis": "sold+fee",
+   "hammer_usd": 20750,
+   "native": {
+    "amount": 20750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/3gp2VXRK/2003-bmw-m3-coupe",
+   "chassis": "WBSBL93403JR22147",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2024-02-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 35753,
+   "basis": "sold+fee",
+   "hammer_usd": 34050,
+   "native": {
+    "amount": 34050,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-234/",
+   "chassis": "WBSBL93423JR23848",
+   "title": "43k-Mile 2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2024-02-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 50138,
+   "basis": "sold+fee",
+   "hammer_usd": 47750,
+   "native": {
+    "amount": 47750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-42-2/",
+   "chassis": "WBSBL93402JR13527",
+   "title": "15k-Mile 2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-02-06",
+   "venue": "Cars & Bids",
+   "price_usd": 22050,
+   "basis": "sold+fee",
+   "hammer_usd": 21000,
+   "native": {
+    "amount": 21000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/KZNXGJpo/2003-bmw-m3-coupe",
+   "chassis": "WBSBL93493JR21434",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2024-01-23",
+   "venue": "Cars & Bids",
+   "price_usd": 15435,
+   "basis": "sold+fee",
+   "hammer_usd": 14700,
+   "native": {
+    "amount": 14700,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/37NnRRp0/2002-bmw-m3-coupe",
+   "chassis": "WBSBL93402JR18811",
+   "title": "2002 BMW M3 Coupe"
+  },
+  {
+   "date": "2024-01-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 29925,
+   "basis": "sold+fee",
+   "hammer_usd": 28500,
+   "native": {
+    "amount": 28500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-237/",
+   "chassis": "WBSBL93403JR22133",
+   "title": "2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-01-16",
+   "venue": "Cars & Bids",
+   "price_usd": 16800,
+   "basis": "sold+fee",
+   "hammer_usd": 16000,
+   "native": {
+    "amount": 16000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/rwZQMxVa/2002-bmw-m3-coupe",
+   "chassis": "WBSBL93412JR18591",
+   "title": "2002 BMW M3 Coupe"
   },
   {
    "date": "2024-01-09",
@@ -671,20 +1950,52 @@
    "title": "18k-Mile 2001 BMW M3 Coupe 6-Speed"
   },
   {
-   "date": "2023-11-27",
+   "date": "2024-01-08",
    "venue": "Bring a Trailer",
-   "price_usd": 38850,
+   "price_usd": 45150,
    "basis": "sold+fee",
-   "hammer_usd": 37000,
+   "hammer_usd": 43000,
    "native": {
-    "amount": 37000,
+    "amount": 43000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-13/",
-   "chassis": "WBSBR93421EX20351",
-   "title": "22k-Mile 2001 BMW M3 Convertible 6-Speed"
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-43/",
+   "chassis": "WBSBL93422JR16428",
+   "title": "2002 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2023-12-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 25988,
+   "basis": "sold+fee",
+   "hammer_usd": 24750,
+   "native": {
+    "amount": 24750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-236/",
+   "chassis": "WBSBL93423JR21579",
+   "title": "2003 BMW M3 Coupe 6-Speed"
+  },
+  {
+   "date": "2023-12-14",
+   "venue": "Cars & Bids",
+   "price_usd": 22575,
+   "basis": "sold+fee",
+   "hammer_usd": 21500,
+   "native": {
+    "amount": 21500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/30D2xXEG/2003-bmw-m3-coupe",
+   "chassis": "WBSBL93403JR22827",
+   "title": "2003 BMW M3 Coupe"
   },
   {
    "date": "2023-11-16",
@@ -703,36 +2014,68 @@
    "title": "2001 BMW M3 Coupe"
   },
   {
-   "date": "2023-10-12",
+   "date": "2023-11-02",
    "venue": "Cars & Bids",
-   "price_usd": 23100,
+   "price_usd": 21053,
    "basis": "sold+fee",
-   "hammer_usd": 22000,
+   "hammer_usd": 20050,
    "native": {
-    "amount": 22000,
+    "amount": 20050,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://carsandbids.com/auctions/377nLPgR/2001-bmw-m3-convertible",
-   "chassis": "WBSBR93431EX21007",
-   "title": "2001 BMW M3 Convertible"
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/3y0eWnEd/2003-bmw-m3-coupe",
+   "chassis": "WBSBL93453JR20104",
+   "title": "2003 BMW M3 Coupe"
+  },
+  {
+   "date": "2023-10-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 33863,
+   "basis": "sold+fee",
+   "hammer_usd": 32250,
+   "native": {
+    "amount": 32250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m3-coupe-230/",
+   "chassis": "WBSBL93493JR24348",
+   "title": "Original-Owner 2003 BMW M3 Coupe 6-Speed"
   },
   {
    "date": "2023-09-30",
    "venue": "Bring a Trailer",
-   "price_usd": 30450,
+   "price_usd": 36225,
    "basis": "sold+fee",
-   "hammer_usd": 29000,
+   "hammer_usd": 34500,
    "native": {
-    "amount": 29000,
+    "amount": 34500,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 2001,
-   "url": "https://bringatrailer.com/listing/2001-bmw-m3-convertible-12/",
-   "chassis": "WBSBR93461EX20370",
-   "title": "50k-Mile 2001 BMW M3 Convertible 6-Speed"
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-32/",
+   "chassis": "WBSBL93452JR14513",
+   "title": "2002 BMW M3 Coupe"
+  },
+  {
+   "date": "2023-09-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 45461,
+   "basis": "sold+fee",
+   "hammer_usd": 43296,
+   "native": {
+    "amount": 43296,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-bmw-m3-coupe-31/",
+   "chassis": "WBSBL93472JR15680",
+   "title": "46k-Mile 2002 BMW M3 Coupe 6-Speed"
   }
  ]
 }

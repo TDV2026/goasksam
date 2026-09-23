@@ -3,18 +3,81 @@
  "listed": "2020 Chevrolet Corvette Stingray",
  "status": "compare",
  "year_scope": "exact 2020",
- "basis": "mixed (11% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (10% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Chevrolet",
   "model": "Corvette",
   "window": "36mo",
   "year_min": 2020,
   "year_max": 2020,
-  "trim": "Stingray",
-  "body": "coupe"
+  "trim": "Stingray"
  },
- "halo_dropped": 11,
+ "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2026-01-22",
+   "venue": "Barrett-Jackson",
+   "price_usd": 63800,
+   "basis": "buyer-paid",
+   "hammer_usd": 58000,
+   "native": {
+    "amount": 63800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2020,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2020-chevrolet-corvette-stingray-294218?origin=results",
+   "chassis": "1G1Y62D4XL5109091",
+   "title": "2020 CHEVROLET CORVETTE STINGRAY"
+  },
+  {
+   "date": "2024-10-11",
+   "venue": "Barrett-Jackson",
+   "price_usd": 70400,
+   "basis": "buyer-paid",
+   "hammer_usd": 64000,
+   "native": {
+    "amount": 70400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2020,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/2020-chevrolet-corvette-stingray-278507?origin=results",
+   "chassis": "1G1Y82D41L5101388",
+   "title": "2020 CHEVROLET CORVETTE STINGRAY"
+  },
+  {
+   "date": "2024-04-19",
+   "venue": "Barrett-Jackson",
+   "price_usd": 87450,
+   "basis": "buyer-paid",
+   "hammer_usd": 79500,
+   "native": {
+    "amount": 87450,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2020,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/2020-chevrolet-corvette-stingray-277363?origin=results",
+   "chassis": "1G1Y82D41L5101388",
+   "title": "2020 CHEVROLET CORVETTE STINGRAY"
+  },
+  {
+   "date": "2024-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 68200,
+   "basis": "buyer-paid",
+   "hammer_usd": 62000,
+   "native": {
+    "amount": 68200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2020,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2020-chevrolet-corvette-stingray-1lt-272677?origin=results",
+   "chassis": "1G1Y62D44L5105411",
+   "title": "2020 CHEVROLET CORVETTE STINGRAY 1LT"
+  },
   {
    "date": "2026-09-02",
    "venue": "Bring a Trailer",
@@ -112,38 +175,6 @@
    "title": "4,200-Mile 2020 Chevrolet Corvette Stingray Coupe 3LT Z51"
   },
   {
-   "date": "2026-05-15",
-   "venue": "Mecum",
-   "price_usd": 75600,
-   "basis": "sold+fee",
-   "hammer_usd": 72000,
-   "native": {
-    "amount": 79200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2020,
-   "url": "https://www.mecum.com/lots/1171553/2020-chevrolet-corvette-coupe?aa_id=775929-0",
-   "chassis": "1G1Y82D4XL5111661",
-   "title": "2020 Chevrolet Corvette Coupe"
-  },
-  {
-   "date": "2026-05-14",
-   "venue": "Mecum",
-   "price_usd": 65100,
-   "basis": "sold+fee",
-   "hammer_usd": 62000,
-   "native": {
-    "amount": 68200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2020,
-   "url": "https://www.mecum.com/lots/1167379/2020-chevrolet-corvette-3lt-coupe?aa_id=781546-0",
-   "chassis": "1G1Y82D43L5000563",
-   "title": "2020 Chevrolet Corvette 3LT Coupe"
-  },
-  {
    "date": "2026-05-12",
    "venue": "Bring a Trailer",
    "price_usd": 60900,
@@ -190,22 +221,6 @@
    "url": "https://carsandbids.com/auctions/rMXgqAap/2020-chevrolet-corvette-stingray-coupe-2lt",
    "chassis": "1G1Y72D45L5101008",
    "title": "2020 Chevrolet Corvette Stingray Coupe 2LT"
-  },
-  {
-   "date": "2026-01-22",
-   "venue": "Barrett-Jackson",
-   "price_usd": 63800,
-   "basis": "buyer-paid",
-   "hammer_usd": 58000,
-   "native": {
-    "amount": 63800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2020,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2020-chevrolet-corvette-stingray-294218?origin=results",
-   "chassis": "1G1Y62D4XL5109091",
-   "title": "2020 CHEVROLET CORVETTE STINGRAY"
   },
   {
    "date": "2026-01-06",
@@ -384,22 +399,6 @@
    "title": "1,500-Mile 2020 Chevrolet Corvette Stingray Coupe 2LT Z51"
   },
   {
-   "date": "2025-03-21",
-   "venue": "Hagerty",
-   "price_usd": 57750,
-   "basis": "sold+fee",
-   "hammer_usd": 55000,
-   "native": {
-    "amount": 55000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2020,
-   "url": "https://www.hagerty.com/marketplace/auction/2020-Chevrolet-Corvette/487a579d-f170-4187-ad97-828c4c6dd07f",
-   "chassis": "1G1Y72D46L5108646",
-   "title": "6k-Mile 2020 Chevrolet Corvette Coupe"
-  },
-  {
    "date": "2025-02-28",
    "venue": "Bring a Trailer",
    "price_usd": 62775,
@@ -496,22 +495,6 @@
    "title": "2020 Chevrolet Corvette Stingray Coupe"
   },
   {
-   "date": "2024-10-11",
-   "venue": "Barrett-Jackson",
-   "price_usd": 70400,
-   "basis": "buyer-paid",
-   "hammer_usd": 64000,
-   "native": {
-    "amount": 70400,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2020,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/2020-chevrolet-corvette-stingray-278507?origin=results",
-   "chassis": "1G1Y82D41L5101388",
-   "title": "2020 CHEVROLET CORVETTE STINGRAY"
-  },
-  {
    "date": "2024-07-08",
    "venue": "Bring a Trailer",
    "price_usd": 67725,
@@ -576,22 +559,6 @@
    "title": "5k-Mile 2020 Chevrolet Corvette Stingray Coupe 3LT Z51"
   },
   {
-   "date": "2024-04-19",
-   "venue": "Barrett-Jackson",
-   "price_usd": 87450,
-   "basis": "buyer-paid",
-   "hammer_usd": 79500,
-   "native": {
-    "amount": 87450,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2020,
-   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/2020-chevrolet-corvette-stingray-277363?origin=results",
-   "chassis": "1G1Y82D41L5101388",
-   "title": "2020 CHEVROLET CORVETTE STINGRAY"
-  },
-  {
    "date": "2024-04-13",
    "venue": "Bring a Trailer",
    "price_usd": 67620,
@@ -625,22 +592,6 @@
   },
   {
    "date": "2024-01-29",
-   "venue": "Barrett-Jackson",
-   "price_usd": 82500,
-   "basis": "buyer-paid",
-   "hammer_usd": 75000,
-   "native": {
-    "amount": 82500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2020,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2020-chevrolet-corvette-275370?origin=results",
-   "chassis": "1G1Y62D46L5112764",
-   "title": "2020 CHEVROLET CORVETTE"
-  },
-  {
-   "date": "2024-01-29",
    "venue": "Cars & Bids",
    "price_usd": 66675,
    "basis": "sold+fee",
@@ -654,22 +605,6 @@
    "url": "https://carsandbids.com/auctions/rNNVe614/2020-chevrolet-corvette-stingray-coupe",
    "chassis": "1G1Y72D44L5114221",
    "title": "2020 Chevrolet Corvette Stingray Coupe"
-  },
-  {
-   "date": "2024-01-25",
-   "venue": "Barrett-Jackson",
-   "price_usd": 68200,
-   "basis": "buyer-paid",
-   "hammer_usd": 62000,
-   "native": {
-    "amount": 68200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2020,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2020-chevrolet-corvette-stingray-1lt-272677?origin=results",
-   "chassis": "1G1Y62D44L5105411",
-   "title": "2020 CHEVROLET CORVETTE STINGRAY 1LT"
   },
   {
    "date": "2024-01-17",

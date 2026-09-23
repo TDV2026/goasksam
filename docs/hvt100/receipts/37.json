@@ -3,33 +3,16 @@
  "listed": "1989 Ferrari Testarossa",
  "status": "compare",
  "year_scope": "adjacent years pooled (1987-1991)",
- "basis": "mixed (25% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (27% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Ferrari",
   "model": "Testarossa",
   "window": "36mo",
   "year_min": 1987,
-  "year_max": 1991,
-  "body": "coupe"
+  "year_max": 1991
  },
  "halo_dropped": 0,
  "sales": [
-  {
-   "date": "2026-09-21",
-   "venue": "Bring a Trailer",
-   "price_usd": 209722,
-   "basis": "sold+fee",
-   "hammer_usd": 202222,
-   "native": {
-    "amount": 202222,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1987,
-   "url": "https://bringatrailer.com/listing/1987-ferrari-testarossa-53/",
-   "chassis": "ZFFSG17A3H0069531",
-   "title": "22k-Mile 1987 Ferrari Testarossa"
-  },
   {
    "date": "2026-08-15",
    "venue": "RM Sotheby's",
@@ -61,6 +44,214 @@
    "url": "https://www.goodingco.com/lot/1989-ferrari-testarossa-pb26",
    "chassis": "ZFFSG17AXK0082851",
    "title": "1989 Ferrari Testarossa (PB26)"
+  },
+  {
+   "date": "2025-11-01",
+   "venue": "RM Sotheby's",
+   "price_usd": 189865,
+   "basis": "buyer-paid",
+   "hammer_usd": 165100,
+   "native": {
+    "amount": 149500,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1989,
+   "url": "https://rmsothebys.com/auctions/lf25/lots/r0047-1989-ferrari-testarossa/",
+   "chassis": "ZFFAA17C000079814",
+   "title": "1989 Ferrari Testarossa"
+  },
+  {
+   "date": "2025-10-18",
+   "venue": "RM Sotheby's",
+   "price_usd": 173880,
+   "basis": "buyer-paid",
+   "hammer_usd": 151200,
+   "native": {
+    "amount": 161000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1989,
+   "url": "https://rmsothebys.com/auctions/mu25/lots/r0015-1989-ferrari-testarossa/",
+   "chassis": "ZFFAA17B000083579",
+   "title": "1989 Ferrari Testarossa"
+  },
+  {
+   "date": "2025-10-11",
+   "venue": "RM Sotheby's",
+   "price_usd": 149500,
+   "basis": "buyer-paid",
+   "hammer_usd": 133482,
+   "native": {
+    "amount": 149500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://rmsothebys.com/auctions/id25/lots/r0008-1987-ferrari-testarossa-monodado/",
+   "chassis": "ZFFSA17S000070625",
+   "title": "1987 Ferrari Testarossa 'Monodado'"
+  },
+  {
+   "date": "2025-03-08",
+   "venue": "Broad Arrow",
+   "price_usd": 156800,
+   "basis": "buyer-paid",
+   "hammer_usd": 140000,
+   "native": {
+    "amount": 156800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1988,
+   "url": "https://www.broadarrowauctions.com/vehicles/am25_r080/1988-ferrari-testarossa",
+   "chassis": "ZFFSG17A3J0078798",
+   "title": "1988 Ferrari Testarossa"
+  },
+  {
+   "date": "2024-10-12",
+   "venue": "Barrett-Jackson",
+   "price_usd": 129800,
+   "basis": "buyer-paid",
+   "hammer_usd": 118000,
+   "native": {
+    "amount": 129800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1988,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1988-ferrari-testarossa-279810?origin=results",
+   "chassis": "ZFFSG17A2J0076119",
+   "title": "1988 FERRARI TESTAROSSA"
+  },
+  {
+   "date": "2024-08-15",
+   "venue": "Broad Arrow",
+   "price_usd": 456000,
+   "basis": "buyer-paid",
+   "hammer_usd": 410000,
+   "native": {
+    "amount": 456000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1989,
+   "url": "https://www.broadarrowauctions.com/vehicles/jc24_r047/1989-ferrari-testarossa",
+   "chassis": "ZFFSG17A5K0080179",
+   "title": "1989 Ferrari Testarossa"
+  },
+  {
+   "date": "2024-04-21",
+   "venue": "Barrett-Jackson",
+   "price_usd": 115500,
+   "basis": "buyer-paid",
+   "hammer_usd": 105000,
+   "native": {
+    "amount": 115500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1989,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/1989-ferrari-testarossa-277761?origin=results",
+   "chassis": "ZFFSG17A4K0081355",
+   "title": "1989 FERRARI TESTAROSSA"
+  },
+  {
+   "date": "2024-04-14",
+   "venue": "Bonhams",
+   "price_usd": 115380,
+   "basis": "buyer-paid",
+   "hammer_usd": 100330,
+   "native": {
+    "amount": 90850,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://cars.bonhams.com/auction/29331/lot/170/1987-ferrari-testarossa-coupe-chassis-no-zffaa17c000075642-engine-no-10751/",
+   "chassis": "ZFFAA17C000075642",
+   "title": "1987 Ferrari Testarossa Coupé Chassis no. ZFFAA17C000075642 Engine no. 10751"
+  },
+  {
+   "date": "2024-03-02",
+   "venue": "RM Sotheby's",
+   "price_usd": 123200,
+   "basis": "buyer-paid",
+   "hammer_usd": 110000,
+   "native": {
+    "amount": 123200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://rmsothebys.com/auctions/mi24/lots/r0099-1987-ferrari-testarossa/",
+   "chassis": "ZFFSG17A3H0069013",
+   "title": "1987 Ferrari Testarossa"
+  },
+  {
+   "date": "2024-02-29",
+   "venue": "Gooding Christie's",
+   "price_usd": 348750,
+   "basis": "buyer-paid",
+   "hammer_usd": 312500,
+   "native": {
+    "amount": 348750,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1989,
+   "url": "https://www.goodingco.com/lot/1989-ferrari-testarossa-1",
+   "chassis": "ZFFSA17S000080096",
+   "title": "1989 Ferrari Testarossa (FL24)"
+  },
+  {
+   "date": "2024-02-01",
+   "venue": "Bonhams",
+   "price_usd": 151200,
+   "basis": "buyer-paid",
+   "hammer_usd": 131478,
+   "native": {
+    "amount": 140000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1988,
+   "url": "https://cars.bonhams.com/auction/29216/lot/127/1988-ferrari-testarossa-chassis-no-zffaa17b000076659-engine-no-f113b-12090/",
+   "chassis": "ZFFAA17B000076659",
+   "title": "1988 Ferrari Testarossa Chassis no. ZFFAA17B000076659 Engine no. F113B 12090"
+  },
+  {
+   "date": "2023-11-04",
+   "venue": "RM Sotheby's",
+   "price_usd": 216154,
+   "basis": "buyer-paid",
+   "hammer_usd": 187960,
+   "native": {
+    "amount": 170200,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1988,
+   "url": "https://rmsothebys.com/auctions/lf23/lots/r0003-1988-ferrari-testarossa/",
+   "chassis": "ZFFAA17C000079325",
+   "title": "1988 Ferrari Testarossa"
+  },
+  {
+   "date": "2026-09-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 209722,
+   "basis": "sold+fee",
+   "hammer_usd": 202222,
+   "native": {
+    "amount": 202222,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-ferrari-testarossa-53/",
+   "chassis": "ZFFSG17A3H0069531",
+   "title": "22k-Mile 1987 Ferrari Testarossa"
   },
   {
    "date": "2026-07-09",
@@ -143,22 +334,6 @@
    "title": "Euro 1989 Ferrari Testarossa"
   },
   {
-   "date": "2026-01-24",
-   "venue": "Barrett-Jackson",
-   "price_usd": 264000,
-   "basis": "buyer-paid",
-   "hammer_usd": 240000,
-   "native": {
-    "amount": 264000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1987,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1987-ferrari-testarossa-straman-convertible-293643?origin=results",
-   "chassis": "ZFFSG17A3H0068525",
-   "title": "1987 FERRARI TESTAROSSA STRAMAN CONVERTIBLE"
-  },
-  {
    "date": "2026-01-12",
    "venue": "Bring a Trailer",
    "price_usd": 242500,
@@ -223,22 +398,6 @@
    "title": "1988 Ferrari Testarossa"
   },
   {
-   "date": "2025-11-01",
-   "venue": "RM Sotheby's",
-   "price_usd": 189865,
-   "basis": "buyer-paid",
-   "hammer_usd": 165100,
-   "native": {
-    "amount": 149500,
-    "currency": "GBP",
-    "premium_inclusive": true
-   },
-   "year": 1989,
-   "url": "https://rmsothebys.com/auctions/lf25/lots/r0047-1989-ferrari-testarossa/",
-   "chassis": "ZFFAA17C000079814",
-   "title": "1989 Ferrari Testarossa"
-  },
-  {
    "date": "2025-10-30",
    "venue": "Bring a Trailer",
    "price_usd": 156450,
@@ -253,54 +412,6 @@
    "url": "https://bringatrailer.com/listing/1989-ferrari-testarossa-51/",
    "chassis": "ZFFSG17A9K0080671",
    "title": "1989 Ferrari Testarossa"
-  },
-  {
-   "date": "2025-10-28",
-   "venue": "Bring a Trailer",
-   "price_usd": 190500,
-   "basis": "sold+fee",
-   "hammer_usd": 183000,
-   "native": {
-    "amount": 183000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1988,
-   "url": "https://bringatrailer.com/listing/1988-ferrari-testarossa-69/",
-   "chassis": "ZFFAA17B000074735",
-   "title": "36-Years-Owned 1988 Ferrari Testarossa Straman Convertible"
-  },
-  {
-   "date": "2025-10-18",
-   "venue": "RM Sotheby's",
-   "price_usd": 173880,
-   "basis": "buyer-paid",
-   "hammer_usd": 151200,
-   "native": {
-    "amount": 161000,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 1989,
-   "url": "https://rmsothebys.com/auctions/mu25/lots/r0015-1989-ferrari-testarossa/",
-   "chassis": "ZFFAA17B000083579",
-   "title": "1989 Ferrari Testarossa"
-  },
-  {
-   "date": "2025-10-11",
-   "venue": "RM Sotheby's",
-   "price_usd": 149500,
-   "basis": "buyer-paid",
-   "hammer_usd": 133482,
-   "native": {
-    "amount": 149500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1987,
-   "url": "https://rmsothebys.com/auctions/id25/lots/r0008-1987-ferrari-testarossa-monodado/",
-   "chassis": "ZFFSA17S000070625",
-   "title": "1987 Ferrari Testarossa 'Monodado'"
   },
   {
    "date": "2025-09-24",
@@ -415,22 +526,6 @@
    "title": "1987 Ferrari Testarossa"
   },
   {
-   "date": "2025-03-08",
-   "venue": "Broad Arrow",
-   "price_usd": 156800,
-   "basis": "buyer-paid",
-   "hammer_usd": 140000,
-   "native": {
-    "amount": 156800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1988,
-   "url": "https://www.broadarrowauctions.com/vehicles/am25_r080/1988-ferrari-testarossa",
-   "chassis": "ZFFSG17A3J0078798",
-   "title": "1988 Ferrari Testarossa"
-  },
-  {
    "date": "2025-02-22",
    "venue": "Bring a Trailer",
    "price_usd": 105000,
@@ -527,22 +622,6 @@
    "title": "38k-Mile 1988 Ferrari Testarossa"
   },
   {
-   "date": "2024-10-12",
-   "venue": "Barrett-Jackson",
-   "price_usd": 129800,
-   "basis": "buyer-paid",
-   "hammer_usd": 118000,
-   "native": {
-    "amount": 129800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1988,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1988-ferrari-testarossa-279810?origin=results",
-   "chassis": "ZFFSG17A2J0076119",
-   "title": "1988 FERRARI TESTAROSSA"
-  },
-  {
    "date": "2024-10-01",
    "venue": "Bring a Trailer",
    "price_usd": 127050,
@@ -575,22 +654,6 @@
    "title": "1988 Ferrari Testarossa"
   },
   {
-   "date": "2024-08-15",
-   "venue": "Broad Arrow",
-   "price_usd": 456000,
-   "basis": "buyer-paid",
-   "hammer_usd": 410000,
-   "native": {
-    "amount": 456000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1989,
-   "url": "https://www.broadarrowauctions.com/vehicles/jc24_r047/1989-ferrari-testarossa",
-   "chassis": "ZFFSG17A5K0080179",
-   "title": "1989 Ferrari Testarossa"
-  },
-  {
    "date": "2024-08-08",
    "venue": "Bring a Trailer",
    "price_usd": 128100,
@@ -605,22 +668,6 @@
    "url": "https://bringatrailer.com/listing/1987-ferrari-testarossa-38/",
    "chassis": "ZFFSG17A9H0070229",
    "title": "32-Years-Owned 1987 Ferrari Testarossa"
-  },
-  {
-   "date": "2024-08-02",
-   "venue": "Bring a Trailer",
-   "price_usd": 250500,
-   "basis": "sold+fee",
-   "hammer_usd": 243000,
-   "native": {
-    "amount": 243000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1987,
-   "url": "https://bringatrailer.com/listing/1987-ferrari-testarossa-39/",
-   "chassis": "ZFFSG17A3H0068525",
-   "title": "26-Years-Owned 1987 Ferrari Testarossa Straman Convertible"
   },
   {
    "date": "2024-07-30",
@@ -669,54 +716,6 @@
    "url": "https://bringatrailer.com/listing/1989-ferrari-testarossa-42/",
    "chassis": "ZFFSG17A2K0079975",
    "title": "29-Years-Owned 1989 Ferrari Testarossa"
-  },
-  {
-   "date": "2024-04-21",
-   "venue": "Barrett-Jackson",
-   "price_usd": 115500,
-   "basis": "buyer-paid",
-   "hammer_usd": 105000,
-   "native": {
-    "amount": 115500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1989,
-   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/1989-ferrari-testarossa-277761?origin=results",
-   "chassis": "ZFFSG17A4K0081355",
-   "title": "1989 FERRARI TESTAROSSA"
-  },
-  {
-   "date": "2024-03-02",
-   "venue": "RM Sotheby's",
-   "price_usd": 123200,
-   "basis": "buyer-paid",
-   "hammer_usd": 110000,
-   "native": {
-    "amount": 123200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1987,
-   "url": "https://rmsothebys.com/auctions/mi24/lots/r0099-1987-ferrari-testarossa/",
-   "chassis": "ZFFSG17A3H0069013",
-   "title": "1987 Ferrari Testarossa"
-  },
-  {
-   "date": "2024-02-29",
-   "venue": "Gooding Christie's",
-   "price_usd": 348750,
-   "basis": "buyer-paid",
-   "hammer_usd": 312500,
-   "native": {
-    "amount": 348750,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1989,
-   "url": "https://www.goodingco.com/lot/1989-ferrari-testarossa-1",
-   "chassis": "ZFFSA17S000080096",
-   "title": "1989 Ferrari Testarossa (FL24)"
   },
   {
    "date": "2024-01-15",
@@ -799,22 +798,6 @@
    "title": "1987 Ferrari Testarossa"
   },
   {
-   "date": "2023-11-04",
-   "venue": "RM Sotheby's",
-   "price_usd": 216154,
-   "basis": "buyer-paid",
-   "hammer_usd": 187960,
-   "native": {
-    "amount": 170200,
-    "currency": "GBP",
-    "premium_inclusive": true
-   },
-   "year": 1988,
-   "url": "https://rmsothebys.com/auctions/lf23/lots/r0003-1988-ferrari-testarossa/",
-   "chassis": "ZFFAA17C000079325",
-   "title": "1988 Ferrari Testarossa"
-  },
-  {
    "date": "2023-10-11",
    "venue": "Bring a Trailer",
    "price_usd": 113400,
@@ -845,22 +828,6 @@
    "url": "https://bringatrailer.com/listing/1988-ferrari-testarossa-51/",
    "chassis": "ZFFSG17A6J0077256",
    "title": "25k-Mile 1988.5 Ferrari Testarossa"
-  },
-  {
-   "date": "2023-09-26",
-   "venue": "Bring a Trailer",
-   "price_usd": 328760,
-   "basis": "sold+fee",
-   "hammer_usd": 321260,
-   "native": {
-    "amount": 321260,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1987,
-   "url": "https://bringatrailer.com/listing/1987-ferrari-testarossa-34/",
-   "chassis": "ZFFSG17A3H0068525",
-   "title": "1987 Ferrari Testarossa Straman Convertible"
   }
  ]
 }

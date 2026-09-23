@@ -9,11 +9,42 @@
   "model": "GT-R",
   "window": "36mo",
   "year_min": 2009,
-  "year_max": 2011,
-  "body": "coupe"
+  "year_max": 2011
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2026-01-23",
+   "venue": "RM Sotheby's",
+   "price_usd": 100800,
+   "basis": "buyer-paid",
+   "hammer_usd": 90000,
+   "native": {
+    "amount": 100800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2009,
+   "url": "https://rmsothebys.com/auctions/az26/lots/r0049-2009-nissan-gtr",
+   "chassis": "JN1AR54F99M251565",
+   "title": "2009 Nissan GT-R"
+  },
+  {
+   "date": "2024-01-28",
+   "venue": "Barrett-Jackson",
+   "price_usd": 59400,
+   "basis": "buyer-paid",
+   "hammer_usd": 54000,
+   "native": {
+    "amount": 59400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2009,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2009-nissan-gt-r-275396?origin=results",
+   "chassis": "JN1AR54F59M251174",
+   "title": "2009 NISSAN GT-R"
+  },
   {
    "date": "2026-09-15",
    "venue": "Cars & Bids",
@@ -45,22 +76,6 @@
    "url": "https://bringatrailer.com/listing/2010-nissan-gt-r-premium-13/",
    "chassis": "JN1AR5EF9AM230170",
    "title": "2010 Nissan GT-R Premium"
-  },
-  {
-   "date": "2026-01-23",
-   "venue": "RM Sotheby's",
-   "price_usd": 100800,
-   "basis": "buyer-paid",
-   "hammer_usd": 90000,
-   "native": {
-    "amount": 100800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2009,
-   "url": "https://rmsothebys.com/auctions/az26/lots/r0049-2009-nissan-gtr",
-   "chassis": "JN1AR54F99M251565",
-   "title": "2009 Nissan GT-R"
   },
   {
    "date": "2025-10-16",
@@ -189,22 +204,6 @@
    "url": "https://bringatrailer.com/listing/2010-nissan-gt-r-premium-3/",
    "chassis": "JN1AR5EF1AM230888",
    "title": "16k-Mile 2010 Nissan GT-R Premium"
-  },
-  {
-   "date": "2024-01-28",
-   "venue": "Barrett-Jackson",
-   "price_usd": 59400,
-   "basis": "buyer-paid",
-   "hammer_usd": 54000,
-   "native": {
-    "amount": 59400,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2009,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2009-nissan-gt-r-275396?origin=results",
-   "chassis": "JN1AR54F59M251174",
-   "title": "2009 NISSAN GT-R"
   },
   {
    "date": "2023-11-22",

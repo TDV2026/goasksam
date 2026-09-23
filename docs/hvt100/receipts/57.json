@@ -10,43 +10,10 @@
   "window": "36mo",
   "year_min": 1993,
   "year_max": 1993,
-  "trim": "RT/10",
-  "body": "roadster"
+  "trim": "RT/10"
  },
  "halo_dropped": 0,
  "sales": [
-  {
-   "date": "2026-08-01",
-   "venue": "Bring a Trailer",
-   "price_usd": 40426,
-   "basis": "sold+fee",
-   "hammer_usd": 38501,
-   "native": {
-    "amount": 38501,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1993,
-   "url": "https://bringatrailer.com/listing/1993-dodge-viper-rt-10-31/",
-   "chassis": "1B3BR65E2PV200530",
-   "title": "13k-Mile 1993 Dodge Viper RT/10"
-  },
-  {
-   "date": "2026-07-21",
-   "venue": "Bring a Trailer",
-   "price_usd": 49350,
-   "basis": "sold+fee",
-   "hammer_usd": 47000,
-   "native": {
-    "amount": 47000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1993,
-   "url": "https://bringatrailer.com/listing/1993-dodge-viper-rt-10-30/",
-   "chassis": "1B3BR65E6PV200823",
-   "title": "2,800-Mile 1993 Dodge Viper RT/10"
-  },
   {
    "date": "2026-06-27",
    "venue": "Barrett-Jackson",
@@ -78,6 +45,38 @@
    "url": "https://www.barrett-jackson.com/2026-columbus/docket/vehicle/1993-dodge-viper-rt10-roadster-pace-car-301173?origin=results",
    "chassis": "1B3BR65E2PV200012",
    "title": "1993 DODGE VIPER RT/10 ROADSTER PACE CAR"
+  },
+  {
+   "date": "2026-08-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 40426,
+   "basis": "sold+fee",
+   "hammer_usd": 38501,
+   "native": {
+    "amount": 38501,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-dodge-viper-rt-10-31/",
+   "chassis": "1B3BR65E2PV200530",
+   "title": "13k-Mile 1993 Dodge Viper RT/10"
+  },
+  {
+   "date": "2026-07-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 49350,
+   "basis": "sold+fee",
+   "hammer_usd": 47000,
+   "native": {
+    "amount": 47000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-dodge-viper-rt-10-30/",
+   "chassis": "1B3BR65E6PV200823",
+   "title": "2,800-Mile 1993 Dodge Viper RT/10"
   },
   {
    "date": "2026-06-16",

@@ -2,50 +2,17 @@
  "car_id": 10,
  "listed": "1968 Pontiac GTO",
  "status": "compare",
- "year_scope": "exact 1968",
- "basis": "mixed (17% house buyer-paid, rest sold+fee)",
+ "year_scope": "adjacent years pooled (1966-1970)",
+ "basis": "mixed (15% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Pontiac",
   "model": "GTO",
   "window": "36mo",
-  "year_min": 1968,
-  "year_max": 1968,
-  "body": "coupe"
+  "year_min": 1966,
+  "year_max": 1970
  },
- "halo_dropped": 0,
+ "halo_dropped": 1,
  "sales": [
-  {
-   "date": "2026-09-07",
-   "venue": "Bring a Trailer",
-   "price_usd": 46988,
-   "basis": "sold+fee",
-   "hammer_usd": 44750,
-   "native": {
-    "amount": 44750,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-134/",
-   "chassis": "242378R145456",
-   "title": "1968 Pontiac GTO Hardtop Coupe"
-  },
-  {
-   "date": "2026-08-31",
-   "venue": "Bring a Trailer",
-   "price_usd": 40950,
-   "basis": "sold+fee",
-   "hammer_usd": 39000,
-   "native": {
-    "amount": 39000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-135/",
-   "chassis": "242678P304471",
-   "title": "1968 Pontiac GTO Convertible"
-  },
   {
    "date": "2026-07-25",
    "venue": "Mecum",
@@ -61,6 +28,54 @@
    "url": "https://www.mecum.com/lots/1175610/1968-pontiac-gto?aa_id=792090-0",
    "chassis": "242378P360144",
    "title": "1968 Pontiac GTO"
+  },
+  {
+   "date": "2026-07-25",
+   "venue": "Mecum",
+   "price_usd": 115500,
+   "basis": "sold+fee",
+   "hammer_usd": 110000,
+   "native": {
+    "amount": 121000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1966,
+   "url": "https://www.mecum.com/lots/1176057/1966-pontiac-gto?aa_id=797246-0",
+   "chassis": "242176P128978",
+   "title": "1966 Pontiac GTO"
+  },
+  {
+   "date": "2026-07-24",
+   "venue": "Mecum",
+   "price_usd": 42000,
+   "basis": "sold+fee",
+   "hammer_usd": 40000,
+   "native": {
+    "amount": 44000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1966,
+   "url": "https://www.mecum.com/lots/1175580/1966-pontiac-gto?aa_id=792418-0",
+   "chassis": "242176B119221",
+   "title": "1966 Pontiac GTO"
+  },
+  {
+   "date": "2026-07-24",
+   "venue": "Mecum",
+   "price_usd": 57750,
+   "basis": "sold+fee",
+   "hammer_usd": 55000,
+   "native": {
+    "amount": 60500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1967,
+   "url": "https://www.mecum.com/lots/1175619/1967-pontiac-gto?aa_id=791995-0",
+   "chassis": "242177Z122403",
+   "title": "1967 Pontiac GTO"
   },
   {
    "date": "2026-06-26",
@@ -79,116 +94,180 @@
    "title": "1968 PONTIAC GTO"
   },
   {
-   "date": "2026-06-12",
-   "venue": "Bring a Trailer",
-   "price_usd": 55125,
+   "date": "2026-06-06",
+   "venue": "Mecum",
+   "price_usd": 82950,
    "basis": "sold+fee",
-   "hammer_usd": 52500,
+   "hammer_usd": 79000,
    "native": {
-    "amount": 52500,
+    "amount": 86900,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-119-2/",
-   "chassis": "242678P349643",
-   "title": "1968 Pontiac GTO Convertible 4-Speed"
+   "year": 1966,
+   "url": "https://www.mecum.com/lots/1175107/1966-pontiac-gto?aa_id=789542-0",
+   "chassis": "242176P164166",
+   "title": "1966 Pontiac GTO"
   },
   {
    "date": "2026-05-16",
    "venue": "Mecum",
-   "price_usd": 67725,
+   "price_usd": 110250,
    "basis": "sold+fee",
-   "hammer_usd": 64500,
+   "hammer_usd": 105000,
    "native": {
-    "amount": 70950,
+    "amount": 115500,
     "currency": "USD",
     "premium_inclusive": true
    },
-   "year": 1968,
-   "url": "https://www.mecum.com/lots/1169370/1968-pontiac-gto-convertible?aa_id=778327-0",
-   "chassis": "242678P235248",
-   "title": "1968 Pontiac GTO Convertible"
+   "year": 1966,
+   "url": "https://www.mecum.com/lots/1172198/1966-pontiac-gto?aa_id=774187-0",
+   "chassis": "242176Z112104",
+   "title": "1966 Pontiac GTO"
   },
   {
-   "date": "2026-04-15",
-   "venue": "Bring a Trailer",
-   "price_usd": 39900,
+   "date": "2026-05-15",
+   "venue": "Mecum",
+   "price_usd": 67200,
    "basis": "sold+fee",
-   "hammer_usd": 38000,
+   "hammer_usd": 64000,
    "native": {
-    "amount": 38000,
+    "amount": 70400,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-125/",
-   "chassis": "242678Z118860",
-   "title": "1968 Pontiac GTO Convertible"
+   "year": 1966,
+   "url": "https://www.mecum.com/lots/1172019/1966-pontiac-gto?aa_id=777410-0",
+   "chassis": "242176P186757",
+   "title": "1966 Pontiac GTO"
   },
   {
-   "date": "2026-03-31",
-   "venue": "Bring a Trailer",
-   "price_usd": 53550,
+   "date": "2026-05-13",
+   "venue": "Mecum",
+   "price_usd": 78750,
    "basis": "sold+fee",
-   "hammer_usd": 51000,
+   "hammer_usd": 75000,
    "native": {
-    "amount": 51000,
+    "amount": 82500,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-121/",
-   "chassis": "242678P298508",
-   "title": "1968 Pontiac GTO Convertible 4-Speed"
+   "year": 1967,
+   "url": "https://www.mecum.com/lots/1167151/1967-pontiac-gto?aa_id=765100-0",
+   "chassis": "242077P174861",
+   "title": "1967 Pontiac GTO"
   },
   {
-   "date": "2026-03-14",
-   "venue": "Bring a Trailer",
-   "price_usd": 57750,
+   "date": "2026-04-17",
+   "venue": "Barrett-Jackson",
+   "price_usd": 71500,
+   "basis": "buyer-paid",
+   "hammer_usd": 65000,
+   "native": {
+    "amount": 71500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1967,
+   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/1967-pontiac-gto-297991?origin=results",
+   "chassis": "242177B123326",
+   "title": "1967 PONTIAC GTO"
+  },
+  {
+   "date": "2026-04-11",
+   "venue": "Mecum",
+   "price_usd": 136500,
    "basis": "sold+fee",
-   "hammer_usd": 55000,
+   "hammer_usd": 130000,
+   "native": {
+    "amount": 143000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1966,
+   "url": "https://www.mecum.com/lots/1170389/1966-pontiac-gto?aa_id=773927-0",
+   "chassis": "242176Z129402",
+   "title": "1966 Pontiac GTO"
+  },
+  {
+   "date": "2026-04-10",
+   "venue": "Mecum",
+   "price_usd": 46200,
+   "basis": "sold+fee",
+   "hammer_usd": 44000,
+   "native": {
+    "amount": 48400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1966,
+   "url": "https://www.mecum.com/lots/1170618/1966-pontiac-gto?aa_id=773268-0",
+   "chassis": "242176Z116279",
+   "title": "1966 Pontiac GTO"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 55000,
+   "basis": "buyer-paid",
+   "hammer_usd": 50000,
    "native": {
     "amount": 55000,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-119/",
-   "chassis": "242678P349643",
-   "title": "1968 Pontiac GTO Convertible 4-Speed"
+   "year": 1966,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1966-pontiac-gto-294678?origin=results",
+   "chassis": "242176B145170",
+   "title": "1966 PONTIAC GTO"
   },
   {
    "date": "2026-01-21",
    "venue": "Barrett-Jackson",
-   "price_usd": 44000,
+   "price_usd": 39600,
    "basis": "buyer-paid",
-   "hammer_usd": 40000,
+   "hammer_usd": 36000,
    "native": {
-    "amount": 44000,
+    "amount": 39600,
     "currency": "USD",
     "premium_inclusive": true
    },
-   "year": 1968,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1968-pontiac-gto-convertible-292430?origin=results",
-   "chassis": "242678Z111772",
-   "title": "1968 PONTIAC GTO CONVERTIBLE"
+   "year": 1966,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1966-pontiac-gto-291995?origin=results",
+   "chassis": "242076B100842",
+   "title": "1966 PONTIAC GTO"
   },
   {
-   "date": "2025-11-17",
-   "venue": "Bring a Trailer",
-   "price_usd": 56175,
-   "basis": "sold+fee",
-   "hammer_usd": 53500,
+   "date": "2026-01-21",
+   "venue": "Barrett-Jackson",
+   "price_usd": 52800,
+   "basis": "buyer-paid",
+   "hammer_usd": 48000,
    "native": {
-    "amount": 53500,
+    "amount": 52800,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-115/",
-   "chassis": "242378K107077",
-   "title": "1968 Pontiac GTO 4-Speed"
+   "year": 1967,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1967-pontiac-gto-292618?origin=results",
+   "chassis": "242077P309789",
+   "title": "1967 PONTIAC GTO"
+  },
+  {
+   "date": "2025-10-18",
+   "venue": "Barrett-Jackson",
+   "price_usd": 99000,
+   "basis": "buyer-paid",
+   "hammer_usd": 90000,
+   "native": {
+    "amount": 99000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1967,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2025/docket/vehicle/1967-pontiac-gto-289918?origin=results",
+   "chassis": "242177P200702",
+   "title": "1967 PONTIAC GTO"
   },
   {
    "date": "2025-10-16",
@@ -207,244 +286,68 @@
    "title": "1968 PONTIAC GTO"
   },
   {
-   "date": "2025-09-30",
-   "venue": "AutoHunter",
-   "price_usd": 41475,
-   "basis": "sold+fee",
-   "hammer_usd": 39500,
+   "date": "2025-04-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 38500,
+   "basis": "buyer-paid",
+   "hammer_usd": 35000,
    "native": {
-    "amount": 39500,
+    "amount": 38500,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
-   "year": 1968,
-   "url": "https://autohunter.com/Listing/Details/77402469",
-   "chassis": "242678R201000",
-   "title": "1968 PONTIAC GTO CONVERTIBLE"
+   "year": 1966,
+   "url": "https://www.barrett-jackson.com/palm-beach-2025/docket/vehicle/1966-pontiac-gto-288245?origin=results",
+   "chassis": "242176P205027",
+   "title": "1966 PONTIAC GTO"
   },
   {
-   "date": "2025-09-17",
-   "venue": "Bring a Trailer",
-   "price_usd": 38499,
-   "basis": "sold+fee",
-   "hammer_usd": 36666,
+   "date": "2025-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 61600,
+   "basis": "buyer-paid",
+   "hammer_usd": 56000,
    "native": {
-    "amount": 36666,
+    "amount": 61600,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-113/",
-   "chassis": "242378Z111684",
-   "title": "1968 Pontiac GTO Hardtop Coupe 4-Speed"
+   "year": 1967,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1967-pontiac-gto-280877?origin=results",
+   "chassis": "242177P319452",
+   "title": "1967 PONTIAC GTO"
   },
   {
-   "date": "2025-07-25",
-   "venue": "AutoHunter",
-   "price_usd": 52500,
-   "basis": "sold+fee",
-   "hammer_usd": 50000,
+   "date": "2025-01-22",
+   "venue": "Barrett-Jackson",
+   "price_usd": 71500,
+   "basis": "buyer-paid",
+   "hammer_usd": 65000,
    "native": {
-    "amount": 50000,
+    "amount": 71500,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
-   "year": 1968,
-   "url": "https://autohunter.com/Listing/Details/72398582",
-   "chassis": "242678P246589",
-   "title": "1968 PONTIAC GTO CONVERTIBLE"
+   "year": 1966,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1966-pontiac-gto-282911?origin=results",
+   "chassis": "242176K126482",
+   "title": "1966 PONTIAC GTO"
   },
   {
-   "date": "2025-07-21",
-   "venue": "Bring a Trailer",
-   "price_usd": 50925,
-   "basis": "sold+fee",
-   "hammer_usd": 48500,
+   "date": "2025-01-22",
+   "venue": "Barrett-Jackson",
+   "price_usd": 44000,
+   "basis": "buyer-paid",
+   "hammer_usd": 40000,
    "native": {
-    "amount": 48500,
+    "amount": 44000,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-109/",
-   "chassis": "242678P284118",
-   "title": "20-Years-Family-Owned 1968 Pontiac GTO Convertible"
-  },
-  {
-   "date": "2025-05-29",
-   "venue": "Bring a Trailer",
-   "price_usd": 28632,
-   "basis": "sold+fee",
-   "hammer_usd": 27269,
-   "native": {
-    "amount": 27269,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-106/",
-   "chassis": "242378K113286",
-   "title": "1968 Pontiac GTO Hardtop Coupe"
-  },
-  {
-   "date": "2025-05-19",
-   "venue": "Hagerty",
-   "price_usd": 28088,
-   "basis": "sold+fee",
-   "hammer_usd": 26750,
-   "native": {
-    "amount": 26750,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://www.hagerty.com/marketplace/auction/1968-Pontiac-GTO/0ba3ffe9-7a13-448b-aa88-468646e8e318",
-   "chassis": "242378R185917",
-   "title": "1968 Pontiac GTO Hardtop"
-  },
-  {
-   "date": "2025-04-21",
-   "venue": "Bring a Trailer",
-   "price_usd": 34650,
-   "basis": "sold+fee",
-   "hammer_usd": 33000,
-   "native": {
-    "amount": 33000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-103/",
-   "chassis": "242678P163215",
-   "title": "1968 Pontiac GTO Convertible"
-  },
-  {
-   "date": "2024-12-22",
-   "venue": "Bring a Trailer",
-   "price_usd": 38850,
-   "basis": "sold+fee",
-   "hammer_usd": 37000,
-   "native": {
-    "amount": 37000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-98/",
-   "chassis": "242678P319620",
-   "title": "51-Years-Family-Owned 1968 Pontiac GTO Convertible"
-  },
-  {
-   "date": "2024-12-21",
-   "venue": "Bring a Trailer",
-   "price_usd": 31500,
-   "basis": "sold+fee",
-   "hammer_usd": 30000,
-   "native": {
-    "amount": 30000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-99/",
-   "chassis": "242378B108423",
-   "title": "1968 Pontiac GTO Hardtop Coupe"
-  },
-  {
-   "date": "2024-12-03",
-   "venue": "Bring a Trailer",
-   "price_usd": 26513,
-   "basis": "sold+fee",
-   "hammer_usd": 25250,
-   "native": {
-    "amount": 25250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-95/",
-   "chassis": "242378P165443",
-   "title": "1968 Pontiac GTO Hardtop Coupe 4-Speed"
-  },
-  {
-   "date": "2024-11-25",
-   "venue": "Bring a Trailer",
-   "price_usd": 23625,
-   "basis": "sold+fee",
-   "hammer_usd": 22500,
-   "native": {
-    "amount": 22500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-96/",
-   "chassis": "242378P193573",
-   "title": "1968 Pontiac GTO Hardtop Coupe 4-Speed"
-  },
-  {
-   "date": "2024-11-01",
-   "venue": "Bring a Trailer",
-   "price_usd": 26513,
-   "basis": "sold+fee",
-   "hammer_usd": 25250,
-   "native": {
-    "amount": 25250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-90/",
-   "chassis": "242678P281894",
-   "title": "21-Years-Family-Owned 1968 Pontiac GTO Convertible"
-  },
-  {
-   "date": "2024-04-20",
-   "venue": "Bring a Trailer",
-   "price_usd": 37800,
-   "basis": "sold+fee",
-   "hammer_usd": 36000,
-   "native": {
-    "amount": 36000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-84/",
-   "chassis": "242678B129984",
-   "title": "1968 Pontiac GTO Convertible 400 4-Speed"
-  },
-  {
-   "date": "2024-04-17",
-   "venue": "Bring a Trailer",
-   "price_usd": 41213,
-   "basis": "sold+fee",
-   "hammer_usd": 39250,
-   "native": {
-    "amount": 39250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-83/",
-   "chassis": "242378P224873",
-   "title": "1968 Pontiac GTO Hardtop Coupe"
-  },
-  {
-   "date": "2024-02-03",
-   "venue": "Bring a Trailer",
-   "price_usd": 53550,
-   "basis": "sold+fee",
-   "hammer_usd": 51000,
-   "native": {
-    "amount": 51000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1968,
-   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-80/",
-   "chassis": "242378P215668",
-   "title": "1968 Pontiac GTO Hardtop Coupe 400 HO"
+   "year": 1967,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1967-pontiac-gto-281534?origin=results",
+   "chassis": "242077Z108825",
+   "title": "1967 PONTIAC GTO"
   },
   {
    "date": "2024-01-25",
@@ -477,6 +380,998 @@
    "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1968-pontiac-gto-271732?origin=results",
    "chassis": "242378Z127138",
    "title": "1968 PONTIAC GTO"
+  },
+  {
+   "date": "2026-09-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 45745,
+   "basis": "sold+fee",
+   "hammer_usd": 43567,
+   "native": {
+    "amount": 43567,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-241/",
+   "chassis": "242177P267709",
+   "title": "1967 Pontiac GTO Hardtop Coupe"
+  },
+  {
+   "date": "2026-09-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 65170,
+   "basis": "sold+fee",
+   "hammer_usd": 62067,
+   "native": {
+    "amount": 62067,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-236/",
+   "chassis": "242177P201410",
+   "title": "1967 Pontiac GTO Hardtop Coupe 400 HO 4-Speed"
+  },
+  {
+   "date": "2026-09-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 67201,
+   "basis": "sold+fee",
+   "hammer_usd": 64001,
+   "native": {
+    "amount": 64001,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-239/",
+   "chassis": "242077Z127090",
+   "title": "1967 Pontiac GTO Sports Coupe"
+  },
+  {
+   "date": "2026-09-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 46988,
+   "basis": "sold+fee",
+   "hammer_usd": 44750,
+   "native": {
+    "amount": 44750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1968,
+   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-134/",
+   "chassis": "242378R145456",
+   "title": "1968 Pontiac GTO Hardtop Coupe"
+  },
+  {
+   "date": "2026-09-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 49093,
+   "basis": "sold+fee",
+   "hammer_usd": 46755,
+   "native": {
+    "amount": 46755,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://bringatrailer.com/listing/1966-pontiac-gto-165/",
+   "chassis": "242176K127240",
+   "title": "1966 Pontiac GTO Hardtop Coupe 4-Speed"
+  },
+  {
+   "date": "2026-09-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 64050,
+   "basis": "sold+fee",
+   "hammer_usd": 61000,
+   "native": {
+    "amount": 61000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://bringatrailer.com/listing/1966-pontiac-gto-163/",
+   "chassis": "242176Z115562",
+   "title": "400-Powered 1966 Pontiac GTO Hardtop 4-Speed"
+  },
+  {
+   "date": "2026-08-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 77700,
+   "basis": "sold+fee",
+   "hammer_usd": 74000,
+   "native": {
+    "amount": 74000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-235/",
+   "chassis": "242177P146446",
+   "title": "1967 Pontiac GTO Hardtop Coupe"
+  },
+  {
+   "date": "2026-08-17",
+   "venue": "Hagerty",
+   "price_usd": 41738,
+   "basis": "sold+fee",
+   "hammer_usd": 39750,
+   "native": {
+    "amount": 39750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://www.hagerty.com/marketplace/auction/1966-Pontiac-GTO/ff49ed0a-8d23-4763-b305-7443c4bc2ce0",
+   "chassis": "242176Z134029",
+   "title": "26-Years-Owned Tri-Power 1966 Pontiac GTO Hardtop Coupe 4-Speed"
+  },
+  {
+   "date": "2026-07-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 55650,
+   "basis": "sold+fee",
+   "hammer_usd": 53000,
+   "native": {
+    "amount": 53000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://bringatrailer.com/listing/1966-pontiac-gto-154/",
+   "chassis": "242176Z107468",
+   "title": "1966 Pontiac GTO Hardtop Coupe"
+  },
+  {
+   "date": "2026-07-09",
+   "venue": "Hagerty",
+   "price_usd": 45150,
+   "basis": "sold+fee",
+   "hammer_usd": 43000,
+   "native": {
+    "amount": 43000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://www.hagerty.com/marketplace/auction/1967-Pontiac-GTO/485af6ec-052a-40dc-8e89-6225f86804d5",
+   "chassis": "242177Z112369",
+   "title": "1967 Pontiac GTO Hardtop Coupe"
+  },
+  {
+   "date": "2026-06-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 53550,
+   "basis": "sold+fee",
+   "hammer_usd": 51000,
+   "native": {
+    "amount": 51000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://bringatrailer.com/listing/1966-pontiac-gto-156/",
+   "chassis": "242176B119915",
+   "title": "Tri-Power 455-Equipped 1966 Pontiac GTO Hardtop Coupe 4-Speed"
+  },
+  {
+   "date": "2026-06-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 49875,
+   "basis": "sold+fee",
+   "hammer_usd": 47500,
+   "native": {
+    "amount": 47500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-226/",
+   "chassis": "242177Z100617",
+   "title": "One-Family-Owned 1967 Pontiac GTO Hardtop Coupe"
+  },
+  {
+   "date": "2026-06-04",
+   "venue": "AutoHunter",
+   "price_usd": 45150,
+   "basis": "sold+fee",
+   "hammer_usd": 43000,
+   "native": {
+    "amount": 43000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://autohunter.com/Listing/Details/88899100",
+   "chassis": "242177P328562",
+   "title": "1967 PONTIAC GTO HARDTOP"
+  },
+  {
+   "date": "2026-05-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 59850,
+   "basis": "sold+fee",
+   "hammer_usd": 57000,
+   "native": {
+    "amount": 57000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-225/",
+   "chassis": "242177Z127402",
+   "title": "1967 Pontiac GTO Hardtop Coupe"
+  },
+  {
+   "date": "2026-03-30",
+   "venue": "Hagerty",
+   "price_usd": 55650,
+   "basis": "sold+fee",
+   "hammer_usd": 53000,
+   "native": {
+    "amount": 53000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://www.hagerty.com/marketplace/auction/1967-Pontiac-GTO/5rNcOpUHJbVLYT0i7A9ALr",
+   "chassis": "242177P316123",
+   "title": "1967 Pontiac GTO Hardtop"
+  },
+  {
+   "date": "2026-03-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 96600,
+   "basis": "sold+fee",
+   "hammer_usd": 92000,
+   "native": {
+    "amount": 92000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-195-2/",
+   "chassis": "242077Z109935",
+   "title": "1967 Pontiac GTO Sports Coupe 4-Speed"
+  },
+  {
+   "date": "2026-02-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 50000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://bringatrailer.com/listing/1966-pontiac-gto-148/",
+   "chassis": "242176P186757",
+   "title": "1966 Pontiac GTO Hardtop Coupe Tri-Power"
+  },
+  {
+   "date": "2026-01-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 49613,
+   "basis": "sold+fee",
+   "hammer_usd": 47250,
+   "native": {
+    "amount": 47250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-213/",
+   "chassis": "242177P163838",
+   "title": "38-Years-Family-Owned 1967 Pontiac GTO Hardtop Coupe 4-Speed"
+  },
+  {
+   "date": "2025-12-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 41738,
+   "basis": "sold+fee",
+   "hammer_usd": 39750,
+   "native": {
+    "amount": 39750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://bringatrailer.com/listing/1966-pontiac-gto-145/",
+   "chassis": "242176K132049",
+   "title": "1966 Pontiac GTO Hardtop Coupe 4-Speed"
+  },
+  {
+   "date": "2025-12-23",
+   "venue": "All Collector Cars",
+   "price_usd": 57330,
+   "basis": "sold+fee",
+   "hammer_usd": 54600,
+   "native": {
+    "amount": 54600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://www.allcollectorcars.com/classic-car-auctions/vehicles/1966-pontiac-gto/",
+   "chassis": "242076Z131527",
+   "title": "1966 Pontiac GTO"
+  },
+  {
+   "date": "2025-11-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 56175,
+   "basis": "sold+fee",
+   "hammer_usd": 53500,
+   "native": {
+    "amount": 53500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1968,
+   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-115/",
+   "chassis": "242378K107077",
+   "title": "1968 Pontiac GTO 4-Speed"
+  },
+  {
+   "date": "2025-11-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 26775,
+   "basis": "sold+fee",
+   "hammer_usd": 25500,
+   "native": {
+    "amount": 25500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-208/",
+   "chassis": "242077Z114436",
+   "title": "1967 Pontiac GTO Sports Coupe"
+  },
+  {
+   "date": "2025-11-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 44363,
+   "basis": "sold+fee",
+   "hammer_usd": 42250,
+   "native": {
+    "amount": 42250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-207/",
+   "chassis": "242177P225662",
+   "title": "1967 Pontiac GTO Hardtop Coupe 4-Speed"
+  },
+  {
+   "date": "2025-10-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 43838,
+   "basis": "sold+fee",
+   "hammer_usd": 41750,
+   "native": {
+    "amount": 41750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://bringatrailer.com/listing/1966-pontiac-gto-137/",
+   "chassis": "242176P156431",
+   "title": "1966 Pontiac GTO Hardtop Coupe 4-Speed"
+  },
+  {
+   "date": "2025-09-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 38499,
+   "basis": "sold+fee",
+   "hammer_usd": 36666,
+   "native": {
+    "amount": 36666,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1968,
+   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-113/",
+   "chassis": "242378Z111684",
+   "title": "1968 Pontiac GTO Hardtop Coupe 4-Speed"
+  },
+  {
+   "date": "2025-09-15",
+   "venue": "All Collector Cars",
+   "price_usd": 62843,
+   "basis": "sold+fee",
+   "hammer_usd": 59850,
+   "native": {
+    "amount": 59850,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://www.allcollectorcars.com/classic-car-auctions/vehicles/1966-pontiac-gto-3/",
+   "chassis": "242176P225108",
+   "title": "1966 Pontiac GTO"
+  },
+  {
+   "date": "2025-09-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 59850,
+   "basis": "sold+fee",
+   "hammer_usd": 57000,
+   "native": {
+    "amount": 57000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-194/",
+   "chassis": "242177P204653",
+   "title": "1967 Pontiac GTO Hardtop Coupe 5-Speed"
+  },
+  {
+   "date": "2025-09-04",
+   "venue": "All Collector Cars",
+   "price_usd": 69017,
+   "basis": "sold+fee",
+   "hammer_usd": 65730,
+   "native": {
+    "amount": 65730,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://www.allcollectorcars.com/classic-car-auctions/vehicles/1967-pontiac-gto-2dr-cpe/",
+   "chassis": "242177P319675",
+   "title": "1967 Pontiac GTO"
+  },
+  {
+   "date": "2025-08-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 59850,
+   "basis": "sold+fee",
+   "hammer_usd": 57000,
+   "native": {
+    "amount": 57000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://bringatrailer.com/listing/1966-pontiac-gto-133/",
+   "chassis": "242176P141851",
+   "title": "1966 Pontiac GTO Tri-Power 4-Speed"
+  },
+  {
+   "date": "2025-05-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 28632,
+   "basis": "sold+fee",
+   "hammer_usd": 27269,
+   "native": {
+    "amount": 27269,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1968,
+   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-106/",
+   "chassis": "242378K113286",
+   "title": "1968 Pontiac GTO Hardtop Coupe"
+  },
+  {
+   "date": "2025-05-22",
+   "venue": "AutoHunter",
+   "price_usd": 51975,
+   "basis": "sold+fee",
+   "hammer_usd": 49500,
+   "native": {
+    "amount": 49500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://autohunter.com/Listing/Details/69941502",
+   "chassis": "242177P328562",
+   "title": "1967 PONTIAC GTO TWO-DOOR HARDTOP"
+  },
+  {
+   "date": "2025-05-19",
+   "venue": "Hagerty",
+   "price_usd": 28088,
+   "basis": "sold+fee",
+   "hammer_usd": 26750,
+   "native": {
+    "amount": 26750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1968,
+   "url": "https://www.hagerty.com/marketplace/auction/1968-Pontiac-GTO/0ba3ffe9-7a13-448b-aa88-468646e8e318",
+   "chassis": "242378R185917",
+   "title": "1968 Pontiac GTO Hardtop"
+  },
+  {
+   "date": "2025-04-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 45744,
+   "basis": "sold+fee",
+   "hammer_usd": 43566,
+   "native": {
+    "amount": 43566,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://bringatrailer.com/listing/1966-pontiac-gto-125/",
+   "chassis": "242176P286081",
+   "title": "1966 Pontiac GTO 4-Speed"
+  },
+  {
+   "date": "2025-04-02",
+   "venue": "AutoHunter",
+   "price_usd": 28350,
+   "basis": "sold+fee",
+   "hammer_usd": 27000,
+   "native": {
+    "amount": 27000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://autohunter.com/Listing/Details/67519829",
+   "chassis": "242077K129681",
+   "title": "1967 PONTIAC GTO SPORTS COUPE"
+  },
+  {
+   "date": "2025-03-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 26513,
+   "basis": "sold+fee",
+   "hammer_usd": 25250,
+   "native": {
+    "amount": 25250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-177/",
+   "chassis": "2421777115229",
+   "title": "1967 Pontiac GTO Hardtop Coupe 4-Speed"
+  },
+  {
+   "date": "2025-02-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 66675,
+   "basis": "sold+fee",
+   "hammer_usd": 63500,
+   "native": {
+    "amount": 63500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-165-2/",
+   "chassis": "242177G105098",
+   "title": "1967 Pontiac GTO Hardtop Coupe"
+  },
+  {
+   "date": "2025-02-10",
+   "venue": "Hemmings",
+   "price_usd": 32025,
+   "basis": "sold+fee",
+   "hammer_usd": 30500,
+   "native": {
+    "amount": 30500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://www.hemmings.com/auction/1966-pontiac-gto-elizabethtown-ky-516602",
+   "chassis": "242176P218672",
+   "title": "1966 Pontiac GTO Hardtop With Three Deuces and a Four-Speed"
+  },
+  {
+   "date": "2025-02-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 42788,
+   "basis": "sold+fee",
+   "hammer_usd": 40750,
+   "native": {
+    "amount": 40750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-175/",
+   "chassis": "242177G106757",
+   "title": "1967 Pontiac GTO Hardtop Coupe"
+  },
+  {
+   "date": "2025-02-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 43050,
+   "basis": "sold+fee",
+   "hammer_usd": 41000,
+   "native": {
+    "amount": 41000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-173/",
+   "chassis": "242177Z119192",
+   "title": "1967 Pontiac GTO Hardtop"
+  },
+  {
+   "date": "2025-01-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 58380,
+   "basis": "sold+fee",
+   "hammer_usd": 55600,
+   "native": {
+    "amount": 55600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://bringatrailer.com/listing/1966-pontiac-gto-120/",
+   "chassis": "242176P138420",
+   "title": "Tri-Power-Equipped 1966 Pontiac GTO Hardtop Coupe 4-Speed"
+  },
+  {
+   "date": "2025-01-13",
+   "venue": "AutoHunter",
+   "price_usd": 39900,
+   "basis": "sold+fee",
+   "hammer_usd": 38000,
+   "native": {
+    "amount": 38000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://autohunter.com/Listing/Details/64515426",
+   "chassis": "242177K113795",
+   "title": "1967 PONTIAC GTO"
+  },
+  {
+   "date": "2024-12-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 31500,
+   "basis": "sold+fee",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 30000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1968,
+   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-99/",
+   "chassis": "242378B108423",
+   "title": "1968 Pontiac GTO Hardtop Coupe"
+  },
+  {
+   "date": "2024-12-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 43313,
+   "basis": "sold+fee",
+   "hammer_usd": 41250,
+   "native": {
+    "amount": 41250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-169/",
+   "chassis": "242177G111146",
+   "title": "1967 Pontiac GTO Hardtop Coupe 4-Speed"
+  },
+  {
+   "date": "2024-12-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 26513,
+   "basis": "sold+fee",
+   "hammer_usd": 25250,
+   "native": {
+    "amount": 25250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1968,
+   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-95/",
+   "chassis": "242378P165443",
+   "title": "1968 Pontiac GTO Hardtop Coupe 4-Speed"
+  },
+  {
+   "date": "2024-11-29",
+   "venue": "Hemmings",
+   "price_usd": 68250,
+   "basis": "sold+fee",
+   "hammer_usd": 65000,
+   "native": {
+    "amount": 65000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://www.hemmings.com/auction/1967-pontiac-gto-jackson-tn-564847",
+   "chassis": "242177K109105",
+   "title": "Refreshed and Upgraded 1967 Pontiac GTO Hardtop"
+  },
+  {
+   "date": "2024-11-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 22500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1968,
+   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-96/",
+   "chassis": "242378P193573",
+   "title": "1968 Pontiac GTO Hardtop Coupe 4-Speed"
+  },
+  {
+   "date": "2024-11-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 28088,
+   "basis": "sold+fee",
+   "hammer_usd": 26750,
+   "native": {
+    "amount": 26750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-157-2/",
+   "chassis": "242177P222121",
+   "title": "461-Powered 1967 Pontiac GTO Hardtop Coupe"
+  },
+  {
+   "date": "2024-11-08",
+   "venue": "AutoHunter",
+   "price_usd": 49875,
+   "basis": "sold+fee",
+   "hammer_usd": 47500,
+   "native": {
+    "amount": 47500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://autohunter.com/Listing/Details/61005442",
+   "chassis": "242176P314990",
+   "title": "1966 PONTIAC GTO HARDTOP"
+  },
+  {
+   "date": "2024-10-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 33863,
+   "basis": "sold+fee",
+   "hammer_usd": 32250,
+   "native": {
+    "amount": 32250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-163/",
+   "chassis": "242077B108349",
+   "title": "1967 Pontiac GTO Sports Coupe 6-Speed"
+  },
+  {
+   "date": "2024-09-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 26513,
+   "basis": "sold+fee",
+   "hammer_usd": 25250,
+   "native": {
+    "amount": 25250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-158/",
+   "chassis": "242117G113329",
+   "title": "1967 Pontiac GTO Hardtop Coupe"
+  },
+  {
+   "date": "2024-06-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 53025,
+   "basis": "sold+fee",
+   "hammer_usd": 50500,
+   "native": {
+    "amount": 50500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-147/",
+   "chassis": "242177Z116887",
+   "title": "1967 Pontiac GTO Tri-Power 5-Speed"
+  },
+  {
+   "date": "2024-06-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 49875,
+   "basis": "sold+fee",
+   "hammer_usd": 47500,
+   "native": {
+    "amount": 47500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-150/",
+   "chassis": "2421778116182",
+   "title": "1967 Pontiac GTO Hardtop"
+  },
+  {
+   "date": "2024-06-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 28455,
+   "basis": "sold+fee",
+   "hammer_usd": 27100,
+   "native": {
+    "amount": 27100,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://bringatrailer.com/listing/1966-pontiac-gto-103/",
+   "chassis": "242176P166543",
+   "title": "454-Powered 1966 Pontiac GTO Hardtop Coupe 6-Speed"
+  },
+  {
+   "date": "2024-06-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 37014,
+   "basis": "sold+fee",
+   "hammer_usd": 35251,
+   "native": {
+    "amount": 35251,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://bringatrailer.com/listing/1966-pontiac-gto-97/",
+   "chassis": "242176K104354",
+   "title": "Tri-Power-400-Equipped 1966 Pontiac GTO Hardtop 4-Speed"
+  },
+  {
+   "date": "2024-05-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 57750,
+   "basis": "sold+fee",
+   "hammer_usd": 55000,
+   "native": {
+    "amount": 55000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-137/",
+   "chassis": "242177P113542",
+   "title": "1967 Pontiac GTO Hardtop Coupe"
+  },
+  {
+   "date": "2024-05-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 59325,
+   "basis": "sold+fee",
+   "hammer_usd": 56500,
+   "native": {
+    "amount": 56500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-143/",
+   "chassis": "242177P325563",
+   "title": "1967 Pontiac GTO Hardtop Coupe"
+  },
+  {
+   "date": "2024-04-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 41213,
+   "basis": "sold+fee",
+   "hammer_usd": 39250,
+   "native": {
+    "amount": 39250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1968,
+   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-83/",
+   "chassis": "242378P224873",
+   "title": "1968 Pontiac GTO Hardtop Coupe"
+  },
+  {
+   "date": "2024-04-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 40425,
+   "basis": "sold+fee",
+   "hammer_usd": 38500,
+   "native": {
+    "amount": 38500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://bringatrailer.com/listing/1966-pontiac-gto-83/",
+   "chassis": "242076K112859",
+   "title": "1966 Pontiac GTO Sports Coupe Tri-Power 4-Speed"
+  },
+  {
+   "date": "2024-02-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 66150,
+   "basis": "sold+fee",
+   "hammer_usd": 63000,
+   "native": {
+    "amount": 63000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-133/",
+   "chassis": "242177P290705",
+   "title": "1967 Pontiac GTO Hardtop Coupe"
+  },
+  {
+   "date": "2024-02-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 48825,
+   "basis": "sold+fee",
+   "hammer_usd": 46500,
+   "native": {
+    "amount": 46500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-131/",
+   "chassis": "242177P162797",
+   "title": "1967 Pontiac GTO Hardtop Coupe 5-Speed"
+  },
+  {
+   "date": "2024-02-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 53550,
+   "basis": "sold+fee",
+   "hammer_usd": 51000,
+   "native": {
+    "amount": 51000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1968,
+   "url": "https://bringatrailer.com/listing/1968-pontiac-gto-80/",
+   "chassis": "242378P215668",
+   "title": "1968 Pontiac GTO Hardtop Coupe 400 HO"
+  },
+  {
+   "date": "2023-11-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 43313,
+   "basis": "sold+fee",
+   "hammer_usd": 41250,
+   "native": {
+    "amount": 41250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-pontiac-gto-115/",
+   "chassis": "242177Z111081",
+   "title": "1967 Pontiac GTO Hardtop"
   }
  ]
 }

@@ -9,8 +9,7 @@
   "model": "S2000",
   "window": "36mo",
   "year_min": 2001,
-  "year_max": 2001,
-  "body": "convertible"
+  "year_max": 2001
  },
  "halo_dropped": 0,
  "sales": [

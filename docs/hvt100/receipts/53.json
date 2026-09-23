@@ -9,8 +9,7 @@
   "model": "Grand Wagoneer",
   "window": "36mo",
   "year_min": 1989,
-  "year_max": 1989,
-  "body": "wagon"
+  "year_max": 1989
  },
  "halo_dropped": 0,
  "sales": [

@@ -2,453 +2,436 @@
  "car_id": 21,
  "listed": "1971 Mercedes-Benz 280SL",
  "status": "compare",
- "year_scope": "exact 1971",
- "basis": "mixed (14% house buyer-paid, rest sold+fee)",
+ "year_scope": "adjacent years pooled (1969-1971)",
+ "basis": "mixed (86% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Mercedes-Benz",
   "model": "280SL",
   "window": "36mo",
-  "year_min": 1971,
-  "year_max": 1971,
-  "body": "convertible"
+  "year_min": 1969,
+  "year_max": 1971
  },
  "halo_dropped": 0,
  "sales": [
   {
-   "date": "2026-09-01",
-   "venue": "Sotheby's Motorsport",
-   "price_usd": 126000,
+   "date": "2026-05-10",
+   "venue": "Mecum",
+   "price_usd": 49350,
    "basis": "sold+fee",
-   "hammer_usd": 120000,
+   "hammer_usd": 47000,
    "native": {
-    "amount": 120000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://www.sothebysmotorsport.com/auction/1971-mercedesbenz-280sl-11565",
-   "chassis": "11304412020271",
-   "title": "1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2026-08-09",
-   "venue": "Bring a Trailer",
-   "price_usd": 63000,
-   "basis": "sold+fee",
-   "hammer_usd": 60000,
-   "native": {
-    "amount": 60000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-179/",
-   "chassis": "11304412021103",
-   "title": "1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2026-08-08",
-   "venue": "Bring a Trailer",
-   "price_usd": 107100,
-   "basis": "sold+fee",
-   "hammer_usd": 102000,
-   "native": {
-    "amount": 102000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-118-2/",
-   "chassis": "11304412023094",
-   "title": "1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2026-08-05",
-   "venue": "Bring a Trailer",
-   "price_usd": 57225,
-   "basis": "sold+fee",
-   "hammer_usd": 54500,
-   "native": {
-    "amount": 54500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-136-2/",
-   "chassis": "11304410020119",
-   "title": "31-Years-Owned 1971 Mercedes-Benz 280SL 4-Speed"
-  },
-  {
-   "date": "2026-05-20",
-   "venue": "Bring a Trailer",
-   "price_usd": 87500,
-   "basis": "sold+fee",
-   "hammer_usd": 83333,
-   "native": {
-    "amount": 83333,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-178/",
-   "chassis": "11304412021383",
-   "title": "36-Years-Owned 1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2026-04-09",
-   "venue": "Bring a Trailer",
-   "price_usd": 128100,
-   "basis": "sold+fee",
-   "hammer_usd": 122000,
-   "native": {
-    "amount": 122000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-175/",
-   "chassis": "11304412023348",
-   "title": "27-Years-Family-Owned Euro 1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2026-03-06",
-   "venue": "Bring a Trailer",
-   "price_usd": 144900,
-   "basis": "sold+fee",
-   "hammer_usd": 138000,
-   "native": {
-    "amount": 138000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-167/",
-   "chassis": "11304412020831",
-   "title": "1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2026-02-24",
-   "venue": "Bring a Trailer",
-   "price_usd": 136500,
-   "basis": "sold+fee",
-   "hammer_usd": 130000,
-   "native": {
-    "amount": 130000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-169/",
-   "chassis": "11304412019142",
-   "title": "M104-Powered 1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2026-02-17",
-   "venue": "Bring a Trailer",
-   "price_usd": 68775,
-   "basis": "sold+fee",
-   "hammer_usd": 65500,
-   "native": {
-    "amount": 65500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-170/",
-   "chassis": "11304412021858",
-   "title": "1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2026-01-07",
-   "venue": "Bring a Trailer",
-   "price_usd": 134400,
-   "basis": "sold+fee",
-   "hammer_usd": 128000,
-   "native": {
-    "amount": 128000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-166/",
-   "chassis": "11304412022804",
-   "title": "1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2025-11-25",
-   "venue": "Bring a Trailer",
-   "price_usd": 69300,
-   "basis": "sold+fee",
-   "hammer_usd": 66000,
-   "native": {
-    "amount": 66000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-163/",
-   "chassis": "11304410021599",
-   "title": "1971 Mercedes-Benz 280SL 4-Speed"
-  },
-  {
-   "date": "2025-11-17",
-   "venue": "Bring a Trailer",
-   "price_usd": 166500,
-   "basis": "sold+fee",
-   "hammer_usd": 159000,
-   "native": {
-    "amount": 159000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-161/",
-   "chassis": "11304412020814",
-   "title": "1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2025-09-08",
-   "venue": "Bring a Trailer",
-   "price_usd": 149100,
-   "basis": "sold+fee",
-   "hammer_usd": 142000,
-   "native": {
-    "amount": 142000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-158/",
-   "chassis": "11304412020951",
-   "title": "26-Years-Owned 1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2025-08-20",
-   "venue": "Sotheby's Motorsport",
-   "price_usd": 85344,
-   "basis": "sold+fee",
-   "hammer_usd": 81280,
-   "native": {
-    "amount": 81280,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://www.sothebysmotorsport.com/auction/1971-mercedesbenz-280sl-6623",
-   "chassis": "11304412020086",
-   "title": "1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2025-08-16",
-   "venue": "RM Sotheby's",
-   "price_usd": 201600,
-   "basis": "buyer-paid",
-   "hammer_usd": 180000,
-   "native": {
-    "amount": 201600,
+    "amount": 51700,
     "currency": "USD",
     "premium_inclusive": true
    },
-   "year": 1971,
-   "url": "https://rmsothebys.com/auctions/mo25/lots/r0088-1971-mercedesbenz-280-sl-pagoda/",
-   "chassis": "11304410023695",
-   "title": "1971 Mercedes-Benz 280 SL 'Pagoda'"
+   "year": 1970,
+   "url": "https://www.mecum.com/lots/1173447/1970-mercedes-benz-280sl-roadster?aa_id=782384-0",
+   "chassis": "11304412014781",
+   "title": "1970 Mercedes-Benz 280SL Roadster"
   },
   {
-   "date": "2025-08-16",
-   "venue": "Gooding Christie's",
-   "price_usd": 173600,
+   "date": "2026-04-18",
+   "venue": "Barrett-Jackson",
+   "price_usd": 73700,
    "basis": "buyer-paid",
-   "hammer_usd": 155000,
+   "hammer_usd": 67000,
    "native": {
-    "amount": 173600,
+    "amount": 73700,
     "currency": "USD",
     "premium_inclusive": true
    },
-   "year": 1971,
-   "url": "https://www.goodingco.com/lot/1971-mercedes-benz-280-sl-1d",
-   "chassis": "11304412022023",
-   "title": "1971 Mercedes-Benz 280 SL (PB25)"
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/1969-mercedes-benz-280sl-roadster-299003?origin=results",
+   "chassis": "11304412009769",
+   "title": "1969 MERCEDES-BENZ 280SL ROADSTER"
   },
   {
-   "date": "2025-08-16",
-   "venue": "RM Sotheby's",
-   "price_usd": 89600,
-   "basis": "buyer-paid",
-   "hammer_usd": 80000,
-   "native": {
-    "amount": 89600,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1971,
-   "url": "https://rmsothebys.com/auctions/mo25/lots/r0063-1971-mercedesbenz-280-sl-pagoda/",
-   "chassis": "11304412023735",
-   "title": "1971 Mercedes-Benz 280 SL 'Pagoda'"
-  },
-  {
-   "date": "2025-08-09",
-   "venue": "Bring a Trailer",
-   "price_usd": 168611,
-   "basis": "sold+fee",
-   "hammer_usd": 161111,
-   "native": {
-    "amount": 161111,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-153/",
-   "chassis": "11304412020423",
-   "title": "42-Years-Owned 1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2025-08-02",
-   "venue": "Bring a Trailer",
+   "date": "2026-03-07",
+   "venue": "Broad Arrow",
    "price_usd": 117600,
-   "basis": "sold+fee",
-   "hammer_usd": 112000,
-   "native": {
-    "amount": 112000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-156/",
-   "chassis": "11304412019842",
-   "title": "28-Years-Owned 1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2025-07-22",
-   "venue": "Bring a Trailer",
-   "price_usd": 66150,
-   "basis": "sold+fee",
-   "hammer_usd": 63000,
-   "native": {
-    "amount": 63000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-154/",
-   "chassis": "11304412023496",
-   "title": "1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2025-06-25",
-   "venue": "Bring a Trailer",
-   "price_usd": 145950,
-   "basis": "sold+fee",
-   "hammer_usd": 139000,
-   "native": {
-    "amount": 139000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-142/",
-   "chassis": "11304410022422",
-   "title": "1971 Mercedes-Benz 280SL 4-Speed"
-  },
-  {
-   "date": "2025-06-16",
-   "venue": "Bring a Trailer",
-   "price_usd": 110250,
-   "basis": "sold+fee",
+   "basis": "buyer-paid",
    "hammer_usd": 105000,
    "native": {
-    "amount": 105000,
+    "amount": 117600,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-150/",
-   "chassis": "11304410020094",
-   "title": "1971 Mercedes-Benz 280SL 4-Speed"
+   "year": 1970,
+   "url": "https://www.broadarrowauctions.com/vehicles/am26_r0177/1970-mercedes-benz-280-sl-pagoda",
+   "chassis": "11304412018774",
+   "title": "1970 Mercedes-Benz 280 SL Pagoda"
   },
   {
-   "date": "2025-05-21",
-   "venue": "Bring a Trailer",
-   "price_usd": 90825,
-   "basis": "sold+fee",
-   "hammer_usd": 86500,
-   "native": {
-    "amount": 86500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-148/",
-   "chassis": "11304412022910",
-   "title": "32-Years-Owned 1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2025-05-14",
-   "venue": "Bring a Trailer",
-   "price_usd": 167500,
-   "basis": "sold+fee",
-   "hammer_usd": 160000,
-   "native": {
-    "amount": 160000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-147/",
-   "chassis": "11304412020490",
-   "title": "1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2025-03-12",
-   "venue": "Bring a Trailer",
-   "price_usd": 67725,
-   "basis": "sold+fee",
-   "hammer_usd": 64500,
-   "native": {
-    "amount": 64500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-139/",
-   "chassis": "11304412021460",
-   "title": "1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2025-03-06",
-   "venue": "Gooding Christie's",
-   "price_usd": 109200,
+   "date": "2026-01-28",
+   "venue": "RM Sotheby's",
+   "price_usd": 217350,
    "basis": "buyer-paid",
-   "hammer_usd": 97500,
+   "hammer_usd": 189000,
    "native": {
-    "amount": 109200,
+    "amount": 201250,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://rmsothebys.com/auctions/pa26/lots/r0003-1969-mercedesbenz-280-sl-pagoda",
+   "chassis": "11304412011369",
+   "title": "1969 Mercedes-Benz 280 SL 'Pagoda'"
+  },
+  {
+   "date": "2025-10-18",
+   "venue": "Barrett-Jackson",
+   "price_usd": 83600,
+   "basis": "buyer-paid",
+   "hammer_usd": 76000,
+   "native": {
+    "amount": 83600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2025/docket/vehicle/1970-mercedes-benz-280sl-roadster-290140?origin=results",
+   "chassis": "11304412012789",
+   "title": "1970 MERCEDES-BENZ 280SL ROADSTER"
+  },
+  {
+   "date": "2025-10-17",
+   "venue": "Barrett-Jackson",
+   "price_usd": 69300,
+   "basis": "buyer-paid",
+   "hammer_usd": 63000,
+   "native": {
+    "amount": 69300,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2025/docket/vehicle/1969-mercedes-benz-280sl-roadster-291013?origin=results",
+   "chassis": "11304412009769",
+   "title": "1969 MERCEDES-BENZ 280SL ROADSTER"
+  },
+  {
+   "date": "2025-08-15",
+   "venue": "Bonhams",
+   "price_usd": 58240,
+   "basis": "buyer-paid",
+   "hammer_usd": 52000,
+   "native": {
+    "amount": 58240,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://cars.bonhams.com/auction/30559/lot/117/1969-mercedes-benz-280sl-chassis-no-11304410005050/",
+   "chassis": "11304410005050",
+   "title": "1969 Mercedes-Benz 280SL Chassis no. 113044.10.005050"
+  },
+  {
+   "date": "2025-08-15",
+   "venue": "Bonhams",
+   "price_usd": 128800,
+   "basis": "buyer-paid",
+   "hammer_usd": 115000,
+   "native": {
+    "amount": 128800,
     "currency": "USD",
     "premium_inclusive": true
    },
    "year": 1971,
-   "url": "https://www.goodingco.com/lot/1971-mercedes-benz-280-sl-1c",
-   "chassis": "11304412023797",
-   "title": "1971 Mercedes-Benz 280 SL (FL25)"
+   "url": "https://cars.bonhams.com/auction/30559/lot/134/1971-mercedes-benz-280sl-chassis-no-11304412023697/",
+   "chassis": "11304412023697",
+   "title": "1971 Mercedes-Benz 280SL Chassis no. 113044.12.023697"
+  },
+  {
+   "date": "2025-08-14",
+   "venue": "Broad Arrow",
+   "price_usd": 67200,
+   "basis": "buyer-paid",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 67200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://www.broadarrowauctions.com/vehicles/jc25_r0167/1970-mercedes-benz-280-sl-pagoda",
+   "chassis": "11304412020026",
+   "title": "1970 Mercedes-Benz 280 SL Pagoda"
+  },
+  {
+   "date": "2025-08-14",
+   "venue": "Broad Arrow",
+   "price_usd": 106400,
+   "basis": "buyer-paid",
+   "hammer_usd": 95000,
+   "native": {
+    "amount": 106400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.broadarrowauctions.com/vehicles/jc25_r0033/1969-mercedes-benz-280-sl-pagoda",
+   "chassis": "11304412007982",
+   "title": "1969 Mercedes-Benz 280 SL Pagoda"
+  },
+  {
+   "date": "2025-03-08",
+   "venue": "Broad Arrow",
+   "price_usd": 128800,
+   "basis": "buyer-paid",
+   "hammer_usd": 115000,
+   "native": {
+    "amount": 128800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.broadarrowauctions.com/vehicles/am25_r009/1969-mercedes-benz-280-sl-pagoda",
+   "chassis": "11304412006207",
+   "title": "1969 Mercedes-Benz 280 SL Pagoda"
+  },
+  {
+   "date": "2025-02-06",
+   "venue": "Bonhams",
+   "price_usd": 111780,
+   "basis": "buyer-paid",
+   "hammer_usd": 97200,
+   "native": {
+    "amount": 103500,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://cars.bonhams.com/auction/30406/lot/121/1970-mercedes-benz-280-sl-pagoda-chassis-no-113044-10-017462-engine-no-130983-10-006454/",
+   "chassis": "11304410017462",
+   "title": "1970 Mercedes-Benz 280 SL Pagoda Chassis no. 113.044-10-017462 Engine no. 130.983-10-006454"
+  },
+  {
+   "date": "2025-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 176000,
+   "basis": "buyer-paid",
+   "hammer_usd": 160000,
+   "native": {
+    "amount": 176000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1971,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1971-mercedes-benz-280sl-roadster-282648?origin=results",
+   "chassis": "11304412021671",
+   "title": "1971 MERCEDES-BENZ 280SL ROADSTER"
+  },
+  {
+   "date": "2025-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 110000,
+   "basis": "buyer-paid",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 110000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1971,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1971-mercedes-benz-280sl-roadster-283288?origin=results",
+   "chassis": "11304412017727",
+   "title": "1971 MERCEDES-BENZ 280SL ROADSTER"
   },
   {
    "date": "2025-01-24",
-   "venue": "RM Sotheby's",
-   "price_usd": 170800,
+   "venue": "Barrett-Jackson",
+   "price_usd": 99000,
    "basis": "buyer-paid",
-   "hammer_usd": 152500,
+   "hammer_usd": 90000,
    "native": {
-    "amount": 170800,
+    "amount": 99000,
     "currency": "USD",
     "premium_inclusive": true
    },
    "year": 1971,
-   "url": "https://rmsothebys.com/auctions/az25/lots/r0061-1971-mercedesbenz-280-sl-pagoda/",
-   "chassis": "11304412020871",
-   "title": "1971 Mercedes-Benz 280 SL 'Pagoda'"
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1971-mercedes-benz-280sl-roadster-281357?origin=results",
+   "chassis": "11304412023077",
+   "title": "1971 MERCEDES-BENZ 280SL ROADSTER"
   },
   {
-   "date": "2024-12-28",
-   "venue": "Bring a Trailer",
+   "date": "2025-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 83600,
+   "basis": "buyer-paid",
+   "hammer_usd": 76000,
+   "native": {
+    "amount": 83600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1969-mercedes-benz-280sl-roadster-282035?origin=results",
+   "chassis": "11304412009259",
+   "title": "1969 MERCEDES-BENZ 280SL ROADSTER"
+  },
+  {
+   "date": "2025-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 88000,
+   "basis": "buyer-paid",
+   "hammer_usd": 80000,
+   "native": {
+    "amount": 88000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1971,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1971-mercedes-benz-280sl-roadster-283081?origin=results",
+   "chassis": "11304412022939",
+   "title": "1971 MERCEDES-BENZ 280SL ROADSTER"
+  },
+  {
+   "date": "2024-10-13",
+   "venue": "Barrett-Jackson",
+   "price_usd": 104500,
+   "basis": "buyer-paid",
+   "hammer_usd": 95000,
+   "native": {
+    "amount": 104500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1969-mercedes-benz-280sl-roadster-279323?origin=results",
+   "chassis": "11304410009469",
+   "title": "1969 MERCEDES-BENZ 280SL ROADSTER"
+  },
+  {
+   "date": "2024-10-12",
+   "venue": "Barrett-Jackson",
+   "price_usd": 49500,
+   "basis": "buyer-paid",
+   "hammer_usd": 45000,
+   "native": {
+    "amount": 49500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1969-mercedes-benz-280sl-roadster-279282?origin=results",
+   "chassis": "11304410009936",
+   "title": "1969 MERCEDES-BENZ 280SL ROADSTER"
+  },
+  {
+   "date": "2024-09-14",
+   "venue": "Bonhams",
+   "price_usd": 76200,
+   "basis": "buyer-paid",
+   "hammer_usd": 66261,
+   "native": {
+    "amount": 60000,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://cars.bonhams.com/auction/29333/lot/541/1970-mercedes-benz-280-sl-roadster-chassis-no-11304412018153/",
+   "chassis": "11304412018153",
+   "title": "1970 Mercedes-Benz 280 SL Roadster Chassis no. 11304412018153"
+  },
+  {
+   "date": "2024-08-15",
+   "venue": "Broad Arrow",
+   "price_usd": 113120,
+   "basis": "buyer-paid",
+   "hammer_usd": 101000,
+   "native": {
+    "amount": 113120,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1971,
+   "url": "https://www.broadarrowauctions.com/vehicles/jc24_r083/1971-mercedes-benz-280-sl-pagoda",
+   "chassis": "11304412023736",
+   "title": "1971 Mercedes-Benz 280 SL Pagoda"
+  },
+  {
+   "date": "2024-03-02",
+   "venue": "Broad Arrow",
+   "price_usd": 123200,
+   "basis": "buyer-paid",
+   "hammer_usd": 110000,
+   "native": {
+    "amount": 123200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://www.broadarrowauctions.com/vehicles/am24_r019/1970-mercedes-benz-280-sl-pagoda",
+   "chassis": "11304410017202",
+   "title": "1970 Mercedes-Benz 280 SL Pagoda"
+  },
+  {
+   "date": "2024-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 80300,
+   "basis": "buyer-paid",
+   "hammer_usd": 73000,
+   "native": {
+    "amount": 80300,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1971,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1971-mercedes-benz-280sl-roadster-272191?origin=results",
+   "chassis": "11304412021982",
+   "title": "1971 MERCEDES-BENZ 280SL ROADSTER"
+  },
+  {
+   "date": "2024-01-25",
+   "venue": "Bonhams",
+   "price_usd": 84000,
+   "basis": "buyer-paid",
+   "hammer_usd": 75000,
+   "native": {
+    "amount": 84000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://cars.bonhams.com/auction/29260/lot/80/1970-mercedes-benz-280sl-chassis-no-11304412017067-engine-no-13098312011623/",
+   "chassis": "11304412017067",
+   "title": "1970 Mercedes-Benz 280SL Chassis no. 113044.12.017067 Engine no. 130983.12.011623"
+  },
+  {
+   "date": "2024-01-25",
+   "venue": "Bonhams",
+   "price_usd": 128800,
+   "basis": "buyer-paid",
+   "hammer_usd": 115000,
+   "native": {
+    "amount": 128800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://cars.bonhams.com/auction/29260/lot/23/1969-mercedes-benz-280sl-chassis-no-11304412012219-engine-no-13098312007772/",
+   "chassis": "11304412012219",
+   "title": "1969 Mercedes-Benz 280SL Chassis no. 113044.12.012219 Engine no. 130983.12.007772"
+  },
+  {
+   "date": "2023-09-29",
+   "venue": "Bonhams",
+   "price_usd": 70560,
+   "basis": "buyer-paid",
+   "hammer_usd": 63000,
+   "native": {
+    "amount": 70560,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://cars.bonhams.com/auction/28012/lot/7/1970-mercedes-benz-280sl-convertible-chassis-no-113044-12-015139/",
+   "chassis": "11304412015139",
+   "title": "1970 Mercedes-Benz 280SL Convertible Chassis no. 113.044-12-015139"
+  },
+  {
+   "date": "2026-03-26",
+   "venue": "MB Market",
    "price_usd": 78750,
    "basis": "sold+fee",
    "hammer_usd": 75000,
@@ -458,377 +441,41 @@
     "premium_inclusive": false
    },
    "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-143/",
-   "chassis": "11304412021796",
-   "title": "28-Years-Owned 1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2024-12-20",
-   "venue": "Bring a Trailer",
-   "price_usd": 87150,
-   "basis": "sold+fee",
-   "hammer_usd": 83000,
-   "native": {
-    "amount": 83000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-140/",
-   "chassis": "11304412020025",
+   "url": "https://thembmarket.com/1971-mercedes-benz-280sl-7",
+   "chassis": "11304412019381",
    "title": "1971 Mercedes-Benz 280SL"
   },
   {
-   "date": "2024-11-27",
-   "venue": "Bring a Trailer",
-   "price_usd": 73500,
+   "date": "2025-07-07",
+   "venue": "AutoHunter",
+   "price_usd": 84000,
    "basis": "sold+fee",
-   "hammer_usd": 70000,
+   "hammer_usd": 80000,
    "native": {
-    "amount": 70000,
+    "amount": 80000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-88-2/",
-   "chassis": "11304412023199",
-   "title": "1971 Mercedes-Benz 280SL"
+   "year": 1970,
+   "url": "https://autohunter.com/Listing/Details/72459007",
+   "chassis": "W11304412020141",
+   "title": "1970 MERCEDES-BENZ 280SL ROADSTER"
   },
   {
-   "date": "2024-11-05",
-   "venue": "Bring a Trailer",
-   "price_usd": 75075,
+   "date": "2024-01-09",
+   "venue": "MB Market",
+   "price_usd": 78750,
    "basis": "sold+fee",
-   "hammer_usd": 71500,
+   "hammer_usd": 75000,
    "native": {
-    "amount": 71500,
+    "amount": 75000,
     "currency": "USD",
     "premium_inclusive": false
    },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-138/",
-   "chassis": "11304412019113",
-   "title": "1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2024-10-23",
-   "venue": "Bring a Trailer",
-   "price_usd": 188500,
-   "basis": "sold+fee",
-   "hammer_usd": 181000,
-   "native": {
-    "amount": 181000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-135/",
-   "chassis": "11304412021671",
-   "title": "1971 Mercedes-Benz 280SL 6-Speed"
-  },
-  {
-   "date": "2024-10-21",
-   "venue": "Bring a Trailer",
-   "price_usd": 76178,
-   "basis": "sold+fee",
-   "hammer_usd": 72550,
-   "native": {
-    "amount": 72550,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-137/",
-   "chassis": "11304412022388",
-   "title": "Single-Family-Owned 1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2024-10-09",
-   "venue": "Bring a Trailer",
-   "price_usd": 50400,
-   "basis": "sold+fee",
-   "hammer_usd": 48000,
-   "native": {
-    "amount": 48000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-136/",
-   "chassis": "11304410020119",
-   "title": "29-Years-Owned 1971 Mercedes-Benz 280SL 4-Speed"
-  },
-  {
-   "date": "2024-08-17",
-   "venue": "Gooding Christie's",
-   "price_usd": 123200,
-   "basis": "buyer-paid",
-   "hammer_usd": 110000,
-   "native": {
-    "amount": 123200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1971,
-   "url": "https://www.goodingco.com/lot/1971-mercedes-benz-280-sl-1b",
-   "chassis": "11304410023547",
-   "title": "1971 Mercedes-Benz 280 SL (PB24)"
-  },
-  {
-   "date": "2024-08-17",
-   "venue": "Gooding Christie's",
-   "price_usd": 140000,
-   "basis": "buyer-paid",
-   "hammer_usd": 125000,
-   "native": {
-    "amount": 140000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1971,
-   "url": "https://www.goodingco.com/lot/1971-mercedes-benz-280-sl-1a",
-   "chassis": "11304412023797",
-   "title": "1971 Mercedes-Benz 280 SL (PB24-1)"
-  },
-  {
-   "date": "2024-08-05",
-   "venue": "Bring a Trailer",
-   "price_usd": 222000,
-   "basis": "sold+fee",
-   "hammer_usd": 214500,
-   "native": {
-    "amount": 214500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-133/",
-   "chassis": "11304412021723",
-   "title": "1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2024-07-25",
-   "venue": "Sotheby's Motorsport",
-   "price_usd": 165000,
-   "basis": "sold+fee",
-   "hammer_usd": 157500,
-   "native": {
-    "amount": 157500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://www.sothebysmotorsport.com/auction/1971-mercedesbenz-280sl-2360",
-   "chassis": "00011304412020216",
-   "title": "1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2024-05-10",
-   "venue": "Bring a Trailer",
-   "price_usd": 106050,
-   "basis": "sold+fee",
-   "hammer_usd": 101000,
-   "native": {
-    "amount": 101000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-126/",
-   "chassis": "11304412020830",
-   "title": "1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2024-05-01",
-   "venue": "Bring a Trailer",
-   "price_usd": 100569,
-   "basis": "sold+fee",
-   "hammer_usd": 95780,
-   "native": {
-    "amount": 95780,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-127/",
-   "chassis": "11304412019918",
-   "title": "1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2024-04-24",
-   "venue": "Bring a Trailer",
-   "price_usd": 105000,
-   "basis": "sold+fee",
-   "hammer_usd": 100000,
-   "native": {
-    "amount": 100000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-128/",
-   "chassis": "11304412020642",
-   "title": "1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2024-04-09",
-   "venue": "Bring a Trailer",
-   "price_usd": 208500,
-   "basis": "sold+fee",
-   "hammer_usd": 201000,
-   "native": {
-    "amount": 201000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-125/",
-   "chassis": "11304410022468",
-   "title": "1971 Mercedes-Benz 280SL 6-Speed"
-  },
-  {
-   "date": "2024-03-05",
-   "venue": "PCARMarket",
-   "price_usd": 68250,
-   "basis": "sold+fee",
-   "hammer_usd": 65000,
-   "native": {
-    "amount": 65000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://www.pcarmarket.com/auction/1971-mercedes-benz-280sl-1",
-   "chassis": "11304412019832",
-   "title": "17-Years-Owned 1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2024-01-26",
-   "venue": "Bring a Trailer",
-   "price_usd": 232500,
-   "basis": "sold+fee",
-   "hammer_usd": 225000,
-   "native": {
-    "amount": 225000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-122/",
-   "chassis": "11304410022382",
-   "title": "1971 Mercedes-Benz 280SL 4-Speed"
-  },
-  {
-   "date": "2023-12-26",
-   "venue": "Bring a Trailer",
-   "price_usd": 94500,
-   "basis": "sold+fee",
-   "hammer_usd": 90000,
-   "native": {
-    "amount": 90000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-118/",
-   "chassis": "11304412023094",
-   "title": "1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2023-12-17",
-   "venue": "Bring a Trailer",
-   "price_usd": 197500,
-   "basis": "sold+fee",
-   "hammer_usd": 190000,
-   "native": {
-    "amount": 190000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-120/",
-   "chassis": "11304410019351",
-   "title": "1971 Mercedes-Benz 280SL 4-Speed"
-  },
-  {
-   "date": "2023-12-10",
-   "venue": "Bring a Trailer",
-   "price_usd": 98963,
-   "basis": "sold+fee",
-   "hammer_usd": 94250,
-   "native": {
-    "amount": 94250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-119/",
-   "chassis": "11304410020229",
-   "title": "1971 Mercedes-Benz 280SL 4-Speed"
-  },
-  {
-   "date": "2023-11-14",
-   "venue": "Bring a Trailer",
-   "price_usd": 94500,
-   "basis": "sold+fee",
-   "hammer_usd": 90000,
-   "native": {
-    "amount": 90000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-117/",
-   "chassis": "11304410022422",
-   "title": "1971 Mercedes-Benz 280SL 4-Speed"
-  },
-  {
-   "date": "2023-10-09",
-   "venue": "Bring a Trailer",
-   "price_usd": 70172,
-   "basis": "sold+fee",
-   "hammer_usd": 66830,
-   "native": {
-    "amount": 66830,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-116/",
-   "chassis": "11304412023703",
-   "title": "Euro 1971 Mercedes-Benz 280SL"
-  },
-  {
-   "date": "2023-10-02",
-   "venue": "Bring a Trailer",
-   "price_usd": 67200,
-   "basis": "sold+fee",
-   "hammer_usd": 64000,
-   "native": {
-    "amount": 64000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-111/",
-   "chassis": "11304410023562",
-   "title": "1971 Mercedes-Benz 280SL 4-Speed"
-  },
-  {
-   "date": "2023-09-25",
-   "venue": "Bring a Trailer",
-   "price_usd": 50400,
-   "basis": "sold+fee",
-   "hammer_usd": 48000,
-   "native": {
-    "amount": 48000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1971,
-   "url": "https://bringatrailer.com/listing/1971-mercedes-benz-280sl-115/",
-   "chassis": "11304410021190",
-   "title": "1971 Mercedes-Benz 280SL 4-Speed"
+   "year": 1970,
+   "url": "https://thembmarket.com/1970-mercedes-benz-280sl-4",
+   "chassis": "11304412018271",
+   "title": "1970 Mercedes-Benz 280SL"
   }
  ]
 }

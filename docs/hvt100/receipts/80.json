@@ -3,18 +3,49 @@
  "listed": "2016 Porsche 911 GT3 RS",
  "status": "compare",
  "year_scope": "exact 2016",
- "basis": "mixed (5% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (9% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Porsche",
   "model": "911",
   "window": "36mo",
   "year_min": 2016,
   "year_max": 2016,
-  "trim": "GT3 RS",
-  "body": "coupe"
+  "trim": "GT3 RS"
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2025-05-04",
+   "venue": "Bonhams",
+   "price_usd": 201600,
+   "basis": "buyer-paid",
+   "hammer_usd": 180000,
+   "native": {
+    "amount": 201600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2016,
+   "url": "https://cars.bonhams.com/auction/30996/lot/34/2016-porsche-911-type-991-gt3-rs-vin-wp0af2a94gs192212/",
+   "chassis": "WP0AF2A94GS192212",
+   "title": "2016 Porsche 911 'Type 991' GT3 RS VIN. WP0AF2A94GS192212"
+  },
+  {
+   "date": "2023-12-02",
+   "venue": "RM Sotheby's",
+   "price_usd": 390000,
+   "basis": "buyer-paid",
+   "hammer_usd": 350000,
+   "native": {
+    "amount": 390000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2016,
+   "url": "https://rmsothebys.com/auctions/wc23/lots/r0064-2016-porsche-911-gt3-rs/",
+   "chassis": "WP0AF2A96GS192907",
+   "title": "2016 Porsche 911 GT3 RS"
+  },
   {
    "date": "2026-07-13",
    "venue": "Bring a Trailer",
@@ -334,22 +365,6 @@
    "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-57/",
    "chassis": "WP0AF2A9XGS192148",
    "title": "375-Mile 2016 Porsche 911 GT3 RS"
-  },
-  {
-   "date": "2023-12-02",
-   "venue": "RM Sotheby's",
-   "price_usd": 390000,
-   "basis": "buyer-paid",
-   "hammer_usd": 350000,
-   "native": {
-    "amount": 390000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2016,
-   "url": "https://rmsothebys.com/auctions/wc23/lots/r0064-2016-porsche-911-gt3-rs/",
-   "chassis": "WP0AF2A96GS192907",
-   "title": "2016 Porsche 911 GT3 RS"
   },
   {
    "date": "2023-10-25",

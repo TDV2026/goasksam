@@ -3,17 +3,160 @@
  "listed": "1995 BMW M3",
  "status": "compare",
  "year_scope": "exact 1995",
- "basis": "mixed (11% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (13% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "BMW",
   "model": "M3",
   "window": "36mo",
   "year_min": 1995,
-  "year_max": 1995,
-  "body": "coupe"
+  "year_max": 1995
  },
- "halo_dropped": 1,
+ "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2026-08-15",
+   "venue": "RM Sotheby's",
+   "price_usd": 257600,
+   "basis": "buyer-paid",
+   "hammer_usd": 230000,
+   "native": {
+    "amount": 257600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://rmsothebys.com/auctions/mo26/lots/r0166-1995-bmw-m3-lightweight",
+   "chassis": "WBSBF9321SEH07991",
+   "title": "1995 BMW M3 Lightweight"
+  },
+  {
+   "date": "2026-04-25",
+   "venue": "RM Sotheby's",
+   "price_usd": 173880,
+   "basis": "buyer-paid",
+   "hammer_usd": 151200,
+   "native": {
+    "amount": 161000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://rmsothebys.com/auctions/mc26/lots/r0031-1995-bmw-m3-gt",
+   "chassis": "WBSBF99090EA40235",
+   "title": "1995 BMW M3 GT"
+  },
+  {
+   "date": "2026-01-21",
+   "venue": "Barrett-Jackson",
+   "price_usd": 30800,
+   "basis": "buyer-paid",
+   "hammer_usd": 28000,
+   "native": {
+    "amount": 30800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1995-bmw-m3-291976?origin=results",
+   "chassis": "WBSBF9324SEH04969",
+   "title": "1995 BMW M3"
+  },
+  {
+   "date": "2025-10-31",
+   "venue": "Broad Arrow",
+   "price_usd": 53200,
+   "basis": "buyer-paid",
+   "hammer_usd": 47500,
+   "native": {
+    "amount": 53200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://www.broadarrowauctions.com/vehicles/lv25_r0005/1995-bmw-m3-coupe",
+   "chassis": "WBSBF9327SEH06974",
+   "title": "1995 BMW M3 Coupe"
+  },
+  {
+   "date": "2025-10-18",
+   "venue": "RM Sotheby's",
+   "price_usd": 297000,
+   "basis": "buyer-paid",
+   "hammer_usd": 259200,
+   "native": {
+    "amount": 275000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://rmsothebys.com/auctions/mu25/lots/b0006-1995-bmw-m3-gt/",
+   "chassis": "WBSBF99030EA40098",
+   "title": "1995 BMW M3 GT"
+  },
+  {
+   "date": "2025-08-16",
+   "venue": "RM Sotheby's",
+   "price_usd": 179200,
+   "basis": "buyer-paid",
+   "hammer_usd": 160000,
+   "native": {
+    "amount": 179200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://rmsothebys.com/auctions/mo25/lots/r0136-1995-bmw-m3-lightweight/",
+   "chassis": "WBSBF9328SEH07955",
+   "title": "1995 BMW M3 Lightweight"
+  },
+  {
+   "date": "2025-07-11",
+   "venue": "Bonhams",
+   "price_usd": 109538,
+   "basis": "buyer-paid",
+   "hammer_usd": 95250,
+   "native": {
+    "amount": 86250,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://cars.bonhams.com/auction/30543/lot/143/1995-bmw-m3-e36-coupe-chassis-no-wbsbf92070ea85166/",
+   "chassis": "WBSBF92070EA85166",
+   "title": "1995 BMW M3 (E36) Coupé Chassis no. WBSBF92070EA85166"
+  },
+  {
+   "date": "2025-01-24",
+   "venue": "RM Sotheby's",
+   "price_usd": 89600,
+   "basis": "buyer-paid",
+   "hammer_usd": 80000,
+   "native": {
+    "amount": 89600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://rmsothebys.com/auctions/az25/lots/r0002-1995-bmw-m3-coupe/",
+   "chassis": "WBSBF9322SEH07580",
+   "title": "1995 BMW M3 Coupe"
+  },
+  {
+   "date": "2024-10-13",
+   "venue": "Barrett-Jackson",
+   "price_usd": 19250,
+   "basis": "buyer-paid",
+   "hammer_usd": 17500,
+   "native": {
+    "amount": 19250,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1995-bmw-m3-280109?origin=results",
+   "chassis": "WBSBF0320SEN91465",
+   "title": "1995 BMW M3"
+  },
   {
    "date": "2026-09-19",
    "venue": "Bring a Trailer",
@@ -61,22 +204,6 @@
    "url": "https://bringatrailer.com/listing/1995-bmw-m3-coupe-60-2/",
    "chassis": "WBSBF9325SEH02874",
    "title": "1995 BMW M3 Coupe 5-Speed"
-  },
-  {
-   "date": "2026-08-15",
-   "venue": "RM Sotheby's",
-   "price_usd": 257600,
-   "basis": "buyer-paid",
-   "hammer_usd": 230000,
-   "native": {
-    "amount": 257600,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1995,
-   "url": "https://rmsothebys.com/auctions/mo26/lots/r0166-1995-bmw-m3-lightweight",
-   "chassis": "WBSBF9321SEH07991",
-   "title": "1995 BMW M3 Lightweight"
   },
   {
    "date": "2026-08-13",
@@ -207,22 +334,6 @@
    "title": "1995 BMW M3 Coupe"
   },
   {
-   "date": "2026-04-25",
-   "venue": "RM Sotheby's",
-   "price_usd": 173880,
-   "basis": "buyer-paid",
-   "hammer_usd": 151200,
-   "native": {
-    "amount": 161000,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 1995,
-   "url": "https://rmsothebys.com/auctions/mc26/lots/r0031-1995-bmw-m3-gt",
-   "chassis": "WBSBF99090EA40235",
-   "title": "1995 BMW M3 GT"
-  },
-  {
    "date": "2026-04-22",
    "venue": "Cars & Bids",
    "price_usd": 13125,
@@ -303,22 +414,6 @@
    "title": "1995 BMW M3 Coupe 5-Speed"
   },
   {
-   "date": "2026-01-21",
-   "venue": "Barrett-Jackson",
-   "price_usd": 30800,
-   "basis": "buyer-paid",
-   "hammer_usd": 28000,
-   "native": {
-    "amount": 30800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1995,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1995-bmw-m3-291976?origin=results",
-   "chassis": "WBSBF9324SEH04969",
-   "title": "1995 BMW M3"
-  },
-  {
    "date": "2025-12-19",
    "venue": "Bring a Trailer",
    "price_usd": 195500,
@@ -365,38 +460,6 @@
    "url": "https://bringatrailer.com/listing/1995-bmw-m3-336/",
    "chassis": "WBSBF9321SEH02063",
    "title": "1995 BMW M3 Coupe 5-Speed"
-  },
-  {
-   "date": "2025-10-31",
-   "venue": "Broad Arrow",
-   "price_usd": 53200,
-   "basis": "buyer-paid",
-   "hammer_usd": 47500,
-   "native": {
-    "amount": 53200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1995,
-   "url": "https://www.broadarrowauctions.com/vehicles/lv25_r0005/1995-bmw-m3-coupe",
-   "chassis": "WBSBF9327SEH06974",
-   "title": "1995 BMW M3 Coupe"
-  },
-  {
-   "date": "2025-10-18",
-   "venue": "RM Sotheby's",
-   "price_usd": 297000,
-   "basis": "buyer-paid",
-   "hammer_usd": 259200,
-   "native": {
-    "amount": 275000,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 1995,
-   "url": "https://rmsothebys.com/auctions/mu25/lots/b0006-1995-bmw-m3-gt/",
-   "chassis": "WBSBF99030EA40098",
-   "title": "1995 BMW M3 GT"
   },
   {
    "date": "2025-09-25",
@@ -461,22 +524,6 @@
    "url": "https://bringatrailer.com/listing/1995-bmw-m3-322/",
    "chassis": "WBSBF91010JF81105",
    "title": "Euro 1995 BMW M3 Coupe 5-Speed"
-  },
-  {
-   "date": "2025-08-16",
-   "venue": "RM Sotheby's",
-   "price_usd": 179200,
-   "basis": "buyer-paid",
-   "hammer_usd": 160000,
-   "native": {
-    "amount": 179200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1995,
-   "url": "https://rmsothebys.com/auctions/mo25/lots/r0136-1995-bmw-m3-lightweight/",
-   "chassis": "WBSBF9328SEH07955",
-   "title": "1995 BMW M3 Lightweight"
   },
   {
    "date": "2025-08-11",
@@ -655,22 +702,6 @@
    "title": "1995 BMW M3 Coupe"
   },
   {
-   "date": "2025-01-24",
-   "venue": "RM Sotheby's",
-   "price_usd": 89600,
-   "basis": "buyer-paid",
-   "hammer_usd": 80000,
-   "native": {
-    "amount": 89600,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1995,
-   "url": "https://rmsothebys.com/auctions/az25/lots/r0002-1995-bmw-m3-coupe/",
-   "chassis": "WBSBF9322SEH07580",
-   "title": "1995 BMW M3 Coupe"
-  },
-  {
    "date": "2025-01-06",
    "venue": "Bring a Trailer",
    "price_usd": 30189,
@@ -797,22 +828,6 @@
    "url": "https://bringatrailer.com/listing/1995-bmw-m3-291/",
    "chassis": "WBSBF0329SEN90959",
    "title": "1995 BMW M3 Coupe 5-Speed"
-  },
-  {
-   "date": "2024-10-13",
-   "venue": "Barrett-Jackson",
-   "price_usd": 19250,
-   "basis": "buyer-paid",
-   "hammer_usd": 17500,
-   "native": {
-    "amount": 19250,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1995,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1995-bmw-m3-280109?origin=results",
-   "chassis": "WBSBF0320SEN91465",
-   "title": "1995 BMW M3"
   },
   {
    "date": "2024-09-27",

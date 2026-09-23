@@ -3,82 +3,17 @@
  "listed": "2020 Ferrari 488 Pista",
  "status": "compare",
  "year_scope": "adjacent years pooled (2018-2022)",
- "basis": "mixed (50% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (52% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Ferrari",
   "model": "488",
   "window": "36mo",
   "year_min": 2018,
   "year_max": 2022,
-  "trim": "Pista",
-  "body": "coupe"
+  "trim": "Pista"
  },
- "halo_dropped": 10,
+ "halo_dropped": 0,
  "sales": [
-  {
-   "date": "2026-08-21",
-   "venue": "Bring a Trailer",
-   "price_usd": 1127500,
-   "basis": "sold+fee",
-   "hammer_usd": 1120000,
-   "native": {
-    "amount": 1120000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2020,
-   "url": "https://bringatrailer.com/listing/2020-ferrari-488-pista-40/",
-   "chassis": "ZFF90HLA0L0248975",
-   "title": "526-Mile 2020 Ferrari 488 Pista"
-  },
-  {
-   "date": "2026-08-13",
-   "venue": "Bring a Trailer",
-   "price_usd": 925000,
-   "basis": "sold+fee",
-   "hammer_usd": 917500,
-   "native": {
-    "amount": 917500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://bringatrailer.com/listing/2019-ferrari-488-pista-25/",
-   "chassis": "ZFF90HLA1K0247199",
-   "title": "2019 Ferrari 488 Pista"
-  },
-  {
-   "date": "2026-07-21",
-   "venue": "Bring a Trailer",
-   "price_usd": 962500,
-   "basis": "sold+fee",
-   "hammer_usd": 955000,
-   "native": {
-    "amount": 955000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://bringatrailer.com/listing/2019-ferrari-488-pista-24/",
-   "chassis": "ZFF90HLAXK0244429",
-   "title": "5k-Mile 2019 Ferrari 488 Pista"
-  },
-  {
-   "date": "2026-06-10",
-   "venue": "Bring a Trailer",
-   "price_usd": 881500,
-   "basis": "sold+fee",
-   "hammer_usd": 874000,
-   "native": {
-    "amount": 874000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://bringatrailer.com/listing/2019-ferrari-488-pista-22/",
-   "chassis": "ZFF90HLA2K0241895",
-   "title": "3k-Mile 2019 Ferrari 488 Pista"
-  },
   {
    "date": "2026-04-25",
    "venue": "RM Sotheby's",
@@ -128,22 +63,6 @@
    "title": "2020 FERRARI 488 PISTA"
   },
   {
-   "date": "2026-03-12",
-   "venue": "Bring a Trailer",
-   "price_usd": 792500,
-   "basis": "sold+fee",
-   "hammer_usd": 785000,
-   "native": {
-    "amount": 785000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://bringatrailer.com/listing/2019-ferrari-488-pista-20/",
-   "chassis": "ZFF90HLA2K0247423",
-   "title": "4k-Mile 2019 Ferrari 488 Pista"
-  },
-  {
    "date": "2026-02-27",
    "venue": "RM Sotheby's",
    "price_usd": 1039000,
@@ -158,22 +77,6 @@
    "url": "https://rmsothebys.com/auctions/mi26/lots/r0044-2020-ferrari-488-pista-piloti-ferrari/",
    "chassis": "ZFF90HLA4L0255024",
    "title": "2020 Ferrari 488 Pista 'Piloti Ferrari'"
-  },
-  {
-   "date": "2026-02-19",
-   "venue": "Bring a Trailer",
-   "price_usd": 832500,
-   "basis": "sold+fee",
-   "hammer_usd": 825000,
-   "native": {
-    "amount": 825000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2019,
-   "url": "https://bringatrailer.com/listing/2019-ferrari-488-pista-19/",
-   "chassis": "ZFF90HLA0K0241863",
-   "title": "1,500-Mile 2019 Ferrari 488 Pista"
   },
   {
    "date": "2025-10-12",
@@ -206,38 +109,6 @@
    "url": "https://rmsothebys.com/auctions/id25/lots/r0027-2019-ferrari-488-pista-piloti-ferrari/",
    "chassis": "ZFF90HMB000243166",
    "title": "2019 Ferrari 488 Pista 'Piloti Ferrari'"
-  },
-  {
-   "date": "2025-10-07",
-   "venue": "Bring a Trailer",
-   "price_usd": 723500,
-   "basis": "sold+fee",
-   "hammer_usd": 716000,
-   "native": {
-    "amount": 716000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2020,
-   "url": "https://bringatrailer.com/listing/2020-ferrari-488-pista-35/",
-   "chassis": "ZFF90HLA6L0257728",
-   "title": "One-Owner 2020 Ferrari 488 Pista"
-  },
-  {
-   "date": "2025-10-02",
-   "venue": "Bring a Trailer",
-   "price_usd": 626500,
-   "basis": "sold+fee",
-   "hammer_usd": 619000,
-   "native": {
-    "amount": 619000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 2020,
-   "url": "https://bringatrailer.com/listing/2020-ferrari-488-pista-34/",
-   "chassis": "ZFF90HLA6L0248866",
-   "title": "184-Kilometer 2020 Ferrari 488 Pista"
   },
   {
    "date": "2025-03-08",
@@ -320,6 +191,166 @@
    "title": "2020 Ferrari 488 Pista"
   },
   {
+   "date": "2024-07-12",
+   "venue": "Bonhams",
+   "price_usd": 518478,
+   "basis": "buyer-paid",
+   "hammer_usd": 450850,
+   "native": {
+    "amount": 408250,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 2020,
+   "url": "https://cars.bonhams.com/auction/29332/lot/266/2020-ferrari-488-pista-piloti-coupe-chassis-no-zff90hmc000250957/",
+   "chassis": "ZFF90HMC000250957",
+   "title": "2020 Ferrari 488 Pista Piloti Coupé Chassis no. ZFF90HMC000250957"
+  },
+  {
+   "date": "2024-03-02",
+   "venue": "RM Sotheby's",
+   "price_usd": 483500,
+   "basis": "buyer-paid",
+   "hammer_usd": 435000,
+   "native": {
+    "amount": 483500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2020,
+   "url": "https://rmsothebys.com/auctions/mi24/lots/r0095-2020-ferrari-488-pista/",
+   "chassis": "ZFF90HLA2L0253126",
+   "title": "2020 Ferrari 488 Pista"
+  },
+  {
+   "date": "2026-08-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 1127500,
+   "basis": "sold+fee",
+   "hammer_usd": 1120000,
+   "native": {
+    "amount": 1120000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-ferrari-488-pista-40/",
+   "chassis": "ZFF90HLA0L0248975",
+   "title": "526-Mile 2020 Ferrari 488 Pista"
+  },
+  {
+   "date": "2026-08-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 925000,
+   "basis": "sold+fee",
+   "hammer_usd": 917500,
+   "native": {
+    "amount": 917500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-ferrari-488-pista-25/",
+   "chassis": "ZFF90HLA1K0247199",
+   "title": "2019 Ferrari 488 Pista"
+  },
+  {
+   "date": "2026-07-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 962500,
+   "basis": "sold+fee",
+   "hammer_usd": 955000,
+   "native": {
+    "amount": 955000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-ferrari-488-pista-24/",
+   "chassis": "ZFF90HLAXK0244429",
+   "title": "5k-Mile 2019 Ferrari 488 Pista"
+  },
+  {
+   "date": "2026-06-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 881500,
+   "basis": "sold+fee",
+   "hammer_usd": 874000,
+   "native": {
+    "amount": 874000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-ferrari-488-pista-22/",
+   "chassis": "ZFF90HLA2K0241895",
+   "title": "3k-Mile 2019 Ferrari 488 Pista"
+  },
+  {
+   "date": "2026-03-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 792500,
+   "basis": "sold+fee",
+   "hammer_usd": 785000,
+   "native": {
+    "amount": 785000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-ferrari-488-pista-20/",
+   "chassis": "ZFF90HLA2K0247423",
+   "title": "4k-Mile 2019 Ferrari 488 Pista"
+  },
+  {
+   "date": "2026-02-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 832500,
+   "basis": "sold+fee",
+   "hammer_usd": 825000,
+   "native": {
+    "amount": 825000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-ferrari-488-pista-19/",
+   "chassis": "ZFF90HLA0K0241863",
+   "title": "1,500-Mile 2019 Ferrari 488 Pista"
+  },
+  {
+   "date": "2025-10-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 723500,
+   "basis": "sold+fee",
+   "hammer_usd": 716000,
+   "native": {
+    "amount": 716000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-ferrari-488-pista-35/",
+   "chassis": "ZFF90HLA6L0257728",
+   "title": "One-Owner 2020 Ferrari 488 Pista"
+  },
+  {
+   "date": "2025-10-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 626500,
+   "basis": "sold+fee",
+   "hammer_usd": 619000,
+   "native": {
+    "amount": 619000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-ferrari-488-pista-34/",
+   "chassis": "ZFF90HLA6L0248866",
+   "title": "184-Kilometer 2020 Ferrari 488 Pista"
+  },
+  {
    "date": "2024-07-03",
    "venue": "Bring a Trailer",
    "price_usd": 487500,
@@ -382,22 +413,6 @@
    "url": "https://bringatrailer.com/listing/2020-ferrari-488-pista-30/",
    "chassis": "ZFF90HLAXL0254024",
    "title": "188-Mile 2020 Ferrari 488 Pista"
-  },
-  {
-   "date": "2024-03-02",
-   "venue": "RM Sotheby's",
-   "price_usd": 483500,
-   "basis": "buyer-paid",
-   "hammer_usd": 435000,
-   "native": {
-    "amount": 483500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2020,
-   "url": "https://rmsothebys.com/auctions/mi24/lots/r0095-2020-ferrari-488-pista/",
-   "chassis": "ZFF90HLA2L0253126",
-   "title": "2020 Ferrari 488 Pista"
   }
  ]
 }

@@ -9,11 +9,58 @@
   "model": "Gallardo",
   "window": "36mo",
   "year_min": 2002,
-  "year_max": 2006,
-  "body": "coupe"
+  "year_max": 2006
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2026-05-18",
+   "venue": "Broad Arrow",
+   "price_usd": 183600,
+   "basis": "buyer-paid",
+   "hammer_usd": 159652,
+   "native": {
+    "amount": 170000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 2003,
+   "url": "https://www.broadarrowauctions.com/vehicles/gi26v_r0033/2003-lamborghini-gallardo",
+   "chassis": "ZHWGE11M94LA00035",
+   "title": "2003 Lamborghini Gallardo"
+  },
+  {
+   "date": "2026-05-15",
+   "venue": "Mecum",
+   "price_usd": 84000,
+   "basis": "sold+fee",
+   "hammer_usd": 80000,
+   "native": {
+    "amount": 88000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2004,
+   "url": "https://www.mecum.com/lots/1170102/2004-lamborghini-gallardo?aa_id=782273-0",
+   "chassis": "ZHWGU11S34LA01666",
+   "title": "2004 Lamborghini Gallardo"
+  },
+  {
+   "date": "2024-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 78100,
+   "basis": "buyer-paid",
+   "hammer_usd": 71000,
+   "native": {
+    "amount": 78100,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2004,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2004-lamborghini-gallardo-274727?origin=results",
+   "chassis": "ZHWGU11S74LA01024",
+   "title": "2004 LAMBORGHINI GALLARDO"
+  },
   {
    "date": "2026-09-16",
    "venue": "Bring a Trailer",
@@ -93,38 +140,6 @@
    "url": "https://www.sothebysmotorsport.com/auction/2004-lamborghini-gallardo6speedmanualconversion-9899",
    "chassis": "ZHWGU11S14LA01732",
    "title": "2004 Lamborghini Gallardo 6-Speed Manual Conversion"
-  },
-  {
-   "date": "2026-05-18",
-   "venue": "Broad Arrow",
-   "price_usd": 183600,
-   "basis": "buyer-paid",
-   "hammer_usd": 159652,
-   "native": {
-    "amount": 170000,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 2003,
-   "url": "https://www.broadarrowauctions.com/vehicles/gi26v_r0033/2003-lamborghini-gallardo",
-   "chassis": "ZHWGE11M94LA00035",
-   "title": "2003 Lamborghini Gallardo"
-  },
-  {
-   "date": "2026-05-15",
-   "venue": "Mecum",
-   "price_usd": 84000,
-   "basis": "sold+fee",
-   "hammer_usd": 80000,
-   "native": {
-    "amount": 88000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2004,
-   "url": "https://www.mecum.com/lots/1170102/2004-lamborghini-gallardo?aa_id=782273-0",
-   "chassis": "ZHWGU11S34LA01666",
-   "title": "2004 Lamborghini Gallardo"
   },
   {
    "date": "2025-10-16",
@@ -269,22 +284,6 @@
    "url": "https://bringatrailer.com/listing/2004-lamborghini-gallardo-43-2/",
    "chassis": "ZHWGU11S04LA00653",
    "title": "2,700-Mile 2004 Lamborghini Gallardo"
-  },
-  {
-   "date": "2024-01-26",
-   "venue": "Barrett-Jackson",
-   "price_usd": 78100,
-   "basis": "buyer-paid",
-   "hammer_usd": 71000,
-   "native": {
-    "amount": 78100,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2004,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2004-lamborghini-gallardo-274727?origin=results",
-   "chassis": "ZHWGU11S74LA01024",
-   "title": "2004 LAMBORGHINI GALLARDO"
   },
   {
    "date": "2023-10-10",

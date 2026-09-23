@@ -2,19 +2,34 @@
  "car_id": 72,
  "listed": "1999 Ferrari 550 Maranello",
  "status": "compare",
- "year_scope": "adjacent years pooled (1997-2001)",
- "basis": "mixed (80% house buyer-paid, rest sold+fee)",
+ "year_scope": "exact 1999",
+ "basis": "mixed (29% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Ferrari",
   "model": "550",
   "window": "36mo",
-  "year_min": 1997,
-  "year_max": 2001,
-  "trim": "Maranello",
-  "body": "coupe"
+  "year_min": 1999,
+  "year_max": 1999,
+  "trim": "Maranello"
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2026-08-15",
+   "venue": "RM Sotheby's",
+   "price_usd": 610000,
+   "basis": "buyer-paid",
+   "hammer_usd": 550000,
+   "native": {
+    "amount": 610000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1999,
+   "url": "https://rmsothebys.com/auctions/mo26/lots/r0023-1999-ferrari-550-maranello",
+   "chassis": "ZFFZR49B000114934",
+   "title": "1999 Ferrari 550 Maranello"
+  },
   {
    "date": "2026-05-16",
    "venue": "Mecum",
@@ -32,20 +47,20 @@
    "title": "1999 Ferrari 550 Maranello"
   },
   {
-   "date": "2026-04-11",
-   "venue": "Mecum",
-   "price_usd": 141750,
-   "basis": "sold+fee",
-   "hammer_usd": 135000,
+   "date": "2026-04-24",
+   "venue": "Bonhams",
+   "price_usd": 99360,
+   "basis": "buyer-paid",
+   "hammer_usd": 86400,
    "native": {
-    "amount": 148500,
-    "currency": "USD",
+    "amount": 92000,
+    "currency": "EUR",
     "premium_inclusive": true
    },
-   "year": 1998,
-   "url": "https://www.mecum.com/lots/1172044/1998-ferrari-550-maranello?aa_id=773918-0",
-   "chassis": "ZFFZR49B000111972",
-   "title": "1998 Ferrari 550 Maranello"
+   "year": 1999,
+   "url": "https://cars.bonhams.com/auction/31711/lot/124/1999-ferrari-550-maranello-chassis-no-zffzr49b000117416/",
+   "chassis": "ZFFZR49B000117416",
+   "title": "1999 Ferrari 550 Maranello Chassis no. ZFFZR49B000117416"
   },
   {
    "date": "2026-03-07",
@@ -112,52 +127,20 @@
    "title": "1999 Ferrari 550 Maranello"
   },
   {
-   "date": "2025-10-10",
-   "venue": "Broad Arrow",
-   "price_usd": 198720,
+   "date": "2024-08-17",
+   "venue": "RM Sotheby's",
+   "price_usd": 280000,
    "basis": "buyer-paid",
-   "hammer_usd": 172800,
+   "hammer_usd": 250000,
    "native": {
-    "amount": 184000,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 1997,
-   "url": "https://www.broadarrowauctions.com/vehicles/zt25_r0069/1997-ferrari-550-maranello",
-   "chassis": "ZFFZR49B000105811",
-   "title": "1997 Ferrari 550 Maranello"
-  },
-  {
-   "date": "2025-03-08",
-   "venue": "Broad Arrow",
-   "price_usd": 196000,
-   "basis": "buyer-paid",
-   "hammer_usd": 175000,
-   "native": {
-    "amount": 196000,
+    "amount": 280000,
     "currency": "USD",
     "premium_inclusive": true
    },
-   "year": 1998,
-   "url": "https://www.broadarrowauctions.com/vehicles/am25_r029/1998-ferrari-550-maranello",
-   "chassis": "ZFFZR49J000114342",
-   "title": "1998 Ferrari 550 Maranello"
-  },
-  {
-   "date": "2024-10-12",
-   "venue": "Barrett-Jackson",
-   "price_usd": 145200,
-   "basis": "buyer-paid",
-   "hammer_usd": 132000,
-   "native": {
-    "amount": 145200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1998,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1998-ferrari-550-maranello-278940?origin=results",
-   "chassis": "ZFFZR49AXW0112802",
-   "title": "1998 FERRARI 550 MARANELLO"
+   "year": 1999,
+   "url": "https://rmsothebys.com/auctions/mo24/lots/r0061-1999-ferrari-550-maranello/",
+   "chassis": "ZFFZR49A4X0114823",
+   "title": "1999 Ferrari 550 Maranello"
   },
   {
    "date": "2024-08-15",
@@ -173,6 +156,358 @@
    "year": 1999,
    "url": "https://www.broadarrowauctions.com/vehicles/jc24_r088/1999-ferrari-550-maranello",
    "chassis": "ZFFZR49A6X0114824",
+   "title": "1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2024-04-14",
+   "venue": "Bonhams",
+   "price_usd": 94933,
+   "basis": "buyer-paid",
+   "hammer_usd": 82550,
+   "native": {
+    "amount": 74750,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1999,
+   "url": "https://cars.bonhams.com/auction/29331/lot/167/1999-ferrari-550-maranello-coupe-chassis-no-zffzr49c000114662/",
+   "chassis": "ZFFZR49C000114662",
+   "title": "1999 Ferrari 550 Maranello Coupé Chassis no. ZFFZR49C000114662"
+  },
+  {
+   "date": "2026-07-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 343050,
+   "basis": "sold+fee",
+   "hammer_usd": 335550,
+   "native": {
+    "amount": 335550,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-ferrari-550-maranello-62/",
+   "chassis": "ZFFZR49A7X0115755",
+   "title": "22k-Mile 1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2026-07-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 400000,
+   "basis": "sold+fee",
+   "hammer_usd": 392500,
+   "native": {
+    "amount": 392500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-ferrari-550-maranello-61/",
+   "chassis": "ZFFZR49A2X0114643",
+   "title": "Ex–Sydney Pollack 1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2026-06-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 514500,
+   "basis": "sold+fee",
+   "hammer_usd": 507000,
+   "native": {
+    "amount": 507000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-ferrari-550-maranello-59/",
+   "chassis": "ZFFZR49A4X0115177",
+   "title": "Original-Owner 1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2026-05-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 169500,
+   "basis": "sold+fee",
+   "hammer_usd": 162000,
+   "native": {
+    "amount": 162000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-ferrari-550-maranello-58/",
+   "chassis": "ZFFZR49A8X0114954",
+   "title": "1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2026-03-12",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 242500,
+   "basis": "sold+fee",
+   "hammer_usd": 235000,
+   "native": {
+    "amount": 235000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://www.sothebysmotorsport.com/auction/1999-ferrari-550maranello-9045",
+   "chassis": "ZFFZR49A4X0115826",
+   "title": "1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2025-12-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 172500,
+   "basis": "sold+fee",
+   "hammer_usd": 165000,
+   "native": {
+    "amount": 165000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-ferrari-550-maranello-53/",
+   "chassis": "ZFFZR49AXX0116091",
+   "title": "1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2025-12-29",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 126000,
+   "basis": "sold+fee",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 120000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://www.sothebysmotorsport.com/auction/1999-ferrari-550maranello-8100",
+   "chassis": "ZFFZR49A1X0115816",
+   "title": "1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2025-11-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 166500,
+   "basis": "sold+fee",
+   "hammer_usd": 159000,
+   "native": {
+    "amount": 159000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-ferrari-550-maranello-52/",
+   "chassis": "ZFFZR49A9X0115837",
+   "title": "1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2025-06-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 185500,
+   "basis": "sold+fee",
+   "hammer_usd": 178000,
+   "native": {
+    "amount": 178000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-ferrari-550-maranello-51/",
+   "chassis": "ZFFZR49B000117925",
+   "title": "Euro 1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2025-05-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 167500,
+   "basis": "sold+fee",
+   "hammer_usd": 160000,
+   "native": {
+    "amount": 160000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-ferrari-550-maranello-50/",
+   "chassis": "ZFFZR49A5X0114961",
+   "title": "26k-Mile 1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2025-03-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 187500,
+   "basis": "sold+fee",
+   "hammer_usd": 180000,
+   "native": {
+    "amount": 180000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-ferrari-550-maranello-48/",
+   "chassis": "ZFFZR49A7X0113343",
+   "title": "33k-Mile 1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2025-02-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 110250,
+   "basis": "sold+fee",
+   "hammer_usd": 105000,
+   "native": {
+    "amount": 105000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-ferrari-550-maranello-47/",
+   "chassis": "ZFFZR49A5X0115138",
+   "title": "1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2025-01-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 248500,
+   "basis": "sold+fee",
+   "hammer_usd": 241000,
+   "native": {
+    "amount": 241000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-ferrari-550-maranello-39-2/",
+   "chassis": "ZFFZR49J000115231",
+   "title": "26k-Kilometer 1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2024-12-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 124950,
+   "basis": "sold+fee",
+   "hammer_usd": 119000,
+   "native": {
+    "amount": 119000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-ferrari-550-maranello-45/",
+   "chassis": "ZFFZR49B000117127",
+   "title": "20-years-Owned Euro 1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2024-11-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 242500,
+   "basis": "sold+fee",
+   "hammer_usd": 235000,
+   "native": {
+    "amount": 235000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-ferrari-550-maranello-43/",
+   "chassis": "ZFFZR49A4X0114952",
+   "title": "11k-Mile 1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2024-10-09",
+   "venue": "Cars & Bids",
+   "price_usd": 143325,
+   "basis": "sold+fee",
+   "hammer_usd": 136500,
+   "native": {
+    "amount": 136500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://carsandbids.com/auctions/KmGvb7gx/1999-ferrari-550-maranello",
+   "chassis": "ZFFZR49A8X0114372",
+   "title": "1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2024-06-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 177500,
+   "basis": "sold+fee",
+   "hammer_usd": 170000,
+   "native": {
+    "amount": 170000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-ferrari-550-maranello-37/",
+   "chassis": "ZFFZR49A2X0113525",
+   "title": "1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2024-05-14",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 257500,
+   "basis": "sold+fee",
+   "hammer_usd": 250000,
+   "native": {
+    "amount": 250000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://www.sothebysmotorsport.com/auction/1999-ferrari-550maranello-1604",
+   "chassis": "ZFFZR49A9X0114963",
+   "title": "1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2024-05-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 217500,
+   "basis": "sold+fee",
+   "hammer_usd": 210000,
+   "native": {
+    "amount": 210000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-ferrari-550-maranello-35/",
+   "chassis": "ZFFZR49A0X0113409",
+   "title": "19k-Mile 1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2024-04-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 162500,
+   "basis": "sold+fee",
+   "hammer_usd": 155000,
+   "native": {
+    "amount": 155000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-ferrari-550-maranello-33/",
+   "chassis": "ZFFZR49A2X0115498",
+   "title": "26k-Mile 1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2023-10-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 167500,
+   "basis": "sold+fee",
+   "hammer_usd": 160000,
+   "native": {
+    "amount": 160000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-ferrari-550-maranello-28/",
+   "chassis": "ZFFZR49A8X0114372",
    "title": "1999 Ferrari 550 Maranello"
   }
  ]

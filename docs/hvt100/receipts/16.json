@@ -3,50 +3,17 @@
  "listed": "1965 Porsche 356 C",
  "status": "compare",
  "year_scope": "exact 1965",
- "basis": "mixed (79% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (84% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Porsche",
   "model": "356",
   "window": "36mo",
   "year_min": 1965,
   "year_max": 1965,
-  "trim": "C",
-  "body": "coupe"
+  "trim": "C"
  },
  "halo_dropped": 0,
  "sales": [
-  {
-   "date": "2026-08-11",
-   "venue": "Bring a Trailer",
-   "price_usd": 127050,
-   "basis": "sold+fee",
-   "hammer_usd": 121000,
-   "native": {
-    "amount": 121000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1965,
-   "url": "https://bringatrailer.com/listing/1966-porsche-911-20/",
-   "chassis": "300914",
-   "title": "1965 Porsche 911 Coupe"
-  },
-  {
-   "date": "2026-05-28",
-   "venue": "Bring a Trailer",
-   "price_usd": 165500,
-   "basis": "sold+fee",
-   "hammer_usd": 158000,
-   "native": {
-    "amount": 158000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1965,
-   "url": "https://bringatrailer.com/listing/1965-porsche-911-7/",
-   "chassis": "301241",
-   "title": "1965 Porsche 911 Coupe"
-  },
   {
    "date": "2026-04-25",
    "venue": "Broad Arrow",
@@ -176,20 +143,20 @@
    "title": "1965 Porsche 911 'SWB' Coupé Chassis no. 301780 Engine no. 901780"
   },
   {
-   "date": "2025-08-08",
-   "venue": "Bring a Trailer",
-   "price_usd": 192500,
-   "basis": "sold+fee",
-   "hammer_usd": 185000,
+   "date": "2025-05-04",
+   "venue": "Bonhams",
+   "price_usd": 250000,
+   "basis": "buyer-paid",
+   "hammer_usd": 223214,
    "native": {
-    "amount": 185000,
+    "amount": 250000,
     "currency": "USD",
-    "premium_inclusive": false
+    "premium_inclusive": true
    },
    "year": 1965,
-   "url": "https://bringatrailer.com/listing/1965-porsche-911-6/",
-   "chassis": "301245",
-   "title": "1965 Porsche 911"
+   "url": "https://cars.bonhams.com/auction/30996/lot/49/1965-porsche-911-20-coupe-chassis-no-301379-engine-no-901477/",
+   "chassis": "301379",
+   "title": "1965 Porsche 911 2.0 Coupe Chassis no. 301379 Engine no. 901477"
   },
   {
    "date": "2025-03-08",
@@ -224,22 +191,6 @@
    "title": "1965 Porsche 911 Coupé"
   },
   {
-   "date": "2024-12-09",
-   "venue": "Bring a Trailer",
-   "price_usd": 99749,
-   "basis": "sold+fee",
-   "hammer_usd": 94999,
-   "native": {
-    "amount": 94999,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1965,
-   "url": "https://bringatrailer.com/listing/1965-porsche-911-4/",
-   "chassis": "301857",
-   "title": "1965 Porsche 911 Coupe 5-Speed"
-  },
-  {
    "date": "2024-10-28",
    "venue": "RM Sotheby's",
    "price_usd": 10920,
@@ -272,6 +223,22 @@
    "title": "1965 Porsche 911"
   },
   {
+   "date": "2024-10-06",
+   "venue": "Bonhams",
+   "price_usd": 192510,
+   "basis": "buyer-paid",
+   "hammer_usd": 167400,
+   "native": {
+    "amount": 178250,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://cars.bonhams.com/auction/29935/lot/109/1965-porsche-911-20-litre-short-wheelbase-coupe-chassis-no-302077-engine-no-902227/",
+   "chassis": "302077",
+   "title": "1965 Porsche 911 2.0-Litre Short-wheelbase Coupé Chassis no. 302077 Engine no. 902227"
+  },
+  {
    "date": "2024-08-17",
    "venue": "Gooding Christie's",
    "price_usd": 207200,
@@ -286,6 +253,22 @@
    "url": "https://www.goodingco.com/lot/1965-porsche-911-20",
    "chassis": "301968",
    "title": "1965 Porsche 911 2.0"
+  },
+  {
+   "date": "2024-08-16",
+   "venue": "Bonhams",
+   "price_usd": 280000,
+   "basis": "buyer-paid",
+   "hammer_usd": 250000,
+   "native": {
+    "amount": 280000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://cars.bonhams.com/auction/29263/lot/121/1965-porsche-911-20-coupe-chassis-no-300339-engine-no-900436/",
+   "chassis": "300339",
+   "title": "1965 Porsche 911 2.0 Coupe Chassis no. 300339 Engine no. 900436"
   },
   {
    "date": "2024-04-27",
@@ -304,6 +287,54 @@
    "title": "1965 Porsche 911"
   },
   {
+   "date": "2024-04-14",
+   "venue": "Bonhams",
+   "price_usd": 177800,
+   "basis": "buyer-paid",
+   "hammer_usd": 154609,
+   "native": {
+    "amount": 140000,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://cars.bonhams.com/auction/29331/lot/196/1965-porsche-911-20-litre-swb-fia-coupe-chassis-no-301048/",
+   "chassis": "301048",
+   "title": "1965 Porsche 911 2.0-Litre SWB FIA Coupé Chassis no. 301048"
+  },
+  {
+   "date": "2024-02-29",
+   "venue": "Bonhams",
+   "price_usd": 300000,
+   "basis": "buyer-paid",
+   "hammer_usd": 268182,
+   "native": {
+    "amount": 300000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://cars.bonhams.com/auction/29261/lot/51/1965-porsche-911-20-coupe-chassis-no-300339-engine-no-900436/",
+   "chassis": "300339",
+   "title": "1965 Porsche 911 2.0 Coupe Chassis no. 300339 Engine no. 900436"
+  },
+  {
+   "date": "2023-12-15",
+   "venue": "Bonhams",
+   "price_usd": 387033,
+   "basis": "buyer-paid",
+   "hammer_usd": 336550,
+   "native": {
+    "amount": 304750,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://cars.bonhams.com/auction/28309/lot/11/1965-porsche-911-20-litre-coupe-chassis-no-300474-engine-no-900421/",
+   "chassis": "300474",
+   "title": "1965 Porsche 911 2.0-Litre Coupé Chassis no. 300474 Engine no. 900421"
+  },
+  {
    "date": "2023-12-02",
    "venue": "RM Sotheby's",
    "price_usd": 224000,
@@ -318,6 +349,70 @@
    "url": "https://rmsothebys.com/auctions/wc23/lots/r0016-1965-porsche-911-coupe/",
    "chassis": "301242",
    "title": "1965 Porsche 911 Coupe"
+  },
+  {
+   "date": "2026-08-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 127050,
+   "basis": "sold+fee",
+   "hammer_usd": 121000,
+   "native": {
+    "amount": 121000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1966-porsche-911-20/",
+   "chassis": "300914",
+   "title": "1965 Porsche 911 Coupe"
+  },
+  {
+   "date": "2026-05-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 165500,
+   "basis": "sold+fee",
+   "hammer_usd": 158000,
+   "native": {
+    "amount": 158000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-porsche-911-7/",
+   "chassis": "301241",
+   "title": "1965 Porsche 911 Coupe"
+  },
+  {
+   "date": "2025-08-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 192500,
+   "basis": "sold+fee",
+   "hammer_usd": 185000,
+   "native": {
+    "amount": 185000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-porsche-911-6/",
+   "chassis": "301245",
+   "title": "1965 Porsche 911"
+  },
+  {
+   "date": "2024-12-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 99749,
+   "basis": "sold+fee",
+   "hammer_usd": 94999,
+   "native": {
+    "amount": 94999,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-porsche-911-4/",
+   "chassis": "301857",
+   "title": "1965 Porsche 911 Coupe 5-Speed"
   }
  ]
 }

@@ -9,11 +9,186 @@
   "model": "Grand National",
   "window": "36mo",
   "year_min": 1987,
-  "year_max": 1987,
-  "body": "coupe"
+  "year_max": 1987
  },
  "halo_dropped": 5,
  "sales": [
+  {
+   "date": "2026-07-24",
+   "venue": "Mecum",
+   "price_usd": 65100,
+   "basis": "sold+fee",
+   "hammer_usd": 62000,
+   "native": {
+    "amount": 68200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.mecum.com/lots/1168336/1987-buick-grand-national?aa_id=784012-0",
+   "chassis": "1G4GJ1179HP446014",
+   "title": "1987 Buick Grand National"
+  },
+  {
+   "date": "2026-06-05",
+   "venue": "Mecum",
+   "price_usd": 33600,
+   "basis": "sold+fee",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 35200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.mecum.com/lots/1172670/1987-buick-grand-national?aa_id=789120-0",
+   "chassis": "1G4GJ1179HP463718",
+   "title": "1987 Buick Grand National"
+  },
+  {
+   "date": "2026-04-17",
+   "venue": "Barrett-Jackson",
+   "price_usd": 95700,
+   "basis": "buyer-paid",
+   "hammer_usd": 87000,
+   "native": {
+    "amount": 95700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/1987-buick-grand-national-formerly-owned-by-david-spade-298485?origin=results",
+   "chassis": "1G4GJ1175HP425015",
+   "title": "1987 BUICK GRAND NATIONAL FORMERLY OWNED BY DAVID SPADE"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 50600,
+   "basis": "buyer-paid",
+   "hammer_usd": 46000,
+   "native": {
+    "amount": 50600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1987-buick-grand-national-formerly-owned-by-david-spade-292566?origin=results",
+   "chassis": "1G4GJ1175HP425015",
+   "title": "1987 BUICK GRAND NATIONAL FORMERLY OWNED BY DAVID SPADE"
+  },
+  {
+   "date": "2026-01-22",
+   "venue": "Barrett-Jackson",
+   "price_usd": 79200,
+   "basis": "buyer-paid",
+   "hammer_usd": 72000,
+   "native": {
+    "amount": 79200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1987-buick-grand-national-293682?origin=results",
+   "chassis": "1G4GJ1178HP462401",
+   "title": "1987 BUICK GRAND NATIONAL"
+  },
+  {
+   "date": "2026-01-21",
+   "venue": "Barrett-Jackson",
+   "price_usd": 52800,
+   "basis": "buyer-paid",
+   "hammer_usd": 48000,
+   "native": {
+    "amount": 52800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1987-buick-grand-national-292452?origin=results",
+   "chassis": "1G4GJ1174HP462444",
+   "title": "1987 BUICK GRAND NATIONAL"
+  },
+  {
+   "date": "2025-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 30800,
+   "basis": "buyer-paid",
+   "hammer_usd": 28000,
+   "native": {
+    "amount": 30800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1987-buick-grand-national-281939?origin=results",
+   "chassis": "1G4GJ1175HP417707",
+   "title": "1987 BUICK GRAND NATIONAL"
+  },
+  {
+   "date": "2025-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 33000,
+   "basis": "buyer-paid",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1987-buick-grand-national-281579?origin=results",
+   "chassis": "1G4GJ1177HP461319",
+   "title": "1987 BUICK GRAND NATIONAL"
+  },
+  {
+   "date": "2024-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 69300,
+   "basis": "buyer-paid",
+   "hammer_usd": 63000,
+   "native": {
+    "amount": 69300,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1987-buick-grand-national-273195?origin=results",
+   "chassis": "1G4GJ1174HP433140",
+   "title": "1987 BUICK GRAND NATIONAL"
+  },
+  {
+   "date": "2024-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 51700,
+   "basis": "buyer-paid",
+   "hammer_usd": 47000,
+   "native": {
+    "amount": 51700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1987-buick-grand-national-272031?origin=results",
+   "chassis": "1G4GJ1173HP452312",
+   "title": "1987 BUICK GRAND NATIONAL"
+  },
+  {
+   "date": "2024-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 66000,
+   "basis": "buyer-paid",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 66000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1987-buick-grand-national-272713?origin=results",
+   "chassis": "1G4GJ1172HP461390",
+   "title": "1987 BUICK GRAND NATIONAL"
+  },
   {
    "date": "2026-09-17",
    "venue": "Hagerty",
@@ -63,22 +238,6 @@
    "title": "1987 Buick Grand National"
   },
   {
-   "date": "2026-07-24",
-   "venue": "Mecum",
-   "price_usd": 65100,
-   "basis": "sold+fee",
-   "hammer_usd": 62000,
-   "native": {
-    "amount": 68200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1987,
-   "url": "https://www.mecum.com/lots/1168336/1987-buick-grand-national?aa_id=784012-0",
-   "chassis": "1G4GJ1179HP446014",
-   "title": "1987 Buick Grand National"
-  },
-  {
    "date": "2026-06-12",
    "venue": "Bring a Trailer",
    "price_usd": 80325,
@@ -95,38 +254,6 @@
    "title": "6k-Mile 1987 Buick Grand National"
   },
   {
-   "date": "2026-06-05",
-   "venue": "Mecum",
-   "price_usd": 33600,
-   "basis": "sold+fee",
-   "hammer_usd": 32000,
-   "native": {
-    "amount": 35200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1987,
-   "url": "https://www.mecum.com/lots/1172670/1987-buick-grand-national?aa_id=789120-0",
-   "chassis": "1G4GJ1179HP463718",
-   "title": "1987 Buick Grand National"
-  },
-  {
-   "date": "2026-04-17",
-   "venue": "Barrett-Jackson",
-   "price_usd": 95700,
-   "basis": "buyer-paid",
-   "hammer_usd": 87000,
-   "native": {
-    "amount": 95700,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1987,
-   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/1987-buick-grand-national-formerly-owned-by-david-spade-298485?origin=results",
-   "chassis": "1G4GJ1175HP425015",
-   "title": "1987 BUICK GRAND NATIONAL FORMERLY OWNED BY DAVID SPADE"
-  },
-  {
    "date": "2026-03-13",
    "venue": "Bring a Trailer",
    "price_usd": 78750,
@@ -141,54 +268,6 @@
    "url": "https://bringatrailer.com/listing/1987-buick-grand-national-279/",
    "chassis": "1G4GJ1178HP462401",
    "title": "7k-Mile 1987 Buick Grand National"
-  },
-  {
-   "date": "2026-01-23",
-   "venue": "Barrett-Jackson",
-   "price_usd": 50600,
-   "basis": "buyer-paid",
-   "hammer_usd": 46000,
-   "native": {
-    "amount": 50600,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1987,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1987-buick-grand-national-formerly-owned-by-david-spade-292566?origin=results",
-   "chassis": "1G4GJ1175HP425015",
-   "title": "1987 BUICK GRAND NATIONAL FORMERLY OWNED BY DAVID SPADE"
-  },
-  {
-   "date": "2026-01-22",
-   "venue": "Barrett-Jackson",
-   "price_usd": 79200,
-   "basis": "buyer-paid",
-   "hammer_usd": 72000,
-   "native": {
-    "amount": 79200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1987,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1987-buick-grand-national-293682?origin=results",
-   "chassis": "1G4GJ1178HP462401",
-   "title": "1987 BUICK GRAND NATIONAL"
-  },
-  {
-   "date": "2026-01-21",
-   "venue": "Barrett-Jackson",
-   "price_usd": 52800,
-   "basis": "buyer-paid",
-   "hammer_usd": 48000,
-   "native": {
-    "amount": 52800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1987,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1987-buick-grand-national-292452?origin=results",
-   "chassis": "1G4GJ1174HP462444",
-   "title": "1987 BUICK GRAND NATIONAL"
   },
   {
    "date": "2025-12-26",
@@ -415,38 +494,6 @@
    "title": "6k-Mile 1987 Buick Grand National"
   },
   {
-   "date": "2025-01-26",
-   "venue": "Barrett-Jackson",
-   "price_usd": 30800,
-   "basis": "buyer-paid",
-   "hammer_usd": 28000,
-   "native": {
-    "amount": 30800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1987,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1987-buick-grand-national-281939?origin=results",
-   "chassis": "1G4GJ1175HP417707",
-   "title": "1987 BUICK GRAND NATIONAL"
-  },
-  {
-   "date": "2025-01-26",
-   "venue": "Barrett-Jackson",
-   "price_usd": 33000,
-   "basis": "buyer-paid",
-   "hammer_usd": 30000,
-   "native": {
-    "amount": 33000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1987,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1987-buick-grand-national-281579?origin=results",
-   "chassis": "1G4GJ1177HP461319",
-   "title": "1987 BUICK GRAND NATIONAL"
-  },
-  {
    "date": "2024-12-29",
    "venue": "Bring a Trailer",
    "price_usd": 45150,
@@ -477,54 +524,6 @@
    "url": "https://bringatrailer.com/listing/1987-buick-grand-national-241/",
    "chassis": "1G4GJ1177HP438557",
    "title": "10k-Mile 1987 Buick Grand National"
-  },
-  {
-   "date": "2024-01-26",
-   "venue": "Barrett-Jackson",
-   "price_usd": 69300,
-   "basis": "buyer-paid",
-   "hammer_usd": 63000,
-   "native": {
-    "amount": 69300,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1987,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1987-buick-grand-national-273195?origin=results",
-   "chassis": "1G4GJ1174HP433140",
-   "title": "1987 BUICK GRAND NATIONAL"
-  },
-  {
-   "date": "2024-01-24",
-   "venue": "Barrett-Jackson",
-   "price_usd": 51700,
-   "basis": "buyer-paid",
-   "hammer_usd": 47000,
-   "native": {
-    "amount": 51700,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1987,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1987-buick-grand-national-272031?origin=results",
-   "chassis": "1G4GJ1173HP452312",
-   "title": "1987 BUICK GRAND NATIONAL"
-  },
-  {
-   "date": "2024-01-24",
-   "venue": "Barrett-Jackson",
-   "price_usd": 66000,
-   "basis": "buyer-paid",
-   "hammer_usd": 60000,
-   "native": {
-    "amount": 66000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1987,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1987-buick-grand-national-272713?origin=results",
-   "chassis": "1G4GJ1172HP461390",
-   "title": "1987 BUICK GRAND NATIONAL"
   },
   {
    "date": "2023-11-22",

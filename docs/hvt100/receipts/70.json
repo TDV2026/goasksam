@@ -9,11 +9,90 @@
   "model": "SLR",
   "window": "36mo",
   "year_min": 2003,
-  "year_max": 2007,
-  "body": "coupe"
+  "year_max": 2007
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2026-01-28",
+   "venue": "RM Sotheby's",
+   "price_usd": 339525,
+   "basis": "buyer-paid",
+   "hammer_usd": 297000,
+   "native": {
+    "amount": 314375,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 2004,
+   "url": "https://rmsothebys.com/auctions/pa26/lots/r0077-2004-mercedesbenz-slr-mclaren",
+   "chassis": "WDD1993761M000142",
+   "title": "2004 Mercedes-Benz SLR McLaren"
+  },
+  {
+   "date": "2024-07-27",
+   "venue": "RM Sotheby's",
+   "price_usd": 315225,
+   "basis": "buyer-paid",
+   "hammer_usd": 275400,
+   "native": {
+    "amount": 291875,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 2004,
+   "url": "https://rmsothebys.com/auctions/tc24/lots/r0025-2004-mercedesbenz-slr-mclaren/",
+   "chassis": "WDD1993761M000058",
+   "title": "2004 Mercedes-Benz SLR McLaren"
+  },
+  {
+   "date": "2024-03-02",
+   "venue": "RM Sotheby's",
+   "price_usd": 235200,
+   "basis": "buyer-paid",
+   "hammer_usd": 210000,
+   "native": {
+    "amount": 235200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://rmsothebys.com/auctions/mi24/lots/r0065-2005-mercedesbenz-slr-mclaren/",
+   "chassis": "WDDAJ76F55M000541",
+   "title": "2005 Mercedes-Benz SLR McLaren"
+  },
+  {
+   "date": "2024-01-28",
+   "venue": "Barrett-Jackson",
+   "price_usd": 332200,
+   "basis": "buyer-paid",
+   "hammer_usd": 302000,
+   "native": {
+    "amount": 332200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2005-mercedes-benz-slr-mclaren-275420?origin=results",
+   "chassis": "WDDAJ76F25M000254",
+   "title": "2005 MERCEDES-BENZ SLR MCLAREN"
+  },
+  {
+   "date": "2023-11-25",
+   "venue": "RM Sotheby's",
+   "price_usd": 266625,
+   "basis": "buyer-paid",
+   "hammer_usd": 232200,
+   "native": {
+    "amount": 246875,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://rmsothebys.com/auctions/mu23/lots/r0073-2005-mercedesbenz-slr-mclaren/",
+   "chassis": "WDD1993761M000347",
+   "title": "2005 Mercedes-Benz SLR McLaren"
+  },
   {
    "date": "2026-07-22",
    "venue": "Bring a Trailer",
@@ -79,22 +158,6 @@
    "title": "2005 Mercedes-Benz SLR McLaren"
   },
   {
-   "date": "2026-01-28",
-   "venue": "RM Sotheby's",
-   "price_usd": 339525,
-   "basis": "buyer-paid",
-   "hammer_usd": 297000,
-   "native": {
-    "amount": 314375,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 2004,
-   "url": "https://rmsothebys.com/auctions/pa26/lots/r0077-2004-mercedesbenz-slr-mclaren",
-   "chassis": "WDD1993761M000142",
-   "title": "2004 Mercedes-Benz SLR McLaren"
-  },
-  {
    "date": "2025-01-03",
    "venue": "Bring a Trailer",
    "price_usd": 302500,
@@ -140,70 +203,6 @@
    "year": 2005,
    "url": "https://www.sothebysmotorsport.com/auction/2005-mercedesbenz-slrmclaren-2598",
    "chassis": "WDDAJ76F75M000489",
-   "title": "2005 Mercedes-Benz SLR McLaren"
-  },
-  {
-   "date": "2024-07-27",
-   "venue": "RM Sotheby's",
-   "price_usd": 315225,
-   "basis": "buyer-paid",
-   "hammer_usd": 275400,
-   "native": {
-    "amount": 291875,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 2004,
-   "url": "https://rmsothebys.com/auctions/tc24/lots/r0025-2004-mercedesbenz-slr-mclaren/",
-   "chassis": "WDD1993761M000058",
-   "title": "2004 Mercedes-Benz SLR McLaren"
-  },
-  {
-   "date": "2024-03-02",
-   "venue": "RM Sotheby's",
-   "price_usd": 235200,
-   "basis": "buyer-paid",
-   "hammer_usd": 210000,
-   "native": {
-    "amount": 235200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://rmsothebys.com/auctions/mi24/lots/r0065-2005-mercedesbenz-slr-mclaren/",
-   "chassis": "WDDAJ76F55M000541",
-   "title": "2005 Mercedes-Benz SLR McLaren"
-  },
-  {
-   "date": "2024-01-28",
-   "venue": "Barrett-Jackson",
-   "price_usd": 332200,
-   "basis": "buyer-paid",
-   "hammer_usd": 302000,
-   "native": {
-    "amount": 332200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2005-mercedes-benz-slr-mclaren-275420?origin=results",
-   "chassis": "WDDAJ76F25M000254",
-   "title": "2005 MERCEDES-BENZ SLR MCLAREN"
-  },
-  {
-   "date": "2023-11-25",
-   "venue": "RM Sotheby's",
-   "price_usd": 266625,
-   "basis": "buyer-paid",
-   "hammer_usd": 232200,
-   "native": {
-    "amount": 246875,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 2005,
-   "url": "https://rmsothebys.com/auctions/mu23/lots/r0073-2005-mercedesbenz-slr-mclaren/",
-   "chassis": "WDD1993761M000347",
    "title": "2005 Mercedes-Benz SLR McLaren"
   }
  ]

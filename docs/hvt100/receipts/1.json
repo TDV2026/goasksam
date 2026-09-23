@@ -3,14 +3,13 @@
  "listed": "1957 Chevrolet Bel Air",
  "status": "compare",
  "year_scope": "exact 1957",
- "basis": "mixed (24% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (29% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Chevrolet",
   "model": "Bel Air",
   "window": "36mo",
   "year_min": 1957,
-  "year_max": 1957,
-  "body": "convertible"
+  "year_max": 1957
  },
  "halo_dropped": 0,
  "sales": [
@@ -111,54 +110,6 @@
    "title": "1957 Chevrolet Bel Air"
   },
   {
-   "date": "2026-06-27",
-   "venue": "Barrett-Jackson",
-   "price_usd": 48400,
-   "basis": "buyer-paid",
-   "hammer_usd": 44000,
-   "native": {
-    "amount": 48400,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1957,
-   "url": "https://www.barrett-jackson.com/2026-columbus/docket/vehicle/1957-chevrolet-bel-air-299917?origin=results",
-   "chassis": "VC57N222204",
-   "title": "1957 CHEVROLET BEL AIR"
-  },
-  {
-   "date": "2026-06-06",
-   "venue": "Mecum",
-   "price_usd": 55650,
-   "basis": "sold+fee",
-   "hammer_usd": 53000,
-   "native": {
-    "amount": 58300,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1957,
-   "url": "https://www.mecum.com/lots/1174007/1957-chevrolet-bel-air-hardtop?aa_id=786760-0",
-   "chassis": "VC57L157804",
-   "title": "1957 Chevrolet Bel Air Hardtop"
-  },
-  {
-   "date": "2026-06-05",
-   "venue": "Mecum",
-   "price_usd": 59850,
-   "basis": "sold+fee",
-   "hammer_usd": 57000,
-   "native": {
-    "amount": 62700,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1957,
-   "url": "https://www.mecum.com/lots/1175150/1957-chevrolet-bel-air-hardtop?aa_id=790460-0",
-   "chassis": "VC57K126229",
-   "title": "1957 Chevrolet Bel Air Hardtop"
-  },
-  {
    "date": "2026-06-05",
    "venue": "Mecum",
    "price_usd": 38850,
@@ -173,22 +124,6 @@
    "url": "https://www.mecum.com/lots/1173380/1957-chevrolet-bel-air?aa_id=789244-0",
    "chassis": "VC57J153370",
    "title": "1957 Chevrolet Bel Air"
-  },
-  {
-   "date": "2026-05-22",
-   "venue": "Hemmings",
-   "price_usd": 22313,
-   "basis": "sold+fee",
-   "hammer_usd": 21250,
-   "native": {
-    "amount": 21250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://www.hemmings.com/auction/1957-chevrolet-bel-air-south-royalton-vt-393504",
-   "chassis": "VC57T115732",
-   "title": "Unrestored 1957 Chevrolet Bel Air Four-Door Sedan"
   },
   {
    "date": "2026-05-16",
@@ -319,38 +254,6 @@
    "title": "1957 Chevrolet Bel Air Sedan"
   },
   {
-   "date": "2026-05-09",
-   "venue": "Mecum",
-   "price_usd": 33600,
-   "basis": "sold+fee",
-   "hammer_usd": 32000,
-   "native": {
-    "amount": 35200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1957,
-   "url": "https://www.mecum.com/lots/1169601/1957-chevrolet-bel-air-hardtop?aa_id=778266-0",
-   "chassis": "VC57J237603",
-   "title": "1957 Chevrolet Bel Air Hardtop"
-  },
-  {
-   "date": "2026-04-23",
-   "venue": "Hagerty",
-   "price_usd": 77175,
-   "basis": "sold+fee",
-   "hammer_usd": 73500,
-   "native": {
-    "amount": 73500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://www.hagerty.com/marketplace/auction/1957-Chevrolet-Bel-Air%20Convertible/34f57623-2b93-4b6e-b19d-5535af7fd86a",
-   "chassis": "VC57F205940",
-   "title": "45-Years-Family-Owned 1957 Chevrolet Bel Air Convertible "
-  },
-  {
    "date": "2026-04-18",
    "venue": "Barrett-Jackson",
    "price_usd": 92400,
@@ -447,22 +350,6 @@
    "title": "1957 Chevrolet Bel Air Sedan"
   },
   {
-   "date": "2026-01-25",
-   "venue": "Barrett-Jackson",
-   "price_usd": 47300,
-   "basis": "buyer-paid",
-   "hammer_usd": 43000,
-   "native": {
-    "amount": 47300,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1957,
-   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1957-chevrolet-bel-air-295801?origin=results",
-   "chassis": "VC570129758",
-   "title": "1957 CHEVROLET BEL AIR"
-  },
-  {
    "date": "2026-01-23",
    "venue": "Barrett-Jackson",
    "price_usd": 110000,
@@ -495,54 +382,6 @@
    "title": "1957 CHEVROLET BEL AIR"
   },
   {
-   "date": "2025-12-10",
-   "venue": "Bring a Trailer",
-   "price_usd": 60454,
-   "basis": "sold+fee",
-   "hammer_usd": 57575,
-   "native": {
-    "amount": 57575,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-304/",
-   "chassis": "VC57S304963",
-   "title": "Four-Decades-Family-Owned 1957 Chevrolet Bel Air Convertible"
-  },
-  {
-   "date": "2025-12-03",
-   "venue": "Bring a Trailer",
-   "price_usd": 29663,
-   "basis": "sold+fee",
-   "hammer_usd": 28250,
-   "native": {
-    "amount": 28250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-298/",
-   "chassis": "VC57A137156",
-   "title": "26-Years-Owned 1957 Chevrolet Bel Air"
-  },
-  {
-   "date": "2025-11-30",
-   "venue": "Bring a Trailer",
-   "price_usd": 28350,
-   "basis": "sold+fee",
-   "hammer_usd": 27000,
-   "native": {
-    "amount": 27000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-281/",
-   "chassis": "VC57J133532",
-   "title": "350-Powered 1957 Chevrolet Bel Air 2-Door Sedan"
-  },
-  {
    "date": "2025-10-17",
    "venue": "Barrett-Jackson",
    "price_usd": 165000,
@@ -557,38 +396,6 @@
    "url": "https://www.barrett-jackson.com/scottsdale-fall-2025/docket/vehicle/1957-chevrolet-bel-air-289808?origin=results",
    "chassis": "VC57L118013",
    "title": "1957 CHEVROLET BEL AIR"
-  },
-  {
-   "date": "2025-10-16",
-   "venue": "Barrett-Jackson",
-   "price_usd": 44000,
-   "basis": "buyer-paid",
-   "hammer_usd": 40000,
-   "native": {
-    "amount": 44000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1957,
-   "url": "https://www.barrett-jackson.com/scottsdale-fall-2025/docket/vehicle/1957-chevrolet-bel-air-290529?origin=results",
-   "chassis": "VC57K100178",
-   "title": "1957 CHEVROLET BEL AIR"
-  },
-  {
-   "date": "2025-10-08",
-   "venue": "Bring a Trailer",
-   "price_usd": 41738,
-   "basis": "sold+fee",
-   "hammer_usd": 39750,
-   "native": {
-    "amount": 39750,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-270/",
-   "chassis": "VC57N237923",
-   "title": "1957 Chevrolet Bel Air 2-Door Hardtop"
   },
   {
    "date": "2025-10-03",
@@ -607,326 +414,6 @@
    "title": "1957 Chevrolet Bel Air Convertible Chassis no. VC57B207824 Engine no. T82IFC"
   },
   {
-   "date": "2025-09-25",
-   "venue": "Bring a Trailer",
-   "price_usd": 69300,
-   "basis": "sold+fee",
-   "hammer_usd": 66000,
-   "native": {
-    "amount": 66000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-289/",
-   "chassis": "VC57A164887",
-   "title": "1957 Chevrolet Bel Air Convertible"
-  },
-  {
-   "date": "2025-09-22",
-   "venue": "Bring a Trailer",
-   "price_usd": 76230,
-   "basis": "sold+fee",
-   "hammer_usd": 72600,
-   "native": {
-    "amount": 72600,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-288/",
-   "chassis": "VC57S252777",
-   "title": "350-Powered 1957 Chevrolet Bel Air Convertible"
-  },
-  {
-   "date": "2025-09-22",
-   "venue": "Bring a Trailer",
-   "price_usd": 43575,
-   "basis": "sold+fee",
-   "hammer_usd": 41500,
-   "native": {
-    "amount": 41500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-284/",
-   "chassis": "VC57S260583",
-   "title": "1957 Chevrolet Bel Air 2-Door Hardtop"
-  },
-  {
-   "date": "2025-09-18",
-   "venue": "Bring a Trailer",
-   "price_usd": 117833,
-   "basis": "sold+fee",
-   "hammer_usd": 112222,
-   "native": {
-    "amount": 112222,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-271/",
-   "chassis": "VC57L112504",
-   "title": "1957 Chevrolet Bel Air Convertible"
-  },
-  {
-   "date": "2025-09-17",
-   "venue": "Bring a Trailer",
-   "price_usd": 27563,
-   "basis": "sold+fee",
-   "hammer_usd": 26250,
-   "native": {
-    "amount": 26250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-286/",
-   "chassis": "VC57L196660",
-   "title": "1957 Chevrolet Bel Air 4-Door Hardtop"
-  },
-  {
-   "date": "2025-09-15",
-   "venue": "Bring a Trailer",
-   "price_usd": 72975,
-   "basis": "sold+fee",
-   "hammer_usd": 69500,
-   "native": {
-    "amount": 69500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-275/",
-   "chassis": "VC570137964",
-   "title": "1957 Chevrolet Bel Air Convertible Fuelie"
-  },
-  {
-   "date": "2025-09-10",
-   "venue": "Bring a Trailer",
-   "price_usd": 51450,
-   "basis": "sold+fee",
-   "hammer_usd": 49000,
-   "native": {
-    "amount": 49000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-272-2/",
-   "chassis": "C57N117608",
-   "title": "383-Powered 1957 Chevrolet Bel Air 2-Door Sedan"
-  },
-  {
-   "date": "2025-08-24",
-   "venue": "Bring a Trailer",
-   "price_usd": 45675,
-   "basis": "sold+fee",
-   "hammer_usd": 43500,
-   "native": {
-    "amount": 43500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-263/",
-   "chassis": "VC57A160493",
-   "title": "1957 Chevrolet Bel Air 2-Door Hardtop"
-  },
-  {
-   "date": "2025-08-15",
-   "venue": "Bring a Trailer",
-   "price_usd": 71925,
-   "basis": "sold+fee",
-   "hammer_usd": 68500,
-   "native": {
-    "amount": 68500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-277/",
-   "chassis": "VC57O153405",
-   "title": "1957 Chevrolet Bel Air 2-Door Hardtop"
-  },
-  {
-   "date": "2025-08-01",
-   "venue": "Bring a Trailer",
-   "price_usd": 36750,
-   "basis": "sold+fee",
-   "hammer_usd": 35000,
-   "native": {
-    "amount": 35000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-262/",
-   "chassis": "VC57B150969",
-   "title": "406-Powered 1957 Chevrolet Bel Air 2-Door Hardtop"
-  },
-  {
-   "date": "2025-07-18",
-   "venue": "Bring a Trailer",
-   "price_usd": 32550,
-   "basis": "sold+fee",
-   "hammer_usd": 31000,
-   "native": {
-    "amount": 31000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-244/",
-   "chassis": "VC57B261669",
-   "title": "327-Powered 1957 Chevrolet Bel Air 2-Door Hardtop"
-  },
-  {
-   "date": "2025-07-17",
-   "venue": "Bring a Trailer",
-   "price_usd": 76650,
-   "basis": "sold+fee",
-   "hammer_usd": 73000,
-   "native": {
-    "amount": 73000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-249-2/",
-   "chassis": "VC57L206778",
-   "title": "44-Years-Owned 1957 Chevrolet Bel Air Convertible"
-  },
-  {
-   "date": "2025-07-03",
-   "venue": "Bring a Trailer",
-   "price_usd": 103950,
-   "basis": "sold+fee",
-   "hammer_usd": 99000,
-   "native": {
-    "amount": 99000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-257-2/",
-   "chassis": "VC57L198344",
-   "title": "LS7-Powered 1957 Chevrolet Bel Air Sport Coupe"
-  },
-  {
-   "date": "2025-06-26",
-   "venue": "Bring a Trailer",
-   "price_usd": 41475,
-   "basis": "sold+fee",
-   "hammer_usd": 39500,
-   "native": {
-    "amount": 39500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-261/",
-   "chassis": "VC57N189365",
-   "title": "1957 Chevrolet Bel Air 2-Door Hardtop 4-Speed"
-  },
-  {
-   "date": "2025-06-25",
-   "venue": "Bring a Trailer",
-   "price_usd": 86625,
-   "basis": "sold+fee",
-   "hammer_usd": 82500,
-   "native": {
-    "amount": 82500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-249/",
-   "chassis": "VC57L206778",
-   "title": "44-Years-Owned 1957 Chevrolet Bel Air Convertible"
-  },
-  {
-   "date": "2025-06-24",
-   "venue": "Bring a Trailer",
-   "price_usd": 75075,
-   "basis": "sold+fee",
-   "hammer_usd": 71500,
-   "native": {
-    "amount": 71500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-256/",
-   "chassis": "VC57T120377",
-   "title": "Fuel-Injected 1957 Chevrolet Bel Air 2-Door Hardtop"
-  },
-  {
-   "date": "2025-06-17",
-   "venue": "Bring a Trailer",
-   "price_usd": 105000,
-   "basis": "sold+fee",
-   "hammer_usd": 100000,
-   "native": {
-    "amount": 100000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-257/",
-   "chassis": "VC57L198344",
-   "title": "LS7-Powered 1957 Chevrolet Bel Air Sport Coupe"
-  },
-  {
-   "date": "2025-06-16",
-   "venue": "Bring a Trailer",
-   "price_usd": 24938,
-   "basis": "sold+fee",
-   "hammer_usd": 23750,
-   "native": {
-    "amount": 23750,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-254/",
-   "chassis": "VC57B159544",
-   "title": "Fuel-Injected 1957 Chevrolet Bel Air 2-Door Sedan"
-  },
-  {
-   "date": "2025-05-27",
-   "venue": "Bring a Trailer",
-   "price_usd": 38850,
-   "basis": "sold+fee",
-   "hammer_usd": 37000,
-   "native": {
-    "amount": 37000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-246/",
-   "chassis": "VC57F283435",
-   "title": "350-Powered 1957 Chevrolet Bel Air 2-Door Hardtop"
-  },
-  {
-   "date": "2025-05-24",
-   "venue": "Bring a Trailer",
-   "price_usd": 41475,
-   "basis": "sold+fee",
-   "hammer_usd": 39500,
-   "native": {
-    "amount": 39500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-248/",
-   "chassis": "VC57F149076",
-   "title": "1957 Chevrolet Bel Air 2-Door Hardtop"
-  },
-  {
    "date": "2025-04-26",
    "venue": "Barrett-Jackson",
    "price_usd": 69300,
@@ -941,86 +428,6 @@
    "url": "https://www.barrett-jackson.com/palm-beach-2025/docket/vehicle/1957-chevrolet-bel-air-convertible-288024?origin=results",
    "chassis": "VC57L187489",
    "title": "1957 CHEVROLET BEL AIR CONVERTIBLE"
-  },
-  {
-   "date": "2025-04-24",
-   "venue": "Bring a Trailer",
-   "price_usd": 43838,
-   "basis": "sold+fee",
-   "hammer_usd": 41750,
-   "native": {
-    "amount": 41750,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-238/",
-   "chassis": "VC570122424",
-   "title": "1957 Chevrolet Bel Air 2-Door Hardtop"
-  },
-  {
-   "date": "2025-04-19",
-   "venue": "Bring a Trailer",
-   "price_usd": 53025,
-   "basis": "sold+fee",
-   "hammer_usd": 50500,
-   "native": {
-    "amount": 50500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-239/",
-   "chassis": "VC57K116213",
-   "title": "383 TPI-Powered 1957 Chevrolet Bel Air 2-Door Sedan"
-  },
-  {
-   "date": "2025-04-16",
-   "venue": "Bring a Trailer",
-   "price_usd": 47775,
-   "basis": "sold+fee",
-   "hammer_usd": 45500,
-   "native": {
-    "amount": 45500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-202-2/",
-   "chassis": "VC57L210470",
-   "title": "1957 Chevrolet Bel Air 2-Door Hardtop"
-  },
-  {
-   "date": "2025-03-21",
-   "venue": "Bring a Trailer",
-   "price_usd": 110250,
-   "basis": "sold+fee",
-   "hammer_usd": 105000,
-   "native": {
-    "amount": 105000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-221/",
-   "chassis": "VC57L102352",
-   "title": "1957 Chevrolet Bel Air Nomad Fuelie 3-Speed"
-  },
-  {
-   "date": "2025-02-16",
-   "venue": "Bring a Trailer",
-   "price_usd": 47250,
-   "basis": "sold+fee",
-   "hammer_usd": 45000,
-   "native": {
-    "amount": 45000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-226/",
-   "chassis": "VC57O127822",
-   "title": "1957 Chevrolet Bel Air 2-Door Hardtop"
   },
   {
    "date": "2025-01-26",
@@ -1073,22 +480,6 @@
   {
    "date": "2025-01-23",
    "venue": "Barrett-Jackson",
-   "price_usd": 29700,
-   "basis": "buyer-paid",
-   "hammer_usd": 27000,
-   "native": {
-    "amount": 29700,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1957,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1957-chevrolet-bel-air-2-door-post-280971?origin=results",
-   "chassis": "VC57N123899",
-   "title": "1957 CHEVROLET BEL AIR 2-DOOR POST"
-  },
-  {
-   "date": "2025-01-23",
-   "venue": "Barrett-Jackson",
    "price_usd": 132000,
    "basis": "buyer-paid",
    "hammer_usd": 120000,
@@ -1101,118 +492,6 @@
    "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1957-chevrolet-bel-air-convertible-281363?origin=results",
    "chassis": "VC57B136335",
    "title": "1957 CHEVROLET BEL AIR CONVERTIBLE"
-  },
-  {
-   "date": "2025-01-17",
-   "venue": "Bring a Trailer",
-   "price_usd": 40950,
-   "basis": "sold+fee",
-   "hammer_usd": 39000,
-   "native": {
-    "amount": 39000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-170/",
-   "chassis": "VC57B194060",
-   "title": "1957 Chevrolet Bel Air 2-Door Hardtop"
-  },
-  {
-   "date": "2025-01-16",
-   "venue": "Bring a Trailer",
-   "price_usd": 89513,
-   "basis": "sold+fee",
-   "hammer_usd": 85250,
-   "native": {
-    "amount": 85250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-217/",
-   "chassis": "VC57T304852",
-   "title": "1957 Chevrolet Bel Air Convertible"
-  },
-  {
-   "date": "2024-11-24",
-   "venue": "Bring a Trailer",
-   "price_usd": 70350,
-   "basis": "sold+fee",
-   "hammer_usd": 67000,
-   "native": {
-    "amount": 67000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-158/",
-   "chassis": "VC57L137605",
-   "title": "1957 Chevrolet Bel Air Convertible"
-  },
-  {
-   "date": "2024-11-22",
-   "venue": "Bring a Trailer",
-   "price_usd": 50663,
-   "basis": "sold+fee",
-   "hammer_usd": 48250,
-   "native": {
-    "amount": 48250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-205/",
-   "chassis": "VC57K155153",
-   "title": "1957 Chevrolet Bel Air 2-Door Hardtop"
-  },
-  {
-   "date": "2024-11-21",
-   "venue": "Bring a Trailer",
-   "price_usd": 152250,
-   "basis": "sold+fee",
-   "hammer_usd": 145000,
-   "native": {
-    "amount": 145000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-207/",
-   "chassis": "71067D665816",
-   "title": "383-Powered 1957 Chevrolet Bel Air"
-  },
-  {
-   "date": "2024-11-13",
-   "venue": "Bring a Trailer",
-   "price_usd": 12600,
-   "basis": "sold+fee",
-   "hammer_usd": 12000,
-   "native": {
-    "amount": 12000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-159/",
-   "chassis": "VC57S201505",
-   "title": "1957 Chevrolet Bel Air 4-Door Hardtop"
-  },
-  {
-   "date": "2024-10-12",
-   "venue": "Broad Arrow",
-   "price_usd": 33600,
-   "basis": "buyer-paid",
-   "hammer_usd": 30000,
-   "native": {
-    "amount": 33600,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1957,
-   "url": "https://www.broadarrowauctions.com/vehicles/ch24_r033/1957-chevrolet-bel-air-sport-coupe",
-   "chassis": "VC57S279547",
-   "title": "1957 Chevrolet Bel Air Sport Coupe"
   },
   {
    "date": "2024-10-12",
@@ -1247,6 +526,326 @@
    "title": "1957 CHEVROLET BEL AIR FI CONVERTIBLE"
   },
   {
+   "date": "2024-04-18",
+   "venue": "Barrett-Jackson",
+   "price_usd": 15950,
+   "basis": "buyer-paid",
+   "hammer_usd": 14500,
+   "native": {
+    "amount": 15950,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1957,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/1957-chevrolet-bel-air-4-door-post-277850?origin=results",
+   "chassis": "57S159042",
+   "title": "1957 CHEVROLET BEL AIR 4-DOOR POST"
+  },
+  {
+   "date": "2024-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 104500,
+   "basis": "buyer-paid",
+   "hammer_usd": 95000,
+   "native": {
+    "amount": 104500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1957,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1957-chevrolet-bel-air-convertible-271912?origin=results",
+   "chassis": "VC57T269057",
+   "title": "1957 CHEVROLET BEL AIR CONVERTIBLE"
+  },
+  {
+   "date": "2023-09-29",
+   "venue": "Barrett-Jackson",
+   "price_usd": 60500,
+   "basis": "buyer-paid",
+   "hammer_usd": 55000,
+   "native": {
+    "amount": 60500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1957,
+   "url": "https://www.barrett-jackson.com/new-orleans-2023/docket/vehicle/1957-chevrolet-bel-air-269766?origin=results",
+   "chassis": "C57L211033",
+   "title": "1957 CHEVROLET BEL AIR"
+  },
+  {
+   "date": "2026-05-22",
+   "venue": "Hemmings",
+   "price_usd": 22313,
+   "basis": "sold+fee",
+   "hammer_usd": 21250,
+   "native": {
+    "amount": 21250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://www.hemmings.com/auction/1957-chevrolet-bel-air-south-royalton-vt-393504",
+   "chassis": "VC57T115732",
+   "title": "Unrestored 1957 Chevrolet Bel Air Four-Door Sedan"
+  },
+  {
+   "date": "2026-04-23",
+   "venue": "Hagerty",
+   "price_usd": 77175,
+   "basis": "sold+fee",
+   "hammer_usd": 73500,
+   "native": {
+    "amount": 73500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://www.hagerty.com/marketplace/auction/1957-Chevrolet-Bel-Air%20Convertible/34f57623-2b93-4b6e-b19d-5535af7fd86a",
+   "chassis": "VC57F205940",
+   "title": "45-Years-Family-Owned 1957 Chevrolet Bel Air Convertible "
+  },
+  {
+   "date": "2025-12-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 60454,
+   "basis": "sold+fee",
+   "hammer_usd": 57575,
+   "native": {
+    "amount": 57575,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-304/",
+   "chassis": "VC57S304963",
+   "title": "Four-Decades-Family-Owned 1957 Chevrolet Bel Air Convertible"
+  },
+  {
+   "date": "2025-11-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 28350,
+   "basis": "sold+fee",
+   "hammer_usd": 27000,
+   "native": {
+    "amount": 27000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-281/",
+   "chassis": "VC57J133532",
+   "title": "350-Powered 1957 Chevrolet Bel Air 2-Door Sedan"
+  },
+  {
+   "date": "2025-09-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 69300,
+   "basis": "sold+fee",
+   "hammer_usd": 66000,
+   "native": {
+    "amount": 66000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-289/",
+   "chassis": "VC57A164887",
+   "title": "1957 Chevrolet Bel Air Convertible"
+  },
+  {
+   "date": "2025-09-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 76230,
+   "basis": "sold+fee",
+   "hammer_usd": 72600,
+   "native": {
+    "amount": 72600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-288/",
+   "chassis": "VC57S252777",
+   "title": "350-Powered 1957 Chevrolet Bel Air Convertible"
+  },
+  {
+   "date": "2025-09-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 117833,
+   "basis": "sold+fee",
+   "hammer_usd": 112222,
+   "native": {
+    "amount": 112222,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-271/",
+   "chassis": "VC57L112504",
+   "title": "1957 Chevrolet Bel Air Convertible"
+  },
+  {
+   "date": "2025-09-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 72975,
+   "basis": "sold+fee",
+   "hammer_usd": 69500,
+   "native": {
+    "amount": 69500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-275/",
+   "chassis": "VC570137964",
+   "title": "1957 Chevrolet Bel Air Convertible Fuelie"
+  },
+  {
+   "date": "2025-09-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 51450,
+   "basis": "sold+fee",
+   "hammer_usd": 49000,
+   "native": {
+    "amount": 49000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-272-2/",
+   "chassis": "C57N117608",
+   "title": "383-Powered 1957 Chevrolet Bel Air 2-Door Sedan"
+  },
+  {
+   "date": "2025-07-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 76650,
+   "basis": "sold+fee",
+   "hammer_usd": 73000,
+   "native": {
+    "amount": 73000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-249-2/",
+   "chassis": "VC57L206778",
+   "title": "44-Years-Owned 1957 Chevrolet Bel Air Convertible"
+  },
+  {
+   "date": "2025-06-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 86625,
+   "basis": "sold+fee",
+   "hammer_usd": 82500,
+   "native": {
+    "amount": 82500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-249/",
+   "chassis": "VC57L206778",
+   "title": "44-Years-Owned 1957 Chevrolet Bel Air Convertible"
+  },
+  {
+   "date": "2025-06-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 24938,
+   "basis": "sold+fee",
+   "hammer_usd": 23750,
+   "native": {
+    "amount": 23750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-254/",
+   "chassis": "VC57B159544",
+   "title": "Fuel-Injected 1957 Chevrolet Bel Air 2-Door Sedan"
+  },
+  {
+   "date": "2025-04-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 53025,
+   "basis": "sold+fee",
+   "hammer_usd": 50500,
+   "native": {
+    "amount": 50500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-239/",
+   "chassis": "VC57K116213",
+   "title": "383 TPI-Powered 1957 Chevrolet Bel Air 2-Door Sedan"
+  },
+  {
+   "date": "2025-03-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 110250,
+   "basis": "sold+fee",
+   "hammer_usd": 105000,
+   "native": {
+    "amount": 105000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-221/",
+   "chassis": "VC57L102352",
+   "title": "1957 Chevrolet Bel Air Nomad Fuelie 3-Speed"
+  },
+  {
+   "date": "2025-01-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 89513,
+   "basis": "sold+fee",
+   "hammer_usd": 85250,
+   "native": {
+    "amount": 85250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-217/",
+   "chassis": "VC57T304852",
+   "title": "1957 Chevrolet Bel Air Convertible"
+  },
+  {
+   "date": "2024-11-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 70350,
+   "basis": "sold+fee",
+   "hammer_usd": 67000,
+   "native": {
+    "amount": 67000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-158/",
+   "chassis": "VC57L137605",
+   "title": "1957 Chevrolet Bel Air Convertible"
+  },
+  {
+   "date": "2024-11-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 152250,
+   "basis": "sold+fee",
+   "hammer_usd": 145000,
+   "native": {
+    "amount": 145000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-207/",
+   "chassis": "71067D665816",
+   "title": "383-Powered 1957 Chevrolet Bel Air"
+  },
+  {
    "date": "2024-10-11",
    "venue": "Bring a Trailer",
    "price_usd": 69825,
@@ -1261,22 +860,6 @@
    "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-195/",
    "chassis": "VC57S247783",
    "title": "1957 Chevrolet Bel Air 2-Door Convertible"
-  },
-  {
-   "date": "2024-10-10",
-   "venue": "Bring a Trailer",
-   "price_usd": 31500,
-   "basis": "sold+fee",
-   "hammer_usd": 30000,
-   "native": {
-    "amount": 30000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-191/",
-   "chassis": "VC57S260728",
-   "title": "1957 Chevrolet Bel Air 2-Door Hardtop"
   },
   {
    "date": "2024-10-02",
@@ -1311,22 +894,6 @@
    "title": "Fuel-Injected 1957 Chevrolet Bel Air 2-Door Convertible"
   },
   {
-   "date": "2024-09-09",
-   "venue": "Hemmings",
-   "price_usd": 64050,
-   "basis": "sold+fee",
-   "hammer_usd": 61000,
-   "native": {
-    "amount": 61000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://www.hemmings.com/auction/1957-chevrolet-bel-air-citrus-heights-ca-582033",
-   "chassis": "VC570149419",
-   "title": "Fifties Icon: 1957 Chevrolet Bel Air Sport Coupe"
-  },
-  {
    "date": "2024-08-29",
    "venue": "Bring a Trailer",
    "price_usd": 21525,
@@ -1341,70 +908,6 @@
    "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-184/",
    "chassis": "VC57B257998",
    "title": "1957 Chevrolet Bel Air 4-Door Sedan"
-  },
-  {
-   "date": "2024-08-16",
-   "venue": "Bring a Trailer",
-   "price_usd": 18435,
-   "basis": "sold+fee",
-   "hammer_usd": 17557,
-   "native": {
-    "amount": 17557,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-182/",
-   "chassis": "VC57T123571",
-   "title": "1957 Chevrolet Bel Air 4-Door Hardtop"
-  },
-  {
-   "date": "2024-07-05",
-   "venue": "Bring a Trailer",
-   "price_usd": 59850,
-   "basis": "sold+fee",
-   "hammer_usd": 57000,
-   "native": {
-    "amount": 57000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-165/",
-   "chassis": "VC57B124190",
-   "title": "1957 Chevrolet Bel Air 2-Door Hardtop"
-  },
-  {
-   "date": "2024-06-12",
-   "venue": "Bring a Trailer",
-   "price_usd": 40005,
-   "basis": "sold+fee",
-   "hammer_usd": 38100,
-   "native": {
-    "amount": 38100,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-153/",
-   "chassis": "VC57J201841",
-   "title": "1957 Chevrolet Bel Air 2-Door Hardtop"
-  },
-  {
-   "date": "2024-04-18",
-   "venue": "Barrett-Jackson",
-   "price_usd": 15950,
-   "basis": "buyer-paid",
-   "hammer_usd": 14500,
-   "native": {
-    "amount": 15950,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1957,
-   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/1957-chevrolet-bel-air-4-door-post-277850?origin=results",
-   "chassis": "57S159042",
-   "title": "1957 CHEVROLET BEL AIR 4-DOOR POST"
   },
   {
    "date": "2024-04-15",
@@ -1423,38 +926,6 @@
    "title": "1957 Chevrolet Bel Air 2-Door Convertible"
   },
   {
-   "date": "2024-04-11",
-   "venue": "Bring a Trailer",
-   "price_usd": 42000,
-   "basis": "sold+fee",
-   "hammer_usd": 40000,
-   "native": {
-    "amount": 40000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-140/",
-   "chassis": "VC57N122058",
-   "title": "1957 Chevrolet Bel Air 2-Door Hardtop 3-Speed"
-  },
-  {
-   "date": "2024-04-08",
-   "venue": "Bring a Trailer",
-   "price_usd": 53025,
-   "basis": "sold+fee",
-   "hammer_usd": 50500,
-   "native": {
-    "amount": 50500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-137/",
-   "chassis": "C57S119544",
-   "title": "Single-Family-Owned 350-Powered 1957 Chevrolet Bel Air 2-Door Hardtop"
-  },
-  {
    "date": "2024-04-08",
    "venue": "Bring a Trailer",
    "price_usd": 105000,
@@ -1469,38 +940,6 @@
    "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-139/",
    "chassis": "VC57B253346",
    "title": "1957 Chevrolet Bel Air Convertible"
-  },
-  {
-   "date": "2024-03-25",
-   "venue": "Bring a Trailer",
-   "price_usd": 37800,
-   "basis": "sold+fee",
-   "hammer_usd": 36000,
-   "native": {
-    "amount": 36000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-134/",
-   "chassis": "VC57O160650",
-   "title": "350-Powered 1957 Chevrolet Bel Air 2-Door Hardtop"
-  },
-  {
-   "date": "2024-02-09",
-   "venue": "Bring a Trailer",
-   "price_usd": 33863,
-   "basis": "sold+fee",
-   "hammer_usd": 32250,
-   "native": {
-    "amount": 32250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-129/",
-   "chassis": "VC57A218419",
-   "title": "1957 Chevrolet Bel Air 2-Door Hardtop"
   },
   {
    "date": "2024-02-02",
@@ -1519,38 +958,6 @@
    "title": "327-Powered 1957 Chevrolet Bel Air 4-Door Sedan"
   },
   {
-   "date": "2024-01-26",
-   "venue": "Barrett-Jackson",
-   "price_usd": 82500,
-   "basis": "buyer-paid",
-   "hammer_usd": 75000,
-   "native": {
-    "amount": 82500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1957,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1957-chevrolet-bel-air-fuelie-hardtop-271036?origin=results",
-   "chassis": "VC57L206922",
-   "title": "1957 CHEVROLET BEL AIR FUELIE HARDTOP"
-  },
-  {
-   "date": "2024-01-26",
-   "venue": "Barrett-Jackson",
-   "price_usd": 104500,
-   "basis": "buyer-paid",
-   "hammer_usd": 95000,
-   "native": {
-    "amount": 104500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1957,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1957-chevrolet-bel-air-convertible-271912?origin=results",
-   "chassis": "VC57T269057",
-   "title": "1957 CHEVROLET BEL AIR CONVERTIBLE"
-  },
-  {
    "date": "2024-01-25",
    "venue": "Bring a Trailer",
    "price_usd": 105000,
@@ -1565,22 +972,6 @@
    "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-126/",
    "chassis": "VC57F120818",
    "title": "350-Powered 1957 Chevrolet Bel Air 2-Door Convertible"
-  },
-  {
-   "date": "2024-01-08",
-   "venue": "Bring a Trailer",
-   "price_usd": 52500,
-   "basis": "sold+fee",
-   "hammer_usd": 50000,
-   "native": {
-    "amount": 50000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-117/",
-   "chassis": "VC57N123745",
-   "title": "1957 Chevrolet Bel Air 2-Door Hardtop 3-Speed"
   },
   {
    "date": "2023-12-11",
@@ -1613,38 +1004,6 @@
    "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-convertible-40/",
    "chassis": "VC57L2033824",
    "title": "1957 Chevrolet Bel Air Convertible"
-  },
-  {
-   "date": "2023-10-09",
-   "venue": "Bring a Trailer",
-   "price_usd": 27300,
-   "basis": "sold+fee",
-   "hammer_usd": 26000,
-   "native": {
-    "amount": 26000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1957,
-   "url": "https://bringatrailer.com/listing/1957-chevrolet-bel-air-105/",
-   "chassis": "VC57S195795",
-   "title": "1957 Chevrolet Bel Air 4-Door Hardtop"
-  },
-  {
-   "date": "2023-09-29",
-   "venue": "Barrett-Jackson",
-   "price_usd": 60500,
-   "basis": "buyer-paid",
-   "hammer_usd": 55000,
-   "native": {
-    "amount": 60500,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1957,
-   "url": "https://www.barrett-jackson.com/new-orleans-2023/docket/vehicle/1957-chevrolet-bel-air-269766?origin=results",
-   "chassis": "C57L211033",
-   "title": "1957 CHEVROLET BEL AIR"
   }
  ]
 }

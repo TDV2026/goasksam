@@ -9,10 +9,9 @@
   "model": "F430",
   "window": "36mo",
   "year_min": 2004,
-  "year_max": 2008,
-  "body": "coupe"
+  "year_max": 2008
  },
- "halo_dropped": 4,
+ "halo_dropped": 0,
  "sales": [
   {
    "date": "2025-04-26",
@@ -29,6 +28,70 @@
    "url": "https://www.barrett-jackson.com/palm-beach-2025/docket/vehicle/2006-ferrari-f430-288040?origin=results",
    "chassis": "ZFFEW58A960144929",
    "title": "2006 FERRARI F430"
+  },
+  {
+   "date": "2024-10-06",
+   "venue": "Bonhams",
+   "price_usd": 149040,
+   "basis": "buyer-paid",
+   "hammer_usd": 129600,
+   "native": {
+    "amount": 138000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://cars.bonhams.com/auction/29935/lot/159/2005-ferrari-f430-f1-coupe-chassis-no-zff-ez5-8b0-0014-3235/",
+   "chassis": "ZFFWA19B000072583",
+   "title": "2005 Ferrari F430 F1 Coupé Chassis no. ZFF EZ5 8B0 0014 3235"
+  },
+  {
+   "date": "2024-09-07",
+   "venue": "Bonhams",
+   "price_usd": 119761,
+   "basis": "buyer-paid",
+   "hammer_usd": 104140,
+   "native": {
+    "amount": 94300,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 2006,
+   "url": "https://cars.bonhams.com/auction/29334/lot/108/2006-ferrari-f430-coupe-chassis-no-zffez58c000148598-engine-no-107178/",
+   "chassis": "ZFFEZ58C000148598",
+   "title": "2006 Ferrari F430 Coupé Chassis no. ZFFEZ58C000148598 Engine no. 107178"
+  },
+  {
+   "date": "2024-07-12",
+   "venue": "Bonhams",
+   "price_usd": 158750,
+   "basis": "buyer-paid",
+   "hammer_usd": 138043,
+   "native": {
+    "amount": 125000,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 2006,
+   "url": "https://cars.bonhams.com/auction/29332/lot/251/2006-ferrari-f430-coupe-chassis-no-zffez58c000148598-engine-no-107178/",
+   "chassis": "ZFFEZ58C000148598",
+   "title": "2006 Ferrari F430 Coupé Chassis no. ZFFEZ58C000148598 Engine no. 107178"
+  },
+  {
+   "date": "2024-06-30",
+   "venue": "Bonhams",
+   "price_usd": 112000,
+   "basis": "buyer-paid",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 100000,
+    "currency": "CHF",
+    "premium_inclusive": true
+   },
+   "year": 2006,
+   "url": "https://cars.bonhams.com/auction/29934/lot/157/2006-ferrari-f430-chassis-no-zffez58b000160660/",
+   "chassis": "ZFFEZ58B000160660",
+   "title": "2006 Ferrari F430 Chassis no. ZFFEZ58B000160660"
   }
  ]
 }

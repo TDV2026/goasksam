@@ -10,11 +10,26 @@
   "window": "36mo",
   "year_min": 2011,
   "year_max": 2015,
-  "trim": "Italia",
-  "body": "coupe"
+  "trim": "Italia"
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2025-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 260700,
+   "basis": "buyer-paid",
+   "hammer_usd": 237000,
+   "native": {
+    "amount": 260700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2013,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2013-ferrari-458-italia-281916?origin=results",
+   "chassis": "ZFF67NFAXD0193025",
+   "title": "2013 FERRARI 458 ITALIA"
+  },
   {
    "date": "2026-09-21",
    "venue": "Bring a Trailer",
@@ -254,22 +269,6 @@
    "url": "https://bringatrailer.com/listing/2011-ferrari-458-italia-37/",
    "chassis": "ZFF67NFA2B0178211",
    "title": "2011 Ferrari 458 Italia"
-  },
-  {
-   "date": "2025-01-25",
-   "venue": "Barrett-Jackson",
-   "price_usd": 260700,
-   "basis": "buyer-paid",
-   "hammer_usd": 237000,
-   "native": {
-    "amount": 260700,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2013,
-   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2013-ferrari-458-italia-281916?origin=results",
-   "chassis": "ZFF67NFAXD0193025",
-   "title": "2013 FERRARI 458 ITALIA"
   },
   {
    "date": "2024-08-26",

@@ -10,11 +10,26 @@
   "window": "36mo",
   "year_min": 2016,
   "year_max": 2016,
-  "trim": "GT4",
-  "body": "coupe"
+  "trim": "GT4"
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2024-06-01",
+   "venue": "RM Sotheby's",
+   "price_usd": 140000,
+   "basis": "buyer-paid",
+   "hammer_usd": 125000,
+   "native": {
+    "amount": 140000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2016,
+   "url": "https://rmsothebys.com/auctions/dd24/lots/r0107-2016-porsche-cayman-gt4/",
+   "chassis": "WP0AC2A80GK191381",
+   "title": "2016 Porsche Cayman GT4"
+  },
   {
    "date": "2026-09-21",
    "venue": "Bring a Trailer",
@@ -846,22 +861,6 @@
    "url": "https://www.pcarmarket.com/auction/2016-porsche-cayman-gt4-26",
    "chassis": "WP0AC2A84GK192419",
    "title": "15k-Mile 2016 Porsche 981 Cayman GT4"
-  },
-  {
-   "date": "2024-06-01",
-   "venue": "RM Sotheby's",
-   "price_usd": 140000,
-   "basis": "buyer-paid",
-   "hammer_usd": 125000,
-   "native": {
-    "amount": 140000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2016,
-   "url": "https://rmsothebys.com/auctions/dd24/lots/r0107-2016-porsche-cayman-gt4/",
-   "chassis": "WP0AC2A80GK191381",
-   "title": "2016 Porsche Cayman GT4"
   },
   {
    "date": "2024-05-15",

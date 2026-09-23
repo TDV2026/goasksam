@@ -1,18 +1,801 @@
 {
  "car_id": 35,
- "listed": "1995 Porsche 928 GTS",
+ "listed": "1995 Porsche 928",
  "status": "compare",
- "year_scope": "adjacent years pooled (1993-1997)",
- "basis": "n/a",
+ "year_scope": "exact 1995",
+ "basis": "mixed (4% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Porsche",
   "model": "928",
   "window": "36mo",
-  "year_min": 1993,
-  "year_max": 1997,
-  "trim": "GTS",
-  "body": "coupe"
+  "year_min": 1995,
+  "year_max": 1995
  },
  "halo_dropped": 0,
- "sales": []
+ "sales": [
+  {
+   "date": "2025-10-10",
+   "venue": "Broad Arrow",
+   "price_usd": 298080,
+   "basis": "buyer-paid",
+   "hammer_usd": 260160,
+   "native": {
+    "amount": 276000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://www.broadarrowauctions.com/vehicles/zt25_r0057/1995-porsche-911-carrera-rs",
+   "chassis": "WP0ZZZ99ZTS390324",
+   "title": "1995 Porsche 911 Carrera RS"
+  },
+  {
+   "date": "2023-10-08",
+   "venue": "Bonhams",
+   "price_usd": 136620,
+   "basis": "buyer-paid",
+   "hammer_usd": 118800,
+   "native": {
+    "amount": 126500,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://cars.bonhams.com/auction/28312/lot/189/1995-porsche-911-type-993-carrera-4s-coupe-chassis-no-wp0zzz99zts310980-engine-no-63t01601/",
+   "chassis": "WP0ZZZ99ZTS310980",
+   "title": "1995 Porsche 911 Type 993 Carrera 4S Coupé Chassis no. WP0ZZZ99ZTS310980 Engine no. 63T01601"
+  },
+  {
+   "date": "2026-08-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 115493,
+   "basis": "sold+fee",
+   "hammer_usd": 109993,
+   "native": {
+    "amount": 109993,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-152/",
+   "chassis": "WP0AA2991SS320806",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2026-08-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 123900,
+   "basis": "sold+fee",
+   "hammer_usd": 118000,
+   "native": {
+    "amount": 118000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-155/",
+   "chassis": "WP0AA2998SS320771",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2026-08-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 96600,
+   "basis": "sold+fee",
+   "hammer_usd": 92000,
+   "native": {
+    "amount": 92000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-151/",
+   "chassis": "WP0AA2993SS322556",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2026-07-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 121800,
+   "basis": "sold+fee",
+   "hammer_usd": 116000,
+   "native": {
+    "amount": 116000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-4-coupe-28/",
+   "chassis": "WP0AA2997SS322284",
+   "title": "1995 Porsche 911 Carrera 4 Coupe 6-Speed"
+  },
+  {
+   "date": "2026-06-16",
+   "venue": "Cars & Bids",
+   "price_usd": 82950,
+   "basis": "sold+fee",
+   "hammer_usd": 79000,
+   "native": {
+    "amount": 79000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://carsandbids.com/auctions/3R04WZNq/1995-porsche-911-carrera-coupe",
+   "chassis": "WP0AA2997SS322740",
+   "title": "1995 Porsche 911 Carrera Coupe"
+  },
+  {
+   "date": "2026-05-14",
+   "venue": "PCARMarket",
+   "price_usd": 113138,
+   "basis": "sold+fee",
+   "hammer_usd": 107750,
+   "native": {
+    "amount": 107750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://www.pcarmarket.com/auction/1995-porsche-911-carrera-23",
+   "chassis": "WP0AA2995SS323451",
+   "title": "1995 Porsche 993 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2026-05-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 72450,
+   "basis": "sold+fee",
+   "hammer_usd": 69000,
+   "native": {
+    "amount": 69000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-144/",
+   "chassis": "WP0AA2995SS322879",
+   "title": "1995 Porsche 911 Carrera Coupe"
+  },
+  {
+   "date": "2026-03-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 123893,
+   "basis": "sold+fee",
+   "hammer_usd": 117993,
+   "native": {
+    "amount": 117993,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-139/",
+   "chassis": "WP0AA2995SS322221",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2026-01-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 64050,
+   "basis": "sold+fee",
+   "hammer_usd": 61000,
+   "native": {
+    "amount": 61000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-136/",
+   "chassis": "WP0AA2999SS323226",
+   "title": "1995 Porsche 911 Carrera Coupe"
+  },
+  {
+   "date": "2026-01-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 91875,
+   "basis": "sold+fee",
+   "hammer_usd": 87500,
+   "native": {
+    "amount": 87500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-137/",
+   "chassis": "WP0AA2992SS322046",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2026-01-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 101850,
+   "basis": "sold+fee",
+   "hammer_usd": 97000,
+   "native": {
+    "amount": 97000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-133/",
+   "chassis": "WP0AA299XSS322974",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2026-01-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 126000,
+   "basis": "sold+fee",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 120000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-135/",
+   "chassis": "WP0AA2990SS321347",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-12-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 143850,
+   "basis": "sold+fee",
+   "hammer_usd": 137000,
+   "native": {
+    "amount": 137000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-130/",
+   "chassis": "WP0AA2993SS321942",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-11-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 100800,
+   "basis": "sold+fee",
+   "hammer_usd": 96000,
+   "native": {
+    "amount": 96000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-131/",
+   "chassis": "WP0AA2992SS320264",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-11-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 98175,
+   "basis": "sold+fee",
+   "hammer_usd": 93500,
+   "native": {
+    "amount": 93500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-129/",
+   "chassis": "WP0AA2998SS321449",
+   "title": "49k-Mile 1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-10-17",
+   "venue": "Cars & Bids",
+   "price_usd": 78750,
+   "basis": "sold+fee",
+   "hammer_usd": 75000,
+   "native": {
+    "amount": 75000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://carsandbids.com/auctions/3L5ljwRR/1995-porsche-911-carrera-coupe",
+   "chassis": "WP0AA2990SS323471",
+   "title": "1995 Porsche 911 Carrera Coupe"
+  },
+  {
+   "date": "2025-10-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 142800,
+   "basis": "sold+fee",
+   "hammer_usd": 136000,
+   "native": {
+    "amount": 136000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-123/",
+   "chassis": "WP0AA2991SS321759",
+   "title": "17k-Mile 1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-09-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 414500,
+   "basis": "sold+fee",
+   "hammer_usd": 407000,
+   "native": {
+    "amount": 407000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-rs-10/",
+   "chassis": "WP0ZZZ99ZTS390102",
+   "title": "1995 Porsche 911 Carrera RS"
+  },
+  {
+   "date": "2025-08-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 376388,
+   "basis": "sold+fee",
+   "hammer_usd": 368888,
+   "native": {
+    "amount": 368888,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-rs-11/",
+   "chassis": "WP0ZZZ99ZTS390519",
+   "title": "1995 Porsche 911 Carrera RS"
+  },
+  {
+   "date": "2025-07-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 86625,
+   "basis": "sold+fee",
+   "hammer_usd": 82500,
+   "native": {
+    "amount": 82500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-121/",
+   "chassis": "WP0AA2990SS321137",
+   "title": "20-Years-Owned 1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-07-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 80528,
+   "basis": "sold+fee",
+   "hammer_usd": 76693,
+   "native": {
+    "amount": 76693,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-4-coupe-24/",
+   "chassis": "WP0AA2996SS323006",
+   "title": "1995 Porsche 911 Carrera 4 Coupe 6-Speed"
+  },
+  {
+   "date": "2025-06-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 112350,
+   "basis": "sold+fee",
+   "hammer_usd": 107000,
+   "native": {
+    "amount": 107000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-115/",
+   "chassis": "WP0AA2999SS322156",
+   "title": "46k-Mile 1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-06-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 105000,
+   "basis": "sold+fee",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 100000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-113/",
+   "chassis": "WP0AA2999SS321363",
+   "title": "25-Years-Owned 1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-06-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 75600,
+   "basis": "sold+fee",
+   "hammer_usd": 72000,
+   "native": {
+    "amount": 72000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-116/",
+   "chassis": "WP0AA299XSS323462",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-03-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 94500,
+   "basis": "sold+fee",
+   "hammer_usd": 90000,
+   "native": {
+    "amount": 90000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-111/",
+   "chassis": "WP0AA2999SS321007",
+   "title": "22-Years-Owned 1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-03-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 80850,
+   "basis": "sold+fee",
+   "hammer_usd": 77000,
+   "native": {
+    "amount": 77000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-4-coupe-20/",
+   "chassis": "WP0AA2992SS322192",
+   "title": "Original-Owner Silver Metallic 1995 Porsche 911 Carrera 4 Coupe 6-Speed"
+  },
+  {
+   "date": "2025-02-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 99743,
+   "basis": "sold+fee",
+   "hammer_usd": 94993,
+   "native": {
+    "amount": 94993,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-110/",
+   "chassis": "WP0AA2993SS321813",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-12-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 76643,
+   "basis": "sold+fee",
+   "hammer_usd": 72993,
+   "native": {
+    "amount": 72993,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-4-coupe-18/",
+   "chassis": "WP0AA2997SS323922",
+   "title": "1995 Porsche 911 Carrera 4 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-12-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 110250,
+   "basis": "sold+fee",
+   "hammer_usd": 105000,
+   "native": {
+    "amount": 105000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-103/",
+   "chassis": "WP0AA2994SS323392",
+   "title": "37k-Mile 1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-11-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 87150,
+   "basis": "sold+fee",
+   "hammer_usd": 83000,
+   "native": {
+    "amount": 83000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-105/",
+   "chassis": "WP0AA2995SS322736",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-10-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 84001,
+   "basis": "sold+fee",
+   "hammer_usd": 80001,
+   "native": {
+    "amount": 80001,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-99/",
+   "chassis": "WP0AA2999SS322044",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-09-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 135450,
+   "basis": "sold+fee",
+   "hammer_usd": 129000,
+   "native": {
+    "amount": 129000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-4-coupe-14/",
+   "chassis": "WP0ZZZ99ZTS310415",
+   "title": "68k-Kilometer RoW 1995 Porsche 911 Carrera 4S Coupe 6-Speed"
+  },
+  {
+   "date": "2024-09-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 72975,
+   "basis": "sold+fee",
+   "hammer_usd": 69500,
+   "native": {
+    "amount": 69500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-97/",
+   "chassis": "WP0AA2990SS323244",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-08-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 104475,
+   "basis": "sold+fee",
+   "hammer_usd": 99500,
+   "native": {
+    "amount": 99500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-87/",
+   "chassis": "WP0AA2994SS321058",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-08-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 90825,
+   "basis": "sold+fee",
+   "hammer_usd": 86500,
+   "native": {
+    "amount": 86500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-92/",
+   "chassis": "WP0AA2999SS321931",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-08-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 95025,
+   "basis": "sold+fee",
+   "hammer_usd": 90500,
+   "native": {
+    "amount": 90500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-79/",
+   "chassis": "WP0AA2994SS323277",
+   "title": "34k-Mile 1995 Porsche 911 Carrera 4 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-07-31",
+   "venue": "Hagerty",
+   "price_usd": 86100,
+   "basis": "sold+fee",
+   "hammer_usd": 82000,
+   "native": {
+    "amount": 82000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://www.hagerty.com/marketplace/auction/1995-Porsche-911/f7746363-ad1e-4545-bbfd-831707f168e7",
+   "chassis": "WP0AA2990SS320165",
+   "title": "1995 Porsche 911 Carrera Coupe"
+  },
+  {
+   "date": "2024-07-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 61425,
+   "basis": "sold+fee",
+   "hammer_usd": 58500,
+   "native": {
+    "amount": 58500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-81/",
+   "chassis": "WP0AA2995SS320310",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-06-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 111300,
+   "basis": "sold+fee",
+   "hammer_usd": 106000,
+   "native": {
+    "amount": 106000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-74/",
+   "chassis": "WP0AA2994SS321058",
+   "title": "25k-Mile 1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-05-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 93450,
+   "basis": "sold+fee",
+   "hammer_usd": 89000,
+   "native": {
+    "amount": 89000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-73/",
+   "chassis": "WP0AA2993SS320919",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-05-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 122850,
+   "basis": "sold+fee",
+   "hammer_usd": 117000,
+   "native": {
+    "amount": 117000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-4-coupe-16-2/",
+   "chassis": "WP0ZZZ99ZSS315817",
+   "title": "55k-Kilometer 1995 Porsche 911 Carrera 4 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-05-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 76650,
+   "basis": "sold+fee",
+   "hammer_usd": 73000,
+   "native": {
+    "amount": 73000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-4-coupe-17/",
+   "chassis": "WP0AA2993SS324050",
+   "title": "1995 Porsche 911 Carrera 4 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-05-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 117593,
+   "basis": "sold+fee",
+   "hammer_usd": 111993,
+   "native": {
+    "amount": 111993,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-72/",
+   "chassis": "WP0AA2995SS323370",
+   "title": "35k-Mile 1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-04-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 82950,
+   "basis": "sold+fee",
+   "hammer_usd": 79000,
+   "native": {
+    "amount": 79000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-71/",
+   "chassis": "WP0AA299XSS321307",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-01-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 125475,
+   "basis": "sold+fee",
+   "hammer_usd": 119500,
+   "native": {
+    "amount": 119500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-4-coupe-15/",
+   "chassis": "WP0AA2996SS323782",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2023-10-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 80843,
+   "basis": "sold+fee",
+   "hammer_usd": 76993,
+   "native": {
+    "amount": 76993,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-65/",
+   "chassis": "WP0AA2999SS322044",
+   "title": "1995 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2023-10-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 90300,
+   "basis": "sold+fee",
+   "hammer_usd": 86000,
+   "native": {
+    "amount": 86000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-porsche-911-carrera-coupe-63/",
+   "chassis": "WP0ZZZ99ZSS313629",
+   "title": "RoW 1995 Porsche 911 Carrera Coupe 6-Speed"
+  }
+ ]
 }

@@ -10,11 +10,42 @@
   "window": "36mo",
   "year_min": 1965,
   "year_max": 1965,
-  "trim": "Mk III",
-  "body": "convertible"
+  "trim": "Mk III"
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2026-01-23",
+   "venue": "RM Sotheby's",
+   "price_usd": 67200,
+   "basis": "buyer-paid",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 67200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://rmsothebys.com/auctions/az26/lots/r0042-1965-austinhealey-3000-mk-iii-bj8/",
+   "chassis": "HBJ8L27938",
+   "title": "1965 Austin-Healey 3000 Mk III BJ8"
+  },
+  {
+   "date": "2024-10-12",
+   "venue": "Broad Arrow",
+   "price_usd": 52640,
+   "basis": "buyer-paid",
+   "hammer_usd": 47000,
+   "native": {
+    "amount": 52640,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.broadarrowauctions.com/vehicles/ch24_r047/1965-austin-healey-3000-mk-iii-bj8",
+   "chassis": "HBJ8L30554",
+   "title": "1965 Austin-Healey 3000 Mk III BJ8"
+  },
   {
    "date": "2026-08-17",
    "venue": "Bring a Trailer",
@@ -126,22 +157,6 @@
    "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-20/",
    "chassis": "HBJ8L27386",
    "title": "One-Family-Owned 1965 Austin-Healey 3000 BJ8 Mk III"
-  },
-  {
-   "date": "2026-01-23",
-   "venue": "RM Sotheby's",
-   "price_usd": 67200,
-   "basis": "buyer-paid",
-   "hammer_usd": 60000,
-   "native": {
-    "amount": 67200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1965,
-   "url": "https://rmsothebys.com/auctions/az26/lots/r0042-1965-austinhealey-3000-mk-iii-bj8/",
-   "chassis": "HBJ8L27938",
-   "title": "1965 Austin-Healey 3000 Mk III BJ8"
   },
   {
    "date": "2026-01-16",
@@ -302,22 +317,6 @@
    "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-5/",
    "chassis": "HBJ8L31367",
    "title": "1965 Austin-Healey 3000 BJ8 Mk III"
-  },
-  {
-   "date": "2024-10-12",
-   "venue": "Broad Arrow",
-   "price_usd": 52640,
-   "basis": "buyer-paid",
-   "hammer_usd": 47000,
-   "native": {
-    "amount": 52640,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1965,
-   "url": "https://www.broadarrowauctions.com/vehicles/ch24_r047/1965-austin-healey-3000-mk-iii-bj8",
-   "chassis": "HBJ8L30554",
-   "title": "1965 Austin-Healey 3000 Mk III BJ8"
   },
   {
    "date": "2024-07-19",

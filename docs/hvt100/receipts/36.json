@@ -3,50 +3,17 @@
  "listed": "1987 Porsche 944 Turbo",
  "status": "compare",
  "year_scope": "adjacent years pooled (1985-1989)",
- "basis": "mixed (25% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (27% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Porsche",
   "model": "944",
   "window": "36mo",
   "year_min": 1985,
   "year_max": 1989,
-  "trim": "Turbo",
-  "body": "coupe"
+  "trim": "Turbo"
  },
- "halo_dropped": 1,
+ "halo_dropped": 2,
  "sales": [
-  {
-   "date": "2026-06-24",
-   "venue": "Bring a Trailer",
-   "price_usd": 156450,
-   "basis": "sold+fee",
-   "hammer_usd": 149000,
-   "native": {
-    "amount": 149000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1987,
-   "url": "https://bringatrailer.com/listing/1987-porsche-911-turbo-coupe-72/",
-   "chassis": "WP0JB0930HS050327",
-   "title": "27-Years-Owned 1987 Porsche 911 Turbo Coupe"
-  },
-  {
-   "date": "2026-06-08",
-   "venue": "Bring a Trailer",
-   "price_usd": 175500,
-   "basis": "sold+fee",
-   "hammer_usd": 168000,
-   "native": {
-    "amount": 168000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1985,
-   "url": "https://bringatrailer.com/listing/1985-porsche-911-turbo-6/",
-   "chassis": "WP0ZZZ93ZFS000463",
-   "title": "RoW 1985 Porsche 911 Turbo"
-  },
   {
    "date": "2026-01-23",
    "venue": "RM Sotheby's",
@@ -62,22 +29,6 @@
    "url": "https://rmsothebys.com/auctions/az26/lots/r0046-1987-porsche-911-turbo-coupe",
    "chassis": "WP0JB0939HS050231",
    "title": "1987 Porsche 911 Turbo Coupe"
-  },
-  {
-   "date": "2025-11-06",
-   "venue": "Bring a Trailer",
-   "price_usd": 162500,
-   "basis": "sold+fee",
-   "hammer_usd": 155000,
-   "native": {
-    "amount": 155000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1987,
-   "url": "https://bringatrailer.com/listing/1987-porsche-911-turbo-cabriolet-16-2/",
-   "chassis": "WP0EB0934HS070128",
-   "title": "20-Years-Owned 1987 Porsche 911 Turbo Cabriolet"
   },
   {
    "date": "2025-10-31",
@@ -96,22 +47,6 @@
    "title": "1987 Porsche 911 Turbo Coupe"
   },
   {
-   "date": "2025-10-12",
-   "venue": "Bonhams",
-   "price_usd": 149040,
-   "basis": "buyer-paid",
-   "hammer_usd": 129600,
-   "native": {
-    "amount": 138000,
-    "currency": "EUR",
-    "premium_inclusive": true
-   },
-   "year": 1987,
-   "url": "https://cars.bonhams.com/auction/31021/lot/152/1987-porsche-911-type-930-33-litre-turbo-cabriolet-chassis-no-wp0zzz93zhs070092-engine-no-68h01174-gearbox-no-77h01625/",
-   "chassis": "WP0ZZZ93ZHS070092",
-   "title": "1987 Porsche 911 Type 930 3.3-Litre Turbo Cabriolet Chassis no. WP0ZZZ93ZHS070092 Engine no. 68H01174, Gearbox no. 77H01625"
-  },
-  {
    "date": "2025-08-14",
    "venue": "Broad Arrow",
    "price_usd": 257600,
@@ -126,22 +61,6 @@
    "url": "https://www.broadarrowauctions.com/vehicles/jc25_r0110/1987-porsche-911-turbo-coupe",
    "chassis": "WP0JB0931HS050286",
    "title": "1987 Porsche 911 Turbo Coupe"
-  },
-  {
-   "date": "2025-04-30",
-   "venue": "Bring a Trailer",
-   "price_usd": 195500,
-   "basis": "sold+fee",
-   "hammer_usd": 188000,
-   "native": {
-    "amount": 188000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1988,
-   "url": "https://bringatrailer.com/listing/1988-porsche-911-turbo-targa-7/",
-   "chassis": "WP0EB0932JS060106",
-   "title": "1988 Porsche 911 Turbo Targa"
   },
   {
    "date": "2025-03-08",
@@ -174,6 +93,86 @@
    "url": "https://rmsothebys.com/auctions/az25/lots/r0017-1988-porsche-911-turbo-coupe/",
    "chassis": "WP0JB0931JS050455",
    "title": "1988 Porsche 911 Turbo Coupe"
+  },
+  {
+   "date": "2024-08-15",
+   "venue": "Broad Arrow",
+   "price_usd": 252000,
+   "basis": "buyer-paid",
+   "hammer_usd": 225000,
+   "native": {
+    "amount": 252000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.broadarrowauctions.com/vehicles/jc24_r060/1987-porsche-911-turbo",
+   "chassis": "WP0JB0937HS050986",
+   "title": "1987 Porsche 911 Turbo"
+  },
+  {
+   "date": "2024-04-27",
+   "venue": "Broad Arrow",
+   "price_usd": 220000,
+   "basis": "buyer-paid",
+   "hammer_usd": 196429,
+   "native": {
+    "amount": 220000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.broadarrowauctions.com/vehicles/po24_r057/1987-porsche-911-turbo-coupe",
+   "chassis": "WP0JB0937HS050986",
+   "title": "1987 Porsche 911 Turbo Coupe"
+  },
+  {
+   "date": "2023-11-17",
+   "venue": "RM Sotheby's",
+   "price_usd": 224000,
+   "basis": "buyer-paid",
+   "hammer_usd": 200000,
+   "native": {
+    "amount": 224000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1988,
+   "url": "https://rmsothebys.com/auctions/lv23/lots/r0017-1988-porsche-911-turbo-coupe/",
+   "chassis": "WP0JB093JS050284",
+   "title": "1988 Porsche 911 Turbo Coupe"
+  },
+  {
+   "date": "2026-06-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 156450,
+   "basis": "sold+fee",
+   "hammer_usd": 149000,
+   "native": {
+    "amount": 149000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-turbo-coupe-72/",
+   "chassis": "WP0JB0930HS050327",
+   "title": "27-Years-Owned 1987 Porsche 911 Turbo Coupe"
+  },
+  {
+   "date": "2026-06-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 175500,
+   "basis": "sold+fee",
+   "hammer_usd": 168000,
+   "native": {
+    "amount": 168000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-porsche-911-turbo-6/",
+   "chassis": "WP0ZZZ93ZFS000463",
+   "title": "RoW 1985 Porsche 911 Turbo"
   },
   {
    "date": "2024-12-30",
@@ -240,22 +239,6 @@
    "title": "1988 Porsche 911 Turbo Coupe"
   },
   {
-   "date": "2024-11-13",
-   "venue": "Bring a Trailer",
-   "price_usd": 132300,
-   "basis": "sold+fee",
-   "hammer_usd": 126000,
-   "native": {
-    "amount": 126000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1988,
-   "url": "https://bringatrailer.com/listing/1988-porsche-911-turbo-cabriolet-44-2/",
-   "chassis": "WP0EB0938JS070557",
-   "title": "1988 Porsche 911 Turbo Cabriolet"
-  },
-  {
    "date": "2024-11-11",
    "venue": "Bring a Trailer",
    "price_usd": 167500,
@@ -302,38 +285,6 @@
    "url": "https://bringatrailer.com/listing/1987-porsche-911-turbo-coupe-45/",
    "chassis": "WP0JB0931HS050384",
    "title": "1987 Porsche 911 Turbo Coupe"
-  },
-  {
-   "date": "2024-10-12",
-   "venue": "Broad Arrow",
-   "price_usd": 252000,
-   "basis": "buyer-paid",
-   "hammer_usd": 225000,
-   "native": {
-    "amount": 252000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1988,
-   "url": "https://www.broadarrowauctions.com/vehicles/ch24_r070/1988-porsche-911-turbo-cabriolet",
-   "chassis": null,
-   "title": "1988 Porsche 911 Turbo Cabriolet"
-  },
-  {
-   "date": "2024-10-11",
-   "venue": "Bring a Trailer",
-   "price_usd": 188500,
-   "basis": "sold+fee",
-   "hammer_usd": 181000,
-   "native": {
-    "amount": 181000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1988,
-   "url": "https://bringatrailer.com/listing/1988-porsche-911-turbo-cabriolet-45/",
-   "chassis": "WP0EB0932JS070523",
-   "title": "35k-Mile 1988 Porsche 911 Turbo Cabriolet"
   },
   {
    "date": "2024-09-12",
@@ -384,22 +335,6 @@
    "title": "1987 Porsche 911 Turbo Coupe"
   },
   {
-   "date": "2024-08-15",
-   "venue": "Broad Arrow",
-   "price_usd": 252000,
-   "basis": "buyer-paid",
-   "hammer_usd": 225000,
-   "native": {
-    "amount": 252000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1987,
-   "url": "https://www.broadarrowauctions.com/vehicles/jc24_r060/1987-porsche-911-turbo",
-   "chassis": "WP0JB0937HS050986",
-   "title": "1987 Porsche 911 Turbo"
-  },
-  {
    "date": "2024-08-13",
    "venue": "Bring a Trailer",
    "price_usd": 162500,
@@ -414,22 +349,6 @@
    "url": "https://bringatrailer.com/listing/1986-porsche-911-turbo-coupe-37/",
    "chassis": "WP0JB0932GS050490",
    "title": "50k-Mile 1986 Porsche 911 Turbo Coupe"
-  },
-  {
-   "date": "2024-07-30",
-   "venue": "Bring a Trailer",
-   "price_usd": 134400,
-   "basis": "sold+fee",
-   "hammer_usd": 128000,
-   "native": {
-    "amount": 128000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1988,
-   "url": "https://bringatrailer.com/listing/1988-porsche-911-turbo-cabriolet-41/",
-   "chassis": "WP0EB0939JS070552",
-   "title": "34k-Mile 1988 Porsche 911 Turbo Cabriolet"
   },
   {
    "date": "2024-07-09",
@@ -448,22 +367,6 @@
    "title": "Swiss-Market 1986 Porsche 911 Turbo Coupe"
   },
   {
-   "date": "2024-06-11",
-   "venue": "Bring a Trailer",
-   "price_usd": 142800,
-   "basis": "sold+fee",
-   "hammer_usd": 136000,
-   "native": {
-    "amount": 136000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1987,
-   "url": "https://bringatrailer.com/listing/1987-porsche-911-turbo-cabriolet-10/",
-   "chassis": "WP0EB093XHS070117",
-   "title": "29-Years-Owned 1987 Porsche 911 Turbo Cabriolet"
-  },
-  {
    "date": "2024-06-06",
    "venue": "Bring a Trailer",
    "price_usd": 162500,
@@ -480,22 +383,6 @@
    "title": "1986 Porsche 911 Turbo Coupe"
   },
   {
-   "date": "2024-04-27",
-   "venue": "Broad Arrow",
-   "price_usd": 220000,
-   "basis": "buyer-paid",
-   "hammer_usd": 196429,
-   "native": {
-    "amount": 220000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1987,
-   "url": "https://www.broadarrowauctions.com/vehicles/po24_r057/1987-porsche-911-turbo-coupe",
-   "chassis": "WP0JB0937HS050986",
-   "title": "1987 Porsche 911 Turbo Coupe"
-  },
-  {
    "date": "2024-03-23",
    "venue": "Bring a Trailer",
    "price_usd": 170500,
@@ -510,38 +397,6 @@
    "url": "https://bringatrailer.com/listing/1987-porsche-911-turbo-coupe-36/",
    "chassis": "WP0JB0939HS051332",
    "title": "Original-Owner 1987 Porsche 911 Turbo Coupe"
-  },
-  {
-   "date": "2024-03-18",
-   "venue": "Bring a Trailer",
-   "price_usd": 136500,
-   "basis": "sold+fee",
-   "hammer_usd": 130000,
-   "native": {
-    "amount": 130000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1988,
-   "url": "https://bringatrailer.com/listing/1988-porsche-911-turbo-cabriolet-36/",
-   "chassis": "WP0EB0930JS070553",
-   "title": "1988 Porsche 911 Turbo Cabriolet"
-  },
-  {
-   "date": "2024-02-22",
-   "venue": "Bring a Trailer",
-   "price_usd": 137550,
-   "basis": "sold+fee",
-   "hammer_usd": 131000,
-   "native": {
-    "amount": 131000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1988,
-   "url": "https://bringatrailer.com/listing/1988-porsche-911-turbo-cabriolet-37/",
-   "chassis": "WP0EB0931JS070562",
-   "title": "1988 Porsche 911 Turbo Cabriolet"
   },
   {
    "date": "2024-02-01",
@@ -590,22 +445,6 @@
    "url": "https://bringatrailer.com/listing/1987-porsche-911-turbo-coupe-30/",
    "chassis": "WP0JB0932HS050331",
    "title": "1987 Porsche 911 Turbo Coupe Slant-Nose Conversion"
-  },
-  {
-   "date": "2023-11-17",
-   "venue": "RM Sotheby's",
-   "price_usd": 224000,
-   "basis": "buyer-paid",
-   "hammer_usd": 200000,
-   "native": {
-    "amount": 224000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1988,
-   "url": "https://rmsothebys.com/auctions/lv23/lots/r0017-1988-porsche-911-turbo-coupe/",
-   "chassis": "WP0JB093JS050284",
-   "title": "1988 Porsche 911 Turbo Coupe"
   },
   {
    "date": "2023-11-13",

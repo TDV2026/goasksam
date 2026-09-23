@@ -1,136 +1,136 @@
 car_id,year,make,model_trim,status,year_scope_used,window,basis,n,thin,median,p25,p75,min,max
-1,1957,"Chevrolet Bel Air",compare,exact 1957,W1,mixed (24% house buyer-paid, rest sold+fee),64,no,52238,41344,76781,6050,192500
-1,1957,"Chevrolet Bel Air",compare,exact 1957,W2,mixed (24% house buyer-paid, rest sold+fee),6,yes,,,,,
-1,1957,"Chevrolet Bel Air",compare,exact 1957,W3,mixed (24% house buyer-paid, rest sold+fee),102,no,53025,39139,78356,6050,192500
-2,1963,"Chevrolet Corvette Sting Ray",compare,adjacent years pooled (1963-1965),W1,mixed (53% house buyer-paid, rest sold+fee),8,no,134900,79767,155155,55650,176960
-2,1963,"Chevrolet Corvette Sting Ray",compare,adjacent years pooled (1963-1965),W2,mixed (53% house buyer-paid, rest sold+fee),0,yes,,,,,
-2,1963,"Chevrolet Corvette Sting Ray",compare,adjacent years pooled (1963-1965),W3,mixed (53% house buyer-paid, rest sold+fee),17,no,84000,67068,149040,47250,268800
-3,1965,"Ford Mustang 289",compare,exact 1965,W1,mixed (11% house buyer-paid, rest sold+fee),113,no,31500,22575,40163,7980,149625
-3,1965,"Ford Mustang 289",compare,exact 1965,W2,mixed (11% house buyer-paid, rest sold+fee),20,no,34784,23100,50006,12600,71925
-3,1965,"Ford Mustang 289",compare,exact 1965,W3,mixed (11% house buyer-paid, rest sold+fee),133,no,32025,22575,43050,7980,149625
-4,1967,"Chevrolet Corvette L71",compare,exact 1967,W1,sold+fee (online),10,no,163000,101719,178500,90825,221500
-4,1967,"Chevrolet Corvette L71",compare,exact 1967,W2,sold+fee (online),5,yes,,,,,
-4,1967,"Chevrolet Corvette L71",compare,exact 1967,W3,sold+fee (online),19,no,157500,99488,190500,89250,238935
-5,1969,"Chevrolet Camaro Z/28",compare,exact 1969,W1,mixed (45% house buyer-paid, rest sold+fee),56,no,105000,80719,139913,52500,330000
-5,1969,"Chevrolet Camaro Z/28",compare,exact 1969,W2,mixed (45% house buyer-paid, rest sold+fee),7,yes,,,,,
-5,1969,"Chevrolet Camaro Z/28",compare,exact 1969,W3,mixed (45% house buyer-paid, rest sold+fee),103,no,100275,80588,138625,42000,330000
-6,1970,"Chevrolet Chevelle SS 396",compare,exact 1970,W1,mixed (48% house buyer-paid, rest sold+fee),36,no,75350,66938,101200,53550,231000
-6,1970,"Chevrolet Chevelle SS 396",compare,exact 1970,W2,mixed (48% house buyer-paid, rest sold+fee),5,yes,,,,,
-6,1970,"Chevrolet Chevelle SS 396",compare,exact 1970,W3,mixed (48% house buyer-paid, rest sold+fee),63,no,76676,66675,98588,49350,231000
-7,1970,"Plymouth Barracuda 340",nohvt,exact 1970,W1,mixed (8% house buyer-paid, rest sold+fee),21,no,70875,63000,96012,34650,207500
-7,1970,"Plymouth Barracuda 340",nohvt,exact 1970,W2,mixed (8% house buyer-paid, rest sold+fee),1,yes,,,,,
-7,1970,"Plymouth Barracuda 340",nohvt,exact 1970,W3,mixed (8% house buyer-paid, rest sold+fee),37,no,81207,69090,106050,34650,207500
+1,1957,"Chevrolet Bel Air",compare,exact 1957,W1,mixed (29% house buyer-paid, rest sold+fee),39,no,72975,46725,90957,6050,192500
+1,1957,"Chevrolet Bel Air",compare,exact 1957,W2,mixed (29% house buyer-paid, rest sold+fee),6,yes,,,,,
+1,1957,"Chevrolet Bel Air",compare,exact 1957,W3,mixed (29% house buyer-paid, rest sold+fee),62,no,72238,47513,97125,6050,192500
+2,1963,"Chevrolet Corvette Sting Ray",compare,adjacent years pooled (1963-1965),W1,mixed (56% house buyer-paid, rest sold+fee),5,yes,,,,,
+2,1963,"Chevrolet Corvette Sting Ray",compare,adjacent years pooled (1963-1965),W2,mixed (56% house buyer-paid, rest sold+fee),0,yes,,,,,
+2,1963,"Chevrolet Corvette Sting Ray",compare,adjacent years pooled (1963-1965),W3,mixed (56% house buyer-paid, rest sold+fee),9,no,149040,137500,176960,51713,268800
+3,1965,"Ford Mustang 289",compare,exact 1965,W1,mixed (1% house buyer-paid, rest sold+fee),54,no,30975,25069,38719,12075,65625
+3,1965,"Ford Mustang 289",compare,exact 1965,W2,mixed (1% house buyer-paid, rest sold+fee),10,no,39002,34717,48016,31500,71925
+3,1965,"Ford Mustang 289",compare,exact 1965,W3,mixed (1% house buyer-paid, rest sold+fee),114,no,33732,24662,40281,9503,71925
+4,1967,"Chevrolet Corvette L71",compare,adjacent years pooled (1965-1967),W1,sold+fee (online),2,yes,,,,,
+4,1967,"Chevrolet Corvette L71",compare,adjacent years pooled (1965-1967),W2,sold+fee (online),1,yes,,,,,
+4,1967,"Chevrolet Corvette L71",compare,adjacent years pooled (1965-1967),W3,sold+fee (online),4,yes,,,,,
+5,1969,"Chevrolet Camaro Z/28",compare,exact 1969,W1,mixed (53% house buyer-paid, rest sold+fee),51,no,105000,83743,154900,52500,330000
+5,1969,"Chevrolet Camaro Z/28",compare,exact 1969,W2,mixed (53% house buyer-paid, rest sold+fee),5,yes,,,,,
+5,1969,"Chevrolet Camaro Z/28",compare,exact 1969,W3,mixed (53% house buyer-paid, rest sold+fee),90,no,105000,84000,153900,42000,330000
+6,1970,"Chevrolet Chevelle SS 396",compare,exact 1970,W1,mixed (53% house buyer-paid, rest sold+fee),23,no,77000,68250,99000,53550,166500
+6,1970,"Chevrolet Chevelle SS 396",compare,exact 1970,W2,mixed (53% house buyer-paid, rest sold+fee),1,yes,,,,,
+6,1970,"Chevrolet Chevelle SS 396",compare,exact 1970,W3,mixed (53% house buyer-paid, rest sold+fee),34,no,71500,66000,96181,50400,166500
+7,1970,"Plymouth Barracuda 340",nohvt,adjacent years pooled (1968-1972),W1,sold+fee (online),6,yes,,,,,
+7,1970,"Plymouth Barracuda 340",nohvt,adjacent years pooled (1968-1972),W2,sold+fee (online),0,yes,,,,,
+7,1970,"Plymouth Barracuda 340",nohvt,adjacent years pooled (1968-1972),W3,sold+fee (online),7,yes,,,,,
 8,1969,"Dodge Charger R/T",compare,adjacent years pooled (1967-1971),W1,n/a,0,yes,,,,,
 8,1969,"Dodge Charger R/T",compare,adjacent years pooled (1967-1971),W2,n/a,0,yes,,,,,
 8,1969,"Dodge Charger R/T",compare,adjacent years pooled (1967-1971),W3,n/a,0,yes,,,,,
 9,1966,"Shelby GT350",compare,adjacent years pooled (1964-1968),W1,n/a,0,yes,,,,,
 9,1966,"Shelby GT350",compare,adjacent years pooled (1964-1968),W2,n/a,0,yes,,,,,
 9,1966,"Shelby GT350",compare,adjacent years pooled (1964-1968),W3,n/a,0,yes,,,,,
-10,1968,"Pontiac GTO",compare,exact 1968,W1,mixed (17% house buyer-paid, rest sold+fee),16,no,47463,39550,53944,28088,67725
-10,1968,"Pontiac GTO",compare,exact 1968,W2,mixed (17% house buyer-paid, rest sold+fee),3,yes,,,,,
-10,1968,"Pontiac GTO",compare,exact 1968,W3,mixed (17% house buyer-paid, rest sold+fee),29,no,41475,37800,53550,23625,92400
-11,1955,"Ford Thunderbird",compare,exact 1955,W1,mixed (10% house buyer-paid, rest sold+fee),32,no,24465,22050,32157,18638,58800
-11,1955,"Ford Thunderbird",compare,exact 1955,W2,mixed (10% house buyer-paid, rest sold+fee),8,no,23363,21788,26447,13650,31395
-11,1955,"Ford Thunderbird",compare,exact 1955,W3,mixed (10% house buyer-paid, rest sold+fee),63,no,26250,22182,31448,13650,65100
-12,1959,"Cadillac Series 62",compare,exact 1959,W1,mixed (39% house buyer-paid, rest sold+fee),11,no,123200,102913,162750,83475,232500
-12,1959,"Cadillac Series 62",compare,exact 1959,W2,mixed (39% house buyer-paid, rest sold+fee),2,yes,,,,,
-12,1959,"Cadillac Series 62",compare,exact 1959,W3,mixed (39% house buyer-paid, rest sold+fee),23,no,115500,84000,144250,37400,232500
+10,1968,"Pontiac GTO",compare,adjacent years pooled (1966-1970),W1,mixed (15% house buyer-paid, rest sold+fee),48,no,52238,42985,61911,26513,136500
+10,1968,"Pontiac GTO",compare,adjacent years pooled (1966-1970),W2,mixed (15% house buyer-paid, rest sold+fee),14,no,56700,46056,66693,41738,115500
+10,1968,"Pontiac GTO",compare,adjacent years pooled (1966-1970),W3,mixed (15% house buyer-paid, rest sold+fee),85,no,49875,41738,59850,23625,136500
+11,1955,"Ford Thunderbird",compare,exact 1955,W1,mixed (11% house buyer-paid, rest sold+fee),33,no,24675,22050,34125,18638,58800
+11,1955,"Ford Thunderbird",compare,exact 1955,W2,mixed (11% house buyer-paid, rest sold+fee),8,no,23363,21788,26447,13650,31395
+11,1955,"Ford Thunderbird",compare,exact 1955,W3,mixed (11% house buyer-paid, rest sold+fee),61,no,26250,22050,31501,13650,58800
+12,1959,"Cadillac Series 62",compare,exact 1959,W1,mixed (40% house buyer-paid, rest sold+fee),10,no,127600,107250,174125,83475,232500
+12,1959,"Cadillac Series 62",compare,exact 1959,W2,mixed (40% house buyer-paid, rest sold+fee),2,yes,,,,,
+12,1959,"Cadillac Series 62",compare,exact 1959,W3,mixed (40% house buyer-paid, rest sold+fee),20,no,119350,90694,152625,37400,232500
 13,1971,"Chevrolet C10 short bed",compare,adjacent years pooled (1969-1973),W1,sold+fee (online),1,yes,,,,,
 13,1971,"Chevrolet C10 short bed",compare,adjacent years pooled (1969-1973),W2,sold+fee (online),0,yes,,,,,
 13,1971,"Chevrolet C10 short bed",compare,adjacent years pooled (1969-1973),W3,sold+fee (online),1,yes,,,,,
 14,1976,"Ford Bronco",compare,exact 1976,W1,sold+fee (online),16,no,69300,61031,146213,48300,169500
 14,1976,"Ford Bronco",compare,exact 1976,W2,sold+fee (online),3,yes,,,,,
 14,1976,"Ford Bronco",compare,exact 1976,W3,sold+fee (online),27,no,68250,54863,73909,31500,169500
-15,1965,"Ford F-100 short bed",compare,adjacent years pooled (1963-1967),W1,mixed (29% house buyer-paid, rest sold+fee),4,yes,,,,,
-15,1965,"Ford F-100 short bed",compare,adjacent years pooled (1963-1967),W2,mixed (29% house buyer-paid, rest sold+fee),0,yes,,,,,
-15,1965,"Ford F-100 short bed",compare,adjacent years pooled (1963-1967),W3,mixed (29% house buyer-paid, rest sold+fee),7,yes,,,,,
-16,1965,"Porsche 356 C",compare,exact 1965,W1,mixed (79% house buyer-paid, rest sold+fee),12,no,182000,167128,207575,136620,472500
-16,1965,"Porsche 356 C",compare,exact 1965,W2,mixed (79% house buyer-paid, rest sold+fee),1,yes,,,,,
-16,1965,"Porsche 356 C",compare,exact 1965,W3,mixed (79% house buyer-paid, rest sold+fee),19,no,173600,148638,215600,10920,472500
+15,1965,"Ford F-100 short bed",compare,adjacent years pooled (1963-1967),W1,n/a,0,yes,,,,,
+15,1965,"Ford F-100 short bed",compare,adjacent years pooled (1963-1967),W2,n/a,0,yes,,,,,
+15,1965,"Ford F-100 short bed",compare,adjacent years pooled (1963-1967),W3,n/a,0,yes,,,,,
+16,1965,"Porsche 356 C",compare,exact 1965,W1,mixed (84% house buyer-paid, rest sold+fee),13,no,190400,167670,225500,136620,472500
+16,1965,"Porsche 356 C",compare,exact 1965,W2,mixed (84% house buyer-paid, rest sold+fee),1,yes,,,,,
+16,1965,"Porsche 356 C",compare,exact 1965,W3,mixed (84% house buyer-paid, rest sold+fee),25,no,192500,165500,250000,10920,472500
 17,1970,"Porsche 911 T",compare,exact 1970,W1,mixed (10% house buyer-paid, rest sold+fee),12,no,90300,68644,113663,4320,132300
 17,1970,"Porsche 911 T",compare,exact 1970,W2,mixed (10% house buyer-paid, rest sold+fee),3,yes,,,,,
 17,1970,"Porsche 911 T",compare,exact 1970,W3,mixed (10% house buyer-paid, rest sold+fee),30,no,80325,63131,103688,3920,167500
 18,1973,"Porsche 911 Carrera RS 2.7",compare,adjacent years pooled (1971-1973),W1,n/a,0,yes,,,,,
 18,1973,"Porsche 911 Carrera RS 2.7",compare,adjacent years pooled (1971-1973),W2,n/a,0,yes,,,,,
 18,1973,"Porsche 911 Carrera RS 2.7",compare,adjacent years pooled (1971-1973),W3,n/a,0,yes,,,,,
-19,1966,"Jaguar E-Type Series 1",compare,adjacent years pooled (1964-1968),W1,mixed (16% house buyer-paid, rest sold+fee),23,no,84525,64732,123900,38063,307500
-19,1966,"Jaguar E-Type Series 1",compare,adjacent years pooled (1964-1968),W2,mixed (16% house buyer-paid, rest sold+fee),3,yes,,,,,
-19,1966,"Jaguar E-Type Series 1",compare,adjacent years pooled (1964-1968),W3,mixed (16% house buyer-paid, rest sold+fee),45,no,81375,61950,117600,12495,307500
-20,1962,"Mercedes-Benz 190SL",compare,adjacent years pooled (1960-1964),W1,mixed (45% house buyer-paid, rest sold+fee),18,no,100800,85444,144200,56700,192510
-20,1962,"Mercedes-Benz 190SL",compare,adjacent years pooled (1960-1964),W2,mixed (45% house buyer-paid, rest sold+fee),10,no,84525,62606,123278,52500,196000
-20,1962,"Mercedes-Benz 190SL",compare,adjacent years pooled (1960-1964),W3,mixed (45% house buyer-paid, rest sold+fee),33,no,99360,77004,152250,15680,224000
-21,1971,"Mercedes-Benz 280SL",compare,exact 1971,W1,mixed (14% house buyer-paid, rest sold+fee),23,no,128100,88550,157800,66150,201600
-21,1971,"Mercedes-Benz 280SL",compare,exact 1971,W2,mixed (14% house buyer-paid, rest sold+fee),4,yes,,,,,
-21,1971,"Mercedes-Benz 280SL",compare,exact 1971,W3,mixed (14% house buyer-paid, rest sold+fee),51,no,106050,75627,147525,50400,232500
-22,1957,"Mercedes-Benz 300SL Roadster",compare,adjacent years pooled (1955-1959),W1,mixed (88% house buyer-paid, rest sold+fee),5,yes,,,,,
+19,1966,"Jaguar E-Type Series 1",compare,adjacent years pooled (1964-1968),W1,mixed (93% house buyer-paid, rest sold+fee),6,yes,,,,,
+19,1966,"Jaguar E-Type Series 1",compare,adjacent years pooled (1964-1968),W2,mixed (93% house buyer-paid, rest sold+fee),0,yes,,,,,
+19,1966,"Jaguar E-Type Series 1",compare,adjacent years pooled (1964-1968),W3,mixed (93% house buyer-paid, rest sold+fee),14,no,123200,101500,161800,62720,184800
+20,1962,"Mercedes-Benz 190SL",compare,adjacent years pooled (1960-1964),W1,mixed (61% house buyer-paid, rest sold+fee),20,no,105175,88331,150500,56700,192510
+20,1962,"Mercedes-Benz 190SL",compare,adjacent years pooled (1960-1964),W2,mixed (61% house buyer-paid, rest sold+fee),10,no,84525,62606,123278,52500,196000
+20,1962,"Mercedes-Benz 190SL",compare,adjacent years pooled (1960-1964),W3,mixed (61% house buyer-paid, rest sold+fee),46,no,109200,81638,151288,15680,224000
+21,1971,"Mercedes-Benz 280SL",compare,adjacent years pooled (1969-1971),W1,mixed (86% house buyer-paid, rest sold+fee),19,no,88000,76225,114690,49350,217350
+21,1971,"Mercedes-Benz 280SL",compare,adjacent years pooled (1969-1971),W2,mixed (86% house buyer-paid, rest sold+fee),0,yes,,,,,
+21,1971,"Mercedes-Benz 280SL",compare,adjacent years pooled (1969-1971),W3,mixed (86% house buyer-paid, rest sold+fee),29,no,84000,76200,113120,49350,217350
+22,1957,"Mercedes-Benz 300SL Roadster",compare,adjacent years pooled (1955-1959),W1,mixed (88% house buyer-paid, rest sold+fee),6,yes,,,,,
 22,1957,"Mercedes-Benz 300SL Roadster",compare,adjacent years pooled (1955-1959),W2,mixed (88% house buyer-paid, rest sold+fee),1,yes,,,,,
-22,1957,"Mercedes-Benz 300SL Roadster",compare,adjacent years pooled (1955-1959),W3,mixed (88% house buyer-paid, rest sold+fee),16,no,1207500,1105000,1614375,945500,2892500
+22,1957,"Mercedes-Benz 300SL Roadster",compare,adjacent years pooled (1955-1959),W3,mixed (88% house buyer-paid, rest sold+fee),17,no,1200000,1105000,1600000,945500,2892500
 23,1965,"Austin-Healey 3000 Mk III",compare,exact 1965,W1,mixed (10% house buyer-paid, rest sold+fee),16,no,51713,40425,62081,14963,78750
 23,1965,"Austin-Healey 3000 Mk III",compare,exact 1965,W2,mixed (10% house buyer-paid, rest sold+fee),2,yes,,,,,
 23,1965,"Austin-Healey 3000 Mk III",compare,exact 1965,W3,mixed (10% house buyer-paid, rest sold+fee),21,no,52640,40950,67200,14963,78750
 24,1967,"Alfa Romeo Giulia GT Veloce",compare,adjacent years pooled (1965-1969),W1,mixed (36% house buyer-paid, rest sold+fee),4,yes,,,,,
 24,1967,"Alfa Romeo Giulia GT Veloce",compare,adjacent years pooled (1965-1969),W2,mixed (36% house buyer-paid, rest sold+fee),1,yes,,,,,
 24,1967,"Alfa Romeo Giulia GT Veloce",compare,adjacent years pooled (1965-1969),W3,mixed (36% house buyer-paid, rest sold+fee),11,no,49350,43356,63525,32550,96255
-25,1972,"Datsun 240Z",compare,adjacent years pooled (1970-1974),W1,mixed (63% house buyer-paid, rest sold+fee),5,yes,,,,,
-25,1972,"Datsun 240Z",compare,adjacent years pooled (1970-1974),W2,mixed (63% house buyer-paid, rest sold+fee),1,yes,,,,,
-25,1972,"Datsun 240Z",compare,adjacent years pooled (1970-1974),W3,mixed (63% house buyer-paid, rest sold+fee),8,no,29750,23219,39875,6143,51700
-26,1967,"Volkswagen Beetle",compare,exact 1967,W1,mixed (4% house buyer-paid, rest sold+fee),26,no,18725,14306,21919,9975,52499
-26,1967,"Volkswagen Beetle",compare,exact 1967,W2,mixed (4% house buyer-paid, rest sold+fee),2,yes,,,,,
-26,1967,"Volkswagen Beetle",compare,exact 1967,W3,mixed (4% house buyer-paid, rest sold+fee),54,no,19032,14175,23514,8190,52499
-27,1973,"BMW 2002 tii",compare,exact 1973,W1,sold+fee (online),11,no,28350,17630,42263,9452,73502
-27,1973,"BMW 2002 tii",compare,exact 1973,W2,sold+fee (online),1,yes,,,,,
-27,1973,"BMW 2002 tii",compare,exact 1973,W3,sold+fee (online),31,no,28350,22261,38195,9452,73502
-28,1964,"Ferrari 250 Lusso",compare,adjacent years pooled (1962-1966),W1,mixed (94% house buyer-paid, rest sold+fee),10,no,1462500,1276875,1589100,310500,37670400
-28,1964,"Ferrari 250 Lusso",compare,adjacent years pooled (1962-1966),W2,mixed (94% house buyer-paid, rest sold+fee),2,yes,,,,,
-28,1964,"Ferrari 250 Lusso",compare,adjacent years pooled (1962-1966),W3,mixed (94% house buyer-paid, rest sold+fee),18,no,1445816,1359375,1502504,310500,37670400
-29,1972,"Ferrari 365 Daytona",compare,adjacent years pooled (1970-1974),W1,mixed (76% house buyer-paid, rest sold+fee),8,no,588300,548519,691500,406400,893700
-29,1972,"Ferrari 365 Daytona",compare,adjacent years pooled (1970-1974),W2,mixed (76% house buyer-paid, rest sold+fee),2,yes,,,,,
-29,1972,"Ferrari 365 Daytona",compare,adjacent years pooled (1970-1974),W3,mixed (76% house buyer-paid, rest sold+fee),17,no,632000,582525,786000,406400,893700
-30,1969,"Lamborghini Miura P400 S",compare,adjacent years pooled (1967-1971),W1,buyer-paid (houses),6,yes,,,,,
-30,1969,"Lamborghini Miura P400 S",compare,adjacent years pooled (1967-1971),W2,buyer-paid (houses),1,yes,,,,,
-30,1969,"Lamborghini Miura P400 S",compare,adjacent years pooled (1967-1971),W3,buyer-paid (houses),12,no,1886000,1568310,2348750,610000,3030000
-31,1979,"Porsche 911 Turbo",compare,adjacent years pooled (1977-1981),W1,mixed (80% house buyer-paid, rest sold+fee),4,yes,,,,,
-31,1979,"Porsche 911 Turbo",compare,adjacent years pooled (1977-1981),W2,mixed (80% house buyer-paid, rest sold+fee),0,yes,,,,,
-31,1979,"Porsche 911 Turbo",compare,adjacent years pooled (1977-1981),W3,mixed (80% house buyer-paid, rest sold+fee),5,yes,,,,,
+25,1972,"Datsun 240Z",compare,adjacent years pooled (1970-1974),W1,mixed (70% house buyer-paid, rest sold+fee),7,yes,,,,,
+25,1972,"Datsun 240Z",compare,adjacent years pooled (1970-1974),W2,mixed (70% house buyer-paid, rest sold+fee),1,yes,,,,,
+25,1972,"Datsun 240Z",compare,adjacent years pooled (1970-1974),W3,mixed (70% house buyer-paid, rest sold+fee),10,no,34450,24719,40196,6143,51700
+26,1967,"Volkswagen Beetle",compare,exact 1967,W1,mixed (5% house buyer-paid, rest sold+fee),27,no,18900,14438,21788,9975,52499
+26,1967,"Volkswagen Beetle",compare,exact 1967,W2,mixed (5% house buyer-paid, rest sold+fee),2,yes,,,,,
+26,1967,"Volkswagen Beetle",compare,exact 1967,W3,mixed (5% house buyer-paid, rest sold+fee),55,no,19163,14175,23402,8190,52499
+27,1973,"BMW 2002 tii",compare,adjacent years pooled (1971-1975),W1,sold+fee (online),15,no,43050,37144,52763,11109,91349
+27,1973,"BMW 2002 tii",compare,adjacent years pooled (1971-1975),W2,sold+fee (online),1,yes,,,,,
+27,1973,"BMW 2002 tii",compare,adjacent years pooled (1971-1975),W3,sold+fee (online),35,no,39375,29138,52237,11109,107100
+28,1964,"Ferrari 250 Lusso",compare,adjacent years pooled (1962-1966),W1,mixed (92% house buyer-paid, rest sold+fee),6,yes,,,,,
+28,1964,"Ferrari 250 Lusso",compare,adjacent years pooled (1962-1966),W2,mixed (92% house buyer-paid, rest sold+fee),1,yes,,,,,
+28,1964,"Ferrari 250 Lusso",compare,adjacent years pooled (1962-1966),W3,mixed (92% house buyer-paid, rest sold+fee),13,no,1456531,1380000,1490400,1242500,1765000
+29,1972,"Ferrari 365 Daytona",compare,adjacent years pooled (1970-1974),W1,mixed (79% house buyer-paid, rest sold+fee),8,no,588300,548519,691500,406400,893700
+29,1972,"Ferrari 365 Daytona",compare,adjacent years pooled (1970-1974),W2,mixed (79% house buyer-paid, rest sold+fee),2,yes,,,,,
+29,1972,"Ferrari 365 Daytona",compare,adjacent years pooled (1970-1974),W3,mixed (79% house buyer-paid, rest sold+fee),19,no,632000,579488,798000,406400,893700
+30,1969,"Lamborghini Miura P400 S",compare,adjacent years pooled (1967-1971),W1,buyer-paid (houses),2,yes,,,,,
+30,1969,"Lamborghini Miura P400 S",compare,adjacent years pooled (1967-1971),W2,buyer-paid (houses),0,yes,,,,,
+30,1969,"Lamborghini Miura P400 S",compare,adjacent years pooled (1967-1971),W3,buyer-paid (houses),5,yes,,,,,
+31,1979,"Porsche 911 Turbo",compare,adjacent years pooled (1977-1981),W1,mixed (90% house buyer-paid, rest sold+fee),6,yes,,,,,
+31,1979,"Porsche 911 Turbo",compare,adjacent years pooled (1977-1981),W2,mixed (90% house buyer-paid, rest sold+fee),0,yes,,,,,
+31,1979,"Porsche 911 Turbo",compare,adjacent years pooled (1977-1981),W3,mixed (90% house buyer-paid, rest sold+fee),10,no,195733,140708,239157,112459,269375
 32,1987,"Porsche 911 Carrera",compare,exact 1987,W1,sold+fee (online),16,no,90038,73238,102113,49613,131250
 32,1987,"Porsche 911 Carrera",compare,exact 1987,W2,sold+fee (online),9,no,95025,86625,107100,66150,148036
 32,1987,"Porsche 911 Carrera",compare,exact 1987,W3,sold+fee (online),49,no,89250,73500,102900,49613,148036
 33,1989,"Porsche 911 Speedster",compare,adjacent years pooled (1987-1989),W1,n/a,0,yes,,,,,
 33,1989,"Porsche 911 Speedster",compare,adjacent years pooled (1987-1989),W2,n/a,0,yes,,,,,
 33,1989,"Porsche 911 Speedster",compare,adjacent years pooled (1987-1989),W3,n/a,0,yes,,,,,
-34,1994,"Porsche 911 Turbo",compare,adjacent years pooled (1992-1994),W1,mixed (35% house buyer-paid, rest sold+fee),9,no,555000,396000,838500,232500,2480000
-34,1994,"Porsche 911 Turbo",compare,adjacent years pooled (1992-1994),W2,mixed (35% house buyer-paid, rest sold+fee),0,yes,,,,,
-34,1994,"Porsche 911 Turbo",compare,adjacent years pooled (1992-1994),W3,mixed (35% house buyer-paid, rest sold+fee),17,no,407464,383500,607501,232500,2480000
-35,1995,"Porsche 928 GTS",compare,adjacent years pooled (1993-1997),W1,n/a,0,yes,,,,,
-35,1995,"Porsche 928 GTS",compare,adjacent years pooled (1993-1997),W2,n/a,0,yes,,,,,
-35,1995,"Porsche 928 GTS",compare,adjacent years pooled (1993-1997),W3,n/a,0,yes,,,,,
-36,1987,"Porsche 944 Turbo",compare,adjacent years pooled (1985-1989),W1,mixed (25% house buyer-paid, rest sold+fee),10,no,184350,157963,208475,134400,257600
-36,1987,"Porsche 944 Turbo",compare,adjacent years pooled (1985-1989),W2,mixed (25% house buyer-paid, rest sold+fee),0,yes,,,,,
-36,1987,"Porsche 944 Turbo",compare,adjacent years pooled (1985-1989),W3,mixed (25% house buyer-paid, rest sold+fee),40,no,162500,135975,209583,84525,257600
-37,1989,"Ferrari Testarossa",compare,adjacent years pooled (1987-1991),W1,mixed (25% house buyer-paid, rest sold+fee),23,no,173880,156625,194000,105000,264000
-37,1989,"Ferrari Testarossa",compare,adjacent years pooled (1987-1991),W2,mixed (25% house buyer-paid, rest sold+fee),4,yes,,,,,
-37,1989,"Ferrari Testarossa",compare,adjacent years pooled (1987-1991),W3,mixed (25% house buyer-paid, rest sold+fee),53,no,160500,130200,209722,105000,472500
-38,1991,"Ferrari 348 TS",compare,adjacent years pooled (1989-1993),W1,mixed (10% house buyer-paid, rest sold+fee),18,no,83738,69525,86494,58800,197500
-38,1991,"Ferrari 348 TS",compare,adjacent years pooled (1989-1993),W2,mixed (10% house buyer-paid, rest sold+fee),2,yes,,,,,
-38,1991,"Ferrari 348 TS",compare,adjacent years pooled (1989-1993),W3,mixed (10% house buyer-paid, rest sold+fee),31,no,76650,67963,86363,58800,197500
-39,1985,"Ferrari 308 GTS QV",compare,adjacent years pooled (1983-1987),W1,n/a,0,yes,,,,,
-39,1985,"Ferrari 308 GTS QV",compare,adjacent years pooled (1983-1987),W2,n/a,0,yes,,,,,
-39,1985,"Ferrari 308 GTS QV",compare,adjacent years pooled (1983-1987),W3,n/a,0,yes,,,,,
+34,1994,"Porsche 911 Turbo",compare,adjacent years pooled (1992-1994),W1,mixed (42% house buyer-paid, rest sold+fee),10,no,483500,386625,780750,232500,2480000
+34,1994,"Porsche 911 Turbo",compare,adjacent years pooled (1992-1994),W2,mixed (42% house buyer-paid, rest sold+fee),0,yes,,,,,
+34,1994,"Porsche 911 Turbo",compare,adjacent years pooled (1992-1994),W3,mixed (42% house buyer-paid, rest sold+fee),19,no,402500,368000,581251,186300,2480000
+35,1995,"Porsche 928",compare,exact 1995,W1,mixed (4% house buyer-paid, rest sold+fee),24,no,100272,82425,124420,64050,414500
+35,1995,"Porsche 928",compare,exact 1995,W2,mixed (4% house buyer-paid, rest sold+fee),4,yes,,,,,
+35,1995,"Porsche 928",compare,exact 1995,W3,mixed (4% house buyer-paid, rest sold+fee),49,no,98175,82950,121800,61425,414500
+36,1987,"Porsche 944 Turbo",compare,adjacent years pooled (1985-1989),W1,mixed (27% house buyer-paid, rest sold+fee),7,yes,,,,,
+36,1987,"Porsche 944 Turbo",compare,adjacent years pooled (1985-1989),W2,mixed (27% house buyer-paid, rest sold+fee),0,yes,,,,,
+36,1987,"Porsche 944 Turbo",compare,adjacent years pooled (1985-1989),W3,mixed (27% house buyer-paid, rest sold+fee),30,no,169000,135713,218200,84525,257600
+37,1989,"Ferrari Testarossa",compare,adjacent years pooled (1987-1991),W1,mixed (27% house buyer-paid, rest sold+fee),21,no,168500,156450,189865,105000,242500
+37,1989,"Ferrari Testarossa",compare,adjacent years pooled (1987-1991),W2,mixed (27% house buyer-paid, rest sold+fee),4,yes,,,,,
+37,1989,"Ferrari Testarossa",compare,adjacent years pooled (1987-1991),W3,mixed (27% house buyer-paid, rest sold+fee),51,no,156450,128950,193683,105000,472500
+38,1991,"Ferrari 348 TS",compare,adjacent years pooled (1989-1993),W1,mixed (43% house buyer-paid, rest sold+fee),5,yes,,,,,
+38,1991,"Ferrari 348 TS",compare,adjacent years pooled (1989-1993),W2,mixed (43% house buyer-paid, rest sold+fee),1,yes,,,,,
+38,1991,"Ferrari 348 TS",compare,adjacent years pooled (1989-1993),W3,mixed (43% house buyer-paid, rest sold+fee),7,yes,,,,,
+39,1985,"Ferrari 308 Quattrovalvole",compare,exact 1985,W1,mixed (9% house buyer-paid, rest sold+fee),8,no,117058,83081,138749,62475,189500
+39,1985,"Ferrari 308 Quattrovalvole",compare,exact 1985,W2,mixed (9% house buyer-paid, rest sold+fee),4,yes,,,,,
+39,1985,"Ferrari 308 Quattrovalvole",compare,exact 1985,W3,mixed (9% house buyer-paid, rest sold+fee),23,no,105000,90300,124058,62475,189500
 40,1991,"BMW M3",compare,adjacent years pooled (1989-1991),W1,mixed (9% house buyer-paid, rest sold+fee),21,no,65100,60666,93450,34650,198500
 40,1991,"BMW M3",compare,adjacent years pooled (1989-1991),W2,mixed (9% house buyer-paid, rest sold+fee),7,yes,,,,,
 40,1991,"BMW M3",compare,adjacent years pooled (1989-1991),W3,mixed (9% house buyer-paid, rest sold+fee),35,no,67200,58800,84263,34650,246400
 41,1988,"BMW M5",compare,exact 1988,W1,sold+fee (online),15,no,50925,39113,66938,26250,190500
 41,1988,"BMW M5",compare,exact 1988,W2,sold+fee (online),2,yes,,,,,
 41,1988,"BMW M5",compare,exact 1988,W3,sold+fee (online),29,no,41475,33600,68250,16648,190500
-42,1995,"BMW M3",compare,exact 1995,W1,mixed (11% house buyer-paid, rest sold+fee),34,no,30495,23691,89513,7350,297000
-42,1995,"BMW M3",compare,exact 1995,W2,mixed (11% house buyer-paid, rest sold+fee),8,no,38063,30450,54929,15488,257600
-42,1995,"BMW M3",compare,exact 1995,W3,mixed (11% house buyer-paid, rest sold+fee),71,no,30189,21106,51858,7350,297000
-43,1989,"Mercedes-Benz 560SL",compare,exact 1989,W1,mixed (8% house buyer-paid, rest sold+fee),22,no,30232,19819,44888,7455,120400
-43,1989,"Mercedes-Benz 560SL",compare,exact 1989,W2,mixed (8% house buyer-paid, rest sold+fee),20,no,36882,31500,42394,14700,142800
-43,1989,"Mercedes-Benz 560SL",compare,exact 1989,W3,mixed (8% house buyer-paid, rest sold+fee),50,no,34965,22313,42171,7455,142800
-44,1992,"Mercedes-Benz 500E",compare,exact 1992,W1,sold+fee (online),15,no,8400,7246,10290,2625,33075
-44,1992,"Mercedes-Benz 500E",compare,exact 1992,W2,sold+fee (online),5,yes,,,,,
-44,1992,"Mercedes-Benz 500E",compare,exact 1992,W3,sold+fee (online),32,no,8558,6983,10828,2625,33075
+42,1995,"BMW M3",compare,exact 1995,W1,mixed (13% house buyer-paid, rest sold+fee),35,no,30800,23757,92050,7350,297000
+42,1995,"BMW M3",compare,exact 1995,W2,mixed (13% house buyer-paid, rest sold+fee),8,no,38063,30450,54929,15488,257600
+42,1995,"BMW M3",compare,exact 1995,W3,mixed (13% house buyer-paid, rest sold+fee),72,no,30495,21184,55256,7350,297000
+43,1989,"Mercedes-Benz 560SL",compare,adjacent years pooled (1987-1989),W1,mixed (56% house buyer-paid, rest sold+fee),19,no,22000,13475,26875,6270,52800
+43,1989,"Mercedes-Benz 560SL",compare,adjacent years pooled (1987-1989),W2,mixed (56% house buyer-paid, rest sold+fee),2,yes,,,,,
+43,1989,"Mercedes-Benz 560SL",compare,adjacent years pooled (1987-1989),W3,mixed (56% house buyer-paid, rest sold+fee),43,no,22000,14500,29663,6270,260400
+44,1992,"Mercedes-Benz 500E",compare,exact 1992,W1,mixed (17% house buyer-paid, rest sold+fee),11,no,40950,34335,67463,26250,357000
+44,1992,"Mercedes-Benz 500E",compare,exact 1992,W2,mixed (17% house buyer-paid, rest sold+fee),4,yes,,,,,
+44,1992,"Mercedes-Benz 500E",compare,exact 1992,W3,mixed (17% house buyer-paid, rest sold+fee),30,no,44340,32878,59482,22313,357000
 45,1994,"Toyota Supra Turbo",compare,exact 1994,W1,sold+fee (online),9,no,111825,77700,145950,59325,151200
 45,1994,"Toyota Supra Turbo",compare,exact 1994,W2,sold+fee (online),2,yes,,,,,
 45,1994,"Toyota Supra Turbo",compare,exact 1994,W3,sold+fee (online),20,no,86298,70875,133088,59325,152250
@@ -146,21 +146,21 @@ car_id,year,make,model_trim,status,year_scope_used,window,basis,n,thin,median,p2
 49,1987,"Buick Grand National",compare,exact 1987,W1,mixed (27% house buyer-paid, rest sold+fee),23,no,55650,43707,79500,18375,102900
 49,1987,"Buick Grand National",compare,exact 1987,W2,mixed (27% house buyer-paid, rest sold+fee),4,yes,,,,,
 49,1987,"Buick Grand National",compare,exact 1987,W3,mixed (27% house buyer-paid, rest sold+fee),33,no,54656,44625,78750,18375,102900
-50,1990,"Chevrolet Corvette ZR-1",compare,adjacent years pooled (1988-1992),W1,n/a,0,yes,,,,,
-50,1990,"Chevrolet Corvette ZR-1",compare,adjacent years pooled (1988-1992),W2,n/a,0,yes,,,,,
-50,1990,"Chevrolet Corvette ZR-1",compare,adjacent years pooled (1988-1992),W3,n/a,0,yes,,,,,
-51,1985,"Chevrolet Camaro IROC-Z",compare,adjacent years pooled (1983-1987),W1,mixed (41% house buyer-paid, rest sold+fee),8,no,16669,14203,21175,6405,40700
-51,1985,"Chevrolet Camaro IROC-Z",compare,adjacent years pooled (1983-1987),W2,mixed (41% house buyer-paid, rest sold+fee),6,yes,,,,,
-51,1985,"Chevrolet Camaro IROC-Z",compare,adjacent years pooled (1983-1987),W3,mixed (41% house buyer-paid, rest sold+fee),29,no,22575,15950,31900,6405,63525
-52,1993,"Ford Mustang Cobra",compare,exact 1993,W1,mixed (2% house buyer-paid, rest sold+fee),36,no,26775,15947,36947,6090,84000
-52,1993,"Ford Mustang Cobra",compare,exact 1993,W2,mixed (2% house buyer-paid, rest sold+fee),7,yes,,,,,
-52,1993,"Ford Mustang Cobra",compare,exact 1993,W3,mixed (2% house buyer-paid, rest sold+fee),56,no,23757,14897,35372,4725,84000
+50,1990,"Chevrolet Corvette ZR1",compare,adjacent years pooled (1988-1992),W1,mixed (76% house buyer-paid, rest sold+fee),8,no,29550,25838,32700,22550,66000
+50,1990,"Chevrolet Corvette ZR1",compare,adjacent years pooled (1988-1992),W2,mixed (76% house buyer-paid, rest sold+fee),1,yes,,,,,
+50,1990,"Chevrolet Corvette ZR1",compare,adjacent years pooled (1988-1992),W3,mixed (76% house buyer-paid, rest sold+fee),17,no,35200,29400,46200,12100,71500
+51,1985,"Chevrolet Camaro IROC-Z",compare,adjacent years pooled (1983-1987),W1,mixed (32% house buyer-paid, rest sold+fee),4,yes,,,,,
+51,1985,"Chevrolet Camaro IROC-Z",compare,adjacent years pooled (1983-1987),W2,mixed (32% house buyer-paid, rest sold+fee),5,yes,,,,,
+51,1985,"Chevrolet Camaro IROC-Z",compare,adjacent years pooled (1983-1987),W3,mixed (32% house buyer-paid, rest sold+fee),22,no,25011,16604,32860,9137,63525
+52,1993,"Ford Mustang Cobra",compare,adjacent years pooled (1991-1993),W1,n/a,0,yes,,,,,
+52,1993,"Ford Mustang Cobra",compare,adjacent years pooled (1991-1993),W2,n/a,0,yes,,,,,
+52,1993,"Ford Mustang Cobra",compare,adjacent years pooled (1991-1993),W3,n/a,0,yes,,,,,
 53,1989,"Jeep Grand Wagoneer",compare,exact 1989,W1,sold+fee (online),20,no,20239,11080,37406,7245,79800
 53,1989,"Jeep Grand Wagoneer",compare,exact 1989,W2,sold+fee (online),2,yes,,,,,
 53,1989,"Jeep Grand Wagoneer",compare,exact 1989,W3,sold+fee (online),38,no,23415,14989,36685,7245,79800
-54,1997,"Land Rover Defender 90",compare,exact 1997,W1,mixed (3% house buyer-paid, rest sold+fee),55,no,64575,43182,84263,18900,212800
-54,1997,"Land Rover Defender 90",compare,exact 1997,W2,mixed (3% house buyer-paid, rest sold+fee),10,no,79538,42263,101850,27825,134400
-54,1997,"Land Rover Defender 90",compare,exact 1997,W3,mixed (3% house buyer-paid, rest sold+fee),115,no,60900,38850,79275,13125,212800
+54,1997,"Land Rover Defender 90",compare,exact 1997,W1,mixed (4% house buyer-paid, rest sold+fee),42,no,70613,43706,86625,18900,212800
+54,1997,"Land Rover Defender 90",compare,exact 1997,W2,mixed (4% house buyer-paid, rest sold+fee),6,yes,,,,,
+54,1997,"Land Rover Defender 90",compare,exact 1997,W3,mixed (4% house buyer-paid, rest sold+fee),77,no,68775,44100,89250,18900,212800
 55,1985,"Toyota Land Cruiser FJ60",compare,exact 1985,W1,sold+fee (online),12,no,29007,22247,36711,11025,50978
 55,1985,"Toyota Land Cruiser FJ60",compare,exact 1985,W2,sold+fee (online),0,yes,,,,,
 55,1985,"Toyota Land Cruiser FJ60",compare,exact 1985,W3,sold+fee (online),22,no,31500,23297,37288,11025,85575
@@ -173,33 +173,33 @@ car_id,year,make,model_trim,status,year_scope_used,window,basis,n,thin,median,p2
 58,1997,"Porsche 911 Turbo",compare,exact 1997,W1,mixed (40% house buyer-paid, rest sold+fee),13,no,268800,252000,330000,220000,402500
 58,1997,"Porsche 911 Turbo",compare,exact 1997,W2,mixed (40% house buyer-paid, rest sold+fee),3,yes,,,,,
 58,1997,"Porsche 911 Turbo",compare,exact 1997,W3,mixed (40% house buyer-paid, rest sold+fee),25,no,268800,231660,327500,145600,402500
-59,1999,"Porsche 911 Carrera",compare,exact 1999,W1,mixed (4% house buyer-paid, rest sold+fee),30,no,25581,21131,30451,16800,47250
-59,1999,"Porsche 911 Carrera",compare,exact 1999,W2,mixed (4% house buyer-paid, rest sold+fee),0,yes,,,,,
-59,1999,"Porsche 911 Carrera",compare,exact 1999,W3,mixed (4% house buyer-paid, rest sold+fee),95,no,27038,21788,32854,13200,53546
+59,1999,"Porsche 911 Carrera",compare,exact 1999,W1,mixed (6% house buyer-paid, rest sold+fee),14,no,26996,21919,31107,18113,47250
+59,1999,"Porsche 911 Carrera",compare,exact 1999,W2,mixed (6% house buyer-paid, rest sold+fee),0,yes,,,,,
+59,1999,"Porsche 911 Carrera",compare,exact 1999,W3,mixed (6% house buyer-paid, rest sold+fee),54,no,29661,23424,35635,13200,53546
 60,2004,"Porsche 911 GT3",compare,adjacent years pooled (2002-2004),W1,mixed (11% house buyer-paid, rest sold+fee),4,yes,,,,,
 60,2004,"Porsche 911 GT3",compare,adjacent years pooled (2002-2004),W2,mixed (11% house buyer-paid, rest sold+fee),0,yes,,,,,
 60,2004,"Porsche 911 GT3",compare,adjacent years pooled (2002-2004),W3,mixed (11% house buyer-paid, rest sold+fee),18,no,123376,108675,146738,58333,159500
 61,2007,"Porsche 911 GT3",compare,adjacent years pooled (2005-2009),W1,mixed (12% house buyer-paid, rest sold+fee),6,yes,,,,,
 61,2007,"Porsche 911 GT3",compare,adjacent years pooled (2005-2009),W2,mixed (12% house buyer-paid, rest sold+fee),0,yes,,,,,
 61,2007,"Porsche 911 GT3",compare,adjacent years pooled (2005-2009),W3,mixed (12% house buyer-paid, rest sold+fee),17,no,139650,126000,155397,75600,177500
-62,2004,"Porsche Carrera GT",compare,exact 2004,W1,sold+fee (online),17,no,32550,27570,40950,21525,64041
-62,2004,"Porsche Carrera GT",compare,exact 2004,W2,sold+fee (online),0,yes,,,,,
-62,2004,"Porsche Carrera GT",compare,exact 2004,W3,sold+fee (online),51,no,35701,27298,44098,17299,81900
-63,2001,"BMW M3",compare,exact 2001,W1,sold+fee (online),22,no,25069,21026,30581,14438,66150
-63,2001,"BMW M3",compare,exact 2001,W2,sold+fee (online),6,yes,,,,,
-63,2001,"BMW M3",compare,exact 2001,W3,sold+fee (online),45,no,25200,21000,33600,13650,94500
+62,2004,"Porsche Carrera GT",compare,adjacent years pooled (2002-2006),W1,buyer-paid (houses),0,yes,,,,,
+62,2004,"Porsche Carrera GT",compare,adjacent years pooled (2002-2006),W2,buyer-paid (houses),1,yes,,,,,
+62,2004,"Porsche Carrera GT",compare,adjacent years pooled (2002-2006),W3,buyer-paid (houses),2,yes,,,,,
+63,2001,"BMW M3",compare,adjacent years pooled (2000-2003),W1,mixed (4% house buyer-paid, rest sold+fee),60,no,29400,23035,40425,11288,192510
+63,2001,"BMW M3",compare,adjacent years pooled (2000-2003),W2,mixed (4% house buyer-paid, rest sold+fee),9,no,27348,23888,53235,13650,79800
+63,2001,"BMW M3",compare,adjacent years pooled (2000-2003),W3,mixed (4% house buyer-paid, rest sold+fee),129,no,29768,23100,44100,11288,192510
 64,2003,"BMW M5",compare,exact 2003,W1,mixed (2% house buyer-paid, rest sold+fee),25,no,43575,29243,50138,14385,134400
 64,2003,"BMW M5",compare,exact 2003,W2,mixed (2% house buyer-paid, rest sold+fee),2,yes,,,,,
 64,2003,"BMW M5",compare,exact 2003,W3,mixed (2% house buyer-paid, rest sold+fee),50,no,40250,26815,50193,14385,134400
-65,2000,"BMW Z3 M Coupe",compare,adjacent years pooled (1998-2002),W1,mixed (11% house buyer-paid, rest sold+fee),10,no,27169,21657,33994,17050,39249
-65,2000,"BMW Z3 M Coupe",compare,adjacent years pooled (1998-2002),W2,mixed (11% house buyer-paid, rest sold+fee),1,yes,,,,,
-65,2000,"BMW Z3 M Coupe",compare,adjacent years pooled (1998-2002),W3,mixed (11% house buyer-paid, rest sold+fee),18,no,26900,23161,31500,17050,39249
+65,2000,"BMW Z3 M Coupe",compare,adjacent years pooled (1998-2002),W1,sold+fee (online),1,yes,,,,,
+65,2000,"BMW Z3 M Coupe",compare,adjacent years pooled (1998-2002),W2,sold+fee (online),0,yes,,,,,
+65,2000,"BMW Z3 M Coupe",compare,adjacent years pooled (1998-2002),W3,sold+fee (online),1,yes,,,,,
 66,2001,"Honda S2000",compare,exact 2001,W1,sold+fee (online),32,no,27300,24517,32354,18485,46200
 66,2001,"Honda S2000",compare,exact 2001,W2,sold+fee (online),9,no,30713,24675,34650,19425,52500
 66,2001,"Honda S2000",compare,exact 2001,W3,sold+fee (online),67,no,28875,24413,32550,13388,52500
-67,2005,"Ford GT",compare,exact 2005,W1,mixed (18% house buyer-paid, rest sold+fee),47,no,493500,437500,555000,8925,655500
-67,2005,"Ford GT",compare,exact 2005,W2,mixed (18% house buyer-paid, rest sold+fee),6,yes,,,,,
-67,2005,"Ford GT",compare,exact 2005,W3,mixed (18% house buyer-paid, rest sold+fee),87,no,462500,410500,537500,8925,809500
+67,2005,"Ford GT",compare,exact 2005,W1,mixed (19% house buyer-paid, rest sold+fee),45,no,493500,437500,552500,22000,634500
+67,2005,"Ford GT",compare,exact 2005,W2,mixed (19% house buyer-paid, rest sold+fee),5,yes,,,,,
+67,2005,"Ford GT",compare,exact 2005,W3,mixed (19% house buyer-paid, rest sold+fee),84,no,462500,414375,535000,11025,809500
 68,2002,"Chevrolet Corvette Z06",compare,exact 2002,W1,mixed (10% house buyer-paid, rest sold+fee),19,no,27300,22838,29011,18900,33600
 68,2002,"Chevrolet Corvette Z06",compare,exact 2002,W2,mixed (10% house buyer-paid, rest sold+fee),0,yes,,,,,
 68,2002,"Chevrolet Corvette Z06",compare,exact 2002,W3,mixed (10% house buyer-paid, rest sold+fee),31,no,28613,25463,30232,17588,38588
@@ -211,34 +211,34 @@ car_id,year,make,model_trim,status,year_scope_used,window,basis,n,thin,median,p2
 70,2005,"Mercedes-Benz SLR",compare,adjacent years pooled (2003-2007),W3,mixed (42% house buyer-paid, rest sold+fee),12,no,323713,306250,366500,235200,398500
 71,2006,"Ferrari F430",compare,adjacent years pooled (2004-2008),W1,buyer-paid (houses),1,yes,,,,,
 71,2006,"Ferrari F430",compare,adjacent years pooled (2004-2008),W2,buyer-paid (houses),0,yes,,,,,
-71,2006,"Ferrari F430",compare,adjacent years pooled (2004-2008),W3,buyer-paid (houses),1,yes,,,,,
-72,1999,"Ferrari 550 Maranello",compare,adjacent years pooled (1997-2001),W1,mixed (80% house buyer-paid, rest sold+fee),8,no,200160,191375,244875,141750,329500
-72,1999,"Ferrari 550 Maranello",compare,adjacent years pooled (1997-2001),W2,mixed (80% house buyer-paid, rest sold+fee),0,yes,,,,,
-72,1999,"Ferrari 550 Maranello",compare,adjacent years pooled (1997-2001),W3,mixed (80% house buyer-paid, rest sold+fee),10,no,200160,182125,257600,141750,329500
+71,2006,"Ferrari F430",compare,adjacent years pooled (2004-2008),W3,buyer-paid (houses),5,yes,,,,,
+72,1999,"Ferrari 550 Maranello",compare,exact 1999,W1,mixed (29% house buyer-paid, rest sold+fee),17,no,185500,167500,242500,99360,514500
+72,1999,"Ferrari 550 Maranello",compare,exact 1999,W2,mixed (29% house buyer-paid, rest sold+fee),3,yes,,,,,
+72,1999,"Ferrari 550 Maranello",compare,exact 1999,W3,mixed (29% house buyer-paid, rest sold+fee),31,no,187500,167000,263150,94933,610000
 73,2004,"Lamborghini Gallardo",compare,adjacent years pooled (2002-2006),W1,mixed (11% house buyer-paid, rest sold+fee),6,yes,,,,,
 73,2004,"Lamborghini Gallardo",compare,adjacent years pooled (2002-2006),W2,mixed (11% house buyer-paid, rest sold+fee),4,yes,,,,,
 73,2004,"Lamborghini Gallardo",compare,adjacent years pooled (2002-2006),W3,mixed (11% house buyer-paid, rest sold+fee),18,no,102638,94763,125475,78100,227500
-74,2002,"Acura NSX",compare,adjacent years pooled (2002-2004),W1,mixed (11% house buyer-paid, rest sold+fee),19,no,161500,128100,177750,6405,227500
-74,2002,"Acura NSX",compare,adjacent years pooled (2002-2004),W2,mixed (11% house buyer-paid, rest sold+fee),3,yes,,,,,
-74,2002,"Acura NSX",compare,adjacent years pooled (2002-2004),W3,mixed (11% house buyer-paid, rest sold+fee),36,no,144900,120881,176250,6405,294500
+74,2002,"Acura NSX",compare,adjacent years pooled (2002-2004),W1,mixed (38% house buyer-paid, rest sold+fee),5,yes,,,,,
+74,2002,"Acura NSX",compare,adjacent years pooled (2002-2004),W2,mixed (38% house buyer-paid, rest sold+fee),2,yes,,,,,
+74,2002,"Acura NSX",compare,adjacent years pooled (2002-2004),W3,mixed (38% house buyer-paid, rest sold+fee),8,no,144375,112519,167375,6405,193500
 75,2009,"Nissan GT-R",compare,adjacent years pooled (2009-2011),W1,mixed (14% house buyer-paid, rest sold+fee),5,yes,,,,,
 75,2009,"Nissan GT-R",compare,adjacent years pooled (2009-2011),W2,mixed (14% house buyer-paid, rest sold+fee),2,yes,,,,,
 75,2009,"Nissan GT-R",compare,adjacent years pooled (2009-2011),W3,mixed (14% house buyer-paid, rest sold+fee),14,no,65100,60431,81769,44100,100800
 76,2012,"Lexus LFA",compare,adjacent years pooled (2010-2014),W1,mixed (33% house buyer-paid, rest sold+fee),6,yes,,,,,
 76,2012,"Lexus LFA",compare,adjacent years pooled (2010-2014),W2,mixed (33% house buyer-paid, rest sold+fee),0,yes,,,,,
 76,2012,"Lexus LFA",compare,adjacent years pooled (2010-2014),W3,mixed (33% house buyer-paid, rest sold+fee),18,no,852500,747500,907333,683500,1875000
-77,2006,"Dodge Viper SRT-10",compare,adjacent years pooled (2004-2008),W1,mixed (16% house buyer-paid, rest sold+fee),28,no,53675,46135,68434,39900,132000
-77,2006,"Dodge Viper SRT-10",compare,adjacent years pooled (2004-2008),W2,mixed (16% house buyer-paid, rest sold+fee),9,no,63000,56100,87966,50925,100275
-77,2006,"Dodge Viper SRT-10",compare,adjacent years pooled (2004-2008),W3,mixed (16% house buyer-paid, rest sold+fee),64,no,55650,49088,66255,34650,132000
-78,2000,"Toyota Land Cruiser 100",nohvt,exact 2000,W1,sold+fee (online),23,no,17850,11682,27038,7980,89250
-78,2000,"Toyota Land Cruiser 100",nohvt,exact 2000,W2,sold+fee (online),4,yes,,,,,
-78,2000,"Toyota Land Cruiser 100",nohvt,exact 2000,W3,sold+fee (online),45,no,16801,12600,27825,7980,89250
+77,2006,"Dodge Viper SRT-10",compare,adjacent years pooled (2004-2008),W1,mixed (25% house buyer-paid, rest sold+fee),7,yes,,,,,
+77,2006,"Dodge Viper SRT-10",compare,adjacent years pooled (2004-2008),W2,mixed (25% house buyer-paid, rest sold+fee),4,yes,,,,,
+77,2006,"Dodge Viper SRT-10",compare,adjacent years pooled (2004-2008),W3,mixed (25% house buyer-paid, rest sold+fee),16,no,85313,72135,95944,46200,132000
+78,2000,"Toyota Land Cruiser 100",nohvt,exact 2000,W1,sold+fee (online),18,no,20082,13900,27431,8295,89250
+78,2000,"Toyota Land Cruiser 100",nohvt,exact 2000,W2,sold+fee (online),3,yes,,,,,
+78,2000,"Toyota Land Cruiser 100",nohvt,exact 2000,W3,sold+fee (online),34,no,20082,15514,28350,8295,89250
 79,2011,"Mercedes-Benz SLS AMG",compare,adjacent years pooled (2009-2013),W1,n/a,0,yes,,,,,
 79,2011,"Mercedes-Benz SLS AMG",compare,adjacent years pooled (2009-2013),W2,n/a,0,yes,,,,,
 79,2011,"Mercedes-Benz SLS AMG",compare,adjacent years pooled (2009-2013),W3,n/a,0,yes,,,,,
-80,2016,"Porsche 911 GT3 RS",compare,exact 2016,W1,mixed (5% house buyer-paid, rest sold+fee),12,no,214500,203070,222750,177491,267500
-80,2016,"Porsche 911 GT3 RS",compare,exact 2016,W2,mixed (5% house buyer-paid, rest sold+fee),1,yes,,,,,
-80,2016,"Porsche 911 GT3 RS",compare,exact 2016,W3,mixed (5% house buyer-paid, rest sold+fee),22,no,215500,192500,223250,177491,390000
+80,2016,"Porsche 911 GT3 RS",compare,exact 2016,W1,mixed (9% house buyer-paid, rest sold+fee),13,no,213500,201600,222500,177491,267500
+80,2016,"Porsche 911 GT3 RS",compare,exact 2016,W2,mixed (9% house buyer-paid, rest sold+fee),1,yes,,,,,
+80,2016,"Porsche 911 GT3 RS",compare,exact 2016,W3,mixed (9% house buyer-paid, rest sold+fee),23,no,215500,192500,223000,177491,390000
 81,2019,"Porsche 911 GT3 RS",compare,exact 2019,W1,sold+fee (online),10,no,250535,239000,260000,197500,281500
 81,2019,"Porsche 911 GT3 RS",compare,exact 2019,W2,sold+fee (online),1,yes,,,,,
 81,2019,"Porsche 911 GT3 RS",compare,exact 2019,W3,sold+fee (online),34,no,248500,237750,266500,197500,321500
@@ -254,48 +254,48 @@ car_id,year,make,model_trim,status,year_scope_used,window,basis,n,thin,median,p2
 85,2017,"Dodge Viper GTS",compare,adjacent years pooled (2015-2017),W1,sold+fee (online),4,yes,,,,,
 85,2017,"Dodge Viper GTS",compare,adjacent years pooled (2015-2017),W2,sold+fee (online),0,yes,,,,,
 85,2017,"Dodge Viper GTS",compare,adjacent years pooled (2015-2017),W3,sold+fee (online),7,yes,,,,,
-86,2020,"Ferrari 488 Pista",compare,adjacent years pooled (2018-2022),W1,mixed (50% house buyer-paid, rest sold+fee),12,no,800250,696469,844750,583200,1039000
-86,2020,"Ferrari 488 Pista",compare,adjacent years pooled (2018-2022),W2,mixed (50% house buyer-paid, rest sold+fee),3,yes,,,,,
-86,2020,"Ferrari 488 Pista",compare,adjacent years pooled (2018-2022),W3,mixed (50% house buyer-paid, rest sold+fee),24,no,715813,558655,882375,441500,1127500
+86,2020,"Ferrari 488 Pista",compare,adjacent years pooled (2018-2022),W1,mixed (52% house buyer-paid, rest sold+fee),12,no,800250,696469,844750,583200,1039000
+86,2020,"Ferrari 488 Pista",compare,adjacent years pooled (2018-2022),W2,mixed (52% house buyer-paid, rest sold+fee),3,yes,,,,,
+86,2020,"Ferrari 488 Pista",compare,adjacent years pooled (2018-2022),W3,mixed (52% house buyer-paid, rest sold+fee),25,no,708125,522500,881500,441500,1127500
 87,2013,"Ferrari 458 Italia",compare,adjacent years pooled (2011-2015),W1,mixed (4% house buyer-paid, rest sold+fee),13,no,232080,220500,241500,147630,300500
 87,2013,"Ferrari 458 Italia",compare,adjacent years pooled (2011-2015),W2,mixed (4% house buyer-paid, rest sold+fee),3,yes,,,,,
 87,2013,"Ferrari 458 Italia",compare,adjacent years pooled (2011-2015),W3,mixed (4% house buyer-paid, rest sold+fee),24,no,222361,193250,242588,147630,307500
-88,2015,"Ferrari 458 Speciale",compare,exact 2015,W1,mixed (59% house buyer-paid, rest sold+fee),11,no,885000,759100,941563,619500,1269000
-88,2015,"Ferrari 458 Speciale",compare,exact 2015,W2,mixed (59% house buyer-paid, rest sold+fee),5,yes,,,,,
-88,2015,"Ferrari 458 Speciale",compare,exact 2015,W3,mixed (59% house buyer-paid, rest sold+fee),17,no,912500,758700,1022500,456100,2132500
-89,2012,"McLaren MP4-12C",coverage,exact 2012,W1,mixed (42% house buyer-paid, rest sold+fee),9,no,103400,81400,123200,69299,173880
-89,2012,"McLaren MP4-12C",coverage,exact 2012,W2,mixed (42% house buyer-paid, rest sold+fee),3,yes,,,,,
-89,2012,"McLaren MP4-12C",coverage,exact 2012,W3,mixed (42% house buyer-paid, rest sold+fee),19,no,98175,84265,121000,69299,173880
-90,2019,"McLaren 720S",coverage,adjacent years pooled (2017-2021),W1,mixed (33% house buyer-paid, rest sold+fee),2,yes,,,,,
-90,2019,"McLaren 720S",coverage,adjacent years pooled (2017-2021),W2,mixed (33% house buyer-paid, rest sold+fee),2,yes,,,,,
-90,2019,"McLaren 720S",coverage,adjacent years pooled (2017-2021),W3,mixed (33% house buyer-paid, rest sold+fee),6,yes,,,,,
-91,2015,"Lamborghini Huracan LP610-4",compare,adjacent years pooled (2013-2017),W1,n/a,0,yes,,,,,
-91,2015,"Lamborghini Huracan LP610-4",compare,adjacent years pooled (2013-2017),W2,n/a,0,yes,,,,,
-91,2015,"Lamborghini Huracan LP610-4",compare,adjacent years pooled (2013-2017),W3,n/a,0,yes,,,,,
-92,2018,"Lamborghini Aventador S",coverage,adjacent years pooled (2016-2020),W1,mixed (31% house buyer-paid, rest sold+fee),4,yes,,,,,
-92,2018,"Lamborghini Aventador S",coverage,adjacent years pooled (2016-2020),W2,mixed (31% house buyer-paid, rest sold+fee),1,yes,,,,,
-92,2018,"Lamborghini Aventador S",coverage,adjacent years pooled (2016-2020),W3,mixed (31% house buyer-paid, rest sold+fee),13,no,564500,423500,621000,272500,2030000
-93,2014,"Chevrolet Corvette Z51",compare,exact 2014,W1,sold+fee (online),15,no,43575,37932,46536,33863,61688
+88,2015,"Ferrari 458 Speciale",compare,exact 2015,W1,mixed (54% house buyer-paid, rest sold+fee),8,no,772750,733400,891875,619500,1136500
+88,2015,"Ferrari 458 Speciale",compare,exact 2015,W2,mixed (54% house buyer-paid, rest sold+fee),4,yes,,,,,
+88,2015,"Ferrari 458 Speciale",compare,exact 2015,W3,mixed (54% house buyer-paid, rest sold+fee),13,no,786000,734400,927500,456100,1490000
+89,2012,"McLaren MP4-12C",coverage,exact 2012,W1,mixed (39% house buyer-paid, rest sold+fee),8,no,104200,85313,126555,69299,173880
+89,2012,"McLaren MP4-12C",coverage,exact 2012,W2,mixed (39% house buyer-paid, rest sold+fee),3,yes,,,,,
+89,2012,"McLaren MP4-12C",coverage,exact 2012,W3,mixed (39% house buyer-paid, rest sold+fee),18,no,100608,85841,122100,69299,173880
+90,2019,"McLaren 720S",coverage,adjacent years pooled (2017-2021),W1,mixed (43% house buyer-paid, rest sold+fee),2,yes,,,,,
+90,2019,"McLaren 720S",coverage,adjacent years pooled (2017-2021),W2,mixed (43% house buyer-paid, rest sold+fee),2,yes,,,,,
+90,2019,"McLaren 720S",coverage,adjacent years pooled (2017-2021),W3,mixed (43% house buyer-paid, rest sold+fee),7,yes,,,,,
+91,2015,"Lamborghini Huracan LP610",compare,adjacent years pooled (2013-2017),W1,n/a,0,yes,,,,,
+91,2015,"Lamborghini Huracan LP610",compare,adjacent years pooled (2013-2017),W2,n/a,0,yes,,,,,
+91,2015,"Lamborghini Huracan LP610",compare,adjacent years pooled (2013-2017),W3,n/a,0,yes,,,,,
+92,2018,"Lamborghini Aventador S",coverage,adjacent years pooled (2016-2020),W1,mixed (50% house buyer-paid, rest sold+fee),2,yes,,,,,
+92,2018,"Lamborghini Aventador S",coverage,adjacent years pooled (2016-2020),W2,mixed (50% house buyer-paid, rest sold+fee),0,yes,,,,,
+92,2018,"Lamborghini Aventador S",coverage,adjacent years pooled (2016-2020),W3,mixed (50% house buyer-paid, rest sold+fee),6,yes,,,,,
+93,2014,"Chevrolet Corvette Z51",compare,exact 2014,W1,sold+fee (online),11,no,42001,37932,43969,33863,48851
 93,2014,"Chevrolet Corvette Z51",compare,exact 2014,W2,sold+fee (online),2,yes,,,,,
-93,2014,"Chevrolet Corvette Z51",compare,exact 2014,W3,sold+fee (online),27,no,41738,36357,44685,30923,61688
-94,2019,"Chevrolet Corvette ZR1",compare,exact 2019,W1,mixed (14% house buyer-paid, rest sold+fee),72,no,175750,153562,217250,117600,347500
-94,2019,"Chevrolet Corvette ZR1",compare,exact 2019,W2,mixed (14% house buyer-paid, rest sold+fee),10,no,205500,180038,233444,126000,249500
-94,2019,"Chevrolet Corvette ZR1",compare,exact 2019,W3,mixed (14% house buyer-paid, rest sold+fee),123,no,176500,153125,218000,117600,347500
-95,2020,"Chevrolet Corvette Stingray",compare,exact 2020,W1,mixed (11% house buyer-paid, rest sold+fee),25,no,63000,59325,66675,56176,75600
-95,2020,"Chevrolet Corvette Stingray",compare,exact 2020,W2,mixed (11% house buyer-paid, rest sold+fee),4,yes,,,,,
-95,2020,"Chevrolet Corvette Stingray",compare,exact 2020,W3,mixed (11% house buyer-paid, rest sold+fee),44,no,64050,59719,67646,56175,87450
-96,2013,"Ford Mustang Shelby GT500",compare,exact 2013,W1,sold+fee (online),10,no,59588,51453,67331,42263,68250
-96,2013,"Ford Mustang Shelby GT500",compare,exact 2013,W2,sold+fee (online),1,yes,,,,,
-96,2013,"Ford Mustang Shelby GT500",compare,exact 2013,W3,sold+fee (online),15,no,60375,54600,66956,42263,71925
+93,2014,"Chevrolet Corvette Z51",compare,exact 2014,W3,sold+fee (online),17,no,41738,34650,44100,30923,48851
+94,2019,"Chevrolet Corvette ZR1",compare,exact 2019,W1,mixed (11% house buyer-paid, rest sold+fee),57,no,181500,152250,233700,117600,347500
+94,2019,"Chevrolet Corvette ZR1",compare,exact 2019,W2,mixed (11% house buyer-paid, rest sold+fee),8,no,226389,177538,236500,126000,249500
+94,2019,"Chevrolet Corvette ZR1",compare,exact 2019,W3,mixed (11% house buyer-paid, rest sold+fee),102,no,180359,152906,222500,117600,347500
+95,2020,"Chevrolet Corvette Stingray",compare,exact 2020,W1,mixed (10% house buyer-paid, rest sold+fee),22,no,62888,59456,66150,56176,68828
+95,2020,"Chevrolet Corvette Stingray",compare,exact 2020,W2,mixed (10% house buyer-paid, rest sold+fee),4,yes,,,,,
+95,2020,"Chevrolet Corvette Stingray",compare,exact 2020,W3,mixed (10% house buyer-paid, rest sold+fee),40,no,63925,59719,67427,56175,87450
+96,2013,"Ford Mustang Shelby GT500",compare,adjacent years pooled (2011-2014),W1,mixed (4% house buyer-paid, rest sold+fee),29,no,58800,46463,64838,26775,79538
+96,2013,"Ford Mustang Shelby GT500",compare,adjacent years pooled (2011-2014),W2,mixed (4% house buyer-paid, rest sold+fee),7,yes,,,,,
+96,2013,"Ford Mustang Shelby GT500",compare,adjacent years pooled (2011-2014),W3,mixed (4% house buyer-paid, rest sold+fee),46,no,55650,43444,64575,26775,82950
 97,2016,"Ford Mustang Shelby GT350R",compare,exact 2016,W1,sold+fee (online),8,no,72713,67594,77175,62475,80325
 97,2016,"Ford Mustang Shelby GT350R",compare,exact 2016,W2,sold+fee (online),1,yes,,,,,
 97,2016,"Ford Mustang Shelby GT350R",compare,exact 2016,W3,sold+fee (online),18,no,70980,62606,73369,47513,89775
-98,2018,"Dodge Challenger Demon",compare,exact 2018,W1,mixed (17% house buyer-paid, rest sold+fee),38,no,105263,99056,110250,21788,139700
-98,2018,"Dodge Challenger Demon",compare,exact 2018,W2,mixed (17% house buyer-paid, rest sold+fee),2,yes,,,,,
-98,2018,"Dodge Challenger Demon",compare,exact 2018,W3,mixed (17% house buyer-paid, rest sold+fee),72,no,110513,100144,126373,21788,176000
-99,2019,"BMW M4 Competition",coverage,adjacent years pooled (2017-2020),W1,mixed (2% house buyer-paid, rest sold+fee),33,no,47513,36750,56175,21000,68250
-99,2019,"BMW M4 Competition",coverage,adjacent years pooled (2017-2020),W2,mixed (2% house buyer-paid, rest sold+fee),5,yes,,,,,
-99,2019,"BMW M4 Competition",coverage,adjacent years pooled (2017-2020),W3,mixed (2% house buyer-paid, rest sold+fee),57,no,48300,41738,57330,21000,168000
-100,2017,"Ford Focus RS",coverage,adjacent years pooled (2015-2019),W1,sold+fee (online),13,no,30450,28088,37275,17588,44100
-100,2017,"Ford Focus RS",coverage,adjacent years pooled (2015-2019),W2,sold+fee (online),1,yes,,,,,
-100,2017,"Ford Focus RS",coverage,adjacent years pooled (2015-2019),W3,sold+fee (online),30,no,28350,23470,33600,17588,59867
+98,2018,"Dodge Challenger Demon",compare,exact 2018,W1,mixed (18% house buyer-paid, rest sold+fee),37,no,106050,99225,110250,81900,139700
+98,2018,"Dodge Challenger Demon",compare,exact 2018,W2,mixed (18% house buyer-paid, rest sold+fee),2,yes,,,,,
+98,2018,"Dodge Challenger Demon",compare,exact 2018,W3,mixed (18% house buyer-paid, rest sold+fee),71,no,111300,101263,126416,81900,176000
+99,2019,"BMW M4 Competition",coverage,adjacent years pooled (2017-2020),W1,mixed (3% house buyer-paid, rest sold+fee),21,no,55125,44100,59850,21000,68250
+99,2019,"BMW M4 Competition",coverage,adjacent years pooled (2017-2020),W2,mixed (3% house buyer-paid, rest sold+fee),5,yes,,,,,
+99,2019,"BMW M4 Competition",coverage,adjacent years pooled (2017-2020),W3,mixed (3% house buyer-paid, rest sold+fee),38,no,54863,44756,59850,21000,168000
+100,2017,"Ford Focus RS",coverage,exact 2017,W1,sold+fee (online),11,no,33863,30608,38063,14438,45413
+100,2017,"Ford Focus RS",coverage,exact 2017,W2,sold+fee (online),0,yes,,,,,
+100,2017,"Ford Focus RS",coverage,exact 2017,W3,sold+fee (online),27,no,31500,27825,36094,14438,45413

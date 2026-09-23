@@ -10,11 +10,58 @@
   "window": "36mo",
   "year_min": 2002,
   "year_max": 2002,
-  "trim": "Z06",
-  "body": "coupe"
+  "trim": "Z06"
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2024-04-19",
+   "venue": "Barrett-Jackson",
+   "price_usd": 36300,
+   "basis": "buyer-paid",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 36300,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2002,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/2002-chevrolet-corvette-z06-277981?origin=results",
+   "chassis": "1G1YY12S625122618",
+   "title": "2002 CHEVROLET CORVETTE Z06"
+  },
+  {
+   "date": "2024-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 31900,
+   "basis": "buyer-paid",
+   "hammer_usd": 29000,
+   "native": {
+    "amount": 31900,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2002,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2002-chevrolet-corvette-z06-272457?origin=results",
+   "chassis": "1G1YY12S325132717",
+   "title": "2002 CHEVROLET CORVETTE Z06"
+  },
+  {
+   "date": "2024-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 30800,
+   "basis": "buyer-paid",
+   "hammer_usd": 28000,
+   "native": {
+    "amount": 30800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2002,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2002-chevrolet-corvette-z06-274273?origin=results",
+   "chassis": "1G1YY12S625102319",
+   "title": "2002 CHEVROLET CORVETTE Z06"
+  },
   {
    "date": "2026-06-17",
    "venue": "Bring a Trailer",
@@ -448,22 +495,6 @@
    "title": "1,200-Mile 2002 Chevrolet Corvette Z06"
   },
   {
-   "date": "2024-04-19",
-   "venue": "Barrett-Jackson",
-   "price_usd": 36300,
-   "basis": "buyer-paid",
-   "hammer_usd": 33000,
-   "native": {
-    "amount": 36300,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2002,
-   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/2002-chevrolet-corvette-z06-277981?origin=results",
-   "chassis": "1G1YY12S625122618",
-   "title": "2002 CHEVROLET CORVETTE Z06"
-  },
-  {
    "date": "2024-02-21",
    "venue": "Cars & Bids",
    "price_usd": 29138,
@@ -478,38 +509,6 @@
    "url": "https://carsandbids.com/auctions/98mM0op6/2002-chevrolet-corvette-z06",
    "chassis": "1G1YY12S325109499",
    "title": "2002 Chevrolet Corvette Z06"
-  },
-  {
-   "date": "2024-01-25",
-   "venue": "Barrett-Jackson",
-   "price_usd": 31900,
-   "basis": "buyer-paid",
-   "hammer_usd": 29000,
-   "native": {
-    "amount": 31900,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2002,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2002-chevrolet-corvette-z06-272457?origin=results",
-   "chassis": "1G1YY12S325132717",
-   "title": "2002 CHEVROLET CORVETTE Z06"
-  },
-  {
-   "date": "2024-01-23",
-   "venue": "Barrett-Jackson",
-   "price_usd": 30800,
-   "basis": "buyer-paid",
-   "hammer_usd": 28000,
-   "native": {
-    "amount": 30800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 2002,
-   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2002-chevrolet-corvette-z06-274273?origin=results",
-   "chassis": "1G1YY12S625102319",
-   "title": "2002 CHEVROLET CORVETTE Z06"
   }
  ]
 }

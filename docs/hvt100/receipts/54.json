@@ -3,33 +3,64 @@
  "listed": "1997 Land Rover Defender 90",
  "status": "compare",
  "year_scope": "exact 1997",
- "basis": "mixed (3% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (4% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Land Rover",
   "model": "Defender",
   "window": "36mo",
   "year_min": 1997,
   "year_max": 1997,
-  "trim": "90",
-  "body": "wagon"
+  "trim": "90"
  },
  "halo_dropped": 0,
  "sales": [
   {
-   "date": "2026-09-12",
-   "venue": "Barrett-Jackson",
-   "price_usd": 29700,
+   "date": "2026-08-15",
+   "venue": "Gooding Christie's",
+   "price_usd": 134400,
    "basis": "buyer-paid",
-   "hammer_usd": 27000,
+   "hammer_usd": 120000,
    "native": {
-    "amount": 29700,
+    "amount": 134400,
     "currency": "USD",
     "premium_inclusive": true
    },
    "year": 1997,
-   "url": "https://www.barrett-jackson.com/2026-las-vegas/docket/vehicle/1997-land-rover-defender-302427?origin=results",
-   "chassis": "SALLDVA67VA116405",
-   "title": "1997 LAND ROVER DEFENDER"
+   "url": "https://www.goodingco.com/lot/1997-land-rover-defender-90",
+   "chassis": "SALDV3247VA130274",
+   "title": "1997 Land Rover Defender 90"
+  },
+  {
+   "date": "2025-11-21",
+   "venue": "RM Sotheby's",
+   "price_usd": 212800,
+   "basis": "buyer-paid",
+   "hammer_usd": 190000,
+   "native": {
+    "amount": 212800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1997,
+   "url": "https://rmsothebys.com/auctions/va25/lots/r0002-1997-land-rover-nas-defender-90/",
+   "chassis": "SALDV2246VA118787",
+   "title": "1997 Land Rover NAS Defender 90"
+  },
+  {
+   "date": "2025-02-28",
+   "venue": "RM Sotheby's",
+   "price_usd": 176400,
+   "basis": "buyer-paid",
+   "hammer_usd": 157500,
+   "native": {
+    "amount": 176400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1997,
+   "url": "https://rmsothebys.com/auctions/mi25/lots/r0019-1997-land-rover-nas-defender-90/",
+   "chassis": "SALDV2246VA118787",
+   "title": "1997 Land Rover NAS Defender 90"
   },
   {
    "date": "2026-09-11",
@@ -48,22 +79,6 @@
    "title": "1997 Land Rover Defender 90 NAS"
   },
   {
-   "date": "2026-08-24",
-   "venue": "Cars & Bids",
-   "price_usd": 43050,
-   "basis": "sold+fee",
-   "hammer_usd": 41000,
-   "native": {
-    "amount": 41000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://carsandbids.com/auctions/3yORwVyr/1997-land-rover-defender-110",
-   "chassis": "SALLDHM68VA128343",
-   "title": "1997 Land Rover Defender 110"
-  },
-  {
    "date": "2026-08-19",
    "venue": "Bring a Trailer",
    "price_usd": 111300,
@@ -77,22 +92,6 @@
    "year": 1997,
    "url": "https://bringatrailer.com/listing/1997-land-rover-defender-90-nas-186/",
    "chassis": "SALDV3249VA126694",
-   "title": "1997 Land Rover Defender 90"
-  },
-  {
-   "date": "2026-08-15",
-   "venue": "Gooding Christie's",
-   "price_usd": 134400,
-   "basis": "buyer-paid",
-   "hammer_usd": 120000,
-   "native": {
-    "amount": 134400,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1997,
-   "url": "https://www.goodingco.com/lot/1997-land-rover-defender-90",
-   "chassis": "SALDV3247VA130274",
    "title": "1997 Land Rover Defender 90"
   },
   {
@@ -110,38 +109,6 @@
    "url": "https://bringatrailer.com/listing/1997-land-rover-defender-90-nas-181/",
    "chassis": "SALDV3242VA128464",
    "title": "Modified 1997 Land Rover Defender 90 NAS"
-  },
-  {
-   "date": "2026-07-31",
-   "venue": "Bring a Trailer",
-   "price_usd": 42000,
-   "basis": "sold+fee",
-   "hammer_usd": 40000,
-   "native": {
-    "amount": 40000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-111/",
-   "chassis": "SALLDHM67VA127330",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
-  },
-  {
-   "date": "2026-07-15",
-   "venue": "Bring a Trailer",
-   "price_usd": 27825,
-   "basis": "sold+fee",
-   "hammer_usd": 26500,
-   "native": {
-    "amount": 26500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-109/",
-   "chassis": "SALLDHMF7VA128366",
-   "title": "26-Years-Owned 1997 Land Rover Defender 110 County 300Tdi 5-Speed"
   },
   {
    "date": "2026-07-14",
@@ -174,22 +141,6 @@
    "url": "https://bringatrailer.com/listing/1997-land-rover-defender-90-nas-170/",
    "chassis": "SALDV2241VA116588",
    "title": "40k-Mile 1997 Land Rover Defender 90 NAS"
-  },
-  {
-   "date": "2026-06-30",
-   "venue": "Hagerty",
-   "price_usd": 28350,
-   "basis": "sold+fee",
-   "hammer_usd": 27000,
-   "native": {
-    "amount": 27000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://www.hagerty.com/marketplace/auction/1997-Land-Rover-Defender/e173e50d-869e-46cf-85f2-6cadac94e40f",
-   "chassis": "SALLDHM68VA114624",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
   },
   {
    "date": "2026-06-20",
@@ -368,22 +319,6 @@
    "title": "1997 Land Rover Defender 90 NAS #0001"
   },
   {
-   "date": "2026-02-05",
-   "venue": "Bring a Trailer",
-   "price_usd": 74025,
-   "basis": "sold+fee",
-   "hammer_usd": 70500,
-   "native": {
-    "amount": 70500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-41-2/",
-   "chassis": "SALLDHMF8VA117931",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
-  },
-  {
    "date": "2026-02-03",
    "venue": "Bring a Trailer",
    "price_usd": 57318,
@@ -398,22 +333,6 @@
    "url": "https://bringatrailer.com/listing/1997-land-rover-defender-90-265/",
    "chassis": "SALDV3246VA130542",
    "title": "1997 Land Rover Defender 90"
-  },
-  {
-   "date": "2026-01-30",
-   "venue": "Bring a Trailer",
-   "price_usd": 64575,
-   "basis": "sold+fee",
-   "hammer_usd": 61500,
-   "native": {
-    "amount": 61500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-130-17/",
-   "chassis": "SALLDKH68VA113271",
-   "title": "1997 Land Rover Defender 130 300Tdi Hi-Cap 5-Speed"
   },
   {
    "date": "2026-01-13",
@@ -432,102 +351,6 @@
    "title": "1997 Land Rover Defender 90"
   },
   {
-   "date": "2026-01-13",
-   "venue": "Bring a Trailer",
-   "price_usd": 52500,
-   "basis": "sold+fee",
-   "hammer_usd": 50000,
-   "native": {
-    "amount": 50000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-39-2/",
-   "chassis": "SALLDHA97VF824187",
-   "title": "1997 Land Rover Defender 110 Pickup 2.8i 5-Speed"
-  },
-  {
-   "date": "2025-12-05",
-   "venue": "Bring a Trailer",
-   "price_usd": 94500,
-   "basis": "sold+fee",
-   "hammer_usd": 90000,
-   "native": {
-    "amount": 90000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-99/",
-   "chassis": "SALLDHMF8VA137260",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
-  },
-  {
-   "date": "2025-11-30",
-   "venue": "Bring a Trailer",
-   "price_usd": 19163,
-   "basis": "sold+fee",
-   "hammer_usd": 18250,
-   "native": {
-    "amount": 18250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-96/",
-   "chassis": "SALLDBA68VA124168",
-   "title": "1997 Land Rover Defender 110 XD Wolf 300Tdi 5-Speed"
-  },
-  {
-   "date": "2025-11-29",
-   "venue": "Bring a Trailer",
-   "price_usd": 60900,
-   "basis": "sold+fee",
-   "hammer_usd": 58000,
-   "native": {
-    "amount": 58000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-68/",
-   "chassis": "SALLDHA68VA128909",
-   "title": "1997 Land Rover Defender 110 300Tdi"
-  },
-  {
-   "date": "2025-11-21",
-   "venue": "RM Sotheby's",
-   "price_usd": 212800,
-   "basis": "buyer-paid",
-   "hammer_usd": 190000,
-   "native": {
-    "amount": 212800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1997,
-   "url": "https://rmsothebys.com/auctions/va25/lots/r0002-1997-land-rover-nas-defender-90/",
-   "chassis": "SALDV2246VA118787",
-   "title": "1997 Land Rover NAS Defender 90"
-  },
-  {
-   "date": "2025-11-12",
-   "venue": "Bring a Trailer",
-   "price_usd": 50925,
-   "basis": "sold+fee",
-   "hammer_usd": 48500,
-   "native": {
-    "amount": 48500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-95/",
-   "chassis": "SALLDHAF8VA102225",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
-  },
-  {
    "date": "2025-10-28",
    "venue": "Bring a Trailer",
    "price_usd": 54075,
@@ -542,22 +365,6 @@
    "url": "https://bringatrailer.com/listing/1997-land-rover-defender-90-259/",
    "chassis": "SALLDVA68VA128546",
    "title": "1997 Land Rover Defender 90 300Tdi 5-Speed"
-  },
-  {
-   "date": "2025-10-16",
-   "venue": "Bring a Trailer",
-   "price_usd": 85050,
-   "basis": "sold+fee",
-   "hammer_usd": 81000,
-   "native": {
-    "amount": 81000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-94/",
-   "chassis": "SALLDHM68VA106435",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
   },
   {
    "date": "2025-10-05",
@@ -688,22 +495,6 @@
    "title": "1997 Land Rover Defender 90 300Tdi 5-Speed"
   },
   {
-   "date": "2025-07-07",
-   "venue": "Bring a Trailer",
-   "price_usd": 60113,
-   "basis": "sold+fee",
-   "hammer_usd": 57250,
-   "native": {
-    "amount": 57250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-72/",
-   "chassis": "SALLDHM97VF823187",
-   "title": "1997 Land Rover Defender 110 2.8i 5-Speed"
-  },
-  {
    "date": "2025-06-22",
    "venue": "Bring a Trailer",
    "price_usd": 34914,
@@ -768,22 +559,6 @@
    "title": "26-Years-Family-Owned 1997 Land Rover Defender 90 NAS"
   },
   {
-   "date": "2025-04-26",
-   "venue": "Bring a Trailer",
-   "price_usd": 33075,
-   "basis": "sold+fee",
-   "hammer_usd": 31500,
-   "native": {
-    "amount": 31500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-84/",
-   "chassis": "SALLDHMF7VF822809",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
-  },
-  {
    "date": "2025-04-20",
    "venue": "Bring a Trailer",
    "price_usd": 87675,
@@ -798,22 +573,6 @@
    "url": "https://bringatrailer.com/listing/1997-land-rover-defender-90-234/",
    "chassis": "SALLDVA68VA113191",
    "title": "1997 Land Rover Defender 90 300Tdi"
-  },
-  {
-   "date": "2025-04-08",
-   "venue": "Bring a Trailer",
-   "price_usd": 39375,
-   "basis": "sold+fee",
-   "hammer_usd": 37500,
-   "native": {
-    "amount": 37500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-81/",
-   "chassis": "SALLDHA68VA115873",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
   },
   {
    "date": "2025-04-04",
@@ -846,22 +605,6 @@
    "url": "https://bringatrailer.com/listing/1997-land-rover-defender-90-nas-129-2/",
    "chassis": "SALDV3240VA101540",
    "title": "50k-Mile 1997 Land Rover Defender 90 NAS"
-  },
-  {
-   "date": "2025-04-01",
-   "venue": "Bring a Trailer",
-   "price_usd": 99750,
-   "basis": "sold+fee",
-   "hammer_usd": 95000,
-   "native": {
-    "amount": 95000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-83/",
-   "chassis": "SALLDHM68VA117632",
-   "title": "2.8L 300Tdi–Powered 1997 Land Rover Defender 110 5-Speed"
   },
   {
    "date": "2025-03-30",
@@ -926,22 +669,6 @@
    "url": "https://bringatrailer.com/listing/1997-land-rover-defender-90-235/",
    "chassis": "SALLDVA68VA129067",
    "title": "1997 Land Rover Defender 90 300Tdi 5-Speed"
-  },
-  {
-   "date": "2025-02-28",
-   "venue": "RM Sotheby's",
-   "price_usd": 176400,
-   "basis": "buyer-paid",
-   "hammer_usd": 157500,
-   "native": {
-    "amount": 176400,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1997,
-   "url": "https://rmsothebys.com/auctions/mi25/lots/r0019-1997-land-rover-nas-defender-90/",
-   "chassis": "SALDV2246VA118787",
-   "title": "1997 Land Rover NAS Defender 90"
   },
   {
    "date": "2025-02-26",
@@ -1072,38 +799,6 @@
    "title": "1997 Land Rover Defender 90 Pickup 300Tdi 5-Speed"
   },
   {
-   "date": "2024-12-10",
-   "venue": "Bring a Trailer",
-   "price_usd": 13125,
-   "basis": "sold+fee",
-   "hammer_usd": 12500,
-   "native": {
-    "amount": 12500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-71/",
-   "chassis": "SALLDHA67VA114268",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
-  },
-  {
-   "date": "2024-11-23",
-   "venue": "Bring a Trailer",
-   "price_usd": 31500,
-   "basis": "sold+fee",
-   "hammer_usd": 30000,
-   "native": {
-    "amount": 30000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-70/",
-   "chassis": "SALLDHM67VA135565",
-   "title": "1997 Land Rover Defender 110 300Tdi"
-  },
-  {
    "date": "2024-11-04",
    "venue": "Bring a Trailer",
    "price_usd": 27300,
@@ -1118,22 +813,6 @@
    "url": "https://bringatrailer.com/listing/1997-land-rover-defender-90-220-2/",
    "chassis": "SALLDVA68VA126632",
    "title": "1997 Land Rover Defender 90 300Tdi 5-Speed"
-  },
-  {
-   "date": "2024-11-01",
-   "venue": "Bring a Trailer",
-   "price_usd": 76650,
-   "basis": "sold+fee",
-   "hammer_usd": 73000,
-   "native": {
-    "amount": 73000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-67/",
-   "chassis": "SALLDHMF8VA127403",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
   },
   {
    "date": "2024-10-20",
@@ -1152,54 +831,6 @@
    "title": "1997 Land Rover Defender 90"
   },
   {
-   "date": "2024-10-04",
-   "venue": "Bring a Trailer",
-   "price_usd": 57330,
-   "basis": "sold+fee",
-   "hammer_usd": 54600,
-   "native": {
-    "amount": 54600,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-63/",
-   "chassis": "SALLDHAF7VA138213",
-   "title": "1997 Land Rover Defender 110 Pickup 2.4L 6-Speed"
-  },
-  {
-   "date": "2024-09-25",
-   "venue": "Bring a Trailer",
-   "price_usd": 78488,
-   "basis": "sold+fee",
-   "hammer_usd": 74750,
-   "native": {
-    "amount": 74750,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-62/",
-   "chassis": "SALLDHM68VA106435",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
-  },
-  {
-   "date": "2024-08-28",
-   "venue": "Bring a Trailer",
-   "price_usd": 37275,
-   "basis": "sold+fee",
-   "hammer_usd": 35500,
-   "native": {
-    "amount": 35500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-61/",
-   "chassis": "SALLDHA68VA103950",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
-  },
-  {
    "date": "2024-08-21",
    "venue": "Cars & Bids",
    "price_usd": 67200,
@@ -1216,38 +847,6 @@
    "title": "1997 Land Rover Defender 90 NAS Limited Edition"
   },
   {
-   "date": "2024-08-16",
-   "venue": "Bring a Trailer",
-   "price_usd": 26513,
-   "basis": "sold+fee",
-   "hammer_usd": 25250,
-   "native": {
-    "amount": 25250,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1998-land-rover-defender-110-15/",
-   "chassis": "SALLDHMF8VA132694",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
-  },
-  {
-   "date": "2024-08-11",
-   "venue": "Bring a Trailer",
-   "price_usd": 115500,
-   "basis": "sold+fee",
-   "hammer_usd": 110000,
-   "native": {
-    "amount": 110000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-57/",
-   "chassis": "SALLDHA68VA121377",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
-  },
-  {
    "date": "2024-07-24",
    "venue": "Cars & Bids",
    "price_usd": 31500,
@@ -1262,22 +861,6 @@
    "url": "https://carsandbids.com/auctions/rxyLoglO/1997-land-rover-defender-90",
    "chassis": "SALLDVAY8VA123069",
    "title": "1997 Land Rover Defender 90"
-  },
-  {
-   "date": "2024-07-23",
-   "venue": "Bring a Trailer",
-   "price_usd": 33600,
-   "basis": "sold+fee",
-   "hammer_usd": 32000,
-   "native": {
-    "amount": 32000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-54-2/",
-   "chassis": "SALLDHM68VA121920",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
   },
   {
    "date": "2024-07-23",
@@ -1376,22 +959,6 @@
    "title": "1997 Land Rover Defender 90 NAS"
   },
   {
-   "date": "2024-06-06",
-   "venue": "Bring a Trailer",
-   "price_usd": 54600,
-   "basis": "sold+fee",
-   "hammer_usd": 52000,
-   "native": {
-    "amount": 52000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-130-11/",
-   "chassis": "SALLDKH68VA101918",
-   "title": "1997 Land Rover Defender 130 300Tdi Hi-Cap 5-Speed"
-  },
-  {
    "date": "2024-05-27",
    "venue": "Bring a Trailer",
    "price_usd": 35700,
@@ -1406,22 +973,6 @@
    "url": "https://bringatrailer.com/listing/1997-land-rover-defender-90-203/",
    "chassis": "SALLDVBF7VF824130",
    "title": "1997 Land Rover Defender 90 300Tdi 5-Speed"
-  },
-  {
-   "date": "2024-05-08",
-   "venue": "Bring a Trailer",
-   "price_usd": 73815,
-   "basis": "sold+fee",
-   "hammer_usd": 70300,
-   "native": {
-    "amount": 70300,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-130-10/",
-   "chassis": "SALLDKH68VA128220",
-   "title": "1997 Land Rover Defender 130 HiCap 300Tdi"
   },
   {
    "date": "2024-04-30",
@@ -1472,22 +1023,6 @@
    "title": "1997 Land Rover Defender 90 300Tdi 5-Speed"
   },
   {
-   "date": "2024-04-03",
-   "venue": "Bring a Trailer",
-   "price_usd": 68775,
-   "basis": "sold+fee",
-   "hammer_usd": 65500,
-   "native": {
-    "amount": 65500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-46/",
-   "chassis": "SALLDHM68VA105385",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
-  },
-  {
    "date": "2024-03-24",
    "venue": "Bring a Trailer",
    "price_usd": 78750,
@@ -1520,22 +1055,6 @@
    "title": "1997 Land Rover Defender 90 NAS Soft Top"
   },
   {
-   "date": "2024-03-10",
-   "venue": "Bring a Trailer",
-   "price_usd": 56175,
-   "basis": "sold+fee",
-   "hammer_usd": 53500,
-   "native": {
-    "amount": 53500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-14-2/",
-   "chassis": "SALLDHM97VF824887",
-   "title": "1997 Land Rover Defender 110 2.8i 5-Speed"
-  },
-  {
    "date": "2024-02-22",
    "venue": "Bring a Trailer",
    "price_usd": 111300,
@@ -1552,38 +1071,6 @@
    "title": "1997 Land Rover Defender 90 NAS"
   },
   {
-   "date": "2024-02-07",
-   "venue": "Bring a Trailer",
-   "price_usd": 23625,
-   "basis": "sold+fee",
-   "hammer_usd": 22500,
-   "native": {
-    "amount": 22500,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-41/",
-   "chassis": "SALLDBA68VA124168",
-   "title": "1997 Land Rover Defender 110 XD Wolf 300Tdi 5-Speed"
-  },
-  {
-   "date": "2023-12-21",
-   "venue": "Bring a Trailer",
-   "price_usd": 68250,
-   "basis": "sold+fee",
-   "hammer_usd": 65000,
-   "native": {
-    "amount": 65000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-130-8/",
-   "chassis": "SALLDKH68VA100818",
-   "title": "1997 Land Rover Defender 130 300Tdi Hi-Cap 5-Speed"
-  },
-  {
    "date": "2023-12-16",
    "venue": "Bring a Trailer",
    "price_usd": 37538,
@@ -1598,22 +1085,6 @@
    "url": "https://bringatrailer.com/listing/1997-land-rover-defender-90-193-2/",
    "chassis": "SALLDVA68VA117645",
    "title": "1997 Land Rover Defender 90 300Tdi 5-Speed"
-  },
-  {
-   "date": "2023-12-07",
-   "venue": "Bring a Trailer",
-   "price_usd": 63000,
-   "basis": "sold+fee",
-   "hammer_usd": 60000,
-   "native": {
-    "amount": 60000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-40/",
-   "chassis": "SALLDHM68VA111125",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
   },
   {
    "date": "2023-12-03",
@@ -1648,22 +1119,6 @@
    "title": "Original-Owner 1997 Land Rover Defender 90 NAS"
   },
   {
-   "date": "2023-11-27",
-   "venue": "Bring a Trailer",
-   "price_usd": 38850,
-   "basis": "sold+fee",
-   "hammer_usd": 37000,
-   "native": {
-    "amount": 37000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-39/",
-   "chassis": "SALLDHM68VA115183",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
-  },
-  {
    "date": "2023-11-24",
    "venue": "Cars & Bids",
    "price_usd": 55650,
@@ -1678,22 +1133,6 @@
    "url": "https://carsandbids.com/auctions/30AkDPEj/1997-land-rover-defender-90-nas",
    "chassis": "SALDV324XVA105370",
    "title": "1997 Land Rover Defender 90 NAS"
-  },
-  {
-   "date": "2023-11-21",
-   "venue": "Bring a Trailer",
-   "price_usd": 79800,
-   "basis": "sold+fee",
-   "hammer_usd": 76000,
-   "native": {
-    "amount": 76000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-29/",
-   "chassis": "SALLDHMF8VA138329",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
   },
   {
    "date": "2023-11-19",
@@ -1726,54 +1165,6 @@
    "url": "https://bringatrailer.com/listing/1997-land-rover-defender-90-192/",
    "chassis": "SALLDVAY8VA107236",
    "title": "1997 Land Rover Defender 90 2.0L MPi 5-Speed"
-  },
-  {
-   "date": "2023-11-07",
-   "venue": "Bring a Trailer",
-   "price_usd": 60900,
-   "basis": "sold+fee",
-   "hammer_usd": 58000,
-   "native": {
-    "amount": 58000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-38/",
-   "chassis": "SALLDHMF8VA134286",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
-  },
-  {
-   "date": "2023-10-29",
-   "venue": "Bring a Trailer",
-   "price_usd": 35700,
-   "basis": "sold+fee",
-   "hammer_usd": 34000,
-   "native": {
-    "amount": 34000,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-33/",
-   "chassis": "SALLDBA68VA129454",
-   "title": "1997 Land Rover Defender 110 XD Wolf 300Tdi 5-Speed"
-  },
-  {
-   "date": "2023-10-28",
-   "venue": "Bring a Trailer",
-   "price_usd": 37380,
-   "basis": "sold+fee",
-   "hammer_usd": 35600,
-   "native": {
-    "amount": 35600,
-    "currency": "USD",
-    "premium_inclusive": false
-   },
-   "year": 1997,
-   "url": "https://bringatrailer.com/listing/1997-land-rover-defender-110-32/",
-   "chassis": "SALLDHM68VA122410",
-   "title": "1997 Land Rover Defender 110 300Tdi 5-Speed"
   },
   {
    "date": "2023-10-10",

@@ -10,11 +10,58 @@
   "window": "36mo",
   "year_min": 1970,
   "year_max": 1970,
-  "trim": "T",
-  "body": "coupe"
+  "trim": "T"
  },
- "halo_dropped": 10,
+ "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2026-03-25",
+   "venue": "RM Sotheby's",
+   "price_usd": 4320,
+   "basis": "buyer-paid",
+   "hammer_usd": 3857,
+   "native": {
+    "amount": 4320,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://rmsothebys.com/auctions/mw26/lots/n1053-porsche-type-91107-engine-for-1970-911-t-22",
+   "chassis": null,
+   "title": "Porsche Type 911/07 Engine for 1970 911 T 2.2"
+  },
+  {
+   "date": "2025-08-16",
+   "venue": "Gooding Christie's",
+   "price_usd": 123200,
+   "basis": "buyer-paid",
+   "hammer_usd": 110000,
+   "native": {
+    "amount": 123200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://www.goodingco.com/lot/1970-porsche-911-22-t",
+   "chassis": "9110101579",
+   "title": "1970 Porsche 911 2.2 T (PB25)"
+  },
+  {
+   "date": "2024-10-28",
+   "venue": "RM Sotheby's",
+   "price_usd": 3920,
+   "basis": "buyer-paid",
+   "hammer_usd": 3500,
+   "native": {
+    "amount": 3920,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://rmsothebys.com/auctions/jy24/lots/r0088-1970-porsche-911-t-coupe-by-karmann/",
+   "chassis": "911012499",
+   "title": "1970 Porsche 911 T Coupe by Karmann"
+  },
   {
    "date": "2026-09-11",
    "venue": "PCARMarket",
@@ -94,22 +141,6 @@
    "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-90/",
    "chassis": "9110100878",
    "title": "1970 Porsche 911T Coupe 5-Speed"
-  },
-  {
-   "date": "2026-03-25",
-   "venue": "RM Sotheby's",
-   "price_usd": 4320,
-   "basis": "buyer-paid",
-   "hammer_usd": 3857,
-   "native": {
-    "amount": 4320,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://rmsothebys.com/auctions/mw26/lots/n1053-porsche-type-91107-engine-for-1970-911-t-22",
-   "chassis": null,
-   "title": "Porsche Type 911/07 Engine for 1970 911 T 2.2"
   },
   {
    "date": "2026-03-24",
@@ -192,22 +223,6 @@
    "title": "1970 Porsche 911T Coupe 5-Speed"
   },
   {
-   "date": "2025-08-16",
-   "venue": "Gooding Christie's",
-   "price_usd": 123200,
-   "basis": "buyer-paid",
-   "hammer_usd": 110000,
-   "native": {
-    "amount": 123200,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://www.goodingco.com/lot/1970-porsche-911-22-t",
-   "chassis": "9110101579",
-   "title": "1970 Porsche 911 2.2 T (PB25)"
-  },
-  {
    "date": "2025-07-19",
    "venue": "Bring a Trailer",
    "price_usd": 26513,
@@ -254,22 +269,6 @@
    "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-68/",
    "chassis": "9110123455",
    "title": "1970 Porsche 911T Coupe 5-Speed"
-  },
-  {
-   "date": "2024-10-28",
-   "venue": "RM Sotheby's",
-   "price_usd": 3920,
-   "basis": "buyer-paid",
-   "hammer_usd": 3500,
-   "native": {
-    "amount": 3920,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1970,
-   "url": "https://rmsothebys.com/auctions/jy24/lots/r0088-1970-porsche-911-t-coupe-by-karmann/",
-   "chassis": "911012499",
-   "title": "1970 Porsche 911 T Coupe by Karmann"
   },
   {
    "date": "2024-10-22",

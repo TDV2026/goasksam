@@ -3,7 +3,7 @@
  "listed": "1967 Volkswagen Beetle",
  "status": "compare",
  "year_scope": "exact 1967",
- "basis": "mixed (4% house buyer-paid, rest sold+fee)",
+ "basis": "mixed (5% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Volkswagen",
   "model": "Beetle",
@@ -13,6 +13,86 @@
  },
  "halo_dropped": 0,
  "sales": [
+  {
+   "date": "2026-05-31",
+   "venue": "Bonhams",
+   "price_usd": 16800,
+   "basis": "buyer-paid",
+   "hammer_usd": 15000,
+   "native": {
+    "amount": 16800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1967,
+   "url": "https://cars.bonhams.com/auction/32391/lot/50/1967-volkswagen-beetle-chassis-no-117405849-engine-no-h0564916/",
+   "chassis": "117405849",
+   "title": "1967 Volkswagen Beetle Chassis no. 117405849 Engine no. H0564916"
+  },
+  {
+   "date": "2026-04-10",
+   "venue": "Mecum",
+   "price_usd": 22050,
+   "basis": "sold+fee",
+   "hammer_usd": 21000,
+   "native": {
+    "amount": 23100,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1967,
+   "url": "https://www.mecum.com/lots/1169572/1967-volkswagen-beetle?aa_id=768471-0",
+   "chassis": "117268211",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2026-04-09",
+   "venue": "Mecum",
+   "price_usd": 21000,
+   "basis": "sold+fee",
+   "hammer_usd": 20000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1967,
+   "url": "https://www.mecum.com/lots/1170624/1967-volkswagen-beetle?aa_id=772343-0",
+   "chassis": "TEX104463",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2025-01-25",
+   "venue": "Bonhams",
+   "price_usd": 20160,
+   "basis": "buyer-paid",
+   "hammer_usd": 18000,
+   "native": {
+    "amount": 20160,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1967,
+   "url": "https://cars.bonhams.com/auction/30558/lot/106/1967-volkswagen-beetle-cabriolet-chassis-no-157657748-engine-no-113-129701/",
+   "chassis": "157657748",
+   "title": "1967 Volkswagen Beetle Cabriolet Chassis no. 157657748 Engine no. 113 129701"
+  },
+  {
+   "date": "2024-06-01",
+   "venue": "RM Sotheby's",
+   "price_usd": 47040,
+   "basis": "buyer-paid",
+   "hammer_usd": 42000,
+   "native": {
+    "amount": 47040,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1967,
+   "url": "https://rmsothebys.com/auctions/dd24/lots/r0114-1967-volkswagen-beetle/",
+   "chassis": "117044957",
+   "title": "1967 Volkswagen Beetle"
+  },
   {
    "date": "2026-07-10",
    "venue": "Bring a Trailer",
@@ -46,22 +126,6 @@
    "title": "1967 Volkswagen Beetle"
   },
   {
-   "date": "2026-05-31",
-   "venue": "Bonhams",
-   "price_usd": 16800,
-   "basis": "buyer-paid",
-   "hammer_usd": 15000,
-   "native": {
-    "amount": 16800,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1967,
-   "url": "https://cars.bonhams.com/auction/32391/lot/50/1967-volkswagen-beetle-chassis-no-117405849-engine-no-h0564916/",
-   "chassis": "117405849",
-   "title": "1967 Volkswagen Beetle Chassis no. 117405849 Engine no. H0564916"
-  },
-  {
    "date": "2026-04-22",
    "venue": "Hagerty",
    "price_usd": 11025,
@@ -76,38 +140,6 @@
    "url": "https://www.hagerty.com/marketplace/auction/1967-Volkswagen-Beetle/542fca92-9273-4feb-a658-7f8608b44fbd",
    "chassis": "117141660",
    "title": "Modified 1967 Volkswagen Beetle"
-  },
-  {
-   "date": "2026-04-10",
-   "venue": "Mecum",
-   "price_usd": 22050,
-   "basis": "sold+fee",
-   "hammer_usd": 21000,
-   "native": {
-    "amount": 23100,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1967,
-   "url": "https://www.mecum.com/lots/1169572/1967-volkswagen-beetle?aa_id=768471-0",
-   "chassis": "117268211",
-   "title": "1967 Volkswagen Beetle"
-  },
-  {
-   "date": "2026-04-09",
-   "venue": "Mecum",
-   "price_usd": 21000,
-   "basis": "sold+fee",
-   "hammer_usd": 20000,
-   "native": {
-    "amount": 22000,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1967,
-   "url": "https://www.mecum.com/lots/1170624/1967-volkswagen-beetle?aa_id=772343-0",
-   "chassis": "TEX104463",
-   "title": "1967 Volkswagen Beetle"
   },
   {
    "date": "2026-01-07",
@@ -683,22 +715,6 @@
    "year": 1967,
    "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-170/",
    "chassis": "117600984",
-   "title": "1967 Volkswagen Beetle"
-  },
-  {
-   "date": "2024-06-01",
-   "venue": "RM Sotheby's",
-   "price_usd": 47040,
-   "basis": "buyer-paid",
-   "hammer_usd": 42000,
-   "native": {
-    "amount": 47040,
-    "currency": "USD",
-    "premium_inclusive": true
-   },
-   "year": 1967,
-   "url": "https://rmsothebys.com/auctions/dd24/lots/r0114-1967-volkswagen-beetle/",
-   "chassis": "117044957",
    "title": "1967 Volkswagen Beetle"
   },
   {
