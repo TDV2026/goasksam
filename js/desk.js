@@ -135,6 +135,7 @@
     h += 'Rooms ' + (cov.rooms_inferred ? 'are inferred from the house calendar where the record does not carry them' : 'stated only where the record carries them') + '. ';
     if (cov.excluded_total) { var er = Object.keys(cov.excluded_by_reason || {}).map(function (k) { return cov.excluded_by_reason[k] + ' ' + k; }).join(", "); h += cov.excluded_total + ' rows excluded (shown in receipts): ' + esc(er) + '. '; }
     if (cov.attempts_note) h += esc(cov.attempts_note.charAt(0).toUpperCase() + cov.attempts_note.slice(1)) + '. ';
+    if (cov.receipts_sampled) h += 'Receipts show a recent sample of ' + cov.receipts_sampled.shown + ' of ' + cov.receipts_sampled.of + ' sales; the answer uses the full pool. ';
     h += 'Thin threshold ' + (cov.thin_threshold || 5) + ' sales.';
     h += '</div>';
 
