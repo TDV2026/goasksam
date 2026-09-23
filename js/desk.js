@@ -60,27 +60,52 @@
     if (res.echo.notice) h += '<div class="ignored"><b>Ignored:</b> ' + esc(res.echo.notice.replace(/^Ignored /, "")) + '</div>';
     h += '</div>';
 
-    // 1. the answer
+    // 1. the answer (measure-aware columns)
     var a = res.answer, rows = a.rows || [];
-    var dimLabel = a.dimension ? a.dimension.replace(/_/g, " ") : "overall";
-    h += '<div class="section"><div class="slabel">Answer <span class="n">' + rows.length + ' ' + esc(dimLabel) + (rows.length === 1 ? '' : 's') + ' &middot; ' + a.total + ' sales</span></div>';
-    h += '<div class="tblwrap"><table class="answer"><thead><tr>';
-    h += '<th>' + esc(dimLabel) + '</th><th>count</th><th>share</th><th>median</th><th>p25</th><th>p75</th><th>min</th><th>max</th><th>newest</th>';
+    var dimLabel = (a.dimensions && a.dimensions.length ? a.dimensions.join(" · ") : (a.dimension || "overall")).replace(/_/g, " ");
+    var M = a.measures || [];
+    var has = function (m) { return M.indexOf(m) !== -1 || rows.some(function (r) { return r[m] != null; }); };
+    var priceHdr = a.priceLabel && /bid-to/.test(a.priceLabel) ? "bid-to" : "median";
+    var unit = res.status; // noop
+    var cols = [];
+    cols.push(["count", "count", function (r) { return '<span class="clk">' + r.count + '</span>'; }]);
+    if (has("share")) cols.push(["share", "share", function (r) { return r.share != null ? (r.share * 100).toFixed(0) + '%' : "&mdash;"; }]);
+    if (has("sell_through_rate")) cols.push(["sell_through_rate", "sell-through", function (r) { return r.sell_through_rate != null ? (r.sell_through_rate * 100).toFixed(0) + '%' : "&mdash;"; }]);
+    if (has("reserve_not_met_rate")) cols.push(["reserve_not_met_rate", "RNM rate", function (r) { return r.reserve_not_met_rate != null ? (r.reserve_not_met_rate * 100).toFixed(0) + '%' : "&mdash;"; }]);
+    if (has("withdrawn_rate")) cols.push(["withdrawn_rate", "withdrawn", function (r) { return r.withdrawn_rate != null ? (r.withdrawn_rate * 100).toFixed(0) + '%' : "&mdash;"; }]);
+    if (has("median")) cols.push(["median", priceHdr, function (r) { return r.thin ? "&mdash;" : usd(r.median); }]);
+    if (has("p25")) cols.push(["p25", "p25", function (r) { return r.thin ? "&mdash;" : usd(r.p25); }]);
+    if (has("p75")) cols.push(["p75", "p75", function (r) { return r.thin ? "&mdash;" : usd(r.p75); }]);
+    if (has("min")) cols.push(["min", "min", function (r) { return r.thin ? "&mdash;" : usd(r.min); }]);
+    if (has("max")) cols.push(["max", "max", function (r) { return r.thin ? "&mdash;" : usd(r.max); }]);
+    if (rows.some(function (r) { return r.online_share != null; })) cols.push(["online_share", "online %", function (r) { return r.online_share != null ? (r.online_share * 100).toFixed(0) + '%' : "&mdash;"; }]);
+    cols.push(["freshness", "newest", function (r) { return fmtDate(r.freshness); }]);
+    h += '<div class="section"><div class="slabel">Answer <span class="n">' + rows.length + ' ' + esc(dimLabel) + (rows.length === 1 ? '' : 's') + ' &middot; ' + a.total + (a.outcome && a.outcome !== "sold" ? ' ' + esc(a.outcome.replace(/_/g, " ")) : ' sales') + '</span></div>';
+    h += '<div class="tblwrap"><table class="answer"><thead><tr><th>' + esc(dimLabel) + '</th>';
+    cols.forEach(function (c) { h += '<th>' + esc(c[1]) + '</th>'; });
     h += '</tr></thead><tbody>';
     rows.forEach(function (r) {
-      h += '<tr>';
-      h += '<td>' + esc(r.group) + (r.thin ? '<span class="thintag">thin</span>' : '') + '</td>';
-      h += '<td class="cellnum clk" data-g="' + esc(r.group) + '">' + r.count + '</td>';
-      h += '<td class="cellnum">' + (r.share != null ? (r.share * 100).toFixed(0) + '%' : "&mdash;") + '</td>';
-      h += '<td class="cellnum">' + (r.thin ? "&mdash;" : usd(r.median)) + '</td>';
-      h += '<td class="cellnum">' + (r.thin ? "&mdash;" : usd(r.p25)) + '</td>';
-      h += '<td class="cellnum">' + (r.thin ? "&mdash;" : usd(r.p75)) + '</td>';
-      h += '<td class="cellnum">' + (r.thin ? "&mdash;" : usd(r.min)) + '</td>';
-      h += '<td class="cellnum">' + (r.thin ? "&mdash;" : usd(r.max)) + '</td>';
-      h += '<td class="cellnum">' + fmtDate(r.freshness) + '</td>';
+      h += '<tr><td>' + esc(r.group) + (r.thin ? '<span class="thintag">thin</span>' : '') + '</td>';
+      cols.forEach(function (c) { h += '<td class="cellnum">' + c[2](r) + '</td>'; });
       h += '</tr>';
     });
     h += '</tbody></table></div></div>';
+
+    // velocity section (same-chassis repeat sales)
+    if (res.velocity && res.velocity.length) {
+      h += '<div class="section"><div class="slabel">Repeat sales <span class="n">' + res.velocity.length + ' chassis resold</span></div>';
+      h += '<div class="tblwrap"><table class="receipts"><thead><tr><th>chassis</th><th>car</th><th>from</th><th class="r">then</th><th class="r">months</th><th class="r">change</th></tr></thead><tbody>';
+      res.velocity.slice(0, 20).forEach(function (c) {
+        c.pairs.forEach(function (p) {
+          h += '<tr><td>' + esc(c.chassis) + '</td><td>' + esc((c.title || "").slice(0, 40)) + '</td>' +
+            '<td class="r">' + usd(p.from_price) + ' <span style="color:var(--faint)">' + fmtDate(p.from_date) + '</span></td>' +
+            '<td class="r">' + usd(p.to_price) + ' <span style="color:var(--faint)">' + fmtDate(p.to_date) + '</span></td>' +
+            '<td class="r">' + p.months_between + '</td>' +
+            '<td class="r">' + (p.pct_change != null ? (p.pct_change > 0 ? '+' : '') + p.pct_change + '%' : "&mdash;") + '</td></tr>';
+        });
+      });
+      h += '</tbody></table></div></div>';
+    }
 
     // 3. the read
     h += '<div class="section"><div class="slabel">The read</div>';
@@ -109,6 +134,7 @@
     if (cov.sale_type_split && cov.sale_type_split.house_total) h += 'House sales: ' + cov.sale_type_split.live + ' live, ' + cov.sale_type_split.online + ' online' + (cov.sale_type_inferred ? ' (live/online inferred from the house calendar where the record does not carry it)' : '') + '. ';
     h += 'Rooms ' + (cov.rooms_inferred ? 'are inferred from the house calendar where the record does not carry them' : 'stated only where the record carries them') + '. ';
     if (cov.excluded_total) { var er = Object.keys(cov.excluded_by_reason || {}).map(function (k) { return cov.excluded_by_reason[k] + ' ' + k; }).join(", "); h += cov.excluded_total + ' rows excluded (shown in receipts): ' + esc(er) + '. '; }
+    if (cov.attempts_note) h += esc(cov.attempts_note.charAt(0).toUpperCase() + cov.attempts_note.slice(1)) + '. ';
     h += 'Thin threshold ' + (cov.thin_threshold || 5) + ' sales.';
     h += '</div>';
 
