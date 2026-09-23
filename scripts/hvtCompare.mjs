@@ -54,16 +54,24 @@ const med = a => pct(a, 0.5);
 const money = v => v == null ? "" : "$" + Math.round(v).toLocaleString("en-US");
 const num = s => s ? Number(String(s).replace(/[^\d.]/g, "")) || null : null;
 
-const post = (page, dsl) => page.evaluate(async d => { const r = await fetch("/api/sellerDecision", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ desk: true, action: "run", dsl: d }) }); return await r.json().catch(() => null); }, dsl);
+const post = (page, dsl, vehicle) => page.evaluate(async (d, v) => { const r = await fetch("/api/sellerDecision", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ desk: true, action: "run", dsl: d, vehicle: v }) }); return await r.json().catch(() => null); }, dsl, vehicle);
 function dslFor(m, yMin, yMax) {
   const f = { make: m.make, model: m.model, window: "36mo", year_min: yMin, year_max: yMax };
   if (m.trim) f.trim = m.trim;
-  if (m.body) f.body = m.body;   // Desk buildSpec detects body from searchText; trim carries most scoping
   return { filters: f, groupBy: [], measures: ["count", "median", "p25", "p75", "min", "max"] };
+}
+// Body is routed through the One Box path (NOT a Desk DSL/executor change): a pre-resolved vehicle
+// with bodyStyle is passed to the Desk, which sanitizeResolvedVehicle preserves and buildSpec/
+// isQualifying honour (One Box already separates coupe/convertible/cabriolet/targa/roadster).
+function vehFor(m, yMin) {
+  const v = { make: m.make, model: m.model, year: yMin };
+  if (m.trim) v.trim = m.trim;
+  if (m.body) v.bodyStyle = m.body;
+  return v;
 }
 async function fetchScoped(page, m, yMin, yMax) {
   let res = null;
-  for (let a = 0; a < 4 && !(res && res.status === "ok"); a++) { res = await post(page, dslFor(m, yMin, yMax)); if (!(res && res.status === "ok")) await new Promise(r => setTimeout(r, 900 * (a + 1))); }
+  for (let a = 0; a < 6 && !(res && res.status === "ok"); a++) { res = await post(page, dslFor(m, yMin, yMax), vehFor(m, yMin)); if (!(res && res.status === "ok")) await new Promise(r => setTimeout(r, 1000 * (a + 1))); }
   if (!(res && res.status === "ok")) return { ok: false, receipts: [], total: null };
   let receipts = (res.receipts || []).filter(r => !r.excluded);
   // car-2 fuelie + per-car halo title excludes

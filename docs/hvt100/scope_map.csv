@@ -37,7 +37,7 @@ car_id,year,make,model,trim,body,generation,year_scope,notes
 36,1987,Porsche,944,Turbo,coupe,,exact,exclude S/S2/base; EXCLUDE Turbo S halo
 37,1989,Ferrari,Testarossa,,coupe,,exact,"EXCLUDE 512 TR/512 M, Koenig, early monospecchio if priced apart"
 38,1991,Ferrari,348,TS,targa,,exact,"348 TS targa; exclude TB coupe, Spider, GTB/GTS"
-39,1985,Ferrari,308,GTS QV,,,exact,"308 GTS Quattrovalvole; exclude GTB, carbureted, GT4"
+39,1985,Ferrari,308,Quattrovalvole,,,exact,"308 GTS Quattrovalvole; exclude GTB, carbureted, GT4"
 40,1991,BMW,M3,,coupe,e30,exact,"E30 M3; EXCLUDE Sport Evolution/EVO halo, convertible"
 41,1988,BMW,M5,,sedan,e28,exact,E28 M5
 42,1995,BMW,M3,,coupe,e36,exact,"E36 M3 coupe; exclude sedan/convertible, GT/LTW halo"
@@ -48,7 +48,7 @@ car_id,year,make,model,trim,body,generation,year_scope,notes
 47,1991,Acura,NSX,,coupe,NA1,exact,NA1 fixed-roof; EXCLUDE NSX-T targa
 48,1990,Nissan,300ZX,Twin Turbo,,Z32,exact,"Z32 TT; exclude NA, 2+2"
 49,1987,Buick,Grand National,,coupe,,exact,"Buick Regal GN; EXCLUDE GNX halo, T-Type"
-50,1990,Chevrolet,Corvette,ZR-1,coupe,C4,exact,C4 ZR-1 LT5; exclude base C4
+50,1990,Chevrolet,Corvette,ZR1,coupe,C4,exact,C4 ZR-1 LT5; exclude base C4
 51,1985,Chevrolet,Camaro,IROC-Z,coupe,3rd,exact,"exclude base Z28, convertible, 1LE if priced apart"
 52,1993,Ford,Mustang,Cobra,hatchback,Fox,exact,"1993 SVT Cobra Fox; EXCLUDE Cobra R halo, GT/LX"
 53,1989,Jeep,Grand Wagoneer,,wagon,,exact,Jeep Grand Wagoneer
@@ -89,7 +89,7 @@ car_id,year,make,model,trim,body,generation,year_scope,notes
 88,2015,Ferrari,458,Speciale,coupe,,exact,"EXCLUDE Speciale Aperta halo, base Italia"
 89,2012,McLaren,MP4-12C,,coupe,,exact,COVERAGE ONLY (not in HVT)
 90,2019,McLaren,720S,,coupe,,exact,COVERAGE ONLY (not in HVT)
-91,2015,Lamborghini,Huracan,LP610-4,coupe,,exact,"EXCLUDE Performante/STO/EVO/Tecnica halos, Spyder"
+91,2015,Lamborghini,Huracan,LP610,coupe,,exact,"EXCLUDE Performante/STO/EVO/Tecnica halos, Spyder"
 92,2018,Lamborghini,Aventador,S,coupe,,exact,COVERAGE ONLY (not in HVT); exclude SV/SVJ
 93,2014,Chevrolet,Corvette,Z51,coupe,C7,exact,C7 Stingray Z51 (adjacent pooled); EXCLUDE Z06/ZR1/Grand Sport
 94,2019,Chevrolet,Corvette,ZR1,coupe,C7,exact,C7 ZR1 supercharged; exclude Z06
