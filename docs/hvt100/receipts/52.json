@@ -1,17 +1,674 @@
 {
  "car_id": 52,
- "listed": "1993 Ford Mustang Cobra",
+ "listed": "1993 Ford Mustang SVT Cobra",
  "status": "compare",
- "year_scope": "adjacent years pooled (1991-1993)",
- "basis": "n/a",
+ "year_scope": "exact 1993",
+ "basis": "mixed (2% house buyer-paid, rest sold+fee)",
  "scope": {
   "make": "Ford",
   "model": "Mustang",
   "window": "36mo",
-  "year_min": 1991,
+  "year_min": 1993,
   "year_max": 1993,
-  "trim": "Cobra"
+  "trim": "SVT Cobra"
  },
- "halo_dropped": 0,
- "sales": []
+ "halo_dropped": 4,
+ "sales": [
+  {
+   "date": "2026-05-14",
+   "venue": "Mecum",
+   "price_usd": 68250,
+   "basis": "sold+fee",
+   "hammer_usd": 65000,
+   "native": {
+    "amount": 71500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1993,
+   "url": "https://www.mecum.com/lots/1170092/1993-ford-mustang-svt-cobra?aa_id=782259-0",
+   "chassis": "1FACP42D4PF136676",
+   "title": "1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2025-04-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 74800,
+   "basis": "buyer-paid",
+   "hammer_usd": 68000,
+   "native": {
+    "amount": 74800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1993,
+   "url": "https://www.barrett-jackson.com/palm-beach-2025/docket/vehicle/1993-ford-mustang-svt-cobra-287885?origin=results",
+   "chassis": "1FACP42D7PF137241",
+   "title": "1993 FORD MUSTANG SVT COBRA"
+  },
+  {
+   "date": "2026-08-31",
+   "venue": "Hagerty",
+   "price_usd": 23363,
+   "basis": "sold+fee",
+   "hammer_usd": 22250,
+   "native": {
+    "amount": 22250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://www.hagerty.com/marketplace/auction/1993-Ford-Mustang-SVT%20Cobra/2hlG7Ra39cm5LKlrmFc4Xx",
+   "chassis": "1FACP42D0PF173353",
+   "title": "1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2026-08-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 63000,
+   "basis": "sold+fee",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 60000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-167/",
+   "chassis": "1FACP42D5PF141823",
+   "title": "1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2026-06-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 76125,
+   "basis": "sold+fee",
+   "hammer_usd": 72500,
+   "native": {
+    "amount": 72500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-164/",
+   "chassis": "1FACP42D6PF137733",
+   "title": "9k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2026-06-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 58800,
+   "basis": "sold+fee",
+   "hammer_usd": 56000,
+   "native": {
+    "amount": 56000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-163/",
+   "chassis": "1FACP42D0PF175779",
+   "title": "1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2026-05-15",
+   "venue": "Hagerty",
+   "price_usd": 45991,
+   "basis": "sold+fee",
+   "hammer_usd": 43801,
+   "native": {
+    "amount": 43801,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://www.hagerty.com/marketplace/auction/1993-Ford-Mustang/b41d5b7a-8cac-4431-a4aa-d60b0f37ce85",
+   "chassis": "1FACP42D3PF175808",
+   "title": "1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2026-04-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 75075,
+   "basis": "sold+fee",
+   "hammer_usd": 71500,
+   "native": {
+    "amount": 71500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-159-2/",
+   "chassis": "1FACP42D1PF173376",
+   "title": "6k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2026-04-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 48300,
+   "basis": "sold+fee",
+   "hammer_usd": 46000,
+   "native": {
+    "amount": 46000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-157/",
+   "chassis": "1FACP42D2PF175878",
+   "title": "32k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2026-03-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 64575,
+   "basis": "sold+fee",
+   "hammer_usd": 61500,
+   "native": {
+    "amount": 61500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-160/",
+   "chassis": "1FACP42D4PF136984",
+   "title": "29k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2026-03-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 66675,
+   "basis": "sold+fee",
+   "hammer_usd": 63500,
+   "native": {
+    "amount": 63500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-158/",
+   "chassis": "1FACP42D6PF173485",
+   "title": "26k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2026-03-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 78750,
+   "basis": "sold+fee",
+   "hammer_usd": 75000,
+   "native": {
+    "amount": 75000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-159/",
+   "chassis": "1FACP42D1PF173376",
+   "title": "6k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2025-12-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 54863,
+   "basis": "sold+fee",
+   "hammer_usd": 52250,
+   "native": {
+    "amount": 52250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-152/",
+   "chassis": "1FACP42DXPF175661",
+   "title": "29-Years-Owned 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2025-11-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 53025,
+   "basis": "sold+fee",
+   "hammer_usd": 50500,
+   "native": {
+    "amount": 50500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-151/",
+   "chassis": "1FACP42D0PF175779",
+   "title": "42k-Mile 1993 Ford Mustang SVT Cobra 5-Speed"
+  },
+  {
+   "date": "2025-10-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 52763,
+   "basis": "sold+fee",
+   "hammer_usd": 50250,
+   "native": {
+    "amount": 50250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-149/",
+   "chassis": "1FACP42D3PF136748",
+   "title": "40k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2025-09-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 86100,
+   "basis": "sold+fee",
+   "hammer_usd": 82000,
+   "native": {
+    "amount": 82000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-141/",
+   "chassis": "1FACP42D1PF154651",
+   "title": "4k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2025-09-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 44625,
+   "basis": "sold+fee",
+   "hammer_usd": 42500,
+   "native": {
+    "amount": 42500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-144/",
+   "chassis": "1FACP42D8PF176601",
+   "title": "1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2025-08-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 39375,
+   "basis": "sold+fee",
+   "hammer_usd": 37500,
+   "native": {
+    "amount": 37500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-142/",
+   "chassis": "1FACP42D1PF180716",
+   "title": "45k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2025-07-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 84000,
+   "basis": "sold+fee",
+   "hammer_usd": 80000,
+   "native": {
+    "amount": 80000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-138/",
+   "chassis": "1FACP42D7PF137241",
+   "title": "269-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2025-06-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 85131,
+   "basis": "sold+fee",
+   "hammer_usd": 81077,
+   "native": {
+    "amount": 81077,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-134/",
+   "chassis": "1FACP42DXPF177135",
+   "title": "Original-Owner 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2025-06-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 211500,
+   "basis": "sold+fee",
+   "hammer_usd": 204000,
+   "native": {
+    "amount": 204000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-135/",
+   "chassis": "1FACP42D4PF173453",
+   "title": "12-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2025-04-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 50925,
+   "basis": "sold+fee",
+   "hammer_usd": 48500,
+   "native": {
+    "amount": 48500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-133/",
+   "chassis": "1FACP42D0PF177192",
+   "title": "18k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2024-11-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 39900,
+   "basis": "sold+fee",
+   "hammer_usd": 38000,
+   "native": {
+    "amount": 38000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-121/",
+   "chassis": "1FACP42DXPF137198",
+   "title": "1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2024-11-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 54600,
+   "basis": "sold+fee",
+   "hammer_usd": 52000,
+   "native": {
+    "amount": 52000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-125-2/",
+   "chassis": "1FACP42D0PF141812",
+   "title": "20k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2024-10-24",
+   "venue": "AutoHunter",
+   "price_usd": 55020,
+   "basis": "sold+fee",
+   "hammer_usd": 52400,
+   "native": {
+    "amount": 52400,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://autohunter.com/Listing/Details/59611565",
+   "chassis": "1FACP42D4PF143336",
+   "title": "24K-MILE 1993 FORD MUSTANG SVT COBRA"
+  },
+  {
+   "date": "2024-10-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 42368,
+   "basis": "sold+fee",
+   "hammer_usd": 40350,
+   "native": {
+    "amount": 40350,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-126/",
+   "chassis": "1FACP42D7PF136901",
+   "title": "37k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2024-09-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 56175,
+   "basis": "sold+fee",
+   "hammer_usd": 53500,
+   "native": {
+    "amount": 53500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-124/",
+   "chassis": "1FACP42D0PF174261",
+   "title": "11k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2024-08-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 72450,
+   "basis": "sold+fee",
+   "hammer_usd": 69000,
+   "native": {
+    "amount": 69000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-122/",
+   "chassis": "1FACP42D2PF154805",
+   "title": "5k-Mile 1993 Ford Mustang SVT Cobra 5-Speed"
+  },
+  {
+   "date": "2024-07-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 61425,
+   "basis": "sold+fee",
+   "hammer_usd": 58500,
+   "native": {
+    "amount": 58500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-118/",
+   "chassis": "1FACP42D1PF176665",
+   "title": "15k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2024-07-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 47250,
+   "basis": "sold+fee",
+   "hammer_usd": 45000,
+   "native": {
+    "amount": 45000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-117/",
+   "chassis": "1FACP42D5PF143152",
+   "title": "46k-Mile 1993 Ford Mustang SVT Cobra 5-Speed"
+  },
+  {
+   "date": "2024-07-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 55125,
+   "basis": "sold+fee",
+   "hammer_usd": 52500,
+   "native": {
+    "amount": 52500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-110/",
+   "chassis": "1FACP42D0PF155029",
+   "title": "15k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2024-05-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 47514,
+   "basis": "sold+fee",
+   "hammer_usd": 45251,
+   "native": {
+    "amount": 45251,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-108/",
+   "chassis": "1FACP42D9PF175361",
+   "title": "One-Family-Owned 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2024-04-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 53025,
+   "basis": "sold+fee",
+   "hammer_usd": 50500,
+   "native": {
+    "amount": 50500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-54/",
+   "chassis": "1FACP42D7PF141824",
+   "title": "11k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2024-04-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 38616,
+   "basis": "sold+fee",
+   "hammer_usd": 36777,
+   "native": {
+    "amount": 36777,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-53/",
+   "chassis": "1FACP42D5PF181903",
+   "title": "1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2024-04-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 33705,
+   "basis": "sold+fee",
+   "hammer_usd": 32100,
+   "native": {
+    "amount": 32100,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-100/",
+   "chassis": "1FACP42D1PF175645",
+   "title": "Original-Owner 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2024-04-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 57750,
+   "basis": "sold+fee",
+   "hammer_usd": 55000,
+   "native": {
+    "amount": 55000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-102/",
+   "chassis": "1FACP42D2PF136594",
+   "title": "26k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2024-03-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 55125,
+   "basis": "sold+fee",
+   "hammer_usd": 52500,
+   "native": {
+    "amount": 52500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-99/",
+   "chassis": "1FACP42D8PF194502",
+   "title": "15k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2024-03-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 65100,
+   "basis": "sold+fee",
+   "hammer_usd": 62000,
+   "native": {
+    "amount": 62000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-97/",
+   "chassis": "1FACP42D8PF142061",
+   "title": "26k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2024-02-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 64050,
+   "basis": "sold+fee",
+   "hammer_usd": 61000,
+   "native": {
+    "amount": 61000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-96/",
+   "chassis": "1FACP42D4PF155146",
+   "title": "24k-Mile 1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2023-10-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 33338,
+   "basis": "sold+fee",
+   "hammer_usd": 31750,
+   "native": {
+    "amount": 31750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-44/",
+   "chassis": "1FACP42D1PF176200",
+   "title": "1993 Ford Mustang SVT Cobra"
+  },
+  {
+   "date": "2023-10-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 28088,
+   "basis": "sold+fee",
+   "hammer_usd": 26750,
+   "native": {
+    "amount": 26750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-ford-mustang-svt-cobra-90/",
+   "chassis": "1FACP42D8PF197559",
+   "title": "1993 Ford Mustang SVT Cobra"
+  }
+ ]
 }

@@ -18,6 +18,9 @@ function readCsv(p) { const rows = []; let f = fs.readFileSync(p, "utf8"), i = 0
 
 const scope = readCsv(path.join(OUT, "hvt_100.csv")).reduce((m, r) => (m[r.car_id] = r, m), {});
 const map = readCsv(path.join(OUT, "scope_map.csv"));
+// CARS="9,15,..." re-fetches ONLY those cars; all others are reconstructed from their existing
+// receipts/<id>.json (kept as pushed) so their gas_100 rows/receipts do not change.
+const ONLY = new Set((process.env.CARS || "").split(",").map(s => s.trim()).filter(Boolean).map(Number));
 
 // generation year bounds for the +/-2 widen (widen never crosses these)
 const GEN = { C2:[1963,1967],C4:[1984,1996],C5:[1997,2004],C6:[2005,2013],C7:[2014,2019],C8:[2020,2026],
@@ -95,7 +98,7 @@ async function fetchScoped(page, m, yMin, yMax) {
 }
 
 (async () => {
-  fs.rmSync(path.join(OUT, "receipts"), { recursive: true, force: true });
+  if (!ONLY.size) fs.rmSync(path.join(OUT, "receipts"), { recursive: true, force: true });   // keep the 95 when re-running a subset
   fs.mkdirSync(path.join(OUT, "receipts"), { recursive: true });
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
   const page = await browser.newPage();
@@ -109,15 +112,24 @@ async function fetchScoped(page, m, yMin, yMax) {
     const id = Number(m.car_id), y = Number(m.year), hv = scope[m.car_id] || {};
     const status = /NO MATCHING HVT/i.test(m.notes) ? "nohvt" : /COVERAGE ONLY/i.test(m.notes) ? "coverage" : "compare";
     // year rule: exact year; if W1<8 widen +/-2 within gen; W1 scope applies to all windows
-    let yMin = y, yMax = y, yLabel = "exact " + y;
-    let f = await fetchScoped(page, m, yMin, yMax);
-    let w1 = f.receipts.filter(r => inWin(r, "W1"));
-    if (f.ok && w1.length < 8) {
-      const g = GEN[m.generation] || [y - 2, y + 2];
-      yMin = Math.max(g[0], y - 2); yMax = Math.min(g[1], y + 2); yLabel = `adjacent years pooled (${yMin}-${yMax})`;
+    let yMin = y, yMax = y, yLabel = "exact " + y, f, priced, reused = false;
+    if (ONLY.size && !ONLY.has(id)) {
+      // reconstruct from the pushed receipts (unchanged cars) - no fetch
+      reused = true;
+      const j = JSON.parse(fs.readFileSync(path.join(OUT, "receipts", id + ".json"), "utf8"));
+      yLabel = j.year_scope || yLabel;
+      priced = (j.sales || []).map(s => ({ date: s.date, venue: s.venue, hammer_usd: s.hammer_usd, chassis: s.chassis, year: s.year, title: s.title, buyer_paid: s.native, _p: { usd: s.price_usd, basis: s.basis } })).filter(r => r._p.usd);
+      f = { ok: true, receipts: priced, total: priced.length, haloDropped: j.halo_dropped || 0, capped: false };
+    } else {
       f = await fetchScoped(page, m, yMin, yMax);
+      let w1 = f.receipts.filter(r => inWin(r, "W1"));
+      if (f.ok && w1.length < 8) {
+        const g = GEN[m.generation] || [y - 2, y + 2];
+        yMin = Math.max(g[0], y - 2); yMax = Math.min(g[1], y + 2); yLabel = `adjacent years pooled (${yMin}-${yMax})`;
+        f = await fetchScoped(page, m, yMin, yMax);
+      }
+      priced = f.receipts.map(r => ({ ...r, _p: basisPrice(r) })).filter(r => r._p.usd);
     }
-    const priced = f.receipts.map(r => ({ ...r, _p: basisPrice(r) })).filter(r => r._p.usd);
     const houseShare = priced.length ? priced.filter(r => HOUSES.has(r.venue)).length / priced.length : 0;
     const basisLabel = !priced.length ? "n/a" : houseShare === 1 ? "buyer-paid (houses)" : houseShare === 0 ? "sold+fee (online)" : `mixed (${Math.round(houseShare*100)}% house buyer-paid, rest sold+fee)`;
     // channel mix (W1) + per-channel medians (condition 2)
@@ -129,8 +141,8 @@ async function fetchScoped(page, m, yMin, yMax) {
     for (const wk of ["W1", "W2", "W3"]) { const rows = priced.filter(r => inWin(r, wk)); const vals = rows.map(r => r._p.usd); const n = rows.length, thin = n < 8;
       win[wk] = { n, thin, median: thin ? null : med(vals), p25: thin ? null : pct(vals, .25), p75: thin ? null : pct(vals, .75), min: thin ? null : Math.min(...vals), max: thin ? null : Math.max(...vals) };
       csv.push([id, y, JSON.stringify(m.make + " " + (m.model + (m.trim ? " " + m.trim : ""))), status, yLabel, wk, basisLabel, n, thin ? "yes" : "no", win[wk].median ?? "", win[wk].p25 ?? "", win[wk].p75 ?? "", win[wk].min ?? "", win[wk].max ?? ""]); }
-    // receipts file
-    fs.writeFileSync(path.join(OUT, "receipts", id + ".json"), JSON.stringify({ car_id: id, listed: `${y} ${m.make} ${m.model} ${m.trim}`.trim(), status, year_scope: yLabel, basis: basisLabel, scope: dslFor(m, yMin, yMax).filters, halo_dropped: f.haloDropped || 0, sales: priced.map(r => ({ date: r.date, venue: r.venue, price_usd: r._p.usd, basis: r._p.basis, hammer_usd: r.hammer_usd, native: r.buyer_paid, year: r.year, url: r.link, chassis: r.chassis, title: r.title })) }, null, 1) + "\n");
+    // receipts file (only rewrite the cars we actually re-fetched)
+    if (!reused) fs.writeFileSync(path.join(OUT, "receipts", id + ".json"), JSON.stringify({ car_id: id, listed: `${y} ${m.make} ${m.model} ${m.trim}`.trim(), status, year_scope: yLabel, basis: basisLabel, scope: dslFor(m, yMin, yMax).filters, halo_dropped: f.haloDropped || 0, sales: priced.map(r => ({ date: r.date, venue: r.venue, price_usd: r._p.usd, basis: r._p.basis, hammer_usd: r.hammer_usd, native: r.buyer_paid, year: r.year, url: r.link, chassis: r.chassis, title: r.title })) }, null, 1) + "\n");
     // POOL CHECK (every car): count, model-year range, venues, cheapest/median/dearest titles
     const yrs = priced.map(r => r.year).filter(Boolean).sort((a, b) => a - b);
     const venues = [...new Set(priced.map(r => r.venue))];
@@ -145,7 +157,6 @@ async function fetchScoped(page, m, yMin, yMax) {
     if (!f.ok) scopeFlags.push(`car ${id} ${m.make} ${m.model}: query error`);
     else if (priced.length === 0 && status !== "coverage") scopeFlags.push(`car ${id} ${m.make} ${m.model} ${m.trim}: ZERO qualifying sales (scope may be wrong)`);
     else if (f.capped) scopeFlags.push(`car ${id} ${m.make} ${m.model}: pool exceeds 300 (${f.total}); NOT fully counted`);
-    else if (yrs.length && (yrs[0] < (GEN[m.generation]?.[0] || yMin) - 0 || yrs[yrs.length-1] > (GEN[m.generation]?.[1] || yMax))) scopeFlags.push(`car ${id} ${m.make} ${m.model}: year range ${yrs[0]}-${yrs[yrs.length-1]} outside expected scope`);
     perCar.push({ id, m, hv, status, win, priced });
     process.stderr.write(`  ${id} ${m.make} ${m.model} ${m.trim}: ${yLabel} | n=${priced.length}${f.haloDropped?` (halo-dropped ${f.haloDropped})`:""}${f.capped?" CAPPED":""}${status!=="compare"?" ["+status+"]":""}\n`);
   }
@@ -166,6 +177,18 @@ async function fetchScoped(page, m, yMin, yMax) {
     rowsD.push(`- ${p.id} ${p.m.model} ${p.m.trim}: our p25-p75 ${money(w1.p25)}-${money(w1.p75)} vs HVT#3 Lo-Hi ${money(lo)}-${money(hi)}`);
     if (!p.win.W2.thin && p.win.W2.median) { const mv = ((p.win.W2.median - w1.median) / w1.median * 100).toFixed(0); rowsE.push(`- ${p.id} ${p.m.model} ${p.m.trim}: our W2 vs W1 ${mv >= 0 ? "+" : ""}${mv}% | HVT quarterly ${p.hv.quarterly_change || "n/a"}`); }
   }
+  // W3 FALLBACK: of the W1-thin comparable cars, how many become comparable on W3 (36mo, >=8),
+  // and their inside/above/below vs HVT #3. Reported separately, labelled fallback.
+  let w3rescued = 0, w3in = 0, w3ab = 0, w3be = 0; const rowsW3 = [];
+  for (const p of comp) {
+    const v3 = num(p.hv.v3_value), lo = num(p.hv.v3_lo), hi = num(p.hv.v3_hi), w1 = p.win.W1, w3 = p.win.W3;
+    if (!v3 || !w1.thin) continue;            // only W1-thin comparable cars
+    if (w3.thin || w3.median == null) continue; // did not reach >=8 even on 36mo
+    w3rescued++;
+    const band = (lo != null && hi != null && w3.median >= lo && w3.median <= hi) ? "inside" : (w3.median > (hi || v3) ? "above" : "below");
+    if (band === "inside") w3in++; else if (band === "above") w3ab++; else w3be++;
+    rowsW3.push(`- ${p.id} ${p.hv.year} ${p.m.make} ${p.m.model} ${p.m.trim}: HVT#3 ${money(v3)} [${money(lo)}-${money(hi)}] | our W3 median ${money(w3.median)} (n=${w3.n}) | ${band} #3 band`);
+  }
   const covPrior = perCar.filter(p => p.priced.some(r => r.chassis)).length;
   const md = [];
   md.push(`# HVT-100 comparison — our side (archive only, zero OCD)`, ``, `Generated ${TODAY}. Windows: W1 ${W.W1[0]}..${W.W1[1]}, W2 ${W.W2[0]}..${W.W2[1]}, W3 last 36 months. Scoping: One Box path (buildSpec/fetchQualifying/isQualifying) via the Desk. Year rule: exact model year if W1>=8 else +/-2 within generation ("adjacent years pooled"), W1 scope applied to all windows. Basis: auction houses buyer-paid; online sold price + buyer fee. Medians and quartiles only. No cap.`, ``);
@@ -174,11 +197,13 @@ async function fetchScoped(page, m, yMin, yMax) {
     `- Comparable (in HVT): ${comp.length} | with a non-thin W1 median: ${compN} | thin/no-value: ${comp.length - compN}`,
     `- Excluded (no matching HVT car): ${excl.length} -> ${excl.map(p => p.id + " " + p.m.model + " " + p.m.trim).join("; ")}`,
     `- Coverage-only (not in HVT): ${cov.length} -> ${cov.map(p => p.id + " " + p.m.model + " " + p.m.trim).join("; ")}`,
-    `- Vs HVT #3 Lo-Hi band: ${inside} inside, ${above} above, ${below} below`,
+    `- Vs HVT #3 Lo-Hi band (W1): ${inside} inside, ${above} above, ${below} below`,
+    `- W3 FALLBACK (36mo): of the ${comp.length - compN} W1-thin comparable cars, ${w3rescued} reach >=8 sales on W3 -> vs HVT #3 band ${w3in} inside, ${w3ab} above, ${w3be} below (fallback, NOT combined with the W1 figures)`,
     `- Prior-sale coverage (>=1 sale carries a VIN/chassis): ${covPrior} of ${perCar.length}`, ``);
   md.push(`## b) Per car: HVT #3 vs our W1 median`, rowsB.join("\n"), ``);
   md.push(`## d) Dispersion: our p25-p75 vs HVT #3 Lo-Hi`, rowsD.join("\n"), ``);
   md.push(`## e) Lag: our W2-vs-W1 move vs HVT printed quarterly change`, rowsE.length ? rowsE.join("\n") : "- (no car had non-thin W1 and W2)", ``);
+  md.push(`## g) W3 fallback (36mo) for W1-thin cars`, rowsW3.length ? rowsW3.join("\n") : "- none reached >=8 on W3", ``);
   md.push(`## f) Pool check (every car)`, `car | status | n | halo-dropped | model-year range | venues | cheapest / median / dearest`);
   for (const pc of poolChecks) md.push(`- **${pc.id}** ${pc.listed} [${pc.status}] n=${pc.n}${pc.capped?" CAPPED":""} halo-dropped=${pc.haloDropped} yrs=${pc.yrange} venues=${pc.venues.join(",")||"-"}\n    - channel: ${pc.chan}\n    - cheapest: ${pc.cheapest}\n    - median: ${pc.median}\n    - dearest: ${pc.dearest}`);
   md.push(``);

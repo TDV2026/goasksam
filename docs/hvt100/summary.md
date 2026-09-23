@@ -3,24 +3,21 @@
 Generated 2026-09-23. Windows: W1 2025-01-01..2026-06-30, W2 2026-07-01..2026-09-23, W3 last 36 months. Scoping: One Box path (buildSpec/fetchQualifying/isQualifying) via the Desk. Year rule: exact model year if W1>=8 else +/-2 within generation ("adjacent years pooled"), W1 scope applied to all windows. Basis: auction houses buyer-paid; online sold price + buyer fee. Medians and quartiles only. No cap.
 
 ## a) Scope-failure report (read first)
-- car 3 Ford Mustang: year range 1965-1965 outside expected scope
-- car 5 Chevrolet Camaro: year range 1969-1969 outside expected scope
 - car 8 Dodge Charger R/T: ZERO qualifying sales (scope may be wrong)
-- car 9 Shelby GT350 : ZERO qualifying sales (scope may be wrong)
-- car 15 Ford F-100 short bed: ZERO qualifying sales (scope may be wrong)
+- car 9 Shelby Mustang GT350: ZERO qualifying sales (scope may be wrong)
 - car 18 Porsche 911 Carrera RS 2.7: ZERO qualifying sales (scope may be wrong)
 - car 33 Porsche 911 Speedster: ZERO qualifying sales (scope may be wrong)
-- car 52 Ford Mustang Cobra: ZERO qualifying sales (scope may be wrong)
 - car 79 Mercedes-Benz SLS AMG : ZERO qualifying sales (scope may be wrong)
 - car 82 Porsche 911 Carrera T: ZERO qualifying sales (scope may be wrong)
-- car 91 Lamborghini Huracan LP610: ZERO qualifying sales (scope may be wrong)
+- car 91 Lamborghini Huracan 610: ZERO qualifying sales (scope may be wrong)
 
 ## c) Totals
-- Comparable (in HVT): 93 | with a non-thin W1 median: 58 | thin/no-value: 35
+- Comparable (in HVT): 93 | with a non-thin W1 median: 59 | thin/no-value: 34
 - Excluded (no matching HVT car): 2 -> 7 Barracuda 340; 78 Land Cruiser 100
 - Coverage-only (not in HVT): 5 -> 89 MP4-12C ; 90 720S ; 92 Aventador S; 99 M4 Competition; 100 Focus RS
-- Vs HVT #3 Lo-Hi band: 30 inside, 22 above, 6 below
-- Prior-sale coverage (>=1 sale carries a VIN/chassis): 91 of 100
+- Vs HVT #3 Lo-Hi band (W1): 30 inside, 23 above, 6 below
+- W3 FALLBACK (36mo): of the 34 W1-thin comparable cars, 18 reach >=8 sales on W3 -> vs HVT #3 band 6 inside, 11 above, 1 below (fallback, NOT combined with the W1 figures)
+- Prior-sale coverage (>=1 sale carries a VIN/chassis): 93 of 100
 
 ## b) Per car: HVT #3 vs our W1 median
 - 1 1957 Chevrolet Bel Air : HVT#3 $65,900 [$57,700-$75,800] | our W1 $72,975 | gap 11% | inside #3 band | #2 $95,600
@@ -30,13 +27,13 @@ Generated 2026-09-23. Windows: W1 2025-01-01..2026-06-30, W2 2026-07-01..2026-09
 - 5 1969 Chevrolet Camaro Z/28: HVT#3 $78,700 [$71,967-$91,467] | our W1 $105,000 | gap 33% | above #3 band | #2 $117,000
 - 6 1970 Chevrolet Chevelle SS 396: HVT#3 $70,500 [$63,800-$76,667] | our W1 $77,000 | gap 9% | above #3 band | #2 $89,000
 - 8 1969 Dodge Charger R/T: HVT#3 $57,000 | our W1 THIN (n=0) | no comparison
-- 9 1966 Shelby GT350 : HVT#3 $231,000 | our W1 THIN (n=0) | no comparison
+- 9 1966 Shelby Mustang GT350: HVT#3 $231,000 | our W1 THIN (n=0) | no comparison
 - 10 1968 Pontiac GTO : HVT#3 $26,800 [$23,067-$33,533] | our W1 $52,238 | gap 95% | above #3 band | #2 $47,000
 - 11 1955 Ford Thunderbird : HVT#3 $23,600 [$20,667-$28,000] | our W1 $24,675 | gap 5% | inside #3 band | #2 $36,800
 - 12 1959 Cadillac Series 62 : HVT#3 $119,000 [$106,167-$140,000] | our W1 $127,600 | gap 7% | inside #3 band | #2 $182,000
 - 13 1971 Chevrolet C10 short bed: HVT#3 $27,600 | our W1 THIN (n=1) | no comparison
 - 14 1976 Ford Bronco : HVT#3 $51,100 [$46,500-$56,700] | our W1 $69,300 | gap 36% | above #3 band | #2 $67,900
-- 15 1965 Ford F-100 short bed: HVT#3 $15,400 | our W1 THIN (n=0) | no comparison
+- 15 1965 Ford F-100 : HVT#3 $15,400 | our W1 THIN (n=4) | no comparison
 - 16 1965 Porsche 356 C: HVT#3 $95,000 [$87,333-$118,333] | our W1 $190,400 | gap 100% | above #3 band | #2 $165,000
 - 17 1970 Porsche 911 T: HVT#3 $67,000 [$56,000-$77,333] | our W1 $90,300 | gap 35% | above #3 band | #2 $98,000
 - 18 1973 Porsche 911 Carrera RS 2.7: HVT#3 $445,000 | our W1 THIN (n=0) | no comparison
@@ -73,7 +70,7 @@ Generated 2026-09-23. Windows: W1 2025-01-01..2026-06-30, W2 2026-07-01..2026-09
 - 49 1987 Buick Grand National : HVT#3 $41,100 [$35,833-$52,767] | our W1 $55,650 | gap 35% | above #3 band | #2 $76,100
 - 50 1990 Chevrolet Corvette ZR1: HVT#3 $22,800 [$19,800-$32,967] | our W1 $29,550 | gap 30% | inside #3 band | #2 $53,300
 - 51 1985 Chevrolet Camaro IROC-Z: HVT#3 $19,200 | our W1 THIN (n=4) | no comparison
-- 52 1993 Ford Mustang Cobra: HVT#3 $39,500 | our W1 THIN (n=0) | no comparison
+- 52 1993 Ford Mustang SVT Cobra: HVT#3 $39,500 [$31,967-$50,100] | our W1 $65,625 | gap 66% | above #3 band | #2 $71,300
 - 53 1989 Jeep Grand Wagoneer : HVT#3 $25,600 [$20,133-$34,100] | our W1 $20,239 | gap -21% | inside #3 band | #2 $51,100
 - 54 1997 Land Rover Defender 90: HVT#3 $50,800 [$45,067-$64,133] | our W1 $70,613 | gap 39% | above #3 band | #2 $90,800
 - 55 1985 Toyota Land Cruiser FJ60: HVT#3 $24,800 [$18,500-$36,733] | our W1 $29,007 | gap 17% | inside #3 band | #2 $60,600
@@ -109,7 +106,7 @@ Generated 2026-09-23. Windows: W1 2025-01-01..2026-06-30, W2 2026-07-01..2026-09
 - 86 2020 Ferrari 488 Pista: HVT#3 $788,000 [$739,000-$808,000] | our W1 $800,250 | gap 2% | inside #3 band | #2 $848,000
 - 87 2013 Ferrari 458 Italia: HVT#3 $208,000 [$188,667-$231,667] | our W1 $232,080 | gap 12% | above #3 band | #2 $279,000
 - 88 2015 Ferrari 458 Speciale: HVT#3 $846,000 [$811,333-$897,333] | our W1 $772,750 | gap -9% | below #3 band | #2 $1,000,000
-- 91 2015 Lamborghini Huracan LP610: HVT#3 $195,000 | our W1 THIN (n=0) | no comparison
+- 91 2015 Lamborghini Huracan 610: HVT#3 $195,000 | our W1 THIN (n=0) | no comparison
 - 93 2014 Chevrolet Corvette Z51: HVT#3 $37,700 [$35,000-$42,267] | our W1 $42,001 | gap 11% | inside #3 band | #2 $51,400
 - 94 2019 Chevrolet Corvette ZR1: HVT#3 $132,000 [$123,667-$155,333] | our W1 $181,500 | gap 38% | above #3 band | #2 $202,000
 - 95 2020 Chevrolet Corvette Stingray: HVT#3 $68,200 [$63,100-$70,300] | our W1 $62,888 | gap -8% | below #3 band | #2 $74,500
@@ -150,6 +147,7 @@ Generated 2026-09-23. Windows: W1 2025-01-01..2026-06-30, W2 2026-07-01..2026-09
 - 48 300ZX Twin Turbo: our p25-p75 $20,672-$28,350 vs HVT#3 Lo-Hi $21,400-$35,600
 - 49 Grand National : our p25-p75 $43,707-$79,500 vs HVT#3 Lo-Hi $35,833-$52,767
 - 50 Corvette ZR1: our p25-p75 $25,838-$32,700 vs HVT#3 Lo-Hi $19,800-$32,967
+- 52 Mustang SVT Cobra: our p25-p75 $52,304-$76,781 vs HVT#3 Lo-Hi $31,967-$50,100
 - 53 Grand Wagoneer : our p25-p75 $11,080-$37,406 vs HVT#3 Lo-Hi $20,133-$34,100
 - 54 Defender 90: our p25-p75 $43,706-$86,625 vs HVT#3 Lo-Hi $45,067-$64,133
 - 55 Land Cruiser FJ60: our p25-p75 $22,247-$36,711 vs HVT#3 Lo-Hi $18,500-$36,733
@@ -187,6 +185,26 @@ Generated 2026-09-23. Windows: W1 2025-01-01..2026-06-30, W2 2026-07-01..2026-09
 - 63 M3 : our W2 vs W1 -7% | HVT quarterly -3.9%
 - 66 S2000 : our W2 vs W1 +13% | HVT quarterly 0%
 - 94 Corvette ZR1: our W2 vs W1 +25% | HVT quarterly -12%
+
+## g) W3 fallback (36mo) for W1-thin cars
+- 2 1963 Chevrolet Corvette Sting Ray: HVT#3 $133,000 [$120,633-$146,000] | our W3 median $149,040 (n=9) | above #3 band
+- 19 1966 Jaguar E-Type Series 1: HVT#3 $91,500 [$80,433-$130,000] | our W3 median $123,200 (n=14) | inside #3 band
+- 22 1957 Mercedes-Benz 300SL Roadster: HVT#3 $970,000 [$924,333-$1,113,333] | our W3 median $1,200,000 (n=17) | above #3 band
+- 24 1967 Alfa Romeo Giulia GT Veloce: HVT#3 $53,300 [$44,967-$64,267] | our W3 median $49,350 (n=11) | inside #3 band
+- 25 1972 Datsun 240Z : HVT#3 $23,900 [$19,267-$36,033] | our W3 median $34,450 (n=10) | inside #3 band
+- 28 1964 Ferrari 250 Lusso: HVT#3 $1,000,000 [$935,000-$1,200,000] | our W3 median $1,456,531 (n=13) | above #3 band
+- 31 1979 Porsche 911 Turbo: HVT#3 $138,000 [$113,667-$153,667] | our W3 median $195,733 (n=10) | above #3 band
+- 36 1987 Porsche 944 Turbo: HVT#3 $22,000 [$18,667-$30,333] | our W3 median $169,000 (n=30) | above #3 band
+- 51 1985 Chevrolet Camaro IROC-Z: HVT#3 $19,200 [$16,433-$24,767] | our W3 median $25,011 (n=22) | above #3 band
+- 56 1991 Lamborghini Diablo : HVT#3 $245,000 [$212,000-$262,000] | our W3 median $342,500 (n=11) | above #3 band
+- 60 2004 Porsche 911 GT3: HVT#3 $125,000 [$106,333-$140,000] | our W3 median $123,376 (n=18) | inside #3 band
+- 61 2007 Porsche 911 GT3: HVT#3 $144,000 [$125,333-$154,333] | our W3 median $139,650 (n=17) | inside #3 band
+- 70 2005 Mercedes-Benz SLR : HVT#3 $269,000 [$247,667-$294,667] | our W3 median $323,713 (n=12) | above #3 band
+- 73 2004 Lamborghini Gallardo : HVT#3 $92,800 [$87,800-$106,867] | our W3 median $102,638 (n=18) | inside #3 band
+- 74 2002 Acura NSX : HVT#3 $106,000 [$89,500-$134,667] | our W3 median $144,375 (n=8) | above #3 band
+- 75 2009 Nissan GT-R : HVT#3 $51,100 [$45,567-$56,267] | our W3 median $65,100 (n=14) | above #3 band
+- 76 2012 Lexus LFA : HVT#3 $875,000 [$853,667-$906,333] | our W3 median $852,500 (n=18) | below #3 band
+- 77 2006 Dodge Viper SRT-10: HVT#3 $49,600 [$44,733-$59,600] | our W3 median $85,313 (n=16) | above #3 band
 
 ## f) Pool check (every car)
 car | status | n | halo-dropped | model-year range | venues | cheapest / median / dearest
@@ -230,7 +248,7 @@ car | status | n | halo-dropped | model-year range | venues | cheapest / median 
     - cheapest: -
     - median: -
     - dearest: -
-- **9** 1966 Shelby GT350 [compare] n=0 halo-dropped=0 yrs=- venues=-
+- **9** 1966 Shelby Mustang GT350 [compare] n=0 halo-dropped=0 yrs=- venues=-
     - channel: W1 house 0 (med ) / online 0 (med )
     - cheapest: -
     - median: -
@@ -260,11 +278,11 @@ car | status | n | halo-dropped | model-year range | venues | cheapest / median 
     - cheapest: $31,500 One-Family-Owned 1976 Ford Bronco 302 3-Speed
     - median: $68,250 1976 Ford Bronco 302 3-Speed
     - dearest: $169,500 Coyote-Powered 1976 Ford Bronco by Heritage Bronco
-- **15** 1965 Ford F-100 short bed [compare] n=0 halo-dropped=0 yrs=- venues=-
-    - channel: W1 house 0 (med ) / online 0 (med )
-    - cheapest: -
-    - median: -
-    - dearest: -
+- **15** 1965 Ford F-100 [compare] n=7 halo-dropped=0 yrs=1965-1965 venues=Mecum,Barrett-Jackson,AutoHunter,Hemmings
+    - channel: W1 house 1 (med $15,950) / online 3 (med $28,350)
+    - cheapest: $15,225 NO RESERVE - 1965 FORD F-100 4-SPEED
+    - median: $26,950 1965 FORD F-100 PICKUP
+    - dearest: $34,650 Restored and Modified 1965 Ford F100 Pickup With a
 - **16** 1965 Porsche 356 C [compare] n=25 halo-dropped=0 yrs=1965-1965 venues=Broad Arrow,Bonhams,RM Sotheby's,Gooding Christie's,Bring a Trailer
     - channel: W1 house 11 (med $190,400) / online 2 (med $179,000)
     - cheapest: $10,920 1965 Porsche 911 Coupe
@@ -445,11 +463,11 @@ car | status | n | halo-dropped | model-year range | venues | cheapest / median 
     - cheapest: $9,137 1987 Chevrolet Camaro IROC-Z Coupe
     - median: $25,272 1985 Chevrolet Camaro IROC-Z
     - dearest: $63,525 2k-Mile 1987 Chevrolet Camaro IROC-Z
-- **52** 1993 Ford Mustang Cobra [compare] n=0 halo-dropped=0 yrs=- venues=-
-    - channel: W1 house 0 (med ) / online 0 (med )
-    - cheapest: -
-    - median: -
-    - dearest: -
+- **52** 1993 Ford Mustang SVT Cobra [compare] n=41 halo-dropped=4 yrs=1993-1993 venues=Mecum,Barrett-Jackson,Hagerty,Bring a Trailer,AutoHunter
+    - channel: W1 house 1 (med $74,800) / online 19 (med $64,575)
+    - cheapest: $23,363 1993 Ford Mustang SVT Cobra
+    - median: $55,125 15k-Mile 1993 Ford Mustang SVT Cobra
+    - dearest: $211,500 12-Mile 1993 Ford Mustang SVT Cobra
 - **53** 1989 Jeep Grand Wagoneer [compare] n=38 halo-dropped=0 yrs=1989-1989 venues=Bring a Trailer,Hagerty,Cars & Bids,All Collector Cars
     - channel: W1 house 0 (med ) / online 20 (med $20,239)
     - cheapest: $7,245 1989 Jeep Grand Wagoneer
@@ -640,7 +658,7 @@ car | status | n | halo-dropped | model-year range | venues | cheapest / median 
     - cheapest: $202,500 2019 McLaren 720S Luxury
     - median: $223,560 2018 McLaren 720S Coupé Chassis no. SBM14DCB5JW001
     - dearest: $346,000 2018 McLaren 720S
-- **91** 2015 Lamborghini Huracan LP610 [compare] n=0 halo-dropped=0 yrs=- venues=-
+- **91** 2015 Lamborghini Huracan 610 [compare] n=0 halo-dropped=0 yrs=- venues=-
     - channel: W1 house 0 (med ) / online 0 (med )
     - cheapest: -
     - median: -

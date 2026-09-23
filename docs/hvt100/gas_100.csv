@@ -23,9 +23,9 @@ car_id,year,make,model_trim,status,year_scope_used,window,basis,n,thin,median,p2
 8,1969,"Dodge Charger R/T",compare,adjacent years pooled (1967-1971),W1,n/a,0,yes,,,,,
 8,1969,"Dodge Charger R/T",compare,adjacent years pooled (1967-1971),W2,n/a,0,yes,,,,,
 8,1969,"Dodge Charger R/T",compare,adjacent years pooled (1967-1971),W3,n/a,0,yes,,,,,
-9,1966,"Shelby GT350",compare,adjacent years pooled (1964-1968),W1,n/a,0,yes,,,,,
-9,1966,"Shelby GT350",compare,adjacent years pooled (1964-1968),W2,n/a,0,yes,,,,,
-9,1966,"Shelby GT350",compare,adjacent years pooled (1964-1968),W3,n/a,0,yes,,,,,
+9,1966,"Shelby Mustang GT350",compare,adjacent years pooled (1964-1968),W1,n/a,0,yes,,,,,
+9,1966,"Shelby Mustang GT350",compare,adjacent years pooled (1964-1968),W2,n/a,0,yes,,,,,
+9,1966,"Shelby Mustang GT350",compare,adjacent years pooled (1964-1968),W3,n/a,0,yes,,,,,
 10,1968,"Pontiac GTO",compare,adjacent years pooled (1966-1970),W1,mixed (15% house buyer-paid, rest sold+fee),48,no,52238,42985,61911,26513,136500
 10,1968,"Pontiac GTO",compare,adjacent years pooled (1966-1970),W2,mixed (15% house buyer-paid, rest sold+fee),14,no,56700,46056,66693,41738,115500
 10,1968,"Pontiac GTO",compare,adjacent years pooled (1966-1970),W3,mixed (15% house buyer-paid, rest sold+fee),85,no,49875,41738,59850,23625,136500
@@ -41,9 +41,9 @@ car_id,year,make,model_trim,status,year_scope_used,window,basis,n,thin,median,p2
 14,1976,"Ford Bronco",compare,exact 1976,W1,sold+fee (online),16,no,69300,61031,146213,48300,169500
 14,1976,"Ford Bronco",compare,exact 1976,W2,sold+fee (online),3,yes,,,,,
 14,1976,"Ford Bronco",compare,exact 1976,W3,sold+fee (online),27,no,68250,54863,73909,31500,169500
-15,1965,"Ford F-100 short bed",compare,adjacent years pooled (1963-1967),W1,n/a,0,yes,,,,,
-15,1965,"Ford F-100 short bed",compare,adjacent years pooled (1963-1967),W2,n/a,0,yes,,,,,
-15,1965,"Ford F-100 short bed",compare,adjacent years pooled (1963-1967),W3,n/a,0,yes,,,,,
+15,1965,"Ford F-100",compare,adjacent years pooled (1963-1967),W1,mixed (29% house buyer-paid, rest sold+fee),4,yes,,,,,
+15,1965,"Ford F-100",compare,adjacent years pooled (1963-1967),W2,mixed (29% house buyer-paid, rest sold+fee),0,yes,,,,,
+15,1965,"Ford F-100",compare,adjacent years pooled (1963-1967),W3,mixed (29% house buyer-paid, rest sold+fee),7,yes,,,,,
 16,1965,"Porsche 356 C",compare,exact 1965,W1,mixed (84% house buyer-paid, rest sold+fee),13,no,190400,167670,225500,136620,472500
 16,1965,"Porsche 356 C",compare,exact 1965,W2,mixed (84% house buyer-paid, rest sold+fee),1,yes,,,,,
 16,1965,"Porsche 356 C",compare,exact 1965,W3,mixed (84% house buyer-paid, rest sold+fee),25,no,192500,165500,250000,10920,472500
@@ -152,9 +152,9 @@ car_id,year,make,model_trim,status,year_scope_used,window,basis,n,thin,median,p2
 51,1985,"Chevrolet Camaro IROC-Z",compare,adjacent years pooled (1983-1987),W1,mixed (32% house buyer-paid, rest sold+fee),4,yes,,,,,
 51,1985,"Chevrolet Camaro IROC-Z",compare,adjacent years pooled (1983-1987),W2,mixed (32% house buyer-paid, rest sold+fee),5,yes,,,,,
 51,1985,"Chevrolet Camaro IROC-Z",compare,adjacent years pooled (1983-1987),W3,mixed (32% house buyer-paid, rest sold+fee),22,no,25011,16604,32860,9137,63525
-52,1993,"Ford Mustang Cobra",compare,adjacent years pooled (1991-1993),W1,n/a,0,yes,,,,,
-52,1993,"Ford Mustang Cobra",compare,adjacent years pooled (1991-1993),W2,n/a,0,yes,,,,,
-52,1993,"Ford Mustang Cobra",compare,adjacent years pooled (1991-1993),W3,n/a,0,yes,,,,,
+52,1993,"Ford Mustang SVT Cobra",compare,exact 1993,W1,mixed (2% house buyer-paid, rest sold+fee),20,no,65625,52304,76781,39375,211500
+52,1993,"Ford Mustang SVT Cobra",compare,exact 1993,W2,mixed (2% house buyer-paid, rest sold+fee),2,yes,,,,,
+52,1993,"Ford Mustang SVT Cobra",compare,exact 1993,W3,mixed (2% house buyer-paid, rest sold+fee),41,no,55125,47250,66675,23363,211500
 53,1989,"Jeep Grand Wagoneer",compare,exact 1989,W1,sold+fee (online),20,no,20239,11080,37406,7245,79800
 53,1989,"Jeep Grand Wagoneer",compare,exact 1989,W2,sold+fee (online),2,yes,,,,,
 53,1989,"Jeep Grand Wagoneer",compare,exact 1989,W3,sold+fee (online),38,no,23415,14989,36685,7245,79800
@@ -269,9 +269,9 @@ car_id,year,make,model_trim,status,year_scope_used,window,basis,n,thin,median,p2
 90,2019,"McLaren 720S",coverage,adjacent years pooled (2017-2021),W1,mixed (43% house buyer-paid, rest sold+fee),2,yes,,,,,
 90,2019,"McLaren 720S",coverage,adjacent years pooled (2017-2021),W2,mixed (43% house buyer-paid, rest sold+fee),2,yes,,,,,
 90,2019,"McLaren 720S",coverage,adjacent years pooled (2017-2021),W3,mixed (43% house buyer-paid, rest sold+fee),7,yes,,,,,
-91,2015,"Lamborghini Huracan LP610",compare,adjacent years pooled (2013-2017),W1,n/a,0,yes,,,,,
-91,2015,"Lamborghini Huracan LP610",compare,adjacent years pooled (2013-2017),W2,n/a,0,yes,,,,,
-91,2015,"Lamborghini Huracan LP610",compare,adjacent years pooled (2013-2017),W3,n/a,0,yes,,,,,
+91,2015,"Lamborghini Huracan 610",compare,adjacent years pooled (2013-2017),W1,n/a,0,yes,,,,,
+91,2015,"Lamborghini Huracan 610",compare,adjacent years pooled (2013-2017),W2,n/a,0,yes,,,,,
+91,2015,"Lamborghini Huracan 610",compare,adjacent years pooled (2013-2017),W3,n/a,0,yes,,,,,
 92,2018,"Lamborghini Aventador S",coverage,adjacent years pooled (2016-2020),W1,mixed (50% house buyer-paid, rest sold+fee),2,yes,,,,,
 92,2018,"Lamborghini Aventador S",coverage,adjacent years pooled (2016-2020),W2,mixed (50% house buyer-paid, rest sold+fee),0,yes,,,,,
 92,2018,"Lamborghini Aventador S",coverage,adjacent years pooled (2016-2020),W3,mixed (50% house buyer-paid, rest sold+fee),6,yes,,,,,

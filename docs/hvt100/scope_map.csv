@@ -7,13 +7,13 @@ car_id,year,make,model,trim,body,generation,year_scope,notes
 6,1970,Chevrolet,Chevelle,SS 396,coupe,,exact,"exclude LS6/SS 454, convertible"
 7,1970,Plymouth,Barracuda,340,coupe,,exact,"NO MATCHING HVT CAR (HVT gave AAR); run, exclude from comparison"
 8,1969,Dodge,Charger,R/T,coupe,,exact,SCOPE GAP: trim R/T (slash) matches no titles via Desk; model-only pulls all Chargers; cannot isolate R/T without product fix
-9,1966,Shelby,GT350,,fastback,,exact,"1966 Shelby GT350; exclude GT500, GT350H if priced apart"
+9,1966,Shelby,Mustang,GT350,,,exact,Shelby GT350 fastback; trim GT350 to exclude GT500 contamination; body cleared (all GT350 are fastbacks)
 10,1968,Pontiac,GTO,,coupe,,exact,"exclude Judge, Ram Air IV/V halos, convertible"
 11,1955,Ford,Thunderbird,,convertible,,exact,1955 292 V8
 12,1959,Cadillac,Series 62,,convertible,,exact,1959 convertible
 13,1971,Chevrolet,C10,short bed,pickup,,exact,"exclude restomod/LS-swap/big-block/Cheyenne Super/Blazer, long bed, 4x4"
 14,1976,Ford,Bronco,,wagon,1st,exact,1966-77 1st gen; exclude restomod/Baja/restomod
-15,1965,Ford,F-100,short bed,,,exact,"styleside short bed; exclude restomod, long bed"
+15,1965,Ford,F-100,,,,exact,F-100 short bed; drop trim (short bed not title-separable); genuinely thin
 16,1965,Porsche,356,C,coupe,356C,exact,"356C coupe; exclude Cabriolet, SC, earlier A/B"
 17,1970,Porsche,911,T,coupe,901,exact,"1970 long-hood 901/F-body; exclude S/E, Targa, hot-rod/outlaw/backdate"
 18,1973,Porsche,911,Carrera RS 2.7,coupe,901,exact,Touring (M472); EXCLUDE Lightweight (M471) halo + RSR
@@ -50,7 +50,7 @@ car_id,year,make,model,trim,body,generation,year_scope,notes
 49,1987,Buick,Grand National,,coupe,,exact,"Buick Regal GN; EXCLUDE GNX halo, T-Type"
 50,1990,Chevrolet,Corvette,ZR1,coupe,C4,exact,C4 ZR-1 LT5; exclude base C4
 51,1985,Chevrolet,Camaro,IROC-Z,coupe,3rd,exact,"exclude base Z28, convertible, 1LE if priced apart"
-52,1993,Ford,Mustang,Cobra,hatchback,Fox,exact,"1993 SVT Cobra Fox; EXCLUDE Cobra R halo, GT/LX"
+52,1993,Ford,Mustang,SVT Cobra,,Fox,exact,1993 SVT Cobra Fox; trim 'SVT Cobra' (base 'Cobra' halo-excluded); EXCLUDE Cobra R
 53,1989,Jeep,Grand Wagoneer,,wagon,,exact,Jeep Grand Wagoneer
 54,1997,Land Rover,Defender,90,wagon,,exact,"NAS 90 1997; exclude 110/130, later 2020 Defender"
 55,1985,Toyota,Land Cruiser,FJ60,wagon,,exact,exclude FJ40/FJ62/FJ80/FJ55
@@ -89,7 +89,7 @@ car_id,year,make,model,trim,body,generation,year_scope,notes
 88,2015,Ferrari,458,Speciale,coupe,,exact,"EXCLUDE Speciale Aperta halo, base Italia"
 89,2012,McLaren,MP4-12C,,coupe,,exact,COVERAGE ONLY (not in HVT)
 90,2019,McLaren,720S,,coupe,,exact,COVERAGE ONLY (not in HVT)
-91,2015,Lamborghini,Huracan,LP610,coupe,,exact,"EXCLUDE Performante/STO/EVO/Tecnica halos, Spyder"
+91,2015,Lamborghini,Huracan,610,,,exact,Huracan LP610-4; trim '610' matches LP610-4/LP 610-4; EXCLUDE Performante/STO/EVO/Spyder/LP580
 92,2018,Lamborghini,Aventador,S,coupe,,exact,COVERAGE ONLY (not in HVT); exclude SV/SVJ
 93,2014,Chevrolet,Corvette,Z51,coupe,C7,exact,C7 Stingray Z51 (adjacent pooled); EXCLUDE Z06/ZR1/Grand Sport
 94,2019,Chevrolet,Corvette,ZR1,coupe,C7,exact,C7 ZR1 supercharged; exclude Z06
