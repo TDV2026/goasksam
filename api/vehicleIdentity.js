@@ -124,7 +124,7 @@ export default async function handler(req, res) {
     // near-miss, so skip the "did you mean" confirmation and accept it unverified.
     const resolveOpts = { ...(req.body?.keepAsTyped ? { keepAsTyped: true } : {}), ...(vinActive ? { vinConfirm: true } : {}), ...(req.body?.debug ? { debug: true } : {}) };
     let result = await resolveVehicle(raw, resolveOpts);
-    if (req.body?.debug) { try { result = { ...result, _debug: lastResolveDebug() }; } catch (e) {} }
+    const _dbg = req.body?.debug ? (() => { try { return lastResolveDebug(); } catch (e) { return { error: String(e) }; } })() : undefined;
     let fallbackUsed = null;
 
     // (b) A misspelled marque must ALWAYS land on the deterministic typo confirmation
@@ -269,7 +269,8 @@ export default async function handler(req, res) {
         corrections: [...(result.corrections || []), { type: "chassis_match" }],
         archiveModelCount: modelCount,
         vinArchiveMatch: vinMatch || undefined,
-        fallback: fallbackUsed || undefined
+        fallback: fallbackUsed || undefined,
+        _debug: _dbg
       });
     }
     return res.status(200).json({
@@ -279,7 +280,8 @@ export default async function handler(req, res) {
       corrections: result.corrections,
       archiveModelCount: modelCount,
       vinArchiveMatch: vinMatch || undefined,
-      fallback: fallbackUsed || undefined
+      fallback: fallbackUsed || undefined,
+      _debug: _dbg
     });
   } catch (err) {
     return res.status(500).json({ error: err.message || "Vehicle identity failed" });
