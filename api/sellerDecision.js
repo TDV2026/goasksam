@@ -2993,6 +2993,10 @@ export default async function handler(req, res) {
       // Reports total + per-sale-year counts for each platform over the given window.
       const platforms = Array.isArray(req.body.platforms) ? req.body.platforms : ["Bring a Trailer", "Cars & Bids"];
       const dFrom = req.body.dateFrom ? String(req.body.dateFrom) : null, dTo = req.body.dateTo ? String(req.body.dateTo) : null;
+      // Read-only created_at (ingest timestamp) window, for provenance audits (which rows landed
+      // during a given ingest run). Applied to created_at alongside the sale_date window.
+      const cFrom = req.body.createdFrom ? String(req.body.createdFrom) : null, cTo = req.body.createdTo ? String(req.body.createdTo) : null;
+      const noYears = req.body.noYears === true;   // skip the per-year loop when only the window count is wanted
       const exactCount = async (filters) => {
         try {
           const r = await fetch(`${supabaseUrl}/rest/v1/sales_archive?select=id&${filters}&limit=1`, {
@@ -3002,18 +3006,19 @@ export default async function handler(req, res) {
           return m ? Number(m[1]) : null;
         } catch { return null; }
       };
+      const winFilter = (pf) => `${pf}${dFrom ? `&sale_date=gte.${dFrom}` : ""}${dTo ? `&sale_date=lte.${dTo}` : ""}${cFrom ? `&created_at=gte.${encodeURIComponent(cFrom)}` : ""}${cTo ? `&created_at=lte.${encodeURIComponent(cTo)}` : ""}`;
       const out = [];
       for (const plat of platforms) {
         const pf = `platform=eq.${encodeURIComponent(plat)}&sale_price=not.is.null`;
-        const total = await exactCount(pf);
-        const windowCount = (dFrom || dTo) ? await exactCount(`${pf}${dFrom ? `&sale_date=gte.${dFrom}` : ""}${dTo ? `&sale_date=lte.${dTo}` : ""}`) : null;
+        const total = noYears ? null : await exactCount(pf);
+        const windowCount = (dFrom || dTo || cFrom || cTo) ? await exactCount(winFilter(pf)) : null;
         const bySaleYear = {};
-        for (const y of [2020, 2021, 2022, 2023, 2024, 2025, 2026]) {
+        if (!noYears) for (const y of [2020, 2021, 2022, 2023, 2024, 2025, 2026]) {
           bySaleYear[y] = await exactCount(`${pf}&sale_date=gte.${y}-01-01&sale_date=lte.${y}-12-31`);
         }
         out.push({ platform: plat, total, windowCount, bySaleYear });
       }
-      return res.status(200).json({ status: "archive_query", mode, dateFrom: dFrom, dateTo: dTo, out });
+      return res.status(200).json({ status: "archive_query", mode, dateFrom: dFrom, dateTo: dTo, createdFrom: cFrom, createdTo: cTo, out });
     }
     if (mode === "yearCounts") {
       const platforms = Array.isArray(req.body.platforms) ? req.body.platforms : ["Bring a Trailer", "Cars & Bids"];
