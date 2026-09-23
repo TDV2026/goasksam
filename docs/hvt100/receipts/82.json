@@ -1,0 +1,18 @@
+{
+ "car_id": 82,
+ "listed": "2018 Porsche 911 Carrera T",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (2016-2019)",
+ "basis": "n/a",
+ "scope": {
+  "make": "Porsche",
+  "model": "911",
+  "window": "36mo",
+  "year_min": 2016,
+  "year_max": 2019,
+  "trim": "Carrera T",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": []
+}

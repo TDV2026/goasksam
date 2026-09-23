@@ -1,0 +1,323 @@
+{
+ "car_id": 4,
+ "listed": "1967 Chevrolet Corvette L71",
+ "status": "compare",
+ "year_scope": "exact 1967",
+ "basis": "sold+fee (online)",
+ "scope": {
+  "make": "Chevrolet",
+  "model": "Corvette",
+  "window": "36mo",
+  "year_min": 1967,
+  "year_max": 1967,
+  "trim": "L71",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-09-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 157500,
+   "basis": "sold+fee",
+   "hammer_usd": 150000,
+   "native": {
+    "amount": 150000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-chevrolet-corvette-convertible-352/",
+   "chassis": "194677S106933",
+   "title": "1967 Chevrolet Corvette Convertible L71 427/435 4-Speed"
+  },
+  {
+   "date": "2026-08-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 219500,
+   "basis": "sold+fee",
+   "hammer_usd": 212000,
+   "native": {
+    "amount": 212000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-chevrolet-corvette-convertible-337/",
+   "chassis": "194677S113827",
+   "title": "1967 Chevrolet Corvette Convertible L71 427/435 4-Speed"
+  },
+  {
+   "date": "2026-08-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 199467,
+   "basis": "sold+fee",
+   "hammer_usd": 191967,
+   "native": {
+    "amount": 191967,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-chevrolet-corvette-convertible-343/",
+   "chassis": "194677S113351",
+   "title": "1967 Chevrolet Corvette Convertible L71 427/435 4-Speed"
+  },
+  {
+   "date": "2026-07-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 134400,
+   "basis": "sold+fee",
+   "hammer_usd": 128000,
+   "native": {
+    "amount": 128000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-chevrolet-corvette-convertible-333/",
+   "chassis": "194677S101918",
+   "title": "1967 Chevrolet Corvette Convertible L71 427/435 4-Speed"
+  },
+  {
+   "date": "2026-07-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 96600,
+   "basis": "sold+fee",
+   "hammer_usd": 92000,
+   "native": {
+    "amount": 92000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-chevrolet-corvette-coupe-121/",
+   "chassis": "194377S113668",
+   "title": "1967 Chevrolet Corvette Coupe L71 427/435 4-Speed"
+  },
+  {
+   "date": "2026-06-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 182500,
+   "basis": "sold+fee",
+   "hammer_usd": 175000,
+   "native": {
+    "amount": 175000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-chevrolet-corvette-convertible-331/",
+   "chassis": "194677S107184",
+   "title": "1967 Chevrolet Corvette Convertible L71 427/435 4-Speed"
+  },
+  {
+   "date": "2026-05-29",
+   "venue": "Hemmings",
+   "price_usd": 198500,
+   "basis": "sold+fee",
+   "hammer_usd": 191000,
+   "native": {
+    "amount": 191000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://www.hemmings.com/auction/1967-chevrolet-corvette-woodland-hills-ca-156233",
+   "chassis": "194677S117491",
+   "title": "Well-Documented L71: 1967 Chevrolet Corvette Convertible With the Original 427/435-hp V8"
+  },
+  {
+   "date": "2026-05-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 90825,
+   "basis": "sold+fee",
+   "hammer_usd": 86500,
+   "native": {
+    "amount": 86500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-chevrolet-corvette-coupe-119/",
+   "chassis": "194377S120013",
+   "title": "L71-Powered 1967 Chevrolet Corvette Coupe 4-Speed"
+  },
+  {
+   "date": "2026-03-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 159500,
+   "basis": "sold+fee",
+   "hammer_usd": 152000,
+   "native": {
+    "amount": 152000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-chevrolet-corvette-convertible-308/",
+   "chassis": "194677S118089",
+   "title": "1967 Chevrolet Corvette Convertible L71 427/435 4-Speed"
+  },
+  {
+   "date": "2025-10-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 97650,
+   "basis": "sold+fee",
+   "hammer_usd": 93000,
+   "native": {
+    "amount": 93000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-chevrolet-corvette-convertible-286/",
+   "chassis": "194677S120495",
+   "title": "1967 Chevrolet Corvette Convertible L71 427/435 4-Speed"
+  },
+  {
+   "date": "2025-09-02",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 166500,
+   "basis": "sold+fee",
+   "hammer_usd": 159000,
+   "native": {
+    "amount": 159000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://www.sothebysmotorsport.com/auction/1967-chevrolet-corvetteconvertiblel714274354speed-6532",
+   "chassis": "194677S108603",
+   "title": "1967 Chevrolet Corvette Convertible L71 427/435 4-Speed"
+  },
+  {
+   "date": "2025-06-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 101325,
+   "basis": "sold+fee",
+   "hammer_usd": 96500,
+   "native": {
+    "amount": 96500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-chevrolet-corvette-convertible-262/",
+   "chassis": "194677S113151",
+   "title": "1967 Chevrolet Corvette Convertible L71 427/435 4-Speed"
+  },
+  {
+   "date": "2025-05-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 102900,
+   "basis": "sold+fee",
+   "hammer_usd": 98000,
+   "native": {
+    "amount": 98000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-chevrolet-corvette-coupe-73/",
+   "chassis": "194377S120013",
+   "title": "L71-Powered 1967 Chevrolet Corvette Coupe 4-Speed"
+  },
+  {
+   "date": "2025-04-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 166500,
+   "basis": "sold+fee",
+   "hammer_usd": 159000,
+   "native": {
+    "amount": 159000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-chevrolet-corvette-convertible-246/",
+   "chassis": "194677S103725",
+   "title": "1967 Chevrolet Corvette 427/435 L71 Convertible 4-Speed"
+  },
+  {
+   "date": "2025-01-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 221500,
+   "basis": "sold+fee",
+   "hammer_usd": 214000,
+   "native": {
+    "amount": 214000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-chevrolet-corvette-convertible-232/",
+   "chassis": "194677S105176",
+   "title": "1967 Chevrolet Corvette Convertible 427/435 L71 4-Speed"
+  },
+  {
+   "date": "2024-11-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 238935,
+   "basis": "sold+fee",
+   "hammer_usd": 231435,
+   "native": {
+    "amount": 231435,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-chevrolet-corvette-coupe-55/",
+   "chassis": "194377S112363",
+   "title": "38-Years-Owned 1967 Chevrolet Corvette Coupe L71 427/435 4-Speed"
+  },
+  {
+   "date": "2024-10-25",
+   "venue": "PCARMarket",
+   "price_usd": 89250,
+   "basis": "sold+fee",
+   "hammer_usd": 85000,
+   "native": {
+    "amount": 85000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://www.pcarmarket.com/auction/1967-chevrolet-corvette-sting-ray-convertible-1",
+   "chassis": "194677S120760",
+   "title": "1967 Chevrolet Corvette Convertible L71 427/435 4-Speed"
+  },
+  {
+   "date": "2024-09-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 89250,
+   "basis": "sold+fee",
+   "hammer_usd": 85000,
+   "native": {
+    "amount": 85000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-chevrolet-corvette-convertible-217/",
+   "chassis": "194677S120495",
+   "title": "1967 Chevrolet Corvette Convertible L71 427/435 4-Speed"
+  },
+  {
+   "date": "2023-11-24",
+   "venue": "PCARMarket",
+   "price_usd": 152250,
+   "basis": "sold+fee",
+   "hammer_usd": 145000,
+   "native": {
+    "amount": 145000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://www.pcarmarket.com/auction/1967-chevrolet-corvette-sting-ray-convertible",
+   "chassis": "194677S122510",
+   "title": "1967 Chevrolet Corvette Stingray Convertible 427 L71 4-Speed"
+  }
+ ]
+}

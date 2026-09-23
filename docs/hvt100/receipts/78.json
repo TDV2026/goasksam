@@ -1,0 +1,739 @@
+{
+ "car_id": 78,
+ "listed": "2000 Toyota Land Cruiser 100",
+ "status": "nohvt",
+ "year_scope": "exact 2000",
+ "basis": "sold+fee (online)",
+ "scope": {
+  "make": "Toyota",
+  "model": "Land Cruiser",
+  "window": "36mo",
+  "year_min": 2000,
+  "year_max": 2000,
+  "trim": "100",
+  "body": "wagon"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-08-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 55650,
+   "basis": "sold+fee",
+   "hammer_usd": 53000,
+   "native": {
+    "amount": 53000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-153/",
+   "chassis": "JT3HT05J5Y0096607",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2026-08-18",
+   "venue": "Cars & Bids",
+   "price_usd": 12810,
+   "basis": "sold+fee",
+   "hammer_usd": 12200,
+   "native": {
+    "amount": 12200,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://carsandbids.com/auctions/rbo68Nxg/2000-toyota-land-cruiser",
+   "chassis": "JT3HT05J3Y0112299",
+   "title": "2000 Toyota Land Cruiser"
+  },
+  {
+   "date": "2026-08-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 16682,
+   "basis": "sold+fee",
+   "hammer_usd": 15888,
+   "native": {
+    "amount": 15888,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-152/",
+   "chassis": "JT3HT05J5Y0119772",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2026-08-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 50000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-149/",
+   "chassis": "JT3HT05J3Y0113159",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2026-06-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-148/",
+   "chassis": "JT3HT05J2Y0109846",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2026-06-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 89250,
+   "basis": "sold+fee",
+   "hammer_usd": 85000,
+   "native": {
+    "amount": 85000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-147/",
+   "chassis": "JT3HT05J1Y0087936",
+   "title": "20k-Mile 2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2026-03-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 21000,
+   "basis": "sold+fee",
+   "hammer_usd": 20000,
+   "native": {
+    "amount": 20000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-143/",
+   "chassis": "JT3HT05J9Y0105910",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2026-02-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 19163,
+   "basis": "sold+fee",
+   "hammer_usd": 18250,
+   "native": {
+    "amount": 18250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-140/",
+   "chassis": "JT3HT05J5Y0090614",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2026-02-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 13388,
+   "basis": "sold+fee",
+   "hammer_usd": 12750,
+   "native": {
+    "amount": 12750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-142/",
+   "chassis": "JT3HT05J3Y0113968",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2026-02-13",
+   "venue": "Cars & Bids",
+   "price_usd": 8820,
+   "basis": "sold+fee",
+   "hammer_usd": 8400,
+   "native": {
+    "amount": 8400,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://carsandbids.com/auctions/9lL8XXyg/2000-toyota-land-cruiser",
+   "chassis": "JT3HT05J8Y0122973",
+   "title": "2000 Toyota Land Cruiser"
+  },
+  {
+   "date": "2026-02-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 8610,
+   "basis": "sold+fee",
+   "hammer_usd": 8200,
+   "native": {
+    "amount": 8200,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-141/",
+   "chassis": "JT3HT05J6Y0088418",
+   "title": "402k-Mile 2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2026-01-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 17850,
+   "basis": "sold+fee",
+   "hammer_usd": 17000,
+   "native": {
+    "amount": 17000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-139/",
+   "chassis": "UZJ1000112417",
+   "title": "2000 Toyota Land Cruiser UZJ100W VX Limited G Selection"
+  },
+  {
+   "date": "2026-01-27",
+   "venue": "Cars & Bids",
+   "price_usd": 7980,
+   "basis": "sold+fee",
+   "hammer_usd": 7600,
+   "native": {
+    "amount": 7600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://carsandbids.com/auctions/304bNekM/2000-toyota-land-cruiser",
+   "chassis": "JT3HT05J1Y0124905",
+   "title": "2000 Toyota Land Cruiser"
+  },
+  {
+   "date": "2025-11-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 15435,
+   "basis": "sold+fee",
+   "hammer_usd": 14700,
+   "native": {
+    "amount": 14700,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-128/",
+   "chassis": "JT3HT05J1Y0112219",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2025-11-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 38063,
+   "basis": "sold+fee",
+   "hammer_usd": 36250,
+   "native": {
+    "amount": 36250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-131/",
+   "chassis": "JT3HT05J6Y0116945",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2025-10-27",
+   "venue": "Cars & Bids",
+   "price_usd": 11865,
+   "basis": "sold+fee",
+   "hammer_usd": 11300,
+   "native": {
+    "amount": 11300,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://carsandbids.com/auctions/KDYJP1LM/2000-toyota-land-cruiser",
+   "chassis": "JT3HT05J7Y0112760",
+   "title": "2000 Toyota Land Cruiser"
+  },
+  {
+   "date": "2025-10-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 27825,
+   "basis": "sold+fee",
+   "hammer_usd": 26500,
+   "native": {
+    "amount": 26500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-127/",
+   "chassis": "JT3HT05J1Y0125066",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2025-06-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 12600,
+   "basis": "sold+fee",
+   "hammer_usd": 12000,
+   "native": {
+    "amount": 12000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-118/",
+   "chassis": "JT3HT05J7Y0080215",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2025-06-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 30450,
+   "basis": "sold+fee",
+   "hammer_usd": 29000,
+   "native": {
+    "amount": 29000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-121/",
+   "chassis": "JT3HT05J3Y0099988",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2025-06-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 16328,
+   "basis": "sold+fee",
+   "hammer_usd": 15550,
+   "native": {
+    "amount": 15550,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-120/",
+   "chassis": "JT3HT05J2Y0123651",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2025-05-29",
+   "venue": "Cars & Bids",
+   "price_usd": 53550,
+   "basis": "sold+fee",
+   "hammer_usd": 51000,
+   "native": {
+    "amount": 51000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://carsandbids.com/auctions/98z2BQmw/2000-toyota-land-cruiser",
+   "chassis": "JT3HT05J7Y0120776",
+   "title": "2000 Toyota Land Cruiser"
+  },
+  {
+   "date": "2025-05-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 24150,
+   "basis": "sold+fee",
+   "hammer_usd": 23000,
+   "native": {
+    "amount": 23000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-116/",
+   "chassis": "JT3HT05J9Y0104949",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2025-05-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 22575,
+   "basis": "sold+fee",
+   "hammer_usd": 21500,
+   "native": {
+    "amount": 21500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-115/",
+   "chassis": "JT3HT05J8Y0107597",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2025-04-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 10763,
+   "basis": "sold+fee",
+   "hammer_usd": 10250,
+   "native": {
+    "amount": 10250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-112/",
+   "chassis": "JT3HT05JXY0120058",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2025-03-21",
+   "venue": "Cars & Bids",
+   "price_usd": 11498,
+   "basis": "sold+fee",
+   "hammer_usd": 10950,
+   "native": {
+    "amount": 10950,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://carsandbids.com/auctions/9AEOXxZ5/2000-toyota-land-cruiser",
+   "chassis": "JT3HT05J4Y0125448",
+   "title": "2000 Toyota Land Cruiser"
+  },
+  {
+   "date": "2025-03-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 8295,
+   "basis": "sold+fee",
+   "hammer_usd": 7900,
+   "native": {
+    "amount": 7900,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-107/",
+   "chassis": "JT3HT05J4Y0087428",
+   "title": "Original-Owner 2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2025-01-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 28350,
+   "basis": "sold+fee",
+   "hammer_usd": 27000,
+   "native": {
+    "amount": 27000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-108/",
+   "chassis": "JT3HT05J5Y0100591",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2024-12-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 30713,
+   "basis": "sold+fee",
+   "hammer_usd": 29250,
+   "native": {
+    "amount": 29250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-102/",
+   "chassis": "JT3HT05J5Y0080472",
+   "title": "One-Family-Owned 2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2024-11-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 17745,
+   "basis": "sold+fee",
+   "hammer_usd": 16900,
+   "native": {
+    "amount": 16900,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-95/",
+   "chassis": "JT3HT05J0Y0121316",
+   "title": "23-Years-Owned 2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2024-11-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 28350,
+   "basis": "sold+fee",
+   "hammer_usd": 27000,
+   "native": {
+    "amount": 27000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-104/",
+   "chassis": "JT3HT05JXY0093671",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2024-11-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 15750,
+   "basis": "sold+fee",
+   "hammer_usd": 15000,
+   "native": {
+    "amount": 15000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-101/",
+   "chassis": "JT3HT05J7Y0120549",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2024-10-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 28350,
+   "basis": "sold+fee",
+   "hammer_usd": 27000,
+   "native": {
+    "amount": 27000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-100/",
+   "chassis": "JT3HT05J7Y0109390",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2024-09-23",
+   "venue": "Cars & Bids",
+   "price_usd": 14175,
+   "basis": "sold+fee",
+   "hammer_usd": 13500,
+   "native": {
+    "amount": 13500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://carsandbids.com/auctions/925PYRmW/2000-toyota-land-cruiser",
+   "chassis": "JT3HT05J7Y0089299",
+   "title": "2000 Toyota Land Cruiser"
+  },
+  {
+   "date": "2024-09-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 9923,
+   "basis": "sold+fee",
+   "hammer_usd": 9450,
+   "native": {
+    "amount": 9450,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-98/",
+   "chassis": "JT3HT05J7Y0109034",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2024-09-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 17850,
+   "basis": "sold+fee",
+   "hammer_usd": 17000,
+   "native": {
+    "amount": 17000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-96/",
+   "chassis": "JT3HT05J9Y0122089",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2024-07-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 16801,
+   "basis": "sold+fee",
+   "hammer_usd": 16001,
+   "native": {
+    "amount": 16001,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-92/",
+   "chassis": "JT3HT05J3Y0095262",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2024-06-13",
+   "venue": "Cars & Bids",
+   "price_usd": 8715,
+   "basis": "sold+fee",
+   "hammer_usd": 8300,
+   "native": {
+    "amount": 8300,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://carsandbids.com/auctions/9WlYQzOd/2000-toyota-land-cruiser",
+   "chassis": "JT3HT05J8Y0122553",
+   "title": "2000 Toyota Land Cruiser"
+  },
+  {
+   "date": "2024-05-15",
+   "venue": "Cars & Bids",
+   "price_usd": 8610,
+   "basis": "sold+fee",
+   "hammer_usd": 8200,
+   "native": {
+    "amount": 8200,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://carsandbids.com/auctions/9a5zVNZm/2000-toyota-land-cruiser",
+   "chassis": "JT3HT05J9Y0097307",
+   "title": "2000 Toyota Land Cruiser"
+  },
+  {
+   "date": "2024-05-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 24413,
+   "basis": "sold+fee",
+   "hammer_usd": 23250,
+   "native": {
+    "amount": 23250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-88/",
+   "chassis": "JT3HT05JXY0115149",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2024-03-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 14963,
+   "basis": "sold+fee",
+   "hammer_usd": 14250,
+   "native": {
+    "amount": 14250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-86/",
+   "chassis": "JT3HT05J7Y0103038",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2024-03-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 13913,
+   "basis": "sold+fee",
+   "hammer_usd": 13250,
+   "native": {
+    "amount": 13250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-87/",
+   "chassis": "JT3HT05J1Y0091579",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2024-03-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 35175,
+   "basis": "sold+fee",
+   "hammer_usd": 33500,
+   "native": {
+    "amount": 33500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-84/",
+   "chassis": "JT3HT05JXY0077339",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2024-01-18",
+   "venue": "Cars & Bids",
+   "price_usd": 12810,
+   "basis": "sold+fee",
+   "hammer_usd": 12200,
+   "native": {
+    "amount": 12200,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://carsandbids.com/auctions/KPQaA4BL/2000-toyota-land-cruiser",
+   "chassis": "JT3HT05J1Y0121325",
+   "title": "2000 Toyota Land Cruiser"
+  },
+  {
+   "date": "2023-11-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 22575,
+   "basis": "sold+fee",
+   "hammer_usd": 21500,
+   "native": {
+    "amount": 21500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://bringatrailer.com/listing/2000-toyota-land-cruiser-80/",
+   "chassis": "JT3HT05J2Y0125318",
+   "title": "2000 Toyota Land Cruiser UZJ100"
+  },
+  {
+   "date": "2023-11-03",
+   "venue": "Cars & Bids",
+   "price_usd": 9713,
+   "basis": "sold+fee",
+   "hammer_usd": 9250,
+   "native": {
+    "amount": 9250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2000,
+   "url": "https://carsandbids.com/auctions/rNqxznL5/2000-toyota-land-cruiser",
+   "chassis": "JT3HT05J4Y0076672",
+   "title": "2000 Toyota Land Cruiser"
+  }
+ ]
+}

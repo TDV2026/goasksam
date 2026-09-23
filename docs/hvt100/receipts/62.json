@@ -1,0 +1,833 @@
+{
+ "car_id": 62,
+ "listed": "2004 Porsche Carrera GT",
+ "status": "compare",
+ "year_scope": "exact 2004",
+ "basis": "sold+fee (online)",
+ "scope": {
+  "make": "Porsche",
+  "model": "Carrera GT",
+  "window": "36mo",
+  "year_min": 2004,
+  "year_max": 2004
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2025-12-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 37796,
+   "basis": "sold+fee",
+   "hammer_usd": 35996,
+   "native": {
+    "amount": 35996,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-73/",
+   "chassis": "WP0CA29954S651030",
+   "title": "2004 Porsche 911 Carrera 4S Cabriolet 6-Speed"
+  },
+  {
+   "date": "2025-12-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 32550,
+   "basis": "sold+fee",
+   "hammer_usd": 31000,
+   "native": {
+    "amount": 31000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-66/",
+   "chassis": "WP0CA29914S650862",
+   "title": "2004 Porsche 911 Carrera 4S Cabriolet 6-Speed"
+  },
+  {
+   "date": "2025-12-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 24413,
+   "basis": "sold+fee",
+   "hammer_usd": 23250,
+   "native": {
+    "amount": 23250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-69/",
+   "chassis": "WP0CA29924S651809",
+   "title": "2004 Porsche 911 Carrera 4S Cabriolet"
+  },
+  {
+   "date": "2025-12-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 31763,
+   "basis": "sold+fee",
+   "hammer_usd": 30250,
+   "native": {
+    "amount": 30250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-67/",
+   "chassis": "WP0CA29934S652516",
+   "title": "2004 Porsche 911 Carrera 4S Cabriolet 6-Speed"
+  },
+  {
+   "date": "2025-11-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 64041,
+   "basis": "sold+fee",
+   "hammer_usd": 60991,
+   "native": {
+    "amount": 60991,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-coupe-43/",
+   "chassis": "WP0AA29934S620401",
+   "title": "33k-Mile 2004 Porsche 911 Carrera 4S Coupe 6-Speed"
+  },
+  {
+   "date": "2025-11-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 56700,
+   "basis": "sold+fee",
+   "hammer_usd": 54000,
+   "native": {
+    "amount": 54000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-coupe-44/",
+   "chassis": "WP0AA29994S622587",
+   "title": "2004 Porsche 911 Carrera 4S Coupe X51 6-Speed"
+  },
+  {
+   "date": "2025-10-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 35963,
+   "basis": "sold+fee",
+   "hammer_usd": 34250,
+   "native": {
+    "amount": 34250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-58-2-2/",
+   "chassis": "WP0CA29914S653096",
+   "title": "46k-Mile 2004 Porsche 911 Carrera 4S Cabriolet"
+  },
+  {
+   "date": "2025-10-20",
+   "venue": "PCARMarket",
+   "price_usd": 22050,
+   "basis": "sold+fee",
+   "hammer_usd": 21000,
+   "native": {
+    "amount": 21000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://www.pcarmarket.com/auction/2004-porsche-911-carrera-cabriolet-6-speed",
+   "chassis": "WP0CA29994S650558",
+   "title": "NO RESERVE 2004 Porsche 996 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2025-04-28",
+   "venue": "Hagerty",
+   "price_usd": 40950,
+   "basis": "sold+fee",
+   "hammer_usd": 39000,
+   "native": {
+    "amount": 39000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://www.hagerty.com/marketplace/auction/2004-Porsche-911/351afe8b-4fa1-47b5-84bf-aa9b2f311609",
+   "chassis": "WP0AA299X4S621142",
+   "title": "2004 Porsche 911 Carrera 4S Coupe Six-Speed"
+  },
+  {
+   "date": "2025-03-05",
+   "venue": "Cars & Bids",
+   "price_usd": 24675,
+   "basis": "sold+fee",
+   "hammer_usd": 23500,
+   "native": {
+    "amount": 23500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://carsandbids.com/auctions/9nbbA2yX/2004-porsche-911-carrera-4s-cabriolet",
+   "chassis": "WP0CA29954S650802",
+   "title": "2004 Porsche 911 Carrera 4S Cabriolet"
+  },
+  {
+   "date": "2025-03-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 43050,
+   "basis": "sold+fee",
+   "hammer_usd": 41000,
+   "native": {
+    "amount": 41000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-45/",
+   "chassis": "WP0CA29954S650458",
+   "title": "2004 Porsche 911 Carrera 4S Cabriolet 6-Speed"
+  },
+  {
+   "date": "2025-02-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 21525,
+   "basis": "sold+fee",
+   "hammer_usd": 20500,
+   "native": {
+    "amount": 20500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-targa-5/",
+   "chassis": "WP0BA29984S635125",
+   "title": "2004 Porsche 911 Carrera Targa 6-Speed"
+  },
+  {
+   "date": "2025-02-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 27570,
+   "basis": "sold+fee",
+   "hammer_usd": 26257,
+   "native": {
+    "amount": 26257,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-44/",
+   "chassis": "WP0CA29914S652028",
+   "title": "2004 Porsche 911 Carrera 4S Cabriolet 6-Speed"
+  },
+  {
+   "date": "2025-02-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 28613,
+   "basis": "sold+fee",
+   "hammer_usd": 27250,
+   "native": {
+    "amount": 27250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-cabriolet-15/",
+   "chassis": "WP0CA29904S650853",
+   "title": "2004 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2025-01-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 34388,
+   "basis": "sold+fee",
+   "hammer_usd": 32750,
+   "native": {
+    "amount": 32750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-cabriolet-14/",
+   "chassis": "WP0CA29964S651991",
+   "title": "32k-Mile 2004 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2025-01-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 32550,
+   "basis": "sold+fee",
+   "hammer_usd": 31000,
+   "native": {
+    "amount": 31000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-cabriolet-12/",
+   "chassis": "WP0CA29904S651744",
+   "title": "2004 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2025-01-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 43050,
+   "basis": "sold+fee",
+   "hammer_usd": 41000,
+   "native": {
+    "amount": 41000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-coupe-25-2/",
+   "chassis": "WP0AA29964S620926",
+   "title": "19k-Mile 2004 Porsche 911 Carrera 4S Coupe"
+  },
+  {
+   "date": "2024-11-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 58275,
+   "basis": "sold+fee",
+   "hammer_usd": 55500,
+   "native": {
+    "amount": 55500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-coupe-27/",
+   "chassis": "WP0AA29954S620366",
+   "title": "8k-Mile 2004 Porsche 911 Carrera 4S Coupe 6-Speed"
+  },
+  {
+   "date": "2024-10-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 68250,
+   "basis": "sold+fee",
+   "hammer_usd": 65000,
+   "native": {
+    "amount": 65000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-40/",
+   "chassis": "WP0CA29984S653595",
+   "title": "13k-Mile 2004 Porsche 911 Carrera 4S Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-10-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 17299,
+   "basis": "sold+fee",
+   "hammer_usd": 16475,
+   "native": {
+    "amount": 16475,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-cabriolet-11/",
+   "chassis": "WP0CA29994S650642",
+   "title": "2004 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-10-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 33338,
+   "basis": "sold+fee",
+   "hammer_usd": 31750,
+   "native": {
+    "amount": 31750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-38/",
+   "chassis": "WP0CA29954S651125",
+   "title": "2004 Porsche 911 Carrera 4S Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-09-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 44100,
+   "basis": "sold+fee",
+   "hammer_usd": 42000,
+   "native": {
+    "amount": 42000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-37/",
+   "chassis": "WP0CA29904S652053",
+   "title": "23k-Mile 2004 Porsche 911 Carrera 4S Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-09-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 46200,
+   "basis": "sold+fee",
+   "hammer_usd": 44000,
+   "native": {
+    "amount": 44000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-28/",
+   "chassis": "WP0CA29904S650318",
+   "title": "36k-Mile 2004 Porsche 911 Carrera 4S Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-09-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 49350,
+   "basis": "sold+fee",
+   "hammer_usd": 47000,
+   "native": {
+    "amount": 47000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-24/",
+   "chassis": "WP0CA29974S653331",
+   "title": "30k-Mile 2004 Porsche 911 Carrera 4S Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-09-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 51450,
+   "basis": "sold+fee",
+   "hammer_usd": 49000,
+   "native": {
+    "amount": 49000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-coupe-24/",
+   "chassis": "WP0AA29904S622929",
+   "title": "33k-Mile 2004 Porsche 911 Carrera 4S Coupe 6-Speed"
+  },
+  {
+   "date": "2024-08-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 25200,
+   "basis": "sold+fee",
+   "hammer_usd": 24000,
+   "native": {
+    "amount": 24000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-31/",
+   "chassis": "WP0CA29924S651695",
+   "title": "2004 Porsche 911 Carrera 4S Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-08-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 26508,
+   "basis": "sold+fee",
+   "hammer_usd": 25246,
+   "native": {
+    "amount": 25246,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-targa-4/",
+   "chassis": "WP0BA29924S635072",
+   "title": "2004 Porsche 911 Carrera Targa 6-Speed"
+  },
+  {
+   "date": "2024-08-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 27296,
+   "basis": "sold+fee",
+   "hammer_usd": 25996,
+   "native": {
+    "amount": 25996,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-29/",
+   "chassis": "WP0CA29924S650255",
+   "title": "Original-Owner 2004 Porsche 911 Carrera 4S Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-07-25",
+   "venue": "PCARMarket",
+   "price_usd": 40950,
+   "basis": "sold+fee",
+   "hammer_usd": 39000,
+   "native": {
+    "amount": 39000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://www.pcarmarket.com/auction/2004-porsche-carrera-4s",
+   "chassis": "WP0AA29924S621961",
+   "title": "2004 Porsche 996 Carrera 4S Coupe 6-Speed"
+  },
+  {
+   "date": "2024-07-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 32813,
+   "basis": "sold+fee",
+   "hammer_usd": 31250,
+   "native": {
+    "amount": 31250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-coupe-22/",
+   "chassis": "WP0AA29994S621424",
+   "title": "2004 Porsche 911 Carrera 4S Coupe"
+  },
+  {
+   "date": "2024-07-10",
+   "venue": "Hagerty",
+   "price_usd": 38850,
+   "basis": "sold+fee",
+   "hammer_usd": 37000,
+   "native": {
+    "amount": 37000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://www.hagerty.com/marketplace/auction/2004-Porsche-911/80fa8efa-2ce4-47d4-a1e1-d98fc0e9deef",
+   "chassis": "WP0CA29994S651757",
+   "title": "2004 Porsche 911 Carrera Cabriolet "
+  },
+  {
+   "date": "2024-06-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 23363,
+   "basis": "sold+fee",
+   "hammer_usd": 22250,
+   "native": {
+    "amount": 22250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-25/",
+   "chassis": "WP0CA29954S653196",
+   "title": "2004 Porsche 911 Carrera 4S Cabriolet"
+  },
+  {
+   "date": "2024-06-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 44096,
+   "basis": "sold+fee",
+   "hammer_usd": 41996,
+   "native": {
+    "amount": 41996,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-coupe-7/",
+   "chassis": "WP0AA29924S620339",
+   "title": "49k-Mile 2004 Porsche 911 Carrera 4S Coupe 6-Speed"
+  },
+  {
+   "date": "2024-06-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 61950,
+   "basis": "sold+fee",
+   "hammer_usd": 59000,
+   "native": {
+    "amount": 59000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-coupe-19/",
+   "chassis": "WP0AA29934S622245",
+   "title": "28k-Mile 2004 Porsche 911 Carrera 4S Coupe 6-Speed"
+  },
+  {
+   "date": "2024-06-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 42788,
+   "basis": "sold+fee",
+   "hammer_usd": 40750,
+   "native": {
+    "amount": 40750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-23/",
+   "chassis": "WP0CA29914S652885",
+   "title": "2004 Porsche 911 Carrera 4S Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-05-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 26657,
+   "basis": "sold+fee",
+   "hammer_usd": 25388,
+   "native": {
+    "amount": 25388,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-22/",
+   "chassis": "WP0CA29974S651644",
+   "title": "2004 Porsche 911 Carrera 4S Cabriolet"
+  },
+  {
+   "date": "2024-04-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 23547,
+   "basis": "sold+fee",
+   "hammer_usd": 22426,
+   "native": {
+    "amount": 22426,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-targa-3/",
+   "chassis": "WP0BA29914S635211",
+   "title": "2004 Porsche 911 Carrera Targa"
+  },
+  {
+   "date": "2024-04-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 65625,
+   "basis": "sold+fee",
+   "hammer_usd": 62500,
+   "native": {
+    "amount": 62500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-21/",
+   "chassis": "WP0CA29964S650484",
+   "title": "29k-Mile 2004 Porsche 911 Carrera 4S Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-04-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 38588,
+   "basis": "sold+fee",
+   "hammer_usd": 36750,
+   "native": {
+    "amount": 36750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-coupe-18/",
+   "chassis": "WP0AA29924S622429",
+   "title": "2004 Porsche 911 Carrera 4S Coupe 6-Speed"
+  },
+  {
+   "date": "2024-04-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 81900,
+   "basis": "sold+fee",
+   "hammer_usd": 78000,
+   "native": {
+    "amount": 78000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-coupe-17/",
+   "chassis": "WP0AA29994S622511",
+   "title": "8k-Mile 2004 Porsche 911 Carrera 4S Coupe 6-Speed"
+  },
+  {
+   "date": "2024-04-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 22046,
+   "basis": "sold+fee",
+   "hammer_usd": 20996,
+   "native": {
+    "amount": 20996,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-cabriolet-5/",
+   "chassis": "WP0CA299X4S653338",
+   "title": "2004 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-03-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 35701,
+   "basis": "sold+fee",
+   "hammer_usd": 34001,
+   "native": {
+    "amount": 34001,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-coupe-17/",
+   "chassis": "WP0AA29934S622813",
+   "title": "2004 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-02-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 24150,
+   "basis": "sold+fee",
+   "hammer_usd": 23000,
+   "native": {
+    "amount": 23000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-coupe-15/",
+   "chassis": "WP0AA29964S621803",
+   "title": "2004 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-02-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 27825,
+   "basis": "sold+fee",
+   "hammer_usd": 26500,
+   "native": {
+    "amount": 26500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-18/",
+   "chassis": "WP0CA29934S650992",
+   "title": "2004 Porsche 911 Carrera 4S Cabriolet"
+  },
+  {
+   "date": "2023-12-27",
+   "venue": "PCARMarket",
+   "price_usd": 46725,
+   "basis": "sold+fee",
+   "hammer_usd": 44500,
+   "native": {
+    "amount": 44500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://www.pcarmarket.com/auction/2004-porsche-911-carrera-4s-7",
+   "chassis": "WP0AA29954S621405",
+   "title": "50k-Mile 2004 Porsche 996 Carrera 4S 6-Speed Aerokit"
+  },
+  {
+   "date": "2023-12-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 34913,
+   "basis": "sold+fee",
+   "hammer_usd": 33250,
+   "native": {
+    "amount": 33250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-17/",
+   "chassis": "WP0CA29954S650394",
+   "title": "2004 Porsche 911 Carrera 4S Cabriolet 6-Speed"
+  },
+  {
+   "date": "2023-11-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 39375,
+   "basis": "sold+fee",
+   "hammer_usd": 37500,
+   "native": {
+    "amount": 37500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-coupe-11/",
+   "chassis": "WP0AA29914S621918",
+   "title": "2004 Porsche 911 Carrera 4S Coupe 6-Speed"
+  },
+  {
+   "date": "2023-11-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 27300,
+   "basis": "sold+fee",
+   "hammer_usd": 26000,
+   "native": {
+    "amount": 26000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-16/",
+   "chassis": "WP0CA29964S651960",
+   "title": "2004 Porsche 911 Carrera 4S Cabriolet"
+  },
+  {
+   "date": "2023-11-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 35175,
+   "basis": "sold+fee",
+   "hammer_usd": 33500,
+   "native": {
+    "amount": 33500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-14/",
+   "chassis": "WP0CA29994S650964",
+   "title": "2004 Porsche 911 Carrera 4S Cabriolet 6-Speed"
+  },
+  {
+   "date": "2023-11-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 41475,
+   "basis": "sold+fee",
+   "hammer_usd": 39500,
+   "native": {
+    "amount": 39500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-15/",
+   "chassis": "WP0CA29964S653661",
+   "title": "25k-Mile 2004 Porsche 911 Carrera 4S Cabriolet 6-Speed"
+  },
+  {
+   "date": "2023-10-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 51188,
+   "basis": "sold+fee",
+   "hammer_usd": 48750,
+   "native": {
+    "amount": 48750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-carrera-4s-cabriolet-12/",
+   "chassis": "WP0CA29964S652624",
+   "title": "22k-Mile 2004 Porsche 911 Carrera 4S Cabriolet 6-Speed"
+  }
+ ]
+}

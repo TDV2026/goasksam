@@ -1,0 +1,306 @@
+{
+ "car_id": 73,
+ "listed": "2004 Lamborghini Gallardo",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (2002-2006)",
+ "basis": "mixed (11% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Lamborghini",
+  "model": "Gallardo",
+  "window": "36mo",
+  "year_min": 2002,
+  "year_max": 2006,
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-09-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 94500,
+   "basis": "sold+fee",
+   "hammer_usd": 90000,
+   "native": {
+    "amount": 90000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-lamborghini-gallardo-67/",
+   "chassis": "ZHWGU11S04LA01818",
+   "title": "2004 Lamborghini Gallardo"
+  },
+  {
+   "date": "2026-09-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 227500,
+   "basis": "sold+fee",
+   "hammer_usd": 220000,
+   "native": {
+    "amount": 220000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-lamborghini-gallardo-66/",
+   "chassis": "ZHWGU11M04LA00718",
+   "title": "22k-Mile 2004 Lamborghini Gallardo 6-Speed"
+  },
+  {
+   "date": "2026-08-06",
+   "venue": "Cars & Bids",
+   "price_usd": 105525,
+   "basis": "sold+fee",
+   "hammer_usd": 100500,
+   "native": {
+    "amount": 100500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://carsandbids.com/auctions/37X8Qxqv/2004-lamborghini-gallardo-coupe",
+   "chassis": "ZHWGU11S74LA01220",
+   "title": "2004 Lamborghini Gallardo Coupe"
+  },
+  {
+   "date": "2026-07-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 129150,
+   "basis": "sold+fee",
+   "hammer_usd": 123000,
+   "native": {
+    "amount": 123000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-lamborghini-gallardo-64/",
+   "chassis": "ZHWGU11M94LA01754",
+   "title": "18k-Mile 2004 Lamborghini Gallardo 6-Speed"
+  },
+  {
+   "date": "2026-05-22",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 123900,
+   "basis": "sold+fee",
+   "hammer_usd": 118000,
+   "native": {
+    "amount": 118000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://www.sothebysmotorsport.com/auction/2004-lamborghini-gallardo6speedmanualconversion-9899",
+   "chassis": "ZHWGU11S14LA01732",
+   "title": "2004 Lamborghini Gallardo 6-Speed Manual Conversion"
+  },
+  {
+   "date": "2026-05-18",
+   "venue": "Broad Arrow",
+   "price_usd": 183600,
+   "basis": "buyer-paid",
+   "hammer_usd": 159652,
+   "native": {
+    "amount": 170000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 2003,
+   "url": "https://www.broadarrowauctions.com/vehicles/gi26v_r0033/2003-lamborghini-gallardo",
+   "chassis": "ZHWGE11M94LA00035",
+   "title": "2003 Lamborghini Gallardo"
+  },
+  {
+   "date": "2026-05-15",
+   "venue": "Mecum",
+   "price_usd": 84000,
+   "basis": "sold+fee",
+   "hammer_usd": 80000,
+   "native": {
+    "amount": 88000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2004,
+   "url": "https://www.mecum.com/lots/1170102/2004-lamborghini-gallardo?aa_id=782273-0",
+   "chassis": "ZHWGU11S34LA01666",
+   "title": "2004 Lamborghini Gallardo"
+  },
+  {
+   "date": "2025-10-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 168500,
+   "basis": "sold+fee",
+   "hammer_usd": 161000,
+   "native": {
+    "amount": 161000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-lamborghini-gallardo-61/",
+   "chassis": "ZHWGU11M94LA01401",
+   "title": "16k-Mile 2004 Lamborghini Gallardo 6-Speed"
+  },
+  {
+   "date": "2025-09-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 99750,
+   "basis": "sold+fee",
+   "hammer_usd": 95000,
+   "native": {
+    "amount": 95000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-lamborghini-gallardo-60/",
+   "chassis": "ZHWGU11S74LA00438",
+   "title": "15k-Mile 2004 Lamborghini Gallardo"
+  },
+  {
+   "date": "2025-01-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 126000,
+   "basis": "sold+fee",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 120000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-lamborghini-gallardo-56/",
+   "chassis": "ZHWGU11MX4LA01827",
+   "title": "2004 Lamborghini Gallardo 6-Speed"
+  },
+  {
+   "date": "2024-11-08",
+   "venue": "Cars & Bids",
+   "price_usd": 96600,
+   "basis": "sold+fee",
+   "hammer_usd": 92000,
+   "native": {
+    "amount": 92000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://carsandbids.com/auctions/rNBbLMdW/2004-lamborghini-gallardo-coupe",
+   "chassis": "ZHWGU11M74LA00697",
+   "title": "2004 Lamborghini Gallardo Coupe"
+  },
+  {
+   "date": "2024-10-24",
+   "venue": "Cars & Bids",
+   "price_usd": 79275,
+   "basis": "sold+fee",
+   "hammer_usd": 75500,
+   "native": {
+    "amount": 75500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://carsandbids.com/auctions/3zv44bzN/2004-lamborghini-gallardo-coupe",
+   "chassis": "ZHWGU11S84LA00786",
+   "title": "2004 Lamborghini Gallardo Coupe"
+  },
+  {
+   "date": "2024-08-30",
+   "venue": "Cars & Bids",
+   "price_usd": 89775,
+   "basis": "sold+fee",
+   "hammer_usd": 85500,
+   "native": {
+    "amount": 85500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://carsandbids.com/auctions/KPJyBNnq/2004-lamborghini-gallardo-coupe",
+   "chassis": "ZHWGU11S34LA01313",
+   "title": "2004 Lamborghini Gallardo Coupe"
+  },
+  {
+   "date": "2024-04-29",
+   "venue": "Cars & Bids",
+   "price_usd": 106575,
+   "basis": "sold+fee",
+   "hammer_usd": 101500,
+   "native": {
+    "amount": 101500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://carsandbids.com/auctions/3gdADXLe/2004-lamborghini-gallardo",
+   "chassis": "ZHWGU11M34LA00308",
+   "title": "2004 Lamborghini Gallardo"
+  },
+  {
+   "date": "2024-03-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 122325,
+   "basis": "sold+fee",
+   "hammer_usd": 116500,
+   "native": {
+    "amount": 116500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-lamborghini-gallardo-48/",
+   "chassis": "ZHWGU11M34LA01779",
+   "title": "2004 Lamborghini Gallardo 6-Speed"
+  },
+  {
+   "date": "2024-02-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 98176,
+   "basis": "sold+fee",
+   "hammer_usd": 93501,
+   "native": {
+    "amount": 93501,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-lamborghini-gallardo-43-2/",
+   "chassis": "ZHWGU11S04LA00653",
+   "title": "2,700-Mile 2004 Lamborghini Gallardo"
+  },
+  {
+   "date": "2024-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 78100,
+   "basis": "buyer-paid",
+   "hammer_usd": 71000,
+   "native": {
+    "amount": 78100,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2004,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2004-lamborghini-gallardo-274727?origin=results",
+   "chassis": "ZHWGU11S74LA01024",
+   "title": "2004 LAMBORGHINI GALLARDO"
+  },
+  {
+   "date": "2023-10-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 95550,
+   "basis": "sold+fee",
+   "hammer_usd": 91000,
+   "native": {
+    "amount": 91000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-lamborghini-gallardo-43/",
+   "chassis": "ZHWGU11S04LA00653",
+   "title": "2,700-Mile 2004 Lamborghini Gallardo"
+  }
+ ]
+}

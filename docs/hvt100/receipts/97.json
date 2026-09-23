@@ -1,0 +1,307 @@
+{
+ "car_id": 97,
+ "listed": "2016 Ford Mustang Shelby GT350R",
+ "status": "compare",
+ "year_scope": "exact 2016",
+ "basis": "sold+fee (online)",
+ "scope": {
+  "make": "Ford",
+  "model": "Mustang",
+  "window": "36mo",
+  "year_min": 2016,
+  "year_max": 2016,
+  "trim": "Shelby GT350R",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-08-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 89775,
+   "basis": "sold+fee",
+   "hammer_usd": 85500,
+   "native": {
+    "amount": 85500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-ford-mustang-shelby-gt350r-42/",
+   "chassis": "1FATP8JZ5G5525823",
+   "title": "2,600-Mile 2016 Ford Mustang Shelby GT350R"
+  },
+  {
+   "date": "2026-06-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 76650,
+   "basis": "sold+fee",
+   "hammer_usd": 73000,
+   "native": {
+    "amount": 73000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-ford-mustang-shelby-gt350r-40/",
+   "chassis": "1FATP8JZ8G5525833",
+   "title": "2016 Ford Mustang Shelby GT350R"
+  },
+  {
+   "date": "2026-06-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 80325,
+   "basis": "sold+fee",
+   "hammer_usd": 76500,
+   "native": {
+    "amount": 76500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-ford-mustang-shelby-gt350r-39/",
+   "chassis": "1FATP8JZ2G5520739",
+   "title": "900-Mile 2016 Ford Mustang Shelby GT350R"
+  },
+  {
+   "date": "2026-01-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 71925,
+   "basis": "sold+fee",
+   "hammer_usd": 68500,
+   "native": {
+    "amount": 68500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-ford-mustang-shelby-gt350r-38/",
+   "chassis": "1FATP8JZ6G5525071",
+   "title": "344-Mile 2016 Ford Mustang Shelby GT350R"
+  },
+  {
+   "date": "2025-10-29",
+   "venue": "PCARMarket",
+   "price_usd": 78750,
+   "basis": "sold+fee",
+   "hammer_usd": 75000,
+   "native": {
+    "amount": 75000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://www.pcarmarket.com/auction/2016-ford-shelby-gt350r-1",
+   "chassis": "1FATP8JZ7G5524673",
+   "title": "272-Mile 2016 Ford Mustang Shelby GT350R"
+  },
+  {
+   "date": "2025-09-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 73500,
+   "basis": "sold+fee",
+   "hammer_usd": 70000,
+   "native": {
+    "amount": 70000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-ford-mustang-shelby-gt350r-35/",
+   "chassis": "1FATP8JZ7G5524673",
+   "title": "258-Mile 2016 Ford Mustang Shelby GT350R"
+  },
+  {
+   "date": "2025-08-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 62475,
+   "basis": "sold+fee",
+   "hammer_usd": 59500,
+   "native": {
+    "amount": 59500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-ford-mustang-shelby-gt350r-32/",
+   "chassis": "1FATP8JZ2G5523530",
+   "title": "4,300-Mile 2016 Ford Mustang Shelby GT350R"
+  },
+  {
+   "date": "2025-05-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 65625,
+   "basis": "sold+fee",
+   "hammer_usd": 62500,
+   "native": {
+    "amount": 62500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-ford-mustang-shelby-gt350r-31/",
+   "chassis": "1FATP8JZ7G5525600",
+   "title": "1,500-Mile 2016 Ford Mustang Shelby GT350R"
+  },
+  {
+   "date": "2025-02-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 68250,
+   "basis": "sold+fee",
+   "hammer_usd": 65000,
+   "native": {
+    "amount": 65000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-shelby-gt350r-6/",
+   "chassis": "1FATP8JZ7G5520137",
+   "title": "8k-Mile 2016 Ford Mustang Shelby GT350R"
+  },
+  {
+   "date": "2024-12-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 71400,
+   "basis": "sold+fee",
+   "hammer_usd": 68000,
+   "native": {
+    "amount": 68000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-ford-mustang-shelby-gt350r-29/",
+   "chassis": "1FATP8JZ5G5520217",
+   "title": "578-Mile 2016 Ford Mustang Shelby GT350R"
+  },
+  {
+   "date": "2024-09-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 72975,
+   "basis": "sold+fee",
+   "hammer_usd": 69500,
+   "native": {
+    "amount": 69500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-ford-mustang-shelby-gt350r-28/",
+   "chassis": "1FATP8JZXG5523517",
+   "title": "2,600-Mile 2016 Ford Mustang Shelby GT350R"
+  },
+  {
+   "date": "2024-07-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 70560,
+   "basis": "sold+fee",
+   "hammer_usd": 67200,
+   "native": {
+    "amount": 67200,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-ford-mustang-shelby-gt350r-26/",
+   "chassis": "1FATP8JZXG5523534",
+   "title": "2,500-Mile 2016 Ford Mustang Shelby GT350R"
+  },
+  {
+   "date": "2024-06-20",
+   "venue": "Cars & Bids",
+   "price_usd": 60900,
+   "basis": "sold+fee",
+   "hammer_usd": 58000,
+   "native": {
+    "amount": 58000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/KPvax8e7/2016-ford-mustang-shelby-gt350r",
+   "chassis": "1FATP8JZ1G5523521",
+   "title": "2016 Ford Mustang Shelby GT350R"
+  },
+  {
+   "date": "2023-12-13",
+   "venue": "Cars & Bids",
+   "price_usd": 63000,
+   "basis": "sold+fee",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 60000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/98wxYPL0/2016-ford-mustang-shelby-gt350r",
+   "chassis": "1FATP8JZ3G5525657",
+   "title": "2016 Ford Mustang Shelby GT350R"
+  },
+  {
+   "date": "2023-12-06",
+   "venue": "Cars & Bids",
+   "price_usd": 47513,
+   "basis": "sold+fee",
+   "hammer_usd": 45250,
+   "native": {
+    "amount": 45250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/92epep4r/2016-ford-mustang-shelby-gt350r",
+   "chassis": "1FATP8JZ7G5525516",
+   "title": "2016 Ford Mustang Shelby GT350R"
+  },
+  {
+   "date": "2023-11-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 51450,
+   "basis": "sold+fee",
+   "hammer_usd": 49000,
+   "native": {
+    "amount": 49000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-ford-mustang-shelby-gt350r-21/",
+   "chassis": "1FATP8JZ8G5520079",
+   "title": "2016 Ford Mustang Shelby GT350R"
+  },
+  {
+   "date": "2023-11-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 62475,
+   "basis": "sold+fee",
+   "hammer_usd": 59500,
+   "native": {
+    "amount": 59500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-ford-mustang-shelby-gt350r-2/",
+   "chassis": "1FATP8JZ6G5520677",
+   "title": "7k-Mile 2016 Ford Mustang Shelby GT350R"
+  },
+  {
+   "date": "2023-10-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 71925,
+   "basis": "sold+fee",
+   "hammer_usd": 68500,
+   "native": {
+    "amount": 68500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-ford-mustang-shelby-gt350r-19/",
+   "chassis": "1FATP8JZ8G5520082",
+   "title": "7k-Mile 2016 Ford Mustang Shelby GT350R"
+  }
+ ]
+}

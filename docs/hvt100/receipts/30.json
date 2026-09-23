@@ -1,0 +1,211 @@
+{
+ "car_id": 30,
+ "listed": "1969 Lamborghini Miura P400 S",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1967-1971)",
+ "basis": "buyer-paid (houses)",
+ "scope": {
+  "make": "Lamborghini",
+  "model": "Miura",
+  "window": "36mo",
+  "year_min": 1967,
+  "year_max": 1971,
+  "trim": "P400 S",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-08-15",
+   "venue": "RM Sotheby's",
+   "price_usd": 3030000,
+   "basis": "buyer-paid",
+   "hammer_usd": 2750000,
+   "native": {
+    "amount": 3030000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1967,
+   "url": "https://rmsothebys.com/auctions/mo26/lots/r0001-1967-lamborghini-miura-p400-by-bertone",
+   "chassis": "01024",
+   "title": "1967 Lamborghini Miura P400 by Bertone"
+  },
+  {
+   "date": "2026-03-07",
+   "venue": "Broad Arrow",
+   "price_usd": 2150000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1950000,
+   "native": {
+    "amount": 2150000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1968,
+   "url": "https://www.broadarrowauctions.com/vehicles/am26_r0176/1968-lamborghini-miura-p400",
+   "chassis": "3637",
+   "title": "1968 Lamborghini Miura P400"
+  },
+  {
+   "date": "2026-03-05",
+   "venue": "Gooding Christie's",
+   "price_usd": 2590000,
+   "basis": "buyer-paid",
+   "hammer_usd": 2350000,
+   "native": {
+    "amount": 2590000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://www.goodingco.com/lot/1969-lamborghini-miura-p400-s-1",
+   "chassis": "4248",
+   "title": "1969 Lamborghini Miura P400 S (FL26)"
+  },
+  {
+   "date": "2026-02-27",
+   "venue": "RM Sotheby's",
+   "price_usd": 1875000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1700000,
+   "native": {
+    "amount": 1875000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://rmsothebys.com/auctions/mi26/lots/r0082-1969-lamborghini-miura-p400s-by-bertone",
+   "chassis": "3919",
+   "title": "1969 Lamborghini Miura P400S by Bertone"
+  },
+  {
+   "date": "2025-11-01",
+   "venue": "RM Sotheby's",
+   "price_usd": 1649413,
+   "basis": "buyer-paid",
+   "hammer_usd": 1460500,
+   "native": {
+    "amount": 1298750,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1968,
+   "url": "https://rmsothebys.com/auctions/lf25/lots/r0027-1968-lamborghini-miura-p400-by-bertone/",
+   "chassis": "3645",
+   "title": "1968 Lamborghini Miura P400 by Bertone"
+  },
+  {
+   "date": "2025-08-16",
+   "venue": "Gooding Christie's",
+   "price_usd": 1765000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1600000,
+   "native": {
+    "amount": 1765000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1968,
+   "url": "https://www.goodingco.com/lot/1968-lamborghini-miura-p400-1b",
+   "chassis": "3739",
+   "title": "1968 Lamborghini Miura P400 (PB25)"
+  },
+  {
+   "date": "2025-03-06",
+   "venue": "Gooding Christie's",
+   "price_usd": 2450000,
+   "basis": "buyer-paid",
+   "hammer_usd": 2222727,
+   "native": {
+    "amount": 2450000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1968,
+   "url": "https://www.goodingco.com/lot/1968-lamborghini-miura-p400-s-1a",
+   "chassis": "3832",
+   "title": "1968 Lamborghini Miura P400 S (FL25)"
+  },
+  {
+   "date": "2024-10-26",
+   "venue": "RM Sotheby's",
+   "price_usd": 967500,
+   "basis": "buyer-paid",
+   "hammer_usd": 875000,
+   "native": {
+    "amount": 967500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://rmsothebys.com/auctions/rk24/lots/r0225-1969-lamborghini-miura-p400-s-by-bertone/",
+   "chassis": "4070",
+   "title": "1969 Lamborghini Miura P400 S by Bertone"
+  },
+  {
+   "date": "2024-10-26",
+   "venue": "RM Sotheby's",
+   "price_usd": 610000,
+   "basis": "buyer-paid",
+   "hammer_usd": 550000,
+   "native": {
+    "amount": 610000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1967,
+   "url": "https://rmsothebys.com/auctions/rk24/lots/r0226-1967-lamborghini-miura-p400-by-bertone/",
+   "chassis": "3195",
+   "title": "1967 Lamborghini Miura P400 by Bertone"
+  },
+  {
+   "date": "2024-10-26",
+   "venue": "RM Sotheby's",
+   "price_usd": 1325000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1200000,
+   "native": {
+    "amount": 1325000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1968,
+   "url": "https://rmsothebys.com/auctions/rk24/lots/r0227-1968-lamborghini-miura-p400-by-bertone/",
+   "chassis": "3417",
+   "title": "1968 Lamborghini Miura P400 by Bertone"
+  },
+  {
+   "date": "2024-08-17",
+   "venue": "Gooding Christie's",
+   "price_usd": 2315000,
+   "basis": "buyer-paid",
+   "hammer_usd": 2100000,
+   "native": {
+    "amount": 2315000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1968,
+   "url": "https://www.goodingco.com/lot/1968-lamborghini-miura-p400-1a",
+   "chassis": "3459",
+   "title": "1968 Lamborghini Miura P400 (PB24)"
+  },
+  {
+   "date": "2024-08-17",
+   "venue": "RM Sotheby's",
+   "price_usd": 1897000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1720000,
+   "native": {
+    "amount": 1897000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1969,
+   "url": "https://rmsothebys.com/auctions/mo24/lots/r0096-1969-lamborghini-miura-p400-s-by-bertone/",
+   "chassis": "3874",
+   "title": "1969 Lamborghini Miura P400 S by Bertone"
+  }
+ ]
+}

@@ -1,0 +1,881 @@
+{
+ "car_id": 26,
+ "listed": "1967 Volkswagen Beetle",
+ "status": "compare",
+ "year_scope": "exact 1967",
+ "basis": "mixed (4% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Volkswagen",
+  "model": "Beetle",
+  "window": "36mo",
+  "year_min": 1967,
+  "year_max": 1967
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-07-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 19950,
+   "basis": "sold+fee",
+   "hammer_usd": 19000,
+   "native": {
+    "amount": 19000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-251/",
+   "chassis": "117352405",
+   "title": "29-Years-Owned 1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2026-07-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 9566,
+   "basis": "sold+fee",
+   "hammer_usd": 9110,
+   "native": {
+    "amount": 9110,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-248/",
+   "chassis": "117051584",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2026-05-31",
+   "venue": "Bonhams",
+   "price_usd": 16800,
+   "basis": "buyer-paid",
+   "hammer_usd": 15000,
+   "native": {
+    "amount": 16800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1967,
+   "url": "https://cars.bonhams.com/auction/32391/lot/50/1967-volkswagen-beetle-chassis-no-117405849-engine-no-h0564916/",
+   "chassis": "117405849",
+   "title": "1967 Volkswagen Beetle Chassis no. 117405849 Engine no. H0564916"
+  },
+  {
+   "date": "2026-04-22",
+   "venue": "Hagerty",
+   "price_usd": 11025,
+   "basis": "sold+fee",
+   "hammer_usd": 10500,
+   "native": {
+    "amount": 10500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://www.hagerty.com/marketplace/auction/1967-Volkswagen-Beetle/542fca92-9273-4feb-a658-7f8608b44fbd",
+   "chassis": "117141660",
+   "title": "Modified 1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2026-04-10",
+   "venue": "Mecum",
+   "price_usd": 22050,
+   "basis": "sold+fee",
+   "hammer_usd": 21000,
+   "native": {
+    "amount": 23100,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1967,
+   "url": "https://www.mecum.com/lots/1169572/1967-volkswagen-beetle?aa_id=768471-0",
+   "chassis": "117268211",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2026-04-09",
+   "venue": "Mecum",
+   "price_usd": 21000,
+   "basis": "sold+fee",
+   "hammer_usd": 20000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1967,
+   "url": "https://www.mecum.com/lots/1170624/1967-volkswagen-beetle?aa_id=772343-0",
+   "chassis": "TEX104463",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2026-01-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 22838,
+   "basis": "sold+fee",
+   "hammer_usd": 21750,
+   "native": {
+    "amount": 21750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-235/",
+   "chassis": "117387853",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2025-12-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 22500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-230/",
+   "chassis": "117455590",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2025-10-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 18550,
+   "basis": "sold+fee",
+   "hammer_usd": 17667,
+   "native": {
+    "amount": 17667,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-convertible-228/",
+   "chassis": "157451902",
+   "title": "1967 Volkswagen Beetle Convertible"
+  },
+  {
+   "date": "2025-10-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 39900,
+   "basis": "sold+fee",
+   "hammer_usd": 38000,
+   "native": {
+    "amount": 38000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-226/",
+   "chassis": "117402092",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2025-10-21",
+   "venue": "Hemmings",
+   "price_usd": 14175,
+   "basis": "sold+fee",
+   "hammer_usd": 13500,
+   "native": {
+    "amount": 13500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://www.hemmings.com/auction/1967-volkswagen-beetle-north-myrtle-beach-sc-765265",
+   "chassis": "117039404",
+   "title": "Previously Refurbished 1967 Volkswagen Type 1 Beetle With a 1.6-Liter Four"
+  },
+  {
+   "date": "2025-10-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 19163,
+   "basis": "sold+fee",
+   "hammer_usd": 18250,
+   "native": {
+    "amount": 18250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-222-2/",
+   "chassis": "117600984",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2025-10-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 21525,
+   "basis": "sold+fee",
+   "hammer_usd": 20500,
+   "native": {
+    "amount": 20500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-224/",
+   "chassis": "117791910",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2025-09-19",
+   "venue": "Hemmings",
+   "price_usd": 15488,
+   "basis": "sold+fee",
+   "hammer_usd": 14750,
+   "native": {
+    "amount": 14750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://www.hemmings.com/auction/1967-volkswagen-beetle-hamden-ct-244900",
+   "chassis": "157657598",
+   "title": "1967 Volkswagen Type 1 Beetle Convertible With a Later 1.6-Liter Flat-Four"
+  },
+  {
+   "date": "2025-09-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 13913,
+   "basis": "sold+fee",
+   "hammer_usd": 13250,
+   "native": {
+    "amount": 13250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-222/",
+   "chassis": "117600984",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2025-08-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 52499,
+   "basis": "sold+fee",
+   "hammer_usd": 49999,
+   "native": {
+    "amount": 49999,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-215/",
+   "chassis": "157706058",
+   "title": "Original-Owner 1967 Volkswagen Beetle Convertible"
+  },
+  {
+   "date": "2025-07-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 14700,
+   "basis": "sold+fee",
+   "hammer_usd": 14000,
+   "native": {
+    "amount": 14000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-212/",
+   "chassis": "157066773",
+   "title": "1967 Volkswagen Beetle Convertible"
+  },
+  {
+   "date": "2025-06-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 19163,
+   "basis": "sold+fee",
+   "hammer_usd": 18250,
+   "native": {
+    "amount": 18250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-211/",
+   "chassis": "117383271",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2025-05-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 14980,
+   "basis": "sold+fee",
+   "hammer_usd": 14267,
+   "native": {
+    "amount": 14267,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-208/",
+   "chassis": "117724331",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2025-05-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 26775,
+   "basis": "sold+fee",
+   "hammer_usd": 25500,
+   "native": {
+    "amount": 25500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-207/",
+   "chassis": "117266472",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2025-05-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 9975,
+   "basis": "sold+fee",
+   "hammer_usd": 9500,
+   "native": {
+    "amount": 9500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-206/",
+   "chassis": "157786719",
+   "title": "1967 Volkswagen Beetle Convertible"
+  },
+  {
+   "date": "2025-04-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 14700,
+   "basis": "sold+fee",
+   "hammer_usd": 14000,
+   "native": {
+    "amount": 14000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-201/",
+   "chassis": "117135211",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2025-04-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 14175,
+   "basis": "sold+fee",
+   "hammer_usd": 13500,
+   "native": {
+    "amount": 13500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-195/",
+   "chassis": "117131736",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2025-04-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 14175,
+   "basis": "sold+fee",
+   "hammer_usd": 13500,
+   "native": {
+    "amount": 13500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-205/",
+   "chassis": "117535232",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2025-03-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 19950,
+   "basis": "sold+fee",
+   "hammer_usd": 19000,
+   "native": {
+    "amount": 19000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-199/",
+   "chassis": "157247047",
+   "title": "1967 Volkswagen Beetle Convertible"
+  },
+  {
+   "date": "2025-02-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 23679,
+   "basis": "sold+fee",
+   "hammer_usd": 22551,
+   "native": {
+    "amount": 22551,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-198/",
+   "chassis": "117436335",
+   "title": "Modified 1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2025-02-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 14175,
+   "basis": "sold+fee",
+   "hammer_usd": 13500,
+   "native": {
+    "amount": 13500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-197/",
+   "chassis": "117616207",
+   "title": "Euro 1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2025-01-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 18900,
+   "basis": "sold+fee",
+   "hammer_usd": 18000,
+   "native": {
+    "amount": 18000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-171/",
+   "chassis": "117506914",
+   "title": "Modified 1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-12-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 20948,
+   "basis": "sold+fee",
+   "hammer_usd": 19950,
+   "native": {
+    "amount": 19950,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-190/",
+   "chassis": "117534953",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-12-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 12600,
+   "basis": "sold+fee",
+   "hammer_usd": 12000,
+   "native": {
+    "amount": 12000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-189/",
+   "chassis": "117383271",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-10-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 25833,
+   "basis": "sold+fee",
+   "hammer_usd": 24603,
+   "native": {
+    "amount": 24603,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-185/",
+   "chassis": "157705079",
+   "title": "1967 Volkswagen Beetle Convertible"
+  },
+  {
+   "date": "2024-08-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 21525,
+   "basis": "sold+fee",
+   "hammer_usd": 20500,
+   "native": {
+    "amount": 20500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-181/",
+   "chassis": "117228722",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-08-13",
+   "venue": "Hagerty",
+   "price_usd": 11550,
+   "basis": "sold+fee",
+   "hammer_usd": 11000,
+   "native": {
+    "amount": 11000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://www.hagerty.com/marketplace/auction/1967-Volkswagen-Beetle/9b4de130-6e1c-4eaf-9208-1db32bff1d93",
+   "chassis": "117822382",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-08-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 32813,
+   "basis": "sold+fee",
+   "hammer_usd": 31250,
+   "native": {
+    "amount": 31250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-184/",
+   "chassis": "117541195",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-08-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-180/",
+   "chassis": "117009181",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-07-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 23179,
+   "basis": "sold+fee",
+   "hammer_usd": 22075,
+   "native": {
+    "amount": 22075,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-178/",
+   "chassis": "157838805",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-07-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 15750,
+   "basis": "sold+fee",
+   "hammer_usd": 15000,
+   "native": {
+    "amount": 15000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-179/",
+   "chassis": "117327872",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-07-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 18113,
+   "basis": "sold+fee",
+   "hammer_usd": 17250,
+   "native": {
+    "amount": 17250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-177/",
+   "chassis": "117055555",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-07-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 32550,
+   "basis": "sold+fee",
+   "hammer_usd": 31000,
+   "native": {
+    "amount": 31000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-175/",
+   "chassis": "117267773",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-06-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 9975,
+   "basis": "sold+fee",
+   "hammer_usd": 9500,
+   "native": {
+    "amount": 9500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-162/",
+   "chassis": "4586414",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-06-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 17588,
+   "basis": "sold+fee",
+   "hammer_usd": 16750,
+   "native": {
+    "amount": 16750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-172/",
+   "chassis": "117464325",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-06-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 21000,
+   "basis": "sold+fee",
+   "hammer_usd": 20000,
+   "native": {
+    "amount": 20000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-170/",
+   "chassis": "117600984",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-06-01",
+   "venue": "RM Sotheby's",
+   "price_usd": 47040,
+   "basis": "buyer-paid",
+   "hammer_usd": 42000,
+   "native": {
+    "amount": 47040,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1967,
+   "url": "https://rmsothebys.com/auctions/dd24/lots/r0114-1967-volkswagen-beetle/",
+   "chassis": "117044957",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-05-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 18638,
+   "basis": "sold+fee",
+   "hammer_usd": 17750,
+   "native": {
+    "amount": 17750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-173/",
+   "chassis": "117365372",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-04-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 13650,
+   "basis": "sold+fee",
+   "hammer_usd": 13000,
+   "native": {
+    "amount": 13000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-165/",
+   "chassis": "117224581",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-04-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 13125,
+   "basis": "sold+fee",
+   "hammer_usd": 12500,
+   "native": {
+    "amount": 12500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-167/",
+   "chassis": "117294365",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-02-08",
+   "venue": "Hemmings",
+   "price_usd": 11550,
+   "basis": "sold+fee",
+   "hammer_usd": 11000,
+   "native": {
+    "amount": 11000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://www.hemmings.com/auction/1967-volkswagen-beetle-naples-fl-579492",
+   "chassis": "117595645",
+   "title": "1967 Volkswagen Type 1 “Beetle” Sedan"
+  },
+  {
+   "date": "2024-02-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 22313,
+   "basis": "sold+fee",
+   "hammer_usd": 21250,
+   "native": {
+    "amount": 21250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-158/",
+   "chassis": "117763059",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2024-01-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 8190,
+   "basis": "sold+fee",
+   "hammer_usd": 7800,
+   "native": {
+    "amount": 7800,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-156/",
+   "chassis": "B7372502",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2023-11-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 13650,
+   "basis": "sold+fee",
+   "hammer_usd": 13000,
+   "native": {
+    "amount": 13000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-155/",
+   "chassis": "117178161",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2023-11-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 37800,
+   "basis": "sold+fee",
+   "hammer_usd": 36000,
+   "native": {
+    "amount": 36000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-152/",
+   "chassis": "117137815",
+   "title": "1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2023-11-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 46463,
+   "basis": "sold+fee",
+   "hammer_usd": 44250,
+   "native": {
+    "amount": 44250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-153/",
+   "chassis": "117437922",
+   "title": "Modified 1967 Volkswagen Beetle"
+  },
+  {
+   "date": "2023-11-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 22500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-150/",
+   "chassis": "157705079",
+   "title": "1967 Volkswagen Beetle Convertible"
+  },
+  {
+   "date": "2023-10-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 26513,
+   "basis": "sold+fee",
+   "hammer_usd": 25250,
+   "native": {
+    "amount": 25250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-volkswagen-beetle-143/",
+   "chassis": "117051201",
+   "title": "1967 Volkswagen Beetle"
+  }
+ ]
+}

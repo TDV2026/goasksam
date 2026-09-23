@@ -1,0 +1,515 @@
+{
+ "car_id": 38,
+ "listed": "1991 Ferrari 348 TS",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1989-1993)",
+ "basis": "mixed (10% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Ferrari",
+  "model": "348",
+  "window": "36mo",
+  "year_min": 1989,
+  "year_max": 1993,
+  "trim": "TS",
+  "body": "targa"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-09-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 94500,
+   "basis": "sold+fee",
+   "hammer_usd": 90000,
+   "native": {
+    "amount": 90000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-ferrari-348-58/",
+   "chassis": "ZFFFG36A8L0087434",
+   "title": "Original-Owner 1990 Ferrari 348 TS"
+  },
+  {
+   "date": "2026-08-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 100800,
+   "basis": "sold+fee",
+   "hammer_usd": 96000,
+   "native": {
+    "amount": 96000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-ferrari-348-38/",
+   "chassis": "ZFFRG36A8M0088646",
+   "title": "1991 Ferrari 348 TS"
+  },
+  {
+   "date": "2026-06-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 161848,
+   "basis": "sold+fee",
+   "hammer_usd": 154348,
+   "native": {
+    "amount": 154348,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-ferrari-348-37/",
+   "chassis": "ZFFRG36A5M0090323",
+   "title": "16k-Mile 1991 Ferrari 348 TS"
+  },
+  {
+   "date": "2026-04-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 83475,
+   "basis": "sold+fee",
+   "hammer_usd": 79500,
+   "native": {
+    "amount": 79500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-ferrari-348-33/",
+   "chassis": "ZFFRG36A8M0089411",
+   "title": "30k-Mile 1991 Ferrari 348 TS"
+  },
+  {
+   "date": "2026-03-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 73500,
+   "basis": "sold+fee",
+   "hammer_usd": 70000,
+   "native": {
+    "amount": 70000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-ferrari-348-32/",
+   "chassis": "ZFFRG36A9M0089773",
+   "title": "1991 Ferrari 348 TS"
+  },
+  {
+   "date": "2026-02-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 79275,
+   "basis": "sold+fee",
+   "hammer_usd": 75500,
+   "native": {
+    "amount": 75500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-ferrari-348-56/",
+   "chassis": "ZFFFG36AXL0085930",
+   "title": "1990 Ferrari 348 TS"
+  },
+  {
+   "date": "2025-11-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 197500,
+   "basis": "sold+fee",
+   "hammer_usd": 190000,
+   "native": {
+    "amount": 190000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-ferrari-348-11/",
+   "chassis": "ZFFFA36A6K0082636",
+   "title": "14k-Mile 1989 Ferrari 348 TS"
+  },
+  {
+   "date": "2025-11-01",
+   "venue": "Broad Arrow",
+   "price_usd": 84000,
+   "basis": "buyer-paid",
+   "hammer_usd": 73043,
+   "native": {
+    "amount": 75000,
+    "currency": "CHF",
+    "premium_inclusive": true
+   },
+   "year": 1990,
+   "url": "https://www.broadarrowauctions.com/vehicles/dg25_r0042/1990-ferrari-348-ts",
+   "chassis": "ZFFFA36S000087744",
+   "title": "1990 Ferrari 348 ts"
+  },
+  {
+   "date": "2025-10-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 86625,
+   "basis": "sold+fee",
+   "hammer_usd": 82500,
+   "native": {
+    "amount": 82500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1994-ferrari-348-42/",
+   "chassis": "ZFFFG36A7L0087487",
+   "title": "9k-Mile 1990 Ferrari 348 TS"
+  },
+  {
+   "date": "2025-08-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 67725,
+   "basis": "sold+fee",
+   "hammer_usd": 64500,
+   "native": {
+    "amount": 64500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-ferrari-348-54/",
+   "chassis": "ZFFFG36A7L0086212",
+   "title": "1990 Ferrari 348 TS"
+  },
+  {
+   "date": "2025-08-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 89775,
+   "basis": "sold+fee",
+   "hammer_usd": 85500,
+   "native": {
+    "amount": 85500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-ferrari-348-27/",
+   "chassis": "ZFFRG36A5M0090094",
+   "title": "1991 Ferrari 348 TS"
+  },
+  {
+   "date": "2025-06-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 86100,
+   "basis": "sold+fee",
+   "hammer_usd": 82000,
+   "native": {
+    "amount": 82000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-ferrari-348-53/",
+   "chassis": "ZFFFG36A3L0087342",
+   "title": "1990 Ferrari 348 TS"
+  },
+  {
+   "date": "2025-06-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 67725,
+   "basis": "sold+fee",
+   "hammer_usd": 64500,
+   "native": {
+    "amount": 64500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-ferrari-348-26/",
+   "chassis": "ZFFRG36A3M0089736",
+   "title": "45k-Mile 1991 Ferrari 348 TS"
+  },
+  {
+   "date": "2025-05-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 66150,
+   "basis": "sold+fee",
+   "hammer_usd": 63000,
+   "native": {
+    "amount": 63000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-ferrari-348-52/",
+   "chassis": "ZFFFG36A9L0086633",
+   "title": "25k-Mile 1990 Ferrari 348 TS"
+  },
+  {
+   "date": "2025-05-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 58800,
+   "basis": "sold+fee",
+   "hammer_usd": 56000,
+   "native": {
+    "amount": 56000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-ferrari-348-25/",
+   "chassis": "ZFFRG36A5M0089222",
+   "title": "1991 Ferrari 348 TS"
+  },
+  {
+   "date": "2025-04-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 76650,
+   "basis": "sold+fee",
+   "hammer_usd": 73000,
+   "native": {
+    "amount": 73000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-ferrari-348-51/",
+   "chassis": "ZFFFG36AXL0086558",
+   "title": "1990 Ferrari 348 TS"
+  },
+  {
+   "date": "2025-03-17",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 86625,
+   "basis": "sold+fee",
+   "hammer_usd": 82500,
+   "native": {
+    "amount": 82500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://www.sothebysmotorsport.com/auction/1989-ferrari-348ts-3333",
+   "chassis": "ZFFFA36A0K0082616",
+   "title": "1989 Ferrari 348 TS"
+  },
+  {
+   "date": "2025-03-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 85050,
+   "basis": "sold+fee",
+   "hammer_usd": 81000,
+   "native": {
+    "amount": 81000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-ferrari-348-24/",
+   "chassis": "ZFFRG36A7M0089240",
+   "title": "17k-Mile 1991 Ferrari 348 TS"
+  },
+  {
+   "date": "2025-02-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 84000,
+   "basis": "sold+fee",
+   "hammer_usd": 80000,
+   "native": {
+    "amount": 80000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-ferrari-348-49/",
+   "chassis": "ZFFFG36A8L0087451",
+   "title": "17k-Mile 1990 Ferrari 348 TS"
+  },
+  {
+   "date": "2025-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 68200,
+   "basis": "buyer-paid",
+   "hammer_usd": 62000,
+   "native": {
+    "amount": 68200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1990,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1990-ferrari-348-ts-285418?origin=results",
+   "chassis": "ZFFFG36A4L0086068",
+   "title": "1990 FERRARI 348 TS"
+  },
+  {
+   "date": "2024-12-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 72450,
+   "basis": "sold+fee",
+   "hammer_usd": 69000,
+   "native": {
+    "amount": 69000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-ferrari-348-22/",
+   "chassis": "ZFFRG36A8M0089411",
+   "title": "29k-Mile 1991 Ferrari 348 TS"
+  },
+  {
+   "date": "2024-12-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 85050,
+   "basis": "sold+fee",
+   "hammer_usd": 81000,
+   "native": {
+    "amount": 81000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-ferrari-348-48/",
+   "chassis": "ZFFFG36A7L0087487",
+   "title": "Original-Owner 1990 Ferrari 348 TS"
+  },
+  {
+   "date": "2024-10-11",
+   "venue": "Barrett-Jackson",
+   "price_usd": 66000,
+   "basis": "buyer-paid",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 66000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1991,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1991-ferrari-348-ts-targa-279105?origin=results",
+   "chassis": "ZFFRG36AXM0089202",
+   "title": "1991 FERRARI 348 TS TARGA"
+  },
+  {
+   "date": "2024-08-22",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 68250,
+   "basis": "sold+fee",
+   "hammer_usd": 65000,
+   "native": {
+    "amount": 65000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://www.sothebysmotorsport.com/auction/1991-ferrari-348ts-2185",
+   "chassis": "ZFFRG36A8M0089411",
+   "title": "1991 Ferrari 348 TS"
+  },
+  {
+   "date": "2024-08-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 72450,
+   "basis": "sold+fee",
+   "hammer_usd": 69000,
+   "native": {
+    "amount": 69000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-ferrari-348-45/",
+   "chassis": "ZFFFG36A8L0087546",
+   "title": "21k-Mile 1990 Ferrari 348 TS"
+  },
+  {
+   "date": "2024-08-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 75075,
+   "basis": "sold+fee",
+   "hammer_usd": 71500,
+   "native": {
+    "amount": 71500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-ferrari-348-10/",
+   "chassis": "ZFFFA36A4K0082277",
+   "title": "1989 Ferrari 348 TS"
+  },
+  {
+   "date": "2024-07-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 94500,
+   "basis": "sold+fee",
+   "hammer_usd": 90000,
+   "native": {
+    "amount": 90000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-ferrari-348-20/",
+   "chassis": "ZFFRG36A0M0090472",
+   "title": "19k-Mile 1991 Ferrari 348 TS"
+  },
+  {
+   "date": "2024-05-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 74550,
+   "basis": "sold+fee",
+   "hammer_usd": 71000,
+   "native": {
+    "amount": 71000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-ferrari-348-43/",
+   "chassis": "ZFFFG36A6L0087660",
+   "title": "1990 Ferrari 348 TS"
+  },
+  {
+   "date": "2024-04-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 65625,
+   "basis": "sold+fee",
+   "hammer_usd": 62500,
+   "native": {
+    "amount": 62500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-ferrari-348-41/",
+   "chassis": "ZFFFG36A9L0087152",
+   "title": "1990 Ferrari 348 TS"
+  },
+  {
+   "date": "2023-12-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 63000,
+   "basis": "sold+fee",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 60000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-ferrari-348-ts/",
+   "chassis": "ZFFFG36A4L0086068",
+   "title": "1990 Ferrari 348 TS"
+  },
+  {
+   "date": "2023-12-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 60900,
+   "basis": "sold+fee",
+   "hammer_usd": 58000,
+   "native": {
+    "amount": 58000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-ferrari-348-39/",
+   "chassis": "ZFFFG36A8L0085912",
+   "title": "1990 Ferrari 348 TS"
+  }
+ ]
+}

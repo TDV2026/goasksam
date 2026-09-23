@@ -1,0 +1,34 @@
+{
+ "car_id": 71,
+ "listed": "2006 Ferrari F430",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (2004-2008)",
+ "basis": "buyer-paid (houses)",
+ "scope": {
+  "make": "Ferrari",
+  "model": "F430",
+  "window": "36mo",
+  "year_min": 2004,
+  "year_max": 2008,
+  "body": "coupe"
+ },
+ "halo_dropped": 4,
+ "sales": [
+  {
+   "date": "2025-04-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 126500,
+   "basis": "buyer-paid",
+   "hammer_usd": 115000,
+   "native": {
+    "amount": 126500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2006,
+   "url": "https://www.barrett-jackson.com/palm-beach-2025/docket/vehicle/2006-ferrari-f430-288040?origin=results",
+   "chassis": "ZFFEW58A960144929",
+   "title": "2006 FERRARI F430"
+  }
+ ]
+}

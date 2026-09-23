@@ -1,0 +1,291 @@
+{
+ "car_id": 61,
+ "listed": "2007 Porsche 911 GT3",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (2005-2009)",
+ "basis": "mixed (12% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Porsche",
+  "model": "911",
+  "window": "36mo",
+  "year_min": 2005,
+  "year_max": 2009,
+  "trim": "GT3",
+  "body": "coupe"
+ },
+ "halo_dropped": 1,
+ "sales": [
+  {
+   "date": "2026-04-18",
+   "venue": "Barrett-Jackson",
+   "price_usd": 170500,
+   "basis": "buyer-paid",
+   "hammer_usd": 155000,
+   "native": {
+    "amount": 170500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/2005-porsche-911-gt3-297828?origin=results",
+   "chassis": "WP0AC29945S692221",
+   "title": "2005 PORSCHE 911 GT3"
+  },
+  {
+   "date": "2025-08-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 120750,
+   "basis": "sold+fee",
+   "hammer_usd": 115000,
+   "native": {
+    "amount": 115000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-porsche-911-gt3-28/",
+   "chassis": "WP0AC29945S692087",
+   "title": "23k-Mile 2005 Porsche 911 GT3"
+  },
+  {
+   "date": "2025-06-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 134400,
+   "basis": "sold+fee",
+   "hammer_usd": 128000,
+   "native": {
+    "amount": 128000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2007,
+   "url": "https://bringatrailer.com/listing/2007-porsche-911-gt3-96/",
+   "chassis": "WP0AC29907S792335",
+   "title": "2007 Porsche 911 GT3"
+  },
+  {
+   "date": "2025-05-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 100796,
+   "basis": "sold+fee",
+   "hammer_usd": 95996,
+   "native": {
+    "amount": 95996,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-porsche-911-gt3-26/",
+   "chassis": "WP0AC29935S692159",
+   "title": "2005 Porsche 911 GT3"
+  },
+  {
+   "date": "2025-02-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 75600,
+   "basis": "sold+fee",
+   "hammer_usd": 72000,
+   "native": {
+    "amount": 72000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-porsche-911-gt3-25/",
+   "chassis": "WP0AC29995S692179",
+   "title": "Modified 2005 Porsche 911 GT3"
+  },
+  {
+   "date": "2025-01-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 137550,
+   "basis": "sold+fee",
+   "hammer_usd": 131000,
+   "native": {
+    "amount": 131000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2007,
+   "url": "https://bringatrailer.com/listing/2007-porsche-911-gt3-91/",
+   "chassis": "WP0AC29967S793232",
+   "title": "2007 Porsche 911 GT3"
+  },
+  {
+   "date": "2024-07-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 139650,
+   "basis": "sold+fee",
+   "hammer_usd": 133000,
+   "native": {
+    "amount": 133000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2007,
+   "url": "https://bringatrailer.com/listing/2007-porsche-911-gt3-86/",
+   "chassis": "WP0AC29917S793140",
+   "title": "2007 Porsche 911 GT3"
+  },
+  {
+   "date": "2024-07-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 177500,
+   "basis": "sold+fee",
+   "hammer_usd": 170000,
+   "native": {
+    "amount": 170000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2007,
+   "url": "https://bringatrailer.com/listing/2007-porsche-911-gt3-85/",
+   "chassis": "WP0AC29917S793204",
+   "title": "6k-Mile 2007 Porsche 911 GT3"
+  },
+  {
+   "date": "2024-04-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 172500,
+   "basis": "sold+fee",
+   "hammer_usd": 165000,
+   "native": {
+    "amount": 165000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2007,
+   "url": "https://bringatrailer.com/listing/2007-porsche-911-gt3-82/",
+   "chassis": "WP0AC29947S792287",
+   "title": "Original-Owner 2007 Porsche 911 GT3"
+  },
+  {
+   "date": "2024-04-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 104471,
+   "basis": "sold+fee",
+   "hammer_usd": 99496,
+   "native": {
+    "amount": 99496,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-porsche-911-gt3-23/",
+   "chassis": "WP0AC29955S692079",
+   "title": "32k-Mile 2005 Porsche 911 GT3"
+  },
+  {
+   "date": "2024-03-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 126000,
+   "basis": "sold+fee",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 120000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2007,
+   "url": "https://bringatrailer.com/listing/2007-porsche-911-gt3-81/",
+   "chassis": "WP0AC29977S792283",
+   "title": "25k-Mile 2007 Porsche 911 GT3"
+  },
+  {
+   "date": "2024-02-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 163500,
+   "basis": "sold+fee",
+   "hammer_usd": 156000,
+   "native": {
+    "amount": 156000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2007,
+   "url": "https://bringatrailer.com/listing/2007-porsche-911-gt3-80/",
+   "chassis": "WP0AC29917S793204",
+   "title": "5k-Mile 2007 Porsche 911 GT3"
+  },
+  {
+   "date": "2024-01-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 154000,
+   "basis": "buyer-paid",
+   "hammer_usd": 140000,
+   "native": {
+    "amount": 154000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2005-porsche-911-gt3-271438?origin=results",
+   "chassis": "WP0AC29945S692221",
+   "title": "2005 PORSCHE 911 GT3"
+  },
+  {
+   "date": "2023-11-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 133350,
+   "basis": "sold+fee",
+   "hammer_usd": 127000,
+   "native": {
+    "amount": 127000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2007,
+   "url": "https://bringatrailer.com/listing/2007-porsche-911-gt3-76/",
+   "chassis": "WP0AC29997S793029",
+   "title": "2007 Porsche 911 GT3"
+  },
+  {
+   "date": "2023-11-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 141750,
+   "basis": "sold+fee",
+   "hammer_usd": 135000,
+   "native": {
+    "amount": 135000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2007,
+   "url": "https://bringatrailer.com/listing/2007-porsche-911-gt3-75/",
+   "chassis": "WP0AC29917S793140",
+   "title": "26k-Mile 2007 Porsche 911 GT3"
+  },
+  {
+   "date": "2023-10-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 150150,
+   "basis": "sold+fee",
+   "hammer_usd": 143000,
+   "native": {
+    "amount": 143000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2007,
+   "url": "https://bringatrailer.com/listing/2007-porsche-911-gt3-73/",
+   "chassis": "WP0AC29917S792814",
+   "title": "35k-Mile 2007 Porsche 911 GT3"
+  },
+  {
+   "date": "2023-09-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 155397,
+   "basis": "sold+fee",
+   "hammer_usd": 147997,
+   "native": {
+    "amount": 147997,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2007,
+   "url": "https://bringatrailer.com/listing/2007-porsche-911-gt3-72/",
+   "chassis": "WP0AC29967S793263",
+   "title": "38k-Mile 2007 Porsche 911 GT3"
+  }
+ ]
+}

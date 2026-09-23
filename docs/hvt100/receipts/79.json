@@ -1,0 +1,17 @@
+{
+ "car_id": 79,
+ "listed": "2011 Mercedes-Benz SLS AMG",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (2009-2013)",
+ "basis": "n/a",
+ "scope": {
+  "make": "Mercedes-Benz",
+  "model": "SLS AMG",
+  "window": "36mo",
+  "year_min": 2009,
+  "year_max": 2013,
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": []
+}

@@ -1,0 +1,291 @@
+{
+ "car_id": 34,
+ "listed": "1994 Porsche 911 Turbo",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1992-1994)",
+ "basis": "mixed (35% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Porsche",
+  "model": "911",
+  "window": "36mo",
+  "year_min": 1992,
+  "year_max": 1994,
+  "trim": "Turbo",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-01-23",
+   "venue": "RM Sotheby's",
+   "price_usd": 2480000,
+   "basis": "buyer-paid",
+   "hammer_usd": 2250000,
+   "native": {
+    "amount": 2480000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1993,
+   "url": "https://rmsothebys.com/auctions/az26/lots/r0041-1993-porsche-911-turbo-s-lightweight",
+   "chassis": "WP0ZZZ96ZPS479011",
+   "title": "1993 Porsche 911 Turbo S Lightweight"
+  },
+  {
+   "date": "2025-12-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 607501,
+   "basis": "sold+fee",
+   "hammer_usd": 600001,
+   "native": {
+    "amount": 600001,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-porsche-911-turbo-3-6-29/",
+   "chassis": "WP0AC2961RS480338",
+   "title": "36k-Mile 1994 Porsche 911 Turbo 3.6"
+  },
+  {
+   "date": "2025-12-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 883500,
+   "basis": "sold+fee",
+   "hammer_usd": 876000,
+   "native": {
+    "amount": 876000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-porsche-911-turbo-3-6-28/",
+   "chassis": "WP0AC2963RS480096",
+   "title": "6k-Mile 1994 Porsche 911 Turbo 3.6"
+  },
+  {
+   "date": "2025-12-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 838500,
+   "basis": "sold+fee",
+   "hammer_usd": 831000,
+   "native": {
+    "amount": 831000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-porsche-911-turbo-3-6-27/",
+   "chassis": "WP0AC2966RS480318",
+   "title": "2,500-Mile, Slate Gray 1994 Porsche 911 Turbo 3.6"
+  },
+  {
+   "date": "2025-10-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 232500,
+   "basis": "sold+fee",
+   "hammer_usd": 225000,
+   "native": {
+    "amount": 225000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1992,
+   "url": "https://bringatrailer.com/listing/1992-porsche-911-turbo-30/",
+   "chassis": "WP0AA296XNS480306",
+   "title": "1992 Porsche 911 Turbo"
+  },
+  {
+   "date": "2025-08-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 383500,
+   "basis": "sold+fee",
+   "hammer_usd": 376000,
+   "native": {
+    "amount": 376000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-porsche-911-turbo-3-6-23/",
+   "chassis": "WP0AC2969RS480359",
+   "title": "1994 Porsche 911 Turbo 3.6"
+  },
+  {
+   "date": "2025-04-26",
+   "venue": "Broad Arrow",
+   "price_usd": 555000,
+   "basis": "buyer-paid",
+   "hammer_usd": 500000,
+   "native": {
+    "amount": 555000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1994,
+   "url": "https://www.broadarrowauctions.com/vehicles/po25_r0021/1994-porsche-911-turbo-3-6-x88",
+   "chassis": "WP0ZZZ96ZRS470400",
+   "title": "1994 Porsche 911 Turbo 3.6 X88"
+  },
+  {
+   "date": "2025-03-08",
+   "venue": "Broad Arrow",
+   "price_usd": 412000,
+   "basis": "buyer-paid",
+   "hammer_usd": 370000,
+   "native": {
+    "amount": 412000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1992,
+   "url": "https://www.broadarrowauctions.com/vehicles/am25_r007/1992-porsche-911-turbo",
+   "chassis": "WP0AA2963NS480308",
+   "title": "1992 Porsche 911 Turbo"
+  },
+  {
+   "date": "2025-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 396000,
+   "basis": "buyer-paid",
+   "hammer_usd": 360000,
+   "native": {
+    "amount": 396000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1993,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1993-porsche-911-turbo-36-280939?origin=results",
+   "chassis": "WP0ZZZ96ZPS470203",
+   "title": "1993 PORSCHE 911 TURBO 3.6"
+  },
+  {
+   "date": "2024-12-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 382500,
+   "basis": "sold+fee",
+   "hammer_usd": 375000,
+   "native": {
+    "amount": 375000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-porsche-911-turbo-3-6-18/",
+   "chassis": "WP0AC2967RS480327",
+   "title": "1994 Porsche 911 Turbo 3.6"
+  },
+  {
+   "date": "2024-11-02",
+   "venue": "RM Sotheby's",
+   "price_usd": 977900,
+   "basis": "buyer-paid",
+   "hammer_usd": 863600,
+   "native": {
+    "amount": 770000,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1993,
+   "url": "https://rmsothebys.com/auctions/lf24/lots/r0064-1993-porsche-911-turbo-s-lightweight/",
+   "chassis": "WP0ZZZ96ZPS479075",
+   "title": "1993 Porsche 911 Turbo S Lightweight"
+  },
+  {
+   "date": "2024-09-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 397500,
+   "basis": "sold+fee",
+   "hammer_usd": 390000,
+   "native": {
+    "amount": 390000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-porsche-911-turbo-3-6-16/",
+   "chassis": "WP0AC2962RS480235",
+   "title": "1994 Porsche 911 Turbo 3.6"
+  },
+  {
+   "date": "2024-04-27",
+   "venue": "Broad Arrow",
+   "price_usd": 423000,
+   "basis": "buyer-paid",
+   "hammer_usd": 380000,
+   "native": {
+    "amount": 423000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1994,
+   "url": "https://www.broadarrowauctions.com/vehicles/po24_r054/1994-porsche-911-turbo-3-6",
+   "chassis": "WP0AC2967RS480327",
+   "title": "1994 Porsche 911 Turbo 3.6"
+  },
+  {
+   "date": "2024-03-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 407464,
+   "basis": "sold+fee",
+   "hammer_usd": 399964,
+   "native": {
+    "amount": 399964,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-porsche-911-turbo-3-6-14/",
+   "chassis": "WP0AC2967RS480232",
+   "title": "1994 Porsche 911 Turbo 3.6"
+  },
+  {
+   "date": "2023-12-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 247500,
+   "basis": "sold+fee",
+   "hammer_usd": 240000,
+   "native": {
+    "amount": 240000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-porsche-911-turbo-3-6-12/",
+   "chassis": "WP0AC2966RS480254",
+   "title": "1994 Porsche 911 Turbo 3.6"
+  },
+  {
+   "date": "2023-11-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 402500,
+   "basis": "sold+fee",
+   "hammer_usd": 395000,
+   "native": {
+    "amount": 395000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-porsche-911-turbo-3-6-11/",
+   "chassis": "WP0AC296XRS480340",
+   "title": "Amethyst Metallic 1994 Porsche 911 Turbo 3.6"
+  },
+  {
+   "date": "2023-09-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 353500,
+   "basis": "sold+fee",
+   "hammer_usd": 346000,
+   "native": {
+    "amount": 346000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-porsche-911-turbo-3-6-9/",
+   "chassis": "WP0AC2963RS480423",
+   "title": "1994 Porsche 911 Turbo 3.6"
+  }
+ ]
+}

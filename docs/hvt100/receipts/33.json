@@ -1,0 +1,17 @@
+{
+ "car_id": 33,
+ "listed": "1989 Porsche 911 Speedster",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1987-1989)",
+ "basis": "n/a",
+ "scope": {
+  "make": "Porsche",
+  "model": "911",
+  "window": "36mo",
+  "year_min": 1987,
+  "year_max": 1989,
+  "trim": "Speedster"
+ },
+ "halo_dropped": 0,
+ "sales": []
+}

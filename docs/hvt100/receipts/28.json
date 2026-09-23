@@ -1,0 +1,307 @@
+{
+ "car_id": 28,
+ "listed": "1964 Ferrari 250 Lusso",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1962-1966)",
+ "basis": "mixed (94% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Ferrari",
+  "model": "250",
+  "window": "36mo",
+  "year_min": 1962,
+  "year_max": 1966,
+  "trim": "Lusso",
+  "body": "coupe"
+ },
+ "halo_dropped": 10,
+ "sales": [
+  {
+   "date": "2026-08-15",
+   "venue": "Gooding Christie's",
+   "price_usd": 1270000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1150000,
+   "native": {
+    "amount": 1270000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1964,
+   "url": "https://www.goodingco.com/lot/1964-ferrari-250-gt-lusso-pb26",
+   "chassis": "5931GT",
+   "title": "1964 Ferrari 250 GT Lusso (PB26)"
+  },
+  {
+   "date": "2026-08-15",
+   "venue": "Gooding Christie's",
+   "price_usd": 18705000,
+   "basis": "buyer-paid",
+   "hammer_usd": 17000000,
+   "native": {
+    "amount": 18705000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1963,
+   "url": "https://www.goodingco.com/lot/1963-ferrari-250-p",
+   "chassis": "0810",
+   "title": "1963 Ferrari 250 P"
+  },
+  {
+   "date": "2026-03-07",
+   "venue": "Broad Arrow",
+   "price_usd": 1490000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1350000,
+   "native": {
+    "amount": 1490000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1963,
+   "url": "https://www.broadarrowauctions.com/vehicles/am26_r0076/1963-ferrari-250-gt-berlinetta-lusso",
+   "chassis": "4607",
+   "title": "1963 Ferrari 250 GT Berlinetta Lusso"
+  },
+  {
+   "date": "2026-03-05",
+   "venue": "Gooding Christie's",
+   "price_usd": 1765000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1600000,
+   "native": {
+    "amount": 1765000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1963,
+   "url": "https://www.goodingco.com/lot/1963-ferrari-250-gt-lusso-1c",
+   "chassis": "5127GT",
+   "title": "1963 Ferrari 250 GT Lusso (FL26)"
+  },
+  {
+   "date": "2026-01-29",
+   "venue": "Gooding Christie's",
+   "price_usd": 1242500,
+   "basis": "buyer-paid",
+   "hammer_usd": 1125000,
+   "native": {
+    "amount": 1242500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1963,
+   "url": "https://www.goodingco.com/lot/1963-ferrari-250-gt-lusso-1b",
+   "chassis": "4837GT",
+   "title": "1963 Ferrari 250 GT Lusso  (RP26)"
+  },
+  {
+   "date": "2025-10-12",
+   "venue": "Bonhams",
+   "price_usd": 1490400,
+   "basis": "buyer-paid",
+   "hammer_usd": 1296000,
+   "native": {
+    "amount": 1380000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1963,
+   "url": "https://cars.bonhams.com/auction/31021/lot/144/1963-ferrari-250-gt-berlinetta-lusso-chassis-no-4439-engine-no-4439/",
+   "chassis": "4439",
+   "title": "1963 Ferrari 250 GT Berlinetta Lusso Chassis no. 4439 Engine no. 4439"
+  },
+  {
+   "date": "2025-08-16",
+   "venue": "RM Sotheby's",
+   "price_usd": 1435000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1300000,
+   "native": {
+    "amount": 1435000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1962,
+   "url": "https://rmsothebys.com/auctions/mo25/lots/r0047-1962-ferrari-250-gt-cabriolet-series-ii-by-pininfarina/",
+   "chassis": "3091GT",
+   "title": "1962 Ferrari 250 GT Cabriolet Series II by Pininfarina"
+  },
+  {
+   "date": "2025-08-14",
+   "venue": "Broad Arrow",
+   "price_usd": 1622000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1470000,
+   "native": {
+    "amount": 1622000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1963,
+   "url": "https://www.broadarrowauctions.com/vehicles/jc25_r0077/1963-ferrari-250-gt-berlinetta-lusso",
+   "chassis": "4595",
+   "title": "1963 Ferrari 250 GT Berlinetta Lusso"
+  },
+  {
+   "date": "2025-08-14",
+   "venue": "Broad Arrow",
+   "price_usd": 1380000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1250000,
+   "native": {
+    "amount": 1380000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1963,
+   "url": "https://www.broadarrowauctions.com/vehicles/jc25_r0148/1963-ferrari-250-gt-berlinetta-lusso",
+   "chassis": "5179GT",
+   "title": "1963 Ferrari 250 GT Berlinetta Lusso"
+  },
+  {
+   "date": "2025-05-25",
+   "venue": "Broad Arrow",
+   "price_usd": 310500,
+   "basis": "buyer-paid",
+   "hammer_usd": 271200,
+   "native": {
+    "amount": 287500,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1962,
+   "url": "https://www.broadarrowauctions.com/vehicles/ve25_r016/1962-ferrari-250-gt-e-pininfarina-coupe-2-2-series-ii",
+   "chassis": "3395",
+   "title": "1962 Ferrari 250 GT/E Pininfarina Coupe 2+2 Series II"
+  },
+  {
+   "date": "2025-05-22",
+   "venue": "RM Sotheby's",
+   "price_usd": 1220400,
+   "basis": "buyer-paid",
+   "hammer_usd": 1080000,
+   "native": {
+    "amount": 1130000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1962,
+   "url": "https://rmsothebys.com/auctions/ml25/lots/r0033-1962-ferrari-250-gt-cabriolet-series-ii-by-pininfarina/",
+   "chassis": "3449GT",
+   "title": "1962 Ferrari 250 GT Cabriolet Series II by Pininfarina"
+  },
+  {
+   "date": "2025-02-05",
+   "venue": "RM Sotheby's",
+   "price_usd": 37670400,
+   "basis": "buyer-paid",
+   "hammer_usd": 33480000,
+   "native": {
+    "amount": 34880000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1964,
+   "url": "https://rmsothebys.com/auctions/pa25/lots/r0008-1964-ferrari-250-lm-by-scaglietti/",
+   "chassis": "5893",
+   "title": "1964 Ferrari 250 LM by Scaglietti"
+  },
+  {
+   "date": "2024-11-02",
+   "venue": "RM Sotheby's",
+   "price_usd": 1456531,
+   "basis": "buyer-paid",
+   "hammer_usd": 1289050,
+   "native": {
+    "amount": 1146875,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1964,
+   "url": "https://rmsothebys.com/auctions/lf24/lots/r0056-1964-ferrari-250-gtl-berlinetta-lusso-by-scaglietti/",
+   "chassis": "5913",
+   "title": "1964 Ferrari 250 GT/L Berlinetta Lusso by Scaglietti"
+  },
+  {
+   "date": "2024-06-12",
+   "venue": "RM Sotheby's",
+   "price_usd": 1435100,
+   "basis": "buyer-paid",
+   "hammer_usd": 1270000,
+   "native": {
+    "amount": 1130000,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1963,
+   "url": "https://rmsothebys.com/auctions/ch24/lots/r0008-1963-ferrari-250-gtl-berlinetta-lusso-by-fantuzzi/",
+   "chassis": "4383",
+   "title": "1963 Ferrari 250 GT/L Berlinetta Lusso by Fantuzzi"
+  },
+  {
+   "date": "2024-06-01",
+   "venue": "RM Sotheby's",
+   "price_usd": 1490000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1350000,
+   "native": {
+    "amount": 1490000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1964,
+   "url": "https://rmsothebys.com/auctions/dd24/lots/r0031-1964-ferrari-250-gtl-berlinetta-lusso-by-scaglietti/",
+   "chassis": "5381",
+   "title": "1964 Ferrari 250 GT/L Berlinetta Lusso by Scaglietti"
+  },
+  {
+   "date": "2024-01-25",
+   "venue": "RM Sotheby's",
+   "price_usd": 1352500,
+   "basis": "buyer-paid",
+   "hammer_usd": 1225000,
+   "native": {
+    "amount": 1352500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1963,
+   "url": "https://rmsothebys.com/auctions/az24/lots/r0026-1963-ferrari-250-gtl-berlinetta-lusso-by-scaglietti/",
+   "chassis": "5129",
+   "title": "1963 Ferrari 250 GT/L Berlinetta Lusso by Scaglietti"
+  },
+  {
+   "date": "2023-11-04",
+   "venue": "RM Sotheby's",
+   "price_usd": 1506538,
+   "basis": "buyer-paid",
+   "hammer_usd": 1333500,
+   "native": {
+    "amount": 1186250,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1963,
+   "url": "https://rmsothebys.com/auctions/lf23/lots/r0035-1963-ferrari-250-gtl-berlinetta-lusso-by-scaglietti/",
+   "chassis": "4623",
+   "title": "1963 Ferrari 250 GT/L Berlinetta Lusso by Scaglietti"
+  },
+  {
+   "date": "2023-10-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 1409500,
+   "basis": "sold+fee",
+   "hammer_usd": 1402000,
+   "native": {
+    "amount": 1402000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1963,
+   "url": "https://bringatrailer.com/listing/1963-ferrari-250-gt-lusso/",
+   "chassis": "4421",
+   "title": "1963 Ferrari 250 GT Lusso"
+  }
+ ]
+}

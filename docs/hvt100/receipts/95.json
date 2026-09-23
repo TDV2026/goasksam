@@ -1,0 +1,723 @@
+{
+ "car_id": 95,
+ "listed": "2020 Chevrolet Corvette Stingray",
+ "status": "compare",
+ "year_scope": "exact 2020",
+ "basis": "mixed (11% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Chevrolet",
+  "model": "Corvette",
+  "window": "36mo",
+  "year_min": 2020,
+  "year_max": 2020,
+  "trim": "Stingray",
+  "body": "coupe"
+ },
+ "halo_dropped": 11,
+ "sales": [
+  {
+   "date": "2026-09-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 60538,
+   "basis": "sold+fee",
+   "hammer_usd": 57655,
+   "native": {
+    "amount": 57655,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-95/",
+   "chassis": "1G1Y62D41L5115863",
+   "title": "8k-Mile 2020 Chevrolet Corvette Stingray Coupe 1LT Z51"
+  },
+  {
+   "date": "2026-08-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 58800,
+   "basis": "sold+fee",
+   "hammer_usd": 56000,
+   "native": {
+    "amount": 56000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-102/",
+   "chassis": "1G1Y82D46L5107851",
+   "title": "2020 Chevrolet Corvette Stingray Coupe 3LT"
+  },
+  {
+   "date": "2026-08-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 56175,
+   "basis": "sold+fee",
+   "hammer_usd": 53500,
+   "native": {
+    "amount": 53500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-97/",
+   "chassis": "1G1Y82D43L5105216",
+   "title": "2020 Chevrolet Corvette Stingray Coupe 3LT"
+  },
+  {
+   "date": "2026-07-13",
+   "venue": "Hagerty",
+   "price_usd": 56175,
+   "basis": "sold+fee",
+   "hammer_usd": 53500,
+   "native": {
+    "amount": 53500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://www.hagerty.com/marketplace/auction/2020-Chevrolet-Corvette/a5bd27ed-fe2f-4fc9-9378-455b2aebc719",
+   "chassis": "1G1Y82D49L5101669",
+   "title": "1,600-Mile 2020 Chevrolet Corvette Stingray 3LT Z51"
+  },
+  {
+   "date": "2026-06-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 68828,
+   "basis": "sold+fee",
+   "hammer_usd": 65550,
+   "native": {
+    "amount": 65550,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-93/",
+   "chassis": "1G1Y82D41L5112360",
+   "title": "1,600-Mile 2020 Chevrolet Corvette Stingray Coupe 3LT Z51"
+  },
+  {
+   "date": "2026-05-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 66675,
+   "basis": "sold+fee",
+   "hammer_usd": 63500,
+   "native": {
+    "amount": 63500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-90/",
+   "chassis": "1G1Y82D41L5115081",
+   "title": "4,200-Mile 2020 Chevrolet Corvette Stingray Coupe 3LT Z51"
+  },
+  {
+   "date": "2026-05-15",
+   "venue": "Mecum",
+   "price_usd": 75600,
+   "basis": "sold+fee",
+   "hammer_usd": 72000,
+   "native": {
+    "amount": 79200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2020,
+   "url": "https://www.mecum.com/lots/1171553/2020-chevrolet-corvette-coupe?aa_id=775929-0",
+   "chassis": "1G1Y82D4XL5111661",
+   "title": "2020 Chevrolet Corvette Coupe"
+  },
+  {
+   "date": "2026-05-14",
+   "venue": "Mecum",
+   "price_usd": 65100,
+   "basis": "sold+fee",
+   "hammer_usd": 62000,
+   "native": {
+    "amount": 68200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2020,
+   "url": "https://www.mecum.com/lots/1167379/2020-chevrolet-corvette-3lt-coupe?aa_id=781546-0",
+   "chassis": "1G1Y82D43L5000563",
+   "title": "2020 Chevrolet Corvette 3LT Coupe"
+  },
+  {
+   "date": "2026-05-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 60900,
+   "basis": "sold+fee",
+   "hammer_usd": 58000,
+   "native": {
+    "amount": 58000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-89/",
+   "chassis": "1G1Y82D41L5105490",
+   "title": "6k-Mile 2020 Chevrolet Corvette Stingray Coupe 3LT Z51"
+  },
+  {
+   "date": "2026-04-16",
+   "venue": "Cars & Bids",
+   "price_usd": 60375,
+   "basis": "sold+fee",
+   "hammer_usd": 57500,
+   "native": {
+    "amount": 57500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://carsandbids.com/auctions/9lBvjjnO/2020-chevrolet-corvette-stingray-coupe",
+   "chassis": "1G1Y62D45L5110603",
+   "title": "2020 Chevrolet Corvette Stingray Coupe"
+  },
+  {
+   "date": "2026-03-09",
+   "venue": "Cars & Bids",
+   "price_usd": 58800,
+   "basis": "sold+fee",
+   "hammer_usd": 56000,
+   "native": {
+    "amount": 56000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://carsandbids.com/auctions/rMXgqAap/2020-chevrolet-corvette-stingray-coupe-2lt",
+   "chassis": "1G1Y72D45L5101008",
+   "title": "2020 Chevrolet Corvette Stingray Coupe 2LT"
+  },
+  {
+   "date": "2026-01-22",
+   "venue": "Barrett-Jackson",
+   "price_usd": 63800,
+   "basis": "buyer-paid",
+   "hammer_usd": 58000,
+   "native": {
+    "amount": 63800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2020,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2020-chevrolet-corvette-stingray-294218?origin=results",
+   "chassis": "1G1Y62D4XL5109091",
+   "title": "2020 CHEVROLET CORVETTE STINGRAY"
+  },
+  {
+   "date": "2026-01-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 59850,
+   "basis": "sold+fee",
+   "hammer_usd": 57000,
+   "native": {
+    "amount": 57000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-79/",
+   "chassis": "1G1Y82D40L5113693",
+   "title": "2,800-Mile 2020 Chevrolet Corvette Stingray Coupe 3LT"
+  },
+  {
+   "date": "2025-11-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 57750,
+   "basis": "sold+fee",
+   "hammer_usd": 55000,
+   "native": {
+    "amount": 55000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-75/",
+   "chassis": "1G1Y72D42L5105663",
+   "title": "2020 Chevrolet Corvette Stingray Coupe 2LT"
+  },
+  {
+   "date": "2025-10-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 68250,
+   "basis": "sold+fee",
+   "hammer_usd": 65000,
+   "native": {
+    "amount": 65000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-73/",
+   "chassis": "1G1Y82D40L5000035",
+   "title": "Bob Lutz’s 2020 Chevrolet Corvette Stingray Coupe 3LT Z51"
+  },
+  {
+   "date": "2025-10-23",
+   "venue": "Hagerty",
+   "price_usd": 66675,
+   "basis": "sold+fee",
+   "hammer_usd": 63500,
+   "native": {
+    "amount": 63500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://www.hagerty.com/marketplace/auction/2020-Chevrolet-Corvette/6YrJmecOmODEyrAhumnfYe",
+   "chassis": "1G1Y62D40L5109679",
+   "title": "254-Mile One-Owner 2020 Chevrolet Corvette Stingray Coupe"
+  },
+  {
+   "date": "2025-09-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 59325,
+   "basis": "sold+fee",
+   "hammer_usd": 56500,
+   "native": {
+    "amount": 56500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-68/",
+   "chassis": "1G1Y82D40L5100748",
+   "title": "2020 Chevrolet Corvette Stingray Coupe 3LT"
+  },
+  {
+   "date": "2025-09-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 64575,
+   "basis": "sold+fee",
+   "hammer_usd": 61500,
+   "native": {
+    "amount": 61500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-70/",
+   "chassis": "1G1Y72D49L5100041",
+   "title": "2020 Chevrolet Corvette Stingray Coupe 2LT Z51"
+  },
+  {
+   "date": "2025-08-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 63000,
+   "basis": "sold+fee",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 60000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-69/",
+   "chassis": "1G1Y72D43L5111939",
+   "title": "4,600-Mile 2020 Chevrolet Corvette Stingray Coupe 2LT Z51"
+  },
+  {
+   "date": "2025-07-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 56176,
+   "basis": "sold+fee",
+   "hammer_usd": 53501,
+   "native": {
+    "amount": 53501,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-67/",
+   "chassis": "1G1Y62D4XL5112699",
+   "title": "2020 Chevrolet Corvette Stingray Coupe"
+  },
+  {
+   "date": "2025-05-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 64050,
+   "basis": "sold+fee",
+   "hammer_usd": 61000,
+   "native": {
+    "amount": 61000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-57-2/",
+   "chassis": "1G1Y82D49L5103602",
+   "title": "12k-Mile 2020 Chevrolet Corvette Stingray Coupe 3LT Z51"
+  },
+  {
+   "date": "2025-04-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 66938,
+   "basis": "sold+fee",
+   "hammer_usd": 63750,
+   "native": {
+    "amount": 63750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-19-2/",
+   "chassis": "1G1Y72D47L5105335",
+   "title": "1k-Mile 2020 Chevrolet Corvette Stingray Coupe 2LT Z51"
+  },
+  {
+   "date": "2025-04-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 64155,
+   "basis": "sold+fee",
+   "hammer_usd": 61100,
+   "native": {
+    "amount": 61100,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-64/",
+   "chassis": "1G1Y72D45L5101008",
+   "title": "1,500-Mile 2020 Chevrolet Corvette Stingray Coupe 2LT Z51"
+  },
+  {
+   "date": "2025-03-21",
+   "venue": "Hagerty",
+   "price_usd": 57750,
+   "basis": "sold+fee",
+   "hammer_usd": 55000,
+   "native": {
+    "amount": 55000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://www.hagerty.com/marketplace/auction/2020-Chevrolet-Corvette/487a579d-f170-4187-ad97-828c4c6dd07f",
+   "chassis": "1G1Y72D46L5108646",
+   "title": "6k-Mile 2020 Chevrolet Corvette Coupe"
+  },
+  {
+   "date": "2025-02-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 62775,
+   "basis": "sold+fee",
+   "hammer_usd": 59786,
+   "native": {
+    "amount": 59786,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-61/",
+   "chassis": "1G1Y72D45L5103759",
+   "title": "17-Mile 2020 Chevrolet Corvette Stingray Coupe 2LT"
+  },
+  {
+   "date": "2025-02-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 67201,
+   "basis": "sold+fee",
+   "hammer_usd": 64001,
+   "native": {
+    "amount": 64001,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-62/",
+   "chassis": "1G1Y82D41L5104579",
+   "title": "2020 Chevrolet Corvette Stingray Coupe 3LT Z51"
+  },
+  {
+   "date": "2025-01-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 61425,
+   "basis": "sold+fee",
+   "hammer_usd": 58500,
+   "native": {
+    "amount": 58500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-17-2/",
+   "chassis": "1G1Y72D47L5101110",
+   "title": "2020 Chevrolet Corvette Stingray Coupe 2LT Z51"
+  },
+  {
+   "date": "2025-01-23",
+   "venue": "Cars & Bids",
+   "price_usd": 58275,
+   "basis": "sold+fee",
+   "hammer_usd": 55500,
+   "native": {
+    "amount": 55500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://carsandbids.com/auctions/Kmo8lwyN/2020-chevrolet-corvette-stingray-coupe",
+   "chassis": "1G1Y82D45L5117495",
+   "title": "2020 Chevrolet Corvette Stingray Coupe"
+  },
+  {
+   "date": "2025-01-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 58276,
+   "basis": "sold+fee",
+   "hammer_usd": 55501,
+   "native": {
+    "amount": 55501,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-58/",
+   "chassis": "1G1Y82D43L5106012",
+   "title": "2020 Chevrolet Corvette Stingray Coupe 3LT Z51"
+  },
+  {
+   "date": "2024-11-27",
+   "venue": "Cars & Bids",
+   "price_usd": 57108,
+   "basis": "sold+fee",
+   "hammer_usd": 54389,
+   "native": {
+    "amount": 54389,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://carsandbids.com/auctions/3zZ8RLYJ/2020-chevrolet-corvette-stingray-coupe",
+   "chassis": "1G1Y72D44L5102604",
+   "title": "2020 Chevrolet Corvette Stingray Coupe"
+  },
+  {
+   "date": "2024-10-11",
+   "venue": "Barrett-Jackson",
+   "price_usd": 70400,
+   "basis": "buyer-paid",
+   "hammer_usd": 64000,
+   "native": {
+    "amount": 70400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2020,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/2020-chevrolet-corvette-stingray-278507?origin=results",
+   "chassis": "1G1Y82D41L5101388",
+   "title": "2020 CHEVROLET CORVETTE STINGRAY"
+  },
+  {
+   "date": "2024-07-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 67725,
+   "basis": "sold+fee",
+   "hammer_usd": 64500,
+   "native": {
+    "amount": 64500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-50/",
+   "chassis": "1G1Y82D47L5110998",
+   "title": "2020 Chevrolet Corvette Stingray Coupe 3LT Z51"
+  },
+  {
+   "date": "2024-06-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 68250,
+   "basis": "sold+fee",
+   "hammer_usd": 65000,
+   "native": {
+    "amount": 65000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-49/",
+   "chassis": "1G1Y72D44L5114221",
+   "title": "2020 Chevrolet Corvette Stingray Coupe 2LT Z51"
+  },
+  {
+   "date": "2024-05-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 63131,
+   "basis": "sold+fee",
+   "hammer_usd": 60125,
+   "native": {
+    "amount": 60125,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-45/",
+   "chassis": "1G1Y82D47L5111097",
+   "title": "2020 Chevrolet Corvette Stingray Coupe 3LT"
+  },
+  {
+   "date": "2024-04-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 69825,
+   "basis": "sold+fee",
+   "hammer_usd": 66500,
+   "native": {
+    "amount": 66500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-coupe-44/",
+   "chassis": "1G1Y82D48L5102893",
+   "title": "5k-Mile 2020 Chevrolet Corvette Stingray Coupe 3LT Z51"
+  },
+  {
+   "date": "2024-04-19",
+   "venue": "Barrett-Jackson",
+   "price_usd": 87450,
+   "basis": "buyer-paid",
+   "hammer_usd": 79500,
+   "native": {
+    "amount": 87450,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2020,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/2020-chevrolet-corvette-stingray-277363?origin=results",
+   "chassis": "1G1Y82D41L5101388",
+   "title": "2020 CHEVROLET CORVETTE STINGRAY"
+  },
+  {
+   "date": "2024-04-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 67620,
+   "basis": "sold+fee",
+   "hammer_usd": 64400,
+   "native": {
+    "amount": 64400,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-140/",
+   "chassis": "1G1Y82D43L5101974",
+   "title": "2020 Chevrolet Corvette Stingray Coupe 3LT"
+  },
+  {
+   "date": "2024-02-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 64050,
+   "basis": "sold+fee",
+   "hammer_usd": 61000,
+   "native": {
+    "amount": 61000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-138/",
+   "chassis": "1G1Y72D42L5110166",
+   "title": "2020 Chevrolet Corvette Stingray Coupe 2LT Z51"
+  },
+  {
+   "date": "2024-01-29",
+   "venue": "Barrett-Jackson",
+   "price_usd": 82500,
+   "basis": "buyer-paid",
+   "hammer_usd": 75000,
+   "native": {
+    "amount": 82500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2020,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2020-chevrolet-corvette-275370?origin=results",
+   "chassis": "1G1Y62D46L5112764",
+   "title": "2020 CHEVROLET CORVETTE"
+  },
+  {
+   "date": "2024-01-29",
+   "venue": "Cars & Bids",
+   "price_usd": 66675,
+   "basis": "sold+fee",
+   "hammer_usd": 63500,
+   "native": {
+    "amount": 63500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://carsandbids.com/auctions/rNNVe614/2020-chevrolet-corvette-stingray-coupe",
+   "chassis": "1G1Y72D44L5114221",
+   "title": "2020 Chevrolet Corvette Stingray Coupe"
+  },
+  {
+   "date": "2024-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 68200,
+   "basis": "buyer-paid",
+   "hammer_usd": 62000,
+   "native": {
+    "amount": 68200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2020,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2020-chevrolet-corvette-stingray-1lt-272677?origin=results",
+   "chassis": "1G1Y62D44L5105411",
+   "title": "2020 CHEVROLET CORVETTE STINGRAY 1LT"
+  },
+  {
+   "date": "2024-01-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 68880,
+   "basis": "sold+fee",
+   "hammer_usd": 65600,
+   "native": {
+    "amount": 65600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-137/",
+   "chassis": "1G1Y82D47L5112234",
+   "title": "2020 Chevrolet Corvette Stingray Coupe 3LT Z51"
+  },
+  {
+   "date": "2024-01-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 67363,
+   "basis": "sold+fee",
+   "hammer_usd": 64155,
+   "native": {
+    "amount": 64155,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-135/",
+   "chassis": "1G1Y72D45L5103261",
+   "title": "2020 Chevrolet Corvette Stingray Coupe 2LT Z51"
+  },
+  {
+   "date": "2023-12-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 60900,
+   "basis": "sold+fee",
+   "hammer_usd": 58000,
+   "native": {
+    "amount": 58000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-chevrolet-corvette-stingray-133/",
+   "chassis": "1G1Y62D44L5103531",
+   "title": "2020 Chevrolet Corvette Stingray Coupe 1LT"
+  }
+ ]
+}

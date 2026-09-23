@@ -1,0 +1,275 @@
+{
+ "car_id": 22,
+ "listed": "1957 Mercedes-Benz 300SL Roadster",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1955-1959)",
+ "basis": "mixed (88% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Mercedes-Benz",
+  "model": "300SL",
+  "window": "36mo",
+  "year_min": 1955,
+  "year_max": 1959,
+  "trim": "Roadster",
+  "body": "roadster"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-08-15",
+   "venue": "RM Sotheby's",
+   "price_usd": 1600000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1450000,
+   "native": {
+    "amount": 1600000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1957,
+   "url": "https://rmsothebys.com/auctions/mo26/lots/r0113-1957-mercedesbenz-300-sl-roadster",
+   "chassis": "1980427500251",
+   "title": "1957 Mercedes-Benz 300 SL Roadster"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "RM Sotheby's",
+   "price_usd": 1160000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1050000,
+   "native": {
+    "amount": 1160000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1957,
+   "url": "https://rmsothebys.com/auctions/az26/lots/r0015-1957-mercedesbenz-300-sl-roadster/",
+   "chassis": "1980427500532",
+   "title": "1957 Mercedes-Benz 300 SL Roadster"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Bonhams",
+   "price_usd": 945500,
+   "basis": "buyer-paid",
+   "hammer_usd": 855000,
+   "native": {
+    "amount": 945500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1957,
+   "url": "https://cars.bonhams.com/auction/31957/lot/126/1957-mercedes-benz-300sl-roadster-chassis-no-1980427500085-engine-no-19898010003078-see-text/",
+   "chassis": "1980427500085",
+   "title": "1957 Mercedes-Benz 300SL Roadster Chassis no. 198.042.7500085 Engine no. 198.980.10003078* (see text)"
+  },
+  {
+   "date": "2025-08-16",
+   "venue": "Gooding Christie's",
+   "price_usd": 1545000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1400000,
+   "native": {
+    "amount": 1545000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1957,
+   "url": "https://www.goodingco.com/lot/1957-mercedes-benz-300-sl-roadster-1e",
+   "chassis": "1980427500038",
+   "title": "1957 Mercedes-Benz 300 SL Roadster (PB25)"
+  },
+  {
+   "date": "2025-08-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 1657500,
+   "basis": "sold+fee",
+   "hammer_usd": 1650000,
+   "native": {
+    "amount": 1650000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-mercedes-benz-300sl-roadster-11/",
+   "chassis": "1980427500602",
+   "title": "1957 Mercedes-Benz 300SL Roadster"
+  },
+  {
+   "date": "2025-05-25",
+   "venue": "Broad Arrow",
+   "price_usd": 1088100,
+   "basis": "buyer-paid",
+   "hammer_usd": 962400,
+   "native": {
+    "amount": 1007500,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1957,
+   "url": "https://www.broadarrowauctions.com/vehicles/ve25_r119/1957-mercedes-benz-300-sl-roadster",
+   "chassis": "1980427500432",
+   "title": "1957 Mercedes-Benz 300 SL Roadster"
+  },
+  {
+   "date": "2024-11-23",
+   "venue": "RM Sotheby's",
+   "price_usd": 1098900,
+   "basis": "buyer-paid",
+   "hammer_usd": 972000,
+   "native": {
+    "amount": 1017500,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1957,
+   "url": "https://rmsothebys.com/auctions/mu24/lots/r0035-1957-mercedesbenz-300-sl-roadster/",
+   "chassis": "1980427500672",
+   "title": "1957 Mercedes-Benz 300 SL Roadster"
+  },
+  {
+   "date": "2024-10-26",
+   "venue": "RM Sotheby's",
+   "price_usd": 1187500,
+   "basis": "buyer-paid",
+   "hammer_usd": 1075000,
+   "native": {
+    "amount": 1187500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1957,
+   "url": "https://rmsothebys.com/auctions/rk24/lots/r0245-1957-mercedesbenz-300-sl-roadster/",
+   "chassis": "1980427500173",
+   "title": "1957 Mercedes-Benz 300 SL Roadster"
+  },
+  {
+   "date": "2024-08-17",
+   "venue": "RM Sotheby's",
+   "price_usd": 1105000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1000000,
+   "native": {
+    "amount": 1105000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1957,
+   "url": "https://rmsothebys.com/auctions/mo24/lots/r0103-1957-mercedesbenz-300-sl-roadster/",
+   "chassis": "1980427500315",
+   "title": "1957 Mercedes-Benz 300 SL Roadster"
+  },
+  {
+   "date": "2024-08-17",
+   "venue": "RM Sotheby's",
+   "price_usd": 2892500,
+   "basis": "buyer-paid",
+   "hammer_usd": 2625000,
+   "native": {
+    "amount": 2892500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1957,
+   "url": "https://rmsothebys.com/auctions/mo24/lots/r0172-1957-mercedesbenz-300-sl-roadster/",
+   "chassis": "1980427500364",
+   "title": "1957 Mercedes-Benz 300 SL Roadster"
+  },
+  {
+   "date": "2024-08-15",
+   "venue": "Broad Arrow",
+   "price_usd": 1200000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1086364,
+   "native": {
+    "amount": 1200000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1957,
+   "url": "https://www.broadarrowauctions.com/vehicles/jc24_r002/1957-mercedes-benz-300-sl-roadster",
+   "chassis": "1980427500680",
+   "title": "1957 Mercedes-Benz 300 SL Roadster"
+  },
+  {
+   "date": "2024-04-26",
+   "venue": "Gooding Christie's",
+   "price_usd": 1105000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1000000,
+   "native": {
+    "amount": 1105000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1957,
+   "url": "https://www.goodingco.com/lot/1957-mercedes-benz-300-sl-roadster-1d",
+   "chassis": "1980427500473",
+   "title": "1957 Mercedes-Benz 300 SL Roadster (PM24)"
+  },
+  {
+   "date": "2024-03-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 1257500,
+   "basis": "sold+fee",
+   "hammer_usd": 1250000,
+   "native": {
+    "amount": 1250000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1957,
+   "url": "https://bringatrailer.com/listing/1957-mercedes-benz-300sl-roadster-9/",
+   "chassis": "7500255",
+   "title": "1957 Mercedes-Benz 300SL Roadster"
+  },
+  {
+   "date": "2024-03-02",
+   "venue": "Broad Arrow",
+   "price_usd": 2260000,
+   "basis": "buyer-paid",
+   "hammer_usd": 2050000,
+   "native": {
+    "amount": 2260000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1957,
+   "url": "https://www.broadarrowauctions.com/vehicles/am24_r108/1957-mercedes-benz-300-sl-roadster",
+   "chassis": "1980427500510",
+   "title": "1957 Mercedes-Benz 300 SL Roadster"
+  },
+  {
+   "date": "2024-02-29",
+   "venue": "Gooding Christie's",
+   "price_usd": 2012500,
+   "basis": "buyer-paid",
+   "hammer_usd": 1825000,
+   "native": {
+    "amount": 2012500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1957,
+   "url": "https://www.goodingco.com/lot/1957-mercedes-benz-300-sl-roadster-ps",
+   "chassis": "1980427500348",
+   "title": "1957 Mercedes-Benz 300 SL Roadster (PS)"
+  },
+  {
+   "date": "2023-11-17",
+   "venue": "RM Sotheby's",
+   "price_usd": 1215000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1100000,
+   "native": {
+    "amount": 1215000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1957,
+   "url": "https://rmsothebys.com/auctions/lv23/lots/r0020-1957-mercedesbenz-300-sl-roadster/",
+   "chassis": "1980427500115",
+   "title": "1957 Mercedes-Benz 300 SL Roadster"
+  }
+ ]
+}

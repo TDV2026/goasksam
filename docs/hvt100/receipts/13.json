@@ -1,0 +1,35 @@
+{
+ "car_id": 13,
+ "listed": "1971 Chevrolet C10 short bed",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1969-1973)",
+ "basis": "sold+fee (online)",
+ "scope": {
+  "make": "Chevrolet",
+  "model": "C10",
+  "window": "36mo",
+  "year_min": 1969,
+  "year_max": 1973,
+  "trim": "short bed",
+  "body": "pickup"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2025-05-07",
+   "venue": "Hagerty",
+   "price_usd": 37800,
+   "basis": "sold+fee",
+   "hammer_usd": 36000,
+   "native": {
+    "amount": 36000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.hagerty.com/marketplace/auction/1970-Chevrolet-C10/8ef419a2-79b8-4347-9f8c-fdf869fd2630",
+   "chassis": "C5140A133113",
+   "title": "454-Powered 1970 Chevrolet C10 Short Bed"
+  }
+ ]
+}

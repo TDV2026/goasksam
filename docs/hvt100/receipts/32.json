@@ -1,0 +1,803 @@
+{
+ "car_id": 32,
+ "listed": "1987 Porsche 911 Carrera",
+ "status": "compare",
+ "year_scope": "exact 1987",
+ "basis": "sold+fee (online)",
+ "scope": {
+  "make": "Porsche",
+  "model": "911",
+  "window": "36mo",
+  "year_min": 1987,
+  "year_max": 1987,
+  "trim": "Carrera",
+  "body": "coupe"
+ },
+ "halo_dropped": 71,
+ "sales": [
+  {
+   "date": "2026-09-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 148036,
+   "basis": "sold+fee",
+   "hammer_usd": 140987,
+   "native": {
+    "amount": 140987,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-127/",
+   "chassis": "WP0ZZZ91ZHS109578",
+   "title": "Non-Sunroof, RoW 1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2026-09-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 102900,
+   "basis": "sold+fee",
+   "hammer_usd": 98000,
+   "native": {
+    "amount": 98000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-128/",
+   "chassis": "WP0AB0917HS120761",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2026-08-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 107100,
+   "basis": "sold+fee",
+   "hammer_usd": 102000,
+   "native": {
+    "amount": 102000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-123/",
+   "chassis": "WP0AB0913HS122507",
+   "title": "Single-Family-Owned 1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2026-08-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 66150,
+   "basis": "sold+fee",
+   "hammer_usd": 63000,
+   "native": {
+    "amount": 63000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-24-2/",
+   "chassis": "WP0AB0914HS120314",
+   "title": "Modified 1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2026-08-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 86625,
+   "basis": "sold+fee",
+   "hammer_usd": 82500,
+   "native": {
+    "amount": 82500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-124/",
+   "chassis": "WP0ZZZ91ZHS103206",
+   "title": "RoW 1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2026-08-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 84000,
+   "basis": "sold+fee",
+   "hammer_usd": 80000,
+   "native": {
+    "amount": 80000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-122/",
+   "chassis": "WP0AB0912HS120490",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2026-08-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 93975,
+   "basis": "sold+fee",
+   "hammer_usd": 89500,
+   "native": {
+    "amount": 89500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-119/",
+   "chassis": "WP0AB0916HS122632",
+   "title": "3.6L-Powered 1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2026-08-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 131250,
+   "basis": "sold+fee",
+   "hammer_usd": 125000,
+   "native": {
+    "amount": 125000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-118/",
+   "chassis": "WP0AB0918HS121028",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2026-07-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 95025,
+   "basis": "sold+fee",
+   "hammer_usd": 90500,
+   "native": {
+    "amount": 90500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-121/",
+   "chassis": "WP0AB0916HS121304",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2026-04-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 114450,
+   "basis": "sold+fee",
+   "hammer_usd": 109000,
+   "native": {
+    "amount": 109000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-114/",
+   "chassis": "WP0AB0918HS122342",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2026-03-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 102900,
+   "basis": "sold+fee",
+   "hammer_usd": 98000,
+   "native": {
+    "amount": 98000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-101/",
+   "chassis": "WP0AB0916HS121173",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2026-03-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 101850,
+   "basis": "sold+fee",
+   "hammer_usd": 97000,
+   "native": {
+    "amount": 97000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-113/",
+   "chassis": "WP0AB0912HS121574",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2026-01-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 131250,
+   "basis": "sold+fee",
+   "hammer_usd": 125000,
+   "native": {
+    "amount": 125000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-110/",
+   "chassis": "WP0AB0915HS122864",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2026-01-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 112350,
+   "basis": "sold+fee",
+   "hammer_usd": 107000,
+   "native": {
+    "amount": 107000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-108/",
+   "chassis": "WP0AB0910HS120620",
+   "title": "Modified 1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2025-10-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 55650,
+   "basis": "sold+fee",
+   "hammer_usd": 53000,
+   "native": {
+    "amount": 53000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-104/",
+   "chassis": "WP0AB0917HS122882",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2025-10-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 87150,
+   "basis": "sold+fee",
+   "hammer_usd": 83000,
+   "native": {
+    "amount": 83000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-106/",
+   "chassis": "WP0AB091XHS121774",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2025-09-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 89250,
+   "basis": "sold+fee",
+   "hammer_usd": 85000,
+   "native": {
+    "amount": 85000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-103/",
+   "chassis": "WP0AB0916HS121965",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2025-09-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 97650,
+   "basis": "sold+fee",
+   "hammer_usd": 93000,
+   "native": {
+    "amount": 93000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-100/",
+   "chassis": "WP0AB0915HS121875",
+   "title": "White Gold Metallic 1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2025-08-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 88200,
+   "basis": "sold+fee",
+   "hammer_usd": 84000,
+   "native": {
+    "amount": 84000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-96/",
+   "chassis": "WP0AB0919HS121779",
+   "title": "Modified 1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2025-08-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 63525,
+   "basis": "sold+fee",
+   "hammer_usd": 60500,
+   "native": {
+    "amount": 60500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-95/",
+   "chassis": "WP0AB0918HS121773",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2025-06-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 73500,
+   "basis": "sold+fee",
+   "hammer_usd": 70000,
+   "native": {
+    "amount": 70000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-23/",
+   "chassis": "WP0AB091XHS121676",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2025-05-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 49613,
+   "basis": "sold+fee",
+   "hammer_usd": 47250,
+   "native": {
+    "amount": 47250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-93/",
+   "chassis": "WP0AB0917HS122882",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2025-04-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 72450,
+   "basis": "sold+fee",
+   "hammer_usd": 69000,
+   "native": {
+    "amount": 69000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-91/",
+   "chassis": "WP0AB0916HS120914",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2025-03-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 90825,
+   "basis": "sold+fee",
+   "hammer_usd": 86500,
+   "native": {
+    "amount": 86500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-86/",
+   "chassis": "WP0AB0913HS121325",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2025-01-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 92400,
+   "basis": "sold+fee",
+   "hammer_usd": 88000,
+   "native": {
+    "amount": 88000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-87/",
+   "chassis": "WP0AB0918HS121658",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2024-11-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 92296,
+   "basis": "sold+fee",
+   "hammer_usd": 87901,
+   "native": {
+    "amount": 87901,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-85/",
+   "chassis": "WP0AB0919HS120535",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2024-10-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 73407,
+   "basis": "sold+fee",
+   "hammer_usd": 69911,
+   "native": {
+    "amount": 69911,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-53-2/",
+   "chassis": "WP0AB0917HS122655",
+   "title": "30-Years-Owned 1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2024-09-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 76650,
+   "basis": "sold+fee",
+   "hammer_usd": 73000,
+   "native": {
+    "amount": 73000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-84/",
+   "chassis": "WP0AB0917HS122607",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2024-09-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 92400,
+   "basis": "sold+fee",
+   "hammer_usd": 88000,
+   "native": {
+    "amount": 88000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-82/",
+   "chassis": "WP0AB0914HS121334",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2024-06-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 79275,
+   "basis": "sold+fee",
+   "hammer_usd": 75500,
+   "native": {
+    "amount": 75500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-75/",
+   "chassis": "WP0AB0912HS122577",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2024-06-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 74025,
+   "basis": "sold+fee",
+   "hammer_usd": 70500,
+   "native": {
+    "amount": 70500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-76/",
+   "chassis": "WP0AB091XHS120205",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2024-06-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 126957,
+   "basis": "sold+fee",
+   "hammer_usd": 120911,
+   "native": {
+    "amount": 120911,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-72/",
+   "chassis": "WP0AB0917HS121134",
+   "title": "Twin-Plug 3.4L-Powered 1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2024-06-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 107100,
+   "basis": "sold+fee",
+   "hammer_usd": 102000,
+   "native": {
+    "amount": 102000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-73/",
+   "chassis": "WP0AB0910HS121864",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2024-05-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 110250,
+   "basis": "sold+fee",
+   "hammer_usd": 105000,
+   "native": {
+    "amount": 105000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-70/",
+   "chassis": "WP0AB0911HS120884",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2024-04-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 59850,
+   "basis": "sold+fee",
+   "hammer_usd": 57000,
+   "native": {
+    "amount": 57000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-68/",
+   "chassis": "WP0AB0918HS121773",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2024-04-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 68775,
+   "basis": "sold+fee",
+   "hammer_usd": 65500,
+   "native": {
+    "amount": 65500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-59/",
+   "chassis": "WP0AB0918HS121076",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2024-03-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 83475,
+   "basis": "sold+fee",
+   "hammer_usd": 79500,
+   "native": {
+    "amount": 79500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-65/",
+   "chassis": "WP0AB0918HS122826",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2024-03-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 68250,
+   "basis": "sold+fee",
+   "hammer_usd": 65000,
+   "native": {
+    "amount": 65000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-66/",
+   "chassis": "WP0AB0918HS122261",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2024-02-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 110250,
+   "basis": "sold+fee",
+   "hammer_usd": 105000,
+   "native": {
+    "amount": 105000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-63/",
+   "chassis": "WP0AB0911HS122795",
+   "title": "21k-Mile 1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2024-01-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 120750,
+   "basis": "sold+fee",
+   "hammer_usd": 115000,
+   "native": {
+    "amount": 115000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-62/",
+   "chassis": "WP0AB0918HS122485",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2024-01-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 87150,
+   "basis": "sold+fee",
+   "hammer_usd": 83000,
+   "native": {
+    "amount": 83000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-51/",
+   "chassis": "WP0AB0918HS122244",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2024-01-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 76125,
+   "basis": "sold+fee",
+   "hammer_usd": 72500,
+   "native": {
+    "amount": 72500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-61/",
+   "chassis": "WP0AB0912HS120697",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2023-12-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 91782,
+   "basis": "sold+fee",
+   "hammer_usd": 87411,
+   "native": {
+    "amount": 87411,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-56/",
+   "chassis": "WP0AB0912HS121574",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2023-12-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 100707,
+   "basis": "sold+fee",
+   "hammer_usd": 95911,
+   "native": {
+    "amount": 95911,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-57/",
+   "chassis": "WP0AB0916HS121139",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2023-12-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 115500,
+   "basis": "sold+fee",
+   "hammer_usd": 110000,
+   "native": {
+    "amount": 110000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-55/",
+   "chassis": "WP0AB0914HS122211",
+   "title": "19k-Mile 1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2023-12-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 63525,
+   "basis": "sold+fee",
+   "hammer_usd": 60500,
+   "native": {
+    "amount": 60500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-54/",
+   "chassis": "WP0AB0914HS120720",
+   "title": "30-Years-Family-Owned 1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2023-12-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 80535,
+   "basis": "sold+fee",
+   "hammer_usd": 76700,
+   "native": {
+    "amount": 76700,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-52/",
+   "chassis": "WP0AB0914HS121933",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2023-09-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 66150,
+   "basis": "sold+fee",
+   "hammer_usd": 63000,
+   "native": {
+    "amount": 63000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-g50/",
+   "chassis": "WP0AB0910HS120102",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  },
+  {
+   "date": "2023-09-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 56700,
+   "basis": "sold+fee",
+   "hammer_usd": 54000,
+   "native": {
+    "amount": 54000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-porsche-911-carrera-coupe-26/",
+   "chassis": "WP0AB0916HS122856",
+   "title": "1987 Porsche 911 Carrera Coupe G50"
+  }
+ ]
+}

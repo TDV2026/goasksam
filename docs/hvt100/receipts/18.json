@@ -1,0 +1,18 @@
+{
+ "car_id": 18,
+ "listed": "1973 Porsche 911 Carrera RS 2.7",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1971-1973)",
+ "basis": "n/a",
+ "scope": {
+  "make": "Porsche",
+  "model": "911",
+  "window": "36mo",
+  "year_min": 1971,
+  "year_max": 1973,
+  "trim": "Carrera RS 2.7",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": []
+}

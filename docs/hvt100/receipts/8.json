@@ -1,0 +1,18 @@
+{
+ "car_id": 8,
+ "listed": "1969 Dodge Charger R/T",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1967-1971)",
+ "basis": "n/a",
+ "scope": {
+  "make": "Dodge",
+  "model": "Charger",
+  "window": "36mo",
+  "year_min": 1967,
+  "year_max": 1971,
+  "trim": "R/T",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": []
+}

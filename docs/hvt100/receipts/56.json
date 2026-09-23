@@ -1,0 +1,194 @@
+{
+ "car_id": 56,
+ "listed": "1991 Lamborghini Diablo",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1989-1993)",
+ "basis": "mixed (36% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Lamborghini",
+  "model": "Diablo",
+  "window": "36mo",
+  "year_min": 1989,
+  "year_max": 1993,
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-08-15",
+   "venue": "RM Sotheby's",
+   "price_usd": 802500,
+   "basis": "buyer-paid",
+   "hammer_usd": 725000,
+   "native": {
+    "amount": 802500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1991,
+   "url": "https://rmsothebys.com/auctions/mo26/lots/r0160-1991-lamborghini-diablo",
+   "chassis": "ZA9DU07G9MLA12251",
+   "title": "1991 Lamborghini Diablo"
+  },
+  {
+   "date": "2026-06-29",
+   "venue": "Cars & Bids",
+   "price_usd": 392500,
+   "basis": "sold+fee",
+   "hammer_usd": 385000,
+   "native": {
+    "amount": 385000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://carsandbids.com/auctions/3qlExmmn/1991-lamborghini-diablo-restomod",
+   "chassis": "ZA9DE07A0MLA12070",
+   "title": "1991 Lamborghini Diablo"
+  },
+  {
+   "date": "2025-11-01",
+   "venue": "Broad Arrow",
+   "price_usd": 448000,
+   "basis": "buyer-paid",
+   "hammer_usd": 393244,
+   "native": {
+    "amount": 400000,
+    "currency": "CHF",
+    "premium_inclusive": true
+   },
+   "year": 1991,
+   "url": "https://www.broadarrowauctions.com/vehicles/dg25_r0065/1991-lamborghini-diablo",
+   "chassis": "ZA9DE07A0NLA12440",
+   "title": "1991 Lamborghini Diablo"
+  },
+  {
+   "date": "2025-03-06",
+   "venue": "Gooding Christie's",
+   "price_usd": 346000,
+   "basis": "buyer-paid",
+   "hammer_usd": 310000,
+   "native": {
+    "amount": 346000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1991,
+   "url": "https://www.goodingco.com/lot/1991-lamborghini-diablo-1",
+   "chassis": "ZA9DU07P0MLA12168",
+   "title": "1991 Lamborghini Diablo (FL25)"
+  },
+  {
+   "date": "2025-02-28",
+   "venue": "RM Sotheby's",
+   "price_usd": 257600,
+   "basis": "buyer-paid",
+   "hammer_usd": 230000,
+   "native": {
+    "amount": 257600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1991,
+   "url": "https://rmsothebys.com/auctions/mi25/lots/r0066-1991-lamborghini-diablo/",
+   "chassis": "ZA9DU07P7MLA12362",
+   "title": "1991 Lamborghini Diablo"
+  },
+  {
+   "date": "2024-09-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 242700,
+   "basis": "sold+fee",
+   "hammer_usd": 235200,
+   "native": {
+    "amount": 235200,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-lamborghini-diablo-17-2/",
+   "chassis": "ZA9DE07A0MLA12081",
+   "title": "1991 Lamborghini Diablo"
+  },
+  {
+   "date": "2024-06-03",
+   "venue": "Cars & Bids",
+   "price_usd": 282500,
+   "basis": "sold+fee",
+   "hammer_usd": 275000,
+   "native": {
+    "amount": 275000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://carsandbids.com/auctions/9e5y1zPg/1991-lamborghini-diablo-coupe",
+   "chassis": "ZA9DU07P1MLA12292",
+   "title": "1991 Lamborghini Diablo Coupe"
+  },
+  {
+   "date": "2024-01-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 312500,
+   "basis": "sold+fee",
+   "hammer_usd": 305000,
+   "native": {
+    "amount": 305000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-lamborghini-diablo-15/",
+   "chassis": "ZA9DU07PXMLA12159",
+   "title": "1991 Lamborghini Diablo"
+  },
+  {
+   "date": "2023-12-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 378500,
+   "basis": "sold+fee",
+   "hammer_usd": 371000,
+   "native": {
+    "amount": 371000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-lamborghini-diablo-13/",
+   "chassis": "ZA9DU07P6MLA12207",
+   "title": "1991 Lamborghini Diablo"
+  },
+  {
+   "date": "2023-11-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 257500,
+   "basis": "sold+fee",
+   "hammer_usd": 250000,
+   "native": {
+    "amount": 250000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-lamborghini-diablo-12-2/",
+   "chassis": "ZA9DU07P1MLA12292",
+   "title": "1991 Lamborghini Diablo"
+  },
+  {
+   "date": "2023-10-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 342500,
+   "basis": "sold+fee",
+   "hammer_usd": 335000,
+   "native": {
+    "amount": 335000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-lamborghini-diablo-12/",
+   "chassis": "ZA9DU07P1MLA12292",
+   "title": "1991 Lamborghini Diablo"
+  }
+ ]
+}

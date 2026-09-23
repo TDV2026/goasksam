@@ -1,6 +1,6 @@
 car_id,year,make,model,trim,body,generation,year_scope,notes
 1,1957,Chevrolet,Bel Air,,convertible,,exact,"283 V8; exclude 6-cyl, hardtop"
-2,1963,Chevrolet,Corvette,Sting Ray,coupe,C2,exact,"1963 split-window; 327/340 carb - cannot title-separate 327/360 fuelie, watch fuelie halo; exclude convertible"
+2,1963,Chevrolet,Corvette,Sting Ray,coupe,C2,exact,1963 split-window; EXCLUDE fuel injection/fuelie/327-360 titles (report count); exclude convertible
 3,1965,Ford,Mustang,289,fastback,1st,exact,"exclude Shelby/GT350/hi-po K-code halos, coupe/convertible"
 4,1967,Chevrolet,Corvette,L71,coupe,C2,exact,"427/435 tri-power; exclude L88/L89, 427-390/400, convertible"
 5,1969,Chevrolet,Camaro,Z/28,coupe,2nd,exact,includes RS (Z/28 RS); exclude COPO/ZL1/Yenko/SS
@@ -30,8 +30,8 @@ car_id,year,make,model,trim,body,generation,year_scope,notes
 29,1972,Ferrari,365,Daytona,coupe,,exact,"365 GTB/4; EXCLUDE Spider (halo), competition"
 30,1969,Lamborghini,Miura,P400 S,coupe,,exact,EXCLUDE SV/Jota/Roadster halos
 31,1979,Porsche,911,Turbo,coupe,930,exact,"930 Turbo 3.3; exclude flatnose/slantnose, 3.0 early"
-32,1987,Porsche,911,Carrera,coupe,930,1987-1989,G50 gearbox 1987-89 (adjacent years pooled); EXCLUDE Turbo/Targa/Cabriolet/Speedster
-33,1989,Porsche,911,Speedster,,930,1988-1989,1989 Speedster (G50); exclude Carrera coupe/cab
+32,1987,Porsche,911,Carrera,coupe,G50,exact,G50 gearbox 1987-89 gen boundary; widen +/-2 within 1987-89 if W1<8; EXCLUDE Turbo/Targa/Cabriolet/Speedster
+33,1989,Porsche,911,Speedster,,930,exact,1989 Speedster (G50); exclude Carrera coupe/cab
 34,1994,Porsche,911,Turbo,coupe,964,exact,"964 Turbo 3.6; exclude 3.3 964 Turbo, S/flachbau halo"
 35,1995,Porsche,928,GTS,coupe,,exact,EXCLUDE S4/GT/base 928
 36,1987,Porsche,944,Turbo,coupe,,exact,exclude S/S2/base; EXCLUDE Turbo S halo
@@ -41,7 +41,7 @@ car_id,year,make,model,trim,body,generation,year_scope,notes
 40,1991,BMW,M3,,coupe,e30,exact,"E30 M3; EXCLUDE Sport Evolution/EVO halo, convertible"
 41,1988,BMW,M5,,sedan,e28,exact,E28 M5
 42,1995,BMW,M3,,coupe,e36,exact,"E36 M3 coupe; exclude sedan/convertible, GT/LTW halo"
-43,1990,Mercedes-Benz,560SL,,roadster,R107,1989,READ AS 1989 (no 1990); R107
+43,1989,Mercedes-Benz,560SL,,roadster,R107,exact,READ AS 1989 (no 1990); R107
 44,1992,Mercedes-Benz,500E,,sedan,,exact,"W124 500E; exclude E500 later, base"
 45,1994,Toyota,Supra,Turbo,coupe,A80,exact,"MkIV Turbo; exclude NA, MkIII"
 46,1993,Mazda,RX-7,,coupe,FD,exact,"FD3S 1993-95; exclude FC/FB, Spirit R if priced apart"
@@ -57,33 +57,33 @@ car_id,year,make,model,trim,body,generation,year_scope,notes
 56,1991,Lamborghini,Diablo,,coupe,,exact,"early Diablo; EXCLUDE SV/VT/SE30/GT halos, Roadster"
 57,1993,Dodge,Viper,RT/10,roadster,SR1,exact,"Gen1 RT/10; exclude GTS, SRT-10"
 58,1997,Porsche,911,Turbo,coupe,993,exact,"993 Turbo; EXCLUDE Turbo S halo, GT2"
-59,1999,Porsche,911,Carrera,coupe,996,1999-2001,"base 996.1 Carrera coupe (adjacent pooled); EXCLUDE C4S/Turbo/GT3/GT2, Cabriolet/Targa"
+59,1999,Porsche,911,Carrera,coupe,996,exact,"base 996.1 Carrera coupe (adjacent pooled); EXCLUDE C4S/Turbo/GT3/GT2, Cabriolet/Targa"
 60,2004,Porsche,911,GT3,coupe,996,exact,"996 GT3; EXCLUDE GT2, GT3 RS halo"
-61,2007,Porsche,911,GT3,coupe,997,2007,"997.1 GT3; EXCLUDE GT3 RS, GT2"
+61,2007,Porsche,911,GT3,coupe,997,exact,"997.1 GT3; EXCLUDE GT3 RS, GT2"
 62,2004,Porsche,Carrera GT,,,,exact,unique
-63,2001,BMW,M3,,coupe,e46,exact,"E46 M3 coupe (manual not title-filterable - NOTE); exclude convertible, CSL halo"
+63,2001,BMW,M3,,coupe,e46,exact,"E46 M3 coupe, ALL transmissions (manual+SMG) - limitation noted; exclude convertible, CSL halo"
 64,2003,BMW,M5,,sedan,e39,exact,E39 M5
 65,2000,BMW,Z3 M Coupe,,coupe,,exact,"clownshoe; EXCLUDE M Roadster, base Z3"
 66,2001,Honda,S2000,,convertible,AP1,exact,"AP1; exclude AP2, CR halo"
-67,2005,Ford,GT,,coupe,2005,2005-2006,"Ford GT 2005-06; EXCLUDE 2017+ GT, GT40 replicas, Heritage halo"
-68,2002,Chevrolet,Corvette,Z06,coupe,C5,2001-2004,"C5 Z06 (adjacent pooled); exclude base, ZR1 n/a"
-69,2006,Chevrolet,Corvette,Z06,coupe,C6,2006-2013,"C6 Z06 (adjacent pooled); EXCLUDE ZR1, Grand Sport, base"
+67,2005,Ford,GT,,coupe,2005,exact,"Ford GT 2005-06; EXCLUDE 2017+ GT, GT40 replicas, Heritage halo"
+68,2002,Chevrolet,Corvette,Z06,coupe,C5,exact,"C5 Z06 (adjacent pooled); exclude base, ZR1 n/a"
+69,2006,Chevrolet,Corvette,Z06,coupe,C6,exact,"C6 Z06 (adjacent pooled); EXCLUDE ZR1, Grand Sport, base"
 70,2005,Mercedes-Benz,SLR,,coupe,,exact,"SLR McLaren; EXCLUDE 722 halo, Roadster"
 71,2006,Ferrari,F430,,coupe,,exact,"F430 coupe F1; EXCLUDE Scuderia halo, Spider"
 72,1999,Ferrari,550,Maranello,coupe,,exact,exclude 575M
-73,2004,Lamborghini,Gallardo,,coupe,,2004-2008,"early 5.0 (adjacent pooled); EXCLUDE Superleggera/SE/Nera halos, Spyder, later 5.2"
-74,2002,Acura,NSX,,targa,NA2,2002-2005,"NA2 Targa (NSX-T, fixed headlights); exclude NA1"
+73,2004,Lamborghini,Gallardo,,coupe,,exact,"early 5.0 (adjacent pooled); EXCLUDE Superleggera/SE/Nera halos, Spyder, later 5.2"
+74,2002,Acura,NSX,,targa,NA2,exact,"NA2 Targa (NSX-T, fixed headlights); exclude NA1"
 75,2009,Nissan,GT-R,,coupe,R35,exact,R35; EXCLUDE Nismo/Track Edition halos
 76,2012,Lexus,LFA,,coupe,,exact,EXCLUDE Nurburgring pkg halo
 77,2006,Dodge,Viper,SRT-10,coupe,ZB2,exact,"coupe; exclude roadster, ACR halo"
 78,2000,Toyota,Land Cruiser,100,wagon,,exact,"NO MATCHING HVT CAR (HVT gave 1997 FJ80); run, exclude from comparison"
 79,2011,Mercedes-Benz,SLS AMG,,coupe,,exact,"EXCLUDE Black Series halo, Roadster, GT"
-80,2016,Porsche,911,GT3 RS,coupe,991,2016,"991.1 GT3 RS; EXCLUDE GT2 RS, base GT3"
-81,2019,Porsche,911,GT3 RS,coupe,991,2019,991.2 GT3 RS; EXCLUDE GT2 RS
+80,2016,Porsche,911,GT3 RS,coupe,991,exact,"991.1 GT3 RS; EXCLUDE GT2 RS, base GT3"
+81,2019,Porsche,911,GT3 RS,coupe,991,exact,991.2 GT3 RS; EXCLUDE GT2 RS
 82,2018,Porsche,911,Carrera T,coupe,991,exact,991.2 Carrera T; exclude base/S/GTS
 83,2016,Porsche,Cayman,GT4,coupe,981,exact,"981 GT4; exclude base/GTS, later 718 GT4"
 84,2015,Porsche,918,,,,exact,918 Spyder; unique
-85,2017,Dodge,Viper,GTS,coupe,VX,2013-2017,"5th-gen GTS (adjacent pooled); EXCLUDE ACR, RT/10"
+85,2017,Dodge,Viper,GTS,coupe,VX,exact,"5th-gen GTS (adjacent pooled); EXCLUDE ACR, RT/10"
 86,2020,Ferrari,488,Pista,coupe,,exact,"EXCLUDE base 488 GTB/Spider, Pista Spider halo"
 87,2013,Ferrari,458,Italia,coupe,,exact,"EXCLUDE Speciale halo, Spider"
 88,2015,Ferrari,458,Speciale,coupe,,exact,"EXCLUDE Speciale Aperta halo, base Italia"
@@ -91,11 +91,11 @@ car_id,year,make,model,trim,body,generation,year_scope,notes
 90,2019,McLaren,720S,,coupe,,exact,COVERAGE ONLY (not in HVT)
 91,2015,Lamborghini,Huracan,LP610-4,coupe,,exact,"EXCLUDE Performante/STO/EVO/Tecnica halos, Spyder"
 92,2018,Lamborghini,Aventador,S,coupe,,exact,COVERAGE ONLY (not in HVT); exclude SV/SVJ
-93,2014,Chevrolet,Corvette,Z51,coupe,C7,2014-2019,C7 Stingray Z51 (adjacent pooled); EXCLUDE Z06/ZR1/Grand Sport
-94,2019,Chevrolet,Corvette,ZR1,coupe,C7,2019,C7 ZR1 supercharged; exclude Z06
-95,2020,Chevrolet,Corvette,Stingray,coupe,C8,2020-2023,"C8 coupe (adjacent pooled); EXCLUDE Z06 C8, convertible"
-96,2013,Ford,Mustang,Shelby GT500,coupe,S197,2013-2014,"S197 GT500 (adjacent pooled); exclude GT350, base GT"
-97,2016,Ford,Mustang,Shelby GT350R,coupe,S550,2015-2020,GT350R only (adjacent pooled); EXCLUDE base GT350
+93,2014,Chevrolet,Corvette,Z51,coupe,C7,exact,C7 Stingray Z51 (adjacent pooled); EXCLUDE Z06/ZR1/Grand Sport
+94,2019,Chevrolet,Corvette,ZR1,coupe,C7,exact,C7 ZR1 supercharged; exclude Z06
+95,2020,Chevrolet,Corvette,Stingray,coupe,C8,exact,"C8 coupe (adjacent pooled); EXCLUDE Z06 C8, convertible"
+96,2013,Ford,Mustang,Shelby GT500,coupe,S197,exact,"S197 GT500 (adjacent pooled); exclude GT350, base GT"
+97,2016,Ford,Mustang,Shelby GT350R,coupe,S550,exact,GT350R only (adjacent pooled); EXCLUDE base GT350
 98,2018,Dodge,Challenger,Demon,coupe,,exact,"SRT Demon; EXCLUDE Hellcat/Redeye, SRT-8"
 99,2019,BMW,M4,Competition,coupe,F82,exact,COVERAGE ONLY (not in HVT); F82
 100,2017,Ford,Focus,RS,,,exact,COVERAGE ONLY (not in HVT)

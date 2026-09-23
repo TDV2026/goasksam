@@ -1,0 +1,483 @@
+{
+ "car_id": 51,
+ "listed": "1985 Chevrolet Camaro IROC-Z",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1983-1987)",
+ "basis": "mixed (41% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Chevrolet",
+  "model": "Camaro",
+  "window": "36mo",
+  "year_min": 1983,
+  "year_max": 1987,
+  "trim": "IROC-Z",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-09-12",
+   "venue": "Barrett-Jackson",
+   "price_usd": 37400,
+   "basis": "buyer-paid",
+   "hammer_usd": 34000,
+   "native": {
+    "amount": 37400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/2026-las-vegas/docket/vehicle/1987-chevrolet-camaro-iroc-z-302530?origin=results",
+   "chassis": "1G1FP2180HL136668",
+   "title": "1987 CHEVROLET CAMARO IROC-Z"
+  },
+  {
+   "date": "2026-09-10",
+   "venue": "Barrett-Jackson",
+   "price_usd": 12650,
+   "basis": "buyer-paid",
+   "hammer_usd": 11500,
+   "native": {
+    "amount": 12650,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1985,
+   "url": "https://www.barrett-jackson.com/2026-las-vegas/docket/vehicle/1985-chevrolet-camaro-z28-302261?origin=results",
+   "chassis": "1G1FP87HXFL419571",
+   "title": "1985 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2026-09-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 15750,
+   "basis": "sold+fee",
+   "hammer_usd": 15000,
+   "native": {
+    "amount": 15000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1986,
+   "url": "https://bringatrailer.com/listing/1986-chevrolet-camaro-z28-iroc-z-34/",
+   "chassis": "1G1FP87H4GL168659",
+   "title": "1986 Chevrolet Camaro IROC-Z 5-Speed"
+  },
+  {
+   "date": "2026-08-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 25272,
+   "basis": "sold+fee",
+   "hammer_usd": 24069,
+   "native": {
+    "amount": 24069,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-chevrolet-camaro-z28-iroc-z-37/",
+   "chassis": "1G1FP87F3FL425405",
+   "title": "1985 Chevrolet Camaro IROC-Z"
+  },
+  {
+   "date": "2026-07-25",
+   "venue": "Mecum",
+   "price_usd": 27300,
+   "basis": "sold+fee",
+   "hammer_usd": 26000,
+   "native": {
+    "amount": 28600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1985,
+   "url": "https://www.mecum.com/lots/1177901/1985-chevrolet-camaro-iroc-z?aa_id=799207-0",
+   "chassis": "1G1FP87F6FN175727",
+   "title": "1985 Chevrolet Camaro IROC-Z"
+  },
+  {
+   "date": "2026-07-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 9450,
+   "basis": "sold+fee",
+   "hammer_usd": 9000,
+   "native": {
+    "amount": 9000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-chevrolet-camaro-z28-iroc-z-43/",
+   "chassis": "1G1FP21F7HN160243",
+   "title": "1987 Chevrolet Camaro IROC-Z 5-Speed"
+  },
+  {
+   "date": "2026-06-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 13913,
+   "basis": "sold+fee",
+   "hammer_usd": 13250,
+   "native": {
+    "amount": 13250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1986,
+   "url": "https://bringatrailer.com/listing/1986-chevrolet-camaro-z28-iroc-z-33/",
+   "chassis": "1G1FP87F5GL168393",
+   "title": "1986 Chevrolet Camaro IROC-Z"
+  },
+  {
+   "date": "2026-06-01",
+   "venue": "AutoHunter",
+   "price_usd": 17325,
+   "basis": "sold+fee",
+   "hammer_usd": 16500,
+   "native": {
+    "amount": 16500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://autohunter.com/Listing/Details/88581475",
+   "chassis": "1G1FP2187HN143377",
+   "title": "1987 CHEVROLET CAMARO IROC-Z CONVERTIBLE"
+  },
+  {
+   "date": "2026-02-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 16013,
+   "basis": "sold+fee",
+   "hammer_usd": 15250,
+   "native": {
+    "amount": 15250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1986,
+   "url": "https://bringatrailer.com/listing/1986-chevrolet-camaro-iroc-z/",
+   "chassis": "1G1FP87H3GL112941",
+   "title": "1986 Chevrolet Camaro IROC-Z"
+  },
+  {
+   "date": "2026-01-21",
+   "venue": "Barrett-Jackson",
+   "price_usd": 31900,
+   "basis": "buyer-paid",
+   "hammer_usd": 29000,
+   "native": {
+    "amount": 31900,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1987-chevrolet-camaro-iroc-z-292432?origin=results",
+   "chassis": "1G1FP2184HL137497",
+   "title": "1987 CHEVROLET CAMARO IROC-Z"
+  },
+  {
+   "date": "2025-05-20",
+   "venue": "Hagerty",
+   "price_usd": 6405,
+   "basis": "sold+fee",
+   "hammer_usd": 6100,
+   "native": {
+    "amount": 6100,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1986,
+   "url": "https://www.hagerty.com/marketplace/auction/1986-Chevrolet-Camaro/85ea237f-dc03-4c10-93de-a436f6e5e096",
+   "chassis": "1G1FP87F4GL157434",
+   "title": "1986 Chevrolet Camaro Z/28"
+  },
+  {
+   "date": "2025-04-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 17600,
+   "basis": "buyer-paid",
+   "hammer_usd": 16000,
+   "native": {
+    "amount": 17600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/palm-beach-2025/docket/vehicle/1987-chevrolet-camaro-z28-288050?origin=results",
+   "chassis": "1G1FP21F7HN160307",
+   "title": "1987 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2025-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 40700,
+   "basis": "buyer-paid",
+   "hammer_usd": 37000,
+   "native": {
+    "amount": 40700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1987-chevrolet-camaro-iroc-z-280628?origin=results",
+   "chassis": "1G1FP2180HL136668",
+   "title": "1987 CHEVROLET CAMARO IROC-Z"
+  },
+  {
+   "date": "2025-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 14300,
+   "basis": "buyer-paid",
+   "hammer_usd": 13000,
+   "native": {
+    "amount": 14300,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1984,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1984-chevrolet-camaro-z28-284417?origin=results",
+   "chassis": "1G1AP87G4EL186576",
+   "title": "1984 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2024-11-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 38010,
+   "basis": "sold+fee",
+   "hammer_usd": 36200,
+   "native": {
+    "amount": 36200,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-chevrolet-camaro-z28-iroc-z-21/",
+   "chassis": "1G1FP2186HN161482",
+   "title": "30k-Mile 1987 Chevrolet Camaro IROC-Z"
+  },
+  {
+   "date": "2024-10-10",
+   "venue": "Barrett-Jackson",
+   "price_usd": 17050,
+   "basis": "buyer-paid",
+   "hammer_usd": 15500,
+   "native": {
+    "amount": 17050,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1984,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1984-chevrolet-camaro-z28-279094?origin=results",
+   "chassis": "1G1AP87G9EN168742",
+   "title": "1984 CHEVROLET CAMARO Z/28"
+  },
+  {
+   "date": "2024-09-23",
+   "venue": "Hemmings",
+   "price_usd": 33180,
+   "basis": "sold+fee",
+   "hammer_usd": 31600,
+   "native": {
+    "amount": 31600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://www.hemmings.com/auction/1985-chevrolet-camaro-seekonk-ma-888201",
+   "chassis": "1G1FP87H2FN147814",
+   "title": "1985 Chevrolet Camaro IROC-Z With 9,400 Original Miles"
+  },
+  {
+   "date": "2024-04-20",
+   "venue": "Barrett-Jackson",
+   "price_usd": 60500,
+   "basis": "buyer-paid",
+   "hammer_usd": 55000,
+   "native": {
+    "amount": 60500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1985,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/1985-chevrolet-camaro-iroc-z-276588?origin=results",
+   "chassis": "1G1FP87HXFN151528",
+   "title": "1985 CHEVROLET CAMARO IROC-Z"
+  },
+  {
+   "date": "2024-04-18",
+   "venue": "Barrett-Jackson",
+   "price_usd": 15950,
+   "basis": "buyer-paid",
+   "hammer_usd": 14500,
+   "native": {
+    "amount": 15950,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1986,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/1986-chevrolet-camaro-iroc-z-277233?origin=results",
+   "chassis": "1G1FP87F8GN160115",
+   "title": "1986 CHEVROLET CAMARO IROC-Z"
+  },
+  {
+   "date": "2024-03-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 26833,
+   "basis": "sold+fee",
+   "hammer_usd": 25555,
+   "native": {
+    "amount": 25555,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-chevrolet-camaro-iroc-z-15/",
+   "chassis": "1G1FP21F7HN154765",
+   "title": "15k-Mile 1987 Chevrolet Camaro IROC-Z Coupe"
+  },
+  {
+   "date": "2024-02-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 9137,
+   "basis": "sold+fee",
+   "hammer_usd": 8702,
+   "native": {
+    "amount": 8702,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-chevrolet-camaro-z28-iroc-z-14/",
+   "chassis": "1G1FP218XHN176468",
+   "title": "1987 Chevrolet Camaro IROC-Z Coupe"
+  },
+  {
+   "date": "2024-02-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 22575,
+   "basis": "sold+fee",
+   "hammer_usd": 21500,
+   "native": {
+    "amount": 21500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-chevrolet-camaro-z28-iroc-z-12/",
+   "chassis": "1G1FP87F1FN160584",
+   "title": "1985 Chevrolet Camaro IROC-Z Coupe"
+  },
+  {
+   "date": "2024-02-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 22500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-chevrolet-camaro-iroc-z-11/",
+   "chassis": "1G1FP21F7HN185451",
+   "title": "1987 Chevrolet Camaro IROC-Z Coupe"
+  },
+  {
+   "date": "2024-02-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 63525,
+   "basis": "sold+fee",
+   "hammer_usd": 60500,
+   "native": {
+    "amount": 60500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-chevrolet-camaro-z28-iroc-z-13/",
+   "chassis": "1G1FP2184HN168365",
+   "title": "2k-Mile 1987 Chevrolet Camaro IROC-Z"
+  },
+  {
+   "date": "2024-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 55000,
+   "basis": "buyer-paid",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 55000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1987-chevrolet-camaro-iroc-z-convertible-271643?origin=results",
+   "chassis": "1G1FP31F9HN163960",
+   "title": "1987 CHEVROLET CAMARO IROC-Z CONVERTIBLE"
+  },
+  {
+   "date": "2024-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 24750,
+   "basis": "buyer-paid",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 24750,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1986,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1986-chevrolet-camaro-iroc-z-271371?origin=results",
+   "chassis": "1G1FP87F6GL133068",
+   "title": "1986 CHEVROLET CAMARO IROC-Z"
+  },
+  {
+   "date": "2023-11-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 21263,
+   "basis": "sold+fee",
+   "hammer_usd": 20250,
+   "native": {
+    "amount": 20250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-chevrolet-camaro-z28-iroc-z-11/",
+   "chassis": "1G1FP87F9FL498651",
+   "title": "50k-Mile 1985 Chevrolet Camaro IROC-Z"
+  },
+  {
+   "date": "2023-10-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 18375,
+   "basis": "sold+fee",
+   "hammer_usd": 17500,
+   "native": {
+    "amount": 17500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-chevrolet-camaro-z28-iroc-z-9/",
+   "chassis": "1G1FP87F4FN174138",
+   "title": "Original-Owner 1985 Chevrolet Camaro IROC-Z"
+  },
+  {
+   "date": "2023-09-30",
+   "venue": "Barrett-Jackson",
+   "price_usd": 26400,
+   "basis": "buyer-paid",
+   "hammer_usd": 24000,
+   "native": {
+    "amount": 26400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/new-orleans-2023/docket/vehicle/1987-chevrolet-camaro-iroc-z-270553?origin=results",
+   "chassis": "1G1FP2184HN158743",
+   "title": "1987 CHEVROLET CAMARO IROC-Z"
+  }
+ ]
+}

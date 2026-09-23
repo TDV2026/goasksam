@@ -1,0 +1,626 @@
+{
+ "car_id": 53,
+ "listed": "1989 Jeep Grand Wagoneer",
+ "status": "compare",
+ "year_scope": "exact 1989",
+ "basis": "sold+fee (online)",
+ "scope": {
+  "make": "Jeep",
+  "model": "Grand Wagoneer",
+  "window": "36mo",
+  "year_min": 1989,
+  "year_max": 1989,
+  "body": "wagon"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-09-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 44625,
+   "basis": "sold+fee",
+   "hammer_usd": 42500,
+   "native": {
+    "amount": 42500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-179/",
+   "chassis": "1J4GS587XKP105530",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2026-07-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 8925,
+   "basis": "sold+fee",
+   "hammer_usd": 8500,
+   "native": {
+    "amount": 8500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-171/",
+   "chassis": "1J4GS5877KP103931",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2026-06-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 79800,
+   "basis": "sold+fee",
+   "hammer_usd": 76000,
+   "native": {
+    "amount": 76000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-176/",
+   "chassis": "1J4GS5878KP108846",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2026-06-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 27300,
+   "basis": "sold+fee",
+   "hammer_usd": 26000,
+   "native": {
+    "amount": 26000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-175/",
+   "chassis": "1J4GS587XKP111523",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2026-06-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 22889,
+   "basis": "sold+fee",
+   "hammer_usd": 21799,
+   "native": {
+    "amount": 21799,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-172/",
+   "chassis": "1J4GS5872KP110804",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2026-05-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 51450,
+   "basis": "sold+fee",
+   "hammer_usd": 49000,
+   "native": {
+    "amount": 49000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-174/",
+   "chassis": "1J4GS5874KP104762",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2026-05-20",
+   "venue": "Hagerty",
+   "price_usd": 23100,
+   "basis": "sold+fee",
+   "hammer_usd": 22000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://www.hagerty.com/marketplace/auction/1989-Jeep-Grand-Wagoner/52f289f1-8384-482c-bf2c-a3953601e8ed",
+   "chassis": "1J4GS5870KP111336",
+   "title": "1989 Jeep Grand Wagoneer "
+  },
+  {
+   "date": "2026-03-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 37800,
+   "basis": "sold+fee",
+   "hammer_usd": 36000,
+   "native": {
+    "amount": 36000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-165/",
+   "chassis": "1J4GS5871KP108767",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2026-03-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 14700,
+   "basis": "sold+fee",
+   "hammer_usd": 14000,
+   "native": {
+    "amount": 14000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-167/",
+   "chassis": "1J4GS5871KP102306",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2026-03-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 7245,
+   "basis": "sold+fee",
+   "hammer_usd": 6900,
+   "native": {
+    "amount": 6900,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-166/",
+   "chassis": "1J4GS5873KP101951",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2026-03-03",
+   "venue": "Cars & Bids",
+   "price_usd": 10616,
+   "basis": "sold+fee",
+   "hammer_usd": 10110,
+   "native": {
+    "amount": 10110,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://carsandbids.com/auctions/KZpkzzVb/1989-jeep-wagoneer-limited-4x4",
+   "chassis": "1J4FN78L6KL565898",
+   "title": "1989 Jeep Wagoneer Limited 4x4"
+  },
+  {
+   "date": "2025-10-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 13125,
+   "basis": "sold+fee",
+   "hammer_usd": 12500,
+   "native": {
+    "amount": 12500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-161/",
+   "chassis": "1J4GS5878KP104327",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2025-09-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 37800,
+   "basis": "sold+fee",
+   "hammer_usd": 36000,
+   "native": {
+    "amount": 36000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-159/",
+   "chassis": "1J4GS5878KP102500",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2025-09-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 42004,
+   "basis": "sold+fee",
+   "hammer_usd": 40004,
+   "native": {
+    "amount": 40004,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-158/",
+   "chassis": "IJ4GS5879KP106832",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2025-09-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 17588,
+   "basis": "sold+fee",
+   "hammer_usd": 16750,
+   "native": {
+    "amount": 16750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-155/",
+   "chassis": "1J4GS5872KP105540",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2025-09-11",
+   "venue": "Hagerty",
+   "price_usd": 8663,
+   "basis": "sold+fee",
+   "hammer_usd": 8250,
+   "native": {
+    "amount": 8250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://www.hagerty.com/marketplace/auction/1989-Jeep-Grand-Wagoneer/e43ec046-a04c-42c6-8739-694566be46e7",
+   "chassis": "1J4GS5878KP106434",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2025-05-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 37275,
+   "basis": "sold+fee",
+   "hammer_usd": 35500,
+   "native": {
+    "amount": 35500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-150/",
+   "chassis": "1J4GS5879KP104689",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2025-04-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 24413,
+   "basis": "sold+fee",
+   "hammer_usd": 23250,
+   "native": {
+    "amount": 23250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-148/",
+   "chassis": "1J4GS5879KP102506",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2025-03-24",
+   "venue": "Cars & Bids",
+   "price_usd": 11235,
+   "basis": "sold+fee",
+   "hammer_usd": 10700,
+   "native": {
+    "amount": 10700,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://carsandbids.com/auctions/30woyw7P/1989-jeep-grand-wagoneer",
+   "chassis": "1J4GS5877KP106764",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2025-03-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 7350,
+   "basis": "sold+fee",
+   "hammer_usd": 7000,
+   "native": {
+    "amount": 7000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-wagoneer-limited-4/",
+   "chassis": "1J4FN78L3KL448358",
+   "title": "1989 Jeep Wagoneer Limited"
+  },
+  {
+   "date": "2025-03-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 8295,
+   "basis": "sold+fee",
+   "hammer_usd": 7900,
+   "native": {
+    "amount": 7900,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-145/",
+   "chassis": "1J4GS5873KP104316",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2025-02-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 13388,
+   "basis": "sold+fee",
+   "hammer_usd": 12750,
+   "native": {
+    "amount": 12750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-143/",
+   "chassis": "1J4GS5878KP106577",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2024-11-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 19950,
+   "basis": "sold+fee",
+   "hammer_usd": 19000,
+   "native": {
+    "amount": 19000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-141/",
+   "chassis": "1J4GS5871KP109952",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2024-10-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 27825,
+   "basis": "sold+fee",
+   "hammer_usd": 26500,
+   "native": {
+    "amount": 26500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-wagoneer-limited-3/",
+   "chassis": "1J4FN78L3KL463359",
+   "title": "1989 Jeep Wagoneer Limited"
+  },
+  {
+   "date": "2024-10-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 24938,
+   "basis": "sold+fee",
+   "hammer_usd": 23750,
+   "native": {
+    "amount": 23750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-138/",
+   "chassis": "1J4GS5871KP100829",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2024-09-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 43050,
+   "basis": "sold+fee",
+   "hammer_usd": 41000,
+   "native": {
+    "amount": 41000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-140/",
+   "chassis": "1J4GS5875KP105080",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2024-09-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 37929,
+   "basis": "sold+fee",
+   "hammer_usd": 36123,
+   "native": {
+    "amount": 36123,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-139/",
+   "chassis": "1J4GS5879KP111304",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2024-07-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 33600,
+   "basis": "sold+fee",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 32000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-131/",
+   "chassis": "1J4GS5875KP112160",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2024-06-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 16275,
+   "basis": "sold+fee",
+   "hammer_usd": 15500,
+   "native": {
+    "amount": 15500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-134/",
+   "chassis": "1J4GS5870KP106363",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2024-06-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 35700,
+   "basis": "sold+fee",
+   "hammer_usd": 34000,
+   "native": {
+    "amount": 34000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-133/",
+   "chassis": "1J4GS5870KP100935",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2024-05-28",
+   "venue": "All Collector Cars",
+   "price_usd": 27563,
+   "basis": "sold+fee",
+   "hammer_usd": 26250,
+   "native": {
+    "amount": 26250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://www.allcollectorcars.com/classic-car-auctions/vehicles/1989-jeep-grand-wagoneer/",
+   "chassis": "1J4GS5875KP110893",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2024-05-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 37013,
+   "basis": "sold+fee",
+   "hammer_usd": 35250,
+   "native": {
+    "amount": 35250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-130/",
+   "chassis": "1J4GS5873KP106986",
+   "title": "Fuel-Injected 1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2023-12-19",
+   "venue": "Cars & Bids",
+   "price_usd": 18690,
+   "basis": "sold+fee",
+   "hammer_usd": 17800,
+   "native": {
+    "amount": 17800,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://carsandbids.com/auctions/98wX1XNQ/1989-jeep-grand-wagoneer",
+   "chassis": "1J4GS5871KP100717",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2023-12-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 23730,
+   "basis": "sold+fee",
+   "hammer_usd": 22600,
+   "native": {
+    "amount": 22600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-124/",
+   "chassis": "1J4GS5872KP100628",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2023-11-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 17588,
+   "basis": "sold+fee",
+   "hammer_usd": 16750,
+   "native": {
+    "amount": 16750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-122/",
+   "chassis": "1J4GS5879KP106569",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2023-10-18",
+   "venue": "Cars & Bids",
+   "price_usd": 15855,
+   "basis": "sold+fee",
+   "hammer_usd": 15100,
+   "native": {
+    "amount": 15100,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://carsandbids.com/auctions/rMkv0V2Z/1989-jeep-grand-wagoneer-4x4",
+   "chassis": "1J4GS5874KP103868",
+   "title": "1989 Jeep Grand Wagoneer 4x4"
+  },
+  {
+   "date": "2023-10-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 26775,
+   "basis": "sold+fee",
+   "hammer_usd": 25500,
+   "native": {
+    "amount": 25500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-jeep-grand-wagoneer-119/",
+   "chassis": "1J4GS5875KP110067",
+   "title": "1989 Jeep Grand Wagoneer"
+  },
+  {
+   "date": "2023-10-11",
+   "venue": "Cars & Bids",
+   "price_usd": 17063,
+   "basis": "sold+fee",
+   "hammer_usd": 16250,
+   "native": {
+    "amount": 16250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://carsandbids.com/auctions/3gvRRybE/1989-jeep-grand-wagoneer",
+   "chassis": "1J4GS5877KP112077",
+   "title": "1989 Jeep Grand Wagoneer"
+  }
+ ]
+}

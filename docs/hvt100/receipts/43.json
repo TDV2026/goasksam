@@ -1,0 +1,818 @@
+{
+ "car_id": 43,
+ "listed": "1989 Mercedes-Benz 560SL",
+ "status": "compare",
+ "year_scope": "exact 1989",
+ "basis": "mixed (8% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Mercedes-Benz",
+  "model": "560SL",
+  "window": "36mo",
+  "year_min": 1989,
+  "year_max": 1989,
+  "body": "roadster"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-09-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 37800,
+   "basis": "sold+fee",
+   "hammer_usd": 36000,
+   "native": {
+    "amount": 36000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-591/",
+   "chassis": "WDBBA48D7KA099450",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-09-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-587/",
+   "chassis": "WDBBA48D7KA094345",
+   "title": "22-Years-Owned 1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-09-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 25410,
+   "basis": "sold+fee",
+   "hammer_usd": 24200,
+   "native": {
+    "amount": 24200,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-590/",
+   "chassis": "WDBBA48D3KA103462",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-09-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 39113,
+   "basis": "sold+fee",
+   "hammer_usd": 37250,
+   "native": {
+    "amount": 37250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-583/",
+   "chassis": "WDBBA48D1KA104139",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-09-12",
+   "venue": "Barrett-Jackson",
+   "price_usd": 41800,
+   "basis": "buyer-paid",
+   "hammer_usd": 38000,
+   "native": {
+    "amount": 41800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1989,
+   "url": "https://www.barrett-jackson.com/2026-las-vegas/docket/vehicle/1989-mercedes-benz-560sl-roadster-302529?origin=results",
+   "chassis": "WDBBA48DXKA096932",
+   "title": "1989 MERCEDES-BENZ 560SL ROADSTER"
+  },
+  {
+   "date": "2026-09-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 142800,
+   "basis": "sold+fee",
+   "hammer_usd": 136000,
+   "native": {
+    "amount": 136000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-593/",
+   "chassis": "WDBBA48D2KA094110",
+   "title": "4k-Mile 1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-09-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 94500,
+   "basis": "sold+fee",
+   "hammer_usd": 90000,
+   "native": {
+    "amount": 90000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-582/",
+   "chassis": "WDBBA48D2KA092891",
+   "title": "17k-Mile 1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-08-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 35496,
+   "basis": "sold+fee",
+   "hammer_usd": 33806,
+   "native": {
+    "amount": 33806,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-581/",
+   "chassis": "WDBBA48D1KA100284",
+   "title": "23-Years-Family-Owned 1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-08-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 50000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-580/",
+   "chassis": "WDBBA48D9KA094847",
+   "title": "50k-Mile 1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-08-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 23100,
+   "basis": "sold+fee",
+   "hammer_usd": 22000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-575/",
+   "chassis": "WDBBA48D2KA096259",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-08-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 31500,
+   "basis": "sold+fee",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 30000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-576/",
+   "chassis": "WDBBA48D6KA097642",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-08-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 37801,
+   "basis": "sold+fee",
+   "hammer_usd": 36001,
+   "native": {
+    "amount": 36001,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-569/",
+   "chassis": "WDBBA48D7KA097214",
+   "title": "Original-Owner 1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-08-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 33075,
+   "basis": "sold+fee",
+   "hammer_usd": 31500,
+   "native": {
+    "amount": 31500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-564/",
+   "chassis": "WDBBA48D3KA095623",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-08-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 31500,
+   "basis": "sold+fee",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 30000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-571/",
+   "chassis": "WDBBA48D5KA101941",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-08-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 35963,
+   "basis": "sold+fee",
+   "hammer_usd": 34250,
+   "native": {
+    "amount": 34250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-567/",
+   "chassis": "WDBBA48D6KA099939",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-08-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 14700,
+   "basis": "sold+fee",
+   "hammer_usd": 14000,
+   "native": {
+    "amount": 14000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-572/",
+   "chassis": "WDBBA48D2KA099761",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-07-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 58800,
+   "basis": "sold+fee",
+   "hammer_usd": 56000,
+   "native": {
+    "amount": 56000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-577/",
+   "chassis": "WDBBA48D4KA100795",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-07-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 42000,
+   "basis": "sold+fee",
+   "hammer_usd": 40000,
+   "native": {
+    "amount": 40000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-153-2/",
+   "chassis": "WDBBA48D4KA104541",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-07-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 43575,
+   "basis": "sold+fee",
+   "hammer_usd": 41500,
+   "native": {
+    "amount": 41500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-566/",
+   "chassis": "WDBBA48D2KA103873",
+   "title": "48k-Mile 1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-07-06",
+   "venue": "PCARMarket",
+   "price_usd": 35280,
+   "basis": "sold+fee",
+   "hammer_usd": 33600,
+   "native": {
+    "amount": 33600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://www.pcarmarket.com/auction/1989-mercedes-benz-560sl-11",
+   "chassis": "WDBBA48D4KA095565",
+   "title": "NO RESERVE 1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-06-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 40425,
+   "basis": "sold+fee",
+   "hammer_usd": 38500,
+   "native": {
+    "amount": 38500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-560/",
+   "chassis": "WDBBA48D2KA100438",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-06-11",
+   "venue": "Cars & Bids",
+   "price_usd": 17063,
+   "basis": "sold+fee",
+   "hammer_usd": 16250,
+   "native": {
+    "amount": 16250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://carsandbids.com/auctions/3vVRVyLB/1989-mercedes-benz-560sl",
+   "chassis": "WDBBA48D7KA095415",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-06-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 51975,
+   "basis": "sold+fee",
+   "hammer_usd": 49500,
+   "native": {
+    "amount": 49500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-558/",
+   "chassis": "WDBBA48D9KA101926",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-05-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 29663,
+   "basis": "sold+fee",
+   "hammer_usd": 28250,
+   "native": {
+    "amount": 28250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-507/",
+   "chassis": "WDBBA48D0KA091271",
+   "title": "40k-Mile 1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-05-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 72450,
+   "basis": "sold+fee",
+   "hammer_usd": 69000,
+   "native": {
+    "amount": 69000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-551/",
+   "chassis": "WDBBA48D9KA099627",
+   "title": "19k-Kilometer 1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-05-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 41738,
+   "basis": "sold+fee",
+   "hammer_usd": 39750,
+   "native": {
+    "amount": 39750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-555/",
+   "chassis": "WDBBA48D6KA092960",
+   "title": "32k-Mile 1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-05-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 53550,
+   "basis": "sold+fee",
+   "hammer_usd": 51000,
+   "native": {
+    "amount": 51000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-546-2/",
+   "chassis": "WDBBA48D6KA101379",
+   "title": "28k-Mile 1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-05-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 34125,
+   "basis": "sold+fee",
+   "hammer_usd": 32500,
+   "native": {
+    "amount": 32500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-548/",
+   "chassis": "WDBBA48D2KA095676",
+   "title": "49k-Mile 1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-05-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 11813,
+   "basis": "sold+fee",
+   "hammer_usd": 11250,
+   "native": {
+    "amount": 11250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-553/",
+   "chassis": "WDBBA48D5KA098054",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-04-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 39638,
+   "basis": "sold+fee",
+   "hammer_usd": 37750,
+   "native": {
+    "amount": 37750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-545/",
+   "chassis": "WDBBA48D3KA096786",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-03-23",
+   "venue": "Hagerty",
+   "price_usd": 21000,
+   "basis": "sold+fee",
+   "hammer_usd": 20000,
+   "native": {
+    "amount": 20000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://www.hagerty.com/marketplace/auction/1989-Mercedes-Benz-560SL/0ec5261d-fe99-4b97-926b-d144dd7f99f7",
+   "chassis": "WDBBA48D0KA094350",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-03-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 65100,
+   "basis": "sold+fee",
+   "hammer_usd": 62000,
+   "native": {
+    "amount": 62000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-539/",
+   "chassis": "WDBBA48D4KA102689",
+   "title": "26k-Mile 1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-03-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 7455,
+   "basis": "sold+fee",
+   "hammer_usd": 7100,
+   "native": {
+    "amount": 7100,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-536/",
+   "chassis": "WDBBA48D5KA103916",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-03-05",
+   "venue": "Gooding Christie's",
+   "price_usd": 120400,
+   "basis": "buyer-paid",
+   "hammer_usd": 107500,
+   "native": {
+    "amount": 120400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1989,
+   "url": "https://www.goodingco.com/lot/1989-mercedes-benz-560-sl-fl26",
+   "chassis": "WDBBA48DXKA097871",
+   "title": "1989 Mercedes-Benz 560 SL (FL26)"
+  },
+  {
+   "date": "2026-03-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 28350,
+   "basis": "sold+fee",
+   "hammer_usd": 27000,
+   "native": {
+    "amount": 27000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-540/",
+   "chassis": "WDBBA48D6KA097821",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-02-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 45938,
+   "basis": "sold+fee",
+   "hammer_usd": 43750,
+   "native": {
+    "amount": 43750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-538/",
+   "chassis": "WDBBA48D9KA097814",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-02-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 14805,
+   "basis": "sold+fee",
+   "hammer_usd": 14100,
+   "native": {
+    "amount": 14100,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-537/",
+   "chassis": "WDBBA48D0KA097913",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-02-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 17850,
+   "basis": "sold+fee",
+   "hammer_usd": 17000,
+   "native": {
+    "amount": 17000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-531-3/",
+   "chassis": "WDBBA48D6KA096720",
+   "title": "Ex–Dick Martin 1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "RM Sotheby's",
+   "price_usd": 30800,
+   "basis": "buyer-paid",
+   "hammer_usd": 27500,
+   "native": {
+    "amount": 30800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1989,
+   "url": "https://rmsothebys.com/auctions/az26/lots/r0109-1989-mercedesbenz-560-sl/",
+   "chassis": "WDBBA48D5KA100661",
+   "title": "1989 Mercedes-Benz 560 SL"
+  },
+  {
+   "date": "2026-01-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 19425,
+   "basis": "sold+fee",
+   "hammer_usd": 18500,
+   "native": {
+    "amount": 18500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-531/",
+   "chassis": "WDBBA48D6KA096720",
+   "title": "Ex–Dick Martin 1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-01-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 24150,
+   "basis": "sold+fee",
+   "hammer_usd": 23000,
+   "native": {
+    "amount": 23000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-510/",
+   "chassis": "WDBBA48DXKA099975",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2026-01-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 22050,
+   "basis": "sold+fee",
+   "hammer_usd": 21000,
+   "native": {
+    "amount": 21000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-560sl-529/",
+   "chassis": "WDBBA48D3KA096481",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2024-10-22",
+   "venue": "Cars & Bids",
+   "price_usd": 10458,
+   "basis": "sold+fee",
+   "hammer_usd": 9960,
+   "native": {
+    "amount": 9960,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://carsandbids.com/auctions/K1w2yB80/1989-mercedes-benz-560sl",
+   "chassis": "WDBBA48D9KA100355",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2024-10-11",
+   "venue": "Cars & Bids",
+   "price_usd": 18666,
+   "basis": "sold+fee",
+   "hammer_usd": 17777,
+   "native": {
+    "amount": 17777,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://carsandbids.com/auctions/3gOkMo8o/1989-mercedes-benz-560sl",
+   "chassis": "WDBBA48D6KA098337",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2024-09-18",
+   "venue": "Cars & Bids",
+   "price_usd": 14700,
+   "basis": "sold+fee",
+   "hammer_usd": 14000,
+   "native": {
+    "amount": 14000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://carsandbids.com/auctions/rkGmbQag/1989-mercedes-benz-560sl",
+   "chassis": "WDBBA48D5KA095848",
+   "title": "1989 Mercedes Benz 560SL"
+  },
+  {
+   "date": "2024-06-11",
+   "venue": "Cars & Bids",
+   "price_usd": 37800,
+   "basis": "sold+fee",
+   "hammer_usd": 36000,
+   "native": {
+    "amount": 36000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://carsandbids.com/auctions/KPdaO8pL/1989-mercedes-benz-560sl",
+   "chassis": "WDBBA48D9KA095691",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2024-04-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 58275,
+   "basis": "sold+fee",
+   "hammer_usd": 55500,
+   "native": {
+    "amount": 55500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-mercedes-benz-500sl-r107-4-2/",
+   "chassis": "WDBBA48D3KA103364",
+   "title": "Single-Family-Owned 20k-Mile 1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2024-02-09",
+   "venue": "Cars & Bids",
+   "price_usd": 34650,
+   "basis": "sold+fee",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://carsandbids.com/auctions/KYZ2EXAv/1989-mercedes-benz-560sl",
+   "chassis": "WDBBA48D5KA098216",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2023-12-05",
+   "venue": "Cars & Bids",
+   "price_usd": 19845,
+   "basis": "sold+fee",
+   "hammer_usd": 18900,
+   "native": {
+    "amount": 18900,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://carsandbids.com/auctions/3ojMWN5E/1989-mercedes-benz-560sl",
+   "chassis": "WDBBA48D8KA096556",
+   "title": "1989 Mercedes-Benz 560SL"
+  },
+  {
+   "date": "2023-11-25",
+   "venue": "RM Sotheby's",
+   "price_usd": 42228,
+   "basis": "buyer-paid",
+   "hammer_usd": 36720,
+   "native": {
+    "amount": 39100,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1989,
+   "url": "https://rmsothebys.com/auctions/mu23/lots/r0011-1989-mercedesbenz-560-sl/",
+   "chassis": "WDBBA48D1KA093577",
+   "title": "1989 Mercedes-Benz 560 SL"
+  }
+ ]
+}

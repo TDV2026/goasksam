@@ -1,0 +1,931 @@
+{
+ "car_id": 99,
+ "listed": "2019 BMW M4 Competition",
+ "status": "coverage",
+ "year_scope": "adjacent years pooled (2017-2020)",
+ "basis": "mixed (2% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "BMW",
+  "model": "M4",
+  "window": "36mo",
+  "year_min": 2017,
+  "year_max": 2020,
+  "trim": "Competition",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-09-22",
+   "venue": "Cars & Bids",
+   "price_usd": 61950,
+   "basis": "sold+fee",
+   "hammer_usd": 59000,
+   "native": {
+    "amount": 59000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/r4WYXkWA/2017-bmw-m4-coupe-competition-package",
+   "chassis": "WBS3R9C32HA014378",
+   "title": "2017 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2026-09-04",
+   "venue": "Cars & Bids",
+   "price_usd": 36750,
+   "basis": "sold+fee",
+   "hammer_usd": 35000,
+   "native": {
+    "amount": 35000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://carsandbids.com/auctions/KD07pdbv/2019-bmw-m4-coupe-competition-package",
+   "chassis": "WBS4Y9C55KAG67564",
+   "title": "2019 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2026-09-03",
+   "venue": "Cars & Bids",
+   "price_usd": 55650,
+   "basis": "sold+fee",
+   "hammer_usd": 53000,
+   "native": {
+    "amount": 53000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://carsandbids.com/auctions/9nE2oDlJ/2018-bmw-m4-coupe-competition-package",
+   "chassis": "WBS4Y9C56JAC86661",
+   "title": "2018 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2026-09-02",
+   "venue": "Cars & Bids",
+   "price_usd": 55125,
+   "basis": "sold+fee",
+   "hammer_usd": 52500,
+   "native": {
+    "amount": 52500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://carsandbids.com/auctions/KVooy4Lr/2018-bmw-m4-coupe-competition-package",
+   "chassis": "WBS4Y9C58JAC87293",
+   "title": "2018 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2026-07-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 53550,
+   "basis": "sold+fee",
+   "hammer_usd": 51000,
+   "native": {
+    "amount": 51000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-bmw-m4-coupe-17/",
+   "chassis": "WBS4Y9C53JAC87539",
+   "title": "21k-Mile 2018 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2026-06-16",
+   "venue": "Cars & Bids",
+   "price_usd": 44100,
+   "basis": "sold+fee",
+   "hammer_usd": 42000,
+   "native": {
+    "amount": 42000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://carsandbids.com/auctions/9eklWnQq/2020-bmw-m4-convertible",
+   "chassis": "WBS4Z9C04L5N23920",
+   "title": "2020 BMW M4 Convertible"
+  },
+  {
+   "date": "2026-04-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 55125,
+   "basis": "sold+fee",
+   "hammer_usd": 52500,
+   "native": {
+    "amount": 52500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-bmw-m4-coupe-8-2/",
+   "chassis": "WBS4Y9C59JAC86069",
+   "title": "11k-Mile 2018 BMW M4 Coupe Competition Package 6-Speed"
+  },
+  {
+   "date": "2026-04-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 55125,
+   "basis": "sold+fee",
+   "hammer_usd": 52500,
+   "native": {
+    "amount": 52500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-bmw-m4-cs-9/",
+   "chassis": "WBS3S7C53KAC09684",
+   "title": "2019 BMW M4 CS"
+  },
+  {
+   "date": "2026-03-04",
+   "venue": "Cars & Bids",
+   "price_usd": 31500,
+   "basis": "sold+fee",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 30000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/rMGO8qa3/2017-bmw-m4-coupe-competition-package",
+   "chassis": "WBS3R9C50HK708997",
+   "title": "2017 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2026-02-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 60375,
+   "basis": "sold+fee",
+   "hammer_usd": 57500,
+   "native": {
+    "amount": 57500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-bmw-m4-cs-8/",
+   "chassis": "WBS3S7C55KAC09573",
+   "title": "2019 BMW M4 CS"
+  },
+  {
+   "date": "2026-02-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 64379,
+   "basis": "sold+fee",
+   "hammer_usd": 61313,
+   "native": {
+    "amount": 61313,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-bmw-m4-convertible-11/",
+   "chassis": "WBS4Z9C58JED22842",
+   "title": "Individual Speed Yellow 2018 BMW M4 Convertible Competition Package 6-Speed"
+  },
+  {
+   "date": "2026-02-10",
+   "venue": "Cars & Bids",
+   "price_usd": 48300,
+   "basis": "sold+fee",
+   "hammer_usd": 46000,
+   "native": {
+    "amount": 46000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://carsandbids.com/auctions/rGMVmp5O/2018-bmw-m4-coupe",
+   "chassis": "WBS4Y9C5XJAC88137",
+   "title": "2018 BMW M4 Coupe"
+  },
+  {
+   "date": "2026-01-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 63000,
+   "basis": "sold+fee",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 60000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-bmw-m4-cs-coupe-13/",
+   "chassis": "WBS3S7C05LAH85086",
+   "title": "2020 BMW M4 CS"
+  },
+  {
+   "date": "2026-01-20",
+   "venue": "Cars & Bids",
+   "price_usd": 56175,
+   "basis": "sold+fee",
+   "hammer_usd": 53500,
+   "native": {
+    "amount": 53500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://carsandbids.com/auctions/3040WgG1/2018-bmw-m4-coupe-competition-package",
+   "chassis": "WBS4Y9C56JAC86661",
+   "title": "2018 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2026-01-13",
+   "venue": "Cars & Bids",
+   "price_usd": 50400,
+   "basis": "sold+fee",
+   "hammer_usd": 48000,
+   "native": {
+    "amount": 48000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://carsandbids.com/auctions/9ekJAZok/2018-bmw-m4-coupe-competition-package",
+   "chassis": "WBS4Y9C56JAC87759",
+   "title": "2018 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2025-12-19",
+   "venue": "Cars & Bids",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 50000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://carsandbids.com/auctions/35vq5DwB/2020-bmw-m4-convertible-competition-package",
+   "chassis": "WBS4Z9C04L5P40027",
+   "title": "2020 BMW M4 Convertible Competition Package"
+  },
+  {
+   "date": "2025-12-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 68250,
+   "basis": "sold+fee",
+   "hammer_usd": 65000,
+   "native": {
+    "amount": 65000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-bmw-m4-coupe-14/",
+   "chassis": "WBS4Y9C59JAC86024",
+   "title": "4,800-Mile 2018 BMW M4 Coupe Competition Package 6-Speed"
+  },
+  {
+   "date": "2025-11-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 36283,
+   "basis": "sold+fee",
+   "hammer_usd": 34555,
+   "native": {
+    "amount": 34555,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://bringatrailer.com/listing/2017-bmw-m4-convertible-9/",
+   "chassis": "WBS3U9C57HP970906",
+   "title": "Individual Jubilee Silver Metallic 36k-Mile 2017 BMW M4 Convertible Competition Package"
+  },
+  {
+   "date": "2025-11-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 31500,
+   "basis": "sold+fee",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 30000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://bringatrailer.com/listing/2017-bmw-m4-convertible-8/",
+   "chassis": "WBS3U9C52HP970604",
+   "title": "2017 BMW M4 Convertible Competition Package"
+  },
+  {
+   "date": "2025-10-23",
+   "venue": "Cars & Bids",
+   "price_usd": 46725,
+   "basis": "sold+fee",
+   "hammer_usd": 44500,
+   "native": {
+    "amount": 44500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/K1lxJend/2017-bmw-m4-coupe-competition-package",
+   "chassis": "WBS3R9C57HK710021",
+   "title": "2017 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2025-10-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 46725,
+   "basis": "sold+fee",
+   "hammer_usd": 44500,
+   "native": {
+    "amount": 44500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://bringatrailer.com/listing/2017-bmw-m4-coupe-15/",
+   "chassis": "WBS3R9C34HA014415",
+   "title": "19k-Mile 2017 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2025-09-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 40163,
+   "basis": "sold+fee",
+   "hammer_usd": 38250,
+   "native": {
+    "amount": 38250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-bmw-m4-convertible-10/",
+   "chassis": "WBS4Z9C54JEA24207",
+   "title": "2018 BMW M4 Convertible Competition Package 6-Speed"
+  },
+  {
+   "date": "2025-09-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 56175,
+   "basis": "sold+fee",
+   "hammer_usd": 53500,
+   "native": {
+    "amount": 53500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-bmw-m4-cs-7/",
+   "chassis": "WBS3S7C53KAC09684",
+   "title": "2019 BMW M4 CS"
+  },
+  {
+   "date": "2025-08-29",
+   "venue": "Cars & Bids",
+   "price_usd": 32550,
+   "basis": "sold+fee",
+   "hammer_usd": 31000,
+   "native": {
+    "amount": 31000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/KdalJWab/2017-bmw-m4-convertible",
+   "chassis": "WBS3U9C53HP970868",
+   "title": "2017 BMW M4 Convertible"
+  },
+  {
+   "date": "2025-07-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 64680,
+   "basis": "sold+fee",
+   "hammer_usd": 61600,
+   "native": {
+    "amount": 61600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-bmw-m4-m-heritage-edition-5/",
+   "chassis": "WBS4Y9C09LFJ60950",
+   "title": "1,800-Mile 2020 BMW M4 M Heritage Edition 6-Speed"
+  },
+  {
+   "date": "2025-07-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 47775,
+   "basis": "sold+fee",
+   "hammer_usd": 45500,
+   "native": {
+    "amount": 45500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-bmw-m4-convertible-4/",
+   "chassis": "WBS4Z9C04L5P00224",
+   "title": "2020 BMW M4 Convertible 6-Speed"
+  },
+  {
+   "date": "2025-07-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 67200,
+   "basis": "sold+fee",
+   "hammer_usd": 64000,
+   "native": {
+    "amount": 64000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-bmw-m4-coupe-8/",
+   "chassis": "WBS4Y9C03LAH83139",
+   "title": "2020 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2025-05-20",
+   "venue": "Cars & Bids",
+   "price_usd": 36750,
+   "basis": "sold+fee",
+   "hammer_usd": 35000,
+   "native": {
+    "amount": 35000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://carsandbids.com/auctions/rxP4JwYO/2018-bmw-m4-coupe-competition-package",
+   "chassis": "WBS4Y9C5XJAC86436",
+   "title": "2018 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2025-05-19",
+   "venue": "Cars & Bids",
+   "price_usd": 45150,
+   "basis": "sold+fee",
+   "hammer_usd": 43000,
+   "native": {
+    "amount": 43000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/3y7kgO6w/2017-bmw-m4-convertible",
+   "chassis": "WBS3U9C33HP971209",
+   "title": "2017 BMW M4 Convertible"
+  },
+  {
+   "date": "2025-04-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 36225,
+   "basis": "sold+fee",
+   "hammer_usd": 34500,
+   "native": {
+    "amount": 34500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://bringatrailer.com/listing/2017-bmw-m4-coupe-12-3/",
+   "chassis": "WBS3R9C34HA014379",
+   "title": "41k-Mile 2017 BMW M4 Coupe Competition Package 6-Speed"
+  },
+  {
+   "date": "2025-04-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 23100,
+   "basis": "sold+fee",
+   "hammer_usd": 22000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://bringatrailer.com/listing/2017-bmw-m4-coupe-13-2/",
+   "chassis": "WBS3R9C59HK709730",
+   "title": "2017 BMW M4 Coupe"
+  },
+  {
+   "date": "2025-04-21",
+   "venue": "Cars & Bids",
+   "price_usd": 47513,
+   "basis": "sold+fee",
+   "hammer_usd": 45250,
+   "native": {
+    "amount": 45250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/KV1R8b4M/2017-bmw-m4-convertible",
+   "chassis": "WBS3U9C56HP970721",
+   "title": "2017 BMW M4 Convertible"
+  },
+  {
+   "date": "2025-04-07",
+   "venue": "Cars & Bids",
+   "price_usd": 57330,
+   "basis": "sold+fee",
+   "hammer_usd": 54600,
+   "native": {
+    "amount": 54600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://carsandbids.com/auctions/KPL8YZLQ/2020-bmw-m4-coupe-competition-package",
+   "chassis": "WBS4Y9C07LAH83032",
+   "title": "2020 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2025-03-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 38850,
+   "basis": "sold+fee",
+   "hammer_usd": 37000,
+   "native": {
+    "amount": 37000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-bmw-m4-convertible-9/",
+   "chassis": "WBS4Z9C50JED22270",
+   "title": "2018 BMW M4 Convertible Competition Package"
+  },
+  {
+   "date": "2025-03-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 21000,
+   "basis": "sold+fee",
+   "hammer_usd": 20000,
+   "native": {
+    "amount": 20000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://bringatrailer.com/listing/2017-bmw-m4-coupe-13/",
+   "chassis": "WBS3R9C59HK709730",
+   "title": "2017 BMW M4 Coupe"
+  },
+  {
+   "date": "2025-03-18",
+   "venue": "Cars & Bids",
+   "price_usd": 44100,
+   "basis": "sold+fee",
+   "hammer_usd": 42000,
+   "native": {
+    "amount": 42000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://carsandbids.com/auctions/9eJ458VN/2020-bmw-m4-coupe-competition-package",
+   "chassis": "WBS4Y9C09LFH97761",
+   "title": "2020 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2025-02-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 59850,
+   "basis": "sold+fee",
+   "hammer_usd": 57000,
+   "native": {
+    "amount": 57000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-bmw-m4-coupe-8/",
+   "chassis": "WBS4Y9C59JAC86069",
+   "title": "10k-Mile 2018 BMW M4 Coupe Competition Package 6-Speed"
+  },
+  {
+   "date": "2025-01-20",
+   "venue": "PCARMarket",
+   "price_usd": 33600,
+   "basis": "sold+fee",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 32000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://www.pcarmarket.com/auction/2017-bmw-m4-convertible-1",
+   "chassis": "WBS3U9C38HP971044",
+   "title": "2017 BMW M4 Convertible"
+  },
+  {
+   "date": "2024-12-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 43838,
+   "basis": "sold+fee",
+   "hammer_usd": 41750,
+   "native": {
+    "amount": 41750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://bringatrailer.com/listing/2017-bmw-m4-convertible-7/",
+   "chassis": "WBS3U9C56HP970945",
+   "title": "2017 BMW M4 Convertible 6-Speed"
+  },
+  {
+   "date": "2024-12-10",
+   "venue": "Cars & Bids",
+   "price_usd": 46725,
+   "basis": "sold+fee",
+   "hammer_usd": 44500,
+   "native": {
+    "amount": 44500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/rN2vY0GE/2017-bmw-m4-coupe-competition-package",
+   "chassis": "WBS3R9C57HK709077",
+   "title": "2017 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2024-11-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 69999,
+   "basis": "sold+fee",
+   "hammer_usd": 66666,
+   "native": {
+    "amount": 66666,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-bmw-m4-coupe-4/",
+   "chassis": "WBS4Y9C02LFH31262",
+   "title": "3k-Mile 2020 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2024-11-05",
+   "venue": "Cars & Bids",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 50000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://carsandbids.com/auctions/9a52oJOX/2020-bmw-m4-coupe-competition-package",
+   "chassis": "WBS4Y9C06LFH51191",
+   "title": "2020 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2024-09-27",
+   "venue": "Cars & Bids",
+   "price_usd": 67725,
+   "basis": "sold+fee",
+   "hammer_usd": 64500,
+   "native": {
+    "amount": 64500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://carsandbids.com/auctions/KPjRLV42/2018-bmw-m4-convertible-competition-package",
+   "chassis": "WBS4Z9C58JED22842",
+   "title": "2018 BMW M4 Convertible Competition Package"
+  },
+  {
+   "date": "2024-09-05",
+   "venue": "Cars & Bids",
+   "price_usd": 54075,
+   "basis": "sold+fee",
+   "hammer_usd": 51500,
+   "native": {
+    "amount": 51500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://carsandbids.com/auctions/K1l2BMYj/2019-bmw-m4-convertible-competition-package",
+   "chassis": "WBS4Z9C57KEJ63682",
+   "title": "2019 BMW M4 Convertible Competition Package"
+  },
+  {
+   "date": "2024-08-15",
+   "venue": "Broad Arrow",
+   "price_usd": 168000,
+   "basis": "buyer-paid",
+   "hammer_usd": 150000,
+   "native": {
+    "amount": 168000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.broadarrowauctions.com/vehicles/jc24_r065/2018-bmw-m4-gt4",
+   "chassis": null,
+   "title": "2018 BMW M4 GT4"
+  },
+  {
+   "date": "2024-07-17",
+   "venue": "Cars & Bids",
+   "price_usd": 24150,
+   "basis": "sold+fee",
+   "hammer_usd": 23000,
+   "native": {
+    "amount": 23000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://carsandbids.com/auctions/3OWZzeZ6/2018-bmw-m4-coupe-competition-package",
+   "chassis": "WBS4Y9C55JAC88157",
+   "title": "2018 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2024-05-22",
+   "venue": "Cars & Bids",
+   "price_usd": 41738,
+   "basis": "sold+fee",
+   "hammer_usd": 39750,
+   "native": {
+    "amount": 39750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/rwXjJ4aN/2017-bmw-m4-coupe-competition-package",
+   "chassis": "WBS3R9C50HK709468",
+   "title": "2017 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2024-04-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 50000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://bringatrailer.com/listing/2020-bmw-m4-convertible-3/",
+   "chassis": "WBS4Z9C05L5N49572",
+   "title": "2020 BMW M4 Convertible Competition Package"
+  },
+  {
+   "date": "2024-04-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 42000,
+   "basis": "sold+fee",
+   "hammer_usd": 40000,
+   "native": {
+    "amount": 40000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-bmw-m4-convertible-6/",
+   "chassis": "WBS4Z9C5XJEA24289",
+   "title": "2018 BMW M4 Convertible Competition Package 6-Speed"
+  },
+  {
+   "date": "2024-03-29",
+   "venue": "Cars & Bids",
+   "price_usd": 42034,
+   "basis": "sold+fee",
+   "hammer_usd": 40032,
+   "native": {
+    "amount": 40032,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://carsandbids.com/auctions/rkpMRamL/2018-bmw-m4-coupe-competition-package",
+   "chassis": "WBS4Y9C58JAA92486",
+   "title": "2018 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2024-03-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 46725,
+   "basis": "sold+fee",
+   "hammer_usd": 44500,
+   "native": {
+    "amount": 44500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://bringatrailer.com/listing/2017-bmw-m4-convertible-4/",
+   "chassis": "WBS3U9C30HP971281",
+   "title": "20k-Mile 2017 BMW M4 Convertible"
+  },
+  {
+   "date": "2024-03-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 47775,
+   "basis": "sold+fee",
+   "hammer_usd": 45500,
+   "native": {
+    "amount": 45500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://bringatrailer.com/listing/2017-bmw-m4-coupe-7/",
+   "chassis": "WBS3R9C51HK709351",
+   "title": "15k-Mile 2017 BMW M4 Coupe Competition"
+  },
+  {
+   "date": "2024-03-15",
+   "venue": "Cars & Bids",
+   "price_usd": 59168,
+   "basis": "sold+fee",
+   "hammer_usd": 56350,
+   "native": {
+    "amount": 56350,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://carsandbids.com/auctions/rJ6NZ2BO/2018-bmw-m4-coupe-competition-package",
+   "chassis": "WBS4Y9C59JAG66934",
+   "title": "2018 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2023-12-05",
+   "venue": "Cars & Bids",
+   "price_usd": 59850,
+   "basis": "sold+fee",
+   "hammer_usd": 57000,
+   "native": {
+    "amount": 57000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://carsandbids.com/auctions/9WYp7djQ/2018-bmw-m4-coupe-competition-package",
+   "chassis": "WBS4Y9C56JAC86661",
+   "title": "2018 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2023-10-31",
+   "venue": "Cars & Bids",
+   "price_usd": 34125,
+   "basis": "sold+fee",
+   "hammer_usd": 32500,
+   "native": {
+    "amount": 32500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/3oRxPADw/2017-bmw-m4-convertible-competition-package",
+   "chassis": "WBS3U9C51HP970870",
+   "title": "2017 BMW M4 Convertible Competition Package"
+  },
+  {
+   "date": "2023-09-27",
+   "venue": "Cars & Bids",
+   "price_usd": 64633,
+   "basis": "sold+fee",
+   "hammer_usd": 61555,
+   "native": {
+    "amount": 61555,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2020,
+   "url": "https://carsandbids.com/auctions/30R2ZEbj/2020-bmw-m4-coupe-competition-package",
+   "chassis": "WBS4Y9C01LFH39854",
+   "title": "2020 BMW M4 Coupe Competition Package"
+  },
+  {
+   "date": "2023-09-26",
+   "venue": "Cars & Bids",
+   "price_usd": 54600,
+   "basis": "sold+fee",
+   "hammer_usd": 52000,
+   "native": {
+    "amount": 52000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://carsandbids.com/auctions/3OBxJEJm/2018-bmw-m4-coupe-competition-package",
+   "chassis": "WBS4Y9C57JAA85917",
+   "title": "2018 BMW M4 Coupe Competition Package"
+  }
+ ]
+}

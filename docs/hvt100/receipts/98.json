@@ -1,0 +1,1171 @@
+{
+ "car_id": 98,
+ "listed": "2018 Dodge Challenger Demon",
+ "status": "compare",
+ "year_scope": "exact 2018",
+ "basis": "mixed (17% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Dodge",
+  "model": "Challenger",
+  "window": "36mo",
+  "year_min": 2018,
+  "year_max": 2018,
+  "trim": "Demon",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-07-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 94500,
+   "basis": "sold+fee",
+   "hammer_usd": 90000,
+   "native": {
+    "amount": 90000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-154/",
+   "chassis": "2C3CDZH99JH102777",
+   "title": "3,200-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-07-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 96600,
+   "basis": "sold+fee",
+   "hammer_usd": 92000,
+   "native": {
+    "amount": 92000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-148/",
+   "chassis": "2C3CDZH99JH101015",
+   "title": "1,200-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-06-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 92400,
+   "basis": "sold+fee",
+   "hammer_usd": 88000,
+   "native": {
+    "amount": 88000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-146/",
+   "chassis": "2C3CDZH95JH100654",
+   "title": "Original-Owner 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-06-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 128100,
+   "basis": "sold+fee",
+   "hammer_usd": 122000,
+   "native": {
+    "amount": 122000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-145/",
+   "chassis": "2C3CDZH99JH101340",
+   "title": "28-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-06-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 98175,
+   "basis": "sold+fee",
+   "hammer_usd": 93500,
+   "native": {
+    "amount": 93500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-129/",
+   "chassis": "2C3CDZH97JH102597",
+   "title": "2,300-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-05-16",
+   "venue": "Mecum",
+   "price_usd": 126000,
+   "basis": "sold+fee",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 132000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.mecum.com/lots/1171535/2018-dodge-challenger-srt-demon?aa_id=776976-0",
+   "chassis": "2C3CDZH98JH102477",
+   "title": "2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-05-16",
+   "venue": "Mecum",
+   "price_usd": 120750,
+   "basis": "sold+fee",
+   "hammer_usd": 115000,
+   "native": {
+    "amount": 126500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.mecum.com/lots/1170340/2018-dodge-challenger-srt-demon?aa_id=773273-0",
+   "chassis": "2C3CDZH93JH101298",
+   "title": "2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-05-16",
+   "venue": "Mecum",
+   "price_usd": 115500,
+   "basis": "sold+fee",
+   "hammer_usd": 110000,
+   "native": {
+    "amount": 121000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.mecum.com/lots/1171534/2018-dodge-challenger-srt-demon?aa_id=776975-0",
+   "chassis": "2C3CDZH91JH100991",
+   "title": "2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-05-16",
+   "venue": "Mecum",
+   "price_usd": 99750,
+   "basis": "sold+fee",
+   "hammer_usd": 95000,
+   "native": {
+    "amount": 104500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.mecum.com/lots/1171742/2018-dodge-challenger-srt-demon?aa_id=776983-0",
+   "chassis": "2C3CDZH92JH100109",
+   "title": "2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-04-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 100275,
+   "basis": "sold+fee",
+   "hammer_usd": 95500,
+   "native": {
+    "amount": 95500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-132/",
+   "chassis": "2C3CDZH92JH100076",
+   "title": "Ex–The House of Muscle 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-04-11",
+   "venue": "Mecum",
+   "price_usd": 91350,
+   "basis": "sold+fee",
+   "hammer_usd": 87000,
+   "native": {
+    "amount": 95700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.mecum.com/lots/1170600/2018-dodge-challenger-srt-demon?aa_id=772262-0",
+   "chassis": "2C3CDZH91JH101140",
+   "title": "2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-04-11",
+   "venue": "Mecum",
+   "price_usd": 93450,
+   "basis": "sold+fee",
+   "hammer_usd": 89000,
+   "native": {
+    "amount": 97900,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.mecum.com/lots/1169155/2018-dodge-challenger-srt-demon?aa_id=772978-0",
+   "chassis": "2C3CDZH9XJH102979",
+   "title": "2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-04-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 110250,
+   "basis": "sold+fee",
+   "hammer_usd": 105000,
+   "native": {
+    "amount": 105000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-131/",
+   "chassis": "2C3CDZH9XJH100441",
+   "title": "439-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-04-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 106050,
+   "basis": "sold+fee",
+   "hammer_usd": 101000,
+   "native": {
+    "amount": 101000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-128/",
+   "chassis": "2C3CDZH95JH102470",
+   "title": "313-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-03-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 86507,
+   "basis": "sold+fee",
+   "hammer_usd": 82388,
+   "native": {
+    "amount": 82388,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-126/",
+   "chassis": "2C3CDZH97JH100283",
+   "title": "8k-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-02-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 109200,
+   "basis": "sold+fee",
+   "hammer_usd": 104000,
+   "native": {
+    "amount": 104000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-125/",
+   "chassis": "2C3CDZH97JH100378",
+   "title": "1k-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-01-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 81900,
+   "basis": "sold+fee",
+   "hammer_usd": 78000,
+   "native": {
+    "amount": 78000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-120/",
+   "chassis": "2C3CDZH91JH102756",
+   "title": "2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-01-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 110250,
+   "basis": "sold+fee",
+   "hammer_usd": 105000,
+   "native": {
+    "amount": 105000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-122/",
+   "chassis": "2C3CDZH96JH102980",
+   "title": "227-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-01-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 109200,
+   "basis": "sold+fee",
+   "hammer_usd": 104000,
+   "native": {
+    "amount": 104000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-123/",
+   "chassis": "2C3CDZH96JH100100",
+   "title": "324-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 106700,
+   "basis": "buyer-paid",
+   "hammer_usd": 97000,
+   "native": {
+    "amount": 106700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2018-dodge-challenger-srt-demon-292021?origin=results",
+   "chassis": "2C3CDZH98JH100065",
+   "title": "2018 DODGE CHALLENGER SRT DEMON"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 139700,
+   "basis": "buyer-paid",
+   "hammer_usd": 127000,
+   "native": {
+    "amount": 139700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2018-dodge-challenger-srt-demon-292181?origin=results",
+   "chassis": "2C3CDZH92JH101843",
+   "title": "2018 DODGE CHALLENGER SRT DEMON"
+  },
+  {
+   "date": "2026-01-22",
+   "venue": "Barrett-Jackson",
+   "price_usd": 99000,
+   "basis": "buyer-paid",
+   "hammer_usd": 90000,
+   "native": {
+    "amount": 99000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2018-dodge-challenger-srt-demon-294064?origin=results",
+   "chassis": "2C3CDZH99JH100091",
+   "title": "2018 DODGE CHALLENGER SRT DEMON"
+  },
+  {
+   "date": "2026-01-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 125882,
+   "basis": "sold+fee",
+   "hammer_usd": 119888,
+   "native": {
+    "amount": 119888,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-116/",
+   "chassis": "2C3CDZH9XJH101511",
+   "title": "200-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2026-01-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 91876,
+   "basis": "sold+fee",
+   "hammer_usd": 87501,
+   "native": {
+    "amount": 87501,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-114/",
+   "chassis": "2C3CDZH97JH101174",
+   "title": "2,800-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2025-12-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 112350,
+   "basis": "sold+fee",
+   "hammer_usd": 107000,
+   "native": {
+    "amount": 107000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-117/",
+   "chassis": "2C3CDZH99JH101192",
+   "title": "10-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2025-09-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 109200,
+   "basis": "sold+fee",
+   "hammer_usd": 104000,
+   "native": {
+    "amount": 104000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-107/",
+   "chassis": "2C3CDZH93JH100149",
+   "title": "603-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2025-09-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 110250,
+   "basis": "sold+fee",
+   "hammer_usd": 105000,
+   "native": {
+    "amount": 105000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-108/",
+   "chassis": "2C3CDZH98JH100194",
+   "title": "177-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2025-09-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 114332,
+   "basis": "sold+fee",
+   "hammer_usd": 108888,
+   "native": {
+    "amount": 108888,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-106/",
+   "chassis": "2C3CDZH97JH100106",
+   "title": "13-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2025-08-28",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 99750,
+   "basis": "sold+fee",
+   "hammer_usd": 95000,
+   "native": {
+    "amount": 95000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://www.sothebysmotorsport.com/auction/2018-dodge-challengersrtdemon-6861",
+   "chassis": "2C3CDZH95JH103067",
+   "title": "2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2025-08-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 103599,
+   "basis": "sold+fee",
+   "hammer_usd": 98666,
+   "native": {
+    "amount": 98666,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-103/",
+   "chassis": "2C3CDZH92JH101857",
+   "title": "508-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2025-07-01",
+   "venue": "Cars & Bids",
+   "price_usd": 21788,
+   "basis": "sold+fee",
+   "hammer_usd": 20750,
+   "native": {
+    "amount": 20750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://carsandbids.com/auctions/30MEDkDV/2018-dodge-challenger-r-t",
+   "chassis": "2C3CDZBTXJH111136",
+   "title": "2018 Dodge Challenger R/T"
+  },
+  {
+   "date": "2025-06-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 99225,
+   "basis": "sold+fee",
+   "hammer_usd": 94500,
+   "native": {
+    "amount": 94500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-100/",
+   "chassis": "2C3CDZH97JH101711",
+   "title": "479-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2025-06-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 103990,
+   "basis": "sold+fee",
+   "hammer_usd": 99038,
+   "native": {
+    "amount": 99038,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-99/",
+   "chassis": "2C3CDZH98JH100101",
+   "title": "753-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2025-05-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 107100,
+   "basis": "sold+fee",
+   "hammer_usd": 102000,
+   "native": {
+    "amount": 102000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-98/",
+   "chassis": "2C3CDZH9XJH101542",
+   "title": "344-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2025-04-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 95550,
+   "basis": "sold+fee",
+   "hammer_usd": 91000,
+   "native": {
+    "amount": 91000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-92/",
+   "chassis": "2C3CDZH91JH102479",
+   "title": "2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2025-04-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 110000,
+   "basis": "buyer-paid",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 110000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.barrett-jackson.com/palm-beach-2025/docket/vehicle/2018-dodge-challenger-srt-demon-287929?origin=results",
+   "chassis": "2C3CDZH93JH100636",
+   "title": "2018 DODGE CHALLENGER SRT DEMON"
+  },
+  {
+   "date": "2025-03-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 104475,
+   "basis": "sold+fee",
+   "hammer_usd": 99500,
+   "native": {
+    "amount": 99500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-87/",
+   "chassis": "2C3CDZH92JH102782",
+   "title": "979-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2025-02-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 101325,
+   "basis": "sold+fee",
+   "hammer_usd": 96500,
+   "native": {
+    "amount": 96500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-82/",
+   "chassis": "2C3CDZH92JH100790",
+   "title": "459-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2025-02-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 99750,
+   "basis": "sold+fee",
+   "hammer_usd": 95000,
+   "native": {
+    "amount": 95000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-83/",
+   "chassis": "2C3CDZH98JH101975",
+   "title": "2k-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2025-01-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 111300,
+   "basis": "sold+fee",
+   "hammer_usd": 106000,
+   "native": {
+    "amount": 106000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-76/",
+   "chassis": "2C3CDZH96JH100436",
+   "title": "1,100-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-12-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 115500,
+   "basis": "sold+fee",
+   "hammer_usd": 110000,
+   "native": {
+    "amount": 110000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-56-2/",
+   "chassis": "2C3CDZH91JH101459",
+   "title": "557-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-12-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 110775,
+   "basis": "sold+fee",
+   "hammer_usd": 105500,
+   "native": {
+    "amount": 105500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-78/",
+   "chassis": "2C3CDZH96JH102980",
+   "title": "175-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-12-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 106050,
+   "basis": "sold+fee",
+   "hammer_usd": 101000,
+   "native": {
+    "amount": 101000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-77/",
+   "chassis": "2C3CDZH92JH101325",
+   "title": "1,300-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-11-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 131483,
+   "basis": "sold+fee",
+   "hammer_usd": 125222,
+   "native": {
+    "amount": 125222,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger/",
+   "chassis": "2C3CDZH96JH102509",
+   "title": "9-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-11-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 37380,
+   "basis": "sold+fee",
+   "hammer_usd": 35600,
+   "native": {
+    "amount": 35600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-t-a-392-5/",
+   "chassis": "2C3CDZFJ7JH326174",
+   "title": "3,700-Mile 2018 Dodge Challenger T/A 392 6-Speed"
+  },
+  {
+   "date": "2024-10-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 116550,
+   "basis": "sold+fee",
+   "hammer_usd": 111000,
+   "native": {
+    "amount": 111000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-70/",
+   "chassis": "2C3CDZH91JH102160",
+   "title": "161-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-09-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 108150,
+   "basis": "sold+fee",
+   "hammer_usd": 103000,
+   "native": {
+    "amount": 103000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-61/",
+   "chassis": "2C3CDZH98JH102141",
+   "title": "2,700-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-07-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 113505,
+   "basis": "sold+fee",
+   "hammer_usd": 108100,
+   "native": {
+    "amount": 108100,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-58/",
+   "chassis": "2C3CDZH9XJH102898",
+   "title": "1,100-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-06-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 129150,
+   "basis": "sold+fee",
+   "hammer_usd": 123000,
+   "native": {
+    "amount": 123000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-54/",
+   "chassis": "2C3CDZH91JH100604",
+   "title": "25-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-05-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 124229,
+   "basis": "sold+fee",
+   "hammer_usd": 118313,
+   "native": {
+    "amount": 118313,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-51/",
+   "chassis": "2C3CDZH92JH100790",
+   "title": "397-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-05-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 133679,
+   "basis": "sold+fee",
+   "hammer_usd": 127313,
+   "native": {
+    "amount": 127313,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-49/",
+   "chassis": "2C3CDZH91JH102577",
+   "title": "943-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-05-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 123900,
+   "basis": "sold+fee",
+   "hammer_usd": 118000,
+   "native": {
+    "amount": 118000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-47/",
+   "chassis": "2C3CDZH96JH100792",
+   "title": "1,800-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-04-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 153300,
+   "basis": "sold+fee",
+   "hammer_usd": 146000,
+   "native": {
+    "amount": 146000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-45/",
+   "chassis": "2C3CDZH94JH102461",
+   "title": "7-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-04-21",
+   "venue": "Barrett-Jackson",
+   "price_usd": 123200,
+   "basis": "buyer-paid",
+   "hammer_usd": 112000,
+   "native": {
+    "amount": 123200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/2018-dodge-challenger-srt-demon-277961?origin=results",
+   "chassis": "2C3CDZH98JH102124",
+   "title": "2018 DODGE CHALLENGER SRT DEMON"
+  },
+  {
+   "date": "2024-04-20",
+   "venue": "Barrett-Jackson",
+   "price_usd": 101200,
+   "basis": "buyer-paid",
+   "hammer_usd": 92000,
+   "native": {
+    "amount": 101200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/2018-dodge-challenger-srt-demon-272738?origin=results",
+   "chassis": "2C3CDZH95JH100685",
+   "title": "2018 DODGE CHALLENGER SRT DEMON"
+  },
+  {
+   "date": "2024-04-20",
+   "venue": "Barrett-Jackson",
+   "price_usd": 132000,
+   "basis": "buyer-paid",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 132000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/2018-dodge-challenger-srt-demon-277046?origin=results",
+   "chassis": "2C3CDZH98JH101829",
+   "title": "2018 DODGE CHALLENGER SRT DEMON"
+  },
+  {
+   "date": "2024-04-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 122129,
+   "basis": "sold+fee",
+   "hammer_usd": 116313,
+   "native": {
+    "amount": 116313,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-46/",
+   "chassis": "2C3CDZH97JH102471",
+   "title": "4k-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-04-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 95445,
+   "basis": "sold+fee",
+   "hammer_usd": 90900,
+   "native": {
+    "amount": 90900,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-42/",
+   "chassis": "2C3CDZH97JH101384",
+   "title": "2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-03-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 121800,
+   "basis": "sold+fee",
+   "hammer_usd": 116000,
+   "native": {
+    "amount": 116000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-37/",
+   "chassis": "2C3CDZH98JH101233",
+   "title": "2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-03-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 140700,
+   "basis": "sold+fee",
+   "hammer_usd": 134000,
+   "native": {
+    "amount": 134000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-43/",
+   "chassis": "2C3CDZH90JH101453",
+   "title": "2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-03-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 135450,
+   "basis": "sold+fee",
+   "hammer_usd": 129000,
+   "native": {
+    "amount": 129000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-41/",
+   "chassis": "2C3CDZH92JH101227",
+   "title": "682-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-02-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 140349,
+   "basis": "sold+fee",
+   "hammer_usd": 133666,
+   "native": {
+    "amount": 133666,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-34/",
+   "chassis": "2C3CDZH94JH101682",
+   "title": "1,800-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-02-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 126331,
+   "basis": "sold+fee",
+   "hammer_usd": 120315,
+   "native": {
+    "amount": 120315,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-36/",
+   "chassis": "2C3CDZH91JH101963",
+   "title": "2,200-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-02-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 126000,
+   "basis": "sold+fee",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 120000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-35/",
+   "chassis": "2C3CDZH95JH102422",
+   "title": "2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2024-01-28",
+   "venue": "Barrett-Jackson",
+   "price_usd": 176000,
+   "basis": "buyer-paid",
+   "hammer_usd": 160000,
+   "native": {
+    "amount": 176000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/bill-goldbergs-2018-dodge-demon-272404?origin=results",
+   "chassis": "2C3CDZH94JH101083",
+   "title": "BILL GOLDBERG'S 2018 DODGE DEMON"
+  },
+  {
+   "date": "2024-01-28",
+   "venue": "Barrett-Jackson",
+   "price_usd": 134200,
+   "basis": "buyer-paid",
+   "hammer_usd": 122000,
+   "native": {
+    "amount": 134200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2018-dodge-challenger-srt-demon-273194?origin=results",
+   "chassis": "2C3CDZH93JH102399",
+   "title": "2018 DODGE CHALLENGER SRT DEMON"
+  },
+  {
+   "date": "2024-01-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 134200,
+   "basis": "buyer-paid",
+   "hammer_usd": 122000,
+   "native": {
+    "amount": 134200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2018-dodge-challenger-srt-demon-272603?origin=results",
+   "chassis": "2C3CDZH90JH102876",
+   "title": "2018 DODGE CHALLENGER SRT DEMON"
+  },
+  {
+   "date": "2024-01-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 128700,
+   "basis": "buyer-paid",
+   "hammer_usd": 117000,
+   "native": {
+    "amount": 128700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2018-dodge-challenger-srt-demon-272012?origin=results",
+   "chassis": "2C3CDZH92JH101227",
+   "title": "2018 DODGE CHALLENGER SRT DEMON"
+  },
+  {
+   "date": "2024-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 126500,
+   "basis": "buyer-paid",
+   "hammer_usd": 115000,
+   "native": {
+    "amount": 126500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2018,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2018-dodge-challenger-srt-demon-273330?origin=results",
+   "chassis": "2C3CDZH99JH100091",
+   "title": "2018 DODGE CHALLENGER SRT DEMON"
+  },
+  {
+   "date": "2024-01-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 162500,
+   "basis": "sold+fee",
+   "hammer_usd": 155000,
+   "native": {
+    "amount": 155000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-29/",
+   "chassis": "2C3CDZH91JH100330",
+   "title": "52-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2023-12-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 146475,
+   "basis": "sold+fee",
+   "hammer_usd": 139500,
+   "native": {
+    "amount": 139500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-28/",
+   "chassis": "2C3CDZH97JH100820",
+   "title": "15-Mile 2018 Dodge Challenger SRT Demon"
+  },
+  {
+   "date": "2023-11-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 143129,
+   "basis": "sold+fee",
+   "hammer_usd": 136313,
+   "native": {
+    "amount": 136313,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-dodge-challenger-srt-demon-27/",
+   "chassis": "2C3CDZH92JH101700",
+   "title": "182-Mile 2018 Dodge Challenger SRT Demon"
+  }
+ ]
+}

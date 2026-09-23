@@ -1,0 +1,578 @@
+{
+ "car_id": 40,
+ "listed": "1991 BMW M3",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1989-1991)",
+ "basis": "mixed (9% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "BMW",
+  "model": "M3",
+  "window": "36mo",
+  "year_min": 1989,
+  "year_max": 1991,
+  "body": "coupe"
+ },
+ "halo_dropped": 13,
+ "sales": [
+  {
+   "date": "2026-09-21",
+   "venue": "Cars & Bids",
+   "price_usd": 45675,
+   "basis": "sold+fee",
+   "hammer_usd": 43500,
+   "native": {
+    "amount": 43500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://carsandbids.com/auctions/KmnzGAVe/1989-bmw-m3",
+   "chassis": "WBSAK0307K2198456",
+   "title": "1989 BMW M3"
+  },
+  {
+   "date": "2026-09-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 75075,
+   "basis": "sold+fee",
+   "hammer_usd": 71500,
+   "native": {
+    "amount": 71500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-bmw-m3-115/",
+   "chassis": "WBSAK031XLAE33614",
+   "title": "1990 BMW M3"
+  },
+  {
+   "date": "2026-08-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 84525,
+   "basis": "sold+fee",
+   "hammer_usd": 80500,
+   "native": {
+    "amount": 80500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-bmw-m3-58/",
+   "chassis": "WBSAK0317MAE34351",
+   "title": "Ex–TC Kline 1991 BMW M3"
+  },
+  {
+   "date": "2026-08-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 79275,
+   "basis": "sold+fee",
+   "hammer_usd": 75500,
+   "native": {
+    "amount": 75500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-bmw-m3-116/",
+   "chassis": "WBSAK0308K2198076",
+   "title": "1989 BMW M3"
+  },
+  {
+   "date": "2026-08-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 67200,
+   "basis": "sold+fee",
+   "hammer_usd": 64000,
+   "native": {
+    "amount": 64000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-bmw-m3-57/",
+   "chassis": "WBSAK0315MAE34509",
+   "title": "1991 BMW M3"
+  },
+  {
+   "date": "2026-08-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 78750,
+   "basis": "sold+fee",
+   "hammer_usd": 75000,
+   "native": {
+    "amount": 75000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-bmw-m3-113/",
+   "chassis": "WBSAK0301LAE33492",
+   "title": "1990 BMW M3"
+  },
+  {
+   "date": "2026-07-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 98385,
+   "basis": "sold+fee",
+   "hammer_usd": 93700,
+   "native": {
+    "amount": 93700,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-bmw-m3-115/",
+   "chassis": "WBSAK0302K2198641",
+   "title": "1989 BMW M3"
+  },
+  {
+   "date": "2026-06-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 198500,
+   "basis": "sold+fee",
+   "hammer_usd": 191000,
+   "native": {
+    "amount": 191000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-bmw-m3-114/",
+   "chassis": "WBSAK0308KAE33276",
+   "title": "25k-Mile 1989 BMW M3"
+  },
+  {
+   "date": "2026-06-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 61950,
+   "basis": "sold+fee",
+   "hammer_usd": 59000,
+   "native": {
+    "amount": 59000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-bmw-m3-112/",
+   "chassis": "WBSAK0318LAE33997",
+   "title": "1990 BMW M3"
+  },
+  {
+   "date": "2026-06-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 63005,
+   "basis": "sold+fee",
+   "hammer_usd": 60005,
+   "native": {
+    "amount": 60005,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-bmw-m3-111/",
+   "chassis": "WBSAK0319LAE34091",
+   "title": "1990 BMW M3"
+  },
+  {
+   "date": "2026-02-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 97650,
+   "basis": "sold+fee",
+   "hammer_usd": 93000,
+   "native": {
+    "amount": 93000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-bmw-m3-106/",
+   "chassis": "WBSAK0312LAE34014",
+   "title": "1990 BMW M3"
+  },
+  {
+   "date": "2025-12-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 67200,
+   "basis": "sold+fee",
+   "hammer_usd": 64000,
+   "native": {
+    "amount": 64000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-bmw-m3-108/",
+   "chassis": "WBSAK0317LAE34218",
+   "title": "1990 BMW M3"
+  },
+  {
+   "date": "2025-10-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 65100,
+   "basis": "sold+fee",
+   "hammer_usd": 62000,
+   "native": {
+    "amount": 62000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-bmw-m3-111/",
+   "chassis": "WBSAK0303KAE33007",
+   "title": "Modified 1989 BMW M3"
+  },
+  {
+   "date": "2025-09-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 63000,
+   "basis": "sold+fee",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 60000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-bmw-m3-110/",
+   "chassis": "WBSAK050101894293",
+   "title": "Euro 1989 BMW M3"
+  },
+  {
+   "date": "2025-08-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 65100,
+   "basis": "sold+fee",
+   "hammer_usd": 62000,
+   "native": {
+    "amount": 62000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-bmw-m3-105/",
+   "chassis": "WBSAK0310LAE33511",
+   "title": "1990 BMW M3"
+  },
+  {
+   "date": "2025-06-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 93450,
+   "basis": "sold+fee",
+   "hammer_usd": 89000,
+   "native": {
+    "amount": 89000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-bmw-m3-107/",
+   "chassis": "WBSAK0300K2198203",
+   "title": "1989 BMW M3"
+  },
+  {
+   "date": "2025-06-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 60666,
+   "basis": "sold+fee",
+   "hammer_usd": 57777,
+   "native": {
+    "amount": 57777,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-bmw-m3-109/",
+   "chassis": "WBSAK0302K2198638",
+   "title": "1989 BMW M3"
+  },
+  {
+   "date": "2025-06-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 48300,
+   "basis": "sold+fee",
+   "hammer_usd": 46000,
+   "native": {
+    "amount": 46000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-bmw-m3-108/",
+   "chassis": "WBSAK0303KAE33038",
+   "title": "1989 BMW M3"
+  },
+  {
+   "date": "2025-05-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 68775,
+   "basis": "sold+fee",
+   "hammer_usd": 65500,
+   "native": {
+    "amount": 65500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-bmw-m3-103/",
+   "chassis": "WBSAK0318LAE33515",
+   "title": "1990 BMW M3"
+  },
+  {
+   "date": "2025-05-25",
+   "venue": "Broad Arrow",
+   "price_usd": 74520,
+   "basis": "buyer-paid",
+   "hammer_usd": 64800,
+   "native": {
+    "amount": 69000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1989,
+   "url": "https://www.broadarrowauctions.com/vehicles/ve25_r053/1989-bmw-m3",
+   "chassis": "WBSAK05000AE41401",
+   "title": "1989 BMW M3"
+  },
+  {
+   "date": "2025-05-25",
+   "venue": "Broad Arrow",
+   "price_usd": 99360,
+   "basis": "buyer-paid",
+   "hammer_usd": 86400,
+   "native": {
+    "amount": 92000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1989,
+   "url": "https://www.broadarrowauctions.com/vehicles/ve25_r054/1989-bmw-m3-cecotto",
+   "chassis": "WBSAK05010AE40578",
+   "title": "1989 BMW M3 Cecotto"
+  },
+  {
+   "date": "2025-05-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 63525,
+   "basis": "sold+fee",
+   "hammer_usd": 60500,
+   "native": {
+    "amount": 60500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-bmw-m3-106/",
+   "chassis": "WBSAK0301K2198663",
+   "title": "1989 BMW M3"
+  },
+  {
+   "date": "2025-04-07",
+   "venue": "PCARMarket",
+   "price_usd": 110250,
+   "basis": "sold+fee",
+   "hammer_usd": 105000,
+   "native": {
+    "amount": 105000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://www.pcarmarket.com/auction/1989-bmw-m3-4",
+   "chassis": "WBSAK050501894572",
+   "title": "One-Owner 39k-Kilometer 1989 BMW M3 Euro"
+  },
+  {
+   "date": "2025-02-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 40163,
+   "basis": "sold+fee",
+   "hammer_usd": 38250,
+   "native": {
+    "amount": 38250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-bmw-m3-51/",
+   "chassis": "WBSAK0319MAE34254",
+   "title": "1991 BMW M3"
+  },
+  {
+   "date": "2025-02-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 51188,
+   "basis": "sold+fee",
+   "hammer_usd": 48750,
+   "native": {
+    "amount": 48750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-bmw-m3-100/",
+   "chassis": "WBSAK0303K2198583",
+   "title": "1989 BMW M3"
+  },
+  {
+   "date": "2025-01-30",
+   "venue": "Cars & Bids",
+   "price_usd": 34650,
+   "basis": "sold+fee",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://carsandbids.com/auctions/KmVByd1d/1991-bmw-m3",
+   "chassis": "WBSAK0319MAE34254",
+   "title": "1991 BMW M3"
+  },
+  {
+   "date": "2025-01-17",
+   "venue": "Cars & Bids",
+   "price_usd": 40688,
+   "basis": "sold+fee",
+   "hammer_usd": 38750,
+   "native": {
+    "amount": 38750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://carsandbids.com/auctions/3oj5pgD1/1991-bmw-m3",
+   "chassis": "WBSAK0319MAE34254",
+   "title": "1991 BMW M3"
+  },
+  {
+   "date": "2025-01-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 173500,
+   "basis": "sold+fee",
+   "hammer_usd": 166000,
+   "native": {
+    "amount": 166000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-bmw-m3-102/",
+   "chassis": "WBSAK0311LAE34165",
+   "title": "23k-Mile 1990 BMW M3"
+  },
+  {
+   "date": "2024-12-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 75672,
+   "basis": "sold+fee",
+   "hammer_usd": 72069,
+   "native": {
+    "amount": 72069,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-bmw-m3-101/",
+   "chassis": "WBSAK0312LAE33834",
+   "title": "1990 BMW M3"
+  },
+  {
+   "date": "2024-08-17",
+   "venue": "RM Sotheby's",
+   "price_usd": 246400,
+   "basis": "buyer-paid",
+   "hammer_usd": 220000,
+   "native": {
+    "amount": 246400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1989,
+   "url": "https://rmsothebys.com/auctions/mo24/lots/r0019-1989-bmw-m3-cecotto-edition/",
+   "chassis": "WBSAK050X0AE40577",
+   "title": "1989 BMW M3 Cecotto Edition"
+  },
+  {
+   "date": "2024-08-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 57750,
+   "basis": "sold+fee",
+   "hammer_usd": 55000,
+   "native": {
+    "amount": 55000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-bmw-m3-94/",
+   "chassis": "WBSAK0307K2198246",
+   "title": "1989 BMW M3"
+  },
+  {
+   "date": "2024-07-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 58800,
+   "basis": "sold+fee",
+   "hammer_usd": 56000,
+   "native": {
+    "amount": 56000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-bmw-m3-92/",
+   "chassis": "WBSAK0304K2198320",
+   "title": "Modified 1989 BMW M3"
+  },
+  {
+   "date": "2024-02-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 84000,
+   "basis": "sold+fee",
+   "hammer_usd": 80000,
+   "native": {
+    "amount": 80000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-bmw-m3-95/",
+   "chassis": "WBSAK0311LAE33680",
+   "title": "1990 BMW M3"
+  },
+  {
+   "date": "2024-02-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 54075,
+   "basis": "sold+fee",
+   "hammer_usd": 51500,
+   "native": {
+    "amount": 51500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-bmw-m3-94/",
+   "chassis": "WBSAK031XLAE33743",
+   "title": "1990 BMW M3"
+  },
+  {
+   "date": "2023-11-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 58800,
+   "basis": "sold+fee",
+   "hammer_usd": 56000,
+   "native": {
+    "amount": 56000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1989,
+   "url": "https://bringatrailer.com/listing/1989-bmw-m3-88/",
+   "chassis": "WBSAK0309K2198233",
+   "title": "1989 BMW M3"
+  }
+ ]
+}

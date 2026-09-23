@@ -1,0 +1,18 @@
+{
+ "car_id": 35,
+ "listed": "1995 Porsche 928 GTS",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1993-1997)",
+ "basis": "n/a",
+ "scope": {
+  "make": "Porsche",
+  "model": "928",
+  "window": "36mo",
+  "year_min": 1993,
+  "year_max": 1997,
+  "trim": "GTS",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": []
+}

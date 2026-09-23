@@ -1,0 +1,1154 @@
+{
+ "car_id": 42,
+ "listed": "1995 BMW M3",
+ "status": "compare",
+ "year_scope": "exact 1995",
+ "basis": "mixed (11% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "BMW",
+  "model": "M3",
+  "window": "36mo",
+  "year_min": 1995,
+  "year_max": 1995,
+  "body": "coupe"
+ },
+ "halo_dropped": 1,
+ "sales": [
+  {
+   "date": "2026-09-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 31500,
+   "basis": "sold+fee",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 30000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-370/",
+   "chassis": "WBSBF9323SEH03652",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2026-09-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 38325,
+   "basis": "sold+fee",
+   "hammer_usd": 36500,
+   "native": {
+    "amount": 36500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-375/",
+   "chassis": "WBSBF9321SEH06890",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2026-08-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 27300,
+   "basis": "sold+fee",
+   "hammer_usd": 26000,
+   "native": {
+    "amount": 26000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-coupe-60-2/",
+   "chassis": "WBSBF9325SEH02874",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2026-08-15",
+   "venue": "RM Sotheby's",
+   "price_usd": 257600,
+   "basis": "buyer-paid",
+   "hammer_usd": 230000,
+   "native": {
+    "amount": 257600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://rmsothebys.com/auctions/mo26/lots/r0166-1995-bmw-m3-lightweight",
+   "chassis": "WBSBF9321SEH07991",
+   "title": "1995 BMW M3 Lightweight"
+  },
+  {
+   "date": "2026-08-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 49088,
+   "basis": "sold+fee",
+   "hammer_usd": 46750,
+   "native": {
+    "amount": 46750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-354/",
+   "chassis": "WBSBF9327SEH08126",
+   "title": "32k-Mile 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2026-08-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 15488,
+   "basis": "sold+fee",
+   "hammer_usd": 14750,
+   "native": {
+    "amount": 14750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-367/",
+   "chassis": "WBSBF9320SEH02748",
+   "title": "Modified 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2026-07-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 37800,
+   "basis": "sold+fee",
+   "hammer_usd": 36000,
+   "native": {
+    "amount": 36000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-306-2/",
+   "chassis": "WBSBF9329SEH06653",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2026-07-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 72450,
+   "basis": "sold+fee",
+   "hammer_usd": 69000,
+   "native": {
+    "amount": 69000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-372/",
+   "chassis": "WBSBF9325SEH01790",
+   "title": "14k-Mile 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2026-06-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 38850,
+   "basis": "sold+fee",
+   "hammer_usd": 37000,
+   "native": {
+    "amount": 37000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-368/",
+   "chassis": "WBSBF9321SEH02063",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2026-06-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 178500,
+   "basis": "sold+fee",
+   "hammer_usd": 171000,
+   "native": {
+    "amount": 171000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-366/",
+   "chassis": "WBSBF9321SEH07523",
+   "title": "22k-Mile 1995 BMW M3 Lightweight"
+  },
+  {
+   "date": "2026-05-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 22313,
+   "basis": "sold+fee",
+   "hammer_usd": 21250,
+   "native": {
+    "amount": 21250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-359/",
+   "chassis": "WBSBF932XSEH01333",
+   "title": "Original-Owner 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2026-05-11",
+   "venue": "Cars & Bids",
+   "price_usd": 22785,
+   "basis": "sold+fee",
+   "hammer_usd": 21700,
+   "native": {
+    "amount": 21700,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://carsandbids.com/auctions/30GEkRmM/1995-bmw-m3-coupe",
+   "chassis": "WBSBF9325SEH00509",
+   "title": "1995 BMW M3 Coupe"
+  },
+  {
+   "date": "2026-04-25",
+   "venue": "RM Sotheby's",
+   "price_usd": 173880,
+   "basis": "buyer-paid",
+   "hammer_usd": 151200,
+   "native": {
+    "amount": 161000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://rmsothebys.com/auctions/mc26/lots/r0031-1995-bmw-m3-gt",
+   "chassis": "WBSBF99090EA40235",
+   "title": "1995 BMW M3 GT"
+  },
+  {
+   "date": "2026-04-22",
+   "venue": "Cars & Bids",
+   "price_usd": 13125,
+   "basis": "sold+fee",
+   "hammer_usd": 12500,
+   "native": {
+    "amount": 12500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://carsandbids.com/auctions/rxqgl1zz/1995-bmw-m3-coupe",
+   "chassis": "WBSBF9329SEH00433",
+   "title": "1995 BMW M3 Coupe"
+  },
+  {
+   "date": "2026-04-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 18638,
+   "basis": "sold+fee",
+   "hammer_usd": 17750,
+   "native": {
+    "amount": 17750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-351/",
+   "chassis": "WBSBF9321SEH00510",
+   "title": "24-Years-Owned 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2026-04-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 11603,
+   "basis": "sold+fee",
+   "hammer_usd": 11050,
+   "native": {
+    "amount": 11050,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-350/",
+   "chassis": "WBSBF9321SEH04802",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2026-03-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 21263,
+   "basis": "sold+fee",
+   "hammer_usd": 20250,
+   "native": {
+    "amount": 20250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-349/",
+   "chassis": "WBSBF932XSEH00845",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2026-03-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 24675,
+   "basis": "sold+fee",
+   "hammer_usd": 23500,
+   "native": {
+    "amount": 23500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-346/",
+   "chassis": "WBSBF9323SEH01240",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2026-01-21",
+   "venue": "Barrett-Jackson",
+   "price_usd": 30800,
+   "basis": "buyer-paid",
+   "hammer_usd": 28000,
+   "native": {
+    "amount": 30800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1995-bmw-m3-291976?origin=results",
+   "chassis": "WBSBF9324SEH04969",
+   "title": "1995 BMW M3"
+  },
+  {
+   "date": "2025-12-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 195500,
+   "basis": "sold+fee",
+   "hammer_usd": 188000,
+   "native": {
+    "amount": 188000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-ac-schnitzer-e36-acs3-cls/",
+   "chassis": "WBSBF91000JC39743",
+   "title": "1995 BMW M3 AC Schnitzer ACS3 CLS"
+  },
+  {
+   "date": "2025-11-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 94500,
+   "basis": "sold+fee",
+   "hammer_usd": 90000,
+   "native": {
+    "amount": 90000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-333/",
+   "chassis": "WBSBF9329SEH06748",
+   "title": "3,600-Mile 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2025-11-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 39218,
+   "basis": "sold+fee",
+   "hammer_usd": 37350,
+   "native": {
+    "amount": 37350,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-336/",
+   "chassis": "WBSBF9321SEH02063",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2025-10-31",
+   "venue": "Broad Arrow",
+   "price_usd": 53200,
+   "basis": "buyer-paid",
+   "hammer_usd": 47500,
+   "native": {
+    "amount": 53200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://www.broadarrowauctions.com/vehicles/lv25_r0005/1995-bmw-m3-coupe",
+   "chassis": "WBSBF9327SEH06974",
+   "title": "1995 BMW M3 Coupe"
+  },
+  {
+   "date": "2025-10-18",
+   "venue": "RM Sotheby's",
+   "price_usd": 297000,
+   "basis": "buyer-paid",
+   "hammer_usd": 259200,
+   "native": {
+    "amount": 275000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://rmsothebys.com/auctions/mu25/lots/b0006-1995-bmw-m3-gt/",
+   "chassis": "WBSBF99030EA40098",
+   "title": "1995 BMW M3 GT"
+  },
+  {
+   "date": "2025-09-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 29138,
+   "basis": "sold+fee",
+   "hammer_usd": 27750,
+   "native": {
+    "amount": 27750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-322-2/",
+   "chassis": "WBSBF91010JF81105",
+   "title": "Euro 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2025-09-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 48563,
+   "basis": "sold+fee",
+   "hammer_usd": 46250,
+   "native": {
+    "amount": 46250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-325/",
+   "chassis": "WBSBF9328SEH01833",
+   "title": "39k-Mile 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2025-08-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 7350,
+   "basis": "sold+fee",
+   "hammer_usd": 7000,
+   "native": {
+    "amount": 7000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-324/",
+   "chassis": "WBSBF0321SEN91359",
+   "title": "Single-Family-Owned 1995 BMW M3"
+  },
+  {
+   "date": "2025-08-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 28613,
+   "basis": "sold+fee",
+   "hammer_usd": 27250,
+   "native": {
+    "amount": 27250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-322/",
+   "chassis": "WBSBF91010JF81105",
+   "title": "Euro 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2025-08-16",
+   "venue": "RM Sotheby's",
+   "price_usd": 179200,
+   "basis": "buyer-paid",
+   "hammer_usd": 160000,
+   "native": {
+    "amount": 179200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://rmsothebys.com/auctions/mo25/lots/r0136-1995-bmw-m3-lightweight/",
+   "chassis": "WBSBF9328SEH07955",
+   "title": "1995 BMW M3 Lightweight"
+  },
+  {
+   "date": "2025-08-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 120750,
+   "basis": "sold+fee",
+   "hammer_usd": 115000,
+   "native": {
+    "amount": 115000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-319/",
+   "chassis": "WBSBF9329SEH07432",
+   "title": "24k-Mile 3.2L-Powered 1995 BMW M3 Lightweight"
+  },
+  {
+   "date": "2025-06-30",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 89250,
+   "basis": "sold+fee",
+   "hammer_usd": 85000,
+   "native": {
+    "amount": 85000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://www.sothebysmotorsport.com/auction/1995-bmw-m3coupe5speed-5867",
+   "chassis": "WBSBF9329SEH06748",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2025-06-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 20475,
+   "basis": "sold+fee",
+   "hammer_usd": 19500,
+   "native": {
+    "amount": 19500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-317/",
+   "chassis": "WBSBF9326SEH02883",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2025-05-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 25725,
+   "basis": "sold+fee",
+   "hammer_usd": 24500,
+   "native": {
+    "amount": 24500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-310/",
+   "chassis": "WBSBF932XSEH08251",
+   "title": "Original-Owner 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2025-04-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 40425,
+   "basis": "sold+fee",
+   "hammer_usd": 38500,
+   "native": {
+    "amount": 38500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-305/",
+   "chassis": "WBSBF9322SEH00919",
+   "title": "25k-Mile 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2025-04-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 30188,
+   "basis": "sold+fee",
+   "hammer_usd": 28750,
+   "native": {
+    "amount": 28750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-303/",
+   "chassis": "WBSBF9325SEH01496",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2025-02-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 28875,
+   "basis": "sold+fee",
+   "hammer_usd": 27500,
+   "native": {
+    "amount": 27500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-302/",
+   "chassis": "WBSBF9326SEH06500",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2025-02-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 45150,
+   "basis": "sold+fee",
+   "hammer_usd": 43000,
+   "native": {
+    "amount": 43000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-296-2/",
+   "chassis": "WBSBF91040JF80353",
+   "title": "70k-Kilometer Slicktop Euro 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2025-02-12",
+   "venue": "PCARMarket",
+   "price_usd": 120750,
+   "basis": "sold+fee",
+   "hammer_usd": 115000,
+   "native": {
+    "amount": 115000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://www.pcarmarket.com/auction/1993-bmw-e36-m3-gt",
+   "chassis": "WBSBF99090EA40008",
+   "title": "1995 BMW E36 M3 GT"
+  },
+  {
+   "date": "2025-02-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 22500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-300/",
+   "chassis": "WBSBF9326SEH05833",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2025-01-30",
+   "venue": "Cars & Bids",
+   "price_usd": 23888,
+   "basis": "sold+fee",
+   "hammer_usd": 22750,
+   "native": {
+    "amount": 22750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://carsandbids.com/auctions/36MBY8VP/1995-bmw-m3-coupe",
+   "chassis": "WBSBF0329SEN91058",
+   "title": "1995 BMW M3 Coupe"
+  },
+  {
+   "date": "2025-01-24",
+   "venue": "RM Sotheby's",
+   "price_usd": 89600,
+   "basis": "buyer-paid",
+   "hammer_usd": 80000,
+   "native": {
+    "amount": 89600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://rmsothebys.com/auctions/az25/lots/r0002-1995-bmw-m3-coupe/",
+   "chassis": "WBSBF9322SEH07580",
+   "title": "1995 BMW M3 Coupe"
+  },
+  {
+   "date": "2025-01-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 30189,
+   "basis": "sold+fee",
+   "hammer_usd": 28751,
+   "native": {
+    "amount": 28751,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-297/",
+   "chassis": "WBSBF9323SEH04431",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2024-12-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 89251,
+   "basis": "sold+fee",
+   "hammer_usd": 85001,
+   "native": {
+    "amount": 85001,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-295/",
+   "chassis": "WBSBF9321SEH07960",
+   "title": "1995 BMW M3 Lightweight"
+  },
+  {
+   "date": "2024-11-29",
+   "venue": "Cars & Bids",
+   "price_usd": 26775,
+   "basis": "sold+fee",
+   "hammer_usd": 25500,
+   "native": {
+    "amount": 25500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://carsandbids.com/auctions/9AbYDG2o/1995-bmw-m3-coupe",
+   "chassis": "WBSBF9322SEH04386",
+   "title": "1995 BMW M3 Coupe"
+  },
+  {
+   "date": "2024-11-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 17063,
+   "basis": "sold+fee",
+   "hammer_usd": 16250,
+   "native": {
+    "amount": 16250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-293/",
+   "chassis": "WBSBF9324SEH05670",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2024-11-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 194687,
+   "basis": "sold+fee",
+   "hammer_usd": 187187,
+   "native": {
+    "amount": 187187,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-lightweight-9/",
+   "chassis": "WBSBF9329SEH07978",
+   "title": "14k-Mile 1995 BMW M3 Lightweight"
+  },
+  {
+   "date": "2024-11-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 12075,
+   "basis": "sold+fee",
+   "hammer_usd": 11500,
+   "native": {
+    "amount": 11500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-289/",
+   "chassis": "WBSBF9327SEH03640",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2024-10-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 39375,
+   "basis": "sold+fee",
+   "hammer_usd": 37500,
+   "native": {
+    "amount": 37500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-287/",
+   "chassis": "WBSBF9327SEH01001",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2024-10-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 15750,
+   "basis": "sold+fee",
+   "hammer_usd": 15000,
+   "native": {
+    "amount": 15000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-291/",
+   "chassis": "WBSBF0329SEN90959",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2024-10-13",
+   "venue": "Barrett-Jackson",
+   "price_usd": 19250,
+   "basis": "buyer-paid",
+   "hammer_usd": 17500,
+   "native": {
+    "amount": 19250,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1995,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1995-bmw-m3-280109?origin=results",
+   "chassis": "WBSBF0320SEN91465",
+   "title": "1995 BMW M3"
+  },
+  {
+   "date": "2024-09-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 156450,
+   "basis": "sold+fee",
+   "hammer_usd": 149000,
+   "native": {
+    "amount": 149000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-286/",
+   "chassis": "WBSBF9329SEH07527",
+   "title": "29k-Mile 1995 BMW M3 Lightweight"
+  },
+  {
+   "date": "2024-09-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-285/",
+   "chassis": "WBSBF9321SEH02998",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2024-09-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 33600,
+   "basis": "sold+fee",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 32000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-284/",
+   "chassis": "WBSBF9322SEH06705",
+   "title": "41k-Mile 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2024-08-19",
+   "venue": "Hagerty",
+   "price_usd": 19425,
+   "basis": "sold+fee",
+   "hammer_usd": 18500,
+   "native": {
+    "amount": 18500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://www.hagerty.com/marketplace/auction/1995-BMW-M3/f72689b1-6c3f-4479-b385-8f5bda2a9af1",
+   "chassis": "WBSBF932XSEH01204",
+   "title": "1995 BMW M3 Coupe"
+  },
+  {
+   "date": "2024-08-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 202500,
+   "basis": "sold+fee",
+   "hammer_usd": 195000,
+   "native": {
+    "amount": 195000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-lightweight-8/",
+   "chassis": "WBSBF9321SEH07523",
+   "title": "21k-Mile 1995 BMW M3 Lightweight"
+  },
+  {
+   "date": "2024-07-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 22500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-coupe-61/",
+   "chassis": "WBSBF9328SEH04585",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2024-07-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 12075,
+   "basis": "sold+fee",
+   "hammer_usd": 11500,
+   "native": {
+    "amount": 11500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-coupe-62/",
+   "chassis": "WBSBF0321SEN90664",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2024-07-05",
+   "venue": "PCARMarket",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 22500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://www.pcarmarket.com/auction/1995-bmw-e36-m3-2",
+   "chassis": "WBSBF9326SEH05234",
+   "title": "1995 BMW E36 M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2024-05-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 22575,
+   "basis": "sold+fee",
+   "hammer_usd": 21500,
+   "native": {
+    "amount": 21500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-coupe-57/",
+   "chassis": "WBSBF9327SEH05730",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2024-05-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 34125,
+   "basis": "sold+fee",
+   "hammer_usd": 32500,
+   "native": {
+    "amount": 32500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-coupe-55/",
+   "chassis": "WBSBF9329SEH06913",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2024-01-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 35000,
+   "basis": "sold+fee",
+   "hammer_usd": 33333,
+   "native": {
+    "amount": 33333,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-euro-spec-4/",
+   "chassis": "WBSBF91010JF81105",
+   "title": "Euro 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2023-12-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 9660,
+   "basis": "sold+fee",
+   "hammer_usd": 9200,
+   "native": {
+    "amount": 9200,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-coupe-47/",
+   "chassis": "WBSBF9323SEH06079",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2023-12-07",
+   "venue": "Cars & Bids",
+   "price_usd": 20948,
+   "basis": "sold+fee",
+   "hammer_usd": 19950,
+   "native": {
+    "amount": 19950,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://carsandbids.com/auctions/3LYY7VwZ/1995-bmw-m3-coupe",
+   "chassis": "WBSBF9329SEH04577",
+   "title": "1995 BMW M3 Coupe"
+  },
+  {
+   "date": "2023-11-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 37800,
+   "basis": "sold+fee",
+   "hammer_usd": 36000,
+   "native": {
+    "amount": 36000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-coupe-46/",
+   "chassis": "WBSBF9323SEH06146",
+   "title": "36k-Mile 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2023-11-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 40950,
+   "basis": "sold+fee",
+   "hammer_usd": 39000,
+   "native": {
+    "amount": 39000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-coupe-43/",
+   "chassis": "WBSBF9325SEH01658",
+   "title": "30k-Mile 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2023-10-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 13650,
+   "basis": "sold+fee",
+   "hammer_usd": 13000,
+   "native": {
+    "amount": 13000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-coupe-39/",
+   "chassis": "WBSBF9321SEH04802",
+   "title": "Original-Owner 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2023-10-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 13913,
+   "basis": "sold+fee",
+   "hammer_usd": 13250,
+   "native": {
+    "amount": 13250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-coupe-38/",
+   "chassis": "WBSBF9328SEH06837",
+   "title": "1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2023-10-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 50516,
+   "basis": "sold+fee",
+   "hammer_usd": 48110,
+   "native": {
+    "amount": 48110,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-coupe-33/",
+   "chassis": "WBSBF9329SEH01663",
+   "title": "27-Years-Owned 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2023-10-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 61425,
+   "basis": "sold+fee",
+   "hammer_usd": 58500,
+   "native": {
+    "amount": 58500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://bringatrailer.com/listing/1995-bmw-m3-coupe-40/",
+   "chassis": "WBSBF9326SEH08151",
+   "title": "14k-Mile 1995 BMW M3 Coupe 5-Speed"
+  },
+  {
+   "date": "2023-10-10",
+   "venue": "Cars & Bids",
+   "price_usd": 17850,
+   "basis": "sold+fee",
+   "hammer_usd": 17000,
+   "native": {
+    "amount": 17000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://carsandbids.com/auctions/9eznB7G6/1995-bmw-m3-coupe",
+   "chassis": "WBSBF9329SEH06698",
+   "title": "1995 BMW M3 Coupe"
+  },
+  {
+   "date": "2023-10-06",
+   "venue": "Cars & Bids",
+   "price_usd": 17325,
+   "basis": "sold+fee",
+   "hammer_usd": 16500,
+   "native": {
+    "amount": 16500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1995,
+   "url": "https://carsandbids.com/auctions/Kmek76ap/1995-bmw-m3-coupe",
+   "chassis": "WBSBF9327SEH07137",
+   "title": "1995 BMW M3 Coupe"
+  }
+ ]
+}

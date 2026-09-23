@@ -1,0 +1,482 @@
+{
+ "car_id": 41,
+ "listed": "1988 BMW M5",
+ "status": "compare",
+ "year_scope": "exact 1988",
+ "basis": "sold+fee (online)",
+ "scope": {
+  "make": "BMW",
+  "model": "M5",
+  "window": "36mo",
+  "year_min": 1988,
+  "year_max": 1988,
+  "body": "sedan"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-09-01",
+   "venue": "Cars & Bids",
+   "price_usd": 31763,
+   "basis": "sold+fee",
+   "hammer_usd": 30250,
+   "native": {
+    "amount": 30250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://carsandbids.com/auctions/rj4pbjap/1988-bmw-m5",
+   "chassis": "WBSDC9302J2791980",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2026-08-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 79275,
+   "basis": "sold+fee",
+   "hammer_usd": 75500,
+   "native": {
+    "amount": 75500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-155-2/",
+   "chassis": "WBSDC9302J2791042",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2026-06-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 33600,
+   "basis": "sold+fee",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 32000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-153/",
+   "chassis": "WBSDC9303J2875127",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2026-03-23",
+   "venue": "Hagerty",
+   "price_usd": 190500,
+   "basis": "sold+fee",
+   "hammer_usd": 183000,
+   "native": {
+    "amount": 183000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://www.hagerty.com/marketplace/auction/1988-BMW-M5/6iSritUF0rsQdeUgwHwBqK",
+   "chassis": "WBSDC9300J2791654",
+   "title": "10k-Mile 1988 BMW M5"
+  },
+  {
+   "date": "2025-12-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 65625,
+   "basis": "sold+fee",
+   "hammer_usd": 62500,
+   "native": {
+    "amount": 62500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-151/",
+   "chassis": "WBSDC9308J2791854",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2025-11-21",
+   "venue": "Cars & Bids",
+   "price_usd": 53025,
+   "basis": "sold+fee",
+   "hammer_usd": 50500,
+   "native": {
+    "amount": 50500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://carsandbids.com/auctions/rkP7zYXR/1988-bmw-m5",
+   "chassis": "WBSDC9300J2875019",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2025-11-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 64050,
+   "basis": "sold+fee",
+   "hammer_usd": 61000,
+   "native": {
+    "amount": 61000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-150/",
+   "chassis": "WBSDC9309J2875102",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2025-11-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 36750,
+   "basis": "sold+fee",
+   "hammer_usd": 35000,
+   "native": {
+    "amount": 35000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-149/",
+   "chassis": "WBSDC9309J2875312",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2025-09-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 41475,
+   "basis": "sold+fee",
+   "hammer_usd": 39500,
+   "native": {
+    "amount": 39500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-146/",
+   "chassis": "WBSDC9305J2791942",
+   "title": "21-Years-Owned 1988 BMW M5"
+  },
+  {
+   "date": "2025-09-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 43050,
+   "basis": "sold+fee",
+   "hammer_usd": 41000,
+   "native": {
+    "amount": 41000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-144/",
+   "chassis": "WBSDC9302J2791803",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2025-09-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 34650,
+   "basis": "sold+fee",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-145/",
+   "chassis": "WBSDC9307J2875003",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2025-08-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 50925,
+   "basis": "sold+fee",
+   "hammer_usd": 48500,
+   "native": {
+    "amount": 48500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-138/",
+   "chassis": "WBSDC9301J2875109",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2025-07-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 68250,
+   "basis": "sold+fee",
+   "hammer_usd": 65000,
+   "native": {
+    "amount": 65000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-141/",
+   "chassis": "WBSDC9300J2875134",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2025-07-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 79800,
+   "basis": "sold+fee",
+   "hammer_usd": 76000,
+   "native": {
+    "amount": 76000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-143/",
+   "chassis": "WBSDC9309J2875259",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2025-04-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 50925,
+   "basis": "sold+fee",
+   "hammer_usd": 48500,
+   "native": {
+    "amount": 48500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-135/",
+   "chassis": "WBSDC9304J2791348",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2025-03-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-134/",
+   "chassis": "WBSDC9304J2791382",
+   "title": "Original-Owner 1988 BMW M5"
+  },
+  {
+   "date": "2025-01-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 71400,
+   "basis": "sold+fee",
+   "hammer_usd": 68000,
+   "native": {
+    "amount": 68000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-133/",
+   "chassis": "WBSDC9305J2791309",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2024-12-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 93975,
+   "basis": "sold+fee",
+   "hammer_usd": 89500,
+   "native": {
+    "amount": 89500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-132/",
+   "chassis": "WBSDC9308J2875009",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2024-08-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 36750,
+   "basis": "sold+fee",
+   "hammer_usd": 35000,
+   "native": {
+    "amount": 35000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-131/",
+   "chassis": "WBSDC9305J2875145",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2024-08-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 34125,
+   "basis": "sold+fee",
+   "hammer_usd": 32500,
+   "native": {
+    "amount": 32500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-128/",
+   "chassis": "WBSDC9302J2791543",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2024-07-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 36524,
+   "basis": "sold+fee",
+   "hammer_usd": 34785,
+   "native": {
+    "amount": 34785,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-130/",
+   "chassis": "WBSDC9307J2875342",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2024-07-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 68775,
+   "basis": "sold+fee",
+   "hammer_usd": 65500,
+   "native": {
+    "amount": 65500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-129/",
+   "chassis": "WBSDC9309J2875181",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2024-04-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 16648,
+   "basis": "sold+fee",
+   "hammer_usd": 15855,
+   "native": {
+    "amount": 15855,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-127/",
+   "chassis": "WBSDC9309J2791734",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2024-04-01",
+   "venue": "Cars & Bids",
+   "price_usd": 28350,
+   "basis": "sold+fee",
+   "hammer_usd": 27000,
+   "native": {
+    "amount": 27000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://carsandbids.com/auctions/r4pJeBwy/1988-bmw-m5",
+   "chassis": "WBSDC9307J2875115",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2024-01-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 30479,
+   "basis": "sold+fee",
+   "hammer_usd": 29028,
+   "native": {
+    "amount": 29028,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-125/",
+   "chassis": "WBSDC9302J2791834",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2024-01-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 18060,
+   "basis": "sold+fee",
+   "hammer_usd": 17200,
+   "native": {
+    "amount": 17200,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-126/",
+   "chassis": "WBSDC9303J2791065",
+   "title": "20-Years-Owned 1988 BMW M5"
+  },
+  {
+   "date": "2023-12-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 27825,
+   "basis": "sold+fee",
+   "hammer_usd": 26500,
+   "native": {
+    "amount": 26500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-123/",
+   "chassis": "WBSDC9301J2791629",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2023-12-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 84000,
+   "basis": "sold+fee",
+   "hammer_usd": 80000,
+   "native": {
+    "amount": 80000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-124/",
+   "chassis": "WBSDC9307J2791361",
+   "title": "1988 BMW M5"
+  },
+  {
+   "date": "2023-10-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 37800,
+   "basis": "sold+fee",
+   "hammer_usd": 36000,
+   "native": {
+    "amount": 36000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1988,
+   "url": "https://bringatrailer.com/listing/1988-bmw-m5-121/",
+   "chassis": "WBSDC930XJ2791029",
+   "title": "1988 BMW M5"
+  }
+ ]
+}

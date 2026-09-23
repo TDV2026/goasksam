@@ -1,0 +1,307 @@
+{
+ "car_id": 60,
+ "listed": "2004 Porsche 911 GT3",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (2002-2004)",
+ "basis": "mixed (11% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Porsche",
+  "model": "911",
+  "window": "36mo",
+  "year_min": 2002,
+  "year_max": 2004,
+  "trim": "GT3",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-03-25",
+   "venue": "RM Sotheby's",
+   "price_usd": 159500,
+   "basis": "buyer-paid",
+   "hammer_usd": 142411,
+   "native": {
+    "amount": 159500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2004,
+   "url": "https://rmsothebys.com/auctions/mw26/lots/r0016-2004-porsche-911-gt3",
+   "chassis": "WP0AC29904S692098",
+   "title": "2004 Porsche 911 GT3"
+  },
+  {
+   "date": "2025-12-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 110250,
+   "basis": "sold+fee",
+   "hammer_usd": 105000,
+   "native": {
+    "amount": 105000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-gt3-122/",
+   "chassis": "WP0AC29914S692353",
+   "title": "2004 Porsche 911 GT3"
+  },
+  {
+   "date": "2025-10-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 140700,
+   "basis": "sold+fee",
+   "hammer_usd": 134000,
+   "native": {
+    "amount": 134000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-gt3-119/",
+   "chassis": "WP0AC29994S692424",
+   "title": "14k-Mile 2004 Porsche 911 GT3"
+  },
+  {
+   "date": "2025-04-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 108150,
+   "basis": "sold+fee",
+   "hammer_usd": 103000,
+   "native": {
+    "amount": 103000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-gt3-108-2-2/",
+   "chassis": "WP0AC29934S692287",
+   "title": "34k-Mile 2004 Porsche 911 GT3"
+  },
+  {
+   "date": "2024-11-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 149100,
+   "basis": "sold+fee",
+   "hammer_usd": 142000,
+   "native": {
+    "amount": 142000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-gt3-107/",
+   "chassis": "WP0AC29944S692766",
+   "title": "19k-Mile 2004 Porsche 911 GT3"
+  },
+  {
+   "date": "2024-10-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 126000,
+   "basis": "sold+fee",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 120000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-gt3-96/",
+   "chassis": "WP0AC29994S692083",
+   "title": "26k-Mile 2004 Porsche 911 GT3"
+  },
+  {
+   "date": "2024-09-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 150146,
+   "basis": "sold+fee",
+   "hammer_usd": 142996,
+   "native": {
+    "amount": 142996,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-gt3-100/",
+   "chassis": "WP0AC29984S692835",
+   "title": "One-Owner, 7k-Mile 2004 Porsche 911 GT3"
+  },
+  {
+   "date": "2024-09-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 95025,
+   "basis": "sold+fee",
+   "hammer_usd": 90500,
+   "native": {
+    "amount": 90500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-gt3-101/",
+   "chassis": "WP0AC299X4S692562",
+   "title": "2004 Porsche 911 GT3"
+  },
+  {
+   "date": "2024-08-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 58333,
+   "basis": "sold+fee",
+   "hammer_usd": 55555,
+   "native": {
+    "amount": 55555,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-porsche-911-gt3/",
+   "chassis": "WP0ZZZ99Z2S698010",
+   "title": "2002 Porsche 911 GT3 Cup"
+  },
+  {
+   "date": "2024-08-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 142800,
+   "basis": "sold+fee",
+   "hammer_usd": 136000,
+   "native": {
+    "amount": 136000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-gt3-93/",
+   "chassis": "WP0AC29924S692569",
+   "title": "4,600-Mile 2004 Porsche 911 GT3"
+  },
+  {
+   "date": "2024-06-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 120751,
+   "basis": "sold+fee",
+   "hammer_usd": 115001,
+   "native": {
+    "amount": 115001,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-gt3-90/",
+   "chassis": "WP0AC299X4S692710",
+   "title": "50k-Mile 2004 Porsche 911 GT3"
+  },
+  {
+   "date": "2024-04-27",
+   "venue": "Broad Arrow",
+   "price_usd": 110880,
+   "basis": "buyer-paid",
+   "hammer_usd": 99000,
+   "native": {
+    "amount": 110880,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2002,
+   "url": "https://www.broadarrowauctions.com/vehicles/po24_r045/2002-porsche-911-gt3-cup",
+   "chassis": "INCLUDED",
+   "title": "2002 Porsche 911 GT3 Cup"
+  },
+  {
+   "date": "2024-03-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 106575,
+   "basis": "sold+fee",
+   "hammer_usd": 101500,
+   "native": {
+    "amount": 101500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-gt3-87/",
+   "chassis": "WP0AC29974S692695",
+   "title": "2004 Porsche 911 GT3"
+  },
+  {
+   "date": "2024-02-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 132296,
+   "basis": "sold+fee",
+   "hammer_usd": 125996,
+   "native": {
+    "amount": 125996,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-gt3-86/",
+   "chassis": "WP0AC29924S692636",
+   "title": "27k-Mile 2004 Porsche 911 GT3"
+  },
+  {
+   "date": "2024-02-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 117600,
+   "basis": "sold+fee",
+   "hammer_usd": 112000,
+   "native": {
+    "amount": 112000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-gt3-81-2/",
+   "chassis": "WP0AC29994S692312",
+   "title": "23k-Mile 2004 Porsche 911 GT3"
+  },
+  {
+   "date": "2023-11-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 148050,
+   "basis": "sold+fee",
+   "hammer_usd": 141000,
+   "native": {
+    "amount": 141000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-gt3-79/",
+   "chassis": "WP0AC29984S692642",
+   "title": "Original-Owner 2004 Porsche 911 GT3"
+  },
+  {
+   "date": "2023-10-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 152250,
+   "basis": "sold+fee",
+   "hammer_usd": 145000,
+   "native": {
+    "amount": 145000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-gt3-80/",
+   "chassis": "WP0AC299X4S692206",
+   "title": "4,500-Mile 2004 Porsche 911 GT3"
+  },
+  {
+   "date": "2023-10-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 105000,
+   "basis": "sold+fee",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 100000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-porsche-911-gt3-76/",
+   "chassis": "WP0AC29984S692334",
+   "title": "2004 Porsche 911 GT3"
+  }
+ ]
+}

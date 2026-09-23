@@ -1,0 +1,242 @@
+{
+ "car_id": 75,
+ "listed": "2009 Nissan GT-R",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (2009-2011)",
+ "basis": "mixed (14% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Nissan",
+  "model": "GT-R",
+  "window": "36mo",
+  "year_min": 2009,
+  "year_max": 2011,
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-09-15",
+   "venue": "Cars & Bids",
+   "price_usd": 86683,
+   "basis": "sold+fee",
+   "hammer_usd": 82555,
+   "native": {
+    "amount": 82555,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2010,
+   "url": "https://carsandbids.com/auctions/3v8RedZN/2010-nissan-gt-r-premium",
+   "chassis": "JN1AR5EF5AM231493",
+   "title": "2010 Nissan GT-R Premium"
+  },
+  {
+   "date": "2026-07-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 73500,
+   "basis": "sold+fee",
+   "hammer_usd": 70000,
+   "native": {
+    "amount": 70000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2010,
+   "url": "https://bringatrailer.com/listing/2010-nissan-gt-r-premium-13/",
+   "chassis": "JN1AR5EF9AM230170",
+   "title": "2010 Nissan GT-R Premium"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "RM Sotheby's",
+   "price_usd": 100800,
+   "basis": "buyer-paid",
+   "hammer_usd": 90000,
+   "native": {
+    "amount": 100800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2009,
+   "url": "https://rmsothebys.com/auctions/az26/lots/r0049-2009-nissan-gtr",
+   "chassis": "JN1AR54F99M251565",
+   "title": "2009 Nissan GT-R"
+  },
+  {
+   "date": "2025-10-16",
+   "venue": "Cars & Bids",
+   "price_usd": 84525,
+   "basis": "sold+fee",
+   "hammer_usd": 80500,
+   "native": {
+    "amount": 80500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2009,
+   "url": "https://carsandbids.com/auctions/3z2Mo1wd/2009-nissan-gt-r",
+   "chassis": "JN1AR54F69M252317",
+   "title": "2009 Nissan GT-R"
+  },
+  {
+   "date": "2025-09-18",
+   "venue": "Cars & Bids",
+   "price_usd": 64050,
+   "basis": "sold+fee",
+   "hammer_usd": 61000,
+   "native": {
+    "amount": 61000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2010,
+   "url": "https://carsandbids.com/auctions/36O5dA2x/2010-nissan-gt-r-premium",
+   "chassis": "JN1AR5EF6AM231373",
+   "title": "2010 Nissan GT-R Premium"
+  },
+  {
+   "date": "2025-08-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 84542,
+   "basis": "sold+fee",
+   "hammer_usd": 80516,
+   "native": {
+    "amount": 80516,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2010,
+   "url": "https://bringatrailer.com/listing/2010-nissan-gt-r-premium-8/",
+   "chassis": "JN1AR5EF2AM230091",
+   "title": "Modified 2010 Nissan GT-R Premium"
+  },
+  {
+   "date": "2025-02-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 63525,
+   "basis": "sold+fee",
+   "hammer_usd": 60500,
+   "native": {
+    "amount": 60500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2010,
+   "url": "https://bringatrailer.com/listing/2010-nissan-gt-r-premium-6/",
+   "chassis": "JN1AR5EFXAM230663",
+   "title": "2010 Nissan GT-R Premium"
+  },
+  {
+   "date": "2024-11-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 67200,
+   "basis": "sold+fee",
+   "hammer_usd": 64000,
+   "native": {
+    "amount": 64000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2009,
+   "url": "https://bringatrailer.com/listing/2009-nissan-gt-r-premium-15/",
+   "chassis": "JN1AR54FX9M251865",
+   "title": "17k-Mile 2009 Nissan GT-R Premium"
+  },
+  {
+   "date": "2024-06-07",
+   "venue": "Cars & Bids",
+   "price_usd": 57750,
+   "basis": "sold+fee",
+   "hammer_usd": 55000,
+   "native": {
+    "amount": 55000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2011,
+   "url": "https://carsandbids.com/auctions/rMbmW8wp/2011-nissan-gt-r-premium",
+   "chassis": "JN1AR5EF1BM240161",
+   "title": "2011 Nissan GT-R Premium"
+  },
+  {
+   "date": "2024-04-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 66150,
+   "basis": "sold+fee",
+   "hammer_usd": 63000,
+   "native": {
+    "amount": 63000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2009,
+   "url": "https://bringatrailer.com/listing/2009-nissan-gt-r-premium-11/",
+   "chassis": "JN1AR54F99M250691",
+   "title": "Single-Family-Owned 2009 Nissan GT-R Premium"
+  },
+  {
+   "date": "2024-02-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 63526,
+   "basis": "sold+fee",
+   "hammer_usd": 60501,
+   "native": {
+    "amount": 60501,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2010,
+   "url": "https://bringatrailer.com/listing/2010-nissan-gt-r-premium-3/",
+   "chassis": "JN1AR5EF1AM230888",
+   "title": "16k-Mile 2010 Nissan GT-R Premium"
+  },
+  {
+   "date": "2024-01-28",
+   "venue": "Barrett-Jackson",
+   "price_usd": 59400,
+   "basis": "buyer-paid",
+   "hammer_usd": 54000,
+   "native": {
+    "amount": 59400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2009,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2009-nissan-gt-r-275396?origin=results",
+   "chassis": "JN1AR54F59M251174",
+   "title": "2009 NISSAN GT-R"
+  },
+  {
+   "date": "2023-11-22",
+   "venue": "Cars & Bids",
+   "price_usd": 44100,
+   "basis": "sold+fee",
+   "hammer_usd": 42000,
+   "native": {
+    "amount": 42000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2009,
+   "url": "https://carsandbids.com/auctions/r467Yy7A/2009-nissan-gt-r-premium",
+   "chassis": "JN1AR54F09M250885",
+   "title": "2009 Nissan GT-R Premium"
+  },
+  {
+   "date": "2023-10-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 53025,
+   "basis": "sold+fee",
+   "hammer_usd": 50500,
+   "native": {
+    "amount": 50500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2009,
+   "url": "https://bringatrailer.com/listing/2009-nissan-gt-r-premium-7/",
+   "chassis": "JN1AR54F99M252912",
+   "title": "2009 Nissan GT-R Premium"
+  }
+ ]
+}

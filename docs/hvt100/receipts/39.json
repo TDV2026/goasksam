@@ -1,0 +1,17 @@
+{
+ "car_id": 39,
+ "listed": "1985 Ferrari 308 GTS QV",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1983-1987)",
+ "basis": "n/a",
+ "scope": {
+  "make": "Ferrari",
+  "model": "308",
+  "window": "36mo",
+  "year_min": 1983,
+  "year_max": 1987,
+  "trim": "GTS QV"
+ },
+ "halo_dropped": 0,
+ "sales": []
+}

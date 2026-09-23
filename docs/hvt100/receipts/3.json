@@ -1,0 +1,2147 @@
+{
+ "car_id": 3,
+ "listed": "1965 Ford Mustang 289",
+ "status": "compare",
+ "year_scope": "exact 1965",
+ "basis": "mixed (11% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Ford",
+  "model": "Mustang",
+  "window": "36mo",
+  "year_min": 1965,
+  "year_max": 1965,
+  "trim": "289",
+  "body": "fastback"
+ },
+ "halo_dropped": 12,
+ "sales": [
+  {
+   "date": "2026-09-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 71925,
+   "basis": "sold+fee",
+   "hammer_usd": 68500,
+   "native": {
+    "amount": 68500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-973/",
+   "chassis": "5R07A201347",
+   "title": "World’s Fair Batch 1965 Ford Mustang Coupe GT A-Code 289"
+  },
+  {
+   "date": "2026-09-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 25725,
+   "basis": "sold+fee",
+   "hammer_usd": 24500,
+   "native": {
+    "amount": 24500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-965/",
+   "chassis": "5R08C130611",
+   "title": "45-Years-Family-Owned, 331-Powered 1965 Ford Mustang Convertible 5-Speed"
+  },
+  {
+   "date": "2026-09-12",
+   "venue": "Barrett-Jackson",
+   "price_usd": 20900,
+   "basis": "buyer-paid",
+   "hammer_usd": 19000,
+   "native": {
+    "amount": 20900,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.barrett-jackson.com/2026-las-vegas/docket/vehicle/1965-ford-mustang-303360?origin=results",
+   "chassis": "5F07D167868",
+   "title": "1965 FORD MUSTANG"
+  },
+  {
+   "date": "2026-09-10",
+   "venue": "Barrett-Jackson",
+   "price_usd": 13200,
+   "basis": "buyer-paid",
+   "hammer_usd": 12000,
+   "native": {
+    "amount": 13200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.barrett-jackson.com/2026-las-vegas/docket/vehicle/1965-ford-mustang-302811?origin=results",
+   "chassis": "5R07A230437",
+   "title": "1965 FORD MUSTANG"
+  },
+  {
+   "date": "2026-09-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 49875,
+   "basis": "sold+fee",
+   "hammer_usd": 47500,
+   "native": {
+    "amount": 47500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-952/",
+   "chassis": "5R08C206404",
+   "title": "Fuel-Injected, 302-Powered 1965 Ford Mustang Convertible"
+  },
+  {
+   "date": "2026-09-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 50400,
+   "basis": "sold+fee",
+   "hammer_usd": 48000,
+   "native": {
+    "amount": 48000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-957/",
+   "chassis": "5T09C142795",
+   "title": "1965 Ford Mustang Fastback 289"
+  },
+  {
+   "date": "2026-09-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 21525,
+   "basis": "sold+fee",
+   "hammer_usd": 20500,
+   "native": {
+    "amount": 20500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-806/",
+   "chassis": "5F07T781942",
+   "title": "Single-Family-Owned, 302-Powered 1965 Ford Mustang Coupe"
+  },
+  {
+   "date": "2026-08-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 34918,
+   "basis": "sold+fee",
+   "hammer_usd": 33255,
+   "native": {
+    "amount": 33255,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-935/",
+   "chassis": "5F08A793600",
+   "title": "1965 Ford Mustang Convertible A-Code 289"
+  },
+  {
+   "date": "2026-08-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 39900,
+   "basis": "sold+fee",
+   "hammer_usd": 38000,
+   "native": {
+    "amount": 38000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-963/",
+   "chassis": "5F09C647514",
+   "title": "1965 Ford Mustang Fastback 289"
+  },
+  {
+   "date": "2026-08-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 33863,
+   "basis": "sold+fee",
+   "hammer_usd": 32250,
+   "native": {
+    "amount": 32250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-946/",
+   "chassis": "5F09A706298",
+   "title": "1965 Ford Mustang Fastback GT A-Code 289 5-Speed"
+  },
+  {
+   "date": "2026-08-24",
+   "venue": "Hagerty",
+   "price_usd": 55650,
+   "basis": "sold+fee",
+   "hammer_usd": 53000,
+   "native": {
+    "amount": 53000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hagerty.com/marketplace/auction/1965-Ford-Mustang/a20f4431-62fa-4389-be36-f9643e976a07",
+   "chassis": "5F07F119460",
+   "title": "44-Years-Owned 1964.5 Ford Mustang Coupe Pace Car Edition"
+  },
+  {
+   "date": "2026-08-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 38103,
+   "basis": "sold+fee",
+   "hammer_usd": 36289,
+   "native": {
+    "amount": 36289,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-912/",
+   "chassis": "5F08C778052",
+   "title": "40-Years-Owned 1965 Ford Mustang Convertible 289 4-Speed"
+  },
+  {
+   "date": "2026-08-13",
+   "venue": "All Collector Cars",
+   "price_usd": 51542,
+   "basis": "sold+fee",
+   "hammer_usd": 49088,
+   "native": {
+    "amount": 49088,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.allcollectorcars.com/classic-car-auctions/vehicles/1965-ford-mustang-fastback-289-h-o-v8-4-speed-manual-factory-a-c-rally-pac-desirable-22-fastback/",
+   "chassis": "5R09C137740",
+   "title": "1965 Ford Mustang Fastback"
+  },
+  {
+   "date": "2026-08-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 31500,
+   "basis": "sold+fee",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 30000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-931/",
+   "chassis": "5F08C260960",
+   "title": "1965 Ford Mustang Convertible 289 4-Speed"
+  },
+  {
+   "date": "2026-07-22",
+   "venue": "Mecum",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 24750,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.mecum.com/lots/1175805/1965-ford-mustang-coupe?aa_id=794169-0",
+   "chassis": "5F07A676873",
+   "title": "1965 Ford Mustang Coupe"
+  },
+  {
+   "date": "2026-07-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 40862,
+   "basis": "sold+fee",
+   "hammer_usd": 38916,
+   "native": {
+    "amount": 38916,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-896/",
+   "chassis": "5R09C243793",
+   "title": "Single-Family-Owned 1965 Ford Mustang Fastback 289"
+  },
+  {
+   "date": "2026-07-06",
+   "venue": "Cars & Bids",
+   "price_usd": 12600,
+   "basis": "sold+fee",
+   "hammer_usd": 12000,
+   "native": {
+    "amount": 12000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://carsandbids.com/auctions/rkbqWoQ4/1965-ford-mustang-coupe",
+   "chassis": "5F07U161435",
+   "title": "1965 Ford Mustang Coupe"
+  },
+  {
+   "date": "2026-07-06",
+   "venue": "Hagerty",
+   "price_usd": 66675,
+   "basis": "sold+fee",
+   "hammer_usd": 63500,
+   "native": {
+    "amount": 63500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hagerty.com/marketplace/auction/1965-Ford-Mustang/4a8e17af-cb6d-4600-b5df-2e9d5c2b72d7",
+   "chassis": "5F08C387461",
+   "title": "44-Years-Owned 1965 Ford Mustang Convertible 289 4-Speed"
+  },
+  {
+   "date": "2026-07-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 18113,
+   "basis": "sold+fee",
+   "hammer_usd": 17250,
+   "native": {
+    "amount": 17250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-916/",
+   "chassis": "5R07C215447",
+   "title": "302-Powered 1965 Ford Mustang Coupe"
+  },
+  {
+   "date": "2026-07-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 34650,
+   "basis": "sold+fee",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-914/",
+   "chassis": "5R08A193612",
+   "title": "53-Years-Family-Owned 1965 Ford Mustang Convertible 289"
+  },
+  {
+   "date": "2026-06-30",
+   "venue": "Hagerty",
+   "price_usd": 30399,
+   "basis": "sold+fee",
+   "hammer_usd": 28951,
+   "native": {
+    "amount": 28951,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hagerty.com/marketplace/auction/1965-Ford-Mustang/fd2259ad-3b49-41bf-91e7-f9ea6b55f84c",
+   "chassis": "5R08C143790",
+   "title": "1965 Ford Mustang Convertible 289"
+  },
+  {
+   "date": "2026-06-29",
+   "venue": "Hagerty",
+   "price_usd": 26775,
+   "basis": "sold+fee",
+   "hammer_usd": 25500,
+   "native": {
+    "amount": 25500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hagerty.com/marketplace/auction/1965-Ford-Mustang/6ac9327c-55b0-4373-a26c-d6f204c8fb73",
+   "chassis": "5F07C603040",
+   "title": "1965 Ford Mustang Coupe 289"
+  },
+  {
+   "date": "2026-06-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 62700,
+   "basis": "buyer-paid",
+   "hammer_usd": 57000,
+   "native": {
+    "amount": 62700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.barrett-jackson.com/2026-columbus/docket/vehicle/1965-ford-mustang-convertible-301321?origin=results",
+   "chassis": "5F08F156037",
+   "title": "1965 FORD MUSTANG CONVERTIBLE"
+  },
+  {
+   "date": "2026-06-26",
+   "venue": "Hagerty",
+   "price_usd": 18638,
+   "basis": "sold+fee",
+   "hammer_usd": 17750,
+   "native": {
+    "amount": 17750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hagerty.com/marketplace/auction/1965-Ford-Mustang/185e602c-e372-4a65-9ae2-0469aa554241",
+   "chassis": "5F08T721550",
+   "title": "1965 Ford Mustang Convertible"
+  },
+  {
+   "date": "2026-06-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 36850,
+   "basis": "buyer-paid",
+   "hammer_usd": 33500,
+   "native": {
+    "amount": 36850,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.barrett-jackson.com/2026-columbus/docket/vehicle/1965-ford-mustang-convertible-298015?origin=results",
+   "chassis": "5F08C735527",
+   "title": "1965 FORD MUSTANG CONVERTIBLE"
+  },
+  {
+   "date": "2026-06-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 37400,
+   "basis": "buyer-paid",
+   "hammer_usd": 34000,
+   "native": {
+    "amount": 37400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.barrett-jackson.com/2026-columbus/docket/vehicle/1965-ford-mustang-gt-301063?origin=results",
+   "chassis": "5T07A159221",
+   "title": "1965 FORD MUSTANG GT"
+  },
+  {
+   "date": "2026-06-24",
+   "venue": "All Collector Cars",
+   "price_usd": 57330,
+   "basis": "sold+fee",
+   "hammer_usd": 54600,
+   "native": {
+    "amount": 54600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.allcollectorcars.com/classic-car-auctions/vehicles/1965-ford-mustang-22/",
+   "chassis": "5R09A199979",
+   "title": "1965 Ford Mustang 2+2"
+  },
+  {
+   "date": "2026-06-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 30450,
+   "basis": "sold+fee",
+   "hammer_usd": 29000,
+   "native": {
+    "amount": 29000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-899/",
+   "chassis": "5R08A253944",
+   "title": "1965 Ford Mustang Convertible A-Code 289"
+  },
+  {
+   "date": "2026-06-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 17850,
+   "basis": "sold+fee",
+   "hammer_usd": 17000,
+   "native": {
+    "amount": 17000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-906/",
+   "chassis": "5R08T239609",
+   "title": "1965 Ford Mustang Convertible 3-Speed"
+  },
+  {
+   "date": "2026-06-15",
+   "venue": "Hagerty",
+   "price_usd": 38103,
+   "basis": "sold+fee",
+   "hammer_usd": 36289,
+   "native": {
+    "amount": 36289,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hagerty.com/marketplace/auction/1965-Ford-Mustang/34368f3f-b2fd-43bb-ae38-e318da31e33f",
+   "chassis": "5R08T163667",
+   "title": "One-Family-Owned, 289-Powered 1965 Ford Mustang Convertible"
+  },
+  {
+   "date": "2026-06-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 22575,
+   "basis": "sold+fee",
+   "hammer_usd": 21500,
+   "native": {
+    "amount": 21500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-897/",
+   "chassis": "5F08C682977",
+   "title": "1965 Ford Mustang"
+  },
+  {
+   "date": "2026-06-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 58800,
+   "basis": "sold+fee",
+   "hammer_usd": 56000,
+   "native": {
+    "amount": 56000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-810/",
+   "chassis": "5F08C719100",
+   "title": "59-Years-Family-Owned 1965 Ford Mustang Convertible 289"
+  },
+  {
+   "date": "2026-06-06",
+   "venue": "Mecum",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 27500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.mecum.com/lots/1173609/1965-ford-mustang?aa_id=786746-0",
+   "chassis": "5F07D181300",
+   "title": "1965 Ford Mustang"
+  },
+  {
+   "date": "2026-06-05",
+   "venue": "Mecum",
+   "price_usd": 21000,
+   "basis": "sold+fee",
+   "hammer_usd": 20000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.mecum.com/lots/1175143/1965-ford-mustang-gt?aa_id=789271-0",
+   "chassis": "5F07A764718",
+   "title": "1965 Ford Mustang GT"
+  },
+  {
+   "date": "2026-06-05",
+   "venue": "Mecum",
+   "price_usd": 35175,
+   "basis": "sold+fee",
+   "hammer_usd": 33500,
+   "native": {
+    "amount": 36850,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.mecum.com/lots/1175040/1965-ford-mustang-convertible?aa_id=791430-0",
+   "chassis": "5F08F100599",
+   "title": "1965 Ford Mustang Convertible"
+  },
+  {
+   "date": "2026-06-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 23363,
+   "basis": "sold+fee",
+   "hammer_usd": 22250,
+   "native": {
+    "amount": 22250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-887/",
+   "chassis": "5F08C709976",
+   "title": "1965 Ford Mustang Convertible 289 4-Speed"
+  },
+  {
+   "date": "2026-06-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 38325,
+   "basis": "sold+fee",
+   "hammer_usd": 36500,
+   "native": {
+    "amount": 36500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-886/",
+   "chassis": "5F08C719382",
+   "title": "347-Powered 1965 Ford Mustang Convertible 5-Speed"
+  },
+  {
+   "date": "2026-05-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 35175,
+   "basis": "sold+fee",
+   "hammer_usd": 33500,
+   "native": {
+    "amount": 33500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-851/",
+   "chassis": "5F08C343042",
+   "title": "1965 Ford Mustang Convertible 289 5-Speed"
+  },
+  {
+   "date": "2026-05-19",
+   "venue": "Hagerty",
+   "price_usd": 9450,
+   "basis": "sold+fee",
+   "hammer_usd": 9000,
+   "native": {
+    "amount": 9000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hagerty.com/marketplace/auction/1965%20-Ford-Mustang/6af92e9e-a0a8-40b6-abe6-3c6d8521e523",
+   "chassis": "5F07F130014",
+   "title": "39-Years-Owned 1964.5 Ford Mustang Coupe 260"
+  },
+  {
+   "date": "2026-05-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 27563,
+   "basis": "sold+fee",
+   "hammer_usd": 26250,
+   "native": {
+    "amount": 26250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-877/",
+   "chassis": "5F08C668065",
+   "title": "58-Years-Family-Owned 1965 Ford Mustang Convertible 289"
+  },
+  {
+   "date": "2026-05-16",
+   "venue": "Mecum",
+   "price_usd": 73500,
+   "basis": "sold+fee",
+   "hammer_usd": 70000,
+   "native": {
+    "amount": 77000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.mecum.com/lots/1172022/1965-ford-mustang?aa_id=777422-0",
+   "chassis": "5F09A663053",
+   "title": "1965 Ford Mustang"
+  },
+  {
+   "date": "2026-05-15",
+   "venue": "Mecum",
+   "price_usd": 149625,
+   "basis": "sold+fee",
+   "hammer_usd": 142500,
+   "native": {
+    "amount": 156750,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.mecum.com/lots/1168745/1965-ford-mustang-gt-fastback?aa_id=778238-0",
+   "chassis": null,
+   "title": "1965 Ford Mustang GT Fastback"
+  },
+  {
+   "date": "2026-05-15",
+   "venue": "Mecum",
+   "price_usd": 46200,
+   "basis": "sold+fee",
+   "hammer_usd": 44000,
+   "native": {
+    "amount": 48400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.mecum.com/lots/1169796/1965-ford-mustang-convertible?aa_id=774881-0",
+   "chassis": "5F08C799483",
+   "title": "1965 Ford Mustang Convertible"
+  },
+  {
+   "date": "2026-05-14",
+   "venue": "Mecum",
+   "price_usd": 9450,
+   "basis": "sold+fee",
+   "hammer_usd": 9000,
+   "native": {
+    "amount": 9900,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.mecum.com/lots/1172027/1965-ford-mustang-coupe?aa_id=777902-0",
+   "chassis": "5T07T201500",
+   "title": "1965 Ford Mustang Coupe"
+  },
+  {
+   "date": "2026-05-09",
+   "venue": "Mecum",
+   "price_usd": 19950,
+   "basis": "sold+fee",
+   "hammer_usd": 19000,
+   "native": {
+    "amount": 20900,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.mecum.com/lots/1172184/1965-ford-mustang-convertible?aa_id=780986-0",
+   "chassis": "5F08C756314",
+   "title": "1965 Ford Mustang Convertible"
+  },
+  {
+   "date": "2026-05-08",
+   "venue": "Hagerty",
+   "price_usd": 22050,
+   "basis": "sold+fee",
+   "hammer_usd": 21000,
+   "native": {
+    "amount": 21000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hagerty.com/marketplace/auction/1965-Ford-Mustang/b29f97fe-1423-4c2b-a06b-8928686f314c",
+   "chassis": "5R07C234831",
+   "title": "1965 Ford Mustang Coupe 289"
+  },
+  {
+   "date": "2026-05-04",
+   "venue": "Hagerty",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hagerty.com/marketplace/auction/1965-Ford-Mustang/b0882f15-ef9e-4287-82d1-f636fc6db2d5",
+   "chassis": "5R07A235737",
+   "title": "1965 Ford Mustang Coupe A-Code 289"
+  },
+  {
+   "date": "2026-04-16",
+   "venue": "Barrett-Jackson",
+   "price_usd": 35200,
+   "basis": "buyer-paid",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 35200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/1965-ford-mustang-298248?origin=results",
+   "chassis": "5F07C653966",
+   "title": "1965 FORD MUSTANG"
+  },
+  {
+   "date": "2026-04-16",
+   "venue": "Barrett-Jackson",
+   "price_usd": 38500,
+   "basis": "buyer-paid",
+   "hammer_usd": 35000,
+   "native": {
+    "amount": 38500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/1965-ford-mustang-convertible-297893?origin=results",
+   "chassis": "5F08F188141",
+   "title": "1965 FORD MUSTANG CONVERTIBLE"
+  },
+  {
+   "date": "2026-04-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 65625,
+   "basis": "sold+fee",
+   "hammer_usd": 62500,
+   "native": {
+    "amount": 62500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-847/",
+   "chassis": "5F09C739708",
+   "title": "Marlin Blue 1965 Ford Mustang Fastback 289"
+  },
+  {
+   "date": "2026-04-11",
+   "venue": "Mecum",
+   "price_usd": 57750,
+   "basis": "sold+fee",
+   "hammer_usd": 55000,
+   "native": {
+    "amount": 60500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.mecum.com/lots/1168256/1965-ford-mustang-fastback?aa_id=768141-0",
+   "chassis": "5R09A158480",
+   "title": "1965 Ford Mustang Fastback"
+  },
+  {
+   "date": "2026-04-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 43050,
+   "basis": "sold+fee",
+   "hammer_usd": 41000,
+   "native": {
+    "amount": 41000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-848/",
+   "chassis": "5R08A143641",
+   "title": "Single-Family-Owned 1965 Ford Mustang Convertible A-Code 5-Speed"
+  },
+  {
+   "date": "2026-03-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 54600,
+   "basis": "sold+fee",
+   "hammer_usd": 52000,
+   "native": {
+    "amount": 52000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-814/",
+   "chassis": "5F09A382160",
+   "title": "1965 Ford Mustang Fastback A-Code 289 4-Speed"
+  },
+  {
+   "date": "2026-03-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 25463,
+   "basis": "sold+fee",
+   "hammer_usd": 24250,
+   "native": {
+    "amount": 24250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-838/",
+   "chassis": "5F07C269808",
+   "title": "Single-Family-Owned 1965 Ford Mustang Coupe 289"
+  },
+  {
+   "date": "2026-03-09",
+   "venue": "All Collector Cars",
+   "price_usd": 55125,
+   "basis": "sold+fee",
+   "hammer_usd": 52500,
+   "native": {
+    "amount": 52500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.allcollectorcars.com/classic-car-auctions/vehicles/1965-ford-mustang-10/",
+   "chassis": "5R08C140663",
+   "title": "1965 Ford Mustang Convertible"
+  },
+  {
+   "date": "2026-03-03",
+   "venue": "AutoHunter",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://autohunter.com/Listing/Details/85205079",
+   "chassis": "5R08C223217",
+   "title": "1965 FORD MUSTANG CONVERTIBLE"
+  },
+  {
+   "date": "2026-03-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 18375,
+   "basis": "sold+fee",
+   "hammer_usd": 17500,
+   "native": {
+    "amount": 17500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-730/",
+   "chassis": "5R08T231784",
+   "title": "Single-Family-Owned 1965 Ford Mustang Convertible"
+  },
+  {
+   "date": "2026-02-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 17850,
+   "basis": "sold+fee",
+   "hammer_usd": 17000,
+   "native": {
+    "amount": 17000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-834/",
+   "chassis": "5F07C310263",
+   "title": "1965 Ford Mustang Coupe 289"
+  },
+  {
+   "date": "2026-02-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 40163,
+   "basis": "sold+fee",
+   "hammer_usd": 38250,
+   "native": {
+    "amount": 38250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-823/",
+   "chassis": "5R08A204815",
+   "title": "20-Years-Owned 1965 Ford Mustang Convertible A-Code 289 4-Speed"
+  },
+  {
+   "date": "2026-02-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 21263,
+   "basis": "sold+fee",
+   "hammer_usd": 20250,
+   "native": {
+    "amount": 20250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-798/",
+   "chassis": "5R08T168634",
+   "title": "1965 Ford Mustang Convertible 3-Speed"
+  },
+  {
+   "date": "2026-02-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 76179,
+   "basis": "sold+fee",
+   "hammer_usd": 72551,
+   "native": {
+    "amount": 72551,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-824/",
+   "chassis": "5F09A350495",
+   "title": "351-Powered 1965 Ford Mustang Fastback 5-Speed"
+  },
+  {
+   "date": "2026-01-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 31763,
+   "basis": "sold+fee",
+   "hammer_usd": 30250,
+   "native": {
+    "amount": 30250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-818/",
+   "chassis": "5R08C192188",
+   "title": "1965 Ford Mustang Convertible 289 4-Speed"
+  },
+  {
+   "date": "2026-01-29",
+   "venue": "Hagerty",
+   "price_usd": 37800,
+   "basis": "sold+fee",
+   "hammer_usd": 36000,
+   "native": {
+    "amount": 36000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hagerty.com/marketplace/auction/1965-Ford-Mustang/dd050500-9ab8-4188-81da-116a061e5905",
+   "chassis": "5R07C232562",
+   "title": "Two-Owner 1965 Ford Mustang Coupe 289 5-Speed"
+  },
+  {
+   "date": "2026-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 45100,
+   "basis": "buyer-paid",
+   "hammer_usd": 41000,
+   "native": {
+    "amount": 45100,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1965-ford-mustang-295783?origin=results",
+   "chassis": "5F07C782528",
+   "title": "1965 FORD MUSTANG"
+  },
+  {
+   "date": "2026-01-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 36750,
+   "basis": "sold+fee",
+   "hammer_usd": 35000,
+   "native": {
+    "amount": 35000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-817/",
+   "chassis": "5T09C138599",
+   "title": "1965 Ford Mustang Fastback 289"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Bonhams",
+   "price_usd": 36960,
+   "basis": "buyer-paid",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 36960,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://cars.bonhams.com/auction/31957/lot/138/1965-ford-mustang-convertible-chassis-no-5f08a753582/",
+   "chassis": "5F08A753582",
+   "title": "1965 Ford Mustang Convertible Chassis no. 5F08A753582"
+  },
+  {
+   "date": "2026-01-22",
+   "venue": "Barrett-Jackson",
+   "price_usd": 39600,
+   "basis": "buyer-paid",
+   "hammer_usd": 36000,
+   "native": {
+    "amount": 39600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1965-ford-mustang-gt-convertible-294612?origin=results",
+   "chassis": "5F08A785601",
+   "title": "1965 FORD MUSTANG GT CONVERTIBLE"
+  },
+  {
+   "date": "2026-01-21",
+   "venue": "Barrett-Jackson",
+   "price_usd": 44000,
+   "basis": "buyer-paid",
+   "hammer_usd": 40000,
+   "native": {
+    "amount": 44000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1965-ford-mustang-fastback-292034?origin=results",
+   "chassis": "5R09A151652",
+   "title": "1965 FORD MUSTANG FASTBACK"
+  },
+  {
+   "date": "2026-01-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 38850,
+   "basis": "sold+fee",
+   "hammer_usd": 37000,
+   "native": {
+    "amount": 37000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-820/",
+   "chassis": "5T09T194141",
+   "title": "302-Powered 1965 Ford Mustang Fastback"
+  },
+  {
+   "date": "2026-01-21",
+   "venue": "Barrett-Jackson",
+   "price_usd": 66000,
+   "basis": "buyer-paid",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 66000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1965-ford-mustang-292341?origin=results",
+   "chassis": "5F07A665082",
+   "title": "1965 FORD MUSTANG"
+  },
+  {
+   "date": "2026-01-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 37275,
+   "basis": "sold+fee",
+   "hammer_usd": 35500,
+   "native": {
+    "amount": 35500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-653/",
+   "chassis": "5F08A371561",
+   "title": "1965 Ford Mustang Convertible A-Code 289"
+  },
+  {
+   "date": "2025-12-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 29400,
+   "basis": "sold+fee",
+   "hammer_usd": 28000,
+   "native": {
+    "amount": 28000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-801/",
+   "chassis": "5F08C266350",
+   "title": "1965 Ford Mustang 289 Convertible"
+  },
+  {
+   "date": "2025-11-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 7980,
+   "basis": "sold+fee",
+   "hammer_usd": 7600,
+   "native": {
+    "amount": 7600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-790/",
+   "chassis": "5F07T642738",
+   "title": "1965 Ford Mustang"
+  },
+  {
+   "date": "2025-11-17",
+   "venue": "All Collector Cars",
+   "price_usd": 33075,
+   "basis": "sold+fee",
+   "hammer_usd": 31500,
+   "native": {
+    "amount": 31500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.allcollectorcars.com/classic-car-auctions/vehicles/1965-ford-mustang-8/",
+   "chassis": "5F07A291183",
+   "title": "1965 Ford Mustang"
+  },
+  {
+   "date": "2025-11-14",
+   "venue": "Hagerty",
+   "price_usd": 34125,
+   "basis": "sold+fee",
+   "hammer_usd": 32500,
+   "native": {
+    "amount": 32500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hagerty.com/marketplace/auction/1965-Ford-Mustang-Convertible/68a85987-7f37-4cab-bb28-27f9ed5351a0",
+   "chassis": "5R08A190202",
+   "title": "20-Years-Owned 1965 Ford Mustang Convertible 289"
+  },
+  {
+   "date": "2025-11-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 12075,
+   "basis": "sold+fee",
+   "hammer_usd": 11500,
+   "native": {
+    "amount": 11500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-789/",
+   "chassis": "5T07T184538",
+   "title": "1965 Ford Mustang Coupe 3-Speed"
+  },
+  {
+   "date": "2025-11-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 57750,
+   "basis": "sold+fee",
+   "hammer_usd": 55000,
+   "native": {
+    "amount": 55000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-747/",
+   "chassis": "5R09A170387",
+   "title": "302-Powered 1965 Ford Mustang Fastback 5-Speed"
+  },
+  {
+   "date": "2025-11-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 24938,
+   "basis": "sold+fee",
+   "hammer_usd": 23750,
+   "native": {
+    "amount": 23750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-777/",
+   "chassis": "5F08C695690",
+   "title": "1965 Ford Mustang Convertible 289"
+  },
+  {
+   "date": "2025-11-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 14175,
+   "basis": "sold+fee",
+   "hammer_usd": 13500,
+   "native": {
+    "amount": 13500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-791/",
+   "chassis": "5F07T780127",
+   "title": "1965 Ford Mustang Coupe 3-Speed"
+  },
+  {
+   "date": "2025-10-23",
+   "venue": "Hemmings",
+   "price_usd": 29400,
+   "basis": "sold+fee",
+   "hammer_usd": 28000,
+   "native": {
+    "amount": 28000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hemmings.com/auction/1965-ford-mustang-boca-raton-fl-327638",
+   "chassis": "5R07C204951",
+   "title": "Restored and Upgraded 1965 Ford Mustang Coupe"
+  },
+  {
+   "date": "2025-10-16",
+   "venue": "Barrett-Jackson",
+   "price_usd": 51700,
+   "basis": "buyer-paid",
+   "hammer_usd": 47000,
+   "native": {
+    "amount": 51700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2025/docket/vehicle/1965-ford-mustang-fastback-290476?origin=results",
+   "chassis": "5F09C655068",
+   "title": "1965 FORD MUSTANG FASTBACK"
+  },
+  {
+   "date": "2025-10-16",
+   "venue": "Barrett-Jackson",
+   "price_usd": 35200,
+   "basis": "buyer-paid",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 35200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2025/docket/vehicle/1965-ford-mustang-convertible-289704?origin=results",
+   "chassis": "5R08A138843",
+   "title": "1965 FORD MUSTANG CONVERTIBLE"
+  },
+  {
+   "date": "2025-10-09",
+   "venue": "RM Sotheby's",
+   "price_usd": 52250,
+   "basis": "buyer-paid",
+   "hammer_usd": 46652,
+   "native": {
+    "amount": 52250,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://rmsothebys.com/auctions/hf25/lots/r0127-1965-ford-mustang-convertible/",
+   "chassis": "5F08A349083",
+   "title": "1965 Ford Mustang Convertible"
+  },
+  {
+   "date": "2025-10-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 18375,
+   "basis": "sold+fee",
+   "hammer_usd": 17500,
+   "native": {
+    "amount": 17500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-769/",
+   "chassis": "5R07C171109",
+   "title": "1965 Ford Mustang Coupe 289"
+  },
+  {
+   "date": "2025-09-24",
+   "venue": "AutoHunter",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://autohunter.com/Listing/Details/77043871",
+   "chassis": "5F07C667613",
+   "title": "1965 FORD MUSTANG HARDTOP"
+  },
+  {
+   "date": "2025-09-19",
+   "venue": "Hemmings",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 50000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hemmings.com/auction/1965-ford-mustang-hartford-wi-566250",
+   "chassis": "5R08A129090",
+   "title": "Restored 1965 Ford Mustang Convertible With a 289 V8"
+  },
+  {
+   "date": "2025-09-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 20790,
+   "basis": "sold+fee",
+   "hammer_usd": 19800,
+   "native": {
+    "amount": 19800,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-757/",
+   "chassis": "5F07C648630",
+   "title": "1965 Ford Mustang Coupe 289"
+  },
+  {
+   "date": "2025-09-11",
+   "venue": "AutoHunter",
+   "price_usd": 23888,
+   "basis": "sold+fee",
+   "hammer_usd": 22750,
+   "native": {
+    "amount": 22750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://autohunter.com/Listing/Details/76701446",
+   "chassis": "5R08T173796",
+   "title": "1965 FORD MUSTANG CONVERTIBLE"
+  },
+  {
+   "date": "2025-09-10",
+   "venue": "Hagerty",
+   "price_usd": 26775,
+   "basis": "sold+fee",
+   "hammer_usd": 25500,
+   "native": {
+    "amount": 25500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hagerty.com/marketplace/auction/1965-Ford-Mustang/a45c371c-39be-41f8-93de-6405f1837f5e",
+   "chassis": "5R08C172728",
+   "title": "24-Years-Owned 1965 Ford Mustang Convertible 289 3-Speed"
+  },
+  {
+   "date": "2025-09-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 18900,
+   "basis": "sold+fee",
+   "hammer_usd": 18000,
+   "native": {
+    "amount": 18000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-743/",
+   "chassis": "5R07C162154",
+   "title": "1965 Ford Mustang"
+  },
+  {
+   "date": "2025-08-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 19465,
+   "basis": "sold+fee",
+   "hammer_usd": 18538,
+   "native": {
+    "amount": 18538,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-719/",
+   "chassis": "5R08T152039",
+   "title": "43-Years-Owned 1965 Ford Mustang Convertible 3-Speed"
+  },
+  {
+   "date": "2025-08-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 31500,
+   "basis": "sold+fee",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 30000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-737/",
+   "chassis": "5F07C384791",
+   "title": "1965 Ford Mustang Coupe 289 5-Speed"
+  },
+  {
+   "date": "2025-08-26",
+   "venue": "AutoHunter",
+   "price_usd": 24675,
+   "basis": "sold+fee",
+   "hammer_usd": 23500,
+   "native": {
+    "amount": 23500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://autohunter.com/Listing/Details/75567321",
+   "chassis": "5F08T308528",
+   "title": "1965 FORD MUSTANG CONVERTIBLE"
+  },
+  {
+   "date": "2025-08-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 34650,
+   "basis": "sold+fee",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-736/",
+   "chassis": "5T09C137468",
+   "title": "1965 Ford Mustang Fastback 289"
+  },
+  {
+   "date": "2025-08-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 29925,
+   "basis": "sold+fee",
+   "hammer_usd": 28500,
+   "native": {
+    "amount": 28500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-734/",
+   "chassis": "5F08C349975",
+   "title": "1965 Ford Mustang Convertible 289"
+  },
+  {
+   "date": "2025-08-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 11550,
+   "basis": "sold+fee",
+   "hammer_usd": 11000,
+   "native": {
+    "amount": 11000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-726/",
+   "chassis": "5T07T164385",
+   "title": "40-Years-Family-Owned 1965 Ford Mustang Coupe"
+  },
+  {
+   "date": "2025-08-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 53813,
+   "basis": "sold+fee",
+   "hammer_usd": 51250,
+   "native": {
+    "amount": 51250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-727/",
+   "chassis": "5T09A151765",
+   "title": "351-Powered 1965 Ford Mustang Fastback 5-Speed"
+  },
+  {
+   "date": "2025-08-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 36750,
+   "basis": "sold+fee",
+   "hammer_usd": 35000,
+   "native": {
+    "amount": 35000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-733/",
+   "chassis": "5F08C734088",
+   "title": "1965 Ford Mustang Convertible 289"
+  },
+  {
+   "date": "2025-08-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 25988,
+   "basis": "sold+fee",
+   "hammer_usd": 24750,
+   "native": {
+    "amount": 24750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-722/",
+   "chassis": "5F07T795718",
+   "title": "302-Powered 1965 Ford Mustang Coupe 5-Speed"
+  },
+  {
+   "date": "2025-08-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 27563,
+   "basis": "sold+fee",
+   "hammer_usd": 26250,
+   "native": {
+    "amount": 26250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-729/",
+   "chassis": "5R08C257607",
+   "title": "1965 Ford Mustang Convertible 289"
+  },
+  {
+   "date": "2025-08-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 53550,
+   "basis": "sold+fee",
+   "hammer_usd": 51000,
+   "native": {
+    "amount": 51000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-668-2/",
+   "chassis": "5F08C775164",
+   "title": "Fuel-Injected 1965 Ford Mustang Convertible 289"
+  },
+  {
+   "date": "2025-08-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 12075,
+   "basis": "sold+fee",
+   "hammer_usd": 11500,
+   "native": {
+    "amount": 11500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-724/",
+   "chassis": "5R07T241035",
+   "title": "1965 Ford Mustang Coupe 3-Speed"
+  },
+  {
+   "date": "2025-07-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 15750,
+   "basis": "sold+fee",
+   "hammer_usd": 15000,
+   "native": {
+    "amount": 15000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-713/",
+   "chassis": "5F07C681155",
+   "title": "48-Years-Owned 1965 Ford Mustang Coupe 289"
+  },
+  {
+   "date": "2025-07-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 22838,
+   "basis": "sold+fee",
+   "hammer_usd": 21750,
+   "native": {
+    "amount": 21750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-701/",
+   "chassis": "5F08C673900",
+   "title": "1965 Ford Mustang Convertible 289"
+  },
+  {
+   "date": "2025-07-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 15750,
+   "basis": "sold+fee",
+   "hammer_usd": 15000,
+   "native": {
+    "amount": 15000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-716/",
+   "chassis": "5F08T716863",
+   "title": "1965 Ford Mustang Convertible 3-Speed"
+  },
+  {
+   "date": "2025-07-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 39153,
+   "basis": "sold+fee",
+   "hammer_usd": 37289,
+   "native": {
+    "amount": 37289,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-714/",
+   "chassis": "5R07C148289",
+   "title": "1965 Ford Mustang Coupe 289"
+  },
+  {
+   "date": "2025-07-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 53813,
+   "basis": "sold+fee",
+   "hammer_usd": 51250,
+   "native": {
+    "amount": 51250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-703/",
+   "chassis": "5F09T77310",
+   "title": "351-Powered 1965 Ford Mustang Fastback"
+  },
+  {
+   "date": "2025-07-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 27300,
+   "basis": "sold+fee",
+   "hammer_usd": 26000,
+   "native": {
+    "amount": 26000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-708/",
+   "chassis": "5RO7C137597",
+   "title": "One-Family-Owned 1965 Ford Mustang Coupe 289"
+  },
+  {
+   "date": "2025-07-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 38850,
+   "basis": "sold+fee",
+   "hammer_usd": 37000,
+   "native": {
+    "amount": 37000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-705/",
+   "chassis": "5R07C187865",
+   "title": "1965 Ford Mustang Coupe 289"
+  },
+  {
+   "date": "2025-07-21",
+   "venue": "Cars & Bids",
+   "price_usd": 20213,
+   "basis": "sold+fee",
+   "hammer_usd": 19250,
+   "native": {
+    "amount": 19250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://carsandbids.com/auctions/30PjOMYG/1965-ford-mustang-coupe",
+   "chassis": "5T07T187044",
+   "title": "1965 Ford Mustang Coupe"
+  },
+  {
+   "date": "2025-07-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 30188,
+   "basis": "sold+fee",
+   "hammer_usd": 28750,
+   "native": {
+    "amount": 28750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-697/",
+   "chassis": "5F08T702352",
+   "title": "302-Powered 1965 Ford Mustang Convertible"
+  },
+  {
+   "date": "2025-07-08",
+   "venue": "Hagerty",
+   "price_usd": 18900,
+   "basis": "sold+fee",
+   "hammer_usd": 18000,
+   "native": {
+    "amount": 18000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hagerty.com/marketplace/auction/1965-Ford-Mustang/187e36f0-1ebb-44c6-aba6-021d58d9affb",
+   "chassis": "5R07A170978",
+   "title": "1965 Ford Mustang Hardtop Four-Speed"
+  },
+  {
+   "date": "2025-06-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 32550,
+   "basis": "sold+fee",
+   "hammer_usd": 31000,
+   "native": {
+    "amount": 31000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-694/",
+   "chassis": "5F07C800670",
+   "title": "1965 Ford Mustang Coupe 289 3-Speed"
+  },
+  {
+   "date": "2025-06-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 43050,
+   "basis": "sold+fee",
+   "hammer_usd": 41000,
+   "native": {
+    "amount": 41000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-687/",
+   "chassis": "5F08A697696",
+   "title": "1965 Ford Mustang GT Convertible 289"
+  },
+  {
+   "date": "2025-06-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 45675,
+   "basis": "sold+fee",
+   "hammer_usd": 43500,
+   "native": {
+    "amount": 43500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-595/",
+   "chassis": "5F08C302634",
+   "title": "363-Powered 1965 Ford Mustang Convertible 5-Speed"
+  },
+  {
+   "date": "2025-06-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 24150,
+   "basis": "sold+fee",
+   "hammer_usd": 23000,
+   "native": {
+    "amount": 23000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-692/",
+   "chassis": "5R07C234831",
+   "title": "1965 Ford Mustang Coupe 289"
+  },
+  {
+   "date": "2025-06-23",
+   "venue": "Hemmings",
+   "price_usd": 19163,
+   "basis": "sold+fee",
+   "hammer_usd": 18250,
+   "native": {
+    "amount": 18250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hemmings.com/auction/1965-ford-mustang-cohasset-ma-291334",
+   "chassis": "5F08C651549",
+   "title": "Previously Restored 1965 Ford Mustang Convertible With a 289 and a Five-Speed"
+  },
+  {
+   "date": "2025-06-23",
+   "venue": "AutoHunter",
+   "price_usd": 35175,
+   "basis": "sold+fee",
+   "hammer_usd": 33500,
+   "native": {
+    "amount": 33500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://autohunter.com/Listing/Details/72443513",
+   "chassis": "5F08C350230",
+   "title": "1965 FORD MUSTANG CONVERTIBLE"
+  },
+  {
+   "date": "2025-06-19",
+   "venue": "Hemmings",
+   "price_usd": 27300,
+   "basis": "sold+fee",
+   "hammer_usd": 26000,
+   "native": {
+    "amount": 26000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hemmings.com/auction/1965-ford-mustang-hancock-ny-421242",
+   "chassis": "5FO8T695655",
+   "title": "Restored and Upgraded 1965 Ford Mustang Convertible"
+  },
+  {
+   "date": "2025-06-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 45675,
+   "basis": "sold+fee",
+   "hammer_usd": 43500,
+   "native": {
+    "amount": 43500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-678/",
+   "chassis": "5F09C605143",
+   "title": "27-Years-Owned 1965 Ford Mustang Fastback 289"
+  },
+  {
+   "date": "2025-05-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 17850,
+   "basis": "sold+fee",
+   "hammer_usd": 17000,
+   "native": {
+    "amount": 17000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-670/",
+   "chassis": "5R07C175656",
+   "title": "302-Powered 1965 Ford Mustang Coupe 4-Speed"
+  },
+  {
+   "date": "2025-05-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 28035,
+   "basis": "sold+fee",
+   "hammer_usd": 26700,
+   "native": {
+    "amount": 26700,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-671/",
+   "chassis": "5F07C281044",
+   "title": "1965 Ford Mustang Coupe 289 4-Speed"
+  },
+  {
+   "date": "2025-05-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 40163,
+   "basis": "sold+fee",
+   "hammer_usd": 38250,
+   "native": {
+    "amount": 38250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-673/",
+   "chassis": "5F08C660520",
+   "title": "1965 Ford Mustang Convertible 289"
+  },
+  {
+   "date": "2025-05-13",
+   "venue": "Hagerty",
+   "price_usd": 15225,
+   "basis": "sold+fee",
+   "hammer_usd": 14500,
+   "native": {
+    "amount": 14500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hagerty.com/marketplace/auction/1965-Ford-Mustang/fdcb4cc7-ddb8-421f-9172-0b2668dcc98f",
+   "chassis": "5F07C677591",
+   "title": "1965 Ford Mustang Coupe"
+  },
+  {
+   "date": "2025-05-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 30713,
+   "basis": "sold+fee",
+   "hammer_usd": 29250,
+   "native": {
+    "amount": 29250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-672/",
+   "chassis": "5R07C211415",
+   "title": "347-Powered 1965 Ford Mustang Coupe 5-Speed"
+  },
+  {
+   "date": "2025-05-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 38325,
+   "basis": "sold+fee",
+   "hammer_usd": 36500,
+   "native": {
+    "amount": 36500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-669/",
+   "chassis": "5R07C208734",
+   "title": "1965 Ford Mustang Coupe 289"
+  },
+  {
+   "date": "2025-05-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 32025,
+   "basis": "sold+fee",
+   "hammer_usd": 30500,
+   "native": {
+    "amount": 30500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-666/",
+   "chassis": "5T07T189695",
+   "title": "1965 Ford Mustang"
+  },
+  {
+   "date": "2025-05-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 50000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-639/",
+   "chassis": "5RO8C158181",
+   "title": "1965 Ford Mustang Convertible 289 4-Speed"
+  },
+  {
+   "date": "2025-05-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 85050,
+   "basis": "sold+fee",
+   "hammer_usd": 81000,
+   "native": {
+    "amount": 81000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-661/",
+   "chassis": "5R09T243536",
+   "title": "302-Powered 1965 Ford Mustang Fastback 5-Speed"
+  },
+  {
+   "date": "2025-04-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 20213,
+   "basis": "sold+fee",
+   "hammer_usd": 19250,
+   "native": {
+    "amount": 19250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-648/",
+   "chassis": "5R07A245325",
+   "title": "1965 Ford Mustang GT Coupe A-Code 289 4-Speed"
+  },
+  {
+   "date": "2025-04-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 21525,
+   "basis": "sold+fee",
+   "hammer_usd": 20500,
+   "native": {
+    "amount": 20500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-628/",
+   "chassis": "5R08C233143",
+   "title": "1965 Ford Mustang Convertible 289"
+  },
+  {
+   "date": "2025-04-17",
+   "venue": "Hagerty",
+   "price_usd": 24045,
+   "basis": "sold+fee",
+   "hammer_usd": 22900,
+   "native": {
+    "amount": 22900,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hagerty.com/marketplace/auction/1965-Ford-Mustang/84ebe5eb-f764-4495-a45d-2fe6b8fc7869",
+   "chassis": "5F07C627116",
+   "title": "1965 Ford Mustang Coupe"
+  },
+  {
+   "date": "2025-04-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 45675,
+   "basis": "sold+fee",
+   "hammer_usd": 43500,
+   "native": {
+    "amount": 43500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-ford-mustang-651/",
+   "chassis": "5R08C189818",
+   "title": "302-Powered 1965 Ford Mustang Convertible"
+  }
+ ]
+}

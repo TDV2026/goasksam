@@ -1,0 +1,499 @@
+{
+ "car_id": 17,
+ "listed": "1970 Porsche 911 T",
+ "status": "compare",
+ "year_scope": "exact 1970",
+ "basis": "mixed (10% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Porsche",
+  "model": "911",
+  "window": "36mo",
+  "year_min": 1970,
+  "year_max": 1970,
+  "trim": "T",
+  "body": "coupe"
+ },
+ "halo_dropped": 10,
+ "sales": [
+  {
+   "date": "2026-09-11",
+   "venue": "PCARMarket",
+   "price_usd": 57750,
+   "basis": "sold+fee",
+   "hammer_usd": 55000,
+   "native": {
+    "amount": 55000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.pcarmarket.com/auction/1970-porsche-911t-coupe-7",
+   "chassis": "9110103673",
+   "title": "1970 Porsche 911T Coupe 5-Speed"
+  },
+  {
+   "date": "2026-07-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 39375,
+   "basis": "sold+fee",
+   "hammer_usd": 37500,
+   "native": {
+    "amount": 37500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-93/",
+   "chassis": "9110120403",
+   "title": "24-Years-Owned 1970 Porsche 911T Coupe 5-Speed"
+  },
+  {
+   "date": "2026-07-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 134400,
+   "basis": "sold+fee",
+   "hammer_usd": 128000,
+   "native": {
+    "amount": 128000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-92/",
+   "chassis": "9110120247",
+   "title": "1970 Porsche 911T Coupe"
+  },
+  {
+   "date": "2026-05-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 89250,
+   "basis": "sold+fee",
+   "hammer_usd": 85000,
+   "native": {
+    "amount": 85000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-85/",
+   "chassis": "9110100433",
+   "title": "1970 Porsche 911T Coupe 5-Speed"
+  },
+  {
+   "date": "2026-04-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 71400,
+   "basis": "sold+fee",
+   "hammer_usd": 68000,
+   "native": {
+    "amount": 68000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-90/",
+   "chassis": "9110100878",
+   "title": "1970 Porsche 911T Coupe 5-Speed"
+  },
+  {
+   "date": "2026-03-25",
+   "venue": "RM Sotheby's",
+   "price_usd": 4320,
+   "basis": "buyer-paid",
+   "hammer_usd": 3857,
+   "native": {
+    "amount": 4320,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://rmsothebys.com/auctions/mw26/lots/n1053-porsche-type-91107-engine-for-1970-911-t-22",
+   "chassis": null,
+   "title": "Porsche Type 911/07 Engine for 1970 911 T 2.2"
+  },
+  {
+   "date": "2026-03-24",
+   "venue": "PCARMarket",
+   "price_usd": 91875,
+   "basis": "sold+fee",
+   "hammer_usd": 87500,
+   "native": {
+    "amount": 87500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.pcarmarket.com/auction/1970-porsche-911t-5",
+   "chassis": "9110100886",
+   "title": "1970 Porsche 911T Coupe Modified"
+  },
+  {
+   "date": "2026-01-05",
+   "venue": "PCARMarket",
+   "price_usd": 120750,
+   "basis": "sold+fee",
+   "hammer_usd": 115000,
+   "native": {
+    "amount": 115000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.pcarmarket.com/auction/1970-porsche-911t-4",
+   "chassis": "9110120572",
+   "title": "Irish Green 1970 Porsche 911T Coupe 5-Speed"
+  },
+  {
+   "date": "2025-11-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 65100,
+   "basis": "sold+fee",
+   "hammer_usd": 62000,
+   "native": {
+    "amount": 62000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-84/",
+   "chassis": "9110124016",
+   "title": "1970 Porsche 911T Coupe 5-Speed"
+  },
+  {
+   "date": "2025-10-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 132300,
+   "basis": "sold+fee",
+   "hammer_usd": 126000,
+   "native": {
+    "amount": 126000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-82/",
+   "chassis": "9110121392",
+   "title": "3.0L-Powered 1970 Porsche 911T Coupe 5-Speed"
+  },
+  {
+   "date": "2025-08-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 111300,
+   "basis": "sold+fee",
+   "hammer_usd": 106000,
+   "native": {
+    "amount": 106000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-79/",
+   "chassis": "9110123300",
+   "title": "1970 Porsche 911T Coupe 5-Speed"
+  },
+  {
+   "date": "2025-08-16",
+   "venue": "Gooding Christie's",
+   "price_usd": 123200,
+   "basis": "buyer-paid",
+   "hammer_usd": 110000,
+   "native": {
+    "amount": 123200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://www.goodingco.com/lot/1970-porsche-911-22-t",
+   "chassis": "9110101579",
+   "title": "1970 Porsche 911 2.2 T (PB25)"
+  },
+  {
+   "date": "2025-07-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 26513,
+   "basis": "sold+fee",
+   "hammer_usd": 25250,
+   "native": {
+    "amount": 25250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-74/",
+   "chassis": "9110123253",
+   "title": "1970 Porsche 911T Coupe 5-Speed"
+  },
+  {
+   "date": "2025-07-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 69825,
+   "basis": "sold+fee",
+   "hammer_usd": 66500,
+   "native": {
+    "amount": 66500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-73/",
+   "chassis": "9110121143",
+   "title": "3.0L-Powered 1970 Porsche 911T Coupe"
+  },
+  {
+   "date": "2025-02-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 91350,
+   "basis": "sold+fee",
+   "hammer_usd": 87000,
+   "native": {
+    "amount": 87000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-68/",
+   "chassis": "9110123455",
+   "title": "1970 Porsche 911T Coupe 5-Speed"
+  },
+  {
+   "date": "2024-10-28",
+   "venue": "RM Sotheby's",
+   "price_usd": 3920,
+   "basis": "buyer-paid",
+   "hammer_usd": 3500,
+   "native": {
+    "amount": 3920,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://rmsothebys.com/auctions/jy24/lots/r0088-1970-porsche-911-t-coupe-by-karmann/",
+   "chassis": "911012499",
+   "title": "1970 Porsche 911 T Coupe by Karmann"
+  },
+  {
+   "date": "2024-10-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 99750,
+   "basis": "sold+fee",
+   "hammer_usd": 95000,
+   "native": {
+    "amount": 95000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-61/",
+   "chassis": "9110100650",
+   "title": "1970 Porsche 911T Coupe 5-Speed"
+  },
+  {
+   "date": "2024-10-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 75398,
+   "basis": "sold+fee",
+   "hammer_usd": 71808,
+   "native": {
+    "amount": 71808,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-60/",
+   "chassis": "9110120349",
+   "title": "1970 Porsche 911T Coupe 5-Speed"
+  },
+  {
+   "date": "2024-08-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 77175,
+   "basis": "sold+fee",
+   "hammer_usd": 73500,
+   "native": {
+    "amount": 73500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-55/",
+   "chassis": "9110101321",
+   "title": "1970 Porsche 911T Coupe 5-Speed"
+  },
+  {
+   "date": "2024-05-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 75600,
+   "basis": "sold+fee",
+   "hammer_usd": 72000,
+   "native": {
+    "amount": 72000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-48/",
+   "chassis": "9110121143",
+   "title": "3.0L-Powered 1970 Porsche 911T Coupe"
+  },
+  {
+   "date": "2024-05-10",
+   "venue": "PCARMarket",
+   "price_usd": 63000,
+   "basis": "sold+fee",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 60000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.pcarmarket.com/auction/1970-porsche-911t-coupe-1",
+   "chassis": "9110123251",
+   "title": "1970 Porsche 911T Coupe 5-Speed"
+  },
+  {
+   "date": "2024-05-08",
+   "venue": "PCARMarket",
+   "price_usd": 86100,
+   "basis": "sold+fee",
+   "hammer_usd": 82000,
+   "native": {
+    "amount": 82000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.pcarmarket.com/auction/1970-porsche-911t-2",
+   "chassis": "9110121292",
+   "title": "1970 Porsche 911T Coupe"
+  },
+  {
+   "date": "2024-04-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 41265,
+   "basis": "sold+fee",
+   "hammer_usd": 39300,
+   "native": {
+    "amount": 39300,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-49/",
+   "chassis": "9110120169",
+   "title": "1970 Porsche 911T Coupe 5-Speed"
+  },
+  {
+   "date": "2024-03-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 147000,
+   "basis": "sold+fee",
+   "hammer_usd": 140000,
+   "native": {
+    "amount": 140000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-50/",
+   "chassis": "9110120397",
+   "title": "1970 Porsche 911T Coupe"
+  },
+  {
+   "date": "2024-02-23",
+   "venue": "PCARMarket",
+   "price_usd": 63525,
+   "basis": "sold+fee",
+   "hammer_usd": 60500,
+   "native": {
+    "amount": 60500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.pcarmarket.com/auction/1970-porsche-911t-1",
+   "chassis": "9110100885",
+   "title": "1970 Porsche 911T Coupe Barn Find"
+  },
+  {
+   "date": "2023-12-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 97125,
+   "basis": "sold+fee",
+   "hammer_usd": 92500,
+   "native": {
+    "amount": 92500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-46/",
+   "chassis": "9110101162",
+   "title": "2.4L-Powered 1970 Porsche 911T Coupe"
+  },
+  {
+   "date": "2023-12-21",
+   "venue": "PCARMarket",
+   "price_usd": 167500,
+   "basis": "sold+fee",
+   "hammer_usd": 160000,
+   "native": {
+    "amount": 160000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.pcarmarket.com/auction/1970-porsche-911t-coupe",
+   "chassis": "9110101521",
+   "title": "1970 Porsche 911 Coupe 3.0L Twin-Plug"
+  },
+  {
+   "date": "2023-11-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 83475,
+   "basis": "sold+fee",
+   "hammer_usd": 79500,
+   "native": {
+    "amount": 79500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-coupe-42/",
+   "chassis": "9110101130",
+   "title": "1970 Porsche 911T Coupe"
+  },
+  {
+   "date": "2023-10-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 50400,
+   "basis": "sold+fee",
+   "hammer_usd": 48000,
+   "native": {
+    "amount": 48000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-porsche-911t-55/",
+   "chassis": "9110121736",
+   "title": "1970 Porsche 911T Coupe"
+  },
+  {
+   "date": "2023-09-26",
+   "venue": "PCARMarket",
+   "price_usd": 105000,
+   "basis": "sold+fee",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 100000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.pcarmarket.com/auction/1970-porsche-911t",
+   "chassis": "9110102197",
+   "title": "1970 Porsche 911T Coupe 2.7L"
+  }
+ ]
+}

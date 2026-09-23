@@ -1,0 +1,1026 @@
+{
+ "car_id": 47,
+ "listed": "1991 Acura NSX",
+ "status": "compare",
+ "year_scope": "exact 1991",
+ "basis": "mixed (2% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Acura",
+  "model": "NSX",
+  "window": "36mo",
+  "year_min": 1991,
+  "year_max": 1991,
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-09-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 108642,
+   "basis": "sold+fee",
+   "hammer_usd": 103469,
+   "native": {
+    "amount": 103469,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-317/",
+   "chassis": "JH4NA1159MT000715",
+   "title": "Augie Pabst Jr.’s 32k-Mile 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2026-08-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 79275,
+   "basis": "sold+fee",
+   "hammer_usd": 75500,
+   "native": {
+    "amount": 75500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-316/",
+   "chassis": "JH4NA1157MT000552",
+   "title": "34-Years-Owned 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2026-08-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 77699,
+   "basis": "sold+fee",
+   "hammer_usd": 73999,
+   "native": {
+    "amount": 73999,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-315/",
+   "chassis": "JH4NA1156MT800243",
+   "title": "Original-Owner 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2026-08-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 81375,
+   "basis": "sold+fee",
+   "hammer_usd": 77500,
+   "native": {
+    "amount": 77500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-310/",
+   "chassis": "JH4NA1269MT001810",
+   "title": "1991 Acura NSX"
+  },
+  {
+   "date": "2026-08-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 85051,
+   "basis": "sold+fee",
+   "hammer_usd": 81001,
+   "native": {
+    "amount": 81001,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-309/",
+   "chassis": "JH4NA1158MT003119",
+   "title": "27-Years-Owned 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2026-07-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 73500,
+   "basis": "sold+fee",
+   "hammer_usd": 70000,
+   "native": {
+    "amount": 70000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-304/",
+   "chassis": "JH4NA1152MT002726",
+   "title": "46k-Mile 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2026-07-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 114975,
+   "basis": "sold+fee",
+   "hammer_usd": 109500,
+   "native": {
+    "amount": 109500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-307/",
+   "chassis": "JH4NA1156MT000932",
+   "title": "23k-Mile 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2026-06-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 90825,
+   "basis": "sold+fee",
+   "hammer_usd": 86500,
+   "native": {
+    "amount": 86500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-305/",
+   "chassis": "JH4NA1152MT001527",
+   "title": "1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2026-06-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 108150,
+   "basis": "sold+fee",
+   "hammer_usd": 103000,
+   "native": {
+    "amount": 103000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-303/",
+   "chassis": "JH4NA1151MT002961",
+   "title": "Original-Owner, 39k-Mile 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2026-06-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 106050,
+   "basis": "sold+fee",
+   "hammer_usd": 101000,
+   "native": {
+    "amount": 101000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-243-2/",
+   "chassis": "JH4NA1159MT001590",
+   "title": "1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2026-05-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 167500,
+   "basis": "sold+fee",
+   "hammer_usd": 160000,
+   "native": {
+    "amount": 160000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-302/",
+   "chassis": "JH4NA115XMT001081",
+   "title": "29-Years-Owned 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2026-04-29",
+   "venue": "Cars & Bids",
+   "price_usd": 86091,
+   "basis": "sold+fee",
+   "hammer_usd": 81991,
+   "native": {
+    "amount": 81991,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://carsandbids.com/auctions/3RmlRDp9/1991-acura-nsx",
+   "chassis": "JH4NA1155MT000985",
+   "title": "1991 Acura NSX"
+  },
+  {
+   "date": "2026-03-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 54075,
+   "basis": "sold+fee",
+   "hammer_usd": 51500,
+   "native": {
+    "amount": 51500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-299/",
+   "chassis": "JH4NA115XMT001999",
+   "title": "1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2026-03-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 127177,
+   "basis": "sold+fee",
+   "hammer_usd": 121121,
+   "native": {
+    "amount": 121121,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-298/",
+   "chassis": "JH4NA1155MT002106",
+   "title": "28k-Mile 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2026-02-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 60375,
+   "basis": "sold+fee",
+   "hammer_usd": 57500,
+   "native": {
+    "amount": 57500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-295-2/",
+   "chassis": "JH4NA1262MT002510",
+   "title": "1991 Acura NSX"
+  },
+  {
+   "date": "2026-01-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 59850,
+   "basis": "sold+fee",
+   "hammer_usd": 57000,
+   "native": {
+    "amount": 57000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-295/",
+   "chassis": "JH4NA1262MT002510",
+   "title": "1991 Acura NSX"
+  },
+  {
+   "date": "2025-12-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 74550,
+   "basis": "sold+fee",
+   "hammer_usd": 71000,
+   "native": {
+    "amount": 71000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-292/",
+   "chassis": "JH4NA1159MT001086",
+   "title": "1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2025-12-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 87150,
+   "basis": "sold+fee",
+   "hammer_usd": 83000,
+   "native": {
+    "amount": 83000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-291/",
+   "chassis": "JH4NA1264MT000919",
+   "title": "29k-Mile 1991 Acura NSX"
+  },
+  {
+   "date": "2025-12-05",
+   "venue": "Cars & Bids",
+   "price_usd": 64050,
+   "basis": "sold+fee",
+   "hammer_usd": 61000,
+   "native": {
+    "amount": 61000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://carsandbids.com/auctions/3veJj51b/1991-acura-nsx",
+   "chassis": "JH4NA1157MT800087",
+   "title": "1991 Acura NSX"
+  },
+  {
+   "date": "2025-11-28",
+   "venue": "PCARMarket",
+   "price_usd": 60900,
+   "basis": "sold+fee",
+   "hammer_usd": 58000,
+   "native": {
+    "amount": 58000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://www.pcarmarket.com/auction/1991-acura-nsx-coupe-4",
+   "chassis": "JH4NA126XMT002688",
+   "title": "NO RESERVE 1991 Acura NSX Coupe"
+  },
+  {
+   "date": "2025-11-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 79800,
+   "basis": "sold+fee",
+   "hammer_usd": 76000,
+   "native": {
+    "amount": 76000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-288/",
+   "chassis": "JH4NA1154MT002064",
+   "title": "1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2025-11-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 157500,
+   "basis": "sold+fee",
+   "hammer_usd": 150000,
+   "native": {
+    "amount": 150000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-289/",
+   "chassis": "JH4NA1150MT001834",
+   "title": "24k-Mile 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2025-10-31",
+   "venue": "Broad Arrow",
+   "price_usd": 154000,
+   "basis": "buyer-paid",
+   "hammer_usd": 137500,
+   "native": {
+    "amount": 154000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1991,
+   "url": "https://www.broadarrowauctions.com/vehicles/lv25_r0056/1991-acura-nsx",
+   "chassis": "JH4NA1156MT000994",
+   "title": "1991 Acura NSX"
+  },
+  {
+   "date": "2025-10-15",
+   "venue": "Cars & Bids",
+   "price_usd": 69826,
+   "basis": "sold+fee",
+   "hammer_usd": 66501,
+   "native": {
+    "amount": 66501,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://carsandbids.com/auctions/KP7gwDJ2/1991-acura-nsx",
+   "chassis": "JH4NA1155MT000985",
+   "title": "1991 Acura NSX"
+  },
+  {
+   "date": "2025-10-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 80850,
+   "basis": "sold+fee",
+   "hammer_usd": 77000,
+   "native": {
+    "amount": 77000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-284/",
+   "chassis": "JH4NA1155MT001828",
+   "title": "24-Years-Owned 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2025-08-28",
+   "venue": "PCARMarket",
+   "price_usd": 84000,
+   "basis": "sold+fee",
+   "hammer_usd": 80000,
+   "native": {
+    "amount": 80000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://www.pcarmarket.com/auction/1991-acura-nsx-coupe-2",
+   "chassis": "JH4NA1156MT001191",
+   "title": "1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2025-08-15",
+   "venue": "Cars & Bids",
+   "price_usd": 68250,
+   "basis": "sold+fee",
+   "hammer_usd": 65000,
+   "native": {
+    "amount": 65000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://carsandbids.com/auctions/3y4GZ0Gp/1991-acura-nsx",
+   "chassis": "JH4NA115XMT800262",
+   "title": "1991 Acura NSX"
+  },
+  {
+   "date": "2025-08-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 82950,
+   "basis": "sold+fee",
+   "hammer_usd": 79000,
+   "native": {
+    "amount": 79000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-278/",
+   "chassis": "JH4NA1158MT000379",
+   "title": "Single-Family-Owned 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2025-07-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 75600,
+   "basis": "sold+fee",
+   "hammer_usd": 72000,
+   "native": {
+    "amount": 72000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-275/",
+   "chassis": "JH4NA126XMT002688",
+   "title": "1991 Acura NSX"
+  },
+  {
+   "date": "2025-05-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 71400,
+   "basis": "sold+fee",
+   "hammer_usd": 68000,
+   "native": {
+    "amount": 68000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-270/",
+   "chassis": "JH4NA1154MT000685",
+   "title": "1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2025-04-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 67200,
+   "basis": "sold+fee",
+   "hammer_usd": 64000,
+   "native": {
+    "amount": 64000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-266/",
+   "chassis": "JH4NA1153MT001326",
+   "title": "1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2025-04-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 97116,
+   "basis": "sold+fee",
+   "hammer_usd": 92491,
+   "native": {
+    "amount": 92491,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-269/",
+   "chassis": "JH4NA1154MT002985",
+   "title": "39k-Mile 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2025-03-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 92925,
+   "basis": "sold+fee",
+   "hammer_usd": 88500,
+   "native": {
+    "amount": 88500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-267/",
+   "chassis": "JH4NA1153MT001987",
+   "title": "16k-Mile 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2025-01-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 65625,
+   "basis": "sold+fee",
+   "hammer_usd": 62500,
+   "native": {
+    "amount": 62500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-261/",
+   "chassis": "JH4NA1151MT002250",
+   "title": "1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2025-01-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 97650,
+   "basis": "sold+fee",
+   "hammer_usd": 93000,
+   "native": {
+    "amount": 93000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-260-2/",
+   "chassis": "JH4NA1155MT002364",
+   "title": "14k-Mile 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2024-12-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 79200,
+   "basis": "sold+fee",
+   "hammer_usd": 75429,
+   "native": {
+    "amount": 75429,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-256/",
+   "chassis": "JH4NA1262MT002975",
+   "title": "34k-Mile 1991 Acura NSX"
+  },
+  {
+   "date": "2024-12-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 97650,
+   "basis": "sold+fee",
+   "hammer_usd": 93000,
+   "native": {
+    "amount": 93000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-260/",
+   "chassis": "JH4NA1155MT002364",
+   "title": "14k-Mile 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2024-11-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 91408,
+   "basis": "sold+fee",
+   "hammer_usd": 87055,
+   "native": {
+    "amount": 87055,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-236/",
+   "chassis": "JH4NA1156MT002566",
+   "title": "13k-Mile 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2024-11-21",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 109200,
+   "basis": "sold+fee",
+   "hammer_usd": 104000,
+   "native": {
+    "amount": 104000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://www.sothebysmotorsport.com/auction/1991-acura-nsx-3466",
+   "chassis": "JH4NA1156MT000994",
+   "title": "1991 Acura NSX"
+  },
+  {
+   "date": "2024-11-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 64050,
+   "basis": "sold+fee",
+   "hammer_usd": 61000,
+   "native": {
+    "amount": 61000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-254/",
+   "chassis": "JH4NA1150MT002773",
+   "title": "1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2024-11-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 69300,
+   "basis": "sold+fee",
+   "hammer_usd": 66000,
+   "native": {
+    "amount": 66000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-255/",
+   "chassis": "JH4NA1155MT002123",
+   "title": "1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2024-10-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 75600,
+   "basis": "sold+fee",
+   "hammer_usd": 72000,
+   "native": {
+    "amount": 72000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-253/",
+   "chassis": "JH4NA1152MT001527",
+   "title": "1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2024-10-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 68250,
+   "basis": "sold+fee",
+   "hammer_usd": 65000,
+   "native": {
+    "amount": 65000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-246/",
+   "chassis": "JH4NA1156MT002499",
+   "title": "1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2024-09-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 91875,
+   "basis": "sold+fee",
+   "hammer_usd": 87500,
+   "native": {
+    "amount": 87500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-249/",
+   "chassis": "JH4NA1264MT001875",
+   "title": "6k-Mile 1991 Acura NSX"
+  },
+  {
+   "date": "2024-09-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 77175,
+   "basis": "sold+fee",
+   "hammer_usd": 73500,
+   "native": {
+    "amount": 73500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-251/",
+   "chassis": "JH4NA1154MT000900",
+   "title": "1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2024-08-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 65100,
+   "basis": "sold+fee",
+   "hammer_usd": 62000,
+   "native": {
+    "amount": 62000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-242/",
+   "chassis": "JH4NA1150MT001669",
+   "title": "23-Years-Owned 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2024-08-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 86100,
+   "basis": "sold+fee",
+   "hammer_usd": 82000,
+   "native": {
+    "amount": 82000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-245/",
+   "chassis": "JH4NA1153MT000595",
+   "title": "36k-Mile 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2024-08-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 79800,
+   "basis": "sold+fee",
+   "hammer_usd": 76000,
+   "native": {
+    "amount": 76000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-243/",
+   "chassis": "JH4NA1159MT001590",
+   "title": "1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2024-07-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 119700,
+   "basis": "sold+fee",
+   "hammer_usd": 114000,
+   "native": {
+    "amount": 114000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-181/",
+   "chassis": "JH4NA1152MT001043",
+   "title": "6k-Mile 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2024-06-19",
+   "venue": "Cars & Bids",
+   "price_usd": 82950,
+   "basis": "sold+fee",
+   "hammer_usd": 79000,
+   "native": {
+    "amount": 79000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://carsandbids.com/auctions/9a7pz75l/1991-acura-nsx",
+   "chassis": "JH4NA1157MT001684",
+   "title": "1991 Acura NSX"
+  },
+  {
+   "date": "2024-06-12",
+   "venue": "Cars & Bids",
+   "price_usd": 72459,
+   "basis": "sold+fee",
+   "hammer_usd": 69009,
+   "native": {
+    "amount": 69009,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://carsandbids.com/auctions/rjA0vz4Y/1991-acura-nsx",
+   "chassis": "JH4NA1159MT000696",
+   "title": "1991 Acura NSX"
+  },
+  {
+   "date": "2024-04-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 56175,
+   "basis": "sold+fee",
+   "hammer_usd": 53500,
+   "native": {
+    "amount": 53500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-honda-nsx-13/",
+   "chassis": "NA11001621",
+   "title": "1991 Honda NSX 5-Speed"
+  },
+  {
+   "date": "2024-03-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 76650,
+   "basis": "sold+fee",
+   "hammer_usd": 73000,
+   "native": {
+    "amount": 73000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-232/",
+   "chassis": "JH4NA1153MT000662",
+   "title": "1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2024-02-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 105000,
+   "basis": "sold+fee",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 100000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-231/",
+   "chassis": "JH4NA1150MT001641",
+   "title": "22k-Mile 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2024-01-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 65100,
+   "basis": "sold+fee",
+   "hammer_usd": 62000,
+   "native": {
+    "amount": 62000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-228/",
+   "chassis": "JH4NA1268MT002656",
+   "title": "1991 Acura NSX"
+  },
+  {
+   "date": "2024-01-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 68250,
+   "basis": "sold+fee",
+   "hammer_usd": 65000,
+   "native": {
+    "amount": 65000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-229/",
+   "chassis": "JH4NA1157MT002317",
+   "title": "1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2023-12-29",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 119700,
+   "basis": "sold+fee",
+   "hammer_usd": 114000,
+   "native": {
+    "amount": 114000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://www.sothebysmotorsport.com/auction/1991-acura-nsx-869",
+   "chassis": "JH4NA1156MT000994",
+   "title": "1991 Acura NSX"
+  },
+  {
+   "date": "2023-12-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 57750,
+   "basis": "sold+fee",
+   "hammer_usd": 55000,
+   "native": {
+    "amount": 55000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-227/",
+   "chassis": "JH4NA1154MT000458",
+   "title": "1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2023-12-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 68250,
+   "basis": "sold+fee",
+   "hammer_usd": 65000,
+   "native": {
+    "amount": 65000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-226/",
+   "chassis": "JH4NA1159MT001783",
+   "title": "21-Years-Owned 1991 Acura NSX 5-Speed"
+  },
+  {
+   "date": "2023-12-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 59908,
+   "basis": "sold+fee",
+   "hammer_usd": 57055,
+   "native": {
+    "amount": 57055,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-219/",
+   "chassis": "JH4NA1263MT002676",
+   "title": "1991 Acura NSX"
+  },
+  {
+   "date": "2023-11-29",
+   "venue": "Cars & Bids",
+   "price_usd": 55125,
+   "basis": "sold+fee",
+   "hammer_usd": 52500,
+   "native": {
+    "amount": 52500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://carsandbids.com/auctions/r46X87LP/1991-acura-nsx",
+   "chassis": "JH4NA1159MT001508",
+   "title": "1991 Acura NSX"
+  },
+  {
+   "date": "2023-11-14",
+   "venue": "Cars & Bids",
+   "price_usd": 74025,
+   "basis": "sold+fee",
+   "hammer_usd": 70500,
+   "native": {
+    "amount": 70500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://carsandbids.com/auctions/3o7xjAqa/1991-acura-nsx",
+   "chassis": "JH4NA1154MT002226",
+   "title": "1991 Acura NSX"
+  },
+  {
+   "date": "2023-09-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 67725,
+   "basis": "sold+fee",
+   "hammer_usd": 64500,
+   "native": {
+    "amount": 64500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1991,
+   "url": "https://bringatrailer.com/listing/1991-acura-nsx-221/",
+   "chassis": "JH4NA1150MT002949",
+   "title": "1991 Acura NSX"
+  }
+ ]
+}

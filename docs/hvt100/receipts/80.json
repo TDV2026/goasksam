@@ -1,0 +1,371 @@
+{
+ "car_id": 80,
+ "listed": "2016 Porsche 911 GT3 RS",
+ "status": "compare",
+ "year_scope": "exact 2016",
+ "basis": "mixed (5% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Porsche",
+  "model": "911",
+  "window": "36mo",
+  "year_min": 2016,
+  "year_max": 2016,
+  "trim": "GT3 RS",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-07-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 287500,
+   "basis": "sold+fee",
+   "hammer_usd": 280000,
+   "native": {
+    "amount": 280000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-113/",
+   "chassis": "WP0AF2A92GS187073",
+   "title": "86-Mile 2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2026-06-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 267500,
+   "basis": "sold+fee",
+   "hammer_usd": 260000,
+   "native": {
+    "amount": 260000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-112/",
+   "chassis": "WP0AF2A90GS192496",
+   "title": "Oryx White Metallic 5k-Mile 2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2026-05-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 219500,
+   "basis": "sold+fee",
+   "hammer_usd": 212000,
+   "native": {
+    "amount": 212000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-107/",
+   "chassis": "WP0AF2A90GS187198",
+   "title": "16k-Mile 2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2026-04-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 212500,
+   "basis": "sold+fee",
+   "hammer_usd": 205000,
+   "native": {
+    "amount": 205000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-105/",
+   "chassis": "WP0AF2A90GS192904",
+   "title": "11k-Mile 2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2026-01-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 215500,
+   "basis": "sold+fee",
+   "hammer_usd": 208000,
+   "native": {
+    "amount": 208000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-98/",
+   "chassis": "WP0AF2A9XGS192196",
+   "title": "6k-Mile 2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2025-12-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 177491,
+   "basis": "sold+fee",
+   "hammer_usd": 169991,
+   "native": {
+    "amount": 169991,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-99/",
+   "chassis": "WP0AF2A99GS193324",
+   "title": "2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2025-12-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 189781,
+   "basis": "sold+fee",
+   "hammer_usd": 182281,
+   "native": {
+    "amount": 182281,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-96/",
+   "chassis": "WP0AF2A99GS192478",
+   "title": "2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2025-11-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 180500,
+   "basis": "sold+fee",
+   "hammer_usd": 173000,
+   "native": {
+    "amount": 173000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-93/",
+   "chassis": "WP0AF2A95GS193059",
+   "title": "10k-Mile 2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2025-08-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 207500,
+   "basis": "sold+fee",
+   "hammer_usd": 200000,
+   "native": {
+    "amount": 200000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-90/",
+   "chassis": "WP0AF2A93GS192458",
+   "title": "12k-Mile 2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2025-07-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 222500,
+   "basis": "sold+fee",
+   "hammer_usd": 215000,
+   "native": {
+    "amount": 215000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-88/",
+   "chassis": "WP0AF2A99GS192268",
+   "title": "2,900-Mile 2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2025-06-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 228500,
+   "basis": "sold+fee",
+   "hammer_usd": 221000,
+   "native": {
+    "amount": 221000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-87/",
+   "chassis": "WP0AF2A90GS193132",
+   "title": "226-Mile 2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2025-04-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 213500,
+   "basis": "sold+fee",
+   "hammer_usd": 206000,
+   "native": {
+    "amount": 206000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-86/",
+   "chassis": "WP0AF2A95GS193126",
+   "title": "865-Mile 2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2025-02-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 223500,
+   "basis": "sold+fee",
+   "hammer_usd": 216000,
+   "native": {
+    "amount": 216000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-82/",
+   "chassis": "WP0AF2A90GS192496",
+   "title": "3,700-Mile 2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2024-11-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 222500,
+   "basis": "sold+fee",
+   "hammer_usd": 215000,
+   "native": {
+    "amount": 215000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-72/",
+   "chassis": "WP0AF2A90GS192269",
+   "title": "354-Mile 2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2024-09-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 218000,
+   "basis": "sold+fee",
+   "hammer_usd": 210500,
+   "native": {
+    "amount": 210500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-73/",
+   "chassis": "WP0AF2A92GS192483",
+   "title": "795-Mile 2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2024-07-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 192500,
+   "basis": "sold+fee",
+   "hammer_usd": 185000,
+   "native": {
+    "amount": 185000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-67/",
+   "chassis": "WP0AF2A97GS193208",
+   "title": "8k-Mile 2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2024-06-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 177500,
+   "basis": "sold+fee",
+   "hammer_usd": 170000,
+   "native": {
+    "amount": 170000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-63/",
+   "chassis": "WP0AF2A95GS187083",
+   "title": "12k-Mile 2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2024-05-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 187500,
+   "basis": "sold+fee",
+   "hammer_usd": 180000,
+   "native": {
+    "amount": 180000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-59/",
+   "chassis": "WP0AF2A91GS192295",
+   "title": "6k-Mile 2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2024-04-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 192500,
+   "basis": "sold+fee",
+   "hammer_usd": 185000,
+   "native": {
+    "amount": 185000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-60/",
+   "chassis": "WP0AF2A99GS187135",
+   "title": "13k-Mile 2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2024-03-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 226388,
+   "basis": "sold+fee",
+   "hammer_usd": 218888,
+   "native": {
+    "amount": 218888,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-57/",
+   "chassis": "WP0AF2A9XGS192148",
+   "title": "375-Mile 2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2023-12-02",
+   "venue": "RM Sotheby's",
+   "price_usd": 390000,
+   "basis": "buyer-paid",
+   "hammer_usd": 350000,
+   "native": {
+    "amount": 390000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2016,
+   "url": "https://rmsothebys.com/auctions/wc23/lots/r0064-2016-porsche-911-gt3-rs/",
+   "chassis": "WP0AF2A96GS192907",
+   "title": "2016 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2023-10-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 215500,
+   "basis": "sold+fee",
+   "hammer_usd": 208000,
+   "native": {
+    "amount": 208000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-911-gt3-rs-51/",
+   "chassis": "WP0AF2A95GS192591",
+   "title": "One-Owner 3,300-Mile 2016 Porsche 911 GT3 RS"
+  }
+ ]
+}

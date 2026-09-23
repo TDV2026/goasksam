@@ -1,0 +1,306 @@
+{
+ "car_id": 76,
+ "listed": "2012 Lexus LFA",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (2010-2014)",
+ "basis": "mixed (33% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Lexus",
+  "model": "LFA",
+  "window": "36mo",
+  "year_min": 2010,
+  "year_max": 2014,
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2025-11-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 683500,
+   "basis": "sold+fee",
+   "hammer_usd": 676000,
+   "native": {
+    "amount": 676000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-lexus-lfa-33/",
+   "chassis": "JTHHX8BH9C1000270",
+   "title": "2012 Lexus LFA"
+  },
+  {
+   "date": "2025-10-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 837500,
+   "basis": "sold+fee",
+   "hammer_usd": 830000,
+   "native": {
+    "amount": 830000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-lexus-lfa-9/",
+   "chassis": "JTHHX8BHXC1000178",
+   "title": "2012 Lexus LFA"
+  },
+  {
+   "date": "2025-09-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 792500,
+   "basis": "sold+fee",
+   "hammer_usd": 785000,
+   "native": {
+    "amount": 785000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-lexus-lfa-32/",
+   "chassis": "JTHHX8BHXC1000195",
+   "title": "Original-Owner 2012 Lexus LFA"
+  },
+  {
+   "date": "2025-08-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 817500,
+   "basis": "sold+fee",
+   "hammer_usd": 810000,
+   "native": {
+    "amount": 810000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-lexus-lfa-31/",
+   "chassis": "JTHHX8BH1C1000201",
+   "title": "4,400-Mile 2012 Lexus LFA"
+  },
+  {
+   "date": "2025-04-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 882500,
+   "basis": "sold+fee",
+   "hammer_usd": 875000,
+   "native": {
+    "amount": 875000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-lexus-lfa-29/",
+   "chassis": "JTHHX8BH9C1000009",
+   "title": "3,800-Mile 2012 Lexus LFA"
+  },
+  {
+   "date": "2025-03-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 958500,
+   "basis": "sold+fee",
+   "hammer_usd": 951000,
+   "native": {
+    "amount": 951000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-lexus-lfa-28/",
+   "chassis": "JTHHX8BH3C1000233",
+   "title": "952-Mile 2012 Lexus LFA"
+  },
+  {
+   "date": "2024-10-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 867500,
+   "basis": "sold+fee",
+   "hammer_usd": 860000,
+   "native": {
+    "amount": 860000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-lexus-lfa-27/",
+   "chassis": "JTHHX8BH0C1000061",
+   "title": "3,100-Mile 2012 Lexus LFA"
+  },
+  {
+   "date": "2024-09-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 882500,
+   "basis": "sold+fee",
+   "hammer_usd": 875000,
+   "native": {
+    "amount": 875000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-lexus-lfa-24/",
+   "chassis": "JTHHX8BH2C1000028",
+   "title": "1,700-Mile 2012 Lexus LFA"
+  },
+  {
+   "date": "2024-08-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 817500,
+   "basis": "sold+fee",
+   "hammer_usd": 810000,
+   "native": {
+    "amount": 810000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-lexus-lfa-25/",
+   "chassis": "JTHHX8BH9C1000205",
+   "title": "3,600-Mile 2012 Lexus LFA"
+  },
+  {
+   "date": "2024-04-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 910611,
+   "basis": "sold+fee",
+   "hammer_usd": 903111,
+   "native": {
+    "amount": 903111,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-lexus-lfa-20/",
+   "chassis": "JTHHX8BH3C1000006",
+   "title": "2,600-Mile 2012 Lexus LFA"
+  },
+  {
+   "date": "2024-03-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 897500,
+   "basis": "sold+fee",
+   "hammer_usd": 890000,
+   "native": {
+    "amount": 890000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-lexus-lfa-19/",
+   "chassis": "JTHHX8BH1C1000103",
+   "title": "268-Mile 2012 Lexus LFA"
+  },
+  {
+   "date": "2024-03-02",
+   "venue": "Broad Arrow",
+   "price_usd": 731000,
+   "basis": "buyer-paid",
+   "hammer_usd": 660000,
+   "native": {
+    "amount": 731000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2012,
+   "url": "https://www.broadarrowauctions.com/vehicles/am24_r106/2012-lexus-lfa",
+   "chassis": "JTHHX8BH9C1000396",
+   "title": "2012 Lexus LFA"
+  },
+  {
+   "date": "2024-01-28",
+   "venue": "Barrett-Jackson",
+   "price_usd": 1650000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1500000,
+   "native": {
+    "amount": 1650000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2012,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2012-lexus-lfa-nrburgring-275328?origin=results",
+   "chassis": "JTHHX8BH7C1000347",
+   "title": "2012 LEXUS LFA NÜRBURGRING"
+  },
+  {
+   "date": "2024-01-28",
+   "venue": "Barrett-Jackson",
+   "price_usd": 687500,
+   "basis": "buyer-paid",
+   "hammer_usd": 625000,
+   "native": {
+    "amount": 687500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2012,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2012-lexus-lfa-275334?origin=results",
+   "chassis": "JTHHX8BH1C1000103",
+   "title": "2012 LEXUS LFA"
+  },
+  {
+   "date": "2023-12-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 732500,
+   "basis": "sold+fee",
+   "hammer_usd": 725000,
+   "native": {
+    "amount": 725000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-lexus-lfa-17/",
+   "chassis": "JTHHX8BH9C1000396",
+   "title": "1,500-Mile 2012 Lexus LFA"
+  },
+  {
+   "date": "2023-11-25",
+   "venue": "RM Sotheby's",
+   "price_usd": 710100,
+   "basis": "buyer-paid",
+   "hammer_usd": 626400,
+   "native": {
+    "amount": 657500,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 2011,
+   "url": "https://rmsothebys.com/auctions/mu23/lots/r0002-2011-lexus-lfa/",
+   "chassis": "JTHHX8BH8B1000209",
+   "title": "2011 Lexus LFA"
+  },
+  {
+   "date": "2023-11-17",
+   "venue": "RM Sotheby's",
+   "price_usd": 1875000,
+   "basis": "buyer-paid",
+   "hammer_usd": 1700000,
+   "native": {
+    "amount": 1875000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2012,
+   "url": "https://rmsothebys.com/auctions/lv23/lots/r0018-2012-lexus-lfa-nurburgring-package/",
+   "chassis": "JTHHX8BH6C1000369",
+   "title": "2012 Lexus LFA Nürburgring Package"
+  },
+  {
+   "date": "2023-11-17",
+   "venue": "RM Sotheby's",
+   "price_usd": 940000,
+   "basis": "buyer-paid",
+   "hammer_usd": 850000,
+   "native": {
+    "amount": 940000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2012,
+   "url": "https://rmsothebys.com/auctions/lv23/lots/r0019-2012-lexus-lfa/",
+   "chassis": "JTHHX8BH9C1000480",
+   "title": "2012 Lexus LFA"
+  }
+ ]
+}

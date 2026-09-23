@@ -1,0 +1,604 @@
+# HVT-100 comparison — our side (archive only, zero OCD)
+
+Generated 2026-09-23. Windows: W1 2025-01-01..2026-06-30, W2 2026-07-01..2026-09-23, W3 last 36 months. Scoping: One Box path (buildSpec/fetchQualifying/isQualifying) via the Desk. Year rule: exact model year if W1>=8 else +/-2 within generation ("adjacent years pooled"), W1 scope applied to all windows. Basis: auction houses buyer-paid; online sold price + buyer fee. Medians and quartiles only. No cap.
+
+## a) Scope-failure report (read first)
+- car 3 Ford Mustang: year range 1965-1965 outside expected scope
+- car 5 Chevrolet Camaro: year range 1969-1969 outside expected scope
+- car 8 Dodge Charger R/T: ZERO qualifying sales (scope may be wrong)
+- car 9 Shelby GT350 : ZERO qualifying sales (scope may be wrong)
+- car 18 Porsche 911 Carrera RS 2.7: ZERO qualifying sales (scope may be wrong)
+- car 33 Porsche 911 Speedster: ZERO qualifying sales (scope may be wrong)
+- car 35 Porsche 928 GTS: ZERO qualifying sales (scope may be wrong)
+- car 39 Ferrari 308 GTS QV: ZERO qualifying sales (scope may be wrong)
+- car 50 Chevrolet Corvette ZR-1: ZERO qualifying sales (scope may be wrong)
+- car 79 Mercedes-Benz SLS AMG : ZERO qualifying sales (scope may be wrong)
+- car 82 Porsche 911 Carrera T: ZERO qualifying sales (scope may be wrong)
+- car 91 Lamborghini Huracan LP610-4: ZERO qualifying sales (scope may be wrong)
+
+## c) Totals
+- Comparable (in HVT): 93 | with a non-thin W1 median: 67 | thin/no-value: 26
+- Excluded (no matching HVT car): 2 -> 7 Barracuda 340; 78 Land Cruiser 100
+- Coverage-only (not in HVT): 5 -> 89 MP4-12C ; 90 720S ; 92 Aventador S; 99 M4 Competition; 100 Focus RS
+- Vs HVT #3 Lo-Hi band: 31 inside, 26 above, 10 below
+- Prior-sale coverage (>=1 sale carries a VIN/chassis): 90 of 100
+
+## b) Per car: HVT #3 vs our W1 median
+- 1 1957 Chevrolet Bel Air : HVT#3 $65,900 [$57,700-$75,800] | our W1 $52,238 | gap -21% | below #3 band | #2 $95,600
+- 2 1963 Chevrolet Corvette Sting Ray: HVT#3 $133,000 [$120,633-$146,000] | our W1 $134,900 | gap 1% | inside #3 band | #2 $172,000
+- 3 1965 Ford Mustang 289: HVT#3 $49,300 [$41,100-$52,933] | our W1 $31,500 | gap -36% | below #3 band | #2 $60,200
+- 4 1967 Chevrolet Corvette L71: HVT#3 $108,000 [$100,767-$126,000] | our W1 $163,000 | gap 51% | above #3 band | #2 $162,000
+- 5 1969 Chevrolet Camaro Z/28: HVT#3 $78,700 [$71,967-$91,467] | our W1 $105,000 | gap 33% | above #3 band | #2 $117,000
+- 6 1970 Chevrolet Chevelle SS 396: HVT#3 $70,500 [$63,800-$76,667] | our W1 $75,350 | gap 7% | inside #3 band | #2 $89,000
+- 8 1969 Dodge Charger R/T: HVT#3 $57,000 | our W1 THIN (n=0) | no comparison
+- 9 1966 Shelby GT350 : HVT#3 $231,000 | our W1 THIN (n=0) | no comparison
+- 10 1968 Pontiac GTO : HVT#3 $26,800 [$23,067-$33,533] | our W1 $47,463 | gap 77% | above #3 band | #2 $47,000
+- 11 1955 Ford Thunderbird : HVT#3 $23,600 [$20,667-$28,000] | our W1 $24,465 | gap 4% | inside #3 band | #2 $36,800
+- 12 1959 Cadillac Series 62 : HVT#3 $119,000 [$106,167-$140,000] | our W1 $123,200 | gap 4% | inside #3 band | #2 $182,000
+- 13 1971 Chevrolet C10 short bed: HVT#3 $27,600 | our W1 THIN (n=1) | no comparison
+- 14 1976 Ford Bronco : HVT#3 $51,100 [$46,500-$56,700] | our W1 $69,300 | gap 36% | above #3 band | #2 $67,900
+- 15 1965 Ford F-100 short bed: HVT#3 $15,400 | our W1 THIN (n=4) | no comparison
+- 16 1965 Porsche 356 C: HVT#3 $95,000 [$87,333-$118,333] | our W1 $182,000 | gap 92% | above #3 band | #2 $165,000
+- 17 1970 Porsche 911 T: HVT#3 $67,000 [$56,000-$77,333] | our W1 $90,300 | gap 35% | above #3 band | #2 $98,000
+- 18 1973 Porsche 911 Carrera RS 2.7: HVT#3 $445,000 | our W1 THIN (n=0) | no comparison
+- 19 1966 Jaguar E-Type Series 1: HVT#3 $91,500 [$80,433-$130,000] | our W1 $84,525 | gap -8% | inside #3 band | #2 $207,000
+- 20 1962 Mercedes-Benz 190SL : HVT#3 $74,500 [$67,567-$89,333] | our W1 $100,800 | gap 35% | above #3 band | #2 $119,000
+- 21 1971 Mercedes-Benz 280SL : HVT#3 $81,900 [$68,733-$104,600] | our W1 $128,100 | gap 56% | above #3 band | #2 $150,000
+- 22 1957 Mercedes-Benz 300SL Roadster: HVT#3 $970,000 | our W1 THIN (n=5) | no comparison
+- 23 1965 Austin-Healey 3000 Mk III: HVT#3 $39,400 [$33,933-$50,733] | our W1 $51,713 | gap 31% | above #3 band | #2 $73,400
+- 24 1967 Alfa Romeo Giulia GT Veloce: HVT#3 $53,300 | our W1 THIN (n=4) | no comparison
+- 25 1972 Datsun 240Z : HVT#3 $23,900 | our W1 THIN (n=5) | no comparison
+- 26 1967 Volkswagen Beetle : HVT#3 $18,300 [$15,067-$27,467] | our W1 $18,725 | gap 2% | inside #3 band | #2 $45,800
+- 27 1973 BMW 2002 tii: HVT#3 $34,900 [$27,400-$49,533] | our W1 $28,350 | gap -19% | inside #3 band | #2 $78,800
+- 28 1964 Ferrari 250 Lusso: HVT#3 $1,000,000 [$935,000-$1,200,000] | our W1 $1,462,500 | gap 46% | above #3 band | #2 $1,600,000
+- 29 1972 Ferrari 365 Daytona: HVT#3 $525,000 [$501,000-$573,333] | our W1 $588,300 | gap 12% | above #3 band | #2 $670,000
+- 30 1969 Lamborghini Miura P400 S: HVT#3 $2,200,000 | our W1 THIN (n=6) | no comparison
+- 31 1979 Porsche 911 Turbo: HVT#3 $138,000 | our W1 THIN (n=4) | no comparison
+- 32 1987 Porsche 911 Carrera: HVT#3 $75,000 [$66,667-$89,000] | our W1 $90,038 | gap 20% | above #3 band | #2 $117,000
+- 33 1989 Porsche 911 Speedster: HVT#3 $193,000 | our W1 THIN (n=0) | no comparison
+- 34 1994 Porsche 911 Turbo: HVT#3 $395,000 [$338,333-$438,333] | our W1 $555,000 | gap 41% | above #3 band | #2 $525,000
+- 35 1995 Porsche 928 GTS: HVT#3 $130,000 | our W1 THIN (n=0) | no comparison
+- 36 1987 Porsche 944 Turbo: HVT#3 $22,000 [$18,667-$30,333] | our W1 $184,350 | gap 738% | above #3 band | #2 $47,000
+- 37 1989 Ferrari Testarossa : HVT#3 $158,000 [$147,000-$178,333] | our W1 $173,880 | gap 10% | inside #3 band | #2 $219,000
+- 38 1991 Ferrari 348 TS: HVT#3 $84,300 [$75,533-$90,200] | our W1 $83,738 | gap -1% | inside #3 band | #2 $102,000
+- 39 1985 Ferrari 308 GTS QV: HVT#3 $104,000 | our W1 THIN (n=0) | no comparison
+- 40 1991 BMW M3 : HVT#3 $67,600 [$57,700-$92,733] | our W1 $65,100 | gap -4% | inside #3 band | #2 $143,000
+- 41 1988 BMW M5 : HVT#3 $57,500 [$44,467-$77,333] | our W1 $50,925 | gap -11% | inside #3 band | #2 $117,000
+- 42 1995 BMW M3 : HVT#3 $28,300 [$22,467-$39,300] | our W1 $30,495 | gap 8% | inside #3 band | #2 $61,300
+- 43 1990 Mercedes-Benz 560SL : HVT#3 $23,400 [$18,333-$33,967] | our W1 $30,232 | gap 29% | inside #3 band | #2 $55,100
+- 44 1992 Mercedes-Benz 500E : HVT#3 $39,500 [$30,700-$52,033] | our W1 $8,400 | gap -79% | below #3 band | #2 $77,100
+- 45 1994 Toyota Supra Turbo: HVT#3 $88,000 [$76,233-$116,000] | our W1 $111,825 | gap 27% | inside #3 band | #2 $172,000
+- 46 1993 Mazda RX-7 : HVT#3 $42,500 [$35,700-$49,300] | our W1 $41,740 | gap -2% | inside #3 band | #2 $62,900
+- 47 1991 Acura NSX : HVT#3 $70,500 [$61,933-$89,333] | our W1 $81,900 | gap 16% | inside #3 band | #2 $127,000
+- 48 1990 Nissan 300ZX Twin Turbo: HVT#3 $27,500 [$21,400-$35,600] | our W1 $24,194 | gap -12% | inside #3 band | #2 $51,800
+- 49 1987 Buick Grand National : HVT#3 $41,100 [$35,833-$52,767] | our W1 $55,650 | gap 35% | above #3 band | #2 $76,100
+- 50 1990 Chevrolet Corvette ZR-1: HVT#3 $22,800 | our W1 THIN (n=0) | no comparison
+- 51 1985 Chevrolet Camaro IROC-Z: HVT#3 $19,200 [$16,433-$24,767] | our W1 $16,669 | gap -13% | inside #3 band | #2 $35,900
+- 52 1993 Ford Mustang Cobra: HVT#3 $39,500 [$31,967-$50,100] | our W1 $26,775 | gap -32% | below #3 band | #2 $71,300
+- 53 1989 Jeep Grand Wagoneer : HVT#3 $25,600 [$20,133-$34,100] | our W1 $20,239 | gap -21% | inside #3 band | #2 $51,100
+- 54 1997 Land Rover Defender 90: HVT#3 $50,800 [$45,067-$64,133] | our W1 $64,575 | gap 27% | above #3 band | #2 $90,800
+- 55 1985 Toyota Land Cruiser FJ60: HVT#3 $24,800 [$18,500-$36,733] | our W1 $29,007 | gap 17% | inside #3 band | #2 $60,600
+- 56 1991 Lamborghini Diablo : HVT#3 $245,000 | our W1 THIN (n=4) | no comparison
+- 57 1993 Dodge Viper RT/10: HVT#3 $34,200 [$30,300-$37,233] | our W1 $50,663 | gap 48% | above #3 band | #2 $43,300
+- 58 1997 Porsche 911 Turbo: HVT#3 $235,000 [$206,667-$270,000] | our W1 $268,800 | gap 14% | inside #3 band | #2 $340,000
+- 59 1999 Porsche 911 Carrera: HVT#3 $30,000 [$26,333-$35,000] | our W1 $25,581 | gap -15% | below #3 band | #2 $45,000
+- 60 2004 Porsche 911 GT3: HVT#3 $125,000 | our W1 THIN (n=4) | no comparison
+- 61 2007 Porsche 911 GT3: HVT#3 $144,000 | our W1 THIN (n=6) | no comparison
+- 62 2004 Porsche Carrera GT : HVT#3 $2,300,000 [$2,100,000-$2,416,667] | our W1 $32,550 | gap -99% | below #3 band | #2 $2,650,000
+- 63 2001 BMW M3 : HVT#3 $29,800 [$25,367-$39,600] | our W1 $25,069 | gap -16% | below #3 band | #2 $59,200
+- 64 2003 BMW M5 : HVT#3 $49,200 [$38,100-$70,800] | our W1 $43,575 | gap -11% | inside #3 band | #2 $114,000
+- 65 2000 BMW Z3 M Coupe : HVT#3 $34,100 [$29,433-$42,633] | our W1 $27,169 | gap -20% | below #3 band | #2 $59,700
+- 66 2001 Honda S2000 : HVT#3 $26,300 [$23,033-$32,067] | our W1 $27,300 | gap 4% | inside #3 band | #2 $43,600
+- 67 2005 Ford GT : HVT#3 $510,000 [$466,333-$536,333] | our W1 $493,500 | gap -3% | inside #3 band | #2 $589,000
+- 68 2002 Chevrolet Corvette Z06: HVT#3 $24,100 [$20,467-$28,967] | our W1 $27,300 | gap 13% | inside #3 band | #2 $38,700
+- 69 2006 Chevrolet Corvette Z06: HVT#3 $38,700 [$34,467-$44,167] | our W1 $47,250 | gap 22% | above #3 band | #2 $55,100
+- 70 2005 Mercedes-Benz SLR : HVT#3 $269,000 | our W1 THIN (n=5) | no comparison
+- 71 2006 Ferrari F430 : HVT#3 $138,000 | our W1 THIN (n=1) | no comparison
+- 72 1999 Ferrari 550 Maranello: HVT#3 $202,000 [$186,667-$226,333] | our W1 $200,160 | gap -1% | inside #3 band | #2 $275,000
+- 73 2004 Lamborghini Gallardo : HVT#3 $92,800 | our W1 THIN (n=6) | no comparison
+- 74 2002 Acura NSX : HVT#3 $106,000 [$89,500-$134,667] | our W1 $161,500 | gap 52% | above #3 band | #2 $192,000
+- 75 2009 Nissan GT-R : HVT#3 $51,100 | our W1 THIN (n=5) | no comparison
+- 76 2012 Lexus LFA : HVT#3 $875,000 | our W1 THIN (n=6) | no comparison
+- 77 2006 Dodge Viper SRT-10: HVT#3 $49,600 [$44,733-$59,600] | our W1 $53,675 | gap 8% | inside #3 band | #2 $79,600
+- 79 2011 Mercedes-Benz SLS AMG : HVT#3 $172,000 | our W1 THIN (n=0) | no comparison
+- 80 2016 Porsche 911 GT3 RS: HVT#3 $147,000 [$137,333-$161,333] | our W1 $214,500 | gap 46% | above #3 band | #2 $190,000
+- 81 2019 Porsche 911 GT3 RS: HVT#3 $165,000 [$154,000-$181,000] | our W1 $250,535 | gap 52% | above #3 band | #2 $213,000
+- 82 2018 Porsche 911 Carrera T: HVT#3 $79,100 | our W1 THIN (n=0) | no comparison
+- 83 2016 Porsche Cayman GT4: HVT#3 $108,000 [$100,367-$111,000] | our W1 $105,000 | gap -3% | inside #3 band | #2 $117,000
+- 84 2015 Porsche 918 : HVT#3 $1,950,000 [$1,816,667-$2,050,000] | our W1 $75,871 | gap -96% | below #3 band | #2 $2,250,000
+- 85 2017 Dodge Viper GTS: HVT#3 $156,000 | our W1 THIN (n=4) | no comparison
+- 86 2020 Ferrari 488 Pista: HVT#3 $788,000 [$739,000-$808,000] | our W1 $800,250 | gap 2% | inside #3 band | #2 $848,000
+- 87 2013 Ferrari 458 Italia: HVT#3 $208,000 [$188,667-$231,667] | our W1 $232,080 | gap 12% | above #3 band | #2 $279,000
+- 88 2015 Ferrari 458 Speciale: HVT#3 $846,000 [$811,333-$897,333] | our W1 $885,000 | gap 5% | inside #3 band | #2 $1,000,000
+- 91 2015 Lamborghini Huracan LP610-4: HVT#3 $195,000 | our W1 THIN (n=0) | no comparison
+- 93 2014 Chevrolet Corvette Z51: HVT#3 $37,700 [$35,000-$42,267] | our W1 $43,575 | gap 16% | above #3 band | #2 $51,400
+- 94 2019 Chevrolet Corvette ZR1: HVT#3 $132,000 [$123,667-$155,333] | our W1 $175,750 | gap 33% | above #3 band | #2 $202,000
+- 95 2020 Chevrolet Corvette Stingray: HVT#3 $68,200 [$63,100-$70,300] | our W1 $63,000 | gap -8% | below #3 band | #2 $74,500
+- 96 2013 Ford Mustang Shelby GT500: HVT#3 $47,300 [$42,567-$52,700] | our W1 $59,588 | gap 26% | above #3 band | #2 $63,500
+- 97 2016 Ford Mustang Shelby GT350R: HVT#3 $74,500 [$67,967-$77,167] | our W1 $72,713 | gap -2% | inside #3 band | #2 $82,500
+- 98 2018 Dodge Challenger Demon: HVT#3 $91,900 [$89,767-$95,267] | our W1 $105,263 | gap 15% | above #3 band | #2 $102,000
+
+## d) Dispersion: our p25-p75 vs HVT #3 Lo-Hi
+- 1 Bel Air : our p25-p75 $41,344-$76,781 vs HVT#3 Lo-Hi $57,700-$75,800
+- 2 Corvette Sting Ray: our p25-p75 $79,767-$155,155 vs HVT#3 Lo-Hi $120,633-$146,000
+- 3 Mustang 289: our p25-p75 $22,575-$40,163 vs HVT#3 Lo-Hi $41,100-$52,933
+- 4 Corvette L71: our p25-p75 $101,719-$178,500 vs HVT#3 Lo-Hi $100,767-$126,000
+- 5 Camaro Z/28: our p25-p75 $80,719-$139,913 vs HVT#3 Lo-Hi $71,967-$91,467
+- 6 Chevelle SS 396: our p25-p75 $66,938-$101,200 vs HVT#3 Lo-Hi $63,800-$76,667
+- 10 GTO : our p25-p75 $39,550-$53,944 vs HVT#3 Lo-Hi $23,067-$33,533
+- 11 Thunderbird : our p25-p75 $22,050-$32,157 vs HVT#3 Lo-Hi $20,667-$28,000
+- 12 Series 62 : our p25-p75 $102,913-$162,750 vs HVT#3 Lo-Hi $106,167-$140,000
+- 14 Bronco : our p25-p75 $61,031-$146,213 vs HVT#3 Lo-Hi $46,500-$56,700
+- 16 356 C: our p25-p75 $167,128-$207,575 vs HVT#3 Lo-Hi $87,333-$118,333
+- 17 911 T: our p25-p75 $68,644-$113,663 vs HVT#3 Lo-Hi $56,000-$77,333
+- 19 E-Type Series 1: our p25-p75 $64,732-$123,900 vs HVT#3 Lo-Hi $80,433-$130,000
+- 20 190SL : our p25-p75 $85,444-$144,200 vs HVT#3 Lo-Hi $67,567-$89,333
+- 21 280SL : our p25-p75 $88,550-$157,800 vs HVT#3 Lo-Hi $68,733-$104,600
+- 23 3000 Mk III: our p25-p75 $40,425-$62,081 vs HVT#3 Lo-Hi $33,933-$50,733
+- 26 Beetle : our p25-p75 $14,306-$21,919 vs HVT#3 Lo-Hi $15,067-$27,467
+- 27 2002 tii: our p25-p75 $17,630-$42,263 vs HVT#3 Lo-Hi $27,400-$49,533
+- 28 250 Lusso: our p25-p75 $1,276,875-$1,589,100 vs HVT#3 Lo-Hi $935,000-$1,200,000
+- 29 365 Daytona: our p25-p75 $548,519-$691,500 vs HVT#3 Lo-Hi $501,000-$573,333
+- 32 911 Carrera: our p25-p75 $73,238-$102,113 vs HVT#3 Lo-Hi $66,667-$89,000
+- 34 911 Turbo: our p25-p75 $396,000-$838,500 vs HVT#3 Lo-Hi $338,333-$438,333
+- 36 944 Turbo: our p25-p75 $157,963-$208,475 vs HVT#3 Lo-Hi $18,667-$30,333
+- 37 Testarossa : our p25-p75 $156,625-$194,000 vs HVT#3 Lo-Hi $147,000-$178,333
+- 38 348 TS: our p25-p75 $69,525-$86,494 vs HVT#3 Lo-Hi $75,533-$90,200
+- 40 M3 : our p25-p75 $60,666-$93,450 vs HVT#3 Lo-Hi $57,700-$92,733
+- 41 M5 : our p25-p75 $39,113-$66,938 vs HVT#3 Lo-Hi $44,467-$77,333
+- 42 M3 : our p25-p75 $23,691-$89,513 vs HVT#3 Lo-Hi $22,467-$39,300
+- 43 560SL : our p25-p75 $19,819-$44,888 vs HVT#3 Lo-Hi $18,333-$33,967
+- 44 500E : our p25-p75 $7,246-$10,290 vs HVT#3 Lo-Hi $30,700-$52,033
+- 45 Supra Turbo: our p25-p75 $77,700-$145,950 vs HVT#3 Lo-Hi $76,233-$116,000
+- 46 RX-7 : our p25-p75 $35,701-$46,069 vs HVT#3 Lo-Hi $35,700-$49,300
+- 47 NSX : our p25-p75 $67,988-$97,250 vs HVT#3 Lo-Hi $61,933-$89,333
+- 48 300ZX Twin Turbo: our p25-p75 $20,672-$28,350 vs HVT#3 Lo-Hi $21,400-$35,600
+- 49 Grand National : our p25-p75 $43,707-$79,500 vs HVT#3 Lo-Hi $35,833-$52,767
+- 51 Camaro IROC-Z: our p25-p75 $14,203-$21,175 vs HVT#3 Lo-Hi $16,433-$24,767
+- 52 Mustang Cobra: our p25-p75 $15,947-$36,947 vs HVT#3 Lo-Hi $31,967-$50,100
+- 53 Grand Wagoneer : our p25-p75 $11,080-$37,406 vs HVT#3 Lo-Hi $20,133-$34,100
+- 54 Defender 90: our p25-p75 $43,182-$84,263 vs HVT#3 Lo-Hi $45,067-$64,133
+- 55 Land Cruiser FJ60: our p25-p75 $22,247-$36,711 vs HVT#3 Lo-Hi $18,500-$36,733
+- 57 Viper RT/10: our p25-p75 $46,725-$61,425 vs HVT#3 Lo-Hi $30,300-$37,233
+- 58 911 Turbo: our p25-p75 $252,000-$330,000 vs HVT#3 Lo-Hi $206,667-$270,000
+- 59 911 Carrera: our p25-p75 $21,131-$30,451 vs HVT#3 Lo-Hi $26,333-$35,000
+- 62 Carrera GT : our p25-p75 $27,570-$40,950 vs HVT#3 Lo-Hi $2,100,000-$2,416,667
+- 63 M3 : our p25-p75 $21,026-$30,581 vs HVT#3 Lo-Hi $25,367-$39,600
+- 64 M5 : our p25-p75 $29,243-$50,138 vs HVT#3 Lo-Hi $38,100-$70,800
+- 65 Z3 M Coupe : our p25-p75 $21,657-$33,994 vs HVT#3 Lo-Hi $29,433-$42,633
+- 66 S2000 : our p25-p75 $24,517-$32,354 vs HVT#3 Lo-Hi $23,033-$32,067
+- 67 GT : our p25-p75 $437,500-$555,000 vs HVT#3 Lo-Hi $466,333-$536,333
+- 68 Corvette Z06: our p25-p75 $22,838-$29,011 vs HVT#3 Lo-Hi $20,467-$28,967
+- 69 Corvette Z06: our p25-p75 $42,525-$52,500 vs HVT#3 Lo-Hi $34,467-$44,167
+- 72 550 Maranello: our p25-p75 $191,375-$244,875 vs HVT#3 Lo-Hi $186,667-$226,333
+- 74 NSX : our p25-p75 $128,100-$177,750 vs HVT#3 Lo-Hi $89,500-$134,667
+- 77 Viper SRT-10: our p25-p75 $46,135-$68,434 vs HVT#3 Lo-Hi $44,733-$59,600
+- 80 911 GT3 RS: our p25-p75 $203,070-$222,750 vs HVT#3 Lo-Hi $137,333-$161,333
+- 81 911 GT3 RS: our p25-p75 $239,000-$260,000 vs HVT#3 Lo-Hi $154,000-$181,000
+- 83 Cayman GT4: our p25-p75 $94,894-$112,744 vs HVT#3 Lo-Hi $100,367-$111,000
+- 84 918 : our p25-p75 $68,119-$101,588 vs HVT#3 Lo-Hi $1,816,667-$2,050,000
+- 86 488 Pista: our p25-p75 $696,469-$844,750 vs HVT#3 Lo-Hi $739,000-$808,000
+- 87 458 Italia: our p25-p75 $220,500-$241,500 vs HVT#3 Lo-Hi $188,667-$231,667
+- 88 458 Speciale: our p25-p75 $759,100-$941,563 vs HVT#3 Lo-Hi $811,333-$897,333
+- 93 Corvette Z51: our p25-p75 $37,932-$46,536 vs HVT#3 Lo-Hi $35,000-$42,267
+- 94 Corvette ZR1: our p25-p75 $153,562-$217,250 vs HVT#3 Lo-Hi $123,667-$155,333
+- 95 Corvette Stingray: our p25-p75 $59,325-$66,675 vs HVT#3 Lo-Hi $63,100-$70,300
+- 96 Mustang Shelby GT500: our p25-p75 $51,453-$67,331 vs HVT#3 Lo-Hi $42,567-$52,700
+- 97 Mustang Shelby GT350R: our p25-p75 $67,594-$77,175 vs HVT#3 Lo-Hi $67,967-$77,167
+- 98 Challenger Demon: our p25-p75 $99,056-$110,250 vs HVT#3 Lo-Hi $89,767-$95,267
+
+## e) Lag: our W2-vs-W1 move vs HVT printed quarterly change
+- 3 Mustang 289: our W2 vs W1 +10% | HVT quarterly 0%
+- 11 Thunderbird : our W2 vs W1 -5% | HVT quarterly +3.1%
+- 20 190SL : our W2 vs W1 -16% | HVT quarterly 0%
+- 32 911 Carrera: our W2 vs W1 +6% | HVT quarterly 0%
+- 42 M3 : our W2 vs W1 +25% | HVT quarterly +1.1%
+- 43 560SL : our W2 vs W1 +22% | HVT quarterly 0%
+- 54 Defender 90: our W2 vs W1 +23% | HVT quarterly +4.1%
+- 66 S2000 : our W2 vs W1 +13% | HVT quarterly 0%
+- 77 Viper SRT-10: our W2 vs W1 +17% | HVT quarterly 0%
+- 94 Corvette ZR1: our W2 vs W1 +17% | HVT quarterly -12%
+
+## f) Pool check (every car)
+car | status | n | halo-dropped | model-year range | venues | cheapest / median / dearest
+- **1** 1957 Chevrolet Bel Air [compare] n=102 halo-dropped=0 yrs=1957-1957 venues=Barrett-Jackson,Mecum,Hemmings,Hagerty,Bring a Trailer,Bonhams,Broad Arrow
+    - cheapest: $6,050 1957 CHEVROLET BEL AIR CHASSIS
+    - median: $53,025 Single-Family-Owned 350-Powered 1957 Chevrolet Bel
+    - dearest: $192,500 1957 Chevrolet Bel Air Convertible
+- **2** 1963 Chevrolet Corvette Sting Ray [compare] n=17 halo-dropped=2 yrs=1963-1965 venues=Hemmings,Bonhams,RM Sotheby's,AutoHunter,All Collector Cars,Hagerty,PCARMarket
+    - cheapest: $47,250 1964 Chevrolet Corvette Sting Ray Convertible 
+    - median: $84,000 1964 Chevrolet Corvette Sting Ray Convertible
+    - dearest: $268,800 1963 Chevrolet Corvette Sting Ray Coupe
+- **3** 1965 Ford Mustang 289 [compare] n=133 halo-dropped=12 yrs=1965-1965 venues=Bring a Trailer,Barrett-Jackson,Hagerty,All Collector Cars,Mecum,Cars & Bids,AutoHunter,Bonhams,Hemmings,RM Sotheby's
+    - cheapest: $7,980 1965 Ford Mustang
+    - median: $32,025 1965 Ford Mustang
+    - dearest: $149,625 1965 Ford Mustang GT Fastback
+- **4** 1967 Chevrolet Corvette L71 [compare] n=19 halo-dropped=0 yrs=1967-1967 venues=Bring a Trailer,Hemmings,Sotheby's Motorsport,PCARMarket
+    - cheapest: $89,250 1967 Chevrolet Corvette Convertible L71 427/435 4-
+    - median: $157,500 1967 Chevrolet Corvette Convertible L71 427/435 4-
+    - dearest: $238,935 38-Years-Owned 1967 Chevrolet Corvette Coupe L71 4
+- **5** 1969 Chevrolet Camaro Z/28 [compare] n=103 halo-dropped=1 yrs=1969-1969 venues=Barrett-Jackson,Bring a Trailer,Cars & Bids
+    - cheapest: $42,000 396-Powered 1969 Chevrolet Camaro Z/28
+    - median: $100,275 1969 Chevrolet Camaro Z/28 4-Speed
+    - dearest: $330,000 1969 CHEVROLET CAMARO Z/28 RS
+- **6** 1970 Chevrolet Chevelle SS 396 [compare] n=63 halo-dropped=24 yrs=1970-1970 venues=Barrett-Jackson,Mecum,Bring a Trailer,Hemmings,Hagerty,Sotheby's Motorsport,All Collector Cars
+    - cheapest: $49,350 1970 Chevrolet Chevelle SS
+    - median: $76,676 34-Years-Owned 1970 Chevrolet Chevelle Malibu SS 3
+    - dearest: $231,000 1970 CHEVROLET CHEVELLE SS
+- **7** 1970 Plymouth Barracuda 340 [nohvt] n=37 halo-dropped=0 yrs=1970-1970 venues=Barrett-Jackson,Mecum,Bring a Trailer,Hagerty,All Collector Cars
+    - cheapest: $34,650 340-Powered 1970 Plymouth Barracuda
+    - median: $81,207 1970 Plymouth AAR 'Cuda
+    - dearest: $207,500 1970 Plymouth Cuda
+- **8** 1969 Dodge Charger R/T [compare] n=0 halo-dropped=0 yrs=- venues=-
+    - cheapest: -
+    - median: -
+    - dearest: -
+- **9** 1966 Shelby GT350 [compare] n=0 halo-dropped=0 yrs=- venues=-
+    - cheapest: -
+    - median: -
+    - dearest: -
+- **10** 1968 Pontiac GTO [compare] n=29 halo-dropped=0 yrs=1968-1968 venues=Bring a Trailer,Mecum,Barrett-Jackson,AutoHunter,Hagerty
+    - cheapest: $23,625 1968 Pontiac GTO Hardtop Coupe 4-Speed
+    - median: $41,475 1968 PONTIAC GTO CONVERTIBLE
+    - dearest: $92,400 1968 Pontiac GTO
+- **11** 1955 Ford Thunderbird [compare] n=63 halo-dropped=0 yrs=1955-1955 venues=Bring a Trailer,Mecum,Hagerty,All Collector Cars,Barrett-Jackson,AutoHunter,Hemmings,Bonhams,Gooding Christie's
+    - cheapest: $13,650 1955 Ford Thunderbird Convertible
+    - median: $26,250 1955 Ford Thunderbird
+    - dearest: $65,100 347-Powered 1955 Ford Thunderbird 5-Speed
+- **12** 1959 Cadillac Series 62 [compare] n=23 halo-dropped=0 yrs=1959-1959 venues=Mecum,Hagerty,Bring a Trailer,Bonhams,Barrett-Jackson,RM Sotheby's
+    - cheapest: $37,400 1959 CADILLAC SERIES 62 SEDAN
+    - median: $115,500 34-Years-Owned 1959 Cadillac Series 62 Convertible
+    - dearest: $232,500 1959 Cadillac Series 62 Convertible
+- **13** 1971 Chevrolet C10 short bed [compare] n=1 halo-dropped=0 yrs=1970-1970 venues=Hagerty
+    - cheapest: $37,800 454-Powered 1970 Chevrolet C10 Short Bed
+    - median: $37,800 454-Powered 1970 Chevrolet C10 Short Bed
+    - dearest: $37,800 454-Powered 1970 Chevrolet C10 Short Bed
+- **14** 1976 Ford Bronco [compare] n=27 halo-dropped=0 yrs=1976-1976 venues=Bring a Trailer,Hagerty,Mecum
+    - cheapest: $31,500 One-Family-Owned 1976 Ford Bronco 302 3-Speed
+    - median: $68,250 1976 Ford Bronco 302 3-Speed
+    - dearest: $169,500 Coyote-Powered 1976 Ford Bronco by Heritage Bronco
+- **15** 1965 Ford F-100 short bed [compare] n=7 halo-dropped=0 yrs=1965-1965 venues=Mecum,Barrett-Jackson,AutoHunter,Hemmings
+    - cheapest: $15,225 NO RESERVE - 1965 FORD F-100 4-SPEED
+    - median: $26,950 1965 FORD F-100 PICKUP
+    - dearest: $34,650 Restored and Modified 1965 Ford F100 Pickup With a
+- **16** 1965 Porsche 356 C [compare] n=19 halo-dropped=0 yrs=1965-1965 venues=Bring a Trailer,Broad Arrow,Bonhams,RM Sotheby's,Gooding Christie's
+    - cheapest: $10,920 1965 Porsche 911 Coupe
+    - median: $173,600 1965 Porsche 911 (FL26)
+    - dearest: $472,500 1965 Porsche 911 ex-1967 Daytona 24 Hours Winner
+- **17** 1970 Porsche 911 T [compare] n=30 halo-dropped=10 yrs=1970-1970 venues=PCARMarket,Bring a Trailer,RM Sotheby's,Gooding Christie's
+    - cheapest: $3,920 1970 Porsche 911 T Coupe by Karmann
+    - median: $83,475 1970 Porsche 911T Coupe
+    - dearest: $167,500 1970 Porsche 911 Coupe 3.0L Twin-Plug
+- **18** 1973 Porsche 911 Carrera RS 2.7 [compare] n=0 halo-dropped=0 yrs=- venues=-
+    - cheapest: -
+    - median: -
+    - dearest: -
+- **19** 1966 Jaguar E-Type Series 1 [compare] n=45 halo-dropped=0 yrs=1964-1968 venues=Bring a Trailer,RM Sotheby's,Hagerty,Hemmings
+    - cheapest: $12,495 Two Owner 1968 Jaguar E-Type Series 1½ 2+2 
+    - median: $81,375 1968 Jaguar XKE Series 1.5 4.2 Roadster
+    - dearest: $307,500 1968 Jaguar XKE Series 1.5 4.2 Roadster 5-Speed
+- **20** 1962 Mercedes-Benz 190SL [compare] n=33 halo-dropped=0 yrs=1960-1962 venues=Bring a Trailer,Gooding Christie's,RM Sotheby's,MB Market,Bonhams,Broad Arrow,Sotheby's Motorsport,Barrett-Jackson
+    - cheapest: $15,680 1960 Mercedes-Benz 190 SL
+    - median: $99,360 1960 Mercedes-Benz 190 SL
+    - dearest: $224,000 1962 Mercedes-Benz 190 SL (PB24)
+- **21** 1971 Mercedes-Benz 280SL [compare] n=51 halo-dropped=0 yrs=1971-1971 venues=Sotheby's Motorsport,Bring a Trailer,RM Sotheby's,Gooding Christie's,PCARMarket
+    - cheapest: $50,400 29-Years-Owned 1971 Mercedes-Benz 280SL 4-Speed
+    - median: $106,050 1971 Mercedes-Benz 280SL
+    - dearest: $232,500 1971 Mercedes-Benz 280SL 4-Speed
+- **22** 1957 Mercedes-Benz 300SL Roadster [compare] n=16 halo-dropped=0 yrs=1957-1957 venues=RM Sotheby's,Bonhams,Gooding Christie's,Bring a Trailer,Broad Arrow
+    - cheapest: $945,500 1957 Mercedes-Benz 300SL Roadster Chassis no. 198.
+    - median: $1,215,000 1957 Mercedes-Benz 300 SL Roadster
+    - dearest: $2,892,500 1957 Mercedes-Benz 300 SL Roadster
+- **23** 1965 Austin-Healey 3000 Mk III [compare] n=21 halo-dropped=0 yrs=1965-1965 venues=Bring a Trailer,RM Sotheby's,Broad Arrow
+    - cheapest: $14,963 21-Years-Owned 1965 Austin-Healey 3000 BJ8 Mk III
+    - median: $52,640 1965 Austin-Healey 3000 Mk III BJ8
+    - dearest: $78,750 1965 Austin-Healey 3000 BJ8 Mk III
+- **24** 1967 Alfa Romeo Giulia GT Veloce [compare] n=11 halo-dropped=0 yrs=1966-1967 venues=Bring a Trailer,Bonhams,RM Sotheby's
+    - cheapest: $32,550 1,779cc-Powered 1966 Alfa Romeo Giulia Sprint GT V
+    - median: $49,350 1,750cc-Powered 1967 Alfa Romeo Giulia Sprint GT V
+    - dearest: $96,255 1967 Alfa Romeo Giulia Sprint GT Veloce
+- **25** 1972 Datsun 240Z [compare] n=8 halo-dropped=0 yrs=1970-1972 venues=Barrett-Jackson,Hemmings,Broad Arrow
+    - cheapest: $6,143 No-Reserve 1971 Datsun 240Z
+    - median: $31,500 Award-Winning, Restored 1971 Datsun 240Z
+    - dearest: $51,700 1972 DATSUN 240Z
+- **26** 1967 Volkswagen Beetle [compare] n=54 halo-dropped=0 yrs=1967-1967 venues=Bring a Trailer,Bonhams,Hagerty,Mecum,Hemmings,RM Sotheby's
+    - cheapest: $8,190 1967 Volkswagen Beetle
+    - median: $19,163 1967 Volkswagen Beetle
+    - dearest: $52,499 Original-Owner 1967 Volkswagen Beetle Convertible
+- **27** 1973 BMW 2002 tii [compare] n=31 halo-dropped=0 yrs=1973-1973 venues=Bring a Trailer,Cars & Bids,Hagerty
+    - cheapest: $9,452 1973 BMW 2002
+    - median: $28,350 43-Years-Owned 1973 BMW 2002tii
+    - dearest: $73,502 1973 BMW 2002tii 5-Speed
+- **28** 1964 Ferrari 250 Lusso [compare] n=18 halo-dropped=10 yrs=1962-1964 venues=Gooding Christie's,Broad Arrow,Bonhams,RM Sotheby's,Bring a Trailer
+    - cheapest: $310,500 1962 Ferrari 250 GT/E Pininfarina Coupe 2+2 Series
+    - median: $1,456,531 1964 Ferrari 250 GT/L Berlinetta Lusso by Scagliet
+    - dearest: $37,670,400 1964 Ferrari 250 LM by Scaglietti
+- **29** 1972 Ferrari 365 Daytona [compare] n=17 halo-dropped=9 yrs=1970-1972 venues=Gooding Christie's,Bring a Trailer,RM Sotheby's,Broad Arrow,Sotheby's Motorsport,Barrett-Jackson
+    - cheapest: $406,400 1972 Ferrari 365 GTB/4 Daytona Berlinetta by Scagl
+    - median: $632,000 1972 Ferrari 365 GTB/4 Daytona Berlinetta by Scagl
+    - dearest: $893,700 1970 Ferrari 365 GTB/4 Daytona Competizione Specif
+- **30** 1969 Lamborghini Miura P400 S [compare] n=12 halo-dropped=0 yrs=1967-1969 venues=RM Sotheby's,Broad Arrow,Gooding Christie's
+    - cheapest: $610,000 1967 Lamborghini Miura P400 by Bertone
+    - median: $1,897,000 1969 Lamborghini Miura P400 S by Bertone
+    - dearest: $3,030,000 1967 Lamborghini Miura P400 by Bertone
+- **31** 1979 Porsche 911 Turbo [compare] n=5 halo-dropped=0 yrs=1977-1979 venues=Gooding Christie's,Sotheby's Motorsport,Broad Arrow,RM Sotheby's
+    - cheapest: $135,001 1979 Porsche 911 Turbo
+    - median: $142,830 1977 Porsche 911 Turbo
+    - dearest: $269,375 1979 Porsche 911 Turbo RUF BTR II Conversion
+- **32** 1987 Porsche 911 Carrera [compare] n=49 halo-dropped=71 yrs=1987-1987 venues=Bring a Trailer
+    - cheapest: $49,613 1987 Porsche 911 Carrera Coupe G50
+    - median: $89,250 1987 Porsche 911 Carrera Coupe G50
+    - dearest: $148,036 Non-Sunroof, RoW 1987 Porsche 911 Carrera Coupe G5
+- **33** 1989 Porsche 911 Speedster [compare] n=0 halo-dropped=0 yrs=- venues=-
+    - cheapest: -
+    - median: -
+    - dearest: -
+- **34** 1994 Porsche 911 Turbo [compare] n=17 halo-dropped=0 yrs=1992-1994 venues=RM Sotheby's,Bring a Trailer,Broad Arrow,Barrett-Jackson
+    - cheapest: $232,500 1992 Porsche 911 Turbo
+    - median: $407,464 1994 Porsche 911 Turbo 3.6
+    - dearest: $2,480,000 1993 Porsche 911 Turbo S Lightweight
+- **35** 1995 Porsche 928 GTS [compare] n=0 halo-dropped=0 yrs=- venues=-
+    - cheapest: -
+    - median: -
+    - dearest: -
+- **36** 1987 Porsche 944 Turbo [compare] n=40 halo-dropped=1 yrs=1985-1988 venues=Bring a Trailer,RM Sotheby's,Broad Arrow,Bonhams,Hagerty
+    - cheapest: $84,525 1988 Porsche 911 Turbo Coupe
+    - median: $162,500 1986 Porsche 911 Turbo Coupe
+    - dearest: $257,600 1987 Porsche 911 Turbo Coupe
+- **37** 1989 Ferrari Testarossa [compare] n=53 halo-dropped=0 yrs=1987-1989 venues=Bring a Trailer,RM Sotheby's,Gooding Christie's,Barrett-Jackson,Broad Arrow,Cars & Bids,Hagerty,PCARMarket
+    - cheapest: $105,000 1988 Ferrari Testarossa
+    - median: $160,500 3,400-Mile 1987 Ferrari Testarossa
+    - dearest: $472,500 1988 Ferrari Testarossa
+- **38** 1991 Ferrari 348 TS [compare] n=31 halo-dropped=0 yrs=1989-1991 venues=Bring a Trailer,Broad Arrow,Sotheby's Motorsport,Barrett-Jackson
+    - cheapest: $58,800 1991 Ferrari 348 TS
+    - median: $76,650 1990 Ferrari 348 TS
+    - dearest: $197,500 14k-Mile 1989 Ferrari 348 TS
+- **39** 1985 Ferrari 308 GTS QV [compare] n=0 halo-dropped=0 yrs=- venues=-
+    - cheapest: -
+    - median: -
+    - dearest: -
+- **40** 1991 BMW M3 [compare] n=35 halo-dropped=13 yrs=1989-1991 venues=Cars & Bids,Bring a Trailer,Broad Arrow,PCARMarket,RM Sotheby's
+    - cheapest: $34,650 1991 BMW M3
+    - median: $67,200 1991 BMW M3
+    - dearest: $246,400 1989 BMW M3 Cecotto Edition
+- **41** 1988 BMW M5 [compare] n=29 halo-dropped=0 yrs=1988-1988 venues=Cars & Bids,Bring a Trailer,Hagerty
+    - cheapest: $16,648 1988 BMW M5
+    - median: $41,475 21-Years-Owned 1988 BMW M5
+    - dearest: $190,500 10k-Mile 1988 BMW M5
+- **42** 1995 BMW M3 [compare] n=71 halo-dropped=1 yrs=1995-1995 venues=Bring a Trailer,RM Sotheby's,Cars & Bids,Barrett-Jackson,Broad Arrow,Sotheby's Motorsport,PCARMarket,Hagerty
+    - cheapest: $7,350 Single-Family-Owned 1995 BMW M3
+    - median: $30,189 1995 BMW M3 Coupe 5-Speed
+    - dearest: $297,000 1995 BMW M3 GT
+- **43** 1989 Mercedes-Benz 560SL [compare] n=50 halo-dropped=0 yrs=1989-1989 venues=Bring a Trailer,Barrett-Jackson,PCARMarket,Cars & Bids,Hagerty,Gooding Christie's,RM Sotheby's
+    - cheapest: $7,455 1989 Mercedes-Benz 560SL
+    - median: $35,280 NO RESERVE 1989 Mercedes-Benz 560SL
+    - dearest: $142,800 4k-Mile 1989 Mercedes-Benz 560SL
+- **44** 1992 Mercedes-Benz 500E [compare] n=32 halo-dropped=0 yrs=1992-1992 venues=MB Market,Bring a Trailer,Cars & Bids,PCARMarket
+    - cheapest: $2,625 Original-Owner 1992 Mercedes-Benz 300E 4MATIC
+    - median: $8,715 1992 Mercedes-Benz C124 300CE
+    - dearest: $33,075 1992 Mercedes-Benz 500E
+- **45** 1994 Toyota Supra Turbo [compare] n=20 halo-dropped=0 yrs=1994-1994 venues=Bring a Trailer,Cars & Bids
+    - cheapest: $59,325 1994 Toyota Supra Turbo
+    - median: $90,930 1994 Toyota Supra Turbo 6-Speed
+    - dearest: $152,250 Original-Owner 1994 Toyota Supra Turbo 6-Speed
+- **46** 1993 Mazda RX-7 [compare] n=36 halo-dropped=0 yrs=1993-1993 venues=Cars & Bids,Bring a Trailer,Hagerty
+    - cheapest: $21,525 1993 Mazda RX-7 Touring 5-Speed
+    - median: $41,480 45k-Mile 1993 Mazda RX-7 5-Speed
+    - dearest: $84,525 One-Owner 1993 Mazda RX-7 R1 5-Speed
+- **47** 1991 Acura NSX [compare] n=63 halo-dropped=0 yrs=1991-1991 venues=Bring a Trailer,Cars & Bids,PCARMarket,Broad Arrow,Sotheby's Motorsport
+    - cheapest: $54,075 1991 Acura NSX 5-Speed
+    - median: $79,200 34k-Mile 1991 Acura NSX
+    - dearest: $167,500 29-Years-Owned 1991 Acura NSX 5-Speed
+- **48** 1990 Nissan 300ZX Twin Turbo [compare] n=20 halo-dropped=0 yrs=1990-1990 venues=Bring a Trailer,Hagerty,Cars & Bids
+    - cheapest: $9,975 1990 Nissan 300ZX Twin Turbo
+    - median: $26,775 1990 Nissan 300ZX Twin Turbo 5-Speed
+    - dearest: $44,363 11k-Mile 1990 Nissan 300ZX Twin Turbo 5-Speed
+- **49** 1987 Buick Grand National [compare] n=33 halo-dropped=5 yrs=1987-1987 venues=Hagerty,Bring a Trailer,Mecum,Barrett-Jackson
+    - cheapest: $18,375 1987 Buick Grand National
+    - median: $54,656 18k-Mile 1987 Buick Grand National
+    - dearest: $102,900 Original-Owner 1987 Buick Grand National
+- **50** 1990 Chevrolet Corvette ZR-1 [compare] n=0 halo-dropped=0 yrs=- venues=-
+    - cheapest: -
+    - median: -
+    - dearest: -
+- **51** 1985 Chevrolet Camaro IROC-Z [compare] n=29 halo-dropped=0 yrs=1984-1987 venues=Barrett-Jackson,Bring a Trailer,Mecum,AutoHunter,Hagerty,Hemmings
+    - cheapest: $6,405 1986 Chevrolet Camaro Z/28
+    - median: $22,575 1985 Chevrolet Camaro IROC-Z Coupe
+    - dearest: $63,525 2k-Mile 1987 Chevrolet Camaro IROC-Z
+- **52** 1993 Ford Mustang Cobra [compare] n=56 halo-dropped=0 yrs=1993-1993 venues=Bring a Trailer,Cars & Bids,Hagerty,Barrett-Jackson,Mecum
+    - cheapest: $4,725 1993 Ford Mustang LX Convertible
+    - median: $23,888 31-Years-Owned 1993 Ford Mustang GT 5.0
+    - dearest: $84,000 27k-Mile 1993 Ford Mustang LX 5.0 Notchback 5-Spee
+- **53** 1989 Jeep Grand Wagoneer [compare] n=38 halo-dropped=0 yrs=1989-1989 venues=Bring a Trailer,Hagerty,Cars & Bids,All Collector Cars
+    - cheapest: $7,245 1989 Jeep Grand Wagoneer
+    - median: $23,730 1989 Jeep Grand Wagoneer
+    - dearest: $79,800 1989 Jeep Grand Wagoneer
+- **54** 1997 Land Rover Defender 90 [compare] n=115 halo-dropped=0 yrs=1997-1997 venues=Barrett-Jackson,Bring a Trailer,Cars & Bids,Gooding Christie's,Hagerty,Sotheby's Motorsport,RM Sotheby's
+    - cheapest: $13,125 1997 Land Rover Defender 110 300Tdi 5-Speed
+    - median: $60,900 1997 Land Rover Defender 110 300Tdi 5-Speed
+    - dearest: $212,800 1997 Land Rover NAS Defender 90
+- **55** 1985 Toyota Land Cruiser FJ60 [compare] n=22 halo-dropped=0 yrs=1985-1985 venues=Bring a Trailer
+    - cheapest: $11,025 1985 Toyota Land Cruiser FJ60 5-Speed
+    - median: $31,500 1985 Toyota Land Cruiser FJ60
+    - dearest: $85,575 1985 Toyota Land Cruiser FJ60 5-Speed
+- **56** 1991 Lamborghini Diablo [compare] n=11 halo-dropped=0 yrs=1991-1991 venues=RM Sotheby's,Cars & Bids,Broad Arrow,Gooding Christie's,Bring a Trailer
+    - cheapest: $242,700 1991 Lamborghini Diablo
+    - median: $342,500 1991 Lamborghini Diablo
+    - dearest: $802,500 1991 Lamborghini Diablo
+- **57** 1993 Dodge Viper RT/10 [compare] n=20 halo-dropped=0 yrs=1993-1993 venues=Bring a Trailer,Barrett-Jackson,Cars & Bids,Hagerty
+    - cheapest: $34,650 1993 Dodge Viper RT/10
+    - median: $49,350 2,800-Mile 1993 Dodge Viper RT/10
+    - dearest: $78,750 1,600-Mile 1993 Dodge Viper RT/10
+- **58** 1997 Porsche 911 Turbo [compare] n=25 halo-dropped=12 yrs=1997-1997 venues=Bring a Trailer,Gooding Christie's,Broad Arrow,Barrett-Jackson,Bonhams,RM Sotheby's
+    - cheapest: $145,600 1997 Porsche 911 Turbo
+    - median: $268,800 1997 Porsche 993 Turbo
+    - dearest: $402,500 37k-Mile 1997 Porsche 911 Turbo
+- **59** 1999 Porsche 911 Carrera [compare] n=95 halo-dropped=0 yrs=1999-1999 venues=Barrett-Jackson,Mecum,Hagerty,Bring a Trailer,Cars & Bids,PCARMarket
+    - cheapest: $13,200 1999 PORSCHE 911 CARRERA
+    - median: $27,038 1999 Porsche 911 Carrera Cabriolet Six-Speed
+    - dearest: $53,546 1999 Porsche 911 Carrera Coupe 6-Speed
+- **60** 2004 Porsche 911 GT3 [compare] n=18 halo-dropped=0 yrs=2002-2004 venues=RM Sotheby's,Bring a Trailer,Broad Arrow
+    - cheapest: $58,333 2002 Porsche 911 GT3 Cup
+    - median: $126,000 26k-Mile 2004 Porsche 911 GT3
+    - dearest: $159,500 2004 Porsche 911 GT3
+- **61** 2007 Porsche 911 GT3 [compare] n=17 halo-dropped=1 yrs=2005-2007 venues=Barrett-Jackson,Bring a Trailer
+    - cheapest: $75,600 Modified 2005 Porsche 911 GT3
+    - median: $139,650 2007 Porsche 911 GT3
+    - dearest: $177,500 6k-Mile 2007 Porsche 911 GT3
+- **62** 2004 Porsche Carrera GT [compare] n=51 halo-dropped=0 yrs=2004-2004 venues=Bring a Trailer,PCARMarket,Hagerty,Cars & Bids
+    - cheapest: $17,299 2004 Porsche 911 Carrera Cabriolet 6-Speed
+    - median: $35,701 2004 Porsche 911 Carrera Coupe 6-Speed
+    - dearest: $81,900 8k-Mile 2004 Porsche 911 Carrera 4S Coupe 6-Speed
+- **63** 2001 BMW M3 [compare] n=45 halo-dropped=0 yrs=2001-2001 venues=Bring a Trailer,Cars & Bids
+    - cheapest: $13,650 2001 BMW M3 Convertible
+    - median: $25,200 2001 BMW M3 Convertible 6-Speed
+    - dearest: $94,500 18k-Mile 2001 BMW M3 Coupe 6-Speed
+- **64** 2003 BMW M5 [compare] n=50 halo-dropped=0 yrs=2003-2003 venues=Bring a Trailer,Cars & Bids,Hemmings,PCARMarket,Gooding Christie's
+    - cheapest: $14,385 2003 BMW M5
+    - median: $42,000 2003 BMW M5
+    - dearest: $134,400 2003 BMW M5
+- **65** 2000 BMW Z3 M Coupe [compare] n=18 halo-dropped=0 yrs=1999-2000 venues=Barrett-Jackson,Cars & Bids,Mecum,All Collector Cars
+    - cheapest: $17,050 2000 BMW Z3 M
+    - median: $28,600 1999 BMW Z3 M
+    - dearest: $39,249 2000 BMW Z3 M
+- **66** 2001 Honda S2000 [compare] n=67 halo-dropped=0 yrs=2001-2001 venues=Cars & Bids,Bring a Trailer,Hagerty,Hemmings
+    - cheapest: $13,388 2001 Honda S2000
+    - median: $28,875 36k-Mile 2001 Honda S2000
+    - dearest: $52,500 27k-Mile 2001 Honda S2000
+- **67** 2005 Ford GT [compare] n=87 halo-dropped=0 yrs=2005-2005 venues=Bring a Trailer,Mecum,RM Sotheby's,Broad Arrow,Barrett-Jackson,All Collector Cars,Gooding Christie's,Hagerty
+    - cheapest: $8,925 2005 Ford Mustang GT Convertible
+    - median: $462,500 2005 Ford GT
+    - dearest: $809,500 166-Mile 2005 Ford GT
+- **68** 2002 Chevrolet Corvette Z06 [compare] n=31 halo-dropped=0 yrs=2002-2002 venues=Bring a Trailer,Cars & Bids,Hemmings,Barrett-Jackson
+    - cheapest: $17,588 2002 Chevrolet Corvette Z06
+    - median: $28,613 18k-Mile 2002 Chevrolet Corvette Z06
+    - dearest: $38,588 1,200-Mile 2002 Chevrolet Corvette Z06
+- **69** 2006 Chevrolet Corvette Z06 [compare] n=37 halo-dropped=0 yrs=2006-2006 venues=Cars & Bids,Bring a Trailer,Mecum,Barrett-Jackson,Hemmings
+    - cheapest: $27,965 2006 Chevrolet Corvette Z06
+    - median: $44,000 2006 CHEVROLET CORVETTE Z06
+    - dearest: $77,000 2006 CHEVROLET CORVETTE Z06
+- **70** 2005 Mercedes-Benz SLR [compare] n=12 halo-dropped=0 yrs=2004-2005 venues=Bring a Trailer,RM Sotheby's,Sotheby's Motorsport,Barrett-Jackson
+    - cheapest: $235,200 2005 Mercedes-Benz SLR McLaren
+    - median: $332,200 2005 MERCEDES-BENZ SLR MCLAREN
+    - dearest: $398,500 7k-Mile 2005 Mercedes-Benz SLR McLaren
+- **71** 2006 Ferrari F430 [compare] n=1 halo-dropped=4 yrs=2006-2006 venues=Barrett-Jackson
+    - cheapest: $126,500 2006 FERRARI F430
+    - median: $126,500 2006 FERRARI F430
+    - dearest: $126,500 2006 FERRARI F430
+- **72** 1999 Ferrari 550 Maranello [compare] n=10 halo-dropped=0 yrs=1997-1999 venues=Mecum,Broad Arrow,RM Sotheby's,Barrett-Jackson
+    - cheapest: $141,750 1998 Ferrari 550 Maranello
+    - median: $201,600 1999 Ferrari 550 Maranello
+    - dearest: $329,500 1999 Ferrari 550 Maranello
+- **73** 2004 Lamborghini Gallardo [compare] n=18 halo-dropped=0 yrs=2003-2004 venues=Bring a Trailer,Cars & Bids,Sotheby's Motorsport,Broad Arrow,Mecum,Barrett-Jackson
+    - cheapest: $78,100 2004 LAMBORGHINI GALLARDO
+    - median: $105,525 2004 Lamborghini Gallardo Coupe
+    - dearest: $227,500 22k-Mile 2004 Lamborghini Gallardo 6-Speed
+- **74** 2002 Acura NSX [compare] n=36 halo-dropped=0 yrs=2002-2004 venues=Bring a Trailer,Barrett-Jackson,Broad Arrow,Cars & Bids,RM Sotheby's
+    - cheapest: $6,405 2002-2005 Acura NSX Wheels
+    - median: $148,050 2003 Acura NSX-T 6-Speed
+    - dearest: $294,500 Original-Owner, 3,400-Mile 2003 Acura NSX-T 6-Spee
+- **75** 2009 Nissan GT-R [compare] n=14 halo-dropped=0 yrs=2009-2011 venues=Cars & Bids,Bring a Trailer,RM Sotheby's,Barrett-Jackson
+    - cheapest: $44,100 2009 Nissan GT-R Premium
+    - median: $66,150 Single-Family-Owned 2009 Nissan GT-R Premium
+    - dearest: $100,800 2009 Nissan GT-R
+- **76** 2012 Lexus LFA [compare] n=18 halo-dropped=0 yrs=2011-2012 venues=Bring a Trailer,Broad Arrow,Barrett-Jackson,RM Sotheby's
+    - cheapest: $683,500 2012 Lexus LFA
+    - median: $867,500 3,100-Mile 2012 Lexus LFA
+    - dearest: $1,875,000 2012 Lexus LFA Nürburgring Package
+- **77** 2006 Dodge Viper SRT-10 [compare] n=64 halo-dropped=0 yrs=2004-2006 venues=Barrett-Jackson,Bring a Trailer,Sotheby's Motorsport,Bonhams,Cars & Bids,Mecum,Broad Arrow
+    - cheapest: $34,650 2004 Dodge Viper SRT-10 Roadster
+    - median: $55,650 Osamu Shikado’s 9k-Mile 2005 Dodge Viper SRT-10 Ro
+    - dearest: $132,000 2004 DODGE VIPER SRT-10 MAMBA EDITION
+- **78** 2000 Toyota Land Cruiser 100 [nohvt] n=45 halo-dropped=0 yrs=2000-2000 venues=Bring a Trailer,Cars & Bids
+    - cheapest: $7,980 2000 Toyota Land Cruiser
+    - median: $16,801 2000 Toyota Land Cruiser UZJ100
+    - dearest: $89,250 20k-Mile 2000 Toyota Land Cruiser UZJ100
+- **79** 2011 Mercedes-Benz SLS AMG [compare] n=0 halo-dropped=0 yrs=- venues=-
+    - cheapest: -
+    - median: -
+    - dearest: -
+- **80** 2016 Porsche 911 GT3 RS [compare] n=22 halo-dropped=0 yrs=2016-2016 venues=Bring a Trailer,RM Sotheby's
+    - cheapest: $177,491 2016 Porsche 911 GT3 RS
+    - median: $215,500 One-Owner 3,300-Mile 2016 Porsche 911 GT3 RS
+    - dearest: $390,000 2016 Porsche 911 GT3 RS
+- **81** 2019 Porsche 911 GT3 RS [compare] n=34 halo-dropped=0 yrs=2019-2019 venues=Bring a Trailer,Cars & Bids
+    - cheapest: $197,500 2019 Porsche 911 GT3 RS
+    - median: $249,500 2019 Porsche 911 GT3 RS Weissach
+    - dearest: $321,500 52-Mile 2019 Porsche 911 GT3 RS Weissach
+- **82** 2018 Porsche 911 Carrera T [compare] n=0 halo-dropped=0 yrs=- venues=-
+    - cheapest: -
+    - median: -
+    - dearest: -
+- **83** 2016 Porsche Cayman GT4 [compare] n=54 halo-dropped=0 yrs=2016-2016 venues=Bring a Trailer,Cars & Bids,PCARMarket,Sotheby's Motorsport,RM Sotheby's
+    - cheapest: $80,850 Modified 2016 Porsche Cayman GT4
+    - median: $105,000 11k-Mile 2016 Porsche 981 Cayman GT4 Clubsport
+    - dearest: $149,100 3,500-Mile 2016 Porsche Cayman GT4
+- **84** 2015 Porsche 918 [compare] n=50 halo-dropped=0 yrs=2015-2015 venues=Bring a Trailer,Cars & Bids,Sotheby's Motorsport,PCARMarket
+    - cheapest: $41,738 2015 Porsche 911 Carrera S Coupe
+    - median: $83,475 29k-Mile 2015 Porsche 911 Carrera S Cabriolet
+    - dearest: $174,500 8k-Mile 2015 Porsche 911 Targa 4S X51 7-Speed
+- **85** 2017 Dodge Viper GTS [compare] n=7 halo-dropped=0 yrs=2016-2017 venues=Bring a Trailer,Sotheby's Motorsport,Cars & Bids
+    - cheapest: $132,300 23k-Mile 2016 Dodge Viper SRT GTS Coupe
+    - median: $239,500 2017 Dodge Viper GTS-R Commemorative Edition ACR
+    - dearest: $367,000 280-Mile 2017 Dodge Viper GTS-R Commemorative Edit
+- **86** 2020 Ferrari 488 Pista [compare] n=24 halo-dropped=10 yrs=2019-2020 venues=Bring a Trailer,RM Sotheby's,Barrett-Jackson,Bonhams,Broad Arrow
+    - cheapest: $441,500 2020 Ferrari 488 Pista
+    - median: $723,500 One-Owner 2020 Ferrari 488 Pista
+    - dearest: $1,127,500 526-Mile 2020 Ferrari 488 Pista
+- **87** 2013 Ferrari 458 Italia [compare] n=24 halo-dropped=0 yrs=2011-2013 venues=Bring a Trailer,Sotheby's Motorsport,Barrett-Jackson,Cars & Bids
+    - cheapest: $147,630 22k-Mile 2011 Ferrari 458 Italia
+    - median: $224,000 2011 Ferrari 458 Italia
+    - dearest: $307,500 2013 Ferrari 458 Italia
+- **88** 2015 Ferrari 458 Speciale [compare] n=17 halo-dropped=1 yrs=2015-2015 venues=Gooding Christie's,RM Sotheby's,Bring a Trailer,Broad Arrow
+    - cheapest: $456,100 9k-Mile 2015 Ferrari 458 Speciale
+    - median: $912,500 2015 Ferrari 458 Speciale
+    - dearest: $2,132,500 2,200-Mile 2015 Ferrari 458 Speciale A
+- **89** 2012 McLaren MP4-12C [coverage] n=19 halo-dropped=0 yrs=2012-2012 venues=Barrett-Jackson,Bring a Trailer,Broad Arrow,Hagerty,RM Sotheby's,Cars & Bids
+    - cheapest: $69,299 36k-Mile 2012 McLaren MP4-12C
+    - median: $98,175 6,700-Mile 2012 McLaren MP4-12C
+    - dearest: $173,880 2012 McLaren MP4-12C Ex-Lewis Hamilton
+- **90** 2019 McLaren 720S [coverage] n=6 halo-dropped=0 yrs=2018-2019 venues=Cars & Bids,Bring a Trailer,Barrett-Jackson,Sotheby's Motorsport,RM Sotheby's,PCARMarket
+    - cheapest: $202,500 2019 McLaren 720S Luxury
+    - median: $227,700 2018 MCLAREN 720S LUXURY LAUNCH EDITION
+    - dearest: $346,000 2018 McLaren 720S
+- **91** 2015 Lamborghini Huracan LP610-4 [compare] n=0 halo-dropped=0 yrs=- venues=-
+    - cheapest: -
+    - median: -
+    - dearest: -
+- **92** 2018 Lamborghini Aventador S [coverage] n=13 halo-dropped=0 yrs=2016-2018 venues=Bring a Trailer,Gooding Christie's,RM Sotheby's,Sotheby's Motorsport
+    - cheapest: $272,500 2018 Lamborghini Aventador S Coupe
+    - median: $564,500 2017 Lamborghini Aventador LP750-4 SV Roadster
+    - dearest: $2,030,000 2017 Lamborghini Centenario LP770-4 Roadster
+- **93** 2014 Chevrolet Corvette Z51 [compare] n=27 halo-dropped=0 yrs=2014-2014 venues=Bring a Trailer,Hemmings,Cars & Bids
+    - cheapest: $30,923 2014 Chevrolet Corvette Stingray Z51 Coupe
+    - median: $41,738 Single-Family-Owned 2014 Chevrolet Corvette Stingr
+    - dearest: $61,688 36-Mile 2014 Chevrolet Corvette Stingray Convertib
+- **94** 2019 Chevrolet Corvette ZR1 [compare] n=123 halo-dropped=0 yrs=2019-2019 venues=Bring a Trailer,Cars & Bids,Barrett-Jackson,Sotheby's Motorsport,Mecum,Hagerty,Bonhams,Gooding Christie's,RM Sotheby's,PCARMarket
+    - cheapest: $117,600 2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK
+    - median: $176,500 2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK 7-Speed
+    - dearest: $347,500 3k-Mile 2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK 
+- **95** 2020 Chevrolet Corvette Stingray [compare] n=44 halo-dropped=11 yrs=2020-2020 venues=Bring a Trailer,Hagerty,Mecum,Cars & Bids,Barrett-Jackson
+    - cheapest: $56,175 2020 Chevrolet Corvette Stingray Coupe 3LT
+    - median: $64,050 2020 Chevrolet Corvette Stingray Coupe 2LT Z51
+    - dearest: $87,450 2020 CHEVROLET CORVETTE STINGRAY
+- **96** 2013 Ford Mustang Shelby GT500 [compare] n=15 halo-dropped=0 yrs=2013-2013 venues=Bring a Trailer,Cars & Bids,Sotheby's Motorsport,Hagerty
+    - cheapest: $42,263 18k-Mile 2013 Ford Mustang Shelby GT500 Coupe
+    - median: $60,375 9k-Mile 2013 Ford Mustang Shelby GT500 Convertible
+    - dearest: $71,925 2k-Mile 2013 Ford Mustang Shelby GT500 Coupe
+- **97** 2016 Ford Mustang Shelby GT350R [compare] n=18 halo-dropped=0 yrs=2016-2016 venues=Bring a Trailer,PCARMarket,Cars & Bids
+    - cheapest: $47,513 2016 Ford Mustang Shelby GT350R
+    - median: $71,400 578-Mile 2016 Ford Mustang Shelby GT350R
+    - dearest: $89,775 2,600-Mile 2016 Ford Mustang Shelby GT350R
+- **98** 2018 Dodge Challenger Demon [compare] n=72 halo-dropped=0 yrs=2018-2018 venues=Bring a Trailer,Mecum,Barrett-Jackson,Sotheby's Motorsport,Cars & Bids
+    - cheapest: $21,788 2018 Dodge Challenger R/T
+    - median: $110,775 175-Mile 2018 Dodge Challenger SRT Demon
+    - dearest: $176,000 BILL GOLDBERG'S 2018 DODGE DEMON
+- **99** 2019 BMW M4 Competition [coverage] n=57 halo-dropped=0 yrs=2017-2020 venues=Cars & Bids,Bring a Trailer,PCARMarket,Broad Arrow
+    - cheapest: $21,000 2017 BMW M4 Coupe
+    - median: $48,300 2018 BMW M4 Coupe
+    - dearest: $168,000 2018 BMW M4 GT4
+- **100** 2017 Ford Focus RS [coverage] n=30 halo-dropped=0 yrs=2016-2017 venues=Cars & Bids
+    - cheapest: $17,588 2016 Ford Focus RS
+    - median: $28,350 2017 Ford Focus RS
+    - dearest: $59,867 2016 Ford Focus RS
+

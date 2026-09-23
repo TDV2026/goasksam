@@ -1,0 +1,195 @@
+{
+ "car_id": 24,
+ "listed": "1967 Alfa Romeo Giulia GT Veloce",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1965-1969)",
+ "basis": "mixed (36% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Alfa Romeo",
+  "model": "Giulia",
+  "window": "36mo",
+  "year_min": 1965,
+  "year_max": 1969,
+  "trim": "GT Veloce",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-07-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 42000,
+   "basis": "sold+fee",
+   "hammer_usd": 40000,
+   "native": {
+    "amount": 40000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-alfa-romeo-giulia-sprint-gt-veloce-37/",
+   "chassis": "AR241287",
+   "title": "Euro 1967 Alfa Romeo Giulia Sprint GT Veloce"
+  },
+  {
+   "date": "2026-06-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 57750,
+   "basis": "sold+fee",
+   "hammer_usd": 55000,
+   "native": {
+    "amount": 55000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-alfa-romeo-giulia-sprint-gt-veloce-36/",
+   "chassis": "AR248689",
+   "title": "1967 Alfa Romeo Giulia Sprint GT Veloce"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Bonhams",
+   "price_usd": 47040,
+   "basis": "buyer-paid",
+   "hammer_usd": 42000,
+   "native": {
+    "amount": 47040,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1967,
+   "url": "https://cars.bonhams.com/auction/31957/lot/152/1967-alfa-romeo-giulia-sprint-gt-veloce-chassis-no-ar252792/",
+   "chassis": "AR252792",
+   "title": "1967 Alfa Romeo Giulia Sprint GT Veloce Chassis no. AR252792"
+  },
+  {
+   "date": "2025-10-18",
+   "venue": "RM Sotheby's",
+   "price_usd": 96255,
+   "basis": "buyer-paid",
+   "hammer_usd": 83700,
+   "native": {
+    "amount": 89125,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1967,
+   "url": "https://rmsothebys.com/auctions/mu25/lots/r0046-1967-alfa-romeo-giulia-sprint-gt-veloce/",
+   "chassis": "AR249144",
+   "title": "1967 Alfa Romeo Giulia Sprint GT Veloce"
+  },
+  {
+   "date": "2025-02-05",
+   "venue": "RM Sotheby's",
+   "price_usd": 44712,
+   "basis": "buyer-paid",
+   "hammer_usd": 38880,
+   "native": {
+    "amount": 41400,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1967,
+   "url": "https://rmsothebys.com/auctions/pa25/lots/b0001-1967-alfa-romeo-giulia-sprint-gt-veloce/",
+   "chassis": "AR250329",
+   "title": "1967 Alfa Romeo Giulia Sprint GT Veloce"
+  },
+  {
+   "date": "2024-06-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 32550,
+   "basis": "sold+fee",
+   "hammer_usd": 31000,
+   "native": {
+    "amount": 31000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://bringatrailer.com/listing/1967-alfa-romeo-gtv-1750-3/",
+   "chassis": "AR243513",
+   "title": "1,779cc-Powered 1966 Alfa Romeo Giulia Sprint GT Veloce"
+  },
+  {
+   "date": "2024-05-11",
+   "venue": "RM Sotheby's",
+   "price_usd": 49680,
+   "basis": "buyer-paid",
+   "hammer_usd": 43200,
+   "native": {
+    "amount": 46000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1967,
+   "url": "https://rmsothebys.com/auctions/mc24/lots/r0009-1967-alfa-romeo-giulia-sprint-gt-veloce/",
+   "chassis": "AR249769",
+   "title": "1967 Alfa Romeo Giulia Sprint GT Veloce"
+  },
+  {
+   "date": "2024-04-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 49350,
+   "basis": "sold+fee",
+   "hammer_usd": 47000,
+   "native": {
+    "amount": 47000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-alfa-romeo-giulia-sprint-gt-veloce-30/",
+   "chassis": "AR246335",
+   "title": "1,750cc-Powered 1967 Alfa Romeo Giulia Sprint GT Veloce"
+  },
+  {
+   "date": "2024-04-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 69300,
+   "basis": "sold+fee",
+   "hammer_usd": 66000,
+   "native": {
+    "amount": 66000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-alfa-romeo-giulia-sprint-gt-veloce-31/",
+   "chassis": "AR252757",
+   "title": "1967 Alfa Romeo Giulia Sprint GT Veloce"
+  },
+  {
+   "date": "2024-01-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 76125,
+   "basis": "sold+fee",
+   "hammer_usd": 72500,
+   "native": {
+    "amount": 72500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1967,
+   "url": "https://bringatrailer.com/listing/1967-alfa-romeo-giulia-sprint-gt-veloce-28/",
+   "chassis": "AR247350",
+   "title": "1,750cc-Powered 1967 Alfa Romeo Giulia Sprint GT Veloce"
+  },
+  {
+   "date": "2023-09-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 32550,
+   "basis": "sold+fee",
+   "hammer_usd": 31000,
+   "native": {
+    "amount": 31000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1966,
+   "url": "https://bringatrailer.com/listing/1966-alfa-romeo-giulia-sprint-gt-veloce-9/",
+   "chassis": "AR243513",
+   "title": "1,750-Powered 1966 Alfa Romeo Giulia Sprint GT Veloce"
+  }
+ ]
+}

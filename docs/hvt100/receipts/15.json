@@ -1,0 +1,130 @@
+{
+ "car_id": 15,
+ "listed": "1965 Ford F-100 short bed",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1963-1967)",
+ "basis": "mixed (29% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Ford",
+  "model": "F-100",
+  "window": "36mo",
+  "year_min": 1963,
+  "year_max": 1967,
+  "trim": "short bed"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-06-06",
+   "venue": "Mecum",
+   "price_usd": 28350,
+   "basis": "sold+fee",
+   "hammer_usd": 27000,
+   "native": {
+    "amount": 29700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.mecum.com/lots/1173942/1965-ford-f-100-pickup?aa_id=789150-0",
+   "chassis": "F10DK650647",
+   "title": "1965 Ford F-100 Pickup"
+  },
+  {
+   "date": "2026-05-08",
+   "venue": "Mecum",
+   "price_usd": 32550,
+   "basis": "sold+fee",
+   "hammer_usd": 31000,
+   "native": {
+    "amount": 34100,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.mecum.com/lots/1172592/1965-ford-f-100-pickup?aa_id=778849-0",
+   "chassis": "F10DR589069",
+   "title": "1965 Ford F-100 Pickup"
+  },
+  {
+   "date": "2026-04-10",
+   "venue": "Mecum",
+   "price_usd": 23100,
+   "basis": "sold+fee",
+   "hammer_usd": 22000,
+   "native": {
+    "amount": 24200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.mecum.com/lots/1172308/1965-ford-f-100-pickup?aa_id=774896-0",
+   "chassis": "F10JD709691",
+   "title": "1965 Ford F-100 Pickup"
+  },
+  {
+   "date": "2025-10-15",
+   "venue": "Barrett-Jackson",
+   "price_usd": 15950,
+   "basis": "buyer-paid",
+   "hammer_usd": 14500,
+   "native": {
+    "amount": 15950,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2025/docket/vehicle/1965-ford-f-100-pickup-291285?origin=results",
+   "chassis": "F10DK613133",
+   "title": "1965 FORD F-100 PICKUP"
+  },
+  {
+   "date": "2024-06-05",
+   "venue": "AutoHunter",
+   "price_usd": 15225,
+   "basis": "sold+fee",
+   "hammer_usd": 14500,
+   "native": {
+    "amount": 14500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://autohunter.com/Listing/Details/53713299",
+   "chassis": "F10DR580405",
+   "title": "NO RESERVE - 1965 FORD F-100 4-SPEED"
+  },
+  {
+   "date": "2024-05-28",
+   "venue": "Hemmings",
+   "price_usd": 34650,
+   "basis": "sold+fee",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hemmings.com/auction/1965-ford-f-100-creston-wy-967503",
+   "chassis": "F10JN674210",
+   "title": "Restored and Modified 1965 Ford F100 Pickup With a 302 V8"
+  },
+  {
+   "date": "2023-09-29",
+   "venue": "Barrett-Jackson",
+   "price_usd": 26950,
+   "basis": "buyer-paid",
+   "hammer_usd": 24500,
+   "native": {
+    "amount": 26950,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.barrett-jackson.com/new-orleans-2023/docket/vehicle/1965-ford-f-100-pickup-269845?origin=results",
+   "chassis": "F10DK715960",
+   "title": "1965 FORD F-100 PICKUP"
+  }
+ ]
+}

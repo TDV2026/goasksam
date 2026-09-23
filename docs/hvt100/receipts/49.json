@@ -1,0 +1,546 @@
+{
+ "car_id": 49,
+ "listed": "1987 Buick Grand National",
+ "status": "compare",
+ "year_scope": "exact 1987",
+ "basis": "mixed (27% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Buick",
+  "model": "Grand National",
+  "window": "36mo",
+  "year_min": 1987,
+  "year_max": 1987,
+  "body": "coupe"
+ },
+ "halo_dropped": 5,
+ "sales": [
+  {
+   "date": "2026-09-17",
+   "venue": "Hagerty",
+   "price_usd": 45413,
+   "basis": "sold+fee",
+   "hammer_usd": 43250,
+   "native": {
+    "amount": 43250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://www.hagerty.com/marketplace/auction/1987-Buick-Grand-National/66477e18-cf5d-426e-823e-060fa61a0d92",
+   "chassis": "1G4GJ1177HP461787",
+   "title": "1987 Buick Grand National"
+  },
+  {
+   "date": "2026-09-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 73500,
+   "basis": "sold+fee",
+   "hammer_usd": 70000,
+   "native": {
+    "amount": 70000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-296/",
+   "chassis": "1G4GJ1175HP447757",
+   "title": "24k-Mile 1987 Buick Grand National"
+  },
+  {
+   "date": "2026-08-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 29925,
+   "basis": "sold+fee",
+   "hammer_usd": 28500,
+   "native": {
+    "amount": 28500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-294/",
+   "chassis": "1G4GJ1178HP458462",
+   "title": "1987 Buick Grand National"
+  },
+  {
+   "date": "2026-07-24",
+   "venue": "Mecum",
+   "price_usd": 65100,
+   "basis": "sold+fee",
+   "hammer_usd": 62000,
+   "native": {
+    "amount": 68200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.mecum.com/lots/1168336/1987-buick-grand-national?aa_id=784012-0",
+   "chassis": "1G4GJ1179HP446014",
+   "title": "1987 Buick Grand National"
+  },
+  {
+   "date": "2026-06-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 80325,
+   "basis": "sold+fee",
+   "hammer_usd": 76500,
+   "native": {
+    "amount": 76500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-285/",
+   "chassis": "1G4GJ1177HP437473",
+   "title": "6k-Mile 1987 Buick Grand National"
+  },
+  {
+   "date": "2026-06-05",
+   "venue": "Mecum",
+   "price_usd": 33600,
+   "basis": "sold+fee",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 35200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.mecum.com/lots/1172670/1987-buick-grand-national?aa_id=789120-0",
+   "chassis": "1G4GJ1179HP463718",
+   "title": "1987 Buick Grand National"
+  },
+  {
+   "date": "2026-04-17",
+   "venue": "Barrett-Jackson",
+   "price_usd": 95700,
+   "basis": "buyer-paid",
+   "hammer_usd": 87000,
+   "native": {
+    "amount": 95700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/1987-buick-grand-national-formerly-owned-by-david-spade-298485?origin=results",
+   "chassis": "1G4GJ1175HP425015",
+   "title": "1987 BUICK GRAND NATIONAL FORMERLY OWNED BY DAVID SPADE"
+  },
+  {
+   "date": "2026-03-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 78750,
+   "basis": "sold+fee",
+   "hammer_usd": 75000,
+   "native": {
+    "amount": 75000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-279/",
+   "chassis": "1G4GJ1178HP462401",
+   "title": "7k-Mile 1987 Buick Grand National"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 50600,
+   "basis": "buyer-paid",
+   "hammer_usd": 46000,
+   "native": {
+    "amount": 50600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1987-buick-grand-national-formerly-owned-by-david-spade-292566?origin=results",
+   "chassis": "1G4GJ1175HP425015",
+   "title": "1987 BUICK GRAND NATIONAL FORMERLY OWNED BY DAVID SPADE"
+  },
+  {
+   "date": "2026-01-22",
+   "venue": "Barrett-Jackson",
+   "price_usd": 79200,
+   "basis": "buyer-paid",
+   "hammer_usd": 72000,
+   "native": {
+    "amount": 79200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1987-buick-grand-national-293682?origin=results",
+   "chassis": "1G4GJ1178HP462401",
+   "title": "1987 BUICK GRAND NATIONAL"
+  },
+  {
+   "date": "2026-01-21",
+   "venue": "Barrett-Jackson",
+   "price_usd": 52800,
+   "basis": "buyer-paid",
+   "hammer_usd": 48000,
+   "native": {
+    "amount": 52800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1987-buick-grand-national-292452?origin=results",
+   "chassis": "1G4GJ1174HP462444",
+   "title": "1987 BUICK GRAND NATIONAL"
+  },
+  {
+   "date": "2025-12-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 78750,
+   "basis": "sold+fee",
+   "hammer_usd": 75000,
+   "native": {
+    "amount": 75000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-274/",
+   "chassis": "1G4GJ1170HP463784",
+   "title": "1987 Buick Grand National"
+  },
+  {
+   "date": "2025-10-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 46725,
+   "basis": "sold+fee",
+   "hammer_usd": 44500,
+   "native": {
+    "amount": 44500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-269/",
+   "chassis": "1G4GJ1175HP443482",
+   "title": "28k-Mile 1987 Buick Grand National"
+  },
+  {
+   "date": "2025-09-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 54656,
+   "basis": "sold+fee",
+   "hammer_usd": 52053,
+   "native": {
+    "amount": 52053,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-251/",
+   "chassis": "1G4GJ1170HP464918",
+   "title": "18k-Mile 1987 Buick Grand National"
+  },
+  {
+   "date": "2025-09-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 92400,
+   "basis": "sold+fee",
+   "hammer_usd": 88000,
+   "native": {
+    "amount": 88000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-250-2/",
+   "chassis": "1G4GJ1170HP435967",
+   "title": "Original-Owner 1987 Buick Grand National"
+  },
+  {
+   "date": "2025-09-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 96075,
+   "basis": "sold+fee",
+   "hammer_usd": 91500,
+   "native": {
+    "amount": 91500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-225/",
+   "chassis": "1G4GJ1177HP456329",
+   "title": "77-Mile 1987 Buick Grand National"
+  },
+  {
+   "date": "2025-08-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 102900,
+   "basis": "sold+fee",
+   "hammer_usd": 98000,
+   "native": {
+    "amount": 98000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-250/",
+   "chassis": "1G4GJ1170HP435967",
+   "title": "Original-Owner 1987 Buick Grand National"
+  },
+  {
+   "date": "2025-07-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 64050,
+   "basis": "sold+fee",
+   "hammer_usd": 61000,
+   "native": {
+    "amount": 61000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-259/",
+   "chassis": "1G4GJ1175HP438296",
+   "title": "4,900-Mile 1987 Buick Grand National"
+  },
+  {
+   "date": "2025-07-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 18375,
+   "basis": "sold+fee",
+   "hammer_usd": 17500,
+   "native": {
+    "amount": 17500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-256/",
+   "chassis": "1G4GJ1178HP454735",
+   "title": "1987 Buick Grand National"
+  },
+  {
+   "date": "2025-07-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 53550,
+   "basis": "sold+fee",
+   "hammer_usd": 51000,
+   "native": {
+    "amount": 51000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-255/",
+   "chassis": "1G4GJ1172HP450986",
+   "title": "Original-Owner 1987 Buick Grand National"
+  },
+  {
+   "date": "2025-07-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 40688,
+   "basis": "sold+fee",
+   "hammer_usd": 38750,
+   "native": {
+    "amount": 38750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-257/",
+   "chassis": "1G4GJ1175HP456488",
+   "title": "1987 Buick Grand National"
+  },
+  {
+   "date": "2025-03-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 55650,
+   "basis": "sold+fee",
+   "hammer_usd": 53000,
+   "native": {
+    "amount": 53000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-248/",
+   "chassis": "1G4GJ1175HP437195",
+   "title": "1987 Buick Grand National"
+  },
+  {
+   "date": "2025-02-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 39329,
+   "basis": "sold+fee",
+   "hammer_usd": 37456,
+   "native": {
+    "amount": 37456,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-245/",
+   "chassis": "1G4GJ1171HP439879",
+   "title": "1987 Buick Grand National"
+  },
+  {
+   "date": "2025-02-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 79800,
+   "basis": "sold+fee",
+   "hammer_usd": 76000,
+   "native": {
+    "amount": 76000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-243-2/",
+   "chassis": "1G4GJ1174HP463657",
+   "title": "994-Mile 1987 Buick Grand National"
+  },
+  {
+   "date": "2025-02-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 76650,
+   "basis": "sold+fee",
+   "hammer_usd": 73000,
+   "native": {
+    "amount": 73000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-244/",
+   "chassis": "1G4GJ1173HP460216",
+   "title": "6k-Mile 1987 Buick Grand National"
+  },
+  {
+   "date": "2025-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 30800,
+   "basis": "buyer-paid",
+   "hammer_usd": 28000,
+   "native": {
+    "amount": 30800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1987-buick-grand-national-281939?origin=results",
+   "chassis": "1G4GJ1175HP417707",
+   "title": "1987 BUICK GRAND NATIONAL"
+  },
+  {
+   "date": "2025-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 33000,
+   "basis": "buyer-paid",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1987-buick-grand-national-281579?origin=results",
+   "chassis": "1G4GJ1177HP461319",
+   "title": "1987 BUICK GRAND NATIONAL"
+  },
+  {
+   "date": "2024-12-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 45150,
+   "basis": "sold+fee",
+   "hammer_usd": 43000,
+   "native": {
+    "amount": 43000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-239/",
+   "chassis": "1G4GJ1178HP455674",
+   "title": "1987 Buick Grand National"
+  },
+  {
+   "date": "2024-12-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 44625,
+   "basis": "sold+fee",
+   "hammer_usd": 42500,
+   "native": {
+    "amount": 42500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-241/",
+   "chassis": "1G4GJ1177HP438557",
+   "title": "10k-Mile 1987 Buick Grand National"
+  },
+  {
+   "date": "2024-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 69300,
+   "basis": "buyer-paid",
+   "hammer_usd": 63000,
+   "native": {
+    "amount": 69300,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1987-buick-grand-national-273195?origin=results",
+   "chassis": "1G4GJ1174HP433140",
+   "title": "1987 BUICK GRAND NATIONAL"
+  },
+  {
+   "date": "2024-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 51700,
+   "basis": "buyer-paid",
+   "hammer_usd": 47000,
+   "native": {
+    "amount": 51700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1987-buick-grand-national-272031?origin=results",
+   "chassis": "1G4GJ1173HP452312",
+   "title": "1987 BUICK GRAND NATIONAL"
+  },
+  {
+   "date": "2024-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 66000,
+   "basis": "buyer-paid",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 66000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1987,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1987-buick-grand-national-272713?origin=results",
+   "chassis": "1G4GJ1172HP461390",
+   "title": "1987 BUICK GRAND NATIONAL"
+  },
+  {
+   "date": "2023-11-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 44363,
+   "basis": "sold+fee",
+   "hammer_usd": 42250,
+   "native": {
+    "amount": 42250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1987,
+   "url": "https://bringatrailer.com/listing/1987-buick-grand-national-185/",
+   "chassis": "1G4CJ117XHP419968",
+   "title": "34-Years-Owned 1987 Buick Grand National"
+  }
+ ]
+}

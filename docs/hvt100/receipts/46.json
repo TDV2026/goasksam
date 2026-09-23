@@ -1,0 +1,594 @@
+{
+ "car_id": 46,
+ "listed": "1993 Mazda RX-7",
+ "status": "compare",
+ "year_scope": "exact 1993",
+ "basis": "sold+fee (online)",
+ "scope": {
+  "make": "Mazda",
+  "model": "RX-7",
+  "window": "36mo",
+  "year_min": 1993,
+  "year_max": 1993,
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-08-20",
+   "venue": "Cars & Bids",
+   "price_usd": 63525,
+   "basis": "sold+fee",
+   "hammer_usd": 60500,
+   "native": {
+    "amount": 60500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://carsandbids.com/auctions/3g6bVLmb/1993-mazda-rx-7-r1",
+   "chassis": "JM1FD3318P0202373",
+   "title": "1993 Mazda RX-7 R1"
+  },
+  {
+   "date": "2026-08-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 53550,
+   "basis": "sold+fee",
+   "hammer_usd": 51000,
+   "native": {
+    "amount": 51000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-112/",
+   "chassis": "JM1FD3318P0201997",
+   "title": "20-Years-Owned 1993 Mazda RX-7 Touring 5-Speed"
+  },
+  {
+   "date": "2026-07-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 40425,
+   "basis": "sold+fee",
+   "hammer_usd": 38500,
+   "native": {
+    "amount": 38500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-touring-3/",
+   "chassis": "JM1FD3312P0206838",
+   "title": "1993 Mazda RX-7 Touring 5-Speed"
+  },
+  {
+   "date": "2026-06-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 31239,
+   "basis": "sold+fee",
+   "hammer_usd": 29751,
+   "native": {
+    "amount": 29751,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-109/",
+   "chassis": "JM1FD3312P0208864",
+   "title": "Original-Owner 1993 Mazda RX-7 Touring"
+  },
+  {
+   "date": "2026-06-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 47775,
+   "basis": "sold+fee",
+   "hammer_usd": 45500,
+   "native": {
+    "amount": 45500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-108/",
+   "chassis": "JM1FD3319P0204066",
+   "title": "Original-Owner 1993 Mazda RX-7 5-Speed"
+  },
+  {
+   "date": "2026-03-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 26513,
+   "basis": "sold+fee",
+   "hammer_usd": 25250,
+   "native": {
+    "amount": 25250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-104/",
+   "chassis": "JM1FD3318P0202230",
+   "title": "1993 Mazda RX-7 Touring"
+  },
+  {
+   "date": "2026-03-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 72450,
+   "basis": "sold+fee",
+   "hammer_usd": 69000,
+   "native": {
+    "amount": 69000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-103/",
+   "chassis": "JM1FD3317P0208262",
+   "title": "30-Years-Owned 1993 Mazda RX-7 Touring 5-Speed"
+  },
+  {
+   "date": "2026-01-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 43050,
+   "basis": "sold+fee",
+   "hammer_usd": 41000,
+   "native": {
+    "amount": 41000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-100/",
+   "chassis": "JM1FD3312P0206953",
+   "title": "31k-Mile 1993 Mazda RX-7 Touring 5-Speed"
+  },
+  {
+   "date": "2025-09-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 71400,
+   "basis": "sold+fee",
+   "hammer_usd": 68000,
+   "native": {
+    "amount": 68000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-87/",
+   "chassis": "JM1FD3318P0206584",
+   "title": "16k-Mile 1993 Mazda RX-7 Touring 5-Speed"
+  },
+  {
+   "date": "2025-09-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 41480,
+   "basis": "sold+fee",
+   "hammer_usd": 39505,
+   "native": {
+    "amount": 39505,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-85/",
+   "chassis": "JM1FD3310P0204523",
+   "title": "45k-Mile 1993 Mazda RX-7 5-Speed"
+  },
+  {
+   "date": "2025-08-22",
+   "venue": "Cars & Bids",
+   "price_usd": 45500,
+   "basis": "sold+fee",
+   "hammer_usd": 43333,
+   "native": {
+    "amount": 43333,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://carsandbids.com/auctions/KD4mRVwy/1993-mazda-rx-7",
+   "chassis": "JM1FD3315P0201522",
+   "title": "1993 Mazda RX-7"
+  },
+  {
+   "date": "2025-08-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 53025,
+   "basis": "sold+fee",
+   "hammer_usd": 50500,
+   "native": {
+    "amount": 50500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-86/",
+   "chassis": "JM1FD3318P0203121",
+   "title": "28k-Mile 1993 Mazda RX-7 Touring 5-Speed"
+  },
+  {
+   "date": "2025-07-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 45413,
+   "basis": "sold+fee",
+   "hammer_usd": 43250,
+   "native": {
+    "amount": 43250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-81/",
+   "chassis": "JM1FD3314P0202628",
+   "title": "1993 Mazda RX-7 Touring 5-Speed"
+  },
+  {
+   "date": "2025-04-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 34913,
+   "basis": "sold+fee",
+   "hammer_usd": 33250,
+   "native": {
+    "amount": 33250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-48/",
+   "chassis": "JM1FD3310P0210306",
+   "title": "1993 Mazda RX-7 Touring 5-Speed"
+  },
+  {
+   "date": "2025-03-25",
+   "venue": "Cars & Bids",
+   "price_usd": 39647,
+   "basis": "sold+fee",
+   "hammer_usd": 37759,
+   "native": {
+    "amount": 37759,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://carsandbids.com/auctions/KV47q4Zk/1993-mazda-rx-7-r1",
+   "chassis": "JM1FD331XP0201094",
+   "title": "1993 Mazda RX-7 R1"
+  },
+  {
+   "date": "2025-03-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 35963,
+   "basis": "sold+fee",
+   "hammer_usd": 34250,
+   "native": {
+    "amount": 34250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1992-mazda-rx-7-jdm-16/",
+   "chassis": "JM1FD3313P0201423",
+   "title": "31-Years-Family-Owned 1993 Mazda RX-7 Touring 5-Speed"
+  },
+  {
+   "date": "2025-03-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 37013,
+   "basis": "sold+fee",
+   "hammer_usd": 35250,
+   "native": {
+    "amount": 35250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-67/",
+   "chassis": "JM1FD3313P0210476",
+   "title": "1993 Mazda RX-7 Touring 5-Speed"
+  },
+  {
+   "date": "2025-02-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 30713,
+   "basis": "sold+fee",
+   "hammer_usd": 29250,
+   "native": {
+    "amount": 29250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-64/",
+   "chassis": "JM1FD3315P0202203",
+   "title": "1993 Mazda RX-7 Touring 5-Speed"
+  },
+  {
+   "date": "2025-02-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 42000,
+   "basis": "sold+fee",
+   "hammer_usd": 40000,
+   "native": {
+    "amount": 40000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-66/",
+   "chassis": "JM1FD3313P0202989",
+   "title": "Original-Owner 1993 Mazda RX-7 R-1 5-Speed"
+  },
+  {
+   "date": "2024-12-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 37853,
+   "basis": "sold+fee",
+   "hammer_usd": 36050,
+   "native": {
+    "amount": 36050,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-59/",
+   "chassis": "JM1FD3313P0208839",
+   "title": "27-Years-Owned 1993 Mazda RX-7 Touring 5-Speed"
+  },
+  {
+   "date": "2024-12-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 21525,
+   "basis": "sold+fee",
+   "hammer_usd": 20500,
+   "native": {
+    "amount": 20500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-60/",
+   "chassis": "JM1FD3312P0203423",
+   "title": "1993 Mazda RX-7 Touring 5-Speed"
+  },
+  {
+   "date": "2024-11-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 50925,
+   "basis": "sold+fee",
+   "hammer_usd": 48500,
+   "native": {
+    "amount": 48500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-56/",
+   "chassis": "JM1FD331XP0201922",
+   "title": "Single-Family-Owned 1993 Mazda RX-7 R-1 5-Speed"
+  },
+  {
+   "date": "2024-10-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 43575,
+   "basis": "sold+fee",
+   "hammer_usd": 41500,
+   "native": {
+    "amount": 41500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-235/",
+   "chassis": "JM1FD3315P0201617",
+   "title": "11k-Mile 1993 Mazda RX-7 R-1 5-Speed"
+  },
+  {
+   "date": "2024-10-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 54078,
+   "basis": "sold+fee",
+   "hammer_usd": 51503,
+   "native": {
+    "amount": 51503,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-53/",
+   "chassis": "JM1FD3318P0208447",
+   "title": "18k-Mile 1993 Mazda RX-7 Touring 5-Speed"
+  },
+  {
+   "date": "2024-08-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 35000,
+   "basis": "sold+fee",
+   "hammer_usd": 33333,
+   "native": {
+    "amount": 33333,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-50/",
+   "chassis": "JM1FD3313P0205374",
+   "title": "29-Years-Owned 1993 Mazda RX-7 5-Speed"
+  },
+  {
+   "date": "2024-08-29",
+   "venue": "Cars & Bids",
+   "price_usd": 25200,
+   "basis": "sold+fee",
+   "hammer_usd": 24000,
+   "native": {
+    "amount": 24000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://carsandbids.com/auctions/3vyEnEnk/1993-mazda-rx-7",
+   "chassis": "JM1FD3314P0208672",
+   "title": "1993 Mazda RX-7"
+  },
+  {
+   "date": "2024-08-23",
+   "venue": "Cars & Bids",
+   "price_usd": 36750,
+   "basis": "sold+fee",
+   "hammer_usd": 35000,
+   "native": {
+    "amount": 35000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://carsandbids.com/auctions/rxMLOXa8/1993-mazda-rx-7",
+   "chassis": "JM1FD3311P0210153",
+   "title": "1993 Mazda RX-7"
+  },
+  {
+   "date": "2024-08-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 42263,
+   "basis": "sold+fee",
+   "hammer_usd": 40250,
+   "native": {
+    "amount": 40250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-49/",
+   "chassis": "JM1FD331XP0209020",
+   "title": "30-Years-Owned 38k-Mile 1993 Mazda RX-7 5-Speed"
+  },
+  {
+   "date": "2024-08-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 39900,
+   "basis": "sold+fee",
+   "hammer_usd": 38000,
+   "native": {
+    "amount": 38000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-42/",
+   "chassis": "JM1FD3313P0201261",
+   "title": "34k-Mile 1993 Mazda RX-7 5-Speed"
+  },
+  {
+   "date": "2024-08-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 35438,
+   "basis": "sold+fee",
+   "hammer_usd": 33750,
+   "native": {
+    "amount": 33750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-46/",
+   "chassis": "JM1FD3313P0210039",
+   "title": "1993 Mazda RX-7 Touring 5-Speed"
+  },
+  {
+   "date": "2024-07-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 29166,
+   "basis": "sold+fee",
+   "hammer_usd": 27777,
+   "native": {
+    "amount": 27777,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-38/",
+   "chassis": "JM1FD3316P0205918",
+   "title": "Original-Owner 1993 Mazda RX-7 R-1 5-Speed"
+  },
+  {
+   "date": "2024-06-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 46228,
+   "basis": "sold+fee",
+   "hammer_usd": 44027,
+   "native": {
+    "amount": 44027,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-jdm-3/",
+   "chassis": "FD3S117318",
+   "title": "52k-Kilometer 1993 Mazda Efini RX-7 Type R 5-Speed"
+  },
+  {
+   "date": "2024-01-30",
+   "venue": "Cars & Bids",
+   "price_usd": 47513,
+   "basis": "sold+fee",
+   "hammer_usd": 45250,
+   "native": {
+    "amount": 45250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://carsandbids.com/auctions/KmlWwMpm/1993-mazda-rx-7",
+   "chassis": "JM1FD3315P0207871",
+   "title": "1993 Mazda RX-7"
+  },
+  {
+   "date": "2024-01-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 39113,
+   "basis": "sold+fee",
+   "hammer_usd": 37250,
+   "native": {
+    "amount": 37250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-29/",
+   "chassis": "JM1FD3313P0201907",
+   "title": "1993 Mazda RX-7"
+  },
+  {
+   "date": "2023-12-01",
+   "venue": "Hagerty",
+   "price_usd": 38850,
+   "basis": "sold+fee",
+   "hammer_usd": 37000,
+   "native": {
+    "amount": 37000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://www.hagerty.com/marketplace/auction/1993-Mazda-RX-7/7IdTgS54UL0oKu7uaIIIdj",
+   "chassis": "JM1FD3319P0208862",
+   "title": "One-Owner 1993 Mazda RX-7 Five-Speed"
+  },
+  {
+   "date": "2023-10-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 84525,
+   "basis": "sold+fee",
+   "hammer_usd": 80500,
+   "native": {
+    "amount": 80500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1993,
+   "url": "https://bringatrailer.com/listing/1993-mazda-rx-7-us-can-19/",
+   "chassis": "JM1FD3316P0206051",
+   "title": "One-Owner 1993 Mazda RX-7 R1 5-Speed"
+  }
+ ]
+}

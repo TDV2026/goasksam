@@ -1,0 +1,515 @@
+{
+ "car_id": 68,
+ "listed": "2002 Chevrolet Corvette Z06",
+ "status": "compare",
+ "year_scope": "exact 2002",
+ "basis": "mixed (10% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Chevrolet",
+  "model": "Corvette",
+  "window": "36mo",
+  "year_min": 2002,
+  "year_max": 2002,
+  "trim": "Z06",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-06-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 24150,
+   "basis": "sold+fee",
+   "hammer_usd": 23000,
+   "native": {
+    "amount": 23000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-chevrolet-corvette-z06-174/",
+   "chassis": "1G1YY12S825112124",
+   "title": "2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2026-05-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 29400,
+   "basis": "sold+fee",
+   "hammer_usd": 28000,
+   "native": {
+    "amount": 28000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-chevrolet-corvette-z06-173/",
+   "chassis": "1G1YY12S125126267",
+   "title": "42k-Mile 2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2026-05-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 27300,
+   "basis": "sold+fee",
+   "hammer_usd": 26000,
+   "native": {
+    "amount": 26000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-chevrolet-corvette-z06-169/",
+   "chassis": "1G1YY12S125106259",
+   "title": "50k-Mile 2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2026-03-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 29147,
+   "basis": "sold+fee",
+   "hammer_usd": 27759,
+   "native": {
+    "amount": 27759,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-chevrolet-corvette-z06-167/",
+   "chassis": "1G1YY12S125134921",
+   "title": "18k-Mile 2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2026-02-17",
+   "venue": "Cars & Bids",
+   "price_usd": 18900,
+   "basis": "sold+fee",
+   "hammer_usd": 18000,
+   "native": {
+    "amount": 18000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/9nE8eA8G/2002-chevrolet-corvette-z06",
+   "chassis": "1G1YY12S125106407",
+   "title": "2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2026-01-19",
+   "venue": "Hemmings",
+   "price_usd": 28875,
+   "basis": "sold+fee",
+   "hammer_usd": 27500,
+   "native": {
+    "amount": 27500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://www.hemmings.com/auction/2002-chevrolet-corvette-roseville-ca-636360",
+   "chassis": "1G1YY12SX25131970",
+   "title": "2002 Chevrolet Corvette Z06 With Fewer Than 17,000 Miles"
+  },
+  {
+   "date": "2025-09-25",
+   "venue": "Cars & Bids",
+   "price_usd": 24413,
+   "basis": "sold+fee",
+   "hammer_usd": 23250,
+   "native": {
+    "amount": 23250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/KZMGGYBR/2002-chevrolet-corvette-z06",
+   "chassis": "1G1YY12S925132303",
+   "title": "2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-09-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 28088,
+   "basis": "sold+fee",
+   "hammer_usd": 26750,
+   "native": {
+    "amount": 26750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-chevrolet-corvette-z06-159/",
+   "chassis": "1G1YY12S925107756",
+   "title": "Original-Owner 2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-07-15",
+   "venue": "Cars & Bids",
+   "price_usd": 20213,
+   "basis": "sold+fee",
+   "hammer_usd": 19250,
+   "native": {
+    "amount": 19250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/3gGoyyb3/2002-chevrolet-corvette-z06",
+   "chassis": "1G1YY12SX25135405",
+   "title": "2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-07-14",
+   "venue": "Cars & Bids",
+   "price_usd": 32550,
+   "basis": "sold+fee",
+   "hammer_usd": 31000,
+   "native": {
+    "amount": 31000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/rjZj1Rvp/2002-chevrolet-corvette-z06",
+   "chassis": "1G1YY12S925118482",
+   "title": "2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-07-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 20213,
+   "basis": "sold+fee",
+   "hammer_usd": 19250,
+   "native": {
+    "amount": 19250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-chevrolet-corvette-z06-157/",
+   "chassis": "1G1YY12S525120861",
+   "title": "2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-06-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 21000,
+   "basis": "sold+fee",
+   "hammer_usd": 20000,
+   "native": {
+    "amount": 20000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2003-chevrolet-corvette-z06-182/",
+   "chassis": "1G1YY12S525118270",
+   "title": "2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-05-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 26775,
+   "basis": "sold+fee",
+   "hammer_usd": 25500,
+   "native": {
+    "amount": 25500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-chevrolet-corvette-z06-154/",
+   "chassis": "1G1YY12S725106654",
+   "title": "2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-05-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 33600,
+   "basis": "sold+fee",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 32000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-chevrolet-corvette-z06-153/",
+   "chassis": "1G1YY12S725131148",
+   "title": "8k-Mile 2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-04-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 26775,
+   "basis": "sold+fee",
+   "hammer_usd": 25500,
+   "native": {
+    "amount": 25500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-chevrolet-corvette-z06-151/",
+   "chassis": "1G1YY12S825131434",
+   "title": "32k-Mile 2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-04-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 27463,
+   "basis": "sold+fee",
+   "hammer_usd": 26155,
+   "native": {
+    "amount": 26155,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-chevrolet-corvette-z06-150/",
+   "chassis": "1G1YY12S725128380",
+   "title": "14k-Mile 2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-04-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 29663,
+   "basis": "sold+fee",
+   "hammer_usd": 28250,
+   "native": {
+    "amount": 28250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-chevrolet-corvette-z06-146/",
+   "chassis": "1G1YY12S325133172",
+   "title": "16k-Mile 2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-02-28",
+   "venue": "Cars & Bids",
+   "price_usd": 21525,
+   "basis": "sold+fee",
+   "hammer_usd": 20500,
+   "native": {
+    "amount": 20500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/30lo5bwj/2002-chevrolet-corvette-z06",
+   "chassis": "1G1YY12S725130176",
+   "title": "2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-02-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 28613,
+   "basis": "sold+fee",
+   "hammer_usd": 27250,
+   "native": {
+    "amount": 27250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-chevrolet-corvette-z06-140/",
+   "chassis": "1G1YY12S325126559",
+   "title": "18k-Mile 2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2024-12-26",
+   "venue": "Cars & Bids",
+   "price_usd": 17588,
+   "basis": "sold+fee",
+   "hammer_usd": 16750,
+   "native": {
+    "amount": 16750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/9nmyqBYJ/2002-chevrolet-corvette-z06",
+   "chassis": "1G1YY12S125119206",
+   "title": "2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2024-09-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 29481,
+   "basis": "sold+fee",
+   "hammer_usd": 28077,
+   "native": {
+    "amount": 28077,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-chevrolet-corvette-z06-135/",
+   "chassis": "1G1YY12SX25116742",
+   "title": "17k-Mile 2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2024-09-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 34650,
+   "basis": "sold+fee",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-chevrolet-corvette-z06-134/",
+   "chassis": "1G1YY12S625130900",
+   "title": "15k-Mile 2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2024-08-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 29400,
+   "basis": "sold+fee",
+   "hammer_usd": 28000,
+   "native": {
+    "amount": 28000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-chevrolet-corvette-z06-133/",
+   "chassis": "1G1YY12S725125883",
+   "title": "31k-Mile 2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2024-07-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 27563,
+   "basis": "sold+fee",
+   "hammer_usd": 26250,
+   "native": {
+    "amount": 26250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-chevrolet-corvette-z06-129/",
+   "chassis": "1G1YY12S725119839",
+   "title": "36k-Mile 2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2024-05-29",
+   "venue": "Cars & Bids",
+   "price_usd": 33600,
+   "basis": "sold+fee",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 32000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/9WgRLOd1/2002-chevrolet-corvette-z06",
+   "chassis": "1G1YY12S125124289",
+   "title": "2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2024-04-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 26513,
+   "basis": "sold+fee",
+   "hammer_usd": 25250,
+   "native": {
+    "amount": 25250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-chevrolet-corvette-z06-122/",
+   "chassis": "1G1YY12SX25106650",
+   "title": "One-Owner 2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2024-04-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 38588,
+   "basis": "sold+fee",
+   "hammer_usd": 36750,
+   "native": {
+    "amount": 36750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-chevrolet-corvette-z06-119/",
+   "chassis": "1G1YY12S025134845",
+   "title": "1,200-Mile 2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2024-04-19",
+   "venue": "Barrett-Jackson",
+   "price_usd": 36300,
+   "basis": "buyer-paid",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 36300,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2002,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/2002-chevrolet-corvette-z06-277981?origin=results",
+   "chassis": "1G1YY12S625122618",
+   "title": "2002 CHEVROLET CORVETTE Z06"
+  },
+  {
+   "date": "2024-02-21",
+   "venue": "Cars & Bids",
+   "price_usd": 29138,
+   "basis": "sold+fee",
+   "hammer_usd": 27750,
+   "native": {
+    "amount": 27750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://carsandbids.com/auctions/98mM0op6/2002-chevrolet-corvette-z06",
+   "chassis": "1G1YY12S325109499",
+   "title": "2002 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2024-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 31900,
+   "basis": "buyer-paid",
+   "hammer_usd": 29000,
+   "native": {
+    "amount": 31900,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2002,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2002-chevrolet-corvette-z06-272457?origin=results",
+   "chassis": "1G1YY12S325132717",
+   "title": "2002 CHEVROLET CORVETTE Z06"
+  },
+  {
+   "date": "2024-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 30800,
+   "basis": "buyer-paid",
+   "hammer_usd": 28000,
+   "native": {
+    "amount": 30800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2002,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2002-chevrolet-corvette-z06-274273?origin=results",
+   "chassis": "1G1YY12S625102319",
+   "title": "2002 CHEVROLET CORVETTE Z06"
+  }
+ ]
+}

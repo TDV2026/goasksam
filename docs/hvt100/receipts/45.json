@@ -1,0 +1,339 @@
+{
+ "car_id": 45,
+ "listed": "1994 Toyota Supra Turbo",
+ "status": "compare",
+ "year_scope": "exact 1994",
+ "basis": "sold+fee (online)",
+ "scope": {
+  "make": "Toyota",
+  "model": "Supra",
+  "window": "36mo",
+  "year_min": 1994,
+  "year_max": 1994,
+  "trim": "Turbo",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-08-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 81666,
+   "basis": "sold+fee",
+   "hammer_usd": 77777,
+   "native": {
+    "amount": 77777,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-toyota-supra-220/",
+   "chassis": "JT2JA82J1R0011276",
+   "title": "1994 Toyota Supra Turbo"
+  },
+  {
+   "date": "2026-07-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 131250,
+   "basis": "sold+fee",
+   "hammer_usd": 125000,
+   "native": {
+    "amount": 125000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-toyota-supra-211/",
+   "chassis": "JT2JA82J6R0008602",
+   "title": "45k-Mile 1994 Toyota Supra Turbo 6-Speed"
+  },
+  {
+   "date": "2026-04-15",
+   "venue": "Cars & Bids",
+   "price_usd": 59325,
+   "basis": "sold+fee",
+   "hammer_usd": 56500,
+   "native": {
+    "amount": 56500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://carsandbids.com/auctions/K14aAqEd/1994-toyota-supra-turbo",
+   "chassis": "JZA800024201",
+   "title": "1994 Toyota Supra Turbo"
+  },
+  {
+   "date": "2026-03-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 151200,
+   "basis": "sold+fee",
+   "hammer_usd": 144000,
+   "native": {
+    "amount": 144000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-toyota-supra-209/",
+   "chassis": "JT2JA82J1R0022665",
+   "title": "Original-Owner, 41k-Mile 1994 Toyota Supra Turbo 6-Speed"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 77700,
+   "basis": "sold+fee",
+   "hammer_usd": 74000,
+   "native": {
+    "amount": 74000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-toyota-supra-205/",
+   "chassis": "JT2JA82J3R0018262",
+   "title": "1994 Toyota Supra Turbo 6-Speed"
+  },
+  {
+   "date": "2025-08-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 77700,
+   "basis": "sold+fee",
+   "hammer_usd": 74000,
+   "native": {
+    "amount": 74000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-toyota-supra-197/",
+   "chassis": "JT2JA82J4R0020876",
+   "title": "1994 Toyota Supra Turbo"
+  },
+  {
+   "date": "2025-07-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 90930,
+   "basis": "sold+fee",
+   "hammer_usd": 86600,
+   "native": {
+    "amount": 86600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-toyota-supra-192/",
+   "chassis": "JT2JA82J9R0015687",
+   "title": "1994 Toyota Supra Turbo 6-Speed"
+  },
+  {
+   "date": "2025-07-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 111825,
+   "basis": "sold+fee",
+   "hammer_usd": 106500,
+   "native": {
+    "amount": 106500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-toyota-supra-183/",
+   "chassis": "JT2JA82J3R0021436",
+   "title": "41k-Mile 1994 Toyota Supra Turbo 6-Speed"
+  },
+  {
+   "date": "2025-07-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 145950,
+   "basis": "sold+fee",
+   "hammer_usd": 139000,
+   "native": {
+    "amount": 139000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-toyota-supra-185/",
+   "chassis": "JT2JA82J7R0014439",
+   "title": "45k-Mile 1994 Toyota Supra Turbo 6-Speed"
+  },
+  {
+   "date": "2025-05-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 149100,
+   "basis": "sold+fee",
+   "hammer_usd": 142000,
+   "native": {
+    "amount": 142000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-toyota-supra-188/",
+   "chassis": "JT2JA82J0R0019806",
+   "title": "37k-Mile 1994 Toyota Supra Turbo 6-Speed"
+  },
+  {
+   "date": "2025-01-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 117714,
+   "basis": "sold+fee",
+   "hammer_usd": 112109,
+   "native": {
+    "amount": 112109,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-toyota-supra-176/",
+   "chassis": "JT2JA82J3R0008458",
+   "title": "29k-Mile 1994 Toyota Supra Turbo 6-Speed"
+  },
+  {
+   "date": "2024-12-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 152250,
+   "basis": "sold+fee",
+   "hammer_usd": 145000,
+   "native": {
+    "amount": 145000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-toyota-supra-179/",
+   "chassis": "JT2JA82JXR0019523",
+   "title": "Original-Owner 1994 Toyota Supra Turbo 6-Speed"
+  },
+  {
+   "date": "2024-09-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 67201,
+   "basis": "sold+fee",
+   "hammer_usd": 64001,
+   "native": {
+    "amount": 64001,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-toyota-supra-172/",
+   "chassis": "JT2JA82JXR0008621",
+   "title": "1994 Toyota Supra Turbo"
+  },
+  {
+   "date": "2024-06-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 71400,
+   "basis": "sold+fee",
+   "hammer_usd": 68000,
+   "native": {
+    "amount": 68000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-toyota-supra-167/",
+   "chassis": "JT2JA82J6R0022693",
+   "title": "24-Years-Owned 1994 Toyota Supra Turbo 6-Speed"
+  },
+  {
+   "date": "2024-06-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 105000,
+   "basis": "sold+fee",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 100000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-toyota-supra-168/",
+   "chassis": "JT2JA82J0R0010314",
+   "title": "1994 Toyota Supra Turbo 6-Speed"
+  },
+  {
+   "date": "2024-06-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 69300,
+   "basis": "sold+fee",
+   "hammer_usd": 66000,
+   "native": {
+    "amount": 66000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-toyota-supra-turbo-2-170/",
+   "chassis": "JT2JA82JXR0008389",
+   "title": "1994 Toyota Supra Turbo"
+  },
+  {
+   "date": "2024-05-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 66849,
+   "basis": "sold+fee",
+   "hammer_usd": 63666,
+   "native": {
+    "amount": 63666,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-toyota-supra-166/",
+   "chassis": "JT2JA82J4R0018786",
+   "title": "21-Years-Owned 1994 Toyota Supra Turbo 6-Speed"
+  },
+  {
+   "date": "2024-04-18",
+   "venue": "Cars & Bids",
+   "price_usd": 65625,
+   "basis": "sold+fee",
+   "hammer_usd": 62500,
+   "native": {
+    "amount": 62500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://carsandbids.com/auctions/KmJWgGzd/1994-toyota-supra-turbo",
+   "chassis": "JT2JA82J7R0020130",
+   "title": "1994 Toyota Supra Turbo"
+  },
+  {
+   "date": "2024-01-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 78750,
+   "basis": "sold+fee",
+   "hammer_usd": 75000,
+   "native": {
+    "amount": 75000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-toyota-supra-154-2/",
+   "chassis": "JT2JA82J3R0018925",
+   "title": "45k-Mile 1994 Toyota Supra Turbo"
+  },
+  {
+   "date": "2023-10-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 138600,
+   "basis": "sold+fee",
+   "hammer_usd": 132000,
+   "native": {
+    "amount": 132000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1994,
+   "url": "https://bringatrailer.com/listing/1994-toyota-supra-152/",
+   "chassis": "JT2JA82J0R0021443",
+   "title": "One-Owner 1994 Toyota Supra Turbo 6-Speed"
+  }
+ ]
+}

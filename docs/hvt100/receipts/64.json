@@ -1,0 +1,818 @@
+{
+ "car_id": 64,
+ "listed": "2003 BMW M5",
+ "status": "compare",
+ "year_scope": "exact 2003",
+ "basis": "mixed (2% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "BMW",
+  "model": "M5",
+  "window": "36mo",
+  "year_min": 2003,
+  "year_max": 2003,
+  "body": "sedan"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-09-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 87716,
+   "basis": "sold+fee",
+   "hammer_usd": 83539,
+   "native": {
+    "amount": 83539,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-255/",
+   "chassis": "WBSDE93493CF93796",
+   "title": "47k-Mile 2003 BMW M5"
+  },
+  {
+   "date": "2026-07-15",
+   "venue": "Cars & Bids",
+   "price_usd": 19425,
+   "basis": "sold+fee",
+   "hammer_usd": 18500,
+   "native": {
+    "amount": 18500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/KYjaJAWv/2003-bmw-m5",
+   "chassis": "WBSDE93413CF93369",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2026-06-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 50138,
+   "basis": "sold+fee",
+   "hammer_usd": 47750,
+   "native": {
+    "amount": 47750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-252/",
+   "chassis": "WBSDE93493CF93782",
+   "title": "36k-Mile 2003 BMW M5"
+  },
+  {
+   "date": "2026-06-02",
+   "venue": "Cars & Bids",
+   "price_usd": 14385,
+   "basis": "sold+fee",
+   "hammer_usd": 13700,
+   "native": {
+    "amount": 13700,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/36GRMQ8A/2003-bmw-m5",
+   "chassis": "WBSDE93403CF92956",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2026-05-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 84525,
+   "basis": "sold+fee",
+   "hammer_usd": 80500,
+   "native": {
+    "amount": 80500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-8-2/",
+   "chassis": "WBSDE93413CF93257",
+   "title": "17k-Mile 2003 BMW M5"
+  },
+  {
+   "date": "2026-05-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 43827,
+   "basis": "sold+fee",
+   "hammer_usd": 41740,
+   "native": {
+    "amount": 41740,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-253/",
+   "chassis": "WBSDE93483CF93983",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2026-02-20",
+   "venue": "Hemmings",
+   "price_usd": 59850,
+   "basis": "sold+fee",
+   "hammer_usd": 57000,
+   "native": {
+    "amount": 57000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://www.hemmings.com/auction/2003-bmw-m5-sunnyvale-ca-619006",
+   "chassis": "WBSDE93453CF92046",
+   "title": "Low-Mile E39: 2003 BMW M5"
+  },
+  {
+   "date": "2026-02-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 72975,
+   "basis": "sold+fee",
+   "hammer_usd": 69500,
+   "native": {
+    "amount": 69500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-249/",
+   "chassis": "WBSDE93483CF93837",
+   "title": "19k-Mile 2003 BMW M5"
+  },
+  {
+   "date": "2026-02-06",
+   "venue": "Cars & Bids",
+   "price_usd": 16013,
+   "basis": "sold+fee",
+   "hammer_usd": 15250,
+   "native": {
+    "amount": 15250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/rN1Nmq7K/2003-bmw-m5",
+   "chassis": "WBSDE93493CF93331",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2026-01-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 26303,
+   "basis": "sold+fee",
+   "hammer_usd": 25050,
+   "native": {
+    "amount": 25050,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-246/",
+   "chassis": "WBSDE93443CF93818",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2025-12-05",
+   "venue": "Cars & Bids",
+   "price_usd": 29243,
+   "basis": "sold+fee",
+   "hammer_usd": 27850,
+   "native": {
+    "amount": 27850,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/370oElb0/2003-bmw-m5",
+   "chassis": "WBSDE93453CF93987",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2025-10-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 28350,
+   "basis": "sold+fee",
+   "hammer_usd": 27000,
+   "native": {
+    "amount": 27000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-240/",
+   "chassis": "WBSDE93423CF92702",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2025-10-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 20790,
+   "basis": "sold+fee",
+   "hammer_usd": 19800,
+   "native": {
+    "amount": 19800,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-241/",
+   "chassis": "WBSDE934X3CF93595",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2025-10-01",
+   "venue": "Cars & Bids",
+   "price_usd": 42000,
+   "basis": "sold+fee",
+   "hammer_usd": 40000,
+   "native": {
+    "amount": 40000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/3ve7JmYv/2003-bmw-m5",
+   "chassis": "WBSDE93463CF93139",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2025-09-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 65625,
+   "basis": "sold+fee",
+   "hammer_usd": 62500,
+   "native": {
+    "amount": 62500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-239/",
+   "chassis": "WBSDE93413CF92867",
+   "title": "27k-Mile 2003 BMW M5"
+  },
+  {
+   "date": "2025-09-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 43575,
+   "basis": "sold+fee",
+   "hammer_usd": 41500,
+   "native": {
+    "amount": 41500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-238/",
+   "chassis": "WBSDE93443CF92524",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2025-08-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 20213,
+   "basis": "sold+fee",
+   "hammer_usd": 19250,
+   "native": {
+    "amount": 19250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-237/",
+   "chassis": "WBSDE93433CF93194",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2025-08-01",
+   "venue": "Cars & Bids",
+   "price_usd": 30450,
+   "basis": "sold+fee",
+   "hammer_usd": 29000,
+   "native": {
+    "amount": 29000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/304w4oqg/2003-bmw-m5",
+   "chassis": "WBSDE93443CF92099",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2025-07-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 48563,
+   "basis": "sold+fee",
+   "hammer_usd": 46250,
+   "native": {
+    "amount": 46250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-234/",
+   "chassis": "WBSDE93403CF92018",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2025-05-14",
+   "venue": "PCARMarket",
+   "price_usd": 49350,
+   "basis": "sold+fee",
+   "hammer_usd": 47000,
+   "native": {
+    "amount": 47000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://www.pcarmarket.com/auction/2003-bmw-m5-1",
+   "chassis": "WBSDE93443CF93690",
+   "title": "2003 BMW M5 Dinan S1"
+  },
+  {
+   "date": "2025-05-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 45675,
+   "basis": "sold+fee",
+   "hammer_usd": 43500,
+   "native": {
+    "amount": 43500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-230/",
+   "chassis": "WBSDE934X3CF93631",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2025-04-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 38499,
+   "basis": "sold+fee",
+   "hammer_usd": 36666,
+   "native": {
+    "amount": 36666,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-229/",
+   "chassis": "WBSDE93423CF93722",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2025-03-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 35700,
+   "basis": "sold+fee",
+   "hammer_usd": 34000,
+   "native": {
+    "amount": 34000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-152-2/",
+   "chassis": "WBSDE93463CF93500",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2025-03-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 68775,
+   "basis": "sold+fee",
+   "hammer_usd": 65500,
+   "native": {
+    "amount": 65500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-228/",
+   "chassis": "WBSDE93413CF92402",
+   "title": "2003 BMW M5 Dinan S2"
+  },
+  {
+   "date": "2025-03-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 47513,
+   "basis": "sold+fee",
+   "hammer_usd": 45250,
+   "native": {
+    "amount": 45250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-226/",
+   "chassis": "WBSDE93413CF92190",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2025-03-06",
+   "venue": "Gooding Christie's",
+   "price_usd": 134400,
+   "basis": "buyer-paid",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 134400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2003,
+   "url": "https://www.goodingco.com/lot/2003-bmw-m5",
+   "chassis": "WBSDE93453CF92161",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2025-02-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 36225,
+   "basis": "sold+fee",
+   "hammer_usd": 34500,
+   "native": {
+    "amount": 34500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-227/",
+   "chassis": "WBSDE93433CF92661",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2024-12-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 84525,
+   "basis": "sold+fee",
+   "hammer_usd": 80500,
+   "native": {
+    "amount": 80500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-224/",
+   "chassis": "WBSDE93483CF93837",
+   "title": "18k-Mile 2003 BMW M5"
+  },
+  {
+   "date": "2024-11-27",
+   "venue": "Cars & Bids",
+   "price_usd": 47583,
+   "basis": "sold+fee",
+   "hammer_usd": 45317,
+   "native": {
+    "amount": 45317,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/3BLP88RB/2003-bmw-m5",
+   "chassis": "WBSDE93403CF93847",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2024-10-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 68250,
+   "basis": "sold+fee",
+   "hammer_usd": 65000,
+   "native": {
+    "amount": 65000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-221/",
+   "chassis": "WBSDE93463CF93111",
+   "title": "One-Owner 14k-Mile 2003 BMW M5"
+  },
+  {
+   "date": "2024-10-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 38325,
+   "basis": "sold+fee",
+   "hammer_usd": 36500,
+   "native": {
+    "amount": 36500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-222/",
+   "chassis": "WBSDE934X3CF92382",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2024-09-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 96075,
+   "basis": "sold+fee",
+   "hammer_usd": 91500,
+   "native": {
+    "amount": 91500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-220/",
+   "chassis": "WBSDE93433CF93891",
+   "title": "16k-Mile 2003 BMW M5"
+  },
+  {
+   "date": "2024-09-13",
+   "venue": "Cars & Bids",
+   "price_usd": 16013,
+   "basis": "sold+fee",
+   "hammer_usd": 15250,
+   "native": {
+    "amount": 15250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/3yozWDor/2003-bmw-m5",
+   "chassis": "WBSDE93403CF92956",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2024-09-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 32550,
+   "basis": "sold+fee",
+   "hammer_usd": 31000,
+   "native": {
+    "amount": 31000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-219/",
+   "chassis": "WBSDE93463CF93481",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2024-08-22",
+   "venue": "Cars & Bids",
+   "price_usd": 14805,
+   "basis": "sold+fee",
+   "hammer_usd": 14100,
+   "native": {
+    "amount": 14100,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/rkem76bW/2003-bmw-m5",
+   "chassis": "WBSDE93493CF93426",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2024-08-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 47775,
+   "basis": "sold+fee",
+   "hammer_usd": 45500,
+   "native": {
+    "amount": 45500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-212/",
+   "chassis": "WBSDE93473CF93795",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2024-07-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 34650,
+   "basis": "sold+fee",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-216/",
+   "chassis": "WBSDE93463CF92752",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2024-07-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 48300,
+   "basis": "sold+fee",
+   "hammer_usd": 46000,
+   "native": {
+    "amount": 46000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-213/",
+   "chassis": "WBSDE934X3CF93631",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2024-07-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 28875,
+   "basis": "sold+fee",
+   "hammer_usd": 27500,
+   "native": {
+    "amount": 27500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-206/",
+   "chassis": "WBSDE93463CF93187",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2024-06-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 50000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-214/",
+   "chassis": "WBSDE934X3CF92883",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2024-06-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 30450,
+   "basis": "sold+fee",
+   "hammer_usd": 29000,
+   "native": {
+    "amount": 29000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-189/",
+   "chassis": "WBSDE93413CF93162",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2024-06-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 43050,
+   "basis": "sold+fee",
+   "hammer_usd": 41000,
+   "native": {
+    "amount": 41000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-193/",
+   "chassis": "WBSDE93473CF92243",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2024-05-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 57750,
+   "basis": "sold+fee",
+   "hammer_usd": 55000,
+   "native": {
+    "amount": 55000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-204/",
+   "chassis": "WBSDE93423CF93509",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2024-05-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 17588,
+   "basis": "sold+fee",
+   "hammer_usd": 16750,
+   "native": {
+    "amount": 16750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-202/",
+   "chassis": "WBSDE93483CF92705",
+   "title": "Original-Owner 2003 BMW M5"
+  },
+  {
+   "date": "2024-04-24",
+   "venue": "Cars & Bids",
+   "price_usd": 19047,
+   "basis": "sold+fee",
+   "hammer_usd": 18140,
+   "native": {
+    "amount": 18140,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/927PVwyW/2003-bmw-m5",
+   "chassis": "WBSDE93463CF92749",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2024-04-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 18900,
+   "basis": "sold+fee",
+   "hammer_usd": 18000,
+   "native": {
+    "amount": 18000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-198/",
+   "chassis": "WBSDE93463CF92878",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2024-03-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 19740,
+   "basis": "sold+fee",
+   "hammer_usd": 18800,
+   "native": {
+    "amount": 18800,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-199/",
+   "chassis": "WBSDE93413CF93369",
+   "title": "2003 BMW M5"
+  },
+  {
+   "date": "2023-11-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 50211,
+   "basis": "sold+fee",
+   "hammer_usd": 47820,
+   "native": {
+    "amount": 47820,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-191/",
+   "chassis": "WBSDE93423CF92487",
+   "title": "48k-Mile 2003 BMW M5"
+  },
+  {
+   "date": "2023-10-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 25725,
+   "basis": "sold+fee",
+   "hammer_usd": 24500,
+   "native": {
+    "amount": 24500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-bmw-m5-182/",
+   "chassis": "WBSDE93453CF92211",
+   "title": "20-Years-Owned 2003 BMW M5"
+  },
+  {
+   "date": "2023-09-28",
+   "venue": "Cars & Bids",
+   "price_usd": 30188,
+   "basis": "sold+fee",
+   "hammer_usd": 28750,
+   "native": {
+    "amount": 28750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/9lYelR1Z/2003-bmw-m5",
+   "chassis": "WBSDE93473CF92534",
+   "title": "2003 BMW M5"
+  }
+ ]
+}

@@ -1,0 +1,1090 @@
+{
+ "car_id": 66,
+ "listed": "2001 Honda S2000",
+ "status": "compare",
+ "year_scope": "exact 2001",
+ "basis": "sold+fee (online)",
+ "scope": {
+  "make": "Honda",
+  "model": "S2000",
+  "window": "36mo",
+  "year_min": 2001,
+  "year_max": 2001,
+  "body": "convertible"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-09-15",
+   "venue": "Cars & Bids",
+   "price_usd": 19425,
+   "basis": "sold+fee",
+   "hammer_usd": 18500,
+   "native": {
+    "amount": 18500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://carsandbids.com/auctions/K1ZlPbAz/2001-honda-s2000",
+   "chassis": "AP11102969",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2026-09-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 50000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-246/",
+   "chassis": "JHMAP11461T002437",
+   "title": "27k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2026-09-08",
+   "venue": "Cars & Bids",
+   "price_usd": 22313,
+   "basis": "sold+fee",
+   "hammer_usd": 21250,
+   "native": {
+    "amount": 21250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://carsandbids.com/auctions/927mqN64/2001-honda-s2000",
+   "chassis": "JHMAP11431T009815",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2026-08-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 34650,
+   "basis": "sold+fee",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-244/",
+   "chassis": "JHMAP11431T004128",
+   "title": "26k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2026-08-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 24675,
+   "basis": "sold+fee",
+   "hammer_usd": 23500,
+   "native": {
+    "amount": 23500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-242/",
+   "chassis": "JHMAP11461T008402",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2026-07-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 35070,
+   "basis": "sold+fee",
+   "hammer_usd": 33400,
+   "native": {
+    "amount": 33400,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-235/",
+   "chassis": "JHMAP11431T000726",
+   "title": "22k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2026-07-22",
+   "venue": "Cars & Bids",
+   "price_usd": 29400,
+   "basis": "sold+fee",
+   "hammer_usd": 28000,
+   "native": {
+    "amount": 28000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://carsandbids.com/auctions/rMxQPWGZ/2001-honda-s2000",
+   "chassis": "JHMAP11411T006542",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2026-07-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 34650,
+   "basis": "sold+fee",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-234/",
+   "chassis": "JHMAP114X1T002330",
+   "title": "One-Owner 2001 Honda S2000"
+  },
+  {
+   "date": "2026-07-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 30713,
+   "basis": "sold+fee",
+   "hammer_usd": 29250,
+   "native": {
+    "amount": 29250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-238/",
+   "chassis": "JHMAP11461T009369",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2026-06-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 46200,
+   "basis": "sold+fee",
+   "hammer_usd": 44000,
+   "native": {
+    "amount": 44000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-237/",
+   "chassis": "JHMAP11441T000279",
+   "title": "19k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2026-06-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 27300,
+   "basis": "sold+fee",
+   "hammer_usd": 26000,
+   "native": {
+    "amount": 26000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-233/",
+   "chassis": "JHMAP11411T002927",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2026-05-27",
+   "venue": "Cars & Bids",
+   "price_usd": 32288,
+   "basis": "sold+fee",
+   "hammer_usd": 30750,
+   "native": {
+    "amount": 30750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://carsandbids.com/auctions/KdYk4Y8x/2001-honda-s2000",
+   "chassis": "JHMAP11401T004698",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2026-05-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 28718,
+   "basis": "sold+fee",
+   "hammer_usd": 27350,
+   "native": {
+    "amount": 27350,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-230/",
+   "chassis": "JHMAP11431T005893",
+   "title": "42k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2026-05-21",
+   "venue": "Hagerty",
+   "price_usd": 22575,
+   "basis": "sold+fee",
+   "hammer_usd": 21500,
+   "native": {
+    "amount": 21500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://www.hagerty.com/marketplace/auction/2001-Honda-S2000/9461a8db-e644-4290-a919-c13a1c1e4eba",
+   "chassis": "JHMAP11431T001259",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2026-01-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 36750,
+   "basis": "sold+fee",
+   "hammer_usd": 35000,
+   "native": {
+    "amount": 35000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-227/",
+   "chassis": "JHMAP11491T009608",
+   "title": "16k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2026-01-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 37800,
+   "basis": "sold+fee",
+   "hammer_usd": 36000,
+   "native": {
+    "amount": 36000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-226/",
+   "chassis": "JHMAP11481T001158",
+   "title": "28k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2025-12-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 27300,
+   "basis": "sold+fee",
+   "hammer_usd": 26000,
+   "native": {
+    "amount": 26000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-225/",
+   "chassis": "JHMAP11441T004798",
+   "title": "23-Years-Owned 2001 Honda S2000"
+  },
+  {
+   "date": "2025-12-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 22313,
+   "basis": "sold+fee",
+   "hammer_usd": 21250,
+   "native": {
+    "amount": 21250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-224/",
+   "chassis": "JHMAP114X1T000139",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2025-11-14",
+   "venue": "Cars & Bids",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://carsandbids.com/auctions/r4qM2BWk/2001-honda-s2000",
+   "chassis": "JHMAP114X1T006393",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2025-11-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 32667,
+   "basis": "sold+fee",
+   "hammer_usd": 31111,
+   "native": {
+    "amount": 31111,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-223/",
+   "chassis": "JHMAP11411T001034",
+   "title": "13k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2025-11-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 18485,
+   "basis": "sold+fee",
+   "hammer_usd": 17605,
+   "native": {
+    "amount": 17605,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-222/",
+   "chassis": "JHMAP11481T004576",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2025-11-04",
+   "venue": "Cars & Bids",
+   "price_usd": 24675,
+   "basis": "sold+fee",
+   "hammer_usd": 23500,
+   "native": {
+    "amount": 23500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://carsandbids.com/auctions/9aqDl42l/2001-honda-s2000",
+   "chassis": "JHMAP11411T004595",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2025-09-16",
+   "venue": "Cars & Bids",
+   "price_usd": 29663,
+   "basis": "sold+fee",
+   "hammer_usd": 28250,
+   "native": {
+    "amount": 28250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://carsandbids.com/auctions/9QagwnpD/2001-honda-s2000",
+   "chassis": "JHMAP11481T002777",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2025-08-14",
+   "venue": "Hagerty",
+   "price_usd": 26775,
+   "basis": "sold+fee",
+   "hammer_usd": 25500,
+   "native": {
+    "amount": 25500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://www.hagerty.com/marketplace/auction/2001-Honda-S2000/b6aeecb2-ecba-4d18-aaa8-3766d2c2b7fd",
+   "chassis": "JHMAP11461T003748",
+   "title": "47k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2025-08-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 22050,
+   "basis": "sold+fee",
+   "hammer_usd": 21000,
+   "native": {
+    "amount": 21000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-218/",
+   "chassis": "JHMAP11441T002873",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2025-07-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 27825,
+   "basis": "sold+fee",
+   "hammer_usd": 26500,
+   "native": {
+    "amount": 26500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-217/",
+   "chassis": "JHMAP11461T006018",
+   "title": "Original-Owner 2001 Honda S2000"
+  },
+  {
+   "date": "2025-07-29",
+   "venue": "Cars & Bids",
+   "price_usd": 24044,
+   "basis": "sold+fee",
+   "hammer_usd": 22899,
+   "native": {
+    "amount": 22899,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://carsandbids.com/auctions/3vAQQD8b/2001-honda-s2000",
+   "chassis": "JHMAP11471T000258",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2025-07-16",
+   "venue": "Cars & Bids",
+   "price_usd": 32550,
+   "basis": "sold+fee",
+   "hammer_usd": 31000,
+   "native": {
+    "amount": 31000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://carsandbids.com/auctions/rEJvn7j8/2001-honda-s2000",
+   "chassis": "JHMAP114X1T008841",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2025-07-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 27300,
+   "basis": "sold+fee",
+   "hammer_usd": 26000,
+   "native": {
+    "amount": 26000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-210/",
+   "chassis": "JHMAP11471T002088",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2025-06-25",
+   "venue": "Hagerty",
+   "price_usd": 26317,
+   "basis": "sold+fee",
+   "hammer_usd": 25064,
+   "native": {
+    "amount": 25064,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://www.hagerty.com/marketplace/auction/2001-Honda-S2000/6fd895d2-6e19-4f5f-a5a9-9ff996b38544",
+   "chassis": "JHMAP11481T004495",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2025-06-16",
+   "venue": "Cars & Bids",
+   "price_usd": 23100,
+   "basis": "sold+fee",
+   "hammer_usd": 22000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://carsandbids.com/auctions/9nbnAPqD/2001-honda-s2000",
+   "chassis": "JHMAP11401T007651",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2025-06-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 39900,
+   "basis": "sold+fee",
+   "hammer_usd": 38000,
+   "native": {
+    "amount": 38000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-212/",
+   "chassis": "JHMAP11431T002234",
+   "title": "9k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2025-05-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 29558,
+   "basis": "sold+fee",
+   "hammer_usd": 28150,
+   "native": {
+    "amount": 28150,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-209/",
+   "chassis": "JHMAP11481T008840",
+   "title": "30k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2025-05-19",
+   "venue": "Hemmings",
+   "price_usd": 25200,
+   "basis": "sold+fee",
+   "hammer_usd": 24000,
+   "native": {
+    "amount": 24000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://www.hemmings.com/auction/2001-honda-s2000-north-hampton-ma-647461",
+   "chassis": "JHMAP114X1T003073",
+   "title": "Low-Mile, Unmodified 2001 Honda S2000 Convertible"
+  },
+  {
+   "date": "2025-05-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 39900,
+   "basis": "sold+fee",
+   "hammer_usd": 38000,
+   "native": {
+    "amount": 38000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-206/",
+   "chassis": "JHMAP11401T009433",
+   "title": "Original-Owner 2001 Honda S2000"
+  },
+  {
+   "date": "2025-05-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 30023,
+   "basis": "sold+fee",
+   "hammer_usd": 28593,
+   "native": {
+    "amount": 28593,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-183/",
+   "chassis": "JHMAP11451T006740",
+   "title": "Original-Owner 2001 Honda S2000"
+  },
+  {
+   "date": "2025-04-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 32550,
+   "basis": "sold+fee",
+   "hammer_usd": 31000,
+   "native": {
+    "amount": 31000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-204/",
+   "chassis": "JHMAP11451T001831",
+   "title": "21k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2025-03-21",
+   "venue": "Cars & Bids",
+   "price_usd": 20738,
+   "basis": "sold+fee",
+   "hammer_usd": 19750,
+   "native": {
+    "amount": 19750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://carsandbids.com/auctions/rkgaJE2W/2001-honda-s2000",
+   "chassis": "JHMAP11491T002271",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2025-03-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 30450,
+   "basis": "sold+fee",
+   "hammer_usd": 29000,
+   "native": {
+    "amount": 29000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-201/",
+   "chassis": "JHMAP11401T004524",
+   "title": "38k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2025-01-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 20318,
+   "basis": "sold+fee",
+   "hammer_usd": 19350,
+   "native": {
+    "amount": 19350,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-192-2/",
+   "chassis": "JHMAP11491T006353",
+   "title": "One-Owner 2001 Honda S2000"
+  },
+  {
+   "date": "2025-01-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 25725,
+   "basis": "sold+fee",
+   "hammer_usd": 24500,
+   "native": {
+    "amount": 24500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-192/",
+   "chassis": "JHMAP11491T006353",
+   "title": "One-Owner 2001 Honda S2000"
+  },
+  {
+   "date": "2024-12-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 47250,
+   "basis": "sold+fee",
+   "hammer_usd": 45000,
+   "native": {
+    "amount": 45000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-196/",
+   "chassis": "JHMAP11461T004169",
+   "title": "26k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2024-11-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 37800,
+   "basis": "sold+fee",
+   "hammer_usd": 36000,
+   "native": {
+    "amount": 36000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-191/",
+   "chassis": "JHMAP114X1T003106",
+   "title": "38k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2024-11-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 35072,
+   "basis": "sold+fee",
+   "hammer_usd": 33402,
+   "native": {
+    "amount": 33402,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-189/",
+   "chassis": "JHMAP11491T002710",
+   "title": "40k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2024-10-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 17325,
+   "basis": "sold+fee",
+   "hammer_usd": 16500,
+   "native": {
+    "amount": 16500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-188/",
+   "chassis": "JHMAP11441T001609",
+   "title": "36k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2024-09-03",
+   "venue": "Cars & Bids",
+   "price_usd": 21788,
+   "basis": "sold+fee",
+   "hammer_usd": 20750,
+   "native": {
+    "amount": 20750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://carsandbids.com/auctions/rk6mxQ5R/2001-honda-s2000",
+   "chassis": "JHMAP11451T002316",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2024-08-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 22500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-184/",
+   "chassis": "JHMAP11491T006918",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2024-08-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 13388,
+   "basis": "sold+fee",
+   "hammer_usd": 12750,
+   "native": {
+    "amount": 12750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-180/",
+   "chassis": "JHMAP11491T008006",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2024-08-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 30029,
+   "basis": "sold+fee",
+   "hammer_usd": 28599,
+   "native": {
+    "amount": 28599,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-185/",
+   "chassis": "JHMAP11431T002475",
+   "title": "46k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2024-08-01",
+   "venue": "Cars & Bids",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 22500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://carsandbids.com/auctions/KmnLdJ76/2001-honda-s2000",
+   "chassis": "JHMAP11421T008302",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2024-07-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 29400,
+   "basis": "sold+fee",
+   "hammer_usd": 28000,
+   "native": {
+    "amount": 28000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-178-2/",
+   "chassis": "JHMAP11491T002710",
+   "title": "Original-Owner 2001 Honda S2000"
+  },
+  {
+   "date": "2024-07-23",
+   "venue": "Cars & Bids",
+   "price_usd": 26513,
+   "basis": "sold+fee",
+   "hammer_usd": 25250,
+   "native": {
+    "amount": 25250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://carsandbids.com/auctions/3OVZqbOg/2001-honda-s2000",
+   "chassis": "JHMAP11471T007579",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2024-07-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-176/",
+   "chassis": "JHMAP11411T000594",
+   "title": "31k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2024-06-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 31763,
+   "basis": "sold+fee",
+   "hammer_usd": 30250,
+   "native": {
+    "amount": 30250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-173/",
+   "chassis": "JHMAP11481T006926",
+   "title": "33k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2024-06-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 38328,
+   "basis": "sold+fee",
+   "hammer_usd": 36503,
+   "native": {
+    "amount": 36503,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-178/",
+   "chassis": "JHMAP11491T002710",
+   "title": "Original-Owner 2001 Honda S2000"
+  },
+  {
+   "date": "2024-06-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 30450,
+   "basis": "sold+fee",
+   "hammer_usd": 29000,
+   "native": {
+    "amount": 29000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-177/",
+   "chassis": "JHMAP11481T008840",
+   "title": "30k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2024-06-07",
+   "venue": "Cars & Bids",
+   "price_usd": 31500,
+   "basis": "sold+fee",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 30000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://carsandbids.com/auctions/3gnpeX0E/2001-honda-s2000",
+   "chassis": "JHMAP11491T005221",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2024-06-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 33915,
+   "basis": "sold+fee",
+   "hammer_usd": 32300,
+   "native": {
+    "amount": 32300,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-175/",
+   "chassis": "JHMAP11441T004185",
+   "title": "38k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2024-05-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 25200,
+   "basis": "sold+fee",
+   "hammer_usd": 24000,
+   "native": {
+    "amount": 24000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-172/",
+   "chassis": "JHMAP11481T002889",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2024-04-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 24150,
+   "basis": "sold+fee",
+   "hammer_usd": 23000,
+   "native": {
+    "amount": 23000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-171/",
+   "chassis": "JHMAP11411T005164",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2024-03-22",
+   "venue": "Cars & Bids",
+   "price_usd": 45371,
+   "basis": "sold+fee",
+   "hammer_usd": 43210,
+   "native": {
+    "amount": 43210,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://carsandbids.com/auctions/KmoZypJe/2001-honda-s2000",
+   "chassis": "JHMAP114X1T005986",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2024-02-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 28350,
+   "basis": "sold+fee",
+   "hammer_usd": 27000,
+   "native": {
+    "amount": 27000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-170-2/",
+   "chassis": "JHMAP11421T007070",
+   "title": "36k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2024-01-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 29663,
+   "basis": "sold+fee",
+   "hammer_usd": 28250,
+   "native": {
+    "amount": 28250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-169/",
+   "chassis": "JHMAP11461T003684",
+   "title": "Original-Owner 2001 Honda S2000"
+  },
+  {
+   "date": "2023-12-18",
+   "venue": "Cars & Bids",
+   "price_usd": 19950,
+   "basis": "sold+fee",
+   "hammer_usd": 19000,
+   "native": {
+    "amount": 19000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://carsandbids.com/auctions/rjn0q7G7/2001-honda-s2000",
+   "chassis": "JHMAP11421T000782",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2023-10-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 28875,
+   "basis": "sold+fee",
+   "hammer_usd": 27500,
+   "native": {
+    "amount": 27500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-163/",
+   "chassis": "JHMAP11411T007884",
+   "title": "36k-Mile 2001 Honda S2000"
+  },
+  {
+   "date": "2023-10-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 30975,
+   "basis": "sold+fee",
+   "hammer_usd": 29500,
+   "native": {
+    "amount": 29500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://bringatrailer.com/listing/2001-honda-s2000-164/",
+   "chassis": "JHMAP114X1T004109",
+   "title": "2001 Honda S2000"
+  },
+  {
+   "date": "2023-10-04",
+   "venue": "Cars & Bids",
+   "price_usd": 30030,
+   "basis": "sold+fee",
+   "hammer_usd": 28600,
+   "native": {
+    "amount": 28600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2001,
+   "url": "https://carsandbids.com/auctions/3yvePoxy/2001-honda-s2000",
+   "chassis": "JHMAP11461T002485",
+   "title": "2001 Honda S2000"
+  }
+ ]
+}

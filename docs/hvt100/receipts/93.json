@@ -1,0 +1,451 @@
+{
+ "car_id": 93,
+ "listed": "2014 Chevrolet Corvette Z51",
+ "status": "compare",
+ "year_scope": "exact 2014",
+ "basis": "sold+fee (online)",
+ "scope": {
+  "make": "Chevrolet",
+  "model": "Corvette",
+  "window": "36mo",
+  "year_min": 2014,
+  "year_max": 2014,
+  "trim": "Z51",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-08-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 45150,
+   "basis": "sold+fee",
+   "hammer_usd": 43000,
+   "native": {
+    "amount": 43000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-chevrolet-corvette-stingray-coupe-87/",
+   "chassis": "1G1YL2D78E5125988",
+   "title": "19k-Mile 2014 Chevrolet Corvette Stingray Coupe 3LT Z51 7-Speed"
+  },
+  {
+   "date": "2026-07-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 45150,
+   "basis": "sold+fee",
+   "hammer_usd": 43000,
+   "native": {
+    "amount": 43000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-chevrolet-corvette-stingray-coupe-86/",
+   "chassis": "1G1YL2D77E5115923",
+   "title": "2014 Chevrolet Corvette Stingray Coupe 3LT Z51 7-Speed"
+  },
+  {
+   "date": "2026-05-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 56175,
+   "basis": "sold+fee",
+   "hammer_usd": 53500,
+   "native": {
+    "amount": 53500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-chevrolet-corvette-stingray-convertible-54/",
+   "chassis": "1G1YL3D76E5131181",
+   "title": "2k-Mile 2014 Chevrolet Corvette Stingray Convertible 3LT Z51 7-Speed"
+  },
+  {
+   "date": "2026-05-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 44220,
+   "basis": "sold+fee",
+   "hammer_usd": 42114,
+   "native": {
+    "amount": 42114,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-chevrolet-corvette-stingray-coupe-80/",
+   "chassis": "1G1YM2D77E5107804",
+   "title": "14k-Mile 2014 Chevrolet Corvette Stingray Coupe 3LT Z51"
+  },
+  {
+   "date": "2026-03-26",
+   "venue": "Hemmings",
+   "price_usd": 48851,
+   "basis": "sold+fee",
+   "hammer_usd": 46525,
+   "native": {
+    "amount": 46525,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://www.hemmings.com/auction/2014-chevrolet-corvette-andersonville-tn-620833",
+   "chassis": "1G1YL2D79E5123960",
+   "title": "2014 Chevrolet Corvette Stingray Z51 Coupe With the 3LT Package and 6,000 Miles"
+  },
+  {
+   "date": "2026-02-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 43575,
+   "basis": "sold+fee",
+   "hammer_usd": 41500,
+   "native": {
+    "amount": 41500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-chevrolet-corvette-stingray-coupe-75/",
+   "chassis": "1G1YK2D72E5107294",
+   "title": "33k-Mile 2014 Chevrolet Corvette Stingray Coupe 2LT Z51"
+  },
+  {
+   "date": "2026-01-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 61688,
+   "basis": "sold+fee",
+   "hammer_usd": 58750,
+   "native": {
+    "amount": 58750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-chevrolet-corvette-stingray-convertible-48/",
+   "chassis": "1G1YM3D72E5108283",
+   "title": "36-Mile 2014 Chevrolet Corvette Stingray Convertible 3LT Z51"
+  },
+  {
+   "date": "2025-12-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 41738,
+   "basis": "sold+fee",
+   "hammer_usd": 39750,
+   "native": {
+    "amount": 39750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-chevrolet-corvette-stingray-coupe-71/",
+   "chassis": "1G1YL2D77E5119129",
+   "title": "Single-Family-Owned 2014 Chevrolet Corvette Stingray Coupe 3LT Z51 7-Speed"
+  },
+  {
+   "date": "2025-11-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 42001,
+   "basis": "sold+fee",
+   "hammer_usd": 40001,
+   "native": {
+    "amount": 40001,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-chevrolet-corvette-stingray-coupe-70/",
+   "chassis": "1G1YL2D79E5107497",
+   "title": "22k-Mile 2014 Chevrolet Corvette Stingray Coupe 3LT Z51 7-Speed"
+  },
+  {
+   "date": "2025-11-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 50000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-chevrolet-corvette-stingray-convertible-46/",
+   "chassis": "1G1YM3D76E5118654",
+   "title": "5k-Mile 2014 Chevrolet Corvette Stingray Convertible 3LT Z51"
+  },
+  {
+   "date": "2025-11-24",
+   "venue": "Cars & Bids",
+   "price_usd": 43838,
+   "basis": "sold+fee",
+   "hammer_usd": 41750,
+   "native": {
+    "amount": 41750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://carsandbids.com/auctions/3qogjbYE/2014-chevrolet-corvette-stingray-z51-coupe",
+   "chassis": "1G1YJ2D7XE5125836",
+   "title": "2014 Chevrolet Corvette Stingray Z51 Coupe"
+  },
+  {
+   "date": "2025-10-13",
+   "venue": "Cars & Bids",
+   "price_usd": 35700,
+   "basis": "sold+fee",
+   "hammer_usd": 34000,
+   "native": {
+    "amount": 34000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://carsandbids.com/auctions/KZmq6D8O/2014-chevrolet-corvette-stingray-z51-convertible",
+   "chassis": "1G1YL3D7XE5131510",
+   "title": "2014 Chevrolet Corvette Stingray Z51 Convertible"
+  },
+  {
+   "date": "2025-08-15",
+   "venue": "Cars & Bids",
+   "price_usd": 37013,
+   "basis": "sold+fee",
+   "hammer_usd": 35250,
+   "native": {
+    "amount": 35250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://carsandbids.com/auctions/rbP0XEzQ/2014-chevrolet-corvette-stingray-z51-coupe",
+   "chassis": "1G1YM2D74E5130294",
+   "title": "2014 Chevrolet Corvette Stingray Z51 Coupe"
+  },
+  {
+   "date": "2025-05-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 44100,
+   "basis": "sold+fee",
+   "hammer_usd": 42000,
+   "native": {
+    "amount": 42000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-chevrolet-corvette-stingray-coupe-51/",
+   "chassis": "1G1YJ2D72E5122283",
+   "title": "16k-Mile 2014 Chevrolet Corvette Stingray Coupe 2LT Z51 7-Speed"
+  },
+  {
+   "date": "2025-05-01",
+   "venue": "Cars & Bids",
+   "price_usd": 34650,
+   "basis": "sold+fee",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://carsandbids.com/auctions/9X6g0LLl/2014-chevrolet-corvette-stingray-z51-coupe",
+   "chassis": "1G1YK2D70E5131478",
+   "title": "2014 Chevrolet Corvette Stingray Z51 Coupe"
+  },
+  {
+   "date": "2025-03-05",
+   "venue": "Cars & Bids",
+   "price_usd": 33863,
+   "basis": "sold+fee",
+   "hammer_usd": 32250,
+   "native": {
+    "amount": 32250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://carsandbids.com/auctions/rN5bGljb/2014-chevrolet-corvette-stingray-z51-coupe",
+   "chassis": "1G1YG2D76E5134161",
+   "title": "2014 Chevrolet Corvette Stingray Z51 Coupe"
+  },
+  {
+   "date": "2025-02-26",
+   "venue": "Cars & Bids",
+   "price_usd": 38850,
+   "basis": "sold+fee",
+   "hammer_usd": 37000,
+   "native": {
+    "amount": 37000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://carsandbids.com/auctions/3BePDxWV/2014-chevrolet-corvette-stingray-z51-coupe",
+   "chassis": "1G1YL2D77E5116019",
+   "title": "2014 Chevrolet Corvette Stingray Z51 Coupe"
+  },
+  {
+   "date": "2024-12-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 38588,
+   "basis": "sold+fee",
+   "hammer_usd": 36750,
+   "native": {
+    "amount": 36750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-chevrolet-corvette-stingray-convertible-35/",
+   "chassis": "1G1YL3D76E5121864",
+   "title": "36k-Mile 2014 Chevrolet Corvette Stingray Convertible Z51 3LT 7-Speed"
+  },
+  {
+   "date": "2024-10-17",
+   "venue": "Cars & Bids",
+   "price_usd": 32288,
+   "basis": "sold+fee",
+   "hammer_usd": 30750,
+   "native": {
+    "amount": 30750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://carsandbids.com/auctions/KV6xw7ml/2014-chevrolet-corvette-stingray-z51-coupe",
+   "chassis": "1G1YG2D70E5124841",
+   "title": "2014 Chevrolet Corvette Stingray Z51 Coupe"
+  },
+  {
+   "date": "2024-09-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 39480,
+   "basis": "sold+fee",
+   "hammer_usd": 37600,
+   "native": {
+    "amount": 37600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-chevrolet-corvette-stingray-convertible-29/",
+   "chassis": "1G1YJ3D74E5134442",
+   "title": "22k-Mile 2014 Chevrolet Corvette Stingray Convertible Z51 7-Speed"
+  },
+  {
+   "date": "2024-08-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 41055,
+   "basis": "sold+fee",
+   "hammer_usd": 39100,
+   "native": {
+    "amount": 39100,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-chevrolet-corvette-stingray-coupe-32/",
+   "chassis": "1G1YJ2D76E5130693",
+   "title": "3,800-Mile 2014 Chevrolet Corvette Stingray Z51 2LT Coupe 7-Speed"
+  },
+  {
+   "date": "2024-07-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 42788,
+   "basis": "sold+fee",
+   "hammer_usd": 40750,
+   "native": {
+    "amount": 40750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-chevrolet-corvette-stingray-convertible-22/",
+   "chassis": "1G1YL3D7XE5131409",
+   "title": "22k-Mile 2014 Chevrolet Corvette Stingray Convertible 3LT Z51 7-Speed"
+  },
+  {
+   "date": "2024-06-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 39113,
+   "basis": "sold+fee",
+   "hammer_usd": 37250,
+   "native": {
+    "amount": 37250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-chevrolet-corvette-stingray-convertible-21/",
+   "chassis": "1G1YM3D70E5132193",
+   "title": "34k-Mile 2014 Chevrolet Corvette Stingray Convertible 3LT Z51"
+  },
+  {
+   "date": "2024-05-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 46200,
+   "basis": "sold+fee",
+   "hammer_usd": 44000,
+   "native": {
+    "amount": 44000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-chevrolet-corvette-stingray-convertible-18/",
+   "chassis": "1G1YL3D7XE5000612",
+   "title": "33k-Mile 2014 Chevrolet Corvette Stingray Convertible Z51 3LT 7-Speed"
+  },
+  {
+   "date": "2024-03-28",
+   "venue": "Cars & Bids",
+   "price_usd": 34650,
+   "basis": "sold+fee",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://carsandbids.com/auctions/rjNXEZVw/2014-chevrolet-corvette-stingray-z51-convertible",
+   "chassis": "1G1YG3D79E5133284",
+   "title": "2014 Chevrolet Corvette Stingray Z51 Convertible"
+  },
+  {
+   "date": "2024-02-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 31763,
+   "basis": "sold+fee",
+   "hammer_usd": 30250,
+   "native": {
+    "amount": 30250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://bringatrailer.com/listing/2014-chevrolet-corvette-stingray-coupe-19/",
+   "chassis": "1G1YL2D7XE5106083",
+   "title": "2014 Chevrolet Corvette Stingray Z51 3LT Coupe 7-Speed"
+  },
+  {
+   "date": "2023-11-21",
+   "venue": "Cars & Bids",
+   "price_usd": 30923,
+   "basis": "sold+fee",
+   "hammer_usd": 29450,
+   "native": {
+    "amount": 29450,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2014,
+   "url": "https://carsandbids.com/auctions/rEw1M8O3/2014-chevrolet-corvette-stingray-z51-coupe",
+   "chassis": "1G1YJ2D79E5133507",
+   "title": "2014 Chevrolet Corvette Stingray Z51 Coupe"
+  }
+ ]
+}

@@ -1,0 +1,498 @@
+{
+ "car_id": 100,
+ "listed": "2017 Ford Focus RS",
+ "status": "coverage",
+ "year_scope": "adjacent years pooled (2015-2019)",
+ "basis": "sold+fee (online)",
+ "scope": {
+  "make": "Ford",
+  "model": "Focus",
+  "window": "36mo",
+  "year_min": 2015,
+  "year_max": 2019,
+  "trim": "RS"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-07-30",
+   "venue": "Cars & Bids",
+   "price_usd": 20528,
+   "basis": "sold+fee",
+   "hammer_usd": 19550,
+   "native": {
+    "amount": 19550,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/KP4O8Mok/2016-ford-focus-rs",
+   "chassis": "WF0DP3TH2G4115537",
+   "title": "2016 Ford Focus RS"
+  },
+  {
+   "date": "2026-06-15",
+   "venue": "Cars & Bids",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/3oylRBdo/2017-ford-focus-rs",
+   "chassis": "WF0DP3TH6H4122556",
+   "title": "2017 Ford Focus RS"
+  },
+  {
+   "date": "2026-05-29",
+   "venue": "Cars & Bids",
+   "price_usd": 41475,
+   "basis": "sold+fee",
+   "hammer_usd": 39500,
+   "native": {
+    "amount": 39500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/9lDdDJ22/2017-ford-focus-rs",
+   "chassis": "WF0DP3TH4H4121714",
+   "title": "2017 Ford Focus RS"
+  },
+  {
+   "date": "2026-05-19",
+   "venue": "Cars & Bids",
+   "price_usd": 22050,
+   "basis": "sold+fee",
+   "hammer_usd": 21000,
+   "native": {
+    "amount": 21000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/rwAl6jl5/2016-ford-focus-rs",
+   "chassis": "WF0DP3TH9G4113946",
+   "title": "2016 Ford Focus RS"
+  },
+  {
+   "date": "2026-04-13",
+   "venue": "Cars & Bids",
+   "price_usd": 37275,
+   "basis": "sold+fee",
+   "hammer_usd": 35500,
+   "native": {
+    "amount": 35500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/37GPGNJ7/2017-ford-focus-rs",
+   "chassis": "WF0DP3TH6H4118328",
+   "title": "2017 Ford Focus RS"
+  },
+  {
+   "date": "2026-03-30",
+   "venue": "Cars & Bids",
+   "price_usd": 30450,
+   "basis": "sold+fee",
+   "hammer_usd": 29000,
+   "native": {
+    "amount": 29000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/3pqjBXaZ/2016-ford-focus-rs",
+   "chassis": "WF0DP3TH3G4115594",
+   "title": "2016 Ford Focus RS"
+  },
+  {
+   "date": "2025-11-14",
+   "venue": "Cars & Bids",
+   "price_usd": 29400,
+   "basis": "sold+fee",
+   "hammer_usd": 28000,
+   "native": {
+    "amount": 28000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/3gD65Bz1/2016-ford-focus-rs",
+   "chassis": "WF0DP3TH3G4115689",
+   "title": "2016 Ford Focus RS"
+  },
+  {
+   "date": "2025-10-22",
+   "venue": "Cars & Bids",
+   "price_usd": 33600,
+   "basis": "sold+fee",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 32000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/KdjVBJ6y/2017-ford-focus-rs",
+   "chassis": "WF0DP3TH8H4119514",
+   "title": "2017 Ford Focus RS"
+  },
+  {
+   "date": "2025-10-20",
+   "venue": "Cars & Bids",
+   "price_usd": 38850,
+   "basis": "sold+fee",
+   "hammer_usd": 37000,
+   "native": {
+    "amount": 37000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/rMLDaEQo/2017-ford-focus-rs",
+   "chassis": "WF0DP3TH1H4125333",
+   "title": "2017 Ford Focus RS"
+  },
+  {
+   "date": "2025-09-23",
+   "venue": "Cars & Bids",
+   "price_usd": 33075,
+   "basis": "sold+fee",
+   "hammer_usd": 31500,
+   "native": {
+    "amount": 31500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/3o6Voyv9/2016-ford-focus-rs",
+   "chassis": "WF0DP3TH5G4117279",
+   "title": "2016 Ford Focus RS"
+  },
+  {
+   "date": "2025-06-23",
+   "venue": "Cars & Bids",
+   "price_usd": 28350,
+   "basis": "sold+fee",
+   "hammer_usd": 27000,
+   "native": {
+    "amount": 27000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/rMa1vDRp/2016-ford-focus-rs",
+   "chassis": "WF0DP3TH8G4112965",
+   "title": "2016 Ford Focus RS"
+  },
+  {
+   "date": "2025-06-19",
+   "venue": "Cars & Bids",
+   "price_usd": 28088,
+   "basis": "sold+fee",
+   "hammer_usd": 26750,
+   "native": {
+    "amount": 26750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/rkqnPowQ/2016-ford-focus-rs",
+   "chassis": "WF0DP3TH6G4114861",
+   "title": "2016 Ford Focus RS"
+  },
+  {
+   "date": "2025-06-09",
+   "venue": "Cars & Bids",
+   "price_usd": 44100,
+   "basis": "sold+fee",
+   "hammer_usd": 42000,
+   "native": {
+    "amount": 42000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/rkPnVoAg/2016-ford-focus-rs",
+   "chassis": "WF0DP3TH1G4117134",
+   "title": "2016 Ford Focus RS"
+  },
+  {
+   "date": "2025-02-20",
+   "venue": "Cars & Bids",
+   "price_usd": 17588,
+   "basis": "sold+fee",
+   "hammer_usd": 16750,
+   "native": {
+    "amount": 16750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/37bV84P7/2016-ford-focus-rs",
+   "chassis": "WF0DP3TH0G4114600",
+   "title": "2016 Ford Focus RS"
+  },
+  {
+   "date": "2024-12-04",
+   "venue": "Cars & Bids",
+   "price_usd": 21263,
+   "basis": "sold+fee",
+   "hammer_usd": 20250,
+   "native": {
+    "amount": 20250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/3p6EmOkW/2016-ford-focus-rs",
+   "chassis": "WF0DP3TH0G4113771",
+   "title": "2016 Ford Focus RS"
+  },
+  {
+   "date": "2024-11-20",
+   "venue": "Cars & Bids",
+   "price_usd": 20738,
+   "basis": "sold+fee",
+   "hammer_usd": 19750,
+   "native": {
+    "amount": 19750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/9eNvDRQo/2016-ford-focus-rs",
+   "chassis": "WF0DP3TH9G4114613",
+   "title": "2016 Ford Focus RS"
+  },
+  {
+   "date": "2024-11-15",
+   "venue": "Cars & Bids",
+   "price_usd": 23153,
+   "basis": "sold+fee",
+   "hammer_usd": 22050,
+   "native": {
+    "amount": 22050,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/3gvX2eY8/2017-ford-focus-rs",
+   "chassis": "WF0DP3TH5H4125142",
+   "title": "2017 Ford Focus RS"
+  },
+  {
+   "date": "2024-10-03",
+   "venue": "Cars & Bids",
+   "price_usd": 24420,
+   "basis": "sold+fee",
+   "hammer_usd": 23257,
+   "native": {
+    "amount": 23257,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/3vqExLRR/2017-ford-focus-rs",
+   "chassis": "WF0DP3THXH4124181",
+   "title": "2017 Ford Focus RS"
+  },
+  {
+   "date": "2024-08-27",
+   "venue": "Cars & Bids",
+   "price_usd": 59867,
+   "basis": "sold+fee",
+   "hammer_usd": 57016,
+   "native": {
+    "amount": 57016,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/3oy68Qy7/2016-ford-focus-rs",
+   "chassis": "WF0DP3TH3G4116955",
+   "title": "2016 Ford Focus RS"
+  },
+  {
+   "date": "2024-08-26",
+   "venue": "Cars & Bids",
+   "price_usd": 27825,
+   "basis": "sold+fee",
+   "hammer_usd": 26500,
+   "native": {
+    "amount": 26500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/rEOnX4de/2017-ford-focus-rs",
+   "chassis": "WF0DP3TH0H4123427",
+   "title": "2017 Ford Focus RS"
+  },
+  {
+   "date": "2024-08-06",
+   "venue": "Cars & Bids",
+   "price_usd": 26775,
+   "basis": "sold+fee",
+   "hammer_usd": 25500,
+   "native": {
+    "amount": 25500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/3LnRgkY0/2016-ford-focus-rs",
+   "chassis": "WF0DP3TH0G4113639",
+   "title": "2016 Ford Focus RS"
+  },
+  {
+   "date": "2024-07-16",
+   "venue": "Cars & Bids",
+   "price_usd": 37013,
+   "basis": "sold+fee",
+   "hammer_usd": 35250,
+   "native": {
+    "amount": 35250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/KPm68qzV/2017-ford-focus-rs",
+   "chassis": "WF0DP3TH7H4121366",
+   "title": "2017 Ford Focus RS"
+  },
+  {
+   "date": "2024-06-19",
+   "venue": "Cars & Bids",
+   "price_usd": 22050,
+   "basis": "sold+fee",
+   "hammer_usd": 21000,
+   "native": {
+    "amount": 21000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/KP7aq8EV/2017-ford-focus-rs",
+   "chassis": "WF0DP3TH8H4125636",
+   "title": "2017 Ford Focus RS"
+  },
+  {
+   "date": "2024-05-15",
+   "venue": "Cars & Bids",
+   "price_usd": 27038,
+   "basis": "sold+fee",
+   "hammer_usd": 25750,
+   "native": {
+    "amount": 25750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/rxgpkdRW/2016-ford-focus-rs",
+   "chassis": "WF0DP3TH0G4113964",
+   "title": "2016 Ford Focus RS"
+  },
+  {
+   "date": "2024-03-25",
+   "venue": "Cars & Bids",
+   "price_usd": 33600,
+   "basis": "sold+fee",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 32000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/9lQOqeb2/2016-ford-focus-rs",
+   "chassis": "WF0DP3TH3G4114221",
+   "title": "2016 Ford Focus RS"
+  },
+  {
+   "date": "2024-02-26",
+   "venue": "Cars & Bids",
+   "price_usd": 35700,
+   "basis": "sold+fee",
+   "hammer_usd": 34000,
+   "native": {
+    "amount": 34000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/36RARapA/2016-ford-focus-rs",
+   "chassis": "WF0DP3TH1G4115562",
+   "title": "2016 Ford Focus RS"
+  },
+  {
+   "date": "2024-01-16",
+   "venue": "Cars & Bids",
+   "price_usd": 30188,
+   "basis": "sold+fee",
+   "hammer_usd": 28750,
+   "native": {
+    "amount": 28750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/rjJmBv4p/2017-ford-focus-rs",
+   "chassis": "WF0DP3TH9H4124320",
+   "title": "2017 Ford Focus RS"
+  },
+  {
+   "date": "2023-12-15",
+   "venue": "Cars & Bids",
+   "price_usd": 23100,
+   "basis": "sold+fee",
+   "hammer_usd": 22000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/36NQPnqO/2016-ford-focus-rs",
+   "chassis": "WFODP3THXG4117777",
+   "title": "2016 Ford Focus RS"
+  },
+  {
+   "date": "2023-11-01",
+   "venue": "Cars & Bids",
+   "price_usd": 33338,
+   "basis": "sold+fee",
+   "hammer_usd": 31750,
+   "native": {
+    "amount": 31750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/3LWYV4qX/2017-ford-focus-rs",
+   "chassis": "WF0DP3TH1H4119726",
+   "title": "2017 Ford Focus RS"
+  },
+  {
+   "date": "2023-10-05",
+   "venue": "Cars & Bids",
+   "price_usd": 28350,
+   "basis": "sold+fee",
+   "hammer_usd": 27000,
+   "native": {
+    "amount": 27000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/3vdEJbJd/2017-ford-focus-rs",
+   "chassis": "WF0DP3TH0H4122178",
+   "title": "2017 Ford Focus RS"
+  }
+ ]
+}

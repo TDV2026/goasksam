@@ -1,0 +1,386 @@
+{
+ "car_id": 12,
+ "listed": "1959 Cadillac Series 62",
+ "status": "compare",
+ "year_scope": "exact 1959",
+ "basis": "mixed (39% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Cadillac",
+  "model": "Series 62",
+  "window": "36mo",
+  "year_min": 1959,
+  "year_max": 1959,
+  "body": "convertible"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-07-25",
+   "venue": "Mecum",
+   "price_usd": 47250,
+   "basis": "sold+fee",
+   "hammer_usd": 45000,
+   "native": {
+    "amount": 49500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1959,
+   "url": "https://www.mecum.com/lots/1168535/1959-cadillac-series-62?aa_id=796513-0",
+   "chassis": "59G108791",
+   "title": "1959 Cadillac Series 62"
+  },
+  {
+   "date": "2026-07-24",
+   "venue": "Mecum",
+   "price_usd": 182500,
+   "basis": "sold+fee",
+   "hammer_usd": 175000,
+   "native": {
+    "amount": 192500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1959,
+   "url": "https://www.mecum.com/lots/1172639/1959-cadillac-series-62-convertible?aa_id=782293-0",
+   "chassis": "59F043664",
+   "title": "1959 Cadillac Series 62 Convertible"
+  },
+  {
+   "date": "2026-06-05",
+   "venue": "Hagerty",
+   "price_usd": 83475,
+   "basis": "sold+fee",
+   "hammer_usd": 79500,
+   "native": {
+    "amount": 79500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1959,
+   "url": "https://www.hagerty.com/marketplace/auction/1959-Cadillac-Series-62%20Convertible/bfccbd4c-6d01-479b-a042-825a78e6a7aa",
+   "chassis": "59F048555",
+   "title": "1959 Cadillac Series 62 Convertible"
+  },
+  {
+   "date": "2026-04-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 185500,
+   "basis": "sold+fee",
+   "hammer_usd": 178000,
+   "native": {
+    "amount": 178000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1959,
+   "url": "https://bringatrailer.com/listing/1959-cadillac-series-62-27/",
+   "chassis": "59F008317",
+   "title": "1959 Cadillac Series 62 Convertible"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Bonhams",
+   "price_usd": 123200,
+   "basis": "buyer-paid",
+   "hammer_usd": 110000,
+   "native": {
+    "amount": 123200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1959,
+   "url": "https://cars.bonhams.com/auction/31957/lot/112/1959-cadillac-series-62-convertible-chassis-no-59f096142/",
+   "chassis": "59F096142",
+   "title": "1959 Cadillac Series 62 Convertible Chassis no. 59F096142"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 132000,
+   "basis": "buyer-paid",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 132000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1959,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1959-cadillac-series-62-convertible-292173?origin=results",
+   "chassis": "59F078679",
+   "title": "1959 CADILLAC SERIES 62 CONVERTIBLE"
+  },
+  {
+   "date": "2025-11-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 84525,
+   "basis": "sold+fee",
+   "hammer_usd": 80500,
+   "native": {
+    "amount": 80500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1959,
+   "url": "https://bringatrailer.com/listing/1959-cadillac-series-62-23/",
+   "chassis": "59G099448",
+   "title": "Airride-Equipped 1959 Cadillac Series 62 Coupe"
+  },
+  {
+   "date": "2025-10-18",
+   "venue": "Barrett-Jackson",
+   "price_usd": 104500,
+   "basis": "buyer-paid",
+   "hammer_usd": 95000,
+   "native": {
+    "amount": 104500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1959,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2025/docket/vehicle/1959-cadillac-series-62-convertible-289809?origin=results",
+   "chassis": "59F078679",
+   "title": "1959 CADILLAC SERIES 62 CONVERTIBLE"
+  },
+  {
+   "date": "2025-08-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 115500,
+   "basis": "sold+fee",
+   "hammer_usd": 110000,
+   "native": {
+    "amount": 110000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1959,
+   "url": "https://bringatrailer.com/listing/1959-cadillac-series-62-convertible-7/",
+   "chassis": "59F121168",
+   "title": "34-Years-Owned 1959 Cadillac Series 62 Convertible"
+  },
+  {
+   "date": "2025-06-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 101325,
+   "basis": "sold+fee",
+   "hammer_usd": 96500,
+   "native": {
+    "amount": 96500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1959,
+   "url": "https://bringatrailer.com/listing/1959-cadillac-series-62-convertible-13-2/",
+   "chassis": "59F109380",
+   "title": "1959 Cadillac Series 62 Convertible"
+  },
+  {
+   "date": "2025-05-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 232500,
+   "basis": "sold+fee",
+   "hammer_usd": 225000,
+   "native": {
+    "amount": 225000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1959,
+   "url": "https://bringatrailer.com/listing/1959-cadillac-series-62-19/",
+   "chassis": "59F076550",
+   "title": "1959 Cadillac Series 62 Convertible"
+  },
+  {
+   "date": "2025-02-28",
+   "venue": "RM Sotheby's",
+   "price_usd": 140000,
+   "basis": "buyer-paid",
+   "hammer_usd": 125000,
+   "native": {
+    "amount": 140000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1959,
+   "url": "https://rmsothebys.com/auctions/mi25/lots/r0093-1959-cadillac-series-62-convertible/",
+   "chassis": "59F011939",
+   "title": "1959 Cadillac Series 62 Convertible"
+  },
+  {
+   "date": "2025-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 192500,
+   "basis": "buyer-paid",
+   "hammer_usd": 175000,
+   "native": {
+    "amount": 192500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1959,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1959-cadillac-series-62-convertible-281636?origin=results",
+   "chassis": "59F077514",
+   "title": "1959 CADILLAC SERIES 62 CONVERTIBLE"
+  },
+  {
+   "date": "2024-11-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 45151,
+   "basis": "sold+fee",
+   "hammer_usd": 43001,
+   "native": {
+    "amount": 43001,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1959,
+   "url": "https://bringatrailer.com/listing/1959-cadillac-series-62-convertible-9/",
+   "chassis": "59G076244",
+   "title": "1959 Cadillac Series 62 Convertible Conversion"
+  },
+  {
+   "date": "2024-10-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 90825,
+   "basis": "sold+fee",
+   "hammer_usd": 86500,
+   "native": {
+    "amount": 86500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1959,
+   "url": "https://bringatrailer.com/listing/1959-cadillac-series-62-16/",
+   "chassis": "59F108457",
+   "title": "1959 Cadillac Series 62 Convertible"
+  },
+  {
+   "date": "2024-10-13",
+   "venue": "Barrett-Jackson",
+   "price_usd": 38500,
+   "basis": "buyer-paid",
+   "hammer_usd": 35000,
+   "native": {
+    "amount": 38500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1959,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1959-cadillac-series-62-280206?origin=results",
+   "chassis": "59G084225",
+   "title": "1959 CADILLAC SERIES 62"
+  },
+  {
+   "date": "2024-10-11",
+   "venue": "Barrett-Jackson",
+   "price_usd": 37400,
+   "basis": "buyer-paid",
+   "hammer_usd": 34000,
+   "native": {
+    "amount": 37400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1959,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1959-cadillac-series-62-sedan-276678?origin=results",
+   "chassis": "59K141348",
+   "title": "1959 CADILLAC SERIES 62 SEDAN"
+  },
+  {
+   "date": "2024-08-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 115500,
+   "basis": "sold+fee",
+   "hammer_usd": 110000,
+   "native": {
+    "amount": 110000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1959,
+   "url": "https://bringatrailer.com/listing/1959-cadillac-series-62-convertible-13/",
+   "chassis": "59F109380",
+   "title": "1959 Cadillac Series 62 Convertible"
+  },
+  {
+   "date": "2024-08-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 37800,
+   "basis": "sold+fee",
+   "hammer_usd": 36000,
+   "native": {
+    "amount": 36000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1959,
+   "url": "https://bringatrailer.com/listing/1959-cadillac-series-62-15-2/",
+   "chassis": "59K141348",
+   "title": "23-Years-Owned 1959 Cadillac Series 62 Four-Door Six-Window Hardtop"
+  },
+  {
+   "date": "2024-07-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 90300,
+   "basis": "sold+fee",
+   "hammer_usd": 86000,
+   "native": {
+    "amount": 86000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1959,
+   "url": "https://bringatrailer.com/listing/1959-cadillac-series-62-convertible-12/",
+   "chassis": "59F019278",
+   "title": "1959 Cadillac Series 62 Convertible"
+  },
+  {
+   "date": "2024-04-21",
+   "venue": "Barrett-Jackson",
+   "price_usd": 165000,
+   "basis": "buyer-paid",
+   "hammer_usd": 150000,
+   "native": {
+    "amount": 165000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1959,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/1959-cadillac-series-62-convertible-276873?origin=results",
+   "chassis": "59F094227",
+   "title": "1959 CADILLAC SERIES 62 CONVERTIBLE"
+  },
+  {
+   "date": "2024-01-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 148500,
+   "basis": "buyer-paid",
+   "hammer_usd": 135000,
+   "native": {
+    "amount": 148500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1959,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1959-cadillac-series-62-convertible-271069?origin=results",
+   "chassis": "59F069203",
+   "title": "1959 CADILLAC SERIES 62 CONVERTIBLE"
+  },
+  {
+   "date": "2023-12-08",
+   "venue": "Hagerty",
+   "price_usd": 136500,
+   "basis": "sold+fee",
+   "hammer_usd": 130000,
+   "native": {
+    "amount": 130000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1959,
+   "url": "https://www.hagerty.com/marketplace/auction/1959-Cadillac-Series-62/9PvUD60waHqz7yBRWrdYd",
+   "chassis": "59F026716",
+   "title": "23-Years-Owned 1959 Cadillac Sixty-Two Convertible"
+  }
+ ]
+}

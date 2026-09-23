@@ -1,0 +1,611 @@
+{
+ "car_id": 69,
+ "listed": "2006 Chevrolet Corvette Z06",
+ "status": "compare",
+ "year_scope": "exact 2006",
+ "basis": "mixed (11% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Chevrolet",
+  "model": "Corvette",
+  "window": "36mo",
+  "year_min": 2006,
+  "year_max": 2006,
+  "trim": "Z06",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-08-19",
+   "venue": "Cars & Bids",
+   "price_usd": 50400,
+   "basis": "sold+fee",
+   "hammer_usd": 48000,
+   "native": {
+    "amount": 48000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://carsandbids.com/auctions/9QxPxZYE/2006-chevrolet-corvette-z06",
+   "chassis": "1G1YY26E265108120",
+   "title": "2006 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2026-07-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 41475,
+   "basis": "sold+fee",
+   "hammer_usd": 39500,
+   "native": {
+    "amount": 39500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-94/",
+   "chassis": "1G1YY26E565127700",
+   "title": "26k-Mile 2006 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2026-06-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 41999,
+   "basis": "sold+fee",
+   "hammer_usd": 39999,
+   "native": {
+    "amount": 39999,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-91/",
+   "chassis": "1G1YY26E265111132",
+   "title": "Original-Owner 2006 Chevrolet Corvette Z06 2LZ"
+  },
+  {
+   "date": "2026-06-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 54600,
+   "basis": "sold+fee",
+   "hammer_usd": 52000,
+   "native": {
+    "amount": 52000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-92/",
+   "chassis": "1G1YY26E765116472",
+   "title": "Modified, 31k-Mile 2006 Chevrolet Corvette Z06 2LZ"
+  },
+  {
+   "date": "2026-06-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 39900,
+   "basis": "sold+fee",
+   "hammer_usd": 38000,
+   "native": {
+    "amount": 38000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-89/",
+   "chassis": "1G1YY26E665106337",
+   "title": "2006 Chevrolet Corvette Z06 2LZ"
+  },
+  {
+   "date": "2026-05-13",
+   "venue": "Mecum",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 55000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2006,
+   "url": "https://www.mecum.com/lots/1172622/2006-chevrolet-corvette-z06-coupe?aa_id=779503-0",
+   "chassis": "1G1YY26E665132534",
+   "title": "2006 Chevrolet Corvette Z06 Coupe"
+  },
+  {
+   "date": "2026-03-13",
+   "venue": "Cars & Bids",
+   "price_usd": 47250,
+   "basis": "sold+fee",
+   "hammer_usd": 45000,
+   "native": {
+    "amount": 45000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://carsandbids.com/auctions/92vDEO5Q/2006-chevrolet-corvette-z06",
+   "chassis": "1G1YY26E965126209",
+   "title": "2006 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2026-01-20",
+   "venue": "Barrett-Jackson",
+   "price_usd": 55000,
+   "basis": "buyer-paid",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 55000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2006,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2006-chevrolet-corvette-z06-292883?origin=results",
+   "chassis": "1G1YY25E165133088",
+   "title": "2006 CHEVROLET CORVETTE Z06"
+  },
+  {
+   "date": "2026-01-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 49350,
+   "basis": "sold+fee",
+   "hammer_usd": 47000,
+   "native": {
+    "amount": 47000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-85/",
+   "chassis": "1G1YY26E965129403",
+   "title": "9k-Mile Original-Owner 2006 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-11-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 46725,
+   "basis": "sold+fee",
+   "hammer_usd": 44500,
+   "native": {
+    "amount": 44500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-84/",
+   "chassis": "1G1YY26E265126200",
+   "title": "Modified 2006 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-11-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 43050,
+   "basis": "sold+fee",
+   "hammer_usd": 41000,
+   "native": {
+    "amount": 41000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-83/",
+   "chassis": "1G1YY26E965119521",
+   "title": "24k-Mile 2006 Chevrolet Corvette Z06 2LZ"
+  },
+  {
+   "date": "2025-10-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 40688,
+   "basis": "sold+fee",
+   "hammer_usd": 38750,
+   "native": {
+    "amount": 38750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-93/",
+   "chassis": "1G1YY26E565107852",
+   "title": "32k-Mile 2006 Chevrolet Corvette Z06 6-Speed"
+  },
+  {
+   "date": "2025-10-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 35700,
+   "basis": "sold+fee",
+   "hammer_usd": 34000,
+   "native": {
+    "amount": 34000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-79/",
+   "chassis": "1G1YY26E265130425",
+   "title": "2006 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-10-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 48300,
+   "basis": "sold+fee",
+   "hammer_usd": 46000,
+   "native": {
+    "amount": 46000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-78/",
+   "chassis": "1G1YY26EX65113260",
+   "title": "1,100-Mile 2006 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-09-10",
+   "venue": "Cars & Bids",
+   "price_usd": 44993,
+   "basis": "sold+fee",
+   "hammer_usd": 42850,
+   "native": {
+    "amount": 42850,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://carsandbids.com/auctions/9XQXgRjo/2006-chevrolet-corvette-z06",
+   "chassis": "1G1YY26E965110396",
+   "title": "2006 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-09-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 50000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-75/",
+   "chassis": "1G1YY26E965123388",
+   "title": "18k-Mile Modified 2006 Chevrolet Corvette Z06 2LZ"
+  },
+  {
+   "date": "2025-06-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 49350,
+   "basis": "sold+fee",
+   "hammer_usd": 47000,
+   "native": {
+    "amount": 47000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-73/",
+   "chassis": "1G1YY26E965110057",
+   "title": "6k-Mile 2006 Chevrolet Corvette Z06 2LZ"
+  },
+  {
+   "date": "2025-05-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 52500,
+   "basis": "sold+fee",
+   "hammer_usd": 50000,
+   "native": {
+    "amount": 50000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-72/",
+   "chassis": "1G1YY26E365111933",
+   "title": "11k-Mile Katech-Modified 2006 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-03-14",
+   "venue": "Cars & Bids",
+   "price_usd": 38063,
+   "basis": "sold+fee",
+   "hammer_usd": 36250,
+   "native": {
+    "amount": 36250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://carsandbids.com/auctions/rkwlQxl4/2006-chevrolet-corvette-z06",
+   "chassis": "1G1YY26E565133660",
+   "title": "2006 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2025-03-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 47250,
+   "basis": "sold+fee",
+   "hammer_usd": 45000,
+   "native": {
+    "amount": 45000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-69/",
+   "chassis": "1G1YY26E665131285",
+   "title": "8k-Mile 2006 Chevrolet Corvette Z06 2LZ"
+  },
+  {
+   "date": "2025-01-22",
+   "venue": "Barrett-Jackson",
+   "price_usd": 77000,
+   "basis": "buyer-paid",
+   "hammer_usd": 70000,
+   "native": {
+    "amount": 77000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2006,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2006-chevrolet-corvette-z06-280268?origin=results",
+   "chassis": "1G1YY26E165118914",
+   "title": "2006 CHEVROLET CORVETTE Z06"
+  },
+  {
+   "date": "2024-12-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 40950,
+   "basis": "sold+fee",
+   "hammer_usd": 39000,
+   "native": {
+    "amount": 39000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-62-2/",
+   "chassis": "1G1YY26E565119631",
+   "title": "10k-Mile 2006 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2024-12-23",
+   "venue": "Cars & Bids",
+   "price_usd": 27965,
+   "basis": "sold+fee",
+   "hammer_usd": 26633,
+   "native": {
+    "amount": 26633,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://carsandbids.com/auctions/rNJ0pN65/2006-chevrolet-corvette-z06",
+   "chassis": "1G1YY26E765111305",
+   "title": "2006 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2024-12-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 45675,
+   "basis": "sold+fee",
+   "hammer_usd": 43500,
+   "native": {
+    "amount": 43500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-66/",
+   "chassis": "1G1YY26E165113423",
+   "title": "9k-Mile 2006 Chevrolet Corvette Z06 2LZ"
+  },
+  {
+   "date": "2024-10-31",
+   "venue": "Cars & Bids",
+   "price_usd": 41738,
+   "basis": "sold+fee",
+   "hammer_usd": 39750,
+   "native": {
+    "amount": 39750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://carsandbids.com/auctions/KDVjaR4o/2006-chevrolet-corvette-z06",
+   "chassis": "1G1YY26E865127285",
+   "title": "2006 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2024-10-12",
+   "venue": "Barrett-Jackson",
+   "price_usd": 59400,
+   "basis": "buyer-paid",
+   "hammer_usd": 54000,
+   "native": {
+    "amount": 59400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2006,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/2006-chevrolet-corvette-z06-279381?origin=results",
+   "chassis": "1G1YY26Y165100097",
+   "title": "2006 CHEVROLET CORVETTE Z06"
+  },
+  {
+   "date": "2024-10-12",
+   "venue": "Barrett-Jackson",
+   "price_usd": 44000,
+   "basis": "buyer-paid",
+   "hammer_usd": 40000,
+   "native": {
+    "amount": 44000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2006,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/2006-chevrolet-corvette-z06-279379?origin=results",
+   "chassis": "1G1YY26Y065100057",
+   "title": "2006 CHEVROLET CORVETTE Z06"
+  },
+  {
+   "date": "2024-08-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 40832,
+   "basis": "sold+fee",
+   "hammer_usd": 38888,
+   "native": {
+    "amount": 38888,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-59/",
+   "chassis": "1G1YY26E365120597",
+   "title": "20k-Mile 2006 Chevrolet Corvette Z06 2LZ"
+  },
+  {
+   "date": "2024-06-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 42263,
+   "basis": "sold+fee",
+   "hammer_usd": 40250,
+   "native": {
+    "amount": 40250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-56/",
+   "chassis": "1G1YY26E265126200",
+   "title": "Modified 2006 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2024-06-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 48300,
+   "basis": "sold+fee",
+   "hammer_usd": 46000,
+   "native": {
+    "amount": 46000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-55/",
+   "chassis": "1G1YY26E965117090",
+   "title": "8k-Mile 2006 Chevrolet Corvette Z06 2LZ"
+  },
+  {
+   "date": "2024-06-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 50138,
+   "basis": "sold+fee",
+   "hammer_usd": 47750,
+   "native": {
+    "amount": 47750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-53/",
+   "chassis": "1G1YY26E465126294",
+   "title": "3,500-Mile 2006 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2024-05-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 40425,
+   "basis": "sold+fee",
+   "hammer_usd": 38500,
+   "native": {
+    "amount": 38500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-52/",
+   "chassis": "1G1YY26E765127018",
+   "title": "7k-Kilometer 2006 Chevrolet Corvette Z06 1SB"
+  },
+  {
+   "date": "2024-02-20",
+   "venue": "Cars & Bids",
+   "price_usd": 31763,
+   "basis": "sold+fee",
+   "hammer_usd": 30250,
+   "native": {
+    "amount": 30250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://carsandbids.com/auctions/rE7Z2AW8/2006-chevrolet-corvette-z06",
+   "chassis": "1G1YY26E465108975",
+   "title": "2006 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2024-02-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 42000,
+   "basis": "sold+fee",
+   "hammer_usd": 40000,
+   "native": {
+    "amount": 40000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-47/",
+   "chassis": "1G1YY26EX65109418",
+   "title": "20k-Mile 2006 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2023-12-20",
+   "venue": "Hemmings",
+   "price_usd": 35700,
+   "basis": "sold+fee",
+   "hammer_usd": 34000,
+   "native": {
+    "amount": 34000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://www.hemmings.com/auction/2006-chevrolet-corvette-redmond-wa-955952",
+   "chassis": "1G1YY26E465109835",
+   "title": "2006 Chevrolet Corvette Z06 With Less Than 14K Miles"
+  },
+  {
+   "date": "2023-12-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 39170,
+   "basis": "sold+fee",
+   "hammer_usd": 37305,
+   "native": {
+    "amount": 37305,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://bringatrailer.com/listing/2006-chevrolet-corvette-z06-45/",
+   "chassis": "1G1YY26E065111002",
+   "title": "Original-Owner 2006 Chevrolet Corvette Z06"
+  },
+  {
+   "date": "2023-11-16",
+   "venue": "Cars & Bids",
+   "price_usd": 36750,
+   "basis": "sold+fee",
+   "hammer_usd": 35000,
+   "native": {
+    "amount": 35000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2006,
+   "url": "https://carsandbids.com/auctions/K1BZWyZ4/2006-chevrolet-corvette-z06",
+   "chassis": "1G1YY26E165119786",
+   "title": "2006 Chevrolet Corvette Z06"
+  }
+ ]
+}

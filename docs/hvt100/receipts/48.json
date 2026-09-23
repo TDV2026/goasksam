@@ -1,0 +1,338 @@
+{
+ "car_id": 48,
+ "listed": "1990 Nissan 300ZX Twin Turbo",
+ "status": "compare",
+ "year_scope": "exact 1990",
+ "basis": "sold+fee (online)",
+ "scope": {
+  "make": "Nissan",
+  "model": "300ZX",
+  "window": "36mo",
+  "year_min": 1990,
+  "year_max": 1990,
+  "trim": "Twin Turbo"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-08-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 26775,
+   "basis": "sold+fee",
+   "hammer_usd": 25500,
+   "native": {
+    "amount": 25500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-nissan-300zx-twin-turbo-176/",
+   "chassis": "JN1CZ24S2LX000042",
+   "title": "1990 Nissan 300ZX Twin Turbo"
+  },
+  {
+   "date": "2026-07-28",
+   "venue": "Hagerty",
+   "price_usd": 19425,
+   "basis": "sold+fee",
+   "hammer_usd": 18500,
+   "native": {
+    "amount": 18500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://www.hagerty.com/marketplace/auction/1990-Nissan-300ZX/57c4f171-ee94-490a-8eca-a5e77bebf023",
+   "chassis": "JN1CZ24A4LX000311",
+   "title": "34-Years-Owned 1990 Nissan 300ZX Twin Turbo 5-Speed"
+  },
+  {
+   "date": "2026-05-26",
+   "venue": "Cars & Bids",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 22500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://carsandbids.com/auctions/3BEz72yA/1990-nissan-300zx-twin-turbo",
+   "chassis": "JN1CZ24A1LX004087",
+   "title": "1990 Nissan 300ZX Twin Turbo"
+  },
+  {
+   "date": "2026-05-22",
+   "venue": "Cars & Bids",
+   "price_usd": 24762,
+   "basis": "sold+fee",
+   "hammer_usd": 23583,
+   "native": {
+    "amount": 23583,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://carsandbids.com/auctions/3zv7oe81/1990-nissan-300zx-twin-turbo",
+   "chassis": "JN1CZ24A7LX004062",
+   "title": "1990 Nissan 300ZX Twin Turbo"
+  },
+  {
+   "date": "2026-01-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 26775,
+   "basis": "sold+fee",
+   "hammer_usd": 25500,
+   "native": {
+    "amount": 25500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-nissan-300zx-twin-turbo-164/",
+   "chassis": "JN1CZ24A9LX005729",
+   "title": "1990 Nissan 300ZX Twin Turbo 5-Speed"
+  },
+  {
+   "date": "2025-09-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 28875,
+   "basis": "sold+fee",
+   "hammer_usd": 27500,
+   "native": {
+    "amount": 27500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-nissan-300zx-twin-turbo-160/",
+   "chassis": "JN1CZ24A7LX004062",
+   "title": "42k-Mile 1990 Nissan 300ZX Twin Turbo 5-Speed"
+  },
+  {
+   "date": "2025-09-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 43313,
+   "basis": "sold+fee",
+   "hammer_usd": 41250,
+   "native": {
+    "amount": 41250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-nissan-300zx-twin-turbo-161/",
+   "chassis": "JN1CZ24AXLX001575",
+   "title": "19k-Mile 1990 Nissan 300ZX Twin Turbo 5-Speed"
+  },
+  {
+   "date": "2025-09-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 19688,
+   "basis": "sold+fee",
+   "hammer_usd": 18750,
+   "native": {
+    "amount": 18750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-nissan-300zx-twin-turbo-159/",
+   "chassis": "JN1CZ24A9LX001048",
+   "title": "1990 Nissan 300ZX Twin Turbo 5-Speed"
+  },
+  {
+   "date": "2025-09-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 16800,
+   "basis": "sold+fee",
+   "hammer_usd": 16000,
+   "native": {
+    "amount": 16000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-nissan-300zx-116/",
+   "chassis": "JN1CZ24A5LX004223",
+   "title": "1990 Nissan 300ZX Twin Turbo 5-Speed"
+  },
+  {
+   "date": "2025-07-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 30449,
+   "basis": "sold+fee",
+   "hammer_usd": 28999,
+   "native": {
+    "amount": 28999,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-nissan-300zx-twin-turbo-155/",
+   "chassis": "JN1CZ24A9LX005729",
+   "title": "1990 Nissan 300ZX Twin Turbo 5-Speed"
+  },
+  {
+   "date": "2025-06-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 13808,
+   "basis": "sold+fee",
+   "hammer_usd": 13150,
+   "native": {
+    "amount": 13150,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-nissan-300zx-twin-turbo-153/",
+   "chassis": "JN1CZ24A3LX003748",
+   "title": "25-Years-Family-Owned 1990 Nissan 300ZX Twin Turbo 5-Speed"
+  },
+  {
+   "date": "2025-02-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 22500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-nissan-300zx-103/",
+   "chassis": "JN1CZ24A9LX003141",
+   "title": "1990 Nissan 300ZX Twin Turbo 5-Speed"
+  },
+  {
+   "date": "2024-10-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 9975,
+   "basis": "sold+fee",
+   "hammer_usd": 9500,
+   "native": {
+    "amount": 9500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-nissan-300zx-twin-turbo-141/",
+   "chassis": "JN1CZ24A5LX002665",
+   "title": "1990 Nissan 300ZX Twin Turbo"
+  },
+  {
+   "date": "2024-10-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 42525,
+   "basis": "sold+fee",
+   "hammer_usd": 40500,
+   "native": {
+    "amount": 40500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-nissan-300zx-twin-turbo-147/",
+   "chassis": "JN1CZ24AXLX001575",
+   "title": "19k-Mile 1990 Nissan 300ZX Twin Turbo 5-Speed"
+  },
+  {
+   "date": "2024-09-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 31500,
+   "basis": "sold+fee",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 30000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-nissan-300zx-twin-turbo-145/",
+   "chassis": "JN1CZ24A9LX005133",
+   "title": "46k-Mile 1990 Nissan 300ZX Twin Turbo 5-Speed"
+  },
+  {
+   "date": "2024-09-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 36750,
+   "basis": "sold+fee",
+   "hammer_usd": 35000,
+   "native": {
+    "amount": 35000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-nissan-300zx-twin-turbo-143/",
+   "chassis": "JN1CZ24SXLX000077",
+   "title": "1990 Nissan 300ZX Twin Turbo 5-Speed"
+  },
+  {
+   "date": "2024-01-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 39113,
+   "basis": "sold+fee",
+   "hammer_usd": 37250,
+   "native": {
+    "amount": 37250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-nissan-300zx-twin-turbo-131/",
+   "chassis": "JN1CZ24A1LX000590",
+   "title": "1990 Nissan 300ZX Twin Turbo 5-Speed"
+  },
+  {
+   "date": "2024-01-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 26775,
+   "basis": "sold+fee",
+   "hammer_usd": 25500,
+   "native": {
+    "amount": 25500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-nissan-300zx-twin-turbo-132/",
+   "chassis": "JN1CZ24A3LX006214",
+   "title": "47k-Mile 1990 Nissan 300ZX Twin Turbo 5-Speed"
+  },
+  {
+   "date": "2023-11-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 24413,
+   "basis": "sold+fee",
+   "hammer_usd": 23250,
+   "native": {
+    "amount": 23250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-nissan-300zx-twin-turbo-128/",
+   "chassis": "JN1CZ24A3LX005788",
+   "title": "1990 Nissan 300ZX Twin Turbo 5-Speed"
+  },
+  {
+   "date": "2023-11-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 44363,
+   "basis": "sold+fee",
+   "hammer_usd": 42250,
+   "native": {
+    "amount": 42250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1990,
+   "url": "https://bringatrailer.com/listing/1990-nissan-300zx-twin-turbo-126/",
+   "chassis": "JN1CZ24A1LX004493",
+   "title": "11k-Mile 1990 Nissan 300ZX Twin Turbo 5-Speed"
+  }
+ ]
+}

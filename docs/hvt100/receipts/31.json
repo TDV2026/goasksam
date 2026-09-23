@@ -1,0 +1,99 @@
+{
+ "car_id": 31,
+ "listed": "1979 Porsche 911 Turbo",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1977-1981)",
+ "basis": "mixed (80% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Porsche",
+  "model": "911",
+  "window": "36mo",
+  "year_min": 1977,
+  "year_max": 1981,
+  "trim": "Turbo",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-01-29",
+   "venue": "Gooding Christie's",
+   "price_usd": 269375,
+   "basis": "buyer-paid",
+   "hammer_usd": 240513,
+   "native": {
+    "amount": 269375,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1979,
+   "url": "https://www.goodingco.com/lot/1979-porsche-911-turbo-ruf-btr-ii-conversion",
+   "chassis": "93A0070168",
+   "title": "1979 Porsche 911 Turbo RUF BTR II Conversion"
+  },
+  {
+   "date": "2025-05-29",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 135001,
+   "basis": "sold+fee",
+   "hammer_usd": 128572,
+   "native": {
+    "amount": 128572,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1979,
+   "url": "https://www.sothebysmotorsport.com/auction/1979-porsche-911turbo-5090",
+   "chassis": "9309800147",
+   "title": "1979 Porsche 911 Turbo"
+  },
+  {
+   "date": "2025-04-26",
+   "venue": "Broad Arrow",
+   "price_usd": 140000,
+   "basis": "buyer-paid",
+   "hammer_usd": 125000,
+   "native": {
+    "amount": 140000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1978,
+   "url": "https://www.broadarrowauctions.com/vehicles/po25_r005/1978-porsche-911-turbo",
+   "chassis": "9308800205",
+   "title": "1978 Porsche 911 Turbo"
+  },
+  {
+   "date": "2025-02-05",
+   "venue": "RM Sotheby's",
+   "price_usd": 142830,
+   "basis": "buyer-paid",
+   "hammer_usd": 124200,
+   "native": {
+    "amount": 132250,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1977,
+   "url": "https://rmsothebys.com/auctions/pa25/lots/b0054-1977-porsche-911-turbo/",
+   "chassis": "9307700420",
+   "title": "1977 Porsche 911 Turbo"
+  },
+  {
+   "date": "2024-08-17",
+   "venue": "RM Sotheby's",
+   "price_usd": 201600,
+   "basis": "buyer-paid",
+   "hammer_usd": 180000,
+   "native": {
+    "amount": 201600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1979,
+   "url": "https://rmsothebys.com/auctions/mo24/lots/r0147-1979-porsche-911-turbo-coupe/",
+   "chassis": "9309800959",
+   "title": "1979 Porsche 911 Turbo Coupe"
+  }
+ ]
+}

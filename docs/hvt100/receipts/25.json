@@ -1,0 +1,146 @@
+{
+ "car_id": 25,
+ "listed": "1972 Datsun 240Z",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1970-1974)",
+ "basis": "mixed (63% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Datsun",
+  "model": "240Z",
+  "window": "36mo",
+  "year_min": 1970,
+  "year_max": 1974,
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-09-10",
+   "venue": "Barrett-Jackson",
+   "price_usd": 22000,
+   "basis": "buyer-paid",
+   "hammer_usd": 20000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1972,
+   "url": "https://www.barrett-jackson.com/2026-las-vegas/docket/vehicle/1972-datsun-240z-302089?origin=results",
+   "chassis": "HLS3092189",
+   "title": "1972 DATSUN 240Z"
+  },
+  {
+   "date": "2026-05-22",
+   "venue": "Hemmings",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 22500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.hemmings.com/auction/1970-datsun-240z-williamsburg-va-568641",
+   "chassis": "HLS3000633",
+   "title": "One-Owner, Early Build 1970 Datsun 240Z"
+  },
+  {
+   "date": "2026-01-21",
+   "venue": "Barrett-Jackson",
+   "price_usd": 37400,
+   "basis": "buyer-paid",
+   "hammer_usd": 34000,
+   "native": {
+    "amount": 37400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1972,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1972-datsun-240z-292360?origin=results",
+   "chassis": "HLS3072083",
+   "title": "1972 DATSUN 240Z"
+  },
+  {
+   "date": "2025-07-19",
+   "venue": "Hemmings",
+   "price_usd": 6143,
+   "basis": "sold+fee",
+   "hammer_usd": 5850,
+   "native": {
+    "amount": 5850,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1971,
+   "url": "https://www.hemmings.com/auction/1971-datsun-240z-east-wenatchee-wa-481056",
+   "chassis": "HLS3019210",
+   "title": "No-Reserve 1971 Datsun 240Z"
+  },
+  {
+   "date": "2025-04-15",
+   "venue": "Hemmings",
+   "price_usd": 31500,
+   "basis": "sold+fee",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 30000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1971,
+   "url": "https://www.hemmings.com/auction/1971-datsun-240z-calgary-ab-578374",
+   "chassis": "HLS3039365",
+   "title": "Award-Winning, Restored 1971 Datsun 240Z"
+  },
+  {
+   "date": "2025-03-08",
+   "venue": "Broad Arrow",
+   "price_usd": 28000,
+   "basis": "buyer-paid",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 28000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1972,
+   "url": "https://www.broadarrowauctions.com/vehicles/am25_r108/1972-datsun-240z",
+   "chassis": "HLS3049416",
+   "title": "1972 Datsun 240Z"
+  },
+  {
+   "date": "2024-01-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 47300,
+   "basis": "buyer-paid",
+   "hammer_usd": 43000,
+   "native": {
+    "amount": 47300,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1970-datsun-240z-271091?origin=results",
+   "chassis": "HLS3003976",
+   "title": "1970 DATSUN 240Z"
+  },
+  {
+   "date": "2024-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 51700,
+   "basis": "buyer-paid",
+   "hammer_usd": 47000,
+   "native": {
+    "amount": 51700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1972,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1972-datsun-240z-274953?origin=results",
+   "chassis": "HLS3070075",
+   "title": "1972 DATSUN 240Z"
+  }
+ ]
+}

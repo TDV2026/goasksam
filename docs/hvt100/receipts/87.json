@@ -1,0 +1,403 @@
+{
+ "car_id": 87,
+ "listed": "2013 Ferrari 458 Italia",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (2011-2015)",
+ "basis": "mixed (4% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Ferrari",
+  "model": "458",
+  "window": "36mo",
+  "year_min": 2011,
+  "year_max": 2015,
+  "trim": "Italia",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-09-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 241617,
+   "basis": "sold+fee",
+   "hammer_usd": 234117,
+   "native": {
+    "amount": 234117,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2011,
+   "url": "https://bringatrailer.com/listing/2011-ferrari-458-italia-59/",
+   "chassis": "ZFF67NFA6B0181533",
+   "title": "2011 Ferrari 458 Italia"
+  },
+  {
+   "date": "2026-09-03",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 307500,
+   "basis": "sold+fee",
+   "hammer_usd": 300000,
+   "native": {
+    "amount": 300000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2013,
+   "url": "https://www.sothebysmotorsport.com/auction/2013-ferrari-458italia-11614",
+   "chassis": "ZFF67NFA2D0195254",
+   "title": "2013 Ferrari 458 Italia"
+  },
+  {
+   "date": "2026-08-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 297500,
+   "basis": "sold+fee",
+   "hammer_usd": 290000,
+   "native": {
+    "amount": 290000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2011,
+   "url": "https://bringatrailer.com/listing/2011-ferrari-458-italia-55/",
+   "chassis": "ZFF67NFA6B0176283",
+   "title": "2011 Ferrari 458 Italia"
+  },
+  {
+   "date": "2026-06-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 300500,
+   "basis": "sold+fee",
+   "hammer_usd": 293000,
+   "native": {
+    "amount": 293000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2011,
+   "url": "https://bringatrailer.com/listing/2011-ferrari-458-italia-52/",
+   "chassis": "ZFF67NFA1B0180581",
+   "title": "23k-Mile 2011 Ferrari 458 Italia"
+  },
+  {
+   "date": "2026-05-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 232500,
+   "basis": "sold+fee",
+   "hammer_usd": 225000,
+   "native": {
+    "amount": 225000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-ferrari-458-italia-24/",
+   "chassis": "ZFF67NFA0C0188530",
+   "title": "2012 Ferrari 458 Italia"
+  },
+  {
+   "date": "2026-04-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 241500,
+   "basis": "sold+fee",
+   "hammer_usd": 234000,
+   "native": {
+    "amount": 234000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-ferrari-458-italia-25/",
+   "chassis": "ZFF67NFA4C0188045",
+   "title": "2012 Ferrari 458 Italia"
+  },
+  {
+   "date": "2026-04-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 240500,
+   "basis": "sold+fee",
+   "hammer_usd": 233000,
+   "native": {
+    "amount": 233000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2011,
+   "url": "https://bringatrailer.com/listing/2011-ferrari-458-italia-51/",
+   "chassis": "ZFF67NFA9B0176326",
+   "title": "6k-Mile 2011 Ferrari 458 Italia"
+  },
+  {
+   "date": "2026-02-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 232080,
+   "basis": "sold+fee",
+   "hammer_usd": 224580,
+   "native": {
+    "amount": 224580,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-ferrari-458-italia-23/",
+   "chassis": "ZFF67NFA2C0184740",
+   "title": "2012 Ferrari 458 Italia"
+  },
+  {
+   "date": "2025-12-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 147630,
+   "basis": "sold+fee",
+   "hammer_usd": 140600,
+   "native": {
+    "amount": 140600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2011,
+   "url": "https://bringatrailer.com/listing/2011-ferrari-458-italia-48/",
+   "chassis": "ZFF67NFA5B0180597",
+   "title": "22k-Mile 2011 Ferrari 458 Italia"
+  },
+  {
+   "date": "2025-09-17",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 224000,
+   "basis": "sold+fee",
+   "hammer_usd": 216500,
+   "native": {
+    "amount": 216500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2011,
+   "url": "https://www.sothebysmotorsport.com/auction/2011-ferrari-458italia-7043",
+   "chassis": "ZFF67NFAXB0178604",
+   "title": "2011 Ferrari 458 Italia"
+  },
+  {
+   "date": "2025-08-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 220500,
+   "basis": "sold+fee",
+   "hammer_usd": 213000,
+   "native": {
+    "amount": 213000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2011,
+   "url": "https://bringatrailer.com/listing/2011-ferrari-458-italia-45/",
+   "chassis": "ZFF67NFA0B0179034",
+   "title": "17k-Mile 2011 Ferrari 458 Italia"
+  },
+  {
+   "date": "2025-06-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 212500,
+   "basis": "sold+fee",
+   "hammer_usd": 205000,
+   "native": {
+    "amount": 205000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2011,
+   "url": "https://bringatrailer.com/listing/2011-ferrari-458-italia-39/",
+   "chassis": "ZFF67NFA2B0176863",
+   "title": "11k-Mile 2011 Ferrari 458 Italia"
+  },
+  {
+   "date": "2025-05-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 245500,
+   "basis": "sold+fee",
+   "hammer_usd": 238000,
+   "native": {
+    "amount": 238000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2013,
+   "url": "https://bringatrailer.com/listing/2013-ferrari-458-italia-29/",
+   "chassis": "ZFF67NFA3D0190712",
+   "title": "4,800-Mile 2013 Ferrari 458 Italia"
+  },
+  {
+   "date": "2025-04-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 220722,
+   "basis": "sold+fee",
+   "hammer_usd": 213222,
+   "native": {
+    "amount": 213222,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-ferrari-458-italia-17-2/",
+   "chassis": "ZFF67NFA6C0183915",
+   "title": "6k-Mile 2012 Ferrari 458 Italia"
+  },
+  {
+   "date": "2025-02-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 173500,
+   "basis": "sold+fee",
+   "hammer_usd": 166000,
+   "native": {
+    "amount": 166000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2011,
+   "url": "https://bringatrailer.com/listing/2011-ferrari-458-italia-37/",
+   "chassis": "ZFF67NFA2B0178211",
+   "title": "2011 Ferrari 458 Italia"
+  },
+  {
+   "date": "2025-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 260700,
+   "basis": "buyer-paid",
+   "hammer_usd": 237000,
+   "native": {
+    "amount": 260700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2013,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2013-ferrari-458-italia-281916?origin=results",
+   "chassis": "ZFF67NFAXD0193025",
+   "title": "2013 FERRARI 458 ITALIA"
+  },
+  {
+   "date": "2024-08-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 210500,
+   "basis": "sold+fee",
+   "hammer_usd": 203000,
+   "native": {
+    "amount": 203000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2013,
+   "url": "https://bringatrailer.com/listing/2013-ferrari-458-italia-24/",
+   "chassis": "ZFF67NFA8D0192827",
+   "title": "2013 Ferrari 458 Italia"
+  },
+  {
+   "date": "2024-06-24",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 192500,
+   "basis": "sold+fee",
+   "hammer_usd": 185000,
+   "native": {
+    "amount": 185000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://www.sothebysmotorsport.com/auction/2012-ferrari-458italia-2003",
+   "chassis": "ZFF67NFA8C0183916",
+   "title": "2012 Ferrari 458 Italia"
+  },
+  {
+   "date": "2024-04-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 192500,
+   "basis": "sold+fee",
+   "hammer_usd": 185000,
+   "native": {
+    "amount": 185000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2012,
+   "url": "https://bringatrailer.com/listing/2012-ferrari-458-italia-17/",
+   "chassis": "ZFF67NFA6C0186703",
+   "title": "11k-Mile 2012 Ferrari 458 Italia"
+  },
+  {
+   "date": "2024-04-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 149100,
+   "basis": "sold+fee",
+   "hammer_usd": 142000,
+   "native": {
+    "amount": 142000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2013,
+   "url": "https://bringatrailer.com/listing/2013-ferrari-458-italia-16/",
+   "chassis": "ZFF67NFA5D0190470",
+   "title": "2013 Ferrari 458 Italia"
+  },
+  {
+   "date": "2024-02-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 199500,
+   "basis": "sold+fee",
+   "hammer_usd": 192000,
+   "native": {
+    "amount": 192000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2011,
+   "url": "https://bringatrailer.com/listing/2011-ferrari-458-italia-31/",
+   "chassis": "ZFF67NFA6B0176865",
+   "title": "10k-Mile 2011 Ferrari 458 Italia"
+  },
+  {
+   "date": "2023-12-22",
+   "venue": "Cars & Bids",
+   "price_usd": 174500,
+   "basis": "sold+fee",
+   "hammer_usd": 167000,
+   "native": {
+    "amount": 167000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2011,
+   "url": "https://carsandbids.com/auctions/rJoXJY7p/2011-ferrari-458-italia",
+   "chassis": "ZFF67NFA3B0180422",
+   "title": "2011 Ferrari 458 Italia"
+  },
+  {
+   "date": "2023-11-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 193500,
+   "basis": "sold+fee",
+   "hammer_usd": 186000,
+   "native": {
+    "amount": 186000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2011,
+   "url": "https://bringatrailer.com/listing/2011-ferrari-458-italia-28/",
+   "chassis": "ZFF67NFA3B0181277",
+   "title": "2011 Ferrari 458 Italia"
+  },
+  {
+   "date": "2023-10-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 252500,
+   "basis": "sold+fee",
+   "hammer_usd": 245000,
+   "native": {
+    "amount": 245000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2013,
+   "url": "https://bringatrailer.com/listing/2013-ferrari-458-italia-15/",
+   "chassis": "ZFF67NFA5D0193059",
+   "title": "3,100-Mile 2013 Ferrari 458 Italia"
+  }
+ ]
+}

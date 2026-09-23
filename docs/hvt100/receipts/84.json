@@ -1,0 +1,817 @@
+{
+ "car_id": 84,
+ "listed": "2015 Porsche 918",
+ "status": "compare",
+ "year_scope": "exact 2015",
+ "basis": "sold+fee (online)",
+ "scope": {
+  "make": "Porsche",
+  "model": "918",
+  "window": "36mo",
+  "year_min": 2015,
+  "year_max": 2015
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-04-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 125522,
+   "basis": "sold+fee",
+   "hammer_usd": 119545,
+   "native": {
+    "amount": 119545,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-4s-coupe-24/",
+   "chassis": "WP0AB2A99FS110288",
+   "title": "7k-Mile 2015 Porsche 911 Carrera 4S Coupe 7-Speed"
+  },
+  {
+   "date": "2025-12-01",
+   "venue": "Cars & Bids",
+   "price_usd": 41738,
+   "basis": "sold+fee",
+   "hammer_usd": 39750,
+   "native": {
+    "amount": 39750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://carsandbids.com/auctions/3vGQeZzR/2015-porsche-911-carrera-s-coupe",
+   "chassis": "WP0AB2A9XFS125849",
+   "title": "2015 Porsche 911 Carrera S Coupe"
+  },
+  {
+   "date": "2025-10-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 75600,
+   "basis": "sold+fee",
+   "hammer_usd": 72000,
+   "native": {
+    "amount": 72000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-coupe-10/",
+   "chassis": "WP0AA2A97FS106713",
+   "title": "2015 Porsche 911 Carrera Coupe 7-Speed"
+  },
+  {
+   "date": "2025-10-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 66780,
+   "basis": "sold+fee",
+   "hammer_usd": 63600,
+   "native": {
+    "amount": 63600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-coupe-12/",
+   "chassis": "WP0AA2A95FS106838",
+   "title": "25k-Mile 2015 Porsche 911 Carrera Coupe"
+  },
+  {
+   "date": "2025-10-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 67200,
+   "basis": "sold+fee",
+   "hammer_usd": 64000,
+   "native": {
+    "amount": 64000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-cabriolet-5/",
+   "chassis": "WP0CA2A98FS141270",
+   "title": "34k-Mile 2015 Porsche 911 Carrera Cabriolet"
+  },
+  {
+   "date": "2025-10-02",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 111300,
+   "basis": "sold+fee",
+   "hammer_usd": 106000,
+   "native": {
+    "amount": 106000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://www.sothebysmotorsport.com/auction/2015-porsche-911carreragtscabriolet-7218",
+   "chassis": "WP0CB2A91FS154486",
+   "title": "2015 Porsche 911 Carrera GTS Cabriolet"
+  },
+  {
+   "date": "2025-09-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 64575,
+   "basis": "sold+fee",
+   "hammer_usd": 61500,
+   "native": {
+    "amount": 61500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-coupe-9/",
+   "chassis": "WP0AA2A92FS106943",
+   "title": "Original-Owner 34k-Mile 2015 Porsche 911 Carrera Coupe"
+  },
+  {
+   "date": "2025-09-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 174500,
+   "basis": "sold+fee",
+   "hammer_usd": 167000,
+   "native": {
+    "amount": 167000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-targa-4s-47/",
+   "chassis": "WP0BB2A99FS135065",
+   "title": "8k-Mile 2015 Porsche 911 Targa 4S X51 7-Speed"
+  },
+  {
+   "date": "2025-09-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 82425,
+   "basis": "sold+fee",
+   "hammer_usd": 78500,
+   "native": {
+    "amount": 78500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-s-coupe-11/",
+   "chassis": "WP0AB2A96FS125105",
+   "title": "22k-Mile 2015 Porsche 911 Carrera S Coupe"
+  },
+  {
+   "date": "2025-06-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 74550,
+   "basis": "sold+fee",
+   "hammer_usd": 71000,
+   "native": {
+    "amount": 71000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-4s-cabriolet-7/",
+   "chassis": "WP0CB2A98FS154176",
+   "title": "2015 Porsche 911 Carrera 4S Cabriolet"
+  },
+  {
+   "date": "2025-06-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 126000,
+   "basis": "sold+fee",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 120000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-gts-coupe-21/",
+   "chassis": "WP0AB2A95FS124589",
+   "title": "6k-Mile 2015 Porsche 911 Carrera GTS Coupe"
+  },
+  {
+   "date": "2025-06-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 75592,
+   "basis": "sold+fee",
+   "hammer_usd": 71992,
+   "native": {
+    "amount": 71992,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-4s-coupe-18/",
+   "chassis": "WP0AB2A93FS124283",
+   "title": "2015 Porsche 911 Carrera 4S Coupe"
+  },
+  {
+   "date": "2025-06-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 76141,
+   "basis": "sold+fee",
+   "hammer_usd": 72515,
+   "native": {
+    "amount": 72515,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-coupe-8/",
+   "chassis": "WP0AA2A91FS100180",
+   "title": "29k-Mile 2015 Porsche 911 Carrera Coupe 7-Speed"
+  },
+  {
+   "date": "2025-05-20",
+   "venue": "Cars & Bids",
+   "price_usd": 79800,
+   "basis": "sold+fee",
+   "hammer_usd": 76000,
+   "native": {
+    "amount": 76000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://carsandbids.com/auctions/3v7q7YLb/2015-porsche-911-carrera-4s-coupe",
+   "chassis": "WP0AB2A97FS110161",
+   "title": "2015 Porsche 911 Carrera 4S Coupe"
+  },
+  {
+   "date": "2025-05-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 91350,
+   "basis": "sold+fee",
+   "hammer_usd": 87000,
+   "native": {
+    "amount": 87000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-s-coupe-10/",
+   "chassis": "WP0AB2A98FS124991",
+   "title": "27k-Mile 2015 Porsche 911 Carrera S Coupe"
+  },
+  {
+   "date": "2025-05-09",
+   "venue": "Cars & Bids",
+   "price_usd": 89250,
+   "basis": "sold+fee",
+   "hammer_usd": 85000,
+   "native": {
+    "amount": 85000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://carsandbids.com/auctions/3oy64AXm/2015-porsche-911-targa-4",
+   "chassis": "WP0BA2A91FS132017",
+   "title": "2015 Porsche 911 Targa 4"
+  },
+  {
+   "date": "2025-04-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 105000,
+   "basis": "sold+fee",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 100000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-s-coupe-8/",
+   "chassis": "WP0AB2A90FS125438",
+   "title": "16k-Mile 2015 Porsche 911 Carrera S Coupe"
+  },
+  {
+   "date": "2025-03-31",
+   "venue": "Cars & Bids",
+   "price_usd": 66675,
+   "basis": "sold+fee",
+   "hammer_usd": 63500,
+   "native": {
+    "amount": 63500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://carsandbids.com/auctions/9QZM0A6k/2015-porsche-911-carrera-4-cabriolet",
+   "chassis": "WP0CA2A98FS141124",
+   "title": "2015 Porsche 911 Carrera 4 Cabriolet"
+  },
+  {
+   "date": "2025-03-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 124425,
+   "basis": "sold+fee",
+   "hammer_usd": 118500,
+   "native": {
+    "amount": 118500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-gts-cabriolet-3-2/",
+   "chassis": "WP0CB2A91FS154925",
+   "title": "23k-Mile 2015 Porsche 911 Carrera GTS Cabriolet 7-Speed"
+  },
+  {
+   "date": "2025-03-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 52491,
+   "basis": "sold+fee",
+   "hammer_usd": 49991,
+   "native": {
+    "amount": 49991,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-4-coupe-3/",
+   "chassis": "WP0AA2A9XFS106740",
+   "title": "2015 Porsche 911 Carrera 4 Coupe"
+  },
+  {
+   "date": "2025-01-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 72975,
+   "basis": "sold+fee",
+   "hammer_usd": 69500,
+   "native": {
+    "amount": 69500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-gts-coupe-20/",
+   "chassis": "WP0AB2A97FS124674",
+   "title": "2015 Porsche 911 Carrera GTS Coupe"
+  },
+  {
+   "date": "2025-01-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 70875,
+   "basis": "sold+fee",
+   "hammer_usd": 67500,
+   "native": {
+    "amount": 67500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-s-cabriolet-9/",
+   "chassis": "WP0CB2A9XFS143079",
+   "title": "2015 Porsche 911 Carrera S Cabriolet"
+  },
+  {
+   "date": "2024-12-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 77700,
+   "basis": "sold+fee",
+   "hammer_usd": 74000,
+   "native": {
+    "amount": 74000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-4-coupe-2/",
+   "chassis": "WP0AB2A99FS110209",
+   "title": "13k-Mile 2015 Porsche 911 Carrera S Coupe"
+  },
+  {
+   "date": "2024-11-07",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 120750,
+   "basis": "sold+fee",
+   "hammer_usd": 115000,
+   "native": {
+    "amount": 115000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://www.sothebysmotorsport.com/auction/2015-porsche-911targa4sx517speed-3137",
+   "chassis": "WP0BB2A99FS135065",
+   "title": "2015 Porsche 911 Targa 4S X51 7-Speed"
+  },
+  {
+   "date": "2024-11-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 78216,
+   "basis": "sold+fee",
+   "hammer_usd": 74491,
+   "native": {
+    "amount": 74491,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-4s-coupe-17/",
+   "chassis": "WP0AB2A94FS124180",
+   "title": "2015 Porsche 911 Carrera 4S Coupe"
+  },
+  {
+   "date": "2024-10-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 111300,
+   "basis": "sold+fee",
+   "hammer_usd": 106000,
+   "native": {
+    "amount": 106000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-targa-4s-37/",
+   "chassis": "WP0BB2A98FS135428",
+   "title": "6k-Mile 2015 Porsche 911 Targa 4S"
+  },
+  {
+   "date": "2024-10-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 86695,
+   "basis": "sold+fee",
+   "hammer_usd": 82567,
+   "native": {
+    "amount": 82567,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-4s-coupe-15/",
+   "chassis": "WP0AB2A9XFS124295",
+   "title": "Original-Owner 2015 Porsche 911 Carrera 4S Coupe"
+  },
+  {
+   "date": "2024-10-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 81900,
+   "basis": "sold+fee",
+   "hammer_usd": 78000,
+   "native": {
+    "amount": 78000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-targa-4s-36/",
+   "chassis": "WP0BB2A90FS135360",
+   "title": "31k-Mile 2015 Porsche 911 Targa 4S"
+  },
+  {
+   "date": "2024-09-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 80325,
+   "basis": "sold+fee",
+   "hammer_usd": 76500,
+   "native": {
+    "amount": 76500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-4s-coupe-14/",
+   "chassis": "WP0AB2A91FS125884",
+   "title": "2015 Porsche 911 Carrera 4S Coupe 7-Speed"
+  },
+  {
+   "date": "2024-09-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 90825,
+   "basis": "sold+fee",
+   "hammer_usd": 86500,
+   "native": {
+    "amount": 86500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-s-coupe-4/",
+   "chassis": "WP0AB2A92FS125957",
+   "title": "16k-Mile 2015 Porsche 911 Carrera S Coupe 7-Speed"
+  },
+  {
+   "date": "2024-09-19",
+   "venue": "PCARMarket",
+   "price_usd": 85050,
+   "basis": "sold+fee",
+   "hammer_usd": 81000,
+   "native": {
+    "amount": 81000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://www.pcarmarket.com/auction/2015-porsche-911-carrera-4s-coupe",
+   "chassis": "WP0AB2A91FS125254",
+   "title": "11k-Mile 2015 Porsche 991 Carrera 4S Coupe"
+  },
+  {
+   "date": "2024-08-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 84000,
+   "basis": "sold+fee",
+   "hammer_usd": 80000,
+   "native": {
+    "amount": 80000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-s-coupe-6/",
+   "chassis": "WP0AB2A99FS110260",
+   "title": "17k-Mile 2015 Porsche 911 Carrera S Coupe"
+  },
+  {
+   "date": "2024-07-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 66675,
+   "basis": "sold+fee",
+   "hammer_usd": 63500,
+   "native": {
+    "amount": 63500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-s-coupe-5/",
+   "chassis": "WP0AB2A9XFS124300",
+   "title": "42k-Mile 2015 Porsche 911 Carrera S Coupe"
+  },
+  {
+   "date": "2024-07-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 66150,
+   "basis": "sold+fee",
+   "hammer_usd": 63000,
+   "native": {
+    "amount": 63000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-coupe-5/",
+   "chassis": "WP0AA2A98FS106414",
+   "title": "2015 Porsche 911 Carrera Coupe 7-Speed"
+  },
+  {
+   "date": "2024-05-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 70257,
+   "basis": "sold+fee",
+   "hammer_usd": 66911,
+   "native": {
+    "amount": 66911,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-4s-coupe-13/",
+   "chassis": "WP0AB2A94FS110330",
+   "title": "2015 Porsche 911 Carrera 4S Coupe"
+  },
+  {
+   "date": "2024-05-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 89775,
+   "basis": "sold+fee",
+   "hammer_usd": 85500,
+   "native": {
+    "amount": 85500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-targa-4-4/",
+   "chassis": "WP0BA2A9XFS132002",
+   "title": "29k-Mile 2015 Porsche 911 Targa 4"
+  },
+  {
+   "date": "2024-04-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 83475,
+   "basis": "sold+fee",
+   "hammer_usd": 79500,
+   "native": {
+    "amount": 79500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-s-cabriolet-7/",
+   "chassis": "WP0CB2A90FS154771",
+   "title": "29k-Mile 2015 Porsche 911 Carrera S Cabriolet"
+  },
+  {
+   "date": "2024-04-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 82425,
+   "basis": "sold+fee",
+   "hammer_usd": 78500,
+   "native": {
+    "amount": 78500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-gts-coupe-15/",
+   "chassis": "WP0AB2A90FS125326",
+   "title": "2015 Porsche 911 Carrera GTS Coupe"
+  },
+  {
+   "date": "2024-03-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 113400,
+   "basis": "sold+fee",
+   "hammer_usd": 108000,
+   "native": {
+    "amount": 108000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-targa-4s-34/",
+   "chassis": "WP0BB2A92FS133089",
+   "title": "10k-Mile 2015 Porsche 911 Targa 4S"
+  },
+  {
+   "date": "2024-03-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 115500,
+   "basis": "sold+fee",
+   "hammer_usd": 110000,
+   "native": {
+    "amount": 110000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-gts-coupe-14/",
+   "chassis": "WP0AB2A97FS125713",
+   "title": "35k-Mile 2015 Porsche 911 Carrera GTS Coupe 7-Speed"
+  },
+  {
+   "date": "2024-02-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 114975,
+   "basis": "sold+fee",
+   "hammer_usd": 109500,
+   "native": {
+    "amount": 109500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-targa-4s-33/",
+   "chassis": "WP0BB2A97FS135517",
+   "title": "9k-Mile 2015 Porsche 911 Targa 4S"
+  },
+  {
+   "date": "2024-02-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 69003,
+   "basis": "sold+fee",
+   "hammer_usd": 65717,
+   "native": {
+    "amount": 65717,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-cabriolet-3/",
+   "chassis": "WP0CA2A90FS141134",
+   "title": "2015 Porsche 911 Carrera Cabriolet 7-Speed"
+  },
+  {
+   "date": "2024-01-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 89250,
+   "basis": "sold+fee",
+   "hammer_usd": 85000,
+   "native": {
+    "amount": 85000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-gts-coupe-12/",
+   "chassis": "WP0AB2A99FS124689",
+   "title": "2015 Porsche 911 Carrera GTS Coupe"
+  },
+  {
+   "date": "2024-01-10",
+   "venue": "PCARMarket",
+   "price_usd": 83528,
+   "basis": "sold+fee",
+   "hammer_usd": 79550,
+   "native": {
+    "amount": 79550,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://www.pcarmarket.com/auction/2015-porsche-991-carrera-4s-coupe-1",
+   "chassis": "WP0AB2A92FS124310",
+   "title": "27k-Mile 2015 Porsche 991 Carrera 4S Coupe 7-Speed"
+  },
+  {
+   "date": "2023-12-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 126000,
+   "basis": "sold+fee",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 120000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-targa-4s-30/",
+   "chassis": "WP0BB2A90FS135486",
+   "title": "8k-Mile 2015 Porsche 911 Targa 4S 7-Speed"
+  },
+  {
+   "date": "2023-12-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 129150,
+   "basis": "sold+fee",
+   "hammer_usd": 123000,
+   "native": {
+    "amount": 123000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-targa-4s-31/",
+   "chassis": "WP0BB2A98FS135140",
+   "title": "11k-Mile 2015 Porsche 911 Targa 4S 7-Speed"
+  },
+  {
+   "date": "2023-12-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 112875,
+   "basis": "sold+fee",
+   "hammer_usd": 107500,
+   "native": {
+    "amount": 107500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-gts-coupe-11/",
+   "chassis": "WP0AB2A95FS124804",
+   "title": "14k-Mile 2015 Porsche 911 Carrera GTS Coupe"
+  },
+  {
+   "date": "2023-11-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 102900,
+   "basis": "sold+fee",
+   "hammer_usd": 98000,
+   "native": {
+    "amount": 98000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-targa-4-3/",
+   "chassis": "WP0BA2A97FS132071",
+   "title": "2015 Porsche 911 Targa 4"
+  },
+  {
+   "date": "2023-10-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 68775,
+   "basis": "sold+fee",
+   "hammer_usd": 65500,
+   "native": {
+    "amount": 65500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-4s-cabriolet-3/",
+   "chassis": "WP0CB2A98FS154176",
+   "title": "2015 Porsche 911 Carrera 4S Cabriolet"
+  },
+  {
+   "date": "2023-09-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 77691,
+   "basis": "sold+fee",
+   "hammer_usd": 73991,
+   "native": {
+    "amount": 73991,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2015,
+   "url": "https://bringatrailer.com/listing/2015-porsche-911-carrera-4s-coupe-6/",
+   "chassis": "WP0AB2A94FS124180",
+   "title": "2015 Porsche 911 Carrera 4S Coupe"
+  }
+ ]
+}

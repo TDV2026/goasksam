@@ -1,0 +1,883 @@
+{
+ "car_id": 83,
+ "listed": "2016 Porsche Cayman GT4",
+ "status": "compare",
+ "year_scope": "exact 2016",
+ "basis": "mixed (2% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Porsche",
+  "model": "Cayman",
+  "window": "36mo",
+  "year_min": 2016,
+  "year_max": 2016,
+  "trim": "GT4",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-09-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 114450,
+   "basis": "sold+fee",
+   "hammer_usd": 109000,
+   "native": {
+    "amount": 109000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-981-cayman-gt4-clubsport-2/",
+   "chassis": "WP0ZZZ98ZGK199689",
+   "title": "2016 Porsche 981 Cayman GT4 Clubsport"
+  },
+  {
+   "date": "2026-09-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 149100,
+   "basis": "sold+fee",
+   "hammer_usd": 142000,
+   "native": {
+    "amount": 142000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-255/",
+   "chassis": "WP0AC2A89GK197745",
+   "title": "3,500-Mile 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2026-08-14",
+   "venue": "Cars & Bids",
+   "price_usd": 117600,
+   "basis": "sold+fee",
+   "hammer_usd": 112000,
+   "native": {
+    "amount": 112000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/KV7ovNgQ/2016-porsche-cayman-gt4",
+   "chassis": "WP0AC2A82GK197702",
+   "title": "2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2026-08-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 112350,
+   "basis": "sold+fee",
+   "hammer_usd": 107000,
+   "native": {
+    "amount": 107000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-252/",
+   "chassis": "WP0AC2A85GK191831",
+   "title": "17k-Mile 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2026-07-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 96600,
+   "basis": "sold+fee",
+   "hammer_usd": 92000,
+   "native": {
+    "amount": 92000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-981-cayman-gt4-clubsport/",
+   "chassis": "WP0ZZZ98ZGK199699",
+   "title": "2016 Porsche Cayman GT4 Clubsport"
+  },
+  {
+   "date": "2026-06-11",
+   "venue": "Cars & Bids",
+   "price_usd": 104475,
+   "basis": "sold+fee",
+   "hammer_usd": 99500,
+   "native": {
+    "amount": 99500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/3owLg8Ym/2016-porsche-cayman-gt4",
+   "chassis": "WP0AC2A83GK197708",
+   "title": "2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2026-06-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 133875,
+   "basis": "sold+fee",
+   "hammer_usd": 127500,
+   "native": {
+    "amount": 127500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-245/",
+   "chassis": "WP0AC2A82GK197487",
+   "title": "2016 Porsche Cayman GT4 DeMan 4.5L"
+  },
+  {
+   "date": "2026-05-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 128181,
+   "basis": "sold+fee",
+   "hammer_usd": 122077,
+   "native": {
+    "amount": 122077,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-244/",
+   "chassis": "WP0AC2A86GK191417",
+   "title": "Modified 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2026-05-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 125980,
+   "basis": "sold+fee",
+   "hammer_usd": 119981,
+   "native": {
+    "amount": 119981,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-243/",
+   "chassis": "WP0AC2A89GK192268",
+   "title": "10k-Mile 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2026-05-15",
+   "venue": "Cars & Bids",
+   "price_usd": 109200,
+   "basis": "sold+fee",
+   "hammer_usd": 104000,
+   "native": {
+    "amount": 104000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/rJNxLb2N/2016-porsche-cayman-gt4",
+   "chassis": "WP0AC2A8XGK191999",
+   "title": "2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2026-05-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 135450,
+   "basis": "sold+fee",
+   "hammer_usd": 129000,
+   "native": {
+    "amount": 129000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-242/",
+   "chassis": "WP0AC2A88GK192696",
+   "title": "5k-Mile 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2026-05-11",
+   "venue": "PCARMarket",
+   "price_usd": 117338,
+   "basis": "sold+fee",
+   "hammer_usd": 111750,
+   "native": {
+    "amount": 111750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://www.pcarmarket.com/auction/2016-porsche-cayman-gt4-40",
+   "chassis": "WP0AC2A86GK192356",
+   "title": "13k-Mile 2016 Porsche 981 Cayman GT4 w/ PCCB"
+  },
+  {
+   "date": "2026-04-30",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 105000,
+   "basis": "sold+fee",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 100000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://www.sothebysmotorsport.com/auction/2016-porsche-caymangt4-9528",
+   "chassis": "WP0AC2A85GK197502",
+   "title": "2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2026-03-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 116025,
+   "basis": "sold+fee",
+   "hammer_usd": 110500,
+   "native": {
+    "amount": 110500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-240/",
+   "chassis": "WP0AC2A82GK191222",
+   "title": "24k-Mile 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2026-03-13",
+   "venue": "Cars & Bids",
+   "price_usd": 105000,
+   "basis": "sold+fee",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 100000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/rEAmkpAP/2016-porsche-cayman-gt4",
+   "chassis": "WP0AC2A81GK191454",
+   "title": "2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2026-03-06",
+   "venue": "Cars & Bids",
+   "price_usd": 108780,
+   "basis": "sold+fee",
+   "hammer_usd": 103600,
+   "native": {
+    "amount": 103600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/rN05oqM5/2016-porsche-cayman-gt4",
+   "chassis": "WP0AC2A89GK197860",
+   "title": "2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2026-02-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 105000,
+   "basis": "sold+fee",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 100000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-235/",
+   "chassis": "WP0AC2A87GK191314",
+   "title": "27k-Mile 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2026-01-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 136500,
+   "basis": "sold+fee",
+   "hammer_usd": 130000,
+   "native": {
+    "amount": 130000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-236/",
+   "chassis": "WP0AC2A88GK191600",
+   "title": "1,800-Mile 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2026-01-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 117580,
+   "basis": "sold+fee",
+   "hammer_usd": 111981,
+   "native": {
+    "amount": 111981,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-238/",
+   "chassis": "WP0AC2A83GK191794",
+   "title": "14k-Mile 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2026-01-12",
+   "venue": "Cars & Bids",
+   "price_usd": 123375,
+   "basis": "sold+fee",
+   "hammer_usd": 117500,
+   "native": {
+    "amount": 117500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/rNXDqdEG/2016-porsche-cayman-gt4",
+   "chassis": "WP0AC2A86GK191188",
+   "title": "2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-12-12",
+   "venue": "Cars & Bids",
+   "price_usd": 106865,
+   "basis": "sold+fee",
+   "hammer_usd": 101776,
+   "native": {
+    "amount": 101776,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/3Ln68olW/2016-porsche-cayman-gt4",
+   "chassis": "WP0AC2A83GK192380",
+   "title": "2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-11-11",
+   "venue": "PCARMarket",
+   "price_usd": 92400,
+   "basis": "sold+fee",
+   "hammer_usd": 88000,
+   "native": {
+    "amount": 88000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://www.pcarmarket.com/auction/2016-porsche-cayman-gt4-39",
+   "chassis": "WP0AC2A80GK197620",
+   "title": "26k-Mile 2016 Porsche 981 Cayman GT4"
+  },
+  {
+   "date": "2025-11-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 84000,
+   "basis": "sold+fee",
+   "hammer_usd": 80000,
+   "native": {
+    "amount": 80000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-231/",
+   "chassis": "WP0AC2A80GK197505",
+   "title": "35k-Mile 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-11-07",
+   "venue": "PCARMarket",
+   "price_usd": 89775,
+   "basis": "sold+fee",
+   "hammer_usd": 85500,
+   "native": {
+    "amount": 85500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://www.pcarmarket.com/auction/2016-porsche-cayman-gt4-37",
+   "chassis": "WP0AC2A8XGK192084",
+   "title": "28k-Mile 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-10-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 88200,
+   "basis": "sold+fee",
+   "hammer_usd": 84000,
+   "native": {
+    "amount": 84000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-230/",
+   "chassis": "WP0AC2A8XGK197155",
+   "title": "38k-Mile 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-10-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 80850,
+   "basis": "sold+fee",
+   "hammer_usd": 77000,
+   "native": {
+    "amount": 77000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-227/",
+   "chassis": "WP0AC2A80GK192577",
+   "title": "Modified 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-10-09",
+   "venue": "Cars & Bids",
+   "price_usd": 112350,
+   "basis": "sold+fee",
+   "hammer_usd": 107000,
+   "native": {
+    "amount": 107000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/rEqMDYwk/2016-porsche-cayman-gt4",
+   "chassis": "WP0AC2A86GK197492",
+   "title": "2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-09-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 95025,
+   "basis": "sold+fee",
+   "hammer_usd": 90500,
+   "native": {
+    "amount": 90500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-226/",
+   "chassis": "WP0AC2A88GK197879",
+   "title": "18k-Mile 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-08-19",
+   "venue": "Cars & Bids",
+   "price_usd": 113925,
+   "basis": "sold+fee",
+   "hammer_usd": 108500,
+   "native": {
+    "amount": 108500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/3oj1PzDo/2016-porsche-cayman-gt4",
+   "chassis": "WP0AC2A86GK191224",
+   "title": "2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-08-12",
+   "venue": "Cars & Bids",
+   "price_usd": 100275,
+   "basis": "sold+fee",
+   "hammer_usd": 95500,
+   "native": {
+    "amount": 95500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/37pGlPJ7/2016-porsche-cayman-gt4",
+   "chassis": "WP0AC2A88GK191399",
+   "title": "2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-08-06",
+   "venue": "PCARMarket",
+   "price_usd": 115301,
+   "basis": "sold+fee",
+   "hammer_usd": 109810,
+   "native": {
+    "amount": 109810,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://www.pcarmarket.com/auction/2016-porsche-cayman-gt4-36",
+   "chassis": "WP0AC2A87GK191555",
+   "title": "One-Owner 10k-Mile 2016 Porsche 981 Cayman GT4 w/ PCCB"
+  },
+  {
+   "date": "2025-08-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 107100,
+   "basis": "sold+fee",
+   "hammer_usd": 102000,
+   "native": {
+    "amount": 102000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-221/",
+   "chassis": "WP0AC2A86GK192146",
+   "title": "11k-Mile 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-07-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 104035,
+   "basis": "sold+fee",
+   "hammer_usd": 99081,
+   "native": {
+    "amount": 99081,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-218/",
+   "chassis": "WP0AC2A89GK197356",
+   "title": "12k-Mile 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-07-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 109200,
+   "basis": "sold+fee",
+   "hammer_usd": 104000,
+   "native": {
+    "amount": 104000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-clubsport-3/",
+   "chassis": "WP0ZZZ98ZGK199755",
+   "title": "2016 Porsche Cayman GT4 Clubsport"
+  },
+  {
+   "date": "2025-07-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 108675,
+   "basis": "sold+fee",
+   "hammer_usd": 103500,
+   "native": {
+    "amount": 103500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-216/",
+   "chassis": "WP0AC2A81GK197531",
+   "title": "2,400-Mile 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-07-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 102375,
+   "basis": "sold+fee",
+   "hammer_usd": 97500,
+   "native": {
+    "amount": 97500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-213/",
+   "chassis": "WP0AC2A82GK192130",
+   "title": "13k-Mile 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-07-11",
+   "venue": "Cars & Bids",
+   "price_usd": 96600,
+   "basis": "sold+fee",
+   "hammer_usd": 92000,
+   "native": {
+    "amount": 92000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/rMb14aYa/2016-porsche-cayman-gt4",
+   "chassis": "WP0AC2A81GK192197",
+   "title": "2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-07-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 111300,
+   "basis": "sold+fee",
+   "hammer_usd": 106000,
+   "native": {
+    "amount": 106000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-215/",
+   "chassis": "WP0AC2A85GK191909",
+   "title": "3,100-Mile Signal Yellow 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-07-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 96180,
+   "basis": "sold+fee",
+   "hammer_usd": 91600,
+   "native": {
+    "amount": 91600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-211/",
+   "chassis": "WP0AC2A86GK192003",
+   "title": "2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-06-04",
+   "venue": "PCARMarket",
+   "price_usd": 94500,
+   "basis": "sold+fee",
+   "hammer_usd": 90000,
+   "native": {
+    "amount": 90000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://www.pcarmarket.com/auction/2016-porsche-cayman-gt4-35",
+   "chassis": "WP0ZZZ98ZGK199612",
+   "title": "8k-Mile 2016 Porsche 981 Cayman GT4 Clubsport"
+  },
+  {
+   "date": "2025-04-22",
+   "venue": "Cars & Bids",
+   "price_usd": 90300,
+   "basis": "sold+fee",
+   "hammer_usd": 86000,
+   "native": {
+    "amount": 86000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/KP7xRmJ7/2016-porsche-cayman-gt4",
+   "chassis": "WP0AC2A86GK191126",
+   "title": "2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-04-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 87150,
+   "basis": "sold+fee",
+   "hammer_usd": 83000,
+   "native": {
+    "amount": 83000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-207/",
+   "chassis": "WP0AC2A88GK192326",
+   "title": "26k-Mile 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-04-04",
+   "venue": "PCARMarket",
+   "price_usd": 105000,
+   "basis": "sold+fee",
+   "hammer_usd": 100000,
+   "native": {
+    "amount": 100000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://www.pcarmarket.com/auction/2016-981-cayman-cs",
+   "chassis": "WP0ZZZ98ZGK199748",
+   "title": "11k-Mile 2016 Porsche 981 Cayman GT4 Clubsport"
+  },
+  {
+   "date": "2025-03-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 86100,
+   "basis": "sold+fee",
+   "hammer_usd": 82000,
+   "native": {
+    "amount": 82000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-205/",
+   "chassis": "WP0AC2A83GK191715",
+   "title": "2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-03-14",
+   "venue": "Cars & Bids",
+   "price_usd": 96075,
+   "basis": "sold+fee",
+   "hammer_usd": 91500,
+   "native": {
+    "amount": 91500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://carsandbids.com/auctions/9lXJPM0z/2016-porsche-cayman-gt4",
+   "chassis": "WP0AC2A87GK191569",
+   "title": "2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-02-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 108150,
+   "basis": "sold+fee",
+   "hammer_usd": 103000,
+   "native": {
+    "amount": 103000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-202/",
+   "chassis": "WP0AC2A85GK191909",
+   "title": "Signal Yellow 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-01-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 89775,
+   "basis": "sold+fee",
+   "hammer_usd": 85500,
+   "native": {
+    "amount": 85500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-200/",
+   "chassis": "WP0AC2A8XGK191453",
+   "title": "34k-Mile 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2025-01-27",
+   "venue": "PCARMarket",
+   "price_usd": 110250,
+   "basis": "sold+fee",
+   "hammer_usd": 105000,
+   "native": {
+    "amount": 105000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://www.pcarmarket.com/auction/2016-porsche-cayman-gt4-34",
+   "chassis": "WP0AC2A83GK192752",
+   "title": "1k-Mile 2016 Porsche 981 Cayman GT4 w/ PCCB"
+  },
+  {
+   "date": "2025-01-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 93357,
+   "basis": "sold+fee",
+   "hammer_usd": 88911,
+   "native": {
+    "amount": 88911,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-porsche-cayman-gt4-190-2/",
+   "chassis": "WP0AC2A86GK197783",
+   "title": "Modified 2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2024-10-15",
+   "venue": "PCARMarket",
+   "price_usd": 84000,
+   "basis": "sold+fee",
+   "hammer_usd": 80000,
+   "native": {
+    "amount": 80000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://www.pcarmarket.com/auction/2016-porsche-cayman-gt4-25",
+   "chassis": "WP0AC2A89GK192528",
+   "title": "17k-Mile 2016 Porsche 981 Cayman GT4"
+  },
+  {
+   "date": "2024-09-26",
+   "venue": "PCARMarket",
+   "price_usd": 86625,
+   "basis": "sold+fee",
+   "hammer_usd": 82500,
+   "native": {
+    "amount": 82500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://www.pcarmarket.com/auction/2016-porsche-cayman-gt4-29",
+   "chassis": "WP0AC2A84GK192744",
+   "title": "7k-Mile 2016 Porsche Cayman GT4 Modified"
+  },
+  {
+   "date": "2024-08-01",
+   "venue": "PCARMarket",
+   "price_usd": 89250,
+   "basis": "sold+fee",
+   "hammer_usd": 85000,
+   "native": {
+    "amount": 85000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://www.pcarmarket.com/auction/2016-porsche-cayman-gt4-26",
+   "chassis": "WP0AC2A84GK192419",
+   "title": "15k-Mile 2016 Porsche 981 Cayman GT4"
+  },
+  {
+   "date": "2024-06-01",
+   "venue": "RM Sotheby's",
+   "price_usd": 140000,
+   "basis": "buyer-paid",
+   "hammer_usd": 125000,
+   "native": {
+    "amount": 140000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2016,
+   "url": "https://rmsothebys.com/auctions/dd24/lots/r0107-2016-porsche-cayman-gt4/",
+   "chassis": "WP0AC2A80GK191381",
+   "title": "2016 Porsche Cayman GT4"
+  },
+  {
+   "date": "2024-05-15",
+   "venue": "PCARMarket",
+   "price_usd": 94500,
+   "basis": "sold+fee",
+   "hammer_usd": 90000,
+   "native": {
+    "amount": 90000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://www.pcarmarket.com/auction/2016-porsche-cayman-gt4-24",
+   "chassis": "WP0AC2A81GK197156",
+   "title": "18k-Mile 2016 Porsche 981 Cayman GT4"
+  }
+ ]
+}

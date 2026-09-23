@@ -1,0 +1,1026 @@
+{
+ "car_id": 11,
+ "listed": "1955 Ford Thunderbird",
+ "status": "compare",
+ "year_scope": "exact 1955",
+ "basis": "mixed (10% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Ford",
+  "model": "Thunderbird",
+  "window": "36mo",
+  "year_min": 1955,
+  "year_max": 1955,
+  "body": "convertible"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-09-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 22313,
+   "basis": "sold+fee",
+   "hammer_usd": 21250,
+   "native": {
+    "amount": 21250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-240/",
+   "chassis": "P5FH163469",
+   "title": "65-Years-Family-Owned, 302-Powered 1955 Ford Thunderbird 5-Speed"
+  },
+  {
+   "date": "2026-09-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 20213,
+   "basis": "sold+fee",
+   "hammer_usd": 19250,
+   "native": {
+    "amount": 19250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-239/",
+   "chassis": "P5FH164815",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2026-08-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 27038,
+   "basis": "sold+fee",
+   "hammer_usd": 25750,
+   "native": {
+    "amount": 25750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-238/",
+   "chassis": "P5FH207241",
+   "title": "70-Years-Family-Owned 1955 Ford Thunderbird"
+  },
+  {
+   "date": "2026-08-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-236/",
+   "chassis": "P5FH215920",
+   "title": "1955 Ford Thunderbird 4-Speed"
+  },
+  {
+   "date": "2026-07-24",
+   "venue": "Mecum",
+   "price_usd": 13650,
+   "basis": "sold+fee",
+   "hammer_usd": 13000,
+   "native": {
+    "amount": 14300,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1955,
+   "url": "https://www.mecum.com/lots/1175753/1955-ford-thunderbird-convertible?aa_id=792537-0",
+   "chassis": "P5FH235919",
+   "title": "1955 Ford Thunderbird Convertible"
+  },
+  {
+   "date": "2026-07-23",
+   "venue": "Mecum",
+   "price_usd": 23100,
+   "basis": "sold+fee",
+   "hammer_usd": 22000,
+   "native": {
+    "amount": 24200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1955,
+   "url": "https://www.mecum.com/lots/1174393/1955-ford-thunderbird-convertible?aa_id=798341-0",
+   "chassis": "P5FH232491",
+   "title": "1955 Ford Thunderbird Convertible"
+  },
+  {
+   "date": "2026-07-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 31395,
+   "basis": "sold+fee",
+   "hammer_usd": 29900,
+   "native": {
+    "amount": 29900,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-237/",
+   "chassis": "P5FH162283",
+   "title": "1955 Ford Thunderbird 3-Speed"
+  },
+  {
+   "date": "2026-07-06",
+   "venue": "Hagerty",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 22500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://www.hagerty.com/marketplace/auction/1955-Ford-Thunderbird/ab313b83-b951-434d-a585-37c5503c738d",
+   "chassis": "P5FH188612",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2026-06-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 18638,
+   "basis": "sold+fee",
+   "hammer_usd": 17750,
+   "native": {
+    "amount": 17750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-234/",
+   "chassis": "P5FH176854",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2026-05-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 38325,
+   "basis": "sold+fee",
+   "hammer_usd": 36500,
+   "native": {
+    "amount": 36500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-230/",
+   "chassis": "P5FH141203",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2026-05-09",
+   "venue": "All Collector Cars",
+   "price_usd": 24255,
+   "basis": "sold+fee",
+   "hammer_usd": 23100,
+   "native": {
+    "amount": 23100,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://www.allcollectorcars.com/classic-car-auctions/vehicles/1955-ford-thunderbird-convertible-2-tops/",
+   "chassis": null,
+   "title": "1955 Ford Thunderbird Convertible"
+  },
+  {
+   "date": "2026-04-24",
+   "venue": "Hagerty",
+   "price_usd": 31501,
+   "basis": "sold+fee",
+   "hammer_usd": 30001,
+   "native": {
+    "amount": 30001,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://www.hagerty.com/marketplace/auction/1955-Ford-Thunderbird/mOIFcFv4M7K578UfgAfYT",
+   "chassis": "P5FH205838",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2026-04-17",
+   "venue": "Barrett-Jackson",
+   "price_usd": 34650,
+   "basis": "buyer-paid",
+   "hammer_usd": 31500,
+   "native": {
+    "amount": 34650,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1955,
+   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/1955-ford-thunderbird-convertible-298437?origin=results",
+   "chassis": "P5FH173144",
+   "title": "1955 FORD THUNDERBIRD CONVERTIBLE"
+  },
+  {
+   "date": "2026-02-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 28088,
+   "basis": "sold+fee",
+   "hammer_usd": 26750,
+   "native": {
+    "amount": 26750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-223/",
+   "chassis": "P5FH129996",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2026-01-21",
+   "venue": "Barrett-Jackson",
+   "price_usd": 35200,
+   "basis": "buyer-paid",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 35200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1955,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1955-ford-thunderbird-convertible-292388?origin=results",
+   "chassis": "P5FH131550",
+   "title": "1955 FORD THUNDERBIRD CONVERTIBLE"
+  },
+  {
+   "date": "2026-01-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 23363,
+   "basis": "sold+fee",
+   "hammer_usd": 22250,
+   "native": {
+    "amount": 22250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-218/",
+   "chassis": "P5FH216028",
+   "title": "1955 Ford Thunderbird 3-Speed"
+  },
+  {
+   "date": "2026-01-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 20475,
+   "basis": "sold+fee",
+   "hammer_usd": 19500,
+   "native": {
+    "amount": 19500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-213/",
+   "chassis": "P5FH107822",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2026-01-12",
+   "venue": "AutoHunter",
+   "price_usd": 35700,
+   "basis": "sold+fee",
+   "hammer_usd": 34000,
+   "native": {
+    "amount": 34000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://autohunter.com/Listing/Details/83151808",
+   "chassis": "P5FH221717",
+   "title": "1955 FORD THUNDERBIRD CONVERTIBLE"
+  },
+  {
+   "date": "2025-12-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 24675,
+   "basis": "sold+fee",
+   "hammer_usd": 23500,
+   "native": {
+    "amount": 23500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-219/",
+   "chassis": "P5FH110560",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2025-12-23",
+   "venue": "Hemmings",
+   "price_usd": 24150,
+   "basis": "sold+fee",
+   "hammer_usd": 23000,
+   "native": {
+    "amount": 23000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://www.hemmings.com/auction/1955-ford-thunderbird-canton-ct-946070",
+   "chassis": "P5FH226072",
+   "title": "1955 Ford Thunderbird Convertible From Long-Term Single-Family Ownership"
+  },
+  {
+   "date": "2025-11-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 19163,
+   "basis": "sold+fee",
+   "hammer_usd": 18250,
+   "native": {
+    "amount": 18250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-208/",
+   "chassis": "P5FH220115",
+   "title": "1955 Ford Thunderbird 3-Speed"
+  },
+  {
+   "date": "2025-10-29",
+   "venue": "Hagerty",
+   "price_usd": 22050,
+   "basis": "sold+fee",
+   "hammer_usd": 21000,
+   "native": {
+    "amount": 21000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://www.hagerty.com/marketplace/auction/1955-Ford-Thunderbird/6JE5FCWobZRmea0QQbesCp",
+   "chassis": "P5FH133139",
+   "title": "1955 Ford Thunderbird  "
+  },
+  {
+   "date": "2025-09-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 22050,
+   "basis": "sold+fee",
+   "hammer_usd": 21000,
+   "native": {
+    "amount": 21000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-206/",
+   "chassis": "P5FH233183",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2025-09-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 22050,
+   "basis": "sold+fee",
+   "hammer_usd": 21000,
+   "native": {
+    "amount": 21000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-204/",
+   "chassis": "P5FH201334",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2025-09-21",
+   "venue": "Bonhams",
+   "price_usd": 28000,
+   "basis": "buyer-paid",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 28000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1955,
+   "url": "https://cars.bonhams.com/auction/31569/lot/810/1955-ford-thunderbird-chassis-no-p5fh207124/",
+   "chassis": "P5FH207124",
+   "title": "1955 Ford Thunderbird Chassis no. P5FH207124"
+  },
+  {
+   "date": "2025-09-19",
+   "venue": "Hagerty",
+   "price_usd": 34650,
+   "basis": "sold+fee",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://www.hagerty.com/marketplace/auction/1955-Ford-Thunderbird/87bfe4d1-dd9c-4bbd-bd90-f15922807a82",
+   "chassis": "P5FH121367",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2025-08-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 21000,
+   "basis": "sold+fee",
+   "hammer_usd": 20000,
+   "native": {
+    "amount": 20000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-205/",
+   "chassis": "P5FH197520",
+   "title": "32-Years-Owned 1955 Ford Thunderbird"
+  },
+  {
+   "date": "2025-08-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 22500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-203/",
+   "chassis": "P5FH127907",
+   "title": "1955 Ford Thunderbird 3-Speed"
+  },
+  {
+   "date": "2025-08-13",
+   "venue": "Hemmings",
+   "price_usd": 34125,
+   "basis": "sold+fee",
+   "hammer_usd": 32500,
+   "native": {
+    "amount": 32500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://www.hemmings.com/auction/1955-ford-thunderbird-boca-raton-fl-294464",
+   "chassis": "P5FH169919",
+   "title": "Restored 1955 Ford Thunderbird Convertible"
+  },
+  {
+   "date": "2025-08-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-200/",
+   "chassis": "P5FH159185",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2025-07-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 58800,
+   "basis": "sold+fee",
+   "hammer_usd": 56000,
+   "native": {
+    "amount": 56000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-196/",
+   "chassis": "P5FH208346",
+   "title": "302-Powered 1955 Ford Thunderbird"
+  },
+  {
+   "date": "2025-07-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 23100,
+   "basis": "sold+fee",
+   "hammer_usd": 22000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-195/",
+   "chassis": "P5FH248375",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2025-06-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 23625,
+   "basis": "sold+fee",
+   "hammer_usd": 22500,
+   "native": {
+    "amount": 22500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-192/",
+   "chassis": "P5FH211113",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2025-06-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 44625,
+   "basis": "sold+fee",
+   "hammer_usd": 42500,
+   "native": {
+    "amount": 42500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-183-2/",
+   "chassis": "P5FH122768",
+   "title": "1955 Ford Thunderbird 3-Speed"
+  },
+  {
+   "date": "2025-05-22",
+   "venue": "Hagerty",
+   "price_usd": 23100,
+   "basis": "sold+fee",
+   "hammer_usd": 22000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://www.hagerty.com/marketplace/auction/1955-Ford-Thunderbird/a753e425-85af-4ad4-b2b3-f38c4eb5dff5",
+   "chassis": "P5FH168004",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2025-05-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 19163,
+   "basis": "sold+fee",
+   "hammer_usd": 18250,
+   "native": {
+    "amount": 18250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-189/",
+   "chassis": "P5FH130534",
+   "title": "1955 Ford Thunderbird 3-Speed"
+  },
+  {
+   "date": "2025-04-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 27300,
+   "basis": "sold+fee",
+   "hammer_usd": 26000,
+   "native": {
+    "amount": 26000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-186/",
+   "chassis": "P5FH124810",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2025-03-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 26513,
+   "basis": "sold+fee",
+   "hammer_usd": 25250,
+   "native": {
+    "amount": 25250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-185/",
+   "chassis": "P5FH232357",
+   "title": "1955 Ford Thunderbird 3-Speed"
+  },
+  {
+   "date": "2025-01-20",
+   "venue": "Barrett-Jackson",
+   "price_usd": 22000,
+   "basis": "buyer-paid",
+   "hammer_usd": 20000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1955,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1955-ford-thunderbird-convertible-281967?origin=results",
+   "chassis": "P5FH214888",
+   "title": "1955 FORD THUNDERBIRD CONVERTIBLE"
+  },
+  {
+   "date": "2025-01-08",
+   "venue": "Hemmings",
+   "price_usd": 27930,
+   "basis": "sold+fee",
+   "hammer_usd": 26600,
+   "native": {
+    "amount": 26600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://www.hemmings.com/auction/1955-ford-thunderbird-hot-springs-village-ar-384084",
+   "chassis": "P5FH104365",
+   "title": "1955 Ford Thunderbird Convertible With a Recent Repaint"
+  },
+  {
+   "date": "2024-11-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 32881,
+   "basis": "sold+fee",
+   "hammer_usd": 31315,
+   "native": {
+    "amount": 31315,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-179/",
+   "chassis": "P5FH143430",
+   "title": "68-Years-Family-Owned 1955 Ford Thunderbird"
+  },
+  {
+   "date": "2024-10-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 27300,
+   "basis": "sold+fee",
+   "hammer_usd": 26000,
+   "native": {
+    "amount": 26000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-176/",
+   "chassis": "P5FH260358",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2024-10-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-178/",
+   "chassis": "P5FH183685",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2024-10-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 18928,
+   "basis": "sold+fee",
+   "hammer_usd": 18027,
+   "native": {
+    "amount": 18027,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-177/",
+   "chassis": "P5FH100629",
+   "title": "350-Powered 1955 Ford Thunderbird"
+  },
+  {
+   "date": "2024-10-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 21525,
+   "basis": "sold+fee",
+   "hammer_usd": 20500,
+   "native": {
+    "amount": 20500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-175/",
+   "chassis": "P5FH101019",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2024-09-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 19163,
+   "basis": "sold+fee",
+   "hammer_usd": 18250,
+   "native": {
+    "amount": 18250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-173/",
+   "chassis": "P5FH201334",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2024-08-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 29295,
+   "basis": "sold+fee",
+   "hammer_usd": 27900,
+   "native": {
+    "amount": 27900,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-171/",
+   "chassis": "P5FH214545",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2024-08-17",
+   "venue": "Gooding Christie's",
+   "price_usd": 58240,
+   "basis": "buyer-paid",
+   "hammer_usd": 52000,
+   "native": {
+    "amount": 58240,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1955,
+   "url": "https://www.goodingco.com/lot/1955-ford-thunderbird-1b",
+   "chassis": "P5FH115816",
+   "title": "1955 Ford Thunderbird (PB24)"
+  },
+  {
+   "date": "2024-08-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 21000,
+   "basis": "sold+fee",
+   "hammer_usd": 20000,
+   "native": {
+    "amount": 20000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-169/",
+   "chassis": "P5FH137372",
+   "title": "25-Years-Owned 1955 Ford Thunderbird 3-Speed"
+  },
+  {
+   "date": "2024-07-15",
+   "venue": "Hagerty",
+   "price_usd": 36750,
+   "basis": "sold+fee",
+   "hammer_usd": 35000,
+   "native": {
+    "amount": 35000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://www.hagerty.com/marketplace/auction/1955-Ford-Thunderbird/e9d9dc68-c000-4704-b484-02b9844b1dbe",
+   "chassis": "P5FH198290",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2024-06-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 27300,
+   "basis": "sold+fee",
+   "hammer_usd": 26000,
+   "native": {
+    "amount": 26000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-167/",
+   "chassis": "P5FH168766",
+   "title": "302-Powered 1955 Ford Thunderbird"
+  },
+  {
+   "date": "2024-06-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 27563,
+   "basis": "sold+fee",
+   "hammer_usd": 26250,
+   "native": {
+    "amount": 26250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-168/",
+   "chassis": "P5FH100881",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2024-05-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 17616,
+   "basis": "sold+fee",
+   "hammer_usd": 16777,
+   "native": {
+    "amount": 16777,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-153/",
+   "chassis": "P5FH242605",
+   "title": "1955 Ford Thunderbird 3-Speed"
+  },
+  {
+   "date": "2024-04-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 27300,
+   "basis": "sold+fee",
+   "hammer_usd": 26000,
+   "native": {
+    "amount": 26000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-165/",
+   "chassis": "P5FH198290",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2024-02-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 23100,
+   "basis": "sold+fee",
+   "hammer_usd": 22000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-157/",
+   "chassis": "P5FH167963",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2024-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 44000,
+   "basis": "buyer-paid",
+   "hammer_usd": 40000,
+   "native": {
+    "amount": 44000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1955,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1955-ford-thunderbird-convertible-273909?origin=results",
+   "chassis": "P5FH171103",
+   "title": "1955 FORD THUNDERBIRD CONVERTIBLE"
+  },
+  {
+   "date": "2023-12-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 65100,
+   "basis": "sold+fee",
+   "hammer_usd": 62000,
+   "native": {
+    "amount": 62000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-154/",
+   "chassis": "P5FH114109",
+   "title": "347-Powered 1955 Ford Thunderbird 5-Speed"
+  },
+  {
+   "date": "2023-12-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 32025,
+   "basis": "sold+fee",
+   "hammer_usd": 30500,
+   "native": {
+    "amount": 30500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-151/",
+   "chassis": "P5FH240625",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2023-12-11",
+   "venue": "Hemmings",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://www.hemmings.com/auction/1955-ford-thunderbird-wi-798670",
+   "chassis": "P5FH248527",
+   "title": "Restored 1955 Ford Thunderbird Convertible"
+  },
+  {
+   "date": "2023-11-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 25200,
+   "basis": "sold+fee",
+   "hammer_usd": 24000,
+   "native": {
+    "amount": 24000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-144/",
+   "chassis": "P5FH233130",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2023-11-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 26775,
+   "basis": "sold+fee",
+   "hammer_usd": 25500,
+   "native": {
+    "amount": 25500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-149/",
+   "chassis": "P5FH216636",
+   "title": "1955 Ford Thunderbird 3-Speed"
+  },
+  {
+   "date": "2023-10-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 38325,
+   "basis": "sold+fee",
+   "hammer_usd": 36500,
+   "native": {
+    "amount": 36500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-141/",
+   "chassis": "P5FH171103",
+   "title": "1955 Ford Thunderbird"
+  },
+  {
+   "date": "2023-09-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 25463,
+   "basis": "sold+fee",
+   "hammer_usd": 24250,
+   "native": {
+    "amount": 24250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1955,
+   "url": "https://bringatrailer.com/listing/1955-ford-thunderbird-131-2/",
+   "chassis": "P5FH144358",
+   "title": "1955 Ford Thunderbird 4-Speed"
+  }
+ ]
+}

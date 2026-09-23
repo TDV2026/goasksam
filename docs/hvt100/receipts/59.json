@@ -1,0 +1,1539 @@
+{
+ "car_id": 59,
+ "listed": "1999 Porsche 911 Carrera",
+ "status": "compare",
+ "year_scope": "exact 1999",
+ "basis": "mixed (4% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Porsche",
+  "model": "911",
+  "window": "36mo",
+  "year_min": 1999,
+  "year_max": 1999,
+  "trim": "Carrera",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-06-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 33000,
+   "basis": "buyer-paid",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1999,
+   "url": "https://www.barrett-jackson.com/2026-columbus/docket/vehicle/1999-porsche-911-carrera-cabriolet-300510?origin=results",
+   "chassis": "WP0CA2992XS653905",
+   "title": "1999 PORSCHE 911 CARRERA CABRIOLET"
+  },
+  {
+   "date": "2026-05-09",
+   "venue": "Mecum",
+   "price_usd": 24150,
+   "basis": "sold+fee",
+   "hammer_usd": 23000,
+   "native": {
+    "amount": 25300,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1999,
+   "url": "https://www.mecum.com/lots/1171556/1999-porsche-911-carrera-convertible?aa_id=783259-0",
+   "chassis": "WP0CA2993XS655601",
+   "title": "1999 Porsche 911 Carrera Convertible"
+  },
+  {
+   "date": "2026-04-17",
+   "venue": "Barrett-Jackson",
+   "price_usd": 35200,
+   "basis": "buyer-paid",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 35200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1999,
+   "url": "https://www.barrett-jackson.com/2026-palm-beach/docket/vehicle/1999-porsche-911-carrera-cabriolet-298488?origin=results",
+   "chassis": "WP0CA2994XS656594",
+   "title": "1999 PORSCHE 911 CARRERA CABRIOLET"
+  },
+  {
+   "date": "2026-04-10",
+   "venue": "Mecum",
+   "price_usd": 16800,
+   "basis": "sold+fee",
+   "hammer_usd": 16000,
+   "native": {
+    "amount": 17600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1999,
+   "url": "https://www.mecum.com/lots/1167222/1999-porsche-911-carrera-cabriolet?aa_id=768428-0",
+   "chassis": "WP0CA2996XS654698",
+   "title": "1999 Porsche 911 Carrera Cabriolet"
+  },
+  {
+   "date": "2026-04-09",
+   "venue": "Mecum",
+   "price_usd": 18900,
+   "basis": "sold+fee",
+   "hammer_usd": 18000,
+   "native": {
+    "amount": 19800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1999,
+   "url": "https://www.mecum.com/lots/1172450/1999-porsche-911-carrera?aa_id=775780-0",
+   "chassis": "WP0AA2990XS623339",
+   "title": "1999 Porsche 911 Carrera"
+  },
+  {
+   "date": "2026-04-03",
+   "venue": "Hagerty",
+   "price_usd": 25200,
+   "basis": "sold+fee",
+   "hammer_usd": 24000,
+   "native": {
+    "amount": 24000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://www.hagerty.com/marketplace/auction/1999-Porsche-911/7b105071-f5d1-4d9e-ae6d-4a0817e162d5",
+   "chassis": "WP0CA2991XS656407",
+   "title": "48k-Mile 1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2025-12-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 23621,
+   "basis": "sold+fee",
+   "hammer_usd": 22496,
+   "native": {
+    "amount": 22496,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-188/",
+   "chassis": "WP0AA2990XS621767",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-12-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 47250,
+   "basis": "sold+fee",
+   "hammer_usd": 45000,
+   "native": {
+    "amount": 45000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-4-coupe-28/",
+   "chassis": "WP0AA2995XS623918",
+   "title": "22k-Mile 1999 Porsche 911 Carrera 4 Coupe 6-Speed"
+  },
+  {
+   "date": "2025-12-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 20996,
+   "basis": "sold+fee",
+   "hammer_usd": 19996,
+   "native": {
+    "amount": 19996,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-183/",
+   "chassis": "WP0AA2994XS621710",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-12-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 18113,
+   "basis": "sold+fee",
+   "hammer_usd": 17250,
+   "native": {
+    "amount": 17250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-182/",
+   "chassis": "WP0AA2995XS627211",
+   "title": "1999 Porsche 911 Carrera Coupe"
+  },
+  {
+   "date": "2025-12-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 17063,
+   "basis": "sold+fee",
+   "hammer_usd": 16250,
+   "native": {
+    "amount": 16250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-144/",
+   "chassis": "WP0CA2994XS654733",
+   "title": "1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2025-12-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 25200,
+   "basis": "sold+fee",
+   "hammer_usd": 24000,
+   "native": {
+    "amount": 24000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-180/",
+   "chassis": "WP0AA2994XS623117",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-12-04",
+   "venue": "Cars & Bids",
+   "price_usd": 28350,
+   "basis": "sold+fee",
+   "hammer_usd": 27000,
+   "native": {
+    "amount": 27000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://carsandbids.com/auctions/rMXAX7Qk/1999-porsche-911-carrera-cabriolet",
+   "chassis": "WP0CA2999XS650368",
+   "title": "1999 Porsche 911 Carrera Cabriolet"
+  },
+  {
+   "date": "2025-12-02",
+   "venue": "Cars & Bids",
+   "price_usd": 20069,
+   "basis": "sold+fee",
+   "hammer_usd": 19113,
+   "native": {
+    "amount": 19113,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://carsandbids.com/auctions/3vYJz56M/1999-porsche-911-carrera-cabriolet",
+   "chassis": "WP0CA2993XS655520",
+   "title": "1999 Porsche 911 Carrera Cabriolet"
+  },
+  {
+   "date": "2025-11-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 18900,
+   "basis": "sold+fee",
+   "hammer_usd": 18000,
+   "native": {
+    "amount": 18000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-138/",
+   "chassis": "WP0CA2998XS653956",
+   "title": "1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2025-11-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 28791,
+   "basis": "sold+fee",
+   "hammer_usd": 27420,
+   "native": {
+    "amount": 27420,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-177/",
+   "chassis": "WP0AA2991XS622006",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-11-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 30713,
+   "basis": "sold+fee",
+   "hammer_usd": 29250,
+   "native": {
+    "amount": 29250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-176/",
+   "chassis": "WP0AA2996XS622907",
+   "title": "40k-Mile 1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-11-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 43046,
+   "basis": "sold+fee",
+   "hammer_usd": 40996,
+   "native": {
+    "amount": 40996,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-135/",
+   "chassis": "WP0CA2991XS654821",
+   "title": "37k-Mile 1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2025-11-12",
+   "venue": "PCARMarket",
+   "price_usd": 29663,
+   "basis": "sold+fee",
+   "hammer_usd": 28250,
+   "native": {
+    "amount": 28250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://www.pcarmarket.com/auction/1999-porsche-911-carrera-cabriolet-10",
+   "chassis": "WP0CA2992XS651720",
+   "title": "NO RESERVE 39k-Mile 1999 Porsche 996 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2025-11-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 25961,
+   "basis": "sold+fee",
+   "hammer_usd": 24725,
+   "native": {
+    "amount": 24725,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-140/",
+   "chassis": "WP0CA2993XS654383",
+   "title": "1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2025-10-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 21000,
+   "basis": "sold+fee",
+   "hammer_usd": 20000,
+   "native": {
+    "amount": 20000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-134-2/",
+   "chassis": "WP0CA2993XS656604",
+   "title": "1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2025-10-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 21525,
+   "basis": "sold+fee",
+   "hammer_usd": 20500,
+   "native": {
+    "amount": 20500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-166/",
+   "chassis": "WP0AA2996XS622082",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-10-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 29658,
+   "basis": "sold+fee",
+   "hammer_usd": 28246,
+   "native": {
+    "amount": 28246,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-161/",
+   "chassis": "WP0AA2990XS626788",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-06-18",
+   "venue": "Hagerty",
+   "price_usd": 27038,
+   "basis": "sold+fee",
+   "hammer_usd": 25750,
+   "native": {
+    "amount": 25750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://www.hagerty.com/marketplace/auction/1999-Porsche-911/c928cc6b-f3d3-42ae-8e8a-5de36dffbccb",
+   "chassis": "WP0CA2998XS651687",
+   "title": "1999 Porsche 911 Carrera Cabriolet Six-Speed"
+  },
+  {
+   "date": "2025-03-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 34125,
+   "basis": "sold+fee",
+   "hammer_usd": 32500,
+   "native": {
+    "amount": 32500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-123/",
+   "chassis": "WP0AA299XXS622733",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-02-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 23358,
+   "basis": "sold+fee",
+   "hammer_usd": 22246,
+   "native": {
+    "amount": 22246,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-117/",
+   "chassis": "WP0CA2998XS652287",
+   "title": "1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2025-02-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 23100,
+   "basis": "sold+fee",
+   "hammer_usd": 22000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-120/",
+   "chassis": "WP0AA2993XS621312",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-01-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 31238,
+   "basis": "sold+fee",
+   "hammer_usd": 29750,
+   "native": {
+    "amount": 29750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-119/",
+   "chassis": "WP0AA2998XS626280",
+   "title": "47k-Mile 1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2025-01-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 27405,
+   "basis": "sold+fee",
+   "hammer_usd": 26100,
+   "native": {
+    "amount": 26100,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-115-2/",
+   "chassis": "WP0CA2999XS653819",
+   "title": "1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2025-01-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 38588,
+   "basis": "sold+fee",
+   "hammer_usd": 36750,
+   "native": {
+    "amount": 36750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-117/",
+   "chassis": "WP0AA2993XS625313",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-12-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 45150,
+   "basis": "sold+fee",
+   "hammer_usd": 43000,
+   "native": {
+    "amount": 43000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-94/",
+   "chassis": "WP0AA2998XS623041",
+   "title": "40k-Mile 1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-11-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 42105,
+   "basis": "sold+fee",
+   "hammer_usd": 40100,
+   "native": {
+    "amount": 40100,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-108/",
+   "chassis": "WP0AA299XXS624174",
+   "title": "47k-Mile 1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-11-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 36750,
+   "basis": "sold+fee",
+   "hammer_usd": 35000,
+   "native": {
+    "amount": 35000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-110/",
+   "chassis": "WP0AA2996XS622227",
+   "title": "46k-Mile 1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-11-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 33600,
+   "basis": "sold+fee",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 32000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-107-2/",
+   "chassis": "WP0AA2998XS623699",
+   "title": "32k-Mile 1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-11-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-116/",
+   "chassis": "WP0CA2990XS654938",
+   "title": "48k-Mile 1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-11-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 26250,
+   "basis": "sold+fee",
+   "hammer_usd": 25000,
+   "native": {
+    "amount": 25000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-103/",
+   "chassis": "WP0AA2999XS620987",
+   "title": "1999 Porsche 911 Carrera Coupe"
+  },
+  {
+   "date": "2024-11-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 18896,
+   "basis": "sold+fee",
+   "hammer_usd": 17996,
+   "native": {
+    "amount": 17996,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-95/",
+   "chassis": "WP0AA2995XS620632",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-10-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 31500,
+   "basis": "sold+fee",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 30000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-107/",
+   "chassis": "WP0AA2998XS623699",
+   "title": "32k-Mile 1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-10-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 37643,
+   "basis": "sold+fee",
+   "hammer_usd": 35850,
+   "native": {
+    "amount": 35850,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-104/",
+   "chassis": "WP0AA2990XS621106",
+   "title": "36k-Mile 1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-10-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 20600,
+   "basis": "sold+fee",
+   "hammer_usd": 19619,
+   "native": {
+    "amount": 19619,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-4-coupe-16/",
+   "chassis": "WP0AA2998XS624545",
+   "title": "1999 Porsche 911 Carrera 4 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-09-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 40425,
+   "basis": "sold+fee",
+   "hammer_usd": 38500,
+   "native": {
+    "amount": 38500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-96/",
+   "chassis": "WP0AA2998XS623301",
+   "title": "41k-Mile 1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-09-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 19950,
+   "basis": "sold+fee",
+   "hammer_usd": 19000,
+   "native": {
+    "amount": 19000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-91/",
+   "chassis": "WP0CA2996XS650408",
+   "title": "1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-09-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 33600,
+   "basis": "sold+fee",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 32000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-112/",
+   "chassis": "WP0CA2996XS653468",
+   "title": "18k-Mile 1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-08-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 15222,
+   "basis": "sold+fee",
+   "hammer_usd": 14497,
+   "native": {
+    "amount": 14497,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-109/",
+   "chassis": "WP0CA2998XS651382",
+   "title": "1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-08-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 31763,
+   "basis": "sold+fee",
+   "hammer_usd": 30250,
+   "native": {
+    "amount": 30250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-107/",
+   "chassis": "WP0CA2993XS655274",
+   "title": "33k-Mile 1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-08-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 19425,
+   "basis": "sold+fee",
+   "hammer_usd": 18500,
+   "native": {
+    "amount": 18500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-96-2/",
+   "chassis": "WP0CA299XXS656048",
+   "title": "1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-08-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 53546,
+   "basis": "sold+fee",
+   "hammer_usd": 50996,
+   "native": {
+    "amount": 50996,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-89/",
+   "chassis": "WP0AA2998XS622505",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-08-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 14696,
+   "basis": "sold+fee",
+   "hammer_usd": 13996,
+   "native": {
+    "amount": 13996,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-85/",
+   "chassis": "WP0AA2995XS622770",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-07-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 30450,
+   "basis": "sold+fee",
+   "hammer_usd": 29000,
+   "native": {
+    "amount": 29000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-100/",
+   "chassis": "WP0CA2994XS656515",
+   "title": "48k-Mile 1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-07-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 27825,
+   "basis": "sold+fee",
+   "hammer_usd": 26500,
+   "native": {
+    "amount": 26500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-83/",
+   "chassis": "WP0AA2997XS626349",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-07-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 27059,
+   "basis": "sold+fee",
+   "hammer_usd": 25770,
+   "native": {
+    "amount": 25770,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-76/",
+   "chassis": "WP0AA2990XS622658",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-07-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 16800,
+   "basis": "sold+fee",
+   "hammer_usd": 16000,
+   "native": {
+    "amount": 16000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-102/",
+   "chassis": "WP0CA2993XS651077",
+   "title": "1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-07-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 25200,
+   "basis": "sold+fee",
+   "hammer_usd": 24000,
+   "native": {
+    "amount": 24000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-104/",
+   "chassis": "WP0CA2990XS654129",
+   "title": "1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-07-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 51450,
+   "basis": "sold+fee",
+   "hammer_usd": 49000,
+   "native": {
+    "amount": 49000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-80/",
+   "chassis": "WP0AA2994XS625241",
+   "title": "45k-Mile 1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-07-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 27851,
+   "basis": "sold+fee",
+   "hammer_usd": 26525,
+   "native": {
+    "amount": 26525,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-103/",
+   "chassis": "WP0CA2999XS652962",
+   "title": "24-Years-Owned 1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-06-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 41996,
+   "basis": "sold+fee",
+   "hammer_usd": 39996,
+   "native": {
+    "amount": 39996,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-78/",
+   "chassis": "WP0AA2996XS624754",
+   "title": "49k-Mile 1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-06-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 37800,
+   "basis": "sold+fee",
+   "hammer_usd": 36000,
+   "native": {
+    "amount": 36000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-77/",
+   "chassis": "WP0AA2998XS622651",
+   "title": "38k-Mile 1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-06-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 22050,
+   "basis": "sold+fee",
+   "hammer_usd": 21000,
+   "native": {
+    "amount": 21000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-99/",
+   "chassis": "WP0CA2994XS652867",
+   "title": "1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-06-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 21000,
+   "basis": "sold+fee",
+   "hammer_usd": 20000,
+   "native": {
+    "amount": 20000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-96/",
+   "chassis": "WP0CA299XXS656048",
+   "title": "1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-06-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 18638,
+   "basis": "sold+fee",
+   "hammer_usd": 17750,
+   "native": {
+    "amount": 17750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-4-cabriolet-7/",
+   "chassis": "WP0CA2996XS654071",
+   "title": "33k-Mile 1999 Porsche 911 Carrera 4 Cabriolet"
+  },
+  {
+   "date": "2024-06-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 34650,
+   "basis": "sold+fee",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-66/",
+   "chassis": "WP0AA2995XS625068",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-05-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 41475,
+   "basis": "sold+fee",
+   "hammer_usd": 39500,
+   "native": {
+    "amount": 39500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-73/",
+   "chassis": "WP0AA2995XS621845",
+   "title": "17k-Mile 1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-05-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 17850,
+   "basis": "sold+fee",
+   "hammer_usd": 17000,
+   "native": {
+    "amount": 17000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-62/",
+   "chassis": "WP0AA2994XS625885",
+   "title": "1999 Porsche 911 Carrera Coupe"
+  },
+  {
+   "date": "2024-05-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 29663,
+   "basis": "sold+fee",
+   "hammer_usd": 28250,
+   "native": {
+    "amount": 28250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-72/",
+   "chassis": "WP0AA299XXS623204",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-05-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 17063,
+   "basis": "sold+fee",
+   "hammer_usd": 16250,
+   "native": {
+    "amount": 16250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-97/",
+   "chassis": "WP0CA2998XS650684",
+   "title": "1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-05-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 29925,
+   "basis": "sold+fee",
+   "hammer_usd": 28500,
+   "native": {
+    "amount": 28500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-94/",
+   "chassis": "WP0CA2991XS654849",
+   "title": "1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-05-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 29400,
+   "basis": "sold+fee",
+   "hammer_usd": 28000,
+   "native": {
+    "amount": 28000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-71/",
+   "chassis": "WP0AA2991XS622930",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-05-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 24151,
+   "basis": "sold+fee",
+   "hammer_usd": 23001,
+   "native": {
+    "amount": 23001,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-87-2/",
+   "chassis": "WP0CA2991XS653264",
+   "title": "1999 Porsche 911 Carrera Cabriolet"
+  },
+  {
+   "date": "2024-04-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 38850,
+   "basis": "sold+fee",
+   "hammer_usd": 37000,
+   "native": {
+    "amount": 37000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-90/",
+   "chassis": "WP0CA2998XS656338",
+   "title": "21k-Mile 1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-04-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 29396,
+   "basis": "sold+fee",
+   "hammer_usd": 27996,
+   "native": {
+    "amount": 27996,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-64/",
+   "chassis": "WP0AA2991XS625570",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-04-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 26565,
+   "basis": "sold+fee",
+   "hammer_usd": 25300,
+   "native": {
+    "amount": 25300,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-65/",
+   "chassis": "WP0AA2991XS627156",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-04-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 24675,
+   "basis": "sold+fee",
+   "hammer_usd": 23500,
+   "native": {
+    "amount": 23500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-88/",
+   "chassis": "WP0CA2991XS651868",
+   "title": "41k-Mile 1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-03-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 24413,
+   "basis": "sold+fee",
+   "hammer_usd": 23250,
+   "native": {
+    "amount": 23250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-4-coupe-10/",
+   "chassis": "WP0AA2993XS625134",
+   "title": "1999 Porsche 911 Carrera 4 Coupe 6-Speed"
+  },
+  {
+   "date": "2024-02-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 32025,
+   "basis": "sold+fee",
+   "hammer_usd": 30500,
+   "native": {
+    "amount": 30500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-60/",
+   "chassis": "WP0AA2995XS624812",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-02-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 40950,
+   "basis": "sold+fee",
+   "hammer_usd": 39000,
+   "native": {
+    "amount": 39000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-84/",
+   "chassis": "WP0CA2997XS650384",
+   "title": "21k-Mile 1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-02-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 36750,
+   "basis": "sold+fee",
+   "hammer_usd": 35000,
+   "native": {
+    "amount": 35000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-83/",
+   "chassis": "WP0CA299XXS651965",
+   "title": "28k-Mile 1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-01-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 24146,
+   "basis": "sold+fee",
+   "hammer_usd": 22996,
+   "native": {
+    "amount": 22996,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-85/",
+   "chassis": "WP0CA2991XS655757",
+   "title": "1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2024-01-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 23358,
+   "basis": "sold+fee",
+   "hammer_usd": 22246,
+   "native": {
+    "amount": 22246,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-55/",
+   "chassis": "WP0AA2991XS623706",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-01-28",
+   "venue": "Barrett-Jackson",
+   "price_usd": 23100,
+   "basis": "buyer-paid",
+   "hammer_usd": 21000,
+   "native": {
+    "amount": 23100,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1999,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1999-porsche-911-carrera-275144?origin=results",
+   "chassis": "WP0AA2992XS621754",
+   "title": "1999 PORSCHE 911 CARRERA"
+  },
+  {
+   "date": "2024-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 13200,
+   "basis": "buyer-paid",
+   "hammer_usd": 12000,
+   "native": {
+    "amount": 13200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1999,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/1999-porsche-911-carrera-276062?origin=results",
+   "chassis": "WP0AA2993XS621388",
+   "title": "1999 PORSCHE 911 CARRERA"
+  },
+  {
+   "date": "2024-01-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 30713,
+   "basis": "sold+fee",
+   "hammer_usd": 29250,
+   "native": {
+    "amount": 29250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-57/",
+   "chassis": "WP0AA2990XS623177",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2024-01-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 27033,
+   "basis": "sold+fee",
+   "hammer_usd": 25746,
+   "native": {
+    "amount": 25746,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-56/",
+   "chassis": "WP0AA2994XS622291",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2023-12-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 14490,
+   "basis": "sold+fee",
+   "hammer_usd": 13800,
+   "native": {
+    "amount": 13800,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-53/",
+   "chassis": "WP0AA2997XS622060",
+   "title": "1999 Porsche 911 Carrera Coupe"
+  },
+  {
+   "date": "2023-11-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 24150,
+   "basis": "sold+fee",
+   "hammer_usd": 23000,
+   "native": {
+    "amount": 23000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-79/",
+   "chassis": "WP0CA2992XS653340",
+   "title": "1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2023-11-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 23100,
+   "basis": "sold+fee",
+   "hammer_usd": 22000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-81/",
+   "chassis": "WP0CA2998XS653665",
+   "title": "1999 Porsche 911 Carrera Cabriolet"
+  },
+  {
+   "date": "2023-10-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 32288,
+   "basis": "sold+fee",
+   "hammer_usd": 30750,
+   "native": {
+    "amount": 30750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-4-coupe-8/",
+   "chassis": "WP0AA2991XS626749",
+   "title": "25k-Mile 1999 Porsche 911 Carrera 4 Coupe 6-Speed"
+  },
+  {
+   "date": "2023-10-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 19158,
+   "basis": "sold+fee",
+   "hammer_usd": 18246,
+   "native": {
+    "amount": 18246,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-75/",
+   "chassis": "WP0CA2990XS650095",
+   "title": "1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2023-10-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 35963,
+   "basis": "sold+fee",
+   "hammer_usd": 34250,
+   "native": {
+    "amount": 34250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-43-2/",
+   "chassis": "WP0AA2994XS622825",
+   "title": "23k-Mile 1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2023-10-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 19950,
+   "basis": "sold+fee",
+   "hammer_usd": 19000,
+   "native": {
+    "amount": 19000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-4-cabriolet-5/",
+   "chassis": "WP0CA2992XS654178",
+   "title": "1999 Porsche 911 Carrera 4 Cabriolet 6-Speed"
+  },
+  {
+   "date": "2023-10-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 33075,
+   "basis": "sold+fee",
+   "hammer_usd": 31500,
+   "native": {
+    "amount": 31500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-49/",
+   "chassis": "WP0AA2998XS621354",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2023-10-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 31500,
+   "basis": "sold+fee",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 30000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-46/",
+   "chassis": "WP0AA2990XS627326",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2023-10-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 24146,
+   "basis": "sold+fee",
+   "hammer_usd": 22996,
+   "native": {
+    "amount": 22996,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-48/",
+   "chassis": "WP0AA2991XS620448",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2023-10-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 23100,
+   "basis": "sold+fee",
+   "hammer_usd": 22000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-45/",
+   "chassis": "WP0AA2994XS620797",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  },
+  {
+   "date": "2023-10-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 32708,
+   "basis": "sold+fee",
+   "hammer_usd": 31150,
+   "native": {
+    "amount": 31150,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-cabriolet-77/",
+   "chassis": "WP0CA2994XS655946",
+   "title": "One-Owner 1999 Porsche 911 Carrera Cabriolet 6-Speed"
+  },
+  {
+   "date": "2023-09-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 30713,
+   "basis": "sold+fee",
+   "hammer_usd": 29250,
+   "native": {
+    "amount": 29250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1999,
+   "url": "https://bringatrailer.com/listing/1999-porsche-911-carrera-coupe-40/",
+   "chassis": "WP0AA2996XS622079",
+   "title": "1999 Porsche 911 Carrera Coupe 6-Speed"
+  }
+ ]
+}

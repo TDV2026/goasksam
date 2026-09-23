@@ -1,0 +1,179 @@
+{
+ "car_id": 72,
+ "listed": "1999 Ferrari 550 Maranello",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1997-2001)",
+ "basis": "mixed (80% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Ferrari",
+  "model": "550",
+  "window": "36mo",
+  "year_min": 1997,
+  "year_max": 2001,
+  "trim": "Maranello",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-05-16",
+   "venue": "Mecum",
+   "price_usd": 177500,
+   "basis": "sold+fee",
+   "hammer_usd": 170000,
+   "native": {
+    "amount": 187000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1999,
+   "url": "https://www.mecum.com/lots/1167661/1999-ferrari-550-maranello?aa_id=773003-0",
+   "chassis": "ZFFZR49A0X0115225",
+   "title": "1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2026-04-11",
+   "venue": "Mecum",
+   "price_usd": 141750,
+   "basis": "sold+fee",
+   "hammer_usd": 135000,
+   "native": {
+    "amount": 148500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1998,
+   "url": "https://www.mecum.com/lots/1172044/1998-ferrari-550-maranello?aa_id=773918-0",
+   "chassis": "ZFFZR49B000111972",
+   "title": "1998 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2026-03-07",
+   "venue": "Broad Arrow",
+   "price_usd": 224000,
+   "basis": "buyer-paid",
+   "hammer_usd": 200000,
+   "native": {
+    "amount": 224000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1999,
+   "url": "https://www.broadarrowauctions.com/vehicles/am26_r0045/1999-ferrari-550-maranello",
+   "chassis": "ZFFZR49B000117925",
+   "title": "1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2026-03-07",
+   "venue": "Broad Arrow",
+   "price_usd": 329500,
+   "basis": "buyer-paid",
+   "hammer_usd": 295000,
+   "native": {
+    "amount": 329500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1999,
+   "url": "https://www.broadarrowauctions.com/vehicles/am26_r0106/1999-ferrari-550-maranello",
+   "chassis": "ZFFZR49A4X0114658",
+   "title": "1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2026-02-27",
+   "venue": "RM Sotheby's",
+   "price_usd": 307500,
+   "basis": "buyer-paid",
+   "hammer_usd": 275000,
+   "native": {
+    "amount": 307500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1999,
+   "url": "https://rmsothebys.com/auctions/mi26/lots/r0050-1999-ferrari-550-maranello",
+   "chassis": "ZFFZR49A4X0116023",
+   "title": "1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2025-10-31",
+   "venue": "Broad Arrow",
+   "price_usd": 201600,
+   "basis": "buyer-paid",
+   "hammer_usd": 180000,
+   "native": {
+    "amount": 201600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1999,
+   "url": "https://www.broadarrowauctions.com/vehicles/lv25_r0042/1999-ferrari-550-maranello",
+   "chassis": "ZFFZR49A0X0113409",
+   "title": "1999 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2025-10-10",
+   "venue": "Broad Arrow",
+   "price_usd": 198720,
+   "basis": "buyer-paid",
+   "hammer_usd": 172800,
+   "native": {
+    "amount": 184000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1997,
+   "url": "https://www.broadarrowauctions.com/vehicles/zt25_r0069/1997-ferrari-550-maranello",
+   "chassis": "ZFFZR49B000105811",
+   "title": "1997 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2025-03-08",
+   "venue": "Broad Arrow",
+   "price_usd": 196000,
+   "basis": "buyer-paid",
+   "hammer_usd": 175000,
+   "native": {
+    "amount": 196000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1998,
+   "url": "https://www.broadarrowauctions.com/vehicles/am25_r029/1998-ferrari-550-maranello",
+   "chassis": "ZFFZR49J000114342",
+   "title": "1998 Ferrari 550 Maranello"
+  },
+  {
+   "date": "2024-10-12",
+   "venue": "Barrett-Jackson",
+   "price_usd": 145200,
+   "basis": "buyer-paid",
+   "hammer_usd": 132000,
+   "native": {
+    "amount": 145200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1998,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1998-ferrari-550-maranello-278940?origin=results",
+   "chassis": "ZFFZR49AXW0112802",
+   "title": "1998 FERRARI 550 MARANELLO"
+  },
+  {
+   "date": "2024-08-15",
+   "venue": "Broad Arrow",
+   "price_usd": 268800,
+   "basis": "buyer-paid",
+   "hammer_usd": 240000,
+   "native": {
+    "amount": 268800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1999,
+   "url": "https://www.broadarrowauctions.com/vehicles/jc24_r088/1999-ferrari-550-maranello",
+   "chassis": "ZFFZR49A6X0114824",
+   "title": "1999 Ferrari 550 Maranello"
+  }
+ ]
+}

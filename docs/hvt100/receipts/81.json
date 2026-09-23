@@ -1,0 +1,563 @@
+{
+ "car_id": 81,
+ "listed": "2019 Porsche 911 GT3 RS",
+ "status": "compare",
+ "year_scope": "exact 2019",
+ "basis": "sold+fee (online)",
+ "scope": {
+  "make": "Porsche",
+  "model": "911",
+  "window": "36mo",
+  "year_min": 2019,
+  "year_max": 2019,
+  "trim": "GT3 RS",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-07-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 256500,
+   "basis": "sold+fee",
+   "hammer_usd": 249000,
+   "native": {
+    "amount": 249000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-71/",
+   "chassis": "WP0AF2A97KS164073",
+   "title": "9k-Mile 2019 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2026-05-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 281500,
+   "basis": "sold+fee",
+   "hammer_usd": 274000,
+   "native": {
+    "amount": 274000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-100/",
+   "chassis": "WP0AF2A90KS165050",
+   "title": "1,200-Mile 2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2026-04-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 263500,
+   "basis": "sold+fee",
+   "hammer_usd": 256000,
+   "native": {
+    "amount": 256000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-62/",
+   "chassis": "WP0AF2A90KS164903",
+   "title": "1,400-Mile 2019 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2025-12-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 197500,
+   "basis": "sold+fee",
+   "hammer_usd": 190000,
+   "native": {
+    "amount": 190000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-60/",
+   "chassis": "WP0AF2A91KS165493",
+   "title": "2019 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2025-09-26",
+   "venue": "Cars & Bids",
+   "price_usd": 249500,
+   "basis": "sold+fee",
+   "hammer_usd": 242000,
+   "native": {
+    "amount": 242000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://carsandbids.com/auctions/r4Dax78g/2019-porsche-911-gt3-rs-weissach",
+   "chassis": "WP0AF2A9XKS164410",
+   "title": "2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2025-07-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 252500,
+   "basis": "sold+fee",
+   "hammer_usd": 245000,
+   "native": {
+    "amount": 245000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-91/",
+   "chassis": "WP0AF2A91KS165834",
+   "title": "2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2025-05-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 236500,
+   "basis": "sold+fee",
+   "hammer_usd": 229000,
+   "native": {
+    "amount": 229000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-88/",
+   "chassis": "WP0AF2A90KS164772",
+   "title": "2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2025-05-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 251570,
+   "basis": "sold+fee",
+   "hammer_usd": 244070,
+   "native": {
+    "amount": 244070,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-86/",
+   "chassis": "WP0AF2A91KS165235",
+   "title": "6k-Mile 2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2025-04-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 246500,
+   "basis": "sold+fee",
+   "hammer_usd": 239000,
+   "native": {
+    "amount": 239000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-77/",
+   "chassis": "WP0AF2A93KS164894",
+   "title": "2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2025-03-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 236000,
+   "basis": "sold+fee",
+   "hammer_usd": 228500,
+   "native": {
+    "amount": 228500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-80/",
+   "chassis": "WP0AF2A90KS164819",
+   "title": "2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2025-02-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 262500,
+   "basis": "sold+fee",
+   "hammer_usd": 255000,
+   "native": {
+    "amount": 255000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-78/",
+   "chassis": "WP0AF2A91KS164246",
+   "title": "3,800-Mile 2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2024-12-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 247500,
+   "basis": "sold+fee",
+   "hammer_usd": 240000,
+   "native": {
+    "amount": 240000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-45/",
+   "chassis": "WP0AF2A9XKS164066",
+   "title": "2,400-Mile 2019 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2024-12-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 228500,
+   "basis": "sold+fee",
+   "hammer_usd": 221000,
+   "native": {
+    "amount": 221000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-46/",
+   "chassis": "WP0AF2A97KS164171",
+   "title": "2019 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2024-11-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 321500,
+   "basis": "sold+fee",
+   "hammer_usd": 314000,
+   "native": {
+    "amount": 314000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-70/",
+   "chassis": "WP0AF2A98KS165927",
+   "title": "52-Mile 2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2024-11-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 246500,
+   "basis": "sold+fee",
+   "hammer_usd": 239000,
+   "native": {
+    "amount": 239000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-66/",
+   "chassis": "WP0AF2A90KS164819",
+   "title": "2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2024-10-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 320500,
+   "basis": "sold+fee",
+   "hammer_usd": 313000,
+   "native": {
+    "amount": 313000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-62/",
+   "chassis": "WP0AF2A95KS165691",
+   "title": "2,500-Mile 2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2024-10-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 238500,
+   "basis": "sold+fee",
+   "hammer_usd": 231000,
+   "native": {
+    "amount": 231000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-63/",
+   "chassis": "WP0AF2A96KS164923",
+   "title": "8k-Mile 2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2024-09-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 213500,
+   "basis": "sold+fee",
+   "hammer_usd": 206000,
+   "native": {
+    "amount": 206000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-44/",
+   "chassis": "WP0AF2A93KS165138",
+   "title": "2019 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2024-07-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 254500,
+   "basis": "sold+fee",
+   "hammer_usd": 247000,
+   "native": {
+    "amount": 247000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-58/",
+   "chassis": "WP0AF2A93KS164782",
+   "title": "2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2024-07-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 273500,
+   "basis": "sold+fee",
+   "hammer_usd": 266000,
+   "native": {
+    "amount": 266000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-54/",
+   "chassis": "WP0AF2A98KS164289",
+   "title": "4,600-Mile 2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2024-07-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 267500,
+   "basis": "sold+fee",
+   "hammer_usd": 260000,
+   "native": {
+    "amount": 260000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-57/",
+   "chassis": "WP0AF2A9XKS165475",
+   "title": "4,300-Mile 2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2024-06-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 298500,
+   "basis": "sold+fee",
+   "hammer_usd": 291000,
+   "native": {
+    "amount": 291000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-55/",
+   "chassis": "WP0AF2A98KS164146",
+   "title": "1,100-Mile 2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2024-04-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 230500,
+   "basis": "sold+fee",
+   "hammer_usd": 223000,
+   "native": {
+    "amount": 223000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-40/",
+   "chassis": "WP0AF2A96KS165750",
+   "title": "2019 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2023-12-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 238500,
+   "basis": "sold+fee",
+   "hammer_usd": 231000,
+   "native": {
+    "amount": 231000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-36/",
+   "chassis": "WP0AF2A91KS164618",
+   "title": "598-Mile 2019 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2023-12-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 217500,
+   "basis": "sold+fee",
+   "hammer_usd": 210000,
+   "native": {
+    "amount": 210000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-34/",
+   "chassis": "WP0AF2A97KS164123",
+   "title": "2019 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2023-12-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 268500,
+   "basis": "sold+fee",
+   "hammer_usd": 261000,
+   "native": {
+    "amount": 261000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-41/",
+   "chassis": "WP0AF2A90KS165646",
+   "title": "4,500-Mile 2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2023-11-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 243000,
+   "basis": "sold+fee",
+   "hammer_usd": 235500,
+   "native": {
+    "amount": 235500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-31-2/",
+   "chassis": "WP0AF2A95KS164234",
+   "title": "2,300-Mile 2019 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2023-11-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 306500,
+   "basis": "sold+fee",
+   "hammer_usd": 299000,
+   "native": {
+    "amount": 299000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-34/",
+   "chassis": "WP0AF2A99KS165483",
+   "title": "3,700-Mile 2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2023-11-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 237500,
+   "basis": "sold+fee",
+   "hammer_usd": 230000,
+   "native": {
+    "amount": 230000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-32/",
+   "chassis": "WP0AF2A97KS165207",
+   "title": "2k-Mile 2019 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2023-11-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 247500,
+   "basis": "sold+fee",
+   "hammer_usd": 240000,
+   "native": {
+    "amount": 240000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-42/",
+   "chassis": "WP0AF2A93KS164247",
+   "title": "3,400-Mile 2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2023-11-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 229500,
+   "basis": "sold+fee",
+   "hammer_usd": 222000,
+   "native": {
+    "amount": 222000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-31/",
+   "chassis": "WP0AF2A95KS164234",
+   "title": "2,300-Mile 2019 Porsche 911 GT3 RS"
+  },
+  {
+   "date": "2023-10-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 269500,
+   "basis": "sold+fee",
+   "hammer_usd": 262000,
+   "native": {
+    "amount": 262000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-38/",
+   "chassis": "WP0AF2A92KS165700",
+   "title": "6k-Mile 2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2023-10-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 261000,
+   "basis": "sold+fee",
+   "hammer_usd": 253500,
+   "native": {
+    "amount": 253500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-weissach-36/",
+   "chassis": "WP0AF2A99KS165760",
+   "title": "1,600-Mile 2019 Porsche 911 GT3 RS Weissach"
+  },
+  {
+   "date": "2023-09-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 243500,
+   "basis": "sold+fee",
+   "hammer_usd": 236000,
+   "native": {
+    "amount": 236000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-gt3-rs-29/",
+   "chassis": "WP0AF2A92KS165017",
+   "title": "2019 Porsche 911 GT3 RS Weissach"
+  }
+ ]
+}

@@ -1,0 +1,611 @@
+{
+ "car_id": 7,
+ "listed": "1970 Plymouth Barracuda 340",
+ "status": "nohvt",
+ "year_scope": "exact 1970",
+ "basis": "mixed (8% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Plymouth",
+  "model": "Barracuda",
+  "window": "36mo",
+  "year_min": 1970,
+  "year_max": 1970,
+  "trim": "340",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-09-12",
+   "venue": "Barrett-Jackson",
+   "price_usd": 150700,
+   "basis": "buyer-paid",
+   "hammer_usd": 137000,
+   "native": {
+    "amount": 150700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://www.barrett-jackson.com/2026-las-vegas/docket/vehicle/1970-plymouth-cuda-302471?origin=results",
+   "chassis": "BS23H0B262488",
+   "title": "1970 PLYMOUTH 'CUDA"
+  },
+  {
+   "date": "2026-05-14",
+   "venue": "Mecum",
+   "price_usd": 70350,
+   "basis": "sold+fee",
+   "hammer_usd": 67000,
+   "native": {
+    "amount": 73700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://www.mecum.com/lots/1168511/1970-plymouth-barracuda?aa_id=768995-0",
+   "chassis": "BH23C0E139912",
+   "title": "1970 Plymouth Barracuda"
+  },
+  {
+   "date": "2026-05-14",
+   "venue": "Mecum",
+   "price_usd": 126000,
+   "basis": "sold+fee",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 132000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://www.mecum.com/lots/1169915/1970-plymouth-barracuda-convertible?aa_id=773384-0",
+   "chassis": "BH27G0B166278",
+   "title": "1970 Plymouth Barracuda Convertible"
+  },
+  {
+   "date": "2026-05-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 34650,
+   "basis": "sold+fee",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-barracuda-84/",
+   "chassis": "BH23G0E103841",
+   "title": "340-Powered 1970 Plymouth Barracuda"
+  },
+  {
+   "date": "2026-02-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 111300,
+   "basis": "sold+fee",
+   "hammer_usd": 106000,
+   "native": {
+    "amount": 106000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-cuda-aar-23/",
+   "chassis": "BS23J0B292416",
+   "title": "1970 Plymouth AAR ’Cuda 4-Speed"
+  },
+  {
+   "date": "2025-12-22",
+   "venue": "Hagerty",
+   "price_usd": 77700,
+   "basis": "sold+fee",
+   "hammer_usd": 74000,
+   "native": {
+    "amount": 74000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.hagerty.com/marketplace/auction/1970-Plymouth-Cuda/46aecd3c-6398-4899-b503-121a3a8ed58f",
+   "chassis": "BS23J0B285383",
+   "title": "1970 Plymouth AAR 'Cuda"
+  },
+  {
+   "date": "2025-11-07",
+   "venue": "All Collector Cars",
+   "price_usd": 207500,
+   "basis": "sold+fee",
+   "hammer_usd": 200000,
+   "native": {
+    "amount": 200000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.allcollectorcars.com/classic-car-auctions/vehicles/1970-plymouth-cuda-coupe/",
+   "chassis": "BS23V0B178923",
+   "title": "1970 Plymouth Cuda"
+  },
+  {
+   "date": "2025-10-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 118650,
+   "basis": "sold+fee",
+   "hammer_usd": 113000,
+   "native": {
+    "amount": 113000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-cuda-82/",
+   "chassis": "BP23G0B103716",
+   "title": "426 Hemi–Powered 1970 Plymouth Barracuda Gran Coupe"
+  },
+  {
+   "date": "2025-10-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 57225,
+   "basis": "sold+fee",
+   "hammer_usd": 54500,
+   "native": {
+    "amount": 54500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-barracuda-gran-coupe-6/",
+   "chassis": "BP23G0E112038",
+   "title": "440+6–Powered 1970 Plymouth Barracuda Gran Coupe"
+  },
+  {
+   "date": "2025-10-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 58695,
+   "basis": "sold+fee",
+   "hammer_usd": 55900,
+   "native": {
+    "amount": 55900,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-cuda-84/",
+   "chassis": "BS23H0E121857",
+   "title": "1970 Plymouth ’Cuda 340 4-Speed"
+  },
+  {
+   "date": "2025-09-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 89775,
+   "basis": "sold+fee",
+   "hammer_usd": 85500,
+   "native": {
+    "amount": 85500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-barracuda-80/",
+   "chassis": "BP23N0E104579",
+   "title": "1970 Plymouth Barracuda Gran Coupe 383 4-Speed"
+  },
+  {
+   "date": "2025-08-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 42000,
+   "basis": "sold+fee",
+   "hammer_usd": 40000,
+   "native": {
+    "amount": 40000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-barracuda-gran-coupe-5/",
+   "chassis": "BP23G0B221542",
+   "title": "360-Powered 1970 Plymouth Barracuda Gran Coupe 4-Speed"
+  },
+  {
+   "date": "2025-07-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 69090,
+   "basis": "sold+fee",
+   "hammer_usd": 65800,
+   "native": {
+    "amount": 65800,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-cuda-81/",
+   "chassis": "BS23H0B388373",
+   "title": "16k-Mile 1970 Plymouth ’Cuda 340"
+  },
+  {
+   "date": "2025-07-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 70350,
+   "basis": "sold+fee",
+   "hammer_usd": 67000,
+   "native": {
+    "amount": 67000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-cuda-78-2/",
+   "chassis": "BS23N0E110695",
+   "title": "1970 Plymouth ’Cuda 383"
+  },
+  {
+   "date": "2025-06-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 70875,
+   "basis": "sold+fee",
+   "hammer_usd": 67500,
+   "native": {
+    "amount": 67500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-cuda-79/",
+   "chassis": "BS23H0B323272",
+   "title": "1970 Plymouth ’Cuda 340"
+  },
+  {
+   "date": "2025-06-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 63000,
+   "basis": "sold+fee",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 60000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-cuda-78/",
+   "chassis": "BS23N0E110695",
+   "title": "1970 Plymouth ’Cuda 383"
+  },
+  {
+   "date": "2025-06-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 96012,
+   "basis": "sold+fee",
+   "hammer_usd": 91440,
+   "native": {
+    "amount": 91440,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-barracuda-75/",
+   "chassis": "BH23G0B116191",
+   "title": "5.7L Hemi–Powered 1970 Plymouth Barracuda"
+  },
+  {
+   "date": "2025-04-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 77000,
+   "basis": "buyer-paid",
+   "hammer_usd": 70000,
+   "native": {
+    "amount": 77000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://www.barrett-jackson.com/palm-beach-2025/docket/vehicle/1970-plymouth-barracuda-convertible-287967?origin=results",
+   "chassis": "BP27N0B250749",
+   "title": "1970 PLYMOUTH BARRACUDA CONVERTIBLE"
+  },
+  {
+   "date": "2025-04-14",
+   "venue": "Hagerty",
+   "price_usd": 94500,
+   "basis": "sold+fee",
+   "hammer_usd": 90000,
+   "native": {
+    "amount": 90000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.hagerty.com/marketplace/auction/1970-Plymouth-Cuda/8e9d8f69-7a40-4432-9a77-90007581db43",
+   "chassis": "BH23G0B152374",
+   "title": "426 Hemi-Powered 1970 Plymouth Cuda Hardtop Coupe "
+  },
+  {
+   "date": "2025-03-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 70350,
+   "basis": "sold+fee",
+   "hammer_usd": 67000,
+   "native": {
+    "amount": 67000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-barracuda-76/",
+   "chassis": "BP23G0E112038",
+   "title": "440+6–Powered 1970 Plymouth Barracuda"
+  },
+  {
+   "date": "2025-02-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 111300,
+   "basis": "sold+fee",
+   "hammer_usd": 106000,
+   "native": {
+    "amount": 106000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-cuda-75/",
+   "chassis": "BS23V0B201139",
+   "title": "1970 Plymouth ’Cuda 440+6 4-Speed"
+  },
+  {
+   "date": "2025-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 53900,
+   "basis": "buyer-paid",
+   "hammer_usd": 49000,
+   "native": {
+    "amount": 53900,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/1970-plymouth-barracuda-284792?origin=results",
+   "chassis": "BH23G0B425398",
+   "title": "1970 PLYMOUTH BARRACUDA"
+  },
+  {
+   "date": "2024-11-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 106050,
+   "basis": "sold+fee",
+   "hammer_usd": 101000,
+   "native": {
+    "amount": 101000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-cuda-71/",
+   "chassis": "BS23V0B318023",
+   "title": "28-Years-Owned 1970 Plymouth ’Cuda 440+6 4-Speed"
+  },
+  {
+   "date": "2024-11-19",
+   "venue": "Hagerty",
+   "price_usd": 91350,
+   "basis": "sold+fee",
+   "hammer_usd": 87000,
+   "native": {
+    "amount": 87000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.hagerty.com/marketplace/auction/1970-Plymouth-Cuda/2YbZR07D21odcwE7pan57G",
+   "chassis": "BS23V0E136906",
+   "title": "1970 Plymouth 'Cuda 440-6 Coupe Four-Speed"
+  },
+  {
+   "date": "2024-09-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 78750,
+   "basis": "sold+fee",
+   "hammer_usd": 75000,
+   "native": {
+    "amount": 75000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-aar-cuda-2/",
+   "chassis": "BS23J0B302153",
+   "title": "1970 Plymouth AAR ’Cuda 4-Speed"
+  },
+  {
+   "date": "2024-08-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 65625,
+   "basis": "sold+fee",
+   "hammer_usd": 62500,
+   "native": {
+    "amount": 62500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-cuda-66/",
+   "chassis": "BS23H0B410832",
+   "title": "415-Powered 1970 Plymouth ’Cuda 4-Speed"
+  },
+  {
+   "date": "2024-07-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 168500,
+   "basis": "sold+fee",
+   "hammer_usd": 161000,
+   "native": {
+    "amount": 161000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-cuda-63/",
+   "chassis": "BS23R0B146552",
+   "title": "1970 Plymouth Hemi ’Cuda"
+  },
+  {
+   "date": "2024-03-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 121800,
+   "basis": "sold+fee",
+   "hammer_usd": 116000,
+   "native": {
+    "amount": 116000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-cuda-58/",
+   "chassis": "BS23R0B349126",
+   "title": "1970 Plymouth Hemi ’Cuda"
+  },
+  {
+   "date": "2024-03-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 89775,
+   "basis": "sold+fee",
+   "hammer_usd": 85500,
+   "native": {
+    "amount": 85500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-barracuda-65/",
+   "chassis": "BH23N0B116187",
+   "title": "528 Hemi–Powered 1970 Plymouth Barracuda 5-Speed"
+  },
+  {
+   "date": "2024-03-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 37013,
+   "basis": "sold+fee",
+   "hammer_usd": 35250,
+   "native": {
+    "amount": 35250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-cuda-52/",
+   "chassis": "BS23N0B211106",
+   "title": "1970 Plymouth ’Cuda 383 4-Speed"
+  },
+  {
+   "date": "2024-02-19",
+   "venue": "All Collector Cars",
+   "price_usd": 89854,
+   "basis": "sold+fee",
+   "hammer_usd": 85575,
+   "native": {
+    "amount": 85575,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.allcollectorcars.com/classic-car-auctions/vehicles/1970-plymouth-aar-cuda/",
+   "chassis": "BS23J0B294278",
+   "title": "1970 Plymouth AAR 'Cuda"
+  },
+  {
+   "date": "2024-01-18",
+   "venue": "Hagerty",
+   "price_usd": 34650,
+   "basis": "sold+fee",
+   "hammer_usd": 33000,
+   "native": {
+    "amount": 33000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.hagerty.com/marketplace/auction/1970-Plymouth-Barracuda/3axnTgzlOMRsZkrcrza2J5",
+   "chassis": "BH23G0B182235",
+   "title": "440-Powered 1970 Plymouth Barracuda "
+  },
+  {
+   "date": "2023-12-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 73500,
+   "basis": "sold+fee",
+   "hammer_usd": 70000,
+   "native": {
+    "amount": 70000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-cuda-54/",
+   "chassis": "BS23U0B128961",
+   "title": "1970 Plymouth ’Cuda 440"
+  },
+  {
+   "date": "2023-12-05",
+   "venue": "Hagerty",
+   "price_usd": 81207,
+   "basis": "sold+fee",
+   "hammer_usd": 77340,
+   "native": {
+    "amount": 77340,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.hagerty.com/marketplace/auction/1970-Plymouth-Cuda/kAl6OVH2qCE5UExNexOAO",
+   "chassis": "BS23J0B298827",
+   "title": "1970 Plymouth AAR 'Cuda"
+  },
+  {
+   "date": "2023-11-16",
+   "venue": "Hagerty",
+   "price_usd": 99750,
+   "basis": "sold+fee",
+   "hammer_usd": 95000,
+   "native": {
+    "amount": 95000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.hagerty.com/marketplace/auction/1970-Plymouth-Cuda/1ouUWMVH9NBGOtWqCMCAsc",
+   "chassis": "BS23U0B128961",
+   "title": "1970 Plymouth ‘Cuda 440 "
+  },
+  {
+   "date": "2023-10-12",
+   "venue": "Hagerty",
+   "price_usd": 84000,
+   "basis": "sold+fee",
+   "hammer_usd": 80000,
+   "native": {
+    "amount": 80000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://www.hagerty.com/marketplace/auction/1970-Plymouth-Cuda/1p6GFcpHrhoZ9MOB6aXxhg",
+   "chassis": "BS23U0B128961",
+   "title": "1970 Plymouth ‘Cuda 440 "
+  },
+  {
+   "date": "2023-09-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 182500,
+   "basis": "sold+fee",
+   "hammer_usd": 175000,
+   "native": {
+    "amount": 175000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1970,
+   "url": "https://bringatrailer.com/listing/1970-plymouth-cuda-47/",
+   "chassis": "BS23R0B146694",
+   "title": "1970 Plymouth Hemi ’Cuda Coupe"
+  }
+ ]
+}

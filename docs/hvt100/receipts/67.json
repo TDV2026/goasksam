@@ -1,0 +1,1410 @@
+{
+ "car_id": 67,
+ "listed": "2005 Ford GT",
+ "status": "compare",
+ "year_scope": "exact 2005",
+ "basis": "mixed (18% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Ford",
+  "model": "GT",
+  "window": "36mo",
+  "year_min": 2005,
+  "year_max": 2005,
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-09-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 809500,
+   "basis": "sold+fee",
+   "hammer_usd": 802000,
+   "native": {
+    "amount": 802000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-244/",
+   "chassis": "1FAFP90S75Y401670",
+   "title": "166-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2026-08-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 697500,
+   "basis": "sold+fee",
+   "hammer_usd": 690000,
+   "native": {
+    "amount": 690000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-242/",
+   "chassis": "1FAFP90S95Y401895",
+   "title": "2,100-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2026-08-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 692500,
+   "basis": "sold+fee",
+   "hammer_usd": 685000,
+   "native": {
+    "amount": 685000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-238/",
+   "chassis": "1FAFP90S55Y400582",
+   "title": "4,500-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2026-08-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 722500,
+   "basis": "sold+fee",
+   "hammer_usd": 715000,
+   "native": {
+    "amount": 715000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-239/",
+   "chassis": "1FAFP90S35Y400970",
+   "title": "8k-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2026-07-22",
+   "venue": "Mecum",
+   "price_usd": 16275,
+   "basis": "sold+fee",
+   "hammer_usd": 15500,
+   "native": {
+    "amount": 17050,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.mecum.com/lots/1177874/2005-ford-mustang-gt-convertible?aa_id=798553-0",
+   "chassis": "1ZVFT85H455224667",
+   "title": "2005 Ford Mustang GT Convertible"
+  },
+  {
+   "date": "2026-07-08",
+   "venue": "RM Sotheby's",
+   "price_usd": 506413,
+   "basis": "buyer-paid",
+   "hammer_usd": 444500,
+   "native": {
+    "amount": 398750,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://rmsothebys.com/auctions/wp26/lots/r0039-2005-ford-gt",
+   "chassis": "1FAFP90S55Y401070",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2026-05-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 405500,
+   "basis": "sold+fee",
+   "hammer_usd": 398000,
+   "native": {
+    "amount": 398000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-236/",
+   "chassis": "1FAFP90S45Y401898",
+   "title": "Original-Owner 2005 Ford GT"
+  },
+  {
+   "date": "2026-05-22",
+   "venue": "Bring a Trailer",
+   "price_usd": 595500,
+   "basis": "sold+fee",
+   "hammer_usd": 588000,
+   "native": {
+    "amount": 588000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-235/",
+   "chassis": "1FAFP90S25Y401589",
+   "title": "2,300-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2026-05-15",
+   "venue": "Mecum",
+   "price_usd": 567500,
+   "basis": "sold+fee",
+   "hammer_usd": 560000,
+   "native": {
+    "amount": 616000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.mecum.com/lots/1168755/2005-ford-gt?aa_id=778521-0",
+   "chassis": null,
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2026-05-08",
+   "venue": "Mecum",
+   "price_usd": 8925,
+   "basis": "sold+fee",
+   "hammer_usd": 8500,
+   "native": {
+    "amount": 9350,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.mecum.com/lots/1168493/2005-ford-mustang-gt-convertible?aa_id=767483-0",
+   "chassis": "1ZVFT85H855230603",
+   "title": "2005 Ford Mustang GT Convertible"
+  },
+  {
+   "date": "2026-03-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 563500,
+   "basis": "sold+fee",
+   "hammer_usd": 556000,
+   "native": {
+    "amount": 556000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-232/",
+   "chassis": "1FAFP90S75Y401412",
+   "title": "9k-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2026-03-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 552500,
+   "basis": "sold+fee",
+   "hammer_usd": 545000,
+   "native": {
+    "amount": 545000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-231/",
+   "chassis": "1FAFP90S65Y400946",
+   "title": "Original-Owner 2005 Ford GT"
+  },
+  {
+   "date": "2026-03-07",
+   "venue": "Broad Arrow",
+   "price_usd": 571500,
+   "basis": "buyer-paid",
+   "hammer_usd": 515000,
+   "native": {
+    "amount": 571500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.broadarrowauctions.com/vehicles/am26_r0127/2005-ford-gt",
+   "chassis": "1FAFP90SX5Y400805",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2026-03-07",
+   "venue": "Broad Arrow",
+   "price_usd": 511000,
+   "basis": "buyer-paid",
+   "hammer_usd": 460000,
+   "native": {
+    "amount": 511000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.broadarrowauctions.com/vehicles/am26_r0005/2005-ford-gt",
+   "chassis": "1FAFP90S15Y401194",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2026-03-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 515500,
+   "basis": "sold+fee",
+   "hammer_usd": 508000,
+   "native": {
+    "amount": 508000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-230/",
+   "chassis": "1FAFP90S45Y400136",
+   "title": "2,900-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2026-02-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 481500,
+   "basis": "sold+fee",
+   "hammer_usd": 474000,
+   "native": {
+    "amount": 474000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-229/",
+   "chassis": "1FAFP90S75Y400311",
+   "title": "7k-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2026-01-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 462500,
+   "basis": "sold+fee",
+   "hammer_usd": 455000,
+   "native": {
+    "amount": 455000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-224/",
+   "chassis": "1FAFP90S85Y401063",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2026-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 440000,
+   "basis": "buyer-paid",
+   "hammer_usd": 400000,
+   "native": {
+    "amount": 440000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2005-ford-gt-292664?origin=results",
+   "chassis": "1FAFP90S55Y401117",
+   "title": "2005 FORD GT"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Barrett-Jackson",
+   "price_usd": 550000,
+   "basis": "buyer-paid",
+   "hammer_usd": 500000,
+   "native": {
+    "amount": 550000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2005-ford-gt-291060?origin=results",
+   "chassis": "1FAFP90S35Y402055",
+   "title": "2005 FORD GT"
+  },
+  {
+   "date": "2026-01-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 583500,
+   "basis": "sold+fee",
+   "hammer_usd": 576000,
+   "native": {
+    "amount": 576000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-226/",
+   "chassis": "1FAFP90S55Y401439",
+   "title": "990-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2026-01-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 511869,
+   "basis": "sold+fee",
+   "hammer_usd": 504369,
+   "native": {
+    "amount": 504369,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-223/",
+   "chassis": "1FAFP90SX5Y401503",
+   "title": "2,700-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-12-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 572500,
+   "basis": "sold+fee",
+   "hammer_usd": 565000,
+   "native": {
+    "amount": 565000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-216/",
+   "chassis": "1FAFP90S75Y400678",
+   "title": "3,600-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-12-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 472500,
+   "basis": "sold+fee",
+   "hammer_usd": 465000,
+   "native": {
+    "amount": 465000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-220/",
+   "chassis": "1FAFP90S85Y400172",
+   "title": "One-Owner 2005 Ford GT"
+  },
+  {
+   "date": "2025-12-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 634500,
+   "basis": "sold+fee",
+   "hammer_usd": 627000,
+   "native": {
+    "amount": 627000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-222/",
+   "chassis": "1FAFP90S45Y400282",
+   "title": "Ex–Paul Walker 2005 Ford GT"
+  },
+  {
+   "date": "2025-11-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 417500,
+   "basis": "sold+fee",
+   "hammer_usd": 410000,
+   "native": {
+    "amount": 410000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-217/",
+   "chassis": "1FAFP90S85Y401449",
+   "title": "6k-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-11-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 492000,
+   "basis": "sold+fee",
+   "hammer_usd": 484500,
+   "native": {
+    "amount": 484500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-219/",
+   "chassis": "1FAFP90S65Y400994",
+   "title": "4,800-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-11-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 532500,
+   "basis": "sold+fee",
+   "hammer_usd": 525000,
+   "native": {
+    "amount": 525000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-218/",
+   "chassis": "1FAFP90S35Y400354",
+   "title": "906-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-10-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 592500,
+   "basis": "sold+fee",
+   "hammer_usd": 585000,
+   "native": {
+    "amount": 585000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-214/",
+   "chassis": "1FAFP90S45Y401352",
+   "title": "One-Owner 2005 Ford GT"
+  },
+  {
+   "date": "2025-10-31",
+   "venue": "All Collector Cars",
+   "price_usd": 437500,
+   "basis": "sold+fee",
+   "hammer_usd": 430000,
+   "native": {
+    "amount": 430000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://www.allcollectorcars.com/classic-car-auctions/vehicles/2005-ford-gt/",
+   "chassis": "1FAFP90S35Y400564",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2025-10-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 493500,
+   "basis": "sold+fee",
+   "hammer_usd": 486000,
+   "native": {
+    "amount": 486000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-208-2/",
+   "chassis": "1FAFP90S15Y400756",
+   "title": "3,800-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-10-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 655500,
+   "basis": "sold+fee",
+   "hammer_usd": 648000,
+   "native": {
+    "amount": 648000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gtx1/",
+   "chassis": "1FAFP90S75Y400292",
+   "title": "2005 Ford GTX1"
+  },
+  {
+   "date": "2025-09-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 489505,
+   "basis": "sold+fee",
+   "hammer_usd": 482005,
+   "native": {
+    "amount": 482005,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-207/",
+   "chassis": "1FAFP90S25Y400877",
+   "title": "4,700-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-09-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 579505,
+   "basis": "sold+fee",
+   "hammer_usd": 572005,
+   "native": {
+    "amount": 572005,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-212/",
+   "chassis": "1FAFP90S15Y401101",
+   "title": "2,400-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-08-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 445500,
+   "basis": "sold+fee",
+   "hammer_usd": 438000,
+   "native": {
+    "amount": 438000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-208/",
+   "chassis": "1FAFP90S15Y400756",
+   "title": "3,800-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-08-16",
+   "venue": "Gooding Christie's",
+   "price_usd": 390000,
+   "basis": "buyer-paid",
+   "hammer_usd": 350000,
+   "native": {
+    "amount": 390000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.goodingco.com/lot/2005-ford-gt-1b",
+   "chassis": "1FAFP90S25Y400006",
+   "title": "2005 Ford GT (PB25)"
+  },
+  {
+   "date": "2025-07-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 497500,
+   "basis": "sold+fee",
+   "hammer_usd": 490000,
+   "native": {
+    "amount": 490000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-205/",
+   "chassis": "1FAFP90S25Y401768",
+   "title": "2,600-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-06-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 408500,
+   "basis": "sold+fee",
+   "hammer_usd": 401000,
+   "native": {
+    "amount": 401000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-204/",
+   "chassis": "1FAFP90S65Y400641",
+   "title": "9k-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-06-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 463500,
+   "basis": "sold+fee",
+   "hammer_usd": 456000,
+   "native": {
+    "amount": 456000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-203/",
+   "chassis": "1FAFP90S65Y401921",
+   "title": "2,600-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-06-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 542500,
+   "basis": "sold+fee",
+   "hammer_usd": 535000,
+   "native": {
+    "amount": 535000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-130-2/",
+   "chassis": "1FAFP90S95Y401461",
+   "title": "Ex–Barry Meguiar 2005 Ford GT"
+  },
+  {
+   "date": "2025-05-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 437500,
+   "basis": "sold+fee",
+   "hammer_usd": 430000,
+   "native": {
+    "amount": 430000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-161-2/",
+   "chassis": "1FAFP90S25Y401737",
+   "title": "2,800-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-05-25",
+   "venue": "Broad Arrow",
+   "price_usd": 359100,
+   "basis": "buyer-paid",
+   "hammer_usd": 314400,
+   "native": {
+    "amount": 332500,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.broadarrowauctions.com/vehicles/ve25_r108/2005-ford-gt",
+   "chassis": "1FAFP90S85Y401094",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2025-05-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 395500,
+   "basis": "sold+fee",
+   "hammer_usd": 388000,
+   "native": {
+    "amount": 388000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-201/",
+   "chassis": "1FAFP90S45Y401299",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2025-05-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 468500,
+   "basis": "sold+fee",
+   "hammer_usd": 461000,
+   "native": {
+    "amount": 461000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-199/",
+   "chassis": "1FAFP90S15Y401762",
+   "title": "2k-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-05-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 558500,
+   "basis": "sold+fee",
+   "hammer_usd": 551000,
+   "native": {
+    "amount": 551000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-196/",
+   "chassis": "1FAFP90S55Y401828",
+   "title": "173-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-04-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 398500,
+   "basis": "sold+fee",
+   "hammer_usd": 391000,
+   "native": {
+    "amount": 391000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-189-2/",
+   "chassis": "1FAFP90S85Y401130",
+   "title": "15k-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-04-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 433500,
+   "basis": "sold+fee",
+   "hammer_usd": 426000,
+   "native": {
+    "amount": 426000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-195/",
+   "chassis": "1FAFP90S85Y400110",
+   "title": "11k-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-04-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 469500,
+   "basis": "sold+fee",
+   "hammer_usd": 462000,
+   "native": {
+    "amount": 462000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-191/",
+   "chassis": "1FAFP90S05Y401168",
+   "title": "1k-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-02-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 557500,
+   "basis": "sold+fee",
+   "hammer_usd": 550000,
+   "native": {
+    "amount": 550000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-193/",
+   "chassis": "1FAFP90S85Y400690",
+   "title": "2,400-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-02-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 516500,
+   "basis": "sold+fee",
+   "hammer_usd": 509000,
+   "native": {
+    "amount": 509000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-187/",
+   "chassis": "1FAFP90S05Y402062",
+   "title": "3,900-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2025-02-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 422500,
+   "basis": "sold+fee",
+   "hammer_usd": 415000,
+   "native": {
+    "amount": 415000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-188/",
+   "chassis": "1FAFP90S45Y401710",
+   "title": "One-Owner 2005 Ford GT"
+  },
+  {
+   "date": "2025-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 550000,
+   "basis": "buyer-paid",
+   "hammer_usd": 500000,
+   "native": {
+    "amount": 550000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2005-ford-gt-286133?origin=results",
+   "chassis": "1FAFP90S35Y401522",
+   "title": "2005 FORD GT"
+  },
+  {
+   "date": "2025-01-25",
+   "venue": "Barrett-Jackson",
+   "price_usd": 522500,
+   "basis": "buyer-paid",
+   "hammer_usd": 475000,
+   "native": {
+    "amount": 522500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2005-ford-gt-280631?origin=results",
+   "chassis": "1FAFP90S65Y401188",
+   "title": "2005 FORD GT"
+  },
+  {
+   "date": "2025-01-22",
+   "venue": "Barrett-Jackson",
+   "price_usd": 22000,
+   "basis": "buyer-paid",
+   "hammer_usd": 20000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/scottsdale-2025/docket/vehicle/2005-ford-mustang-gt-284344?origin=results",
+   "chassis": "1ZVHT82H655222786",
+   "title": "2005 FORD MUSTANG GT"
+  },
+  {
+   "date": "2024-12-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 471000,
+   "basis": "sold+fee",
+   "hammer_usd": 463500,
+   "native": {
+    "amount": 463500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-184/",
+   "chassis": "1FAFP90S65Y400610",
+   "title": "346-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2024-12-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 627500,
+   "basis": "sold+fee",
+   "hammer_usd": 620000,
+   "native": {
+    "amount": 620000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-177/",
+   "chassis": "1FAFP90S55Y401926",
+   "title": "472-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2024-12-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 612500,
+   "basis": "sold+fee",
+   "hammer_usd": 605000,
+   "native": {
+    "amount": 605000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-185/",
+   "chassis": "1FAFP90S45Y400864",
+   "title": "2,100-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2024-11-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 407500,
+   "basis": "sold+fee",
+   "hammer_usd": 400000,
+   "native": {
+    "amount": 400000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-182/",
+   "chassis": "1FAFP90S45Y400377",
+   "title": "2,300-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2024-11-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 456500,
+   "basis": "sold+fee",
+   "hammer_usd": 449000,
+   "native": {
+    "amount": 449000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-181/",
+   "chassis": "1FAFP90S05Y401347",
+   "title": "3,600-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2024-11-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 405500,
+   "basis": "sold+fee",
+   "hammer_usd": 398000,
+   "native": {
+    "amount": 398000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-178/",
+   "chassis": "1FAFP90S15Y401339",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2024-10-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 476000,
+   "basis": "sold+fee",
+   "hammer_usd": 468500,
+   "native": {
+    "amount": 468500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-171/",
+   "chassis": "1FAFP90S75Y401376",
+   "title": "178-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2024-10-11",
+   "venue": "Barrett-Jackson",
+   "price_usd": 18700,
+   "basis": "buyer-paid",
+   "hammer_usd": 17000,
+   "native": {
+    "amount": 18700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/2005-ford-mustang-gt-convertible-278904?origin=results",
+   "chassis": "1ZVHT85H355241792",
+   "title": "2005 FORD MUSTANG GT CONVERTIBLE"
+  },
+  {
+   "date": "2024-10-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 423500,
+   "basis": "sold+fee",
+   "hammer_usd": 416000,
+   "native": {
+    "amount": 416000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-169/",
+   "chassis": "1FAFP90S25Y401981",
+   "title": "1,800-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2024-09-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 368500,
+   "basis": "sold+fee",
+   "hammer_usd": 361000,
+   "native": {
+    "amount": 361000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-173/",
+   "chassis": "1FAFP90S65Y401210",
+   "title": "10k-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2024-08-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 462500,
+   "basis": "sold+fee",
+   "hammer_usd": 455000,
+   "native": {
+    "amount": 455000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-164/",
+   "chassis": "1FAFP90SX5Y401503",
+   "title": "2,100-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2024-08-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 417500,
+   "basis": "sold+fee",
+   "hammer_usd": 410000,
+   "native": {
+    "amount": 410000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-167/",
+   "chassis": "1FAFP90S65Y400848",
+   "title": "1,900-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2024-08-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 377500,
+   "basis": "sold+fee",
+   "hammer_usd": 370000,
+   "native": {
+    "amount": 370000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-146/",
+   "chassis": "1FAFP90S65Y400154",
+   "title": "9k-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2024-07-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 467500,
+   "basis": "sold+fee",
+   "hammer_usd": 460000,
+   "native": {
+    "amount": 460000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-162/",
+   "chassis": "1FAFP90S25Y401933",
+   "title": "1,500-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2024-06-28",
+   "venue": "Bring a Trailer",
+   "price_usd": 433500,
+   "basis": "sold+fee",
+   "hammer_usd": 426000,
+   "native": {
+    "amount": 426000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-161/",
+   "chassis": "1FAFP90S25Y401737",
+   "title": "2,800-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2024-06-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 441500,
+   "basis": "sold+fee",
+   "hammer_usd": 434000,
+   "native": {
+    "amount": 434000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-160/",
+   "chassis": "1FAFP90S85Y400706",
+   "title": "3,400-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2024-06-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 424500,
+   "basis": "sold+fee",
+   "hammer_usd": 417000,
+   "native": {
+    "amount": 417000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-153/",
+   "chassis": "1FAFP90S15Y401180",
+   "title": "1,900-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2024-04-20",
+   "venue": "Barrett-Jackson",
+   "price_usd": 451000,
+   "basis": "buyer-paid",
+   "hammer_usd": 410000,
+   "native": {
+    "amount": 451000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/palm-beach-2024/docket/vehicle/2005-ford-gt-276798?origin=results",
+   "chassis": "1FAFP90SX5Y401873",
+   "title": "2005 FORD GT"
+  },
+  {
+   "date": "2024-04-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 11025,
+   "basis": "sold+fee",
+   "hammer_usd": 10500,
+   "native": {
+    "amount": 10500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/ford-gt-wheels/",
+   "chassis": null,
+   "title": "18×9″ and 19×11.5″ BBS Wheels for 2005-2006 Ford GT"
+  },
+  {
+   "date": "2024-04-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 266500,
+   "basis": "sold+fee",
+   "hammer_usd": 259000,
+   "native": {
+    "amount": 259000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-152/",
+   "chassis": "1FAFP90S75Y400969",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2024-02-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 415000,
+   "basis": "sold+fee",
+   "hammer_usd": 407500,
+   "native": {
+    "amount": 407500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-148/",
+   "chassis": "1FAFP90SX5Y400125",
+   "title": "7k-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2024-02-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 398500,
+   "basis": "sold+fee",
+   "hammer_usd": 391000,
+   "native": {
+    "amount": 391000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-147/",
+   "chassis": "1FAFP90S35Y401360",
+   "title": "1,500-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2024-01-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 338500,
+   "basis": "sold+fee",
+   "hammer_usd": 331000,
+   "native": {
+    "amount": 331000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-145/",
+   "chassis": "1FAFP90S45Y401318",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2024-01-28",
+   "venue": "Barrett-Jackson",
+   "price_usd": 451000,
+   "basis": "buyer-paid",
+   "hammer_usd": 410000,
+   "native": {
+    "amount": 451000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2005-ford-gt-274404?origin=results",
+   "chassis": "1FAFP90S25Y400779",
+   "title": "2005 FORD GT"
+  },
+  {
+   "date": "2024-01-25",
+   "venue": "RM Sotheby's",
+   "price_usd": 434000,
+   "basis": "buyer-paid",
+   "hammer_usd": 390000,
+   "native": {
+    "amount": 434000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://rmsothebys.com/auctions/az24/lots/r0008-2005-ford-gt/",
+   "chassis": "1FAFP90SX5Y401565",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2023-12-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 455500,
+   "basis": "sold+fee",
+   "hammer_usd": 448000,
+   "native": {
+    "amount": 448000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-143/",
+   "chassis": "1FAFP90S55Y400923",
+   "title": "316-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2023-12-20",
+   "venue": "Hagerty",
+   "price_usd": 367500,
+   "basis": "sold+fee",
+   "hammer_usd": 360000,
+   "native": {
+    "amount": 360000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://www.hagerty.com/marketplace/auction/2005-Ford-GT/1SqVUtqW5GBOwA6CqS5YAK",
+   "chassis": "1FAFP90S35Y400063",
+   "title": "792-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2023-12-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 412500,
+   "basis": "sold+fee",
+   "hammer_usd": 405000,
+   "native": {
+    "amount": 405000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-142/",
+   "chassis": "1FAFP90S95Y401766",
+   "title": "8k-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2023-11-25",
+   "venue": "RM Sotheby's",
+   "price_usd": 402705,
+   "basis": "buyer-paid",
+   "hammer_usd": 353160,
+   "native": {
+    "amount": 372875,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://rmsothebys.com/auctions/mu23/lots/r0080-2005-ford-gt/",
+   "chassis": "1FAFP90S65Y401076",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2023-11-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 467500,
+   "basis": "sold+fee",
+   "hammer_usd": 460000,
+   "native": {
+    "amount": 460000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-139/",
+   "chassis": "1FAFP90S55Y400730",
+   "title": "One-Owner 2005 Ford GT"
+  },
+  {
+   "date": "2023-11-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 377500,
+   "basis": "sold+fee",
+   "hammer_usd": 370000,
+   "native": {
+    "amount": 370000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-138/",
+   "chassis": "1FAFP90S55Y401019",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2023-10-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 383500,
+   "basis": "sold+fee",
+   "hammer_usd": 376000,
+   "native": {
+    "amount": 376000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-135/",
+   "chassis": "1FAFP90S75Y401703",
+   "title": "14k-Mile 2005 Ford GT"
+  },
+  {
+   "date": "2023-10-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 457500,
+   "basis": "sold+fee",
+   "hammer_usd": 450000,
+   "native": {
+    "amount": 450000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2005,
+   "url": "https://bringatrailer.com/listing/2005-ford-gt-129/",
+   "chassis": "1FAFP90S25Y400927",
+   "title": "2005 Ford GT"
+  },
+  {
+   "date": "2023-09-30",
+   "venue": "Barrett-Jackson",
+   "price_usd": 418000,
+   "basis": "buyer-paid",
+   "hammer_usd": 380000,
+   "native": {
+    "amount": 418000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2005,
+   "url": "https://www.barrett-jackson.com/new-orleans-2023/docket/vehicle/2005-ford-gt-270479?origin=results",
+   "chassis": "1FAFP90S35Y401598",
+   "title": "2005 FORD GT"
+  }
+ ]
+}

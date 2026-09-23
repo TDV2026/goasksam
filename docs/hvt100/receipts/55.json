@@ -1,0 +1,371 @@
+{
+ "car_id": 55,
+ "listed": "1985 Toyota Land Cruiser FJ60",
+ "status": "compare",
+ "year_scope": "exact 1985",
+ "basis": "sold+fee (online)",
+ "scope": {
+  "make": "Toyota",
+  "model": "Land Cruiser",
+  "window": "36mo",
+  "year_min": 1985,
+  "year_max": 1985,
+  "trim": "FJ60",
+  "body": "wagon"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-06-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 46200,
+   "basis": "sold+fee",
+   "hammer_usd": 44000,
+   "native": {
+    "amount": 44000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-218/",
+   "chassis": "JT3FJ60G8F1131420",
+   "title": "1985 Toyota Land Cruiser FJ60"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 37380,
+   "basis": "sold+fee",
+   "hammer_usd": 35600,
+   "native": {
+    "amount": 35600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-213/",
+   "chassis": "JT3FJ60G0F1129046",
+   "title": "1985 Toyota Land Cruiser FJ60"
+  },
+  {
+   "date": "2025-09-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 50978,
+   "basis": "sold+fee",
+   "hammer_usd": 48550,
+   "native": {
+    "amount": 48550,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-206/",
+   "chassis": "JT3FJ60G9F1131104",
+   "title": "1985 Toyota Land Cruiser FJ60"
+  },
+  {
+   "date": "2025-09-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 23888,
+   "basis": "sold+fee",
+   "hammer_usd": 22750,
+   "native": {
+    "amount": 22750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-203/",
+   "chassis": "JT3FJ60G3F1129610",
+   "title": "1985 Toyota Land Cruiser FJ60"
+  },
+  {
+   "date": "2025-08-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 26513,
+   "basis": "sold+fee",
+   "hammer_usd": 25250,
+   "native": {
+    "amount": 25250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-202/",
+   "chassis": "JT3FJ60G3F1131969",
+   "title": "1985 Toyota Land Cruiser FJ60 5-Speed"
+  },
+  {
+   "date": "2025-07-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 11025,
+   "basis": "sold+fee",
+   "hammer_usd": 10500,
+   "native": {
+    "amount": 10500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-201/",
+   "chassis": "JT3FJ60G7F1131277",
+   "title": "1985 Toyota Land Cruiser FJ60 5-Speed"
+  },
+  {
+   "date": "2025-06-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 24675,
+   "basis": "sold+fee",
+   "hammer_usd": 23500,
+   "native": {
+    "amount": 23500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-198/",
+   "chassis": "JT3FJ60G9F1127540",
+   "title": "1985 Toyota Land Cruiser FJ60"
+  },
+  {
+   "date": "2025-06-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 33600,
+   "basis": "sold+fee",
+   "hammer_usd": 32000,
+   "native": {
+    "amount": 32000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-172/",
+   "chassis": "JT3FJ60G6F1132078",
+   "title": "1985 Toyota Land Cruiser FJ60 5-Speed"
+  },
+  {
+   "date": "2025-06-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 17325,
+   "basis": "sold+fee",
+   "hammer_usd": 16500,
+   "native": {
+    "amount": 16500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-196/",
+   "chassis": "JT3FJ60G8F1132597",
+   "title": "1985 Toyota Land Cruiser FJ60"
+  },
+  {
+   "date": "2025-04-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 13650,
+   "basis": "sold+fee",
+   "hammer_usd": 13000,
+   "native": {
+    "amount": 13000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-193/",
+   "chassis": "JT3FJ60G9F1127909",
+   "title": "1985 Toyota Land Cruiser FJ60"
+  },
+  {
+   "date": "2025-03-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 36488,
+   "basis": "sold+fee",
+   "hammer_usd": 34750,
+   "native": {
+    "amount": 34750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-190/",
+   "chassis": "JT3FJ60G7F1127603",
+   "title": "1985 Toyota Land Cruiser FJ60"
+  },
+  {
+   "date": "2025-02-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 31500,
+   "basis": "sold+fee",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 30000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-188/",
+   "chassis": "JT3FJ60G8F1131952",
+   "title": "1985 Toyota Land Cruiser FJ60"
+  },
+  {
+   "date": "2024-12-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 85575,
+   "basis": "sold+fee",
+   "hammer_usd": 81500,
+   "native": {
+    "amount": 81500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-181/",
+   "chassis": "JT3FJ60G7F1127567",
+   "title": "1985 Toyota Land Cruiser FJ60 5-Speed"
+  },
+  {
+   "date": "2024-08-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 23100,
+   "basis": "sold+fee",
+   "hammer_usd": 22000,
+   "native": {
+    "amount": 22000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-177/",
+   "chassis": "JT3FJ60G6F1129519",
+   "title": "30-Years-Owned 1985 Toyota Land Cruiser FJ60 4-Speed"
+  },
+  {
+   "date": "2024-05-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 29663,
+   "basis": "sold+fee",
+   "hammer_usd": 28250,
+   "native": {
+    "amount": 28250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-162/",
+   "chassis": "JT3FJ60GXF1127921",
+   "title": "1985 Toyota Land Cruiser FJ60"
+  },
+  {
+   "date": "2024-05-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 50925,
+   "basis": "sold+fee",
+   "hammer_usd": 48500,
+   "native": {
+    "amount": 48500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-164/",
+   "chassis": "JT3FJ60G7F1129299",
+   "title": "1985 Toyota Land Cruiser FJ60"
+  },
+  {
+   "date": "2024-04-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 32025,
+   "basis": "sold+fee",
+   "hammer_usd": 30500,
+   "native": {
+    "amount": 30500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-163/",
+   "chassis": "JT3FJ60G0F1132254",
+   "title": "1985 Toyota Land Cruiser FJ60"
+  },
+  {
+   "date": "2024-03-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 31500,
+   "basis": "sold+fee",
+   "hammer_usd": 30000,
+   "native": {
+    "amount": 30000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-154/",
+   "chassis": "JT3FJ60G0F1129743",
+   "title": "1985 Toyota Land Cruiser FJ60"
+  },
+  {
+   "date": "2024-02-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 37013,
+   "basis": "sold+fee",
+   "hammer_usd": 35250,
+   "native": {
+    "amount": 35250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-153/",
+   "chassis": "JT3FJ60GXF1129104",
+   "title": "1985 Toyota Land Cruiser FJ60 4-Speed"
+  },
+  {
+   "date": "2024-01-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 19950,
+   "basis": "sold+fee",
+   "hammer_usd": 19000,
+   "native": {
+    "amount": 19000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-150/",
+   "chassis": "JT3FJ60G2F1127881",
+   "title": "350-Powered 1985 Toyota Land Cruiser FJ60 4-Speed"
+  },
+  {
+   "date": "2023-10-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 19425,
+   "basis": "sold+fee",
+   "hammer_usd": 18500,
+   "native": {
+    "amount": 18500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-146/",
+   "chassis": "JT3FJ60G4F1129311",
+   "title": "1985 Toyota Land Cruiser FJ60 4-Speed"
+  },
+  {
+   "date": "2023-10-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 40950,
+   "basis": "sold+fee",
+   "hammer_usd": 39000,
+   "native": {
+    "amount": 39000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1985,
+   "url": "https://bringatrailer.com/listing/1985-toyota-land-cruiser-fj60-141/",
+   "chassis": "JT3FJ60GXF1132083",
+   "title": "Vortec-Powered 1985 Toyota Land Cruiser FJ60 5-Speed"
+  }
+ ]
+}

@@ -1,0 +1,291 @@
+{
+ "car_id": 2,
+ "listed": "1963 Chevrolet Corvette Sting Ray",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1963-1965)",
+ "basis": "mixed (53% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Chevrolet",
+  "model": "Corvette",
+  "window": "36mo",
+  "year_min": 1963,
+  "year_max": 1965,
+  "trim": "Sting Ray",
+  "body": "coupe"
+ },
+ "halo_dropped": 2,
+ "sales": [
+  {
+   "date": "2026-04-24",
+   "venue": "Hemmings",
+   "price_usd": 173500,
+   "basis": "sold+fee",
+   "hammer_usd": 166000,
+   "native": {
+    "amount": 166000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1963,
+   "url": "https://www.hemmings.com/auction/1963-chevrolet-corvette-stirling-nj-133885",
+   "chassis": "30837S102752",
+   "title": "Past NCRS Top Flight: 1963 Chevrolet Corvette Sting Ray Coupe With a 327/340-hp V8"
+  },
+  {
+   "date": "2026-01-30",
+   "venue": "Bonhams",
+   "price_usd": 149040,
+   "basis": "buyer-paid",
+   "hammer_usd": 129600,
+   "native": {
+    "amount": 138000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1963,
+   "url": "https://cars.bonhams.com/auction/31696/lot/108/1963-chevrolet-chevrolet-corvette-sting-ray-split-window-coupe-chassis-no-30837s116280-engine-no-to-be-advised/",
+   "chassis": "30837S116280",
+   "title": "1963 Chevrolet Chevrolet Corvette Sting Ray 'Split Window' Coupé Chassis no. 30837S116280 Engine no. to be advised"
+  },
+  {
+   "date": "2026-01-28",
+   "venue": "RM Sotheby's",
+   "price_usd": 67068,
+   "basis": "buyer-paid",
+   "hammer_usd": 58320,
+   "native": {
+    "amount": 62100,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1963,
+   "url": "https://rmsothebys.com/auctions/pa26/lots/r0061-1963-chevrolet-corvette-sting-ray-convertible",
+   "chassis": "30867S100713",
+   "title": "1963 Chevrolet Corvette Sting Ray Convertible"
+  },
+  {
+   "date": "2025-12-08",
+   "venue": "AutoHunter",
+   "price_usd": 55650,
+   "basis": "sold+fee",
+   "hammer_usd": 53000,
+   "native": {
+    "amount": 53000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://autohunter.com/Listing/Details/79267641",
+   "chassis": "194675S112481",
+   "title": "1965 CHEVROLET CORVETTE STING RAY 327/300 CONVERTIBLE"
+  },
+  {
+   "date": "2025-10-03",
+   "venue": "Bonhams",
+   "price_usd": 176960,
+   "basis": "buyer-paid",
+   "hammer_usd": 158000,
+   "native": {
+    "amount": 176960,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1963,
+   "url": "https://cars.bonhams.com/auction/30560/lot/129/1963-chevrolet-corvette-327340hp-sting-ray-split-window-coupe-chassis-no-30837s120298/",
+   "chassis": "30837S120298",
+   "title": "1963 Chevrolet Corvette 327/340hp Sting Ray 'Split Window' Coupe Chassis no. 30837S120298"
+  },
+  {
+   "date": "2025-07-07",
+   "venue": "All Collector Cars",
+   "price_usd": 132300,
+   "basis": "sold+fee",
+   "hammer_usd": 126000,
+   "native": {
+    "amount": 126000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1964,
+   "url": "https://www.allcollectorcars.com/classic-car-auctions/vehicles/1964-chevrolet-corvette-sting-ray/",
+   "chassis": "40837S116790",
+   "title": "1964 Chevrolet Corvette Sting Ray"
+  },
+  {
+   "date": "2025-06-04",
+   "venue": "RM Sotheby's",
+   "price_usd": 137500,
+   "basis": "buyer-paid",
+   "hammer_usd": 122768,
+   "native": {
+    "amount": 137500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1963,
+   "url": "https://rmsothebys.com/auctions/0225/lots/r0017-1963-chevrolet-corvette-sting-ray-coupe/",
+   "chassis": "30837S102280",
+   "title": "1963 Chevrolet Corvette Sting Ray Coupe"
+  },
+  {
+   "date": "2025-01-24",
+   "venue": "RM Sotheby's",
+   "price_usd": 84000,
+   "basis": "buyer-paid",
+   "hammer_usd": 75000,
+   "native": {
+    "amount": 84000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1964,
+   "url": "https://rmsothebys.com/auctions/az25/lots/r0065-1964-chevrolet-corvette-sting-ray-convertible/",
+   "chassis": "40867S118510",
+   "title": "1964 Chevrolet Corvette Sting Ray Convertible"
+  },
+  {
+   "date": "2024-12-02",
+   "venue": "Hagerty",
+   "price_usd": 63000,
+   "basis": "sold+fee",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 60000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://www.hagerty.com/marketplace/auction/1965-Chevrolet-Corvette/b6c76178-2539-4395-8250-8be9d9af64a4",
+   "chassis": "194675S122687",
+   "title": "Single-Family-Owned 1965 Chevrolet Corvette Sting Ray Convertible 327/250"
+  },
+  {
+   "date": "2024-10-10",
+   "venue": "RM Sotheby's",
+   "price_usd": 68750,
+   "basis": "buyer-paid",
+   "hammer_usd": 61384,
+   "native": {
+    "amount": 68750,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://rmsothebys.com/auctions/hf24/lots/r0064-1965-chevrolet-corvette-sting-ray-convertible/",
+   "chassis": "194675S103030",
+   "title": "1965 Chevrolet Corvette Sting Ray Convertible"
+  },
+  {
+   "date": "2024-06-01",
+   "venue": "RM Sotheby's",
+   "price_usd": 268800,
+   "basis": "buyer-paid",
+   "hammer_usd": 240000,
+   "native": {
+    "amount": 268800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1963,
+   "url": "https://rmsothebys.com/auctions/dd24/lots/r0021-1963-chevrolet-corvette-sting-ray-coupe/",
+   "chassis": "30837S102666",
+   "title": "1963 Chevrolet Corvette Sting Ray Coupe"
+  },
+  {
+   "date": "2024-05-22",
+   "venue": "Hemmings",
+   "price_usd": 76650,
+   "basis": "sold+fee",
+   "hammer_usd": 73000,
+   "native": {
+    "amount": 73000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1963,
+   "url": "https://www.hemmings.com/auction/1963-chevrolet-corvette-forest-hill-va-487069",
+   "chassis": "30867S119580",
+   "title": "1963 Chevrolet Corvette Sting Ray Convertible With a Four-Speed and Factory Air"
+  },
+  {
+   "date": "2024-04-01",
+   "venue": "Hemmings",
+   "price_usd": 137550,
+   "basis": "sold+fee",
+   "hammer_usd": 131000,
+   "native": {
+    "amount": 131000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1963,
+   "url": "https://www.hemmings.com/auction/1963-chevrolet-corvette-brentwood-mo-522492",
+   "chassis": "30837S102343",
+   "title": "Numbers-Matching Split-Window 1963 Chevrolet Corvette Sting Ray Coupe"
+  },
+  {
+   "date": "2024-03-29",
+   "venue": "Hagerty",
+   "price_usd": 47250,
+   "basis": "sold+fee",
+   "hammer_usd": 45000,
+   "native": {
+    "amount": 45000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1964,
+   "url": "https://www.hagerty.com/marketplace/auction/1964-Chevrolet-Corvette/5XcFGjKQ753P1LXOjhh5i2",
+   "chassis": "40867S102204",
+   "title": "1964 Chevrolet Corvette Sting Ray Convertible "
+  },
+  {
+   "date": "2024-03-02",
+   "venue": "RM Sotheby's",
+   "price_usd": 235200,
+   "basis": "buyer-paid",
+   "hammer_usd": 210000,
+   "native": {
+    "amount": 235200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1963,
+   "url": "https://rmsothebys.com/auctions/mi24/lots/r0109-1963-chevrolet-corvette-sting-ray-coupe/",
+   "chassis": "30837S116260",
+   "title": "1963 Chevrolet Corvette Sting Ray Coupe"
+  },
+  {
+   "date": "2024-01-08",
+   "venue": "PCARMarket",
+   "price_usd": 51713,
+   "basis": "sold+fee",
+   "hammer_usd": 49250,
+   "native": {
+    "amount": 49250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1964,
+   "url": "https://www.pcarmarket.com/auction/1964-chevrolet-corvette-sting-ray",
+   "chassis": "408375110445",
+   "title": "1964 Chevrolet Corvette Sting Ray 350 4-Speed"
+  },
+  {
+   "date": "2023-10-05",
+   "venue": "RM Sotheby's",
+   "price_usd": 74250,
+   "basis": "buyer-paid",
+   "hammer_usd": 66295,
+   "native": {
+    "amount": 74250,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://rmsothebys.com/auctions/hf23/lots/r0010-1965-chevrolet-corvette-sting-ray-327365-convertible/",
+   "chassis": "194675S114666",
+   "title": "1965 Chevrolet Corvette Sting Ray 327/365 Convertible"
+  }
+ ]
+}

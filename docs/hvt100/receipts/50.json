@@ -1,0 +1,18 @@
+{
+ "car_id": 50,
+ "listed": "1990 Chevrolet Corvette ZR-1",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1988-1992)",
+ "basis": "n/a",
+ "scope": {
+  "make": "Chevrolet",
+  "model": "Corvette",
+  "window": "36mo",
+  "year_min": 1988,
+  "year_max": 1992,
+  "trim": "ZR-1",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": []
+}

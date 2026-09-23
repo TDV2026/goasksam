@@ -1,0 +1,291 @@
+{
+ "car_id": 29,
+ "listed": "1972 Ferrari 365 Daytona",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (1970-1974)",
+ "basis": "mixed (76% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Ferrari",
+  "model": "365",
+  "window": "36mo",
+  "year_min": 1970,
+  "year_max": 1974,
+  "trim": "Daytona",
+  "body": "coupe"
+ },
+ "halo_dropped": 9,
+ "sales": [
+  {
+   "date": "2026-08-15",
+   "venue": "Gooding Christie's",
+   "price_usd": 610000,
+   "basis": "buyer-paid",
+   "hammer_usd": 550000,
+   "native": {
+    "amount": 610000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1971,
+   "url": "https://www.goodingco.com/lot/1971-ferrari-365-gtb-4-daytona-pb26",
+   "chassis": "14203",
+   "title": "1971 Ferrari 365 GTB/4 Daytona (PB26)"
+  },
+  {
+   "date": "2026-08-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 872500,
+   "basis": "sold+fee",
+   "hammer_usd": 865000,
+   "native": {
+    "amount": 865000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1971,
+   "url": "https://bringatrailer.com/listing/1973-ferrari-365-gtb-4-daytona-berlinetta-3/",
+   "chassis": "14867",
+   "title": "1971 Ferrari 365 GTB/4 Daytona Berlinetta"
+  },
+  {
+   "date": "2026-06-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 446500,
+   "basis": "sold+fee",
+   "hammer_usd": 439000,
+   "native": {
+    "amount": 439000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-ferrari-365-gtb-4-daytona-14/",
+   "chassis": "15163",
+   "title": "1972 Ferrari 365 GTB/4 Daytona"
+  },
+  {
+   "date": "2026-04-25",
+   "venue": "RM Sotheby's",
+   "price_usd": 588600,
+   "basis": "buyer-paid",
+   "hammer_usd": 518400,
+   "native": {
+    "amount": 545000,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1972,
+   "url": "https://rmsothebys.com/auctions/mc26/lots/r0021-1972-ferrari-365-gtb4-daytona-berlinetta-by-scaglietti",
+   "chassis": "16351",
+   "title": "1972 Ferrari 365 GTB/4 Daytona Berlinetta by Scaglietti"
+  },
+  {
+   "date": "2026-03-07",
+   "venue": "Broad Arrow",
+   "price_usd": 588000,
+   "basis": "buyer-paid",
+   "hammer_usd": 530000,
+   "native": {
+    "amount": 588000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1972,
+   "url": "https://www.broadarrowauctions.com/vehicles/am26_r0064/1972-ferrari-365-gtb-4-daytona",
+   "chassis": "15285",
+   "title": "1972 Ferrari 365 GTB/4 Daytona"
+  },
+  {
+   "date": "2026-03-05",
+   "venue": "Gooding Christie's",
+   "price_usd": 786000,
+   "basis": "buyer-paid",
+   "hammer_usd": 710000,
+   "native": {
+    "amount": 786000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1972,
+   "url": "https://www.goodingco.com/lot/1972-ferrari-365-gtb-4-daytona-fl26",
+   "chassis": "14867",
+   "title": "1972 Ferrari 365 GTB/4 Daytona (FL26)"
+  },
+  {
+   "date": "2025-11-01",
+   "venue": "RM Sotheby's",
+   "price_usd": 406400,
+   "basis": "buyer-paid",
+   "hammer_usd": 355600,
+   "native": {
+    "amount": 320000,
+    "currency": "GBP",
+    "premium_inclusive": true
+   },
+   "year": 1972,
+   "url": "https://rmsothebys.com/auctions/lf25/lots/r0005-1972-ferrari-365-gtb4-daytona-berlinetta-by-scaglietti/",
+   "chassis": "16331",
+   "title": "1972 Ferrari 365 GTB/4 Daytona Berlinetta by Scaglietti"
+  },
+  {
+   "date": "2025-10-10",
+   "venue": "Broad Arrow",
+   "price_usd": 893700,
+   "basis": "buyer-paid",
+   "hammer_usd": 789600,
+   "native": {
+    "amount": 827500,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://www.broadarrowauctions.com/vehicles/zt25_r0059/1970-ferrari-365-gtb-4-daytona-competizione-specification",
+   "chassis": "13213",
+   "title": "1970 Ferrari 365 GTB/4 Daytona Competizione Specification"
+  },
+  {
+   "date": "2025-05-22",
+   "venue": "RM Sotheby's",
+   "price_usd": 582525,
+   "basis": "buyer-paid",
+   "hammer_usd": 513000,
+   "native": {
+    "amount": 539375,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1972,
+   "url": "https://rmsothebys.com/auctions/ml25/lots/r0032-1972-ferrari-365-gtb4-daytona-berlinetta-by-scaglietti/",
+   "chassis": "15673",
+   "title": "1972 Ferrari 365 GTB/4 Daytona Berlinetta by Scaglietti"
+  },
+  {
+   "date": "2025-03-19",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 660000,
+   "basis": "sold+fee",
+   "hammer_usd": 652500,
+   "native": {
+    "amount": 652500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1972,
+   "url": "https://www.sothebysmotorsport.com/auction/1972-ferrari-365gtb4daytona-4621",
+   "chassis": "15757",
+   "title": "1972 Ferrari 365 GTB/4 Daytona"
+  },
+  {
+   "date": "2024-10-13",
+   "venue": "Barrett-Jackson",
+   "price_usd": 506000,
+   "basis": "buyer-paid",
+   "hammer_usd": 460000,
+   "native": {
+    "amount": 506000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1971,
+   "url": "https://www.barrett-jackson.com/scottsdale-fall-2024/docket/vehicle/1971-ferrari-365-gtb4-daytona-coupe-278634?origin=results",
+   "chassis": "14171",
+   "title": "1971 FERRARI 365 GTB/4 DAYTONA COUPE"
+  },
+  {
+   "date": "2024-10-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 708500,
+   "basis": "sold+fee",
+   "hammer_usd": 701000,
+   "native": {
+    "amount": 701000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1972,
+   "url": "https://bringatrailer.com/listing/1972-ferrari-365-gtb-4-daytona-8/",
+   "chassis": "16099",
+   "title": "1972 Ferrari 365 GTB/4 Daytona Berlinetta"
+  },
+  {
+   "date": "2024-08-17",
+   "venue": "Gooding Christie's",
+   "price_usd": 857500,
+   "basis": "buyer-paid",
+   "hammer_usd": 775000,
+   "native": {
+    "amount": 857500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1972,
+   "url": "https://www.goodingco.com/lot/1972-ferrari-365-gtb-4-daytona-1",
+   "chassis": "15749",
+   "title": "1972 Ferrari 365 GTB/4 Daytona (PB24)"
+  },
+  {
+   "date": "2024-08-17",
+   "venue": "RM Sotheby's",
+   "price_usd": 841000,
+   "basis": "buyer-paid",
+   "hammer_usd": 760000,
+   "native": {
+    "amount": 841000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1970,
+   "url": "https://rmsothebys.com/auctions/mo24/lots/r0117-1970-ferrari-365-gtb4-daytona-berlinetta-by-scaglietti/",
+   "chassis": "13361",
+   "title": "1970 Ferrari 365 GTB/4 Daytona Berlinetta by Scaglietti"
+  },
+  {
+   "date": "2024-08-15",
+   "venue": "Broad Arrow",
+   "price_usd": 692500,
+   "basis": "buyer-paid",
+   "hammer_usd": 625000,
+   "native": {
+    "amount": 692500,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1972,
+   "url": "https://www.broadarrowauctions.com/vehicles/jc24_r124/1972-ferrari-365-gtb-4-daytona",
+   "chassis": "14589",
+   "title": "1972 Ferrari 365 GTB/4 Daytona"
+  },
+  {
+   "date": "2024-01-31",
+   "venue": "RM Sotheby's",
+   "price_usd": 576450,
+   "basis": "buyer-paid",
+   "hammer_usd": 507600,
+   "native": {
+    "amount": 533750,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1971,
+   "url": "https://rmsothebys.com/auctions/pa24/lots/r0032-1971-ferrari-365-gtb4-daytona-berlinetta-by-scaglietti/",
+   "chassis": "14071",
+   "title": "1971 Ferrari 365 GTB/4 Daytona Berlinetta by Scaglietti"
+  },
+  {
+   "date": "2024-01-25",
+   "venue": "RM Sotheby's",
+   "price_usd": 632000,
+   "basis": "buyer-paid",
+   "hammer_usd": 570000,
+   "native": {
+    "amount": 632000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1972,
+   "url": "https://rmsothebys.com/auctions/az24/lots/r0051-1972-ferrari-365-gtb4-daytona-berlinetta-by-scaglietti/",
+   "chassis": "15229",
+   "title": "1972 Ferrari 365 GTB/4 Daytona Berlinetta by Scaglietti"
+  }
+ ]
+}

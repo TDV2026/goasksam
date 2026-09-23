@@ -1,0 +1,594 @@
+{
+ "car_id": 74,
+ "listed": "2002 Acura NSX",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (2002-2004)",
+ "basis": "mixed (11% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Acura",
+  "model": "NSX",
+  "window": "36mo",
+  "year_min": 2002,
+  "year_max": 2004,
+  "body": "targa"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-08-10",
+   "venue": "Bring a Trailer",
+   "price_usd": 148050,
+   "basis": "sold+fee",
+   "hammer_usd": 141000,
+   "native": {
+    "amount": 141000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-acura-nsx-t-31/",
+   "chassis": "JH4NA21683T000007",
+   "title": "2003 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2026-07-21",
+   "venue": "Bring a Trailer",
+   "price_usd": 118125,
+   "basis": "sold+fee",
+   "hammer_usd": 112500,
+   "native": {
+    "amount": 112500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-acura-nsx-t-29/",
+   "chassis": "JH4NA21602T000128",
+   "title": "2002 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2026-07-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 154350,
+   "basis": "sold+fee",
+   "hammer_usd": 147000,
+   "native": {
+    "amount": 147000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-acura-nsx-t-28/",
+   "chassis": "JH4NA21662T000019",
+   "title": "2002 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2026-06-04",
+   "venue": "Bring a Trailer",
+   "price_usd": 174500,
+   "basis": "sold+fee",
+   "hammer_usd": 167000,
+   "native": {
+    "amount": 167000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-acura-nsx-t-30/",
+   "chassis": "JH4NA21603T000101",
+   "title": "25k-Mile 2003 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2026-03-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 193500,
+   "basis": "sold+fee",
+   "hammer_usd": 186000,
+   "native": {
+    "amount": 186000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-acura-nsx-t-32/",
+   "chassis": "JH4NA21604T000083",
+   "title": "42k-Mile 2004 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2026-02-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 227500,
+   "basis": "sold+fee",
+   "hammer_usd": 220000,
+   "native": {
+    "amount": 220000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-acura-nsx-t-26/",
+   "chassis": "JH4NA21683T000136",
+   "title": "7k-Mile 2003 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2026-02-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 163500,
+   "basis": "sold+fee",
+   "hammer_usd": 156000,
+   "native": {
+    "amount": 156000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-acura-nsx-t-27/",
+   "chassis": "JH4NA21682T000202",
+   "title": "2002 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2026-02-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 148050,
+   "basis": "sold+fee",
+   "hammer_usd": 141000,
+   "native": {
+    "amount": 141000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-acura-nsx-t-26/",
+   "chassis": "JH4NA21632T000219",
+   "title": "25k-Mile 2002 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2026-01-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 161500,
+   "basis": "sold+fee",
+   "hammer_usd": 154000,
+   "native": {
+    "amount": 154000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-acura-nsx-t-30/",
+   "chassis": "JH4NA21644T000006",
+   "title": "20-Years-Owned 2004 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2026-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 165000,
+   "basis": "buyer-paid",
+   "hammer_usd": 150000,
+   "native": {
+    "amount": 165000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2004,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/2004-acura-nsx-t-targa-294183?origin=results",
+   "chassis": "JH4NA21614T000030",
+   "title": "2004 ACURA NSX-T TARGA"
+  },
+  {
+   "date": "2025-11-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 207500,
+   "basis": "sold+fee",
+   "hammer_usd": 200000,
+   "native": {
+    "amount": 200000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-acura-nsx-t-26/",
+   "chassis": "JH4NA21674T000131",
+   "title": "28k-Mile 2004 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2025-10-31",
+   "venue": "Broad Arrow",
+   "price_usd": 134400,
+   "basis": "buyer-paid",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 134400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2002,
+   "url": "https://www.broadarrowauctions.com/vehicles/lv25_r0038/2002-acura-nsx-t",
+   "chassis": "JH4NA21652T000187",
+   "title": "2002 Acura NSX-T"
+  },
+  {
+   "date": "2025-10-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 87441,
+   "basis": "sold+fee",
+   "hammer_usd": 83277,
+   "native": {
+    "amount": 83277,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-acura-nsx-t-25/",
+   "chassis": "JH4NA21602T000226",
+   "title": "2002 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2025-09-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 175500,
+   "basis": "sold+fee",
+   "hammer_usd": 168000,
+   "native": {
+    "amount": 168000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-acura-nsx-t-29/",
+   "chassis": "JH4NA21654S000036",
+   "title": "14k-Mile 2004 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2025-08-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 180000,
+   "basis": "sold+fee",
+   "hammer_usd": 172500,
+   "native": {
+    "amount": 172500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-acura-nsx-t-27/",
+   "chassis": "JH4NA21614T000058",
+   "title": "46k-Mile 2004 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2025-06-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 141750,
+   "basis": "sold+fee",
+   "hammer_usd": 135000,
+   "native": {
+    "amount": 135000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-acura-nsx-t-25/",
+   "chassis": "JH4NA21614T000111",
+   "title": "34k-Mile 2004 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2025-05-21",
+   "venue": "Cars & Bids",
+   "price_usd": 95550,
+   "basis": "sold+fee",
+   "hammer_usd": 91000,
+   "native": {
+    "amount": 91000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://carsandbids.com/auctions/9eOvQvQg/2003-acura-nsx-t",
+   "chassis": "JH4NA21653T000143",
+   "title": "2003 Acura NSX-T"
+  },
+  {
+   "date": "2025-05-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 121800,
+   "basis": "sold+fee",
+   "hammer_usd": 116000,
+   "native": {
+    "amount": 116000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2006-acura-nsx/",
+   "chassis": "JH4NA21672T000045",
+   "title": "40k-Mile 2002 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2025-03-08",
+   "venue": "Bring a Trailer",
+   "price_usd": 116445,
+   "basis": "sold+fee",
+   "hammer_usd": 110900,
+   "native": {
+    "amount": 110900,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-acura-nsx-t-23/",
+   "chassis": "JH4NA21692T000015",
+   "title": "49k-Mile 2002 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2025-03-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 6405,
+   "basis": "sold+fee",
+   "hammer_usd": 6100,
+   "native": {
+    "amount": 6100,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2006-acura-nsx-oem-wheels/",
+   "chassis": null,
+   "title": "2002-2005 Acura NSX Wheels"
+  },
+  {
+   "date": "2025-01-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 160500,
+   "basis": "sold+fee",
+   "hammer_usd": 153000,
+   "native": {
+    "amount": 153000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-acura-nsx-t-16/",
+   "chassis": "JH4NA21654S000036",
+   "title": "14k-Mile 2004 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2025-01-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 208500,
+   "basis": "sold+fee",
+   "hammer_usd": 201000,
+   "native": {
+    "amount": 201000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-acura-nsx-t-24/",
+   "chassis": "JH4NA21604T000133",
+   "title": "8,700-Mile 2004 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2024-12-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 138600,
+   "basis": "sold+fee",
+   "hammer_usd": 132000,
+   "native": {
+    "amount": 132000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-acura-nsx-t-18/",
+   "chassis": "JH4NA21614T000030",
+   "title": "26k-Mile 2004 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2024-11-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 102900,
+   "basis": "sold+fee",
+   "hammer_usd": 98000,
+   "native": {
+    "amount": 98000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-acura-nsx-t-21/",
+   "chassis": "JH4NA21692T000032",
+   "title": "2002 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2024-10-01",
+   "venue": "Bring a Trailer",
+   "price_usd": 131250,
+   "basis": "sold+fee",
+   "hammer_usd": 125000,
+   "native": {
+    "amount": 125000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-acura-nsx-t-21/",
+   "chassis": "JH4NA21614S000017",
+   "title": "2004 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2024-08-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 294500,
+   "basis": "sold+fee",
+   "hammer_usd": 287000,
+   "native": {
+    "amount": 287000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2003,
+   "url": "https://bringatrailer.com/listing/2003-acura-nsx-t-22/",
+   "chassis": "JH4NA21693T000100",
+   "title": "Original-Owner, 3,400-Mile 2003 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2024-06-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 90300,
+   "basis": "sold+fee",
+   "hammer_usd": 86000,
+   "native": {
+    "amount": 86000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2004,
+   "url": "https://bringatrailer.com/listing/2004-acura-nsx-t-17/",
+   "chassis": "JH4NA12634T000006",
+   "title": "2004 Acura NSX-T"
+  },
+  {
+   "date": "2024-06-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 127273,
+   "basis": "sold+fee",
+   "hammer_usd": 121212,
+   "native": {
+    "amount": 121212,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-acura-nsx-t-17/",
+   "chassis": "JH4NA21692T000015",
+   "title": "47k-Mile 2002 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2024-06-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 207499,
+   "basis": "sold+fee",
+   "hammer_usd": 199999,
+   "native": {
+    "amount": 199999,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-acura-nsx-t-18/",
+   "chassis": "JH4NA21612T000008",
+   "title": "43k-Mile 2002 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2024-05-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 183500,
+   "basis": "sold+fee",
+   "hammer_usd": 176000,
+   "native": {
+    "amount": 176000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-acura-nsx-t-15/",
+   "chassis": "JH4NA21652T000125",
+   "title": "15k-Mile 2002 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2024-03-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 139650,
+   "basis": "sold+fee",
+   "hammer_usd": 133000,
+   "native": {
+    "amount": 133000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-acura-nsx-t-13/",
+   "chassis": "JH4NA21652T000187",
+   "title": "42k-Mile 2002 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2024-03-02",
+   "venue": "RM Sotheby's",
+   "price_usd": 134400,
+   "basis": "buyer-paid",
+   "hammer_usd": 120000,
+   "native": {
+    "amount": 134400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2004,
+   "url": "https://rmsothebys.com/auctions/mi24/lots/r0014-2004-acura-nsxt/",
+   "chassis": "JH4NA21614T000030",
+   "title": "2004 Acura NSX-T"
+  },
+  {
+   "date": "2024-01-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 178500,
+   "basis": "sold+fee",
+   "hammer_usd": 171000,
+   "native": {
+    "amount": 171000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-acura-nsx-t-12/",
+   "chassis": "JH4NA216X2T000234",
+   "title": "20k-Mile 2002 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2024-01-27",
+   "venue": "Barrett-Jackson",
+   "price_usd": 95700,
+   "basis": "buyer-paid",
+   "hammer_usd": 87000,
+   "native": {
+    "amount": 95700,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 2003,
+   "url": "https://www.barrett-jackson.com/scottsdale-2024/docket/vehicle/2003-acura-nsx-t-274206?origin=results",
+   "chassis": "JH4NA12653T000006",
+   "title": "2003 ACURA NSX-T"
+  },
+  {
+   "date": "2023-11-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 129150,
+   "basis": "sold+fee",
+   "hammer_usd": 123000,
+   "native": {
+    "amount": 123000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-acura-nsx-t-11/",
+   "chassis": "JH4NA21662T000098",
+   "title": "16k-Mile 2002 Acura NSX-T 6-Speed"
+  },
+  {
+   "date": "2023-09-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 79275,
+   "basis": "sold+fee",
+   "hammer_usd": 75500,
+   "native": {
+    "amount": 75500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2002,
+   "url": "https://bringatrailer.com/listing/2002-acura-nsx-t-10/",
+   "chassis": "JH4NA21622T000163",
+   "title": "22k-Mile 2002 Acura NSX-T 6-Speed"
+  }
+ ]
+}

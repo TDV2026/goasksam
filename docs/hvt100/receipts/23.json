@@ -1,0 +1,355 @@
+{
+ "car_id": 23,
+ "listed": "1965 Austin-Healey 3000 Mk III",
+ "status": "compare",
+ "year_scope": "exact 1965",
+ "basis": "mixed (10% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Austin-Healey",
+  "model": "3000",
+  "window": "36mo",
+  "year_min": 1965,
+  "year_max": 1965,
+  "trim": "Mk III",
+  "body": "convertible"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2026-08-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 40950,
+   "basis": "sold+fee",
+   "hammer_usd": 39000,
+   "native": {
+    "amount": 39000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-29/",
+   "chassis": "HBJ8L29157",
+   "title": "1965 Austin-Healey 3000 Mk III"
+  },
+  {
+   "date": "2026-07-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 38588,
+   "basis": "sold+fee",
+   "hammer_usd": 36750,
+   "native": {
+    "amount": 36750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-28/",
+   "chassis": "HBJ8L29979",
+   "title": "1965 Austin-Healey 3000 BJ8 Mk III"
+  },
+  {
+   "date": "2026-06-30",
+   "venue": "Bring a Trailer",
+   "price_usd": 60375,
+   "basis": "sold+fee",
+   "hammer_usd": 57500,
+   "native": {
+    "amount": 57500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-27/",
+   "chassis": "HBJ8L28407",
+   "title": "1965 Austin-Healey 3000 BJ8 Mk III"
+  },
+  {
+   "date": "2026-06-24",
+   "venue": "Bring a Trailer",
+   "price_usd": 42263,
+   "basis": "sold+fee",
+   "hammer_usd": 40250,
+   "native": {
+    "amount": 40250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-26/",
+   "chassis": "HBJ8L30355",
+   "title": "37-Years-Owned 1965 Austin-Healey 3000 BJ8 Mk III"
+  },
+  {
+   "date": "2026-04-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 45675,
+   "basis": "sold+fee",
+   "hammer_usd": 43500,
+   "native": {
+    "amount": 43500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-22/",
+   "chassis": "HBJ8L30424",
+   "title": "43-Years-Owned 1965 Austin-Healey 3000 BJ8 Mk III"
+  },
+  {
+   "date": "2026-03-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 74130,
+   "basis": "sold+fee",
+   "hammer_usd": 70600,
+   "native": {
+    "amount": 70600,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-43/",
+   "chassis": "HBJ8L34010",
+   "title": "1965 Austin-Healey 3000 Mk III"
+  },
+  {
+   "date": "2026-02-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 58275,
+   "basis": "sold+fee",
+   "hammer_usd": 55500,
+   "native": {
+    "amount": 55500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-20/",
+   "chassis": "HBJ8L27386",
+   "title": "One-Family-Owned 1965 Austin-Healey 3000 BJ8 Mk III"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "RM Sotheby's",
+   "price_usd": 67200,
+   "basis": "buyer-paid",
+   "hammer_usd": 60000,
+   "native": {
+    "amount": 67200,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://rmsothebys.com/auctions/az26/lots/r0042-1965-austinhealey-3000-mk-iii-bj8/",
+   "chassis": "HBJ8L27938",
+   "title": "1965 Austin-Healey 3000 Mk III BJ8"
+  },
+  {
+   "date": "2026-01-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 40950,
+   "basis": "sold+fee",
+   "hammer_usd": 39000,
+   "native": {
+    "amount": 39000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-21/",
+   "chassis": "HBJ8L31205",
+   "title": "1965 Austin-Healey 3000 BJ8 Mk III"
+  },
+  {
+   "date": "2025-11-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 69825,
+   "basis": "sold+fee",
+   "hammer_usd": 66500,
+   "native": {
+    "amount": 66500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-19/",
+   "chassis": "HBJ8L30537",
+   "title": "1965 Austin-Healey 3000 BJ8 Mk III"
+  },
+  {
+   "date": "2025-09-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 47775,
+   "basis": "sold+fee",
+   "hammer_usd": 45500,
+   "native": {
+    "amount": 45500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-18/",
+   "chassis": "HBJ8L27959",
+   "title": "1965 Austin-Healey 3000 BJ8 Mk III"
+  },
+  {
+   "date": "2025-08-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 55650,
+   "basis": "sold+fee",
+   "hammer_usd": 53000,
+   "native": {
+    "amount": 53000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-17/",
+   "chassis": "HBJ8L32035",
+   "title": "1965 Austin-Healey 3000 BJ8 Mk III"
+  },
+  {
+   "date": "2025-06-18",
+   "venue": "Bring a Trailer",
+   "price_usd": 38850,
+   "basis": "sold+fee",
+   "hammer_usd": 37000,
+   "native": {
+    "amount": 37000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-13/",
+   "chassis": "HBJ8L27068",
+   "title": "1965 Austin-Healey 3000 BJ8 Mk III"
+  },
+  {
+   "date": "2025-05-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 60375,
+   "basis": "sold+fee",
+   "hammer_usd": 57500,
+   "native": {
+    "amount": 57500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-12/",
+   "chassis": "HBJ8L30377",
+   "title": "1965 Austin-Healey 3000 BJ8 Mk III"
+  },
+  {
+   "date": "2025-04-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 78750,
+   "basis": "sold+fee",
+   "hammer_usd": 75000,
+   "native": {
+    "amount": 75000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-11/",
+   "chassis": "HBJ8L30537",
+   "title": "1965 Austin-Healey 3000 BJ8 Mk III"
+  },
+  {
+   "date": "2025-04-03",
+   "venue": "Bring a Trailer",
+   "price_usd": 27038,
+   "basis": "sold+fee",
+   "hammer_usd": 25750,
+   "native": {
+    "amount": 25750,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-10/",
+   "chassis": "HBJ8L29294",
+   "title": "1965 Austin-Healey 3000 BJ8 Mk III"
+  },
+  {
+   "date": "2025-03-27",
+   "venue": "Bring a Trailer",
+   "price_usd": 14963,
+   "basis": "sold+fee",
+   "hammer_usd": 14250,
+   "native": {
+    "amount": 14250,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-8/",
+   "chassis": "HBJ8L28810",
+   "title": "21-Years-Owned 1965 Austin-Healey 3000 BJ8 Mk III"
+  },
+  {
+   "date": "2025-03-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 35700,
+   "basis": "sold+fee",
+   "hammer_usd": 34000,
+   "native": {
+    "amount": 34000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-5/",
+   "chassis": "HBJ8L31367",
+   "title": "1965 Austin-Healey 3000 BJ8 Mk III"
+  },
+  {
+   "date": "2024-10-12",
+   "venue": "Broad Arrow",
+   "price_usd": 52640,
+   "basis": "buyer-paid",
+   "hammer_usd": 47000,
+   "native": {
+    "amount": 52640,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1965,
+   "url": "https://www.broadarrowauctions.com/vehicles/ch24_r047/1965-austin-healey-3000-mk-iii-bj8",
+   "chassis": "HBJ8L30554",
+   "title": "1965 Austin-Healey 3000 Mk III BJ8"
+  },
+  {
+   "date": "2024-07-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 68250,
+   "basis": "sold+fee",
+   "hammer_usd": 65000,
+   "native": {
+    "amount": 65000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-mk-iii-2/",
+   "chassis": "HBJ8L29877",
+   "title": "1965 Austin-Healey 3000 BJ8 Mk III"
+  },
+  {
+   "date": "2023-09-25",
+   "venue": "Bring a Trailer",
+   "price_usd": 70350,
+   "basis": "sold+fee",
+   "hammer_usd": 67000,
+   "native": {
+    "amount": 67000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1965,
+   "url": "https://bringatrailer.com/listing/1965-austin-healey-3000-bj8-mk-iii-113/",
+   "chassis": "HBJ8L31514",
+   "title": "1965 Austin-Healey 3000 BJ8 Mk III"
+  }
+ ]
+}

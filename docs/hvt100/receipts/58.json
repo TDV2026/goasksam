@@ -1,0 +1,419 @@
+{
+ "car_id": 58,
+ "listed": "1997 Porsche 911 Turbo",
+ "status": "compare",
+ "year_scope": "exact 1997",
+ "basis": "mixed (40% house buyer-paid, rest sold+fee)",
+ "scope": {
+  "make": "Porsche",
+  "model": "911",
+  "window": "36mo",
+  "year_min": 1997,
+  "year_max": 1997,
+  "trim": "Turbo",
+  "body": "coupe"
+ },
+ "halo_dropped": 12,
+ "sales": [
+  {
+   "date": "2026-08-20",
+   "venue": "Bring a Trailer",
+   "price_usd": 385500,
+   "basis": "sold+fee",
+   "hammer_usd": 378000,
+   "native": {
+    "amount": 378000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1997,
+   "url": "https://bringatrailer.com/listing/1997-porsche-911-turbo-7-2/",
+   "chassis": "WP0AC2990VS375455",
+   "title": "29k-Mile 1997 Porsche 911 Turbo"
+  },
+  {
+   "date": "2026-08-15",
+   "venue": "Gooding Christie's",
+   "price_usd": 390000,
+   "basis": "buyer-paid",
+   "hammer_usd": 350000,
+   "native": {
+    "amount": 390000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1997,
+   "url": "https://www.goodingco.com/lot/1997-porsche-993-turbo-pb26",
+   "chassis": "WP0AC2994VS375961",
+   "title": "1997 Porsche 993 Turbo (PB26)"
+  },
+  {
+   "date": "2026-08-11",
+   "venue": "Bring a Trailer",
+   "price_usd": 327500,
+   "basis": "sold+fee",
+   "hammer_usd": 320000,
+   "native": {
+    "amount": 320000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1997,
+   "url": "https://bringatrailer.com/listing/1997-porsche-911-turbo-118/",
+   "chassis": "WP0AC2992VS375098",
+   "title": "1997 Porsche 911 Turbo"
+  },
+  {
+   "date": "2026-05-18",
+   "venue": "Broad Arrow",
+   "price_usd": 231660,
+   "basis": "buyer-paid",
+   "hammer_usd": 201443,
+   "native": {
+    "amount": 214500,
+    "currency": "EUR",
+    "premium_inclusive": true
+   },
+   "year": 1997,
+   "url": "https://www.broadarrowauctions.com/vehicles/gi26v_r0055/1997-porsche-911-turbo-wls1",
+   "chassis": "WP0ZZZ99ZVS370859",
+   "title": "1997 Porsche 911 Turbo WLS1"
+  },
+  {
+   "date": "2026-03-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 292500,
+   "basis": "sold+fee",
+   "hammer_usd": 285000,
+   "native": {
+    "amount": 285000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1997,
+   "url": "https://bringatrailer.com/listing/1997-porsche-911-turbo-105/",
+   "chassis": "WP0AC2999VS375325",
+   "title": "1997 Porsche 911 Turbo"
+  },
+  {
+   "date": "2026-03-23",
+   "venue": "Bring a Trailer",
+   "price_usd": 382500,
+   "basis": "sold+fee",
+   "hammer_usd": 375000,
+   "native": {
+    "amount": 375000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1997,
+   "url": "https://bringatrailer.com/listing/1997-porsche-911-turbo-106/",
+   "chassis": "WP0AC2992VS375652",
+   "title": "29k-Mile 1997 Porsche 911 Turbo"
+  },
+  {
+   "date": "2026-03-05",
+   "venue": "Bring a Trailer",
+   "price_usd": 227500,
+   "basis": "sold+fee",
+   "hammer_usd": 220000,
+   "native": {
+    "amount": 220000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1997,
+   "url": "https://bringatrailer.com/listing/1997-porsche-911-turbo-104/",
+   "chassis": "WP0AC2997VS375372",
+   "title": "32k-Mile 1997 Porsche 911 Turbo"
+  },
+  {
+   "date": "2026-01-24",
+   "venue": "Barrett-Jackson",
+   "price_usd": 330000,
+   "basis": "buyer-paid",
+   "hammer_usd": 300000,
+   "native": {
+    "amount": 330000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1997,
+   "url": "https://www.barrett-jackson.com/2026-scottsdale/docket/vehicle/1997-porsche-911-turbo-294179?origin=results",
+   "chassis": "WP0ZZZ99ZVS370839",
+   "title": "1997 PORSCHE 911 TURBO"
+  },
+  {
+   "date": "2026-01-23",
+   "venue": "Bonhams",
+   "price_usd": 252000,
+   "basis": "buyer-paid",
+   "hammer_usd": 225000,
+   "native": {
+    "amount": 252000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1997,
+   "url": "https://cars.bonhams.com/auction/31957/lot/122/1997-porsche-911-type-993-turbo-vin-wp0ac2993vs375644/",
+   "chassis": "WP0ZZZ96ZNS490836",
+   "title": "1997 Porsche 911 Type 993 Turbo VIN. WP0AC2993VS375644"
+  },
+  {
+   "date": "2026-01-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 402500,
+   "basis": "sold+fee",
+   "hammer_usd": 395000,
+   "native": {
+    "amount": 395000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1997,
+   "url": "https://bringatrailer.com/listing/1997-porsche-911-turbo-101/",
+   "chassis": "WP0AC2990VS375861",
+   "title": "37k-Mile 1997 Porsche 911 Turbo"
+  },
+  {
+   "date": "2025-11-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 376500,
+   "basis": "sold+fee",
+   "hammer_usd": 369000,
+   "native": {
+    "amount": 369000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1997,
+   "url": "https://bringatrailer.com/listing/1997-porsche-911-turbo-99/",
+   "chassis": "WP0AC2992VS375974",
+   "title": "12k-Mile 1997 Porsche 911 Turbo"
+  },
+  {
+   "date": "2025-04-26",
+   "venue": "Barrett-Jackson",
+   "price_usd": 220000,
+   "basis": "buyer-paid",
+   "hammer_usd": 200000,
+   "native": {
+    "amount": 220000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1997,
+   "url": "https://www.barrett-jackson.com/palm-beach-2025/docket/vehicle/1997-porsche-911-turbo-287990?origin=results",
+   "chassis": "WP0AC2995VS375158",
+   "title": "1997 PORSCHE 911 TURBO"
+  },
+  {
+   "date": "2025-03-08",
+   "venue": "Broad Arrow",
+   "price_usd": 280000,
+   "basis": "buyer-paid",
+   "hammer_usd": 250000,
+   "native": {
+    "amount": 280000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1997,
+   "url": "https://www.broadarrowauctions.com/vehicles/am25_r107/1997-porsche-911-turbo",
+   "chassis": "WP0AC2992VS37554",
+   "title": "1997 Porsche 911 Turbo"
+  },
+  {
+   "date": "2025-03-08",
+   "venue": "Broad Arrow",
+   "price_usd": 260400,
+   "basis": "buyer-paid",
+   "hammer_usd": 232500,
+   "native": {
+    "amount": 260400,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1997,
+   "url": "https://www.broadarrowauctions.com/vehicles/am25_r011/1997-porsche-911-turbo",
+   "chassis": "WP0AC2996VS375685",
+   "title": "1997 Porsche 911 Turbo"
+  },
+  {
+   "date": "2025-03-06",
+   "venue": "Gooding Christie's",
+   "price_usd": 268800,
+   "basis": "buyer-paid",
+   "hammer_usd": 240000,
+   "native": {
+    "amount": 268800,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1997,
+   "url": "https://www.goodingco.com/lot/1997-porsche-993-turbo-1",
+   "chassis": "WP0ZZZ99ZVS371008",
+   "title": "1997 Porsche 993 Turbo"
+  },
+  {
+   "date": "2025-01-31",
+   "venue": "Bring a Trailer",
+   "price_usd": 265000,
+   "basis": "sold+fee",
+   "hammer_usd": 257500,
+   "native": {
+    "amount": 257500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1997,
+   "url": "https://bringatrailer.com/listing/1997-porsche-911-turbo-96/",
+   "chassis": "WP0AC2992VS375411",
+   "title": "23k-Mile 1997 Porsche 911 Turbo"
+  },
+  {
+   "date": "2024-10-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 304500,
+   "basis": "sold+fee",
+   "hammer_usd": 297000,
+   "native": {
+    "amount": 297000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1997,
+   "url": "https://bringatrailer.com/listing/1997-porsche-911-turbo-93/",
+   "chassis": "WP0AC2995VS376004",
+   "title": "11k-Mile 1997 Porsche 911 Turbo"
+  },
+  {
+   "date": "2024-08-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 274500,
+   "basis": "sold+fee",
+   "hammer_usd": 267000,
+   "native": {
+    "amount": 267000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1997,
+   "url": "https://bringatrailer.com/listing/1997-porsche-911-turbo-90/",
+   "chassis": "WP0AC2998VS375624",
+   "title": "19k-Mile 1997 Porsche 911 Turbo"
+  },
+  {
+   "date": "2024-08-14",
+   "venue": "Bring a Trailer",
+   "price_usd": 192500,
+   "basis": "sold+fee",
+   "hammer_usd": 185000,
+   "native": {
+    "amount": 185000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1997,
+   "url": "https://bringatrailer.com/listing/1997-porsche-911-turbo-89/",
+   "chassis": "WP0AC2999VS375308",
+   "title": "22-Years-Owned 1997 Porsche 911 Turbo"
+  },
+  {
+   "date": "2024-06-07",
+   "venue": "Bring a Trailer",
+   "price_usd": 208500,
+   "basis": "sold+fee",
+   "hammer_usd": 201000,
+   "native": {
+    "amount": 201000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1997,
+   "url": "https://bringatrailer.com/listing/1997-porsche-911-turbo-58/",
+   "chassis": "WP0AC2991VS375352",
+   "title": "1997 Porsche 911 Turbo"
+  },
+  {
+   "date": "2024-06-01",
+   "venue": "RM Sotheby's",
+   "price_usd": 252000,
+   "basis": "buyer-paid",
+   "hammer_usd": 225000,
+   "native": {
+    "amount": 252000,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1997,
+   "url": "https://rmsothebys.com/auctions/dd24/lots/r0100-1997-porsche-911-turbo/",
+   "chassis": "WP0AC2991VS375805",
+   "title": "1997 Porsche 911 Turbo"
+  },
+  {
+   "date": "2024-05-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 204500,
+   "basis": "sold+fee",
+   "hammer_usd": 197000,
+   "native": {
+    "amount": 197000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1997,
+   "url": "https://bringatrailer.com/listing/1997-porsche-911-turbo-86/",
+   "chassis": "WP0AC299XVS375091",
+   "title": "1997 Porsche 911 Turbo"
+  },
+  {
+   "date": "2024-04-27",
+   "venue": "Broad Arrow",
+   "price_usd": 145600,
+   "basis": "buyer-paid",
+   "hammer_usd": 130000,
+   "native": {
+    "amount": 145600,
+    "currency": "USD",
+    "premium_inclusive": true
+   },
+   "year": 1997,
+   "url": "https://www.broadarrowauctions.com/vehicles/po24_r051/1997-porsche-911-turbo",
+   "chassis": "WP0AC2996VS375282",
+   "title": "1997 Porsche 911 Turbo"
+  },
+  {
+   "date": "2024-01-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 243600,
+   "basis": "sold+fee",
+   "hammer_usd": 236100,
+   "native": {
+    "amount": 236100,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1997,
+   "url": "https://bringatrailer.com/listing/1997-porsche-911-turbo-76/",
+   "chassis": "WP0AC299XVS375589",
+   "title": "31k-Mile 1997 Porsche 911 Turbo"
+  },
+  {
+   "date": "2023-10-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 310500,
+   "basis": "sold+fee",
+   "hammer_usd": 303000,
+   "native": {
+    "amount": 303000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 1997,
+   "url": "https://bringatrailer.com/listing/1997-porsche-911-turbo-72/",
+   "chassis": "WP0AC2999VS375650",
+   "title": "1997 Porsche 911 Turbo"
+  }
+ ]
+}

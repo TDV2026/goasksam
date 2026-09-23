@@ -1,0 +1,131 @@
+{
+ "car_id": 85,
+ "listed": "2017 Dodge Viper GTS",
+ "status": "compare",
+ "year_scope": "adjacent years pooled (2015-2017)",
+ "basis": "sold+fee (online)",
+ "scope": {
+  "make": "Dodge",
+  "model": "Viper",
+  "window": "36mo",
+  "year_min": 2015,
+  "year_max": 2017,
+  "trim": "GTS",
+  "body": "coupe"
+ },
+ "halo_dropped": 0,
+ "sales": [
+  {
+   "date": "2025-12-09",
+   "venue": "Bring a Trailer",
+   "price_usd": 367000,
+   "basis": "sold+fee",
+   "hammer_usd": 359500,
+   "native": {
+    "amount": 359500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://bringatrailer.com/listing/2017-dodge-viper-srt-gts-coupe-3/",
+   "chassis": "1C3BDEDZXHV500267",
+   "title": "280-Mile 2017 Dodge Viper GTS-R Commemorative Edition ACR"
+  },
+  {
+   "date": "2025-12-05",
+   "venue": "Sotheby's Motorsport",
+   "price_usd": 267500,
+   "basis": "sold+fee",
+   "hammer_usd": 260000,
+   "native": {
+    "amount": 260000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://www.sothebysmotorsport.com/auction/2017-dodge-vipergtsrcommemorativeeditionacr-7946",
+   "chassis": "1C3BDEDZ4HV500488",
+   "title": "2017 Dodge Viper GTS-R Commemorative Edition ACR"
+  },
+  {
+   "date": "2025-08-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 132300,
+   "basis": "sold+fee",
+   "hammer_usd": 126000,
+   "native": {
+    "amount": 126000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2016,
+   "url": "https://bringatrailer.com/listing/2016-dodge-viper-srt-gts-coupe-2/",
+   "chassis": "1C3BDEBZXGV100128",
+   "title": "23k-Mile 2016 Dodge Viper SRT GTS Coupe"
+  },
+  {
+   "date": "2025-08-28",
+   "venue": "Cars & Bids",
+   "price_usd": 150140,
+   "basis": "sold+fee",
+   "hammer_usd": 142990,
+   "native": {
+    "amount": 142990,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://carsandbids.com/auctions/rN5am7Pk/2017-dodge-viper-gts",
+   "chassis": "1C3BDEBZ1HV500385",
+   "title": "2017 Dodge Viper GTS"
+  },
+  {
+   "date": "2024-08-29",
+   "venue": "Bring a Trailer",
+   "price_usd": 295500,
+   "basis": "sold+fee",
+   "hammer_usd": 288000,
+   "native": {
+    "amount": 288000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://bringatrailer.com/listing/2017-dodge-viper-srt-gtc-coupe-3/",
+   "chassis": "1C3BDEDZ9HV500261",
+   "title": "1,300-Mile 2017 Dodge Viper GTS-R Commemorative Edition ACR"
+  },
+  {
+   "date": "2024-04-19",
+   "venue": "Bring a Trailer",
+   "price_usd": 239500,
+   "basis": "sold+fee",
+   "hammer_usd": 232000,
+   "native": {
+    "amount": 232000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://bringatrailer.com/listing/2017-dodge-viper-gtsr-commemorative/",
+   "chassis": "1C3BDEDZ7HV500470",
+   "title": "2017 Dodge Viper GTS-R Commemorative Edition ACR"
+  },
+  {
+   "date": "2023-11-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 237500,
+   "basis": "sold+fee",
+   "hammer_usd": 230000,
+   "native": {
+    "amount": 230000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2017,
+   "url": "https://bringatrailer.com/listing/2017-dodge-viper-srt-gts-coupe/",
+   "chassis": "1C3BDEDZ7HV500601",
+   "title": "Modified 2017 Dodge Viper GTS-R Commemorative Edition ACR"
+  }
+ ]
+}
