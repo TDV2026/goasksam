@@ -333,6 +333,27 @@ async function resolverChecks() {
     check(`B17 R regression: "458 Spider" resolves first-time, no did-you-mean`,
       j.status === "valid" && v.make === "Ferrari" && /458/.test(String(v.model || "")), `status=${j.status} model=${v.model} clar=${j.clarification?.question || ""}`);
   }
+
+  // B18: Sam Desk DSL validator (Stage 1). Pure + deterministic (no network): the constrained
+  // query rejects anything outside the schema, reports what was ignored, bans mean/midpoint,
+  // defaults sensibly, and requires a car anchor. The chip echo reflects the cleaned query.
+  console.log(`\n### B18 Sam Desk DSL validator`);
+  {
+    const { validateDsl, echoChips } = await import("../lib/desk/query.js");
+    let r = validateDsl({ filters: { make: "Porsche", model: "911", descriptor: "air-cooled", channel: "house", window: "24mo", junkKey: "x" }, groupBy: ["venue", "planet"], measures: ["count", "median", "mean"] });
+    check(`B18 rejects out-of-schema (junkKey, planet) + bans mean`,
+      r.ignored.length === 3 && r.ignored.some(i => /junkKey/.test(i.path)) && r.ignored.some(i => i.value === "planet") && r.ignored.some(i => i.value === "mean"), JSON.stringify(r.ignored.map(i => i.value)));
+    check(`B18 keeps the valid query (car + venue group + measures) and defaults hammer/sold`,
+      r.dsl && r.dsl.groupBy.join() === "venue" && r.dsl.measures.join() === "count,median" && r.dsl.price_basis === "hammer" && r.dsl.outcome === "sold", JSON.stringify(r.dsl));
+    check(`B18 chip echo reflects the cleaned query`,
+      echoChips(r.dsl, "Porsche 911").join(" | ").includes("houses only") && echoChips(r.dsl).some(c => /24 months/.test(c)), echoChips(r.dsl, "Porsche 911").join(" | "));
+    let r2 = validateDsl({ groupBy: ["venue"], measures: ["count"] });
+    check(`B18 a query with no car is an error (needs a make/model/descriptor)`,
+      !r2.dsl && r2.errors.length > 0, JSON.stringify(r2.errors));
+    let r3 = validateDsl({ filters: { descriptor: "E30 M3" }, measures: ["midpoint"] });
+    check(`B18 bans midpoint too; defaults measures when all rejected`,
+      r3.dsl && r3.ignored.some(i => i.value === "midpoint") && r3.dsl.measures.includes("median"), JSON.stringify({ ig: r3.ignored.map(i => i.value), m: r3.dsl && r3.dsl.measures }));
+  }
   return fails;
 }
 

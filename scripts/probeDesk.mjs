@@ -1,0 +1,22 @@
+import puppeteer from "puppeteer-core";
+const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const BASE = "https://goasksam.com";
+const q = process.argv[2] || "Which house has sold the most air-cooled 911s in the last two years, and what did they bring?";
+const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
+const p = await b.newPage();
+await p.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
+await p.goto(BASE + "/sell", { waitUntil: "networkidle2" });
+const r = await p.evaluate(async (question) => {
+  const res = await fetch("/api/sellerDecision", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ desk: true, action: "run", question }) });
+  return { status: res.status, json: await res.json().catch(() => null) };
+}, q);
+const j = r.json || {};
+console.log("HTTP", r.status, "| status:", j.status);
+console.log("chips:", JSON.stringify(j.echo && j.echo.chips));
+console.log("ignored:", JSON.stringify(j.echo && j.echo.notice));
+console.log("answer dim:", j.answer && j.answer.dimension, "total:", j.answer && j.answer.total);
+if (j.answer) for (const row of j.answer.rows) console.log("  ", row.group, "| n="+row.count, "median="+row.median, "p25="+row.p25, "p75="+row.p75, "min="+row.min, "max="+row.max, row.thin?"THIN":"");
+console.log("read:", j.read);
+console.log("receipts:", (j.receipts||[]).length, "| coverage sources:", JSON.stringify((j.coverage&&j.coverage.sources||[]).map(s=>s.source)));
+console.log("gens:", JSON.stringify(j.coverage && j.coverage.generations));
+await b.close();

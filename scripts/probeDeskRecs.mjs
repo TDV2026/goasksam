@@ -1,0 +1,13 @@
+import puppeteer from "puppeteer-core";
+const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
+const p = await b.newPage();
+await p.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
+await p.goto("https://goasksam.com/sell", { waitUntil: "networkidle2" });
+const j = await p.evaluate(async () => (await fetch("/api/sellerDecision",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({desk:true,action:"run",question:"Which house has sold the most air-cooled 911s in the last two years, and what did they bring?"})})).json());
+const recs = (j.receipts||[]).slice().sort((a,c)=>(a.hammer_usd||0)-(c.hammer_usd||0));
+console.log("CHEAPEST 14 (venue | hammerUSD | year | title):");
+for (const r of recs.slice(0,14)) console.log(" ", (r.venue||"").padEnd(16), String(r.hammer_usd).padStart(10), r.year||"?", "|", (r.title||"").slice(0,70));
+console.log("\nDEARER end 4:");
+for (const r of recs.slice(-4)) console.log(" ", (r.venue||"").padEnd(16), String(r.hammer_usd).padStart(10), r.year||"?", "|", (r.title||"").slice(0,70));
+await b.close();

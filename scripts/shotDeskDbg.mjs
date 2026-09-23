@@ -1,0 +1,17 @@
+import puppeteer from "puppeteer-core";
+const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
+const p = await b.newPage();
+p.on("console", m => console.log("PAGE:", m.type(), m.text().slice(0,200)));
+p.on("pageerror", e => console.log("PAGEERR:", e.message));
+await p.setViewport({ width: 1200, height: 1200, deviceScaleFactor: 1 });
+await p.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
+await p.goto("https://goasksam.com/desk", { waitUntil: "networkidle2" });
+console.log("URL after load:", p.url());
+console.log("has #q:", await p.evaluate(()=>!!document.getElementById("q")));
+await p.evaluate(() => { document.getElementById("q").value = "Which house has sold the most air-cooled 911s in the last two years, and what did they bring?"; document.getElementById("go").click(); });
+await new Promise(r => setTimeout(r, 50000));
+const info = await p.evaluate(()=>({ url:location.href, out: document.getElementById("out") ? document.getElementById("out").innerHTML.slice(0,500) : "NO #out" }));
+console.log("URL:", info.url);
+console.log("OUT html head:", info.out);
+await b.close();
