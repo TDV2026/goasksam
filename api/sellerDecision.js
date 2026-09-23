@@ -2915,16 +2915,40 @@ export default async function handler(req, res) {
       const seen = new Set(); let rows = [];
       const cols = "id,price:sale_price,date:sale_date,platform,title:listing_title,make,model,year,vin_norm," +
         "mileage:raw_record->>mileage,transmission:raw_record->>transmission,currency:raw_record->>currency,url:raw_record->>url,url2:raw_record->>source_url";
-      for (const term of (terms.length ? terms : [null])) {
-        let base = `sales_archive?select=${cols}&sale_price=not.is.null`;
-        if (term) base += `&listing_title=ilike.${encodeURIComponent("*" + term + "*")}`;
-        if (make) base += `&make=ilike.${encodeURIComponent(make)}`;
-        if (yMin != null) base += `&year=gte.${yMin}`;
-        if (yMax != null) base += `&year=lte.${yMax}`;
-        if (dFrom) base += `&sale_date=gte.${dFrom}`;
-        if (dTo) base += `&sale_date=lte.${dTo}`;
-        const got = await pageAll(base);
-        for (const r of got) { if (!seen.has(r.id)) { seen.add(r.id); rows.push(r); } }
+      // Strict paging: a leading-wildcard title ILIKE can statement-timeout under batch load, and a
+      // swallowed timeout used to look identical to a genuinely empty pool (supabaseSelect returns
+      // null -> pageAll broke -> count 0). That fabricated "zero comparable" rows for cars that
+      // actually have 100+ comps (hvt100 preliminary pass: 27 false zeros). Retry a failed page,
+      // and if it still fails, THROW so the caller reports an honest query error, never a false 0.
+      const pageAllStrict = async (base) => {
+        let all = [], off = 0;
+        for (let i = 0; i < 400; i++) {
+          let got = null;
+          for (let attempt = 0; attempt < 4 && got === null; attempt++) {
+            got = await supabaseSelect(env2, `${base}&order=id&limit=1000&offset=${off}`);
+            if (got === null && attempt < 3) await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+          }
+          if (got === null) { const e = new Error("pool page query failed after retries"); e.poolQueryFailed = true; throw e; }
+          if (!got.length) break;
+          all = all.concat(got); if (got.length < 1000) break; off += 1000;
+        }
+        return all;
+      };
+      try {
+        for (const term of (terms.length ? terms : [null])) {
+          let base = `sales_archive?select=${cols}&sale_price=not.is.null`;
+          if (term) base += `&listing_title=ilike.${encodeURIComponent("*" + term + "*")}`;
+          if (make) base += `&make=ilike.${encodeURIComponent(make)}`;
+          if (yMin != null) base += `&year=gte.${yMin}`;
+          if (yMax != null) base += `&year=lte.${yMax}`;
+          if (dFrom) base += `&sale_date=gte.${dFrom}`;
+          if (dTo) base += `&sale_date=lte.${dTo}`;
+          const got = await pageAllStrict(base);
+          for (const r of got) { if (!seen.has(r.id)) { seen.add(r.id); rows.push(r); } }
+        }
+      } catch (e) {
+        if (e && e.poolQueryFailed) return res.status(200).json({ status: "archive_query", mode, count: null, error: "query_failed", rows: [] });
+        throw e;
       }
       rows = rows.map(r => ({ id: r.id, date: r.date, price: Number(r.price) || null, platform: r.platform || null,
         make: r.make || null, model: r.model || null, year: r.year || null, title: r.title || null,

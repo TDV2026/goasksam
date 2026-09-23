@@ -170,15 +170,28 @@ const post = (page, body) => page.evaluate(async b => {
   await page.goto(BASE+"/sell", { waitUntil:"networkidle2" });
 
   const csv = [["car_id","year","make","model_trim_as_listed","window","comparable","n","thin","median","p25","p75","min","max","median_mileage","house_share","online_share","flagged_share","vin_history","excluded_variants","resolver_note"]];
-  const summary = { comparable:0, thinW1:[], thinW2:[], resolverFail:[], exclusions:{} };
+  const summary = { comparable:0, thinW1:[], thinW2:[], resolverFail:[], queryFail:[], exclusions:{} };
 
   for (const c of CARS) {
     // W3 pool once (superset): scope + fetch, used for receipts + vin_history + as the source
     // filtered by date for each window (one archive read per car).
     const w3from = WINDOWS[2].from;
-    const raw = await post(page, { archiveQuery:"pool", terms:c.term, make:c.mk, yearMin:c.ymin, yearMax:c.ymax, dateFrom:w3from, dateTo:TODAY });
-    const rawRows = (raw.rows||[]);
-    const scopeOK = c.scopeOK !== false;
+    // Retry a failed pool query (a leading-wildcard title ILIKE can statement-timeout under batch
+    // load). The probe now returns {count:null,error:"query_failed"} on a real failure instead of a
+    // false empty pool, so a timeout is retried here, never silently recorded as "zero comparable".
+    let raw = null, queryFailed = false;
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      raw = await post(page, { archiveQuery:"pool", terms:c.term, make:c.mk, yearMin:c.ymin, yearMax:c.ymax, dateFrom:w3from, dateTo:TODAY });
+      if (raw && raw.error !== "query_failed" && raw.count !== null) { queryFailed = false; break; }
+      queryFailed = true;
+      process.stderr.write(`  car ${c.id} pool query failed (attempt ${attempt}/5), retrying...\n`);
+      await new Promise(r => setTimeout(r, 800 * attempt));
+    }
+    const rawRows = (raw && raw.rows) || [];
+    // A car whose pool query never succeeded is a query_error, NOT a genuine empty pool: report it
+    // as such and never emit misleading zero/thin metrics for it.
+    const scopeOK = !queryFailed && c.scopeOK !== false;
+    if (queryFailed) summary.queryFail.push(`${c.id} ${c.mk} ${c.trim}`);
     // annotate exclusions
     const annotated = rawRows.map(s => ({ ...s, _excl: reason(c, s) }));
     // vin_history over the W3 KEPT pool
@@ -204,8 +217,8 @@ const post = (page, body) => page.evaluate(async b => {
       const prices = kept.map(s=>s.price).filter(v=>v>0);
       const miles = kept.map(s=>s.mileage).filter(v=>v!=null&&v>0);
       const n = kept.length;
-      const comparable = scopeOK ? "yes" : "no";
-      const note = c.note || (scopeOK ? "" : (c.resolverNote||"resolver cannot scope this trim"));
+      const comparable = queryFailed ? "query_error" : (scopeOK ? "yes" : "no");
+      const note = queryFailed ? "pool query failed after retries (transient DB timeout); not a scope or data gap" : (c.note || (scopeOK ? "" : (c.resolverNote||"resolver cannot scope this trim")));
       // exclusion breakdown
       for (const s of excluded) { const k=`${c.id}:${s._excl}`; summary.exclusions[k]=(summary.exclusions[k]||0)+1; }
       const row = {
@@ -225,8 +238,10 @@ const post = (page, body) => page.evaluate(async b => {
       if (w.key==="W1"&&comparable==="yes"&&n<8) summary.thinW1.push(`${c.id} ${c.mk} ${c.trim}`);
       if (w.key==="W2"&&comparable==="yes"&&n<8) summary.thinW2.push(`${c.id} ${c.mk} ${c.trim}`);
     }
-    if (scopeOK) summary.comparable++; else summary.resolverFail.push(`${c.id} ${c.mk} ${c.trim}: ${c.resolverNote||"cannot scope"}`);
-    process.stderr.write(`  car ${c.id} ${c.mk} ${c.trim}: W3 raw ${rawRows.length}, kept ${keptW3.length}\n`);
+    if (queryFailed) { /* already recorded in summary.queryFail; not a scope/data failure */ }
+    else if (scopeOK) summary.comparable++;
+    else summary.resolverFail.push(`${c.id} ${c.mk} ${c.trim}: ${c.resolverNote||"cannot scope"}`);
+    process.stderr.write(`  car ${c.id} ${c.mk} ${c.trim}: ${queryFailed?"QUERY_ERROR (retries exhausted)":`W3 raw ${rawRows.length}, kept ${keptW3.length}`}\n`);
   }
   await browser.close();
 
@@ -236,6 +251,8 @@ const post = (page, body) => page.evaluate(async b => {
     ``, `Generated ${TODAY}. Windows: W1 2025-01-01..2026-06-30 (pre-guide), W2 2026-07-01..${TODAY} (post-guide), W3 36 months.`,
     ``, `- Cars comparable (scoped): ${summary.comparable} of ${CARS.length}`,
     `- Cars thin (n<8) in W1: ${summary.thinW1.length}`, `- Cars thin (n<8) in W2: ${summary.thinW2.length}`,
+    `- Cars with query errors (transient DB timeout, retries exhausted; NOT scope/data gaps): ${summary.queryFail.length}`,
+    ``, `## Query errors (re-run these; not a scope or data failure)`, summary.queryFail.length?summary.queryFail.map(x=>`- ${x}`).join("\n"):"- none",
     ``, `## Resolver failures (comparable=no)`, summary.resolverFail.length?summary.resolverFail.map(x=>`- ${x}`).join("\n"):"- none",
     ``, `## Thin in W1`, summary.thinW1.length?summary.thinW1.map(x=>`- ${x}`).join("\n"):"- none",
     ``, `## Thin in W2`, summary.thinW2.length?summary.thinW2.map(x=>`- ${x}`).join("\n"):"- none",
