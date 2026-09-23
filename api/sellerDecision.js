@@ -8,6 +8,7 @@ import { testerCodeExpired } from "../lib/_tester.js";
 import { verifyOnce } from "../lib/_onepass.js";
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
 import { findGeneration, generationModelToken, generationsForModel } from "../lib/generations.js";
+import { handleDeskRequest } from "../lib/desk/handler.js";
 import { isMaterialVariant } from "../lib/materialVariants.js";
 import { buildHouseComparison } from "../lib/houseCalendar.js";
 import { isHouseSource } from "../lib/_houseComps.js";
@@ -2891,6 +2892,24 @@ export default async function handler(req, res) {
       const p = await runOneBoxProof({ supabaseUrl, supabaseKey });
       return res.status(200).json({ status: "one_box_proof", ...p });
     } catch (e) { return res.status(200).json({ status: "one_box_proof", proof: [] }); }
+  }
+  // Sam Desk (/desk). Crew-gated analytics over the archive; rides this function
+  // rather than a 13th serverless function (Hobby plan caps at 12). Archive-only.
+  if (req.body?.desk) {
+    const deskCookies = parseCookies(req.headers.cookie);
+    const deskCrew = deskCookies.gas_crew === "ok";
+    const deskTester = deskCookies.gas_tester === "ok" && !testerCodeExpired();
+    // Desk is crew-only ALWAYS (never public, unlike the storefront): a non-crew,
+    // non-tester caller is refused regardless of the launch curtain.
+    if (!deskCrew && !deskTester) return res.status(403).json({ status: "sealed", error: "Desk is crew-only." });
+    try {
+      const out = await handleDeskRequest(req.body, {
+        env: { supabaseUrl, supabaseKey }, apiKey: process.env.ANTHROPIC_API_KEY,
+        crew: deskCrew, tester: deskTester, curtainSealed: process.env.CURTAIN_SEALED === "1"
+      });
+      const code = out.httpStatus || 200; delete out.httpStatus;
+      return res.status(code).json(out);
+    } catch (e) { return res.status(500).json({ status: "error", error: e.message || "desk failed" }); }
   }
   // Archive aggregation (archive-only, no car, no OCD). Modes: yearCounts (per-platform/per-year
   // counts + earliest date, for backfill reporting) and houseLeaders (per-model house comparison).

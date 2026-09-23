@@ -31,9 +31,9 @@
     if (!q) return;
     go.setAttribute("disabled", "1");
     out.innerHTML = '<div class="working"><span class="pulse"></span> reading the archive</div>';
-    fetch(API + "/api/desk", {
+    fetch(API + "/api/sellerDecision", {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "run", question: q })
+      body: JSON.stringify({ desk: true, action: "run", question: q })
     }).then(function (r) { return r.json(); }).then(render).catch(function (e) {
       out.innerHTML = msg("Trouble", "The Desk could not answer that just now. " + esc(e.message || e));
     }).finally(function () { go.removeAttribute("disabled"); });

@@ -42,8 +42,8 @@
     "api/publicConfig.js": {
       "includeFiles": "onebox.html"
     },
-    "api/desk.js": {
-      "maxDuration": 120
+    "api/sellerDecision.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
