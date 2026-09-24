@@ -29,7 +29,12 @@ const INPUTS = [
   "JTHMPAAY3TA113218", "997 Carrera S coupe", "718 Cayman S coupe", "Lotus Esprit", "Maserati Merak",
   "991 GT3 RS", "2016 Chevrolet Corvette Z06 coupe", "2013 Ford Mustang Shelby GT500 coupe",
   "911", "Corvette", "Mustang", "2019 BMW M4 Competition coupe", "2016 Mercedes-Benz C63 AMG coupe",
-  "2018 Audi RS5 coupe", "458 Speciale coupe", "1966 Ferrari 275 GTB"
+  "2018 Audi RS5 coupe", "458 Speciale coupe", "1966 Ferrari 275 GTB",
+  // Intrinsic-AMG guard (Sep 2026): a model whose NAME carries the halo token ("SLS AMG") must
+  // not have its own pool emptied by the AMG baseExclude. Pre-fix this was a false-zero refusal;
+  // post-fix the pool is real (both bodies present) so it asks the body split. A regression back
+  // to the halo bug flips this state to a refusal and trips the golden.
+  "2013 Mercedes-Benz SLS AMG"
 ];
 
 // Mask volatile numbers so only template/state text is compared.

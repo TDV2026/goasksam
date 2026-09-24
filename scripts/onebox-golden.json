@@ -914,5 +914,43 @@
     "genPrompt": null,
     "genChips": [],
     "cards": 0
+  },
+  "2013 Mercedes-Benz SLS AMG": {
+    "state": "choice",
+    "exact": null,
+    "cfg": null,
+    "xrec": null,
+    "xview": null,
+    "disc": null,
+    "carline": null,
+    "clLead": null,
+    "clBand": null,
+    "clTail": null,
+    "ltFresh": null,
+    "contradiction": null,
+    "kickerGone": true,
+    "samReadBox": 0,
+    "recLabel": null,
+    "htSpec": [],
+    "htPrice": [],
+    "read": [],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": null,
+    "cmWhy": null,
+    "brackets": [],
+    "earned": null,
+    "chips": [],
+    "platforms": [],
+    "platNote": null,
+    "refusalAns": null,
+    "refusalReason": [],
+    "wayfwd": [],
+    "genPrompt": "These sold as Coupe and Convertible, and they price differently. Which one is it?",
+    "genChips": [
+      "Coupe",
+      "Convertible"
+    ],
+    "cards": 0
   }
 }
