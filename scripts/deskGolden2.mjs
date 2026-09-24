@@ -47,5 +47,14 @@ const strip=await post({dsl:{filters:{make:"BMW",model:"M3",channel:"online",win
 ck("(chart) strip sample > 300 (up to 500)", (strip.strip_receipts||[]).length>300, "strip_receipts="+((strip.strip_receipts||[]).length));
 ck("(chart) strip_sampled states N of M when sampled", !!(strip.strip_sampled&&strip.strip_sampled.of>strip.strip_sampled.shown||((strip.strip_receipts||[]).length<=500)), JSON.stringify(strip.strip_sampled));
 
+
+// (record coverage) a record answer always carries its coverage dates, never "all-time"
+const recCov=await post({dsl:{filters:{make:"BMW",model:"M3"},groupBy:[],measures:["record"]},vehicle:{make:"BMW",model:"M3"}});
+if(recCov.record){
+  ck("(record) carries coverage_start date", !!recCov.record.coverage_start, JSON.stringify(recCov.record.coverage_start));
+  ck("(record) lists per-source coverage", (recCov.record.coverage_sources||[]).length>0, "sources="+((recCov.record.coverage_sources||[]).length));
+  ck("(record) definition says 'since' not 'all-time'", /\bsince\b/i.test(recCov.record.definition||"")&&!/all-time/i.test(recCov.record.definition||""), (recCov.record.definition||"").slice(0,90));
+} else { ck("(record) returns for coverage check", false, recCov.status); }
+
 console.log(fails?`\n${fails} FAILURE(S)`:"\nAll Desk golden-2 checks passed.");
 await b.close(); process.exit(fails?1:0);
