@@ -22,6 +22,32 @@ Status as of 2026-09-14. "Latest" = most recent record OCD carries. Archive coun
 | The Market (themarket) | 09-14 | daily | — | present | GBP | **NO** — not backfilled; UK only |
 | PistonHeads (pistonheads) | 09-13 | daily | — | sparse | GBP | **NO** — not backfilled; UK only; screen asking-price rows |
 
+## Online buyer-fee schedules — FEE SCHEDULE: PENDING APPROVAL (report only, not computed)
+
+The Desk currently shows online `buyer_paid == hammer` (the sold price); the buyer-paid column is
+being RELABELLED to say it excludes the online platform fee. We will compute date-aware online
+buyer-paid ONLY after Sam approves the schedules below. Every figure here is UNVERIFIED and must be
+checked against each platform's published terms and their change history before any computation. A
+buyer fee is charged on TOP of the winning bid, so buyer-paid = hammer + fee(hammer, sale_date).
+
+| Source (slug) | Fee (best known, UNVERIFIED) | Min | Cap history (needs dated verification) | Status |
+|---|---|---|---|---|
+| Bring a Trailer (bringatrailer) | 5% of winning bid | $250 | cap was **$5,000** at launch; raised to **$7,500** (believed ~2022) — EXACT change date REQUIRED; there may be intermediate steps | pending approval |
+| Cars & Bids (carsandbids) | 4.5% of winning bid | $225 | cap **$4,500** at 2020 launch; believed later raised — CONFIRM current cap + date | pending approval |
+| PCARMarket (pcarmarket) | buyer fee schedule unknown (marketed "no buyer fee" at times, later a premium on some sales) | ? | needs full history | pending approval — DO NOT compute until confirmed |
+| Hagerty Marketplace (hagerty) | buyer fee believed ~5% | ? | needs confirmation + date | pending approval |
+| Sotheby's Motorsport (sothebysmotorsport) | online arm; premium likely mirrors RM online terms | ? | needs confirmation | pending approval |
+| MB Market (mbmarket) | buyer fee unknown | ? | needs confirmation | pending approval |
+| Hemmings (hemmings) | buyer fee unknown (varies by auction vs classified) | ? | needs confirmation | pending approval |
+| Collecting Cars / The Market / Car & Classic / PistonHeads | each charges its own buyer fee (GBP/EUR/AUD) | ? | needs per-source confirmation; UK/EU/AU-only, already held out of US math | pending approval |
+
+RULES for computation (once approved): fee must be **date-aware** (apply the schedule in force on the
+sale_date, not today's), currency-correct, and applied only to the sources whose schedule is APPROVED;
+an unapproved source keeps `buyer_paid = hammer` with the "excl. fee" label. BaT and Cars & Bids are
+the priority (they are the dominant online volume). Sources to verify against:
+[BaT FAQ/fees], [Cars & Bids FAQ], [PCARMarket terms], [Hagerty Marketplace terms] — capture the
+schedule AND its effective date each time it changed.
+
 ## Live-auction houses (price = premium-inclusive; math runs on backed-out hammer)
 
 Premium back-out verified live 2026-09-14 (RM/Gooding rows: `isHouseSource: true`, `backedOut: true`). Schedules in `lib/_houseComps.js` verified against published 2026 motor-car terms below.

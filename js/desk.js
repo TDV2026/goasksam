@@ -8,12 +8,13 @@
   var input = document.getElementById("q");
   var go = document.getElementById("go");
 
+  // (h) The "what's my car worth" example is removed: the Desk never values a car, and the
+  // language rules apply here too. A record example shows the highest-sale flow instead.
   var EXAMPLES = [
     "Which house has sold the most air-cooled 911s in the last two years, and what did they bring?",
     "E30 M3s: median and count by month over three years, houses and online.",
-    "Share of 250-series Ferrari sales by house, by year, three years.",
-    "1929 Duesenberg Model J, every house sale.",
-    "what's my car worth"
+    "What's the record sale for a BMW M3?",
+    "1929 Duesenberg Model J, every house sale."
   ];
   var ex = document.getElementById("examples");
   EXAMPLES.forEach(function (q) {
@@ -26,17 +27,48 @@
   function usd(n) { return n == null ? "&mdash;" : "$" + Math.round(n).toLocaleString("en-US"); }
   function fmtDate(d) { return d ? String(d).slice(0, 10) : "&mdash;"; }
 
-  function run() {
-    var q = (input.value || "").trim();
-    if (!q) return;
+  // (j) Robust fetch: a Vercel timeout/500 returns PLAIN TEXT, not JSON. Parsing it as JSON threw
+  // the raw "Unexpected token 'A'..." at the user. Read the body as text, JSON.parse in a guard, and
+  // on a non-JSON or failed response show a plain-English error with a Retry button and log the real
+  // error. LAST_PAYLOAD lets Retry re-run the exact request.
+  var LAST_PAYLOAD = null;
+  function deskError(text) {
+    return '<div class="msg deskerr"><div class="t">That took longer than expected</div><p>' + esc(text) + '</p><button class="retry" id="deskretry">Try again</button></div>';
+  }
+  function wireRetry() {
+    var rb = document.getElementById("deskretry");
+    if (rb) rb.onclick = function () { if (LAST_PAYLOAD) deskFetch(LAST_PAYLOAD); };
+  }
+  function deskFetch(payload) {
+    LAST_PAYLOAD = payload;
     go.setAttribute("disabled", "1");
     out.innerHTML = '<div class="working"><span class="pulse"></span> reading the archive</div>';
     fetch(API + "/api/sellerDecision", {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ desk: true, action: "run", question: q })
-    }).then(function (r) { return r.json(); }).then(render).catch(function (e) {
-      out.innerHTML = msg("Trouble", "The Desk could not answer that just now. " + esc(e.message || e));
+      body: JSON.stringify(Object.assign({ desk: true, action: "run" }, payload))
+    }).then(function (r) {
+      return r.text().then(function (t) { return { ok: r.ok, code: r.status, text: t }; });
+    }).then(function (resp) {
+      var j;
+      try { j = JSON.parse(resp.text); }
+      catch (e) {
+        console.error("Desk non-JSON response (" + resp.code + "): " + String(resp.text).slice(0, 300));
+        out.innerHTML = deskError("Try again, or narrow the window (a shorter window, or one generation instead of all)."); wireRetry(); return;
+      }
+      if (!resp.ok) {
+        console.error("Desk error " + resp.code + ": " + JSON.stringify(j).slice(0, 300));
+        out.innerHTML = deskError(esc((j && j.error) || ("The request failed (" + resp.code + ").")) + " Try again, or narrow the window."); wireRetry(); return;
+      }
+      render(j);
+    }).catch(function (e) {
+      console.error("Desk fetch failed:", e);
+      out.innerHTML = deskError("The Desk could not reach the archive. Check your connection and try again."); wireRetry();
     }).finally(function () { go.removeAttribute("disabled"); });
+  }
+  function run() {
+    var q = (input.value || "").trim();
+    if (!q) return;
+    deskFetch({ question: q });
   }
   go.onclick = run;
   input.addEventListener("keydown", function (e) { if (e.key === "Enter") run(); });
@@ -46,7 +78,12 @@
   var LAST = null;
   function render(res) {
     if (res && (res.status === "ok" || res.status === "rerun")) LAST = res;
-    if (!res || res.status === "error") { out.innerHTML = msg("Trouble", esc((res && res.reason) || "something went wrong") + "."); return; }
+    if (!res || res.status === "error") {
+      // (a) The executor returns status "error" (reason "query_error") when the archive query failed
+      // under load AFTER retries, rather than a silently empty pool. Show the plain-English retry.
+      if (res && res.reason === "query_error") { out.innerHTML = deskError("The archive query did not come back cleanly. Try again, or narrow the window."); wireRetry(); return; }
+      out.innerHTML = msg("Trouble", esc((res && res.reason) || "something went wrong") + "."); return;
+    }
     if (res.status === "refused") { out.innerHTML = msg("Not what the Desk does", esc(res.message)); return; }
     if (res.status === "map_error") { out.innerHTML = msg("Could not read that", "I could not turn that into a market query. Try naming the car and what you want to see (counts, prices, by venue or month)."); return; }
     if (res.status === "unresolved") { out.innerHTML = msg("Car not resolved", "I could not pin that car down to a make and model. Try the full nameplate."); return; }
@@ -79,6 +116,34 @@
     }
     h += '</div>';
 
+    // (e) RECORD block: the single highest sale leads, then the top five (price descending), then
+    // the set-aside specials and the definition. Drawn from result.record (full pool, halos/race/
+    // restomods removed via the shared rule), so the top sale is always traceable to its receipt.
+    if (res.record) {
+      var rec = res.record, rtop = rec.top && rec.top[0];
+      h += '<div class="section record"><div class="slabel">Record</div>';
+      if (rtop) {
+        h += '<div class="recordtop"><div class="recordprice">' + usd(rtop.hammer_usd) + '</div>' +
+          '<div class="recordcar">' + (rtop.link ? '<a href="' + esc(rtop.link) + '" target="_blank" rel="noopener">' + esc(rtop.title || "listing") + '</a>' : esc(rtop.title || "")) + '</div>' +
+          '<div class="recordmeta">' + esc(rtop.venue || "") + ' &middot; ' + fmtDate(rtop.date) + '</div></div>';
+        h += '<div class="tblwrap"><table class="receipts"><thead><tr><th class="r">#</th><th class="r">price</th><th>car</th><th>venue</th><th class="r">date</th></tr></thead><tbody>';
+        rec.top.forEach(function (r, i) {
+          var t = r.link ? '<a href="' + esc(r.link) + '" target="_blank" rel="noopener">' + esc((r.title || "").slice(0, 54)) + '</a>' : esc((r.title || "").slice(0, 54));
+          h += '<tr><td class="r">' + (i + 1) + '</td><td class="r">' + usd(r.hammer_usd) + '</td><td>' + t + '</td><td>' + esc(r.venue || "") + '</td><td class="r">' + fmtDate(r.date) + '</td></tr>';
+        });
+        h += '</tbody></table></div>';
+        if (rec.set_aside && rec.set_aside.length) {
+          h += '<details class="setaside"><summary>' + rec.set_aside_total + ' higher/special result' + (rec.set_aside_total === 1 ? '' : 's') + ' set aside (halo, race car or restomod)</summary><div class="tblwrap"><table class="receipts"><tbody>';
+          rec.set_aside.forEach(function (r) { h += '<tr><td class="r">' + usd(r.hammer_usd) + '</td><td>' + esc((r.title || "").slice(0, 54)) + '</td><td>' + esc(r.record_excluded_as || "") + '</td></tr>'; });
+          h += '</tbody></table></div></details>';
+        }
+        h += '<div class="recorddef">' + esc(rec.definition) + '</div>';
+      } else {
+        h += '<div class="read">No qualifying sale to set a record from once halos, race cars and restomods are set aside.</div>';
+      }
+      h += '</div>';
+    }
+
     // 1. the answer (measure-aware columns)
     var a = res.answer, rows = a.rows || [];
     var dimLabel = (a.dimensions && a.dimensions.length ? a.dimensions.join(" · ") : (a.dimension || "overall")).replace(/_/g, " ");
@@ -89,7 +154,7 @@
     var priceHdr = a.priceLabel && /bid-to/.test(a.priceLabel) ? "bid-to" : "median";
     var unit = res.status; // noop
     var cols = [];
-    cols.push(["count", "count", function (r) { return '<span class="clk">' + r.count + '</span>'; }]);
+    cols.push(["count", "count", function (r) { return '<span class="clk" data-group="' + esc(r.group) + '">' + r.count + '</span>'; }]);
     if (has("share")) cols.push(["share", "share", function (r) { return r.share != null ? (r.share * 100).toFixed(0) + '%' : "&mdash;"; }]);
     if (has("sell_through_rate")) cols.push(["sell_through_rate", "sell-through", function (r) { return r.sell_through_rate != null ? (r.sell_through_rate * 100).toFixed(0) + '%' : "&mdash;"; }]);
     if (has("reserve_not_met_rate")) cols.push(["reserve_not_met_rate", "RNM rate", function (r) { return r.reserve_not_met_rate != null ? (r.reserve_not_met_rate * 100).toFixed(0) + '%' : "&mdash;"; }]);
@@ -101,7 +166,11 @@
     if (has("max")) cols.push(["max", "max", function (r) { return r.thin ? "&mdash;" : usd(r.max); }]);
     if (rows.some(function (r) { return r.online_share != null; })) cols.push(["online_share", "online %", function (r) { return r.online_share != null ? (r.online_share * 100).toFixed(0) + '%' : "&mdash;"; }]);
     cols.push(["freshness", "newest", function (r) { return fmtDate(r.freshness); }]);
-    h += '<div class="section"><div class="slabel">Answer <span class="n">' + rows.length + ' ' + esc(dimLabel) + (rows.length === 1 ? '' : 's') + ' &middot; ' + a.total + (a.outcome && a.outcome !== "sold" ? ' ' + esc(a.outcome.replace(/_/g, " ")) : ' sales') + '</span></div>';
+    // (i) The header states the channel and window IN FORCE, so a refine is visibly applied.
+    var chanInForce = (res.echo && res.echo.dsl && res.echo.dsl.filters && res.echo.dsl.filters.channel) || "all";
+    var chanWord = chanInForce === "house" ? "auction houses" : chanInForce === "online" ? "online" : "all channels";
+    var winInForce = (res.coverage && res.coverage.window) || "";
+    h += '<div class="section"><div class="slabel">Answer <span class="n">' + rows.length + ' ' + esc(dimLabel) + (rows.length === 1 ? '' : 's') + ' &middot; ' + a.total + (a.outcome && a.outcome !== "sold" ? ' ' + esc(a.outcome.replace(/_/g, " ")) : ' sales') + ' &middot; ' + esc(chanWord) + (winInForce ? ' &middot; ' + esc(winInForce) : '') + '</span></div>';
     h += '<div class="tblwrap"><table class="answer"><thead><tr><th>' + esc(dimLabel) + '</th>';
     cols.forEach(function (c) { h += '<th>' + esc(c[1]) + '</th>'; });
     h += '</tr></thead><tbody>';
@@ -143,14 +212,24 @@
     // 2. the receipts (every transaction behind the numbers)
     var recs = res.receipts || [];
     var exclN = (res.coverage && res.coverage.excluded_total) || recs.filter(function (r) { return r.excluded; }).length;
+    // (g) ONE clear pool number: the qualifying total. Receipts are a recent sample of it; excluded
+    // rows are shown separately with reasons. No competing 1348/743/300 trio.
     var qualifyN = (res.answer && res.answer.total) != null ? res.answer.total : (recs.length - exclN);
-    var foundN = qualifyN + exclN;
-    h += '<div class="section" id="receipts"><div class="slabel">Receipts <span class="n">' + recs.length + ' shown</span></div>';
-    if (exclN > 0) h += '<div class="reconcile">' + foundN + ' sales found &middot; ' + qualifyN + ' qualify &middot; ' + exclN + ' excluded (listed below with reasons)</div>';
+    var keptShown = recs.length - exclN;
+    var sampleNote = (res.coverage && res.coverage.receipts_sampled)
+      ? 'Showing the ' + res.coverage.receipts_sampled.shown + ' most recent of ' + qualifyN + ' qualifying sales; the answer uses the full pool.'
+      : 'Showing all ' + keptShown + ' qualifying sale' + (keptShown === 1 ? '' : 's') + '.';
+    h += '<div class="section" id="receipts"><div class="slabel">Receipts <span class="n">' + qualifyN + ' qualifying</span></div>';
+    h += '<div class="reconcile">' + esc(sampleNote) + (exclN > 0 ? ' Plus ' + exclN + ' excluded, listed below with reasons.' : '') + '</div>';
+    h += '<div id="drillhdr"></div>';
     h += '<div class="tblwrap"><table class="receipts"><thead><tr>';
-    h += '<th>date</th><th>venue</th><th>room</th><th class="r">hammer (USD)</th><th class="r">buyer paid</th><th class="r">miles</th><th>chassis</th><th>title</th>';
+    h += '<th>date</th><th>venue</th><th>room</th><th class="r">hammer (USD)</th><th class="r">buyer paid<sup class="fn">*</sup></th><th class="r">miles</th><th>chassis</th><th>title</th>';
     h += '</tr></thead><tbody id="recbody"></tbody></table></div>';
-    h += '<button class="recmore" id="recmore"></button></div>';
+    h += '<button class="recmore" id="recmore"></button>';
+    // (f) The buyer-paid column excludes the online platform fee (not yet computed). Footnote so a
+    // reader can see it. Houses are premium-inclusive; online (BaT, C&B) charge a fee on top.
+    h += '<div class="feefoot">* Buyer paid is premium-inclusive at the auction houses. Bring a Trailer and Cars &amp; Bids charge a buyer fee on top of the sold price that is not yet included, so the online figure equals the sold price (marked "excl. fee").</div>';
+    h += '</div>';
 
     // coverage line
     var cov = res.coverage || {};
@@ -163,26 +242,64 @@
     h += 'Rooms ' + (cov.rooms_inferred ? 'are inferred from the house calendar where the record does not carry them' : 'stated only where the record carries them') + '. ';
     if (cov.excluded_total) { var er = Object.keys(cov.excluded_by_reason || {}).map(function (k) { return cov.excluded_by_reason[k] + ' ' + k; }).join(", "); h += cov.excluded_total + ' rows excluded (shown in receipts): ' + esc(er) + '. '; }
     if (cov.attempts_note) h += esc(cov.attempts_note.charAt(0).toUpperCase() + cov.attempts_note.slice(1)) + '. ';
-    if (cov.receipts_sampled) h += 'Receipts show a recent sample of ' + cov.receipts_sampled.shown + ' of ' + cov.receipts_sampled.of + ' sales; the answer uses the full pool. ';
+    // (g) receipts_sampled is stated once, in the Receipts header, not repeated here (no count trio).
     h += 'Thin threshold ' + (cov.thin_threshold || 5) + ' sales.';
     h += '</div>';
 
     h += '</div>';
     out.innerHTML = h;
 
-    // receipts paging (show 12, expand)
+    // receipts paging (show 12, expand) + (d) drill-down to a clicked group
     var shown = 0, PAGE = 12;
+    var VIEW = recs;                 // current receipts view: all, or a drilled group
+    var PRIMARY = a.dimension;       // primary grouping dimension, for filtering
+    function recMatchesGroup(r, group) {
+      var d = r.date ? new Date(r.date) : null;
+      switch (PRIMARY) {
+        case "generation": return (r.generation || "unknown") === group;
+        case "venue": return (r.venue || "") === group;
+        case "channel": return (r.channel || "") === group;
+        case "year": return d ? String(d.getUTCFullYear()) === group : false;
+        case "model_year": return String(r.year || "") === group;
+        default: return null;        // dimension not client-filterable -> scroll only
+      }
+    }
+    function setDrillHeader(group, count) {
+      var hdr = document.getElementById("drillhdr"); if (!hdr) return;
+      if (group == null) { hdr.innerHTML = ""; return; }
+      hdr.innerHTML = '<div class="drillbar">Showing <b>' + esc(group) + '</b> &middot; ' + count + ' sale' + (count === 1 ? '' : 's') + ' <button class="drillback" id="drillback">show all</button></div>';
+      var bk = document.getElementById("drillback"); if (bk) bk.onclick = function () { VIEW = recs; shown = 0; setDrillHeader(null); drawRecs(); };
+    }
     function drawRecs() {
       var body = document.getElementById("recbody"); if (!body) return;
-      var slice = recs.slice(0, shown + PAGE); shown = slice.length;
+      var slice = VIEW.slice(0, shown + PAGE); shown = slice.length;
       body.innerHTML = slice.map(recRow).join("");
       var more = document.getElementById("recmore");
-      if (shown < recs.length) { more.textContent = "show " + Math.min(PAGE, recs.length - shown) + " more of " + recs.length; more.style.display = ""; more.onclick = drawRecs; }
+      if (shown < VIEW.length) { more.textContent = "show " + Math.min(PAGE, VIEW.length - shown) + " more of " + VIEW.length; more.style.display = ""; more.onclick = drawRecs; }
       else more.style.display = "none";
+    }
+    function drillTo(group) {
+      var t = document.getElementById("receipts"); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+      var probe = recMatchesGroup(recs[0] || {}, group);
+      if (probe === null) { setDrillHeader(null); return; }   // not filterable client-side: scroll only
+      var row = (rows || []).filter(function (r) { return String(r.group) === String(group); })[0];
+      var filtered = recs.filter(function (r) { return recMatchesGroup(r, group); });
+      // Pin the group's MAX and MIN receipts from the FULL pool (backend-attached to the answer row),
+      // so every figure - the max especially - is traceable even when it is older than the 300 sample.
+      var pinned = [];
+      if (row && row.max_receipt) pinned.push(Object.assign({}, row.max_receipt, { _tag: "MAX" }));
+      if (row && row.min_receipt && (!row.max_receipt || row.min_receipt.link !== row.max_receipt.link)) pinned.push(Object.assign({}, row.min_receipt, { _tag: "MIN" }));
+      var pl = {}; pinned.forEach(function (p) { if (p.link) pl[p.link] = 1; });
+      VIEW = pinned.concat(filtered.filter(function (r) { return !(r.link && pl[r.link]); }));
+      shown = 0;
+      setDrillHeader(group, row ? row.count : VIEW.length);
+      drawRecs();
     }
     function recRow(r) {
       var st = r.sale_type ? '<span class="stype ' + (r.sale_type.type === "live" ? "live" : "online") + '">' + esc(r.sale_type.type) + (r.sale_type.source === "inferred" ? " (inf)" : "") + '</span>' : "";
       var buyer = r.buyer_paid ? (r.buyer_paid.currency !== "USD" ? esc(r.buyer_paid.currency) + " " : "$") + Math.round(r.buyer_paid.amount).toLocaleString("en-US") : "&mdash;";
+      if (r.channel === "online" && r.buyer_paid) buyer += ' <span class="feetag">excl. fee</span>';
+      var tag = r._tag ? '<span class="drilltag">' + esc(r._tag) + '</span> ' : '';
       var title = r.link ? '<a class="reclink" href="' + esc(r.link) + '" target="_blank" rel="noopener">' + esc((r.title || "listing").slice(0, 54)) + '</a>' : esc((r.title || "").slice(0, 54));
       var excl = r.excluded ? ' excl' : '';
       var roomcell = r.room ? esc(r.room.text) + (r.room.source === "inferred" ? ' <span class="rinf">inf</span>' : '') : "&mdash;";
@@ -191,7 +308,7 @@
         '<td class="r">' + fmtDate(r.date) + '</td>' +
         '<td>' + esc(r.venue) + ' ' + st + reason + '</td>' +
         '<td>' + roomcell + '</td>' +
-        '<td class="r">' + usd(r.hammer_usd) + '</td>' +
+        '<td class="r">' + tag + usd(r.hammer_usd) + '</td>' +
         '<td class="r">' + buyer + '</td>' +
         '<td class="r">' + (r.mileage != null ? Math.round(r.mileage).toLocaleString("en-US") : "&mdash;") + '</td>' +
         '<td>' + esc(r.chassis || "") + '</td>' +
@@ -204,9 +321,11 @@
     var wr = document.getElementById("whyread");
     if (wr) wr.onclick = function () { document.getElementById("figs").classList.toggle("open"); };
 
-    // click a count -> jump to receipts
+    // (d) click a count -> filter the receipts to that group (drawn from the full pool, max/min
+    // pinned and traceable), with a clear way back to all. Dimensions that cannot be filtered
+    // client-side fall back to a scroll.
     Array.prototype.forEach.call(document.querySelectorAll(".answer .clk"), function (el) {
-      el.onclick = function () { var t = document.getElementById("receipts"); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); };
+      el.onclick = function () { var g = el.getAttribute("data-group"); if (g != null) drillTo(g); };
     });
 
     wireToolbar(res);
@@ -489,7 +608,8 @@
       dsl.filters = dsl.filters || {};
       Object.keys(patch).forEach(function (k) { if (patch[k] === "" || patch[k] == null) delete dsl.filters[k]; else dsl.filters[k] = patch[k]; });
       out.scrollIntoView({ block: "start" });
-      out.insertAdjacentHTML("afterbegin", '<div class="working" id="rw"><span class="pulse"></span> rerunning</div>');
+      // (i) Route the refine through the robust fetch so a changed channel/window actually reruns and
+      // a slow rerun shows a real error + retry, never the old identical-answer/raw-text failure.
       postRun({ dsl: dsl });
     }
     var ws = document.getElementById("chip_window"); if (ws) ws.onchange = function () { rerunWith({ window: this.value }); };
@@ -497,11 +617,7 @@
     var ss = document.getElementById("chip_sale_type"); if (ss) ss.onchange = function () { rerunWith({ sale_type: this.value }); };
   }
 
-  function postRun(payload) {
-    go.setAttribute("disabled", "1");
-    fetch(API + "/api/sellerDecision", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(Object.assign({ desk: true, action: "run" }, payload)) })
-      .then(function (r) { return r.json(); }).then(render).catch(function (e) { out.innerHTML = msg("Trouble", esc(e.message || e)); }).finally(function () { go.removeAttribute("disabled"); });
-  }
+  function postRun(payload) { deskFetch(payload); }
 
   // ---- toolbar: save view, exports ----
   function wireToolbar(res) {
