@@ -487,9 +487,11 @@
   }
 
   function drawStrip(svg, res, spec, w, narrow) {
-    var recs = (res.receipts || []).filter(function (r) { return !r.excluded && r.hammer_usd > 0; });
-    var capped = false, N = recs.length;
-    if (recs.length > spec.cap) { recs = shuffle(recs.slice()).slice(0, spec.cap); capped = true; }
+    // Use the larger strip sample (up to 500 priced sales) when the backend sent it; fall back to the
+    // 300-row table receipts. strip_sampled carries the true "N of M" (M = all priced in the pool).
+    var recs = (res.strip_receipts || res.receipts || []).filter(function (r) { return !r.excluded && r.hammer_usd > 0; });
+    var N = recs.length;
+    if (recs.length > spec.cap) { recs = shuffle(recs.slice()).slice(0, spec.cap); N = recs.length; }
     var groupKey = spec.by === "generation" ? function (r) { return r.generation || "unknown"; } : function (r) { return r.venue; };
     var groups = []; recs.forEach(function (r) { var g = groupKey(r); if (groups.indexOf(g) === -1) groups.push(g); });
     var byCount = {}; recs.forEach(function (r) { byCount[groupKey(r)] = (byCount[groupKey(r)] || 0) + 1; });
@@ -516,7 +518,9 @@
       recs.forEach(function (r) { var gi = groups.indexOf(groupKey(r)); var cx = L2 + pos(r.hammer_usd) * plotW2; var cy = T2 + gi * rh + rh / 2 + (Math.random() - 0.5) * rh * 0.6; var d = E("circle", { cx: cx, cy: cy, r: 3.2, fill: colorFor(r.venue, 0), opacity: 0.5, class: "cmark clk" }); bindReceipt(d, r); svg.appendChild(d); });
     }
     caption(svg, w, H, "Price " + (log ? "(log scale, " : "(") + basisShort(spec.basis) + ")");
-    document.getElementById("cnote").textContent = (capped ? "500 of " + N + " shown, all in receipts. " : "") + "Every dot is one real sale; click to open its receipt.";
+    var samp = res.strip_sampled;
+    var sampNote = samp ? (samp.shown + " of " + samp.of + " shown (the rest are in the receipts). ") : "";
+    document.getElementById("cnote").textContent = sampNote + "Every dot is one real sale; click to open its receipt.";
   }
 
   function drawStacked(svg, res, spec, w) {
