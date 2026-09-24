@@ -1,0 +1,3585 @@
+{
+  "version": "2026-09-24.1",
+  "entries": {
+    "718": {
+      "phrase": "718",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": "Boxster",
+          "yearStart": 2017,
+          "yearEnd": 2026,
+          "generation": "718"
+        },
+        {
+          "make": "Porsche",
+          "model": "Cayman",
+          "yearStart": 2017,
+          "yearEnd": 2026,
+          "generation": "718"
+        }
+      ]
+    },
+    "901": {
+      "phrase": "901",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": "911",
+          "yearStart": 1964,
+          "yearEnd": 1973,
+          "generation": "901"
+        }
+      ]
+    },
+    "930": {
+      "phrase": "930",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": "911",
+          "yearStart": 1974,
+          "yearEnd": 1988,
+          "generation": "930"
+        }
+      ]
+    },
+    "964": {
+      "phrase": "964",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": "911",
+          "yearStart": 1990,
+          "yearEnd": 1994,
+          "generation": "964"
+        }
+      ]
+    },
+    "970": {
+      "phrase": "970",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": "Panamera",
+          "yearStart": 2010,
+          "yearEnd": 2016,
+          "generation": "970"
+        }
+      ]
+    },
+    "971": {
+      "phrase": "971",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": "Panamera",
+          "yearStart": 2017,
+          "yearEnd": 2023,
+          "generation": "971"
+        }
+      ]
+    },
+    "981": {
+      "phrase": "981",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": "Boxster",
+          "yearStart": 2013,
+          "yearEnd": 2016,
+          "generation": "981"
+        },
+        {
+          "make": "Porsche",
+          "model": "Cayman",
+          "yearStart": 2013,
+          "yearEnd": 2016,
+          "generation": "981"
+        }
+      ]
+    },
+    "986": {
+      "phrase": "986",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": "Boxster",
+          "yearStart": 1997,
+          "yearEnd": 2004,
+          "generation": "986"
+        }
+      ]
+    },
+    "987": {
+      "phrase": "987",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": "Boxster",
+          "yearStart": 2005,
+          "yearEnd": 2012,
+          "generation": "987"
+        },
+        {
+          "make": "Porsche",
+          "model": "Cayman",
+          "yearStart": 2006,
+          "yearEnd": 2012,
+          "generation": "987"
+        }
+      ]
+    },
+    "991": {
+      "phrase": "991",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": "911",
+          "yearStart": 2012,
+          "yearEnd": 2019,
+          "generation": "991.1"
+        }
+      ]
+    },
+    "992": {
+      "phrase": "992",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": "911",
+          "yearStart": 2020,
+          "yearEnd": 2026,
+          "generation": "992"
+        }
+      ]
+    },
+    "993": {
+      "phrase": "993",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": "911",
+          "yearStart": 1994,
+          "yearEnd": 1998,
+          "generation": "993"
+        }
+      ]
+    },
+    "996": {
+      "phrase": "996",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": "911",
+          "yearStart": 1999,
+          "yearEnd": 2004,
+          "generation": "996"
+        }
+      ]
+    },
+    "997": {
+      "phrase": "997",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": "911",
+          "yearStart": 2005,
+          "yearEnd": 2011,
+          "generation": "997"
+        }
+      ]
+    },
+    "2000s": {
+      "phrase": "2000s",
+      "category": "era",
+      "type": "era",
+      "status": "approved",
+      "yearRange": [
+        2000,
+        2009
+      ]
+    },
+    "2010s": {
+      "phrase": "2010s",
+      "category": "era",
+      "type": "era",
+      "status": "approved",
+      "yearRange": [
+        2010,
+        2019
+      ]
+    },
+    "60s": {
+      "phrase": "60s",
+      "category": "era",
+      "type": "era",
+      "status": "approved",
+      "yearRange": [
+        1960,
+        1969
+      ]
+    },
+    "70s": {
+      "phrase": "70s",
+      "category": "era",
+      "type": "era",
+      "status": "approved",
+      "yearRange": [
+        1970,
+        1979
+      ]
+    },
+    "80s": {
+      "phrase": "80s",
+      "category": "era",
+      "type": "era",
+      "status": "approved",
+      "yearRange": [
+        1980,
+        1989
+      ]
+    },
+    "90s": {
+      "phrase": "90s",
+      "category": "era",
+      "type": "era",
+      "status": "approved",
+      "yearRange": [
+        1990,
+        1999
+      ]
+    },
+    "90s Japanese sports cars": {
+      "phrase": "90s Japanese sports cars",
+      "category": "grouping",
+      "type": "grouping",
+      "status": "pending",
+      "models": [
+        {
+          "make": "Toyota",
+          "model": "Supra",
+          "yearStart": 1993,
+          "yearEnd": 1998,
+          "generation": "A80"
+        },
+        {
+          "make": "Mazda",
+          "model": "RX-7",
+          "yearStart": 1993,
+          "yearEnd": 2002,
+          "generation": null
+        },
+        {
+          "make": "Acura",
+          "model": "NSX",
+          "yearStart": 1990,
+          "yearEnd": 1999,
+          "generation": null
+        },
+        {
+          "make": "Honda",
+          "model": "NSX",
+          "yearStart": 1990,
+          "yearEnd": 1999,
+          "generation": null
+        },
+        {
+          "make": "Nissan",
+          "model": "300ZX",
+          "yearStart": 1990,
+          "yearEnd": 1996,
+          "generation": null
+        },
+        {
+          "make": "Mitsubishi",
+          "model": "3000GT",
+          "yearStart": 1990,
+          "yearEnd": 1999,
+          "generation": null
+        },
+        {
+          "make": "Toyota",
+          "model": "MR2",
+          "yearStart": 1990,
+          "yearEnd": 1999,
+          "generation": null
+        },
+        {
+          "make": "Mazda",
+          "model": "MX-5",
+          "yearStart": 1990,
+          "yearEnd": 1997,
+          "generation": "NA"
+        },
+        {
+          "make": "Mazda",
+          "model": "MX-5",
+          "yearStart": 1999,
+          "yearEnd": 1999,
+          "generation": "NB"
+        },
+        {
+          "make": "Honda",
+          "model": "S2000",
+          "yearStart": 1999,
+          "yearEnd": 1999,
+          "generation": "AP1"
+        },
+        {
+          "make": "Nissan",
+          "model": "Skyline",
+          "yearStart": 1990,
+          "yearEnd": 1999,
+          "generation": null
+        },
+        {
+          "make": "Acura",
+          "model": "Integra Type R",
+          "yearStart": 1997,
+          "yearEnd": 1999,
+          "generation": null
+        }
+      ]
+    },
+    "991.1": {
+      "phrase": "991.1",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": "911",
+          "yearStart": 2012,
+          "yearEnd": 2016,
+          "generation": "991.1"
+        }
+      ]
+    },
+    "991.2": {
+      "phrase": "991.2",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": "911",
+          "yearStart": 2017,
+          "yearEnd": 2019,
+          "generation": "991.2"
+        }
+      ]
+    },
+    "A-body": {
+      "phrase": "A-body",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "pending",
+      "models": [
+        {
+          "make": "Chevrolet",
+          "model": "Chevelle",
+          "yearStart": 1964,
+          "yearEnd": 1977,
+          "generation": null
+        },
+        {
+          "make": "Pontiac",
+          "model": "GTO",
+          "yearStart": 1964,
+          "yearEnd": 1972,
+          "generation": null
+        },
+        {
+          "make": "Oldsmobile",
+          "model": "Cutlass",
+          "yearStart": 1964,
+          "yearEnd": 1977,
+          "generation": null
+        },
+        {
+          "make": "Buick",
+          "model": "Skylark",
+          "yearStart": 1964,
+          "yearEnd": 1972,
+          "generation": null
+        }
+      ]
+    },
+    "A70 Supra": {
+      "phrase": "A70 Supra",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Toyota",
+          "model": "Supra",
+          "yearStart": 1986,
+          "yearEnd": 1992,
+          "generation": "A70"
+        }
+      ]
+    },
+    "A80 Supra": {
+      "phrase": "A80 Supra",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Toyota",
+          "model": "Supra",
+          "yearStart": 1993,
+          "yearEnd": 1998,
+          "generation": "A80"
+        }
+      ]
+    },
+    "A90 Supra": {
+      "phrase": "A90 Supra",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Toyota",
+          "model": "Supra",
+          "yearStart": 2019,
+          "yearEnd": 2026,
+          "generation": "A90"
+        }
+      ]
+    },
+    "AE86": {
+      "phrase": "AE86",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Toyota",
+          "model": "Corolla",
+          "yearStart": 1985,
+          "yearEnd": 1987,
+          "generation": "AE86"
+        }
+      ]
+    },
+    "AP1": {
+      "phrase": "AP1",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Honda",
+          "model": "S2000",
+          "yearStart": 2000,
+          "yearEnd": 2003,
+          "generation": "AP1"
+        }
+      ]
+    },
+    "AP2": {
+      "phrase": "AP2",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Honda",
+          "model": "S2000",
+          "yearStart": 2004,
+          "yearEnd": 2009,
+          "generation": "AP2"
+        }
+      ]
+    },
+    "Amelia": {
+      "phrase": "Amelia",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "__event__",
+      "event": {
+        "label": "Amelia Island",
+        "from": "2026-03-05",
+        "to": "2026-03-08",
+        "note": "annual early-March; dates curated per year"
+      }
+    },
+    "B-body": {
+      "phrase": "B-body",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "pending",
+      "models": [
+        {
+          "make": "Dodge",
+          "model": "Charger",
+          "yearStart": 1966,
+          "yearEnd": 1978,
+          "generation": null
+        },
+        {
+          "make": "Plymouth",
+          "model": "Road Runner",
+          "yearStart": 1968,
+          "yearEnd": 1975,
+          "generation": null
+        },
+        {
+          "make": "Plymouth",
+          "model": "GTX",
+          "yearStart": 1967,
+          "yearEnd": 1974,
+          "generation": null
+        },
+        {
+          "make": "Dodge",
+          "model": "Coronet",
+          "yearStart": 1965,
+          "yearEnd": 1976,
+          "generation": null
+        }
+      ]
+    },
+    "B5": {
+      "phrase": "B5",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Audi",
+          "model": "A4",
+          "yearStart": 1996,
+          "yearEnd": 2001,
+          "generation": "B5"
+        }
+      ]
+    },
+    "B6": {
+      "phrase": "B6",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Audi",
+          "model": "A4",
+          "yearStart": 2002,
+          "yearEnd": 2004,
+          "generation": "B6"
+        }
+      ]
+    },
+    "B7": {
+      "phrase": "B7",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Audi",
+          "model": "A4",
+          "yearStart": 2006,
+          "yearEnd": 2008,
+          "generation": "B7"
+        }
+      ]
+    },
+    "B8": {
+      "phrase": "B8",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Audi",
+          "model": "A4",
+          "yearStart": 2009,
+          "yearEnd": 2016,
+          "generation": "B8"
+        }
+      ]
+    },
+    "BaT": {
+      "phrase": "BaT",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "Bring a Trailer",
+      "event": null
+    },
+    "Barrett-Jackson": {
+      "phrase": "Barrett-Jackson",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "Barrett-Jackson",
+      "event": null
+    },
+    "Beetle": {
+      "phrase": "Beetle",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Volkswagen",
+          "model": "Beetle",
+          "yearStart": 1946,
+          "yearEnd": 2003,
+          "generation": null
+        }
+      ]
+    },
+    "Benz": {
+      "phrase": "Benz",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mercedes-Benz",
+          "model": null,
+          "yearStart": null,
+          "yearEnd": null,
+          "generation": null,
+          "makeOnly": true
+        }
+      ]
+    },
+    "Bimmer": {
+      "phrase": "Bimmer",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": null,
+          "yearStart": null,
+          "yearEnd": null,
+          "generation": null,
+          "makeOnly": true
+        }
+      ]
+    },
+    "Bird": {
+      "phrase": "Bird",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Ford",
+          "model": "Thunderbird",
+          "yearStart": 1955,
+          "yearEnd": 2005,
+          "generation": null
+        },
+        {
+          "make": "Pontiac",
+          "model": "Firebird",
+          "yearStart": 1967,
+          "yearEnd": 2002,
+          "generation": null
+        }
+      ]
+    },
+    "Bonhams": {
+      "phrase": "Bonhams",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "Bonhams",
+      "event": null
+    },
+    "British roadsters": {
+      "phrase": "British roadsters",
+      "category": "grouping",
+      "type": "grouping",
+      "status": "pending",
+      "models": [
+        {
+          "make": "MG",
+          "model": "MGB",
+          "yearStart": 1963,
+          "yearEnd": 1980,
+          "generation": null
+        },
+        {
+          "make": "MG",
+          "model": "MGA",
+          "yearStart": 1955,
+          "yearEnd": 1962,
+          "generation": null
+        },
+        {
+          "make": "Triumph",
+          "model": "TR6",
+          "yearStart": 1969,
+          "yearEnd": 1976,
+          "generation": null
+        },
+        {
+          "make": "Triumph",
+          "model": "TR4",
+          "yearStart": 1961,
+          "yearEnd": 1967,
+          "generation": null
+        },
+        {
+          "make": "Triumph",
+          "model": "Spitfire",
+          "yearStart": 1962,
+          "yearEnd": 1980,
+          "generation": null
+        },
+        {
+          "make": "Austin-Healey",
+          "model": "3000",
+          "yearStart": 1959,
+          "yearEnd": 1967,
+          "generation": null
+        },
+        {
+          "make": "Jaguar",
+          "model": "E-Type",
+          "yearStart": 1961,
+          "yearEnd": 1974,
+          "generation": null
+        },
+        {
+          "make": "Lotus",
+          "model": "Elan",
+          "yearStart": 1962,
+          "yearEnd": 1975,
+          "generation": null
+        },
+        {
+          "make": "Morgan",
+          "model": "Plus 4",
+          "yearStart": 1950,
+          "yearEnd": 2000,
+          "generation": null
+        }
+      ]
+    },
+    "Broad Arrow": {
+      "phrase": "Broad Arrow",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "Broad Arrow",
+      "event": null
+    },
+    "C1": {
+      "phrase": "C1",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Chevrolet",
+          "model": "Corvette",
+          "yearStart": 1953,
+          "yearEnd": 1962,
+          "generation": "C1"
+        }
+      ]
+    },
+    "C2": {
+      "phrase": "C2",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Chevrolet",
+          "model": "Corvette",
+          "yearStart": 1963,
+          "yearEnd": 1967,
+          "generation": "C2"
+        }
+      ]
+    },
+    "C3": {
+      "phrase": "C3",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Chevrolet",
+          "model": "Corvette",
+          "yearStart": 1968,
+          "yearEnd": 1982,
+          "generation": "C3"
+        }
+      ]
+    },
+    "C4": {
+      "phrase": "C4",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Chevrolet",
+          "model": "Corvette",
+          "yearStart": 1984,
+          "yearEnd": 1996,
+          "generation": "C4"
+        }
+      ]
+    },
+    "C5": {
+      "phrase": "C5",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Chevrolet",
+          "model": "Corvette",
+          "yearStart": 1997,
+          "yearEnd": 2004,
+          "generation": "C5"
+        }
+      ]
+    },
+    "C5 Audi": {
+      "phrase": "C5 Audi",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Audi",
+          "model": "A6",
+          "yearStart": 1998,
+          "yearEnd": 2004,
+          "generation": "C5"
+        }
+      ]
+    },
+    "C6": {
+      "phrase": "C6",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Chevrolet",
+          "model": "Corvette",
+          "yearStart": 2005,
+          "yearEnd": 2013,
+          "generation": "C6"
+        }
+      ]
+    },
+    "C7": {
+      "phrase": "C7",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Chevrolet",
+          "model": "Corvette",
+          "yearStart": 2014,
+          "yearEnd": 2019,
+          "generation": "C7"
+        }
+      ]
+    },
+    "C8": {
+      "phrase": "C8",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Chevrolet",
+          "model": "Corvette",
+          "yearStart": 2020,
+          "yearEnd": 2026,
+          "generation": "C8"
+        }
+      ]
+    },
+    "Car & Classic": {
+      "phrase": "Car & Classic",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "Car & Classic",
+      "event": null
+    },
+    "Cars and Bids": {
+      "phrase": "Cars and Bids",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "Cars & Bids",
+      "event": null
+    },
+    "Collecting Cars": {
+      "phrase": "Collecting Cars",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "Collecting Cars",
+      "event": null
+    },
+    "Cuda": {
+      "phrase": "Cuda",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Plymouth",
+          "model": "Barracuda",
+          "yearStart": 1964,
+          "yearEnd": 1974,
+          "generation": null
+        }
+      ]
+    },
+    "Defender 90": {
+      "phrase": "Defender 90",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Land Rover",
+          "model": "Defender",
+          "yearStart": 1983,
+          "yearEnd": 2016,
+          "generation": null,
+          "trim": "90"
+        }
+      ]
+    },
+    "Deuce": {
+      "phrase": "Deuce",
+      "category": "nickname",
+      "type": "scope",
+      "status": "pending",
+      "models": [
+        {
+          "make": "Ford",
+          "model": "Model 18",
+          "yearStart": 1932,
+          "yearEnd": 1934,
+          "generation": null
+        }
+      ]
+    },
+    "Duck": {
+      "phrase": "Duck",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Citroen",
+          "model": "2CV",
+          "yearStart": 1948,
+          "yearEnd": 1990,
+          "generation": null
+        }
+      ]
+    },
+    "E-body": {
+      "phrase": "E-body",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "pending",
+      "models": [
+        {
+          "make": "Dodge",
+          "model": "Challenger",
+          "yearStart": 1970,
+          "yearEnd": 1974,
+          "generation": "first"
+        },
+        {
+          "make": "Plymouth",
+          "model": "Barracuda",
+          "yearStart": 1970,
+          "yearEnd": 1974,
+          "generation": null
+        }
+      ]
+    },
+    "E21": {
+      "phrase": "E21",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "3-Series",
+          "yearStart": 1975,
+          "yearEnd": 1983,
+          "generation": "e21"
+        }
+      ]
+    },
+    "E28": {
+      "phrase": "E28",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "M5",
+          "yearStart": 1985,
+          "yearEnd": 1988,
+          "generation": "e28"
+        }
+      ]
+    },
+    "E30": {
+      "phrase": "E30",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "3-Series",
+          "yearStart": 1984,
+          "yearEnd": 1991,
+          "generation": "e30"
+        }
+      ]
+    },
+    "E34": {
+      "phrase": "E34",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "M5",
+          "yearStart": 1989,
+          "yearEnd": 1995,
+          "generation": "e34"
+        }
+      ]
+    },
+    "E36": {
+      "phrase": "E36",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "3-Series",
+          "yearStart": 1992,
+          "yearEnd": 1998,
+          "generation": "e36"
+        }
+      ]
+    },
+    "E39": {
+      "phrase": "E39",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "M5",
+          "yearStart": 1998,
+          "yearEnd": 2003,
+          "generation": "e39"
+        }
+      ]
+    },
+    "E46": {
+      "phrase": "E46",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "3-Series",
+          "yearStart": 1999,
+          "yearEnd": 2005,
+          "generation": "e46"
+        }
+      ]
+    },
+    "E60": {
+      "phrase": "E60",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "M5",
+          "yearStart": 2005,
+          "yearEnd": 2010,
+          "generation": "e60"
+        }
+      ]
+    },
+    "E90": {
+      "phrase": "E90",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "3-Series",
+          "yearStart": 2006,
+          "yearEnd": 2011,
+          "generation": "e90"
+        }
+      ]
+    },
+    "F-body": {
+      "phrase": "F-body",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Chevrolet",
+          "model": "Camaro",
+          "yearStart": 1967,
+          "yearEnd": 2002,
+          "generation": null
+        },
+        {
+          "make": "Pontiac",
+          "model": "Firebird",
+          "yearStart": 1967,
+          "yearEnd": 2002,
+          "generation": null
+        }
+      ]
+    },
+    "F10": {
+      "phrase": "F10",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "M5",
+          "yearStart": 2011,
+          "yearEnd": 2016,
+          "generation": "f10"
+        }
+      ]
+    },
+    "F30": {
+      "phrase": "F30",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "3-Series",
+          "yearStart": 2012,
+          "yearEnd": 2018,
+          "generation": "f30"
+        }
+      ]
+    },
+    "F80": {
+      "phrase": "F80",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "M3",
+          "yearStart": 2014,
+          "yearEnd": 2018,
+          "generation": "f80"
+        }
+      ]
+    },
+    "F82": {
+      "phrase": "F82",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "M4",
+          "yearStart": 2014,
+          "yearEnd": 2020,
+          "generation": "f82"
+        }
+      ]
+    },
+    "F87": {
+      "phrase": "F87",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "M2",
+          "yearStart": 2016,
+          "yearEnd": 2020,
+          "generation": "f87"
+        }
+      ]
+    },
+    "F90": {
+      "phrase": "F90",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "M5",
+          "yearStart": 2018,
+          "yearEnd": 2023,
+          "generation": "f90"
+        }
+      ]
+    },
+    "FC": {
+      "phrase": "FC",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mazda",
+          "model": "RX-7",
+          "yearStart": 1986,
+          "yearEnd": 1991,
+          "generation": null
+        }
+      ]
+    },
+    "FD": {
+      "phrase": "FD",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mazda",
+          "model": "RX-7",
+          "yearStart": 1993,
+          "yearEnd": 2002,
+          "generation": null
+        }
+      ]
+    },
+    "Ferrari": {
+      "phrase": "Ferrari",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Ferrari",
+          "model": null,
+          "yearStart": null,
+          "yearEnd": null,
+          "generation": null,
+          "makeOnly": true
+        }
+      ]
+    },
+    "Fox body": {
+      "phrase": "Fox body",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Ford",
+          "model": "Mustang",
+          "yearStart": 1979,
+          "yearEnd": 1993,
+          "generation": "Fox-body"
+        }
+      ]
+    },
+    "G-body": {
+      "phrase": "G-body",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "pending",
+      "models": [
+        {
+          "make": "Chevrolet",
+          "model": "Monte Carlo",
+          "yearStart": 1978,
+          "yearEnd": 1988,
+          "generation": null
+        },
+        {
+          "make": "Oldsmobile",
+          "model": "Cutlass",
+          "yearStart": 1978,
+          "yearEnd": 1988,
+          "generation": null
+        },
+        {
+          "make": "Buick",
+          "model": "Regal",
+          "yearStart": 1978,
+          "yearEnd": 1987,
+          "generation": null
+        },
+        {
+          "make": "Pontiac",
+          "model": "Grand Prix",
+          "yearStart": 1978,
+          "yearEnd": 1987,
+          "generation": null
+        }
+      ]
+    },
+    "G20": {
+      "phrase": "G20",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "3-Series",
+          "yearStart": 2019,
+          "yearEnd": 2026,
+          "generation": "g20"
+        }
+      ]
+    },
+    "G80": {
+      "phrase": "G80",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "M3",
+          "yearStart": 2021,
+          "yearEnd": 2026,
+          "generation": "g80"
+        }
+      ]
+    },
+    "G82": {
+      "phrase": "G82",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "M4",
+          "yearStart": 2021,
+          "yearEnd": 2026,
+          "generation": "g82"
+        }
+      ]
+    },
+    "G87": {
+      "phrase": "G87",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "BMW",
+          "model": "M2",
+          "yearStart": 2023,
+          "yearEnd": 2026,
+          "generation": "g87"
+        }
+      ]
+    },
+    "GTI": {
+      "phrase": "GTI",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Volkswagen",
+          "model": "Golf GTI",
+          "yearStart": 1983,
+          "yearEnd": 2026,
+          "generation": null
+        }
+      ]
+    },
+    "Gooding": {
+      "phrase": "Gooding",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "Gooding & Co",
+      "event": null
+    },
+    "Gullwing": {
+      "phrase": "Gullwing",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mercedes-Benz",
+          "model": "300SL",
+          "yearStart": 1954,
+          "yearEnd": 1957,
+          "generation": null,
+          "body": "coupe"
+        }
+      ]
+    },
+    "Hagerty": {
+      "phrase": "Hagerty",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "Hagerty",
+      "event": null
+    },
+    "Hemmings": {
+      "phrase": "Hemmings",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "Hemmings",
+      "event": null
+    },
+    "Italian exotics": {
+      "phrase": "Italian exotics",
+      "category": "grouping",
+      "type": "grouping",
+      "status": "pending",
+      "models": [
+        {
+          "make": "Ferrari",
+          "model": "F40",
+          "yearStart": 1987,
+          "yearEnd": 1992,
+          "generation": null
+        },
+        {
+          "make": "Ferrari",
+          "model": "Testarossa",
+          "yearStart": 1984,
+          "yearEnd": 1991,
+          "generation": null
+        },
+        {
+          "make": "Ferrari",
+          "model": "308 GTB",
+          "yearStart": 1975,
+          "yearEnd": 1985,
+          "generation": null
+        },
+        {
+          "make": "Lamborghini",
+          "model": "Countach",
+          "yearStart": 1974,
+          "yearEnd": 1990,
+          "generation": null
+        },
+        {
+          "make": "Lamborghini",
+          "model": "Miura",
+          "yearStart": 1966,
+          "yearEnd": 1973,
+          "generation": null
+        },
+        {
+          "make": "Lamborghini",
+          "model": "Diablo",
+          "yearStart": 1990,
+          "yearEnd": 2001,
+          "generation": null
+        },
+        {
+          "make": "Maserati",
+          "model": "Ghibli",
+          "yearStart": 1967,
+          "yearEnd": 1973,
+          "generation": null
+        },
+        {
+          "make": "De Tomaso",
+          "model": "Pantera",
+          "yearStart": 1971,
+          "yearEnd": 1992,
+          "generation": null
+        },
+        {
+          "make": "Pagani",
+          "model": "Zonda",
+          "yearStart": 1999,
+          "yearEnd": 2017,
+          "generation": null
+        }
+      ]
+    },
+    "Jag": {
+      "phrase": "Jag",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Jaguar",
+          "model": null,
+          "yearStart": null,
+          "yearEnd": null,
+          "generation": null,
+          "makeOnly": true
+        }
+      ]
+    },
+    "Kissimmee": {
+      "phrase": "Kissimmee",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "__event__",
+      "event": {
+        "label": "Mecum Kissimmee",
+        "from": "2026-01-02",
+        "to": "2026-01-11",
+        "note": "annual early-January; Mecum's flagship; dates curated per year"
+      }
+    },
+    "Lambo": {
+      "phrase": "Lambo",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Lamborghini",
+          "model": null,
+          "yearStart": null,
+          "yearEnd": null,
+          "generation": null,
+          "makeOnly": true
+        }
+      ]
+    },
+    "Lusso": {
+      "phrase": "Lusso",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Ferrari",
+          "model": "250 GT Lusso",
+          "yearStart": 1962,
+          "yearEnd": 1964,
+          "generation": null
+        }
+      ]
+    },
+    "MB Market": {
+      "phrase": "MB Market",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "MB Market",
+      "event": null
+    },
+    "Mecum": {
+      "phrase": "Mecum",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "Mecum Auctions",
+      "event": null
+    },
+    "Miata": {
+      "phrase": "Miata",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mazda",
+          "model": "MX-5",
+          "yearStart": 1990,
+          "yearEnd": 2026,
+          "generation": null
+        }
+      ]
+    },
+    "Monterey": {
+      "phrase": "Monterey",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "__event__",
+      "event": {
+        "label": "Monterey Car Week",
+        "from": "2026-08-13",
+        "to": "2026-08-16",
+        "note": "annual mid-August; dates curated per year"
+      }
+    },
+    "Monterey week": {
+      "phrase": "Monterey week",
+      "category": "window",
+      "type": "window",
+      "status": "approved",
+      "window": "36mo"
+    },
+    "NA Miata": {
+      "phrase": "NA Miata",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mazda",
+          "model": "MX-5",
+          "yearStart": 1990,
+          "yearEnd": 1997,
+          "generation": "NA"
+        }
+      ]
+    },
+    "NB Miata": {
+      "phrase": "NB Miata",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mazda",
+          "model": "MX-5",
+          "yearStart": 1999,
+          "yearEnd": 2005,
+          "generation": "NB"
+        }
+      ]
+    },
+    "NC Miata": {
+      "phrase": "NC Miata",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mazda",
+          "model": "MX-5",
+          "yearStart": 2006,
+          "yearEnd": 2015,
+          "generation": "NC"
+        }
+      ]
+    },
+    "ND Miata": {
+      "phrase": "ND Miata",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mazda",
+          "model": "MX-5",
+          "yearStart": 2016,
+          "yearEnd": 2026,
+          "generation": "ND"
+        }
+      ]
+    },
+    "New Edge": {
+      "phrase": "New Edge",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Ford",
+          "model": "Mustang",
+          "yearStart": 1999,
+          "yearEnd": 2004,
+          "generation": null
+        }
+      ]
+    },
+    "PCARMarket": {
+      "phrase": "PCARMarket",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "PCARMarket",
+      "event": null
+    },
+    "PDK": {
+      "phrase": "PDK",
+      "category": "transmission",
+      "type": "transmission",
+      "status": "approved",
+      "transmission": "other"
+    },
+    "Pagoda": {
+      "phrase": "Pagoda",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mercedes-Benz",
+          "model": "SL-Class",
+          "yearStart": 1963,
+          "yearEnd": 1971,
+          "generation": "w113"
+        }
+      ]
+    },
+    "Panther": {
+      "phrase": "Panther",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "pending",
+      "models": [
+        {
+          "make": "Ford",
+          "model": "Crown Victoria",
+          "yearStart": 1979,
+          "yearEnd": 2011,
+          "generation": null
+        },
+        {
+          "make": "Mercury",
+          "model": "Grand Marquis",
+          "yearStart": 1979,
+          "yearEnd": 2011,
+          "generation": null
+        },
+        {
+          "make": "Lincoln",
+          "model": "Town Car",
+          "yearStart": 1981,
+          "yearEnd": 2011,
+          "generation": null
+        }
+      ]
+    },
+    "PistonHeads": {
+      "phrase": "PistonHeads",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "PistonHeads",
+      "event": null
+    },
+    "Porker": {
+      "phrase": "Porker",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": null,
+          "yearStart": null,
+          "yearEnd": null,
+          "generation": null,
+          "makeOnly": true
+        }
+      ]
+    },
+    "R107": {
+      "phrase": "R107",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mercedes-Benz",
+          "model": "SL-Class",
+          "yearStart": 1972,
+          "yearEnd": 1989,
+          "generation": "r107"
+        }
+      ]
+    },
+    "R129": {
+      "phrase": "R129",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mercedes-Benz",
+          "model": "SL-Class",
+          "yearStart": 1990,
+          "yearEnd": 2002,
+          "generation": "r129"
+        }
+      ]
+    },
+    "R32": {
+      "phrase": "R32",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Nissan",
+          "model": "Skyline",
+          "yearStart": 1989,
+          "yearEnd": 1994,
+          "generation": "R32"
+        }
+      ]
+    },
+    "R33": {
+      "phrase": "R33",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Nissan",
+          "model": "Skyline",
+          "yearStart": 1995,
+          "yearEnd": 1998,
+          "generation": "R33"
+        }
+      ]
+    },
+    "R34": {
+      "phrase": "R34",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Nissan",
+          "model": "Skyline",
+          "yearStart": 1999,
+          "yearEnd": 2002,
+          "generation": "R34"
+        }
+      ]
+    },
+    "RM Sotheby's": {
+      "phrase": "RM Sotheby's",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "RM Sotheby's",
+      "event": null
+    },
+    "Rover": {
+      "phrase": "Rover",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Land Rover",
+          "model": null,
+          "yearStart": null,
+          "yearEnd": null,
+          "generation": null,
+          "makeOnly": true
+        }
+      ]
+    },
+    "S197": {
+      "phrase": "S197",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Ford",
+          "model": "Mustang",
+          "yearStart": 2005,
+          "yearEnd": 2014,
+          "generation": "S197"
+        }
+      ]
+    },
+    "S550": {
+      "phrase": "S550",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Ford",
+          "model": "Mustang",
+          "yearStart": 2015,
+          "yearEnd": 2023,
+          "generation": "S550"
+        }
+      ]
+    },
+    "S650": {
+      "phrase": "S650",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Ford",
+          "model": "Mustang",
+          "yearStart": 2024,
+          "yearEnd": 2026,
+          "generation": "S650"
+        }
+      ]
+    },
+    "SN95": {
+      "phrase": "SN95",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Ford",
+          "model": "Mustang",
+          "yearStart": 1994,
+          "yearEnd": 2004,
+          "generation": "SN95"
+        }
+      ]
+    },
+    "Scottsdale": {
+      "phrase": "Scottsdale",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "__event__",
+      "event": {
+        "label": "Scottsdale Week",
+        "from": "2026-01-20",
+        "to": "2026-01-28",
+        "note": "annual late-January; dates curated per year"
+      }
+    },
+    "Screaming Chicken": {
+      "phrase": "Screaming Chicken",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Pontiac",
+          "model": "Firebird",
+          "yearStart": 1970,
+          "yearEnd": 1981,
+          "generation": null,
+          "trim": "Trans Am"
+        }
+      ]
+    },
+    "Series 1 E-Type": {
+      "phrase": "Series 1 E-Type",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Jaguar",
+          "model": "E-Type",
+          "yearStart": 1961,
+          "yearEnd": 1968,
+          "generation": "Series-1"
+        }
+      ]
+    },
+    "Series 2 E-Type": {
+      "phrase": "Series 2 E-Type",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Jaguar",
+          "model": "E-Type",
+          "yearStart": 1969,
+          "yearEnd": 1970,
+          "generation": "Series-2"
+        }
+      ]
+    },
+    "Series 3 E-Type": {
+      "phrase": "Series 3 E-Type",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Jaguar",
+          "model": "E-Type",
+          "yearStart": 1971,
+          "yearEnd": 1974,
+          "generation": "Series-3"
+        }
+      ]
+    },
+    "Sotheby's Motorsport": {
+      "phrase": "Sotheby's Motorsport",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "Sotheby's Motorsport",
+      "event": null
+    },
+    "Stang": {
+      "phrase": "Stang",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Ford",
+          "model": "Mustang",
+          "yearStart": 1965,
+          "yearEnd": 2026,
+          "generation": null
+        }
+      ]
+    },
+    "T/A": {
+      "phrase": "T/A",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Pontiac",
+          "model": "Firebird",
+          "yearStart": 1969,
+          "yearEnd": 2002,
+          "generation": null,
+          "trim": "Trans Am"
+        }
+      ]
+    },
+    "T1 Bus": {
+      "phrase": "T1 Bus",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Volkswagen",
+          "model": "Bus",
+          "yearStart": 1950,
+          "yearEnd": 1967,
+          "generation": "T1"
+        }
+      ]
+    },
+    "T2 Bus": {
+      "phrase": "T2 Bus",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Volkswagen",
+          "model": "Bus",
+          "yearStart": 1968,
+          "yearEnd": 1979,
+          "generation": "T2"
+        }
+      ]
+    },
+    "T3 Bus": {
+      "phrase": "T3 Bus",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Volkswagen",
+          "model": "Bus",
+          "yearStart": 1980,
+          "yearEnd": 1991,
+          "generation": "T3"
+        }
+      ]
+    },
+    "Testarossa": {
+      "phrase": "Testarossa",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Ferrari",
+          "model": "Testarossa",
+          "yearStart": 1984,
+          "yearEnd": 1991,
+          "generation": null
+        }
+      ]
+    },
+    "The Market": {
+      "phrase": "The Market",
+      "category": "venue",
+      "type": "venue",
+      "status": "approved",
+      "venue": "The Market",
+      "event": null
+    },
+    "Tri-Five": {
+      "phrase": "Tri-Five",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Chevrolet",
+          "model": "Bel Air",
+          "yearStart": 1955,
+          "yearEnd": 1957,
+          "generation": null
+        },
+        {
+          "make": "Chevrolet",
+          "model": "150",
+          "yearStart": 1955,
+          "yearEnd": 1957,
+          "generation": null
+        },
+        {
+          "make": "Chevrolet",
+          "model": "210",
+          "yearStart": 1955,
+          "yearEnd": 1957,
+          "generation": null
+        }
+      ]
+    },
+    "Vette": {
+      "phrase": "Vette",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Chevrolet",
+          "model": "Corvette",
+          "yearStart": 1953,
+          "yearEnd": 2026,
+          "generation": null
+        }
+      ]
+    },
+    "W113": {
+      "phrase": "W113",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mercedes-Benz",
+          "model": "SL-Class",
+          "yearStart": 1963,
+          "yearEnd": 1971,
+          "generation": "w113"
+        }
+      ]
+    },
+    "W116": {
+      "phrase": "W116",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mercedes-Benz",
+          "model": "S-Class",
+          "yearStart": 1973,
+          "yearEnd": 1980,
+          "generation": "w116"
+        }
+      ]
+    },
+    "W124": {
+      "phrase": "W124",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mercedes-Benz",
+          "model": "E-Class",
+          "yearStart": 1985,
+          "yearEnd": 1995,
+          "generation": null
+        }
+      ]
+    },
+    "W126": {
+      "phrase": "W126",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mercedes-Benz",
+          "model": "S-Class",
+          "yearStart": 1981,
+          "yearEnd": 1991,
+          "generation": "w126"
+        }
+      ]
+    },
+    "W140": {
+      "phrase": "W140",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mercedes-Benz",
+          "model": "S-Class",
+          "yearStart": 1992,
+          "yearEnd": 1999,
+          "generation": "w140"
+        }
+      ]
+    },
+    "W201": {
+      "phrase": "W201",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mercedes-Benz",
+          "model": "190E",
+          "yearStart": 1983,
+          "yearEnd": 1993,
+          "generation": null
+        }
+      ]
+    },
+    "W220": {
+      "phrase": "W220",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mercedes-Benz",
+          "model": "S-Class",
+          "yearStart": 2000,
+          "yearEnd": 2006,
+          "generation": "w220"
+        }
+      ]
+    },
+    "W221": {
+      "phrase": "W221",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mercedes-Benz",
+          "model": "S-Class",
+          "yearStart": 2007,
+          "yearEnd": 2013,
+          "generation": "w221"
+        }
+      ]
+    },
+    "W222": {
+      "phrase": "W222",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Mercedes-Benz",
+          "model": "S-Class",
+          "yearStart": 2014,
+          "yearEnd": 2020,
+          "generation": "w222"
+        }
+      ]
+    },
+    "WS6": {
+      "phrase": "WS6",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Pontiac",
+          "model": "Firebird",
+          "yearStart": 1996,
+          "yearEnd": 2002,
+          "generation": null,
+          "trim": "Trans Am WS6"
+        }
+      ]
+    },
+    "Widowmaker": {
+      "phrase": "Widowmaker",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": "911",
+          "yearStart": 1975,
+          "yearEnd": 1989,
+          "generation": "930",
+          "trim": "Turbo"
+        }
+      ]
+    },
+    "Z28": {
+      "phrase": "Z28",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Chevrolet",
+          "model": "Camaro",
+          "yearStart": 1967,
+          "yearEnd": 2002,
+          "generation": null,
+          "trim": "Z/28"
+        }
+      ]
+    },
+    "Z32": {
+      "phrase": "Z32",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Nissan",
+          "model": "300ZX",
+          "yearStart": 1990,
+          "yearEnd": 1996,
+          "generation": null
+        }
+      ]
+    },
+    "air-cooled 911s": {
+      "phrase": "air-cooled 911s",
+      "category": "grouping",
+      "type": "grouping",
+      "status": "pending",
+      "models": [
+        {
+          "make": "Porsche",
+          "model": "911",
+          "yearStart": 1964,
+          "yearEnd": 1973,
+          "generation": "901"
+        },
+        {
+          "make": "Porsche",
+          "model": "911",
+          "yearStart": 1974,
+          "yearEnd": 1988,
+          "generation": "930"
+        },
+        {
+          "make": "Porsche",
+          "model": "911",
+          "yearStart": 1990,
+          "yearEnd": 1994,
+          "generation": "964"
+        },
+        {
+          "make": "Porsche",
+          "model": "911",
+          "yearStart": 1994,
+          "yearEnd": 1998,
+          "generation": "993"
+        }
+      ]
+    },
+    "all channels": {
+      "phrase": "all channels",
+      "category": "channel",
+      "type": "channel",
+      "status": "approved",
+      "channel": "all"
+    },
+    "analog supercars": {
+      "phrase": "analog supercars",
+      "category": "grouping",
+      "type": "grouping",
+      "status": "pending",
+      "models": [
+        {
+          "make": "Ferrari",
+          "model": "F40",
+          "yearStart": 1987,
+          "yearEnd": 1992,
+          "generation": null
+        },
+        {
+          "make": "Ferrari",
+          "model": "F50",
+          "yearStart": 1995,
+          "yearEnd": 1997,
+          "generation": null
+        },
+        {
+          "make": "Ferrari",
+          "model": "288 GTO",
+          "yearStart": 1984,
+          "yearEnd": 1987,
+          "generation": null
+        },
+        {
+          "make": "Porsche",
+          "model": "Carrera GT",
+          "yearStart": 2004,
+          "yearEnd": 2007,
+          "generation": null
+        },
+        {
+          "make": "Lamborghini",
+          "model": "Countach",
+          "yearStart": 1984,
+          "yearEnd": 1990,
+          "generation": null
+        },
+        {
+          "make": "Lamborghini",
+          "model": "Diablo",
+          "yearStart": 1990,
+          "yearEnd": 2001,
+          "generation": null
+        },
+        {
+          "make": "Jaguar",
+          "model": "XJ220",
+          "yearStart": 1992,
+          "yearEnd": 1994,
+          "generation": null
+        },
+        {
+          "make": "Bugatti",
+          "model": "EB110",
+          "yearStart": 1991,
+          "yearEnd": 1995,
+          "generation": null
+        },
+        {
+          "make": "Honda",
+          "model": "NSX",
+          "yearStart": 1990,
+          "yearEnd": 2005,
+          "generation": null
+        },
+        {
+          "make": "Acura",
+          "model": "NSX",
+          "yearStart": 1990,
+          "yearEnd": 2005,
+          "generation": null
+        }
+      ]
+    },
+    "at auction": {
+      "phrase": "at auction",
+      "category": "channel",
+      "type": "channel",
+      "status": "approved",
+      "channel": "house"
+    },
+    "automatic": {
+      "phrase": "automatic",
+      "category": "transmission",
+      "type": "transmission",
+      "status": "approved",
+      "transmission": "automatic"
+    },
+    "average": {
+      "phrase": "average",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": "median",
+        "sort": "desc",
+        "note": "answered with median; the read says 'median, not average' (s12 decision 6)"
+      }
+    },
+    "bargain": {
+      "phrase": "bargain",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": "min",
+        "sort": "asc",
+        "note": "lowest sale vs the set median ('sold furthest under typical'); never 'good buy'"
+      }
+    },
+    "best": {
+      "phrase": "best",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": null,
+        "sort": "desc",
+        "ask": [
+          "highest median",
+          "rising fastest",
+          "most sold",
+          "strongest recent results"
+        ],
+        "note": "one clarifying question, four options (s6)"
+      }
+    },
+    "brass era": {
+      "phrase": "brass era",
+      "category": "era",
+      "type": "era",
+      "status": "pending",
+      "yearRange": [
+        1896,
+        1915
+      ]
+    },
+    "by generation": {
+      "phrase": "by generation",
+      "category": "structural",
+      "type": "structural",
+      "status": "approved",
+      "structural": {
+        "kind": "group_by",
+        "dimension": "generation"
+      }
+    },
+    "by house": {
+      "phrase": "by house",
+      "category": "structural",
+      "type": "structural",
+      "status": "approved",
+      "structural": {
+        "kind": "group_by",
+        "dimension": "venue"
+      }
+    },
+    "by model": {
+      "phrase": "by model",
+      "category": "structural",
+      "type": "structural",
+      "status": "approved",
+      "structural": {
+        "kind": "group_by",
+        "dimension": "model"
+      }
+    },
+    "by model year": {
+      "phrase": "by model year",
+      "category": "structural",
+      "type": "structural",
+      "status": "approved",
+      "structural": {
+        "kind": "group_by",
+        "dimension": "model_year"
+      }
+    },
+    "by month": {
+      "phrase": "by month",
+      "category": "structural",
+      "type": "structural",
+      "status": "approved",
+      "structural": {
+        "kind": "group_by",
+        "dimension": "month"
+      }
+    },
+    "by year": {
+      "phrase": "by year",
+      "category": "structural",
+      "type": "structural",
+      "status": "approved",
+      "structural": {
+        "kind": "group_by",
+        "dimension": "year"
+      }
+    },
+    "cheapest": {
+      "phrase": "cheapest",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": "median",
+        "sort": "asc"
+      }
+    },
+    "chrome bumper MGB": {
+      "phrase": "chrome bumper MGB",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "MG",
+          "model": "MGB",
+          "yearStart": 1963,
+          "yearEnd": 1974,
+          "generation": "chrome-bumper"
+        }
+      ]
+    },
+    "convertible": {
+      "phrase": "convertible",
+      "category": "body",
+      "type": "body",
+      "status": "approved",
+      "body": "convertible"
+    },
+    "coupe": {
+      "phrase": "coupe",
+      "category": "body",
+      "type": "body",
+      "status": "approved",
+      "body": "coupe"
+    },
+    "delivery-mile": {
+      "phrase": "delivery-mile",
+      "category": "mileage",
+      "type": "mileage",
+      "status": "approved",
+      "mileage": {
+        "band": "low"
+      }
+    },
+    "falling": {
+      "phrase": "falling",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": "trend",
+        "sort": "asc",
+        "note": "median change, this window vs the prior one, negative"
+      }
+    },
+    "five figures": {
+      "phrase": "five figures",
+      "category": "price",
+      "type": "price",
+      "status": "approved",
+      "price": {
+        "min": 10000,
+        "max": 99999,
+        "unit": "usd"
+      }
+    },
+    "high-dollar": {
+      "phrase": "high-dollar",
+      "category": "price",
+      "type": "price",
+      "status": "pending",
+      "price": {
+        "min": 250000,
+        "unit": "usd"
+      }
+    },
+    "high-mile": {
+      "phrase": "high-mile",
+      "category": "mileage",
+      "type": "mileage",
+      "status": "approved",
+      "mileage": {
+        "band": "high"
+      }
+    },
+    "highest": {
+      "phrase": "highest",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": "median",
+        "sort": "desc"
+      }
+    },
+    "hot hatches": {
+      "phrase": "hot hatches",
+      "category": "grouping",
+      "type": "grouping",
+      "status": "pending",
+      "models": [
+        {
+          "make": "Volkswagen",
+          "model": "Golf GTI",
+          "yearStart": 1983,
+          "yearEnd": 2026,
+          "generation": null
+        },
+        {
+          "make": "Volkswagen",
+          "model": "Golf R",
+          "yearStart": 2012,
+          "yearEnd": 2026,
+          "generation": null
+        },
+        {
+          "make": "Honda",
+          "model": "Civic Type R",
+          "yearStart": 1997,
+          "yearEnd": 2026,
+          "generation": null
+        },
+        {
+          "make": "Ford",
+          "model": "Focus RS",
+          "yearStart": 2009,
+          "yearEnd": 2018,
+          "generation": null
+        },
+        {
+          "make": "Ford",
+          "model": "Focus ST",
+          "yearStart": 2013,
+          "yearEnd": 2018,
+          "generation": null
+        },
+        {
+          "make": "Renault",
+          "model": "Clio",
+          "yearStart": 2001,
+          "yearEnd": 2016,
+          "generation": null
+        },
+        {
+          "make": "Mini",
+          "model": "Cooper S",
+          "yearStart": 2002,
+          "yearEnd": 2026,
+          "generation": null
+        },
+        {
+          "make": "Subaru",
+          "model": "WRX",
+          "yearStart": 2002,
+          "yearEnd": 2026,
+          "generation": null
+        },
+        {
+          "make": "Toyota",
+          "model": "GR Corolla",
+          "yearStart": 2023,
+          "yearEnd": 2026,
+          "generation": null
+        }
+      ]
+    },
+    "hottest": {
+      "phrase": "hottest",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": null,
+        "sort": "desc",
+        "ask": [
+          "rising fastest",
+          "most sold recently"
+        ],
+        "note": "one clarifying question, two options (s6)"
+      }
+    },
+    "in 2025": {
+      "phrase": "in 2025",
+      "category": "window",
+      "type": "window",
+      "status": "approved",
+      "window": "last_year"
+    },
+    "last 12 months": {
+      "phrase": "last 12 months",
+      "category": "window",
+      "type": "window",
+      "status": "approved",
+      "window": "12mo"
+    },
+    "last 24 months": {
+      "phrase": "last 24 months",
+      "category": "window",
+      "type": "window",
+      "status": "approved",
+      "window": "24mo"
+    },
+    "last 3 years": {
+      "phrase": "last 3 years",
+      "category": "window",
+      "type": "window",
+      "status": "approved",
+      "window": "36mo"
+    },
+    "last 30 days": {
+      "phrase": "last 30 days",
+      "category": "window",
+      "type": "window",
+      "status": "approved",
+      "window": "30d"
+    },
+    "last 6 months": {
+      "phrase": "last 6 months",
+      "category": "window",
+      "type": "window",
+      "status": "approved",
+      "window": "6mo"
+    },
+    "last 90 days": {
+      "phrase": "last 90 days",
+      "category": "window",
+      "type": "window",
+      "status": "approved",
+      "window": "90d"
+    },
+    "last quarter": {
+      "phrase": "last quarter",
+      "category": "window",
+      "type": "window",
+      "status": "approved",
+      "window": "last_quarter"
+    },
+    "last week": {
+      "phrase": "last week",
+      "category": "window",
+      "type": "window",
+      "status": "approved",
+      "window": "7d"
+    },
+    "last year": {
+      "phrase": "last year",
+      "category": "window",
+      "type": "window",
+      "status": "approved",
+      "window": "last_year"
+    },
+    "liquid": {
+      "phrase": "liquid",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": "sell_through_rate",
+        "sort": "desc",
+        "note": "sold-through + days-on-market where recorded (online platforms only); limitation stated"
+      }
+    },
+    "live": {
+      "phrase": "live",
+      "category": "channel",
+      "type": "channel",
+      "status": "approved",
+      "channel": "house"
+    },
+    "low-mile": {
+      "phrase": "low-mile",
+      "category": "mileage",
+      "type": "mileage",
+      "status": "approved",
+      "mileage": {
+        "band": "low"
+      }
+    },
+    "malaise era": {
+      "phrase": "malaise era",
+      "category": "era",
+      "type": "era",
+      "status": "approved",
+      "yearRange": [
+        1973,
+        1983
+      ]
+    },
+    "malaise era cars": {
+      "phrase": "malaise era cars",
+      "category": "grouping",
+      "type": "grouping",
+      "status": "pending",
+      "models": [
+        {
+          "make": "Chevrolet",
+          "model": "Corvette",
+          "yearStart": 1975,
+          "yearEnd": 1982,
+          "generation": "C3"
+        },
+        {
+          "make": "Pontiac",
+          "model": "Firebird",
+          "yearStart": 1973,
+          "yearEnd": 1981,
+          "generation": null,
+          "trim": "Trans Am"
+        },
+        {
+          "make": "Ford",
+          "model": "Mustang",
+          "yearStart": 1974,
+          "yearEnd": 1978,
+          "generation": "second"
+        },
+        {
+          "make": "Chevrolet",
+          "model": "Camaro",
+          "yearStart": 1973,
+          "yearEnd": 1981,
+          "generation": "second"
+        },
+        {
+          "make": "Cadillac",
+          "model": "Eldorado",
+          "yearStart": 1973,
+          "yearEnd": 1978,
+          "generation": null
+        },
+        {
+          "make": "Pontiac",
+          "model": "Grand Prix",
+          "yearStart": 1973,
+          "yearEnd": 1977,
+          "generation": null
+        },
+        {
+          "make": "Chevrolet",
+          "model": "Monte Carlo",
+          "yearStart": 1973,
+          "yearEnd": 1977,
+          "generation": null
+        }
+      ]
+    },
+    "manual": {
+      "phrase": "manual",
+      "category": "transmission",
+      "type": "transmission",
+      "status": "approved",
+      "transmission": "manual"
+    },
+    "median": {
+      "phrase": "median",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": "median",
+        "sort": "desc"
+      }
+    },
+    "modern classic": {
+      "phrase": "modern classic",
+      "category": "era",
+      "type": "era",
+      "status": "pending",
+      "yearRange": [
+        2000,
+        2015
+      ]
+    },
+    "most sold": {
+      "phrase": "most sold",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": "count",
+        "sort": "desc"
+      }
+    },
+    "muscle cars": {
+      "phrase": "muscle cars",
+      "category": "grouping",
+      "type": "grouping",
+      "status": "pending",
+      "models": [
+        {
+          "make": "Chevrolet",
+          "model": "Chevelle",
+          "yearStart": 1964,
+          "yearEnd": 1972,
+          "generation": null
+        },
+        {
+          "make": "Chevrolet",
+          "model": "Camaro",
+          "yearStart": 1967,
+          "yearEnd": 1969,
+          "generation": "first"
+        },
+        {
+          "make": "Pontiac",
+          "model": "GTO",
+          "yearStart": 1964,
+          "yearEnd": 1972,
+          "generation": null
+        },
+        {
+          "make": "Pontiac",
+          "model": "Firebird",
+          "yearStart": 1967,
+          "yearEnd": 1972,
+          "generation": null
+        },
+        {
+          "make": "Dodge",
+          "model": "Charger",
+          "yearStart": 1966,
+          "yearEnd": 1974,
+          "generation": null
+        },
+        {
+          "make": "Dodge",
+          "model": "Challenger",
+          "yearStart": 1970,
+          "yearEnd": 1974,
+          "generation": "first"
+        },
+        {
+          "make": "Plymouth",
+          "model": "Barracuda",
+          "yearStart": 1970,
+          "yearEnd": 1974,
+          "generation": null
+        },
+        {
+          "make": "Plymouth",
+          "model": "Road Runner",
+          "yearStart": 1968,
+          "yearEnd": 1975,
+          "generation": null
+        },
+        {
+          "make": "Ford",
+          "model": "Mustang",
+          "yearStart": 1967,
+          "yearEnd": 1970,
+          "generation": "first"
+        },
+        {
+          "make": "Ford",
+          "model": "Torino",
+          "yearStart": 1968,
+          "yearEnd": 1971,
+          "generation": null
+        },
+        {
+          "make": "Buick",
+          "model": "GS",
+          "yearStart": 1965,
+          "yearEnd": 1972,
+          "generation": null
+        },
+        {
+          "make": "Oldsmobile",
+          "model": "442",
+          "yearStart": 1964,
+          "yearEnd": 1972,
+          "generation": null
+        }
+      ]
+    },
+    "online": {
+      "phrase": "online",
+      "category": "channel",
+      "type": "channel",
+      "status": "approved",
+      "channel": "online"
+    },
+    "or (compare)": {
+      "phrase": "or (compare)",
+      "category": "structural",
+      "type": "structural",
+      "status": "approved",
+      "structural": {
+        "kind": "comparison"
+      }
+    },
+    "overlanders": {
+      "phrase": "overlanders",
+      "category": "grouping",
+      "type": "grouping",
+      "status": "pending",
+      "models": [
+        {
+          "make": "Toyota",
+          "model": "Land Cruiser",
+          "yearStart": 1960,
+          "yearEnd": 2021,
+          "generation": null
+        },
+        {
+          "make": "Land Rover",
+          "model": "Defender",
+          "yearStart": 1983,
+          "yearEnd": 2016,
+          "generation": null
+        },
+        {
+          "make": "Land Rover",
+          "model": "Series III",
+          "yearStart": 1971,
+          "yearEnd": 1985,
+          "generation": null
+        },
+        {
+          "make": "Jeep",
+          "model": "Wagoneer",
+          "yearStart": 1963,
+          "yearEnd": 1991,
+          "generation": null
+        },
+        {
+          "make": "Ford",
+          "model": "Bronco",
+          "yearStart": 1966,
+          "yearEnd": 1996,
+          "generation": null
+        },
+        {
+          "make": "Mercedes-Benz",
+          "model": "G-Class",
+          "yearStart": 1979,
+          "yearEnd": 2026,
+          "generation": null
+        },
+        {
+          "make": "Toyota",
+          "model": "4Runner",
+          "yearStart": 1984,
+          "yearEnd": 2026,
+          "generation": null
+        },
+        {
+          "make": "Nissan",
+          "model": "Patrol",
+          "yearStart": 1980,
+          "yearEnd": 2026,
+          "generation": null
+        }
+      ]
+    },
+    "past 18 months": {
+      "phrase": "past 18 months",
+      "category": "window",
+      "type": "window",
+      "status": "approved",
+      "window": "18mo"
+    },
+    "pony cars": {
+      "phrase": "pony cars",
+      "category": "grouping",
+      "type": "grouping",
+      "status": "pending",
+      "models": [
+        {
+          "make": "Ford",
+          "model": "Mustang",
+          "yearStart": 1965,
+          "yearEnd": 1973,
+          "generation": "first"
+        },
+        {
+          "make": "Chevrolet",
+          "model": "Camaro",
+          "yearStart": 1967,
+          "yearEnd": 1969,
+          "generation": "first"
+        },
+        {
+          "make": "Pontiac",
+          "model": "Firebird",
+          "yearStart": 1967,
+          "yearEnd": 1969,
+          "generation": null
+        },
+        {
+          "make": "Plymouth",
+          "model": "Barracuda",
+          "yearStart": 1964,
+          "yearEnd": 1969,
+          "generation": null
+        },
+        {
+          "make": "Mercury",
+          "model": "Cougar",
+          "yearStart": 1967,
+          "yearEnd": 1970,
+          "generation": null
+        },
+        {
+          "make": "Dodge",
+          "model": "Challenger",
+          "yearStart": 1970,
+          "yearEnd": 1974,
+          "generation": "first"
+        },
+        {
+          "make": "AMC",
+          "model": "Javelin",
+          "yearStart": 1968,
+          "yearEnd": 1974,
+          "generation": null
+        }
+      ]
+    },
+    "post-war": {
+      "phrase": "post-war",
+      "category": "era",
+      "type": "era",
+      "status": "approved",
+      "yearRange": [
+        1946,
+        1959
+      ]
+    },
+    "pre-war": {
+      "phrase": "pre-war",
+      "category": "era",
+      "type": "era",
+      "status": "approved",
+      "yearRange": [
+        1900,
+        1941
+      ]
+    },
+    "quarter to date": {
+      "phrase": "quarter to date",
+      "category": "window",
+      "type": "window",
+      "status": "approved",
+      "window": "qtd"
+    },
+    "radwood era": {
+      "phrase": "radwood era",
+      "category": "era",
+      "type": "era",
+      "status": "approved",
+      "yearRange": [
+        1980,
+        1999
+      ]
+    },
+    "rare": {
+      "phrase": "rare",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": "count",
+        "sort": "asc",
+        "note": "stated as 'fewest sales in our data', a proxy, never rarity as fact"
+      }
+    },
+    "record": {
+      "phrase": "record",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": "record",
+        "sort": "desc"
+      }
+    },
+    "rising fastest": {
+      "phrase": "rising fastest",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": "trend",
+        "sort": "desc",
+        "note": "median change, this window vs the prior one; both windows shown as a chip"
+      }
+    },
+    "roadster": {
+      "phrase": "roadster",
+      "category": "body",
+      "type": "body",
+      "status": "approved",
+      "body": "roadster"
+    },
+    "rubber bumper MGB": {
+      "phrase": "rubber bumper MGB",
+      "category": "platform_chassis",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "MG",
+          "model": "MGB",
+          "yearStart": 1975,
+          "yearEnd": 1980,
+          "generation": "rubber-bumper"
+        }
+      ]
+    },
+    "sedan": {
+      "phrase": "sedan",
+      "category": "body",
+      "type": "body",
+      "status": "approved",
+      "body": "sedan"
+    },
+    "seven figures": {
+      "phrase": "seven figures",
+      "category": "price",
+      "type": "price",
+      "status": "approved",
+      "price": {
+        "min": 1000000,
+        "unit": "usd"
+      }
+    },
+    "share": {
+      "phrase": "share",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": "share",
+        "sort": "desc"
+      }
+    },
+    "since 2023": {
+      "phrase": "since 2023",
+      "category": "window",
+      "type": "window",
+      "status": "approved",
+      "window": "36mo"
+    },
+    "six figures": {
+      "phrase": "six figures",
+      "category": "price",
+      "type": "price",
+      "status": "approved",
+      "price": {
+        "min": 100000,
+        "max": 999999,
+        "unit": "usd"
+      }
+    },
+    "spread": {
+      "phrase": "spread",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": "median",
+        "sort": "desc",
+        "note": "reported as p25-p75 spread beside the median"
+      }
+    },
+    "targa": {
+      "phrase": "targa",
+      "category": "body",
+      "type": "body",
+      "status": "approved",
+      "body": "targa"
+    },
+    "the houses": {
+      "phrase": "the houses",
+      "category": "channel",
+      "type": "channel",
+      "status": "approved",
+      "channel": "house"
+    },
+    "this quarter": {
+      "phrase": "this quarter",
+      "category": "window",
+      "type": "window",
+      "status": "approved",
+      "window": "this_quarter"
+    },
+    "this year": {
+      "phrase": "this year",
+      "category": "window",
+      "type": "window",
+      "status": "approved",
+      "window": "ytd"
+    },
+    "top (subjective)": {
+      "phrase": "top (subjective)",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": null,
+        "sort": "desc",
+        "ask": [
+          "highest median",
+          "most sold"
+        ],
+        "note": "ask when 'top' is not attached to a number/limit"
+      }
+    },
+    "top 10": {
+      "phrase": "top 10",
+      "category": "structural",
+      "type": "structural",
+      "status": "approved",
+      "structural": {
+        "kind": "limit",
+        "n": 10
+      }
+    },
+    "top 3": {
+      "phrase": "top 3",
+      "category": "structural",
+      "type": "structural",
+      "status": "approved",
+      "structural": {
+        "kind": "limit",
+        "n": 3
+      }
+    },
+    "top 5": {
+      "phrase": "top 5",
+      "category": "structural",
+      "type": "structural",
+      "status": "approved",
+      "structural": {
+        "kind": "limit",
+        "n": 5
+      }
+    },
+    "under six figures": {
+      "phrase": "under six figures",
+      "category": "price",
+      "type": "price",
+      "status": "approved",
+      "price": {
+        "max": 99999,
+        "unit": "usd"
+      }
+    },
+    "undervalued": {
+      "phrase": "undervalued",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": null,
+        "sort": "asc",
+        "ask": [
+          "cheapest relative to which set?"
+        ],
+        "note": "not measurable without a value; reframe as 'cheapest relative to X'; never used in our voice"
+      }
+    },
+    "vs": {
+      "phrase": "vs",
+      "category": "structural",
+      "type": "structural",
+      "status": "approved",
+      "structural": {
+        "kind": "comparison"
+      }
+    },
+    "wagon": {
+      "phrase": "wagon",
+      "category": "body",
+      "type": "body",
+      "status": "approved",
+      "body": "wagon"
+    },
+    "youngtimer": {
+      "phrase": "youngtimer",
+      "category": "era",
+      "type": "era",
+      "status": "approved",
+      "yearRange": [
+        1990,
+        2006
+      ]
+    }
+  }
+}

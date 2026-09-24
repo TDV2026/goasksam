@@ -1473,6 +1473,133 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "coverage", ocdMetered, ocdSources, archiveTotal, archivePlatforms, archiveSampleDist, vmrTotal, vmrSources, vmrSampleDist, marketplace, ingestRuns, vinFill, houseCheck });
   }
 
+  // ===================== Sam Desk Stage A: dictionary coverage + gate (READ-ONLY) =====================
+  // task=deskcounts : archive sale count for every dictionary scope member + grouping member
+  //                   (all-time, sold-only). No writes. Flags any expansion with zero sales (spec s4).
+  // task=deskgate   : run the five failed questions + the 30-question test set through the dictionary
+  //                   LOOKUP + VALIDATOR only (no answers). Returns each reading (scope/filters/window/
+  //                   metric/structural) and every phrase's fate. Uses resolveVehicle for residual
+  //                   nameplates and archive counts for the "real sales" check. No writes.
+  if (task === "deskcounts" || task === "deskgate") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    // Archive count for a (make, model, yearStart, yearEnd) scope. Approximate qualifying pool:
+    // make column ILIKE first-token + listing_title ILIKE model + model-year range + sold-only.
+    const countScope = async (mm) => {
+      if (!mm || !mm.make || !mm.model) return null;
+      const makeTok = String(mm.make).split(/\s+/)[0];
+      let f = `sales_archive?select=id&sale_price=not.is.null`;
+      f += `&make=ilike.${encodeURIComponent("*" + makeTok + "*")}`;
+      f += `&listing_title=ilike.${encodeURIComponent("*" + mm.model + "*")}`;
+      if (mm.yearStart) f += `&year=gte.${mm.yearStart}`;
+      if (mm.yearEnd) f += `&year=lte.${mm.yearEnd}`;
+      f += `&limit=1`;
+      try {
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/${f}`, { headers: { ...H, Prefer: "count=exact" } });
+        const cr = r.headers.get("content-range"); return cr ? Number(cr.split("/")[1]) : null;
+      } catch (e) { return null; }
+    };
+    const keyOf = (mm) => [mm.make, mm.model, mm.generation || "", mm.yearStart || "", mm.yearEnd || ""].join("|").toLowerCase();
+
+    const { ALL_ENTRIES, GROUPINGS, scopeMembersOf } = await import("../lib/desk/dictionary.js");
+
+    if (task === "deskcounts") {
+      const seen = new Map(); const results = [];
+      for (const e of ALL_ENTRIES) {
+        for (const mm of scopeMembersOf(e)) {
+          const k = keyOf(mm);
+          if (seen.has(k)) { seen.get(k).entries.push(e.phrase || e.name); continue; }
+          const c = await countScope(mm);
+          const row = { make: mm.make, model: mm.model, generation: mm.generation || null, years: [mm.yearStart || null, mm.yearEnd || null], count: c, entries: [e.phrase || e.name] };
+          seen.set(k, row); results.push(row);
+        }
+      }
+      const zero = results.filter(r => r.count === 0).map(r => ({ car: `${r.make} ${r.model} ${r.years[0] || ""}-${r.years[1] || ""}`, entries: r.entries }));
+      // grouping rollups (member counts for item 2)
+      const groupings = GROUPINGS.map(g => ({
+        name: g.name, status: g.status, definedBy: g.definedBy,
+        members: g.members.map(mm => { const row = seen.get(keyOf(mm)); return { make: mm.make, model: mm.model, years: [mm.yearStart, mm.yearEnd], generation: mm.generation || null, count: row ? row.count : null }; })
+      }));
+      return res.status(200).json({ task: "deskcounts", scopeCount: results.length, zeroSales: zero.length, zero, groupings, results });
+    }
+
+    // task=deskgate
+    const { lookupQuestion } = await import("../lib/desk/lookup.js");
+    const { validateReading } = await import("../lib/desk/validate.js");
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const rcache = new Map();
+    const resolveResidual = async (t) => {
+      const key = String(t).toLowerCase().trim();
+      if (rcache.has(key)) return rcache.get(key);
+      let out = null;
+      try { const r = await resolveVehicle(t, {}); const v = r && r.vehicle; if (v && v.make && v.model) out = { make: v.make, model: v.model, generation: v.generation || null, trim: v.trim || null, year: v.year || null }; } catch (e) { out = null; }
+      rcache.set(key, out); return out;
+    };
+    const FIVE = [
+      "best F-body cars from the 90s",
+      "which Fox body Mustangs are rising fastest",
+      "air-cooled 911s under $100k sold this year",
+      "what 90s Japanese sports cars sold most on Cars & Bids",
+      "Z28 vs Trans Am WS6, last 3 years"
+    ];
+    const THIRTY = [
+      "best F-body cars from the 90s",
+      "which Fox body Mustangs are rising fastest",
+      "air-cooled 911s under $100k sold this year",
+      "Z28 vs Trans Am WS6, last 3 years",
+      "what 90s Japanese sports cars sold most on Cars & Bids",
+      "record sale for a BMW M3",
+      "E30 M3s, median by month, three years, houses and online",
+      "993 turbo, low-mile, last 18 months",
+      "what's a 964 worth",
+      "Bird from the 70s",
+      "Bird with a screaming chicken",
+      "which house sold the most Lussos in the last two years",
+      "Ferrari vs Lamborghini",
+      "cheapest E30 M3 ever",
+      "muscle cars under $50k on BaT",
+      "how many E30 M3s resold since 2023",
+      "Corvette C2 split window",
+      "manual 997 GT3s this year",
+      "Porshe 356 speedster",
+      "concours condition E-Types",
+      "is the Testarossa market softening",
+      "Defender 90 NAS, this year vs last year",
+      "what sold at Monterey this year over $1m",
+      "should I sell my 993 now",
+      "what will 993s be worth next year",
+      "what do you cover for Mecum",
+      "WDBNG79J36A477562",
+      "E30 vs E36 vs E46 M3",
+      "anything sold last week for a Duesenberg",
+      "the frog"
+    ];
+    const which = req.query?.set === "five" ? FIVE : THIRTY;
+    const runOne = async (q) => {
+      const reading = await lookupQuestion(q, { includePending: true, resolveResidual });
+      // counts for scopes + grouping members (real-sales check)
+      const counts = {};
+      const scopeList = [...(reading.scopes || [])];
+      if (reading.grouping) scopeList.push(...reading.grouping.members);
+      for (const mm of scopeList) { const k = keyOf(mm); if (!(k in counts)) counts[k] = await countScope(mm); }
+      const validation = await validateReading(reading, { counts, thin: 3 });
+      return {
+        question: q,
+        scopes: (reading.scopes || []).map(s => `${s.make} ${s.model}${s.generation ? " (" + s.generation + ")" : ""}${s.trim ? " " + s.trim : ""}${s.yearStart ? ` ${s.yearStart}-${s.yearEnd}` : ""}`),
+        grouping: reading.grouping ? { name: reading.grouping.name, status: reading.grouping.status, members: reading.grouping.members.length } : (reading.collapsedGrouping || null),
+        metric: reading.metric ? (reading.metric.measure || ("ASK: " + (reading.metric.ask || []).join(" / "))) : null,
+        filters: reading.filters, window: reading.window, windowDefaulted: !!reading.windowDefaulted,
+        structural: reading.structural, ambiguous: reading.ambiguous || null,
+        unsupported: !!reading.unsupported, meta: reading.meta || null, vin: reading.vin || null,
+        fates: (reading.phrases || []).map(p => ({ phrase: p.text, fate: p.fate, note: p.note })),
+        validation: { ok: validation.ok, runnable: validation.runnable, unresolved: validation.unresolved, summary: validation.summary, parts: validation.parts.map(p => ({ part: p.part, value: p.value, status: p.status, confidence: p.confidence, reason: p.reason })) }
+      };
+    };
+    const out = [];
+    for (const q of which) out.push(await runOne(q));
+    return res.status(200).json({ task: "deskgate", set: which === FIVE ? "five" : "thirty", count: out.length, results: out });
+  }
+
   // task=houserates: empirical premium-rate calibration. A correct back-out rate turns a
   // premium-INCLUSIVE total into a ROUND hammer (auction hammers land on $500/$1000 steps).
   // Tests candidate rates and reports which reproduces round hammers most often. Also
