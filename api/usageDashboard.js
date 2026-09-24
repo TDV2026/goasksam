@@ -1504,15 +1504,21 @@ async function handleOps(req, res) {
     const { ALL_ENTRIES, GROUPINGS, scopeMembersOf } = await import("../lib/desk/dictionary.js");
 
     if (task === "deskcounts") {
+      // De-dupe every distinct scope member first, then count in PARALLEL batches so ~230
+      // count=exact queries finish well inside maxDuration (sequential blew the client timeout).
       const seen = new Map(); const results = [];
       for (const e of ALL_ENTRIES) {
         for (const mm of scopeMembersOf(e)) {
           const k = keyOf(mm);
           if (seen.has(k)) { seen.get(k).entries.push(e.phrase || e.name); continue; }
-          const c = await countScope(mm);
-          const row = { make: mm.make, model: mm.model, generation: mm.generation || null, years: [mm.yearStart || null, mm.yearEnd || null], count: c, entries: [e.phrase || e.name] };
+          const row = { make: mm.make, model: mm.model, generation: mm.generation || null, years: [mm.yearStart || null, mm.yearEnd || null], count: null, _mm: mm, entries: [e.phrase || e.name] };
           seen.set(k, row); results.push(row);
         }
+      }
+      const BATCH = 12;
+      for (let i = 0; i < results.length; i += BATCH) {
+        const slice = results.slice(i, i + BATCH);
+        await Promise.all(slice.map(async row => { row.count = await countScope(row._mm); delete row._mm; }));
       }
       const zero = results.filter(r => r.count === 0).map(r => ({ car: `${r.make} ${r.model} ${r.years[0] || ""}-${r.years[1] || ""}`, entries: r.entries }));
       // grouping rollups (member counts for item 2)
