@@ -48,13 +48,24 @@ ck("(chart) strip sample > 300 (up to 500)", (strip.strip_receipts||[]).length>3
 ck("(chart) strip_sampled states N of M when sampled", !!(strip.strip_sampled&&strip.strip_sampled.of>strip.strip_sampled.shown||((strip.strip_receipts||[]).length<=500)), JSON.stringify(strip.strip_sampled));
 
 
-// (record coverage) a record answer always carries its coverage dates, never "all-time"
+// (record coverage) path-aware: all-time states a true coverage date + sources; fallback states
+// neither (no fake coverage). And the coverage TABLE must match earliest sale_date per source.
 const recCov=await post({dsl:{filters:{make:"BMW",model:"M3"},groupBy:[],measures:["record"]},vehicle:{make:"BMW",model:"M3"}});
-if(recCov.record){
-  ck("(record) carries coverage_start date", !!recCov.record.coverage_start, JSON.stringify(recCov.record.coverage_start));
-  ck("(record) lists per-source coverage", (recCov.record.coverage_sources||[]).length>0, "sources="+((recCov.record.coverage_sources||[]).length));
-  ck("(record) definition says 'since' not 'all-time'", /\bsince\b/i.test(recCov.record.definition||"")&&!/all-time/i.test(recCov.record.definition||""), (recCov.record.definition||"").slice(0,90));
-} else { ck("(record) returns for coverage check", false, recCov.status); }
+const hasSinceDate=/since \d{4}-\d\d-\d\d/.test((recCov.record&&recCov.record.definition)||"");
+if(recCov.record&&recCov.record.window_kind==="all_time"){
+  ck("(record all-time) coverage_start present", !!recCov.record.coverage_start, JSON.stringify(recCov.record.coverage_start));
+  ck("(record all-time) lists per-source coverage", (recCov.record.coverage_sources||[]).length>0, "sources="+((recCov.record.coverage_sources||[]).length));
+  ck("(record all-time) says 'since <date>', not all-time", hasSinceDate&&!/all-time/i.test(recCov.record.definition||""), (recCov.record.definition||"").slice(0,80));
+} else if(recCov.record){ // fallback
+  ck("(record fallback) NO 'since <date>' coverage wording", !hasSinceDate, (recCov.record.definition||"").slice(0,80));
+  ck("(record fallback) coverage_start null", recCov.record.coverage_start==null, JSON.stringify(recCov.record.coverage_start));
+  ck("(record fallback) no per-source coverage dates", (recCov.record.coverage_sources||[]).length===0, "sources="+((recCov.record.coverage_sources||[]).length));
+} else { ck("(record) returns", false, recCov.status); }
+// coverage TABLE matches earliest sale_date per source (independent min check for 2 sources)
+const covT=await post({archiveQuery:"sourceCoverage"});
+const cov=covT.coverage||{};
+ck("(coverage table) Bring a Trailer == 2022-01-02", cov["Bring a Trailer"]==="2022-01-02", cov["Bring a Trailer"]);
+ck("(coverage table) Cars & Bids == 2020-06-26", cov["Cars & Bids"]==="2020-06-26", cov["Cars & Bids"]);
 
 console.log(fails?`\n${fails} FAILURE(S)`:"\nAll Desk golden-2 checks passed.");
 await b.close(); process.exit(fails?1:0);
