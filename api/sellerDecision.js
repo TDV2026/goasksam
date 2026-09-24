@@ -9,6 +9,7 @@ import { verifyOnce } from "../lib/_onepass.js";
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
 import { findGeneration, generationModelToken, generationsForModel } from "../lib/generations.js";
 import { handleDeskRequest } from "../lib/desk/handler.js";
+import { sourceCoverage } from "../lib/desk/coverage.js";
 import { isMaterialVariant } from "../lib/materialVariants.js";
 import { buildHouseComparison } from "../lib/houseCalendar.js";
 import { isHouseSource } from "../lib/_houseComps.js";
@@ -3091,6 +3092,10 @@ export default async function handler(req, res) {
       }
       results.sort((a, b) => b.goodingMedian - a.goodingMedian);
       return res.status(200).json({ status: "archive_query", mode, count: results.length, top: results.slice(0, 15) });
+    }
+    if (mode === "sourceCoverage") {
+      const table = await sourceCoverage(env2, { force: !!req.body.force });
+      return res.status(200).json({ status: "archive_query", mode, coverage: table });
     }
     return res.status(400).json({ error: "unknown archiveQuery mode" });
   }
