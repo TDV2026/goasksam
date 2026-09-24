@@ -39,7 +39,13 @@ const INPUTS = [
   //    regress it). A regression to either intrinsic-AMG bug flips coupe/bare back to a refusal.
   "2013 Mercedes-Benz SLS AMG",
   "2013 Mercedes-Benz SLS AMG coupe",
-  "2013 Mercedes-Benz SLS AMG roadster"
+  "2013 Mercedes-Benz SLS AMG roadster",
+  // GTO generation guard (Sep 2026): "1968 Pontiac GTO" must bind to the 1968-1972 generation and
+  // not pool the 1966-1967 prior generation. This entry locks the end-to-end state/template; the
+  // year-level assertion (no 1966-67, window 1968-1972) lives in scripts/verifyGtoGen.mjs since the
+  // golden masks years. A regression that empties/refuses the pool trips this; the year re-pool
+  // trips verifyGtoGen.
+  "1968 Pontiac GTO coupe"
 ];
 
 // Mask volatile numbers so only template/state text is compared.
