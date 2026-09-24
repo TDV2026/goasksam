@@ -320,9 +320,24 @@
   // styled number spans; the engine never sends prose numbers. Matches the design of record.
   function r3money(n) { return '<span class="num">' + usd(n) + "</span>"; }
   function spellK(n) { return ({ 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten" })[n] || String(n); }
+  // A chassis-style generation code ("E30", "964", "991.2") to prefix the model name so the cluster
+  // reads "Most E30 M3s", not "Most M3s". Word codes ("first"/"second") and family codes are skipped.
+  function genCodeLabel(rc) {
+    var g = rc && rc.genCode ? String(rc.genCode) : "";
+    return /^[a-z]?\d{2,3}(\.\d)?$/i.test(g) ? g.toUpperCase() : "";
+  }
+  function withGen(name, rc) {
+    // A Mercedes AMG badge ("S65") is already specific and the W-code is not how buyers say it, so
+    // no prefix there ("Most S65s"). BMW/Porsche etc. get the chassis code ("Most E30 M3s").
+    if (rc && /mercedes|benz/i.test(rc.make || "")) return name;
+    var g = genCodeLabel(rc);
+    if (g && name && obNorm(name).indexOf(obNorm(g)) < 0) return g + " " + name;
+    return name;
+  }
   function bareModelOf(rc, m) {
     var name = (m && m.displayName) || carLabel(rc) || "";
-    return String(name).replace(/^\d{4}\s+\S+\s+/, "").trim() || String(name) || "car";
+    var bare = String(name).replace(/^\d{4}\s+\S+\s+/, "").trim() || String(name) || "car";
+    return withGen(bare, rc);
   }
   // Singular, make-inclusive headline subject: "The {make} {model} {trim} {Body}". Never
   // pluralised (no "718 Cayman Ss"). Body is included only when it is a distinguishing open
@@ -332,7 +347,7 @@
     var model = rc.model || "";
     // Drop a trim that merely repeats the model ("M3" model + "M3" trim -> not "M3 M3").
     var t = (trim && obNorm(trim) !== obNorm(model) && obNorm(model).indexOf(obNorm(trim)) < 0) ? trim : "";
-    var body = rc.bodyStyle && /^(convertible|cabriolet|roadster|targa|spyder|spider|wagon)$/i.test(rc.bodyStyle) ? cap(rc.bodyStyle) : "";
+    var body = rc.bodyStyle && /^(convertible|cabriolet|roadster|targa|spyder|spider|wagon|sportbrake)$/i.test(rc.bodyStyle) ? cap(rc.bodyStyle) : "";
     var parts = [rc.make, model, t, body].filter(Boolean).join(" ");
     return "The " + parts;
   }
@@ -552,7 +567,11 @@
     if (model && trim && !obSameIdentity(model, trim) && obNorm(model).indexOf(obNorm(trim)) < 0 && obNorm(trim).indexOf(obNorm(model)) < 0)
       head = model + " " + trim;
     else head = trim || poolTrim || model || "";
-    if (head && bw) return esc(head) + " " + bw;
+    head = withGen(head, v);   // "Most E30 M3s" - name the generation, not just the model
+    // A performance badge (S65, M4) already names the car; appending the body reads loose
+    // ("S65 sedans"), so a badge head pluralizes alone ("Most S65s").
+    var isBadge = v.badge && obNorm(head) === obNorm(v.badge);
+    if (head && bw && !isBadge) return esc(head) + " " + bw;
     if (head) return esc(head) + "s";
     return "";
   }
@@ -992,6 +1011,20 @@
     var onl = scope.filter(function (r) { return !r.isHouse; }).sort(function (x, y) { return y.hammer - x.hammer; });
     return onl.length ? '<p class="lt-span">' + lint("Online, the highest to sell was " + usd(onl[0].hammer) + " on " + esc(onl[0].venue) + ".", "ht.online") + "</p>" : "";
   }
+  // The representative (median) sale as a HERO PHOTO card in the thin state - the receipts carry
+  // photos, so the hero should too (item 4). Same treatment as the general "Typical sale" card.
+  function thinHeroCard(mid) {
+    if (!mid) return "";
+    var ext = '<span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>';
+    var img = mid.image ? '<img src="' + esc(mid.image) + '" alt="' + esc(mid.title || "") + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.plate\');if(p)p.style.display=\'flex\'">' : "";
+    var meta = [mid.mileage ? Number(mid.mileage).toLocaleString("en-US") + " mi" : "", mid.transmission ? cap(String(mid.transmission)) : ""].filter(Boolean).join(" · ");
+    var inner = '<div class="rph">' + img + '<span class="cmkick">Representative sale</span>' + ext + '<div class="plate" style="display:' + (mid.image ? "none" : "flex") + '"><div class="n">' + esc(cleanReceiptTitle(mid.title)) + '</div><div class="s">photo pending</div></div></div>' +
+      '<div class="rb"><div class="rprice num">' + usd(mid.hammer) + '</div>' +
+      (meta ? '<div class="rmeta">' + esc(meta) + '</div>' : '') +
+      '<div class="rtitle">' + esc(cleanReceiptTitle(mid.title)) + '<span class="dot">&middot;</span>' + esc(mid.venue) + '<span class="dot">&middot;</span>' + esc(monthYear(mid.date)) + '</div></div>';
+    var href = utmUrl(mid.url);
+    return href ? '<a class="cm cm-solo" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(mid.slug || "") + '">' + inner + "</a>" : '<div class="cm cm-solo">' + inner + "</div>";
+  }
   // Sale-anchored hero: ALWAYS a single named sale, never a band. The median of the scoped set
   // (nearest to the placed config) when the user answered intake; the median of all when skipped.
   function thinHeroHtml(name, scope, scopedLabel, answered) {
@@ -999,14 +1032,17 @@
     var n = s.length, mid = s[Math.floor((n - 1) / 2)];
     var out = '<div class="livetake blk" data-stage="answer">';
     out += '<p class="lt-hero">' + esc(usd(mid.hammer)) + "</p>";
+    // 5b: the line NAMES the sale but never repeats the headline price (it is already the big number
+    // above and on the hero card). 5a: no count of sales on a consumer surface.
     var line;
-    if (n === 1) line = "The one " + name + " to change hands in " + HT_WINDOW_TEXT + ": " + mid.year + " at " + esc(mid.venue) + ", " + monthYear(mid.date) + "." + (mid.isHouse && mid.allIn ? " The buyer paid " + usd(mid.allIn) + " with the premium." : "");
-    else if (answered && scopedLabel) line = "The closest recent sale to a " + scopedLabel + " car: " + mid.year + " at " + esc(mid.venue) + ", " + usd(mid.hammer) + " in " + monthYear(mid.date) + ".";
-    else line = "The middle of the recent sales: " + mid.year + " at " + esc(mid.venue) + ", " + usd(mid.hammer) + " in " + monthYear(mid.date) + ".";
+    if (n === 1) line = "The one " + name + " to change hands in " + HT_WINDOW_TEXT + ": a " + mid.year + " sold at " + esc(mid.venue) + " in " + monthYear(mid.date) + "." + (mid.isHouse && mid.allIn ? " The buyer paid " + usd(mid.allIn) + " with the premium." : "");
+    else if (answered && scopedLabel) line = "The closest recent sale to a " + scopedLabel + " car is a " + mid.year + ", " + esc(mid.venue) + " in " + monthYear(mid.date) + ".";
+    else line = "The middle of the recent sales is a " + mid.year + ", " + esc(mid.venue) + " in " + monthYear(mid.date) + ".";
     out += '<p class="lt-line">' + lint(line, "ht.hero") + "</p>";
+    out += thinHeroCard(mid);   // item 4: hero photo
     if (n >= 2) {
       var min = s[0].hammer, max = s[n - 1].hammer;
-      if (max > min) out += '<p class="lt-span">' + lint("Across the " + n + (scopedLabel ? " " + scopedLabel + " cars" : " recorded sales") + ", the range ran " + usd(min) + " to " + usd(max) + ".", "ht.span") + "</p>";
+      if (max > min) out += '<p class="lt-span">' + lint("The recorded sales" + (scopedLabel ? " of " + scopedLabel + " cars" : "") + " ran from " + usd(min) + " to " + usd(max) + ".", "ht.span") + "</p>";
     }
     out += htOnlineCeiling(scope);
     return out + "</div>";
