@@ -8,7 +8,7 @@
     "seed:aliases": "node scripts/generateAliases.js",
     "seed:generations": "node scripts/seedGenerations.js",
     "backfill:partners": "node scripts/backfillPartnerHistory.js",
-    "lint:cards": "node scripts/verifyGtoGen.mjs && node scripts/cardV2Lint.mjs && node scripts/verifyBugs.mjs && node scripts/verifyValueGate.mjs && node scripts/verifyPrewarVeto.mjs && node scripts/verifyLocality.mjs",
+    "lint:cards": "node scripts/verifyGtoGen.mjs && node scripts/verifyDeskSetAside.mjs && node scripts/cardV2Lint.mjs && node scripts/verifyBugs.mjs && node scripts/verifyValueGate.mjs && node scripts/verifyPrewarVeto.mjs && node scripts/verifyLocality.mjs",
     "test:gto-gen": "node scripts/verifyGtoGen.mjs",
     "smoke:prod": "node scripts/smokeProd.js && npm run --silent smoke:wizard:advisory",
     "smoke:wizard": "node scripts/smokeWizard.js",
@@ -22,7 +22,8 @@
     "fill:ladder": "node scripts/fillLadder.js",
     "lint:trim-asks": "node scripts/lintTrimAsks.js",
     "test:golden": "node scripts/oneboxGolden.mjs",
-    "test:desk": "node scripts/deskGolden.mjs"
+    "test:desk": "node scripts/deskGolden.mjs",
+    "test:desk-rule": "node scripts/verifyDeskSetAside.mjs"
   },
   "devDependencies": {
     "puppeteer-core": "^25.5.0"
