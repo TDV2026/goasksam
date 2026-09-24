@@ -25,11 +25,11 @@ const ONLY = new Set((process.env.CARS || "").split(",").map(s => s.trim()).filt
 // generation year bounds for the +/-2 widen (widen never crosses these)
 const GEN = { C2:[1963,1967],C4:[1984,1996],C5:[1997,2004],C6:[2005,2013],C7:[2014,2019],C8:[2020,2026],
   e30:[1986,1991],e36:[1992,1999],e46:[2000,2006],e28:[1985,1988],e39:[1998,2003],
-  "901":[1964,1973],"930":[1974,1989],"964":[1989,1994],"993":[1994,1998],"996":[1999,2004],"997":[2005,2012],"991":[2012,2019],
+  "901":[1964,1973],"930":[1974,1989],"964":[1989,1994],"993":[1994,1998],"996":[1999,2004],"997":[2005,2012],"991":[2012,2019],"991T":[2018,2019],
   A80:[1993,1998],FD:[1993,1995],Z32:[1990,1996],NA1:[1991,2001],NA2:[2002,2005],R35:[2009,2030],F82:[2014,2020],
   S197:[2005,2014],S550:[2015,2023],VX:[2013,2017],"981":[2013,2016],R107:[1972,1989],S1:[1961,1968],"105":[1963,1977],
   "2005":[2005,2006],G50:[1987,1989],SR1:[1992,1995],ZB2:[2003,2010],"1st":[1966,1977],"2nd":[1970,1981],"3rd":[1982,1992],
-  Fox:[1979,1993],W113:[1963,1971],"356C":[1964,1965] };
+  Fox:[1979,1993],W113:[1963,1971],"356C":[1964,1965],"GT350-1":[1965,1967] };
 
 // per-car halo/variant title excludes (the pool check catches anything missed)
 const HALO = {
@@ -192,6 +192,11 @@ async function fetchScoped(page, m, yMin, yMax) {
   const covPrior = perCar.filter(p => p.priced.some(r => r.chassis)).length;
   const md = [];
   md.push(`# HVT-100 comparison — our side (archive only, zero OCD)`, ``, `Generated ${TODAY}. Windows: W1 ${W.W1[0]}..${W.W1[1]}, W2 ${W.W2[0]}..${W.W2[1]}, W3 last 36 months. Scoping: One Box path (buildSpec/fetchQualifying/isQualifying) via the Desk. Year rule: exact model year if W1>=8 else +/-2 within generation ("adjacent years pooled"), W1 scope applied to all windows. Basis: auction houses buyer-paid; online sold price + buyer fee. Medians and quartiles only. No cap.`, ``);
+  md.push(`## Run note`,
+    `Cars 9 (Shelby GT350) and 82 (Porsche 911 Carrera T) were re-run in ISOLATION (one car at a time) because the Desk executor intermittently returns an empty pool under load rather than an error, which had made both read as thin zeros in the full-batch run.`,
+    `- Car 82 recovered cleanly: its pool is real. The full-batch zero was purely the empty-result flake plus a widen artifact (the +/-2 widen reached 2016-2019, below the Carrera T's 2018 production start, which the executor zeroes); the widen is now capped to the trim's real 2018-2019 window and it lands n=10 on W3.`,
+    `- Car 9 is NOT recovered and stays a documented zero. Its clean scope (trim=GT350, which title-filters out the GT500 that shares the Shelby Mustang model) is PERSISTENTLY empty this run (0 across 15 retries in isolation) via the same executor empty-result bug; the only stable-count alternative (model=GT350, no trim) returns a GT500-contaminated, non-deterministic pool. Per "better nothing than a fake number" it lands 0 until the executor empty-result bug is fixed.`,
+    ``);
   md.push(`## a) Scope-failure report (read first)`, scopeFlags.length ? scopeFlags.map(s => `- ${s}`).join("\n") : "- none", ``);
   md.push(`## c) Totals`,
     `- Comparable (in HVT): ${comp.length} | with a non-thin W1 median: ${compN} | thin/no-value: ${comp.length - compN}`,

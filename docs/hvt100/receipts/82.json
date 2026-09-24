@@ -2,16 +2,177 @@
  "car_id": 82,
  "listed": "2018 Porsche 911 Carrera T",
  "status": "compare",
- "year_scope": "adjacent years pooled (2016-2019)",
- "basis": "n/a",
+ "year_scope": "adjacent years pooled (2018-2019)",
+ "basis": "sold+fee (online)",
  "scope": {
   "make": "Porsche",
   "model": "911",
   "window": "36mo",
-  "year_min": 2016,
+  "year_min": 2018,
   "year_max": 2019,
   "trim": "Carrera T"
  },
  "halo_dropped": 0,
- "sales": []
+ "sales": [
+  {
+   "date": "2026-04-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 120750,
+   "basis": "sold+fee",
+   "hammer_usd": 115000,
+   "native": {
+    "amount": 115000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-porsche-911-carrera-t-21/",
+   "chassis": "WP0AA2A98JS106387",
+   "title": "16k-Mile 2018 Porsche 911 Carrera T 7-Speed"
+  },
+  {
+   "date": "2025-12-11",
+   "venue": "Cars & Bids",
+   "price_usd": 107100,
+   "basis": "sold+fee",
+   "hammer_usd": 102000,
+   "native": {
+    "amount": 102000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://carsandbids.com/auctions/rbblJBMw/2019-porsche-911-carrera-t-coupe",
+   "chassis": "WP0AA2A98KS103443",
+   "title": "2019 Porsche 911 Carrera T Coupe"
+  },
+  {
+   "date": "2025-11-12",
+   "venue": "Bring a Trailer",
+   "price_usd": 127050,
+   "basis": "sold+fee",
+   "hammer_usd": 121000,
+   "native": {
+    "amount": 121000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-carrera-t-24/",
+   "chassis": "WP0AA2A91KS103607",
+   "title": "28k-Mile 2019 Porsche 911 Carrera T 7-Speed"
+  },
+  {
+   "date": "2025-07-26",
+   "venue": "Bring a Trailer",
+   "price_usd": 117600,
+   "basis": "sold+fee",
+   "hammer_usd": 112000,
+   "native": {
+    "amount": 112000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-carrera-t-22/",
+   "chassis": "WP0AA2A93KS103401",
+   "title": "2019 Porsche 911 Carrera T 7-Speed"
+  },
+  {
+   "date": "2025-04-02",
+   "venue": "Bring a Trailer",
+   "price_usd": 112467,
+   "basis": "sold+fee",
+   "hammer_usd": 107111,
+   "native": {
+    "amount": 107111,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-porsche-911-carrera-t-18/",
+   "chassis": "WP0AA2A90JS106464",
+   "title": "15k-Mile 2018 Porsche 911 Carrera T 7-Speed"
+  },
+  {
+   "date": "2024-09-16",
+   "venue": "Bring a Trailer",
+   "price_usd": 95025,
+   "basis": "sold+fee",
+   "hammer_usd": 90500,
+   "native": {
+    "amount": 90500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-porsche-911-carrera-t-16/",
+   "chassis": "WP0AA2A91JS105906",
+   "title": "5k-Mile 2018 Porsche 911 Carrera T 7-Speed"
+  },
+  {
+   "date": "2024-05-15",
+   "venue": "Bring a Trailer",
+   "price_usd": 72450,
+   "basis": "sold+fee",
+   "hammer_usd": 69000,
+   "native": {
+    "amount": 69000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-carrera-t-16/",
+   "chassis": "WP0AA2A90KS103937",
+   "title": "2019 Porsche 911 Carrera T"
+  },
+  {
+   "date": "2024-05-13",
+   "venue": "Bring a Trailer",
+   "price_usd": 103950,
+   "basis": "sold+fee",
+   "hammer_usd": 99000,
+   "native": {
+    "amount": 99000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2019,
+   "url": "https://bringatrailer.com/listing/2019-porsche-911-carrera-t-15/",
+   "chassis": "WP0AA2A96KS103103",
+   "title": "13k-Mile 2019 Porsche 911 Carrera T 7-Speed"
+  },
+  {
+   "date": "2024-05-06",
+   "venue": "Bring a Trailer",
+   "price_usd": 102900,
+   "basis": "sold+fee",
+   "hammer_usd": 98000,
+   "native": {
+    "amount": 98000,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-porsche-911-carrera-t-12/",
+   "chassis": "WP0AA2A9XJS106519",
+   "title": "8k-Mile 2018 Porsche 911 Carrera T 7-Speed"
+  },
+  {
+   "date": "2023-12-17",
+   "venue": "Bring a Trailer",
+   "price_usd": 85575,
+   "basis": "sold+fee",
+   "hammer_usd": 81500,
+   "native": {
+    "amount": 81500,
+    "currency": "USD",
+    "premium_inclusive": false
+   },
+   "year": 2018,
+   "url": "https://bringatrailer.com/listing/2018-porsche-911-carrera-t-11/",
+   "chassis": "WP0AA2A90JS105993",
+   "title": "2018 Porsche 911 Carrera T"
+  }
+ ]
 }

@@ -23,9 +23,9 @@ car_id,year,make,model_trim,status,year_scope_used,window,basis,n,thin,median,p2
 8,1969,"Dodge Charger R/T",compare,adjacent years pooled (1967-1971),W1,n/a,0,yes,,,,,
 8,1969,"Dodge Charger R/T",compare,adjacent years pooled (1967-1971),W2,n/a,0,yes,,,,,
 8,1969,"Dodge Charger R/T",compare,adjacent years pooled (1967-1971),W3,n/a,0,yes,,,,,
-9,1966,"Shelby Mustang GT350",compare,adjacent years pooled (1964-1968),W1,n/a,0,yes,,,,,
-9,1966,"Shelby Mustang GT350",compare,adjacent years pooled (1964-1968),W2,n/a,0,yes,,,,,
-9,1966,"Shelby Mustang GT350",compare,adjacent years pooled (1964-1968),W3,n/a,0,yes,,,,,
+9,1966,"Shelby Mustang GT350",compare,adjacent years pooled (1965-1967),W1,n/a,0,yes,,,,,
+9,1966,"Shelby Mustang GT350",compare,adjacent years pooled (1965-1967),W2,n/a,0,yes,,,,,
+9,1966,"Shelby Mustang GT350",compare,adjacent years pooled (1965-1967),W3,n/a,0,yes,,,,,
 10,1968,"Pontiac GTO",compare,adjacent years pooled (1966-1970),W1,mixed (15% house buyer-paid, rest sold+fee),48,no,52238,42985,61911,26513,136500
 10,1968,"Pontiac GTO",compare,adjacent years pooled (1966-1970),W2,mixed (15% house buyer-paid, rest sold+fee),14,no,56700,46056,66693,41738,115500
 10,1968,"Pontiac GTO",compare,adjacent years pooled (1966-1970),W3,mixed (15% house buyer-paid, rest sold+fee),85,no,49875,41738,59850,23625,136500
@@ -175,7 +175,7 @@ car_id,year,make,model_trim,status,year_scope_used,window,basis,n,thin,median,p2
 58,1997,"Porsche 911 Turbo",compare,exact 1997,W3,mixed (40% house buyer-paid, rest sold+fee),25,no,268800,231660,327500,145600,402500
 59,1999,"Porsche 911 Carrera",compare,exact 1999,W1,mixed (6% house buyer-paid, rest sold+fee),14,no,26996,21919,31107,18113,47250
 59,1999,"Porsche 911 Carrera",compare,exact 1999,W2,mixed (6% house buyer-paid, rest sold+fee),0,yes,,,,,
-59,1999,"Porsche 911 Carrera",compare,exact 1999,W3,mixed (6% house buyer-paid, rest sold+fee),54,no,29661,23424,35635,13200,53546
+59,1999,"Porsche 911 Carrera",compare,exact 1999,W3,mixed (6% house buyer-paid, rest sold+fee),53,no,29658,23358,35963,13200,53546
 60,2004,"Porsche 911 GT3",compare,adjacent years pooled (2002-2004),W1,mixed (11% house buyer-paid, rest sold+fee),4,yes,,,,,
 60,2004,"Porsche 911 GT3",compare,adjacent years pooled (2002-2004),W2,mixed (11% house buyer-paid, rest sold+fee),0,yes,,,,,
 60,2004,"Porsche 911 GT3",compare,adjacent years pooled (2002-2004),W3,mixed (11% house buyer-paid, rest sold+fee),18,no,123376,108675,146738,58333,159500
@@ -187,7 +187,7 @@ car_id,year,make,model_trim,status,year_scope_used,window,basis,n,thin,median,p2
 62,2004,"Porsche Carrera GT",compare,adjacent years pooled (2002-2006),W3,buyer-paid (houses),2,yes,,,,,
 63,2001,"BMW M3",compare,adjacent years pooled (2000-2003),W1,mixed (4% house buyer-paid, rest sold+fee),60,no,29400,23035,40425,11288,192510
 63,2001,"BMW M3",compare,adjacent years pooled (2000-2003),W2,mixed (4% house buyer-paid, rest sold+fee),9,no,27348,23888,53235,13650,79800
-63,2001,"BMW M3",compare,adjacent years pooled (2000-2003),W3,mixed (4% house buyer-paid, rest sold+fee),129,no,29768,23100,44100,11288,192510
+63,2001,"BMW M3",compare,adjacent years pooled (2000-2003),W3,mixed (4% house buyer-paid, rest sold+fee),128,no,29716,23035,42722,11288,192510
 64,2003,"BMW M5",compare,exact 2003,W1,mixed (2% house buyer-paid, rest sold+fee),25,no,43575,29243,50138,14385,134400
 64,2003,"BMW M5",compare,exact 2003,W2,mixed (2% house buyer-paid, rest sold+fee),2,yes,,,,,
 64,2003,"BMW M5",compare,exact 2003,W3,mixed (2% house buyer-paid, rest sold+fee),50,no,40250,26815,50193,14385,134400
@@ -242,9 +242,9 @@ car_id,year,make,model_trim,status,year_scope_used,window,basis,n,thin,median,p2
 81,2019,"Porsche 911 GT3 RS",compare,exact 2019,W1,sold+fee (online),10,no,250535,239000,260000,197500,281500
 81,2019,"Porsche 911 GT3 RS",compare,exact 2019,W2,sold+fee (online),1,yes,,,,,
 81,2019,"Porsche 911 GT3 RS",compare,exact 2019,W3,sold+fee (online),34,no,248500,237750,266500,197500,321500
-82,2018,"Porsche 911 Carrera T",compare,adjacent years pooled (2016-2019),W1,n/a,0,yes,,,,,
-82,2018,"Porsche 911 Carrera T",compare,adjacent years pooled (2016-2019),W2,n/a,0,yes,,,,,
-82,2018,"Porsche 911 Carrera T",compare,adjacent years pooled (2016-2019),W3,n/a,0,yes,,,,,
+82,2018,"Porsche 911 Carrera T",compare,adjacent years pooled (2018-2019),W1,sold+fee (online),5,yes,,,,,
+82,2018,"Porsche 911 Carrera T",compare,adjacent years pooled (2018-2019),W2,sold+fee (online),0,yes,,,,,
+82,2018,"Porsche 911 Carrera T",compare,adjacent years pooled (2018-2019),W3,sold+fee (online),10,no,105525,96994,116317,72450,127050
 83,2016,"Porsche Cayman GT4",compare,exact 2016,W1,mixed (2% house buyer-paid, rest sold+fee),44,no,105000,94894,112744,80850,136500
 83,2016,"Porsche Cayman GT4",compare,exact 2016,W2,mixed (2% house buyer-paid, rest sold+fee),5,yes,,,,,
 83,2016,"Porsche Cayman GT4",compare,exact 2016,W3,mixed (2% house buyer-paid, rest sold+fee),54,no,105000,94500,114319,80850,149100

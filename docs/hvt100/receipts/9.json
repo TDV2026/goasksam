@@ -2,14 +2,14 @@
  "car_id": 9,
  "listed": "1966 Shelby Mustang GT350",
  "status": "compare",
- "year_scope": "adjacent years pooled (1964-1968)",
+ "year_scope": "adjacent years pooled (1965-1967)",
  "basis": "n/a",
  "scope": {
   "make": "Shelby",
   "model": "Mustang",
   "window": "36mo",
-  "year_min": 1964,
-  "year_max": 1968,
+  "year_min": 1965,
+  "year_max": 1967,
   "trim": "GT350"
  },
  "halo_dropped": 0,

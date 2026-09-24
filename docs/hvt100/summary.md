@@ -1,6 +1,11 @@
 # HVT-100 comparison — our side (archive only, zero OCD)
 
-Generated 2026-09-23. Windows: W1 2025-01-01..2026-06-30, W2 2026-07-01..2026-09-23, W3 last 36 months. Scoping: One Box path (buildSpec/fetchQualifying/isQualifying) via the Desk. Year rule: exact model year if W1>=8 else +/-2 within generation ("adjacent years pooled"), W1 scope applied to all windows. Basis: auction houses buyer-paid; online sold price + buyer fee. Medians and quartiles only. No cap.
+Generated 2026-09-24. Windows: W1 2025-01-01..2026-06-30, W2 2026-07-01..2026-09-24, W3 last 36 months. Scoping: One Box path (buildSpec/fetchQualifying/isQualifying) via the Desk. Year rule: exact model year if W1>=8 else +/-2 within generation ("adjacent years pooled"), W1 scope applied to all windows. Basis: auction houses buyer-paid; online sold price + buyer fee. Medians and quartiles only. No cap.
+
+## Run note
+Cars 9 (Shelby GT350) and 82 (Porsche 911 Carrera T) were re-run in ISOLATION (one car at a time) because the Desk executor intermittently returns an empty pool under load rather than an error, which had made both read as thin zeros in the full-batch run.
+- Car 82 recovered cleanly: its pool is real. The full-batch zero was purely the empty-result flake plus a widen artifact (the +/-2 widen reached 2016-2019, below the Carrera T's 2018 production start, which the executor zeroes); the widen is now capped to the trim's real 2018-2019 window and it lands n=10 on W3.
+- Car 9 is NOT recovered and stays a documented zero. Its clean scope (trim=GT350, which title-filters out the GT500 that shares the Shelby Mustang model) is PERSISTENTLY empty this run (0 across 15 retries in isolation) via the same executor empty-result bug; the only stable-count alternative (model=GT350, no trim) returns a GT500-contaminated, non-deterministic pool. Per "better nothing than a fake number" it lands 0 until the executor empty-result bug is fixed.
 
 ## a) Scope-failure report (read first)
 - car 8 Dodge Charger R/T: ZERO qualifying sales (scope may be wrong)
@@ -8,7 +13,6 @@ Generated 2026-09-23. Windows: W1 2025-01-01..2026-06-30, W2 2026-07-01..2026-09
 - car 18 Porsche 911 Carrera RS 2.7: ZERO qualifying sales (scope may be wrong)
 - car 33 Porsche 911 Speedster: ZERO qualifying sales (scope may be wrong)
 - car 79 Mercedes-Benz SLS AMG : ZERO qualifying sales (scope may be wrong)
-- car 82 Porsche 911 Carrera T: ZERO qualifying sales (scope may be wrong)
 - car 91 Lamborghini Huracan 610: ZERO qualifying sales (scope may be wrong)
 
 ## c) Totals
@@ -16,8 +20,8 @@ Generated 2026-09-23. Windows: W1 2025-01-01..2026-06-30, W2 2026-07-01..2026-09
 - Excluded (no matching HVT car): 2 -> 7 Barracuda 340; 78 Land Cruiser 100
 - Coverage-only (not in HVT): 5 -> 89 MP4-12C ; 90 720S ; 92 Aventador S; 99 M4 Competition; 100 Focus RS
 - Vs HVT #3 Lo-Hi band (W1): 30 inside, 23 above, 6 below
-- W3 FALLBACK (36mo): of the 34 W1-thin comparable cars, 18 reach >=8 sales on W3 -> vs HVT #3 band 6 inside, 11 above, 1 below (fallback, NOT combined with the W1 figures)
-- Prior-sale coverage (>=1 sale carries a VIN/chassis): 93 of 100
+- W3 FALLBACK (36mo): of the 34 W1-thin comparable cars, 19 reach >=8 sales on W3 -> vs HVT #3 band 6 inside, 12 above, 1 below (fallback, NOT combined with the W1 figures)
+- Prior-sale coverage (>=1 sale carries a VIN/chassis): 94 of 100
 
 ## b) Per car: HVT #3 vs our W1 median
 - 1 1957 Chevrolet Bel Air : HVT#3 $65,900 [$57,700-$75,800] | our W1 $72,975 | gap 11% | inside #3 band | #2 $95,600
@@ -99,7 +103,7 @@ Generated 2026-09-23. Windows: W1 2025-01-01..2026-06-30, W2 2026-07-01..2026-09
 - 79 2011 Mercedes-Benz SLS AMG : HVT#3 $172,000 | our W1 THIN (n=0) | no comparison
 - 80 2016 Porsche 911 GT3 RS: HVT#3 $147,000 [$137,333-$161,333] | our W1 $213,500 | gap 45% | above #3 band | #2 $190,000
 - 81 2019 Porsche 911 GT3 RS: HVT#3 $165,000 [$154,000-$181,000] | our W1 $250,535 | gap 52% | above #3 band | #2 $213,000
-- 82 2018 Porsche 911 Carrera T: HVT#3 $79,100 | our W1 THIN (n=0) | no comparison
+- 82 2018 Porsche 911 Carrera T: HVT#3 $79,100 | our W1 THIN (n=5) | no comparison
 - 83 2016 Porsche Cayman GT4: HVT#3 $108,000 [$100,367-$111,000] | our W1 $105,000 | gap -3% | inside #3 band | #2 $117,000
 - 84 2015 Porsche 918 : HVT#3 $1,950,000 [$1,816,667-$2,050,000] | our W1 $75,871 | gap -96% | below #3 band | #2 $2,250,000
 - 85 2017 Dodge Viper GTS: HVT#3 $156,000 | our W1 THIN (n=4) | no comparison
@@ -205,6 +209,7 @@ Generated 2026-09-23. Windows: W1 2025-01-01..2026-06-30, W2 2026-07-01..2026-09
 - 75 2009 Nissan GT-R : HVT#3 $51,100 [$45,567-$56,267] | our W3 median $65,100 (n=14) | above #3 band
 - 76 2012 Lexus LFA : HVT#3 $875,000 [$853,667-$906,333] | our W3 median $852,500 (n=18) | below #3 band
 - 77 2006 Dodge Viper SRT-10: HVT#3 $49,600 [$44,733-$59,600] | our W3 median $85,313 (n=16) | above #3 band
+- 82 2018 Porsche 911 Carrera T: HVT#3 $79,100 [$73,967-$87,067] | our W3 median $105,525 (n=10) | above #3 band
 
 ## f) Pool check (every car)
 car | status | n | halo-dropped | model-year range | venues | cheapest / median / dearest
@@ -613,11 +618,11 @@ car | status | n | halo-dropped | model-year range | venues | cheapest / median 
     - cheapest: $197,500 2019 Porsche 911 GT3 RS
     - median: $249,500 2019 Porsche 911 GT3 RS Weissach
     - dearest: $321,500 52-Mile 2019 Porsche 911 GT3 RS Weissach
-- **82** 2018 Porsche 911 Carrera T [compare] n=0 halo-dropped=0 yrs=- venues=-
-    - channel: W1 house 0 (med ) / online 0 (med )
-    - cheapest: -
-    - median: -
-    - dearest: -
+- **82** 2018 Porsche 911 Carrera T [compare] n=10 halo-dropped=0 yrs=2018-2019 venues=Bring a Trailer,Cars & Bids
+    - channel: W1 house 0 (med ) / online 5 (med $117,600)
+    - cheapest: $72,450 2019 Porsche 911 Carrera T
+    - median: $107,100 2019 Porsche 911 Carrera T Coupe
+    - dearest: $127,050 28k-Mile 2019 Porsche 911 Carrera T 7-Speed
 - **83** 2016 Porsche Cayman GT4 [compare] n=54 halo-dropped=0 yrs=2016-2016 venues=RM Sotheby's,Bring a Trailer,Cars & Bids,PCARMarket,Sotheby's Motorsport
     - channel: W1 house 0 (med ) / online 44 (med $105,000)
     - cheapest: $80,850 Modified 2016 Porsche Cayman GT4

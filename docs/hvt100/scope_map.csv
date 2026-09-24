@@ -7,7 +7,7 @@ car_id,year,make,model,trim,body,generation,year_scope,notes
 6,1970,Chevrolet,Chevelle,SS 396,coupe,,exact,"exclude LS6/SS 454, convertible"
 7,1970,Plymouth,Barracuda,340,coupe,,exact,"NO MATCHING HVT CAR (HVT gave AAR); run, exclude from comparison"
 8,1969,Dodge,Charger,R/T,coupe,,exact,SCOPE GAP: trim R/T (slash) matches no titles via Desk; model-only pulls all Chargers; cannot isolate R/T without product fix
-9,1966,Shelby,Mustang,GT350,,,exact,Shelby GT350 fastback; trim GT350 to exclude GT500 contamination; body cleared (all GT350 are fastbacks)
+9,1966,Shelby,Mustang,GT350,,GT350-1,exact,Shelby GT350 fastback (first gen 1965-1967); trim=GT350 title-scopes and excludes GT500; widen capped to 1965-1967; BLOCKED this run by the Desk executor empty-result bug (trim-filtered query returns empty; model=GT350 alt is GT500-contaminated) so it lands 0 until the executor fix
 10,1968,Pontiac,GTO,,coupe,,exact,"exclude Judge, Ram Air IV/V halos, convertible"
 11,1955,Ford,Thunderbird,,convertible,,exact,1955 292 V8
 12,1959,Cadillac,Series 62,,convertible,,exact,1959 convertible
@@ -80,7 +80,7 @@ car_id,year,make,model,trim,body,generation,year_scope,notes
 79,2011,Mercedes-Benz,SLS AMG,,coupe,,exact,"SCOPE GAP: AMG-halo logic excludes all SLS AMG as halo (model name IS the badge, rule 16); cannot scope via Desk without product fix"
 80,2016,Porsche,911,GT3 RS,coupe,991,exact,"991.1 GT3 RS; EXCLUDE GT2 RS, base GT3"
 81,2019,Porsche,911,GT3 RS,coupe,991,exact,991.2 GT3 RS; EXCLUDE GT2 RS
-82,2018,Porsche,911,Carrera T,coupe,991,exact,991.2 Carrera T; exclude base/S/GTS
+82,2018,Porsche,911,Carrera T,coupe,991T,exact,991.2 Carrera T; widen capped to 2018-2019 (trim production window; wider zeroes executor); exclude base/S/GTS
 83,2016,Porsche,Cayman,GT4,coupe,981,exact,"981 GT4; exclude base/GTS, later 718 GT4"
 84,2015,Porsche,918,,,,exact,918 Spyder; unique
 85,2017,Dodge,Viper,GTS,coupe,VX,exact,"5th-gen GTS (adjacent pooled); EXCLUDE ACR, RT/10"
