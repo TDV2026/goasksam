@@ -31,10 +31,15 @@ const INPUTS = [
   "911", "Corvette", "Mustang", "2019 BMW M4 Competition coupe", "2016 Mercedes-Benz C63 AMG coupe",
   "2018 Audi RS5 coupe", "458 Speciale coupe", "1966 Ferrari 275 GTB",
   // Intrinsic-AMG guard (Sep 2026): a model whose NAME carries the halo token ("SLS AMG") must
-  // not have its own pool emptied by the AMG baseExclude. Pre-fix this was a false-zero refusal;
-  // post-fix the pool is real (both bodies present) so it asks the body split. A regression back
-  // to the halo bug flips this state to a refusal and trips the golden.
-  "2013 Mercedes-Benz SLS AMG"
+  // not have its own pool emptied by the AMG exclusion. Three cases cover the whole car:
+  //  - bare -> pool is real (both bodies present) so it asks the body split (was a false-zero refusal).
+  //  - coupe -> the gullwing base pool renders a real spread (was a false refusal via the halo split,
+  //    because the coupe has enough online sales to skip thin mode and hit the base-arm bug).
+  //  - roadster -> renders a real result (always worked, via thin mode; locked so a fix here cannot
+  //    regress it). A regression to either intrinsic-AMG bug flips coupe/bare back to a refusal.
+  "2013 Mercedes-Benz SLS AMG",
+  "2013 Mercedes-Benz SLS AMG coupe",
+  "2013 Mercedes-Benz SLS AMG roadster"
 ];
 
 // Mask volatile numbers so only template/state text is compared.

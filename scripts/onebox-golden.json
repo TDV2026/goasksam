@@ -952,5 +952,97 @@
       "Convertible"
     ],
     "cards": 0
+  },
+  "2013 Mercedes-Benz SLS AMG coupe": {
+    "state": "unmatched_result",
+    "exact": null,
+    "cfg": null,
+    "xrec": null,
+    "xview": null,
+    "disc": null,
+    "carline": "YYYY Mercedes-Benz SLS AMG Coupe Change",
+    "clLead": "Most SLS AMG coupes sold between",
+    "clBand": "$N and $N",
+    "clTail": "in the last twelve months. Everything from $N to $N has sold.",
+    "ltFresh": "Real sales through last night. Nothing estimated.",
+    "contradiction": null,
+    "kickerGone": true,
+    "samReadBox": 0,
+    "recLabel": null,
+    "htSpec": [],
+    "htPrice": [
+      "$N",
+      "$N"
+    ],
+    "read": [],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": "Typical sale",
+    "cmWhy": "The sale nearest the median of what's actually sold.",
+    "brackets": [],
+    "earned": "How many miles on it?",
+    "chips": [
+      "under Nk",
+      "Nk to Nk",
+      "over Nk",
+      "type it"
+    ],
+    "platforms": [
+      "Bring a Trailer",
+      "others"
+    ],
+    "platNote": "Almost all on Bring a Trailer, so there is no cross-platform split to read here.",
+    "refusalAns": null,
+    "refusalReason": [],
+    "wayfwd": [],
+    "genPrompt": null,
+    "genChips": [],
+    "cards": 1
+  },
+  "2013 Mercedes-Benz SLS AMG roadster": {
+    "state": "unmatched_result",
+    "exact": null,
+    "cfg": null,
+    "xrec": null,
+    "xview": null,
+    "disc": null,
+    "carline": "YYYY Mercedes-Benz SLS AMG Roadster Change",
+    "clLead": "Most SLS AMG Roadster roadsters sold between",
+    "clBand": "$N and $N",
+    "clTail": "in the last twelve months. Everything from $N to $N has sold.",
+    "ltFresh": "Real sales through last night. Nothing estimated.",
+    "contradiction": null,
+    "kickerGone": true,
+    "samReadBox": 0,
+    "recLabel": null,
+    "htSpec": [],
+    "htPrice": [
+      "$N",
+      "$N"
+    ],
+    "read": [],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": "Typical sale",
+    "cmWhy": "The sale nearest the median of what's actually sold.",
+    "brackets": [],
+    "earned": "How many miles on it?",
+    "chips": [
+      "under Nk",
+      "Nk to Nk",
+      "over Nk",
+      "type it"
+    ],
+    "platforms": [
+      "Bring a Trailer",
+      "others"
+    ],
+    "platNote": "Almost all on Bring a Trailer, so there is no cross-platform split to read here.",
+    "refusalAns": null,
+    "refusalReason": [],
+    "wayfwd": [],
+    "genPrompt": null,
+    "genChips": [],
+    "cards": 1
   }
 }
