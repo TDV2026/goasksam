@@ -438,7 +438,7 @@
     "cards": 0
   },
   "Maserati Merak": {
-    "state": "unmatched_result",
+    "state": "choice",
     "exact": null,
     "cfg": null,
     "xrec": null,
@@ -448,17 +448,13 @@
     "clLead": null,
     "clBand": null,
     "clTail": null,
-    "ltFresh": "Real sales through last night. Nothing estimated.",
-    "contradiction": "These sell online and at the auction houses. The recorded sales are below.",
+    "ltFresh": null,
+    "contradiction": null,
     "kickerGone": true,
     "samReadBox": 0,
-    "recLabel": "What has sold, Maserati Merak, YYYY to YYYY",
+    "recLabel": null,
     "htSpec": [],
-    "htPrice": [
-      "$N",
-      "$N",
-      "$N"
-    ],
+    "htPrice": [],
     "read": [],
     "refineQ": null,
     "refineChips": [],
@@ -472,8 +468,12 @@
     "refusalAns": null,
     "refusalReason": [],
     "wayfwd": [],
-    "genPrompt": null,
-    "genChips": [],
+    "genPrompt": "Before I show you numbers, one thing about the Maserati Merak. Mileage moves the number most on these. Roughly how many miles on it?",
+    "genChips": [
+      "Under Nk",
+      "Over Nk",
+      "Just show me what sold"
+    ],
     "cards": 0
   },
   "991 GT3 RS": {
