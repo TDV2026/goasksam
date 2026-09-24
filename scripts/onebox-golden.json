@@ -1044,5 +1044,49 @@
     "genPrompt": null,
     "genChips": [],
     "cards": 1
+  },
+  "1968 Pontiac GTO coupe": {
+    "state": "unmatched_result",
+    "exact": null,
+    "cfg": null,
+    "xrec": null,
+    "xview": null,
+    "disc": null,
+    "carline": "YYYY Pontiac GTO Coupe Change",
+    "clLead": "Most GTO coupes sold between",
+    "clBand": "$N and $N",
+    "clTail": "in the last twelve months. Everything from $N to $N has sold.",
+    "ltFresh": "Real sales through last night. Nothing estimated.",
+    "contradiction": null,
+    "kickerGone": true,
+    "samReadBox": 0,
+    "recLabel": null,
+    "htSpec": [],
+    "htPrice": [
+      "$N",
+      "$N"
+    ],
+    "read": [],
+    "refineQ": null,
+    "refineChips": [],
+    "cmKick": "Typical sale",
+    "cmWhy": "The sale nearest the median of what's actually sold.",
+    "brackets": [],
+    "earned": "Documentation moves these. Is yours documented (build sheet, Marti report, tank sticker)?",
+    "chips": [
+      "Documented",
+      "No documentation"
+    ],
+    "platforms": [
+      "Bring a Trailer",
+      "others"
+    ],
+    "platNote": "Almost all on Bring a Trailer, so there is no cross-platform split to read here.",
+    "refusalAns": null,
+    "refusalReason": [],
+    "wayfwd": [],
+    "genPrompt": null,
+    "genChips": [],
+    "cards": 1
   }
 }
