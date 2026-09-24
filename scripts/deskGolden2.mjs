@@ -38,5 +38,14 @@ ck("(i) channel online total < all (house sales exist)", ((cOnline.answer&&cOnli
 const m3read=await post({dsl:{filters:{make:"BMW",model:"M3",channel:"all"},groupBy:[],measures:["count","median"]},vehicle:{make:"BMW",model:"M3"}});
 ck("(g) read has no 'sales sales'", !/sales sales/i.test(m3read.read||""), (m3read.read||"").slice(0,120));
 
+
+// (charts) day_of_week table order Mon..Sun; distribution strip up to 500 with N-of-M
+const dow=await post({dsl:{filters:{make:"BMW",model:"M3",window:"36mo"},groupBy:["day_of_week"],measures:["count","median"]},vehicle:{make:"BMW",model:"M3"}});
+const dowOrder=(dow.answer&&dow.answer.rows||[]).map(r=>r.group).join(",");
+ck("(chart) day_of_week table order Mon..Sun", dowOrder==="Mon,Tue,Wed,Thu,Fri,Sat,Sun", dowOrder);
+const strip=await post({dsl:{filters:{make:"BMW",model:"M3",channel:"online",window:"36mo"},groupBy:["venue"],measures:["count","median"]},vehicle:{make:"BMW",model:"M3"}});
+ck("(chart) strip sample > 300 (up to 500)", (strip.strip_receipts||[]).length>300, "strip_receipts="+((strip.strip_receipts||[]).length));
+ck("(chart) strip_sampled states N of M when sampled", !!(strip.strip_sampled&&strip.strip_sampled.of>strip.strip_sampled.shown||((strip.strip_receipts||[]).length<=500)), JSON.stringify(strip.strip_sampled));
+
 console.log(fails?`\n${fails} FAILURE(S)`:"\nAll Desk golden-2 checks passed.");
 await b.close(); process.exit(fails?1:0);
