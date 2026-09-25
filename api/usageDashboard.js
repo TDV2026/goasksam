@@ -1497,7 +1497,12 @@ async function handleOps(req, res) {
     const evoRows = await supabaseSelect(env, q2) || [];
     const ms2 = Date.now() - t1;
     const shape = r => ({ price: r.sale_price, usd: Math.round(hammerUsd({ source: r.platform, price: Number(r.sale_price), currency: r.currency || "USD" }) || 0), plat: r.platform, model: r.model, year: r.year, title: (r.listing_title || "").slice(0, 55), aside: recordExcludeReason(r.listing_title, "BMW", { wantHalo: false }) });
-    return res.status(200).json({ task: "recdiag", modelWholeWordMs: ms, evoSearchMs: ms2, top: rows.map(shape), evoMatches: evoRows.map(shape) });
+    // component timings for the <3s record bar
+    const fullCols = "id,price:sale_price,auction_end_date:sale_date,source:platform,raw_title:listing_title,year,vin_norm,image:raw_record->>featured_image_url,mileage:raw_record->>mileage,body:raw_record->>body_style,mods:raw_record->>modifications,rtitle:raw_record->>title,currency:raw_record->>currency,transmission:raw_record->>transmission,color:raw_record->>exterior_color,ts:raw_record->>title_status,flaws:raw_record->>known_flaws,srcurl:raw_record->>url,srcurl2:raw_record->>source_url,city:raw_record->>city,precision:raw_record->>auction_end_precision";
+    const t3 = Date.now(); await supabaseSelect(env, `sales_archive?select=${fullCols}&make=eq.BMW&model=imatch.${encodeURIComponent("\\yM3\\y")}&sale_price=not.is.null&order=sale_price.desc&limit=120`); const fullMs = Date.now() - t3;
+    const { sourceCoverage } = await import("../lib/desk/coverage.js");
+    const t4 = Date.now(); await sourceCoverage(env, { force: true }); const covMs = Date.now() - t4;
+    return res.status(200).json({ task: "recdiag", modelWholeWordMs: ms, evoSearchMs: ms2, fullColsLimit120Ms: fullMs, sourceCoverageMs: covMs, top: rows.map(shape).slice(0, 10), evoMatches: evoRows.map(shape).slice(0, 3) });
   }
 
   if (task === "deskcounts" || task === "deskgate") {
