@@ -3592,6 +3592,17 @@
         "dimension": "venue"
       }
     },
+    "worth": {
+      "phrase": "worth",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": "median",
+        "sort": "desc",
+        "note": "translated: we report what cars like this SOLD for (median + spread); the read never says worth/value (spec s6)"
+      }
+    },
     "youngtimer": {
       "phrase": "youngtimer",
       "category": "era",
