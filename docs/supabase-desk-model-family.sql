@@ -19,17 +19,25 @@
 --      (familyFor / familyBadgeMatch) and the performance-badge logic, instead of a
 --      per-query scan of every badge variant.
 --
--- SEMANTICS (set by the backfill, documented here so nobody rediscovers it)
---   model_family is the NORMALISED grouping token for a row, chosen in this order:
---     a. a badged family head where the row belongs to one (MODEL_FAMILY):
---        Mercedes E350/E550/E320  -> 'E-Class';   BMW M3/335i/328i -> '3 Series'.
---     b. a performance badge that is its own market (BMW M3, Merc 190E 2.3-16,
---        Porsche 944 Turbo): the badge itself -> 'M3', '190E 2.3-16', '944 Turbo'.
---     c. otherwise the base model -> 'Camaro', '911', '240Z'.
---   It is a GROUPING key, never shown to a user and never a substitute for the
---   resolver; the resolver + One Box scope still decide the eligible pool. The cube
---   (a later step) is keyed on (make, model_family, generation) so this column is
---   the join between raw rows and the precomputed aggregates.
+-- SEMANTICS (set by the backfill, lib/desk/familyKey.js deskModelFamily; documented
+--   here so nobody rediscovers it). model_family is the NORMALISED grouping/record
+--   token for a row. PRECEDENCE, first match wins — an own-market performance badge
+--   is decided BEFORE the family head, so the M3 is NEVER folded into the base family:
+--     1. a marque performance badge that is its OWN market -> the badge itself:
+--        BMW M3 -> 'M3', Mercedes C63 -> 'C63', AMG GT -> 'AMG GT', Audi RS6 -> 'RS6'.
+--     2. a curated own-market trim the badge/family logic misses -> the trim market:
+--        Porsche 944 Turbo -> '944 Turbo', Mercedes 190E 2.3-16 -> '190E 2.3-16'.
+--     3. a badged family head (regular badges only) -> the family:
+--        Mercedes E350/E550/E320 -> 'E-Class'; BMW 328i/335i -> '3 Series'. An
+--        M-Performance TRIM (M340i, M240i) is NOT a standalone M-car and folds here
+--        into its base series ('3 Series', '2 Series').
+--     4. otherwise the base model -> 'Camaro', '911', '240Z', a plain '944'.
+--   The M3, 190E 2.3-16, 944 Turbo and every performance badge that is its own market
+--   are their OWN model_family, never the base family — the record fix and the ranking
+--   members depend on it. It is a GROUPING key, never shown to a user and never a
+--   substitute for the resolver; the resolver + One Box scope still decide the eligible
+--   pool. The cube is keyed on (make, model_family, generation) so this column is the
+--   join between raw rows and the precomputed aggregates.
 -- =====================================================================
 
 alter table sales_archive
