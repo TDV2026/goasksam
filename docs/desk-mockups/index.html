@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sam Desk — screen redesign mock-ups</title>
+<style>
+:root{
+  --paper:#f4f1ea; --card:#fffdf9; --ink:#191410; --slate:#665f52; --faint:#928b7a;
+  --line:#e4ddcd; --line2:#eee7d9; --green:#0b5c3e; --green-deep:#0b3f2b; --clay:#a4571f;
+  --rail:#161009; --rail-ink:#cabfa8;
+  --shadow:0 1px 2px rgba(40,30,10,.05),0 14px 40px rgba(40,30,10,.09);
+  --serif:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Times New Roman',serif;
+  --grotesk:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#e9e4d7;color:var(--ink);font:400 15px/1.55 var(--grotesk);-webkit-font-smoothing:antialiased}
+.page{max-width:1000px;margin:0 auto;padding:40px 22px 90px}
+.doc-h{font:700 26px/1.2 var(--serif);letter-spacing:-.01em;margin:0 0 4px}
+.doc-sub{color:var(--slate);font-size:14px;max-width:74ch;margin:0 0 6px}
+.doc-note{color:var(--faint);font-size:12.5px;max-width:80ch;margin:0 0 26px}
+.doc-note b{color:var(--slate)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+
+.case{margin:34px 0}
+.case-cap{font:600 11px/1.3 var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--green);margin:0 0 3px}
+.case-what{color:var(--slate);font-size:13px;margin:0 0 12px}
+
+/* the screen frame */
+.screen{display:flex;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--paper);box-shadow:var(--shadow);height:560px}
+.rail{width:56px;flex:none;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:16px}
+.rail .glyph{width:26px;height:26px;border-radius:7px;border:1px solid #35301f;display:grid;place-items:center;color:var(--rail-ink);font:700 12px var(--serif)}
+.rail .dot{width:7px;height:7px;border-radius:50%;background:#35301f}
+.rail .dot.on{background:var(--green);box-shadow:0 0 0 3px rgba(11,92,62,.25)}
+.rail .sp{flex:1}
+.rail .lab{writing-mode:vertical-rl;transform:rotate(180deg);font:600 8.5px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:#6d6552}
+
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.chrome{display:flex;align-items:center;gap:10px;padding:13px 20px;border-bottom:1px solid var(--line2)}
+.brand{font:800 16px/1 var(--serif);letter-spacing:-.01em}
+.brand .k{font:600 9px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--faint);margin-left:9px}
+.chrome .sp{flex:1}
+.chrome .tab{font:600 10px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--green);border:1px solid color-mix(in srgb,var(--green) 35%,var(--line));background:color-mix(in srgb,var(--green) 6%,var(--card));border-radius:6px;padding:6px 10px}
+
+.body{flex:1;overflow:auto;padding:20px 26px 8px;position:relative}
+.acts{position:absolute;top:16px;right:22px;display:flex;gap:8px}
+.acts button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--slate);cursor:default;display:grid;place-items:center}
+.acts svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.7}
+
+/* the reading sentence — plain, no controls */
+.reading{font:400 14px/1.55 var(--grotesk);color:var(--slate);max-width:66ch;margin:2px 64px 20px 0}
+.reading b{color:var(--ink);font-weight:600}
+
+/* headline shapes */
+.hl-num{font:700 46px/1 var(--serif);letter-spacing:-.02em;color:var(--green-deep)}
+.hl-sub{font:600 13px/1 var(--mono);color:var(--slate);margin-top:9px}
+.hl-sub .sep{color:var(--faint);margin:0 8px}
+
+/* ranked list headline */
+.rank{display:flex;flex-direction:column;gap:9px;margin:2px 0 4px}
+.rank-row{display:flex;align-items:center;gap:14px}
+.rank-row .r{font:700 12px/1 var(--mono);color:var(--faint);width:16px}
+.rank-row .nm{font:600 15px/1.2 var(--grotesk);width:210px;flex:none}
+.rank-row .bar{height:16px;background:color-mix(in srgb,var(--green) 78%,var(--card));border-radius:4px}
+.rank-row .bar.b2{background:color-mix(in srgb,var(--clay) 70%,var(--card))}
+.rank-row .v{font:700 14px/1 var(--mono);color:var(--green-deep)}
+.rank-row .v .sub{font-weight:400;color:var(--faint);font-size:11px;margin-left:8px}
+
+/* comparison two-up */
+.cmp{display:flex;gap:18px;margin:2px 0 6px}
+.cmp .col{flex:1;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:16px 18px}
+.cmp .col .t{font:600 14px/1.2 var(--grotesk);margin-bottom:8px}
+.cmp .col .big{font:700 34px/1 var(--serif);color:var(--green-deep)}
+.cmp .col .sub{font:600 12px/1 var(--mono);color:var(--slate);margin-top:8px}
+.cmp .col .sub .sep{color:var(--faint);margin:0 6px}
+.cmp .col.b .big{color:var(--clay)}
+
+/* trend line chart */
+.chartcard{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:14px 16px 10px;margin:20px 0 0}
+.chartcard .cl{font:600 10px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
+.legend{display:flex;gap:16px;font:600 11px/1 var(--mono);color:var(--slate);margin-bottom:6px}
+.legend i{display:inline-block;width:12px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+
+/* group bar chart */
+.gbars{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.gbar{display:flex;align-items:center;gap:12px}
+.gbar .gl{font:600 12px/1 var(--mono);color:var(--slate);width:96px;flex:none;text-align:right}
+.gbar .gt{height:20px;background:color-mix(in srgb,var(--green) 72%,var(--card));border-radius:4px}
+.gbar .gv{font:700 12px/1 var(--mono);color:var(--green-deep)}
+
+/* table */
+.tbl{width:100%;border-collapse:collapse;margin:18px 0 0;font-size:13px}
+.tbl th{text-align:left;font:600 10px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--faint);padding:0 12px 8px 0;border-bottom:1px solid var(--line)}
+.tbl td{padding:9px 12px 9px 0;border-bottom:1px solid var(--line2);color:var(--ink)}
+.tbl td.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.tbl td.g{font-family:var(--mono);color:var(--green-deep);font-weight:700}
+.showmore{font:600 11px/1 var(--mono);color:var(--slate);margin-top:10px}
+
+/* read */
+.read{margin:20px 0 0;max-width:70ch;font:400 14px/1.6 var(--grotesk);color:var(--ink)}
+.slab{font:600 10px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--faint);margin:22px 0 10px}
+
+/* receipts */
+.rcpt{display:flex;flex-direction:column;gap:0}
+.rcpt .row{display:flex;align-items:baseline;gap:12px;padding:9px 0;border-bottom:1px solid var(--line2)}
+.rcpt .p{font:700 14px/1 var(--mono);color:var(--green-deep);width:96px;flex:none}
+.rcpt .ti{flex:1;font-size:13.5px;color:var(--ink)}
+.rcpt .mt{font:500 11.5px/1 var(--mono);color:var(--faint);white-space:nowrap}
+.rcpt .strike{text-decoration:line-through;color:var(--faint)}
+.rcpt .why{font:500 11px/1 var(--mono);color:var(--clay)}
+
+.setaside{font:500 12px/1.4 var(--mono);color:var(--slate);margin-top:14px}
+
+/* coverage footer */
+.cov{font:400 10.5px/1.5 var(--mono);color:var(--faint);border-top:1px solid var(--line2);margin-top:16px;padding-top:10px}
+
+/* chat box pinned bottom */
+.chat{padding:12px 20px 16px;border-top:1px solid var(--line2);background:color-mix(in srgb,var(--paper) 60%,var(--card))}
+.chat .box{display:flex;align-items:center;gap:10px;background:var(--card);border:1.5px solid var(--line);border-radius:11px;padding:11px 11px 11px 16px}
+.chat .box input{flex:1;border:0;background:transparent;color:var(--ink);font:400 14px/1.4 var(--grotesk);outline:none}
+.chat .box input::placeholder{color:var(--faint)}
+.chat .box .go{width:36px;height:36px;border-radius:9px;background:var(--green-deep);color:#fff;display:grid;place-items:center;flex:none;font-size:16px}
+
+/* empty + minimal states */
+.center{flex:1;display:flex;flex-direction:column;justify-content:center;padding:26px}
+.qback{font:400 17px/1.5 var(--serif);color:var(--ink);max-width:60ch}
+.qback .hint{display:block;font:400 13px/1.4 var(--grotesk);color:var(--faint);margin-top:10px}
+.cant{font:400 16px/1.5 var(--serif);color:var(--ink);max-width:64ch}
+.ex{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.ex span{font:400 12.5px/1 var(--grotesk);color:var(--slate);background:var(--card);border:1px solid var(--line);border-radius:20px;padding:9px 13px}
+.turnref{font:500 11px/1.4 var(--mono);color:var(--faint);border-left:2px solid var(--line);padding:3px 0 3px 12px;margin:0 0 14px}
+.you{font:500 12px/1 var(--mono);color:var(--clay);letter-spacing:.04em;text-transform:uppercase;margin:0 0 4px}
+.mini{font:700 11px/1 var(--mono);color:var(--green-deep)}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="doc-h">Sam Desk — screen redesign</h1>
+  <p class="doc-sub">Answer, then a box to type in. The reading is one plain sentence at the top of the answer, stating every choice the Desk made. No reading card, no chips, no query row, no refine dropdowns, no option buttons, no "reading ready" boxes. One chart at most (bars for rankings and groups, a line for trends, never a scatter or distribution). One Export and one Save on the answer. Examples only on the empty screen.</p>
+  <p class="doc-note"><b>Numbers</b> are representative archive figures (hammer, premiums backed out; medians and quartiles). Mock-up only, for layout approval. The interpreter, dictionary and validator from Stages A and B are unchanged and simply stop being shown. <b>Cases 2, 4, 5 and 8</b> are the not-yet-built views (trend, comparison, ranking) drawn as the Stage C target; today they honestly say the view is not built and show nothing else.</p>
+
+  <!-- CASE 1 -->
+  <div class="case">
+    <div class="case-cap">Case 1 · Ranking (default: typical sale price)</div>
+    <div class="case-what">“best F-body cars from the 90s” — “best” takes the sensible default (typical sale price), and the sentence says so. No question back, no option buttons.</div>
+    <div class="screen">
+      <div class="rail"><div class="glyph">S</div><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="sp"></div><div class="lab">Agents</div></div>
+      <div class="main">
+        <div class="chrome"><div class="brand">Sam Desk<span class="k">Analyst</span></div><div class="sp"></div><div class="tab">Analyst</div></div>
+        <div class="body">
+          <div class="acts"><button title="Export"><svg viewBox="0 0 24 24"><path d="M12 15V3M8 7l4-4 4 4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></button><button title="Save"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button></div>
+          <div class="reading">Ranked the <b>Camaro</b> and <b>Firebird</b>, <b>1990 to 1999</b>, by <b>typical sale price</b> over the <b>last three years</b>, all channels.</div>
+          <div class="rank">
+            <div class="rank-row"><span class="r">1</span><span class="nm">Pontiac Firebird Trans Am</span><span class="bar" style="width:190px"></span><span class="v">$28,500<span class="sub">$19k to $46k · 84</span></span></div>
+            <div class="rank-row"><span class="r">2</span><span class="nm">Chevrolet Camaro SS</span><span class="bar" style="width:165px"></span><span class="v">$24,750<span class="sub">$15k to $42k · 61</span></span></div>
+            <div class="rank-row"><span class="r">3</span><span class="nm">Chevrolet Camaro Z/28</span><span class="bar" style="width:140px"></span><span class="v">$21,000<span class="sub">$12k to $38k · 137</span></span></div>
+            <div class="rank-row"><span class="r">4</span><span class="nm">Pontiac Firebird Formula</span><span class="bar" style="width:121px"></span><span class="v">$18,200<span class="sub">$11k to $29k · 33</span></span></div>
+          </div>
+          <div class="read"><span class="slab">The read</span>The Trans Am tops the 90s F-body field at a typical <b>$28,500</b>, about a third above the volume Z/28. The Z/28 trades most often (137 sales) but cheapest of the performance cars; the SS sits between them on both price and volume.</div>
+          <div class="slab">Receipts</div>
+          <div class="rcpt">
+            <div class="row"><span class="p">$46,200</span><span class="ti">1,900-Mile 1999 Pontiac Firebird Trans Am 30th Anniversary</span><span class="mt">Bring a Trailer · Jul 2026</span></div>
+            <div class="row"><span class="p">$42,000</span><span class="ti">6k-Mile 1996 Chevrolet Camaro SS</span><span class="mt">Mecum · May 2026</span></div>
+            <div class="row"><span class="p">$29,750</span><span class="ti">1998 Chevrolet Camaro Z/28 6-Speed</span><span class="mt">Cars &amp; Bids · Apr 2026</span></div>
+          </div>
+          <div class="cov">Window last 36 months · hammer basis, premiums backed out · Bring a Trailer, Cars &amp; Bids, Mecum, Barrett-Jackson · thin below 5 sales · updated nightly</div>
+        </div>
+        <div class="chat"><div class="box"><input disabled placeholder="Refine in words. e.g. rank by rising instead · online only · take out the Formula" /><span class="go">&#8594;</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CASE 2 -->
+  <div class="case">
+    <div class="case-cap">Case 2 · Trend (not built yet → Stage C target)</div>
+    <div class="case-what">“which Fox body Mustangs are rising fastest” — the movers with both windows stated, one line for the trend. (Today the Desk says the trend view is not built and shows nothing else; this is the target once it is.)</div>
+    <div class="screen">
+      <div class="rail"><div class="glyph">S</div><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="sp"></div><div class="lab">Agents</div></div>
+      <div class="main">
+        <div class="chrome"><div class="brand">Sam Desk<span class="k">Analyst</span></div><div class="sp"></div><div class="tab">Analyst</div></div>
+        <div class="body">
+          <div class="acts"><button title="Export"><svg viewBox="0 0 24 24"><path d="M12 15V3M8 7l4-4 4 4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></button><button title="Save"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button></div>
+          <div class="reading">Ranked the <b>Fox-body Mustang</b>, <b>1979 to 1993</b>, by <b>change in typical sale price</b>, the <b>last 12 months</b> against the <b>12 before</b>, by model year.</div>
+          <div class="rank">
+            <div class="rank-row"><span class="r">1</span><span class="nm">1993 Mustang (Cobra / Cobra R)</span><span class="bar" style="width:180px"></span><span class="v">+22%<span class="sub">$34,500 → $42,000 · 14/18</span></span></div>
+            <div class="rank-row"><span class="r">2</span><span class="nm">1986 Mustang SVO</span><span class="bar" style="width:120px"></span><span class="v">+14%<span class="sub">$21,000 → $24,000 · 9/11</span></span></div>
+            <div class="rank-row"><span class="r">3</span><span class="nm">1993 Mustang GT</span><span class="bar" style="width:78px"></span><span class="v">+9%<span class="sub">$16,500 → $18,000 · 22/26</span></span></div>
+            <div class="rank-row"><span class="r">4</span><span class="nm">1990 Mustang LX 5.0</span><span class="bar b2" style="width:44px" title="falling"></span><span class="v" style="color:var(--clay)">&minus;5%<span class="sub">$14,800 → $14,000 · 17/15</span></span></div>
+          </div>
+          <div class="chartcard"><div class="cl">Typical sale price by model year</div>
+            <div class="legend"><span><i style="background:var(--faint)"></i>prior 12 mo</span><span><i style="background:var(--green)"></i>last 12 mo</span></div>
+            <svg viewBox="0 0 620 140" width="100%" height="120" preserveAspectRatio="none" aria-hidden="true">
+              <polyline points="20,96 130,84 240,70 350,66 460,58 560,44" fill="none" stroke="#0b5c3e" stroke-width="2.4"/>
+              <polyline points="20,104 130,92 240,80 350,78 460,74 560,66" fill="none" stroke="#b9b09a" stroke-width="2" stroke-dasharray="4 4"/>
+            </svg>
+          </div>
+          <div class="read"><span class="slab">The read</span>The 1993 Cobra is the fastest mover, a typical <b>$42,000</b> in the last 12 months against <b>$34,500</b> in the 12 before, on 18 and 14 sales. The LX 5.0 is the only year softening. Fewer than five sales in either window are shown but not ranked.</div>
+          <div class="cov">Windows Sep 2025 to Aug 2026 vs Sep 2024 to Aug 2025 · hammer basis · repeat-sales change offered as a stricter second view · updated nightly</div>
+        </div>
+        <div class="chat"><div class="box"><input disabled placeholder="Refine in words. e.g. by month instead · online only · just the Cobra" /><span class="go">&#8594;</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CASE 3 -->
+  <div class="case">
+    <div class="case-cap">Case 3 · Single read with filters</div>
+    <div class="case-what">“air-cooled 911s under $100k sold this year” — one number with its spread, the price cap and window stated in the sentence. Groups (generations) as bars, never a scatter.</div>
+    <div class="screen">
+      <div class="rail"><div class="glyph">S</div><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="sp"></div><div class="lab">Agents</div></div>
+      <div class="main">
+        <div class="chrome"><div class="brand">Sam Desk<span class="k">Analyst</span></div><div class="sp"></div><div class="tab">Analyst</div></div>
+        <div class="body">
+          <div class="acts"><button title="Export"><svg viewBox="0 0 24 24"><path d="M12 15V3M8 7l4-4 4 4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></button><button title="Save"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button></div>
+          <div class="reading">Read the <b>air-cooled 911</b> (901, G-body, 964, 993), <b>sold this year to date</b>, <b>priced under $100,000</b>, at <b>typical sale price</b>, all channels.</div>
+          <div class="hl-num">$72,500</div>
+          <div class="hl-sub">$41,000 to $98,000 spread<span class="sep">·</span>128 sales<span class="sep">·</span>year to date</div>
+          <div class="chartcard"><div class="cl">Typical sale price by generation (under $100k)</div>
+            <div class="gbars">
+              <div class="gbar"><span class="gl">901</span><span class="gt" style="width:58%"></span><span class="gv">$84,000</span></div>
+              <div class="gbar"><span class="gl">G-body</span><span class="gt" style="width:52%"></span><span class="gv">$76,500</span></div>
+              <div class="gbar"><span class="gl">964</span><span class="gt" style="width:47%"></span><span class="gv">$69,000</span></div>
+              <div class="gbar"><span class="gl">993</span><span class="gt" style="width:44%"></span><span class="gv">$64,000</span></div>
+            </div>
+          </div>
+          <div class="read"><span class="slab">The read</span>Under the $100k cap, a typical air-cooled 911 brought <b>$72,500</b> year to date across 128 sales. The earliest cars (901) hold the top of the capped band; 993 coupes are the most attainable that stayed under the line.</div>
+          <div class="slab">Receipts</div>
+          <div class="rcpt">
+            <div class="row"><span class="p">$98,000</span><span class="ti">1973 Porsche 911 T Coupe</span><span class="mt">Gooding &amp; Co · Jun 2026</span></div>
+            <div class="row"><span class="p">$71,500</span><span class="ti">1990 Porsche 911 Carrera 2 Coupe</span><span class="mt">Bring a Trailer · Apr 2026</span></div>
+            <div class="row"><span class="p">$64,750</span><span class="ti">1996 Porsche 911 Carrera 4 Coupe</span><span class="mt">Cars &amp; Bids · Mar 2026</span></div>
+          </div>
+          <div class="cov">Year to date · price under $100,000 · hammer basis · Bring a Trailer, Cars &amp; Bids, Gooding, RM Sotheby's · Carrera Cup race cars set aside · updated nightly</div>
+        </div>
+        <div class="chat"><div class="box"><input disabled placeholder="Refine in words. e.g. just the 993 · online only · last five years" /><span class="go">&#8594;</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CASE 4 -->
+  <div class="case">
+    <div class="case-cap">Case 4 · Comparison (not built yet → Stage C target)</div>
+    <div class="case-what">“Z28 vs Trans Am WS6, last 3 years” — two numbers side by side, the same chart for both, one read that names the gap in words.</div>
+    <div class="screen">
+      <div class="rail"><div class="glyph">S</div><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="sp"></div><div class="lab">Agents</div></div>
+      <div class="main">
+        <div class="chrome"><div class="brand">Sam Desk<span class="k">Analyst</span></div><div class="sp"></div><div class="tab">Analyst</div></div>
+        <div class="body">
+          <div class="acts"><button title="Export"><svg viewBox="0 0 24 24"><path d="M12 15V3M8 7l4-4 4 4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></button><button title="Save"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button></div>
+          <div class="reading">Compared the <b>Camaro Z/28</b> and the <b>Firebird Trans Am WS6</b>, <b>last three years</b>, at <b>typical sale price</b>, all channels.</div>
+          <div class="cmp">
+            <div class="col"><div class="t">Chevrolet Camaro Z/28</div><div class="big">$21,000</div><div class="sub">$12k to $38k<span class="sep">·</span>137 sales<span class="sep">·</span>newest Aug 2026</div></div>
+            <div class="col b"><div class="t">Firebird Trans Am WS6</div><div class="big">$34,500</div><div class="sub">$22k to $58k<span class="sep">·</span>46 sales<span class="sep">·</span>newest Jul 2026</div></div>
+          </div>
+          <div class="chartcard"><div class="cl">Typical sale price, shared axis</div>
+            <div class="gbars">
+              <div class="gbar"><span class="gl">Z/28</span><span class="gt" style="width:36%"></span><span class="gv">$21,000</span></div>
+              <div class="gbar"><span class="gl">WS6</span><span class="gt" style="width:60%;background:color-mix(in srgb,var(--clay) 70%,var(--card))"></span><span class="gv" style="color:var(--clay)">$34,500</span></div>
+            </div>
+          </div>
+          <div class="read"><span class="slab">The read</span>The Trans Am WS6 typically brings about <b>$13,500 more</b> than the Z/28, roughly two-thirds higher, though it trades a third as often (46 sales against 137). Both markets are current, with sales into the last two months.</div>
+          <div class="cov">Window last 36 months · hammer basis · Bring a Trailer, Cars &amp; Bids, Mecum, Barrett-Jackson · updated nightly</div>
+        </div>
+        <div class="chat"><div class="box"><input disabled placeholder="Refine in words. e.g. add the SS · online only · by year" /><span class="go">&#8594;</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CASE 5 -->
+  <div class="case">
+    <div class="case-cap">Case 5 · Ranking by count (not built yet → Stage C target)</div>
+    <div class="case-what">“what 90s Japanese sports cars sold most on Cars &amp; Bids” — the grouping ranked by number sold, source stated in the sentence.</div>
+    <div class="screen">
+      <div class="rail"><div class="glyph">S</div><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="sp"></div><div class="lab">Agents</div></div>
+      <div class="main">
+        <div class="chrome"><div class="brand">Sam Desk<span class="k">Analyst</span></div><div class="sp"></div><div class="tab">Analyst</div></div>
+        <div class="body">
+          <div class="acts"><button title="Export"><svg viewBox="0 0 24 24"><path d="M12 15V3M8 7l4-4 4 4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></button><button title="Save"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button></div>
+          <div class="reading">Ranked <b>90s Japanese sports cars</b> by <b>number sold</b> on <b>Cars &amp; Bids</b> over the <b>last three years</b>.</div>
+          <div class="rank">
+            <div class="rank-row"><span class="r">1</span><span class="nm">Mazda MX-5 (NA)</span><span class="bar" style="width:196px"></span><span class="v">96<span class="sub">sold</span></span></div>
+            <div class="rank-row"><span class="r">2</span><span class="nm">Nissan 300ZX</span><span class="bar" style="width:145px"></span><span class="v">71</span></div>
+            <div class="rank-row"><span class="r">3</span><span class="nm">Toyota Supra</span><span class="bar" style="width:118px"></span><span class="v">58</span></div>
+            <div class="rank-row"><span class="r">4</span><span class="nm">Acura NSX</span><span class="bar" style="width:90px"></span><span class="v">44</span></div>
+            <div class="rank-row"><span class="r">5</span><span class="nm">Toyota MR2</span><span class="bar" style="width:78px"></span><span class="v">38</span></div>
+          </div>
+          <table class="tbl">
+            <tr><th>Model</th><th>Sold</th><th>Typical</th><th>Newest</th></tr>
+            <tr><td>Mazda MX-5 (NA)</td><td class="n">96</td><td class="g">$14,900</td><td class="n">Aug 2026</td></tr>
+            <tr><td>Nissan 300ZX</td><td class="n">71</td><td class="g">$21,500</td><td class="n">Aug 2026</td></tr>
+            <tr><td>Toyota Supra</td><td class="n">58</td><td class="g">$78,000</td><td class="n">Jul 2026</td></tr>
+          </table>
+          <div class="showmore">Show 7 more · 5 thin groups folded (3000GT, Skyline, Eclipse GSX, Lancer Evolution, Integra Type R)</div>
+          <div class="read"><span class="slab">The read</span>On Cars &amp; Bids the NA Miata changes hands most, 96 sales in three years, well ahead of the 300ZX and Supra. It is also the most affordable of the group at a typical $14,900.</div>
+          <div class="cov">Source Cars &amp; Bids · window last 36 months · ranked by count · thin below 5 sales · updated nightly</div>
+        </div>
+        <div class="chat"><div class="box"><input disabled placeholder="Refine in words. e.g. by typical price instead · all channels · drop the Miata" /><span class="go">&#8594;</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CASE 6 -->
+  <div class="case">
+    <div class="case-cap">Case 6 · Question back (only when there is no sensible reading)</div>
+    <div class="case-what">“Bird from the 70s” — an ambiguous nickname the era does not settle. One plain line in the thread, answered by typing. No option buttons.</div>
+    <div class="screen">
+      <div class="rail"><div class="glyph">S</div><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="sp"></div><div class="lab">Agents</div></div>
+      <div class="main">
+        <div class="chrome"><div class="brand">Sam Desk<span class="k">Analyst</span></div><div class="sp"></div><div class="tab">Analyst</div></div>
+        <div class="center">
+          <div class="you">You asked</div>
+          <div style="font:600 15px/1.4 var(--grotesk);margin-bottom:18px">Bird from the 70s</div>
+          <div class="qback">“Bird” could be the Ford Thunderbird or the Pontiac Firebird, and the 1970s covers both. Which did you mean?<span class="hint">Type Thunderbird or Firebird, or just say “the one with the screaming chicken”.</span></div>
+        </div>
+        <div class="chat"><div class="box"><input disabled placeholder="Type Thunderbird or Firebird" /><span class="go">&#8594;</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CASE 7 -->
+  <div class="case">
+    <div class="case-cap">Case 7 · Cannot answer</div>
+    <div class="case-what">“should I sell my 993 now” — advice the Desk does not give. One line, nothing else, with what it can do instead.</div>
+    <div class="screen">
+      <div class="rail"><div class="glyph">S</div><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="sp"></div><div class="lab">Agents</div></div>
+      <div class="main">
+        <div class="chrome"><div class="brand">Sam Desk<span class="k">Analyst</span></div><div class="sp"></div><div class="tab">Analyst</div></div>
+        <div class="center">
+          <div class="you">You asked</div>
+          <div style="font:600 15px/1.4 var(--grotesk);margin-bottom:18px">should I sell my 993 now</div>
+          <div class="cant">The Desk reports what the market did, with the receipts. It does not advise on whether to sell. I can show how 993 prices have moved, or where 993s are selling.</div>
+        </div>
+        <div class="chat"><div class="box"><input disabled placeholder="Ask the market. e.g. how have 993 prices moved over three years" /><span class="go">&#8594;</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CASE 8 -->
+  <div class="case">
+    <div class="case-cap">Case 8 · Refinement, in place</div>
+    <div class="case-what">After Case 1, the user types “rank by rising instead”. The answer re-renders in place; the reading sentence updates; the earlier turn stays reachable above. (This ranking-by-trend view is the Stage C target.)</div>
+    <div class="screen">
+      <div class="rail"><div class="glyph">S</div><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="sp"></div><div class="lab">Agents</div></div>
+      <div class="main">
+        <div class="chrome"><div class="brand">Sam Desk<span class="k">Analyst</span></div><div class="sp"></div><div class="tab">Analyst</div></div>
+        <div class="body">
+          <div class="acts"><button title="Export"><svg viewBox="0 0 24 24"><path d="M12 15V3M8 7l4-4 4 4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></button><button title="Save"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button></div>
+          <div class="turnref">Earlier in this thread · best F-body cars from the 90s · ranked by typical sale price ›</div>
+          <div class="you">You said</div>
+          <div style="font:600 14px/1.3 var(--grotesk);margin:0 0 16px">rank by rising instead</div>
+          <div class="reading">Re-ranked the <b>Camaro</b> and <b>Firebird</b>, <b>1990 to 1999</b>, by <b>change in typical sale price</b>, the last 12 months against the 12 before.</div>
+          <div class="rank">
+            <div class="rank-row"><span class="r">1</span><span class="nm">Pontiac Firebird Trans Am</span><span class="bar" style="width:180px"></span><span class="v">+17%<span class="sub">$24,300 → $28,500 · 71/84</span></span></div>
+            <div class="rank-row"><span class="r">2</span><span class="nm">Chevrolet Camaro SS</span><span class="bar" style="width:120px"></span><span class="v">+11%<span class="sub">$22,300 → $24,750 · 54/61</span></span></div>
+            <div class="rank-row"><span class="r">3</span><span class="nm">Chevrolet Camaro Z/28</span><span class="bar" style="width:64px"></span><span class="v">+6%<span class="sub">$19,800 → $21,000 · 129/137</span></span></div>
+            <div class="rank-row"><span class="r">4</span><span class="nm">Pontiac Firebird Formula</span><span class="bar b2" style="width:30px"></span><span class="v" style="color:var(--clay)">&minus;3%<span class="sub">$18,750 → $18,200 · 35/33</span></span></div>
+          </div>
+          <div class="read"><span class="slab">The read</span>Ranked by movement, the Trans Am is climbing fastest, up 17% year over year, and it was already the priciest. The Formula is the only one easing. Same cars, same window and years as before; only the ordering changed.</div>
+          <div class="cov">Windows Sep 2025 to Aug 2026 vs Sep 2024 to Aug 2025 · hammer basis · updated nightly</div>
+        </div>
+        <div class="chat"><div class="box"><input disabled placeholder="Refine in words. e.g. back to typical price · online only · just the Trans Am" /><span class="go">&#8594;</span></div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
