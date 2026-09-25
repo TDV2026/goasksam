@@ -1,0 +1,54 @@
+# Sam Desk — one-time (and re-runnable) model_family backfill.
+# ADD THIS FILE at .github/workflows/backfill-model-family.yml (via the GitHub web
+# editor). The CI token used by the deploy path lacks the `workflow` scope, so
+# workflow files are added by Sam; this is the committed copy of record.
+#
+# Run it from the Actions tab (Run workflow) AFTER docs/supabase-desk-model-family.sql
+# is applied. Default = full backfill of every row (idempotent). Tick "only_null" for
+# a fast rerun that touches only rows still missing model_family.
+name: Backfill model_family
+
+on:
+  workflow_dispatch:
+    inputs:
+      only_null:
+        description: "Only rows where model_family is null (fast rerun) — leave blank for a full backfill"
+        required: false
+        default: ""
+      dry:
+        description: "Report the distribution only, NO writes — leave blank to write"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify required secrets are present
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::GitHub Actions secret ${name} is EMPTY. Add it under Settings > Secrets and variables > Actions."
+              missing=1
+            else
+              echo "${name}: present"
+            fi
+          done
+          if [ "${missing}" -ne 0 ]; then echo "::error::Aborting: required secret(s) missing."; exit 1; fi
+      - name: Backfill sales_archive.model_family
+        run: |
+          set -euo pipefail
+          test -f scripts/backfillModelFamily.js || { echo "::error::scripts/backfillModelFamily.js not found in checkout"; exit 1; }
+          node scripts/backfillModelFamily.js ${{ github.event.inputs.only_null && '--only-null' || '' }} ${{ github.event.inputs.dry && '--dry' || '' }}
