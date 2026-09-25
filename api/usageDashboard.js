@@ -1480,6 +1480,26 @@ async function handleOps(req, res) {
   //                   LOOKUP + VALIDATOR only (no answers). Returns each reading (scope/filters/window/
   //                   metric/structural) and every phrase's fate. Uses resolveVehicle for residual
   //                   nameplates and archive counts for the "real sales" check. No writes.
+  if (task === "recdiag") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    const { recordExcludeReason } = await import("../lib/onebox.js");
+    const { hammerUsd } = await import("../lib/_houseComps.js");
+    const cols = "sale_price,sale_date,platform,listing_title,model,year,currency:raw_record->>currency";
+    // top BMW by model whole-word M3 (the record scope)
+    const t0 = Date.now();
+    const q = `sales_archive?select=${cols}&make=eq.BMW&model=imatch.${encodeURIComponent("\\yM3\\y")}&sale_price=not.is.null&order=sale_price.desc&limit=30`;
+    const rows = await supabaseSelect(env, q) || [];
+    const ms = Date.now() - t0;
+    // also: search for the 1997 Evolution ~270k regardless of model value (title-based)
+    const t1 = Date.now();
+    const q2 = `sales_archive?select=${cols}&make=eq.BMW&listing_title=ilike.*M3*Evolution*&sale_price=not.is.null&order=sale_price.desc&limit=15`;
+    const evoRows = await supabaseSelect(env, q2) || [];
+    const ms2 = Date.now() - t1;
+    const shape = r => ({ price: r.sale_price, usd: Math.round(hammerUsd({ source: r.platform, price: Number(r.sale_price), currency: r.currency || "USD" }) || 0), plat: r.platform, model: r.model, year: r.year, title: (r.listing_title || "").slice(0, 55), aside: recordExcludeReason(r.listing_title, "BMW", { wantHalo: false }) });
+    return res.status(200).json({ task: "recdiag", modelWholeWordMs: ms, evoSearchMs: ms2, top: rows.map(shape), evoMatches: evoRows.map(shape) });
+  }
+
   if (task === "deskcounts" || task === "deskgate") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
