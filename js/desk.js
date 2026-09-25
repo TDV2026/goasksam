@@ -101,8 +101,12 @@
     (res.chips || []).forEach(function (c) { h += chipHtml(c); });
     h += '</div>';
     if (r.grouping && r.grouping.members && r.grouping.members.length) {
+      var same = !!r.grouping.sameModel;
       h += '<div class="rc-members">';
-      r.grouping.members.forEach(function (m, i) { h += '<span class="rc-mem">' + esc(m.make + " " + m.model) + '<span class="x" data-drop-member="' + i + '">×</span></span>'; });
+      r.grouping.members.forEach(function (m, i) {
+        var lbl = same ? (m.generation || m.label || (m.make + " " + m.model)) : (m.make + " " + m.model);
+        h += '<span class="rc-mem">' + esc(lbl) + '<span class="x" data-drop-member="' + i + '" data-drop-tok="' + esc(m.generation || m.label || m.model) + '">×</span></span>';
+      });
       h += '</div>';
     }
     (res.not_applied || []).forEach(function (n) { h += '<div class="rc-na"><b>Not applied:</b> ' + esc(n.phrase) + (n.why ? " (" + esc(n.why) + ")" : "") + '</div>'; });
@@ -114,7 +118,7 @@
     h += '</div>';
     readingcard.innerHTML = h;
     Array.prototype.forEach.call(readingcard.querySelectorAll('[data-drop-member]'), function (el) {
-      el.onclick = function () { var m = res.reading.grouping.members[+el.getAttribute("data-drop-member")]; interpretFetch("drop the " + m.model, { threadReading: res.reading }); };
+      el.onclick = function () { interpretFetch("drop the " + (el.getAttribute("data-drop-tok") || ""), { threadReading: res.reading }); };
     });
     Array.prototype.forEach.call(readingcard.querySelectorAll('[data-opt]'), function (el) {
       el.onclick = function () { interpretFetch(el.getAttribute("data-opt"), { threadReading: res.reading }); };
@@ -140,7 +144,8 @@
   }
   function handleInterpret(question, res) {
     renderCard(res);
-    if (res.answer) render(res.answer);
+    if (res.cannot_apply) { out.innerHTML = msg("Can't apply that", esc(res.cannot_apply)); }
+    else if (res.answer) render(res.answer);
     else if (res.clarify) out.innerHTML = msg("One quick thing", "Pick an option above (or type it) and I'll run it.");
     else if (res.unsupported) out.innerHTML = msg("Not what the Desk does", esc(res.unsupported.message));
     else if (res.meta === "coverage") out.innerHTML = msg("Coverage", "Name a source (e.g. “what do you cover for Mecum”) to see its dates.");

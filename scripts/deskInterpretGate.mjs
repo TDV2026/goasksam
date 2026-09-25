@@ -63,7 +63,7 @@ const EXP = {
   "anything sold last week for a Duesenberg": r => has(r, "Duesenberg") || has(r, "Model J"),
   "the frog": r => r.honest
 };
-function has(r, m) { return (r.reading.scopes || []).some(s => (s.model || "").includes(m) || (s.make || "").includes(m)) || (r.reading.grouping && false); }
+function has(r, m) { return (r.reading.scopes || []).some(s => (s.model || "").includes(m) || (s.make || "").includes(m)) || (r.reading.grouping && (r.reading.grouping.members || []).some(s => (s.model || "").includes(m) || (s.make || "").includes(m))); }
 function metric(r, m) { return r.reading.metric && r.reading.metric.measure === m; }
 function grouping(r, n) { return r.reading.grouping && r.reading.grouping.name.toLowerCase().includes(n.toLowerCase()); }
 function groupby(r, d) { return (r.reading.structural || []).some(s => s.kind === "group_by" && s.dimension === d); }
