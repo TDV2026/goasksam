@@ -1530,19 +1530,16 @@ async function handleOps(req, res) {
       if (Array.isArray(mm.trimAny) && mm.trimAny.length) andGroups.push(orTitle(mm.trimAny));
       if (andGroups.length) base += `&and=(${andGroups.join(",")})`;
       const trimTag = mm.trimAny ? " (perf-trim filtered)" : "";
-      // Single UNORDERED limit-1000 fetch: the planner finds matches via the trigram indexes and
-      // returns without a sort/offset/count-scan, so it never hits the 8s statement timeout. Under
-      // 1000 rows -> exact count; exactly 1000 -> an honest "1000+" floor (a stated range).
-      const fetchN = async (b) => {
-        try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${b}&limit=1000`, { headers: H }); if (!r.ok) return null; const rows = await r.json().catch(() => null); return Array.isArray(rows) ? rows.length : null; }
-        catch (e) { return null; }
-      };
-      let n = await fetchN(base);
-      let c = n, capped = n === 1000, method = (capped ? "floor" : "exact") + trimTag;
+      // count=exact where it completes (< 8s statement timeout - most pools, incl. 2-3k ones); a planner
+      // ESTIMATE otherwise (a stated range for the very largest pools; the doc renders those as ">1,000").
+      let c = await rawCount(base, "count=exact");
+      let method = "exact" + trimTag, capped = false;
+      if (c === null) { c = await rawCount(base, "count=estimated"); method = "estimate" + trimTag; }
       if (c === 0 && !mm.titleAny && !mm.trimAny && /-(class|series)$/i.test(mm.model)) {
         const makeYear = `sales_archive?select=id&sale_price=not.is.null&make=ilike.${encodeURIComponent("*" + makeTok + "*")}${yr}`;
-        const n2 = await fetchN(makeYear);
-        if (n2 != null) { c = n2; capped = n2 === 1000; method = "make+year (family upper bound)"; }
+        let c2 = await rawCount(makeYear, "count=exact");
+        if (c2 === null) c2 = await rawCount(makeYear, "count=estimated");
+        if (c2 != null) { c = c2; method = "make+year (family upper bound)"; }
       }
       return { count: c, method, capped };
     };
