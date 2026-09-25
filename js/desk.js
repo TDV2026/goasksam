@@ -65,13 +65,106 @@
       out.innerHTML = deskError("The Desk could not reach the archive. Check your connection and try again."); wireRetry();
     }).finally(function () { go.removeAttribute("disabled"); });
   }
+  // ---- STAGE B: interpreter + reading card + clarification + conversation ----
+  var CUR_READING = null, THREAD = [], RECENT = [];
+  var readingcard = document.getElementById("readingcard");
+  var turnsEl = document.getElementById("turns");
+  var followrow = document.getElementById("followrow");
+  var followq = document.getElementById("followq");
+  var followgo = document.getElementById("followgo");
+
+  function interpretFetch(question, opts) {
+    opts = opts || {};
+    go.setAttribute("disabled", "1"); if (followgo) followgo.setAttribute("disabled", "1");
+    out.innerHTML = '<div class="working"><span class="pulse"></span> reading your question</div>';
+    var body = { desk: true, action: "interpret", question: question, run: true, recentReadings: RECENT.slice(-3) };
+    if (opts.threadReading) body.threadReading = opts.threadReading;
+    fetch(API + "/api/sellerDecision", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      .then(function (r) { return r.text().then(function (t) { return { ok: r.ok, code: r.status, text: t }; }); })
+      .then(function (resp) {
+        var j; try { j = JSON.parse(resp.text); } catch (e) { out.innerHTML = deskError("Try again."); wireRetry(); return; }
+        if (!resp.ok || j.status !== "interpreted") { out.innerHTML = deskError(esc((j && j.error) || "The request failed.")); wireRetry(); return; }
+        handleInterpret(question, j);
+      })
+      .catch(function () { out.innerHTML = deskError("The Desk could not reach the archive."); wireRetry(); })
+      .finally(function () { go.removeAttribute("disabled"); if (followgo) followgo.removeAttribute("disabled"); });
+  }
+  function chipHtml(c) {
+    var k = c.type ? '<span class="k">' + esc(c.type) + '</span>' : "";
+    var x = c.removable ? ' <span class="x" data-drop-grouping="1">clear</span>' : "";
+    return '<span class="rc-chip' + (c.defaulted ? " def" : "") + '">' + k + esc(c.label) + x + '</span>';
+  }
+  function renderCard(res) {
+    var r = res.reading || {};
+    var srcLbl = res.source === "fallback" ? "basic parser (understanding layer unavailable)" : res.source === "vin" ? "VIN decoded" : "understood";
+    var h = '<div class="rcard"><div class="rc-lede">How I read this · ' + esc(srcLbl) + '</div><div class="rc-chips">';
+    (res.chips || []).forEach(function (c) { h += chipHtml(c); });
+    h += '</div>';
+    if (r.grouping && r.grouping.members && r.grouping.members.length) {
+      h += '<div class="rc-members">';
+      r.grouping.members.forEach(function (m, i) { h += '<span class="rc-mem">' + esc(m.make + " " + m.model) + '<span class="x" data-drop-member="' + i + '">×</span></span>'; });
+      h += '</div>';
+    }
+    (res.not_applied || []).forEach(function (n) { h += '<div class="rc-na"><b>Not applied:</b> ' + esc(n.phrase) + (n.why ? " (" + esc(n.why) + ")" : "") + '</div>'; });
+    if (res.clarify) {
+      h += '<div class="rc-clarify"><div class="q">' + esc(res.clarify.question) + '</div>';
+      (res.clarify.options || []).forEach(function (o) { h += '<span class="rc-opt" data-opt="' + esc(o) + '">' + esc(o) + '</span>'; });
+      h += '<div class="rc-na" style="margin-top:8px;color:var(--faint)">Tap one, or type your answer below.</div></div>';
+    }
+    h += '</div>';
+    readingcard.innerHTML = h;
+    Array.prototype.forEach.call(readingcard.querySelectorAll('[data-drop-member]'), function (el) {
+      el.onclick = function () { var m = res.reading.grouping.members[+el.getAttribute("data-drop-member")]; interpretFetch("drop the " + m.model, { threadReading: res.reading }); };
+    });
+    Array.prototype.forEach.call(readingcard.querySelectorAll('[data-opt]'), function (el) {
+      el.onclick = function () { interpretFetch(el.getAttribute("data-opt"), { threadReading: res.reading }); };
+    });
+  }
+  function renderTurns() {
+    if (THREAD.length < 2) { turnsEl.innerHTML = ""; return; }
+    var h = "";
+    THREAD.slice(0, -1).forEach(function (t, i) { h += '<div class="turn" data-turn="' + i + '"><div class="tq">' + esc(t.question) + '</div><div class="tr">' + esc(t.summary || "") + '</div></div>'; });
+    turnsEl.innerHTML = h;
+    Array.prototype.forEach.call(turnsEl.querySelectorAll('[data-turn]'), function (el) {
+      el.onclick = function () { var t = THREAD[+el.getAttribute("data-turn")]; readingcard.innerHTML = t.cardHtml; out.innerHTML = t.answerHtml; };
+    });
+  }
+  function summarize(res) {
+    var r = res.reading || {}, parts = [];
+    (r.scopes || []).forEach(function (s) { parts.push(s.make + " " + s.model); });
+    if (r.grouping) parts.push(r.grouping.name);
+    if (r.metric && r.metric.measure) parts.push(r.metric.measure);
+    if (res.clarify) parts.push("needs a choice");
+    if (res.unsupported) parts.push("not answerable");
+    return parts.join(" · ");
+  }
+  function handleInterpret(question, res) {
+    renderCard(res);
+    if (res.answer) render(res.answer);
+    else if (res.clarify) out.innerHTML = msg("One quick thing", "Pick an option above (or type it) and I'll run it.");
+    else if (res.unsupported) out.innerHTML = msg("Not what the Desk does", esc(res.unsupported.message));
+    else if (res.meta === "coverage") out.innerHTML = msg("Coverage", "Name a source (e.g. “what do you cover for Mecum”) to see its dates.");
+    else if (res.honest_miss) out.innerHTML = msg("I couldn't read that", "I don't recognize that yet. It's logged so we can add it. Try a make and model.");
+    else if (res.reading && (res.reading.grouping || (res.reading.structural || []).some(function (s) { return s.kind === "comparison"; }))) out.innerHTML = msg("Reading ready", "This is a ranking or comparison; the multi-car answer arrives in the next stage. The reading above is how it was understood.");
+    else out.innerHTML = "";
+    CUR_READING = res.reading; RECENT.push(res.reading);
+    THREAD.push({ question: question, reading: res.reading, summary: summarize(res), cardHtml: readingcard.innerHTML, answerHtml: out.innerHTML });
+    renderTurns();
+    if (followrow) followrow.style.display = "flex";
+  }
   function run() {
-    var q = (input.value || "").trim();
-    if (!q) return;
-    deskFetch({ question: q });
+    var q = (input.value || "").trim(); if (!q) return;
+    THREAD = []; RECENT = []; CUR_READING = null; renderTurns();
+    interpretFetch(q, {});
+  }
+  function runFollow() {
+    var q = (followq.value || "").trim(); if (!q) return;
+    interpretFetch(q, { threadReading: CUR_READING }); followq.value = "";
   }
   go.onclick = run;
   input.addEventListener("keydown", function (e) { if (e.key === "Enter") run(); });
+  if (followgo) followgo.onclick = runFollow;
+  if (followq) followq.addEventListener("keydown", function (e) { if (e.key === "Enter") runFollow(); });
 
   function msg(tag, body) { return '<div class="msg"><div class="t">' + esc(tag) + '</div>' + body + '</div>'; }
 

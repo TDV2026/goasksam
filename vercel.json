@@ -32,7 +32,7 @@
     { "source": "/js.20260922c/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20260921b/(.*)", "destination": "/js/$1" },
     { "source": "/desk", "destination": "/desk.html" },
-    { "source": "/dsk.20260923a/(.*)", "destination": "/js/$1" }
+    { "source": "/dsk.20260925a/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
     "api/usageDashboard.js": {
