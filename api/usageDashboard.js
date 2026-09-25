@@ -1722,6 +1722,10 @@ async function handleOps(req, res) {
       } catch (e) { return { ms: Date.now() - t0, error: String(e && e.message || e) }; }
     };
     modelCheck.fix_title_trgm_maxincode = await maxInCode(`sales_archive?select=sale_price,listing_title&make=eq.BMW&listing_title=ilike.*M3*&sale_price=not.is.null&limit=3000`, "title trgm + max in code");
+    // model ILIKE %M3% ordered (uses idx_sa_model_trgm on model): fast? returns the true record?
+    modelCheck.fix_model_ilike_ordered = await maxInCode(`sales_archive?select=sale_price,listing_title,model&make=eq.BMW&model=ilike.*M3*&sale_price=not.is.null&order=sale_price.desc&limit=1`, "model ilike ordered");
+    // how many M3-in-title rows are MIScatalogued as model='3-Series' (missed by any model filter)
+    modelCheck.count_title_M3_model_3series = await timeCount(`sales_archive?select=id&make=eq.BMW&listing_title=ilike.*M3*&model=eq.3-Series&sale_price=not.is.null`, "count=exact");
 
     const explainAvailable = results.some(r => r.explainRpc && r.explainRpc.verdict);
     return res.status(200).json({
