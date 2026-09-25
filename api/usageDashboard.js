@@ -1506,7 +1506,7 @@ async function handleOps(req, res) {
       let c = await rawCount(titleScoped, "count=exact");
       let method = "exact";
       if (c === null) { c = await rawCount(titleScoped, "count=estimated"); method = "estimated"; }
-      if (c === 0 && /-class$/i.test(mm.model)) {
+      if (c === 0 && /-(class|series)$/i.test(mm.model)) {
         const makeYear = `sales_archive?select=id&sale_price=not.is.null&make=ilike.${encodeURIComponent("*" + makeTok + "*")}${yr}`;
         let c2 = await rawCount(makeYear, "count=exact");
         if (c2 === null) c2 = await rawCount(makeYear, "count=estimated");
