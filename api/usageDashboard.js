@@ -1501,13 +1501,20 @@ async function handleOps(req, res) {
     const fullCols = "id,price:sale_price,auction_end_date:sale_date,source:platform,raw_title:listing_title,year,vin_norm,image:raw_record->>featured_image_url,mileage:raw_record->>mileage,body:raw_record->>body_style,mods:raw_record->>modifications,rtitle:raw_record->>title,currency:raw_record->>currency,transmission:raw_record->>transmission,color:raw_record->>exterior_color,ts:raw_record->>title_status,flaws:raw_record->>known_flaws,srcurl:raw_record->>url,srcurl2:raw_record->>source_url,city:raw_record->>city,precision:raw_record->>auction_end_precision";
     const t3 = Date.now(); await supabaseSelect(env, `sales_archive?select=${fullCols}&make=eq.BMW&model=imatch.${encodeURIComponent("\\yM3\\y")}&sale_price=not.is.null&order=sale_price.desc&limit=120`); const fullMs = Date.now() - t3;
     const leanCols = "id,price:sale_price,auction_end_date:sale_date,source:platform,raw_title:listing_title,year,vin_norm,image:raw_record->>featured_image_url,currency:raw_record->>currency,srcurl:raw_record->>url,mileage:raw_record->>mileage";
-    const t3b = Date.now(); await supabaseSelect(env, `sales_archive?select=${leanCols}&make=eq.BMW&model=imatch.${encodeURIComponent("\\yM3\\y")}&sale_price=not.is.null&order=sale_price.desc&limit=120`); const leanMs = Date.now() - t3b;
+    // the EXACT production record query shape (make ILIKE + model ILIKE + price sort), timed 3x
+    const prodQ = `sales_archive?select=${leanCols}&make=ilike.${encodeURIComponent("*BMW*")}&sale_price=not.is.null&model=ilike.${encodeURIComponent("*M3*")}&order=sale_price.desc&limit=120`;
+    const prodTimes = [];
+    for (let i = 0; i < 3; i++) { const tp = Date.now(); const gg = await supabaseSelect(env, prodQ); prodTimes.push({ ms: Date.now() - tp, rows: (gg || []).length }); }
+    // no-order variant (trigram only, sort in code), timed
+    const noOrderQ = `sales_archive?select=id,price:sale_price,model&make=ilike.${encodeURIComponent("*BMW*")}&sale_price=not.is.null&model=ilike.${encodeURIComponent("*M3*")}&limit=2000`;
+    const tno = Date.now(); const noOrderRows = await supabaseSelect(env, noOrderQ) || []; const noOrderMs = Date.now() - tno;
+    const leanMs = prodTimes[0].ms;
     const { sourceCoverage } = await import("../lib/desk/coverage.js");
     const t4 = Date.now(); await sourceCoverage(env, { force: true }); const covMs = Date.now() - t4;
     const { executeDsl } = await import("../lib/desk/execute.js");
     await executeDsl({ filters: { make: "BMW", model: "M3" }, groupBy: [], measures: ["record"] }, env, { vehicle: { make: "BMW", model: "M3" } }); // warm
     const t5 = Date.now(); await executeDsl({ filters: { make: "BMW", model: "M3" }, groupBy: [], measures: ["record"] }, env, { vehicle: { make: "BMW", model: "M3" } }); const execMs = Date.now() - t5;
-    return res.status(200).json({ task: "recdiag", modelWholeWordMs: ms, evoSearchMs: ms2, fullColsLimit120Ms: fullMs, leanColsLimit120Ms: leanMs, sourceCoverageMs: covMs, executeDslMs: execMs, top: rows.map(shape).slice(0, 6) });
+    return res.status(200).json({ task: "recdiag", prodRecordQ_times: prodTimes, noOrder_ms: noOrderMs, noOrder_rows: noOrderRows.length, sourceCoverageMs: covMs, executeDslMs: execMs });
   }
 
   if (task === "deskcounts" || task === "deskgate") {
