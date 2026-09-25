@@ -28,7 +28,7 @@ if (!env) { console.error("FATAL: SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY requi
 
 // ---- 1) keyset-load the minimal columns (source_id PK, make, model, listing_title) ----
 async function loadRows() {
-  const cols = "source_id,make,model,listing_title";
+  const cols = "source_id,make,model,listing_title,platform";
   const rows = []; let cursor = "";
   for (let p = 0; p < 1000 && rows.length < LIMIT; p++) {
     let q = `sales_archive?select=${cols}&order=source_id.asc&limit=1000`;
@@ -49,20 +49,35 @@ function run() {
   return loadRows().then(async rows => {
     // 2) compute family; bucket source_ids by family value.
     const byFamily = new Map();          // family -> [source_id]
-    let unassigned = 0;
+    const sampleTitle = new Map();       // family -> a sample listing_title
+    const nullRows = [];                 // rows deskModelFamily left null (excluded from family reads)
     for (const r of rows) {
       const fam = deskModelFamily({ make: r.make, model: r.model, trim: "", title: r.listing_title });
-      if (!fam) { unassigned++; continue; }
+      if (!fam) { nullRows.push(r); continue; }
       (byFamily.get(fam) || byFamily.set(fam, []).get(fam)).push(r.source_id);
+      if (!sampleTitle.has(fam)) sampleTitle.set(fam, r.listing_title || "");
     }
     const families = [...byFamily.entries()].sort((a, b) => b[1].length - a[1].length);
-    console.log(`\nRows scanned: ${rows.length}. Distinct model_family values: ${families.length}. Unassigned (no make/model): ${unassigned}.`);
-    console.log("Top 25 families by row count:");
+    const under5 = families.filter(([, ids]) => ids.length < 5);
+    console.log(`\nRows scanned: ${rows.length}. Distinct model_family values: ${families.length}. Null model_family (excluded from family reads): ${nullRows.length}.`);
+    console.log(`Families with fewer than 5 rows: ${under5.length} (of ${families.length}).`);
+    console.log("\nTop 25 families by row count:");
     for (const [fam, ids] of families.slice(0, 25)) console.log(`  ${String(ids.length).padStart(7)}  ${fam}`);
-    // spot-check that the own-market badges are present and separate from their base
-    for (const probe of ["M3", "M5", "C63", "944 Turbo", "190E 2.3-16", "3 Series", "E-Class"]) {
-      const hit = byFamily.get(probe); if (hit) console.log(`  probe: ${probe} = ${hit.length} rows`);
+    // spot-check own-market badges are present and separate from their base
+    console.log("\nProbes:");
+    for (const probe of ["911", "996", "997", "991", "M3", "M5", "C63", "944 Turbo", "190E 2.3-16", "300SL", "190SL", "3 Series", "E-Class", "SL-Class", "Corvette", "Unknown"]) {
+      const hit = byFamily.get(probe); console.log(`  ${probe} = ${hit ? hit.length + " rows" : "(none)"}`);
     }
+    // 30 random families under 5, each with a sample title (the long-tail curation view).
+    const shuffled = under5.slice(); for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
+    console.log("\n30 random families under 5 rows (family | n | sample title):");
+    for (const [fam, ids] of shuffled.slice(0, 30)) console.log(`  ${fam} | ${ids.length} | ${sampleTitle.get(fam)}`);
+    // Null-family rows: top sources + sample titles (what these are, so we can decide).
+    const nullBySrc = new Map(); for (const r of nullRows) nullBySrc.set(r.platform || "?", (nullBySrc.get(r.platform || "?") || 0) + 1);
+    console.log(`\nNull-family rows by source (top 10):`);
+    for (const [src, n] of [...nullBySrc.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10)) console.log(`  ${String(n).padStart(6)}  ${src}`);
+    console.log("15 sample null-family titles (make | model | title):");
+    for (const r of nullRows.slice(0, 15)) console.log(`  ${r.make} | ${JSON.stringify(r.model)} | ${r.listing_title || ""}`);
 
     if (DRY) { console.log("\n--dry: no writes."); return; }
 
