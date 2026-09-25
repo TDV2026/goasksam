@@ -1,72 +1,97 @@
-# Sam Desk record / coverage timeout — EXPLAIN investigation findings (Sep 24, 2026)
+# Sam Desk record / coverage timeout — findings (Sep 24, 2026)
 
-Read-only, no fixes applied (per instruction: "Fix nothing until you have that evidence"). Evidence
-gathered via the `deskexplain` ops task (task=deskexplain), which times the exact query shapes and,
-once `docs/supabase-desk-explain.sql` is applied, will also return the real `EXPLAIN (ANALYZE)` plan.
+Read-only investigation. The earlier "missing indexes" hypothesis was **wrong** (Sam confirmed all three
+indexes present, none invalid). Evidence below was gathered by timing the exact query shapes in
+production; the temporary `deskexplain` ops task and the `desk_explain` arbitrary-query RPC have been
+**removed** (we do not ship an arbitrary-SQL function to prod). To get a real plan, run the exact
+`EXPLAIN` statements at the end once in the Supabase SQL editor.
 
-## Correction to the earlier (wrong) diagnosis
+## Root cause of the record timeout (the golden `(e)` failure)
 
-My first hypothesis was "missing indexes." That was **wrong** — Sam confirmed `pg_indexes` shows
-`idx_sales_archive_make_price`, `idx_sales_archive_platform_saledate` and `idx_sales_archive_sale_price`
-all present, with no invalid indexes. The timing evidence below agrees: the index-served shapes are fast.
-The timeout has a different cause.
+The record all-time scan for a **badged** model is the failure, and it is the query SHAPE, not an index.
 
-## What EXPLAIN-via-PostgREST could not do
+| Query (production, two runs) | Time | Result |
+|---|---|---|
+| `make='BMW'` only, `order by sale_price desc limit 200` | 0.9–1.2 s | fast — `(make, sale_price)` index serves it |
+| **`make='BMW' and listing_title ILIKE '%M3%'`, `order by sale_price desc limit 200`** (real record query) | **8.5–9.0 s** | **HTTP 500, statement timeout** |
+| coverage: `platform='Bring a Trailer' and sale_price is not null order by sale_date asc limit 1` | 0.17–0.22 s | fast — index-served |
 
-PostgREST's plan media type (`application/vnd.pgrst.plan`) is **disabled on Supabase** (`PGRST107`,
-`db-plan-enabled=false`), so the ops task cannot pull a plan through the REST API. To get a true
-`EXPLAIN (ANALYZE, VERBOSE, BUFFERS)` server-side, apply `docs/supabase-desk-explain.sql` (a read-only
-`desk_explain(q)` RPC restricted to `SELECT ... sales_archive`); `deskexplain` calls it automatically
-once present. Until then, the **timings** below localize the cost (two consecutive runs shown).
+Why the badged query dies: with `order by sale_price desc limit N` the planner walks the
+`(make, sale_price)` index from the top and filters `listing_title ILIKE '%M3%'` row by row. **The most
+expensive BMWs are not M3s** (507, M1, Z8, 8-Series), so it scans thousands of rows before collecting N
+M3s and blows the 8 s statement timeout. The code's `catch` then falls back to the 24-month window
+("the all-time scan timed out"), which is the golden `(e)` failure. Deterministic on high-volume badged
+models. **Coverage is not the cause** (172–218 ms, index-served); the earlier coverage-empty golden
+failures were collateral contention while this scan timed out in the same run. (`count=exact` on BaT,
+~149,528 rows, does time out at 8.6 s — but `coverage.js` uses `asc limit 1`, not `count=exact`.)
 
-## The evidence (two runs, production)
+## Item 4: is the `model` column reliable? NO.
 
-| Query shape | Run 1 | Run 2 | Result |
-|---|---|---|---|
-| **record, make=eq only** — `make='BMW' and sale_price is not null order by sale_price desc limit 200` | 1152 ms | 878 ms | 200 rows, HTTP 200 — **fast** |
-| **record, make=eq + title ILIKE '%M3%' + price sort** (the real badged-model record query) | 8959 ms | 8507 ms | **HTTP 500, statement timeout** |
-| **coverage, BaT earliest** — `platform='Bring a Trailer' and sale_price is not null order by sale_date asc limit 1` | 172 ms | 218 ms | 1 row, HTTP 200 — **fast** |
-| count=exact, BMW (`21,734` rows) | 1045 ms | — | HTTP 206 |
-| count=exact, BaT (`~149,528` rows) | 8614 ms | — | **HTTP 500, statement timeout** |
-| count=estimated, BaT | 1571 ms | — | planner estimate, fast |
+Sampled BMW rows whose title carries "M3" — the `model` column values:
 
-## Root cause
+`M3`, `M3 GTS`, `M3 CSL`, `M3 Evolution II`, `M3 Cecotto`, `M3 Coupe`, `M3 Convertible`, `M3 Individual`,
+`(E46) M3`, `(E30) M3`, `E30 M3`, `M3 E30`, `M3 (G80)`, `M1`, and `3-Series`.
 
-**The record all-time scan for a BADGED model is the failure, and the cause is the query SHAPE, not a
-missing index.**
+- `model = 'M3'` (exact) matches only **458** rows and **misses the record** — the all-time BMW M3 top
+  sale is a **1992 BMW M3 (E30) DTM at $483,000**, whose `model` is not the literal `"M3"`. So a
+  `(make, model, sale_price desc)` btree queried with `model = 'M3'` would return the wrong record. This
+  is the same failure the top-N-by-price approach has, just via `model` — do NOT do it.
+- `model ILIKE '%M3%'` would also catch `M340i` (harmless for the *record* since M340i is cheap, but
+  wrong for a full pool), and there are ~real M3s mis-catalogued as `3-Series` that it misses.
 
-- `make=eq` **alone**, ordered by `sale_price desc`, is fast (~0.9–1.2 s): the `(make, sale_price)`
-  index serves it index-ordered, exactly as intended.
-- The **real** record query for "BMW M3" adds a **leading-wildcard `listing_title ILIKE '%M3%'`** on top
-  of `make=eq` **and** the `sale_price desc` sort. The planner cannot use the `(make, sale_price)` btree
-  (for the ordered scan) and the `listing_title` trigram GIN (for the ILIKE) at the same time, so it
-  picks a plan that filters + sorts a large set and **exceeds the 8 s statement timeout** (reproducible:
-  8.5 s and 9.0 s → HTTP 500). The code's `catch` then falls back to the 24-month window and reports
-  "the all-time scan timed out, so this is a recent-window record" — which is exactly the Desk Golden
-  `(e)` assertion failure. Deterministic on high-volume badged models (M3), which is what the golden tests.
+**Conclusion: the `model` column does not identify the model reliably, so an index on
+`(make, model, sale_price desc)` with `model = 'M3'` is not the fix.**
 
-- **Coverage is NOT the problem.** The actual `coverage.js` query (`asc, limit 1`) is index-served and
-  fast (172–218 ms). The earlier Desk-Golden coverage-empty failures for BaT/C&B were **not** this query
-  timing out on its own; the most likely explanation is collateral timeout/contention while the record
-  scan above was holding/timing-out connections in the same run (the golden runs record + coverage
-  together). What DOES time out on BaT is `count=exact` (8.6 s on ~149,528 rows) — but coverage does not
-  use `count=exact`, so that is a separate, latent cost, not the coverage-date failure.
+## What works
 
-## Confirming index usage (the one open step)
+**Verified now, no schema change, < 3 s:** filter the record scope on the `model` column with the
+existing model trigram index (`idx_sa_model_trgm`) and order by price:
 
-The timings strongly imply `make=eq`-only uses `idx_sales_archive_make_price` and the coverage query uses
-`idx_sales_archive_platform_saledate`. To turn "strongly imply" into "confirmed," apply
-`docs/supabase-desk-explain.sql` and re-run `task=deskexplain`; it will print, per query, the node types
-(Index Scan vs Seq Scan + Sort), the index name, and the actual execution time.
+```
+select sale_price, listing_title from sales_archive
+where make='BMW' and model ILIKE '%M3%' and sale_price is not null
+order by sale_price desc limit 1;
+```
 
-## Fix direction (NOT implemented — evidence first, per instruction)
+Production timing: **230 ms**, and it returns the true record (1992 BMW M3 (E30) DTM, $483,000). The
+`model` column is far cleaner than `listing_title` (no VIN/description noise: `listing_title ILIKE '%M3%'`
+returns 1,900+ rows, most of them 3-Series with an "m3" substring in a chassis number), so the trigram
+filter yields a small set and the price sort is cheap. This is the Stage-B code change to the record path
+in `lib/desk/execute.js` / `lib/onebox.js` (scope the badge on `model`, not `listing_title`). It carries
+the same completeness caveats the title path already had for chassis-code models (911 filed as 997/991/930),
+which the existing chassis-code union handles.
 
-For the record path on a badged model, avoid asking the planner to serve the leading-wildcard title
-ILIKE and the `sale_price desc` sort from one query. Options to weigh (do not build yet):
-1. Scan `(make, sale_price)` index-ordered (fast, as proven) and filter the badge (`M3`) in application
-   code over the top-N rows — the record is the max, so a modest N (e.g. 500) almost always contains it.
-2. A partial/expression index matching the badge pattern, or a normalized `model`/`badge` column so the
-   badge is an equality filter instead of a leading-wildcard ILIKE.
-3. Split: one cheap `make=eq` price-sorted pass, intersect with a cheap trigram-only `M3` id set.
+**Optimal long-term (needs a column, so flagged, not a one-line index):** add a normalized
+`model_family` (badge) column, populated at ingest by the existing `performanceBadge` logic (it already
+derives "M3" from any M3 title, and would also recover the M3s mislabeled `3-Series`), then:
 
-Option 1 is the least invasive and matches how the make=eq scan already behaves.
+```
+CREATE INDEX idx_sales_archive_make_family_price
+  ON sales_archive (make, model_family, sale_price DESC);
+```
+
+Query becomes `make='BMW' and model_family='M3' order by sale_price desc limit 1` — exact, complete,
+sub-100 ms. This is also what the nightly record cube (spec s15) would precompute. Do NOT create this
+index before the `model_family` column exists and is backfilled (an ingest task).
+
+## Exact EXPLAIN statements to run once (Supabase SQL editor)
+
+```sql
+-- 1) the failing badged record query (expect Seq/Index scan + filter, high time / timeout)
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id, sale_price FROM sales_archive
+WHERE make='BMW' AND listing_title ILIKE '%M3%' AND sale_price IS NOT NULL
+ORDER BY sale_price DESC LIMIT 200;
+
+-- 2) the proposed model-column fix (expect Bitmap Index Scan on idx_sa_model_trgm, ~ms)
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT sale_price, listing_title FROM sales_archive
+WHERE make='BMW' AND model ILIKE '%M3%' AND sale_price IS NOT NULL
+ORDER BY sale_price DESC LIMIT 1;
+
+-- 3) coverage (expect Index Scan on idx_sales_archive_platform_saledate, ~ms)
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT sale_date FROM sales_archive
+WHERE platform='Bring a Trailer' AND sale_price IS NOT NULL
+ORDER BY sale_date ASC LIMIT 1;
+```

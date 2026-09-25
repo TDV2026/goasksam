@@ -1,0 +1,12 @@
+import puppeteer from "puppeteer-core";
+const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
+const p = await b.newPage();
+await p.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
+await p.goto("https://goasksam.com/sell", { waitUntil: "networkidle2" });
+const r = await p.evaluate(async () => (await fetch("/api/sellerDecision",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({backfillCount:true,sources:["bringatrailer","carsandbids"],yearMin:2023,yearMax:2025})})).json());
+console.log("OCD HEADER (authoritative):");
+console.log("  ocdRemaining:", r.ocdRemaining, "| ocdLimit:", r.ocdLimit, "| ocdReset:", r.ocdReset);
+console.log("  dryRunRequestsSpent (this read):", r.dryRunRequestsSpent);
+console.log("  per-source OCD holdings (oldest/newest):", JSON.stringify((r.sources||[]).map(s=>({src:s.source,total:s.total,oldest:s.oldest,newest:s.newest}))));
+await b.close();

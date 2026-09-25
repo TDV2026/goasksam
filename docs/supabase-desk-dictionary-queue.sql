@@ -50,3 +50,12 @@ begin
   return r;
 end;
 $$;
+
+-- Security (STANDING RULE for every new table + function): RLS on, grants revoked from anon +
+-- authenticated at creation; the queue is written ONLY by the server via the service role, which
+-- bypasses RLS. desk_queue_log is execute-restricted to service_role so a leaked anon/authenticated
+-- key can neither read the queue nor call the logger. (Applied to the DB Sep 2026.)
+alter table desk_dictionary_queue enable row level security;
+revoke all on desk_dictionary_queue from anon, authenticated;
+revoke execute on function desk_queue_log(text, text, text) from public, anon, authenticated;
+grant execute on function desk_queue_log(text, text, text) to service_role;
