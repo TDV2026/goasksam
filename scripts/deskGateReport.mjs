@@ -51,9 +51,12 @@ for (const r of j.results) {
   if (v.unresolved.length) console.log("  UNRESOLVED: " + v.unresolved.join(", ") + "  -> logged to desk_dictionary_queue");
   const invalidParts = v.parts.filter(p => p.status === "invalid");
   if (invalidParts.length) console.log("  INVALID:    " + invalidParts.map(p => p.part + "=" + p.value + " (" + p.reason + ")").join("; "));
-  // "reads correctly" = validator did not reject an invented part AND every phrase has a fate.
+  if (r.honestMiss) console.log("  HONEST MISS: nothing resolved, nothing invented; unresolved phrase logged to the queue");
+  if (r.notApplied && r.notApplied.length) console.log("  NOT APPLIED: " + r.notApplied.map(n => `"${n.text}" (${n.reason})`).join("; "));
+  // "reads correctly" = every phrase has a fate AND the outcome is a legitimate one:
+  // validator-ok, an honest ask, a refuse (unsupported), a coverage/meta answer, or an honest miss.
   const allPhrasesAccounted = r.fates.every(p => FATE[p.fate]);
-  const reads = allPhrasesAccounted && (v.ok || r.unsupported || r.meta || r.ambiguous);
+  const reads = allPhrasesAccounted && (v.ok || r.unsupported || r.meta || r.ambiguous || r.honestMiss);
   if (reads) readOk++;
   console.log("  READS OK:   " + (reads ? "YES" : "NO") + "\n");
 }

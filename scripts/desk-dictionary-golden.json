@@ -3369,6 +3369,17 @@
         "sort": "desc"
       }
     },
+    "resold": {
+      "phrase": "resold",
+      "category": "metric",
+      "type": "metric",
+      "status": "approved",
+      "metric": {
+        "measure": "velocity",
+        "sort": "desc",
+        "note": "same-chassis repeat sales: time between sales and the price change (spec s5 repeat sales)"
+      }
+    },
     "rising fastest": {
       "phrase": "rising fastest",
       "category": "metric",
@@ -3570,6 +3581,16 @@
       "type": "body",
       "status": "approved",
       "body": "wagon"
+    },
+    "which house": {
+      "phrase": "which house",
+      "category": "structural",
+      "type": "structural",
+      "status": "approved",
+      "structural": {
+        "kind": "group_by",
+        "dimension": "venue"
+      }
     },
     "youngtimer": {
       "phrase": "youngtimer",

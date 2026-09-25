@@ -1612,6 +1612,7 @@ async function handleOps(req, res) {
         filters: reading.filters, window: reading.window, windowDefaulted: !!reading.windowDefaulted,
         structural: reading.structural, ambiguous: reading.ambiguous || null,
         unsupported: !!reading.unsupported, meta: reading.meta || null, vin: reading.vin || null,
+        honestMiss: !!reading.honestMiss, notApplied: reading.notApplied || [],
         fates: (reading.phrases || []).map(p => ({ phrase: p.text, fate: p.fate, note: p.note })),
         validation: { ok: validation.ok, runnable: validation.runnable, unresolved: validation.unresolved, summary: validation.summary, parts: validation.parts.map(p => ({ part: p.part, value: p.value, status: p.status, confidence: p.confidence, reason: p.reason })) }
       };
