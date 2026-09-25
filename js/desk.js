@@ -143,6 +143,14 @@
     return parts.join(" · ");
   }
   function handleInterpret(question, res) {
+    // NO SILENT SUBSTITUTION: a not-yet-built question type says so in ONE line and shows nothing else.
+    if (res.not_built) {
+      readingcard.innerHTML = ""; out.innerHTML = msg("Not built yet", esc(res.not_built));
+      CUR_READING = res.reading; RECENT.push(res.reading);
+      THREAD.push({ question: question, reading: res.reading, summary: summarize(res), cardHtml: "", answerHtml: out.innerHTML });
+      renderTurns(); if (followrow) followrow.style.display = "flex";
+      return;
+    }
     renderCard(res);
     if (res.cannot_apply) { out.innerHTML = msg("Can't apply that", esc(res.cannot_apply)); }
     else if (res.answer) render(res.answer);
