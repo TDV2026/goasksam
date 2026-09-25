@@ -1689,8 +1689,30 @@ async function handleOps(req, res) {
       coverage_bat_exact: await timeCount(`sales_archive?select=id&platform=eq.${encodeURIComponent("Bring a Trailer")}&sale_price=not.is.null`, "count=exact"),
       coverage_bat_estimated: await timeCount(`sales_archive?select=id&platform=eq.${encodeURIComponent("Bring a Trailer")}&sale_price=not.is.null`, "count=estimated")
     };
+    // Item-4 investigation: does the `model` column reliably identify the model (M3, 911)?
+    // Sample BMW rows whose title carries M3, and time a model=eq record query (equality, not ILIKE).
+    const modelCheck = {};
+    try {
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?select=model,listing_title&make=eq.BMW&listing_title=ilike.*M3*&sale_price=not.is.null&limit=40`, { headers: H });
+      const rows = await r.json().catch(() => []);
+      const dist = {}; for (const x of (rows || [])) dist[x.model == null ? "<null>" : x.model] = (dist[x.model == null ? "<null>" : x.model] || 0) + 1;
+      modelCheck.bmwM3_modelDistribution = dist;
+      modelCheck.bmwM3_sample = (rows || []).slice(0, 6).map(x => ({ model: x.model, title: (x.listing_title || "").slice(0, 60) }));
+    } catch (e) { modelCheck.error = String(e && e.message || e); }
+    // Distinct-ish model values for BMW (are they nameplates like M3, or trims/junk?).
+    try {
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?select=model&make=eq.BMW&sale_price=not.is.null&order=model.asc&limit=1000`, { headers: H });
+      const rows = await r.json().catch(() => []);
+      const d = {}; for (const x of (rows || [])) d[x.model == null ? "<null>" : x.model] = (d[x.model == null ? "<null>" : x.model] || 0) + 1;
+      modelCheck.bmwTopModels = Object.entries(d).sort((a, b) => b[1] - a[1]).slice(0, 25);
+    } catch (e) { modelCheck.modelsError = String(e && e.message || e); }
+    // Proposed record query: model=eq.M3, price sort (current indexes; no new index yet).
+    modelCheck.timing_model_eq_M3 = await timeQuery(`sales_archive?select=id,sale_price,listing_title,model&make=eq.BMW&model=eq.M3&sale_price=not.is.null&order=sale_price.desc&limit=1`);
+    modelCheck.timing_model_ilike_M3 = await timeQuery(`sales_archive?select=id,sale_price&make=eq.BMW&model=ilike.M3&sale_price=not.is.null&order=sale_price.desc&limit=1`);
+
     const explainAvailable = results.some(r => r.explainRpc && r.explainRpc.verdict);
     return res.status(200).json({
+      modelCheck,
       task: "deskexplain",
       explainAvailable,
       note: explainAvailable
