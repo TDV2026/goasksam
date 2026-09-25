@@ -1622,6 +1622,62 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "deskgate", set: which === FIVE ? "five" : "thirty", count: out.length, results: out });
   }
 
+  // task=deskexplain: READ-ONLY EXPLAIN (ANALYZE) on the record all-time scan and the Bring a Trailer
+  // coverage query, via PostgREST's plan media type (application/vnd.pgrst.plan). Reports whether the
+  // planner uses the indexes and where the time goes. FIXES NOTHING (no DDL, no writes).
+  if (task === "deskexplain") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const planFor = async (label, path, description) => {
+      const url = `${env.supabaseUrl}/rest/v1/${path}`;
+      const attempt = async (fmt) => {
+        try {
+          const r = await fetch(url, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Accept: `application/vnd.pgrst.plan+${fmt}; options=analyze,verbose,buffers` } });
+          const body = await r.text();
+          return { status: r.status, ctype: r.headers.get("content-type"), body };
+        } catch (e) { return { status: 0, error: String(e && e.message || e) }; }
+      };
+      // Prefer JSON plan (structured); fall back to text.
+      let res1 = await attempt("json");
+      let plan = null, planText = null, isPlan = false;
+      if (res1.status === 200 && /json/.test(res1.ctype || "") && /"Plan"/.test(res1.body)) { try { plan = JSON.parse(res1.body); isPlan = true; } catch {} }
+      if (!isPlan) { const res2 = await attempt("text"); if (res2.status === 200 && /cost=|Scan|Plan/.test(res2.body || "")) { planText = res2.body; isPlan = true; } else { res1 = res1.status ? res1 : res2; } }
+      // Derive a quick verdict from the JSON plan when present.
+      let verdict = null;
+      if (plan) {
+        const flat = JSON.stringify(plan);
+        const nodeTypes = (flat.match(/"Node Type":"[^"]+"/g) || []).map(s => s.split(":")[1].replace(/"/g, ""));
+        const indexes = (flat.match(/"Index Name":"[^"]+"/g) || []).map(s => s.split(":")[1].replace(/"/g, ""));
+        const exec = (plan[0] && (plan[0]["Execution Time"] ?? plan[0].Plan?.["Actual Total Time"])) || null;
+        verdict = { nodeTypes: [...new Set(nodeTypes)], indexesUsed: [...new Set(indexes)], seqScan: nodeTypes.includes("Seq Scan"), sort: nodeTypes.includes("Sort"), executionMs: exec };
+      }
+      return { label, description, path, isPlan, verdict, plan: plan || null, planText: planText || null, raw: isPlan ? undefined : (res1.body || res1.error || "").slice(0, 400) };
+    };
+    // Representative queries (mirror lib/desk/execute.js record path + lib/desk/coverage.js).
+    const results = [];
+    results.push(await planFor(
+      "record_make_only",
+      `sales_archive?select=id,sale_price&make=eq.BMW&sale_price=not.is.null&order=sale_price.desc&limit=200`,
+      "record all-time scan, make=eq only (the (make,sale_price) index should serve this index-ordered)"
+    ));
+    results.push(await planFor(
+      "record_make_title_M3",
+      `sales_archive?select=id,sale_price&make=eq.BMW&listing_title=ilike.*M3*&sale_price=not.is.null&order=sale_price.desc&limit=200`,
+      "record all-time scan for BMW M3 (make=eq + leading-wildcard title ILIKE + price sort) - the real record query shape"
+    ));
+    results.push(await planFor(
+      "coverage_bringatrailer",
+      `sales_archive?select=sale_date&platform=eq.${encodeURIComponent("Bring a Trailer")}&sale_price=not.is.null&order=sale_date.asc&limit=1`,
+      "earliest BaT priced sale (coverage table) - the (platform,sale_date) index should serve this"
+    ));
+    const planEnabled = results.some(r => r.isPlan);
+    return res.status(200).json({
+      task: "deskexplain",
+      planEnabled,
+      note: planEnabled ? "EXPLAIN via PostgREST plan media type." : "PostgREST plan media type is disabled on this instance (db-plan-enabled=false); an EXPLAIN RPC (DDL, Sam) would be needed to run EXPLAIN ANALYZE server-side.",
+      results
+    });
+  }
+
   // task=houserates: empirical premium-rate calibration. A correct back-out rate turns a
   // premium-INCLUSIVE total into a ROUND hammer (auction hammers land on $500/$1000 steps).
   // Tests candidate rates and reports which reproduces round hammers most often. Also
