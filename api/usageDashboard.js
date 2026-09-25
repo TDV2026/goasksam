@@ -1708,7 +1708,20 @@ async function handleOps(req, res) {
     } catch (e) { modelCheck.modelsError = String(e && e.message || e); }
     // Proposed record query: model=eq.M3, price sort (current indexes; no new index yet).
     modelCheck.timing_model_eq_M3 = await timeQuery(`sales_archive?select=id,sale_price,listing_title,model&make=eq.BMW&model=eq.M3&sale_price=not.is.null&order=sale_price.desc&limit=1`);
-    modelCheck.timing_model_ilike_M3 = await timeQuery(`sales_archive?select=id,sale_price&make=eq.BMW&model=ilike.M3&sale_price=not.is.null&order=sale_price.desc&limit=1`);
+    // model=eq.M3 completeness: how many M3-in-title rows does it MISS?
+    modelCheck.count_title_M3 = await timeCount(`sales_archive?select=id&make=eq.BMW&listing_title=ilike.*M3*&sale_price=not.is.null`, "count=exact");
+    modelCheck.count_model_eq_M3 = await timeCount(`sales_archive?select=id&make=eq.BMW&model=eq.M3&sale_price=not.is.null`, "count=exact");
+    // PROPOSED FIX: filter the small M3 set by the title trigram (NO price sort), take the max in code.
+    const maxInCode = async (path, label) => {
+      const t0 = Date.now();
+      try {
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/${path}`, { headers: H });
+        const rows = await r.json().catch(() => []);
+        let top = null; for (const x of (rows || [])) { const p = Number(x.sale_price); if (Number.isFinite(p) && (!top || p > Number(top.sale_price))) top = x; }
+        return { ms: Date.now() - t0, status: r.status, rows: Array.isArray(rows) ? rows.length : null, top: top ? { sale_price: top.sale_price, title: (top.listing_title || "").slice(0, 60) } : null };
+      } catch (e) { return { ms: Date.now() - t0, error: String(e && e.message || e) }; }
+    };
+    modelCheck.fix_title_trgm_maxincode = await maxInCode(`sales_archive?select=sale_price,listing_title&make=eq.BMW&listing_title=ilike.*M3*&sale_price=not.is.null&limit=3000`, "title trgm + max in code");
 
     const explainAvailable = results.some(r => r.explainRpc && r.explainRpc.verdict);
     return res.status(200).json({
