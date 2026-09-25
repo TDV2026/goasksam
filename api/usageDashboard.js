@@ -1504,7 +1504,7 @@ async function handleOps(req, res) {
     // a cap, so every number is a true count or an honest floor (never a planner estimate).
     const pagedCount = async (base) => {
       let total = 0, off = 0;
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 5; i++) {
         try {
           const r = await fetch(`${env.supabaseUrl}/rest/v1/${base}&order=id.asc&limit=1000&offset=${off}`, { headers: H });
           if (!r.ok) return null;
@@ -1515,7 +1515,7 @@ async function handleOps(req, res) {
           off += 1000;
         } catch (e) { return null; }
       }
-      return { count: total, capped: true };   // >= 8000
+      return { count: total, capped: true };   // >= 5000
     };
     const countScope = async (mm) => {
       if (!mm || !mm.make || !mm.model) return { count: null, method: "no-scope" };
@@ -1557,7 +1557,7 @@ async function handleOps(req, res) {
           seen.set(k, row); results.push(row);
         }
       }
-      const BATCH = 12;
+      const BATCH = 16;
       for (let i = 0; i < results.length; i += BATCH) {
         const slice = results.slice(i, i + BATCH);
         await Promise.all(slice.map(async row => { const cs = await countScope(row._mm); row.count = cs.count; row.method = cs.method; row.capped = cs.capped; delete row._mm; }));
