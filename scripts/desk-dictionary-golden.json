@@ -1155,6 +1155,21 @@
         }
       ]
     },
+    "Duesenberg": {
+      "phrase": "Duesenberg",
+      "category": "nickname",
+      "type": "scope",
+      "status": "approved",
+      "models": [
+        {
+          "make": "Duesenberg",
+          "model": "Model J",
+          "yearStart": 1928,
+          "yearEnd": 1937,
+          "generation": null
+        }
+      ]
+    },
     "E-body": {
       "phrase": "E-body",
       "category": "platform_chassis",
