@@ -1505,6 +1505,10 @@ async function handleOps(req, res) {
     const prodQ = `sales_archive?select=${leanCols}&make=ilike.${encodeURIComponent("*BMW*")}&sale_price=not.is.null&model=ilike.${encodeURIComponent("*M3*")}&order=sale_price.desc&limit=120`;
     const prodTimes = [];
     for (let i = 0; i < 3; i++) { const tp = Date.now(); const gg = await supabaseSelect(env, prodQ); prodTimes.push({ ms: Date.now() - tp, rows: (gg || []).length }); }
+    // make=eq + model ILIKE (composite (make,sale_price) walk + cheap model recheck), 3x
+    const eqQ = `sales_archive?select=${leanCols}&make=eq.BMW&sale_price=not.is.null&model=ilike.${encodeURIComponent("*M3*")}&order=sale_price.desc&limit=120`;
+    const eqTimes = [];
+    for (let i = 0; i < 3; i++) { const tp = Date.now(); const gg = await supabaseSelect(env, eqQ); eqTimes.push({ ms: Date.now() - tp, rows: (gg || []).length }); }
     // no-order variant (trigram only, sort in code), timed
     const noOrderQ = `sales_archive?select=id,price:sale_price,model&make=ilike.${encodeURIComponent("*BMW*")}&sale_price=not.is.null&model=ilike.${encodeURIComponent("*M3*")}&limit=2000`;
     const tno = Date.now(); const noOrderRows = await supabaseSelect(env, noOrderQ) || []; const noOrderMs = Date.now() - tno;
@@ -1514,7 +1518,7 @@ async function handleOps(req, res) {
     const { executeDsl } = await import("../lib/desk/execute.js");
     await executeDsl({ filters: { make: "BMW", model: "M3" }, groupBy: [], measures: ["record"] }, env, { vehicle: { make: "BMW", model: "M3" } }); // warm
     const t5 = Date.now(); await executeDsl({ filters: { make: "BMW", model: "M3" }, groupBy: [], measures: ["record"] }, env, { vehicle: { make: "BMW", model: "M3" } }); const execMs = Date.now() - t5;
-    return res.status(200).json({ task: "recdiag", prodRecordQ_times: prodTimes, noOrder_ms: noOrderMs, noOrder_rows: noOrderRows.length, sourceCoverageMs: covMs, executeDslMs: execMs });
+    return res.status(200).json({ task: "recdiag", prodRecordQ_times: prodTimes, eqRecordQ_times: eqTimes, noOrder_ms: noOrderMs, noOrder_rows: noOrderRows.length, sourceCoverageMs: covMs, executeDslMs: execMs });
   }
 
   if (task === "deskcounts" || task === "deskgate") {
