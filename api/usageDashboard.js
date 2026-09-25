@@ -1627,54 +1627,77 @@ async function handleOps(req, res) {
   // planner uses the indexes and where the time goes. FIXES NOTHING (no DDL, no writes).
   if (task === "deskexplain") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const planFor = async (label, path, description) => {
-      const url = `${env.supabaseUrl}/rest/v1/${path}`;
-      const attempt = async (fmt) => {
-        try {
-          const r = await fetch(url, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Accept: `application/vnd.pgrst.plan+${fmt}; options=analyze,verbose,buffers` } });
-          const body = await r.text();
-          return { status: r.status, ctype: r.headers.get("content-type"), body };
-        } catch (e) { return { status: 0, error: String(e && e.message || e) }; }
-      };
-      // Prefer JSON plan (structured); fall back to text.
-      let res1 = await attempt("json");
-      let plan = null, planText = null, isPlan = false;
-      if (res1.status === 200 && /json/.test(res1.ctype || "") && /"Plan"/.test(res1.body)) { try { plan = JSON.parse(res1.body); isPlan = true; } catch {} }
-      if (!isPlan) { const res2 = await attempt("text"); if (res2.status === 200 && /cost=|Scan|Plan/.test(res2.body || "")) { planText = res2.body; isPlan = true; } else { res1 = res1.status ? res1 : res2; } }
-      // Derive a quick verdict from the JSON plan when present.
-      let verdict = null;
-      if (plan) {
-        const flat = JSON.stringify(plan);
-        const nodeTypes = (flat.match(/"Node Type":"[^"]+"/g) || []).map(s => s.split(":")[1].replace(/"/g, ""));
-        const indexes = (flat.match(/"Index Name":"[^"]+"/g) || []).map(s => s.split(":")[1].replace(/"/g, ""));
-        const exec = (plan[0] && (plan[0]["Execution Time"] ?? plan[0].Plan?.["Actual Total Time"])) || null;
-        verdict = { nodeTypes: [...new Set(nodeTypes)], indexesUsed: [...new Set(indexes)], seqScan: nodeTypes.includes("Seq Scan"), sort: nodeTypes.includes("Sort"), executionMs: exec };
-      }
-      return { label, description, path, isPlan, verdict, plan: plan || null, planText: planText || null, raw: isPlan ? undefined : (res1.body || res1.error || "").slice(0, 400) };
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    // Time a real (bounded) run of the query and count the rows it returns.
+    const timeQuery = async (path) => {
+      const t0 = Date.now();
+      try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${path}`, { headers: H }); const rows = await r.json().catch(() => null); return { ms: Date.now() - t0, status: r.status, rows: Array.isArray(rows) ? rows.length : null }; }
+      catch (e) { return { ms: Date.now() - t0, error: String(e && e.message || e) }; }
+    };
+    // count=exact cost (the killer for broad scopes) vs count=estimated (planner).
+    const timeCount = async (path, pref) => {
+      const t0 = Date.now();
+      try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${path}&limit=1`, { headers: { ...H, Prefer: pref } }); const cr = r.headers.get("content-range"); return { ms: Date.now() - t0, status: r.status, count: cr ? cr.split("/")[1] : null }; }
+      catch (e) { return { ms: Date.now() - t0, error: String(e && e.message || e) }; }
+    };
+    // The SQL text for the RPC EXPLAIN (docs/supabase-desk-explain.sql), per query.
+    const explainViaRpc = async (sql) => {
+      try {
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/rpc/desk_explain`, { method: "POST", headers: { ...H, "Content-Type": "application/json" }, body: JSON.stringify({ q: sql }) });
+        if (!r.ok) return { available: false, status: r.status, body: (await r.text()).slice(0, 200) };
+        const plan = await r.json().catch(() => null);
+        return { available: true, plan };
+      } catch (e) { return { available: false, error: String(e && e.message || e) }; }
+    };
+    const verdictFromPlan = (plan) => {
+      if (!plan) return null;
+      const flat = JSON.stringify(plan);
+      const nodeTypes = (flat.match(/"Node Type":"[^"]+"/g) || []).map(s => s.split(":")[1].replace(/"/g, ""));
+      const indexes = (flat.match(/"Index Name":"[^"]+"/g) || []).map(s => s.split(":")[1].replace(/"/g, ""));
+      const p0 = Array.isArray(plan) ? plan[0] : plan;
+      return { nodeTypes: [...new Set(nodeTypes)], indexesUsed: [...new Set(indexes)], seqScan: nodeTypes.includes("Seq Scan"), sort: nodeTypes.includes("Sort"), executionMs: p0 && (p0["Execution Time"] ?? (p0.Plan && p0.Plan["Actual Total Time"])) };
+    };
+    const planFor = async (label, path, sql, description) => {
+      const timed = await timeQuery(path);
+      const rpc = await explainViaRpc(sql);
+      return { label, description, path, sql, timing: timed, explainRpc: rpc.available ? { verdict: verdictFromPlan(rpc.plan), plan: rpc.plan } : { available: false, note: rpc.status ? `rpc unavailable (HTTP ${rpc.status}: ${rpc.body || ""})` : (rpc.error || "rpc not applied") } };
     };
     // Representative queries (mirror lib/desk/execute.js record path + lib/desk/coverage.js).
     const results = [];
     results.push(await planFor(
       "record_make_only",
       `sales_archive?select=id,sale_price&make=eq.BMW&sale_price=not.is.null&order=sale_price.desc&limit=200`,
+      `select id,sale_price from sales_archive where make='BMW' and sale_price is not null order by sale_price desc limit 200`,
       "record all-time scan, make=eq only (the (make,sale_price) index should serve this index-ordered)"
     ));
     results.push(await planFor(
       "record_make_title_M3",
       `sales_archive?select=id,sale_price&make=eq.BMW&listing_title=ilike.*M3*&sale_price=not.is.null&order=sale_price.desc&limit=200`,
+      `select id,sale_price from sales_archive where make='BMW' and listing_title ilike '%M3%' and sale_price is not null order by sale_price desc limit 200`,
       "record all-time scan for BMW M3 (make=eq + leading-wildcard title ILIKE + price sort) - the real record query shape"
     ));
     results.push(await planFor(
       "coverage_bringatrailer",
       `sales_archive?select=sale_date&platform=eq.${encodeURIComponent("Bring a Trailer")}&sale_price=not.is.null&order=sale_date.asc&limit=1`,
+      `select sale_date from sales_archive where platform='Bring a Trailer' and sale_price is not null order by sale_date asc limit 1`,
       "earliest BaT priced sale (coverage table) - the (platform,sale_date) index should serve this"
     ));
-    const planEnabled = results.some(r => r.isPlan);
+    // count=exact vs estimated: the cost the coverage/record paths pay when they need a total.
+    const countCost = {
+      record_make_only_exact: await timeCount(`sales_archive?select=id&make=eq.BMW&sale_price=not.is.null`, "count=exact"),
+      record_make_only_estimated: await timeCount(`sales_archive?select=id&make=eq.BMW&sale_price=not.is.null`, "count=estimated"),
+      coverage_bat_exact: await timeCount(`sales_archive?select=id&platform=eq.${encodeURIComponent("Bring a Trailer")}&sale_price=not.is.null`, "count=exact"),
+      coverage_bat_estimated: await timeCount(`sales_archive?select=id&platform=eq.${encodeURIComponent("Bring a Trailer")}&sale_price=not.is.null`, "count=estimated")
+    };
+    const explainAvailable = results.some(r => r.explainRpc && r.explainRpc.verdict);
     return res.status(200).json({
       task: "deskexplain",
-      planEnabled,
-      note: planEnabled ? "EXPLAIN via PostgREST plan media type." : "PostgREST plan media type is disabled on this instance (db-plan-enabled=false); an EXPLAIN RPC (DDL, Sam) would be needed to run EXPLAIN ANALYZE server-side.",
-      results
+      explainAvailable,
+      note: explainAvailable
+        ? "EXPLAIN ANALYZE via the desk_explain RPC (docs/supabase-desk-explain.sql)."
+        : "PostgREST plan media type is disabled on Supabase (PGRST107) and the desk_explain RPC is not applied yet; the `timing` numbers below localize the cost. Apply docs/supabase-desk-explain.sql (Sam) to get true EXPLAIN ANALYZE from this same task.",
+      results,
+      countCost
     });
   }
 
