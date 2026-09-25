@@ -1485,19 +1485,34 @@ async function handleOps(req, res) {
     const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
     // Archive count for a (make, model, yearStart, yearEnd) scope. Approximate qualifying pool:
     // make column ILIKE first-token + listing_title ILIKE model + model-year range + sold-only.
-    const countScope = async (mm) => {
-      if (!mm || !mm.make || !mm.model) return null;
-      const makeTok = String(mm.make).split(/\s+/)[0];
-      let f = `sales_archive?select=id&sale_price=not.is.null`;
-      f += `&make=ilike.${encodeURIComponent("*" + makeTok + "*")}`;
-      f += `&listing_title=ilike.${encodeURIComponent("*" + mm.model + "*")}`;
-      if (mm.yearStart) f += `&year=gte.${mm.yearStart}`;
-      if (mm.yearEnd) f += `&year=lte.${mm.yearEnd}`;
-      f += `&limit=1`;
+    const rawCount = async (filter, pref) => {
       try {
-        const r = await fetch(`${env.supabaseUrl}/rest/v1/${f}`, { headers: { ...H, Prefer: "count=exact" } });
-        const cr = r.headers.get("content-range"); return cr ? Number(cr.split("/")[1]) : null;
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/${filter}&limit=1`, { headers: { ...H, Prefer: pref } });
+        const cr = r.headers.get("content-range"); const n = cr ? Number(cr.split("/")[1]) : null;
+        return Number.isFinite(n) ? n : null;
       } catch (e) { return null; }
+    };
+    // Archive count for a scope. Returns { count, method }.
+    //  1) title-scoped exact (make ILIKE first-token + title ILIKE model + model-year range, sold-only)
+    //  2) if exact returns null (statement timeout on a broad scope) -> planner estimate
+    //  3) if the count is 0 and the model is a FAMILY nameplate ("SL-Class"), the title carries the
+    //     specific designation ("560SL"), never the family label, so fall back to a make+year count
+    //     (an upper bound that confirms presence). Labelled so the number is never mistaken for exact.
+    const countScope = async (mm) => {
+      if (!mm || !mm.make || !mm.model) return { count: null, method: "no-scope" };
+      const makeTok = String(mm.make).split(/\s+/)[0];
+      const yr = (mm.yearStart ? `&year=gte.${mm.yearStart}` : "") + (mm.yearEnd ? `&year=lte.${mm.yearEnd}` : "");
+      const titleScoped = `sales_archive?select=id&sale_price=not.is.null&make=ilike.${encodeURIComponent("*" + makeTok + "*")}&listing_title=ilike.${encodeURIComponent("*" + mm.model + "*")}${yr}`;
+      let c = await rawCount(titleScoped, "count=exact");
+      let method = "exact";
+      if (c === null) { c = await rawCount(titleScoped, "count=estimated"); method = "estimated"; }
+      if (c === 0 && /-class$/i.test(mm.model)) {
+        const makeYear = `sales_archive?select=id&sale_price=not.is.null&make=ilike.${encodeURIComponent("*" + makeTok + "*")}${yr}`;
+        let c2 = await rawCount(makeYear, "count=exact");
+        if (c2 === null) c2 = await rawCount(makeYear, "count=estimated");
+        if (c2 != null) { c = c2; method = "make+year (family upper bound)"; }
+      }
+      return { count: c, method };
     };
     const keyOf = (mm) => [mm.make, mm.model, mm.generation || "", mm.yearStart || "", mm.yearEnd || ""].join("|").toLowerCase();
 
@@ -1518,13 +1533,13 @@ async function handleOps(req, res) {
       const BATCH = 12;
       for (let i = 0; i < results.length; i += BATCH) {
         const slice = results.slice(i, i + BATCH);
-        await Promise.all(slice.map(async row => { row.count = await countScope(row._mm); delete row._mm; }));
+        await Promise.all(slice.map(async row => { const cs = await countScope(row._mm); row.count = cs.count; row.method = cs.method; delete row._mm; }));
       }
       const zero = results.filter(r => r.count === 0).map(r => ({ car: `${r.make} ${r.model} ${r.years[0] || ""}-${r.years[1] || ""}`, entries: r.entries }));
       // grouping rollups (member counts for item 2)
       const groupings = GROUPINGS.map(g => ({
         name: g.name, status: g.status, definedBy: g.definedBy,
-        members: g.members.map(mm => { const row = seen.get(keyOf(mm)); return { make: mm.make, model: mm.model, years: [mm.yearStart, mm.yearEnd], generation: mm.generation || null, count: row ? row.count : null }; })
+        members: g.members.map(mm => { const row = seen.get(keyOf(mm)); return { make: mm.make, model: mm.model, years: [mm.yearStart, mm.yearEnd], generation: mm.generation || null, count: row ? row.count : null, method: row ? row.method : null }; })
       }));
       return res.status(200).json({ task: "deskcounts", scopeCount: results.length, zeroSales: zero.length, zero, groupings, results });
     }
@@ -1587,7 +1602,7 @@ async function handleOps(req, res) {
       const counts = {};
       const scopeList = [...(reading.scopes || [])];
       if (reading.grouping) scopeList.push(...reading.grouping.members);
-      for (const mm of scopeList) { const k = keyOf(mm); if (!(k in counts)) counts[k] = await countScope(mm); }
+      for (const mm of scopeList) { const k = keyOf(mm); if (!(k in counts)) counts[k] = (await countScope(mm)).count; }
       const validation = await validateReading(reading, { counts, thin: 3 });
       return {
         question: q,
