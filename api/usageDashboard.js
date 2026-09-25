@@ -1530,14 +1530,14 @@ async function handleOps(req, res) {
       if (Array.isArray(mm.trimAny) && mm.trimAny.length) andGroups.push(orTitle(mm.trimAny));
       if (andGroups.length) base += `&and=(${andGroups.join(",")})`;
       const trimTag = mm.trimAny ? " (perf-trim filtered)" : "";
-      let c = await rawCount(base, "count=exact");
-      let method = "exact" + trimTag, capped = false;
-      if (c === null) { const p = await pagedCount(base); if (p) { c = p.count; capped = p.capped; method = (p.capped ? "floor" : "exact (paged)") + trimTag; } }
+      // Pagination ONLY (no count=exact): counting all matches with leading-wildcard ILIKE times out
+      // at 8s per scope, but paging index-served id rows is fast server-side. Real count, or a floor.
+      const p = await pagedCount(base);
+      let c = p ? p.count : null, capped = p ? p.capped : false, method = (capped ? "floor" : "exact (paged)") + trimTag;
       if (c === 0 && !mm.titleAny && !mm.trimAny && /-(class|series)$/i.test(mm.model)) {
         const makeYear = `sales_archive?select=id&sale_price=not.is.null&make=ilike.${encodeURIComponent("*" + makeTok + "*")}${yr}`;
-        let c2 = await rawCount(makeYear, "count=exact");
-        if (c2 === null) { const p2 = await pagedCount(makeYear); if (p2) { c2 = p2.count; capped = p2.capped; } }
-        if (c2 != null) { c = c2; method = "make+year (family upper bound)"; }
+        const p2 = await pagedCount(makeYear);
+        if (p2) { c = p2.count; capped = p2.capped; method = "make+year (family upper bound)"; }
       }
       return { count: c, method, capped };
     };
