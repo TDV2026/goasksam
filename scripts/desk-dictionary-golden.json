@@ -2640,29 +2640,33 @@
           "model": "911",
           "yearStart": 1964,
           "yearEnd": 1973,
-          "generation": "901"
+          "generation": "901",
+          "chipLabel": "901 (1964 to 1973)"
         },
         {
           "make": "Porsche",
           "model": "911",
           "yearStart": 1974,
-          "yearEnd": 1988,
+          "yearEnd": 1989,
           "generation": null,
-          "label": "G-body"
+          "label": "G-body",
+          "chipLabel": "G-body (1974 to 1989, incl. 930 Turbo)"
         },
         {
           "make": "Porsche",
           "model": "911",
           "yearStart": 1989,
           "yearEnd": 1994,
-          "generation": "964"
+          "generation": "964",
+          "chipLabel": "964 (1989 to 1994)"
         },
         {
           "make": "Porsche",
           "model": "911",
           "yearStart": 1995,
           "yearEnd": 1998,
-          "generation": "993"
+          "generation": "993",
+          "chipLabel": "993 (1995 to 1998)"
         }
       ]
     },

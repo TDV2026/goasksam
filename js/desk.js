@@ -104,7 +104,7 @@
       var same = !!r.grouping.sameModel;
       h += '<div class="rc-members">';
       r.grouping.members.forEach(function (m, i) {
-        var lbl = same ? (m.generation || m.label || (m.make + " " + m.model)) : (m.make + " " + m.model);
+        var lbl = m.chipLabel || (same ? (m.generation || m.label || (m.make + " " + m.model)) : (m.make + " " + m.model));
         h += '<span class="rc-mem">' + esc(lbl) + '<span class="x" data-drop-member="' + i + '" data-drop-tok="' + esc(m.generation || m.label || m.model) + '">×</span></span>';
       });
       h += '</div>';
