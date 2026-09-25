@@ -1500,6 +1500,23 @@ async function handleOps(req, res) {
     //     (an upper bound that confirms presence). Labelled so the number is never mistaken for exact.
     // an or() group of title-ILIKE clauses over a token list, e.g. or(listing_title.ilike.*ss*,...)
     const orTitle = (tokens) => `or(${tokens.map(t => `listing_title.ilike.*${encodeURIComponent(t)}*`).join(",")})`;
+    // Paginated REAL count (bypasses count=exact's statement timeout): page ids 1000 at a time up to
+    // a cap, so every number is a true count or an honest floor (never a planner estimate).
+    const pagedCount = async (base) => {
+      let total = 0, off = 0;
+      for (let i = 0; i < 8; i++) {
+        try {
+          const r = await fetch(`${env.supabaseUrl}/rest/v1/${base}&order=id.asc&limit=1000&offset=${off}`, { headers: H });
+          if (!r.ok) return null;
+          const rows = await r.json().catch(() => null);
+          if (!Array.isArray(rows)) return null;
+          total += rows.length;
+          if (rows.length < 1000) return { count: total, capped: false };
+          off += 1000;
+        } catch (e) { return null; }
+      }
+      return { count: total, capped: true };   // >= 8000
+    };
     const countScope = async (mm) => {
       if (!mm || !mm.make || !mm.model) return { count: null, method: "no-scope" };
       const makeTok = String(mm.make).split(/\s+/)[0];
@@ -1512,16 +1529,17 @@ async function handleOps(req, res) {
       // trimAny: the performance version must appear in the title (muscle cars, spec s3 revision).
       if (Array.isArray(mm.trimAny) && mm.trimAny.length) andGroups.push(orTitle(mm.trimAny));
       if (andGroups.length) base += `&and=(${andGroups.join(",")})`;
+      const trimTag = mm.trimAny ? " (perf-trim filtered)" : "";
       let c = await rawCount(base, "count=exact");
-      let method = mm.trimAny ? "exact (perf-trim filtered)" : "exact";
-      if (c === null) { c = await rawCount(base, "count=estimated"); method = mm.trimAny ? "estimated (perf-trim filtered)" : "estimated"; }
+      let method = "exact" + trimTag, capped = false;
+      if (c === null) { const p = await pagedCount(base); if (p) { c = p.count; capped = p.capped; method = (p.capped ? "floor" : "exact (paged)") + trimTag; } }
       if (c === 0 && !mm.titleAny && !mm.trimAny && /-(class|series)$/i.test(mm.model)) {
         const makeYear = `sales_archive?select=id&sale_price=not.is.null&make=ilike.${encodeURIComponent("*" + makeTok + "*")}${yr}`;
         let c2 = await rawCount(makeYear, "count=exact");
-        if (c2 === null) c2 = await rawCount(makeYear, "count=estimated");
+        if (c2 === null) { const p2 = await pagedCount(makeYear); if (p2) { c2 = p2.count; capped = p2.capped; } }
         if (c2 != null) { c = c2; method = "make+year (family upper bound)"; }
       }
-      return { count: c, method };
+      return { count: c, method, capped };
     };
     const keyOf = (mm) => [mm.make, mm.model, mm.generation || "", mm.yearStart || "", mm.yearEnd || ""].join("|").toLowerCase();
 
@@ -1542,13 +1560,13 @@ async function handleOps(req, res) {
       const BATCH = 12;
       for (let i = 0; i < results.length; i += BATCH) {
         const slice = results.slice(i, i + BATCH);
-        await Promise.all(slice.map(async row => { const cs = await countScope(row._mm); row.count = cs.count; row.method = cs.method; delete row._mm; }));
+        await Promise.all(slice.map(async row => { const cs = await countScope(row._mm); row.count = cs.count; row.method = cs.method; row.capped = cs.capped; delete row._mm; }));
       }
       const zero = results.filter(r => r.count === 0).map(r => ({ car: `${r.make} ${r.model} ${r.years[0] || ""}-${r.years[1] || ""}`, entries: r.entries }));
       // grouping rollups (member counts for item 2)
       const groupings = GROUPINGS.map(g => ({
         name: g.name, status: g.status, definedBy: g.definedBy,
-        members: g.members.map(mm => { const row = seen.get(keyOf(mm)); return { make: mm.make, model: mm.model, years: [mm.yearStart, mm.yearEnd], generation: mm.generation || null, count: row ? row.count : null, method: row ? row.method : null }; })
+        members: g.members.map(mm => { const row = seen.get(keyOf(mm)); return { make: mm.make, model: mm.model, years: [mm.yearStart, mm.yearEnd], generation: mm.generation || null, count: row ? row.count : null, method: row ? row.method : null, capped: row ? row.capped : false }; })
       }));
       return res.status(200).json({ task: "deskcounts", scopeCount: results.length, zeroSales: zero.length, zero, groupings, results });
     }
