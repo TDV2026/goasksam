@@ -1500,23 +1500,6 @@ async function handleOps(req, res) {
     //     (an upper bound that confirms presence). Labelled so the number is never mistaken for exact.
     // an or() group of title-ILIKE clauses over a token list, e.g. or(listing_title.ilike.*ss*,...)
     const orTitle = (tokens) => `or(${tokens.map(t => `listing_title.ilike.*${encodeURIComponent(t)}*`).join(",")})`;
-    // Paginated REAL count (bypasses count=exact's statement timeout): page ids 1000 at a time up to
-    // a cap, so every number is a true count or an honest floor (never a planner estimate).
-    const pagedCount = async (base) => {
-      let total = 0, off = 0;
-      for (let i = 0; i < 5; i++) {
-        try {
-          const r = await fetch(`${env.supabaseUrl}/rest/v1/${base}&order=id.asc&limit=1000&offset=${off}`, { headers: H });
-          if (!r.ok) return null;
-          const rows = await r.json().catch(() => null);
-          if (!Array.isArray(rows)) return null;
-          total += rows.length;
-          if (rows.length < 1000) return { count: total, capped: false };
-          off += 1000;
-        } catch (e) { return null; }
-      }
-      return { count: total, capped: true };   // >= 5000
-    };
     const countScope = async (mm) => {
       if (!mm || !mm.make || !mm.model) return { count: null, method: "no-scope" };
       const makeTok = String(mm.make).split(/\s+/)[0];
