@@ -1,0 +1,219 @@
+name: Nightly ingest and warm
+
+# 7D/7E: the version-controlled nightly mechanism (there are no Vercel crons in
+# vercel.json). GitHub Actions runs the delta ingest and the rolling warm.
+#
+# This is the copy of record for .github/workflows/nightly.yml. The CI token lacks
+# the `workflow` scope, so Sam applies changes here via the GitHub web editor: open
+# .github/workflows/nightly.yml, replace its contents with this file, commit.
+#
+# The secrets below are GitHub Actions secrets, which are SEPARATE from the
+# Vercel env vars. Add them under: repo Settings > Secrets and variables > Actions.
+# If they are missing, the "Verify required secrets" step fails loudly and names
+# exactly which one is empty.
+on:
+  schedule:
+    - cron: "11 7 * * *"   # 07:11 UTC nightly (off-peak minute; :30/:00 top-of-hour slots see the worst GitHub scheduler delay)
+  workflow_dispatch:
+    inputs:
+      backfill_from:
+        description: "Backfill start date YYYY-MM-DD (blank = nightly delta)"
+        required: false
+      backfill_to:
+        description: "Backfill end date YYYY-MM-DD (blank = same as start)"
+        required: false
+      sources:
+        description: "Comma-separated OCD slugs (blank = all 19)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      OLDCARSDATA_API_KEY: ${{ secrets.OLDCARSDATA_API_KEY }}
+      BACKFILL_FROM: ${{ github.event.inputs.backfill_from }}
+      BACKFILL_TO: ${{ github.event.inputs.backfill_to }}
+      SOURCES: ${{ github.event.inputs.sources }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify required secrets are present
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY OLDCARSDATA_API_KEY; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::GitHub Actions secret ${name} is EMPTY. Add it under Settings > Secrets and variables > Actions (these are separate from Vercel env vars)."
+              missing=1
+            else
+              echo "${name}: present"
+            fi
+          done
+          if [ "${missing}" -ne 0 ]; then
+            echo "::error::Aborting: one or more required secrets are missing."
+            exit 1
+          fi
+      - name: Ingest (backfill range if provided, else nightly delta)
+        run: |
+          set -euo pipefail
+          node --version
+          test -f scripts/ingest.js || { echo "::error::scripts/ingest.js not found in checkout"; exit 1; }
+          if [ -n "${BACKFILL_FROM:-}" ]; then
+            TO="${BACKFILL_TO:-$BACKFILL_FROM}"
+            echo "Backfill ingest: ${BACKFILL_FROM} .. ${TO} sources=${SOURCES:-all}"
+            node scripts/ingest.js --from="${BACKFILL_FROM}" --to="${TO}" ${SOURCES:+--sources="$SOURCES"}
+          else
+            echo "Nightly delta ingest"
+            node scripts/ingest.js --delta
+          fi
+
+  warm:
+    runs-on: ubuntu-latest
+    needs: ingest
+    # Only the nightly schedule warms; a manual backfill dispatch runs ingest only,
+    # so a large historical pull never also spends warm budget. continue-on-error
+    # keeps a best-effort warm blip from marking the whole run failed.
+    #
+    if: github.event_name == 'schedule'
+    continue-on-error: true
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Rolling warm (~30 nameplates, budget-reserved so search outranks it)
+        run: |
+          set -euo pipefail
+          test -f scripts/warm.js || { echo "::error::scripts/warm.js not found in checkout"; exit 1; }
+          node scripts/warm.js --count=30
+
+  attempts:
+    runs-on: ubuntu-latest
+    needs: ingest
+    # Nightly non-sold refresh (reserve-not-met + withdrawn) via the filtered status=unsold
+    # pull. Runs AFTER the sold delta so canonical_sales is fresh for VIN linking. Schedule
+    # only, so a manual sold-backfill dispatch of this workflow never also spends attempts
+    # budget. --months=1 re-pulls the last ~30 days each night; the upsert on
+    # (source_slug, source_record_id) makes the overlap idempotent. The heavy full-history
+    # backfill stays on the on-demand nonsold.yml.
+    if: github.event_name == 'schedule'
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      OLDCARSDATA_API_KEY: ${{ secrets.OLDCARSDATA_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify required secrets are present
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY OLDCARSDATA_API_KEY; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::GitHub Actions secret ${name} is EMPTY. Add it under Settings > Secrets and variables > Actions."
+              missing=1
+            else
+              echo "${name}: present"
+            fi
+          done
+          if [ "${missing}" -ne 0 ]; then echo "::error::Aborting: required secret(s) missing."; exit 1; fi
+      - name: Nightly non-sold delta (last month, all 5 clean sources, filtered status=unsold)
+        run: |
+          set -euo pipefail
+          test -f scripts/ingestAttempts.js || { echo "::error::scripts/ingestAttempts.js not found in checkout"; exit 1; }
+          echo "Nightly attempts delta: --months=1 (all 5 clean sources)"
+          node scripts/ingestAttempts.js --months=1
+
+  premium:
+    runs-on: ubuntu-latest
+    needs: warm
+    # Recompute + persist the data_verified premium for ALL FIVE partners AFTER the
+    # archive is freshest (ingest + warm have already run), so the "recalculated as new
+    # sales close" card line stays true without a manual trigger. Archive-only: ZERO OCD
+    # spend. Own job (not a warm step) so a failure goes RED and notifies, rather than
+    # being swallowed by warm's continue-on-error. Nightly schedule only.
+    if: github.event_name == 'schedule'
+    env:
+      PROBE_KEY: ${{ secrets.PROBE_KEY }}
+    steps:
+      - name: Verify PROBE_KEY secret is present
+        run: |
+          set -euo pipefail
+          if [ -z "${PROBE_KEY:-}" ]; then
+            echo "::error::GitHub Actions secret PROBE_KEY is EMPTY. Add it under Settings > Secrets and variables > Actions (same value as the Vercel PROBE_KEY env var)."
+            exit 1
+          fi
+          echo "PROBE_KEY: present"
+      - name: Recompute and persist partner premiums (all five, archive-only)
+        run: |
+          set -euo pipefail
+          echo "Recomputing partner premiums (archive-only, zero OCD)..."
+          if ! body="$(curl -fsS --max-time 280 --get "https://goasksam.com/api/usageDashboard" \
+              --data-urlencode "view=ops" --data-urlencode "task=premium" \
+              --data-urlencode "persist=1" --data-urlencode "key=${PROBE_KEY}")"; then
+            echo "::error::Premium recompute request FAILED (network/HTTP/auth). Numbers may be stale until the next successful run."
+            exit 1
+          fi
+          echo "$body" | jq -r '.report[]? | "  \(.partner): n=\(.n) premium=\(.premiumPct // "null")% gate=\(.gatePassed)"'
+          if ! echo "$body" | jq -e '(.report|length>0) and (.persisted|length>0) and (all(.persisted[]; .wrote==true))' >/dev/null; then
+            echo "::error::Premium recompute did not persist cleanly; a stale number may be sitting on a card."
+            echo "$body" | jq -r '.persisted[]? | select(.wrote != true) | "  NOT WRITTEN: \(.partner) reason=\(.reason // "unknown")"' || true
+            exit 1
+          fi
+          echo "Premium recompute OK: all partners persisted."
+
+  cube:
+    runs-on: ubuntu-latest
+    needs: ingest
+    # Sam Desk aggregates cube (Stage C, spec s15). Runs AFTER the sold delta so the
+    # archive is fresh, then: (1) tag any NEW rows' model_family (--only-null, cheap),
+    # (2) rebuild desk_aggregates (Core + venue). Archive-only, ZERO OCD spend. Nightly
+    # schedule only (a manual backfill dispatch runs ingest alone, never rebuilds the
+    # cube on a partial pull). A failure goes RED and notifies; the Desk falls back to
+    # the raw-scan path meanwhile, so a stale/failed cube is a slow answer, never a wrong one.
+    if: github.event_name == 'schedule'
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify required secrets are present
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::GitHub Actions secret ${name} is EMPTY. Add it under Settings > Secrets and variables > Actions."
+              missing=1
+            else
+              echo "${name}: present"
+            fi
+          done
+          if [ "${missing}" -ne 0 ]; then echo "::error::Aborting: required secret(s) missing."; exit 1; fi
+      - name: Tag new rows' model_family (only the null ones)
+        run: |
+          set -euo pipefail
+          test -f scripts/backfillModelFamily.js || { echo "::error::scripts/backfillModelFamily.js not found in checkout"; exit 1; }
+          node scripts/backfillModelFamily.js --only-null
+      - name: Rebuild the Desk aggregates cube (Core + venue)
+        run: |
+          set -euo pipefail
+          test -f scripts/deskCube.js || { echo "::error::scripts/deskCube.js not found in checkout"; exit 1; }
+          node scripts/deskCube.js
