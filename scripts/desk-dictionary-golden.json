@@ -301,6 +301,13 @@
         {
           "make": "Toyota",
           "model": "Supra",
+          "yearStart": 1990,
+          "yearEnd": 1992,
+          "generation": "A70"
+        },
+        {
+          "make": "Toyota",
+          "model": "Supra",
           "yearStart": 1993,
           "yearEnd": 1998,
           "generation": "A80"
@@ -334,11 +341,55 @@
           "generation": null
         },
         {
+          "make": "Nissan",
+          "model": "240SX",
+          "yearStart": 1990,
+          "yearEnd": 1998,
+          "generation": null
+        },
+        {
           "make": "Mitsubishi",
           "model": "3000GT",
-          "yearStart": 1990,
+          "yearStart": 1991,
           "yearEnd": 1999,
           "generation": null
+        },
+        {
+          "make": "Mitsubishi",
+          "model": "Eclipse GSX",
+          "yearStart": 1990,
+          "yearEnd": 1999,
+          "generation": null,
+          "titleAny": [
+            "Eclipse GSX",
+            "Eclipse GS-X"
+          ]
+        },
+        {
+          "make": "Mitsubishi",
+          "model": "Lancer Evolution",
+          "yearStart": 1992,
+          "yearEnd": 1999,
+          "generation": null,
+          "titleAny": [
+            "Lancer Evolution",
+            "Lancer Evo",
+            "Evo IV",
+            "Evo V",
+            "Evo VI"
+          ]
+        },
+        {
+          "make": "Subaru",
+          "model": "Impreza WRX STi",
+          "yearStart": 1992,
+          "yearEnd": 1999,
+          "generation": null,
+          "titleAny": [
+            "WRX STI",
+            "Impreza STI",
+            "22B"
+          ]
         },
         {
           "make": "Toyota",
@@ -360,13 +411,6 @@
           "yearStart": 1999,
           "yearEnd": 1999,
           "generation": "NB"
-        },
-        {
-          "make": "Honda",
-          "model": "S2000",
-          "yearStart": 1999,
-          "yearEnd": 1999,
-          "generation": "AP1"
         },
         {
           "make": "Nissan",
@@ -763,6 +807,13 @@
           "generation": null
         },
         {
+          "make": "MG",
+          "model": "Midget",
+          "yearStart": 1961,
+          "yearEnd": 1979,
+          "generation": null
+        },
+        {
           "make": "Triumph",
           "model": "TR6",
           "yearStart": 1969,
@@ -774,6 +825,13 @@
           "model": "TR4",
           "yearStart": 1961,
           "yearEnd": 1967,
+          "generation": null
+        },
+        {
+          "make": "Triumph",
+          "model": "TR3",
+          "yearStart": 1955,
+          "yearEnd": 1962,
           "generation": null
         },
         {
@@ -791,6 +849,20 @@
           "generation": null
         },
         {
+          "make": "Austin-Healey",
+          "model": "100",
+          "yearStart": 1953,
+          "yearEnd": 1956,
+          "generation": null
+        },
+        {
+          "make": "Austin-Healey",
+          "model": "Sprite",
+          "yearStart": 1958,
+          "yearEnd": 1971,
+          "generation": null
+        },
+        {
           "make": "Jaguar",
           "model": "E-Type",
           "yearStart": 1961,
@@ -798,10 +870,52 @@
           "generation": null
         },
         {
+          "make": "Jaguar",
+          "model": "XK120",
+          "yearStart": 1948,
+          "yearEnd": 1954,
+          "generation": null
+        },
+        {
+          "make": "Jaguar",
+          "model": "XK140",
+          "yearStart": 1954,
+          "yearEnd": 1957,
+          "generation": null
+        },
+        {
+          "make": "Jaguar",
+          "model": "XK150",
+          "yearStart": 1957,
+          "yearEnd": 1961,
+          "generation": null
+        },
+        {
           "make": "Lotus",
           "model": "Elan",
           "yearStart": 1962,
           "yearEnd": 1975,
+          "generation": null
+        },
+        {
+          "make": "Lotus",
+          "model": "Seven",
+          "yearStart": 1957,
+          "yearEnd": 1972,
+          "generation": null
+        },
+        {
+          "make": "Sunbeam",
+          "model": "Alpine",
+          "yearStart": 1959,
+          "yearEnd": 1968,
+          "generation": null
+        },
+        {
+          "make": "Sunbeam",
+          "model": "Tiger",
+          "yearStart": 1964,
+          "yearEnd": 1967,
           "generation": null
         },
         {
@@ -1529,24 +1643,10 @@
       "status": "pending",
       "models": [
         {
-          "make": "Ferrari",
-          "model": "F40",
-          "yearStart": 1987,
-          "yearEnd": 1992,
-          "generation": null
-        },
-        {
-          "make": "Ferrari",
-          "model": "Testarossa",
-          "yearStart": 1984,
-          "yearEnd": 1991,
-          "generation": null
-        },
-        {
-          "make": "Ferrari",
-          "model": "308 GTB",
-          "yearStart": 1975,
-          "yearEnd": 1985,
+          "make": "Lamborghini",
+          "model": "Miura",
+          "yearStart": 1966,
+          "yearEnd": 1973,
           "generation": null
         },
         {
@@ -1558,23 +1658,93 @@
         },
         {
           "make": "Lamborghini",
-          "model": "Miura",
-          "yearStart": 1966,
-          "yearEnd": 1973,
-          "generation": null
-        },
-        {
-          "make": "Lamborghini",
           "model": "Diablo",
           "yearStart": 1990,
           "yearEnd": 2001,
           "generation": null
         },
         {
+          "make": "Lamborghini",
+          "model": "Murcielago",
+          "yearStart": 2001,
+          "yearEnd": 2010,
+          "generation": null
+        },
+        {
+          "make": "Ferrari",
+          "model": "Berlinetta Boxer",
+          "yearStart": 1973,
+          "yearEnd": 1984,
+          "generation": null,
+          "titleAny": [
+            "Berlinetta Boxer",
+            "365 GT4 BB",
+            "512 BB",
+            "512 BBi",
+            "BB 512"
+          ]
+        },
+        {
+          "make": "Ferrari",
+          "model": "Testarossa",
+          "yearStart": 1984,
+          "yearEnd": 1991,
+          "generation": null
+        },
+        {
+          "make": "Ferrari",
+          "model": "512 TR",
+          "yearStart": 1992,
+          "yearEnd": 1994,
+          "generation": null,
+          "titleAny": [
+            "512 TR"
+          ]
+        },
+        {
+          "make": "Ferrari",
+          "model": "F512 M",
+          "yearStart": 1995,
+          "yearEnd": 1996,
+          "generation": null,
+          "titleAny": [
+            "F512 M",
+            "512 M"
+          ]
+        },
+        {
+          "make": "Ferrari",
+          "model": "F40",
+          "yearStart": 1987,
+          "yearEnd": 1992,
+          "generation": null
+        },
+        {
+          "make": "Ferrari",
+          "model": "F50",
+          "yearStart": 1995,
+          "yearEnd": 1997,
+          "generation": null
+        },
+        {
+          "make": "Ferrari",
+          "model": "Enzo",
+          "yearStart": 2002,
+          "yearEnd": 2004,
+          "generation": null
+        },
+        {
+          "make": "Ferrari",
+          "model": "288 GTO",
+          "yearStart": 1984,
+          "yearEnd": 1987,
+          "generation": null
+        },
+        {
           "make": "Maserati",
-          "model": "Ghibli",
-          "yearStart": 1967,
-          "yearEnd": 1973,
+          "model": "Bora",
+          "yearStart": 1971,
+          "yearEnd": 1978,
           "generation": null
         },
         {
@@ -2462,19 +2632,20 @@
           "model": "911",
           "yearStart": 1974,
           "yearEnd": 1988,
-          "generation": "930"
+          "generation": null,
+          "label": "G-body"
         },
         {
           "make": "Porsche",
           "model": "911",
-          "yearStart": 1990,
+          "yearStart": 1989,
           "yearEnd": 1994,
           "generation": "964"
         },
         {
           "make": "Porsche",
           "model": "911",
-          "yearStart": 1994,
+          "yearStart": 1995,
           "yearEnd": 1998,
           "generation": "993"
         }
@@ -2522,6 +2693,13 @@
           "generation": null
         },
         {
+          "make": "Porsche",
+          "model": "959",
+          "yearStart": 1986,
+          "yearEnd": 1988,
+          "generation": null
+        },
+        {
           "make": "Lamborghini",
           "model": "Countach",
           "yearStart": 1984,
@@ -2548,6 +2726,23 @@
           "yearStart": 1991,
           "yearEnd": 1995,
           "generation": null
+        },
+        {
+          "make": "McLaren",
+          "model": "F1",
+          "yearStart": 1992,
+          "yearEnd": 1998,
+          "generation": null
+        },
+        {
+          "make": "Ford",
+          "model": "GT",
+          "yearStart": 2005,
+          "yearEnd": 2006,
+          "generation": null,
+          "titleAny": [
+            "Ford GT"
+          ]
         },
         {
           "make": "Honda",
@@ -2787,77 +2982,6 @@
         "sort": "desc"
       }
     },
-    "hot hatches": {
-      "phrase": "hot hatches",
-      "category": "grouping",
-      "type": "grouping",
-      "status": "pending",
-      "models": [
-        {
-          "make": "Volkswagen",
-          "model": "Golf GTI",
-          "yearStart": 1983,
-          "yearEnd": 2026,
-          "generation": null
-        },
-        {
-          "make": "Volkswagen",
-          "model": "Golf R",
-          "yearStart": 2012,
-          "yearEnd": 2026,
-          "generation": null
-        },
-        {
-          "make": "Honda",
-          "model": "Civic Type R",
-          "yearStart": 1997,
-          "yearEnd": 2026,
-          "generation": null
-        },
-        {
-          "make": "Ford",
-          "model": "Focus RS",
-          "yearStart": 2009,
-          "yearEnd": 2018,
-          "generation": null
-        },
-        {
-          "make": "Ford",
-          "model": "Focus ST",
-          "yearStart": 2013,
-          "yearEnd": 2018,
-          "generation": null
-        },
-        {
-          "make": "Renault",
-          "model": "Clio",
-          "yearStart": 2001,
-          "yearEnd": 2016,
-          "generation": null
-        },
-        {
-          "make": "Mini",
-          "model": "Cooper S",
-          "yearStart": 2002,
-          "yearEnd": 2026,
-          "generation": null
-        },
-        {
-          "make": "Subaru",
-          "model": "WRX",
-          "yearStart": 2002,
-          "yearEnd": 2026,
-          "generation": null
-        },
-        {
-          "make": "Toyota",
-          "model": "GR Corolla",
-          "yearStart": 2023,
-          "yearEnd": 2026,
-          "generation": null
-        }
-      ]
-    },
     "hottest": {
       "phrase": "hottest",
       "category": "metric",
@@ -2989,7 +3113,7 @@
         {
           "make": "Chevrolet",
           "model": "Corvette",
-          "yearStart": 1975,
+          "yearStart": 1973,
           "yearEnd": 1982,
           "generation": "C3"
         },
@@ -2999,14 +3123,20 @@
           "yearStart": 1973,
           "yearEnd": 1981,
           "generation": null,
-          "trim": "Trans Am"
+          "trimAny": [
+            "Trans Am",
+            "Formula"
+          ]
         },
         {
           "make": "Ford",
-          "model": "Mustang",
+          "model": "Mustang II",
           "yearStart": 1974,
           "yearEnd": 1978,
-          "generation": "second"
+          "generation": null,
+          "titleAny": [
+            "Mustang II"
+          ]
         },
         {
           "make": "Chevrolet",
@@ -3034,6 +3164,70 @@
           "model": "Monte Carlo",
           "yearStart": 1973,
           "yearEnd": 1977,
+          "generation": null
+        },
+        {
+          "make": "AMC",
+          "model": "Pacer",
+          "yearStart": 1975,
+          "yearEnd": 1980,
+          "generation": null
+        },
+        {
+          "make": "AMC",
+          "model": "Gremlin",
+          "yearStart": 1970,
+          "yearEnd": 1978,
+          "generation": null
+        },
+        {
+          "make": "Ford",
+          "model": "Pinto",
+          "yearStart": 1971,
+          "yearEnd": 1980,
+          "generation": null
+        },
+        {
+          "make": "Chevrolet",
+          "model": "Vega",
+          "yearStart": 1971,
+          "yearEnd": 1977,
+          "generation": null
+        },
+        {
+          "make": "Chrysler",
+          "model": "Cordoba",
+          "yearStart": 1975,
+          "yearEnd": 1983,
+          "generation": null
+        },
+        {
+          "make": "Lincoln",
+          "model": "Continental Mark IV",
+          "yearStart": 1972,
+          "yearEnd": 1976,
+          "generation": null,
+          "titleAny": [
+            "Mark IV",
+            "Continental Mark IV"
+          ]
+        },
+        {
+          "make": "Lincoln",
+          "model": "Continental Mark V",
+          "yearStart": 1977,
+          "yearEnd": 1979,
+          "generation": null,
+          "titleAny": [
+            "Mark V",
+            "Continental Mark V"
+          ]
+        },
+        {
+          "make": "Ford",
+          "model": "Thunderbird",
+          "yearStart": 1973,
+          "yearEnd": 1979,
           "generation": null
         }
       ]
@@ -3086,14 +3280,35 @@
           "model": "Chevelle",
           "yearStart": 1964,
           "yearEnd": 1972,
-          "generation": null
+          "generation": null,
+          "trimAny": [
+            "SS",
+            "Super Sport"
+          ]
         },
         {
           "make": "Chevrolet",
           "model": "Camaro",
           "yearStart": 1967,
-          "yearEnd": 1969,
-          "generation": "first"
+          "yearEnd": 1972,
+          "generation": null,
+          "trimAny": [
+            "SS",
+            "Z/28",
+            "Z28",
+            "Super Sport"
+          ]
+        },
+        {
+          "make": "Chevrolet",
+          "model": "Nova",
+          "yearStart": 1968,
+          "yearEnd": 1972,
+          "generation": null,
+          "trimAny": [
+            "SS",
+            "Super Sport"
+          ]
         },
         {
           "make": "Pontiac",
@@ -3107,49 +3322,117 @@
           "model": "Firebird",
           "yearStart": 1967,
           "yearEnd": 1972,
-          "generation": null
+          "generation": null,
+          "trimAny": [
+            "Trans Am",
+            "Formula",
+            "400"
+          ]
         },
         {
           "make": "Dodge",
           "model": "Charger",
           "yearStart": 1966,
-          "yearEnd": 1974,
-          "generation": null
+          "yearEnd": 1972,
+          "generation": null,
+          "trimAny": [
+            "R/T",
+            "Super Bee",
+            "Daytona",
+            "500"
+          ]
         },
         {
           "make": "Dodge",
           "model": "Challenger",
           "yearStart": 1970,
-          "yearEnd": 1974,
-          "generation": "first"
+          "yearEnd": 1972,
+          "generation": null,
+          "trimAny": [
+            "R/T",
+            "T/A"
+          ]
+        },
+        {
+          "make": "Dodge",
+          "model": "Coronet",
+          "yearStart": 1967,
+          "yearEnd": 1970,
+          "generation": null,
+          "trimAny": [
+            "R/T",
+            "Super Bee"
+          ]
+        },
+        {
+          "make": "Dodge",
+          "model": "Super Bee",
+          "yearStart": 1968,
+          "yearEnd": 1971,
+          "generation": null
         },
         {
           "make": "Plymouth",
           "model": "Barracuda",
           "yearStart": 1970,
-          "yearEnd": 1974,
-          "generation": null
+          "yearEnd": 1972,
+          "generation": null,
+          "trimAny": [
+            "Cuda",
+            "'Cuda",
+            "AAR"
+          ]
         },
         {
           "make": "Plymouth",
           "model": "Road Runner",
           "yearStart": 1968,
-          "yearEnd": 1975,
+          "yearEnd": 1972,
+          "generation": null
+        },
+        {
+          "make": "Plymouth",
+          "model": "GTX",
+          "yearStart": 1967,
+          "yearEnd": 1971,
           "generation": null
         },
         {
           "make": "Ford",
           "model": "Mustang",
           "yearStart": 1967,
-          "yearEnd": 1970,
-          "generation": "first"
+          "yearEnd": 1971,
+          "generation": null,
+          "trimAny": [
+            "Boss",
+            "Mach 1",
+            "Cobra Jet",
+            "Shelby"
+          ]
         },
         {
           "make": "Ford",
           "model": "Torino",
           "yearStart": 1968,
           "yearEnd": 1971,
-          "generation": null
+          "generation": null,
+          "trimAny": [
+            "Cobra Jet",
+            "Cobra",
+            "GT"
+          ]
+        },
+        {
+          "make": "Mercury",
+          "model": "Cyclone",
+          "yearStart": 1968,
+          "yearEnd": 1971,
+          "generation": null,
+          "trimAny": [
+            "GT",
+            "Spoiler",
+            "Cobra Jet"
+          ]
         },
         {
           "make": "Buick",
@@ -3211,13 +3494,6 @@
           "generation": null
         },
         {
-          "make": "Jeep",
-          "model": "Wagoneer",
-          "yearStart": 1963,
-          "yearEnd": 1991,
-          "generation": null
-        },
-        {
           "make": "Ford",
           "model": "Bronco",
           "yearStart": 1966,
@@ -3229,7 +3505,19 @@
           "model": "G-Class",
           "yearStart": 1979,
           "yearEnd": 2026,
-          "generation": null
+          "generation": null,
+          "titleAny": [
+            "G500",
+            "G550",
+            "G63",
+            "G-Wagen",
+            "G-Wagon",
+            "G-Class",
+            "Gelandewagen",
+            "Geländewagen",
+            "G55",
+            "G500"
+          ]
         },
         {
           "make": "Toyota",
@@ -3244,6 +3532,41 @@
           "yearStart": 1980,
           "yearEnd": 2026,
           "generation": null
+        },
+        {
+          "make": "Jeep",
+          "model": "Wrangler",
+          "yearStart": 1987,
+          "yearEnd": 2018,
+          "generation": null
+        },
+        {
+          "make": "Jeep",
+          "model": "CJ",
+          "yearStart": 1945,
+          "yearEnd": 1986,
+          "generation": null
+        },
+        {
+          "make": "International",
+          "model": "Scout",
+          "yearStart": 1961,
+          "yearEnd": 1980,
+          "generation": null
+        },
+        {
+          "make": "Toyota",
+          "model": "FJ Cruiser",
+          "yearStart": 2007,
+          "yearEnd": 2014,
+          "generation": null
+        },
+        {
+          "make": "Mitsubishi",
+          "model": "Delica",
+          "yearStart": 1968,
+          "yearEnd": 2007,
+          "generation": null
         }
       ]
     },
@@ -3254,6 +3577,126 @@
       "status": "approved",
       "window": "18mo"
     },
+    "performance hatchbacks": {
+      "phrase": "performance hatchbacks",
+      "category": "grouping",
+      "type": "grouping",
+      "status": "pending",
+      "models": [
+        {
+          "make": "Volkswagen",
+          "model": "Golf GTI",
+          "yearStart": 1983,
+          "yearEnd": 2026,
+          "generation": null,
+          "titleAny": [
+            "GTI"
+          ]
+        },
+        {
+          "make": "Volkswagen",
+          "model": "Golf R",
+          "yearStart": 2012,
+          "yearEnd": 2026,
+          "generation": null,
+          "titleAny": [
+            "Golf R"
+          ]
+        },
+        {
+          "make": "Volkswagen",
+          "model": "Golf R32",
+          "yearStart": 2004,
+          "yearEnd": 2008,
+          "generation": null,
+          "titleAny": [
+            "R32"
+          ]
+        },
+        {
+          "make": "Honda",
+          "model": "Civic Type R",
+          "yearStart": 1997,
+          "yearEnd": 2026,
+          "generation": null
+        },
+        {
+          "make": "Honda",
+          "model": "CRX",
+          "yearStart": 1984,
+          "yearEnd": 1991,
+          "generation": null
+        },
+        {
+          "make": "Ford",
+          "model": "Focus RS",
+          "yearStart": 2009,
+          "yearEnd": 2018,
+          "generation": null
+        },
+        {
+          "make": "Ford",
+          "model": "Focus ST",
+          "yearStart": 2013,
+          "yearEnd": 2018,
+          "generation": null
+        },
+        {
+          "make": "Ford",
+          "model": "Fiesta ST",
+          "yearStart": 2014,
+          "yearEnd": 2019,
+          "generation": null
+        },
+        {
+          "make": "Renault",
+          "model": "Clio",
+          "yearStart": 2001,
+          "yearEnd": 2016,
+          "generation": null,
+          "trimAny": [
+            "RS",
+            "V6",
+            "Williams"
+          ]
+        },
+        {
+          "make": "Mini",
+          "model": "Cooper S",
+          "yearStart": 2002,
+          "yearEnd": 2026,
+          "generation": null
+        },
+        {
+          "make": "Toyota",
+          "model": "GR Corolla",
+          "yearStart": 2023,
+          "yearEnd": 2026,
+          "generation": null
+        },
+        {
+          "make": "Dodge",
+          "model": "Omni GLH",
+          "yearStart": 1984,
+          "yearEnd": 1986,
+          "generation": null,
+          "titleAny": [
+            "Omni GLH",
+            "GLH"
+          ]
+        },
+        {
+          "make": "Hyundai",
+          "model": "Veloster N",
+          "yearStart": 2019,
+          "yearEnd": 2022,
+          "generation": null,
+          "titleAny": [
+            "Veloster N"
+          ]
+        }
+      ]
+    },
     "pony cars": {
       "phrase": "pony cars",
       "category": "grouping",
@@ -3263,36 +3706,36 @@
         {
           "make": "Ford",
           "model": "Mustang",
-          "yearStart": 1965,
-          "yearEnd": 1973,
-          "generation": "first"
+          "yearStart": 1964,
+          "yearEnd": 1974,
+          "generation": null
         },
         {
           "make": "Chevrolet",
           "model": "Camaro",
           "yearStart": 1967,
-          "yearEnd": 1969,
-          "generation": "first"
+          "yearEnd": 1974,
+          "generation": null
         },
         {
           "make": "Pontiac",
           "model": "Firebird",
           "yearStart": 1967,
-          "yearEnd": 1969,
+          "yearEnd": 1974,
           "generation": null
         },
         {
           "make": "Plymouth",
           "model": "Barracuda",
           "yearStart": 1964,
-          "yearEnd": 1969,
+          "yearEnd": 1974,
           "generation": null
         },
         {
           "make": "Mercury",
           "model": "Cougar",
           "yearStart": 1967,
-          "yearEnd": 1970,
+          "yearEnd": 1974,
           "generation": null
         },
         {
@@ -3307,6 +3750,13 @@
           "model": "Javelin",
           "yearStart": 1968,
           "yearEnd": 1974,
+          "generation": null
+        },
+        {
+          "make": "AMC",
+          "model": "AMX",
+          "yearStart": 1968,
+          "yearEnd": 1970,
           "generation": null
         }
       ]

@@ -1498,15 +1498,24 @@ async function handleOps(req, res) {
     //  3) if the count is 0 and the model is a FAMILY nameplate ("SL-Class"), the title carries the
     //     specific designation ("560SL"), never the family label, so fall back to a make+year count
     //     (an upper bound that confirms presence). Labelled so the number is never mistaken for exact.
+    // an or() group of title-ILIKE clauses over a token list, e.g. or(listing_title.ilike.*ss*,...)
+    const orTitle = (tokens) => `or(${tokens.map(t => `listing_title.ilike.*${encodeURIComponent(t)}*`).join(",")})`;
     const countScope = async (mm) => {
       if (!mm || !mm.make || !mm.model) return { count: null, method: "no-scope" };
       const makeTok = String(mm.make).split(/\s+/)[0];
       const yr = (mm.yearStart ? `&year=gte.${mm.yearStart}` : "") + (mm.yearEnd ? `&year=lte.${mm.yearEnd}` : "");
-      const titleScoped = `sales_archive?select=id&sale_price=not.is.null&make=ilike.${encodeURIComponent("*" + makeTok + "*")}&listing_title=ilike.${encodeURIComponent("*" + mm.model + "*")}${yr}`;
-      let c = await rawCount(titleScoped, "count=exact");
-      let method = "exact";
-      if (c === null) { c = await rawCount(titleScoped, "count=estimated"); method = "estimated"; }
-      if (c === 0 && /-(class|series)$/i.test(mm.model)) {
+      let base = `sales_archive?select=id&sale_price=not.is.null&make=ilike.${encodeURIComponent("*" + makeTok + "*")}${yr}`;
+      // name match: titleAny (OR of tokens) replaces the plain model match; else title ILIKE model.
+      const andGroups = [];
+      if (Array.isArray(mm.titleAny) && mm.titleAny.length) andGroups.push(orTitle(mm.titleAny));
+      else base += `&listing_title=ilike.${encodeURIComponent("*" + mm.model + "*")}`;
+      // trimAny: the performance version must appear in the title (muscle cars, spec s3 revision).
+      if (Array.isArray(mm.trimAny) && mm.trimAny.length) andGroups.push(orTitle(mm.trimAny));
+      if (andGroups.length) base += `&and=(${andGroups.join(",")})`;
+      let c = await rawCount(base, "count=exact");
+      let method = mm.trimAny ? "exact (perf-trim filtered)" : "exact";
+      if (c === null) { c = await rawCount(base, "count=estimated"); method = mm.trimAny ? "estimated (perf-trim filtered)" : "estimated"; }
+      if (c === 0 && !mm.titleAny && !mm.trimAny && /-(class|series)$/i.test(mm.model)) {
         const makeYear = `sales_archive?select=id&sale_price=not.is.null&make=ilike.${encodeURIComponent("*" + makeTok + "*")}${yr}`;
         let c2 = await rawCount(makeYear, "count=exact");
         if (c2 === null) c2 = await rawCount(makeYear, "count=estimated");
