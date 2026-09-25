@@ -296,7 +296,7 @@
       "phrase": "90s Japanese sports cars",
       "category": "grouping",
       "type": "grouping",
-      "status": "pending",
+      "status": "approved",
       "models": [
         {
           "make": "Toyota",
@@ -790,7 +790,7 @@
       "phrase": "British roadsters",
       "category": "grouping",
       "type": "grouping",
-      "status": "pending",
+      "status": "approved",
       "models": [
         {
           "make": "MG",
@@ -1640,7 +1640,7 @@
       "phrase": "Italian exotics",
       "category": "grouping",
       "type": "grouping",
-      "status": "pending",
+      "status": "approved",
       "models": [
         {
           "make": "Lamborghini",
@@ -2618,7 +2618,7 @@
       "phrase": "air-cooled 911s",
       "category": "grouping",
       "type": "grouping",
-      "status": "pending",
+      "status": "approved",
       "models": [
         {
           "make": "Porsche",
@@ -2662,7 +2662,7 @@
       "phrase": "analog supercars",
       "category": "grouping",
       "type": "grouping",
-      "status": "pending",
+      "status": "approved",
       "models": [
         {
           "make": "Ferrari",
@@ -3108,7 +3108,7 @@
       "phrase": "malaise era cars",
       "category": "grouping",
       "type": "grouping",
-      "status": "pending",
+      "status": "approved",
       "models": [
         {
           "make": "Chevrolet",
@@ -3273,7 +3273,7 @@
       "phrase": "muscle cars",
       "category": "grouping",
       "type": "grouping",
-      "status": "pending",
+      "status": "approved",
       "models": [
         {
           "make": "Chevrolet",
@@ -3470,7 +3470,7 @@
       "phrase": "overlanders",
       "category": "grouping",
       "type": "grouping",
-      "status": "pending",
+      "status": "approved",
       "models": [
         {
           "make": "Toyota",
@@ -3577,7 +3577,7 @@
       "phrase": "performance hatchbacks",
       "category": "grouping",
       "type": "grouping",
-      "status": "pending",
+      "status": "approved",
       "models": [
         {
           "make": "Volkswagen",
@@ -3697,7 +3697,7 @@
       "phrase": "pony cars",
       "category": "grouping",
       "type": "grouping",
-      "status": "pending",
+      "status": "approved",
       "models": [
         {
           "make": "Ford",
