@@ -1548,8 +1548,11 @@ async function handleOps(req, res) {
     if (task === "deskcounts") {
       // De-dupe every distinct scope member first, then count in PARALLEL batches so ~230
       // count=exact queries finish well inside maxDuration (sequential blew the client timeout).
+      // scope=groupings limits to the 10 grouping members (the chassis/nickname scopes were already
+      // confirmed zero-sales=0); keeps one run inside maxDuration.
+      const entryUniverse = req.query?.scope === "groupings" ? GROUPINGS : ALL_ENTRIES;
       const seen = new Map(); const results = [];
-      for (const e of ALL_ENTRIES) {
+      for (const e of entryUniverse) {
         for (const mm of scopeMembersOf(e)) {
           const k = keyOf(mm);
           if (seen.has(k)) { seen.get(k).entries.push(e.phrase || e.name); continue; }
