@@ -16,7 +16,10 @@
 // =====================================================================
 import { supabaseEnv, supabaseSelect, supabasePatch } from "../lib/_supabase.js";
 import { deskModelFamily } from "../lib/desk/familyKey.js";
-import { resolveVehicle } from "../lib/vehicle.js";
+// NOTE: this script makes ZERO OldCarsData calls. The null-row title resolution below is PURE
+// local parsing (strip the year, match a make already present in the archive, take the rest as
+// the model) fed back through deskModelFamily. We deliberately do NOT import lib/vehicle.js's
+// resolveVehicle, which can call OCD /makes and /models. Supabase reads/writes are the only I/O.
 
 const argv = process.argv.slice(2);
 const DRY = argv.includes("--dry");
@@ -49,25 +52,25 @@ async function loadRows() {
   return rows.slice(0, LIMIT === Infinity ? rows.length : LIMIT);
 }
 
-// Resolve a batch of distinct titles through the shared resolver, concurrency-limited.
-// Returns Map(normTitle -> {make, model} | null). Titles that don't resolve to a car stay null.
-async function resolveTitles(titles) {
-  const cache = new Map(); const distinct = [...new Set(titles.map(t => norm(t)).filter(Boolean))];
-  let i = 0, resolved = 0; const CONC = 10;
-  const byNorm = new Map();                       // normTitle -> original title
-  for (const t of titles) { const n = norm(t); if (n && !byNorm.has(n)) byNorm.set(n, t); }
-  async function worker() {
-    while (i < distinct.length) {
-      const n = distinct[i++];
-      try { const r = await resolveVehicle(byNorm.get(n), {}); const v = r && r.vehicle; cache.set(n, (v && v.make && v.model) ? { make: v.make, model: v.model } : null); if (cache.get(n)) resolved++; }
-      catch { cache.set(n, null); }
-      if (i % 250 === 0) process.stderr.write(`\rresolved ${i}/${distinct.length} distinct titles   `);
-    }
+const JUNK_MAKE = new Set(["", "unknown", "n/a", "na", "none", "null", "other", "various", "misc", "-", "?"]);
+// Known makes = the distinct makes ALREADY in the loaded archive rows (free, no OCD). Longest
+// first so a multi-word make ("Land Rover", "Moto Guzzi", "Alfa Romeo") matches before a prefix.
+function buildKnownMakes(rows) {
+  const s = new Set();
+  for (const r of rows) { const m = String(r.make || "").trim(); if (m.length >= 2 && !JUNK_MAKE.has(m.toLowerCase())) s.add(m); }
+  return [...s].sort((a, b) => b.length - a.length);
+}
+// PURE LOCAL title parse (no OCD, no vPIC): strip a leading year, match a known make at the
+// start, return { make, model=the rest }. A title with no known make (a motorcycle, a boat)
+// returns null and the row stays null. Deterministic and free.
+function localResolveFromTitle(title, knownMakesLC) {
+  const t = String(title || "").replace(/^\s*(?:19|20)\d{2}\s+/, "").trim();
+  const tl = t.toLowerCase();
+  for (const { mk, lc } of knownMakesLC) {
+    if (tl === lc) return null;                      // make only, no model
+    if (tl.startsWith(lc + " ")) { const model = t.slice(mk.length).trim(); if (model) return { make: mk, model }; }
   }
-  await Promise.all(Array.from({ length: CONC }, worker));
-  process.stderr.write("\n");
-  console.log(`Resolver: ${distinct.length} distinct null-row titles, ${resolved} resolved to a car.`);
-  return cache;
+  return null;
 }
 
 function run() {
@@ -81,15 +84,16 @@ function run() {
     let counts = countFam();
     const before = { families: counts.size, under5Fams: [...counts.values()].filter(n => n < 5).length, rowsUnder5: rowsInUnder5(counts), nullRows: rows.filter(r => !r._fam).length };
 
-    // 2) ITEM 2 — resolve null rows through the shared resolver (BaT "Unknown" etc. whose titles
-    //    are resolvable: Mazda Protege5, Fiat Barchetta). Recompute the family from the resolved car.
+    // 2) ITEM 2 — resolve null rows by PURE LOCAL title parsing (zero OCD, zero vPIC): BaT
+    //    "Unknown" rows whose titles carry the car (Mazda Protege5, Fiat Barchetta). Strip the
+    //    year, match a make already in the archive, take the rest as the model, recompute family.
     let nullResolved = 0;
     if (!NO_RESOLVE) {
-      const nullRows = rows.filter(r => !r._fam);
-      const resolved = await resolveTitles(nullRows.map(r => r.listing_title));
-      for (const r of nullRows) {
-        const hit = resolved.get(norm(r.listing_title));
-        if (hit) { const fam = deskModelFamily({ make: hit.make, model: hit.model, trim: "", title: r.listing_title }); if (fam) { r._fam = fam; r._resolvedMake = hit.make; nullResolved++; } }
+      const knownMakesLC = buildKnownMakes(rows).map(mk => ({ mk, lc: mk.toLowerCase() }));
+      for (const r of rows) {
+        if (r._fam) continue;
+        const hit = localResolveFromTitle(r.listing_title, knownMakesLC);
+        if (hit) { const fam = deskModelFamily({ make: hit.make, model: hit.model, trim: "", title: r.listing_title }); if (fam) { r._fam = fam; nullResolved++; } }
       }
       counts = countFam();
     }
