@@ -32,7 +32,7 @@ if (!env) { console.error("FATAL: SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY requi
 
 // ---- 1) keyset-load the minimal columns (source_id PK, make, model, listing_title) ----
 async function loadRows() {
-  const cols = "source_id,make,model,listing_title,platform";
+  const cols = "source_id,make,model,listing_title,platform,model_family";
   const rows = []; let cursor = "";
   for (let p = 0; p < 1000 && rows.length < LIMIT; p++) {
     let q = `sales_archive?select=${cols}&order=source_id.asc&limit=1000`;
@@ -153,7 +153,16 @@ function run() {
       }
     }
     process.stderr.write("\n");
-    console.log(`\nBackfill complete. Rows populated: ${written}. Requests: ${reqs}. Failed requests: ${failed}.`);
+    // Clear stale families: rows that NOW compute null (automobilia, junk) but carry a non-null
+    // model_family from an earlier run must be reset to null, or the correction never lands.
+    const toNull = rows.filter(r => !r._fam && r.model_family != null).map(r => r.source_id);
+    let cleared = 0;
+    for (let i = 0; i < toNull.length; i += CHUNK) {
+      const chunk = toNull.slice(i, i + CHUNK);
+      const res = await supabasePatch(env, `sales_archive?source_id=in.(${chunk.map(encodeURIComponent).join(",")})`, { model_family: null });
+      reqs++; if (res.error) { failed++; console.error(`  null-clear failed: ${res.error}`); } else cleared += chunk.length;
+    }
+    console.log(`\nBackfill complete. Rows populated: ${written}. Stale families cleared to null: ${cleared}. Requests: ${reqs}. Failed requests: ${failed}.`);
     if (failed) process.exit(1);
   });
 }
