@@ -16,12 +16,16 @@
 // =====================================================================
 import { supabaseEnv, supabaseSelect, supabasePatch } from "../lib/_supabase.js";
 import { deskModelFamily } from "../lib/desk/familyKey.js";
+import { resolveVehicle } from "../lib/vehicle.js";
 
 const argv = process.argv.slice(2);
 const DRY = argv.includes("--dry");
 const ONLY_NULL = argv.includes("--only-null");
+const NO_RESOLVE = argv.includes("--no-resolve");   // skip the title-resolver pass on null rows (fast dry)
 const LIMIT = (() => { const i = argv.indexOf("--limit"); return i >= 0 ? Number(argv[i + 1]) : Infinity; })();
 const CHUNK = 200;                       // source_ids per PATCH (URL length safe)
+const HEALTHY_MIN = 5;                   // a family with >= this many rows is a "known" token for self-bootstrap
+const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9.]/g, "");
 
 const env = supabaseEnv();
 if (!env) { console.error("FATAL: SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required."); process.exit(1); }
@@ -45,49 +49,103 @@ async function loadRows() {
   return rows.slice(0, LIMIT === Infinity ? rows.length : LIMIT);
 }
 
+// Resolve a batch of distinct titles through the shared resolver, concurrency-limited.
+// Returns Map(normTitle -> {make, model} | null). Titles that don't resolve to a car stay null.
+async function resolveTitles(titles) {
+  const cache = new Map(); const distinct = [...new Set(titles.map(t => norm(t)).filter(Boolean))];
+  let i = 0, resolved = 0; const CONC = 10;
+  const byNorm = new Map();                       // normTitle -> original title
+  for (const t of titles) { const n = norm(t); if (n && !byNorm.has(n)) byNorm.set(n, t); }
+  async function worker() {
+    while (i < distinct.length) {
+      const n = distinct[i++];
+      try { const r = await resolveVehicle(byNorm.get(n), {}); const v = r && r.vehicle; cache.set(n, (v && v.make && v.model) ? { make: v.make, model: v.model } : null); if (cache.get(n)) resolved++; }
+      catch { cache.set(n, null); }
+      if (i % 250 === 0) process.stderr.write(`\rresolved ${i}/${distinct.length} distinct titles   `);
+    }
+  }
+  await Promise.all(Array.from({ length: CONC }, worker));
+  process.stderr.write("\n");
+  console.log(`Resolver: ${distinct.length} distinct null-row titles, ${resolved} resolved to a car.`);
+  return cache;
+}
+
 function run() {
   return loadRows().then(async rows => {
-    // 2) compute family; bucket source_ids by family value.
-    const byFamily = new Map();          // family -> [source_id]
-    const sampleTitle = new Map();       // family -> a sample listing_title
-    const nullRows = [];                 // rows deskModelFamily left null (excluded from family reads)
+    // 1) family per row (mutable _fam), so a later pass can remap.
+    const sampleTitle = new Map();
+    for (const r of rows) { r._fam = deskModelFamily({ make: r.make, model: r.model, trim: "", title: r.listing_title }); }
+    const countFam = () => { const m = new Map(); for (const r of rows) if (r._fam) m.set(r._fam, (m.get(r._fam) || 0) + 1); return m; };
+    const rowsInUnder5 = (counts) => rows.reduce((n, r) => n + (r._fam && counts.get(r._fam) < 5 ? 1 : 0), 0);
+
+    let counts = countFam();
+    const before = { families: counts.size, under5Fams: [...counts.values()].filter(n => n < 5).length, rowsUnder5: rowsInUnder5(counts), nullRows: rows.filter(r => !r._fam).length };
+
+    // 2) ITEM 2 — resolve null rows through the shared resolver (BaT "Unknown" etc. whose titles
+    //    are resolvable: Mazda Protege5, Fiat Barchetta). Recompute the family from the resolved car.
+    let nullResolved = 0;
+    if (!NO_RESOLVE) {
+      const nullRows = rows.filter(r => !r._fam);
+      const resolved = await resolveTitles(nullRows.map(r => r.listing_title));
+      for (const r of nullRows) {
+        const hit = resolved.get(norm(r.listing_title));
+        if (hit) { const fam = deskModelFamily({ make: hit.make, model: hit.model, trim: "", title: r.listing_title }); if (fam) { r._fam = fam; r._resolvedMake = hit.make; nullResolved++; } }
+      }
+      counts = countFam();
+    }
+
+    // 3) ITEM 1 — self-bootstrap the long tail. Families with >= HEALTHY_MIN rows are "known"
+    //    family tokens (make-scoped). A row in an under-5 family whose model STARTS WITH a known
+    //    token of the same make is remapped to that family. Data-driven; catches Defender, 575M,
+    //    MkII etc. without a curated list. Longest token first so a specific token wins.
+    const famMake = new Map();            // family -> dominant make (norm)
+    { const acc = new Map(); for (const r of rows) if (r._fam) { const k = r._fam; const mk = norm(r.make); const m = acc.get(k) || acc.set(k, new Map()).get(k); m.set(mk, (m.get(mk) || 0) + 1); } for (const [k, m] of acc) famMake.set(k, [...m.entries()].sort((a, b) => b[1] - a[1])[0][0]); }
+    const tokens = [...counts.entries()].filter(([, n]) => n >= HEALTHY_MIN).map(([fam]) => ({ fam, tok: norm(fam), mk: famMake.get(fam) })).filter(t => t.tok.length >= 3).sort((a, b) => b.tok.length - a.tok.length);
+    const tokByMake = new Map(); for (const t of tokens) (tokByMake.get(t.mk) || tokByMake.set(t.mk, []).get(t.mk)).push(t);
+    let remapped = 0;
     for (const r of rows) {
-      const fam = deskModelFamily({ make: r.make, model: r.model, trim: "", title: r.listing_title });
-      if (!fam) { nullRows.push(r); continue; }
-      (byFamily.get(fam) || byFamily.set(fam, []).get(fam)).push(r.source_id);
-      if (!sampleTitle.has(fam)) sampleTitle.set(fam, r.listing_title || "");
+      if (!r._fam || counts.get(r._fam) >= 5) continue;    // only under-5 rows
+      const mn = norm(r.model); const mk = norm(r.make);
+      const cand = (tokByMake.get(mk) || []).find(t => t.fam !== r._fam && (mn === t.tok || mn.startsWith(t.tok)));
+      if (cand) { r._fam = cand.fam; remapped++; }
     }
-    const families = [...byFamily.entries()].sort((a, b) => b[1].length - a[1].length);
-    const under5 = families.filter(([, ids]) => ids.length < 5);
-    console.log(`\nRows scanned: ${rows.length}. Distinct model_family values: ${families.length}. Null model_family (excluded from family reads): ${nullRows.length}.`);
-    console.log(`Families with fewer than 5 rows: ${under5.length} (of ${families.length}).`);
+    counts = countFam();
+    const after = { families: counts.size, under5Fams: [...counts.values()].filter(n => n < 5).length, rowsUnder5: rowsInUnder5(counts), nullRows: rows.filter(r => !r._fam).length };
+
+    // ---- report ----
+    const families = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    for (const r of rows) if (r._fam && !sampleTitle.has(r._fam)) sampleTitle.set(r._fam, r.listing_title || "");
+    console.log(`\nRows scanned: ${rows.length}.`);
+    console.log(`  distinct families:   ${before.families} -> ${after.families}`);
+    console.log(`  families under 5:    ${before.under5Fams} -> ${after.under5Fams}`);
+    console.log(`  ROWS in under-5 fams:${String(before.rowsUnder5).padStart(7)} -> ${after.rowsUnder5}   (item 1)`);
+    console.log(`  null-family rows:    ${before.nullRows} -> ${after.nullRows}   (item 2: ${nullResolved} resolved from title, ${remapped} tail rows remapped)`);
     console.log("\nTop 25 families by row count:");
-    for (const [fam, ids] of families.slice(0, 25)) console.log(`  ${String(ids.length).padStart(7)}  ${fam}`);
-    // spot-check own-market badges are present and separate from their base
+    for (const [fam, n] of families.slice(0, 25)) console.log(`  ${String(n).padStart(7)}  ${fam}`);
     console.log("\nProbes:");
-    for (const probe of ["911", "996", "997", "991", "M3", "M5", "C63", "944 Turbo", "190E 2.3-16", "300SL", "190SL", "3 Series", "E-Class", "SL-Class", "Corvette", "Unknown"]) {
-      const hit = byFamily.get(probe); console.log(`  ${probe} = ${hit ? hit.length + " rows" : "(none)"}`);
+    for (const probe of ["911", "996", "997", "991", "M3", "M5", "C63", "944 Turbo", "190E 2.3-16", "300SL", "190SL", "XKE", "Defender", "3 Series", "E-Class", "SL-Class", "Corvette", "Unknown"]) {
+      const n = counts.get(probe); console.log(`  ${probe} = ${n ? n + " rows" : "(none)"}`);
     }
-    // 30 random families under 5, each with a sample title (the long-tail curation view).
-    const shuffled = under5.slice(); for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
-    console.log("\n30 random families under 5 rows (family | n | sample title):");
-    for (const [fam, ids] of shuffled.slice(0, 30)) console.log(`  ${fam} | ${ids.length} | ${sampleTitle.get(fam)}`);
-    // Null-family rows: top sources + sample titles (what these are, so we can decide).
-    const nullBySrc = new Map(); for (const r of nullRows) nullBySrc.set(r.platform || "?", (nullBySrc.get(r.platform || "?") || 0) + 1);
+    const under5 = families.filter(([, n]) => n < 5);
+    const shuffled = under5.slice(); for (let k = shuffled.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [shuffled[k], shuffled[j]] = [shuffled[j], shuffled[k]]; }
+    console.log("\n30 random families still under 5 rows (family | n | sample title):");
+    for (const [fam, n] of shuffled.slice(0, 30)) console.log(`  ${fam} | ${n} | ${sampleTitle.get(fam)}`);
+    const nullRowsNow = rows.filter(r => !r._fam);
+    const nullBySrc = new Map(); for (const r of nullRowsNow) nullBySrc.set(r.platform || "?", (nullBySrc.get(r.platform || "?") || 0) + 1);
     console.log(`\nNull-family rows by source (top 10):`);
     for (const [src, n] of [...nullBySrc.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10)) console.log(`  ${String(n).padStart(6)}  ${src}`);
-    console.log("15 sample null-family titles (make | model | title):");
-    for (const r of nullRows.slice(0, 15)) console.log(`  ${r.make} | ${JSON.stringify(r.model)} | ${r.listing_title || ""}`);
+    console.log("15 sample remaining null-family titles (make | model | title):");
+    for (const r of nullRowsNow.slice(0, 15)) console.log(`  ${r.make} | ${JSON.stringify(r.model)} | ${r.listing_title || ""}`);
 
     if (DRY) { console.log("\n--dry: no writes."); return; }
 
-    // 3) write: one PATCH per (family, chunk of source_ids).
+    // 4) write: one PATCH per (family, chunk of source_ids), from the final _fam.
+    const byFamily = new Map(); for (const r of rows) if (r._fam) (byFamily.get(r._fam) || byFamily.set(r._fam, []).get(r._fam)).push(r.source_id);
     let written = 0, reqs = 0, failed = 0;
-    for (const [fam, ids] of families) {
+    for (const [fam, ids] of byFamily) {
       for (let i = 0; i < ids.length; i += CHUNK) {
         const chunk = ids.slice(i, i + CHUNK);
-        const q = `sales_archive?source_id=in.(${chunk.map(encodeURIComponent).join(",")})`;
-        const res = await supabasePatch(env, q, { model_family: fam });
+        const res = await supabasePatch(env, `sales_archive?source_id=in.(${chunk.map(encodeURIComponent).join(",")})`, { model_family: fam });
         reqs++;
         if (res.error) { failed++; console.error(`  PATCH failed (${fam}, ${chunk.length} ids): ${res.error}`); }
         else written += chunk.length;
