@@ -28,6 +28,110 @@
   function usd(n) { return n == null ? "&mdash;" : "$" + Math.round(n).toLocaleString("en-US"); }
   function fmtDate(d) { return d ? String(d).slice(0, 10) : "&mdash;"; }
 
+  // ---------- pass-2: one-sentence reading, provenance footer, evidence drawer, methodology ----------
+  function winClause(r) {
+    var w = r && r.window;
+    if (typeof w === "string") { var m = { ytd: " sold this year", "12mo": " over the last twelve months", "24mo": " over the last two years", "36mo": " over the last three years", "6mo": " over the last six months" }; return m[w] || ""; }
+    if (w && w.from) return " sold " + esc(w.from) + (w.to ? " to " + esc(w.to) : "");
+    return "";
+  }
+  // One plain first-person sentence, in the mock's voice. Returns "" when a renderer states its own.
+  function readingSentence(res) {
+    var r = res.reading || {};
+    var era = (r.filters && r.filters.era) ? (r.filters.era[0] + " to " + r.filters.era[1]) : null;
+    if (res.ranking) {
+      var by = res.ranking.metric === "count" ? "number sold" : "typical sale price";
+      var who = res.ranking.name || (r.scopes || []).map(function (s) { return s.model; }).filter(Boolean).join(" and ");
+      var alt = (res.ranking.alternatives && res.ranking.alternatives.length) ? ' <span class="alt">Also: ' + res.ranking.alternatives.map(esc).join(", ") + '.</span>' : '';
+      return '<p class="reading">I ranked <b>' + esc(who) + '</b>' + (era ? ', <b>' + esc(era) + '</b>' : '') + ', by <b>' + esc(by) + '</b>' + winClause(r) + '.' + alt + '</p>';
+    }
+    if (res.trend) return '<p class="reading">I ranked <b>' + esc(res.trend.name || "these") + '</b> by <b>change in typical price</b>, the last twelve months against the twelve before.</p>';
+    if (res.comparison) return "";  // comparison states its own lede
+    if (res.answer) {
+      var car = (r.grouping && r.grouping.sameModel) ? r.grouping.name : ((r.scopes && r.scopes[0]) ? [r.scopes[0].make, r.scopes[0].model, r.scopes[0].trim].filter(Boolean).join(" ") : "");
+      if (!car) return "";
+      var measure = (r.metric && r.metric.measure === "record") ? "the record sale" : "typical sale price";
+      return '<p class="reading">I read the <b>' + esc(car) + '</b>' + winClause(r) + ', at <b>' + esc(measure) + '</b>.</p>';
+    }
+    return "";
+  }
+  function provenanceFooter(opts) {
+    opts = opts || {};
+    var bits = [opts.window || "last 36 months", "hammer, premiums backed out", "typical = median, never an average"];
+    if (opts.sources) bits.push(opts.sources);
+    bits.push("updated nightly");
+    return '<div class="cov" data-method="1"><u>' + bits.map(esc).join(" &middot; ") + '</u></div>';
+  }
+  // Evidence drawer (lazy re-query): a figure carries data-make/model/trim/window; on click, fetch that
+  // car's real sales and show the calculation, the included sales, and the set-asides split into
+  // "by our method" (halo/race/restomod/parts) vs "by your query" (price/mileage/era filters).
+  var drawerEl = document.getElementById("drawer"), scrimEl = document.getElementById("drawerScrim");
+  function closeDrawer() { if (drawerEl) drawerEl.classList.remove("open"); if (scrimEl) scrimEl.classList.remove("open"); }
+  if (scrimEl) scrimEl.onclick = closeDrawer;
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeDrawer(); closeMethod(); } });
+  function openDrawer(d) {
+    if (!drawerEl) return;
+    var cap = esc(d.caption || [d.make, d.model, d.trim].filter(Boolean).join(" "));
+    drawerEl.innerHTML = '<div class="dh"><button class="dx" id="drawerX">&times;</button><div class="lab">Evidence</div><div class="fig">' + esc(d.fig || "") + '</div><div class="cap">' + cap + '</div></div>' +
+      '<div class="db" id="drawerBody"><div class="working"><span class="pulse"></span> pulling the sales</div></div>';
+    drawerEl.classList.add("open"); if (scrimEl) scrimEl.classList.add("open");
+    document.getElementById("drawerX").onclick = closeDrawer;
+    var filters = { make: d.make, model: d.model }; if (d.trim) filters.trim = d.trim; if (d.generation) filters.generation = d.generation;
+    filters.window = d.window || "36mo"; if (d.year_min) filters.year_min = d.year_min; if (d.year_max) filters.year_max = d.year_max;
+    fetch(API + "/api/desk", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ desk: true, action: "run", dsl: { filters: filters, groupBy: [], measures: ["median", "p25", "p75", "count"] } }) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        var body = document.getElementById("drawerBody"); if (!body) return;
+        var recs = (j.receipts || []).filter(function (x) { return !x.excluded && x.hammer_usd > 0; });
+        var excl = (j.receipts || []).filter(function (x) { return x.excluded; });
+        var cov = j.coverage || {}; var total = (j.answer && j.answer.total) != null ? j.answer.total : recs.length;
+        var q = cov.filters || {};
+        var h = '<div class="calc">The median of the ' + total + ' qualifying sales below, hammer with the buyer premium backed out. Median, not an average.</div>';
+        h += '<div class="ds">Included sales &middot; ' + total + ' (newest first)</div>';
+        recs.slice(0, 25).forEach(function (x) { h += '<div class="er"><span class="ep">' + usd(x.hammer_usd) + '</span> ' + esc((x.title || "").slice(0, 46)) + (x.link ? ' <a href="' + esc(x.link) + '" target="_blank" rel="noopener">&#8599;</a>' : '') + '<span class="ed">' + esc(x.venue || "") + " &middot; " + fmtDate(x.date) + '</span></div>'; });
+        if (recs.length > 25) h += '<div class="er" style="color:var(--faint)"><span>&hellip; ' + (recs.length - 25) + ' more</span><span></span></div>';
+        // exclusions, split method vs query
+        var byReason = cov.excluded_by_reason || {};
+        var methodBits = Object.keys(byReason).map(function (k) { return byReason[k] + " " + k; });
+        h += '<div class="ds">Excluded</div>';
+        h += '<div class="exc"><span class="tag meth">by our method</span>' + (methodBits.length ? esc(methodBits.join(", ")) + "." : "none.") + '</div>';
+        var qbits = [];
+        if (q.price) qbits.push((q.price.min ? "over $" + Number(q.price.min).toLocaleString("en-US") : "") + (q.price.max ? " under $" + Number(q.price.max).toLocaleString("en-US") : "").trim());
+        if (q.mileage) qbits.push(q.mileage.band ? q.mileage.band + "-mileage" : "mileage bound");
+        h += '<div class="exc"><span class="tag query">by your query</span>' + (qbits.length ? esc(qbits.join(", ")) + "." : "none — no filters on this figure.") + '</div>';
+        body.innerHTML = h;
+      })
+      .catch(function () { var body = document.getElementById("drawerBody"); if (body) body.innerHTML = '<div class="calc">Could not pull the sales just now. Try again.</div>'; });
+  }
+  function wireEvidence() {
+    Array.prototype.forEach.call(document.querySelectorAll("#out .ev[data-make]"), function (el) {
+      el.onclick = function () {
+        openDrawer({ make: el.getAttribute("data-make"), model: el.getAttribute("data-model"), trim: el.getAttribute("data-trim") || null, generation: el.getAttribute("data-gen") || null, window: el.getAttribute("data-window") || "36mo", year_min: el.getAttribute("data-ymin") || null, year_max: el.getAttribute("data-ymax") || null, fig: el.getAttribute("data-fig") || el.textContent, caption: el.getAttribute("data-cap") || null });
+      };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("#out .cov[data-method]"), function (el) { el.onclick = openMethod; });
+  }
+  // Methodology modal (published basis; spec s14).
+  var methScrim = document.getElementById("methScrim");
+  function closeMethod() { if (methScrim) methScrim.classList.remove("open"); }
+  function openMethod() {
+    if (!methScrim) return;
+    methScrim.innerHTML = '<div class="modal"><button class="mx" id="methX">&times;</button>' +
+      '<h2>How a number is made</h2>' +
+      '<p>Every figure is real completed sales from GoAskSam’s archive. No estimates, no valuations.</p>' +
+      '<h3>Basis</h3><p>Implied hammer, house buyer premiums backed out, so every venue reads on the same basis. Prices are USD.</p>' +
+      '<h3>Typical</h3><p>“Typical” is the median, never an average. Spread is the 25th to 75th percentile.</p>' +
+      '<h3>Windows</h3><p>Standard windows are year to date, 12, 24 and 36 months. A trend compares the last 12 months with the 12 before.</p>' +
+      '<h3>What we set aside</h3><p>Halos, race cars, restomods, period tuners, parts and memorabilia are set aside by a published rule and shown separately, never dropped silently.</p>' +
+      '<h3>Thin</h3><p>Below five sales there is no honest spread, so we say so and show the sales themselves.</p>' +
+      '<h3>What we do not hold</h3><p>Private sales, condition grades and pre-coverage years are not in the archive; we state that on the answer, never bury it.</p>' +
+      '<h3>Freshness</h3><p>The archive updates every night; coverage dates move daily.</p>' +
+      '</div>';
+    methScrim.classList.add("open");
+    document.getElementById("methX").onclick = closeMethod;
+    methScrim.onclick = function (e) { if (e.target === methScrim) closeMethod(); };
+  }
+
   // (j) Robust fetch: a Vercel timeout/500 returns PLAIN TEXT, not JSON. Parsing it as JSON threw
   // the raw "Unexpected token 'A'..." at the user. Read the body as text, JSON.parse in a guard, and
   // on a non-JSON or failed response show a plain-English error with a Retry button and log the real
@@ -147,30 +251,32 @@
     if (res.unsupported) parts.push("not answerable");
     return parts.join(" · ");
   }
-  // Ranked-list render (Stage C). Interim table; the mock's ranked-bar layout lands with the /desk
-  // rebuild. Rows come pre-ranked from the engine; thin members are listed, never ranked.
+  function windowLabelOf(w) { var m = { ytd: "year to date", "12mo": "last 12 months", "24mo": "last 24 months", "36mo": "last 36 months", "6mo": "last 6 months" }; return m[w] || "last 36 months"; }
+  // Ranked bars (mock layout). Each name and value is an evidence figure (click -> the sales behind it).
   function renderRanking(rk) {
     if (!rk) return msg("Trouble", "The ranking did not come back.");
-    var metricLbl = rk.metric === "count" ? "number sold" : "typical sale price";
-    var alt = (rk.alternatives && rk.alternatives.length) ? ' <span class="n">Also: ' + rk.alternatives.map(esc).join(", ") + '</span>' : '';
-    var h = '<div class="result"><div class="section"><div class="slabel">Ranked by ' + esc(metricLbl) +
-      (rk.name ? ' &middot; ' + esc(rk.name) : '') + alt + '</div>';
+    var h = '<div class="result">';
     if (rk.tooFewToRank || !rk.ranked || !rk.ranked.length) {
-      h += '<div class="reconcile">Fewer than three of these have enough recent sales to rank honestly.</div>';
+      h += '<div class="reconcile">Fewer than two of these have enough recent sales to rank honestly.</div>';
     } else {
-      h += '<div class="tblwrap"><table class="answer"><thead><tr><th>#</th><th>' + esc(rk.name || "car") + '</th><th>' +
-        (rk.metric === "count" ? "sold" : "median") + '</th><th>count</th><th>spread</th><th>newest</th></tr></thead><tbody>';
+      var max = Math.max.apply(null, rk.ranked.map(function (r) { return rk.metric === "count" ? (r.count || 0) : (r.median || 0); })) || 1;
+      h += '<div class="rank">';
       rk.ranked.forEach(function (r, i) {
-        h += '<tr><td>' + (i + 1) + '</td><td>' + esc(r.group) + '</td>' +
-          '<td class="cellnum">' + (rk.metric === "count" ? r.count : (r.median != null ? usd(r.median) : "&mdash;")) + '</td>' +
-          '<td class="cellnum">' + r.count + '</td>' +
-          '<td class="cellnum">' + (r.p25 != null && r.p75 != null ? usd(r.p25) + " to " + usd(r.p75) : "&mdash;") + '</td>' +
-          '<td class="cellnum">' + fmtDate(r.freshness) + '</td></tr>';
+        var val = rk.metric === "count" ? r.count : r.median;
+        var w = Math.max(2, Math.round((val / max) * 300));
+        var vtxt = rk.metric === "count" ? String(r.count) : usd(r.median);
+        var sub = rk.metric === "count" ? ("typical " + usd(r.median)) : ((r.p25 != null ? usd(r.p25) + " to " + usd(r.p75) + " &middot; " : "") + r.count);
+        var ev = 'data-make="' + esc(r.make) + '" data-model="' + esc(r.model) + '"' + (r.trim ? ' data-trim="' + esc(r.trim) + '"' : '') + ' data-window="' + esc(rk.window || "36mo") + '" data-cap="' + esc(r.group) + '" data-fig="' + esc(vtxt) + '"';
+        h += '<div class="rank-row"><span class="r">' + (i + 1) + '</span>' +
+          '<span class="nm ev" ' + ev + '>' + esc(r.group) + '</span>' +
+          '<span class="bar" style="width:' + w + 'px"></span>' +
+          '<span class="v"><span class="ev" ' + ev + '>' + vtxt + '</span> <span class="sub">' + esc(sub) + '</span></span></div>';
       });
-      h += '</tbody></table></div>';
+      h += '</div>';
     }
     if (rk.thin && rk.thin.length) h += '<div class="reconcile">Shown but not ranked (fewer than ' + (rk.thinThreshold || 5) + ' sales): ' + rk.thin.map(function (t) { return esc(t.group) + " (" + t.count + ")"; }).join(", ") + '.</div>';
-    h += '</div></div>';
+    h += provenanceFooter({ window: windowLabelOf(rk.window) });
+    h += '</div>';
     return h;
   }
   // Comparison render (Stage C): two+ cars side by side, in stated order, with the gap named in words.
@@ -178,12 +284,17 @@
     if (!cmp || !cmp.members || !cmp.members.length) return msg("Trouble", "The comparison did not come back.");
     var h = '<div class="result"><div class="section"><div class="slabel">Side by side</div>';
     if (cmp.scopes && cmp.scopes.length >= 2) h += '<p class="cmp-lede">' + esc("Compared " + (cmp.period ? "the " + cmp.period + " " : "") + cmp.scopes.join(" and ") + ".") + '</p>';
+    var pm = String(cmp.period || "").match(/(\d{4})\s*to\s*(\d{4})/);
+    var yminmax = pm ? ' data-ymin="' + pm[1] + '" data-ymax="' + pm[2] + '"' : '';
     h += '<div class="cmpcols">';
-    cmp.members.forEach(function (mrow) {
-      h += '<div class="cmpcol"><div class="cmp-t">' + esc(mrow.group) + '</div>';
+    cmp.members.forEach(function (mrow, i) {
+      h += '<div class="cmpcol' + (i === 1 ? " b" : "") + '"><div class="cmp-t">' + esc(mrow.group) + '</div>';
       if (mrow.thin || mrow.median == null) h += '<div class="cmp-big">&mdash;</div><div class="cmp-sub">too few sold to read (' + (mrow.count || 0) + ')</div>';
-      else h += '<div class="cmp-big num">' + usd(mrow.median) + '</div><div class="cmp-sub">' +
-        (mrow.p25 != null ? usd(mrow.p25) + " to " + usd(mrow.p75) + " &middot; " : "") + mrow.count + " sales &middot; newest " + fmtDate(mrow.freshness) + '</div>';
+      else {
+        var ev = 'data-make="' + esc(mrow.make) + '" data-model="' + esc(mrow.model) + '"' + (mrow.trim ? ' data-trim="' + esc(mrow.trim) + '"' : '') + yminmax + ' data-cap="' + esc(mrow.group) + '" data-fig="' + esc(usd(mrow.median)) + '"';
+        h += '<div class="cmp-big num ev" ' + ev + '>' + usd(mrow.median) + '</div><div class="cmp-sub">' +
+          (mrow.p25 != null ? usd(mrow.p25) + " to " + usd(mrow.p75) + " &middot; " : "") + mrow.count + " sales &middot; newest " + fmtDate(mrow.freshness) + '</div>';
+      }
       h += '</div>';
     });
     h += '</div>';
@@ -194,28 +305,33 @@
         (g.count_ratio != null && g.count_ratio >= 1.5 ? ", though it trades " + (g.count_ratio >= 2 ? Math.round(g.count_ratio) + " times" : "more") + " as often (" + g.higher_count + " to " + g.lower_count + ")" : "") + ".";
       h += '<div class="read">' + esc(line) + '</div>';
     }
+    h += provenanceFooter({ window: windowLabelOf(cmp.window) });
     h += '</div></div>';
     return h;
   }
-  // Trend render (Stage C): the movers, both window medians and both counts stated; thin listed.
+  // Trend movers (mock layout): each mover a bar (green up / clay down); both window medians and both
+  // counts stated; every row is an evidence figure. Thin listed, never ranked.
   function renderTrend(tr) {
     if (!tr) return msg("Trouble", "The trend did not come back.");
     var w = tr.windows || { now: "the last 12 months", prior: "the 12 months before" };
-    var h = '<div class="result"><div class="section"><div class="slabel">' + (tr.sort === "asc" ? "Softening" : "Rising fastest") +
-      (tr.name ? ' &middot; ' + esc(tr.name) : '') + ' <span class="n">' + esc(w.now) + ' vs ' + esc(w.prior) + '</span></div>';
+    var h = '<div class="result"><div class="slab">' + (tr.sort === "asc" ? "Softening" : "Rising fastest") + ' &middot; ' + esc(w.now) + ' vs ' + esc(w.prior) + '</div>';
     if (!tr.ranked || !tr.ranked.length) h += '<div class="reconcile">Fewer than the ' + (tr.thinThreshold || 5) + '-sale minimum in both windows, so there is no trend to read yet.</div>';
     else {
-      h += '<div class="tblwrap"><table class="answer"><thead><tr><th>#</th><th>car</th><th>change</th><th>now</th><th>before</th><th>count now/before</th></tr></thead><tbody>';
+      var maxAbs = Math.max.apply(null, tr.ranked.map(function (r) { return Math.abs(r.pct || 0); })) || 1;
+      h += '<div class="rank">';
       tr.ranked.forEach(function (r, i) {
-        h += '<tr><td>' + (i + 1) + '</td><td>' + esc(r.group) + '</td>' +
-          '<td class="cellnum">' + (r.pct > 0 ? "+" : "") + r.pct + '%</td>' +
-          '<td class="cellnum">' + usd(r.now_median) + '</td><td class="cellnum">' + usd(r.prior_median) + '</td>' +
-          '<td class="cellnum">' + r.now_count + '/' + r.prior_count + '</td></tr>';
+        var wbar = Math.max(2, Math.round((Math.abs(r.pct || 0) / maxAbs) * 240)), neg = (r.pct || 0) < 0;
+        var ev = 'data-make="' + esc(r.make || "") + '" data-model="' + esc(r.model || "") + '"' + (r.trim ? ' data-trim="' + esc(r.trim) + '"' : '') + ' data-cap="' + esc(r.group) + '" data-fig="' + (r.pct > 0 ? "+" : "") + r.pct + '%"';
+        h += '<div class="rank-row"><span class="r">' + (i + 1) + '</span>' +
+          '<span class="nm ev" ' + ev + '>' + esc(r.group) + '</span>' +
+          '<span class="bar' + (neg ? " b2" : "") + '" style="width:' + wbar + 'px"></span>' +
+          '<span class="v' + (neg ? " neg" : "") + '">' + (r.pct > 0 ? "+" : "") + r.pct + '% <span class="sub">' + usd(r.prior_median) + " &rarr; " + usd(r.now_median) + " &middot; " + r.prior_count + "/" + r.now_count + '</span></span></div>';
       });
-      h += '</tbody></table></div>';
+      h += '</div>';
     }
     if (tr.thin && tr.thin.length) h += '<div class="reconcile">Shown but not ranked (under ' + (tr.thinThreshold || 5) + ' in a window): ' + tr.thin.slice(0, 12).map(function (t) { return esc(t.group) + " (" + (t.now_count || 0) + "/" + (t.prior_count || 0) + ")"; }).join(", ") + '.</div>';
-    h += '</div></div>';
+    h += provenanceFooter({ window: w.now });
+    h += '</div>';
     return h;
   }
   var emptyRef = function () { return document.getElementById("empty"); };
@@ -241,6 +357,10 @@
     else if (res.honest_miss) out.innerHTML = msg("I couldn't read that", "I don't recognize that yet. It's logged so we can add it. Try a make and model.");
     else if (res.reading && (res.reading.grouping || (res.reading.structural || []).some(function (s) { return s.kind === "comparison"; }))) out.innerHTML = msg("Reading ready", "This is a ranking or comparison; the multi-car answer arrives in the next stage. The reading above is how it was understood.");
     else out.innerHTML = "";
+    // One-sentence first-person reading leads the answer (mock voice). Renderers that state their own
+    // lede (comparison) return "" from readingSentence.
+    var lead = readingSentence(res);
+    if (lead) out.innerHTML = lead + out.innerHTML;
     CUR_READING = res.reading; RECENT.push(res.reading);
     THREAD.push({ question: question, reading: res.reading, summary: summarize(res), cardHtml: readingcard.innerHTML, answerHtml: out.innerHTML });
     renderTurns();
