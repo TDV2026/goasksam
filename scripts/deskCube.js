@@ -76,11 +76,14 @@ function statOf(rows) {
   const n = vals.length;
   const newest = rows.reduce((mx, r) => { const d = String(r.sale_date || "").slice(0, 10); return d > mx ? d : mx; }, "");
   const thin = n < THIN;
+  // Money columns are bigint: hammerUsd returns floats (currency conversion, premium back-out), so
+  // every money value is ROUNDED to a whole number before it can hit the upsert.
+  const R = x => (x == null ? null : Math.round(x));
   return {
     n,
-    median_usd: thin ? null : median(vals),
-    q1_usd: thin ? null : pct(vals, 25), q3_usd: thin ? null : pct(vals, 75),
-    min_usd: n ? Math.min(...vals) : null, max_usd: n ? Math.max(...vals) : null,
+    median_usd: R(thin ? null : median(vals)),
+    q1_usd: R(thin ? null : pct(vals, 25)), q3_usd: R(thin ? null : pct(vals, 75)),
+    min_usd: R(n ? Math.min(...vals) : null), max_usd: R(n ? Math.max(...vals) : null),
     newest_sale: newest || null
   };
 }
@@ -153,15 +156,40 @@ function run() {
 
     if (DRY) { console.log("\n--dry: no writes."); return; }
 
-    // 3) upsert (on the unique key) in chunks so a slice is never half-written.
-    let written = 0;
+    // 3) upsert (on the unique key) in chunks so a slice is never half-written. Resilient:
+    //    one bad row can NEVER fail the whole build. On a chunk error we bisect down to the
+    //    offending row, log it, skip it, and keep going. The build always finishes.
+    const upsertChunk = async (rows) => {
+      const res = await supabaseInsert(
+        "desk_aggregates", rows, env.supabaseUrl, env.supabaseKey,
+        "resolution=merge-duplicates",
+        "?on_conflict=make,model_family,generation,model_year,channel,venue,window_key"
+      );
+      return res;
+    };
+    // Recursively upsert; on error bisect until the bad row is isolated and skipped.
+    const upsertResilient = async (rows) => {
+      if (!rows.length) return { written: 0, skipped: 0 };
+      const res = await upsertChunk(rows);
+      if (!res.error) return { written: rows.length, skipped: 0 };
+      if (rows.length === 1) {
+        console.error(`  SKIPPED bad row (${res.error}):`, JSON.stringify(rows[0]));
+        return { written: 0, skipped: 1 };
+      }
+      const mid = Math.floor(rows.length / 2);
+      const a = await upsertResilient(rows.slice(0, mid));
+      const b = await upsertResilient(rows.slice(mid));
+      return { written: a.written + b.written, skipped: a.skipped + b.skipped };
+    };
+    let written = 0, skipped = 0;
     for (let i = 0; i < cubeRows.length; i += 500) {
       const chunk = cubeRows.slice(i, i + 500).map(r => ({ ...r, computed_at: new Date().toISOString() }));
-      const res = await supabaseInsert("desk_aggregates", chunk, env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates", "?on_conflict=make,model_family,generation,model_year,channel,venue,window_key");
-      if (res.error) { console.error("  upsert failed:", res.error); process.exit(1); }
-      written += chunk.length; process.stderr.write(`\rupserted ${written}/${cubeRows.length}   `);
+      const r = await upsertResilient(chunk);
+      written += r.written; skipped += r.skipped;
+      process.stderr.write(`\rupserted ${written}/${cubeRows.length}${skipped ? ` (skipped ${skipped})` : ""}   `);
     }
     process.stderr.write("\n");
+    if (skipped) console.log(`WARNING: ${skipped} row(s) skipped as unupsertable (logged above).`);
     console.log(`Cube built. Rows upserted: ${written}.`);
   });
 }

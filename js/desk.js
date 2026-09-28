@@ -199,32 +199,15 @@
     var x = c.removable ? ' <span class="x" data-drop-grouping="1">clear</span>' : "";
     return '<span class="rc-chip' + (c.defaulted ? " def" : "") + '">' + k + esc(c.label) + x + '</span>';
   }
-  function renderCard(res) {
-    var r = res.reading || {};
-    var srcLbl = res.source === "fallback" ? "basic parser (understanding layer unavailable)" : res.source === "vin" ? "VIN decoded" : "understood";
-    var h = '<div class="rcard"><div class="rc-lede">How I read this · ' + esc(srcLbl) + '</div><div class="rc-chips">';
-    (res.chips || []).forEach(function (c) { h += chipHtml(c); });
-    h += '</div>';
-    if (r.grouping && r.grouping.members && r.grouping.members.length) {
-      var same = !!r.grouping.sameModel;
-      h += '<div class="rc-members">';
-      r.grouping.members.forEach(function (m, i) {
-        var lbl = m.chipLabel || (same ? (m.generation || m.label || (m.make + " " + m.model)) : (m.make + " " + m.model));
-        h += '<span class="rc-mem">' + esc(lbl) + '<span class="x" data-drop-member="' + i + '" data-drop-tok="' + esc(m.generation || m.label || m.model) + '">×</span></span>';
-      });
-      h += '</div>';
-    }
-    (res.not_applied || []).forEach(function (n) { h += '<div class="rc-na"><b>Not applied:</b> ' + esc(n.phrase) + (n.why ? " (" + esc(n.why) + ")" : "") + '</div>'; });
-    if (res.clarify) {
-      h += '<div class="rc-clarify"><div class="q">' + esc(res.clarify.question) + '</div>';
-      (res.clarify.options || []).forEach(function (o) { h += '<span class="rc-opt" data-opt="' + esc(o) + '">' + esc(o) + '</span>'; });
-      h += '<div class="rc-na" style="margin-top:8px;color:var(--faint)">Tap one, or type your answer below.</div></div>';
-    }
-    h += '</div>';
+  // No chips anywhere. A genuine clarify still needs its options, so it renders a minimal card:
+  // the question and its tappable options only (no "How I read this" chips, no member chips).
+  function renderClarify(res) {
+    if (!res.clarify) { readingcard.innerHTML = ""; return; }
+    var c = res.clarify;
+    var h = '<div class="rcard"><div class="rc-clarify"><div class="q">' + esc(c.question) + '</div>';
+    (c.options || []).forEach(function (o) { h += '<span class="rc-opt" data-opt="' + esc(o) + '">' + esc(o) + '</span>'; });
+    h += '<div class="rc-na" style="margin-top:8px;color:var(--faint)">Tap one, or type your answer below.</div></div></div>';
     readingcard.innerHTML = h;
-    Array.prototype.forEach.call(readingcard.querySelectorAll('[data-drop-member]'), function (el) {
-      el.onclick = function () { interpretFetch("drop the " + (el.getAttribute("data-drop-tok") || ""), { threadReading: res.reading }); };
-    });
     Array.prototype.forEach.call(readingcard.querySelectorAll('[data-opt]'), function (el) {
       el.onclick = function () { interpretFetch(el.getAttribute("data-opt"), { threadReading: res.reading }); };
     });
@@ -345,7 +328,10 @@
       renderTurns();
       return;
     }
-    renderCard(res);
+    // Approved screen rule: one sentence and NO chips. The chip "How I read this" card is gone from
+    // answers; the one-sentence reading (readingSentence / the renderer's own lede) IS the reading.
+    // Only a genuine clarify still renders a card, and only its question + options (no chips).
+    renderClarify(res);
     if (res.cannot_apply) { out.innerHTML = msg("Can't apply that", esc(res.cannot_apply)); }
     else if (res.ranking) out.innerHTML = renderRanking(res.ranking);
     else if (res.comparison) out.innerHTML = renderComparison(res.comparison);
@@ -361,6 +347,12 @@
     // lede (comparison) return "" from readingSentence.
     var lead = readingSentence(res);
     if (lead) out.innerHTML = lead + out.innerHTML;
+    // No-silent-drops still holds without chips: anything we did NOT apply is stated as one muted line.
+    if (res.not_applied && res.not_applied.length && !res.clarify) {
+      out.innerHTML += '<p class="na-note">' + res.not_applied.map(function (n) {
+        return esc("Not applied: " + n.phrase + (n.why ? " (" + n.why + ")" : ""));
+      }).join("  ") + '</p>';
+    }
     CUR_READING = res.reading; RECENT.push(res.reading);
     THREAD.push({ question: question, reading: res.reading, summary: summarize(res), cardHtml: readingcard.innerHTML, answerHtml: out.innerHTML });
     renderTurns();
