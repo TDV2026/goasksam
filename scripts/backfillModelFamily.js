@@ -75,9 +75,21 @@ function localResolveFromTitle(title, knownMakesLC) {
 
 function run() {
   return loadRows().then(async rows => {
-    // 1) family per row (mutable _fam), so a later pass can remap.
+    // 1) family per row (mutable _fam), so a later pass can remap. Also compute the UNFOLDED family
+    //    (accents kept) so we can report how many families the accent-fold merged.
     const sampleTitle = new Map();
-    for (const r of rows) { r._fam = deskModelFamily({ make: r.make, model: r.model, trim: "", title: r.listing_title }); }
+    for (const r of rows) {
+      const rr = { make: r.make, model: r.model, trim: "", title: r.listing_title };
+      r._fam = deskModelFamily(rr);
+      r._famRaw = deskModelFamily(rr, { noFold: true });
+    }
+    // Accent-merge report: folded family -> set of unfolded spellings that collapsed into it.
+    { const g = new Map(); for (const r of rows) { if (!r._fam) continue; (g.get(r._fam) || g.set(r._fam, new Set()).get(r._fam)).add(r._famRaw); }
+      const merged = [...g.entries()].filter(([, s]) => s.size > 1);
+      const rawFams = new Set(rows.filter(r => r._fam).map(r => r._famRaw)).size;
+      const foldedFams = g.size;
+      console.log(`\nAccent fold: ${rawFams} families before folding -> ${foldedFams} after (${rawFams - foldedFams} merged).`);
+      for (const [fam, s] of merged.slice(0, 20)) console.log(`  ${fam}  <-  ${[...s].join(" | ")}`); }
     const countFam = () => { const m = new Map(); for (const r of rows) if (r._fam) m.set(r._fam, (m.get(r._fam) || 0) + 1); return m; };
     const rowsInUnder5 = (counts) => rows.reduce((n, r) => n + (r._fam && counts.get(r._fam) < 5 ? 1 : 0), 0);
 

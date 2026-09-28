@@ -867,6 +867,32 @@
     return ranked.length ? { pick: ranked[0], others: ranked.slice(1, 4) } : null;
   }
   function R4C_MANUAL(t) { return /manual|\d[- ]?speed(?!\s*auto)|\bmt\b|\bstick\b/i.test(t) && !/automatic|pdk|dct|tiptronic|dsg/i.test(t); }
+  // Gearbox label. On models with a single-clutch automated box, "manual vs E-gear" is the defining
+  // split, so label plainly: "Manual" (factory), "Manual (conversion)" (a retrofit, NEVER a factory
+  // manual - item 4), or "E-gear" (the automated). Other models keep their raw label. Uses the
+  // current render's resolved model (htLastD) for scope.
+  var EGEAR_MODELS = /murci[eé]lago|gallardo|aventador|huracan|huracán/i;   // Lamborghini single-clutch "E-gear"
+  function gearboxLabel(rc) {
+    var raw = String(rc.transmission || "");
+    var title = String(rc.title || "");
+    var modelName = (htLastD && htLastD.resolvedCar && htLastD.resolvedCar.model) || (htLastD && htLastD.vehicle && htLastD.vehicle.model) || "";
+    var isConv = /conversion|converted/i.test(raw) || /conversion|converted/i.test(title);
+    var isManual = /\bmanual\b|\bgated\b|\bstick\b/i.test(raw);
+    if (isManual || (isConv && /\bmanual\b|\d[- ]?speed/i.test(raw + " " + title))) return isConv ? "Manual (conversion)" : "Manual";
+    if (EGEAR_MODELS.test(String(modelName)) || EGEAR_MODELS.test(title)) return "E-gear";
+    return raw ? cap(raw) : "";
+  }
+  // One plain OBSERVED-pattern line for the manual-vs-E-gear split (never a cause). Only when the
+  // pool actually holds both, on an E-gear model. Conversions are excluded from the manual figure.
+  function gearboxPatternLine(scope) {
+    var man = [], eg = [];
+    (scope || []).forEach(function (rc) { var g = gearboxLabel(rc); if (g === "Manual") man.push(rc.hammer); else if (g === "E-gear") eg.push(rc.hammer); });
+    if (!man.length || !eg.length) return "";
+    var mn = Math.min.apply(null, man), mx = Math.max.apply(null, man), en = Math.min.apply(null, eg), ex = Math.max.apply(null, eg);
+    var mr = man.length === 1 ? usd(mn) : usd(mn) + " to " + usd(mx);
+    var er = eg.length === 1 ? usd(en) : usd(en) + " to " + usd(ex);
+    return "The manuals here sold " + mr + "; the E-gears " + er + ".";
+  }
   function R4C_AUTO(t) { return /automatic|\bpdk\b|\bdct\b|tiptronic|\bdsg\b|paddle/i.test(t); }
   function htHasMk(rc, key) { return !!(rc.markers && rc.markers.some(function (mk) { return mk.key === key; })); }
   function htMarkerChips(rc) {
@@ -952,7 +978,7 @@
     if (rc.isHouse) { var chMeta = houseChassisMeta(rc); if (chMeta) segs.push('<span class="mseg">' + chMeta + "</span>"); }
     else {
       if (Number(rc.mileage) > 0) segs.push('<span class="mseg num">' + Number(rc.mileage).toLocaleString("en-US") + " mi</span>");
-      if (rc.transmission) segs.push('<span class="mseg">' + esc(cap(String(rc.transmission))) + "</span>");
+      var _gl = gearboxLabel(rc); if (_gl) segs.push('<span class="mseg">' + esc(_gl) + "</span>");
     }
     var meta = segs.join(' <span class="dot">&middot;</span> ');
     var inner = thumbEl(rc.image, rc.title) +
@@ -985,7 +1011,8 @@
       return { q: "Mileage moves the number most on these. Roughly how many miles on it?", chips: [{ v: "mi:lo", label: "Under " + k + "k" }, { v: "mi:hi", label: "Over " + k + "k" }] };
     }
     if (intake.kind === "transmission") {
-      return { q: "The gearbox splits these on price. Which is it?", chips: [{ v: "tx:manual", label: "Manual" }, { v: "tx:auto", label: "Automatic" }] };
+      var egM = EGEAR_MODELS.test(String((htLastD && htLastD.resolvedCar && htLastD.resolvedCar.model) || (htLastD && htLastD.vehicle && htLastD.vehicle.model) || ""));
+      return { q: "The gearbox splits these on price. Which is it?", chips: [{ v: "tx:manual", label: "Manual" }, { v: "tx:auto", label: egM ? "E-gear" : "Automatic" }] };
     }
     return null;
   }
@@ -1006,8 +1033,8 @@
     if (choice.indexOf("no:") === 0) { var key = choice.slice(3); keep = receipts.filter(function (r) { return !htHasMk(r, key); }); lbl = "standard"; }
     else if (choice === "mi:lo") { var thL = intake && intake.threshold; keep = receipts.filter(function (r) { var mi = Number(r.mileage) || 0; return mi > 0 && mi <= thL; }); lbl = "lower-mileage"; }
     else if (choice === "mi:hi") { var thH = intake && intake.threshold; keep = receipts.filter(function (r) { var mi = Number(r.mileage) || 0; return mi > thH; }); lbl = "higher-mileage"; }
-    else if (choice === "tx:manual") { keep = receipts.filter(function (r) { return R4C_MANUAL(String(r.transmission || "")); }); lbl = "manual"; }
-    else if (choice === "tx:auto") { keep = receipts.filter(function (r) { return R4C_AUTO(String(r.transmission || "")); }); lbl = "automatic"; }
+    else if (choice === "tx:manual") { keep = receipts.filter(function (r) { var g = gearboxLabel(r); if (g === "Manual") return true; if (g === "E-gear" || /conversion/i.test(g)) return false; return R4C_MANUAL(String(r.transmission || "")); }); lbl = "manual"; }
+    else if (choice === "tx:auto") { keep = receipts.filter(function (r) { var g = gearboxLabel(r); if (g === "E-gear") return true; if (g === "Manual" || /conversion/i.test(g)) return false; return R4C_AUTO(String(r.transmission || "")); }); lbl = "e-gear"; }
     else { keep = receipts.filter(function (r) { return htHasMk(r, choice); }); lbl = (intake && intake.markerLabel ? intake.markerLabel : "").toLowerCase(); }
     return keep && keep.length ? { scope: keep, label: lbl } : { scope: receipts, label: null };
   }
@@ -1021,7 +1048,7 @@
     if (!mid) return "";
     var ext = '<span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>';
     var img = mid.image ? '<img src="' + esc(mid.image) + '" alt="' + esc(mid.title || "") + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.plate\');if(p)p.style.display=\'flex\'">' : "";
-    var meta = [mid.mileage ? Number(mid.mileage).toLocaleString("en-US") + " mi" : "", mid.transmission ? cap(String(mid.transmission)) : ""].filter(Boolean).join(" · ");
+    var meta = [mid.mileage ? Number(mid.mileage).toLocaleString("en-US") + " mi" : "", gearboxLabel(mid) || ""].filter(Boolean).join(" · ");
     var inner = '<div class="rph">' + img + '<span class="cmkick">Representative sale</span>' + ext + '<div class="plate" style="display:' + (mid.image ? "none" : "flex") + '"><div class="n">' + esc(cleanReceiptTitle(mid.title)) + '</div><div class="s">photo pending</div></div></div>' +
       '<div class="rb"><div class="rprice num">' + usd(mid.hammer) + '</div>' +
       (meta ? '<div class="rmeta">' + esc(meta) + '</div>' : '') +
@@ -1048,6 +1075,8 @@
       var min = s[0].hammer, max = s[n - 1].hammer;
       if (max > min) out += '<p class="lt-span">' + lint("The recorded sales" + (scopedLabel ? " of " + scopedLabel + " cars" : "") + " ran from " + usd(min) + " to " + usd(max) + ".", "ht.span") + "</p>";
     }
+    var gpat = gearboxPatternLine(scope);
+    if (gpat) out += '<p class="lt-span">' + lint(gpat, "ht.gbox") + "</p>";
     out += htOnlineCeiling(scope);
     return out + "</div>";
   }
@@ -1123,6 +1152,7 @@
   function obNumWord(n) { return ["", "One", "Two", "Three", "Four", "Five"][n] || String(n); }
   function classEraHtml(d, m) {
     var ce = d.classEra;
+    htLastD = d;   // so gearboxLabel can read the resolved model for the receipt rows
     if (!ce || !ce.receipts || !ce.receipts.length) return refusalHtml(d, m);
     var v = d.resolvedCar || d.vehicle || {};
     var carName = [v.year, v.make, v.model, v.trim].filter(Boolean).join(" ") || bareNameOf(d, m);
