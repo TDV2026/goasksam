@@ -77,7 +77,15 @@
     drawerEl.classList.add("open"); if (scrimEl) scrimEl.classList.add("open");
     document.getElementById("drawerX").onclick = closeDrawer;
     var filters = { make: d.make, model: d.model }; if (d.trim) filters.trim = d.trim; if (d.generation) filters.generation = d.generation;
-    filters.window = d.window || "36mo"; if (d.year_min) filters.year_min = d.year_min; if (d.year_max) filters.year_max = d.year_max;
+    filters.window = d.window || "36mo";
+    // Year range: a per-figure override (comparison period / trend year) wins; else the answer's era.
+    var ym = d.year_min || CUR_SCOPE.year_min, yx = d.year_max || CUR_SCOPE.year_max;
+    if (ym) filters.year_min = ym; if (yx) filters.year_max = yx;
+    // Inherit the rest of the answer scope so the evidence pool matches the figure exactly.
+    if (CUR_SCOPE.venue) filters.venue = CUR_SCOPE.venue;
+    if (CUR_SCOPE.channel) filters.channel = CUR_SCOPE.channel;
+    if (CUR_SCOPE.price_min) filters.price_min = CUR_SCOPE.price_min;
+    if (CUR_SCOPE.price_max) filters.price_max = CUR_SCOPE.price_max;
     fetch(API + "/api/desk", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ desk: true, action: "run", dsl: { filters: filters, groupBy: [], measures: ["median", "p25", "p75", "count"] } }) })
       .then(function (r) { return r.json(); })
       .then(function (j) {
@@ -171,7 +179,7 @@
     }).finally(function () { go.removeAttribute("disabled"); });
   }
   // ---- STAGE B: interpreter + reading card + clarification + conversation ----
-  var CUR_READING = null, THREAD = [], RECENT = [];
+  var CUR_READING = null, CUR_SCOPE = {}, THREAD = [], RECENT = [];
   var readingcard = document.getElementById("readingcard");
   var turnsEl = document.getElementById("turns");
   var followrow = document.getElementById("followrow");
@@ -248,8 +256,8 @@
         var val = rk.metric === "count" ? r.count : r.median;
         var w = Math.max(2, Math.round((val / max) * 300));
         var vtxt = rk.metric === "count" ? String(r.count) : usd(r.median);
-        var sub = rk.metric === "count" ? ("typical " + usd(r.median)) : ((r.p25 != null ? usd(r.p25) + " to " + usd(r.p75) + " &middot; " : "") + r.count);
-        var ev = 'data-make="' + esc(r.make) + '" data-model="' + esc(r.model) + '"' + (r.trim ? ' data-trim="' + esc(r.trim) + '"' : '') + ' data-window="' + esc(rk.window || "36mo") + '" data-cap="' + esc(r.group) + '" data-fig="' + esc(vtxt) + '"';
+        var sub = rk.metric === "count" ? ("typical " + usd(r.median)) : ((r.p25 != null ? usd(r.p25) + " to " + usd(r.p75) + " · " : "") + r.count);
+        var ev = 'data-make="' + esc(r.make) + '" data-model="' + esc(r.model) + '"' + (r.trim ? ' data-trim="' + esc(r.trim) + '"' : '') + (r.yearStart ? ' data-ymin="' + r.yearStart + '"' : '') + (r.yearEnd ? ' data-ymax="' + r.yearEnd + '"' : '') + ' data-window="' + esc(rk.window || "36mo") + '" data-cap="' + esc(r.group) + '" data-fig="' + esc(vtxt) + '"';
         h += '<div class="rank-row"><span class="r">' + (i + 1) + '</span>' +
           '<span class="nm ev" ' + ev + '>' + esc(r.group) + '</span>' +
           '<span class="bar" style="width:' + w + 'px"></span>' +
@@ -320,6 +328,22 @@
   var emptyRef = function () { return document.getElementById("empty"); };
   function handleInterpret(question, res) {
     var em = emptyRef(); if (em) em.style.display = "none";
+    // Current answer scope, so the evidence drawer re-queries the SAME pool that produced a figure
+    // (era, venue, channel, price) - not the whole nameplate. A per-figure ev may still override the
+    // year range (a comparison's period, a trend year).
+    CUR_SCOPE = {};
+    var rf = (res && res.reading && res.reading.filters) || {};
+    if (Array.isArray(rf.era) && rf.era.length === 2) { CUR_SCOPE.year_min = rf.era[0]; CUR_SCOPE.year_max = rf.era[1]; }
+    // A same-model grouping read as a single answer (air-cooled 911s) carries its span on its members,
+    // not an era; derive the year window from them so the drawer scopes to that span.
+    else if (res && res.reading && res.reading.grouping && res.reading.grouping.sameModel) {
+      var mm = (res.reading.grouping.members || []).filter(function (x) { return x.yearStart && x.yearEnd; });
+      if (mm.length) { CUR_SCOPE.year_min = Math.min.apply(null, mm.map(function (x) { return x.yearStart; })); CUR_SCOPE.year_max = Math.max.apply(null, mm.map(function (x) { return x.yearEnd; })); }
+    }
+    if (rf.venue) CUR_SCOPE.venue = rf.venue;
+    if (rf.channel) CUR_SCOPE.channel = rf.channel;
+    if (rf.price && rf.price.min) CUR_SCOPE.price_min = rf.price.min;
+    if (rf.price && rf.price.max) CUR_SCOPE.price_max = rf.price.max;
     // NO SILENT SUBSTITUTION: a not-yet-built question type says so in ONE line and shows nothing else.
     if (res.not_built) {
       readingcard.innerHTML = ""; out.innerHTML = msg("Not built yet", esc(res.not_built));
