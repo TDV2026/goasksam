@@ -1,0 +1,33 @@
+# On-demand enrichment-field fill-rate report (read-only, ZERO OldCarsData).
+# Committable copy. Sam adds it as .github/workflows/field-coverage.yml (CI PAT lacks `workflow` scope).
+# Runs scripts/fieldCoverage.js, which does EXACT per-source and per-decade counts of how many sold
+# rows carry description / known_flaws / recent_service_history / modifications. It is a full-archive
+# scan (95+ exact counts), which is why it lives here and not on the interactive ops endpoint (that
+# times out). Read the table in the Actions run log.
+name: Field coverage report (on demand)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify required secrets are present
+        run: |
+          set -euo pipefail
+          for name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY; do
+            if [ -z "${!name:-}" ]; then echo "::error::GitHub Actions secret ${name} is EMPTY."; exit 1; fi
+          done
+      - name: Field coverage (exact, zero OCD)
+        run: |
+          set -euo pipefail
+          test -f scripts/fieldCoverage.js || { echo "::error::scripts/fieldCoverage.js not found"; exit 1; }
+          node scripts/fieldCoverage.js
