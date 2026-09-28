@@ -143,32 +143,65 @@ function run() {
 
     if (DRY) { console.log("\n--dry: no writes."); return; }
 
-    // 4) write: one PATCH per (family, chunk of source_ids), from the final _fam.
-    const byFamily = new Map(); for (const r of rows) if (r._fam) (byFamily.get(r._fam) || byFamily.set(r._fam, []).get(r._fam)).push(r.source_id);
-    let written = 0, reqs = 0, failed = 0;
-    for (const [fam, ids] of byFamily) {
-      for (let i = 0; i < ids.length; i += CHUNK) {
-        const chunk = ids.slice(i, i + CHUNK);
-        const res = await supabasePatch(env, `sales_archive?source_id=in.(${chunk.map(encodeURIComponent).join(",")})`, { model_family: fam });
-        reqs++;
-        if (res.error) { failed++; console.error(`  PATCH failed (${fam}, ${chunk.length} ids): ${res.error}`); }
-        else written += chunk.length;
-        if (reqs % 50 === 0) process.stderr.write(`\rwritten ${written}  (${reqs} requests)   `);
+    // 4) write ONLY changed rows (resumable + self-correcting): a row whose current model_family
+    //    already equals the computed value is skipped, so a rerun after a partial failure is cheap
+    //    and touches only what's left. Rows that now compute null but carry a stale family are
+    //    cleared. PATCH batches shrink and back off on a statement timeout (57014) so a slow batch
+    //    finishes in small pieces instead of failing; every id that still fails is logged and
+    //    re-written in a final pass. The run ends with ZERO failed rows, or exits nonzero.
+    const stats = { written: 0, cleared: 0, reqs: 0 };
+    const failedLog = [];                              // { id, target } for ids that failed even at size 1
+    const patchIds = makePatchIds(env, stats, failedLog);
+
+    const byFamily = new Map(); let unchanged = 0;
+    for (const r of rows) {
+      if (r._fam) { if (r._fam !== r.model_family) (byFamily.get(r._fam) || byFamily.set(r._fam, []).get(r._fam)).push(r.source_id); else unchanged++; }
+    }
+    const toNull = rows.filter(r => !r._fam && r.model_family != null).map(r => r.source_id);
+
+    for (const [fam, ids] of byFamily) await patchIds(ids, { model_family: fam }, fam);
+    await patchIds(toNull, { model_family: null }, null);
+    process.stderr.write("\n");
+
+    // Final pass: retry every still-failed id once more (size 1, long backoff). Groups by target.
+    if (failedLog.length) {
+      console.log(`\nRetrying ${failedLog.length} failed id(s) in a final pass...`);
+      const retry = failedLog.splice(0);              // move out; patchIds will re-log any that still fail
+      const grouped = new Map(); for (const f of retry) { const k = JSON.stringify(f.target); (grouped.get(k) || grouped.set(k, { target: f.target, ids: [] }).get(k)).ids.push(f.id); }
+      for (const { target, ids } of grouped.values()) await patchIds(ids, target === null ? { model_family: null } : { model_family: target }, target, true);
+    }
+
+    console.log(`\nBackfill complete. Rows written: ${stats.written}. Cleared to null: ${stats.cleared}. Unchanged (skipped): ${unchanged}. Requests: ${stats.reqs}. FAILED rows: ${failedLog.length}.`);
+    if (failedLog.length) { console.error("STILL-FAILED ids (rerun to resume):", failedLog.map(f => f.id).slice(0, 200).join(",")); process.exit(1); }
+  });
+}
+
+// A PATCH runner that shrinks the batch and backs off on failure (esp. statement timeout 57014),
+// down to size 1; ids that fail even alone are pushed to failedLog. Returns an async (ids, body,
+// target, isFinal) function. body is the PATCH payload; target is the family value (or null) for logging.
+function makePatchIds(env, stats, failedLog) {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const SIZES = [200, 50, 10, 1];
+  return async function patchIds(ids, body, target, isFinal = false) {
+    async function attempt(chunk, level) {
+      if (!chunk.length) return;
+      const res = await supabasePatch(env, `sales_archive?source_id=in.(${chunk.map(encodeURIComponent).join(",")})`, body);
+      stats.reqs++;
+      if (!res.error) { if (body.model_family === null) stats.cleared += chunk.length; else stats.written += chunk.length; if (stats.reqs % 50 === 0) process.stderr.write(`\rwritten ${stats.written} cleared ${stats.cleared} (${stats.reqs} reqs)   `); return; }
+      const timeout = /57014|timeout|canceling statement/i.test(res.error || "");
+      if (level < SIZES.length - 1) {
+        await sleep((timeout ? 800 : 300) * (level + 1));
+        const sub = SIZES[level + 1];
+        for (let i = 0; i < chunk.length; i += sub) await attempt(chunk.slice(i, i + sub), level + 1);
+      } else {
+        await sleep(isFinal ? 3000 : 1500);            // one last single-id retry with a long backoff
+        const r2 = await supabasePatch(env, `sales_archive?source_id=in.(${chunk.map(encodeURIComponent).join(",")})`, body); stats.reqs++;
+        if (!r2.error) { if (body.model_family === null) stats.cleared += chunk.length; else stats.written += chunk.length; }
+        else { for (const id of chunk) failedLog.push({ id, target }); console.error(`  PERM FAIL id(s) ${chunk.join(",")} -> ${JSON.stringify(target)}: ${r2.error}`); }
       }
     }
-    process.stderr.write("\n");
-    // Clear stale families: rows that NOW compute null (automobilia, junk) but carry a non-null
-    // model_family from an earlier run must be reset to null, or the correction never lands.
-    const toNull = rows.filter(r => !r._fam && r.model_family != null).map(r => r.source_id);
-    let cleared = 0;
-    for (let i = 0; i < toNull.length; i += CHUNK) {
-      const chunk = toNull.slice(i, i + CHUNK);
-      const res = await supabasePatch(env, `sales_archive?source_id=in.(${chunk.map(encodeURIComponent).join(",")})`, { model_family: null });
-      reqs++; if (res.error) { failed++; console.error(`  null-clear failed: ${res.error}`); } else cleared += chunk.length;
-    }
-    console.log(`\nBackfill complete. Rows populated: ${written}. Stale families cleared to null: ${cleared}. Requests: ${reqs}. Failed requests: ${failed}.`);
-    if (failed) process.exit(1);
-  });
+    for (let i = 0; i < ids.length; i += SIZES[0]) await attempt(ids.slice(i, i + SIZES[0]), 0);
+  };
 }
 
 run().catch(e => { console.error("FATAL:", e && e.stack || e); process.exit(1); });
