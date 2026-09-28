@@ -383,15 +383,16 @@
     var substantive = mods.filter(function (x) { return !COSMETIC.test(x); });
     var keyMods = ((m.keyMods && m.keyMods.length ? m.keyMods : substantive.slice(0, 3)) || []).join(", ");
     var cfg = "";
+    // The factory engine (a Murcielago's 6.5L V12) is NEVER narrated as a listing fitment - it read
+    // garbled ("...has it with the 6.5-Liter V12 and a run of bolt-ons"). cfg speaks only to actual
+    // modifications; it stays empty for an unmodified car whatever the decoded engine is.
     if (material.length) {
-      cfg = "The prior listing shows material work" + (m.engine ? " on the " + esc(m.engine) : "") + (keyMods ? ", the " + esc(keyMods) + " among it" : "") + ", so it reads as a modified car rather than a standard " + esc(bare) + ".";
+      cfg = "The prior listing shows material work" + (keyMods ? ", the " + esc(keyMods) + " among it" : "") + ", so it reads as a modified car rather than a standard " + esc(bare) + ".";
     } else if (substantive.length >= 2) {
-      cfg = "The prior listing has it with " + (m.engine ? "the " + esc(m.engine) + " and " : "") + "a run of bolt-on fitments, the " + esc(substantive.slice(0, 3).join(", ")) + " among them. All reversible, so it still reads as a standard " + esc(bare) + ", not a rebuilt car.";
+      cfg = "The prior listing has it with a run of bolt-on fitments, the " + esc(substantive.slice(0, 3).join(", ")) + " among them. All reversible, so it still reads as a standard " + esc(bare) + ", not a rebuilt car.";
     } else if (substantive.length === 1) {
-      cfg = "The prior listing has it with " + esc(String(substantive[0]).toLowerCase()) + " added" + (m.engine ? " on the " + esc(m.engine) : "") + ", so it still reads as a standard " + esc(bare) + ".";
+      cfg = "The prior listing has it with " + esc(String(substantive[0]).toLowerCase()) + " added, so it still reads as a standard " + esc(bare) + ".";
     }
-    // No stock-engine sentence: the factory engine (a Murcielago's 6.5L V12) is not a listing
-    // fitment, and narrating it read as garbled. cfg stays empty for an unmodified car.
     // The fitments detail lists ALL mods, but only renders when there is a real run to see.
     var showDisc = material.length + substantive.length >= 2;
     // Never an empty canvas (item 4): a labelled plate stands in when there is no photo.
@@ -1092,7 +1093,9 @@
     // with the strongest recent results for this model and open its consignment page. Evidence-
     // ordered, never a house preference. Consignment is an enquiry + agreement, not a listing.
     var hpick = htHousePick(scope);
-    if (hpick && ht.houseSteer) {
+    // Never recommend a venue off a single sale (it read "strongest recent results: 1 sold"), and
+    // only when the pool actually steers to the houses. Two or more sales at that house required.
+    if (hpick && ht.houseSteer && hpick.pick.count >= 2) {
       var hn = hpick.pick.venue;
       var hurl = HT_CONSIGN[hpick.pick.slug];
       var hrange = hpick.pick.count === 1 ? "at " + usd(hpick.pick.lo) : "from " + usd(hpick.pick.lo) + " to " + usd(hpick.pick.hi);

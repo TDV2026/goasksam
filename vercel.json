@@ -30,7 +30,7 @@
     { "source": "/out", "destination": "/api/out" },
     { "source": "/styles.20260907a.css", "destination": "/styles.css" },
     { "source": "/js.20260922c/(.*)", "destination": "/js/$1" },
-    { "source": "/obx.20260927a/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20260927b/(.*)", "destination": "/js/$1" },
     { "source": "/desk", "destination": "/desk.html" },
     { "source": "/dsk.20260927a/(.*)", "destination": "/js/$1" }
   ],
