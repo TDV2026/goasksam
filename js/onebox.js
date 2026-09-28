@@ -884,10 +884,13 @@
   }
   // One plain OBSERVED-pattern line for the manual-vs-E-gear split (never a cause). Only when the
   // pool actually holds both, on an E-gear model. Conversions are excluded from the manual figure.
+  var GEARBOX_PATTERN_MIN = 3;   // each side needs >=3 real sales, or it is a coincidence, not a pattern
   function gearboxPatternLine(scope) {
     var man = [], eg = [];
     (scope || []).forEach(function (rc) { var g = gearboxLabel(rc); if (g === "Manual") man.push(rc.hammer); else if (g === "E-gear") eg.push(rc.hammer); });
-    if (!man.length || !eg.length) return "";
+    // A pattern needs both sides populated: >=3 manuals AND >=3 E-gears. One manual (often the
+    // searched car itself) is not a pattern - omit the line entirely.
+    if (man.length < GEARBOX_PATTERN_MIN || eg.length < GEARBOX_PATTERN_MIN) return "";
     var mn = Math.min.apply(null, man), mx = Math.max.apply(null, man), en = Math.min.apply(null, eg), ex = Math.max.apply(null, eg);
     var mr = man.length === 1 ? usd(mn) : usd(mn) + " to " + usd(mx);
     var er = eg.length === 1 ? usd(en) : usd(en) + " to " + usd(ex);
