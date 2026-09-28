@@ -37,6 +37,7 @@
   }
   // One plain first-person sentence, in the mock's voice. Returns "" when a renderer states its own.
   function readingSentence(res) {
+    if (res.single) return "";   // renderSingle emits its own one sentence (with the price cap)
     var r = res.reading || {};
     var era = (r.filters && r.filters.era) ? (r.filters.era[0] + " to " + r.filters.era[1]) : null;
     if (res.ranking) {
@@ -96,7 +97,7 @@
         var q = cov.filters || {};
         var h = '<div class="calc">The median of the ' + total + ' qualifying sales below, hammer with the buyer premium backed out. Median, not an average.</div>';
         h += '<div class="ds">Included sales &middot; ' + total + ' (newest first)</div>';
-        recs.slice(0, 25).forEach(function (x) { h += '<div class="er"><span class="ep">' + usd(x.hammer_usd) + '</span> ' + esc((x.title || "").slice(0, 46)) + (x.link ? ' <a href="' + esc(x.link) + '" target="_blank" rel="noopener">&#8599;</a>' : '') + '<span class="ed">' + esc(x.venue || "") + " &middot; " + fmtDate(x.date) + '</span></div>'; });
+        recs.slice(0, 25).forEach(function (x) { h += '<div class="er"><div class="er1"><span class="ep">' + usd(x.hammer_usd) + '</span><span class="et">' + esc(x.title || "") + '</span>' + (x.link ? '<a href="' + esc(x.link) + '" target="_blank" rel="noopener">&#8599;</a>' : '') + '</div><div class="ed">' + esc(x.venue || "") + " &middot; " + fmtDate(x.date) + '</div></div>'; });
         if (recs.length > 25) h += '<div class="er" style="color:var(--faint)"><span>&hellip; ' + (recs.length - 25) + ' more</span><span></span></div>';
         // exclusions, split method vs query
         var byReason = cov.excluded_by_reason || {};
@@ -291,14 +292,58 @@
     h += '</div>';
     if (cmp.gap) {
       var g = cmp.gap;
+      var freq = "";
+      if (g.count_ratio != null && g.count_ratio >= 1.5) {
+        var times = g.count_ratio >= 2 ? Math.round(g.count_ratio) + " times as often" : g.count_ratio.toFixed(1) + " times as often";
+        freq = ", though it trades " + times + " (" + g.higher_count + " to " + g.lower_count + ")";
+      }
       var line = g.higher + " typically brings " + usd(g.diff_usd) + " more than " + g.lower +
-        (g.pct != null ? ", about " + g.pct + "% higher" : "") +
-        (g.count_ratio != null && g.count_ratio >= 1.5 ? ", though it trades " + (g.count_ratio >= 2 ? Math.round(g.count_ratio) + " times" : "more") + " as often (" + g.higher_count + " to " + g.lower_count + ")" : "") + ".";
+        (g.pct != null ? ", about " + g.pct + "% higher" : "") + freq + ".";
       h += '<div class="read">' + esc(line) + '</div>';
     }
     h += provenanceFooter({ window: windowLabelOf(cmp.window) });
     h += '</div></div>';
     return h;
+  }
+  // Single read (mock layout): one sentence (with any price cap), a headline median + spread, and
+  // generation bars. NO distribution/dot chart, NO query chips, NO refine dropdowns, NO export buttons.
+  function renderSingle(res) {
+    var s = res.single, ov = (s && s.overall) || {}, f = (s && s.filters) || {};
+    var who = s.name || [s.make, s.model, s.trim].filter(Boolean).join(" ") || "this";
+    if (ov.median == null) {
+      var win0 = windowLabelOf(s.window);
+      return '<p class="reading">I read <b>' + esc(who) + '</b> ' + esc(win0) + '.</p>' + msg("Thin", "Fewer than five recent sales of " + esc(who) + " that match, so there is no honest typical price to show.");
+    }
+    // one sentence, stating the price cap / channel / venue the answer is scoped to
+    var caps = [];
+    if (f.priceMax) caps.push("under $" + Number(f.priceMax).toLocaleString("en-US"));
+    if (f.priceMin) caps.push("over $" + Number(f.priceMin).toLocaleString("en-US"));
+    if (f.channel === "house") caps.push("at auction houses");
+    else if (f.channel === "online") caps.push("online");
+    if (f.venue) caps.push("on " + f.venue);
+    var capClause = caps.length ? " that sold " + caps.join(" ") : " sold";
+    var win = windowLabelOf(s.window);
+    var sentence = '<p class="reading">I read <b>' + esc(who) + '</b>' + esc(capClause) + ' <b>' + esc(win) + '</b>, at <b>typical sale price</b>.</p>';
+    var spread = (ov.p25 != null && ov.p75 != null) ? usd(ov.p25) + " to " + usd(ov.p75) : "";
+    var evAll = 'data-make="' + esc(s.make) + '" data-model="' + esc(s.model) + '"' + (s.trim ? ' data-trim="' + esc(s.trim) + '"' : '') + ' data-window="' + esc(s.window) + '" data-cap="' + esc(who) + '" data-fig="' + esc(usd(ov.median)) + '"';
+    var h = '<div class="result"><div class="hl"><span class="hl-num ev" ' + evAll + '>' + usd(ov.median) + '</span>'
+      + '<span class="hl-sub">' + (spread ? spread + '<span class="sep">&middot;</span>' : '') + ov.count + ' sales' + (ov.freshness ? '<span class="sep">&middot;</span>newest ' + fmtDate(ov.freshness) : '') + '</span></div>';
+    var bars = (s.byGen || []).filter(function (g) { return g.median != null; });
+    if (bars.length) {
+      var max = Math.max.apply(null, bars.map(function (g) { return g.median || 0; })) || 1;
+      h += '<div class="slab">By generation</div><div class="rank">';
+      bars.forEach(function (g) {
+        var wpx = Math.max(2, Math.round((g.median / max) * 300));
+        var ev = 'data-make="' + esc(g.make) + '" data-model="' + esc(g.model) + '"' + (g.yearStart ? ' data-ymin="' + g.yearStart + '"' : '') + (g.yearEnd ? ' data-ymax="' + g.yearEnd + '"' : '') + ' data-window="' + esc(s.window) + '" data-cap="' + esc(g.group) + '" data-fig="' + esc(usd(g.median)) + '"';
+        h += '<div class="rank-row"><span class="nm ev" ' + ev + '>' + esc(g.group) + '</span><span class="bar" style="width:' + wpx + 'px"></span><span class="v"><span class="ev" ' + ev + '>' + usd(g.median) + '</span> <span class="sub">' + g.count + '</span></span></div>';
+      });
+      h += '</div>';
+      var thinG = (s.byGen || []).filter(function (g) { return g.median == null && g.count; });
+      if (thinG.length) h += '<div class="reconcile">Shown but not read (under 5 sales): ' + thinG.map(function (g) { return esc(g.group) + " (" + g.count + ")"; }).join(", ") + '.</div>';
+    }
+    h += provenanceFooter({ window: win });
+    h += '</div>';
+    return sentence + h;
   }
   // Trend movers (mock layout): each mover a bar (green up / clay down); both window medians and both
   // counts stated; every row is an evidence figure. Thin listed, never ranked.
@@ -360,6 +405,7 @@
     else if (res.ranking) out.innerHTML = renderRanking(res.ranking);
     else if (res.comparison) out.innerHTML = renderComparison(res.comparison);
     else if (res.trend) out.innerHTML = renderTrend(res.trend);
+    else if (res.single) out.innerHTML = renderSingle(res);
     else if (res.answer) render(res.answer);
     else if (res.clarify) out.innerHTML = msg("One quick thing", "Pick an option above (or type it) and I'll run it.");
     else if (res.unsupported) out.innerHTML = msg("Not what the Desk does", esc(res.unsupported.message));

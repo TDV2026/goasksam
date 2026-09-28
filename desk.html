@@ -97,6 +97,7 @@ body{background:var(--paper);color:var(--ink);font:400 15px/1.55 var(--grotesk);
 .na-note{font:400 12px/1.5 var(--mono);color:var(--faint);margin-top:12px}
 
 /* headline number + ranked bars + comparison + trend */
+.hl{margin:6px 0 22px}
 .hl-num{font:700 44px/1 var(--serif);letter-spacing:-.02em;color:var(--green-deep)}
 .hl-sub{font:600 12.5px/1 var(--mono);color:var(--slate);margin-top:9px}
 .hl-sub .sep{color:var(--faint);margin:0 8px}
@@ -166,7 +167,7 @@ table.receipts td.r{text-align:right;font-family:var(--mono);white-space:nowrap}
 /* evidence drawer */
 .drawer-scrim{position:fixed;inset:0;background:rgba(20,15,5,.28);z-index:40;display:none}
 .drawer-scrim.open{display:block}
-.drawer{position:fixed;top:0;right:0;bottom:0;width:360px;max-width:92vw;background:var(--card);border-left:1px solid var(--line);box-shadow:-14px 0 40px rgba(40,30,10,.16);z-index:41;transform:translateX(100%);transition:transform .18s ease;display:flex;flex-direction:column}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:500px;max-width:94vw;background:var(--card);border-left:1px solid var(--line);box-shadow:-14px 0 40px rgba(40,30,10,.16);z-index:41;transform:translateX(100%);transition:transform .18s ease;display:flex;flex-direction:column}
 .drawer.open{transform:none}
 .drawer .dh{padding:16px 18px 12px;border-bottom:1px solid var(--line2);position:relative}
 .drawer .dh .lab{font:600 9px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--clay);margin-bottom:7px}
@@ -176,10 +177,12 @@ table.receipts td.r{text-align:right;font-family:var(--mono);white-space:nowrap}
 .drawer .db{flex:1;overflow:auto;padding:14px 18px}
 .drawer .ds{font:600 9px/1 var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--faint);margin:14px 0 8px}
 .drawer .ds:first-child{margin-top:0}
-.drawer .er{display:flex;justify-content:space-between;gap:10px;font:500 11.5px/1.4 var(--mono);padding:6px 0;border-bottom:1px solid var(--line2)}
-.drawer .er .ep{color:var(--green-deep);font-weight:700}
-.drawer .er .ed{color:var(--faint);white-space:nowrap}
-.drawer .er a{color:inherit;text-decoration:none}
+.drawer .er{display:block;font:500 11.5px/1.4 var(--mono);padding:7px 0;border-bottom:1px solid var(--line2)}
+.drawer .er .er1{display:flex;gap:9px;align-items:baseline}
+.drawer .er .ep{color:var(--green-deep);font-weight:700;flex:none}
+.drawer .er .et{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.drawer .er .ed{color:var(--faint);white-space:nowrap;font-size:10.5px;margin-top:2px}
+.drawer .er a{color:var(--faint);text-decoration:none;flex:none}
 .drawer .calc{font:400 12px/1.5 var(--grotesk);color:var(--ink);background:var(--paper);border:1px solid var(--line2);border-radius:8px;padding:9px 11px}
 .drawer .exc{font:400 12px/1.5 var(--grotesk);color:var(--slate);padding:5px 0}
 .drawer .exc .tag{font:600 9px/1 var(--mono);letter-spacing:.04em;text-transform:uppercase;border-radius:4px;padding:3px 5px;margin-right:6px}
@@ -254,6 +257,6 @@ table.receipts td.r{text-align:right;font-family:var(--mono);white-space:nowrap}
 <div class="drawer-scrim" id="drawerScrim"></div>
 <aside class="drawer" id="drawer" aria-hidden="true"></aside>
 <div class="modal-scrim" id="methodScrim"></div>
-<script src="/dsk.20260928f/desk.js"></script>
+<script src="/dsk.20260928g/desk.js"></script>
 </body>
 </html>

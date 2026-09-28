@@ -715,6 +715,20 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "fasttest", make: mk, fam, status, err, sample: (body || "").slice(0, 600) });
   }
 
+  // task=statsprobe: ONE call — fetch recent UNSOLD auctions for a source and return each record's
+  // raw `stats` object verbatim, so we can see whether OCD carries views + watches with real numbers
+  // (auction_attempts currently drops stats). Diagnostic only.
+  if (task === "statsprobe") {
+    const src = String(req.query?.source || "bringatrailer");
+    let metered = 0;
+    try {
+      metered++;
+      const r = await callOldCarsData("/auctions", { source: src, status: "unsold", sort: "date", direction: "desc", page: 1, limit: 6 }, apiKey);
+      const records = (r.data || []).map(rec => ({ title: String(rec.title || "").slice(0, 54), auction_status: rec.auction_status, price: rec.price, has_reserve: rec.has_reserve, statsKeys: rec.stats ? Object.keys(rec.stats) : [], stats: rec.stats || null }));
+      return res.status(200).json({ task: "statsprobe", metered, source: src, count: records.length, records });
+    } catch (e) { return res.status(200).json({ task: "statsprobe", metered, error: String((e && e.message) || e) }); }
+  }
+
   // task=liveprobe: ONE call to GET /auctions/live (limit 100). Reports meta.total and the sources
   // present in the first page + the record's field keys. Diagnostic only - nothing is built on it.
   if (task === "liveprobe") {
