@@ -389,9 +389,9 @@
       cfg = "The prior listing has it with " + (m.engine ? "the " + esc(m.engine) + " and " : "") + "a run of bolt-on fitments, the " + esc(substantive.slice(0, 3).join(", ")) + " among them. All reversible, so it still reads as a standard " + esc(bare) + ", not a rebuilt car.";
     } else if (substantive.length === 1) {
       cfg = "The prior listing has it with " + esc(String(substantive[0]).toLowerCase()) + " added" + (m.engine ? " on the " + esc(m.engine) : "") + ", so it still reads as a standard " + esc(bare) + ".";
-    } else if (m.engine) {
-      cfg = "The prior listing has it with the " + esc(m.engine) + ", so it still reads as a standard " + esc(bare) + ".";
     }
+    // No stock-engine sentence: the factory engine (a Murcielago's 6.5L V12) is not a listing
+    // fitment, and narrating it read as garbled. cfg stays empty for an unmodified car.
     // The fitments detail lists ALL mods, but only renders when there is a real run to see.
     var showDisc = material.length + substantive.length >= 2;
     // Never an empty canvas (item 4): a labelled plate stands in when there is no photo.
@@ -888,6 +888,8 @@
     return main;
   }
   function htYearVenue(rc) { return (rc.year ? esc(rc.year) + " " : "") + esc(rc.venue); }
+  // "sold on Cars & Bids" (online) vs "sold at Bonhams" (a house) - reads as a person would say it.
+  function venuePrep(rc) { return (rc.isHouse ? "at " : "on ") + esc(rc.venue); }
   // Online receipts (item 4): mileage + gearbox prominent.
   function htMiText(rc) {
     var bits = [];
@@ -934,29 +936,30 @@
     }
     return '<div class="htr-price">' + out + "</div>";
   }
+  // ONE consistent row layout for every receipt (house or online): thumb + short car name +
+  // price block + one meta line (venue · date · chassis-or-mileage/gearbox). The ONLY difference
+  // is the price block (a house shows hammer + buyer-paid; online shows the sold price). No online
+  // "2007 Bring a Trailer" year-venue lead, no separate right-hand price column.
+  function onlinePriceBlock(rc) {
+    return '<div class="htr-price"><div class="hp-hammer num">' + htPriceLine(rc) + ' <span class="hp-lbl">sold</span></div></div>';
+  }
   function htReceiptRow(rc) {
     var href = utmUrl(rc.url);
     var ext = href ? '<span class="ext htx"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>' : "";
-    // HOUSE-LED row (readability-first): thumb + short car name (2 lines max) + two-line price +
-    // one meta line (venue bolder · date · chassis, once). No per-row "auction house" badge.
-    if (rc.isHouse) {
-      // Each segment is non-breaking, so the meta reads as one line and, if it must wrap at 390px,
-      // wraps ONLY at a "·" boundary (whole tokens) - never mid-phrase (venue/date/chassis stay intact).
-      var segs = ['<span class="mseg ven">' + esc(rc.venue) + "</span>", '<span class="mseg">' + esc(monShort(rc.date)) + "</span>"];
-      var chMeta = houseChassisMeta(rc); if (chMeta) segs.push('<span class="mseg">' + chMeta + "</span>");
-      var meta = segs.join(' <span class="dot">&middot;</span> ');
-      var hInner = thumbEl(rc.image, rc.title) +
-        '<div class="htr-l"><div class="htr-name">' + esc(shortCarName(rc.title)) + "</div>" +
-        housePriceBlock(rc) +
-        '<div class="htr-meta">' + meta + "</div>" + htMarkerChips(rc) + "</div>";
-      return href ? '<a class="htr htr-thumb htr-house" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(rc.slug || "") + '">' + hInner + ext + "</a>" : '<div class="htr htr-thumb htr-house">' + hInner + "</div>";
+    // Meta segments are non-breaking, so the line wraps only at a "·" boundary (whole tokens).
+    var segs = ['<span class="mseg ven">' + esc(rc.venue) + "</span>", '<span class="mseg">' + esc(monShort(rc.date)) + "</span>"];
+    if (rc.isHouse) { var chMeta = houseChassisMeta(rc); if (chMeta) segs.push('<span class="mseg">' + chMeta + "</span>"); }
+    else {
+      if (Number(rc.mileage) > 0) segs.push('<span class="mseg num">' + Number(rc.mileage).toLocaleString("en-US") + " mi</span>");
+      if (rc.transmission) segs.push('<span class="mseg">' + esc(cap(String(rc.transmission))) + "</span>");
     }
-    // Non-house (thin online) row - unchanged.
-    var inner = thumbEl(rc.image, rc.title) + '<div class="htr-l"><div class="htr-v">' + htYearVenue(rc) + "</div>" +
-      '<div class="htr-t">' + esc(rc.title) + "</div>" + htMiText(rc) + htMarkerChips(rc) + "</div>" +
-      '<div class="htr-r"><div class="htr-p num">' + htPriceLine(rc) + "</div>" +
-      '<div class="htr-d">' + esc(monthYear(rc.date)) + "</div></div>";
-    return href ? '<a class="htr htr-thumb" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(rc.slug || "") + '">' + inner + ext + "</a>" : '<div class="htr htr-thumb">' + inner + "</div>";
+    var meta = segs.join(' <span class="dot">&middot;</span> ');
+    var inner = thumbEl(rc.image, rc.title) +
+      '<div class="htr-l"><div class="htr-name">' + esc(shortCarName(rc.title)) + "</div>" +
+      (rc.isHouse ? housePriceBlock(rc) : onlinePriceBlock(rc)) +
+      '<div class="htr-meta">' + meta + "</div>" + htMarkerChips(rc) + "</div>";
+    var cls = "htr htr-thumb htr-house" + (rc.isHouse ? "" : " htr-online");   // both use the unified house layout styling
+    return href ? '<a class="' + cls + '" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(rc.slug || "") + '">' + inner + ext + "</a>" : '<div class="' + cls + '">' + inner + "</div>";
   }
   // Intake copy composed CLIENT-side from the engine's split FACTS (product rule 3). Marker splits
   // carry a curated phrasing where we have one; mileage/transmission are generic. Returns the
@@ -1036,8 +1039,8 @@
     // above and on the hero card). 5a: no count of sales on a consumer surface.
     var line;
     if (n === 1) line = "The one " + name + " to change hands in " + HT_WINDOW_TEXT + ": a " + mid.year + " sold at " + esc(mid.venue) + " in " + monthYear(mid.date) + "." + (mid.isHouse && mid.allIn ? " The buyer paid " + usd(mid.allIn) + " with the premium." : "");
-    else if (answered && scopedLabel) line = "The closest recent sale to a " + scopedLabel + " car is a " + mid.year + ", " + esc(mid.venue) + " in " + monthYear(mid.date) + ".";
-    else line = "The middle of the recent sales is a " + mid.year + ", " + esc(mid.venue) + " in " + monthYear(mid.date) + ".";
+    else if (answered && scopedLabel) line = "The closest recent sale to a " + scopedLabel + " car was a " + mid.year + " that sold " + venuePrep(mid) + " in " + monthYear(mid.date) + ".";
+    else line = "The middle sale was a " + mid.year + " that sold " + venuePrep(mid) + " in " + monthYear(mid.date) + ".";
     out += '<p class="lt-line">' + lint(line, "ht.hero") + "</p>";
     out += thinHeroCard(mid);   // item 4: hero photo
     if (n >= 2) {
@@ -1108,22 +1111,54 @@
   // The rung beneath thin mode: the exact model has NOT sold in three years, so this widens to the
   // same marque within the car's decade era band. Rendered as a COARSE fallback, labelled plainly
   // as the wider market, never as a price for the exact car (rule 17). Same receipt discipline.
+  // "A", "A and B", "A, B and C" - up to 3.
+  function obListPhrase(arr) {
+    var a = arr.slice(0, 3);
+    if (a.length <= 1) return a[0] || "";
+    return a.slice(0, -1).join(", ") + " and " + a[a.length - 1];
+  }
+  function obNumWord(n) { return ["", "One", "Two", "Three", "Four", "Five"][n] || String(n); }
   function classEraHtml(d, m) {
     var ce = d.classEra;
     if (!ce || !ce.receipts || !ce.receipts.length) return refusalHtml(d, m);
     var v = d.resolvedCar || d.vehicle || {};
     var carName = [v.year, v.make, v.model, v.trim].filter(Boolean).join(" ") || bareNameOf(d, m);
     var era = esc(ce.era), make = esc(ce.make);
-    // Cluster-led block (no kicker, no Sam's Read box). The rarity caveat is the refnote below.
-    var houses = []; ce.receipts.forEach(function (r) { if (r.isHouse && r.venue && houses.indexOf(r.venue) < 0) houses.push(r.venue); });
-    var hlist = houses.length ? (houses.length <= 1 ? houses[0] : houses.slice(0, 3).slice(0, -1).join(", ") + " and " + houses.slice(0, 3)[Math.min(2, houses.length - 1)]) : "the auction houses";
+    // Item 1: never claim "none sold" when the subject car itself sold in-window. When the exact
+    // car has a sale, NAME it and read the wider market as "beyond it".
+    var exactSold = m && (m.price || m.soldDate);
+    var saleBits = [];
+    if (m && m.price) saleBits.push(esc(usd(m.price)));
+    if (m && m.source) saleBits.push(esc(obPlat(m.source)));
+    if (m && m.soldDate) saleBits.push(esc(monShort(m.soldDate)));
+    var leadTxt = exactSold
+      ? "The only recent " + esc(carName) + " sale on record is this car" + (saleBits.length ? " (" + saleBits.join(", ") + ")" : "") + ". Beyond it, " + era + " " + make + "s have sold for"
+      : "No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ". " + era + " " + make + "s have sold for";
+    // Item 4: name the venues actually in the SHOWN cards (house + online), not a houses-only list.
+    var shown = ce.receipts.slice(0, 8);
+    var venues = []; shown.forEach(function (r) { if (r.venue && venues.indexOf(r.venue) < 0) venues.push(r.venue); });
+    var allHouse = shown.length > 0 && shown.every(function (r) { return r.isHouse; });
+    var vlist = venues.length ? obListPhrase(venues) : "the auction houses";
+    var tailTxt = allHouse ? ("at the hammer at " + esc(vlist) + ".") : ("across " + esc(vlist) + ".");
     var out = '<div class="livetake blk" data-stage="answer">' + carLineHtml(d, null) +
-      '<div class="lead">' + lint("No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ". " + era + " " + make + "s have sold for", "ce.lead") + "</div>" +
+      '<div class="lead">' + lint(leadTxt, "ce.lead") + "</div>" +
       '<div class="band"><span class="n">' + esc(usd(ce.lowHammer)) + '</span> to <span class="n">' + esc(usd(ce.highHammer)) + "</span></div>" +
-      '<div class="tail">' + lint("at the hammer at " + esc(hlist) + ".", "ce.tail") + "</div>" +
-      freshLine(d) + "</div>";
+      '<div class="tail">' + lint(tailTxt, "ce.tail") + "</div>";
+    // Item 3: every shown card must sit inside the stated band, or be called out in words here.
+    var oc = ce.outliers || [];
+    var hi = oc.filter(function (o) { return o.above; }), lo = oc.filter(function (o) { return !o.above; });
+    function callout(list, dir) {
+      if (!list.length) return "";
+      var prices = list.map(function (o) { return esc(usd(o.hammer)); });
+      var ps = prices.length === 1 ? prices[0] : prices.slice(0, -1).join(", ") + " and " + prices[prices.length - 1];
+      var lbl = (list.length === 1 && list[0].label) ? ", " + esc(list[0].label) : "";
+      return obNumWord(list.length) + " sold " + dir + ", at " + ps + lbl + ".";
+    }
+    var outSentence = [callout(hi, "higher"), callout(lo, "lower")].filter(Boolean).join(" ");
+    if (outSentence) out += '<div class="tail ce-outlier">' + lint(outSentence, "ce.outlier") + "</div>";
+    out += freshLine(d) + "</div>";
     out += '<div class="seclabel" data-stage="cards">' + lint(era + " " + make + " sales, " + spanRange(ce.receipts), "ce.reclab") + "</div>";
-    out += '<div class="htreceipts" data-stage="cards">' + ce.receipts.slice(0, 8).map(function (rc) { return htReceiptRow(rc); }).join("") + "</div>";
+    out += '<div class="htreceipts" data-stage="cards">' + shown.map(function (rc) { return htReceiptRow(rc); }).join("") + "</div>";
     out += sellHtml() + recentHtml();
     out += '<div class="trust">Real completed sales from GoAskSam’s archive, hammer prices with the buyer premium backed out. No estimates. No valuations.</div>';
     return out;
