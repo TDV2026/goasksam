@@ -682,39 +682,25 @@ async function handleOps(req, res) {
     const exact = req.query?.exact === "1";
     const countOf = async (filter) => {
       try {
-        // count=exact over 19 sources x 5 fields x ~100k-row scans saturates the pool, so default to
-        // count=planned (Postgres planner estimate, sub-second). ?exact=1 forces exact (slow; use a
-        // workflow for the whole set). Content-Range carries the count as ".../N".
-        const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: exact ? "count=exact" : "count=planned", Range: "0-0", "Range-Unit": "items" } });
+        // count=estimated (planner estimate, falls back to exact below a threshold) so a coverage
+        // overview is sub-second. ?exact=1 forces exact (slow). Content-Range carries the count ".../N".
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: exact ? "count=exact" : "count=estimated", Range: "0-0", "Range-Unit": "items" } });
         const cr = r.headers.get("content-range") || ""; const m = cr.match(/\/(\d+)$/); return m ? Number(m[1]) : (r.ok ? 0 : null);
       } catch { return null; }
     };
     const pctOf = (n, d) => (d > 0 && n != null ? Math.round((n / d) * 1000) / 10 : null);
-    // Per-source all-time fill rate (parallel HEAD counts: 19 sources x 5 = 95 light requests).
+    // SEQUENTIAL (per source, per field): 95 concurrent count queries saturated the connection pool
+    // and hung the request; one at a time, each an instant planner estimate, finishes in a few seconds.
     const bySource = {};
-    await Promise.all(SRC.map(async (s) => {
+    for (const s of SRC) {
       const base = `source_slug=eq.${s}&sale_price=not.is.null`;
       const total = await countOf(`${base}&select=id`);
-      const cells = {}; await Promise.all(FIELDS.map(async (f) => { cells[f] = await countOf(`${base}&${f}=not.is.null&select=id`); }));
+      if (!total) { bySource[s] = { total: total || 0, filled: {}, pct: {} }; continue; }
+      const cells = {};
+      for (const f of FIELDS) cells[f] = await countOf(`${base}&${f}=not.is.null&select=id`);
       bySource[s] = { total, filled: Object.fromEntries(FIELDS.map(f => [f, cells[f]])), pct: Object.fromEntries(FIELDS.map(f => [f, pctOf(cells[f], total)])) };
-    }));
-    // source x model-year cross via PostgREST aggregate (one grouped query per metric); if aggregates
-    // are disabled the query returns no usable rows and we report source-level only.
-    const agg = async (extra) => supabaseSelect(env, `sales_archive?select=source_slug,y:year,n:id.count()&sale_price=not.is.null${extra}&limit=100000`);
-    let byYear = null, aggMode = "disabled";
-    const tot = await agg("");
-    if (Array.isArray(tot) && tot.length && tot[0] && tot[0].n != null) {
-      aggMode = "aggregate";
-      const key = r => (r.source_slug || "?") + "|" + (r.y || 0);
-      const totM = {}; for (const r of tot) totM[key(r)] = Number(r.n) || 0;
-      const fM = {}; for (const f of FIELDS) { const rows = (await agg(`&${f}=not.is.null`)) || []; const mp = {}; for (const r of rows) mp[key(r)] = Number(r.n) || 0; fM[f] = mp; }
-      byYear = {};
-      for (const k of Object.keys(totM)) {
-        const [s, y] = k.split("|"); const d = totM[k];
-        (byYear[s] = byYear[s] || {})[y] = { total: d, pct: Object.fromEntries(FIELDS.map(f => [f, pctOf((fM[f][k] || 0), d)])) };
-      }
     }
-    return res.status(200).json({ task: "fieldcov", ocdSpend: 0, countMode: exact ? "exact" : "planner-estimate", fields: FIELDS, bySource, aggMode, byModelYear: byYear, note: "Fill = value present (non-null) among sold rows. Counts are Postgres planner estimates by default (add ?exact=1 for exact, slow). byModelYear present only when PostgREST aggregates are enabled." });
+    return res.status(200).json({ task: "fieldcov", ocdSpend: 0, countMode: exact ? "exact" : "estimated", fields: FIELDS, bySource, note: "Fill = value present (non-null) among sold rows. Counts are Postgres planner ESTIMATES by default (add ?exact=1 for exact, slower). A per-model-year cross needs a workflow (interactive PostgREST aggregates are disabled on this project)." });
   }
 
   // task=fasttest: TEMP diagnostic for the Desk indexed fast path. Runs the exact make=eq +
