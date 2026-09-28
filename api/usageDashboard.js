@@ -681,7 +681,9 @@ async function handleOps(req, res) {
     const SRC = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
     const countOf = async (filter) => {
       try {
-        const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}`, { method: "HEAD", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact", Range: "0-0" } });
+        // GET with Range 0-0 + count=exact returns a single row and the total in Content-Range (HEAD
+        // was returning null here). "*/N" or "0-0/N".
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact", Range: "0-0", "Range-Unit": "items" } });
         const cr = r.headers.get("content-range") || ""; const m = cr.match(/\/(\d+)$/); return m ? Number(m[1]) : (r.ok ? 0 : null);
       } catch { return null; }
     };
