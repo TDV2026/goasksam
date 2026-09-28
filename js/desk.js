@@ -171,7 +171,9 @@
   // Comparison render (Stage C): two+ cars side by side, in stated order, with the gap named in words.
   function renderComparison(cmp) {
     if (!cmp || !cmp.members || !cmp.members.length) return msg("Trouble", "The comparison did not come back.");
-    var h = '<div class="result"><div class="section"><div class="slabel">Side by side</div><div class="cmpcols">';
+    var h = '<div class="result"><div class="section"><div class="slabel">Side by side</div>';
+    if (cmp.scopes && cmp.scopes.length >= 2) h += '<p class="cmp-lede">' + esc("Compared " + (cmp.period ? "the " + cmp.period + " " : "") + cmp.scopes.join(" and ") + ".") + '</p>';
+    h += '<div class="cmpcols">';
     cmp.members.forEach(function (mrow) {
       h += '<div class="cmpcol"><div class="cmp-t">' + esc(mrow.group) + '</div>';
       if (mrow.thin || mrow.median == null) h += '<div class="cmp-big">&mdash;</div><div class="cmp-sub">too few sold to read (' + (mrow.count || 0) + ')</div>';
