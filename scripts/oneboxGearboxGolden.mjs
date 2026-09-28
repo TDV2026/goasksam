@@ -15,9 +15,12 @@ async function read(query) {
   await p.waitForSelector("#ob-input", { timeout: 15000 });
   await p.click("#ob-input"); await p.type("#ob-input", query);
   await p.click("#ob-go");
-  await new Promise(r => setTimeout(r, 6000));
+  // wait for the intake (chips) or the read to appear, then click through the mileage intake
+  try { await p.waitForFunction(() => { const o = document.getElementById("ob"); return o && (/just show me what sold/i.test(o.innerText || "") || /recorded sales ran|SOLD/i.test(o.innerText || "")); }, { timeout: 20000 }); } catch (e) {}
   await p.evaluate(() => { const e = [...document.querySelectorAll("#ob button,#ob .chip,#ob a")].find(x => /just show me what sold/i.test(x.textContent || "")); if (e) e.click(); });
-  await new Promise(r => setTimeout(r, 6000));
+  // wait for the actual read (receipt rows) to render
+  try { await p.waitForFunction(() => { const o = document.getElementById("ob"); return o && /recorded sales ran|SOLD/i.test(o.innerText || ""); }, { timeout: 20000 }); } catch (e) {}
+  await new Promise(r => setTimeout(r, 1200));
   return p.evaluate(() => (document.getElementById("ob") || {}).innerText || "");
 }
 
