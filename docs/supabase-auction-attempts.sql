@@ -21,10 +21,18 @@ CREATE TABLE IF NOT EXISTS auction_attempts (
   currency          text,
   has_reserve       boolean,
   bids              integer,                     -- stats.bids (engagement)
+  views             integer,                     -- stats.views (engagement)
+  watches           integer,                     -- stats.watches (engagement)
+  raw_record        jsonb,                       -- full OCD payload verbatim (as sales_archive stores)
   canonical_id      text REFERENCES canonical_sales(id) ON DELETE SET NULL,  -- the same car's later SALE, if any
   created_at        timestamptz DEFAULT now(),
   PRIMARY KEY (source_slug, source_record_id)
 );
+
+-- ADDITIVE (run once on the existing table; safe if re-run):
+alter table auction_attempts add column if not exists views      integer;
+alter table auction_attempts add column if not exists watches    integer;
+alter table auction_attempts add column if not exists raw_record jsonb;
 
 CREATE INDEX IF NOT EXISTS idx_attempts_vin ON auction_attempts (chassis_vin_norm) WHERE chassis_vin_norm IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_attempts_mmy ON auction_attempts (make, model, year);

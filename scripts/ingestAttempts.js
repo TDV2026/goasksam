@@ -61,7 +61,9 @@ for (const source of SOURCES) {
         chassis_vin_norm: validVin(rec.vin) ? normChassis(rec.vin) : null,
         make: (rec.ocd_make_name || rec.listing_make || null), model: (rec.ocd_model_name || rec.listing_model || null), year: toInt(rec.year),
         attempt_date: dayKey(d), auction_status: status, high_bid: toMoney(rec.price), currency: rec.currency || "USD",
-        has_reserve: toBool(rec.has_reserve), bids: toInt(rec.stats?.bids), canonical_id: null
+        has_reserve: toBool(rec.has_reserve), bids: toInt(rec.stats?.bids),
+        views: toInt(rec.stats?.views), watches: toInt(rec.stats?.watches), raw_record: rec,
+        canonical_id: null
       });
       kept++;
     }

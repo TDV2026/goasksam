@@ -1,0 +1,37 @@
+# Re-pull the last 12 months of Bring a Trailer UNSOLD auctions to fill the new engagement columns
+# (views, watches, raw_record) on auction_attempts. Committable copy; Sam adds it as
+# .github/workflows/backfill-bat-attempts.yml (CI PAT lacks `workflow` scope).
+#
+# Upserts on (source_slug, source_record_id), so existing rows are updated in place - no duplicates.
+# BaT ONLY (--sources=bringatrailer); other sources untouched. Metered: ~110 OCD requests (about
+# 11,000 BaT unsold auctions over 12 months at 100/page; the script stops when a page crosses the
+# 12-month boundary, so the exact count is ceil(N/100) + 1). Run the DDL (docs/supabase-auction-
+# attempts.sql ADDITIVE block) FIRST.
+name: Backfill BaT unsold engagement (on demand)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      OLDCARSDATA_API_KEY: ${{ secrets.OLDCARSDATA_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify required secrets are present
+        run: |
+          set -euo pipefail
+          for name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY OLDCARSDATA_API_KEY; do
+            if [ -z "${!name:-}" ]; then echo "::error::GitHub Actions secret ${name} is EMPTY."; exit 1; fi
+          done
+      - name: Re-pull 12 months of BaT unsold (views + watches + raw_record)
+        run: |
+          set -euo pipefail
+          test -f scripts/ingestAttempts.js || { echo "::error::scripts/ingestAttempts.js not found"; exit 1; }
+          node scripts/ingestAttempts.js --months=12 --sources=bringatrailer
