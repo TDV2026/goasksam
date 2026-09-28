@@ -366,8 +366,6 @@
     renderTurns();
     wireEvidence();
   }
-  // Evidence drawer wiring (Stage C fills this in): every .ev figure opens its supporting sales.
-  function wireEvidence() { /* implemented in the drawer pass */ }
   var emptyEl = document.getElementById("empty");
   var newBtn = document.getElementById("newAnalysis");
   // Chat box is the ONLY control (mock rule). One send(): a follow-up EDITS the current thread's
