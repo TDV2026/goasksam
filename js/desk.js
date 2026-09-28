@@ -192,6 +192,27 @@
     h += '</div></div>';
     return h;
   }
+  // Trend render (Stage C): the movers, both window medians and both counts stated; thin listed.
+  function renderTrend(tr) {
+    if (!tr) return msg("Trouble", "The trend did not come back.");
+    var w = tr.windows || { now: "the last 12 months", prior: "the 12 months before" };
+    var h = '<div class="result"><div class="section"><div class="slabel">' + (tr.sort === "asc" ? "Softening" : "Rising fastest") +
+      (tr.name ? ' &middot; ' + esc(tr.name) : '') + ' <span class="n">' + esc(w.now) + ' vs ' + esc(w.prior) + '</span></div>';
+    if (!tr.ranked || !tr.ranked.length) h += '<div class="reconcile">Fewer than the ' + (tr.thinThreshold || 5) + '-sale minimum in both windows, so there is no trend to read yet.</div>';
+    else {
+      h += '<div class="tblwrap"><table class="answer"><thead><tr><th>#</th><th>car</th><th>change</th><th>now</th><th>before</th><th>count now/before</th></tr></thead><tbody>';
+      tr.ranked.forEach(function (r, i) {
+        h += '<tr><td>' + (i + 1) + '</td><td>' + esc(r.group) + '</td>' +
+          '<td class="cellnum">' + (r.pct > 0 ? "+" : "") + r.pct + '%</td>' +
+          '<td class="cellnum">' + usd(r.now_median) + '</td><td class="cellnum">' + usd(r.prior_median) + '</td>' +
+          '<td class="cellnum">' + r.now_count + '/' + r.prior_count + '</td></tr>';
+      });
+      h += '</tbody></table></div>';
+    }
+    if (tr.thin && tr.thin.length) h += '<div class="reconcile">Shown but not ranked (under ' + (tr.thinThreshold || 5) + ' in a window): ' + tr.thin.slice(0, 12).map(function (t) { return esc(t.group) + " (" + (t.now_count || 0) + "/" + (t.prior_count || 0) + ")"; }).join(", ") + '.</div>';
+    h += '</div></div>';
+    return h;
+  }
   function handleInterpret(question, res) {
     // NO SILENT SUBSTITUTION: a not-yet-built question type says so in ONE line and shows nothing else.
     if (res.not_built) {
@@ -205,6 +226,7 @@
     if (res.cannot_apply) { out.innerHTML = msg("Can't apply that", esc(res.cannot_apply)); }
     else if (res.ranking) out.innerHTML = renderRanking(res.ranking);
     else if (res.comparison) out.innerHTML = renderComparison(res.comparison);
+    else if (res.trend) out.innerHTML = renderTrend(res.trend);
     else if (res.answer) render(res.answer);
     else if (res.clarify) out.innerHTML = msg("One quick thing", "Pick an option above (or type it) and I'll run it.");
     else if (res.unsupported) out.innerHTML = msg("Not what the Desk does", esc(res.unsupported.message));
