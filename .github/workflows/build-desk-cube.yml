@@ -1,0 +1,39 @@
+name: Build Desk Cube (on demand)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  cube:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify required secrets are present
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::GitHub Actions secret ${name} is EMPTY. Add it under Settings > Secrets and variables > Actions."
+              missing=1
+            else
+              echo "${name}: present"
+            fi
+          done
+          if [ "${missing}" -ne 0 ]; then echo "::error::Aborting: required secret(s) missing."; exit 1; fi
+      - name: Tag new rows' model_family (only the null ones)
+        run: |
+          set -euo pipefail
+          test -f scripts/backfillModelFamily.js || { echo "::error::scripts/backfillModelFamily.js not found in checkout"; exit 1; }
+          node scripts/backfillModelFamily.js --only-null
+      - name: Rebuild the Desk aggregates cube (Core + venue)
+        run: |
+          set -euo pipefail
+          test -f scripts/deskCube.js || { echo "::error::scripts/deskCube.js not found in checkout"; exit 1; }
+          node scripts/deskCube.js
