@@ -146,9 +146,10 @@
   // rebuild. Rows come pre-ranked from the engine; thin members are listed, never ranked.
   function renderRanking(rk) {
     if (!rk) return msg("Trouble", "The ranking did not come back.");
-    var metricLbl = rk.metric === "count" ? "number sold" : "typical price (median)";
+    var metricLbl = rk.metric === "count" ? "number sold" : "typical sale price";
+    var alt = (rk.alternatives && rk.alternatives.length) ? ' <span class="n">Also: ' + rk.alternatives.map(esc).join(", ") + '</span>' : '';
     var h = '<div class="result"><div class="section"><div class="slabel">Ranked by ' + esc(metricLbl) +
-      (rk.name ? ' <span class="n">' + esc(rk.name) + '</span>' : '') + '</div>';
+      (rk.name ? ' &middot; ' + esc(rk.name) : '') + alt + '</div>';
     if (rk.tooFewToRank || !rk.ranked || !rk.ranked.length) {
       h += '<div class="reconcile">Fewer than three of these have enough recent sales to rank honestly.</div>';
     } else {
@@ -167,6 +168,28 @@
     h += '</div></div>';
     return h;
   }
+  // Comparison render (Stage C): two+ cars side by side, in stated order, with the gap named in words.
+  function renderComparison(cmp) {
+    if (!cmp || !cmp.members || !cmp.members.length) return msg("Trouble", "The comparison did not come back.");
+    var h = '<div class="result"><div class="section"><div class="slabel">Side by side</div><div class="cmpcols">';
+    cmp.members.forEach(function (mrow) {
+      h += '<div class="cmpcol"><div class="cmp-t">' + esc(mrow.group) + '</div>';
+      if (mrow.thin || mrow.median == null) h += '<div class="cmp-big">&mdash;</div><div class="cmp-sub">too few sold to read (' + (mrow.count || 0) + ')</div>';
+      else h += '<div class="cmp-big num">' + usd(mrow.median) + '</div><div class="cmp-sub">' +
+        (mrow.p25 != null ? usd(mrow.p25) + " to " + usd(mrow.p75) + " &middot; " : "") + mrow.count + " sales &middot; newest " + fmtDate(mrow.freshness) + '</div>';
+      h += '</div>';
+    });
+    h += '</div>';
+    if (cmp.gap) {
+      var g = cmp.gap;
+      var line = g.higher + " typically brings " + usd(g.diff_usd) + " more than " + g.lower +
+        (g.pct != null ? ", about " + g.pct + "% higher" : "") +
+        (g.count_ratio != null && g.count_ratio >= 1.5 ? ", though it trades " + (g.count_ratio >= 2 ? Math.round(g.count_ratio) + " times" : "more") + " as often (" + g.higher_count + " to " + g.lower_count + ")" : "") + ".";
+      h += '<div class="read">' + esc(line) + '</div>';
+    }
+    h += '</div></div>';
+    return h;
+  }
   function handleInterpret(question, res) {
     // NO SILENT SUBSTITUTION: a not-yet-built question type says so in ONE line and shows nothing else.
     if (res.not_built) {
@@ -179,6 +202,7 @@
     renderCard(res);
     if (res.cannot_apply) { out.innerHTML = msg("Can't apply that", esc(res.cannot_apply)); }
     else if (res.ranking) out.innerHTML = renderRanking(res.ranking);
+    else if (res.comparison) out.innerHTML = renderComparison(res.comparison);
     else if (res.answer) render(res.answer);
     else if (res.clarify) out.innerHTML = msg("One quick thing", "Pick an option above (or type it) and I'll run it.");
     else if (res.unsupported) out.innerHTML = msg("Not what the Desk does", esc(res.unsupported.message));

@@ -102,6 +102,13 @@ body{background:var(--paper);color:var(--ink);font:400 15px/1.55 var(--grotesk);
 .ignored{margin:10px 0 0;font:400 12.5px/1.5 var(--slate)}
 .ignored b{color:var(--clay);font-weight:600}
 
+/* comparison (side by side) */
+.cmpcols{display:flex;gap:16px;flex-wrap:wrap}
+.cmpcol{flex:1;min-width:180px;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:16px 18px}
+.cmpcol .cmp-t{font:600 14px/1.2 var(--grotesk);margin-bottom:8px;color:var(--ink)}
+.cmpcol .cmp-big{font:700 30px/1 var(--serif);color:var(--green-deep)}
+.cmpcol .cmp-sub{font:600 11.5px/1.4 var(--mono);color:var(--slate);margin-top:8px}
+
 /* answer table */
 .tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:var(--shadow)}
 table.answer{width:100%;border-collapse:collapse;font-size:14px}
@@ -219,6 +226,6 @@ tr.rec.excl .r{text-decoration:line-through}
     <button class="go" id="followgo" title="Refine">&#8594;</button>
   </div>
 </div>
-<script src="/dsk.20260927b/desk.js"></script>
+<script src="/dsk.20260927c/desk.js"></script>
 </body>
 </html>
