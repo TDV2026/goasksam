@@ -12,7 +12,7 @@ await p.goto(BASE + "/sell", { waitUntil: "networkidle2" });
 
 const interp = (question, opts = {}) => p.evaluate(async (BASE, question, opts) => {
   const t0 = performance.now();
-  const r = await fetch(BASE + "/api/sellerDecision", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ desk: true, action: "interpret", question, run: false, ...opts }) });
+  const r = await fetch(BASE + "/api/desk", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ desk: true, action: "interpret", question, run: false, ...opts }) });
   const ms = Math.round(performance.now() - t0);
   const j = await r.json();
   return { ms, source: j.source, reading: j.reading, clarify: j.clarify, unsupported: j.unsupported, meta: j.meta, honest: j.honest_miss };

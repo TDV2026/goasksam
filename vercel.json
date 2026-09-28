@@ -32,7 +32,7 @@
     { "source": "/js.20260922c/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20260921b/(.*)", "destination": "/js/$1" },
     { "source": "/desk", "destination": "/desk.html" },
-    { "source": "/dsk.20260925d/(.*)", "destination": "/js/$1" }
+    { "source": "/dsk.20260927a/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
     "api/usageDashboard.js": {
@@ -44,6 +44,9 @@
     },
     "api/sellerDecision.js": {
       "maxDuration": 60
+    },
+    "api/desk.js": {
+      "maxDuration": 300
     }
   },
   "crons": [

@@ -16,7 +16,7 @@ let fails = 0; const ck = (n, ok, d = "") => { console.log((ok ? "PASS" : "FAIL"
 const rec = (make, model, trim) => p.evaluate(async (BASE, make, model, trim) => {
   const filters = { make, model }; if (trim) filters.trim = trim; const vehicle = { make, model }; if (trim) vehicle.trim = trim;
   const t0 = performance.now();
-  const r = await fetch(BASE + "/api/sellerDecision", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ desk: true, action: "run", dsl: { filters, groupBy: [], measures: ["record"] }, vehicle }) });
+  const r = await fetch(BASE + "/api/desk", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ desk: true, action: "run", dsl: { filters, groupBy: [], measures: ["record"] }, vehicle }) });
   const ms = Math.round(performance.now() - t0); const j = await r.json(); const R = (j.answer && j.answer.record) || j.record || null; const top = (R && R.top || [])[0];
   return { ms, wk: R && R.window_kind, price: top && (top.hammer_usd || top.price), title: top && (top.title || top.raw_title), venue: top && top.venue, date: top && (top.date || top.sale_date) };
 }, BASE, make, model, trim);
@@ -40,7 +40,7 @@ for (const [mk, mo, tr, re] of RECS) {
 console.log("\n=== Fix 2: air-cooled 911s members + drop + cannot-apply ===");
 const interp = (q, tr) => p.evaluate(async (BASE, q, tr) => {
   const body = { desk: true, action: "interpret", question: q, run: false }; if (tr) body.threadReading = tr;
-  const r = await fetch(BASE + "/api/sellerDecision", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const r = await fetch(BASE + "/api/desk", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   const j = await r.json();
   const mem = (j.reading && j.reading.grouping && j.reading.grouping.members) || [];
   return { reading: j.reading, cannot: j.cannot_apply, members: mem.map(m => m.generation || m.label || m.model), chipLabels: mem.map(m => m.chipLabel), gbody: mem.find(m => m.label === "G-body") };

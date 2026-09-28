@@ -43,7 +43,7 @@
     LAST_PAYLOAD = payload;
     go.setAttribute("disabled", "1");
     out.innerHTML = '<div class="working"><span class="pulse"></span> reading the archive</div>';
-    fetch(API + "/api/sellerDecision", {
+    fetch(API + "/api/desk", {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(Object.assign({ desk: true, action: "run" }, payload))
     }).then(function (r) {
@@ -79,7 +79,7 @@
     out.innerHTML = '<div class="working"><span class="pulse"></span> reading your question</div>';
     var body = { desk: true, action: "interpret", question: question, run: true, recentReadings: RECENT.slice(-3) };
     if (opts.threadReading) body.threadReading = opts.threadReading;
-    fetch(API + "/api/sellerDecision", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+    fetch(API + "/api/desk", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       .then(function (r) { return r.text().then(function (t) { return { ok: r.ok, code: r.status, text: t }; }); })
       .then(function (resp) {
         var j; try { j = JSON.parse(resp.text); } catch (e) { out.innerHTML = deskError("Try again."); wireRetry(); return; }
@@ -735,7 +735,7 @@
     if (sv) sv.onclick = function () {
       var name = prompt("Name this view:", res.question || (res.echo.chips || []).slice(0, 3).join(" "));
       if (name == null) return;
-      fetch(API + "/api/sellerDecision", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ desk: true, action: "save_view", name: name, question: res.question || null, dsl: res.echo.dsl, summary: res.summary || null }) })
+      fetch(API + "/api/desk", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ desk: true, action: "save_view", name: name, question: res.question || null, dsl: res.echo.dsl, summary: res.summary || null }) })
         .then(function (r) { return r.json(); }).then(function (d) { sv.textContent = d.status === "saved" ? "Saved ✓" : "Save failed"; setTimeout(function () { sv.textContent = "Save view"; }, 2500); });
     };
     var a = document.getElementById("expAns"); if (a) a.onclick = function () { downloadCSV(res, "answer"); };
@@ -750,7 +750,7 @@
     var panel = document.getElementById("viewsPanel");
     if (panel.innerHTML) { panel.innerHTML = ""; return; }
     panel.innerHTML = '<div class="working"><span class="pulse"></span> loading views</div>';
-    fetch(API + "/api/sellerDecision", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ desk: true, action: "list_views" }) })
+    fetch(API + "/api/desk", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ desk: true, action: "list_views" }) })
       .then(function (r) { return r.json(); }).then(function (d) {
         var views = (d && d.views) || [];
         if (!views.length) { panel.innerHTML = '<div class="viewspanel">No saved views yet. Run a query and Save view.</div>'; return; }
@@ -766,11 +766,11 @@
   }
   function rerunView(id) {
     out.innerHTML = '<div class="working"><span class="pulse"></span> rerunning saved view</div>';
-    fetch(API + "/api/sellerDecision", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ desk: true, action: "rerun_view", id: Number(id) }) })
+    fetch(API + "/api/desk", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ desk: true, action: "rerun_view", id: Number(id) }) })
       .then(function (r) { return r.json(); }).then(render);
   }
   function deleteView(id) {
-    fetch(API + "/api/sellerDecision", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ desk: true, action: "delete_view", id: Number(id) }) })
+    fetch(API + "/api/desk", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ desk: true, action: "delete_view", id: Number(id) }) })
       .then(function (r) { return r.json(); }).then(function () { var p = document.getElementById("viewsPanel"); p.innerHTML = ""; toggleViews(); });
   }
 
