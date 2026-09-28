@@ -142,6 +142,31 @@
     if (res.unsupported) parts.push("not answerable");
     return parts.join(" · ");
   }
+  // Ranked-list render (Stage C). Interim table; the mock's ranked-bar layout lands with the /desk
+  // rebuild. Rows come pre-ranked from the engine; thin members are listed, never ranked.
+  function renderRanking(rk) {
+    if (!rk) return msg("Trouble", "The ranking did not come back.");
+    var metricLbl = rk.metric === "count" ? "number sold" : "typical price (median)";
+    var h = '<div class="result"><div class="section"><div class="slabel">Ranked by ' + esc(metricLbl) +
+      (rk.name ? ' <span class="n">' + esc(rk.name) + '</span>' : '') + '</div>';
+    if (rk.tooFewToRank || !rk.ranked || !rk.ranked.length) {
+      h += '<div class="reconcile">Fewer than three of these have enough recent sales to rank honestly.</div>';
+    } else {
+      h += '<div class="tblwrap"><table class="answer"><thead><tr><th>#</th><th>' + esc(rk.name || "car") + '</th><th>' +
+        (rk.metric === "count" ? "sold" : "median") + '</th><th>count</th><th>spread</th><th>newest</th></tr></thead><tbody>';
+      rk.ranked.forEach(function (r, i) {
+        h += '<tr><td>' + (i + 1) + '</td><td>' + esc(r.group) + '</td>' +
+          '<td class="cellnum">' + (rk.metric === "count" ? r.count : (r.median != null ? usd(r.median) : "&mdash;")) + '</td>' +
+          '<td class="cellnum">' + r.count + '</td>' +
+          '<td class="cellnum">' + (r.p25 != null && r.p75 != null ? usd(r.p25) + " to " + usd(r.p75) : "&mdash;") + '</td>' +
+          '<td class="cellnum">' + fmtDate(r.freshness) + '</td></tr>';
+      });
+      h += '</tbody></table></div>';
+    }
+    if (rk.thin && rk.thin.length) h += '<div class="reconcile">Shown but not ranked (fewer than ' + (rk.thinThreshold || 5) + ' sales): ' + rk.thin.map(function (t) { return esc(t.group) + " (" + t.count + ")"; }).join(", ") + '.</div>';
+    h += '</div></div>';
+    return h;
+  }
   function handleInterpret(question, res) {
     // NO SILENT SUBSTITUTION: a not-yet-built question type says so in ONE line and shows nothing else.
     if (res.not_built) {
@@ -153,6 +178,7 @@
     }
     renderCard(res);
     if (res.cannot_apply) { out.innerHTML = msg("Can't apply that", esc(res.cannot_apply)); }
+    else if (res.ranking) out.innerHTML = renderRanking(res.ranking);
     else if (res.answer) render(res.answer);
     else if (res.clarify) out.innerHTML = msg("One quick thing", "Pick an option above (or type it) and I'll run it.");
     else if (res.unsupported) out.innerHTML = msg("Not what the Desk does", esc(res.unsupported.message));
