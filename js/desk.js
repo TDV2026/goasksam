@@ -11,15 +11,16 @@
   // (h) The "what's my car worth" example is removed: the Desk never values a car, and the
   // language rules apply here too. A record example shows the highest-sale flow instead.
   var EXAMPLES = [
-    "Which house has sold the most air-cooled 911s in the last two years, and what did they bring?",
-    "E30 M3s: median and count by month over three years, houses and online.",
-    "What's the record sale for a BMW M3?",
-    "1929 Duesenberg Model J, every house sale."
+    "best F-body cars from the 90s",
+    "air-cooled 911s under $100k sold this year",
+    "Z28 vs Trans Am WS6, last 3 years",
+    "which Fox body Mustangs are rising fastest",
+    "what's the record sale for a BMW M3"
   ];
   var ex = document.getElementById("examples");
   EXAMPLES.forEach(function (q) {
     var b = document.createElement("button");
-    b.textContent = q; b.onclick = function () { input.value = q; run(); };
+    b.textContent = q; b.onclick = function () { input.value = q; send(); };
     ex.appendChild(b);
   });
 
@@ -124,13 +125,17 @@
       el.onclick = function () { interpretFetch(el.getAttribute("data-opt"), { threadReading: res.reading }); };
     });
   }
+  // The rail's Recent list IS the thread history (working memory): every asked question, newest
+  // first; clicking one restores that turn's reading + answer in place.
+  var railRecent = document.getElementById("rail-recent");
   function renderTurns() {
-    if (THREAD.length < 2) { turnsEl.innerHTML = ""; return; }
+    if (!railRecent) return;
+    if (!THREAD.length) { railRecent.innerHTML = '<div class="item mut">Nothing yet</div>'; return; }
     var h = "";
-    THREAD.slice(0, -1).forEach(function (t, i) { h += '<div class="turn" data-turn="' + i + '"><div class="tq">' + esc(t.question) + '</div><div class="tr">' + esc(t.summary || "") + '</div></div>'; });
-    turnsEl.innerHTML = h;
-    Array.prototype.forEach.call(turnsEl.querySelectorAll('[data-turn]'), function (el) {
-      el.onclick = function () { var t = THREAD[+el.getAttribute("data-turn")]; readingcard.innerHTML = t.cardHtml; out.innerHTML = t.answerHtml; };
+    THREAD.forEach(function (t, i) { h += '<button class="item" data-turn="' + i + '" title="' + esc(t.question) + '">' + esc(t.question) + '</button>'; });
+    railRecent.innerHTML = h;
+    Array.prototype.forEach.call(railRecent.querySelectorAll('[data-turn]'), function (el) {
+      el.onclick = function () { var t = THREAD[+el.getAttribute("data-turn")]; if (!t) return; if (emptyEl) emptyEl.style.display = "none"; readingcard.innerHTML = t.cardHtml || ""; out.innerHTML = t.answerHtml || ""; CUR_READING = t.reading; wireEvidence(); };
     });
   }
   function summarize(res) {
@@ -213,13 +218,15 @@
     h += '</div></div>';
     return h;
   }
+  var emptyRef = function () { return document.getElementById("empty"); };
   function handleInterpret(question, res) {
+    var em = emptyRef(); if (em) em.style.display = "none";
     // NO SILENT SUBSTITUTION: a not-yet-built question type says so in ONE line and shows nothing else.
     if (res.not_built) {
       readingcard.innerHTML = ""; out.innerHTML = msg("Not built yet", esc(res.not_built));
       CUR_READING = res.reading; RECENT.push(res.reading);
       THREAD.push({ question: question, reading: res.reading, summary: summarize(res), cardHtml: "", answerHtml: out.innerHTML });
-      renderTurns(); if (followrow) followrow.style.display = "flex";
+      renderTurns();
       return;
     }
     renderCard(res);
@@ -237,21 +244,30 @@
     CUR_READING = res.reading; RECENT.push(res.reading);
     THREAD.push({ question: question, reading: res.reading, summary: summarize(res), cardHtml: readingcard.innerHTML, answerHtml: out.innerHTML });
     renderTurns();
-    if (followrow) followrow.style.display = "flex";
+    wireEvidence();
   }
-  function run() {
+  // Evidence drawer wiring (Stage C fills this in): every .ev figure opens its supporting sales.
+  function wireEvidence() { /* implemented in the drawer pass */ }
+  var emptyEl = document.getElementById("empty");
+  var newBtn = document.getElementById("newAnalysis");
+  // Chat box is the ONLY control (mock rule). One send(): a follow-up EDITS the current thread's
+  // reading when one is active ("keep talking"); "New analysis" starts fresh.
+  function send() {
     var q = (input.value || "").trim(); if (!q) return;
+    if (emptyEl) emptyEl.style.display = "none";
+    input.value = "";
+    if (CUR_READING) interpretFetch(q, { threadReading: CUR_READING });
+    else interpretFetch(q, {});
+  }
+  function newAnalysis() {
     THREAD = []; RECENT = []; CUR_READING = null; renderTurns();
-    interpretFetch(q, {});
+    if (readingcard) readingcard.innerHTML = ""; if (out) out.innerHTML = "";
+    if (emptyEl) emptyEl.style.display = "";
+    input.value = ""; input.focus();
   }
-  function runFollow() {
-    var q = (followq.value || "").trim(); if (!q) return;
-    interpretFetch(q, { threadReading: CUR_READING }); followq.value = "";
-  }
-  go.onclick = run;
-  input.addEventListener("keydown", function (e) { if (e.key === "Enter") run(); });
-  if (followgo) followgo.onclick = runFollow;
-  if (followq) followq.addEventListener("keydown", function (e) { if (e.key === "Enter") runFollow(); });
+  go.onclick = send;
+  input.addEventListener("keydown", function (e) { if (e.key === "Enter") send(); });
+  if (newBtn) newBtn.onclick = newAnalysis;
 
   function msg(tag, body) { return '<div class="msg"><div class="t">' + esc(tag) + '</div>' + body + '</div>'; }
 
