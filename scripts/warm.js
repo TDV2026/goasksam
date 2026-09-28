@@ -99,6 +99,12 @@ for (const [make, model] of batch) {
   } catch (e) { failed++; failures.push(`${label}: ${e.message}`); console.error(`::error::warm ${label} FAILED: ${e.message}`); }
 }
 console.log(`\nDONE. warmed=${warmed} stopped-on-reserve=${degraded} failed=${failed} metered=${spent}.`);
+// Per-job metered accounting (so nightly-warm spend shows up in the by-job usage split; it tracked
+// `spent` locally but never logged an event). Best-effort; never blocks the run.
+try {
+  const { recordUsageEvent } = await import("../api/_usage.js");
+  await recordUsageEvent({ event_type: "job_warm", route: "scripts/warm.js", status: failed > 0 ? "warning" : "ok", oldcarsdata_metered_requests: spent, metadata: { job: "warm", warmed, stoppedOnReserve: degraded, failed, batch: batch.length } }, env.supabaseUrl, env.supabaseKey);
+} catch (e) { /* never block warm on logging */ }
 // A warm run where every call failed (or any call failed) is a real red, not a green exit-0.
 // This is what should have been happening while the bot checkpoint was silently bouncing warm.
 if (failed > 0) {

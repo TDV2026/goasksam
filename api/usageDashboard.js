@@ -672,6 +672,72 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "ocdstatus", metered, ...out });
   }
 
+  // task=fieldcov: READ-ONLY (archive; ZERO OCD). Fill rate of the four enrichment fields
+  // (description, known_flaws, recent_service_history, modifications) among SOLD rows, per
+  // source_slug (all-time) and, when PostgREST aggregates are enabled, a source x model-year cross.
+  if (task === "fieldcov") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const FIELDS = ["description", "known_flaws", "recent_service_history", "modifications"];
+    const SRC = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
+    const countOf = async (filter) => {
+      try {
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}`, { method: "HEAD", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact", Range: "0-0" } });
+        const cr = r.headers.get("content-range") || ""; const m = cr.match(/\/(\d+)$/); return m ? Number(m[1]) : (r.ok ? 0 : null);
+      } catch { return null; }
+    };
+    const pctOf = (n, d) => (d > 0 && n != null ? Math.round((n / d) * 1000) / 10 : null);
+    // Per-source all-time fill rate (parallel HEAD counts: 19 sources x 5 = 95 light requests).
+    const bySource = {};
+    await Promise.all(SRC.map(async (s) => {
+      const base = `source_slug=eq.${s}&sale_price=not.is.null`;
+      const total = await countOf(`${base}&select=id`);
+      const cells = {}; await Promise.all(FIELDS.map(async (f) => { cells[f] = await countOf(`${base}&${f}=not.is.null&select=id`); }));
+      bySource[s] = { total, filled: Object.fromEntries(FIELDS.map(f => [f, cells[f]])), pct: Object.fromEntries(FIELDS.map(f => [f, pctOf(cells[f], total)])) };
+    }));
+    // source x model-year cross via PostgREST aggregate (one grouped query per metric); if aggregates
+    // are disabled the query returns no usable rows and we report source-level only.
+    const agg = async (extra) => supabaseSelect(env, `sales_archive?select=source_slug,y:year,n:id.count()&sale_price=not.is.null${extra}&limit=100000`);
+    let byYear = null, aggMode = "disabled";
+    const tot = await agg("");
+    if (Array.isArray(tot) && tot.length && tot[0] && tot[0].n != null) {
+      aggMode = "aggregate";
+      const key = r => (r.source_slug || "?") + "|" + (r.y || 0);
+      const totM = {}; for (const r of tot) totM[key(r)] = Number(r.n) || 0;
+      const fM = {}; for (const f of FIELDS) { const rows = (await agg(`&${f}=not.is.null`)) || []; const mp = {}; for (const r of rows) mp[key(r)] = Number(r.n) || 0; fM[f] = mp; }
+      byYear = {};
+      for (const k of Object.keys(totM)) {
+        const [s, y] = k.split("|"); const d = totM[k];
+        (byYear[s] = byYear[s] || {})[y] = { total: d, pct: Object.fromEntries(FIELDS.map(f => [f, pctOf((fM[f][k] || 0), d)])) };
+      }
+    }
+    return res.status(200).json({ task: "fieldcov", ocdSpend: 0, fields: FIELDS, bySource, aggMode, byModelYear: byYear, note: "Fill = value present (non-null) among sold rows. byModelYear present only when PostgREST aggregates are enabled." });
+  }
+
+  // task=fasttest: TEMP diagnostic for the Desk indexed fast path. Runs the exact make=eq +
+  // model_family=eq read and returns the raw PostgREST status + body so a query error is visible.
+  if (task === "fasttest") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const mk = String(req.query?.make || "Chevrolet"), fam = String(req.query?.fam || "Camaro");
+    const cols = "id,price:sale_price,auction_end_date:sale_date,source:platform,source_slug,model_family,raw_title:listing_title,year,vin_norm,image:raw_record->>featured_image_url,mileage:raw_record->>mileage,currency:raw_record->>currency,srcurl:raw_record->>url";
+    const q = `sales_archive?select=${cols}&make=eq.${encodeURIComponent(mk)}&model_family=eq.${encodeURIComponent(fam)}&sale_price=not.is.null&order=sale_date.desc&limit=10`;
+    let status = null, body = null, err = null;
+    try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); status = r.status; body = await r.text(); } catch (e) { err = String((e && e.message) || e); }
+    return res.status(200).json({ task: "fasttest", make: mk, fam, status, err, sample: (body || "").slice(0, 600) });
+  }
+
+  // task=liveprobe: ONE call to GET /auctions/live (limit 100). Reports meta.total and the sources
+  // present in the first page + the record's field keys. Diagnostic only - nothing is built on it.
+  if (task === "liveprobe") {
+    try {
+      const r = await callOldCarsData("/auctions/live", { page: 1, limit: 100 }, apiKey);
+      const data = r.data || r.results || [];
+      const total = (r.meta && (r.meta.total ?? r.meta.total_results ?? r.meta.count)) ?? r.total ?? null;
+      const sourcesInPage = {};
+      for (const rec of data) { const s = rec.source_slug || rec.source || rec.platform || "?"; sourcesInPage[s] = (sourcesInPage[s] || 0) + 1; }
+      return res.status(200).json({ task: "liveprobe", metered: 1, total, returned: data.length, meta: r.meta || null, sourcesInPage, recordKeys: data[0] ? Object.keys(data[0]) : [], pagesAt100: total != null ? Math.ceil(total / 100) : null, refreshCostRequests: total != null ? Math.ceil(total / 100) + 1 : null });
+    } catch (e) { return res.status(200).json({ task: "liveprobe", error: String((e && e.message) || e), status: (e && e.status) || null }); }
+  }
+
   // task=nonsold: READ-ONLY non-sold data scoping (report-only). Per source: sold total,
   // withdrawn total (both filterable), and an unfiltered auction_status tally (sold vs
   // "reserve not met" vs withdrawn vs "result unavailable") to estimate the non-sold mix,

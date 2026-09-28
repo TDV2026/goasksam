@@ -23,7 +23,8 @@ const CARS = [
   { make: "Lancia", model: "Stratos", year: 1975 },
 ];
 const runCar = car => p.evaluate(async (BASE, car) => {
-  const r = await fetch(BASE + "/api/sellerDecision", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ oneBox: true, car: { make: car.make, model: car.model, trim: car.trim || null, year: car.year } }) });
+  const text = [car.year, car.make, car.model, car.trim].filter(Boolean).join(" ");
+  const r = await fetch(BASE + "/api/sellerDecision", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ oneBox: true, car: text }) });
   const d = await r.json();
   let range = null, cards = [], allowed = [], tier = d.tier;
   if (d.classEra) { range = [d.classEra.lowHammer, d.classEra.highHammer]; cards = (d.classEra.receipts || []).slice(0, 8).map(x => x.hammer); allowed = (d.classEra.outliers || []).map(x => x.hammer); }

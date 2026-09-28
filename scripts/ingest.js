@@ -257,6 +257,12 @@ for (const d of days) {
   console.log(`  ${d}: ${n}${flagged ? `  BELOW FLOOR (${FLOOR})` : ""}`);
 }
 console.log(`upserted ${inserted} record(s) across ${days.length} day(s); metered ${metered} OCD request(s).`);
+// Per-job metered accounting (so "OCD requests by job last month" is answerable from app_usage_events;
+// previously only a below-floor warning logged, leaving normal ingest spend invisible). Best-effort.
+try {
+  const { recordUsageEvent } = await import("../api/_usage.js");
+  await recordUsageEvent({ event_type: "job_ingest", route: "scripts/ingest.js", status: "ok", oldcarsdata_metered_requests: metered, metadata: { job: "ingest", mode: DELTA ? "delta" : `${FROM}..${TO}`, days: days.length, upserted: inserted } }, env.supabaseUrl, env.supabaseKey);
+} catch (e) { /* never block ingest on logging */ }
 if (belowFloor.length) {
   console.error(`INGEST HEALTH: ${belowFloor.length} day(s) below the ${FLOOR}/day floor: ${belowFloor.map(b => `${b.day}(${b.count})`).join(", ")}`);
   // Best-effort visible record; import lazily so a missing table never breaks ingest.
