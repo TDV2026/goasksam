@@ -684,7 +684,7 @@ async function handleOps(req, res) {
       try {
         // count=estimated (planner estimate, falls back to exact below a threshold) so a coverage
         // overview is sub-second. ?exact=1 forces exact (slow). Content-Range carries the count ".../N".
-        const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: exact ? "count=exact" : "count=estimated", Range: "0-0", "Range-Unit": "items" } });
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: exact ? "count=exact" : "count=planned", Range: "0-0", "Range-Unit": "items" } });
         const cr = r.headers.get("content-range") || ""; const m = cr.match(/\/(\d+)$/); return m ? Number(m[1]) : (r.ok ? 0 : null);
       } catch { return null; }
     };
@@ -700,7 +700,7 @@ async function handleOps(req, res) {
       for (const f of FIELDS) cells[f] = await countOf(`${base}&${f}=not.is.null&select=id`);
       bySource[s] = { total, filled: Object.fromEntries(FIELDS.map(f => [f, cells[f]])), pct: Object.fromEntries(FIELDS.map(f => [f, pctOf(cells[f], total)])) };
     }
-    return res.status(200).json({ task: "fieldcov", ocdSpend: 0, countMode: exact ? "exact" : "estimated", fields: FIELDS, bySource, note: "Fill = value present (non-null) among sold rows. Counts are Postgres planner ESTIMATES by default (add ?exact=1 for exact, slower). A per-model-year cross needs a workflow (interactive PostgREST aggregates are disabled on this project)." });
+    return res.status(200).json({ task: "fieldcov", ocdSpend: 0, countMode: exact ? "exact" : "planner-estimate", fields: FIELDS, bySource, note: "Fill = value present (non-null) among sold rows. Counts are Postgres planner ESTIMATES by default (add ?exact=1 for exact, slower). A per-model-year cross needs a workflow (interactive PostgREST aggregates are disabled on this project)." });
   }
 
   // task=fasttest: TEMP diagnostic for the Desk indexed fast path. Runs the exact make=eq +
