@@ -679,11 +679,13 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const FIELDS = ["description", "known_flaws", "recent_service_history", "modifications"];
     const SRC = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
+    const exact = req.query?.exact === "1";
     const countOf = async (filter) => {
       try {
-        // GET with Range 0-0 + count=exact returns a single row and the total in Content-Range (HEAD
-        // was returning null here). "*/N" or "0-0/N".
-        const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact", Range: "0-0", "Range-Unit": "items" } });
+        // count=exact over 19 sources x 5 fields x ~100k-row scans saturates the pool, so default to
+        // count=planned (Postgres planner estimate, sub-second). ?exact=1 forces exact (slow; use a
+        // workflow for the whole set). Content-Range carries the count as ".../N".
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: exact ? "count=exact" : "count=planned", Range: "0-0", "Range-Unit": "items" } });
         const cr = r.headers.get("content-range") || ""; const m = cr.match(/\/(\d+)$/); return m ? Number(m[1]) : (r.ok ? 0 : null);
       } catch { return null; }
     };
@@ -712,7 +714,7 @@ async function handleOps(req, res) {
         (byYear[s] = byYear[s] || {})[y] = { total: d, pct: Object.fromEntries(FIELDS.map(f => [f, pctOf((fM[f][k] || 0), d)])) };
       }
     }
-    return res.status(200).json({ task: "fieldcov", ocdSpend: 0, fields: FIELDS, bySource, aggMode, byModelYear: byYear, note: "Fill = value present (non-null) among sold rows. byModelYear present only when PostgREST aggregates are enabled." });
+    return res.status(200).json({ task: "fieldcov", ocdSpend: 0, countMode: exact ? "exact" : "planner-estimate", fields: FIELDS, bySource, aggMode, byModelYear: byYear, note: "Fill = value present (non-null) among sold rows. Counts are Postgres planner estimates by default (add ?exact=1 for exact, slow). byModelYear present only when PostgREST aggregates are enabled." });
   }
 
   // task=fasttest: TEMP diagnostic for the Desk indexed fast path. Runs the exact make=eq +
