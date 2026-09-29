@@ -52,34 +52,36 @@ export default async function handler(req, res) {
     // fits the budget) rather than the whole vin_norm archive (which does not finish in 300s). Online
     // sources (BaT/C&B) upsert on a stable source_id, so they do not accumulate (vin,date,slug) dups
     // the same way. Pass archiveDiagSlugs to override the source set. Report-only; never deletes.
-    const HOUSE_SLUGS = Array.isArray(req.body.archiveDiagSlugs) && req.body.archiveDiagSlugs.length
-      ? req.body.archiveDiagSlugs
-      : ["rmsothebys", "gooding", "bonhams", "broadarrow", "mecum", "barrettjackson", "sothebysmotorsport"];
-    const g = new Map(); let scanned = 0, pages = 0; const perSlug = {};
-    for (const slug of HOUSE_SLUGS) {
-      let cursor = "", slugRows = 0;
+    // Filter/key on the DISPLAY LABEL (`platform`), which is always populated and index-backed
+    // (platform, sale_date) - source_slug is NULL on older house rows, so an eq.<slug> filter errored.
+    const HOUSE_LABELS = Array.isArray(req.body.archiveDiagLabels) && req.body.archiveDiagLabels.length
+      ? req.body.archiveDiagLabels
+      : ["RM Sotheby's", "Gooding & Co", "Bonhams", "Broad Arrow", "Mecum Auctions", "Barrett-Jackson", "Sotheby's Motorsport"];
+    const g = new Map(); let scanned = 0, pages = 0; const perLabel = {};
+    for (const label of HOUSE_LABELS) {
+      let cursor = "", labelRows = 0;
       for (let i = 0; i < 200; i++) {
-        let q = `sales_archive?select=id,vin_norm,sale_date,source_slug&source_slug=eq.${encodeURIComponent(slug)}&vin_norm=not.is.null&sale_date=not.is.null&order=id.asc&limit=1000`;
+        let q = `sales_archive?select=id,vin_norm,sale_date,platform&platform=eq.${encodeURIComponent(label)}&vin_norm=not.is.null&sale_date=not.is.null&order=id.asc&limit=1000`;
         if (cursor) q += `&id=gt.${encodeURIComponent(cursor)}`;
         let batch = null;
         for (let a = 0; a < 3 && batch === null; a++) { batch = await supabaseSelect(env2, q); if (batch === null && a < 2) await new Promise(r => setTimeout(r, 300 * (a + 1))); }
-        if (batch === null) return res.status(200).json({ status: "dupScan", error: "query_failed", scanned, pages, slug });
+        if (batch === null) return res.status(200).json({ status: "dupScan", error: "query_failed", scanned, pages, label });
         if (!batch.length) break;
         pages++;
         for (const r of batch) {
-          scanned++; slugRows++;
+          scanned++; labelRows++;
           const vn = String(r.vin_norm || "").trim(); if (!vn) continue;
-          const k = `${vn}|${String(r.sale_date).slice(0, 10)}|${r.source_slug || ""}`;
+          const k = `${vn}|${String(r.sale_date).slice(0, 10)}|${r.platform || ""}`;
           g.set(k, (g.get(k) || 0) + 1);
         }
         cursor = batch[batch.length - 1].id;
         if (batch.length < 1000) break;
       }
-      perSlug[slug] = slugRows;
+      perLabel[label] = labelRows;
     }
-    let dupGroups = 0, extraRows = 0; const bySlug = {};
-    for (const [k, n] of g) if (n > 1) { dupGroups++; extraRows += n - 1; const slug = k.split("|")[2] || "(null)"; bySlug[slug] = (bySlug[slug] || 0) + (n - 1); }
-    return res.status(200).json({ status: "dupScan", scope: "house_sources", sourcesScanned: HOUSE_SLUGS, scanned, pages, rowsPerSource: perSlug, keyedGroups: g.size, dupGroups, extraRows, extraRowsBySlug: bySlug });
+    let dupGroups = 0, extraRows = 0; const byLabel = {};
+    for (const [k, n] of g) if (n > 1) { dupGroups++; extraRows += n - 1; const lab = k.split("|")[2] || "(null)"; byLabel[lab] = (byLabel[lab] || 0) + (n - 1); }
+    return res.status(200).json({ status: "dupScan", scope: "house_sources", sourcesScanned: HOUSE_LABELS, scanned, pages, rowsPerSource: perLabel, keyedGroups: g.size, dupGroups, extraRows, extraRowsBySource: byLabel });
   }
 
   try {
