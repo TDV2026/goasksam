@@ -310,6 +310,17 @@
   function renderSingle(res) {
     var s = res.single, ov = (s && s.overall) || {}, f = (s && s.filters) || {};
     var who = s.name || [s.make, s.model, s.trim].filter(Boolean).join(" ") || "this";
+    // "which sold highest" -> show the RECORD sale (the single highest), not the typical.
+    if (s.metric === "record" && s.record && s.record.top && s.record.top.length) {
+      var top = s.record.top[0];
+      var evR = 'data-make="' + esc(s.make) + '" data-model="' + esc(s.model) + '"' + (s.trim ? ' data-trim="' + esc(s.trim) + '"' : '') + ' data-window="' + esc(s.window) + '" data-cap="' + esc(who) + '" data-fig="' + esc(usd(top.hammer_usd)) + '"';
+      var hr = '<p class="reading">The highest <b>' + esc(who) + '</b> sale' + (f.priceMax ? ' under $' + Number(f.priceMax).toLocaleString("en-US") : '') + ' in our data.</p>';
+      hr += '<div class="result"><div class="hl"><span class="hl-num ev" ' + evR + '>' + usd(top.hammer_usd) + '</span><span class="hl-sub">highest sale' + (ov.count ? '<span class="sep">&middot;</span>' + ov.count + ' sales in scope' : '') + '</span></div>';
+      hr += '<div class="read">' + esc((top.title || "").slice(0, 74)) + ' &mdash; ' + esc(top.venue || "") + (top.date ? ' &middot; ' + fmtDate(top.date) : '') + (top.link ? ' <a href="' + esc(top.link) + '" target="_blank" rel="noopener">&#8599;</a>' : '') + '</div>';
+      hr += provenanceFooter({ window: windowLabelOf(s.window) });
+      hr += '</div>';
+      return hr;
+    }
     if (ov.median == null) {
       var win0 = windowLabelOf(s.window);
       return '<p class="reading">I read <b>' + esc(who) + '</b> ' + esc(win0) + '.</p>' + msg("Thin", "Fewer than five recent sales of " + esc(who) + " that match, so there is no honest typical price to show.");
