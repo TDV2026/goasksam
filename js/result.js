@@ -1492,7 +1492,9 @@ function renderClassEraSell(msgs,ce,decisionData){
     const link=rc.url?`<a href="${esc(rc.url)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(0,0,0,.18)">${esc(rc.venue)}</a>`:esc(rc.venue);
     const mi=Number(rc.mileage)>0?` · ${Number(rc.mileage).toLocaleString()} mi`:"";
     const allin=rc.isHouse&&rc.allIn?` <span style="opacity:.6;font-size:12px">buyer paid ${money(rc.allIn)}</span>`:"";
-    return `<li style="display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-top:1px solid rgba(0,0,0,.08)"><span>${esc(rc.year||"")} ${esc(rc.model||"")} ${link}${rc.isHouse?' <span style="opacity:.55;font-size:11px;text-transform:uppercase;letter-spacing:.06em">house</span>':""}${mi}</span><span style="font-variant-numeric:tabular-nums;font-weight:600">${money(rc.hammer)}${allin}</span></li>`;
+    // Card shows the record's OWN title (standing rule), not the seller's typed model.
+    const own=cleanReceiptTitleForCard(rc.title)||[rc.year,rc.model].filter(Boolean).join(" ")||"";
+    return `<li style="display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-top:1px solid rgba(0,0,0,.08)"><span>${esc(own)} ${link}${rc.isHouse?' <span style="opacity:.55;font-size:11px;text-transform:uppercase;letter-spacing:.06em">house</span>':""}${mi}</span><span style="font-variant-numeric:tabular-nums;font-weight:600">${money(rc.hammer)}${allin}</span></li>`;
   }).join("");
   sellState.sellOptions=[];
   // Chat memory (items 1-2) for the class-era read a DIY seller sees: the wider-market sales shown,
