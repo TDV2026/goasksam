@@ -101,25 +101,27 @@ async function ocdFetch(params) {
   }
 }
 
-// Natural dedup key (item 7b): source_slug + vin_norm + sale_date + sale_price when a 17-char VIN
-// exists, else source_slug + listing_title + sale_date + sale_price. This is the SAME identity the
-// read paths dedup on (lib/_houseComps.js saleIdentity), so OCD's double-ingest of one house sale
-// under two source_record_ids collapses to a single logical row.
+// Natural dedup key (item 7), matching the UNIQUE PARTIAL EXPRESSION INDEX in
+// docs/supabase-sales-archive-dedupe-key.sql EXACTLY: lower(source_slug) | ident | sale_date |
+// round(sale_price), where ident = 17-char cleaned VIN when present, else the whitespace-normalised
+// lowercased listing_title. Returns null for a blank title AND no-VIN, or a non-positive price (the
+// index is partial and excludes those, so they must NEVER be collapsed) - the caller falls back to
+// source_id so those rows stay distinct. Used only for the in-memory batch dedup; NOT a stored column.
 function dedupeKeyFor(source, vinRaw, saleDate, salePrice, title) {
+  const price = Math.round(Number(salePrice) || 0);
+  if (!(price > 0)) return null;                                   // partial-index: excluded, never dedup
   const vin = String(vinRaw || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
   const date = String(saleDate || "").slice(0, 10);
-  const price = Math.round(Number(salePrice) || 0);
   const slug = String(source || "").toLowerCase();
-  if (vin.length === 17) return `${slug}|${vin}|${date}|${price}`;
-  const t = String(title || "").toLowerCase().replace(/\s+/g, " ").trim();
-  return `${slug}|${t}|${date}|${price}`;
+  const ident = vin.length === 17 ? vin : String(title || "").toLowerCase().replace(/\s+/g, " ").trim();
+  if (!ident) return null;                                         // blank title + no VIN -> excluded
+  return `${slug}|${ident}|${date}|${price}`;
 }
 function toFullRow(r, label, source) {
   const d = toDate(r.auction_end_date);
   const saleDate = dayKey(d), salePrice = toMoney(r.price);
   return {
     source_id: String(r.id ?? ""), sale_date: saleDate, platform: label, source_slug: source,
-    dedupe_key: dedupeKeyFor(source, r.vin, saleDate, salePrice, r.title),
     make: (r.ocd_make_name || r.listing_make || "Unknown").toString().trim(),
     model: (r.ocd_model_name || r.listing_model || "Unknown").toString().trim(),
     sale_price: toMoney(r.price), month: d ? d.toISOString().slice(0, 7) : null, raw_record: r,
@@ -226,48 +228,42 @@ for (const source of SOURCES) {
 // on-conflict DO UPDATE (JSONB rewrite) buys nothing and is what trips the statement
 // timeout. This flag switches to resolution=ignore-duplicates (DO NOTHING), a far lighter
 // write path. Use it for historical backfills; the nightly delta keeps merge semantics.
-// Dedup the batch by the NATURAL key (item 7b), keeping the first (lowest-id) row, so two OCD
-// source_record_ids for the same physical sale never both insert within a run. Falls back to
-// source_id when a row has no dedupe_key.
-const uniq = [...new Map(kept.filter(r => r.source_id).map(r => [r.dedupe_key || r.source_id, r])).values()];
+// Dedup the batch by the NATURAL key (item 7), keeping the first row, so two OCD source_record_ids for
+// the same physical sale never both insert within one run. Rows the key excludes (blank title + no VIN,
+// or non-positive price) fall back to source_id so they stay distinct.
+const uniq = [...new Map(kept.filter(r => r.source_id).map(r => [dedupeKeyFor(r.source_slug, r.vin, r.sale_date, r.sale_price, r.listing_title) || r.source_id, r])).values()];
 const BASE_CHUNK = Math.max(1, Number(flag("chunk") || 100));
 const MIN_CHUNK = 25;
 const IGNORE_DUPES = flag("ignore-dupes") != null;
 const UPSERT_RES = IGNORE_DUPES ? "resolution=ignore-duplicates,return=minimal" : "resolution=merge-duplicates,return=minimal";
-let inserted = 0, insertError = null, chunk = BASE_CHUNK, i = 0, sinceGrow = 0;
-const skipped = [];   // {from, size, error} for chunks that failed even at the floor
-// Upsert on the NATURAL key (item 7b) so a re-ingest of the same house sale under a new
-// source_record_id UPDATES the existing row instead of inserting a duplicate. Self-healing: if the
-// dedupe_key unique index is not applied yet (Postgres 42P10 "no unique/exclusion constraint"), fall
-// back to on_conflict=source_id for the rest of the run so ingest never breaks before Sam runs the DDL
-// (docs/supabase-sales-archive-dedupe-key.sql). Once the index exists, cross-run dupes stop at ingest.
-let onConflictCol = "dedupe_key";   // downgrades to source_id if the unique index is not applied yet
-let stripDedupeKey = false;         // set if the dedupe_key COLUMN does not exist yet
-const prep = rows => stripDedupeKey ? rows.map(({ dedupe_key, ...rest }) => rest) : rows;
+let inserted = 0, insertError = null, chunk = BASE_CHUNK, i = 0, sinceGrow = 0, dupSkipped = 0;
+const skipped = [];   // source_ids of chunks that failed at the floor for a NON-duplicate reason
+// Upsert on source_id (merge) so a re-fetch of the SAME sale updates in place (photo/field refresh).
+// Cross-run DUPLICATES - a re-ingest of the same sale under a NEW source_id - are caught by the unique
+// natural-key index (docs/supabase-sales-archive-dedupe-key.sql) which rejects the INSERT (Postgres
+// 23505); those rows are isolated by halving the chunk down to a single row and skipped as EXPECTED
+// (never counted as an error). Before the index exists no 23505 fires, so ingest behaves as before. The
+// batch is already deduped in memory by the natural key, so a 23505 only ever means a prior-run dup.
+const UNIQUE_VIOLATION = e => /23505|duplicate key|unique constraint|already exists/i.test(String(e || ""));
 while (i < uniq.length) {
   const slice = uniq.slice(i, i + chunk);
-  let r = await supabaseInsert("sales_archive", prep(slice), env.supabaseUrl, env.supabaseKey, UPSERT_RES, `?on_conflict=${onConflictCol}`);
-  // Self-heal before the DDL (docs/supabase-sales-archive-dedupe-key.sql) is applied: if the
-  // dedupe_key COLUMN is missing, drop it from the payload; if the unique INDEX is missing, upsert on
-  // source_id. Once Sam applies the DDL, the natural-key upsert prevents cross-run duplicates at ingest.
-  if (r.error && !stripDedupeKey && /dedupe_key|PGRST204|42703|column/i.test(String(r.error))) {
-    stripDedupeKey = true; onConflictCol = "source_id";
-    process.stderr.write(`\n  dedupe_key column not present yet; ingesting without it and upserting on source_id (apply docs/supabase-sales-archive-dedupe-key.sql to enable natural-key dedup at ingest)\n`);
-    r = await supabaseInsert("sales_archive", prep(slice), env.supabaseUrl, env.supabaseKey, UPSERT_RES, `?on_conflict=${onConflictCol}`);
-  }
-  if (r.error && onConflictCol === "dedupe_key" && /42P10|no unique|exclusion constraint|on_conflict/i.test(String(r.error))) {
-    process.stderr.write(`\n  dedupe_key unique index not present yet; falling back to on_conflict=source_id\n`);
-    onConflictCol = "source_id";
-    r = await supabaseInsert("sales_archive", prep(slice), env.supabaseUrl, env.supabaseKey, UPSERT_RES, `?on_conflict=${onConflictCol}`);
-  }
+  const r = await supabaseInsert("sales_archive", slice, env.supabaseUrl, env.supabaseKey, UPSERT_RES, "?on_conflict=source_id");
   if (r.error) {
-    if (chunk > MIN_CHUNK) {
-      chunk = Math.max(MIN_CHUNK, Math.floor(chunk / 2)); sinceGrow = 0;
-      process.stderr.write(`\n  insert error, retrying same rows at chunk ${chunk}: ${r.error}\n`);
+    const uniqViol = UNIQUE_VIOLATION(r.error);
+    // Isolate: a unique-violation halves all the way to a single row (to skip only the dup); any other
+    // error stops at MIN_CHUNK (a heavy/timing chunk).
+    const floor = uniqViol ? 1 : MIN_CHUNK;
+    if (chunk > floor) {
+      chunk = Math.max(floor, Math.floor(chunk / 2)); sinceGrow = 0;
+      if (!uniqViol) process.stderr.write(`\n  insert error, retrying same rows at chunk ${chunk}: ${r.error}\n`);
       continue;   // retry the SAME offset at a smaller size
     }
-    // Failed even at the floor: record this chunk's source_ids, advance past it, keep going.
-    // One bad chunk must never abandon the rest of an already-metered fetch.
+    if (uniqViol && slice.length === 1) {
+      // This single row is a cross-run duplicate the natural-key index correctly rejected. Skip it
+      // silently (this is the point of the index), advance, and keep the small chunk to isolate more.
+      dupSkipped += 1; i += 1; chunk = 1; continue;
+    }
+    // Non-duplicate failure even at the floor: record this chunk's source_ids, advance, keep going.
     insertError = r.error;
     for (const row of slice) if (row.source_id) skipped.push(row.source_id);
     process.stderr.write(`\n  insert SKIPPED ${slice.length} row(s) at offset ${i} (failed at floor chunk ${chunk}): ${r.error}\n`);
@@ -295,7 +291,7 @@ for (const d of days) {
   if (flagged) belowFloor.push({ day: d, count: n });
   console.log(`  ${d}: ${n}${flagged ? `  BELOW FLOOR (${FLOOR})` : ""}`);
 }
-console.log(`upserted ${inserted} record(s) across ${days.length} day(s); metered ${metered} OCD request(s).`);
+console.log(`upserted ${inserted} record(s) across ${days.length} day(s); metered ${metered} OCD request(s).${dupSkipped ? ` ${dupSkipped} duplicate(s) rejected by the natural-key index.` : ""}`);
 // Per-job metered accounting (so "OCD requests by job last month" is answerable from app_usage_events;
 // previously only a below-floor warning logged, leaving normal ingest spend invisible). Best-effort.
 try {
