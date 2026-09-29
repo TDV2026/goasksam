@@ -1185,7 +1185,9 @@ function _thinPickCardHtml(o){
   }
   // Receipt line leads with the SALE month (unambiguous "June 2024 · $960,000"), car/model year
   // beneath it as context - not the other way round (a car year read like a sale year).
-  const rc=(o.receipts||[]).filter(r=>String(r.slug||"").toLowerCase()===p.slug).sort((a,b)=>b.hammer-a.hammer).slice(0,3)
+  // Item 2: show this venue's receipts by RECENCY, never the 3 priciest (which biased the card to the
+  // ceiling). Newest-first is the honest evidence order and every shown sale is within the venue pool.
+  const rc=(o.receipts||[]).filter(r=>String(r.slug||"").toLowerCase()===p.slug).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))).slice(0,3)
     .map(r=>`<div class="pcard-mrow"><div><div class="pcard-mp" style="font-variant-numeric:tabular-nums">${esc(_thinMonthLabel(r.date)||"Recent")} · ${money(r.hammer)}${isHouse&&r.allIn?` <span style="opacity:.6">buyer paid ${money(r.allIn)}</span>`:""}</div><div class="pcard-ms">${esc(cleanReceiptTitleForCard(r.title)||[r.year,r.model,o.modelLabel].filter(Boolean).join(" ").trim()||o.modelLabel)}</div></div></div>`).join("");
   // Adjacent-year disclosure (Thread A, approved): the thin pool windows year +/-2, so a 1964
   // query can legitimately pool 1963-1964 cars. When the receipts' actual year range differs from
@@ -1317,6 +1319,11 @@ function _hcRoomLabel(room){
 }
 // A card ALWAYS shows the car's OWN listing title (standing rule), cleaned of the OCD mileage hook
 // and gearbox tag; the seller's typed model is only a last-resort fallback when a record has no title.
+// Coarse body-class word for copy ("truck" vs "car"), mirroring the backend class filter.
+function bodyClassWord(v){
+  var t=[v&&v.year,v&&v.make,v&&v.model,v&&v.trim].filter(Boolean).join(" ");
+  return /\bpick[-\s]?up\b|\btruck\b|\b[dwf][-\s]?[1-5]50\b|\bram\b|ramcharger|power\s?wagon|dakota|\bd50\b|\bd350\b|silverado|sierra|blazer|bronco|suburban|tahoe|yukon|wagoneer|cherokee|\bscout\b|land\s?cruiser|4[-\s]?runner|tacoma|tundra|\bk5\b|\bsuv\b|\bvan\b|econoline|defender|\bfj\d/i.test(t)?"truck":"car";
+}
 function cleanReceiptTitleForCard(title){
   var t=String(title==null?"":title);
   t=t.replace(/^\s*[\d][\d,.]*\s*k?\s*[-\s]\s*(mile|kilometer|km)s?\b'?s?\s*/i,""); // "21k-Mile "
@@ -1488,7 +1495,11 @@ function renderClassEraSell(msgs,ce,decisionData){
   const lo=(ce.lowHammer!=null?ce.lowHammer:sorted[0].hammer),hi=(ce.highHammer!=null?ce.highHammer:sorted[sorted.length-1].hammer);
   const line=`No ${esc(carName)} has sold in the last three years, so this is the wider ${esc(ce.era)} ${esc(ce.make)} market, not your exact car. ${ce.totalN} sold; most landed between ${money(lo)} and ${money(hi)}, the middle around ${money(ce.medianHammer)}.`;
   const read=`Your exact car is rare enough that it hasn't traded in the three years I track. Treat these as the neighborhood it sits in, not a figure for it. The moment one like yours sells, I can read it directly.`;
-  const list=sorted.slice().reverse().slice(0,6).map(rc=>{
+  // Item 2: show the sales in the engine's RELEVANCE order (assessClassEra ranks by same-model, then
+  // year proximity, then recency), NEVER re-sorted by price. The old ".reverse().slice(0,6)" showed the
+  // six PRICIEST, which fell outside the stated band. ce.receipts arrives already relevance-ranked.
+  const shown=recs.slice(0,6);
+  const list=shown.map(rc=>{
     const link=rc.url?`<a href="${esc(rc.url)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(0,0,0,.18)">${esc(rc.venue)}</a>`:esc(rc.venue);
     const mi=Number(rc.mileage)>0?` · ${Number(rc.mileage).toLocaleString()} mi`:"";
     const allin=rc.isHouse&&rc.allIn?` <span style="opacity:.6;font-size:12px">buyer paid ${money(rc.allIn)}</span>`:"";
@@ -1496,12 +1507,31 @@ function renderClassEraSell(msgs,ce,decisionData){
     const own=cleanReceiptTitleForCard(rc.title)||[rc.year,rc.model].filter(Boolean).join(" ")||"";
     return `<li style="display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-top:1px solid rgba(0,0,0,.08)"><span>${esc(own)} ${link}${rc.isHouse?' <span style="opacity:.55;font-size:11px;text-transform:uppercase;letter-spacing:.06em">house</span>':""}${mi}</span><span style="font-variant-numeric:tabular-nums;font-weight:600">${money(rc.hammer)}${allin}</span></li>`;
   }).join("");
+  // Item 5 (self-sell answer): rank the ONLINE places that have sold this class, by count then recency,
+  // counts shown. A self-seller lists it themselves, so auction houses are excluded from the ranking;
+  // if the class has house sales, say so in one line.
+  const onlineRecs=recs.filter(r=>!r.isHouse);
+  const houseN=recs.length-onlineRecs.length;
+  const vmap={};
+  for(const r of onlineRecs){const k=(typeof platformDisplayName==="function"?platformDisplayName(r.slug||r.source):null)||r.venue||"Online";const d=String(r.date||"").slice(0,10);(vmap[k]||(vmap[k]={venue:k,count:0,recent:""}));vmap[k].count++;if(d>vmap[k].recent)vmap[k].recent=d;}
+  const venues=Object.values(vmap).sort((a,b)=>b.count-a.count||b.recent.localeCompare(a.recent)).slice(0,5);
+  let venueBlock="";
+  if(venues.length){
+    const rows=venues.map(x=>`<li style="display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-top:1px solid rgba(0,0,0,.08)"><span>${esc(x.venue)}</span><span style="color:#6b6861;font-size:13px">${x.count} sold${x.recent?` · latest ${esc(_thinMonthLabel(x.recent)||"")}`:""}</span></li>`).join("");
+    venueBlock=`<div class="pcard-whyl pcard-whyl-main" style="margin-top:16px">Where to list it yourself</div>`
+      +`<p class="pcard-lead">Since you're selling it yourself, here are the online platforms that have actually sold ${esc(ce.era)} ${esc(ce.make)} ${bodyClassWord(v)}s, most active first.</p>`
+      +`<ul style="list-style:none;margin:8px 0 0;padding:0">${rows}</ul>`
+      +(houseN>0?`<p class="pcard-lead" style="opacity:.7;font-size:12.5px;margin-top:8px">Auction houses have taken ${houseN} of these too; I've left them out here since you told me you'll run the sale yourself.</p>`:"");
+  }
+  // Asking-price fact (item 5), from the sales SHOWN.
+  const askLine=(typeof _askingVsSalesLine==="function")?_askingVsSalesLine(shown.map(r=>r.hammer)):"";
   sellState.sellOptions=[];
-  // Chat memory (items 1-2) for the class-era read a DIY seller sees: the wider-market sales shown,
-  // including the venues (Barrett-Jackson, Mecum, ...). No consignment calendar is shown here.
+  // Chat memory for the class-era read a DIY seller sees: the wider-market sales shown (relevance
+  // order) + the online venue ranking. No consignment calendar is shown here.
   sellState.renderedClassEra={
     carLabel:carName, era:ce.era, make:ce.make,
-    sales:sorted.slice().reverse().slice(0,6).map(rc=>`${[rc.year,rc.model].filter(Boolean).join(" ")} ${money(rc.hammer)} at ${rc.venue}`)
+    sales:shown.map(rc=>`${cleanReceiptTitleForCard(rc.title)||[rc.year,rc.model].filter(Boolean).join(" ")} ${money(rc.hammer)} at ${rc.venue}`),
+    onlineVenues:venues.map(x=>`${x.venue} (${x.count} sold)`), houseN:houseN
   };
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
@@ -1515,6 +1545,8 @@ function renderClassEraSell(msgs,ce,decisionData){
         <p class="pcard-lead">${read}</p>
         <div class="pcard-whyl pcard-whyl-main">${esc(ce.era)} ${esc(ce.make)} sales, last three years</div>
         <ul style="list-style:none;margin:8px 0 0;padding:0">${list}</ul>
+        ${askLine||""}
+        ${venueBlock}
         <p class="pcard-lead" style="opacity:.6;font-size:12px;margin-top:14px">Real completed sales, hammer prices with the buyer premium backed out. No estimates. No valuations.</p>
       </div>
     </div>
