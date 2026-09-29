@@ -3203,7 +3203,17 @@ export default async function handler(req, res) {
         // the year in the wizard). Proceed with the partial make/model through
         // the evidence ladder at model level instead of clarifying: we never
         // re-ask the year after the summary was confirmed.
-        const partial = car.acceptModelLevel ? sanitizeResolvedVehicle(resolution.vehicle) : null;
+        // A seller who accepted a model-level read (or answered "not sure" to a model/ambiguity
+        // question) proceeds at MAKE level. sanitizeResolvedVehicle drops a model-less vehicle, so when
+        // the resolution still pinned a make (+ usually a year), fall back to a bare make-level vehicle
+        // that carries make/year and the ORIGINAL raw text (so the class-era read can body-class it from
+        // the codes the seller typed, e.g. "D50 D350" -> truck). This is what routes a "not sure" to the
+        // wider class-era read instead of a route pick with no sales.
+        let partial = car.acceptModelLevel ? sanitizeResolvedVehicle(resolution.vehicle) : null;
+        if (!partial && car.acceptModelLevel && resolution.vehicle && resolution.vehicle.make) {
+          const rv = resolution.vehicle;
+          partial = { make: rv.make, year: rv.year || null, model: rv.model || null, trim: rv.trim || null, raw: rv.raw || rawSearch, unverified: true };
+        }
         if (partial) {
           vehicle = partial;
         } else if (req.body?.oneBox && resolution.vehicle?.make && resolution.vehicle?.model) {
