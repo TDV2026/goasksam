@@ -10,6 +10,7 @@
 // non-tester caller is refused regardless of the launch curtain), same context shape.
 import { handleDeskRequest } from "../lib/desk/handler.js";
 import { testerCodeExpired } from "../lib/_tester.js";
+import { supabaseSelect } from "../lib/_supabase.js";
 
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -38,6 +39,36 @@ export default async function handler(req, res) {
   const tester = cookies.gas_tester === "ok" && !testerCodeExpired();
   // Desk is crew-only ALWAYS (never public, unlike the storefront).
   if (!crew && !tester) return res.status(403).json({ status: "sealed", error: "Desk is crew-only." });
+
+  // READ-ONLY archive diagnostic (crew-only, 300s budget): count duplicate
+  // (vin_norm, sale_date, source_slug) rows archive-wide - the same physical sale ingested under two
+  // source_record_ids. Keyset-pages the whole vin_norm-bearing archive by the indexed id and groups
+  // in memory. Never deletes anything. Lives here (not sellerDecision) because the full scan needs
+  // more than sellerDecision's 60s ceiling. Report-only.
+  if (req.body && req.body.archiveDiag === "dupScan") {
+    const env2 = { supabaseUrl, supabaseKey };
+    const g = new Map(); let cursor = "", scanned = 0, pages = 0;
+    for (let i = 0; i < 600; i++) {
+      let q = `sales_archive?select=id,vin_norm,sale_date,source_slug&vin_norm=not.is.null&sale_date=not.is.null&order=id.asc&limit=1000`;
+      if (cursor) q += `&id=gt.${encodeURIComponent(cursor)}`;
+      let batch = null;
+      for (let a = 0; a < 3 && batch === null; a++) { batch = await supabaseSelect(env2, q); if (batch === null && a < 2) await new Promise(r => setTimeout(r, 300 * (a + 1))); }
+      if (batch === null) return res.status(200).json({ status: "dupScan", error: "query_failed", scanned, pages });
+      if (!batch.length) break;
+      pages++;
+      for (const r of batch) {
+        scanned++;
+        const vn = String(r.vin_norm || "").trim(); if (!vn) continue;
+        const k = `${vn}|${String(r.sale_date).slice(0, 10)}|${r.source_slug || ""}`;
+        g.set(k, (g.get(k) || 0) + 1);
+      }
+      cursor = batch[batch.length - 1].id;
+      if (batch.length < 1000) break;
+    }
+    let dupGroups = 0, extraRows = 0; const bySlug = {};
+    for (const [k, n] of g) if (n > 1) { dupGroups++; extraRows += n - 1; const slug = k.split("|")[2] || "(null)"; bySlug[slug] = (bySlug[slug] || 0) + (n - 1); }
+    return res.status(200).json({ status: "dupScan", scanned, pages, keyedGroups: g.size, dupGroups, extraRows, extraRowsBySlug: bySlug });
+  }
 
   try {
     const out = await handleDeskRequest(req.body || {}, {

@@ -1511,6 +1511,7 @@
           // carries the year-scoped model chips - render ONE model ask ("...a 1990 BMW. Which
           // model?"), not a confirm followed by a model screen. The chip builds "year make model".
           if (cl.modelOptions && cl.modelOptions.length) {
+            vinQueryNoSale = true;   // a VIN reached confirmation with no archive match -> no recorded sale
             renderChoice({ prompt: cl.question, modelOptions: cl.modelOptions, baseLabel: [d.vehicle && d.vehicle.year, d.vehicle && d.vehicle.make].filter(Boolean).join(" ") || null });
             return;
           }
