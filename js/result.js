@@ -1324,7 +1324,9 @@ function _hcRoomLabel(room){
 // and gearbox tag; the seller's typed model is only a last-resort fallback when a record has no title.
 // Coarse body-class word for copy ("truck" vs "car"), mirroring the backend class filter.
 function bodyClassWord(v){
-  var t=[v&&v.year,v&&v.make,v&&v.model,v&&v.trim].filter(Boolean).join(" ");
+  // Include the ORIGINAL typed text (carRaw) so a make-level read (model dropped after "not sure")
+  // still says "trucks" from the codes the seller typed, matching the truck cards shown.
+  var t=[v&&v.year,v&&v.make,v&&v.model,v&&v.trim,sellState&&sellState.carRaw].filter(Boolean).join(" ");
   return /\bpick[-\s]?up\b|\btruck\b|\b[dwf][-\s]?[1-5]50\b|\bram\b|ramcharger|power\s?wagon|dakota|\bd50\b|\bd350\b|silverado|sierra|blazer|bronco|suburban|tahoe|yukon|wagoneer|cherokee|\bscout\b|land\s?cruiser|4[-\s]?runner|tacoma|tundra|\bk5\b|\bsuv\b|\bvan\b|econoline|defender|\bfj\d/i.test(t)?"truck":"car";
 }
 function cleanReceiptTitleForCard(title){
