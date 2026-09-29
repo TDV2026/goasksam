@@ -3763,7 +3763,6 @@ export default async function handler(req, res) {
     try {
       if (vehicle && vehicle.make && vehicle.model) {
         const ri = await reserveInsightForVehicle(vehicle, generation, { supabaseUrl, supabaseKey });
-        if (req.body.debug) decision._reserveDbg = ri;
         if (ri && ri.ok && decision.routeFit && Array.isArray(decision.routeFit.routes)) {
           for (const route of decision.routeFit.routes) { if (route.routable && route.marketEvidence) route.marketEvidence.reserveInsight = ri; }
         }
