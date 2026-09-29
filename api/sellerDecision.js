@@ -3765,26 +3765,33 @@ export default async function handler(req, res) {
     let thin = null;
     try { thin = await assessThinForVehicle(vehicle, generation, thinEnv); ceDbg.thinTotalN = thin && thin.totalN; ceDbg.thinIsThin = thin && thin.isThin; }
     catch (e) { ceDbg.ceErr = "thin:" + String((e && e.message) || e).slice(0, 80); }
-    if (thin && thin.isThin && Array.isArray(thin.receipts) && thin.receipts.length) {
-      try {
-        const houseVenues = [];
-        for (const rc of thin.receipts) { if (rc.isHouse && !houseVenues.includes(rc.venue)) houseVenues.push(rc.venue); }
-        decision.thin = {
-          isThin: true, houseSteer: !!thin.houseSteer,
-          onlineN: thin.onlineN, houseN: thin.houseN, onlineReceiptsN: thin.onlineReceiptsN, totalN: thin.totalN,
-          medianHammer: thin.medianHammer, receipts: thin.receipts, intake: thin.intake || null,
-          pairs: thin.pairs || [], pairsCount: thin.pairsCount || 0, pairPctEligible: !!thin.pairPctEligible,
-          houseVenues
-        };
-        decision.thin.consignPartner = thin.houseSteer
-          ? await findConsignsToHousesPartner(vehicle, sellerCriteria, supabaseUrl, supabaseKey)
-          : null;
-        // House-by-house comparison (Sep 2026): ranked record + rooms + next-sale, from the scoped
-        // house receipts + the curated calendar. ASAP reorders to the soonest sale. Additive.
-        const _tl = String((car && car.timeline) || ""); const asap = /\b(asap|rush|hurry|urgent|fast|quick|soon)\b|right away|this week/i.test(_tl) && !/\bno\s+(rush|hurry)\b/i.test(_tl);
-        decision.thin.houseComparison = buildHouseComparison(thin.receipts, { todayISO: new Date().toISOString().slice(0, 10), asap });
-      } catch { /* thin render facts are additive */ }
-    } else if (vehicle && vehicle.year && vehicle.make && (!thin || thin.totalN === 0 || !vehicle.model || vehicle.unverified || (car && car.acceptModelLevel))) {
+    // MIN sales for a confident venue PICK (item 4). A "sell it here" recommendation should rest on at
+    // least this many comparable sales of the ACTUAL model; with fewer, one sale swings the median and
+    // the venue mix too much to name a best destination honestly, so we fall to the wider class-era read
+    // (the same read the D50 path uses) instead of a pick card. A HOUSE-steered thin shows the house
+    // RECORD (not a pick), so it is exempt.
+    const MIN_PICK_SALES = 5;
+    const thinReceiptN = (thin && Array.isArray(thin.receipts)) ? thin.receipts.length : 0;
+    const setThinDecision = async () => {
+      const houseVenues = [];
+      for (const rc of thin.receipts) { if (rc.isHouse && !houseVenues.includes(rc.venue)) houseVenues.push(rc.venue); }
+      decision.thin = {
+        isThin: true, houseSteer: !!thin.houseSteer,
+        onlineN: thin.onlineN, houseN: thin.houseN, onlineReceiptsN: thin.onlineReceiptsN, totalN: thin.totalN,
+        medianHammer: thin.medianHammer, receipts: thin.receipts, intake: thin.intake || null,
+        pairs: thin.pairs || [], pairsCount: thin.pairsCount || 0, pairPctEligible: !!thin.pairPctEligible,
+        houseVenues
+      };
+      decision.thin.consignPartner = thin.houseSteer
+        ? await findConsignsToHousesPartner(vehicle, sellerCriteria, supabaseUrl, supabaseKey)
+        : null;
+      const _tl = String((car && car.timeline) || ""); const asap = /\b(asap|rush|hurry|urgent|fast|quick|soon)\b|right away|this week/i.test(_tl) && !/\bno\s+(rush|hurry)\b/i.test(_tl);
+      decision.thin.houseComparison = buildHouseComparison(thin.receipts, { todayISO: new Date().toISOString().slice(0, 10), asap });
+    };
+    const thinTooThinForPick = thin && thin.isThin && thinReceiptN > 0 && thinReceiptN < MIN_PICK_SALES && !thin.houseSteer;
+    if (thin && thin.isThin && thinReceiptN && (thinReceiptN >= MIN_PICK_SALES || thin.houseSteer)) {
+      try { await setThinDecision(); } catch { /* thin render facts are additive */ }
+    } else if (vehicle && vehicle.year && vehicle.make && (thinTooThinForPick || !thin || thin.totalN === 0 || !vehicle.model || vehicle.unverified || (car && car.acceptModelLevel))) {
       // CLASS-ERA rung: the exact model has not sold in three years (empty model pool), OR the model
       // could not be pinned (make-level "not sure" / unverified). Widen to the same marque within the
       // car's decade era band, body-class scoped from the typed text - a coarse honest fallback that
@@ -3801,6 +3808,9 @@ export default async function handler(req, res) {
           decision.classEra.houseComparison = buildHouseComparison(ce.receipts, { todayISO: new Date().toISOString().slice(0, 10), asap, eraBand: true });
         }
       } catch (e) { ceDbg.ceErr = "class:" + String((e && e.message) || e).slice(0, 120); }
+      // If the class-era read produced nothing but thin DID have a few real sales, keep those (do not
+      // drop real evidence): render the thin state without a confident pick rather than an empty result.
+      if (!decision.classEra && thinTooThinForPick) { try { await setThinDecision(); } catch { } }
     }
     if (req.body && req.body.debug === true) decision._ceDebug = ceDbg;
 

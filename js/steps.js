@@ -265,7 +265,11 @@ async function handleSellStep(q){
       sellState.vehicleDetailSkipped=true;
       sellState.trimAskAttempts=0;
       sellState.lastMissingAsk=null;
-      addMsg("sam","No problem. I'll keep it broad for now, but the recommendation may be more directional without the exact model.");
+      // Item 6: name what is actually missing. At the trim step the MODEL is known and only the TRIM is
+      // missing, so it reads "without the exact trim", not "model".
+      const _mk=(sellState.resolvedVehicle&&sellState.resolvedVehicle.model)||null;
+      const _missing=_mk?"trim":"model";
+      addMsg("sam",`No problem. I'll keep it broad for now, but the recommendation may be more directional without the exact ${_missing}.`);
     }else{
       // Context reset: a different make at the trim question is a new car,
       // not a trim answer appended to the old one.

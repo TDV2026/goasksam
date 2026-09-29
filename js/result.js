@@ -1297,7 +1297,15 @@ function renderThinDecisionSell(msgs,thin,decisionData){
   }
   body=partnerCard+body;
   sellState.sellOptions=[]; // destinations are the outbound consign/list doors, not a captured lead
-  const askLine=_askingVsSalesLine(recs.map(r=>r.hammer));
+  // Item 2: the asking-price fact must count ONLY the sales actually ON SCREEN (the pick cards show the
+  // top 3 per shown venue), not the whole pool. Gather the same receipts the cards render.
+  const shownVenues=[];
+  if(houseLeads){ if(hp)shownVenues.push(hp.pick.slug); if(op)shownVenues.push(op.pick.slug); }
+  else if(rush&&thin.houseSteer){ if(op)shownVenues.push(op.pick.slug); }
+  else { if(op)shownVenues.push(op.pick.slug); if(hp)shownVenues.push(hp.pick.slug); }
+  const shownThinRecs=[];
+  for(const sv of shownVenues){ recs.filter(r=>String(r.slug||"").toLowerCase()===String(sv).toLowerCase()).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))).slice(0,3).forEach(r=>shownThinRecs.push(r)); }
+  const askLine=_askingVsSalesLine((shownThinRecs.length?shownThinRecs:recs).map(r=>r.hammer));
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${body}
     ${askLine}
@@ -1500,8 +1508,9 @@ function renderClassEraSell(msgs,ce,decisionData){
   const sorted=recs.slice().sort((a,b)=>a.hammer-b.hammer);
   const lo=(ce.lowHammer!=null?ce.lowHammer:sorted[0].hammer),hi=(ce.highHammer!=null?ce.highHammer:sorted[sorted.length-1].hammer);
   const line=`No ${esc(carName)} has sold in the last three years, so this is the wider ${esc(ce.era)} ${esc(ce.make)} market, not your exact car. ${ce.totalN} sold; most landed between ${money(lo)} and ${money(hi)}, the middle around ${money(ce.medianHammer)}.`;
-  // Item 4: state the fact only, never call the exact car "rare".
-  const read=`None sold in the three years I track, so treat these as the neighborhood it sits in, not a figure for it. The moment one like yours sells, I can read it directly.`;
+  // Item 4: state the fact only, never call the exact car "rare". Item 5: the "none sold" fact is
+  // already in `line` above, so it is NOT repeated here.
+  const read=`Treat these as the neighborhood it sits in, not a figure for it. The moment one like yours sells, I can read it directly.`;
   // Item 3 (self-sell = online only): a self-seller lists it themselves, so the SHOWN cards are ONLINE
   // sales only, matching the "houses left out" line below. Auction-house receipts never appear here.
   const onlineRecs=recs.filter(r=>!r.isHouse);
