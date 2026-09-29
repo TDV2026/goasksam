@@ -2991,18 +2991,28 @@ export default async function handler(req, res) {
       // READ-ONLY (archive only, zero OCD): count duplicate (vin_norm, sale_date, source_slug) rows
       // archive-wide - the same physical sale ingested under two source_record_ids (OCD double-assigns
       // ids to house sales). Reports the number of duplicate GROUPS and the number of EXTRA rows
-      // (group size minus one, summed). Never deletes anything.
-      const rows = await supabaseSelectAll(env2, `sales_archive?select=vin_norm,sale_date,source_slug&vin_norm=not.is.null&sale_date=not.is.null&order=vin_norm.asc`);
-      if (rows === null) return res.status(200).json({ status: "archive_query", mode, error: "query_failed" });
-      const g = new Map();
-      for (const r of rows) {
-        const vn = String(r.vin_norm || "").trim(); if (!vn) continue;
-        const k = `${vn}|${String(r.sale_date).slice(0, 10)}|${r.source_slug || ""}`;
-        g.set(k, (g.get(k) || 0) + 1);
+      // (group size minus one, summed). Never deletes anything. Keyset-pages by the indexed id column
+      // (ordering by vin_norm on the whole archive timed out the first page); groups in memory.
+      const g = new Map(); let cursor = "", scanned = 0;
+      for (let i = 0; i < 400; i++) {
+        let q = `sales_archive?select=id,vin_norm,sale_date,source_slug&vin_norm=not.is.null&sale_date=not.is.null&order=id.asc&limit=1000`;
+        if (cursor) q += `&id=gt.${encodeURIComponent(cursor)}`;
+        let batch = null;
+        for (let a = 0; a < 3 && batch === null; a++) { batch = await supabaseSelect(env2, q); if (batch === null && a < 2) await new Promise(r => setTimeout(r, 400 * (a + 1))); }
+        if (batch === null) return res.status(200).json({ status: "archive_query", mode, error: "query_failed", scanned });
+        if (!batch.length) break;
+        for (const r of batch) {
+          scanned++;
+          const vn = String(r.vin_norm || "").trim(); if (!vn) continue;
+          const k = `${vn}|${String(r.sale_date).slice(0, 10)}|${r.source_slug || ""}`;
+          g.set(k, (g.get(k) || 0) + 1);
+        }
+        cursor = batch[batch.length - 1].id;
+        if (batch.length < 1000) break;
       }
       let dupGroups = 0, extraRows = 0; const bySlug = {};
       for (const [k, n] of g) if (n > 1) { dupGroups++; extraRows += n - 1; const slug = k.split("|")[2] || "(null)"; bySlug[slug] = (bySlug[slug] || 0) + (n - 1); }
-      return res.status(200).json({ status: "archive_query", mode, scanned: rows.length, keyedGroups: g.size, dupGroups, extraRows, extraRowsBySlug: bySlug });
+      return res.status(200).json({ status: "archive_query", mode, scanned, keyedGroups: g.size, dupGroups, extraRows, extraRowsBySlug: bySlug });
     }
     if (mode === "count") {
       // Exact row counts via PostgREST Content-Range (no paging, no deep-offset timeout).
