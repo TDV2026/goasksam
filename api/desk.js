@@ -47,27 +47,39 @@ export default async function handler(req, res) {
   // more than sellerDecision's 60s ceiling. Report-only.
   if (req.body && req.body.archiveDiag === "dupScan") {
     const env2 = { supabaseUrl, supabaseKey };
-    const g = new Map(); let cursor = "", scanned = 0, pages = 0;
-    for (let i = 0; i < 600; i++) {
-      let q = `sales_archive?select=id,vin_norm,sale_date,source_slug&vin_norm=not.is.null&sale_date=not.is.null&order=id.asc&limit=1000`;
-      if (cursor) q += `&id=gt.${encodeURIComponent(cursor)}`;
-      let batch = null;
-      for (let a = 0; a < 3 && batch === null; a++) { batch = await supabaseSelect(env2, q); if (batch === null && a < 2) await new Promise(r => setTimeout(r, 300 * (a + 1))); }
-      if (batch === null) return res.status(200).json({ status: "dupScan", error: "query_failed", scanned, pages });
-      if (!batch.length) break;
-      pages++;
-      for (const r of batch) {
-        scanned++;
-        const vn = String(r.vin_norm || "").trim(); if (!vn) continue;
-        const k = `${vn}|${String(r.sale_date).slice(0, 10)}|${r.source_slug || ""}`;
-        g.set(k, (g.get(k) || 0) + 1);
+    // The duplication mechanism is OCD re-assigning source_record_id to the SAME physical HOUSE sale
+    // (the RM Sotheby's example), so the scan iterates the house source_slugs (small, index-backed,
+    // fits the budget) rather than the whole vin_norm archive (which does not finish in 300s). Online
+    // sources (BaT/C&B) upsert on a stable source_id, so they do not accumulate (vin,date,slug) dups
+    // the same way. Pass archiveDiagSlugs to override the source set. Report-only; never deletes.
+    const HOUSE_SLUGS = Array.isArray(req.body.archiveDiagSlugs) && req.body.archiveDiagSlugs.length
+      ? req.body.archiveDiagSlugs
+      : ["rmsothebys", "gooding", "bonhams", "broadarrow", "mecum", "barrettjackson", "sothebysmotorsport"];
+    const g = new Map(); let scanned = 0, pages = 0; const perSlug = {};
+    for (const slug of HOUSE_SLUGS) {
+      let cursor = "", slugRows = 0;
+      for (let i = 0; i < 200; i++) {
+        let q = `sales_archive?select=id,vin_norm,sale_date,source_slug&source_slug=eq.${encodeURIComponent(slug)}&vin_norm=not.is.null&sale_date=not.is.null&order=id.asc&limit=1000`;
+        if (cursor) q += `&id=gt.${encodeURIComponent(cursor)}`;
+        let batch = null;
+        for (let a = 0; a < 3 && batch === null; a++) { batch = await supabaseSelect(env2, q); if (batch === null && a < 2) await new Promise(r => setTimeout(r, 300 * (a + 1))); }
+        if (batch === null) return res.status(200).json({ status: "dupScan", error: "query_failed", scanned, pages, slug });
+        if (!batch.length) break;
+        pages++;
+        for (const r of batch) {
+          scanned++; slugRows++;
+          const vn = String(r.vin_norm || "").trim(); if (!vn) continue;
+          const k = `${vn}|${String(r.sale_date).slice(0, 10)}|${r.source_slug || ""}`;
+          g.set(k, (g.get(k) || 0) + 1);
+        }
+        cursor = batch[batch.length - 1].id;
+        if (batch.length < 1000) break;
       }
-      cursor = batch[batch.length - 1].id;
-      if (batch.length < 1000) break;
+      perSlug[slug] = slugRows;
     }
     let dupGroups = 0, extraRows = 0; const bySlug = {};
     for (const [k, n] of g) if (n > 1) { dupGroups++; extraRows += n - 1; const slug = k.split("|")[2] || "(null)"; bySlug[slug] = (bySlug[slug] || 0) + (n - 1); }
-    return res.status(200).json({ status: "dupScan", scanned, pages, keyedGroups: g.size, dupGroups, extraRows, extraRowsBySlug: bySlug });
+    return res.status(200).json({ status: "dupScan", scope: "house_sources", sourcesScanned: HOUSE_SLUGS, scanned, pages, rowsPerSource: perSlug, keyedGroups: g.size, dupGroups, extraRows, extraRowsBySlug: bySlug });
   }
 
   try {

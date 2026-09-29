@@ -1069,24 +1069,28 @@
     var href = utmUrl(mid.url);
     return href ? '<a class="cm cm-solo" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(mid.slug || "") + '">' + inner + "</a>" : '<div class="cm cm-solo">' + inner + "</div>";
   }
-  // Sale-anchored hero: ALWAYS a single named sale, never a band. The median of the scoped set
-  // (nearest to the placed config) when the user answered intake; the median of all when skipped.
+  // Thin state: NO HEADLINE DOLLAR FIGURE (rule 24). With too few sales to mark a typical band, there
+  // is no honest headline number - not even the median sale rendered big (a lone figure a reader adopts
+  // is a valuation whatever the label). Lead with the honest "here are the sales" line, then the real
+  // sales: a representative sale as a CARD (card-scale price, a receipt, not a page headline) and the
+  // recorded min-max RANGE (the record). The single-sale case names that one real sale in prose.
   function thinHeroHtml(name, scope, scopedLabel, answered) {
     var s = scope.slice().sort(function (a, b) { return a.hammer - b.hammer; });
     var n = s.length, mid = s[Math.floor((n - 1) / 2)];
-    var out = '<div class="livetake blk" data-stage="answer">';
-    out += '<p class="lt-hero">' + esc(usd(mid.hammer)) + "</p>";
-    // 5b: the line NAMES the sale but never repeats the headline price (it is already the big number
-    // above and on the hero card). 5a: no count of sales on a consumer surface.
-    var line;
-    if (n === 1) line = "The one " + name + " to change hands in " + HT_WINDOW_TEXT + ": a " + mid.year + " sold at " + esc(mid.venue) + " in " + monthYear(mid.date) + "." + (mid.isHouse && mid.allIn ? " The buyer paid " + usd(mid.allIn) + " with the premium." : "");
-    else if (answered && scopedLabel) line = "The closest recent sale to a " + scopedLabel + " car was a " + mid.year + " that sold " + venuePrep(mid) + " in " + monthYear(mid.date) + ".";
-    else line = "The middle sale was a " + mid.year + " that sold " + venuePrep(mid) + " in " + monthYear(mid.date) + ".";
-    out += '<p class="lt-line">' + lint(line, "ht.hero") + "</p>";
-    out += thinHeroCard(mid);   // item 4: hero photo
-    if (n >= 2) {
+    var out = '<div class="livetake blk noband" data-stage="answer">';
+    if (n === 1) {
+      // One real sale: name it in prose (a single receipt, not a headline band) + the card below.
+      var one = "The one " + name + (scopedLabel ? " (" + scopedLabel + ")" : "") + " to change hands in " + HT_WINDOW_TEXT + " was a " + mid.year + " that sold " + venuePrep(mid) + " in " + monthYear(mid.date) + " for " + usd(mid.hammer) + "." + (mid.isHouse && mid.allIn ? " The buyer paid " + usd(mid.allIn) + " with the premium." : "");
+      out += '<p class="lt-line">' + lint(one, "ht.hero1") + "</p>";
+      out += thinHeroCard(mid);
+    } else {
+      // Too few for a typical band: say so, show the range (the record) and the sales themselves. No
+      // big median headline. The representative sale is a labelled card, not the page's headline value.
+      var lead = (scopedLabel ? cap(scopedLabel) + " " + name + "s" : cap(name) + "s") + " are too thin " + HT_WINDOW_TEXT + " to mark a typical band, so here is what actually sold.";
+      out += '<p class="lt-line">' + lint(lead, "ht.hero") + "</p>";
       var min = s[0].hammer, max = s[n - 1].hammer;
       if (max > min) out += '<p class="lt-span">' + lint("The recorded sales" + (scopedLabel ? " of " + scopedLabel + " cars" : "") + " ran from " + usd(min) + " to " + usd(max) + ".", "ht.span") + "</p>";
+      out += thinHeroCard(mid);   // item 4: hero photo, card-scale price (a receipt, not a headline)
     }
     var gpat = gearboxPatternLine(scope);
     if (gpat) out += '<p class="lt-span">' + lint(gpat, "ht.gbox") + "</p>";
@@ -1124,9 +1128,10 @@
     } else if (ht.houseN && ht.onlineReceiptsN) {
       reads.push("These sell online and at the auction houses. The recorded sales are below.");
     }
-    reads.push("Too few sold recently to mark a typical band, so these are the sales themselves, not a guess.");
+    // The "too few to mark a typical band" line is now the hero lead (thinHeroHtml), so it is NOT
+    // repeated here (rule 21: never restate a line already shown; and no second headline claim).
     // Plain serif lines, no green box (consistent with the result/exact states: evidence, not a widget).
-    body += '<div class="thinread" data-stage="answer">' + reads.map(function (p) { return '<p class="contradiction">' + lint(esc(p), "ht.read") + "</p>"; }).join("") + "</div>";
+    if (reads.length) body += '<div class="thinread" data-stage="answer">' + reads.map(function (p) { return '<p class="contradiction">' + lint(esc(p), "ht.read") + "</p>"; }).join("") + "</div>";
     body += '<div class="seclabel" data-stage="cards">' + lint("What has sold, " + esc(name) + ", " + spanRange(scope), "ht.reclab") + "</div>";
     // Item 3: show the sales by RECENCY, not the 8 priciest (the engine sorts ht.receipts hammer-desc
     // for the median math, but slicing that top-8 for display biased the shown set to the ceiling and
