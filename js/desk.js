@@ -292,10 +292,16 @@
     h += '</div>';
     if (cmp.gap) {
       var g = cmp.gap;
+      // count_ratio = how often the PRICIER car trades vs the cheaper one. "and" when the pricier car
+      // ALSO trades more (no tension); "though" only when the pricier car trades LESS (the tradeoff).
       var freq = "";
-      if (g.count_ratio != null && g.count_ratio >= 1.5) {
+      if (g.count_ratio != null && g.count_ratio >= 1.15) {
         var times = g.count_ratio >= 2 ? Math.round(g.count_ratio) + " times as often" : g.count_ratio.toFixed(1) + " times as often";
-        freq = ", though it trades " + times + " (" + g.higher_count + " to " + g.lower_count + ")";
+        freq = ", and it trades " + times + " (" + g.higher_count + " to " + g.lower_count + ")";
+      } else if (g.count_ratio != null && g.count_ratio > 0 && g.count_ratio <= 0.87) {
+        var inv = 1 / g.count_ratio;
+        var less = inv >= 2 ? Math.round(inv) + " times less often" : "less often";
+        freq = ", though it trades " + less + " (" + g.higher_count + " to " + g.lower_count + ")";
       }
       var line = g.higher + " typically brings " + usd(g.diff_usd) + " more than " + g.lower +
         (g.pct != null ? ", about " + g.pct + "% higher" : "") + freq + ".";
@@ -428,6 +434,8 @@
     // lede (comparison) return "" from readingSentence.
     var lead = readingSentence(res);
     if (lead) out.innerHTML = lead + out.innerHTML;
+    // A refinement that ran PAST the prior scope says so (e.g. "widened to 1998 to 2002, past the 90s").
+    if (res.reading && res.reading.refineNote) out.innerHTML = '<p class="reading">' + esc(res.reading.refineNote) + '</p>' + out.innerHTML;
     // No-silent-drops still holds without chips: anything we did NOT apply is stated as one muted line.
     if (res.not_applied && res.not_applied.length && !res.clarify) {
       out.innerHTML += '<p class="na-note">' + res.not_applied.map(function (n) {

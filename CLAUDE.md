@@ -55,6 +55,13 @@ These are STANDING rules for everything Sam Desk touches (interpreter, dictionar
 
 Plus the language rules already locked product-wide, restated for the Desk voice: no "worth", "valuation", "estimate", "appraisal", "undervalued" or "overvalued" in our own voice; a user may type them and we translate to what we measured (median, spread, cheapest-relative-to). "Average" is answered with the median and a one-line note (never a mean or a midpoint). Better nothing than a fake number: an honest "I can't read that" beats a confident answer to a different question; the interpreter may never invent a make, model, year range, generation, grouping or metric the dictionary and archive cannot confirm.
 
+Desk data-integrity standing rules (locked, review 3, Sep 2026):
+- Every group figure is a MEDIAN (percentile_cont 0.5), never an average. This holds for headline, bars, comparison members and trend rows.
+- Group counts must ADD UP to the headline count, or an "Other (n)" row is shown. Generation/member ranges must partition the headline pool with no overlap (e.g. the air-cooled 911 handover year 1989 belongs to 964 only, not also to G-body) and no gap. A headline median must sit WITHIN the range of the group medians it is built from; if it does not, the pool or the grouping is wrong.
+- Trim filters exclude conversions, clones, tributes and replicas (title contains conversion / clone / tribute / replica / recreation / homage / "-style"). A badge-wearing conversion is set aside, never counted as the real trim (lib/desk/execute.js TRIM_FAKE). Applies to every trim (WS6, Z28, SS, ...), the same rule for all.
+- A trend row is ranked only with 10+ sales in EACH window (TREND_RANK_MIN); thinner rows are shown but not ranked, with their counts.
+- A read names what was ASKED (a scoped generation reads "Fox body Mustangs, 1979 to 1993", not "Ford Mustang"); a refinement that runs PAST the prior scope says so ("I widened to 1998 to 2002, which runs past the earlier window").
+
 ## Current architecture (ground truth as of July 2026)
 
 ### Supabase tables actually in use
