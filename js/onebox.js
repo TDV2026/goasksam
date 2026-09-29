@@ -617,6 +617,15 @@
       '<div class="tail">' + lint(tail, "cl.tail") + "</div>" +
       freshLine(d) + "</div>";
   }
+  // Sam's Take (v1): the engine's stronger-vs-weaker-half pattern read on the sales behind the range,
+  // placed under the range and above the cards. Renders ONLY when the engine returns a sentence
+  // (d.samsTake). Snapshot attributes are already worded "as listed" in the engine sentence. Pattern
+  // never cause; never a figure for the user's own car. lint() guards the composed copy.
+  function samsTakeHtml(d) {
+    var st = d && d.samsTake;
+    if (!st || !st.sentence) return "";
+    return '<div class="samtake stv1" data-stage="answer"><div class="tk">' + lint("Sam’s Take", "stv1.tag") + '</div><p class="s2">' + lint(esc(st.sentence), "stv1") + "</p></div>";
+  }
   // Item 2: the divergence contradiction as ONE plain serif line (no box, no kicker), assembled from
   // the real numbers - same delta logic, rendered as a sentence.
   function contradictionLine(d) {
@@ -797,6 +806,7 @@
     // Item 7: no "The sales behind it" kicker (the rows are self-explanatory), and no footer
     // manifesto (the freshness line inside the block already says "Real sales... Nothing estimated").
     var body = heroBlock(d, m) + contradictionLine(d) + observeAsideHtml(d);
+    body += samsTakeHtml(d);
     body += m ? compactSalesHtml(d) : cards3Html(d, m);
     body += seeAllHtml(d, m);
     body += reconfirmHtml(d, m);
