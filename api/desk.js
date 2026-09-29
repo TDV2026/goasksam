@@ -62,7 +62,7 @@ export default async function handler(req, res) {
     for (const tok of HOUSE_TOKENS) {
       let off = 0, tokRows = 0;
       for (let i = 0; i < 200; i++) {
-        const q = `sales_archive?select=vin_norm,sale_date,platform&platform=ilike.${encodeURIComponent("*" + tok + "*")}&vin_norm=not.is.null&sale_date=not.is.null&order=sale_date.desc&limit=1000&offset=${off}`;
+        const q = `sales_archive?select=vin_norm,sale_date,platform&platform=ilike.${encodeURIComponent("*" + tok + "*")}&vin_norm=not.is.null&sale_date=not.is.null&order=id&limit=1000&offset=${off}`;
         let batch = null;
         for (let a = 0; a < 3 && batch === null; a++) { batch = await supabaseSelect(env2, q); if (batch === null && a < 2) await new Promise(r => setTimeout(r, 300 * (a + 1))); }
         if (batch === null) return res.status(200).json({ status: "dupScan", error: "query_failed", scanned, pages, token: tok });
