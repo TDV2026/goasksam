@@ -52,36 +52,36 @@ export default async function handler(req, res) {
     // fits the budget) rather than the whole vin_norm archive (which does not finish in 300s). Online
     // sources (BaT/C&B) upsert on a stable source_id, so they do not accumulate (vin,date,slug) dups
     // the same way. Pass archiveDiagSlugs to override the source set. Report-only; never deletes.
-    // Filter/key on the DISPLAY LABEL (`platform`), which is always populated and index-backed
-    // (platform, sale_date) - source_slug is NULL on older house rows, so an eq.<slug> filter errored.
-    const HOUSE_LABELS = Array.isArray(req.body.archiveDiagLabels) && req.body.archiveDiagLabels.length
-      ? req.body.archiveDiagLabels
-      : ["RM Sotheby's", "Gooding & Co", "Bonhams", "Broad Arrow", "Mecum Auctions", "Barrett-Jackson", "Sotheby's Motorsport"];
-    const g = new Map(); let scanned = 0, pages = 0; const perLabel = {};
-    for (const label of HOUSE_LABELS) {
-      let cursor = "", labelRows = 0;
+    // Filter on the DISPLAY LABEL (`platform`, always populated, index-backed with sale_date) via an
+    // apostrophe-free ILIKE token (platform=eq."RM Sotheby's" errored on the apostrophe). Page by
+    // sale_date offset (uses the (platform, sale_date) index). Key the dedup on the row's own platform.
+    const HOUSE_TOKENS = Array.isArray(req.body.archiveDiagTokens) && req.body.archiveDiagTokens.length
+      ? req.body.archiveDiagTokens
+      : ["Sotheby", "Gooding", "Bonhams", "Broad Arrow", "Mecum", "Barrett"];
+    const g = new Map(); let scanned = 0, pages = 0; const perToken = {};
+    for (const tok of HOUSE_TOKENS) {
+      let off = 0, tokRows = 0;
       for (let i = 0; i < 200; i++) {
-        let q = `sales_archive?select=id,vin_norm,sale_date,platform&platform=eq.${encodeURIComponent(label)}&vin_norm=not.is.null&sale_date=not.is.null&order=id.asc&limit=1000`;
-        if (cursor) q += `&id=gt.${encodeURIComponent(cursor)}`;
+        const q = `sales_archive?select=vin_norm,sale_date,platform&platform=ilike.${encodeURIComponent("*" + tok + "*")}&vin_norm=not.is.null&sale_date=not.is.null&order=sale_date.desc&limit=1000&offset=${off}`;
         let batch = null;
         for (let a = 0; a < 3 && batch === null; a++) { batch = await supabaseSelect(env2, q); if (batch === null && a < 2) await new Promise(r => setTimeout(r, 300 * (a + 1))); }
-        if (batch === null) return res.status(200).json({ status: "dupScan", error: "query_failed", scanned, pages, label });
+        if (batch === null) return res.status(200).json({ status: "dupScan", error: "query_failed", scanned, pages, token: tok });
         if (!batch.length) break;
         pages++;
         for (const r of batch) {
-          scanned++; labelRows++;
+          scanned++; tokRows++;
           const vn = String(r.vin_norm || "").trim(); if (!vn) continue;
           const k = `${vn}|${String(r.sale_date).slice(0, 10)}|${r.platform || ""}`;
           g.set(k, (g.get(k) || 0) + 1);
         }
-        cursor = batch[batch.length - 1].id;
+        off += batch.length;
         if (batch.length < 1000) break;
       }
-      perLabel[label] = labelRows;
+      perToken[tok] = tokRows;
     }
-    let dupGroups = 0, extraRows = 0; const byLabel = {};
-    for (const [k, n] of g) if (n > 1) { dupGroups++; extraRows += n - 1; const lab = k.split("|")[2] || "(null)"; byLabel[lab] = (byLabel[lab] || 0) + (n - 1); }
-    return res.status(200).json({ status: "dupScan", scope: "house_sources", sourcesScanned: HOUSE_LABELS, scanned, pages, rowsPerSource: perLabel, keyedGroups: g.size, dupGroups, extraRows, extraRowsBySource: byLabel });
+    let dupGroups = 0, extraRows = 0; const bySource = {};
+    for (const [k, n] of g) if (n > 1) { dupGroups++; extraRows += n - 1; const lab = k.split("|")[2] || "(null)"; bySource[lab] = (bySource[lab] || 0) + (n - 1); }
+    return res.status(200).json({ status: "dupScan", scope: "house_sources", sourcesScanned: HOUSE_TOKENS, scanned, pages, rowsPerSource: perToken, keyedGroups: g.size, dupGroups, extraRows, extraRowsBySource: bySource });
   }
 
   try {
