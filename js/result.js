@@ -183,6 +183,7 @@ async function showSellRecommendation(opts){
 function renderDecision(decisionData,renderOpts){
   renderOpts=renderOpts||{};
   sellState.sellDecision=decisionData;
+  sellState.renderedHouseComparison=null;   // reset; set only if a house comparison actually renders
   const msgs=document.getElementById("msgs");
   if(!msgs)return;
   const decision=decisionData.decision||{};
@@ -208,7 +209,11 @@ function renderDecision(decisionData,renderOpts){
     const hc=decision.thin.houseComparison;
     const choseHouse=sellState.sellerPreference==="auction_house";
     const rush=(typeof sellerWantsSpeed==="function")&&sellerWantsSpeed();
-    if(hc&&hc.houses&&hc.houses.length&&(choseHouse||(decision.thin.houseSteer&&!rush))){
+    // Self-sell (DIY) intent is honored (item 3): a seller who said "I'll sell it myself" is NOT led
+    // into a consignment calendar just because the car house-steers. Only an EXPLICIT auction-house
+    // choice auto-leads with houses; a DIY seller falls through to the online/self-sell render below.
+    const diy=sellState.sellerPreference==="diy";
+    if(hc&&hc.houses&&hc.houses.length&&(choseHouse||(decision.thin.houseSteer&&!rush&&!diy))){
       let onlineCardHtml="";
       if(!choseHouse){
         const op=(typeof _thinVenuePick==="function")&&_thinVenuePick(decision.thin.receipts.filter(r=>Number(r.hammer)>0),false);
@@ -231,8 +236,11 @@ function renderDecision(decisionData,renderOpts){
     // A very-thin, house-dominated era band (a pre-war Bentley) shows the ranked house record over the
     // era band, framed as the wider market (never a price for the exact car). Falls back to the plain
     // class-era card when no houses are in the band.
+    // Self-sell (DIY): a DIY seller gets the wider-market read (renderClassEraSell), not the ranked
+    // consignment calendar - unless they explicitly chose the auction-house door (item 3).
     const hce=decision.classEra.houseComparison;
-    if(hce&&hce.houses&&hce.houses.length&&renderHouseComparisonSell(msgs,hce,decisionData,{eraBand:true})){
+    const eraDiy=sellState.sellerPreference==="diy"&&sellState.sellerPreference!=="auction_house";
+    if(hce&&hce.houses&&hce.houses.length&&!eraDiy&&renderHouseComparisonSell(msgs,hce,decisionData,{eraBand:true})){
       document.getElementById("btn").disabled=false;
       return;
     }
@@ -1177,7 +1185,7 @@ function _thinPickCardHtml(o){
   // Receipt line leads with the SALE month (unambiguous "June 2024 · $960,000"), car/model year
   // beneath it as context - not the other way round (a car year read like a sale year).
   const rc=(o.receipts||[]).filter(r=>String(r.slug||"").toLowerCase()===p.slug).sort((a,b)=>b.hammer-a.hammer).slice(0,3)
-    .map(r=>`<div class="pcard-mrow"><div><div class="pcard-mp" style="font-variant-numeric:tabular-nums">${esc(_thinMonthLabel(r.date)||"Recent")} · ${money(r.hammer)}${isHouse&&r.allIn?` <span style="opacity:.6">buyer paid ${money(r.allIn)}</span>`:""}</div><div class="pcard-ms">${esc([r.year,o.modelLabel].filter(Boolean).join(" "))}</div></div></div>`).join("");
+    .map(r=>`<div class="pcard-mrow"><div><div class="pcard-mp" style="font-variant-numeric:tabular-nums">${esc(_thinMonthLabel(r.date)||"Recent")} · ${money(r.hammer)}${isHouse&&r.allIn?` <span style="opacity:.6">buyer paid ${money(r.allIn)}</span>`:""}</div><div class="pcard-ms">${esc(cleanReceiptTitleForCard(r.title)||[r.year,r.model,o.modelLabel].filter(Boolean).join(" ").trim()||o.modelLabel)}</div></div></div>`).join("");
   // Adjacent-year disclosure (Thread A, approved): the thin pool windows year +/-2, so a 1964
   // query can legitimately pool 1963-1964 cars. When the receipts' actual year range differs from
   // the typed year, say so on the scope line (the same honesty as the class-era band) instead of a
@@ -1246,7 +1254,10 @@ function renderThinDecisionSell(msgs,thin,decisionData){
     // there, so a house can never win) and still names the house sale as the stronger evidence.
     return false;
   }
-  const houseLeads=!!thin.houseSteer&&!rush; // rush never lets a house lead
+  // A house never leads for a rushed seller, NOR for a DIY seller who said they'll sell it themselves
+  // (item 3): the online listing venue leads, the house is shown below as the handled alternative.
+  const diy=sellState.sellerPreference==="diy";
+  const houseLeads=!!thin.houseSteer&&!rush&&!diy;
   const typedYear=v.year;
   const houseCard=hp?_thinPickCardHtml({kind:"house",pick:hp.pick,others:hp.others,receipts:recs,make,modelLabel,carLbl,loc,typedYear,isLead:houseLeads}):"";
   const onlineCard=op?_thinPickCardHtml({kind:"online",pick:op.pick,others:op.others,receipts:recs,make,modelLabel,carLbl,loc,typedYear,isLead:!houseLeads}):"";
@@ -1280,8 +1291,10 @@ function renderThinDecisionSell(msgs,thin,decisionData){
   }
   body=partnerCard+body;
   sellState.sellOptions=[]; // destinations are the outbound consign/list doors, not a captured lead
+  const askLine=_askingVsSalesLine(recs.map(r=>r.hammer));
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${body}
+    ${askLine}
     <div class="pcard-note" style="margin-top:14px">Real completed sales from GoAskSam's archive, hammer prices with the buyer premium backed out. No estimates. No valuations.</div>
     <div class="sam-text after-results">Ask me anything about the recommendation, or tell me more about the car.</div>
   </div></div>`;
@@ -1301,6 +1314,15 @@ function _hcRoomLabel(room){
   // Data-carried room stated plainly; inferred room is hedged (the two-fact honesty from discovery).
   return room.source==="data"?` · ${escapeHtml(room.name)}`:"";
 }
+// A card ALWAYS shows the car's OWN listing title (standing rule), cleaned of the OCD mileage hook
+// and gearbox tag; the seller's typed model is only a last-resort fallback when a record has no title.
+function cleanReceiptTitleForCard(title){
+  var t=String(title==null?"":title);
+  t=t.replace(/^\s*[\d][\d,.]*\s*k?\s*[-\s]\s*(mile|kilometer|km)s?\b'?s?\s*/i,""); // "21k-Mile "
+  t=t.replace(/\s+\d+[-\s]speed\b/ig,"");   // " 6-Speed"
+  t=t.replace(/\s{2,}/g," ").trim();
+  return t||String(title==null?"":title);
+}
 function _hcReceiptRow(rc,modelLabel){
   const esc=escapeHtml, money=moneyShort;
   const img=rc.image
@@ -1309,7 +1331,11 @@ function _hcReceiptRow(rc,modelLabel){
   const when=_thinMonthLabel(rc.date)||"Recent";
   const paid=rc.allIn?` <span style="opacity:.6">buyer paid ${money(rc.allIn)}</span>`:"";
   const chassis=rc.chassis?` · chassis ${esc(String(rc.chassis))}`:"";
-  const nameLine=[rc.year,modelLabel].filter(Boolean).join(" ");
+  // A card ALWAYS shows the car's OWN listing title, never the seller's typed model (standing rule):
+  // a "D50 D350" query must not relabel a Ramcharger or a Raider as "D50 D350". Fall back to the
+  // typed model only when the record carries no title at all.
+  const ownTitle=(typeof cleanReceiptTitleForCard==="function")?cleanReceiptTitleForCard(rc.title):(rc.title||"");
+  const nameLine=ownTitle||[rc.year,rc.model,modelLabel].filter(Boolean).join(" ").trim()||modelLabel;
   const href=rc.url?`href="${esc(rc.url)}" target="_blank" rel="noopener"`:"";
   const open=rc.url?`<a ${href} style="text-decoration:none;color:inherit;display:flex;gap:11px;align-items:flex-start">`:`<div style="display:flex;gap:11px;align-items:flex-start">`;
   const close=rc.url?"</a>":"</div>";
@@ -1321,14 +1347,33 @@ function _hcReceiptRow(rc,modelLabel){
       <div style="font-size:11.5px;color:#928b7a;margin-top:2px;font-variant-numeric:tabular-nums">${esc(when)}${chassis}</div>
     </div>${close}</div>`;
 }
+// Asking price vs the sales SHOWN, stated as a plain fact (item 7), never a valuation. Returns "" when
+// no asking price or no priced sales. Compares the seller's ask to the hammer figures on the cards.
+function _askingVsSalesLine(hammers){
+  const raw=String(sellState.price||"");
+  let n=Number(raw.replace(/[^0-9.]/g,""));
+  if(!n) return "";
+  if(/\bk\b|k$/i.test(raw)&&n<1000) n*=1000; else if(/\bm\b|m$/i.test(raw)&&n<1000) n*=1e6;
+  const hs=(hammers||[]).filter(x=>Number(x)>0).sort((a,b)=>a-b);
+  if(!hs.length) return "";
+  const esc=escapeHtml, money=moneyShort, ask=money(Math.round(n));
+  let fact;
+  if(n>hs[hs.length-1]) fact=`Every sale shown was below your ${ask} ask.`;
+  else if(n<hs[0]) fact=`Every sale shown was above your ${ask} ask.`;
+  else { const below=hs.filter(x=>x<n).length; fact=`Your ${ask} ask sits within the sales shown; ${below} of ${hs.length} sold below it.`; }
+  return `<p style="font-size:13.5px;line-height:1.55;color:#171717;margin:14px 0 0"><span style="font-weight:600">${esc(fact)}</span> A fact about the sales, not a valuation.</p>`;
+}
 function _hcHouseBlock(h,ctx){
   const esc=escapeHtml, money=moneyShort;
   const badge=ctx.isLead?(ctx.asap?"Soonest sale":"Sam's pick"):"";
-  const receipts=(h.receipts||[]).slice(0,3).map(r=>_hcReceiptRow(r,ctx.modelLabel)).join("");
+  const shown=(h.receipts||[]).slice(0,3);
+  const receipts=shown.map(r=>_hcReceiptRow(r,ctx.modelLabel)).join("");
   // Inferred-room hedge (two-fact): for houses whose room is NOT in the data, name the room from the
-  // published calendar as a separate, hedged fact, never merged into the sale claim above.
+  // published calendar as a separate, hedged fact, never merged into the sale claim above. The note
+  // must match the MONTH of the sales actually SHOWN (item 6): loop over the displayed receipts only,
+  // never the trailing unshown ones (a not-shown May sale must not caption three shown July sales).
   const inf={};
-  for(const r of (h.receipts||[])){ if(r.room&&r.room.source==="inferred"){const m=_thinMonthLabel(r.date).split(" ")[0]; if(m)inf[m]=r.room.name; } }
+  for(const r of shown){ if(r.room&&r.room.source==="inferred"){const m=_thinMonthLabel(r.date).split(" ")[0]; if(m)inf[m]=r.room.name; } }
   const infMonths=Object.keys(inf);
   const infLine=infMonths.length
     ?`<p style="font-size:12px;color:#928b7a;margin:8px 0 0;font-style:italic">By the published calendar, the ${infMonths.map(m=>`${m} sale at ${esc(h.display)} is typically ${esc(inf[m])}`).join(", the ")} (confirm with ${esc(h.display)}).</p>`
@@ -1391,6 +1436,10 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
     timing+=`</p>`;
   }
   const blocks=houses.map((h,i)=>_hcHouseBlock(h,{isLead:i===0,asap,modelLabel})).join("");
+  // Item 7: asking price vs the sales SHOWN, as a plain fact. Uses the same displayed receipts (top 3
+  // per house) the cards render, so the statement is computed from the same pool the seller sees.
+  const shownHammers=[].concat.apply([],houses.map(h=>(h.receipts||[]).slice(0,3).map(r=>r.hammer)));
+  const askLine=_askingVsSalesLine(shownHammers);
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
@@ -1398,11 +1447,25 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
     <p style="font-size:15.5px;line-height:1.55;color:#171717;margin:0">${lead}</p>
     ${timing}
     ${blocks}
+    ${askLine}
     ${opts.onlineCardHtml?`<div class="pv2-bridge" style="margin-top:18px">If you'd rather run the sale yourself instead of consigning, here's where I'd go.</div>${opts.onlineCardHtml}`:""}
     <p style="font-size:12px;color:#928b7a;margin-top:16px;line-height:1.5">Ranked by the record: how often ${esc(modelLabel)}s have gone to each house, how recently, and the hammer results shown. Consignment windows are approximate, confirm with the house. Real completed sales, hammer prices with the buyer premium backed out. No estimates, no valuations.</p>
     <div class="sam-text after-results">Ask me anything about the recommendation, or tell me more about the car.</div>
   </div></div>`;
   sellState.sellOptions=[];
+  // Record what actually rendered so the post-result chat has the SAME facts on screen (items 1-2):
+  // the ranked houses, each next sale, the shown receipts and the asking-price fact. Without this the
+  // chat received none of the house content and denied mentioning houses / invented a platform.
+  sellState.renderedHouseComparison={
+    eraBand:!!eraBandNote(opts), asap:!!asap, carLabel:carLbl, modelLabel:modelLabel,
+    pick:pickName, others:others.slice(),
+    houses:houses.map(h=>({
+      name:h.display,
+      nextSale:h.nextSale?`${h.nextSale.city}, ${h.nextSale.monthName} ${h.nextSale.year}${h.nextSale.intl?" (international)":""}`:null,
+      sales:(h.receipts||[]).slice(0,3).map(r=>`${cleanReceiptTitleForCard(r.title)||[r.year,r.model].filter(Boolean).join(" ")} ${money(r.hammer)}${r.date?" ("+(_thinMonthLabel(r.date)||"")+")":""}`)
+    })),
+    askingLine:(function(){const hs=[].concat.apply([],houses.map(h=>(h.receipts||[]).slice(0,3).map(r=>r.hammer)));const raw=String(sellState.price||"");let n=Number(raw.replace(/[^0-9.]/g,""));if(!n)return null;if(/k/i.test(raw)&&n<1000)n*=1000;else if(/m/i.test(raw)&&n<1000)n*=1e6;const f=hs.filter(x=>Number(x)>0).sort((a,b)=>a-b);if(!f.length)return null;if(n>f[f.length-1])return`Every sale shown was below the seller's ${money(Math.round(n))} ask.`;if(n<f[0])return`Every sale shown was above the seller's ${money(Math.round(n))} ask.`;return`The seller's ${money(Math.round(n))} ask sits within the sales shown.`;})()
+  };
   msgs.appendChild(row);
   row.scrollIntoView({behavior:"smooth",block:"start"});
   return true;

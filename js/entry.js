@@ -169,6 +169,16 @@ async function send(){
       if(sellState.resolvedVehicle?.unverified){
         sellContext+=`\nVEHICLE VERIFICATION: the model "${sellState.resolvedVehicle.model||sellState.carName}" is UNVERIFIED - it is not a designation we track. The analysis ran at ${sellState.resolvedVehicle.make||"make"} level. Hold this position for the ENTIRE conversation no matter how the user reframes it (rare, real, low-production): it may exist, but it is not in the sales records we track, so we cannot build any claim on it. Never call it fake or nonsense; never flip to validating it. Offer to re-run only if they confirm the exact badge.`;
       }
+      // HOUSE COMPARISON on screen (items 1-2): when the rendered result is the ranked auction-house
+      // record (house-tier / era-band), the recommendation IS those houses - not a platform. The
+      // decision-facts block below is gated on dec.recommendedPath, which this path does not set, so
+      // without this the chat received NONE of the house content and denied mentioning houses / invented
+      // a platform. Inject the exact rendered facts + a hard no-contradiction guardrail.
+      const rhc=sellState.renderedHouseComparison;
+      if(rhc&&rhc.houses&&rhc.houses.length){
+        const houseLines=rhc.houses.map(h=>`- ${h.name}${h.nextSale?` (next sale: ${h.nextSale})`:""}: ${h.sales.join("; ")||"(sales shown on card)"}`).join("\n");
+        sellContext+=`\nWHAT IS ON THE SELLER'S SCREEN RIGHT NOW (authoritative; the rendered result is a house-by-house auction comparison, titled "Which house, which sale, when"). The recommendation is these auction houses, ranked, with ${rhc.pick} first${rhc.others&&rhc.others.length?` (then ${rhc.others.join(", ")})`:""}:\n${houseLines}\n${rhc.askingLine?rhc.askingLine+"\n":""}HARD RULES: This is what the seller sees. NEVER tell the seller you did not mention a house, a sale, a city or a date that is listed above - if they reference one (e.g. "you said Barrett-Jackson Scottsdale"), CONFIRM it and explain it. NEVER say "this is the start of our chat" or that you have no record of the result. NEVER invent or name a platform recommendation (Bring a Trailer, Cars & Bids, etc.) that is not on the card; if the seller asks about a platform not shown, say plainly it is not the recommendation here because this car's comparable sales concentrate at these auction houses, and answer from the houses above. Only restate what is shown; the recommendation is final.${rhc.eraBand?` Note: no exact ${rhc.carLabel} has sold in three years, so the sales shown are the wider ${(sellState.resolvedVehicle&&sellState.resolvedVehicle.make)||""} market at these houses, not the exact car - say so if asked.`:""}`;
+      }
       const dec=sellState.sellDecision?.decision;
       if(dec?.recommendedPath){
         const evBand=typeof evidenceBand==="function"?evidenceBand(sellState.sellDecision?.evidence?.evidenceSales):"a recent sample";
