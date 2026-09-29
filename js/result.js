@@ -1330,13 +1330,20 @@ function _hcRoomLabel(room){
 }
 // A card ALWAYS shows the car's OWN listing title (standing rule), cleaned of the OCD mileage hook
 // and gearbox tag; the seller's typed model is only a last-resort fallback when a record has no title.
-// Coarse body-class word for copy ("truck" vs "car"), mirroring the backend class filter.
+// Body-class word for the wider-market copy (item 1b): name the class the pool was filtered to -
+// "trucks" / "SUVs" / "cars" / "motorcycles" - never a bare "market". Finer than the backend's binary
+// truck-vs-car filter for labelling; SUV and pickup both draw from the truck-class pool.
 function bodyClassWord(v){
   // Include the ORIGINAL typed text (carRaw) so a make-level read (model dropped after "not sure")
-  // still says "trucks" from the codes the seller typed, matching the truck cards shown.
+  // still names the class from the codes the seller typed.
   var t=[v&&v.year,v&&v.make,v&&v.model,v&&v.trim,sellState&&sellState.carRaw].filter(Boolean).join(" ");
-  return /\bpick[-\s]?up\b|\btruck\b|\b[dwf][-\s]?[1-5]50\b|\bram\b|ramcharger|power\s?wagon|dakota|\bd50\b|\bd350\b|silverado|sierra|blazer|bronco|suburban|tahoe|yukon|wagoneer|cherokee|\bscout\b|land\s?cruiser|4[-\s]?runner|tacoma|tundra|\bk5\b|\bsuv\b|\bvan\b|econoline|defender|\bfj\d/i.test(t)?"truck":"car";
+  if(/\bmotorcycle|\bmoto\b|\bbike\b|harley|ducati|\bbsa\b|triumph\s+bonneville|moto\s?guzzi|\bcafe\s?racer\b/i.test(t))return "motorcycle";
+  if(/ramcharger|bronco|blazer|suburban|tahoe|yukon|wagoneer|cherokee|\bscout\b|land\s?cruiser|4[-\s]?runner|\bk5\b|\bsuv\b|grand\s?wagoneer|trooper|montero|4runner/i.test(t))return "SUV";
+  if(/\bpick[-\s]?up\b|\btruck\b|\b[dwf][-\s]?[1-5]50\b|\bram\b|power\s?wagon|dakota|\bd50\b|\bd350\b|silverado|sierra|\bc\/?k\b|tacoma|tundra|\bel\s?camino\b|ranchero/i.test(t))return "truck";
+  return "car";
 }
+// Plural of the body-class word ("SUV" -> "SUVs", else +s).
+function bodyClassPlural(v){ var w=bodyClassWord(v); return w+"s"; }
 function cleanReceiptTitleForCard(title){
   var t=String(title==null?"":title);
   t=t.replace(/^\s*[\d][\d,.]*\s*k?\s*[-\s]\s*(mile|kilometer|km)s?\b'?s?\s*/i,""); // "21k-Mile "
@@ -1507,7 +1514,9 @@ function renderClassEraSell(msgs,ce,decisionData){
   if(!recs.length){return false;}
   const sorted=recs.slice().sort((a,b)=>a.hammer-b.hammer);
   const lo=(ce.lowHammer!=null?ce.lowHammer:sorted[0].hammer),hi=(ce.highHammer!=null?ce.highHammer:sorted[sorted.length-1].hammer);
-  const line=`No ${esc(carName)} has sold in the last three years, so this is the wider ${esc(ce.era)} ${esc(ce.make)} market, not your exact car. ${ce.totalN} sold; most landed between ${money(lo)} and ${money(hi)}, the middle around ${money(ce.medianHammer)}.`;
+  // Item 1b: the pool is filtered to a body class, so NAME it ("1980s Dodge trucks", not "market").
+  const classPlural=bodyClassPlural(v);
+  const line=`No ${esc(carName)} has sold in the last three years, so this is the wider ${esc(ce.era)} ${esc(ce.make)} ${esc(classPlural)} market, not your exact car. ${ce.totalN} sold; most landed between ${money(lo)} and ${money(hi)}, the middle around ${money(ce.medianHammer)}.`;
   // Item 4: state the fact only, never call the exact car "rare". Item 5: the "none sold" fact is
   // already in `line` above, so it is NOT repeated here.
   const read=`Treat these as the neighborhood it sits in, not a figure for it. The moment one like yours sells, I can read it directly.`;
@@ -1535,7 +1544,7 @@ function renderClassEraSell(msgs,ce,decisionData){
   if(venues.length){
     const rows=venues.map(x=>`<li style="display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-top:1px solid rgba(0,0,0,.08)"><span>${esc(x.venue)}</span><span style="color:#6b6861;font-size:13px">${x.count} sold${x.recent?` · latest ${esc(_thinMonthLabel(x.recent)||"")}`:""}</span></li>`).join("");
     venueBlock=`<div class="pcard-whyl pcard-whyl-main" style="margin-top:16px">Where to list it yourself</div>`
-      +`<p class="pcard-lead">Since you're selling it yourself, here are the online platforms that have actually sold ${esc(ce.era)} ${esc(ce.make)} ${bodyClassWord(v)}s, most active first.</p>`
+      +`<p class="pcard-lead">Since you're selling it yourself, here are the online platforms that have actually sold ${esc(ce.era)} ${esc(ce.make)} ${esc(bodyClassPlural(v))}, most active first.</p>`
       +`<ul style="list-style:none;margin:8px 0 0;padding:0">${rows}</ul>`
       +(houseN>0?`<p class="pcard-lead" style="opacity:.7;font-size:12.5px;margin-top:8px">Auction houses have taken ${houseN} of these too; I've left them out here since you told me you'll run the sale yourself.</p>`:"");
   }
@@ -1556,10 +1565,10 @@ function renderClassEraSell(msgs,ce,decisionData){
       <div class="pcard-left">
         <div class="pcard-script">Here's the honest read for your</div>
         <h1 class="pcard-name">${esc(carName)}</h1>
-        <div class="pcard-whyl pcard-whyl-main">The wider ${esc(ce.era)} ${esc(ce.make)} market</div>
+        <div class="pcard-whyl pcard-whyl-main">The wider ${esc(ce.era)} ${esc(ce.make)} ${esc(classPlural)} market</div>
         <p class="pcard-lead">${line}</p>
         <p class="pcard-lead">${read}</p>
-        <div class="pcard-whyl pcard-whyl-main">${esc(ce.era)} ${esc(ce.make)} sales, last three years</div>
+        <div class="pcard-whyl pcard-whyl-main">${esc(ce.era)} ${esc(ce.make)} ${esc(classPlural)} sales, last three years</div>
         <ul style="list-style:none;margin:8px 0 0;padding:0">${list}</ul>
         ${askLine||""}
         ${venueBlock}

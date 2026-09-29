@@ -1,6 +1,6 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
-import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch } from "../lib/onebox.js";
+import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -2469,6 +2469,11 @@ async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl,
     result.leadValueUsd = leadValue || null;
     result.valueLeadThresholdUsd = valueLeadThreshold;
     result.leadOnValue = leadValue >= valueLeadThreshold;
+    // Item 4a: pass the seller's state + whether THIS partner covers the seller's Census region (via an
+    // explicit region, not just Nationwide), so the card names the seller's own state ("serves Texas")
+    // instead of listing other states, and never implies local coverage it does not have.
+    result.sellerState = criteria.state || null;
+    result.coversSellerRegion = !!(criteria.state && partnerRegionBuckets(source.regions || []).has(censusRegion(asText(criteria.state))));
   }
   return result;
 }
@@ -3750,6 +3755,28 @@ export default async function handler(req, res) {
 
     const decision = decide(analysis, sellerCriteria, vehicle);
     decision.partnerReferral = await evaluatePartnerReferral(analysis, sellerCriteria, vehicle, supabaseUrl, supabaseKey);
+
+    // Reserve INSIGHT (item 2b): a fair reserve-vs-no-reserve read scoped to the exact model+trim+year
+    // (generation fallback with unsold reserve-not-met counted at high bid), replacing the old
+    // make+price-band cell for the tile. Archive-only, zero OldCarsData. Attached to the routable routes'
+    // marketEvidence so the pick card can render it with a count; too thin -> ok:false, tile hidden.
+    try {
+      if (vehicle && vehicle.make && vehicle.model) {
+        const ri = await reserveInsightForVehicle(vehicle, generation, { supabaseUrl, supabaseKey });
+        if (ri && ri.ok && decision.routeFit && Array.isArray(decision.routeFit.routes)) {
+          for (const route of decision.routeFit.routes) { if (route.routable && route.marketEvidence) route.marketEvidence.reserveInsight = ri; }
+        }
+      }
+    } catch (e) { /* reserve insight is additive; never block the decision */ }
+    // Comp price band (item 4b): the real range cars like this sold for, so the result can state the
+    // asking-price fact ("your $122,000 ask is above every sale shown") wherever the v2 card shows a
+    // premium but no absolute prices. Archive-only, zero OldCarsData.
+    try {
+      if (vehicle && vehicle.make && vehicle.model) {
+        const pb = await priceBandForVehicle(vehicle, generation, { supabaseUrl, supabaseKey });
+        if (pb && pb.ok) decision.priceBand = { low: pb.low, high: pb.high, count: pb.count };
+      }
+    } catch (e) { /* additive */ }
 
     // THIN MODE + HOUSE STEER (Sep 2026): when the online market over 36 months is too thin for a
     // volume band, /sell renders the same sale-anchored thin read as One Box. assessThinForVehicle

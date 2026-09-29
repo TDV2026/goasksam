@@ -26,15 +26,18 @@
 create unique index concurrently if not exists sales_archive_natkey_uidx
 on sales_archive (
   lower(coalesce(source_slug, '')),
-  case
+  (case
     when length(regexp_replace(coalesce(vin, ''), '[^A-Za-z0-9]', '', 'g')) = 17
       then upper(regexp_replace(vin, '[^A-Za-z0-9]', '', 'g'))
     else lower(btrim(regexp_replace(coalesce(listing_title, ''), '\s+', ' ', 'g')))
-  end,
+  end),
   sale_date,
   round(coalesce(sale_price, 0))
 )
 where btrim(coalesce(listing_title, '')) <> '' and coalesce(sale_price, 0) > 0;
+-- Note: a CASE used as an index expression MUST be wrapped in its own parentheses, else Postgres
+-- raises 42601 (syntax error at or near "case"). The (case ... end) brackets above are load-bearing.
+-- This index (sales_archive_natkey_uidx) is LIVE in production as of Oct 2026.
 
 -- If CONCURRENTLY errors (e.g. a stray duplicate slipped in after the cleanup), find it with:
 --   select lower(coalesce(source_slug,'')) slug,

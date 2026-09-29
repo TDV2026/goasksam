@@ -644,7 +644,7 @@ function missingVehicleDetail(text){
     return {type:"model",ask:`Which model is the${year?` ${year}`:""} Porsche? Pick one below, or type the exact model if it is not shown.`,chips:porscheModelChipsForYear(year)};
   }
   if(/\bporsche\b/.test(lower)&&/\b911\b/.test(lower)&&!/\b(carrera(?:\s+[124]?s|\s+t)?|gts|turbo(?:\s+s)?|gt3(?:\s+rs)?|gt2(?:\s+rs)?|sport\s+classic|dak(?:ar)?|speedster|targa|s\/t|992|991|997|996|993|964)\b/.test(lower)){
-    return {type:"trim",ask:"Which 911 is it? Carrera, Carrera T, GTS, Turbo, GT3 and Sport Classic behave very differently. Pick one below, or type the exact trim if it is not shown.",chips:filterChipsByEra(["Carrera","Carrera S","Carrera T","GTS","Turbo","Turbo S","GT3","GT3 RS","Sport Classic","Not sure"],year,TRIM_ERA)};
+    return {type:"trim",ask:"Which 911 is it? Carrera, Carrera 4, GTS, Turbo, GT3 and Sport Classic behave very differently. Pick one below, or type the exact trim if it is not shown.",chips:filterChipsByEra(["Carrera","Carrera S","Carrera T","Carrera 4","Carrera 4S","GTS","Turbo","Turbo S","GT3","GT3 RS","Sport Classic","Not sure"],year,TRIM_ERA)};
   }
   if(/\bbmw\b/.test(lower)&&!/\b(m\d|[1-8]\d{2}[a-z]{0,3}|z3|z4|z8|x[1-7]|i8|2002|e30|e36|e46|e90|e92|e39|e60)\b/.test(lower)){
     return {type:"model",ask:"Which BMW model or trim is it? These are just common examples. Pick one below, or type the exact model if it is not shown.",chips:filterChipsByEra(["M3","2002","6-Series","3-Series","Z4","X5","Not sure"],year,MODEL_ERA)};
@@ -663,7 +663,7 @@ function missingVehicleDetail(text){
   return null;
 }
 
-const TRIM_911_ASK={type:"trim",ask:"Which 911 is it? Carrera, Carrera T, GTS, Turbo, GT3 and Sport Classic behave very differently. Pick one below, or type the exact trim if it is not shown.",chips:["Carrera","Carrera S","Carrera T","GTS","Turbo","Turbo S","GT3","GT3 RS","Sport Classic","Not sure"]};
+const TRIM_911_ASK={type:"trim",ask:"Which 911 is it? Carrera, Carrera 4, GTS, Turbo, GT3 and Sport Classic behave very differently. Pick one below, or type the exact trim if it is not shown.",chips:["Carrera","Carrera S","Carrera T","Carrera 4","Carrera 4S","GTS","Turbo","Turbo S","GT3","GT3 RS","Sport Classic","Not sure"]};
 
 // Curated trim taxonomy: models whose trim is a major value + evidence
 // differentiator get a chip question (same mechanism as the 911 rule,
@@ -724,7 +724,12 @@ const TRIM_ERA={
   zr2:[[1970,1972]], grandsport:[[1963,1963],[1996,1996],[2010,2013],[2017,2019]],
   stingray:[[1963,1976],[2014,2035]], eray:[[2024,2035]], irocz:[[1985,1990]],
   thejudge:[[1969,1971]], l88:[[1967,1969]], copo:[[1967,1969]], berlinetta:[[1979,1986]],
-  esprit:[[1970,1981]], supersnake:[[1967,1968]]
+  esprit:[[1970,1981]], supersnake:[[1967,1968]],
+  // Porsche 911 trims by year (item 3): Carrera T is 991.2+ (2018), never a 2011 option; Carrera 4/4S
+  // are 964+/993+; GTS/GT3/GT3 RS/Turbo S/Sport Classic gated to when they actually existed on the 911.
+  carrerat:[[2018,2035]], carrera4:[[1989,2035]], carrera4s:[[1996,2035]],
+  gts:[[2010,2035]], turbos:[[1993,2035]], gt3:[[1999,2035]], gt3rs:[[2004,2035]],
+  sportclassic:[[2010,2012],[2022,2025]]
 };
 // Model tokens that are era-bound (a model-clarification chip must not offer a nameplate
 // that did not exist in the decoded year, e.g. a BMW 2002 for a 2020 BMW).
@@ -825,7 +830,10 @@ function missingVehicleTrimDetail(text){
   }
   const lower=String(text||"").toLowerCase();
   if(/\bporsche\b/.test(lower)&&/\b911\b/.test(lower)&&!/\b(carrera(?:\s+[124]?s|\s+t)?|gts|turbo(?:\s+s)?|gt3(?:\s+rs)?|gt2(?:\s+rs)?|sport\s+classic|dak(?:ar)?|speedster|targa|s\/t|992|991|997|996|993|964)\b/.test(lower)){
-    return TRIM_911_ASK;
+    // Year-scope the raw-text fallback too (item 3), so a typed "2011 Porsche 911" never offers a
+    // Carrera T (2018+) or another year-invalid trim.
+    const ym=lower.match(/\b(19|20)\d\d\b/);
+    return { type:"trim", ask:TRIM_911_ASK.ask, chips:filterChipsByEra(TRIM_911_ASK.chips.slice(), ym?Number(ym[0]):null, TRIM_ERA) };
   }
   return null;
 }

@@ -269,18 +269,19 @@ function v2Audience(ev){
   return null;
 }
 
-// ---------- reserve (percentage, gated, no dollars) ----------
+// ---------- reserve (item 2b: model+trim+year scoped, unsold counted at high bid, WITH a count) ----------
+// RESERVE_INSIGHT_MIN=8 per side (mirrors the backend); below it the tile is hidden - too thin to read.
 function v2Reserve(ev){
-  var rc=ev&&ev.reserveContext; if(!rc)return null;
-  if(!(Number(rc.n_with)>=10&&Number(rc.n_without)>=10))return null;
-  var platform=platformDisplayName(ev.label||ev.platform);
-  var win="the past "+(rc.window||"three months");
-  var pct=Number(rc.delta_pct);
+  var ri=ev&&ev.reserveInsight; if(!ri||!ri.ok)return null;
+  if(!(Number(ri.nReserve)>=8&&Number(ri.nNoReserve)>=8))return null;
+  var total=Number(ri.n)||(Number(ri.nReserve)+Number(ri.nNoReserve));
+  var scope=ri.scopeLabel||"these";
+  var pct=Number(ri.deltaPct);
   if(Math.abs(pct)<3){
-    return { headline:"Within a few points", body:"Over "+win+", "+platform+" auctions with and without a reserve in your price band averaged within three points of each other.", note:"Whether a reserve suits your car is your call." };
+    return { headline:"About even", scope:scope, n:total, dir:null, N:0, body:scope+" with and without a reserve sold within a few points of each other over the last 12 months, from "+total+" sales.", note:"Whether a reserve suits your car is your call." };
   }
   var dir=pct>=0?"higher":"lower", N=Math.round(Math.abs(pct));
-  return { headline:N+"% "+dir, body:"Over "+win+", "+platform+" auctions with a reserve in your price band averaged "+N+"% "+dir+" than those without.", note:"Whether a reserve suits your car is your call." };
+  return { headline:(pct>=0?"+":"-")+N+"%", scope:scope, n:total, dir:dir, N:N, body:scope+" with a reserve sold "+N+"% "+dir+" than those without over the last 12 months, from "+total+" sales.", note:"Whether a reserve suits your car is your call." };
 }
 
 // ---------- 9-platform muted accent map ----------
@@ -365,14 +366,21 @@ function renderPickCardV2(option,over){
     var carLbl=v2CarDisplay(v);
     // ---- two evidence tiles (weekday + reserve; audience fills a slot if needed) ----
     var tiles=[];
+    // Best day (item 2c): the signal ranks days by median PRICE, so the copy says "sold for the most on"
+    // (a price claim), never the ambiguous "close strongest". WITH a count (item 2d); hidden below the
+    // min-sample gate inside v2Weekday. Window is the last 12 months.
     var wk=v2Weekday(ev,v);
     if(wk){ var dA=ev.dayAdvantage||{}; var lift=Math.round(Math.abs(Number(dA.liftPercent))/5)*5; var hasPct=/%/.test(wk.body);
-      var wkScope=v2ScopePlural(v);
-      tiles.push({l:"Best day to sell",v:wk.headline,s:wkScope+" have closed strongest on "+wk.headline+"s"+(hasPct?(", "+lift+"% above other days."):"."),sc:wkScope+(hasPct?" close "+lift+"% above other days.":" close strongest on "+wk.headline+"s.")}); }
+      var wkScope=v2ScopePlural(v); var wkN=Number(dA.sample)||null;
+      var from=wkN?(", from "+wkN+" sales"):"";
+      tiles.push({l:"Best day to sell",v:wk.headline,s:wkScope+" sold for the most on "+wk.headline+"s"+(hasPct?(", "+lift+"% above other days"):"")+" over the last 12 months"+from+".",sc:wkScope+" sold for the most on "+wk.headline+"s"+(hasPct?(", "+lift+"% above other days"):"")+(wkN?(" ("+wkN+" sales)"):"")+"."}); }
+    // Reserve (item 2b/2d): the scoped, counted insight. rv.scope is the real model+trim/generation
+    // label (not the cosmetic landed-rung label); rv carries the count and is null below the minimum.
     var rv=v2Reserve(ev);
-    if(rv){ var rc=ev.reserveContext||{}; var pct=Number(rc.delta_pct); var rvScope=v2ScopePlural(v);
-      if(Math.abs(pct)<3){ tiles.push({l:"Reserve position",v:"About even",s:rvScope+" listings with and without a reserve have closed within a few points of each other.",sc:rvScope+" closed within a few points with or without a reserve."}); }
-      else { var Nr=Math.round(Math.abs(pct)); var rdir=(pct>=0?"higher":"lower"); tiles.push({l:"Reserve position",v:(pct>=0?"+":"-")+Nr+"%",s:rvScope+" listings with a reserve have closed "+Nr+"% "+rdir+" than those without.",sc:rvScope+" with a reserve closed "+Nr+"% "+rdir+"."}); } }
+    if(rv){
+      if(rv.N<3){ tiles.push({l:"Reserve position",v:"About even",s:rv.body,sc:rv.scope+" closed within a few points with or without a reserve ("+rv.n+" sales)."}); }
+      else { tiles.push({l:"Reserve position",v:rv.headline,s:rv.body,sc:rv.scope+" with a reserve sold "+rv.N+"% "+rv.dir+" ("+rv.n+" sales)."}); }
+    }
     if(tiles.length<2){ var au=v2Audience(ev); if(au)tiles.push({l:"Audience",v:au.headline,s:au.body}); }
     tiles=tiles.slice(0,2);
     // Zero stat tiles: the rail simply ends at TRACK RECORD - no empty-state filler
@@ -617,6 +625,24 @@ function psvSellerInHomeRegion(p){
 function psvCoverage(p){
   var regions=(p.regions||[]).map(function(r){return String(r).toLowerCase();});
   var nationwide=regions.indexOf("nationwide")>=0;
+  // Item 4a: when THIS partner covers the seller's Census region (backend flag coversSellerRegion),
+  // name the seller's OWN state ("Serves Texas"), never a list of other states that omits it. The
+  // shown partner is already region-gated, so this is honest. Count other served states if the claim
+  // carries them.
+  var ref=(typeof sellState!=="undefined"&&sellState.partnerReferral)||{};
+  var sellerSt=String(ref.sellerState||"").trim();
+  if(sellerSt&&ref.coversSellerRegion===true){
+    var stateTitle=sellerSt.replace(/\b[a-z]/g,function(c){return c.toUpperCase();});
+    var claim=null,pool0=(p.serviceClaims||[]).map(function(s){return s&&s.text;}).filter(Boolean);
+    for(var k=0;k<pool0.length;k++){var mm=/^\s*Serves\s+(.+?)\s*$/i.exec(pool0[k]);if(mm){claim=mm[1];break;}}
+    if(claim){
+      var st2=claim.split(/\s*,\s*|\s+and\s+/i).map(function(x){return x.trim();}).filter(Boolean);
+      var others=st2.filter(function(x){return x.toLowerCase()!==sellerSt.toLowerCase();}).length;
+      var words=["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve"];
+      if(others>0)return "Serves "+stateTitle+" and "+(words[others]||String(others))+" other state"+(others>1?"s":"")+".";
+    }
+    return "Serves "+stateTitle+".";
+  }
   // Rule 5.19 (locality first): a partner shown OUTSIDE his home region must never imply local
   // coverage of the seller's area. If the roster says nationwide, say so plainly; otherwise state
   // his home region honestly. Generalized across every Nationwide partner, not just one.
@@ -1156,6 +1182,23 @@ function v2ApplyTxRefine(tx){
   }catch(e){ if(typeof console!=="undefined")console.warn("v2ApplyTxRefine failed",e); }
 }
 
+// Item 4b: the asking-price fact on the v2 result (the card shows a premium %, not absolute sale
+// prices, so anchor the fact on the comp price band the engine returns - decision.priceBand). Never a
+// valuation; a plain fact about what these sold for. Uses the same parseAskingPrice as the header.
+function v2AskingLine(){
+  try{
+    var dec=(sellState.sellDecision&&sellState.sellDecision.decision)||sellState.decision||{};
+    var pb=dec.priceBand; if(!pb||!(Number(pb.high)>0))return "";
+    var n=(typeof parseAskingPrice==="function")?parseAskingPrice(sellState.price):null; if(!n||!(n>0))return "";
+    var esc=escapeHtml, money=(typeof moneyShort==="function")?moneyShort:(x=>"$"+Math.round(Number(x)||0).toLocaleString("en-US"));
+    var range=money(pb.low)+" to "+money(pb.high);
+    var fact;
+    if(n>pb.high)fact="Your "+money(n)+" ask is above the "+range+" these sold for.";
+    else if(n<pb.low)fact="Your "+money(n)+" ask is below the "+range+" these sold for.";
+    else fact="Your "+money(n)+" ask sits within the "+range+" these sold for.";
+    return '<div class="pv2-askline" style="margin:14px 2px 0;font:400 14px/1.5 var(--pv2-serif,Georgia,serif)"><span style="font-weight:600">'+esc(fact)+'</span> A fact about the sales, not a valuation.</div>';
+  }catch(e){return "";}
+}
 function renderResultV2Page(){
   try{
     var c=v2Composition();
@@ -1235,6 +1278,6 @@ function renderResultV2Page(){
       ?'<div class="pv2-after">Both are real options and the choice is yours. Ask me to compare the tradeoffs, or how I\'d run the listing.</div>'
       :'<div class="pv2-after">Ask me anything about the pick, or how I\'d run the listing.</div>';
     var txRefine=v2TransmissionRefine();
-    return '<div class="pv2-page">'+body+valueFloorNote+txRefine+caveat+after+'</div>';
+    return '<div class="pv2-page">'+body+v2AskingLine()+valueFloorNote+txRefine+caveat+after+'</div>';
   }catch(e){ if(typeof console!=="undefined")console.warn("renderResultV2Page failed",e); return null; }
 }
