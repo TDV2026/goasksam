@@ -320,10 +320,13 @@
     if (s.metric === "record" && s.record && s.record.top && s.record.top.length) {
       var top = s.record.top[0];
       var evR = 'data-make="' + esc(s.make) + '" data-model="' + esc(s.model) + '"' + (s.trim ? ' data-trim="' + esc(s.trim) + '"' : '') + ' data-window="' + esc(s.window) + '" data-cap="' + esc(who) + '" data-fig="' + esc(usd(top.hammer_usd)) + '"';
-      var hr = '<p class="reading">The highest <b>' + esc(who) + '</b> sale' + (f.priceMax ? ' under $' + Number(f.priceMax).toLocaleString("en-US") : '') + ' in our data.</p>';
+      // A record is ALL-TIME in our data unless the question named a window; the sentence and footer agree.
+      var scopeWord = s.recordWindowNamed ? windowLabelOf(s.window) : "in our data";
+      var hr = '<p class="reading">The highest <b>' + esc(who) + '</b> sale' + (f.priceMax ? ' under $' + Number(f.priceMax).toLocaleString("en-US") : '') + ' ' + esc(scopeWord) + '.</p>';
       hr += '<div class="result"><div class="hl"><span class="hl-num ev" ' + evR + '>' + usd(top.hammer_usd) + '</span><span class="hl-sub">highest sale' + (ov.count ? '<span class="sep">&middot;</span>' + ov.count + ' sales in scope' : '') + '</span></div>';
       hr += '<div class="read">' + esc((top.title || "").slice(0, 74)) + ' &mdash; ' + esc(top.venue || "") + (top.date ? ' &middot; ' + fmtDate(top.date) : '') + (top.link ? ' <a href="' + esc(top.link) + '" target="_blank" rel="noopener">&#8599;</a>' : '') + '</div>';
-      hr += provenanceFooter({ window: windowLabelOf(s.window) });
+      var recWin = s.recordWindowNamed ? windowLabelOf(s.window) : "all sales in our data";
+      hr += '<div class="cov" data-method="1"><u>' + esc(recWin) + (ov.count ? " (" + ov.count + " sales)" : "") + ' &middot; hammer, premiums backed out &middot; updated nightly</u></div>';
       hr += '</div>';
       return hr;
     }
