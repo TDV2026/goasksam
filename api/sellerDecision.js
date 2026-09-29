@@ -2921,7 +2921,7 @@ export default async function handler(req, res) {
       const yMin = req.body.yearMin != null ? Number(req.body.yearMin) : null, yMax = req.body.yearMax != null ? Number(req.body.yearMax) : null;
       const dFrom = req.body.dateFrom ? String(req.body.dateFrom) : null, dTo = req.body.dateTo ? String(req.body.dateTo) : null;
       const seen = new Set(); let rows = [];
-      const cols = "id,price:sale_price,date:sale_date,platform,title:listing_title,make,model,year,vin_norm," +
+      const cols = "id,price:sale_price,date:sale_date,platform,title:listing_title,make,model,year,vin_norm,has_reserve," +
         "mileage:raw_record->>mileage,transmission:raw_record->>transmission,currency:raw_record->>currency,url:raw_record->>url,url2:raw_record->>source_url";
       // Strict paging: a leading-wildcard title ILIKE can statement-timeout under batch load, and a
       // swallowed timeout used to look identical to a genuinely empty pool (supabaseSelect returns
@@ -2962,7 +2962,7 @@ export default async function handler(req, res) {
         make: r.make || null, model: r.model || null, year: r.year || null, title: r.title || null,
         vin: r.vin_norm || null, transmission: r.transmission || null,
         mileage: r.mileage != null ? Number(String(r.mileage).replace(/[^\d.]/g, "")) || null : null,
-        url: r.url || r.url2 || null }));
+        hasReserve: r.has_reserve, url: r.url || r.url2 || null }));
       return res.status(200).json({ status: "archive_query", mode, count: rows.length, rows });
     }
     if (mode === "canonCount") {
