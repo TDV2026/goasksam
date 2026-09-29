@@ -742,6 +742,38 @@ async function handleOps(req, res) {
     } catch (e) { return res.status(200).json({ task: "liveprobe", error: String((e && e.message) || e), status: (e && e.status) || null }); }
   }
 
+  // task=unknownmake: READ-ONLY (archive; ZERO OCD). BaT rows with make='unknown' in the last 12 months,
+  // sold + unsold, with sample titles and a rough "parseable from title" estimate. Report only.
+  if (task === "unknownmake") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const since = new Date(Date.now() - 366 * 864e5).toISOString().slice(0, 10);
+    const sold = (await supabaseSelect(env, `sales_archive?source_slug=eq.bringatrailer&make=eq.unknown&sale_date=gte.${since}&select=listing_title,year,sale_date&order=sale_date.desc&limit=400`)) || [];
+    const unsold = (await supabaseSelect(env, `auction_attempts?source_slug=eq.bringatrailer&make=eq.unknown&attempt_date=gte.${since}&select=make,model,year,attempt_date,raw_record&order=attempt_date.desc&limit=400`)) || [];
+    // A title is likely fixable if it starts with a 4-digit year then a word (the make), e.g. "1972 Ducati ...".
+    const fixable = t => /^\s*(19|20)\d{2}\s+[A-Za-z]/.test(String(t || ""));
+    const soldFix = sold.filter(r => fixable(r.listing_title)).length;
+    const unsoldTitle = r => (r.raw_record && (r.raw_record.title || r.raw_record.listing_title)) || null;
+    return res.status(200).json({
+      task: "unknownmake", ocdSpend: 0, since,
+      sold: { total: sold.length, parseableFromTitle: soldFix, samples: sold.slice(0, 20).map(r => ({ y: r.year, title: (r.listing_title || "").slice(0, 70) })) },
+      unsold: { total: unsold.length, samples: unsold.slice(0, 10).map(r => ({ y: r.year, model: r.model, title: (unsoldTitle(r) || "").slice(0, 70) })) }
+    });
+  }
+
+  // task=tzcheck: READ-ONLY. 5 recent BaT sales: stored sale_date vs the OCD raw_record end timestamp,
+  // to tell whether sale_date is the auction's LOCAL (Pacific) end date or a UTC date.
+  if (task === "tzcheck") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const rows = (await supabaseSelect(env, `sales_archive?source_slug=eq.bringatrailer&sale_price=not.is.null&select=sale_date,end_at:raw_record->>auction_end_at,end_date:raw_record->>auction_end_date,ocd_date:raw_record->>date,prec:raw_record->>auction_end_precision,title:listing_title&order=sale_date.desc&limit=12`)) || [];
+    const out = rows.slice(0, 8).map(r => {
+      const at = r.end_at || "";
+      const utcDate = at ? new Date(at).toISOString().slice(0, 10) : null;
+      const paDate = at ? new Date(new Date(at).getTime() - 7 * 3600e3).toISOString().slice(0, 10) : null; // PDT = UTC-7
+      return { stored: r.sale_date, end_at: at, end_date: r.end_date, utc_date: utcDate, pacific_date: paDate, matches: r.sale_date === utcDate ? "UTC" : r.sale_date === paDate ? "Pacific" : "neither", title: (r.title || "").slice(0, 40) };
+    });
+    return res.status(200).json({ task: "tzcheck", ocdSpend: 0, rows: out });
+  }
+
   // task=nonsold: READ-ONLY non-sold data scoping (report-only). Per source: sold total,
   // withdrawn total (both filterable), and an unfiltered auction_status tally (sold vs
   // "reserve not met" vs withdrawn vs "result unavailable") to estimate the non-sold mix,
