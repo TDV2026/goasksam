@@ -747,8 +747,8 @@ async function handleOps(req, res) {
   if (task === "unknownmake") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const since = new Date(Date.now() - 366 * 864e5).toISOString().slice(0, 10);
-    const sold = (await supabaseSelect(env, `sales_archive?source_slug=eq.bringatrailer&make=eq.unknown&sale_date=gte.${since}&select=listing_title,year,sale_date&order=sale_date.desc&limit=400`)) || [];
-    const unsold = (await supabaseSelect(env, `auction_attempts?source_slug=eq.bringatrailer&make=eq.unknown&attempt_date=gte.${since}&select=make,model,year,attempt_date,raw_record&order=attempt_date.desc&limit=400`)) || [];
+    const sold = (await supabaseSelect(env, `sales_archive?source_slug=eq.bringatrailer&make=ilike.unknown&sale_date=gte.${since}&select=listing_title,make,year,sale_date&order=sale_date.desc&limit=400`)) || [];
+    const unsold = (await supabaseSelect(env, `auction_attempts?source_slug=eq.bringatrailer&make=ilike.unknown&attempt_date=gte.${since}&select=make,model,year,attempt_date,raw_record&order=attempt_date.desc&limit=400`)) || [];
     // A title is likely fixable if it starts with a 4-digit year then a word (the make), e.g. "1972 Ducati ...".
     const fixable = t => /^\s*(19|20)\d{2}\s+[A-Za-z]/.test(String(t || ""));
     const soldFix = sold.filter(r => fixable(r.listing_title)).length;
@@ -764,14 +764,19 @@ async function handleOps(req, res) {
   // to tell whether sale_date is the auction's LOCAL (Pacific) end date or a UTC date.
   if (task === "tzcheck") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const rows = (await supabaseSelect(env, `sales_archive?source_slug=eq.bringatrailer&sale_price=not.is.null&select=sale_date,end_at:raw_record->>auction_end_at,end_date:raw_record->>auction_end_date,ocd_date:raw_record->>date,prec:raw_record->>auction_end_precision,title:listing_title&order=sale_date.desc&limit=12`)) || [];
-    const out = rows.slice(0, 8).map(r => {
+    const rows = (await supabaseSelect(env, `sales_archive?source_slug=eq.bringatrailer&sale_price=not.is.null&select=sale_date,end_at:raw_record->>auction_end_at,end_date:raw_record->>auction_end_date,title:listing_title&order=sale_date.desc&limit=300`)) || [];
+    const dec = r => {
       const at = r.end_at || "";
-      const utcDate = at ? new Date(at).toISOString().slice(0, 10) : null;
-      const paDate = at ? new Date(new Date(at).getTime() - 7 * 3600e3).toISOString().slice(0, 10) : null; // PDT = UTC-7
-      return { stored: r.sale_date, end_at: at, end_date: r.end_date, utc_date: utcDate, pacific_date: paDate, matches: r.sale_date === utcDate ? "UTC" : r.sale_date === paDate ? "Pacific" : "neither", title: (r.title || "").slice(0, 40) };
-    });
-    return res.status(200).json({ task: "tzcheck", ocdSpend: 0, rows: out });
+      if (!at) return null;
+      const utcDate = new Date(at).toISOString().slice(0, 10);
+      const paDate = new Date(new Date(at).getTime() - 7 * 3600e3).toISOString().slice(0, 10); // PDT = UTC-7
+      return { stored: r.sale_date, end_at: at, utc_date: utcDate, pacific_date: paDate, differ: utcDate !== paDate, matches: r.sale_date === utcDate ? "UTC" : r.sale_date === paDate ? "Pacific" : "neither", title: (r.title || "").slice(0, 36) };
+    };
+    const all = rows.map(dec).filter(Boolean);
+    // The discriminating cases: auctions that ended AFTER 5pm Pacific, i.e. 00:00-07:00 UTC, so the
+    // UTC date and the Pacific date are DIFFERENT days.
+    const disc = all.filter(r => r.differ).slice(0, 5);
+    return res.status(200).json({ task: "tzcheck", ocdSpend: 0, discriminating: disc, sampleAll: all.slice(0, 3) });
   }
 
   // task=nonsold: READ-ONLY non-sold data scoping (report-only). Per source: sold total,
