@@ -184,6 +184,7 @@ function renderDecision(decisionData,renderOpts){
   renderOpts=renderOpts||{};
   sellState.sellDecision=decisionData;
   sellState.renderedHouseComparison=null;   // reset; set only if a house comparison actually renders
+  sellState.renderedClassEra=null;          // reset; set only if the class-era read renders
   const msgs=document.getElementById("msgs");
   if(!msgs)return;
   const decision=decisionData.decision||{};
@@ -1494,6 +1495,12 @@ function renderClassEraSell(msgs,ce,decisionData){
     return `<li style="display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-top:1px solid rgba(0,0,0,.08)"><span>${esc(rc.year||"")} ${esc(rc.model||"")} ${link}${rc.isHouse?' <span style="opacity:.55;font-size:11px;text-transform:uppercase;letter-spacing:.06em">house</span>':""}${mi}</span><span style="font-variant-numeric:tabular-nums;font-weight:600">${money(rc.hammer)}${allin}</span></li>`;
   }).join("");
   sellState.sellOptions=[];
+  // Chat memory (items 1-2) for the class-era read a DIY seller sees: the wider-market sales shown,
+  // including the venues (Barrett-Jackson, Mecum, ...). No consignment calendar is shown here.
+  sellState.renderedClassEra={
+    carLabel:carName, era:ce.era, make:ce.make,
+    sales:sorted.slice().reverse().slice(0,6).map(rc=>`${[rc.year,rc.model].filter(Boolean).join(" ")} ${money(rc.hammer)} at ${rc.venue}`)
+  };
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
