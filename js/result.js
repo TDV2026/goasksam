@@ -83,7 +83,10 @@ async function showSellRecommendation(opts){
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
         car:{
-          raw:sellState.carName,
+          // Send the ORIGINAL typed text (carRaw, with any model codes) when a detail was skipped, so a
+          // make-level "not sure" still carries the body-class signal (D50/D350 -> truck) for the
+          // class-era read; otherwise the display name.
+          raw:(sellState.vehicleDetailSkipped&&sellState.carRaw)?sellState.carRaw:sellState.carName,
           vehicle:(sellState.vehicleIdentityValidated&&sellState.resolvedVehicle)?sellState.resolvedVehicle:undefined,
           acceptModelLevel:!!sellState.vehicleDetailSkipped,
           region:sellState.region,
@@ -1358,10 +1361,11 @@ function _hcReceiptRow(rc,modelLabel){
 // Asking price vs the sales SHOWN, stated as a plain fact (item 7), never a valuation. Returns "" when
 // no asking price or no priced sales. Compares the seller's ask to the hammer figures on the cards.
 function _askingVsSalesLine(hammers){
-  const raw=String(sellState.price||"");
-  let n=Number(raw.replace(/[^0-9.]/g,""));
-  if(!n) return "";
-  if(/\bk\b|k$/i.test(raw)&&n<1000) n*=1000; else if(/\bm\b|m$/i.test(raw)&&n<1000) n*=1e6;
+  // Item 2: use the SAME parser the header/confirm use (parseAskingPrice), so "22" reads as $22,000
+  // everywhere. The old ad-hoc parse only multiplied on a k/m suffix, so "22" stayed $22 and the
+  // above/below wording flipped.
+  const n=(typeof parseAskingPrice==="function")?parseAskingPrice(sellState.price):null;
+  if(!n||!(n>0)) return "";
   const hs=(hammers||[]).filter(x=>Number(x)>0).sort((a,b)=>a-b);
   if(!hs.length) return "";
   const esc=escapeHtml, money=moneyShort, ask=money(Math.round(n));
@@ -1472,7 +1476,7 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
       nextSale:h.nextSale?`${h.nextSale.city}, ${h.nextSale.monthName} ${h.nextSale.year}${h.nextSale.intl?" (international)":""}`:null,
       sales:(h.receipts||[]).slice(0,3).map(r=>`${cleanReceiptTitleForCard(r.title)||[r.year,r.model].filter(Boolean).join(" ")} ${money(r.hammer)}${r.date?" ("+(_thinMonthLabel(r.date)||"")+")":""}`)
     })),
-    askingLine:(function(){const hs=[].concat.apply([],houses.map(h=>(h.receipts||[]).slice(0,3).map(r=>r.hammer)));const raw=String(sellState.price||"");let n=Number(raw.replace(/[^0-9.]/g,""));if(!n)return null;if(/k/i.test(raw)&&n<1000)n*=1000;else if(/m/i.test(raw)&&n<1000)n*=1e6;const f=hs.filter(x=>Number(x)>0).sort((a,b)=>a-b);if(!f.length)return null;if(n>f[f.length-1])return`Every sale shown was below the seller's ${money(Math.round(n))} ask.`;if(n<f[0])return`Every sale shown was above the seller's ${money(Math.round(n))} ask.`;return`The seller's ${money(Math.round(n))} ask sits within the sales shown.`;})()
+    askingLine:(function(){const hs=[].concat.apply([],houses.map(h=>(h.receipts||[]).slice(0,3).map(r=>r.hammer)));const n=(typeof parseAskingPrice==="function")?parseAskingPrice(sellState.price):null;if(!n||!(n>0))return null;const f=hs.filter(x=>Number(x)>0).sort((a,b)=>a-b);if(!f.length)return null;if(n>f[f.length-1])return`Every sale shown was below the seller's ${money(Math.round(n))} ask.`;if(n<f[0])return`Every sale shown was above the seller's ${money(Math.round(n))} ask.`;return`The seller's ${money(Math.round(n))} ask sits within the sales shown.`;})()
   };
   msgs.appendChild(row);
   row.scrollIntoView({behavior:"smooth",block:"start"});
@@ -1494,24 +1498,25 @@ function renderClassEraSell(msgs,ce,decisionData){
   const sorted=recs.slice().sort((a,b)=>a.hammer-b.hammer);
   const lo=(ce.lowHammer!=null?ce.lowHammer:sorted[0].hammer),hi=(ce.highHammer!=null?ce.highHammer:sorted[sorted.length-1].hammer);
   const line=`No ${esc(carName)} has sold in the last three years, so this is the wider ${esc(ce.era)} ${esc(ce.make)} market, not your exact car. ${ce.totalN} sold; most landed between ${money(lo)} and ${money(hi)}, the middle around ${money(ce.medianHammer)}.`;
-  const read=`Your exact car is rare enough that it hasn't traded in the three years I track. Treat these as the neighborhood it sits in, not a figure for it. The moment one like yours sells, I can read it directly.`;
+  // Item 4: state the fact only, never call the exact car "rare".
+  const read=`None sold in the three years I track, so treat these as the neighborhood it sits in, not a figure for it. The moment one like yours sells, I can read it directly.`;
+  // Item 3 (self-sell = online only): a self-seller lists it themselves, so the SHOWN cards are ONLINE
+  // sales only, matching the "houses left out" line below. Auction-house receipts never appear here.
+  const onlineRecs=recs.filter(r=>!r.isHouse);
+  const houseN=recs.length-onlineRecs.length;
   // Item 2: show the sales in the engine's RELEVANCE order (assessClassEra ranks by same-model, then
   // year proximity, then recency), NEVER re-sorted by price. The old ".reverse().slice(0,6)" showed the
-  // six PRICIEST, which fell outside the stated band. ce.receipts arrives already relevance-ranked.
-  const shown=recs.slice(0,6);
+  // six PRICIEST, which fell outside the stated band.
+  const shown=(onlineRecs.length?onlineRecs:recs).slice(0,6);
   const list=shown.map(rc=>{
     const link=rc.url?`<a href="${esc(rc.url)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px solid rgba(0,0,0,.18)">${esc(rc.venue)}</a>`:esc(rc.venue);
     const mi=Number(rc.mileage)>0?` · ${Number(rc.mileage).toLocaleString()} mi`:"";
-    const allin=rc.isHouse&&rc.allIn?` <span style="opacity:.6;font-size:12px">buyer paid ${money(rc.allIn)}</span>`:"";
     // Card shows the record's OWN title (standing rule), not the seller's typed model.
     const own=cleanReceiptTitleForCard(rc.title)||[rc.year,rc.model].filter(Boolean).join(" ")||"";
-    return `<li style="display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-top:1px solid rgba(0,0,0,.08)"><span>${esc(own)} ${link}${rc.isHouse?' <span style="opacity:.55;font-size:11px;text-transform:uppercase;letter-spacing:.06em">house</span>':""}${mi}</span><span style="font-variant-numeric:tabular-nums;font-weight:600">${money(rc.hammer)}${allin}</span></li>`;
+    return `<li style="display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-top:1px solid rgba(0,0,0,.08)"><span>${esc(own)} ${link}${mi}</span><span style="font-variant-numeric:tabular-nums;font-weight:600">${money(rc.hammer)}</span></li>`;
   }).join("");
   // Item 5 (self-sell answer): rank the ONLINE places that have sold this class, by count then recency,
-  // counts shown. A self-seller lists it themselves, so auction houses are excluded from the ranking;
-  // if the class has house sales, say so in one line.
-  const onlineRecs=recs.filter(r=>!r.isHouse);
-  const houseN=recs.length-onlineRecs.length;
+  // counts shown. Houses excluded (self-seller); a one-line note when the class also sold at houses.
   const vmap={};
   for(const r of onlineRecs){const k=(typeof platformDisplayName==="function"?platformDisplayName(r.slug||r.source):null)||r.venue||"Online";const d=String(r.date||"").slice(0,10);(vmap[k]||(vmap[k]={venue:k,count:0,recent:""}));vmap[k].count++;if(d>vmap[k].recent)vmap[k].recent=d;}
   const venues=Object.values(vmap).sort((a,b)=>b.count-a.count||b.recent.localeCompare(a.recent)).slice(0,5);
@@ -1604,34 +1609,22 @@ function renderNoEvidenceFallback(fallback){
   const secSlug=String(fallback.secondarySlug||"").toLowerCase();
   const secOutbound=secSlug&&typeof hasOutboundSubmission==="function"&&hasOutboundSubmission(secSlug);
   const secCta=secOutbound?`outboundGo('${esc(secSlug)}','alt')`:`chooseFallbackDestination('${esc(fallback.secondary||"")}')`;
-  const secondary=fallback.secondary?`
-    <div class="pv2-sec">
-      <div class="pv2-sec-main"><div class="pv2-sec-l">Also worth comparing</div><div class="pv2-sec-name">${esc(fallback.secondary)}</div><div class="pv2-sec-copy">${esc(fallback.secondaryReason||"")}</div></div>
-      <button class="pv2-sec-cta" onclick="event.stopPropagation();${secCta}">Continue with ${esc(fallback.secondary)}${svg("arrow","pv2-sar")}</button>
-    </div>`:"";
+  // No comparable sales exist for this car, so this is NOT a pick and there is NO listing button
+  // (item 6: never a pick or a listing CTA without sales behind it). State the honest no-data position
+  // and, at most, name where cars of this kind GENERALLY go as directional context, clearly not a pick.
+  const dirNote=name?`Cars like this generally list on <b>${esc(name)}</b>${fallback.secondary?` or ${esc(fallback.secondary)}`:""}, but that's a general steer, not a pick for your car.`:"";
   return `<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
-    <div class="pcard pcard-platform" onclick="${primaryCta}">
+    <div class="pcard">
       <div class="pcard-left">
-        <span class="pcard-badge">+ Sam's Pick</span>
-        <div class="pcard-script">For your ${esc(v.make||car||"car")}, I'd start with</div>
-        <h1 class="pcard-name">${esc(name)}</h1>
-        <div class="pcard-whyl pcard-whyl-main">Why This Fits</div>
-        <p class="pcard-lead">${esc(fallback.primaryReason)}</p>
-        <button class="pcard-cta" onclick="event.stopPropagation();${primaryCta}">Start Listing With ${esc(name)}${svg("arrow","cta-arrow")}</button>
-        <div class="pcard-reassure">${svg("shield")}<span>You'll be taken to ${esc(name)} to begin your listing. Nothing is committed until you decide to publish.</span></div>
+        <div class="pcard-script">Here's the honest read for your</div>
+        <h1 class="pcard-name">${esc(carLbl||v.make||car||"car")}</h1>
+        <p class="pcard-lead">I don't have comparable recent sales for this exact car in my data, so I can't point you to a venue on evidence yet, and I won't guess one.</p>
+        ${dirNote?`<p class="pcard-lead">${dirNote}</p>`:""}
+        <p class="pcard-lead" style="opacity:.7;font-size:12.5px;margin-top:10px">The moment one like it sells, I can read it directly and back a recommendation with real sales.</p>
       </div>
-      <div class="pcard-right">
-        <div class="pcard-wordmark">${esc(name)}</div>
-        <div class="pcard-meta">
-          <div class="pcard-mrow">${pin}<div><div class="pcard-mp">${esc(carLbl)}</div><div class="pcard-ms">${esc(loc)}</div></div></div>
-          <div class="pcard-mrow">${svg("car")}<div><div class="pcard-mp">Policy fit</div><div class="pcard-ms">No comparable sales yet</div></div></div>
-        </div>
-      </div>
-      <div class="pcard-note">${esc(fallback.caveat||"When comparable sales show up in my data, I can back this with real evidence.")}</div>
     </div>
-    ${secondary}
-    <div class="sam-text after-results">Ask me anything about the recommendation, or tell me more about the car.</div>
+    <div class="sam-text after-results">Tell me more about the car, or try another and I'll pull what actually sold.</div>
   </div></div>`;
 }
 

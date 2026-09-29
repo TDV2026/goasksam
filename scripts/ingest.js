@@ -101,10 +101,25 @@ async function ocdFetch(params) {
   }
 }
 
+// Natural dedup key (item 7b): source_slug + vin_norm + sale_date + sale_price when a 17-char VIN
+// exists, else source_slug + listing_title + sale_date + sale_price. This is the SAME identity the
+// read paths dedup on (lib/_houseComps.js saleIdentity), so OCD's double-ingest of one house sale
+// under two source_record_ids collapses to a single logical row.
+function dedupeKeyFor(source, vinRaw, saleDate, salePrice, title) {
+  const vin = String(vinRaw || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+  const date = String(saleDate || "").slice(0, 10);
+  const price = Math.round(Number(salePrice) || 0);
+  const slug = String(source || "").toLowerCase();
+  if (vin.length === 17) return `${slug}|${vin}|${date}|${price}`;
+  const t = String(title || "").toLowerCase().replace(/\s+/g, " ").trim();
+  return `${slug}|${t}|${date}|${price}`;
+}
 function toFullRow(r, label, source) {
   const d = toDate(r.auction_end_date);
+  const saleDate = dayKey(d), salePrice = toMoney(r.price);
   return {
-    source_id: String(r.id ?? ""), sale_date: dayKey(d), platform: label, source_slug: source,
+    source_id: String(r.id ?? ""), sale_date: saleDate, platform: label, source_slug: source,
+    dedupe_key: dedupeKeyFor(source, r.vin, saleDate, salePrice, r.title),
     make: (r.ocd_make_name || r.listing_make || "Unknown").toString().trim(),
     model: (r.ocd_model_name || r.listing_model || "Unknown").toString().trim(),
     sale_price: toMoney(r.price), month: d ? d.toISOString().slice(0, 7) : null, raw_record: r,
@@ -211,16 +226,40 @@ for (const source of SOURCES) {
 // on-conflict DO UPDATE (JSONB rewrite) buys nothing and is what trips the statement
 // timeout. This flag switches to resolution=ignore-duplicates (DO NOTHING), a far lighter
 // write path. Use it for historical backfills; the nightly delta keeps merge semantics.
-const uniq = [...new Map(kept.filter(r => r.source_id).map(r => [r.source_id, r])).values()];
+// Dedup the batch by the NATURAL key (item 7b), keeping the first (lowest-id) row, so two OCD
+// source_record_ids for the same physical sale never both insert within a run. Falls back to
+// source_id when a row has no dedupe_key.
+const uniq = [...new Map(kept.filter(r => r.source_id).map(r => [r.dedupe_key || r.source_id, r])).values()];
 const BASE_CHUNK = Math.max(1, Number(flag("chunk") || 100));
 const MIN_CHUNK = 25;
 const IGNORE_DUPES = flag("ignore-dupes") != null;
 const UPSERT_RES = IGNORE_DUPES ? "resolution=ignore-duplicates,return=minimal" : "resolution=merge-duplicates,return=minimal";
 let inserted = 0, insertError = null, chunk = BASE_CHUNK, i = 0, sinceGrow = 0;
 const skipped = [];   // {from, size, error} for chunks that failed even at the floor
+// Upsert on the NATURAL key (item 7b) so a re-ingest of the same house sale under a new
+// source_record_id UPDATES the existing row instead of inserting a duplicate. Self-healing: if the
+// dedupe_key unique index is not applied yet (Postgres 42P10 "no unique/exclusion constraint"), fall
+// back to on_conflict=source_id for the rest of the run so ingest never breaks before Sam runs the DDL
+// (docs/supabase-sales-archive-dedupe-key.sql). Once the index exists, cross-run dupes stop at ingest.
+let onConflictCol = "dedupe_key";   // downgrades to source_id if the unique index is not applied yet
+let stripDedupeKey = false;         // set if the dedupe_key COLUMN does not exist yet
+const prep = rows => stripDedupeKey ? rows.map(({ dedupe_key, ...rest }) => rest) : rows;
 while (i < uniq.length) {
   const slice = uniq.slice(i, i + chunk);
-  const r = await supabaseInsert("sales_archive", slice, env.supabaseUrl, env.supabaseKey, UPSERT_RES, "?on_conflict=source_id");
+  let r = await supabaseInsert("sales_archive", prep(slice), env.supabaseUrl, env.supabaseKey, UPSERT_RES, `?on_conflict=${onConflictCol}`);
+  // Self-heal before the DDL (docs/supabase-sales-archive-dedupe-key.sql) is applied: if the
+  // dedupe_key COLUMN is missing, drop it from the payload; if the unique INDEX is missing, upsert on
+  // source_id. Once Sam applies the DDL, the natural-key upsert prevents cross-run duplicates at ingest.
+  if (r.error && !stripDedupeKey && /dedupe_key|PGRST204|42703|column/i.test(String(r.error))) {
+    stripDedupeKey = true; onConflictCol = "source_id";
+    process.stderr.write(`\n  dedupe_key column not present yet; ingesting without it and upserting on source_id (apply docs/supabase-sales-archive-dedupe-key.sql to enable natural-key dedup at ingest)\n`);
+    r = await supabaseInsert("sales_archive", prep(slice), env.supabaseUrl, env.supabaseKey, UPSERT_RES, `?on_conflict=${onConflictCol}`);
+  }
+  if (r.error && onConflictCol === "dedupe_key" && /42P10|no unique|exclusion constraint|on_conflict/i.test(String(r.error))) {
+    process.stderr.write(`\n  dedupe_key unique index not present yet; falling back to on_conflict=source_id\n`);
+    onConflictCol = "source_id";
+    r = await supabaseInsert("sales_archive", prep(slice), env.supabaseUrl, env.supabaseKey, UPSERT_RES, `?on_conflict=${onConflictCol}`);
+  }
   if (r.error) {
     if (chunk > MIN_CHUNK) {
       chunk = Math.max(MIN_CHUNK, Math.floor(chunk / 2)); sinceGrow = 0;

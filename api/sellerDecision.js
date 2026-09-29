@@ -3774,10 +3774,12 @@ export default async function handler(req, res) {
         const _tl = String((car && car.timeline) || ""); const asap = /\b(asap|rush|hurry|urgent|fast|quick|soon)\b|right away|this week/i.test(_tl) && !/\bno\s+(rush|hurry)\b/i.test(_tl);
         decision.thin.houseComparison = buildHouseComparison(thin.receipts, { todayISO: new Date().toISOString().slice(0, 10), asap });
       } catch { /* thin render facts are additive */ }
-    } else if (vehicle && vehicle.year && (!thin || thin.totalN === 0)) {
-      // CLASS-ERA rung: the exact model has not sold in three years (empty model pool, or thin could
-      // not scope it). Widen to the same marque within the car's decade era band - a coarse honest
-      // fallback, never a price for the exact car. Archive-only, zero extra OldCarsData.
+    } else if (vehicle && vehicle.year && vehicle.make && (!thin || thin.totalN === 0 || !vehicle.model || vehicle.unverified || (car && car.acceptModelLevel))) {
+      // CLASS-ERA rung: the exact model has not sold in three years (empty model pool), OR the model
+      // could not be pinned (make-level "not sure" / unverified). Widen to the same marque within the
+      // car's decade era band, body-class scoped from the typed text - a coarse honest fallback that
+      // gives a real read (e.g. 1980s Dodge trucks) instead of a route pick with no sales behind it.
+      // Archive-only, zero extra OldCarsData.
       try {
         ceDbg.ceCalled = true;
         const ce = await assessClassEraForVehicle(vehicle, generation, thinEnv);

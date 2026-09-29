@@ -1169,20 +1169,16 @@ async function handleVehicleValidationAnswer(q){
       resumeWizardAfterVehicle(`No problem, I'll work with the ${baseVehicle} at the model level. The read will be broader than year-specific, and I'll say so in the result.`);
       return true;
     }
-    sellState.notSureRepeats=(sellState.notSureRepeats||0)+1;
+    // ONE "not sure" is enough (item 5): acknowledge once and proceed with the broader read. No
+    // three-strike loop. The ORIGINAL typed text (with any model codes, e.g. "1986 Dodge D50 D350") is
+    // kept in carRaw so the backend can still read the body class (truck) for the wider class-era read,
+    // while the display name drops to make/year level.
     const baseVehicle=currentIssue?.baseVehicle||sellState.carName||"the car";
-    if(sellState.notSureRepeats>=3){
-      // Third strike: stop asking. Proceed at make level; the evidence ladder
-      // handles broad evidence honestly.
-      sellState.carName=baseVehicle;sellState.carRaw=baseVehicle;
-      sellState.vehicleDetailSkipped=true;sellState.pendingVehicleIdentity=null;
-      sellState.vehicleIdentityValidated=false;sellState.notSureRepeats=0;
-      askLocationStep(`No problem, I'll work with the ${baseVehicle} at that level. The read will be more directional than model-specific, and I'll say so in the result.`);
-      return true;
-    }
-    addMsg("sam",sellState.notSureRepeats===1
-      ?"No problem. I need the actual car before I can recommend where to sell it. What does the badge, registration or paperwork say?"
-      :`All good. If the paperwork isn't handy, the badge on the back of the car usually settles it. If you'd rather not dig, say 'not sure' once more and I'll run the analysis on the ${baseVehicle} as-is, just with a broader read.`);
+    sellState.carRaw=sellState.carRaw||sellState.carName||baseVehicle;
+    sellState.carName=baseVehicle;
+    sellState.vehicleDetailSkipped=true;sellState.pendingVehicleIdentity=null;
+    sellState.vehicleIdentityValidated=false;sellState.notSureRepeats=0;
+    askLocationStep(`No problem, I'll work with the ${baseVehicle} at that level. The read will be broader than model-specific, and I'll say so in the result.`);
     return true;
   }
   if(currentIssue?.suggestion&&(affirmationPhrase||detectIntent(lower)==="affirmation")){
