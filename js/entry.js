@@ -186,7 +186,11 @@ async function send(){
         sellContext+=`\nWHAT IS ON THE SELLER'S SCREEN RIGHT NOW (authoritative): no exact ${rce.carLabel} has sold in three years, so the result shows the wider ${rce.era} ${rce.make} market - these real sales (venue included):\n${rce.sales.map(s=>"- "+s).join("\n")}\nHARD RULES: this is what the seller sees. NEVER deny a sale, a price or a venue (e.g. Barrett-Jackson, Mecum) listed above; if the seller references one, confirm it and explain it is part of the wider-market read, not their exact car. NEVER say "this is the start of our chat". NEVER invent a platform recommendation not shown. Only restate what is on screen.`;
       }
       const dec=sellState.sellDecision?.decision;
-      if(dec?.recommendedPath){
+      // When a house comparison or class-era read is on screen, THAT is the recommendation (the ranked
+      // houses / the wider-market read), NOT the route-fit online platform. Suppress the platform-pick
+      // block so the chat never states "the recommendation is Bring a Trailer" over a house result
+      // (item 2). The recommendedPath route-fit still exists in the decision but is not what rendered.
+      if(dec?.recommendedPath&&!sellState.renderedHouseComparison&&!sellState.renderedClassEra){
         const evBand=typeof evidenceBand==="function"?evidenceBand(sellState.sellDecision?.evidence?.evidenceSales):"a recent sample";
         const winDays=sellState.sellDecision?.evidence?.windowDays;
         // Composition is authoritative: the recommendation the seller sees IS what
