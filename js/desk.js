@@ -40,6 +40,7 @@
     if (res.single) return "";   // renderSingle emits its own one sentence (with the price cap)
     var r = res.reading || {};
     var era = (r.filters && r.filters.era) ? (r.filters.era[0] + " to " + r.filters.era[1]) : null;
+    if (res.ranking && res.ranking.isVenue) return "";   // renderRanking emits its own venue sentence
     if (res.ranking) {
       var by = res.ranking.metric === "count" ? "number sold" : "typical sale price";
       var who = res.ranking.name || (r.scopes || []).map(function (s) { return s.model; }).filter(Boolean).join(" and ");
@@ -83,7 +84,8 @@
     var ym = d.year_min || CUR_SCOPE.year_min, yx = d.year_max || CUR_SCOPE.year_max;
     if (ym) filters.year_min = ym; if (yx) filters.year_max = yx;
     // Inherit the rest of the answer scope so the evidence pool matches the figure exactly.
-    if (CUR_SCOPE.venue) filters.venue = CUR_SCOPE.venue;
+    if (d.venue) filters.venue = d.venue;             // a clicked venue bar scopes the drawer to that venue
+    else if (CUR_SCOPE.venue) filters.venue = CUR_SCOPE.venue;
     if (CUR_SCOPE.channel) filters.channel = CUR_SCOPE.channel;
     if (CUR_SCOPE.price_min) filters.price_min = CUR_SCOPE.price_min;
     if (CUR_SCOPE.price_max) filters.price_max = CUR_SCOPE.price_max;
@@ -115,7 +117,7 @@
   function wireEvidence() {
     Array.prototype.forEach.call(document.querySelectorAll("#out .ev[data-make]"), function (el) {
       el.onclick = function () {
-        openDrawer({ make: el.getAttribute("data-make"), model: el.getAttribute("data-model"), trim: el.getAttribute("data-trim") || null, generation: el.getAttribute("data-gen") || null, window: el.getAttribute("data-window") || "36mo", year_min: el.getAttribute("data-ymin") || null, year_max: el.getAttribute("data-ymax") || null, fig: el.getAttribute("data-fig") || el.textContent, caption: el.getAttribute("data-cap") || null });
+        openDrawer({ make: el.getAttribute("data-make"), model: el.getAttribute("data-model"), trim: el.getAttribute("data-trim") || null, generation: el.getAttribute("data-gen") || null, venue: el.getAttribute("data-venue") || null, window: el.getAttribute("data-window") || "36mo", year_min: el.getAttribute("data-ymin") || null, year_max: el.getAttribute("data-ymax") || null, fig: el.getAttribute("data-fig") || el.textContent, caption: el.getAttribute("data-cap") || null });
       };
     });
     Array.prototype.forEach.call(document.querySelectorAll("#out .cov[data-method]"), function (el) { el.onclick = openMethod; });
@@ -245,11 +247,26 @@
   }
   function windowLabelOf(w) { var m = { ytd: "year to date", "12mo": "last 12 months", "24mo": "last 24 months", "36mo": "last 36 months", "6mo": "last 6 months" }; return m[w] || "last 36 months"; }
   // Ranked bars (mock layout). Each name and value is an evidence figure (click -> the sales behind it).
+  // A kept count under the raw DB total must be EXPLAINED, never silently smaller (Sam's shared-scope
+  // rule). Reads the exclusion tally the executor returns and names the top reasons in one clause.
+  function exclusionNote(ex) {
+    if (!ex || !ex.total) return "";
+    var keys = Object.keys(ex.byReason || {}).sort(function (a, b) { return ex.byReason[b] - ex.byReason[a]; }).slice(0, 4);
+    var bits = keys.map(function (k) { return ex.byReason[k] + " " + k; });
+    return bits.length ? (ex.total + " set aside (" + bits.join(", ") + ")") : (ex.total + " set aside");
+  }
   function renderRanking(rk) {
     if (!rk) return msg("Trouble", "The ranking did not come back.");
+    // Venue ranking (item 6): one sentence stating what was asked, bars ordered by count, and the
+    // bars SUM to the shared scope count (stated), so a count can never silently diverge across reads.
+    var lead = "";
+    if (rk.isVenue) {
+      var venWin = windowLabelOf(rk.window);
+      lead = '<p class="reading">Where <b>' + esc(rk.name || "this car") + '</b> sold <b>' + esc(venWin) + '</b>, by number of sales.</p>';
+    }
     var h = '<div class="result">';
     if (rk.tooFewToRank || !rk.ranked || !rk.ranked.length) {
-      h += '<div class="reconcile">Fewer than two of these have enough recent sales to rank honestly.</div>';
+      h += '<div class="reconcile">' + (rk.isVenue ? 'No sales of this car in scope, so there are no venues to rank.' : 'Fewer than two of these have enough recent sales to rank honestly.') + '</div>';
     } else {
       var max = Math.max.apply(null, rk.ranked.map(function (r) { return rk.metric === "count" ? (r.count || 0) : (r.median || 0); })) || 1;
       h += '<div class="rank">';
@@ -257,19 +274,23 @@
         var val = rk.metric === "count" ? r.count : r.median;
         var w = Math.max(2, Math.round((val / max) * 300));
         var vtxt = rk.metric === "count" ? String(r.count) : usd(r.median);
-        var sub = rk.metric === "count" ? ("typical " + usd(r.median)) : ((r.p25 != null ? usd(r.p25) + " to " + usd(r.p75) + " · " : "") + r.count);
-        var ev = 'data-make="' + esc(r.make) + '" data-model="' + esc(r.model) + '"' + (r.trim ? ' data-trim="' + esc(r.trim) + '"' : '') + (r.yearStart ? ' data-ymin="' + r.yearStart + '"' : '') + (r.yearEnd ? ' data-ymax="' + r.yearEnd + '"' : '') + ' data-window="' + esc(rk.window || "36mo") + '" data-cap="' + esc(r.group) + '" data-fig="' + esc(vtxt) + '"';
+        var sub = rk.metric === "count" ? (r.median != null ? "typical " + usd(r.median) : "") : ((r.p25 != null ? usd(r.p25) + " to " + usd(r.p75) + " · " : "") + r.count);
+        var ev = 'data-make="' + esc(r.make) + '" data-model="' + esc(r.model) + '"' + (r.trim ? ' data-trim="' + esc(r.trim) + '"' : '') + (r.venue ? ' data-venue="' + esc(r.venue) + '"' : '') + (r.yearStart ? ' data-ymin="' + r.yearStart + '"' : '') + (r.yearEnd ? ' data-ymax="' + r.yearEnd + '"' : '') + ' data-window="' + esc(rk.window || "36mo") + '" data-cap="' + esc(r.group) + '" data-fig="' + esc(vtxt) + '"';
         h += '<div class="rank-row"><span class="r">' + (i + 1) + '</span>' +
           '<span class="nm ev" ' + ev + '>' + esc(r.group) + '</span>' +
           '<span class="bar" style="width:' + w + 'px"></span>' +
           '<span class="v"><span class="ev" ' + ev + '>' + vtxt + '</span> <span class="sub">' + esc(sub) + '</span></span></div>';
       });
       h += '</div>';
+      if (rk.isVenue && rk.total != null) {
+        var exn = exclusionNote(rk.exclusions);
+        h += '<div class="read">' + rk.total.toLocaleString("en-US") + ' sales across ' + rk.ranked.length + ' ' + (rk.ranked.length === 1 ? "venue" : "venues") + '; the bars add up to this total.' + (exn ? ' ' + esc(exn) + '.' : '') + '</div>';
+      }
     }
     if (rk.thin && rk.thin.length) h += '<div class="reconcile">Shown but not ranked (fewer than ' + (rk.thinThreshold || 5) + ' sales): ' + rk.thin.map(function (t) { return esc(t.group) + " (" + t.count + ")"; }).join(", ") + '.</div>';
     h += provenanceFooter({ window: windowLabelOf(rk.window) });
     h += '</div>';
-    return h;
+    return lead + h;
   }
   // Comparison render (Stage C): two+ cars side by side, in stated order, with the gap named in words.
   function renderComparison(cmp) {
@@ -326,7 +347,8 @@
       hr += '<div class="result"><div class="hl"><span class="hl-num ev" ' + evR + '>' + usd(top.hammer_usd) + '</span><span class="hl-sub">highest sale' + (ov.count ? '<span class="sep">&middot;</span>' + ov.count + ' sales in scope' : '') + '</span></div>';
       hr += '<div class="read">' + esc((top.title || "").slice(0, 74)) + ' &mdash; ' + esc(top.venue || "") + (top.date ? ' &middot; ' + fmtDate(top.date) : '') + (top.link ? ' <a href="' + esc(top.link) + '" target="_blank" rel="noopener">&#8599;</a>' : '') + '</div>';
       var recWin = s.recordWindowNamed ? windowLabelOf(s.window) : "all sales in our data";
-      hr += '<div class="cov" data-method="1"><u>' + esc(recWin) + (ov.count ? " (" + ov.count + " sales)" : "") + ' &middot; hammer, premiums backed out &middot; updated nightly</u></div>';
+      var exnR = exclusionNote(s.exclusions);
+      hr += '<div class="cov" data-method="1"><u>' + esc(recWin) + (ov.count ? " (" + ov.count + " sales)" : "") + (exnR ? ' &middot; ' + esc(exnR) : '') + ' &middot; hammer, premiums backed out &middot; updated nightly</u></div>';
       hr += '</div>';
       return hr;
     }
@@ -361,6 +383,8 @@
       var thinG = (s.byGen || []).filter(function (g) { return g.median == null && g.count; });
       if (thinG.length) h += '<div class="reconcile">Shown but not read (under 5 sales): ' + thinG.map(function (g) { return esc(g.group) + " (" + g.count + ")"; }).join(", ") + '.</div>';
     }
+    var exnT = exclusionNote(s.exclusions);
+    if (exnT) h += '<div class="read">' + esc(exnT) + ' from the ' + esc(who) + ' pool.</div>';
     h += provenanceFooter({ window: win });
     h += '</div>';
     return sentence + h;
