@@ -589,16 +589,26 @@
   // that leads INTO the number, the serif band, a tail with the window + full span, then freshness.
   // Nothing else. The band edges are the cluster (typical middle) or the span when the pool is thin.
   function heroBlock(d, m) {
-    var hasCluster = !!d.cluster, band = hasCluster ? d.cluster : d.span;
+    var hasCluster = !!d.cluster;
     var noun = carNoun(d), mi = subjMileageOf(d, m);
+    // NO HEADLINE $ WITHOUT A BAND (standing rule): when the typical-band test fails (no cluster),
+    // there is no honest headline figure. Do NOT render a big dollar band - lead with the sales
+    // themselves and say why. The real sales rows render immediately below (resultHtml).
+    if (!hasCluster) {
+      var subj = noun || "cars like it";
+      var line = (d.poolN && d.poolN < 8)
+        ? ("Only " + d.poolN + " " + subj + " ha" + (d.poolN === 1 ? "s" : "ve") + " sold in " + windowText(d) + ", too few to mark a typical band, so here are the sales themselves.")
+        : (subj.charAt(0).toUpperCase() + subj.slice(1) + " sold too spread out in " + windowText(d) + " to mark a typical band, so here are the sales themselves.");
+      return '<div class="livetake blk noband" data-stage="answer">' + (m ? "" : carLineHtml(d, m)) +
+        '<div class="lead">' + lint(line, "cl.noband") + "</div>" +
+        freshLine(d) + "</div>";
+    }
+    var band = d.cluster;
     // Item 5b: "around this mileage" only when the band is actually mileage-scoped; otherwise it
     // would be a false claim (the band is the whole market) and is dropped.
     var miCtx = (mi && bandMileageScoped(d)) ? (m ? " around this mileage" : " around " + mi.toLocaleString("en-US") + " miles") : "";
     var lead = noun ? ("Most " + noun + miCtx + " sold between") : "Cars like it sold between";
-    var thin = !hasCluster && d.spanOnly && d.poolN && d.poolN < 8;
-    var tail = thin
-      ? ("in " + windowText(d) + ". Only " + d.poolN + " ha" + (d.poolN === 1 ? "s" : "ve") + " sold, so that is the full range.")
-      : ("in " + windowText(d) + ". Everything from " + usd(d.span[0]) + " to " + usd(d.span[1]) + " has sold.");
+    var tail = "in " + windowText(d) + ". Everything from " + usd(d.span[0]) + " to " + usd(d.span[1]) + " has sold.";
     // On an exact-car (VIN) result the hero above owns the car identity + Change, so the block does
     // not repeat a car line; a typed query keeps its car line (name + Change).
     return '<div class="livetake blk" data-stage="answer">' + (m ? "" : carLineHtml(d, m)) +
@@ -1118,7 +1128,12 @@
     // Plain serif lines, no green box (consistent with the result/exact states: evidence, not a widget).
     body += '<div class="thinread" data-stage="answer">' + reads.map(function (p) { return '<p class="contradiction">' + lint(esc(p), "ht.read") + "</p>"; }).join("") + "</div>";
     body += '<div class="seclabel" data-stage="cards">' + lint("What has sold, " + esc(name) + ", " + spanRange(scope), "ht.reclab") + "</div>";
-    body += '<div class="htreceipts" data-stage="cards">' + scope.slice(0, 8).map(function (rc) { return htReceiptRow(rc); }).join("") + "</div>";
+    // Item 3: show the sales by RECENCY, not the 8 priciest (the engine sorts ht.receipts hammer-desc
+    // for the median math, but slicing that top-8 for display biased the shown set to the ceiling and
+    // could leave the median hero below every shown card). Newest-first is the honest evidence order,
+    // and every shown card is inside the stated span (spanRange above), so the golden test holds.
+    var shownRecs = scope.slice().sort(function (a, b) { return String(b.date || "").localeCompare(String(a.date || "")); }).slice(0, 8);
+    body += '<div class="htreceipts" data-stage="cards">' + shownRecs.map(function (rc) { return htReceiptRow(rc); }).join("") + "</div>";
     // Paired chassis are a whole-model signal; show them only in the unscoped view.
     if (scope === ht.receipts) body += htPairsHtml(ht);
     // CONSIGNMENT DOOR (Sep 2026): the houses are routable. On a house-forward car, name the house
@@ -1206,6 +1221,12 @@
     // from the engine's structured facts - no fabricated numbers, ever.
     var m = vinAnchor;
     var head = m ? exactCarHtml(m, d.resolvedCar, d) : "";
+    // Item 2: a VIN that resolved a car but has NO recorded sale in our archive must SAY SO before
+    // showing the model market, so the market read is never mistaken for this exact car's history.
+    if (!m && vinQueryNoSale) {
+      head = '<div class="vinnosale" data-stage="anchor"><div class="kick">No recorded sale for this VIN.</div>' +
+        '<p>' + lint(esc("I don’t have a past sale on file for this exact car. Here’s the market for the " + (carLabel(d.resolvedCar) || "model") + " instead."), "vin.nosale") + "</p></div>";
+    }
     var body;
     if (d.tier === "thin") body = thinHtml(d, m);
     else if (d.tier === "class_era") body = classEraHtml(d, m);
@@ -1319,6 +1340,7 @@
 
   // ---------------------------------------------------------------- VIN anchor (Task 2)
   var vinAnchor = null;   // carried from the confirm step into the result render
+  var vinQueryNoSale = false;   // the query WAS a VIN that resolved a car but has NO recorded sale in our archive
   var pendingVin = null;  // resolved vehicle awaiting confirmation
   // Base label a clarification chip appends its answer to (year+make for a model ask, the full
   // car for a body ask). A VIN query's raw text is the VIN, so a chip must NOT append to it (it
@@ -1414,7 +1436,7 @@
   function run(text) {
     text = String(text || "").trim();
     if (!text) return;
-    lastQuery = text; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obRefinePhrase = null; obLastVehicle = null; htChoice = null;
+    lastQuery = text; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obRefinePhrase = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false;
     // Identifier-shaped input (VIN or chassis) routes through the shared resolver (decode +
     // confirm + exact-match + the honest VIN-invalid / chassis lines); everything else goes
     // straight to the archive pool.
@@ -1492,7 +1514,7 @@
             renderChoice({ prompt: cl.question, modelOptions: cl.modelOptions, baseLabel: [d.vehicle && d.vehicle.year, d.vehicle && d.vehicle.make].filter(Boolean).join(" ") || null });
             return;
           }
-          pendingVin = d.vehicle || null; vinAnchor = null;
+          pendingVin = d.vehicle || null; vinAnchor = null; vinQueryNoSale = true;   // decoded a VIN, no recorded sale
           renderVinConfirm(cl.question, d.vehicle);
           return;
         }
@@ -1515,7 +1537,7 @@
           if (d.vinArchiveMatch && d.vinArchiveMatch.make && d.vinArchiveMatch.model) {
             vinAnchor = d.vinArchiveMatch;
             runPool(d.vinArchiveMatch.displayName || carLabel(vehicleFromMatch(d.vinArchiveMatch, d.vehicle)) || text, vehicleFromMatch(d.vinArchiveMatch, d.vehicle));
-          } else { vinAnchor = null; runPool(text, d.vehicle); }
+          } else { vinAnchor = null; vinQueryNoSale = true; runPool(text, d.vehicle); }   // VIN resolved, no recorded sale
           return;
         }
         if (d && d.status === "needs_clarification" && cl && (cl.chips || (d.vehicle && d.vehicle.make))) {

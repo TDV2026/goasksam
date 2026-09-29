@@ -1,7 +1,7 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch } from "../lib/onebox.js";
-import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
+import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
 import { testerCodeExpired } from "../lib/_tester.js";
@@ -2986,6 +2986,23 @@ export default async function handler(req, res) {
         catch { out[v] = 0; }
       }
       return res.status(200).json({ status: "archive_query", mode, presence: out });
+    }
+    if (mode === "dupScan") {
+      // READ-ONLY (archive only, zero OCD): count duplicate (vin_norm, sale_date, source_slug) rows
+      // archive-wide - the same physical sale ingested under two source_record_ids (OCD double-assigns
+      // ids to house sales). Reports the number of duplicate GROUPS and the number of EXTRA rows
+      // (group size minus one, summed). Never deletes anything.
+      const rows = await supabaseSelectAll(env2, `sales_archive?select=vin_norm,sale_date,source_slug&vin_norm=not.is.null&sale_date=not.is.null&order=vin_norm.asc`);
+      if (rows === null) return res.status(200).json({ status: "archive_query", mode, error: "query_failed" });
+      const g = new Map();
+      for (const r of rows) {
+        const vn = String(r.vin_norm || "").trim(); if (!vn) continue;
+        const k = `${vn}|${String(r.sale_date).slice(0, 10)}|${r.source_slug || ""}`;
+        g.set(k, (g.get(k) || 0) + 1);
+      }
+      let dupGroups = 0, extraRows = 0; const bySlug = {};
+      for (const [k, n] of g) if (n > 1) { dupGroups++; extraRows += n - 1; const slug = k.split("|")[2] || "(null)"; bySlug[slug] = (bySlug[slug] || 0) + (n - 1); }
+      return res.status(200).json({ status: "archive_query", mode, scanned: rows.length, keyedGroups: g.size, dupGroups, extraRows, extraRowsBySlug: bySlug });
     }
     if (mode === "count") {
       // Exact row counts via PostgREST Content-Range (no paging, no deep-offset timeout).
