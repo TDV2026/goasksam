@@ -3168,7 +3168,16 @@ export default async function handler(req, res) {
       // can raise it with OCD. Scans the FULL raw_record (Gooding's location may live under any key, or
       // be absent - the house-metadata gap), and reports which location-ish fields carry values so the
       // finding is honest either way. Changes nothing. Zero OCD.
-      const rows = (await supabaseSelectAll(env2, `sales_archive?source_slug=eq.gooding&sale_price=not.is.null&select=sale_date,sale_price,listing_title,year,make,model,cc:raw_record->>country_code,cur:raw_record->>currency,url:raw_record->>url&order=id.asc`)) || [];
+      // Page with order=id + limit/offset (the proven pool-mode pattern; Range-header paging via
+      // supabaseSelectAll truncated/emptied this json-extraction query).
+      const gCols = "sale_date,sale_price,listing_title,year,make,model,cc:raw_record->>country_code,cur:raw_record->>currency,url:raw_record->>url";
+      const rows = [];
+      for (let off = 0; off < 20000; off += 1000) {
+        const pg = await supabaseSelect(env2, `sales_archive?source_slug=eq.gooding&sale_price=not.is.null&select=${gCols}&order=id&limit=1000&offset=${off}`);
+        if (!pg || !pg.length) break;
+        for (const r of pg) rows.push(r);
+        if (pg.length < 1000) break;
+      }
       // country_code is the only populated location field on Gooding rows; the London sale also carries a
       // "(UKnn)" event code in the title. UK = a UK country_code OR that title code.
       const UK_CC = /^(gb|gbr|uk|gb-eng|united kingdom|england|scotland|wales)$/i;
