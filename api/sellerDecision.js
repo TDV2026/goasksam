@@ -1,6 +1,6 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
-import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle, reserveDayInsightForVehicle } from "../lib/onebox.js";
+import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -3817,11 +3817,28 @@ export default async function handler(req, res) {
         if (ri && ri.ok && decision.routeFit && Array.isArray(decision.routeFit.routes)) {
           for (const route of decision.routeFit.routes) { if (route.routable && route.marketEvidence) route.marketEvidence.reserveInsight = ri; }
         }
-        // Reserve-car DAY (item 2): weekday SELL-THROUGH for reserve cars (sold vs reserve-not-met on
-        // BaT), replacing the wrong price-median best-day tile. Archive-only, zero OldCarsData.
+        // Reserve-car DAY (item 2): weekend-vs-midweek SELL-THROUGH for reserve cars (sold vs
+        // reserve-not-met on BaT), replacing the wrong price-median best-day tile. Archive-only.
         const rd = await reserveDayInsightForVehicle(vehicle, generation, { supabaseUrl, supabaseKey });
         if (rd && rd.ok && decision.routeFit && Array.isArray(decision.routeFit.routes)) {
           for (const route of decision.routeFit.routes) { if (route.routable && route.marketEvidence) route.marketEvidence.reserveDay = rd; }
+        }
+        // Matched-premium THIN FALLBACK count (item 1 fix): the bounded sell-flow evidence pool
+        // undercounts a venue's sales (limit-1000, ladder/evidence-filtered, and it forced exact-year
+        // even for a generation-scoped read). When matched is too thin, replace the count + recency with
+        // an ACCURATE sales_archive count scoped to the SAME label the reason shows (exact year vs
+        // generation range). Archive-only, zero OldCarsData. Cached per platform+scope to avoid repeats.
+        if (decision.routeFit && Array.isArray(decision.routeFit.routes)) {
+          const vsCache = new Map();
+          for (const route of decision.routeFit.routes) {
+            const mp = route.routable && route.marketEvidence && route.marketEvidence.matchedPremium;
+            if (!mp || !mp.tooThin || !route.platform) continue;
+            const yearScope = mp.scope || "exact_year";
+            const cacheKey = `${route.platform}|${yearScope}`;
+            let vs = vsCache.get(cacheKey);
+            if (!vs) { vs = await venueScopedSalesForVehicle(vehicle, generation, route.platform, yearScope, { supabaseUrl, supabaseKey }); vsCache.set(cacheKey, vs); }
+            if (vs && vs.count > 0) { mp.platformSales = vs.count; mp.recencyDate = vs.recencyDate || mp.recencyDate; mp.countSource = "archive"; }
+          }
         }
       }
     } catch (e) { /* reserve insights are additive; never block the decision */ }

@@ -305,19 +305,20 @@ function v2Reserve(ev){
   return { headline:(pct>=0?"+":"-")+N+"%", scope:scope, n:total, dir:dir, N:N, body:scope+" with a reserve sold "+N+"% "+dir+" than those without over the last 12 months, from "+total+" sales.", note:"Whether a reserve suits your car is your call." };
 }
 
-// Reserve-car DAY (item 2): weekday SELL-THROUGH for reserve cars, not a price claim. Reads
-// ev.reserveDay (backend, BaT sold vs reserve-not-met by end weekday). Null below the minimum
-// (backend already gates), so the tile simply does not render. Scope is the real generation label.
+// Reserve-car DAY (item 2, buckets): weekend-vs-midweek SELL-THROUGH for reserve cars, not a price
+// claim. Reads ev.reserveDay (backend: BaT sold vs reserve-not-met, two buckets). Null unless each
+// bucket cleared 30 auctions and the rates differ by >=5 points (backend gates), so the tile hides on
+// noise. Leads with the winning bucket. Scope is the generation label (uppercased).
 function v2ReserveDay(ev){
-  var rd=ev&&ev.reserveDay; if(!rd||!rd.ok||!rd.day)return null;
-  var scope=rd.scopeLabel||"these";
-  var months=Number(rd.windowMonths)||24;
-  var n=Number(rd.sample)||0, pct=Number(rd.sellThroughPct);
-  return {
-    day:rd.day, scope:scope, n:n, pct:pct,
-    body:"Reserve cars like yours sold most often when ending on "+rd.day+"s"+(isFinite(pct)?", "+pct+"% of the time":"")+" over the last "+months+" months, from "+n+" "+scope+" auctions.",
-    compact:"Reserve "+scope+"s sold most often ending on "+rd.day+"s ("+n+" auctions)."
-  };
+  var rd=ev&&ev.reserveDay; if(!rd||!rd.ok)return null;
+  var scope=(rd.scopeLabel||"these")+"s";
+  var we=Number(rd.weekendPct), wd=Number(rd.weekdayPct), n=Number(rd.sample)||0;
+  if(!isFinite(we)||!isFinite(wd))return null;
+  var weekendWins=(rd.winner!=="weekday");
+  var body=weekendWins
+    ? "Reserve "+scope+" sold "+we+"% of the time ending at the weekend, "+wd+"% midweek ("+n+" auctions)."
+    : "Reserve "+scope+" sold "+wd+"% of the time midweek, "+we+"% at the weekend ("+n+" auctions).";
+  return { headline:weekendWins?"Weekends":"Midweek", n:n, body:body, compact:body };
 }
 
 // ---------- 9-platform muted accent map ----------
@@ -410,7 +411,7 @@ function renderPickCardV2(option,over){
     // effect for reserve cars is SELL-THROUGH. This tile reads the reserve-day sell-through insight,
     // labels the scope correctly (e.g. "E46 M3s"), shows the count, and hides below the minimum.
     var rday=v2ReserveDay(ev);
-    if(rday){ tiles.push({l:"Best day to sell",v:rday.day,s:rday.body,sc:rday.compact}); }
+    if(rday){ tiles.push({l:"Best day to sell",v:rday.headline,s:rday.body,sc:rday.compact}); }
     // Reserve (item 2b/2d): the scoped, counted insight. rv.scope is the real model+trim/generation
     // label (not the cosmetic landed-rung label); rv carries the count and is null below the minimum.
     var rv=v2Reserve(ev);
