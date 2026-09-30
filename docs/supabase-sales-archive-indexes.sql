@@ -35,6 +35,24 @@ CREATE INDEX IF NOT EXISTS idx_sa_sale_date  ON sales_archive (sale_date DESC);
 CREATE INDEX IF NOT EXISTS idx_sa_has_photo ON sales_archive ((raw_record->>'featured_image_url'))
   WHERE (raw_record->>'featured_image_url') IS NOT NULL;
 
+-- Reserve tiles (RESERVE POSITION / BEST DAY): scoped to one venue with a reserve flag over a date
+-- window (source_slug=eq.bringatrailer & has_reserve & sale_date>=X). A composite serves the venue+
+-- reserve+recency filter; the make/model trigram indexes above serve the ilike scope on the same query.
+CREATE INDEX IF NOT EXISTS idx_sa_source_reserve_date ON sales_archive (source_slug, has_reserve, sale_date DESC);
+
+-- LIVE-TABLE NOTE (reliability pass, Sep 2026): the seq-scan symptom (One Box searches 5-11s, and
+-- high-volume cars like F355/Ford GT/Corvette falling to a thin/refusal fallback because the ilike
+-- query hits the statement timeout and returns null) means these indexes are NOT yet in production.
+-- Apply them on the LIVE table with CONCURRENTLY (cannot run inside a txn block; run each statement
+-- separately in the SQL editor), e.g.:
+--   CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sa_title_trgm ON sales_archive USING gin (listing_title gin_trgm_ops);
+--   CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sa_model_trgm ON sales_archive USING gin (model gin_trgm_ops);
+--   CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sa_make_trgm  ON sales_archive USING gin (make gin_trgm_ops);
+--   CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sa_sale_date  ON sales_archive (sale_date DESC);
+--   CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sa_year       ON sales_archive (year);
+--   CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sa_source_reserve_date ON sales_archive (source_slug, has_reserve, sale_date DESC);
+-- Then run ANALYZE sales_archive; and re-run scripts/oneboxCheck.js to confirm every search < 4s.
+
 ANALYZE sales_archive;
 
 -- KNOWN QUIRK (not an index issue): combining the JSONB photo filter AND a sale_date filter in
