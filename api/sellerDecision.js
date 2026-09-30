@@ -3162,6 +3162,18 @@ export default async function handler(req, res) {
       const table = await sourceCoverage(env2, { force: !!req.body.force });
       return res.status(200).json({ status: "archive_query", mode, coverage: table });
     }
+    if (mode === "goodinguk") {
+      // READ-ONLY (currency fix part 2a, item 2): Gooding is tagged all-USD in OldCarsData, but its
+      // London sales would be GBP. List Gooding rows with a UK location (raw_record city) OR "London"
+      // in the title so Sam can raise it with OCD. Changes nothing. Zero OCD.
+      const rows = (await supabaseSelectAll(env2, `sales_archive?source_slug=eq.gooding&sale_price=not.is.null&select=sale_date,sale_price,cur:raw_record->>currency,city:raw_record->>city,location:raw_record->>location,title:listing_title,year,make,model,url:raw_record->>url`)) || [];
+      const UK = /\b(london|united kingdom|\buk\b|england|chichester|goodwood|hampton court|surrey)\b/i;
+      const hit = rows.filter(r => UK.test(String(r.city || "")) || UK.test(String(r.location || "")) || UK.test(String(r.title || "")));
+      hit.sort((a, b) => String(b.sale_date || "").localeCompare(String(a.sale_date || "")));
+      const byCur = {}; for (const r of hit) { const c = (r.cur || "USD"); byCur[c] = (byCur[c] || 0) + 1; }
+      return res.status(200).json({ status: "archive_query", mode, goodingTotal: rows.length, ukCount: hit.length, byCurrency: byCur,
+        rows: hit.map(r => ({ date: (r.sale_date || "").slice(0, 10), price: Number(r.sale_price) || null, currency: r.cur || "USD", city: r.city || r.location || null, car: [r.year, r.make, r.model].filter(Boolean).join(" "), title: r.title || null, url: r.url || null })) });
+    }
     return res.status(400).json({ error: "unknown archiveQuery mode" });
   }
   // Raw archive title-search diagnostic (archive-only, no car needed, no OCD) -> answered before

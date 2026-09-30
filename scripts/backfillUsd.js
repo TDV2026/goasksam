@@ -1,98 +1,74 @@
 // Backfill sale_price_usd (sales_archive) and high_bid_usd (auction_attempts) from the listing's own
-// currency to USD, by the sale/attempt MONTH, using fx_rates. Read-only against OldCarsData (ZERO OCD):
-// it only touches Supabase. USD or a missing currency passes through unconverted; a known non-USD
-// currency is multiplied by its monthly usd_per_unit; an UNKNOWN currency is left null and counted
-// (never guessed). Batched, resumable (re-running only touches still-null rows), and reports counts by
-// currency at the end.
+// currency to USD. ZERO OldCarsData (Supabase only).
 //
-//   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/backfillUsd.js [--table=both|sales|attempts] [--batch=1000] [--limit=N] [--force]
-import { supabaseEnv, supabaseSelect, supabaseSelectAll, supabaseInsert } from "../lib/_supabase.js";
-import { loadFxRates } from "../lib/_fx.js";
+// The whole-row UPSERT approach timed out (57014) because ON CONFLICT recomputes the natural-key
+// expression index per row. This version instead calls two PLAIN-UPDATE server functions
+// (backfill_sales_price_usd / backfill_attempts_high_bid_usd, see docs/supabase-backfill-usd-fn.sql)
+// in small LIMIT batches until they report 0. It updates ONLY the *_usd column (not indexed), so each
+// statement is bounded and fast, and it is fully resumable (only still-null rows are ever touched).
+// USD/missing currency passes through; a currency in fx_rates for the sale month converts; anything
+// else (AED, or a month not covered) is left null and reported.
+//
+//   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/backfillUsd.js [--table=both|sales|attempts] [--batch=2000]
+import { supabaseEnv, supabaseSelectAll } from "../lib/_supabase.js";
 
 const env = supabaseEnv();
 if (!env || !env.supabaseUrl || !env.supabaseKey) { console.error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY required"); process.exit(1); }
 
 const args = Object.fromEntries(process.argv.slice(2).map(a => { const m = a.match(/^--([^=]+)=?(.*)$/); return m ? [m[1], m[2] === "" ? true : m[2]] : [a, true]; }));
 const TABLE = String(args.table || "both");
-const BATCH = Math.max(1, Number(args.batch) || 1000);
-const LIMIT = args.limit ? Number(args.limit) : Infinity;
-const FORCE = !!args.force;
+const BATCH = Math.max(1, Number(args.batch) || 2000);
+const CURRENCIES = ["GBP", "EUR", "AUD", "NZD", "CHF", "HKD", "CAD", "JPY", "AED"];
 
-const isUsdOrMissing = c => { const s = String(c || "").toUpperCase(); return !s || s === "USD"; };
-// Tally: per-currency { converted, passthrough(usd/missing), noRate(unknown currency, left null) }.
-function newTally() { return {}; }
-function bump(t, cur, kind) { const c = String(cur || "USD").toUpperCase() || "USD"; (t[c] = t[c] || { converted: 0, passthrough: 0, noRate: 0 })[kind]++; }
-
-async function backfillSales(fx) {
-  const t = newTally();
-  let lastId = "00000000-0000-0000-0000-000000000000", done = 0, updated = 0;
-  for (;;) {
-    if (done >= LIMIT) break;
-    const nullClause = FORCE ? "" : "&sale_price_usd=is.null";
-    const q = `sales_archive?select=id,sale_price,sale_date,cur:raw_record->>currency&sale_price=not.is.null${nullClause}&id=gt.${lastId}&order=id.asc&limit=${BATCH}`;
-    const rows = await supabaseSelect(env, q);
-    if (rows === null) { console.error("::error:: sales_archive read failed at id>", lastId); process.exit(2); }
-    if (!rows.length) break;
-    lastId = rows[rows.length - 1].id;
-    const updates = [];
-    for (const r of rows) {
-      done++;
-      const price = Number(r.sale_price);
-      if (!(price > 0)) continue;
-      const cur = r.cur;
-      if (isUsdOrMissing(cur)) { updates.push({ id: r.id, sale_price_usd: Math.round(price) }); bump(t, "USD", "passthrough"); continue; }
-      const rate = fx.rateFor(cur, r.sale_date);
-      if (rate == null) { bump(t, cur, "noRate"); continue; }   // unknown currency: leave null, never guess
-      updates.push({ id: r.id, sale_price_usd: Math.round(price * rate) }); bump(t, cur, "converted");
-    }
-    if (updates.length) {
-      const res = await supabaseInsert("sales_archive", updates, env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=id");
-      if (res && res.error) { console.error("::error:: sales_archive upsert failed:", res.error); process.exit(2); }
-      updated += updates.length;
-    }
-    console.log(`sales: scanned ${done}, updated ${updated} (through id ${lastId})`);
-  }
-  return { t, done, updated };
+async function rpc(fn, batch_limit) {
+  const res = await fetch(`${env.supabaseUrl}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` },
+    body: JSON.stringify({ batch_limit })
+  });
+  const t = await res.text();
+  if (!res.ok) { throw new Error(`${fn} failed ${res.status}: ${t.slice(0, 200)}`); }
+  const n = Number(t);
+  return Number.isFinite(n) ? n : 0;
+}
+async function countExact(filter) {
+  const res = await fetch(`${env.supabaseUrl}/rest/v1/${filter}&select=*&limit=1`, {
+    headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact", Range: "0-0", "Range-Unit": "items" }
+  });
+  const cr = res.headers.get("content-range") || ""; const m = cr.match(/\/(\d+)$/);
+  return m ? Number(m[1]) : null;
 }
 
-async function backfillAttempts(fx) {
-  const t = newTally();
-  let updated = 0, done = 0;
-  const nullClause = FORCE ? "" : "&high_bid_usd=is.null";
-  const rows = (await supabaseSelectAll(env, `auction_attempts?select=source_slug,source_record_id,high_bid,attempt_date,currency&high_bid=not.is.null${nullClause}`)) || [];
-  const updates = [];
-  for (const r of rows) {
-    done++;
-    const bid = Number(r.high_bid);
-    if (!(bid > 0)) continue;
-    const cur = r.currency;
-    if (isUsdOrMissing(cur)) { updates.push({ source_slug: r.source_slug, source_record_id: r.source_record_id, high_bid_usd: Math.round(bid) }); bump(t, "USD", "passthrough"); continue; }
-    const rate = fx.rateFor(cur, r.attempt_date);
-    if (rate == null) { bump(t, cur, "noRate"); continue; }
-    updates.push({ source_slug: r.source_slug, source_record_id: r.source_record_id, high_bid_usd: Math.round(bid * rate) }); bump(t, cur, "converted");
-  }
-  for (let i = 0; i < updates.length; i += BATCH) {
-    const slice = updates.slice(i, i + BATCH);
-    const res = await supabaseInsert("auction_attempts", slice, env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_slug,source_record_id");
-    if (res && res.error) { console.error("::error:: auction_attempts upsert failed:", res.error); process.exit(2); }
-    updated += slice.length;
-    console.log(`attempts: updated ${updated}/${updates.length}`);
-  }
-  return { t, done, updated };
+async function drain(fn) {
+  let total = 0, n;
+  do { n = await rpc(fn, BATCH); total += n; if (n) console.log(`  ${fn}: +${n} (running ${total})`); } while (n > 0);
+  return total;
 }
 
-function report(name, r) {
-  console.log(`\n== ${name}: scanned ${r.done}, updated ${r.updated} ==`);
-  const curs = Object.keys(r.t).sort();
-  for (const c of curs) { const x = r.t[c]; console.log(`  ${c.padEnd(4)} converted ${x.converted}  passthrough ${x.passthrough}  noRate(left null) ${x.noRate}`); }
-  const noRate = curs.filter(c => r.t[c].noRate > 0);
-  if (noRate.length) console.log(`  ::warning:: currencies with NO fx_rate (left null, add to fx_rates): ${noRate.join(", ")}`);
+// Per-currency report for a table. curField is the PostgREST accessor for the stored currency;
+// selField is how to SELECT that currency (aliased for the json case).
+async function reportTable(table, curField, selField, usdCol) {
+  console.log(`\n== ${table} (${usdCol}) counts by currency ==`);
+  const usdFilled = await countExact(`${table}?or=(${curField}.is.null,${curField}.eq.USD)&${usdCol}=not.is.null`);
+  const usdNull = await countExact(`${table}?or=(${curField}.is.null,${curField}.eq.USD)&${usdCol}=is.null`);
+  console.log(`  USD/none    filled ${usdFilled}   still null ${usdNull}`);
+  for (const c of CURRENCIES) {
+    const filled = await countExact(`${table}?${curField}=eq.${c}&${usdCol}=not.is.null`);
+    const nul = await countExact(`${table}?${curField}=eq.${c}&${usdCol}=is.null`);
+    if ((filled || 0) + (nul || 0) === 0) continue;
+    console.log(`  ${c.padEnd(4)}        filled ${filled}   still null ${nul}${nul > 0 ? "  <-- LEFT NULL (not in fx_rates for the sale month)" : ""}`);
+  }
+  // Any OTHER currency still null (not USD, not in the known list) -> tally so nothing is silently missed.
+  const nullRows = (await supabaseSelectAll(env, `${table}?select=${selField}&${usdCol}=is.null&${curField}=not.is.null&${curField}=neq.USD`)) || [];
+  const other = {};
+  for (const r of nullRows) { const c = String(r.cur || "").toUpperCase(); if (!c || CURRENCIES.includes(c)) continue; other[c] = (other[c] || 0) + 1; }
+  for (const c of Object.keys(other).sort()) console.log(`  ${c.padEnd(4)}        still null ${other[c]}  <-- LEFT NULL (not in fx_rates)`);
 }
 
 (async () => {
-  const fx = await loadFxRates(env);
-  if (!fx.has("GBP")) { console.error("::error:: fx_rates appears empty (no GBP). Load docs/supabase-fx-rates.sql first."); process.exit(2); }
-  if (TABLE === "both" || TABLE === "sales") report("sales_archive.sale_price_usd", await backfillSales(fx));
-  if (TABLE === "both" || TABLE === "attempts") report("auction_attempts.high_bid_usd", await backfillAttempts(fx));
+  if (TABLE === "both" || TABLE === "sales") { console.log("Backfilling sales_archive.sale_price_usd ..."); const t = await drain("backfill_sales_price_usd"); console.log(`sales_archive: filled ${t} rows.`); }
+  if (TABLE === "both" || TABLE === "attempts") { console.log("Backfilling auction_attempts.high_bid_usd ..."); const t = await drain("backfill_attempts_high_bid_usd"); console.log(`auction_attempts: filled ${t} rows.`); }
+  if (TABLE === "both" || TABLE === "sales") await reportTable("sales_archive", "raw_record->>currency", "cur:raw_record->>currency", "sale_price_usd");
+  if (TABLE === "both" || TABLE === "attempts") await reportTable("auction_attempts", "currency", "cur:currency", "high_bid_usd");
   console.log("\nDone.");
 })();
