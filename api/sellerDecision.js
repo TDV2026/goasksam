@@ -1,6 +1,6 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
-import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle } from "../lib/onebox.js";
+import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle, reserveDayInsightForVehicle } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -36,6 +36,7 @@ import {
   sourceRecordKey,
   textHasTerm
 } from "../lib/_classify.js";
+import { hammerUsd } from "../lib/_houseComps.js";
 
 // Powerseller referrals are gated (locked product rule): estimated value from
 // actual comps must clear this threshold before a partner can lead.
@@ -1563,6 +1564,55 @@ export function analyze(records, classifications, ladder, vehicle, debug, txFilt
     return firstMeasured;
   };
 
+  // MATCHED premium (Sep 2026, fixes the mileage-mix confound): the straight cross-venue median
+  // (pricePremiumFor) is inflated because a venue's cars carry fewer miles, not because it pays more.
+  // This compares the pick venue vs the others WITHIN the same model year AND the same mileage band,
+  // combining the per-band deltas sample-weighted so the mileage mix cancels. 24-month window (a
+  // matched, mix-cancelled read needs a deeper base than the raw 90-day median). USD via hammerUsd
+  // (or sale_price_usd once vehicle_market_records carries it), NEVER raw sale_price. Too thin to
+  // match -> returns { tooThin, platformSales, recencyDate } so the reason states the venue's sales
+  // count and recency instead of a percentage. Does NOT feed ranking (pricePremiumFor still does);
+  // only the displayed pick reason uses it.
+  const MATCHED_WINDOW_DAYS = 730;
+  const MATCHED_BANDS = [[0, 30000], [30000, 60000], [60000, 100000], [100000, 150000], [150000, Infinity]];
+  const MATCHED_BAND_MIN = 5;
+  const recYearOf = rec => { const y = Number(rec && (rec.year ?? (rec.raw_record && rec.raw_record.year))); return Number.isFinite(y) ? y : null; };
+  const recMilesOf = rec => { const m = Number(String((rec && (rec.mileage ?? (rec.raw_record && rec.raw_record.mileage))) ?? "").replace(/[^\d.]/g, "")); return Number.isFinite(m) && m > 0 ? m : null; };
+  // USD value of a record: prefer sale_price_usd when present, else the existing hammerUsd conversion
+  // (online = toUsd, house = premium back-out + toUsd). NEVER the raw native sale_price.
+  const recUsdOf = rec => {
+    if (rec && rec.sale_price_usd != null && Number(rec.sale_price_usd) > 0) return Number(rec.sale_price_usd);
+    const p = normalizeMoney(rec);
+    if (!(p > 0)) return null;
+    const v = hammerUsd({ source: recordPlatform(rec), price: p, currency: rec.currency || (rec.raw_record && rec.raw_record.currency) || "USD" });
+    return Number.isFinite(v) && v > 0 ? v : null;
+  };
+  const matchedPremiumFor = platform => {
+    if (!landed || landed.key === "make_context") return null;
+    const scopeTags = premiumLandedScopeTags(landed);
+    const yr = Number(vehicle.year) || null;
+    const eligible = pairedRecords.filter(item =>
+      daysAgo(item.record.auction_end_date) <= MATCHED_WINDOW_DAYS &&
+      ladderEligible(item, landed.definition) &&
+      isEvidenceSource(item.record, vehicle) &&
+      (yr ? recYearOf(item.record) === yr : true));
+    const mineAll = eligible.filter(item => recordPlatform(item.record) === platform);
+    const recency = mineAll.reduce((mx, item) => { const d = String(item.record.auction_end_date || "").slice(0, 10); return d > mx ? d : mx; }, "");
+    let wSum = 0, wDelta = 0, usedMine = 0, usedOthers = 0, bandsUsed = 0;
+    for (const [lo, hi] of MATCHED_BANDS) {
+      const inBand = item => { const mi = recMilesOf(item.record); return mi != null && mi >= lo && mi < hi; };
+      const mine = eligible.filter(item => recordPlatform(item.record) === platform && inBand(item)).map(item => recUsdOf(item.record)).filter(v => v != null);
+      const others = eligible.filter(item => recordPlatform(item.record) !== platform && inBand(item)).map(item => recUsdOf(item.record)).filter(v => v != null);
+      if (mine.length >= MATCHED_BAND_MIN && others.length >= MATCHED_BAND_MIN && median(others) > 0) {
+        const d = (median(mine) - median(others)) / median(others);
+        const w = mine.length + others.length;
+        wSum += w; wDelta += d * w; usedMine += mine.length; usedOthers += others.length; bandsUsed++;
+      }
+    }
+    if (wSum > 0) return { ok: true, matched: true, percent: Math.round((wDelta / wSum) * 100), platformSales: usedMine, othersSales: usedOthers, sales: usedMine + usedOthers, bandsUsed, yearMatched: !!yr, windowDays: MATCHED_WINDOW_DAYS, ...scopeTags };
+    return { tooThin: true, matched: true, platformSales: mineAll.length, recencyDate: recency || null, yearMatched: !!yr, windowDays: MATCHED_WINDOW_DAYS, ...scopeTags };
+  };
+
   // Platform-scoped day advantage (locked): computed over THIS platform's
   // sales only, weekdays only (Saturday/Sunday excluded from both the best
   // day and the comparison base), model scope with make fallback. Cars &
@@ -1640,6 +1690,7 @@ export function analyze(records, classifications, ladder, vehicle, debug, txFilt
         momentum,
         platform,
         pricePremium: pricePremiumFor(platform),
+        matchedPremium: matchedPremiumFor(platform),
         segmentVolume: segmentVolumeFor(platform),
         dayAdvantage: platformDayAdvantage(platform),
         recent30: recent30For(platform),
@@ -3766,8 +3817,14 @@ export default async function handler(req, res) {
         if (ri && ri.ok && decision.routeFit && Array.isArray(decision.routeFit.routes)) {
           for (const route of decision.routeFit.routes) { if (route.routable && route.marketEvidence) route.marketEvidence.reserveInsight = ri; }
         }
+        // Reserve-car DAY (item 2): weekday SELL-THROUGH for reserve cars (sold vs reserve-not-met on
+        // BaT), replacing the wrong price-median best-day tile. Archive-only, zero OldCarsData.
+        const rd = await reserveDayInsightForVehicle(vehicle, generation, { supabaseUrl, supabaseKey });
+        if (rd && rd.ok && decision.routeFit && Array.isArray(decision.routeFit.routes)) {
+          for (const route of decision.routeFit.routes) { if (route.routable && route.marketEvidence) route.marketEvidence.reserveDay = rd; }
+        }
       }
-    } catch (e) { /* reserve insight is additive; never block the decision */ }
+    } catch (e) { /* reserve insights are additive; never block the decision */ }
     // Comp price band (item 4b): the real range cars like this sold for, so the result can state the
     // asking-price fact ("your $122,000 ask is above every sale shown") wherever the v2 card shows a
     // premium but no absolute prices. Archive-only, zero OldCarsData.

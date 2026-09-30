@@ -126,6 +126,27 @@ function v2Mode(ev){
 
 // ---------- canonical clauses (locked) ----------
 function CLAUSE_A(s){ return v2Fill("{scope} have closed {delta}% higher on {platform} than the other platforms I track over the past {window}",s); }
+// Matched pick reason (item 1, Sep 2026): the plain cross-venue median (CLAUSE_A) is inflated by
+// mileage mix (the pick venue's cars carry fewer miles). This states the MATCHED comparison (same
+// model year + same mileage band, ev.matchedPremium from the backend), with the window and the
+// count. Too thin to match -> the venue's sales count and recency, never a percentage.
+function v2MonthYear(iso){ var d=new Date(String(iso||"")); if(isNaN(d.getTime()))return ""; return ["January","February","March","April","May","June","July","August","September","October","November","December"][d.getUTCMonth()]+" "+d.getUTCFullYear(); }
+function v2MatchedWhy(ev,v,name){
+  var mp=ev&&ev.matchedPremium; if(!mp)return null;
+  var scope=v2ScopePlural(v);
+  var months=Math.round((Number(mp.windowDays)||730)/30.44);
+  var matchOn=mp.yearMatched?"year and mileage":"mileage";
+  if(mp.tooThin){
+    var n=Number(mp.platformSales)||0; if(n<1)return null;
+    var rec=mp.recencyDate?(", most recently "+v2MonthYear(mp.recencyDate)):"";
+    return name+" has sold "+n+" "+scope+" in the past "+months+" months"+rec+".";
+  }
+  var pct=Number(mp.percent), N=Number(mp.sales)||0;
+  var lead=(pct>=3)?(scope+" have closed about "+pct+"% higher on "+name+" than the other platforms I track")
+          :(pct<=-3)?(scope+" have closed about "+Math.abs(pct)+"% lower on "+name+" than the other platforms I track")
+          :(scope+" closed level with the other platforms I track on "+name);
+  return lead+", matched on "+matchOn+", over the past "+months+" months, from "+N+" sales.";
+}
 function CLAUSE_B(s){ return v2Fill("prices for {scope} have run close across the platforms I track over the past {window}",s); }
 function CLAUSE_C(s){ return v2Fill("recent {scopeAttr} sales have concentrated on {platform}, with too few on other platforms to compare prices over the past {window}",s); }
 
@@ -284,6 +305,21 @@ function v2Reserve(ev){
   return { headline:(pct>=0?"+":"-")+N+"%", scope:scope, n:total, dir:dir, N:N, body:scope+" with a reserve sold "+N+"% "+dir+" than those without over the last 12 months, from "+total+" sales.", note:"Whether a reserve suits your car is your call." };
 }
 
+// Reserve-car DAY (item 2): weekday SELL-THROUGH for reserve cars, not a price claim. Reads
+// ev.reserveDay (backend, BaT sold vs reserve-not-met by end weekday). Null below the minimum
+// (backend already gates), so the tile simply does not render. Scope is the real generation label.
+function v2ReserveDay(ev){
+  var rd=ev&&ev.reserveDay; if(!rd||!rd.ok||!rd.day)return null;
+  var scope=rd.scopeLabel||"these";
+  var months=Number(rd.windowMonths)||24;
+  var n=Number(rd.sample)||0, pct=Number(rd.sellThroughPct);
+  return {
+    day:rd.day, scope:scope, n:n, pct:pct,
+    body:"Reserve cars like yours sold most often when ending on "+rd.day+"s"+(isFinite(pct)?", "+pct+"% of the time":"")+" over the last "+months+" months, from "+n+" "+scope+" auctions.",
+    compact:"Reserve "+scope+"s sold most often ending on "+rd.day+"s ("+n+" auctions)."
+  };
+}
+
 // ---------- 9-platform muted accent map ----------
 var V2_ACCENT={ bringatrailer:"#2F7A40", carsandbids:"#2C6E72", pcarmarket:"#464C57", hemmings:"#7E3A44", hagerty:"#A65A3C", sothebysmotorsport:"#33406A", autohunter:"#96702E", mbmarket:"#3A4A5A", carandclassic:"#5E6B39", collectingcars:"#6E4A6B" };
 function v2Accent(slug){ return V2_ACCENT[String(slug||"").toLowerCase()]||"#2F7A40"; }
@@ -354,6 +390,9 @@ function renderPickCardV2(option,over){
     // otherwise the standard v2Why). The card SHAPE, tiles and dimensions are
     // untouched - only the WHY text and (optionally) the badge label change.
     var why=over.why||v2Why(mode,slots);
+    // Pick reason uses the MATCHED comparison (same year + mileage band) when available, so the stated
+    // reason is not the mileage-mix-inflated cross-venue median. Speed picks keep their locked wording.
+    if(!over.why){ var mw=v2MatchedWhy(ev,v,name); if(mw)why=mw; }
     // Layout (Aug 2026, item 2b): the concrete evidence clause leads the MAIN
     // column beneath the platform name; the summary "delivered the strongest
     // results" line moves to the right rail under WHY I PICKED THIS (with the
@@ -366,14 +405,12 @@ function renderPickCardV2(option,over){
     var carLbl=v2CarDisplay(v);
     // ---- two evidence tiles (weekday + reserve; audience fills a slot if needed) ----
     var tiles=[];
-    // Best day (item 2c): the signal ranks days by median PRICE, so the copy says "sold for the most on"
-    // (a price claim), never the ambiguous "close strongest". WITH a count (item 2d); hidden below the
-    // min-sample gate inside v2Weekday. Window is the last 12 months.
-    var wk=v2Weekday(ev,v);
-    if(wk){ var dA=ev.dayAdvantage||{}; var lift=Math.round(Math.abs(Number(dA.liftPercent))/5)*5; var hasPct=/%/.test(wk.body);
-      var wkScope=v2ScopePlural(v); var wkN=Number(dA.sample)||null;
-      var from=wkN?(", from "+wkN+" sales"):"";
-      tiles.push({l:"Best day to sell",v:wk.headline,s:wkScope+" sold for the most on "+wk.headline+"s"+(hasPct?(", "+lift+"% above other days"):"")+" over the last 12 months"+from+".",sc:wkScope+" sold for the most on "+wk.headline+"s"+(hasPct?(", "+lift+"% above other days"):"")+(wkN?(" ("+wkN+" sales)"):"")+"."}); }
+    // Best day (item 2, Sep 2026): the price-median best-day was wrong (weekend/weekday prices are
+    // within ~1% matched; and its count was the whole generation, not the year). The real weekday
+    // effect for reserve cars is SELL-THROUGH. This tile reads the reserve-day sell-through insight,
+    // labels the scope correctly (e.g. "E46 M3s"), shows the count, and hides below the minimum.
+    var rday=v2ReserveDay(ev);
+    if(rday){ tiles.push({l:"Best day to sell",v:rday.day,s:rday.body,sc:rday.compact}); }
     // Reserve (item 2b/2d): the scoped, counted insight. rv.scope is the real model+trim/generation
     // label (not the cosmetic landed-rung label); rv carries the count and is null below the minimum.
     var rv=v2Reserve(ev);
