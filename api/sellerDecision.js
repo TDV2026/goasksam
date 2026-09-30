@@ -3175,16 +3175,22 @@ export default async function handler(req, res) {
       const gCols = "sale_date,sale_price,listing_title,cur:raw_record->>currency,cc:raw_record->>country_code,url:raw_record->>url";
       const cntHdr = { apikey: env2.supabaseKey, Authorization: `Bearer ${env2.supabaseKey}`, Prefer: "count=exact", Range: "0-0", "Range-Unit": "items" };
       const goodingTotal = await (async () => { const r = await fetch(`${env2.supabaseUrl}/rest/v1/sales_archive?source_slug=eq.gooding&sale_price=not.is.null&select=id&limit=1`, { headers: cntHdr }); const m = (r.headers.get("content-range") || "").match(/\/(\d+)$/); return m ? Number(m[1]) : null; })();
-      const rows = (await supabaseSelect(env2, `sales_archive?source_slug=eq.gooding&sale_price=not.is.null&select=${gCols}&listing_title=ilike.*%28UK*&order=sale_date.desc&limit=300`)) || [];
+      // Step 1: the "(UKnn)"-coded lots identify Gooding's London SALE DATES.
+      const coded = (await supabaseSelect(env2, `sales_archive?source_slug=eq.gooding&sale_price=not.is.null&select=sale_date,listing_title&listing_title=ilike.*%28UK*&limit=300`)) || [];
       const UK_TITLE = /\(uk\d{2}\)/i;
-      const hit = rows.filter(r => UK_TITLE.test(String(r.listing_title || ""))).map(r => ({
-        date: (r.sale_date || "").slice(0, 10), price: Number(r.sale_price) || null, currency: r.cur || "USD",
-        countryCode: (r.cc || "").trim() || null, title: r.listing_title || null, url: r.url || null
-      }));
+      const londonDates = [...new Set(coded.filter(r => UK_TITLE.test(String(r.listing_title || ""))).map(r => String(r.sale_date || "").slice(0, 10)).filter(Boolean))].sort();
+      // Step 2: EVERY Gooding lot on those dates is a London sale (some lack the title code).
+      let rows = [];
+      if (londonDates.length) {
+        rows = (await supabaseSelect(env2, `sales_archive?source_slug=eq.gooding&sale_price=not.is.null&select=${gCols}&sale_date=in.(${londonDates.join(",")})&order=sale_date.desc&limit=1000`)) || [];
+      }
       const seen = new Set(); const uniq = [];
-      for (const r of hit) { const k = `${r.title}|${r.date}|${r.price}`; if (seen.has(k)) continue; seen.add(k); uniq.push(r); }
+      for (const r of rows.map(r => ({ date: (r.sale_date || "").slice(0, 10), price: Number(r.sale_price) || null, currency: r.cur || "USD", countryCode: (r.cc || "").trim() || null, title: r.listing_title || null, url: r.url || null }))) {
+        const k = `${r.title}|${r.date}|${r.price}`; if (seen.has(k)) continue; seen.add(k); uniq.push(r);
+      }
       const byCur = {}; for (const r of uniq) byCur[r.currency] = (byCur[r.currency] || 0) + 1;
-      return res.status(200).json({ status: "archive_query", mode, goodingTotal, ukCount: uniq.length, byCurrency: byCur, rows: uniq });
+      const byDate = {}; for (const r of uniq) byDate[r.date] = (byDate[r.date] || 0) + 1;
+      return res.status(200).json({ status: "archive_query", mode, goodingTotal, londonDates, londonByDate: byDate, ukCount: uniq.length, byCurrency: byCur, rows: uniq });
     }
     return res.status(400).json({ error: "unknown archiveQuery mode" });
   }
