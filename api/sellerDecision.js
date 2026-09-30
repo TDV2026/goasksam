@@ -3359,6 +3359,23 @@ export default async function handler(req, res) {
     // gate, so it burns no allowance, makes zero OldCarsData calls, and writes
     // nothing. Tester/crew devices reach it (the curtain seal above lets them in).
     if (req.body?.oneBox) {
+      // Graceful failure (reliability pass): if Supabase is slow or DOWN, fail FAST to one calm line
+      // rather than a hung spinner or a misleading "not enough sales" from empty reads. A cheap probe
+      // with a short abort catches the down/slow case before the heavy compute.
+      const OB_CALM = "Sam’s catching his breath, try again in a minute.";
+      const obHealthy = await (async () => {
+        try {
+          const ctrl = new AbortController();
+          const t = setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, Number(process.env.ONEBOX_PROBE_MS || 3500));
+          const r = await fetch(`${supabaseUrl}/rest/v1/sales_archive?select=source_id&limit=1`, { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }, signal: ctrl.signal });
+          clearTimeout(t);
+          return r.ok;
+        } catch { return false; }
+      })();
+      if (!obHealthy) {
+        console.error("One Box unavailable: Supabase health probe failed (slow/down).");
+        return res.status(200).json({ status: "one_box", tier: "unavailable", samLine: OB_CALM });
+      }
       // Metering (T1.6): One Box is ARCHIVE-ONLY (zero OldCarsData cost), so it must NOT
       // consume the seller's /sell daily reserve_search allowance - a free archive lookup
       // should never burn a metered search. Hence a SEPARATE, lightweight per-anon daily
@@ -3406,7 +3423,18 @@ export default async function handler(req, res) {
         mileage: Number.isFinite(Number(rawES.mileage)) && Number(rawES.mileage) > 0 ? Number(rawES.mileage) : null,
         soldDate: typeof rawES.soldDate === "string" ? rawES.soldDate.slice(0, 10) : null
       } : null;
-      const oneBox = await runOneBox(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale }, obRefine);
+      // Deadline: a slow query must fail fast to the calm line, never hang the spinner. Race the
+      // whole compute against a server deadline; any timeout OR throw returns the unavailable line.
+      let oneBox;
+      try {
+        oneBox = await Promise.race([
+          runOneBox(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale }, obRefine),
+          new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), Number(process.env.ONEBOX_DEADLINE_MS || 9000)))
+        ]);
+      } catch (e) {
+        console.error(`One Box unavailable (${(e && e.message) || e}).`);
+        return res.status(200).json({ status: "one_box", tier: "unavailable", samLine: OB_CALM });
+      }
       // Addressable result (Task 4): persist a stable, shareable snapshot of THIS result so
       // /o/<id> re-opens the exact same answer cold and its OG tags carry the answer line.
       // Reuses the /sell saved_results store; tagged obShare:true so the public read path can

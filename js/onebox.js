@@ -1458,6 +1458,19 @@
     if (obIdentifierShaped(text)) { vinResolve(text); return; }
     runPool(text, null);
   }
+  // Graceful failure copy + a fetch that never hangs the spinner: if the server is slow/down and the
+  // request stalls, the abort fires and the catch renders one calm line.
+  var OB_CALM = "Sam’s catching his breath, try again in a minute.";
+  function obFetch(url, opts, ms) {
+    var o = opts || {};
+    if (typeof AbortController !== "undefined") {
+      var ctrl = new AbortController();
+      var timer = setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, ms || 12000);
+      o = Object.assign({}, o, { signal: ctrl.signal });
+      return fetch(url, o).then(function (r) { clearTimeout(timer); return r; }, function (e) { clearTimeout(timer); throw e; });
+    }
+    return fetch(url, o);
+  }
   function runPool(text, vehicle, refine) {
     obLastVehicle = vehicle || obLastVehicle;
     setRootHtmlLifted(inboxHtml(text) + loaderHtml() + footHtml());
@@ -1471,10 +1484,10 @@
     if (vinAnchor && Number(vinAnchor.price) > 0) car.exactSale = { price: vinAnchor.price, mileage: vinAnchor.mileage, soldDate: vinAnchor.soldDate };
     var payload = { oneBox: true, anonId: obAnonId(), car: car };
     if (refine) payload.refine = refine;   // inline earned-question refinement (mileage / transmission)
-    fetch(API_ORIGIN + "/api/sellerDecision", {
+    obFetch(API_ORIGIN + "/api/sellerDecision", {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
-    }).then(function (r) { return r.json(); }).then(function (d) {
+    }, 12000).then(function (r) { return r.json(); }).then(function (d) {
       pushRecent(text, d);
       if (d && d.status === "needs_clarification") {
         // Multi-token chassis ("1E 31588"): an exact archive match came back -> lead with the
@@ -1485,7 +1498,8 @@
         renderError((d.clarification && d.clarification.question) || "I couldn’t pin that exact car down. Try the year, make and model together, like 1972 Porsche 911 or 1969 Ford Mustang.");
         return;
       }
-      if (!d || d.status !== "one_box") { renderError("I’m having trouble reading the market right now. Give it another try in a moment."); return; }
+      if (!d || d.status !== "one_box") { renderError(OB_CALM); return; }
+      if (d.tier === "unavailable") { renderError(d.samLine || OB_CALM); return; }
       if (d.tier === "rate_limited") { renderError(d.samLine || "That’s a lot of lookups for one day. Come back tomorrow and I’ll keep pulling real sales."); return; }
       if (d.tier === "model_choice" || d.tier === "body_choice" || d.tier === "generation_choice") { renderChoice(d); return; }
       if (vinAnchor) obEvent("onebox_vin_anchor_shown");
@@ -1498,14 +1512,14 @@
       if (resultIsHousePool(d)) finalSteps.push("Backing out the buyer’s premiums");
       finalSteps.push("Picking the ones that matter");
       loader.finish(finalSteps, function () { renderResults(d); });
-    }).catch(function () { renderError("I’m having trouble reading the market right now. Give it another try in a moment."); });
+    }).catch(function () { renderError(OB_CALM); });
   }
   // VIN path: decode + confirm (reuses /api/vehicleIdentity). VINs travel in the request
   // body only; nothing here logs the raw VIN.
   function vinResolve(text) {
     setRootHtmlLifted(inboxHtml(text) + loaderHtml() + footHtml());
     wire(); setLoaderLine("Reading that VIN");
-    fetch(API_ORIGIN + "/api/vehicleIdentity", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: text }) })
+    obFetch(API_ORIGIN + "/api/vehicleIdentity", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: text }) }, 12000)
       .then(function (r) { return r.json(); }).then(function (d) {
         var cl = d && d.clarification;
         // Branch on clarification KIND first (status can be needs_confirmation OR
