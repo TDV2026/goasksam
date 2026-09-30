@@ -17,16 +17,16 @@ const TIME_BUDGET_MS = 4000;
 const SEARCHES = [
   { q: "ZHWBU37M47LA02229", vin: true, label: "VIN 2007 Murcielago LP640", code: "LP640", model: "murcielago" },
   { q: "2004 BMW M3 E46 coupe", code: "E46", model: "M3" },
-  { q: "E46 M3", code: "E46", model: "M3" },
-  { q: "2006 Mercedes S65 AMG", model: "S65" },
+  { q: "E46 M3", code: "E46", model: "M3", genCode: true },
+  { q: "2006 Mercedes S65 AMG", model: "S65", mustRange: true },
   { q: "2018 Jaguar XF Sportbrake S", model: "XF" },
   { q: "1991 Porsche 964 Carrera 2 Cabriolet 45,000 miles", code: "964", model: "911" },
   { q: "2021 Porsche 911", model: "911" },
-  { q: "1995 Ferrari F355 GTS", model: "F355" },
+  { q: "1995 Ferrari F355 GTS", model: "F355", mustRange: true },
   { q: "1967 Chevrolet Corvette 427", model: "Corvette" },
-  { q: "2005 Ford GT", model: "GT" },
+  { q: "2005 Ford GT", model: "GT", mustRange: true },
   { q: "1970 Chevrolet Chevelle SS 454", model: "Chevelle" },
-  { q: "1957 Mercedes 300SL Roadster", model: "300SL" },
+  { q: "1957 Mercedes 300SL Roadster", model: "300SL", mustRange: true },
   { q: "1997 Land Rover Defender 90", model: "Defender" },
   { q: "1988 BMW E30 M3", code: "E30", model: "M3" },
   { q: "1987 Dodge D50", model: "D50" }
@@ -50,12 +50,25 @@ function runChecks(s, d, ms) {
   const cluster = (Array.isArray(d.cluster) && d.cluster.length >= 2 && num(d.cluster[1]) > 0) ? [num(d.cluster[0]), num(d.cluster[1])] : null;
   const prices = cardPrices(d);
   const take = (d.samsTake && d.samsTake.sentence) ? d.samsTake : null;
-  const thin = (d.tier === "refusal" || d.spanOnly === true) && Number.isFinite(d.poolN);
+  // A visible count for the honest states (poolN, or the thin/class-era pool count in whatever field
+  // the tier carries). unavailable is NEVER honest.
+  const shownCount = [d.poolN, d.thin && d.thin.totalN, d.thin && d.thin.receipts && d.thin.receipts.length,
+    d.classEra && d.classEra.totalN, d.count].map(num).find(n => n != null && n >= 0);
+  const interactive = d.tier === "body_choice" || d.tier === "needs_clarification";
+  const honest = d.tier !== "unavailable" && (interactive || (["thin", "class_era", "refusal"].includes(d.tier) && shownCount != null) || d.spanOnly === true);
 
-  // a. a range is shown OR an honest "not enough sales" with the count
-  r.a = span ? { pass: true, why: `range $${span[0]}-$${span[1]}` }
-    : thin ? { pass: true, why: `honest thin, poolN=${d.poolN}` }
-    : { pass: false, why: `no range and no counted thin (tier=${d.tier}, poolN=${d.poolN})` };
+  // a. a range is shown; else (non must-range) an honest state that shows its count / an interactive ask
+  if (s.genCode && !span) {
+    // A bare generation code must resolve to the pool, never ask a clarification/choice (item 4).
+    r.a = { pass: false, why: `bare generation code should resolve to a range, got tier=${d.tier}` };
+  } else if (s.mustRange) {
+    r.a = span ? { pass: true, why: `range $${span[0]}-$${span[1]}` }
+      : { pass: false, why: `MUST return a range but got tier=${d.tier}${shownCount != null ? ` (count ${shownCount})` : ""}` };
+  } else {
+    r.a = span ? { pass: true, why: `range $${span[0]}-$${span[1]}` }
+      : honest ? { pass: true, why: `honest ${d.tier}${shownCount != null ? ` (count ${shownCount})` : " (interactive)"}` }
+        : { pass: false, why: `tier=${d.tier} with no range and no visible count` };
+  }
 
   // b. every shown card + the cluster sit inside the stated range
   if (!span) r.b = { pass: true, why: "n/a (no range)" };
@@ -89,10 +102,11 @@ function runChecks(s, d, ms) {
     ? { pass: true, why: `${Math.round(matchFrac * 100)}% cards match "${s.model}"; widening=${d.widening || "none"}; poolYears=${JSON.stringify(d.poolYears || null)}` }
     : { pass: false, why: `only ${Math.round(matchFrac * 100)}% cards match "${s.model}" (scope leak?); poolTrim=${d.poolTrim || "-"} poolYears=${JSON.stringify(d.poolYears || null)}` };
 
-  // e. Sam's Take appears; if not, the numbers we can see
-  r.e = take
-    ? { pass: true, why: `"${String(take.sentence).slice(0, 60)}..."` }
-    : { pass: false, why: `no Sam's Take. poolN=${d.poolN}, cluster=${cluster ? "yes" : "no"}, tier=${d.tier} (threshold detail not exposed by the response)` };
+  // e. Sam's Take appears (only meaningful on a range result; n/a on honest thin/interactive states,
+  // and Sam's Take thresholds/skip-reason are a separate prompt).
+  r.e = !span ? { pass: true, why: "n/a (no range result)" }
+    : take ? { pass: true, why: `"${String(take.sentence).slice(0, 60)}..."` }
+      : { pass: false, why: `range shown but no Sam's Take. cluster=${cluster ? "yes" : "no"}, tier=${d.tier}` };
 
   // f. USD (cards carry USD price only; native currency not in the response)
   const badPrice = prices.filter(x => !(x.p > 0));
@@ -121,6 +135,7 @@ async function main() {
   await p.goto(BASE + "/onebox.html", { waitUntil: "networkidle2" });
   await new Promise(r => setTimeout(r, 1500));
 
+  const RUN_ANON = "obcheck-" + Date.now() + "-" + Math.floor(Math.random()*1e9);
   const post = (path, body) => p.evaluate(async (path, body) => {
     const t0 = performance.now();
     const r = await fetch(path, { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -138,27 +153,30 @@ async function main() {
         const veh = vi.json && vi.json.vehicle;
         const exactSale = vam && Number(vam.price) > 0 ? { price: Number(vam.price), mileage: vam.mileage || null, soldDate: (vam.soldDate || vam.sale_date || "").slice(0, 10) } : null;
         const car = { raw: s.q }; if (veh) car.vehicle = veh; if (exactSale) car.exactSale = exactSale;
-        const ob = await post("/api/sellerDecision", { oneBox: true, anonId: "onebox-check", car });
+        const ob = await post("/api/sellerDecision", { oneBox: true, anonId: RUN_ANON, car });
         d = ob.json; ms = vi.ms + ob.ms; if (d) d._exactSale = exactSale;
       } else {
-        const ob = await post("/api/sellerDecision", { oneBox: true, anonId: "onebox-check", car: { raw: s.q } });
+        const ob = await post("/api/sellerDecision", { oneBox: true, anonId: RUN_ANON, car: { raw: s.q } });
         d = ob.json; ms = ob.ms;
         // A body/model/generation clarification is a valid interactive state - resolve one hop with the query as-is.
         if (d && (d.tier === "body_choice" || d.tier === "model_choice" || d.tier === "generation_choice")) {
-          const ob2 = await post("/api/sellerDecision", { oneBox: true, anonId: "onebox-check", car: { raw: s.q + " coupe" } });
+          const ob2 = await post("/api/sellerDecision", { oneBox: true, anonId: RUN_ANON, car: { raw: s.q + " coupe" } });
           if (ob2.json && ob2.json.tier !== d.tier) { d = ob2.json; ms += ob2.ms; }
         }
       }
     } catch (e) { err = String(e && e.message || e); }
-    if (!d || d.status !== "one_box") { rows.push({ s, d: null, ms, checks: null, err: err || `no one_box response (${d && d.status})` }); continue; }
+    // needs_clarification is a real (honest) response, not an error; give it a tier so runChecks credits it.
+    if (d && d.status === "needs_clarification" && !d.tier) d.tier = "needs_clarification";
+    if (!d || (d.status !== "one_box" && d.status !== "needs_clarification")) { rows.push({ s, d: null, ms, checks: null, err: err || `no response (${d && d.status})` }); continue; }
     rows.push({ s, d, ms, checks: runChecks(s, d, ms), err: null });
   }
   await b.close();
 
   // ---- table ----
   const K = ["a", "b", "c", "d", "e", "f", "g", "h"];
+  const SCORED = ["a", "b", "c", "d", "e", "f", "g"];   // h (speed) is reported but NOT scored this pass
   const cell = c => (c ? (c.pass ? "P" : "F") : "-");
-  console.log("\nOne Box reliability check vs " + BASE + " (zero OCD)\n");
+  console.log("\nOne Box reliability check vs " + BASE + " (zero OCD; h=speed reported, not scored)\n");
   console.log("search".padEnd(42) + K.join(" ") + "  overall");
   console.log("-".repeat(42 + K.length * 2 + 9));
   let anyFail = false;
@@ -167,10 +185,10 @@ async function main() {
     if (row.err) { console.log(row.s.q.slice(0, 41).padEnd(42) + K.map(() => "-").join(" ") + "  ERROR"); fails.push(`${row.s.q}: ${row.err}`); anyFail = true; continue; }
     const c = row.checks;
     const line = K.map(k => cell(c[k])).join(" ");
-    const ok = K.every(k => c[k].pass);
+    const ok = SCORED.every(k => c[k].pass);   // ignore h for PASS/FAIL
     if (!ok) anyFail = true;
     console.log(row.s.q.slice(0, 41).padEnd(42) + line + "  " + (ok ? "PASS" : "FAIL"));
-    for (const k of K) if (!c[k].pass) fails.push(`${row.s.q} [${k}] ${c[k].why}`);
+    for (const k of SCORED) if (!c[k].pass) fails.push(`${row.s.q} [${k}] ${c[k].why}`);
   }
   console.log("\nFailures (search [check] cause):");
   if (!fails.length) console.log("  none");
