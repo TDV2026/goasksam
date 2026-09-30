@@ -1,0 +1,56 @@
+# Backfill sale_price_usd / high_bid_usd (currency bug fix, part 1).
+# COPY THIS FILE to .github/workflows/backfill-usd.yml and push with a workflow-scoped token
+# (the CI PAT used by the assistant lacks the `workflow` scope, so workflow files are added by Sam).
+# Prereqs, run once in the Supabase SQL editor first:
+#   1) docs/supabase-fx-rates.sql     (creates + loads fx_rates)
+#   2) docs/supabase-usd-columns.sql  (adds sale_price_usd + high_bid_usd)
+# Then run this workflow from the Actions tab. It is resumable: re-running only touches still-null
+# rows, so a timeout or interruption is safe to re-run. ZERO OldCarsData spend (Supabase only).
+name: Backfill USD prices
+
+on:
+  workflow_dispatch:
+    inputs:
+      table:
+        description: "Which table(s): both | sales | attempts"
+        required: false
+        default: "both"
+      batch:
+        description: "Rows per batch/upsert"
+        required: false
+        default: "1000"
+
+permissions:
+  contents: read
+
+jobs:
+  backfill-usd:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      TABLE: ${{ github.event.inputs.table }}
+      BATCH: ${{ github.event.inputs.batch }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify required secrets are present
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::GitHub Actions secret ${name} is EMPTY. Add it under Settings > Secrets and variables > Actions."
+              missing=1
+            else
+              echo "${name}: present"
+            fi
+          done
+          if [ "${missing}" -ne 0 ]; then echo "::error::Aborting: required secret(s) missing."; exit 1; fi
+      - name: Backfill USD prices (resumable, zero OCD)
+        run: |
+          set -euo pipefail
+          node scripts/backfillUsd.js --table="${TABLE:-both}" --batch="${BATCH:-1000}"

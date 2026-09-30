@@ -17,6 +17,7 @@
 import { callOldCarsData } from "../lib/_ocd.js";
 import { supabaseEnv, supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { validVin, normChassis } from "../lib/_canonical.js";
+import { loadFxRates } from "../lib/_fx.js";
 
 const CLEAN_SOURCES = ["bringatrailer", "carsandbids", "hagerty", "sothebysmotorsport", "mbmarket"];
 const env = supabaseEnv();
@@ -35,6 +36,10 @@ const toBool = v => v === true || v === "true" ? true : v === false || v === "fa
 const toDate = v => { const d = new Date(v || ""); return Number.isFinite(d.getTime()) ? d : null; };
 const dayKey = d => d ? d.toISOString().slice(0, 10) : null;
 const normStatus = st => /reserve.*not.*met/i.test(st) ? "reserve_not_met" : /withdrawn/i.test(st) ? "withdrawn" : null;
+// USD equivalent of high_bid by attempt month (currency bug fix). USD/missing passes through; a known
+// non-USD currency uses fx_rates; unknown (or fx not loaded) is left null for backfillUsd.js to fill.
+let fx = null;
+const usdOf = (amount, currency, dateISO) => { const n = Number(amount); if (!(n > 0)) return null; const c = String(currency || "").toUpperCase(); if (!c || c === "USD") return Math.round(n); if (!fx) return null; const v = fx.toUsd(n, c, dateISO); return v == null ? null : Math.round(v); };
 
 // paced OCD fetch: <=240 req/min + retry-with-backoff on 429 (same discipline as ingest.js)
 const reqTimes = []; const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -42,6 +47,8 @@ async function pace() { const now = Date.now(); while (reqTimes.length && now - 
 async function ocd(params) { for (let a = 0; ; a++) { await pace(); try { return await callOldCarsData("/auctions", params, apiKey); } catch (e) { if (e.rateLimited && a < 5) { reqTimes.length = 0; await sleep(61000); continue; } throw e; } } }
 
 const attempts = []; const perSource = {}; let metered = 0; const failed = [];
+// FX for high_bid_usd on the way in (best-effort; non-USD left null if fx_rates missing).
+try { fx = await loadFxRates(env); } catch (e) { console.error("::warning:: fx_rates load failed; non-USD high_bid_usd left null:", e.message); }
 for (const source of SOURCES) {
   let kept = 0, sourceErr = null;
   for (let p = 1; p <= 3000; p++) {
@@ -60,7 +67,7 @@ for (const source of SOURCES) {
         source_slug: source, source_record_id: String(rec.id ?? ""),
         chassis_vin_norm: validVin(rec.vin) ? normChassis(rec.vin) : null,
         make: (rec.ocd_make_name || rec.listing_make || null), model: (rec.ocd_model_name || rec.listing_model || null), year: toInt(rec.year),
-        attempt_date: dayKey(d), auction_status: status, high_bid: toMoney(rec.price), currency: rec.currency || "USD",
+        attempt_date: dayKey(d), auction_status: status, high_bid: toMoney(rec.price), high_bid_usd: usdOf(toMoney(rec.price), rec.currency, dayKey(d)), currency: rec.currency || "USD",
         has_reserve: toBool(rec.has_reserve), bids: toInt(rec.stats?.bids),
         views: toInt(rec.stats?.views), watches: toInt(rec.stats?.watches), raw_record: rec,
         canonical_id: null

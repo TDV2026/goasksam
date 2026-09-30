@@ -14,6 +14,7 @@
 import { callOldCarsData } from "../lib/_ocd.js";
 import { supabaseEnv, supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { isPartsListing } from "../lib/_classify.js";
+import { loadFxRates } from "../lib/_fx.js";
 
 // All 19 OCD live sources (Sep 2026). Slugs are OCD's own /auctions?source= values,
 // verified live. The four live-auction houses (barrettjackson, mecum, bonhams, broadarrow)
@@ -117,6 +118,19 @@ function dedupeKeyFor(source, vinRaw, saleDate, salePrice, title) {
   if (!ident) return null;                                         // blank title + no VIN -> excluded
   return `${slug}|${ident}|${date}|${price}`;
 }
+// USD equivalent of a native amount by sale month (currency bug fix). USD/missing passes through;
+// a known non-USD currency uses fx_rates; an unknown currency (or fx not loaded) is left null and
+// backfillUsd.js / a later ingest fills it once fx_rates covers it. Never guesses a rate.
+let fx = null;
+function usdOf(amount, currency, dateISO) {
+  const n = Number(amount);
+  if (!(n > 0)) return null;
+  const c = String(currency || "").toUpperCase();
+  if (!c || c === "USD") return Math.round(n);
+  if (!fx) return null;
+  const v = fx.toUsd(n, c, dateISO);
+  return v == null ? null : Math.round(v);
+}
 function toFullRow(r, label, source) {
   const d = toDate(r.auction_end_date);
   const saleDate = dayKey(d), salePrice = toMoney(r.price);
@@ -124,7 +138,8 @@ function toFullRow(r, label, source) {
     source_id: String(r.id ?? ""), sale_date: saleDate, platform: label, source_slug: source,
     make: (r.ocd_make_name || r.listing_make || "Unknown").toString().trim(),
     model: (r.ocd_model_name || r.listing_model || "Unknown").toString().trim(),
-    sale_price: toMoney(r.price), month: d ? d.toISOString().slice(0, 7) : null, raw_record: r,
+    sale_price: toMoney(r.price), sale_price_usd: usdOf(salePrice, r.currency, saleDate),
+    month: d ? d.toISOString().slice(0, 7) : null, raw_record: r,
     year: toInt(r.year), mileage: toInt(r.mileage), body_style: r.body_style ?? null,
     title_status: r.title_status ?? null, vin: r.vin ?? null, transmission: r.transmission ?? null,
     drivetrain: r.drivetrain ?? null, exterior_color: r.exterior_color ?? null, interior_color: r.interior_color ?? null,
@@ -152,6 +167,11 @@ const inRange = d => {
   if (TO && k > TO) return false;
   return true;
 };
+
+// FX for sale_price_usd on the way in. Best-effort: if fx_rates is missing, non-USD rows get a null
+// sale_price_usd (backfillUsd.js fills them later) rather than blocking ingest or guessing a rate.
+try { fx = await loadFxRates(env); if (!fx.has("GBP")) console.error("::warning:: fx_rates has no GBP; non-USD sale_price_usd will be null until loaded"); }
+catch (e) { console.error("::warning:: fx_rates load failed; non-USD sale_price_usd left null:", e.message); }
 
 for (const source of SOURCES) {
   const label = DISPLAY[source] || source;
