@@ -102,9 +102,10 @@ function runChecks(s, d, ms) {
     ? { pass: true, why: `${Math.round(matchFrac * 100)}% cards match "${s.model}"; widening=${d.widening || "none"}; poolYears=${JSON.stringify(d.poolYears || null)}` }
     : { pass: false, why: `only ${Math.round(matchFrac * 100)}% cards match "${s.model}" (scope leak?); poolTrim=${d.poolTrim || "-"} poolYears=${JSON.stringify(d.poolYears || null)}` };
 
-  // e. Sam's Take appears (only meaningful on a range result; n/a on honest thin/interactive states,
-  // and Sam's Take thresholds/skip-reason are a separate prompt).
-  r.e = !span ? { pass: true, why: "n/a (no range result)" }
+  // e. Sam's Take appears. It is a RESULT-TIER cluster feature (computed only in buildResult when a
+  // cluster stands), so it is n/a on thin/class_era (those carry the record RANGE, not a Sam's Take).
+  // Sam's Take thresholds/skip-reason are a SEPARATE prompt, so e is REPORTED, not scored, this pass.
+  r.e = (!span || d.tier !== "result") ? { pass: true, why: `n/a (${d.tier || "no range"})` }
     : take ? { pass: true, why: `"${String(take.sentence).slice(0, 60)}..."` }
       : { pass: false, why: `range shown but no Sam's Take. cluster=${cluster ? "yes" : "no"}, tier=${d.tier}` };
 
@@ -174,9 +175,9 @@ async function main() {
 
   // ---- table ----
   const K = ["a", "b", "c", "d", "e", "f", "g", "h"];
-  const SCORED = ["a", "b", "c", "d", "e", "f", "g"];   // h (speed) is reported but NOT scored this pass
+  const SCORED = ["a", "b", "c", "d", "f", "g"];   // e (Sam's Take) and h (speed) are separate prompts: reported, NOT scored this pass
   const cell = c => (c ? (c.pass ? "P" : "F") : "-");
-  console.log("\nOne Box reliability check vs " + BASE + " (zero OCD; h=speed reported, not scored)\n");
+  console.log("\nOne Box reliability check vs " + BASE + " (zero OCD; e=Sam's Take and h=speed reported, NOT scored)\n");
   console.log("search".padEnd(42) + K.join(" ") + "  overall");
   console.log("-".repeat(42 + K.length * 2 + 9));
   let anyFail = false;
