@@ -11,7 +11,7 @@
 //
 // Needs SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OLDCARSDATA_API_KEY (GitHub
 // Actions provides them as secrets; secrets are not pullable to a laptop).
-import { callOldCarsData } from "../lib/_ocd.js";
+import { callOldCarsData, configureOcdUsage, flushOcdUsage, getOcdRunMetered } from "../lib/_ocd.js";
 import { supabaseEnv, supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { isPartsListing } from "../lib/_classify.js";
 import { loadFxRates } from "../lib/_fx.js";
@@ -47,6 +47,11 @@ const FLOOR = Number(flag("floor") || process.env.INGEST_DAILY_FLOOR || 30);
 const env = supabaseEnv();
 const apiKey = process.env.OLDCARSDATA_API_KEY;
 if (!env || !apiKey) { console.error("Need SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OLDCARSDATA_API_KEY."); process.exit(1); }
+// Attribute this run's OCD usage (periodic + final rows) to the ingest job so a crash still leaves a record.
+configureOcdUsage({ supabaseUrl: env.supabaseUrl, supabaseKey: env.supabaseKey, job: DELTA ? "ingest_delta" : "ingest_backfill" });
+// A delta never legitimately needs many pages per source; exceeding this means the stop logic failed
+// (e.g. a blind held-set), so abort that source loudly rather than walk it to exhaustion.
+const DELTA_MAX_PAGES_PER_SOURCE = Number(process.env.OCD_DELTA_MAX_PAGES_PER_SOURCE || 60);
 
 const toMoney = v => { const n = Number(String(v ?? "").replace(/[^0-9.]/g, "")); return Number.isFinite(n) && n > 0 ? n : null; };
 const toInt = v => { const n = parseInt(String(v ?? "").replace(/[^0-9-]/g, ""), 10); return Number.isFinite(n) ? n : null; };
@@ -151,9 +156,14 @@ function toFullRow(r, label, source) {
 
 // Delta mode: the newest source_ids we already hold, so we can stop paginating
 // the moment a page is fully known.
+// Returns a Set of held source_ids, or NULL when the DB read FAILED. A failed read must NEVER be
+// treated as an empty set: an empty set makes every record look new, defeating the delta early-stop
+// and re-ingesting the whole source. supabaseSelect returns null on a failed/timed-out read and []
+// on a genuinely empty table, so the two are distinguishable.
 async function heldIds(source, label) {
   const rows = await supabaseSelect(env, `sales_archive?platform=eq.${encodeURIComponent(label)}&select=source_id&order=sale_date.desc&limit=2000`);
-  return new Set((rows || []).map(r => String(r.source_id)));
+  if (rows === null) return null;   // failed read -> caller aborts
+  return new Set(rows.map(r => String(r.source_id)));
 }
 
 let metered = 0;
@@ -176,6 +186,13 @@ catch (e) { console.error("::warning:: fx_rates load failed; non-USD sale_price_
 for (const source of SOURCES) {
   const label = DISPLAY[source] || source;
   const held = DELTA ? await heldIds(source, label) : null;
+  // A failed held-set read (DB blind) is the exact condition that turned Nightly #83 into a full
+  // re-ingest. Abort the run loudly with a non-zero exit; never proceed with an empty set.
+  if (DELTA && held === null) {
+    console.error(`::error:: ingest ABORT: could not read held ids for ${label} (DB unreadable). Refusing delta to avoid a full re-ingest.`);
+    await flushOcdUsage();
+    process.exit(1);
+  }
   const before = kept.length;
   let partsSkipped = 0, marketplaceSkipped = 0, unpricedSkipped = 0, sourceError = null;
   // PCarMarket "MarketPlace:" rows are fixed-price CLASSIFIEDS (asking price / for-sale), not
@@ -191,10 +208,20 @@ for (const source of SOURCES) {
   // silently truncated a deep backfill (a 2023-01-01 BaT range needs ~2,497 pages), so raise it
   // well past OCD's deepest source (BaT ~3,825 pages) - the FROM/known stops still end it early.
   for (let p = 1; p <= 6000; p++) {
+    // Delta page ceiling: a delta that walks past this many pages is not catching up, it is
+    // re-ingesting. Abort THIS source loudly and mark the run failed.
+    if (DELTA && p > DELTA_MAX_PAGES_PER_SOURCE) {
+      console.error(`\n::error:: ${label} exceeded ${DELTA_MAX_PAGES_PER_SOURCE} delta pages without catching up; aborting source (stop logic failed).`);
+      sourceError = `delta page ceiling ${DELTA_MAX_PAGES_PER_SOURCE} exceeded`;
+      break;
+    }
     metered++;
     let res;
     try { res = await ocdFetch({ source, status: "sold", sort: "date", direction: "desc", page: p, limit: 50 }); }
-    catch (e) { console.error(`\n${label} p${p} FAILED after retries: ${e.message}`); sourceError = `p${p}: ${e.message}`; break; }
+    catch (e) {
+      if (e.ocdHardCap) { console.error(`\n::error:: ${e.message}`); await flushOcdUsage(); process.exit(1); }
+      console.error(`\n${label} p${p} FAILED after retries: ${e.message}`); sourceError = `p${p}: ${e.message}`; break;
+    }
     const rows = res.data || [];
     if (!rows.length) break;
     let oldest = null, pageAllKnown = DELTA;
@@ -311,21 +338,23 @@ for (const d of days) {
   if (flagged) belowFloor.push({ day: d, count: n });
   console.log(`  ${d}: ${n}${flagged ? `  BELOW FLOOR (${FLOOR})` : ""}`);
 }
-console.log(`upserted ${inserted} record(s) across ${days.length} day(s); metered ${metered} OCD request(s).${dupSkipped ? ` ${dupSkipped} duplicate(s) rejected by the natural-key index.` : ""}`);
-// Per-job metered accounting (so "OCD requests by job last month" is answerable from app_usage_events;
-// previously only a below-floor warning logged, leaving normal ingest spend invisible). Best-effort.
+// The AUTHORITATIVE OCD count is the client's per-run counter (every HTTP request, incl 429 retries),
+// recorded to app_usage_events by _ocd (periodic every 100 + the final flush below). The descriptive
+// events here carry 0 metered so the daily SUM is not double-counted.
+const ocdHttp = getOcdRunMetered();
+console.log(`upserted ${inserted} record(s) across ${days.length} day(s); OCD: ${ocdHttp} HTTP request(s) incl retries (${metered} page-fetches attempted).${dupSkipped ? ` ${dupSkipped} duplicate(s) rejected by the natural-key index.` : ""}`);
 try {
   const { recordUsageEvent } = await import("../api/_usage.js");
-  await recordUsageEvent({ event_type: "job_ingest", route: "scripts/ingest.js", status: "ok", oldcarsdata_metered_requests: metered, metadata: { job: "ingest", mode: DELTA ? "delta" : `${FROM}..${TO}`, days: days.length, upserted: inserted } }, env.supabaseUrl, env.supabaseKey);
+  await recordUsageEvent({ event_type: "job_ingest", route: "scripts/ingest.js", status: "ok", oldcarsdata_metered_requests: 0, metadata: { job: "ingest", mode: DELTA ? "delta" : `${FROM}..${TO}`, days: days.length, upserted: inserted, ocd_http_requests: ocdHttp, page_fetches: metered } }, env.supabaseUrl, env.supabaseKey);
 } catch (e) { /* never block ingest on logging */ }
 if (belowFloor.length) {
   console.error(`INGEST HEALTH: ${belowFloor.length} day(s) below the ${FLOOR}/day floor: ${belowFloor.map(b => `${b.day}(${b.count})`).join(", ")}`);
-  // Best-effort visible record; import lazily so a missing table never breaks ingest.
   try {
     const { recordUsageEvent } = await import("../api/_usage.js");
-    await recordUsageEvent({ event_type: "ingest_health_below_floor", route: "scripts/ingest.js", status: "warning", oldcarsdata_metered_requests: metered, metadata: { belowFloor, floor: FLOOR, mode: DELTA ? "delta" : `${FROM}..${TO}` } }, env.supabaseUrl, env.supabaseKey);
+    await recordUsageEvent({ event_type: "ingest_health_below_floor", route: "scripts/ingest.js", status: "warning", oldcarsdata_metered_requests: 0, metadata: { belowFloor, floor: FLOOR, mode: DELTA ? "delta" : `${FROM}..${TO}` } }, env.supabaseUrl, env.supabaseKey);
   } catch (e) { /* never block ingest on logging */ }
 }
+await flushOcdUsage();   // write the tail of this run's OCD usage (the every-100 rows already cover a crash/timeout)
 console.log(belowFloor.length ? "\nDONE (with health warnings above)." : "\nDONE.");
 
 // Fail loud, per source: any source that ended in an UNRESOLVED error (429 still failing

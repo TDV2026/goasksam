@@ -14,7 +14,7 @@
 // Excluded BY RULE (never written here): PCARMarket, Collecting Cars, ACC, PistonHeads
 // (result-unavailable/opaque) and all auction houses (RM/Gooding/Bonhams/BJ/Broad Arrow/
 // Mecum). Only the five below report non-sold outcomes we can trust.
-import { callOldCarsData } from "../lib/_ocd.js";
+import { callOldCarsData, configureOcdUsage, flushOcdUsage, getOcdRunMetered } from "../lib/_ocd.js";
 import { supabaseEnv, supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { validVin, normChassis } from "../lib/_canonical.js";
 import { loadFxRates } from "../lib/_fx.js";
@@ -23,6 +23,9 @@ const CLEAN_SOURCES = ["bringatrailer", "carsandbids", "hagerty", "sothebysmotor
 const env = supabaseEnv();
 const apiKey = process.env.OLDCARSDATA_API_KEY;
 if (!env || !apiKey) { console.error("Need SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OLDCARSDATA_API_KEY."); process.exit(1); }
+// Attribute this run's OCD usage to the attempts job (periodic every-100 + final flush) so a crash or
+// timeout still leaves a record - previously this script recorded nothing to app_usage_events.
+configureOcdUsage({ supabaseUrl: env.supabaseUrl, supabaseKey: env.supabaseKey, job: "ingest_attempts" });
 
 const args = process.argv.slice(2);
 const flag = n => { const a = args.find(x => x.startsWith(`--${n}=`)); return a ? a.slice(n.length + 3) : null; };
@@ -56,7 +59,7 @@ for (const source of SOURCES) {
     // status=unsold: the reserve-not-met + withdrawn union in one filtered query (Drew, Sep 2026).
     // Each row still carries its own auction_status, so normStatus below splits the two cleanly.
     let r; try { r = await ocd({ source, status: "unsold", sort: "date", direction: "desc", page: p, limit: 100 }); }
-    catch (e) { console.error(`\n${source} p${p} FAILED: ${e.message}`); sourceErr = `p${p}: ${e.message}`; break; }
+    catch (e) { if (e.ocdHardCap) { console.error(`\n::error:: ${e.message}`); await flushOcdUsage(); process.exit(1); } console.error(`\n${source} p${p} FAILED: ${e.message}`); sourceErr = `p${p}: ${e.message}`; break; }
     const rows = r.data || []; if (!rows.length) break;
     let oldest = null;
     for (const rec of rows) {
@@ -104,8 +107,9 @@ while (ins < uniq.length) {
 }
 if (insErr) failed.push(`insert: ${insErr}`);
 
+await flushOcdUsage();   // write the tail of this run's OCD usage (every-100 rows already cover a crash/timeout)
 console.log(`\n=== auction_attempts ingest (last ${MONTHS}mo, cutoff ${cutoff}) ===`);
 console.log(`per source: ${JSON.stringify(perSource)}`);
-console.log(`total attempts: ${uniq.length} | upserted: ${inserted} | linked to a canonical sale: ${linked} | metered OCD: ${metered}`);
+console.log(`total attempts: ${uniq.length} | upserted: ${inserted} | linked to a canonical sale: ${linked} | OCD: ${getOcdRunMetered()} HTTP request(s) incl retries (${metered} page-fetches attempted)`);
 if (failed.length) { console.error(`::error::attempts ingest FAILED: ${failed.join("; ")}`); process.exit(1); }
 console.log("\nDONE.");

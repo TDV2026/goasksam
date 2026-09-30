@@ -1008,7 +1008,7 @@ async function fetchPass(pass, apiKey, deadline) {
   return { records, error, meteredRequests, pagesFetched, rateLimited, rateLimit };
 }
 
-export async function fetchRecentRecords(vehicle, apiKey, generation = null) {
+export async function fetchRecentRecords(vehicle, apiKey, generation = null, maxMetered = Infinity) {
   const ladder = buildLadder(vehicle, generation);
   const generationToken = generationModelToken(generation);
   const startedAt = Date.now();
@@ -1071,6 +1071,7 @@ export async function fetchRecentRecords(vehicle, apiKey, generation = null) {
     ranBroadFallbacks = true;
     for (const fallbackPass of broadFallbackPasses(vehicle, generationToken)) {
       if (Date.now() >= deadline) break;
+      if (meteredRequests >= maxMetered) break;   // per-request metered floor (blind-meter fail-closed)
       await runPass(fallbackPass);
       if (evaluate().landed?.met) break;
     }
@@ -1079,6 +1080,7 @@ export async function fetchRecentRecords(vehicle, apiKey, generation = null) {
   let ladderEval = evaluate();
   for (const rung of ladder) {
     if (rateLimited) { stoppedEarly = true; stopReason = "rate_limited"; break; }  // don't fire doomed 429s at every rung
+    if (meteredRequests >= maxMetered) { stoppedEarly = true; stopReason = "metered_floor_reached"; break; }
     if (Date.now() >= deadline) { stoppedEarly = true; stopReason = "time_budget_reached"; break; }
     if (ladderEval.landed?.met && ladderEval.landed.rung <= rung.rung) break;
     const rungMet = () => !!evaluate().walk.find(entry => entry.rung === rung.rung)?.met;
@@ -1092,6 +1094,7 @@ export async function fetchRecentRecords(vehicle, apiKey, generation = null) {
       if (primary.error) break;
       if (!primary.records.length) break;
       if (rungMet()) break;
+      if (meteredRequests >= maxMetered) break;   // per-request metered floor reached
       if (Date.now() >= deadline) break;
     }
     // Fallbacks once per search (deduped), only when a primary left the rung unmet.
@@ -3618,19 +3621,24 @@ export default async function handler(req, res) {
     }
     // Budget guards (7A): daily pace + monthly cap, read from app_usage_events.
     let usedMonthBefore = null;
+    // Item 4: when the meter is blind, fail CLOSED to a small floor instead of spending unguarded.
+    const BLIND_METER_FLOOR = 5;
+    let meterBlind = false;
     if (!fetchResult) {
       const usedToday = await ocdRequestsToday(supabaseUrl, supabaseKey);
       const usedMonth = await ocdRequestsThisMonth(supabaseUrl, supabaseKey);
       usedMonthBefore = usedMonth;
-      // 7A.1: a null count means the meter is BLIND (app_usage_events unreadable).
-      // Never pass the guard silently: raise a loud critical condition and record
-      // it best-effort, then CONTINUE (never hard-fail on an unreadable table).
+      // 7A.1: a null count means the meter is BLIND (app_usage_events unreadable). Raise a loud
+      // critical condition, record it best-effort, and FAIL CLOSED: this request may spend at most
+      // BLIND_METER_FLOOR metered calls (enforced via fetchRecentRecords maxMetered below), instead of
+      // the old fail-open "spend with no guard" that let a DB outage burn the quota.
       if (usedToday === null || usedMonth === null) {
-        console.error("CRITICAL: OCD budget meter is BLIND (app_usage_events unreadable). Spending with no guard - run docs/supabase-v1-schema.sql.");
+        meterBlind = true;
+        console.error(`CRITICAL: OCD budget meter is BLIND (app_usage_events unreadable). Failing CLOSED to a ${BLIND_METER_FLOOR}-request floor for this search - run docs/supabase-v1-schema.sql.`);
         await recordUsageEvent({
           event_type: "ocd_budget_meter_blind", route: "/api/sellerDecision", status: "critical",
           search_text: rawSearch, oldcarsdata_metered_requests: 0, duration_ms: 0,
-          metadata: { ...requestMetadata(req), usedToday, usedMonth }
+          metadata: { ...requestMetadata(req), usedToday, usedMonth, blindFloor: BLIND_METER_FLOOR }
         }, supabaseUrl, supabaseKey);
       }
       // 7E: the nightly warm runs against a RESERVED fraction of the budget so a
@@ -3697,7 +3705,7 @@ export default async function handler(req, res) {
       }
     }
     if (!fetchResult) {
-      fetchResult = await fetchRecentRecords(vehicle, apiKey, generation);
+      fetchResult = await fetchRecentRecords(vehicle, apiKey, generation, meterBlind ? BLIND_METER_FLOOR : Infinity);
       // Only cache a healthy fetch: an all-errored pass with nothing fetched
       // must retry next search, not lock in 24h of emptiness.
       const fetchHealthy = fetchResult.records.length > 0 || fetchResult.passSummary.every(pass => !pass.error);
