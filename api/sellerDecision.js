@@ -3820,7 +3820,9 @@ export default async function handler(req, res) {
         // Reserve-car DAY (item 2): weekend-vs-midweek SELL-THROUGH for reserve cars (sold vs
         // reserve-not-met on BaT), replacing the wrong price-median best-day tile. Archive-only.
         const rd = await reserveDayInsightForVehicle(vehicle, generation, { supabaseUrl, supabaseKey });
-        if (rd && rd.ok && decision.routeFit && Array.isArray(decision.routeFit.routes)) {
+        // Attach regardless of ok (the frontend gates on rd.ok); a gate-failed object still carries the
+        // bucket counts, useful as telemetry and for verification. The tile hides when !ok.
+        if (rd && decision.routeFit && Array.isArray(decision.routeFit.routes)) {
           for (const route of decision.routeFit.routes) { if (route.routable && route.marketEvidence) route.marketEvidence.reserveDay = rd; }
         }
         // Matched-premium THIN FALLBACK count (item 1 fix): the bounded sell-flow evidence pool
