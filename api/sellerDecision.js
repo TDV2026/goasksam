@@ -3168,35 +3168,23 @@ export default async function handler(req, res) {
       // can raise it with OCD. Scans the FULL raw_record (Gooding's location may live under any key, or
       // be absent - the house-metadata gap), and reports which location-ish fields carry values so the
       // finding is honest either way. Changes nothing. Zero OCD.
-      // Page with order=id + limit/offset (the proven pool-mode pattern; Range-header paging via
-      // supabaseSelectAll truncated/emptied this json-extraction query).
-      const gCols = "sale_date,sale_price,listing_title,year,make,model,cc:raw_record->>country_code,cur:raw_record->>currency,url:raw_record->>url";
-      const rows = [];
-      for (let off = 0; off < 20000; off += 1000) {
-        const pg = await supabaseSelect(env2, `sales_archive?source_slug=eq.gooding&sale_price=not.is.null&select=${gCols}&order=id&limit=1000&offset=${off}`);
-        if (!pg || !pg.length) break;
-        for (const r of pg) rows.push(r);
-        if (pg.length < 1000) break;
-      }
-      // country_code is the only populated location field on Gooding rows; the London sale also carries a
-      // "(UKnn)" event code in the title. UK = a UK country_code OR that title code.
-      const UK_CC = /^(gb|gbr|uk|gb-eng|united kingdom|england|scotland|wales)$/i;
+      // Gooding's only London signal is the "(UKnn)" event code in the TITLE (its records carry NO
+      // usable location field: city/state/zip empty, country_code populated on a handful and blank on the
+      // London lots). Filter that code SERVER-SIDE so the result is a small set - no client pagination
+      // (Range/offset paging both misbehaved on the full-table json-extraction scan). "%28" = "(".
+      const gCols = "sale_date,sale_price,listing_title,cur:raw_record->>currency,cc:raw_record->>country_code,url:raw_record->>url";
+      const cntHdr = { apikey: env2.supabaseKey, Authorization: `Bearer ${env2.supabaseKey}`, Prefer: "count=exact", Range: "0-0", "Range-Unit": "items" };
+      const goodingTotal = await (async () => { const r = await fetch(`${env2.supabaseUrl}/rest/v1/sales_archive?source_slug=eq.gooding&sale_price=not.is.null&select=id&limit=1`, { headers: cntHdr }); const m = (r.headers.get("content-range") || "").match(/\/(\d+)$/); return m ? Number(m[1]) : null; })();
+      const rows = (await supabaseSelect(env2, `sales_archive?source_slug=eq.gooding&sale_price=not.is.null&select=${gCols}&listing_title=ilike.*%28UK*&order=sale_date.desc&limit=300`)) || [];
       const UK_TITLE = /\(uk\d{2}\)/i;
-      const ccTally = {};
-      const hit = [];
-      for (const r of rows) {
-        const cc = (r.cc || "").trim();
-        ccTally[cc || "(null)"] = (ccTally[cc || "(null)"] || 0) + 1;
-        if (UK_CC.test(cc) || UK_TITLE.test(String(r.listing_title || ""))) hit.push({
-          date: (r.sale_date || "").slice(0, 10), price: Number(r.sale_price) || null, currency: r.cur || "USD",
-          countryCode: cc || null, car: [r.year, r.make, r.model].filter(Boolean).join(" "), title: r.listing_title || null, url: r.url || null
-        });
-      }
-      // Dedup (the archive has some duplicate lots): by title+date+price.
+      const hit = rows.filter(r => UK_TITLE.test(String(r.listing_title || ""))).map(r => ({
+        date: (r.sale_date || "").slice(0, 10), price: Number(r.sale_price) || null, currency: r.cur || "USD",
+        countryCode: (r.cc || "").trim() || null, title: r.listing_title || null, url: r.url || null
+      }));
       const seen = new Set(); const uniq = [];
-      for (const r of hit.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))) { const k = `${r.title}|${r.date}|${r.price}`; if (seen.has(k)) continue; seen.add(k); uniq.push(r); }
+      for (const r of hit) { const k = `${r.title}|${r.date}|${r.price}`; if (seen.has(k)) continue; seen.add(k); uniq.push(r); }
       const byCur = {}; for (const r of uniq) byCur[r.currency] = (byCur[r.currency] || 0) + 1;
-      return res.status(200).json({ status: "archive_query", mode, goodingTotal: rows.length, countryCodeTally: ccTally, ukCount: uniq.length, byCurrency: byCur, rows: uniq });
+      return res.status(200).json({ status: "archive_query", mode, goodingTotal, ukCount: uniq.length, byCurrency: byCur, rows: uniq });
     }
     return res.status(400).json({ error: "unknown archiveQuery mode" });
   }
