@@ -3172,23 +3172,23 @@ export default async function handler(req, res) {
       const UK = /\b(london|united kingdom|\buk\b|england|chichester|goodwood|hampton court|surrey|scotland)\b/i;
       const LOC_KEYS = ["city", "location", "country", "region", "state", "venue", "auction_name", "auction_location", "sale", "sale_name", "event", "place", "address"];
       const fieldFill = {}; for (const k of LOC_KEYS) fieldFill[k] = 0;
+      const allKeys = {};      // union of top-level raw_record keys + non-null fill count
       const hit = [];
       for (const r of rows) {
         const rr = r.raw_record || {};
+        for (const k of Object.keys(rr)) { if (rr[k] != null && String(rr[k]).trim && String(rr[k]).trim() !== "") allKeys[k] = (allKeys[k] || 0) + 1; else if (!(k in allKeys)) allKeys[k] = allKeys[k] || 0; }
         for (const k of LOC_KEYS) if (rr[k] != null && String(rr[k]).trim()) fieldFill[k]++;
-        // Which fields (title + any location-ish key) contain a UK token?
-        const matchedFields = [];
-        if (UK.test(String(r.listing_title || ""))) matchedFields.push("title");
-        for (const k of LOC_KEYS) if (UK.test(String(rr[k] || ""))) matchedFields.push(k);
-        if (matchedFields.length) hit.push({
+        // Full-JSON scan: catch a UK token ANYWHERE (nested) in the record, plus the title.
+        const blob = (r.listing_title || "") + " " + JSON.stringify(rr);
+        if (UK.test(blob)) hit.push({
           date: (r.sale_date || "").slice(0, 10), price: Number(r.sale_price) || null, currency: rr.currency || "USD",
-          matchedOn: matchedFields.join(","), city: rr.city || rr.location || rr.country || null,
+          city: rr.city || rr.location || rr.country || null,
           car: [r.year, r.make, r.model].filter(Boolean).join(" "), title: r.listing_title || null, url: rr.url || rr.source_url || null
         });
       }
       hit.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
       const byCur = {}; for (const r of hit) byCur[r.currency] = (byCur[r.currency] || 0) + 1;
-      return res.status(200).json({ status: "archive_query", mode, goodingTotal: rows.length, ukCount: hit.length, byCurrency: byCur, locationFieldFill: fieldFill, rows: hit });
+      return res.status(200).json({ status: "archive_query", mode, goodingTotal: rows.length, ukCount: hit.length, byCurrency: byCur, locationFieldFill: fieldFill, rawRecordKeys: Object.keys(allKeys).sort().map(k => `${k}(${allKeys[k]})`), rows: hit });
     }
     return res.status(400).json({ error: "unknown archiveQuery mode" });
   }
