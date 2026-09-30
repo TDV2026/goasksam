@@ -3429,7 +3429,7 @@ export default async function handler(req, res) {
       try {
         oneBox = await Promise.race([
           runOneBox(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale }, obRefine),
-          new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), Number(process.env.ONEBOX_DEADLINE_MS || 9000)))
+          new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), Number(process.env.ONEBOX_DEADLINE_MS || 20000)))
         ]);
       } catch (e) {
         console.error(`One Box unavailable (${(e && e.message) || e}).`);

@@ -1487,7 +1487,7 @@
     obFetch(API_ORIGIN + "/api/sellerDecision", {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
-    }, 12000).then(function (r) { return r.json(); }).then(function (d) {
+    }, 25000).then(function (r) { return r.json(); }).then(function (d) {
       pushRecent(text, d);
       if (d && d.status === "needs_clarification") {
         // Multi-token chassis ("1E 31588"): an exact archive match came back -> lead with the
@@ -1519,7 +1519,7 @@
   function vinResolve(text) {
     setRootHtmlLifted(inboxHtml(text) + loaderHtml() + footHtml());
     wire(); setLoaderLine("Reading that VIN");
-    obFetch(API_ORIGIN + "/api/vehicleIdentity", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: text }) }, 12000)
+    obFetch(API_ORIGIN + "/api/vehicleIdentity", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: text }) }, 25000)
       .then(function (r) { return r.json(); }).then(function (d) {
         var cl = d && d.clarification;
         // Branch on clarification KIND first (status can be needs_confirmation OR
