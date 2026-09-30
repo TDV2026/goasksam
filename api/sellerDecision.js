@@ -3168,27 +3168,26 @@ export default async function handler(req, res) {
       // can raise it with OCD. Scans the FULL raw_record (Gooding's location may live under any key, or
       // be absent - the house-metadata gap), and reports which location-ish fields carry values so the
       // finding is honest either way. Changes nothing. Zero OCD.
-      const rows = (await supabaseSelectAll(env2, `sales_archive?source_slug=eq.gooding&sale_price=not.is.null&select=sale_date,sale_price,listing_title,year,make,model,raw_record`)) || [];
-      const UK = /\b(london|united kingdom|\buk\b|england|chichester|goodwood|hampton court|surrey|scotland)\b/i;
-      const LOC_KEYS = ["city", "location", "country", "region", "state", "venue", "auction_name", "auction_location", "sale", "sale_name", "event", "place", "address"];
-      const fieldFill = {}; for (const k of LOC_KEYS) fieldFill[k] = 0;
-      const allKeys = {};      // union of top-level raw_record keys + non-null fill count
+      const rows = (await supabaseSelectAll(env2, `sales_archive?source_slug=eq.gooding&sale_price=not.is.null&select=sale_date,sale_price,listing_title,year,make,model,cc:raw_record->>country_code,cur:raw_record->>currency,url:raw_record->>url`)) || [];
+      // country_code is the only populated location field on Gooding rows; the London sale also carries a
+      // "(UKnn)" event code in the title. UK = a UK country_code OR that title code.
+      const UK_CC = /^(gb|gbr|uk|gb-eng|united kingdom|england|scotland|wales)$/i;
+      const UK_TITLE = /\(uk\d{2}\)/i;
+      const ccTally = {};
       const hit = [];
       for (const r of rows) {
-        const rr = r.raw_record || {};
-        for (const k of Object.keys(rr)) { if (rr[k] != null && String(rr[k]).trim && String(rr[k]).trim() !== "") allKeys[k] = (allKeys[k] || 0) + 1; else if (!(k in allKeys)) allKeys[k] = allKeys[k] || 0; }
-        for (const k of LOC_KEYS) if (rr[k] != null && String(rr[k]).trim()) fieldFill[k]++;
-        // Full-JSON scan: catch a UK token ANYWHERE (nested) in the record, plus the title.
-        const blob = (r.listing_title || "") + " " + JSON.stringify(rr);
-        if (UK.test(blob)) hit.push({
-          date: (r.sale_date || "").slice(0, 10), price: Number(r.sale_price) || null, currency: rr.currency || "USD",
-          city: rr.city || rr.location || rr.country || null,
-          car: [r.year, r.make, r.model].filter(Boolean).join(" "), title: r.listing_title || null, url: rr.url || rr.source_url || null
+        const cc = (r.cc || "").trim();
+        ccTally[cc || "(null)"] = (ccTally[cc || "(null)"] || 0) + 1;
+        if (UK_CC.test(cc) || UK_TITLE.test(String(r.listing_title || ""))) hit.push({
+          date: (r.sale_date || "").slice(0, 10), price: Number(r.sale_price) || null, currency: r.cur || "USD",
+          countryCode: cc || null, car: [r.year, r.make, r.model].filter(Boolean).join(" "), title: r.listing_title || null, url: r.url || null
         });
       }
-      hit.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
-      const byCur = {}; for (const r of hit) byCur[r.currency] = (byCur[r.currency] || 0) + 1;
-      return res.status(200).json({ status: "archive_query", mode, goodingTotal: rows.length, ukCount: hit.length, byCurrency: byCur, locationFieldFill: fieldFill, rawRecordKeys: Object.keys(allKeys).sort().map(k => `${k}(${allKeys[k]})`), rows: hit });
+      // Dedup (the archive has some duplicate lots): by title+date+price.
+      const seen = new Set(); const uniq = [];
+      for (const r of hit.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))) { const k = `${r.title}|${r.date}|${r.price}`; if (seen.has(k)) continue; seen.add(k); uniq.push(r); }
+      const byCur = {}; for (const r of uniq) byCur[r.currency] = (byCur[r.currency] || 0) + 1;
+      return res.status(200).json({ status: "archive_query", mode, goodingTotal: rows.length, countryCodeTally: ccTally, ukCount: uniq.length, byCurrency: byCur, rows: uniq });
     }
     return res.status(400).json({ error: "unknown archiveQuery mode" });
   }
