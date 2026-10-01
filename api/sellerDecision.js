@@ -3195,6 +3195,18 @@ export default async function handler(req, res) {
       const byDate = {}; for (const r of uniq) byDate[r.date] = (byDate[r.date] || 0) + 1;
       return res.status(200).json({ status: "archive_query", mode, goodingTotal, londonDates, londonByDate: byDate, ukCount: uniq.length, byCurrency: byCur, rows: uniq });
     }
+    if (mode === "makeAudit") {
+      // How many DISTINCT makes in sales_archive are missing from the resolver's make list
+      // (taxonomy_makes, the prod source of truth). Pages the make column, dedupes, compares.
+      const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+      const archRows = await pageAll("sales_archive?select=make&make=not.is.null");
+      const archSet = new Map();   // norm -> display
+      for (const r of archRows) { const m = String(r.make || "").trim(); if (m && !/^(unknown|reserve|null)$/i.test(m)) { const k = norm(m); if (k && !archSet.has(k)) archSet.set(k, m); } }
+      const taxRows = (await supabaseSelect(env2, "taxonomy_makes?select=name&limit=2000")) || [];
+      const taxSet = new Set(taxRows.map(r => norm(r.name)).filter(Boolean));
+      const missing = [...archSet.entries()].filter(([k]) => !taxSet.has(k)).map(([, d]) => d).sort((a, b) => a.localeCompare(b));
+      return res.status(200).json({ status: "archive_query", mode, archiveMakeCount: archSet.size, listMakeCount: taxSet.size, missingCount: missing.length, missing });
+    }
     return res.status(400).json({ error: "unknown archiveQuery mode" });
   }
   // Raw archive title-search diagnostic (archive-only, no car needed, no OCD) -> answered before
