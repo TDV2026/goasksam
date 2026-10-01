@@ -1,6 +1,6 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
-import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle } from "../lib/onebox.js";
+import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -3298,12 +3298,30 @@ export default async function handler(req, res) {
         // that carries make/year and the ORIGINAL raw text (so the class-era read can body-class it from
         // the codes the seller typed, e.g. "D50 D350" -> truck). This is what routes a "not sure" to the
         // wider class-era read instead of a route pick with no sales.
-        let partial = car.acceptModelLevel ? sanitizeResolvedVehicle(resolution.vehicle) : null;
-        if (!partial && car.acceptModelLevel && resolution.vehicle && resolution.vehicle.make) {
+        // Fix 7 (Oct 2026): the engine is about to ASK (the resolver gave no model). Before asking,
+        // see whether the SALE TITLES clearly name one car for what was typed. Runs ONLY here - never
+        // on a search that resolves to a result today - is cached, and keeps the ask when the titles
+        // disagree (condition 5: never guess).
+        if (req.body?.oneBox && !(resolution.vehicle && resolution.vehicle.model) && !car.acceptModelLevel && typeof rawSearch === "string") {
+          const cleaned = rawSearch.replace(/\b(19|20)\d\d\b/g, " ").replace(/\s+/g, " ").trim();
+          const toks = cleaned.split(/\s+/).filter(t => t.length >= 3);
+          const phrases = [cleaned, ...toks].filter((v, i, a) => v && a.indexOf(v) === i);
+          try {
+            const tok = await archiveResolveToken(phrases, { supabaseUrl, supabaseKey });
+            if (tok && tok.make && tok.model) {
+              vehicle = { make: (resolution.vehicle && resolution.vehicle.make) || tok.make, model: tok.model, year: (resolution.vehicle && resolution.vehicle.year) || null, raw: rawSearch };
+              req._fix7 = tok;
+            }
+          } catch (e) { /* lookup is best-effort; fall through to the normal ask */ }
+        }
+        let partial = !vehicle && car.acceptModelLevel ? sanitizeResolvedVehicle(resolution.vehicle) : null;
+        if (!partial && !vehicle && car.acceptModelLevel && resolution.vehicle && resolution.vehicle.make) {
           const rv = resolution.vehicle;
           partial = { make: rv.make, year: rv.year || null, model: rv.model || null, trim: rv.trim || null, raw: rv.raw || rawSearch, unverified: true };
         }
-        if (partial) {
+        if (vehicle) {
+          /* Fix 7 resolved from the titles - proceed to the result, no ask */
+        } else if (partial) {
           vehicle = partial;
         } else if (req.body?.oneBox && resolution.vehicle?.make && resolution.vehicle?.model) {
           // One Box: make + model resolved, only the year is missing/ambiguous ("Miata",
