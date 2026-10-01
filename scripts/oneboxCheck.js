@@ -60,7 +60,7 @@ function runChecks(s, d, ms) {
   // the tier carries). unavailable is NEVER honest.
   const shownCount = [d.poolN, d.thin && d.thin.totalN, d.thin && d.thin.receipts && d.thin.receipts.length,
     d.classEra && d.classEra.totalN, d.count].map(num).find(n => n != null && n >= 0);
-  const interactive = d.tier === "body_choice" || d.tier === "needs_clarification";
+  const interactive = d.tier === "body_choice" || d.tier === "needs_clarification" || d.tier === "generation_choice" || d.tier === "gearbox_choice" || d.tier === "variant_choice";
   // not_tracked (Fix 7): an honest "we haven't tracked a {car} sale yet" for a resolved-but-unsold
   // car - a valid non-dead-end, no count needed.
   const honest = d.tier !== "unavailable" && (interactive || d.tier === "not_tracked" || (["thin", "class_era", "refusal"].includes(d.tier) && shownCount != null) || d.spanOnly === true);

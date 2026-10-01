@@ -3304,12 +3304,14 @@ export default async function handler(req, res) {
         // disagree (condition 5: never guess).
         if (req.body?.oneBox && !(resolution.vehicle && resolution.vehicle.model) && !car.acceptModelLevel && typeof rawSearch === "string") {
           const cleaned = rawSearch.replace(/\b(19|20)\d\d\b/g, " ").replace(/\s+/g, " ").trim();
-          const toks = cleaned.split(/\s+/).filter(t => t.length >= 3);
-          const phrases = [cleaned, ...toks].filter((v, i, a) => v && a.indexOf(v) === i);
+          const toks = cleaned.split(/\s+/).filter(t => t.length >= 2);
+          const phrases = [cleaned, ...toks.filter(t => t.length >= 3)].filter((v, i, a) => v && a.indexOf(v) === i);
           try {
-            const tok = await archiveResolveToken(phrases, { supabaseUrl, supabaseKey });
+            const tok = await archiveResolveToken(phrases, { supabaseUrl, supabaseKey }, toks);
             if (tok && tok.make && tok.model) {
-              vehicle = { make: (resolution.vehicle && resolution.vehicle.make) || tok.make, model: tok.model, year: (resolution.vehicle && resolution.vehicle.year) || null, raw: rawSearch };
+              // Trust the archive-resolved make (issue 1): a typed make that exists in the titles must
+              // win over the resolver's fuzzy guess ("Eagle Talon" -> Eagle Talon, never "Talbot").
+              vehicle = { make: tok.make, model: tok.model, year: (resolution.vehicle && resolution.vehicle.year) || null, raw: rawSearch };
               req._fix7 = tok;
             }
           } catch (e) { /* lookup is best-effort; fall through to the normal ask */ }
@@ -3407,7 +3409,7 @@ export default async function handler(req, res) {
       // car - it is a continuation of an already-counted lookup, not a new one. Exempt it from the
       // onebox_daily_cap count AND check (same spirit as the shareable-snapshot !obRefine gate below).
       const _rr = req.body?.refine || (car && car.refine) || null;
-      const obIsRefine = !!(_rr && (_rr.miMin != null || _rr.tx || _rr.driver || _rr.observe));
+      const obIsRefine = !!(_rr && (_rr.miMin != null || _rr.tx || _rr.variant || _rr.driver || _rr.observe));
       if (obAnon && !obIsRefine) {
         try {
           const cap = await appConfigInt("onebox_daily_cap", 40, supabaseUrl, supabaseKey);
@@ -3427,6 +3429,8 @@ export default async function handler(req, res) {
         miMin: Number.isFinite(Number(rawRefine.miMin)) ? Number(rawRefine.miMin) : null,
         miMax: Number.isFinite(Number(rawRefine.miMax)) ? Number(rawRefine.miMax) : null,
         tx: rawRefine.tx === "manual" ? "manual" : rawRefine.tx === "auto" ? "auto" : null,
+        // Competition-variant refine (Part 1 change 1): Competition Package vs standard.
+        variant: rawRefine.variant === "competition" ? "competition" : rawRefine.variant === "standard" ? "standard" : null,
         // Item 7/8 dictionary-driver refine + item 9 observable-fact refine (both re-scope the pool).
         driver: typeof rawRefine.driver === "string" ? rawRefine.driver.slice(0, 40) : null,
         driverVal: rawRefine.driverVal === "no" ? "no" : rawRefine.driverVal === "yes" ? "yes" : null,

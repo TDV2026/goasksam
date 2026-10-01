@@ -464,7 +464,7 @@
       // Span-without-cluster (#4): a real result with too few sales to mark a typical band.
       // Show the full range (already in s1) and every sale, honestly caveated, no invented middle.
       var n = d.poolN;
-      out += '<p class="s2">' + lint("Only " + n + " ha" + (n === 1 ? "s" : "ve") + " sold in " + windowText(d) + ", too few to mark a typical band, so that is the full range and every sale is below.", "s2") + "</p>";
+      out += '<p class="s2">' + lint("Only " + n + " ha" + (n === 1 ? "s" : "ve") + " sold in " + windowText(d) + ", not enough for a range, so here is every sale instead.", "s2") + "</p>";
     }
     if (d.direction && !obRefinePhrase) { var conn = d.direction.word === "about level" ? "with" : "than"; out += '<p class="s3">' + lint("That’s " + esc(d.direction.word) + " " + conn + " a year ago, when most landed between " + betweenRange(d.direction.prior) + ".", "s3") + "</p>"; }
     if (m && m.price) {
@@ -597,8 +597,8 @@
     if (!hasCluster) {
       var subj = noun || "cars like it";
       var line = (d.poolN && d.poolN < 8)
-        ? ("Only " + d.poolN + " " + subj + " ha" + (d.poolN === 1 ? "s" : "ve") + " sold in " + windowText(d) + ", too few to mark a typical band, so here are the sales themselves.")
-        : (subj.charAt(0).toUpperCase() + subj.slice(1) + " sold too spread out in " + windowText(d) + " to mark a typical band, so here are the sales themselves.");
+        ? ("Only " + d.poolN + " " + subj + " ha" + (d.poolN === 1 ? "s" : "ve") + " sold in " + windowText(d) + ", not enough for a range, so here are the sales themselves.")
+        : (subj.charAt(0).toUpperCase() + subj.slice(1) + " sold too spread out in " + windowText(d) + " to call a typical price, so here are the sales themselves.");
       return '<div class="livetake blk noband" data-stage="answer">' + (m ? "" : carLineHtml(d, m)) +
         '<div class="lead">' + lint(line, "cl.noband") + "</div>" +
         freshLine(d) + "</div>";
@@ -1102,18 +1102,18 @@
     var s = scope.slice().sort(function (a, b) { return a.hammer - b.hammer; });
     var n = s.length, mid = s[Math.floor((n - 1) / 2)];
     var out = '<div class="livetake blk noband" data-stage="answer">';
+    // Plain speech naming the count (retire "too thin"): "Only N {car}s have sold in the last three
+    // years, not enough for a range. Here's what they went for." Same pattern on every thin tier.
+    var who = (scopedLabel ? cap(scopedLabel) + " " + name : cap(name));
     if (n === 1) {
-      // One real sale: name it in prose (a single receipt, not a headline band) + the card below.
-      var one = "The one " + name + (scopedLabel ? " (" + scopedLabel + ")" : "") + " to change hands in " + HT_WINDOW_TEXT + " was a " + mid.year + " that sold " + venuePrep(mid) + " in " + monthYear(mid.date) + " for " + usd(mid.hammer) + "." + (mid.isHouse && mid.allIn ? " The buyer paid " + usd(mid.allIn) + " with the premium." : "");
+      var one = "Only one " + who + " has sold in " + HT_WINDOW_TEXT + ". Here’s what it went for.";
       out += '<p class="lt-line">' + lint(one, "ht.hero1") + "</p>";
       out += thinHeroCard(mid);
     } else {
-      // Too few for a typical band: say so, show the range (the record) and the sales themselves. No
-      // big median headline. The representative sale is a labelled card, not the page's headline value.
-      var lead = (scopedLabel ? cap(scopedLabel) + " " + name + "s" : cap(name) + "s") + " are too thin " + HT_WINDOW_TEXT + " to mark a typical band, so here is what actually sold.";
+      var lead = "Only " + n + " " + who + "s have sold in " + HT_WINDOW_TEXT + ", not enough for a range. Here’s what they went for.";
       out += '<p class="lt-line">' + lint(lead, "ht.hero") + "</p>";
       var min = s[0].hammer, max = s[n - 1].hammer;
-      if (max > min) out += '<p class="lt-span">' + lint("The recorded sales" + (scopedLabel ? " of " + scopedLabel + " cars" : "") + " ran from " + usd(min) + " to " + usd(max) + ".", "ht.span") + "</p>";
+      if (max > min) out += '<p class="lt-span">' + lint("They ran from " + usd(min) + " to " + usd(max) + ".", "ht.span") + "</p>";
       out += thinHeroCard(mid);   // item 4: hero photo, card-scale price (a receipt, not a headline)
     }
     var gpat = gearboxPatternLine(scope);
@@ -1272,6 +1272,18 @@
     root.innerHTML = inboxHtml(lastQuery) + head + body + (needFoot ? footHtml() : "");
     wire();
     streamReveal();
+  }
+  // Gearbox / Competition question (Part 1 Rule 2 + change 1): a REFINE choice - the chip re-scopes
+  // the SAME car (runPool with refine), not a re-query. Chips carry data-tx (gearbox) or data-variant
+  // (Competition), handled by the existing refine wiring.
+  function renderRefineChoice(d) {
+    var chips = "";
+    if (d.gearboxOptions) chips = d.gearboxOptions.map(function (o) { var tx = /manual/i.test(o) ? "manual" : "auto"; return '<button class="qchip" data-tx="' + tx + '" data-mlabel="' + esc(o) + '">' + esc(o) + "</button>"; }).join("");
+    else if (d.variantOptions) chips = d.variantOptions.map(function (o) { var v = /competition/i.test(o) ? "competition" : "standard"; return '<button class="qchip" data-variant="' + v + '" data-mlabel="' + esc(o) + '">' + esc(o) + "</button>"; }).join("");
+    root.innerHTML = inboxHtml(lastQuery) +
+      '<div class="sam" style="margin-top:26px"><div class="ava">SAM</div><div class="body"><div class="tag">' + lint("Quick question", "qq.tag") + '</div>' +
+      '<p style="font-size:22px;line-height:1.4">' + lint(esc(d.prompt || "Which one is it?"), "refchoice") + "</p><div class=\"qchips\">" + chips + "</div></div></div>" + footHtml();
+    wire();
   }
   function renderChoice(d) {
     // Generation choice: chips carry a full year-resolvable query (run directly, not appended).
@@ -1518,6 +1530,7 @@
       if (d.tier === "unavailable") { renderError(d.samLine || OB_CALM); return; }
       if (d.tier === "rate_limited") { renderError(d.samLine || "That’s a lot of lookups for one day. Come back tomorrow and I’ll keep pulling real sales."); return; }
       if (d.tier === "model_choice" || d.tier === "body_choice" || d.tier === "generation_choice") { renderChoice(d); return; }
+      if (d.tier === "gearbox_choice" || d.tier === "variant_choice") { renderRefineChoice(d); return; }
       if (vinAnchor) obEvent("onebox_vin_anchor_shown");
       obSnapshotId = d.snapshotId || null; obAsOf = null; // live result: shareable, no as-of line
       obResolvedCar = d.resolvedCar || null;              // carried into the /sell handoff
@@ -1776,6 +1789,13 @@
         var tx = b.getAttribute("data-tx"), label = b.getAttribute("data-mlabel");
         obRefinePhrase = tx === "manual" ? "As a manual" : "As " + (/^[aeiou]/i.test(label) ? "an " : "a ") + label;
         runPool(lastQuery, obLastVehicle, { tx: tx, label: label });
+      });
+    });
+    Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-variant]"), function (b) {
+      b.addEventListener("click", function () {
+        var v = b.getAttribute("data-variant"), label = b.getAttribute("data-mlabel");
+        obRefinePhrase = v === "competition" ? "Competition Package" : "Standard";
+        runPool(lastQuery, obLastVehicle, { variant: v, label: label });
       });
     });
     // Dictionary driver chip (item 7/8): narrows the pool to the listings that carry (or do not
