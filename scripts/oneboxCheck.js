@@ -35,7 +35,11 @@ const SEARCHES = [
   { q: "Eagle Talon", model: "Talon" },
   { q: "Singer Gazelle", model: "Gazelle" },
   { q: "ram 50", model: "50" },
-  { q: "Ram 50 1990", model: "50" }
+  { q: "Ram 50 1990", model: "50" },
+  // 550 Maranello (house-flow leak fix): a dense model that must read its OWN sales, never widen to
+  // the wider Ferrari market or show a halo (Enzo/Superamerica/Barchetta) as a comp.
+  { q: "2000 Ferrari 550 Maranello", model: "550", mustRange: true, noHalo: /enzo|superamerica|barchetta|laferrari|\bf40\b|\bf50\b|\b599\b|\b812\b|testarossa/i },
+  { q: "Ferrari 550", model: "550", mustRange: true, noHalo: /enzo|superamerica|barchetta|laferrari|\bf40\b|\bf50\b|\b599\b|\b812\b|testarossa/i }
 ];
 
 const VENUE_RE = /^(19|20)\d{2}\s+(bring a trailer|cars ?& ?bids|rm sotheby|gooding|bonhams|mecum|barrett|broad arrow|hemmings|pcarmarket|pcar market|collecting cars|the market|pistonheads|hagerty|mb market|sotheby)/i;
@@ -157,6 +161,9 @@ function runChecks(s, d, ms) {
     if (floorBad.length) gIssues.push(`${floorBad.length} displayed price(s) below the $2,500 floor (e.g. $${floorBad.sort((a, b) => a - b)[0]})`);
     else if (lowBad.length) gIssues.push(`${lowBad.length} displayed price(s) under 10% of the $${med} pool median (e.g. $${lowBad.sort((a, b) => a - b)[0]})`);
   }
+  // Halo / wider-market leak (550 house-flow rule): no halo or special or different-model car shown
+  // as a comp for a regular model (an Enzo, a Superamerica, a Barchetta, a 599 in a 550 pool).
+  if (s.noHalo) { const leak = prices.filter(x => x.title && s.noHalo.test(x.title)); if (leak.length) gIssues.push(`${leak.length} halo/other-model card(s) for a regular model (e.g. "${leak[0].title}")`); }
   r.g = gIssues.length === 0 ? { pass: true, why: "no garbled titles/sentences/venues; all prices >= $2,500 floor" } : { pass: false, why: gIssues.join("; ") };
 
   // h. under 4 seconds

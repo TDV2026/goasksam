@@ -3984,7 +3984,11 @@ export default async function handler(req, res) {
     const thinTooThinForPick = thin && thin.isThin && thinReceiptN > 0 && thinReceiptN < MIN_PICK_SALES && !thin.houseSteer;
     if (thin && thin.isThin && thinReceiptN && (thinReceiptN >= MIN_PICK_SALES || thin.houseSteer)) {
       try { await setThinDecision(); } catch { /* thin render facts are additive */ }
-    } else if (vehicle && vehicle.year && vehicle.make && (thinTooThinForPick || !thin || thin.totalN === 0 || !vehicle.model || vehicle.unverified || (car && car.acceptModelLevel))) {
+    } else if (vehicle && vehicle.year && vehicle.make && thin && (thinTooThinForPick || thin.totalN === 0 || !vehicle.model || vehicle.unverified || (car && car.acceptModelLevel))) {
+      // NEVER widen past the model to the wider make market on an assessThin ERROR (thin===null): an
+      // error is not evidence of "no sales of this model", and widening to the marque surfaced halos
+      // (an Enzo, a Superamerica) as comps for a regular 550 Maranello. A thrown thin keeps the normal
+      // decision the main ladder already produced; class-era only fires on a REAL zero-model-sales read.
       // CLASS-ERA rung: the exact model has not sold in three years (empty model pool), OR the model
       // could not be pinned (make-level "not sure" / unverified). Widen to the same marque within the
       // car's decade era band, body-class scoped from the typed text - a coarse honest fallback that
