@@ -15,6 +15,7 @@
   var obSourceVin = null;   // the 17-char VIN when this result was VIN-sourced (travels to /sell)
   var obRefinePhrase = null; // the earned-question lead ("In the 100k to 160k miles band") on a refined view
   var obLastVehicle = null;  // the resolved vehicle of the current pool, reused for an inline refine
+  var obAsked = 0;           // running question count (Part 3 cap: max two before a result); threaded to the engine
   // Rotating placeholder (Screen 1): real, concrete examples, one at a time - a typed car, a
   // trim, and a VIN - so the input teaches what it accepts. Rotation in startPlaceholderRotation().
   var PLACEHOLDER_BEATS = ["1994 Porsche 911", "2019 BMW M4 Competition", "WBS4Y9C55KAG67564"];
@@ -812,14 +813,31 @@
     }
     return earnedHtml(d, m);
   }
+  // Capped third split (Part 3 question cap): the would-be third question rendered as short lines.
+  // "Manuals sold between X and Y. F1s between X and Y." - real ranges, $500-rounded, never a question.
+  function inlineSplitsHtml(d) {
+    if (!d.inlineSplits || !d.inlineSplits.length) return "";
+    var lines = d.inlineSplits.map(function (sp) {
+      var a = sp.sides[0], b = sp.sides[1];
+      return '<p class="splitline">' + lint(esc(a.label) + " sold between " + r3money(a.lo) + " and " + r3money(a.hi) + ". " + esc(b.label) + " between " + r3money(b.lo) + " and " + r3money(b.hi) + ".", "split." + sp.key) + "</p>";
+    }).join("");
+    return '<div class="inlinesplits" data-stage="answer">' + lines + "</div>";
+  }
+  // Mileage nearest-sales fallback (Part 3): the band was too thin, so the sales shown are the closest
+  // by mileage. Said plainly so the read never looks like an exact-band match it isn't.
+  function mileageFallbackHtml(d) {
+    if (!d.mileageFallback) return "";
+    return '<p class="mifallback" data-stage="answer">' + lint(esc("Too few sold right at that mileage, so these are the " + d.mileageFallback.n + " closest sales by mileage."), "mifb") + "</p>";
+  }
   function resultHtml(d, m) {
     // Cluster-led block (retires the kicker) -> contradiction sentence (divergence) -> the sales
     // (compact rows for exact-car so the VIN hero is the only big photo; three cards for typed) ->
     // the reconfirm AFTER the evidence -> observe offer -> CTA -> quiet recent row.
     // Item 7: no "The sales behind it" kicker (the rows are self-explanatory), and no footer
     // manifesto (the freshness line inside the block already says "Real sales... Nothing estimated").
-    var body = heroBlock(d, m) + contradictionLine(d) + observeAsideHtml(d);
+    var body = heroBlock(d, m) + mileageFallbackHtml(d) + contradictionLine(d) + observeAsideHtml(d);
     body += samsTakeHtml(d);
+    body += inlineSplitsHtml(d);
     body += m ? compactSalesHtml(d) : cards3Html(d, m);
     body += seeAllHtml(d, m);
     body += shownSeparatelyHtml(d);
@@ -1476,9 +1494,12 @@
   }
 
   // ---------------------------------------------------------------- run (dispatcher)
-  function run(text) {
+  function run(text, keepAsk) {
     text = String(text || "").trim();
     if (!text) return;
+    // A brand-new search resets the question count; a chip answer (keepAsk) carries it forward so
+    // the engine can enforce the two-question cap across generation/body re-queries (Part 3).
+    if (!keepAsk) obAsked = 0;
     lastQuery = text; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obRefinePhrase = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false;
     // Identifier-shaped input (VIN or chassis) routes through the shared resolver (decode +
     // confirm + exact-match + the honest VIN-invalid / chassis lines); everything else goes
@@ -1510,7 +1531,7 @@
     // #1 divergence rule: pass the exact car's own sale (from the VIN/chassis match) so the engine
     // can compare it to the cluster. Only present on a matched car; harmless when absent.
     if (vinAnchor && Number(vinAnchor.price) > 0) car.exactSale = { price: vinAnchor.price, mileage: vinAnchor.mileage, soldDate: vinAnchor.soldDate };
-    var payload = { oneBox: true, anonId: obAnonId(), car: car };
+    var payload = { oneBox: true, anonId: obAnonId(), car: car, asked: obAsked };
     if (refine) payload.refine = refine;   // inline earned-question refinement (mileage / transmission)
     obFetch(API_ORIGIN + "/api/sellerDecision", {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
@@ -1529,8 +1550,8 @@
       if (!d || d.status !== "one_box") { renderError(OB_CALM); return; }
       if (d.tier === "unavailable") { renderError(d.samLine || OB_CALM); return; }
       if (d.tier === "rate_limited") { renderError(d.samLine || "That’s a lot of lookups for one day. Come back tomorrow and I’ll keep pulling real sales."); return; }
-      if (d.tier === "model_choice" || d.tier === "body_choice" || d.tier === "generation_choice") { renderChoice(d); return; }
-      if (d.tier === "gearbox_choice" || d.tier === "variant_choice") { renderRefineChoice(d); return; }
+      if (d.tier === "model_choice" || d.tier === "body_choice" || d.tier === "generation_choice") { if (d.askIndex) obAsked = d.askIndex; renderChoice(d); return; }
+      if (d.tier === "gearbox_choice" || d.tier === "variant_choice") { if (d.askIndex) obAsked = d.askIndex; renderRefineChoice(d); return; }
       if (vinAnchor) obEvent("onebox_vin_anchor_shown");
       obSnapshotId = d.snapshotId || null; obAsOf = null; // live result: shareable, no as-of line
       obResolvedCar = d.resolvedCar || null;              // carried into the /sell handoff
@@ -1760,7 +1781,7 @@
     // A clarification chip RESOLVES the answer and advances: it builds a clean "year make model"
     // (or "...body") query from the choice context, never appending to the raw query - which for
     // a VIN would re-decode the VIN and loop forever (fault 1).
-    function chipAnswer(value) { var base = choiceCtx || lastQuery || ""; run((base + " " + value).replace(/\s+/g, " ").trim()); }
+    function chipAnswer(value) { var base = choiceCtx || lastQuery || ""; run((base + " " + value).replace(/\s+/g, " ").trim(), true); }
     Array.prototype.forEach.call(root.querySelectorAll("[data-model]"), function (b) { b.addEventListener("click", function () { chipAnswer(b.getAttribute("data-model")); }); });
     Array.prototype.forEach.call(root.querySelectorAll("[data-body]"), function (b) { b.addEventListener("click", function () { chipAnswer(b.getAttribute("data-body")); }); });
     Array.prototype.forEach.call(root.querySelectorAll("[data-change]"), function (b) { b.addEventListener("click", function () { renderEmpty(); }); });
@@ -1768,7 +1789,7 @@
     Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-refyes]"), function (b) { b.addEventListener("click", function () { var blk = b.parentNode && b.parentNode.parentNode; if (blk && blk.parentNode) blk.parentNode.removeChild(blk); }); });
     Array.prototype.forEach.call(root.querySelectorAll("[data-recent]"), function (b) { b.addEventListener("click", function () { run(b.getAttribute("data-recent")); }); });
     // Generation chips carry a full year-resolvable query - run it directly (never appended).
-    Array.prototype.forEach.call(root.querySelectorAll("[data-genquery]"), function (b) { b.addEventListener("click", function () { run(b.getAttribute("data-genquery")); }); });
+    Array.prototype.forEach.call(root.querySelectorAll("[data-genquery]"), function (b) { b.addEventListener("click", function () { run(b.getAttribute("data-genquery"), true); }); });
     // House-tier intake: place the car by its price-forking config, then re-render the same
     // decision scoped to the answer (no re-fetch; the engine returned every receipt).
     Array.prototype.forEach.call(root.querySelectorAll("[data-thinsplit]"), function (b) { b.addEventListener("click", function () { htChoice = b.getAttribute("data-thinsplit"); obEvent("onebox_ht_intake", lastQuery + ":" + htChoice); if (htLastD) { renderResults(htLastD); } }); });
@@ -1781,7 +1802,7 @@
       b.addEventListener("click", function () {
         var lo = b.getAttribute("data-milemin"), hi = b.getAttribute("data-milemax"), label = b.getAttribute("data-mlabel");
         obRefinePhrase = "In the " + label + " miles band";
-        runPool(lastQuery, obLastVehicle, { miMin: Number(lo), miMax: hi ? Number(hi) : null, label: label });
+        runPool(lastQuery, obLastVehicle, { miMin: Number(lo), miMax: hi ? Number(hi) : null, miTarget: hi ? Math.round((Number(lo) + Number(hi)) / 2) : Number(lo), label: label });
       });
     });
     Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-tx]"), function (b) {
@@ -1825,7 +1846,7 @@
         var wrap = b.parentNode;
         b.outerHTML = '<span class="typemiles"><input id="ob-miles" type="number" inputmode="numeric" placeholder="miles" /><button class="qchip" id="ob-miles-go">Go</button></span>';
         var inp = document.getElementById("ob-miles"); if (inp) inp.focus();
-        function submit() { var v = Number((document.getElementById("ob-miles") || {}).value); if (!(v > 0)) return; var band = v >= 60000 ? 25000 : 15000; obRefinePhrase = "Around " + v.toLocaleString() + " miles"; runPool(lastQuery, obLastVehicle, { miMin: Math.max(0, v - band), miMax: v + band, label: "around " + Math.round(v / 1000) + "k" }); }
+        function submit() { var v = Number((document.getElementById("ob-miles") || {}).value); if (!(v > 0)) return; var band = v >= 60000 ? 25000 : 15000; obRefinePhrase = "Around " + v.toLocaleString() + " miles"; runPool(lastQuery, obLastVehicle, { miMin: Math.max(0, v - band), miMax: v + band, miTarget: v, label: "around " + Math.round(v / 1000) + "k" }); }
         var go = document.getElementById("ob-miles-go"); if (go) go.addEventListener("click", submit);
         if (inp) inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); submit(); } });
       });

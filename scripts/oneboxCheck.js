@@ -49,6 +49,16 @@ function cardPrices(d) {
   for (const k of ["closest", "high", "low"]) { const c = rep[k]; if (c) { const p = num(c.price); if (p > 0) out.push({ p, title: c.title, plat: c.platformSlug || c.platform }); } }
   return out;
 }
+// Every dollar figure the user could SEE on the page: cards, representative, the stated range + cluster,
+// the thin/class-era receipts, and the capped inline splits. The $2,500-floor rule reads from this set.
+function allDisplayedPrices(d) {
+  const vals = cardPrices(d).map(x => x.p);
+  for (const a of [d.span, d.cluster]) if (Array.isArray(a)) for (const v of a) { const n = num(v); if (n > 0) vals.push(n); }
+  const receiptSets = [d.thin && d.thin.receipts, d.htMeta && d.htMeta.receipts, d.classEra && d.classEra.receipts];
+  for (const set of receiptSets) if (Array.isArray(set)) for (const rr of set) { const n = num(rr.price != null ? rr.price : rr.priceUsd != null ? rr.priceUsd : rr.hammer != null ? rr.hammer : rr.hammerUsd); if (n > 0) vals.push(n); }
+  for (const sp of (d.inlineSplits || [])) for (const side of (sp.sides || [])) { for (const v of [side.lo, side.hi]) { const n = num(v); if (n > 0) vals.push(n); } }
+  return vals;
+}
 
 function runChecks(s, d, ms) {
   const r = {};
@@ -66,9 +76,14 @@ function runChecks(s, d, ms) {
   const honest = d.tier !== "unavailable" && (interactive || d.tier === "not_tracked" || (["thin", "class_era", "refusal"].includes(d.tier) && shownCount != null) || d.spanOnly === true);
 
   // a. a range is shown; else (non must-range) an honest state that shows its count / an interactive ask
-  if (s.genCode && !span) {
-    // A bare generation code must resolve to the pool, never ask a clarification/choice (item 4).
-    r.a = { pass: false, why: `bare generation code should resolve to a range, got tier=${d.tier}` };
+  if (s.genCode) {
+    // A bare generation code must RESOLVE the generation - never re-ask which generation (or dead-end
+    // at a chassis/generic clarification). A finer question (body, gearbox) AFTER it is fine, and a
+    // range is fine. Fail only when it couldn't resolve the generation.
+    const unresolved = d.tier === "generation_choice" || d.tier === "needs_clarification" || d.status === "needs_clarification" || d.tier === "unavailable";
+    r.a = (!unresolved && (span || honest))
+      ? { pass: true, why: span ? `range $${span[0]}-$${span[1]}` : `resolved, honest ${d.tier}` }
+      : { pass: false, why: `bare generation code did not resolve, tier=${d.tier}` };
   } else if (s.mustRange) {
     r.a = span ? { pass: true, why: `range $${span[0]}-$${span[1]}` }
       : { pass: false, why: `MUST return a range but got tier=${d.tier}${shownCount != null ? ` (count ${shownCount})` : ""}` };
@@ -130,7 +145,19 @@ function runChecks(s, d, ms) {
   for (const t of texts) if (/middle of the recent sales is a\b|\bis a a\b|\bundefined\b|\bNaN\b/i.test(t)) { gIssues.push(`robotic/garbled line "${t.slice(0, 50)}"`); break; }
   const poolPlats = new Set(prices.map(x => norm(x.plat)).filter(Boolean));
   if (d.topPlatform && poolPlats.size && !poolPlats.has(norm(d.topPlatform))) gIssues.push(`topPlatform "${d.topPlatform}" not among shown cards`);
-  r.g = gIssues.length === 0 ? { pass: true, why: "no garbled titles/sentences/venues" } : { pass: false, why: gIssues.join("; ") };
+  // $2,500 FLOOR + pool-sanity (Part 3): no displayed price below the collector-car floor, and none
+  // wildly below the pool (< 10% of the displayed median = a part / data-error leak, e.g. a $600 belly
+  // pan or a $265 oddment surfacing as the low). Reads every figure the page could show.
+  const shown = allDisplayedPrices(d);
+  if (shown.length) {
+    const sorted = shown.slice().sort((a, b) => a - b);
+    const med = sorted[Math.floor((sorted.length - 1) / 2)];
+    const floorBad = shown.filter(v => v < 2500);
+    const lowBad = shown.filter(v => v >= 2500 && med > 0 && v < med * 0.10);
+    if (floorBad.length) gIssues.push(`${floorBad.length} displayed price(s) below the $2,500 floor (e.g. $${floorBad.sort((a, b) => a - b)[0]})`);
+    else if (lowBad.length) gIssues.push(`${lowBad.length} displayed price(s) under 10% of the $${med} pool median (e.g. $${lowBad.sort((a, b) => a - b)[0]})`);
+  }
+  r.g = gIssues.length === 0 ? { pass: true, why: "no garbled titles/sentences/venues; all prices >= $2,500 floor" } : { pass: false, why: gIssues.join("; ") };
 
   // h. under 4 seconds
   r.h = ms < TIME_BUDGET_MS ? { pass: true, why: `${ms}ms` } : { pass: false, why: `${ms}ms (>= ${TIME_BUDGET_MS})` };

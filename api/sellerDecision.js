@@ -3428,6 +3428,8 @@ export default async function handler(req, res) {
       const obRefine = rawRefine ? {
         miMin: Number.isFinite(Number(rawRefine.miMin)) ? Number(rawRefine.miMin) : null,
         miMax: Number.isFinite(Number(rawRefine.miMax)) ? Number(rawRefine.miMax) : null,
+        // Nearest-sales fallback (Part 3): the band center, so a too-thin band shows the closest sales.
+        miTarget: Number.isFinite(Number(rawRefine.miTarget)) ? Number(rawRefine.miTarget) : null,
         tx: rawRefine.tx === "manual" ? "manual" : rawRefine.tx === "auto" ? "auto" : null,
         // Competition-variant refine (Part 1 change 1): Competition Package vs standard.
         variant: rawRefine.variant === "competition" ? "competition" : rawRefine.variant === "standard" ? "standard" : null,
@@ -3450,7 +3452,7 @@ export default async function handler(req, res) {
       let oneBox;
       try {
         oneBox = await Promise.race([
-          runOneBox(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale }, obRefine),
+          runOneBox(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine),
           new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), Number(process.env.ONEBOX_DEADLINE_MS || 20000)))
         ]);
       } catch (e) {
