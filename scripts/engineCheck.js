@@ -143,15 +143,16 @@ async function main() {
 
   console.log("\nengineCheck vs " + BASE + "  (OB=One Box archive, SELL=/sell engine, Desk pool count; zero OCD from harness)\n");
   const pad = (s, n) => String(s).padEnd(n).slice(0, n);
-  console.log(pad("row", 30) + pad("OB car|tier|pool", 30) + pad("SELL car|tier|pool", 30) + pad("desk", 6) + "verdict");
-  console.log("-".repeat(110));
+  const rng = a => Array.isArray(a) && a[0] != null && a[1] != null ? "$" + Math.round(a[0] / 1000) + "k-" + Math.round(a[1] / 1000) + "k" : "-";
+  console.log(pad("row", 28) + pad("OB car|tier|pool|range", 40) + pad("SELL car|tier|pool|range", 40) + pad("desk", 6) + "verdict");
+  console.log("-".repeat(150));
   let failN = 0;
   for (const r of results) {
-    const obс = `${carKey(r.obT.car)}|${r.obT.tier}|${r.obT.pool ?? "-"}`;
-    const seс = `${carKey(r.seT.car)}|${r.seT.tier}|${r.seT.pool ?? "-"}`;
+    const obс = `${carKey(r.obT.car)}|${r.obT.tier}|${r.obT.pool ?? "-"}|${rng(r.obT.range)}`;
+    const seс = `${carKey(r.seT.car)}|${r.seT.tier}|${r.seT.pool ?? "-"}|${rng(r.seT.range)}`;
     const v = r.fails.length ? "FAIL: " + r.fails.join("; ") : (r.warns.length ? "pass (warn: " + r.warns.join("; ") + ")" : "PASS");
     if (r.fails.length) failN++;
-    console.log(pad(r.q, 30) + pad(obс, 30) + pad(seс, 30) + pad(r.deskN ?? "-", 6) + v);
+    console.log(pad(r.q, 28) + pad(obс, 40) + pad(seс, 40) + pad(r.deskN ?? "-", 6) + v);
   }
   console.log("\n" + (failN ? failN + " ROW(S) FAILED (surfaces disagree on car/tier/halo)" : "ALL ROWS AGREE on car, tier and halo exclusion"));
   process.exit(failN ? 1 : 0);
