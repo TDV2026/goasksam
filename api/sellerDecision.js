@@ -1,6 +1,6 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
-import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle } from "../lib/onebox.js";
+import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -1192,7 +1192,9 @@ function budgetWarningCrossing(before, added, budget) {
 
 function marketFetchCacheKey(vehicle) {
   const family = asText(vehicle.model).split(/\s+/)[0] || "";
-  return `${asText(vehicle.make).toLowerCase()}|${family.toLowerCase()}`;
+  // ENGINE_VERSION prefix (Step 0): an engine change bumps the version, so every pre-change cache row
+  // is keyed differently and can never be served. Old rows simply age out of the 24h window.
+  return `${ENGINE_VERSION}|${asText(vehicle.make).toLowerCase()}|${family.toLowerCase()}`;
 }
 
 async function readMarketFetchCache(vehicle, supabaseUrl, supabaseKey) {
