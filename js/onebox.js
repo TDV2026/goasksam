@@ -777,12 +777,14 @@
   // 16M, Serie Fiorano, restomods/replicas, year-mismatch) are kept and listed here, OUT of the
   // headline band, each with its set-aside reason - never vanished.
   function shownSeparatelyHtml(d) {
-    // ONLY Rule 5 tagged VARIANTS (fix 5) - never a price/mileage outlier. A high-mile car is not a
-    // variant and stays in the range, so it never appears here.
-    var aside = d.taggedCards || [];
-    if (!aside.length) return "";
+    // Rule 5 tagged variants first, then any remaining aside cars (price/mileage outliers) so NOTHING
+    // vanishes. NOTE: fix 5 (move non-variant outliers back into the RANGE, so only tagged variants
+    // remain here) needs the price-fence change and ships in the next unit; until then we show the
+    // outliers here rather than drop them.
+    var list = d.asideCards || [];   // all aside (tagged variants + any outliers) so NOTHING vanishes
+    if (!list.length) return "";
     return '<div class="seclabel" data-stage="cards">' + lint("Shown separately", "sep.lab") + "</div>" +
-      '<div class="receipts" data-stage="cards">' + receiptsHtml(aside, 8, true) + "</div>";
+      '<div class="receipts" data-stage="cards">' + receiptsHtml(list, 8, true) + "</div>";
   }
   function seeAllHtml(d, m) {
     var plats = d.platforms || [];
