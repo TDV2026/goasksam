@@ -4001,7 +4001,12 @@ export default async function handler(req, res) {
     const thinTooThinForPick = thin && thin.isThin && thinReceiptN > 0 && thinReceiptN < MIN_PICK_SALES && !thin.houseSteer;
     if (thin && thin.isThin && thinReceiptN && (thinReceiptN >= MIN_PICK_SALES || thin.houseSteer)) {
       try { await setThinDecision(); } catch { /* thin render facts are additive */ }
-    } else if (vehicle && vehicle.year && vehicle.make && thin && (thinTooThinForPick || thin.totalN === 0 || !vehicle.model || vehicle.unverified || (car && car.acceptModelLevel))) {
+    } else if (vehicle && vehicle.year && vehicle.make && thin && (thinTooThinForPick || thin.totalN === 0 || !vehicle.model || vehicle.unverified)) {
+      // Class-era fires only when Engine A (assessThinForVehicle) says the MODEL pool is genuinely thin
+      // or empty - the same call One Box makes in runOneBox - OR the car is truly make-level (no model)
+      // or an unverified model. A SKIPPED TRIM (car.acceptModelLevel) is NOT a reason to widen to the
+      // wider-make era band: a 550 Maranello with the trim skipped still has ~100 model sales and must
+      // read as its own model (Step 1). acceptModelLevel was removed as a trigger here.
       // NEVER widen past the model to the wider make market on an assessThin ERROR (thin===null): an
       // error is not evidence of "no sales of this model", and widening to the marque surfaced halos
       // (an Enzo, a Superamerica) as comps for a regular 550 Maranello. A thrown thin keeps the normal
