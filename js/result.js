@@ -223,7 +223,7 @@ function renderDecision(decisionData,renderOpts){
         const op=(typeof _thinVenuePick==="function")&&_thinVenuePick(decision.thin.receipts.filter(r=>Number(r.hammer)>0),false);
         if(op){const v=sellState.resolvedVehicle||decisionData.vehicle||{};onlineCardHtml=_thinPickCardHtml({kind:"online",pick:op.pick,others:op.others,receipts:decision.thin.receipts.filter(r=>Number(r.hammer)>0),make:v.make||"",modelLabel:[v.model,v.trim].filter(Boolean).join(" ")||v.make||"",carLbl:[v.year,v.make,v.model].filter(Boolean).join(" "),loc:[sellState.state,sellState.region].filter(Boolean)[0]||"US",typedYear:v.year,isLead:false});}
       }
-      if(renderHouseComparisonSell(msgs,hc,decisionData,{onlineCardHtml})){
+      if(renderHouseComparisonSell(msgs,hc,decisionData,{onlineCardHtml,noOnline:Number(decision.thin.onlineReceiptsN)===0})){
         document.getElementById("btn").disabled=false;
         return;
       }
@@ -249,6 +249,18 @@ function renderDecision(decisionData,renderOpts){
       return;
     }
     if(renderClassEraSell(msgs,decision.classEra,decisionData)){
+      document.getElementById("btn").disabled=false;
+      return;
+    }
+  }
+  // DENSE-CAR HOUSE COMPARISON (Item A, Oct 2026): the seller chose the auction-house door for a car
+  // dense enough to reach the normal pick, AND the model genuinely sells at the houses (the 550
+  // Maranello: 30 in 36 months). Show the car's OWN ranked house record, not the "trade mostly online"
+  // bridge. noOnline drives the "no online sales, here are the houses" honest lead.
+  if(decision.houseComparison&&decision.houseComparison.houses&&decision.houseComparison.houses.length
+     &&sellState.sellerPreference==="auction_house"
+     &&!(typeof isInternationalSellerRegion==="function"&&isInternationalSellerRegion())){
+    if(renderHouseComparisonSell(msgs,decision.houseComparison,decisionData,{denseCar:true,noOnline:!!decision.houseComparison.noOnline,onlineN:decision.houseComparison.onlineN})){
       document.getElementById("btn").disabled=false;
       return;
     }
@@ -1444,6 +1456,10 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
   let lead;
   if(eraBandNote(opts)){
     lead=`No ${esc(carLbl)} has sold in the last three years, so this is the wider ${esc(v.make||"")} market at the houses, not your exact car. ${esc(pickName)} has handled these most often${recency}.${othersClause}`;
+  } else if(opts.noOnline){
+    // Item B2: the model resolved but has NO sales on the online platforms we track. Say so plainly and
+    // show the houses that HAVE taken it, in the same breath, never a generic ask or a dead end.
+    lead=`No ${esc(carLbl)} has sold on the online platforms we track. ${esc(pickName)} is where ${esc(modelLabel)}s have gone instead${recency}.${hammerClause}${othersClause}`;
   } else if(asap){
     lead=`You told me you want to move quickly, so I'm leading with the soonest sale, not the strongest record. Every house below has taken ${esc(modelLabel)}s; here's the record, and when each one next runs.`;
   } else {

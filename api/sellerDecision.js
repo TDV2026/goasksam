@@ -1,6 +1,6 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
-import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken } from "../lib/onebox.js";
+import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -3199,7 +3199,10 @@ export default async function handler(req, res) {
       // How many DISTINCT makes in sales_archive are missing from the resolver's make list
       // (taxonomy_makes, the prod source of truth). Pages the make column, dedupes, compares.
       const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
-      const archRows = await pageAll("sales_archive?select=make&make=not.is.null");
+      // Scope to a year ceiling (default pre-war 1945) so the scan fits the function budget and targets
+      // the actionable gap (the modern-era makes are all seeded); omit yearMax for the full scan.
+      const auYmax = req.body.yearMax != null ? Number(req.body.yearMax) : 1945;
+      const archRows = await pageAll(`sales_archive?select=make&make=not.is.null${Number.isFinite(auYmax) ? `&year=lt.${auYmax}` : ""}`);
       const archSet = new Map();   // norm -> display
       for (const r of archRows) { const m = String(r.make || "").trim(); if (m && !/^(unknown|reserve|null)$/i.test(m)) { const k = norm(m); if (k && !archSet.has(k)) archSet.set(k, m); } }
       const taxRows = (await supabaseSelect(env2, "taxonomy_makes?select=name&limit=2000")) || [];
@@ -4020,6 +4023,23 @@ export default async function handler(req, res) {
       // If the class-era read produced nothing but thin DID have a few real sales, keep those (do not
       // drop real evidence): render the thin state without a confident pick rather than an empty result.
       if (!decision.classEra && thinTooThinForPick) { try { await setThinDecision(); } catch { } }
+    }
+    // DENSE-CAR HOUSE COMPARISON (Item A, Oct 2026): a seller who chose the auction-house door for a
+    // car dense enough to reach the normal pick (no thin/class-era house block built) still deserves
+    // the car's OWN house record when the model genuinely sells at the houses (the 550 Maranello: 30
+    // in 36 months). Build decision.houseComparison from the model's own HOUSE receipts (halos aside).
+    // The "these trade mostly online" / wider-market copy is reserved for a model with NO house sales.
+    if (String((car && car.sellerPreference) || "") === "auction_house"
+        && !(decision.thin && decision.thin.houseComparison) && !decision.classEra
+        && vehicle && vehicle.make && vehicle.model) {
+      try {
+        const hr = await houseReceiptsForVehicle(vehicle, generation, thinEnv);
+        if (hr && hr.houseN >= 1) {
+          const _tl = String((car && car.timeline) || ""); const asap = /\b(asap|rush|hurry|urgent|fast|quick|soon)\b|right away|this week/i.test(_tl) && !/\bno\s+(rush|hurry)\b/i.test(_tl);
+          const hc = buildHouseComparison(hr.houseReceipts, { todayISO: new Date().toISOString().slice(0, 10), asap });
+          if (hc && hc.houses && hc.houses.length) { hc.noOnline = hr.onlineN === 0; hc.onlineN = hr.onlineN; decision.houseComparison = hc; }
+        }
+      } catch (e) { /* additive; never block the decision */ }
     }
     if (req.body && req.body.debug === true) decision._ceDebug = ceDbg;
 

@@ -39,7 +39,13 @@ const SEARCHES = [
   // 550 Maranello (house-flow leak fix): a dense model that must read its OWN sales, never widen to
   // the wider Ferrari market or show a halo (Enzo/Superamerica/Barchetta) as a comp.
   { q: "2000 Ferrari 550 Maranello", model: "550", mustRange: true, noHalo: /enzo|superamerica|barchetta|laferrari|\bf40\b|\bf50\b|\b599\b|\b812\b|testarossa/i },
-  { q: "Ferrari 550", model: "550", mustRange: true, noHalo: /enzo|superamerica|barchetta|laferrari|\bf40\b|\bf50\b|\b599\b|\b812\b|testarossa/i }
+  { q: "Ferrari 550", model: "550", mustRange: true, noHalo: /enzo|superamerica|barchetta|laferrari|\bf40\b|\bf50\b|\b599\b|\b812\b|testarossa/i },
+  // Pre-war marques (Item B): the resolver recognises these now (PREWAR_MAKES), so they RESOLVE to a
+  // real car and an honest thin/house read, never a generic "year, make and model" re-ask.
+  { q: "1902 Pierce Motorette", model: "Motorette" },
+  { q: "1902 pierce motorette", model: "Motorette" },
+  { q: "1931 Duesenberg Model J", model: "Model J" },
+  { q: "1913 Mercer Raceabout", model: "Raceabout" }
 ];
 
 const VENUE_RE = /^(19|20)\d{2}\s+(bring a trailer|cars ?& ?bids|rm sotheby|gooding|bonhams|mecum|barrett|broad arrow|hemmings|pcarmarket|pcar market|collecting cars|the market|pistonheads|hagerty|mb market|sotheby)/i;
