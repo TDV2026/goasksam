@@ -29,7 +29,13 @@ const SEARCHES = [
   { q: "1957 Mercedes 300SL Roadster", model: "300SL", mustRange: true },
   { q: "1997 Land Rover Defender 90", model: "Defender" },
   { q: "1988 BMW E30 M3", code: "E30", model: "M3" },
-  { q: "1987 Dodge D50", model: "D50" }
+  { q: "1987 Dodge D50", model: "D50" },
+  // Fix 7 (permanent rows): archive title-token resolution + honest states.
+  { q: "1972 Datsun 240Z", model: "Datsun" },
+  { q: "Eagle Talon", model: "Talon" },
+  { q: "Singer Gazelle", model: "Gazelle" },
+  { q: "ram 50", model: "50" },
+  { q: "Ram 50 1990", model: "50" }
 ];
 
 const VENUE_RE = /^(19|20)\d{2}\s+(bring a trailer|cars ?& ?bids|rm sotheby|gooding|bonhams|mecum|barrett|broad arrow|hemmings|pcarmarket|pcar market|collecting cars|the market|pistonheads|hagerty|mb market|sotheby)/i;
@@ -55,7 +61,9 @@ function runChecks(s, d, ms) {
   const shownCount = [d.poolN, d.thin && d.thin.totalN, d.thin && d.thin.receipts && d.thin.receipts.length,
     d.classEra && d.classEra.totalN, d.count].map(num).find(n => n != null && n >= 0);
   const interactive = d.tier === "body_choice" || d.tier === "needs_clarification";
-  const honest = d.tier !== "unavailable" && (interactive || (["thin", "class_era", "refusal"].includes(d.tier) && shownCount != null) || d.spanOnly === true);
+  // not_tracked (Fix 7): an honest "we haven't tracked a {car} sale yet" for a resolved-but-unsold
+  // car - a valid non-dead-end, no count needed.
+  const honest = d.tier !== "unavailable" && (interactive || d.tier === "not_tracked" || (["thin", "class_era", "refusal"].includes(d.tier) && shownCount != null) || d.spanOnly === true);
 
   // a. a range is shown; else (non must-range) an honest state that shows its count / an interactive ask
   if (s.genCode && !span) {

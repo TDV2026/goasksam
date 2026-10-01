@@ -1261,6 +1261,7 @@
     else if (d.tier === "class_era") body = classEraHtml(d, m);
     else if (d.tier === "refusal") body = refusalHtml(d, m);
     else if (d.tier === "body_unavailable") body = '<div class="samread" data-stage="answer"><div class="ava">SAM</div><div><div class="tag">' + lint("Sam’s read", "bu.tag") + "</div><p>" + lint(esc(d.samLine || "That body was not offered for this car."), "bu") + "</p></div></div>";
+    else if (d.tier === "not_tracked") body = '<div class="samread" data-stage="answer"><div class="ava">SAM</div><div><div class="tag">' + lint("Sam’s read", "nt.tag") + "</div><p>" + lint(esc(d.samLine || "We haven’t tracked a sale of this car yet."), "nt") + "</p></div></div>" + sellHtml();
     else if (d.tier === "result") body = resultHtml(d, m);
     else body = '<div class="sam" data-stage="answer"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s read</div><p>' +
       lint(esc("I don’t have enough real " + carLabel(d.resolvedCar) + " sales to show you an honest read, and I won’t make one up. Try another car and I’ll pull what actually sold."), "zero") + "</p></div></div>" + sellHtml();
