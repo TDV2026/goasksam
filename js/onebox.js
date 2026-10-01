@@ -777,11 +777,11 @@
   // 16M, Serie Fiorano, restomods/replicas, year-mismatch) are kept and listed here, OUT of the
   // headline band, each with its set-aside reason - never vanished.
   function shownSeparatelyHtml(d) {
-    var aside = d.asideCards || [];
+    // ONLY Rule 5 tagged VARIANTS (fix 5) - never a price/mileage outlier. A high-mile car is not a
+    // variant and stays in the range, so it never appears here.
+    var aside = d.taggedCards || [];
     if (!aside.length) return "";
-    var tags = (d.setAsideTags || []).filter(Boolean);
-    var note = tags.length ? " · " + esc(tags.join(", ")) : "";
-    return '<div class="seclabel" data-stage="cards">' + lint("Shown separately" + note, "sep.lab") + "</div>" +
+    return '<div class="seclabel" data-stage="cards">' + lint("Shown separately", "sep.lab") + "</div>" +
       '<div class="receipts" data-stage="cards">' + receiptsHtml(aside, 8, true) + "</div>";
   }
   function seeAllHtml(d, m) {
