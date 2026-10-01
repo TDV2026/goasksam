@@ -48,6 +48,19 @@ async function archiveModelCount(make, model, supabaseUrl, supabaseKey) {
   } catch (e) { return null; }
 }
 
+// Title-case a free-text model so the resolved-car line never shouts ("MOTORETTE" -> "Motorette"),
+// while preserving alphanumeric codes (550, Z06, 300SL) and short designators (GT, SS, J). Only
+// applied to a model the archive just VERIFIED, so a performance badge (AMG) never reaches it.
+function titleCaseModelName(s) {
+  return String(s || "").split(/\s+/).map(w => {
+    if (!w) return w;
+    if (/\d/.test(w)) return w;
+    if (w.length <= 2) return w.toUpperCase();
+    if (w === w.toUpperCase()) return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+    return w;
+  }).join(" ");
+}
+
 // Dirty input: the deterministic parse dropped conversational tokens. The
 // cached extraction arbitrates so meaning (a second year, an "or 88") is
 // recovered rather than discarded.
@@ -228,6 +241,26 @@ export default async function handler(req, res) {
     const modelCount = (result.vehicle?.make && result.vehicle?.model && (result.status === "valid" || result.status === "needs_confirmation"))
       ? await archiveModelCount(result.vehicle.make, result.vehicle.model, supabaseUrl, supabaseKey)
       : null;
+    // ARCHIVE VERIFICATION (Step 2): a valid-but-UNVERIFIED model that sales_archive actually has
+    // sales for (by title, the same scope One Box uses) is a REAL car, not an untracked designation.
+    // Confirm against sales_archive; if it has sales, clear the unverified flag and title-case the
+    // model so the wizard proceeds to the same thin/house read One Box shows instead of the
+    // "I don't recognize X as a model I track" make-level detour (the Pierce Motorette path).
+    if (result.vehicle && result.vehicle.unverified && result.vehicle.make && result.vehicle.model && supabaseUrl && supabaseKey) {
+      try {
+        const mk = encodeURIComponent(result.vehicle.make);
+        const tok = encodeURIComponent("*" + String(result.vehicle.model).split(/\s+/)[0] + "*");
+        const q = `${supabaseUrl}/rest/v1/sales_archive?make=ilike.${mk}&listing_title=ilike.${tok}&sale_price=not.is.null&select=id&limit=1`;
+        const rr = await fetch(q, { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } });
+        const rows = rr.ok ? await rr.json() : [];
+        if (Array.isArray(rows) && rows.length) {
+          result.vehicle.unverified = false;
+          result.vehicle.confidence = result.vehicle.confidence === "low" ? "medium" : result.vehicle.confidence;
+          result.vehicle.model = titleCaseModelName(result.vehicle.model);
+          result.vehicle.canonicalLabel = [result.vehicle.year, result.vehicle.make, result.vehicle.model, result.vehicle.trim].filter(Boolean).join(" ");
+        }
+      } catch (e) { /* verification is best-effort; an unverified model stays unverified */ }
+    }
     // Exact-VIN archive match (4a): only when the VIN feature decoded a VIN this
     // request. Off-feature or no-VIN requests never carry it, so the response shape
     // is unchanged for every real seller.

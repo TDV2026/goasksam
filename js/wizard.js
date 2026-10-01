@@ -1425,7 +1425,7 @@ function vehicleAcceptPrefix(){
     // resumeWizardAfterVehicle), so a supplied code is captured instead of being parsed
     // as a state. This line only sets the make-level context; it no longer invites a
     // badge inline (which used to collide with the very next question).
-    return `I don't recognize ${label} as a model I track, so I'll run a broader ${v.make||"make"}-level read.`;
+    return `I don't have tracked sales for ${label} specifically, so this is a broader ${v.make||"make"}-level read.`;
   }
   return `Got it. ${sellState.carName}.`;
 }

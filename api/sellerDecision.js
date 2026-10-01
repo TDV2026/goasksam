@@ -3319,7 +3319,10 @@ export default async function handler(req, res) {
         // see whether the SALE TITLES clearly name one car for what was typed. Runs ONLY here - never
         // on a search that resolves to a result today - is cached, and keeps the ask when the titles
         // disagree (condition 5: never guess).
-        if (req.body?.oneBox && !(resolution.vehicle && resolution.vehicle.model) && !car.acceptModelLevel && typeof rawSearch === "string") {
+        // Runs for BOTH One Box and /sell (Step 2): the wizard vehicle step gets the same archive
+        // title resolution, so an unresolved make+token ("Eagle Talon", a pre-war marque) resolves
+        // from the sale titles instead of a generic re-ask.
+        if (!(resolution.vehicle && resolution.vehicle.model) && !car.acceptModelLevel && typeof rawSearch === "string") {
           const cleaned = rawSearch.replace(/\b(19|20)\d\d\b/g, " ").replace(/\s+/g, " ").trim();
           const toks = cleaned.split(/\s+/).filter(t => t.length >= 2);
           const phrases = [cleaned, ...toks.filter(t => t.length >= 3)].filter((v, i, a) => v && a.indexOf(v) === i);
@@ -3831,7 +3834,16 @@ export default async function handler(req, res) {
     const budgetDegraded = cacheStatus === "budget_degraded_store" || /budget_reached/.test(fetchResult.stopReason || "");
     const dataUnavailable = records.length === 0 && cacheStatus !== "hit" && cacheStatus !== "rate_limited_store"
       && (fetchResult.rateLimited || allFetchesFailed || budgetDegraded);
-    if (dataUnavailable) {
+    // Before bailing, check the ARCHIVE (Engine A, the same read One Box uses). A pre-war or
+    // OCD-uncovered car (a 1902 Pierce Motorette) fails the OCD fetch but HAS real sales in
+    // sales_archive; One Box reads them fine. If the archive has the car, DON'T return
+    // data_unavailable - fall through to the thin/class-era archive block below, so /sell shows
+    // the same read One Box shows instead of "I couldn't pull the full picture" (Step 2).
+    let archiveHasCar = false;
+    if (dataUnavailable && vehicle && vehicle.make) {
+      try { const _t = await assessThinForVehicle(vehicle, generation, { supabaseUrl, supabaseKey }); archiveHasCar = !!(_t && _t.totalN > 0); } catch (e) { archiveHasCar = false; }
+    }
+    if (dataUnavailable && !archiveHasCar) {
       const reason = fetchResult.rateLimited ? "ocd_rate_limited" : budgetDegraded ? "budget_degraded" : "fetch_failed";
       await recordUsageEvent({
         event_type: "data_unavailable", route: "/api/sellerDecision", status: reason,
