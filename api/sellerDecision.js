@@ -3987,12 +3987,12 @@ export default async function handler(req, res) {
     let thin = null;
     try { thin = await assessThinForVehicle(vehicle, generation, thinEnv); ceDbg.thinTotalN = thin && thin.totalN; ceDbg.thinIsThin = thin && thin.isThin; }
     catch (e) { ceDbg.ceErr = "thin:" + String((e && e.message) || e).slice(0, 80); }
-    // MIN sales for a confident venue PICK (item 4). A "sell it here" recommendation should rest on at
-    // least this many comparable sales of the ACTUAL model; with fewer, one sale swings the median and
-    // the venue mix too much to name a best destination honestly, so we fall to the wider class-era read
-    // (the same read the D50 path uses) instead of a pick card. A HOUSE-steered thin shows the house
-    // RECORD (not a pick), so it is exempt.
-    const MIN_PICK_SALES = 5;
+    // THIN-vs-CLASS-ERA threshold (aligned with One Box, Oct 2026). One Box shows the THIN state for
+    // ANY real archive sales (1+); class-era is only for a genuinely EMPTY model pool. /sell now matches:
+    // a car with real sales (a Ford Pinto with 4) gets the thin state showing those sales, never a
+    // wider-make class-era range. The old MIN_PICK_SALES=5 floor routed 1-4-sale cars to class-era to
+    // avoid a shaky venue PICK, but the thin render shows the RECORD, not a confident pick, so the floor
+    // was retired here (it diverged from One Box; engineCheck flagged the Pinto).
     const thinReceiptN = (thin && Array.isArray(thin.receipts)) ? thin.receipts.length : 0;
     const setThinDecision = async () => {
       const houseVenues = [];
@@ -4010,10 +4010,11 @@ export default async function handler(req, res) {
       const _tl = String((car && car.timeline) || ""); const asap = /\b(asap|rush|hurry|urgent|fast|quick|soon)\b|right away|this week/i.test(_tl) && !/\bno\s+(rush|hurry)\b/i.test(_tl);
       decision.thin.houseComparison = buildHouseComparison(thin.receipts, { todayISO: new Date().toISOString().slice(0, 10), asap });
     };
-    const thinTooThinForPick = thin && thin.isThin && thinReceiptN > 0 && thinReceiptN < MIN_PICK_SALES && !thin.houseSteer;
-    if (thin && thin.isThin && thinReceiptN && (thinReceiptN >= MIN_PICK_SALES || thin.houseSteer)) {
+    if (thin && thin.isThin && thinReceiptN >= 1) {
+      // Any real archive sales -> the thin STATE showing those sales (One Box parity). A sub-5-sale
+      // pool shows the record, not a confident "sell here" pick, so it is honest without widening.
       try { await setThinDecision(); } catch { /* thin render facts are additive */ }
-    } else if (vehicle && vehicle.year && vehicle.make && thin && (thinTooThinForPick || thin.totalN === 0 || !vehicle.model || vehicle.unverified)) {
+    } else if (vehicle && vehicle.year && vehicle.make && thin && (thin.totalN === 0 || !vehicle.model || vehicle.unverified)) {
       // Class-era fires only when Engine A (assessThinForVehicle) says the MODEL pool is genuinely thin
       // or empty - the same call One Box makes in runOneBox - OR the car is truly make-level (no model)
       // or an unverified model. A SKIPPED TRIM (car.acceptModelLevel) is NOT a reason to widen to the
@@ -4039,9 +4040,10 @@ export default async function handler(req, res) {
           decision.classEra.houseComparison = buildHouseComparison(ce.receipts, { todayISO: new Date().toISOString().slice(0, 10), asap, eraBand: true });
         }
       } catch (e) { ceDbg.ceErr = "class:" + String((e && e.message) || e).slice(0, 120); }
-      // If the class-era read produced nothing but thin DID have a few real sales, keep those (do not
-      // drop real evidence): render the thin state without a confident pick rather than an empty result.
-      if (!decision.classEra && thinTooThinForPick) { try { await setThinDecision(); } catch { } }
+      // Safety net: class-era produced nothing but thin DID have real sales -> render the thin state
+      // (never an empty result). With the aligned threshold this is rare (any sales take the thin
+      // branch above), but kept so a class-era miss still falls back to the real sales.
+      if (!decision.classEra && thin && thin.isThin && thinReceiptN >= 1) { try { await setThinDecision(); } catch { } }
     }
     // DENSE-CAR HOUSE COMPARISON (Item A, Oct 2026): a seller who chose the auction-house door for a
     // car dense enough to reach the normal pick (no thin/class-era house block built) still deserves
