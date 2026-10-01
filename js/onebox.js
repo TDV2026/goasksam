@@ -773,6 +773,17 @@
     var rep = d.representative; if (!rep || !rep.closest) return "";
     return '<div class="htreceipts htledger">' + [rep.closest, rep.high, rep.low].filter(Boolean).map(compactRow).join("") + "</div>";
   }
+  // "Shown separately" (Part 1 Rule 7): the Rule 5 guard's TAGGED cars (CSL, Heritage, Scuderia,
+  // 16M, Serie Fiorano, restomods/replicas, year-mismatch) are kept and listed here, OUT of the
+  // headline band, each with its set-aside reason - never vanished.
+  function shownSeparatelyHtml(d) {
+    var aside = d.asideCards || [];
+    if (!aside.length) return "";
+    var tags = (d.setAsideTags || []).filter(Boolean);
+    var note = tags.length ? " · " + esc(tags.join(", ")) : "";
+    return '<div class="seclabel" data-stage="cards">' + lint("Shown separately" + note, "sep.lab") + "</div>" +
+      '<div class="receipts" data-stage="cards">' + receiptsHtml(aside, 8, true) + "</div>";
+  }
   function seeAllHtml(d, m) {
     var plats = d.platforms || [];
     if (!plats.length) return "";
@@ -809,6 +820,7 @@
     body += samsTakeHtml(d);
     body += m ? compactSalesHtml(d) : cards3Html(d, m);
     body += seeAllHtml(d, m);
+    body += shownSeparatelyHtml(d);
     body += reconfirmHtml(d, m);
     if (d.driverSentence && !(d.earned) && !(d.divergence && d.divergence.kase === "a")) body += '<p class="varynote">' + lint(esc(d.driverSentence), "varynote") + "</p>";
     body += observeHtml(d);
@@ -1246,6 +1258,7 @@
     if (d.tier === "thin") body = thinHtml(d, m);
     else if (d.tier === "class_era") body = classEraHtml(d, m);
     else if (d.tier === "refusal") body = refusalHtml(d, m);
+    else if (d.tier === "body_unavailable") body = '<div class="samread" data-stage="answer"><div class="ava">SAM</div><div><div class="tag">' + lint("Sam’s read", "bu.tag") + "</div><p>" + lint(esc(d.samLine || "That body was not offered for this car."), "bu") + "</p></div></div>";
     else if (d.tier === "result") body = resultHtml(d, m);
     else body = '<div class="sam" data-stage="answer"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s read</div><p>' +
       lint(esc("I don’t have enough real " + carLabel(d.resolvedCar) + " sales to show you an honest read, and I won’t make one up. Try another car and I’ll pull what actually sold."), "zero") + "</p></div></div>" + sellHtml();
