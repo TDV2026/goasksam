@@ -1123,12 +1123,17 @@
     // Plain speech naming the count (retire "too thin"): "Only N {car}s have sold in the last three
     // years, not enough for a range. Here's what they went for." Same pattern on every thin tier.
     var who = (scopedLabel ? cap(scopedLabel) + " " + name : cap(name));
+    // The headline takes its year from the SAME sale the card shows, not the typed/resolved year: a
+    // "1902 Pierce Motorette" whose only sale is a 1904 must read "a 1904", never assert 1902. Strip
+    // the resolved leading year from the name; the sale's own year is authoritative.
+    var whoNoYear = String(who).replace(/^\s*(18|19|20)\d\d\s+/, "");
     if (n === 1) {
-      var one = "Only one " + who + " has sold in " + HT_WINDOW_TEXT + ". Here’s what it went for.";
+      var saleYr = mid && mid.year ? mid.year : null;
+      var one = "Only one " + whoNoYear + " has sold in " + HT_WINDOW_TEXT + (saleYr ? ", a " + saleYr + "." : ". Here’s what it went for.");
       out += '<p class="lt-line">' + lint(one, "ht.hero1") + "</p>";
       out += thinHeroCard(mid);
     } else {
-      var lead = "Only " + n + " " + who + "s have sold in " + HT_WINDOW_TEXT + ", not enough for a range. Here’s what they went for.";
+      var lead = "Only " + n + " " + whoNoYear + "s have sold in " + HT_WINDOW_TEXT + ", not enough for a range. Here’s what they went for.";
       out += '<p class="lt-line">' + lint(lead, "ht.hero") + "</p>";
       var min = s[0].hammer, max = s[n - 1].hammer;
       if (max > min) out += '<p class="lt-span">' + lint("They ran from " + usd(min) + " to " + usd(max) + ".", "ht.span") + "</p>";
