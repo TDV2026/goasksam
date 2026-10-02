@@ -1378,7 +1378,17 @@ function titleCaseSaleTitle(t){
 // "... (FL26)". The chassis renders on its own line elsewhere, so it is noise in the title.
 // One chassis format everywhere (item 3): the last six alphanumeric characters of the VIN/chassis,
 // never the full VIN on some rows and the tail on others. A shorter id shows in full.
-function chassisTail6(c){ c=String(c||"").replace(/[^A-Za-z0-9]/g,""); return c.length>6?c.slice(-6):c; }
+// One chassis format everywhere (item 3): the last six alphanumeric characters of the VIN/chassis.
+// Item 4 (Oct 2026): render ONLY a plausible VIN/chassis. A listing placeholder ("SEE TEXT", "N/A",
+// "UNKNOWN", "TBA"), anything under 6 alphanumerics, or a value with no digit (a real chassis/VIN
+// always carries one) returns "" so the caller OMITS the chassis line - never "chassis EETEXT".
+function chassisTail6(c){
+  var raw=String(c==null?"":c).trim();
+  if(/^(see\s*text|n\/?a|unknown|tba|tbd|none|null|no\.?|n\.a\.?)$/i.test(raw)) return "";
+  var clean=raw.replace(/[^A-Za-z0-9]/g,"");
+  if(clean.length<6||!/[0-9]/.test(clean)) return "";
+  return clean.length>6?clean.slice(-6):clean;
+}
 // One list-join helper used everywhere (item 3): "X", "X and Y", "X, Y and Z" - never "X and Y and Z".
 function listJoin(arr){ arr=(arr||[]).filter(Boolean); if(!arr.length)return ""; if(arr.length===1)return String(arr[0]); if(arr.length===2)return arr[0]+" and "+arr[1]; return arr.slice(0,-1).join(", ")+" and "+arr[arr.length-1]; }
 function stripIdsFromTitle(t){
@@ -1403,7 +1413,8 @@ function _hcReceiptRow(rc,modelLabel){
     :`<span style="width:64px;height:46px;border-radius:7px;flex:none;background:#efece6;display:flex;align-items:center;justify-content:center;font:600 8px/1 monospace;letter-spacing:.06em;color:#a49a86;text-transform:uppercase">no photo</span>`;
   const when=_thinMonthLabel(rc.date)||"Recent";
   const paid=rc.allIn?` <span style="opacity:.6">buyer paid ${money(rc.allIn)}</span>`:"";
-  const chassis=rc.chassis?` · chassis ${esc(chassisTail6(rc.chassis))}`:"";
+  const chTail=chassisTail6(rc.chassis);
+  const chassis=chTail?` · chassis ${esc(chTail)}`:"";
   // A card ALWAYS shows the car's OWN listing title, never the seller's typed model (standing rule):
   // a "D50 D350" query must not relabel a Ramcharger or a Raider as "D50 D350". Fall back to the
   // typed model only when the record carries no title at all.

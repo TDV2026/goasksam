@@ -1017,8 +1017,8 @@
   // chassis) + colour + the title clause (rendered above); mileage drops to a muted secondary.
   function htSpecLine(rc) {
     var bits = [];
-    if (rc.chassis) bits.push("Chassis " + esc(chassisTail6(rc.chassis)));
-    else if (rc.chassisTail) bits.push("Chassis " + esc(chassisTail6(rc.chassisTail)));
+    var chTail = chassisTail6(rc.chassis || rc.chassisTail);
+    if (chTail) bits.push("Chassis " + esc(chTail));
     if (rc.color) bits.push(esc(cap(String(rc.color))));
     var main = bits.length ? '<div class="htr-spec">' + bits.join('<span class="dot">&middot;</span>') + "</div>" : "";
     var mi = Number(rc.mileage) > 0 ? '<div class="htr-mi2 num">' + Number(rc.mileage).toLocaleString("en-US") + " mi</div>" : "";
@@ -1037,10 +1037,20 @@
   function monShort(dstr) { var p = String(dstr || "").slice(0, 10).split("-"); var M = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]; return p.length >= 2 ? ((M[+p[1]] || "") + " " + p[0]).trim() : ""; }
   // One chassis format everywhere (item 3): "chassis" + the last six alphanumeric characters of the
   // VIN/chassis, never the full VIN on some rows and the tail on others. A shorter id shows in full.
-  function chassisTail6(c){ c=String(c||"").replace(/[^A-Za-z0-9]/g,""); return c.length>6?c.slice(-6):c; }
+  // Item 4 (Oct 2026): render ONLY a plausible VIN/chassis. A field like "SEE TEXT" / "N/A" /
+  // "UNKNOWN" / "TBA" (a listing placeholder, not a number) must never surface as "chassis EETEXT".
+  // Returns "" for a placeholder, anything under 6 alphanumerics, or a value with no digit (a real
+  // chassis/VIN always carries at least one), so every caller omits the chassis line entirely.
+  function chassisTail6(c){
+    var raw=String(c==null?"":c).trim();
+    if(/^(see\s*text|n\/?a|unknown|tba|tbd|none|null|no\.?|n\.a\.?)$/i.test(raw)) return "";
+    var clean=raw.replace(/[^A-Za-z0-9]/g,"");
+    if(clean.length<6||!/[0-9]/.test(clean)) return "";
+    return clean.length>6?clean.slice(-6):clean;
+  }
   function houseChassisMeta(rc) {
-    const c = rc.chassis || rc.chassisTail;
-    return c ? "Chassis " + esc(chassisTail6(c)) : "";
+    const tail = chassisTail6(rc.chassis || rc.chassisTail);
+    return tail ? "Chassis " + esc(tail) : "";
   }
   // House price, two readable lines (never tiny type): the hammer is the number the math uses, the
   // buyer-paid line is the transparency layer. Native EUR/GBP leads with its own figure, USD beside.
