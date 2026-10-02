@@ -3212,6 +3212,22 @@ export default async function handler(req, res) {
       const missing = [...archSet.entries()].filter(([k]) => !taxSet.has(k)).map(([, d]) => d).sort((a, b) => a.localeCompare(b));
       return res.status(200).json({ status: "archive_query", mode, archiveMakeCount: archSet.size, listMakeCount: taxSet.size, missingCount: missing.length, missing });
     }
+    if (mode === "verify") {
+      // Raw fields for sale verification (zero OCD): native price + currency, the stored USD columns,
+      // high_bid, reserve, source + source_slug, and the raw-record location/sale name + url. Scoped by
+      // a title ILIKE term (+ optional source_slug). For the 550 currency/premium/sale-vs-high-bid audit.
+      const term = req.body.term ? String(req.body.term) : null;
+      const srcSlug = req.body.sourceSlug ? String(req.body.sourceSlug) : null;
+      const cols = "id,source,source_slug,sale_date,sale_price,high_bid,sale_price_usd,high_bid_usd,has_reserve,listing_title," +
+        "cur:raw_record->>currency,loc:raw_record->>location,city:raw_record->>city,country:raw_record->>country_code," +
+        "sale_name:raw_record->>auction_name,sale_title:raw_record->>sale_title,url:raw_record->>url,src2:raw_record->>source_url";
+      let q = `sales_archive?select=${cols}`;
+      if (term) q += `&listing_title=ilike.${encodeURIComponent("*" + term + "*")}`;
+      if (srcSlug) q += `&source_slug=eq.${encodeURIComponent(srcSlug)}`;
+      q += `&order=sale_date.desc&limit=${Math.min(1000, Number(req.body.limit) || 300)}`;
+      const rows = (await supabaseSelect(env2, q)) || [];
+      return res.status(200).json({ status: "archive_query", mode, count: rows.length, rows });
+    }
     return res.status(400).json({ error: "unknown archiveQuery mode" });
   }
   // Raw archive title-search diagnostic (archive-only, no car needed, no OCD) -> answered before
