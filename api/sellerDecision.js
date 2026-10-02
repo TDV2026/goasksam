@@ -1143,6 +1143,12 @@ const MARKET_FETCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const OCD_DAILY_REQUEST_BUDGET = Number(process.env.OCD_DAILY_REQUEST_BUDGET || 33);
 // 7A.2: monthly plan cap, env-driven so the 1K->10K upgrade is a config change.
 const OCD_MONTHLY_BUDGET = Number(process.env.OCD_MONTHLY_BUDGET || 1000);
+// Ingest-priority reserve (until the monthly quota reset): when OCD's monthly remaining falls below
+// this, the reader /sell (seller_decision) path spends NO metered requests and answers from the
+// archive/store path (the same fallback Step 2 added), leaving the remaining quota for the nightly
+// ingest. Ingest and other nightly jobs are NOT subject to this; they keep the lib/_ocd.js monthly
+// floor of 100 (OCD_MONTHLY_RESERVE). Env-overridable so the reserve can shrink as the reset nears.
+const OCD_SELL_MONTHLY_RESERVE = Number(process.env.OCD_SELL_MONTHLY_RESERVE || 450);
 // 7E: the nightly warm may spend only up to this fraction of the budget, so a
 // real seller search always has headroom left and outranks the warm.
 const WARM_BUDGET_FRACTION = Number(process.env.OCD_WARM_BUDGET_FRACTION || 0.7);
@@ -3771,18 +3777,24 @@ export default async function handler(req, res) {
       const monthlySource = monthlyUsedAuthoritative !== null ? "ocd_header" : "internal_seller_decision";
       const overDaily = usedToday !== null && usedToday >= dailyCap;
       const overMonthly = monthlyUsedEffective !== null && monthlyUsedEffective >= monthlyCap;
+      // Item 1 (ingest priority): the reader /sell path stops spending OCD once monthly remaining is
+      // below OCD_SELL_MONTHLY_RESERVE, degrading to the archive/store path. Nightly warm is exempt
+      // (it has its own WARM_BUDGET_FRACTION reserve and keeps the _ocd.js 100 floor). Remaining is
+      // OCD's authoritative header when fresh, else budget minus the internal reader-facing sum.
+      const monthlyRemainingEffective = monthlyUsedEffective !== null ? Math.max(0, OCD_MONTHLY_BUDGET - monthlyUsedEffective) : null;
+      const overSellReserve = !isWarm && monthlyRemainingEffective !== null && monthlyRemainingEffective < OCD_SELL_MONTHLY_RESERVE;
       // bypassCache is the measurement path (frontend never sets it): it still
       // spends and logs real metered calls, but skips the soft-degrade so a
       // cold-fetch measurement is not silently served from the store when the
       // day's organic budget is already spent. Organic traffic stays fully guarded.
-      if (!bypassCache && (overDaily || overMonthly || overOcdRemaining)) {
+      if (!bypassCache && (overDaily || overMonthly || overOcdRemaining || overSellReserve)) {
         // Loud log, soft degrade: no metered spend past the reached cap.
-        const scope = overOcdRemaining ? "ocd_remaining" : overMonthly ? "monthly" : "daily";
+        const scope = overOcdRemaining ? "ocd_remaining" : overSellReserve ? "sell_monthly_reserve" : overMonthly ? "monthly" : "daily";
         console.error(`OCD budget guard [${scope}] (day ${usedToday}/${OCD_DAILY_REQUEST_BUDGET}, month ${monthlyUsedEffective}/${OCD_MONTHLY_BUDGET} via ${monthlySource}, ocd_remaining ${ocdRemaining}): soft degrading, no metered spend.`);
         await recordUsageEvent({
           event_type: "ocd_budget_guard", route: "/api/sellerDecision", status: `soft_degraded_${scope}`,
           search_text: rawSearch, oldcarsdata_metered_requests: 0, duration_ms: 0,
-          metadata: { ...requestMetadata(req), usedToday, usedMonth, monthlyUsedEffective, monthlySource, dailyBudget: OCD_DAILY_REQUEST_BUDGET, monthlyBudget: OCD_MONTHLY_BUDGET, scope, ocdRemaining, ocdRemainingAt: ocdRL ? ocdRL.at : null, ocdRemainingFloor: rlFloor }
+          metadata: { ...requestMetadata(req), usedToday, usedMonth, monthlyUsedEffective, monthlyRemainingEffective, monthlySource, dailyBudget: OCD_DAILY_REQUEST_BUDGET, monthlyBudget: OCD_MONTHLY_BUDGET, sellMonthlyReserve: OCD_SELL_MONTHLY_RESERVE, scope, ocdRemaining, ocdRemainingAt: ocdRL ? ocdRL.at : null, ocdRemainingFloor: rlFloor }
         }, supabaseUrl, supabaseKey);
         fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
         if (fetchResult) {
