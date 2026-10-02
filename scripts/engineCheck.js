@@ -51,7 +51,15 @@ const ROWS = [
   { q: "2015 Mercedes S-Class Coupe", make: "mercedes" },
   // class-era regression cars (Step 1): a model with zero archive sales must still class-era on both.
   { q: "1982 Cadillac Cimarron", make: "cadillac" },
-  { q: "1974 Ford Pinto", make: "ford" }
+  { q: "1974 Ford Pinto", make: "ford" },
+  // Race/road trim-family discipline (items 1-2, Oct 2026). The queried trim IS a GT2, so the model-
+  // wide porsche halo token ("gt2") is NOT a leak here (skipHalo); the poolGuard instead asserts the
+  // family fence: a GT2 R pool shows ONLY GT2 R / GT2 Evo, and a road GT2 pool shows ONLY road GT2
+  // (no R / Evo / Clubsport / RS). familyRe selects which rendered titles to judge.
+  { q: "1997 Porsche 911 GT2 R", make: "porsche", skipHalo: true,
+    poolGuard: { label: "GT2 R family only", familyRe: /\bgt2\b/i, mustMatch: /\bgt2\s*(?:r\b|evo)/i } },
+  { q: "1997 Porsche 911 GT2", make: "porsche", skipHalo: true,
+    poolGuard: { label: "road GT2 only", familyRe: /\bgt2\b/i, mustNotMatch: /\bgt2\s*(?:r\b|evo|clubsport)\b|\bgt2\s*rs\b/i } }
 ];
 
 const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
@@ -135,7 +143,19 @@ async function main() {
     const fails = [], warns = [];
     if (carKey(obT.car) !== carKey(seT.car)) fails.push(`car ${carKey(obT.car)} vs ${carKey(seT.car)}`);
     if (obT.tier !== seT.tier) fails.push(`tier ${obT.tier} vs ${seT.tier}`);
-    if (obT.halo !== seT.halo || !obT.halo || !seT.halo) { if (!obT.halo || !seT.halo) fails.push(`halo leak (ob=${obT.halo} sell=${seT.halo})`); }
+    if (!row.skipHalo && (!obT.halo || !seT.halo)) fails.push(`halo leak (ob=${obT.halo} sell=${seT.halo})`);
+    // Per-row trim-family pool guard (items 1-2): every rendered title the fence selects must obey the
+    // family rule on BOTH surfaces, or a race car leaked into a road pool (or vice versa).
+    if (row.poolGuard) {
+      const g = row.poolGuard;
+      for (const [surf, titles] of [["OB", obTitles(ob)], ["SELL", sellTitles(sell)]]) {
+        for (const t of titles) {
+          if (!g.familyRe.test(String(t || ""))) continue;
+          if (g.mustMatch && !g.mustMatch.test(String(t))) fails.push(`${g.label}: ${surf} leaked "${t}"`);
+          if (g.mustNotMatch && g.mustNotMatch.test(String(t))) fails.push(`${g.label}: ${surf} leaked "${t}"`);
+        }
+      }
+    }
     if (obT.pool != null && seT.pool != null && Math.abs(obT.pool - seT.pool) > Math.max(5, obT.pool * 0.5)) warns.push(`pool ${obT.pool} vs ${seT.pool}`);
     if (obT.range && seT.range && within500(obT.range, seT.range) === false) warns.push(`range ${JSON.stringify(obT.range)} vs ${JSON.stringify(seT.range)}`);
 
