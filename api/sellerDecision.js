@@ -3223,7 +3223,7 @@ export default async function handler(req, res) {
       // false-0 quirk). Currency is INFERRED from sale_price_usd / sale_price (1.0=USD, ~1.08=EUR,
       // ~1.27=GBP, ~1.12=CHF) since the raw_record->>currency json column can't be filtered-and-selected.
       const srcLabel = req.body.source ? String(req.body.source) : "Bonhams";
-      const cols = "id,platform,source,source_slug,sale_date,sale_price,high_bid,sale_price_usd,high_bid_usd,has_reserve,listing_title,vin_norm";
+      const cols = req.body.cols ? String(req.body.cols) : "id,platform,sale_date,sale_price,sale_price_usd,has_reserve,listing_title,vin_norm";
       const lim = Math.min(3000, Number(req.body.limit) || 2000);
       const q = srcLabel === "SAMPLE"
         ? `sales_archive?select=${cols}&order=id.desc&limit=8`
