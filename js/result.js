@@ -1419,12 +1419,10 @@ function _hcHouseBlock(h,ctx){
   // published calendar as a separate, hedged fact, never merged into the sale claim above. The note
   // must match the MONTH of the sales actually SHOWN (item 6): loop over the displayed receipts only,
   // never the trailing unshown ones (a not-shown May sale must not caption three shown July sales).
-  const inf={};
-  for(const r of shown){ if(r.room&&r.room.source==="inferred"){const m=_thinMonthLabel(r.date).split(" ")[0]; if(m)inf[m]=r.room.name; } }
-  const infMonths=Object.keys(inf);
-  const infLine=infMonths.length
-    ?`<p style="font-size:12px;color:#928b7a;margin:8px 0 0;font-style:italic">By the published calendar, the ${infMonths.map(m=>`${m} sale at ${esc(h.display)} is typically ${esc(inf[m])}`).join(", the ")} (confirm with ${esc(h.display)}).</p>`
-    :"";
+  // Item 5 (Oct 2026): the inferred-room hedge ("By the published calendar, the March sale is typically
+  // Amelia Island, confirm with...") is dropped. A room is stated ONLY when it is in the sale record
+  // (room.source==="data", rendered inline by _hcRoomLabel as " · {room}"); an inferred room says nothing.
+  const infLine="";
   // Next sale + approximate consignment window (say nothing if unknown).
   let next="";
   if(h.nextSale){
@@ -1478,21 +1476,9 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
   } else {
     lead=`${esc(modelLabel)}s have gone to ${esc(pickName)} more than to any other house over the last three years${recency}.${hammerClause}${othersClause}`;
   }
-  // Timing-as-a-choice (B4): the pick's next sale, then a genuinely SOONER alternative house if one
-  // exists (never invented; only from a house that has actually taken this car).
-  let timing="";
-  if(!asap&&pick.nextSale){
-    const ns=pick.nextSale;
-    let alt=null;
-    for(const h of houses.slice(1)){
-      if(h.nextSale&&monthsFromToday(h.nextSale)<monthsFromToday(ns)){ if(!alt||monthsFromToday(h.nextSale)<monthsFromToday(alt.nextSale))alt=h; }
-    }
-    // Separate the RECORD (where these have gone most = the pick) from the pick's NEXT sale; never
-    // imply the next-sale city is where they've gone most.
-    timing=`<p style="font-size:14px;line-height:1.55;color:#171717;margin:14px 0 0">${esc(pickName)}, where ${oneSale?"the last one sold":"these have gone most"}, next runs its ${esc(ns.city)} sale in ${esc(ns.monthName)} ${ns.year}${ns.intl?" (international)":""}.`;
-    if(alt){ timing+=` If you'd rather sell sooner, the ${esc(alt.nextSale.city)} sale at ${esc(alt.display)} is in ${esc(alt.nextSale.monthName)}, and it has taken ${esc(modelLabel)}s too.`; }
-    timing+=`</p>`;
-  }
+  // Item 5 (Oct 2026): the next sale is stated ONCE, inside each house's card ("Next at {house}: ...").
+  // The old above-the-cards timing paragraph duplicated the pick's next sale, so it is removed.
+  const timing="";
   const blocks=houses.map((h,i)=>_hcHouseBlock(h,{isLead:i===0,asap,modelLabel})).join("");
   // Item 7: asking price vs the sales SHOWN, as a plain fact. Uses the same displayed receipts (top 3
   // per house) the cards render, so the statement is computed from the same pool the seller sees.
