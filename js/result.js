@@ -1393,8 +1393,13 @@ function chassisTail6(c){
 function listJoin(arr){ arr=(arr||[]).filter(Boolean); if(!arr.length)return ""; if(arr.length===1)return String(arr[0]); if(arr.length===2)return arr[0]+" and "+arr[1]; return arr.slice(0,-1).join(", ")+" and "+arr[arr.length-1]; }
 function stripIdsFromTitle(t){
   t=String(t==null?"":t);
-  t=t.replace(/\s*\b(?:vin|chassis|engine)\b\.?\s*(?:no\.?|number|#)?\s*:?\s*\*?[A-Za-z0-9][A-Za-z0-9*\/\-]{4,}\*?/ig,"");
+  // Item 5: strip the designation clauses a house tacks on - VIN/chassis/engine AND transmission/
+  // gearbox/body numbers ("Transmission no. 915-12345", "Gearbox no. G50-9876", "Body no. 993-00123").
+  t=t.replace(/\s*\b(?:vin|chassis|engine|transmission|gearbox|body)\b\.?\s*(?:no\.?|number|#)?\s*:?\s*\*?[A-Za-z0-9][A-Za-z0-9*\/\-]{4,}\*?/ig,"");
+  t=t.replace(/\s*["‘’“”']\s*type\s+[A-Za-z0-9.\/-]+\s*["‘’“”']/ig,"");   // quoted 'Type 993' designation fragments
   t=t.replace(/\s*\((?:[A-Za-z]{1,3}\d{1,3}|lot\s*\d+)\)/ig,"");   // lot codes: (FL26), (MC21), (Lot 124)
+  t=t.replace(/\b([A-Za-z])([A-Za-z]*\d[A-Za-z0-9]*)\s+\1\b/g,"$2 $1");   // de-glue "RGT2 R" -> "GT2 R"
+  t=t.replace(/\b((?:[A-Za-z0-9][A-Za-z0-9\/.\-]*\s+){0,2}[A-Za-z0-9][A-Za-z0-9\/.\-]*)(?:\s+\1\b)+/ig,"$1");   // collapse doubled token/phrase
   return t.replace(/\s{2,}/g," ").replace(/\s+[,-]\s*$/,"").trim();
 }
 function cleanReceiptTitleForCard(title){

@@ -613,6 +613,39 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "housecur", ...out });
   }
 
+  // task=curverify: READ-ONLY (item 5b, Oct 2026). Bonhams currency-vs-venue audit. (a) Pull every
+  // archive row matching a chassis (default 393094, the GT2 R the tester saw) and report its stored
+  // currency, amount, location and date so a EUR/GBP sale tagged USD is visible. (b) Count how many
+  // Bonhams rows carry currency USD WHILE their location reads European (a probable mis-tag). No OCD
+  // spend, no writes - a data fix is left to Sam (never a silent currency rewrite).
+  if (task === "curverify") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const chassis = String(req.query?.chassis || "393094").replace(/[^A-Za-z0-9]/g, "");
+    const sel = "select=source_slug,sale_price,sale_date,listing_title,vin," +
+      "currency:raw_record->>currency,city:raw_record->>city,location:raw_record->>location," +
+      "country:raw_record->>country,saleName:raw_record->>sale_name,url:raw_record->>url";
+    const hit = await supabaseSelect(env, `sales_archive?source_slug=eq.bonhams&or=(vin.ilike.*${chassis}*,listing_title.ilike.*${chassis}*)&${sel}`) || [];
+    // European venue signal from any location-ish field or the title (OCD's Bonhams location coverage
+    // is thin, like Gooding, so the title is a fallback signal).
+    const EU_RE = /\b(monaco|paris|chantilly|france|french|london|goodwood|bond\s?street|united\s?kingdom|\buk\b|england|zoute|knokke|belgium|italy|italian|milan|padua|padova|r[ée]trom|switzerland|swiss|geneva|gstaad|germany|german|n[üu]rburg|austria|spain|madrid)\b/i;
+    const usd = [];
+    for (let p = 0; p < 8; p++) {
+      const rows = await supabaseSelect(env, `sales_archive?source_slug=eq.bonhams&raw_record->>currency=eq.USD&${sel}&limit=1000&offset=${p * 1000}`);
+      if (!rows || !rows.length) break;
+      usd.push(...rows);
+      if (rows.length < 1000) break;
+    }
+    const euUsd = usd.filter(r => EU_RE.test([r.city, r.location, r.country, r.saleName, r.listing_title].filter(Boolean).join(" ")));
+    const byLoc = {};
+    for (const r of euUsd) { const k = r.city || r.location || r.country || r.saleName || "(no location field; title-matched)"; byLoc[k] = (byLoc[k] || 0) + 1; }
+    return res.status(200).json({
+      task: "curverify", chassis,
+      chassisRows: hit.map(r => ({ title: r.listing_title, price: r.sale_price, currency: r.currency, date: r.sale_date, city: r.city, location: r.location, country: r.country, saleName: r.saleName, vin: r.vin, url: r.url })),
+      bonhamsUsdRows: usd.length, bonhamsUsdEuropean: euUsd.length, byLocation: byLoc,
+      sample: euUsd.slice(0, 20).map(r => ({ title: r.listing_title, price: r.sale_price, city: r.city, location: r.location, country: r.country, saleName: r.saleName, date: r.sale_date }))
+    });
+  }
+
   // task=vinaudit: READ-ONLY. Scans the whole archive and reports, per source, how many
   // rows carry a USABLE VIN/chassis vs a placeholder/none (validVin filter). This is the
   // cert table's "VIN/chassis capture %" column and the count excluded by the canonical
