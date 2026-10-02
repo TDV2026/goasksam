@@ -3730,6 +3730,13 @@ export default async function handler(req, res) {
     // Item 4: when the meter is blind, fail CLOSED to a small floor instead of spending unguarded.
     const BLIND_METER_FLOOR = 5;
     let meterBlind = false;
+    // Item 2: the daily budget must be a real CEILING, not just a start-of-search pre-check. The
+    // remaining daily allowance is carried OUT of the guard block and passed as a hard per-search
+    // metered cap to the live fetch, so one search (ladder + keyword fallbacks) can't blow the day's
+    // budget after passing the gate, and sequential searches can't cumulatively overshoot it. The old
+    // gate compared only ALREADY-RECORDED usage, which lags in-flight spend and had no per-search
+    // bound, so a 33/day cap still recorded 70-76 on a busy day.
+    let perSearchMeteredCap = Infinity;
     if (!fetchResult) {
       const usedToday = await ocdRequestsToday(supabaseUrl, supabaseKey);
       const usedMonth = await ocdRequestsThisMonth(supabaseUrl, supabaseKey);
@@ -3754,6 +3761,10 @@ export default async function handler(req, res) {
       const isWarm = req.body?.warm === true;
       const dailyCap = isWarm ? Math.floor(OCD_DAILY_REQUEST_BUDGET * WARM_BUDGET_FRACTION) : OCD_DAILY_REQUEST_BUDGET;
       const monthlyCap = isWarm ? Math.floor(OCD_MONTHLY_BUDGET * WARM_BUDGET_FRACTION) : OCD_MONTHLY_BUDGET;
+      // Item 2: cap this search's live spend to whatever remains of the daily budget. bypassCache
+      // (measurement) is exempt and keeps spending freely; the degrade branch below already serves the
+      // store once usedToday has reached the cap, so a search that still proceeds has at least 1 left.
+      if (!bypassCache && usedToday !== null) perSearchMeteredCap = Math.max(0, dailyCap - usedToday);
       // OCD's OWN remaining-quota header (persisted by the previous fetch) is the AUTHORITATIVE
       // monthly meter. Read it FIRST so both the monthly cap and the warm reserve reconcile against
       // OCD's real account usage, NOT the internal app_usage_events sum (which conflates one-time
@@ -3817,7 +3828,7 @@ export default async function handler(req, res) {
       }
     }
     if (!fetchResult) {
-      fetchResult = await fetchRecentRecords(vehicle, apiKey, generation, meterBlind ? BLIND_METER_FLOOR : Infinity);
+      fetchResult = await fetchRecentRecords(vehicle, apiKey, generation, meterBlind ? BLIND_METER_FLOOR : perSearchMeteredCap);
       // Only cache a healthy fetch: an all-errored pass with nothing fetched
       // must retry next search, not lock in 24h of emptiness.
       const fetchHealthy = fetchResult.records.length > 0 || fetchResult.passSummary.every(pass => !pass.error);
