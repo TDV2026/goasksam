@@ -36,7 +36,7 @@ import {
   sourceRecordKey,
   textHasTerm
 } from "../lib/_classify.js";
-import { hammerUsd } from "../lib/_houseComps.js";
+import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
 
 // Powerseller referrals are gated (locked product rule): estimated value from
 // actual comps must clear this threshold before a partner can lead.
@@ -1583,13 +1583,14 @@ export function analyze(records, classifications, ladder, vehicle, debug, txFilt
   const MATCHED_BAND_MIN = 5;
   const recYearOf = rec => { const y = Number(rec && (rec.year ?? (rec.raw_record && rec.raw_record.year))); return Number.isFinite(y) ? y : null; };
   const recMilesOf = rec => { const m = Number(String((rec && (rec.mileage ?? (rec.raw_record && rec.raw_record.mileage))) ?? "").replace(/[^\d.]/g, "")); return Number.isFinite(m) && m > 0 ? m : null; };
-  // USD value of a record: prefer sale_price_usd when present, else the existing hammerUsd conversion
-  // (online = toUsd, house = premium back-out + toUsd). NEVER the raw native sale_price.
+  // USD value of a record: the hammerUsd conversion (online = dated toUsd, house = premium back-out +
+  // dated toUsd). Item 1: the stored sale_price_usd column holds the ALL-IN at static FX (no premium
+  // back-out), so it is NOT the hammer this compute needs; always recompute from the native price at
+  // the sale-month FX. NEVER the raw native sale_price.
   const recUsdOf = rec => {
-    if (rec && rec.sale_price_usd != null && Number(rec.sale_price_usd) > 0) return Number(rec.sale_price_usd);
     const p = normalizeMoney(rec);
     if (!(p > 0)) return null;
-    const v = hammerUsd({ source: recordPlatform(rec), price: p, currency: rec.currency || (rec.raw_record && rec.raw_record.currency) || "USD" });
+    const v = hammerUsd({ source: recordPlatform(rec), price: p, currency: rec.currency || (rec.raw_record && rec.raw_record.currency) || "USD", date: rec.auction_end_date || rec.sale_date || null });
     return Number.isFinite(v) && v > 0 ? v : null;
   };
   const matchedPremiumFor = platform => {
@@ -2951,6 +2952,7 @@ export default async function handler(req, res) {
   const apiKey = process.env.OLDCARSDATA_API_KEY;
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+  try { await ensureFxReady({ supabaseUrl, supabaseKey }); } catch (e) {}   // item 1: arm sale-date FX for every USD conversion in this request
   // One Box empty-state proof line: recent real sales for the storefront. Archive-only,
   // no OCD, no gate, no car needed -> answered before every other check.
   if (req.body?.oneBoxProof) {

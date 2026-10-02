@@ -10,7 +10,8 @@
 // canonicals that share a VIN, a URL, or a same-source date+price bucket.
 import { supabaseEnv, supabaseSelect, supabaseInsert } from "../lib/_supabase.js";
 import { sameTransaction, validVin, normChassis } from "../lib/_canonical.js";
-import { hammerUsd } from "../lib/_houseComps.js";
+import { hammerUsd, setFxRates } from "../lib/_houseComps.js";
+import { loadFxRates } from "../lib/_fx.js";
 
 const CURRENCY_COUNTRY = { USD: "US", GBP: "UK", EUR: "EU", CHF: "EU", AUD: "AU", CAD: "CA" };
 const urlOf = r => { const u = r.srcurl || r.srcurl2 || r.url; return u ? String(u).split(/[?#]/)[0].toLowerCase().replace(/\/+$/, "") : ""; };
@@ -231,6 +232,7 @@ export async function runBuild(env, { write } = { write: false }) {
 if (process.argv[1] && process.argv[1].endsWith("buildCanonical.js")) {
   const env = supabaseEnv();
   if (!env) { console.error("Need SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY."); process.exit(1); }
+  try { setFxRates(await loadFxRates(env)); } catch (e) { console.error("::warning:: fx_rates load failed; canonical values use static FX:", e.message); }   // item 1: dated FX so canonical matches the live read
   const incremental = process.argv.includes("--incremental");
   const rep = incremental ? await runIncremental(env) : await runBuild(env, { write: !process.argv.includes("--dry") });
   console.log(`\n=== canonical ${incremental ? "INCREMENTAL" : "full"} build ===`);

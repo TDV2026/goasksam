@@ -21,7 +21,8 @@
 //   node scripts/deskCube.js --min 8     only families with >= N qualifying sales (default 8)
 // =====================================================================
 import { supabaseEnv, supabaseSelect, supabaseInsert } from "../lib/_supabase.js";
-import { hammerUsd, isHouseSource, sourceSlugOf } from "../lib/_houseComps.js";
+import { hammerUsd, isHouseSource, sourceSlugOf, setFxRates } from "../lib/_houseComps.js";
+import { loadFxRates } from "../lib/_fx.js";
 import { isPartsListing, isMemorabilia } from "../lib/_classify.js";
 import { recordExcludeReason } from "../lib/onebox.js";
 import { generationsForModel } from "../lib/generations.js";
@@ -34,6 +35,7 @@ const DAY = 864e5;
 
 const env = supabaseEnv();
 if (!env) { console.error("FATAL: SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required."); process.exit(1); }
+try { setFxRates(await loadFxRates(env)); } catch (e) { console.error("::warning:: fx_rates load failed; cube values use static FX:", e.message); }   // item 1: dated FX so the cube matches the live Desk read
 
 const todayIso = new Date().toISOString().slice(0, 10);
 const t = Date.now();

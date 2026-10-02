@@ -517,7 +517,7 @@ async function handleOps(req, res) {
     const can = await import("../lib/_canonical.js");
     const norm = v => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
     const toRow = r => ({ source_slug: r.source_slug, source: r.platform, source_record_id: r.source_id, vin: r.vin, make: r.make, year: r.year, sale_date: r.sale_date,
-      value: hc.hammerUsd({ source_slug: r.source_slug, source: r.platform, price: Number(r.sale_price), currency: r.curr || "USD" }) });
+      value: hc.hammerUsd({ source_slug: r.source_slug, source: r.platform, price: Number(r.sale_price), currency: r.curr || "USD", date: r.sale_date || r.auction_end_date || null }) });
     // group by normalized VIN (>=11 chars only - real 17-char VINs, not short chassis)
     const groups = new Map();
     for (const r of rows) { const k = norm(r.vin); if (k.length >= 11) { if (!groups.has(k)) groups.set(k, []); groups.get(k).push(toRow(r)); } }
@@ -563,7 +563,7 @@ async function handleOps(req, res) {
     const hc = await import("../lib/_houseComps.js");
     const can = await import("../lib/_canonical.js");
     const inRows = (rows || []).map(r => ({ source_slug: r.source_slug, source: r.platform, source_record_id: r.source_id, vin: r.vin, make: r.make, model: r.model, year: r.year, sale_date: r.sale_date, title: r.listing_title,
-      native_price: Number(r.sale_price), currency: r.curr || "USD", value: hc.hammerUsd({ source_slug: r.source_slug, source: r.platform, price: Number(r.sale_price), currency: r.curr || "USD" }) }));
+      native_price: Number(r.sale_price), currency: r.curr || "USD", value: hc.hammerUsd({ source_slug: r.source_slug, source: r.platform, price: Number(r.sale_price), currency: r.curr || "USD", date: r.sale_date || r.auction_end_date || null }) }));
     const { canonicals, aliases } = can.canonicalize(inRows);
     return res.status(200).json({ task: "canonvin", archiveCount, vin, rowCount: inRows.length,
       rows: inRows.map(r => ({ source_slug: r.source_slug, id: r.source_record_id, car: [r.year, r.make, r.model].filter(Boolean).join(" "), nativePrice: r.native_price, currency: r.currency, hammerUsd: r.value != null ? Math.round(r.value) : null, date: r.sale_date })),
@@ -1298,8 +1298,8 @@ async function handleOps(req, res) {
       const cur = r.curr || "USD";
       const approvedBasis = house ? (HOUSE_OK_USD.has(slug) && cur === "USD") : ONLINE_OK.has(slug);
       if (approvedBasis) { approved++; if (house) houseN++; else onlineN++; }
-      const hammer = Math.round(hammerUsd({ source_slug: r.source_slug, source: r.platform, price: Number(r.sale_price), currency: cur }));
-      const allIn = house ? Math.round(cur === "USD" ? Number(r.sale_price) : toUsd(Number(r.sale_price), cur)) : null;
+      const hammer = Math.round(hammerUsd({ source_slug: r.source_slug, source: r.platform, price: Number(r.sale_price), currency: cur, date: r.sale_date || r.auction_end_date || null }));
+      const allIn = house ? Math.round(cur === "USD" ? Number(r.sale_price) : toUsd(Number(r.sale_price), cur, r.sale_date || r.auction_end_date || null)) : null;
       return { year: r.year, venue: r.platform, house, approvedBasis, date: (r.sale_date || "").slice(0, 10), hammerUsd: hammer, allInUsd: allIn, currency: cur, chassis: r.chassis || null, markers: markersOf(r), title: (r.listing_title || "").slice(0, 58) };
     });
     // paired-sale chassis: same chassis with an online AND a house sale (any window in this pool)
@@ -3421,6 +3421,7 @@ export default async function handler(req, res) {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseKey) return res.status(500).json({ error: "Supabase not configured" });
+  try { const hc = await import("../lib/_houseComps.js"); await hc.ensureFxReady({ supabaseUrl, supabaseKey }); } catch (e) {}   // item 1: arm sale-date FX for premium recompute + audits
 
   try {
     const days = Math.max(1, Math.min(30, Number(req.query?.days || 7)));
