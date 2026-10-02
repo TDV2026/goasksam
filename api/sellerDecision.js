@@ -3219,8 +3219,7 @@ export default async function handler(req, res) {
       const term = req.body.term ? String(req.body.term) : null;
       const srcSlug = req.body.sourceSlug ? String(req.body.sourceSlug) : null;
       const cols = "id,source,source_slug,sale_date,sale_price,high_bid,sale_price_usd,high_bid_usd,has_reserve,listing_title," +
-        "cur:raw_record->>currency,loc:raw_record->>location,city:raw_record->>city,country:raw_record->>country_code," +
-        "sale_name:raw_record->>auction_name,sale_title:raw_record->>sale_title,url:raw_record->>url,src2:raw_record->>source_url";
+        "cur:raw_record->>currency,country:raw_record->>country_code,url:raw_record->>url,src2:raw_record->>source_url";
       let q = `sales_archive?select=${cols}`;
       if (term) q += `&listing_title=ilike.${encodeURIComponent("*" + term + "*")}`;
       if (srcSlug) q += `&source_slug=eq.${encodeURIComponent(srcSlug)}`;
