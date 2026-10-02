@@ -646,6 +646,18 @@
   // negation here (as in the trust line), not a valuation claim. No dashes.
   function freshLine(d) {
     var f = d && d.freshness; if (!f) return "";
+    // Item 7c: when the newest IN-SCOPE sale is older than the archive's newest sale, state TWO facts
+    // so a stale-looking in-scope date never reads as "our data stops here": the archive currency, then
+    // the latest sale of THIS car. Applies on every surface (house + online).
+    var through = f.through, arch = f.archiveThrough;
+    if (through && arch && through < arch) {
+      var now = Date.now();
+      var archRecent = (now - Date.parse(arch + "T00:00:00Z")) <= 2 * 864e5;
+      var fact1 = archRecent ? "Sales through last night." : ("Sales through " + monthDayYear(arch) + ".");
+      var modelW = (d.resolvedCar && d.resolvedCar.model) ? titleCaseSaleTitle(d.resolvedCar.model) : "this car";
+      var fact2 = "Latest " + modelW + " sale: " + monthYear(through) + ".";
+      return '<div class="fresh"><span class="dot"></span>' + esc(fact1 + " " + fact2) + "</div>";
+    }
     var txt = "";
     if (f.mode === "house") { if (f.through) txt = "Auction results through " + monthOnly(f.through) + "."; }
     else if (f.lastNight) txt = "Real sales through last night. Nothing estimated.";
@@ -1046,7 +1058,9 @@
     if (rc.isHouse) { var chMeta = houseChassisMeta(rc); if (chMeta) segs.push('<span class="mseg">' + chMeta + "</span>"); }
     else {
       if (Number(rc.mileage) > 0) segs.push('<span class="mseg num">' + Number(rc.mileage).toLocaleString("en-US") + " mi</span>");
-      var _gl = gearboxLabel(rc); if (_gl) segs.push('<span class="mseg">' + esc(_gl) + "</span>");
+      // Item 7b: show the gearbox tag only when a gearbox question applies (the pool has a real
+      // manual-vs-non-manual split). A single-gearbox-era car (Pierce Motorette) never gets "Manual".
+      if (htGearboxSplit) { var _gl = gearboxLabel(rc); if (_gl) segs.push('<span class="mseg">' + esc(_gl) + "</span>"); }
     }
     var meta = segs.join(' <span class="dot">&middot;</span> ');
     var inner = thumbEl(rc.image, rc.title) +
@@ -1178,6 +1192,9 @@
     if (ht.intake && htChoice === null) { var iv = thinIntakeHtml(d, ht, name); if (iv) return iv; }
     var sc = thinScope(ht.receipts, ht.intake, htChoice);
     var scope = sc.scope, scopedLabel = sc.label, answered = !!(htChoice && htChoice !== "__skip__");
+    // Item 7b: a gearbox tag shows on receipt rows only when the pool has a real manual-vs-non-manual
+    // split (a gearbox question would apply). A single-gearbox-era car (Pierce) never shows "Manual".
+    htGearboxSplit = (function () { var man = 0, non = 0; (scope || []).forEach(function (rc) { if (rc.isHouse) return; var g = gearboxLabel(rc); if (!g) return; if (/^manual/i.test(g)) man++; else non++; }); return man > 0 && non > 0; })();
     var body = thinHeroHtml(name, scope, scopedLabel, answered) + freshLine(d);
     // Sam's read: the HOUSE STEER text renders ONLY when house share >= 2/3 (ht.houseSteer).
     // Below that it is venue-neutral. No fee/valuation words, no invented pattern.
@@ -1192,7 +1209,12 @@
     // repeated here (rule 21: never restate a line already shown; and no second headline claim).
     // Plain serif lines, no green box (consistent with the result/exact states: evidence, not a widget).
     if (reads.length) body += '<div class="thinread" data-stage="answer">' + reads.map(function (p) { return '<p class="contradiction">' + lint(esc(p), "ht.read") + "</p>"; }).join("") + "</div>";
-    body += '<div class="seclabel" data-stage="cards">' + lint("What has sold, " + esc(name) + ", " + spanRange(scope), "ht.reclab") + "</div>";
+    // Item 7a: the "what has sold" label names the MODEL (plural), never the typed year over a different
+    // sale year ("1902 Pierce Motorette" with a 1904 sale -> "Pierce Motorettes"). Drop the leading year,
+    // title-case, pluralise. The year span ("in 2025") still reflects the sales actually shown.
+    var labelName = titleCaseSaleTitle(String(name).replace(/^(18|19|20)\d\d\s+/, ""));
+    var labelPlural = /s$/i.test(labelName) ? labelName : labelName + "s";
+    body += '<div class="seclabel" data-stage="cards">' + lint("What has sold, " + esc(labelPlural) + ", " + spanRange(scope), "ht.reclab") + "</div>";
     // Item 3: show the sales by RECENCY, not the 8 priciest (the engine sorts ht.receipts hammer-desc
     // for the median math, but slicing that top-8 for display biased the shown set to the ceiling and
     // could leave the median hero below every shown card). Newest-first is the honest evidence order,
@@ -1428,6 +1450,8 @@
   var choiceCtx = null;
   var htChoice = null; // house-tier intake selection: null=not asked, "__skip__", or a marker key
   var htLastD = null;  // last house-tier decision, so an intake chip can re-render in place
+  var htGearboxSplit = false;  // item 7b: true only when the pool holds BOTH a manual and a non-manual
+  // gearbox (a real split / a gearbox question applies). When false, the per-card gearbox tag is dropped.
   // Same physical identity (one string cleaner/more granular than the other): token subset.
   function obNorm(s){ return String(s==null?"":s).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().trim(); }
   function obSameIdentity(a,b){ a=obNorm(a);b=obNorm(b); if(!a||!b)return false; var ta=a.split(/\s+/),tb=b.split(/\s+/),sa={},sb={}; ta.forEach(function(t){sa[t]=1;}); tb.forEach(function(t){sb[t]=1;}); return ta.every(function(t){return sb[t];})||tb.every(function(t){return sa[t];}); }
