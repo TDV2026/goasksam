@@ -104,6 +104,77 @@ function fetchWithTimeout(url,opts,ms){
   return fetch(url,merged).finally(function(){clearTimeout(t);});
 }
 
+// Item 6 (Oct 2026): a post-result chat CORRECTION of the car ("its a gt2r", "actually it's a
+// Turbo S") must actually RE-RUN the analysis with the corrected car, not have Sam say it will.
+// extractCarCorrection pulls the car text the seller is correcting TO, de-gluing common run-together
+// variants ("gt2r" -> "gt2 r") so the resolver keeps the variant token. Returns null when the message
+// is not a correction (a plain question falls through to the chat layer untouched).
+function extractCarCorrection(q){
+  var s=String(q||"").trim();
+  if(!s||/\?\s*$/.test(s)) return null;                 // a question is never a correction
+  var cand=null;
+  var m=s.match(/^(?:no[,.\s]+)?(?:actually[,.\s]*)?(?:it'?s|its|it is|the car(?:'?s| is)?|mine'?s|make it|change (?:it )?to|i meant|meant|correction[:,]?)\s+(?:a\s+|an\s+|the\s+)?(.+)$/i);
+  if(m){ cand=m[m.length-1]; }
+  else {
+    // Bare variant token with no lead phrase ("gt2r", "carrera 4s"): accept ONLY when EVERY token is
+    // car-ish (so "about 300 miles" or a stray number never hijacks a plain comment) AND at least one
+    // real variant token is present.
+    var toks=s.split(/\s+/);
+    var carish=t=>/^(?:a|an|the|911|912|930|964|993|996|997|991|992)$/i.test(t)||/^(?:gt\d[a-z]*|rsr?|r|turbo|s|4s?|clubsport|evo|cup|carrera|targa|speedster|cabriolet|cabrio|coupe|roadster|spyder|spider|touring|gts?|\d{2,4}[a-z]*)$/i.test(t);
+    if(toks.length<=4 && toks.every(carish) && /(?:gt\d|\brsr?\b|turbo|clubsport|\bevo\b|\bcup\b|carrera|targa|speedster|\b\d{3}\b)/i.test(s)) cand=s;  // bare short variant token
+  }
+  if(!cand) return null;
+  cand=cand.replace(/[.?!,\s]+$/,"").trim();
+  if(!cand||/^(one|it|that|this|the same|same)$/i.test(cand)) return null;
+  // De-glue run-together race/road variants so the resolver sees a space-separated token.
+  cand=cand.replace(/\b(gt\d)\s*(rsr|rs|r|evo|cup|clubsport)\b/ig,"$1 $2").replace(/\s{2,}/g," ").trim();
+  return cand;
+}
+// Build the full car text to re-resolve, carrying over the known year/make/model when the correction
+// only names a trim ("gt2 r" -> "1997 Porsche 911 gt2 r"). Leaves a correction that already names its
+// own make alone.
+function buildCorrectionText(cand){
+  var rv=sellState.resolvedVehicle||{};
+  var ctxYear=rv.year||(String(sellState.carName||"").match(/\b(?:19|20)\d\d\b/)||[])[0]||"";
+  var ctxMake=rv.make||"", ctxModel=rv.model||"";
+  var flat=String(cand).replace(/[^a-z0-9]/ig,"").toLowerCase();
+  var hasYear=/\b(?:19|20)\d\d\b/.test(cand);
+  var hasMake=ctxMake && flat.indexOf(String(ctxMake).replace(/[^a-z0-9]/ig,"").toLowerCase())===0;
+  if(hasMake) return hasYear||!ctxYear ? cand : (ctxYear+" "+cand);
+  return [ctxYear,ctxMake,ctxModel,cand].filter(Boolean).join(" ");
+}
+// Verify a correction against the resolver (read-only) and, only if it resolves to a DIFFERENT valid
+// car, commit it and re-run the analysis in place. Returns true when it re-ran (so the caller skips
+// the chat layer), false otherwise. Never destroys the current result on a non-match: the destructive
+// resolveVehicleInput is avoided in favour of a plain /api/vehicleIdentity read.
+async function maybeRerunOnCarCorrection(q){
+  if(sellState.step!==12||!sellState.resolvedVehicle) return false;
+  var cand=extractCarCorrection(q);
+  if(!cand) return false;
+  var full=buildCorrectionText(cand);
+  if(!full||!/[a-z]/i.test(full)) return false;
+  var data;
+  try{
+    var res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:full})});
+    data=await res.json();
+    if(!res.ok||!data||data.status!=="valid"||!data.vehicle) return false;
+  }catch(e){ return false; }
+  var nv=data.vehicle, cur=sellState.resolvedVehicle;
+  var sig=v=>[v.year,v.make,v.model,v.trim].map(x=>String(x==null?"":x).toLowerCase().trim()).join("|");
+  if(sig(nv)===sig(cur)) return false;                  // same car: nothing to re-run, let chat answer
+  // Commit the corrected car and re-run the decision, REPLACING the rendered result in place. Drop the
+  // summary strip and everything below it first so the new analysis does not stack under the old one.
+  sellState.resolvedVehicle=nv;
+  sellState.vehicleIdentityValidated=true;
+  if(nv.canonicalLabel){ sellState.carName=nv.canonicalLabel; sellState.carRaw=nv.canonicalLabel; }
+  sellState.sellDecision=null; sellState.sellOptions=[]; sellState.allRouteOptions=[];
+  sellState.renderedHouseComparison=null; sellState.renderedClassEra=null;
+  var strip=document.getElementById("sellSummaryStrip");
+  if(strip&&strip.parentNode){ while(strip.nextSibling)strip.parentNode.removeChild(strip.nextSibling); strip.parentNode.removeChild(strip); }
+  addMsg("sam","Got it, "+(nv.canonicalLabel||full)+". Re-running the market around that car.");
+  if(typeof showSellRecommendation==="function") await showSellRecommendation({rerun:true});
+  return true;
+}
 async function send(){
   const inp=document.getElementById("inp");
   const q=inp.value.trim();if(!q)return;
@@ -156,6 +227,9 @@ async function send(){
       if(canadaReply){addMsg("sam",canadaReply);document.getElementById("btn").disabled=false;return;}
       const moneyReply=moneyQuestionReply(q);
       if(moneyReply){addMsg("sam",moneyReply);document.getElementById("btn").disabled=false;return;}
+      // Item 6: a car CORRECTION re-resolves and re-runs the analysis in place (never the LLM saying
+      // it will). Only fires when the correction resolves to a DIFFERENT valid car; else falls through.
+      if(await maybeRerunOnCarCorrection(q)){document.getElementById("btn").disabled=false;return;}
     }
     const handled=await handleSellStep(q);
     if(!handled){
