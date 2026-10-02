@@ -1130,7 +1130,7 @@
     if (!mid) return "";
     var ext = '<span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>';
     var img = mid.image ? '<img src="' + esc(mid.image) + '" alt="' + esc(mid.title || "") + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.plate\');if(p)p.style.display=\'flex\'">' : "";
-    var meta = [mid.mileage ? Number(mid.mileage).toLocaleString("en-US") + " mi" : "", gearboxLabel(mid) || ""].filter(Boolean).join(" · ");
+    var meta = [mid.mileage ? Number(mid.mileage).toLocaleString("en-US") + " mi" : "", htGearboxSplit ? (gearboxLabel(mid) || "") : ""].filter(Boolean).join(" · ");
     var inner = '<div class="rph">' + img + '<span class="cmkick">Representative sale</span>' + ext + '<div class="plate" style="display:' + (mid.image ? "none" : "flex") + '"><div class="n">' + esc(cleanReceiptTitle(mid.title)) + '</div><div class="s">photo pending</div></div></div>' +
       '<div class="rb"><div class="rprice num">' + usd(mid.hammer) + '</div>' +
       (meta ? '<div class="rmeta">' + esc(meta) + '</div>' : '') +
