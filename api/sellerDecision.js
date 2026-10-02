@@ -3216,14 +3216,15 @@ export default async function handler(req, res) {
       // Raw fields for sale verification (zero OCD): native price + currency, the stored USD columns,
       // high_bid, reserve, source + source_slug, and the raw-record location/sale name + url. Scoped by
       // a title ILIKE term (+ optional source_slug). For the 550 currency/premium/sale-vs-high-bid audit.
-      // Filter by SOURCE_SLUG only (a scalar eq is json-safe; a listing_title ILIKE + json-extract
-      // columns hits the PostgREST false-0 quirk). The caller matches titles/chassis client-side.
-      const srcSlug = req.body.sourceSlug ? String(req.body.sourceSlug) : "bonhams";
+      // Filter by the SOURCE LABEL (source_slug is null on most rows - the slug backfill is pending,
+      // see the house-premium-backout note). A scalar source filter is json-safe; a listing_title ILIKE
+      // + json-extract columns hits the PostgREST false-0 quirk, so titles/chassis are matched client-side.
+      const srcLabel = req.body.source ? String(req.body.source) : "Bonhams";
       const cols = "id,source,source_slug,sale_date,sale_price,high_bid,sale_price_usd,high_bid_usd,has_reserve,listing_title," +
         "cur:raw_record->>currency,country:raw_record->>country_code,url:raw_record->>url,src2:raw_record->>source_url";
-      const q = `sales_archive?select=${cols}&source_slug=eq.${encodeURIComponent(srcSlug)}&order=sale_date.desc&limit=${Math.min(2000, Number(req.body.limit) || 1500)}`;
+      const q = `sales_archive?select=${cols}&source=ilike.${encodeURIComponent("*" + srcLabel + "*")}&order=sale_date.desc&limit=${Math.min(2000, Number(req.body.limit) || 1500)}`;
       const rows = (await supabaseSelect(env2, q)) || [];
-      return res.status(200).json({ status: "archive_query", mode, sourceSlug: srcSlug, count: rows.length, rows });
+      return res.status(200).json({ status: "archive_query", mode, source: srcLabel, count: rows.length, rows });
     }
     return res.status(400).json({ error: "unknown archiveQuery mode" });
   }
