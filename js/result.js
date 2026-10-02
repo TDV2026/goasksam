@@ -1191,9 +1191,14 @@ function _thinPickCardHtml(o){
   // No small-sample counts as headlines (CLAUDE.md decision coherence, locked): drop "has sold N"
   // and the per-house "(N)". Receipts below carry the evidence (receipts over claims); the price
   // range stays. This also removes the claimed-N-vs-shown-3 mismatch (no N is claimed).
-  let why=isHouse
-    ? `${esc(name)} is where ${esc(o.modelLabel)}s like this have been selling over the last three years, ${range}.`
-    : `${esc(o.modelLabel)}s like this have sold on ${esc(name)} over the last three years, ${range}.`;
+  // Single-sale wording (item 4): one sale never gets plural/trend language ("have been selling").
+  let why=(p.count===1)
+    ? (isHouse
+        ? `${esc(name)} sold one ${esc(o.modelLabel)} in the last three years, for ${money(p.lo)}.`
+        : `One ${esc(o.modelLabel)} sold on ${esc(name)} in the last three years, for ${money(p.lo)}.`)
+    : (isHouse
+        ? `${esc(name)} is where ${esc(o.modelLabel)}s like this have been selling over the last three years, ${range}.`
+        : `${esc(o.modelLabel)}s like this have sold on ${esc(name)} over the last three years, ${range}.`);
   if(isHouse&&o.others&&o.others.length){
     const oth=o.others.map(h=>`${esc((typeof platformDisplayName==="function"&&platformDisplayName(h.slug))||h.venue)}`).join(", ");
     why+=` ${o.others.length===1?"The other house to take one":"Other houses that have taken them"}: ${oth}.`;
@@ -1399,8 +1404,9 @@ function _askingVsSalesLine(hammers){
   if(!hs.length) return "";
   const esc=escapeHtml, money=moneyShort, ask=money(Math.round(n));
   let fact;
-  if(n>hs[hs.length-1]) fact=`Every sale shown was below your ${ask} ask.`;
-  else if(n<hs[0]) fact=`Every sale shown was above your ${ask} ask.`;
+  const lead1=hs.length===1?"The one sale shown was":"Every sale shown was";   // single-sale wording (item 4)
+  if(n>hs[hs.length-1]) fact=`${lead1} below your ${ask} ask.`;
+  else if(n<hs[0]) fact=`${lead1} above your ${ask} ask.`;
   else { const below=hs.filter(x=>x<n).length; fact=`Your ${ask} ask sits within the sales shown; ${below} of ${hs.length} sold below it.`; }
   return `<p style="font-size:13.5px;line-height:1.55;color:#171717;margin:14px 0 0"><span style="font-weight:600">${esc(fact)}</span> A fact about the sales, not a valuation.</p>`;
 }
@@ -1448,7 +1454,10 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
   const pick=houses[0];
   const pickName=pick.display;
   const others=houses.slice(1).map(h=>h.display);
+  // Single-sale wording (item 4): when the whole pool is one sale, never plural/trend language.
+  const oneSale=houses.reduce((s,h)=>s+(Number(h.count)||0),0)===1;
   const recency=pick.mostRecent?`, most recently in ${_thinMonthLabel(pick.mostRecent)}`:"";
+  const recency1=pick.mostRecent?`, in ${_thinMonthLabel(pick.mostRecent)}`:"";   // single-sale: no "most recently"
   // Hammer clause ONLY when the pick is also top by median (a true record statement, never a promise).
   const topMedian=houses.reduce((m,h)=>Math.max(m,h.median||0),0);
   const hammerClause=(!asap&&pick.median===topMedian&&houses.length>1)?" Its hammer results are the strongest of the group, too.":"";
@@ -1459,9 +1468,13 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
   } else if(opts.noOnline){
     // Item B2: the model resolved but has NO sales on the online platforms we track. Say so plainly and
     // show the houses that HAVE taken it, in the same breath, never a generic ask or a dead end.
-    lead=`No ${esc(carLbl)} has sold on the online platforms we track. ${esc(pickName)} is where ${esc(modelLabel)}s have gone instead${recency}.${hammerClause}${othersClause}`;
+    lead=oneSale
+      ? `No ${esc(carLbl)} has sold on the online platforms we track. ${esc(pickName)} is where the last one sold${recency1}.`
+      : `No ${esc(carLbl)} has sold on the online platforms we track. ${esc(pickName)} is where ${esc(modelLabel)}s have gone instead${recency}.${hammerClause}${othersClause}`;
   } else if(asap){
     lead=`You told me you want to move quickly, so I'm leading with the soonest sale, not the strongest record. Every house below has taken ${esc(modelLabel)}s; here's the record, and when each one next runs.`;
+  } else if(oneSale){
+    lead=`The only recent ${esc(carLbl)} to sell went to ${esc(pickName)}${recency1}.`;
   } else {
     lead=`${esc(modelLabel)}s have gone to ${esc(pickName)} more than to any other house over the last three years${recency}.${hammerClause}${othersClause}`;
   }
@@ -1476,7 +1489,7 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
     }
     // Separate the RECORD (where these have gone most = the pick) from the pick's NEXT sale; never
     // imply the next-sale city is where they've gone most.
-    timing=`<p style="font-size:14px;line-height:1.55;color:#171717;margin:14px 0 0">${esc(pickName)}, where these have gone most, next runs its ${esc(ns.city)} sale in ${esc(ns.monthName)} ${ns.year}${ns.intl?" (international)":""}.`;
+    timing=`<p style="font-size:14px;line-height:1.55;color:#171717;margin:14px 0 0">${esc(pickName)}, where ${oneSale?"the last one sold":"these have gone most"}, next runs its ${esc(ns.city)} sale in ${esc(ns.monthName)} ${ns.year}${ns.intl?" (international)":""}.`;
     if(alt){ timing+=` If you'd rather sell sooner, the ${esc(alt.nextSale.city)} sale at ${esc(alt.display)} is in ${esc(alt.nextSale.monthName)}, and it has taken ${esc(modelLabel)}s too.`; }
     timing+=`</p>`;
   }
@@ -1509,7 +1522,7 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
       nextSale:h.nextSale?`${h.nextSale.city}, ${h.nextSale.monthName} ${h.nextSale.year}${h.nextSale.intl?" (international)":""}`:null,
       sales:(h.receipts||[]).slice(0,3).map(r=>`${cleanReceiptTitleForCard(r.title)||[r.year,r.model].filter(Boolean).join(" ")} ${money(r.hammer)}${r.date?" ("+(_thinMonthLabel(r.date)||"")+")":""}`)
     })),
-    askingLine:(function(){const hs=[].concat.apply([],houses.map(h=>(h.receipts||[]).slice(0,3).map(r=>r.hammer)));const n=(typeof parseAskingPrice==="function")?parseAskingPrice(sellState.price):null;if(!n||!(n>0))return null;const f=hs.filter(x=>Number(x)>0).sort((a,b)=>a-b);if(!f.length)return null;if(n>f[f.length-1])return`Every sale shown was below the seller's ${money(Math.round(n))} ask.`;if(n<f[0])return`Every sale shown was above the seller's ${money(Math.round(n))} ask.`;return`The seller's ${money(Math.round(n))} ask sits within the sales shown.`;})()
+    askingLine:(function(){const hs=[].concat.apply([],houses.map(h=>(h.receipts||[]).slice(0,3).map(r=>r.hammer)));const n=(typeof parseAskingPrice==="function")?parseAskingPrice(sellState.price):null;if(!n||!(n>0))return null;const f=hs.filter(x=>Number(x)>0).sort((a,b)=>a-b);if(!f.length)return null;const L=f.length===1?"The one sale shown was":"Every sale shown was";if(n>f[f.length-1])return`${L} below the seller's ${money(Math.round(n))} ask.`;if(n<f[0])return`${L} above the seller's ${money(Math.round(n))} ask.`;return`The seller's ${money(Math.round(n))} ask sits within the sales shown.`;})()
   };
   msgs.appendChild(row);
   row.scrollIntoView({behavior:"smooth",block:"start"});
