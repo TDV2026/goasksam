@@ -403,15 +403,13 @@ function renderDecision(decisionData,renderOpts){
     // hardcoded assertion that fired for any non-pick source and was false for
     // some of them; it is gone. If the named source is self-listable (has a
     // submission URL), we end with the door: honest signal plus a way in.
-    const door=hasOutboundSubmission(slug)
-      ? ` If you want to explore it yourself, you can start on ${houseName}'s own site.`
-      : "";
-    addMsg("sam",`One thing to know up front: ${houseName} shows the strongest comparable results in our records. It isn't the pick here, but it tells you serious money follows this car.${door}`);
-    if(hasOutboundSubmission(slug)){
-      const row=document.createElement("div");row.className="row sam";
-      row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sell-rec-actions"><button class="ghost" onclick="outboundGo('${escapeHtml(slug)}','prenote')">Send my details to ${escapeHtml(houseName)}</button></div></div></div>`;
-      msgs.appendChild(row);
-    }
+    // Item 3 (Oct 2026): one quiet observational sentence, no "our records", no "isn't the pick here"
+    // editorialising, no "Send my details" button. strongerNonRoutable is the house with the HIGHEST
+    // recent median of any house, so state that result-strength (never a "sold more" count claim the
+    // median signal does not support, rule 1).
+    const _v=sellState.resolvedVehicle||decisionData.vehicle||{};
+    const _modelLbl=_v.model?String(_v.model):(_v.make||"these cars");
+    addMsg("sam",`${houseName} has had the strongest recent ${_modelLbl} results of any auction house.`);
   }
 
   // Data pick (1b): the platform with the highest CLEARED positive comparative
