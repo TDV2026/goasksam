@@ -1376,6 +1376,9 @@ function titleCaseSaleTitle(t){
 // Strip VIN / chassis / engine designations and auction lot codes from a displayed title (item 2):
 // "... VIN. ZFFZR49B000110732", "... Chassis no. *ZFFTA17B...*", "... Engine no. F113A*00060*",
 // "... (FL26)". The chassis renders on its own line elsewhere, so it is noise in the title.
+// One chassis format everywhere (item 3): the last six alphanumeric characters of the VIN/chassis,
+// never the full VIN on some rows and the tail on others. A shorter id shows in full.
+function chassisTail6(c){ c=String(c||"").replace(/[^A-Za-z0-9]/g,""); return c.length>6?c.slice(-6):c; }
 // One list-join helper used everywhere (item 3): "X", "X and Y", "X, Y and Z" - never "X and Y and Z".
 function listJoin(arr){ arr=(arr||[]).filter(Boolean); if(!arr.length)return ""; if(arr.length===1)return String(arr[0]); if(arr.length===2)return arr[0]+" and "+arr[1]; return arr.slice(0,-1).join(", ")+" and "+arr[arr.length-1]; }
 function stripIdsFromTitle(t){
@@ -1400,7 +1403,7 @@ function _hcReceiptRow(rc,modelLabel){
     :`<span style="width:64px;height:46px;border-radius:7px;flex:none;background:#efece6;display:flex;align-items:center;justify-content:center;font:600 8px/1 monospace;letter-spacing:.06em;color:#a49a86;text-transform:uppercase">no photo</span>`;
   const when=_thinMonthLabel(rc.date)||"Recent";
   const paid=rc.allIn?` <span style="opacity:.6">buyer paid ${money(rc.allIn)}</span>`:"";
-  const chassis=rc.chassis?` · chassis ${esc(String(rc.chassis))}`:"";
+  const chassis=rc.chassis?` · chassis ${esc(chassisTail6(rc.chassis))}`:"";
   // A card ALWAYS shows the car's OWN listing title, never the seller's typed model (standing rule):
   // a "D50 D350" query must not relabel a Ramcharger or a Raider as "D50 D350". Fall back to the
   // typed model only when the record carries no title at all.

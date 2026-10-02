@@ -1017,8 +1017,8 @@
   // chassis) + colour + the title clause (rendered above); mileage drops to a muted secondary.
   function htSpecLine(rc) {
     var bits = [];
-    if (rc.chassis) bits.push("Chassis " + esc(rc.chassis));
-    else if (rc.chassisTail) bits.push("Chassis ending " + esc(rc.chassisTail));
+    if (rc.chassis) bits.push("Chassis " + esc(chassisTail6(rc.chassis)));
+    else if (rc.chassisTail) bits.push("Chassis " + esc(chassisTail6(rc.chassisTail)));
     if (rc.color) bits.push(esc(cap(String(rc.color))));
     var main = bits.length ? '<div class="htr-spec">' + bits.join('<span class="dot">&middot;</span>') + "</div>" : "";
     var mi = Number(rc.mileage) > 0 ? '<div class="htr-mi2 num">' + Number(rc.mileage).toLocaleString("en-US") + " mi</div>" : "";
@@ -1035,10 +1035,12 @@
   }
   // Compact month for the house meta line ("Aug 2026") so venue + date + chassis scan as ONE line.
   function monShort(dstr) { var p = String(dstr || "").slice(0, 10).split("-"); var M = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]; return p.length >= 2 ? ((M[+p[1]] || "") + " " + p[0]).trim() : ""; }
+  // One chassis format everywhere (item 3): "chassis" + the last six alphanumeric characters of the
+  // VIN/chassis, never the full VIN on some rows and the tail on others. A shorter id shows in full.
+  function chassisTail6(c){ c=String(c||"").replace(/[^A-Za-z0-9]/g,""); return c.length>6?c.slice(-6):c; }
   function houseChassisMeta(rc) {
-    if (rc.chassis) return "Chassis " + esc(rc.chassis);
-    if (rc.chassisTail) return "Chassis …" + esc(rc.chassisTail);   // ellipsis = partial (last digits)
-    return "";
+    const c = rc.chassis || rc.chassisTail;
+    return c ? "Chassis " + esc(chassisTail6(c)) : "";
   }
   // House price, two readable lines (never tiny type): the hammer is the number the math uses, the
   // buyer-paid line is the transparency layer. Native EUR/GBP leads with its own figure, USD beside.
