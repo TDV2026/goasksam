@@ -139,10 +139,14 @@ function v2MatchedWhy(ev,v,name){
   // exact year ("Ferrari 550 Maranellos from 2000"); if it was mileage-only across the generation, say
   // the generation ("997-generation 911 Carrera S"), never the typed year. Never a count before a year.
   var _m=String(v&&v.model||"car"), _gen=v2GenCode(), _yr=v&&v.year, _sfx=v2SpecSuffix(v), _mk=v&&v.make;
-  var _mw=_sfx?_m:v2PlModel(_m);
-  var scope=(mp.yearMatched&&_yr)?((_mk?_mk+" ":"")+_mw+_sfx+" from "+_yr)
-          :(_gen?(String(_gen).toUpperCase()+"-generation "+(_mk?_mk+" ":"")+_mw+_sfx)
-          :(_mw+_sfx));
+  // Item 2: when the count is trim-scoped (the landed rung kept the trim), name the trim so the sentence
+  // describes the SAME car as the range ("Porsche 911 Carrera S from 2008"). A trim keeps the model
+  // singular ("911 Carrera S", not "911s Carrera S"); without one the model stays plural.
+  var _trim=(mp.trimScoped&&v&&v.trim)?(" "+String(v.trim)):"";
+  var _mw=(_sfx||_trim)?_m:v2PlModel(_m);
+  var scope=(mp.yearMatched&&_yr)?((_mk?_mk+" ":"")+_mw+_sfx+_trim+" from "+_yr)
+          :(_gen?(String(_gen).toUpperCase()+"-generation "+(_mk?_mk+" ":"")+_mw+_sfx+_trim)
+          :(_mw+_sfx+_trim));
   var months=Math.round((Number(mp.windowDays)||730)/30.44);
   var matchOn=mp.yearMatched?"year and mileage":"mileage";
   if(mp.tooThin){
@@ -410,7 +414,10 @@ function renderPickCardV2(option,over){
         var mMonths=Math.round((Number(mp.windowDays)||730)/30.44);
         winLbl="Last "+mMonths+" Months";
         var gc=v2GenCode();
-        genLabel=(mp.yearMatched&&v.year)?"This exact year":(gc?String(gc).toUpperCase()+" Generation":genLabel);
+        // Item 2: a trim-scoped count names the trim+year in the scope tile ("2008 911 Carrera S"), so
+        // the tile states its own scope and never reads the ambiguous "This exact year" over a trim count.
+        genLabel=(mp.trimScoped&&v.trim)?[v.year,v.model,v.trim].filter(Boolean).join(" ")
+               :(mp.yearMatched&&v.year)?"This exact year":(gc?String(gc).toUpperCase()+" Generation":genLabel);
       }
     } }
     // Layout (Aug 2026, item 2b): the concrete evidence clause leads the MAIN

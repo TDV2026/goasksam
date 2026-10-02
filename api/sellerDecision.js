@@ -1595,6 +1595,11 @@ export function analyze(records, classifications, ladder, vehicle, debug, txFilt
   const matchedPremiumFor = platform => {
     if (!landed || landed.key === "make_context") return null;
     const scopeTags = premiumLandedScopeTags(landed);
+    // Item 2: when the landed rung KEPT the trim, the range is trim-scoped, so the venue count and the
+    // scope label must be trim-scoped too (never a year-only count beside a trim-scoped range). Carry
+    // the trim and a trimScoped flag so the archive-count override and the frontend sentence agree.
+    const landedTrim = (landed.definition && landed.definition.needTrim) ? (asText(vehicle.trim) || null) : null;
+    const trimTags = { trimScoped: !!landedTrim, trim: landedTrim };
     const yr = Number(vehicle.year) || null;
     const eligible = pairedRecords.filter(item =>
       daysAgo(item.record.auction_end_date) <= MATCHED_WINDOW_DAYS &&
@@ -1614,8 +1619,8 @@ export function analyze(records, classifications, ladder, vehicle, debug, txFilt
         wSum += w; wDelta += d * w; usedMine += mine.length; usedOthers += others.length; bandsUsed++;
       }
     }
-    if (wSum > 0) return { ok: true, matched: true, percent: Math.round((wDelta / wSum) * 100), platformSales: usedMine, othersSales: usedOthers, sales: usedMine + usedOthers, bandsUsed, yearMatched: !!yr, windowDays: MATCHED_WINDOW_DAYS, ...scopeTags };
-    return { tooThin: true, matched: true, platformSales: mineAll.length, recencyDate: recency || null, yearMatched: !!yr, windowDays: MATCHED_WINDOW_DAYS, ...scopeTags };
+    if (wSum > 0) return { ok: true, matched: true, percent: Math.round((wDelta / wSum) * 100), platformSales: usedMine, othersSales: usedOthers, sales: usedMine + usedOthers, bandsUsed, yearMatched: !!yr, windowDays: MATCHED_WINDOW_DAYS, ...scopeTags, ...trimTags };
+    return { tooThin: true, matched: true, platformSales: mineAll.length, recencyDate: recency || null, yearMatched: !!yr, windowDays: MATCHED_WINDOW_DAYS, ...scopeTags, ...trimTags };
   };
 
   // Platform-scoped day advantage (locked): computed over THIS platform's
@@ -3976,9 +3981,11 @@ export default async function handler(req, res) {
             const mp = route.routable && route.marketEvidence && route.marketEvidence.matchedPremium;
             if (!mp || !mp.tooThin || !route.platform) continue;
             const yearScope = mp.scope || "exact_year";
-            const cacheKey = `${route.platform}|${yearScope}`;
+            // Item 2: a trim-scoped range gets a trim-scoped count (29 Carrera S), not the year-only pool.
+            const trimForCount = (mp.trimScoped && mp.trim) ? mp.trim : null;
+            const cacheKey = `${route.platform}|${yearScope}|${trimForCount || ""}`;
             let vs = vsCache.get(cacheKey);
-            if (!vs) { vs = await venueScopedSalesForVehicle(vehicle, generation, route.platform, yearScope, { supabaseUrl, supabaseKey }); vsCache.set(cacheKey, vs); }
+            if (!vs) { vs = await venueScopedSalesForVehicle(vehicle, generation, route.platform, yearScope, { supabaseUrl, supabaseKey, trim: trimForCount }); vsCache.set(cacheKey, vs); }
             if (vs && vs.count > 0) { mp.platformSales = vs.count; mp.recencyDate = vs.recencyDate || mp.recencyDate; mp.countSource = "archive"; }
           }
         }
