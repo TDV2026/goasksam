@@ -1786,8 +1786,10 @@ function askSellPreferenceStep(){
   sellState.step=8;
   sellState.awaitingPreference=true;
   const q=SELL_STEP_QUESTIONS[8];
-  // Fourth option, house-eligible cars only: routes straight to the auction-house comparison.
-  const chips=houseEligibleProxy()?q.chips.slice(0,2).concat(HOUSE_DOOR_CHIP,q.chips.slice(2)):q.chips;
+  // The auction-house option ALWAYS shows (item 1, Oct 2026): every car can be taken to a house, and
+  // when no house has sold that exact car the house answer says so honestly (renderHouseComparisonSell
+  // noOnline / the "no house has sold this" bridge). houseEligibleProxy is retired as the gate.
+  const chips=q.chips.slice(0,2).concat(HOUSE_DOOR_CHIP,q.chips.slice(2));
   addMsg("sam",`${q.explainer} ${q.ask}`,"",chipsHTML(chips));
 }
 

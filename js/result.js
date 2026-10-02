@@ -346,7 +346,9 @@ function renderDecision(decisionData,renderOpts){
   // online evidence, normal tier - a Turbo S / Z06 / GT3). Acknowledge what they asked for in one
   // honest sentence before the platform card, rather than silently ignoring the choice.
   if(sellState.sellerPreference==="auction_house"){
-    addMsg("sam","These actually trade mostly online, not through the houses, so here's where I'd sell it instead.");
+    // Honest house answer when no house has sold this car (item 1): say so plainly, then route online.
+    var _hcCar=(sellState.resolvedVehicle&&[sellState.resolvedVehicle.make,sellState.resolvedVehicle.model].filter(Boolean).join(" "))||"this car";
+    addMsg("sam",`No auction house has a recent sale of a ${_hcCar} on record, so I can't point you to one honestly. These trade online, so here's where I'd sell it instead.`);
   }
   // RANKING-LADDER-START (platform-agnostic: no platform name may appear in the
   // ranking region below; every crown is re-derived from data or read via
