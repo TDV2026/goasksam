@@ -1373,10 +1373,20 @@ function titleCaseSaleTitle(t){
     return w;                                                          // already mixed-case: leave
   }).join("");
 }
+// Strip VIN / chassis / engine designations and auction lot codes from a displayed title (item 2):
+// "... VIN. ZFFZR49B000110732", "... Chassis no. *ZFFTA17B...*", "... Engine no. F113A*00060*",
+// "... (FL26)". The chassis renders on its own line elsewhere, so it is noise in the title.
+function stripIdsFromTitle(t){
+  t=String(t==null?"":t);
+  t=t.replace(/\s*\b(?:vin|chassis|engine)\b\.?\s*(?:no\.?|number|#)?\s*:?\s*\*?[A-Za-z0-9][A-Za-z0-9*\/\-]{4,}\*?/ig,"");
+  t=t.replace(/\s*\((?:[A-Za-z]{1,3}\d{1,3}|lot\s*\d+)\)/ig,"");   // lot codes: (FL26), (MC21), (Lot 124)
+  return t.replace(/\s{2,}/g," ").replace(/\s+[,-]\s*$/,"").trim();
+}
 function cleanReceiptTitleForCard(title){
   var t=String(title==null?"":title);
   t=t.replace(/^\s*[\d][\d,.]*\s*k?\s*[-\s]\s*(mile|kilometer|km)s?\b'?s?\s*/i,""); // "21k-Mile "
   t=t.replace(/\s+\d+[-\s]speed\b/ig,"");   // " 6-Speed"
+  t=stripIdsFromTitle(t);                   // item 2: no VIN/chassis/lot codes in the title
   t=t.replace(/\s{2,}/g," ").trim();
   t=titleCaseSaleTitle(t);                  // item 6: never shout a sale title
   return t||String(title==null?"":title);
