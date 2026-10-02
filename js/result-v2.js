@@ -56,11 +56,13 @@ function v2SpecSuffix(v){
   return s?(" "+s):"";
 }
 function v2ScopePlural(v){
-  var kind=v2RungKind(), model=String(v&&v.model||"car"), gen=v2GenCode(), year=v&&v.year, sfx=v2SpecSuffix(v);
+  var kind=v2RungKind(), model=String(v&&v.model||"car"), gen=v2GenCode(), year=v&&v.year, sfx=v2SpecSuffix(v), make=v&&v.make;
   var mw=sfx?model:v2PlModel(model); // keep singular when a spec suffix is present
-  if(kind==="exact"&&year)return year+" "+mw+sfx;
-  if(kind==="generation"&&gen)return String(gen).toUpperCase()+"-generation "+mw+sfx;
-  if(kind==="make")return v2Pl(v&&v.make||"these cars");
+  // Never a count directly before a model year (item 2): "Ferrari 550 Maranellos from 2000", never
+  // "2000 550 Maranellos" (which reads "11 2000 550..." when a count leads).
+  if(kind==="exact"&&year)return (make?make+" ":"")+mw+sfx+" from "+year;
+  if(kind==="generation"&&gen)return String(gen).toUpperCase()+"-generation "+(make?make+" ":"")+mw+sfx;
+  if(kind==="make")return v2Pl(make||"these cars");
   return mw+sfx;
 }
 // Attributive-SINGULAR scope: the form used directly before a noun ("... sales",
@@ -133,7 +135,14 @@ function CLAUSE_A(s){ return v2Fill("{scope} have closed {delta}% higher on {pla
 function v2MonthYear(iso){ var d=new Date(String(iso||"")); if(isNaN(d.getTime()))return ""; return ["January","February","March","April","May","June","July","August","September","October","November","December"][d.getUTCMonth()]+" "+d.getUTCFullYear(); }
 function v2MatchedWhy(ev,v,name){
   var mp=ev&&ev.matchedPremium; if(!mp)return null;
-  var scope=v2ScopePlural(v);
+  // Scope words must match WHAT WAS COUNTED (item 2): if the match was year+mileage, the scope is the
+  // exact year ("Ferrari 550 Maranellos from 2000"); if it was mileage-only across the generation, say
+  // the generation ("997-generation 911 Carrera S"), never the typed year. Never a count before a year.
+  var _m=String(v&&v.model||"car"), _gen=v2GenCode(), _yr=v&&v.year, _sfx=v2SpecSuffix(v), _mk=v&&v.make;
+  var _mw=_sfx?_m:v2PlModel(_m);
+  var scope=(mp.yearMatched&&_yr)?((_mk?_mk+" ":"")+_mw+_sfx+" from "+_yr)
+          :(_gen?(String(_gen).toUpperCase()+"-generation "+(_mk?_mk+" ":"")+_mw+_sfx)
+          :(_mw+_sfx));
   var months=Math.round((Number(mp.windowDays)||730)/30.44);
   var matchOn=mp.yearMatched?"year and mileage":"mileage";
   if(mp.tooThin){
@@ -393,7 +402,17 @@ function renderPickCardV2(option,over){
     var why=over.why||v2Why(mode,slots);
     // Pick reason uses the MATCHED comparison (same year + mileage band) when available, so the stated
     // reason is not the mileage-mix-inflated cross-venue median. Speed picks keep their locked wording.
-    if(!over.why){ var mw=v2MatchedWhy(ev,v,name); if(mw)why=mw; }
+    if(!over.why){ var mw=v2MatchedWhy(ev,v,name); if(mw){ why=mw;
+      // Item 2: the panel tiles state the SAME scope + window as this matched WHY sentence, so the
+      // card never shows "24 months" next to "Last 270 Days" or "This exact year" over a generation count.
+      var mp=ev&&ev.matchedPremium;
+      if(mp){
+        var mMonths=Math.round((Number(mp.windowDays)||730)/30.44);
+        winLbl="Last "+mMonths+" Months";
+        var gc=v2GenCode();
+        genLabel=(mp.yearMatched&&v.year)?"This exact year":(gc?String(gc).toUpperCase()+" Generation":genLabel);
+      }
+    } }
     // Layout (Aug 2026, item 2b): the concrete evidence clause leads the MAIN
     // column beneath the platform name; the summary "delivered the strongest
     // results" line moves to the right rail under WHY I PICKED THIS (with the
