@@ -824,9 +824,10 @@ function missingVehicleTrimDetail(text){
       else if(trimVal)continue;
       return {type:"trim",ask:rule.ask,chips:filterChipsByEra(rule.chips.slice(),Number(rv.year),TRIM_ERA)};
     }
-    // No curated set matched. If a trim already resolved, we are done; otherwise
-    // fire the generic optional trim step (never a silent skip).
-    if(!trimVal)return genericTrimAsk(rv);
+    // No curated set matched. A single-trim model (rv.singleTrim, set by vehicleIdentity from
+    // modelRules - 550 Maranello manual only, Barchetta aside) skips the trim question, like One Box.
+    // Otherwise, if a trim already resolved we are done; else fire the generic optional trim step.
+    if(!trimVal)return rv.singleTrim?null:genericTrimAsk(rv);
     return null;
   }
   const lower=String(text||"").toLowerCase();

@@ -7,6 +7,7 @@
 
 import { createHash } from "node:crypto";
 import { resolveVehicle, lastResolveDebug } from "../lib/vehicle.js";
+import { hasAskableTrim } from "../lib/modelRules.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { recordUsageEvent, anthropicCost } from "./_usage.js";
 import { testerCodeExpired } from "../lib/_tester.js";
@@ -241,6 +242,12 @@ export default async function handler(req, res) {
     const modelCount = (result.vehicle?.make && result.vehicle?.model && (result.status === "valid" || result.status === "needs_confirmation"))
       ? await archiveModelCount(result.vehicle.make, result.vehicle.model, supabaseUrl, supabaseKey)
       : null;
+    // Single-trim flag (item 4): a curated model with no askable trim (550 Maranello - manual only,
+    // Barchetta set aside) skips the wizard trim question, the same way One Box does. Null for
+    // uncovered models leaves the wizard's default (still asks the optional trim).
+    if (result.vehicle?.make && result.vehicle?.model && hasAskableTrim(result.vehicle.make, result.vehicle.model) === false) {
+      result.vehicle.singleTrim = true;
+    }
     // ARCHIVE VERIFICATION (Step 2): a valid-but-UNVERIFIED model that sales_archive actually has
     // sales for (by title, the same scope One Box uses) is a REAL car, not an untracked designation.
     // Confirm against sales_archive; if it has sales, clear the unverified flag and title-case the
