@@ -3224,7 +3224,10 @@ export default async function handler(req, res) {
       // ~1.27=GBP, ~1.12=CHF) since the raw_record->>currency json column can't be filtered-and-selected.
       const srcLabel = req.body.source ? String(req.body.source) : "Bonhams";
       const cols = "id,platform,source,source_slug,sale_date,sale_price,high_bid,sale_price_usd,high_bid_usd,has_reserve,listing_title,vin_norm";
-      const q = `sales_archive?select=${cols}&platform=ilike.${encodeURIComponent("*" + srcLabel + "*")}&order=sale_date.desc&limit=${Math.min(3000, Number(req.body.limit) || 2000)}`;
+      const lim = Math.min(3000, Number(req.body.limit) || 2000);
+      const q = srcLabel === "SAMPLE"
+        ? `sales_archive?select=${cols}&order=id.desc&limit=8`
+        : `sales_archive?select=${cols}&platform=ilike.${encodeURIComponent("*" + srcLabel + "*")}&order=sale_date.desc&limit=${lim}`;
       const rows = (await supabaseSelect(env2, q)) || [];
       const inferCur = r => { const n = Number(r.sale_price), u = Number(r.sale_price_usd); if (!(n > 0) || !(u > 0)) return "?"; const k = u / n; return k > 1.2 ? "GBP" : k > 1.15 ? "CHF" : k > 1.04 ? "EUR" : k > 0.95 ? "USD" : "<USD?"; };
       const byCur = {}; for (const r of rows) { const c = inferCur(r); byCur[c] = (byCur[c] || 0) + 1; }
