@@ -3219,14 +3219,16 @@ export default async function handler(req, res) {
       // Filter by the SOURCE LABEL (source_slug is null on most rows - the slug backfill is pending,
       // see the house-premium-backout note). A scalar source filter is json-safe; a listing_title ILIKE
       // + json-extract columns hits the PostgREST false-0 quirk, so titles/chassis are matched client-side.
+      // SCALAR columns only + a platform filter (json-extract columns + a filter trip the PostgREST
+      // false-0 quirk). Currency is INFERRED from sale_price_usd / sale_price (1.0=USD, ~1.08=EUR,
+      // ~1.27=GBP, ~1.12=CHF) since the raw_record->>currency json column can't be filtered-and-selected.
       const srcLabel = req.body.source ? String(req.body.source) : "Bonhams";
-      const cols = "id,platform,source,source_slug,sale_date,sale_price,high_bid,sale_price_usd,high_bid_usd,has_reserve,listing_title," +
-        "cur:raw_record->>currency,country:raw_record->>country_code,url:raw_record->>url,src2:raw_record->>source_url";
+      const cols = "id,platform,source,source_slug,sale_date,sale_price,high_bid,sale_price_usd,high_bid_usd,has_reserve,listing_title,vin_norm";
       const q = `sales_archive?select=${cols}&platform=ilike.${encodeURIComponent("*" + srcLabel + "*")}&order=sale_date.desc&limit=${Math.min(3000, Number(req.body.limit) || 2000)}`;
       const rows = (await supabaseSelect(env2, q)) || [];
-      // Currency distribution for the "same failure pattern across all Bonhams" audit.
-      const byCur = {}; for (const r of rows) { const c = (r.cur || "USD").toUpperCase(); byCur[c] = (byCur[c] || 0) + 1; }
-      return res.status(200).json({ status: "archive_query", mode, source: srcLabel, count: rows.length, byCurrency: byCur, rows });
+      const inferCur = r => { const n = Number(r.sale_price), u = Number(r.sale_price_usd); if (!(n > 0) || !(u > 0)) return "?"; const k = u / n; return k > 1.2 ? "GBP" : k > 1.15 ? "CHF" : k > 1.04 ? "EUR" : k > 0.95 ? "USD" : "<USD?"; };
+      const byCur = {}; for (const r of rows) { const c = inferCur(r); byCur[c] = (byCur[c] || 0) + 1; }
+      return res.status(200).json({ status: "archive_query", mode, source: srcLabel, count: rows.length, byInferredCurrency: byCur, rows: rows.map(r => ({ ...r, inferredCur: inferCur(r) })) });
     }
     return res.status(400).json({ error: "unknown archiveQuery mode" });
   }
