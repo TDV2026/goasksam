@@ -1493,6 +1493,14 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
   const modelLabel=[v.model,v.trim].filter(Boolean).join(" ")||v.make||"this car";
   const carLbl=[v.year,v.make,v.model,v.trim].filter(Boolean).join(" ")||modelLabel;
   const asap=!!hc.asap;
+  // Item 7: the headline scope must MATCH the pool scope. The house pool reads the trim family across
+  // its production years (a 1997 GT2 R comp set includes 1996 cars), so a year-anchored "No 1997 X"
+  // headline over a multi-year pool is a scope mismatch. When the shown pool spans years other than
+  // the seller's, drop the year and name the family ("No Porsche 911 GT2 R has sold...").
+  const poolYears=[...new Set([].concat.apply([],hc.houses.map(h=>(h.receipts||[]).map(r=>Number(r.year)).filter(Boolean))))];
+  const spansYears=poolYears.length>1||(poolYears.length===1&&v.year&&poolYears[0]!==Number(v.year));
+  const carLblFamily=[v.make,v.model,v.trim].filter(Boolean).join(" ")||modelLabel;
+  const headLbl=spansYears?carLblFamily:carLbl;
   let houses=hc.houses.slice();
   if(asap&&hc.asapLead){houses.sort((a,b)=>((b.slug===hc.asapLead)-(a.slug===hc.asapLead)));}
   const pick=houses[0];
@@ -1508,17 +1516,17 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
   const othersClause=others.length?` ${listJoin(others)} ${others.length===1?"has":"have"} sold them too. Here's what ${others.length===1?"it":"each"} got.`:"";
   let lead;
   if(eraBandNote(opts)){
-    lead=`No ${esc(carLbl)} has sold in the last three years, so this is the wider ${esc(v.make||"")} market at the houses, not your exact car. ${esc(pickName)} has handled these most often${recency}.${othersClause}`;
+    lead=`No ${esc(headLbl)} has sold in the last three years, so this is the wider ${esc(v.make||"")} market at the houses, not your exact car. ${esc(pickName)} has handled these most often${recency}.${othersClause}`;
   } else if(opts.noOnline){
     // Item B2: the model resolved but has NO sales on the online platforms we track. Say so plainly and
     // show the houses that HAVE taken it, in the same breath, never a generic ask or a dead end.
     lead=oneSale
-      ? `No ${esc(carLbl)} has sold on the online platforms we track. ${esc(pickName)} is where the last one sold${recency1}.`
-      : `No ${esc(carLbl)} has sold on the online platforms we track. ${esc(pickName)} is where ${esc(modelLabel)}s have gone instead${recency}.${hammerClause}${othersClause}`;
+      ? `No ${esc(headLbl)} has sold on the online platforms we track. ${esc(pickName)} is where the last one sold${recency1}.`
+      : `No ${esc(headLbl)} has sold on the online platforms we track. ${esc(pickName)} is where ${esc(modelLabel)}s have gone instead${recency}.${hammerClause}${othersClause}`;
   } else if(asap){
     lead=`You told me you want to move quickly, so I'm leading with the soonest sale, not the strongest record. Every house below has taken ${esc(modelLabel)}s; here's the record, and when each one next runs.`;
   } else if(oneSale){
-    lead=`The only recent ${esc(carLbl)} to sell went to ${esc(pickName)}${recency1}.`;
+    lead=`The only recent ${esc(headLbl)} to sell went to ${esc(pickName)}${recency1}.`;
   } else {
     lead=`${esc(modelLabel)}s have gone to ${esc(pickName)} more than to any other house over the last three years${recency}.${hammerClause}${othersClause}`;
   }
@@ -1551,7 +1559,7 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
   // the ranked houses, each next sale, the shown receipts and the asking-price fact. Without this the
   // chat received none of the house content and denied mentioning houses / invented a platform.
   sellState.renderedHouseComparison={
-    eraBand:!!eraBandNote(opts), asap:!!asap, carLabel:carLbl, modelLabel:modelLabel,
+    eraBand:!!eraBandNote(opts), asap:!!asap, carLabel:headLbl, modelLabel:modelLabel,
     pick:pickName, others:others.slice(),
     houses:houses.map(h=>({
       name:h.display,
