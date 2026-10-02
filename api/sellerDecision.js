@@ -3216,16 +3216,14 @@ export default async function handler(req, res) {
       // Raw fields for sale verification (zero OCD): native price + currency, the stored USD columns,
       // high_bid, reserve, source + source_slug, and the raw-record location/sale name + url. Scoped by
       // a title ILIKE term (+ optional source_slug). For the 550 currency/premium/sale-vs-high-bid audit.
-      const term = req.body.term ? String(req.body.term) : null;
-      const srcSlug = req.body.sourceSlug ? String(req.body.sourceSlug) : null;
+      // Filter by SOURCE_SLUG only (a scalar eq is json-safe; a listing_title ILIKE + json-extract
+      // columns hits the PostgREST false-0 quirk). The caller matches titles/chassis client-side.
+      const srcSlug = req.body.sourceSlug ? String(req.body.sourceSlug) : "bonhams";
       const cols = "id,source,source_slug,sale_date,sale_price,high_bid,sale_price_usd,high_bid_usd,has_reserve,listing_title," +
         "cur:raw_record->>currency,country:raw_record->>country_code,url:raw_record->>url,src2:raw_record->>source_url";
-      let q = `sales_archive?select=${cols}`;
-      if (term) q += `&listing_title=ilike.${encodeURIComponent("*" + term + "*")}`;
-      if (srcSlug) q += `&source_slug=eq.${encodeURIComponent(srcSlug)}`;
-      q += `&order=sale_date.desc&limit=${Math.min(1000, Number(req.body.limit) || 300)}`;
+      const q = `sales_archive?select=${cols}&source_slug=eq.${encodeURIComponent(srcSlug)}&order=sale_date.desc&limit=${Math.min(2000, Number(req.body.limit) || 1500)}`;
       const rows = (await supabaseSelect(env2, q)) || [];
-      return res.status(200).json({ status: "archive_query", mode, count: rows.length, rows });
+      return res.status(200).json({ status: "archive_query", mode, sourceSlug: srcSlug, count: rows.length, rows });
     }
     return res.status(400).json({ error: "unknown archiveQuery mode" });
   }
