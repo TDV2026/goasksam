@@ -520,10 +520,10 @@
     var img = c.image ? '<img src="' + esc(c.image) + '" alt="' + esc(c.title) + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.rplate\');if(p)p.style.display=\'flex\'">' : "";
     var aside = (tagAside && c.hollow) ? '<span class="aside">set aside</span>' : "";
     var ext = '<span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>';
-    var inner = '<div class="rph">' + img + ext + aside + '<div class="rplate"><div class="n">' + esc(c.title) + '</div><div class="s">photo unavailable</div></div></div>' +
+    var inner = '<div class="rph">' + img + ext + aside + '<div class="rplate"><div class="n">' + esc(titleCaseSaleTitle(c.title)) + '</div><div class="s">photo unavailable</div></div></div>' +
       '<div class="rb"><div class="rprice num">' + esc(usd(c.price)) + "</div>" +
       '<div class="rmeta"><span class="num">' + esc(c.mileageText) + '</span><span class="dot">&middot;</span>' + esc(c.platform) + "</div>" +
-      '<div class="rdate">' + esc(c.month) + "</div><div class=\"rtitle\">" + esc(c.title) + "</div></div>";
+      '<div class="rdate">' + esc(c.month) + "</div><div class=\"rtitle\">" + esc(titleCaseSaleTitle(c.title)) + "</div></div>";
     var href = utmUrl(c.url);
     return href ? '<a class="rcard" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="rcard">' + inner + "</div>";
   }
@@ -702,11 +702,11 @@
     var lbl = DELTA_LABEL[c.delta] || "Recent sale";
     var venue = (c.platform && c.platform !== "others") ? c.platform : "";
     var meta = '<span class="num">' + esc(c.mileageText) + "</span>" + (c.transmission ? '<span class="dot">&middot;</span>' + esc(cap(String(c.transmission))) : "") + (venue ? '<span class="dot">&middot;</span>' + esc(venue) : "") + '<span class="dot">&middot;</span>' + esc(monthYear(c.date));
-    var inner = '<div class="bth">' + img + ext + '<div class="plate" style="display:' + (c.image ? "none" : "flex") + '"><div class="n">' + esc(c.title) + '</div></div></div>' +
+    var inner = '<div class="bth">' + img + ext + '<div class="plate" style="display:' + (c.image ? "none" : "flex") + '"><div class="n">' + esc(titleCaseSaleTitle(c.title)) + '</div></div></div>' +
       '<div class="bb"><span class="blabel">' + esc(lbl) + '</span><div class="bprice num">' + repPrice(c) + '</div>' +
       // Name the car as VISIBLE text (year/model/trim), not only in the image-plate that hides when
       // the photo loads - a bracket must never render as an unlabelled $600k "peer" (Sep 2026 fix).
-      (c.title ? '<div class="btitle">' + esc(c.title) + '</div>' : "") +
+      (c.title ? '<div class="btitle">' + esc(titleCaseSaleTitle(c.title)) + '</div>' : "") +
       '<div class="bmeta">' + meta + "</div></div>";
     var href = utmUrl(c.url);
     return href ? '<a class="bcard" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="bcard">' + inner + "</div>";
@@ -722,11 +722,24 @@
   // ("21k-Mile ...", "4,800-Mile ...") and trails a gearbox tag ("... 6-Speed") - both redundant on
   // a receipt row where the mileage + gearbox already sit in the meta line. Strip them to the clean
   // nameplate ("2018 BMW M4 Coupe Competition Package"). Never returns empty (falls back to the raw).
+  // Title-case a shouting sale title (item 6): "1973 FORD PINTO HATCHBACK" -> "1973 Ford Pinto
+  // Hatchback", keeping alphanumeric badges/codes (E63, 911R, GT3, 300SL, 550) and short all-caps
+  // badges (RS, SS, GT, GTO, GTS, AMG) as-is, and leaving already-mixed-case titles untouched.
+  function titleCaseSaleTitle(t) {
+    return String(t == null ? "" : t).split(/(\s+)/).map(function (w) {
+      if (!/[A-Za-z]/.test(w)) return w;
+      if (/\d/.test(w)) return w;
+      if (w.length <= 3 && w === w.toUpperCase()) return w;
+      if (w === w.toUpperCase()) return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+      return w;
+    }).join("");
+  }
   function cleanReceiptTitle(title) {
     var t = String(title == null ? "" : title);
     t = t.replace(/^\s*[\d][\d,.]*\s*k?\s*[-\s]\s*(mile|kilometer|km)s?\b'?s?\s*/i, ""); // "21k-Mile " / "4,800-Mile " / "26k-Kilometer "
     t = t.replace(/\s+\d+[-\s]speed\b/ig, "");   // " 6-Speed"
     t = t.replace(/\s{2,}/g, " ").trim();
+    t = titleCaseSaleTitle(t);                   // item 6: never shout a sale title
     return t || String(title == null ? "" : title);
   }
   // One compact supporting row (closest / fewer / more) with a thumbnail. Natural height, full width,
@@ -759,7 +772,7 @@
     var cmInner = '<div class="rph">' + img + '<span class="cmkick">' + cmKick + '</span>' + ext + '<div class="plate" style="display:' + (c.image ? "none" : "flex") + '"><div class="n">' + esc(cleanReceiptTitle(c.title)) + '</div><div class="s">photo pending</div></div></div>' +
       '<div class="rb"><div class="rprice num">' + repPrice(c) + '</div>' +
       '<div class="rmeta">' + repMeta(c) + '</div>' +
-      '<div class="rtitle">' + esc(c.title) + '<span class="dot">&middot;</span>' + esc(c.platform) + '<span class="dot">&middot;</span>' + esc(monthYear(c.date)) + '</div>' +
+      '<div class="rtitle">' + esc(titleCaseSaleTitle(c.title)) + '<span class="dot">&middot;</span>' + esc(c.platform) + '<span class="dot">&middot;</span>' + esc(monthYear(c.date)) + '</div>' +
       '<div class="why">' + lint(why, "card.why") + "</div></div>";
     var cmHref = utmUrl(c.url);
     var cm = cmHref ? '<a class="cm cm-solo" href="' + esc(cmHref) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + cmInner + "</a>" : '<div class="cm cm-solo">' + cmInner + "</div>";

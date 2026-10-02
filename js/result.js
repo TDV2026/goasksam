@@ -1361,11 +1361,24 @@ function bodyClassWord(v){
 }
 // Plural of the body-class word ("SUV" -> "SUVs", else +s).
 function bodyClassPlural(v){ var w=bodyClassWord(v); return w+"s"; }
+// Title-case a shouting sale title (item 6): "1973 FORD PINTO HATCHBACK" -> "1973 Ford Pinto
+// Hatchback", keeping alphanumeric badges/codes (E63, 911R, GT3, 300SL, 550) and short all-caps
+// badges (RS, SS, GT, GTO, GTS, AMG) exactly as they are, and leaving already-mixed-case titles alone.
+function titleCaseSaleTitle(t){
+  return String(t==null?"":t).split(/(\s+)/).map(function(w){
+    if(!/[A-Za-z]/.test(w))return w;                                   // whitespace/punctuation/number
+    if(/\d/.test(w))return w;                                          // alphanumeric badge or year
+    if(w.length<=3&&w===w.toUpperCase())return w;                      // short all-caps badge (RS, GTO, AMG)
+    if(w===w.toUpperCase())return w.charAt(0).toUpperCase()+w.slice(1).toLowerCase();  // de-shout FORD->Ford
+    return w;                                                          // already mixed-case: leave
+  }).join("");
+}
 function cleanReceiptTitleForCard(title){
   var t=String(title==null?"":title);
   t=t.replace(/^\s*[\d][\d,.]*\s*k?\s*[-\s]\s*(mile|kilometer|km)s?\b'?s?\s*/i,""); // "21k-Mile "
   t=t.replace(/\s+\d+[-\s]speed\b/ig,"");   // " 6-Speed"
   t=t.replace(/\s{2,}/g," ").trim();
+  t=titleCaseSaleTitle(t);                  // item 6: never shout a sale title
   return t||String(title==null?"":title);
 }
 function _hcReceiptRow(rc,modelLabel){
