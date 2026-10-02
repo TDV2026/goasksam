@@ -1200,7 +1200,7 @@ function _thinPickCardHtml(o){
         ? `${esc(name)} is where ${esc(o.modelLabel)}s like this have been selling over the last three years, ${range}.`
         : `${esc(o.modelLabel)}s like this have sold on ${esc(name)} over the last three years, ${range}.`);
   if(isHouse&&o.others&&o.others.length){
-    const oth=o.others.map(h=>`${esc((typeof platformDisplayName==="function"&&platformDisplayName(h.slug))||h.venue)}`).join(", ");
+    const oth=listJoin(o.others.map(h=>esc((typeof platformDisplayName==="function"&&platformDisplayName(h.slug))||h.venue)));
     why+=` ${o.others.length===1?"The other house to take one":"Other houses that have taken them"}: ${oth}.`;
   }
   // Receipt line leads with the SALE month (unambiguous "June 2024 · $960,000"), car/model year
@@ -1376,6 +1376,8 @@ function titleCaseSaleTitle(t){
 // Strip VIN / chassis / engine designations and auction lot codes from a displayed title (item 2):
 // "... VIN. ZFFZR49B000110732", "... Chassis no. *ZFFTA17B...*", "... Engine no. F113A*00060*",
 // "... (FL26)". The chassis renders on its own line elsewhere, so it is noise in the title.
+// One list-join helper used everywhere (item 3): "X", "X and Y", "X, Y and Z" - never "X and Y and Z".
+function listJoin(arr){ arr=(arr||[]).filter(Boolean); if(!arr.length)return ""; if(arr.length===1)return String(arr[0]); if(arr.length===2)return arr[0]+" and "+arr[1]; return arr.slice(0,-1).join(", ")+" and "+arr[arr.length-1]; }
 function stripIdsFromTitle(t){
   t=String(t==null?"":t);
   t=t.replace(/\s*\b(?:vin|chassis|engine)\b\.?\s*(?:no\.?|number|#)?\s*:?\s*\*?[A-Za-z0-9][A-Za-z0-9*\/\-]{4,}\*?/ig,"");
@@ -1482,7 +1484,7 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
   // Hammer clause ONLY when the pick is also top by median (a true record statement, never a promise).
   const topMedian=houses.reduce((m,h)=>Math.max(m,h.median||0),0);
   const hammerClause=(!asap&&pick.median===topMedian&&houses.length>1)?" Its hammer results are the strongest of the group, too.":"";
-  const othersClause=others.length?` ${others.join(" and ")} ${others.length===1?"has":"have"} taken ${eraBandNote(opts)?"them":"them"} too; here's what each brought.`:"";
+  const othersClause=others.length?` ${listJoin(others)} ${others.length===1?"has":"have"} sold them too. Here's what ${others.length===1?"it":"each"} got.`:"";
   let lead;
   if(eraBandNote(opts)){
     lead=`No ${esc(carLbl)} has sold in the last three years, so this is the wider ${esc(v.make||"")} market at the houses, not your exact car. ${esc(pickName)} has handled these most often${recency}.${othersClause}`;
