@@ -3220,11 +3220,13 @@ export default async function handler(req, res) {
       // see the house-premium-backout note). A scalar source filter is json-safe; a listing_title ILIKE
       // + json-extract columns hits the PostgREST false-0 quirk, so titles/chassis are matched client-side.
       const srcLabel = req.body.source ? String(req.body.source) : "Bonhams";
-      const cols = "id,source,source_slug,sale_date,sale_price,high_bid,sale_price_usd,high_bid_usd,has_reserve,listing_title," +
+      const cols = "id,platform,source,source_slug,sale_date,sale_price,high_bid,sale_price_usd,high_bid_usd,has_reserve,listing_title," +
         "cur:raw_record->>currency,country:raw_record->>country_code,url:raw_record->>url,src2:raw_record->>source_url";
-      const q = `sales_archive?select=${cols}&source=ilike.${encodeURIComponent("*" + srcLabel + "*")}&order=sale_date.desc&limit=${Math.min(2000, Number(req.body.limit) || 1500)}`;
+      const q = `sales_archive?select=${cols}&platform=ilike.${encodeURIComponent("*" + srcLabel + "*")}&order=sale_date.desc&limit=${Math.min(3000, Number(req.body.limit) || 2000)}`;
       const rows = (await supabaseSelect(env2, q)) || [];
-      return res.status(200).json({ status: "archive_query", mode, source: srcLabel, count: rows.length, rows });
+      // Currency distribution for the "same failure pattern across all Bonhams" audit.
+      const byCur = {}; for (const r of rows) { const c = (r.cur || "USD").toUpperCase(); byCur[c] = (byCur[c] || 0) + 1; }
+      return res.status(200).json({ status: "archive_query", mode, source: srcLabel, count: rows.length, byCurrency: byCur, rows });
     }
     return res.status(400).json({ error: "unknown archiveQuery mode" });
   }
