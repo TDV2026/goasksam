@@ -5,8 +5,10 @@
 // Surfaces per row:
 //   - One Box   : POST /api/sellerDecision { oneBox:true } (archive-only, ZERO OCD).
 //   - /sell     : POST /api/sellerDecision as the wizard posts it (car.raw + region/state +
-//                 acceptModelLevel). This is the REAL deployed /sell engine the wizard calls; the
-//                 rendered-screen agreement is covered separately by the PNG proofs.
+//                 acceptModelLevel) PLUS archiveOnly:true. This is the REAL deployed /sell engine the
+//                 wizard calls (same classification, ladder and decision), but archiveOnly forces it to
+//                 read the permanent store/archive instead of a live OCD fetch, so the harness makes
+//                 ZERO OCD requests. The rendered-screen agreement is covered separately by the PNG proofs.
 //   - Desk      : POST /api/sellerDecision { archiveQuery:"pool" } for the row's title (archive-only)
 //                 where the row resolves there; reported, never the disagreement trigger.
 //
@@ -15,8 +17,8 @@
 // exclusion. poolCount and range are compared with tolerance (OCD-freshness vs archive, $500 band
 // overlap) and reported as a WARNING, not a failure, until Step 3 unifies the pool.
 //
-// The harness itself makes ZERO OCD requests: it only calls /api/sellerDecision (One Box + archive
-// paths are archive-only; the /sell engine's own OCD fetch is the product's, cached 24h per ENGINE_VERSION).
+// The harness itself makes ZERO OCD requests: every surface is archive-only - One Box and Desk by
+// their own paths, and /sell via archiveOnly:true (store/archive read, no live OCD fetch).
 //
 // Run: node scripts/engineCheck.js   (needs Chrome + crew cookie; bypass secret optional)
 
@@ -123,7 +125,7 @@ async function main() {
     const anon = "ec-" + Date.now() + "-" + Math.floor(Math.random() * 1e9);
     let ob = null, sell = null, desk = null;
     try { ob = await call({ oneBox: true, anonId: anon + "o", car: { raw: row.q } }); } catch (e) { ob = { status: "err" }; }
-    try { sell = await call({ anonId: anon + "s", car: { raw: row.q, region: "US", state: "California", acceptModelLevel: true } }); } catch (e) { sell = { status: "err" }; }
+    try { sell = await call({ anonId: anon + "s", archiveOnly: true, car: { raw: row.q, region: "US", state: "California", acceptModelLevel: true } }); } catch (e) { sell = { status: "err" }; }
     try { desk = await call({ archiveQuery: "pool", terms: [String(row.q).replace(/^\d{4}\s+/, "").split(/\s+/).slice(1).join(" ") || row.q], dateFrom: "2023-01-01", dateTo: "2027-12-31" }); } catch (e) { desk = null; }
 
     const obT = { car: obCar(ob), tier: obTier(ob), pool: obPool(ob), halo: haloExcluded(obTitles(ob), row.make), range: obRange(ob) };

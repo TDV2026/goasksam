@@ -3725,6 +3725,21 @@ export default async function handler(req, res) {
       fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
       cacheStatus = fetchResult ? "hit" : "hit_store_empty_refetched";
     }
+    // Item 3: internal archive-only flag (NEVER set by the frontend). The engineCheck harness and any
+    // other zero-OCD proof sets archiveOnly:true so the real /sell engine runs end-to-end on the
+    // permanent store/archive instead of a live OCD fetch, guaranteeing zero metered requests. It
+    // short-circuits BEFORE the budget guard and the live fetch below, so no OCD call is ever made.
+    const archiveOnly = req.body?.archiveOnly === true;
+    if (!fetchResult && archiveOnly) {
+      fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
+      if (fetchResult) {
+        fetchResult.stopReason = "archive_only";
+        cacheStatus = "archive_only_store";
+      } else {
+        fetchResult = { records: [], passSummary: [], stoppedEarly: true, stopReason: "archive_only_empty", elapsedMs: 0, timeBudgetMs: FETCH_TIME_BUDGET_MS, meteredRequests: 0, ladder: buildLadder(vehicle, generation), fromCache: true };
+        cacheStatus = "archive_only";
+      }
+    }
     // Budget guards (7A): daily pace + monthly cap, read from app_usage_events.
     let usedMonthBefore = null;
     // Item 4: when the meter is blind, fail CLOSED to a small floor instead of spending unguarded.
