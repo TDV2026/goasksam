@@ -1422,15 +1422,22 @@ function _hcReceiptRow(rc,modelLabel){
 }
 // Asking price vs the sales SHOWN, stated as a plain fact (item 7), never a valuation. Returns "" when
 // no asking price or no priced sales. Compares the seller's ask to the hammer figures on the cards.
-function _askingVsSalesLine(hammers){
+function _askingVsSalesLine(hammers,familyCount,familyLabel){
   // Item 2: use the SAME parser the header/confirm use (parseAskingPrice), so "22" reads as $22,000
   // everywhere. The old ad-hoc parse only multiplied on a k/m suffix, so "22" stayed $22 and the
   // above/below wording flipped.
   const n=(typeof parseAskingPrice==="function")?parseAskingPrice(sellState.price):null;
   if(!n||!(n>0)) return "";
+  const esc=escapeHtml, money=moneyShort, ask=money(Math.round(n));
+  // Item 3: the ask comparison is only honest against the TRIM-FAMILY pool. With fewer than three
+  // family sales there is no pool to compare against, so say that and nothing else - never a stray
+  // "1 of 1 sold below it" that reads as a valuation on a single receipt.
+  const fc=Number(familyCount);
+  if(Number.isFinite(fc)&&fc<3){
+    return `<p style="font-size:13.5px;line-height:1.55;color:#171717;margin:14px 0 0"><span style="font-weight:600">Too few ${esc(familyLabel||"comparable")} sales to compare against your ask.</span></p>`;
+  }
   const hs=(hammers||[]).filter(x=>Number(x)>0).sort((a,b)=>a-b);
   if(!hs.length) return "";
-  const esc=escapeHtml, money=moneyShort, ask=money(Math.round(n));
   let fact;
   const lead1=hs.length===1?"The one sale shown was":"Every sale shown was";   // single-sale wording (item 4)
   if(n>hs[hs.length-1]) fact=`${lead1} below your ${ask} ask.`;
@@ -1511,7 +1518,11 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
   // Item 7: asking price vs the sales SHOWN, as a plain fact. Uses the same displayed receipts (top 3
   // per house) the cards render, so the statement is computed from the same pool the seller sees.
   const shownHammers=[].concat.apply([],houses.map(h=>(h.receipts||[]).slice(0,3).map(r=>r.hammer)));
-  const askLine=_askingVsSalesLine(shownHammers);
+  // Item 3: the ask comparison runs against the TRIM-FAMILY pool only (post item-1/2 fencing, the
+  // receipts ARE the family). Gate on the full family pool size, labelled by the car's own trim.
+  const familyCount=Number(hc.totalHouse)||houses.reduce((s,h)=>s+(Number(h.count)||0),0);
+  const familyLabel=(v.trim&&String(v.trim).trim())?v.trim:modelLabel;
+  const askLine=_askingVsSalesLine(shownHammers,familyCount,familyLabel);
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
@@ -1536,7 +1547,7 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
       nextSale:h.nextSale?`${h.nextSale.city}, ${h.nextSale.monthName} ${h.nextSale.year}${h.nextSale.intl?" (international)":""}`:null,
       sales:(h.receipts||[]).slice(0,3).map(r=>`${cleanReceiptTitleForCard(r.title)||[r.year,r.model].filter(Boolean).join(" ")} ${money(r.hammer)}${r.date?" ("+(_thinMonthLabel(r.date)||"")+")":""}`)
     })),
-    askingLine:(function(){const hs=[].concat.apply([],houses.map(h=>(h.receipts||[]).slice(0,3).map(r=>r.hammer)));const n=(typeof parseAskingPrice==="function")?parseAskingPrice(sellState.price):null;if(!n||!(n>0))return null;const f=hs.filter(x=>Number(x)>0).sort((a,b)=>a-b);if(!f.length)return null;const L=f.length===1?"The one sale shown was":"Every sale shown was";if(n>f[f.length-1])return`${L} below the seller's ${money(Math.round(n))} ask.`;if(n<f[0])return`${L} above the seller's ${money(Math.round(n))} ask.`;return`The seller's ${money(Math.round(n))} ask sits within the sales shown.`;})()
+    askingLine:(function(){const n=(typeof parseAskingPrice==="function")?parseAskingPrice(sellState.price):null;if(!n||!(n>0))return null;if(Number.isFinite(familyCount)&&familyCount<3)return`Too few ${familyLabel||"comparable"} sales to compare against the seller's ${money(Math.round(n))} ask.`;const hs=[].concat.apply([],houses.map(h=>(h.receipts||[]).slice(0,3).map(r=>r.hammer)));const f=hs.filter(x=>Number(x)>0).sort((a,b)=>a-b);if(!f.length)return null;const L=f.length===1?"The one sale shown was":"Every sale shown was";if(n>f[f.length-1])return`${L} below the seller's ${money(Math.round(n))} ask.`;if(n<f[0])return`${L} above the seller's ${money(Math.round(n))} ask.`;return`The seller's ${money(Math.round(n))} ask sits within the sales shown.`;})()
   };
   msgs.appendChild(row);
   row.scrollIntoView({behavior:"smooth",block:"start"});
