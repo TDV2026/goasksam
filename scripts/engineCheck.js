@@ -148,11 +148,16 @@ async function main() {
     // family rule on BOTH surfaces, or a race car leaked into a road pool (or vice versa).
     if (row.poolGuard) {
       const g = row.poolGuard;
+      // De-glue a garbled raw title ("GT2 RGT2 R" -> "GT2 R") so a malformed title can't false-pass
+      // the guard the same way it once defeated the fence.
+      const degl = s => String(s || "").replace(/\b([A-Za-z])([A-Za-z]*\d[A-Za-z0-9]*)\s+\1\b/g, "$2 $1")
+        .replace(/\b((?:[A-Za-z0-9][A-Za-z0-9/.\-]*\s+){0,2}[A-Za-z0-9][A-Za-z0-9/.\-]*)(?:\s+\1\b)+/ig, "$1").replace(/\s{2,}/g, " ").trim();
       for (const [surf, titles] of [["OB", obTitles(ob)], ["SELL", sellTitles(sell)]]) {
-        for (const t of titles) {
-          if (!g.familyRe.test(String(t || ""))) continue;
-          if (g.mustMatch && !g.mustMatch.test(String(t))) fails.push(`${g.label}: ${surf} leaked "${t}"`);
-          if (g.mustNotMatch && g.mustNotMatch.test(String(t))) fails.push(`${g.label}: ${surf} leaked "${t}"`);
+        for (const raw of titles) {
+          const t = degl(raw);
+          if (!g.familyRe.test(t)) continue;
+          if (g.mustMatch && !g.mustMatch.test(t)) fails.push(`${g.label}: ${surf} leaked "${raw}"`);
+          if (g.mustNotMatch && g.mustNotMatch.test(t)) fails.push(`${g.label}: ${surf} leaked "${raw}"`);
         }
       }
     }
