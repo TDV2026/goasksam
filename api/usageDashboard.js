@@ -2945,6 +2945,8 @@ async function handleOps(req, res) {
     const bySource = {};
     const sampleQuota = { bringatrailer: 12, bonhams: 5, barrettjackson: 5, rmsothebys: 4, mecum: 4 };
     const samples = [];
+    const noneQuota = { bringatrailer: 14, bonhams: 6, rmsothebys: 4, mecum: 3 };
+    const noneSamples = [];
     for (const r of rows) {
       const c = classifyUnknown({ listing_title: r.listing_title, vin: r.vin });
       const bucket = c.confidence === "high" ? "high" : c.confidence === "low" ? "low" : "none";
@@ -2956,11 +2958,12 @@ async function handleOps(req, res) {
         sampleQuota[s]--;
         samples.push({ source: s, title: (r.listing_title || "").slice(0, 70), vin: r.vin || null, proposedMake: c.make, proposedModel: c.model, confidence: c.confidence, basis: c.basis });
       }
+      if (c.confidence === "none" && noneQuota[s] > 0) { noneQuota[s]--; noneSamples.push({ source: s, title: (r.listing_title || "").slice(0, 70), vin: r.vin || null }); }
     }
     return res.status(200).json({
       task: "unkclassify", note: "DRY RUN - no archive writes",
       counts: { total: tot.total, classifiesConfident_high: tot.high, classifiesLow: tot.low, staysUnknown: tot.none },
-      bySource, samples
+      bySource, samples, noneSamples
     });
   }
 
