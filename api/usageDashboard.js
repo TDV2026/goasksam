@@ -2968,7 +2968,82 @@ async function handleOps(req, res) {
     });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify." });
+  // task=unkbackfill: Fix 5 item 4. Backfill make/model/vehicle_type for make/model-'Unknown' rows.
+  // DRY by default (write=1 to persist). Writes make+model+vehicle_type for HIGH-confidence car/moto,
+  // and vehicle_type only for detected non_vehicle/other (so the NULL=car engine transition never
+  // pools memorabilia). Low-confidence + unclassified are left Unknown. VIN-dedupe: a VIN on >1 lot is
+  // never trusted (polluted Bonhams automobilia VINs). Resumable via &offset=; &maxGroups caps a call.
+  if (task === "unkbackfill") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { classifyUnknown } = await import("../lib/_unknownClassify.js");
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "return=minimal" };
+    const write = req.query?.write === "1";
+    const offset = Math.max(0, Number(req.query?.offset || 0));
+    const maxGroups = Math.max(1, Math.min(4000, Number(req.query?.maxGroups || 1200)));
+    const rows = await supabaseSelectAll(env, `sales_archive?or=(make.ilike.unknown,model.ilike.unknown)&select=id,source_slug,vin,listing_title&order=id.asc`);
+    if (!rows) return res.status(500).json({ error: "read failed" });
+    const vinCount = {}; for (const r of rows) { const v = String(r.vin || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); if (v.length >= 6) vinCount[v] = (vinCount[v] || 0) + 1; }
+    const repeated = new Set(Object.entries(vinCount).filter(([, n]) => n > 1).map(([v]) => v));
+    // Group rows by the exact update they need, so one PATCH (id=in.(...)) updates many rows.
+    const groups = new Map(); const plan = { car: 0, motorcycle: 0, non_vehicle: 0, other: 0, low: 0, unclassified: 0 };
+    for (const r of rows) {
+      const v = String(r.vin || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const useVin = v && !repeated.has(v) ? r.vin : null;
+      const c = classifyUnknown({ listing_title: r.listing_title, vin: useVin });
+      let patch = null;
+      if (c.confidence === "high" && (c.vehicle_type === "car" || c.vehicle_type === "motorcycle") && c.make && c.model) { patch = { make: c.make, model: c.model, vehicle_type: c.vehicle_type }; plan[c.vehicle_type]++; }
+      else if (c.vehicle_type === "non_vehicle") { patch = { vehicle_type: "non_vehicle" }; plan.non_vehicle++; }
+      else if (c.vehicle_type === "other") { patch = { vehicle_type: "other" }; plan.other++; }
+      else if (c.confidence === "low") { plan.low++; continue; }
+      else { plan.unclassified++; continue; }
+      const key = JSON.stringify(patch);
+      if (!groups.has(key)) groups.set(key, { patch, ids: [] });
+      groups.get(key).ids.push(r.id);
+    }
+    const allGroups = [...groups.values()];
+    let written = 0, groupsDone = 0, patchErrors = 0;
+    for (let gi = offset; gi < allGroups.length && groupsDone < maxGroups; gi++, groupsDone++) {
+      const g = allGroups[gi];
+      if (!write) { written += g.ids.length; continue; }
+      for (let i = 0; i < g.ids.length; i += 100) {   // chunk ids to keep the URL bounded
+        const idList = g.ids.slice(i, i + 100).map(encodeURIComponent).join(",");
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?id=in.(${idList})`, { method: "PATCH", headers: H, body: JSON.stringify(g.patch) });
+        if (r.ok) written += Math.min(100, g.ids.length - i); else patchErrors++;
+      }
+    }
+    const nextOffset = offset + groupsDone;
+    return res.status(200).json({ task: "unkbackfill", write, totalUnknownRows: rows.length, repeatedVinsIgnored: repeated.size, plan, distinctUpdateGroups: allGroups.length, groupsProcessedThisCall: groupsDone, rowsWritten: written, patchErrors, nextOffset: nextOffset < allGroups.length ? nextOffset : null });
+  }
+
+  // task=typeall: Fix 5 full-typing of the ~284k ALREADY-identified (non-Unknown) rows. DRY report of
+  // vehicle_type by source + type from the existing make (typeByMake). write=1 persists via cheap
+  // make-keyed bulk PATCHes (one per pure-moto / off-highway make -> moto/other, then a catch-all ->
+  // car), only where vehicle_type IS NULL. Unknown rows are out of scope here (unkbackfill owns them).
+  if (task === "typeall") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { typeByMake, makeTypeLists } = await import("../lib/_unknownClassify.js");
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "return=minimal" };
+    const write = req.query?.write === "1";
+    if (!write) {
+      const rows = await supabaseSelectAll(env, `sales_archive?make=not.ilike.unknown&model=not.ilike.unknown&select=source_slug,make`);
+      if (!rows) return res.status(500).json({ error: "read failed" });
+      const byType = {}, bySource = {};
+      for (const r of rows) { const t = typeByMake(r.make) || "car"; byType[t] = (byType[t] || 0) + 1; const s = r.source_slug || "?"; (bySource[s] = bySource[s] || {})[t] = (bySource[s][t] || 0) + 1; }
+      return res.status(200).json({ task: "typeall", write: false, note: "DRY - identified (non-Unknown) rows typed by existing make", scanned: rows.length, byType, bySource });
+    }
+    // WRITE: bulk make-keyed PATCHes, vehicle_type IS NULL only. Moto + other makes first, then car catch-all.
+    const { motorcycleMakes, otherMakes } = makeTypeLists();
+    const patchMake = async (make, type) => { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?make=ilike.${encodeURIComponent(make)}&vehicle_type=is.null`, { method: "PATCH", headers: { ...H, Prefer: "return=representation,count=exact" }, body: JSON.stringify({ vehicle_type: type }) }); const cr = r.headers.get("content-range") || ""; const m = /\/(\d+)$/.exec(cr); return { ok: r.ok, n: m ? Number(m[1]) : null }; };
+    const done = { motorcycle: 0, other: 0, car: 0, errors: 0 };
+    for (const mk of otherMakes) { const x = await patchMake(mk, "other"); if (x.ok) done.other += (x.n || 0); else done.errors++; }
+    for (const mk of motorcycleMakes) { const x = await patchMake(mk, "motorcycle"); if (x.ok) done.motorcycle += (x.n || 0); else done.errors++; }
+    // Catch-all: every remaining identified row (make known, still null) is a car.
+    const rc = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?make=not.ilike.unknown&model=not.ilike.unknown&vehicle_type=is.null`, { method: "PATCH", headers: { ...H, Prefer: "return=representation,count=exact" }, body: JSON.stringify({ vehicle_type: "car" }) });
+    const crc = rc.headers.get("content-range") || ""; const mc = /\/(\d+)$/.exec(crc); done.car = mc ? Number(mc[1]) : null; if (!rc.ok) done.errors++;
+    return res.status(200).json({ task: "typeall", write: true, result: done });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
