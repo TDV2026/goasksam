@@ -2796,14 +2796,21 @@ async function handleOps(req, res) {
     // PROVE the jsonb filter works (so a 0 for JPY/HKD/NZD is a real zero, not a broken filter).
     const probe = async cur => { const r = await supabaseSelect(env, `sales_archive?raw_record->>currency=eq.${cur}&select=id&limit=1`); return r ? (r.length > 0 ? "present" : "none") : "err"; };
     const filterCheck = {}; for (const cur of ["GBP", "EUR", "USD"]) filterCheck[cur] = await probe(cur);
-    // Use a LIMIT read (not the Range-based selectAll): an empty result returns a clean 200 [] = 0,
-    // whereas Range returns 416 on empty which the helper reports as null. So 0 is unambiguous here;
-    // null now means only a genuine error. Sorted in JS below (no order= in the query).
-    const counts = {}, raw = [];
-    for (const cur of CURS) {
-      const got = await supabaseSelect(env, `sales_archive?raw_record->>currency=eq.${cur}&select=${sel}&limit=500`);
-      counts[cur] = got ? got.length : null;
-      if (got) for (const r of got) raw.push(r);
+    // raw_record->>currency is NOT indexed, so a bare filtered scan reads all ~290k rows and hits the
+    // DB statement timeout. Narrow every scan with the INDEXED sale_date (year chunks) so each query
+    // touches only one year's rows; the jsonb currency filter then runs on a small bounded set. An
+    // empty year returns a clean 200 [] (= 0 matches), so the final count is exact. A catch-all null
+    // -sale_date bucket covers rows with no sale date. in.(...) matches any of the target currencies.
+    const inList = CURS.join(",");
+    const nowY = new Date().getUTCFullYear();
+    const windows = ["sale_date=is.null"];
+    for (let y = 2000; y <= nowY; y++) windows.push(`sale_date=gte.${y}-01-01&sale_date=lt.${y + 1}-01-01`);
+    const counts = {}; for (const c of CURS) counts[c] = 0;
+    const raw = []; let scanErrors = 0;
+    for (const w of windows) {
+      const got = await supabaseSelect(env, `sales_archive?${w}&raw_record->>currency=in.(${inList})&select=${sel}&limit=500`);
+      if (got === null) { scanErrors++; continue; }
+      for (const r of got) { raw.push(r); const c = String(r.curr || "").toUpperCase(); if (counts[c] != null) counts[c]++; }
     }
     const enrich = r => {
       const native = Math.round(Number(r.sale_price) || 0);
@@ -2837,7 +2844,7 @@ async function handleOps(req, res) {
     const cubeCells = [];
     for (const f of fams) { const [mk, fam] = f.split("|"); const c = await supabaseSelect(env, `desk_aggregates?make=eq.${encodeURIComponent(mk)}&model_family=eq.${encodeURIComponent(fam)}&select=n,median_usd,newest_sale,window_key&limit=2`); cubeCells.push({ make: mk, family: fam, cubeCells: c ? c.length : 0, sample: c && c[0] ? c[0] : null }); }
     return res.status(200).json({
-      task: "fxaudit", currencies: CURS, counts, filterCheck, totalRows: all.length, fxCoverage,
+      task: "fxaudit", currencies: CURS, counts, scanErrors, filterCheck, totalRows: all.length, fxCoverage,
       top5, rows: all.slice(0, 60),
       item3: { bySource, inBatOrCandB: inBatCB.length, june2026Count: june.length, june2026: june.slice(0, 20).map(r => ({ title: r.title, source: r.source, date: r.date })), note: "BaT/C&B are USD-only sources; a JPY/HKD/NZD row cannot be in their totals" },
       item2: { savedResultsScannedLast60d: savedScanned, matchScanRows: scan.length, savedMatches, cube: { note: "desk_aggregates holds aggregate medians per (make,model_family,gen,year,channel,venue,window); no individual-row membership", families: cubeCells } }
