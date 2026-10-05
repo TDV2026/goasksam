@@ -1508,37 +1508,57 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
   const headLbl=spansYears?carLblFamily:carLbl;
   let houses=hc.houses.slice();
   if(asap&&hc.asapLead){houses.sort((a,b)=>((b.slug===hc.asapLead)-(a.slug===hc.asapLead)));}
+  // Item 2: a "Sam's Pick" only appears when a house LEADS on at least 2 family sales in the window.
+  // When every house has one sale there is no leader, so show the houses in date order (most recent
+  // first) with NO pick, and the headline states what happened. ASAP keeps its own soonest-sale lead.
+  const totalSales=houses.reduce((s,h)=>s+(Number(h.count)||0),0);
+  const maxHouseCount=houses.reduce((m,h)=>Math.max(m,Number(h.count)||0),0);
+  const oneSale=totalSales===1;
+  const hasPick=asap||maxHouseCount>=2;
+  if(!hasPick){houses.sort((a,b)=>String(b.mostRecent||"").localeCompare(String(a.mostRecent||"")));}
   const pick=houses[0];
   const pickName=pick.display;
   const others=houses.slice(1).map(h=>h.display);
-  // Single-sale wording (item 4): when the whole pool is one sale, never plural/trend language.
-  const oneSale=houses.reduce((s,h)=>s+(Number(h.count)||0),0)===1;
+  const NUMWORD=["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve"];
+  const countWord=n=>NUMWORD[n]||String(n);
+  const familyLabel2=(v.trim&&String(v.trim).trim())?String(v.trim).trim():modelLabel;
+  // "one at Bonhams and one at RM Sotheby's" - each house with its own count, no pick implied.
+  const perHouseList=listJoin(houses.map(h=>`${countWord(Number(h.count)||0)} at ${esc(h.display)}`));
+  // "{N} {family}s have sold at auction in the last three years, one at X and one at Y." (no-pick, multi)
+  const auctionSentence=`${esc(countWord(totalSales).charAt(0).toUpperCase()+countWord(totalSales).slice(1))} ${esc(familyLabel2)}${totalSales===1?"":"s"} ${totalSales===1?"has":"have"} sold at auction in the last three years, ${perHouseList}.`;
   const recency=pick.mostRecent?`, most recently in ${_thinMonthLabel(pick.mostRecent)}`:"";
   const recency1=pick.mostRecent?`, in ${_thinMonthLabel(pick.mostRecent)}`:"";   // single-sale: no "most recently"
   // Hammer clause ONLY when the pick is also top by median (a true record statement, never a promise).
   const topMedian=houses.reduce((m,h)=>Math.max(m,h.median||0),0);
-  const hammerClause=(!asap&&pick.median===topMedian&&houses.length>1)?" Its hammer results are the strongest of the group, too.":"";
-  const othersClause=others.length?` ${listJoin(others)} ${others.length===1?"has":"have"} sold them too. Here's what ${others.length===1?"it":"each"} got.`:"";
+  const hammerClause=(hasPick&&!asap&&pick.median===topMedian&&houses.length>1)?" Its hammer results are the strongest of the group, too.":"";
+  const othersClause=(hasPick&&others.length)?` ${listJoin(others)} ${others.length===1?"has":"have"} sold them too. Here's what ${others.length===1?"it":"each"} got.`:"";
   let lead;
   if(eraBandNote(opts)){
-    lead=`No ${esc(headLbl)} has sold in the last three years, so this is the wider ${esc(v.make||"")} market at the houses, not your exact car. ${esc(pickName)} has handled these most often${recency}.${othersClause}`;
+    lead=hasPick
+      ? `No ${esc(headLbl)} has sold in the last three years, so this is the wider ${esc(v.make||"")} market at the houses, not your exact car. ${esc(pickName)} has handled these most often${recency}.${othersClause}`
+      : `No ${esc(headLbl)} has sold in the last three years, so this is the wider ${esc(v.make||"")} market at the houses, not your exact car. ${auctionSentence}`;
   } else if(opts.noOnline){
-    // Item B2: the model resolved but has NO sales on the online platforms we track. Say so plainly and
-    // show the houses that HAVE taken it, in the same breath, never a generic ask or a dead end.
+    // The model resolved but has NO online sales. Say so plainly; then, with a pick, lead with the house
+    // that leads on the record; without a pick, state the count and name each house (single-sale wording
+    // on one sale: never "have gone" / "has sold them too"). Item 2.
     lead=oneSale
-      ? `No ${esc(headLbl)} has sold on the online platforms we track. ${esc(pickName)} is where the last one sold${recency1}.`
-      : `No ${esc(headLbl)} has sold on the online platforms we track. ${esc(pickName)} is where ${esc(modelLabel)}s have gone instead${recency}.${hammerClause}${othersClause}`;
+      ? `No ${esc(headLbl)} has sold on the online platforms we track. The only one to sell at auction went to ${esc(pickName)}${recency1}.`
+      : hasPick
+        ? `No ${esc(headLbl)} has sold on the online platforms we track. ${esc(pickName)} is where ${esc(modelLabel)}s have gone instead${recency}.${hammerClause}${othersClause}`
+        : `No ${esc(headLbl)} has sold on the online platforms we track. ${auctionSentence}`;
   } else if(asap){
     lead=`You told me you want to move quickly, so I'm leading with the soonest sale, not the strongest record. Every house below has taken ${esc(modelLabel)}s; here's the record, and when each one next runs.`;
   } else if(oneSale){
     lead=`The only recent ${esc(headLbl)} to sell went to ${esc(pickName)}${recency1}.`;
-  } else {
+  } else if(hasPick){
     lead=`${esc(modelLabel)}s have gone to ${esc(pickName)} more than to any other house over the last three years${recency}.${hammerClause}${othersClause}`;
+  } else {
+    lead=auctionSentence;
   }
   // Item 5 (Oct 2026): the next sale is stated ONCE, inside each house's card ("Next at {house}: ...").
   // The old above-the-cards timing paragraph duplicated the pick's next sale, so it is removed.
   const timing="";
-  const blocks=houses.map((h,i)=>_hcHouseBlock(h,{isLead:i===0,asap,modelLabel})).join("");
+  const blocks=houses.map((h,i)=>_hcHouseBlock(h,{isLead:hasPick&&i===0,asap,modelLabel})).join("");
   // Item 7: asking price vs the sales SHOWN, as a plain fact. Uses the same displayed receipts (top 3
   // per house) the cards render, so the statement is computed from the same pool the seller sees.
   const shownHammers=[].concat.apply([],houses.map(h=>(h.receipts||[]).slice(0,3).map(r=>r.hammer)));
@@ -1556,7 +1576,7 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
     ${blocks}
     ${askLine}
     ${opts.onlineCardHtml?`<div class="pv2-bridge" style="margin-top:18px">If you'd rather run the sale yourself instead of consigning, here's where I'd go.</div>${opts.onlineCardHtml}`:""}
-    <p style="font-size:12px;color:#928b7a;margin-top:16px;line-height:1.5">Ranked by the record: how often ${esc(modelLabel)}s have gone to each house, how recently, and the hammer results shown. Consignment windows are approximate, confirm with the house. Real completed sales, hammer prices with the buyer premium backed out. No estimates, no valuations.</p>
+    <p style="font-size:12px;color:#928b7a;margin-top:16px;line-height:1.5">${hasPick?`Ranked by the record: how often ${esc(modelLabel)}s have gone to each house, how recently, and the hammer results shown.`:`The record for each house: when ${esc(modelLabel)}s have sold and the hammer results shown, in date order.`} Consignment windows are approximate, confirm with the house. Real completed sales, hammer prices with the buyer premium backed out. No estimates, no valuations.</p>
     <div class="sam-text after-results">Ask me anything about the recommendation, or tell me more about the car.</div>
   </div></div>`;
   sellState.sellOptions=[];
@@ -1565,7 +1585,7 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
   // chat received none of the house content and denied mentioning houses / invented a platform.
   sellState.renderedHouseComparison={
     eraBand:!!eraBandNote(opts), asap:!!asap, carLabel:headLbl, modelLabel:modelLabel,
-    pick:pickName, others:others.slice(),
+    noPick:!hasPick, pick:hasPick?pickName:null, others:others.slice(),
     houses:houses.map(h=>({
       name:h.display,
       nextSale:h.nextSale?`${h.nextSale.city}, ${h.nextSale.monthName} ${h.nextSale.year}${h.nextSale.intl?" (international)":""}`:null,
