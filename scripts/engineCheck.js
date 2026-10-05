@@ -64,11 +64,11 @@ const ROWS = [
   // IS a Cobra, so the make-wide check is not a leak (skipHalo); the poolGuard asserts the family fence
   // on every rendered title. The "42" row is a ONE-BOX ambiguity ask (obExpectTier), not a pool.
   { q: "1965 Shelby Cobra 427", make: "shelby", skipHalo: true,
-    poolGuard: { label: "427 Cobra only", familyRe: /cobra/i, mustMatch: /\b427\b/i, mustNotMatch: /daytona|\bcsx\s?-?\s?[46789]\d{3}\b/i } },
+    poolGuard: { label: "427 Cobra only", familyRe: /cobra/i, mustMatch: /\b427\b/i, mustNotMatch: /daytona|\bcsx\s?-?\s?[46789]\d{3}\b|\b[46789]000[-\s]?series\b|continuation/i } },
   { q: "1964 Shelby Cobra 289", make: "shelby", skipHalo: true,
-    poolGuard: { label: "289 Cobra only", familyRe: /cobra/i, mustMatch: /\b(289|260)\b|\bmark\s?ii\b/i, mustNotMatch: /\b427\b|daytona|\bcsx\s?-?\s?[46789]\d{3}\b/i } },
+    poolGuard: { label: "289 Cobra only", familyRe: /cobra/i, mustMatch: /\b(289|260)\b|\bmark\s?ii\b/i, mustNotMatch: /\b427\b|daytona|\bcsx\s?-?\s?[46789]\d{3}\b|\b[46789]000[-\s]?series\b|continuation/i } },
   { q: "Shelby Cobra CSX4000", make: "shelby", skipHalo: true,
-    poolGuard: { label: "continuation (CSX) only", familyRe: /cobra/i, mustMatch: /\bcsx\s?-?\s?[46789]\d{3}\b|continuation/i } },
+    poolGuard: { label: "continuation (CSX) only", familyRe: /cobra/i, mustMatch: /\bcsx\s?-?\s?[46789]\d{3}\b|\b[46789]000[-\s]?series\b|continuation/i } },
   { q: "1965 Shelby Cobra 42", make: "shelby", obExpectTier: "choice" }
 ];
 
