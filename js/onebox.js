@@ -15,7 +15,9 @@
   var obSourceVin = null;   // the 17-char VIN when this result was VIN-sourced (travels to /sell)
   var obRefinePhrase = null; // the earned-question lead ("In the 100k to 160k miles band") on a refined view
   var obLastVehicle = null;  // the resolved vehicle of the current pool, reused for an inline refine
-  var obAsked = 0;           // running question count (Part 3 cap: max two before a result); threaded to the engine
+  var obAsked = 0;
+  var obLastD = null;        // the decision currently rendered (for the /sell handoff parameters)
+  var obLastRefine = null;   // the answered refinement behind the current view (gearbox, mileage band, variant, driver, observe)           // running question count (Part 3 cap: max two before a result); threaded to the engine
   // Rotating placeholder (Screen 1): real, concrete examples, one at a time - a typed car, a
   // trim, and a VIN - so the input teaches what it accepts. Rotation in startPlaceholderRotation().
   var PLACEHOLDER_BEATS = ["1994 Porsche 911", "2019 BMW M4 Competition", "WBS4Y9C55KAG67564"];
@@ -31,16 +33,6 @@
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); }
   function usd(n) { return "$" + Math.round(Number(n)).toLocaleString("en-US"); }
   function sym(cur) { return ({ USD: "$", GBP: "£", EUR: "€" })[cur] || ""; }
-  function priceStr(disp) {
-    if (!disp || disp.amount == null) return "";
-    var s = sym(disp.currency);
-    return s ? s + Number(disp.amount).toLocaleString("en-US") : Number(disp.amount).toLocaleString("en-US") + " " + esc(disp.currency);
-  }
-  function milesStr(c) {
-    if (Number.isFinite(c.mileage)) return Number(c.mileage).toLocaleString("en-US") + " miles";
-    if (c.mileageStated != null) return "listed as ~" + Number(c.mileageStated).toLocaleString("en-US") + " miles";
-    return "TMU";
-  }
   function carLabel(rc) {
     if (!rc) return "this car";
     // Prefer the clean canonical/display label (the title-derived "1990 BMW M3") over rebuilding
@@ -75,32 +67,6 @@
     return str;
   }
 
-  // ---------------------------------------------------------------- answer-line composer (T1.2)
-  // Span endpoints are two REAL surviving sales from the full post-guard pool (engine
-  // d.answer), so they usually will not equal the shown cards - correct behaviour. Money
-  // verbs only: brought / been bringing / sold for. No midpoint, average or "best read".
-  function answerHtml(d) {
-    var a = d.answer;
-    if (!a) return "";
-    var n = '<span class="num">';
-    if (a.kind === "span") {
-      var z = a.closest != null ? (" The closest one brought " + n + usd(a.closest) + "</span>" + (a.closestMonth ? " in " + esc(a.closestMonth) : "") + ".") : "";
-      return '<p class="answer">' + lint("Cars like it have been bringing " + n + usd(a.low) + "</span> to " + n + usd(a.high) + "</span>." + z, "answer.span") + "</p>";
-    }
-    if (a.kind === "two") return '<p class="answer">' + lint("The two closest sales brought " + n + usd(a.high) + "</span> and " + n + usd(a.low) + "</span>.", "answer.two") + "</p>";
-    // "one" answer line removed pending the results-screen redesign (no replacement copy yet).
-    return "";
-  }
-  function basisHtml(d) {
-    var noun = d.count === 1 ? "sale" : "sales";
-    var win = /12 months/.test(d.windowLabel || "") ? "last <span class=\"num\">12</span> months" : "past <span class=\"num\">2</span> years";
-    return '<span class="basis">Based on <span class="num">' + d.count + "</span> " + noun + '<span class="dot">&middot;</span>' + win + "</span>";
-  }
-  function utilsHtml() {
-    // Bell OMITTED at launch (no affordance renders). Share only.
-    return '<div class="utils"><button class="util" data-share title="Share these sales">' +
-      '<svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Share</button></div>';
-  }
   // As-of line (Task 4): shown ONLY on a re-opened shared snapshot, so a reader who lands on
   // an old /o/<id> link knows when the read was taken. Product rule 4: this is when the
   // analysis RAN, never a claim about data freshness.
@@ -109,120 +75,12 @@
     var M = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     return M[d.getUTCMonth()] + " " + d.getUTCDate() + ", " + d.getUTCFullYear();
   }
-  function asOfHtml() {
-    if (!obAsOf) return "";
-    var when = monthDayYear(obAsOf); if (!when) return "";
-    return '<span class="basis" style="margin-left:10px">As of ' + esc(when) + "</span>";
-  }
-
-  // ---------------------------------------------------------------- cards (T1.1)
-  // Relevance label -> preview tab. Never positional (no High/Low/Middle), never "anchor".
-  function tabFor(rank) {
-    var r = String(rank || "");
-    if (r === "Closest match") return { label: "Closest match", cls: "match" };
-    if (r === "Lower mileage") return { label: "Fewer miles", cls: "diff" };
-    if (r === "Higher mileage") return { label: "More miles", cls: "diff" };
-    if (r === "More recent") return { label: "More recent", cls: "diff" };
-    if (r === "Earlier sale") return { label: "Earlier sale", cls: "diff" };
-    return { label: "Comparable sale", cls: "diff" };
-  }
-  function plateHtml(c, show) {
-    var name = [c.year, c.make, c.subjectName].filter(Boolean).join(" ");
-    return '<div class="plate"' + (show ? ' style="display:flex"' : "") + '><div class="m">' + esc(c.platform || "") + '</div>' +
-      '<div class="n">' + esc(name) + '</div><div class="s">Photo unavailable</div></div>';
-  }
-  function phHtml(c) {
-    if (c.image) {
-      return '<div class="ph"><span class="tab ' + tabFor(c.rank).cls + '">' + esc(tabFor(c.rank).label) + '</span>' +
-        '<img src="' + esc(c.image) + '" alt="' + esc([c.year, c.make, c.subjectName].filter(Boolean).join(" ")) + '" ' +
-        'onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.plate\');if(p)p.style.display=\'flex\'">' + plateHtml(c, false) + "</div>";
-    }
-    return '<div class="ph"><span class="tab ' + tabFor(c.rank).cls + '">' + esc(tabFor(c.rank).label) + "</span>" + plateHtml(c, true) + "</div>";
-  }
-  function cardHtml(c, hero) {
-    // includes-buyer's-premium renders ONLY for a live-house premium-inclusive record.
-    // BaT / C&B (online) never carry it, per the engine's basis field.
-    var prem = (c.isHouse && c.display && c.display.premiumInclusive) ? '<div class="prem">Includes buyer’s premium</div>' : "";
-    var usdAnchor = c.usdApprox ? '<div class="usd">&asymp; ' + usd(c.usdApprox) + "</div>" : "";
-    var receipt = c.url || (c.receiptUrl) || null;   // engine card has no url today -> plate/label only
-    var view = receipt ? '<a class="viewsale" href="' + esc(receipt) + '" target="_blank" rel="noopener">View sale on ' + esc(c.platform || "the platform") + "</a>" : "";
-    return '<div class="card' + (hero ? " hero" : "") + '">' + phHtml(c) +
-      '<div class="cbody"><div class="solds"><span>' + esc(c.soldLabel || "Sold recently") + '</span>' +
-      '<span class="plat">' + PLAT_SVG + esc(c.platform || "") + "</span></div>" +
-      '<div class="price">' + esc(priceStr(c.display)) + "</div>" + usdAnchor + prem +
-      '<div class="miles">' + esc(milesStr(c)) + "</div>" +
-      '<div class="cspec">' + lint(esc(c.explanation || c.spec || ""), "card.explanation") + "</div>" + view + "</div></div>";
-  }
-  function gridHtml(cards) {
-    if (cards.length === 1) {
-      return '<div class="grid" data-stage="cards" style="grid-template-columns:minmax(0,360px)">' + cardHtml(cards[0], true) + "</div>";
-    }
-    if (cards.length === 2) {
-      return '<div class="grid" data-stage="cards" style="grid-template-columns:1fr 1fr;max-width:680px">' + cards.map(function (c) { return cardHtml(c, false); }).join("") + "</div>";
-    }
-    var hero = cards.filter(function (c) { return c.closest; })[0] || cards[0];
-    var rest = cards.filter(function (c) { return c !== hero; });
-    return '<div class="grid" data-stage="cards"><div>' + cardHtml(hero, true) + "</div>" +
-      '<div class="rightcol">' + rest.map(function (c) { return cardHtml(c, false); }).join("") + "</div></div>";
-  }
-
-  // ---------------------------------------------------------------- Sam's Take variant pool (T1.5)
-  // A small pool of note-structures, selected DETERMINISTICALLY by evidence shape + car
-  // (no LLM), filled with the displayed cards' own numbers. Two different cars pick
-  // different structures. Money uses outcome verbs; no valuation/positional/anchor words.
-  function cardDesc(c, closest) {
-    var p = priceStr(c.display) || usd(c.value);
-    if (Number.isFinite(c.mileage) && Number.isFinite(closest.mileage)) {
-      var dm = c.mileage - closest.mileage;
-      if (Math.abs(dm) < 1500) return "the " + p + " car had similar miles";
-      return "the " + p + " car had " + Math.abs(dm).toLocaleString("en-US") + (dm < 0 ? " fewer" : " more") + " miles";
-    }
-    var cd = String(c.date || "").slice(0, 10), zd = String(closest.date || "").slice(0, 10);
-    if (cd && zd && cd > zd) return "the " + p + " car sold more recently";
-    if (cd && zd && cd < zd) return "the " + p + " car sold earlier";
-    return "the " + p + " car is the other comparable sale";
-  }
-  var THREE_TAKES = [
-    function (z, a, b) { return "The " + z + " sale is the one I’d pay most attention to. " + cap0(a) + ", while " + b + "."; },
-    function (z, a, b) { return "Of these, " + z + " lines up closest with it. " + cap0(a) + "; " + b + "."; },
-    function (z, a, b) { return "I’d read the " + z + " result most closely. " + cap0(a) + ", and " + b + "."; },
-    function (z, a, b) { return "The clearest comparison here is the " + z + " car. " + cap0(a) + ", whereas " + b + "."; },
-    function (z, a, b) { return "Start with the " + z + " sale. " + cap0(a) + "; on the other side, " + b + "."; },
-    function (z, a, b) { return "The one that sits nearest it is " + z + ". " + cap0(a) + ", and " + b + "."; }
-  ];
-  function cap0(s) { s = String(s || ""); return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
-  function samNoteHtml(d) {
-    var cards = d.cards || [];
-    if (!cards.length) return "";
-    var closest = cards.filter(function (c) { return c.closest; })[0] || cards[0];
-    var zPrice = priceStr(closest.display) || usd(closest.value);
-    var seed = hashStr((d.vehicle ? (d.vehicle.make + d.vehicle.model + d.vehicle.year) : "") + ":" + d.count);
-    var text;
-    if (d.tier === "three") {
-      var others = cards.filter(function (c) { return c !== closest; });
-      var a = cardDesc(others[0], closest), b = others[1] ? cardDesc(others[1], closest) : "";
-      var pick = THREE_TAKES[seed % THREE_TAKES.length];
-      text = b ? pick(zPrice, a, b) : (cap0(a) + ", next to the " + zPrice + " sale I’d read most closely.");
-    } else if (d.tier === "two") {
-      var o = cards.filter(function (c) { return c !== closest; })[0];
-      var TWO = ["These are thin on the ground, so I’m reading the two sales I have. " + cap0(cardDesc(o, closest)) + ".",
-                 "With only two comparable sales, I’d weigh both: the " + zPrice + " car nearest it, and " + cardDesc(o, closest) + ".",
-                 "Two sales is what the record holds here. The " + zPrice + " result reads closest, and " + cardDesc(o, closest) + "."];
-      text = TWO[seed % TWO.length];
-    } else {
-      var ONE = ["There isn’t enough recent activity for a range, so this " + zPrice + " sale is the one I’d actually read for it.",
-                 "The record is thin, but the " + zPrice + " sale is a real, comparable one I’d read for it."];
-      text = ONE[seed % ONE.length];
-    }
-    return '<div class="sam note" data-stage="note"><div class="ava">SAM</div><div class="body"><p>' + lint(esc(text), "samNote").replace(/\$([\d,]+)/g, '<span class="num">$$$1</span>') + "</p></div></div>";
-  }
-
   // ---------------------------------------------------------------- shared chrome
   function inboxHtml(value, placeholder) {
     // Single control: text input + green submit arrow. The square photo affordance is
     // removed (photo input is not a built capability).
-    return '<div class="inbox"><input id="ob-input" ' + (value ? 'value="' + esc(value) + '"' : 'placeholder="' + esc(placeholder || PLACEHOLDER_BEATS[0]) + '"') + '>' +
-      '<button class="go" id="ob-go" aria-label="Ask Sam">&#8594;</button></div>';
+    return '<div class="inbox" role="search"><label class="sr" for="ob-input">Search a car</label><input id="ob-input" autocomplete="off" ' + (value ? 'value="' + esc(value) + '"' : 'placeholder="' + esc(placeholder || PLACEHOLDER_BEATS[0]) + '"') + '>' +
+      '<button type="button" class="go" id="ob-go" aria-label="Search">&#8594;</button></div>';
   }
   // Layout fix (item 3): the empty state centres the input in the viewport; the loading/result
   // render re-anchors it to the top of the page. Swapping innerHTML would SNAP it up. This does a
@@ -248,50 +106,16 @@
     setTimeout(function () { root.style.transition = ""; root.style.transform = ""; root.style.willChange = ""; }, 440);
   }
   function footHtml() {
-    return '<div class="foot"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Real sales only. No estimates. No valuations.</div>';
+    return '<div class="trustline foot"><span class="dot" aria-hidden="true"></span><span>Real sales only. No estimates. No valuations.</span></div>';
   }
   // samTakeHtml removed: the "Got it, I'm looking at comparable sales for your ..." interstitial is
   // gone (replaced by the narrated loader, item 3) and carried ownership language (item 6).
+  // READY TO SELL: a real link into /sell carrying the resolved car + every answered question as URL
+  // parameters (sellHref). Ownership-neutral (rule 20): an offer, not an assertion.
   function sellHtml() {
-    return '<div class="sell" data-stage="note"><div><h3>Ready to sell?</h3><p>I can tell you the best places to sell your car right now and why.</p></div>' +
-      '<a id="ob-sell">See where I’d sell it &#8594;</a></div>';
+    return '<section class="sellbox" data-stage="note"><div class="st"><h3>Ready to sell?</h3><p>I can tell you the best place to sell this car right now, and why.</p></div>' +
+      '<a id="ob-sell" href="' + esc(sellHref()) + '">See where I’d sell it &#8594;</a></section>';
   }
-  // refineHtml removed: it was an unbuilt feature (no submit, did nothing) and "tighten the
-  // read" is valuation language. Unbuilt features do not render.
-  // Item 5: one quiet row under the CTA, not four cards. Links the most recent prior search; a
-  // small "+ N more" affordance re-opens the full list only if the reader wants it.
-  function recentHtml() {
-    var items = recentSearches();
-    if (!items.length) return "";
-    var it = items[0];
-    return '<div class="recentline" data-stage="note">Recent: ' +
-      '<a class="rl" data-recent="' + esc(it.q) + '">' + esc(it.label) + "</a>" +
-      '<span class="ru"> · ' + esc(it.when) + "</span></div>";
-  }
-  function whyRow() { return '<div class="whyrow" data-stage="answer"><button class="why"><span class="i">i</span>Why these cars?</button></div>'; }
-  // JUST SOLD signal: ONE real recent sale, serif line with mono numbers, links to the sale.
-  // Recency word is literally true; older than a week reads as the actual date, never "recently".
-  function justSoldRecency(dstr) {
-    if (!dstr) return "";
-    var d = new Date(String(dstr).slice(0, 10)); if (isNaN(d)) return "";
-    var days = Math.round((Date.now() - d.getTime()) / 864e5);
-    if (days <= 0) return "today";
-    if (days === 1) return "yesterday";
-    if (days < 7) return days + " days ago";
-    var M = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    return "on " + M[d.getUTCMonth()] + " " + d.getUTCDate();
-  }
-  function justSoldHtml() {
-    if (!proofPool.length) return "";
-    var p = proofPool[0];
-    var name = esc([p.make, p.model].filter(Boolean).join(" "));
-    var when = justSoldRecency(p.date);
-    var line = "A <span class=\"num\">" + esc(p.year) + "</span> " + name + " brought <span class=\"num\">" + usd(p.price) + "</span> on <span class=\"plat\">" + esc(p.platform) + "</span>" + (when ? " " + esc(when) : "") + ".";
-    var open = p.url ? '<a class="justsold" id="ob-justsold" href="' + esc(p.url) + '" target="_blank" rel="noopener">' : '<div class="justsold" id="ob-justsold">';
-    var close = p.url ? "</a>" : "</div>";
-    return open + '<span class="js-label">Just sold</span><span class="js-line">' + lint(line, "justsold") + "</span>" + close;
-  }
-
   // ---------------------------------------------------------------- state renderers
   function chipsHtml(options, kind) {
     return '<div class="chips">' + (options || []).map(function (o) { return '<button class="chip" data-' + kind + '="' + esc(o) + '">' + esc(o) + "</button>"; }).join("") + "</div>";
@@ -304,8 +128,7 @@
     // negations elsewhere), so it is rendered as a literal and NOT passed through lint().
     root.innerHTML =
       '<div class="ob-home">' +
-        '<div class="ob-wordmark">GoAskSam</div>' +
-        '<div class="ob-tag">Real sales, updated every night.</div>' +
+        '<p class="ob-tag">Real sales, updated every night.</p>' +
         '<h1 class="ob-head">What’s that car really worth?</h1>' +
         '<p class="ob-sub">See what cars like it actually sold for.</p>' +
         inboxHtml("", PLACEHOLDER_BEATS[0]) +
@@ -335,104 +158,6 @@
     if (g && name && obNorm(name).indexOf(obNorm(g)) < 0) return g + " " + name;
     return name;
   }
-  function bareModelOf(rc, m) {
-    var name = (m && m.displayName) || carLabel(rc) || "";
-    var bare = String(name).replace(/^\d{4}\s+\S+\s+/, "").trim() || String(name) || "car";
-    return withGen(bare, rc);
-  }
-  // Singular, make-inclusive headline subject: "The {make} {model} {trim} {Body}". Never
-  // pluralised (no "718 Cayman Ss"). Body is included only when it is a distinguishing open
-  // variant (Convertible/Cabriolet/Roadster/Targa) - coupe/sedan are the default and omitted.
-  function headlineSubject(rc, trim) {
-    if (!rc || (!rc.make && !rc.model)) return "This car";
-    var model = rc.model || "";
-    // Drop a trim that merely repeats the model ("M3" model + "M3" trim -> not "M3 M3").
-    var t = (trim && obNorm(trim) !== obNorm(model) && obNorm(model).indexOf(obNorm(trim)) < 0) ? trim : "";
-    var body = rc.bodyStyle && /^(convertible|cabriolet|roadster|targa|spyder|spider|wagon|sportbrake)$/i.test(rc.bodyStyle) ? cap(rc.bodyStyle) : "";
-    var parts = [rc.make, model, t, body].filter(Boolean).join(" ");
-    return "The " + parts;
-  }
-  // The exact-car header (matched only): "I know this exact car" + photo + config line + receipt.
-  // Item 6: the "since then" market band uses the SHORTER of (since the car's own last sale) and
-  // (the last twelve months), and the sentence names which window it used. Never a multi-year
-  // "since then" - if the car sold years ago, it reads "in the last twelve months" instead.
-  function sinceBandLine(m, d, bare) {
-    if (!m || !m.soldDate || !d) return "";
-    var cards = d.cards || [];
-    var soldISO = String(m.soldDate).slice(0, 10);
-    var now = Date.now();
-    var monthsSince = (now - new Date(soldISO).getTime()) / (1000 * 3600 * 24 * 30.44);
-    var use12 = !(monthsSince >= 0 && monthsSince <= 12);   // >12mo (or unparseable) -> last twelve months
-    var cutISO = use12 ? new Date(now - 365 * 864e5).toISOString().slice(0, 10) : soldISO;
-    var prices = cards.filter(function (c) { return c.date && String(c.date).slice(0, 10) > cutISO && c.price > 0; }).map(function (c) { return c.price; });
-    if (prices.length < 2) return "";
-    var lo = r500f(Math.min.apply(null, prices)), hi = r500f(Math.max.apply(null, prices));
-    var phrase = use12 ? "in the last twelve months" : ("since " + monthOnly(m.soldDate));
-    return '<p class="cfg since">' + lint("Most " + esc(bare) + "s " + phrase + " sold between " + r3money(lo) + " and " + r3money(hi) + ".", "exact.since") + "</p>";
-  }
-  function exactCarHtml(m, rc, d) {
-    if (!m || (!m.price && !m.soldDate && !(m.history && m.history.length))) return "";
-    var name = m.displayName || carLabel(rc);
-    var bare = bareModelOf(rc, m);
-    var plat = obPlat(m.source);
-    // Cosmetic-only fitments (tint, wheels, mats, badges, stereo) do not change the car's
-    // market read - they never render a fitments sentence. Only material or a genuine RUN of
-    // bolt-ons does; n=1 reads "with X added" (no "run of", no "among them"); n=0 says nothing.
-    var COSMETIC = /tinted?\s?window|window\s?tint|wheels?|tyres?|tires?|floor\s?mats?|\bbadges?\b|emblem|stereo|radio|speakers?|head\s?unit|dash\s?cam|radar|cover|decal|sticker/i;
-    var mods = m.modifications || [];
-    var material = m.materialMods || [];
-    var substantive = mods.filter(function (x) { return !COSMETIC.test(x); });
-    var keyMods = ((m.keyMods && m.keyMods.length ? m.keyMods : substantive.slice(0, 3)) || []).join(", ");
-    var cfg = "";
-    // The factory engine (a Murcielago's 6.5L V12) is NEVER narrated as a listing fitment - it read
-    // garbled ("...has it with the 6.5-Liter V12 and a run of bolt-ons"). cfg speaks only to actual
-    // modifications; it stays empty for an unmodified car whatever the decoded engine is.
-    if (material.length) {
-      cfg = "The prior listing shows material work" + (keyMods ? ", the " + esc(keyMods) + " among it" : "") + ", so it reads as a modified car rather than a standard " + esc(bare) + ".";
-    } else if (substantive.length >= 2) {
-      cfg = "The prior listing has it with a run of bolt-on fitments, the " + esc(substantive.slice(0, 3).join(", ")) + " among them. All reversible, so it still reads as a standard " + esc(bare) + ", not a rebuilt car.";
-    } else if (substantive.length === 1) {
-      cfg = "The prior listing has it with " + esc(String(substantive[0]).toLowerCase()) + " added, so it still reads as a standard " + esc(bare) + ".";
-    }
-    // The fitments detail lists ALL mods, but only renders when there is a real run to see.
-    var showDisc = material.length + substantive.length >= 2;
-    // Never an empty canvas (item 4): a labelled plate stands in when there is no photo.
-    var photo = m.photoUrl
-      ? '<img src="' + esc(m.photoUrl) + '" alt="' + esc(name) + '" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.xplate\');if(p)p.style.display=\'flex\'"><div class="xplate" style="display:none"><span>' + esc(name) + "</span></div>"
-      : '<div class="xplate" style="display:flex"><span>' + esc(name) + "</span></div>";
-    // The record, in full (item 3): EVERY sale AND unsold attempt on its own line, most recent first,
-    // with platform, date and hammer price - or high bid marked "not sold" for an attempt. A car that
-    // only ever went unsold still shows its record here. Format: "Last sold $350,000 . Bring a Trailer
-    // . Sep 2026 . 15,000 mi" / "$300,000 high bid, not sold . Bring a Trailer . Mar 2024".
-    var hist = (m.history && m.history.length) ? m.history
-      : (m.sales && m.sales.length) ? m.sales.map(function (s) { return { kind: "sale", platform: s.platform, date: s.soldDate, price: s.price, url: s.url, mileage: s.mileage }; })
-        : [{ kind: "sale", platform: m.source, date: m.soldDate, price: m.price, url: m.url, mileage: m.mileage }];
-    var firstSale = true;
-    var recLines = hist.map(function (h) {
-      if (!h.price && !h.highBid && !h.date) return "";
-      var sp = obPlat(h.platform), bits = [];
-      if (h.notSold || h.kind === "attempt") {
-        bits.push((h.highBid ? '<span class="xp num">' + esc(usd(h.highBid)) + "</span> high bid, " : "") + '<span class="xns">not sold</span>');
-      } else {
-        bits.push((firstSale ? "Last sold " : "Sold ") + (h.price ? '<span class="xp num">' + esc(usd(h.price)) + "</span>" : ""));
-        firstSale = false;
-      }
-      if (sp) bits.push(esc(sp));
-      if (h.date) bits.push(esc(monShort(h.date)));
-      if (h.mileage) { var mi = Number(String(h.mileage).replace(/[^\d]/g, "")); if (mi) bits.push('<span class="num">' + mi.toLocaleString("en-US") + " mi</span>"); }
-      var link = h.url ? '<a class="xview" href="' + esc(h.url) + '" target="_blank" rel="noopener">View &#8594;</a>' : "";
-      return '<div class="xrec"><span class="xrl">' + bits.join(' <span class="dot">&middot;</span> ') + "</span>" + link + "</div>";
-    }).join("");
-    var disc = showDisc ? '<details class="disc"><summary>See the ' + mods.length + " listed fitment" + (mods.length === 1 ? "" : "s") + '</summary><ul>' + mods.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></details>" : "";
-    // Right column top to bottom (item 4): kicker, name, prior-listing note (max 2 lines), the
-    // receipt line(s), View sale link. Card height follows the content; photo left at that height.
-    return '<div class="exact" data-stage="anchor"><div class="grid">' +
-      '<div class="xph">' + photo + '<span class="tag">The exact car</span></div>' +
-      '<div class="xbody"><div class="kick">I know this exact car.</div>' +
-      '<div class="xname">' + esc(name) + "</div>" +
-      (cfg ? '<p class="cfg">' + lint(cfg, "exact.cfg") + "</p>" : "") +
-      '<div class="xrecs">' + recLines + "</div>" + disc + "</div></div></div>";
-  }
   // The answer block: headline span, gated cluster, gated recency, mono meta line, placement.
   // ---- Round-4 render: Sam's take folded block, earned question, clickable cards, no counts ----
   var OB_UTM = "utm_source=goasksam&utm_medium=onebox&utm_campaign=comp_card";
@@ -440,53 +165,7 @@
   function windowText(d) { return /12 months|twelve/.test(d.windowLabel || "") ? "the last twelve months" : "the past two years"; }
   function windowMeta(d) { return /12 months|twelve/.test(d.windowLabel || "") ? "Past twelve months" : "Past two years"; }
   function priceRange(a) { return r3money(a[0]) + " to " + r3money(a[1]); }
-  function betweenRange(a) { return r3money(a[0]) + " and " + r3money(a[1]); }
   function monthOnly(dstr) { var p = String(dstr || "").slice(0, 10).split("-"); var M = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]; return p.length >= 2 ? (M[+p[1]] || "") : ""; }
-  function r500f(n) { return Math.round(n / 500) * 500; }
-  // Matched-car fourth beat: what the market has done SINCE the car sold, computed from the
-  // dated cards; falls back to a placement sentence when there is nothing since.
-  function sinceSold(m, cards) {
-    if (!m || !m.soldDate) return null;
-    var since = (cards || []).filter(function (c) { return c.date && String(c.date).slice(0, 10) > String(m.soldDate).slice(0, 10) && c.price > 0; }).map(function (c) { return c.price; });
-    if (since.length < 2) return null;
-    return [r500f(Math.min.apply(null, since)), r500f(Math.max.apply(null, since))];
-  }
-  // SAM'S TAKE: one folded block. Up to four sentences, three sizes, nothing restated elsewhere.
-  function samTakeBlock(d, m) {
-    var s = d.span || [0, 0], out = '<div class="samtake" data-stage="answer"><div class="tk">Sam’s take</div>';
-    if (d.widening) out += '<p class="ladder">' + lint(esc(d.widening), "widening") + "</p>";
-    // "The Porsche 997..." stands alone as a headline subject; lowercased after "Right now,".
-    var subj = m ? "cars like it" : esc(headlineSubject(d.resolvedCar, d.poolTrim)).replace(/^The /, "the ") + ((d.poolYears && d.poolYears[1] > d.poolYears[0]) ? " (" + d.poolYears[0] + " to " + d.poolYears[1] + ")" : "");
-    var verb = m ? "are" : "is";
-    // "Right now," only leads when the window IS the last twelve months. When the pool
-    // widened to the past two years (12mo genuinely thin), drop "Right now," and let the
-    // subject start the sentence, so the opener never contradicts the stated window.
-    var isRecentWindow = /12 months|twelve/.test(d.windowLabel || "");
-    var lead = obRefinePhrase ? (obRefinePhrase + ", cars like it are")
-      : (isRecentWindow ? ("Right now, " + subj + " " + verb)
-                        : (subj.charAt(0).toUpperCase() + subj.slice(1) + " " + verb));
-    var s1 = lead + " bringing " + priceRange(s) + " in " + windowText(d) + ".";
-    out += '<p class="s1">' + lint(s1, "s1") + "</p>";
-    if (d.cluster) {
-      var s2 = "Most land between " + betweenRange(d.cluster) + ".";
-      if (d.driver === "mileage") s2 += " The ones at the top are the low-mileage cars; the cheaper end is high-mileage.";
-      out += '<p class="s2">' + lint(s2, "s2") + "</p>";
-    } else if (d.spanOnly && d.poolN && d.poolN < 8) {
-      // Span-without-cluster (#4): a real result with too few sales to mark a typical band.
-      // Show the full range (already in s1) and every sale, honestly caveated, no invented middle.
-      var n = d.poolN;
-      out += '<p class="s2">' + lint("Only " + n + " ha" + (n === 1 ? "s" : "ve") + " sold in " + windowText(d) + ", not enough for a range, so here is every sale instead.", "s2") + "</p>";
-    }
-    if (d.direction && !obRefinePhrase) { var conn = d.direction.word === "about level" ? "with" : "than"; out += '<p class="s3">' + lint("That’s " + esc(d.direction.word) + " " + conn + " a year ago, when most landed between " + betweenRange(d.direction.prior) + ".", "s3") + "</p>"; }
-    if (m && m.price) {
-      var since = sinceSold(m, d.cards);
-      if (since) out += '<p class="s4">' + lint("This car sold for " + r3money(m.price) + " in " + esc(monthOnly(m.soldDate)) + ". The ones since brought " + priceRange(since) + ".", "s4") + "</p>";
-      else if (d.cluster) { var c = d.cluster, yp = m.price; var place = yp < c[0] ? "toward the lower end" : yp > c[1] ? "toward the upper end" : (yp > (c[0] + c[1]) / 2 ? "a little above the middle" : "a little below the middle"); out += '<p class="s4">' + lint("This car sold " + place + ", in company with the driver-grade cars.", "s4") + "</p>"; }
-    }
-    var tags = d.setAsideTags || [];
-    out += '<span class="meta">' + windowMeta(d) + (tags.length ? '<span class="dot">&middot;</span>' + esc(tags.join(" and ")) + " cars set aside" : "") + "</span>";
-    return out + "</div>";
-  }
   // THE EARNED QUESTION: mileage (pool-relative buckets) or transmission; answered inline.
   function earnedHtml(d, m) {
     var e = d.earned; if (!e) return "";
@@ -500,26 +179,26 @@
     var q, chips;
     if (e.kind === "mileage") {
       q = "How many miles on it?";
-      chips = (e.buckets || []).map(function (bk) { return '<button class="qchip" data-milemin="' + bk.min + '" data-milemax="' + (bk.max == null ? "" : bk.max) + '" data-mlabel="' + esc(bk.label) + '">' + esc(bk.label) + "</button>"; }).join("") + '<button class="qchip typeit" data-typemiles>type it</button>';
+      chips = (e.buckets || []).map(function (bk) { return '<button type="button" class="qchip" data-milemin="' + bk.min + '" data-milemax="' + (bk.max == null ? "" : bk.max) + '" data-mlabel="' + esc(bk.label) + '">' + esc(bk.label) + "</button>"; }).join("") + '<button type="button" class="qchip typeit" data-typemiles>type it</button>';
     } else if (e.kind === "transmission") {
       q = cap(e.labels.manual) + " or " + e.labels.auto + "?";
-      chips = '<button class="qchip" data-tx="manual" data-mlabel="' + esc(e.labels.manual) + '">' + esc(cap(e.labels.manual)) + '</button><button class="qchip" data-tx="auto" data-mlabel="' + esc(e.labels.auto) + '">' + esc(e.labels.auto) + "</button>";
+      chips = '<button type="button" class="qchip" data-tx="manual" data-mlabel="' + esc(e.labels.manual) + '">' + esc(cap(e.labels.manual)) + '</button><button type="button" class="qchip" data-tx="auto" data-mlabel="' + esc(e.labels.auto) + '">' + esc(e.labels.auto) + "</button>";
     } else if (e.kind === "driver") {
       // Item 7/8: a dictionary-driven second question (mined from titles, so the pool splits on it).
       q = e.q;
-      chips = '<button class="qchip" data-driver="' + esc(e.driverKey) + '" data-drvval="yes" data-mlabel="' + esc(e.yes) + '">' + esc(e.yes) + '</button>'
-            + '<button class="qchip" data-driver="' + esc(e.driverKey) + '" data-drvval="no" data-mlabel="' + esc(e.no) + '">' + esc(e.no) + "</button>";
+      chips = '<button type="button" class="qchip" data-driver="' + esc(e.driverKey) + '" data-drvval="yes" data-mlabel="' + esc(e.yes) + '">' + esc(e.yes) + '</button>'
+            + '<button type="button" class="qchip" data-driver="' + esc(e.driverKey) + '" data-drvval="no" data-mlabel="' + esc(e.no) + '">' + esc(e.no) + "</button>";
     } else return "";
-    return '<div class="earned" data-stage="answer"><p class="q">' + esc(q) + '</p><div class="qchips">' + chips + "</div></div>";
+    return '<div class="qcard earned" data-stage="answer"><p class="q">' + esc(q) + '</p><div class="qchips">' + chips + "</div></div>";
   }
   // Item 9: the observable-fact refinement. Offers only the flags the pool actually contains; a tap
   // re-scopes the evidence set and adds a sentence, never adjusts a price. "Nothing major" dismisses.
   var OBS_CHIP = { needs_work: "Needs work", modified: "Modified", salvage: "Salvage or rebuilt title" };
   function observeHtml(d) {
     var offer = (d && d.observeOffer) || []; if (!offer.length) return "";
-    var chips = offer.map(function (o) { return '<button class="qchip" data-observe="' + esc(o.key) + '" data-olabel="' + esc(o.label) + '">' + esc(OBS_CHIP[o.key] || o.key) + "</button>"; }).join("");
-    chips += '<button class="qchip" data-observe="none">Nothing major</button>';
-    return '<div class="earned observe" data-stage="answer"><p class="q">' + lint("Anything I should know about it?", "obs.q") + '</p><div class="qchips">' + chips + "</div></div>";
+    var chips = offer.map(function (o) { return '<button type="button" class="qchip" data-observe="' + esc(o.key) + '" data-olabel="' + esc(o.label) + '">' + esc(OBS_CHIP[o.key] || o.key) + "</button>"; }).join("");
+    chips += '<button type="button" class="qchip" data-observe="none">Nothing major</button>';
+    return '<div class="qcard earned observe" data-stage="answer"><p class="q">' + lint("Anything I should know about it?", "obs.q") + '</p><div class="qchips">' + chips + "</div></div>";
   }
   function observeAsideHtml(d) {
     var a = d && d.observeAside; if (!a || !(a.lo > 0)) return "";
@@ -536,16 +215,6 @@
       '<div class="rdate">' + esc(c.month) + "</div><div class=\"rtitle\">" + esc(titleCaseSaleTitle(c.title)) + "</div></div>";
     var href = utmUrl(c.url);
     return href ? '<a class="rcard" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="rcard">' + inner + "</div>";
-  }
-  function receiptsHtml(cards, n, tagAside) { return (cards || []).slice(0, n).map(function (c) { return receiptCardHtml(c, tagAside); }).join(""); }
-  function platStripHtml(d, m) {
-    var plats = d.platforms || [];
-    if (!plats.length) return "";
-    var pills = plats.map(function (nm) { return '<span class="plat-pill">' + esc(nm) + "</span>"; }).join("");
-    var note = "";
-    if (d.singlePlatform && d.topPlatform) note = '<p class="plat-note">' + lint("Almost all on " + esc(d.topPlatform) + ", so there is no cross-platform split to read here.", "platnote") + "</p>";
-    else if (d.topPlatform) note = '<p class="plat-note">' + lint("Most change hands on " + esc(d.topPlatform) + ".", "platnote") + "</p>";
-    return '<div class="seclabel">Where they sold</div><div class="plat-strip">' + pills + "</div>" + note;
   }
   // ============ RENDER PORT (round 7): cluster hero, quiet span, freshness slot, Sam's Read
   // (driver + divergence), three representative cards, See-all -> platforms. Replaces the
@@ -590,52 +259,50 @@
   // Item 5b: the band is mileage-scoped only when a real mileage refine narrowed the pool (the
   // engine flag, or the refine phrase names miles). Otherwise the band is the whole market.
   function bandMileageScoped(d) { return !!(d && (d.mileageScoped || /mile/i.test(obRefinePhrase || ""))); }
+  // Resolved car line: the car Sam is reading, plus a real "Change" button. On an exact VIN/chassis
+  // match a pill leads it and the car is named from its own record.
   function carLineHtml(d, m) {
-    var bits = [], mi = subjMileageOf(d, m);
-    if (m) { bits.push(esc(m.displayName || carLabel(d.resolvedCar))); if (mi) bits.push("last recorded " + mi.toLocaleString("en-US") + " miles"); }
-    else { bits.push(esc(carLabel(d.resolvedCar))); if (mi) bits.push("around " + mi.toLocaleString("en-US") + " miles"); }
-    return '<div class="carline">' + bits.join(' <span class="dot">&middot;</span> ') + ' <a class="ch" data-change>Change</a></div>';
+    var pill = m ? '<span class="vinpill">' + (obSourceVin ? "VIN match" : "Exact match") + "</span>" : "";
+    var name = m ? (m.displayName || carLabel(d.resolvedCar)) : carLabel(d.resolvedCar);
+    return '<div class="carline" data-stage="resolved">' + pill + "<span>" + esc(name) + '</span><button type="button" class="linkbtn ch" data-change>Change</button></div>';
   }
-  // CLUSTER-LED BLOCK (retires the "Sam's live take" kicker everywhere). Car line, then a sentence
-  // that leads INTO the number, the serif band, a tail with the window + full span, then freshness.
-  // Nothing else. The band edges are the cluster (typical middle) or the span when the pool is thin.
-  function heroBlock(d, m) {
-    var hasCluster = !!d.cluster;
-    var noun = carNoun(d), mi = subjMileageOf(d, m);
-    // NO HEADLINE $ WITHOUT A BAND (standing rule): when the typical-band test fails (no cluster),
-    // there is no honest headline figure. Do NOT render a big dollar band - lead with the sales
-    // themselves and say why. The real sales rows render immediately below (resultHtml).
-    if (!hasCluster) {
-      var subj = noun || "cars like it";
+  // Eyebrow over the range: what the pool is (noun from the resolved car), any answered refinement,
+  // and the window. Text stays mixed-case; CSS sets the caps.
+  function eyebrowText(d) {
+    var noun = carNoun(d);
+    var tmp = document.createElement("div"); tmp.innerHTML = noun; noun = tmp.textContent || "";
+    var parts = [noun || "Cars like it"];
+    var rf = obLastRefine;
+    if (rf && rf.label && !rf.observe) parts.push((rf.miMin != null || rf.miTarget != null) ? rf.label + " miles" : rf.label);
+    parts.push("sold in " + windowText(d));
+    return parts.join(" · ");
+  }
+  // ANSWER CARD: left 7 of 10 columns carry eyebrow, ONE range (the cluster), "Most sales landed
+  // here." and the freshness line; the right 3 carry Sam's Take ONLY when the engine returns one
+  // (d.samsTake.sentence). No Take: the left spans the card and no panel renders.
+  // NO HEADLINE $ WITHOUT A BAND (standing rule 24): with no cluster there is no range of any kind;
+  // the card leads with the sales themselves and says why.
+  function answerCardHtml(d, m) {
+    var take = d.samsTake && d.samsTake.sentence ? String(d.samsTake.sentence) : "";
+    var mi = subjMileageOf(d, m);
+    var main = '<div class="eyebrow">' + esc(eyebrowText(d)) + "</div>";
+    if (d.cluster) {
+      var band = d.cluster;
+      var miCtx = (mi && bandMileageScoped(d)) ? (m ? " around this mileage" : " around " + mi.toLocaleString("en-US") + " miles") : "";
+      main += '<h1 class="range band">' + esc(usd(band[0])) + ' <span class="to">to</span> ' + esc(usd(band[1])) + "</h1>" +
+        '<p class="landed lead">' + lint("Most sales" + miCtx + " landed here.", "ans.landed") + "</p>";
+    } else {
+      var noun = carNoun(d), subj = noun || "cars like it";
       var line = (d.poolN && d.poolN < 8)
         ? ("Only " + d.poolN + " " + subj + " ha" + (d.poolN === 1 ? "s" : "ve") + " sold in " + windowText(d) + ", not enough for a range, so here are the sales themselves.")
         : (subj.charAt(0).toUpperCase() + subj.slice(1) + " sold too spread out in " + windowText(d) + " to call a typical price, so here are the sales themselves.");
-      return '<div class="livetake blk noband" data-stage="answer">' + (m ? "" : carLineHtml(d, m)) +
-        '<div class="lead">' + lint(line, "cl.noband") + "</div>" +
-        freshLine(d) + "</div>";
+      main += '<p class="ans-lead lead">' + lint(line, "ans.noband") + "</p>";
     }
-    var band = d.cluster;
-    // Item 5b: "around this mileage" only when the band is actually mileage-scoped; otherwise it
-    // would be a false claim (the band is the whole market) and is dropped.
-    var miCtx = (mi && bandMileageScoped(d)) ? (m ? " around this mileage" : " around " + mi.toLocaleString("en-US") + " miles") : "";
-    var lead = noun ? ("Most " + noun + miCtx + " sold between") : "Cars like it sold between";
-    var tail = "in " + windowText(d) + ". Everything from " + usd(d.span[0]) + " to " + usd(d.span[1]) + " has sold.";
-    // On an exact-car (VIN) result the hero above owns the car identity + Change, so the block does
-    // not repeat a car line; a typed query keeps its car line (name + Change).
-    return '<div class="livetake blk" data-stage="answer">' + (m ? "" : carLineHtml(d, m)) +
-      '<div class="lead">' + lint(lead, "cl.lead") + "</div>" +
-      '<div class="band"><span class="n">' + esc(usd(band[0])) + '</span> and <span class="n">' + esc(usd(band[1])) + "</span></div>" +
-      '<div class="tail">' + lint(tail, "cl.tail") + "</div>" +
-      freshLine(d) + "</div>";
-  }
-  // Sam's Take (v1): the engine's stronger-vs-weaker-half pattern read on the sales behind the range,
-  // placed under the range and above the cards. Renders ONLY when the engine returns a sentence
-  // (d.samsTake). Snapshot attributes are already worded "as listed" in the engine sentence. Pattern
-  // never cause; never a figure for the user's own car. lint() guards the composed copy.
-  function samsTakeHtml(d) {
-    var st = d && d.samsTake;
-    if (!st || !st.sentence) return "";
-    return '<div class="samtake stv1" data-stage="answer"><div class="tk">' + lint("Sam’s Take", "stv1.tag") + '</div><p class="s2">' + lint(esc(st.sentence), "stv1") + "</p></div>";
+    main += freshLine(d);
+    var panel = take
+      ? '<aside class="take" aria-label="Sam’s Take"><div class="take-h"><span class="roundel" aria-hidden="true">SAM</span><span class="take-tag">' + lint("Sam’s Take", "take.tag") + "</span></div><p>" + lint(esc(take), "take") + "</p></aside>"
+      : "";
+    return '<section class="anscard livetake blk' + (take ? "" : " solo") + '" data-stage="answer"><div class="ans-main">' + main + "</div>" + panel + "</section>";
   }
   // Item 2: the divergence contradiction as ONE plain serif line (no box, no kicker), assembled from
   // the real numbers - same delta logic, rendered as a sentence.
@@ -675,72 +342,109 @@
     if (!txt) return "";
     return '<div class="fresh"><span class="dot"></span>' + esc(txt) + "</div>";
   }
-  // SAM'S READ: driver sentence (gated 5+/5+ in the engine) plus the divergence beat (cases
-  // a/b/c) when the matched car's own sale falls materially outside the cluster. No prices except
-  // the car's own sale. Refinement chips reuse the earned-question data attributes.
-  function samReadBlock(d, m) {
-    var driverS = d.driver === "mileage" ? "Mileage is doing most of the separating in the recent sales." : "";
-    var dv = d.divergence, parts = [], refine = "";
-    if (dv && (dv.kase === "a" || dv.kase === "b" || dv.kase === "c")) {
-      if (driverS) parts.push(driverS);
-      var price = r3money(dv.price), where = dv.direction; // "below" | "above"
-      if (dv.kase === "a") {
-        parts.push("This car last sold for " + price + " at <span class=\"num\">" + Number(dv.mileage).toLocaleString("en-US") + "</span> miles. That’s outside where the closest recent sales are clustering today, so current mileage matters here.");
-        refine = '<div class="refine"><span class="q">' + lint("Still around " + Number(dv.mileage).toLocaleString("en-US") + " miles?", "read.refq") + '</span><button class="chip g" data-refyes>Yes</button><button class="chip typeit" data-typemiles>Update mileage</button></div>';
-      } else if (dv.kase === "b") {
-        var bare = bareNameOf(d, m), art = /^[aeiou8]/i.test(bare) ? "an" : "a";
-        parts.push("This car last sold for " + price + ", " + where + " where these are clustering, but its listing didn’t record the mileage, and on " + art + " " + esc(bare) + " that is the one fact that would explain it.");
-        var bands = (d.earned && d.earned.kind === "mileage" && d.earned.buckets) ? d.earned.buckets : null;
-        var bandChips = bands
-          ? bands.map(function (bk) { return '<button class="chip" data-milemin="' + bk.min + '" data-milemax="' + (bk.max == null ? "" : bk.max) + '" data-mlabel="' + esc(bk.label) + '">' + esc(bk.label) + "</button>"; }).join("")
-          : '<button class="chip" data-milemin="0" data-milemax="100000" data-mlabel="under 100k">Under 100k</button><button class="chip" data-milemin="100000" data-milemax="160000" data-mlabel="100k to 160k">100k to 160k</button><button class="chip" data-milemin="160000" data-milemax="" data-mlabel="over 160k">Over 160k</button>';
-        refine = '<div class="refine"><span class="q">' + lint("Roughly how many miles?", "read.askq") + '</span></div><div class="askchips">' + bandChips + '<button class="chip typeit" data-typemiles>Enter miles</button></div>';
-      } else { // case c: diverges but mileage does not explain it - state it, ask nothing
-        parts.push("This car last sold for " + price + ", " + where + " where these are clustering today.");
-      }
-    } else {
-      if (driverS) parts.push(driverS);
-      parts.push("These are the three I’d pay closest attention to.");
+  // ---- Sale cards (Oct 2026 design). One renderer for every card size: photo slot (real photo, or
+  // a clearly marked "No photo" slot), pill, price, venue + month, the record's OWN title (rule 25),
+  // a meta line, and an optional italic why-line. Whole card is the listing link when there is one.
+  var DELTA_LABEL = { fewer_miles: "Fewer miles", more_miles: "More miles", manual: "Manual", automatic: "Automatic", earlier: "Earlier", more_recent: "More recent", recent: "More recent", higher: "Higher sale", lower: "Lower sale" };
+  function photoHtml(image, alt, pill) {
+    var img = image ? '<img src="' + esc(image) + '" alt="' + esc(alt || "") + '" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">' : "";
+    return '<div class="ph' + (image ? "" : " noimg") + '">' + img + '<span class="none">No photo</span>' + (pill ? '<span class="pill">' + esc(pill) + "</span>" : "") + "</div>";
+  }
+  function saleCardHtml(o) {
+    var head = o.venueLine ? '<div class="price-row"><span class="cprice num">' + o.priceHtml + '</span><span class="cvenue">' + esc(o.venueLine) + "</span></div>"
+      : '<span class="cprice num">' + o.priceHtml + "</span>";
+    var body = '<div class="cbody">' + head +
+      (o.allIn ? '<div class="callin">Buyer paid ' + esc(o.allIn) + " with premium</div>" : "") +
+      (o.title ? '<div class="ctitle">' + esc(o.title) + "</div>" : "") +
+      (o.meta ? '<div class="cmeta">' + esc(o.meta) + "</div>" : "") +
+      (o.extra || "") +
+      (o.why ? '<p class="cwhy">' + lint(esc(o.why), "card.why") + "</p>" : "") +
+      (o.after || "") + "</div>";
+    var cls = "card " + (o.cls || "");
+    var photo = photoHtml(o.image, o.title, o.pill);
+    if (o.article) {
+      // A card that carries its own inner link (the VIN history link) cannot itself be a link;
+      // the photo opens the listing instead.
+      var ph = o.href ? '<a href="' + esc(o.href) + '" target="_blank" rel="noopener" aria-label="Open the listing" data-cardclick="' + esc(o.slug || "") + '">' + photo + "</a>" : photo;
+      return '<article class="' + cls + '">' + ph + body + "</article>";
     }
-    var ps = parts.map(function (p) { return "<p>" + lint(p, "read") + "</p>"; }).join("");
-    return '<div class="samread" data-stage="answer"><div class="ava">SAM</div><div><div class="tag">' + lint("Sam’s read", "read.tag") + "</div>" + ps + refine + "</div></div>";
+    return o.href
+      ? '<a class="' + cls + '" href="' + esc(o.href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(o.slug || "") + '">' + photo + body + "</a>"
+      : '<div class="' + cls + '">' + photo + body + "</div>";
   }
-  // A divergence a/b already carries its own refine/ask chips in Sam's Read; the standalone
-  // earned block must not also render (one ask, never two).
-  function divergenceAsksInline(d) { var dv = d.divergence; return !!(dv && (dv.kase === "a" || dv.kase === "b")); }
-  function repMeta(c) {
-    var bits = ['<span class="num">' + esc(c.mileageText) + "</span>"];
-    // Item 4: the gearbox line shows only when the gearbox question applies (the pool has both a manual
-    // and a non-manual); an all-manual car (Cobra) never shows "Manual" on its hero, matching /sell.
-    if (c.transmission && obGbApplies) bits.push(esc(cap(String(c.transmission))));
-    return bits.join('<span class="dot">&middot;</span>');
-  }
-  // House both-numbers (locked addition): the math number (hammer) is the headline; the all-in
-  // premium-inclusive price shows beside it, never leading. Non-house cards show price alone.
-  function repPrice(c) { return esc(usd(c.price)) + (c.isHouse && c.allIn ? ' <span class="allin">&middot; buyer paid ' + esc(usd(c.allIn)) + " incl. premium</span>" : ""); }
-  var DELTA_LABEL = { fewer_miles: "Fewer miles", more_miles: "More miles", manual: "Manual", automatic: "Automatic", earlier: "Earlier sale", higher: "Higher sale", lower: "Lower sale" };
-  function bracketCard(c) {
-    if (!c) return "";
-    var ext = '<span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>';
-    var img = c.image ? '<img src="' + esc(c.image) + '" alt="' + esc(c.title) + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.plate\');if(p)p.style.display=\'flex\'">' : "";
-    var lbl = DELTA_LABEL[c.delta] || "Recent sale";
+  // "Automatic (7-speed)" -> "Automatic, 7-speed".
+  function gearboxText(t) { return cap(String(t || "").replace(/\s*\((\d+)[- ]?speed\)/i, ", $1-speed").trim()); }
+  function longMiles(c) { return Number(c.mi) > 0 ? Number(c.mi).toLocaleString("en-US") + " miles" : (c.mileageText && c.mileageText !== "TMU" ? c.mileageText : ""); }
+  // The hero (CLOSEST SALE) for a typed query. The gearbox renders only when a gearbox question
+  // applies to this pool (obGbApplies) and the record carries one.
+  function heroCardHtml(c) {
     var venue = (c.platform && c.platform !== "others") ? c.platform : "";
-    var meta = '<span class="num">' + esc(c.mileageText) + "</span>" + (c.transmission && obGbApplies ? '<span class="dot">&middot;</span>' + esc(cap(String(c.transmission))) : "") + (venue ? '<span class="dot">&middot;</span>' + esc(venue) : "") + '<span class="dot">&middot;</span>' + esc(monthYear(c.date));
-    var inner = '<div class="bth">' + img + ext + '<div class="plate" style="display:' + (c.image ? "none" : "flex") + '"><div class="n">' + esc(titleCaseSaleTitle(c.title)) + '</div></div></div>' +
-      '<div class="bb"><span class="blabel">' + esc(lbl) + '</span><div class="bprice num">' + repPrice(c) + '</div>' +
-      // Name the car as VISIBLE text (year/model/trim), not only in the image-plate that hides when
-      // the photo loads - a bracket must never render as an unlabelled $600k "peer" (Sep 2026 fix).
-      (c.title ? '<div class="btitle">' + esc(titleCaseSaleTitle(c.title)) + '</div>' : "") +
-      '<div class="bmeta">' + meta + "</div></div>";
-    var href = utmUrl(c.url);
-    return href ? '<a class="bcard" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="bcard">' + inner + "</div>";
+    var gb = (c.transmission && obGbApplies) ? gearboxText(c.transmission) : "";
+    var mi = longMiles(c);
+    var meta = [mi, gb].filter(Boolean).join(" · ");
+    if (meta) meta += " · as listed at the time of sale";
+    return saleCardHtml({
+      cls: "hero", pill: "Closest sale", href: utmUrl(c.url), slug: c.platformSlug, image: c.image,
+      priceHtml: esc(usd(c.price)), venueLine: [venue, monthYear(c.date)].filter(Boolean).join(" · "),
+      allIn: (c.isHouse && c.allIn) ? usd(c.allIn) : "", title: cleanReceiptTitle(c.title), meta: meta,
+      why: c.basis === "subject" ? "The nearest recent sale on mileage and spec." : "The sale nearest the middle of the range."
+    });
   }
-  // HARD RULE: every supporting row keeps a real thumbnail. When the sale has no photo, render a
-  // CLEARLY MARKED placeholder (a labelled photo slot), never an empty text row.
-  function thumbEl(image, alt) {
-    return image
-      ? '<img class="th" src="' + esc(image) + '" alt="' + esc(alt || "") + '" loading="lazy" onerror="this.classList.add(\'th-none\');this.removeAttribute(\'src\')">'
-      : '<span class="th th-none" aria-label="No photo"></span>';
+  function smallCardHtml(c) {
+    if (!c) return "";
+    var venue = (c.platform && c.platform !== "others") ? c.platform : "";
+    var meta = [c.mileageText && c.mileageText !== "TMU" ? c.mileageText : "", venue, c.month || monShort(c.date)].filter(Boolean).join(" · ");
+    return saleCardHtml({
+      cls: "sm", pill: DELTA_LABEL[c.delta] || (c.role === "closest" ? "Closest sale" : "Recent sale"), href: utmUrl(c.url), slug: c.platformSlug, image: c.image,
+      priceHtml: esc(usd(c.price)), allIn: (c.isHouse && c.allIn) ? usd(c.allIn) : "", title: cleanReceiptTitle(c.title), meta: meta
+    });
+  }
+  // The exact car (VIN or chassis match) as the hero: "THIS CAR", 1.5px green border, its last sale.
+  // Snapshot attributes are dated and past tense (rule 26). The history link renders only when the
+  // engine returns how many times it sold before the shown sale (m.soldBeforeCount >= 1) and the
+  // query was a VIN (the /vin/{vin} page is keyed on it).
+  function vinHeroCardHtml(m, rc) {
+    var name = m.displayName || carLabel(rc);
+    var priceHtml, venueLine;
+    var lastAttempt = (m.history || []).filter(function (h) { return h.kind === "attempt" || h.notSold; })[0];
+    if (m.price) priceHtml = esc(usd(m.price));
+    else if (lastAttempt && lastAttempt.highBid) priceHtml = esc(usd(lastAttempt.highBid)) + ' <span class="cvenue">high bid, not sold</span>';
+    else priceHtml = "";
+    venueLine = [obPlat(m.source || (lastAttempt && lastAttempt.platform)), monthYear(m.soldDate || (lastAttempt && lastAttempt.date))].filter(Boolean).join(" · ");
+    var mi = Number(String(m.mileage == null ? "" : m.mileage).replace(/[^\d]/g, ""));
+    var bits = [];
+    if (mi > 0) bits.push(mi.toLocaleString("en-US") + " miles");
+    if (m.materialMods && m.materialMods.length) bits.push("modified");
+    var when = monthYear(m.soldDate);
+    var meta = bits.length ? bits.join(" · ") + (when ? ", as reported " + when : ", as listed at the time of sale") : "";
+    var n = Number(m.soldBeforeCount);
+    var hist = (n >= 1 && obSourceVin)
+      ? '<a class="histlink" href="/vin/' + encodeURIComponent(obSourceVin) + '">' + esc("Sold " + (n === 1 ? "once" : n === 2 ? "twice" : n + " times") + " before. See its history") + " &#8594;</a>"
+      : "";
+    return saleCardHtml({ cls: "hero this exact", article: true, pill: "This car", href: utmUrl(m.url), slug: m.source, image: m.photoUrl,
+      priceHtml: priceHtml, venueLine: venueLine, title: name, meta: meta, after: hist });
+  }
+  // Thin / class-era / pair receipts (engine thin.receipts shape: hammer, venue, isHouse, allIn...).
+  function receiptCardHtml(rc) {
+    var natH = rc.nativeCur && rc.nativeHammer;
+    var priceHtml = natH ? esc(natMoney(rc.nativeCur, rc.nativeHammer)) + ' <span class="cvenue">(' + esc(usd(rc.hammer)) + ")</span>" : esc(usd(rc.hammer));
+    var allIn = "";
+    if (rc.isHouse && rc.allIn) allIn = (natH && rc.nativeAllIn) ? natMoney(rc.nativeCur, rc.nativeAllIn) + " (" + usd(rc.allIn) + ")" : usd(rc.allIn);
+    var segs = [];
+    if (Number(rc.mileage) > 0) segs.push(Number(rc.mileage).toLocaleString("en-US") + " mi");
+    segs.push(rc.venue); segs.push(monthYear(rc.date));
+    if (rc.isHouse) { var ch = houseChassisMeta(rc); if (ch) segs.push(ch); }
+    else if (htGearboxSplit) { var gl = gearboxLabel(rc); if (gl) segs.push(gl); }
+    var marks = (rc.markers && rc.markers.length) ? "<div>" + rc.markers.map(function (mk) { return '<span class="mk">' + esc(mk.label) + "</span>"; }).join("") + "</div>" : "";
+    return saleCardHtml({ cls: "t", href: utmUrl(rc.url), slug: rc.slug, image: rc.image, priceHtml: priceHtml, allIn: allIn,
+      title: cleanReceiptTitle(shortCarName(rc.title)), meta: segs.filter(Boolean).join(" · "), extra: marks });
+  }
+  // Engine d.cards shape (refusal / shown-separately): price, mileageText, platform, month, title.
+  function poolCardHtml(c, tagAside) {
+    var venue = (c.platform && c.platform !== "others") ? c.platform : "";
+    return saleCardHtml({ cls: "t", pill: (tagAside && c.hollow) ? "Set aside" : "", href: utmUrl(c.url), slug: c.platformSlug, image: c.image,
+      priceHtml: esc(usd(c.price)), title: cleanReceiptTitle(c.title),
+      meta: [c.mileageText && c.mileageText !== "TMU" ? c.mileageText : "", venue, c.month || monShort(c.date)].filter(Boolean).join(" · ") });
   }
   // Receipt-row title cleanup (Sep 2026): the raw OCD title leads with the listing's mileage hook
   // ("21k-Mile ...", "4,800-Mile ...") and trails a gearbox tag ("... 6-Speed") - both redundant on
@@ -779,75 +483,52 @@
     t = titleCaseSaleTitle(t);                   // item 6: never shout a sale title
     return t || String(title == null ? "" : title);
   }
-  // One compact supporting row (closest / fewer / more) with a thumbnail. Natural height, full width,
-  // no shared height constraint - nothing clips.
-  function compactRow(c) {
-    if (!c) return "";
-    // Item 5c + label-honesty (Sep 2026): when the anchor is the median of qualifying sales (basis
-    // "middle", the typical transaction) it reads "Typical sale"; only a genuine nearest-on-mileage
-    // anchor (basis "subject") reads "Closest match". The label states exactly what was selected.
-    var lbl = c.role === "closest" ? (c.basis === "subject" ? "Closest match" : "Typical sale") : (DELTA_LABEL[c.delta] || "");
-    var venue = (c.platform && c.platform !== "others") ? c.platform : "";
-    var meta = [c.mileageText, (c.transmission && obGbApplies) ? cap(String(c.transmission)) : "", venue].filter(Boolean).join(" · ");
-    var href = utmUrl(c.url);
-    var inner = thumbEl(c.image, c.title) + '<div class="htr-l"><div class="htr-v">' + (lbl ? '<span class="cmkick">' + esc(lbl) + "</span>" : "") + '<span class="htr-yv">' + esc(cleanReceiptTitle(c.title)) + "</span></div>" +
-      '<div class="htr-sub">' + esc(meta) + "</div></div>" +
-      '<div class="htr-r"><div class="htr-p num">' + repPrice(c) + '</div><div class="htr-d">' + esc(monthYear(c.date)) + "</div></div>";
-    return href ? '<a class="htr htr-thumb" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="htr htr-thumb">' + inner + "</div>";
-  }
-  // General match (locked hierarchy rule): ONE dominant CLOSEST MATCH photo card at full content
-  // width, then FEWER MILES and MORE MILES as stacked compact rows below. No side-by-side column
-  // (that squeezed + clipped the lower card).
-  function cards3Html(d, m) {
-    var rep = d.representative; if (!rep || !rep.closest) return "";
-    var c = rep.closest;
-    var why = c.basis === "subject" ? "The nearest recent sale on mileage and spec."
-      : "The sale nearest the median of what's actually sold.";
-    var ext = '<span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>';
-    var img = c.image ? '<img src="' + esc(c.image) + '" alt="' + esc(c.title) + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.plate\');if(p)p.style.display=\'flex\'">' : "";
-    var cmKick = c.basis === "subject" ? "Closest match" : "Typical sale";
-    var cmInner = '<div class="rph">' + img + '<span class="cmkick">' + cmKick + '</span>' + ext + '<div class="plate" style="display:' + (c.image ? "none" : "flex") + '"><div class="n">' + esc(cleanReceiptTitle(c.title)) + '</div><div class="s">photo pending</div></div></div>' +
-      '<div class="rb"><div class="rprice num">' + repPrice(c) + '</div>' +
-      '<div class="rmeta">' + repMeta(c) + '</div>' +
-      '<div class="rtitle">' + esc(titleCaseSaleTitle(c.title)) + '<span class="dot">&middot;</span>' + esc(c.platform) + '<span class="dot">&middot;</span>' + esc(monthYear(c.date)) + '</div>' +
-      '<div class="why">' + lint(why, "card.why") + "</div></div>";
-    var cmHref = utmUrl(c.url);
-    var cm = cmHref ? '<a class="cm cm-solo" href="' + esc(cmHref) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + cmInner + "</a>" : '<div class="cm cm-solo">' + cmInner + "</div>";
-    return '<div class="stack3">' + cm + compactRow(rep.high) + compactRow(rep.low) + "</div>";
-  }
-  // Exact-car state (item 1): the closest match must be a COMPACT ROW, not a second big photo card
-  // alongside the VIN hero - same treatment as house-led. Renders closest + fewer/more-miles as rows,
-  // each with its venue (item 3). One large photo card on the page (the VIN hero), never two.
-  // Exact-car: all three market receipts are compact rows (VIN hero is the only big photo). Unified
-  // with the general-match supporting rows via compactRow (thumbnail guaranteed).
-  function compactSalesHtml(d) {
-    var rep = d.representative; if (!rep || !rep.closest) return "";
-    return '<div class="htreceipts htledger">' + [rep.closest, rep.high, rep.low].filter(Boolean).map(compactRow).join("") + "</div>";
-  }
-  // "Shown separately" (Part 1 Rule 7): the Rule 5 guard's TAGGED cars (CSL, Heritage, Scuderia,
-  // 16M, Serie Fiorano, restomods/replicas, year-mismatch) are kept and listed here, OUT of the
-  // headline band, each with its set-aside reason - never vanished.
-  function shownSeparatelyHtml(d) {
-    // Rule 5 tagged variants first, then any remaining aside cars (price/mileage outliers) so NOTHING
-    // vanishes. NOTE: fix 5 (move non-variant outliers back into the RANGE, so only tagged variants
-    // remain here) needs the price-fence change and ships in the next unit; until then we show the
-    // outliers here rather than drop them.
-    var list = d.asideCards || [];   // all aside (tagged variants + any outliers) so NOTHING vanishes
-    if (!list.length) return "";
-    return '<div class="seclabel" data-stage="cards">' + lint("Shown separately", "sep.lab") + "</div>" +
-      '<div class="receipts" data-stage="cards">' + receiptsHtml(list, 8, true) + "</div>";
-  }
-  function seeAllHtml(d, m) {
+  // "See all recent sales": a real toggle (top on desktop, under the cards on phone) for the
+  // existing where-they-sold panel. Renders only when the engine returns platforms.
+  function seeAllParts(d, m) {
     var plats = d.platforms || [];
-    if (!plats.length) return "";
+    if (!plats.length) return null;
     var pills = plats.map(function (nm) { return '<span class="plat-pill">' + esc(nm) + "</span>"; }).join("");
     var note = "";
     if (d.singlePlatform && d.topPlatform) note = '<p class="plat-note">' + lint("Almost all on " + esc(d.topPlatform) + ", so there is no cross-platform split to read here.", "platnote") + "</p>";
     else if (d.topPlatform) note = '<p class="plat-note">' + lint("Most change hands on " + esc(d.topPlatform) + ".", "platnote") + "</p>";
     var label = (d.poolTrim || bareNameOf(d, m)) + " sales, " + windowMeta(d).toLowerCase();
-    return '<details class="showall"><summary>See all recent sales</summary>' +
-      '<div class="allhead"><span class="lab">' + esc(label) + '</span></div>' +
-      '<div class="platwrap"><div class="lab">Where they sold</div><div class="plat-strip">' + pills + "</div>" + note + "</div></details>";
+    var btn = function (cls) { return '<button type="button" class="linkbtn ' + cls + '" data-seeall aria-expanded="false" aria-controls="ob-seeall">See all recent sales &#8594;</button>'; };
+    return {
+      top: btn("seeall-top"), bottom: btn("seeall-bottom"),
+      panel: '<div class="seeall-panel" id="ob-seeall" hidden><p class="lab">' + esc(label) + '</p><p class="lab">Where they sold</p><div class="plat-strip">' + pills + "</div>" + note + "</div>"
+    };
+  }
+  // RECENT COMPARABLE SALES: divider head (title, scope line, See all), then the 5-column card row:
+  // hero spans 3 (CLOSEST SALE, or THIS CAR on an exact match), two stacked cards span 2.
+  function salesSectionHtml(d, m) {
+    var rep = d.representative;
+    var hero = "", sides = [];
+    if (m) {
+      hero = vinHeroCardHtml(m, d.resolvedCar);
+      if (rep) sides = [rep.high, rep.low].filter(Boolean);
+      if (rep && sides.length < 2 && rep.closest) sides.push(rep.closest);
+    } else {
+      if (!rep || !rep.closest) return "";
+      hero = heroCardHtml(rep.closest);
+      sides = [rep.high, rep.low].filter(Boolean);
+    }
+    sides = sides.slice(0, 2);
+    var scope;
+    if (m) scope = sides.length ? "This car, plus " + (sides.length === 2 ? "two" : "one") + " recent comparable sale" + (sides.length === 2 ? "s" : "") + ". Tap any to open the listing." : "This car’s last recorded sale.";
+    else scope = (d.widening || d.resolvedSpec || "") + (d.widening || d.resolvedSpec ? " " : "") + "Tap any to open the listing.";
+    var sa = seeAllParts(d, m);
+    var headHtml = '<div class="sec-head" data-stage="cards"><div><h2>Recent comparable sales</h2><span class="scope">' + lint(esc(scope), "sec.scope") + "</span></div>" + (sa ? sa.top : "") + "</div>";
+    var row = '<div class="cards5' + (sides.length ? "" : " single") + '" data-stage="cards">' + hero +
+      (sides.length ? '<div class="stack">' + sides.map(smallCardHtml).join("") + "</div>" : "") + "</div>";
+    return headHtml + row + (sa ? sa.bottom + sa.panel : "");
+  }
+  // "Shown separately" (Part 1 Rule 7): tagged variants and aside cars stay visible, out of the range.
+  function shownSeparatelyHtml(d) {
+    var list = d.asideCards || [];
+    if (!list.length) return "";
+    return '<div class="sec-head" data-stage="cards"><div><h2>' + lint("Shown separately", "sep.lab") + '</h2><span class="scope">' + lint("Kept out of the range above.", "sep.scope") + "</span></div></div>" +
+      '<div class="grid3" data-stage="cards">' + list.slice(0, 8).map(function (c) { return poolCardHtml(c, true); }).join("") + "</div>";
   }
   // Item 4: the mileage reconfirm / earned question renders AFTER the evidence (answer, proof, then
   // the refinement). On a divergent car it is the "still around X miles?" reconfirm; otherwise the
@@ -857,9 +538,9 @@
     if (dv && dv.kase === "a" && dv.mileage > 0) {
       // Refinement copy pattern (locked, CLAUDE.md): reruns the EVIDENCE around the current
       // mileage, never promises a different number/range. "which real sales are used", not a result.
-      return '<div class="earned reconfirm" data-stage="answer"><p class="q">' + lint("Still around " + Number(dv.mileage).toLocaleString("en-US") + " miles?", "rc.q") +
+      return '<div class="qcard earned reconfirm" data-stage="answer"><p class="q">' + lint("Still around " + Number(dv.mileage).toLocaleString("en-US") + " miles?", "rc.q") +
         '</p><p class="rc-sub">' + lint("If not, update it and I’ll rerun the market around the current mileage.", "rc.sub") +
-        '</p><div class="qchips"><button class="qchip g" data-refyes>Yes</button><button class="qchip typeit" data-typemiles>Update mileage</button></div></div>';
+        '</p><div class="qchips"><button type="button" class="qchip g" data-refyes>Yes</button><button type="button" class="qchip typeit" data-typemiles>Update mileage</button></div></div>';
     }
     return earnedHtml(d, m);
   }
@@ -880,22 +561,27 @@
     return '<p class="mifallback" data-stage="answer">' + lint(esc("Too few sold right at that mileage, so these are the " + d.mileageFallback.n + " closest sales by mileage."), "mifb") + "</p>";
   }
   function resultHtml(d, m) {
-    // Cluster-led block (retires the kicker) -> contradiction sentence (divergence) -> the sales
-    // (compact rows for exact-car so the VIN hero is the only big photo; three cards for typed) ->
-    // the reconfirm AFTER the evidence -> observe offer -> CTA -> quiet recent row.
-    // Item 7: no "The sales behind it" kicker (the rows are self-explanatory), and no footer
-    // manifesto (the freshness line inside the block already says "Real sales... Nothing estimated").
-    var body = heroBlock(d, m) + mileageFallbackHtml(d) + contradictionLine(d) + observeAsideHtml(d);
-    body += samsTakeHtml(d);
-    body += inlineSplitsHtml(d);
-    body += m ? compactSalesHtml(d) : cards3Html(d, m);
-    body += seeAllHtml(d, m);
+    // Order (Oct 2026 design of record): answer card -> engine-gated note lines -> Recent comparable
+    // sales (divider head + card row) -> shown-separately -> optional question card -> Ready to sell.
+    // ONE range only (the cluster in the answer card); no second "everything from" span anywhere.
+    var notes = mileageFallbackHtml(d) + contradictionLine(d) + observeAsideHtml(d) + inlineSplitsHtml(d);
+    if (d.driverSentence && !(d.earned) && !(d.divergence && d.divergence.kase === "a")) notes += '<p class="varynote">' + lint(esc(d.driverSentence), "varynote") + "</p>";
+    var body = answerCardHtml(d, m);
+    if (notes) body += '<div class="notes" data-stage="answer">' + notes + "</div>";
+    body += salesSectionHtml(d, m);
     body += shownSeparatelyHtml(d);
     body += reconfirmHtml(d, m);
-    if (d.driverSentence && !(d.earned) && !(d.divergence && d.divergence.kase === "a")) body += '<p class="varynote">' + lint(esc(d.driverSentence), "varynote") + "</p>";
     body += observeHtml(d);
-    body += sellHtml() + recentHtml();
+    body += sellHtml();
     return body;
+  }
+  function samMsgHtml(paras, tag, cls) {
+    return '<div class="sam' + (cls ? " " + cls : "") + '" data-stage="answer"><span class="roundel lg" aria-hidden="true">SAM</span><div class="body">' +
+      (tag ? '<div class="tag">' + esc(tag) + "</div>" : "") + paras.map(function (p) { return "<p>" + p + "</p>"; }).join("") + "</div></div>";
+  }
+  function poolGridHtml(cards, label) {
+    if (!cards.length) return "";
+    return '<div class="sec-head" data-stage="cards"><div><h2>' + esc(label) + '</h2></div></div><div class="grid3" data-stage="cards">' + cards.map(function (c) { return poolCardHtml(c, false); }).join("") + "</div>";
   }
   // Two distinct refusal states, one template set each, so they can never mix:
   //  - THIN: its own copy, shows the sales that exist (or says none), no "guess" headline,
@@ -912,26 +598,22 @@
         ? "Too few recent " + esc(model) + " sales to show an honest spread. Here’s what there is."
         : "There are no recent " + esc(model) + " sales in the window I’d trust for a spread.";
       var follow = m ? "" : "Give me a bit more, or a different car, and I’ll pull what actually sold.";
-      var block = '<div class="refusal" data-stage="answer"><div class="sam"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s read</div><p>' + lint(esc(lead), "thin") + "</p>" + (follow ? "<p>" + lint(esc(follow), "thin.follow") + "</p>" : "") + "</div></div></div>";
-      var sales = cards.length ? ('<div class="seclabel">What has sold</div><div class="receipts">' + receiptsHtml(cards, 999) + "</div>") : "";
-      return block + sales + sellHtml();
+      var paras = [lint(esc(lead), "thin")]; if (follow) paras.push(lint(esc(follow), "thin.follow"));
+      return '<div class="refusal">' + samMsgHtml(paras, "Sam’s read") + "</div>" + poolGridHtml(cards, "What has sold") + sellHtml();
     }
     var listJoin = function (a) { return a.length <= 1 ? (a[0] || "") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; };
     // Only claim a YEAR spread when there genuinely is one (>= 2 years, so no "across 1 years").
-    // A same-year blend nameplate (250 GT, all 1965) spreads by spec/variant, not by year, so the
-    // clause is dropped and the spec/variant argument carries the refusal on its own.
     var yspan = rf.yearSpanPhrase ? (" across " + esc(rf.yearSpanPhrase)) : "";
     var reason = (rf.variants && rf.variants.length >= 2)
       ? "The " + esc(model) + "s that have sold span the " + esc(listJoin(rf.variants)) + yspan + ". Cars this different do not trade as one market, so a single range would invent a pattern that is not there."
       : "The " + esc(model) + "s that have sold range too widely in spec and condition to trade as one market" + yspan + ". A single range would invent a pattern that is not there.";
     var follow2 = "Tell me which " + esc(model) + " it is and I’ll compare it to the ones that match.";
     var chips = (rf.variants && rf.variants.length)
-      ? '<div class="wayfwd">' + rf.variants.map(function (v) { return '<button class="chip" data-model="' + esc(v) + '">' + esc(v) + "</button>"; }).join("") + '<a class="lnk" data-change>Or tell me the year and engine &#8594;</a></div>'
+      ? '<div class="wayfwd">' + rf.variants.map(function (v) { return '<button type="button" class="chip" data-model="' + esc(v) + '">' + esc(v) + "</button>"; }).join("") + '<button type="button" class="linkbtn" data-change>Or tell me the year and engine &#8594;</button></div>'
       : "";
     var head = '<div class="refusal" data-stage="answer"><p class="ans">' + lint(esc("I won’t give you a range on this one. It would be a guess."), "refuse") + "</p>" +
-      '<div class="sam"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s read</div><p>' + lint(reason, "refuse.reason") + "</p><p>" + lint(esc(follow2), "refuse.follow") + "</p></div></div>" + chips + "</div>";
-    var vsales = cards.length ? ('<div class="seclabel">What has sold</div><div class="receipts">' + receiptsHtml(cards, 999) + "</div>") : "";
-    return head + vsales + sellHtml();
+      samMsgHtml([lint(reason, "refuse.reason"), lint(esc(follow2), "refuse.follow")], "Sam’s read") + chips + "</div>";
+    return head + poolGridHtml(cards, "What has sold") + sellHtml();
   }
   // ============ THIN MODE render (Sep 2026, revised) ====================================
   // Two decoupled concerns: THIN MODE (render) fires whenever the online pool is too thin for a
@@ -981,46 +663,7 @@
   }
   function R4C_AUTO(t) { return /automatic|\bpdk\b|\bdct\b|tiptronic|\bdsg\b|paddle/i.test(t); }
   function htHasMk(rc, key) { return !!(rc.markers && rc.markers.some(function (mk) { return mk.key === key; })); }
-  function htMarkerChips(rc) {
-    if (!rc.markers || !rc.markers.length) return "";
-    return '<span class="htmk">' + rc.markers.map(function (mk) { return '<span class="mk">' + esc(mk.label) + "</span>"; }).join("") + "</span>";
-  }
   function natMoney(cur, n) { var s = sym(cur); return s ? s + Number(n).toLocaleString("en-US") : Number(n).toLocaleString("en-US") + " " + esc(cur); }
-  // Item 5: EUR/GBP house sales lead with the native figure, USD computed beside it. USD sales
-  // render as before. Hammer + buyer-paid stay on one line (locked).
-  function htPriceLine(rc) {
-    var native = rc.nativeCur && rc.nativeHammer;
-    var main = native
-      ? '<span class="num">' + esc(natMoney(rc.nativeCur, rc.nativeHammer)) + '</span> <span class="usdconv">(' + esc(usd(rc.hammer)) + ")</span>"
-      : '<span class="num">' + esc(usd(rc.hammer)) + "</span>";
-    if (rc.isHouse && rc.allIn) {
-      main += native && rc.nativeAllIn
-        ? ' <span class="allin">&middot; buyer paid ' + esc(natMoney(rc.nativeCur, rc.nativeAllIn)) + " (" + esc(usd(rc.allIn)) + ") incl. premium</span>"
-        : ' <span class="allin">&middot; buyer paid ' + esc(usd(rc.allIn)) + " incl. premium</span>";
-    }
-    return main;
-  }
-  function htYearVenue(rc) { return (rc.year ? esc(rc.year) + " " : "") + esc(rc.venue); }
-  // "sold on Cars & Bids" (online) vs "sold at Bonhams" (a house) - reads as a person would say it.
-  function venuePrep(rc) { return (rc.isHouse ? "at " : "on ") + esc(rc.venue); }
-  // Online receipts (item 4): mileage + gearbox prominent.
-  function htMiText(rc) {
-    var bits = [];
-    if (Number(rc.mileage) > 0) bits.push('<span class="htr-mi num">' + Number(rc.mileage).toLocaleString("en-US") + " mi</span>");
-    if (rc.transmission) bits.push('<span class="htr-tx">' + esc(cap(String(rc.transmission))) + "</span>");
-    return bits.length ? '<div class="htr-sub">' + bits.join('<span class="dot">&middot;</span>') + "</div>" : "";
-  }
-  // House/class receipts (item 4): chassis (full from the listing, else last digits of the VIN/
-  // chassis) + colour + the title clause (rendered above); mileage drops to a muted secondary.
-  function htSpecLine(rc) {
-    var bits = [];
-    var chTail = chassisTail6(rc.chassis || rc.chassisTail);
-    if (chTail) bits.push("Chassis " + esc(chTail));
-    if (rc.color) bits.push(esc(cap(String(rc.color))));
-    var main = bits.length ? '<div class="htr-spec">' + bits.join('<span class="dot">&middot;</span>') + "</div>" : "";
-    var mi = Number(rc.mileage) > 0 ? '<div class="htr-mi2 num">' + Number(rc.mileage).toLocaleString("en-US") + " mi</div>" : "";
-    return main + mi;
-  }
   // Short car-name header for a HOUSE row: year/make/model/variant only. Strip chassis/engine/serial
   // clauses, parenthetical codes, and a trailing coachbuilder ("by X") - those move to the meta line.
   function shortCarName(title) {
@@ -1048,45 +691,6 @@
   function houseChassisMeta(rc) {
     const tail = chassisTail6(rc.chassis || rc.chassisTail);
     return tail ? "Chassis " + esc(tail) : "";
-  }
-  // House price, two readable lines (never tiny type): the hammer is the number the math uses, the
-  // buyer-paid line is the transparency layer. Native EUR/GBP leads with its own figure, USD beside.
-  function housePriceBlock(rc) {
-    var natH = rc.nativeCur && rc.nativeHammer, natA = rc.nativeCur && rc.nativeAllIn;
-    var hammer = natH ? (esc(natMoney(rc.nativeCur, rc.nativeHammer)) + ' <span class="usdc">(' + esc(usd(rc.hammer)) + ")</span>") : esc(usd(rc.hammer));
-    var out = '<div class="hp-hammer num">' + hammer + ' <span class="hp-lbl">hammer</span></div>';
-    if (rc.allIn) {
-      var paid = natA ? (esc(natMoney(rc.nativeCur, rc.nativeAllIn)) + ' <span class="usdc">(' + esc(usd(rc.allIn)) + ")</span>") : esc(usd(rc.allIn));
-      out += '<div class="hp-paid">Buyer paid ' + paid + " with premium</div>";
-    }
-    return '<div class="htr-price">' + out + "</div>";
-  }
-  // ONE consistent row layout for every receipt (house or online): thumb + short car name +
-  // price block + one meta line (venue · date · chassis-or-mileage/gearbox). The ONLY difference
-  // is the price block (a house shows hammer + buyer-paid; online shows the sold price). No online
-  // "2007 Bring a Trailer" year-venue lead, no separate right-hand price column.
-  function onlinePriceBlock(rc) {
-    return '<div class="htr-price"><div class="hp-hammer num">' + htPriceLine(rc) + ' <span class="hp-lbl">sold</span></div></div>';
-  }
-  function htReceiptRow(rc) {
-    var href = utmUrl(rc.url);
-    var ext = href ? '<span class="ext htx"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>' : "";
-    // Meta segments are non-breaking, so the line wraps only at a "·" boundary (whole tokens).
-    var segs = ['<span class="mseg ven">' + esc(rc.venue) + "</span>", '<span class="mseg">' + esc(monShort(rc.date)) + "</span>"];
-    if (rc.isHouse) { var chMeta = houseChassisMeta(rc); if (chMeta) segs.push('<span class="mseg">' + chMeta + "</span>"); }
-    else {
-      if (Number(rc.mileage) > 0) segs.push('<span class="mseg num">' + Number(rc.mileage).toLocaleString("en-US") + " mi</span>");
-      // Item 7b: show the gearbox tag only when a gearbox question applies (the pool has a real
-      // manual-vs-non-manual split). A single-gearbox-era car (Pierce Motorette) never gets "Manual".
-      if (htGearboxSplit) { var _gl = gearboxLabel(rc); if (_gl) segs.push('<span class="mseg">' + esc(_gl) + "</span>"); }
-    }
-    var meta = segs.join(' <span class="dot">&middot;</span> ');
-    var inner = thumbEl(rc.image, rc.title) +
-      '<div class="htr-l"><div class="htr-name">' + esc(shortCarName(rc.title)) + "</div>" +
-      (rc.isHouse ? housePriceBlock(rc) : onlinePriceBlock(rc)) +
-      '<div class="htr-meta">' + meta + "</div>" + htMarkerChips(rc) + "</div>";
-    var cls = "htr htr-thumb htr-house" + (rc.isHouse ? "" : " htr-online");   // both use the unified house layout styling
-    return href ? '<a class="' + cls + '" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(rc.slug || "") + '">' + inner + ext + "</a>" : '<div class="' + cls + '">' + inner + "</div>";
   }
   // Intake copy composed CLIENT-side from the engine's split FACTS (product rule 3). Marker splits
   // carry a curated phrasing where we have one; mileage/transmission are generic. Returns the
@@ -1121,10 +725,9 @@
     if (!c) return null;
     var lead = "Before I show you numbers, one thing about the " + esc(name) + ". " + esc(c.q);
     var chips = '<div class="chips htintake">' +
-      c.chips.map(function (ch) { return '<button class="chip" data-thinsplit="' + esc(ch.v) + '">' + esc(ch.label) + "</button>"; }).join("") +
-      '<button class="chip ghost" data-htskip>Just show me what sold</button></div>';
-    return '<div class="sam" data-stage="answer"><div class="ava">SAM</div><div class="body"><div class="tag">' + lint("Sam’s read", "ht.tag") + "</div>" +
-      "<p>" + lint(esc(lead), "ht.intake") + "</p>" + chips + "</div></div>";
+      c.chips.map(function (ch) { return '<button type="button" class="chip" data-thinsplit="' + esc(ch.v) + '">' + esc(ch.label) + "</button>"; }).join("") +
+      '<button type="button" class="chip ghost" data-htskip>Just show me what sold</button></div>';
+    return qscreenHtml(lint(esc(lead), "ht.intake"), chips, "One question first", "");
   }
   // Scope the receipts by the intake answer (client-side; the engine returned them all).
   function thinScope(receipts, intake, choice) {
@@ -1138,71 +741,49 @@
     else { keep = receipts.filter(function (r) { return htHasMk(r, choice); }); lbl = (intake && intake.markerLabel ? intake.markerLabel : "").toLowerCase(); }
     return keep && keep.length ? { scope: keep, label: lbl } : { scope: receipts, label: null };
   }
-  function htOnlineCeiling(scope) {
-    var onl = scope.filter(function (r) { return !r.isHouse; }).sort(function (x, y) { return y.hammer - x.hammer; });
-    return onl.length ? '<p class="lt-span">' + lint("Online, the highest to sell was " + usd(onl[0].hammer) + " on " + esc(onl[0].venue) + ".", "ht.online") + "</p>" : "";
+  // The window the thin pool covers, from the engine's thin.windowMonths (never assumed).
+  function thinWindowText(ht) {
+    var w = Number(ht && ht.windowMonths);
+    if (w === 12) return "the last twelve months";
+    if (w === 24) return "the past two years";
+    if (w === 36 || !w) return HT_WINDOW_TEXT;
+    if (w % 12 === 0) return "the past " + spellK(w / 12) + " years";
+    return "the past " + w + " months";
   }
-  // The representative (median) sale as a HERO PHOTO card in the thin state - the receipts carry
-  // photos, so the hero should too (item 4). Same treatment as the general "Typical sale" card.
-  function thinHeroCard(mid) {
-    if (!mid) return "";
-    var ext = '<span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>';
-    var img = mid.image ? '<img src="' + esc(mid.image) + '" alt="' + esc(mid.title || "") + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.plate\');if(p)p.style.display=\'flex\'">' : "";
-    var meta = [mid.mileage ? Number(mid.mileage).toLocaleString("en-US") + " mi" : "", htGearboxSplit ? (gearboxLabel(mid) || "") : ""].filter(Boolean).join(" · ");
-    var inner = '<div class="rph">' + img + '<span class="cmkick">Representative sale</span>' + ext + '<div class="plate" style="display:' + (mid.image ? "none" : "flex") + '"><div class="n">' + esc(cleanReceiptTitle(mid.title)) + '</div><div class="s">photo pending</div></div></div>' +
-      '<div class="rb"><div class="rprice num">' + usd(mid.hammer) + '</div>' +
-      (meta ? '<div class="rmeta">' + esc(meta) + '</div>' : '') +
-      '<div class="rtitle">' + esc(cleanReceiptTitle(mid.title)) + '<span class="dot">&middot;</span>' + esc(mid.venue) + '<span class="dot">&middot;</span>' + esc(monthYear(mid.date)) + '</div></div>';
-    var href = utmUrl(mid.url);
-    return href ? '<a class="cm cm-solo" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(mid.slug || "") + '">' + inner + "</a>" : '<div class="cm cm-solo">' + inner + "</div>";
-  }
-  // Thin state: NO HEADLINE DOLLAR FIGURE (rule 24). With too few sales to mark a typical band, there
-  // is no honest headline number - not even the median sale rendered big (a lone figure a reader adopts
-  // is a valuation whatever the label). Lead with the honest "here are the sales" line, then the real
-  // sales: a representative sale as a CARD (card-scale price, a receipt, not a page headline) and the
-  // recorded min-max RANGE (the record). The single-sale case names that one real sale in prose.
-  function thinHeroHtml(name, scope, scopedLabel, answered) {
-    var s = scope.slice().sort(function (a, b) { return a.hammer - b.hammer; });
-    var n = s.length, mid = s[Math.floor((n - 1) / 2)];
-    var out = '<div class="livetake blk noband" data-stage="answer">';
-    // Plain speech naming the count (retire "too thin"): "Only N {car}s have sold in the last three
-    // years, not enough for a range. Here's what they went for." Same pattern on every thin tier.
+  // Thin state (Thin.html): headline with the count in green, freshness, the engine's older-sales
+  // count when present, then the sales as a two-column card grid. NO HEADLINE DOLLAR FIGURE (rule 24)
+  // and no second range line: the cards are the record.
+  function thinHeadHtml(name, scope, scopedLabel, ht) {
     var who = (scopedLabel ? cap(scopedLabel) + " " + name : cap(name));
-    // The headline takes its year from the SAME sale the card shows, not the typed/resolved year: a
-    // "1902 Pierce Motorette" whose only sale is a 1904 must read "a 1904", never assert 1902. Strip
-    // the resolved leading year from the name; the sale's own year is authoritative.
+    // The year comes from the sale itself, never the typed year (a "1902 Pierce Motorette" whose
+    // only sale is a 1904 reads "a 1904").
     var whoNoYear = String(who).replace(/^\s*(18|19|20)\d\d\s+/, "");
+    var win = thinWindowText(ht), n = scope.length;
+    var plural = /s$/i.test(whoNoYear) ? whoNoYear : whoNoYear + "s";
     if (n === 1) {
-      var saleYr = mid && mid.year ? mid.year : null;
-      var one = "Only one " + whoNoYear + " has sold in " + HT_WINDOW_TEXT + (saleYr ? ", a " + saleYr + "." : ". Here’s what it went for.");
-      out += '<p class="lt-line">' + lint(one, "ht.hero1") + "</p>";
-      out += thinHeroCard(mid);
-    } else {
-      // Fix 2: the thin lead must NOT claim "not enough for a range" and then print the min-max span
-      // below (the observed contradiction). Rule 24's sanctioned framing: "too few to mark a typical
-      // band" (no typical-cluster headline), then the raw record of what the N sales went for.
-      var lead = "Only " + n + " " + whoNoYear + "s have sold in " + HT_WINDOW_TEXT + ", too few to mark a typical band. Here’s what they went for.";
-      out += '<p class="lt-line">' + lint(lead, "ht.hero") + "</p>";
-      var min = s[0].hammer, max = s[n - 1].hammer;
-      if (max > min) out += '<p class="lt-span">' + lint("They ran from " + usd(min) + " to " + usd(max) + ".", "ht.span") + "</p>";
-      out += thinHeroCard(mid);   // item 4: hero photo, card-scale price (a receipt, not a headline)
+      var yr = scope[0] && scope[0].year ? scope[0].year : null;
+      return '<h1 class="thin-head lead">' + lint("Only <span class=\"ct\">one " + esc(whoNoYear) + "</span> has sold in " + win + (yr ? ", a " + yr : "") + ". Here’s what it went for.", "ht.hero1") + "</h1>";
     }
-    var gpat = gearboxPatternLine(scope);
-    if (gpat) out += '<p class="lt-span">' + lint(gpat, "ht.gbox") + "</p>";
-    out += htOnlineCeiling(scope);
-    return out + "</div>";
+    return '<h1 class="thin-head lead">' + lint("Only <span class=\"ct\">" + n + " " + esc(plural) + "</span> have sold in " + win + ", not enough for a range. Here’s what they went for.", "ht.hero") + "</h1>";
   }
   // Paired sales: same chassis at a house AND online. Two receipts side by side, NO percentage
   // until a model clears 3 such pairs (design: the % stays dormant below that).
   function htPairsHtml(ht) {
     if (!ht.pairs || !ht.pairs.length) return "";
-    var rows = ht.pairs[0].map(function (rc) { return htReceiptRow(rc); }).join("");
     var note = ht.pairPctEligible
       ? "Same car, both venues."
       : "The same chassis, sold at a house and online. Too few matched pairs yet to read a house-versus-online pattern, so here are both receipts.";
-    return '<div class="seclabel">' + lint("The same car, twice", "ht.pairlab") + "</div>" +
-      '<div class="htpair">' + rows + "</div>" +
-      '<p class="ht-note">' + lint(note, "ht.pairnote") + "</p>";
+    return '<div class="sec-head" data-stage="cards"><div><h2>' + lint("The same car, twice", "ht.pairlab") + '</h2><span class="scope">' + lint(note, "ht.pairnote") + "</span></div></div>" +
+      '<div class="grid2" data-stage="cards">' + ht.pairs[0].map(receiptCardHtml).join("") + "</div>";
+  }
+  // Widening box: ONLY when the engine returns a sibling family (thin.sibling {label, count, query,
+  // relation?}). The button runs the sibling's own query.
+  function siblingHtml(ht) {
+    var sb = ht && ht.sibling;
+    if (!sb || !sb.label || !sb.query || !(Number(sb.count) > 0)) return "";
+    var who = sb.relation ? "Its " + esc(sb.label) + " " + esc(sb.relation) : "The " + esc(sb.label);
+    var times = Number(sb.count) === 1 ? "once" : Number(sb.count) + " times";
+    return '<section class="widen" data-stage="cards"><p>' + lint("Want the wider picture? " + who + " sold " + times + ".", "ht.sibling") + '</p><button type="button" data-sibling="' + esc(sb.query) + '">Show those too &#8594;</button></section>';
   }
   function thinHtml(d, m) {
     var ht = d.thin;
@@ -1212,43 +793,26 @@
     // Intake FIRST, but only when a split forks THIS car's price and the user has not answered.
     if (ht.intake && htChoice === null) { var iv = thinIntakeHtml(d, ht, name); if (iv) return iv; }
     var sc = thinScope(ht.receipts, ht.intake, htChoice);
-    var scope = sc.scope, scopedLabel = sc.label, answered = !!(htChoice && htChoice !== "__skip__");
-    // Item 7b: a gearbox tag shows on receipt rows only when the pool has a real manual-vs-non-manual
-    // split (a gearbox question would apply). A single-gearbox-era car (Pierce) never shows "Manual".
+    var scope = sc.scope, scopedLabel = sc.label;
+    // A gearbox tag shows only when the pool has a real manual-vs-non-manual split.
     htGearboxSplit = (function () { var man = 0, non = 0; (scope || []).forEach(function (rc) { if (rc.isHouse) return; var g = gearboxLabel(rc); if (!g) return; if (/^manual/i.test(g)) man++; else non++; }); return man > 0 && non > 0; })();
-    var body = thinHeroHtml(name, scope, scopedLabel, answered) + freshLine(d);
-    // Sam's read: the HOUSE STEER text renders ONLY when house share >= 2/3 (ht.houseSteer).
-    // Below that it is venue-neutral. No fee/valuation words, no invented pattern.
-    var reads = [];
-    if (ht.houseSteer) {
-      if (!ht.onlineReceiptsN) reads.push("These trade at the auction houses, not online. Every recorded sale here came through one.");
-      else reads.push("These mostly trade at the auction houses; a few sell online. Both are below.");
-    } else if (ht.houseN && ht.onlineReceiptsN) {
-      reads.push("These sell online and at the auction houses. The recorded sales are below.");
-    }
-    // The "too few to mark a typical band" line is now the hero lead (thinHeroHtml), so it is NOT
-    // repeated here (rule 21: never restate a line already shown; and no second headline claim).
-    // Plain serif lines, no green box (consistent with the result/exact states: evidence, not a widget).
-    if (reads.length) body += '<div class="thinread" data-stage="answer">' + reads.map(function (p) { return '<p class="contradiction">' + lint(esc(p), "ht.read") + "</p>"; }).join("") + "</div>";
-    // Item 7a: the "what has sold" label names the MODEL (plural), never the typed year over a different
-    // sale year ("1902 Pierce Motorette" with a 1904 sale -> "Pierce Motorettes"). Drop the leading year,
-    // title-case, pluralise. The year span ("in 2025") still reflects the sales actually shown.
-    var labelName = titleCaseSaleTitle(String(name).replace(/^(18|19|20)\d\d\s+/, ""));
-    var labelPlural = /s$/i.test(labelName) ? labelName : labelName + "s";
-    body += '<div class="seclabel" data-stage="cards">' + lint("What has sold, " + esc(labelPlural) + ", " + spanRange(scope), "ht.reclab") + "</div>";
-    // Item 3: show the sales by RECENCY, not the 8 priciest (the engine sorts ht.receipts hammer-desc
-    // for the median math, but slicing that top-8 for display biased the shown set to the ceiling and
-    // could leave the median hero below every shown card). Newest-first is the honest evidence order,
-    // and every shown card is inside the stated span (spanRange above), so the golden test holds.
+    var lines = [];
+    var older = Number(ht.olderN);
+    if (older > 0) lines.push(older + " more sold earlier, outside " + thinWindowText(ht) + ".");
+    // HOUSE STEER text only when house share >= 2/3 (ht.houseSteer); venue-neutral otherwise.
+    if (ht.houseSteer) lines.push(!ht.onlineReceiptsN ? "These trade at the auction houses, not online. Every recorded sale here came through one." : "These mostly trade at the auction houses; a few sell online. Both are below.");
+    else if (ht.houseN && ht.onlineReceiptsN) lines.push("These sell online and at the auction houses. The recorded sales are below.");
+    var gpat = gearboxPatternLine(scope); if (gpat) lines.push(gpat);
+    var body = '<div class="thinblk livetake" data-stage="answer">' + thinHeadHtml(name, scope, scopedLabel, ht) + freshLine(d) +
+      lines.map(function (p) { return '<p class="ans-line">' + lint(esc(p), "ht.line") + "</p>"; }).join("") + "</div>";
+    if (m) body += '<div class="cards5 single" data-stage="cards">' + vinHeroCardHtml(m, d.resolvedCar) + "</div>";
+    // Newest first (the honest evidence order); the engine's hammer-desc order is for its own math.
     var shownRecs = scope.slice().sort(function (a, b) { return String(b.date || "").localeCompare(String(a.date || "")); }).slice(0, 8);
-    body += '<div class="htreceipts" data-stage="cards">' + shownRecs.map(function (rc) { return htReceiptRow(rc); }).join("") + "</div>";
-    // Paired chassis are a whole-model signal; show them only in the unscoped view.
+    body += '<div class="grid2" data-stage="cards">' + shownRecs.map(receiptCardHtml).join("") + "</div>";
     if (scope === ht.receipts) body += htPairsHtml(ht);
-    // One Box NEVER recommends a house or platform (it answers what cars like this have sold for). The
-    // old "Where I'd take it" consignment card is removed; the "Ready to sell?" box (sellHtml) is the
-    // only bridge to /sell, where the venue recommendation lives with its own rules.
-    body += sellHtml() + recentHtml();
-    body += '<div class="trust">Real completed sales from GoAskSam’s archive, hammer prices with the buyer premium backed out. No estimates. No valuations.</div>';
+    body += siblingHtml(ht);
+    // One Box NEVER recommends a house or platform; "Ready to sell?" is the only bridge to /sell.
+    body += sellHtml();
     return body;
   }
 
@@ -1270,8 +834,7 @@
     var v = d.resolvedCar || d.vehicle || {};
     var carName = [v.year, v.make, v.model, v.trim].filter(Boolean).join(" ") || bareNameOf(d, m);
     var era = esc(ce.era), make = esc(ce.make);
-    // Item 1: never claim "none sold" when the subject car itself sold in-window. When the exact
-    // car has a sale, NAME it and read the wider market as "beyond it".
+    // Never claim "none sold" when the subject car itself sold in-window.
     var exactSold = m && (m.price || m.soldDate);
     var saleBits = [];
     if (m && m.price) saleBits.push(esc(usd(m.price)));
@@ -1280,17 +843,12 @@
     var leadTxt = exactSold
       ? "The only recent " + esc(carName) + " sale on record is this car" + (saleBits.length ? " (" + saleBits.join(", ") + ")" : "") + ". Beyond it, " + era + " " + make + "s have sold for"
       : "No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ". " + era + " " + make + "s have sold for";
-    // Item 4: name the venues actually in the SHOWN cards (house + online), not a houses-only list.
     var shown = ce.receipts.slice(0, 8);
     var venues = []; shown.forEach(function (r) { if (r.venue && venues.indexOf(r.venue) < 0) venues.push(r.venue); });
     var allHouse = shown.length > 0 && shown.every(function (r) { return r.isHouse; });
     var vlist = venues.length ? obListPhrase(venues) : "the auction houses";
     var tailTxt = allHouse ? ("at the hammer at " + esc(vlist) + ".") : ("across " + esc(vlist) + ".");
-    var out = '<div class="livetake blk" data-stage="answer">' + carLineHtml(d, null) +
-      '<div class="lead">' + lint(leadTxt, "ce.lead") + "</div>" +
-      '<div class="band"><span class="n">' + esc(usd(ce.lowHammer)) + '</span> to <span class="n">' + esc(usd(ce.highHammer)) + "</span></div>" +
-      '<div class="tail">' + lint(tailTxt, "ce.tail") + "</div>";
-    // Item 3: every shown card must sit inside the stated band, or be called out in words here.
+    // Every shown card must sit inside the stated band, or be called out in words here.
     var oc = ce.outliers || [];
     var hi = oc.filter(function (o) { return o.above; }), lo = oc.filter(function (o) { return !o.above; });
     function callout(list, dir) {
@@ -1301,89 +859,90 @@
       return obNumWord(list.length) + " sold " + dir + ", at " + ps + lbl + ".";
     }
     var outSentence = [callout(hi, "higher"), callout(lo, "lower")].filter(Boolean).join(" ");
-    if (outSentence) out += '<div class="tail ce-outlier">' + lint(outSentence, "ce.outlier") + "</div>";
-    out += freshLine(d) + "</div>";
-    out += '<div class="seclabel" data-stage="cards">' + lint(era + " " + make + " sales, " + spanRange(ce.receipts), "ce.reclab") + "</div>";
-    out += '<div class="htreceipts" data-stage="cards">' + shown.map(function (rc) { return htReceiptRow(rc); }).join("") + "</div>";
-    out += sellHtml() + recentHtml();
-    out += '<div class="trust">Real completed sales from GoAskSam’s archive, hammer prices with the buyer premium backed out. No estimates. No valuations.</div>';
+    var out = '<section class="anscard solo livetake blk" data-stage="answer"><div class="ans-main">' +
+      '<div class="eyebrow">' + esc(ce.era + " " + ce.make + " sales · the wider market") + "</div>" +
+      '<p class="landed lead">' + lint(leadTxt, "ce.lead") + "</p>" +
+      '<h1 class="range band">' + esc(usd(ce.lowHammer)) + ' <span class="to">to</span> ' + esc(usd(ce.highHammer)) + "</h1>" +
+      '<p class="ans-line tail">' + lint(tailTxt, "ce.tail") + "</p>" +
+      (outSentence ? '<p class="ans-line ce-outlier">' + lint(outSentence, "ce.outlier") + "</p>" : "") +
+      freshLine(d) + "</div></section>";
+    if (m) out += '<div class="cards5 single" data-stage="cards">' + vinHeroCardHtml(m, d.resolvedCar) + "</div>";
+    out += '<div class="sec-head" data-stage="cards"><div><h2>' + lint(era + " " + make + " sales, " + spanRange(ce.receipts), "ce.reclab") + "</h2></div></div>";
+    out += '<div class="grid2" data-stage="cards">' + shown.map(receiptCardHtml).join("") + "</div>";
+    out += sellHtml();
     return out;
   }
 
   function renderResults(d) {
-    // The exact-car header leads on a VIN match (matched frame); typed queries go straight
-    // to the answer block (unmatched frame). Refusal is its own frame. Every branch renders
-    // from the engine's structured facts - no fabricated numbers, ever.
-    obGbApplies = !!(d && d.gearboxApplies);   // item 4: gate the volume-card gearbox line
+    // Search box, resolved car line (VIN MATCH pill on an exact match), then the tier body. Every
+    // branch renders from the engine's structured facts - no fabricated numbers, ever.
+    obGbApplies = !!(d && d.gearboxApplies);   // item 4: gate the hero gearbox line
+    obLastD = d;
     var m = vinAnchor;
-    var head = m ? exactCarHtml(m, d.resolvedCar, d) : "";
-    // Item 2: a VIN that resolved a car but has NO recorded sale in our archive must SAY SO before
-    // showing the model market, so the market read is never mistaken for this exact car's history.
+    var head = (d.resolvedCar || m) ? carLineHtml(d, m) : "";
+    // A VIN that resolved a car but has NO recorded sale must SAY SO before the model market, so the
+    // market read is never mistaken for this exact car's history.
     if (!m && vinQueryNoSale) {
-      head = '<div class="vinnosale" data-stage="anchor"><div class="kick">No recorded sale for this VIN.</div>' +
-        '<p>' + lint(esc("I don’t have a past sale on file for this exact car. Here’s the market for the " + (carLabel(d.resolvedCar) || "model") + " instead."), "vin.nosale") + "</p></div>";
+      head += '<div class="notes vinnosale" data-stage="anchor"><p>' + lint(esc("No recorded sale for this VIN. Here’s the market for the " + (carLabel(d.resolvedCar) || "model") + " instead."), "vin.nosale") + "</p></div>";
     }
-    var body;
+    var body, foot = false;
     if (d.tier === "thin") body = thinHtml(d, m);
     else if (d.tier === "class_era") body = classEraHtml(d, m);
-    else if (d.tier === "refusal") body = refusalHtml(d, m);
-    else if (d.tier === "body_unavailable") body = '<div class="samread" data-stage="answer"><div class="ava">SAM</div><div><div class="tag">' + lint("Sam’s read", "bu.tag") + "</div><p>" + lint(esc(d.samLine || "That body was not offered for this car."), "bu") + "</p></div></div>";
-    else if (d.tier === "not_tracked") body = '<div class="samread" data-stage="answer"><div class="ava">SAM</div><div><div class="tag">' + lint("Sam’s read", "nt.tag") + "</div><p>" + lint(esc(d.samLine || "We haven’t tracked a sale of this car yet."), "nt") + "</p></div></div>" + sellHtml();
+    else if (d.tier === "refusal") { body = refusalHtml(d, m); foot = true; }
+    else if (d.tier === "body_unavailable") { body = samMsgHtml([lint(esc(d.samLine || "That body was not offered for this car."), "bu")], "Sam’s read", "big"); foot = true; }
+    else if (d.tier === "not_tracked") { body = samMsgHtml([lint(esc(d.samLine || "We haven’t tracked a sale of this car yet."), "nt")], "Sam’s read", "big") + sellHtml(); foot = true; }
     else if (d.tier === "result") body = resultHtml(d, m);
-    else body = '<div class="sam" data-stage="answer"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s read</div><p>' +
-      lint(esc("I don’t have enough real " + carLabel(d.resolvedCar) + " sales to show you an honest read, and I won’t make one up. Try another car and I’ll pull what actually sold."), "zero") + "</p></div></div>" + sellHtml();
-    // thin/class bodies still end with their own ".trust" disclaimer; the result tier deliberately
-    // has neither a .trust nor a foot (item 7: the freshness line under the block carries it).
-    // Only zero/refusal bodies (no .trust, not the result tier) get the generic footHtml().
-    var needFoot = d.tier !== "result" && body.indexOf('class="trust"') < 0;
-    root.innerHTML = inboxHtml(lastQuery) + head + body + (needFoot ? footHtml() : "");
+    else { body = samMsgHtml([lint(esc("I don’t have enough real " + carLabel(d.resolvedCar) + " sales to show you an honest read, and I won’t make one up. Try another car and I’ll pull what actually sold."), "zero")], "Sam’s read", "big") + sellHtml(); foot = true; }
+    root.innerHTML = inboxHtml(lastQuery) + head + body + (foot ? footHtml() : "");
     wire();
     streamReveal();
   }
-  // Gearbox / Competition question (Part 1 Rule 2 + change 1): a REFINE choice - the chip re-scopes
-  // the SAME car (runPool with refine), not a re-query. Chips carry data-tx (gearbox) or data-variant
-  // (Competition), handled by the existing refine wiring.
-  function renderRefineChoice(d) {
-    var chips = "";
-    if (d.gearboxOptions) chips = d.gearboxOptions.map(function (o) { var tx = /manual/i.test(o) ? "manual" : "auto"; return '<button class="qchip" data-tx="' + tx + '" data-mlabel="' + esc(o) + '">' + esc(o) + "</button>"; }).join("");
-    else if (d.variantOptions) chips = d.variantOptions.map(function (o) { var v = /competition/i.test(o) ? "competition" : "standard"; return '<button class="qchip" data-variant="' + v + '" data-mlabel="' + esc(o) + '">' + esc(o) + "</button>"; }).join("");
-    root.innerHTML = inboxHtml(lastQuery) +
-      '<div class="sam" style="margin-top:26px"><div class="ava">SAM</div><div class="body"><div class="tag">' + lint("Quick question", "qq.tag") + '</div>' +
-      '<p style="font-size:22px;line-height:1.4">' + lint(esc(d.prompt || "Which one is it?"), "refchoice") + "</p><div class=\"qchips\">" + chips + "</div></div></div>" + footHtml();
+  // QUESTION screen (Question.html): one card, SAM roundel, eyebrow, the question in Newsreader,
+  // 44px+ chips, and the honest cap line. A question never renders inside a Sam's Take panel.
+  function qscreenHtml(promptHtml, chipsBlock, eyebrow, sub) {
+    return '<section class="qscreen" data-stage="answer"><span class="roundel lg" aria-hidden="true">SAM</span><div class="qbody">' +
+      '<div class="qtop"><span class="eyebrow">' + esc(eyebrow) + '</span><p class="qtext">' + promptHtml + "</p></div>" +
+      chipsBlock + (sub ? '<span class="qsub">' + esc(sub) + "</span>" : "") + "</div></section>";
+  }
+  // The engine caps One Box at two questions before a result (askIndex 1 or 2).
+  function askCopy(d) {
+    return (d && Number(d.askIndex) >= 2)
+      ? { eyebrow: "One last question", sub: "Then what actually sold." }
+      : { eyebrow: "One question first", sub: "One more at most, then what actually sold." };
+  }
+  function renderQuestion(html) {
+    root.innerHTML = inboxHtml(lastQuery) + html + footHtml();
     wire();
   }
+  // Gearbox / Competition question (Part 1 Rule 2 + change 1): a REFINE choice - the chip re-scopes
+  // the SAME car (runPool with refine), not a re-query.
+  function renderRefineChoice(d) {
+    var chips = "";
+    if (d.gearboxOptions) chips = d.gearboxOptions.map(function (o) { var tx = /manual/i.test(o) ? "manual" : "auto"; return '<button type="button" class="chip qchip" data-tx="' + tx + '" data-mlabel="' + esc(o) + '">' + esc(o) + "</button>"; }).join("");
+    else if (d.variantOptions) chips = d.variantOptions.map(function (o) { var v = /competition/i.test(o) ? "competition" : "standard"; return '<button type="button" class="chip qchip" data-variant="' + v + '" data-mlabel="' + esc(o) + '">' + esc(o) + "</button>"; }).join("");
+    var ac = askCopy(d);
+    renderQuestion(qscreenHtml(lint(esc(d.prompt || "Which one is it?"), "refchoice"), '<div class="chips">' + chips + "</div>", ac.eyebrow, ac.sub));
+  }
   function renderChoice(d) {
+    var ac = askCopy(d);
     // Generation choice: chips carry a full year-resolvable query (run directly, not appended).
     if (d.generationOptions && d.generationOptions.length) {
       var gchips = '<div class="chips">' + d.generationOptions.map(function (o) {
-        return '<button class="chip" data-genquery="' + esc(o.query) + '">' + esc(o.label) + "</button>";
+        return '<button type="button" class="chip" data-genquery="' + esc(o.query) + '">' + esc(o.label) + "</button>";
       }).join("") + "</div>";
-      root.innerHTML = inboxHtml(lastQuery) +
-        '<div class="sam" style="margin-top:26px"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s take</div>' +
-        '<p style="font-size:22px;line-height:1.4">' + lint(esc(d.prompt || "Which generation is it?"), "genchoice") + "</p>" +
-        gchips + "</div></div>" + footHtml();
-      wire();
+      renderQuestion(qscreenHtml(lint(esc(d.prompt || "Which generation is it?"), "genchoice"), gchips, ac.eyebrow, ac.sub));
       return;
     }
     var opts = d.modelOptions || d.bodyOptions || [];
     var kind = d.modelOptions ? "model" : "body";
     // Base a chip appends its answer to: a passed baseLabel (year+make on a VIN model ask), else
-    // the resolved car (year+make+model on a body ask). A VIN query's raw text is the VIN, so
-    // this keeps the chip from appending to the VIN (which re-decodes and loops - fault 1). Null
-    // falls back to the raw query, which is correct for a typed query.
-    // Include the TRIM: a body-choice answer must re-query the SAME car ("2006 Porsche 997
-    // Carrera S" + coupe), not drop to the base model ("2006 Porsche 997" + coupe), which would
-    // widen the pool from Carrera S to every 911 Carrera of the generation (Sep 2026 fix).
+    // the resolved car (year+make+model+trim on a body ask), so a body answer re-queries the SAME
+    // car and a VIN chip never appends to the VIN (which re-decodes and loops).
     choiceCtx = d.baseLabel || (d.resolvedCar ? [d.resolvedCar.year, d.resolvedCar.make, d.resolvedCar.model, d.resolvedCar.trim].filter(Boolean).join(" ") : null) || null;
-    root.innerHTML = inboxHtml(lastQuery) +
-      '<div class="sam" style="margin-top:26px"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s take</div>' +
-      '<p style="font-size:22px;line-height:1.4">' + lint(esc(d.prompt || "Which one is it?"), "choice") + "</p>" +
-      chipsHtml(opts, kind) + "</div></div>" + footHtml();
-    wire();
+    renderQuestion(qscreenHtml(lint(esc(d.prompt || "Which one is it?"), "choice"), chipsHtml(opts, kind), ac.eyebrow, ac.sub));
   }
   function renderError(msg) {
-    root.innerHTML = inboxHtml(lastQuery) +
-      '<div class="sam" style="margin-top:26px"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s take</div><p>' + esc(msg) + "</p></div></div>" + footHtml();
+    root.innerHTML = inboxHtml(lastQuery) + samMsgHtml([esc(msg)], "", "big") + footHtml();
     wire();
   }
 
@@ -1508,40 +1067,13 @@
   var OB_PLAT = { bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", pcarmarket: "PCarMarket", hagerty: "Hagerty", rmsothebys: "RM Sotheby's", gooding: "Gooding & Co", acc: "All Collector Cars", allcollectorcars: "All Collector Cars", collectingcars: "Collecting Cars" };
   function obPlat(s) { var k = String(s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); return OB_PLAT[k] || (s ? String(s) : ""); }
   function monthYear(dstr) { var p = String(dstr || "").slice(0, 10).split("-"); var M = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]; return p.length >= 2 ? ((M[Number(p[1])] || "") + " " + p[0]).trim() : ""; }
-  // The ANCHOR beat (a + b): "I know this exact car..." + photo + receipt, then a one-line
-  // BRIDGE into the pool. NEVER validates or predicts the anchor (no "still looks strong" /
-  // "holds its value") - factual sale record + a neutral transition only. Copy-lint enforced.
-  function anchorCalloutHtml(match, rc) {
-    if (!match || (!match.soldDate && !match.price)) return "";
-    var plat = obPlat(match.source), when = monthYear(match.soldDate), price = match.price ? usd(match.price) : null;
-    var onP = plat ? " on " + plat : "", whenT = when ? " in " + when : "", forT = price ? " for " + price : "";
-    // Name the car from the MATCH's title-derived headline ("1990 BMW M3"), not the record's
-    // internal model field ("E30 M3") or the pool's resolvedCar; lead with it (match-first).
-    var name = (match && match.displayName) ? match.displayName : ([rc && rc.year, rc && rc.make, rc && rc.model].filter(Boolean).join(" ") || "this car");
-    var named = (name && name !== "this car") ? (", a " + name) : "";
-    var line = (Number(match.count) > 1)
-      ? ("I know this exact car" + named + ". It’s traded " + (match.count === 2 ? "twice" : match.count + " times") + " in our records, most recently" + onP + whenT + forT + ".")
-      : ("I know this exact car" + named + ". It sold" + onP + whenT + forT + ".");
-    var photo;
-    if (match.photoUrl) photo = '<div class="vin-photo"><img src="' + esc(match.photoUrl) + '" alt="' + esc(name) + '" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.vin-plate\');if(p)p.style.display=\'flex\'"><div class="vin-plate"><div class="m">' + esc(plat) + '</div><div class="n">' + esc(name) + '</div><div class="s">Photo unavailable</div></div></div>';
-    else photo = '<div class="vin-photo"><div class="vin-plate" style="display:flex"><div class="m">' + esc(plat) + '</div><div class="n">' + esc(name) + '</div><div class="s">Photo unavailable</div></div></div>';
-    var receipt = match.url ? '<a class="anchor-receipt" href="' + esc(match.url) + '" target="_blank" rel="noopener">View that sale</a>' : "";
-    return '<div class="sam"><div class="ava">SAM</div><div class="body"><div class="tag">The exact car</div>' +
-      "<p>" + lint(esc(line), "anchor") + "</p>" + photo + receipt + "</div></div>";
-  }
-  function anchorHtml(match, rc) {
-    var callout = anchorCalloutHtml(match, rc);
-    if (!callout) return "";
-    // Bridge line removed pending the results-screen redesign (no replacement copy yet). The
-    // exact-car block stands on its own above the comps.
-    return '<div class="anchor" data-stage="anchor">' + callout + "</div>";
-  }
-  // Chassis exact match (Task 3): the anchor callout + an honest ask for the car (the match
-  // is EVIDENCE only; the user still gives year/make/model). No decoding, no marque guess.
+  // Chassis exact match: the matched car as a THIS CAR card (its own record, evidence only), then an
+  // honest ask for the car. No decoding, no marque guess.
   function renderChassisMatch(match) {
-    var ask = "Tell me the year, make and model and I’ll pull what similar ones have done.";
-    root.innerHTML = inboxHtml(lastQuery) + '<div class="anchor">' + anchorCalloutHtml(match, null) + "</div>" +
-      '<div class="sam" style="margin-top:16px"><div class="ava">SAM</div><div class="body"><p>' + lint(esc(ask), "chassisMatchAsk") + "</p></div></div>" + footHtml();
+    var ask = "I know this exact car. Tell me the year, make and model and I’ll pull what similar ones have done.";
+    vinAnchor = null;
+    root.innerHTML = inboxHtml(lastQuery) + '<div class="cards5 single" data-stage="anchor">' + vinHeroCardHtml(match, null) + "</div>" +
+      samMsgHtml([lint(esc(ask), "chassisMatchAsk")], "", "big") + footHtml();
     wire();
   }
 
@@ -1552,7 +1084,7 @@
     // A brand-new search resets the question count; a chip answer (keepAsk) carries it forward so
     // the engine can enforce the two-question cap across generation/body re-queries (Part 3).
     if (!keepAsk) obAsked = 0;
-    lastQuery = text; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obRefinePhrase = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false;
+    lastQuery = text; obLastRefine = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obRefinePhrase = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false;
     // Identifier-shaped input (VIN or chassis) routes through the shared resolver (decode +
     // confirm + exact-match + the honest VIN-invalid / chassis lines); everything else goes
     // straight to the archive pool.
@@ -1574,6 +1106,7 @@
   }
   function runPool(text, vehicle, refine) {
     obLastVehicle = vehicle || obLastVehicle;
+    obLastRefine = refine || null;
     setRootHtmlLifted(inboxHtml(text) + loaderHtml() + footHtml());
     wire();
     var loader = makeLoader();
@@ -1696,12 +1229,8 @@
       }).catch(function () { runPool(text, null); });
   }
   function renderVinConfirm(question, vehicle) {
-    root.innerHTML = inboxHtml(lastQuery) +
-      '<div class="sam" style="margin-top:26px"><div class="ava">SAM</div><div class="body"><div class="tag">Sam’s take</div>' +
-      '<p style="font-size:20px;line-height:1.4">' + lint(esc(question || "Is this the car?"), "vinconfirm") + "</p>" +
-      '<div class="chips"><button class="chip" id="ob-vin-yes">Yes, that’s it</button><button class="chip" id="ob-vin-no">No, let me type it</button></div>' +
-      "</div></div>" + footHtml();
-    wire();
+    renderQuestion(qscreenHtml(lint(esc(question || "Is this the car?"), "vinconfirm"),
+      '<div class="chips"><button type="button" class="chip" id="ob-vin-yes">Yes, that’s it</button><button type="button" class="chip ghost" id="ob-vin-no">No, let me type it</button></div>', "One question first", ""));
     var yes = document.getElementById("ob-vin-yes"), no = document.getElementById("ob-vin-no");
     if (yes) yes.addEventListener("click", function () { runPool(lastQuery, pendingVin); });
     if (no) no.addEventListener("click", function () { vinAnchor = null; pendingVin = null; renderEmpty(); });
@@ -1740,11 +1269,6 @@
     } catch (e) {}
   }
 
-  // ---------------------------------------------------------------- JUST SOLD proof (real recent sale)
-  function fetchProof() {
-    fetch(API_ORIGIN + "/api/sellerDecision", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ oneBoxProof: true }) })
-      .then(function (r) { return r.json(); }).then(function (d) { if (d && d.proof && d.proof.length) { proofPool = d.proof; var el = document.getElementById("ob-justsold-wrap"); if (el) el.innerHTML = justSoldHtml(); } }).catch(function () {});
-  }
   // Two-beat placeholder rotation: slow and subtle, only while the input is empty. Not a
   // ticker on the page - it lives inside the input's own placeholder.
   function startPlaceholderRotation() {
@@ -1807,11 +1331,34 @@
   // VIN-sourced result -> hand the VIN itself, so /sell runs its full VIN flow (decode +
   // confirm + exact archive match) and the lead enrichment (VIN row + prior-sale link)
   // fires. Otherwise hand the resolved car label (falls back to the raw query).
+  // Sell handoff: "See where I'd sell it" is a real link into /sell carrying the resolved car and
+  // every answered question as URL parameters (only the ones we actually have):
+  //   src=onebox, car (display label), year, make, model, family (trim family), gen (generation code),
+  //   body, mileage (the subject's miles when known), tx (manual|auto) + tx_label, variant,
+  //   mi_min / mi_max (answered mileage band), driver + driver_val, observe.
+  // The raw VIN is NEVER put in the URL (it would land in logs); a VIN-sourced result still hands
+  // the VIN over through the existing localStorage prefill (gas_onebox_prefill), set on click.
+  function sellHref() {
+    var d = obLastD || {}, rc = obResolvedCar || d.resolvedCar || {}, rf = obLastRefine || {};
+    var p = { src: "onebox" };
+    function put(k, v) { if (v != null && String(v).trim() !== "") p[k] = String(v).trim(); }
+    put("car", (vinAnchor && vinAnchor.displayName) || (rc.make ? carLabel(rc) : ""));
+    put("year", rc.year); put("make", rc.make); put("model", rc.model);
+    put("family", rc.trim || d.poolTrim); put("gen", rc.genCode); put("body", rc.bodyStyle);
+    var mi = obLastD ? subjMileageOf(d, vinAnchor) : null;
+    if (!mi && /^around/i.test(rf.label || "") && Number(rf.miTarget) > 0) mi = rf.miTarget;   // a typed mileage
+    put("mileage", mi);
+    if (rf.tx) { put("tx", rf.tx); put("tx_label", rf.label); }
+    put("variant", rf.variant);
+    if (rf.miMin != null) { put("mi_min", rf.miMin); put("mi_max", rf.miMax); }
+    if (rf.driver) { put("driver", rf.driver); put("driver_val", rf.driverVal); }
+    put("observe", rf.observe);
+    return "/sell?" + Object.keys(p).map(function (k) { return encodeURIComponent(k) + "=" + encodeURIComponent(p[k]); }).join("&");
+  }
   function toSell() {
     var prefill = obSourceVin || (obResolvedCar ? carLabel(obResolvedCar) : "") || lastQuery || "";
     try { if (prefill) localStorage.setItem("gas_onebox_prefill", prefill); } catch (e) {}
     obEvent("onebox_sell_handoff_clicked");
-    location.href = "/sell";
   }
   function shareResult() {
     obEvent("onebox_share_clicked");
@@ -1833,6 +1380,11 @@
     if (input) input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); run(input.value); } });
     var edit = document.getElementById("ob-edit"); if (edit) edit.addEventListener("click", function () { renderEmpty(); if (input && lastQuery) { var i2 = document.getElementById("ob-input"); if (i2) { i2.value = lastQuery; i2.focus(); } } });
     var sell = document.getElementById("ob-sell"); if (sell) sell.addEventListener("click", toSell);
+    // See all recent sales: both buttons (desktop head / phone foot) toggle the one panel.
+    var seeBtns = root.querySelectorAll("[data-seeall]");
+    Array.prototype.forEach.call(seeBtns, function (b) { b.addEventListener("click", function () { var pnl = document.getElementById("ob-seeall"); if (!pnl) return; var open = pnl.hidden; pnl.hidden = !open; Array.prototype.forEach.call(seeBtns, function (x) { x.setAttribute("aria-expanded", open ? "true" : "false"); }); }); });
+    // Thin widening box: run the sibling family the engine named.
+    Array.prototype.forEach.call(root.querySelectorAll("[data-sibling]"), function (b) { b.addEventListener("click", function () { obEvent("onebox_sibling_clicked", lastQuery); run(b.getAttribute("data-sibling")); }); });
     var share = root.querySelector("[data-share]"); if (share) share.addEventListener("click", shareResult);
     // A clarification chip RESOLVES the answer and advances: it builds a clean "year make model"
     // (or "...body") query from the choice context, never appending to the raw query - which for
@@ -1898,7 +1450,7 @@
     Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-typemiles]"), function (b) {
       b.addEventListener("click", function () {
         var wrap = b.parentNode;
-        b.outerHTML = '<span class="typemiles"><input id="ob-miles" type="number" inputmode="numeric" placeholder="miles" /><button class="qchip" id="ob-miles-go">Go</button></span>';
+        b.outerHTML = '<span class="typemiles"><input id="ob-miles" type="number" inputmode="numeric" placeholder="miles" /><button type="button" class="qchip" id="ob-miles-go">Go</button></span>';
         var inp = document.getElementById("ob-miles"); if (inp) inp.focus();
         function submit() { var v = Number((document.getElementById("ob-miles") || {}).value); if (!(v > 0)) return; var band = v >= 60000 ? 25000 : 15000; obRefinePhrase = "Around " + v.toLocaleString() + " miles"; runPool(lastQuery, obLastVehicle, { miMin: Math.max(0, v - band), miMax: v + band, miTarget: v, label: "around " + Math.round(v / 1000) + "k" }); }
         var go = document.getElementById("ob-miles-go"); if (go) go.addEventListener("click", submit);
@@ -1907,7 +1459,7 @@
     });
     // Outbound comp-card click: log the referral per platform (the card link already carries the
     // UTM for the destination). Best-effort beacon, never blocks the navigation.
-    Array.prototype.forEach.call(root.querySelectorAll("a.rcard[data-cardclick]"), function (a) {
+    Array.prototype.forEach.call(root.querySelectorAll("a[data-cardclick]"), function (a) {
       a.addEventListener("click", function () { try { obEvent("onebox_comp_click", a.getAttribute("data-cardclick") + ":" + lastQuery); } catch (e) {} });
     });
   }
