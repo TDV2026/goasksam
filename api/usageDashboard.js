@@ -2941,29 +2941,30 @@ async function handleOps(req, res) {
     const { classifyUnknown } = await import("../lib/_unknownClassify.js");
     const rows = await supabaseSelectAll(env, `sales_archive?or=(make.ilike.unknown,model.ilike.unknown)&select=source_slug,vin,listing_title,year`);
     if (!rows) return res.status(500).json({ error: "read failed" });
-    const tot = { total: rows.length, high: 0, low: 0, none: 0 };
-    const bySource = {};
+    const vtKey = c => c.vehicle_type == null ? "unclassified" : (c.vehicle_type === "car" ? (c.confidence === "high" ? "car_high" : "car_low") : (c.vehicle_type === "motorcycle" ? (c.confidence === "high" ? "moto_high" : "moto_low") : c.vehicle_type));
+  const byType = {}, bySource = {};
     const sampleQuota = { bringatrailer: 12, bonhams: 5, barrettjackson: 5, rmsothebys: 4, mecum: 4 };
-    const samples = [];
-    const noneQuota = { bringatrailer: 14, bonhams: 6, rmsothebys: 4, mecum: 3 };
-    const noneSamples = [];
+    const samples = [], lowCar = [], prefix = {};
+    const stripYr = t => String(t || "").replace(/^\s*[\d,.]+\s*k?\s*-?\s*mile[s]?\b/i, "").replace(/\b(?:18|19|20)\d{2}\b/, " ").replace(/[^A-Za-z0-9\s-]/g, " ").replace(/\s+/g, " ").trim();
     for (const r of rows) {
       const c = classifyUnknown({ listing_title: r.listing_title, vin: r.vin });
-      const bucket = c.confidence === "high" ? "high" : c.confidence === "low" ? "low" : "none";
-      tot[bucket]++;
+      const k = vtKey(c);
+      byType[k] = (byType[k] || 0) + 1;
       const s = r.source_slug || "?";
-      if (!bySource[s]) bySource[s] = { total: 0, high: 0, low: 0, none: 0 };
-      bySource[s].total++; bySource[s][bucket]++;
-      if (c.confidence !== "none" && sampleQuota[s] > 0) {
+      if (!bySource[s]) bySource[s] = {};
+      bySource[s][k] = (bySource[s][k] || 0) + 1;
+      if (c.vehicle_type === "car" && c.confidence === "high" && sampleQuota[s] > 0) {
         sampleQuota[s]--;
-        samples.push({ source: s, title: (r.listing_title || "").slice(0, 70), vin: r.vin || null, proposedMake: c.make, proposedModel: c.model, confidence: c.confidence, basis: c.basis });
+        samples.push({ source: s, title: (r.listing_title || "").slice(0, 70), vin: r.vin || null, make: c.make, model: c.model, vehicle_type: c.vehicle_type, basis: c.basis });
       }
-      if (c.confidence === "none" && noneQuota[s] > 0) { noneQuota[s]--; noneSamples.push({ source: s, title: (r.listing_title || "").slice(0, 70), vin: r.vin || null }); }
+      if (c.confidence === "low" && (c.vehicle_type === "car" || c.vehicle_type === "motorcycle")) lowCar.push({ id: r.source_slug, title: (r.listing_title || "").slice(0, 80), vin: r.vin || null, make: c.make, model: c.model, vehicle_type: c.vehicle_type });
+      if (c.vehicle_type == null) { const w = stripYr(r.listing_title).split(" ").slice(0, 2).join(" ").toLowerCase(); if (w) prefix[w] = (prefix[w] || 0) + 1; }
     }
+    const prefixTop40 = Object.entries(prefix).sort((a, b) => b[1] - a[1]).slice(0, 40).map(([p, n]) => ({ prefix: p, n }));
     return res.status(200).json({
-      task: "unkclassify", note: "DRY RUN - no archive writes",
-      counts: { total: tot.total, classifiesConfident_high: tot.high, classifiesLow: tot.low, staysUnknown: tot.none },
-      bySource, samples, noneSamples
+      task: "unkclassify", note: "DRY RUN - no archive writes", total: rows.length,
+      byVehicleType: byType, bySource,
+      lowConfidenceCount: lowCar.length, prefixTop40, samples, lowConfidence: lowCar
     });
   }
 
