@@ -13,7 +13,7 @@
 // Actions provides them as secrets; secrets are not pullable to a laptop).
 import { callOldCarsData, configureOcdUsage, flushOcdUsage, getOcdRunMetered } from "../lib/_ocd.js";
 import { supabaseEnv, supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
-import { isPartsListing } from "../lib/_classify.js";
+import { isPartsListing, projectFlagReason } from "../lib/_classify.js";
 import { loadFxRates } from "../lib/_fx.js";
 import { hammerUsd, setFxRates } from "../lib/_houseComps.js";
 
@@ -141,12 +141,16 @@ function usdOf(amount, currency, dateISO, source, label) {
 function toFullRow(r, label, source) {
   const d = toDate(r.auction_end_date);
   const saleDate = dayKey(d), salePrice = toMoney(r.price);
+  // Project/incomplete/shell flag computed AT INGEST (item 1) from title + description, stamped into
+  // raw_record (no schema migration) so a flagged car carries its reason forward. The read path also
+  // re-derives it live from the description, so existing rows are covered without a backfill.
+  const projFlag = projectFlagReason(r.title, r.description);
   return {
     source_id: String(r.id ?? ""), sale_date: saleDate, platform: label, source_slug: source,
     make: (r.ocd_make_name || r.listing_make || "Unknown").toString().trim(),
     model: (r.ocd_model_name || r.listing_model || "Unknown").toString().trim(),
     sale_price: toMoney(r.price), sale_price_usd: usdOf(salePrice, r.currency, saleDate, source, label),
-    month: d ? d.toISOString().slice(0, 7) : null, raw_record: r,
+    month: d ? d.toISOString().slice(0, 7) : null, raw_record: projFlag ? { ...r, _project_flag: projFlag } : r,
     year: toInt(r.year), mileage: toInt(r.mileage), body_style: r.body_style ?? null,
     title_status: r.title_status ?? null, vin: r.vin ?? null, transmission: r.transmission ?? null,
     drivetrain: r.drivetrain ?? null, exterior_color: r.exterior_color ?? null, interior_color: r.interior_color ?? null,
