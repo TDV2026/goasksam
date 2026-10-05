@@ -3062,16 +3062,23 @@ async function handleOps(req, res) {
     const nowY = new Date().getUTCFullYear();
     const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
     const chunks = [];
-    for (const s of SRCS) { chunks.push(`source_slug=eq.${s}&sale_date=is.null`); chunks.push(`source_slug=eq.${s}&sale_date=lt.1990-01-01`); for (let y = 1990; y <= nowY; y++) chunks.push(`source_slug=eq.${s}&sale_date=gte.${y}-01-01&sale_date=lt.${y + 1}-01-01`); }
+    for (const s of SRCS) { chunks.push({ s, where: `source_slug=eq.${s}&sale_date=is.null` }); chunks.push({ s, where: `source_slug=eq.${s}&sale_date=lt.1990-01-01` }); for (let y = 1990; y <= nowY; y++) chunks.push({ s, y, where: `source_slug=eq.${s}&sale_date=gte.${y}-01-01&sale_date=lt.${y + 1}-01-01` }); }
     const offset = Math.max(0, Number(req.query?.offset || 0));
     const maxChunks = Math.max(1, Math.min(400, Number(req.query?.maxChunks || 250)));
-    let carWritten = 0, chunksDone = 0, errors = 0;
+    let carWritten = 0, chunksDone = 0, errors = 0, monthRetries = 0;
     for (let i = offset; i < chunks.length && chunksDone < maxChunks; i++, chunksDone++) {
-      const x = await patchFilter(`${chunks[i]}&make=not.ilike.unknown&model=not.ilike.unknown`, "car");
-      if (x.ok) carWritten += x.n; else errors++;
+      const ch = chunks[i];
+      const x = await patchFilter(`${ch.where}&make=not.ilike.unknown&model=not.ilike.unknown`, "car");
+      if (x.ok) { carWritten += x.n; continue; }
+      // A whole-year chunk that errors is too big for one UPDATE (statement timeout): split by month.
+      if (ch.y) {
+        monthRetries++; let subFail = false;
+        for (let m = 1; m <= 12; m++) { const mm = String(m).padStart(2, "0"); const nx = m === 12 ? `${ch.y + 1}-01-01` : `${ch.y}-${String(m + 1).padStart(2, "0")}-01`; const xr = await patchFilter(`source_slug=eq.${ch.s}&sale_date=gte.${ch.y}-${mm}-01&sale_date=lt.${nx}&make=not.ilike.unknown&model=not.ilike.unknown`, "car"); if (xr.ok) carWritten += xr.n; else subFail = true; }
+        if (subFail) errors++;
+      } else errors++;
     }
     const nextOffset = offset + chunksDone;
-    return res.status(200).json({ task: "typeall", write: true, phase: "car", carWritten, chunksDone, totalChunks: chunks.length, errors, nextOffset: nextOffset < chunks.length ? nextOffset : null });
+    return res.status(200).json({ task: "typeall", write: true, phase: "car", carWritten, chunksDone, monthRetries, totalChunks: chunks.length, errors, nextOffset: nextOffset < chunks.length ? nextOffset : null });
   }
 
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall." });
