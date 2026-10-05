@@ -227,6 +227,24 @@ a.card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
 .widen button{min-height:44px;padding:0 16px;border:1.5px solid var(--green);border-radius:999px;background:var(--card);color:var(--green);font:600 16px var(--sans);cursor:pointer}
 .widen button:hover{background:var(--green);color:#fff}
 
+/* ---- live panel (cars in this family live right now) ---- */
+.livepanel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px 22px;display:flex;flex-direction:column;gap:6px}
+.livepanel .lp-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.livepanel h2{margin:0;font:500 20px/1.3 var(--serif);display:flex;align-items:center;gap:10px}
+.livepanel h2 .dot{width:9px;height:9px;border-radius:50%;background:var(--live);flex:none}
+.lp-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 14px;align-items:baseline;padding:10px 0;border-top:1px solid var(--div);text-decoration:none;color:inherit}
+.lp-row:first-of-type{border-top:0}
+.lp-row:hover .lp-t{text-decoration:underline;text-underline-offset:3px}
+.lp-house{font:600 12px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--green)}
+.lp-t{font:500 15px/1.35 var(--sans);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lp-r{text-align:right;font:400 14px/1.4 var(--sans);color:var(--sec);white-space:nowrap}
+.lp-r b{display:block;font:600 17px/1.2 var(--serif);color:var(--ink)}
+/* ---- why it looks like this ---- */
+.whynote{display:flex;flex-direction:column;gap:6px;padding-top:4px}
+.whynote .eyebrow{color:var(--sec)}
+.whynote p{margin:0;font:400 15px/1.55 var(--sans);color:var(--sec);max-width:68ch}
+.whynote a{font:600 15px/1.4 var(--sans);min-height:44px;display:inline-flex;align-items:center;align-self:flex-start}
+@media (max-width:640px){.lp-row{grid-template-columns:minmax(0,1fr) auto}.lp-house{grid-column:1 / -1}.livepanel{padding:16px}}
 /* ---- ready to sell ---- */
 .sellbox{background:var(--green);color:#fff;border-radius:14px;padding:22px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
 .sellbox .st{display:flex;flex-direction:column;gap:4px}
@@ -322,6 +340,7 @@ a.card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
   <a class="ob-logo" href="/onebox">GoAskSam</a>
   <nav class="ob-rail-nav">
     <a class="ob-navitem active" href="/onebox" aria-current="page">Ask Sam</a>
+    <a class="ob-navitem" href="/buy">Buy</a>
     <a class="ob-navitem" href="/sell">Where to sell</a>
     <a class="ob-navitem" id="ob-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a>
     <div class="ob-submenu" id="ob-results-menu"></div>
@@ -346,6 +365,6 @@ a.card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
 function obToggleRail(open){var r=document.getElementById("ob-rail"),s=document.getElementById("ob-scrim"),b=document.getElementById("ob-hamburger");if(!r)return;var on=(open===undefined)?!r.classList.contains("open"):!!open;r.classList.toggle("open",on);if(s)s.classList.toggle("open",on);if(b)b.setAttribute("aria-expanded",on?"true":"false");}
 function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("ob-results-menu");if(m)m.classList.toggle("open");return false;}
 </script>
-<script src="/obx.20261010b/onebox.js"></script>
+<script src="/obx.20261011a/onebox.js"></script>
 </body>
 </html>

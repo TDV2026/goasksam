@@ -110,6 +110,45 @@
   }
   // samTakeHtml removed: the "Got it, I'm looking at comparable sales for your ..." interstitial is
   // gone (replaced by the narrated loader, item 3) and carried ownership language (item 6).
+  // WHY IT LOOKS LIKE THIS: the method, in plain words, under "Ready to sell?". Thin and single-sale
+  // reads (no range: the thin tier, or a result with too few sales for a band) get WHY SO LITTLE.
+  function whyNoteHtml(d) {
+    var thin = d.tier === "thin" || (d.tier === "result" && !d.cluster && Number(d.poolN) > 0 && Number(d.poolN) < 8);
+    var label = thin ? "Why so little" : "Why it looks like this";
+    var text = thin
+      ? "Because that’s all that sold. We’d rather show you three real sales than a number we made up from them."
+      : "No chart, no estimate, no score. Every figure on this page is a hammer price from a real auction, matched to your car’s trim, body and gearbox, converted at the rate on the day it sold, with the replicas, projects and odd sales set aside. The range is where most of those sales landed. Where there aren’t enough sales to say something, we say that instead.";
+    return '<section class="whynote" data-stage="note"><span class="eyebrow">' + esc(label) + '</span><p>' + esc(text) + '</p><a href="/how-sam-decides">How Sam decides &#8594;</a></section>';
+  }
+  // LIVE PANEL: when live_listings holds cars of this family, "{N} like this are live right now" with
+  // up to 3 compact rows and a link to /buy. Nothing renders when there are none (or on any error).
+  function livePanelSlot() { return '<div id="ob-live" hidden></div>'; }
+  function endsShort(iso) {
+    var d = new Date(iso); if (!iso || isNaN(d)) return "";
+    var tz = "America/Los_Angeles", diff = d.getTime() - Date.now();
+    if (diff < 0) return "Ending now";
+    var time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: tz }).replace(" AM", "am").replace(" PM", "pm");
+    if (d.toLocaleDateString("en-US", { timeZone: tz }) === new Date().toLocaleDateString("en-US", { timeZone: tz })) return "Ends today " + time + " PT";
+    if (diff < 6.5 * 864e5) return "Ends " + d.toLocaleDateString("en-US", { weekday: "long", timeZone: tz }) + " " + time + " PT";
+    return "Ends " + d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: tz });
+  }
+  function loadLivePanel(d, m) {
+    var slot = document.getElementById("ob-live"); var rc = d && d.resolvedCar;
+    if (!slot || !rc || !rc.make || !rc.model) return;
+    var qs = "panel=1&make=" + encodeURIComponent(rc.make) + "&model=" + encodeURIComponent(rc.model) +
+      (rc.trim ? "&trim=" + encodeURIComponent(rc.trim) : "") + (rc.year ? "&year=" + encodeURIComponent(rc.year) : "") + (rc.bodyStyle ? "&body=" + encodeURIComponent(rc.bodyStyle) : "");
+    fetch(API_ORIGIN + "/api/buySearch?" + qs).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || !(j.count > 0) || !j.rows || !j.rows.length || !document.body.contains(slot)) return;
+      var rows = j.rows.map(function (l) {
+        var bid = l.current_bid_usd ? usd(l.current_bid_usd) : (l.current_bid ? Math.round(l.current_bid).toLocaleString("en-US") + " " + l.currency : "No bids");
+        return '<a class="lp-row" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener"><span class="lp-house">' + esc(l.source) + '</span><span class="lp-t">' + esc(cleanReceiptTitle(l.title)) + '</span><span class="lp-r"><b>' + esc(bid) + '</b>' + esc(endsShort(l.end_time)) + '</span></a>';
+      }).join("");
+      var q = (m && m.displayName) || carLabel(rc);
+      slot.className = "livepanel";
+      slot.innerHTML = '<div class="lp-h"><h2><span class="dot" aria-hidden="true"></span>' + esc(j.count + (j.count === 1 ? " like this is" : " like this are") + " live right now") + '</h2><a class="linkbtn" href="/buy?q=' + encodeURIComponent(q) + '">See all on Buy &#8594;</a></div>' + rows;
+      slot.hidden = false;
+    }).catch(function () {});
+  }
   // READY TO SELL: a real link into /sell carrying the resolved car + every answered question as URL
   // parameters (sellHref). Ownership-neutral (rule 20): an offer, not an assertion.
   function sellHtml() {
@@ -586,13 +625,14 @@
     // ONE range only (the cluster in the answer card); no second "everything from" span anywhere.
     var notes = mileageFallbackHtml(d) + contradictionLine(d) + observeAsideHtml(d) + inlineSplitsHtml(d);
     if (d.driverSentence && !(d.earned) && !(d.divergence && d.divergence.kase === "a")) notes += '<p class="varynote">' + lint(esc(d.driverSentence), "varynote") + "</p>";
-    var body = answerCardHtml(d, m);
+    var body = answerCardHtml(d, m) + livePanelSlot();
     if (notes) body += '<div class="notes" data-stage="answer">' + notes + "</div>";
     body += salesSectionHtml(d, m);
     body += shownSeparatelyHtml(d);
     body += reconfirmHtml(d, m);
     body += observeHtml(d);
     body += sellHtml();
+    body += whyNoteHtml(d);
     return body;
   }
   function samMsgHtml(paras, tag, cls) {
@@ -822,7 +862,7 @@
     if (ht.houseSteer) lines.push(!ht.onlineReceiptsN ? "These trade at the auction houses, not online. Every recorded sale here came through one." : "These mostly trade at the auction houses; a few sell online. Both are below.");
     else if (ht.houseN && ht.onlineReceiptsN) lines.push("These sell online and at the auction houses. The recorded sales are below.");
     var gpat = gearboxPatternLine(scope); if (gpat) lines.push(gpat);
-    var body = '<div class="thinblk livetake" data-stage="answer">' + thinHeadHtml(name, scope, scopedLabel, ht) + freshLine(d) +
+    var body = livePanelSlot() + '<div class="thinblk livetake" data-stage="answer">' + thinHeadHtml(name, scope, scopedLabel, ht) + freshLine(d) +
       lines.map(function (p) { return '<p class="ans-line">' + lint(esc(p), "ht.line") + "</p>"; }).join("") + "</div>";
     if (m) body += '<div class="cards5 single" data-stage="cards">' + vinHeroCardHtml(m, d.resolvedCar) + "</div>";
     // Newest first (the honest evidence order); the engine's hammer-desc order is for its own math.
@@ -832,6 +872,7 @@
     body += siblingHtml(ht);
     // One Box NEVER recommends a house or platform; "Ready to sell?" is the only bridge to /sell.
     body += sellHtml();
+    body += whyNoteHtml(d);
     return body;
   }
 
@@ -915,6 +956,7 @@
     root.innerHTML = inboxHtml(lastQuery) + head + body + (foot ? footHtml() : "");
     wire();
     streamReveal();
+    if (d.tier === "result" || d.tier === "thin") loadLivePanel(d, m);
   }
   // QUESTION screen (Question.html): one card, SAM roundel, eyebrow, the question in Newsreader,
   // 44px+ chips, and the honest cap line. A question never renders inside a Sam's Take panel.
