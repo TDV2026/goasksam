@@ -646,6 +646,38 @@ async function handleOps(req, res) {
     });
   }
 
+  // task=vinverify: READ-ONLY (Oct 2026). Trace the One Box VIN lookup. For a VIN/chassis, run the EXACT
+  // query findVinArchiveMatch runs (sales_archive.vin_norm=eq.<norm>), plus diagnostic lookups: the vin
+  // column by fragment, raw_record->>vin, the title, and auction_attempts.chassis_vin_norm. Shows where
+  // the car actually lives and why the exact query misses. No OCD, no writes.
+  if (task === "vinverify") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const raw = String(req.query?.vin || "ZFF74UFA6E0199705");
+    const want = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const frag = want.slice(-6);   // last 6, for a loose fragment probe
+    const saSel = "select=id,platform,source_slug,sale_date,sale_price,make,model,year,listing_title,vin,vin_norm,rrVin:raw_record->>vin";
+    const q = async u => { try { return (await supabaseSelect(env, u)) || []; } catch (e) { return [{ _err: String((e && e.message) || e) }]; } };
+    const exact = await q(`sales_archive?vin_norm=eq.${encodeURIComponent(want)}&${saSel}&order=sale_date.desc.nullslast&limit=20`);
+    const byVinFrag = await q(`sales_archive?vin=ilike.*${encodeURIComponent(frag)}*&${saSel}&limit=20`);
+    const byRawVin = await q(`sales_archive?raw_record->>vin=ilike.*${encodeURIComponent(frag)}*&${saSel}&limit=20`);
+    const byTitle = await q(`sales_archive?listing_title=ilike.*${encodeURIComponent(frag)}*&${saSel}&limit=20`);
+    // auction_attempts (unsold)
+    const aaSel = "select=source_slug,attempt_date,high_bid,auction_status,make,model,year,chassis_vin_norm,rrVin:raw_record->>vin,title:raw_record->>title";
+    const aaExact = await q(`auction_attempts?chassis_vin_norm=eq.${encodeURIComponent(want)}&${aaSel}&limit=20`);
+    const aaFrag = await q(`auction_attempts?chassis_vin_norm=ilike.*${encodeURIComponent(frag)}*&${aaSel}&limit=20`);
+    const slim = rows => rows.map(r => r._err ? r : ({ plat: r.platform || r.source_slug, date: r.sale_date || r.attempt_date, price: r.sale_price, high_bid: r.high_bid, status: r.auction_status, mk: r.make, md: r.model, yr: r.year, title: r.listing_title || r.title, vin: r.vin, vin_norm: r.vin_norm, chassis_vin_norm: r.chassis_vin_norm, rrVin: r.rrVin }));
+    return res.status(200).json({
+      task: "vinverify", input: raw, normalized: want, fragment: frag,
+      sales_archive: {
+        exact_vin_norm_match: slim(exact),
+        by_vin_column_fragment: slim(byVinFrag),
+        by_raw_record_vin_fragment: slim(byRawVin),
+        by_title_fragment: slim(byTitle)
+      },
+      auction_attempts: { exact_chassis_vin_norm: slim(aaExact), by_fragment: slim(aaFrag) }
+    });
+  }
+
   // task=projscan: READ-ONLY (follow-up item 1, Oct 2026). Dry-run audit of the project/incomplete/
   // shell flag so the keyword list can be TUNED before it gates pools. Scans a bounded sample of the
   // archive (title + description) and reports, per keyword, how many rows match in the TITLE vs the
