@@ -3045,15 +3045,33 @@ async function handleOps(req, res) {
         motorcycleMakeDetail: motoDetail, otherMakeDetail: otherDetail, bySourceIdentified
       });
     }
-    // WRITE: bulk make-keyed PATCHes, vehicle_type IS NULL only. Moto + other makes first, then car catch-all.
-    const patchMake = async (make, type) => { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?make=ilike.${encodeURIComponent(make)}&vehicle_type=is.null`, { method: "PATCH", headers: { ...H, Prefer: "return=representation,count=exact" }, body: JSON.stringify({ vehicle_type: type }) }); const cr = r.headers.get("content-range") || ""; const m = /\/(\d+)$/.exec(cr); return { ok: r.ok, n: m ? Number(m[1]) : null }; };
-    const done = { motorcycle: 0, other: 0, car: 0, errors: 0 };
-    for (const mk of otherMakes) { const x = await patchMake(mk, "other"); if (x.ok) done.other += (x.n || 0); else done.errors++; }
-    for (const mk of motorcycleMakes) { const x = await patchMake(mk, "motorcycle"); if (x.ok) done.motorcycle += (x.n || 0); else done.errors++; }
-    // Catch-all: every remaining identified row (make known, still null) is a car.
-    const rc = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?make=not.ilike.unknown&model=not.ilike.unknown&vehicle_type=is.null`, { method: "PATCH", headers: { ...H, Prefer: "return=representation,count=exact" }, body: JSON.stringify({ vehicle_type: "car" }) });
-    const crc = rc.headers.get("content-range") || ""; const mc = /\/(\d+)$/.exec(crc); done.car = mc ? Number(mc[1]) : null; if (!rc.ok) done.errors++;
-    return res.status(200).json({ task: "typeall", write: true, result: done });
+    // WRITE: all PATCHes are count-only (return=minimal,count=exact - never return=representation, which
+    // on the ~286k car catch-all would stream back every row). vehicle_type IS NULL only, so a re-run
+    // never re-touches a typed row. Two phases: makes (moto/other, fast), then car (catch-all, chunked
+    // by source x year so no single UPDATE is big enough to hit the statement timeout; resumable).
+    const countHdr = r => { const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : 0; };
+    const patchFilter = async (filter, type) => { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}&vehicle_type=is.null`, { method: "PATCH", headers: { ...H, Prefer: "return=minimal,count=exact" }, body: JSON.stringify({ vehicle_type: type }) }); return { ok: r.ok, n: r.ok ? countHdr(r) : 0, status: r.status }; };
+    const phase = String(req.query?.phase || "makes");
+    if (phase === "makes") {
+      const done = { motorcycle: 0, other: 0, errors: 0, errorDetail: [] };
+      for (const mk of otherMakes) { const x = await patchFilter(`make=ilike.${encodeURIComponent(mk)}&model=not.ilike.unknown`, "other"); if (x.ok) done.other += x.n; else { done.errors++; done.errorDetail.push("other:" + mk + ":" + x.status); } }
+      for (const mk of motorcycleMakes) { const x = await patchFilter(`make=ilike.${encodeURIComponent(mk)}&model=not.ilike.unknown`, "motorcycle"); if (x.ok) done.motorcycle += x.n; else { done.errors++; done.errorDetail.push("moto:" + mk + ":" + x.status); } }
+      return res.status(200).json({ task: "typeall", write: true, phase: "makes", done, next: "run phase=car&offset=0 next" });
+    }
+    // phase=car: catch-all (identified, still-null -> car), chunked by source x year, resumable via offset.
+    const nowY = new Date().getUTCFullYear();
+    const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
+    const chunks = [];
+    for (const s of SRCS) { chunks.push(`source_slug=eq.${s}&sale_date=is.null`); chunks.push(`source_slug=eq.${s}&sale_date=lt.1990-01-01`); for (let y = 1990; y <= nowY; y++) chunks.push(`source_slug=eq.${s}&sale_date=gte.${y}-01-01&sale_date=lt.${y + 1}-01-01`); }
+    const offset = Math.max(0, Number(req.query?.offset || 0));
+    const maxChunks = Math.max(1, Math.min(400, Number(req.query?.maxChunks || 250)));
+    let carWritten = 0, chunksDone = 0, errors = 0;
+    for (let i = offset; i < chunks.length && chunksDone < maxChunks; i++, chunksDone++) {
+      const x = await patchFilter(`${chunks[i]}&make=not.ilike.unknown&model=not.ilike.unknown`, "car");
+      if (x.ok) carWritten += x.n; else errors++;
+    }
+    const nextOffset = offset + chunksDone;
+    return res.status(200).json({ task: "typeall", write: true, phase: "car", carWritten, chunksDone, totalChunks: chunks.length, errors, nextOffset: nextOffset < chunks.length ? nextOffset : null });
   }
 
   return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall." });
