@@ -288,8 +288,11 @@ export default async function handler(req, res) {
       // chassis decode). Re-resolve its year/make/model through the shared resolver to a
       // canonical vehicle so the caller can proceed straight into the wizard with the known
       // car - no re-asking year/make/model - exactly like the 17-char VIN path on a match.
-      if (vinMatch && vinMatch.make) {
-        const canon = await resolveVehicle([vinMatch.year, vinMatch.make, vinMatch.model].filter(Boolean).join(" "));
+      // Make/model may be 'Unknown' on the row (nulled above); fall back to the title-derived
+      // displayName so a chassis match still re-resolves to a canonical car instead of being dropped.
+      if (vinMatch && (vinMatch.make || vinMatch.displayName)) {
+        const canonText = vinMatch.make ? [vinMatch.year, vinMatch.make, vinMatch.model].filter(Boolean).join(" ") : vinMatch.displayName;
+        const canon = await resolveVehicle(canonText);
         if (canon?.vehicle?.make) {
           chassisVehicle = canon.vehicle;
           // Carry the chassis token so sellerDecision attaches the SAME prior-sale lead

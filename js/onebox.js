@@ -1628,7 +1628,11 @@
           // MATCH-FIRST (fault 2): an EXACT archive match is stronger evidence than a decode, so
           // it IS the confirmation. Skip the confirm AND any model ask: lead with the matched car
           // (named from its record) and go straight to comps for that car. Mirrors /sell Option B.
-          if (d.vinArchiveMatch && d.vinArchiveMatch.make) {
+          // Lead with the exact match whenever we can NAME the car - from its make OR, when the
+          // row is filed make/model 'Unknown' (BaT files its whole feed that way), from the
+          // title-derived displayName. The record is the answer; runPool re-resolves the car from
+          // that displayName text, so the Unknown classification never hides a real recorded sale.
+          if (d.vinArchiveMatch && (d.vinArchiveMatch.make || d.vinArchiveMatch.displayName)) {
             vinAnchor = d.vinArchiveMatch; pendingVin = null;
             obEvent("onebox_vin_anchor_shown");
             var mv = vehicleFromMatch(d.vinArchiveMatch, d.vehicle);
@@ -1663,7 +1667,7 @@
           // a matched car (the MGA filed under model "A" was asking "Which model?" because the
           // match wasn't forced through here). Reconcile the vehicle THROUGH the match so the
           // record's body scopes the pool. No match -> plain resolution, no anchor.
-          if (d.vinArchiveMatch && d.vinArchiveMatch.make && d.vinArchiveMatch.model) {
+          if (d.vinArchiveMatch && (d.vinArchiveMatch.make || d.vinArchiveMatch.displayName)) {
             vinAnchor = d.vinArchiveMatch;
             runPool(d.vinArchiveMatch.displayName || carLabel(vehicleFromMatch(d.vinArchiveMatch, d.vehicle)) || text, vehicleFromMatch(d.vinArchiveMatch, d.vehicle));
           } else { vinAnchor = null; vinQueryNoSale = true; runPool(text, d.vehicle); }   // VIN resolved, no recorded sale
@@ -1672,7 +1676,7 @@
         if (d && d.status === "needs_clarification" && cl && (cl.chips || (d.vehicle && d.vehicle.make))) {
           // MATCH-FIRST (fault 2, defensive): if a partial decode ALSO carries an exact match,
           // the match names the model - skip the model ask, lead with the matched car, go to comps.
-          if (d.vinArchiveMatch && d.vinArchiveMatch.make && d.vinArchiveMatch.model) {
+          if (d.vinArchiveMatch && (d.vinArchiveMatch.make || d.vinArchiveMatch.displayName)) {
             vinAnchor = d.vinArchiveMatch; pendingVin = null;
             obEvent("onebox_vin_anchor_shown");
             var mvc = vehicleFromMatch(d.vinArchiveMatch, d.vehicle);
