@@ -2788,18 +2788,18 @@ async function handleOps(req, res) {
     // Census over candidate currencies: validates the jsonb filter mechanism (a known currency like
     // GBP must be non-zero) and shows what non-USD currencies actually exist, so a 0 for JPY/HKD/NZD
     // is provably a real zero and not a broken filter.
-    const CENSUS = ["USD", "GBP", "EUR", "CHF", "AUD", "CAD", "JPY", "HKD", "NZD", "SEK", "DKK", "ZAR", "AED"];
     const sel = "id,source_id,source_slug,platform,make,model,model_family,year,sale_date,sale_price,sale_price_usd,vin,listing_title,curr:raw_record->>currency,aed:raw_record->>auction_end_date,url:raw_record->>url";
-    const countOf = async cur => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?raw_record->>currency=eq.${cur}&select=id&limit=1`, { headers: { ...H, Prefer: "count=exact" } }); const m = /\/(\d+|\*)$/.exec(r.headers.get("content-range") || ""); return m ? (m[1] === "*" ? 0 : Number(m[1])) : null; } catch (e) { return null; } };
-    // A second, independent count via a capped row read, so a null from the count-header path is
-    // cross-checked (null header + >0 rows = header quirk; 0 rows = a real zero).
-    const sampleCount = async cur => { const r = await supabaseSelect(env, `sales_archive?raw_record->>currency=eq.${cur}&select=id&limit=1000`); return r ? (r.length >= 1000 ? "1000+" : r.length) : null; };
-    const census = {};
-    for (const cur of CENSUS) census[cur] = { headerCount: await countOf(cur), sampleCount: await sampleCount(cur) };
+    // NOTE: there is no index on raw_record->>currency, so a filtered count=exact is a full table
+    // scan; doing one per currency (the old census) timed the function out. Instead we fetch the
+    // actual JPY/HKD/NZD rows (each a single fast scan that returns ~instantly for a small/zero set)
+    // and derive the count from them, plus a cheap limit=1 probe of common non-USD currencies to
+    // PROVE the jsonb filter works (so a 0 for JPY/HKD/NZD is a real zero, not a broken filter).
+    const probe = async cur => { const r = await supabaseSelect(env, `sales_archive?raw_record->>currency=eq.${cur}&select=id&limit=1`); return r ? (r.length > 0 ? "present" : "none") : "err"; };
+    const filterCheck = {}; for (const cur of ["GBP", "EUR", "USD"]) filterCheck[cur] = await probe(cur);
     const counts = {}, raw = [];
     for (const cur of CURS) {
-      counts[cur] = await countOf(cur);
       const got = await supabaseSelectAll(env, `sales_archive?raw_record->>currency=eq.${cur}&select=${sel}&order=sale_price.desc`);
+      counts[cur] = got ? got.length : null;
       if (got) for (const r of got) raw.push(r);
     }
     const enrich = r => {
@@ -2834,7 +2834,7 @@ async function handleOps(req, res) {
     const cubeCells = [];
     for (const f of fams) { const [mk, fam] = f.split("|"); const c = await supabaseSelect(env, `desk_aggregates?make=eq.${encodeURIComponent(mk)}&model_family=eq.${encodeURIComponent(fam)}&select=n,median_usd,newest_sale,window_key&limit=2`); cubeCells.push({ make: mk, family: fam, cubeCells: c ? c.length : 0, sample: c && c[0] ? c[0] : null }); }
     return res.status(200).json({
-      task: "fxaudit", currencies: CURS, counts, census, totalRows: all.length, fxCoverage,
+      task: "fxaudit", currencies: CURS, counts, filterCheck, totalRows: all.length, fxCoverage,
       top5, rows: all.slice(0, 60),
       item3: { bySource, inBatOrCandB: inBatCB.length, june2026Count: june.length, june2026: june.slice(0, 20).map(r => ({ title: r.title, source: r.source, date: r.date })), note: "BaT/C&B are USD-only sources; a JPY/HKD/NZD row cannot be in their totals" },
       item2: { savedResultsScannedLast60d: savedScanned, matchScanRows: scan.length, savedMatches, cube: { note: "desk_aggregates holds aggregate medians per (make,model_family,gen,year,channel,venue,window); no individual-row membership", families: cubeCells } }
