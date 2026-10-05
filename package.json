@@ -15,6 +15,7 @@
     "smoke:wizard:advisory": "node scripts/smokeWizard.js || echo '::warning title=smokeWizard non-blocking::smokeWizard is known-stale (drift) and runs ADVISORY-only, not as a CI gate. Failures above do NOT red the build. See CLAUDE.md; re-baseline is a separate task.'",
     "verify:real": "node scripts/driveReal.mjs",
     "ingest": "node scripts/ingest.js",
+    "build:vin-index": "node scripts/buildVinIndex.js",
     "test:ingest-gap": "node scripts/ingestGapTest.js",
     "test:ingest-health": "node scripts/ingestHealthTest.js",
     "probe:depth": "node scripts/depthProbe.js",
