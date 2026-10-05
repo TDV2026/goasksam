@@ -5,7 +5,7 @@
 import fs from "node:fs";
 import { supabaseEnv, supabaseSelect, supabaseInsert } from "../lib/_supabase.js";
 import { callOldCarsData } from "../lib/_ocd.js";
-import { persistableMakeModel, recordPlatform, stableRecordId } from "../lib/_classify.js";
+import { persistableMakeModel, recordPlatform, stableRecordId, PROJECT_PATTERNS, projectFlagReason } from "../lib/_classify.js";
 import { CURATED_GENERATIONS } from "../lib/generations.js";
 import { recordUsageEvent } from "./_usage.js";
 import { journeyManualUpdate } from "../lib/_journey.js";
@@ -643,6 +643,53 @@ async function handleOps(req, res) {
       chassisRows: hit.map(r => ({ title: r.listing_title, price: r.sale_price, currency: r.currency, date: r.sale_date, city: r.city, location: r.location, country: r.country, saleName: r.saleName, vin: r.vin, url: r.url })),
       bonhamsUsdRows: usd.length, bonhamsUsdEuropean: euUsd.length, byLocation: byLoc,
       sample: euUsd.slice(0, 20).map(r => ({ title: r.listing_title, price: r.sale_price, city: r.city, location: r.location, country: r.country, saleName: r.saleName, date: r.sale_date }))
+    });
+  }
+
+  // task=projscan: READ-ONLY (follow-up item 1, Oct 2026). Dry-run audit of the project/incomplete/
+  // shell flag so the keyword list can be TUNED before it gates pools. Scans a bounded sample of the
+  // archive (title + description) and reports, per keyword, how many rows match in the TITLE vs the
+  // DESCRIPTION, with examples, plus likely FALSE POSITIVES (a project-flagged row whose text also says
+  // restored / nut-and-bolt / concours / continuation series). Also pulls a named chassis/title so the
+  // RM Milan GT2 R "shell" can be confirmed. No writes, no OCD.
+  if (task === "projscan") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const limitRows = Math.min(Number(req.query?.rows) || 40000, 120000);
+    const FP_RE = /\b(?:fully\s+restored|nut[-\s]?and[-\s]?bolt|concours|freshly\s+restored|rotisserie\s+restoration|frame[-\s]?off\s+restoration|continuation\s+series|official\s+continuation)\b/i;
+    const per = {};
+    const bucket = k => per[k] || (per[k] = { titleHits: 0, descHits: 0, examplesT: [], examplesD: [], likelyFalsePos: 0, fpExamples: [] });
+    let flaggedRows = 0, scanned = 0, cursor = "";
+    const LIMIT = 1000;
+    for (let page = 0; page * LIMIT < limitRows; page++) {
+      const q = `sales_archive?select=source_id,source_slug,sale_price,listing_title,d:raw_record->>description&order=source_id.asc&limit=${LIMIT}` + (cursor ? `&source_id=gt.${encodeURIComponent(cursor)}` : "");
+      const batch = await supabaseSelect(env, q);
+      if (!batch || !batch.length) break;
+      for (const r of batch) {
+        scanned++;
+        const title = String(r.listing_title || ""), desc = String(r.d || "");
+        // The flag comes from the SAME projectFlagReason the read path uses, so the audit matches
+        // live behaviour exactly; we then record whether the hit was in the title or the description.
+        const fTitle = projectFlagReason(title, "");
+        const fAny = fTitle || projectFlagReason(title, desc);
+        if (!fAny) continue;
+        flaggedRows++;
+        const o = bucket(fAny);
+        if (fTitle) { o.titleHits++; if (o.examplesT.length < 10) o.examplesT.push({ src: r.source_slug, price: r.sale_price, title }); }
+        else { o.descHits++; if (o.examplesD.length < 10) { const idx = desc.toLowerCase().indexOf(String(fAny).split(" ")[0]); o.examplesD.push({ src: r.source_slug, price: r.sale_price, title, descSnip: (idx >= 0 ? desc.slice(Math.max(0, idx - 40), idx + 70) : desc.slice(0, 90)).replace(/\s+/g, " ") }); } }
+        if (FP_RE.test(title + " " + desc)) { o.likelyFalsePos++; if (o.fpExamples.length < 6) o.fpExamples.push({ src: r.source_slug, title, fp: (title + " " + desc).match(FP_RE)[0] }); }
+      }
+      cursor = batch[batch.length - 1].source_id;
+      if (batch.length < LIMIT) break;
+    }
+    // Confirm the RM Milan GT2 R shell: pull GT2 R rows and show title + description snippet.
+    const chassisQ = String(req.query?.title || "GT2 R");
+    const hit = (await supabaseSelect(env, `sales_archive?source_slug=eq.rmsothebys&listing_title=ilike.*${encodeURIComponent(chassisQ)}*&select=source_slug,sale_price,sale_date,listing_title,d:raw_record->>description&limit=10`)) || [];
+    const summary = {};
+    for (const [k, o] of Object.entries(per).sort((a, b) => (b[1].titleHits + b[1].descHits) - (a[1].titleHits + a[1].descHits))) summary[k] = { titleHits: o.titleHits, descHits: o.descHits, likelyFalsePos: o.likelyFalsePos };
+    return res.status(200).json({
+      task: "projscan", scanned, flaggedRows, flaggedPct: scanned ? Math.round((flaggedRows / scanned) * 1000) / 10 : 0,
+      summary, detail: per,
+      milanProbe: hit.map(r => ({ src: r.source_slug, date: r.sale_date, price: r.sale_price, title: r.listing_title, flag: projectFlagReason(r.listing_title, r.d), descHas: String(r.d || "").slice(0, 600) }))
     });
   }
 
