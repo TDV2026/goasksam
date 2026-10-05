@@ -2796,9 +2796,12 @@ async function handleOps(req, res) {
     // PROVE the jsonb filter works (so a 0 for JPY/HKD/NZD is a real zero, not a broken filter).
     const probe = async cur => { const r = await supabaseSelect(env, `sales_archive?raw_record->>currency=eq.${cur}&select=id&limit=1`); return r ? (r.length > 0 ? "present" : "none") : "err"; };
     const filterCheck = {}; for (const cur of ["GBP", "EUR", "USD"]) filterCheck[cur] = await probe(cur);
+    // Use a LIMIT read (not the Range-based selectAll): an empty result returns a clean 200 [] = 0,
+    // whereas Range returns 416 on empty which the helper reports as null. So 0 is unambiguous here;
+    // null now means only a genuine error. Sorted in JS below (no order= in the query).
     const counts = {}, raw = [];
     for (const cur of CURS) {
-      const got = await supabaseSelectAll(env, `sales_archive?raw_record->>currency=eq.${cur}&select=${sel}&order=sale_price.desc`);
+      const got = await supabaseSelect(env, `sales_archive?raw_record->>currency=eq.${cur}&select=${sel}&limit=500`);
       counts[cur] = got ? got.length : null;
       if (got) for (const r of got) raw.push(r);
     }
