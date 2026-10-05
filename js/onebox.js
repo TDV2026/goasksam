@@ -700,7 +700,9 @@
   function divergenceAsksInline(d) { var dv = d.divergence; return !!(dv && (dv.kase === "a" || dv.kase === "b")); }
   function repMeta(c) {
     var bits = ['<span class="num">' + esc(c.mileageText) + "</span>"];
-    if (c.transmission) bits.push(esc(cap(String(c.transmission))));
+    // Item 4: the gearbox line shows only when the gearbox question applies (the pool has both a manual
+    // and a non-manual); an all-manual car (Cobra) never shows "Manual" on its hero, matching /sell.
+    if (c.transmission && obGbApplies) bits.push(esc(cap(String(c.transmission))));
     return bits.join('<span class="dot">&middot;</span>');
   }
   // House both-numbers (locked addition): the math number (hammer) is the headline; the all-in
@@ -713,7 +715,7 @@
     var img = c.image ? '<img src="' + esc(c.image) + '" alt="' + esc(c.title) + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.plate\');if(p)p.style.display=\'flex\'">' : "";
     var lbl = DELTA_LABEL[c.delta] || "Recent sale";
     var venue = (c.platform && c.platform !== "others") ? c.platform : "";
-    var meta = '<span class="num">' + esc(c.mileageText) + "</span>" + (c.transmission ? '<span class="dot">&middot;</span>' + esc(cap(String(c.transmission))) : "") + (venue ? '<span class="dot">&middot;</span>' + esc(venue) : "") + '<span class="dot">&middot;</span>' + esc(monthYear(c.date));
+    var meta = '<span class="num">' + esc(c.mileageText) + "</span>" + (c.transmission && obGbApplies ? '<span class="dot">&middot;</span>' + esc(cap(String(c.transmission))) : "") + (venue ? '<span class="dot">&middot;</span>' + esc(venue) : "") + '<span class="dot">&middot;</span>' + esc(monthYear(c.date));
     var inner = '<div class="bth">' + img + ext + '<div class="plate" style="display:' + (c.image ? "none" : "flex") + '"><div class="n">' + esc(titleCaseSaleTitle(c.title)) + '</div></div></div>' +
       '<div class="bb"><span class="blabel">' + esc(lbl) + '</span><div class="bprice num">' + repPrice(c) + '</div>' +
       // Name the car as VISIBLE text (year/model/trim), not only in the image-plate that hides when
@@ -776,7 +778,7 @@
     // anchor (basis "subject") reads "Closest match". The label states exactly what was selected.
     var lbl = c.role === "closest" ? (c.basis === "subject" ? "Closest match" : "Typical sale") : (DELTA_LABEL[c.delta] || "");
     var venue = (c.platform && c.platform !== "others") ? c.platform : "";
-    var meta = [c.mileageText, c.transmission ? cap(String(c.transmission)) : "", venue].filter(Boolean).join(" · ");
+    var meta = [c.mileageText, (c.transmission && obGbApplies) ? cap(String(c.transmission)) : "", venue].filter(Boolean).join(" · ");
     var href = utmUrl(c.url);
     var inner = thumbEl(c.image, c.title) + '<div class="htr-l"><div class="htr-v">' + (lbl ? '<span class="cmkick">' + esc(lbl) + "</span>" : "") + '<span class="htr-yv">' + esc(cleanReceiptTitle(c.title)) + "</span></div>" +
       '<div class="htr-sub">' + esc(meta) + "</div></div>" +
@@ -1299,6 +1301,7 @@
     // The exact-car header leads on a VIN match (matched frame); typed queries go straight
     // to the answer block (unmatched frame). Refusal is its own frame. Every branch renders
     // from the engine's structured facts - no fabricated numbers, ever.
+    obGbApplies = !!(d && d.gearboxApplies);   // item 4: gate the volume-card gearbox line
     var m = vinAnchor;
     var head = m ? exactCarHtml(m, d.resolvedCar, d) : "";
     // Item 2: a VIN that resolved a car but has NO recorded sale in our archive must SAY SO before
@@ -1443,6 +1446,7 @@
   var choiceCtx = null;
   var htChoice = null; // house-tier intake selection: null=not asked, "__skip__", or a marker key
   var htLastD = null;  // last house-tier decision, so an intake chip can re-render in place
+  var obGbApplies = false;  // item 4: gearbox line on a volume-result card only when a gearbox question applies
   var htGearboxSplit = false;  // item 7b: true only when the pool holds BOTH a manual and a non-manual
   // gearbox (a real split / a gearbox question applies). When false, the per-card gearbox tag is dropped.
   // Same physical identity (one string cleaner/more granular than the other): token subset.
