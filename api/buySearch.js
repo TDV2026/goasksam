@@ -68,7 +68,7 @@ export default async function handler(req, res) {
     if (d && /_choice$/.test(String(d.tier || ""))) { const qq = questionOf(d); return res.status(200).json({ status: "question", askIndex: d.askIndex || asked + 1, ...qq }); }
     // The engine may have narrowed the car (body from the pool, trim): use its resolved car for matching.
     const rc = d && d.resolvedCar ? { ...vehicle, ...Object.fromEntries(Object.entries(d.resolvedCar).filter(([, v]) => v != null && v !== "")) } : vehicle;
-    const live = await liveForFamily(env, rc, generation, filters, 5);
+    const live = await liveForFamily(env, rc, generation, filters, 5, text || q);
     const market = marketOf(d);
     const listings = await Promise.all(live.rows.map(async r => ({ ...listingOut(r), seen_before: await seenBefore(env, r.vin_norm), market })));
     logSearch(env, rc, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);

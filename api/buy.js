@@ -116,7 +116,7 @@ const CLIENT = `
       out.innerHTML = '<section class="qscreen"><span class="roundel" aria-hidden="true">SAM</span><div class="qbody"><span class="eyebrow">' + (last ? "One last question" : "One question first") + '</span><p class="qtext">' + esc(d.prompt) + '</p><div class="chips">' + chips + '</div><span class="qsub">' + (last ? "Then what\\u2019s live." : "One more at most, then what\\u2019s live.") + "</span></div></section>";
       asked = Number(d.askIndex) || asked + 1; return;
     }
-    if (d.status === "unresolved") { out.innerHTML = '<section class="card empty"><p class="answer" style="margin:0">' + esc(d.prompt) + "</p></section>"; return; }
+    if (d.status === "unresolved") { out.innerHTML = '<section class="qscreen"><span class="roundel" aria-hidden="true">SAM</span><div class="qbody"><span class="eyebrow">One question first</span><p class="qtext">' + esc(d.prompt) + '</p><span class="qsub">Type it in the box above, like 2019 Ferrari 812 Superfast.</span></div></section>'; input.focus(); return; }
     if (d.status !== "ok") { out.innerHTML = '<section class="card empty"><p class="answer" style="margin:0">Sam\\u2019s catching his breath, try again in a minute.</p></section>'; return; }
     var head = lookingLine(d.resolved);
     if (!d.listings.length) {
