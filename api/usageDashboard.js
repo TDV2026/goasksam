@@ -3024,15 +3024,26 @@ async function handleOps(req, res) {
     const { typeByMake, makeTypeLists } = await import("../lib/_unknownClassify.js");
     const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "return=minimal" };
     const write = req.query?.write === "1";
+    const { motorcycleMakes, otherMakes } = makeTypeLists();
     if (!write) {
-      const rows = await supabaseSelectAll(env, `sales_archive?make=not.ilike.unknown&model=not.ilike.unknown&select=source_slug,make`);
-      if (!rows) return res.status(500).json({ error: "read failed" });
-      const byType = {}, bySource = {};
-      for (const r of rows) { const t = typeByMake(r.make) || "car"; byType[t] = (byType[t] || 0) + 1; const s = r.source_slug || "?"; (bySource[s] = bySource[s] || {})[t] = (bySource[s][t] || 0) + 1; }
-      return res.status(200).json({ task: "typeall", write: false, note: "DRY - identified (non-Unknown) rows typed by existing make", scanned: rows.length, byType, bySource });
+      // COUNT-based (fetching all ~284k rows times the function out): make-indexed count=exact per
+      // moto/other make, total identified, and per-source totals. car = total - moto - other.
+      const countQ = async filter => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}&select=id&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" } }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : 0; } catch (e) { return null; } };
+      const total = await countQ("make=not.ilike.unknown&model=not.ilike.unknown");
+      const already = await countQ("vehicle_type=not.is.null");
+      let moto = 0, other = 0; const motoDetail = {}, otherDetail = {};
+      for (const mk of motorcycleMakes) { const n = await countQ(`make=ilike.${encodeURIComponent(mk)}&model=not.ilike.unknown`); if (n) { moto += n; motoDetail[mk] = n; } }
+      for (const mk of otherMakes) { const n = await countQ(`make=ilike.${encodeURIComponent(mk)}&model=not.ilike.unknown`); if (n) { other += n; otherDetail[mk] = n; } }
+      const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
+      const bySourceIdentified = {};
+      for (const s of SRCS) bySourceIdentified[s] = await countQ(`source_slug=eq.${s}&make=not.ilike.unknown&model=not.ilike.unknown`);
+      return res.status(200).json({
+        task: "typeall", write: false, note: "DRY (count-based) - identified (non-Unknown) rows; car = total - motorcycle - other",
+        byType: { car: (total != null ? total - moto - other : null), motorcycle: moto, other, total_identified: total, already_typed: already },
+        motorcycleMakeDetail: motoDetail, otherMakeDetail: otherDetail, bySourceIdentified
+      });
     }
     // WRITE: bulk make-keyed PATCHes, vehicle_type IS NULL only. Moto + other makes first, then car catch-all.
-    const { motorcycleMakes, otherMakes } = makeTypeLists();
     const patchMake = async (make, type) => { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?make=ilike.${encodeURIComponent(make)}&vehicle_type=is.null`, { method: "PATCH", headers: { ...H, Prefer: "return=representation,count=exact" }, body: JSON.stringify({ vehicle_type: type }) }); const cr = r.headers.get("content-range") || ""; const m = /\/(\d+)$/.exec(cr); return { ok: r.ok, n: m ? Number(m[1]) : null }; };
     const done = { motorcycle: 0, other: 0, car: 0, errors: 0 };
     for (const mk of otherMakes) { const x = await patchMake(mk, "other"); if (x.ok) done.other += (x.n || 0); else done.errors++; }
