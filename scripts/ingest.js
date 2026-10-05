@@ -14,7 +14,7 @@
 import { callOldCarsData, configureOcdUsage, flushOcdUsage, getOcdRunMetered } from "../lib/_ocd.js";
 import { supabaseEnv, supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { isPartsListing, projectFlagReason } from "../lib/_classify.js";
-import { deltaShouldStop, earliestGapDay, typicalByWeekday, recentDayList, zeroStreakFlag } from "../lib/_ingestHealth.js";
+import { deltaShouldStop, earliestGapDay, typicalByWeekday, recentDayList, zeroStreakFlag, requestCapReached } from "../lib/_ingestHealth.js";
 import { loadFxRates } from "../lib/_fx.js";
 import { hammerUsd, setFxRates } from "../lib/_houseComps.js";
 
@@ -50,6 +50,11 @@ const TO = flag("to") || DATE;
 const DELTA = has("delta") || (!FROM && !TO);
 const SOURCES = (flag("sources") ? flag("sources").split(",") : ALL_SOURCES).map(s => s.trim()).filter(Boolean);
 const FLOOR = Number(flag("floor") || process.env.INGEST_DAILY_FLOOR || 30);
+// Hard total-OCD-request ceiling for THIS run. Default UNLIMITED (null) so the nightly delta is
+// unchanged; a dispatch sets it (e.g. --max-requests=20) as a deliberate safety stop. Enforced from
+// the OCD client's own HTTP counter (every request incl 429 retries), so it is a true total cap.
+const MAX_REQUESTS = flag("max-requests") != null ? Math.max(1, Number(flag("max-requests")))
+  : (process.env.OCD_MAX_REQUESTS ? Math.max(1, Number(process.env.OCD_MAX_REQUESTS)) : null);
 
 const env = supabaseEnv();
 const apiKey = process.env.OLDCARSDATA_API_KEY;
@@ -192,6 +197,7 @@ let metered = 0;
 const perDay = {};
 const kept = [];
 const failedSources = [];   // sources that ended in an UNRESOLVED error -> red the run at exit
+let capReached = false;     // set once --max-requests is hit; stops all further fetching (run is incomplete, not failed)
 const inRange = d => {
   if (!d) return false;
   const k = dayKey(d);
@@ -206,6 +212,7 @@ try { fx = await loadFxRates(env); setFxRates(fx); if (!fx.has("GBP")) console.e
 catch (e) { console.error("::warning:: fx_rates load failed; non-USD sale_price_usd left null:", e.message); }
 
 for (const source of SOURCES) {
+  if (capReached) break;   // --max-requests hit on a prior source; do not start another
   const label = DISPLAY[source] || source;
   const held = DELTA ? await heldIds(source, label) : null;
   // A failed held-set read (DB blind) is the exact condition that turned Nightly #83 into a full
@@ -251,6 +258,13 @@ for (const source of SOURCES) {
     if (DELTA && p > DELTA_MAX_PAGES_PER_SOURCE) {
       console.error(`\n::error:: ${label} exceeded ${DELTA_MAX_PAGES_PER_SOURCE} delta pages without catching up; aborting source (stop logic failed).`);
       sourceError = `delta page ceiling ${DELTA_MAX_PAGES_PER_SOURCE} exceeded`;
+      break;
+    }
+    // Hard --max-requests ceiling: stop BEFORE a fetch that would exceed the run's total OCD budget.
+    // Counted from the client's own HTTP counter so 429 retries count too. Incomplete, not a failure.
+    if (requestCapReached(getOcdRunMetered(), MAX_REQUESTS)) {
+      process.stderr.write(`\n::warning:: --max-requests cap (${MAX_REQUESTS}) reached after ${getOcdRunMetered()} OCD request(s); stopping before ${label} p${p}. Run is INCOMPLETE by design.\n`);
+      capReached = true;
       break;
     }
     metered++;
@@ -380,7 +394,8 @@ for (const d of days) {
 // recorded to app_usage_events by _ocd (periodic every 100 + the final flush below). The descriptive
 // events here carry 0 metered so the daily SUM is not double-counted.
 const ocdHttp = getOcdRunMetered();
-console.log(`upserted ${inserted} record(s) across ${days.length} day(s); OCD: ${ocdHttp} HTTP request(s) incl retries (${metered} page-fetches attempted).${dupSkipped ? ` ${dupSkipped} duplicate(s) rejected by the natural-key index.` : ""}`);
+console.log(`upserted ${inserted} record(s) across ${days.length} day(s); OCD: ${ocdHttp} HTTP request(s) incl retries (${metered} page-fetches attempted).${dupSkipped ? ` ${dupSkipped} duplicate(s) rejected by the natural-key index.` : ""}${MAX_REQUESTS != null ? ` [--max-requests=${MAX_REQUESTS}]` : ""}`);
+if (capReached) console.error(`::warning:: run stopped at the --max-requests cap (${MAX_REQUESTS}) after ${ocdHttp} OCD request(s); it is INCOMPLETE. Re-run (optionally with a higher --max-requests) to finish.`);
 try {
   const { recordUsageEvent } = await import("../api/_usage.js");
   await recordUsageEvent({ event_type: "job_ingest", route: "scripts/ingest.js", status: "ok", oldcarsdata_metered_requests: 0, metadata: { job: "ingest", mode: DELTA ? "delta" : `${FROM}..${TO}`, days: days.length, upserted: inserted, ocd_http_requests: ocdHttp, page_fetches: metered } }, env.supabaseUrl, env.supabaseKey);
@@ -420,7 +435,7 @@ if (zeroStreaks.length) {
 }
 
 await flushOcdUsage();   // write the tail of this run's OCD usage (the every-100 rows already cover a crash/timeout)
-console.log(belowFloor.length || zeroStreaks.length ? "\nDONE (with health warnings above)." : "\nDONE.");
+console.log(capReached ? "\nDONE (INCOMPLETE: --max-requests cap reached; see warning above)." : (belowFloor.length || zeroStreaks.length ? "\nDONE (with health warnings above)." : "\nDONE."));
 
 // Fail loud, per source: any source that ended in an UNRESOLVED error (429 still failing
 // after all retries, or a non-429 error, or an insert failure) reds the run so a partial

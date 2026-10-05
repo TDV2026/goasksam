@@ -12,7 +12,7 @@
 //   p4: 2026-09-28     (all held)
 
 import {
-  weekdayOf, median, recentDayList, typicalByWeekday, earliestGapDay, deltaShouldStop, walkDeltaSource
+  weekdayOf, median, recentDayList, typicalByWeekday, earliestGapDay, deltaShouldStop, walkDeltaSource, requestCapReached
 } from "../lib/_ingestHealth.js";
 
 let failures = 0;
@@ -80,6 +80,26 @@ eq("gap-aware: walked past the gap to the next known page (4)", r.pages, 4);
 eq("gap-aware: fetched pages 1..4", fetched, [1, 2, 3, 4]);
 eq("gap-aware: recovered the 3 missing rows", r.kept.map(x => x.id).sort(), ["m1", "m2", "m3"]);
 ok("gap-aware: did not hit the page ceiling", r.hitCeiling === false);
+
+// --- hard --max-requests budget ---
+ok("requestCapReached: null max is unlimited", requestCapReached(1000, null) === false);
+ok("requestCapReached: below max", requestCapReached(4, 6) === false);
+ok("requestCapReached: at max", requestCapReached(6, 6) === true);
+ok("requestCapReached: over max", requestCapReached(7, 6) === true);
+
+// The walker stops BEFORE a fetch that would exceed the budget. A gap would otherwise walk 4 pages;
+// with maxRequests=2 it fetches exactly 2 and reports capped, so the cap is a true hard ceiling.
+fetched = [];
+r = await walkDeltaSource({ fetchPage, isHeld, catchUpFrom: "2026-09-29", maxPages: 60, maxRequests: 2 });
+eq("max-requests: fetched exactly 2 pages", fetched, [1, 2]);
+eq("max-requests: requestsMade is 2", r.requestsMade, 2);
+ok("max-requests: reports capped", r.capped === true);
+
+// A budget wider than the work never binds: full gap walk completes, not capped.
+fetched = [];
+r = await walkDeltaSource({ fetchPage, isHeld, catchUpFrom: "2026-09-29", maxPages: 60, maxRequests: 20 });
+eq("wide budget: full walk to page 4", fetched, [1, 2, 3, 4]);
+ok("wide budget: not capped", r.capped === false);
 
 console.log(failures ? `\n${failures} FAILURE(S)` : "\nALL PASS");
 process.exit(failures ? 1 : 0);
