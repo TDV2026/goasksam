@@ -158,7 +158,7 @@ function send(res, status, html, extra = {}) {
 }
 function notFound(res, what) {
   send(res, 404, page({ title: "No auction history found | GoAskSam", body:
-    `<section class="card notfound"><h1>No auction history for ${esc(what)}</h1><p class="muted">GoAskSam has no auction appearance of a car under this identifier. Real auction results only, so there is nothing to show.</p><p><a class="full" href="/onebox">Look up a car on One Box &#8594;</a></p></section>` }));
+    `<section class="card notfound"><h1>No auction history for ${esc(what)}</h1><p class="muted">GoAskSam has no auction appearance of a car under this identifier. Real auction results only, so there is nothing to show.</p><p><a class="full" href="/onebox">Look up another car &#8594;</a></p></section>` }));
 }
 function photoHtml(img, url, house, alt, cls) {
   const inner = img ? `<img src="${esc(img)}" alt="${esc(alt)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
@@ -186,7 +186,7 @@ function nounOf(d, id) {
 }
 function oneBoxBlock(d, id, oneboxHref, ctx) {
   if (!d) return "";
-  const link = `<a class="full" href="${esc(oneboxHref)}">See the full picture on One Box &#8594;</a>`;
+  const link = "";   // no product name on public pages; the range block stands alone
   if (d.tier === "result" && d.cluster) {
     const take = d.samsTake && d.samsTake.sentence ? String(d.samsTake.sentence) : "";
     return `<section class="card anscard${take ? "" : " solo"}" aria-label="Cars like it"><div class="ans-main">
@@ -278,11 +278,11 @@ ${live ? `<section class="card live" aria-label="Live now"><span class="dot"></s
 ${samLine ? `<div class="samline"><span class="roundel" aria-hidden="true">SAM</span><p>${esc(samLine)}</p></div>` : ""}
 ${oneBoxBlock(d, id, oneboxCar, ctx)}
 <section class="card"><h2 style="margin-bottom:12px">Questions</h2><dl class="faq">${faq.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>
-<div><div class="btns"><a class="btn p" href="${esc(oneboxCar)}">What&#8217;s yours worth?</a><a class="btn s" href="${esc(sellHref(id))}">Where I&#8217;d sell it</a><button type="button" class="btn s" id="watch-open" aria-expanded="false" aria-controls="watch">Watch this car</button></div>
-<form class="watch" id="watch" hidden><label for="watch-email" style="position:absolute;left:-9999px">Email</label><input id="watch-email" type="email" required placeholder="Your email" autocomplete="email"><button class="btn p" type="submit">Watch it</button><p class="msg" id="watch-msg">I&#8217;ll email you when this car comes up at auction again.</p></form></div>
-<div class="links"><a href="${esc(hubHref)}">All ${esc(id.year + " " + id.make + " " + id.family)} auction results &#8594;</a><a href="/onebox?q=${encodeURIComponent(vinNorm)}">This VIN on One Box &#8594;</a></div>
-<p class="foot">Auction results from Bring a Trailer, Cars &amp; Bids, RM Sotheby&#8217;s, Gooding, Bonhams, Mecum, Collecting Cars and more. GoAskSam links to every sale; bidding happens on the auction site.</p>
-<script>(function(){var b=document.getElementById("watch-open"),f=document.getElementById("watch"),m=document.getElementById("watch-msg");if(!b||!f)return;b.addEventListener("click",function(){f.hidden=!f.hidden;b.setAttribute("aria-expanded",f.hidden?"false":"true");if(!f.hidden)document.getElementById("watch-email").focus();});f.addEventListener("submit",function(e){e.preventDefault();var em=document.getElementById("watch-email").value.trim();if(!em)return;m.textContent="Saving...";fetch("/api/history",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"watch",vin:${JSON.stringify(vinNorm)},email:em})}).then(function(r){return r.json();}).then(function(j){m.textContent=j&&j.ok?"Done. I\\u2019ll email you when this car comes up at auction again.":"I couldn\\u2019t save that just now. Try again in a minute.";}).catch(function(){m.textContent="I couldn\\u2019t save that just now. Try again in a minute.";});});})();</script>`;
+<div><div class="btns"><a class="btn s" href="${esc(sellHref(id))}">Where I&#8217;d sell it</a><button type="button" class="btn s" id="watch-open" aria-expanded="false" aria-controls="watch">Watch this car</button></div>
+<form class="watch" id="watch" hidden><label for="watch-email" style="position:absolute;left:-9999px">Email</label><input id="watch-email" type="email" required placeholder="Your email" autocomplete="email"><button class="btn p" type="submit">Watch it</button><p class="msg" id="watch-msg">I&#8217;ll email you if this car comes up at auction again.</p></form></div>
+<div class="links"><a href="${esc(hubHref)}">All ${esc(id.year + " " + id.make + " " + id.family)} auction results &#8594;</a></div>
+<p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>
+<script>(function(){var b=document.getElementById("watch-open"),f=document.getElementById("watch"),m=document.getElementById("watch-msg");if(!b||!f)return;b.addEventListener("click",function(){f.hidden=!f.hidden;b.setAttribute("aria-expanded",f.hidden?"false":"true");if(!f.hidden)document.getElementById("watch-email").focus();});f.addEventListener("submit",function(e){e.preventDefault();var em=document.getElementById("watch-email").value.trim();if(!em)return;m.textContent="Saving...";fetch("/api/history",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"watch",vin:${JSON.stringify(vinNorm)},email:em})}).then(function(r){return r.json();}).then(function(j){m.textContent=j&&j.ok?"Done. I\\u2019ll email you if this car comes up at auction again.":"I couldn\\u2019t save that just now. Try again in a minute.";}).catch(function(){m.textContent="I couldn\\u2019t save that just now. Try again in a minute.";});});})();</script>`;
   const canonical = `${SITE}/history/${id.slug}/${vinNorm}`;
   const ld = [{
     "@context": "https://schema.org", "@type": "Vehicle", name, vehicleIdentificationNumber: vinNorm,
@@ -322,7 +322,7 @@ ${oneBoxBlock(d, id, `/onebox?q=${encodeURIComponent(name)}`, "")}
 <p class="answer" style="margin:0">${esc(ctx)}</p>
 <section class="card"><div class="sh"><h2>Every ${esc(name)} by VIN</h2><span class="muted">Newest sale first</span></div>
 <table class="stack"><thead><tr><th><span style="position:absolute;left:-9999px">Photo</span></th><th>VIN</th><th class="r">Appearances</th><th>Last result</th><th>Date</th><th class="r">Miles</th></tr></thead><tbody>${rows}</tbody></table></section>
-<p class="foot">Auction results from Bring a Trailer, Cars &amp; Bids, RM Sotheby&#8217;s, Gooding, Bonhams, Mecum, Collecting Cars and more. Photos link to each listing.</p>`;
+<p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>`;
   const ld = [{ "@context": "https://schema.org", "@type": "ItemList", name: `${name} auction results`, url: canonical,
     itemListElement: list.slice(0, 200).map((g, i) => ({ "@type": "ListItem", position: i + 1, url: `${SITE}/history/${slug}/${g.vin}`, name: `${name}, VIN ${g.vin}` })) }];
   send(res, 200, page({ title: `${name} auction results | GoAskSam`, description: ctx, canonical, body, ld }));
