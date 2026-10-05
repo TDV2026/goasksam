@@ -277,6 +277,15 @@
     parts.push("sold in " + windowText(d));
     return parts.join(" · ");
   }
+  // Older-sales count (engine d.olderOutside = { n, years, recentN }): "14 more sold in 2023 and 2024."
+  // Nothing when the engine returns no count.
+  function olderOutsideLine(d) {
+    var o = d && d.olderOutside;
+    if (!o || !(Number(o.n) > 0)) return "";
+    var ys = (o.years || []).filter(Boolean).map(String);
+    var yp = ys.length <= 1 ? (ys[0] || "") : ys.slice(0, -1).join(", ") + " and " + ys[ys.length - 1];
+    return Number(o.n) + " more sold" + (yp ? " in " + yp : " earlier") + ".";
+  }
   // ANSWER CARD: left 7 of 10 columns carry eyebrow, ONE range (the cluster), "Most sales landed
   // here." and the freshness line; the right 3 carry Sam's Take ONLY when the engine returns one
   // (d.samsTake.sentence). No Take: the left spans the card and no panel renders.
@@ -297,6 +306,7 @@
         ? ("Only " + d.poolN + " " + subj + " ha" + (d.poolN === 1 ? "s" : "ve") + " sold in " + windowText(d) + ", not enough for a range, so here are the sales themselves.")
         : (subj.charAt(0).toUpperCase() + subj.slice(1) + " sold too spread out in " + windowText(d) + " to call a typical price, so here are the sales themselves.");
       main += '<p class="ans-lead lead">' + lint(line, "ans.noband") + "</p>";
+      var ol = olderOutsideLine(d); if (ol) main += '<p class="ans-line older">' + lint(esc(ol), "ans.older") + "</p>";
     }
     main += freshLine(d);
     var panel = take
@@ -797,8 +807,7 @@
     // A gearbox tag shows only when the pool has a real manual-vs-non-manual split.
     htGearboxSplit = (function () { var man = 0, non = 0; (scope || []).forEach(function (rc) { if (rc.isHouse) return; var g = gearboxLabel(rc); if (!g) return; if (/^manual/i.test(g)) man++; else non++; }); return man > 0 && non > 0; })();
     var lines = [];
-    var older = Number(ht.olderN);
-    if (older > 0) lines.push(older + " more sold earlier, outside " + thinWindowText(ht) + ".");
+    var ol = olderOutsideLine(d); if (ol) lines.push(ol);
     // HOUSE STEER text only when house share >= 2/3 (ht.houseSteer); venue-neutral otherwise.
     if (ht.houseSteer) lines.push(!ht.onlineReceiptsN ? "These trade at the auction houses, not online. Every recorded sale here came through one." : "These mostly trade at the auction houses; a few sell online. Both are below.");
     else if (ht.houseN && ht.onlineReceiptsN) lines.push("These sell online and at the auction houses. The recorded sales are below.");
