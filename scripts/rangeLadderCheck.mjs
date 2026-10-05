@@ -69,5 +69,14 @@ const e3 = T.enforceSamsTake(clean);
 truthy("clean short take passes", e3.ok);
 eq("clean take unchanged", e3.sentence, clean.sentence);
 
+console.log("\n== backlog: vehicle_type filter + badge-twin siblings ==");
+eq("VT_CAR filter string", T.VT_CAR, "&or=(vehicle_type.is.null,vehicle_type.eq.car)");
+eq("Talon -> Eclipse (first co-twin)", (T.siblingFor({ make: "Eagle", model: "Talon" }) || {}).label, "Mitsubishi Eclipse");
+eq("Eclipse -> Talon", (T.siblingFor({ make: "Mitsubishi", model: "Eclipse" }) || {}).label, "Eagle Talon");
+eq("3000GT <-> Stealth (token norm)", (T.siblingFor({ make: "Mitsubishi", model: "3000 GT" }) || {}).label, "Dodge Stealth");
+eq("BRZ -> GR86 (first co-twin)", (T.siblingFor({ make: "Subaru", model: "BRZ" }) || {}).label, "Toyota GR86");
+eq("no twin -> null", T.siblingFor({ make: "Porsche", model: "911" }), null);
+truthy("sibling carries a relation", !!(T.siblingFor({ make: "Eagle", model: "Talon" }) || {}).relation);
+
 console.log(`\n${fails ? fails + " / " + n + " ASSERTIONS FAILED" : "ALL " + n + " ASSERTIONS PASSED"}`);
 process.exit(fails ? 1 : 0);
