@@ -7,14 +7,14 @@
 //   node scripts/ingest.js --delta                    nightly: fetch newest, STOP
 //                                                      at the first record already held
 //   flags: --sources=bringatrailer,carsandbids,...  (default: all tracked)
-//          --floor=30   per-day health floor (or env INGEST_DAILY_FLOOR)
+//          --zero-streak=3   archive-based health: flag a normally-selling source on N+ zero-sale days
 //
 // Needs SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OLDCARSDATA_API_KEY (GitHub
 // Actions provides them as secrets; secrets are not pullable to a laptop).
 import { callOldCarsData, configureOcdUsage, flushOcdUsage, getOcdRunMetered } from "../lib/_ocd.js";
 import { supabaseEnv, supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { isPartsListing, projectFlagReason } from "../lib/_classify.js";
-import { deltaShouldStop, earliestGapDay, typicalByWeekday, recentDayList, zeroStreakFlag, requestCapReached } from "../lib/_ingestHealth.js";
+import { deltaShouldStop, earliestGapDay, typicalByWeekday, recentDayList, zeroStreakFlag, requestCapReached, isFutureSale } from "../lib/_ingestHealth.js";
 import { loadFxRates } from "../lib/_fx.js";
 import { hammerUsd, setFxRates } from "../lib/_houseComps.js";
 
@@ -49,7 +49,6 @@ const FROM = flag("from") || DATE;
 const TO = flag("to") || DATE;
 const DELTA = has("delta") || (!FROM && !TO);
 const SOURCES = (flag("sources") ? flag("sources").split(",") : ALL_SOURCES).map(s => s.trim()).filter(Boolean);
-const FLOOR = Number(flag("floor") || process.env.INGEST_DAILY_FLOOR || 30);
 // Hard total-OCD-request ceiling for THIS run. Default UNLIMITED (null) so the nightly delta is
 // unchanged; a dispatch sets it (e.g. --max-requests=20) as a deliberate safety stop. Enforced from
 // the OCD client's own HTTP counter (every request incl 429 retries), so it is a true total cap.
@@ -193,6 +192,7 @@ async function archiveDailyCounts(source, sinceISO) {
   return counts;
 }
 
+const RUN_DAY = dayKey(new Date());   // a completed sale can never be dated after today (item 2 guard)
 let metered = 0;
 const perDay = {};
 const kept = [];
@@ -239,7 +239,7 @@ for (const source of SOURCES) {
     if (catchUpFrom) process.stderr.write(`  ${label}: thin recent day detected; walking delta back to ${catchUpFrom} to backfill it\n`);
   }
   const before = kept.length;
-  let partsSkipped = 0, marketplaceSkipped = 0, unpricedSkipped = 0, sourceError = null;
+  let partsSkipped = 0, marketplaceSkipped = 0, unpricedSkipped = 0, futureSkipped = 0, sourceError = null;
   // PCarMarket "MarketPlace:" rows are fixed-price CLASSIFIEDS (asking price / for-sale), not
   // completed auctions, so they carry an asking/scheduled date (some future-dated) and must never
   // enter this completed-sales-only archive. Verified Sep 2026: 4 such rows had leaked in.
@@ -281,6 +281,10 @@ for (const source of SOURCES) {
       const d = toDate(r.auction_end_date);
       if (d && (!oldest || d < oldest)) oldest = d;
       const id = String(r.id ?? "");
+      // A completed sale cannot be dated after the run day. Upcoming/scheduled auctions that leak in
+      // with a future end date (verified: C&B rows dated 2026-10-06 and 2026-12-09) are rejected here
+      // in BOTH modes so they never enter this completed-sales-only archive.
+      if (d && isFutureSale(dayKey(d), RUN_DAY)) { futureSkipped++; continue; }
       // Parts / automobilia never enter the archive (OCD has no category field; these
       // list under a car's make/model and would poison the pool). Skipped in both modes.
       if (isPartsListing(r.title, r.mileage)) { partsSkipped++; continue; }
@@ -304,7 +308,7 @@ for (const source of SOURCES) {
     if (p >= (res.meta?.total_pages || 1)) break;
   }
   process.stderr.write("\n");
-  console.log(`${label}: ${kept.length - before} record(s) this source${partsSkipped ? ` (${partsSkipped} parts/automobilia skipped)` : ""}${marketplaceSkipped ? ` (${marketplaceSkipped} marketplace/asking-price skipped)` : ""}${unpricedSkipped ? ` (${unpricedSkipped} unpriced/classified skipped)` : ""}${sourceError ? `  [UNRESOLVED ERROR: ${sourceError}]` : ""}.`);
+  console.log(`${label}: ${kept.length - before} record(s) this source${partsSkipped ? ` (${partsSkipped} parts/automobilia skipped)` : ""}${marketplaceSkipped ? ` (${marketplaceSkipped} marketplace/asking-price skipped)` : ""}${unpricedSkipped ? ` (${unpricedSkipped} unpriced/classified skipped)` : ""}${futureSkipped ? ` (${futureSkipped} future-dated/scheduled skipped)` : ""}${sourceError ? `  [UNRESOLVED ERROR: ${sourceError}]` : ""}.`);
   if (sourceError) failedSources.push(`${label} (${sourceError})`);
 }
 
@@ -379,17 +383,12 @@ if (skipped.length) {
   failedSources.push(`insert: ${skipped.length} row(s) skipped (statement timeout at floor chunk); re-run to recover`);
 }
 
-// 7D.4 health check: any targeted day below the floor is surfaced loudly and
-// logged to app_usage_events, never silent.
+// Per-day YIELD of this run (what it added per day), informational only. Pipeline HEALTH is NOT
+// judged here any more: a healthy delta that correctly finds nothing new would always trip a per-run
+// floor. The authoritative, archive-based health check runs below (item 3).
 const days = Object.keys(perDay).sort();
 console.log(`\n=== ingest report (${DELTA ? "delta" : `${FROM}..${TO}`}) ===`);
-const belowFloor = [];
-for (const d of days) {
-  const n = perDay[d];
-  const flagged = n < FLOOR;
-  if (flagged) belowFloor.push({ day: d, count: n });
-  console.log(`  ${d}: ${n}${flagged ? `  BELOW FLOOR (${FLOOR})` : ""}`);
-}
+for (const d of days) console.log(`  ${d}: ${perDay[d]}`);
 // The AUTHORITATIVE OCD count is the client's per-run counter (every HTTP request, incl 429 retries),
 // recorded to app_usage_events by _ocd (periodic every 100 + the final flush below). The descriptive
 // events here carry 0 metered so the daily SUM is not double-counted.
@@ -400,17 +399,10 @@ try {
   const { recordUsageEvent } = await import("../api/_usage.js");
   await recordUsageEvent({ event_type: "job_ingest", route: "scripts/ingest.js", status: "ok", oldcarsdata_metered_requests: 0, metadata: { job: "ingest", mode: DELTA ? "delta" : `${FROM}..${TO}`, days: days.length, upserted: inserted, ocd_http_requests: ocdHttp, page_fetches: metered } }, env.supabaseUrl, env.supabaseKey);
 } catch (e) { /* never block ingest on logging */ }
-if (belowFloor.length) {
-  console.error(`INGEST HEALTH: ${belowFloor.length} day(s) below the ${FLOOR}/day floor: ${belowFloor.map(b => `${b.day}(${b.count})`).join(", ")}`);
-  try {
-    const { recordUsageEvent } = await import("../api/_usage.js");
-    await recordUsageEvent({ event_type: "ingest_health_below_floor", route: "scripts/ingest.js", status: "warning", oldcarsdata_metered_requests: 0, metadata: { belowFloor, floor: FLOOR, mode: DELTA ? "delta" : `${FROM}..${TO}` } }, env.supabaseUrl, env.supabaseKey);
-  } catch (e) { /* never block ingest on logging */ }
-}
 
 // Item 3 health: judge each source by the ARCHIVE's own per-day totals, not by what THIS run added.
-// The per-day floor above measures a run's yield; a healthy delta that correctly finds nothing new
-// would trip it, so it cannot judge pipeline health. This does: for each processed source it reads
+// The per-day yield above measures what a run added; a healthy delta that correctly finds nothing new
+// would show zeros, so it cannot judge pipeline health. This does: for each processed source it reads
 // the archive's last ~4 weeks of daily counts and flags any source sitting on >= ZERO_STREAK_MIN
 // consecutive zero-sale days WHILE it normally sells (continuous sources only; monthly auction houses
 // are not flagged for a quiet patch). Loud warning + a queryable ingest_health_zero_streak event.
@@ -435,7 +427,7 @@ if (zeroStreaks.length) {
 }
 
 await flushOcdUsage();   // write the tail of this run's OCD usage (the every-100 rows already cover a crash/timeout)
-console.log(capReached ? "\nDONE (INCOMPLETE: --max-requests cap reached; see warning above)." : (belowFloor.length || zeroStreaks.length ? "\nDONE (with health warnings above)." : "\nDONE."));
+console.log(capReached ? "\nDONE (INCOMPLETE: --max-requests cap reached; see warning above)." : (zeroStreaks.length ? "\nDONE (with health warnings above)." : "\nDONE."));
 
 // Fail loud, per source: any source that ended in an UNRESOLVED error (429 still failing
 // after all retries, or a non-429 error, or an insert failure) reds the run so a partial

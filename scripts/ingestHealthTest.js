@@ -3,7 +3,7 @@
 //
 //   node scripts/ingestHealthTest.js
 
-import { longestZeroRun, normallyHasSales, zeroStreakFlag, recentDayList, weekdayOf } from "../lib/_ingestHealth.js";
+import { longestZeroRun, normallyHasSales, zeroStreakFlag, recentDayList, weekdayOf, isFutureSale } from "../lib/_ingestHealth.js";
 
 let failures = 0;
 const ok = (name, cond) => { console.log(`${cond ? "PASS" : "FAIL"}  ${name}`); if (!cond) failures++; };
@@ -42,6 +42,15 @@ ok("monthly house NOT flagged despite long zero run", zeroStreakFlag(house, { as
 const weekdaysOnly = {}; for (const d of window) weekdaysOnly[d] = (weekdayOf(d) === 0 || weekdayOf(d) === 6) ? 0 : 20;
 ok("weekday source normallyHasSales", normallyHasSales(weekdaysOnly, { asOf, window: 28 }) === true);
 ok("routine weekend gap (2d) NOT flagged", zeroStreakFlag(weekdaysOnly, { asOf, window: 14, minRun: 3 }) === null);
+
+// --- future-sale guard (item 2): a completed sale can never be dated after the run day ---
+const runDay = "2026-10-05";
+ok("future: tomorrow rejected", isFutureSale("2026-10-06", runDay) === true);
+ok("future: months ahead rejected", isFutureSale("2026-12-09", runDay) === true);
+ok("future: today allowed (same-day close)", isFutureSale("2026-10-05", runDay) === false);
+ok("future: yesterday allowed", isFutureSale("2026-10-04", runDay) === false);
+ok("future: blank date is not future", isFutureSale("", runDay) === false);
+ok("future: datetime form compared by day", isFutureSale("2026-10-06T14:00:00Z", runDay) === true);
 
 console.log(failures ? `\n${failures} FAILURE(S)` : "\nALL PASS");
 process.exit(failures ? 1 : 0);
