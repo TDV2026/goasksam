@@ -665,6 +665,7 @@ async function handleOps(req, res) {
     const aaSel = "select=source_slug,attempt_date,high_bid,auction_status,make,model,year,chassis_vin_norm,rrVin:raw_record->>vin,title:raw_record->>title";
     const aaExact = await q(`auction_attempts?chassis_vin_norm=eq.${encodeURIComponent(want)}&${aaSel}&limit=20`);
     const aaFrag = await q(`auction_attempts?chassis_vin_norm=ilike.*${encodeURIComponent(frag)}*&${aaSel}&limit=20`);
+    const slim = rows => rows.map(r => r._err ? r : ({ plat: r.platform || r.source_slug, date: r.sale_date || r.attempt_date, price: r.sale_price, high_bid: r.high_bid, status: r.auction_status, mk: r.make, md: r.model, yr: r.year, title: r.listing_title || r.title, vin: r.vin, vin_norm: r.vin_norm, chassis_vin_norm: r.chassis_vin_norm, rrVin: r.rrVin }));
     // canonical_sales (the Desk repeat-sales store) by chassis_vin_norm
     const csSel = "select=id,make,model,year,sale_date,hammer_usd,primary_source,alias_count,chassis_vin_norm";
     const csExact = await q(`canonical_sales?chassis_vin_norm=eq.${encodeURIComponent(want)}&${csSel}&limit=20`);
@@ -675,7 +676,6 @@ async function handleOps(req, res) {
     const prices = String(req.query?.prices || "225000,350000").split(",").map(s => s.trim()).filter(Boolean);
     const byPrice = {};
     for (const p of prices) byPrice[p] = slim(await q(`sales_archive?make=ilike.*ferrari*&sale_price=eq.${encodeURIComponent(p)}&${saSel}&limit=10`));
-    const slim = rows => rows.map(r => r._err ? r : ({ plat: r.platform || r.source_slug, date: r.sale_date || r.attempt_date, price: r.sale_price, high_bid: r.high_bid, status: r.auction_status, mk: r.make, md: r.model, yr: r.year, title: r.listing_title || r.title, vin: r.vin, vin_norm: r.vin_norm, chassis_vin_norm: r.chassis_vin_norm, rrVin: r.rrVin }));
     return res.status(200).json({
       task: "vinverify", input: raw, normalized: want, fragment: frag,
       sales_archive: {
