@@ -2893,7 +2893,47 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "obdiag", cars: out });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag." });
+  // task=eight12scan: READ-ONLY (archive; ZERO OCD, no writes). Archive ground-truth for the 812
+  // GTS bug report: (a) the 812 family over the last 3 years - counts by source, by model value, by
+  // title-variant and by body_style; (b) rows with make/model 'Unknown' by source (with vin/title
+  // present). Year-chunked so no single unindexed title/ilike scan times out.
+  if (task === "eight12scan") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const nowY = new Date().getUTCFullYear(), cutY = nowY - 3;
+    const sel812 = "source_slug,model,body_style,sale_price,sale_price_usd,vin,listing_title,curr:raw_record->>currency";
+    const variantOf = t => { const s = String(t || "").toLowerCase(); if (/competizione\s*a\b/.test(s)) return "Competizione A"; if (/competizione/.test(s)) return "Competizione"; if (/\bgts\b/.test(s)) return "GTS"; if (/superf|superfarst/.test(s)) return "Superfast"; return "(812, no variant token)"; };
+    const fam = { total: 0, bySource: {}, byModel: {}, byVariant: {}, byBody: {}, byCurrency: {}, batModel812Sample: [], gtsBySource: {} };
+    for (let y = cutY; y <= nowY; y++) {
+      const rows = await supabaseSelectAll(env, `sales_archive?listing_title=ilike.*812*&sale_date=gte.${y}-01-01&sale_date=lt.${y + 1}-01-01&select=${sel812}`);
+      if (!rows) continue;
+      for (const r of rows) {
+        fam.total++;
+        const src = r.source_slug || "?", mdl = (r.model == null ? "(null)" : String(r.model)), v = variantOf(r.listing_title), body = r.body_style || "(null)", cur = (r.curr || "USD");
+        fam.bySource[src] = (fam.bySource[src] || 0) + 1;
+        fam.byModel[mdl] = (fam.byModel[mdl] || 0) + 1;
+        fam.byVariant[v] = (fam.byVariant[v] || 0) + 1;
+        fam.byBody[body] = (fam.byBody[body] || 0) + 1;
+        fam.byCurrency[cur] = (fam.byCurrency[cur] || 0) + 1;
+        if (v === "GTS") fam.gtsBySource[src] = (fam.gtsBySource[src] || 0) + 1;
+        if (src === "bringatrailer" && String(r.model) === "812" && fam.batModel812Sample.length < 8) fam.batModel812Sample.push({ model: r.model, body: r.body_style, title: r.listing_title, cur, price: r.sale_price, usd: r.sale_price_usd });
+      }
+    }
+    // Unknown make/model rows by source (any time), with vin/title presence. make/model are indexed.
+    const unk = { total: 0, bySource: {}, withVin: 0, withTitle: 0 };
+    const urows = await supabaseSelectAll(env, `sales_archive?or=(make.ilike.unknown,model.ilike.unknown)&select=source_slug,vin,listing_title,make,model`);
+    if (urows) for (const r of urows) {
+      unk.total++;
+      const src = r.source_slug || "?";
+      const hasVin = !!(r.vin && String(r.vin).replace(/[^A-Za-z0-9]/g, "").length >= 6);
+      const hasTitle = !!(r.listing_title && String(r.listing_title).trim().length >= 4);
+      if (!unk.bySource[src]) unk.bySource[src] = { total: 0, withVinOrTitle: 0 };
+      unk.bySource[src].total++;
+      if (hasVin || hasTitle) { unk.bySource[src].withVinOrTitle++; if (hasVin) unk.withVin++; if (hasTitle) unk.withTitle++; }
+    }
+    return res.status(200).json({ task: "eight12scan", windowFrom: `${cutY}-01-01`, family812: fam, unknownRows: unk });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
