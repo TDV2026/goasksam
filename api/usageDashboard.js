@@ -650,6 +650,33 @@ async function handleOps(req, res) {
   // query findVinArchiveMatch runs (sales_archive.vin_norm=eq.<norm>), plus diagnostic lookups: the vin
   // column by fragment, raw_record->>vin, the title, and auction_attempts.chassis_vin_norm. Shows where
   // the car actually lives and why the exact query misses. No OCD, no writes.
+  if (task === "vinrepeats") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const limitRows = Math.min(Number(req.query?.rows) || 60000, 150000);
+    const byVin = new Map();
+    let cursor = "", scanned = 0; const LIMIT = 1000;
+    for (let p = 0; p * LIMIT < limitRows; p++) {
+      const q = `sales_archive?select=source_id,vin_norm,make,model,year,sale_date,sale_price,platform&vin_norm=neq.&order=source_id.asc&limit=${LIMIT}` + (cursor ? `&source_id=gt.${encodeURIComponent(cursor)}` : "");
+      const batch = await supabaseSelect(env, q);
+      if (!batch || !batch.length) break;
+      for (const r of batch) {
+        scanned++;
+        const v = String(r.vin_norm || ""); if (v.length < 4 || !/[0-9]/.test(v)) continue;
+        (byVin.get(v) || byVin.set(v, []).get(v)).push({ day: String(r.sale_date || "").slice(0, 10), price: Math.round(Number(r.sale_price) || 0), mk: r.make, md: r.model, yr: r.year, plat: r.platform });
+      }
+      cursor = batch[batch.length - 1].source_id;
+      if (batch.length < LIMIT) break;
+    }
+    const vinReps = [], chassisReps = [];
+    for (const [v, arr] of byVin) {
+      const distinct = [...new Map(arr.map(a => [a.day + "|" + a.price, a])).values()];
+      if (distinct.length < 2) continue;
+      const rec = { vin_norm: v, len: v.length, n: distinct.length, make: arr[0].mk, model: arr[0].md, year: arr[0].yr, sales: distinct.sort((a, b) => String(b.day).localeCompare(a.day)).map(d => ({ day: d.day, price: d.price, plat: d.plat })) };
+      if (v.length >= 11) vinReps.push(rec); else chassisReps.push(rec);
+    }
+    return res.status(200).json({ task: "vinrepeats", scanned, vinRepeats17: vinReps.slice(0, 12), chassisRepeatsPre1981: chassisReps.slice(0, 15) });
+  }
+
   if (task === "vinverify") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const raw = String(req.query?.vin || "ZFF74UFA6E0199705");
