@@ -161,7 +161,13 @@ async function maybeRerunOnCarCorrection(q){
   }catch(e){ return false; }
   var nv=data.vehicle, cur=sellState.resolvedVehicle;
   var sig=v=>[v.year,v.make,v.model,v.trim].map(x=>String(x==null?"":x).toLowerCase().trim()).join("|");
-  if(sig(nv)===sig(cur)) return false;                  // same car: nothing to re-run, let chat answer
+  if(sig(nv)===sig(cur)){
+    // Item 3: the correction NAMES the car already shown. Never a bare "got it, noted" - confirm it IS
+    // the car the result ran on, so the reply reflects that nothing on screen changes.
+    var shown=cur.canonicalLabel||[cur.year,cur.make,cur.model,cur.trim].filter(Boolean).join(" ")||(nv.canonicalLabel||full);
+    addMsg("sam","That's the car I ran this on: "+shown+".");
+    return true;
+  }
   // Commit the corrected car and re-run the decision, REPLACING the rendered result in place. Drop the
   // summary strip and everything below it first so the new analysis does not stack under the old one.
   sellState.resolvedVehicle=nv;
