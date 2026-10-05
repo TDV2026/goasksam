@@ -3081,7 +3081,22 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "typeall", write: true, phase: "car", carWritten, chunksDone, monthRetries, totalChunks: chunks.length, errors, nextOffset: nextOffset < chunks.length ? nextOffset : null });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall." });
+  // task=vtcounts: READ-ONLY. Authoritative stored vehicle_type distribution (count=exact) global and
+  // per source, to verify the backfill + full typing landed.
+  if (task === "vtcounts") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    const countQ = async filter => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}&select=id&limit=1`, { headers: H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch (e) { return null; } };
+    const TYPES = [["car", "vehicle_type=eq.car"], ["motorcycle", "vehicle_type=eq.motorcycle"], ["other", "vehicle_type=eq.other"], ["non_vehicle", "vehicle_type=eq.non_vehicle"], ["null_untyped", "vehicle_type=is.null"]];
+    const global = { total: await countQ("id=not.is.null") };
+    for (const [k, f] of TYPES) global[k] = await countQ(f);
+    const SRCS = String(req.query?.sources || "bringatrailer,bonhams,rmsothebys,barrettjackson,mecum,carsandbids,collectingcars").split(",").map(s => s.trim()).filter(Boolean);
+    const bySource = {};
+    for (const s of SRCS) { bySource[s] = {}; for (const [k, f] of TYPES) bySource[s][k] = await countQ(`source_slug=eq.${s}&${f}`); }
+    return res.status(200).json({ task: "vtcounts", global, bySource });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
