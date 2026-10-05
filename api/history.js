@@ -36,7 +36,8 @@ function jsonLd(o) { return '<script type="application/ld+json">' + JSON.stringi
 const CSS = `
 :root{--page:#F6F3EC;--card:#FFFFFF;--border:#DCD8CC;--ink:#15201A;--green:#1E4D38;--green-dk:#15372A;--sec:#5E6B63;--div:#E2DED3;--take:#F1F5F1;--live:#2E8B57;--ph:#E6E2D8;--soft:#3C4942;--tint:#EDF3EE;--tint-line:#D5E2D8;--serif:"Newsreader",Georgia,"Times New Roman",serif;--sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:light}
 *{box-sizing:border-box}html,body{margin:0}
-body{background:var(--page);color:var(--ink);font:400 17px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+body{background:var(--page);color:var(--ink);font:400 17px/1.5 var(--sans);-webkit-font-smoothing:antialiased;font-variant-numeric:lining-nums}
+[hidden]{display:none!important}
 a{color:var(--green)}a:hover{color:var(--green-dk)}
 :focus-visible{outline:2px solid var(--green);outline-offset:2px}
 .rail{position:fixed;left:0;top:0;bottom:0;width:240px;border-right:1px solid var(--div);padding:28px 24px;display:flex;flex-direction:column;gap:2px;background:var(--page)}
@@ -75,7 +76,7 @@ td a{font-weight:500}
 .samline{display:flex;gap:14px;align-items:flex-start}
 .roundel{flex:none;width:34px;height:34px;border-radius:50%;border:1.5px solid var(--green);color:var(--green);font:600 10px/1 var(--sans);letter-spacing:.08em;display:flex;align-items:center;justify-content:center}
 .samline p{margin:4px 0 0;font:400 20px/1.45 var(--serif)}
-.anscard{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));overflow:hidden;padding:0}
+.card.anscard{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));overflow:hidden;padding:0}
 .ans-main{grid-column:span 7;padding:26px 28px 24px;display:flex;flex-direction:column;gap:10px;border-right:1px solid var(--div)}
 .anscard.solo .ans-main{grid-column:1 / -1;border-right:0}
 .ans-main .eyebrow{color:var(--sec)}
@@ -102,7 +103,8 @@ td a{font-weight:500}
 .links{display:flex;gap:8px 24px;flex-wrap:wrap;font-size:15px}
 .links a{font-weight:600;min-height:44px;display:inline-flex;align-items:center}
 .foot{font-size:14px;color:var(--sec);margin:0}
-.notfound h1{font:600 36px/1.2 var(--serif);margin:0 0 10px}
+.notfound h1{font:600 36px/1.2 var(--serif);margin:0 0 10px;overflow-wrap:anywhere}
+.range,.cprice,td{font-variant-numeric:lining-nums tabular-nums}
 @media (max-width:860px){
   .rail{display:none}
   .mhead{display:flex;justify-content:space-between;align-items:center;padding:20px 16px 0}
@@ -123,7 +125,7 @@ td a{font-weight:500}
   table.stack td{border:0;padding:2px 0;text-align:left}
   table.stack td[data-l]::before{content:attr(data-l) ": ";color:var(--sec);font-size:14px}
   table.stack td.thumbcell{float:right;margin-left:12px}
-  .anscard{display:flex;flex-direction:column}
+  .card.anscard{display:flex;flex-direction:column}
   .ans-main{padding:18px;border-right:0;border-bottom:1px solid var(--div)}
   .anscard.solo .ans-main{border-bottom:0}
   .range{font-size:32px}.range .to{font-size:20px}
