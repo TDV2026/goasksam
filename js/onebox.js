@@ -371,7 +371,7 @@
     return '<p class="cfg since">' + lint("Most " + esc(bare) + "s " + phrase + " sold between " + r3money(lo) + " and " + r3money(hi) + ".", "exact.since") + "</p>";
   }
   function exactCarHtml(m, rc, d) {
-    if (!m || (!m.price && !m.soldDate)) return "";
+    if (!m || (!m.price && !m.soldDate && !(m.history && m.history.length))) return "";
     var name = m.displayName || carLabel(rc);
     var bare = bareModelOf(rc, m);
     var plat = obPlat(m.source);
@@ -400,17 +400,27 @@
     var photo = m.photoUrl
       ? '<img src="' + esc(m.photoUrl) + '" alt="' + esc(name) + '" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.xplate\');if(p)p.style.display=\'flex\'"><div class="xplate" style="display:none"><span>' + esc(name) + "</span></div>"
       : '<div class="xplate" style="display:flex"><span>' + esc(name) + "</span></div>";
-    // The receipt, restored (item 4): every prior sale on its own line with its own View sale link
-    // (a car traded twice needs both). Format: "Last sold $35,000 &middot; Cars & Bids &middot; Sep 2026 &middot; 66,700 mi".
-    var salesArr = (m.sales && m.sales.length) ? m.sales : [{ platform: m.source, soldDate: m.soldDate, price: m.price, url: m.url, mileage: m.mileage }];
-    var recLines = salesArr.slice(0, 3).map(function (s, idx) {
-      if (!s.price && !s.soldDate) return "";
-      var sp = obPlat(s.platform), bits = [];
-      bits.push((idx === 0 ? "Last sold " : "Sold ") + (s.price ? '<span class="xp num">' + esc(usd(s.price)) + "</span>" : ""));
+    // The record, in full (item 3): EVERY sale AND unsold attempt on its own line, most recent first,
+    // with platform, date and hammer price - or high bid marked "not sold" for an attempt. A car that
+    // only ever went unsold still shows its record here. Format: "Last sold $350,000 . Bring a Trailer
+    // . Sep 2026 . 15,000 mi" / "$300,000 high bid, not sold . Bring a Trailer . Mar 2024".
+    var hist = (m.history && m.history.length) ? m.history
+      : (m.sales && m.sales.length) ? m.sales.map(function (s) { return { kind: "sale", platform: s.platform, date: s.soldDate, price: s.price, url: s.url, mileage: s.mileage }; })
+        : [{ kind: "sale", platform: m.source, date: m.soldDate, price: m.price, url: m.url, mileage: m.mileage }];
+    var firstSale = true;
+    var recLines = hist.map(function (h) {
+      if (!h.price && !h.highBid && !h.date) return "";
+      var sp = obPlat(h.platform), bits = [];
+      if (h.notSold || h.kind === "attempt") {
+        bits.push((h.highBid ? '<span class="xp num">' + esc(usd(h.highBid)) + "</span> high bid, " : "") + '<span class="xns">not sold</span>');
+      } else {
+        bits.push((firstSale ? "Last sold " : "Sold ") + (h.price ? '<span class="xp num">' + esc(usd(h.price)) + "</span>" : ""));
+        firstSale = false;
+      }
       if (sp) bits.push(esc(sp));
-      if (s.soldDate) bits.push(esc(monShort(s.soldDate)));
-      if (s.mileage) { var mi = Number(String(s.mileage).replace(/[^\d]/g, "")); if (mi) bits.push('<span class="num">' + mi.toLocaleString("en-US") + " mi</span>"); }
-      var link = s.url ? '<a class="xview" href="' + esc(s.url) + '" target="_blank" rel="noopener">View sale &#8594;</a>' : "";
+      if (h.date) bits.push(esc(monShort(h.date)));
+      if (h.mileage) { var mi = Number(String(h.mileage).replace(/[^\d]/g, "")); if (mi) bits.push('<span class="num">' + mi.toLocaleString("en-US") + " mi</span>"); }
+      var link = h.url ? '<a class="xview" href="' + esc(h.url) + '" target="_blank" rel="noopener">View &#8594;</a>' : "";
       return '<div class="xrec"><span class="xrl">' + bits.join(' <span class="dot">&middot;</span> ') + "</span>" + link + "</div>";
     }).join("");
     var disc = showDisc ? '<details class="disc"><summary>See the ' + mods.length + " listed fitment" + (mods.length === 1 ? "" : "s") + '</summary><ul>' + mods.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></details>" : "";
