@@ -2860,14 +2860,16 @@ async function handleOps(req, res) {
   //   ?view=ops&task=obdiag&qs=458 Speciale coupe|JTHMPAAY3TA113218|911|718 Cayman S coupe
   if (task === "obdiag") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
     const { runOneBox } = await import("../lib/onebox.js");
     const qs = String(req.query?.qs || "458 Speciale coupe").split("|").map(s => s.trim()).filter(Boolean);
     const out = [];
     for (const q of qs) {
       try {
-        const rv = await resolveVehicle(q, {}); const v = rv && rv.vehicle;
+        // Mirror the page path (api/sellerDecision): resolve with VIN confirm, then sanitize.
+        const rv = await resolveVehicle(q, { vinConfirm: true });
+        const v = sanitizeResolvedVehicle(rv && rv.vehicle) || (rv && rv.vehicle);
         if (!v || !v.make) { out.push({ q, status: (rv && rv.status) || "unresolved", clarify: (rv && rv.clarify) || null }); continue; }
         const g = await findGeneration(v, env);
         const ob = await runOneBox(v, g, q, env, null);
