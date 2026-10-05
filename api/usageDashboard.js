@@ -2803,14 +2803,17 @@ async function handleOps(req, res) {
     // -sale_date bucket covers rows with no sale date. in.(...) matches any of the target currencies.
     const inList = CURS.join(",");
     const nowY = new Date().getUTCFullYear();
-    const windows = ["sale_date=is.null"];
-    for (let y = 2000; y <= nowY; y++) windows.push(`sale_date=gte.${y}-01-01&sale_date=lt.${y + 1}-01-01`);
     const counts = {}; for (const c of CURS) counts[c] = 0;
     const raw = []; let scanErrors = 0;
-    for (const w of windows) {
-      const got = await supabaseSelect(env, `sales_archive?${w}&raw_record->>currency=in.(${inList})&select=${sel}&limit=500`);
-      if (got === null) { scanErrors++; continue; }
-      for (const r of got) { raw.push(r); const c = String(r.curr || "").toUpperCase(); if (counts[c] != null) counts[c]++; }
+    const scanWin = w => supabaseSelect(env, `sales_archive?${w}&raw_record->>currency=in.(${inList})&select=${sel}&limit=500`);
+    const take = got => { for (const r of got) { raw.push(r); const c = String(r.curr || "").toUpperCase(); if (counts[c] != null) counts[c]++; } };
+    const monthWins = y => { const a = []; for (let m = 1; m <= 12; m++) { const mm = String(m).padStart(2, "0"); const nx = m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, "0")}-01`; a.push(`sale_date=gte.${y}-${mm}-01&sale_date=lt.${nx}`); } return a; };
+    for (const y of [null, ...Array.from({ length: nowY - 1999 }, (_, i) => 2000 + i)]) {
+      const w = y === null ? "sale_date=is.null" : `sale_date=gte.${y}-01-01&sale_date=lt.${y + 1}-01-01`;
+      let got = await scanWin(w);
+      if (got === null && y !== null) {        // the year's row set is too large for the jsonb scan: split into months
+        for (const mw of monthWins(y)) { const g = await scanWin(mw); if (g === null) scanErrors++; else take(g); }
+      } else if (got === null) { scanErrors++; } else { take(got); }
     }
     const enrich = r => {
       const native = Math.round(Number(r.sale_price) || 0);
