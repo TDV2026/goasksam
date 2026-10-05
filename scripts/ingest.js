@@ -15,6 +15,7 @@ import { callOldCarsData, configureOcdUsage, flushOcdUsage, getOcdRunMetered } f
 import { supabaseEnv, supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { isPartsListing, projectFlagReason } from "../lib/_classify.js";
 import { deltaShouldStop, earliestGapDay, typicalByWeekday, recentDayList, zeroStreakFlag, requestCapReached, isFutureSale } from "../lib/_ingestHealth.js";
+import { resolveIngestIdentity } from "../lib/_unknownClassify.js";
 import { loadFxRates } from "../lib/_fx.js";
 import { hammerUsd, setFxRates } from "../lib/_houseComps.js";
 
@@ -155,10 +156,13 @@ function toFullRow(r, label, source) {
   // raw_record (no schema migration) so a flagged car carries its reason forward. The read path also
   // re-derives it live from the description, so existing rows are covered without a backfill.
   const projFlag = projectFlagReason(r.title, r.description);
+  // Fix 5 item 5: when OCD's structured make/model are empty, classify make/model + vehicle_type from
+  // the title (and VIN) BEFORE writing "Unknown" (OCD ships no structured make/model for BaT). An
+  // already-identified row keeps its OCD values and is typed by make.
+  const ident = resolveIngestIdentity(r);
   return {
     source_id: String(r.id ?? ""), sale_date: saleDate, platform: label, source_slug: source,
-    make: (r.ocd_make_name || r.listing_make || "Unknown").toString().trim(),
-    model: (r.ocd_model_name || r.listing_model || "Unknown").toString().trim(),
+    make: ident.make, model: ident.model, vehicle_type: ident.vehicle_type,
     sale_price: toMoney(r.price), sale_price_usd: usdOf(salePrice, r.currency, saleDate, source, label),
     month: d ? d.toISOString().slice(0, 7) : null, raw_record: projFlag ? { ...r, _project_flag: projFlag } : r,
     year: toInt(r.year), mileage: toInt(r.mileage), body_style: r.body_style ?? null,
