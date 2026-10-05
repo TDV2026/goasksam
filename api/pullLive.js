@@ -1,7 +1,7 @@
 // Live feed pull (Lane C, Oct 2026). GET /api/pullLive
 //   Auth: Vercel cron (Authorization: Bearer CRON_SECRET) or ?key=PROBE_KEY for a manual run.
 //   ?probe=1          ONE metered request: returns the record keys + 2 samples, writes nothing.
-//   ?max-requests=N   hard guard on metered requests this run (default 40; the cron uses the default).
+//   ?max-requests=N   hard guard on metered requests this run (default 30, a full walk is ~19 at 100/page; the cron uses the default).
 // Fetches OCD /auctions/live (every source OCD carries live), upserts live_listings, marks listings
 // that vanished from the feed as ended, and fills final_price from sales_archive once the sale lands.
 // Idempotent: re-running only refreshes last_seen/current_bid and re-checks ended rows. Every metered
@@ -21,10 +21,17 @@ export default async function handler(req, res) {
   configureOcdUsage({ ...env, job: "pull_live" });
   const start = getOcdRunMetered();
   const used = () => getOcdRunMetered() - start;
-  const maxReq = Math.max(1, Math.min(200, Number((req.query && (req.query["max-requests"] || req.query.maxRequests)) || 40)));
+  const maxReq = Math.max(1, Math.min(200, Number((req.query && (req.query["max-requests"] || req.query.maxRequests)) || 30)));
   const limit = Math.max(25, Math.min(1000, Number(process.env.LIVE_PAGE_LIMIT || 100)));
 
   try {
+    // ?usage=1: ZERO OCD. Metered requests this job recorded today (UTC), from app_usage_events.
+    if (req.query && req.query.usage) {
+      const since = new Date(); since.setUTCHours(0, 0, 0, 0);
+      const rr = await fetch(`${env.supabaseUrl}/rest/v1/app_usage_events?created_at=gte.${since.toISOString()}&route=eq.pull_live&select=created_at,oldcarsdata_metered_requests,status&order=created_at.asc&limit=500`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
+      const rows = rr.ok ? await rr.json() : [];
+      return res.status(200).json({ usage: true, ocdRequests: 0, todayPullLiveMetered: rows.reduce((k, r) => k + (Number(r.oldcarsdata_metered_requests) || 0), 0), rows });
+    }
     if (req.query && req.query.probe) {
       const r = await callOldCarsData("/auctions/live", { page: 1, limit: Math.min(1000, Number(req.query.limit) || 25) }, apiKey);
       const data = r.data || r.results || [];
@@ -60,6 +67,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, ocdRequests: used(), maxRequests: maxReq, truncated, feedTotal: total, fetched: rows.length, perSource, upserted: up, ended, finals, ...stats });
   } catch (e) {
     await flushOcdUsage().catch(() => {});
-    return res.status(500).json({ ok: false, ocdRequests: used(), error: String((e && e.message) || e) });
+    return res.status(500).json({ ok: false, ocdRequests: used(), error: String((e && e.message) || e).slice(0, 300) });
   }
 }
