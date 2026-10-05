@@ -2980,7 +2980,9 @@ async function handleOps(req, res) {
     const write = req.query?.write === "1";
     const offset = Math.max(0, Number(req.query?.offset || 0));
     const maxGroups = Math.max(1, Math.min(4000, Number(req.query?.maxGroups || 1200)));
-    const rows = await supabaseSelectAll(env, `sales_archive?or=(make.ilike.unknown,model.ilike.unknown)&select=id,source_slug,vin,listing_title&order=id.asc`);
+    // Only still-UNTYPED Unknown rows, so repeated write calls converge (a written row gets a
+    // vehicle_type and drops out; non_vehicle/other keep make=Unknown so this is what retires them).
+    const rows = await supabaseSelectAll(env, `sales_archive?or=(make.ilike.unknown,model.ilike.unknown)&vehicle_type=is.null&select=id,source_slug,vin,listing_title&order=id.asc`);
     if (!rows) return res.status(500).json({ error: "read failed" });
     const vinCount = {}; for (const r of rows) { const v = String(r.vin || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); if (v.length >= 6) vinCount[v] = (vinCount[v] || 0) + 1; }
     const repeated = new Set(Object.entries(vinCount).filter(([, n]) => n > 1).map(([v]) => v));
