@@ -22,14 +22,14 @@ export default async function handler(req, res) {
   const start = getOcdRunMetered();
   const used = () => getOcdRunMetered() - start;
   const maxReq = Math.max(1, Math.min(200, Number((req.query && (req.query["max-requests"] || req.query.maxRequests)) || 40)));
-  const limit = 100;
+  const limit = Math.max(25, Math.min(1000, Number(process.env.LIVE_PAGE_LIMIT || 100)));
 
   try {
     if (req.query && req.query.probe) {
-      const r = await callOldCarsData("/auctions/live", { page: 1, limit: 25 }, apiKey);
+      const r = await callOldCarsData("/auctions/live", { page: 1, limit: Math.min(1000, Number(req.query.limit) || 25) }, apiKey);
       const data = r.data || r.results || [];
       await flushOcdUsage();
-      return res.status(200).json({ probe: true, ocdRequests: used(), meta: r.meta || null, keys: data[0] ? Object.keys(data[0]) : [], samples: data.slice(0, 2) });
+      return res.status(200).json({ probe: true, ocdRequests: used(), returned: data.length, meta: r.meta || null, keys: data[0] ? Object.keys(data[0]) : [], samples: data.slice(0, 2) });
     }
     // 1. Walk every page of the live feed, bounded by --max-requests.
     const seenAt = new Date().toISOString();
