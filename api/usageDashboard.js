@@ -681,9 +681,9 @@ async function handleOps(req, res) {
       cursor = batch[batch.length - 1].source_id;
       if (batch.length < LIMIT) break;
     }
-    // Confirm the RM Milan GT2 R shell: pull GT2 R rows and show title + description snippet.
-    const chassisQ = String(req.query?.title || "GT2 R");
-    const hit = (await supabaseSelect(env, `sales_archive?source_slug=eq.rmsothebys&listing_title=ilike.*${encodeURIComponent(chassisQ)}*&select=source_slug,sale_price,sale_date,listing_title,d:raw_record->>description&limit=10`)) || [];
+    // Confirm the RM Milan GT2 R shell: the non-RS 1997 GT2 R sits in a ~150-260k band (the GT2 RS
+    // cars are 300-750k), so pull rmsothebys GT2 sales in that band and show flag + description snippet.
+    const hit = (await supabaseSelect(env, `sales_archive?source_slug=eq.rmsothebys&listing_title=ilike.*GT2*&sale_price=gte.150000&sale_price=lte.260000&select=source_slug,sale_price,sale_date,listing_title,d:raw_record->>description&limit=20`)) || [];
     const summary = {};
     for (const [k, o] of Object.entries(per).sort((a, b) => (b[1].titleHits + b[1].descHits) - (a[1].titleHits + a[1].descHits))) summary[k] = { titleHits: o.titleHits, descHits: o.descHits, likelyFalsePos: o.likelyFalsePos };
     return res.status(200).json({
