@@ -59,7 +59,17 @@ const ROWS = [
   { q: "1997 Porsche 911 GT2 R", make: "porsche", skipHalo: true,
     poolGuard: { label: "GT2 R family only", familyRe: /\bgt2\b/i, mustMatch: /\bgt2\s*(?:r\b|evo)/i } },
   { q: "1997 Porsche 911 GT2", make: "porsche", skipHalo: true,
-    poolGuard: { label: "road GT2 only", familyRe: /\bgt2\b/i, mustNotMatch: /\bgt2\s*(?:r\b|evo|clubsport)\b|\bgt2\s*rs\b/i } }
+    poolGuard: { label: "road GT2 only", familyRe: /\bgt2\b/i, mustNotMatch: /\bgt2\s*(?:r\b|evo|clubsport)\b|\bgt2\s*rs\b/i } },
+  // Shelby Cobra families (Oct 2026): each family is its own pool and never mixes. The queried family
+  // IS a Cobra, so the make-wide check is not a leak (skipHalo); the poolGuard asserts the family fence
+  // on every rendered title. The "42" row is a ONE-BOX ambiguity ask (obExpectTier), not a pool.
+  { q: "1965 Shelby Cobra 427", make: "shelby", skipHalo: true,
+    poolGuard: { label: "427 Cobra only", familyRe: /cobra/i, mustMatch: /\b427\b/i, mustNotMatch: /daytona|\bcsx\s?-?\s?[46789]\d{3}\b/i } },
+  { q: "1964 Shelby Cobra 289", make: "shelby", skipHalo: true,
+    poolGuard: { label: "289 Cobra only", familyRe: /cobra/i, mustMatch: /\b(289|260)\b|\bmark\s?ii\b/i, mustNotMatch: /\b427\b|daytona|\bcsx\s?-?\s?[46789]\d{3}\b/i } },
+  { q: "Shelby Cobra CSX4000", make: "shelby", skipHalo: true,
+    poolGuard: { label: "continuation (CSX) only", familyRe: /cobra/i, mustMatch: /\bcsx\s?-?\s?[46789]\d{3}\b|continuation/i } },
+  { q: "1965 Shelby Cobra 42", make: "shelby", obExpectTier: "choice" }
 ];
 
 const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
@@ -141,6 +151,13 @@ async function main() {
     const deskN = desk && Array.isArray(desk.rows) ? desk.rows.length : null;
 
     const fails = [], warns = [];
+    // One-Box-only expectation (e.g. an ambiguous-family ASK): assert the One Box tier and skip the
+    // cross-surface comparison (the family clarify is a One Box behaviour; /sell routes differently).
+    if (row.obExpectTier) {
+      if (obT.tier !== row.obExpectTier) fails.push(`ob tier ${obT.tier} != expected ${row.obExpectTier}`);
+      results.push({ q: row.q, obT, seT, deskN, fails, warns });
+      continue;
+    }
     if (carKey(obT.car) !== carKey(seT.car)) fails.push(`car ${carKey(obT.car)} vs ${carKey(seT.car)}`);
     if (obT.tier !== seT.tier) fails.push(`tier ${obT.tier} vs ${seT.tier}`);
     if (!row.skipHalo && (!obT.halo || !seT.halo)) fails.push(`halo leak (ob=${obT.halo} sell=${seT.halo})`);
