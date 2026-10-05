@@ -3096,7 +3096,34 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "vtcounts", global, bySource });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts." });
+  // task=vindist: READ-ONLY. The VIN-appearance distribution (1 / 2+ / 3+) + the 10 most-seen VINs,
+  // computed the same way buildVinIndex does (normalise, exclude non_vehicle + multi-identity VINs),
+  // so the report is available without waiting for the table build.
+  if (task === "vindist") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const normVin = v => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const unk = s => !s || /^unknown$/i.test(String(s).trim());
+    const sales = await supabaseSelectAll(env, `sales_archive?vin_norm=not.is.null&vehicle_type=not.eq.non_vehicle&select=vin_norm,make,model,year`) || [];
+    const atts = await supabaseSelectAll(env, `auction_attempts?chassis_vin_norm=not.is.null&select=vin_norm:chassis_vin_norm,make,model,year`) || [];
+    const byVin = new Map();
+    for (const r of [...sales, ...atts]) { const v = normVin(r.vin_norm); if (v.length < 6) continue; if (!byVin.has(v)) byVin.set(v, []); byVin.get(v).push(r); }
+    let polluted = 0; const kept = [];
+    for (const [v, apps] of byVin) {
+      const idents = new Set(apps.map(a => (unk(a.make) ? "" : a.make.toLowerCase().trim()) + "|" + (unk(a.model) ? "" : a.model.toLowerCase().trim())).filter(x => x !== "|"));
+      if (idents.size > 1) { polluted++; continue; }
+      if (idents.size === 0) continue;
+      kept.push(v);
+    }
+    const counts = kept.map(v => byVin.get(v).length);
+    const top10 = kept.map(v => { const a = byVin.get(v); const id = a.find(x => !unk(x.make)) || {}; return { vin: v, appearances: a.length, car: [id.year, id.make, id.model].filter(Boolean).join(" ") }; }).sort((a, b) => b.appearances - a.appearances).slice(0, 10);
+    return res.status(200).json({
+      task: "vindist", totalAppearances: sales.length + atts.length, distinctVins: byVin.size, pollutedDropped: polluted, keptVins: kept.length,
+      distribution: { exactly_1: counts.filter(n => n === 1).length, two_plus: counts.filter(n => n >= 2).length, three_plus: counts.filter(n => n >= 3).length },
+      top10MostSeen: top10
+    });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
