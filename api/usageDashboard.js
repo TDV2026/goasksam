@@ -2933,7 +2933,38 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "eight12scan", windowFrom: `${cutY}-01-01`, family812: fam, unknownRows: unk });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan." });
+  // task=unkclassify: READ-ONLY DRY RUN (archive; ZERO OCD, NO writes). Runs the Unknown-row
+  // classifier (VIN + listing title) over every make/model-'Unknown' row and reports how many would
+  // classify (high/low) vs stay Unknown, by source, plus sample proposals. Writes NOTHING.
+  if (task === "unkclassify") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { classifyUnknown } = await import("../lib/_unknownClassify.js");
+    const rows = await supabaseSelectAll(env, `sales_archive?or=(make.ilike.unknown,model.ilike.unknown)&select=source_slug,vin,listing_title,year`);
+    if (!rows) return res.status(500).json({ error: "read failed" });
+    const tot = { total: rows.length, high: 0, low: 0, none: 0 };
+    const bySource = {};
+    const sampleQuota = { bringatrailer: 12, bonhams: 5, barrettjackson: 5, rmsothebys: 4, mecum: 4 };
+    const samples = [];
+    for (const r of rows) {
+      const c = classifyUnknown({ listing_title: r.listing_title, vin: r.vin });
+      const bucket = c.confidence === "high" ? "high" : c.confidence === "low" ? "low" : "none";
+      tot[bucket]++;
+      const s = r.source_slug || "?";
+      if (!bySource[s]) bySource[s] = { total: 0, high: 0, low: 0, none: 0 };
+      bySource[s].total++; bySource[s][bucket]++;
+      if (c.confidence !== "none" && sampleQuota[s] > 0) {
+        sampleQuota[s]--;
+        samples.push({ source: s, title: (r.listing_title || "").slice(0, 70), vin: r.vin || null, proposedMake: c.make, proposedModel: c.model, confidence: c.confidence, basis: c.basis });
+      }
+    }
+    return res.status(200).json({
+      task: "unkclassify", note: "DRY RUN - no archive writes",
+      counts: { total: tot.total, classifiesConfident_high: tot.high, classifiesLow: tot.low, staysUnknown: tot.none },
+      bySource, samples
+    });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
