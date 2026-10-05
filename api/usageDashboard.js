@@ -2816,22 +2816,28 @@ async function handleOps(req, res) {
     const bySource = {}; for (const r of all) bySource[r.source] = (bySource[r.source] || 0) + 1;
     const june = all.filter(r => String(r.date || "").slice(0, 7) === "2026-06");
     const inBatCB = all.filter(r => ["bringatrailer", "carsandbids"].includes(String(r.source)));
-    // item 2a: saved_results (last 60 days, <=500 most recent) substring-matched on source_id / VIN / title
+    // item 2 runs ONLY when there are rows to trace (an empty set matches nothing, and fetching 500
+    // large payloads for no reason is what timed the function out). With zero rows the answer is a
+    // provable "none" without the heavy scan.
     const since60 = new Date(Date.now() - 60 * 86400000).toISOString();
-    const sr = await supabaseSelect(env, `saved_results?created_at=gte.${since60}&select=id,created_at,payload&order=created_at.desc&limit=500`);
     const scan = all.slice(0, 300);   // bound the match work; rows are ordered by value
     const needleFor = r => [r.source_id, (r.vin && String(r.vin).replace(/[^A-Za-z0-9]/g, "").length >= 11) ? r.vin : null, (r.title && r.title.length >= 8) ? r.title : null].filter(Boolean).map(String);
     const savedMatches = [];
-    if (sr) for (const s of sr) { const blob = JSON.stringify(s.payload || ""); for (const r of scan) { const hit = needleFor(r).find(nd => blob.includes(nd)); if (hit) { savedMatches.push({ savedId: s.id, created_at: s.created_at, row: { id: r.id, title: r.title, currency: r.currency }, needle: hit.slice(0, 44) }); break; } } }
+    let savedScanned = 0;
+    if (all.length) {
+      const sr = await supabaseSelect(env, `saved_results?created_at=gte.${since60}&select=id,created_at,payload&order=created_at.desc&limit=500`);
+      savedScanned = sr ? sr.length : 0;
+      if (sr) for (const s of sr) { const blob = JSON.stringify(s.payload || ""); for (const r of scan) { const hit = needleFor(r).find(nd => blob.includes(nd)); if (hit) { savedMatches.push({ savedId: s.id, created_at: s.created_at, row: { id: r.id, title: r.title, currency: r.currency }, needle: hit.slice(0, 44) }); break; } } }
+    }
     // item 2b: Desk cube cells for these rows' families (aggregate only; no per-row membership)
-    const fams = [...new Set(all.map(r => [r.make, r.model_family].join("|")).filter(x => x !== "|" && !x.endsWith("|")))].slice(0, 30);
+    const fams = all.length ? [...new Set(all.map(r => [r.make, r.model_family].join("|")).filter(x => x !== "|" && !x.endsWith("|")))].slice(0, 30) : [];
     const cubeCells = [];
     for (const f of fams) { const [mk, fam] = f.split("|"); const c = await supabaseSelect(env, `desk_aggregates?make=eq.${encodeURIComponent(mk)}&model_family=eq.${encodeURIComponent(fam)}&select=n,median_usd,newest_sale,window_key&limit=2`); cubeCells.push({ make: mk, family: fam, cubeCells: c ? c.length : 0, sample: c && c[0] ? c[0] : null }); }
     return res.status(200).json({
       task: "fxaudit", currencies: CURS, counts, census, totalRows: all.length, fxCoverage,
       top5, rows: all.slice(0, 60),
       item3: { bySource, inBatOrCandB: inBatCB.length, june2026Count: june.length, june2026: june.slice(0, 20).map(r => ({ title: r.title, source: r.source, date: r.date })), note: "BaT/C&B are USD-only sources; a JPY/HKD/NZD row cannot be in their totals" },
-      item2: { savedResultsScannedLast60d: sr ? sr.length : null, matchScanRows: scan.length, savedMatches, cube: { note: "desk_aggregates holds aggregate medians per (make,model_family,gen,year,channel,venue,window); no individual-row membership", families: cubeCells } }
+      item2: { savedResultsScannedLast60d: savedScanned, matchScanRows: scan.length, savedMatches, cube: { note: "desk_aggregates holds aggregate medians per (make,model_family,gen,year,channel,venue,window); no individual-row membership", families: cubeCells } }
     });
   }
 
