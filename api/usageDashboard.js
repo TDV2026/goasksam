@@ -2722,7 +2722,7 @@ async function handleOps(req, res) {
     for (let p = 1; p <= pages; p++) {
       if (budgetLeft !== Infinity && ocdRequests >= budgetLeft) break;
       let r;
-      try { r = await callOldCarsData("/auctions", { source, status: "sold", sort: "date", direction: "desc", page: p, limit: 50 }, apiKey); ocdRequests++; }
+      try { r = await callOldCarsData("/auctions", { source, status: "sold", sort: "date", direction: "desc", page: p, limit: 50, keyword: req.query?.keyword ? String(req.query.keyword) : undefined }, apiKey); ocdRequests++; }
       catch (e) { err = e.message; rateLimited = !!e.rateLimited; ocdRequests += e.ocdMonthlyGuard || e.ocdHardCap ? 0 : 1; break; }
       totalPages = r.meta?.total_pages ?? totalPages;
       totalAvailable = r.meta?.total ?? totalAvailable;
