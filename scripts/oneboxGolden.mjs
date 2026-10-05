@@ -54,6 +54,9 @@ const mask = s => String(s || "")
   .replace(/\b\d[\d,]*(?:\.\d+)?k\b/gi, "Nk")
   .replace(/\b\d[\d,]*\s?mi\b/gi, "N mi")
   .replace(/\b(?:19|20)\d{2}\b/g, "YYYY")
+  // Month names drift with the data (the freshness line "Latest X sale: October YYYY" rolls each
+  // month a newer sale lands), so neutralise them to MON - only a template/state change should trip.
+  .replace(/\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\b/gi, "MON")
   .replace(/\s+/g, " ").trim();
 
 // Cold-runner paint budget. Two known slow tails render a FALSE "unknown" under a tight wait on
