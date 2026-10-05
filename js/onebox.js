@@ -1178,7 +1178,10 @@
       out += '<p class="lt-line">' + lint(one, "ht.hero1") + "</p>";
       out += thinHeroCard(mid);
     } else {
-      var lead = "Only " + n + " " + whoNoYear + "s have sold in " + HT_WINDOW_TEXT + ", not enough for a range. Here’s what they went for.";
+      // Fix 2: the thin lead must NOT claim "not enough for a range" and then print the min-max span
+      // below (the observed contradiction). Rule 24's sanctioned framing: "too few to mark a typical
+      // band" (no typical-cluster headline), then the raw record of what the N sales went for.
+      var lead = "Only " + n + " " + whoNoYear + "s have sold in " + HT_WINDOW_TEXT + ", too few to mark a typical band. Here’s what they went for.";
       out += '<p class="lt-line">' + lint(lead, "ht.hero") + "</p>";
       var min = s[0].hammer, max = s[n - 1].hammer;
       if (max > min) out += '<p class="lt-span">' + lint("They ran from " + usd(min) + " to " + usd(max) + ".", "ht.span") + "</p>";
