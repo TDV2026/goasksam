@@ -75,34 +75,50 @@ async function capture(page, input) {
   await page.waitForFunction(() => { const r = document.getElementById("ob"); return r && (r.querySelector(".livetake") || r.querySelector(".samtake") || r.querySelector(".refusal") || r.querySelector(".chips") || /trouble reading the market/i.test(r.textContent || "")); }, { timeout: paintTimeout }).catch(() => {});
   await new Promise(r => setTimeout(r, 1300));
   return page.evaluate(() => {
+    const ob = document.getElementById("ob") || document.body;
     const g = s => { const e = document.querySelector(s); return e ? e.textContent.replace(/\s+/g, " ").trim() : null; };
     const all = s => [...document.querySelectorAll(s)].map(e => e.textContent.replace(/\s+/g, " ").trim());
+    // STATE (Oct 2026 redesign DOM): a result is the answer card (.anscard.livetake), MATCHED when an
+    // exact/VIN hero card (.card.exact) is present. Refusal keeps .refusal (.ans = varied, else thin).
+    // Generation choice chips carry data-genquery; any other qscreen/chips = a clarify choice.
     let state = "unknown";
-    if (document.querySelector(".livetake")) state = document.querySelector(".exact") ? "matched_result" : "unmatched_result";
+    if (document.querySelector(".livetake")) state = document.querySelector(".card.exact") ? "matched_result" : "unmatched_result";
     else if (document.querySelector(".refusal")) state = document.querySelector(".refusal .ans") ? "varied_refusal" : "thin_refusal";
-    else if (document.querySelector(".chips .chip[data-genquery]")) state = "generation_choice";
-    else if (document.querySelector(".chips")) state = "choice";
-    else if (/trouble reading the market/i.test(document.getElementById("ob").textContent || "")) state = "error";
+    else if (document.querySelector(".chip[data-genquery]")) state = "generation_choice";
+    else if (document.querySelector(".qscreen .chip, .chips .chip, .qchip")) state = "choice";
+    else if (/trouble reading the market/i.test(ob.textContent || "")) state = "error";
     return {
       state,
-      // exact card (matched): name title + prior-listing note + restored receipt line + View sale
-      exact: g(".exact .xname"), cfg: g(".exact .cfg"), xrec: g(".exact .xrec .xrl"), xview: g(".exact .xview"), disc: g(".exact .disc summary"),
-      // Cluster-led block (Sep 2026 port): car line + lead + serif band + tail + freshness; the
-      // divergence contradiction sentence; the "Sam's live take" kicker must be GONE (kickerGone).
-      carline: g(".carline"), clLead: g(".blk .lead"), clBand: g(".blk .band"), clTail: g(".blk .tail"),
-      ltFresh: g(".blk .fresh") || g(".fresh"), contradiction: g(".contradiction"),
-      kickerGone: document.querySelectorAll(".lt-kick").length === 0, samReadBox: document.querySelectorAll(".samread").length,
-      // house/class receipt tier fields (item 4) + labels (item 3)
-      recLabel: g(".seclabel"), htSpec: all(".htr-spec").slice(0, 3), htPrice: all(".htr-p").slice(0, 3),
-      read: all(".samread p"), refineQ: g(".samread .refine .q"), refineChips: all(".samread .refine .chip, .samread .askchips .chip"),
-      // three representative cards
-      cmKick: g(".cm .cmkick"), cmWhy: g(".cm .why"), brackets: all(".bcard .blabel"),
-      // earned + platforms + refusal + generation (unchanged states)
-      earned: g(".earned .q"), chips: all(".earned .qchip"),
+      carline: g(".carline"),
+      // ANSWER CARD (redesign): pool-scope eyebrow, the ONE cluster band ($X to $Y), the landed /
+      // no-band lead, the older-outside count line, freshness, and Sam's Take (cluster tier only).
+      eyebrow: g(".anscard .eyebrow"), band: g(".range.band"), lead: g(".anscard .lead"),
+      older: g(".ans-line.older"), fresh: g(".fresh"),
+      samTake: g(".anscard .take p"), takeCount: document.querySelectorAll(".anscard .take p").length,
+      contradiction: g(".contradiction"),
+      // engine-gated note lines
+      mifallback: g(".mifallback"), varynote: g(".varynote"), splitlines: all(".splitline"),
+      // RECENT COMPARABLE SALES: section head + scope, the hero (closest / this car), the side cards.
+      secHead: g(".sec-head h2"), scope: g(".sec-head .scope"),
+      heroPill: g(".cards5 .hero .pill"), heroTitle: g(".cards5 .hero .ctitle"), heroWhy: g(".cards5 .hero .cwhy"),
+      sidePills: all(".cards5 .stack .card .pill"),
+      // exact (VIN) hero fields
+      exactTitle: g(".card.exact .ctitle"), exactMeta: g(".card.exact .cmeta"), histlink: g(".card.exact .histlink"),
+      // shown-separately card count
+      sepCards: document.querySelectorAll(".grid3 .card").length,
+      // earned / reconfirm question (one ask)
+      earnedQ: g(".qcard.earned .q"), earnedChips: all(".qcard.earned .qchip"),
+      // platforms (see-all panel)
       platforms: all(".plat-strip .plat-pill"), platNote: g(".plat-note"),
-      refusalAns: g(".refusal .ans"), refusalReason: all(".refusal .sam p"), wayfwd: all(".wayfwd .chip"),
-      genPrompt: g(".sam p"), genChips: all(".chips .chip"),
-      cards: document.querySelectorAll("a.cm, .cards3 a.bcard").length
+      // refusal
+      refusalAns: g(".refusal .ans"), refusalReason: all(".refusal .sam .body p"), wayfwd: all(".wayfwd .chip"),
+      // thin badge-twin sibling pointer
+      sibling: g(".widen p"),
+      // generation / clarify choice (qscreen)
+      genPrompt: g(".qscreen .qtext"), choiceEyebrow: g(".qscreen .eyebrow"), genChips: all(".qscreen .chip"),
+      // EVERY sale card on the page (hero + sides + shown-separately + thin/class receipts). This is the
+      // count that read 0 when the old .cm / .cards3 selectors went stale against the redesign.
+      cards: document.querySelectorAll(".card").length
     };
   });
 }
