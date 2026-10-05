@@ -12,8 +12,9 @@
 // Needs SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OLDCARSDATA_API_KEY (GitHub
 // Actions provides them as secrets; secrets are not pullable to a laptop).
 import { callOldCarsData, configureOcdUsage, flushOcdUsage, getOcdRunMetered } from "../lib/_ocd.js";
-import { supabaseEnv, supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
+import { supabaseEnv, supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { isPartsListing, projectFlagReason } from "../lib/_classify.js";
+import { deltaShouldStop, earliestGapDay, typicalByWeekday, recentDayList } from "../lib/_ingestHealth.js";
 import { loadFxRates } from "../lib/_fx.js";
 import { hammerUsd, setFxRates } from "../lib/_houseComps.js";
 
@@ -172,6 +173,16 @@ async function heldIds(source, label) {
   return new Set(rows.map(r => String(r.source_id)));
 }
 
+// Archive daily sale counts for one source since `sinceISO` ({YYYY-MM-DD: count}), from the archive
+// ITSELF (not this run's yield). Reads source_slug (every recent row carries it) and paginates past
+// the 1000-row cap. Empty object on a failed/empty read so the caller degrades (no gap, no flag).
+async function archiveDailyCounts(source, sinceISO) {
+  const rows = await supabaseSelectAll(env, `sales_archive?source_slug=eq.${encodeURIComponent(source)}&sale_date=gte.${sinceISO}&select=sale_date&order=sale_date.desc`);
+  const counts = {};
+  if (rows) for (const r of rows) { const d = String(r.sale_date || "").slice(0, 10); if (d) counts[d] = (counts[d] || 0) + 1; }
+  return counts;
+}
+
 let metered = 0;
 const perDay = {};
 const kept = [];
@@ -198,6 +209,22 @@ for (const source of SOURCES) {
     console.error(`::error:: ingest ABORT: could not read held ids for ${label} (DB unreadable). Refusing delta to avoid a full re-ingest.`);
     await flushOcdUsage();
     process.exit(1);
+  }
+  // GAP-AWARE DELTA (item 2): before relying on the stop-at-known-page shortcut, check the last 7
+  // days of THIS source in the archive against its own per-weekday typical. Any day below half its
+  // typical is a thin day the delta would normally skip right over (the page covering it is already
+  // "known"), so compute the oldest such day and keep the walk going back far enough to re-scan it
+  // for records we are missing. A source that genuinely did not sell that weekday (typical 0) is
+  // never treated as a gap, so a quiet source is not needlessly re-walked. Degrades to no-gap on a
+  // failed/empty archive read. Range backfills already cover their whole window, so this is DELTA-only.
+  let catchUpFrom = null;
+  if (DELTA) {
+    const asOf = dayKey(new Date());
+    const sinceISO = recentDayList(asOf, 43)[0];   // 42-day window + today, oldest first
+    const daily = await archiveDailyCounts(source, sinceISO);
+    const typical = typicalByWeekday(daily, { asOf, windowDays: 42 });
+    catchUpFrom = earliestGapDay(daily, typical, { asOf, days: 7, fraction: 0.5 });
+    if (catchUpFrom) process.stderr.write(`  ${label}: thin recent day detected; walking delta back to ${catchUpFrom} to backfill it\n`);
   }
   const before = kept.length;
   let partsSkipped = 0, marketplaceSkipped = 0, unpricedSkipped = 0, sourceError = null;
@@ -251,9 +278,9 @@ for (const source of SOURCES) {
       }
     }
     process.stderr.write(`\r${label} p${p}/${res.meta?.total_pages ?? "?"} kept ${kept.length} reqs ${metered}   `);
-    // Stop conditions: delta -> a fully-known page (we have caught up); range ->
-    // paged past the window (oldest older than FROM).
-    if (DELTA && pageAllKnown) break;
+    // Stop conditions: delta -> a fully-known page (we have caught up) AND no thin-day gap left to
+    // cover (gap-aware, item 2); range -> paged past the window (oldest older than FROM).
+    if (DELTA && deltaShouldStop({ pageAllKnown, oldestDay: oldest ? dayKey(oldest) : null, catchUpFrom })) break;
     if (!DELTA && FROM && oldest && dayKey(oldest) < FROM) break;
     if (p >= (res.meta?.total_pages || 1)) break;
   }
