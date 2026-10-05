@@ -69,7 +69,11 @@ const ROWS = [
     poolGuard: { label: "289 Cobra only", familyRe: /cobra/i, mustMatch: /\b(289|260)\b|\bmark\s?ii\b/i, mustNotMatch: /\b427\b|daytona|\bcsx\s?-?\s?[46789]\d{3}\b|\b[46789]000[-\s]?series\b|continuation/i } },
   { q: "Shelby Cobra CSX4000", make: "shelby", skipHalo: true,
     poolGuard: { label: "continuation (CSX) only", familyRe: /cobra/i, mustMatch: /\bcsx\s?-?\s?[46789]\d{3}\b|\b[46789]000[-\s]?series\b|continuation/i } },
-  { q: "1965 Shelby Cobra 42", make: "shelby", obExpectTier: "choice" }
+  { q: "1965 Shelby Cobra 42", make: "shelby", obExpectTier: "choice" },
+  // VIN exact-car lookup (Oct 2026): reads sales_archive.vin_norm + auction_attempts.chassis_vin_norm.
+  { q: "ZFF74UFA7E0196960", vinExpect: { make: "ferrari", minHistory: 2 } },   // 17-char VIN, 2 BaT sales
+  { q: "E56S001824", vinExpect: { make: "chevrolet", minHistory: 2 } },        // pre-1981 chassis, 2 BaT sales
+  { q: "ZFF74UFA6E0199705", vinExpect: { absent: true } }                       // reported VIN: genuinely not in the archive
 ];
 
 const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
@@ -137,10 +141,35 @@ async function main() {
     const r = await fetch(base + "/api/sellerDecision", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
     try { return await r.json(); } catch (e) { return { status: "parse_error" }; }
   }, BASE, body);
+  // The One Box VIN exact-car match is computed by /api/vehicleIdentity (vinResolve), so a VIN row
+  // asserts on that response's vinArchiveMatch (sales + unsold attempts in a date-ordered history).
+  const callVI = (text) => p.evaluate(async (base, text) => {
+    const r = await fetch(base + "/api/vehicleIdentity", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
+    try { return await r.json(); } catch (e) { return { status: "parse_error" }; }
+  }, BASE, text);
 
   const results = [];
   for (const row of ROWS) {
     const anon = "ec-" + Date.now() + "-" + Math.floor(Math.random() * 1e9);
+    // VIN exact-car rows: assert the archive match (zero OCD) rather than the cross-surface pool.
+    if (row.vinExpect) {
+      const vi = await callVI(row.q);
+      const m = vi && vi.vinArchiveMatch;
+      const hist = (m && m.history) || [];
+      const fails = [];
+      const got = { make: m && m.make ? String(m.make).toLowerCase() : null, history: hist.length, sales: (m && m.count) || 0, attempts: (m && m.attemptCount) || 0 };
+      if (row.vinExpect.absent) {
+        if (m) fails.push(`expected NO archive match, got ${got.make} with ${got.history} record(s)`);
+      } else {
+        if (!m) fails.push("no vinArchiveMatch");
+        else {
+          if (row.vinExpect.make && got.make !== row.vinExpect.make) fails.push(`make ${got.make} != ${row.vinExpect.make}`);
+          if (row.vinExpect.minHistory && hist.length < row.vinExpect.minHistory) fails.push(`history ${hist.length} < ${row.vinExpect.minHistory}`);
+        }
+      }
+      results.push({ q: row.q, vin: true, got, fails, warns: [] });
+      continue;
+    }
     let ob = null, sell = null, desk = null;
     try { ob = await call({ oneBox: true, anonId: anon + "o", car: { raw: row.q } }); } catch (e) { ob = { status: "err" }; }
     try { sell = await call({ anonId: anon + "s", archiveOnly: true, car: { raw: row.q, region: "US", state: "California", acceptModelLevel: true } }); } catch (e) { sell = { status: "err" }; }
@@ -192,10 +221,15 @@ async function main() {
   console.log("-".repeat(150));
   let failN = 0;
   for (const r of results) {
-    const obс = `${carKey(r.obT.car)}|${r.obT.tier}|${r.obT.pool ?? "-"}|${rng(r.obT.range)}`;
-    const seс = `${carKey(r.seT.car)}|${r.seT.tier}|${r.seT.pool ?? "-"}|${rng(r.seT.range)}`;
     const v = r.fails.length ? "FAIL: " + r.fails.join("; ") : (r.warns.length ? "pass (warn: " + r.warns.join("; ") + ")" : "PASS");
     if (r.fails.length) failN++;
+    if (r.vin) {
+      const g = r.got;
+      console.log(pad(r.q, 28) + pad(`VIN exact-car: make=${g.make} hist=${g.history} (sales ${g.sales}/attempts ${g.attempts})`, 80) + v);
+      continue;
+    }
+    const obс = `${carKey(r.obT.car)}|${r.obT.tier}|${r.obT.pool ?? "-"}|${rng(r.obT.range)}`;
+    const seс = `${carKey(r.seT.car)}|${r.seT.tier}|${r.seT.pool ?? "-"}|${rng(r.seT.range)}`;
     console.log(pad(r.q, 28) + pad(obс, 40) + pad(seс, 40) + pad(r.deskN ?? "-", 6) + v);
   }
   console.log("\n" + (failN ? failN + " ROW(S) FAILED (surfaces disagree on car/tier/halo)" : "ALL ROWS AGREE on car, tier and halo exclusion"));
