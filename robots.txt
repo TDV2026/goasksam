@@ -1,6 +1,20 @@
 # Launched Aug 2026: the site is public and indexable. The pre-launch rule that
 # blocked everything but /privacy while the curtain was up has been removed.
 # /onebox stays crew-gated and carries its own noindex, so it is not listed here.
+# AI crawlers are explicitly allowed (Oct 2026). Pages that should not be indexed yet
+# (the /history VIN pages) carry their own noindex meta + X-Robots-Tag.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
 User-agent: *
 Allow: /
 

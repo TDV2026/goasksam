@@ -32,6 +32,9 @@
     { "source": "/js.20261009a/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261010b/(.*)", "destination": "/js/$1" },
     { "source": "/desk", "destination": "/desk.html" },
+    { "source": "/history/:slug/:vin", "destination": "/api/history?slug=:slug&vin=:vin" },
+    { "source": "/history/:slug", "destination": "/api/history?slug=:slug" },
+    { "source": "/vin/:vin", "destination": "/api/history?vin=:vin&go=1" },
     { "source": "/dsk.20260928k/(.*)", "destination": "/js/$1" }
   ],
   "functions": {

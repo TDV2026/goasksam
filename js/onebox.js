@@ -429,10 +429,20 @@
     var meta = bits.length ? bits.join(" · ") + (when ? ", as reported " + when : ", as listed at the time of sale") : "";
     var n = Number(m.soldBeforeCount);
     var hist = (n >= 1 && obSourceVin)
-      ? '<a class="histlink" href="/vin/' + encodeURIComponent(obSourceVin) + '">' + esc("Sold " + (n === 1 ? "once" : n === 2 ? "twice" : n + " times") + " before. See its history") + " &#8594;</a>"
+      ? '<a class="histlink" href="' + esc(historyHref(rc, obSourceVin)) + '">' + esc("Sold " + (n === 1 ? "once" : n === 2 ? "twice" : n + " times") + " before. See its history") + " &#8594;</a>"
       : "";
     return saleCardHtml({ cls: "hero this exact", article: true, pill: "This car", href: utmUrl(m.url), slug: m.source, image: m.photoUrl,
       priceHtml: priceHtml, venueLine: venueLine, title: name, meta: meta, after: hist });
+  }
+  // Canonical VIN history URL (/history/{year}-{make}-{model-slug}/{VIN}), built the same way as
+  // api/_historyData.js carSlug; the server 301s any slug that does not match its own identity.
+  function historyHref(rc, vin) {
+    var sl = function (x) { return String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); };
+    var sq = function (x) { return sl(x).replace(/-/g, ""); };
+    var v = rc || {}, model = String(v.model || ""), trim = String(v.trim || "");
+    var fam = !trim || sq(model).indexOf(sq(trim)) >= 0 ? model : (sq(trim).indexOf(sq(model)) >= 0 ? trim : model + " " + trim);
+    var slug = [v.year, sl(v.make), sl(fam)].filter(Boolean).join("-");
+    return (v.year && v.make && model) ? "/history/" + slug + "/" + encodeURIComponent(vin) : "/vin/" + encodeURIComponent(vin);
   }
   // Thin / class-era / pair receipts (engine thin.receipts shape: hammer, venue, isHouse, allIn...).
   function receiptCardHtml(rc) {
