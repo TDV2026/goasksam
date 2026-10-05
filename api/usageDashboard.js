@@ -2854,7 +2854,44 @@ async function handleOps(req, res) {
     });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit." });
+  // task=obdiag: READ-ONLY (archive; ZERO OCD). Runs the LIVE runOneBox for each query and returns
+  // the internal pool diagnostics (tier, generation chips, earned question, pool counts, transmission
+  // split, driver candidates, widening path) so a question/widening decision can be inspected.
+  //   ?view=ops&task=obdiag&qs=458 Speciale coupe|JTHMPAAY3TA113218|911|718 Cayman S coupe
+  if (task === "obdiag") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { runOneBox } = await import("../lib/onebox.js");
+    const qs = String(req.query?.qs || "458 Speciale coupe").split("|").map(s => s.trim()).filter(Boolean);
+    const out = [];
+    for (const q of qs) {
+      try {
+        const rv = await resolveVehicle(q, {}); const v = rv && rv.vehicle;
+        if (!v || !v.make) { out.push({ q, status: (rv && rv.status) || "unresolved", clarify: (rv && rv.clarify) || null }); continue; }
+        const g = await findGeneration(v, env);
+        const ob = await runOneBox(v, g, q, env, null);
+        const d = ob.dedup || {};
+        out.push({
+          q, resolved: `${v.year || ""} ${v.make} ${v.model || ""}${v.trim ? " " + v.trim : ""}`.trim(), bodyStyle: v.bodyStyle || null,
+          tier: ob.tier, prompt: ob.prompt || null,
+          generationOptions: ob.generationOptions || null, bodyOptions: ob.bodyOptions || null, gearboxOptions: ob.gearboxOptions || null, variantOptions: ob.variantOptions || null,
+          earned: ob.earned ? { kind: ob.earned.kind, q: ob.earned.q || null, labels: ob.earned.labels || null } : null,
+          driverSentence: ob.driverSentence || null,
+          modelWidened: ob.modelWidened || null,
+          classEra: ob.classEra ? { label: ob.classEra.label || null, n: (ob.classEra.receipts || []).length } : null,
+          thin: ob.thin ? { n: (ob.thin.receipts || []).length, houseSteer: !!ob.thin.houseSteer, span: ob.thin.span || null } : null,
+          recLabel: ob.recLabel || null, poolTrim: ob.poolTrim || null, poolYears: ob.poolYears || null, cluster: ob.cluster || null, span: ob.span || null,
+          cards: Array.isArray(ob.cards) ? ob.cards.length : null,
+          exactSale: ob.exactSale ? { price: ob.exactSale.price, date: ob.exactSale.soldDate || ob.exactSale.date || null, mileage: ob.exactSale.mileage } : null,
+          r4: d.r4 || null, dedup: { fetchedRaw: d.fetchedRaw, fetchedDeduped: d.fetchedDeduped, rule5: d.rule5 || null }
+        });
+      } catch (e) { out.push({ q, error: String((e && e.message) || e).slice(0, 220) }); }
+    }
+    return res.status(200).json({ task: "obdiag", cars: out });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
