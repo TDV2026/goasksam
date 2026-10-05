@@ -2774,7 +2774,59 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "futurerows", today, count: rows ? rows.length : null, rows: rows || [] });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows." });
+  // task=fxaudit: READ-ONLY (archive + saved_results + cube; ZERO OCD, no writes). Finds every
+  // sales_archive row in JPY/HKD/NZD (currencies NOT in the static FX fallback, so their stored USD
+  // is the native number read as dollars), computes the dated-FX corrected USD, and checks whether
+  // any such row sat in a saved /sell or One Box answer in the last 60 days or in the Desk cube.
+  if (task === "fxaudit") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const hc = await import("../lib/_houseComps.js");
+    const { loadFxRates } = await import("../lib/_fx.js");
+    const fx = await loadFxRates(env); hc.setFxRates(fx);
+    const CURS = ["JPY", "HKD", "NZD"];
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    const sel = "id,source_id,source_slug,platform,make,model,model_family,year,sale_date,sale_price,sale_price_usd,vin,listing_title,curr:raw_record->>currency,aed:raw_record->>auction_end_date,url:raw_record->>url";
+    const countOf = async cur => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?raw_record->>currency=eq.${cur}&select=id&limit=1`, { headers: { ...H, Prefer: "count=exact" } }); const m = /\/(\d+|\*)$/.exec(r.headers.get("content-range") || ""); return m ? (m[1] === "*" ? 0 : Number(m[1])) : null; } catch (e) { return null; } };
+    const counts = {}, raw = [];
+    for (const cur of CURS) {
+      counts[cur] = await countOf(cur);
+      const got = await supabaseSelectAll(env, `sales_archive?raw_record->>currency=eq.${cur}&select=${sel}&order=sale_price.desc`);
+      if (got) for (const r of got) raw.push(r);
+    }
+    const enrich = r => {
+      const native = Math.round(Number(r.sale_price) || 0);
+      const cur = String(r.curr || "USD").toUpperCase();
+      const date = r.sale_date || r.aed || null;
+      const rate = fx.rateFor(cur, date);
+      return { id: r.id, source_id: r.source_id, source: r.source_slug || r.platform, make: r.make, model: r.model, model_family: r.model_family, year: r.year, date, vin: r.vin, title: r.listing_title, currency: cur, native, oldUsd: native, storedUsd: r.sale_price_usd != null ? Math.round(Number(r.sale_price_usd)) : null, fxRate: Number.isFinite(rate) ? rate : null, correctedUsd: (Number.isFinite(rate) && rate > 0) ? Math.round(native * rate) : null, url: r.url };
+    };
+    const all = raw.map(enrich);
+    const top5 = [...all].sort((a, b) => b.native - a.native).slice(0, 5);
+    const fxCoverage = {}; for (const c of CURS) fxCoverage[c] = fx.has(c);
+    // item 3: source distribution, any June 2026, any BaT/C&B
+    const bySource = {}; for (const r of all) bySource[r.source] = (bySource[r.source] || 0) + 1;
+    const june = all.filter(r => String(r.date || "").slice(0, 7) === "2026-06");
+    const inBatCB = all.filter(r => ["bringatrailer", "carsandbids"].includes(String(r.source)));
+    // item 2a: saved_results (last 60 days, <=500 most recent) substring-matched on source_id / VIN / title
+    const since60 = new Date(Date.now() - 60 * 86400000).toISOString();
+    const sr = await supabaseSelect(env, `saved_results?created_at=gte.${since60}&select=id,created_at,payload&order=created_at.desc&limit=500`);
+    const scan = all.slice(0, 300);   // bound the match work; rows are ordered by value
+    const needleFor = r => [r.source_id, (r.vin && String(r.vin).replace(/[^A-Za-z0-9]/g, "").length >= 11) ? r.vin : null, (r.title && r.title.length >= 8) ? r.title : null].filter(Boolean).map(String);
+    const savedMatches = [];
+    if (sr) for (const s of sr) { const blob = JSON.stringify(s.payload || ""); for (const r of scan) { const hit = needleFor(r).find(nd => blob.includes(nd)); if (hit) { savedMatches.push({ savedId: s.id, created_at: s.created_at, row: { id: r.id, title: r.title, currency: r.currency }, needle: hit.slice(0, 44) }); break; } } }
+    // item 2b: Desk cube cells for these rows' families (aggregate only; no per-row membership)
+    const fams = [...new Set(all.map(r => [r.make, r.model_family].join("|")).filter(x => x !== "|" && !x.endsWith("|")))].slice(0, 30);
+    const cubeCells = [];
+    for (const f of fams) { const [mk, fam] = f.split("|"); const c = await supabaseSelect(env, `desk_aggregates?make=eq.${encodeURIComponent(mk)}&model_family=eq.${encodeURIComponent(fam)}&select=n,median_usd,newest_sale,window_key&limit=2`); cubeCells.push({ make: mk, family: fam, cubeCells: c ? c.length : 0, sample: c && c[0] ? c[0] : null }); }
+    return res.status(200).json({
+      task: "fxaudit", currencies: CURS, counts, totalRows: all.length, fxCoverage,
+      top5, rows: all.slice(0, 60),
+      item3: { bySource, inBatOrCandB: inBatCB.length, june2026Count: june.length, june2026: june.slice(0, 20).map(r => ({ title: r.title, source: r.source, date: r.date })), note: "BaT/C&B are USD-only sources; a JPY/HKD/NZD row cannot be in their totals" },
+      item2: { savedResultsScannedLast60d: sr ? sr.length : null, matchScanRows: scan.length, savedMatches, cube: { note: "desk_aggregates holds aggregate medians per (make,model_family,gen,year,channel,venue,window); no individual-row membership", families: cubeCells } }
+    });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
