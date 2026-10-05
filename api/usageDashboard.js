@@ -3,7 +3,7 @@
 // deploy cap; all three share USAGE_DASHBOARD_KEY. (Merged from api/adminAccounts.js
 // and api/outboundClicks.js, July 2026.)
 import fs from "node:fs";
-import { supabaseEnv, supabaseSelect, supabaseInsert } from "../lib/_supabase.js";
+import { supabaseEnv, supabaseSelect, supabaseSelectAll, supabaseInsert } from "../lib/_supabase.js";
 import { callOldCarsData } from "../lib/_ocd.js";
 import { persistableMakeModel, recordPlatform, stableRecordId, PROJECT_PATTERNS, projectFlagReason } from "../lib/_classify.js";
 import { CURATED_GENERATIONS } from "../lib/generations.js";
@@ -2665,7 +2665,90 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "partnerseed", action: "seed", ok: true, row: text ? JSON.parse(text) : null });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed." });
+  // task=daycount: READ-ONLY (archive; ZERO OCD). Per-source daily sale counts over a date range
+  // plus the most recent sale_date per source. Judges the pipeline by the archive's OWN totals (the
+  // same basis as the item-3 health check) and surfaces gaps/feed-silence per source.
+  //   ?task=daycount&from=2026-09-21&to=2026-10-04&sources=carsandbids,bonhams  (sources optional)
+  if (task === "daycount") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const ALL = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
+    const LABEL = { bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", hagerty: "Hagerty", pcarmarket: "PCARMarket", acc: "All Collector Cars", gooding: "Gooding & Co", rmsothebys: "RM Sotheby's", hemmings: "Hemmings", sothebysmotorsport: "Sotheby's Motorsport", mbmarket: "MB Market", autohunter: "AutoHunter", barrettjackson: "Barrett-Jackson", mecum: "Mecum Auctions", bonhams: "Bonhams", broadarrow: "Broad Arrow", carandclassic: "Car & Classic", collectingcars: "Collecting Cars", themarket: "The Market", pistonheads: "PistonHeads" };
+    const sources = req.query?.sources ? String(req.query.sources).split(",").map(s => s.trim()).filter(Boolean) : ALL;
+    const today = new Date().toISOString().slice(0, 10);
+    const dayMs = 86400000;
+    const to = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.to || "")) ? String(req.query.to) : today;
+    const from = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.from || "")) ? String(req.query.from) : new Date(Date.parse(to) - 13 * dayMs).toISOString().slice(0, 10);
+    // Every day in [from, to] inclusive, so zero-sale days show explicitly rather than being absent.
+    const rangeDays = [];
+    for (let t = Date.parse(from); t <= Date.parse(to); t += dayMs) rangeDays.push(new Date(t).toISOString().slice(0, 10));
+    const recentOf = async (filter) => { const r = await supabaseSelect(env, `sales_archive?${filter}&sale_date=not.is.null&select=sale_date&order=sale_date.desc&limit=1`); return r && r[0] ? String(r[0].sale_date).slice(0, 10) : null; };
+    const out = [];
+    for (let i = 0; i < sources.length; i += 4) {   // chunk to avoid connection-pool exhaustion
+      const chunk = sources.slice(i, i + 4);
+      const rows = await Promise.all(chunk.map(async src => {
+        const label = LABEL[src] || src;
+        const inRange = await supabaseSelectAll(env, `sales_archive?source_slug=eq.${encodeURIComponent(src)}&sale_date=gte.${from}&sale_date=lte.${to}&select=sale_date&order=sale_date.desc`);
+        const counts = {};
+        if (inRange) for (const r of inRange) { const d = String(r.sale_date || "").slice(0, 10); if (d) counts[d] = (counts[d] || 0) + 1; }
+        // Most recent sale_date all-time: by slug (recent rows) OR by label (pre-slug rows); take the later.
+        const recSlug = await recentOf(`source_slug=eq.${encodeURIComponent(src)}`);
+        const recLabel = await recentOf(`platform=eq.${encodeURIComponent(label)}`);
+        const recentSaleDate = [recSlug, recLabel].filter(Boolean).sort().pop() || null;
+        const total = Object.values(counts).reduce((s, n) => s + n, 0);
+        return { source: src, label, recentSaleDate, totalInRange: total, daily: rangeDays.map(d => ({ day: d, count: counts[d] || 0 })) };
+      }));
+      out.push(...rows);
+    }
+    return res.status(200).json({ task: "daycount", from, to, sources: out });
+  }
+
+  // task=recentfetch: METERED but hard-bounded (<=2 pages = <=2 OCD requests). Fetches a single
+  // source's most recent status=sold rows (exactly as the ingest sees them) so we can inspect the
+  // live feed: auctions vs "MarketPlace:" classifieds, dates, and whether a specific sale's lots are
+  // present. REPORT-ONLY: it does NOT persist anything (the seller explicitly deferred any backfill).
+  //   ?task=recentfetch&source=pcarmarket&pages=1&rawN=5
+  if (task === "recentfetch") {
+    const source = String(req.query?.source || "").trim();
+    if (!source) return res.status(400).json({ error: "recentfetch needs ?source=<ocd slug>." });
+    const spent = await meteredToday();
+    const budgetLeft = spent === null ? Infinity : Math.max(0, dailyBudget - spent);
+    if (budgetLeft <= 0) return res.status(200).json({ task: "recentfetch", skipped: "daily_budget_spent", spentToday: spent, dailyBudget });
+    const pages = Math.max(1, Math.min(2, Number(req.query?.pages || 1)));   // hard ceiling: 2 requests/call
+    const rawN = Math.max(0, Math.min(10, Number(req.query?.rawN || 5)));
+    const isMarketplace = t => /^\s*marketplace:/i.test(String(t || ""));
+    const rows = [];
+    let ocdRequests = 0, totalPages = null, totalAvailable = null, rateLimited = false, err = null;
+    for (let p = 1; p <= pages; p++) {
+      if (budgetLeft !== Infinity && ocdRequests >= budgetLeft) break;
+      let r;
+      try { r = await callOldCarsData("/auctions", { source, status: "sold", sort: "date", direction: "desc", page: p, limit: 50 }, apiKey); ocdRequests++; }
+      catch (e) { err = e.message; rateLimited = !!e.rateLimited; ocdRequests += e.ocdMonthlyGuard || e.ocdHardCap ? 0 : 1; break; }
+      totalPages = r.meta?.total_pages ?? totalPages;
+      totalAvailable = r.meta?.total ?? totalAvailable;
+      for (const x of (r.data || [])) rows.push(x);
+    }
+    if (env && ocdRequests > 0) {
+      try { await recordUsageEvent({ event_type: "recentfetch_probe", route: "api/usageDashboard.js?task=recentfetch", status: "ok", oldcarsdata_metered_requests: ocdRequests, metadata: { source, pages, via: "web" } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ }
+    }
+    const view = rows.map(x => ({
+      id: String(x.id ?? ""), date: x.auction_end_date || null, title: x.title || null,
+      kind: isMarketplace(x.title) ? "marketplace" : "auction",
+      price: x.price ?? null, currency: x.currency || null, status: x.status || null,
+      city: x.city || x.location || null, seller_type: x.seller_type || null,
+      make: x.ocd_make_name || x.listing_make || null, model: x.ocd_model_name || x.listing_model || null
+    }));
+    const auctions = view.filter(v => v.kind === "auction").length;
+    const marketplace = view.filter(v => v.kind === "marketplace").length;
+    return res.status(200).json({
+      task: "recentfetch", source, ocdRequests, spentTodayBefore: spent, dailyBudget,
+      totalAvailable, totalPages, rateLimited, error: err,
+      counts: { fetched: view.length, auctions, marketplace },
+      dateRange: (function () { const ds = view.map(v => v.date).filter(Boolean).sort(); return ds.length ? { oldest: ds[0], newest: ds[ds.length - 1] } : null; })(),
+      records: view, rawSample: rows.slice(0, rawN)
+    });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
