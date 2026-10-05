@@ -70,6 +70,11 @@ const ROWS = [
   { q: "Shelby Cobra CSX4000", make: "shelby", skipHalo: true,
     poolGuard: { label: "continuation (CSX) only", familyRe: /cobra/i, mustMatch: /\bcsx\s?-?\s?[46789]\d{3}\b|\b[46789]000[-\s]?series\b|continuation/i } },
   { q: "1965 Shelby Cobra 42", make: "shelby", obExpectTier: "choice" },
+  // RANGE LADDER proof rows (Part 3): read the rangeTier column (cluster 16+ / band 8-15 / thin 3-7).
+  // These are the deployed /onebox PNG subjects. rangeTier is reported, never a failure trigger.
+  { q: "2023 Porsche 911 Carrera Coupe", make: "porsche" },          // dense -> cluster (16+)
+  { q: "2017 Ferrari 812 Superfast", make: "ferrari" },              // mid-volume -> band/cluster
+  { q: "2008 Porsche 911 Carrera S 85000 miles", make: "porsche" },  // mileage query: nearestInMiles when band is thin
   // VIN exact-car lookup (Oct 2026): reads sales_archive.vin_norm + auction_attempts.chassis_vin_norm.
   { q: "ZFF74UFA7E0196960", vinExpect: { make: "ferrari", minHistory: 2 } },   // 17-char VIN, 2 BaT sales
   { q: "E56S001824", vinExpect: { make: "chevrolet", minHistory: 2 } },        // pre-1981 chassis, 2 BaT sales
@@ -101,6 +106,9 @@ function sellTier(d) {
 function obCar(d) { const c = d && d.resolvedCar; return c && c.make ? { make: c.make, model: c.model } : null; }
 function sellCar(d) { const c = d && d.vehicle; return c && c.make ? { make: c.make, model: c.model } : null; }
 
+// RANGE LADDER tier (Part 3): the One Box pool-size bucket (cluster 16+ / band 8-15 / thin 3-7 /
+// single 1-2 / none 0). Reported, never a failure trigger (/sell has a different decision shape).
+function obRangeTier(d) { return (d && d.rangeTier) || (d && d.thin ? "thin" : null); }
 function obPool(d) { return d && (d.poolN != null ? d.poolN : (d.thin && d.thin.totalN)) || null; }
 function sellPool(d) { const dec = d && d.decision || {}; return (dec.thin && dec.thin.totalN) != null ? dec.thin.totalN : (dec.priceBand && dec.priceBand.count) != null ? dec.priceBand.count : null; }
 function obRange(d) { return Array.isArray(d && d.span) ? d.span : null; }
@@ -175,7 +183,7 @@ async function main() {
     try { sell = await call({ anonId: anon + "s", archiveOnly: true, car: { raw: row.q, region: "US", state: "California", acceptModelLevel: true } }); } catch (e) { sell = { status: "err" }; }
     try { desk = await call({ archiveQuery: "pool", terms: [String(row.q).replace(/^\d{4}\s+/, "").split(/\s+/).slice(1).join(" ") || row.q], dateFrom: "2023-01-01", dateTo: "2027-12-31" }); } catch (e) { desk = null; }
 
-    const obT = { car: obCar(ob), tier: obTier(ob), pool: obPool(ob), halo: haloExcluded(obTitles(ob), row.make), range: obRange(ob) };
+    const obT = { car: obCar(ob), tier: obTier(ob), rangeTier: obRangeTier(ob), pool: obPool(ob), halo: haloExcluded(obTitles(ob), row.make), range: obRange(ob) };
     const seT = { car: sellCar(sell), tier: sellTier(sell), pool: sellPool(sell), halo: haloExcluded(sellTitles(sell), row.make), range: sellRange(sell) };
     const deskN = desk && Array.isArray(desk.rows) ? desk.rows.length : null;
 
@@ -217,7 +225,7 @@ async function main() {
   console.log("\nengineCheck vs " + BASE + "  (OB=One Box archive, SELL=/sell engine, Desk pool count; zero OCD from harness)\n");
   const pad = (s, n) => String(s).padEnd(n).slice(0, n);
   const rng = a => Array.isArray(a) && a[0] != null && a[1] != null ? "$" + Math.round(a[0] / 1000) + "k-" + Math.round(a[1] / 1000) + "k" : "-";
-  console.log(pad("row", 28) + pad("OB car|tier|pool|range", 40) + pad("SELL car|tier|pool|range", 40) + pad("desk", 6) + "verdict");
+  console.log(pad("row", 28) + pad("OB car|tier|rangeTier|pool|range", 46) + pad("SELL car|tier|pool|range", 40) + pad("desk", 6) + "verdict");
   console.log("-".repeat(150));
   let failN = 0;
   for (const r of results) {
@@ -228,9 +236,9 @@ async function main() {
       console.log(pad(r.q, 28) + pad(`VIN exact-car: make=${g.make} hist=${g.history} (sales ${g.sales}/attempts ${g.attempts})`, 80) + v);
       continue;
     }
-    const obс = `${carKey(r.obT.car)}|${r.obT.tier}|${r.obT.pool ?? "-"}|${rng(r.obT.range)}`;
+    const obс = `${carKey(r.obT.car)}|${r.obT.tier}|${r.obT.rangeTier ?? "-"}|${r.obT.pool ?? "-"}|${rng(r.obT.range)}`;
     const seс = `${carKey(r.seT.car)}|${r.seT.tier}|${r.seT.pool ?? "-"}|${rng(r.seT.range)}`;
-    console.log(pad(r.q, 28) + pad(obс, 40) + pad(seс, 40) + pad(r.deskN ?? "-", 6) + v);
+    console.log(pad(r.q, 28) + pad(obс, 46) + pad(seс, 40) + pad(r.deskN ?? "-", 6) + v);
   }
   console.log("\n" + (failN ? failN + " ROW(S) FAILED (surfaces disagree on car/tier/halo)" : "ALL ROWS AGREE on car, tier and halo exclusion"));
   process.exit(failN ? 1 : 0);
