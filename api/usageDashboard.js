@@ -2713,9 +2713,10 @@ async function handleOps(req, res) {
     const spent = await meteredToday();
     const budgetLeft = spent === null ? Infinity : Math.max(0, dailyBudget - spent);
     if (budgetLeft <= 0) return res.status(200).json({ task: "recentfetch", skipped: "daily_budget_spent", spentToday: spent, dailyBudget });
-    const pages = Math.max(1, Math.min(2, Number(req.query?.pages || 1)));   // hard ceiling: 2 requests/call
+    const pages = Math.max(1, Math.min(6, Number(req.query?.pages || 1)));   // hard ceiling: 6 requests/call
     const rawN = Math.max(0, Math.min(10, Number(req.query?.rawN || 5)));
     const isMarketplace = t => /^\s*marketplace:/i.test(String(t || ""));
+    const lotUrl = x => x.url || x.source_url || x.listing_url || x.link || x.permalink || null;
     const rows = [];
     let ocdRequests = 0, totalPages = null, totalAvailable = null, rateLimited = false, err = null;
     for (let p = 1; p <= pages; p++) {
@@ -2731,24 +2732,49 @@ async function handleOps(req, res) {
       try { await recordUsageEvent({ event_type: "recentfetch_probe", route: "api/usageDashboard.js?task=recentfetch", status: "ok", oldcarsdata_metered_requests: ocdRequests, metadata: { source, pages, via: "web" } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ }
     }
     const view = rows.map(x => ({
-      id: String(x.id ?? ""), date: x.auction_end_date || null, title: x.title || null,
-      kind: isMarketplace(x.title) ? "marketplace" : "auction",
+      id: String(x.id ?? ""), date: (x.auction_end_date || "").slice(0, 10) || null, title: x.title || null,
+      kind: isMarketplace(x.title) ? "marketplace" : "auction", url: lotUrl(x),
       price: x.price ?? null, currency: x.currency || null, status: x.status || null,
       city: x.city || x.location || null, seller_type: x.seller_type || null,
       make: x.ocd_make_name || x.listing_make || null, model: x.ocd_model_name || x.listing_model || null
     }));
     const auctions = view.filter(v => v.kind === "auction").length;
     const marketplace = view.filter(v => v.kind === "marketplace").length;
+    // Per sale-day breakdown (auction vs marketplace), so a dated-day question ("how many sold on
+    // 09-29?") is answered directly from the live feed.
+    const byDay = {};
+    for (const v of view) { if (!v.date) continue; const b = byDay[v.date] || (byDay[v.date] = { auction: 0, marketplace: 0 }); b[v.kind]++; }
+    const byDayList = Object.keys(byDay).sort().reverse().map(d => ({ day: d, ...byDay[d] }));
     return res.status(200).json({
       task: "recentfetch", source, ocdRequests, spentTodayBefore: spent, dailyBudget,
       totalAvailable, totalPages, rateLimited, error: err,
       counts: { fetched: view.length, auctions, marketplace },
       dateRange: (function () { const ds = view.map(v => v.date).filter(Boolean).sort(); return ds.length ? { oldest: ds[0], newest: ds[ds.length - 1] } : null; })(),
-      records: view, rawSample: rows.slice(0, rawN)
+      byDay: byDayList, records: view, rawSample: rows.slice(0, rawN)
     });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch." });
+  // task=futurerows: READ-ONLY find (ZERO OCD) of any sales_archive row dated AFTER today (a completed
+  // sale cannot be). Shows source, title, URL and raw dates so we can confirm they are upcoming/
+  // scheduled auctions mis-stored as sales. A guarded DELETE runs only with &deleteIds=a,b AND only
+  // removes rows that are BOTH in that id list AND genuinely future-dated, so it can never delete a
+  // real past sale.
+  if (task === "futurerows") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const today = new Date().toISOString().slice(0, 10);
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    const deleteIds = req.query?.deleteIds ? String(req.query.deleteIds).split(",").map(s => s.trim()).filter(Boolean) : null;
+    if (deleteIds && deleteIds.length) {
+      const idList = deleteIds.map(encodeURIComponent).join(",");
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?id=in.(${idList})&sale_date=gt.${today}`, { method: "DELETE", headers: { ...H, Prefer: "return=representation" } });
+      const body = await r.json().catch(() => null);
+      return res.status(r.ok ? 200 : 500).json({ task: "futurerows", action: "delete", ok: r.ok, today, requestedIds: deleteIds, deleted: Array.isArray(body) ? body.map(x => ({ id: x.id, platform: x.platform, title: x.listing_title, sale_date: x.sale_date })) : body });
+    }
+    const rows = await supabaseSelect(env, `sales_archive?sale_date=gt.${today}&select=id,source_id,source_slug,platform,listing_title,sale_date,month,url:raw_record->>url,source_url:raw_record->>source_url,link:raw_record->>link,aed:raw_record->>auction_end_date,status:raw_record->>status&order=sale_date.desc&limit=200`);
+    return res.status(200).json({ task: "futurerows", today, count: rows ? rows.length : null, rows: rows || [] });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
