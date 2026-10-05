@@ -16,6 +16,7 @@
     "verify:real": "node scripts/driveReal.mjs",
     "ingest": "node scripts/ingest.js",
     "test:ingest-gap": "node scripts/ingestGapTest.js",
+    "test:ingest-health": "node scripts/ingestHealthTest.js",
     "probe:depth": "node scripts/depthProbe.js",
     "warm": "node scripts/warm.js",
     "deploy": "git push origin HEAD && vercel --prod --yes && npm run test:golden",

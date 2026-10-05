@@ -14,7 +14,7 @@
 import { callOldCarsData, configureOcdUsage, flushOcdUsage, getOcdRunMetered } from "../lib/_ocd.js";
 import { supabaseEnv, supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { isPartsListing, projectFlagReason } from "../lib/_classify.js";
-import { deltaShouldStop, earliestGapDay, typicalByWeekday, recentDayList } from "../lib/_ingestHealth.js";
+import { deltaShouldStop, earliestGapDay, typicalByWeekday, recentDayList, zeroStreakFlag } from "../lib/_ingestHealth.js";
 import { loadFxRates } from "../lib/_fx.js";
 import { hammerUsd, setFxRates } from "../lib/_houseComps.js";
 
@@ -34,7 +34,12 @@ const DISPLAY = {
   broadarrow: "Broad Arrow", carandclassic: "Car & Classic", collectingcars: "Collecting Cars",
   themarket: "The Market", pistonheads: "PistonHeads"
 };
-const ALL_SOURCES = Object.keys(DISPLAY);
+// AutoHunter went out of business (Aug 2026) and no longer publishes sales, so it is dropped from the
+// default FETCH list (no run should spend a request trying to ingest a dead source). Its DISPLAY label
+// and historical archive rows are kept so old data still resolves. An explicit --sources=autohunter
+// override would still fetch it (a deliberate choice); the default simply never touches it.
+const DEFUNCT_SOURCES = new Set(["autohunter"]);
+const ALL_SOURCES = Object.keys(DISPLAY).filter(s => !DEFUNCT_SOURCES.has(s));
 
 const args = process.argv.slice(2);
 const flag = name => { const a = args.find(x => x.startsWith(`--${name}=`)); return a ? a.slice(name.length + 3) : null; };
@@ -387,8 +392,35 @@ if (belowFloor.length) {
     await recordUsageEvent({ event_type: "ingest_health_below_floor", route: "scripts/ingest.js", status: "warning", oldcarsdata_metered_requests: 0, metadata: { belowFloor, floor: FLOOR, mode: DELTA ? "delta" : `${FROM}..${TO}` } }, env.supabaseUrl, env.supabaseKey);
   } catch (e) { /* never block ingest on logging */ }
 }
+
+// Item 3 health: judge each source by the ARCHIVE's own per-day totals, not by what THIS run added.
+// The per-day floor above measures a run's yield; a healthy delta that correctly finds nothing new
+// would trip it, so it cannot judge pipeline health. This does: for each processed source it reads
+// the archive's last ~4 weeks of daily counts and flags any source sitting on >= ZERO_STREAK_MIN
+// consecutive zero-sale days WHILE it normally sells (continuous sources only; monthly auction houses
+// are not flagged for a quiet patch). Loud warning + a queryable ingest_health_zero_streak event.
+const ZERO_STREAK_MIN = Number(flag("zero-streak") || process.env.INGEST_ZERO_STREAK_MIN || 3);
+const asOfHealth = dayKey(new Date());
+const healthSinceISO = recentDayList(asOfHealth, 29)[0];   // 28-day window + today, oldest first
+const zeroStreaks = [];
+for (const source of SOURCES) {
+  const label = DISPLAY[source] || source;
+  const daily = await archiveDailyCounts(source, healthSinceISO);
+  const z = zeroStreakFlag(daily, { asOf: asOfHealth, window: 14, minRun: ZERO_STREAK_MIN, salesWindow: 28 });
+  if (z) zeroStreaks.push({ source, label, zeroRun: z.zeroRun, endedOn: z.endedOn });
+}
+if (zeroStreaks.length) {
+  console.error(`::warning::INGEST HEALTH: ${zeroStreaks.length} normally-selling source(s) on a >=${ZERO_STREAK_MIN}-day zero-sale streak (archive-based): ${zeroStreaks.map(z => `${z.label} (${z.zeroRun}d, last gap day ${z.endedOn})`).join(", ")}`);
+  try {
+    const { recordUsageEvent } = await import("../api/_usage.js");
+    await recordUsageEvent({ event_type: "ingest_health_zero_streak", route: "scripts/ingest.js", status: "warning", oldcarsdata_metered_requests: 0, metadata: { zeroStreaks, minRun: ZERO_STREAK_MIN, mode: DELTA ? "delta" : `${FROM}..${TO}` } }, env.supabaseUrl, env.supabaseKey);
+  } catch (e) { /* never block ingest on logging */ }
+} else {
+  console.log(`health: no normally-selling source on a >=${ZERO_STREAK_MIN}-day zero-sale streak (archive-based).`);
+}
+
 await flushOcdUsage();   // write the tail of this run's OCD usage (the every-100 rows already cover a crash/timeout)
-console.log(belowFloor.length ? "\nDONE (with health warnings above)." : "\nDONE.");
+console.log(belowFloor.length || zeroStreaks.length ? "\nDONE (with health warnings above)." : "\nDONE.");
 
 // Fail loud, per source: any source that ended in an UNRESOLVED error (429 still failing
 // after all retries, or a non-429 error, or an insert failure) reds the run so a partial
