@@ -1,35 +1,56 @@
--- VIN / chassis exact-match index (Sep 2026).
---
--- WHY: findVinArchiveMatch does `vin=eq.<normalized>` against sales_archive. After the
--- C&B/BaT/Hagerty/PCM backfills grew the table ~26k -> ~200k rows, that lookup began
--- FULL-SCANNING (the vin column had no index) and hitting the Postgres statement timeout
--- (57014), so it returned null -> the "I know this exact car" prior-sale callout silently
--- stopped firing for essentially the whole archive (VIN coverage is ~96%). These three
--- statements restore it. Run them in the Supabase SQL editor. Safe + idempotent.
---
--- Run order matters: (1) fixes 17-char VINs immediately with the CURRENT code; (2)+(3) add
--- the normalized column the updated findVinArchiveMatch will read so separator-stored chassis
--- ("1E 31588", "DB6 MK2 2478") also match fast. Do NOT deploy the vin_norm-reading code until
--- statement (2) has completed and the column is confirmed present.
+-- VIN index (Fix 5, Lane A). Run once in the Supabase SQL editor before the populate job.
+-- vin_index: one row per APPEARANCE of a VIN (sales_archive sale + auction_attempts unsold/withdrawn),
+--   normalised like findVinArchiveMatch (strip all non-alphanumeric, uppercase). The populate job
+--   EXCLUDES non_vehicle rows and any VIN seen on more than one UNRELATED lot (different make/model =
+--   a polluted/shared VIN, e.g. a Bonhams automobilia VIN reused across lots). A VIN on multiple lots
+--   of the SAME car (consistent make/model) is a real repeat-sale and IS kept.
+-- vin_summary: one row per vin_norm, the rolled-up history Lane C's pages read.
 
--- (1) Plain btree on vin: makes `vin=eq.<clean 17-char VIN>` instant (VINs are stored clean/
---     uppercase, so the normalized query already equals the stored value). Fixes the Murcielago
---     and every 17-char VIN the moment it lands, with zero code change.
-CREATE INDEX IF NOT EXISTS idx_sales_archive_vin ON sales_archive (vin);
+create table if not exists vin_index (
+  id              bigint generated always as identity primary key,
+  vin_norm        text not null,
+  appearance_date date,
+  source          text,            -- source_slug (bringatrailer, rmsothebys, ...)
+  url             text,
+  listing_title   text,
+  make            text,
+  model           text,
+  model_family    text,
+  vehicle_type    text,            -- car | motorcycle | other  (non_vehicle never enters this table)
+  year            integer,
+  mileage         integer,
+  result          text,            -- sold | not_sold | withdrawn
+  price_usd       numeric,         -- dated-FX USD (hammerUsd at the sale month); null for unsold/withdrawn
+  currency        text,
+  country         text,
+  photo_url       text,
+  src_table       text,            -- sales_archive | auction_attempts  (provenance)
+  src_row_id      text,            -- source_id / attempt id (provenance; for idempotent rebuilds)
+  created_at      timestamptz default now()
+);
+create index if not exists vin_index_vin_norm_idx on vin_index (vin_norm);
+create index if not exists vin_index_appearance_date_idx on vin_index (appearance_date);
+create index if not exists vin_index_src_idx on vin_index (src_table, src_row_id);
 
--- (2) Normalized, generated, STORED column: uppercased and stripped of every non-alphanumeric
---     character, matching findVinArchiveMatch's input normalization. This lets a chassis stored
---     WITH separators ("1E 31588") match a separator-free query ("1E31588") via an indexed
---     equality instead of the slow interspersed-ILIKE fallback. regexp_replace + upper are
---     IMMUTABLE, so a STORED generated column is valid. Null/empty vin -> ''.
-ALTER TABLE sales_archive
-  ADD COLUMN IF NOT EXISTS vin_norm text
-  GENERATED ALWAYS AS (upper(regexp_replace(coalesce(vin, ''), '[^A-Za-z0-9]', '', 'g'))) STORED;
+create table if not exists vin_summary (
+  vin_norm                   text primary key,
+  appearances                integer not null default 0,
+  first_seen                 date,
+  last_seen                  date,
+  last_sold_price_usd        numeric,
+  last_sold_date             date,
+  miles_delta_since_last_sale integer,   -- mileage(most recent appearance) - mileage(last sale), when both known
+  days_since_last_sale       integer,    -- today - last_sold_date
+  make                       text,
+  model                      text,
+  model_family               text,
+  vehicle_type               text,
+  updated_at                 timestamptz default now()
+);
 
--- (3) Index the normalized column so `vin_norm=eq.<normalized>` is instant for both VINs and
---     separator-stored chassis.
-CREATE INDEX IF NOT EXISTS idx_sales_archive_vin_norm ON sales_archive (vin_norm);
-
--- Verify (should return the exact car; must be fast, not a timeout):
---   select platform, sale_date, sale_price, make, model, vin
---   from sales_archive where vin_norm = 'ZHWBC8AH7ALA03815';
+-- Standing DB-security rule: new tables ship locked from creation. Server code uses the service role
+-- key (bypasses RLS); the browser never gets a grant. No RPC functions here, so no execute grants.
+alter table vin_index   enable row level security;
+alter table vin_summary enable row level security;
+revoke all on vin_index   from anon, authenticated;
+revoke all on vin_summary from anon, authenticated;
