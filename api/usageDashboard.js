@@ -3210,6 +3210,38 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "ingestlog", count: rows.length, events: rows.map(r => ({ at: r.created_at, type: r.event_type, status: r.status, ocd_metered: r.oldcarsdata_metered_requests, mode: r.metadata?.mode || null, upserted: r.metadata?.upserted ?? null, ocd_http: r.metadata?.ocd_http_requests ?? null, meta: r.metadata || null })) });
   }
 
+  // task=ocdmeter: READ-ONLY. The authoritative OCD-request totals: sum of oldcarsdata_metered_requests
+  // across ALL event_types for today and this month, plus a per-event_type breakdown, so we can see
+  // whether small runs / pullLive are actually being recorded. ZERO OCD.
+  if (task === "ocdmeter") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const monthStart = new Date().toISOString().slice(0, 7) + "-01T00:00:00Z";
+    const dayStart = new Date().toISOString().slice(0, 10) + "T00:00:00Z";
+    const rows = await supabaseSelectAll(env, `app_usage_events?oldcarsdata_metered_requests=gt.0&created_at=gte.${monthStart}&select=event_type,oldcarsdata_metered_requests,created_at&order=created_at.desc`) || [];
+    let monthTotal = 0, dayTotal = 0; const byTypeMonth = {}, byTypeDay = {};
+    for (const r of rows) { const n = Number(r.oldcarsdata_metered_requests) || 0; monthTotal += n; byTypeMonth[r.event_type] = (byTypeMonth[r.event_type] || 0) + n; if (r.created_at >= dayStart) { dayTotal += n; byTypeDay[r.event_type] = (byTypeDay[r.event_type] || 0) + n; } }
+    return res.status(200).json({ task: "ocdmeter", today: { total: dayTotal, byEventType: byTypeDay }, month: { total: monthTotal, byEventType: byTypeMonth }, meteredRowsThisMonth: rows.length, recent: rows.slice(0, 15).map(r => ({ at: r.created_at.slice(0, 19), type: r.event_type, n: r.oldcarsdata_metered_requests })) });
+  }
+
+  // task=milesaudit: READ-ONLY. Mileage-data audit: MB Market rows under 1,000 mi with their RAW
+  // mileage string (to confirm the "102k" parse bug); zero-mileage counts by source; stated_mileage=0
+  // and live_listings mileage=0. ZERO OCD.
+  if (task === "milesaudit") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    const cq = async (tbl, f) => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${tbl}?${f}&select=${tbl === "live_listings" ? "id" : "source_id"}&limit=1`, { headers: tbl === "live_listings" ? { ...H } : H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    const mbSample = await supabaseSelect(env, `sales_archive?source_slug=eq.mbmarket&mileage=gt.0&mileage=lt.1000&select=listing_title,vin,mileage,rawmiles:raw_record->>mileage,make,model,sale_date&order=mileage.desc&limit=30`) || [];
+    const mbUnder1000 = await cq("sales_archive", "source_slug=eq.mbmarket&mileage=gt.0&mileage=lt.1000");
+    const mbTotal = await cq("sales_archive", "source_slug=eq.mbmarket");
+    const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads", "autohunter"];
+    const zeroBySource = {};
+    for (const s of SRCS) { const z = await cq("sales_archive", `source_slug=eq.${s}&mileage=eq.0`); if (z) zeroBySource[s] = z; }
+    const statedZero = await cq("sales_archive", "stated_mileage=eq.0");
+    const liveZero = await cq("live_listings", "mileage=eq.0");
+    const liveTotal = await cq("live_listings", "id=not.is.null");
+    return res.status(200).json({ task: "milesaudit", mbMarket: { total: mbTotal, under1000: mbUnder1000, sample: mbSample }, zeroMileageBySource: zeroBySource, stated_mileage_zero: statedZero, live_listings: { total: liveTotal, mileage_zero: liveZero } });
+  }
+
   // task=reserveaudit: READ-ONLY. has_reserve coverage on sales_archive by source and year (sold rows):
   // known (true/false) vs null, so we know where a reserve-history line can render truthfully. One
   // paginated read of 3 top-level columns + in-memory cross-tab. ZERO OCD.
