@@ -151,7 +151,8 @@ async function converseOut(env, b) {
     return { type: "groups", say, groups, maybeGroups, maybeKeys: r.maybeKeys || [], filters: r.filters || null, geo: !!r.geo, footnote: !!r.footnote, perCard: !!r.perCard };
   }
   const matches = (r.matches || []).slice(0, MAX);
-  const ordered = [...matches].sort((a, x) => { const k = c => (c.distance != null ? 0 : (String(c.r.country || "").toUpperCase() && String(c.r.country).toUpperCase() !== "US" ? 2 : 0) + (c.unknown.length ? 1 : 0)); return k(a) - k(x); });
+  // Stated matches first, then the ones whose listing doesn't say; nearest first within each.
+  const ordered = [...matches].sort((a, x) => { const k = c => (c.unknown.length ? 10 : 0) + (c.distance != null ? 0 : (String(c.r.country || "").toUpperCase() && String(c.r.country).toUpperCase() !== "US" ? 2 : 1)); return k(a) - k(x) || ((a.distance == null ? 1e9 : a.distance) - (x.distance == null ? 1e9 : x.distance)); });
   const cards = await Promise.all(ordered.map((x, i) => i < FIRST ? enrich(env, x) : cardOf(x)));
   cards.forEach((c, i) => { if (ordered[i].distance != null) c.distance = ordered[i].distance; });
   logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
