@@ -3217,10 +3217,12 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const monthStart = new Date().toISOString().slice(0, 7) + "-01T00:00:00Z";
     const dayStart = new Date().toISOString().slice(0, 10) + "T00:00:00Z";
-    const rows = await supabaseSelectAll(env, `app_usage_events?oldcarsdata_metered_requests=gt.0&created_at=gte.${monthStart}&select=event_type,oldcarsdata_metered_requests,created_at&order=created_at.desc`) || [];
-    let monthTotal = 0, dayTotal = 0; const byTypeMonth = {}, byTypeDay = {};
-    for (const r of rows) { const n = Number(r.oldcarsdata_metered_requests) || 0; monthTotal += n; byTypeMonth[r.event_type] = (byTypeMonth[r.event_type] || 0) + n; if (r.created_at >= dayStart) { dayTotal += n; byTypeDay[r.event_type] = (byTypeDay[r.event_type] || 0) + n; } }
-    return res.status(200).json({ task: "ocdmeter", today: { total: dayTotal, byEventType: byTypeDay }, month: { total: monthTotal, byEventType: byTypeMonth }, meteredRowsThisMonth: rows.length, recent: rows.slice(0, 15).map(r => ({ at: r.created_at.slice(0, 19), type: r.event_type, n: r.oldcarsdata_metered_requests })) });
+    // The TRUSTED total = ocd_call rows only (the single source of truth, one per OCD request). Other
+    // event_types carry a metered figure for cost reporting and would double-count if summed here.
+    const rows = await supabaseSelectAll(env, `app_usage_events?event_type=eq.ocd_call&oldcarsdata_metered_requests=gt.0&created_at=gte.${monthStart}&select=oldcarsdata_metered_requests,created_at,job:metadata->>job&order=created_at.desc`) || [];
+    let monthTotal = 0, dayTotal = 0; const byJobMonth = {}, byJobDay = {};
+    for (const r of rows) { const n = Number(r.oldcarsdata_metered_requests) || 0; const j = r.job || "(none)"; monthTotal += n; byJobMonth[j] = (byJobMonth[j] || 0) + n; if (r.created_at >= dayStart) { dayTotal += n; byJobDay[j] = (byJobDay[j] || 0) + n; } }
+    return res.status(200).json({ task: "ocdmeter", source: "ocd_call events only (single source of truth; starts at the meter-fix deploy)", today: { total: dayTotal, byJob: byJobDay }, month: { total: monthTotal, byJob: byJobMonth }, ocdCallRowsThisMonth: rows.length });
   }
 
   // task=milesaudit: READ-ONLY. Mileage-data audit: MB Market rows under 1,000 mi with their RAW
