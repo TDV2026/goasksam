@@ -79,7 +79,7 @@ eq("mods plain", T.stPlainClause("modifications", PA), "The higher half were 2 i
 truthy("no doubled 'stronger' in any template", !["mileage","transmission","flaws","service","modifications"].some(k => /stronger/i.test(T.stPlainClause(k, PA) || "")));
 
 console.log("\n== backlog: vehicle_type filter + badge-twin siblings ==");
-eq("VT_CAR filter string", T.VT_CAR, "&or=(vehicle_type.is.null,vehicle_type.eq.car)");
+eq("VT_CAR filter string (strict)", T.VT_CAR, "&vehicle_type=eq.car");
 eq("Talon -> Eclipse (first co-twin)", (T.siblingFor({ make: "Eagle", model: "Talon" }) || {}).label, "Mitsubishi Eclipse");
 eq("Eclipse -> Talon", (T.siblingFor({ make: "Mitsubishi", model: "Eclipse" }) || {}).label, "Eagle Talon");
 eq("3000GT <-> Stealth (token norm)", (T.siblingFor({ make: "Mitsubishi", model: "3000 GT" }) || {}).label, "Dodge Stealth");
