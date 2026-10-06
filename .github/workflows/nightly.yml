@@ -77,6 +77,11 @@ jobs:
             echo "Nightly delta ingest"
             node scripts/ingest.js --delta
           fi
+      - name: Rebuild VIN index (vin_index + vin_summary)
+        run: |
+          set -euo pipefail
+          test -f scripts/buildVinIndex.js || { echo "::error::scripts/buildVinIndex.js not found in checkout"; exit 1; }
+          node scripts/buildVinIndex.js
 
   warm:
     runs-on: ubuntu-latest
