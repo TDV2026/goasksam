@@ -10,7 +10,7 @@
 //   node scripts/buildVinIndex.js            # full rebuild + print the appearance distribution
 //   node scripts/buildVinIndex.js --report   # distribution only, no writes
 // Schedule nightly AFTER the ingest + non-sold jobs (so it reflects the freshest sales/attempts).
-import { supabaseEnv, supabaseSelectAll, supabaseInsert } from "../lib/_supabase.js";
+import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
 import { typeByMake } from "../lib/_unknownClassify.js";
 
 const normVin = v => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -19,6 +19,28 @@ const toNum = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n
 const day = d => (d ? String(d).slice(0, 10) : null);
 const isUnknown = s => !s || /^unknown$/i.test(String(s).trim());
 
+// Uncapped paginator: lib/_supabase.js supabaseSelectAll stops at a 200k-row safety ceiling (fine for
+// engine pools, but it TRUNCATED the ~305k sales_archive read and undersized the VIN index). This walks
+// every page via Range until a short page, with no ceiling. Returns all rows (what it read on a mid-walk
+// failure, same graceful degrade as the shared helper).
+async function readAll(env, pathAndQuery, pageSize = 1000) {
+  const out = [];
+  for (let offset = 0; ; offset += pageSize) {
+    let page = null;
+    try {
+      const res = await fetch(`${env.supabaseUrl}/rest/v1/${pathAndQuery}`, {
+        headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Range-Unit": "items", Range: `${offset}-${offset + pageSize - 1}` }
+      });
+      if (!res.ok) break;
+      page = await res.json();
+    } catch { break; }
+    if (!Array.isArray(page) || !page.length) break;
+    out.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return out;
+}
+
 // ---- gather appearances ----
 async function loadSales(env) {
   const sel = "source_id,vin_norm,sale_date,source_slug,make,model,model_family,vehicle_type,year,mileage,sale_price_usd," +
@@ -26,7 +48,7 @@ async function loadSales(env) {
   // Exclude ONLY actual non_vehicle rows. `vehicle_type=not.eq.non_vehicle` drops NULL rows too (SQL
   // NULL <> x is unknown), which would filter make-Unknown cars out of the VIN index - a VIN exact-match
   // must never be filtered by vehicle_type or make. Keep null / car / motorcycle / other.
-  const rows = await supabaseSelectAll(env, `sales_archive?vin_norm=not.is.null&or=(vehicle_type.is.null,vehicle_type.neq.non_vehicle)&select=${sel}&order=sale_date.asc.nullslast`) || [];
+  const rows = await readAll(env, `sales_archive?vin_norm=not.is.null&or=(vehicle_type.is.null,vehicle_type.neq.non_vehicle)&select=${sel}&order=sale_date.asc.nullslast`);
   return rows.map(r => ({
     vin: normVin(r.vin_norm), date: day(r.sale_date), source: r.source_slug || null, url: r.url || r.surl || null,
     title: r.title || null, make: r.make || null, model: r.model || null, model_family: r.model_family || null,
@@ -36,9 +58,11 @@ async function loadSales(env) {
   }));
 }
 async function loadAttempts(env) {
-  const sel = "id,chassis_vin_norm,attempt_date,source_slug,make,model,year,high_bid,auction_status," +
+  // auction_attempts has NO id column (PK = source_slug + source_record_id). The attempt's bid in USD
+  // is high_bid_usd (backfilled), carried as price_usd so vinAppearances renders "bid to $X, not sold".
+  const sel = "source_slug,source_record_id,chassis_vin_norm,attempt_date,make,model,year,high_bid,high_bid_usd,auction_status,currency," +
     "url:raw_record->>url,surl:raw_record->>source_url,photo:raw_record->>featured_image_url,title:raw_record->>title";
-  const rows = await supabaseSelectAll(env, `auction_attempts?chassis_vin_norm=not.is.null&select=${sel}&order=attempt_date.asc.nullslast`) || [];
+  const rows = await readAll(env, `auction_attempts?chassis_vin_norm=not.is.null&select=${sel}&order=attempt_date.asc.nullslast`);
   return rows.map(r => {
     const st = String(r.auction_status || "").toLowerCase();
     const result = /withdraw/.test(st) ? "withdrawn" : "not_sold";
@@ -46,8 +70,8 @@ async function loadAttempts(env) {
       vin: normVin(r.chassis_vin_norm), date: day(r.attempt_date), source: r.source_slug || null, url: r.url || r.surl || null,
       title: r.title || null, make: r.make || null, model: r.model || null, model_family: null,
       vehicle_type: typeByMake(r.make) || null, year: toInt(r.year), mileage: null,
-      result, price_usd: null, currency: null, country: null,   // unsold: no sale price
-      photo_url: r.photo || null, src_table: "auction_attempts", src_row_id: String(r.id || "")
+      result, price_usd: toNum(r.high_bid_usd), currency: r.currency || null, country: null,
+      photo_url: r.photo || null, src_table: "auction_attempts", src_row_id: String(r.source_record_id || "")
     };
   });
 }
