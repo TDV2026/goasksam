@@ -3210,6 +3210,25 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "ingestlog", count: rows.length, events: rows.map(r => ({ at: r.created_at, type: r.event_type, status: r.status, ocd_metered: r.oldcarsdata_metered_requests, mode: r.metadata?.mode || null, upserted: r.metadata?.upserted ?? null, ocd_http: r.metadata?.ocd_http_requests ?? null, meta: r.metadata || null })) });
   }
 
+  // task=reserveaudit: READ-ONLY. has_reserve coverage on sales_archive by source and year (sold rows):
+  // known (true/false) vs null, so we know where a reserve-history line can render truthfully. One
+  // paginated read of 3 top-level columns + in-memory cross-tab. ZERO OCD.
+  if (task === "reserveaudit") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const rows = await supabaseSelectAll(env, `sales_archive?select=source_slug,sale_date,has_reserve`) || [];
+    const bySource = {}, byYear = {};
+    for (const r of rows) {
+      const s = r.source_slug || "(null)"; const y = String(r.sale_date || "").slice(0, 4) || "(nodate)";
+      const known = r.has_reserve === true || r.has_reserve === false;
+      if (!bySource[s]) bySource[s] = { total: 0, known: 0, reserve_true: 0, reserve_false: 0, null: 0 };
+      bySource[s].total++; if (known) { bySource[s].known++; if (r.has_reserve) bySource[s].reserve_true++; else bySource[s].reserve_false++; } else bySource[s].null++;
+      if (!byYear[y]) byYear[y] = { total: 0, known: 0, null: 0 };
+      byYear[y].total++; known ? byYear[y].known++ : byYear[y].null++;
+    }
+    for (const s of Object.keys(bySource)) bySource[s].knownPct = bySource[s].total ? Math.round(bySource[s].known / bySource[s].total * 1000) / 10 : 0;
+    return res.status(200).json({ task: "reserveaudit", totalRows: rows.length, bySource, byYear });
+  }
+
   // task=usdbackfill: backfill sale_price_usd on sales_archive rows that have a sale_price but no
   // sale_price_usd, using the EXISTING FX handling (lib/_fx loadFxRates + lib/_houseComps hammerUsd) at
   // the sale month's rate. SKIP blank/ambiguous currency (better nothing than a fake number) and report
