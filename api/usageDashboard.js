@@ -3210,6 +3210,23 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "ingestlog", count: rows.length, events: rows.map(r => ({ at: r.created_at, type: r.event_type, status: r.status, ocd_metered: r.oldcarsdata_metered_requests, mode: r.metadata?.mode || null, upserted: r.metadata?.upserted ?? null, ocd_http: r.metadata?.ocd_http_requests ?? null, meta: r.metadata || null })) });
   }
 
+  // task=descfactscov: READ-ONLY. Coverage of the description-derived columns after the backfill.
+  // Global desc_facts-set (confirms every row is stamped) + project_flagged + stated_mileage; per-source
+  // total + project_flagged (both index-backed: source_slug and the project_flag partial index).
+  if (task === "descfactscov") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    const countQ = async filter => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}&select=id&limit=1`, { headers: H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    const total = await countQ("id=not.is.null");
+    const descSet = await countQ("desc_facts=not.is.null");
+    const projectFlagged = await countQ("project_flag=not.is.null");
+    const statedMileage = await countQ("stated_mileage=not.is.null");
+    const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
+    const bySource = {};
+    for (const s of SRCS) { const t = await countQ(`source_slug=eq.${s}`); if (!t) continue; bySource[s] = { total: t, desc_facts_set: await countQ(`source_slug=eq.${s}&desc_facts=not.is.null`), project_flagged: await countQ(`source_slug=eq.${s}&project_flag=not.is.null`) }; }
+    return res.status(200).json({ task: "descfactscov", global: { total, desc_facts_set: descSet, still_null: (total != null && descSet != null) ? total - descSet : null, project_flagged: projectFlagged, stated_mileage: statedMileage }, bySource });
+  }
+
   // task=item3probe: READ-ONLY. The three archive checks for the C&B/Bonhams/Gooding backfill review:
   // (b) does the PCARMarket 1999 996 race car still appear as a sale; (c) Gooding-London and Bonhams-
   // May-2025 rows currently tagged USD (candidates for a currency correction); (d) the Weekly Total for
