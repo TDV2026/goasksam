@@ -6,7 +6,7 @@
 // Indexing (Oct 2026): a car page is indexable when the car has at least one SALE with a photo, and is
 // listed in /sitemap-vins.xml; every other page (no photographed sale, hubs, 404s) stays noindex.
 //   GET /sitemap-vins.xml -> sitemap index (?sitemap=index);  /sitemap-vins-N.xml -> page N (?sitemap=N)
-import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, liveListing, addWatch, carSlug, familyOf, slugify, listingSaid, familySales, sitemapRows, sitemapCount, SITEMAP_PAGE, resolveText, cleanTitle } from "./_historyData.js";
+import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, liveListing, addWatch, carSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle } from "./_historyData.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { PAGE_CSS as CSS, FONT_LINKS, railHtml, WHY_RESULT_HTML } from "./_chrome.js";
 
@@ -238,7 +238,10 @@ ${WHY_RESULT_HTML}
     image: photo ? photo.image : undefined, url: canonical,
     offers: appearances.filter(a => a.kind === "sale" && a.priceUsd).map(a => ({ "@type": "Offer", price: Math.round(a.priceUsd), priceCurrency: "USD", availability: "https://schema.org/SoldOut", validFrom: a.date, url: a.url || undefined, seller: { "@type": "Organization", name: a.house } }))
   }, { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) }];
-  const index = sales.some(a => a.image);
+  // Staged rollout: a car page is indexable only with 2+ auction appearances, a photo, a real
+  // identifier and a proper name (carIdentity already refuses non-vehicles). Single-appearance pages
+  // stay noindex for now (still reachable from the hubs).
+  const index = appearances.length >= 2 && appearances.some(a => a.image) && realVin(vinNorm) && !!(id.family && id.make);
   send(res, 200, page({ title: `${name} (${vinNorm}) auction history and sale price`, description: answer, canonical, body: body2, ld, index }), {}, index);
 }
 // WHAT THE LISTING SAID: facts from the sale's own record, worded by Sam; never the house's text.
@@ -300,7 +303,8 @@ async function hubPage(req, res, env, slug) {
   const rows = list.slice(0, 200).map(g => {
     const a = g.last, ph = g.apps.find(x => x.image) || null;
     // An all-years list links each VIN to its own year's page; the car page 301s if the year differs.
-    const carHref = hub.year ? `/history/${slug}/${g.vin}` : `/vin/${g.vin}`;
+    const cy = hub.year || (g.apps.find(x => x.year) || {}).year;
+    const carHref = hub.year ? `/history/${slug}/${g.vin}` : (cy && id.family ? `/history/${[cy, slugify(id.make), slugify(id.family)].join("-")}/${g.vin}` : `/vin/${g.vin}`);
     return `<tr><td class="thumbcell">${ph ? photoHtml(ph.image, ph.url, ph.house, g.vin, "thumb") : '<span class="thumb"></span>'}</td><td data-l="VIN"><a href="${esc(carHref)}">${esc(g.vin)}</a></td><td data-l="Appearances" class="r">${g.apps.length}</td><td data-l="Last result" class="${a.kind === "sale" ? "sold" : "muted"}">${esc(resultText(a))}</td><td data-l="Date">${esc(monShort(a.date))}</td><td data-l="Miles" class="r">${esc(miles(a.mileage))}</td></tr>`;
   }).join("");
   const body = `
@@ -313,7 +317,8 @@ ${WHY_RESULT_HTML}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>`;
   const ld = [{ "@context": "https://schema.org", "@type": "ItemList", name: `${name} auction results`, url: canonical,
     itemListElement: list.slice(0, 200).map((g, i) => ({ "@type": "ListItem", position: i + 1, url: hub.year ? `${SITE}/history/${slug}/${g.vin}` : `${SITE}/vin/${g.vin}`, name: `${name}, VIN ${g.vin}` })) }];
-  send(res, 200, page({ title: `${name} auction results | GoAskSam`, description: ctx, canonical, body, ld }));
+  const hubIndex = !hub.year && !!id.vehicle && list.some(g => g.apps.some(a => a.image));
+  send(res, 200, page({ title: `${name} auction results and sale prices`, description: ctx, canonical, body, ld, index: hubIndex }), {}, hubIndex);
 }
 
 // ---------------------------------------------------------------- handler
@@ -367,43 +372,58 @@ async function slugFor(title, year) {
   return out;
 }
 const xmlEsc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
-// Read-only counts for the staged rollout (zero OCD): how many VINs fall in each group.
-async function countOf(env, q) {
-  try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}&select=vin_norm&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" } }); const n = Number(String(r.headers.get("content-range") || "").split("/")[1]); return Number.isFinite(n) ? n : (r.ok ? null : "err " + r.status); } catch (e) { return "err"; }
-}
-async function sitemapStats(res, env) {
-  const out = {
-    vin_summary_total: await countOf(env, "vin_summary?vin_norm=not.is.null"),
-    cars_2plus: await countOf(env, "vin_summary?appearances=gte.2&vehicle_type=eq.car"),
-    cars_1: await countOf(env, "vin_summary?appearances=eq.1&vehicle_type=eq.car"),
-    non_car: await countOf(env, "vin_summary?vehicle_type=neq.car"),
-    vin_index_rows: await countOf(env, "vin_index?vin_norm=not.is.null"),
-    vin_index_with_photo: await countOf(env, "vin_index?photo_url=not.is.null"),
-    sample_summary: await supabaseSelectSafe(env, "vin_summary?appearances=gte.2&select=*&limit=3"),
-    sample_index: await supabaseSelectSafe(env, "vin_index?select=vin_norm,year,make,model,model_family,listing_title,photo_url,result&limit=3")
-  };
-  res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store");
-  return res.status(200).send(JSON.stringify(out, null, 1));
-}
 async function supabaseSelectSafe(env, q) { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); return r.ok ? r.json() : "err " + r.status; } catch { return "err"; } }
+// A real vehicle identifier: letters and digits, at least one digit, 5 to 17 characters (pre-1981
+// chassis numbers included). Words the archive stored in the VIN field ("RETAINED") are not.
+function realVin(v) { return /^[A-Z0-9]{5,17}$/.test(v) && /\d/.test(v); }
+function saneFamily(f) { return !!f && f.length <= 32 && !/\d{6,}|\bvin\b|frame|engine no|chassis/i.test(f); }
+// One pass over vin_index (cached 6h per instance): every VIN classified into the rollout groups.
+let ROLL = null, ROLL_AT = 0;
+async function rollout(env) {
+  if (ROLL && Date.now() - ROLL_AT < 6 * 3600e3) return ROLL;
+  const per = new Map();
+  for (let page = 0; page < 200; page++) {
+    const rows = await supabaseSelectSafe(env, `vin_index?select=vin_norm,year,make,model_family,listing_title,photo_url,vehicle_type,appearance_date&order=id.asc&limit=1000&offset=${page * 1000}`);
+    if (!Array.isArray(rows) || !rows.length) break;
+    for (const r of rows) {
+      const g = per.get(r.vin_norm) || { n: 0, photo: false, title: null, year: null, make: null, family: null, type: null, date: "" };
+      g.n++; if (r.photo_url) g.photo = true;
+      if (String(r.appearance_date || "") >= g.date) { g.date = String(r.appearance_date || ""); g.title = r.listing_title || g.title; g.year = r.year || g.year; g.make = r.make || g.make; g.family = r.model_family || g.family; }
+      g.type = g.type || r.vehicle_type; per.set(r.vin_norm, g);
+    }
+    if (rows.length < 1000) break;
+  }
+  const counts = { vins: per.size, non_vehicle: 0, junk_identifier: 0, no_proper_title: 0, no_photo: 0, single_noindex: 0, multi_candidates: 0, multi_indexable: 0, hubs_indexable: 0 };
+  const hubs = new Map(), multi = [];
+  for (const [vin, g] of per) {
+    if (g.type && g.type !== "car") { counts.non_vehicle++; continue; }
+    if (!realVin(vin)) { counts.junk_identifier++; continue; }
+    if (!g.title || !g.make || !saneFamily(g.family)) { counts.no_proper_title++; continue; }
+    if (!g.photo) { counts.no_photo++; continue; }
+    const hk = slugify(g.make) + "-" + slugify(g.family); hubs.set(hk, (hubs.get(hk) || 0) + 1);
+    if (g.n >= 2) { counts.multi_candidates++; multi.push({ vin, g }); } else counts.single_noindex++;
+  }
+  const vins = [];
+  for (let i = 0; i < multi.length; i += 40) {
+    const part = await Promise.all(multi.slice(i, i + 40).map(async ({ vin, g }) => { const sl = await slugFor(g.title, Number(g.year) || null); return sl ? { loc: `${SITE}/history/${sl}/${vin}`, lastmod: g.date.slice(0, 10) } : null; }));
+    for (const u of part) if (u) vins.push(u); else counts.no_proper_title++;
+  }
+  counts.multi_indexable = vins.length; counts.hubs_indexable = hubs.size;
+  ROLL = { counts, hubs: [...hubs.keys()].sort(), vins }; ROLL_AT = Date.now();
+  return ROLL;
+}
 async function sitemap(res, env, which) {
-  if (which === "stats") return sitemapStats(res, env);
+  if (which === "stats") { const r = await rollout(env); res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store"); return res.status(200).send(JSON.stringify(r.counts, null, 1)); }
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
   res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=86400");
+  const r = await rollout(env);
+  const urlset = list => `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${list.map(u => `<url><loc>${xmlEsc(u.loc)}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ""}</url>`).join("")}</urlset>`;
   if (which === "index") {
-    const n = await sitemapCount(env);
-    const pages = n ? Math.ceil(n / SITEMAP_PAGE) : 1;
-    const items = Array.from({ length: pages }, (_, i) => `<sitemap><loc>${SITE}/sitemap-vins-${i + 1}.xml</loc></sitemap>`).join("");
+    const pages = Math.max(1, Math.ceil(r.vins.length / SITEMAP_PAGE));
+    const items = [`<sitemap><loc>${SITE}/sitemap-vins-hubs.xml</loc></sitemap>`].concat(Array.from({ length: pages }, (_, k) => `<sitemap><loc>${SITE}/sitemap-vins-${k + 1}.xml</loc></sitemap>`)).join("");
     return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${items}</sitemapindex>`);
   }
+  if (which === "hubs") return res.status(200).send(urlset(r.hubs.map(h => ({ loc: `${SITE}/history/${h}` }))));
   const page = Math.max(1, Number(which) || 1) - 1;
-  const rows = (await sitemapRows(env, page)) || [];
-  const seen = new Set(), urls = [];
-  const todo = rows.filter(r => r.vin_norm && r.vin_norm.length >= 11 && r.listing_title && !seen.has(r.vin_norm) && seen.add(r.vin_norm));
-  for (let i = 0; i < todo.length; i += 40) {
-    const part = await Promise.all(todo.slice(i, i + 40).map(async r => { const sl = await slugFor(r.listing_title, Number(r.year) || null); return sl ? { loc: `${SITE}/history/${sl}/${r.vin_norm}`, lastmod: String(r.sale_date || "").slice(0, 10) } : null; }));
-    urls.push(...part.filter(Boolean));
-  }
-  const body = urls.map(u => `<url><loc>${xmlEsc(u.loc)}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ""}</url>`).join("");
-  return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${body}</urlset>`);
+  return res.status(200).send(urlset(r.vins.slice(page * SITEMAP_PAGE, (page + 1) * SITEMAP_PAGE)));
 }

@@ -178,7 +178,7 @@ export function parseHubSlug(slug) {
 export async function hubVins(env, hub) {
   const toks = [...hub.makeSlug.split("-"), ...hub.modelSlug.split("-")].filter(Boolean);
   const pat = encodeURIComponent("*" + toks.join("*") + "*");
-  const sSel = "vin_norm,sale_date,sale_price,sale_price_usd,platform,listing_title,mileage,img:raw_record->>featured_image_url,url:raw_record->>url,url2:raw_record->>source_url,currency:raw_record->>currency";
+  const sSel = "vin_norm,year,sale_date,sale_price,sale_price_usd,platform,listing_title,mileage,img:raw_record->>featured_image_url,url:raw_record->>url,url2:raw_record->>source_url,currency:raw_record->>currency";
   const aSel = "chassis_vin_norm,attempt_date,high_bid,high_bid_usd,source_slug,title:raw_record->>title,img:raw_record->>featured_image_url,url:raw_record->>url,url2:raw_record->>source_url,mileage:raw_record->>mileage,currency:raw_record->>currency";
   const [sales, atts] = await Promise.all([
     supabaseSelect(env, `sales_archive?${hub.year ? "year=eq." + hub.year + "&" : ""}listing_title=ilike.${pat}&vin_norm=not.is.null&select=${sSel}&order=sale_date.desc&limit=400`),
@@ -193,7 +193,7 @@ export async function hubVins(env, hub) {
     const key = r.vin_norm + "|" + String(r.sale_date || "").slice(0, 10) + "|" + Math.round(Number(r.sale_price) || 0);
     if (sk.has(key)) continue; sk.add(key);
     const p = usdOf(r.sale_price, r.sale_price_usd, r.currency);
-    get(r.vin_norm).apps.push({ kind: "sale", date: String(r.sale_date || "").slice(0, 10), priceUsd: p.usd, nativePrice: p.native, currency: p.currency, house: houseName(r.platform), url: r.url || r.url2 || null, mileage: num(r.mileage), image: r.img || null, title: r.listing_title });
+    get(r.vin_norm).apps.push({ kind: "sale", year: Number(r.year) || null, date: String(r.sale_date || "").slice(0, 10), priceUsd: p.usd, nativePrice: p.native, currency: p.currency, house: houseName(r.platform), url: r.url || r.url2 || null, mileage: num(r.mileage), image: r.img || null, title: r.listing_title });
   }
   for (const a of atts || []) {
     if (!a.chassis_vin_norm || a.chassis_vin_norm.length < 6 || isMemorabilia(a.title) || isPartsListing(a.title, a.mileage)) continue;
