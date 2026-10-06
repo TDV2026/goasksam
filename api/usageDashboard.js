@@ -470,6 +470,26 @@ async function handleOps(req, res) {
     });
   }
 
+  // task=modscan: READ-ONLY. Pull a pool (make + up to two title fragments, optional year floor)
+  // and return each row's listing_title, price, date, source, listing url and the RAW
+  // raw_record->>modifications field. Used to audit what Sam's Take counts as "modified" against the
+  // real listing text. No writes, no OCD spend.
+  if (task === "modscan") {
+    if (!env) return res.status(500).json({ error: "no supabase env" });
+    const make = String(req.query?.make || "").trim();
+    const t1 = String(req.query?.t1 || req.query?.title || "").trim();
+    const t2 = String(req.query?.t2 || "").trim();
+    const ymin = req.query?.ymin ? `&year=gte.${encodeURIComponent(String(req.query.ymin))}` : "";
+    const conds = [];
+    if (t1) conds.push(`listing_title.ilike.*${t1}*`);
+    if (t2) conds.push(`listing_title.ilike.*${t2}*`);
+    const andClause = conds.length ? `&and=(${conds.join(",")})` : "";
+    const makeClause = make ? `&make=ilike.*${encodeURIComponent(make)}*` : "";
+    const sel = "select=listing_title,sale_price,sale_date,source_slug,url:raw_record->>url,mods:raw_record->>modifications";
+    const rows = await supabaseSelect(env, `sales_archive?${sel}${makeClause}${andClause}${ymin}&order=sale_date.desc&limit=300`) || [];
+    return res.status(200).json({ task: "modscan", count: rows.length, rows });
+  }
+
   // task=canonproof: READ-ONLY canonical-layer readiness + the Broad Arrow vs Hagerty VIN
   // merge proof. Confirms the DDL is applied, sizes the archive, finds a real cross-source
   // same-VIN pair and runs the actual canonicalize() on it. No writes.
