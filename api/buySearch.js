@@ -18,7 +18,7 @@ import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
 
 const FIRST = 10, MAX = 200;
-const titleCaseIfShouting = s => { s = String(s || ""); return s && s === s.toUpperCase() && /[A-Z]{3}/.test(s) ? s.toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase()) : s; };
+const titleCaseIfShouting = s => String(s || "").split(",").map(p => { const t = p.trim(); return t && t === t.toUpperCase() && /[A-Z]{3}/.test(t) ? t.toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase()) : t; }).filter(Boolean).join(", ");
 function cardOf(x) {
   const r = x.r, facts = x.facts, cc = String(r.country || "").toUpperCase();
   return { id: r.id, source: houseName(r.source), sourceSlug: r.source, title: r.listing_title, url: r.url, photo_url: r.photo_url,
