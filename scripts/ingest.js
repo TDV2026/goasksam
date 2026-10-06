@@ -17,6 +17,7 @@ import { isPartsListing, projectFlagReason } from "../lib/_classify.js";
 import { deltaShouldStop, earliestGapDay, typicalByWeekday, recentDayList, zeroStreakFlag, requestCapReached, isFutureSale } from "../lib/_ingestHealth.js";
 import { resolveIngestIdentity } from "../lib/_unknownClassify.js";
 import { computeDescFacts } from "../lib/_descFacts.js";
+import { mileageFromText } from "../lib/_mileageText.js";
 import { loadFxRates } from "../lib/_fx.js";
 import { hammerUsd, setFxRates } from "../lib/_houseComps.js";
 
@@ -167,13 +168,20 @@ function toFullRow(r, label, source) {
   // Descriptions resilience: stamp the description-derived facts into their own columns at ingest
   // (while we still receive the text), so the readers keep working if the description later stops.
   const df = computeDescFacts({ title: r.title, description: r.description, listingDetails: r.listing_details, mileageStructured: toInt(r.mileage) });
+  // Mileage: 0 -> null (zero is not a mileage). MB Market's structured field is unreliable, so prefer
+  // the figure parsed from the title+description; every other source fills ONLY when structured is null
+  // (never overwrite a real figure). AutoHunter is left alone entirely.
+  let mileage = milesOrNull(r.mileage);
+  const parsedMiles = mileageFromText(r.title, r.description);
+  if (source === "mbmarket") { if (parsedMiles) mileage = parsedMiles.miles; }
+  else if (mileage == null && parsedMiles && source !== "autohunter") mileage = parsedMiles.miles;
   return {
     source_id: String(r.id ?? ""), sale_date: saleDate, platform: label, source_slug: source,
     make: ident.make, model: ident.model, vehicle_type: ident.vehicle_type,
     stated_mileage: df.stated_mileage, project_flag: df.project_flag, desc_facts: df.desc_facts,
     sale_price: toMoney(r.price), sale_price_usd: usdOf(salePrice, r.currency, saleDate, source, label),
     month: d ? d.toISOString().slice(0, 7) : null, raw_record: projFlag ? { ...r, _project_flag: projFlag } : r,
-    year: toInt(r.year), mileage: milesOrNull(r.mileage), body_style: r.body_style ?? null,
+    year: toInt(r.year), mileage, body_style: r.body_style ?? null,
     title_status: r.title_status ?? null, vin: r.vin ?? null, transmission: r.transmission ?? null,
     drivetrain: r.drivetrain ?? null, exterior_color: r.exterior_color ?? null, interior_color: r.interior_color ?? null,
     seller_type: r.seller_type ?? null, listing_title: r.title ?? null, description: r.description ?? null,

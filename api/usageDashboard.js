@@ -3210,6 +3210,44 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "ingestlog", count: rows.length, events: rows.map(r => ({ at: r.created_at, type: r.event_type, status: r.status, ocd_metered: r.oldcarsdata_metered_requests, mode: r.metadata?.mode || null, upserted: r.metadata?.upserted ?? null, ocd_http: r.metadata?.ocd_http_requests ?? null, meta: r.metadata || null })) });
   }
 
+  // task=milesfill: backfill mileage from the title+description parser (lib/_mileageText.js). ZERO OCD.
+  //   ?mode=mb&cursor=<id>  : MB Market - OVERWRITE mileage with the parsed figure where the text states
+  //                           one (prefer parsed over the unreliable stored field); no text -> leave as is.
+  //   ?mode=fill&cursor=<id>: every other source (AutoHunter + MB Market excluded) where mileage IS NULL
+  //                           - fill from the text; no text -> stays null. Never overwrites a non-null.
+  // ?write=1 persists (bulk upsert on source_id). Resumable by id cursor. Returns per-batch tallies +
+  // samples (phrase + basis), so the driver can assemble the before/after examples.
+  if (task === "milesfill") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { mileageFromText } = await import("../lib/_mileageText.js");
+    const mode = String(req.query?.mode || "mb") === "fill" ? "fill" : "mb";
+    const write = req.query?.write === "1";
+    const cursor = req.query?.cursor ? String(req.query.cursor) : "";
+    const limit = Math.max(200, Math.min(1000, Number(req.query?.limit || 1000)));
+    const base = mode === "mb"
+      ? `source_slug=eq.mbmarket`
+      : `mileage=is.null&source_slug=not.eq.autohunter&source_slug=not.eq.mbmarket`;
+    const curF = cursor ? `&id=gt.${encodeURIComponent(cursor)}` : "";
+    const rows = await supabaseSelect(env, `sales_archive?${base}${curF}&select=id,source_id,source_slug,mileage,listing_title,description&order=id.asc&limit=${limit}`) || [];
+    if (!rows.length) return res.status(200).json({ task: "milesfill", mode, done: true, processed: 0, nextCursor: null });
+    const fixes = [], filledBySource = {}, leftNullBySource = {}, samples = [];
+    for (const r of rows) {
+      const parsed = mileageFromText(r.listing_title, r.description);
+      if (parsed && parsed.miles > 0) {
+        // MB Market overwrites; fill mode only ever sees null rows, so it always sets.
+        fixes.push({ source_id: String(r.source_id), mileage: parsed.miles });
+        filledBySource[r.source_slug] = (filledBySource[r.source_slug] || 0) + 1;
+        if (samples.length < 40) samples.push({ src: r.source_slug, title: r.listing_title, before: r.mileage, after: parsed.miles, basis: parsed.basis, phrase: parsed.phrase });
+      } else {
+        leftNullBySource[r.source_slug] = (leftNullBySource[r.source_slug] || 0) + 1;
+        if (samples.filter(s => s.after == null).length < 10) samples.push({ src: r.source_slug, title: r.listing_title, before: r.mileage, after: null, basis: null, phrase: null });
+      }
+    }
+    let wrote = 0, writeErrors = 0;
+    if (write && fixes.length) { for (let i = 0; i < fixes.length; i += 300) { const rr = await supabaseInsert("sales_archive", fixes.slice(i, i + 300), env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id"); if (rr.error) writeErrors++; else wrote += Math.min(300, fixes.length - i); } }
+    return res.status(200).json({ task: "milesfill", mode, write, processed: rows.length, nextCursor: rows[rows.length - 1].id, computable: fixes.length, wrote, writeErrors, filledBySource, leftNullBySource, samples });
+  }
+
   // task=zeromiles: backfill mileage 0 -> null on sales_archive (zero is not a mileage). Per-source
   // PATCH, chunked by year on a statement timeout. ?write=1 to persist; dry = counts by source. ZERO OCD.
   if (task === "zeromiles") {
