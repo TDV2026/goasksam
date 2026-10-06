@@ -37,6 +37,18 @@ function usdOf(native, usd, currency) {
 export async function vinAppearances(env, vin) {
   const want = normVin(vin);
   if (!env || !want) return { vinNorm: want, appearances: [], ok: false };
+  // Lane A's vin_index (one row per appearance, already de-duplicated) when it exists; the direct
+  // sales_archive + auction_attempts read below is the fallback until then.
+  const vi = await supabaseSelect(env, `vin_index?vin_norm=eq.${encodeURIComponent(want)}&select=appearance_date,source,url,listing_title,make,model,model_family,vehicle_type,year,mileage,result,price_usd,currency,country,photo_url&order=appearance_date.desc.nullslast&limit=80`);
+  if (Array.isArray(vi) && vi.length) {
+    const summary = await supabaseSelect(env, `vin_summary?vin_norm=eq.${encodeURIComponent(want)}&select=*&limit=1`);
+    const apps = vi.map(r => { const sold = /^sold|^ended_sold|^sale/i.test(String(r.result || "")); const p = num(r.price_usd); return {
+      kind: sold ? "sale" : "attempt", date: String(r.appearance_date || "").slice(0, 10) || null,
+      priceUsd: sold ? p : null, bidUsd: sold ? null : p, nativePrice: null, nativeBid: null, currency: null,
+      house: houseName(r.source), url: r.url || null, mileage: num(r.mileage), title: r.listing_title || "", image: r.photo_url || null,
+      year: Number(r.year) || null, make: r.make || null, model: r.model || null, body: null, color: null }; });
+    return { vinNorm: want, appearances: apps, ok: true, source: "vin_index", summary: Array.isArray(summary) && summary[0] ? summary[0] : null };
+  }
   const sSel = (usd) => "vin_norm,sale_date,sale_price," + (usd ? "sale_price_usd," : "") + "platform,listing_title,year,make,model,mileage," +
     "img:raw_record->>featured_image_url,url:raw_record->>url,url2:raw_record->>source_url,currency:raw_record->>currency," +
     "body:raw_record->>body_style,color:raw_record->>exterior_color,rtitle:raw_record->>title";
@@ -72,7 +84,7 @@ export async function vinAppearances(env, vin) {
       make: a.make || null, model: a.model || null, body: null, color: null });
   }
   out.sort((x, y) => String(y.date || "").localeCompare(String(x.date || "")));
-  return { vinNorm: want, appearances: out, ok: true };
+  return { vinNorm: want, appearances: out, ok: true, source: "archive" };
 }
 
 // A listing title cleaned to the car's name: no BaT mileage hook, no chassis/VIN clause, no lot code.

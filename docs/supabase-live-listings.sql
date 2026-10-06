@@ -26,3 +26,9 @@ revoke all on live_listings from anon, authenticated;
 alter table public.search_events add column if not exists surface text;
 alter table public.search_events add column if not exists anon_id text;
 alter table public.search_events alter column user_id drop not null;
+
+-- v2 (Oct 2026): colour, description and the bid's own timestamp for /buy filtering and "Bid $X at 2:10pm PT".
+alter table live_listings add column if not exists exterior_color text;
+alter table live_listings add column if not exists std_color text;
+alter table live_listings add column if not exists description text;
+alter table live_listings add column if not exists bid_at timestamptz;

@@ -117,7 +117,7 @@
     var label = thin ? "Why so little" : "Why it looks like this";
     var text = thin
       ? "Because that’s all that sold. We’d rather show you three real sales than a number we made up from them."
-      : "No chart, no estimate, no score. Every figure on this page is a hammer price from a real auction, matched to your car’s trim, body and gearbox, converted at the rate on the day it sold, with the replicas, projects and odd sales set aside. The range is where most of those sales landed. Where there aren’t enough sales to say something, we say that instead.";
+      : "No chart, no estimate, no score. Every figure on this page is a hammer price from a real auction, matched to the car’s trim, body and gearbox, converted at the rate on the day it sold, with the replicas, projects and odd sales set aside. The range is where most of those sales landed. Where there aren’t enough sales to say something, we say that instead.";
     return '<section class="whynote" data-stage="note"><span class="eyebrow">' + esc(label) + '</span><p>' + esc(text) + '</p><a href="/how-sam-decides">How Sam decides &#8594;</a></section>';
   }
   // LIVE PANEL: when live_listings holds cars of this family, "{N} like this are live right now" with
@@ -307,8 +307,20 @@
   }
   // Eyebrow over the range: what the pool is (noun from the resolved car), any answered refinement,
   // and the window. Text stays mixed-case; CSS sets the caps.
+  // When the engine names the trims a pool covers (resolvedCar.trimsCovered, e.g. ["Carrera S",
+  // "Carrera T"]) the eyebrow says so: "992 Carrera S and T Coupes". Shared leading words fold.
+  function trimsCoveredNoun(d) {
+    var rc = d.resolvedCar || {}, list = Array.isArray(rc.trimsCovered) ? rc.trimsCovered.filter(Boolean).map(String) : [];
+    if (list.length < 2) return "";
+    var first = list[0].split(/\s+/), shared = 0;
+    while (shared < first.length - 1 && list.every(function (t) { return t.split(/\s+/)[shared] === first[shared]; })) shared++;
+    var lead = first.slice(0, shared).join(" "), tails = list.map(function (t) { return t.split(/\s+/).slice(shared).join(" "); });
+    var joined = (lead ? lead + " " : "") + (tails.length > 1 ? tails.slice(0, -1).join(", ") + " and " + tails[tails.length - 1] : tails[0]);
+    var g = genCodeLabel(rc), bw = rc.bodyStyle ? (BODY_PLURAL[String(rc.bodyStyle).toLowerCase()] || "") : "";
+    return [g, joined, bw ? bw.charAt(0).toUpperCase() + bw.slice(1) : ""].filter(Boolean).join(" ");
+  }
   function eyebrowText(d) {
-    var noun = carNoun(d);
+    var noun = trimsCoveredNoun(d) || carNoun(d);
     var tmp = document.createElement("div"); tmp.innerHTML = noun; noun = tmp.textContent || "";
     var parts = [noun || "Cars like it"];
     var rf = obLastRefine;
@@ -380,7 +392,7 @@
       var now = Date.now();
       var archRecent = (now - Date.parse(arch + "T00:00:00Z")) <= 2 * 864e5;
       var fact1 = archRecent ? "Sales through last night." : ("Sales through " + monthDayYear(arch) + ".");
-      var modelW = (d.resolvedCar && d.resolvedCar.model) ? titleCaseSaleTitle(d.resolvedCar.model) : "this car";
+      var modelW = (d.resolvedCar && (d.resolvedCar.familyLabel || d.resolvedCar.model)) ? titleCaseSaleTitle(d.resolvedCar.familyLabel || d.resolvedCar.model) : "this car";
       var fact2 = "Latest " + modelW + " sale: " + monthYear(through) + ".";
       return '<div class="fresh"><span class="dot"></span>' + esc(fact1 + " " + fact2) + "</div>";
     }

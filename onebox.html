@@ -235,7 +235,7 @@ a.card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
 .lp-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 14px;align-items:baseline;padding:10px 0;border-top:1px solid var(--div);text-decoration:none;color:inherit}
 .lp-row:first-of-type{border-top:0}
 .lp-row:hover .lp-t{text-decoration:underline;text-underline-offset:3px}
-.lp-house{font:600 12px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--green)}
+.lp-house{font:600 14px/1.2 var(--sans);color:var(--green)}
 .lp-t{font:500 15px/1.35 var(--sans);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lp-r{text-align:right;font:400 14px/1.4 var(--sans);color:var(--sec);white-space:nowrap}
 .lp-r b{display:block;font:600 17px/1.2 var(--serif);color:var(--ink)}
@@ -365,6 +365,6 @@ a.card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
 function obToggleRail(open){var r=document.getElementById("ob-rail"),s=document.getElementById("ob-scrim"),b=document.getElementById("ob-hamburger");if(!r)return;var on=(open===undefined)?!r.classList.contains("open"):!!open;r.classList.toggle("open",on);if(s)s.classList.toggle("open",on);if(b)b.setAttribute("aria-expanded",on?"true":"false");}
 function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("ob-results-menu");if(m)m.classList.toggle("open");return false;}
 </script>
-<script src="/obx.20261011a/onebox.js"></script>
+<script src="/obx.20261012a/onebox.js"></script>
 </body>
 </html>

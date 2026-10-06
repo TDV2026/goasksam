@@ -69,7 +69,7 @@ function freshLine(d) {
   const f = d && d.freshness; if (!f) return "";
   if (f.through && f.archiveThrough && f.through < f.archiveThrough) {
     const archRecent = (Date.now() - Date.parse(f.archiveThrough + "T00:00:00Z")) <= 2 * 864e5;
-    const model = d.resolvedCar && d.resolvedCar.model ? d.resolvedCar.model : "this car";
+    const model = d.resolvedCar && (d.resolvedCar.familyLabel || d.resolvedCar.model) ? (d.resolvedCar.familyLabel || d.resolvedCar.model) : "this car";
     return `<div class="fresh"><span class="d"></span>${esc((archRecent ? "Sales through last night." : "Sales through " + monthYear(f.archiveThrough) + ".") + " Latest " + model + " sale: " + monthYear(f.through) + ".")}</div>`;
   }
   const txt = f.mode === "house" ? (f.through ? "Auction results through " + monthYear(f.through) + "." : "") : f.lastNight ? "Real sales through last night. Nothing estimated." : f.through ? "Real sales through " + monthYear(f.through) + ". Nothing estimated." : "";
@@ -110,7 +110,7 @@ function sellHref(id) {
   return "/sell?" + Object.keys(p).filter(k => p[k] != null && p[k] !== "").map(k => encodeURIComponent(k) + "=" + encodeURIComponent(p[k])).join("&");
 }
 async function carPage(req, res, env, slug, vin) {
-  const { appearances, vinNorm, ok } = await vinAppearances(env, vin);
+  const { appearances, vinNorm, ok, source: dataSource } = await vinAppearances(env, vin);
   if (!ok) return send(res, 503, page({ title: "GoAskSam", body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }));
   if (!appearances.length) return notFound(res, "VIN " + vinNorm);
   const id = await carIdentity(appearances, vinNorm);
@@ -183,13 +183,14 @@ ${WHY_RESULT_HTML}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>
 <script>(function(){var b=document.getElementById("watch-open"),f=document.getElementById("watch"),m=document.getElementById("watch-msg");if(!b||!f)return;b.addEventListener("click",function(){f.hidden=!f.hidden;b.setAttribute("aria-expanded",f.hidden?"false":"true");if(!f.hidden)document.getElementById("watch-email").focus();});f.addEventListener("submit",function(e){e.preventDefault();var em=document.getElementById("watch-email").value.trim();if(!em)return;m.textContent="Saving...";fetch("/api/history",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"watch",vin:${JSON.stringify(vinNorm)},email:em})}).then(function(r){return r.json();}).then(function(j){m.textContent=j&&j.ok?"Done. I\\u2019ll email you if this car comes up at auction again.":"I couldn\\u2019t save that just now. Try again in a minute.";}).catch(function(){m.textContent="I couldn\\u2019t save that just now. Try again in a minute.";});});})();</script>`;
   const canonical = `${SITE}/history/${id.slug}/${vinNorm}`;
+  const body2 = body + `<!-- data: ${dataSource || "archive"} -->`;
   const ld = [{
     "@context": "https://schema.org", "@type": "Vehicle", name, vehicleIdentificationNumber: vinNorm,
     brand: { "@type": "Brand", name: id.make }, model: id.family, vehicleModelDate: id.year ? String(id.year) : undefined,
     image: photo ? photo.image : undefined, url: canonical,
     offers: appearances.filter(a => a.kind === "sale" && a.priceUsd).map(a => ({ "@type": "Offer", price: Math.round(a.priceUsd), priceCurrency: "USD", availability: "https://schema.org/SoldOut", validFrom: a.date, url: a.url || undefined, seller: { "@type": "Organization", name: a.house } }))
   }, { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) }];
-  send(res, 200, page({ title: `${name} auction history, VIN ${vinNorm} | GoAskSam`, description: answer, canonical, body, ld }));
+  send(res, 200, page({ title: `${name} auction history, VIN ${vinNorm} | GoAskSam`, description: answer, canonical, body: body2, ld }));
 }
 // LIVE NOW slot (only when live_listings holds this vin_norm as live): bid, house, end time in PT.
 function endsPT(iso) {

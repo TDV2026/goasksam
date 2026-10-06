@@ -8,6 +8,7 @@
 // request goes through lib/_ocd.js callOldCarsData (the shared daily cap + usage meter, read-only use).
 import { callOldCarsData, configureOcdUsage, getOcdRunMetered, flushOcdUsage } from "../lib/_ocd.js";
 import { historyEnv } from "./_historyData.js";
+import { recordUsageEvent } from "./_usage.js";
 import { mapLiveRecord, upsertLive, markVanished, fillFinalPrices, liveStats } from "../lib/live/feed.js";
 
 export default async function handler(req, res) {
@@ -38,13 +39,23 @@ export default async function handler(req, res) {
       await flushOcdUsage();
       return res.status(200).json({ probe: true, ocdRequests: used(), returned: data.length, meta: r.meta || null, keys: data[0] ? Object.keys(data[0]) : [], samples: data.slice(0, 2) });
     }
+    // 0. Monthly guard: skip the whole run while OCD's own remaining monthly quota (the header /sell
+    // persists to app_config ocd_rate_limit) is below OCD_SELL_MONTHLY_RESERVE + 100. Logged when skipped.
+    const reserve = Number(process.env.OCD_SELL_MONTHLY_RESERVE || 450) + 100;
+    const rl = await readRemaining(env);
+    if (rl && rl.fresh && rl.remaining < reserve) {
+      await recordUsageEvent({ event_type: "pull_live_skipped", route: "pull_live", status: "skipped", oldcarsdata_metered_requests: 0, metadata: { remaining: rl.remaining, reserve, at: rl.at } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+      return res.status(200).json({ ok: true, skipped: "monthly OCD remaining below reserve", remaining: rl.remaining, reserve, ocdRequests: 0 });
+    }
     // 1. Walk every page of the live feed, bounded by --max-requests.
     const seenAt = new Date().toISOString();
     const rows = [], perSource = {};
-    let page = 1, total = null, truncated = false;
+    let page = 1, total = null, truncated = false, stoppedForReserve = null;
     while (true) {
       if (used() >= maxReq) { truncated = true; break; }
-      const r = await callOldCarsData("/auctions/live", { page, limit }, apiKey);
+      const r = await ocdWithRetry(() => callOldCarsData("/auctions/live", { page, limit }, apiKey), used, maxReq);
+      const hdr = r.__rateLimit && r.__rateLimit.remaining != null ? Number(r.__rateLimit.remaining) : null;
+      if (hdr != null && hdr < reserve) { stoppedForReserve = hdr; truncated = true; }
       const data = r.data || r.results || [];
       if (total == null) total = (r.meta && (r.meta.total ?? r.meta.total_results ?? r.meta.count)) ?? null;
       for (const rec of data) {
@@ -54,6 +65,7 @@ export default async function handler(req, res) {
         perSource[row.source] = (perSource[row.source] || 0) + 1;
       }
       const pages = r.meta && (r.meta.total_pages ?? r.meta.pages ?? r.meta.last_page);
+      if (stoppedForReserve != null) break;
       if (!data.length || data.length < limit || (pages && page >= pages) || (total != null && page * limit >= total)) break;
       page++;
     }
@@ -64,9 +76,39 @@ export default async function handler(req, res) {
     const finals = await fillFinalPrices(env);
     const stats = await liveStats(env, rows);
     await flushOcdUsage();
-    return res.status(200).json({ ok: true, ocdRequests: used(), maxRequests: maxReq, truncated, feedTotal: total, fetched: rows.length, perSource, upserted: up, ended, finals, ...stats });
+    if (stoppedForReserve != null) await recordUsageEvent({ event_type: "pull_live_skipped", route: "pull_live", status: "stopped", oldcarsdata_metered_requests: 0, metadata: { remaining: stoppedForReserve, reserve } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+    return res.status(200).json({ ok: true, ocdRequests: used(), maxRequests: maxReq, truncated, stoppedForReserve, feedTotal: total, fetched: rows.length, perSource, upserted: up, ended, finals, ...stats });
   } catch (e) {
     await flushOcdUsage().catch(() => {});
     return res.status(500).json({ ok: false, ocdRequests: used(), error: String((e && e.message) || e).slice(0, 300) });
   }
+}
+
+// A metered call with at most 2 retries, and only for a 5xx or a network failure. Any 4xx stops at
+// once (a 4xx is never retried: it costs a request and will not change), as does the run's cap.
+async function ocdWithRetry(fn, used, maxReq) {
+  let last;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try { return await fn(); }
+    catch (e) {
+      last = e;
+      const st = Number(e && e.status);
+      if (e && e.ocdHardCap) throw e;
+      if (st >= 400 && st < 500) throw e;
+      if (attempt === 2 || used() >= maxReq) throw e;
+    }
+  }
+  throw last;
+}
+// OCD's monthly remaining, as persisted by /sell from the response header (app_config ocd_rate_limit).
+async function readRemaining(env) {
+  try {
+    const r = await fetch(`${env.supabaseUrl}/rest/v1/app_config?key=eq.ocd_rate_limit&select=value&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
+    if (!r.ok) return null;
+    const rows = await r.json(); const raw = rows && rows[0] && rows[0].value; if (!raw) return null;
+    const v = typeof raw === "string" ? JSON.parse(raw) : raw;
+    const remaining = Number(v && v.remaining), at = Number(v && v.at) || 0;
+    if (!Number.isFinite(remaining)) return null;
+    return { remaining, at, fresh: at > 0 && Date.now() - at < 6 * 3600e3 };
+  } catch { return null; }
 }
