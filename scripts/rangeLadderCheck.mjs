@@ -75,7 +75,7 @@ eq("mileage plain", T.stPlainClause("mileage", PA), "The higher half of sales ha
 eq("transmission plain", T.stPlainClause("transmission", PA), "The higher half were 7 in 10 manual; the lower half 3 in 10.");
 eq("flaws plain", T.stPlainClause("flaws", PA), "The higher half had no reported issues; the lower half averaged three.");
 eq("service plain", T.stPlainClause("service", PA), "The higher half had a recent service record 8 in 10; the lower half 2 in 10.");
-eq("mods plain", T.stPlainClause("modifications", PA), "The higher half were 2 in 10 modified; the lower half 6 in 10.");
+eq("mods plain", T.stPlainClause("modifications", PA), "Most of the lower sales had been modified; some of the higher ones had.");
 truthy("no doubled 'stronger' in any template", !["mileage","transmission","flaws","service","modifications"].some(k => /stronger/i.test(T.stPlainClause(k, PA) || "")));
 
 console.log("\n== backlog: vehicle_type filter + badge-twin siblings ==");
