@@ -162,14 +162,15 @@ export async function oneBoxFor(env, id, exactSale) {
 // Multi-word makes, so a hub slug splits make from model correctly.
 const MULTI_MAKES = ["mercedes-benz", "mercedes-amg", "aston-martin", "alfa-romeo", "land-rover", "rolls-royce", "de-tomaso", "austin-healey", "pierce-arrow", "iso-rivolta", "facel-vega", "hispano-suiza", "de-lorean", "am-general", "mclaren-automotive"];
 export function parseHubSlug(slug) {
-  const m = /^((?:18|19|20)\d{2})-(.+)$/.exec(String(slug || "").toLowerCase());
-  if (!m) return null;
+  const t = String(slug || "").toLowerCase();
+  const m = /^((?:18|19|20)\d{2})-(.+)$/.exec(t) || [null, null, t];
+  if (!m[2] || !/-/.test(m[2])) return null;
   const rest = m[2];
   const mm = MULTI_MAKES.find(x => rest === x || rest.startsWith(x + "-"));
   const makeSlug = mm || rest.split("-")[0];
   const modelSlug = rest.slice(makeSlug.length + 1);
   if (!modelSlug) return null;
-  return { year: Number(m[1]), makeSlug, modelSlug };
+  return { year: m[1] ? Number(m[1]) : null, makeSlug, modelSlug };
 }
 
 // Hub rows: every VIN of one year + make + model, from the archive titles. Parts/memorabilia lots
@@ -180,8 +181,8 @@ export async function hubVins(env, hub) {
   const sSel = "vin_norm,sale_date,sale_price,sale_price_usd,platform,listing_title,mileage,img:raw_record->>featured_image_url,url:raw_record->>url,url2:raw_record->>source_url,currency:raw_record->>currency";
   const aSel = "chassis_vin_norm,attempt_date,high_bid,high_bid_usd,source_slug,title:raw_record->>title,img:raw_record->>featured_image_url,url:raw_record->>url,url2:raw_record->>source_url,mileage:raw_record->>mileage,currency:raw_record->>currency";
   const [sales, atts] = await Promise.all([
-    supabaseSelect(env, `sales_archive?year=eq.${hub.year}&listing_title=ilike.${pat}&vin_norm=not.is.null&select=${sSel}&order=sale_date.desc&limit=400`),
-    supabaseSelect(env, `auction_attempts?year=eq.${hub.year}&raw_record->>title=ilike.${pat}&chassis_vin_norm=not.is.null&select=${aSel}&order=attempt_date.desc&limit=400`)
+    supabaseSelect(env, `sales_archive?${hub.year ? "year=eq." + hub.year + "&" : ""}listing_title=ilike.${pat}&vin_norm=not.is.null&select=${sSel}&order=sale_date.desc&limit=400`),
+    supabaseSelect(env, `auction_attempts?${hub.year ? "year=eq." + hub.year + "&" : ""}raw_record->>title=ilike.${pat}&chassis_vin_norm=not.is.null&select=${aSel}&order=attempt_date.desc&limit=400`)
   ]);
   if (sales == null && atts == null) return null;
   const by = new Map();
@@ -223,3 +224,58 @@ export async function addWatch(env, vinNorm, email) {
     return r.ok;
   } catch (e) { console.error("watch_requests insert threw", e && e.message); return false; }
 }
+
+// ---------------------------------------------------------------- "What the listing said" (facts, never the text)
+// From the newest sale's own record: the stored desc_facts markers plus a few structured listing facts
+// (spec programme, history report, owners). Returned as facts; the page words them in Sam's voice.
+const SPEC_PROGRAMMES = [[/tailor[\s-]?made/i, "Tailor Made"], [/\bpaint[\s-]?to[\s-]?sample\b|\bPTS\b/, "Paint to Sample"], [/\bspecial projects\b/i, "Special Projects"], [/\batelier\b/i, "Atelier"], [/\bQ by Aston Martin\b|\bQ division\b/i, "Q by Aston Martin"], [/\bad personam\b/i, "Ad Personam"], [/\bMSO\b|McLaren Special Operations/, "MSO"], [/\bbespoke\b/i, "Bespoke"], [/\bdesigno\b/i, "designo"], [/\bindividual\b(?= (?:paint|order|programme|program))/i, "Individual"]];
+const MARKER_WORDS = { matching_numbers: "matching numbers", classiche: "Ferrari Classiche certification", massini: "a Marcel Massini report", documented_history: "documented history", restored: "a restoration", original_paint: "original paint", rhd: "right-hand drive", alloy_body: "an alloy body", long_nose: "the long nose" };
+export async function listingSaid(env, vinNorm) {
+  const rows = await supabaseSelect(env, `sales_archive?vin_norm=eq.${encodeURIComponent(vinNorm)}&select=sale_date,mileage,stated_mileage,desc_facts,ld:raw_record->listing_details,own:raw_record->>ownership_history,desc:raw_record->>description&order=sale_date.desc.nullslast&limit=1`);
+  const r = rows && rows[0]; if (!r) return null;
+  const text = [r.desc || "", Array.isArray(r.ld) ? r.ld.join(". ") : (r.ld || ""), r.own || ""].join(" . ");
+  const miles = num(r.mileage) || num(r.stated_mileage);
+  const programme = (SPEC_PROGRAMMES.find(([re]) => re.test(text)) || [])[1] || null;
+  const report = /\bcarfax\b/i.test(text) ? "Carfax" : /\bautocheck\b/i.test(text) ? "AutoCheck" : null;
+  let owners = null;
+  const om = /\b(one|single|two|three|four|five|1|2|3|4|5)[\s-]*(?:previous\s+)?owners?\b/i.exec(text) || /\b(one)[\s-]owner\b/i.exec(text);
+  if (om) { const w = om[1].toLowerCase(); owners = { one: 1, single: 1, two: 2, three: 3, four: 4, five: 5 }[w] || Number(w) || null; }
+  const markers = ((r.desc_facts && r.desc_facts.markers) || []).map(m => MARKER_WORDS[m]).filter(Boolean);
+  if (!miles && !programme && !report && !owners && !markers.length) return null;
+  return { date: String(r.sale_date || "").slice(0, 10), miles, programme, report, owners, markers };
+}
+
+// ---------------------------------------------------------------- other cars of the same family that sold
+// Same make + family tokens in the title (any year), one row per VIN, newest first. Rows link to that
+// car's own VIN page; the slug uses this family, the same as carIdentity would give it.
+export async function familySales(env, id, excludeVin, limit = 25) {
+  const toks = [...slugify(id.make).split("-"), ...slugify(id.family).split("-")].filter(Boolean);
+  const pat = encodeURIComponent("*" + toks.join("*") + "*");
+  const rows = await supabaseSelect(env, `sales_archive?listing_title=ilike.${pat}&vin_norm=not.is.null&select=vin_norm,year,sale_date,sale_price,sale_price_usd,platform,listing_title,mileage,currency:raw_record->>currency&order=sale_date.desc&limit=200`);
+  if (!rows) return null;
+  const out = [], seen = new Set([excludeVin]);
+  for (const r of rows) {
+    if (!r.vin_norm || r.vin_norm.length < 11 || seen.has(r.vin_norm)) continue;
+    if (isMemorabilia(r.listing_title) || isPartsListing(r.listing_title, r.mileage)) continue;
+    seen.add(r.vin_norm);
+    const p = usdOf(r.sale_price, r.sale_price_usd, r.currency);
+    const year = Number(r.year) || null;
+    out.push({ vin: r.vin_norm, year, miles: num(r.mileage), priceUsd: p.usd, nativePrice: p.native, currency: p.currency, date: String(r.sale_date || "").slice(0, 10), house: houseName(r.platform),
+      href: `/history/${[year, slugify(id.make), slugify(id.family)].filter(Boolean).join("-")}/${r.vin_norm}` });
+  }
+  return { rows: out.slice(0, limit), more: out.length > limit, allHref: `/history/${slugify(id.make)}-${slugify(id.family)}` };
+}
+
+// ---------------------------------------------------------------- sitemap rows: VINs with a sale that has a photo
+export const SITEMAP_PAGE = 1000;
+export async function sitemapRows(env, page) {
+  return supabaseSelect(env, `sales_archive?vin_norm=not.is.null&raw_record->>featured_image_url=not.is.null&select=vin_norm,year,listing_title,sale_date&order=id.asc&limit=${SITEMAP_PAGE}&offset=${page * SITEMAP_PAGE}`);
+}
+export async function sitemapCount(env) {
+  try {
+    const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?vin_norm=not.is.null&raw_record->>featured_image_url=not.is.null&select=id&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=estimated" } });
+    const cr = r.headers.get("content-range") || ""; const n = Number(cr.split("/")[1]);
+    return Number.isFinite(n) ? n : null;
+  } catch { return null; }
+}
+export { resolveText };

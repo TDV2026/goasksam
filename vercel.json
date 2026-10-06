@@ -35,6 +35,8 @@
     { "source": "/history/:slug/:vin", "destination": "/api/history?slug=:slug&vin=:vin" },
     { "source": "/history/:slug", "destination": "/api/history?slug=:slug" },
     { "source": "/vin/:vin", "destination": "/api/history?vin=:vin&go=1" },
+    { "source": "/sitemap-vins.xml", "destination": "/api/history?sitemap=index" },
+    { "source": "/sitemap-vins-(\\d+).xml", "destination": "/api/history?sitemap=$1" },
     { "source": "/buy", "destination": "/api/buy" },
     { "source": "/dsk.20260928k/(.*)", "destination": "/js/$1" },
     { "source": "/dsk.20261006a/(.*)", "destination": "/js/$1" },

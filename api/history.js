@@ -3,14 +3,46 @@
 //   GET /history/{year}-{make}-{model-slug}        -> the hub page   (?slug=)
 //   GET /vin/{VIN}                                 -> 301 to the car page (?vin=&go=1)
 //   POST /api/history {action:"watch", vin, email} -> watch_requests (service role)
-// Noindex for now (meta + X-Robots-Tag); the SEO scaffolding (title, description, canonical,
-// JSON-LD) is in place for the later indexing job. Same tokens and fonts as One Box.
-import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, liveListing, addWatch, carSlug, familyOf, slugify } from "./_historyData.js";
+// Indexing (Oct 2026): a car page is indexable when the car has at least one SALE with a photo, and is
+// listed in /sitemap-vins.xml; every other page (no photographed sale, hubs, 404s) stays noindex.
+//   GET /sitemap-vins.xml -> sitemap index (?sitemap=index);  /sitemap-vins-N.xml -> page N (?sitemap=N)
+import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, liveListing, addWatch, carSlug, familyOf, slugify, listingSaid, familySales, sitemapRows, sitemapCount, SITEMAP_PAGE, resolveText, cleanTitle } from "./_historyData.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { PAGE_CSS as CSS, FONT_LINKS, railHtml, WHY_RESULT_HTML } from "./_chrome.js";
 
 const SITE = "https://goasksam.com";
-const NOINDEX = true;
+// Restyle (Oct 2026): the Buy design. Cream paper, serif, hairlines not boxes, no badges, larger photo.
+const STYLE = `:root{--page:#F6F1E8;--ink:#23211E;--sec:#7A746B;--div:#E2DACB;--ph:#E9E2D4}
+body{background:var(--page);color:var(--ink)}.rail{background:var(--page)}
+.col{max-width:900px}
+.card,section.card,.card.anscard,.card.live{background:none;border:0;border-top:1px solid var(--div);border-radius:0;box-shadow:none}
+section.card{padding:22px 0 0}
+.top{grid-template-columns:1fr;gap:18px}
+.top h1{font:400 40px/1.15 var(--serif);letter-spacing:-.005em}
+.eyebrow{color:var(--sec);letter-spacing:.12em}
+.photo{height:auto;aspect-ratio:1.75;border:0;border-radius:0}
+figcaption{font-size:13px}
+.answer{font:400 22px/1.45 var(--serif)}
+h2{font:400 24px/1.3 var(--serif)}
+.roundel,.take .tag .roundel{display:none}
+.samline p{font:400 21px/1.45 var(--serif)}
+.ans-main{border-right:1px solid var(--div);padding-left:0}
+.anscard.solo .ans-main{border-right:0}
+.take{background:none}
+table.stack th{font:500 12px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--sec)}
+.faq dt{font:400 19px/1.4 var(--serif)}
+.faq dd{font:400 16px/1.55 var(--sans);color:var(--ink)}
+.btns{gap:28px}
+.btn,.btn.s,.btn.p{background:none;border:0;padding:0;min-height:44px;border-radius:0;color:var(--ink);font:500 16px/1.4 var(--sans);text-decoration:underline;text-underline-offset:4px}
+.btn:hover,.btn.s:hover{background:none;color:var(--green)}
+.said{margin:0;font:400 19px/1.5 var(--serif)}
+.others{list-style:none;margin:0;padding:0}
+.others li{border-top:1px solid var(--div);padding:10px 0}
+.others li:first-child{border-top:0}
+.others a{display:flex;flex-wrap:wrap;gap:4px 18px;color:var(--ink);text-decoration:none;font:400 15px/1.5 var(--sans)}
+.others a:hover .p{text-decoration:underline}
+.others .p{font-weight:600}.others .m{color:var(--sec)}
+@media (max-width:640px){.top h1{font-size:30px}.answer{font-size:19px}.ans-main{border-right:0}}`;
 const M = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const MS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const HOUSES = new Set(["Gooding & Co", "RM Sotheby's", "Bonhams", "Broad Arrow", "Mecum", "Barrett-Jackson", "Sotheby's Motorsport"]);
@@ -28,28 +60,36 @@ function on(house) { return (HOUSES.has(house) ? "at " : "on ") + house; }
 function miles(n) { return n ? Math.round(n).toLocaleString("en-US") : ""; }
 function timesWord(n) { return n === 1 ? "once" : n === 2 ? "twice" : n + " times"; }
 function salePrice(a) { return money(a.priceUsd, a.nativePrice, a.currency); }
+// Buyer's fee, only where the house's published fee is known (USD hammer): Bring a Trailer 5%
+// ($250 to $7,500), Cars & Bids 4.5% ($225 to $4,500). Elsewhere the hammer stands alone.
+const FEES = { "Bring a Trailer": [0.05, 250, 7500], "Cars & Bids": [0.045, 225, 4500] };
+function withFee(a) {
+  const f = FEES[a.house]; if (!f || !a.priceUsd || a.nativePrice) return null;
+  return a.priceUsd + Math.min(f[2], Math.max(f[1], Math.round(a.priceUsd * f[0])));
+}
+function salePriceFee(a) { const w = withFee(a); return salePrice(a) + (w ? ` (${usd(w)} with buyer's fee)` : ""); }
 function bidPrice(a) { return money(a.bidUsd, a.nativeBid, a.currency); }
-function resultText(a) { return a.kind === "sale" ? "Sold " + salePrice(a) : (bidPrice(a) ? "Bid to " + bidPrice(a) + ", not sold" : "Not sold"); }
+function resultText(a) { return a.kind === "sale" ? "Sold " + salePriceFee(a) : (bidPrice(a) ? "Bid to " + bidPrice(a) + ", not sold" : "Not sold"); }
 function utm(url) { return url ? url + (url.includes("?") ? "&" : "?") + "utm_source=goasksam&utm_medium=history&utm_campaign=vin_page" : null; }
 function jsonLd(o) { return '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, "\\u003c") + "</script>"; }
 
 // ---------------------------------------------------------------- shared page chrome
-function page({ title, description, canonical, body, ld }) {
+function page({ title, description, canonical, body, ld, index }) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${esc(title)}</title>
 ${description ? `<meta name="description" content="${esc(description)}">` : ""}
-${NOINDEX ? '<meta name="robots" content="noindex, follow">' : ""}
+${index ? '<meta name="robots" content="index, follow">' : '<meta name="robots" content="noindex, follow">'}
 ${canonical ? `<link rel="canonical" href="${esc(canonical)}">` : ""}
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#1E4D38">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;family=Instrument+Sans:wght@400;500;600&amp;display=swap">
-<style>${CSS}</style>${(ld || []).map(jsonLd).join("")}</head><body>
+<style>${CSS}${STYLE}</style>${(ld || []).map(jsonLd).join("")}</head><body>
 ${railHtml("history")}
 <main><div class="col">${body}</div></main></body></html>`;
 }
-function send(res, status, html, extra = {}) {
+function send(res, status, html, extra = {}, index = false) {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  if (NOINDEX) res.setHeader("X-Robots-Tag", "noindex, follow");
+  if (!index) res.setHeader("X-Robots-Tag", "noindex, follow");
   res.setHeader("Cache-Control", status === 200 ? "public, s-maxage=600, stale-while-revalidate=3600" : "no-store");
   for (const k of Object.keys(extra)) res.setHeader(k, extra[k]);
   res.status(status).send(html);
@@ -122,8 +162,8 @@ async function carPage(req, res, env, slug, vin) {
   const lastSale = sales[0] || null, newest = appearances[0];
   // 2. THE ANSWER
   let answer;
-  if (sales.length >= 2) answer = `This ${name} has sold at auction ${sales.length} times, most recently for ${salePrice(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}.`;
-  else if (sales.length === 1) answer = `This ${name} sold once at auction, for ${salePrice(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}.`;
+  if (sales.length >= 2) answer = `This ${name} has sold at auction ${sales.length} times, most recently for ${salePriceFee(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}.`;
+  else if (sales.length === 1) answer = `This ${name} sold once at auction, for ${salePriceFee(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}.`;
   else {
     const top = atts.filter(a => a.bidUsd || a.nativeBid).sort((x, y) => (y.bidUsd || 0) - (x.bidUsd || 0))[0];
     answer = `This ${name} has been offered at auction ${atts.length === 1 ? "once" : atts.length + " times"} without selling` + (top ? `; the highest bid was ${bidPrice(top)} ${on(top.house)} in ${monthYear(top.date)}.` : ".");
@@ -144,7 +184,7 @@ async function carPage(req, res, env, slug, vin) {
   }
   // 5. CARS LIKE IT (the engine, read-only) + LIVE NOW, in parallel
   const exactSale = lastSale && lastSale.priceUsd ? { price: lastSale.priceUsd, mileage: lastSale.mileage, soldDate: lastSale.date } : null;
-  const [d, live] = await Promise.all([oneBoxFor(env, id, exactSale), liveListing(env, vinNorm)]);
+  const [d, live, said, others] = await Promise.all([oneBoxFor(env, id, exactSale), liveListing(env, vinNorm), listingSaid(env, vinNorm).catch(() => null), familySales(env, id, vinNorm).catch(() => null)]);
   const n = poolCount(d);
   let ctx = "";
   if (n) ctx = (lastSale && lastSale.date >= windowStartIso(d) ? `One of ${n}` : `${n}`) + ` ${id.family} sales at auction in ${poolWindow(d)}.`;
@@ -153,12 +193,16 @@ async function carPage(req, res, env, slug, vin) {
   let cmp = "There are not enough recent sales to say.";
   if (lastSale && lastSale.priceUsd && d && d.tier === "result" && d.cluster) {
     const [lo, hi] = d.cluster, p = lastSale.priceUsd;
-    cmp = p > hi ? `Above the range where most ${id.family} sales landed in ${windowText(d)} (${usd(lo)} to ${usd(hi)}).`
-      : p < lo ? `Below the range where most ${id.family} sales landed in ${windowText(d)} (${usd(lo)} to ${usd(hi)}).`
-      : `In the ${p >= (lo + hi) / 2 ? "upper" : "lower"} half of the range where most ${id.family} sales landed in ${windowText(d)} (${usd(lo)} to ${usd(hi)}).`;
+    // Position words that stay fair near an edge: within 2% of an end reads "right at" it.
+    const span = hi - lo, near = 0.02;
+    const where = p < lo ? ((lo - p) / lo <= near ? "Right at the bottom of" : "Below")
+      : p > hi ? ((p - hi) / hi <= near ? "Right at the top of" : "Above")
+      : (span > 0 && (p - lo) / span <= 0.25) ? "Near the bottom of"
+      : (span > 0 && (hi - p) / span <= 0.25) ? "Near the top of" : "In the middle of";
+    cmp = `${where} the range where most ${id.family} sales landed in ${windowText(d)} (${usd(lo)} to ${usd(hi)}).`;
   }
   const faq = [
-    ["What did this car last sell for?", lastSale ? `${salePrice(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}.` : `It has not sold at auction. ${answer.replace(/^This [^;]+; /, "").replace(/^t/, "T")}`],
+    ["What did this car last sell for?", lastSale ? `${salePriceFee(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}.` : `It has not sold at auction. ${answer.replace(/^This [^;]+; /, "").replace(/^t/, "T")}`],
     ["How many times has it been to auction?", `${timesWord(appearances.length).replace(/^./, c => c.toUpperCase())}: ${sales.length} sale${sales.length === 1 ? "" : "s"} and ${atts.length} unsold attempt${atts.length === 1 ? "" : "s"}.`],
     ["How does its last sale compare with others?", lastSale ? cmp : "It has not sold, so there is no sale to compare."]
   ];
@@ -174,23 +218,48 @@ ${live ? liveNowHtml(live) : ""}
 <section class="card"><div class="sh"><h2>Every time it&#8217;s been to auction</h2><span class="muted">${appearances.length} appearance${appearances.length === 1 ? "" : "s"}</span></div>
 <table class="stack"><thead><tr><th>Date</th><th>Where</th><th class="r">Miles</th><th class="r">Result</th></tr></thead><tbody>${rows}</tbody></table></section>
 ${samLine ? `<div class="samline"><span class="roundel" aria-hidden="true">SAM</span><p>${esc(samLine)}</p></div>` : ""}
+${saidHtml(said)}
 ${oneBoxBlock(d, id, oneboxCar, ctx)}
+${othersHtml(others, id)}
 <section class="card"><h2 style="margin-bottom:12px">Questions</h2><dl class="faq">${faq.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>
-<div><div class="btns"><a class="btn s" href="${esc(sellHref(id))}">Where I&#8217;d sell it</a><button type="button" class="btn s" id="watch-open" aria-expanded="false" aria-controls="watch">Watch this car</button></div>
-<form class="watch" id="watch" hidden><label for="watch-email" style="position:absolute;left:-9999px">Email</label><input id="watch-email" type="email" required placeholder="Your email" autocomplete="email"><button class="btn p" type="submit">Watch it</button><p class="msg" id="watch-msg">I&#8217;ll email you if this car comes up at auction again.</p></form></div>
+<div><div class="btns"><a class="btn s" href="${esc(sellHref(id))}">Where to sell it</a><button type="button" class="btn s" id="watch-open" aria-expanded="false" aria-controls="watch">Watch this car</button></div>
+<form class="watch" id="watch" hidden><label for="watch-email" style="position:absolute;left:-9999px">Email</label><input id="watch-email" type="email" required placeholder="Your email" autocomplete="email"><button class="btn p" type="submit">Watch it</button><p class="msg" id="watch-msg">Sam will email you if this car comes up at auction again.</p></form></div>
 <div class="links"><a href="${esc(hubHref)}">All ${esc(id.year + " " + id.make + " " + id.family)} auction results &#8594;</a></div>
 ${WHY_RESULT_HTML}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>
-<script>(function(){var b=document.getElementById("watch-open"),f=document.getElementById("watch"),m=document.getElementById("watch-msg");if(!b||!f)return;b.addEventListener("click",function(){f.hidden=!f.hidden;b.setAttribute("aria-expanded",f.hidden?"false":"true");if(!f.hidden)document.getElementById("watch-email").focus();});f.addEventListener("submit",function(e){e.preventDefault();var em=document.getElementById("watch-email").value.trim();if(!em)return;m.textContent="Saving...";fetch("/api/history",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"watch",vin:${JSON.stringify(vinNorm)},email:em})}).then(function(r){return r.json();}).then(function(j){m.textContent=j&&j.ok?"Done. I\\u2019ll email you if this car comes up at auction again.":"I couldn\\u2019t save that just now. Try again in a minute.";}).catch(function(){m.textContent="I couldn\\u2019t save that just now. Try again in a minute.";});});})();</script>`;
+<script>(function(){var b=document.getElementById("watch-open"),f=document.getElementById("watch"),m=document.getElementById("watch-msg");if(!b||!f)return;b.addEventListener("click",function(){f.hidden=!f.hidden;b.setAttribute("aria-expanded",f.hidden?"false":"true");if(!f.hidden)document.getElementById("watch-email").focus();});f.addEventListener("submit",function(e){e.preventDefault();var em=document.getElementById("watch-email").value.trim();if(!em)return;m.textContent="Saving...";fetch("/api/history",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"watch",vin:${JSON.stringify(vinNorm)},email:em})}).then(function(r){return r.json();}).then(function(j){m.textContent=j&&j.ok?"Done. Sam will email you if this car comes up at auction again.":"That didn\\u2019t save just now. Try again in a minute.";}).catch(function(){m.textContent="That didn\\u2019t save just now. Try again in a minute.";});});})();</script>`;
   const canonical = `${SITE}/history/${id.slug}/${vinNorm}`;
   const body2 = body + `<!-- data: ${dataSource || "archive"} -->`;
   const ld = [{
     "@context": "https://schema.org", "@type": "Vehicle", name, vehicleIdentificationNumber: vinNorm,
+    mileageFromOdometer: lastSale && lastSale.mileage ? { "@type": "QuantitativeValue", value: Math.round(lastSale.mileage), unitCode: "SMI" } : undefined,
+    color: (appearances.find(a => a.color) || {}).color || undefined, bodyType: id.bodyStyle || undefined,
     brand: { "@type": "Brand", name: id.make }, model: id.family, vehicleModelDate: id.year ? String(id.year) : undefined,
     image: photo ? photo.image : undefined, url: canonical,
     offers: appearances.filter(a => a.kind === "sale" && a.priceUsd).map(a => ({ "@type": "Offer", price: Math.round(a.priceUsd), priceCurrency: "USD", availability: "https://schema.org/SoldOut", validFrom: a.date, url: a.url || undefined, seller: { "@type": "Organization", name: a.house } }))
   }, { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) }];
-  send(res, 200, page({ title: `${name} auction history, VIN ${vinNorm} | GoAskSam`, description: answer, canonical, body: body2, ld }));
+  const index = sales.some(a => a.image);
+  send(res, 200, page({ title: `${name} (${vinNorm}) auction history and sale price`, description: answer, canonical, body: body2, ld, index }), {}, index);
+}
+// WHAT THE LISTING SAID: facts from the sale's own record, worded by Sam; never the house's text.
+// Dated and past tense: these are what the listing reported at the time of that sale.
+function saidHtml(s) {
+  if (!s) return "";
+  const parts = [];
+  if (s.miles) parts.push(`${miles(s.miles)} miles`);
+  if (s.programme) parts.push(`a ${s.programme} specification`);
+  if (s.report) parts.push(`a ${s.report} report`);
+  if (s.owners) parts.push(s.owners === 1 ? "one owner" : `${s.owners} owners`);
+  for (const m of s.markers || []) parts.push(m);
+  if (!parts.length) return "";
+  const list = parts.length === 1 ? parts[0] : parts.slice(0, -1).join(", ") + " and " + parts[parts.length - 1];
+  return `<section class="card"><h2 style="margin-bottom:10px">What the listing said</h2><p class="said">${esc(`When it sold in ${monthYear(s.date)}, the listing gave ${list}.`)}</p></section>`;
+}
+// OTHER {FAMILY} THAT SOLD: a plain list, newest first, each row to that car's own page.
+function othersHtml(o, id) {
+  if (!o || !o.rows.length) return "";
+  const li = o.rows.map(r => `<li><a href="${esc(r.href)}"><span>${esc(r.year || "")}</span><span class="m">${esc(r.miles ? miles(r.miles) + " miles" : "miles not listed")}</span><span class="p">${esc(money(r.priceUsd, r.nativePrice, r.currency))}</span><span class="m">${esc(monShort(r.date))}</span><span class="m">${esc(r.house)}</span></a></li>`).join("");
+  return `<section class="card"><div class="sh"><h2>Other ${esc(id.family)} that sold</h2><span class="muted">Newest first</span></div><ul class="others">${li}</ul>${o.more ? `<p style="margin:12px 0 0"><a href="${esc(o.allHref)}">All ${esc(id.make + " " + id.family)} sales &#8594;</a></p>` : ""}</section>`;
 }
 // LIVE NOW slot (only when live_listings holds this vin_norm as live): bid, house, end time in PT.
 function endsPT(iso) {
@@ -219,7 +288,7 @@ async function hubPage(req, res, env, slug) {
   if (!list.length) return notFound(res, slug.replace(/-/g, " "));
   // Name + One Box family from the resolver on the slug text (same resolver One Box uses).
   let v = null;
-  try { const r = await resolveVehicle(`${hub.year} ${hub.makeSlug.replace(/-/g, " ")} ${hub.modelSlug.replace(/-/g, " ")}`, {}); v = r && r.vehicle ? (sanitizeResolvedVehicle(r.vehicle) || r.vehicle) : null; } catch {}
+  try { const r = await resolveVehicle([hub.year, hub.makeSlug.replace(/-/g, " "), hub.modelSlug.replace(/-/g, " ")].filter(Boolean).join(" "), {}); v = r && r.vehicle ? (sanitizeResolvedVehicle(r.vehicle) || r.vehicle) : null; } catch {}
   const id = v && v.make && v.model ? { year: hub.year, make: v.make, model: v.model, trim: v.trim || null, family: familyOf(v), genCode: v.genCode || null, bodyStyle: v.bodyStyle || null, vehicle: { ...v, year: hub.year } }
     : { year: hub.year, make: hub.makeSlug.replace(/(^|-)\w/g, s => s.toUpperCase()).replace(/-/g, "-"), model: hub.modelSlug.toUpperCase(), family: hub.modelSlug.replace(/-/g, " ").toUpperCase(), vehicle: null };
   const name = [id.year, id.make, id.family].filter(Boolean).join(" ");
@@ -230,7 +299,9 @@ async function hubPage(req, res, env, slug) {
   const canonical = `${SITE}/history/${slug}`;
   const rows = list.slice(0, 200).map(g => {
     const a = g.last, ph = g.apps.find(x => x.image) || null;
-    return `<tr><td class="thumbcell">${ph ? photoHtml(ph.image, ph.url, ph.house, g.vin, "thumb") : '<span class="thumb"></span>'}</td><td data-l="VIN"><a href="/history/${esc(slug)}/${esc(g.vin)}">${esc(g.vin)}</a></td><td data-l="Appearances" class="r">${g.apps.length}</td><td data-l="Last result" class="${a.kind === "sale" ? "sold" : "muted"}">${esc(resultText(a))}</td><td data-l="Date">${esc(monShort(a.date))}</td><td data-l="Miles" class="r">${esc(miles(a.mileage))}</td></tr>`;
+    // An all-years list links each VIN to its own year's page; the car page 301s if the year differs.
+    const carHref = hub.year ? `/history/${slug}/${g.vin}` : `/vin/${g.vin}`;
+    return `<tr><td class="thumbcell">${ph ? photoHtml(ph.image, ph.url, ph.house, g.vin, "thumb") : '<span class="thumb"></span>'}</td><td data-l="VIN"><a href="${esc(carHref)}">${esc(g.vin)}</a></td><td data-l="Appearances" class="r">${g.apps.length}</td><td data-l="Last result" class="${a.kind === "sale" ? "sold" : "muted"}">${esc(resultText(a))}</td><td data-l="Date">${esc(monShort(a.date))}</td><td data-l="Miles" class="r">${esc(miles(a.mileage))}</td></tr>`;
   }).join("");
   const body = `
 <div><span class="eyebrow">${esc(id.family)} · Auction results</span><h1 style="margin:6px 0 0;font:600 40px/1.12 var(--serif)">${esc(name)} auction results</h1></div>
@@ -241,7 +312,7 @@ ${oneBoxBlock(d, id, `/onebox?q=${encodeURIComponent(name)}`, "")}
 ${WHY_RESULT_HTML}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>`;
   const ld = [{ "@context": "https://schema.org", "@type": "ItemList", name: `${name} auction results`, url: canonical,
-    itemListElement: list.slice(0, 200).map((g, i) => ({ "@type": "ListItem", position: i + 1, url: `${SITE}/history/${slug}/${g.vin}`, name: `${name}, VIN ${g.vin}` })) }];
+    itemListElement: list.slice(0, 200).map((g, i) => ({ "@type": "ListItem", position: i + 1, url: hub.year ? `${SITE}/history/${slug}/${g.vin}` : `${SITE}/vin/${g.vin}`, name: `${name}, VIN ${g.vin}` })) }];
   send(res, 200, page({ title: `${name} auction results | GoAskSam`, description: ctx, canonical, body, ld }));
 }
 
@@ -259,6 +330,7 @@ export default async function handler(req, res) {
   }
   if (req.method !== "GET" && req.method !== "HEAD") return res.status(405).end();
   const q = req.query || {};
+  if (q.sitemap) return sitemap(res, env, String(q.sitemap));
   const slug = String(q.slug || "").toLowerCase().replace(/[^a-z0-9-]/g, "");
   const vin = q.vin ? normVin(q.vin) : "";
   try {
@@ -279,4 +351,39 @@ export default async function handler(req, res) {
     console.error("history page failed:", (e && e.stack) || e);
     return send(res, 500, page({ title: "GoAskSam", body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }));
   }
+}
+
+// ---------------------------------------------------------------- VIN sitemap
+// /sitemap-vins.xml lists the pages; each page holds up to 1000 archive sales that carry a photo, one
+// URL per VIN, at its canonical /history/{year-make-family}/{VIN} (slug from the same resolver the
+// car page uses). Cached at the edge for a day.
+const slugCache = new Map();
+async function slugFor(title, year) {
+  const k = String(year || "") + "|" + title;
+  if (slugCache.has(k)) return slugCache.get(k);
+  const v = await resolveText(cleanTitle(title));
+  const out = v ? [Number(v.year) || year, slugify(v.make), slugify(familyOf(v))].filter(Boolean).join("-") : null;
+  slugCache.set(k, out); if (slugCache.size > 20000) slugCache.delete(slugCache.keys().next().value);
+  return out;
+}
+const xmlEsc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+async function sitemap(res, env, which) {
+  res.setHeader("Content-Type", "application/xml; charset=utf-8");
+  res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=86400");
+  if (which === "index") {
+    const n = await sitemapCount(env);
+    const pages = n ? Math.ceil(n / SITEMAP_PAGE) : 1;
+    const items = Array.from({ length: pages }, (_, i) => `<sitemap><loc>${SITE}/sitemap-vins-${i + 1}.xml</loc></sitemap>`).join("");
+    return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${items}</sitemapindex>`);
+  }
+  const page = Math.max(1, Number(which) || 1) - 1;
+  const rows = (await sitemapRows(env, page)) || [];
+  const seen = new Set(), urls = [];
+  const todo = rows.filter(r => r.vin_norm && r.vin_norm.length >= 11 && r.listing_title && !seen.has(r.vin_norm) && seen.add(r.vin_norm));
+  for (let i = 0; i < todo.length; i += 40) {
+    const part = await Promise.all(todo.slice(i, i + 40).map(async r => { const sl = await slugFor(r.listing_title, Number(r.year) || null); return sl ? { loc: `${SITE}/history/${sl}/${r.vin_norm}`, lastmod: String(r.sale_date || "").slice(0, 10) } : null; }));
+    urls.push(...part.filter(Boolean));
+  }
+  const body = urls.map(u => `<url><loc>${xmlEsc(u.loc)}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ""}</url>`).join("");
+  return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${body}</urlset>`);
 }

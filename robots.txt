@@ -1,8 +1,8 @@
 # Launched Aug 2026: the site is public and indexable. The pre-launch rule that
 # blocked everything but /privacy while the curtain was up has been removed.
 # /onebox stays crew-gated and carries its own noindex, so it is not listed here.
-# AI crawlers are explicitly allowed (Oct 2026). Pages that should not be indexed yet
-# (the /history VIN pages) carry their own noindex meta + X-Robots-Tag.
+# AI crawlers are explicitly allowed (Oct 2026). VIN history pages are indexable when the car has a
+# photographed sale (listed in sitemap-vins.xml); every other /history page carries its own noindex.
 User-agent: GPTBot
 Allow: /
 
@@ -19,3 +19,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://goasksam.com/sitemap.xml
+Sitemap: https://goasksam.com/sitemap-vins.xml
