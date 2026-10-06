@@ -3154,7 +3154,48 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "typemodelunk", write: true, matchedRows: rows.length, distinctMakes: byMake.size, done });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk." });
+  // task=descfacts: resumable backfill of the description-derived columns (stated_mileage, project_flag,
+  // desc_facts) for EXISTING rows, using the SAME lib/_descFacts.js composer as the ingest stamp. ZERO
+  // OCD. desc_facts IS NULL is the "not yet processed" sentinel (every processed row gets a non-null
+  // desc_facts object, even if empty), so repeated calls converge. Bulk upsert on source_id, merge-
+  // duplicates so ONLY these three columns change. ?write=1 to persist; dry = remaining count.
+  if (task === "descfacts") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    const countQ = async filter => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}&select=id&limit=1`, { headers: H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    const remaining = await countQ("desc_facts=is.null");
+    const write = req.query?.write === "1";
+    if (!write) { const total = await countQ("id=not.is.null"); return res.status(200).json({ task: "descfacts", write: false, remaining, total, note: "rows with desc_facts IS NULL still need the backfill" }); }
+    const { computeDescFacts } = await import("../lib/_descFacts.js");
+    const pageSize = Math.max(100, Math.min(1000, Number(req.query?.pageSize || 500)));
+    const maxRows = Math.max(pageSize, Math.min(40000, Number(req.query?.maxRows || 12000)));
+    const deadline = Date.now() + 230000;   // stay under the function ceiling; caller re-invokes to continue
+    let processed = 0, upserted = 0, pages = 0, errors = 0; const errorDetail = [];
+    const facts = { project_flagged: 0, stated_mileage: 0, with_markers: 0 };
+    while (processed < maxRows && Date.now() < deadline) {
+      const sel = "id,source_id,listing_title,mileage,d:raw_record->>description,ld:raw_record->>listing_details";
+      const rows = await supabaseSelectAll(env, `sales_archive?desc_facts=is.null&select=${sel}&order=id.asc`, pageSize);
+      const slice = (rows || []).slice(0, pageSize);
+      if (!slice.length) break;   // nothing left
+      const patch = slice.map(r => {
+        const df = computeDescFacts({ title: r.listing_title, description: r.d, listingDetails: r.ld, mileageStructured: r.mileage });
+        if (df.project_flag) facts.project_flagged++;
+        if (df.stated_mileage != null) facts.stated_mileage++;
+        if (df.desc_facts.markers.length) facts.with_markers++;
+        return { source_id: String(r.source_id ?? ""), stated_mileage: df.stated_mileage, project_flag: df.project_flag, desc_facts: df.desc_facts };
+      }).filter(p => p.source_id);
+      for (let i = 0; i < patch.length; i += 200) {
+        const r = await supabaseInsert("sales_archive", patch.slice(i, i + 200), env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id");
+        if (r.error) { errors++; if (errorDetail.length < 5) errorDetail.push(r.error.slice(0, 160)); } else upserted += Math.min(200, patch.length - i);
+      }
+      processed += slice.length; pages++;
+      if (errors) break;   // stop the loop on a write error so it is surfaced, not silently looped
+    }
+    const left = await countQ("desc_facts=is.null");
+    return res.status(200).json({ task: "descfacts", write: true, processedThisCall: processed, upserted, pages, factsThisCall: facts, errors, errorDetail, remaining: left, done: left === 0 });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk|descfacts." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================

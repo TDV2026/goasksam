@@ -16,6 +16,7 @@ import { supabaseEnv, supabaseInsert, supabaseSelect, supabaseSelectAll } from "
 import { isPartsListing, projectFlagReason } from "../lib/_classify.js";
 import { deltaShouldStop, earliestGapDay, typicalByWeekday, recentDayList, zeroStreakFlag, requestCapReached, isFutureSale } from "../lib/_ingestHealth.js";
 import { resolveIngestIdentity } from "../lib/_unknownClassify.js";
+import { computeDescFacts } from "../lib/_descFacts.js";
 import { loadFxRates } from "../lib/_fx.js";
 import { hammerUsd, setFxRates } from "../lib/_houseComps.js";
 
@@ -160,9 +161,13 @@ function toFullRow(r, label, source) {
   // the title (and VIN) BEFORE writing "Unknown" (OCD ships no structured make/model for BaT). An
   // already-identified row keeps its OCD values and is typed by make.
   const ident = resolveIngestIdentity(r);
+  // Descriptions resilience: stamp the description-derived facts into their own columns at ingest
+  // (while we still receive the text), so the readers keep working if the description later stops.
+  const df = computeDescFacts({ title: r.title, description: r.description, listingDetails: r.listing_details, mileageStructured: toInt(r.mileage) });
   return {
     source_id: String(r.id ?? ""), sale_date: saleDate, platform: label, source_slug: source,
     make: ident.make, model: ident.model, vehicle_type: ident.vehicle_type,
+    stated_mileage: df.stated_mileage, project_flag: df.project_flag, desc_facts: df.desc_facts,
     sale_price: toMoney(r.price), sale_price_usd: usdOf(salePrice, r.currency, saleDate, source, label),
     month: d ? d.toISOString().slice(0, 7) : null, raw_record: projFlag ? { ...r, _project_flag: projFlag } : r,
     year: toInt(r.year), mileage: toInt(r.mileage), body_style: r.body_style ?? null,
