@@ -158,12 +158,11 @@ async function converseOut(env, b) {
   logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
   // The opener carries what only Sam knows: how many of these have an auction history.
   let say = r.say;
-  if (seenN && !r.closest && !r.outOfScope) {
-    const n = (r.matches || []).length;
-    if (n === 1) say = r.say + " It has been through auction before, and Sam has its history.";
-    else if (/^There are \d+ live right now\./.test(r.say || "")) say = `${n} live. ${sauce(seenN)}` + (r.geo ? " Closest first." : "");
-    else say = (r.say || "") + " " + sauce(seenN);
-  }
+  // Count only the confirmed matches; the ones whose listing doesn't say are named as such.
+  const allM = r.matches || [], unsure = allM.filter(x => (x.unknown || []).length).length, sureN = allM.length - unsure;
+  const countLine = (unsure && sureN) ? `${sureN} live, and ${unsure} more whose listing doesn't say.` : `${allM.length} live.`;
+  if (!r.closest && !r.outOfScope && /^There are \d+ live right now\./.test(r.say || "") && (seenN || (unsure && sureN))) say = countLine + (seenN ? " " + sauce(seenN) : "") + (r.geo ? " Closest first." : "");
+  else if (seenN && !r.closest && !r.outOfScope) say = allM.length === 1 ? r.say + " It has been through auction before, and Sam has its history." : (r.say || "") + " " + sauce(seenN);
   return { type: "results", say: say, market: r.market || null, outOfScope: !!r.outOfScope, geo: !!r.geo, closest: !!r.closest, total: (r.matches || []).length, cards, facets: r.closest ? null : facetsOf(ordered), filters: r.filters || null };
 }
 async function detailOut(env, b) {
