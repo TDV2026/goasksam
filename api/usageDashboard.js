@@ -3123,7 +3123,36 @@ async function handleOps(req, res) {
     });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist." });
+  // task=typemodelunk: Fix 5 tail. The typeall car phase required model != Unknown, so make-KNOWN /
+  // model-UNKNOWN rows were left vehicle_type NULL (these are real cars whose variant is just unnamed).
+  // Type them by their make (typeByMake -> car|motorcycle|other, default car), so the engine can switch
+  // to strict vehicle_type = car. DRY reports counts by resolved type + the non-car makes; write=1
+  // PATCHes per distinct make, vehicle_type IS NULL only, so a re-run never re-touches a typed row.
+  if (task === "typemodelunk") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { typeByMake } = await import("../lib/_unknownClassify.js");
+    const MODEL_UNK = "or=(model.ilike.unknown,model.is.null,model.eq.)";
+    const BASE = `vehicle_type=is.null&make=not.ilike.unknown&make=not.is.null&${MODEL_UNK}`;
+    const rows = await supabaseSelectAll(env, `sales_archive?${BASE}&select=make`) || [];
+    const byMake = new Map();
+    for (const r of rows) { const mk = String(r.make || "").trim(); if (!mk) continue; byMake.set(mk, (byMake.get(mk) || 0) + 1); }
+    const typeOf = mk => typeByMake(mk) || "car";
+    const tally = { car: 0, motorcycle: 0, other: 0 }; const nonCar = {};
+    for (const [mk, n] of byMake) { const t = typeOf(mk); tally[t] += n; if (t !== "car") nonCar[mk] = { type: t, n }; }
+    const write = req.query?.write === "1";
+    if (!write) return res.status(200).json({ task: "typemodelunk", write: false, matchedRows: rows.length, distinctMakes: byMake.size, byType: tally, nonCarMakes: nonCar });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" };
+    const countHdr = r => { const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : 0; };
+    const done = { car: 0, motorcycle: 0, other: 0, errors: 0, errorDetail: [] };
+    for (const [mk, ] of byMake) {
+      const t = typeOf(mk);
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?make=eq.${encodeURIComponent(mk)}&vehicle_type=is.null&${MODEL_UNK}`, { method: "PATCH", headers: { ...H, Prefer: "return=minimal,count=exact" }, body: JSON.stringify({ vehicle_type: t }) });
+      if (r.ok) done[t] += countHdr(r); else { done.errors++; done.errorDetail.push(`${mk}:${r.status}`); }
+    }
+    return res.status(200).json({ task: "typemodelunk", write: true, matchedRows: rows.length, distinctMakes: byMake.size, done });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
