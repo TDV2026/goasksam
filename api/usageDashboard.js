@@ -3131,22 +3131,24 @@ async function handleOps(req, res) {
   if (task === "typemodelunk") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { typeByMake } = await import("../lib/_unknownClassify.js");
-    const MODEL_UNK = "or=(model.ilike.unknown,model.is.null,model.eq.)";
-    const BASE = `vehicle_type=is.null&make=not.ilike.unknown&make=not.is.null&${MODEL_UNK}`;
-    const rows = await supabaseSelectAll(env, `sales_archive?${BASE}&select=make`) || [];
-    const byMake = new Map();
-    for (const r of rows) { const mk = String(r.make || "").trim(); if (!mk) continue; byMake.set(mk, (byMake.get(mk) || 0) + 1); }
+    const unk = s => !s || /^unknown$/i.test(String(s).trim());
+    // ALL make-known rows still vehicle_type NULL (any model). model-Unknown rows AND the chunk-missed
+    // make-known/model-known rows (off-list sources e.g. autohunter, future dates, null source_slug).
+    const BASE = `vehicle_type=is.null&make=not.ilike.unknown&make=not.is.null`;
+    const rows = await supabaseSelectAll(env, `sales_archive?${BASE}&select=make,model`) || [];
+    const byMake = new Map(); let modelUnknown = 0, modelKnown = 0;
+    for (const r of rows) { const mk = String(r.make || "").trim(); if (!mk) continue; byMake.set(mk, (byMake.get(mk) || 0) + 1); if (unk(r.model)) modelUnknown++; else modelKnown++; }
     const typeOf = mk => typeByMake(mk) || "car";
     const tally = { car: 0, motorcycle: 0, other: 0 }; const nonCar = {};
     for (const [mk, n] of byMake) { const t = typeOf(mk); tally[t] += n; if (t !== "car") nonCar[mk] = { type: t, n }; }
     const write = req.query?.write === "1";
-    if (!write) return res.status(200).json({ task: "typemodelunk", write: false, matchedRows: rows.length, distinctMakes: byMake.size, byType: tally, nonCarMakes: nonCar });
+    if (!write) return res.status(200).json({ task: "typemodelunk", write: false, matchedRows: rows.length, distinctMakes: byMake.size, split: { modelUnknown, modelKnown }, byType: tally, nonCarMakes: nonCar });
     const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" };
     const countHdr = r => { const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : 0; };
     const done = { car: 0, motorcycle: 0, other: 0, errors: 0, errorDetail: [] };
     for (const [mk, ] of byMake) {
       const t = typeOf(mk);
-      const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?make=eq.${encodeURIComponent(mk)}&vehicle_type=is.null&${MODEL_UNK}`, { method: "PATCH", headers: { ...H, Prefer: "return=minimal,count=exact" }, body: JSON.stringify({ vehicle_type: t }) });
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?make=eq.${encodeURIComponent(mk)}&vehicle_type=is.null`, { method: "PATCH", headers: { ...H, Prefer: "return=minimal,count=exact" }, body: JSON.stringify({ vehicle_type: t }) });
       if (r.ok) done[t] += countHdr(r); else { done.errors++; done.errorDetail.push(`${mk}:${r.status}`); }
     }
     return res.status(200).json({ task: "typemodelunk", write: true, matchedRows: rows.length, distinctMakes: byMake.size, done });
