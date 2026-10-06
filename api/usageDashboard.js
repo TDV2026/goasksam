@@ -3197,7 +3197,16 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "descfacts", write: true, processedThisCall: processed, upserted, pages, factsThisCall: facts, errors, errorDetail, remaining: left, done: left === 0 });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk|descfacts." });
+  // task=ingestlog: READ-ONLY. Recent ingest job + OCD budget-guard events from app_usage_events, so a
+  // dispatched backfill can be confirmed (completed vs guard-stopped) and its OCD request count read.
+  if (task === "ingestlog") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const limit = Math.max(1, Math.min(100, Number(req.query?.limit || 25)));
+    const rows = await supabaseSelect(env, `app_usage_events?or=(event_type.eq.job_ingest,event_type.eq.ocd_budget_guard,event_type.eq.ingest_health_below_floor)&select=created_at,event_type,route,status,oldcarsdata_metered_requests,metadata&order=created_at.desc&limit=${limit}`) || [];
+    return res.status(200).json({ task: "ingestlog", count: rows.length, events: rows.map(r => ({ at: r.created_at, type: r.event_type, status: r.status, ocd_metered: r.oldcarsdata_metered_requests, mode: r.metadata?.mode || null, upserted: r.metadata?.upserted ?? null, ocd_http: r.metadata?.ocd_http_requests ?? null, meta: r.metadata || null })) });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk|descfacts|ingestlog." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
