@@ -3167,18 +3167,20 @@ async function handleOps(req, res) {
     const write = req.query?.write === "1";
     if (!write) { const total = await countQ("id=not.is.null"); return res.status(200).json({ task: "descfacts", write: false, remaining, total, note: "rows with desc_facts IS NULL still need the backfill" }); }
     const { computeDescFacts } = await import("../lib/_descFacts.js");
-    const pageSize = Math.max(100, Math.min(1000, Number(req.query?.pageSize || 500)));
-    const maxRows = Math.max(pageSize, Math.min(40000, Number(req.query?.maxRows || 12000)));
+    // description + listing_title are TOP-LEVEL columns (not raw_record JSONB extracts), so reading them
+    // is cheap - the earlier raw_record->>description extract was the throughput bottleneck.
+    const pageSize = Math.max(100, Math.min(1000, Number(req.query?.pageSize || 1000)));
+    const maxRows = Math.max(pageSize, Math.min(80000, Number(req.query?.maxRows || 50000)));
     const deadline = Date.now() + 230000;   // stay under the function ceiling; caller re-invokes to continue
     let processed = 0, upserted = 0, pages = 0, errors = 0; const errorDetail = [];
     const facts = { project_flagged: 0, stated_mileage: 0, with_markers: 0 };
     while (processed < maxRows && Date.now() < deadline) {
-      const sel = "id,source_id,listing_title,mileage,d:raw_record->>description,ld:raw_record->>listing_details";
+      const sel = "id,source_id,listing_title,mileage,description";
       const rows = await supabaseSelectAll(env, `sales_archive?desc_facts=is.null&select=${sel}&order=id.asc`, pageSize);
       const slice = (rows || []).slice(0, pageSize);
       if (!slice.length) break;   // nothing left
       const patch = slice.map(r => {
-        const df = computeDescFacts({ title: r.listing_title, description: r.d, listingDetails: r.ld, mileageStructured: r.mileage });
+        const df = computeDescFacts({ title: r.listing_title, description: r.description, mileageStructured: r.mileage });
         if (df.project_flag) facts.project_flagged++;
         if (df.stated_mileage != null) facts.stated_mileage++;
         if (df.desc_facts.markers.length) facts.with_markers++;
