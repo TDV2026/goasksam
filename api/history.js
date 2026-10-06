@@ -417,8 +417,14 @@ async function rollout(env) {
     }));
     for (const u of part) if (u) vins.push(u); else counts.no_proper_title++;
   }
-  counts.multi_indexable = vins.length; counts.hubs_indexable = hubs.size;
-  ROLL = { counts, hubs: [...hubs.keys()].sort(), vins }; ROLL_AT = Date.now();
+  // Hubs pass the hub page's own rule: the resolver must name the make and model.
+  const hubKeys = [...hubs.keys()], okHubs = [];
+  for (let i = 0; i < hubKeys.length; i += 50) {
+    const part = await Promise.all(hubKeys.slice(i, i + 50).map(async k => { const v = await resolveText(k.replace(/-/g, " ")); return v && v.make && v.model ? k : null; }));
+    for (const k of part) if (k) okHubs.push(k);
+  }
+  counts.multi_indexable = vins.length; counts.hubs_candidates = hubs.size; counts.hubs_indexable = okHubs.length;
+  ROLL = { counts, hubs: okHubs.sort(), vins }; ROLL_AT = Date.now();
   return ROLL;
 }
 async function sitemap(res, env, which) {

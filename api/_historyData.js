@@ -257,6 +257,8 @@ export async function familySales(env, id, excludeVin, limit = 25) {
   for (const r of rows) {
     if (!r.vin_norm || r.vin_norm.length < 11 || seen.has(r.vin_norm)) continue;
     if (isMemorabilia(r.listing_title) || isPartsListing(r.listing_title, r.mileage)) continue;
+    // A modern 17-character VIN on a pre-1981 car is an archive data error (another car's VIN).
+    if (Number(r.year) && Number(r.year) < 1981 && /^[A-HJ-NPR-Z0-9]{17}$/.test(r.vin_norm)) continue;
     seen.add(r.vin_norm);
     const p = usdOf(r.sale_price, r.sale_price_usd, r.currency);
     const year = Number(r.year) || null;
