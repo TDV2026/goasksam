@@ -357,7 +357,8 @@
     // bars SUM to the shared scope count (stated), so a count can never silently diverge across reads.
     var lead = "";
     // TOO FEW TO RANK (Lane B): venues with too few sales are listed, plain text, never drawn as bars.
-    var tooFew = [].concat(rk.too_few || rk.tooFew || rk.too_few_to_rank || rk.tooFewList || []).filter(function (t) { return t && (t.group || t.venue); });
+    // Lane B sends a venue ranking's thin venues in rk.thin (thinNote "too few sales to rank").
+    var tooFew = [].concat(rk.too_few || rk.tooFew || rk.too_few_to_rank || rk.tooFewList || (rk.isVenue ? rk.thin : null) || []).filter(function (t) { return t && (t.group || t.venue); });
     var fewLine = function (list) { return '<p class="toofew">Too few sales to rank: ' + list.map(function (t) { return esc(t.group || t.venue) + " (" + plural(t.count || 0, "sale") + ")"; }).join(", ") + '.</p>'; };
     if (rk.isVenue) {
       var venWin = windowLabelOf(rk.window);
@@ -403,7 +404,7 @@
         h += seeSales('data-allvenues="1" data-make="' + esc(r0.make) + '" data-model="' + esc(r0.model) + '"' + (r0.trim ? ' data-trim="' + esc(r0.trim) + '"' : '') + ' data-window="' + esc(rk.window || "36mo") + '" data-cap="' + esc((rk.name || "") + ", every venue") + '" data-fig="' + esc(plural(rk.total, "sale")) + '"', rk.total);
       }
     }
-    if (rk.thin && rk.thin.length) h += '<div class="reconcile">Shown but not ranked (fewer than ' + (rk.thinThreshold || 5) + ' sales): ' + rk.thin.map(function (t) { return esc(t.group) + " (" + t.count + ")"; }).join(", ") + '.</div>';
+    if (!rk.isVenue && rk.thin && rk.thin.length) h += '<div class="reconcile">Shown but not ranked (fewer than ' + (rk.thinThreshold || 5) + ' sales): ' + rk.thin.map(function (t) { return esc(t.group) + " (" + t.count + ")"; }).join(", ") + '.</div>';
     h += provenanceFooter({ window: windowLabelOf(rk.window) });
     h += '</div>';
     return lead + h;
