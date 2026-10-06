@@ -139,16 +139,15 @@ async function converseOut(env, b) {
   if (r.type === "question" || r.type === "nonsense") return r;
   const seenN = r.vins && r.vins.length ? await seenCount(env, r.vins).catch(() => 0) : 0;
   if (r.type === "groups") {
-    // The heading quotes a sold range only when every car in the group shares body and gearbox; a
-    // mixed group gets no range in its heading and each card carries its own line instead.
-    const sameSpec = items => { const k = x => (x.facts.body || "?") + "|" + (x.facts.gearbox || "?"); return items.every(x => x.facts.body && x.facts.gearbox && k(x) === k(items[0])); };
+    // Each group: its cards (the first four enriched here, so every card a buyer can see renders WITH
+    // its Sam line) and its set-aside cars (modified, engine-swapped, project), which are not cards.
+    // The heading is a plain Sam line; each card carries its own exact-spec range.
     const shape = list => Promise.all((list || []).map(async g => {
-      const mk = sameSpec(g.items) ? await listingMarket(env, g.items[0].r, g.items[0].facts) : null;
-      // The cards drawn first are enriched here, so each card renders WITH its Sam line, never after.
-      const cards = await Promise.all(g.items.slice(0, 40).map((x, i) => i < 3 ? enrich(env, x) : cardOf(x)));
-      cards.forEach((c, i) => { if (g.items[i] && g.items[i].distance != null) c.distance = g.items[i].distance; });
-      return { label: g.label, n: g.n, market: mk, cards };
-    }));
+      const { keep, aside } = splitAside(g.items);
+      const cards = await Promise.all(keep.slice(0, 40).map((x, i) => i < 4 ? enrich(env, x) : cardOf(x)));
+      cards.forEach((c, i) => { if (keep[i] && keep[i].distance != null) c.distance = keep[i].distance; });
+      return { label: g.label, n: keep.length, cards, setAside: await setAsideOf(env, aside) };
+    })).then(gs => gs.filter(g => g.n || g.setAside.length));
     const [groups, maybeGroups] = await Promise.all([shape(r.groups), shape(r.maybeGroups)]);
     const total = groups.concat(maybeGroups).reduce((k, g) => k + g.n, 0);
     const say = total && seenN ? `${total} live, grouped by model. ${sauce(seenN)}` : (r.say || null);
@@ -158,8 +157,10 @@ async function converseOut(env, b) {
   const matches = (r.matches || []).slice(0, MAX);
   // Stated matches first, then the ones whose listing doesn't say; nearest first within each.
   const ordered = [...matches].sort((a, x) => { const k = c => (c.unknown.length ? 10 : 0) + (c.distance != null ? 0 : (String(c.r.country || "").toUpperCase() && String(c.r.country).toUpperCase() !== "US" ? 2 : 1)); return k(a) - k(x) || ((a.distance == null ? 1e9 : a.distance) - (x.distance == null ? 1e9 : x.distance)); });
-  const cards = await Promise.all(ordered.map((x, i) => i < FIRST ? enrich(env, x) : cardOf(x)));
-  cards.forEach((c, i) => { if (ordered[i].distance != null) c.distance = ordered[i].distance; });
+  const split = splitAside(ordered);
+  const cards = await Promise.all(split.keep.map((x, i) => i < FIRST ? enrich(env, x) : cardOf(x)));
+  cards.forEach((c, i) => { if (split.keep[i].distance != null) c.distance = split.keep[i].distance; });
+  const setAside = await setAsideOf(env, split.aside);
   logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
   // The opener carries what only Sam knows: how many of these have an auction history.
   let say = r.say;
@@ -168,7 +169,20 @@ async function converseOut(env, b) {
   const countLine = (unsure && sureN) ? `${sureN} live, and ${unsure} more whose listing doesn't say.` : `${allM.length} live.`;
   if (!r.closest && !r.outOfScope && /^There are \d+ live right now\./.test(r.say || "") && (seenN || (unsure && sureN))) say = countLine + (seenN ? " " + sauce(seenN) : "") + (r.geo ? " Closest first." : "");
   else if (seenN && !r.closest && !r.outOfScope) say = allM.length === 1 ? r.say + " It has been through auction before, and Sam has its history." : (r.say || "") + " " + sauce(seenN);
-  return { type: "results", say: say, market: r.market || null, outOfScope: !!r.outOfScope, geo: !!r.geo, closest: !!r.closest, total: (r.matches || []).length, cards, facets: r.closest ? null : facetsOf(ordered), filters: r.filters || null };
+  return { type: "results", say: say, market: r.market || null, outOfScope: !!r.outOfScope, geo: !!r.geo, closest: !!r.closest, total: cards.length, cards, setAside, facets: r.closest ? null : facetsOf(ordered), filters: r.filters || null };
+}
+// Set-aside cars (modified, engine-swapped, project) are never cards: one quiet line each, with a thumbnail.
+const ASIDE_KINDS = { engine_swap: "engine-swapped", modified: "modified", project: "a project car" };
+function splitAside(items) {
+  const keep = [], aside = [];
+  for (const x of items) { const f = cardFlag(x.r); (f && ASIDE_KINDS[f.kind] ? aside : keep).push(x); }
+  return { keep, aside };
+}
+async function setAsideOf(env, aside) {
+  return Promise.all(aside.slice(0, 6).map(async x => {
+    const c = cardOf(x), m = await listingMarket(env, x.r, x.facts).catch(() => null);
+    return { id: c.id, title: c.title, url: c.url, photo_url: c.photo_url, colour: c.colour, year: c.year, why: ASIDE_KINDS[c.flag.kind], query: m && m.query ? m.query : null };
+  }));
 }
 async function detailOut(env, b) {
   const id = Number(b.id); if (!Number.isFinite(id)) return { ok: false };
