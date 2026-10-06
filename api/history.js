@@ -120,6 +120,8 @@ function nounOf(d, id) {
   const v = d.resolvedCar || {};
   const fam = id.family || familyOf(v);
   const bw = v.bodyStyle ? BODY_PLURAL[String(v.bodyStyle).toLowerCase()] : "";
+  // A family that already ends in its body word ("SLS AMG Roadster") is pluralised, never doubled.
+  if (bw && new RegExp("\\b" + bw.replace(/s$/, "") + "$", "i").test(fam)) return fam + "s";
   return bw ? fam + " " + bw : fam + "s";
 }
 function oneBoxBlock(d, id, oneboxHref, ctx) {
@@ -162,7 +164,7 @@ async function carPage(req, res, env, slug, vin) {
   const lastSale = sales[0] || null, newest = appearances[0];
   // 2. THE ANSWER
   let answer;
-  if (sales.length >= 2) answer = `This ${name} has sold at auction ${sales.length} times, most recently for ${salePriceFee(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}.`;
+  if (sales.length >= 2) answer = `This ${name} has sold at auction ${timesWord(sales.length)}, most recently for ${salePriceFee(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}.`;
   else if (sales.length === 1) answer = `This ${name} sold once at auction, for ${salePriceFee(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}.`;
   else {
     const top = atts.filter(a => a.bidUsd || a.nativeBid).sort((x, y) => (y.bidUsd || 0) - (x.bidUsd || 0))[0];
@@ -262,7 +264,8 @@ function saidHtml(s) {
 function othersHtml(o, id) {
   if (!o || !o.rows.length) return "";
   const li = o.rows.map(r => `<li><a href="${esc(r.href)}"><span>${esc(r.year || "")}</span><span class="m">${esc(r.miles ? miles(r.miles) + " miles" : "miles not listed")}</span><span class="p">${esc(money(r.priceUsd, r.nativePrice, r.currency))}</span><span class="m">${esc(monShort(r.date))}</span><span class="m">${esc(r.house)}</span></a></li>`).join("");
-  return `<section class="card"><div class="sh"><h2>Other ${esc(id.family)} that sold</h2><span class="muted">Newest first</span></div><ul class="others">${li}</ul>${o.more ? `<p style="margin:12px 0 0"><a href="${esc(o.allHref)}">All ${esc(id.make + " " + id.family)} sales &#8594;</a></p>` : ""}</section>`;
+  const fam = /[a-z]s$/.test(id.family) ? id.family : /\d$/.test(id.family) || /[a-z]$/i.test(id.family) && !/\b[A-Z0-9]{2,4}$/.test(id.family) ? id.family + "s" : id.family + " cars";
+  return `<section class="card"><div class="sh"><h2>Other ${esc(fam)} that sold</h2><span class="muted">Newest first</span></div><ul class="others">${li}</ul>${o.more ? `<p style="margin:12px 0 0"><a href="${esc(o.allHref)}">All ${esc(id.make + " " + id.family)} sales &#8594;</a></p>` : ""}</section>`;
 }
 // LIVE NOW slot (only when live_listings holds this vin_norm as live): bid, house, end time in PT.
 function endsPT(iso) {
