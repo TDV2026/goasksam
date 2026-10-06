@@ -77,10 +77,13 @@ async function marketCheck(text, env) {
   const rc = d.resolvedCar || r.vehicle;
   const spec = specLabel(rc);
   const closestRaw = d.representative && d.representative.closest;
+  const closestUsd = closestRaw ? (Number(closestRaw.value) > 0 ? closestRaw.value
+    : (closestRaw.display && closestRaw.display.currency === "USD" && Number(closestRaw.display.amount) > 0 ? closestRaw.display.amount
+      : (Number(closestRaw.allIn) > 0 ? closestRaw.allIn : null))) : null;
   const closest = closestRaw ? {
-    title: closestRaw.ctitle || closestRaw.title || spec,
+    title: closestRaw.ctitle || closestRaw.title || closestRaw.spec || spec,
     url: closestRaw.srcurl || closestRaw.url || closestRaw.srcurl2 || null,
-    hammerUsd: usd(closestRaw.value || closestRaw.usd || closestRaw.priceUsd),
+    hammerUsd: usd(closestUsd),
     date: (closestRaw.date || "").slice(0, 10) || null
   } : null;
   const cluster = Array.isArray(d.cluster) && d.cluster.length === 2 ? d.cluster : null;
@@ -99,12 +102,14 @@ async function marketCheck(text, env) {
 
 // ---------- TOOL: car_history ----------
 async function carHistory(input, env) {
-  let vin = normVin(input);
-  if (!(vin && vin.length >= 6) && /^https?:\/\//i.test(String(input).trim())) {
-    // a listing URL -> find its VIN in the archive, then read the history
-    const u = String(input).trim();
-    const rows = await supabaseSelect(env, `sales_archive?or=(raw_record->>url.eq.${encodeURIComponent(u)},raw_record->>source_url.eq.${encodeURIComponent(u)})&select=vin_norm&limit=1`).catch(() => null);
+  const raw = String(input || "").trim();
+  let vin = "";
+  if (/^https?:\/\//i.test(raw)) {
+    // a listing URL -> find its VIN in the archive FIRST (before normVin, which would mangle the URL)
+    const rows = await supabaseSelect(env, `sales_archive?or=(raw_record->>url.eq.${encodeURIComponent(raw)},raw_record->>source_url.eq.${encodeURIComponent(raw)})&select=vin_norm&limit=1`).catch(() => null);
     if (rows && rows[0] && rows[0].vin_norm) vin = normVin(rows[0].vin_norm);
+  } else {
+    vin = normVin(raw);
   }
   if (!(vin && vin.length >= 6)) return { kind: "refusal", reason: sam("That does not look like a VIN or a listing link GoAskSam can match.") };
   const data = await vinAppearances(env, vin);
