@@ -7,6 +7,8 @@
   var out = document.getElementById("out");
   var input = document.getElementById("q");
   var go = document.getElementById("go");
+  // A phone truncates the long example placeholder; the plain prompt fits.
+  try { if (window.matchMedia("(max-width:640px)").matches) input.placeholder = "Ask the market."; } catch (e) { }
 
   // (h) The "what's my car worth" example is removed: the Desk never values a car, and the
   // language rules apply here too. A record example shows the highest-sale flow instead.
@@ -373,13 +375,13 @@
         var ev = 'data-make="' + esc(r.make) + '" data-model="' + esc(r.model) + '"' + (r.trim ? ' data-trim="' + esc(r.trim) + '"' : '') + (r.venue ? ' data-venue="' + esc(r.venue) + '"' : '') + (r.yearStart ? ' data-ymin="' + r.yearStart + '"' : '') + (r.yearEnd ? ' data-ymax="' + r.yearEnd + '"' : '') + ' data-window="' + esc(rk.window || "36mo") + '" data-cap="' + esc(r.group) + '" data-fig="' + esc(vtxt) + '"';
         h += '<div class="rank-row' + (hiRow ? ' cmp' : '') + '"><span class="r">' + (i + 1) + '</span>' +
           '<span class="nm ev" ' + ev + '>' + esc(r.group) + '</span>' +
-          '<span class="bar" style="width:' + w + 'px"></span>' +
+          '<span class="bar" style="--w:' + (w / 300).toFixed(3) + '"></span>' +
           '<span class="v"><span class="ev" ' + ev + '>' + vtxt + '</span> <span class="sub">' + esc(sub) + '</span></span></div>';
       });
       h += '</div>';
       if (rk.isVenue && rk.total != null) {
         var exn = exclusionNote(rk.exclusions);
-        h += '<div class="read">' + plural(rk.total.toLocaleString("en-US"), "sale") + ' across ' + plural(rk.ranked.length, "venue") + (rk.ranked.length > 1 ? '; the bars add up to this total.' : '.') + (exn ? ' ' + esc(exn) + '.' : '') + '</div>';
+        h += '<div class="read">' + plural(rk.total.toLocaleString("en-US"), "sale") + ' across ' + plural(rk.ranked.length, "venue") + (rk.ranked.length > 1 && rk.metric === "count" ? '; the bars add up to this total.' : '.') + (exn ? ' ' + esc(exn) + '.' : '') + '</div>';
         var r0 = rk.ranked[0];
         h += seeSales('data-allvenues="1" data-make="' + esc(r0.make) + '" data-model="' + esc(r0.model) + '"' + (r0.trim ? ' data-trim="' + esc(r0.trim) + '"' : '') + ' data-window="' + esc(rk.window || "36mo") + '" data-cap="' + esc((rk.name || "") + ", every venue") + '" data-fig="' + esc(plural(rk.total, "sale")) + '"', rk.total);
       }
@@ -477,7 +479,7 @@
       bars.forEach(function (g) {
         var wpx = Math.max(2, Math.round((g.median / max) * 300));
         var ev = 'data-make="' + esc(g.make) + '" data-model="' + esc(g.model) + '"' + (g.yearStart ? ' data-ymin="' + g.yearStart + '"' : '') + (g.yearEnd ? ' data-ymax="' + g.yearEnd + '"' : '') + ' data-window="' + esc(s.window) + '" data-cap="' + esc(g.group) + '" data-fig="' + esc(usd(g.median)) + '"';
-        h += '<div class="rank-row"><span class="nm ev" ' + ev + '>' + esc(g.group) + '</span><span class="bar" style="width:' + wpx + 'px"></span><span class="v"><span class="ev" ' + ev + '>' + usd(g.median) + '</span> <span class="sub">' + g.count + '</span></span></div>';
+        h += '<div class="rank-row"><span class="nm ev" ' + ev + '>' + esc(g.group) + '</span><span class="bar" style="--w:' + (wpx / 300).toFixed(3) + '"></span><span class="v"><span class="ev" ' + ev + '>' + usd(g.median) + '</span> <span class="sub">' + g.count + '</span></span></div>';
       });
       h += '</div>';
       var thinG = (s.byGen || []).filter(function (g) { return g.median == null && g.count; });
@@ -505,7 +507,7 @@
         var ev = 'data-make="' + esc(r.make || "") + '" data-model="' + esc(r.model || "") + '"' + (r.trim ? ' data-trim="' + esc(r.trim) + '"' : '') + ' data-cap="' + esc(r.group) + '" data-fig="' + (r.pct > 0 ? "+" : "") + r.pct + '%"';
         h += '<div class="rank-row"><span class="r">' + (i + 1) + '</span>' +
           '<span class="nm ev" ' + ev + '>' + esc(r.group) + '</span>' +
-          '<span class="bar' + (neg ? " b2" : "") + '" style="width:' + wbar + 'px"></span>' +
+          '<span class="bar' + (neg ? " b2" : "") + '" style="--w:' + (wbar / 240).toFixed(3) + ';--wmax:240px"></span>' +
           '<span class="v' + (neg ? " neg" : "") + '">' + (r.pct > 0 ? "+" : "") + r.pct + '% <span class="sub">' + usd(r.prior_median) + " &rarr; " + usd(r.now_median) + " &middot; " + r.prior_count + "/" + r.now_count + '</span></span></div>';
       });
       h += '</div>';
