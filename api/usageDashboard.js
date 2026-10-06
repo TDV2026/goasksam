@@ -3219,8 +3219,45 @@ async function handleOps(req, res) {
   if (task === "usdbackfill") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const phase = String(req.query?.phase || "count");
+    const tbl = String(req.query?.table || "sales") === "attempts" ? "attempts" : "sales";
     const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    const countQ = async filter => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}&select=id&limit=1`, { headers: { ...H, Prefer: "count=exact" } }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    const countQ = async filter => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${tbl === "attempts" ? "auction_attempts" : "sales_archive"}?${filter}&select=${tbl === "attempts" ? "source_record_id" : "id"}&limit=1`, { headers: { ...H, Prefer: "count=exact" } }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    // ---- auction_attempts.high_bid_usd backfill (no id column; top-level currency; attempt_date month).
+    // No cursor: auction_attempts has no single id. Fetch the first 1000 null rows (no order), convert,
+    // upsert on the composite key; filled rows drop out. Stop when a batch converts nothing (only
+    // un-convertable rows remain) or none are left. attempts come only from 5 online USD-ish sources.
+    if (tbl === "attempts") {
+      const NEEDA = "high_bid_usd=is.null&high_bid=gt.0";
+      if (phase === "count") {
+        const total = await countQ(NEEDA);
+        const sample = await supabaseSelect(env, `auction_attempts?${NEEDA}&select=source_slug,attempt_date,currency&limit=1000`) || [];
+        const byCcy = {}; for (const r of sample) { const c = String(r.currency || "").trim().toUpperCase() || "(blank)"; byCcy[c] = (byCcy[c] || 0) + 1; }
+        return res.status(200).json({ task: "usdbackfill", table: "attempts", phase: "count", totalNeedingUsd: total, sampleSize: sample.length, currencyBreakdownInSample: byCcy });
+      }
+      if (phase === "usd") {
+        const { loadFxRates } = await import("../lib/_fx.js");
+        const fx = await loadFxRates(env);
+        const write = req.query?.write === "1";
+        const rows = await supabaseSelect(env, `auction_attempts?${NEEDA}&select=source_slug,source_record_id,attempt_date,high_bid,currency&limit=1000`) || [];
+        if (!rows.length) return res.status(200).json({ task: "usdbackfill", table: "attempts", phase: "usd", done: true, processed: 0 });
+        const fixes = [], fixedBySource = {}, fixedByYear = {}, skipped = {}, skipSamples = [];
+        for (const r of rows) {
+          const ccy = String(r.currency || "").trim().toUpperCase();
+          const yr = String(r.attempt_date || "").slice(0, 4) || "unknown";
+          let usd = null, reason = null;
+          if (!ccy) reason = "blank_currency";
+          else if (ccy === "USD") usd = Math.round(Number(r.high_bid));
+          else if (fx.has(ccy)) { const v = fx.toUsd(Number(r.high_bid), ccy, r.attempt_date); usd = (Number.isFinite(v) && v > 0) ? Math.round(v) : null; if (usd == null) reason = `no_rate_for_month:${ccy}`; }
+          else reason = `unknown_currency:${ccy}`;
+          if (usd != null) { fixes.push({ source_slug: r.source_slug, source_record_id: r.source_record_id, high_bid_usd: usd }); fixedBySource[r.source_slug] = (fixedBySource[r.source_slug] || 0) + 1; fixedByYear[yr] = (fixedByYear[yr] || 0) + 1; }
+          else { skipped[reason] = (skipped[reason] || 0) + 1; if (skipSamples.length < 15) skipSamples.push({ source_slug: r.source_slug, source_record_id: r.source_record_id, ccy: ccy || "(blank)", reason }); }
+        }
+        let wrote = 0, writeErrors = 0;
+        if (write && fixes.length) { for (let i = 0; i < fixes.length; i += 300) { const rr = await supabaseInsert("auction_attempts", fixes.slice(i, i + 300), env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_slug,source_record_id"); if (rr.error) writeErrors++; else wrote += Math.min(300, fixes.length - i); } }
+        return res.status(200).json({ task: "usdbackfill", table: "attempts", phase: "usd", write, processed: rows.length, computable: fixes.length, wrote, writeErrors, done: fixes.length === 0, fixedBySource, fixedByYear, skipped, skipSamples });
+      }
+      return res.status(400).json({ error: "usdbackfill attempts: phase=count|usd" });
+    }
     const NEED = "sale_price_usd=is.null&sale_price=gt.0&source_slug=not.eq.autohunter";
     if (phase === "count") {
       const total = await countQ(NEED);
