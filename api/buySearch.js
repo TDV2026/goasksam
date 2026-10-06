@@ -159,7 +159,9 @@ async function converseOut(env, b) {
   // Stated matches first, then the ones whose listing doesn't say; nearest first within each.
   const ordered = [...matches].sort((a, x) => { const k = c => (c.unknown.length ? 10 : 0) + (c.distance != null ? 0 : (String(c.r.country || "").toUpperCase() && String(c.r.country).toUpperCase() !== "US" ? 2 : 1)); return k(a) - k(x) || ((a.distance == null ? 1e9 : a.distance) - (x.distance == null ? 1e9 : x.distance)); });
   const split = splitAside(ordered);
-  const cards = await Promise.all(split.keep.map((x, i) => i < FIRST ? enrich(env, x) : cardOf(x)));
+  // Fill every card drawn first: the first 10 confirmed matches and the first 4 unconfirmed ones.
+  let unsureSeen = 0, sureSeen = 0;
+  const cards = await Promise.all(split.keep.map(x => { const un = (x.unknown || []).length; const k = un ? unsureSeen++ : sureSeen++; return (un ? k < 4 : k < FIRST) ? enrich(env, x) : cardOf(x); }));
   cards.forEach((c, i) => { if (split.keep[i].distance != null) c.distance = split.keep[i].distance; });
   const setAside = await setAsideOf(env, split.aside);
   logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
