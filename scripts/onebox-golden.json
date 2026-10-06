@@ -304,7 +304,7 @@
     "band": "$N to $N",
     "lead": "Most sales landed here.",
     "older": null,
-    "fresh": "Sales through last night. Latest 997 sale: MON YYYY.",
+    "fresh": "Sales through last night. Latest 997 Carrera S sale: MON YYYY.",
     "samTake": "The higher half of sales had around 43,000 miles; the lower half around 74,000. The higher half were 5 in 10 modified; the lower half 7 in 10.",
     "takeCount": 1,
     "contradiction": null,
@@ -318,7 +318,7 @@
     "heroWhy": "The sale nearest the middle of the range.",
     "sidePills": [
       "Fewer miles",
-      "Lower sale"
+      "More miles"
     ],
     "exactTitle": null,
     "exactMeta": null,

@@ -38,7 +38,8 @@
     { "source": "/buy", "destination": "/api/buy" },
     { "source": "/dsk.20260928k/(.*)", "destination": "/js/$1" },
     { "source": "/dsk.20261006a/(.*)", "destination": "/js/$1" },
-    { "source": "/dsk.20261006b/(.*)", "destination": "/js/$1" }
+    { "source": "/dsk.20261006b/(.*)", "destination": "/js/$1" },
+    { "source": "/dsk.20261006c/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
     "api/usageDashboard.js": {

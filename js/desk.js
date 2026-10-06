@@ -244,7 +244,7 @@
     var rb = document.getElementById("cantRetry"); if (rb) rb.onclick = function () { interpretFetch(question, opts || {}); };
   }
   function showCant(question, res, opts, fetchOpts) {
-    readingcard.innerHTML = res && res.reading_labels ? readingLine(res.reading_labels) : "";
+    readingcard.innerHTML = res && res.reading_labels ? readingLine(res.reading_labels) + windowNote(res) : "";
     out.innerHTML = cantRead(res, opts);
     wireCant(question, fetchOpts); wireReadingLine();
   }
@@ -282,6 +282,13 @@
     return '<div class="rline"><span class="rl-lab">Sam read</span>' + labels.map(function (l) {
       return '<button type="button" data-rl="' + esc(l.label) + '" title="Tap to correct"><span class="k">' + esc(l.label.toLowerCase()) + '</span>' + esc(l.value) + '</button>';
     }).join("") + '</div>';
+  }
+  // WINDOW NOTE (Lane B, e.g. "Only 6 days into the quarter"): one quiet line under the reading line.
+  // Read defensively: absent or empty means nothing renders.
+  function windowNote(res) {
+    var n = res && (res.window_note || (res.ranking && res.ranking.window_note) || (res.single && res.single.window_note) || (res.comparison && res.comparison.window_note) || (res.trend && res.trend.window_note));
+    n = typeof n === "string" ? n.trim() : "";
+    return n ? '<div class="wnote">' + esc(/[.!?]$/.test(n) ? n : n + ".") + '</div>' : "";
   }
   function wireReadingLine() {
     Array.prototype.forEach.call(readingcard.querySelectorAll("[data-rl]"), function (el) {
@@ -349,20 +356,25 @@
     // Venue ranking (item 6): one sentence stating what was asked, bars ordered by count, and the
     // bars SUM to the shared scope count (stated), so a count can never silently diverge across reads.
     var lead = "";
+    // TOO FEW TO RANK (Lane B): venues with too few sales are listed, plain text, never drawn as bars.
+    var tooFew = [].concat(rk.too_few || rk.tooFew || rk.too_few_to_rank || rk.tooFewList || []).filter(function (t) { return t && (t.group || t.venue); });
+    var fewLine = function (list) { return '<p class="toofew">Too few sales to rank: ' + list.map(function (t) { return esc(t.group || t.venue) + " (" + plural(t.count || 0, "sale") + ")"; }).join(", ") + '.</p>'; };
     if (rk.isVenue) {
       var venWin = windowLabelOf(rk.window);
       lead = '<p class="reading">Where <b>' + esc(rk.name || "this car") + '</b> sold <b>' + esc(venWin) + '</b>, ' + (rk.metric === "count" ? 'ranked by number of sales' : 'ranked by typical sale price') + '.</p>';
       // "How did X do compared to everyone else": state X's share of the same pool, from the bars.
       var cvName = rk.comparedVenue && String(rk.comparedVenue).toLowerCase() !== "all" ? rk.comparedVenue : null;
       if (cvName && rk.total) {
-        var cv = (rk.ranked || []).filter(function (r) { return r.compared || r.venue === cvName; })[0];
+        var cv = (rk.ranked || []).concat(tooFew).filter(function (r) { return r.compared || r.venue === cvName || r.group === cvName; })[0];
         var cvN = cv ? cv.count : 0, others = rk.total - cvN;
         lead += '<p class="reading"><b>' + esc(cvName) + '</b> ' + (cvN ? 'had ' + cvN + ' of the ' + rk.total + (cv && cv.median != null && cvN >= 5 ? ', at a typical ' + usd(cv.median) : '') : 'had none of the ' + rk.total) + '; the other venues had ' + others + '.</p>';
       }
     }
     var h = '<div class="result">';
     if (rk.tooFewToRank || !rk.ranked || !rk.ranked.length) {
-      h += '<div class="reconcile">' + (rk.isVenue ? 'No sales of this car in scope, so there are no venues to rank.' : 'Fewer than two of these have enough recent sales to rank honestly.') + '</div>';
+      var allFew = (rk.ranked || []).concat(tooFew);
+      if (rk.isVenue && allFew.length) h += fewLine(allFew);
+      else h += '<div class="reconcile">' + (rk.isVenue ? 'No sales of this car in scope, so there are no venues to rank.' : 'Fewer than two of these have enough recent sales to rank honestly.') + '</div>';
     } else {
       var max = Math.max.apply(null, rk.ranked.map(function (r) { return rk.metric === "count" ? (r.count || 0) : (r.median || 0); })) || 1;
       h += '<div class="rank">';
@@ -379,9 +391,14 @@
           '<span class="v"><span class="ev" ' + ev + '>' + vtxt + '</span> <span class="sub">' + esc(sub) + '</span></span></div>';
       });
       h += '</div>';
+      if (tooFew.length) h += fewLine(tooFew);
       if (rk.isVenue && rk.total != null) {
         var exn = exclusionNote(rk.exclusions);
-        h += '<div class="read">' + plural(rk.total.toLocaleString("en-US"), "sale") + ' across ' + plural(rk.ranked.length, "venue") + (rk.ranked.length > 1 && rk.metric === "count" ? '; the bars add up to this total.' : '.') + (exn ? ' ' + esc(exn) + '.' : '') + '</div>';
+        // Only claim the parts add up when they actually do (bars alone, or bars plus the too-few list).
+        var sumOf = function (list) { return (list || []).reduce(function (a, r) { return a + (Number(r.count) || 0); }, 0); };
+        var barSum = sumOf(rk.ranked), fewSum = sumOf(tooFew), venuesN = rk.ranked.length + tooFew.length;
+        var addUp = rk.metric !== "count" || rk.ranked.length < 2 ? "" : (barSum === rk.total ? "; the bars add up to this total" : (tooFew.length && barSum + fewSum === rk.total ? "; the bars and the too-few list add up to this total" : ""));
+        h += '<div class="read">' + plural(rk.total.toLocaleString("en-US"), "sale") + ' across ' + plural(venuesN, "venue") + addUp + '.' + (exn ? ' ' + esc(exn) + '.' : '') + '</div>';
         var r0 = rk.ranked[0];
         h += seeSales('data-allvenues="1" data-make="' + esc(r0.make) + '" data-model="' + esc(r0.model) + '"' + (r0.trim ? ' data-trim="' + esc(r0.trim) + '"' : '') + ' data-window="' + esc(rk.window || "36mo") + '" data-cap="' + esc((rk.name || "") + ", every venue") + '" data-fig="' + esc(plural(rk.total, "sale")) + '"', rk.total);
       }
@@ -541,7 +558,7 @@
     if (rf.price && rf.price.max) CUR_SCOPE.price_max = rf.price.max;
     // NO SILENT SUBSTITUTION: a not-yet-built question type says so in ONE line and shows nothing else.
     if (res.not_built) {
-      readingcard.innerHTML = readingLine(res.reading_labels); wireReadingLine();
+      readingcard.innerHTML = readingLine(res.reading_labels) + windowNote(res); wireReadingLine();
       out.innerHTML = cantRead(res, { note: res.not_built }); wireCant(question, {});
       CUR_READING = res.reading; RECENT.push(res.reading);
       THREAD.push({ question: question, reading: res.reading, summary: summarize(res), cardHtml: "", answerHtml: out.innerHTML });
@@ -553,7 +570,7 @@
     // Only a genuine clarify still renders a card, and only its question + options (no chips).
     renderClarify(res);
     // What Sam read: one quiet line above the answer (a clarify keeps its own card instead).
-    if (!res.clarify) readingcard.innerHTML = readingLine(res.reading_labels);
+    if (!res.clarify) readingcard.innerHTML = readingLine(res.reading_labels) + windowNote(res);
     var cant = false;
     if (res.cannot_apply) { cant = true; out.innerHTML = cantRead(res, { note: res.cannot_apply }); }
     else if (res.ranking) out.innerHTML = renderRanking(res.ranking);
