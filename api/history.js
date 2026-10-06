@@ -367,7 +367,27 @@ async function slugFor(title, year) {
   return out;
 }
 const xmlEsc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+// Read-only counts for the staged rollout (zero OCD): how many VINs fall in each group.
+async function countOf(env, q) {
+  try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}&select=vin_norm&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" } }); const n = Number(String(r.headers.get("content-range") || "").split("/")[1]); return Number.isFinite(n) ? n : (r.ok ? null : "err " + r.status); } catch (e) { return "err"; }
+}
+async function sitemapStats(res, env) {
+  const out = {
+    vin_summary_total: await countOf(env, "vin_summary?vin_norm=not.is.null"),
+    cars_2plus: await countOf(env, "vin_summary?appearances=gte.2&vehicle_type=eq.car"),
+    cars_1: await countOf(env, "vin_summary?appearances=eq.1&vehicle_type=eq.car"),
+    non_car: await countOf(env, "vin_summary?vehicle_type=neq.car"),
+    vin_index_rows: await countOf(env, "vin_index?vin_norm=not.is.null"),
+    vin_index_with_photo: await countOf(env, "vin_index?photo_url=not.is.null"),
+    sample_summary: await supabaseSelectSafe(env, "vin_summary?appearances=gte.2&select=*&limit=3"),
+    sample_index: await supabaseSelectSafe(env, "vin_index?select=vin_norm,year,make,model,model_family,listing_title,photo_url,result&limit=3")
+  };
+  res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store");
+  return res.status(200).send(JSON.stringify(out, null, 1));
+}
+async function supabaseSelectSafe(env, q) { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); return r.ok ? r.json() : "err " + r.status; } catch { return "err"; } }
 async function sitemap(res, env, which) {
+  if (which === "stats") return sitemapStats(res, env);
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
   res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=86400");
   if (which === "index") {
