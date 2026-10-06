@@ -3226,7 +3226,13 @@ async function handleOps(req, res) {
       byYear[y].total++; known ? byYear[y].known++ : byYear[y].null++;
     }
     for (const s of Object.keys(bySource)) bySource[s].knownPct = bySource[s].total ? Math.round(bySource[s].known / bySource[s].total * 1000) / 10 : 0;
-    return res.status(200).json({ task: "reserveaudit", totalRows: rows.length, bySource, byYear });
+    // The cross-tab above is capped at supabaseSelectAll's 200k ceiling; get the AUTHORITATIVE full-table
+    // has_reserve null/total via count=exact (one scan each) so the coverage headline covers every row.
+    const H2 = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    const cq = async f => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${f}&select=id&limit=1`, { headers: H2 }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    const fullTotal = await cq("id=not.is.null");
+    const fullNull = await cq("has_reserve=is.null");
+    return res.status(200).json({ task: "reserveaudit", crossTabRowsScanned: rows.length, fullTable: { total: fullTotal, has_reserve_null: fullNull, has_reserve_known: (fullTotal != null && fullNull != null) ? fullTotal - fullNull : null }, bySource, byYear });
   }
 
   // task=usdbackfill: backfill sale_price_usd on sales_archive rows that have a sale_price but no
