@@ -3258,6 +3258,29 @@ async function handleOps(req, res) {
     return res.status(400).json({ error: "usdbackfill: phase=count|usd" });
   }
 
+  // task=provevins: READ-ONLY. Find multi-appearance VINs with a non-USD (GBP/EUR) earlier sale - those
+  // sale_price_usd values could ONLY have come from the FX backfill (non-USD never passes through), so
+  // their history page's prior USD price is the before/after proof. Returns a few with full sale history.
+  if (task === "provevins") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const multi = await supabaseSelect(env, `vin_summary?appearances=gte.2&make=not.is.null&select=vin_norm&limit=1000`) || [];
+    const vins = multi.map(r => r.vin_norm).filter(Boolean);
+    const chunk = (a, n) => { const o = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };
+    const hits = [];
+    for (const c of chunk(vins, 100)) {
+      if (hits.length >= 6) break;
+      const inlist = c.map(encodeURIComponent).join(",");
+      const rows = await supabaseSelect(env, `sales_archive?vin_norm=in.(${inlist})&raw_record->>currency=in.(GBP,EUR)&select=vin_norm,sale_date,sale_price,sale_price_usd,cur:raw_record->>currency,listing_title,source_slug&order=sale_date.asc&limit=50`) || [];
+      for (const r of rows) { if (hits.length >= 6) break; if (!hits.find(h => h.vin === r.vin_norm)) hits.push({ vin: r.vin_norm, title: r.listing_title, src: r.source_slug }); }
+    }
+    const out = [];
+    for (const h of hits.slice(0, 5)) {
+      const sales = await supabaseSelect(env, `sales_archive?vin_norm=eq.${encodeURIComponent(h.vin)}&select=sale_date,sale_price,sale_price_usd,cur:raw_record->>currency,source_slug,listing_title&order=sale_date.asc`) || [];
+      out.push({ vin: h.vin, title: h.title, sales: sales.map(s => ({ date: String(s.sale_date || "").slice(0, 10), native: Number(s.sale_price) || null, currency: s.cur || null, usd: Number(s.sale_price_usd) || null, src: s.source_slug })) });
+    }
+    return res.status(200).json({ task: "provevins", candidatesChecked: vins.length, found: hits.length, vins: out });
+  }
+
   // task=relisted: READ-ONLY. Relisted-cars split for a close-week window (?from=&to=, default last week
   // Sep 27-Oct 3). A "repeat" is a car that CLOSED this week (sold or unsold) AND has a prior appearance
   // (sale or unsold attempt) before the window. For each: sold_before vs listed_before_unsold; same/diff
