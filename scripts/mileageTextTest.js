@@ -13,6 +13,9 @@ const cases = [
   ["1986 Mercedes-Benz 560SEL", "odometer reads TMU; mileage is not known.", null, null],   // TMU -> null
   ["Restored 1980 Mercedes-Benz 280GE", "full frame-off restoration, 4-speed manual.", null, null],   // nothing -> null
   ["2023 Mercedes-AMG C43", "shows 12,345 miles.", 12345, "miles"],
+  ["0-100 km/h car", "0-100 km/h in 3.5s, top speed 300 km/h.", null, null],   // speed, not odometer
+  ["132 km/h test", "does 132 km/h flat out.", null, null],   // speed
+  ["real km odo", "shows 85,000 km on the odometer.", 52800, "km"],   // 85000*0.621371=52816.5 -> 52800
   ["16k KMs car", "The odometer shows 16k KMs.", 9900, "km"],   // 16000*0.621371=9941.9 -> 9900
 ];
 

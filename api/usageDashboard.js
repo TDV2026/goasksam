@@ -3220,10 +3220,37 @@ async function handleOps(req, res) {
   if (task === "milesfill") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { mileageFromText } = await import("../lib/_mileageText.js");
-    const mode = String(req.query?.mode || "mb") === "fill" ? "fill" : "mb";
+    const modeRaw = String(req.query?.mode || "mb");
+    const mode = modeRaw === "fill" ? "fill" : modeRaw === "recheck" ? "recheck" : "mb";
     const write = req.query?.write === "1";
     const cursor = req.query?.cursor ? String(req.query.cursor) : "";
     const limit = Math.max(200, Math.min(1000, Number(req.query?.limit || 1000)));
+    // RECHECK: correct km/h false-positive fills written before the km/h fix. A velocity ("0-100 km/h")
+    // was wrongly read as a km odometer (-> ~100-200 mi). Narrowed to non-AH/non-MB rows with mileage
+    // 1..400 (where such fills land). A row is MINE to correct only if the OLD km-inclusive match
+    // reproduces the current value; set it to the FIXED parse (null for pure km/h, or the real odometer
+    // if the text also states one). Real structured mileages are never touched (they do not match).
+    if (mode === "recheck") {
+      const curF = cursor ? `&id=gt.${encodeURIComponent(cursor)}` : "";
+      const rows = await supabaseSelect(env, `sales_archive?mileage=gte.1&mileage=lte.400&source_slug=not.eq.autohunter&source_slug=not.eq.mbmarket${curF}&select=id,source_id,source_slug,mileage,listing_title,description&order=id.asc&limit=${limit}`) || [];
+      if (!rows.length) return res.status(200).json({ task: "milesfill", mode, done: true, processed: 0, nextCursor: null });
+      const legacyKmMiles = text => { const m = /(\d[\d.,]*)\s*(k)?[\s-]*(?:kms?\b|kilomete?res?\b)/i.exec(String(text || "")); if (!m) return null; let n = Number(String(m[1]).replace(/,/g, "")); if (!(n > 0)) return null; if (m[2]) n *= 1000; return Math.round(n * 0.621371 / 100) * 100; };
+      const fixes = [], correctedBySource = {}, samples = [];
+      for (const r of rows) {
+        const nw = mileageFromText(r.listing_title, r.description);
+        if (nw && nw.miles === r.mileage) continue;                        // correctly filled / real
+        const lk = legacyKmMiles(`${r.listing_title || ""} . ${r.description || ""}`);
+        if (lk != null && lk === r.mileage) {                              // my km fill the fixed parser rejects/changes
+          const newMiles = nw ? nw.miles : null;
+          fixes.push({ source_id: String(r.source_id), mileage: newMiles });
+          correctedBySource[r.source_slug] = (correctedBySource[r.source_slug] || 0) + 1;
+          if (samples.length < 20) samples.push({ src: r.source_slug, title: r.listing_title, was: r.mileage, now: newMiles });
+        }
+      }
+      let wrote = 0, writeErrors = 0;
+      if (write && fixes.length) { for (let i = 0; i < fixes.length; i += 300) { const rr = await supabaseInsert("sales_archive", fixes.slice(i, i + 300), env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id"); if (rr.error) writeErrors++; else wrote += Math.min(300, fixes.length - i); } }
+      return res.status(200).json({ task: "milesfill", mode, write, processed: rows.length, nextCursor: rows[rows.length - 1].id, corrected: fixes.length, wrote, writeErrors, correctedBySource, samples });
+    }
     const base = mode === "mb"
       ? `source_slug=eq.mbmarket`
       : `mileage=is.null&source_slug=not.eq.autohunter&source_slug=not.eq.mbmarket`;
