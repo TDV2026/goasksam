@@ -3177,8 +3177,11 @@ async function handleOps(req, res) {
     while (processed < maxRows && Date.now() < deadline) {
       const sel = "id,source_id,listing_title,mileage,description";
       // ONE bounded page per iteration (supabaseSelect, not supabaseSelectAll - the latter paginates
-      // through ALL ~300k matching rows every iteration). PostgREST caps a page at 1000 rows anyway.
-      const slice = (await supabaseSelect(env, `sales_archive?desc_facts=is.null&select=${sel}&order=id.asc&limit=${pageSize}`)) || [];
+      // through ALL ~300k matching rows every iteration). NO order-by: desc_facts is unindexed, so an
+      // ordered scan has to walk the whole already-populated prefix to find the sparse remaining nulls
+      // (statement timeout as the backfill nears the end). Unordered, PostgREST returns the first 1000
+      // nulls it finds and we re-query until none remain.
+      const slice = (await supabaseSelect(env, `sales_archive?desc_facts=is.null&select=${sel}&limit=${pageSize}`)) || [];
       if (!slice.length) break;   // nothing left
       const patch = slice.map(r => {
         const df = computeDescFacts({ title: r.listing_title, description: r.description, mileageStructured: r.mileage });
