@@ -84,8 +84,11 @@ export async function buildVinIndex(env, { reportOnly = false } = {}) {
   const stats = { appearances: all.length, distinctVins: byVin.size, polluted, keptVins: keptVins.length, dist: { exactly_1: d1, two_plus: d2, three_plus: d3 }, top10 };
   if (reportOnly) return { ...stats, wrote: false };
 
-  // ---- write vin_index (per appearance) ----
-  await deleteAll(env, H, "vin_index");
+  // ---- SHRINK GUARD: never overwrite the live tables with a short build ----
+  // A truncated read (e.g. a serverless function timing out mid-walk) would otherwise delete the good
+  // tables and replace them with a partial set. Count the existing vin_index rows first; if the new
+  // build is under 95% of them, refuse to overwrite - log the counts and THROW so the nightly fails
+  // loudly (CLI exits non-zero). The first build (existing 0) is always allowed.
   const idxRows = [];
   for (const v of keptVins) for (const a of byVin.get(v)) idxRows.push({
     vin_norm: v, appearance_date: a.date, source: a.source, url: a.url, listing_title: a.title,
@@ -94,6 +97,16 @@ export async function buildVinIndex(env, { reportOnly = false } = {}) {
     price_usd: a.price_usd, currency: a.currency, country: a.country, photo_url: a.photo_url,
     src_table: a.src_table, src_row_id: a.src_row_id
   });
+  let existingIdx = 0;
+  try { const cr = await fetch(`${env.supabaseUrl}/rest/v1/vin_index?select=id&limit=1`, { headers: { ...H, Prefer: "count=exact" } }); const m = /\/(\d+)$/.exec(cr.headers.get("content-range") || ""); existingIdx = m ? Number(m[1]) : 0; } catch { existingIdx = 0; }
+  if (existingIdx > 0 && idxRows.length < 0.95 * existingIdx) {
+    const msg = `VIN index shrink guard: new build ${idxRows.length} appearance rows < 95% of existing ${existingIdx} (read likely truncated). Refusing to overwrite; tables left intact.`;
+    console.error(msg);
+    throw new Error(msg);
+  }
+
+  // ---- write vin_index (per appearance) ----
+  await deleteAll(env, H, "vin_index");
   let ins = 0, insErr = 0;
   for (let i = 0; i < idxRows.length; i += 500) { const r = await supabaseInsert("vin_index", idxRows.slice(i, i + 500), env.supabaseUrl, env.supabaseKey); if (!r.error) ins += Math.min(500, idxRows.length - i); else { insErr++; console.error("vin_index insert error:", r.error); } }
 
