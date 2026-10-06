@@ -28,7 +28,10 @@ const isUnknown = s => !s || /^unknown$/i.test(String(s).trim());
 async function loadSales() {
   const sel = "source_id,vin_norm,sale_date,source_slug,make,model,model_family,vehicle_type,year,mileage,sale_price_usd," +
     "currency:raw_record->>currency,url:raw_record->>url,surl:raw_record->>source_url,photo:raw_record->>featured_image_url,country:raw_record->>country,title:listing_title";
-  const rows = await supabaseSelectAll(env, `sales_archive?vin_norm=not.is.null&vehicle_type=not.eq.non_vehicle&select=${sel}&order=sale_date.asc.nullslast`) || [];
+  // Exclude ONLY actual non_vehicle rows. `vehicle_type=not.eq.non_vehicle` drops NULL rows too (SQL
+  // NULL <> x is unknown), which would filter make-Unknown cars out of the VIN index - a VIN exact-match
+  // must never be filtered by vehicle_type or make. Keep null / car / motorcycle / other.
+  const rows = await supabaseSelectAll(env, `sales_archive?vin_norm=not.is.null&or=(vehicle_type.is.null,vehicle_type.neq.non_vehicle)&select=${sel}&order=sale_date.asc.nullslast`) || [];
   return rows.map(r => ({
     vin: normVin(r.vin_norm), date: day(r.sale_date), source: r.source_slug || null, url: r.url || r.surl || null,
     title: r.title || null, make: r.make || null, model: r.model || null, model_family: r.model_family || null,
@@ -74,7 +77,8 @@ async function deleteAll(table) {
   for (const [vin, apps] of byVin) {
     const idents = new Set(apps.map(identity).filter(id => id !== "|"));
     if (idents.size > 1) { polluted++; continue; }          // shared/polluted VIN across unrelated lots
-    if (idents.size === 0) continue;                         // no identifiable car on any appearance
+    // idents.size === 0 (all appearances make-Unknown) is KEPT: a VIN exact-match must resolve a
+    // make-Unknown car too. make/model are written null for it; only genuinely polluted VINs drop.
     keptVins.push(vin);
   }
   // Appearance distribution (report) over KEPT vins.
