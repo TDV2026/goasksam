@@ -3210,6 +3210,15 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "ingestlog", count: rows.length, events: rows.map(r => ({ at: r.created_at, type: r.event_type, status: r.status, ocd_metered: r.oldcarsdata_metered_requests, mode: r.metadata?.mode || null, upserted: r.metadata?.upserted ?? null, ocd_http: r.metadata?.ocd_http_requests ?? null, meta: r.metadata || null })) });
   }
 
+  // task=buildvinindex: run the VIN index rebuild server-side (DB-only, ZERO OCD), the SAME core the
+  // CLI + nightly use (scripts/buildVinIndex.js buildVinIndex). ?report=1 = distribution only, no write.
+  if (task === "buildvinindex") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { buildVinIndex } = await import("../scripts/buildVinIndex.js");
+    const stats = await buildVinIndex(env, { reportOnly: req.query?.report === "1" });
+    return res.status(200).json({ task: "buildvinindex", ...stats });
+  }
+
   // task=vinidxcount: READ-ONLY. vin_index / vin_summary readiness for Lane C: row counts, distinct VINs,
   // multi-appearance VIN count, and 5 sample multi-appearance VINs with their appearance history.
   if (task === "vinidxcount") {
