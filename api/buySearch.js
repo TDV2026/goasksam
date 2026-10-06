@@ -138,9 +138,13 @@ async function converseOut(env, b) {
   if (r.type === "question" || r.type === "nonsense") return r;
   const seenN = r.vins && r.vins.length ? await seenCount(env, r.vins).catch(() => 0) : 0;
   if (r.type === "groups") {
+    // The heading quotes a sold range only when every car in the group shares body and gearbox; a
+    // mixed group gets no range in its heading and each card carries its own line instead.
+    const sameSpec = items => { const k = x => (x.facts.body || "?") + "|" + (x.facts.gearbox || "?"); return items.every(x => x.facts.body && x.facts.gearbox && k(x) === k(items[0])); };
     const shape = list => Promise.all((list || []).map(async g => {
-      const mk = await listingMarket(env, g.items[0].r, g.items[0].facts);
-      const cards = await Promise.all(g.items.slice(0, 40).map((x, i) => (i < (r.perCard ? 3 : 0)) ? enrich(env, x) : cardOf(x)));
+      const mk = sameSpec(g.items) ? await listingMarket(env, g.items[0].r, g.items[0].facts) : null;
+      // The cards drawn first are enriched here, so each card renders WITH its Sam line, never after.
+      const cards = await Promise.all(g.items.slice(0, 40).map((x, i) => i < 3 ? enrich(env, x) : cardOf(x)));
       cards.forEach((c, i) => { if (g.items[i] && g.items[i].distance != null) c.distance = g.items[i].distance; });
       return { label: g.label, n: g.n, market: mk, cards };
     }));

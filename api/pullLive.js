@@ -58,6 +58,7 @@ export default async function handler(req, res) {
       const params = mode === "new" ? { sort: "created_at", direction: "desc" } : { sort: "auction_end_at", direction: "asc" };
       for (let page = 1; page <= cap && used() < maxReq; page++) {
         const r = await ocdWithRetry(() => callOldCarsData("/auctions/live", { page, limit, ...params }, apiKey), used, maxReq);
+        await flushOcdUsage();   // record the spend page by page, so a timeout never loses the count
         const hdr = r.__rateLimit && r.__rateLimit.remaining != null ? Number(r.__rateLimit.remaining) : null;
         const data = r.data || r.results || [];
         const mapped = data.map(rec => mapLiveRecord(rec, seenAt)).filter(Boolean);
@@ -78,6 +79,7 @@ export default async function handler(req, res) {
     while (true) {
       if (used() >= maxReq) { truncated = true; break; }
       const r = await ocdWithRetry(() => callOldCarsData("/auctions/live", { page, limit }, apiKey), used, maxReq);
+      await flushOcdUsage();   // record the spend page by page, so a timeout never loses the count
       const hdr = r.__rateLimit && r.__rateLimit.remaining != null ? Number(r.__rateLimit.remaining) : null;
       if (hdr != null && hdr < reserve) { stoppedForReserve = hdr; truncated = true; }
       const data = r.data || r.results || [];
