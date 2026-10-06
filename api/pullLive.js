@@ -9,6 +9,7 @@
 import { callOldCarsData, configureOcdUsage, getOcdRunMetered, flushOcdUsage } from "../lib/_ocd.js";
 import { historyEnv } from "./_historyData.js";
 import { recordUsageEvent } from "./_usage.js";
+import { ocdWithRetry, readRemaining, reserveFloor, freshnessOn } from "../lib/live/ocdGuard.js";
 import { mapLiveRecord, upsertLive, markVanished, fillFinalPrices, liveStats } from "../lib/live/feed.js";
 
 export default async function handler(req, res) {
@@ -41,11 +42,34 @@ export default async function handler(req, res) {
     }
     // 0. Monthly guard: skip the whole run while OCD's own remaining monthly quota (the header /sell
     // persists to app_config ocd_rate_limit) is below OCD_SELL_MONTHLY_RESERVE + 100. Logged when skipped.
-    const reserve = Number(process.env.OCD_SELL_MONTHLY_RESERVE || 450) + 100;
+    const reserve = reserveFloor();
     const rl = await readRemaining(env);
     if (rl && rl.fresh && rl.remaining < reserve) {
       await recordUsageEvent({ event_type: "pull_live_skipped", route: "pull_live", status: "skipped", oldcarsdata_metered_requests: 0, metadata: { remaining: rl.remaining, reserve, at: rl.at } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       return res.status(200).json({ ok: true, skipped: "monthly OCD remaining below reserve", remaining: rl.remaining, reserve, ocdRequests: 0 });
+    }
+    // 30-minute freshness jobs (OFF unless LIVE_FRESHNESS=1; no cron line until switched on):
+    //   ?mode=new     newest-listed first, stop at the first page whose listings we already hold (cap 3)
+    //   ?mode=ending  soonest-ending first, refresh until listings end beyond 24 hours from now (cap 5)
+    const mode = String((req.query && req.query.mode) || "");
+    if (mode === "new" || mode === "ending") {
+      if (!freshnessOn()) return res.status(200).json({ ok: true, off: "LIVE_FRESHNESS is not on", ocdRequests: 0 });
+      const seenAt = new Date().toISOString(), rows = [], cap = mode === "new" ? 3 : 5;
+      const params = mode === "new" ? { sort: "created_at", direction: "desc" } : { sort: "auction_end_at", direction: "asc" };
+      for (let page = 1; page <= cap && used() < maxReq; page++) {
+        const r = await ocdWithRetry(() => callOldCarsData("/auctions/live", { page, limit, ...params }, apiKey), used, maxReq);
+        const hdr = r.__rateLimit && r.__rateLimit.remaining != null ? Number(r.__rateLimit.remaining) : null;
+        const data = r.data || r.results || [];
+        const mapped = data.map(rec => mapLiveRecord(rec, seenAt)).filter(Boolean);
+        rows.push(...mapped);
+        if (hdr != null && hdr < reserve) break;
+        if (data.length < limit) break;
+        if (mode === "ending") { const lastEnd = Date.parse(mapped.length ? mapped[mapped.length - 1].end_time : ""); if (!(lastEnd < Date.now() + 24 * 3600e3)) break; }
+        if (mode === "new") { const ids = mapped.map(m => m.source_listing_id); const known = await knownIds(env, ids); if (known >= ids.length) break; }
+      }
+      const up = await upsertLive(env, rows);
+      await flushOcdUsage();
+      return res.status(200).json({ ok: true, mode, ocdRequests: used(), upserted: up });
     }
     // 1. Walk every page of the live feed, bounded by --max-requests.
     const seenAt = new Date().toISOString();
@@ -84,31 +108,11 @@ export default async function handler(req, res) {
   }
 }
 
-// A metered call with at most 2 retries, and only for a 5xx or a network failure. Any 4xx stops at
-// once (a 4xx is never retried: it costs a request and will not change), as does the run's cap.
-async function ocdWithRetry(fn, used, maxReq) {
-  let last;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try { return await fn(); }
-    catch (e) {
-      last = e;
-      const st = Number(e && e.status);
-      if (e && e.ocdHardCap) throw e;
-      if (st >= 400 && st < 500) throw e;
-      if (attempt === 2 || used() >= maxReq) throw e;
-    }
-  }
-  throw last;
-}
-// OCD's monthly remaining, as persisted by /sell from the response header (app_config ocd_rate_limit).
-async function readRemaining(env) {
-  try {
-    const r = await fetch(`${env.supabaseUrl}/rest/v1/app_config?key=eq.ocd_rate_limit&select=value&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
-    if (!r.ok) return null;
-    const rows = await r.json(); const raw = rows && rows[0] && rows[0].value; if (!raw) return null;
-    const v = typeof raw === "string" ? JSON.parse(raw) : raw;
-    const remaining = Number(v && v.remaining), at = Number(v && v.at) || 0;
-    if (!Number.isFinite(remaining)) return null;
-    return { remaining, at, fresh: at > 0 && Date.now() - at < 6 * 3600e3 };
-  } catch { return null; }
+
+async function knownIds(env, ids) {
+  if (!ids.length) return 0;
+  const list = ids.map(i => '"' + String(i).replace(/"/g, "") + '"').join(",");
+  const r = await fetch(`${env.supabaseUrl}/rest/v1/live_listings?source_listing_id=in.(${encodeURIComponent(list)})&select=id&limit=200`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
+  const rows = r.ok ? await r.json() : [];
+  return Array.isArray(rows) ? rows.length : 0;
 }

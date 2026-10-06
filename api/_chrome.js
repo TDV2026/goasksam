@@ -108,12 +108,12 @@ td a{font-weight:500}
   .watch input{min-width:0}
 }`;
 export const FONT_LINKS = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;family=Instrument+Sans:wght@400;500;600&amp;display=swap">';
-export function railHtml(active) {
+export function railHtml(active, extra) {
   const item = (key, href, label) => '<a class="n' + (active === key ? ' on" aria-current="page' : '') + '" href="' + href + '">' + label + '</a>';
   return '<nav class="rail" aria-label="Main navigation"><a class="logo" href="/onebox">GoAskSam</a>' +
     item('ask', '/onebox', 'Ask Sam') + item('buy', '/buy', 'Buy') + item('sell', '/sell', 'Where to sell') +
     (active === 'history' ? item('history', '#', 'Car histories') : '') +
-    item('how', '/how-sam-decides', 'How Sam decides') + item('business', '/business', 'For business') + '</nav>' +
+    item('how', '/how-sam-decides', 'How Sam decides') + item('business', '/business', 'For business') + (extra || '') + '</nav>' +
     '<header class="mhead"><a href="/onebox">GoAskSam</a><nav class="mnav" aria-label="Sections">' + item('ask', '/onebox', 'Ask Sam') + item('buy', '/buy', 'Buy') + item('sell', '/sell', 'Sell') + '</nav></header>';
 }
 

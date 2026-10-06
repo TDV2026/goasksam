@@ -8,6 +8,13 @@
 import { historyEnv, houseName, normVin } from "./_historyData.js";
 import { parseQuery, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME } from "../lib/live/search.js";
 import { findGeneration } from "../lib/generations.js";
+import { converse } from "../lib/live/converse.js";
+import { listingDetail, facetsOf } from "../lib/live/search.js";
+import { vinAppearances } from "./_historyData.js";
+import { validateBearer } from "../lib/_auth.js";
+import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js";
+import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.js";
+import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 
 const FIRST = 10, MAX = 200;
 const titleCaseIfShouting = s => { s = String(s || ""); return s && s === s.toUpperCase() && /[A-Z]{3}/.test(s) ? s.toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase()) : s; };
@@ -78,6 +85,9 @@ export default async function handler(req, res) {
       const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts), seenBefore(env, r.vin_norm)]).then(([market, seen]) => ({ id: r.id, market, seen_before: seen })); }));
       return res.status(200).json({ cards });
     }
+    if (b.action === "converse") return res.status(200).json(await converseOut(env, b));
+    if (b.action === "detail") return res.status(200).json(await detailOut(env, b));
+    if (b.action === "save" || b.action === "list" || b.action === "watchsearch" || b.action === "remove") return await savedSearches(env, req, res, b);
     const q = String(b.q || "").slice(0, 200).trim();
     if (!q) return res.status(400).json({ status: "error" });
     const parsed = parseQuery(q);
@@ -104,4 +114,104 @@ export default async function handler(req, res) {
     console.error("buySearch failed:", (e && e.stack) || e);
     return res.status(500).json({ status: "error" });
   }
+}
+
+// ---------------------------------------------------------------- the conversation
+function cleanState(s) {
+  s = s && typeof s === "object" ? s : {};
+  return {
+    messages: (Array.isArray(s.messages) ? s.messages : []).map(m => String(m || "").slice(0, 300)).filter(Boolean).slice(-10),
+    filters: cleanFilters(s.filters) || null,
+    answered: (Array.isArray(s.answered) ? s.answered : []).map(String).filter(k => /^(generation|mileage|budget|location|zip)$/.test(k)),
+    asked: Math.max(0, Math.min(3, Number(s.asked) || 0)),
+    zip: /^\d{5}$/.test(String(s.zip || "")) ? String(s.zip) : null,
+    showNow: !!s.showNow
+  };
+}
+async function converseOut(env, b) {
+  const st = cleanState(b.state);
+  if (!st.messages.length) return { type: "nonsense", say: "Tell Sam a car, a budget or a type of car and he'll find what's live.", chips: ["Black manual BMW M3", "Porsches under $50k", "Anything ending today"] };
+  const r = await converse(env, st);
+  if (r.type === "question" || r.type === "nonsense") return r;
+  if (r.type === "groups") {
+    const groups = await Promise.all(r.groups.map(async g => {
+      const mk = await listingMarket(env, g.items[0].r, g.items[0].facts);
+      const cards = await Promise.all(g.items.slice(0, 40).map((x, i) => (i < (r.perCard ? 3 : 0)) ? enrich(env, x) : cardOf(x)));
+      return { label: g.label, n: g.n, market: mk, cards };
+    }));
+    logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
+    return { type: "groups", understood: r.understood, groups, footnote: r.footnote || null, perCard: !!r.perCard };
+  }
+  const matches = (r.matches || []).slice(0, MAX);
+  const ordered = [...matches].sort((a, x) => { const k = c => (c.distance != null ? 0 : (String(c.r.country || "").toUpperCase() && String(c.r.country).toUpperCase() !== "US" ? 2 : 0) + (c.unknown.length ? 1 : 0)); return k(a) - k(x); });
+  const cards = await Promise.all(ordered.map((x, i) => i < FIRST ? enrich(env, x) : cardOf(x)));
+  cards.forEach((c, i) => { if (ordered[i].distance != null) c.distance = ordered[i].distance; });
+  logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
+  return { type: "results", understood: r.understood, say: r.say, market: r.market || null, outOfScope: !!r.outOfScope, geo: !!r.geo, total: (r.matches || []).length, cards, facets: facetsOf(ordered), filters: r.filters || null };
+}
+async function detailOut(env, b) {
+  const id = Number(b.id); if (!Number.isFinite(id)) return { ok: false };
+  const rows = await liveRows(env, `id=eq.${id}`);
+  let row = rows && rows[0]; if (!row) return { ok: false };
+  row = await freshBid(env, row);
+  const facts = listingFacts(row);
+  const [detail, hist] = await Promise.all([listingDetail(env, row), row.vin_norm ? vinAppearances(env, row.vin_norm) : Promise.resolve(null)]);
+  const history = hist && hist.appearances ? hist.appearances.map(a => ({ kind: a.kind, date: a.date, house: a.house, price: a.kind === "sale" ? a.priceUsd : a.bidUsd, miles: a.mileage, url: a.url })) : [];
+  return { ok: true, card: cardOf({ r: row, facts, gen: null, unknown: [] }), detail, history, historyUrl: row.vin_norm && history.length ? `/vin/${row.vin_norm}` : null };
+}
+// ---------------------------------------------------------------- saved searches (signed in)
+async function savedSearches(env, req, res, b) {
+  const user = await validateBearer(req.headers.authorization || "").catch(() => null);
+  if (!user || !user.userId) return res.status(401).json({ ok: false, needSignIn: true });
+  const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" };
+  const base = `${env.supabaseUrl}/rest/v1/buy_conversations`;
+  if (b.action === "list") {
+    const r = await fetch(`${base}?user_id=eq.${user.userId}&select=id,title,messages,filters,state,watch,updated_at&order=updated_at.desc&limit=50`, { headers: H });
+    return res.status(r.ok ? 200 : 500).json({ ok: r.ok, items: r.ok ? await r.json() : [] });
+  }
+  if (b.action === "save") {
+    const st = cleanState(b.state);
+    const title = String(b.title || st.messages[0] || "Search").slice(0, 120);
+    const row = { user_id: user.userId, title, messages: st.messages, filters: st.filters || {}, state: st, updated_at: new Date().toISOString() };
+    const r = b.id && /^[0-9a-f-]{36}$/.test(String(b.id))
+      ? await fetch(`${base}?id=eq.${b.id}&user_id=eq.${user.userId}`, { method: "PATCH", headers: { ...H, Prefer: "return=representation" }, body: JSON.stringify(row) })
+      : await fetch(base, { method: "POST", headers: { ...H, Prefer: "return=representation" }, body: JSON.stringify([row]) });
+    const out = r.ok ? await r.json() : null;
+    if (!r.ok) console.error("buy_conversations save failed", r.status);
+    return res.status(r.ok ? 200 : 500).json({ ok: r.ok, id: out && out[0] && out[0].id });
+  }
+  if (b.action === "remove" && /^[0-9a-f-]{36}$/.test(String(b.id))) {
+    const r = await fetch(`${base}?id=eq.${b.id}&user_id=eq.${user.userId}`, { method: "DELETE", headers: H });
+    return res.status(r.ok ? 200 : 500).json({ ok: r.ok });
+  }
+  if (b.action === "watchsearch" && /^[0-9a-f-]{36}$/.test(String(b.id))) {
+    const email = user.email || String(b.email || "").toLowerCase();
+    if (!email) return res.status(400).json({ ok: false });
+    await fetch(`${base}?id=eq.${b.id}&user_id=eq.${user.userId}`, { method: "PATCH", headers: H, body: JSON.stringify({ watch: true, updated_at: new Date().toISOString() }) });
+    const r = await fetch(`${env.supabaseUrl}/rest/v1/watch_requests?on_conflict=vin_norm,email`, { method: "POST", headers: { ...H, Prefer: "resolution=ignore-duplicates,return=minimal" }, body: JSON.stringify([{ vin_norm: "search:" + b.id, email }]) });
+    return res.status(r.ok ? 200 : 500).json({ ok: r.ok });
+  }
+  return res.status(400).json({ ok: false });
+}
+
+// On-demand current bid for one auction when its detail view opens, cached 5 minutes. OFF unless
+// LIVE_FRESHNESS=1, and never under the monthly reserve. One metered request at most (2 retries on 5xx).
+const bidCache = new Map();
+async function freshBid(env, row) {
+  if (!freshnessOn() || !process.env.OLDCARSDATA_API_KEY) return row;
+  const key = row.source + "|" + row.source_listing_id, hit = bidCache.get(key);
+  if (hit && Date.now() - hit.at < 300e3) return { ...row, ...hit.patch };
+  if (await underReserve(env)) return row;
+  try {
+    configureOcdUsage({ ...env, job: "pull_live_bid" });
+    const r = await ocdWithRetry(() => callOldCarsData("/auctions/" + encodeURIComponent(row.source_listing_id), {}, process.env.OLDCARSDATA_API_KEY));
+    const rec = (r && (r.data || r)) || null;
+    const m = rec && mapLiveRecord(Array.isArray(rec) ? rec[0] : rec, new Date().toISOString());
+    await flushOcdUsage();
+    if (!m) return row;
+    await upsertLive(env, [m]);
+    const patch = { current_bid: m.current_bid, current_bid_usd: m.current_bid_usd != null ? m.current_bid_usd : row.current_bid_usd, bid_at: m.bid_at || new Date().toISOString(), end_time: m.end_time || row.end_time };
+    bidCache.set(key, { at: Date.now(), patch });
+    return { ...row, ...patch };
+  } catch (e) { console.error("freshBid:", e && e.message); return row; }
 }
