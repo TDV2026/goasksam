@@ -3210,6 +3210,32 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "ingestlog", count: rows.length, events: rows.map(r => ({ at: r.created_at, type: r.event_type, status: r.status, ocd_metered: r.oldcarsdata_metered_requests, mode: r.metadata?.mode || null, upserted: r.metadata?.upserted ?? null, ocd_http: r.metadata?.ocd_http_requests ?? null, meta: r.metadata || null })) });
   }
 
+  // task=zeromiles: backfill mileage 0 -> null on sales_archive (zero is not a mileage). Per-source
+  // PATCH, chunked by year on a statement timeout. ?write=1 to persist; dry = counts by source. ZERO OCD.
+  if (task === "zeromiles") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" };
+    const countHdr = r => { const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : 0; };
+    const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads", "autohunter"];
+    const cq = async f => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${f}&select=source_id&limit=1`, { headers: { ...H, Prefer: "count=exact" } }); return countHdr(r); } catch { return 0; } };
+    const write = req.query?.write === "1";
+    if (!write) { const by = {}; for (const s of SRCS) { const z = await cq(`source_slug=eq.${s}&mileage=eq.0`); if (z) by[s] = z; } return res.status(200).json({ task: "zeromiles", write: false, zeroBySource: by, total: Object.values(by).reduce((a, b) => a + b, 0) }); }
+    const nowY = new Date().getUTCFullYear();
+    const patch = async f => { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${f}&mileage=eq.0`, { method: "PATCH", headers: { ...H, Prefer: "return=minimal,count=exact" }, body: JSON.stringify({ mileage: null }) }); return { ok: r.ok, n: r.ok ? countHdr(r) : 0 }; };
+    const fixedBySource = {}; let errors = 0;
+    for (const s of SRCS) {
+      const x = await patch(`source_slug=eq.${s}`);
+      if (x.ok) { if (x.n) fixedBySource[s] = x.n; continue; }
+      // timed out as one UPDATE: split by year (+ null/pre-1990 buckets)
+      let sub = 0, subFail = false;
+      for (const w of [`sale_date=is.null`, `sale_date=lt.1990-01-01`, ...Array.from({ length: nowY - 1989 }, (_, i) => { const y = 1990 + i; return `sale_date=gte.${y}-01-01&sale_date=lt.${y + 1}-01-01`; })]) {
+        const xr = await patch(`source_slug=eq.${s}&${w}`); if (xr.ok) sub += xr.n; else subFail = true;
+      }
+      if (sub) fixedBySource[s] = sub; if (subFail) errors++;
+    }
+    return res.status(200).json({ task: "zeromiles", write: true, fixedBySource, total: Object.values(fixedBySource).reduce((a, b) => a + b, 0), errors });
+  }
+
   // task=ocdmeter: READ-ONLY. The authoritative OCD-request totals: sum of oldcarsdata_metered_requests
   // across ALL event_types for today and this month, plus a per-event_type breakdown, so we can see
   // whether small runs / pullLive are actually being recorded. ZERO OCD.
@@ -3241,8 +3267,8 @@ async function handleOps(req, res) {
     const statedZero = await cq("sales_archive", "stated_mileage=eq.0");
     const liveZero = await cq("live_listings", "mileage=eq.0");
     const liveTotal = await cq("live_listings", "id=not.is.null");
-    // Full raw_record for MB Market under-1000 rows, to find where the "in thousands" signal lives.
-    const rawDump = await supabaseSelect(env, `sales_archive?source_slug=eq.mbmarket&mileage=gt.0&mileage=lt.1000&select=listing_title,mileage,vin,raw:raw_record&order=mileage.desc&limit=4`) || [];
+    // Full raw_record for MB Market low-mileage rows (incl the 100-ish older cars), to find the signal.
+    const rawDump = await supabaseSelect(env, `sales_archive?source_slug=eq.mbmarket&mileage=gt.0&mileage=lt.200&select=listing_title,mileage,vin,desc:raw_record->>description,munit:raw_record->>mileage_unit&order=mileage.asc&limit=8`) || [];
     return res.status(200).json({ task: "milesaudit", mbMarket: { total: mbTotal, under1000: mbUnder1000, sample: mbSample, rawDump }, zeroMileageBySource: zeroBySource, stated_mileage_zero: statedZero, live_listings: { total: liveTotal, mileage_zero: liveZero } });
   }
 

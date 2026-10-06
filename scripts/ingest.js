@@ -68,6 +68,9 @@ const DELTA_MAX_PAGES_PER_SOURCE = Number(process.env.OCD_DELTA_MAX_PAGES_PER_SO
 
 const toMoney = v => { const n = Number(String(v ?? "").replace(/[^0-9.]/g, "")); return Number.isFinite(n) && n > 0 ? n : null; };
 const toInt = v => { const n = parseInt(String(v ?? "").replace(/[^0-9-]/g, ""), 10); return Number.isFinite(n) ? n : null; };
+// Zero is not a mileage: a source that writes 0 for "unknown" (Barrett-Jackson, Mecum, the houses, ...)
+// must store null, not 0, so the engine never reads a phantom 0-mile car. Any positive value passes.
+const milesOrNull = v => { const n = toInt(v); return n != null && n > 0 ? n : null; };
 const toBool = v => v === true || v === "true" ? true : v === false || v === "false" ? false : null;
 const toDate = v => { const d = new Date(v || ""); return Number.isFinite(d.getTime()) ? d : null; };
 const dayKey = d => d ? d.toISOString().slice(0, 10) : null;
@@ -170,7 +173,7 @@ function toFullRow(r, label, source) {
     stated_mileage: df.stated_mileage, project_flag: df.project_flag, desc_facts: df.desc_facts,
     sale_price: toMoney(r.price), sale_price_usd: usdOf(salePrice, r.currency, saleDate, source, label),
     month: d ? d.toISOString().slice(0, 7) : null, raw_record: projFlag ? { ...r, _project_flag: projFlag } : r,
-    year: toInt(r.year), mileage: toInt(r.mileage), body_style: r.body_style ?? null,
+    year: toInt(r.year), mileage: milesOrNull(r.mileage), body_style: r.body_style ?? null,
     title_status: r.title_status ?? null, vin: r.vin ?? null, transmission: r.transmission ?? null,
     drivetrain: r.drivetrain ?? null, exterior_color: r.exterior_color ?? null, interior_color: r.interior_color ?? null,
     seller_type: r.seller_type ?? null, listing_title: r.title ?? null, description: r.description ?? null,
