@@ -3210,6 +3210,80 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "ingestlog", count: rows.length, events: rows.map(r => ({ at: r.created_at, type: r.event_type, status: r.status, ocd_metered: r.oldcarsdata_metered_requests, mode: r.metadata?.mode || null, upserted: r.metadata?.upserted ?? null, ocd_http: r.metadata?.ocd_http_requests ?? null, meta: r.metadata || null })) });
   }
 
+  // task=relisted: READ-ONLY. Relisted-cars split for a close-week window (?from=&to=, default last week
+  // Sep 27-Oct 3). A "repeat" is a car that CLOSED this week (sold or unsold) AND has a prior appearance
+  // (sale or unsold attempt) before the window. For each: sold_before vs listed_before_unsold; same/diff
+  // platform; wait time since the previous attempt; reserve change (needs has_reserve known BOTH times);
+  // outcome (sold: higher/flat/lower vs prior sale, or beat/below the turned-down bid when the prior was
+  // only unsold; no-sale: whether this top bid beat the prior turned-down bid / prior sale). ZERO OCD.
+  if (task === "relisted") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const from = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.from || "")) ? String(req.query.from) : "2026-09-27";
+    const to = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.to || "")) ? String(req.query.to) : "2026-10-03";
+    const nvin = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const num = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null; };
+    const pnorm = s => String(s || "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
+    const dayg = d => String(d || "").slice(0, 10);
+    // 1) this-week closes
+    const wkSales = await supabaseSelectAll(env, `sales_archive?sale_date=gte.${from}&sale_date=lte.${to}&vin_norm=not.is.null&select=vin_norm,sale_date,source_slug,platform,sale_price_usd,has_reserve`) || [];
+    const wkAtts = await supabaseSelectAll(env, `auction_attempts?attempt_date=gte.${from}&attempt_date=lte.${to}&chassis_vin_norm=not.is.null&select=vin_norm:chassis_vin_norm,attempt_date,source_slug,high_bid_usd,high_bid,auction_status,has_reserve`) || [];
+    const wkVins = [...new Set([...wkSales, ...wkAtts].map(r => nvin(r.vin_norm)).filter(v => v.length >= 6))];
+    // 2) full history (all dates) for those VINs, chunked IN to stay under URL limits
+    const chunk = (arr, n) => { const o = []; for (let i = 0; i < arr.length; i += n) o.push(arr.slice(i, i + n)); return o; };
+    const allSales = [], allAtts = [];
+    for (const c of chunk(wkVins, 120)) {
+      const inlist = c.map(encodeURIComponent).join(",");
+      const s = await supabaseSelect(env, `sales_archive?vin_norm=in.(${inlist})&select=vin_norm,sale_date,source_slug,platform,sale_price_usd,has_reserve&order=sale_date.asc.nullslast`); if (Array.isArray(s)) allSales.push(...s);
+      const a = await supabaseSelect(env, `auction_attempts?chassis_vin_norm=in.(${inlist})&select=vin_norm:chassis_vin_norm,attempt_date,source_slug,high_bid_usd,high_bid,auction_status,has_reserve&order=attempt_date.asc.nullslast`); if (Array.isArray(a)) allAtts.push(...a);
+    }
+    // 3) per-VIN timeline
+    const tl = new Map();
+    const push = (v, o) => { const k = nvin(v); if (k.length < 6) return; if (!tl.has(k)) tl.set(k, []); tl.get(k).push(o); };
+    for (const r of allSales) push(r.vin_norm, { date: dayg(r.sale_date), kind: "sale", plat: pnorm(r.source_slug || r.platform), priceUsd: num(r.sale_price_usd), hasR: r.has_reserve });
+    for (const r of allAtts) push(r.vin_norm, { date: dayg(r.attempt_date), kind: "unsold", plat: pnorm(r.source_slug), bidUsd: num(r.high_bid_usd) || num(r.high_bid), hasR: r.has_reserve, status: r.auction_status });
+    const inWin = d => d && d >= from && d <= to, flatPct = 0.02;
+    const repeats = [];
+    for (const [vin, apps0] of tl) {
+      const apps = apps0.filter(a => a.date).sort((a, b) => a.date.localeCompare(b.date));
+      const cur = [...apps].reverse().find(a => inWin(a.date) && a.kind === "sale") || [...apps].reverse().find(a => inWin(a.date));
+      if (!cur) continue;
+      const priors = apps.filter(a => a.date < from);
+      if (!priors.length) continue;                         // not a repeat
+      const prev = priors[priors.length - 1];               // most recent prior appearance
+      const priorSale = [...priors].reverse().find(a => a.kind === "sale") || null;
+      const soldBefore = !!priorSale;
+      const waitDays = Math.round((Date.parse(cur.date) - Date.parse(prev.date)) / 86400000);
+      const reserveKnownBoth = (cur.hasR === true || cur.hasR === false) && (prev.hasR === true || prev.hasR === false);
+      const rchg = reserveKnownBoth ? (prev.hasR ? "R" : "N") + "to" + (cur.hasR ? "R" : "N") : null; // prev->cur (e.g. RtoN = reserve first time, no reserve this time)
+      // outcome
+      let outcome = "unknown";
+      if (cur.kind === "sale") {
+        if (priorSale && priorSale.priceUsd && cur.priceUsd) { const d = (cur.priceUsd - priorSale.priceUsd) / priorSale.priceUsd; outcome = d > flatPct ? "higher" : d < -flatPct ? "lower" : "flat"; }
+        else { const pb = prev.bidUsd; outcome = (pb && cur.priceUsd) ? (cur.priceUsd > pb ? "beat_turned_down_bid" : "below_turned_down_bid") : "unknown"; }
+      } else { // no-sale this week
+        const ref = (priorSale && priorSale.priceUsd) ? priorSale.priceUsd : prev.bidUsd;
+        outcome = (ref && cur.bidUsd) ? (cur.bidUsd > ref ? "beat_turned_down_bid" : "below_turned_down_bid") : "unknown";
+      }
+      repeats.push({ vin, cohort: soldBefore ? "sold_before" : "listed_before_unsold", curKind: cur.kind, platformChange: cur.plat && prev.plat ? (cur.plat !== prev.plat ? "different" : "same") : "unknown", waitDays, reserveKnownBoth, reserveChange: rchg, outcome });
+    }
+    // 4) aggregate
+    const waitBucket = d => d == null ? "unknown" : d < 180 ? "<6mo" : d < 365 ? "6-12mo" : d < 730 ? "1-2yr" : "2yr+";
+    const tally = (arr, keyFn) => { const o = {}; for (const r of arr) { const k = keyFn(r) || "unknown"; o[k] = o[k] || {}; o[k][r.outcome] = (o[k][r.outcome] || 0) + 1; } return o; };
+    const sold = repeats.filter(r => r.curKind === "sale"), nosale = repeats.filter(r => r.curKind === "unsold");
+    const reserveUsable = repeats.filter(r => r.reserveKnownBoth);
+    return res.status(200).json({
+      task: "relisted", window: `${from}..${to}`,
+      totals: { repeats: repeats.length, sold_before: repeats.filter(r => r.cohort === "sold_before").length, listed_before_unsold: repeats.filter(r => r.cohort === "listed_before_unsold").length, closed_as_sale: sold.length, closed_as_nosale: nosale.length },
+      reserveUsableBothAttempts: reserveUsable.length,
+      outcomeOverall: repeats.reduce((o, r) => (o[r.outcome] = (o[r.outcome] || 0) + 1, o), {}),
+      byPlatformChange: tally(repeats, r => r.platformChange),
+      byReserveChange: tally(reserveUsable, r => r.reserveChange),
+      byWaitTime: tally(repeats, r => waitBucket(r.waitDays)),
+      soldOnly_byPlatformChange: tally(sold, r => r.platformChange),
+      sample: repeats.slice(0, 12)
+    });
+  }
+
   // task=buildvinindex: run the VIN index rebuild server-side (DB-only, ZERO OCD), the SAME core the
   // CLI + nightly use (scripts/buildVinIndex.js buildVinIndex). ?report=1 = distribution only, no write.
   if (task === "buildvinindex") {
