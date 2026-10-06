@@ -3257,7 +3257,9 @@ async function handleOps(req, res) {
         const total = await countQ(NEEDA);
         const sample = await supabaseSelect(env, `auction_attempts?${NEEDA}&select=source_slug,attempt_date,currency&limit=1000`) || [];
         const byCcy = {}; for (const r of sample) { const c = String(r.currency || "").trim().toUpperCase() || "(blank)"; byCcy[c] = (byCcy[c] || 0) + 1; }
-        return res.status(200).json({ task: "usdbackfill", table: "attempts", phase: "count", totalNeedingUsd: total, sampleSize: sample.length, currencyBreakdownInSample: byCcy });
+        // sample unsold cars (now with high_bid_usd, decent bid, a chassis) for a before/after proof
+        const cand = await supabaseSelect(env, `auction_attempts?high_bid_usd=gt.20000&chassis_vin_norm=not.is.null&select=chassis_vin_norm,high_bid,high_bid_usd,currency,auction_status,attempt_date,make,model,source_slug&order=high_bid_usd.desc&limit=25`) || [];
+        return res.status(200).json({ task: "usdbackfill", table: "attempts", phase: "count", totalNeedingUsd: total, sampleSize: sample.length, currencyBreakdownInSample: byCcy, sampleUnsoldForProof: cand });
       }
       if (phase === "usd") {
         const { loadFxRates } = await import("../lib/_fx.js");
