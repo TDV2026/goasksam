@@ -27,11 +27,28 @@
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function usd(n) { return n == null ? "&mdash;" : "$" + Math.round(n).toLocaleString("en-US"); }
   function fmtDate(d) { return d ? String(d).slice(0, 10) : "&mdash;"; }
+  // "1 sale", "2 sales": every count noun goes through here.
+  function plural(n, one, many) { return n + " " + (Number(n) === 1 ? one : (many || one + "s")); }
+  // The run filter matches a venue on its archive slug, not the display label ("Gooding Christie's"
+  // is "gooding"), so a clicked venue sends the slug. Unknown labels fall back to the stripped label.
+  var VENUE_SLUGS = {
+    "bring a trailer": "bringatrailer", "cars & bids": "carsandbids", "pcarmarket": "pcarmarket", "hagerty": "hagerty",
+    "gooding christie's": "gooding", "gooding & co": "gooding", "gooding": "gooding", "rm sotheby's": "rmsothebys",
+    "all collector cars": "acc", "hemmings": "hemmings", "sotheby's motorsport": "sothebysmotorsport", "mb market": "mbmarket",
+    "barrett-jackson": "barrettjackson", "mecum": "mecum", "mecum auctions": "mecum", "bonhams": "bonhams",
+    "broad arrow": "broadarrow", "car & classic": "carandclassic", "collecting cars": "collectingcars",
+    "the market": "themarket", "pistonheads": "pistonheads", "autohunter": "autohunter"
+  };
+  function venueSlug(v) {
+    if (!v || String(v).toLowerCase() === "all") return null;
+    var k = String(v).toLowerCase().trim();
+    return VENUE_SLUGS[k] || k.replace(/[^a-z0-9]/g, "") || null;
+  }
 
   // ---------- pass-2: one-sentence reading, provenance footer, evidence drawer, methodology ----------
   function winClause(r) {
     var w = r && r.window;
-    if (typeof w === "string") { var m = { ytd: " sold this year", "12mo": " over the last twelve months", "24mo": " over the last two years", "36mo": " over the last three years", "6mo": " over the last six months" }; return m[w] || ""; }
+    if (typeof w === "string") { var m = { ytd: " sold this year", this_year: " sold this year", qtd: " sold this quarter", this_quarter: " sold this quarter", last_quarter: " sold last quarter", last_year: " sold last year", "7d": " over the last seven days", "30d": " over the last thirty days", "90d": " over the last ninety days", "12mo": " over the last twelve months", "24mo": " over the last two years", "36mo": " over the last three years", "6mo": " over the last six months" }; return m[w] || ""; }
     if (w && w.from) return " sold " + esc(w.from) + (w.to ? " to " + esc(w.to) : "");
     return "";
   }
@@ -79,13 +96,17 @@
     drawerEl.classList.add("open"); if (scrimEl) scrimEl.classList.add("open");
     document.getElementById("drawerX").onclick = closeDrawer;
     var filters = { make: d.make, model: d.model }; if (d.trim) filters.trim = d.trim; if (d.generation) filters.generation = d.generation;
+    // Same car as the answer's scope: inherit its generation/trim (an E39 bar opens E39 sales, not every M5).
+    var sameCar = CUR_SCOPE.make && String(CUR_SCOPE.make).toLowerCase() === String(d.make || "").toLowerCase() && String(CUR_SCOPE.model || "").toLowerCase() === String(d.model || "").toLowerCase();
+    if (sameCar && !filters.generation && CUR_SCOPE.generation) filters.generation = CUR_SCOPE.generation;
+    if (sameCar && !filters.trim && CUR_SCOPE.trim) filters.trim = CUR_SCOPE.trim;
     filters.window = d.window || "36mo";
     // Year range: a per-figure override (comparison period / trend year) wins; else the answer's era.
     var ym = d.year_min || CUR_SCOPE.year_min, yx = d.year_max || CUR_SCOPE.year_max;
     if (ym) filters.year_min = ym; if (yx) filters.year_max = yx;
     // Inherit the rest of the answer scope so the evidence pool matches the figure exactly.
-    if (d.venue) filters.venue = d.venue;             // a clicked venue bar scopes the drawer to that venue
-    else if (CUR_SCOPE.venue) filters.venue = CUR_SCOPE.venue;
+    var ven = venueSlug(d.venue) || (d.allVenues ? null : venueSlug(CUR_SCOPE.venue));   // a clicked venue bar scopes the drawer to that venue
+    if (ven) filters.venue = ven;
     if (CUR_SCOPE.channel) filters.channel = CUR_SCOPE.channel;
     if (CUR_SCOPE.price_min) filters.price_min = CUR_SCOPE.price_min;
     if (CUR_SCOPE.price_max) filters.price_max = CUR_SCOPE.price_max;
@@ -97,10 +118,11 @@
         var excl = (j.receipts || []).filter(function (x) { return x.excluded; });
         var cov = j.coverage || {}; var total = (j.answer && j.answer.total) != null ? j.answer.total : recs.length;
         var q = cov.filters || {};
-        var h = '<div class="calc">The median of the ' + total + ' qualifying sales below, hammer with the buyer premium backed out. Median, not an average.</div>';
-        h += '<div class="ds">Included sales &middot; ' + total + ' (newest first)</div>';
-        recs.slice(0, 25).forEach(function (x) { h += '<div class="er"><div class="er1"><span class="ep">' + usd(x.hammer_usd) + '</span><span class="et">' + esc(x.title || "") + '</span>' + (x.link ? '<a href="' + esc(x.link) + '" target="_blank" rel="noopener">&#8599;</a>' : '') + '</div><div class="ed">' + esc(x.venue || "") + " &middot; " + fmtDate(x.date) + '</div></div>'; });
-        if (recs.length > 25) h += '<div class="er" style="color:var(--faint)"><span>&hellip; ' + (recs.length - 25) + ' more</span><span></span></div>';
+        if (!total) { body.innerHTML = '<div class="calc">No sales match this figure in the archive for this window.</div>'; return; }
+        var h = '<div class="calc">' + (total === 1 ? 'The one qualifying sale behind this figure' : 'The ' + total + ' qualifying sales behind this figure') + ', hammer with the buyer premium backed out. Typical is the median, not an average.</div>';
+        h += '<div class="ds">Included &middot; ' + plural(total, "sale") + (total > 1 ? ' (newest first)' : '') + '</div>';
+        if (recs.length < total) h += '<div class="exc">Listing the ' + recs.length + ' most recent; the figure uses all ' + total + '.</div>';
+        h += '<div id="drawerRecs"></div><button class="seesales" id="drawerMore" style="display:none"></button>';
         // exclusions, split method vs query
         var byReason = cov.excluded_by_reason || {};
         var methodBits = Object.keys(byReason).map(function (k) { return byReason[k] + " " + k; });
@@ -109,27 +131,37 @@
         var qbits = [];
         if (q.price) qbits.push((q.price.min ? "over $" + Number(q.price.min).toLocaleString("en-US") : "") + (q.price.max ? " under $" + Number(q.price.max).toLocaleString("en-US") : "").trim());
         if (q.mileage) qbits.push(q.mileage.band ? q.mileage.band + "-mileage" : "mileage bound");
-        h += '<div class="exc"><span class="tag query">by your query</span>' + (qbits.length ? esc(qbits.join(", ")) + "." : "none — no filters on this figure.") + '</div>';
+        h += '<div class="exc"><span class="tag query">by your query</span>' + (qbits.length ? esc(qbits.join(", ")) + "." : "none, no filters on this figure.") + '</div>';
         body.innerHTML = h;
+        // page the sales 25 at a time so every listed receipt is reachable
+        var shownN = 0, recEl = document.getElementById("drawerRecs"), moreEl = document.getElementById("drawerMore");
+        function erRow(x) { return '<div class="er"><div class="er1"><span class="ep">' + usd(x.hammer_usd) + '</span><span class="et">' + esc(x.title || "") + '</span>' + (x.link ? '<a href="' + esc(x.link) + '" target="_blank" rel="noopener">&#8599;</a>' : '') + '</div><div class="ed">' + esc(x.venue || "") + " &middot; " + fmtDate(x.date) + '</div></div>'; }
+        function page() {
+          var next = recs.slice(shownN, shownN + 25); shownN += next.length;
+          recEl.insertAdjacentHTML("beforeend", next.map(erRow).join(""));
+          if (shownN < recs.length) { moreEl.style.display = ""; moreEl.textContent = "Show " + Math.min(25, recs.length - shownN) + " more of " + recs.length; moreEl.onclick = page; }
+          else moreEl.style.display = "none";
+        }
+        page();
       })
       .catch(function () { var body = document.getElementById("drawerBody"); if (body) body.innerHTML = '<div class="calc">Could not pull the sales just now. Try again.</div>'; });
   }
   function wireEvidence() {
     Array.prototype.forEach.call(document.querySelectorAll("#out .ev[data-make]"), function (el) {
       el.onclick = function () {
-        openDrawer({ make: el.getAttribute("data-make"), model: el.getAttribute("data-model"), trim: el.getAttribute("data-trim") || null, generation: el.getAttribute("data-gen") || null, venue: el.getAttribute("data-venue") || null, window: el.getAttribute("data-window") || "36mo", year_min: el.getAttribute("data-ymin") || null, year_max: el.getAttribute("data-ymax") || null, fig: el.getAttribute("data-fig") || el.textContent, caption: el.getAttribute("data-cap") || null });
+        openDrawer({ make: el.getAttribute("data-make"), model: el.getAttribute("data-model"), trim: el.getAttribute("data-trim") || null, generation: el.getAttribute("data-gen") || null, venue: el.getAttribute("data-venue") || null, allVenues: el.getAttribute("data-allvenues") === "1", window: el.getAttribute("data-window") || "36mo", year_min: el.getAttribute("data-ymin") || null, year_max: el.getAttribute("data-ymax") || null, fig: el.getAttribute("data-fig") || el.textContent, caption: el.getAttribute("data-cap") || null });
       };
     });
     Array.prototype.forEach.call(document.querySelectorAll("#out .cov[data-method]"), function (el) { el.onclick = openMethod; });
   }
   // Methodology modal (published basis; spec s14).
-  var methScrim = document.getElementById("methScrim");
+  var methScrim = document.getElementById("methodScrim");
   function closeMethod() { if (methScrim) methScrim.classList.remove("open"); }
   function openMethod() {
     if (!methScrim) return;
     methScrim.innerHTML = '<div class="modal"><button class="mx" id="methX">&times;</button>' +
       '<h2>How a number is made</h2>' +
-      '<p>Every figure is real completed sales from GoAskSam’s archive. No estimates, no valuations.</p>' +
+      '<p>Every figure is built from real completed sales in GoAskSam’s archive, never a valuation.</p>' +
       '<h3>Basis</h3><p>Implied hammer, house buyer premiums backed out, so every venue reads on the same basis. Prices are USD.</p>' +
       '<h3>Typical</h3><p>“Typical” is the median, never an average. Spread is the 25th to 75th percentile.</p>' +
       '<h3>Windows</h3><p>Standard windows are year to date, 12, 24 and 36 months. A trend compares the last 12 months with the 12 before.</p>' +
@@ -189,21 +221,70 @@
   var followq = document.getElementById("followq");
   var followgo = document.getElementById("followgo");
 
+  // NEVER A BLANK PAGE: anything that is not a drawable answer (not runnable, an error, a non-JSON
+  // body, or nothing back within 20 seconds) lands here. One plain line, the parts Sam could not
+  // honour with their reasons, and the example questions to try instead.
+  var READ_TIMEOUT_MS = 20000;
+  function cantRead(res, opts) {
+    opts = opts || {};
+    var why = ((res && res.unresolved) || []).filter(function (u) { return u && u.part; });
+    var h = '<div class="msg cant"><div class="t">Sam can\'t read that one yet.</div>';
+    if (why.length) h += '<ul class="why">' + why.map(function (u) { return '<li><b>' + esc(u.part) + '</b>: ' + esc(u.reason || "not recognized") + '.</li>'; }).join("") + '</ul>';
+    // A day-of-week ask: the unresolved reason already says what is and is not held; the server's
+    // "name a car" offer is not repeated until the per-day split for a named car is built.
+    if (opts.note && !(res && res.day_of_week)) h += '<p>' + esc(opts.note) + '</p>';
+    if (opts.retry) h += '<button class="seesales retry" id="cantRetry">Try again</button>';
+    h += '<div class="exlab">Try</div><div class="examples">' + EXAMPLES.map(function (q) { return '<button data-ex="' + esc(q) + '">' + esc(q) + '</button>'; }).join("") + '</div></div>';
+    return h;
+  }
+  function wireCant(question, opts) {
+    Array.prototype.forEach.call(out.querySelectorAll(".cant [data-ex]"), function (el) { el.onclick = function () { input.value = el.getAttribute("data-ex"); send(); }; });
+    var rb = document.getElementById("cantRetry"); if (rb) rb.onclick = function () { interpretFetch(question, opts || {}); };
+  }
+  function showCant(question, res, opts, fetchOpts) {
+    readingcard.innerHTML = res && res.reading_labels ? readingLine(res.reading_labels) : "";
+    out.innerHTML = cantRead(res, opts);
+    wireCant(question, fetchOpts); wireReadingLine();
+  }
   function interpretFetch(question, opts) {
     opts = opts || {};
     go.setAttribute("disabled", "1"); if (followgo) followgo.setAttribute("disabled", "1");
+    readingcard.innerHTML = "";
     out.innerHTML = '<div class="working"><span class="pulse"></span> reading your question</div>';
     var body = { desk: true, action: "interpret", question: question, run: true, recentReadings: RECENT.slice(-3) };
     if (opts.threadReading) body.threadReading = opts.threadReading;
-    fetch(API + "/api/desk", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+    var ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timedOut = false;
+    var timer = setTimeout(function () { timedOut = true; if (ctl) ctl.abort(); }, READ_TIMEOUT_MS);
+    var failOpts = { retry: true, note: "Nothing came back from the archive in time." };
+    fetch(API + "/api/desk", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined })
       .then(function (r) { return r.text().then(function (t) { return { ok: r.ok, code: r.status, text: t }; }); })
       .then(function (resp) {
-        var j; try { j = JSON.parse(resp.text); } catch (e) { out.innerHTML = deskError("Try again."); wireRetry(); return; }
-        if (!resp.ok || j.status !== "interpreted") { out.innerHTML = deskError(esc((j && j.error) || "The request failed.")); wireRetry(); return; }
+        if (timedOut) return;
+        var j; try { j = JSON.parse(resp.text); } catch (e) { console.error("Desk non-JSON (" + resp.code + "): " + String(resp.text).slice(0, 300)); showCant(question, null, { retry: true, note: "The archive did not answer cleanly." }, opts); return; }
+        if (!resp.ok || j.status !== "interpreted") { console.error("Desk error " + resp.code + ": " + JSON.stringify(j).slice(0, 300)); showCant(question, j, { retry: true, note: "The archive did not answer cleanly." }, opts); return; }
         handleInterpret(question, j);
       })
-      .catch(function () { out.innerHTML = deskError("The Desk could not reach the archive."); wireRetry(); })
-      .finally(function () { go.removeAttribute("disabled"); if (followgo) followgo.removeAttribute("disabled"); });
+      .catch(function (e) { if (!timedOut) console.error("Desk fetch failed:", e); showCant(question, null, timedOut ? failOpts : { retry: true, note: "The Desk could not reach the archive." }, opts); })
+      .finally(function () { clearTimeout(timer); go.removeAttribute("disabled"); if (followgo) followgo.removeAttribute("disabled"); });
+    // belt and braces: if the browser never settles the request, the timer still replaces the spinner
+    setTimeout(function () { if (timedOut && out.querySelector(".working")) showCant(question, null, failOpts, opts); }, READ_TIMEOUT_MS + 50);
+  }
+  // WHAT SAM READ: one quiet line above every answer, from the API's reading_labels. Tapping an item
+  // starts a correction in the box ("Change the window to ") that runs as a follow-up on this reading.
+  function readingLine(labels) {
+    labels = (labels || []).filter(function (l) { return l && l.label && l.value; }).map(function (l) {
+      return (l.label === "Venue" && String(l.value).toLowerCase() === "all") ? { label: l.label, value: "every venue" } : l;
+    });
+    if (!labels.length) return "";
+    return '<div class="rline"><span class="rl-lab">Sam read</span>' + labels.map(function (l) {
+      return '<button type="button" data-rl="' + esc(l.label) + '" title="Tap to correct"><span class="k">' + esc(l.label.toLowerCase()) + '</span>' + esc(l.value) + '</button>';
+    }).join("") + '</div>';
+  }
+  function wireReadingLine() {
+    Array.prototype.forEach.call(readingcard.querySelectorAll("[data-rl]"), function (el) {
+      el.onclick = function () { input.value = "Change the " + el.getAttribute("data-rl").toLowerCase() + " to "; input.focus(); try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) { } };
+    });
   }
   function chipHtml(c) {
     var k = c.type ? '<span class="k">' + esc(c.type) + '</span>' : "";
@@ -233,7 +314,7 @@
     THREAD.forEach(function (t, i) { h += '<button class="item" data-turn="' + i + '" title="' + esc(t.question) + '">' + esc(t.question) + '</button>'; });
     railRecent.innerHTML = h;
     Array.prototype.forEach.call(railRecent.querySelectorAll('[data-turn]'), function (el) {
-      el.onclick = function () { var t = THREAD[+el.getAttribute("data-turn")]; if (!t) return; if (emptyEl) emptyEl.style.display = "none"; readingcard.innerHTML = t.cardHtml || ""; out.innerHTML = t.answerHtml || ""; CUR_READING = t.reading; wireEvidence(); };
+      el.onclick = function () { var t = THREAD[+el.getAttribute("data-turn")]; if (!t) return; if (emptyEl) emptyEl.style.display = "none"; readingcard.innerHTML = t.cardHtml || ""; out.innerHTML = t.answerHtml || ""; CUR_READING = t.reading; CUR_SCOPE = t.scope || {}; wireEvidence(); wireReadingLine(); wireCant(t.question, {}); };
     });
   }
   function summarize(res) {
@@ -245,7 +326,7 @@
     if (res.unsupported) parts.push("not answerable");
     return parts.join(" · ");
   }
-  function windowLabelOf(w) { var m = { ytd: "year to date", "12mo": "last 12 months", "24mo": "last 24 months", "36mo": "last 36 months", "6mo": "last 6 months" }; return m[w] || "last 36 months"; }
+  function windowLabelOf(w) { var m = { ytd: "this year", this_year: "this year", qtd: "this quarter", this_quarter: "this quarter", last_quarter: "last quarter", last_year: "last year", "7d": "last 7 days", "30d": "last 30 days", "90d": "last 90 days", "12mo": "last 12 months", "18mo": "last 18 months", "24mo": "last 24 months", "36mo": "last 36 months", "6mo": "last 6 months" }; return m[w] || "last 36 months"; }
   // Ranked bars (mock layout). Each name and value is an evidence figure (click -> the sales behind it).
   // A kept count under the raw DB total must be EXPLAINED, never silently smaller (Sam's shared-scope
   // rule). Reads the exclusion tally the executor returns and names the top reasons in one clause.
@@ -255,6 +336,12 @@
     var bits = keys.map(function (k) { return ex.byReason[k] + " " + k; });
     return bits.length ? (ex.total + " set aside (" + bits.join(", ") + ")") : (ex.total + " set aside");
   }
+  // "See the sales": the plain door to the receipts behind a count. Rides the same evidence drawer as
+  // a clicked figure (same data-* scope), so it opens exactly the pool the number came from.
+  function seeSales(evAttrs, n) {
+    if (!n) return "";
+    return '<div><button type="button" class="seesales ev" ' + evAttrs + '>' + (n === 1 ? "See the sale" : "See the " + Number(n).toLocaleString("en-US") + " sales") + '</button></div>';
+  }
   function renderRanking(rk) {
     if (!rk) return msg("Trouble", "The ranking did not come back.");
     // Venue ranking (item 6): one sentence stating what was asked, bars ordered by count, and the
@@ -262,7 +349,14 @@
     var lead = "";
     if (rk.isVenue) {
       var venWin = windowLabelOf(rk.window);
-      lead = '<p class="reading">Where <b>' + esc(rk.name || "this car") + '</b> sold <b>' + esc(venWin) + '</b>, by number of sales.</p>';
+      lead = '<p class="reading">Where <b>' + esc(rk.name || "this car") + '</b> sold <b>' + esc(venWin) + '</b>, ' + (rk.metric === "count" ? 'ranked by number of sales' : 'ranked by typical sale price') + '.</p>';
+      // "How did X do compared to everyone else": state X's share of the same pool, from the bars.
+      var cvName = rk.comparedVenue && String(rk.comparedVenue).toLowerCase() !== "all" ? rk.comparedVenue : null;
+      if (cvName && rk.total) {
+        var cv = (rk.ranked || []).filter(function (r) { return r.compared || r.venue === cvName; })[0];
+        var cvN = cv ? cv.count : 0, others = rk.total - cvN;
+        lead += '<p class="reading"><b>' + esc(cvName) + '</b> ' + (cvN ? 'had ' + cvN + ' of the ' + rk.total + (cv && cv.median != null && cvN >= 5 ? ', at a typical ' + usd(cv.median) : '') : 'had none of the ' + rk.total) + '; the other venues had ' + others + '.</p>';
+      }
     }
     var h = '<div class="result">';
     if (rk.tooFewToRank || !rk.ranked || !rk.ranked.length) {
@@ -271,12 +365,13 @@
       var max = Math.max.apply(null, rk.ranked.map(function (r) { return rk.metric === "count" ? (r.count || 0) : (r.median || 0); })) || 1;
       h += '<div class="rank">';
       rk.ranked.forEach(function (r, i) {
+        var hiRow = cvName && (r.compared || r.venue === cvName);
         var val = rk.metric === "count" ? r.count : r.median;
         var w = Math.max(2, Math.round((val / max) * 300));
         var vtxt = rk.metric === "count" ? String(r.count) : usd(r.median);
-        var sub = rk.metric === "count" ? (r.median != null ? "typical " + usd(r.median) : "") : ((r.p25 != null ? usd(r.p25) + " to " + usd(r.p75) + " · " : "") + r.count);
+        var sub = rk.metric === "count" ? (r.median != null ? "typical " + usd(r.median) : "") : ((r.p25 != null ? usd(r.p25) + " to " + usd(r.p75) + " · " : "") + plural(r.count, "sale"));
         var ev = 'data-make="' + esc(r.make) + '" data-model="' + esc(r.model) + '"' + (r.trim ? ' data-trim="' + esc(r.trim) + '"' : '') + (r.venue ? ' data-venue="' + esc(r.venue) + '"' : '') + (r.yearStart ? ' data-ymin="' + r.yearStart + '"' : '') + (r.yearEnd ? ' data-ymax="' + r.yearEnd + '"' : '') + ' data-window="' + esc(rk.window || "36mo") + '" data-cap="' + esc(r.group) + '" data-fig="' + esc(vtxt) + '"';
-        h += '<div class="rank-row"><span class="r">' + (i + 1) + '</span>' +
+        h += '<div class="rank-row' + (hiRow ? ' cmp' : '') + '"><span class="r">' + (i + 1) + '</span>' +
           '<span class="nm ev" ' + ev + '>' + esc(r.group) + '</span>' +
           '<span class="bar" style="width:' + w + 'px"></span>' +
           '<span class="v"><span class="ev" ' + ev + '>' + vtxt + '</span> <span class="sub">' + esc(sub) + '</span></span></div>';
@@ -284,7 +379,9 @@
       h += '</div>';
       if (rk.isVenue && rk.total != null) {
         var exn = exclusionNote(rk.exclusions);
-        h += '<div class="read">' + rk.total.toLocaleString("en-US") + ' sales across ' + rk.ranked.length + ' ' + (rk.ranked.length === 1 ? "venue" : "venues") + '; the bars add up to this total.' + (exn ? ' ' + esc(exn) + '.' : '') + '</div>';
+        h += '<div class="read">' + plural(rk.total.toLocaleString("en-US"), "sale") + ' across ' + plural(rk.ranked.length, "venue") + (rk.ranked.length > 1 ? '; the bars add up to this total.' : '.') + (exn ? ' ' + esc(exn) + '.' : '') + '</div>';
+        var r0 = rk.ranked[0];
+        h += seeSales('data-allvenues="1" data-make="' + esc(r0.make) + '" data-model="' + esc(r0.model) + '"' + (r0.trim ? ' data-trim="' + esc(r0.trim) + '"' : '') + ' data-window="' + esc(rk.window || "36mo") + '" data-cap="' + esc((rk.name || "") + ", every venue") + '" data-fig="' + esc(plural(rk.total, "sale")) + '"', rk.total);
       }
     }
     if (rk.thin && rk.thin.length) h += '<div class="reconcile">Shown but not ranked (fewer than ' + (rk.thinThreshold || 5) + ' sales): ' + rk.thin.map(function (t) { return esc(t.group) + " (" + t.count + ")"; }).join(", ") + '.</div>';
@@ -302,11 +399,11 @@
     h += '<div class="cmpcols">';
     cmp.members.forEach(function (mrow, i) {
       h += '<div class="cmpcol' + (i === 1 ? " b" : "") + '"><div class="cmp-t">' + esc(mrow.group) + '</div>';
-      if (mrow.thin || mrow.median == null) h += '<div class="cmp-big">&mdash;</div><div class="cmp-sub">too few sold to read (' + (mrow.count || 0) + ')</div>';
+      if (mrow.thin || mrow.median == null) h += '<div class="cmp-big">&mdash;</div><div class="cmp-sub">too few sold to read (' + (mrow.count || 0) + ')</div>' + seeSales('data-make="' + esc(mrow.make) + '" data-model="' + esc(mrow.model) + '"' + (mrow.trim ? ' data-trim="' + esc(mrow.trim) + '"' : '') + yminmax + ' data-window="' + esc(cmp.window || "36mo") + '" data-cap="' + esc(mrow.group) + '" data-fig="' + esc(plural(mrow.count || 0, "sale")) + '"', mrow.count);
       else {
         var ev = 'data-make="' + esc(mrow.make) + '" data-model="' + esc(mrow.model) + '"' + (mrow.trim ? ' data-trim="' + esc(mrow.trim) + '"' : '') + yminmax + ' data-cap="' + esc(mrow.group) + '" data-fig="' + esc(usd(mrow.median)) + '"';
         h += '<div class="cmp-big num ev" ' + ev + '>' + usd(mrow.median) + '</div><div class="cmp-sub">' +
-          (mrow.p25 != null ? usd(mrow.p25) + " to " + usd(mrow.p75) + " &middot; " : "") + mrow.count + " sales &middot; newest " + fmtDate(mrow.freshness) + '</div>';
+          (mrow.p25 != null ? usd(mrow.p25) + " to " + usd(mrow.p75) + " &middot; " : "") + plural(mrow.count, "sale") + " &middot; newest " + fmtDate(mrow.freshness) + '</div>' + seeSales(ev, mrow.count);
       }
       h += '</div>';
     });
@@ -344,17 +441,20 @@
       // A record is ALL-TIME in our data unless the question named a window; the sentence and footer agree.
       var scopeWord = s.recordWindowNamed ? windowLabelOf(s.window) : "in our data";
       var hr = '<p class="reading">The highest <b>' + esc(who) + '</b> sale' + (f.priceMax ? ' under $' + Number(f.priceMax).toLocaleString("en-US") : '') + ' ' + esc(scopeWord) + '.</p>';
-      hr += '<div class="result"><div class="hl"><span class="hl-num ev" ' + evR + '>' + usd(top.hammer_usd) + '</span><span class="hl-sub">highest sale' + (ov.count ? '<span class="sep">&middot;</span>' + ov.count + ' sales in scope' : '') + '</span></div>';
+      hr += '<div class="result"><div class="hl"><span class="hl-num ev" ' + evR + '>' + usd(top.hammer_usd) + '</span><span class="hl-sub">highest sale' + (ov.count ? '<span class="sep">&middot;</span>' + plural(ov.count, "sale") + ' in scope' : '') + '</span></div>';
       hr += '<div class="read">' + esc((top.title || "").slice(0, 74)) + ' &mdash; ' + esc(top.venue || "") + (top.date ? ' &middot; ' + fmtDate(top.date) : '') + (top.link ? ' <a href="' + esc(top.link) + '" target="_blank" rel="noopener">&#8599;</a>' : '') + '</div>';
       var recWin = s.recordWindowNamed ? windowLabelOf(s.window) : "all sales in our data";
       var exnR = exclusionNote(s.exclusions);
-      hr += '<div class="cov" data-method="1"><u>' + esc(recWin) + (ov.count ? " (" + ov.count + " sales)" : "") + (exnR ? ' &middot; ' + esc(exnR) : '') + ' &middot; hammer, premiums backed out &middot; updated nightly</u></div>';
+      hr += seeSales(evR, ov.count);
+      hr += '<div class="cov" data-method="1"><u>' + esc(recWin) + (ov.count ? " (" + plural(ov.count, "sale") + ")" : "") + (exnR ? ' &middot; ' + esc(exnR) : '') + ' &middot; hammer, premiums backed out &middot; updated nightly</u></div>';
       hr += '</div>';
       return hr;
     }
     if (ov.median == null) {
-      var win0 = windowLabelOf(s.window);
-      return '<p class="reading">I read <b>' + esc(who) + '</b> ' + esc(win0) + '.</p>' + msg("Thin", "Fewer than five recent sales of " + esc(who) + " that match, so there is no honest typical price to show.");
+      var win0 = windowLabelOf(s.window), n0 = ov.count || 0;
+      var ev0 = 'data-make="' + esc(s.make) + '" data-model="' + esc(s.model) + '"' + (s.trim ? ' data-trim="' + esc(s.trim) + '"' : '') + ' data-window="' + esc(s.window) + '" data-cap="' + esc(who) + '" data-fig="' + esc(plural(n0, "sale")) + '"';
+      if (!n0) return '<p class="reading">No <b>' + esc(who) + '</b> sales in the archive ' + esc(win0) + '.</p>' + provenanceFooter({ window: win0 });
+      return '<p class="reading"><b>' + esc(who) + '</b>, ' + esc(win0) + ': ' + plural(n0, "sale") + ', too few to mark a typical price, so here ' + (n0 === 1 ? 'is the sale itself' : 'are the sales themselves') + '.</p>' + seeSales(ev0, n0) + provenanceFooter({ window: win0 });
     }
     // one sentence, stating the price cap / channel / venue the answer is scoped to
     var caps = [];
@@ -369,7 +469,7 @@
     var spread = (ov.p25 != null && ov.p75 != null) ? usd(ov.p25) + " to " + usd(ov.p75) : "";
     var evAll = 'data-make="' + esc(s.make) + '" data-model="' + esc(s.model) + '"' + (s.trim ? ' data-trim="' + esc(s.trim) + '"' : '') + ' data-window="' + esc(s.window) + '" data-cap="' + esc(who) + '" data-fig="' + esc(usd(ov.median)) + '"';
     var h = '<div class="result"><div class="hl"><span class="hl-num ev" ' + evAll + '>' + usd(ov.median) + '</span>'
-      + '<span class="hl-sub">' + (spread ? spread + '<span class="sep">&middot;</span>' : '') + ov.count + ' sales' + (ov.freshness ? '<span class="sep">&middot;</span>newest ' + fmtDate(ov.freshness) : '') + '</span></div>';
+      + '<span class="hl-sub">' + (spread ? spread + '<span class="sep">&middot;</span>' : '') + plural(ov.count, "sale") + (ov.freshness ? '<span class="sep">&middot;</span>newest ' + fmtDate(ov.freshness) : '') + '</span></div>';
     var bars = (s.byGen || []).filter(function (g) { return g.median != null; });
     if (bars.length) {
       var max = Math.max.apply(null, bars.map(function (g) { return g.median || 0; })) || 1;
@@ -385,6 +485,7 @@
     }
     var exnT = exclusionNote(s.exclusions);
     if (exnT) h += '<div class="read">' + esc(exnT) + ' from the ' + esc(who) + ' pool.</div>';
+    h += seeSales(evAll, ov.count);
     h += provenanceFooter({ window: win });
     h += '</div>';
     return sentence + h;
@@ -429,13 +530,17 @@
       var mm = (res.reading.grouping.members || []).filter(function (x) { return x.yearStart && x.yearEnd; });
       if (mm.length) { CUR_SCOPE.year_min = Math.min.apply(null, mm.map(function (x) { return x.yearStart; })); CUR_SCOPE.year_max = Math.max.apply(null, mm.map(function (x) { return x.yearEnd; })); }
     }
-    if (rf.venue) CUR_SCOPE.venue = rf.venue;
-    if (rf.channel) CUR_SCOPE.channel = rf.channel;
+    // A venue RANKING reads every venue (the named one is highlighted), so its pool is not venue-scoped.
+    if (rf.venue && rf.venue !== "all" && !(res.ranking && res.ranking.isVenue)) CUR_SCOPE.venue = rf.venue;
+    var s0 = (res && res.reading && res.reading.scopes && res.reading.scopes[0]) || null;
+    if (s0) { CUR_SCOPE.make = s0.make; CUR_SCOPE.model = s0.model; if (s0.generation) CUR_SCOPE.generation = s0.generation; if (s0.trim) CUR_SCOPE.trim = s0.trim; }
+    if (rf.channel && rf.channel !== "all") CUR_SCOPE.channel = rf.channel;
     if (rf.price && rf.price.min) CUR_SCOPE.price_min = rf.price.min;
     if (rf.price && rf.price.max) CUR_SCOPE.price_max = rf.price.max;
     // NO SILENT SUBSTITUTION: a not-yet-built question type says so in ONE line and shows nothing else.
     if (res.not_built) {
-      readingcard.innerHTML = ""; out.innerHTML = msg("Not built yet", esc(res.not_built));
+      readingcard.innerHTML = readingLine(res.reading_labels); wireReadingLine();
+      out.innerHTML = cantRead(res, { note: res.not_built }); wireCant(question, {});
       CUR_READING = res.reading; RECENT.push(res.reading);
       THREAD.push({ question: question, reading: res.reading, summary: summarize(res), cardHtml: "", answerHtml: out.innerHTML });
       renderTurns();
@@ -445,7 +550,10 @@
     // answers; the one-sentence reading (readingSentence / the renderer's own lede) IS the reading.
     // Only a genuine clarify still renders a card, and only its question + options (no chips).
     renderClarify(res);
-    if (res.cannot_apply) { out.innerHTML = msg("Can't apply that", esc(res.cannot_apply)); }
+    // What Sam read: one quiet line above the answer (a clarify keeps its own card instead).
+    if (!res.clarify) readingcard.innerHTML = readingLine(res.reading_labels);
+    var cant = false;
+    if (res.cannot_apply) { cant = true; out.innerHTML = cantRead(res, { note: res.cannot_apply }); }
     else if (res.ranking) out.innerHTML = renderRanking(res.ranking);
     else if (res.comparison) out.innerHTML = renderComparison(res.comparison);
     else if (res.trend) out.innerHTML = renderTrend(res.trend);
@@ -454,12 +562,10 @@
     else if (res.clarify) out.innerHTML = msg("One quick thing", "Pick an option above (or type it) and I'll run it.");
     else if (res.unsupported) out.innerHTML = msg("Not what the Desk does", esc(res.unsupported.message));
     else if (res.meta === "coverage") out.innerHTML = msg("Coverage", "Name a source (e.g. “what do you cover for Mecum”) to see its dates.");
-    else if (res.honest_miss) out.innerHTML = msg("I couldn't read that", "I don't recognize that yet. It's logged so we can add it. Try a make and model.");
-    else if (res.reading && (res.reading.grouping || (res.reading.structural || []).some(function (s) { return s.kind === "comparison"; }))) out.innerHTML = msg("Reading ready", "This is a ranking or comparison; the multi-car answer arrives in the next stage. The reading above is how it was understood.");
-    else out.innerHTML = "";
+    else { cant = true; out.innerHTML = cantRead(res, { note: res.honest_miss ? "It's logged so it can be added. Try a make and model." : "" }); }
     // One-sentence first-person reading leads the answer (mock voice). Renderers that state their own
-    // lede (comparison) return "" from readingSentence.
-    var lead = readingSentence(res);
+    // lede (comparison) return "" from readingSentence. A can't-read message has no lede.
+    var lead = cant ? "" : readingSentence(res);
     if (lead) out.innerHTML = lead + out.innerHTML;
     // A refinement that ran PAST the prior scope says so (e.g. "widened to 1998 to 2002, past the 90s").
     if (res.reading && res.reading.refineNote) out.innerHTML = '<p class="reading">' + esc(res.reading.refineNote) + '</p>' + out.innerHTML;
@@ -470,9 +576,9 @@
       }).join("  ") + '</p>';
     }
     CUR_READING = res.reading; RECENT.push(res.reading);
-    THREAD.push({ question: question, reading: res.reading, summary: summarize(res), cardHtml: readingcard.innerHTML, answerHtml: out.innerHTML });
+    THREAD.push({ question: question, reading: res.reading, summary: summarize(res), cardHtml: readingcard.innerHTML, answerHtml: out.innerHTML, scope: CUR_SCOPE });
     renderTurns();
-    wireEvidence();
+    wireEvidence(); wireReadingLine(); if (cant) wireCant(question, {});
   }
   var emptyEl = document.getElementById("empty");
   var newBtn = document.getElementById("newAnalysis");
@@ -592,7 +698,7 @@
     var chanInForce = (res.echo && res.echo.dsl && res.echo.dsl.filters && res.echo.dsl.filters.channel) || "all";
     var chanWord = chanInForce === "house" ? "auction houses" : chanInForce === "online" ? "online" : "all channels";
     var winInForce = (res.coverage && res.coverage.window) || "";
-    h += '<div class="section"><div class="slabel">Answer <span class="n">' + rows.length + ' ' + esc(dimLabel) + (rows.length === 1 ? '' : 's') + ' &middot; ' + a.total + (a.outcome && a.outcome !== "sold" ? ' ' + esc(a.outcome.replace(/_/g, " ")) : ' sales') + ' &middot; ' + esc(chanWord) + (winInForce ? ' &middot; ' + esc(winInForce) : '') + '</span></div>';
+    h += '<div class="section"><div class="slabel">Answer <span class="n">' + rows.length + ' ' + esc(dimLabel) + (rows.length === 1 ? '' : 's') + ' &middot; ' + a.total + (a.outcome && a.outcome !== "sold" ? ' ' + esc(a.outcome.replace(/_/g, " ")) : (a.total === 1 ? ' sale' : ' sales')) + ' &middot; ' + esc(chanWord) + (winInForce ? ' &middot; ' + esc(winInForce) : '') + '</span></div>';
     h += '<div class="tblwrap"><table class="answer"><thead><tr><th>' + esc(dimLabel) + '</th>';
     cols.forEach(function (c) { h += '<th>' + esc(c[1]) + '</th>'; });
     h += '</tr></thead><tbody>';
@@ -828,7 +934,7 @@
       var x = L + i * bw + (bw - barw) / 2, bh = m ? (val / m) * plotH : 0, y = T + plotH - bh;
       var col = spec.x === "venue" ? colorFor(c, i) : PALETTE[i % PALETTE.length];
       var rect = E("rect", { x: x, y: y, width: barw, height: Math.max(0, bh), fill: col, rx: 3, class: "cmark" });
-      rect.addEventListener("mousemove", function (e) { showTip(e.pageX, e.pageY, "<b>" + esc(c) + "</b><br>" + (yKey === "median" ? "median " + money(val) : val + " sales")); });
+      rect.addEventListener("mousemove", function (e) { showTip(e.pageX, e.pageY, "<b>" + esc(c) + "</b><br>" + (yKey === "median" ? "median " + money(val) : plural(val, "sale"))); });
       rect.addEventListener("mouseleave", hideTip);
       svg.appendChild(rect);
       svg.appendChild(E("text", { x: x + barw / 2, y: y - 6, "text-anchor": "middle", "font-size": 11, fill: INK }, yKey === "median" ? money(val) : String(val)));
@@ -884,7 +990,7 @@
           if (!dotsMode) { // median point + p25-p75 whisker
             if (r.p25 != null && r.p75 != null) svg.appendChild(E("line", { x1: p[0], y1: yAt(r.p25), x2: p[0], y2: yAt(r.p75), stroke: col, "stroke-width": 1.5, opacity: 0.55 }));
             var c = E("circle", { cx: p[0], cy: p[1], r: 4, fill: col, class: "cmark" });
-            c.addEventListener("mousemove", function (e) { showTip(e.pageX, e.pageY, "<b>" + esc(ser === "_" ? p[3] : ser + " · " + p[3]) + "</b><br>median " + money(r.median) + "<br>p25-p75 " + money(r.p25) + " to " + money(r.p75) + "<br>" + r.count + " sales"); });
+            c.addEventListener("mousemove", function (e) { showTip(e.pageX, e.pageY, "<b>" + esc(ser === "_" ? p[3] : ser + " · " + p[3]) + "</b><br>median " + money(r.median) + "<br>p25-p75 " + money(r.p25) + " to " + money(r.p75) + "<br>" + plural(r.count, "sale")); });
             c.addEventListener("mouseleave", hideTip); svg.appendChild(c);
           }
         });
@@ -1072,7 +1178,7 @@
         if (!views.length) { panel.innerHTML = '<div class="viewspanel">No saved views yet. Run a query and Save view.</div>'; return; }
         var rows = views.map(function (v) {
           return '<div class="viewrow"><button class="vlink" data-id="' + v.id + '">' + esc(v.name) + '</button>' +
-            '<span class="vmeta">last run ' + (v.last_run_at ? fmtDate(v.last_run_at) : "never") + (v.last_summary ? ' &middot; ' + v.last_summary.total + ' sales' : '') + '</span>' +
+            '<span class="vmeta">last run ' + (v.last_run_at ? fmtDate(v.last_run_at) : "never") + (v.last_summary ? ' &middot; ' + plural(v.last_summary.total, "sale") : '') + '</span>' +
             '<button class="vdel" data-id="' + v.id + '">delete</button></div>';
         }).join("");
         panel.innerHTML = '<div class="viewspanel"><div class="slabel">Saved views</div>' + rows + '</div>';
@@ -1096,7 +1202,7 @@
     var srcs = (c.sources || []).map(function (s) { return s.source + " (from " + fmtDate(s.earliest) + ")"; }).join("; ");
     return "Window " + (c.window || "") + ". Basis " + (c.price_basis || "") + ". Sources: " + srcs + ". Thin threshold " + (c.thin_threshold || 5) + ".";
   }
-  function watermark(res) { return "Sam Desk — org sam — " + new Date().toISOString().slice(0, 10) + " — archive only, not for redistribution"; }
+  function watermark(res) { return "Sam Desk · org sam · " + new Date().toISOString().slice(0, 10) + " · archive only, not for redistribution"; }
   function answerRows(res) {
     var a = res.answer, rows = a.rows || [];
     var head = ["group", "count", "share", "median", "p25", "p75", "min", "max"];
