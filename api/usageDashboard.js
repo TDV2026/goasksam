@@ -3176,8 +3176,9 @@ async function handleOps(req, res) {
     const facts = { project_flagged: 0, stated_mileage: 0, with_markers: 0 };
     while (processed < maxRows && Date.now() < deadline) {
       const sel = "id,source_id,listing_title,mileage,description";
-      const rows = await supabaseSelectAll(env, `sales_archive?desc_facts=is.null&select=${sel}&order=id.asc`, pageSize);
-      const slice = (rows || []).slice(0, pageSize);
+      // ONE bounded page per iteration (supabaseSelect, not supabaseSelectAll - the latter paginates
+      // through ALL ~300k matching rows every iteration). PostgREST caps a page at 1000 rows anyway.
+      const slice = (await supabaseSelect(env, `sales_archive?desc_facts=is.null&select=${sel}&order=id.asc&limit=${pageSize}`)) || [];
       if (!slice.length) break;   // nothing left
       const patch = slice.map(r => {
         const df = computeDescFacts({ title: r.listing_title, description: r.description, mileageStructured: r.mileage });
