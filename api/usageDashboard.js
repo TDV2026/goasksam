@@ -3210,6 +3210,59 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "ingestlog", count: rows.length, events: rows.map(r => ({ at: r.created_at, type: r.event_type, status: r.status, ocd_metered: r.oldcarsdata_metered_requests, mode: r.metadata?.mode || null, upserted: r.metadata?.upserted ?? null, ocd_http: r.metadata?.ocd_http_requests ?? null, meta: r.metadata || null })) });
   }
 
+  // task=vinidxcount: READ-ONLY. vin_index / vin_summary readiness for Lane C: row counts, distinct VINs,
+  // multi-appearance VIN count, and 5 sample multi-appearance VINs with their appearance history.
+  if (task === "vinidxcount") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    const countOf = async (table, filter = "id=not.is.null") => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${table}?${filter}&select=vin_norm&limit=1`, { headers: H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    const vinIndexRows = await countOf("vin_index", "vin_norm=not.is.null");
+    const vinSummaryRows = await countOf("vin_summary", "vin_norm=not.is.null");
+    const multi = await countOf("vin_summary", "appearances=gte.2");
+    const samples = await supabaseSelect(env, `vin_summary?appearances=gte.2&select=vin_norm,appearances,make,model,first_seen,last_seen,last_sold_price_usd&order=appearances.desc&limit=5`) || [];
+    const withHistory = [];
+    for (const s of samples) { const hist = await supabaseSelect(env, `vin_index?vin_norm=eq.${encodeURIComponent(s.vin_norm)}&select=appearance_date,source,result,price_usd,listing_title&order=appearance_date.asc.nullslast&limit=20`) || []; withHistory.push({ ...s, history: hist }); }
+    return res.status(200).json({ task: "vinidxcount", vin_index_rows: vinIndexRows, vin_summary_rows: vinSummaryRows, distinct_vins: vinSummaryRows, multi_appearance_vins: multi, samples: withHistory });
+  }
+
+  // task=unktriage: triage the make-Unknown rows (vehicle_type IS NULL) with the classifier (title+VIN).
+  // Buckets: make_resolvable (classifier found a make), not_a_vehicle (non_vehicle), junk (unclassified).
+  // AUTO-APPLY (write=1) ONLY when the VIN WMI and the title agree (classifier basis "title+VIN agree");
+  // everything else stays Unknown. "Better nothing than a fake make." Also returns make-Unknown VINs
+  // (with vin_norm) as proof fodder. ZERO OCD.
+  if (task === "unktriage") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { classifyUnknown } = await import("../lib/_unknownClassify.js");
+    const rows = await supabaseSelectAll(env, `sales_archive?vehicle_type=is.null&select=id,source_id,listing_title,vin,vin_norm,year,source_slug`) || [];
+    const buckets = { make_resolvable: [], not_a_vehicle: [], junk: [] };
+    const autoApply = [];
+    for (const r of rows) {
+      const c = classifyUnknown({ listing_title: r.listing_title, vin: r.vin || r.vin_norm });
+      const rec = { id: r.id, source_id: r.source_id, title: r.listing_title, vin: r.vin || null, vin_norm: r.vin_norm || null, src: r.source_slug, year: r.year, make: c.make, model: c.model, vehicle_type: c.vehicle_type, basis: c.basis };
+      if (c.vehicle_type === "non_vehicle") buckets.not_a_vehicle.push(rec);
+      else if (c.make) { buckets.make_resolvable.push(rec); if (c.basis === "title+VIN agree") autoApply.push(rec); }
+      else buckets.junk.push(rec);
+    }
+    const write = req.query?.write === "1";
+    let applied = 0, applyErrors = 0;
+    if (write) {
+      const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "return=minimal" };
+      for (const rec of autoApply) {
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?id=eq.${encodeURIComponent(rec.id)}&vehicle_type=is.null`, { method: "PATCH", headers: H, body: JSON.stringify({ make: rec.make, model: rec.model, vehicle_type: "car" }) });
+        if (r.ok) applied++; else applyErrors++;
+      }
+    }
+    const ex = arr => arr.slice(0, 10).map(r => ({ title: r.title, vin: r.vin || r.vin_norm, src: r.src, year: r.year, guess: [r.make, r.model].filter(Boolean).join(" ") || null, basis: r.basis }));
+    const sampleUnkVins = rows.filter(r => r.vin_norm && String(r.vin_norm).length >= 11).slice(0, 8).map(r => ({ vin_norm: r.vin_norm, vin: r.vin, title: r.listing_title, src: r.source_slug }));
+    return res.status(200).json({
+      task: "unktriage", write, totalMakeUnknown: rows.length,
+      counts: { make_resolvable: buckets.make_resolvable.length, not_a_vehicle: buckets.not_a_vehicle.length, junk: buckets.junk.length, autoApplyCorroborated: autoApply.length },
+      applied, applyErrors,
+      examples: { make_resolvable: ex(buckets.make_resolvable), not_a_vehicle: ex(buckets.not_a_vehicle), junk: ex(buckets.junk) },
+      sampleUnkVins
+    });
+  }
+
   // task=descfactscov: READ-ONLY. Coverage of the description-derived columns after the backfill.
   // Global desc_facts-set (confirms every row is stamped) + project_flagged + stated_mileage; per-source
   // total + project_flagged (both index-backed: source_slug and the project_flag partial index).
@@ -3264,7 +3317,7 @@ async function handleOps(req, res) {
     });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk|descfacts|ingestlog|item3probe." });
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk|descfacts|ingestlog|item3probe|unktriage|vinidxcount." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
