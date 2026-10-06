@@ -24,7 +24,7 @@ function cardOf(x) {
   return { id: r.id, source: houseName(r.source), sourceSlug: r.source, title: r.listing_title, url: r.url, photo_url: r.photo_url,
     current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid != null ? Math.round(Number(r.current_bid)) : null, currency: r.currency || "USD",
     bid_at: r.bid_at || r.last_seen || null, end_time: r.end_time, year: r.year,
-    miles: facts.miles, colour: facts.colour, body: facts.body, gearbox: facts.gearboxLabel,
+    miles: facts.miles, colour: facts.colour, colourSrc: facts.colourSrc || null, body: facts.body, gearbox: facts.gearboxLabel,
     location: titleCaseIfShouting(r.location) || null, country: cc || null, countryName: COUNTRY_NAME[cc] || cc || null, abroad: !!cc && cc !== "US",
     vin_norm: r.vin_norm || null, generation: x.gen ? x.gen.code : null, unknown: x.unknown, flag: cardFlag(r) };
 }
