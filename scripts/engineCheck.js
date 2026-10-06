@@ -31,11 +31,14 @@ const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || process.env.VERCEL
 // make -> halo/other-model tokens that must NEVER appear as a comp for the base model (One Box
 // HALO_PATTERNS, restated here so the harness can assert exclusion from the rendered cards).
 const HALO = {
-  ferrari: /enzo|laferrari|superamerica|barchetta|\bf40\b|\bf50\b|monza\s?sp|daytona\s?sp|sesto|288\s?gto|599\s?gto|250\s?gto/i,
+  ferrari: /enzo|laferrari|superamerica|barchetta|aperta|\b16m\b|\bf40\b|\bf50\b|monza\s?sp|daytona\s?sp|sesto|288\s?gto|599\s?gto|250\s?gto/i,
   porsche: /gt3\s?rs|gt2\s?rs|\bgt2\b|sport\s?classic|\bs\/t\b/i,
   bmw: /\bcsl\b|sport\s?evolution|cecotto|\bcrt\b/i,
-  chevrolet: /zr1|z06|zl1|callaway/i,
-  mercedes: /black\s?series/i
+  chevrolet: /zr1|z06|zl1|callaway|\bcopo\b|\bl88\b|yenko/i,
+  mercedes: /black\s?series|\bdtm\b/i,
+  dodge: /hellcat|demon|redeye|daytona|superbird|super\s?bee|\bt\/a\b/i,
+  astonmartin: /zagato|\bgt8\b|\bgt12\b|db4\s?gt|one-?77|vulcan|valkyrie/i,
+  jaguar: /lightweight|low\s?drag|project\s?7|xkr-?s|\bsvr\b/i
 };
 
 const ROWS = [
