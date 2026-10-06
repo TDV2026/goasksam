@@ -3207,7 +3207,44 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "ingestlog", count: rows.length, events: rows.map(r => ({ at: r.created_at, type: r.event_type, status: r.status, ocd_metered: r.oldcarsdata_metered_requests, mode: r.metadata?.mode || null, upserted: r.metadata?.upserted ?? null, ocd_http: r.metadata?.ocd_http_requests ?? null, meta: r.metadata || null })) });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk|descfacts|ingestlog." });
+  // task=item3probe: READ-ONLY. The three archive checks for the C&B/Bonhams/Gooding backfill review:
+  // (b) does the PCARMarket 1999 996 race car still appear as a sale; (c) Gooding-London and Bonhams-
+  // May-2025 rows currently tagged USD (candidates for a currency correction); (d) the Weekly Total for
+  // Sep 27 to Oct 3 (sold count + USD by source, top 10, repeat-sale VINs). ZERO OCD.
+  if (task === "item3probe") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    // (b)
+    const b996 = await supabaseSelect(env, `sales_archive?source_slug=eq.pcarmarket&year=eq.1999&or=(listing_title.ilike.*996*,listing_title.ilike.*race*,listing_title.ilike.*cup*,model.ilike.*996*)&select=id,source_id,sale_date,listing_title,make,model,sale_price,sale_price_usd,status:raw_record->>auction_status&limit=50`) || [];
+    // (c)
+    const gLondon = await supabaseSelect(env, `sales_archive?source_slug=eq.gooding&raw_record->>currency=eq.USD&or=(city.ilike.*london*,listing_title.ilike.*london*)&select=id,source_id,sale_date,listing_title,sale_price,sale_price_usd,curr:raw_record->>currency,city&limit=50`) || [];
+    const bMay = await supabaseSelect(env, `sales_archive?source_slug=eq.bonhams&sale_date=gte.2025-05-01&sale_date=lt.2025-06-01&raw_record->>currency=eq.USD&select=id,source_id,sale_date,listing_title,sale_price,sale_price_usd,curr:raw_record->>currency,city&limit=100`) || [];
+    // (d) weekly Sep 27 to Oct 3 (sale_date indexed)
+    const wk = await supabaseSelectAll(env, `sales_archive?sale_date=gte.2026-09-27&sale_date=lte.2026-10-03&select=source_slug,sale_price_usd,make,model,listing_title,vin_norm,year,sale_date`);
+    const rows = wk || [];
+    const bySource = {};
+    for (const r of rows) { const s = r.source_slug || "?"; if (!bySource[s]) bySource[s] = { sold: 0, usd: 0, usdKnown: 0 }; bySource[s].sold++; const u = Number(r.sale_price_usd); if (u > 0) { bySource[s].usd += u; bySource[s].usdKnown++; } }
+    const top10 = rows.filter(r => Number(r.sale_price_usd) > 0).sort((a, b) => Number(b.sale_price_usd) - Number(a.sale_price_usd)).slice(0, 10)
+      .map(r => ({ title: r.listing_title, source: r.source_slug, date: r.sale_date, usd: Number(r.sale_price_usd), vin: r.vin_norm || null }));
+    // repeat-sale VINs: windowed VINs that appear 2+ times across the WHOLE archive (a sale that closed
+    // this week on a car we have seen before). One id-set query, counted in memory.
+    const wkVins = [...new Set(rows.map(r => String(r.vin_norm || "")).filter(v => v.length >= 6))];
+    let repeats = [];
+    if (wkVins.length) {
+      const all = await supabaseSelect(env, `sales_archive?vin_norm=in.(${wkVins.map(encodeURIComponent).join(",")})&select=vin_norm,sale_date,listing_title,sale_price_usd,source_slug&order=sale_date.asc`) || [];
+      const byVin = {}; for (const a of all) { const v = a.vin_norm; (byVin[v] = byVin[v] || []).push(a); }
+      repeats = Object.entries(byVin).filter(([, a]) => a.length >= 2).map(([v, a]) => ({ vin: v, appearances: a.length, title: a[a.length - 1].listing_title, history: a.map(x => ({ date: x.sale_date, usd: Number(x.sale_price_usd) || null, source: x.source_slug })) }));
+    }
+    const totalSold = rows.length, totalUsd = Object.values(bySource).reduce((s, x) => s + x.usd, 0);
+    return res.status(200).json({
+      task: "item3probe",
+      b_pcarmarket_996: { count: b996.length, rows: b996 },
+      c_gooding_london_usd: { count: gLondon.length, rows: gLondon },
+      c_bonhams_may2025_usd: { count: bMay.length, rows: bMay },
+      d_weekly_sep27_oct3: { window: "2026-09-27..2026-10-03", totalSold, totalUsd: Math.round(totalUsd), bySource, top10, repeatSaleVins: repeats }
+    });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk|descfacts|ingestlog|item3probe." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
