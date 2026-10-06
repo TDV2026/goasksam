@@ -3210,6 +3210,54 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "ingestlog", count: rows.length, events: rows.map(r => ({ at: r.created_at, type: r.event_type, status: r.status, ocd_metered: r.oldcarsdata_metered_requests, mode: r.metadata?.mode || null, upserted: r.metadata?.upserted ?? null, ocd_http: r.metadata?.ocd_http_requests ?? null, meta: r.metadata || null })) });
   }
 
+  // task=usdbackfill: backfill sale_price_usd on sales_archive rows that have a sale_price but no
+  // sale_price_usd, using the EXISTING FX handling (lib/_fx loadFxRates + lib/_houseComps hammerUsd) at
+  // the sale month's rate. SKIP blank/ambiguous currency (better nothing than a fake number) and report
+  // them. Resumable via id cursor (so skipped rows are not re-scanned). ZERO OCD. AutoHunter left alone.
+  //   phase=count : dry - total needing usd + currency breakdown from a sample.
+  //   phase=usd&write=1&cursor=<id> : one bounded batch; returns nextCursor + tallies.
+  if (task === "usdbackfill") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const phase = String(req.query?.phase || "count");
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+    const countQ = async filter => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}&select=id&limit=1`, { headers: { ...H, Prefer: "count=exact" } }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    const NEED = "sale_price_usd=is.null&sale_price=gt.0&source_slug=not.eq.autohunter";
+    if (phase === "count") {
+      const total = await countQ(NEED);
+      const sample = await supabaseSelect(env, `sales_archive?${NEED}&select=source_slug,sale_date,curr:raw_record->>currency&order=id.asc&limit=4000`) || [];
+      const byCcy = {}, bySourceBlank = {};
+      for (const r of sample) { const c = String(r.curr || "").trim().toUpperCase() || "(blank)"; byCcy[c] = (byCcy[c] || 0) + 1; if (c === "(blank)") bySourceBlank[r.source_slug] = (bySourceBlank[r.source_slug] || 0) + 1; }
+      return res.status(200).json({ task: "usdbackfill", phase: "count", totalNeedingUsd: total, sampleSize: sample.length, currencyBreakdownInSample: byCcy, blankCurrencyBySourceInSample: bySourceBlank });
+    }
+    if (phase === "usd") {
+      const { loadFxRates } = await import("../lib/_fx.js");
+      const hc = await import("../lib/_houseComps.js");
+      const fx = await loadFxRates(env); hc.setFxRates(fx);
+      const write = req.query?.write === "1";
+      const cursor = req.query?.cursor ? String(req.query.cursor) : "";
+      const limit = Math.max(500, Math.min(5000, Number(req.query?.limit || 3000)));
+      const curFilter = cursor ? `&id=gt.${encodeURIComponent(cursor)}` : "";
+      const rows = await supabaseSelect(env, `sales_archive?${NEED}${curFilter}&select=id,source_id,source_slug,sale_date,sale_price,curr:raw_record->>currency&order=id.asc&limit=${limit}`) || [];
+      if (!rows.length) return res.status(200).json({ task: "usdbackfill", phase: "usd", done: true, nextCursor: null, processed: 0 });
+      const fixes = [], fixedBySource = {}, fixedByYear = {}, skipped = {}, skipSamples = [];
+      for (const r of rows) {
+        const ccy = String(r.curr || "").trim().toUpperCase();
+        const yr = String(r.sale_date || "").slice(0, 4) || "unknown";
+        let usd = null, reason = null;
+        if (!ccy) reason = "blank_currency";
+        else if (ccy === "USD") usd = Math.round(Number(r.sale_price));
+        else if (fx.has(ccy)) { const v = hc.hammerUsd({ source_slug: r.source_slug, source: r.source_slug, price: Number(r.sale_price), currency: ccy, date: r.sale_date }); usd = (Number.isFinite(v) && v > 0) ? Math.round(v) : null; if (usd == null) reason = `no_rate_for_month:${ccy}`; }
+        else reason = `unknown_currency:${ccy}`;
+        if (usd != null) { fixes.push({ source_id: String(r.source_id), sale_price_usd: usd }); fixedBySource[r.source_slug] = (fixedBySource[r.source_slug] || 0) + 1; fixedByYear[yr] = (fixedByYear[yr] || 0) + 1; }
+        else { skipped[reason] = (skipped[reason] || 0) + 1; if (skipSamples.length < 15) skipSamples.push({ source_id: r.source_id, src: r.source_slug, ccy: ccy || "(blank)", reason }); }
+      }
+      let wrote = 0, writeErrors = 0;
+      if (write && fixes.length) { for (let i = 0; i < fixes.length; i += 300) { const rr = await supabaseInsert("sales_archive", fixes.slice(i, i + 300), env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id"); if (rr.error) writeErrors++; else wrote += Math.min(300, fixes.length - i); } }
+      return res.status(200).json({ task: "usdbackfill", phase: "usd", write, processed: rows.length, nextCursor: rows[rows.length - 1].id, computable: fixes.length, wrote, writeErrors, fixedBySource, fixedByYear, skipped, skipSamples });
+    }
+    return res.status(400).json({ error: "usdbackfill: phase=count|usd" });
+  }
+
   // task=relisted: READ-ONLY. Relisted-cars split for a close-week window (?from=&to=, default last week
   // Sep 27-Oct 3). A "repeat" is a car that CLOSED this week (sold or unsold) AND has a prior appearance
   // (sale or unsold attempt) before the window. For each: sold_before vs listed_before_unsold; same/diff
