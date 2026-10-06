@@ -9,7 +9,7 @@ import { historyEnv, houseName, normVin } from "./_historyData.js";
 import { parseQuery, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME } from "../lib/live/search.js";
 import { findGeneration } from "../lib/generations.js";
 import { converse } from "../lib/live/converse.js";
-import { listingDetail, facetsOf } from "../lib/live/search.js";
+import { listingDetail, facetsOf, cardFlag, seenCount } from "../lib/live/search.js";
 import { vinAppearances } from "./_historyData.js";
 import { validateBearer } from "../lib/_auth.js";
 import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js";
@@ -26,7 +26,7 @@ function cardOf(x) {
     bid_at: r.bid_at || r.last_seen || null, end_time: r.end_time, year: r.year,
     miles: facts.miles, colour: facts.colour, body: facts.body, gearbox: facts.gearboxLabel,
     location: titleCaseIfShouting(r.location) || null, country: cc || null, countryName: COUNTRY_NAME[cc] || cc || null, abroad: !!cc && cc !== "US",
-    vin_norm: r.vin_norm || null, generation: x.gen ? x.gen.code : null, unknown: x.unknown };
+    vin_norm: r.vin_norm || null, generation: x.gen ? x.gen.code : null, unknown: x.unknown, flag: cardFlag(r) };
 }
 async function enrich(env, x) {
   const [market, seen] = await Promise.all([listingMarket(env, x.r, x.facts), seenBefore(env, x.r.vin_norm)]);
@@ -136,21 +136,34 @@ async function converseOut(env, b) {
   if (!st.messages.length) return { type: "nonsense", say: "Tell Sam a car, a budget or a type of car and Sam will find what's live.", options: ["a black manual BMW M3", "Porsches under $50k", "anything ending today"] };
   const r = await converse(env, st);
   if (r.type === "question" || r.type === "nonsense") return r;
+  const seenN = r.vins && r.vins.length ? await seenCount(env, r.vins).catch(() => 0) : 0;
   if (r.type === "groups") {
-    const groups = await Promise.all(r.groups.map(async g => {
+    const shape = list => Promise.all((list || []).map(async g => {
       const mk = await listingMarket(env, g.items[0].r, g.items[0].facts);
       const cards = await Promise.all(g.items.slice(0, 40).map((x, i) => (i < (r.perCard ? 3 : 0)) ? enrich(env, x) : cardOf(x)));
+      cards.forEach((c, i) => { if (g.items[i] && g.items[i].distance != null) c.distance = g.items[i].distance; });
       return { label: g.label, n: g.n, market: mk, cards };
     }));
+    const [groups, maybeGroups] = await Promise.all([shape(r.groups), shape(r.maybeGroups)]);
+    const total = groups.concat(maybeGroups).reduce((k, g) => k + g.n, 0);
+    const say = total && seenN ? `${total} live, grouped by model. ${sauce(seenN)}` : (r.say || null);
     logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
-    return { type: "groups", say: r.say || null, groups, footnote: !!r.footnote, perCard: !!r.perCard };
+    return { type: "groups", say, groups, maybeGroups, maybeKeys: r.maybeKeys || [], filters: r.filters || null, geo: !!r.geo, footnote: !!r.footnote, perCard: !!r.perCard };
   }
   const matches = (r.matches || []).slice(0, MAX);
   const ordered = [...matches].sort((a, x) => { const k = c => (c.distance != null ? 0 : (String(c.r.country || "").toUpperCase() && String(c.r.country).toUpperCase() !== "US" ? 2 : 0) + (c.unknown.length ? 1 : 0)); return k(a) - k(x); });
   const cards = await Promise.all(ordered.map((x, i) => i < FIRST ? enrich(env, x) : cardOf(x)));
   cards.forEach((c, i) => { if (ordered[i].distance != null) c.distance = ordered[i].distance; });
   logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
-  return { type: "results", say: r.say, market: r.market || null, outOfScope: !!r.outOfScope, geo: !!r.geo, closest: !!r.closest, total: (r.matches || []).length, cards, facets: r.closest ? null : facetsOf(ordered), filters: r.filters || null };
+  // The opener carries what only Sam knows: how many of these have an auction history.
+  let say = r.say;
+  if (seenN && !r.closest && !r.outOfScope) {
+    const n = (r.matches || []).length;
+    if (n === 1) say = r.say + " It has been through auction before, and Sam has its history.";
+    else if (/^There are \d+ live right now\./.test(r.say || "")) say = `${n} live. ${sauce(seenN)}` + (r.geo ? " Closest first." : "");
+    else say = (r.say || "") + " " + sauce(seenN);
+  }
+  return { type: "results", say: say, market: r.market || null, outOfScope: !!r.outOfScope, geo: !!r.geo, closest: !!r.closest, total: (r.matches || []).length, cards, facets: r.closest ? null : facetsOf(ordered), filters: r.filters || null };
 }
 async function detailOut(env, b) {
   const id = Number(b.id); if (!Number.isFinite(id)) return { ok: false };
@@ -233,3 +246,7 @@ async function geoCoverage(env) {
   }
   return { ocdRequests: 0, sources: by };
 }
+
+// "Three have been through auction before, and Sam has their history." (small counts in words)
+const WORDS = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"];
+function sauce(n) { const w = WORDS[n] || String(n); return n === 1 ? "One has been through auction before, and Sam has its history." : `${w} have been through auction before, and Sam has their history.`; }
