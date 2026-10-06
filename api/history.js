@@ -292,8 +292,10 @@ async function hubPage(req, res, env, slug) {
   // Name + One Box family from the resolver on the slug text (same resolver One Box uses).
   let v = null;
   try { const r = await resolveVehicle([hub.year, hub.makeSlug.replace(/-/g, " "), hub.modelSlug.replace(/-/g, " ")].filter(Boolean).join(" "), {}); v = r && r.vehicle ? (sanitizeResolvedVehicle(r.vehicle) || r.vehicle) : null; } catch {}
+  // Unresolvable model: the known make plus the model as listed, cleaned ("AC Cobra", "Fiat Dino Spider").
+  const fbMake = v && v.make && v.model ? null : await knownMake(hub.makeSlug.replace(/-/g, " "));
   const id = v && v.make && v.model ? { year: hub.year, make: v.make, model: v.model, trim: v.trim || null, family: familyOf(v), genCode: v.genCode || null, bodyStyle: v.bodyStyle || null, vehicle: { ...v, year: hub.year } }
-    : { year: hub.year, make: hub.makeSlug.replace(/(^|-)\w/g, s => s.toUpperCase()).replace(/-/g, "-"), model: hub.modelSlug.toUpperCase(), family: hub.modelSlug.replace(/-/g, " ").toUpperCase(), vehicle: null };
+    : { year: hub.year, make: fbMake || hub.makeSlug.replace(/(^|-)\w/g, s => s.toUpperCase()), model: cleanModelName(hub.modelSlug), family: cleanModelName(hub.modelSlug), vehicle: null };
   const name = [id.year, id.make, id.family].filter(Boolean).join(" ");
   const d = id.vehicle ? await oneBoxFor(env, id, null) : null;
   const n = poolCount(d);
@@ -317,7 +319,7 @@ ${WHY_RESULT_HTML}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>`;
   const ld = [{ "@context": "https://schema.org", "@type": "ItemList", name: `${name} auction results`, url: canonical,
     itemListElement: list.slice(0, 200).map((g, i) => ({ "@type": "ListItem", position: i + 1, url: hub.year ? `${SITE}/history/${slug}/${g.vin}` : `${SITE}/vin/${g.vin}`, name: `${name}, VIN ${g.vin}` })) }];
-  const hubIndex = !hub.year && !!id.vehicle && list.some(g => g.apps.some(a => a.image));
+  const hubIndex = !hub.year && list.some(g => g.apps.some(a => a.image)) && (!!id.vehicle || (!!fbMake && salesN >= 5));
   send(res, 200, page({ title: `${name} auction results and sale prices`, description: ctx, canonical, body, ld, index: hubIndex }), {}, hubIndex);
 }
 
@@ -375,6 +377,22 @@ const xmlEsc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
 async function supabaseSelectSafe(env, q) { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); return r.ok ? r.json() : "err " + r.status; } catch { return "err"; } }
 // A real vehicle identifier: letters and digits, at least one digit, 5 to 17 characters (pre-1981
 // chassis numbers included). Words the archive stored in the VIN field ("RETAINED") are not.
+// A make the resolver knows ("ac" -> "AC"), cached. Used when a hub's model can't be resolved.
+const makeCache = new Map();
+async function knownMake(words) {
+  const k = String(words || "").toLowerCase().trim(); if (!k) return null;
+  if (makeCache.has(k)) return makeCache.get(k);
+  let mk = null;
+  try { const r = await resolveVehicle(k, {}); mk = r && r.vehicle && r.vehicle.make && squashW(r.vehicle.make) === squashW(k) ? r.vehicle.make : null; } catch {}
+  makeCache.set(k, mk); return mk;
+}
+const squashW = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+// The model as listed, cleaned: no chassis/lot/VIN text, no long numbers, consistent capitals
+// (all-caps words become "Dino Spider", codes with digits stay upper: "XK120", "300SL").
+function cleanModelName(words) {
+  const t = String(words || "").replace(/\b(chassis|frame|engine|lot|vin|serial)\b.*$/i, " ").replace(/\bno\.?\s*\S+/ig, " ").split(/[\s-]+/).filter(w => w && !/\d{5,}/.test(w));
+  return t.map(w => /\d/.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ").trim();
+}
 function realVin(v) { return /^[A-Z0-9]{5,17}$/.test(v) && /\d/.test(v); }
 function saneFamily(f) { return !!f && f.length <= 32 && !/\d{6,}|\bvin\b|frame|engine no|chassis/i.test(f); }
 // One pass over vin_index (cached 6h per instance): every VIN classified into the rollout groups.
@@ -383,11 +401,11 @@ async function rollout(env) {
   if (ROLL && Date.now() - ROLL_AT < 6 * 3600e3) return ROLL;
   const per = new Map();
   for (let page = 0; page < 200; page++) {
-    const rows = await supabaseSelectSafe(env, `vin_index?select=vin_norm,year,make,model_family,listing_title,photo_url,vehicle_type,appearance_date&order=id.asc&limit=1000&offset=${page * 1000}`);
+    const rows = await supabaseSelectSafe(env, `vin_index?select=vin_norm,year,make,model_family,listing_title,photo_url,vehicle_type,appearance_date,result&order=id.asc&limit=1000&offset=${page * 1000}`);
     if (!Array.isArray(rows) || !rows.length) break;
     for (const r of rows) {
-      const g = per.get(r.vin_norm) || { n: 0, photo: false, title: null, year: null, make: null, family: null, type: null, date: "" };
-      g.n++; if (r.photo_url) g.photo = true;
+      const g = per.get(r.vin_norm) || { n: 0, sold: 0, photo: false, title: null, year: null, make: null, family: null, type: null, date: "" };
+      g.n++; if (r.photo_url) g.photo = true; if (/^sold/i.test(String(r.result || ""))) g.sold++;
       if (String(r.appearance_date || "") >= g.date) { g.date = String(r.appearance_date || ""); g.title = r.listing_title || g.title; g.year = r.year || g.year; g.make = r.make || g.make; g.family = r.model_family || g.family; }
       g.type = g.type || r.vehicle_type; per.set(r.vin_norm, g);
     }
@@ -400,7 +418,7 @@ async function rollout(env) {
     if (!realVin(vin)) { counts.junk_identifier++; continue; }
     if (!g.title || !g.make || !saneFamily(g.family)) { counts.no_proper_title++; continue; }
     if (!g.photo) { counts.no_photo++; continue; }
-    const hk = slugify(g.make) + "-" + slugify(g.family); hubs.set(hk, (hubs.get(hk) || 0) + 1);
+    const hk = slugify(g.make) + "-" + slugify(g.family); const h = hubs.get(hk) || { vins: 0, sales: 0, make: g.make }; h.vins++; h.sales += g.sold; hubs.set(hk, h);
     if (g.n >= 2) { counts.multi_candidates++; multi.push({ vin, g }); } else counts.single_noindex++;
   }
   const vins = [];
@@ -417,18 +435,24 @@ async function rollout(env) {
     }));
     for (const u of part) if (u) vins.push(u); else counts.no_proper_title++;
   }
-  // Hubs pass the hub page's own rule: the resolver must name the make and model.
-  const hubKeys = [...hubs.keys()], okHubs = [];
+  // Hubs pass the hub page's own rule: the resolver names the make and model, or (fallback) the make
+  // is known and the hub has 5+ sales, named from the archive's model, cleaned.
+  const hubKeys = [...hubs.keys()], okHubs = [], fallback = [];
   for (let i = 0; i < hubKeys.length; i += 50) {
-    const part = await Promise.all(hubKeys.slice(i, i + 50).map(async k => { const v = await resolveText(k.replace(/-/g, " ")); return v && v.make && v.model ? k : null; }));
-    for (const k of part) if (k) okHubs.push(k);
+    const part = await Promise.all(hubKeys.slice(i, i + 50).map(async k => {
+      const v = await resolveText(k.replace(/-/g, " ")); if (v && v.make && v.model) return { k };
+      const h = hubs.get(k); if (h.sales < 5) return null;
+      const mk = await knownMake(h.make); if (!mk) return null;
+      return { k, fb: mk + " " + cleanModelName(k.slice(slugify(h.make).length + 1)) };
+    }));
+    for (const x of part) if (x) { okHubs.push(x.k); if (x.fb) fallback.push({ url: `/history/${x.k}`, name: x.fb, sales: hubs.get(x.k).sales }); }
   }
-  counts.multi_indexable = vins.length; counts.hubs_candidates = hubs.size; counts.hubs_indexable = okHubs.length;
-  ROLL = { counts, hubs: okHubs.sort(), vins }; ROLL_AT = Date.now();
+  counts.multi_indexable = vins.length; counts.hubs_candidates = hubs.size; counts.hubs_indexable = okHubs.length; counts.hubs_fallback_named = fallback.length;
+  ROLL = { counts, hubs: okHubs.sort(), vins, fallback }; ROLL_AT = Date.now();
   return ROLL;
 }
 async function sitemap(res, env, which) {
-  if (which === "stats") { const r = await rollout(env); res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store"); return res.status(200).send(JSON.stringify(r.counts, null, 1)); }
+  if (which === "stats") { const r = await rollout(env); res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store"); return res.status(200).send(JSON.stringify({ ...r.counts, fallback_examples: r.fallback.slice().sort((a, b) => b.sales - a.sales).slice(0, 20) }, null, 1)); }
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
   res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=86400");
   const r = await rollout(env);

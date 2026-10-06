@@ -117,20 +117,33 @@ async function resolveText(text) {
 // Identity of the car behind a VIN, or null when it is NOT a car: every appearance's title must name
 // the same make and model (a VIN shared by a Bonhams automobilia sale reads as several different
 // things, so it is not a car), and no appearance may be a parts or memorabilia lot.
+// Common make tokens: an appearance whose title names a DIFFERENT one of these is another car.
+const KNOWN_MAKES = ["porsche", "ferrari", "lamborghini", "mercedes", "bmw", "audi", "jaguar", "aston martin", "bentley", "rolls-royce", "mclaren", "maserati", "chevrolet", "ford", "dodge", "plymouth", "pontiac", "cadillac", "lincoln", "toyota", "nissan", "datsun", "honda", "acura", "lotus", "alfa romeo", "fiat", "lancia", "volkswagen", "triumph", "austin-healey", "shelby", "buick", "oldsmobile", "jeep", "land rover", "volvo", "saab", "mazda", "subaru", "mitsubishi", "lexus", "bugatti", "pagani", "koenigsegg", "tesla"];
+const makeWordRe = m => new RegExp("(^|[^a-z])" + m.replace(/[-\s]/g, "[-\\s]?") + "([^a-z]|$)", "i");
 export async function carIdentity(apps, vin) {
   if (!apps.length) return null;
   const titled = apps.filter(a => a.title);
   if (!titled.length) return null;
   if (titled.some(a => isMemorabilia(a.title) || isPartsListing(a.title, a.mileage))) return null;
   const newest = titled[0];
-  let v = await resolveText(cleanTitle(newest.title));
+  // Name the car from the newest listing the resolver can read (then the VIN decode). Listings word
+  // the model differently ("911 Carrera" vs "964 C2"), so model wording is NOT required to agree.
+  let v = null;
+  for (const a of titled.slice(0, 4)) { v = await resolveText(cleanTitle(a.title)); if (v) break; }
   if (!v && /^[A-Z0-9]{17}$/.test(normVin(vin))) {
     try { const r = await resolveVehicle(normVin(vin), { vinConfirm: true }); const dv = r && r.vehicle; if (dv && dv.make && dv.model) v = sanitizeResolvedVehicle(dv) || dv; } catch {}
   }
   if (!v) return null;
-  const mk = squash(v.make), md = squash(v.model);
-  const names = t => { const s = squash(t); return (s.includes(mk) || s.includes(squash(String(v.make).split(/[\s-]/)[0]))) && s.includes(md); };
-  if (!titled.every(a => names(a.title))) return null;
+  // Same car = same VIN and same MAKE. Reject only when an appearance names a different make (a
+  // polluted VIN shared by unrelated lots); an appearance that doesn't state its make is accepted.
+  const mkTok = squash(String(v.make).split(/[\s-]/)[0]);
+  const sameMake = a => {
+    if (a.make) { const am = squash(String(a.make).split(/[\s-]/)[0]); return !am || am.startsWith(mkTok) || mkTok.startsWith(am); }
+    const t = String(a.title || ""); if (makeWordRe(String(v.make).split(/[\s-]/)[0].toLowerCase()).test(t)) return true;
+    const other = k => { const sk = squash(k); return !sk.startsWith(mkTok) && !mkTok.startsWith(sk); };
+    return !KNOWN_MAKES.some(k => other(k) && makeWordRe(k).test(t));
+  };
+  if (!apps.every(sameMake)) return null;
   const year = Number(v.year) || newest.year || Number((cleanTitle(newest.title).match(/\b(18|19|20)\d{2}\b/) || [])[0]) || null;
   const family = familyOf(v);
   const id = { year, make: v.make, model: v.model, trim: v.trim || null, family, genCode: v.genCode || null,
