@@ -3241,7 +3241,9 @@ async function handleOps(req, res) {
     const statedZero = await cq("sales_archive", "stated_mileage=eq.0");
     const liveZero = await cq("live_listings", "mileage=eq.0");
     const liveTotal = await cq("live_listings", "id=not.is.null");
-    return res.status(200).json({ task: "milesaudit", mbMarket: { total: mbTotal, under1000: mbUnder1000, sample: mbSample }, zeroMileageBySource: zeroBySource, stated_mileage_zero: statedZero, live_listings: { total: liveTotal, mileage_zero: liveZero } });
+    // Full raw_record for MB Market under-1000 rows, to find where the "in thousands" signal lives.
+    const rawDump = await supabaseSelect(env, `sales_archive?source_slug=eq.mbmarket&mileage=gt.0&mileage=lt.1000&select=listing_title,mileage,vin,raw:raw_record&order=mileage.desc&limit=4`) || [];
+    return res.status(200).json({ task: "milesaudit", mbMarket: { total: mbTotal, under1000: mbUnder1000, sample: mbSample, rawDump }, zeroMileageBySource: zeroBySource, stated_mileage_zero: statedZero, live_listings: { total: liveTotal, mileage_zero: liveZero } });
   }
 
   // task=reserveaudit: READ-ONLY. has_reserve coverage on sales_archive by source and year (sold rows):
