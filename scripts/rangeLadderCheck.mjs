@@ -72,9 +72,9 @@ eq("clean take unchanged", e3.sentence, clean.sentence);
 console.log("\n== Sam's Take plain pattern (higher half / lower half, no doubled 'stronger') ==");
 const PA = { mileage: { strongerMedian: 1000, weakerMedian: 5000 }, transmission: { strongerManualShare: 70, weakerManualShare: 30 }, flaws: { strongerMedian: 0, weakerMedian: 3 }, service: { strongerShare: 80, weakerShare: 20 }, modifications: { strongerShare: 20, weakerShare: 60 } };
 eq("mileage plain", T.stPlainClause("mileage", PA), "The higher half of sales had around 1,000 miles; the lower half around 5,000.");
-eq("transmission plain", T.stPlainClause("transmission", PA), "The higher half were 7 in 10 manuals; the lower half 3 in 10.");
-eq("flaws plain", T.stPlainClause("flaws", PA), "The higher half listed no known issues; the lower half 3 known issues.");
-eq("service plain", T.stPlainClause("service", PA), "The higher half, 8 in 10 had recent service records; the lower half 2 in 10.");
+eq("transmission plain", T.stPlainClause("transmission", PA), "The higher half were 7 in 10 manual; the lower half 3 in 10.");
+eq("flaws plain", T.stPlainClause("flaws", PA), "The higher half had no reported issues; the lower half averaged three.");
+eq("service plain", T.stPlainClause("service", PA), "The higher half had a recent service record 8 in 10; the lower half 2 in 10.");
 eq("mods plain", T.stPlainClause("modifications", PA), "The higher half were 2 in 10 modified; the lower half 6 in 10.");
 truthy("no doubled 'stronger' in any template", !["mileage","transmission","flaws","service","modifications"].some(k => /stronger/i.test(T.stPlainClause(k, PA) || "")));
 
