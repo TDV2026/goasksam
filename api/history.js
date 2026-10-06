@@ -6,7 +6,7 @@
 // Indexing (Oct 2026): a car page is indexable when the car has at least one SALE with a photo, and is
 // listed in /sitemap-vins.xml; every other page (no photographed sale, hubs, 404s) stays noindex.
 //   GET /sitemap-vins.xml -> sitemap index (?sitemap=index);  /sitemap-vins-N.xml -> page N (?sitemap=N)
-import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, liveListing, addWatch, carSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle } from "./_historyData.js";
+import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, liveListing, addWatch, carSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle, canonicalHub } from "./_historyData.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { PAGE_CSS as CSS, FONT_LINKS, railHtml, WHY_RESULT_HTML } from "./_chrome.js";
 
@@ -98,8 +98,11 @@ function notFound(res, what) {
   send(res, 404, page({ title: "No auction history found | GoAskSam", body:
     `<section class="card notfound"><h1>No auction history for ${esc(what)}</h1><p class="muted">GoAskSam has no auction appearance of a car under this identifier. Real auction results only, so there is nothing to show.</p><p><a class="full" href="/onebox">Look up another car &#8594;</a></p></section>` }));
 }
-function photoHtml(img, url, house, alt, cls) {
-  const inner = img ? `<img src="${esc(img)}" alt="${esc(alt)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
+// A listing photo the house has since taken down (a 403 from its CDN) must never leave an empty
+// tile: the hero tries the car's other photos, then removes the whole figure.
+const PH_FALLBACK = "var f=this.closest('figure'),a=f?JSON.parse(f.getAttribute('data-alt')||'[]'):[];if(a.length){this.src=a.shift();f.setAttribute('data-alt',JSON.stringify(a));}else if(f){f.remove();}else{this.remove();}";
+function photoHtml(img, url, house, alt, cls, hero) {
+  const inner = img ? `<img src="${esc(img)}" alt="${esc(alt)}"${hero ? "" : ' loading="lazy"'} referrerpolicy="no-referrer" onerror="${hero ? PH_FALLBACK : "this.remove()"}">` : "";
   return url ? `<a class="${cls}" href="${esc(utm(url))}" target="_blank" rel="noopener">${inner}</a>` : `<span class="${cls}">${inner}</span>`;
 }
 
@@ -178,10 +181,11 @@ async function carPage(req, res, env, slug, vin) {
       const prev = sales[1];
       const dm = (newest.mileage && prev.mileage && newest.mileage >= prev.mileage) ? newest.mileage - prev.mileage : null;
       const dp = (newest.priceUsd && prev.priceUsd) ? newest.priceUsd - prev.priceUsd : null;
-      const parts = [];
-      if (dm != null) parts.push(`Up ${miles(dm) || "0"} miles`);
-      if (dp != null) parts.push((dp >= 0 ? "+" : "-") + usd(Math.abs(dp)));
-      if (parts.length) samLine = `${parts.join(" and ")} since it last sold in ${monthYear(prev.date)}.`;
+      // Plain words, never a plus or minus sign: "3,850 more miles and $9,862 more than it last sold for."
+      const money = dp == null ? "" : dp > 0 ? `${usd(dp)} more than it last sold for` : dp < 0 ? `${usd(-dp)} less than it last sold for` : "the same price it last sold for";
+      if (dm != null && money) samLine = `${miles(dm) || "0"} more miles and ${money}.`;
+      else if (dm != null) samLine = `${miles(dm) || "0"} more miles than when it last sold.`;
+      else if (money) samLine = `${money.charAt(0).toUpperCase() + money.slice(1)}.`;
     }
   }
   // 5. CARS LIKE IT (the engine, read-only) + LIVE NOW, in parallel
@@ -209,13 +213,14 @@ async function carPage(req, res, env, slug, vin) {
     ["How does its last sale compare with others?", lastSale ? cmp : "It has not sold, so there is no sale to compare."]
   ];
   const photo = appearances.find(a => a.image) || null;
+  const altPhotos = [...new Set(appearances.map(a => a.image).filter(Boolean))].filter(u => !photo || u !== photo.image);
   const rows = appearances.map(a => `<tr><td data-l="Date">${esc(monShort(a.date))}</td><td data-l="Where">${a.url ? `<a href="${esc(utm(a.url))}" target="_blank" rel="noopener">${esc(a.house)}</a>` : esc(a.house)}</td><td data-l="Miles" class="r">${esc(miles(a.mileage))}</td><td class="r ${a.kind === "sale" ? "sold" : "muted"}">${esc(resultText(a))}</td></tr>`).join("");
   const hubHref = `/history/${id.slug}`;
   const body = `
 <div class="top"><div><span class="eyebrow">${esc(id.family)} · Auction history</span>
 <h1>${esc(name)} auction history</h1><div class="vinline">VIN ${esc(vinNorm)}</div>
 <p class="answer">${esc(answer)}</p></div>
-${photo ? `<figure>${photoHtml(photo.image, photo.url, photo.house, name, "photo")}<figcaption>Photo: ${esc(photo.house)}</figcaption></figure>` : ""}</div>
+${photo ? `<figure data-alt="${esc(JSON.stringify(altPhotos))}">${photoHtml(photo.image, photo.url, photo.house, name, "photo", true)}<figcaption>Photo: ${esc(photo.house)}</figcaption></figure>` : ""}</div>
 ${live ? liveNowHtml(live) : ""}
 <section class="card"><div class="sh"><h2>Every time it&#8217;s been to auction</h2><span class="muted">${appearances.length} appearance${appearances.length === 1 ? "" : "s"}</span></div>
 <table class="stack"><thead><tr><th>Date</th><th>Where</th><th class="r">Miles</th><th class="r">Result</th></tr></thead><tbody>${rows}</tbody></table></section>
@@ -264,7 +269,8 @@ function saidHtml(s) {
 function othersHtml(o, id) {
   if (!o || !o.rows.length) return "";
   const li = o.rows.map(r => `<li><a href="${esc(r.href)}"><span>${esc(r.year || "")}</span><span class="m">${esc(r.miles ? miles(r.miles) + " miles" : "miles not listed")}</span><span class="p">${esc(money(r.priceUsd, r.nativePrice, r.currency))}</span><span class="m">${esc(monShort(r.date))}</span><span class="m">${esc(r.house)}</span></a></li>`).join("");
-  const fam = /[a-z]s$/.test(id.family) ? id.family : /\d$/.test(id.family) || /[a-z]$/i.test(id.family) && !/\b[A-Z0-9]{2,4}$/.test(id.family) ? id.family + "s" : id.family + " cars";
+  const base = o.gen && !String(id.family).includes(o.gen) ? o.gen + " " + id.family : id.family;
+  const fam = /[a-z]s$/.test(base) ? base : /\d$/.test(base) || /[a-z]$/i.test(base) && !/\b[A-Z0-9]{2,4}$/.test(base) ? base + "s" : base + " cars";
   return `<section class="card"><div class="sh"><h2>Other ${esc(fam)} that sold</h2><span class="muted">Newest first</span></div><ul class="others">${li}</ul>${o.more ? `<p style="margin:12px 0 0"><a href="${esc(o.allHref)}">All ${esc(id.make + " " + id.family)} sales &#8594;</a></p>` : ""}</section>`;
 }
 // LIVE NOW slot (only when live_listings holds this vin_norm as live): bid, house, end time in PT.
@@ -289,6 +295,10 @@ function liveNowHtml(l) {
 async function hubPage(req, res, env, slug) {
   const hub = parseHubSlug(slug);
   if (!hub) return notFound(res, slug);
+  // An alias hub ("ford-shelby-gt500") is the same page as its canonical one ("shelby-gt500").
+  { const c = canonicalHub(hub.makeSlug.replace(/-/g, " "), hub.modelSlug.replace(/-/g, " "));
+    const canon = [hub.year, slugify(c.make), slugify(c.family)].filter(Boolean).join("-");
+    if (canon !== slug && slugify(c.make) !== hub.makeSlug) { res.setHeader("Location", `/history/${canon}`); res.setHeader("Cache-Control", "public, s-maxage=3600"); return res.status(301).end(); } }
   const list = await hubVins(env, hub);
   if (list == null) return send(res, 503, page({ title: "GoAskSam", body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }));
   if (!list.length) return notFound(res, slug.replace(/-/g, " "));
@@ -419,13 +429,16 @@ async function rollout(env) {
     if (rows.length < 1000) break;
   }
   const counts = { vins: per.size, non_vehicle: 0, junk_identifier: 0, no_proper_title: 0, no_photo: 0, single_noindex: 0, multi_candidates: 0, multi_indexable: 0, hubs_indexable: 0 };
-  const hubs = new Map(), multi = [];
+  const hubs = new Map(), multi = [], merged = new Map();
   for (const [vin, g] of per) {
     if (g.type && g.type !== "car") { counts.non_vehicle++; continue; }
     if (!realVin(vin)) { counts.junk_identifier++; continue; }
     if (!g.title || !g.make || !saneFamily(g.family)) { counts.no_proper_title++; continue; }
     if (!g.photo) { counts.no_photo++; continue; }
-    const hk = slugify(g.make) + "-" + slugify(g.family); const h = hubs.get(hk) || { vins: 0, sales: 0, make: g.make }; h.vins++; h.sales += g.sold; hubs.set(hk, h);
+    const c = canonicalHub(g.make, g.family);
+    const raw = slugify(g.make) + "-" + slugify(g.family), hk = slugify(c.make) + "-" + slugify(c.family);
+    if (raw !== hk) { merged.set(raw, hk); }
+    const h = hubs.get(hk) || { vins: 0, sales: 0, make: c.make }; h.vins++; h.sales += g.sold; hubs.set(hk, h);
     if (g.n >= 2) { counts.multi_candidates++; multi.push({ vin, g }); } else counts.single_noindex++;
   }
   const vins = [];
@@ -456,11 +469,12 @@ async function rollout(env) {
     for (const x of part) if (x) { okHubs.push(x.k); if (x.fb) fallback.push({ url: `/history/${x.k}`, name: x.fb, sales: hubs.get(x.k).sales }); }
   }
   counts.multi_indexable = vins.length; counts.hubs_candidates = hubs.size; counts.hubs_indexable = okHubs.length; counts.hubs_fallback_named = fallback.length;
-  ROLL = { counts, hubs: okHubs.sort(), vins, fallback }; ROLL_AT = Date.now();
+  counts.hubs_alias_merged = merged.size;
+  ROLL = { counts, hubs: okHubs.sort(), vins, fallback, merged: [...merged.entries()].map(([from, to]) => ({ from: "/history/" + from, to: "/history/" + to })) }; ROLL_AT = Date.now();
   return ROLL;
 }
 async function sitemap(res, env, which) {
-  if (which === "stats") { const r = await rollout(env); res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store"); return res.status(200).send(JSON.stringify({ ...r.counts, fallback_examples: r.fallback.slice().sort((a, b) => b.sales - a.sales).slice(0, 20) }, null, 1)); }
+  if (which === "stats") { const r = await rollout(env); res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store"); return res.status(200).send(JSON.stringify({ ...r.counts, fallback_examples: r.fallback.slice().sort((a, b) => b.sales - a.sales).slice(0, 20), alias_merged: r.merged }, null, 1)); }
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
   res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=86400");
   const r = await rollout(env);

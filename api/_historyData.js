@@ -7,6 +7,7 @@ import { findGeneration } from "../lib/generations.js";
 import { runOneBox } from "../lib/onebox.js";
 import { supabaseSelect } from "../lib/_supabase.js";
 import { isPartsListing, isMemorabilia } from "../lib/_classify.js";
+import { genFor } from "../lib/live/search.js";
 
 export function normVin(s) { return String(s == null ? "" : s).toUpperCase().replace(/[^A-Z0-9]/g, ""); }
 export function historyEnv() {
@@ -120,6 +121,21 @@ async function resolveText(text) {
 // Common make tokens: an appearance whose title names a DIFFERENT one of these is another car.
 const KNOWN_MAKES = ["porsche", "ferrari", "lamborghini", "mercedes", "bmw", "audi", "jaguar", "aston martin", "bentley", "rolls-royce", "mclaren", "maserati", "chevrolet", "ford", "dodge", "plymouth", "pontiac", "cadillac", "lincoln", "toyota", "nissan", "datsun", "honda", "acura", "lotus", "alfa romeo", "fiat", "lancia", "volkswagen", "triumph", "austin-healey", "shelby", "buick", "oldsmobile", "jeep", "land rover", "volvo", "saab", "mazda", "subaru", "mitsubishi", "lexus", "bugatti", "pagani", "koenigsegg", "tesla"];
 const makeWordRe = m => new RegExp("(^|[^a-z])" + m.replace(/[-\s]/g, "[-\\s]?") + "([^a-z]|$)", "i");
+// Make aliases: one car can be filed under either name (a Shelby GT500 as "Shelby" or "Ford", an
+// AMG as "Mercedes-AMG" or "Mercedes-Benz", a RUF or an Alpina under its base make).
+const MAKE_GROUPS = [["ford", "shelby"], ["mercedes", "mercedesbenz", "mercedesamg", "amg"], ["porsche", "ruf"], ["bmw", "alpina"]];
+export function sameMakeGroup(a, b) { a = squash(a); b = squash(b); return MAKE_GROUPS.some(g => g.some(x => a.startsWith(x)) && g.some(x => b.startsWith(x))); }
+// The hub a make + model belongs to: aliases collapse onto one name ("Ford Shelby GT500" and
+// "Shelby GT500" are the Shelby GT500; "AMG GT" is the Mercedes-Benz AMG GT; "Ruf CTR" the Porsche RUF CTR).
+export function canonicalHub(make, family) {
+  const m = squash(make); let mk = String(make || ""), f = String(family || "").trim();
+  if (m === "ford" && /^shelby\b/i.test(f)) { mk = "Shelby"; f = f.replace(/^shelby\s+/i, ""); }
+  else if (m === "amg" || m === "mercedesamg") { mk = "Mercedes-Benz"; if (!/^amg\b/i.test(f)) f = "AMG " + f; }
+  else if (m === "mercedes") mk = "Mercedes-Benz";
+  else if (m === "ruf") { mk = "Porsche"; if (!/^ruf\b/i.test(f)) f = "RUF " + f; }
+  else if (m === "alpina") { mk = "BMW"; if (!/^alpina\b/i.test(f)) f = "Alpina " + f; }
+  return { make: mk, family: f };
+}
 export async function carIdentity(apps, vin) {
   if (!apps.length) return null;
   const titled = apps.filter(a => a.title);
@@ -138,9 +154,9 @@ export async function carIdentity(apps, vin) {
   // polluted VIN shared by unrelated lots); an appearance that doesn't state its make is accepted.
   const mkTok = squash(String(v.make).split(/[\s-]/)[0]);
   const sameMake = a => {
-    if (a.make) { const am = squash(String(a.make).split(/[\s-]/)[0]); return !am || am.startsWith(mkTok) || mkTok.startsWith(am); }
+    if (a.make) { const am = squash(String(a.make).split(/[\s-]/)[0]); return !am || am.startsWith(mkTok) || mkTok.startsWith(am) || sameMakeGroup(am, mkTok); }
     const t = String(a.title || ""); if (makeWordRe(String(v.make).split(/[\s-]/)[0].toLowerCase()).test(t)) return true;
-    const other = k => { const sk = squash(k); return !sk.startsWith(mkTok) && !mkTok.startsWith(sk); };
+    const other = k => { const sk = squash(k); return !sk.startsWith(mkTok) && !mkTok.startsWith(sk) && !sameMakeGroup(sk, mkTok); };
     return !KNOWN_MAKES.some(k => other(k) && makeWordRe(k).test(t));
   };
   if (!apps.every(sameMake)) return null;
@@ -189,7 +205,10 @@ export function parseHubSlug(slug) {
 // Hub rows: every VIN of one year + make + model, from the archive titles. Parts/memorabilia lots
 // and rows without a VIN are left out. Grouped per VIN, newest sale first.
 export async function hubVins(env, hub) {
-  const toks = [...hub.makeSlug.split("-"), ...hub.modelSlug.split("-")].filter(Boolean);
+  // Titles name these cars without the full make: "Mercedes-AMG GT R" (no "Benz"), "RUF CTR" or
+  // "Alpina B7" (no "Porsche"/"BMW"), so an aliased hub matches on its distinctive words.
+  const makeToks = /^(ruf|alpina|amg)-/.test(hub.modelSlug) ? [] : hub.makeSlug === "mercedes-benz" ? ["mercedes"] : hub.makeSlug.split("-");
+  const toks = [...makeToks, ...hub.modelSlug.split("-")].filter(Boolean);
   const pat = encodeURIComponent("*" + toks.join("*") + "*");
   const sSel = "vin_norm,year,sale_date,sale_price,sale_price_usd,platform,listing_title,mileage,img:raw_record->>featured_image_url,url:raw_record->>url,url2:raw_record->>source_url,currency:raw_record->>currency";
   const aSel = "chassis_vin_norm,attempt_date,high_bid,high_bid_usd,source_slug,title:raw_record->>title,img:raw_record->>featured_image_url,url:raw_record->>url,url2:raw_record->>source_url,mileage:raw_record->>mileage,currency:raw_record->>currency";
@@ -278,7 +297,15 @@ export async function familySales(env, id, excludeVin, limit = 25) {
     out.push({ vin: r.vin_norm, year, miles: num(r.mileage), priceUsd: p.usd, nativePrice: p.native, currency: p.currency, date: String(r.sale_date || "").slice(0, 10), house: houseName(r.platform),
       href: `/history/${[year, slugify(id.make), slugify(id.family)].filter(Boolean).join("-")}/${r.vin_norm}` });
   }
-  return { rows: out.slice(0, limit), more: out.length > limit, allHref: `/history/${slugify(id.make)}-${slugify(id.family)}` };
+  // The same generation as this car first (a 987 Boxster Spyder lists 987s); the whole family only
+  // when that generation has fewer than 3.
+  const carGen = id.year ? genFor(id.make, id.model, id.year, [id.year, id.make, id.family].join(" ")) : null;
+  let list = out, gen = null;
+  if (carGen) {
+    const same = out.filter(r => { const g = r.year ? genFor(id.make, id.model, r.year, [r.year, id.make, id.family].join(" ")) : null; return g && g.code === carGen.code; });
+    if (same.length >= 3) { list = same; gen = /^[a-z]\d/i.test(carGen.code) ? String(carGen.code).toUpperCase() : carGen.code; }
+  }
+  return { rows: list.slice(0, limit), more: list.length > limit, gen, allHref: `/history/${slugify(id.make)}-${slugify(id.family)}` };
 }
 
 // ---------------------------------------------------------------- sitemap rows: VINs with a sale that has a photo
