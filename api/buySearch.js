@@ -15,6 +15,7 @@ import { validateBearer } from "../lib/_auth.js";
 import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js";
 import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.js";
 import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
+import { listingCoord } from "../lib/live/geo.js";
 
 const FIRST = 10, MAX = 200;
 const titleCaseIfShouting = s => { s = String(s || ""); return s && s === s.toUpperCase() && /[A-Z]{3}/.test(s) ? s.toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase()) : s; };
@@ -85,6 +86,7 @@ export default async function handler(req, res) {
       const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts), seenBefore(env, r.vin_norm)]).then(([market, seen]) => ({ id: r.id, market, seen_before: seen })); }));
       return res.status(200).json({ cards });
     }
+    if (b.action === "geocoverage") return res.status(200).json(await geoCoverage(env));
     if (b.action === "converse") return res.status(200).json(await converseOut(env, b));
     if (b.action === "detail") return res.status(200).json(await detailOut(env, b));
     if (b.action === "save" || b.action === "list" || b.action === "watchsearch" || b.action === "remove") return await savedSearches(env, req, res, b);
@@ -214,4 +216,19 @@ async function freshBid(env, row) {
     bidCache.set(key, { at: Date.now(), patch });
     return { ...row, ...patch };
   } catch (e) { console.error("freshBid:", e && e.message); return row; }
+}
+
+// Which sources give a usable US location (city + state that geocodes), over the live listings. Read-only.
+async function geoCoverage(env) {
+  const rows = await liveRows(env, "id=gt.0");
+  const by = {};
+  for (const r of rows) {
+    const s = houseName(r.source); by[s] = by[s] || { live: 0, us: 0, usable: 0, abroad: 0 };
+    by[s].live++;
+    const cc = String(r.country || "").toUpperCase();
+    if (cc && cc !== "US") { by[s].abroad++; continue; }
+    by[s].us++;
+    if (listingCoord(r)) by[s].usable++;
+  }
+  return { ocdRequests: 0, sources: by };
 }
