@@ -26,7 +26,8 @@ function cardOf(x) {
     bid_at: r.bid_at || r.last_seen || null, end_time: r.end_time, year: r.year,
     miles: facts.miles, colour: facts.colour, colourSrc: facts.colourSrc || null, body: facts.body, gearbox: facts.gearboxLabel,
     location: titleCaseIfShouting(r.location) || null, country: cc || null, countryName: COUNTRY_NAME[cc] || cc || null, abroad: !!cc && cc !== "US",
-    vin_norm: r.vin_norm || null, generation: x.gen ? x.gen.code : null, unknown: x.unknown, flag: cardFlag(r) };
+    vin_norm: r.vin_norm || null, generation: x.gen ? x.gen.code : null, unknown: x.unknown, flag: cardFlag(r),
+    reserve: r.has_reserve === true ? "reserve" : r.has_reserve === false ? "none" : null };
 }
 async function enrich(env, x) {
   const [market, seen] = await Promise.all([listingMarket(env, x.r, x.facts), seenBefore(env, x.r.vin_norm)]);

@@ -32,3 +32,7 @@ alter table live_listings add column if not exists exterior_color text;
 alter table live_listings add column if not exists std_color text;
 alter table live_listings add column if not exists description text;
 alter table live_listings add column if not exists bid_at timestamptz;
+
+-- v3 (Oct 2026): the listing's own reserve flag from the OCD live feed (has_reserve), for the /buy
+-- card's "No reserve" fact and the "Back now at no reserve" line. Run once in the SQL editor.
+alter table live_listings add column if not exists has_reserve boolean;
