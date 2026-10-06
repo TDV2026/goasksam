@@ -30,7 +30,8 @@ function cardOf(x) {
     reserve: r.has_reserve === true ? "reserve" : r.has_reserve === false ? "none" : null };
 }
 async function enrich(env, x) {
-  const [market, seen] = await Promise.all([listingMarket(env, x.r, x.facts), seenBefore(env, x.r.vin_norm)]);
+  let [market, seen] = await Promise.all([listingMarket(env, x.r, x.facts), seenBefore(env, x.r.vin_norm)]);
+  if (market && market.kind === "pending") market = await listingMarket(env, x.r, x.facts);   // one more go, warm now
   return { ...cardOf(x), market, seen_before: seen };
 }
 async function logSearch(env, v, anonId) {
@@ -84,7 +85,7 @@ export default async function handler(req, res) {
       const ids = (Array.isArray(b.ids) ? b.ids : []).map(Number).filter(Number.isFinite).slice(0, 60);
       if (!ids.length) return res.status(200).json({ cards: [] });
       const rows = await liveRows(env, `id=in.(${ids.join(",")})`);
-      const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts), seenBefore(env, r.vin_norm)]).then(([market, seen]) => ({ id: r.id, market, seen_before: seen })); }));
+      const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts), seenBefore(env, r.vin_norm)]).then(async ([market, seen]) => { if (market && market.kind === "pending") market = await listingMarket(env, r, facts); return { id: r.id, market, seen_before: seen }; }); }));
       return res.status(200).json({ cards });
     }
     if (b.action === "geocoverage") return res.status(200).json(await geoCoverage(env));
