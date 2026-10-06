@@ -125,7 +125,7 @@ function cleanState(s) {
     messages: (Array.isArray(s.messages) ? s.messages : []).map(m => String(m || "").slice(0, 300)).filter(Boolean).slice(-10),
     filters: cleanFilters(s.filters) || null,
     answered: (Array.isArray(s.answered) ? s.answered : []).map(String).filter(k => /^(generation|body|mileage|budget|location|zip)$/.test(k)),
-    asked: Math.max(0, Math.min(3, Number(s.asked) || 0)),
+    asked: Math.max(0, Math.min(4, Number(s.asked) || 0)),
     zip: /^\d{5}$/.test(String(s.zip || "")) ? String(s.zip) : null,
     place: typeof s.place === "string" && /^[A-Za-z .,'-]{3,60}$/.test(s.place) ? s.place.trim() : null,
     showNow: !!s.showNow
