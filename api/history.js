@@ -405,7 +405,16 @@ async function rollout(env) {
   }
   const vins = [];
   for (let i = 0; i < multi.length; i += 40) {
-    const part = await Promise.all(multi.slice(i, i + 40).map(async ({ vin, g }) => { const sl = await slugFor(g.title, Number(g.year) || null); return sl ? { loc: `${SITE}/history/${sl}/${vin}`, lastmod: g.date.slice(0, 10) } : null; }));
+    // The page's OWN identity check and canonical slug, so the sitemap never lists a page that 404s
+    // or redirects: same appearances, same carIdentity, same index rule as carPage.
+    const part = await Promise.all(multi.slice(i, i + 40).map(async ({ vin, g }) => {
+      try {
+        const { appearances, ok } = await vinAppearances(env, vin);
+        if (!ok || appearances.length < 2 || !appearances.some(a => a.image)) return null;
+        const id = await carIdentity(appearances, vin);
+        return id && id.family && id.make ? { loc: `${SITE}/history/${id.slug}/${vin}`, lastmod: g.date.slice(0, 10) } : null;
+      } catch { return null; }
+    }));
     for (const u of part) if (u) vins.push(u); else counts.no_proper_title++;
   }
   counts.multi_indexable = vins.length; counts.hubs_indexable = hubs.size;
