@@ -94,7 +94,7 @@ export default async function handler(req, res) {
     if (!q) return res.status(400).json({ status: "error" });
     const parsed = parseQuery(q);
     const v = await resolveForBuy(parsed.text || q, env);
-    if (!v) return res.status(200).json({ status: "unresolved", message: "I couldn’t tell which car that is. Try a make and model, like Porsche 911 or Ferrari 812." });
+    if (!v) return res.status(200).json({ status: "unresolved", message: "Sam couldn’t tell which car that is. Try a make and model, like Porsche 911 or Ferrari 812." });
     const f = cleanFilters(b.filters) || parsed.filters;
     if (!b.filters) { const named = gensNamed(parsed.text, v.make); if (named.length > 1 || (named.length === 1 && !v.genCode)) f.gens = named; }
     const { rows, facets } = await searchLive(env, v, f, parsed.text);
@@ -124,15 +124,16 @@ function cleanState(s) {
   return {
     messages: (Array.isArray(s.messages) ? s.messages : []).map(m => String(m || "").slice(0, 300)).filter(Boolean).slice(-10),
     filters: cleanFilters(s.filters) || null,
-    answered: (Array.isArray(s.answered) ? s.answered : []).map(String).filter(k => /^(generation|mileage|budget|location|zip)$/.test(k)),
+    answered: (Array.isArray(s.answered) ? s.answered : []).map(String).filter(k => /^(generation|body|mileage|budget|location|zip)$/.test(k)),
     asked: Math.max(0, Math.min(3, Number(s.asked) || 0)),
     zip: /^\d{5}$/.test(String(s.zip || "")) ? String(s.zip) : null,
+    place: typeof s.place === "string" && /^[A-Za-z .,'-]{3,60}$/.test(s.place) ? s.place.trim() : null,
     showNow: !!s.showNow
   };
 }
 async function converseOut(env, b) {
   const st = cleanState(b.state);
-  if (!st.messages.length) return { type: "nonsense", say: "Tell Sam a car, a budget or a type of car and he'll find what's live.", chips: ["Black manual BMW M3", "Porsches under $50k", "Anything ending today"] };
+  if (!st.messages.length) return { type: "nonsense", say: "Tell Sam a car, a budget or a type of car and Sam will find what's live.", options: ["a black manual BMW M3", "Porsches under $50k", "anything ending today"] };
   const r = await converse(env, st);
   if (r.type === "question" || r.type === "nonsense") return r;
   if (r.type === "groups") {
@@ -142,14 +143,14 @@ async function converseOut(env, b) {
       return { label: g.label, n: g.n, market: mk, cards };
     }));
     logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
-    return { type: "groups", understood: r.understood, groups, footnote: r.footnote || null, perCard: !!r.perCard };
+    return { type: "groups", say: r.say || null, groups, footnote: !!r.footnote, perCard: !!r.perCard };
   }
   const matches = (r.matches || []).slice(0, MAX);
   const ordered = [...matches].sort((a, x) => { const k = c => (c.distance != null ? 0 : (String(c.r.country || "").toUpperCase() && String(c.r.country).toUpperCase() !== "US" ? 2 : 0) + (c.unknown.length ? 1 : 0)); return k(a) - k(x); });
   const cards = await Promise.all(ordered.map((x, i) => i < FIRST ? enrich(env, x) : cardOf(x)));
   cards.forEach((c, i) => { if (ordered[i].distance != null) c.distance = ordered[i].distance; });
   logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
-  return { type: "results", understood: r.understood, say: r.say, market: r.market || null, outOfScope: !!r.outOfScope, geo: !!r.geo, total: (r.matches || []).length, cards, facets: facetsOf(ordered), filters: r.filters || null };
+  return { type: "results", say: r.say, market: r.market || null, outOfScope: !!r.outOfScope, geo: !!r.geo, closest: !!r.closest, total: (r.matches || []).length, cards, facets: r.closest ? null : facetsOf(ordered), filters: r.filters || null };
 }
 async function detailOut(env, b) {
   const id = Number(b.id); if (!Number.isFinite(id)) return { ok: false };
