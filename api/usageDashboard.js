@@ -3216,7 +3216,8 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" };
     const countHdr = r => { const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : 0; };
-    const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads", "autohunter"];
+    // AutoHunter is left alone entirely (standing rule); its historical zeros are not touched.
+    const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
     const cq = async f => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${f}&select=source_id&limit=1`, { headers: { ...H, Prefer: "count=exact" } }); return countHdr(r); } catch { return 0; } };
     const write = req.query?.write === "1";
     if (!write) { const by = {}; for (const s of SRCS) { const z = await cq(`source_slug=eq.${s}&mileage=eq.0`); if (z) by[s] = z; } return res.status(200).json({ task: "zeromiles", write: false, zeroBySource: by, total: Object.values(by).reduce((a, b) => a + b, 0) }); }
