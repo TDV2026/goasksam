@@ -319,7 +319,7 @@ ${WHY_RESULT_HTML}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>`;
   const ld = [{ "@context": "https://schema.org", "@type": "ItemList", name: `${name} auction results`, url: canonical,
     itemListElement: list.slice(0, 200).map((g, i) => ({ "@type": "ListItem", position: i + 1, url: hub.year ? `${SITE}/history/${slug}/${g.vin}` : `${SITE}/vin/${g.vin}`, name: `${name}, VIN ${g.vin}` })) }];
-  const hubIndex = !hub.year && list.some(g => g.apps.some(a => a.image)) && (!!id.vehicle || (!!fbMake && salesN >= 5));
+  const hubIndex = !hub.year && list.some(g => g.apps.some(a => a.image)) && (!!id.vehicle || (!!fbMake && salesN >= 5 && !!id.family && !GENERIC_MODEL.test(id.family)));
   send(res, 200, page({ title: `${name} auction results and sale prices`, description: ctx, canonical, body, ld, index: hubIndex }), {}, hubIndex);
 }
 
@@ -391,8 +391,12 @@ const squashW = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 // (all-caps words become "Dino Spider", codes with digits stay upper: "XK120", "300SL").
 function cleanModelName(words) {
   const t = String(words || "").replace(/\b(chassis|frame|engine|lot|vin|serial)\b.*$/i, " ").replace(/\bno\.?\s*\S+/ig, " ").split(/[\s-]+/).filter(w => w && !/\d{5,}/.test(w));
-  return t.map(w => /\d/.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ").trim();
+  // A lone letter before a number is one code: "F 100" -> "F-100", "K 5" -> "K-5".
+  const merged = []; for (let i = 0; i < t.length; i++) { if (/^[a-z]$/i.test(t[i]) && /^\d+$/.test(t[i + 1] || "")) { merged.push(t[i] + "-" + t[i + 1]); i++; } else merged.push(t[i]); }
+  return merged.map(w => /\d/.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ").trim();
 }
+// A fallback model that is only a generic word ("Model") is a truncated listing, not a model.
+const GENERIC_MODEL = /^(model|car|coupe|sedan|roadster|convertible|truck)$/i;
 function realVin(v) { return /^[A-Z0-9]{5,17}$/.test(v) && /\d/.test(v); }
 function saneFamily(f) { return !!f && f.length <= 32 && !/\d{6,}|\bvin\b|frame|engine no|chassis/i.test(f); }
 // One pass over vin_index (cached 6h per instance): every VIN classified into the rollout groups.
@@ -443,7 +447,8 @@ async function rollout(env) {
       const v = await resolveText(k.replace(/-/g, " ")); if (v && v.make && v.model) return { k };
       const h = hubs.get(k); if (h.sales < 5) return null;
       const mk = await knownMake(h.make); if (!mk) return null;
-      return { k, fb: mk + " " + cleanModelName(k.slice(slugify(h.make).length + 1)) };
+      const model = cleanModelName(k.slice(slugify(h.make).length + 1)); if (!model || GENERIC_MODEL.test(model)) return null;
+      return { k, fb: mk + " " + model };
     }));
     for (const x of part) if (x) { okHubs.push(x.k); if (x.fb) fallback.push({ url: `/history/${x.k}`, name: x.fb, sales: hubs.get(x.k).sales }); }
   }
