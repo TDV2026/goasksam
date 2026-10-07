@@ -183,7 +183,7 @@ function toFullRow(r, label, source) {
     sale_price: toMoney(r.price), sale_price_usd: usdOf(salePrice, r.currency, saleDate, source, label),
     month: d ? d.toISOString().slice(0, 7) : null, raw_record: projFlag ? { ...r, _project_flag: projFlag } : r,
     year: toInt(r.year), mileage, url_norm: normalizeListingUrl(r.url || r.source_url), body_style: r.body_style ?? null,
-    title_status: r.title_status ?? null, vin: r.vin ?? null, transmission: r.transmission ?? null,
+    title_status: r.title_status ?? null, vin: r.vin ?? null, transmission: r.transmission ?? df.transmission ?? null,
     drivetrain: r.drivetrain ?? null, exterior_color: r.exterior_color ?? null, interior_color: r.interior_color ?? null,
     seller_type: r.seller_type ?? null, listing_title: r.title ?? null, description: r.description ?? null,
     has_reserve: toBool(r.has_reserve), views: toInt(r.stats?.views), bids: toInt(r.stats?.bids),

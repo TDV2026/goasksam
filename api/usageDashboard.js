@@ -3342,6 +3342,67 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "speccache", totalSpecs: total, refreshedToday: today, refreshedLast24h: last24, mostRecent: recent });
   }
 
+  // task=transaudit: READ-ONLY. Transmission fill rate for the Porsche 911 generations the user asked
+  // about, then the whole archive. Scopes are APPROXIMATE (make Porsche + year window + a title token);
+  // boundary years (1989, 1994) overlap between adjacent generations.
+  if (task === "transaudit") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    const cnt = async f => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${f}&select=id&limit=1`, { headers: H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    const P = "make=ilike.*porsche*";
+    const scopes = [
+      ["930 (911 Turbo, 1975-1989)", `${P}&year=gte.1975&year=lte.1989&listing_title=ilike.*turbo*`],
+      ["3.2 Carrera (1984-1989)", `${P}&year=gte.1984&year=lte.1989&listing_title=ilike.*carrera*`],
+      ["964 (911, 1989-1994)", `${P}&year=gte.1989&year=lte.1994&listing_title=ilike.*911*`],
+      ["993 (911, 1994-1998)", `${P}&year=gte.1994&year=lte.1998&listing_title=ilike.*911*`],
+      ["whole archive", "id=not.is.null"]
+    ];
+    const out = [];
+    for (const [name, f] of scopes) {
+      const total = await cnt(f), filled = await cnt(`${f}&transmission=not.is.null`);
+      out.push({ scope: name, total, filled, blank: (total != null && filled != null) ? total - filled : null, filledPct: total ? Math.round(1000 * filled / total) / 10 : null });
+    }
+    return res.status(200).json({ task: "transaudit", scopes: out, note: "approximate scopes; boundary years overlap" });
+  }
+
+  // task=transfill: WRITE (write=1). Fills the top-level transmission column from the title/description
+  // where it is stated plainly, for rows where it is currently blank; never overwrites an existing value,
+  // never infers from the model. Resumable by an id cursor (pass after=<nextAfter> each call); the id PK
+  // index makes the ordered scan skip the already-passed prefix, so it never re-walks filled rows.
+  if (task === "transfill") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    const cnt = async f => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${f}&select=id&limit=1`, { headers: H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    if (req.query?.write !== "1") {
+      return res.status(200).json({ task: "transfill", write: false, total: await cnt("id=not.is.null"), blankTransmission: await cnt("transmission=is.null"), note: "pass write=1 (optionally after=<id>); carry nextAfter back each call until done" });
+    }
+    const { transmissionFromText } = await import("../lib/_descFacts.js");
+    const pageSize = Math.max(100, Math.min(1000, Number(req.query?.pageSize || 1000)));
+    const maxRows = Math.max(pageSize, Math.min(150000, Number(req.query?.maxRows || 60000)));
+    let lastId = Number(req.query?.after || 0);
+    const deadline = Date.now() + 230000;
+    let processed = 0, filled = 0, pages = 0, errors = 0; const errorDetail = [], byLabel = {};
+    let done = false;
+    while (processed < maxRows && Date.now() < deadline) {
+      const slice = (await supabaseSelect(env, `sales_archive?id=gt.${lastId}&select=id,source_id,listing_title,description,transmission&order=id.asc&limit=${pageSize}`)) || [];
+      if (!slice.length) { done = true; break; }
+      const patch = [];
+      for (const r of slice) {
+        lastId = r.id;
+        if (String(r.transmission || "").trim()) continue;   // never overwrite an existing value
+        const tx = transmissionFromText(r.listing_title, r.description);
+        if (tx && r.source_id != null) { patch.push({ source_id: String(r.source_id), transmission: tx }); byLabel[tx] = (byLabel[tx] || 0) + 1; }
+      }
+      for (let i = 0; i < patch.length; i += 200) {
+        const w = await supabaseInsert("sales_archive", patch.slice(i, i + 200), env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id");
+        if (w.error) { errors++; if (errorDetail.length < 5) errorDetail.push(w.error.slice(0, 160)); } else filled += Math.min(200, patch.length - i);
+      }
+      processed += slice.length; pages++;
+      if (errors) break;
+    }
+    return res.status(200).json({ task: "transfill", write: true, processedThisCall: processed, filledThisCall: filled, byLabel, pages, errors, errorDetail, nextAfter: done ? null : lastId, done });
+  }
+
   // task=vinsamples: READ-ONLY. Example VINs for the VIN-page verification. Multi-appearance VINs come
   // from vin_summary (reliable); each is classified photoful vs photoless by reading sales_archive +
   // auction_attempts photos. Plus the cars live at auction right now.
