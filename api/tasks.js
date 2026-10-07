@@ -10,14 +10,16 @@
 // the clock; test runs never send email (email_status "test").
 import { supabaseEnv } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
-import { taskTurn, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore } from "../lib/tasks/tasks.js";
+import { taskTurn, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify } from "../lib/tasks/tasks.js";
 import crypto from "node:crypto";
 import { CHAT_MODEL } from "../lib/live/chatHttp.js";
 import { recordUsageEvent } from "./_usage.js";
 
+const TEST_USER = /^00000000-0000-4000-8000-[0-9a-f]{12}$/;
 const probeOk = req => process.env.PROBE_KEY && (req.headers["x-probe-key"] === process.env.PROBE_KEY || (req.query && req.query.key === process.env.PROBE_KEY));
 async function who(req) {
-  if (probeOk(req) && req.headers["x-test-user"]) return { userId: String(req.headers["x-test-user"]), email: null, test: true };
+  // Probe test users only: a fixed id prefix, so a probe call can never act as a real account.
+  if (probeOk(req) && TEST_USER.test(String(req.headers["x-test-user"] || ""))) return { userId: String(req.headers["x-test-user"]), email: null, test: true };
   const u = await validateBearer(req.headers.authorization || "").catch(() => null);
   return u && u.userId ? { userId: u.userId, email: u.email || null } : null;
 }
@@ -62,7 +64,7 @@ export default async function handler(req, res) {
       for (const st of req.body.steps || []) {
         const t0 = Date.now(); let out;
         if (st.say != null) { const r = await taskTurn(envT, user, { taskId: st.new ? null : taskId, text: st.say, seed: st.seed || null, apiKey, model: CHAT_MODEL }); if (!st.keepId) taskId = r.task.id; out = { reply: r.reply, state: r.task.state, summary: r.task.summary, question: r.task.question, filters: r.task.filters, control: r.control ? { needChoice: !!r.control.needChoice, current: r.control.current && r.control.current.summary } : null, task_id: r.task.id }; }
-        else if (st.control) { const r = await controlTask(envT, user, st.task_id || taskId, st.control, { apiKey, model: CHAT_MODEL }); out = { state: r.task && r.task.state, needChoice: !!r.needChoice, current: r.current && r.current.summary, error: r.error }; }
+        else if (st.control) { const r = await controlTask(envT, user, st.task_id || taskId, st.control, { apiKey, model: CHAT_MODEL, rows: st.rows }); out = { state: r.task && r.task.state, needChoice: !!r.needChoice, current: r.current && r.current.summary, error: r.error }; }
         else if (st.run) { const r = await runTasks(envT, { taskId: st.task_id || taskId, rows: st.run.rows, now: st.run.now, testBad: !!st.run.testBad, test: true, apiKey, model: CHAT_MODEL }); out = r.report[0] || r; }
         else if (st.set) { await saveTask(envT, st.task_id || taskId, st.set); out = { set: Object.keys(st.set) }; }
         steps.push({ step: st, ms: Date.now() - t0, out });
@@ -102,6 +104,22 @@ export default async function handler(req, res) {
       const out = await runTasks(env, { taskId: b.task_id, rows: Array.isArray(b.rows) ? b.rows : undefined, now: b.now || undefined, test: true, apiKey, model: CHAT_MODEL });
       const task = await getTask(env, b.task_id);
       return res.status(200).json({ ...out, task, updates: await taskUpdates(env, b.task_id) });
+    }
+    // Probe: delete every row of this test user (tasks cascade to task_updates). Test ids only.
+    if (b.action === "test_cleanup" && probeOk(req) && user.test) {
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/tasks?user_id=eq.${user.userId}`, { method: "DELETE", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "return=representation" } });
+      const gone = r.ok ? (await r.json()).length : `error ${r.status}`;
+      const left = await (await fetch(`${env.supabaseUrl}/rest/v1/tasks?user_id=eq.${user.userId}&select=id`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } })).json();
+      return res.status(200).json({ deleted_tasks: gone, tasks_left: Array.isArray(left) ? left.length : left });
+    }
+    // Probe: send one real email of a test task's latest Sam update, to Sam's own address only.
+    if (b.action === "test_email" && probeOk(req) && user.test) {
+      const task = await getTask(env, String(b.task_id), user.userId);
+      if (!task) return res.status(404).json({ error: "no such test task" });
+      const up = (await taskUpdates(env, task.id)).filter(u => u.role === "sam").pop();
+      if (!up) return res.status(400).json({ error: "no Sam update to send" });
+      const out = await notify(env, { ...task, email: "feedback@goasksam.com" }, up, "A car matching your task just came up", {});
+      return res.status(200).json({ ...out, update_id: up.id, text: up.text });
     }
     if (b.action === "test_set" && probeOk(req)) {   // mock time: move a task's interaction / still-looking stamps
       const patch = {}; for (const k of ["last_interaction_at", "still_looking_sent_at", "checkpoint", "state"]) if (k in b) patch[k] = b[k];

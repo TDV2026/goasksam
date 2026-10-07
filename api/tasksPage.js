@@ -58,6 +58,11 @@ body{background:var(--page);color:var(--ink)}.rail{background:var(--page)}
 .msg.buyer{font:400 17px/1.45 var(--sans);color:#3A3733}
 .msg.sam{font:400 21px/1.4 var(--serif)}
 .msg.sam.match{border-left:2px solid var(--red);padding-left:14px}
+.tkcars{list-style:none;margin:-6px 0 16px;padding:0 0 0 16px;font:400 15px/1.45 var(--sans)}
+.tkcars li{padding:4px 0;border-bottom:1px solid #E7E2DA}
+.tkcars a{color:#1A1A1A;font-weight:600}
+.tkcars span{color:#5F5A53}
+.tkcars .more{color:#5F5A53;border:0}
 .ctl{display:flex;gap:18px;flex-wrap:wrap;margin:6px 0 10px;font:500 15px var(--sans)}
 .ctl a{color:var(--ink);text-decoration:underline;text-underline-offset:4px;min-height:44px;display:inline-flex;align-items:center}
 .ctl a.go{color:var(--red)}
@@ -132,9 +137,16 @@ const CLIENT = String.raw`(function(){
     if (t.state !== "done") a.push('<a href="#" data-act="stop" data-id="' + t.id + '">Stop</a>');
     return a.length ? '<p class="ctl">' + a.join("") + "</p>" : "";
   }
+  // The cars behind a match update, each linking to its listing.
+  function carList(u){
+    var cs = (u.data && u.data.cards) || [];
+    if (!cs.length) return "";
+    var more = u.data.total > cs.length ? '<li class="more">' + (u.data.total - cs.length) + " more match.</li>" : "";
+    return '<ul class="tkcars">' + cs.map(function(c){ var bits = [c.house, c.distance_miles != null ? c.distance_miles.toLocaleString("en-US") + " miles away" : c.location, c.miles ? c.miles.toLocaleString("en-US") + " mi" : null].filter(Boolean).join(" \u00b7 "); return '<li><a href="' + esc(c.url || "#") + '" target="_blank" rel="noopener">' + esc(c.title || "Listing") + "</a>" + (bits ? ' <span>' + esc(bits) + "</span>" : "") + "</li>"; }).join("") + more + "</ul>";
+  }
   function thread(t){
     return '<div class="thread"><h2 style="margin:0 0 6px;font:500 22px/1.3 var(--serif)">' + esc(t.summary || t.words) + ' <span class="st ' + t.state + '">' + STATE[t.state] + "</span></h2>" + ctlLinks(t) +
-      (t.updates || []).map(function(u){ return '<p class="msg ' + (u.role === "buyer" ? "buyer" : "sam") + (u.kind === "match" ? " match" : "") + '">' + esc(u.text) + "</p>"; }).join("") +
+      (t.updates || []).map(function(u){ return '<p class="msg ' + (u.role === "buyer" ? "buyer" : "sam") + (u.kind === "match" ? " match" : "") + '">' + esc(u.text) + "</p>" + carList(u); }).join("") +
       box("") .replace('id="tkq"', 'id="tkq" data-task="' + t.id + '"').replace("Give Sam a task, e.g. find me a black manual 997 under $70k", "Reply to Sam, change the task, or say pause or stop") + "</div>";
   }
   function render(choice){
