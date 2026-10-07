@@ -18,7 +18,7 @@
     }
   ],
   "rewrites": [
-    { "source": "/sell", "destination": "/api/sellPage" },
+    { "source": "/sell", "destination": "/api/sellNext" },
     { "source": "/sell-next", "destination": "/api/sellNext" },
     { "source": "/onebox", "destination": "/onebox.html" },
     { "source": "/o/:id", "destination": "/api/publicConfig?obShare=:id" },

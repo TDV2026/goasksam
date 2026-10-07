@@ -1,7 +1,7 @@
-// /sell-next (Lane C, Oct 2026): the NEW /sell, a conversation with Sam (Claude with the engine as tools,
-// lib/sell/sellChat.js via /api/sellChat) in the /buy card design. Staged here, always noindex and out
-// of every sitemap, while /sell stays on the old wizard: rare house-only cars (the CLK DTM) still find
-// no pool on the new path, and a dead end breaks rule 8. When fixed, /sell routes here again. Search rules: the registry title, an H1 and one dated lead sentence with a real number (the
+// /sell (Lane C, Oct 2026): where to sell a collector car, a conversation with Sam (Claude with the engine
+// as tools, lib/sell/sellChat.js via /api/sellChat) in the /buy card design. Served at /sell (and at the
+// noindex staging path /sell-next). Rare house-only cars reach their sales through the keyword route
+// (lib/sell/sellFacts.js), so no car dead-ends. The old wizard (index.html via api/sellPage.js) is retired. Search rules: the registry title, an H1 and one dated lead sentence with a real number (the
 // last 12 months' auction sales in the archive) are in the raw HTML; a conversation is never a URL
 // (?car= only starts one in the page), so any query-string variant is noindex with /sell canonical.
 // Edge-cached 1 hour (the lead's count is recounted then).
@@ -31,7 +31,10 @@ export default async function handler(req, res) {
   const asOf = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" });
   const lead = n ? `Sam reads ${n.toLocaleString("en-US")} collector car auction sales from the last 12 months, as of ${asOf}, to show where cars like yours sell and how they sold.`
     : `Sam reads the collector car auction sales from the last 12 months, as of ${asOf}, to show where cars like yours sell and how they sold.`;
-  const robots = "noindex, follow";   // staged: never indexed until it replaces /sell
+  // Indexable only as /sell itself; /sell-next and any query-string variant (?car= starts a
+  // conversation in the page) are noindex with /sell as the canonical.
+  const u = String(req.url || "");
+  const robots = /\?./.test(u) || /sell-next/.test(u) ? "noindex, follow" : "index, follow";
   const rail = railHtml("sell").replace(/<nav class="mnav"[\s\S]*?<\/nav>/, '<nav class="mnav" aria-label="Sections"><a class="n" href="/buy">Buy</a><span class="bar">|</span><a class="n on" aria-current="page" href="/sell">Sell</a><span class="bar">|</span><a class="n" href="/business">For business</a></nav>');
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${TITLE}</title><meta name="description" content="${esc(lead)}">
