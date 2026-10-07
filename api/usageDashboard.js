@@ -3342,18 +3342,41 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "speccache", totalSpecs: total, refreshedToday: today, refreshedLast24h: last24, mostRecent: recent });
   }
 
-  // task=vinsamples: READ-ONLY. Finds example VINs for the VIN-page verification: one photoful
-  // multi-sale car, a few photoless multi-sale candidates, and any cars live at auction right now.
+  // task=vinsamples: READ-ONLY. Example VINs for the VIN-page verification. Multi-appearance VINs come
+  // from vin_summary (reliable); each is classified photoful vs photoless by reading sales_archive +
+  // auction_attempts photos. Plus the cars live at auction right now.
   if (task === "vinsamples") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const live = (await supabaseSelect(env, `live_listings?status=eq.live&vin_norm=not.is.null&select=vin_norm,url,listing_title&limit=10`).catch(() => null)) || [];
-    const since = new Date(Date.now() - 500 * 86400e3).toISOString().slice(0, 10);
-    const rows = (await supabaseSelectAll(env, `sales_archive?sale_price_usd=gt.0&vin_norm=not.is.null&sale_date=gte.${since}&select=vin_norm,photo_url`).catch(() => null)) || [];
-    const g = new Map();
-    for (const r of rows) { const v = String(r.vin_norm || "").toUpperCase(); if (v.length < 11) continue; const o = g.get(v) || { n: 0, ph: 0 }; o.n++; if (r.photo_url) o.ph++; g.set(v, o); }
-    let photoful = null; const photoless = [];
-    for (const [v, o] of g) { if (o.n >= 2 && o.ph > 0 && !photoful) photoful = v; if (o.n >= 2 && o.ph === 0 && photoless.length < 6) photoless.push(v); }
-    return res.status(200).json({ task: "vinsamples", sampledRows: rows.length, photoful, photolessCandidates: photoless, live: live.slice(0, 6) });
+    const multi = (await supabaseSelect(env, `vin_summary?appearances=gte.2&make=not.is.null&select=vin_norm,appearances,last_sold_price_usd&order=appearances.desc&limit=60`).catch(() => null)) || [];
+    const classified = [];
+    for (const m of multi) {
+      const v = m.vin_norm;
+      const [s, a] = await Promise.all([
+        supabaseSelect(env, `sales_archive?vin_norm=eq.${encodeURIComponent(v)}&select=photo_url,sale_price_usd`).catch(() => null),
+        supabaseSelect(env, `auction_attempts?chassis_vin_norm=eq.${encodeURIComponent(v)}&select=high_bid_usd`).catch(() => null)
+      ]);
+      const priced = (s || []).filter(x => Number(x.sale_price_usd) > 0).length + (a || []).filter(x => Number(x.high_bid_usd) > 0).length;
+      const hasPhoto = (s || []).some(x => x.photo_url);
+      classified.push({ vin: v, appearances: m.appearances, pricedAppearances: priced, hasPhoto });
+      if (classified.filter(c => c.pricedAppearances >= 2 && c.hasPhoto).length && classified.filter(c => c.pricedAppearances >= 2 && !c.hasPhoto).length) break;
+    }
+    return res.status(200).json({
+      task: "vinsamples",
+      photofulIndexable: classified.find(c => c.pricedAppearances >= 2 && c.hasPhoto) || null,
+      photolessIndexable: classified.find(c => c.pricedAppearances >= 2 && !c.hasPhoto) || null,
+      classifiedSeen: classified.length, live: live.slice(0, 6)
+    });
+  }
+
+  // task=pageviews: READ-ONLY. Recent page_view rows + a source breakdown (search/AI-citation signal).
+  if (task === "pageviews") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const sinceIso = new Date(Date.now() - 24 * 3600e3).toISOString();
+    const rows = (await supabaseSelect(env, `app_usage_events?event_type=eq.page_view&created_at=gte.${sinceIso}&select=created_at,route,status,metadata&order=created_at.desc&limit=200`).catch(() => null)) || [];
+    const bySource = {}, byPath = {};
+    for (const r of rows) { const s = (r.metadata && r.metadata.source) || "?"; bySource[s] = (bySource[s] || 0) + 1; const p = r.route || (r.metadata && r.metadata.path) || "?"; byPath[p] = (byPath[p] || 0) + 1; }
+    return res.status(200).json({ task: "pageviews", last24h: rows.length, bySource, byPath, recent: rows.slice(0, 12).map(r => ({ at: r.created_at.slice(0, 19), path: r.route || (r.metadata && r.metadata.path), source: r.metadata && r.metadata.source, kind: r.status })) });
   }
 
   // task=vindbg: READ-ONLY. What vinAppearances sees for a VIN: vin_index rows + direct sales/attempts.
