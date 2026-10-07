@@ -1,5 +1,6 @@
-// /tasks (Lane C, Oct 2026): the public page for Tasks (server-rendered, indexable, in the sitemap) and,
-// for a signed-in buyer, the task app on the same URL (rendered in the browser). Positioning: car
+// /tasks (Lane C, Oct 2026): the public explainer for Tasks (server-rendered, indexable, in the sitemap),
+// and /tasks/mine (?app=1): the signed-in buyer's task app (noindex, not in the sitemap; signed-out
+// visitors are sent to /tasks). Positioning: car
 // alerts, much smarter, and free. The example update is a REAL past match that went through the guard
 // (app_config "tasks_example_update"); with none yet, the slot is left out ("better nothing than a
 // fake number"). TASKS_PITCH and exampleUpdate() are exported so a homepage section can reuse them.
@@ -47,35 +48,53 @@ body{background:var(--page);color:var(--ink)}.rail{background:var(--page)}
 .steps{margin:0;padding:0 0 0 20px;font:400 17px/1.6 var(--sans)}
 .faq dt{margin-top:16px;font:500 19px/1.4 var(--serif)}
 .faq dd{margin:4px 0 0;font:400 16px/1.55 var(--sans)}
-/* the app (signed in) */
-#tkapp{margin-top:8px}
-.tkbox{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #D9D3C8;border-radius:6px;padding:4px 6px 4px 16px;margin-top:18px}
-.tkbox input{flex:1;min-width:0;border:0;outline:0;font:400 17px/1.4 var(--sans);background:transparent;padding:12px 0}
-.tkbox button{border:0;background:var(--ink);color:#fff;border-radius:6px;min-height:40px;padding:0 14px;font:500 15px var(--sans);cursor:pointer}
-.tklist{list-style:none;margin:16px 0 0;padding:0}
-.tklist li{border-top:1px solid var(--div);padding:12px 0;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
-.tklist a{color:var(--ink);font:400 17px/1.4 var(--serif);text-decoration:none}
-.tklist a:hover{text-decoration:underline}
-.st{font:600 11px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;padding:5px 7px;border-radius:4px;background:#EFEBE4;color:var(--ink)}
-.st.needs_you{background:var(--red);color:#fff}.st.running{background:#1A1A1A;color:#fff}
-.thread{margin-top:18px}
-.msg{margin:0 0 14px}
-.msg.buyer{font:400 17px/1.45 var(--sans);color:#3A3733}
-.msg.sam{font:400 21px/1.4 var(--serif)}
-.msg.sam.match{border-left:2px solid var(--red);padding-left:14px}
-.tkcars{list-style:none;margin:-6px 0 16px;padding:0 0 0 16px;font:400 15px/1.45 var(--sans)}
-.tkcars li{padding:4px 0;border-bottom:1px solid #E7E2DA}
-.tkcars a{color:#1A1A1A;font-weight:600}
-.tkcars span{color:#5F5A53}
-.tkcars .more{color:#5F5A53;border:0}
-.ctl{display:flex;gap:18px;flex-wrap:wrap;margin:6px 0 10px;font:500 15px var(--sans)}
-.ctl a{color:var(--ink);text-decoration:underline;text-underline-offset:4px;min-height:44px;display:inline-flex;align-items:center}
-.ctl a.go{color:var(--red)}
-.sugg{margin-top:14px;font:400 16px/1.5 var(--sans)}
-.sugg a{color:var(--red)}
 @media (max-width:640px){.tkhero h1{font-size:34px}.tkhero .lead{font-size:19px}}`;
 
+// The app (/tasks/mine): one task card, the feed, past tasks folded away. No marketing copy.
+const APP_CSS = `
+.apph{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:8px 0 18px}
+.apph h1{margin:0;font:500 34px/1.15 var(--serif)}
+.apph a{font:400 15px var(--sans);color:var(--sec);text-decoration:underline;text-underline-offset:4px}
+.blocked{margin:0 0 18px;padding:12px 16px;border:1px solid var(--div);border-left:3px solid var(--red);background:#fff;font:400 16px/1.5 var(--sans)}
+.blocked a{color:var(--red);font-weight:600}
+.tcard{border:1px solid var(--div);border-radius:8px;background:#fff;padding:18px 20px 20px}
+.thead{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.thead .tline{flex:1;min-width:220px;margin:0;font:400 21px/1.35 var(--serif)}
+.pill{display:inline-block;font:600 11px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;padding:6px 8px;border-radius:4px;background:#EFEBE4;color:var(--ink);white-space:nowrap;margin-top:4px}
+.pill.running{background:#1A1A1A;color:#fff}.pill.paused{background:#EFEBE4}.pill.stopped,.pill.done{background:#F3F1EC;color:var(--sec)}.pill.draft{background:#fff;border:1px solid var(--div)}
+.tbtns{display:flex;gap:8px;margin-top:2px}
+.sbtn{border:1px solid #D9D3C8;background:#fff;color:var(--ink);border-radius:6px;min-height:36px;padding:0 12px;font:500 14px var(--sans);cursor:pointer}
+.sbtn:hover{border-color:var(--ink)}
+.readback{margin:14px 0 0;font:400 20px/1.4 var(--serif)}
+.go{display:flex;gap:16px;align-items:center;margin-top:14px}
+.pbtn{border:0;background:var(--ink);color:#fff;border-radius:6px;min-height:44px;padding:0 22px;font:600 16px var(--sans);cursor:pointer}
+.plink{background:none;border:0;padding:0;color:var(--ink);font:500 15px var(--sans);text-decoration:underline;text-underline-offset:4px;cursor:pointer;min-height:44px}
+.boxlab{display:block;margin:18px 0 6px;font:500 14px var(--sans);color:var(--sec)}
+.tkbox{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #D9D3C8;border-radius:6px;padding:4px 6px 4px 14px}
+.tkbox input{flex:1;min-width:0;border:0;outline:0;font:400 17px/1.4 var(--sans);background:transparent;padding:11px 0}
+.tkbox button{border:0;background:var(--ink);color:#fff;border-radius:6px;min-height:40px;padding:0 14px;font:500 15px var(--sans);cursor:pointer}
+.tkbox button[disabled]{opacity:.6}
+.samreply{margin:10px 0 0;font:400 17px/1.45 var(--serif);color:#3A3733}
+.feed{list-style:none;margin:20px 0 0;padding:0;border-top:1px solid var(--div)}
+.feed>li{padding:14px 0;border-bottom:1px solid var(--div)}
+.feed .when{display:block;font:500 12px/1 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--sec);margin-bottom:6px}
+.feed .ut{margin:0;font:400 18px/1.45 var(--serif)}
+.feed .ut.sys{font:400 15px/1.45 var(--sans);color:var(--sec)}
+.cars{list-style:none;margin:10px 0 0;padding:0}
+.cars li{padding:7px 0;border-top:1px solid #EFEBE4;font:400 15px/1.45 var(--sans)}
+.cars a{color:var(--ink);font-weight:600}
+.cars .fx{display:block;color:var(--sec)}
+.cars .more{color:var(--sec)}
+.empty{margin:14px 0 0;font:400 15px var(--sans);color:var(--sec)}
+.past{margin-top:22px}
+.past>summary{cursor:pointer;font:500 15px var(--sans);color:var(--sec);min-height:44px;display:flex;align-items:center}
+.past details{border-top:1px solid var(--div);padding:6px 0}
+.past details>summary{cursor:pointer;list-style:none;display:flex;gap:10px;align-items:baseline;font:400 17px/1.4 var(--serif);min-height:44px;padding-top:6px}
+.past details>summary::-webkit-details-marker{display:none}
+@media (max-width:640px){.apph h1{font-size:28px}.tcard{padding:14px 14px 16px}.thead .tline{font-size:19px;min-width:0;flex-basis:100%}}`;
+
 export default async function handler(req, res) {
+  if (req.query && req.query.app) return appPage(req, res);
   const ex = await exampleUpdate().catch(() => null);
   const hasQuery = /\?./.test(String(req.url || ""));
   const robots = hasQuery ? "noindex, follow" : "index, follow";
@@ -93,111 +112,161 @@ export default async function handler(req, res) {
 ${FONT_LINKS}<style>${PAGE_CSS}${CSS}${AUTH_CSS}</style>${ld.map(o => '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, "\\u003c") + "</script>").join("")}</head><body>
 ${rail}
 <main><div class="col">
-<div id="tkapp" hidden></div>
 <header class="tkhero"><p class="pos">Car alerts, much smarter, and free</p><h1>${esc(TASKS_PITCH.lead)}</h1><p class="lead" data-lead-sentence>${esc(TASKS_PITCH.sub)}</p>
-<button type="button" class="cta" id="tkcta">Give Sam a task</button></header>
+<button type="button" class="cta" id="tkcta" data-task-entry data-href="/tasks/mine?start=1">Give Sam a task</button></header>
 <section class="sec"><h2>How it works</h2><p>${esc(HOW)}</p>
 <ol class="steps"><li>Tell Sam what you're looking for, in plain words.</li><li>Sam reads the job back to you, and starts when you say so.</li><li>Every time new cars come up for auction, the matching checks them against your task.</li><li>When one matches, Sam tells you what it is, how far away it is and, when the same car has been to auction before, what happened then. Nothing new means no message.</li></ol></section>
 ${ex ? `<section class="sec"><h2>A real update</h2><p class="example"><span class="who">Sam</span>${esc(ex.text)}</p></section>` : ""}
 <section class="sec"><h2>Questions</h2><dl class="faq">${FAQ.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>
-<p style="margin-top:30px"><button type="button" class="cta" id="tkcta2">Give Sam a task</button></p>
+<p style="margin-top:30px"><button type="button" class="cta" id="tkcta2" data-task-entry data-href="/tasks/mine?start=1">Give Sam a task</button></p>
 </div></main>
 <script>try{sessionStorage.setItem("gas_fe_homepage_view","1")}catch(e){}window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};</script>
 <script src="/js/auth.js"></script>
-<script>${CLIENT}</script></body></html>`;
+<script>${EXPLAINER_JS}</script></body></html>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", robots);
   res.setHeader("Cache-Control", "public, max-age=0, s-maxage=600, stale-while-revalidate=3600");
   res.status(200).send(html);
 }
 
-// The task app (browser). Signed out: the box and the buttons go to sign-in, which returns here.
-const CLIENT = String.raw`(function(){
+// The explainer's buttons. Signed in: the shared entry script (api/_chrome.js TASKS_BADGE) checks the
+// slot and goes to the app. Signed out: the sign-in card, then on to the app (or to ?next=, where an
+// entry point sent a signed-out buyer). Old links (/tasks?task=, ?seed=) go to the app.
+const EXPLAINER_JS = String.raw`(function(){
+  function signedIn(){ try { var s = JSON.parse(localStorage.getItem("gas_auth_session") || "null"); return !!(s && s.access_token); } catch(e){ return false; } }
+  var params = new URLSearchParams(location.search);
+  var next = params.get("next");
+  if (!next || !/^\/tasks\/mine(\?|$)/.test(next)) next = "/tasks/mine?start=1";
+  if (signedIn() && (params.get("task") || params.get("seed"))) { location.replace("/tasks/mine" + location.search); return; }
+  function signIn(){
+    if (typeof openSignInCard !== "function") return;
+    openSignInCard("Sign in to give Sam a task. Every GoAskSam account gets one active task free.");
+    var f = document.getElementById("auth-email"), card = document.querySelector("#auth-modal .auth-dialog");
+    if (card && card.scrollIntoView) card.scrollIntoView({ block: "center" });
+    if (f) { try { f.focus({ preventScroll: true }); } catch(e){ f.focus(); } }
+  }
+  window.gateAfterSignup = function(){ location.href = next; };
+  document.addEventListener("click", function(e){
+    var t = e.target.closest("#tkcta,#tkcta2"); if (!t || signedIn()) return;
+    e.preventDefault(); signIn();
+  });
+  if (!signedIn() && (params.get("signin") || params.get("start") || params.get("seed") || params.get("task"))) { if (params.get("seed") || params.get("task")) next = "/tasks/mine" + location.search.replace(/([?&])(signin|next)=[^&]*/g, "$1"); signIn(); }
+})();`;
+
+function appPage(req, res) {
+  const rail = railHtml("tasks").replace(/<nav class="mnav"[\s\S]*?<\/nav>/, '<nav class="mnav" aria-label="Sections"><a class="n" href="/buy">Buy</a><span class="bar">|</span><a class="n" href="/sell">Sell</a><span class="bar">|</span><a class="n on" aria-current="page" href="/tasks/mine">Tasks</a></nav>');
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Your tasks | GoAskSam</title><meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">
+${FONT_LINKS}<style>${PAGE_CSS}${CSS}${APP_CSS}${AUTH_CSS}</style></head><body>
+${rail}
+<main><div class="col">
+<div class="apph"><h1>Your tasks</h1><a href="/tasks">How it works</a></div>
+<div id="tkapp"></div>
+</div></main>
+<script>try{sessionStorage.setItem("gas_fe_homepage_view","1")}catch(e){}window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};</script>
+<script src="/js/auth.js"></script>
+<script>${APP_JS}</script></body></html>`;
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("X-Robots-Tag", "noindex, nofollow");
+  res.setHeader("Cache-Control", "private, no-store");
+  res.status(200).send(html);
+}
+
+// The task app (browser). A new task is a DRAFT held here (sessionStorage) until the buyer presses Start;
+// the server writes nothing before that. One task holds the slot (running or paused).
+const APP_JS = String.raw`(function(){
   var $ = function(id){ return document.getElementById(id); };
   var app = $("tkapp");
   function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];}); }
   function signedIn(){ try { var s = JSON.parse(localStorage.getItem("gas_auth_session") || "null"); return !!(s && s.access_token); } catch(e){ return false; } }
+  if (!signedIn()) { location.replace("/tasks?signin=1&next=" + encodeURIComponent(location.pathname + location.search)); return; }
   var params = new URLSearchParams(location.search);
-  var STATE = { running: "Running", needs_you: "Needs you", paused: "Paused", done: "Done", draft: "Not started" };
-  var openId = params.get("task"), data = null;
+  var data = null, busy = false, reply = "", pending = null, blocked = null, editing = false;
+  var draft = null; try { draft = JSON.parse(sessionStorage.getItem("gas_task_draft") || "null"); } catch(e){}
+  function saveDraft(d){ draft = d; try { if (d) sessionStorage.setItem("gas_task_draft", JSON.stringify(d)); else sessionStorage.removeItem("gas_task_draft"); } catch(e){} }
   function seedWords(){
     if (params.get("seed") === "vin" && params.get("vin")) return "Keep looking for this exact car: " + (params.get("car") ? params.get("car") + ", " : "") + "VIN " + params.get("vin");
-    if (params.get("words")) return params.get("words");
-    return "";
+    return params.get("words") || "";
   }
-  function seedObj(){
-    if (params.get("seed") === "vin") return { from: "vin", ref: "vin:" + params.get("vin") };
-    if (params.get("seed") === "buy") return { from: "buy_search", ref: null, filters: (function(){ try { return JSON.parse(params.get("filters") || "null"); } catch(e){ return null; } })() };
-    return null;
-  }
-  function needSignIn(){
-    var u = new URL(location.href); u.searchParams.set("start", "1"); try { history.replaceState(null, "", u.toString()); } catch(e){}
-    var q = $("tkq"); if (q && q.value.trim()) { try { sessionStorage.setItem("gas_task_pending", q.value.trim()); } catch(e){} }
-    if (typeof openSignInCard !== "function") return;
-    openSignInCard("Sign in to give Sam a task. Every GoAskSam account gets one active task free.");
-    var f = $("auth-email"), card = document.querySelector("#auth-modal .auth-dialog");
-    if (card && card.scrollIntoView) card.scrollIntoView({ block: "center" });
-    if (f) { try { f.focus({ preventScroll: true }); } catch(e){ f.focus(); } }
-  }
-  // Back from the email code (auth.js calls this after a sign-in): open the task box, with what the
-  // buyer had typed.
-  window.gateAfterSignup = function(){ params.set("start", "1"); load().then(function(){ var q = $("tkq"); var pend = null; try { pend = sessionStorage.getItem("gas_task_pending"); sessionStorage.removeItem("gas_task_pending"); } catch(e){} if (q && pend && !q.value) q.value = pend; if (q) q.focus(); }); };
-  function box(prefill){
-    return '<div class="tkbox"><label for="tkq" style="position:absolute;left:-9999px">Give Sam a task</label><input id="tkq" autocomplete="off" placeholder="Give Sam a task, e.g. find me a black manual 997 under $70k" value="' + esc(prefill || "") + '"><button type="button" id="tksend">Send</button></div>';
-  }
-  function ctlLinks(t){
-    var a = [];
-    if (t.state === "draft" && t.summary) a.push('<a href="#" class="go" data-act="start" data-id="' + t.id + '">Start the task</a>');
-    if (t.state === "running" || t.state === "needs_you") a.push('<a href="#" data-act="pause" data-id="' + t.id + '">Pause</a>');
-    if (t.state === "paused") a.push('<a href="#" class="go" data-act="resume" data-id="' + t.id + '">Resume</a>');
-    if (t.state !== "done") a.push('<a href="#" data-act="stop" data-id="' + t.id + '">Stop</a>');
-    return a.length ? '<p class="ctl">' + a.join("") + "</p>" : "";
-  }
-  // The cars behind a match update, each linking to its listing.
-  function carList(u){
-    var cs = (u.data && u.data.cards) || [];
-    if (!cs.length) return "";
-    var more = u.data.total > cs.length ? '<li class="more">' + (u.data.total - cs.length) + " more match.</li>" : "";
-    return '<ul class="tkcars">' + cs.map(function(c){ var bits = [c.house, c.distance_miles != null ? c.distance_miles.toLocaleString("en-US") + " miles away" : c.location, c.miles ? c.miles.toLocaleString("en-US") + " mi" : null].filter(Boolean).join(" \u00b7 "); return '<li><a href="' + esc(c.url || "#") + '" target="_blank" rel="noopener">' + esc(c.title || "Listing") + "</a>" + (bits ? ' <span>' + esc(bits) + "</span>" : "") + "</li>"; }).join("") + more + "</ul>";
-  }
-  function thread(t){
-    return '<div class="thread"><h2 style="margin:0 0 6px;font:500 22px/1.3 var(--serif)">' + esc(t.summary || t.words) + ' <span class="st ' + t.state + '">' + STATE[t.state] + "</span></h2>" + ctlLinks(t) +
-      (t.updates || []).map(function(u){ return '<p class="msg ' + (u.role === "buyer" ? "buyer" : "sam") + (u.kind === "match" ? " match" : "") + '">' + esc(u.text) + "</p>" + carList(u); }).join("") +
-      box("") .replace('id="tkq"', 'id="tkq" data-task="' + t.id + '"').replace("Give Sam a task, e.g. find me a black manual 997 under $70k", "Reply to Sam, change the task, or say pause or stop") + "</div>";
-  }
-  function render(choice){
-    var tasks = (data && data.tasks) || [], sugg = (data && data.suggestions) || [];
-    var open = tasks.find(function(t){ return t.id === openId; }) || null;
-    var h = '<h1 style="margin:8px 0 0;font:500 34px/1.15 var(--serif)">Your tasks</h1>';
-    if (choice) h += '<p class="msg sam">Sam can run one task at a time. The one running now: ' + esc(choice.current.summary) + ' Which should Sam keep?</p><p class="ctl"><a href="#" class="go" data-act="keep_new" data-id="' + esc(choice.task.id) + '">Keep the new one</a><a href="#" data-act="keep_current" data-id="' + esc(choice.task.id) + '">Keep the current one</a></p>';
-    if (tasks.length) h += '<ul class="tklist">' + tasks.map(function(t){ return '<li><span class="st ' + t.state + '">' + STATE[t.state] + '</span><a href="?task=' + t.id + '" data-open="' + t.id + '">' + esc(t.summary || t.words) + "</a>" + (t.unread ? ' <span class="st">' + t.unread + " new</span>" : "") + "</li>"; }).join("") + "</ul>";
-    if (open) h += thread(open);
-    else {
-      h += box(seedWords());
-      if (sugg.length) h += sugg.map(function(s){ return '<p class="sugg">You told Sam you were hunting: ' + esc(s.words) + '. <a href="#" data-sugg="' + esc(s.ref) + '" data-from="' + esc(s.from) + '" data-words="' + esc(s.words) + '">Start a task from it</a></p>'; }).join("");
-    }
-    app.innerHTML = h; app.hidden = false;
-    var q = $("tkq"); if (q && (params.get("start") || params.get("seed"))) q.focus();
-  }
-  // The signed-in buyer's token, refreshed when near expiry (js/auth.js authValidToken), on every call.
+  function seedObj(){ if (params.get("seed") === "vin") return { from: "vin", ref: "vin:" + params.get("vin") }; if (params.get("seed") === "buy") return { from: "buy_search", ref: null }; return null; }
   function token(){ if (typeof authValidToken === "function") return authValidToken(); try { return Promise.resolve((JSON.parse(localStorage.getItem("gas_auth_session") || "null") || {}).access_token || null); } catch(e){ return Promise.resolve(null); } }
-  function api(body){ return token().then(function(tk){ return fetch("/api/tasks", { method: "POST", headers: tk ? { "Content-Type": "application/json", Authorization: "Bearer " + tk } : { "Content-Type": "application/json" }, body: JSON.stringify(body) }); }).then(function(r){ if (r.status === 401) { needSignIn(); throw new Error("auth"); } return r.json(); }); }
-  function load(){ return api({ action: "list", open: openId }).then(function(j){ data = j; render(); }).catch(function(){}); }
-  function say(text, taskId){
-    if (!signedIn()) return needSignIn();
-    var btn = $("tksend"); if (btn) { btn.disabled = true; btn.textContent = "Sam is reading..."; }
-    api({ action: "say", text: text, task_id: taskId || null, seed: taskId ? null : seedObj() }).then(function(j){ if (j.task) openId = j.task.id; return load().then(function(){ if (j.control && j.control.needChoice) render(j.control); }); }).catch(function(){ if (btn) { btn.disabled = false; btn.textContent = "Send"; } });
+  function api(body){ return token().then(function(tk){ return fetch("/api/tasks", { method: "POST", headers: tk ? { "Content-Type": "application/json", Authorization: "Bearer " + tk } : { "Content-Type": "application/json" }, body: JSON.stringify(body) }); }).then(function(r){ if (r.status === 401) { location.replace("/tasks?signin=1&next=" + encodeURIComponent(location.pathname + location.search)); throw new Error("auth"); } return r.json(); }); }
+  function status(t){ if (t.state === "running" || t.state === "needs_you") return ["running", "Running"]; if (t.state === "paused") return ["paused", "Paused"]; if (t.state === "done") return t.kind === "research" ? ["done", "Done"] : ["stopped", "Stopped"]; return ["draft", "Not started"]; }
+  function blockedMsg(b){ return '<p class="blocked">' + (b.state === "paused" ? "Your task is paused. Resume or stop it to start another." : "You have one task running. Stop it to start another.") + ' <a href="#task-' + esc(b.task_id) + '" data-goto="' + esc(b.task_id) + '">Open your task</a></p>'; }
+  function when(iso){ try { var d = new Date(iso), now = new Date(); var o = { month: "short", day: "numeric" }; if (Math.abs(now - d) > 80 * 864e5) o.year = "numeric"; return d.toLocaleDateString("en-US", o) + ", " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); } catch(e){ return ""; } }
+  function money(n){ return "$" + Number(n).toLocaleString("en-US"); }
+  function cars(u){
+    var cs = (u.data && u.data.cards) || []; if (!cs.length) return "";
+    var more = u.data.total > cs.length ? '<li class="more">' + (u.data.total - cs.length) + " more match.</li>" : "";
+    return '<ul class="cars">' + cs.map(function(c){
+      var fx = [c.bid_usd ? "Bid " + money(c.bid_usd) : null, c.house, c.distance_miles != null ? c.distance_miles.toLocaleString("en-US") + " miles away" : c.location, c.miles ? Number(c.miles).toLocaleString("en-US") + " mi" : null].filter(Boolean).join(" · ");
+      return '<li><a href="' + esc(c.url || "#") + '" target="_blank" rel="noopener">' + esc(c.title || "Listing") + "</a>" + (fx ? '<span class="fx">' + esc(fx) + "</span>" : "") + "</li>";
+    }).join("") + more + "</ul>";
+  }
+  function feed(t){
+    var ups = (t.updates || []).filter(function(u){ return u.role === "sam" && ["match", "research", "still_looking", "system"].indexOf(u.kind) >= 0; }).slice().reverse();
+    if (!ups.length) return '<p class="empty">No updates yet.</p>';
+    return '<ul class="feed">' + ups.map(function(u){ return '<li><span class="when">' + esc(when(u.created_at)) + '</span><p class="ut' + (u.kind === "system" ? " sys" : "") + '">' + esc(u.text) + "</p>" + cars(u) + "</li>"; }).join("") + "</ul>";
+  }
+  function box(label, id, value, ph){ return '<label class="boxlab" for="' + id + '">' + esc(label) + '</label><div class="tkbox"><input id="' + id + '" autocomplete="off" value="' + esc(value || "") + '" placeholder="' + esc(ph || "") + '"><button type="button" data-send="' + id + '"' + (busy ? " disabled" : "") + ">" + (busy ? "Sam is reading..." : "Send") + "</button></div>"; }
+  function taskCard(t){
+    var st = status(t), live = t.state !== "done";
+    var btns = live ? '<div class="tbtns">' + (t.state === "paused" ? '<button class="sbtn" data-act="resume" data-id="' + t.id + '">Resume</button>' : '<button class="sbtn" data-act="pause" data-id="' + t.id + '">Pause</button>') + '<button class="sbtn" data-act="stop" data-id="' + t.id + '">Stop</button></div>' : "";
+    var h = '<section class="tcard" id="task-' + t.id + '"><div class="thead"><span class="pill ' + st[0] + '">' + st[1] + '</span><p class="tline">' + esc(t.summary) + "</p>" + btns + "</div>";
+    if (live) {
+      if (pending) h += '<p class="readback">' + esc(pending.summary.replace(/^Sam is looking for/, "Sam will look for").replace(/^Sam is researching/, "Sam will research")) + '</p><div class="go"><button class="pbtn" data-apply="' + t.id + '">Use this change</button><button class="plink" data-unpending>Keep the task as it is</button></div>';
+      h += box("Change the task or tell Sam something", "tkq", "", "");
+      if (reply && !pending) h += '<p class="samreply">' + esc(reply) + "</p>";
+    }
+    return h + feed(t) + "</section>";
+  }
+  function draftCard(){
+    var last = (draft.thread || []).filter(function(m){ return m.role === "sam"; }).pop();
+    var h = '<section class="tcard"><div class="thead"><span class="pill draft">Not started</span></div>';
+    if (draft.summary && !editing) h += '<p class="readback">' + esc(last ? last.text : draft.summary) + '</p><div class="go"><button class="pbtn" data-start>Start</button><button class="plink" data-change>Change</button></div>';
+    else h += (last ? '<p class="readback">' + esc(last.text) + "</p>" : "") + box(draft.summary ? "Change what Sam looks for" : "Answer Sam", "tkq", editing ? draft.words : "", "");
+    return h + "</section>";
+  }
+  function render(){
+    var tasks = (data && data.tasks) || [];
+    var cur = tasks.filter(function(t){ return ["running", "needs_you", "paused"].indexOf(t.state) >= 0; })[0] || null;
+    var past = tasks.filter(function(t){ return t !== cur && t.state === "done"; });
+    var h = "";
+    if (blocked) h += blockedMsg(blocked);
+    else if (cur && (params.get("seed") || params.get("start"))) h += blockedMsg({ task_id: cur.id, state: cur.state });
+    if (cur) h += taskCard(cur);
+    else if (draft) h += draftCard();
+    else h += '<section class="tcard">' + box("Tell Sam what to look for", "tkq", seedWords(), "e.g. find me a black manual 997 under $70k") + (reply ? '<p class="samreply">' + esc(reply) + "</p>" : "") + "</section>";
+    if (past.length) h += '<details class="past"><summary>Past tasks (' + past.length + ")</summary>" + past.map(function(t){ var st = status(t); return '<details><summary><span class="pill ' + st[0] + '">' + st[1] + "</span>" + esc(t.summary) + "</summary>" + feed(t) + "</details>"; }).join("") + "</details>";
+    app.innerHTML = h;
+    var q = $("tkq"); if (q && (params.get("start") || params.get("seed") || editing)) { q.focus(); }
+  }
+  function load(){ return api({ action: "list", open: (data && data.open) || params.get("task") || null }).then(function(j){ data = j; render(); }).catch(function(){}); }
+  function send(text){
+    if (busy) return; busy = true; render(); var q = $("tkq"); if (q) q.value = text;
+    var tasks = (data && data.tasks) || [], cur = tasks.filter(function(t){ return ["running", "needs_you", "paused"].indexOf(t.state) >= 0; })[0];
+    var body = cur ? { action: "say", task_id: cur.id, text: text, pending: pending } : { action: "say", text: text, draft: draft, seed: draft ? null : seedObj() };
+    api(body).then(function(j){
+      busy = false; editing = false; reply = j.reply || ""; blocked = j.blocked || null;
+      if (cur) { pending = j.pending || null; return load(); }
+      if (j.task) { saveDraft(null); reply = ""; return load(); }
+      if (j.discarded) { saveDraft(null); return load(); }
+      if (j.draft) saveDraft(j.draft);
+      render();
+    }).catch(function(){ busy = false; render(); });
   }
   document.addEventListener("click", function(e){
-    var t = e.target.closest("#tksend,[data-act],[data-open],[data-sugg],#tkcta,#tkcta2");
-    if (!t) return;
-    if (t.id === "tkcta" || t.id === "tkcta2") { if (!signedIn()) return needSignIn(); app.hidden = false; window.scrollTo(0, 0); var q0 = $("tkq"); if (q0) q0.focus(); return; }
+    var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto]"); if (!t) return;
+    if (t.hasAttribute("data-goto")) { var el = document.getElementById("task-" + t.getAttribute("data-goto")); if (el) { e.preventDefault(); el.scrollIntoView({ block: "start" }); } return; }
     e.preventDefault();
-    if (t.id === "tksend") { var q = $("tkq"); if (q && q.value.trim()) say(q.value.trim(), q.getAttribute("data-task")); return; }
-    if (t.hasAttribute("data-open")) { openId = t.getAttribute("data-open"); history.replaceState(null, "", "?task=" + openId); load(); return; }
-    if (t.hasAttribute("data-sugg")) { params = new URLSearchParams("words=" + encodeURIComponent(t.getAttribute("data-words"))); say(t.getAttribute("data-words")); return; }
-    if (t.hasAttribute("data-act")) { api({ action: "control", task_id: t.getAttribute("data-id"), act: t.getAttribute("data-act") }).then(function(j){ if (j.task) openId = j.task.id; return load().then(function(){ if (j.needChoice) render(j); }); }); }
+    if (t.hasAttribute("data-send")) { var q = $(t.getAttribute("data-send")); if (q && q.value.trim()) send(q.value.trim()); return; }
+    if (t.hasAttribute("data-change")) { editing = true; render(); return; }
+    if (t.hasAttribute("data-unpending")) { pending = null; reply = ""; render(); return; }
+    if (t.hasAttribute("data-start")) { t.disabled = true; api({ action: "start", draft: draft }).then(function(j){ if (j.blocked) { blocked = j.blocked; render(); return; } if (j.task) { saveDraft(null); reply = ""; } return load(); }); return; }
+    if (t.hasAttribute("data-apply")) { api({ action: "apply", task_id: t.getAttribute("data-apply"), pending: pending }).then(function(){ pending = null; reply = ""; return load(); }); return; }
+    if (t.hasAttribute("data-act")) { t.disabled = true; api({ action: "control", task_id: t.getAttribute("data-id"), act: t.getAttribute("data-act") }).then(function(j){ blocked = j.blocked || null; pending = null; reply = ""; return load(); }); }
   });
-  document.addEventListener("keydown", function(e){ if (e.key === "Enter" && e.target && e.target.id === "tkq") { e.preventDefault(); var q = e.target; if (q.value.trim()) say(q.value.trim(), q.getAttribute("data-task")); } });
-  if (signedIn()) load().then(function(){ var pend = null; try { pend = sessionStorage.getItem("gas_task_pending"); sessionStorage.removeItem("gas_task_pending"); } catch(e){} var q = $("tkq"); if (q && pend && !q.value) q.value = pend; }); else if (params.get("seed") || params.get("start")) { app.innerHTML = box(seedWords()); app.hidden = false; }
+  document.addEventListener("keydown", function(e){ if (e.key === "Enter" && e.target && e.target.id === "tkq" && e.target.value.trim()) { e.preventDefault(); send(e.target.value.trim()); } });
+  load();
 })();`;

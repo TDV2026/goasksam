@@ -2,15 +2,21 @@
 //   GET  ?summary=1                     -> the rail badge: the active task's state + unread updates
 //   POST {action:"list"}                -> the account's tasks with their threads, plus old hunts and
 //                                          watched searches offered as starting tasks
-//   POST {action:"say", task_id?, text, seed?}  -> one message in a task thread (new task, answer, edit, yes)
-//   POST {action:"control", task_id, act}       -> start | pause | resume | stop | keep_new | keep_current | keep_looking
+//   POST {action:"say", text, draft?, seed?}     -> a new task's conversation: NOTHING is written; the draft
+//                                                   (job + read-back) comes back for the page to hold
+//   POST {action:"say", task_id, text, pending?} -> a message about an existing task (a change is proposed)
+//   POST {action:"start", draft}                 -> the only way a task row is written (the read-back confirmed)
+//   POST {action:"apply", task_id, pending}      -> a confirmed change to a task
+//   POST {action:"control", task_id, act}        -> pause | resume | stop | keep_looking
+// One task per account holds the slot (running, needs you, or paused): a new task while it is held
+// returns { blocked: { task_id, state, summary } } and creates nothing, wherever the request came from.
 //   GET  ?a=pause|stop|keep_looking&t=<signed token>  -> the one-tap links in task emails
 //   GET  ?run=1                         -> the matching run after each live pull (Vercel cron, CRON_SECRET)
 // Probe-keyed tests (PROBE_KEY): act as a test user, seed listing rows instead of the live table, mock
 // the clock; test runs never send email (email_status "test").
 import { supabaseEnv } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
-import { taskTurn, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify } from "../lib/tasks/tasks.js";
+import { taskTurn, draftTurn, startDraft, applyEdit, slotTask, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify } from "../lib/tasks/tasks.js";
 import crypto from "node:crypto";
 import { CHAT_MODEL } from "../lib/live/chatHttp.js";
 import { recordUsageEvent } from "./_usage.js";
@@ -40,7 +46,7 @@ export default async function handler(req, res) {
       const task = await getTask(env, id);
       if (!task) return res.status(404).send("That task is gone.");
       await controlTask(env, { userId: task.user_id }, id, act, {});
-      res.setHeader("Location", `/tasks?task=${id}&done=${act}`); return res.status(302).end();
+      res.setHeader("Location", `/tasks/mine?task=${id}&done=${act}`); return res.status(302).end();
     }
     // The run after each live pull: Vercel cron (CRON_SECRET) or the probe key.
     if (req.method === "GET" && q.run) {
@@ -61,6 +67,17 @@ export default async function handler(req, res) {
       const since = new Date(Date.now() - 7 * 864e5).toISOString();
       const get = async f => { const r = await fetch(`${env.supabaseUrl}/rest/v1/app_usage_events?created_at=gte.${since}&${f}&select=created_at,event_type,route,status,metadata&order=created_at.asc&limit=1000`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); return r.ok ? r.json() : `error ${r.status}`; };
       return res.status(200).json({ pulls: await get("route=eq.pull_live"), runs: await get("event_type=eq.tasks_run") });
+    }
+    // Probe: one account's UNCONFIRMED task rows (written by the old flow from raw words before any
+    // read-back: no summary, or still a draft). Lists them; &delete=1 removes exactly those, nothing else.
+    if (req.method === "GET" && q.orphans && q.email && probeOk(req)) {
+      const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+      const f = `tasks?email=eq.${encodeURIComponent(String(q.email).toLowerCase())}&or=(summary.is.null,state.eq.draft)`;
+      const rows = await (await fetch(`${env.supabaseUrl}/rest/v1/${f}&select=id,state,kind,words,summary,created_at`, { headers: H })).json();
+      let deleted = 0;
+      if (q.delete && Array.isArray(rows) && rows.length) { const r = await fetch(`${env.supabaseUrl}/rest/v1/${f}`, { method: "DELETE", headers: { ...H, Prefer: "return=representation" } }); deleted = r.ok ? (await r.json()).length : `error ${r.status}`; }
+      const all = await (await fetch(`${env.supabaseUrl}/rest/v1/tasks?email=eq.${encodeURIComponent(String(q.email).toLowerCase())}&select=id,state,kind,summary,created_at`, { headers: H })).json();
+      return res.status(200).json({ orphans: rows, deleted, account_rows_now: all });
     }
     // Probe: counts of the old watch_requests rows (reported, never emailed).
     if (req.method === "GET" && q.watchcounts && probeOk(req)) {
@@ -88,11 +105,13 @@ export default async function handler(req, res) {
     // {set:{...}}. Returns every step's result and the thread.
     if (req.method === "POST" && req.body && req.body.action === "test_scenario" && probeOk(req)) {
       const mem = memStore(), envT = { ...env, mem }, user = { userId: crypto.randomUUID(), email: null, test: true };
-      const steps = []; let taskId = null;
+      const steps = []; let taskId = null, draft = null;
       for (const st of req.body.steps || []) {
         const t0 = Date.now(); let out;
-        if (st.say != null) { const r = await taskTurn(envT, user, { taskId: st.new ? null : taskId, text: st.say, seed: st.seed || null, apiKey, model: CHAT_MODEL }); if (!st.keepId) taskId = r.task.id; out = { reply: r.reply, state: r.task.state, summary: r.task.summary, question: r.task.question, filters: r.task.filters, control: r.control ? { needChoice: !!r.control.needChoice, current: r.control.current && r.control.current.summary } : null, task_id: r.task.id }; }
-        else if (st.control) { const r = await controlTask(envT, user, st.task_id || taskId, st.control, { apiKey, model: CHAT_MODEL, rows: st.rows, testDrafts: st.testDrafts || null }); out = { state: r.task && r.task.state, needChoice: !!r.needChoice, current: r.current && r.current.summary, error: r.error }; }
+        if (st.say != null && (st.new || !taskId)) { const r = await draftTurn(envT, user, { draft: st.new ? null : draft, text: st.say, seed: st.seed || null, apiKey, model: CHAT_MODEL }); draft = r.draft || null; if (r.task) taskId = r.task.id; out = { reply: r.reply, blocked: r.blocked || null, draft: draft && { kind: draft.kind, summary: draft.summary, question: draft.question, filters: draft.filters }, started: r.task ? r.task.state : null, rows: mem.tasks.length }; }
+        else if (st.say != null) { const r = await taskTurn(envT, user, { taskId, text: st.say, apiKey, model: CHAT_MODEL }); out = { reply: r.reply, state: r.task && r.task.state, pending: r.pending || null, blocked: r.blocked || null }; }
+        else if (st.control === "start") { const r = await startDraft(envT, user, draft || {}, { apiKey, model: CHAT_MODEL, rows: st.rows, testDrafts: st.testDrafts || null }); if (r.task) { taskId = r.task.id; draft = null; } out = { state: r.task && r.task.state, blocked: r.blocked || null, error: r.error || null, rows: mem.tasks.length }; }
+        else if (st.control) { const r = await controlTask(envT, user, st.task_id || taskId, st.control, { apiKey, model: CHAT_MODEL, rows: st.rows }); out = { state: r.task && r.task.state, blocked: r.blocked || null, error: r.error }; }
         else if (st.run) { const r = await runTasks(envT, { taskId: st.task_id || taskId, rows: st.run.rows, now: st.run.now, testBad: !!st.run.testBad, testDrafts: st.run.testDrafts || null, test: true, apiKey, model: CHAT_MODEL }); out = r.report[0] || r; }
         else if (st.set) { await saveTask(envT, st.task_id || taskId, st.set); out = { set: Object.keys(st.set) }; }
         steps.push({ step: st, ms: Date.now() - t0, out });
@@ -104,7 +123,7 @@ export default async function handler(req, res) {
       res.setHeader("Cache-Control", "private, no-store");
       if (!user) return res.status(200).json({ signedIn: false });
       const tasks = await userTasks(env, user.userId);
-      const active = tasks.find(t => ["running", "needs_you"].includes(t.state)) || null;
+      const active = tasks.find(t => ["running", "needs_you", "paused"].includes(t.state)) || null;
       return res.status(200).json({ signedIn: true, active: active ? { id: active.id, state: active.state, summary: active.summary } : null, unread: tasks.reduce((k, t) => k + (t.unread || 0), 0) });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
@@ -121,12 +140,13 @@ export default async function handler(req, res) {
       const text = String(b.text || "").trim().slice(0, 2000);
       if (!text) return res.status(400).json({ error: "empty" });
       if (!apiKey) return res.status(503).json({ error: "Sam is unavailable right now." });
-      const out = await taskTurn(env, user, { taskId: /^[0-9a-f-]{36}$/.test(String(b.task_id || "")) ? b.task_id : null, text, seed: b.seed || null, apiKey, model: CHAT_MODEL });
-      return res.status(200).json({ ...out, updates: await taskUpdates(env, out.task.id) });
+      if (/^[0-9a-f-]{36}$/.test(String(b.task_id || ""))) return res.status(200).json(await taskTurn(env, user, { taskId: b.task_id, text, pending: b.pending || null, apiKey, model: CHAT_MODEL }));
+      return res.status(200).json(await draftTurn(env, user, { draft: b.draft || null, text, seed: b.seed || null, apiKey, model: CHAT_MODEL }));
     }
+    if (b.action === "start") return res.status(200).json(await startDraft(env, user, b.draft || {}, { apiKey, model: CHAT_MODEL }));
+    if (b.action === "apply") return res.status(200).json(await applyEdit(env, user, String(b.task_id || ""), b.pending || null));
     if (b.action === "control") {
-      const out = await controlTask(env, user, String(b.task_id || ""), String(b.act || ""), { apiKey, model: CHAT_MODEL });
-      return res.status(200).json({ ...out, updates: out.task ? await taskUpdates(env, out.task.id) : [] });
+      return res.status(200).json(await controlTask(env, user, String(b.task_id || ""), String(b.act || ""), { apiKey, model: CHAT_MODEL }));
     }
     // Probe test run: one task, seeded listing rows, a mocked clock, no email.
     if (b.action === "test_run" && probeOk(req)) {

@@ -319,7 +319,7 @@ ${live ? liveCardHtml(live, name, noun) : ""}
 ${saidHtml(said)}
 ${groupListsHtml(d, id, vinNorm, poolCards, urlVins, others, noun)}
 <section class="sec"><h2>Questions</h2><dl class="faq">${faq.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>
-<nav class="vlinks" aria-label="More"><a href="${esc(modelHub)}">All ${esc(id.make + " " + id.family)} auction results</a><a href="${esc(hubHref)}">Every ${esc(id.year + " " + id.make + " " + id.family)} by VIN</a><a class="red" href="${esc(sellHref(id))}">Where to sell it</a><a class="red" href="/tasks?seed=vin&vin=${encodeURIComponent(vinNorm)}&car=${encodeURIComponent(name)}">Have Sam keep looking</a></nav>
+<nav class="vlinks" aria-label="More"><a href="${esc(modelHub)}">All ${esc(id.make + " " + id.family)} auction results</a><a href="${esc(hubHref)}">Every ${esc(id.year + " " + id.make + " " + id.family)} by VIN</a><a class="red" href="${esc(sellHref(id))}">Where to sell it</a><a class="red" data-task-entry href="/tasks/mine?seed=vin&vin=${encodeURIComponent(vinNorm)}&car=${encodeURIComponent(name)}">Have Sam keep looking</a></nav>
 
 ${WHY_RESULT_HTML}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>
