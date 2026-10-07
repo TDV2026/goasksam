@@ -129,7 +129,7 @@ export function sameMakeGroup(a, b) { a = squash(a); b = squash(b); return MAKE_
 // "Shelby GT500" are the Shelby GT500; "AMG GT" is the Mercedes-Benz AMG GT; "Ruf CTR" the Porsche RUF CTR).
 export function canonicalHub(make, family) {
   const m = squash(make); let mk = String(make || ""), f = String(family || "").trim();
-  if (m === "ford" && /^shelby\b/i.test(f)) { mk = "Shelby"; f = f.replace(/^shelby\s+/i, ""); }
+  if (m === "ford" && /^shelby\s+\S/i.test(f)) { mk = "Shelby"; f = f.replace(/^shelby\s+/i, ""); }   // "Ford Shelby" alone stays as is
   else if (m === "amg" || m === "mercedesamg") { mk = "Mercedes-Benz"; if (!/^amg\b/i.test(f)) f = "AMG " + f; }
   else if (m === "mercedes") mk = "Mercedes-Benz";
   else if (m === "ruf") { mk = "Porsche"; if (!/^ruf\b/i.test(f)) f = "RUF " + f; }
