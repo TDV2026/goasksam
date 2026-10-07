@@ -9,7 +9,7 @@ import { historyEnv, houseName, normVin } from "./_historyData.js";
 import { parseQuery, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME } from "../lib/live/search.js";
 import { findGeneration } from "../lib/generations.js";
 import { converse } from "../lib/live/converse.js";
-import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, specOf, ladderSteps, walkLadder } from "../lib/live/search.js";
+import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingFactList, specOf, ladderSteps, walkLadder } from "../lib/live/search.js";
 import { vinAppearances } from "./_historyData.js";
 import { validateBearer } from "../lib/_auth.js";
 import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js";
@@ -30,7 +30,7 @@ function cardOf(x) {
     miles: facts.miles, colour: facts.colour, colourSrc: facts.colourSrc || null, body: facts.body, gearbox: facts.gearboxLabel,
     location: titleCaseIfShouting(r.location) || null, country: cc || null, countryName: COUNTRY_NAME[cc] || cc || null, abroad: !!cc && cc !== "US",
     vin_norm: r.vin_norm || null, generation: x.gen ? x.gen.code : null, unknown: x.unknown, flag: cardFlag(r),
-    reserve: r.has_reserve === true ? "reserve" : r.has_reserve === false ? "none" : null, says: listingSays(r) };
+    reserve: r.has_reserve === true ? "reserve" : r.has_reserve === false ? "none" : null, says: listingSays(r), fact_list: listingFactList(r, facts) };
 }
 // The car's own past appearances, oldest first, for the card's timeline: vin_index, falling back to the
 // archive exactly as the Sam line's history does (vinAppearances), so the two never disagree. This
@@ -44,14 +44,25 @@ async function timelineOf(env, x) {
     .map(a => ({ date: a.date, house: a.house, result: a.kind === "sale" ? "sold" : (/withdraw/i.test(String(a.status || a.result || "")) ? "withdrawn" : "not_sold"), price: a.kind === "sale" ? (a.priceUsd || null) : (a.bidUsd || null) }))
     .sort((a, b) => a.date.localeCompare(b.date));
 }
+// The card's name from the resolved spec: year, make, model, trim, body. Never the seller's copy
+// ("With Less Than 73k Miles", "Restored", "No Reserve"); null when the title doesn't resolve.
+const BODY_WORD = { coupe: "Coupe", cabriolet: "Cabriolet", convertible: "Convertible", targa: "Targa", roadster: "Roadster", sedan: "Sedan", spider: "Spider", spyder: "Spyder", speedster: "Speedster", wagon: "Wagon", suv: "", hatchback: "Hatchback" };
+async function nameOf(env, x) {
+  const sp = await specOf(env, x.r, x.facts).catch(() => null);
+  const v = sp && sp.v; if (!v || !v.make || !v.model) return null;
+  const body = BODY_WORD[String(v.bodyStyle || x.facts.body || "").toLowerCase()] || "";
+  const parts = [x.r.year || v.year, v.make, v.model, v.trim, body].filter(Boolean).map(String);
+  const out = []; for (const w of parts) if (!out.some(o => o.toLowerCase().includes(w.toLowerCase()))) out.push(w);
+  return out.join(" ");
+}
 async function enrich(env, x) {
   let [market, seen, timeline] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts), seenBefore(env, x.r.vin_norm), timelineOf(env, x)]);
   if (market && market.kind === "pending") market = await listingMarket(env, x.r, x.facts);   // one more go, warm now
-  return { ...cardOf(x), market, seen_before: seen, timeline };
+  return { ...cardOf(x), market, seen_before: seen, timeline, name: await nameOf(env, x) };
 }
 async function enrichFast(env, x) {
-  const [market, seen, timeline] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { noBlock: true }), seenBefore(env, x.r.vin_norm), timelineOf(env, x)]);
-  return { ...cardOf(x), market, seen_before: seen, timeline };
+  const [market, seen, timeline, name] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { noBlock: true }), seenBefore(env, x.r.vin_norm), timelineOf(env, x), nameOf(env, x)]);
+  return { ...cardOf(x), market, seen_before: seen, timeline, name };
 }
 async function logSearch(env, v, anonId) {
   try {
@@ -355,7 +366,7 @@ async function chatOut(res, env, b) {
     // Cards never wait for the engine: a spec not cached yet comes back "pending" and the page fetches
     // that card's line (which fills the cache) before drawing it.
     const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
-    send("done", { reply: out.reply || "Sam couldn't find an answer to that. Try asking another way.", cards, state: out.state, turns: turns + 1, trace: b.debug ? out.trace : undefined, guards: b.debug ? guards : undefined, forcedTool: b.debug ? out.forcedTool : undefined, ms: out.ms });
+    send("done", { reply: out.reply || "Sam couldn't find an answer to that. Try asking another way.", cards, noun: out.noun, state: out.state, turns: turns + 1, trace: b.debug ? out.trace : undefined, guards: b.debug ? guards : undefined, forcedTool: b.debug ? out.forcedTool : undefined, ms: out.ms });
   } catch (e) {
     err = String((e && e.message) || e).slice(0, 300);
     const timedOut = /abort/i.test(err);
