@@ -12,6 +12,7 @@ import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { PAGE_CSS as CSS, FONT_LINKS, railHtml, WHY_RESULT_HTML } from "./_chrome.js";
 import { recordUsageEvent } from "./_usage.js";
 import { logPageView } from "../lib/_pageview.js";
+import { classifyRoad } from "../lib/_roadType.js";
 
 const SITE = "https://goasksam.com";
 // Card design system (Oct 2026, the /buy cards): #FAF8F4 paper, near-black ink, one red (#D7262C),
@@ -321,7 +322,13 @@ ${WHY_RESULT_HTML}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>
 <script>(function(){var b=document.getElementById("watch-open"),f=document.getElementById("watch"),m=document.getElementById("watch-msg");if(!b||!f)return;b.addEventListener("click",function(){f.hidden=!f.hidden;b.setAttribute("aria-expanded",f.hidden?"false":"true");if(!f.hidden)document.getElementById("watch-email").focus();});f.addEventListener("submit",function(e){e.preventDefault();var em=document.getElementById("watch-email").value.trim();if(!em)return;m.textContent="Saving...";fetch("/api/history",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"watch",vin:${JSON.stringify(vinNorm)},email:em})}).then(function(r){return r.json();}).then(function(j){m.textContent=j&&j.ok?"Done. Sam will email you if this car comes up at auction again.":"That didn\\u2019t save just now. Try again in a minute.";}).catch(function(){m.textContent="That didn\\u2019t save just now. Try again in a minute.";});});})();</script>`;
   const canonical = `${SITE}/history/${id.slug}/${vinNorm}`;
-  const body2 = body + `<!-- data: ${dataSource || "archive"} -->`;
+  // Road type (lib/_roadType.js): a non-road lot (boat/aircraft/standalone trailer/memorabilia/parts/
+  // loose engine) is noindex and out of every sitemap; motorcycles and other self-propelled vehicles
+  // are indexable in their own sitemap. LANE C: when roadBucket is "motorcycle" or "other", the page
+  // wording still says "car" (the title, the lead sentence and the section headings) - see
+  // docs/lane-notes.md for the exact strings to change to the vehicle's type.
+  const roadBucket = classifyRoad({ title: (newest && newest.title) || name, make: id.make });
+  const body2 = body + `<!-- data: ${dataSource || "archive"} --><!-- roadtype: ${roadBucket} -->`;
   const ld = [{
     "@context": "https://schema.org", "@type": "Vehicle", name, vehicleIdentificationNumber: vinNorm,
     mileageFromOdometer: lastSale && lastSale.mileage ? { "@type": "QuantitativeValue", value: Math.round(lastSale.mileage), unitCode: "SMI" } : undefined,
@@ -336,7 +343,7 @@ ${WHY_RESULT_HTML}
   // place in sitemap-vins.xml. This gate MUST match the VIN sitemap's gate so index state and sitemap
   // membership stay coherent (search-rules rule 7). Single-priced-appearance pages stay noindex.
   const pricedCount = appearances.filter(a => a.priceUsd || a.bidUsd || a.nativeBid).length;
-  const index = pricedCount >= 2 && realVin(vinNorm) && !!(id.family && id.make) && !(await deadPhotos(env)).vins.has(vinNorm);
+  const index = roadBucket !== "nonroad" && pricedCount >= 2 && realVin(vinNorm) && !!(id.family && id.make) && !(await deadPhotos(env)).vins.has(vinNorm);
   await logPageView(env, { path: canonical.replace(SITE, ""), referer: req.headers["referer"] || req.headers["referrer"], userAgent: req.headers["user-agent"] });
   send(res, 200, page({ title: `${name}, VIN ${vinNorm}: auction history`, description: story, canonical, body: body2, ld, index }), {}, index);
 }
@@ -610,11 +617,17 @@ async function rollout(env) {
     if (rows.length < 1000) break;
   }
   const counts = { vins: per.size, non_vehicle: 0, junk_identifier: 0, no_proper_title: 0, no_photo: 0, single_noindex: 0, multi_candidates: 0, multi_indexable: 0, hubs_indexable: 0 };
-  const hubs = new Map(), multi = [], merged = new Map();
+  const hubs = new Map(), multi = [], motoMulti = [], otherMulti = [], merged = new Map();
   for (const [vin, g] of per) {
-    if (g.type && g.type !== "car") { counts.non_vehicle++; continue; }
     if (!realVin(vin)) { counts.junk_identifier++; continue; }
-    if (!g.title || !g.make || !saneFamily(g.family)) { counts.no_proper_title++; continue; }
+    if (!g.title) { counts.no_proper_title++; continue; }
+    // ONE road-type classifier (lib/_roadType.js), same as buildVinIndex: non-road lots never reach
+    // here (buildVinIndex already drops them from vin_index), but classify again so a pre-rebuild index
+    // routes correctly too. car -> the VIN sitemap; motorcycle / other -> their own sitemap; nonroad out.
+    const bucket = classifyRoad({ title: g.title, vehicleType: g.type, make: g.make });
+    if (bucket === "nonroad") { counts.non_vehicle++; continue; }
+    if (bucket !== "car") { if (g.n >= 2) (bucket === "motorcycle" ? motoMulti : otherMulti).push({ vin, g }); continue; }
+    if (!g.make || !saneFamily(g.family)) { counts.no_proper_title++; continue; }
     if (!g.photo) counts.no_photo++;   // tracked for reporting; a photoless car is still indexable (priced-appearance gate below)
     const c = canonicalHub(g.make, g.family);
     const raw = slugify(g.make) + "-" + slugify(g.family), hk = slugify(c.make) + "-" + slugify(c.family);
@@ -652,10 +665,30 @@ async function rollout(env) {
     }));
     for (const x of part) if (x) { okHubs.push(x.k); if (x.fb) fallback.push({ url: `/history/${x.k}`, name: x.fb, sales: hubs.get(x.k).sales }); }
   }
-  counts.multi_indexable = vins.length; counts.hubs_candidates = hubs.size; counts.hubs_indexable = okHubs.length; counts.hubs_fallback_named = fallback.length;
+  // Motorcycles + other self-propelled (tractor/golf cart/ATV/UTV/RV/military): same 2+-priced gate and
+  // canonical slug as cars, but no hub, and listed in their own sitemap. A VIN whose page would 404
+  // (carIdentity null) is dropped, so neither sitemap ever lists a dead page.
+  const validateList = async cands => {
+    const out = [];
+    for (let i = 0; i < cands.length; i += 40) {
+      const part = await Promise.all(cands.slice(i, i + 40).map(async ({ vin, g }) => {
+        try {
+          const { appearances, ok } = await vinAppearances(env, vin);
+          if (!ok || appearances.filter(a => a.priceUsd || a.bidUsd || a.nativeBid).length < 2) return null;
+          const id = await carIdentity(appearances, vin);
+          return id && id.family && id.make ? { vin, loc: `${SITE}/history/${id.slug}/${vin}`, lastmod: (g.date || "").slice(0, 10) } : null;
+        } catch { return null; }
+      }));
+      for (const u of part) if (u) out.push(u);
+    }
+    return out;
+  };
+  const motos = await validateList(motoMulti), others = await validateList(otherMulti);
+  counts.multi_indexable = vins.length; counts.motorcycles_indexable = motos.length; counts.other_indexable = others.length;
+  counts.hubs_candidates = hubs.size; counts.hubs_indexable = okHubs.length; counts.hubs_fallback_named = fallback.length;
   counts.hubs_alias_merged = merged.size;
   const hubPhotos = {}; for (const k of okHubs) hubPhotos[k] = hubs.get(k).photos;
-  ROLL = { counts, hubs: okHubs.sort(), hubPhotos, vins, fallback, merged: [...merged.entries()].map(([from, to]) => ({ from: "/history/" + from, to: "/history/" + to })) }; ROLL_AT = Date.now();
+  ROLL = { counts, hubs: okHubs.sort(), hubPhotos, vins, motos, others, fallback, merged: [...merged.entries()].map(([from, to]) => ({ from: "/history/" + from, to: "/history/" + to })) }; ROLL_AT = Date.now();
   return ROLL;
 }
 async function sitemap(res, env, which) {
@@ -670,6 +703,8 @@ async function sitemap(res, env, which) {
     return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${items}</sitemapindex>`);
   }
   const dead = await deadPhotos(env);
+  if (which === "motorcycles") return res.status(200).send(urlset((r.motos || []).filter(u => !dead.vins.has(u.vin))));
+  if (which === "other") return res.status(200).send(urlset((r.others || []).filter(u => !dead.vins.has(u.vin))));
   if (which === "hubs") return res.status(200).send(urlset(r.hubs.filter(h => !dead.hubs.has(h)).map(h => ({ loc: `${SITE}/history/${h}` }))));
   const page = Math.max(1, Number(which) || 1) - 1;
   return res.status(200).send(urlset(r.vins.filter(u => !dead.vins.has(u.vin)).slice(page * SITEMAP_PAGE, (page + 1) * SITEMAP_PAGE)));

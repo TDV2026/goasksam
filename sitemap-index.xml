@@ -5,6 +5,8 @@
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap><loc>https://goasksam.com/sitemap-pages.xml</loc></sitemap>
   <sitemap><loc>https://goasksam.com/sitemap-vins.xml</loc></sitemap>
+  <sitemap><loc>https://goasksam.com/sitemap-motorcycles.xml</loc></sitemap>
+  <sitemap><loc>https://goasksam.com/sitemap-other.xml</loc></sitemap>
   <sitemap><loc>https://goasksam.com/sitemap-specs.xml</loc></sitemap>
   <sitemap><loc>https://goasksam.com/sitemap-hubs.xml</loc></sitemap>
 </sitemapindex>
