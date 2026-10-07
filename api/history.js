@@ -9,6 +9,7 @@
 import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, liveListing, addWatch, carSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle, canonicalHub } from "./_historyData.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { PAGE_CSS as CSS, FONT_LINKS, railHtml, WHY_RESULT_HTML } from "./_chrome.js";
+import { recordUsageEvent } from "./_usage.js";
 
 const SITE = "https://goasksam.com";
 // Restyle (Oct 2026): the Buy design. Cream paper, serif, hairlines not boxes, no badges, larger photo.
@@ -248,7 +249,7 @@ ${WHY_RESULT_HTML}
   // Staged rollout: a car page is indexable only with 2+ auction appearances, a photo, a real
   // identifier and a proper name (carIdentity already refuses non-vehicles). Single-appearance pages
   // stay noindex for now (still reachable from the hubs).
-  const index = appearances.length >= 2 && appearances.some(a => a.image) && realVin(vinNorm) && !!(id.family && id.make);
+  const index = appearances.length >= 2 && appearances.some(a => a.image) && realVin(vinNorm) && !!(id.family && id.make) && !(await deadPhotos(env)).vins.has(vinNorm);
   send(res, 200, page({ title: `${name} (${vinNorm}) auction history and sale price`, description: answer, canonical, body: body2, ld, index }), {}, index);
 }
 // WHAT THE LISTING SAID: facts from the sale's own record, worded by Sam; never the house's text.
@@ -332,7 +333,7 @@ ${WHY_RESULT_HTML}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>`;
   const ld = [{ "@context": "https://schema.org", "@type": "ItemList", name: `${name} auction results`, url: canonical,
     itemListElement: list.slice(0, 200).map((g, i) => ({ "@type": "ListItem", position: i + 1, url: hub.year ? `${SITE}/history/${slug}/${g.vin}` : `${SITE}/vin/${g.vin}`, name: `${name}, VIN ${g.vin}` })) }];
-  const hubIndex = !hub.year && list.some(g => g.apps.some(a => a.image)) && (!!id.vehicle || (!!fbMake && salesN >= 5 && !!id.family && !GENERIC_MODEL.test(id.family)));
+  const hubIndex = !hub.year && list.some(g => g.apps.some(a => a.image)) && (!!id.vehicle || (!!fbMake && salesN >= 5 && !!id.family && !GENERIC_MODEL.test(id.family))) && !(await deadPhotos(env)).hubs.has(slug);
   send(res, 200, page({ title: `${name} auction results and sale prices`, description: ctx, canonical, body, ld, index: hubIndex }), {}, hubIndex);
 }
 
@@ -351,6 +352,7 @@ export default async function handler(req, res) {
   if (req.method !== "GET" && req.method !== "HEAD") return res.status(405).end();
   const q = req.query || {};
   if (q.sitemap) return sitemap(res, env, String(q.sitemap));
+  if (q.photocheck) return photoCheck(req, res, env, String(q.photocheck));
   const slug = String(q.slug || "").toLowerCase().replace(/[^a-z0-9-]/g, "");
   const vin = q.vin ? normVin(q.vin) : "";
   try {
@@ -421,8 +423,8 @@ async function rollout(env) {
     const rows = await supabaseSelectSafe(env, `vin_index?select=vin_norm,year,make,model_family,listing_title,photo_url,vehicle_type,appearance_date,result&order=id.asc&limit=1000&offset=${page * 1000}`);
     if (!Array.isArray(rows) || !rows.length) break;
     for (const r of rows) {
-      const g = per.get(r.vin_norm) || { n: 0, sold: 0, photo: false, title: null, year: null, make: null, family: null, type: null, date: "" };
-      g.n++; if (r.photo_url) g.photo = true; if (/^sold/i.test(String(r.result || ""))) g.sold++;
+      const g = per.get(r.vin_norm) || { n: 0, sold: 0, photo: false, photos: [], title: null, year: null, make: null, family: null, type: null, date: "" };
+      g.n++; if (r.photo_url) { g.photo = true; if (g.photos.length < 4 && !g.photos.includes(r.photo_url)) g.photos.push(r.photo_url); } if (/^sold/i.test(String(r.result || ""))) g.sold++;
       if (String(r.appearance_date || "") >= g.date) { g.date = String(r.appearance_date || ""); g.title = r.listing_title || g.title; g.year = r.year || g.year; g.make = r.make || g.make; g.family = r.model_family || g.family; }
       g.type = g.type || r.vehicle_type; per.set(r.vin_norm, g);
     }
@@ -438,7 +440,7 @@ async function rollout(env) {
     const c = canonicalHub(g.make, g.family);
     const raw = slugify(g.make) + "-" + slugify(g.family), hk = slugify(c.make) + "-" + slugify(c.family);
     if (raw !== hk) { merged.set(raw, hk); }
-    const h = hubs.get(hk) || { vins: 0, sales: 0, make: c.make }; h.vins++; h.sales += g.sold; hubs.set(hk, h);
+    const h = hubs.get(hk) || { vins: 0, sales: 0, make: c.make, photos: [] }; h.vins++; h.sales += g.sold; if (h.photos.length < 3 && g.photos[0]) h.photos.push(g.photos[0]); hubs.set(hk, h);
     if (g.n >= 2) { counts.multi_candidates++; multi.push({ vin, g }); } else counts.single_noindex++;
   }
   const vins = [];
@@ -450,7 +452,9 @@ async function rollout(env) {
         const { appearances, ok } = await vinAppearances(env, vin);
         if (!ok || appearances.length < 2 || !appearances.some(a => a.image)) return null;
         const id = await carIdentity(appearances, vin);
-        return id && id.family && id.make ? { loc: `${SITE}/history/${id.slug}/${vin}`, lastmod: g.date.slice(0, 10) } : null;
+        // Photos in the order the page tries them: the page's own hero first, then the others.
+        const photos = [...new Set(appearances.map(a => a.image).filter(Boolean).concat(g.photos))].slice(0, 4);
+        return id && id.family && id.make ? { vin, loc: `${SITE}/history/${id.slug}/${vin}`, lastmod: g.date.slice(0, 10), photos } : null;
       } catch { return null; }
     }));
     for (const u of part) if (u) vins.push(u); else counts.no_proper_title++;
@@ -470,7 +474,8 @@ async function rollout(env) {
   }
   counts.multi_indexable = vins.length; counts.hubs_candidates = hubs.size; counts.hubs_indexable = okHubs.length; counts.hubs_fallback_named = fallback.length;
   counts.hubs_alias_merged = merged.size;
-  ROLL = { counts, hubs: okHubs.sort(), vins, fallback, merged: [...merged.entries()].map(([from, to]) => ({ from: "/history/" + from, to: "/history/" + to })) }; ROLL_AT = Date.now();
+  const hubPhotos = {}; for (const k of okHubs) hubPhotos[k] = hubs.get(k).photos;
+  ROLL = { counts, hubs: okHubs.sort(), hubPhotos, vins, fallback, merged: [...merged.entries()].map(([from, to]) => ({ from: "/history/" + from, to: "/history/" + to })) }; ROLL_AT = Date.now();
   return ROLL;
 }
 async function sitemap(res, env, which) {
@@ -480,11 +485,76 @@ async function sitemap(res, env, which) {
   const r = await rollout(env);
   const urlset = list => `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${list.map(u => `<url><loc>${xmlEsc(u.loc)}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ""}</url>`).join("")}</urlset>`;
   if (which === "index") {
-    const pages = Math.max(1, Math.ceil(r.vins.length / SITEMAP_PAGE));
+    const pages = Math.max(1, Math.ceil(r.vins.length / SITEMAP_PAGE));   // (dead-photo pages are dropped inside each page)
     const items = [`<sitemap><loc>${SITE}/sitemap-vins-hubs.xml</loc></sitemap>`].concat(Array.from({ length: pages }, (_, k) => `<sitemap><loc>${SITE}/sitemap-vins-${k + 1}.xml</loc></sitemap>`)).join("");
     return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${items}</sitemapindex>`);
   }
-  if (which === "hubs") return res.status(200).send(urlset(r.hubs.map(h => ({ loc: `${SITE}/history/${h}` }))));
+  const dead = await deadPhotos(env);
+  if (which === "hubs") return res.status(200).send(urlset(r.hubs.filter(h => !dead.hubs.has(h)).map(h => ({ loc: `${SITE}/history/${h}` }))));
   const page = Math.max(1, Number(which) || 1) - 1;
-  return res.status(200).send(urlset(r.vins.slice(page * SITEMAP_PAGE, (page + 1) * SITEMAP_PAGE)));
+  return res.status(200).send(urlset(r.vins.filter(u => !dead.vins.has(u.vin)).slice(page * SITEMAP_PAGE, (page + 1) * SITEMAP_PAGE)));
+}
+
+// ---------------------------------------------------------------- nightly hero-photo check
+// Houses take listing photos down (their CDN then answers 403). Every night each indexable VIN page
+// and hub has its photos checked (HEAD, about 8 a second, bounded); a page whose photos are ALL dead
+// leaves the sitemap and turns noindex until a later check finds a live one. Only a hard 403/404/410
+// counts as dead: a timeout or 5xx is "unknown" and never drops a page. State: app_config
+// history_photo_dead. Two Vercel crons (vins, hubs), each well under the function limit.
+let DEAD = null, DEAD_AT = 0;
+async function deadPhotos(env) {
+  if (DEAD && Date.now() - DEAD_AT < 600e3) return DEAD;
+  const rows = await supabaseSelectSafe(env, "app_config?key=eq.history_photo_dead&select=value&limit=1");
+  const v = Array.isArray(rows) && rows[0] ? (typeof rows[0].value === "string" ? JSON.parse(rows[0].value) : rows[0].value) : {};
+  DEAD = { raw: v || {}, vins: new Set((v && v.vins) || []), hubs: new Set((v && v.hubs) || []) }; DEAD_AT = Date.now();
+  return DEAD;
+}
+async function photoStatus(url) {
+  const go = async (method) => {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 6000);
+    try { const r = await fetch(url, { method, redirect: "follow", signal: ctl.signal, headers: method === "GET" ? { Range: "bytes=0-0", "User-Agent": "GoAskSam photo check" } : { "User-Agent": "GoAskSam photo check" } }); return r.status; }
+    catch { return 0; } finally { clearTimeout(t); }
+  };
+  let st = await go("HEAD");
+  if (st === 405 || st === 501 || st === 0) st = await go("GET");
+  return st >= 200 && st < 400 ? "live" : (st === 403 || st === 404 || st === 410) ? "dead" : "unknown";
+}
+async function photoCheck(req, res, env, kind) {
+  const cronSecret = process.env.CRON_SECRET, probeKey = process.env.PROBE_KEY || process.env.OPS_KEY;
+  const isCron = !!cronSecret && String(req.headers["authorization"] || "") === `Bearer ${cronSecret}`;
+  if (!isCron && (!probeKey || String((req.query && req.query.key) || "") !== probeKey)) return res.status(401).json({ error: "Unauthorized." });
+  if (kind !== "vins" && kind !== "hubs") return res.status(400).json({ error: "photocheck=vins|hubs" });
+  const t0 = Date.now(), BUDGET = 240e3, RATE = 8;
+  const r = await rollout(env);
+  const items = kind === "vins" ? r.vins.map(u => ({ key: u.vin, photos: u.photos || [] })) : r.hubs.map(h => ({ key: h, photos: r.hubPhotos[h] || [] }));
+  const prev = await deadPhotos(env), deadSet = new Set(kind === "vins" ? prev.vins : prev.hubs);
+  const counts = { kind, pages: items.length, live: 0, live_after_fallback: 0, dead: 0, unknown: 0, unchecked: 0, restored: 0, newly_dead: 0, requests: 0 };
+  let next = 0, started = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      if (Date.now() - t0 > BUDGET) return;
+      const it = items[next++];
+      let state = "dead", firstDead = false;
+      if (!it.photos.length) state = "unknown";
+      for (let i = 0; i < it.photos.length; i++) {
+        // pace: about RATE requests a second across all workers
+        const wait = started / RATE * 1000 - (Date.now() - t0); if (wait > 0) await new Promise(x => setTimeout(x, wait));
+        started++; counts.requests++;
+        const st = await photoStatus(it.photos[i]);
+        if (st === "live") { state = "live"; if (i > 0) firstDead = true; break; }
+        if (st === "unknown") state = "unknown";
+      }
+      if (state === "live") { counts.live++; if (firstDead) counts.live_after_fallback++; if (deadSet.delete(it.key)) counts.restored++; }
+      else if (state === "dead") { counts.dead++; if (!deadSet.has(it.key)) counts.newly_dead++; deadSet.add(it.key); }
+      else counts.unknown++;   // unknown keeps the previous state
+    }
+  };
+  await Promise.all(Array.from({ length: 6 }, worker));
+  counts.unchecked = Math.max(0, items.length - next);
+  counts.ms = Date.now() - t0;
+  const value = { ...prev.raw, [kind]: [...deadSet], [kind + "_checked_at"]: new Date().toISOString(), [kind + "_counts"]: counts };
+  const w = await fetch(`${env.supabaseUrl}/rest/v1/app_config?on_conflict=key`, { method: "POST", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify([{ key: "history_photo_dead", value }]) });
+  DEAD = null;
+  await recordUsageEvent({ event_type: "history_photo_check", route: "history_photo_check", status: w.ok ? "ok" : "write_failed", oldcarsdata_metered_requests: 0, metadata: counts }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+  return res.status(200).json({ ok: w.ok, ...counts });
 }

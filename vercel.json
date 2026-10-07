@@ -63,6 +63,8 @@
   "crons": [
     { "path": "/api/usageDashboard?view=ops&task=depth", "schedule": "0 8 * * *" },
     { "path": "/api/usageDashboard?view=ops&task=fill", "schedule": "0 12 * * *" },
-    { "path": "/api/pullLive", "schedule": "15 */4 * * *" }
+    { "path": "/api/pullLive", "schedule": "15 */4 * * *" },
+    { "path": "/api/history?photocheck=vins", "schedule": "40 9 * * *" },
+    { "path": "/api/history?photocheck=hubs", "schedule": "50 9 * * *" }
   ]
 }
