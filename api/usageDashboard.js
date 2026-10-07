@@ -3295,6 +3295,18 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "milesfill", mode, write, processed: rows.length, nextCursor: rows[rows.length - 1].id, computable: fixes.length, wrote, writeErrors, filledBySource, leftNullBySource, samples });
   }
 
+  // task=urlproof: READ-ONLY. One filled row (url_norm + vin) per source, for the car_history proof.
+  if (task === "urlproof") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const out = {};
+    for (const s of ["bringatrailer", "rmsothebys", "gooding", "bonhams"]) {
+      const r = await supabaseSelect(env, `sales_archive?source_slug=eq.${s}&url_norm=not.is.null&vin_norm=not.is.null&select=url_norm,vin_norm,u:raw_record->>url&limit=1`).catch(() => null);
+      out[s] = (r && r[0]) ? { url: r[0].u, url_norm: r[0].url_norm, vin: r[0].vin_norm } : null;
+    }
+    const filledSales = await (async () => { try { const x = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?url_norm=not.is.null&select=id&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" } }); const m = /\/(\d+)$/.exec(x.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } })();
+    return res.status(200).json({ task: "urlproof", filledSalesRows: filledSales, bySource: out });
+  }
+
   // task=urlnorm: backfill the indexed url_norm column from raw_record url/source_url. ZERO OCD.
   //   ?table=sales  (id cursor) | ?table=attempts (source_record_id cursor). ?write=1 to persist.
   if (task === "urlnorm") {
