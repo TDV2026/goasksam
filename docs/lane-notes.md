@@ -41,3 +41,17 @@ when the work has landed.
   snapshot for scaffolding NOW; the live pages will read the nightly `spec_pages` table (being built next,
   rule 11) keyed by slug with this exact shape, so build against the fields, not the file. `specPage(slug)`
   returns null for a spec that never existed (e.g. a 991 Turbo manual - PDK only); those have no page.
+- 2026-10-07 (Lane B): nightly `spec_pages` table built (rule 11 - the pages read from a table, never
+  compute specPage() on request). Files: `docs/supabase-spec-pages-schema.sql` (DDL - PENDING, Sam must
+  run it once in the Supabase SQL editor, standing rule), `scripts/buildSpecPagesCache.js` (the nightly
+  build - wired into `.github/workflows/nightly.yml` right after "Refresh spec market cache", writes
+  every row from `allSpecSlugs911()` via `specPage()`, 6-way concurrency), `lib/specPages.js
+  refreshLiveCounts()` + `api/refreshSpecLiveCounts.js` (the cheap 4-hourly liveListings-only refresh, a
+  new Vercel cron at `35 */4 * * *`, 20 minutes after `/api/pullLive` so live_listings is freshly
+  filled). The table's FIRST nightly run is the regen that bakes in tonight's race-car fence (Cup/RSR/
+  GT3 R/GT3 Cup/Supercup), so `docs/spec-pages-911.json` (committed f8e6ce4, pre-fence) never needs a
+  second manual run - the table supersedes it once the DDL lands and the nightly runs once.
+  TIMING: could not measure the real build duration - Supabase credentials pull empty on this machine
+  (sensitive Vercel env vars, a standing limitation; see memory). Once the DDL is applied, the first
+  real GitHub Actions run will show the step's actual duration; estimate (not measured) is a few minutes
+  for 304 specs at 6-way concurrency, hubs costing more than leaves (each hub re-aggregates its children).
