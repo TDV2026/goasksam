@@ -134,8 +134,7 @@ ${description ? `<meta name="description" content="${esc(description)}">` : ""}
 ${index ? '<meta name="robots" content="index, follow">' : '<meta name="robots" content="noindex, follow">'}
 ${canonical ? `<link rel="canonical" href="${esc(canonical)}">` : ""}
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;family=Instrument+Sans:wght@400;500;600&amp;display=swap">
+${FONT_LINKS}
 <style>${CSS}${STYLE}</style>${(ld || []).map(jsonLd).join("")}</head><body>
 ${railHtml("history")}
 <main><div class="col">${body}</div></main></body></html>`;
