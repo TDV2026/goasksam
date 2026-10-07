@@ -413,7 +413,7 @@ function groupListsHtml(d, id, vinNorm, cards, urlVins, others) {
     });
     const shown = rows.slice(0, 30);
     const ranged = d.tier === "result" && Array.isArray(d.cluster);
-    const lead = ranged ? `The ${cards.length} sales behind the range above, in ${windowText(d)}` : `The ${cards.length === 1 ? "one sale" : cards.length + " sales"} in ${poolWindow(d)}, too few to mark a range`;
+    const lead = ranged ? `The ${cards.length} sales behind the range above, in ${windowText(d)}` : cards.length >= 8 ? `The ${cards.length} sales in ${poolWindow(d)}, too spread out to mark one range` : `The ${cards.length === 1 ? "one sale" : cards.length + " sales"} in ${poolWindow(d)}, too few to mark a range`;
     out.push(`<section class="sec"><h2>${esc(fam.charAt(0).toUpperCase() + fam.slice(1))} that sold</h2><p class="sub">${esc(lead)}. Newest first${rows.length > shown.length ? `, the latest ${shown.length} shown` : ""}.</p><ul class="others">${shown.join("")}</ul></section>`);
   }
   // Other bodies, same window, each its own list.
