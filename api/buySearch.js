@@ -17,7 +17,7 @@ import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.j
 import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
 import { runTurn } from "../lib/live/samChat.js";
-import { supabaseSelect } from "../lib/_supabase.js";
+import { supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { anthropicCost, recordUsageEvent } from "./_usage.js";
 
 const FIRST = 10, MAX = 200;
@@ -119,7 +119,8 @@ export default async function handler(req, res) {
       }
       const byVin = Object.fromEntries(reps.map(v => [v.vin_norm, v.appearances]));
       const pick = r => ({ id: r.id, title: r.listing_title, house: r.source, location: r.location, ends: r.end_time });
-      return res.status(200).json({ live: rows.length,
+      const all = await supabaseSelectAll(env, "live_listings?status=eq.live&select=id,photo_url,has_reserve&order=id.asc").catch(() => null);
+      return res.status(200).json({ live: rows.length, liveTotal: all ? all.length : null, noPhotoTotal: all ? all.filter(r => !r.photo_url).length : null, noPhotoIds: all ? all.filter(r => !r.photo_url).slice(0, 10).map(r => r.id) : null,
         repeats: us.filter(r => byVin[r.vin_norm]).map(r => ({ ...pick(r), appearances: byVin[r.vin_norm] })).sort((a, b) => b.appearances - a.appearances).slice(0, 15),
         nophoto: us.filter(r => !r.photo_url).slice(0, 10).map(pick),
         noreserve: us.filter(r => r.has_reserve === false).slice(0, 10).map(pick),
