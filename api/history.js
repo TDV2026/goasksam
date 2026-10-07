@@ -143,7 +143,7 @@ ${railHtml("history")}
 function send(res, status, html, extra = {}, index = false) {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   if (!index) res.setHeader("X-Robots-Tag", "noindex, follow");
-  res.setHeader("Cache-Control", status === 200 ? "public, s-maxage=600, stale-while-revalidate=3600" : "no-store");
+  res.setHeader("Cache-Control", status === 200 ? "public, s-maxage=3600, stale-while-revalidate=86400" : "no-store");
   for (const k of Object.keys(extra)) res.setHeader(k, extra[k]);
   res.status(status).send(html);
 }
@@ -178,7 +178,11 @@ function nounOf(d, id) {
   const bw = v.bodyStyle ? BODY_PLURAL[String(v.bodyStyle).toLowerCase()] : "";
   // A family that already ends in its body word ("SLS AMG Roadster") is pluralised, never doubled.
   if (bw && new RegExp("\\b" + bw.replace(/s$/, "") + "$", "i").test(fam)) return fam + "s";
-  return bw ? fam + " " + bw : fam + "s";
+  if (bw) return fam + " " + bw;
+  // "MG A cars" (a one- or two-letter family alone reads as a word), "Buses", "570S cars", "CL600s".
+  if (/^[A-Za-z]{1,2}$/.test(fam)) return `${id.make} ${fam} cars`;
+  if (/\d[A-Z]+$/.test(fam)) return fam + " cars";
+  return /(s|x|z|ch|sh)$/i.test(fam) ? fam + "es" : fam + "s";
 }
 function oneBoxBlock(d, id, oneboxHref, ctx) {
   if (!d) return "";
@@ -235,10 +239,10 @@ async function carPage(req, res, env, slug, vin) {
     const liveHouse = live ? houseName(live.source) : null, nowClause = live ? `is back at auction now ${on(liveHouse)}` : null;
     const join = cs => cs.length === 1 ? cs[0] : cs.length === 2 ? cs.join(" and ") : cs.slice(0, -1).join(", ") + ", and " + cs[cs.length - 1];
     if (appearances.length <= 3) {
-      let prev = null;
+      let prev = null, prevKind = null;
       const cs = appearances.slice().reverse().map(a => {
-        const where = prev && prev === a.house ? "there" : on(a.house); prev = a.house;
-        return a.kind === "sale" ? `sold for ${salePrice(a)} ${where} in ${monthYear(a.date)}` : `was ${bidPrice(a) ? `bid to ${bidPrice(a)}` : "offered"} ${where} in ${monthYear(a.date)} without selling`;
+        const where = prev && prev === a.house ? "there" : on(a.house), prevSale = prevKind === "sale"; prev = a.house; prevKind = a.kind;
+        return a.kind === "sale" ? `${prevSale ? "for" : "sold for"} ${salePrice(a)} ${where} in ${monthYear(a.date)}` : `was ${bidPrice(a) ? `bid to ${bidPrice(a)}` : "offered"} ${where} in ${monthYear(a.date)} without selling`;
       });
       if (nowClause) cs.push(prev && prev === liveHouse ? "is back at auction there now" : nowClause);
       return `This ${name} ${join(cs)}, as of ${asOf}.`;
@@ -265,7 +269,8 @@ async function carPage(req, res, env, slug, vin) {
   const exactSale = lastSale && lastSale.priceUsd ? { price: lastSale.priceUsd, mileage: lastSale.mileage, soldDate: lastSale.date } : null;
   const [d, live, said, others] = await Promise.all([oneBoxFor(env, id, exactSale), liveListing(env, vinNorm), listingSaid(env, vinNorm).catch(() => null), familySales(env, id, vinNorm, 200).catch(() => null)]);
   const story = storyOf(live);
-  const poolCards = d && Array.isArray(d.cards) ? d.cards : [];
+  const poolCards = d && Array.isArray(d.cards) && d.cards.length ? d.cards
+    : (d && d.thin && Array.isArray(d.thin.receipts) ? d.thin.receipts.map(r => ({ price: r.hammer, mi: r.mileage, date: r.date, platform: r.venue, url: r.url, title: r.title, vin: r.vinNorm, year: r.year })) : []);
   const urlVins = poolCards.length ? await vinsForUrls(env, poolCards.map(c => c.url).filter(Boolean)).catch(() => null) : null;
   const n = poolCount(d);
   let ctx = "";
@@ -366,7 +371,8 @@ function specRailHtml(d, id, lastSale) {
   }
   const n = poolCount(d);
   if (!n) return "";
-  const line = n < 8 ? `Only ${n} ${fam} ${n === 1 ? "has" : "have"} sold in ${poolWindow(d)}, too few to mark a range.` : `${fam} sold too spread out in ${poolWindow(d)} to mark one range.`;
+  const one = fam.replace(/ cars$/, "").replace(/(ch|sh|s|x|z)es$/, "$1").replace(/(?<!s)s$/, "");
+  const line = n === 1 ? `Only one ${one} has sold in ${poolWindow(d)}, too few to mark a range.` : n < 8 ? `Only ${n} ${fam} have sold in ${poolWindow(d)}, too few to mark a range.` : `${fam.charAt(0).toUpperCase() + fam.slice(1)} sold too spread out in ${poolWindow(d)} to mark one range.`;
   return `<section class="sec" aria-label="What cars like it sold for"><h2>What ${esc(fam)} sell for</h2><p class="vthin">${esc(line)}</p></section>`;
 }
 // BACK AT AUCTION NOW: the live listing as a /buy card (photo with chips, title, facts, link out).
@@ -400,13 +406,15 @@ function groupListsHtml(d, id, vinNorm, cards, urlVins, others) {
   const fam = d ? nounOf(d, id) : null;
   if (cards.length && fam) {
     const rows = cards.slice().sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))).map(c => {
-      const v = urlVins && c.url ? urlVins.get(c.url) : null;
+      const v = c.vin ? { vin: c.vin, year: Number(c.year) || null } : (urlVins && c.url ? urlVins.get(c.url) : null);
       const year = (v && v.year) || Number((/\b(19|20)\d{2}\b/.exec(c.title || "") || [])[0]) || null;
       const href = v ? `/history/${[year, slugify(id.make), slugify(id.family)].filter(Boolean).join("-")}/${v.vin}` : (c.url ? utm(c.url) : null);
       return saleRow({ year, miles: c.mi, price: c.price ? usd(c.price) : "", date: c.date, house: c.platform || "", href, mine: v && v.vin === vinNorm });
     });
     const shown = rows.slice(0, 30);
-    out.push(`<section class="sec"><h2>${esc(fam.charAt(0).toUpperCase() + fam.slice(1))} that sold</h2><p class="sub">The ${cards.length} sales behind the range above, in ${esc(windowText(d))}. Newest first${rows.length > shown.length ? `, the latest ${shown.length} shown` : ""}.</p><ul class="others">${shown.join("")}</ul></section>`);
+    const ranged = d.tier === "result" && Array.isArray(d.cluster);
+    const lead = ranged ? `The ${cards.length} sales behind the range above, in ${windowText(d)}` : `The ${cards.length === 1 ? "one sale" : cards.length + " sales"} in ${poolWindow(d)}, too few to mark a range`;
+    out.push(`<section class="sec"><h2>${esc(fam.charAt(0).toUpperCase() + fam.slice(1))} that sold</h2><p class="sub">${esc(lead)}. Newest first${rows.length > shown.length ? `, the latest ${shown.length} shown` : ""}.</p><ul class="others">${shown.join("")}</ul></section>`);
   }
   // Other bodies, same window, each its own list.
   const myBody = d && d.resolvedCar && d.resolvedCar.bodyStyle ? bodyOfTitle(d.resolvedCar.bodyStyle) : null;

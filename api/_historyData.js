@@ -170,7 +170,10 @@ export async function carIdentity(apps, vin) {
     return !KNOWN_MAKES.some(k => other(k) && makeWordRe(k).test(t));
   };
   if (!apps.every(sameMake)) return null;
-  const year = Number(v.year) || newest.year || Number((cleanTitle(newest.title).match(/\b(18|19|20)\d{2}\b/) || [])[0]) || null;
+  // The record's own stored year wins when the title carries it too: a title like "Mille Miglia 2021
+  // participant, 1954 Jaguar XK120" made the resolver read 2021 for a 1954 car.
+  const stored = Number(newest.year) || null;
+  const year = (stored && new RegExp("\\b" + stored + "\\b").test(String(newest.title || "")) ? stored : null) || Number(v.year) || stored || Number((cleanTitle(newest.title).match(/\b(18|19|20)\d{2}\b/) || [])[0]) || null;
   const family = familyOf(v);
   const id = { year, make: v.make, model: v.model, trim: v.trim || null, family, genCode: v.genCode || null,
     bodyStyle: v.bodyStyle || (apps.find(a => a.body) || {}).body || null, vehicle: { ...v, year } };
