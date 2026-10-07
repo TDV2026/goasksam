@@ -32,15 +32,17 @@ function cardOf(x) {
     vin_norm: r.vin_norm || null, generation: x.gen ? x.gen.code : null, unknown: x.unknown, flag: cardFlag(r),
     reserve: r.has_reserve === true ? "reserve" : r.has_reserve === false ? "none" : null, says: listingSays(r) };
 }
-// The car's own past appearances (vin_index, oldest first) for the card's timeline. This live listing
-// itself is never one of them (it is the "Now" dot).
+// The car's own past appearances, oldest first, for the card's timeline: vin_index, falling back to the
+// archive exactly as the Sam line's history does (vinAppearances), so the two never disagree. This
+// live listing itself is never one of them (it is the "Now" dot).
 async function timelineOf(env, x) {
   const vin = x.r.vin_norm; if (!vin || String(vin).length < 6) return null;
-  const rows = await supabaseSelect(env, `vin_index?vin_norm=eq.${encodeURIComponent(vin)}&select=appearance_date,source,result,price_usd,url&order=appearance_date.asc.nullslast&limit=40`).catch(() => null);
-  if (!Array.isArray(rows)) return null;
-  const today = new Date().toISOString().slice(0, 10), liveUrl = String(x.r.url || "").replace(/\/+$/, "");
-  return rows.filter(r => r.appearance_date && String(r.appearance_date).slice(0, 10) < today && String(r.url || "").replace(/\/+$/, "") !== liveUrl)
-    .map(r => ({ date: String(r.appearance_date).slice(0, 10), house: houseName(r.source), result: /^sold/.test(String(r.result)) ? "sold" : /withdraw/.test(String(r.result)) ? "withdrawn" : "not_sold", price: Number(r.price_usd) > 0 ? Math.round(Number(r.price_usd)) : null }));
+  const data = await vinAppearances(env, vin).catch(() => null);
+  if (!data || !data.ok) return null;
+  const today = new Date().toISOString().slice(0, 10), norm = u => String(u || "").replace(/^https?:\/\/(www\.)?/, "").replace(/\/+$/, "");
+  return data.appearances.filter(a => a.date && a.date < today && norm(a.url) !== norm(x.r.url))
+    .map(a => ({ date: a.date, house: a.house, result: a.kind === "sale" ? "sold" : (/withdraw/i.test(String(a.status || a.result || "")) ? "withdrawn" : "not_sold"), price: a.kind === "sale" ? (a.priceUsd || null) : (a.bidUsd || null) }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 async function enrich(env, x) {
   let [market, seen, timeline] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts), seenBefore(env, x.r.vin_norm), timelineOf(env, x)]);

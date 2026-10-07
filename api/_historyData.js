@@ -46,7 +46,7 @@ export async function vinAppearances(env, vin) {
     const apps = vi.map(r => { const sold = /^sold|^ended_sold|^sale/i.test(String(r.result || "")); const p = num(r.price_usd); return {
       kind: sold ? "sale" : "attempt", date: String(r.appearance_date || "").slice(0, 10) || null,
       priceUsd: sold ? p : null, bidUsd: sold ? null : p, nativePrice: null, nativeBid: null, currency: null,
-      house: houseName(r.source), url: r.url || null, mileage: num(r.mileage), title: r.listing_title || "", image: r.photo_url || null,
+      status: r.result || null, house: houseName(r.source), url: r.url || null, mileage: num(r.mileage), title: r.listing_title || "", image: r.photo_url || null,
       year: Number(r.year) || null, make: r.make || null, model: r.model || null, body: null, color: null }; });
     return { vinNorm: want, appearances: apps, ok: true, source: "vin_index", summary: Array.isArray(summary) && summary[0] ? summary[0] : null };
   }
