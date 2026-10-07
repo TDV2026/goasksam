@@ -19,6 +19,7 @@
   ],
   "rewrites": [
     { "source": "/sell", "destination": "/api/sellPage" },
+    { "source": "/sell-next", "destination": "/api/sellNext" },
     { "source": "/onebox", "destination": "/onebox.html" },
     { "source": "/o/:id", "destination": "/api/publicConfig?obShare=:id" },
     { "source": "/onebox-preview", "destination": "/onebox-preview.html" },
@@ -54,6 +55,9 @@
     },
     "api/publicConfig.js": {
       "includeFiles": "onebox.html"
+    },
+    "api/sellPage.js": {
+      "includeFiles": "index.html"
     },
     "api/sellerDecision.js": {
       "maxDuration": 60
