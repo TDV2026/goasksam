@@ -55,9 +55,6 @@
     "api/publicConfig.js": {
       "includeFiles": "onebox.html"
     },
-    "api/sellPage.js": {
-      "includeFiles": "index.html"
-    },
     "api/sellerDecision.js": {
       "maxDuration": 60
     },

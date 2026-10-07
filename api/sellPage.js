@@ -1,18 +1,16 @@
-// /sell (Oct 2026, search rules 1/3/5): index.html served with the parts a crawler must see in the raw
-// HTML. The registry title, the hero H1 (the same markup js/result-copy.js homeHeroHTML draws, so the
-// page reads the same before and after its scripts run), and one dated lead sentence with a real
-// number: how many collector car auction sales the archive holds from the last 12 months. The lead sits
-// at the top of #input-area as a home-only line (the scripts never redraw it). Edge-cached 1 hour.
-import fs from "node:fs";
-import path from "node:path";
+// /sell (Lane C, Oct 2026): where to sell a collector car, as a conversation with Sam (Claude with the
+// engine as tools, lib/sell/sellChat.js via /api/sellChat) in the /buy card design. The old wizard is
+// retired. Search rules: the registry title, an H1 and one dated lead sentence with a real number (the
+// last 12 months' auction sales in the archive) are in the raw HTML; a conversation is never a URL
+// (?car= only starts one in the page), so any query-string variant is noindex with /sell canonical.
+// Edge-cached 1 hour (the lead's count is recounted then).
+import { PAGE_CSS, FONT_LINKS, railHtml } from "./_chrome.js";
+import { BUY_CSS } from "./buy.js";
+import { SELL_CSS, SELL_CLIENT } from "../lib/sell/sellClient.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 
 const TITLE = "Where to sell your collector car";
-const HERO = `<div class="hero" id="hero"><div class="hp-hero">
-    <div class="hp-script">Go ahead, ask Sam.</div>
-    <h1>Tell me what vehicle you're selling.<br>I'll tell you where I'd sell it, <br class="hero-br2">and why.</h1>
-  </div></div>`;
-let shell = null, sold = { n: null, at: 0 };
+let sold = { n: null, at: 0 };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 async function soldLastYear() {
@@ -28,21 +26,31 @@ async function soldLastYear() {
 }
 
 export default async function handler(req, res) {
-  if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
   const n = await soldLastYear();
   const asOf = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" });
-  const lead = n ? `Sam reads ${n.toLocaleString("en-US")} collector car auction sales from the last 12 months, as of ${asOf}, to tell you where to sell your car and why.`
-    : `Sam reads the collector car auction sales from the last 12 months, as of ${asOf}, to tell you where to sell your car and why.`;
-  let html = shell
-    .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
-    .replace(/(<meta name="description" content=")[^"]*(")/, `$1${esc(lead)}$2`)
-    .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${TITLE}$2`)
-    .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${esc(lead)}$2`)
-    .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${TITLE}$2`)
-    .replace(/(<meta name="twitter:description" content=")[^"]*(")/, `$1${esc(lead)}$2`)
-    .replace('<div id="msgs"></div>', `<div id="msgs">${HERO}</div>`)
-    .replace('<div id="input-area">', `<div id="input-area">\n    <p class="hp-supporting hp-home-only hp-lead" data-lead-sentence>${esc(lead)}</p>`);
+  const lead = n ? `Sam reads ${n.toLocaleString("en-US")} collector car auction sales from the last 12 months, as of ${asOf}, to show where cars like yours sell and how they sold.`
+    : `Sam reads the collector car auction sales from the last 12 months, as of ${asOf}, to show where cars like yours sell and how they sold.`;
+  const hasQuery = /\?./.test(String(req.url || ""));
+  const robots = hasQuery ? "noindex, follow" : "index, follow";
+  const rail = railHtml("sell").replace(/<nav class="mnav"[\s\S]*?<\/nav>/, '<nav class="mnav" aria-label="Sections"><a class="n" href="/buy">Buy</a><span class="bar">|</span><a class="n on" aria-current="page" href="/sell">Sell</a><span class="bar">|</span><a class="n" href="/business">For business</a></nav>');
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>${TITLE}</title><meta name="description" content="${esc(lead)}">
+<meta name="robots" content="${robots}"><link rel="canonical" href="https://goasksam.com/sell">
+<meta property="og:title" content="${TITLE}"><meta property="og:description" content="${esc(lead)}"><meta property="og:url" content="https://goasksam.com/sell"><meta property="og:type" content="website"><meta property="og:image" content="https://goasksam.com/og-card.png">
+<link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">
+${FONT_LINKS}<style>${PAGE_CSS}${BUY_CSS}${SELL_CSS}</style></head><body>
+${rail}
+<main class="buymain">
+<div class="scroll" id="scroll"><div class="col"><header id="lead"><h1>Where to sell your collector car</h1><p data-lead-sentence>${esc(lead)}</p></header><div id="convo" aria-live="polite"></div></div></div>
+<div class="composer"><div class="col">
+<div class="search" role="search"><label for="q" style="position:absolute;left:-9999px">Tell Sam what you're selling</label><input id="q" autocomplete="off" enterkeyhint="send" placeholder="Tell Sam what you're selling"><button type="button" class="mic" id="mic" aria-label="Speak instead of typing" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg></button><button type="button" class="go" id="go" aria-label="Send">&#8594;</button></div>
+</div></div>
+</main>
+<script>try{sessionStorage.setItem("gas_fe_homepage_view","1")}catch(e){}window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};</script>
+<script src="/js/auth.js" defer></script>
+<script>${SELL_CLIENT}</script></body></html>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("X-Robots-Tag", robots);
   res.setHeader("Cache-Control", "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
   res.status(200).send(html);
 }
