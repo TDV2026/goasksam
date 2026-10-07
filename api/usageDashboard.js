@@ -3295,6 +3295,38 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "milesfill", mode, write, processed: rows.length, nextCursor: rows[rows.length - 1].id, computable: fixes.length, wrote, writeErrors, filledBySource, leftNullBySource, samples });
   }
 
+  // task=titlefill: fill vin_summary (+ vin_index) make/model/year for title-less VINs from the best of
+  // sales_archive / auction_attempts / live_listings. The unfillable stay null (the VIN page 404s, never
+  // a blank title, noindex). ?write=1 persists. Also counts the M5-type set (title-less vin_index rows
+  // with a stored make, which the carIdentity fallback now rescues). ZERO OCD.
+  if (task === "titlefill") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const unk = s => !s || /^unknown$/i.test(String(s).trim());
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "return=minimal" };
+    const cq = async f => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${f}&select=vin_norm&limit=1`, { headers: { ...H, Prefer: "count=exact" } }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    const m5TypeRows = await cq("vin_index?listing_title=is.null&make=not.is.null");  // title-less but make-known appearances (carIdentity fallback rescues)
+    const sample = await supabaseSelect(env, `vin_summary?make=is.null&select=vin_norm&limit=1000`) || [];
+    const vins = sample.map(r => r.vin_norm).filter(Boolean);
+    const chunk = (a, n) => { const o = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };
+    const have = {};
+    const scan = async (table, vinCol) => { for (const c of chunk(vins.filter(v => !have[v]), 120)) { if (!c.length) continue; const rows = await supabaseSelect(env, `${table}?${vinCol}=in.(${c.map(encodeURIComponent).join(",")})&make=not.is.null&make=not.ilike.unknown&select=${vinCol},make,model,year`) || []; for (const r of rows) { const v = r[vinCol]; if (!have[v] && !unk(r.make)) have[v] = { src: table, make: r.make, model: unk(r.model) ? null : r.model, year: Number(r.year) || null }; } } };
+    await scan("sales_archive", "vin_norm");
+    await scan("auction_attempts", "chassis_vin_norm");
+    await scan("live_listings", "vin_norm");
+    const fillable = Object.keys(have);
+    const write = req.query?.write === "1";
+    let filled = 0, errors = 0; const bySrc = {};
+    if (write) {
+      for (const v of fillable) {
+        const h = have[v]; const body = { make: h.make, model: h.model, year: h.year };
+        const r1 = await fetch(`${env.supabaseUrl}/rest/v1/vin_summary?vin_norm=eq.${encodeURIComponent(v)}`, { method: "PATCH", headers: H, body: JSON.stringify(body) });
+        await fetch(`${env.supabaseUrl}/rest/v1/vin_index?vin_norm=eq.${encodeURIComponent(v)}&make=is.null`, { method: "PATCH", headers: H, body: JSON.stringify({ make: h.make, model: h.model }) });
+        if (r1.ok) { filled++; bySrc[h.src] = (bySrc[h.src] || 0) + 1; } else errors++;
+      }
+    }
+    return res.status(200).json({ task: "titlefill", write, titlelessVinSummary: vins.length, fillable: fillable.length, nothing: vins.length - fillable.length, fillableBySource: fillable.reduce((o, v) => (o[have[v].src] = (o[have[v].src] || 0) + 1, o), {}), filled, errors, filledBySource: bySrc, m5TypeTitlelessMakeKnownRows: m5TypeRows, examples: fillable.slice(0, 8).map(v => ({ vin: v, ...have[v] })) });
+  }
+
   // task=vindbg: READ-ONLY. What vinAppearances sees for a VIN: vin_index rows + direct sales/attempts.
   if (task === "vindbg") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
