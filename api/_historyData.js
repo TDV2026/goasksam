@@ -250,7 +250,7 @@ export async function hubVins(env, hub) {
 
 // LIVE NOW slot: only when a live_listings table exists and holds this vin_norm. Null otherwise.
 export async function liveListing(env, vinNorm) {
-  const rows = await supabaseSelect(env, `live_listings?vin_norm=eq.${encodeURIComponent(vinNorm)}&status=eq.live&select=source,url,listing_title,current_bid_usd,current_bid,currency,end_time&order=end_time.asc&limit=1`);
+  const rows = await supabaseSelect(env, `live_listings?vin_norm=eq.${encodeURIComponent(vinNorm)}&status=eq.live&select=source,url,listing_title,current_bid_usd,current_bid,currency,end_time,photo_url,location,mileage,has_reserve&order=end_time.asc&limit=1`);
   return rows && rows.length ? rows[0] : null;
 }
 

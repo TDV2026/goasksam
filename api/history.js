@@ -13,41 +13,88 @@ import { recordUsageEvent } from "./_usage.js";
 import { logPageView } from "../lib/_pageview.js";
 
 const SITE = "https://goasksam.com";
-// Restyle (Oct 2026): the Buy design. Cream paper, serif, hairlines not boxes, no badges, larger photo.
-const STYLE = `:root{--page:#F6F1E8;--ink:#23211E;--sec:#7A746B;--div:#E2DACB;--ph:#E9E2D4}
+// Card design system (Oct 2026, the /buy cards): #FAF8F4 paper, near-black ink, one red (#D7262C),
+// hairlines, 6px corners, Newsreader serif + Instrument Sans. The timeline is the page's main visual.
+const STYLE = `:root{--page:#FAF8F4;--ink:#1A1A1A;--sec:#5F5A53;--div:#E4DFD6;--ph:#EFEBE4;--red:#D7262C;--line:#CFC8BC}
 body{background:var(--page);color:var(--ink)}.rail{background:var(--page)}
-.col{max-width:900px}
-.nophoto{display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--ph);border-radius:12px;min-height:160px;padding:24px;text-align:center}
-.nophoto .nm{font-family:Newsreader,Georgia,serif;font-size:21px;font-weight:600;color:var(--ink);line-height:1.25}
-.nophoto figcaption{margin-top:8px;color:var(--sec);font-size:13px}
-.card,section.card,.card.anscard,.card.live{background:none;border:0;border-top:1px solid var(--div);border-radius:0;box-shadow:none}
-section.card{padding:22px 0 0}
-.top{grid-template-columns:1fr;gap:18px}
-.top h1{font:400 40px/1.15 var(--serif);letter-spacing:-.005em}
-.eyebrow{color:var(--sec);letter-spacing:.12em}
-.photo{height:auto;aspect-ratio:1.75;border:0;border-radius:0}
-figcaption{font-size:13px}
-.answer{font:400 22px/1.45 var(--serif)}
-h2{font:400 24px/1.3 var(--serif)}
-.roundel,.take .tag .roundel{display:none}
-.samline p{font:400 21px/1.45 var(--serif)}
-.ans-main{border-right:1px solid var(--div);padding-left:0}
-.anscard.solo .ans-main{border-right:0}
-.take{background:none}
-table.stack th{font:500 12px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--sec)}
-.faq dt{font:400 19px/1.4 var(--serif)}
-.faq dd{font:400 16px/1.55 var(--sans);color:var(--ink)}
-.btns{gap:28px}
-.btn,.btn.s,.btn.p{background:none;border:0;padding:0;min-height:44px;border-radius:0;color:var(--ink);font:500 16px/1.4 var(--sans);text-decoration:underline;text-underline-offset:4px}
-.btn:hover,.btn.s:hover{background:none;color:var(--green)}
-.said{margin:0;font:400 19px/1.5 var(--serif)}
+.col{max-width:1000px}
+.vhead{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:32px;align-items:start;margin-top:8px}
+.vhead .eyebrow{display:block;font:500 13px/1.4 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--sec);margin-bottom:8px}
+.vhead h1{margin:0;font:500 46px/1.08 var(--serif);letter-spacing:-.015em;color:var(--ink)}
+.vhead .vinline{margin-top:8px;font:400 14px/1.4 var(--sans);color:var(--sec)}
+.vhead .lead{margin:18px 0 0;font:400 22px/1.45 var(--serif);color:var(--ink)}
+.vph{position:relative;margin:0;aspect-ratio:3/2;border-radius:6px;overflow:hidden;background:var(--ph)}
+.vph a,.vph span.photo{display:block;width:100%;height:100%}
+.vph img{width:100%;height:100%;object-fit:cover;display:block}
+.vph .chip,.lcard .chip{position:absolute;top:12px;left:12px;background:rgba(255,255,255,.94);color:var(--ink);font:500 13px/1 var(--sans);padding:7px 10px;border-radius:4px}
+.vph.nophoto{display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}
+.vph.nophoto .nm{font:400 28px/1.25 var(--serif);color:var(--ink)}
+.sec{border-top:1px solid var(--div);margin-top:34px;padding-top:24px}
+.sec h2{margin:0 0 4px;font:500 26px/1.25 var(--serif);color:var(--ink)}
+.sec .sub{margin:0 0 20px;font:400 14px/1.5 var(--sans);color:var(--sec)}
+/* the timeline: oldest left, every appearance with house, date, result and miles */
+.vtl{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));position:relative}
+.vtl::before{content:"";position:absolute;top:7px;left:0;right:0;height:1px;background:var(--line)}
+.vtl li{position:relative;padding:0 8px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.vtl li i{width:15px;height:15px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 4px var(--page);position:relative;z-index:1}
+.vtl li.unsold i{background:var(--page);border:2px solid var(--ink);width:15px;height:15px;box-sizing:border-box}
+.vtl li.now i{background:var(--red)}
+.vtl .d{margin-top:14px;font:500 15px/1.3 var(--sans);color:var(--ink)}
+.vtl .r{margin-top:4px;font:400 19px/1.3 var(--serif);color:var(--ink)}
+.vtl .h,.vtl .m{margin-top:3px;font:400 13px/1.4 var(--sans);color:var(--sec)}
+.vtl .h a{color:var(--sec);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line)}
+.vtl li.now .r{color:var(--red)}
+/* the spec's range rail */
+.vrail .rrow{display:flex;align-items:center;gap:14px}
+.vrail .rend{font:400 16px/1 var(--sans);font-variant-numeric:tabular-nums;white-space:nowrap}
+.vrail .rline{position:relative;flex:1;height:2px;background:var(--line);border-radius:1px}
+.vrail .band{position:absolute;top:-1px;height:4px;background:#3A3733;border-radius:2px}
+.vrail .me{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 2px var(--page)}
+.vrail .melab{position:absolute;bottom:13px;transform:translateX(-50%);font:500 13px/1 var(--sans);white-space:nowrap}
+.vrail.hasme{padding-top:28px}
+.vrail .rmost{margin:14px 0 0;font:400 17px/1.4 var(--sans)}
+.vrail .rcap{margin:3px 0 0;font:400 13px/1.4 var(--sans);color:var(--sec)}
+.vthin{margin:0;font:400 17px/1.5 var(--sans);color:var(--ink)}
+/* back at auction now: the live card */
+.lcard{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1fr);gap:22px;border:1px solid var(--div);border-radius:6px;padding:10px;align-items:center}
+.lcard .lph{position:relative;display:block;aspect-ratio:3/2;border-radius:4px;overflow:hidden;background:var(--ph)}
+.lcard .lph img{width:100%;height:100%;object-fit:cover;display:block}
+.lcard .chips{position:absolute;top:12px;left:12px;display:flex;gap:6px;flex-wrap:wrap}
+.lcard .chips .chip{position:static}
+.lcard h3{margin:0;font:500 24px/1.2 var(--serif)}
+.lcard h3 a{color:var(--ink);text-decoration:none}
+.lcard .meta{margin:6px 0 0;font:400 15px/1.5 var(--sans);color:var(--sec)}
+.lcard .go{display:inline-flex;margin-top:14px;min-height:44px;align-items:center;color:var(--red);font:500 16px/1 var(--sans);text-decoration:none}
+.lcard .go:hover{text-decoration:underline;text-underline-offset:4px}
+/* listing facts, other cars, questions */
+.said{margin:0;font:italic 400 20px/1.45 var(--serif);border-left:2px solid var(--red);padding:2px 0 2px 16px}
+.said .who{display:block;font:600 12px/1 var(--sans);font-style:normal;letter-spacing:.14em;text-transform:uppercase;color:var(--red);margin-bottom:8px}
 .others{list-style:none;margin:0;padding:0}
-.others li{border-top:1px solid var(--div);padding:10px 0}
+.others li{border-top:1px solid var(--div)}
 .others li:first-child{border-top:0}
-.others a{display:flex;flex-wrap:wrap;gap:4px 18px;color:var(--ink);text-decoration:none;font:400 15px/1.5 var(--sans)}
+.others a{display:grid;grid-template-columns:60px minmax(0,1fr) auto;gap:4px 18px;padding:12px 0;color:var(--ink);text-decoration:none;font:400 15px/1.5 var(--sans);align-items:baseline}
 .others a:hover .p{text-decoration:underline}
 .others .p{font-weight:600}.others .m{color:var(--sec)}
-@media (max-width:640px){.top h1{font-size:30px}.answer{font-size:19px}.ans-main{border-right:0}}`;
+.faq dt{margin-top:16px;font:500 19px/1.4 var(--serif)}
+.faq dd{margin:4px 0 0;font:400 16px/1.55 var(--sans);color:var(--ink)}
+.vlinks{display:flex;flex-wrap:wrap;gap:12px 28px;margin-top:30px;font:500 16px/1.4 var(--sans)}
+.vlinks a,.vlinks button{color:var(--ink);background:none;border:0;padding:0;font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:4px;text-decoration-color:#B9B2A6;min-height:44px}
+.vlinks a.red{color:var(--red);text-decoration-color:var(--red)}
+.watch{margin-top:10px}
+.foot{margin-top:30px;font:400 13px/1.5 var(--sans);color:var(--sec)}
+@media (max-width:760px){
+  .vhead{grid-template-columns:1fr;gap:20px}
+  .vhead h1{font-size:34px}
+  .vhead .lead{font-size:19px}
+  .vtl{grid-template-columns:1fr;gap:0}
+  .vtl::before{top:0;bottom:0;left:7px;right:auto;width:1px;height:auto}
+  .vtl li{display:grid;grid-template-columns:15px 1fr;column-gap:16px;align-items:start;text-align:left;padding:0 0 18px}
+  .vtl li i{grid-row:1/span 4;margin-top:3px}
+  .vtl .d{margin-top:0}
+  .lcard{grid-template-columns:1fr}
+  .others a{grid-template-columns:48px minmax(0,1fr);}
+  .others a .p{grid-column:2}
+}`;
 const M = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const MS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const HOUSES = new Set(["Gooding & Co", "RM Sotheby's", "Bonhams", "Broad Arrow", "Mecum", "Barrett-Jackson", "Sotheby's Motorsport"]);
@@ -85,7 +132,7 @@ function page({ title, description, canonical, body, ld, index }) {
 ${description ? `<meta name="description" content="${esc(description)}">` : ""}
 ${index ? '<meta name="robots" content="index, follow">' : '<meta name="robots" content="noindex, follow">'}
 ${canonical ? `<link rel="canonical" href="${esc(canonical)}">` : ""}
-<link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#1E4D38">
+<link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;family=Instrument+Sans:wght@400;500;600&amp;display=swap">
 <style>${CSS}${STYLE}</style>${(ld || []).map(jsonLd).join("")}</head><body>
@@ -170,6 +217,7 @@ async function carPage(req, res, env, slug, vin) {
   const name = [id.year, id.make, id.family].filter(Boolean).join(" ");
   const sales = appearances.filter(a => a.kind === "sale"), atts = appearances.filter(a => a.kind === "attempt");
   const lastSale = sales[0] || null, newest = appearances[0];
+  const asOf = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" });
   // 2. THE ANSWER
   let answer;
   if (sales.length >= 2) answer = `This ${name} has sold at auction ${timesWord(sales.length)}, most recently for ${salePriceFee(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}.`;
@@ -178,6 +226,12 @@ async function carPage(req, res, env, slug, vin) {
     const top = atts.filter(a => a.bidUsd || a.nativeBid).sort((x, y) => (y.bidUsd || 0) - (x.bidUsd || 0))[0];
     answer = `This ${name} has been offered at auction ${atts.length === 1 ? "once" : atts.length + " times"} without selling` + (top ? `; the highest bid was ${bidPrice(top)} ${on(top.house)} in ${monthYear(top.date)}.` : ".");
   }
+  // THE LEAD (search rule 1): one dated sentence telling the car's story from its own record.
+  const step = a => (a.kind === "sale" ? `sold for ${salePrice(a)}` : (bidPrice(a) ? `bid to ${bidPrice(a)} without selling` : "offered without selling")) + ` ${on(a.house)} in ${monthYear(a.date)}`;
+  const oldestFirst = appearances.slice().reverse();
+  const story = appearances.length <= 3
+    ? `As of ${asOf}, this ${name} has been to auction ${timesWord(appearances.length)}: ${oldestFirst.map(step).join(", then ")}.`
+    : `As of ${asOf}, this ${name} has been to auction ${appearances.length} times and ${sales.length ? `sold ${timesWord(sales.length)}, most recently for ${salePrice(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}` : "never sold"}.`;
   // 4. WHAT'S HAPPENED TO IT (facts only)
   let samLine = "";
   if (appearances.length >= 2) {
@@ -219,24 +273,22 @@ async function carPage(req, res, env, slug, vin) {
   ];
   const photo = appearances.find(a => a.image) || null;
   const altPhotos = [...new Set(appearances.map(a => a.image).filter(Boolean))].filter(u => !photo || u !== photo.image);
-  const rows = appearances.map(a => `<tr><td data-l="Date">${esc(monShort(a.date))}</td><td data-l="Where">${a.url ? `<a href="${esc(utm(a.url))}" target="_blank" rel="noopener">${esc(a.house)}</a>` : esc(a.house)}</td><td data-l="Miles" class="r">${esc(miles(a.mileage))}</td><td class="r ${a.kind === "sale" ? "sold" : "muted"}">${esc(resultText(a))}</td></tr>`).join("");
   const hubHref = `/history/${id.slug}`;
+  // Up to the model (the all-years hub) as well as this year's.
+  const modelHub = `/history/${[slugify(id.make), slugify(id.family)].join("-")}`;
   const body = `
-<div class="top"><div><span class="eyebrow">${esc(id.family)} · Auction history</span>
-<h1>${esc(name)} auction history</h1><div class="vinline">VIN ${esc(vinNorm)}</div>
-<p class="answer">${esc(answer)}</p></div>
-${photo ? `<figure data-alt="${esc(JSON.stringify(altPhotos))}">${photoHtml(photo.image, photo.url, photo.house, name, "photo", true)}<figcaption>Photo: ${esc(photo.house)}</figcaption></figure>` : `<figure class="nophoto"><div class="nm">${esc(name)}</div><figcaption>No photo on record</figcaption></figure>`}</div>
-${live ? liveNowHtml(live) : ""}
-<section class="card"><div class="sh"><h2>Every time it&#8217;s been to auction</h2><span class="muted">${appearances.length} appearance${appearances.length === 1 ? "" : "s"}</span></div>
-<table class="stack"><thead><tr><th>Date</th><th>Where</th><th class="r">Miles</th><th class="r">Result</th></tr></thead><tbody>${rows}</tbody></table></section>
-${samLine ? `<div class="samline"><span class="roundel" aria-hidden="true">SAM</span><p>${esc(samLine)}</p></div>` : ""}
+<header class="vhead"><div><span class="eyebrow">Auction history</span>
+<h1>${esc(name)}</h1><div class="vinline">VIN ${esc(vinNorm)}</div>
+<p class="lead" data-lead-sentence>${esc(story)}</p></div>
+${photo ? `<figure class="vph" data-alt="${esc(JSON.stringify(altPhotos))}">${photoHtml(photo.image, photo.url, photo.house, name, "photo", true)}<span class="chip">Photo: ${esc(photo.house)}</span></figure>` : `<figure class="vph nophoto"><span class="nm">${esc(name)}</span></figure>`}</header>
+${timelineHtml(appearances, live)}
+${specRailHtml(d, id, lastSale)}
+${live ? liveCardHtml(live, name) : ""}
 ${saidHtml(said)}
-${oneBoxBlock(d, id, oneboxCar, ctx)}
 ${othersHtml(others, id)}
-<section class="card"><h2 style="margin-bottom:12px">Questions</h2><dl class="faq">${faq.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>
-<div><div class="btns"><a class="btn s" href="${esc(sellHref(id))}">Where to sell it</a><button type="button" class="btn s" id="watch-open" aria-expanded="false" aria-controls="watch">Watch this car</button></div>
-<form class="watch" id="watch" hidden><label for="watch-email" style="position:absolute;left:-9999px">Email</label><input id="watch-email" type="email" required placeholder="Your email" autocomplete="email"><button class="btn p" type="submit">Watch it</button><p class="msg" id="watch-msg">Sam will email you if this car comes up at auction again.</p></form></div>
-<div class="links"><a href="${esc(hubHref)}">All ${esc(id.year + " " + id.make + " " + id.family)} auction results &#8594;</a></div>
+<section class="sec"><h2>Questions</h2><dl class="faq">${faq.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>
+<nav class="vlinks" aria-label="More"><a href="${esc(modelHub)}">All ${esc(id.make + " " + id.family)} auction results</a><a href="${esc(hubHref)}">Every ${esc(id.year + " " + id.make + " " + id.family)} by VIN</a><a class="red" href="${esc(sellHref(id))}">Where to sell it</a><button type="button" id="watch-open" aria-expanded="false" aria-controls="watch">Watch this car</button></nav>
+<form class="watch" id="watch" hidden><label for="watch-email" style="position:absolute;left:-9999px">Email</label><input id="watch-email" type="email" required placeholder="Your email" autocomplete="email"><button class="btn p" type="submit">Watch it</button><p class="msg" id="watch-msg">Sam will email you if this car comes up at auction again.</p></form>
 ${WHY_RESULT_HTML}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>
 <script>(function(){var b=document.getElementById("watch-open"),f=document.getElementById("watch"),m=document.getElementById("watch-msg");if(!b||!f)return;b.addEventListener("click",function(){f.hidden=!f.hidden;b.setAttribute("aria-expanded",f.hidden?"false":"true");if(!f.hidden)document.getElementById("watch-email").focus();});f.addEventListener("submit",function(e){e.preventDefault();var em=document.getElementById("watch-email").value.trim();if(!em)return;m.textContent="Saving...";fetch("/api/history",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"watch",vin:${JSON.stringify(vinNorm)},email:em})}).then(function(r){return r.json();}).then(function(j){m.textContent=j&&j.ok?"Done. Sam will email you if this car comes up at auction again.":"That didn\\u2019t save just now. Try again in a minute.";}).catch(function(){m.textContent="That didn\\u2019t save just now. Try again in a minute.";});});})();</script>`;
@@ -258,7 +310,58 @@ ${WHY_RESULT_HTML}
   const pricedCount = appearances.filter(a => a.priceUsd || a.bidUsd || a.nativeBid).length;
   const index = pricedCount >= 2 && realVin(vinNorm) && !!(id.family && id.make) && !(await deadPhotos(env)).vins.has(vinNorm);
   await logPageView(env, { path: canonical.replace(SITE, ""), referer: req.headers["referer"] || req.headers["referrer"], userAgent: req.headers["user-agent"] });
-  send(res, 200, page({ title: `${name}, VIN ${vinNorm}: auction history`, description: answer, canonical, body: body2, ld, index }), {}, index);
+  send(res, 200, page({ title: `${name}, VIN ${vinNorm}: auction history`, description: story, canonical, body: body2, ld, index }), {}, index);
+}
+// THE TIMELINE (the page's main visual): every appearance, oldest left, with its date, result, house
+// and miles; sold dots filled, unsold hollow, the live listing last in red.
+function timelineHtml(apps, live) {
+  const items = apps.slice().reverse().map(a => {
+    const res = a.kind === "sale" ? `Sold ${salePrice(a)}` : (bidPrice(a) ? `Bid to ${bidPrice(a)}, not sold` : (/withdraw/i.test(String(a.status || "")) ? "Withdrawn" : "Not sold"));
+    const house = a.url ? `<a href="${esc(utm(a.url))}" target="_blank" rel="noopener">${esc(a.house)}</a>` : esc(a.house);
+    return `<li class="${a.kind === "sale" ? "sold" : "unsold"}"><i></i><span class="d">${esc(monShort(a.date))}</span><span class="r">${esc(res)}</span><span class="h">${house}</span>${a.mileage ? `<span class="m">${esc(miles(a.mileage))} miles</span>` : ""}</li>`;
+  });
+  if (live) items.push(`<li class="now"><i></i><span class="d">Now</span><span class="r">Live</span><span class="h">${esc(houseName(live.source))}</span>${live.mileage ? `<span class="m">${esc(miles(live.mileage))} miles</span>` : ""}</li>`);
+  return `<section class="sec" aria-label="Every time it has been to auction"><h2>Every time it&#8217;s been to auction</h2><p class="sub">${apps.length} appearance${apps.length === 1 ? "" : "s"}${live ? ", and live now" : ""}. Oldest first.</p><ol class="vtl" style="--n:${items.length}">${items.join("")}</ol></section>`;
+}
+// THE SPEC'S RANGE RAIL: the same rule as the /buy card. Only with a real range (the engine's thin and
+// spread rules passed); the ends are the spec's low and high, the dark band where the middle half sold;
+// this car's own sale is a dot only when it was within 24 months and inside the ends. Otherwise one
+// honest line, never a figure.
+function specRailHtml(d, id, lastSale) {
+  if (!d) return "";
+  const fam = nounOf(d, id), win = windowText(d);
+  if (d.tier === "result" && Array.isArray(d.cluster) && Array.isArray(d.span) && d.span[1] > d.span[0]) {
+    const [lo, hi] = d.span, pc = x => Math.max(0, Math.min(100, (x - lo) / (hi - lo) * 100));
+    const a = pc(d.cluster[0]), b = pc(d.cluster[1]);
+    const recent = lastSale && lastSale.priceUsd && (Date.now() - Date.parse(lastSale.date + "T00:00:00Z")) <= 730 * 864e5 && lastSale.priceUsd >= lo && lastSale.priceUsd <= hi;
+    const dot = recent ? `<i class="me" style="left:${pc(lastSale.priceUsd).toFixed(1)}%"></i><span class="melab" style="left:${pc(lastSale.priceUsd).toFixed(1)}%">This car, ${esc(monShort(lastSale.date))}</span>` : "";
+    const n = poolCount(d);
+    return `<section class="sec" aria-label="What cars like it sold for"><h2>What ${esc(fam)} sell for</h2><p class="sub">${n ? `${n} sales in ${esc(win)}.` : ""}</p>
+<div class="vrail${recent ? " hasme" : ""}"><div class="rrow"><span class="rend">${usd(lo)}</span><span class="rline"><i class="band" style="left:${a.toFixed(1)}%;width:${Math.max(1.5, b - a).toFixed(1)}%"></i>${dot}</span><span class="rend">${usd(hi)}</span></div>
+<p class="rmost">Most sold between ${usd(d.cluster[0])} and ${usd(d.cluster[1])}</p><p class="rcap">What this spec has sold for, ${/twelve/.test(win) ? "last 12 months" : "last 2 years"}</p></div></section>`;
+  }
+  const n = poolCount(d);
+  if (!n) return "";
+  const line = n < 8 ? `Only ${n} ${fam} ${n === 1 ? "has" : "have"} sold in ${poolWindow(d)}, too few to mark a range.` : `${fam} sold too spread out in ${poolWindow(d)} to mark one range.`;
+  return `<section class="sec" aria-label="What cars like it sold for"><h2>What ${esc(fam)} sell for</h2><p class="vthin">${esc(line)}</p></section>`;
+}
+// BACK AT AUCTION NOW: the live listing as a /buy card (photo with chips, title, facts, link out).
+function timeLeft(iso) {
+  const t = new Date(iso).getTime(); if (!iso || isNaN(t)) return "";
+  const ms = t - Date.now(); if (ms <= 0) return "Ending now";
+  const h = ms / 36e5; if (h < 1) return Math.max(1, Math.round(ms / 6e4)) + " min left";
+  if (h < 24) { const hh = Math.floor(h); return hh + (hh === 1 ? " hour left" : " hours left"); }
+  const dd = Math.floor(h / 24); return dd + (dd === 1 ? " day left" : " days left");
+}
+function liveCardHtml(l, name) {
+  const house = houseName(l.source);
+  const chips = [[house, timeLeft(l.end_time)].filter(Boolean).join(" · ")].concat(l.has_reserve === false ? ["No reserve"] : []);
+  const bid = l.current_bid_usd ? "Bid " + usd(l.current_bid_usd) : (l.current_bid ? "Bid " + Math.round(l.current_bid).toLocaleString("en-US") + " " + (l.currency || "") : "No bids yet");
+  const meta = [bid, l.location || "", l.mileage ? miles(l.mileage) + " miles" : ""].filter(Boolean);
+  const img = l.photo_url ? `<img src="${esc(l.photo_url)}" alt="${esc(name)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
+  return `<section class="sec" aria-label="Back at auction now"><h2>Back at auction now</h2><p class="sub">This car is live ${house === "Hemmings" || /^(Mecum|Bonhams|Gooding|RM|Broad|Barrett)/.test(house) ? "at" : "on"} ${esc(house)}.</p>
+<article class="lcard"><a class="lph" href="${esc(utm(l.url))}" target="_blank" rel="noopener">${img}<span class="chips">${chips.map(c => `<span class="chip">${esc(c)}</span>`).join("")}</span></a>
+<div><h3><a href="${esc(utm(l.url))}" target="_blank" rel="noopener">${esc(name)}</a></h3><p class="meta">${meta.map(esc).join(" · ")}</p><a class="go" href="${esc(utm(l.url))}" target="_blank" rel="noopener">See the live auction</a></div></article></section>`;
 }
 // WHAT THE LISTING SAID: facts from the sale's own record, worded by Sam; never the house's text.
 // Dated and past tense: these are what the listing reported at the time of that sale.
@@ -272,15 +375,15 @@ function saidHtml(s) {
   for (const m of s.markers || []) parts.push(m);
   if (!parts.length) return "";
   const list = parts.length === 1 ? parts[0] : parts.slice(0, -1).join(", ") + " and " + parts[parts.length - 1];
-  return `<section class="card"><h2 style="margin-bottom:10px">What the listing said</h2><p class="said">${esc(`When it sold in ${monthYear(s.date)}, the listing gave ${list}.`)}</p></section>`;
+  return `<section class="sec"><h2>What the listing said</h2><p class="said"><span class="who">Sam</span>${esc(`When it sold in ${monthYear(s.date)}, the listing gave ${list}.`)}</p></section>`;
 }
 // OTHER {FAMILY} THAT SOLD: a plain list, newest first, each row to that car's own page.
 function othersHtml(o, id) {
   if (!o || !o.rows.length) return "";
-  const li = o.rows.map(r => `<li><a href="${esc(r.href)}"><span>${esc(r.year || "")}</span><span class="m">${esc(r.miles ? miles(r.miles) + " miles" : "miles not listed")}</span><span class="p">${esc(money(r.priceUsd, r.nativePrice, r.currency))}</span><span class="m">${esc(monShort(r.date))}</span><span class="m">${esc(r.house)}</span></a></li>`).join("");
+  const li = o.rows.map(r => `<li><a href="${esc(r.href)}"><span>${esc(r.year || "")}</span><span class="m">${esc([r.miles ? miles(r.miles) + " miles" : "", monShort(r.date), r.house].filter(Boolean).join(" · "))}</span><span class="p">${esc(money(r.priceUsd, r.nativePrice, r.currency))}</span></a></li>`).join("");
   const base = o.gen && !String(id.family).includes(o.gen) ? o.gen + " " + id.family : id.family;
   const fam = /[a-z]s$/.test(base) ? base : /\d$/.test(base) || /[a-z]$/i.test(base) && !/\b[A-Z0-9]{2,4}$/.test(base) ? base + "s" : base + " cars";
-  return `<section class="card"><div class="sh"><h2>Other ${esc(fam)} that sold</h2><span class="muted">Newest first</span></div><ul class="others">${li}</ul>${o.more ? `<p style="margin:12px 0 0"><a href="${esc(o.allHref)}">All ${esc(id.make + " " + id.family)} sales &#8594;</a></p>` : ""}</section>`;
+  return `<section class="sec"><h2>Other ${esc(fam)} that sold</h2><p class="sub">Newest first. Each one opens its own history.</p><ul class="others">${li}</ul>${o.more ? `<p style="margin:12px 0 0"><a href="${esc(o.allHref)}">All ${esc(id.make + " " + id.family)} sales</a></p>` : ""}</section>`;
 }
 // LIVE NOW slot (only when live_listings holds this vin_norm as live): bid, house, end time in PT.
 function endsPT(iso) {
