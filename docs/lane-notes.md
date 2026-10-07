@@ -55,3 +55,8 @@ when the work has landed.
   (sensitive Vercel env vars, a standing limitation; see memory). Once the DDL is applied, the first
   real GitHub Actions run will show the step's actual duration; estimate (not measured) is a few minutes
   for 304 specs at 6-way concurrency, hubs costing more than leaves (each hub re-aggregates its children).
+- 2026-10-07 (Lane B, addendum): the nightly.yml step from the entry above is NOT yet in the file - my
+  CI token lacks `workflow` scope (standing constraint, same as the existing nightly workflow note
+  above). scripts/buildSpecPagesCache.js, the DDL and the live-count cron are all live; only the one
+  nightly.yml step line is pending. Sam: add this line (see chat for the exact diff), right after the
+  "Refresh spec market cache" step.
