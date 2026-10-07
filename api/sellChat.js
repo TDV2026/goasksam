@@ -23,6 +23,9 @@ export default async function handler(req, res) {
     out.house = hr ? { n: (hr.houseReceipts || []).length, totalN: hr.totalN, err: hr.err } : null;
     const hr2 = await houseReceiptsForVehicle({ ...car.v, bodyStyle: null }, car.generation, env).catch(() => null);
     out.houseNoBody = hr2 ? { n: (hr2.houseReceipts || []).length, totalN: hr2.totalN } : null;
+    const { placesFor } = await import("../lib/sell/sellFacts.js");
+    const pl = await placesFor(car).catch(e => ({ err: String(e) }));
+    out.places = pl && { total: pl.total, cohort: pl.cohort, step: pl.step, places: (pl.places || []).map(x => [x.name, x.sales]), err: pl.err };
     return res.status(200).json(out);
   }
   if (b.action !== "chat") return res.status(400).json({ error: "unknown action" });
