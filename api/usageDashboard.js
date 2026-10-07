@@ -3449,12 +3449,14 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { classifyUnknown } = await import("../lib/_unknownClassify.js");
     const REPLICA = /\b(replica|recreation|re-creation|tribute|continuation|evocation|homage|in the style of|-style\b|style\s+(?:tourer|roadster|saloon))\b/i;
-    const SELFPROP = /\b(motor\s?home|motor\s?coach|\brv\b|camper\s?van|unimog|tractor|golf\s?cart|\batv\b|\butv\b|\brzr\b|side[-\s]?by[-\s]?side|snowmobile|ski[-\s]?doo|motorcycle|scooter|moped|quad\s?cab)\b/i;
-    const BOAT = /\b(boat|yacht|sailboat|catamaran|chris[-\s]?craft|outboard\s+boat)\b/i;        // NOT boat-tail/boattail/runabout (car bodies)
-    const BOAT_FALSE = /\bboat[-\s]?tail\b|\bboattail\b|\brunabout\b/i;
+    const SELFPROP = /\b(motor\s?home|motor\s?coach|motor[-\s]?caravan|dormobile|\brv\b|camper\s?van|unimog|tractor|golf\s?cart|\batv\b|\butv\b|\brzr\b|side[-\s]?by[-\s]?side|snowmobile|ski[-\s]?doo|motorcycle|scooter|moped|quad\s?cab|peterbilt|kenworth|freightliner|\bmack\b)\b/i;
+    const BOAT = /\b(boat|yacht|sailboat|catamaran|chris[-\s]?craft|correct[-\s]?craft|outboard\s+boat)\b/i;  // NOT boat-tail/boattail/runabout (car bodies)
+    const BOAT_FALSE = /\bboat[-\s]?tail\b|\bboattail\b|\brunabout\b|\bcar\b/i;
     const AIRCRAFT = /\b(airplane|aeroplane|aircraft|helicopter|biplane|warbird|glider|cessna|piper\b|beechcraft)\b/i;
-    const AIRCRAFT_FALSE = /aircraft[-\s]?themed/i;
-    const TRAILER = /\b(trailer|caravan|teardrop|fifth[-\s]?wheel|toy\s?hauler)\b/i;
+    const AIRCRAFT_FALSE = /aircraft[-\s]?themed|\bcar\b/i;
+    const TRAILER = /\b(trailer|caravan|teardrop|fifth[-\s]?wheel|toy\s?hauler|land\s?yacht)\b/i;
+    // Loose engine / bare parts stated as the lot itself (no model year = not a running car).
+    const LOOSE_PART = /\b(engine\s+(?:and|&|\+)\s+(?:gear\s?box|transmission)|bare\s+engine|complete\s+engine|engine\s+block|rolling\s+chassis|body\s?shell|chassis\s+only|pair\s+of\s+(?:wheels|doors|seats|lamps|lights|headlamps|bumpers|fenders)|set\s+of\s+(?:wheels|seats))\b/i;
     const per = new Map();
     for (let page = 0; page < 400; page++) {
       const rows = await supabaseSelect(env, `vin_index?select=vin_norm,listing_title,vehicle_type,appearance_date&order=id.asc&limit=1000&offset=${page * 1000}`);
@@ -3471,16 +3473,20 @@ async function handleOps(req, res) {
       const title = g.title || "";
       if (!title) continue;
       if (REPLICA.test(title)) continue;                                  // a replica/tribute is a car
-      const base = title.split(/\s+w\/|\bwith\b/i)[0];                    // the lot is the vehicle, ignore what follows "with"
-      if (SELFPROP.test(base)) continue;                                  // self-propelled stays (goes to other/moto sitemap)
-      const cu = classifyUnknown({ listing_title: base }) || {};
-      const hasYear = /\b(?:18|19|20)\d{2}\b/.test(base);                 // a real car title always carries a model year
+      if (SELFPROP.test(title)) continue;                                 // self-propelled stays (goes to other/moto sitemap)
+      // hasYear + car-make are judged on the FULL title (never cut a real car off by a prose "with");
+      // the "with"/"w/" split applies ONLY to the standalone-signal regexes ("car w/ trailer" -> car).
+      const base = title.split(/\s+w\/|\bwith\b/i)[0];
+      const cu = classifyUnknown({ listing_title: title }) || {};
+      const hasYear = /\b(?:18|19|20)\d{2}\b/.test(title);
       let reason = null;
-      // memorabilia / parts / loose engine: classifyUnknown's non_vehicle verdict is only trusted when
-      // there is NO model year - with a year present it over-matches real cars on incidental words
-      // (Clio "Trophy", XKR-S "Badge", 512 TR "Red Book", "Art Car", Camel "Trophy", "Coachwork").
-      if (!hasYear && cu.vehicle_type === "non_vehicle") reason = cu.basis || "memorabilia/parts";
-      else if (!cu.make) {                                                // no car make recognised: test the standalone signals
+      // memorabilia: trust ONLY the article/quantity opener basis ("A pair of...", "An ... book") - the
+      // broad isMemorabilia/isPartsListing verdict over-matches catalog cars on "Engine no."/"Chassis
+      // no."/"Trophy"/"Badge". Loose parts: an explicit part-as-the-lot phrase with no model year.
+      const opener = cu.vehicle_type === "non_vehicle" && /opener/i.test(String(cu.basis || ""));
+      const loosePart = !hasYear && LOOSE_PART.test(base);
+      if (opener || loosePart) reason = "memorabilia/parts/engine";
+      else if (!cu.make) {                                                // no car make recognised: standalone signals
         if (BOAT.test(base) && !BOAT_FALSE.test(base)) reason = "boat";
         else if (AIRCRAFT.test(base) && !AIRCRAFT_FALSE.test(base)) reason = "aircraft";
         else if (TRAILER.test(base)) reason = "standalone_trailer";
