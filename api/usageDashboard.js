@@ -3318,9 +3318,10 @@ async function handleOps(req, res) {
     let filled = 0, errors = 0; const bySrc = {};
     if (write) {
       for (const v of fillable) {
-        const h = have[v]; const body = { make: h.make, model: h.model, year: h.year };
-        const r1 = await fetch(`${env.supabaseUrl}/rest/v1/vin_summary?vin_norm=eq.${encodeURIComponent(v)}`, { method: "PATCH", headers: H, body: JSON.stringify(body) });
-        await fetch(`${env.supabaseUrl}/rest/v1/vin_index?vin_norm=eq.${encodeURIComponent(v)}&make=is.null`, { method: "PATCH", headers: H, body: JSON.stringify({ make: h.make, model: h.model }) });
+        const h = have[v];
+        // vin_summary has no year column (make/model/model_family only); vin_index carries year.
+        const r1 = await fetch(`${env.supabaseUrl}/rest/v1/vin_summary?vin_norm=eq.${encodeURIComponent(v)}`, { method: "PATCH", headers: H, body: JSON.stringify({ make: h.make, model: h.model }) });
+        await fetch(`${env.supabaseUrl}/rest/v1/vin_index?vin_norm=eq.${encodeURIComponent(v)}&make=is.null`, { method: "PATCH", headers: H, body: JSON.stringify(h.year ? { make: h.make, model: h.model, year: h.year } : { make: h.make, model: h.model }) });
         if (r1.ok) { filled++; bySrc[h.src] = (bySrc[h.src] || 0) + 1; } else errors++;
       }
     }
