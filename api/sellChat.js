@@ -25,6 +25,12 @@ export default async function handler(req, res) {
     out.houseNoBody = hr2 ? { n: (hr2.houseReceipts || []).length, totalN: hr2.totalN } : null;
     const { placesFor } = await import("../lib/sell/sellFacts.js");
     const pl = await placesFor(car).catch(e => ({ err: String(e) }));
+    // How many unsold cars of each reserve kind each place records (24 months), for the reserve tile.
+    out.unsoldKinds = {};
+    for (const x of (pl && pl.places) || []) for (const hr of [true, false]) {
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/auction_attempts?source_slug=eq.${x.slug}&has_reserve=eq.${hr}&attempt_date=gte.${new Date(Date.now() - 730 * 864e5).toISOString().slice(0, 10)}&select=source_slug`, { method: "HEAD", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact", Range: "0-0" } }).catch(() => null);
+      out.unsoldKinds[x.slug + (hr ? " reserve" : " no reserve")] = r ? (r.headers.get("content-range") || "").split("/")[1] : null;
+    }
     out.places = pl && { total: pl.total, cohort: pl.cohort, step: pl.step, places: (pl.places || []).map(x => [x.name, x.sales]), err: pl.err };
     return res.status(200).json(out);
   }
