@@ -15,13 +15,18 @@
       "source": "/rudy",
       "destination": "/api/crew?guest=clint&to=/sell",
       "permanent": false
+    },
+    {
+      "source": "/onebox",
+      "destination": "/market-check",
+      "permanent": true
     }
   ],
   "rewrites": [
     { "source": "/sell", "destination": "/api/sellNext" },
     { "source": "/sell-next", "destination": "/api/sellNext" },
     { "source": "/tasks", "destination": "/api/tasksPage" },
-    { "source": "/onebox", "destination": "/onebox.html" },
+    { "source": "/market-check", "destination": "/api/marketCheck" },
     { "source": "/o/:id", "destination": "/api/publicConfig?obShare=:id" },
     { "source": "/onebox-preview", "destination": "/onebox-preview.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
@@ -57,6 +62,9 @@
       "includeFiles": "scripts/warm-list.json"
     },
     "api/publicConfig.js": {
+      "includeFiles": "onebox.html"
+    },
+    "api/marketCheck.js": {
       "includeFiles": "onebox.html"
     },
     "api/sellPage.js": {

@@ -163,12 +163,14 @@
     // Screen 1 (empty state), full stack and nothing else: wordmark, tagline, serif headline,
     // serif subline, the input (vertically centred in the viewport), and the cue. No JUST SOLD
     // block, no script kicker, no BETA badge, no manifesto line. Past searches live in the rail.
-    // "worth" in the headline is a deliberate, verbatim marketing hook (like the "estimated"
-    // negations elsewhere), so it is rendered as a literal and NOT passed through lint().
+    // Headline (Oct 2026, Market Check public launch): "What could mine bring?" replaces the old
+    // "worth" hook - public copy rule bans worth/valuation/estimate/appraisal outright, even as a
+    // marketing hook. Rendered as a literal, not passed through lint() (matches the prior comment's
+    // intent: this is fixed UI copy, not an engine-derived sentence).
     root.innerHTML =
       '<div class="ob-home">' +
         '<p class="ob-tag">Real sales, updated every night.</p>' +
-        '<h1 class="ob-head">What’s that car really worth?</h1>' +
+        '<h1 class="ob-head">What could mine bring?</h1>' +
         '<p class="ob-sub">See what cars like it actually sold for.</p>' +
         inboxHtml("", PLACEHOLDER_BEATS[0]) +
         '<div class="ob-cue">' + esc(cueText()) + "</div>" +
