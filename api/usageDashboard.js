@@ -3395,19 +3395,22 @@ async function handleOps(req, res) {
     const { transmissionFromText } = await import("../lib/_descFacts.js");
     const pageSize = Math.max(100, Math.min(1000, Number(req.query?.pageSize || 1000)));
     const maxRows = Math.max(pageSize, Math.min(150000, Number(req.query?.maxRows || 60000)));
-    let lastId = Number(req.query?.after || 0);
+    // id is a random UUID, so the cursor is source_id (text, UNIQUE/indexed). We walk ONLY the blank
+    // rows (transmission IS null) in source_id order; a row we fill leaves the null set and sits behind
+    // the cursor, a row we can't fill stays null but is also behind the cursor, so each blank is seen
+    // exactly once and the scan terminates when source_id > cursor returns nothing.
+    let cursor = String(req.query?.after ?? "");
     const deadline = Date.now() + 230000;
     let processed = 0, filled = 0, pages = 0, errors = 0; const errorDetail = [], byLabel = {};
     let done = false;
     while (processed < maxRows && Date.now() < deadline) {
-      const slice = (await supabaseSelect(env, `sales_archive?id=gt.${lastId}&select=id,source_id,listing_title,description,transmission&order=id.asc&limit=${pageSize}`)) || [];
+      const slice = (await supabaseSelect(env, `sales_archive?transmission=is.null&source_id=not.is.null&source_id=gt.${encodeURIComponent(cursor)}&select=source_id,listing_title,description&order=source_id.asc&limit=${pageSize}`)) || [];
       if (!slice.length) { done = true; break; }
       const patch = [];
       for (const r of slice) {
-        lastId = r.id;
-        if (String(r.transmission || "").trim()) continue;   // never overwrite an existing value
+        cursor = String(r.source_id);
         const tx = transmissionFromText(r.listing_title, r.description);
-        if (tx && r.source_id != null) { patch.push({ source_id: String(r.source_id), transmission: tx }); byLabel[tx] = (byLabel[tx] || 0) + 1; }
+        if (tx) { patch.push({ source_id: String(r.source_id), transmission: tx }); byLabel[tx] = (byLabel[tx] || 0) + 1; }
       }
       for (let i = 0; i < patch.length; i += 200) {
         const w = await supabaseInsert("sales_archive", patch.slice(i, i + 200), env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id");
@@ -3416,7 +3419,7 @@ async function handleOps(req, res) {
       processed += slice.length; pages++;
       if (errors) break;
     }
-    return res.status(200).json({ task: "transfill", write: true, processedThisCall: processed, filledThisCall: filled, byLabel, pages, errors, errorDetail, nextAfter: done ? null : lastId, done });
+    return res.status(200).json({ task: "transfill", write: true, processedThisCall: processed, filledThisCall: filled, byLabel, pages, errors, errorDetail, nextAfter: done ? null : cursor, done });
   }
 
   // task=vinsamples: READ-ONLY. Example VINs for the VIN-page verification. Multi-appearance VINs come
