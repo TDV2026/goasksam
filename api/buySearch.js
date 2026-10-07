@@ -106,6 +106,25 @@ export default async function handler(req, res) {
       const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts), seenBefore(env, r.vin_norm), timelineOf(env, { r })]).then(async ([market, seen, timeline]) => { if (market && market.kind === "pending") market = await listingMarket(env, r, facts); return { id: r.id, market, seen_before: seen, timeline }; }); }));
       return res.status(200).json({ cards });
     }
+    // Probe (PROBE_KEY): live listings for the card tests (repeat VINs, no photo, no reserve, long titles).
+    if (b.action === "finds" && process.env.PROBE_KEY && b.key === process.env.PROBE_KEY) {
+      const rows = (await liveRows(env, "id=gt.0")) || [];
+      const us = rows.filter(r => String(r.country || "US").toUpperCase() === "US");
+      const vins = [...new Set(us.map(r => r.vin_norm).filter(v => v && String(v).length >= 11))];
+      const reps = [];
+      for (let i = 0; i < vins.length; i += 80) {
+        const part = vins.slice(i, i + 80);
+        const vs = await supabaseSelect(env, `vin_summary?vin_norm=in.(${part.map(encodeURIComponent).join(",")})&appearances=gte.2&select=vin_norm,appearances`).catch(() => null);
+        for (const v of vs || []) reps.push(v);
+      }
+      const byVin = Object.fromEntries(reps.map(v => [v.vin_norm, v.appearances]));
+      const pick = r => ({ id: r.id, title: r.listing_title, house: r.source, location: r.location, ends: r.end_time });
+      return res.status(200).json({ live: rows.length,
+        repeats: us.filter(r => byVin[r.vin_norm]).map(r => ({ ...pick(r), appearances: byVin[r.vin_norm] })).sort((a, b) => b.appearances - a.appearances).slice(0, 15),
+        nophoto: us.filter(r => !r.photo_url).slice(0, 10).map(pick),
+        noreserve: us.filter(r => r.has_reserve === false).slice(0, 10).map(pick),
+        longest: us.slice().sort((a, b) => String(b.listing_title || "").length - String(a.listing_title || "").length).slice(0, 8).map(pick) });
+    }
     // Probe (PROBE_KEY): what the range ladder returns at each rung for one live listing.
     if (b.action === "ladder" && process.env.PROBE_KEY && b.key === process.env.PROBE_KEY) {
       const rows = await liveRows(env, `id=eq.${Number(b.id) || 0}`);
