@@ -495,7 +495,13 @@ async function handleOps(req, res) {
   // and accumulates docs/spec-pages-911.json. No writes, no OCD spend.
   if (task === "specpages911") {
     if (!env) return res.status(500).json({ error: "no supabase env" });
-    const { specPage, allSpecSlugs911 } = await import("../lib/specPages.js");
+    const { specPage, allSpecSlugs911, specPool } = await import("../lib/specPages.js");
+    const asOfQ = req.query?.asof ? new Date(String(req.query.asof) + "T00:00:00Z") : new Date();
+    // Single-slug pool inspection: ?slug=<leaf-or-trim>&pool=1 -> sorted pool, 3 lowest/3 highest, sample.
+    if (req.query?.slug && req.query?.pool) {
+      const p = await specPool(String(req.query.slug), env, { asOf: asOfQ });
+      return res.status(200).json({ task: "specpages911", mode: "pool", pool: p });
+    }
     const all = allSpecSlugs911();
     const offset = Math.max(0, Number(req.query?.offset || 0));
     const limit = Math.min(Math.max(1, Number(req.query?.limit || 15)), 40);
