@@ -3972,20 +3972,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "vincount", salesCount, attemptsCount, total: (salesCount || 0) + (attemptsCount || 0) });
   }
 
-  // task=vinkeysettest: TEMPORARY, read-only. Proves the keyset paginator on a narrowed, fast scope
-  // (make=Porsche) instead of the full ~321k-row table, which exceeds this function's 300s maxDuration.
-  // Removed once the fix is verified.
-  if (task === "vinkeysettest") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { readAllKeyset, exactCount } = (await import("../scripts/buildVinIndex.js")).__vinIndexInternals;
-    const filter = "vin_norm=not.is.null&or=(vehicle_type.is.null,vehicle_type.neq.non_vehicle)&make=ilike.*porsche*";
-    const sel = "source_id,vin_norm,sale_date";
-    const { rows, pages } = await readAllKeyset(env, "sales_archive", filter, "source_id", sel);
-    const expected = await exactCount(env, "sales_archive", filter, "source_id");
-    const dupIds = rows.length - new Set(rows.map(r => r.source_id)).size;
-    return res.status(200).json({ task: "vinkeysettest", got: rows.length, expected, pages, duplicateIds: dupIds, match: rows.length === expected });
-  }
-
   // task=buildvinindex: run the VIN index rebuild server-side (DB-only, ZERO OCD), the SAME core the
   // CLI + nightly use (scripts/buildVinIndex.js buildVinIndex). ?report=1 = distribution only, no write.
   if (task === "buildvinindex") {

@@ -287,5 +287,3 @@ if (process.argv[1] && /buildVinIndex\.js$/.test(process.argv[1])) {
     process.exit(0);
   }).catch(e => { console.error("buildVinIndex failed:", e && e.message); process.exit(1); });
 }
-
-export const __vinIndexInternals = { readAllKeyset, readAllCompoundKeyset, exactCount };
