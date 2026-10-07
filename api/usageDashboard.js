@@ -3474,8 +3474,12 @@ async function handleOps(req, res) {
       const base = title.split(/\s+w\/|\bwith\b/i)[0];                    // the lot is the vehicle, ignore what follows "with"
       if (SELFPROP.test(base)) continue;                                  // self-propelled stays (goes to other/moto sitemap)
       const cu = classifyUnknown({ listing_title: base }) || {};
+      const hasYear = /\b(?:18|19|20)\d{2}\b/.test(base);                 // a real car title always carries a model year
       let reason = null;
-      if (cu.vehicle_type === "non_vehicle") reason = cu.basis || "memorabilia/parts";
+      // memorabilia / parts / loose engine: classifyUnknown's non_vehicle verdict is only trusted when
+      // there is NO model year - with a year present it over-matches real cars on incidental words
+      // (Clio "Trophy", XKR-S "Badge", 512 TR "Red Book", "Art Car", Camel "Trophy", "Coachwork").
+      if (!hasYear && cu.vehicle_type === "non_vehicle") reason = cu.basis || "memorabilia/parts";
       else if (!cu.make) {                                                // no car make recognised: test the standalone signals
         if (BOAT.test(base) && !BOAT_FALSE.test(base)) reason = "boat";
         else if (AIRCRAFT.test(base) && !AIRCRAFT_FALSE.test(base)) reason = "aircraft";
