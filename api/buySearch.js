@@ -339,7 +339,7 @@ async function chatOut(res, env, b) {
     const timedOut = /abort/i.test(err);
     status = timedOut ? "timeout" : "error";
     if (!streamed && !timedOut) send("fallback", {});
-    else send("done", { reply: "Sam couldn't finish that one. Try asking again in a moment.", cards: [], state, turns: turns + 1 });
+    else send("done", { reply: "Sam couldn't finish that one. Try asking again in a moment.", cards: [], state, turns: turns + 1, error: b.debug ? err : undefined });
   }
   const usage = (out && out.usage) || { input_tokens: 0, output_tokens: 0 };
   await recordUsageEvent({ event_type: "buy_chat_turn", route: "/api/buySearch#chat", status, anthropic_model: CHAT_MODEL,
