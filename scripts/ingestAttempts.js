@@ -18,6 +18,7 @@ import { callOldCarsData, configureOcdUsage, flushOcdUsage, getOcdRunMetered } f
 import { supabaseEnv, supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { validVin, normChassis } from "../lib/_canonical.js";
 import { loadFxRates } from "../lib/_fx.js";
+import { normalizeListingUrl } from "../lib/_urlNorm.js";
 
 const CLEAN_SOURCES = ["bringatrailer", "carsandbids", "hagerty", "sothebysmotorsport", "mbmarket"];
 const env = supabaseEnv();
@@ -71,7 +72,7 @@ for (const source of SOURCES) {
         chassis_vin_norm: validVin(rec.vin) ? normChassis(rec.vin) : null,
         make: (rec.ocd_make_name || rec.listing_make || null), model: (rec.ocd_model_name || rec.listing_model || null), year: toInt(rec.year),
         attempt_date: dayKey(d), auction_status: status, high_bid: toMoney(rec.price), high_bid_usd: usdOf(toMoney(rec.price), rec.currency, dayKey(d)), currency: rec.currency || "USD",
-        has_reserve: toBool(rec.has_reserve), bids: toInt(rec.stats?.bids),
+        has_reserve: toBool(rec.has_reserve), bids: toInt(rec.stats?.bids), url_norm: normalizeListingUrl(rec.url || rec.source_url),
         views: toInt(rec.stats?.views), watches: toInt(rec.stats?.watches), raw_record: rec,
         canonical_id: null
       });

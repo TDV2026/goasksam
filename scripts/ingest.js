@@ -18,6 +18,7 @@ import { deltaShouldStop, earliestGapDay, typicalByWeekday, recentDayList, zeroS
 import { resolveIngestIdentity } from "../lib/_unknownClassify.js";
 import { computeDescFacts } from "../lib/_descFacts.js";
 import { mileageFromText } from "../lib/_mileageText.js";
+import { normalizeListingUrl } from "../lib/_urlNorm.js";
 import { loadFxRates } from "../lib/_fx.js";
 import { hammerUsd, setFxRates } from "../lib/_houseComps.js";
 
@@ -181,7 +182,7 @@ function toFullRow(r, label, source) {
     stated_mileage: df.stated_mileage, project_flag: df.project_flag, desc_facts: df.desc_facts,
     sale_price: toMoney(r.price), sale_price_usd: usdOf(salePrice, r.currency, saleDate, source, label),
     month: d ? d.toISOString().slice(0, 7) : null, raw_record: projFlag ? { ...r, _project_flag: projFlag } : r,
-    year: toInt(r.year), mileage, body_style: r.body_style ?? null,
+    year: toInt(r.year), mileage, url_norm: normalizeListingUrl(r.url || r.source_url), body_style: r.body_style ?? null,
     title_status: r.title_status ?? null, vin: r.vin ?? null, transmission: r.transmission ?? null,
     drivetrain: r.drivetrain ?? null, exterior_color: r.exterior_color ?? null, interior_color: r.interior_color ?? null,
     seller_type: r.seller_type ?? null, listing_title: r.title ?? null, description: r.description ?? null,
