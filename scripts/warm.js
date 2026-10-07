@@ -65,6 +65,17 @@ const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || "";
 if (!BYPASS) console.error("::warning::VERCEL_AUTOMATION_BYPASS_SECRET is not set; warm calls will be blocked by the Vercel Security Checkpoint (429).");
 const reqHeaders = { "Content-Type": "application/json", ...(BYPASS ? { "x-vercel-protection-bypass": BYPASS } : {}) };
 
+// OCD-spend gate (Oct 2026). The nightly warm's only job - pre-populating the /sell market-fetch
+// cache so a first search is fast - re-fetches the SAME ~30 nameplates from OldCarsData every night,
+// which overwhelmingly repeats sales the nightly archive ingest already holds and that the archive-only
+// spec market cache (scripts/buildSpecMarketCache.js) now reads with ZERO OCD. That made the warm the
+// single largest OCD line (~318 of ~442 calls/day). It is now OFF by default: the first real search per
+// nameplate does one cold fetch on demand and caches it, instead of pre-spending nightly. Set WARM_OCD=1
+// to deliberately restore live warming.
+if (process.env.WARM_OCD !== "1") {
+  console.log(`Warm OCD spend is OFF (WARM_OCD unset). Skipping ${batch.length} live warm fetch(es); the nightly ingest + spec market cache cover these with zero OldCarsData. Set WARM_OCD=1 to restore.`);
+  process.exit(0);
+}
 console.log(`Warming ${batch.length} nameplate(s) from a ${list.length}-entry list (cursor ${cursor}).`);
 let warmed = 0, degraded = 0, spent = 0, failed = 0;
 const failures = [];
