@@ -3439,6 +3439,55 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "transfill", write: true, processedThisCall: processed, filledThisCall: filled, skippedAlreadyFilled: skippedFilled, byLabel, pages, errors, errorDetail, nextAfter: done ? null : cursor, done });
   }
 
+  // task=vintypeaudit: READ-ONLY. What is in the VIN index by vehicle type. Groups vin_index by VIN
+  // (newest appearance's title + stored vehicle_type), then classifies each: the stored type wins, and
+  // null/"car" rows are refined from the title via classifyUnknown (catches null-typed motorcycles and
+  // non-road lots) plus a truck split and a non-road sub-category breakdown. Counts + 3 samples each.
+  if (task === "vintypeaudit") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { classifyUnknown } = await import("../lib/_unknownClassify.js");
+    const per = new Map();
+    for (let page = 0; page < 400; page++) {
+      const rows = await supabaseSelect(env, `vin_index?select=vin_norm,listing_title,vehicle_type,make,appearance_date&order=id.asc&limit=1000&offset=${page * 1000}`);
+      if (!rows || !rows.length) break;
+      for (const r of rows) {
+        const g = per.get(r.vin_norm) || { title: "", date: "", type: null };
+        if (String(r.appearance_date || "") >= g.date) { g.date = String(r.appearance_date || ""); g.title = r.listing_title || g.title; g.type = r.vehicle_type || g.type; }
+        else if (!g.type) g.type = r.vehicle_type || null;
+        per.set(r.vin_norm, g);
+      }
+      if (rows.length < 1000) break;
+    }
+    const TRUCK_RE = /\b(pick[-\s]?up|truck|f-?[1-6]50|f-?100|silverado|sierra|ramcharger|power\s?wagon|stepside|dually|flatbed|c\/?k\s?\d{1,2}0|d-?[1-5]00|w-?[1-5]00|suburban|\btundra\b|\btacoma\b|\bhilux\b|\bd(?:50|150|250|350)\b|box\s?truck|dump\s?truck|coe\b|cabover)\b/i;
+    const SUBCATS = [
+      ["boat", /\b(boat|yacht|runabout|chris[-\s]?craft|outboard|hull|catamaran|canoe|sailboat|watercraft|jet\s?ski)\b/i],
+      ["aircraft", /\b(aircraft|airplane|aeroplane|helicopter|cessna|piper|beechcraft|glider|biplane|warbird)\b/i],
+      ["tractor", /\b(tractor|farmall|john\s?deere|combine|backhoe|excavator|bulldozer|loader|allis[-\s]?chalmers|massey|fordson)\b/i],
+      ["trailer", /\b(trailer|camper|caravan|teardrop|airstream|fifth[-\s]?wheel|toy\s?hauler)\b/i],
+      ["golf_cart", /\bgolf\s?cart\b/i],
+      ["go_kart", /\b(go[-\s]?kart|go[-\s]?cart|kart)\b/i],
+      ["atv_utv", /\b(atv|utv|quad|side[-\s]?by[-\s]?side|snowmobile|ski[-\s]?doo|polaris|can[-\s]?am)\b/i],
+      ["sign_automobilia", /\b(sign|neon|petroliana|automobilia|poster|clock|pump\s?globe|gas\s?pump)\b/i],
+      ["engine_parts", /\b(engine|motor\s|transmission|gearbox|chassis\s?only|body\s?shell|parts|wheels|hardtop|hard\s?top|project\s?parts)\b/i],
+      ["memorabilia", /\b(memorabilia|literature|brochure|manual|book|badge|emblem|mascot|trophy|helmet|jacket|model\s?car|scale\s?model|toy|watch|painting|print|photograph)\b/i]
+    ];
+    const buckets = {};
+    const add = (k, title) => { const b = buckets[k] || (buckets[k] = { count: 0, samples: [] }); b.count++; if (b.samples.length < 3 && title) b.samples.push(String(title).slice(0, 90)); };
+    const subOf = title => { for (const [k, re] of SUBCATS) if (re.test(String(title || ""))) return k; return "uncategorized"; };
+    for (const [, g] of per) {
+      let vt = g.type;
+      if (!vt || vt === "car") { const c = classifyUnknown({ listing_title: g.title }); if (c && c.vehicle_type) vt = c.vehicle_type; else vt = vt || "car"; }
+      if (vt === "motorcycle") add("motorcycle", g.title);
+      else if (vt === "other") add("other:" + subOf(g.title), g.title);
+      else if (vt === "non_vehicle") add("non_vehicle:" + subOf(g.title), g.title);
+      else if (TRUCK_RE.test(g.title || "")) add("truck", g.title);
+      else add("car", g.title);
+    }
+    const sorted = Object.entries(buckets).sort((a, b) => b[1].count - a[1].count).map(([k, v]) => ({ type: k, count: v.count, samples: v.samples }));
+    const roadVehicle = (buckets.car?.count || 0) + (buckets.truck?.count || 0) + (buckets.motorcycle?.count || 0);
+    return res.status(200).json({ task: "vintypeaudit", distinctVins: per.size, roadVehicle, nonRoad: per.size - roadVehicle, buckets: sorted });
+  }
+
   // task=vinsamples: READ-ONLY. Example VINs for the VIN-page verification. Multi-appearance VINs come
   // from vin_summary (reliable); each is classified photoful vs photoless by reading sales_archive +
   // auction_attempts photos. Plus the cars live at auction right now.
