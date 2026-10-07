@@ -6,6 +6,7 @@
 // Indexing (Oct 2026): a car page is indexable when the car has at least one SALE with a photo, and is
 // listed in /sitemap-vins.xml; every other page (no photographed sale, hubs, 404s) stays noindex.
 //   GET /sitemap-vins.xml -> sitemap index (?sitemap=index);  /sitemap-vins-N.xml -> page N (?sitemap=N)
+import { vinsForUrls } from "./_historyData.js";
 import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, liveListing, addWatch, carSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle, canonicalHub } from "./_historyData.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { PAGE_CSS as CSS, FONT_LINKS, railHtml, WHY_RESULT_HTML } from "./_chrome.js";
@@ -264,21 +265,22 @@ async function carPage(req, res, env, slug, vin) {
   const exactSale = lastSale && lastSale.priceUsd ? { price: lastSale.priceUsd, mileage: lastSale.mileage, soldDate: lastSale.date } : null;
   const [d, live, said, others] = await Promise.all([oneBoxFor(env, id, exactSale), liveListing(env, vinNorm), listingSaid(env, vinNorm).catch(() => null), familySales(env, id, vinNorm).catch(() => null)]);
   const story = storyOf(live);
+  const poolCards = d && Array.isArray(d.cards) ? d.cards : [];
+  const urlVins = poolCards.length ? await vinsForUrls(env, poolCards.map(c => c.url).filter(Boolean)).catch(() => null) : null;
   const n = poolCount(d);
   let ctx = "";
   if (n) ctx = (lastSale && lastSale.date >= windowStartIso(d) ? `One of ${n}` : `${n}`) + ` ${id.family} sales at auction in ${poolWindow(d)}.`;
   const oneboxCar = `/onebox?q=${encodeURIComponent(name)}`;
   // 7. QUESTIONS
-  let cmp = "There are not enough recent sales to say.";
-  if (lastSale && lastSale.priceUsd && d && d.tier === "result" && d.cluster) {
-    const [lo, hi] = d.cluster, p = lastSale.priceUsd;
-    // Position words that stay fair near an edge: within 2% of an end reads "right at" it.
-    const span = hi - lo, near = 0.02;
-    const where = p < lo ? ((lo - p) / lo <= near ? "Right at the bottom of" : "Below")
-      : p > hi ? ((p - hi) / hi <= near ? "Right at the top of" : "Above")
-      : (span > 0 && (p - lo) / span <= 0.25) ? "Near the bottom of"
-      : (span > 0 && (hi - p) / span <= 0.25) ? "Near the top of" : "In the middle of";
-    cmp = `${where} the range where most ${id.family} sales landed in ${windowText(d)} (${usd(lo)} to ${usd(hi)}).`;
+  // Compares only a sale INSIDE the window the range covers (an older sale is a different market), and
+  // never a live bid. No above/below labels: inside the middle half says so; otherwise the two facts
+  // stand side by side. Outside the window, the question is left out (cmp stays null).
+  let cmp = null;
+  if (lastSale && lastSale.priceUsd && d && d.tier === "result" && d.cluster && lastSale.date >= windowStartIso(d)) {
+    const [lo, hi] = d.cluster, p = lastSale.priceUsd, yr = String(lastSale.date).slice(0, 4);
+    cmp = p >= lo && p <= hi
+      ? `Its ${yr} sale, ${usd(p)}, sits inside where most ${nounOf(d, id)} sold in ${windowText(d)} (${usd(lo)} to ${usd(hi)}).`
+      : `Its ${yr} sale was ${usd(p)}. Most ${nounOf(d, id)} sold in ${windowText(d)} went for ${usd(lo)} to ${usd(hi)}.`;
   }
   // Questions answered only with THIS car's own facts; a question whose answer would be a template (the
   // same words on every page) is left out.
@@ -291,7 +293,7 @@ async function carPage(req, res, env, slug, vin) {
     lastSale ? ["What did this car last sell for?", `${salePriceFee(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}.`]
       : topBid ? ["What is the highest bid this car has had?", `${bidPrice(topBid)} ${on(topBid.house)} in ${monthYear(topBid.date)}, and it did not sell.`] : null,
     ["How many times has it been to auction?", countAns],
-    lastSale && d && d.tier === "result" && d.cluster ? ["How does its last sale compare with others?", cmp] : null
+    cmp ? ["How does its last sale compare with others?", cmp] : null
   ].filter(Boolean);
   const photo = appearances.find(a => a.image) || null;
   const altPhotos = [...new Set(appearances.map(a => a.image).filter(Boolean))].filter(u => !photo || u !== photo.image);
@@ -307,7 +309,7 @@ ${timelineHtml(appearances, live)}
 ${specRailHtml(d, id, lastSale)}
 ${live ? liveCardHtml(live, name) : ""}
 ${saidHtml(said)}
-${othersHtml(others, id)}
+${groupListsHtml(d, id, vinNorm, poolCards, urlVins, others)}
 <section class="sec"><h2>Questions</h2><dl class="faq">${faq.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>
 <nav class="vlinks" aria-label="More"><a href="${esc(modelHub)}">All ${esc(id.make + " " + id.family)} auction results</a><a href="${esc(hubHref)}">Every ${esc(id.year + " " + id.make + " " + id.family)} by VIN</a><a class="red" href="${esc(sellHref(id))}">Where to sell it</a><button type="button" id="watch-open" aria-expanded="false" aria-controls="watch">Watch this car</button></nav>
 <form class="watch" id="watch" hidden><label for="watch-email" style="position:absolute;left:-9999px">Email</label><input id="watch-email" type="email" required placeholder="Your email" autocomplete="email"><button class="btn p" type="submit">Watch it</button><p class="msg" id="watch-msg">Sam will email you if this car comes up at auction again.</p></form>
@@ -357,7 +359,7 @@ function specRailHtml(d, id, lastSale) {
     const a = pc(d.cluster[0]), b = pc(d.cluster[1]);
     const recent = lastSale && lastSale.priceUsd && (Date.now() - Date.parse(lastSale.date + "T00:00:00Z")) <= 730 * 864e5 && lastSale.priceUsd >= lo && lastSale.priceUsd <= hi;
     const dot = recent ? `<i class="me" style="left:${pc(lastSale.priceUsd).toFixed(1)}%"></i><span class="melab" style="left:${pc(lastSale.priceUsd).toFixed(1)}%">This car, ${esc(monShort(lastSale.date))}</span>` : "";
-    const n = poolCount(d);
+    const n = (d.cards || []).length || poolCount(d);
     return `<section class="sec" aria-label="What cars like it sold for"><h2>What ${esc(fam)} sell for</h2><p class="sub">${n ? `${n} sales in ${esc(win)}.` : ""}</p>
 <div class="vrail${recent ? " hasme" : ""}"><div class="rrow"><span class="rend">${usd(lo)}</span><span class="rline"><i class="band" style="left:${a.toFixed(1)}%;width:${Math.max(1.5, b - a).toFixed(1)}%"></i>${dot}</span><span class="rend">${usd(hi)}</span></div>
 <p class="rmost">Most sold between ${usd(d.cluster[0])} and ${usd(d.cluster[1])}</p><p class="rcap">What this spec has sold for, ${/twelve/.test(win) ? "last 12 months" : "last 2 years"}</p></div></section>`;
@@ -384,6 +386,43 @@ function liveCardHtml(l, name) {
   return `<section class="sec" aria-label="Back at auction now"><h2>Back at auction now</h2><p class="sub">This car is live ${house === "Hemmings" || /^(Mecum|Bonhams|Gooding|RM|Broad|Barrett)/.test(house) ? "at" : "on"} ${esc(house)}.</p>
 <article class="lcard"><a class="lph" href="${esc(utm(l.url))}" target="_blank" rel="noopener">${img}<span class="chips">${chips.map(c => `<span class="chip">${esc(c)}</span>`).join("")}</span></a>
 <div><h3><a href="${esc(utm(l.url))}" target="_blank" rel="noopener">${esc(name)}</a></h3><p class="meta">${meta.map(esc).join(" · ")}</p><a class="go" href="${esc(utm(l.url))}" target="_blank" rel="noopener">See the live auction</a></div></article></section>`;
+}
+// THE SALES BEHIND THE RAIL: exactly the rail's group (the engine's pool, same window), so the counts
+// agree. Other bodies of the family sold in the same window get their OWN list each ("XJS V12
+// convertibles that sold"), never mixed in. Rows open each car's history when its VIN is known.
+const BODY_RE = [["coupes", /\bcoup[eé]\b/i], ["convertibles", /\bconvertible\b/i], ["Cabriolets", /\bcabriolet\b/i], ["roadsters", /\broadster\b/i], ["Targas", /\btarga\b/i], ["Spiders", /\bspider\b|\bspyder\b/i], ["sedans", /\bsedan\b|\bsaloon\b/i], ["wagons", /\bwagon\b|\bestate\b/i]];
+const bodyOfTitle = t => (BODY_RE.find(([, re]) => re.test(String(t || ""))) || [null])[0];
+function saleRow({ year, miles: mi, price, date, house, href, mine }) {
+  return `<li><a href="${esc(href || "#")}"${href && /^https?:/.test(href) ? ' target="_blank" rel="noopener"' : ""}><span>${esc(year || "")}</span><span class="m">${esc([mine ? "This car" : "", mi ? miles(mi) + " miles" : "", monShort(date), house].filter(Boolean).join(" · "))}</span><span class="p">${esc(price)}</span></a></li>`;
+}
+function groupListsHtml(d, id, vinNorm, cards, urlVins, others) {
+  const out = [];
+  const fam = d ? nounOf(d, id) : null;
+  if (cards.length && fam) {
+    const rows = cards.slice().sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))).map(c => {
+      const v = urlVins && c.url ? urlVins.get(c.url) : null;
+      const year = (v && v.year) || Number((/\b(19|20)\d{2}\b/.exec(c.title || "") || [])[0]) || null;
+      const href = v ? `/history/${[year, slugify(id.make), slugify(id.family)].filter(Boolean).join("-")}/${v.vin}` : (c.url ? utm(c.url) : null);
+      return saleRow({ year, miles: c.mi, price: c.price ? usd(c.price) : "", date: c.date, house: c.platform || "", href, mine: v && v.vin === vinNorm });
+    });
+    const shown = rows.slice(0, 30);
+    out.push(`<section class="sec"><h2>${esc(fam.charAt(0).toUpperCase() + fam.slice(1))} that sold</h2><p class="sub">The ${cards.length} sales behind the range above, in ${esc(windowText(d))}. Newest first${rows.length > shown.length ? `, the latest ${shown.length} shown` : ""}.</p><ul class="others">${shown.join("")}</ul></section>`);
+  }
+  // Other bodies, same window, each its own list.
+  const myBody = d && d.resolvedCar && d.resolvedCar.bodyStyle ? bodyOfTitle(d.resolvedCar.bodyStyle) : null;
+  if (others && others.rows && myBody && d) {
+    const start = windowStartIso(d), groups = new Map();
+    for (const r of others.rows) {
+      if (!r.date || r.date < start || r.vin === vinNorm) continue;
+      const b = bodyOfTitle(r.title); if (!b || b === myBody) continue;
+      if (!groups.has(b)) groups.set(b, []); groups.get(b).push(r);
+    }
+    for (const [b, list] of groups) {
+      const name = `${id.family} ${b}`;
+      out.push(`<section class="sec"><h2>${esc(name)} that sold</h2><p class="sub">${list.length} in ${esc(windowText(d))}. A different body, so not part of the range above. Newest first.</p><ul class="others">${list.map(r => saleRow({ year: r.year, miles: r.miles, price: money(r.priceUsd, r.nativePrice, r.currency), date: r.date, house: r.house, href: r.href })).join("")}</ul></section>`);
+    }
+  }
+  return out.join("");
 }
 // WHAT THE LISTING SAID: facts from the sale's own record, worded by Sam; never the house's text.
 // Dated and past tense: these are what the listing reported at the time of that sale.

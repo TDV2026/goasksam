@@ -8,6 +8,7 @@ import { runOneBox } from "../lib/onebox.js";
 import { supabaseSelect } from "../lib/_supabase.js";
 import { isPartsListing, isMemorabilia } from "../lib/_classify.js";
 import { genFor } from "../lib/live/search.js";
+import { normalizeListingUrl } from "../lib/_urlNorm.js";
 
 export function normVin(s) { return String(s == null ? "" : s).toUpperCase().replace(/[^A-Z0-9]/g, ""); }
 export function historyEnv() {
@@ -303,7 +304,7 @@ export async function familySales(env, id, excludeVin, limit = 25) {
     seen.add(r.vin_norm);
     const p = usdOf(r.sale_price, r.sale_price_usd, r.currency);
     const year = Number(r.year) || null;
-    out.push({ vin: r.vin_norm, year, miles: num(r.mileage), priceUsd: p.usd, nativePrice: p.native, currency: p.currency, date: String(r.sale_date || "").slice(0, 10), house: houseName(r.platform),
+    out.push({ vin: r.vin_norm, year, miles: num(r.mileage), priceUsd: p.usd, nativePrice: p.native, currency: p.currency, date: String(r.sale_date || "").slice(0, 10), house: houseName(r.platform), title: r.listing_title || "",
       href: `/history/${[year, slugify(id.make), slugify(id.family)].filter(Boolean).join("-")}/${r.vin_norm}` });
   }
   // The same generation as this car first (a 987 Boxster Spyder lists 987s); the whole family only
@@ -330,3 +331,16 @@ export async function sitemapCount(env) {
   } catch { return null; }
 }
 export { resolveText };
+
+// Sale listing URLs -> their VINs (sales_archive.url_norm is indexed), so a list built from the engine's
+// own pool can still open each car's history page. Missing ones simply link to the listing.
+export async function vinsForUrls(env, urls) {
+  const norms = [...new Set((urls || []).map(u => { try { return normalizeListingUrl(u); } catch { return null; } }).filter(Boolean))];
+  const out = new Map();
+  for (let i = 0; i < norms.length; i += 60) {
+    const part = norms.slice(i, i + 60).map(n => '"' + n.replace(/"/g, '\\"') + '"').join(",");
+    const rows = await supabaseSelect(env, `sales_archive?url_norm=in.(${encodeURIComponent(part)})&select=url_norm,vin_norm,year`).catch(() => null);
+    for (const r of rows || []) if (r.vin_norm) out.set(r.url_norm, { vin: r.vin_norm, year: Number(r.year) || null });
+  }
+  return { get: u => { try { return out.get(normalizeListingUrl(u)) || null; } catch { return null; } } };
+}
