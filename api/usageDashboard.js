@@ -3295,6 +3295,37 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "milesfill", mode, write, processed: rows.length, nextCursor: rows[rows.length - 1].id, computable: fixes.length, wrote, writeErrors, filledBySource, leftNullBySource, samples });
   }
 
+  // task=titleaudit: READ-ONLY. The title-less VINs (vin_summary.make null) and how many can be filled
+  // with year/make/model from sales_archive, auction_attempts or live_listings vs have nothing. ZERO OCD.
+  if (task === "titleaudit") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    const cq = async f => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${f}&select=vin_norm&limit=1`, { headers: H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    const totalTitleless = await cq("vin_summary?make=is.null");
+    // Sample up to 1000 title-less VINs, cross-check the three tables for a usable make.
+    const sample = await supabaseSelect(env, `vin_summary?make=is.null&select=vin_norm&limit=1000`) || [];
+    const vins = sample.map(r => r.vin_norm).filter(Boolean);
+    const chunk = (a, n) => { const o = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };
+    const unk = s => !s || /^unknown$/i.test(String(s).trim());
+    const have = {}; // vin -> {src, make, model, year}
+    const scan = async (table, col, vinCol) => {
+      for (const c of chunk(vins.filter(v => !have[v]), 120)) {
+        if (!c.length) continue;
+        const inlist = c.map(encodeURIComponent).join(",");
+        const rows = await supabaseSelect(env, `${table}?${vinCol}=in.(${inlist})&make=not.is.null&make=not.ilike.unknown&select=${vinCol},make,model,year`) || [];
+        for (const r of rows) { const v = r[vinCol]; if (!have[v] && !unk(r.make)) have[v] = { src: table, make: r.make, model: r.model, year: r.year }; }
+      }
+    };
+    await scan("sales_archive", "make", "vin_norm");
+    await scan("auction_attempts", "make", "chassis_vin_norm");
+    await scan("live_listings", "make", "vin_norm");
+    const fillable = Object.keys(have).length, nothing = vins.length - fillable;
+    const bySrc = {}; for (const v of Object.keys(have)) bySrc[have[v].src] = (bySrc[have[v].src] || 0) + 1;
+    const exFill = Object.entries(have).slice(0, 8).map(([v, h]) => ({ vin: v, from: h.src, make: h.make, model: h.model, year: h.year }));
+    const exNothing = vins.filter(v => !have[v]).slice(0, 8);
+    return res.status(200).json({ task: "titleaudit", totalTitleless, sampleSize: vins.length, fillableInSample: fillable, nothingInSample: nothing, fillableBySource: bySrc, projectedFillable: totalTitleless != null && vins.length ? Math.round(totalTitleless * fillable / vins.length) : null, examplesFillable: exFill, examplesNothing: exNothing });
+  }
+
   // task=urlcheck: READ-ONLY. Is a listing link / bare slug present in sales_archive or auction_attempts?
   // Returns the normalised url and the matching row (vin, make, model, title). ?u=<url|slug>. ZERO OCD.
   if (task === "urlcheck") {
