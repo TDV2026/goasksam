@@ -3,6 +3,16 @@
 Short, dated cross-lane heads-ups so two lanes don't collide on the same file. Append a line; remove it
 when the work has landed.
 
+- 2026-10-08 (Lane A, taking over the 911 spec/hub page BUILD from Lane C per Sam): new `api/specPage.js`
+  serves `/cars/porsche/911/...` (all 4 levels) + `/sitemap-specs.xml`. Reads the nightly `spec_pages`
+  table (rule 11) first; falls back to calling `specPage()` LIVE (lib/specPages.js, unedited) when a
+  row is missing, since the DDL/first nightly build are landing now per Sam. In the shared chrome
+  (api/_chrome.js PAGE_CSS/railHtml, the same classes api/history.js uses). BreadcrumbList + FAQPage
+  JSON-LD, dated lead as the first paragraph, links up/sideways/down + to Market Check (prefilled) and
+  /buy. Indexable only when `data.indexable` is true. The sitemap branch reads spec_pages in BULK (one
+  query), never loops allSpecSlugs911() through 300+ live specPage() calls in one request (timeout
+  risk) - until the table has indexable rows it honestly lists just the always-indexable model hub.
+  vercel.json wired (3 rewrites + maxDuration 60). lib/specPages.js is untouched.
 - 2026-10-08 (Lane A): links-in pass for Market Check (/market-check is now public, see the earlier SSR
   entry note). Edited `api/_chrome.js` (the shared nav rail's "Ask Sam" / logo link, every page that
   imports `railHtml`), `api/buy.js` (the card's "ask more" prefill link), `api/history.js` (the "Cars

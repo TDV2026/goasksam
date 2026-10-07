@@ -28,6 +28,9 @@
     { "source": "/tasks", "destination": "/api/tasksPage" },
     { "source": "/tasks/mine", "destination": "/api/tasksPage?app=1" },
     { "source": "/market-check", "destination": "/api/marketCheck" },
+    { "source": "/sitemap-specs.xml", "destination": "/api/specPage?sitemap=1" },
+    { "source": "/cars/porsche/911", "destination": "/api/specPage?slug=/cars/porsche/911" },
+    { "source": "/cars/porsche/911/:path*", "destination": "/api/specPage?slug=/cars/porsche/911/:path*" },
     { "source": "/o/:id", "destination": "/api/publicConfig?obShare=:id" },
     { "source": "/onebox-preview", "destination": "/onebox-preview.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
@@ -72,6 +75,9 @@
       "includeFiles": "index.html"
     },
     "api/sellerDecision.js": {
+      "maxDuration": 60
+    },
+    "api/specPage.js": {
       "maxDuration": 60
     },
     "api/desk.js": {
