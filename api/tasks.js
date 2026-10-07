@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     }
     // Probe: counts of the old watch_requests rows (reported, never emailed).
     if (req.method === "GET" && q.watchcounts && probeOk(req)) {
-      const count = async f => { const r = await fetch(`${env.supabaseUrl}/rest/v1/watch_requests?select=id${f}`, { method: "HEAD", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact", Range: "0-0" } }); return Number(((r.headers.get("content-range") || "").split("/")[1]) || 0); };
+      const count = async f => { const r = await fetch(`${env.supabaseUrl}/rest/v1/watch_requests?select=id${f}`, { method: "HEAD", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact", Range: "0-0" } }); return r.ok || r.status === 206 ? Number(((r.headers.get("content-range") || "").split("/")[1]) || 0) : `error ${r.status}`; };
       return res.status(200).json({ total: await count(""), with_email: await count("&email=like.*@*"), vin_keys: await count("&vin_norm=not.like.*:*"), search_keys: await count("&vin_norm=like.search:*"), family_or_live_keys: await count("&or=(vin_norm.like.family:*,vin_norm.like.live:*)") });
     }
     // Probe-keyed test scenario: the whole flow for a fresh test user against an in-memory store (no
