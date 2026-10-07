@@ -3439,6 +3439,58 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "transfill", write: true, processedThisCall: processed, filledThisCall: filled, skippedAlreadyFilled: skippedFilled, byLabel, pages, errors, errorDetail, nextAfter: done ? null : cursor, done });
   }
 
+  // task=nonroadpreview: READ-ONLY dry run. Lists the VINs the non-road detector WOULD exclude (not
+  // self-propelled: memorabilia, signs, parts, loose engines, boats, aircraft, standalone trailers/
+  // caravans). Guards per spec: replica/recreation/tribute/continuation/evocation => car; ignore
+  // everything after "with"/"w/"; self-propelled keywords stay; only exclude on a strong standalone
+  // signal AND no car make a resolver recognises. Returns the total, a by-reason breakdown, and 30
+  // random excluded titles so Sam can approve before anything is applied.
+  if (task === "nonroadpreview") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { classifyUnknown } = await import("../lib/_unknownClassify.js");
+    const REPLICA = /\b(replica|recreation|re-creation|tribute|continuation|evocation|homage|in the style of|-style\b|style\s+(?:tourer|roadster|saloon))\b/i;
+    const SELFPROP = /\b(motor\s?home|motor\s?coach|\brv\b|camper\s?van|unimog|tractor|golf\s?cart|\batv\b|\butv\b|\brzr\b|side[-\s]?by[-\s]?side|snowmobile|ski[-\s]?doo|motorcycle|scooter|moped|quad\s?cab)\b/i;
+    const BOAT = /\b(boat|yacht|sailboat|catamaran|chris[-\s]?craft|outboard\s+boat)\b/i;        // NOT boat-tail/boattail/runabout (car bodies)
+    const BOAT_FALSE = /\bboat[-\s]?tail\b|\bboattail\b|\brunabout\b/i;
+    const AIRCRAFT = /\b(airplane|aeroplane|aircraft|helicopter|biplane|warbird|glider|cessna|piper\b|beechcraft)\b/i;
+    const AIRCRAFT_FALSE = /aircraft[-\s]?themed/i;
+    const TRAILER = /\b(trailer|caravan|teardrop|fifth[-\s]?wheel|toy\s?hauler)\b/i;
+    const per = new Map();
+    for (let page = 0; page < 400; page++) {
+      const rows = await supabaseSelect(env, `vin_index?select=vin_norm,listing_title,vehicle_type,appearance_date&order=id.asc&limit=1000&offset=${page * 1000}`);
+      if (!rows || !rows.length) break;
+      for (const r of rows) {
+        const g = per.get(r.vin_norm) || { title: "", date: "", type: null };
+        if (String(r.appearance_date || "") >= g.date) { g.date = String(r.appearance_date || ""); g.title = r.listing_title || g.title; g.type = r.vehicle_type || g.type; }
+        per.set(r.vin_norm, g);
+      }
+      if (rows.length < 1000) break;
+    }
+    const excluded = []; const byReason = {};
+    for (const [vin, g] of per) {
+      const title = g.title || "";
+      if (!title) continue;
+      if (REPLICA.test(title)) continue;                                  // a replica/tribute is a car
+      const base = title.split(/\s+w\/|\bwith\b/i)[0];                    // the lot is the vehicle, ignore what follows "with"
+      if (SELFPROP.test(base)) continue;                                  // self-propelled stays (goes to other/moto sitemap)
+      const cu = classifyUnknown({ listing_title: base }) || {};
+      let reason = null;
+      if (cu.vehicle_type === "non_vehicle") reason = cu.basis || "memorabilia/parts";
+      else if (!cu.make) {                                                // no car make recognised: test the standalone signals
+        if (BOAT.test(base) && !BOAT_FALSE.test(base)) reason = "boat";
+        else if (AIRCRAFT.test(base) && !AIRCRAFT_FALSE.test(base)) reason = "aircraft";
+        else if (TRAILER.test(base)) reason = "standalone_trailer";
+      }
+      if (!reason) continue;
+      const key = /memorabilia|automobilia|parts/i.test(reason) ? "memorabilia/parts/engine" : reason;
+      byReason[key] = (byReason[key] || 0) + 1;
+      excluded.push({ vin, title: title.slice(0, 100), reason: key });
+    }
+    // 30 random
+    for (let i = excluded.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[excluded[i], excluded[j]] = [excluded[j], excluded[i]]; }
+    return res.status(200).json({ task: "nonroadpreview", distinctVins: per.size, totalWouldExclude: excluded.length, byReason, sample30: excluded.slice(0, 30) });
+  }
+
   // task=vintypeaudit: READ-ONLY. What is in the VIN index by vehicle type. Groups vin_index by VIN
   // (newest appearance's title + stored vehicle_type), then classifies each: the stored type wins, and
   // null/"car" rows are refined from the title via classifyUnknown (catches null-typed motorcycles and
