@@ -149,6 +149,14 @@ export async function carIdentity(apps, vin) {
   if (!v && /^[A-Z0-9]{17}$/.test(normVin(vin))) {
     try { const r = await resolveVehicle(normVin(vin), { vinConfirm: true }); const dv = r && r.vehicle; if (dv && dv.make && dv.model) v = sanitizeResolvedVehicle(dv) || dv; } catch {}
   }
+  // Stored-identity fallback: the resolver could not read the title text and the VIN did not decode, but
+  // the record itself carries a make + model (an appearance classified as "2003 BMW"). Name the car from
+  // that so a make-known car renders its page instead of 404ing. Only when make + model are real.
+  if (!v) {
+    const unk = s => !s || /^unknown$/i.test(String(s).trim());
+    const wm = titled.find(a => !unk(a.make) && !unk(a.model)) || apps.find(a => !unk(a.make) && !unk(a.model));
+    if (wm) v = { make: wm.make, model: wm.model, year: Number(wm.year) || null };
+  }
   if (!v) return null;
   // Same car = same VIN and same MAKE. Reject only when an appearance names a different make (a
   // polluted VIN shared by unrelated lots); an appearance that doesn't state its make is accepted.

@@ -76,7 +76,11 @@ async function loadAttempts(env) {
   });
 }
 
-function identity(a) { return (isUnknown(a.make) ? "" : a.make.toLowerCase().trim()) + "|" + (isUnknown(a.model) ? "" : a.model.toLowerCase().trim()); }
+// Pollution key = MAKE only. A VIN is polluted (shared across UNRELATED lots) only when its MAKE
+// differs; the SAME car is often listed with different model wording (a 2003 BMW M5 filed as both
+// "M5" and "5-Series"), which must NOT split or drop it. Genuinely shared VINs (BMW on one lot,
+// Ferrari on another) still differ by make and are dropped.
+function identity(a) { return isUnknown(a.make) ? "" : a.make.toLowerCase().trim(); }
 
 async function deleteAll(env, H, table) {
   // Rebuild: clear the derived table (vin_index has a numeric id; vin_summary keys on vin_norm).
