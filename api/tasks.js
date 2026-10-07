@@ -79,6 +79,7 @@ export default async function handler(req, res) {
     }
     const user = await who(req);
     if (req.method === "GET" && q.summary) {
+      res.setHeader("Cache-Control", "private, no-store");
       if (!user) return res.status(200).json({ signedIn: false });
       const tasks = await userTasks(env, user.userId);
       const active = tasks.find(t => ["running", "needs_you"].includes(t.state)) || null;
