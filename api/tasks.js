@@ -46,7 +46,12 @@ export default async function handler(req, res) {
       const isCron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
       if (!isCron && !probeOk(req)) return res.status(401).json({ error: "Unauthorized." });
       const t0 = Date.now();
-      const out = await runTasks(env, { apiKey, model: CHAT_MODEL });
+      let out;
+      try { out = await runTasks(env, { apiKey, model: CHAT_MODEL }); }
+      catch (e) {   // a failed run leaves a row too, so a silent cron failure is queryable
+        await recordUsageEvent({ event_type: "tasks_run", route: "tasks_run", status: "error", oldcarsdata_metered_requests: 0, metadata: { error: String((e && e.message) || e).slice(0, 300), ms: Date.now() - t0 } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+        throw e;
+      }
       await recordUsageEvent({ event_type: "tasks_run", route: "tasks_run", status: "ok", oldcarsdata_metered_requests: 0, metadata: { ran: out.ran, matched: out.report.reduce((k, r) => k + (r.matched || 0), 0), ms: Date.now() - t0 } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       return res.status(200).json(out);
     }
