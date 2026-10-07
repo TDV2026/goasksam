@@ -12,6 +12,7 @@
 // Schedule nightly AFTER the ingest + non-sold jobs (so it reflects the freshest sales/attempts).
 import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
 import { typeByMake } from "../lib/_unknownClassify.js";
+import { classifyRoad } from "../lib/_roadType.js";
 
 const normVin = v => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 const toInt = v => { const n = parseInt(String(v ?? "").replace(/[^0-9-]/g, ""), 10); return Number.isFinite(n) ? n : null; };
@@ -96,10 +97,19 @@ export async function buildVinIndex(env, { reportOnly = false } = {}) {
   const all = [...sales, ...attempts].filter(a => a.vin && a.vin.length >= 6);
   const byVin = new Map();
   for (const a of all) { if (!byVin.has(a.vin)) byVin.set(a.vin, []); byVin.get(a.vin).push(a); }
-  let polluted = 0, shortSplit = 0;
+  let polluted = 0, shortSplit = 0, nonRoad = 0;
   const keptVins = [];
+  const vinBucket = new Map();   // vin -> "car" | "motorcycle" | "other" (nonroad is excluded)
   const yearsOf = apps => apps.map(a => Number(a.year)).filter(y => y > 1800);
   const famsOf = apps => new Set(apps.map(a => String(a.model_family || a.model || "").toLowerCase().trim()).filter(Boolean));
+  // Road-type of the VIN from its newest-titled appearance (title + any stored type + known make).
+  const repOf = apps => {
+    const newest = apps.slice().sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0] || {};
+    const titled = apps.find(a => a.title) || newest;
+    const made = apps.find(a => !isUnknown(a.make)) || {};
+    const typed = apps.find(a => a.vehicle_type) || {};
+    return { title: titled.title || "", make: made.make || null, vehicleType: typed.vehicle_type || null };
+  };
   for (const [vin, apps] of byVin) {
     const makes = new Set(apps.map(identity).filter(Boolean));
     if (makes.size > 1) { polluted++; continue; }           // different MAKE across lots = shared/unrelated
@@ -114,13 +124,22 @@ export async function buildVinIndex(env, { reportOnly = false } = {}) {
     }
     // makes.size <= 1 (same make, or all make-Unknown) is KEPT: a VIN exact-match must resolve a
     // make-Unknown car too; make/model are written null for it. Only polluted/shared VINs drop.
+    // ROAD-TYPE: non-road lots (boat, aircraft, standalone trailer/caravan, memorabilia, parts, loose
+    // engine) leave the indexable set and every sitemap; self-propelled vehicles stay, bucketed for
+    // their sitemap (car / motorcycle / other). The VIN exact-match reads sales_archive, not this
+    // table, so excluding here never breaks a VIN lookup.
+    const bucket = classifyRoad(repOf(apps));
+    if (bucket === "nonroad") { nonRoad++; continue; }
+    vinBucket.set(vin, bucket);
     keptVins.push(vin);
   }
   const counts = keptVins.map(v => byVin.get(v).length);
   const d1 = counts.filter(n => n === 1).length, d2 = counts.filter(n => n >= 2).length, d3 = counts.filter(n => n >= 3).length;
   const top10 = keptVins.map(v => ({ vin: v, n: byVin.get(v).length, car: (byVin.get(v).find(a => !isUnknown(a.make)) || {}) }))
     .sort((a, b) => b.n - a.n).slice(0, 10).map(t => ({ vin: t.vin, appearances: t.n, car: [t.car.year, t.car.make, t.car.model].filter(Boolean).join(" ") }));
-  const stats = { appearances: all.length, distinctVins: byVin.size, polluted, shortChassisSplit: shortSplit, keptVins: keptVins.length, dist: { exactly_1: d1, two_plus: d2, three_plus: d3 }, top10 };
+  const bucketCounts = { car: 0, motorcycle: 0, other: 0 };
+  for (const b of vinBucket.values()) bucketCounts[b] = (bucketCounts[b] || 0) + 1;
+  const stats = { appearances: all.length, distinctVins: byVin.size, polluted, shortChassisSplit: shortSplit, nonRoadExcluded: nonRoad, buckets: bucketCounts, keptVins: keptVins.length, dist: { exactly_1: d1, two_plus: d2, three_plus: d3 }, top10 };
   if (reportOnly) return { ...stats, wrote: false };
 
   // ---- SHRINK GUARD: never overwrite the live tables with a short build ----
@@ -132,7 +151,7 @@ export async function buildVinIndex(env, { reportOnly = false } = {}) {
   for (const v of keptVins) for (const a of byVin.get(v)) idxRows.push({
     vin_norm: v, appearance_date: a.date, source: a.source, url: a.url, listing_title: a.title,
     make: isUnknown(a.make) ? null : a.make, model: isUnknown(a.model) ? null : a.model, model_family: a.model_family,
-    vehicle_type: a.vehicle_type, year: a.year, mileage: a.mileage, result: a.result,
+    vehicle_type: vinBucket.get(v) || a.vehicle_type, year: a.year, mileage: a.mileage, result: a.result,
     price_usd: a.price_usd, currency: a.currency, country: a.country, photo_url: a.photo_url,
     src_table: a.src_table, src_row_id: a.src_row_id
   });
@@ -166,7 +185,7 @@ export async function buildVinIndex(env, { reportOnly = false } = {}) {
       last_sold_price_usd: lastSold ? lastSold.price_usd : null, last_sold_date: lastSold ? lastSold.date : null,
       miles_delta_since_last_sale: milesDelta, days_since_last_sale: daysSince,
       make: isUnknown(id.make) ? null : id.make, model: isUnknown(id.model) ? null : id.model,
-      model_family: id.model_family || null, vehicle_type: id.vehicle_type || mostRecent.vehicle_type || null
+      model_family: id.model_family || null, vehicle_type: vinBucket.get(v) || id.vehicle_type || mostRecent.vehicle_type || null
     };
   });
   let sins = 0, sumErr = 0;
@@ -176,7 +195,7 @@ export async function buildVinIndex(env, { reportOnly = false } = {}) {
   // from the DB (not only the Actions stdout log). Best-effort; never fails the build.
   try {
     const { recordUsageEvent } = await import("../api/_usage.js");
-    await recordUsageEvent({ event_type: "vin_index_build", route: "scripts/buildVinIndex.js", status: "ok", oldcarsdata_metered_requests: 0, metadata: { appearances: all.length, distinctVins: byVin.size, polluted, shortChassisSplit: shortSplit, keptVins: keptVins.length, vin_index_written: ins, vin_summary_written: sins, insertErrors: insErr + sumErr, dist: stats.dist } }, env.supabaseUrl, env.supabaseKey);
+    await recordUsageEvent({ event_type: "vin_index_build", route: "scripts/buildVinIndex.js", status: "ok", oldcarsdata_metered_requests: 0, metadata: { appearances: all.length, distinctVins: byVin.size, polluted, shortChassisSplit: shortSplit, nonRoadExcluded: nonRoad, buckets: bucketCounts, keptVins: keptVins.length, vin_index_written: ins, vin_summary_written: sins, insertErrors: insErr + sumErr, dist: stats.dist } }, env.supabaseUrl, env.supabaseKey);
   } catch { /* best-effort */ }
   return { ...stats, wrote: true, vin_index_written: ins, vin_summary_written: sins, insertErrors: insErr + sumErr };
 }
@@ -186,7 +205,7 @@ if (process.argv[1] && /buildVinIndex\.js$/.test(process.argv[1])) {
   const env = supabaseEnv();
   if (!env) { console.error("Need SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY."); process.exit(1); }
   buildVinIndex(env, { reportOnly: process.argv.slice(2).includes("--report") }).then(s => {
-    console.log(`VIN index: ${s.appearances} appearances across ${s.distinctVins} VINs; ${s.polluted} polluted dropped; ${s.keptVins} kept.`);
+    console.log(`VIN index: ${s.appearances} appearances across ${s.distinctVins} VINs; ${s.polluted} polluted dropped; ${s.nonRoadExcluded} non-road dropped; ${s.keptVins} kept (car ${s.buckets.car}, motorcycle ${s.buckets.motorcycle}, other ${s.buckets.other}).`);
     console.log(`Appearances: 1 -> ${s.dist.exactly_1} | 2+ -> ${s.dist.two_plus} | 3+ -> ${s.dist.three_plus}`);
     console.log("10 most-seen:"); for (const t of s.top10) console.log(`  ${t.vin}  x${t.appearances}  ${t.car}`);
     if (s.wrote) console.log(`\nWrote vin_index ${s.vin_index_written}, vin_summary ${s.vin_summary_written}, insertErrors ${s.insertErrors}. DONE.`);
