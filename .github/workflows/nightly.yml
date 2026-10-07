@@ -84,6 +84,8 @@ jobs:
           node scripts/buildVinIndex.js
       - name: Refresh spec market cache (what each live spec sells for)
         run: node scripts/buildSpecMarketCache.js
+      - name: Build spec_pages (Porsche 911 spec/hub pages, serve-from-table)
+        run: node scripts/buildSpecPagesCache.js
       - name: Search rules check (public pages)
         run: node scripts/searchCheck.js
         continue-on-error: true
