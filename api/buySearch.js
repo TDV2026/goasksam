@@ -36,6 +36,10 @@ async function enrich(env, x) {
   if (market && market.kind === "pending") market = await listingMarket(env, x.r, x.facts);   // one more go, warm now
   return { ...cardOf(x), market, seen_before: seen };
 }
+async function enrichFast(env, x) {
+  const [market, seen] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { noBlock: true }), seenBefore(env, x.r.vin_norm)]);
+  return { ...cardOf(x), market, seen_before: seen };
+}
 async function logSearch(env, v, anonId) {
   try {
     const r = await fetch(`${env.supabaseUrl}/rest/v1/search_events`, {
@@ -300,9 +304,13 @@ async function chatOut(res, env, b) {
   const t0 = Date.now();
   let out = null, streamed = false, status = "ok", err = null;
   try {
-    out = await runTurn({ env, apiKey, model: CHAT_MODEL, messages, state, onText: t => { streamed = true; send("text", t); }, onReset: () => send("reset", {}) });
-    const cards = await Promise.all(out.cards.map(async x => { const c = await enrich(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
-    send("done", { reply: out.reply || "Sam couldn't find an answer to that. Try asking another way.", cards, state: out.state, turns: turns + 1, trace: b.debug ? out.trace : undefined });
+    const guards = [];
+    out = await runTurn({ env, apiKey, model: CHAT_MODEL, messages, state, onText: t => { streamed = true; send("text", t); }, onGuard: g => guards.push(g) });
+    for (const g of guards) await recordUsageEvent({ event_type: "buy_chat_guard", route: "/api/buySearch#chat", status: g.attempt === 1 ? "regenerated" : "code_reply", oldcarsdata_metered_requests: 0, metadata: { turn: turns + 1, attempt: g.attempt, reasons: g.reasons, reply: String(g.reply || "").slice(0, 600) } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+    // Cards never wait for the engine: a spec not cached yet comes back "pending" and the page fetches
+    // that card's line (which fills the cache) before drawing it.
+    const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
+    send("done", { reply: out.reply || "Sam couldn't find an answer to that. Try asking another way.", cards, state: out.state, turns: turns + 1, trace: b.debug ? out.trace : undefined, guards: b.debug ? guards : undefined, ms: out.ms });
   } catch (e) {
     err = String((e && e.message) || e).slice(0, 300);
     const timedOut = /abort/i.test(err);
