@@ -81,3 +81,10 @@ when the work has landed.
   writer. Tasks now refuses any market read whose model differs from the car's own identity (so the
   wrong name and its numbers never reach a buyer), but the resolver mapping XJ-S -> XJ is yours to fix
   (same hyphen/token class as the "ZR-1" vs "ZR1" backlog item). I have not edited lib/tools/.
+- 2026-10-07 (Lane C, shared resolver lib/vehicle.js): hyphenated model codes. normalize() turned
+  "XJ-S" into "xj s", so it resolved to model XJ + trim S (the Market Check / research label bug from the
+  note above); also GT-350 -> Shelby "GT", 240-Z -> Datsun "Z", Z-28 -> Camaro trim "Z", ZR-1 -> trim
+  dropped, CJ-5 -> "CJ", MR-2 -> junk trim "MR". Fix: joinShortHyphens() at the top of resolveVehicle
+  joins a short code around a hyphen (XJ-S -> XJS, GT-350 -> GT350); E-Type/F-Type/T-Bird/Rolls-Royce,
+  number ranges and AMG-GT untouched. Numbers check: the XJ-S coupe query's 11 counted sales were all
+  XJS coupes (XJR-S and XJ220 set aside), so only the name was wrong. No lib/tools or lib/onebox edits.
