@@ -16,6 +16,7 @@ import { CHAT_MODEL } from "../lib/live/chatHttp.js";
 import { recordUsageEvent } from "./_usage.js";
 
 const TEST_USER = /^00000000-0000-4000-8000-[0-9a-f]{12}$/;
+const TEST_EMAIL = "feedback+taskstest@goasksam.com";   // the one real test account (sign-in checks)
 const probeOk = req => process.env.PROBE_KEY && (req.headers["x-probe-key"] === process.env.PROBE_KEY || (req.query && req.query.key === process.env.PROBE_KEY));
 async function who(req) {
   // Probe test users only: a fixed id prefix, so a probe call can never act as a real account.
@@ -65,6 +66,22 @@ export default async function handler(req, res) {
     if (req.method === "GET" && q.watchcounts && probeOk(req)) {
       const count = async f => { const r = await fetch(`${env.supabaseUrl}/rest/v1/watch_requests?select=id${f}`, { method: "HEAD", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact", Range: "0-0" } }); return r.ok || r.status === 206 ? Number(((r.headers.get("content-range") || "").split("/")[1]) || 0) : `error ${r.status}`; };
       return res.status(200).json({ total: await count(""), with_email: await count("&email=like.*@*"), vin_keys: await count("&vin_norm=not.like.*:*"), search_keys: await count("&vin_norm=like.search:*"), family_or_live_keys: await count("&or=(vin_norm.like.family:*,vin_norm.like.live:*)") });
+    }
+    // Probe: a real one-time sign-in code for the ONE fixed test address (Supabase admin generate_link),
+    // so the browser test can run the normal email-code sign-in end to end without reading an inbox.
+    if (req.method === "POST" && req.body && req.body.action === "test_otp" && probeOk(req)) {
+      const r = await fetch(`${env.supabaseUrl}/auth/v1/admin/generate_link`, { method: "POST", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", email: TEST_EMAIL }) });
+      const j = await r.json().catch(() => ({}));
+      const otp = j.email_otp || (j.properties && j.properties.email_otp) || null;
+      return res.status(r.ok && otp ? 200 : 500).json(r.ok && otp ? { email: TEST_EMAIL, otp } : { error: `generate_link ${r.status}`, detail: String(j.msg || j.message || "").slice(0, 200) });
+    }
+    // Probe: delete the fixed test account's tasks. Needs the account's own real token (verified
+    // server-side), so it can only ever touch that account.
+    if (req.method === "POST" && req.body && req.body.action === "test_real_cleanup" && probeOk(req)) {
+      const u = await validateBearer(req.headers.authorization || "").catch(() => null);
+      if (!u || String(u.email || "").toLowerCase() !== TEST_EMAIL) return res.status(403).json({ error: "only the test account" });
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/tasks?user_id=eq.${u.userId}`, { method: "DELETE", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "return=representation" } });
+      return res.status(200).json({ deleted_tasks: r.ok ? (await r.json()).length : `error ${r.status}` });
     }
     // Probe-keyed test scenario: the whole flow for a fresh test user against an in-memory store (no
     // table rows, no email), one request so the store holds. Steps: {say}, {control}, {run:{rows,now}},

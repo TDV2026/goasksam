@@ -4,6 +4,7 @@
 // (app_config "tasks_example_update"); with none yet, the slot is left out ("better nothing than a
 // fake number"). TASKS_PITCH and exampleUpdate() are exported so a homepage section can reuse them.
 // Search: a conversation or a task is never a URL; any query-string variant is noindex, canonical /tasks.
+import { BUY_CSS } from "./buy.js";
 import { PAGE_CSS, FONT_LINKS, railHtml } from "./_chrome.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 
@@ -27,6 +28,10 @@ export async function exampleUpdate() {
   return o && o.text ? o : null;
 }
 
+// The sign-in card is the shared one (js/auth.js openSignInCard), styled by the same rules /buy and
+// /sell use: taken from BUY_CSS so there is one source. On desktop the card centres in the content
+// column, clear of the 240px rail.
+const AUTH_CSS = BUY_CSS.split("\n").filter(l => /^\.(hp-dialog|auth-)/.test(l)).join("\n") + "\n@media (min-width:861px){#auth-modal{padding-left:256px}}\n";
 const CSS = `:root{--page:#FAF8F4;--ink:#1A1A1A;--sec:#5F5A53;--div:#E4DFD6;--red:#D7262C}
 body{background:var(--page);color:var(--ink)}.rail{background:var(--page)}
 .col{max-width:880px}
@@ -85,7 +90,7 @@ export default async function handler(req, res) {
 <title>${title}</title><meta name="description" content="${esc(desc)}"><meta name="robots" content="${robots}"><link rel="canonical" href="https://goasksam.com/tasks">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="https://goasksam.com/tasks"><meta property="og:type" content="website"><meta property="og:image" content="https://goasksam.com/og-card.png">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">
-${FONT_LINKS}<style>${PAGE_CSS}${CSS}</style>${ld.map(o => '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, "\\u003c") + "</script>").join("")}</head><body>
+${FONT_LINKS}<style>${PAGE_CSS}${CSS}${AUTH_CSS}</style>${ld.map(o => '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, "\\u003c") + "</script>").join("")}</head><body>
 ${rail}
 <main><div class="col">
 <div id="tkapp" hidden></div>
@@ -125,7 +130,18 @@ const CLIENT = String.raw`(function(){
     if (params.get("seed") === "buy") return { from: "buy_search", ref: null, filters: (function(){ try { return JSON.parse(params.get("filters") || "null"); } catch(e){ return null; } })() };
     return null;
   }
-  function needSignIn(){ var u = new URL(location.href); u.searchParams.set("start", "1"); try { history.replaceState(null, "", u.toString()); } catch(e){} if (typeof openSignInCard === "function") openSignInCard("Sign in to give Sam a task. Every account gets one active task free."); }
+  function needSignIn(){
+    var u = new URL(location.href); u.searchParams.set("start", "1"); try { history.replaceState(null, "", u.toString()); } catch(e){}
+    var q = $("tkq"); if (q && q.value.trim()) { try { sessionStorage.setItem("gas_task_pending", q.value.trim()); } catch(e){} }
+    if (typeof openSignInCard !== "function") return;
+    openSignInCard("Sign in to give Sam a task. Every GoAskSam account gets one active task free.");
+    var f = $("auth-email"), card = document.querySelector("#auth-modal .auth-dialog");
+    if (card && card.scrollIntoView) card.scrollIntoView({ block: "center" });
+    if (f) { try { f.focus({ preventScroll: true }); } catch(e){ f.focus(); } }
+  }
+  // Back from the email code (auth.js calls this after a sign-in): open the task box, with what the
+  // buyer had typed.
+  window.gateAfterSignup = function(){ params.set("start", "1"); load().then(function(){ var q = $("tkq"); var pend = null; try { pend = sessionStorage.getItem("gas_task_pending"); sessionStorage.removeItem("gas_task_pending"); } catch(e){} if (q && pend && !q.value) q.value = pend; if (q) q.focus(); }); };
   function box(prefill){
     return '<div class="tkbox"><label for="tkq" style="position:absolute;left:-9999px">Give Sam a task</label><input id="tkq" autocomplete="off" placeholder="Give Sam a task, e.g. find me a black manual 997 under $70k" value="' + esc(prefill || "") + '"><button type="button" id="tksend">Send</button></div>';
   }
@@ -183,5 +199,5 @@ const CLIENT = String.raw`(function(){
     if (t.hasAttribute("data-act")) { api({ action: "control", task_id: t.getAttribute("data-id"), act: t.getAttribute("data-act") }).then(function(j){ if (j.task) openId = j.task.id; return load().then(function(){ if (j.needChoice) render(j); }); }); }
   });
   document.addEventListener("keydown", function(e){ if (e.key === "Enter" && e.target && e.target.id === "tkq") { e.preventDefault(); var q = e.target; if (q.value.trim()) say(q.value.trim(), q.getAttribute("data-task")); } });
-  if (signedIn()) load(); else if (params.get("seed") || params.get("start")) { app.innerHTML = box(seedWords()); app.hidden = false; }
+  if (signedIn()) load().then(function(){ var pend = null; try { pend = sessionStorage.getItem("gas_task_pending"); sessionStorage.removeItem("gas_task_pending"); } catch(e){} var q = $("tkq"); if (q && pend && !q.value) q.value = pend; }); else if (params.get("seed") || params.get("start")) { app.innerHTML = box(seedWords()); app.hidden = false; }
 })();`;
