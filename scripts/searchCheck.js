@@ -1,0 +1,96 @@
+#!/usr/bin/env node
+// searchCheck.js (Oct 2026): the nightly enforcement of docs/search-rules.md on the LIVE public pages.
+// Fetches a small set of public URLs (home, /buy, /sell, /mcp, and 3 real VIN pages pulled from
+// vin_summary so the check maintains itself) and FAILS (exit 1) if any page has a missing or duplicate
+// <title>, a missing <h1>, no lead sentence, no <link rel=canonical>, or is noindex yet present in a
+// sitemap. Runs in the nightly workflow AFTER the spec-cache step and logs its result to
+// app_usage_events (event_type "search_check"). Read-only, zero OldCarsData.
+//
+//   node scripts/searchCheck.js [--base=https://goasksam.com] [--report]
+import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
+
+const arg = (k, d) => { const a = process.argv.find(x => x.startsWith(`--${k}=`)); return a ? a.split("=")[1] : d; };
+const REPORT_ONLY = process.argv.includes("--report");
+const BASE = (arg("base", process.env.SEARCH_BASE || "https://goasksam.com")).replace(/\/$/, "");
+
+const strip = s => String(s || "").replace(/<[^>]+>/g, " ").replace(/&[a-z]+;/gi, " ").replace(/\s+/g, " ").trim();
+function parsePage(html) {
+  const h = String(html || "");
+  const title = (/(<title[^>]*>)([\s\S]*?)<\/title>/i.exec(h) || [])[2];
+  const h1 = (/<h1[^>]*>([\s\S]*?)<\/h1>/i.exec(h) || [])[1];
+  const canon = /<link[^>]+rel=["']canonical["'][^>]*>/i.test(h);
+  const noindex = /<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i.test(h);
+  // Lead sentence: the explicit [data-lead-sentence] marker (the convention), else the first substantial <p>.
+  let lead = (/<[^>]+data-lead-sentence[^>]*>([\s\S]*?)<\//i.exec(h) || [])[1];
+  if (!strip(lead)) { for (const m of h.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)) { if (strip(m[1]).length >= 30) { lead = m[1]; break; } } }
+  return { title: strip(title), h1: strip(h1), canonical: canon, noindex, lead: strip(lead) };
+}
+
+async function getText(url) {
+  try { const r = await fetch(url, { redirect: "follow", headers: { "user-agent": "GoAskSam-searchCheck" } }); return { ok: r.ok, status: r.status, finalUrl: r.url, body: await r.text() }; }
+  catch (e) { return { ok: false, status: 0, finalUrl: url, body: "", err: String(e && e.message || e) }; }
+}
+
+// Collect every <loc> listed across the sitemap index (best-effort; sitemaps may not exist yet).
+async function sitemapUrls() {
+  const set = new Set();
+  const idx = await getText(`${BASE}/sitemap-index.xml`);
+  const children = idx.ok ? [...idx.body.matchAll(/<loc>([^<]+)<\/loc>/gi)].map(m => m[1].trim()) : [];
+  const sitemaps = children.length ? children : [`${BASE}/sitemap-pages.xml`, `${BASE}/sitemap-vins.xml`];
+  for (const sm of sitemaps) {
+    const r = await getText(sm.startsWith("http") ? sm : `${BASE}${sm}`);
+    if (r.ok) for (const m of r.body.matchAll(/<loc>([^<]+)<\/loc>/gi)) set.add(m[1].trim().replace(/\/$/, ""));
+  }
+  return set;
+}
+
+async function main() {
+  const env = supabaseEnv();
+  // 3 real VIN pages, newest multi-appearance cars (self-maintaining). Fall back to a known VIN.
+  let vins = [];
+  if (env) {
+    const rows = await supabaseSelect(env, `vin_summary?select=vin_norm&make=not.is.null&order=last_seen.desc&limit=3`).catch(() => null);
+    vins = (rows || []).map(r => r.vin_norm).filter(Boolean);
+  }
+  if (!vins.length) vins = ["WBSDE93483CF93837"];
+  const urls = [`${BASE}/`, `${BASE}/buy`, `${BASE}/sell`, `${BASE}/mcp`, ...vins.map(v => `${BASE}/vin/${v}`)];
+
+  const inSitemap = await sitemapUrls();
+  const results = [];
+  for (const u of urls) {
+    const r = await getText(u);
+    const p = r.ok ? parsePage(r.body) : {};
+    results.push({ url: u, finalUrl: r.finalUrl, status: r.status, ok: r.ok, ...p });
+  }
+
+  // Duplicate-title detection across the set.
+  const byTitle = new Map();
+  for (const r of results) if (r.title) byTitle.set(r.title, (byTitle.get(r.title) || 0) + 1);
+
+  const failures = [];
+  for (const r of results) {
+    const where = r.url.replace(BASE, "");
+    if (!r.ok) { failures.push(`${where}: HTTP ${r.status}${r.err ? " " + r.err : ""}`); continue; }
+    if (!r.title) failures.push(`${where}: missing <title>`);
+    else if (byTitle.get(r.title) > 1) failures.push(`${where}: duplicate <title> ("${r.title}")`);
+    if (!r.h1) failures.push(`${where}: missing <h1>`);
+    if (!r.lead) failures.push(`${where}: no lead sentence (add [data-lead-sentence] or a substantial first <p>)`);
+    if (!r.canonical) failures.push(`${where}: no <link rel=canonical>`);
+    if (r.noindex && inSitemap.has(r.finalUrl.replace(/\/$/, ""))) failures.push(`${where}: noindex page is present in a sitemap`);
+  }
+
+  const pass = failures.length === 0;
+  console.log(`searchCheck: ${results.length} pages, ${pass ? "PASS" : failures.length + " FAILURE(S)"}`);
+  for (const r of results) console.log(`  ${r.ok ? "ok " : "ERR"} ${r.url.replace(BASE, "")}  title=${r.title ? "y" : "n"} h1=${r.h1 ? "y" : "n"} lead=${r.lead ? "y" : "n"} canon=${r.canonical ? "y" : "n"}${r.noindex ? " noindex" : ""}`);
+  if (!pass) { console.log("FAILURES:"); for (const f of failures) console.log(`  - ${f}`); }
+
+  if (env) {
+    try {
+      const { recordUsageEvent } = await import("../api/_usage.js");
+      await recordUsageEvent({ event_type: "search_check", route: "scripts/searchCheck.js", status: pass ? "ok" : "fail", oldcarsdata_metered_requests: 0, metadata: { base: BASE, checked: results.length, failures } }, env.supabaseUrl, env.supabaseKey);
+    } catch { /* best-effort */ }
+  }
+  if (!pass && !REPORT_ONLY) { console.error("::error::searchCheck failed"); process.exit(1); }
+}
+
+main().catch(e => { console.error("searchCheck crashed:", e); process.exit(1); });

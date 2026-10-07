@@ -229,3 +229,12 @@ Partners live in the Supabase partners table (docs/supabase-partners-schema.sql,
 - Complete files or clean diffs, never line-by-line paste instructions.
 - Think like a senior lead engineer owning delivery.
 - No em dashes or en dashes in any user-facing copy or written content.
+
+## Search and AI citation (STANDING, locked Oct 2026)
+
+Search and AI citation are part of the DEFINITION OF DONE for every change in this repo. Before touching
+ANY public page (home, /buy, /sell, /onebox, VIN/history, spec, hub, the MCP landing page), every lane
+reads `docs/search-rules.md` and meets the 12 rules there. Every lane report ENDS with a `Search check:`
+line naming the rules the change touched and how each was met (e.g. `Search check: rule 1 (dated lead
+sentence regenerated nightly), rule 3 (SSR title/H1/lead), rule 7 (added to sitemap-vins.xml).`). A
+change that touches no public page writes `Search check: no public page touched.`
