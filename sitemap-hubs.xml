@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Placeholder (docs/search-rules.md rule 10): make / generation / month hub pages have not shipped
+     yet. api/history.js already serves VIN make/model hubs at /sitemap-vins-hubs.xml (inside the VIN
+     sitemap index); this file is reserved for the standalone hub page type. When it ships it is
+     regenerated with real lastmod and added to the registry and docs/search-panel.md. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+</urlset>

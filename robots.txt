@@ -1,22 +1,46 @@
 # Launched Aug 2026: the site is public and indexable. The pre-launch rule that
 # blocked everything but /privacy while the curtain was up has been removed.
-# /onebox stays crew-gated and carries its own noindex, so it is not listed here.
-# AI crawlers are explicitly allowed (Oct 2026). VIN history pages are indexable when the car has a
-# photographed sale (listed in sitemap-vins.xml); every other /history page carries its own noindex.
+# /onebox and /desk stay crew-gated and carry their own noindex, so they are not listed here.
+#
+# Crawler policy (docs/search-rules.md rule 8). Search + AI-answer crawlers are explicitly allowed:
+# Googlebot, Bingbot (search); OAI-SearchBot, Claude-SearchBot, Claude-User, PerplexityBot (AI answers).
+# Training crawlers (GPTBot, ClaudeBot, Google-Extended) are ALSO allowed for now (Sam's decision,
+# Oct 2026, recorded in docs/search-rules.md); revisit there to change it.
+# VIN history pages are indexable when the car qualifies (listed in the VIN sitemaps); every other
+# /history page carries its own noindex.
+
+# --- search crawlers ---
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# --- AI answer / citation crawlers ---
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+# --- training crawlers (allowed for now; see docs/search-rules.md) ---
 User-agent: GPTBot
 Allow: /
 
 User-agent: ClaudeBot
 Allow: /
 
-User-agent: PerplexityBot
-Allow: /
-
 User-agent: Google-Extended
 Allow: /
 
+# --- everyone else ---
 User-agent: *
 Allow: /
 
-Sitemap: https://goasksam.com/sitemap.xml
-Sitemap: https://goasksam.com/sitemap-vins.xml
+Sitemap: https://goasksam.com/sitemap-index.xml

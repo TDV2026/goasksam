@@ -57,8 +57,13 @@ async function main() {
 
   const inSitemap = await sitemapUrls();
   const results = [];
+  const seenFinal = new Set();
   for (const u of urls) {
     const r = await getText(u);
+    // A redirect to a page already checked (e.g. / -> /sell) is the SAME page, not a duplicate.
+    const fin = (r.finalUrl || u).replace(/\/$/, "");
+    if (seenFinal.has(fin)) continue;
+    seenFinal.add(fin);
     const p = r.ok ? parsePage(r.body) : {};
     results.push({ url: u, finalUrl: r.finalUrl, status: r.status, ok: r.ok, ...p });
   }

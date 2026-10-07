@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GoAskSam for ChatGPT and Claude</title>
+<link rel="canonical" href="https://goasksam.com/mcp">
+<meta name="description" content="Add GoAskSam to ChatGPT or Claude and ask what a collector car actually sold for at auction, the full history of one car by VIN, and where cars like it have sold. As of October 2026.">
+<meta property="og:title" content="GoAskSam for ChatGPT and Claude">
+<meta property="og:description" content="Collector-car auction answers from real sales, inside ChatGPT and Claude.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://goasksam.com/mcp">
+<link rel="icon" href="/favicon.ico">
+<style>
+  :root{--ink:#2a2622;--muted:#6b6456;--faint:#9a8f79;--cream:#f6f1e7;--line:#e3d9c6;--accent:#8a5a2b}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Georgia,'Times New Roman',serif;color:var(--ink);background:var(--cream);line-height:1.6}
+  .wrap{max-width:760px;margin:0 auto;padding:48px 22px 72px}
+  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  h1{font-size:34px;line-height:1.2;margin:10px 0 14px}
+  .lead{font-size:20px;color:var(--ink);margin:0 0 10px}
+  .asof{font-size:13px;color:var(--faint);margin:0 0 30px}
+  h2{font-size:22px;margin:36px 0 10px}
+  p{margin:0 0 14px;color:var(--ink)}
+  .tool{border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:12px 0;background:#fffdf8}
+  .tool b{display:block;font-size:17px;margin-bottom:4px}
+  .tool span{color:var(--muted);font-size:15px}
+  ol{padding-left:22px}
+  ol li{margin:6px 0}
+  code{font-family:ui-monospace,Menlo,monospace;background:#efe7d6;padding:2px 6px;border-radius:5px;font-size:14px}
+  a{color:var(--accent)}
+  .foot{margin-top:40px;font-size:13px;color:var(--faint);font-style:italic;border-top:1px solid var(--line);padding-top:16px}
+  .back{display:inline-block;margin-top:8px;font-size:15px}
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="eyebrow">GoAskSam</div>
+    <h1>GoAskSam for ChatGPT and Claude</h1>
+    <p class="lead" data-lead-sentence>Add GoAskSam to ChatGPT or Claude and ask what a collector car actually sold for at auction, the full history of one car by its VIN, and where cars like it have sold, each answer built from real recorded sales.</p>
+    <p class="asof">As of October 2026.</p>
+
+    <p>GoAskSam connects as an app (an MCP connector) so the assistant can pull collector-car auction answers straight into the conversation. It is read only, needs no sign-in, and every answer carries its link back to GoAskSam so you can see the record behind it.</p>
+
+    <h2>What you can ask</h2>
+    <div class="tool">
+      <b>What cars like this have sold for</b>
+      <span>Give a car in plain words, for example a manual 997 Carrera S coupe or an E39 M5, and get the hammer sold range, how many sales it is built from, the period, and the closest recorded sale with its link.</span>
+    </div>
+    <div class="tool">
+      <b>The history of one specific car</b>
+      <span>Give a VIN or a listing link and get every auction appearance for that exact car: the date, the auction house, the miles, sold or not sold, the hammer price or the high bid, and whether it carried a reserve.</span>
+    </div>
+    <div class="tool">
+      <b>Where a car has sold</b>
+      <span>Give a car and see which auction platforms cars like it have sold on, ranked by recorded sales, with the median hammer on each.</span>
+    </div>
+
+    <h2>Add it</h2>
+    <ol>
+      <li>In ChatGPT or Claude, open the connectors or apps settings and choose to add a custom connector.</li>
+      <li>Enter the GoAskSam server URL: <code>https://goasksam.com/api/mcp</code></li>
+      <li>Save. Then ask the assistant a collector-car question and let it call GoAskSam.</li>
+    </ol>
+
+    <p>Looking to sell instead? <a href="/sell">See where GoAskSam would sell your car</a>, or <a href="/buy">browse cars by what they actually sell for</a>.</p>
+
+    <div class="foot">From GoAskSam. Collector-car auction answers from real sales.</div>
+    <a class="back" href="/sell">Back to GoAskSam</a>
+  </main>
+</body>
+</html>
