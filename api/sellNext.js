@@ -35,7 +35,7 @@ export default async function handler(req, res) {
   // conversation in the page) are noindex with /sell as the canonical.
   const u = String(req.url || "");
   const robots = /\?./.test(u) || /sell-next/.test(u) ? "noindex, follow" : "index, follow";
-  const rail = railHtml("sell").replace(/<nav class="mnav"[\s\S]*?<\/nav>/, '<nav class="mnav" aria-label="Sections"><a class="n" href="/buy">Buy</a><span class="bar">|</span><a class="n on" aria-current="page" href="/sell">Sell</a><span class="bar">|</span><a class="n" href="/business">For business</a></nav>');
+  const rail = railHtml("sell").replace(/<nav class="mnav"[\s\S]*?<\/nav>/, '<nav class="mnav" aria-label="Sections"><a class="n" href="/buy">Buy</a><span class="bar">|</span><a class="n on" aria-current="page" href="/sell">Sell</a><span class="bar">|</span><a class="n" href="/tasks">Tasks<span class="tbadge" data-tasks-badge hidden></span></a><span class="bar">|</span><a class="n" href="/business">For business</a></nav>');
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${TITLE}</title><meta name="description" content="${esc(lead)}">
 <meta name="robots" content="${robots}"><link rel="canonical" href="https://goasksam.com/sell">

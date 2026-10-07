@@ -92,6 +92,7 @@ types ship (rule 10).
 | Home | `/` | `GoAskSam: where collector cars actually sell` | sitemap-pages.xml |
 | Buy | `/buy` | `Collector cars for sale, by what they actually sell for` | sitemap-pages.xml |
 | Sell | `/sell` | `Where to sell your collector car` | sitemap-pages.xml |
+| Tasks | `/tasks` (query variants noindex, canonical `/tasks`) | `Free AI car finder and collector car alerts \| GoAskSam` | sitemap-pages.xml |
 | MCP landing | `/mcp` | `GoAskSam for ChatGPT and Claude` | sitemap-pages.xml |
 | VIN / history | `/history/<car-slug>/<vin>` (legacy `/vin/<vin>` -> canonical) | `[Year Make Model], VIN [vin]: auction history` | sitemap-vins.xml |
 | Spec | `/cars/porsche/911/{gen}/{trim}/{body}-{gearbox}` (+ hub levels) | `[Spec]: what they sell for` | sitemap-specs.xml (pending) |

@@ -319,11 +319,11 @@ ${live ? liveCardHtml(live, name, noun) : ""}
 ${saidHtml(said)}
 ${groupListsHtml(d, id, vinNorm, poolCards, urlVins, others, noun)}
 <section class="sec"><h2>Questions</h2><dl class="faq">${faq.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>
-<nav class="vlinks" aria-label="More"><a href="${esc(modelHub)}">All ${esc(id.make + " " + id.family)} auction results</a><a href="${esc(hubHref)}">Every ${esc(id.year + " " + id.make + " " + id.family)} by VIN</a><a class="red" href="${esc(sellHref(id))}">Where to sell it</a><button type="button" id="watch-open" aria-expanded="false" aria-controls="watch">Watch this ${esc(noun)}</button></nav>
-<form class="watch" id="watch" hidden><label for="watch-email" style="position:absolute;left:-9999px">Email</label><input id="watch-email" type="email" required placeholder="Your email" autocomplete="email"><button class="btn p" type="submit">Watch it</button><p class="msg" id="watch-msg">Sam will email you if this ${esc(noun)} comes up at auction again.</p></form>
+<nav class="vlinks" aria-label="More"><a href="${esc(modelHub)}">All ${esc(id.make + " " + id.family)} auction results</a><a href="${esc(hubHref)}">Every ${esc(id.year + " " + id.make + " " + id.family)} by VIN</a><a class="red" href="${esc(sellHref(id))}">Where to sell it</a><a class="red" href="/tasks?seed=vin&vin=${encodeURIComponent(vinNorm)}&car=${encodeURIComponent(name)}">Have Sam keep looking</a></nav>
+
 ${WHY_RESULT_HTML}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>
-<script>(function(){var b=document.getElementById("watch-open"),f=document.getElementById("watch"),m=document.getElementById("watch-msg");if(!b||!f)return;b.addEventListener("click",function(){f.hidden=!f.hidden;b.setAttribute("aria-expanded",f.hidden?"false":"true");if(!f.hidden)document.getElementById("watch-email").focus();});f.addEventListener("submit",function(e){e.preventDefault();var em=document.getElementById("watch-email").value.trim();if(!em)return;m.textContent="Saving...";fetch("/api/history",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"watch",vin:${JSON.stringify(vinNorm)},email:em})}).then(function(r){return r.json();}).then(function(j){m.textContent=j&&j.ok?${JSON.stringify("Done. Sam will email you if this " + noun + " comes up at auction again.")}:"That didn\\u2019t save just now. Try again in a minute.";}).catch(function(){m.textContent="That didn\\u2019t save just now. Try again in a minute.";});});})();</script>`;
+`;
   const canonical = `${SITE}/history/${id.slug}/${vinNorm}`;
   // Road type (lib/_roadType.js, computed above): non-road lots are noindex and out of every sitemap;
   // motorcycles and other self-propelled vehicles keep their own sitemap and their own wording.
