@@ -3381,8 +3381,14 @@ async function handleOps(req, res) {
     ];
     const out = [];
     for (const [name, f] of scopes) {
-      const total = await cnt(f), filled = await cnt(`${f}&transmission=not.is.null`);
-      out.push({ scope: name, total, filled, blank: (total != null && filled != null) ? total - filled : null, filledPct: total ? Math.round(1000 * filled / total) / 10 : null });
+      // "usable" = a real transmission (not null AND not an empty string). Empty strings count as blank,
+      // because OCD stores "" for some rows and that is useless to the manual/auto split.
+      const total = await cnt(f);
+      const usable = await cnt(`${f}&transmission=not.is.null&transmission=neq.`);
+      const emptyStr = await cnt(`${f}&transmission=eq.`);
+      const nullBlank = await cnt(`${f}&transmission=is.null`);
+      const blank = (emptyStr != null && nullBlank != null) ? emptyStr + nullBlank : null;
+      out.push({ scope: name, total, usable, blank, emptyString: emptyStr, "null": nullBlank, usablePct: total ? Math.round(1000 * usable / total) / 10 : null });
     }
     return res.status(200).json({ task: "transaudit", scopes: out, note: "approximate scopes; boundary years overlap" });
   }
