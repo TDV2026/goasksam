@@ -263,7 +263,7 @@ async function carPage(req, res, env, slug, vin) {
   }
   // 5. CARS LIKE IT (the engine, read-only) + LIVE NOW, in parallel
   const exactSale = lastSale && lastSale.priceUsd ? { price: lastSale.priceUsd, mileage: lastSale.mileage, soldDate: lastSale.date } : null;
-  const [d, live, said, others] = await Promise.all([oneBoxFor(env, id, exactSale), liveListing(env, vinNorm), listingSaid(env, vinNorm).catch(() => null), familySales(env, id, vinNorm).catch(() => null)]);
+  const [d, live, said, others] = await Promise.all([oneBoxFor(env, id, exactSale), liveListing(env, vinNorm), listingSaid(env, vinNorm).catch(() => null), familySales(env, id, vinNorm, 200).catch(() => null)]);
   const story = storyOf(live);
   const poolCards = d && Array.isArray(d.cards) ? d.cards : [];
   const urlVins = poolCards.length ? await vinsForUrls(env, poolCards.map(c => c.url).filter(Boolean)).catch(() => null) : null;
