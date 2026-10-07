@@ -10,12 +10,16 @@ import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor,
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { PAGE_CSS as CSS, FONT_LINKS, railHtml, WHY_RESULT_HTML } from "./_chrome.js";
 import { recordUsageEvent } from "./_usage.js";
+import { logPageView } from "../lib/_pageview.js";
 
 const SITE = "https://goasksam.com";
 // Restyle (Oct 2026): the Buy design. Cream paper, serif, hairlines not boxes, no badges, larger photo.
 const STYLE = `:root{--page:#F6F1E8;--ink:#23211E;--sec:#7A746B;--div:#E2DACB;--ph:#E9E2D4}
 body{background:var(--page);color:var(--ink)}.rail{background:var(--page)}
 .col{max-width:900px}
+.nophoto{display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--ph);border-radius:12px;min-height:160px;padding:24px;text-align:center}
+.nophoto .nm{font-family:Newsreader,Georgia,serif;font-size:21px;font-weight:600;color:var(--ink);line-height:1.25}
+.nophoto figcaption{margin-top:8px;color:var(--sec);font-size:13px}
 .card,section.card,.card.anscard,.card.live{background:none;border:0;border-top:1px solid var(--div);border-radius:0;box-shadow:none}
 section.card{padding:22px 0 0}
 .top{grid-template-columns:1fr;gap:18px}
@@ -221,7 +225,7 @@ async function carPage(req, res, env, slug, vin) {
 <div class="top"><div><span class="eyebrow">${esc(id.family)} · Auction history</span>
 <h1>${esc(name)} auction history</h1><div class="vinline">VIN ${esc(vinNorm)}</div>
 <p class="answer">${esc(answer)}</p></div>
-${photo ? `<figure data-alt="${esc(JSON.stringify(altPhotos))}">${photoHtml(photo.image, photo.url, photo.house, name, "photo", true)}<figcaption>Photo: ${esc(photo.house)}</figcaption></figure>` : ""}</div>
+${photo ? `<figure data-alt="${esc(JSON.stringify(altPhotos))}">${photoHtml(photo.image, photo.url, photo.house, name, "photo", true)}<figcaption>Photo: ${esc(photo.house)}</figcaption></figure>` : `<figure class="nophoto"><div class="nm">${esc(name)}</div><figcaption>No photo on record</figcaption></figure>`}</div>
 ${live ? liveNowHtml(live) : ""}
 <section class="card"><div class="sh"><h2>Every time it&#8217;s been to auction</h2><span class="muted">${appearances.length} appearance${appearances.length === 1 ? "" : "s"}</span></div>
 <table class="stack"><thead><tr><th>Date</th><th>Where</th><th class="r">Miles</th><th class="r">Result</th></tr></thead><tbody>${rows}</tbody></table></section>
@@ -246,11 +250,15 @@ ${WHY_RESULT_HTML}
     image: photo ? photo.image : undefined, url: canonical,
     offers: appearances.filter(a => a.kind === "sale" && a.priceUsd).map(a => ({ "@type": "Offer", price: Math.round(a.priceUsd), priceCurrency: "USD", availability: "https://schema.org/SoldOut", validFrom: a.date, url: a.url || undefined, seller: { "@type": "Organization", name: a.house } }))
   }, { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) }];
-  // Staged rollout: a car page is indexable only with 2+ auction appearances, a photo, a real
-  // identifier and a proper name (carIdentity already refuses non-vehicles). Single-appearance pages
-  // stay noindex for now (still reachable from the hubs).
-  const index = appearances.length >= 2 && appearances.some(a => a.image) && realVin(vinNorm) && !!(id.family && id.make) && !(await deadPhotos(env)).vins.has(vinNorm);
-  send(res, 200, page({ title: `${name} (${vinNorm}) auction history and sale price`, description: answer, canonical, body: body2, ld, index }), {}, index);
+  // Indexable when the car has 2+ appearances that EACH carry a price (sold or bid), a real identifier
+  // and a proper name (carIdentity already refuses non-vehicles). The photo requirement was dropped
+  // (Oct 2026): a photoless page shows the plain serif panel, never a broken image, and still earns a
+  // place in sitemap-vins.xml. This gate MUST match the VIN sitemap's gate so index state and sitemap
+  // membership stay coherent (search-rules rule 7). Single-priced-appearance pages stay noindex.
+  const pricedCount = appearances.filter(a => a.priceUsd || a.bidUsd || a.nativeBid).length;
+  const index = pricedCount >= 2 && realVin(vinNorm) && !!(id.family && id.make) && !(await deadPhotos(env)).vins.has(vinNorm);
+  await logPageView(env, { path: canonical.replace(SITE, ""), referer: req.headers["referer"] || req.headers["referrer"], userAgent: req.headers["user-agent"] });
+  send(res, 200, page({ title: `${name}, VIN ${vinNorm}: auction history`, description: answer, canonical, body: body2, ld, index }), {}, index);
 }
 // WHAT THE LISTING SAID: facts from the sale's own record, worded by Sam; never the house's text.
 // Dated and past tense: these are what the listing reported at the time of that sale.
@@ -436,7 +444,7 @@ async function rollout(env) {
     if (g.type && g.type !== "car") { counts.non_vehicle++; continue; }
     if (!realVin(vin)) { counts.junk_identifier++; continue; }
     if (!g.title || !g.make || !saneFamily(g.family)) { counts.no_proper_title++; continue; }
-    if (!g.photo) { counts.no_photo++; continue; }
+    if (!g.photo) counts.no_photo++;   // tracked for reporting; a photoless car is still indexable (priced-appearance gate below)
     const c = canonicalHub(g.make, g.family);
     const raw = slugify(g.make) + "-" + slugify(g.family), hk = slugify(c.make) + "-" + slugify(c.family);
     if (raw !== hk) { merged.set(raw, hk); }
@@ -450,7 +458,8 @@ async function rollout(env) {
     const part = await Promise.all(multi.slice(i, i + 40).map(async ({ vin, g }) => {
       try {
         const { appearances, ok } = await vinAppearances(env, vin);
-        if (!ok || appearances.length < 2 || !appearances.some(a => a.image)) return null;
+        // Same gate as carPage: 2+ appearances each carrying a price (sold or bid); photo not required.
+        if (!ok || appearances.filter(a => a.priceUsd || a.bidUsd || a.nativeBid).length < 2) return null;
         const id = await carIdentity(appearances, vin);
         // Photos in the order the page tries them: the page's own hero first, then the others.
         const photos = [...new Set(appearances.map(a => a.image).filter(Boolean).concat(g.photos))].slice(0, 4);

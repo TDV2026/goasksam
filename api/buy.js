@@ -3,6 +3,7 @@
 // no bubbles or card boxes around messages. ZERO OldCarsData (the feed is the cron's).
 import { PAGE_CSS, FONT_LINKS, railHtml } from "./_chrome.js";
 import { supabaseEnv } from "../lib/_supabase.js";
+import { logPageView } from "../lib/_pageview.js";
 
 // The lead sentence (search rule 1): the real number of cars live right now, dated. Counted with an
 // exact HEAD count, held 10 minutes per instance (the page is also edge-cached 10 minutes).
@@ -48,6 +49,9 @@ ${railHtml("buy", '<div class="rh">Your searches</div><div id="searches"></div><
 <script>/* auth.js is the shared sign-in; on /buy it must not log a homepage view */try{sessionStorage.setItem("gas_fe_homepage_view","1")}catch(e){}window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};</script>
 <script src="/js/auth.js" defer></script>
 <script>${CLIENT}</script></body></html>`;
+  // Referrer logging (search measurement). Runs on a cache MISS only (the page is edge-cached 10 min),
+  // so this samples origin hits, which includes crawlers that bypass the edge; cached hits are not seen.
+  await logPageView(supabaseEnv(), { path: "/buy", referer: req.headers["referer"] || req.headers["referrer"], userAgent: req.headers["user-agent"] });
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", robots);
   res.setHeader("Cache-Control", "public, s-maxage=600, stale-while-revalidate=3600");
