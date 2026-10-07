@@ -167,7 +167,7 @@ function freshLine(d) {
     const model = d.resolvedCar && (d.resolvedCar.familyLabel || d.resolvedCar.model) ? (d.resolvedCar.familyLabel || d.resolvedCar.model) : "this car";
     return `<div class="fresh"><span class="d"></span>${esc((archRecent ? "Sales through last night." : "Sales through " + monthYear(f.archiveThrough) + ".") + " Latest " + model + " sale: " + monthYear(f.through) + ".")}</div>`;
   }
-  const txt = f.mode === "house" ? (f.through ? "Auction results through " + monthYear(f.through) + "." : "") : f.lastNight ? "Real sales through last night. Nothing estimated." : f.through ? "Real sales through " + monthYear(f.through) + ". Nothing estimated." : "";
+  const txt = f.mode === "house" ? (f.through ? "Auction results through " + monthYear(f.through) + "." : "") : f.lastNight ? "Real sales through last night." : f.through ? "Real sales through " + monthYear(f.through) + "." : "";
   return txt ? `<div class="fresh"><span class="d"></span>${esc(txt)}</div>` : "";
 }
 const BODY_PLURAL = { coupe: "coupes", cabriolet: "Cabriolets", convertible: "convertibles", roadster: "roadsters", targa: "Targas", sedan: "sedans", spider: "Spiders", spyder: "Spyders" };
@@ -227,7 +227,7 @@ async function carPage(req, res, env, slug, vin) {
     answer = `This ${name} has been offered at auction ${atts.length === 1 ? "once" : atts.length + " times"} without selling` + (top ? `; the highest bid was ${bidPrice(top)} ${on(top.house)} in ${monthYear(top.date)}.` : ".");
   }
   // THE LEAD (search rule 1): one dated sentence telling the car's story from its own record.
-  const step = a => (a.kind === "sale" ? `sold for ${salePrice(a)}` : (bidPrice(a) ? `bid to ${bidPrice(a)} without selling` : "offered without selling")) + ` ${on(a.house)} in ${monthYear(a.date)}`;
+  const step = a => a.kind === "sale" ? `sold for ${salePrice(a)} ${on(a.house)} in ${monthYear(a.date)}` : `${bidPrice(a) ? `bid to ${bidPrice(a)}` : "offered"} ${on(a.house)} in ${monthYear(a.date)} without selling`;
   const oldestFirst = appearances.slice().reverse();
   const story = appearances.length <= 3
     ? `As of ${asOf}, this ${name} has been to auction ${timesWord(appearances.length)}: ${oldestFirst.map(step).join(", then ")}.`
