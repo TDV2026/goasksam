@@ -9,28 +9,17 @@
 // where_to_sell reuse resolveVehicle + findGeneration + runOneBox / listSalesForVehicle (archive-only,
 // ZERO OCD); car_history reuses vinAppearances. Guard rails: answers only (one car / <=20 rows, never
 // a list of the archive), a per-client rate limit, and every call logged to mcp_calls.
-import { supabaseEnv, supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
-import { vinAppearances, historyEnv, normVin, carIdentity, carSlug } from "./_historyData.js";
-import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
-import { findGeneration } from "../lib/generations.js";
-import { runOneBox, listSalesForVehicle } from "../lib/onebox.js";
-import { normalizeListingUrl, batSlugToUrlNorm } from "../lib/_urlNorm.js";
+import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
+import { marketCheck } from "../lib/tools/marketCheck.js";
+import { carHistory } from "../lib/tools/carHistory.js";
+import { whereToSell } from "../lib/tools/whereToSell.js";
+import { summarize } from "../lib/tools/_shared.js";
 import crypto from "node:crypto";
 
+// The three tool handlers + their Sam's-voice summary live in lib/tools/ (one copy), so Lane C's /buy
+// conversation imports them instead of keeping duplicates. This file is the MCP transport + guard rails.
 const PROTOCOL = "2026-07-28";
-const SITE = "https://goasksam.com";
-const MAX_RESULTS = 20;
 const CARD_URI = "ui://widget/market_check.html";
-
-// ---------- Sam's voice (third person; no dashes; banned words; never a live-bid verdict / source count) ----------
-const BANNED = /\b(valuation|valued|worth|estimate[sd]?|apprais\w*|AI\b)\b/gi;
-function sam(s) {
-  return String(s || "")
-    .replace(/[‒-―−]/g, ", ").replace(/ -- /g, ", ").replace(/ - /g, ", ")
-    .replace(BANNED, m => ({ valuation: "market read", valued: "sold", worth: "sold for", estimate: "record", estimates: "records", estimated: "recorded", appraisal: "record", appraised: "recorded", AI: "GoAskSam" }[m.toLowerCase()] || "record"))
-    .replace(/\s+/g, " ").trim();
-}
-const usd = n => (Number.isFinite(Number(n)) && Number(n) > 0 ? "$" + Math.round(Number(n)).toLocaleString() : null);
 
 // ---------- rate limit: in-memory token bucket per hashed client (per-minute + per-day) ----------
 const PER_MIN = 20, PER_DAY = 400;
@@ -46,151 +35,6 @@ function rateLimit(clientId) {
 }
 
 async function logCall(env, row) { try { await supabaseInsert("mcp_calls", [row], env.supabaseUrl, env.supabaseKey); } catch { /* best-effort */ } }
-
-// ---------- shared: resolve plain text to a vehicle, archive-only ----------
-async function resolveSpec(text) {
-  const resolution = await resolveVehicle(text).catch(() => null);
-  const v = resolution && resolution.vehicle;
-  if (!v || !v.make) return { question: (resolution && resolution.clarification && resolution.clarification.question) || "Which car is it? A year, make and model works best." };
-  if (!v.model) return { question: `Which ${v.make} model is it?` };
-  const vehicle = sanitizeResolvedVehicle(v) || v;
-  vehicle.raw = vehicle.raw || text;
-  return { vehicle };
-}
-
-function specLabel(rc) { return rc ? [rc.year, rc.make, rc.model, rc.trim, rc.bodyStyle].filter(Boolean).join(" ") : null; }
-function pageLink(rc) {
-  const q = specLabel(rc) || "";
-  return `${SITE}/onebox?q=${encodeURIComponent(q)}`;
-}
-
-// ---------- TOOL: market_check ----------
-async function marketCheck(text, env) {
-  const r = await resolveSpec(text);
-  if (r.question) return { kind: "question", question: sam(r.question), options: [] };
-  const generation = await findGeneration(r.vehicle, env).catch(() => null);
-  let d = await runOneBox(r.vehicle, generation, r.vehicle.raw, { supabaseUrl: env.supabaseUrl, supabaseKey: env.supabaseKey, asked: 0 }, null).catch(() => null);
-  if (d && /_choice$/.test(String(d.tier || ""))) {
-    const opts = (d.variantOptions || d.gearboxOptions || d.genChoices || (d.clarification && d.clarification.options) || []).map(o => (typeof o === "string" ? o : (o.label || o.value || o.q))).filter(Boolean).slice(0, 8);
-    return { kind: "question", question: sam(d.question || (d.clarification && d.clarification.question) || "Which exact version is it?"), options: opts, spec: specLabel(d.resolvedCar) };
-  }
-  if (!d || !d.tier) return { kind: "refusal", reason: sam("There is no recorded sales history to read for that car yet."), spec: specLabel(d && d.resolvedCar) };
-  const rc = d.resolvedCar || r.vehicle;
-  const spec = specLabel(rc);
-  const closestRaw = d.representative && d.representative.closest;
-  // The engine's closest card renders price as `price` (the USD figure the One Box page shows), with
-  // `value` (USD implied hammer) and `allIn` as fallbacks; title/url are `title`/`url`.
-  const closestUsd = closestRaw ? [closestRaw.price, closestRaw.value, closestRaw.allIn].map(Number).find(n => Number.isFinite(n) && n > 0) || null : null;
-  const closest = closestRaw ? {
-    title: closestRaw.title || closestRaw.ctitle || closestRaw.spec || spec,
-    url: closestRaw.url || closestRaw.srcurl || null,
-    hammerUsd: usd(closestUsd),
-    date: (closestRaw.date || "").slice(0, 10) || null
-  } : null;
-  const cluster = Array.isArray(d.cluster) && d.cluster.length === 2 ? d.cluster : null;
-  const link = pageLink(rc);
-  if (cluster) {
-    return {
-      kind: "answer", spec,
-      soldRangeHammerUsd: { low: usd(cluster[0]), high: usd(cluster[1]) },
-      salesCount: Number(d.poolN) || null, period: d.windowLabel || null,
-      closestSale: closest, link
-    };
-  }
-  // tier present but no cluster: honest thin / too-spread -> lead with the closest sale, no headline band
-  return { kind: "refusal", spec, reason: sam(d.tier === "thin" ? "Too few recorded sales of this exact car to mark a typical band yet." : "The recorded sales are too spread out to mark a typical band."), closestSale: closest, link };
-}
-
-// ---------- TOOL: car_history ----------
-async function carHistory(input, env) {
-  const raw = String(input || "").trim();
-  let vin = "";
-  // Listing link or bare BaT slug -> resolve via the INDEXED url_norm (exact match, no scan). Otherwise
-  // treat the input as a VIN / chassis. A slug has hyphens and is not VIN-shaped.
-  const byUrlNorm = async (norm) => {
-    if (!norm) return "";
-    const s = await supabaseSelect(env, `sales_archive?url_norm=eq.${encodeURIComponent(norm)}&select=vin_norm&limit=1`).catch(() => null);
-    if (s && s[0] && s[0].vin_norm) return normVin(s[0].vin_norm);
-    const a = await supabaseSelect(env, `auction_attempts?url_norm=eq.${encodeURIComponent(norm)}&select=chassis_vin_norm&limit=1`).catch(() => null);
-    if (a && a[0] && a[0].chassis_vin_norm) return normVin(a[0].chassis_vin_norm);
-    return "";
-  };
-  if (/^https?:\/\//i.test(raw)) vin = await byUrlNorm(normalizeListingUrl(raw));
-  else if (/-/.test(raw) && !/^[A-Za-z0-9]{10,17}$/.test(raw)) vin = await byUrlNorm(batSlugToUrlNorm(raw));
-  else vin = normVin(raw);
-  if (!(vin && vin.length >= 6)) return { kind: "refusal", reason: sam("That does not look like a VIN or a listing link GoAskSam can match.") };
-  const data = await vinAppearances(env, vin);
-  if (!data || !data.ok || !data.appearances.length) return { kind: "refusal", vin, reason: sam("GoAskSam has no recorded auction appearances for that car.") };
-  // Reserve isn't in vinAppearances' output (Lane C), so read has_reserve from the archive and merge by date.
-  const resMap = {};
-  try {
-    const [sR, aR] = await Promise.all([
-      supabaseSelect(env, `sales_archive?vin_norm=eq.${encodeURIComponent(vin)}&select=sale_date,has_reserve`),
-      supabaseSelect(env, `auction_attempts?chassis_vin_norm=eq.${encodeURIComponent(vin)}&select=attempt_date,has_reserve`)
-    ]);
-    for (const x of [...(sR || []), ...(aR || [])]) { const dd = String(x.sale_date || x.attempt_date || "").slice(0, 10); if (dd && x.has_reserve != null) resMap[dd] = x.has_reserve; }
-  } catch { /* reserve is additive */ }
-  const apps = data.appearances.slice(0, MAX_RESULTS).map(a => {
-    const rv = resMap[a.date];
-    return {
-      date: a.date || null, house: a.house || null, miles: Number.isFinite(a.mileage) ? a.mileage : null,
-      result: a.kind === "sale" ? "sold" : "not sold", reserve: rv == null ? null : (rv ? "reserve" : "no reserve"),
-      hammerUsd: a.kind === "sale" ? usd(a.priceUsd) : null, highBidUsd: a.kind === "sale" ? null : usd(a.bidUsd), url: a.url || null
-    };
-  });
-  let id = null; try { id = await carIdentity(data.appearances, vin); } catch { /* */ }
-  const link = id ? `${SITE}/history/${carSlug(id)}/${vin}` : `${SITE}/vin/${vin}`;
-  return { kind: "answer", vin, car: id ? [id.year, id.make, id.family].filter(Boolean).join(" ") : null, appearances: apps, link };
-}
-
-// ---------- TOOL: where_to_sell (archive-only; platforms where the spec has sold) ----------
-async function whereToSell(text, env) {
-  const r = await resolveSpec(text);
-  if (r.question) return { kind: "question", question: sam(r.question) };
-  const generation = await findGeneration(r.vehicle, env).catch(() => null);
-  const lst = await listSalesForVehicle(r.vehicle, generation, { supabaseUrl: env.supabaseUrl, supabaseKey: env.supabaseKey }).catch(() => null);
-  const sales = (lst && lst.ok && Array.isArray(lst.sales)) ? lst.sales : [];
-  if (!sales.length) return { kind: "refusal", spec: specLabel(r.vehicle), reason: sam("GoAskSam does not have enough recorded sales of this car yet to say where it sells best.") };
-  const by = new Map();
-  for (const s of sales) {
-    const plat = s.platform || s.source || s.source_slug; if (!plat) continue;
-    const u = Number(s.priceUsd) || null;
-    const b = by.get(plat) || { platform: plat, sales: 0, prices: [] };
-    b.sales++; if (u) b.prices.push(u); by.set(plat, b);
-  }
-  const ranked = [...by.values()].sort((a, z) => z.sales - a.sales).slice(0, MAX_RESULTS).map(b => {
-    b.prices.sort((a, z) => a - z); const mid = b.prices.length ? b.prices[Math.floor(b.prices.length / 2)] : null;
-    return { platform: b.platform, sales: b.sales, medianHammerUsd: usd(mid) };
-  });
-  return { kind: "answer", spec: specLabel(r.vehicle), platforms: ranked, link: pageLink(r.vehicle) };
-}
-
-// ---------- Sam's-voice one-liner summaries per tool ----------
-function summarize(tool, out) {
-  if (out.kind === "question") return sam(out.question);
-  if (out.kind === "refusal") return sam(out.reason + (out.closestSale && out.closestSale.hammerUsd ? ` The closest recorded sale is ${out.closestSale.title}, hammer ${out.closestSale.hammerUsd}.` : ""));
-  if (tool === "market_check") {
-    const r = out.soldRangeHammerUsd;
-    let s = `Cars like the ${out.spec} have sold between ${r.low} and ${r.high} at the hammer`;
-    if (out.period) s += ` over ${out.period.toLowerCase()}`;
-    s += ".";
-    if (out.closestSale && out.closestSale.hammerUsd) s += ` The closest recorded sale is the ${out.closestSale.title}, hammer ${out.closestSale.hammerUsd}.`;
-    return sam(s);
-  }
-  if (tool === "car_history") {
-    const sold = out.appearances.filter(a => a.result === "sold");
-    const last = sold[0] || out.appearances[0];
-    let s = out.car ? `This ${out.car} ` : "This car ";
-    s += sold.length ? `has sold at auction ${sold.length === 1 ? "once" : sold.length + " times"}` : `has been offered at auction without selling`;
-    if (last) s += `, most recently ${last.result} ${last.hammerUsd ? "for " + last.hammerUsd + " at the hammer " : ""}${last.house ? "at " + last.house + " " : ""}${last.date ? "in " + last.date : ""}`.replace(/\s+/g, " ").trimEnd();
-    return sam(s + ".");
-  }
-  if (tool === "where_to_sell") {
-    const top = out.platforms[0];
-    return sam(top ? `Cars like the ${out.spec} have sold most on ${top.platform}${top.medianHammerUsd ? `, where the median hammer was ${top.medianHammerUsd}` : ""}.` : `GoAskSam cannot yet say where the ${out.spec} sells best.`);
-  }
-  return "";
-}
 
 // ---------- MCP tool catalogue ----------
 const TOOLS = [
