@@ -3513,6 +3513,7 @@ export default async function handler(req, res) {
         console.error(`One Box unavailable (${(e && e.message) || e}).`);
         return res.status(200).json({ status: "one_box", tier: "unavailable", samLine: OB_CALM });
       }
+      if (req.body?.debug && oneBox) oneBox._obDbg = { resStatus: resolution.status, resFallback: resolution.fallback || null, resVehYear: resolution.vehicle && resolution.vehicle.year, vehYear: vehicle && vehicle.year, vehModel: vehicle && vehicle.model, vehSrc: vehicle && vehicle.modelSource, acceptModelLevel: !!car.acceptModelLevel, genCode: generation && generation.code, genYears: generation ? [generation.yearStart, generation.yearEnd] : null };
       // Addressable result (Task 4): persist a stable, shareable snapshot of THIS result so
       // /o/<id> re-opens the exact same answer cold and its OG tags carry the answer line.
       // Reuses the /sell saved_results store; tagged obShare:true so the public read path can
