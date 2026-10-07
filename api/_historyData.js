@@ -139,9 +139,10 @@ export function canonicalHub(make, family) {
 export async function carIdentity(apps, vin) {
   if (!apps.length) return null;
   const titled = apps.filter(a => a.title);
-  if (!titled.length) return null;
   if (titled.some(a => isMemorabilia(a.title) || isPartsListing(a.title, a.mileage))) return null;
-  const newest = titled[0];
+  // No titled appearance (e.g. the only record is a title-less unsold attempt) does NOT dead-end: the
+  // stored-identity fallback below still names a make-known car from its record.
+  const newest = titled[0] || apps[0];
   // Name the car from the newest listing the resolver can read (then the VIN decode). Listings word
   // the model differently ("911 Carrera" vs "964 C2"), so model wording is NOT required to agree.
   let v = null;
