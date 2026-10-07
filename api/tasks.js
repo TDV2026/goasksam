@@ -92,12 +92,12 @@ export default async function handler(req, res) {
       for (const st of req.body.steps || []) {
         const t0 = Date.now(); let out;
         if (st.say != null) { const r = await taskTurn(envT, user, { taskId: st.new ? null : taskId, text: st.say, seed: st.seed || null, apiKey, model: CHAT_MODEL }); if (!st.keepId) taskId = r.task.id; out = { reply: r.reply, state: r.task.state, summary: r.task.summary, question: r.task.question, filters: r.task.filters, control: r.control ? { needChoice: !!r.control.needChoice, current: r.control.current && r.control.current.summary } : null, task_id: r.task.id }; }
-        else if (st.control) { const r = await controlTask(envT, user, st.task_id || taskId, st.control, { apiKey, model: CHAT_MODEL, rows: st.rows }); out = { state: r.task && r.task.state, needChoice: !!r.needChoice, current: r.current && r.current.summary, error: r.error }; }
-        else if (st.run) { const r = await runTasks(envT, { taskId: st.task_id || taskId, rows: st.run.rows, now: st.run.now, testBad: !!st.run.testBad, test: true, apiKey, model: CHAT_MODEL }); out = r.report[0] || r; }
+        else if (st.control) { const r = await controlTask(envT, user, st.task_id || taskId, st.control, { apiKey, model: CHAT_MODEL, rows: st.rows, testDrafts: st.testDrafts || null }); out = { state: r.task && r.task.state, needChoice: !!r.needChoice, current: r.current && r.current.summary, error: r.error }; }
+        else if (st.run) { const r = await runTasks(envT, { taskId: st.task_id || taskId, rows: st.run.rows, now: st.run.now, testBad: !!st.run.testBad, testDrafts: st.run.testDrafts || null, test: true, apiKey, model: CHAT_MODEL }); out = r.report[0] || r; }
         else if (st.set) { await saveTask(envT, st.task_id || taskId, st.set); out = { set: Object.keys(st.set) }; }
         steps.push({ step: st, ms: Date.now() - t0, out });
       }
-      return res.status(200).json({ steps, tasks: mem.tasks.map(t => ({ id: t.id, kind: t.kind, state: t.state, summary: t.summary, filters: t.filters, unread: t.unread })), updates: mem.ups.map(u => ({ task: u.task_id.slice(0, 8), role: u.role, kind: u.kind, text: u.text, listing_ids: u.listing_ids || null, email_status: u.email_status })) });
+      return res.status(200).json({ steps, tasks: mem.tasks.map(t => ({ id: t.id, kind: t.kind, state: t.state, summary: t.summary, filters: t.filters, unread: t.unread })), updates: mem.ups.map(u => ({ task: u.task_id.slice(0, 8), role: u.role, kind: u.kind, text: u.text, listing_ids: u.listing_ids || null, email_status: u.email_status, tools: u.data && u.data.tools, guards: u.data && u.data.guards })) });
     }
     const user = await who(req);
     if (req.method === "GET" && q.summary) {
