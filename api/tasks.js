@@ -50,6 +50,12 @@ export default async function handler(req, res) {
       await recordUsageEvent({ event_type: "tasks_run", route: "tasks_run", status: "ok", oldcarsdata_metered_requests: 0, metadata: { ran: out.ran, matched: out.report.reduce((k, r) => k + (r.matched || 0), 0), ms: Date.now() - t0 } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       return res.status(200).json(out);
     }
+    // Probe: when each live pull finished (its final usage row) and when each task run ran, last 7 days.
+    if (req.method === "GET" && q.pulltiming && probeOk(req)) {
+      const since = new Date(Date.now() - 7 * 864e5).toISOString();
+      const get = async f => { const r = await fetch(`${env.supabaseUrl}/rest/v1/app_usage_events?created_at=gte.${since}&${f}&select=created_at,event_type,route,status,metadata&order=created_at.asc&limit=1000`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); return r.ok ? r.json() : `error ${r.status}`; };
+      return res.status(200).json({ pulls: await get("route=eq.pull_live"), runs: await get("event_type=eq.tasks_run") });
+    }
     // Probe: counts of the old watch_requests rows (reported, never emailed).
     if (req.method === "GET" && q.watchcounts && probeOk(req)) {
       const count = async f => { const r = await fetch(`${env.supabaseUrl}/rest/v1/watch_requests?select=id${f}`, { method: "HEAD", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact", Range: "0-0" } }); return r.ok || r.status === 206 ? Number(((r.headers.get("content-range") || "").split("/")[1]) || 0) : `error ${r.status}`; };
