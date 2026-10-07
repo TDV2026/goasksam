@@ -3955,6 +3955,23 @@ async function handleOps(req, res) {
     });
   }
 
+  // task=vincount: READ-ONLY. Direct Postgres exact count of sales_archive / auction_attempts with the
+  // SAME filters buildVinIndex.js's loadSales/loadAttempts use, so the paginated read's row count can be
+  // checked against the authoritative total. No pagination, no writes.
+  if (task === "vincount") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    const countOf = async (table, filter, selCol) => {
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/${table}?${filter}&select=${selCol}&limit=1`, { headers: H });
+      const m = /\/(\d+)$/.exec(r.headers.get("content-range") || "");
+      return m ? Number(m[1]) : null;
+    };
+    // auction_attempts has NO id column (PK = source_slug + source_record_id), same as buildVinIndex.js.
+    const salesCount = await countOf("sales_archive", "vin_norm=not.is.null&or=(vehicle_type.is.null,vehicle_type.neq.non_vehicle)", "source_id");
+    const attemptsCount = await countOf("auction_attempts", "chassis_vin_norm=not.is.null", "source_record_id");
+    return res.status(200).json({ task: "vincount", salesCount, attemptsCount, total: (salesCount || 0) + (attemptsCount || 0) });
+  }
+
   // task=buildvinindex: run the VIN index rebuild server-side (DB-only, ZERO OCD), the SAME core the
   // CLI + nightly use (scripts/buildVinIndex.js buildVinIndex). ?report=1 = distribution only, no write.
   if (task === "buildvinindex") {
