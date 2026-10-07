@@ -499,7 +499,7 @@ async function handleOps(req, res) {
     const asOfQ = req.query?.asof ? new Date(String(req.query.asof) + "T00:00:00Z") : new Date();
     // Single-slug pool inspection: ?slug=<leaf-or-trim>&pool=1 -> sorted pool, 3 lowest/3 highest, sample.
     if (req.query?.slug && req.query?.pool) {
-      const p = await specPool(String(req.query.slug), env, { asOf: asOfQ });
+      const p = await specPool(String(req.query.slug), env, { asOf: asOfQ, bodyAudit: !!req.query?.bodyaudit });
       return res.status(200).json({ task: "specpages911", mode: "pool", pool: p });
     }
     const all = allSpecSlugs911();
