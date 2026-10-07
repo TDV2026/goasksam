@@ -269,6 +269,9 @@ async function carPage(req, res, env, slug, vin) {
   const exactSale = lastSale && lastSale.priceUsd ? { price: lastSale.priceUsd, mileage: lastSale.mileage, soldDate: lastSale.date } : null;
   const [d, live, said, others] = await Promise.all([oneBoxFor(env, id, exactSale), liveListing(env, vinNorm), listingSaid(env, vinNorm).catch(() => null), familySales(env, id, vinNorm, 200).catch(() => null)]);
   const story = storyOf(live);
+  // The vehicle's own word (Lane A's road buckets): "this motorcycle", "this tractor", else "this car".
+  const roadBucket = classifyRoad({ title: (newest && newest.title) || name, make: id.make });
+  const noun = roadBucket === "motorcycle" ? "motorcycle" : roadBucket === "other" ? otherNoun((newest && newest.title) || name) : "car";
   const poolCards = d && Array.isArray(d.cards) && d.cards.length ? d.cards
     : (d && d.thin && Array.isArray(d.thin.receipts) ? d.thin.receipts.map(r => ({ price: r.hammer, mi: r.mileage, date: r.date, platform: r.venue, url: r.url, title: r.title, vin: r.vinNorm, year: r.year })) : []);
   const urlVins = poolCards.length ? await vinsForUrls(env, poolCards.map(c => c.url).filter(Boolean)).catch(() => null) : null;
@@ -295,8 +298,8 @@ async function carPage(req, res, env, slug, vin) {
     : sales.length ? `${timesWord(appearances.length).replace(/^./, c => c.toUpperCase())}, and it sold ${appearances.length === 1 ? "that time" : "each time"}.`
     : `${timesWord(appearances.length).replace(/^./, c => c.toUpperCase())}, without selling.`) + nowLine;
   const faq = [
-    lastSale ? ["What did this car last sell for?", `${salePriceFee(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}.`]
-      : topBid ? ["What is the highest bid this car has had?", `${bidPrice(topBid)} ${on(topBid.house)} in ${monthYear(topBid.date)}, and it did not sell.`] : null,
+    lastSale ? [`What did this ${noun} last sell for?`, `${salePriceFee(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}.`]
+      : topBid ? [`What is the highest bid this ${noun} has had?`, `${bidPrice(topBid)} ${on(topBid.house)} in ${monthYear(topBid.date)}, and it did not sell.`] : null,
     ["How many times has it been to auction?", countAns],
     cmp ? ["How does its last sale compare with others?", cmp] : null
   ].filter(Boolean);
@@ -311,23 +314,19 @@ async function carPage(req, res, env, slug, vin) {
 <p class="lead" data-lead-sentence>${esc(story)}</p></div>
 ${photo ? `<figure class="vph" data-alt="${esc(JSON.stringify(altPhotos))}">${photoHtml(photo.image, photo.url, photo.house, name, "photo", true)}<span class="chip">Photo: ${esc(photo.house)}</span></figure>` : `<figure class="vph nophoto"><span class="nm">${esc(name)}</span></figure>`}</header>
 ${timelineHtml(appearances, live)}
-${specRailHtml(d, id, lastSale)}
-${live ? liveCardHtml(live, name) : ""}
+${specRailHtml(d, id, lastSale, noun)}
+${live ? liveCardHtml(live, name, noun) : ""}
 ${saidHtml(said)}
-${groupListsHtml(d, id, vinNorm, poolCards, urlVins, others)}
+${groupListsHtml(d, id, vinNorm, poolCards, urlVins, others, noun)}
 <section class="sec"><h2>Questions</h2><dl class="faq">${faq.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>
-<nav class="vlinks" aria-label="More"><a href="${esc(modelHub)}">All ${esc(id.make + " " + id.family)} auction results</a><a href="${esc(hubHref)}">Every ${esc(id.year + " " + id.make + " " + id.family)} by VIN</a><a class="red" href="${esc(sellHref(id))}">Where to sell it</a><button type="button" id="watch-open" aria-expanded="false" aria-controls="watch">Watch this car</button></nav>
-<form class="watch" id="watch" hidden><label for="watch-email" style="position:absolute;left:-9999px">Email</label><input id="watch-email" type="email" required placeholder="Your email" autocomplete="email"><button class="btn p" type="submit">Watch it</button><p class="msg" id="watch-msg">Sam will email you if this car comes up at auction again.</p></form>
+<nav class="vlinks" aria-label="More"><a href="${esc(modelHub)}">All ${esc(id.make + " " + id.family)} auction results</a><a href="${esc(hubHref)}">Every ${esc(id.year + " " + id.make + " " + id.family)} by VIN</a><a class="red" href="${esc(sellHref(id))}">Where to sell it</a><button type="button" id="watch-open" aria-expanded="false" aria-controls="watch">Watch this ${esc(noun)}</button></nav>
+<form class="watch" id="watch" hidden><label for="watch-email" style="position:absolute;left:-9999px">Email</label><input id="watch-email" type="email" required placeholder="Your email" autocomplete="email"><button class="btn p" type="submit">Watch it</button><p class="msg" id="watch-msg">Sam will email you if this ${esc(noun)} comes up at auction again.</p></form>
 ${WHY_RESULT_HTML}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>
-<script>(function(){var b=document.getElementById("watch-open"),f=document.getElementById("watch"),m=document.getElementById("watch-msg");if(!b||!f)return;b.addEventListener("click",function(){f.hidden=!f.hidden;b.setAttribute("aria-expanded",f.hidden?"false":"true");if(!f.hidden)document.getElementById("watch-email").focus();});f.addEventListener("submit",function(e){e.preventDefault();var em=document.getElementById("watch-email").value.trim();if(!em)return;m.textContent="Saving...";fetch("/api/history",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"watch",vin:${JSON.stringify(vinNorm)},email:em})}).then(function(r){return r.json();}).then(function(j){m.textContent=j&&j.ok?"Done. Sam will email you if this car comes up at auction again.":"That didn\\u2019t save just now. Try again in a minute.";}).catch(function(){m.textContent="That didn\\u2019t save just now. Try again in a minute.";});});})();</script>`;
+<script>(function(){var b=document.getElementById("watch-open"),f=document.getElementById("watch"),m=document.getElementById("watch-msg");if(!b||!f)return;b.addEventListener("click",function(){f.hidden=!f.hidden;b.setAttribute("aria-expanded",f.hidden?"false":"true");if(!f.hidden)document.getElementById("watch-email").focus();});f.addEventListener("submit",function(e){e.preventDefault();var em=document.getElementById("watch-email").value.trim();if(!em)return;m.textContent="Saving...";fetch("/api/history",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"watch",vin:${JSON.stringify(vinNorm)},email:em})}).then(function(r){return r.json();}).then(function(j){m.textContent=j&&j.ok?${JSON.stringify("Done. Sam will email you if this " + noun + " comes up at auction again.")}:"That didn\\u2019t save just now. Try again in a minute.";}).catch(function(){m.textContent="That didn\\u2019t save just now. Try again in a minute.";});});})();</script>`;
   const canonical = `${SITE}/history/${id.slug}/${vinNorm}`;
-  // Road type (lib/_roadType.js): a non-road lot (boat/aircraft/standalone trailer/memorabilia/parts/
-  // loose engine) is noindex and out of every sitemap; motorcycles and other self-propelled vehicles
-  // are indexable in their own sitemap. LANE C: when roadBucket is "motorcycle" or "other", the page
-  // wording still says "car" (the title, the lead sentence and the section headings) - see
-  // docs/lane-notes.md for the exact strings to change to the vehicle's type.
-  const roadBucket = classifyRoad({ title: (newest && newest.title) || name, make: id.make });
+  // Road type (lib/_roadType.js, computed above): non-road lots are noindex and out of every sitemap;
+  // motorcycles and other self-propelled vehicles keep their own sitemap and their own wording.
   const body2 = body + `<!-- data: ${dataSource || "archive"} --><!-- roadtype: ${roadBucket} -->`;
   const ld = [{
     "@context": "https://schema.org", "@type": "Vehicle", name, vehicleIdentificationNumber: vinNorm,
@@ -347,6 +346,12 @@ ${WHY_RESULT_HTML}
   await logPageView(env, { path: canonical.replace(SITE, ""), referer: req.headers["referer"] || req.headers["referrer"], userAgent: req.headers["user-agent"] });
   send(res, 200, page({ title: `${name}, VIN ${vinNorm}: auction history`, description: story, canonical, body: body2, ld, index }), {}, index);
 }
+// The specific word for an "other" self-propelled vehicle, else a neutral "vehicle".
+function otherNoun(title) {
+  const t = String(title || "");
+  const m = [["tractor", /\btractor\b/i], ["golf cart", /\bgolf\s?cart\b/i], ["ATV", /\bATV\b|\bquad\b/i], ["UTV", /\bUTV\b|\bside[- ]by[- ]side\b/i], ["motorhome", /\bmotor\s?home\b|\bRV\b|\bcamper\b/i], ["military vehicle", /\bmilitary\b|\bM151\b|\barmored\b/i]].find(([, re]) => re.test(t));
+  return m ? m[0] : "vehicle";
+}
 // THE TIMELINE (the page's main visual): every appearance, oldest left, with its date, result, house
 // and miles; sold dots filled, unsold hollow, the live listing last in red.
 function timelineHtml(apps, live) {
@@ -362,16 +367,16 @@ function timelineHtml(apps, live) {
 // spread rules passed); the ends are the spec's low and high, the dark band where the middle half sold;
 // this car's own sale is a dot only when it was within 24 months and inside the ends. Otherwise one
 // honest line, never a figure.
-function specRailHtml(d, id, lastSale) {
+function specRailHtml(d, id, lastSale, noun = "car") {
   if (!d) return "";
   const fam = nounOf(d, id), win = windowText(d);
   if (d.tier === "result" && Array.isArray(d.cluster) && Array.isArray(d.span) && d.span[1] > d.span[0]) {
     const [lo, hi] = d.span, pc = x => Math.max(0, Math.min(100, (x - lo) / (hi - lo) * 100));
     const a = pc(d.cluster[0]), b = pc(d.cluster[1]);
     const recent = lastSale && lastSale.priceUsd && (Date.now() - Date.parse(lastSale.date + "T00:00:00Z")) <= 730 * 864e5 && lastSale.priceUsd >= lo && lastSale.priceUsd <= hi;
-    const dot = recent ? `<i class="me" style="left:${pc(lastSale.priceUsd).toFixed(1)}%"></i><span class="melab" style="left:${pc(lastSale.priceUsd).toFixed(1)}%">This car, ${esc(monShort(lastSale.date))}</span>` : "";
+    const dot = recent ? `<i class="me" style="left:${pc(lastSale.priceUsd).toFixed(1)}%"></i><span class="melab" style="left:${pc(lastSale.priceUsd).toFixed(1)}%">This ${esc(noun)}, ${esc(monShort(lastSale.date))}</span>` : "";
     const n = (d.cards || []).length || poolCount(d);
-    return `<section class="sec" aria-label="What cars like it sold for"><h2>What ${esc(fam)} sell for</h2><p class="sub">${n ? `${n} sales in ${esc(win)}.` : ""}</p>
+    return `<section class="sec" aria-label="What ${noun === "car" ? "cars" : noun + "s"} like it sold for"><h2>What ${esc(fam)} sell for</h2><p class="sub">${n ? `${n} sales in ${esc(win)}.` : ""}</p>
 <div class="vrail${recent ? " hasme" : ""}"><div class="rrow"><span class="rend">${usd(lo)}</span><span class="rline"><i class="band" style="left:${a.toFixed(1)}%;width:${Math.max(1.5, b - a).toFixed(1)}%"></i>${dot}</span><span class="rend">${usd(hi)}</span></div>
 <p class="rmost">Most sold between ${usd(d.cluster[0])} and ${usd(d.cluster[1])}</p><p class="rcap">What this spec has sold for, ${/twelve/.test(win) ? "last 12 months" : "last 2 years"}</p></div></section>`;
   }
@@ -379,7 +384,7 @@ function specRailHtml(d, id, lastSale) {
   if (!n) return "";
   const one = fam.replace(/ cars$/, "").replace(/(ch|sh|s|x|z)es$/, "$1").replace(/(?<!s)s$/, "");
   const line = n === 1 ? `Only one ${one} has sold in ${poolWindow(d)}, too few to mark a range.` : n < 8 ? `Only ${n} ${fam} have sold in ${poolWindow(d)}, too few to mark a range.` : `${fam.charAt(0).toUpperCase() + fam.slice(1)} sold too spread out in ${poolWindow(d)} to mark one range.`;
-  return `<section class="sec" aria-label="What cars like it sold for"><h2>What ${esc(fam)} sell for</h2><p class="vthin">${esc(line)}</p></section>`;
+  return `<section class="sec" aria-label="What ${noun === "car" ? "cars" : noun + "s"} like it sold for"><h2>What ${esc(fam)} sell for</h2><p class="vthin">${esc(line)}</p></section>`;
 }
 // BACK AT AUCTION NOW: the live listing as a /buy card (photo with chips, title, facts, link out).
 function timeLeft(iso) {
@@ -389,13 +394,13 @@ function timeLeft(iso) {
   if (h < 24) { const hh = Math.floor(h); return hh + (hh === 1 ? " hour left" : " hours left"); }
   const dd = Math.floor(h / 24); return dd + (dd === 1 ? " day left" : " days left");
 }
-function liveCardHtml(l, name) {
+function liveCardHtml(l, name, noun = "car") {
   const house = houseName(l.source);
   const chips = [[house, timeLeft(l.end_time)].filter(Boolean).join(" · ")].concat(l.has_reserve === false ? ["No reserve"] : []);
   const bid = l.current_bid_usd ? "Bid " + usd(l.current_bid_usd) : (l.current_bid ? "Bid " + Math.round(l.current_bid).toLocaleString("en-US") + " " + (l.currency || "") : "No bids yet");
   const meta = [bid, l.location || "", l.mileage ? miles(l.mileage) + " miles" : ""].filter(Boolean);
   const img = l.photo_url ? `<img src="${esc(l.photo_url)}" alt="${esc(name)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
-  return `<section class="sec" aria-label="Back at auction now"><h2>Back at auction now</h2><p class="sub">This car is live ${house === "Hemmings" || /^(Mecum|Bonhams|Gooding|RM|Broad|Barrett)/.test(house) ? "at" : "on"} ${esc(house)}.</p>
+  return `<section class="sec" aria-label="Back at auction now"><h2>Back at auction now</h2><p class="sub">This ${esc(noun)} is live ${house === "Hemmings" || /^(Mecum|Bonhams|Gooding|RM|Broad|Barrett)/.test(house) ? "at" : "on"} ${esc(house)}.</p>
 <article class="lcard"><a class="lph" href="${esc(utm(l.url))}" target="_blank" rel="noopener">${img}<span class="chips">${chips.map(c => `<span class="chip">${esc(c)}</span>`).join("")}</span></a>
 <div><h3><a href="${esc(utm(l.url))}" target="_blank" rel="noopener">${esc(name)}</a></h3><p class="meta">${meta.map(esc).join(" · ")}</p><a class="go" href="${esc(utm(l.url))}" target="_blank" rel="noopener">See the live auction</a></div></article></section>`;
 }
@@ -404,10 +409,10 @@ function liveCardHtml(l, name) {
 // convertibles that sold"), never mixed in. Rows open each car's history when its VIN is known.
 const BODY_RE = [["coupes", /\bcoup[eé]\b/i], ["convertibles", /\bconvertible\b/i], ["Cabriolets", /\bcabriolet\b/i], ["roadsters", /\broadster\b/i], ["Targas", /\btarga\b/i], ["Spiders", /\bspider\b|\bspyder\b/i], ["sedans", /\bsedan\b|\bsaloon\b/i], ["wagons", /\bwagon\b|\bestate\b/i]];
 const bodyOfTitle = t => (BODY_RE.find(([, re]) => re.test(String(t || ""))) || [null])[0];
-function saleRow({ year, miles: mi, price, date, house, href, mine }) {
-  return `<li><a href="${esc(href || "#")}"${href && /^https?:/.test(href) ? ' target="_blank" rel="noopener"' : ""}><span>${esc(year || "")}</span><span class="m">${esc([mine ? "This car" : "", mi ? miles(mi) + " miles" : "", monShort(date), house].filter(Boolean).join(" · "))}</span><span class="p">${esc(price)}</span></a></li>`;
+function saleRow({ year, miles: mi, price, date, house, href, mine, noun = "car" }) {
+  return `<li><a href="${esc(href || "#")}"${href && /^https?:/.test(href) ? ' target="_blank" rel="noopener"' : ""}><span>${esc(year || "")}</span><span class="m">${esc([mine ? "This " + noun : "", mi ? miles(mi) + " miles" : "", monShort(date), house].filter(Boolean).join(" · "))}</span><span class="p">${esc(price)}</span></a></li>`;
 }
-function groupListsHtml(d, id, vinNorm, cards, urlVins, others) {
+function groupListsHtml(d, id, vinNorm, cards, urlVins, others, noun = "car") {
   const out = [];
   const fam = d ? nounOf(d, id) : null;
   if (cards.length && fam) {
@@ -415,7 +420,7 @@ function groupListsHtml(d, id, vinNorm, cards, urlVins, others) {
       const v = c.vin ? { vin: c.vin, year: Number(c.year) || null } : (urlVins && c.url ? urlVins.get(c.url) : null);
       const year = (v && v.year) || Number((/\b(19|20)\d{2}\b/.exec(c.title || "") || [])[0]) || null;
       const href = v ? `/history/${[year, slugify(id.make), slugify(id.family)].filter(Boolean).join("-")}/${v.vin}` : (c.url ? utm(c.url) : null);
-      return saleRow({ year, miles: c.mi, price: c.price ? usd(c.price) : "", date: c.date, house: c.platform || "", href, mine: v && v.vin === vinNorm });
+      return saleRow({ year, miles: c.mi, price: c.price ? usd(c.price) : "", date: c.date, house: c.platform || "", href, mine: v && v.vin === vinNorm, noun });
     });
     const shown = rows.slice(0, 30);
     const ranged = d.tier === "result" && Array.isArray(d.cluster);
