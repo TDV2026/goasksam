@@ -25,6 +25,7 @@
     "fill:ladder": "node scripts/fillLadder.js",
     "lint:trim-asks": "node scripts/lintTrimAsks.js",
     "test:golden": "node scripts/oneboxGolden.mjs",
+    "test:hyphen-models": "node scripts/verifyHyphenModels.mjs --live",
     "test:desk": "node scripts/deskGolden.mjs",
     "test:desk-rule": "node scripts/verifyDeskSetAside.mjs"
   },
