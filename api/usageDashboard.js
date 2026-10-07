@@ -3328,6 +3328,20 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "titlefill", write, titlelessVinSummary: vins.length, fillable: fillable.length, nothing: vins.length - fillable.length, fillableBySource: fillable.reduce((o, v) => (o[have[v].src] = (o[have[v].src] || 0) + 1, o), {}), filled, errors, filledBySource: bySrc, m5TypeTitlelessMakeKnownRows: m5TypeRows, examples: fillable.slice(0, 8).map(v => ({ vin: v, ...have[v] })) });
   }
 
+  // task=speccache: READ-ONLY. spec_market_cache size + how many specs were refreshed in the last run.
+  if (task === "speccache") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    const cq = async f => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/spec_market_cache?${f}&select=spec_key&limit=1`, { headers: H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    const todayStart = new Date().toISOString().slice(0, 10) + "T00:00:00Z";
+    const since24 = new Date(Date.now() - 24 * 3600e3).toISOString();
+    const total = await cq("spec_key=not.is.null");
+    const today = await cq(`computed_at=gte.${todayStart}`);
+    const last24 = await cq(`computed_at=gte.${since24}`);
+    const recent = await supabaseSelect(env, `spec_market_cache?select=spec_key,kind,computed_at&order=computed_at.desc&limit=5`) || [];
+    return res.status(200).json({ task: "speccache", totalSpecs: total, refreshedToday: today, refreshedLast24h: last24, mostRecent: recent });
+  }
+
   // task=vindbg: READ-ONLY. What vinAppearances sees for a VIN: vin_index rows + direct sales/attempts.
   if (task === "vindbg") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });

@@ -172,6 +172,12 @@ export async function buildVinIndex(env, { reportOnly = false } = {}) {
   let sins = 0, sumErr = 0;
   for (let i = 0; i < sumRows.length; i += 500) { const r = await supabaseInsert("vin_summary", sumRows.slice(i, i + 500), env.supabaseUrl, env.supabaseKey); if (!r.error) sins += Math.min(500, sumRows.length - i); else { sumErr++; console.error("vin_summary insert error:", r.error); } }
 
+  // Record the build stats to app_usage_events so shortChassisSplit / polluted / counts are queryable
+  // from the DB (not only the Actions stdout log). Best-effort; never fails the build.
+  try {
+    const { recordUsageEvent } = await import("../api/_usage.js");
+    await recordUsageEvent({ event_type: "vin_index_build", route: "scripts/buildVinIndex.js", status: "ok", oldcarsdata_metered_requests: 0, metadata: { appearances: all.length, distinctVins: byVin.size, polluted, shortChassisSplit: shortSplit, keptVins: keptVins.length, vin_index_written: ins, vin_summary_written: sins, insertErrors: insErr + sumErr, dist: stats.dist } }, env.supabaseUrl, env.supabaseKey);
+  } catch { /* best-effort */ }
   return { ...stats, wrote: true, vin_index_written: ins, vin_summary_written: sins, insertErrors: insErr + sumErr };
 }
 
