@@ -3295,6 +3295,16 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "milesfill", mode, write, processed: rows.length, nextCursor: rows[rows.length - 1].id, computable: fixes.length, wrote, writeErrors, filledBySource, leftNullBySource, samples });
   }
 
+  // task=vindbg: READ-ONLY. What vinAppearances sees for a VIN: vin_index rows + direct sales/attempts.
+  if (task === "vindbg") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const v = String(req.query?.vin || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const idx = await supabaseSelect(env, `vin_index?vin_norm=eq.${encodeURIComponent(v)}&select=appearance_date,source,result,make,model,listing_title`) || [];
+    const sales = await supabaseSelect(env, `sales_archive?vin_norm=eq.${encodeURIComponent(v)}&select=sale_date,source_slug,make,model,listing_title`) || [];
+    const atts = await supabaseSelect(env, `auction_attempts?chassis_vin_norm=eq.${encodeURIComponent(v)}&select=attempt_date,source_slug,make,model,title:raw_record->>title`) || [];
+    return res.status(200).json({ task: "vindbg", vin: v, in_vin_index: idx.length, vin_index: idx, sales_archive: sales, auction_attempts: atts });
+  }
+
   // task=titleaudit: READ-ONLY. The title-less VINs (vin_summary.make null) and how many can be filled
   // with year/make/model from sales_archive, auction_attempts or live_listings vs have nothing. ZERO OCD.
   if (task === "titleaudit") {
