@@ -227,11 +227,24 @@ async function carPage(req, res, env, slug, vin) {
     answer = `This ${name} has been offered at auction ${atts.length === 1 ? "once" : atts.length + " times"} without selling` + (top ? `; the highest bid was ${bidPrice(top)} ${on(top.house)} in ${monthYear(top.date)}.` : ".");
   }
   // THE LEAD (search rule 1): one dated sentence telling the car's story from its own record.
-  const step = a => a.kind === "sale" ? `sold for ${salePrice(a)} ${on(a.house)} in ${monthYear(a.date)}` : `${bidPrice(a) ? `bid to ${bidPrice(a)}` : "offered"} ${on(a.house)} in ${monthYear(a.date)} without selling`;
-  const oldestFirst = appearances.slice().reverse();
-  const story = appearances.length <= 3
-    ? `As of ${asOf}, this ${name} has been to auction ${timesWord(appearances.length)}: ${oldestFirst.map(step).join(", then ")}.`
-    : `As of ${asOf}, this ${name} has been to auction ${appearances.length} times and ${sales.length ? `sold ${timesWord(sales.length)}, most recently for ${salePrice(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}` : "never sold"}.`;
+  // The car's story in one dated sentence, oldest first, the live listing last: "This 1992 Jaguar XJS V12
+  // sold for $11,000 on Bring a Trailer in August 2022, was bid to $8,300 there in September 2026
+  // without selling, and is back at auction now on Hemmings, as of October 7, 2026."
+  const storyOf = live => {
+    const liveHouse = live ? houseName(live.source) : null, nowClause = live ? `is back at auction now ${on(liveHouse)}` : null;
+    const join = cs => cs.length === 1 ? cs[0] : cs.length === 2 ? cs.join(" and ") : cs.slice(0, -1).join(", ") + ", and " + cs[cs.length - 1];
+    if (appearances.length <= 3) {
+      let prev = null;
+      const cs = appearances.slice().reverse().map(a => {
+        const where = prev && prev === a.house ? "there" : on(a.house); prev = a.house;
+        return a.kind === "sale" ? `sold for ${salePrice(a)} ${where} in ${monthYear(a.date)}` : `was ${bidPrice(a) ? `bid to ${bidPrice(a)}` : "offered"} ${where} in ${monthYear(a.date)} without selling`;
+      });
+      if (nowClause) cs.push(nowClause);
+      return `This ${name} ${join(cs)}, as of ${asOf}.`;
+    }
+    const head = `has been to auction ${appearances.length} times and ${sales.length ? `sold ${timesWord(sales.length)}, most recently for ${salePrice(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}` : "never sold"}`;
+    return `This ${name} ${nowClause ? head + ", and " + nowClause : head}, as of ${asOf}.`;
+  };
   // 4. WHAT'S HAPPENED TO IT (facts only)
   let samLine = "";
   if (appearances.length >= 2) {
@@ -250,6 +263,7 @@ async function carPage(req, res, env, slug, vin) {
   // 5. CARS LIKE IT (the engine, read-only) + LIVE NOW, in parallel
   const exactSale = lastSale && lastSale.priceUsd ? { price: lastSale.priceUsd, mileage: lastSale.mileage, soldDate: lastSale.date } : null;
   const [d, live, said, others] = await Promise.all([oneBoxFor(env, id, exactSale), liveListing(env, vinNorm), listingSaid(env, vinNorm).catch(() => null), familySales(env, id, vinNorm).catch(() => null)]);
+  const story = storyOf(live);
   const n = poolCount(d);
   let ctx = "";
   if (n) ctx = (lastSale && lastSale.date >= windowStartIso(d) ? `One of ${n}` : `${n}`) + ` ${id.family} sales at auction in ${poolWindow(d)}.`;
@@ -266,11 +280,19 @@ async function carPage(req, res, env, slug, vin) {
       : (span > 0 && (hi - p) / span <= 0.25) ? "Near the top of" : "In the middle of";
     cmp = `${where} the range where most ${id.family} sales landed in ${windowText(d)} (${usd(lo)} to ${usd(hi)}).`;
   }
+  // Questions answered only with THIS car's own facts; a question whose answer would be a template (the
+  // same words on every page) is left out.
+  const topBid = atts.filter(a => a.bidUsd || a.nativeBid).sort((x, y) => (y.bidUsd || 0) - (x.bidUsd || 0))[0];
+  const nowLine = live ? ` It is back at auction now ${on(houseName(live.source))}.` : "";
+  const countAns = (sales.length && atts.length ? `${timesWord(appearances.length).replace(/^./, c => c.toUpperCase())}: ${sales.length === 1 ? "one sale" : sales.length + " sales"} and ${atts.length === 1 ? "one unsold attempt" : atts.length + " unsold attempts"}.`
+    : sales.length ? `${timesWord(appearances.length).replace(/^./, c => c.toUpperCase())}, and it sold ${appearances.length === 1 ? "that time" : "each time"}.`
+    : `${timesWord(appearances.length).replace(/^./, c => c.toUpperCase())}, without selling.`) + nowLine;
   const faq = [
-    ["What did this car last sell for?", lastSale ? `${salePriceFee(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}.` : `It has not sold at auction. ${answer.replace(/^This [^;]+; /, "").replace(/^t/, "T")}`],
-    ["How many times has it been to auction?", `${timesWord(appearances.length).replace(/^./, c => c.toUpperCase())}: ${sales.length} sale${sales.length === 1 ? "" : "s"} and ${atts.length} unsold attempt${atts.length === 1 ? "" : "s"}.`],
-    ["How does its last sale compare with others?", lastSale ? cmp : "It has not sold, so there is no sale to compare."]
-  ];
+    lastSale ? ["What did this car last sell for?", `${salePriceFee(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}.`]
+      : topBid ? ["What is the highest bid this car has had?", `${bidPrice(topBid)} ${on(topBid.house)} in ${monthYear(topBid.date)}, and it did not sell.`] : null,
+    ["How many times has it been to auction?", countAns],
+    lastSale && d && d.tier === "result" && d.cluster ? ["How does its last sale compare with others?", cmp] : null
+  ].filter(Boolean);
   const photo = appearances.find(a => a.image) || null;
   const altPhotos = [...new Set(appearances.map(a => a.image).filter(Boolean))].filter(u => !photo || u !== photo.image);
   const hubHref = `/history/${id.slug}`;

@@ -15,3 +15,7 @@ when the work has landed.
 - 2026-10-07 (Lane C): editing `api/history.js` (car page body + styles to the /buy card design: H1, dated
   lead, timeline, range rail, live card) and `api/_historyData.js` (liveListing selects photo/location/
   miles/reserve). Lane A's search pass (5d9f68e: title, index gate, sitemap, logPageView) is kept as is.
+- 2026-10-07 (Lane C -> Lane B): question. Lane C is ready to build the /cars/porsche/911/... spec and hub
+  page templates on `specPage()` (lib/specPages.js), and is waiting for `docs/spec-pages-911.json` to be
+  committed. Is it coming, and is `specPage(slug)` output (lead, indexable, children, recent sales, repeat
+  VINs, siblings) the contract Lane C should render from? Reply here; Lane C will not start until it lands.
