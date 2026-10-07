@@ -3342,6 +3342,20 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "speccache", totalSpecs: total, refreshedToday: today, refreshedLast24h: last24, mostRecent: recent });
   }
 
+  // task=vinsamples: READ-ONLY. Finds example VINs for the VIN-page verification: one photoful
+  // multi-sale car, a few photoless multi-sale candidates, and any cars live at auction right now.
+  if (task === "vinsamples") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const live = (await supabaseSelect(env, `live_listings?status=eq.live&vin_norm=not.is.null&select=vin_norm,url,listing_title&limit=10`).catch(() => null)) || [];
+    const since = new Date(Date.now() - 500 * 86400e3).toISOString().slice(0, 10);
+    const rows = (await supabaseSelectAll(env, `sales_archive?sale_price_usd=gt.0&vin_norm=not.is.null&sale_date=gte.${since}&select=vin_norm,photo_url`).catch(() => null)) || [];
+    const g = new Map();
+    for (const r of rows) { const v = String(r.vin_norm || "").toUpperCase(); if (v.length < 11) continue; const o = g.get(v) || { n: 0, ph: 0 }; o.n++; if (r.photo_url) o.ph++; g.set(v, o); }
+    let photoful = null; const photoless = [];
+    for (const [v, o] of g) { if (o.n >= 2 && o.ph > 0 && !photoful) photoful = v; if (o.n >= 2 && o.ph === 0 && photoless.length < 6) photoless.push(v); }
+    return res.status(200).json({ task: "vinsamples", sampledRows: rows.length, photoful, photolessCandidates: photoless, live: live.slice(0, 6) });
+  }
+
   // task=vindbg: READ-ONLY. What vinAppearances sees for a VIN: vin_index rows + direct sales/attempts.
   if (task === "vindbg") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
