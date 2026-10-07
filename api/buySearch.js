@@ -18,7 +18,7 @@ import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
 import { runTurn } from "../lib/live/samChat.js";
 import { supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
-import { anthropicCost, recordUsageEvent } from "./_usage.js";
+import { chatOut } from "../lib/live/chatHttp.js";
 
 const FIRST = 10, MAX = 200;
 const titleCaseIfShouting = s => String(s || "").split(",").map(p => { const t = p.trim(); return t && t === t.toUpperCase() && /[A-Z]{3}/.test(t) ? t.toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase()) : t; }).filter(Boolean).join(", ");
@@ -153,7 +153,7 @@ export default async function handler(req, res) {
     }
     if (b.action === "geocoverage") return res.status(200).json(await geoCoverage(env));
     if (b.action === "converse") return res.status(200).json(await converseOut(env, b));
-    if (b.action === "chat") return await chatOut(res, env, b);
+    if (b.action === "chat") return await buyChat(res, env, b);
     if (b.action === "detail") return res.status(200).json(await detailOut(env, b));
     if (b.action === "save" || b.action === "list" || b.action === "watchsearch" || b.action === "remove") return await savedSearches(env, req, res, b);
     const q = String(b.q || "").slice(0, 200).trim();
@@ -345,38 +345,9 @@ function sauce(n) { const w = WORDS[n] || String(n); return n === 1 ? "One has b
 //   event: fallback  {}  the Claude call failed before any text: the page falls back to the scripted flow
 // Turn cap 30; each turn logged to app_usage_events (tokens, tools, latency); a timeout ends with a
 // plain line. SAM_MODEL and the same key as api/chat.js.
-const CHAT_MODEL = process.env.SAM_MODEL || "claude-sonnet-4-6";
-const TURN_CAP = 30;
-async function chatOut(res, env, b) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return res.status(200).json({ fallback: true });
-  const messages = (Array.isArray(b.messages) ? b.messages : []).slice(-40).map(m => ({ role: m && m.role === "assistant" ? "assistant" : "user", content: String((m && m.content) || "").slice(0, 2000) })).filter(m => m.content);
-  const turns = Math.max(0, Number(b.turns) || 0);
-  const state = b.state && typeof b.state === "object" ? { filters: b.state.filters && typeof b.state.filters === "object" ? b.state.filters : {} } : { filters: {} };
-  if (!messages.length || messages[messages.length - 1].role !== "user") return res.status(400).json({ error: "no question" });
-  if (turns >= TURN_CAP) return res.status(200).json({ type: "chat", reply: "This conversation has run long. Start a new search to keep going.", cards: [], state, turns });
-  res.writeHead(200, { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-store", "X-Accel-Buffering": "no" });
-  const send = (ev, data) => { try { res.write(`event: ${ev}\ndata: ${JSON.stringify(data)}\n\n`); } catch { /* client gone */ } };
-  const t0 = Date.now();
-  let out = null, streamed = false, status = "ok", err = null;
-  try {
-    const guards = [];
-    out = await runTurn({ env, apiKey, model: CHAT_MODEL, messages, state, onText: t => { streamed = true; send("text", t); }, onGuard: g => guards.push(g) });
-    for (const g of guards) await recordUsageEvent({ event_type: "buy_chat_guard", route: "/api/buySearch#chat", status: g.attempt === 1 ? "regenerated" : "code_reply", oldcarsdata_metered_requests: 0, metadata: { turn: turns + 1, attempt: g.attempt, reasons: g.reasons, reply: String(g.reply || "").slice(0, 600) } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
-    // Cards never wait for the engine: a spec not cached yet comes back "pending" and the page fetches
-    // that card's line (which fills the cache) before drawing it.
-    const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
-    send("done", { reply: out.reply || "Sam couldn't find an answer to that. Try asking another way.", cards, noun: out.noun, state: out.state, turns: turns + 1, trace: b.debug ? out.trace : undefined, guards: b.debug ? guards : undefined, forcedTool: b.debug ? out.forcedTool : undefined, ms: out.ms });
-  } catch (e) {
-    err = String((e && e.message) || e).slice(0, 300);
-    const timedOut = /abort/i.test(err);
-    status = timedOut ? "timeout" : "error";
-    if (!streamed && !timedOut) send("fallback", {});
-    else send("done", { reply: "Sam couldn't finish that one. Try asking again in a moment.", cards: [], state, turns: turns + 1, error: b.debug ? err : undefined });
-  }
-  const usage = (out && out.usage) || { input_tokens: 0, output_tokens: 0 };
-  await recordUsageEvent({ event_type: "buy_chat_turn", route: "/api/buySearch#chat", status, anthropic_model: CHAT_MODEL,
-    anthropic_input_tokens: usage.input_tokens, anthropic_output_tokens: usage.output_tokens, anthropic_cost_usd: anthropicCost(usage), oldcarsdata_metered_requests: 0,
-    metadata: { turn: turns + 1, tools: out ? out.trace.map(t => t.tool) : [], latency_ms: Date.now() - t0, cards: out ? out.cards.length : 0, error: err || undefined } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
-  res.end();
+// Buy's turn through the shared chat endpoint: cards never wait for the engine (a spec not cached yet
+// comes back "pending" and the page fetches that card's line before drawing it).
+function buyChat(res, env, b) {
+  return chatOut(res, env, b, { surface: "buy", run: runTurn,
+    shape: async out => ({ cards: await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; })), noun: out.noun }) });
 }
