@@ -300,7 +300,7 @@ async function chatOut(res, env, b) {
   const t0 = Date.now();
   let out = null, streamed = false, status = "ok", err = null;
   try {
-    out = await runTurn({ env, apiKey, model: CHAT_MODEL, messages, state, onText: t => { streamed = true; send("text", t); } });
+    out = await runTurn({ env, apiKey, model: CHAT_MODEL, messages, state, onText: t => { streamed = true; send("text", t); }, onReset: () => send("reset", {}) });
     const cards = await Promise.all(out.cards.map(async x => { const c = await enrich(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
     send("done", { reply: out.reply || "Sam couldn't find an answer to that. Try asking another way.", cards, state: out.state, turns: turns + 1, trace: b.debug ? out.trace : undefined });
   } catch (e) {
