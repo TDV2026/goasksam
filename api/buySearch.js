@@ -9,7 +9,7 @@ import { historyEnv, houseName, normVin } from "./_historyData.js";
 import { parseQuery, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME } from "../lib/live/search.js";
 import { findGeneration } from "../lib/generations.js";
 import { converse } from "../lib/live/converse.js";
-import { listingDetail, facetsOf, cardFlag, seenCount, listingSays } from "../lib/live/search.js";
+import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, specOf, ladderSteps, walkLadder } from "../lib/live/search.js";
 import { vinAppearances } from "./_historyData.js";
 import { validateBearer } from "../lib/_auth.js";
 import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js";
@@ -17,6 +17,7 @@ import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.j
 import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
 import { runTurn } from "../lib/live/samChat.js";
+import { supabaseSelect } from "../lib/_supabase.js";
 import { anthropicCost, recordUsageEvent } from "./_usage.js";
 
 const FIRST = 10, MAX = 200;
@@ -31,14 +32,24 @@ function cardOf(x) {
     vin_norm: r.vin_norm || null, generation: x.gen ? x.gen.code : null, unknown: x.unknown, flag: cardFlag(r),
     reserve: r.has_reserve === true ? "reserve" : r.has_reserve === false ? "none" : null, says: listingSays(r) };
 }
+// The car's own past appearances (vin_index, oldest first) for the card's timeline. This live listing
+// itself is never one of them (it is the "Now" dot).
+async function timelineOf(env, x) {
+  const vin = x.r.vin_norm; if (!vin || String(vin).length < 6) return null;
+  const rows = await supabaseSelect(env, `vin_index?vin_norm=eq.${encodeURIComponent(vin)}&select=appearance_date,source,result,price_usd,url&order=appearance_date.asc.nullslast&limit=40`).catch(() => null);
+  if (!Array.isArray(rows)) return null;
+  const today = new Date().toISOString().slice(0, 10), liveUrl = String(x.r.url || "").replace(/\/+$/, "");
+  return rows.filter(r => r.appearance_date && String(r.appearance_date).slice(0, 10) < today && String(r.url || "").replace(/\/+$/, "") !== liveUrl)
+    .map(r => ({ date: String(r.appearance_date).slice(0, 10), house: houseName(r.source), result: /^sold/.test(String(r.result)) ? "sold" : /withdraw/.test(String(r.result)) ? "withdrawn" : "not_sold", price: Number(r.price_usd) > 0 ? Math.round(Number(r.price_usd)) : null }));
+}
 async function enrich(env, x) {
-  let [market, seen] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts), seenBefore(env, x.r.vin_norm)]);
+  let [market, seen, timeline] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts), seenBefore(env, x.r.vin_norm), timelineOf(env, x)]);
   if (market && market.kind === "pending") market = await listingMarket(env, x.r, x.facts);   // one more go, warm now
-  return { ...cardOf(x), market, seen_before: seen };
+  return { ...cardOf(x), market, seen_before: seen, timeline };
 }
 async function enrichFast(env, x) {
-  const [market, seen] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { noBlock: true }), seenBefore(env, x.r.vin_norm)]);
-  return { ...cardOf(x), market, seen_before: seen };
+  const [market, seen, timeline] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { noBlock: true }), seenBefore(env, x.r.vin_norm), timelineOf(env, x)]);
+  return { ...cardOf(x), market, seen_before: seen, timeline };
 }
 async function logSearch(env, v, anonId) {
   try {
@@ -92,8 +103,20 @@ export default async function handler(req, res) {
       const ids = (Array.isArray(b.ids) ? b.ids : []).map(Number).filter(Number.isFinite).slice(0, 60);
       if (!ids.length) return res.status(200).json({ cards: [] });
       const rows = await liveRows(env, `id=in.(${ids.join(",")})`);
-      const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts), seenBefore(env, r.vin_norm)]).then(async ([market, seen]) => { if (market && market.kind === "pending") market = await listingMarket(env, r, facts); return { id: r.id, market, seen_before: seen }; }); }));
+      const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts), seenBefore(env, r.vin_norm), timelineOf(env, { r })]).then(async ([market, seen, timeline]) => { if (market && market.kind === "pending") market = await listingMarket(env, r, facts); return { id: r.id, market, seen_before: seen, timeline }; }); }));
       return res.status(200).json({ cards });
+    }
+    // Probe (PROBE_KEY): what the range ladder returns at each rung for one live listing.
+    if (b.action === "ladder" && process.env.PROBE_KEY && b.key === process.env.PROBE_KEY) {
+      const rows = await liveRows(env, `id=eq.${Number(b.id) || 0}`);
+      const r = rows && rows[0]; if (!r) return res.status(200).json({ error: "not live" });
+      const facts = listingFacts(r), spec = await specOf(env, r, facts), trace = [];
+      if (!spec) return res.status(200).json({ error: "unresolved", title: r.listing_title });
+      // Every rung, not just up to the first range (the walk itself stops at the first range).
+      const steps = [];
+      for (const st of ladderSteps(spec)) { const t = []; await walkLadder(env, { ...spec, v: st.v, title: st.title, refine: st.refine }, t); steps.push({ step: st.step, ...(t[0] || {}) }); }
+      const chosen = await walkLadder(env, spec, trace);
+      return res.status(200).json({ title: r.listing_title, key: spec.key, steps, chosen: chosen && { step: chosen.step, family: chosen.family, kind: chosen.kind, count: chosen.count, low: chosen.low, high: chosen.high, span: chosen.span } });
     }
     if (b.action === "geocoverage") return res.status(200).json(await geoCoverage(env));
     if (b.action === "converse") return res.status(200).json(await converseOut(env, b));
@@ -310,7 +333,7 @@ async function chatOut(res, env, b) {
     // Cards never wait for the engine: a spec not cached yet comes back "pending" and the page fetches
     // that card's line (which fills the cache) before drawing it.
     const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
-    send("done", { reply: out.reply || "Sam couldn't find an answer to that. Try asking another way.", cards, state: out.state, turns: turns + 1, trace: b.debug ? out.trace : undefined, guards: b.debug ? guards : undefined, ms: out.ms });
+    send("done", { reply: out.reply || "Sam couldn't find an answer to that. Try asking another way.", cards, state: out.state, turns: turns + 1, trace: b.debug ? out.trace : undefined, guards: b.debug ? guards : undefined, forcedTool: b.debug ? out.forcedTool : undefined, ms: out.ms });
   } catch (e) {
     err = String((e && e.message) || e).slice(0, 300);
     const timedOut = /abort/i.test(err);
