@@ -94,7 +94,24 @@ types ship (rule 10).
 | Sell | `/sell` | `Where to sell your collector car` | sitemap-pages.xml |
 | MCP landing | `/mcp` | `GoAskSam for ChatGPT and Claude` | sitemap-pages.xml |
 | VIN / history | `/history/<car-slug>/<vin>` (legacy `/vin/<vin>` -> canonical) | `[Year Make Model], VIN [vin]: auction history` | sitemap-vins.xml |
-| Spec | `/onebox?q=<spec>` -> canonical spec path (pending) | `[Spec]: what they sell for` | sitemap-specs.xml (pending) |
+| Spec | `/cars/porsche/911/{gen}/{trim}/{body}-{gearbox}` (+ hub levels) | `[Spec]: what they sell for` | sitemap-specs.xml (pending) |
+
+### Spec page canonical slugs (rule 2; data layer in lib/specPages.js, Porsche 911 first)
+
+One slug per spec object, for life. Lowercase, hyphen-separated. Four nested levels, each a page:
+
+```
+/cars/porsche/911/{gen}/{trim}/{body}-{gearbox}   leaf  e.g. /cars/porsche/911/997/carrera-s/coupe-manual
+/cars/porsche/911/{gen}/{trim}                     hub   e.g. /cars/porsche/911/997/carrera-s
+/cars/porsche/911/{gen}                            hub   e.g. /cars/porsche/911/997
+/cars/porsche/911                                  hub   (model)
+```
+
+- **{gen}** - the generation code owners use: `964` `993` `996` `997` `991` `992`; `3.2 Carrera` -> `3-2-carrera`; `911SC` -> `911sc`; `G-Body` -> `g-body`; `901` -> `901`. The 991.1 and 991.2 facelifts share the owner `991` hub (the facelift is finer than a page); the whole-991 window (2012-2019) backs it.
+- **{trim}** - `carrera` `carrera-s` `carrera-2` (964 rear-drive) `carrera-4` `carrera-4s` `turbo` `turbo-s` `gt3` `gt3-rs` `gt2` `gt2-rs` `r`. Targa is a BODY, never a trim.
+- **{body}** - `coupe` `cabriolet` `targa`. **{gearbox}** - `manual` `auto`.
+
+`lib/specPages.js` is the single source: `slugForSpec()` / `parseSlug()` are inverse; `specPage(slug, env)` returns the page data (label, parent/sibling/child slugs, asOf, 12-month count/low/high/middle-half on a hammer basis, indexable + reason from the thin/spread gate, 10 most recent sales, repeat-appearance VINs from vin_index, live-listing count, and the code-built lead sentence). Hubs return the same aggregated plus a child table. Every number reads the One Box engine, so a spec page and a `/onebox` query never disagree.
 | Make / generation / month hub | pending | pending | sitemap-hubs.xml (pending) |
 
 ## Enforcement
