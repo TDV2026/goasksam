@@ -91,6 +91,7 @@ types ship (rule 10).
 |---|---|---|---|
 | Home | `/` | `GoAskSam: where collector cars actually sell` | sitemap-pages.xml |
 | Buy | `/buy` | `Collector cars for sale, by what they actually sell for` | sitemap-pages.xml |
+| Market Check | `/market-check` (legacy `/onebox` 301s here) | `Market Check: what could your car bring?` | sitemap-pages.xml |
 | Sell | `/sell` | `Where to sell your collector car` | sitemap-pages.xml |
 | Tasks | `/tasks` (query variants noindex, canonical `/tasks`) | `Free AI car finder and collector car alerts \| GoAskSam` | sitemap-pages.xml |
 | MCP landing | `/mcp` | `GoAskSam for ChatGPT and Claude` | sitemap-pages.xml |
