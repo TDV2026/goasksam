@@ -490,6 +490,22 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "modscan", count: rows.length, rows });
   }
 
+  // task=specpages911: READ-ONLY. Run the spec-page data layer (lib/specPages.js) over a bounded,
+  // resumable slice of every 911 spec (901->992) and return the slice. The caller loops on nextOffset
+  // and accumulates docs/spec-pages-911.json. No writes, no OCD spend.
+  if (task === "specpages911") {
+    if (!env) return res.status(500).json({ error: "no supabase env" });
+    const { specPage, allSpecSlugs911 } = await import("../lib/specPages.js");
+    const all = allSpecSlugs911();
+    const offset = Math.max(0, Number(req.query?.offset || 0));
+    const limit = Math.min(Math.max(1, Number(req.query?.limit || 15)), 40);
+    const asOf = req.query?.asof ? new Date(String(req.query.asof) + "T00:00:00Z") : new Date();
+    const slice = all.slice(offset, offset + limit);
+    const results = [];
+    for (const slug of slice) { try { results.push(await specPage(slug, env, { asOf })); } catch (e) { results.push({ slug, error: String((e && e.message) || e).slice(0, 160) }); } }
+    return res.status(200).json({ task: "specpages911", total: all.length, offset, limit, nextOffset: (offset + limit < all.length) ? offset + limit : null, results });
+  }
+
   // task=canonproof: READ-ONLY canonical-layer readiness + the Broad Arrow vs Hagerty VIN
   // merge proof. Confirms the DDL is applied, sizes the archive, finds a real cross-source
   // same-VIN pair and runs the actual canonicalize() on it. No writes.
