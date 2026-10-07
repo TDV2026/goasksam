@@ -3452,7 +3452,7 @@ async function handleOps(req, res) {
     const SELFPROP = /\b(motor\s?home|motor\s?coach|motor[-\s]?caravan|dormobile|\brv\b|camper\s?van|unimog|tractor|golf\s?cart|\batv\b|\butv\b|\brzr\b|side[-\s]?by[-\s]?side|snowmobile|ski[-\s]?doo|motorcycle|scooter|moped|quad\s?cab|peterbilt|kenworth|freightliner|\bmack\b)\b/i;
     const BOAT = /\b(boat|yacht|sailboat|catamaran|chris[-\s]?craft|correct[-\s]?craft|outboard\s+boat)\b/i;  // NOT boat-tail/boattail/runabout (car bodies)
     const BOAT_FALSE = /\bboat[-\s]?tail\b|\bboattail\b|\brunabout\b|\bcar\b/i;
-    const AIRCRAFT = /\b(airplane|aeroplane|aircraft|helicopter|biplane|warbird|glider|cessna|piper\b|beechcraft)\b/i;
+    const AIRCRAFT = /\b(airplane|aeroplane|aircraft|helicopter|biplane|warbird|glider|cessna|beechcraft)\b/i;
     const AIRCRAFT_FALSE = /aircraft[-\s]?themed|\bcar\b/i;
     const TRAILER = /\b(trailer|caravan|teardrop|fifth[-\s]?wheel|toy\s?hauler|land\s?yacht)\b/i;
     // Loose engine / bare parts stated as the lot itself (no model year = not a running car).
