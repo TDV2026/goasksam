@@ -163,7 +163,9 @@ const CLIENT = String.raw`(function(){
     app.innerHTML = h; app.hidden = false;
     var q = $("tkq"); if (q && (params.get("start") || params.get("seed"))) q.focus();
   }
-  function api(body){ return fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(function(r){ if (r.status === 401) { needSignIn(); throw new Error("auth"); } return r.json(); }); }
+  // The signed-in buyer's token, refreshed when near expiry (js/auth.js authValidToken), on every call.
+  function token(){ if (typeof authValidToken === "function") return authValidToken(); try { return Promise.resolve((JSON.parse(localStorage.getItem("gas_auth_session") || "null") || {}).access_token || null); } catch(e){ return Promise.resolve(null); } }
+  function api(body){ return token().then(function(tk){ return fetch("/api/tasks", { method: "POST", headers: tk ? { "Content-Type": "application/json", Authorization: "Bearer " + tk } : { "Content-Type": "application/json" }, body: JSON.stringify(body) }); }).then(function(r){ if (r.status === 401) { needSignIn(); throw new Error("auth"); } return r.json(); }); }
   function load(){ return api({ action: "list", open: openId }).then(function(j){ data = j; render(); }).catch(function(){}); }
   function say(text, taskId){
     if (!signedIn()) return needSignIn();
