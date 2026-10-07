@@ -96,20 +96,31 @@ export async function buildVinIndex(env, { reportOnly = false } = {}) {
   const all = [...sales, ...attempts].filter(a => a.vin && a.vin.length >= 6);
   const byVin = new Map();
   for (const a of all) { if (!byVin.has(a.vin)) byVin.set(a.vin, []); byVin.get(a.vin).push(a); }
-  let polluted = 0;
+  let polluted = 0, shortSplit = 0;
   const keptVins = [];
+  const yearsOf = apps => apps.map(a => Number(a.year)).filter(y => y > 1800);
+  const famsOf = apps => new Set(apps.map(a => String(a.model_family || a.model || "").toLowerCase().trim()).filter(Boolean));
   for (const [vin, apps] of byVin) {
-    const idents = new Set(apps.map(identity).filter(id => id !== "|"));
-    if (idents.size > 1) { polluted++; continue; }          // shared/polluted VIN across unrelated lots
-    // idents.size === 0 (all appearances make-Unknown) is KEPT: a VIN exact-match must resolve a
-    // make-Unknown car too. make/model are written null for it; only genuinely polluted VINs drop.
+    const makes = new Set(apps.map(identity).filter(Boolean));
+    if (makes.size > 1) { polluted++; continue; }           // different MAKE across lots = shared/unrelated
+    // SHORT-CHASSIS GUARD: a 17-char VIN is globally unique, so same-make is the same car. But a
+    // pre-1981 chassis number (<17 chars) can repeat WITHIN a make, so merge only when the appearances
+    // cohere on model family OR a year within 2; otherwise it is a shared number and is excluded.
+    if (vin.length < 17) {
+      const ys = yearsOf(apps);
+      const yearOk = ys.length < 2 || (Math.max(...ys) - Math.min(...ys)) <= 2;
+      const famOk = famsOf(apps).size <= 1;
+      if (!(famOk || yearOk)) { polluted++; shortSplit++; continue; }
+    }
+    // makes.size <= 1 (same make, or all make-Unknown) is KEPT: a VIN exact-match must resolve a
+    // make-Unknown car too; make/model are written null for it. Only polluted/shared VINs drop.
     keptVins.push(vin);
   }
   const counts = keptVins.map(v => byVin.get(v).length);
   const d1 = counts.filter(n => n === 1).length, d2 = counts.filter(n => n >= 2).length, d3 = counts.filter(n => n >= 3).length;
   const top10 = keptVins.map(v => ({ vin: v, n: byVin.get(v).length, car: (byVin.get(v).find(a => !isUnknown(a.make)) || {}) }))
     .sort((a, b) => b.n - a.n).slice(0, 10).map(t => ({ vin: t.vin, appearances: t.n, car: [t.car.year, t.car.make, t.car.model].filter(Boolean).join(" ") }));
-  const stats = { appearances: all.length, distinctVins: byVin.size, polluted, keptVins: keptVins.length, dist: { exactly_1: d1, two_plus: d2, three_plus: d3 }, top10 };
+  const stats = { appearances: all.length, distinctVins: byVin.size, polluted, shortChassisSplit: shortSplit, keptVins: keptVins.length, dist: { exactly_1: d1, two_plus: d2, three_plus: d3 }, top10 };
   if (reportOnly) return { ...stats, wrote: false };
 
   // ---- SHRINK GUARD: never overwrite the live tables with a short build ----
