@@ -3399,16 +3399,21 @@ async function handleOps(req, res) {
     // rows (transmission IS null) in source_id order; a row we fill leaves the null set and sits behind
     // the cursor, a row we can't fill stays null but is also behind the cursor, so each blank is seen
     // exactly once and the scan terminates when source_id > cursor returns nothing.
+    // Sweep ALL rows by the indexed unique source_id cursor (NOT filtered by transmission): ordering an
+    // index range scan is fast, whereas ordering with transmission=is.null makes Postgres walk the index
+    // over a sparse filter and statement-times-out (the documented descfacts gotcha) -> supabaseSelect
+    // returns null -> a false "done". We check transmission in code and fill only the blanks.
     let cursor = String(req.query?.after ?? "");
     const deadline = Date.now() + 230000;
-    let processed = 0, filled = 0, pages = 0, errors = 0; const errorDetail = [], byLabel = {};
+    let processed = 0, filled = 0, pages = 0, errors = 0, skippedFilled = 0; const errorDetail = [], byLabel = {};
     let done = false;
     while (processed < maxRows && Date.now() < deadline) {
-      const slice = (await supabaseSelect(env, `sales_archive?transmission=is.null&source_id=not.is.null&source_id=gt.${encodeURIComponent(cursor)}&select=source_id,listing_title,description&order=source_id.asc&limit=${pageSize}`)) || [];
+      const slice = (await supabaseSelect(env, `sales_archive?source_id=not.is.null&source_id=gt.${encodeURIComponent(cursor)}&select=source_id,listing_title,description,transmission&order=source_id.asc&limit=${pageSize}`)) || [];
       if (!slice.length) { done = true; break; }
       const patch = [];
       for (const r of slice) {
         cursor = String(r.source_id);
+        if (String(r.transmission || "").trim()) { skippedFilled++; continue; }   // already has a value
         const tx = transmissionFromText(r.listing_title, r.description);
         if (tx) { patch.push({ source_id: String(r.source_id), transmission: tx }); byLabel[tx] = (byLabel[tx] || 0) + 1; }
       }
@@ -3419,7 +3424,7 @@ async function handleOps(req, res) {
       processed += slice.length; pages++;
       if (errors) break;
     }
-    return res.status(200).json({ task: "transfill", write: true, processedThisCall: processed, filledThisCall: filled, byLabel, pages, errors, errorDetail, nextAfter: done ? null : cursor, done });
+    return res.status(200).json({ task: "transfill", write: true, processedThisCall: processed, filledThisCall: filled, skippedAlreadyFilled: skippedFilled, byLabel, pages, errors, errorDetail, nextAfter: done ? null : cursor, done });
   }
 
   // task=vinsamples: READ-ONLY. Example VINs for the VIN-page verification. Multi-appearance VINs come
