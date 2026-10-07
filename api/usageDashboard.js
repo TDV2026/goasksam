@@ -3295,6 +3295,19 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "milesfill", mode, write, processed: rows.length, nextCursor: rows[rows.length - 1].id, computable: fixes.length, wrote, writeErrors, filledBySource, leftNullBySource, samples });
   }
 
+  // task=urlcheck: READ-ONLY. Is a listing link / bare slug present in sales_archive or auction_attempts?
+  // Returns the normalised url and the matching row (vin, make, model, title). ?u=<url|slug>. ZERO OCD.
+  if (task === "urlcheck") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { normalizeListingUrl, batSlugToUrlNorm } = await import("../lib/_urlNorm.js");
+    const raw = String(req.query?.u || "").trim();
+    const norm = /^https?:\/\//i.test(raw) ? normalizeListingUrl(raw) : (/-/.test(raw) && !/^[A-Za-z0-9]{10,17}$/.test(raw) ? batSlugToUrlNorm(raw) : normalizeListingUrl(raw));
+    if (!norm) return res.status(200).json({ task: "urlcheck", input: raw, normalized: null, found: false });
+    const s = await supabaseSelect(env, `sales_archive?url_norm=eq.${encodeURIComponent(norm)}&select=vin_norm,make,model,year,listing_title,source_slug&limit=1`) || [];
+    const a = await supabaseSelect(env, `auction_attempts?url_norm=eq.${encodeURIComponent(norm)}&select=chassis_vin_norm,make,model,year,source_slug&limit=1`) || [];
+    return res.status(200).json({ task: "urlcheck", input: raw, normalized: norm, inSalesArchive: !!s[0], inAttempts: !!a[0], sales: s[0] || null, attempt: a[0] || null });
+  }
+
   // task=urlproof: READ-ONLY. One filled row (url_norm + vin) per source, for the car_history proof.
   if (task === "urlproof") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
