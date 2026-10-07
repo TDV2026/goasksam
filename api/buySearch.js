@@ -9,7 +9,7 @@ import { historyEnv, houseName, normVin } from "./_historyData.js";
 import { parseQuery, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME } from "../lib/live/search.js";
 import { findGeneration } from "../lib/generations.js";
 import { converse } from "../lib/live/converse.js";
-import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingFactList, specOf, ladderSteps, walkLadder } from "../lib/live/search.js";
+import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingSamFacts, specOf, ladderSteps, walkLadder } from "../lib/live/search.js";
 import { vinAppearances } from "./_historyData.js";
 import { validateBearer } from "../lib/_auth.js";
 import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js";
@@ -30,7 +30,7 @@ function cardOf(x) {
     miles: facts.miles, colour: facts.colour, colourSrc: facts.colourSrc || null, body: facts.body, gearbox: facts.gearboxLabel,
     location: titleCaseIfShouting(r.location) || null, country: cc || null, countryName: COUNTRY_NAME[cc] || cc || null, abroad: !!cc && cc !== "US",
     vin_norm: r.vin_norm || null, generation: x.gen ? x.gen.code : null, unknown: x.unknown, flag: cardFlag(r),
-    reserve: r.has_reserve === true ? "reserve" : r.has_reserve === false ? "none" : null, says: listingSays(r), fact_list: listingFactList(r, facts) };
+    reserve: r.has_reserve === true ? "reserve" : r.has_reserve === false ? "none" : null, says: listingSays(r), sam_facts: listingSamFacts(r, facts) };
 }
 // The car's own past appearances, oldest first, for the card's timeline: vin_index, falling back to the
 // archive exactly as the Sam line's history does (vinAppearances), so the two never disagree. This

@@ -7,3 +7,8 @@ when the work has landed.
   VIN-page title to the spec pattern, the "back at auction now" live-listing link, dropping the VIN
   sitemap photo gate (index any VIN with 2+ priced appearances), and a server-side `logPageView` call.
   Also a one-line `logPageView` in `api/buy.js`. Small, additive; done same day.
+- 2026-10-07 (Lane C): heads-up. A Lane C push (72110bf range, the /buy round 2 batch) also carried Lane
+  B's local commit d286e94 "911 Carrera fence", which was already committed in the shared working tree
+  on top of Lane C's commit. It is on main now. From here Lane C pushes ONLY its own commits (cherry-picked
+  onto origin/main from a temporary worktree); any other lane's local commit is left in the tree for its
+  owner and noted here.

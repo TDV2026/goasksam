@@ -16,6 +16,9 @@ landing page. Crew-only surfaces (`/desk`, keyed ops endpoints) are out of scope
    *How:* the lead sentence is generated server-side at build/request time from the engine's own facts
    and always carries the analysis date ("as of October 2026"); it is regenerated nightly so the date
    and numbers never go stale.
+   *Accepted alternative (Sam, Oct 2026):* a lead computed per request from the live tables and cached
+   briefly also meets this rule, because it can never go stale. In use: `/buy` (the live count, cached
+   10 minutes, api/buy.js) and `/sell` (the last 12 months' sale count, cached 1 hour, api/sellPage.js).
 
 2. **One URL per object.** A car, a spec, a generation, a make, and a month of results each have exactly
    one canonical URL for life. No duplicate routes or query-string variants in the index.
