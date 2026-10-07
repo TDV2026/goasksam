@@ -3,6 +3,14 @@
 Short, dated cross-lane heads-ups so two lanes don't collide on the same file. Append a line; remove it
 when the work has landed.
 
+- 2026-10-08 (Lane A): links-in pass for Market Check (/market-check is now public, see the earlier SSR
+  entry note). Edited `api/_chrome.js` (the shared nav rail's "Ask Sam" / logo link, every page that
+  imports `railHtml`), `api/buy.js` (the card's "ask more" prefill link), `api/history.js` (the "Cars
+  like it" + "Look up another car" links), `business.html`, and `index.html` (one stale comment): every
+  `/onebox` href/string updated to `/market-check`. All plain string swaps, no behavior change beyond
+  the target URL (the old `/onebox` still works via the 301, this just avoids the extra redirect hop).
+  `lib/tools/_shared.js pageLink()` also updated (mine). Small, additive; done same day.
+
 - 2026-10-08 (Lane A): Market Check non-road gate, authorized by Sam. Added an ENTRY-POINT check in
   `api/sellerDecision.js` (one_box path only, before `resolveVehicle`/`runOneBox` run): a boat/aircraft/
   standalone trailer-or-caravan/memorabilia query (`lib/_roadType.js nonRoadReason`, the same classifier

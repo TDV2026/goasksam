@@ -149,7 +149,7 @@ function send(res, status, html, extra = {}, index = false) {
 }
 function notFound(res, what) {
   send(res, 404, page({ title: "No auction history found | GoAskSam", body:
-    `<section class="card notfound"><h1>No auction history for ${esc(what)}</h1><p class="muted">GoAskSam has no auction appearance of a car under this identifier. Real auction results only, so there is nothing to show.</p><p><a class="full" href="/onebox">Look up another car &#8594;</a></p></section>` }));
+    `<section class="card notfound"><h1>No auction history for ${esc(what)}</h1><p class="muted">GoAskSam has no auction appearance of a car under this identifier. Real auction results only, so there is nothing to show.</p><p><a class="full" href="/market-check">Look up another car &#8594;</a></p></section>` }));
 }
 // A listing photo the house has since taken down (a 403 from its CDN) must never leave an empty
 // tile: the hero tries the car's other photos, then removes the whole figure.
@@ -278,7 +278,7 @@ async function carPage(req, res, env, slug, vin) {
   const n = poolCount(d);
   let ctx = "";
   if (n) ctx = (lastSale && lastSale.date >= windowStartIso(d) ? `One of ${n}` : `${n}`) + ` ${id.family} sales at auction in ${poolWindow(d)}.`;
-  const oneboxCar = `/onebox?q=${encodeURIComponent(name)}`;
+  const oneboxCar = `/market-check?q=${encodeURIComponent(name)}`;
   // 7. QUESTIONS
   // Compares only a sale INSIDE the window the range covers (an older sale is a different market), and
   // never a live bid. No above/below labels: inside the middle half says so; otherwise the two facts
@@ -516,7 +516,7 @@ async function hubPage(req, res, env, slug) {
   }).join("");
   const body = `
 <div><span class="eyebrow">${esc(id.family)} · Auction results</span><h1 style="margin:6px 0 0;font:600 40px/1.12 var(--serif)">${esc(name)} auction results</h1></div>
-${oneBoxBlock(d, id, `/onebox?q=${encodeURIComponent(name)}`, "")}
+${oneBoxBlock(d, id, `/market-check?q=${encodeURIComponent(name)}`, "")}
 <p class="answer" style="margin:0">${esc(ctx)}</p>
 <section class="card"><div class="sh"><h2>Every ${esc(name)} by VIN</h2><span class="muted">Newest sale first</span></div>
 <table class="stack"><thead><tr><th><span style="position:absolute;left:-9999px">Photo</span></th><th>VIN</th><th class="r">Appearances</th><th>Last result</th><th>Date</th><th class="r">Miles</th></tr></thead><tbody>${rows}</tbody></table></section>
