@@ -114,7 +114,7 @@ export default async function handler(req, res) {
       if (!spec) return res.status(200).json({ error: "unresolved", title: r.listing_title });
       // Every rung, not just up to the first range (the walk itself stops at the first range).
       const steps = [];
-      for (const st of ladderSteps(spec)) { const t = []; await walkLadder(env, { ...spec, v: st.v, title: st.title, refine: st.refine }, t); steps.push({ step: st.step, ...(t[0] || {}) }); }
+      for (const st of ladderSteps(spec)) { const t = []; await walkLadder(env, { ...spec, v: st.v, title: st.title, refine: st.refine }, t); steps.push({ ...(t[0] || {}), step: st.step }); }
       const chosen = await walkLadder(env, spec, trace);
       return res.status(200).json({ title: r.listing_title, key: spec.key, steps, chosen: chosen && { step: chosen.step, family: chosen.family, kind: chosen.kind, count: chosen.count, low: chosen.low, high: chosen.high, span: chosen.span } });
     }
