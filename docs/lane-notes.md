@@ -67,3 +67,9 @@ when the work has landed.
   above). scripts/buildSpecPagesCache.js, the DDL and the live-count cron are all live; only the one
   nightly.yml step line is pending. Sam: add this line (see chat for the exact diff), right after the
   "Refresh spec market cache" step.
+- 2026-10-07 (Lane C -> Lane A): Market Check resolves "1992 Jaguar XJ-S V12 coupe" to the spec
+  "1992 Jaguar XJ coupe" (a different model) and returns that pool's range ($8,500 to $15,000, 11 sales);
+  "1992 Jaguar XJS V12" returns no range. Seen through lib/tools/marketCheck.js from the Tasks research
+  writer. Tasks now refuses any market read whose model differs from the car's own identity (so the
+  wrong name and its numbers never reach a buyer), but the resolver mapping XJ-S -> XJ is yours to fix
+  (same hyphen/token class as the "ZR-1" vs "ZR1" backlog item). I have not edited lib/tools/.
