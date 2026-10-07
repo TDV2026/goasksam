@@ -20,26 +20,88 @@ const toNum = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n
 const day = d => (d ? String(d).slice(0, 10) : null);
 const isUnknown = s => !s || /^unknown$/i.test(String(s).trim());
 
-// Uncapped paginator: lib/_supabase.js supabaseSelectAll stops at a 200k-row safety ceiling (fine for
-// engine pools, but it TRUNCATED the ~305k sales_archive read and undersized the VIN index). This walks
-// every page via Range until a short page, with no ceiling. Returns all rows (what it read on a mid-walk
-// failure, same graceful degrade as the shared helper).
-async function readAll(env, pathAndQuery, pageSize = 1000) {
+// OFFSET pagination (the old readAll) had two compounding bugs that silently truncated the read:
+// (1) `order=sale_date.asc.nullslast` has no tiebreaker on a unique column, so Postgres does not
+//     guarantee the SAME relative order for tied rows across two separate paginated requests - a row
+//     can land on neither page (or both) as the offset window shifts.
+// (2) OFFSET cost grows with the offset (Postgres must scan and discard every preceding row), so late
+//     pages over a ~305k-row table get slower and slower; a page that times out or 5xx's just hit
+//     `if (!res.ok) break`, which read as "no more data" instead of a failure - the walk silently
+//     stopped wherever the server happened to give up, which varies run to run (observed counts:
+//     60971 / 59179 / 67319 / 69068 against the same ~321k-row source).
+// Fixed with KEYSET pagination on a genuinely unique, indexed column: every page's query is a cheap
+// `col > last_cursor LIMIT n` (no growing offset to scan past), and a unique cursor makes the row order
+// deterministic, so no row can be skipped or duplicated between pages. A failed page RETRIES (3
+// attempts, backoff) and THROWS if still failing - a short/truncated read is now an ERROR, never a
+// silent partial result.
+async function readAllKeyset(env, table, filter, cursorCol, selectCols, pageSize = 1000) {
   const out = [];
-  for (let offset = 0; ; offset += pageSize) {
-    let page = null;
-    try {
-      const res = await fetch(`${env.supabaseUrl}/rest/v1/${pathAndQuery}`, {
-        headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Range-Unit": "items", Range: `${offset}-${offset + pageSize - 1}` }
-      });
-      if (!res.ok) break;
-      page = await res.json();
-    } catch { break; }
+  let cursor = null, pages = 0;
+  for (;;) {
+    const cursorQ = cursor != null ? `&${cursorCol}=gt.${encodeURIComponent(cursor)}` : "";
+    const url = `${table}?${filter}&select=${selectCols}${cursorQ}&order=${cursorCol}.asc&limit=${pageSize}`;
+    let page = null, lastErr = null;
+    for (let attempt = 0; attempt < 3 && page === null; attempt++) {
+      if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
+      try {
+        const res = await fetch(`${env.supabaseUrl}/rest/v1/${url}`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
+        if (res.ok) { page = await res.json(); break; }
+        lastErr = `HTTP ${res.status}: ${(await res.text().catch(() => "")).slice(0, 160)}`;
+      } catch (e) { lastErr = e.message; }
+    }
+    if (page === null) throw new Error(`readAllKeyset(${table}): page fetch failed after 3 attempts at cursor=${cursor}, page ${pages + 1}: ${lastErr}`);
+    pages++;
     if (!Array.isArray(page) || !page.length) break;
     out.push(...page);
     if (page.length < pageSize) break;
+    cursor = page[page.length - 1][cursorCol];
   }
-  return out;
+  return { rows: out, pages };
+}
+// Compound keyset for a table with NO single unique column (auction_attempts: composite PK
+// source_slug + source_record_id, no serial id). orderCols are compared lexicographically; the cursor
+// condition is the standard "greater than the last row" OR-of-ANDs PostgREST needs for a multi-column
+// keyset. Same retry-then-throw behavior as readAllKeyset.
+async function readAllCompoundKeyset(env, table, filter, orderCols, selectCols, pageSize = 1000) {
+  const out = [];
+  let cursor = null, pages = 0;
+  for (;;) {
+    let cursorQ = "";
+    if (cursor) {
+      const parts = orderCols.map((col, i) => {
+        const eqs = orderCols.slice(0, i).map((c, j) => `${c}.eq.${encodeURIComponent(cursor[j])}`);
+        const gt = `${col}.gt.${encodeURIComponent(cursor[i])}`;
+        return eqs.length ? `and(${eqs.concat(gt).join(",")})` : gt;
+      });
+      cursorQ = `&or=(${parts.join(",")})`;
+    }
+    const orderQ = orderCols.map(c => `${c}.asc`).join(",");
+    const url = `${table}?${filter}&select=${selectCols}${cursorQ}&order=${orderQ}&limit=${pageSize}`;
+    let page = null, lastErr = null;
+    for (let attempt = 0; attempt < 3 && page === null; attempt++) {
+      if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
+      try {
+        const res = await fetch(`${env.supabaseUrl}/rest/v1/${url}`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
+        if (res.ok) { page = await res.json(); break; }
+        lastErr = `HTTP ${res.status}: ${(await res.text().catch(() => "")).slice(0, 160)}`;
+      } catch (e) { lastErr = e.message; }
+    }
+    if (page === null) throw new Error(`readAllCompoundKeyset(${table}): page fetch failed after 3 attempts at cursor=${JSON.stringify(cursor)}, page ${pages + 1}: ${lastErr}`);
+    pages++;
+    if (!Array.isArray(page) || !page.length) break;
+    out.push(...page);
+    if (page.length < pageSize) break;
+    const last = page[page.length - 1];
+    cursor = orderCols.map(c => last[c]);
+  }
+  return { rows: out, pages };
+}
+// Authoritative exact count (same filter) to cross-check the keyset read actually got everything. A
+// mismatch is an ERROR (thrown), never a silently accepted partial read.
+async function exactCount(env, table, filter, selCol) {
+  const r = await fetch(`${env.supabaseUrl}/rest/v1/${table}?${filter}&select=${selCol}&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" } });
+  const m = /\/(\d+)$/.exec(r.headers.get("content-range") || "");
+  return m ? Number(m[1]) : null;
 }
 
 // ---- gather appearances ----
@@ -49,7 +111,13 @@ async function loadSales(env) {
   // Exclude ONLY actual non_vehicle rows. `vehicle_type=not.eq.non_vehicle` drops NULL rows too (SQL
   // NULL <> x is unknown), which would filter make-Unknown cars out of the VIN index - a VIN exact-match
   // must never be filtered by vehicle_type or make. Keep null / car / motorcycle / other.
-  const rows = await readAll(env, `sales_archive?vin_norm=not.is.null&or=(vehicle_type.is.null,vehicle_type.neq.non_vehicle)&select=${sel}&order=sale_date.asc.nullslast`);
+  const filter = "vin_norm=not.is.null&or=(vehicle_type.is.null,vehicle_type.neq.non_vehicle)";
+  // Keyset on source_id (text, UNIQUE per the DDL) - deterministic order, O(page) cost per page
+  // regardless of how deep the walk goes (unlike OFFSET, which gets slower and slower).
+  const { rows, pages } = await readAllKeyset(env, "sales_archive", filter, "source_id", sel);
+  const expected = await exactCount(env, "sales_archive", filter, "source_id");
+  console.log(`sales_archive read: ${rows.length} rows over ${pages} pages (expected ${expected})`);
+  if (expected != null && rows.length !== expected) throw new Error(`sales_archive read mismatch: got ${rows.length}, direct count says ${expected} - treating a short read as an error, not a partial result.`);
   return rows.map(r => ({
     vin: normVin(r.vin_norm), date: day(r.sale_date), source: r.source_slug || null, url: r.url || r.surl || null,
     title: r.title || null, make: r.make || null, model: r.model || null, model_family: r.model_family || null,
@@ -61,9 +129,16 @@ async function loadSales(env) {
 async function loadAttempts(env) {
   // auction_attempts has NO id column (PK = source_slug + source_record_id). The attempt's bid in USD
   // is high_bid_usd (backfilled), carried as price_usd so vinAppearances renders "bid to $X, not sold".
-  const sel = "source_slug,source_record_id,chassis_vin_norm,attempt_date,make,model,year,high_bid,high_bid_usd,auction_status,currency," +
+  const sel = "source_slug,source_record_id,chassis_vin_norm,attempt_date,make,model,year,high_bid,high_bid_usd,auction_status,currency,created_at," +
     "url:raw_record->>url,surl:raw_record->>source_url,photo:raw_record->>featured_image_url,title:raw_record->>title";
-  const rows = await readAll(env, `auction_attempts?chassis_vin_norm=not.is.null&select=${sel}&order=attempt_date.asc.nullslast`);
+  const filter = "chassis_vin_norm=not.is.null";
+  // Compound keyset (created_at, source_slug, source_record_id): no single column is globally unique,
+  // but the three together are (the composite PK plus a monotonic insert timestamp as the primary sort
+  // breaks ties deterministically across pages).
+  const { rows, pages } = await readAllCompoundKeyset(env, "auction_attempts", filter, ["created_at", "source_slug", "source_record_id"], sel);
+  const expected = await exactCount(env, "auction_attempts", filter, "source_record_id");
+  console.log(`auction_attempts read: ${rows.length} rows over ${pages} pages (expected ${expected})`);
+  if (expected != null && rows.length !== expected) throw new Error(`auction_attempts read mismatch: got ${rows.length}, direct count says ${expected} - treating a short read as an error, not a partial result.`);
   return rows.map(r => {
     const st = String(r.auction_status || "").toLowerCase();
     const result = /withdraw/.test(st) ? "withdrawn" : "not_sold";
