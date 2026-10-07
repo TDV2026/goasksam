@@ -239,7 +239,7 @@ async function carPage(req, res, env, slug, vin) {
         const where = prev && prev === a.house ? "there" : on(a.house); prev = a.house;
         return a.kind === "sale" ? `sold for ${salePrice(a)} ${where} in ${monthYear(a.date)}` : `was ${bidPrice(a) ? `bid to ${bidPrice(a)}` : "offered"} ${where} in ${monthYear(a.date)} without selling`;
       });
-      if (nowClause) cs.push(nowClause);
+      if (nowClause) cs.push(prev && prev === liveHouse ? "is back at auction there now" : nowClause);
       return `This ${name} ${join(cs)}, as of ${asOf}.`;
     }
     const head = `has been to auction ${appearances.length} times and ${sales.length ? `sold ${timesWord(sales.length)}, most recently for ${salePrice(lastSale)} ${on(lastSale.house)} in ${monthYear(lastSale.date)}` : "never sold"}`;
