@@ -14,6 +14,7 @@ import { vinAppearances, historyEnv, normVin, carIdentity, carSlug } from "./_hi
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { findGeneration } from "../lib/generations.js";
 import { runOneBox, listSalesForVehicle } from "../lib/onebox.js";
+import { normalizeListingUrl, batSlugToUrlNorm } from "../lib/_urlNorm.js";
 import crypto from "node:crypto";
 
 const PROTOCOL = "2026-07-28";
@@ -77,12 +78,12 @@ async function marketCheck(text, env) {
   const rc = d.resolvedCar || r.vehicle;
   const spec = specLabel(rc);
   const closestRaw = d.representative && d.representative.closest;
-  const closestUsd = closestRaw ? (Number(closestRaw.value) > 0 ? closestRaw.value
-    : (closestRaw.display && closestRaw.display.currency === "USD" && Number(closestRaw.display.amount) > 0 ? closestRaw.display.amount
-      : (Number(closestRaw.allIn) > 0 ? closestRaw.allIn : null))) : null;
+  // The engine's closest card renders price as `price` (the USD figure the One Box page shows), with
+  // `value` (USD implied hammer) and `allIn` as fallbacks; title/url are `title`/`url`.
+  const closestUsd = closestRaw ? [closestRaw.price, closestRaw.value, closestRaw.allIn].map(Number).find(n => Number.isFinite(n) && n > 0) || null : null;
   const closest = closestRaw ? {
-    title: closestRaw.ctitle || closestRaw.title || closestRaw.spec || spec,
-    url: closestRaw.srcurl || closestRaw.url || closestRaw.srcurl2 || null,
+    title: closestRaw.title || closestRaw.ctitle || closestRaw.spec || spec,
+    url: closestRaw.url || closestRaw.srcurl || null,
     hammerUsd: usd(closestUsd),
     date: (closestRaw.date || "").slice(0, 10) || null
   } : null;
@@ -104,13 +105,19 @@ async function marketCheck(text, env) {
 async function carHistory(input, env) {
   const raw = String(input || "").trim();
   let vin = "";
-  if (/^https?:\/\//i.test(raw)) {
-    // a listing URL -> find its VIN in the archive FIRST (before normVin, which would mangle the URL)
-    const rows = await supabaseSelect(env, `sales_archive?or=(raw_record->>url.eq.${encodeURIComponent(raw)},raw_record->>source_url.eq.${encodeURIComponent(raw)})&select=vin_norm&limit=1`).catch(() => null);
-    if (rows && rows[0] && rows[0].vin_norm) vin = normVin(rows[0].vin_norm);
-  } else {
-    vin = normVin(raw);
-  }
+  // Listing link or bare BaT slug -> resolve via the INDEXED url_norm (exact match, no scan). Otherwise
+  // treat the input as a VIN / chassis. A slug has hyphens and is not VIN-shaped.
+  const byUrlNorm = async (norm) => {
+    if (!norm) return "";
+    const s = await supabaseSelect(env, `sales_archive?url_norm=eq.${encodeURIComponent(norm)}&select=vin_norm&limit=1`).catch(() => null);
+    if (s && s[0] && s[0].vin_norm) return normVin(s[0].vin_norm);
+    const a = await supabaseSelect(env, `auction_attempts?url_norm=eq.${encodeURIComponent(norm)}&select=chassis_vin_norm&limit=1`).catch(() => null);
+    if (a && a[0] && a[0].chassis_vin_norm) return normVin(a[0].chassis_vin_norm);
+    return "";
+  };
+  if (/^https?:\/\//i.test(raw)) vin = await byUrlNorm(normalizeListingUrl(raw));
+  else if (/-/.test(raw) && !/^[A-Za-z0-9]{10,17}$/.test(raw)) vin = await byUrlNorm(batSlugToUrlNorm(raw));
+  else vin = normVin(raw);
   if (!(vin && vin.length >= 6)) return { kind: "refusal", reason: sam("That does not look like a VIN or a listing link GoAskSam can match.") };
   const data = await vinAppearances(env, vin);
   if (!data || !data.ok || !data.appearances.length) return { kind: "refusal", vin, reason: sam("GoAskSam has no recorded auction appearances for that car.") };

@@ -3295,6 +3295,28 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "milesfill", mode, write, processed: rows.length, nextCursor: rows[rows.length - 1].id, computable: fixes.length, wrote, writeErrors, filledBySource, leftNullBySource, samples });
   }
 
+  // task=urlnorm: backfill the indexed url_norm column from raw_record url/source_url. ZERO OCD.
+  //   ?table=sales  (id cursor) | ?table=attempts (source_record_id cursor). ?write=1 to persist.
+  if (task === "urlnorm") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { normalizeListingUrl } = await import("../lib/_urlNorm.js");
+    const tbl = String(req.query?.table || "sales") === "attempts" ? "attempts" : "sales";
+    const write = req.query?.write === "1";
+    const cursor = req.query?.cursor ? String(req.query.cursor) : "";
+    const limit = Math.max(200, Math.min(1000, Number(req.query?.limit || 1000)));
+    const isS = tbl === "sales", table = isS ? "sales_archive" : "auction_attempts";
+    const keyCol = isS ? "id" : "source_record_id", conflict = isS ? "source_id" : "source_slug,source_record_id";
+    const curF = cursor ? `&${keyCol}=gt.${encodeURIComponent(cursor)}` : "";
+    const sel = isS ? "id,source_id,u:raw_record->>url,su:raw_record->>source_url" : "source_slug,source_record_id,u:raw_record->>url,su:raw_record->>source_url";
+    const rows = await supabaseSelect(env, `${table}?url_norm=is.null${curF}&select=${sel}&order=${keyCol}.asc&limit=${limit}`) || [];
+    if (!rows.length) return res.status(200).json({ task: "urlnorm", table: tbl, done: true, processed: 0, nextCursor: null });
+    const fixes = [];
+    for (const r of rows) { const n = normalizeListingUrl(r.u || r.su); if (!n) continue; fixes.push(isS ? { source_id: String(r.source_id), url_norm: n } : { source_slug: r.source_slug, source_record_id: r.source_record_id, url_norm: n }); }
+    let wrote = 0, writeErrors = 0;
+    if (write && fixes.length) { for (let i = 0; i < fixes.length; i += 300) { const rr = await supabaseInsert(table, fixes.slice(i, i + 300), env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", `?on_conflict=${conflict}`); if (rr.error) writeErrors++; else wrote += Math.min(300, fixes.length - i); } }
+    return res.status(200).json({ task: "urlnorm", table: tbl, write, processed: rows.length, nextCursor: rows[rows.length - 1][keyCol], filled: fixes.length, wrote, writeErrors });
+  }
+
   // task=zeromiles: backfill mileage 0 -> null on sales_archive (zero is not a mileage). Per-source
   // PATCH, chunked by year on a statement timeout. ?write=1 to persist; dry = counts by source. ZERO OCD.
   if (task === "zeromiles") {
