@@ -3518,17 +3518,15 @@ export default async function handler(req, res) {
       // Deadline: a slow query must fail fast to the calm line, never hang the spinner. Race the
       // whole compute against a server deadline; any timeout OR throw returns the unavailable line.
       let oneBox;
-      const oneBoxEnv = { supabaseUrl, supabaseKey, exactSale, asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)), debug: !!req.body?.debug };
       try {
         oneBox = await Promise.race([
-          runOneBox(vehicle, generation, oneBoxText, oneBoxEnv, obRefine),
+          runOneBox(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine),
           new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), Number(process.env.ONEBOX_DEADLINE_MS || 20000)))
         ]);
       } catch (e) {
         console.error(`One Box unavailable (${(e && e.message) || e}).`);
         return res.status(200).json({ status: "one_box", tier: "unavailable", samLine: OB_CALM });
       }
-      if (req.body?.debug && oneBox) oneBox._specDbg = oneBoxEnv._specDbg || null;
       // Addressable result (Task 4): persist a stable, shareable snapshot of THIS result so
       // /o/<id> re-opens the exact same answer cold and its OG tags carry the answer line.
       // Reuses the /sell saved_results store; tagged obShare:true so the public read path can
