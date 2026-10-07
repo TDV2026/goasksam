@@ -3,6 +3,13 @@
 Short, dated cross-lane heads-ups so two lanes don't collide on the same file. Append a line; remove it
 when the work has landed.
 
+- 2026-10-08 (Lane A): Market Check non-road gate, authorized by Sam. Added an ENTRY-POINT check in
+  `api/sellerDecision.js` (one_box path only, before `resolveVehicle`/`runOneBox` run): a boat/aircraft/
+  standalone trailer-or-caravan/memorabilia query (`lib/_roadType.js nonRoadReason`, the same classifier
+  built for the VIN sitemap work) returns a plain `tier: "non_road"` answer with no band/receipts, never
+  reaching the engine. `lib/onebox.js` itself is untouched. Render branch added in `js/onebox.js`
+  (mirrors the existing `not_tracked` tier). Motorcycles and other self-propelled vehicles are NOT
+  gated - they resolve and price normally, unaffected.
 - 2026-10-07 (Lane A): editing `api/history.js` (Lane C) for the search pass, authorized by Sam:
   VIN-page title to the spec pattern, the "back at auction now" live-listing link, dropping the VIN
   sitemap photo gate (index any VIN with 2+ priced appearances), and a server-side `logPageView` call.

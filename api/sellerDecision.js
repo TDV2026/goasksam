@@ -1,5 +1,6 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
+import { nonRoadReason } from "../lib/_roadType.js";
 import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
@@ -3327,6 +3328,19 @@ export default async function handler(req, res) {
   let searchDaily = null;
 
   try {
+    // Market Check non-road gate (Oct 2026, ENTRY POINT ONLY - never the engine). A boat, aircraft,
+    // standalone trailer/caravan, or memorabilia/parts/loose-engine query gets a plain answer here,
+    // before the resolver or runOneBox ever sees it, so it can never be priced as a car. Motorcycles
+    // and other self-propelled vehicles are NOT gated here (isNonRoad lets them through) - they resolve
+    // and price normally, same as today. One Box only; /sell is untouched. lib/onebox.js is not edited.
+    if (req.body?.oneBox && typeof rawSearch === "string") {
+      const nr = nonRoadReason(rawSearch);
+      if (nr) {
+        const noun = { boat: "a boat", aircraft: "an aircraft", trailer: "a trailer or caravan", memorabilia: "that" }[nr] || "that";
+        return res.status(200).json({ status: "one_box", tier: "non_road", samLine: `Market Check covers cars, trucks and motorcycles. ${noun.charAt(0).toUpperCase() + noun.slice(1)} isn't something it can price.` });
+      }
+    }
+
     // The frontend validates with vehicleIdentity and passes the resolved
     // vehicle object through; parsing happens once. Raw text is only re-resolved
     // (same shared resolver) when a caller skips that step.
