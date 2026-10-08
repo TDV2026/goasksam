@@ -217,7 +217,9 @@ export function parseHubSlug(slug) {
 
 // Hub rows: every VIN of one year + make + model, from the archive titles. Parts/memorabilia lots
 // and rows without a VIN are left out. Grouped per VIN, newest sale first.
-export async function hubVins(env, hub) {
+// `timing`, when passed, is filled in with {sales, attempts} ms (profiling only, Oct 2026; never
+// changes the query or its result - both legs still run in the same Promise.all).
+export async function hubVins(env, hub, timing) {
   // Titles name these cars without the full make: "Mercedes-AMG GT R" (no "Benz"), "RUF CTR" or
   // "Alpina B7" (no "Porsche"/"BMW"), so an aliased hub matches on its distinctive words.
   const makeToks = /^(ruf|alpina|amg)-/.test(hub.modelSlug) ? [] : hub.makeSlug === "mercedes-benz" ? ["mercedes"] : hub.makeSlug.split("-");
@@ -225,9 +227,10 @@ export async function hubVins(env, hub) {
   const pat = encodeURIComponent("*" + toks.join("*") + "*");
   const sSel = "vin_norm,year,sale_date,sale_price,sale_price_usd,platform,listing_title,mileage,img:raw_record->>featured_image_url,url:raw_record->>url,url2:raw_record->>source_url,currency:raw_record->>currency";
   const aSel = "chassis_vin_norm,attempt_date,high_bid,high_bid_usd,source_slug,title:raw_record->>title,img:raw_record->>featured_image_url,url:raw_record->>url,url2:raw_record->>source_url,mileage:raw_record->>mileage,currency:raw_record->>currency";
+  const t0 = Date.now();
   const [sales, atts] = await Promise.all([
-    supabaseSelect(env, `sales_archive?${hub.year ? "year=eq." + hub.year + "&" : ""}listing_title=ilike.${pat}&vin_norm=not.is.null&select=${sSel}&order=sale_date.desc&limit=400`),
-    supabaseSelect(env, `auction_attempts?${hub.year ? "year=eq." + hub.year + "&" : ""}raw_record->>title=ilike.${pat}&chassis_vin_norm=not.is.null&select=${aSel}&order=attempt_date.desc&limit=400`)
+    supabaseSelect(env, `sales_archive?${hub.year ? "year=eq." + hub.year + "&" : ""}listing_title=ilike.${pat}&vin_norm=not.is.null&select=${sSel}&order=sale_date.desc&limit=400`).then(r => { if (timing) timing.sales = Date.now() - t0; return r; }),
+    supabaseSelect(env, `auction_attempts?${hub.year ? "year=eq." + hub.year + "&" : ""}raw_record->>title=ilike.${pat}&chassis_vin_norm=not.is.null&select=${aSel}&order=attempt_date.desc&limit=400`).then(r => { if (timing) timing.attempts = Date.now() - t0; return r; })
   ]);
   if (sales == null && atts == null) return null;
   const by = new Map();

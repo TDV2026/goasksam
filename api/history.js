@@ -142,12 +142,16 @@ ${FONT_LINKS}
 ${railHtml("history", undefined, crew)}
 <main><div class="col">${body}</div></main></body></html>`;
 }
-function send(res, status, html, extra = {}, index = false) {
+function send(res, status, html, extra = {}, index = false, crew = false) {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   if (!index) res.setHeader("X-Robots-Tag", "noindex, follow");
-  // The page now varies by the gas_crew cookie, so the shared edge cache must partition on it.
-  res.setHeader("Vary", "Cookie");
-  res.setHeader("Cache-Control", status === 200 ? "public, s-maxage=3600, stale-while-revalidate=86400" : "no-store");
+  // Crew sees the full rail, so that response is NEVER shared or stored (private, no-store) - it
+  // can only ever reach the one signed-in device that asked for it. The public page (no crew
+  // cookie) carries none of that variance - everyone anonymous gets the identical Sell-only rail -
+  // so it is safe to cache at the shared edge and carries no Vary at all (a prior `Vary: Cookie`
+  // here made the cache key the raw cookie string, which differs per visitor and is effectively
+  // always a MISS - that was the bug, not a real need to vary the public response by cookie).
+  res.setHeader("Cache-Control", crew ? "private, no-store" : (status === 200 ? "public, s-maxage=3600, stale-while-revalidate=86400" : "no-store"));
   for (const k of Object.keys(extra)) res.setHeader(k, extra[k]);
   res.status(status).send(html);
 }
@@ -156,7 +160,7 @@ function notFound(req, res, what) {
   // "Look up another car" points to Market Check, which is removed from the public HTML entirely.
   const cta = crew ? `<p><a class="full" href="/market-check">Look up another car &#8594;</a></p>` : "";
   send(res, 404, page({ title: "No auction history found | GoAskSam", crew, body:
-    `<section class="card notfound"><h1>No auction history for ${esc(what)}</h1><p class="muted">GoAskSam has no auction appearance of a car under this identifier. Real auction results only, so there is nothing to show.</p>${cta}</section>` }));
+    `<section class="card notfound"><h1>No auction history for ${esc(what)}</h1><p class="muted">GoAskSam has no auction appearance of a car under this identifier. Real auction results only, so there is nothing to show.</p>${cta}</section>` }), {}, false, crew);
 }
 // A listing photo the house has since taken down (a 403 from its CDN) must never leave an empty
 // tile: the hero tries the car's other photos, then removes the whole figure.
@@ -221,7 +225,7 @@ function sellHref(id) {
 async function carPage(req, res, env, slug, vin) {
   const crew = isCrewRequest(req);
   const { appearances, vinNorm, ok, source: dataSource } = await vinAppearances(env, vin);
-  if (!ok) return send(res, 503, page({ title: "GoAskSam", crew: isCrewRequest(req), body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }));
+  if (!ok) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }), {}, false, crew);
   if (!appearances.length) return notFound(req, res, "VIN " + vinNorm);
   const id = await carIdentity(appearances, vinNorm);
   if (!id) return notFound(req, res, "VIN " + vinNorm);
@@ -352,7 +356,7 @@ ${whyResultHtml(crew)}
   const pricedCount = appearances.filter(a => a.priceUsd || a.bidUsd || a.nativeBid).length;
   const index = roadBucket !== "nonroad" && pricedCount >= 2 && realVin(vinNorm) && !!(id.family && id.make) && !(await deadPhotos(env)).vins.has(vinNorm);
   await logPageView(env, { path: canonical.replace(SITE, ""), referer: req.headers["referer"] || req.headers["referrer"], userAgent: req.headers["user-agent"] });
-  send(res, 200, page({ title: `${name}, VIN ${vinNorm}: auction history`, description: story, canonical, body: body2, ld, index, crew }), {}, index);
+  send(res, 200, page({ title: `${name}, VIN ${vinNorm}: auction history`, description: story, canonical, body: body2, ld, index, crew }), {}, index, crew);
 }
 // The specific word for an "other" self-propelled vehicle, else a neutral "vehicle".
 function otherNoun(title) {
@@ -494,28 +498,38 @@ function liveNowHtml(l) {
 // ---------------------------------------------------------------- hub page
 async function hubPage(req, res, env, slug) {
   const crew = isCrewRequest(req);
+  // Profiling only (Oct 2026): a Server-Timing header reporting each step's real elapsed time on
+  // THIS request. Never changes a query, a result, or anything visible in the page body.
+  const prof = {}, profMark = k => { prof[k] = Date.now(); };
+  profMark("t0");
   const hub = parseHubSlug(slug);
   if (!hub) return notFound(req, res, slug);
   // An alias hub ("ford-shelby-gt500") is the same page as its canonical one ("shelby-gt500").
   { const c = canonicalHub(hub.makeSlug.replace(/-/g, " "), hub.modelSlug.replace(/-/g, " "));
     const canon = [hub.year, slugify(c.make), slugify(c.family)].filter(Boolean).join("-");
     if (canon !== slug && slugify(c.make) !== hub.makeSlug) { res.setHeader("Location", `/history/${canon}`); res.setHeader("Cache-Control", "public, s-maxage=3600"); return res.status(301).end(); } }
-  const list = await hubVins(env, hub);
-  if (list == null) return send(res, 503, page({ title: "GoAskSam", crew: isCrewRequest(req), body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }));
+  const hubVinsTiming = {};
+  const list = await hubVins(env, hub, hubVinsTiming);
+  profMark("hubVinsDone");
+  if (list == null) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }), {}, false, crew);
   if (!list.length) return notFound(req, res, slug.replace(/-/g, " "));
   // Name + One Box family from the resolver on the slug text (same resolver One Box uses).
   let v = null;
   try { const r = await resolveVehicle([hub.year, hub.makeSlug.replace(/-/g, " "), hub.modelSlug.replace(/-/g, " ")].filter(Boolean).join(" "), {}); v = r && r.vehicle ? (sanitizeResolvedVehicle(r.vehicle) || r.vehicle) : null; } catch {}
+  profMark("resolveDone");
   // Unresolvable model: the known make plus the model as listed, cleaned ("AC Cobra", "Fiat Dino Spider").
   const fbMake = v && v.make && v.model ? null : await knownMake(hub.makeSlug.replace(/-/g, " "));
+  profMark("knownMakeDone");
   const id = v && v.make && v.model ? { year: hub.year, make: v.make, model: v.model, trim: v.trim || null, family: familyOf(v), genCode: v.genCode || null, bodyStyle: v.bodyStyle || null, vehicle: { ...v, year: hub.year } }
     : { year: hub.year, make: fbMake || hub.makeSlug.replace(/(^|-)\w/g, s => s.toUpperCase()), model: cleanModelName(hub.modelSlug), family: cleanModelName(hub.modelSlug), vehicle: null };
   const name = [id.year, id.make, id.family].filter(Boolean).join(" ");
   const d = id.vehicle ? await oneBoxFor(env, id, null) : null;
+  profMark("oneBoxDone");
   const n = poolCount(d);
   const salesN = list.reduce((k, g) => k + g.apps.filter(a => a.kind === "sale").length, 0);
   const ctx = (n ? `${n} ${id.family} sales at auction in ${poolWindow(d)}. ` : "") + `${list.length} individual ${list.length === 1 ? "car" : "cars"} by VIN below, with ${salesN} recorded sale${salesN === 1 ? "" : "s"}.`;
   const canonical = `${SITE}/history/${slug}`;
+  profMark("renderStart");
   const rows = list.slice(0, 200).map(g => {
     const a = g.last, ph = g.apps.find(x => x.image) || null;
     // An all-years list links each VIN to its own year's page; the car page 301s if the year differs.
@@ -533,14 +547,25 @@ ${whyResultHtml(crew)}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>`;
   const ld = [{ "@context": "https://schema.org", "@type": "ItemList", name: `${name} auction results`, url: canonical,
     itemListElement: list.slice(0, 200).map((g, i) => ({ "@type": "ListItem", position: i + 1, url: hub.year ? `${SITE}/history/${slug}/${g.vin}` : `${SITE}/vin/${g.vin}`, name: `${name}, VIN ${g.vin}` })) }];
+  profMark("renderDone");
   const hubIndex = !hub.year && list.some(g => g.apps.some(a => a.image)) && (!!id.vehicle || (!!fbMake && salesN >= 5 && !!id.family && !GENERIC_MODEL.test(id.family))) && !(await deadPhotos(env)).hubs.has(slug);
-  send(res, 200, page({ title: `${name} auction results and sale prices`, description: ctx, canonical, body, ld, index: hubIndex, crew }), {}, hubIndex);
+  profMark("deadPhotosDone");
+  // Profiling header only (Oct 2026): per-step elapsed ms on this request, never anything in the body.
+  const serverTiming = [
+    ["sales", hubVinsTiming.sales], ["attempts", hubVinsTiming.attempts],
+    ["hubvins_total", prof.hubVinsDone - prof.t0], ["resolve", prof.resolveDone - prof.hubVinsDone],
+    ["knownmake", prof.knownMakeDone - prof.resolveDone], ["onebox", prof.oneBoxDone - prof.knownMakeDone],
+    ["render", prof.renderDone - prof.oneBoxDone], ["deadphotos", prof.deadPhotosDone - prof.renderDone],
+    ["total", prof.deadPhotosDone - prof.t0]
+  ].filter(([, v]) => v != null).map(([k, v]) => `${k};dur=${v}`).join(", ");
+  send(res, 200, page({ title: `${name} auction results and sale prices`, description: ctx, canonical, body, ld, index: hubIndex, crew }), { "Server-Timing": serverTiming }, hubIndex, crew);
 }
 
 // ---------------------------------------------------------------- handler
 export default async function handler(req, res) {
   const env = historyEnv();
-  if (!env) return send(res, 503, page({ title: "GoAskSam", crew: isCrewRequest(req), body: "<p>Unavailable.</p>" }));
+  const crew = isCrewRequest(req);
+  if (!env) return send(res, 503, page({ title: "GoAskSam", crew, body: "<p>Unavailable.</p>" }), {}, false, crew);
   if (req.method === "POST") {
     const b = req.body || {};
     if (b.action !== "watch") return res.status(400).json({ ok: false });
@@ -559,7 +584,7 @@ export default async function handler(req, res) {
     if (q.go && vin) {
       // /vin/{VIN}: 301 to the canonical car URL (404 when the VIN has no appearance or is not a car).
       const { appearances, ok } = await vinAppearances(env, vin);
-      if (!ok) return send(res, 503, page({ title: "GoAskSam", crew: isCrewRequest(req), body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }));
+      if (!ok) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }), {}, false, crew);
       const id = appearances.length ? await carIdentity(appearances, vin) : null;
       if (!id) return notFound(req, res, "VIN " + vin);
       res.setHeader("Location", `/history/${id.slug}/${vin}`);
@@ -571,7 +596,7 @@ export default async function handler(req, res) {
     return notFound(req, res, "that page");
   } catch (e) {
     console.error("history page failed:", (e && e.stack) || e);
-    return send(res, 500, page({ title: "GoAskSam", crew: isCrewRequest(req), body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }));
+    return send(res, 500, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }), {}, false, crew);
   }
 }
 

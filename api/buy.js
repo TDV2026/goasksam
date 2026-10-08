@@ -65,9 +65,11 @@ ${railFinal}
   await logPageView(supabaseEnv(), { path: "/buy", referer: req.headers["referer"] || req.headers["referrer"], userAgent: req.headers["user-agent"] });
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", robots);
-  // The response now varies by the gas_crew cookie, so the shared edge cache must partition on it.
-  res.setHeader("Vary", "Cookie");
-  res.setHeader("Cache-Control", "public, s-maxage=600, stale-while-revalidate=3600");
+  // Crew's full nav is never shared or stored. The public response (no crew cookie) is identical
+  // for every anonymous visitor, so it is safely cacheable at the shared edge with no Vary at all -
+  // a prior `Vary: Cookie` made the cache key the raw cookie string, which differs per visitor and
+  // was an effectively permanent MISS.
+  res.setHeader("Cache-Control", crew ? "private, no-store" : "public, s-maxage=600, stale-while-revalidate=3600");
   res.status(200).send(html);
 }
 export { BUY_CSS };

@@ -52,10 +52,12 @@ export async function sellShellHtml(req) {
 
 export default async function handler(req, res) {
   const html = await sellShellHtml(req);
+  const crew = isCrewRequest(req);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  // The response now varies by the gas_crew cookie, so the shared edge cache must partition on it -
-  // otherwise one visitor's crew/public nav could get served to the other from cache.
-  res.setHeader("Vary", "Cookie");
-  res.setHeader("Cache-Control", "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
+  // Crew's full rail is never shared or stored. The public response (no crew cookie) is identical
+  // for every anonymous visitor, so it is safely cacheable at the shared edge with no Vary at all -
+  // a prior `Vary: Cookie` made the cache key the raw cookie string, which differs per visitor and
+  // was an effectively permanent MISS.
+  res.setHeader("Cache-Control", crew ? "private, no-store" : "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
   res.status(200).send(html);
 }
