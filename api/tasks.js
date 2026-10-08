@@ -93,6 +93,32 @@ export default async function handler(req, res) {
       const rejected = Array.isArray(wide) && Array.isArray(after) ? wide.filter(t => !after.includes(t)).slice(0, 8) : [];
       return res.status(200).json({ before_literal: Array.isArray(lit) ? lit.length : lit, after: Array.isArray(after) ? after.length : after, forms_after: forms, db_wider_but_rejected_in_code: rejected });
     }
+    // Probe: live_listings data defects that could touch Tasks matching (currency, km, $0 bids, specials).
+    if (req.method === "GET" && q.livecheck && probeOk(req)) {
+      const { liveTrust } = await import("../lib/tasks/liveTrust.js");
+      const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+      const rows = [];
+      for (let from = 0; from < 20000; from += 1000) {
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/live_listings?status=eq.live&select=id,source,listing_title,location,country,currency,current_bid,current_bid_usd,mileage,description,has_reserve,bid_at&order=id.asc`, { headers: { ...H, Range: `${from}-${from + 999}` } });
+        if (!r.ok) return res.status(500).json({ error: `read ${r.status}` });
+        const page = await r.json(); rows.push(...page); if (page.length < 1000) break;
+      }
+      const c = { live_rows: rows.length, by_source: {}, currency_not_usd: 0, currency_not_usd_unconverted: 0, foreign_signal_but_usd: 0, km_signal: 0, km_signal_with_mileage: 0, mileage_unit_unknown: 0, bid_zero: 0, bid_null: 0, special: 0 };
+      const ex = { currency_not_usd: [], foreign_signal_but_usd: [], km_signal_with_mileage: [], mileage_unit_unknown: [], bid_zero: [], special: [] };
+      const push = (k, r, extra) => { if (ex[k].length < 6) ex[k].push({ id: r.id, title: r.listing_title, ...extra }); };
+      for (const r of rows) {
+        c.by_source[r.source] = (c.by_source[r.source] || 0) + 1;
+        const t = liveTrust(r);
+        if (String(r.currency || "USD").toUpperCase() !== "USD") { c.currency_not_usd++; if (r.current_bid_usd == null && Number(r.current_bid) > 0) c.currency_not_usd_unconverted++; push("currency_not_usd", r, { currency: r.currency, bid: r.current_bid, usd: r.current_bid_usd }); }
+        if (t.foreignSignal && String(r.currency || "USD").toUpperCase() === "USD") { c.foreign_signal_but_usd++; push("foreign_signal_but_usd", r, { signal: t.foreignSignal, bid: r.current_bid, country: r.country, location: r.location }); }
+        if (t.unit === "km") { c.km_signal++; if (r.mileage) { c.km_signal_with_mileage++; push("km_signal_with_mileage", r, { stored: r.mileage }); } }
+        if (r.mileage && t.unit === "unknown") { c.mileage_unit_unknown++; push("mileage_unit_unknown", r, { stored: r.mileage }); }
+        if (r.current_bid != null && Number(r.current_bid) === 0) { c.bid_zero++; push("bid_zero", r, { bid_at: r.bid_at }); }
+        if (r.current_bid == null) c.bid_null++;
+        if (t.special) { c.special++; push("special", r, { why: t.special }); }
+      }
+      return res.status(200).json({ counts: c, examples: ex });
+    }
     // Probe: counts of the old watch_requests rows (reported, never emailed).
     if (req.method === "GET" && q.watchcounts && probeOk(req)) {
       const count = async f => { const r = await fetch(`${env.supabaseUrl}/rest/v1/watch_requests?select=id${f}`, { method: "HEAD", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact", Range: "0-0" } }); return r.ok || r.status === 206 ? Number(((r.headers.get("content-range") || "").split("/")[1]) || 0) : `error ${r.status}`; };
