@@ -14,6 +14,17 @@ export default async function handler(req, res) {
   const env = supabaseEnv();
   if (!env) return res.status(503).json({ error: "unavailable" });
   const b = req.body || {};
+  // The one-direction Sell (lib/sell/sellFlow.js): {action:"flow", step:"car", car, picks} -> the car or
+  // the one missing question; {action:"flow", step:"result", car, state, how} -> one direction.
+  if (b.action === "flow") {
+    const { identify, buildResult, stateOf } = await import("../lib/sell/sellFlow.js");
+    try {
+      if (b.step === "car") return res.status(200).json(await identify(env, { car: String(b.car || "").slice(0, 300), picks: (Array.isArray(b.picks) ? b.picks : []).map(x => String(x).slice(0, 80)).slice(0, 4) }));
+      if (b.step === "state") return res.status(200).json({ state: stateOf(b.text) });
+      if (b.step === "result") return res.status(200).json(await buildResult(env, { carText: String(b.car || "").slice(0, 300), state: stateOf(b.state) || null, how: ["self", "handled", "house", "unsure"].includes(b.how) ? b.how : "unsure" }));
+      return res.status(400).json({ error: "unknown step" });
+    } catch (e) { console.error("sell flow failed:", (e && e.stack) || e); return res.status(500).json({ error: "Sam couldn't read that just now." }); }
+  }
   // Probe (PROBE_KEY): how a car resolves and what each pool step holds.
   if (b.action === "probe" && process.env.PROBE_KEY && b.key === process.env.PROBE_KEY) {
     const { resolveSellCar, specPool } = await import("../lib/sell/sellFacts.js");
