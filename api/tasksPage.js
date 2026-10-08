@@ -9,7 +9,7 @@ import { BUY_CSS } from "./buy.js";
 import { PAGE_CSS, FONT_LINKS, railHtml, isCrewRequest } from "./_chrome.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 
-export const TASKS_PITCH = { lead: "A free AI buying agent for collector cars.", sub: "Tell Sam what you're looking for. Sam keeps checking the market and lets you know when something matches." };
+export const TASKS_PITCH = { lead: "A free collector car finder.", sub: "Tell Sam what you want and he keeps searching, then notifies you when one fits." };
 const HOW = "The cars Sam shows you come from our rules-based matching algorithm. AI helps understand the question and explain the results, but it does not invent the cars, the matches or the numbers. Every number comes from real market evidence.";
 const FAQ = [
   ["Is it free?", "Yes. Every GoAskSam account gets one active task free. Sign in, tell Sam what you're looking for, and Sam keeps checking."],
