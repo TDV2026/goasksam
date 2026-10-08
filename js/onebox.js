@@ -1570,6 +1570,14 @@
     if (input) input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); submitText(input.value); } });
     var edit = document.getElementById("ob-edit"); if (edit) edit.addEventListener("click", function () { renderEmpty(); if (input && lastQuery) { var i2 = document.getElementById("ob-input"); if (i2) { i2.value = lastQuery; i2.focus(); } } });
     var sell = document.getElementById("ob-sell"); if (sell) sell.addEventListener("click", toSell);
+    // Market Check landing search-example chips (item 3, Oct 2026): fills the box, then searches.
+    Array.prototype.forEach.call(root.querySelectorAll("[data-mc-chip]"), function (b) {
+      b.addEventListener("click", function () {
+        var v = b.getAttribute("data-mc-chip");
+        var inp = document.getElementById("ob-input"); if (inp) inp.value = v;
+        submitText(v);
+      });
+    });
     // Long-list cap (Oct 2026, phone review): "Show 10 more" reveals one batch of the already
     // server-rendered extra cards per click, not the whole tail at once. The button updates its
     // count each click and only removes itself once the last batch is shown.
@@ -1612,6 +1620,20 @@
           var tx = b.getAttribute("data-mc-ex-tx");
           reorder(function (c) { return /manual/i.test(c.getAttribute("data-tx") || "") === (tx === "manual") ? 0 : 1; });
           Array.prototype.forEach.call(qcard.querySelectorAll(".qchip"), function (x) { x.classList.toggle("sel", x === b); });
+        });
+      });
+      // The example band's own "type it" (mock item 6): reorders by distance from the typed
+      // number, same as the mileage buckets above - never a refetch, same fixed illustrative pool.
+      Array.prototype.forEach.call(qcard.querySelectorAll(".qchip[data-mc-ex-typemiles]"), function (b) {
+        b.addEventListener("click", function () {
+          b.outerHTML = '<span class="typemiles"><input id="mc-ex-miles" type="number" inputmode="numeric" placeholder="miles" /><button type="button" class="qchip" id="mc-ex-miles-go">Go</button></span>';
+          var inp = document.getElementById("mc-ex-miles"); if (inp) inp.focus();
+          function submit() {
+            var v = Number((document.getElementById("mc-ex-miles") || {}).value); if (!(v > 0)) return;
+            reorder(function (c) { var mi = Number(c.getAttribute("data-mi")); return mi > 0 ? Math.abs(mi - v) : Infinity; });
+          }
+          var go = document.getElementById("mc-ex-miles-go"); if (go) go.addEventListener("click", submit);
+          if (inp) inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); submit(); } });
         });
       });
     })();

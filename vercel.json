@@ -51,6 +51,7 @@
     { "source": "/obx.20261014b/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261014c/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261014d/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261014e/(.*)", "destination": "/js/$1" },
     { "source": "/desk", "destination": "/desk.html" },
     { "source": "/history/:slug/:vin", "destination": "/api/history?slug=:slug&vin=:vin" },
     { "source": "/history/:slug", "destination": "/api/history?slug=:slug" },
