@@ -16,7 +16,7 @@ import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js
 import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.js";
 import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
-import { runTurn } from "../lib/live/samChat.js";
+import { runTurn, runFilters } from "../lib/live/samChat.js";
 import { supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { chatOut } from "../lib/live/chatHttp.js";
 
@@ -164,6 +164,12 @@ export default async function handler(req, res) {
     if (b.action === "geocoverage") return res.status(200).json(await geoCoverage(env));
     if (b.action === "converse") return res.status(200).json(await converseOut(env, b));
     if (b.action === "chat") return await buyChat(res, env, b);
+    // A result address reloaded or pasted (/buy?q=...&make=...): the same search from its filters, no model call.
+    if (b.action === "rerun") {
+      const out = await runFilters(env, b.filters || {});
+      const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
+      return res.status(200).json({ reply: out.reply, searchNote: null, cards, noun: out.noun, meta: out.meta, state: out.state, turns: (Number(b.turns) || 0) + 1 });
+    }
     if (b.action === "detail") return res.status(200).json(await detailOut(env, b));
     if (b.action === "save" || b.action === "list" || b.action === "watchsearch" || b.action === "remove") return await savedSearches(env, req, res, b);
     const q = String(b.q || "").slice(0, 200).trim();

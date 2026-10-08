@@ -11,6 +11,7 @@ import { stripLaunchGate } from "./marketCheck.js";
 import { SELL_MC_CSS, SELL_MC_CLIENT } from "../lib/sell/sellMcClient.js";
 import { sellLandingHtml, SELL_LANDING_CSS } from "../lib/sell/sellLanding.js";
 import { sellExample } from "../lib/sell/sellExample.js";
+import sellPage from "./sellPage.js";
 
 let shell = null, cardCss = null;
 // The old /sell result cards' own CSS (the .pcard family, styles.css: from its --pc-* tokens to its closing
@@ -26,7 +27,9 @@ function pcardCss() {
 export default async function handler(req, res) {
   // SWITCHED OFF for the public (Oct 8 2026, Sam): 404 unless SELL_NEXT_ON=1 or the probe key is presented.
   const keyed = !!(process.env.PROBE_KEY && (req.headers["x-probe-key"] === process.env.PROBE_KEY || (req.query && req.query.key === process.env.PROBE_KEY)));
-  if (process.env.SELL_NEXT_ON !== "1" && !keyed) return res.status(404).json({ error: "Not found." });
+  // A result address (/sell?car=..., routed here by vercel.json) while the new Sell is off: the live /sell
+  // page, exactly as /sell serves it, so the public never sees the new Sell before the cutover.
+  if (process.env.SELL_NEXT_ON !== "1" && !keyed) return /[?&]car=/.test(String(req.url || "")) ? (res.setHeader("X-Robots-Tag", "noindex, follow"), sellPage(req, res)) : res.status(404).json({ error: "Not found." });
   if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "onebox.html"), "utf8");
   if (cardCss == null) cardCss = pcardCss();
   const env = supabaseEnv();
@@ -48,7 +51,8 @@ export default async function handler(req, res) {
     .replace(/<a class="ob-navitem active" href="\/onebox" aria-current="page">Ask Sam<\/a>\s*<a class="ob-navitem" href="\/buy">Buy<\/a>\s*<a class="ob-navitem" href="\/sell">Where to sell<\/a>/, () => '<a class="ob-navitem active" href="/sell" aria-current="page">Where to sell</a>')
     .replace(/\s*<a class="ob-navitem" href="\/how-sam-decides"[^>]*>How Sam decides<\/a>\s*<a class="ob-navitem" href="\/business">For business<\/a>/, () => "")
     .replace(/<a class="(ob-logo|brand)" href="\/onebox">/g, (m, c) => `<a class="${c}" href="/sell">`)
-    .replace("</head>", () => `<meta name="robots" content="noindex, nofollow">\n<style>${cardCss}\n${SELL_MC_CSS}\n${SELL_LANDING_CSS}</style>\n</head>`)
+    // Every new Sell address is noindex with the Sell landing as its canonical (result addresses included).
+    .replace("</head>", () => `<meta name="robots" content="noindex, nofollow">\n<link rel="canonical" href="https://goasksam.com/sell">\n<style>${cardCss}\n${SELL_MC_CSS}\n${SELL_LANDING_CSS}</style>\n</head>`)
     // The Sell hook must exist before js/onebox.js boots, so the client goes in ahead of it.
     .replace(/<script src="\/obx\.[^"]+\/onebox\.js"><\/script>/, m => `<script>window.GAS_SELL_CFG=${cfg};</script>\n<script>${SELL_MC_CLIENT}</script>\n${m}`);
   res.setHeader("Content-Type", "text/html; charset=utf-8");

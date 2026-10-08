@@ -23,6 +23,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/sell", "has": [{ "type": "query", "key": "car" }], "destination": "/api/sellNext" },
     { "source": "/sell", "destination": "/api/sellPage" },
     { "source": "/tasks", "destination": "/api/tasksPage" },
     { "source": "/tasks/mine", "destination": "/api/tasksPage?app=1" },

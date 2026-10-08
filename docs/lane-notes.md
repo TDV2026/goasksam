@@ -404,3 +404,19 @@ when the work has landed.
 - 2026-10-08 (Lane C): new Sell landing (02251ba, 0511f16, 7c08ab2) lives in lib/sell/sellLanding.js +
   lib/sell/sellExample.js, served by api/sellNext.js behind SELL_NEXT_ON. lib/heroImage.js NOT touched (the
   default layout fits). The specialist band photo is `img/sell/specialist.jpg`, shown only once that file exists.
+- 2026-10-08 (Lane C): RESULT ADDRESSES for Buy and the new Sell.
+  - Buy: each search turn pushState's `/buy?q=<the buyer's words>&make=..&model=..&gen=..&trim=..&body=..
+    &gearbox=..&colour=..&from=..&to=..&miles=..&budget=..&near=..&within=..&beyond=..&abroad=1&above=1&all=1
+    &house=..&sort=..` (only the filters set). Back truncates the conversation to that turn, then the landing.
+    Reload / a pasted link reruns the SAME search from the filters (api/buySearch.js action "rerun" ->
+    lib/live/samChat.js runFilters -> the search_live tool code, no model call). A words-only `?q=` (Market
+    Check's live panel link) still goes through the chat, then the address is completed in place.
+  - LOCATION IN A LINK: `near` is the 5-digit ZIP the buyer typed (a ZIP area) or the town the engine
+    resolved (meta.place), never a street address or coordinates. Emails are stripped from every address.
+  - Sell: `/sell?car=<named car>&state=..&how=..&rush=..` (+ the probe key on a preview). vercel.json routes
+    /sell?car= to api/sellNext.js; with SELL_NEXT_ON off and no key it serves the LIVE /sell (noindex header).
+    The state is the only place named.
+  - Every result address is noindex with the landing as canonical; /buy and /sell themselves are unchanged.
+  - LANE A: Sell's history lives in lib/sell/sellMcClient.js, NOT js/onebox.js. If Market Check's address
+    work adds pushState/popstate to js/onebox.js, skip it when `window.GAS_SELL` is set (the Sell page runs
+    the same file), or the two will push competing entries.
