@@ -150,9 +150,20 @@ function v2MatchedWhy(ev,v,name){
   var months=Math.round((Number(mp.windowDays)||730)/30.44);
   var matchOn=mp.yearMatched?"year and mileage":"mileage";
   if(mp.tooThin){
-    var n=Number(mp.platformSales)||0; if(n<1)return null;
+    // Item 5 (Oct 2026): this used to show mp.platformSales (the MATCHED premium's OWN 24-month,
+    // mileage-banded count), a different, narrower number than the count the PICK actually used
+    // (marketEvidence.evidenceSales, the landed rung's count - often a longer or unbounded window).
+    // A card that says "sold 2" while the pick that put it there counted 6 reads as self-contradictory.
+    // Prefer the pick's own count; only fall back to the matched count when evidenceSales is absent.
+    // The "in the past N months" qualifier is dropped whenever evidenceSales is used, since its real
+    // window is the landed rung's (often not 24 months) and this function has no plumbing for that
+    // label - an omitted window beats a wrong one.
+    var evN=Number(ev&&ev.evidenceSales);
+    var usingEvidence=evN>0;
+    var n=usingEvidence?evN:(Number(mp.platformSales)||0);
+    if(n<1)return null;
     var rec=mp.recencyDate?(", most recently "+v2MonthYear(mp.recencyDate)):"";
-    return name+" has sold "+n+" "+scope+" in the past "+months+" months"+rec+".";
+    return name+" has sold "+n+" "+scope+(usingEvidence?"":(" in the past "+months+" months"))+rec+".";
   }
   var pct=Number(mp.percent), N=Number(mp.sales)||0;
   var lead=(pct>=3)?(scope+" have closed about "+pct+"% higher on "+name+" than the other platforms I track")

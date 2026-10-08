@@ -1582,6 +1582,48 @@ async function handleOps(req, res) {
     });
   }
 
+  // task=platformpickreport: side-by-side report for lib/platformPick.js (the shared platform-pick
+  // function) - the CURRENT live /sell pick (same fetchRecentRecords+analyze+decide path selldiag
+  // runs, metered/cached exactly like a real live /sell request, SELL_PICK_SHARED untouched) next to
+  // the shared function's pick for the SAME car+criteria. ?q=, ?house=1, ?rush=1.
+  if (task === "platformpickreport") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const apiKey = process.env.OLDCARSDATA_API_KEY; if (!apiKey) return res.status(500).json({ error: "OLDCARSDATA_API_KEY not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { fetchRecentRecords, analyze, buildLadder, decide } = await import("./sellerDecision.js");
+    const { classifyRecord } = await import("../lib/_classify.js");
+    const { pickPlatform } = await import("../lib/platformPick.js");
+    const q = String(req.query?.q || "2008 Porsche 911 Carrera S Coupe");
+    const wantHouse = req.query?.house === "1", wantRush = req.query?.rush === "1";
+    const rv = await resolveVehicle(q, {}); const vehicle = rv && rv.vehicle;
+    if (!vehicle || !vehicle.make) return res.status(200).json({ task: "platformpickreport", q, resolved: null, status: rv && rv.status });
+    const generation = await findGeneration(vehicle, env);
+    const criteria = { region: { country: "US", regionLabel: "the US" }, state: "CA",
+      timeline: wantRush ? "ASAP" : "No rush", involvement: wantHouse ? "Take it through an auction house" : "I'll sell it myself",
+      sellerPreference: wantHouse ? "auction_house" : "diy", notes: "", targetPrice: null };
+    let currentPick = null;
+    try {
+      const fetched = await fetchRecentRecords(vehicle, apiKey, generation);
+      const recs = (fetched && fetched.records) || [];
+      const cls = recs.map(r => classifyRecord(r, vehicle));
+      const analysis = analyze(recs, cls, buildLadder(vehicle, generation), vehicle, false);
+      const dec = decide(analysis, criteria, vehicle);
+      const bestRoute = (dec.routeFit && dec.routeFit.routes || []).find(r => r.platform === dec.recommendedPath);
+      currentPick = { recommendedPath: dec.recommendedPath, evidenceBasis: dec.evidenceBasis,
+        evidenceSales: bestRoute && bestRoute.marketEvidence && bestRoute.marketEvidence.evidenceSales,
+        premium: bestRoute && bestRoute.marketEvidence && bestRoute.marketEvidence.pricePremium || null,
+        totalFetched: recs.length };
+    } catch (e) { currentPick = { error: String((e && e.message) || e) }; }
+    let sharedPick = null;
+    try { sharedPick = await pickPlatform(vehicle, generation, env, criteria); } catch (e) { sharedPick = { error: String((e && e.message) || e) }; }
+    return res.status(200).json({
+      task: "platformpickreport", q, criteria: { house: wantHouse, rush: wantRush },
+      resolved: `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}`.trim(),
+      currentPick, sharedPick
+    });
+  }
+
   // task=taxprobe: READ-ONLY (archive; ZERO OCD). Grounding data for the class-taxonomy design +
   // the two resolver fixes: what the resolver returns for the flagged cars, the Viper body tags,
   // and title/body tokens actually present in the archive for rare/coachbuilt/era-reuse cars.

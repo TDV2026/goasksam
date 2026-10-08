@@ -38,6 +38,7 @@ import {
   textHasTerm
 } from "../lib/_classify.js";
 import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
+import { pickPlatform } from "../lib/platformPick.js";
 
 // Powerseller referrals are gated (locked product rule): estimated value from
 // actual comps must clear this threshold before a partner can lead.
@@ -1317,6 +1318,22 @@ async function fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generati
     ladder,
     fromCache: true
   };
+}
+
+// Item 4 (one engine rule): "the analysis step" exported without the search metering and save, so
+// evaluatePartnerReferral gets the SAME analysis on both pages. fetchRecordsFromStore is already a
+// read-only, zero-OldCarsData read of vehicle_market_records (the store a cache hit already reads);
+// this just runs it plus the already-exported, pure analyze() on top, skipping the metered live
+// fetch entirely and skipping persistRawRecords/persistClassifications (the "save"). Returns null
+// when the store has nothing for this car yet (never searched live before) - callers should fall
+// back to the same honest not-yet-measured shape evaluatePartnerReferral already handles for a thin
+// analysis (analysis.ladder.landed.thresholdMet === false).
+export async function buildAnalysisFromStore(vehicle, generation, supabaseUrl, supabaseKey) {
+  if (!vehicle || !vehicle.make || !supabaseUrl || !supabaseKey) return null;
+  const stored = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation).catch(() => null);
+  if (!stored || !stored.records || !stored.records.length) return null;
+  const classifications = stored.records.map(r => classifyRecord(r, vehicle));
+  return analyze(stored.records, classifications, stored.ladder, vehicle, false, null);
 }
 
 function getSellerCriteria(car = {}) {
@@ -4010,6 +4027,29 @@ export default async function handler(req, res) {
 
     const decision = decide(analysis, sellerCriteria, vehicle);
     decision.partnerReferral = await evaluatePartnerReferral(analysis, sellerCriteria, vehicle, supabaseUrl, supabaseKey);
+
+    // SELL_PICK_SHARED (off by default - Sam must approve before this changes what live /sell shows):
+    // re-decide the ONLINE platform pick with the shared function (lib/platformPick.js) that also
+    // backs the new Sell, so one car gets one pick on both pages. Scoped to the ROUTABLE/online pick
+    // only - the house-comparison path elsewhere in this handler (thin/class-era/rare-car) is
+    // untouched, and a non-routable route is never forced into recommendedPath here either, matching
+    // the existing "only routable routes can be the pick" invariant. Reorders routeFit.routes the
+    // same way applyThinWindowPriceOverride does, so the card and recommendedPath stay in lockstep.
+    if (process.env.SELL_PICK_SHARED === "1" && decision.routeFit && Array.isArray(decision.routeFit.routes)) {
+      try {
+        const shared = await pickPlatform(vehicle, generation, { supabaseUrl, supabaseKey }, sellerCriteria);
+        if (shared && shared.mode === "online" && shared.platform) {
+          const route = decision.routeFit.routes.find(r => r.routable !== false
+            && (normSourceSlug(r.policyKey) === shared.platform || normSourceSlug(r.platform) === shared.platform));
+          if (route) {
+            decision.recommendedPath = route.platform;
+            route.sharedPick = { reasonCode: shared.reasonCode, figures: shared.figures };
+            const idx = decision.routeFit.routes.indexOf(route);
+            if (idx > 0) { decision.routeFit.routes.splice(idx, 1); decision.routeFit.routes.unshift(route); }
+          }
+        }
+      } catch (e) { console.error("SELL_PICK_SHARED override failed (keeping the current pick):", e && e.message); }
+    }
 
     // Reserve INSIGHT (item 2b): a fair reserve-vs-no-reserve read scoped to the exact model+trim+year
     // (generation fallback with unsold reserve-not-met counted at high bid), replacing the old

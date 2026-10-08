@@ -181,16 +181,16 @@
      rewrite maps /js.<token>/* back to /js/*. BUMP the token in BOTH index.html
      (every src below) and vercel.json on every js/ change so returning browsers
      fetch fresh code instead of stale cache. -->
-<script src="js.20261009a/auth.js"></script>
-<script src="js.20261009a/wizard.js"></script>
-<script src="js.20261009a/pipeline.js"></script>
-<script src="js.20261009a/steps.js"></script>
-<script src="js.20261009a/result.js"></script>
-<script src="js.20261009a/chat-core.js"></script>
-<script src="js.20261009a/result-copy.js"></script>
-<script src="js.20261009a/result-v2.js"></script>
-<script src="js.20261009a/entry.js"></script>
-<script src="js.20261009a/homepage.js"></script>
+<script src="js.20261009b/auth.js"></script>
+<script src="js.20261009b/wizard.js"></script>
+<script src="js.20261009b/pipeline.js"></script>
+<script src="js.20261009b/steps.js"></script>
+<script src="js.20261009b/result.js"></script>
+<script src="js.20261009b/chat-core.js"></script>
+<script src="js.20261009b/result-copy.js"></script>
+<script src="js.20261009b/result-v2.js"></script>
+<script src="js.20261009b/entry.js"></script>
+<script src="js.20261009b/homepage.js"></script>
 <!-- Blank-pane watchdog (inline so it cannot itself fail to load): if a bundle
      fetch was blocked, challenged, or dropped, bootHomepage never paints #msgs and
      the main pane stays blank while the nav chrome (auth.js) still renders. This

@@ -42,6 +42,7 @@
     { "source": "/out", "destination": "/api/out" },
     { "source": "/styles.20260907a.css", "destination": "/styles.css" },
     { "source": "/js.20261009a/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009b/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261012a/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261012b/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261013a/(.*)", "destination": "/js/$1" },

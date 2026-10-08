@@ -209,3 +209,55 @@ when the work has landed.
   depend on it before he confirms). Why: the live pull's unindexed `sales_archive raw_record->>'url'`
   lookup took 117 seconds and every scheduled pull ended in a 504 for a day. The Oct 8 indexes Sam applied
   are recorded in docs/supabase-indexes-oct8.sql.
+
+- 2026-10-08 (Lane B -> Lane C): NEW `lib/platformPick.js` - the one shared platform-pick function (the
+  divergent-pick bug you found: PCarMarket via analyzeRouteFit/pickRecommendedRoute's old ladder on the
+  OldCarsData/vehicle_market_records evidence, vs Bring a Trailer via placesFor's own count-only 12-month
+  generation+body pool). `pickPlatform(vehicle, generation, env, criteria)` returns
+  `{mode:"online"|"house", platform, platformDisplay, reasonCode, figures, byPlatform, pool, houseComparison}`.
+  **reasonCode is one of**: `"premium"` (figures: `{percent, platformSales, othersSales}` - the highest
+  cleared symmetric gap, >=10% at 5v5, unchanged threshold), `"specialist"` (figures:
+  `{liftRounded, platformCount, scopeLabel}` - SPECIALIZATION_CELLS, only when no premium is measurable
+  anywhere, never the depth leader), `"depth"` (figures: `{evidenceSales}` - most sold comps at the
+  landed scope), `"speed"` (figures carry `basedOn`: which of the three branches the non-BaT pick itself
+  cleared - rush re-runs the SAME ladder with Bring a Trailer excluded; never promotes a house per rules
+  10/22e), `"house"` (figures: `{count, totalHouse, houseWindowDays, nextSale}` - ONLY reachable when
+  criteria names an explicit auction-house choice, never on sales count alone).
+  **Call-site changes, both in `lib/sell/sellFlow.js`** (sellFacts.js needed NO changes - `placesFor`/
+  `houseComparisonFor` still run for tiles/cohort-text/recent-sales, just not for the pick itself anymore):
+  (1) `buildResult`'s platform block now calls `pickPlatform(car.v, car.generation, env, pickCriteria)`
+  instead of `places[0]`/`places.find(p=>p.house)`; the result object gained `reasonCode`/`reasonFigures`
+  fields, but the rendered `why` sentence is UNCHANGED (still sellFacts's own count-based phrasing via
+  `pickFacts`) - **your next step**: rewrite `placeWhy`/`pickFacts`'s `why` construction to branch on
+  `reasonCode` (a premium pick should say "sold X% higher", not "sold most often", a specialist pick
+  should name the specialization, etc.) using `reasonFigures` for the numbers. No price comparisons in
+  any reason (the task's own constraint). (2) `partnerFor`'s `analysis` is now
+  `buildAnalysisFromStore(car.v, car.generation, ...)` (new export, api/sellerDecision.js) instead of this
+  file's own pool-median approximation - same `{ladder:{landed:{thresholdMet}}, estimatedValue}` shape
+  evaluatePartnerReferral already reads, now sourced from vehicle_market_records (zero OCD, zero
+  metering, zero persistence) so both pages feed it the same thing. A car never searched live before
+  returns null (falls back to the honest not-yet-measured shape) - same behavior analyzePartnerReferral
+  already handles for a thin read elsewhere.
+  **House window standardized on 36 months** (`houseReceiptsForVehicle`'s existing HT_WINDOW_DAYS), not
+  the new Sell's old 12-month default - auction houses sell a given model far less often than online
+  platforms, so 12 months regularly starved the comparison (your own `placesFor` already widens to 36mo
+  whenever its 12mo pool reads under 3 sales - this just makes 36 the standard instead of a fallback).
+  Widens the new Sell's house record; zero change to live /sell's already-shipped behavior.
+  **Live /sell is wired but OFF**: `api/sellerDecision.js` calls the same `pickPlatform` behind
+  `SELL_PICK_SHARED` (env var, unset/off by default) - when Sam turns it on, the ONLINE/routable pick on
+  live /sell starts coming from this file too (recommendedPath + card order both move together, same
+  pattern as the existing `applyThinWindowPriceOverride`). The house-comparison path elsewhere in that
+  handler (thin/class-era/rare-car) is untouched either way.
+  **Scoped simplifications from the full old ladder** (full list + why in lib/platformPick.js's own
+  header comment): one window (Market Check's 730d/1825d-if-thin), not sellerDecision.js's multi-window/
+  multi-scope walk; only the symmetric premium gate, not the asymmetric market-dominance gate, the
+  volume-aware sample/margin refinement on Branch 1, the thin-window price-signal override, or the
+  curated win-condition table. The three thresholds the task named (10% at 5v5; specialist lift>=3x at
+  5+ comps; most sold comps) are unchanged from the real code.
+  **Card-count fix (item 5)**: `js/result-v2.js` `v2MatchedWhy`'s "too thin to match" fallback used to
+  show `matchedPremium.platformSales` (its OWN 24-month mileage-banded count) while the pick that put the
+  card there had used `marketEvidence.evidenceSales` (the landed rung's count, often a different window) -
+  a card could say "sold 2" under a pick that counted 6. Now prefers `evidenceSales` when present and
+  drops the "in the past N months" qualifier in that case (the real window isn't plumbed into this
+  function; an omitted window beats a wrong one). `js.20261009a` bumped to `js.20261009b` (index.html +
+  vercel.json rewrite) since this touches the /sell bundle.
