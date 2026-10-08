@@ -16,7 +16,7 @@ import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js
 import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.js";
 import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
-import { runTurn, runFilters } from "../lib/live/samChat.js";
+import { runTurn, runFilters, runSearch } from "../lib/live/samChat.js";
 import { supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { chatOut } from "../lib/live/chatHttp.js";
 
@@ -148,6 +148,17 @@ export default async function handler(req, res) {
         nophoto: us.filter(r => !r.photo_url).slice(0, 10).map(pick),
         noreserve: us.filter(r => r.has_reserve === false).slice(0, 10).map(pick),
         longest: us.slice().sort((a, b) => String(b.listing_title || "").length - String(a.listing_title || "").length).slice(0, 8).map(pick) });
+    }
+    // Probe (PROBE_KEY): which live listings a search shows, and for every live listing whose title carries
+    // `like` (any make field), why it is or is not shown (the search's own stage that left it out).
+    if (b.action === "explain" && process.env.PROBE_KEY && b.key === process.env.PROBE_KEY) {
+      const trace = [], sr = await runSearch(env, b.p || {}, { trace });
+      const shown = new Set(sr.matches.map(x => x.r.id)), why = {};
+      for (const t of trace) if (!why[t.id]) why[t.id] = t.why;
+      const re = b.like ? new RegExp(String(b.like), "i") : null;
+      const all = re ? ((await liveRows(env, "id=gt.0")) || []).filter(r => re.test(String(r.listing_title || ""))) : [];
+      const row = r => ({ id: r.id, title: r.listing_title, make: r.make, model: r.model, year: r.year, house: r.source, country: r.country, url: r.url, shown: shown.has(r.id), why: shown.has(r.id) ? null : (why[r.id] || "not read: make field is " + JSON.stringify(r.make)) });
+      return res.status(200).json({ resolved: sr.v ? { make: sr.v.make, model: sr.v.model, trim: sr.v.trim || null } : null, shown: sr.matches.length, abroadHidden: sr.abroadHidden, unstated: sr.unstated, cutByBudget: sr.cutByBudget, titleMatches: all.map(row) });
     }
     // Probe (PROBE_KEY): what the range ladder returns at each rung for one live listing.
     if (b.action === "ladder" && process.env.PROBE_KEY && b.key === process.env.PROBE_KEY) {
