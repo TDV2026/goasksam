@@ -17,6 +17,9 @@ export default async function handler(req, res) {
     .replace(/<script>\s*\(function\(\)\{\s*try\{\s*var sent=0;[\s\S]*?<\/script>\s*/, "")
     .replace(OLD_WIZARD, "")
     .replace(/<meta name="robots" content="[^"]*"\s*\/?>/, "")
+    // The shell's stylesheet and scripts are relative ("styles.<v>.css", "js.<v>/auth.js"), written for
+    // /sell; served from /api/sellNext they must still resolve from the site root.
+    .replace(/<head>/i, () => '<head>\n<base href="/">')
     // Function replacements: the client contains "$'" ("Sold $'+..."), which a replacement STRING would
     // expand into page text and break the script.
     .replace("</head>", () => `<meta name="robots" content="noindex, nofollow">\n<style>${FLOW_CSS}</style>\n</head>`)
