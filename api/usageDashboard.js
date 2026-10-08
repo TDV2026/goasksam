@@ -1624,6 +1624,48 @@ async function handleOps(req, res) {
     });
   }
 
+  // task=platformpickproof: Bucket A proof, READ ONLY - calls fetchRecentRecords exactly as live
+  // /sell does (no change to it), reports its per-platform evidenceSales at ITS OWN landed rung
+  // (analysis.platformPerformance - what the old ladder actually used), next to the shared archive
+  // pool's per-platform counts (pickPlatform's byPlatform) at ITS OWN window - both windows are
+  // reported explicitly since the two ladders land on different scopes by design (this task proves
+  // the GAP, it does not force a false apples-to-apples window).
+  if (task === "platformpickproof") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const apiKey = process.env.OLDCARSDATA_API_KEY; if (!apiKey) return res.status(500).json({ error: "OLDCARSDATA_API_KEY not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { fetchRecentRecords, analyze, buildLadder } = await import("./sellerDecision.js");
+    const { classifyRecord } = await import("../lib/_classify.js");
+    const { pickPlatform } = await import("../lib/platformPick.js");
+    const PROOF_CARS = String(req.query?.cars || "1995 Mazda Miata|2016 Ford Mustang GT350|1993 Toyota Supra Turbo|2008 Audi RS4").split("|");
+    const rows = [];
+    for (const q of PROOF_CARS) {
+      const row = { q };
+      try {
+        const rv = await resolveVehicle(q, {}); const vehicle = rv && rv.vehicle;
+        if (!vehicle || !vehicle.make) { row.error = "unresolved"; rows.push(row); continue; }
+        row.resolved = `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}`.trim();
+        const generation = await findGeneration(vehicle, env);
+        const criteria = { region: { country: "US", regionLabel: "the US" }, state: "CA", timeline: "No rush", involvement: "I'll sell it myself", sellerPreference: "diy", notes: "", targetPrice: null };
+        const fetched = await fetchRecentRecords(vehicle, apiKey, generation);
+        const recs = (fetched && fetched.records) || [];
+        const cls = recs.map(r => classifyRecord(r, vehicle));
+        const analysis = analyze(recs, cls, buildLadder(vehicle, generation), vehicle, false);
+        row.oldFunction = "fetchRecentRecords (api/sellerDecision.js) -> analyze()";
+        row.oldLandedRung = analysis.ladder && analysis.ladder.landed ? { key: analysis.ladder.landed.key, label: analysis.ladder.landed.label, windowDays: analysis.ladder.landed.windowDays } : null;
+        row.oldTotalFetchedRaw = recs.length;
+        row.oldByPlatform = (analysis.platformPerformance || []).map(p => ({ platform: p.platform, evidenceSales: p.evidenceSales, medianSalePrice: p.medianSalePrice })).sort((a, b) => b.evidenceSales - a.evidenceSales);
+        const shared = await pickPlatform(vehicle, generation, env, criteria);
+        row.sharedFunction = "pickPlatform (lib/platformPick.js) -> fetchQualifying on sales_archive";
+        row.sharedPool = shared && shared.pool;
+        row.sharedByPlatform = shared ? Object.entries(shared.byPlatform || {}).map(([platform, v]) => ({ platform, ...v })).sort((a, b) => b.evidenceSales - a.evidenceSales) : [];
+      } catch (e) { row.error = String((e && e.message) || e); }
+      rows.push(row);
+    }
+    return res.status(200).json({ task: "platformpickproof", rows });
+  }
+
   // task=platformpickaudit: the 40-car dropped-gates audit (flag off, read only - never writes, never
   // touches SELL_PICK_SHARED). Runs the SAME old-ladder-vs-shared-function comparison
   // platformpickreport does, sequentially (never parallel - this is metered OCD spend; sequential

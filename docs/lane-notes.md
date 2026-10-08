@@ -302,3 +302,15 @@ when the work has landed.
   the shared pool despite real matching Bring a Trailer sales confirmed in the archive by title scan -
   cause not yet isolated (title slash-variant and generation/year-window are both still suspects).
   SELL_PICK_SHARED is still off. No change needed in your files for this follow-up.
+- 2026-10-08 (Lane B, correction): retracting last entry's claim that live /sell has no house-render
+  path for a well-evidenced car (the 300SL case). It does - api/sellerDecision.js's existing "DENSE-
+  CAR HOUSE COMPARISON" block (search that string, right after the thin/class-era checks) already
+  builds decision.houseComparison from houseReceiptsForVehicle for ANY car when
+  car.sellerPreference==="auction_house", and js/result.js's renderHouseComparisonSell already draws
+  it. Confirmed by driving the real /sell page for the 300SL + auction-house + ASAP: it renders the
+  full ranked house list, leads with the soonest sale (Gooding Christie's), same pick
+  lib/platformPick.js's house branch computes. My earlier "no renderer" claim came from an
+  incomplete test harness (a diagnostic that replays decide() alone, not the full handler) - not a
+  real product gap. SELL_PICK_SHARED stays scoped to the online pick only regardless (an explicit
+  house choice is left on this existing, already-working path, untouched), but there is no
+  outstanding house-renderer job to schedule.

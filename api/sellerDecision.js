@@ -4029,20 +4029,18 @@ export default async function handler(req, res) {
     decision.partnerReferral = await evaluatePartnerReferral(analysis, sellerCriteria, vehicle, supabaseUrl, supabaseKey);
 
     // SELL_PICK_SHARED (off by default - Sam must approve before this changes what live /sell shows):
-    // re-decide the platform pick with the shared function (lib/platformPick.js) that also backs the
-    // new Sell, so one car gets one pick on both pages. ONLINE: a non-routable route is never forced
-    // into recommendedPath - matches the existing "only routable routes can be the pick" invariant -
-    // and routeFit.routes is reordered the same way applyThinWindowPriceOverride does, so the card
-    // and recommendedPath stay in lockstep. HOUSE (item 3, follow-up): an explicit "through an
-    // auction house" choice used to only reach a house via the separate thin/class-era path elsewhere
-    // in this handler - a well-evidenced car (the 300SL case) fell through to the normal online
-    // ladder regardless of what the seller chose. Behind the flag only, honor the choice: set
-    // recommendedPath to the house and attach decision.houseComparison (a new top-level field) with
-    // the shared function's buildHouseComparison output. Does NOT reorder routeFit.routes (houses are
-    // routable:false there by design; forcing one to the front would violate that invariant for other
-    // readers of routeFit) - the frontend has no renderer for a dense-car house pick yet, so this is
-    // the decision-object half only. Flagged plainly in the report; do not assume the page draws it.
-    if (process.env.SELL_PICK_SHARED === "1" && decision.routeFit && Array.isArray(decision.routeFit.routes)) {
+    // re-decide the ONLINE platform pick with the shared function (lib/platformPick.js) that also
+    // backs the new Sell, so one car gets one pick on both pages. Scoped to the online/routable pick
+    // ONLY (item 3, follow-up): an explicit "through an auction house" choice is left completely
+    // alone - the old house-comparison path elsewhere in this handler (thin/class-era/rare-car) keeps
+    // deciding it, unchanged, and pickPlatform is not even called in that case (no wasted fetch). The
+    // shared function's house branch exists (new Sell uses it) but this file does not wire it - no
+    // half-built house path here; see docs/lane-notes.md for the 300SL mismatch as its own later job.
+    // A non-routable route is never forced into recommendedPath - matches the existing "only routable
+    // routes can be the pick" invariant - and routeFit.routes is reordered the same way
+    // applyThinWindowPriceOverride does, so the card and recommendedPath stay in lockstep.
+    const sellerChoseHouse = sellerCriteria.sellerPreference === "auction_house" || /auction house/i.test(String(sellerCriteria.involvement || ""));
+    if (process.env.SELL_PICK_SHARED === "1" && !sellerChoseHouse && decision.routeFit && Array.isArray(decision.routeFit.routes)) {
       try {
         const shared = await pickPlatform(vehicle, generation, { supabaseUrl, supabaseKey }, sellerCriteria);
         if (shared && shared.mode === "online" && shared.platform) {
@@ -4054,10 +4052,6 @@ export default async function handler(req, res) {
             const idx = decision.routeFit.routes.indexOf(route);
             if (idx > 0) { decision.routeFit.routes.splice(idx, 1); decision.routeFit.routes.unshift(route); }
           }
-        } else if (shared && shared.mode === "house" && shared.platform) {
-          decision.recommendedPath = shared.platformDisplay || shared.platform;
-          decision.houseComparison = shared.houseComparison;
-          decision.sharedPick = { reasonCode: shared.reasonCode, figures: shared.figures };
         }
       } catch (e) { console.error("SELL_PICK_SHARED override failed (keeping the current pick):", e && e.message); }
     }
@@ -4382,7 +4376,27 @@ export default async function handler(req, res) {
         res.setHeader("Set-Cookie", "gas_free_used=1; Max-Age=31536000; Path=/; SameSite=Lax; Secure");
       }
     }
-    return res.status(200).json(responsePayload);
+    res.status(200).json(responsePayload);
+    // SELL_PICK_SHADOW (item 5, off by default): the seller already has their answer on the line
+    // above - everything from here runs AFTER the response is sent, so it adds no delay and never
+    // changes what the seller sees. Computes the shared pick (lib/platformPick.js, archive-only,
+    // zero OldCarsData - no search metering) and logs old pick vs shared pick, reason code and
+    // agreement to app_usage_events for comparison. A failure here is swallowed, never surfaced.
+    if (process.env.SELL_PICK_SHADOW === "1" && !internalCall) {
+      try {
+        const shared = await pickPlatform(vehicle, generation, { supabaseUrl, supabaseKey }, sellerCriteria);
+        const normShadow = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const oldPick = decision.recommendedPath || null;
+        const sharedPlatform = (shared && shared.platform) || null;
+        const agree = !!(oldPick && sharedPlatform) && normShadow(oldPick) === normShadow(sharedPlatform);
+        await recordUsageEvent({
+          event_type: "sell_pick_shadow", route: "/api/sellerDecision", status: "shadow_compare",
+          search_text: rawSearch, vehicle,
+          metadata: { oldPick, sharedPlatform, sharedMode: (shared && shared.mode) || null, reasonCode: (shared && shared.reasonCode) || null, agree }
+        }, supabaseUrl, supabaseKey);
+      } catch (e) { console.error("SELL_PICK_SHADOW failed (no effect on the response already sent):", e && e.message); }
+    }
+    return;
   } catch (err) {
     // 2C: a server-side failure consumes nothing - refund the reservation (11b).
     if (reservationEventId) { try { await supabaseRpc("release_search", { p_event_id: reservationEventId }, supabaseUrl, supabaseKey); } catch (e) {} }
