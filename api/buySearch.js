@@ -22,7 +22,7 @@ import { chatOut } from "../lib/live/chatHttp.js";
 
 const FIRST = 10, MAX = 200;
 const titleCaseIfShouting = s => String(s || "").split(",").map(p => { const t = p.trim(); return t && t === t.toUpperCase() && /[A-Z]{3}/.test(t) ? t.toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase()) : t; }).filter(Boolean).join(", ");
-function cardOf(x) {
+export function cardOf(x) {
   const r = x.r, facts = x.facts, cc = String(r.country || "").toUpperCase();
   return { id: r.id, source: houseName(r.source), sourceSlug: r.source, title: r.listing_title, url: r.url, photo_url: r.photo_url,
     // Bids through liveTrust: a dollar figure only when it is dollars; a "USD" price on a lot priced
@@ -50,7 +50,7 @@ async function timelineOf(env, x) {
 // The card's name from the resolved spec: year, make, model, trim, body. Never the seller's copy
 // ("With Less Than 73k Miles", "Restored", "No Reserve"); null when the title doesn't resolve.
 const BODY_WORD = { coupe: "Coupe", cabriolet: "Cabriolet", convertible: "Convertible", targa: "Targa", roadster: "Roadster", sedan: "Sedan", spider: "Spider", spyder: "Spyder", speedster: "Speedster", wagon: "Wagon", suv: "", hatchback: "Hatchback" };
-async function nameOf(env, x) {
+export async function nameOf(env, x) {
   const sp = await specOf(env, x.r, x.facts).catch(() => null);
   const v = sp && sp.v; if (!v || !v.make || !v.model) return null;
   const body = BODY_WORD[String(v.bodyStyle || x.facts.body || "").toLowerCase()] || "";
