@@ -87,6 +87,16 @@ const APP_CSS = `
 .cars .fx{display:block;color:var(--sec)}
 .cars .more{color:var(--sec)}
 .empty{margin:14px 0 0;font:400 15px var(--sans);color:var(--sec)}
+.notify{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:12px 2px 0;font:400 15px/1.5 var(--sans);color:var(--sec)}
+.notify b{font-weight:600;color:var(--ink)}
+.notify .plink{min-height:36px;font-size:15px}
+.sw{display:inline-flex;align-items:center;gap:8px;cursor:pointer;min-height:36px;color:var(--ink)}
+.sw input{position:absolute;opacity:0;width:1px;height:1px}
+.sw i{position:relative;width:38px;height:22px;border-radius:11px;background:#CFC8BC;transition:background .15s;flex:none}
+.sw i::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s}
+.sw input:checked+i{background:var(--ink)}.sw input:checked+i::after{transform:translateX(16px)}
+.sw input:focus-visible+i{outline:2px solid var(--ink);outline-offset:2px}
+.notify .tkbox{flex-basis:100%;max-width:460px}
 .past{margin-top:22px}
 .past>summary{cursor:pointer;font:500 15px var(--sans);color:var(--sec);min-height:44px;display:flex;align-items:center}
 .past details{border-top:1px solid var(--div);padding:6px 0}
@@ -183,7 +193,7 @@ const APP_JS = String.raw`(function(){
   function signedIn(){ try { var s = JSON.parse(localStorage.getItem("gas_auth_session") || "null"); return !!(s && s.access_token); } catch(e){ return false; } }
   if (!signedIn()) { location.replace("/tasks?signin=1&next=" + encodeURIComponent(location.pathname + location.search)); return; }
   var params = new URLSearchParams(location.search);
-  var data = null, busy = false, reply = "", pending = null, note = "", editing = false, arrived = !!(params.get("start") || params.get("seed")), scrollTo = null;
+  var editEmail = false, data = null, busy = false, reply = "", pending = null, note = "", editing = false, arrived = !!(params.get("start") || params.get("seed")), scrollTo = null;
   var draft = null; try { draft = JSON.parse(sessionStorage.getItem("gas_task_draft") || "null"); } catch(e){}
   function saveDraft(d){ draft = d; try { if (d) sessionStorage.setItem("gas_task_draft", JSON.stringify(d)); else sessionStorage.removeItem("gas_task_draft"); } catch(e){} }
   function seedWords(){
@@ -231,6 +241,13 @@ const APP_JS = String.raw`(function(){
     else h += (last ? '<p class="readback">' + esc(last.text) + "</p>" : "") + box(draft.summary ? "Change what Sam looks for" : "Answer Sam", "tkq", editing ? draft.words : "", "");
     return h + "</section>";
   }
+  // Under the card: where updates go, a Change link, and the email switch (stored on the account).
+  function notifyLine(){
+    var n = (data && data.notify) || null; if (!n) return "";
+    var sw = '<label class="sw"><input type="checkbox" data-notify-on' + (n.on ? " checked" : "") + '><i></i>Email updates</label>';
+    if (editEmail) return '<div class="notify"><div class="tkbox"><input id="tkemail" type="email" value="' + esc(n.email || "") + '" aria-label="Email for task updates"><button type="button" data-save-email>Save</button></div><button class="plink" data-cancel-email>Cancel</button></div>';
+    return '<div class="notify">' + (n.on ? "<span>Updates go to <b>" + esc(n.email || "your account email") + '</b>.</span> <button class="plink" data-edit-email>Change</button>' : "<span>Email is off. Updates show here and on Tasks.</span>") + sw + "</div>";
+  }
   function render(){
     var tasks = (data && data.tasks) || [];
     var cur = tasks.filter(function(t){ return ["running", "needs_you", "paused"].indexOf(t.state) >= 0; })[0] || null;
@@ -239,7 +256,7 @@ const APP_JS = String.raw`(function(){
     if (cur && arrived) { note = blockedNote(cur.state); scrollTo = cur.id; }
     if (arrived) { arrived = false; dropEntryParams(); }
     if (note && cur) h += '<p class="blocked" role="status">' + esc(note) + "</p>";
-    if (cur) h += taskCard(cur);
+    if (cur) h += taskCard(cur) + notifyLine();
     else if (draft) h += draftCard();
     else h += '<section class="tcard">' + box("Tell Sam what to look for", "tkq", seedWords(), "e.g. find me a black manual 997 under $70k") + (reply ? '<p class="samreply">' + esc(reply) + "</p>" : "") + "</section>";
     if (past.length) h += '<details class="past"><summary>Past tasks (' + past.length + ")</summary>" + past.map(function(t){ var st = status(t); return '<details><summary><span class="pill ' + st[0] + '">' + st[1] + "</span>" + esc(t.summary) + "</summary>" + feed(t) + "</details>"; }).join("") + "</details>";
@@ -265,7 +282,10 @@ const APP_JS = String.raw`(function(){
     }).catch(function(){ busy = false; render(); var q = $("tkq"); if (q) q.value = text; });
   }
   document.addEventListener("click", function(e){
-    var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto]"); if (!t) return;
+    var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto],[data-edit-email],[data-cancel-email],[data-save-email]"); if (!t) return;
+    if (t.hasAttribute("data-edit-email")) { e.preventDefault(); editEmail = true; render(); var f = $("tkemail"); if (f) f.focus(); return; }
+    if (t.hasAttribute("data-cancel-email")) { e.preventDefault(); editEmail = false; render(); return; }
+    if (t.hasAttribute("data-save-email")) { e.preventDefault(); var v = ($("tkemail") || {}).value || ""; working(t, "Saving..."); api({ action: "notify", email: v.trim() }).then(function(j){ if (j && j.error) { editEmail = true; note = j.error; } else { editEmail = false; if (data) data.notify = j; } render(); }); return; }
     if (t.hasAttribute("data-goto")) { var el = document.getElementById("task-" + t.getAttribute("data-goto")); if (el) { e.preventDefault(); el.scrollIntoView({ block: "start" }); } return; }
     e.preventDefault();
     if (t.hasAttribute("data-send")) { var q = $(t.getAttribute("data-send")); if (q && q.value.trim()) send(q.value.trim()); return; }
@@ -275,6 +295,11 @@ const APP_JS = String.raw`(function(){
     if (t.hasAttribute("data-start")) { working(t, "Starting..."); api({ action: "start", draft: draft }).then(function(j){ if (j.blocked) { note = blockedNote(j.blocked.state); saveDraft(null); return load(); } if (j.task) { saveDraft(null); reply = ""; note = ""; } return load(); }).catch(function(){ load(); }); return; }
     if (t.hasAttribute("data-apply")) { working(t, "Saving..."); api({ action: "apply", task_id: t.getAttribute("data-apply"), pending: pending }).then(function(){ pending = null; reply = ""; note = ""; return load(); }).catch(function(){ load(); }); return; }
     if (t.hasAttribute("data-act")) { working(t, { pause: "Pausing...", resume: "Resuming...", stop: "Stopping..." }[t.getAttribute("data-act")] || "..."); api({ action: "control", task_id: t.getAttribute("data-id"), act: t.getAttribute("data-act") }).then(function(j){ note = j.blocked ? blockedNote(j.blocked.state) : ""; pending = null; reply = ""; return load(); }).catch(function(){ load(); }); }
+  });
+  document.addEventListener("change", function(e){
+    if (!e.target || !e.target.hasAttribute || !e.target.hasAttribute("data-notify-on")) return;
+    var on = e.target.checked; e.target.disabled = true;
+    api({ action: "notify", on: on }).then(function(j){ if (data && j && !j.error) data.notify = j; render(); });
   });
   document.addEventListener("keydown", function(e){ if (e.key === "Enter" && e.target && e.target.id === "tkq" && e.target.value.trim()) { e.preventDefault(); send(e.target.value.trim()); } });
   load();

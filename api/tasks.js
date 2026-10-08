@@ -16,7 +16,7 @@
 // the clock; test runs never send email (email_status "test").
 import { supabaseEnv } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
-import { taskTurn, draftTurn, startDraft, applyEdit, slotTask, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify } from "../lib/tasks/tasks.js";
+import { notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, startDraft, applyEdit, slotTask, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify } from "../lib/tasks/tasks.js";
 import crypto from "node:crypto";
 import { CHAT_MODEL } from "../lib/live/chatHttp.js";
 import { recordUsageEvent } from "./_usage.js";
@@ -135,7 +135,7 @@ export default async function handler(req, res) {
       const withThreads = await Promise.all(tasks.map(async t => ({ ...t, updates: await taskUpdates(env, t.id) })));
       // Opening the list is an interaction; the open thread's updates are read.
       if (b.open && /^[0-9a-f-]{36}$/.test(String(b.open))) { const t = tasks.find(x => x.id === b.open); if (t) await saveTask(env, t.id, { unread: 0, last_interaction_at: new Date().toISOString() }); }
-      return res.status(200).json({ tasks: withThreads, suggestions: await suggestions(env, user.userId).catch(() => []) });
+      return res.status(200).json({ tasks: withThreads, suggestions: await suggestions(env, user.userId).catch(() => []), notify: await notifyPrefs(env, user).catch(() => null) });
     }
     if (b.action === "say") {
       const text = String(b.text || "").trim().slice(0, 2000);
@@ -143,6 +143,17 @@ export default async function handler(req, res) {
       if (!apiKey) return res.status(503).json({ error: "Sam is unavailable right now." });
       if (/^[0-9a-f-]{36}$/.test(String(b.task_id || ""))) return res.status(200).json(await taskTurn(env, user, { taskId: b.task_id, text, pending: b.pending || null, apiKey, model: CHAT_MODEL }));
       return res.status(200).json(await draftTurn(env, user, { draft: b.draft || null, text, seed: b.seed || null, apiKey, model: CHAT_MODEL }));
+    }
+    if (b.action === "notify") return res.status(200).json(await setNotifyPrefs(env, user, { on: typeof b.on === "boolean" ? b.on : undefined, email: b.email !== undefined ? b.email : undefined }));
+    // Probe: Resend's own record of one email (delivery status), and the sending domain's verification.
+    if (b.action === "test_resend" && probeOk(req)) {
+      const H = { Authorization: `Bearer ${process.env.RESEND_API_KEY || ""}` };
+      const em = b.id ? await (await fetch(`https://api.resend.com/emails/${encodeURIComponent(b.id)}`, { headers: H })).json().catch(e => ({ error: e.message })) : null;
+      const doms = await (await fetch("https://api.resend.com/domains", { headers: H })).json().catch(e => ({ error: e.message }));
+      const list = Array.isArray(doms && doms.data) ? doms.data : [];
+      const detail = [];
+      for (const d of list) { const one = await (await fetch(`https://api.resend.com/domains/${d.id}`, { headers: H })).json().catch(() => null); detail.push({ name: d.name, status: d.status, region: d.region, records: one && one.records ? one.records.map(r => ({ record: r.record, type: r.type, name: r.name, status: r.status })) : null }); }
+      return res.status(200).json({ email: em && { id: em.id, to: em.to, from: em.from, subject: em.subject, last_event: em.last_event, created_at: em.created_at }, domains: detail, domains_error: doms && doms.message || null });
     }
     if (b.action === "start") return res.status(200).json(await startDraft(env, user, b.draft || {}, { apiKey, model: CHAT_MODEL }));
     if (b.action === "apply") return res.status(200).json(await applyEdit(env, user, String(b.task_id || ""), b.pending || null, { apiKey, model: CHAT_MODEL }));
