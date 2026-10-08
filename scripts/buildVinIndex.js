@@ -10,6 +10,13 @@
 //   node scripts/buildVinIndex.js            # full rebuild + print the appearance distribution
 //   node scripts/buildVinIndex.js --report   # distribution only, no writes
 // Schedule nightly AFTER the ingest + non-sold jobs (so it reflects the freshest sales/attempts).
+//
+// ATOMIC WRITE (docs/supabase-vin-index-atomic-swap.sql, run once): the build writes into
+// vin_index_staging / vin_summary_staging (safe to leave half-written - never read by anything live,
+// cleared and rewritten every run), then promotes them to the live vin_index/vin_summary in ONE
+// transaction via the swap_vin_index() RPC. A cancelled or timed-out run leaves the PREVIOUS live
+// tables completely untouched - Postgres commits the whole swap or none of it; no partial state is
+// ever visible. An insert error into staging is now FATAL (thrown), never a silent partial write.
 import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
 import { typeByMake } from "../lib/_unknownClassify.js";
 import { classifyRoad } from "../lib/_roadType.js";
@@ -159,8 +166,10 @@ async function loadAttempts(env) {
 function identity(a) { return isUnknown(a.make) ? "" : a.make.toLowerCase().trim(); }
 
 async function deleteAll(env, H, table) {
-  // Rebuild: clear the derived table (vin_index has a numeric id; vin_summary keys on vin_norm).
-  const key = table === "vin_index" ? "id=gt.0" : "vin_norm=not.is.null";
+  // Clear the derived table. vin_index/vin_index_staging have a numeric id; the summary tables key on
+  // vin_norm (not null on all four, so this also happens to work for the index tables, but the id form
+  // is kept explicit for clarity).
+  const key = /^vin_index/.test(table) ? "id=gt.0" : "vin_norm=not.is.null";
   const r = await fetch(`${env.supabaseUrl}/rest/v1/${table}?${key}`, { method: "DELETE", headers: { ...H, Prefer: "return=minimal" } });
   if (!r.ok && r.status !== 404) console.error(`clear ${table} -> ${r.status}: ${(await r.text().catch(() => "")).slice(0, 120)}`);
 }
@@ -238,13 +247,18 @@ export async function buildVinIndex(env, { reportOnly = false } = {}) {
     throw new Error(msg);
   }
 
-  // ---- write vin_index (per appearance) ----
-  await deleteAll(env, H, "vin_index");
+  // ---- write STAGING tables (never the live tables directly) ----
+  // vin_index/vin_summary are promoted from staging in ONE transaction (swap_vin_index(), docs/
+  // supabase-vin-index-atomic-swap.sql) - a cancelled or timed-out run leaves the PREVIOUS live tables
+  // completely untouched (staging is safe to leave half-written; it is truncated and rewritten every
+  // build, never read by anything live). An insert error is now FATAL (thrown) - a partial staging
+  // write must never be promoted.
+  await deleteAll(env, H, "vin_index_staging");
   let ins = 0, insErr = 0;
-  for (let i = 0; i < idxRows.length; i += 500) { const r = await supabaseInsert("vin_index", idxRows.slice(i, i + 500), env.supabaseUrl, env.supabaseKey); if (!r.error) ins += Math.min(500, idxRows.length - i); else { insErr++; console.error("vin_index insert error:", r.error); } }
+  for (let i = 0; i < idxRows.length; i += 500) { const r = await supabaseInsert("vin_index_staging", idxRows.slice(i, i + 500), env.supabaseUrl, env.supabaseKey); if (!r.error) ins += Math.min(500, idxRows.length - i); else { insErr++; console.error("vin_index_staging insert error:", r.error); } }
+  if (insErr > 0 || ins !== idxRows.length) throw new Error(`vin_index_staging write incomplete (${ins}/${idxRows.length} rows, ${insErr} batch errors) - refusing to swap into live.`);
 
-  // ---- write vin_summary (per vin) ----
-  await deleteAll(env, H, "vin_summary");
+  await deleteAll(env, H, "vin_summary_staging");
   const today = new Date();
   const sumRows = keptVins.map(v => {
     const apps = byVin.get(v).slice().sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
@@ -264,7 +278,16 @@ export async function buildVinIndex(env, { reportOnly = false } = {}) {
     };
   });
   let sins = 0, sumErr = 0;
-  for (let i = 0; i < sumRows.length; i += 500) { const r = await supabaseInsert("vin_summary", sumRows.slice(i, i + 500), env.supabaseUrl, env.supabaseKey); if (!r.error) sins += Math.min(500, sumRows.length - i); else { sumErr++; console.error("vin_summary insert error:", r.error); } }
+  for (let i = 0; i < sumRows.length; i += 500) { const r = await supabaseInsert("vin_summary_staging", sumRows.slice(i, i + 500), env.supabaseUrl, env.supabaseKey); if (!r.error) sins += Math.min(500, sumRows.length - i); else { sumErr++; console.error("vin_summary_staging insert error:", r.error); } }
+  if (sumErr > 0 || sins !== sumRows.length) throw new Error(`vin_summary_staging write incomplete (${sins}/${sumRows.length} rows, ${sumErr} batch errors) - refusing to swap into live.`);
+
+  // ---- ATOMIC SWAP: promote the fully-written staging tables to live in one transaction ----
+  // Both staging tables are complete (checked above) before this fires. A kill/cancel/timeout of THIS
+  // process before the RPC call returns either never triggered the swap (live tables untouched) or hit
+  // a server-side transaction Postgres commits wholly or rolls back wholly - vin_index/vin_summary are
+  // never observed mid-truncate by any reader.
+  const swapRes = await fetch(`${env.supabaseUrl}/rest/v1/rpc/swap_vin_index`, { method: "POST", headers: { ...H, "Content-Type": "application/json", Prefer: "return=minimal" }, body: "{}" });
+  if (!swapRes.ok) { const body = await swapRes.text().catch(() => ""); throw new Error(`swap_vin_index RPC failed (${swapRes.status}): ${body.slice(0, 200)} - staging is complete but NOT promoted; live tables untouched.`); }
 
   // Record the build stats to app_usage_events so shortChassisSplit / polluted / counts are queryable
   // from the DB (not only the Actions stdout log). Best-effort; never fails the build.
