@@ -616,10 +616,26 @@ function realVin(v) { return /^[A-Z0-9]{5,17}$/.test(v) && /\d/.test(v); }
 function saneFamily(f) { return !!f && f.length <= 32 && !/\d{6,}|\bvin\b|frame|engine no|chassis/i.test(f); }
 // One pass over vin_index (cached 6h per instance): every VIN classified into the rollout groups.
 let ROLL = null, ROLL_AT = 0;
-async function rollout(env) {
+// STOPGAP (Oct 2026): rollout() was growing past the 300s function ceiling (confirmed live 504 on
+// sitemap-vins.xml/motorcycles/other) as vin_index grows. A WALL-CLOCK budget covering the whole
+// function - not a fixed candidate-count cap - is the robust fix: whichever stage is slow on a given
+// day (the scan, the shared carIdentity()/vinAppearances() validation, or hub naming), the function
+// always returns within budget with whatever it validated so far, never a 504. Candidates are sorted
+// MOST-RECENT-FIRST before validating, so a time-cut keeps the freshest, most valuable pages. This is
+// a stopgap: the real fix is scripts/buildVinRolloutCache.js precomputing this nightly into a table
+// (same pattern as spec_pages), with this live path as the fallback only until that table has rows -
+// see sitemap()'s table-read-first logic below.
+// opts.budgetMs: the live request path (serverless, 300s ceiling) always uses the 180s default.
+// scripts/buildVinRolloutCache.js (the nightly precompute, no serverless ceiling) passes a much larger
+// budget so its ONE nightly run computes the complete, uncut set - the same rollout(), never a second
+// implementation, just a bigger clock for the one caller that can afford it.
+async function rollout(env, opts = {}) {
   if (ROLL && Date.now() - ROLL_AT < 6 * 3600e3) return ROLL;
+  const t0 = Date.now();
+  const BUDGET_MS = opts.budgetMs || 180000;   // 180s default, leaving 120s of margin under Vercel's 300s ceiling
   const per = new Map();
   for (let page = 0; page < 200; page++) {
+    if (Date.now() - t0 > BUDGET_MS) break;
     const rows = await supabaseSelectSafe(env, `vin_index?select=vin_norm,year,make,model_family,listing_title,photo_url,vehicle_type,appearance_date,result&order=id.asc&limit=1000&offset=${page * 1000}`);
     if (!Array.isArray(rows) || !rows.length) break;
     for (const r of rows) {
@@ -655,8 +671,13 @@ async function rollout(env) {
   // with its kind and running them through the SAME batches adds only the ~40 extra moto/other
   // candidates to the existing round count, instead of two whole extra sequential rounds.
   const vins = [], motos = [], others = [];
-  const allCands = [...multi.map(x => ({ ...x, kind: "car" })), ...motoMulti.map(x => ({ ...x, kind: "moto" })), ...otherMulti.map(x => ({ ...x, kind: "other" }))];
+  // Most-recent-first (stopgap): when the budget cuts the loop short, the VINs already validated are
+  // the freshest ones, not an arbitrary slice.
+  const allCands = [...multi.map(x => ({ ...x, kind: "car" })), ...motoMulti.map(x => ({ ...x, kind: "moto" })), ...otherMulti.map(x => ({ ...x, kind: "other" }))]
+    .sort((a, b) => String(b.g.date || "").localeCompare(String(a.g.date || "")));
+  let validatedCandidates = 0, budgetCut = false;
   for (let i = 0; i < allCands.length; i += 40) {
+    if (Date.now() - t0 > BUDGET_MS) { budgetCut = true; break; }
     // The page's OWN identity check and canonical slug, so the sitemap never lists a page that 404s
     // or redirects: same appearances, same carIdentity, same index rule as carPage.
     const part = await Promise.all(allCands.slice(i, i + 40).map(async ({ vin, g, kind }) => {
@@ -672,16 +693,20 @@ async function rollout(env) {
         return { kind, vin, loc: `${SITE}/history/${id.slug}/${vin}`, lastmod: (g.date || "").slice(0, 10), photos };
       } catch { return null; }
     }));
+    validatedCandidates += part.length;
     for (const u of part) {
       if (!u) { continue; }
       (u.kind === "car" ? vins : u.kind === "moto" ? motos : others).push(u);
     }
   }
-  counts.no_proper_title += multi.length - vins.length;   // cars that failed the identity/price gate (original semantics)
+  counts.no_proper_title += multi.length - vins.length;   // cars that failed the identity/price gate (original semantics; a budget cut also lands here as "not yet validated", visible via the fields below)
+  counts.rollout_budget_cut = budgetCut; counts.rollout_ms = Date.now() - t0; counts.rollout_candidates_validated = validatedCandidates; counts.rollout_candidates_total = allCands.length;
   // Hubs pass the hub page's own rule: the resolver names the make and model, or (fallback) the make
-  // is known and the hub has 5+ sales, named from the archive's model, cleaned.
+  // is known and the hub has 5+ sales, named from the archive's model, cleaned. Same budget: stop
+  // naming further hubs once the deadline is close, rather than risk the 504 here instead.
   const hubKeys = [...hubs.keys()], okHubs = [], fallback = [];
   for (let i = 0; i < hubKeys.length; i += 50) {
+    if (Date.now() - t0 > BUDGET_MS) break;
     const part = await Promise.all(hubKeys.slice(i, i + 50).map(async k => {
       const v = await resolveText(k.replace(/-/g, " ")); if (v && v.make && v.model) return { k };
       const h = hubs.get(k); if (h.sales < 5) return null;
@@ -698,11 +723,27 @@ async function rollout(env) {
   ROLL = { counts, hubs: okHubs.sort(), hubPhotos, vins, motos, others, fallback, merged: [...merged.entries()].map(([from, to]) => ({ from: "/history/" + from, to: "/history/" + to })) }; ROLL_AT = Date.now();
   return ROLL;
 }
+// Exported for scripts/buildVinRolloutCache.js (the nightly precompute) to call directly - the ONE
+// rollout(), never a second implementation, just a caller with a bigger time budget.
+export { rollout };
+// Serve-from-table first (rule 11, same pattern as api/specPage.js's spec_pages): the nightly
+// scripts/buildVinRolloutCache.js precomputes the full, uncut rollout() into vin_rollout_cache. Reading
+// it is one cheap query - no scan, no per-VIN validation - so the sitemaps are always fast regardless
+// of vin_index size. Falls back to the live, time-budgeted rollout() (the stopgap above) only when the
+// table has no row yet (before the DDL/first nightly run land).
+async function rolloutCached(env) {
+  if (ROLL && Date.now() - ROLL_AT < 6 * 3600e3) return ROLL;
+  if (env) {
+    const rows = await supabaseSelectSafe(env, `vin_rollout_cache?key=eq.current&select=data,computed_at&limit=1`);
+    if (Array.isArray(rows) && rows[0] && rows[0].data) { ROLL = rows[0].data; ROLL_AT = Date.now(); return ROLL; }
+  }
+  return rollout(env);
+}
 async function sitemap(res, env, which) {
-  if (which === "stats") { const r = await rollout(env); res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store"); return res.status(200).send(JSON.stringify({ ...r.counts, fallback_examples: r.fallback.slice().sort((a, b) => b.sales - a.sales).slice(0, 20), alias_merged: r.merged }, null, 1)); }
+  if (which === "stats") { const r = await rolloutCached(env); res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store"); return res.status(200).send(JSON.stringify({ ...r.counts, fallback_examples: r.fallback.slice().sort((a, b) => b.sales - a.sales).slice(0, 20), alias_merged: r.merged }, null, 1)); }
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
   res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=86400");
-  const r = await rollout(env);
+  const r = await rolloutCached(env);
   const urlset = list => `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${list.map(u => `<url><loc>${xmlEsc(u.loc)}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ""}</url>`).join("")}</urlset>`;
   if (which === "index") {
     const pages = Math.max(1, Math.ceil(r.vins.length / SITEMAP_PAGE));   // (dead-photo pages are dropped inside each page)

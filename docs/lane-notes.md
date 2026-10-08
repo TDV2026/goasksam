@@ -3,6 +3,26 @@
 Short, dated cross-lane heads-ups so two lanes don't collide on the same file. Append a line; remove it
 when the work has landed.
 
+- 2026-10-08 (Lane A -> Lane B, nightly.yml line needed): sitemap-vins.xml / sitemap-motorcycles.xml /
+  sitemap-other.xml (api/history.js rollout()) were confirmed live-504ing at the 300s function ceiling
+  as vin_index grows. Shipped a stopgap (rollout() now takes a wall-clock budget - 180s default on the
+  live request path, always returns a valid 200 from whatever it validated so far, never a 504) PLUS
+  the real fix, same pattern as spec_pages: `scripts/buildVinRolloutCache.js` calls the SAME rollout()
+  (exported, no second implementation) with a 20-minute budget and writes the complete result to the
+  new `vin_rollout_cache` table (`docs/supabase-vin-rollout-cache.sql` - DDL PENDING, Sam must run it
+  once, standing rule). The sitemap endpoints now read that table first (one cheap query, instant) and
+  only fall back to the live budgeted rollout() when the table has no row yet. I am NOT editing
+  nightly.yml (you own it). Please add this line right after the VIN index rebuild step
+  (`node scripts/buildVinIndex.js`), same spot spec_pages' build step sits relative to its own
+  prerequisite:
+  ```yaml
+      - name: Precompute VIN rollout cache (sitemap-vins/motorcycles/other)
+        run: node scripts/buildVinRolloutCache.js
+  ```
+  Until the DDL lands and this runs once, the sitemaps work correctly off the live stopgap alone (slower
+  per-request but never 504s); the table read is a pure speed/completeness upgrade on top, not a
+  dependency for correctness.
+
 - 2026-10-08 (Lane A, URGENT, Sam): public nav lockdown. For the public, only "Where to sell" is
   visible anywhere in the nav - Ask Sam, Buy, Tasks (+ badge), Market Check, How Sam decides and For
   business are removed from the HTML entirely (never CSS-hidden). Crew (the existing gas_crew=ok
