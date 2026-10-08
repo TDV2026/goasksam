@@ -1,9 +1,11 @@
 // /market-check (Oct 2026, search rules 1/3/5): the public SSR entry for Market Check (the One Box
 // engine). Reads onebox.html as the client template (the same file /onebox always served) and splices
 // in what a crawler must see in the raw HTML before any script runs: a unique title, the canonical, a
-// dated lead sentence (date only, no count - lib/asOf.js's shared asOfDate(), the same helper /sell
-// uses; one copy, never a second), and the H1/sub the client's own renderEmpty() draws (kept in
-// lockstep so there is no visible flash on hydration - js/onebox.js's h1 text matches this file's H1).
+// dated lead sentence (date only, no count - lib/asOf.js's shared lastUpdatedDate(), the real last
+// successful ingest date, the same helper /sell uses; one copy, never a second; null-safe - the lead
+// drops the date clause entirely rather than ever showing a made-up one), and the H1/sub the client's
+// own renderEmpty() draws (kept in lockstep so there is no visible flash on hydration - js/onebox.js's
+// h1 text matches this file's H1).
 //
 // PUBLIC LAUNCH (Oct 2026, Sam: "index Market Check now, the same as /buy"): the pre-launch crew/tester
 // access gate (hide-until-flag-resolves + invite-code exchange + redirect home on a non-public flag) is
@@ -15,7 +17,8 @@
 // with THIS canonical (bare /market-check) - rule 2, one URL per object.
 import fs from "node:fs";
 import path from "node:path";
-import { asOfDate } from "../lib/asOf.js";
+import { lastUpdatedDate } from "../lib/asOf.js";
+import { supabaseEnv } from "../lib/_supabase.js";
 
 const TITLE = "Market Check: what could your car bring?";
 const H1 = "What could mine bring?";
@@ -36,8 +39,11 @@ function stripLaunchGate(html) {
 
 export default async function handler(req, res) {
   if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "onebox.html"), "utf8");
-  // Date only, no count (Oct 2026, Sam): the shared "as of" date (lib/asOf.js), same helper /sell uses.
-  const lead = `GoAskSam reads real auction sales every night, as of ${asOfDate()}.`;
+  // Date only, no count (Oct 2026, Sam): the real last-ingest date (lib/asOf.js lastUpdatedDate()),
+  // the same shared helper /sell uses. Null-safe: no date clause when it cannot be read, never a
+  // made-up one.
+  const updated = await lastUpdatedDate(supabaseEnv()).catch(() => null);
+  const lead = updated ? `GoAskSam reads real auction sales every night, as of ${updated}.` : `GoAskSam reads real auction sales every night.`;
   // Rule 2: ANY query string is a variant (?q=, ?tester=, ?crew=) and stays noindex with the bare
   // /market-check as canonical - never its own indexed URL.
   const hasQuery = /\?./.test(String(req.url || ""));

@@ -18,7 +18,13 @@ landing page. Crew-only surfaces (`/desk`, keyed ops endpoints) are out of scope
    and numbers never go stale.
    *Accepted alternative (Sam, Oct 2026):* a lead computed per request from the live tables and cached
    briefly also meets this rule, because it can never go stale. In use: `/buy` (the live count, cached
-   10 minutes, api/buy.js) and `/sell` (the last 12 months' sale count, cached 1 hour, api/sellPage.js).
+   10 minutes, api/buy.js) and `/market-check` (date only, no count, `lib/asOf.js asOfDate()`).
+   *Named exception - /sell (Sam, Oct 2026):* `/sell` carries no dated lead sentence at all. In its
+   place is a quiet "Updated [date]" line under the hero (the real last successful ingest date,
+   `lib/asOf.js lastUpdatedDate()`, never a made-up date, no count) - this alone satisfies rule 1 for
+   `/sell` specifically. `scripts/searchCheck.js` enforces this as a named, `/sell`-only exception (text
+   pattern `Updated [Month] [Day], [Year]`); every other page keeps the full dated-lead-sentence
+   requirement unchanged.
 
 2. **One URL per object.** A car, a spec, a generation, a make, and a month of results each have exactly
    one canonical URL for life. No duplicate routes or query-string variants in the index.

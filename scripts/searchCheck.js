@@ -3,8 +3,10 @@
 // Fetches a small set of public URLs (home, /buy, /sell, /mcp, and 3 real VIN pages pulled from
 // vin_summary so the check maintains itself) and FAILS (exit 1) if any page has a missing or duplicate
 // <title>, a missing <h1>, no lead sentence, no <link rel=canonical>, or is noindex yet present in a
-// sitemap. Runs in the nightly workflow AFTER the spec-cache step and logs its result to
-// app_usage_events (event_type "search_check"). Read-only, zero OldCarsData.
+// sitemap. /sell is the one named exception (rule 1): it carries a quiet "Updated [date]" line instead
+// of a dated lead sentence and that satisfies the check there - every other page stays strict. Runs in
+// the nightly workflow AFTER the spec-cache step and logs its result to app_usage_events (event_type
+// "search_check"). Read-only, zero OldCarsData.
 //
 //   node scripts/searchCheck.js [--base=https://goasksam.com] [--report]
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
@@ -23,7 +25,12 @@ function parsePage(html) {
   // Lead sentence: the explicit [data-lead-sentence] marker (the convention), else the first substantial <p>.
   let lead = (/<[^>]+data-lead-sentence[^>]*>([\s\S]*?)<\//i.exec(h) || [])[1];
   if (!strip(lead)) { for (const m of h.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)) { if (strip(m[1]).length >= 30) { lead = m[1]; break; } } }
-  return { title: strip(title), h1: strip(h1), canonical: canon, noindex, lead: strip(lead) };
+  // /sell-only exception (Oct 2026, Sam): /sell dropped its dated lead sentence for a small quiet
+  // "Updated [date]" line (lib/asOf.js lastUpdatedDate - the real last-ingest date, no count). Detected
+  // by TEXT PATTERN (not a class name) so it stays robust to markup changes: "Updated October 8, 2026"
+  // anywhere in the body. Every other page keeps the strict lead-sentence requirement unchanged.
+  const updatedLine = /\bUpdated\s+[A-Z][a-z]+\s+\d{1,2},\s+\d{4}\b/.test(strip(h));
+  return { title: strip(title), h1: strip(h1), canonical: canon, noindex, lead: strip(lead), updatedLine };
 }
 
 // The Vercel Security Checkpoint 429s automated fetches; the project bypass secret (same one warm.js
@@ -84,14 +91,17 @@ async function main() {
     if (!r.title) failures.push(`${where}: missing <title>`);
     else if (byTitle.get(r.title) > 1) failures.push(`${where}: duplicate <title> ("${r.title}")`);
     if (!r.h1) failures.push(`${where}: missing <h1>`);
-    if (!r.lead) failures.push(`${where}: no lead sentence (add [data-lead-sentence] or a substantial first <p>)`);
+    // /sell-only exception: a quiet "Updated [date]" line stands in for the dated lead sentence there.
+    // Every other page is unaffected - still requires [data-lead-sentence] or a substantial first <p>.
+    const isSell = (r.finalUrl || r.url).replace(/\/$/, "").endsWith("/sell");
+    if (!r.lead && !(isSell && r.updatedLine)) failures.push(`${where}: no lead sentence (add [data-lead-sentence] or a substantial first <p>)${isSell ? ' (or an "Updated [date]" line for /sell)' : ""}`);
     if (!r.canonical) failures.push(`${where}: no <link rel=canonical>`);
     if (r.noindex && inSitemap.has(r.finalUrl.replace(/\/$/, ""))) failures.push(`${where}: noindex page is present in a sitemap`);
   }
 
   const pass = failures.length === 0;
   console.log(`searchCheck: ${results.length} pages, ${pass ? "PASS" : failures.length + " FAILURE(S)"}`);
-  for (const r of results) console.log(`  ${r.ok ? "ok " : "ERR"} ${r.url.replace(BASE, "")}  title=${r.title ? "y" : "n"} h1=${r.h1 ? "y" : "n"} lead=${r.lead ? "y" : "n"} canon=${r.canonical ? "y" : "n"}${r.noindex ? " noindex" : ""}`);
+  for (const r of results) console.log(`  ${r.ok ? "ok " : "ERR"} ${r.url.replace(BASE, "")}  title=${r.title ? "y" : "n"} h1=${r.h1 ? "y" : "n"} lead=${r.lead ? "y" : "n"}${r.updatedLine ? " updated=y" : ""} canon=${r.canonical ? "y" : "n"}${r.noindex ? " noindex" : ""}`);
   if (!pass) { console.log("FAILURES:"); for (const f of failures) console.log(`  - ${f}`); }
 
   if (env) {
