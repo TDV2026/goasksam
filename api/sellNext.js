@@ -17,8 +17,10 @@ export default async function handler(req, res) {
     .replace(/<script>\s*\(function\(\)\{\s*try\{\s*var sent=0;[\s\S]*?<\/script>\s*/, "")
     .replace(OLD_WIZARD, "")
     .replace(/<meta name="robots" content="[^"]*"\s*\/?>/, "")
-    .replace("</head>", `<meta name="robots" content="noindex, nofollow">\n<style>${FLOW_CSS}</style>\n</head>`)
-    .replace("</body>", `<script>${FLOW_CLIENT}</script>\n</body>`);
+    // Function replacements: the client contains "$'" ("Sold $'+..."), which a replacement STRING would
+    // expand into page text and break the script.
+    .replace("</head>", () => `<meta name="robots" content="noindex, nofollow">\n<style>${FLOW_CSS}</style>\n</head>`)
+    .replace("</body>", () => `<script>${FLOW_CLIENT}</script>\n</body>`);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
   res.setHeader("Cache-Control", "private, no-store");
